@@ -28,17 +28,22 @@ const addBrunoRequestShimToContext = (vm, req) => {
   pathParams.dispose();
   tags.dispose();
 
-  // Wire req.headers as a PropertyList bridge
-  const headersObj = vm.newObject();
-  const { evalCode: headersEvalCode } = createPropertyListBridge(vm, req.headers, headersObj, {
-    globalPath: 'globalThis.req.headers',
+  // req.headers — plain headers object for backward-compatible bracket access
+  const headersVal = marshallToVm(req.getHeaders(), vm);
+  vm.setProp(reqObject, 'headers', headersVal);
+  headersVal.dispose();
+
+  // req.headerList — PropertyList bridge for structured header operations
+  const headerListObj = vm.newObject();
+  const { evalCode: headersEvalCode } = createPropertyListBridge(vm, req.headerList, headerListObj, {
+    globalPath: 'globalThis.req.headerList',
     syncReadMethods: ['get', 'has', 'count', 'indexOf', 'toObject', 'toString'],
     syncReadObjectMethods: ['one', 'all', 'idx', 'toJSON'],
     syncWriteMethods: ['add', 'append', 'prepend', 'insert', 'insertAfter', 'upsert', 'remove', 'clear', 'populate', 'repopulate', 'assimilate'],
     withIterators: true
   });
-  vm.setProp(reqObject, 'headers', headersObj);
-  headersObj.dispose();
+  vm.setProp(reqObject, 'headerList', headerListObj);
+  headerListObj.dispose();
 
   let getUrl = vm.newFunction('getUrl', function () {
     return marshallToVm(req.getUrl(), vm);
@@ -188,7 +193,7 @@ const addBrunoRequestShimToContext = (vm, req) => {
   vm.setProp(vm.global, 'req', reqObject);
   reqObject.dispose();
 
-  // Evaluate iterator code after req is on global (iterators reference globalThis.req.headers)
+  // Evaluate iterator code after req is on global (iterators reference globalThis.req.headerList)
   if (headersEvalCode) {
     vm.evalCode(headersEvalCode);
   }

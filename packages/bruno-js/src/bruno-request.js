@@ -5,7 +5,8 @@ class BrunoRequest {
    * The following properties are available as shorthand:
    * - req.url
    * - req.method
-   * - req.headers (PropertyList API for headers)
+   * - req.headers (raw headers object)
+   * - req.headerList (PropertyList API for headers)
    * - req.timeout
    * - req.body
    *
@@ -17,6 +18,7 @@ class BrunoRequest {
     this.req = req;
     this.url = req.url;
     this.method = req.method;
+    this.headers = req.headers;
     this.timeout = req.timeout;
     this.name = req.name;
     this.pathParams = req.pathParams;
@@ -38,11 +40,11 @@ class BrunoRequest {
    * Returns a HeaderList (PropertyList) for the request headers.
    * Lazily created and cached. Dynamic mode ensures reads always reflect current req.headers.
    */
-  get headers() {
-    if (!this._headers) {
-      this._headers = new HeaderList(this);
+  get headerList() {
+    if (!this._headerList) {
+      this._headerList = new HeaderList(this);
     }
-    return this._headers;
+    return this._headerList;
   }
 
   getUrl() {

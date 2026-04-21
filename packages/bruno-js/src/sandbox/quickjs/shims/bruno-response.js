@@ -51,16 +51,25 @@ const addBrunoResponseShimToContext = (vm, res) => {
   url.dispose();
   statusText.dispose();
 
-  // Wire res.headers as a read-only PropertyList bridge
-  const headersObj = vm.newObject();
-  const { evalCode: resHeadersEvalCode } = createPropertyListBridge(vm, res.headers, headersObj, {
-    globalPath: 'globalThis.res.headers',
-    syncReadMethods: ['get', 'has', 'count', 'indexOf', 'toObject', 'toString'],
-    syncReadObjectMethods: ['one', 'all', 'idx', 'toJSON'],
-    withIterators: true
-  });
-  vm.setProp(resFn, 'headers', headersObj);
-  headersObj.dispose();
+  // res.headers — plain headers object for backward-compatible bracket access
+  const headersVal = marshallToVm(res?.headers || {}, vm);
+  vm.setProp(resFn, 'headers', headersVal);
+  headersVal.dispose();
+
+  // res.headerList — read-only PropertyList bridge for structured header operations
+  let resHeadersEvalCode = '';
+  if (res?.headerList) {
+    const headerListObj = vm.newObject();
+    const bridge = createPropertyListBridge(vm, res.headerList, headerListObj, {
+      globalPath: 'globalThis.res.headerList',
+      syncReadMethods: ['get', 'has', 'count', 'indexOf', 'toObject', 'toString'],
+      syncReadObjectMethods: ['one', 'all', 'idx', 'toJSON'],
+      withIterators: true
+    });
+    resHeadersEvalCode = bridge.evalCode;
+    vm.setProp(resFn, 'headerList', headerListObj);
+    headerListObj.dispose();
+  }
 
   let getStatusText = vm.newFunction('getStatusText', function () {
     return marshallToVm(res.getStatusText(), vm);
@@ -119,7 +128,7 @@ const addBrunoResponseShimToContext = (vm, res) => {
   vm.setProp(vm.global, 'res', resFn);
   resFn.dispose();
 
-  // Evaluate iterator code after res is on global (iterators reference globalThis.res.headers)
+  // Evaluate iterator code after res is on global (iterators reference globalThis.res.headerList)
   if (resHeadersEvalCode) {
     vm.evalCode(resHeadersEvalCode);
   }

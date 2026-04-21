@@ -4,7 +4,7 @@ const ReadOnlyPropertyList = require('../src/readonly-property-list');
 const BrunoRequest = require('../src/bruno-request');
 const BrunoResponse = require('../src/bruno-response');
 
-describe('HeaderList (req.headers)', () => {
+describe('HeaderList (req.headerList)', () => {
   const defaultHeaders = {
     'Content-Type': 'application/json',
     'Authorization': 'Bearer token123',
@@ -14,7 +14,7 @@ describe('HeaderList (req.headers)', () => {
   function createReqHeaders(headers = defaultHeaders) {
     const rawReq = { url: 'https://example.com', method: 'GET', headers: { ...headers } };
     const brunoReq = new BrunoRequest(rawReq);
-    return { list: brunoReq.headers, brunoReq, rawReq };
+    return { list: brunoReq.headerList, brunoReq, rawReq };
   }
 
   // ── Inheritance ────────────────────────────────────────────────────────
@@ -217,15 +217,6 @@ describe('HeaderList (req.headers)', () => {
       expect(list.count()).toBe(1);
       expect(list.get('X-Only')).toBe('one');
     });
-
-    test('bracket access reflects headers replaced via BrunoRequest.setHeaders', () => {
-      const { list, brunoReq } = createReqHeaders();
-      expect(list['Content-Type']).toBe('application/json');
-      brunoReq.setHeaders({ 'X-Only': 'one' });
-      expect(list['X-Only']).toBe('one');
-      expect(list['Content-Type']).toBeUndefined();
-      expect(Object.keys(list)).toEqual(['X-Only']);
-    });
   });
 
   // ── Write methods ─────────────────────────────────────────────────────
@@ -420,66 +411,21 @@ describe('HeaderList (req.headers)', () => {
     });
   });
 
-  // ── Backward compatibility (bracket access) ────────────────────────
+  // ── req.headers is the raw headers object ─────────────────────────────
 
-  describe('backward compatibility (bracket access)', () => {
-    test('bracket read returns header value', () => {
-      const { list } = createReqHeaders();
-      expect(list['Content-Type']).toBe('application/json');
-      expect(list['Authorization']).toBe('Bearer token123');
+  describe('req.headers (raw object access)', () => {
+    test('req.headers returns the raw headers object', () => {
+      const rawReq = { url: 'https://example.com', method: 'GET', headers: { 'X-Test': 'val' } };
+      const brunoReq = new BrunoRequest(rawReq);
+      expect(brunoReq.headers).toBe(rawReq.headers);
+      expect(brunoReq.headers['X-Test']).toBe('val');
     });
 
-    test('bracket read returns undefined for missing header', () => {
-      const { list } = createReqHeaders();
-      expect(list['X-Missing']).toBeUndefined();
-    });
-
-    test('bracket assignment sets header on raw request', () => {
-      const { list, rawReq } = createReqHeaders();
-      list['X-Custom'] = 'test';
-      expect(rawReq.headers['X-Custom']).toBe('test');
-      expect(list.get('X-Custom')).toBe('test');
-    });
-
-    test('bracket assignment overwrites existing header', () => {
-      const { list, rawReq } = createReqHeaders();
-      list['Content-Type'] = 'text/plain';
-      expect(rawReq.headers['Content-Type']).toBe('text/plain');
-    });
-
-    test('delete operator removes header and tracks in __headersToDelete', () => {
-      const { list, rawReq } = createReqHeaders();
-      delete list['Accept'];
-      expect(rawReq.headers['Accept']).toBeUndefined();
-      expect(rawReq.__headersToDelete).toContain('Accept');
-    });
-
-    test('Object.keys() returns header names', () => {
-      const { list } = createReqHeaders();
-      expect(Object.keys(list)).toEqual(['Content-Type', 'Authorization', 'Accept']);
-    });
-
-    test('"in" operator checks header existence', () => {
-      const { list } = createReqHeaders();
-      expect('Content-Type' in list).toBe(true);
-      expect('X-Missing' in list).toBe(false);
-    });
-
-    test('"in" operator also finds PropertyList methods', () => {
-      const { list } = createReqHeaders();
-      expect('get' in list).toBe(true);
-      expect('all' in list).toBe(true);
-    });
-
-    test('PropertyList methods still work alongside bracket access', () => {
-      const { list } = createReqHeaders();
-      // Bracket access
-      expect(list['Content-Type']).toBe('application/json');
-      // PropertyList method
-      expect(list.get('Content-Type')).toBe('application/json');
-      // Both reflect the same data
-      list.add({ key: 'X-New', value: 'val' });
-      expect(list['X-New']).toBe('val');
+    test('bracket access works for any header name including method names', () => {
+      const rawReq = { url: 'https://example.com', method: 'GET', headers: { filter: 'my-value', get: 'other' } };
+      const brunoReq = new BrunoRequest(rawReq);
+      expect(brunoReq.headers['filter']).toBe('my-value');
+      expect(brunoReq.headers['get']).toBe('other');
     });
   });
 
@@ -503,17 +449,17 @@ describe('HeaderList (req.headers)', () => {
       expect(list.has('X-Empty', '')).toBe(true);
     });
 
-    test('req.headers is lazily created and cached', () => {
+    test('req.headerList is lazily created and cached', () => {
       const rawReq = { url: 'https://example.com', method: 'GET', headers: {} };
       const brunoReq = new BrunoRequest(rawReq);
-      const list1 = brunoReq.headers;
-      const list2 = brunoReq.headers;
+      const list1 = brunoReq.headerList;
+      const list2 = brunoReq.headerList;
       expect(list1).toBe(list2);
     });
   });
 });
 
-describe('Response Headers (res.headers)', () => {
+describe('Response Headers (res.headerList)', () => {
   const defaultHeaders = {
     'content-type': 'application/json',
     'x-request-id': 'abc-123',
@@ -529,43 +475,44 @@ describe('Response Headers (res.headers)', () => {
       responseTime: 42
     };
     const brunoRes = new BrunoResponse(rawRes);
-    return { headers: brunoRes.headers, brunoRes, rawRes };
+    return { headerList: brunoRes.headerList, brunoRes, rawRes };
   }
 
   // ── Inheritance ────────────────────────────────────────────────────────
 
-  test('is a ReadOnlyPropertyList', () => {
-    const { headers } = createResHeaders();
-    expect(headers).toBeInstanceOf(ReadOnlyPropertyList);
+  test('is a HeaderList', () => {
+    const { headerList } = createResHeaders();
+    expect(headerList).toBeInstanceOf(HeaderList);
+    expect(headerList).toBeInstanceOf(ReadOnlyPropertyList);
   });
 
   test('ReadOnlyPropertyList.isPropertyList returns true', () => {
-    const { headers } = createResHeaders();
-    expect(ReadOnlyPropertyList.isPropertyList(headers)).toBe(true);
+    const { headerList } = createResHeaders();
+    expect(ReadOnlyPropertyList.isPropertyList(headerList)).toBe(true);
   });
 
   // ── Read methods ──────────────────────────────────────────────────────
 
   describe('read methods', () => {
     test('get() returns header value by key', () => {
-      const { headers } = createResHeaders();
-      expect(headers.get('content-type')).toBe('application/json');
-      expect(headers.get('x-request-id')).toBe('abc-123');
+      const { headerList } = createResHeaders();
+      expect(headerList.get('content-type')).toBe('application/json');
+      expect(headerList.get('x-request-id')).toBe('abc-123');
     });
 
     test('get() returns undefined for missing header', () => {
-      const { headers } = createResHeaders();
-      expect(headers.get('X-Missing')).toBeUndefined();
+      const { headerList } = createResHeaders();
+      expect(headerList.get('X-Missing')).toBeUndefined();
     });
 
     test('one() returns full header object', () => {
-      const { headers } = createResHeaders();
-      expect(headers.one('content-type')).toEqual({ key: 'content-type', value: 'application/json' });
+      const { headerList } = createResHeaders();
+      expect(headerList.one('content-type')).toEqual({ key: 'content-type', value: 'application/json' });
     });
 
     test('all() returns array of { key, value } objects', () => {
-      const { headers } = createResHeaders();
-      const all = headers.all();
+      const { headerList } = createResHeaders();
+      const all = headerList.all();
       expect(all).toHaveLength(3);
       expect(all).toEqual([
         { key: 'content-type', value: 'application/json' },
@@ -575,18 +522,18 @@ describe('Response Headers (res.headers)', () => {
     });
 
     test('count() returns number of headers', () => {
-      const { headers } = createResHeaders();
-      expect(headers.count()).toBe(3);
+      const { headerList } = createResHeaders();
+      expect(headerList.count()).toBe(3);
     });
 
     test('idx() returns header at position', () => {
-      const { headers } = createResHeaders();
-      expect(headers.idx(1)).toEqual({ key: 'x-request-id', value: 'abc-123' });
+      const { headerList } = createResHeaders();
+      expect(headerList.idx(1)).toEqual({ key: 'x-request-id', value: 'abc-123' });
     });
 
     test('indexOf() finds structurally-equal header', () => {
-      const { headers } = createResHeaders();
-      expect(headers.indexOf({ key: 'content-type', value: 'application/json' })).toBe(0);
+      const { headerList } = createResHeaders();
+      expect(headerList.indexOf({ key: 'content-type', value: 'application/json' })).toBe(0);
     });
   });
 
@@ -594,26 +541,26 @@ describe('Response Headers (res.headers)', () => {
 
   describe('search methods', () => {
     test('has() checks key existence', () => {
-      const { headers } = createResHeaders();
-      expect(headers.has('content-type')).toBe(true);
-      expect(headers.has('X-Missing')).toBe(false);
+      const { headerList } = createResHeaders();
+      expect(headerList.has('content-type')).toBe(true);
+      expect(headerList.has('X-Missing')).toBe(false);
     });
 
     test('has() checks key and value', () => {
-      const { headers } = createResHeaders();
-      expect(headers.has('content-type', 'application/json')).toBe(true);
-      expect(headers.has('content-type', 'text/plain')).toBe(false);
+      const { headerList } = createResHeaders();
+      expect(headerList.has('content-type', 'application/json')).toBe(true);
+      expect(headerList.has('content-type', 'text/plain')).toBe(false);
     });
 
     test('find() returns first matching header', () => {
-      const { headers } = createResHeaders();
-      const found = headers.find((h) => h.key.startsWith('x-'));
+      const { headerList } = createResHeaders();
+      const found = headerList.find((h) => h.key.startsWith('x-'));
       expect(found).toEqual({ key: 'x-request-id', value: 'abc-123' });
     });
 
     test('filter() returns matching headers', () => {
-      const { headers } = createResHeaders();
-      const result = headers.filter((h) => h.key.includes('-'));
+      const { headerList } = createResHeaders();
+      const result = headerList.filter((h) => h.key.includes('-'));
       expect(result).toHaveLength(3);
     });
   });
@@ -622,21 +569,21 @@ describe('Response Headers (res.headers)', () => {
 
   describe('iteration methods', () => {
     test('each() iterates over all headers', () => {
-      const { headers } = createResHeaders();
+      const { headerList } = createResHeaders();
       const keys = [];
-      headers.each((h) => keys.push(h.key));
+      headerList.each((h) => keys.push(h.key));
       expect(keys).toEqual(['content-type', 'x-request-id', 'cache-control']);
     });
 
     test('map() transforms headers', () => {
-      const { headers } = createResHeaders();
-      const values = headers.map((h) => h.value);
+      const { headerList } = createResHeaders();
+      const values = headerList.map((h) => h.value);
       expect(values).toEqual(['application/json', 'abc-123', 'no-cache']);
     });
 
     test('reduce() accumulates headers', () => {
-      const { headers } = createResHeaders();
-      const result = headers.reduce((acc, h) => {
+      const { headerList } = createResHeaders();
+      const result = headerList.reduce((acc, h) => {
         acc[h.key] = h.value;
         return acc;
       }, {});
@@ -648,50 +595,34 @@ describe('Response Headers (res.headers)', () => {
 
   describe('transform methods', () => {
     test('toObject() returns plain key-value map', () => {
-      const { headers } = createResHeaders();
-      expect(headers.toObject()).toEqual(defaultHeaders);
+      const { headerList } = createResHeaders();
+      expect(headerList.toObject()).toEqual(defaultHeaders);
     });
 
     test('toString() returns semicolon-separated string', () => {
-      const { headers } = createResHeaders({ a: '1', b: '2' });
-      expect(headers.toString()).toBe('a=1; b=2');
+      const { headerList } = createResHeaders({ a: '1', b: '2' });
+      expect(headerList.toString()).toBe('a=1; b=2');
     });
 
     test('toJSON() returns same as all()', () => {
-      const { headers } = createResHeaders();
-      expect(headers.toJSON()).toEqual(headers.all());
+      const { headerList } = createResHeaders();
+      expect(headerList.toJSON()).toEqual(headerList.all());
     });
   });
 
-  // ── Backward compatibility (bracket access) ────────────────────────
+  // ── res.headers is the raw headers object ─────────────────────────────
 
-  describe('backward compatibility (bracket access)', () => {
-    test('bracket read returns header value', () => {
-      const { headers } = createResHeaders();
-      expect(headers['content-type']).toBe('application/json');
-      expect(headers['x-request-id']).toBe('abc-123');
+  describe('res.headers (raw object access)', () => {
+    test('res.headers returns the raw headers object', () => {
+      const rawRes = { status: 200, statusText: 'OK', headers: { 'content-type': 'text/html' }, data: null };
+      const brunoRes = new BrunoResponse(rawRes);
+      expect(brunoRes.headers['content-type']).toBe('text/html');
     });
 
-    test('bracket read returns undefined for missing header', () => {
-      const { headers } = createResHeaders();
-      expect(headers['X-Missing']).toBeUndefined();
-    });
-
-    test('Object.keys() returns header names', () => {
-      const { headers } = createResHeaders();
-      expect(Object.keys(headers)).toEqual(['content-type', 'x-request-id', 'cache-control']);
-    });
-
-    test('"in" operator checks header existence', () => {
-      const { headers } = createResHeaders();
-      expect('content-type' in headers).toBe(true);
-      expect('X-Missing' in headers).toBe(false);
-    });
-
-    test('PropertyList methods still work alongside bracket access', () => {
-      const { headers } = createResHeaders();
-      expect(headers['content-type']).toBe('application/json');
-      expect(headers.get('content-type')).toBe('application/json');
+    test('bracket access works for any header name including method names', () => {
+      const rawRes = { status: 200, statusText: 'OK', headers: { filter: 'my-value' }, data: null };
+      const brunoRes = new BrunoResponse(rawRes);
+      expect(brunoRes.headers['filter']).toBe('my-value');
     });
   });
 
@@ -699,24 +630,26 @@ describe('Response Headers (res.headers)', () => {
 
   describe('edge cases', () => {
     test('works with empty headers', () => {
-      const { headers } = createResHeaders({});
-      expect(headers.count()).toBe(0);
-      expect(headers.all()).toEqual([]);
-      expect(headers.toObject()).toEqual({});
+      const { headerList } = createResHeaders({});
+      expect(headerList.count()).toBe(0);
+      expect(headerList.all()).toEqual([]);
+      expect(headerList.toObject()).toEqual({});
     });
 
     test('works with null response', () => {
       const brunoRes = new BrunoResponse(null);
-      expect(brunoRes.headers.count()).toBe(0);
-      expect(brunoRes.headers.all()).toEqual([]);
+      expect(brunoRes.headerList.count()).toBe(0);
+      expect(brunoRes.headerList.all()).toEqual([]);
     });
 
-    test('response headers are read-only (static mode, no mutation methods)', () => {
-      const { headers } = createResHeaders();
-      // ReadOnlyPropertyList does not have add/remove/clear methods
-      expect(typeof headers.add).toBe('undefined');
-      expect(typeof headers.remove).toBe('undefined');
-      expect(typeof headers.clear).toBe('undefined');
+    test('response headers are read-only (write methods throw)', () => {
+      const { headerList } = createResHeaders();
+      expect(() => headerList.add({ key: 'X-New', value: 'val' })).toThrow('read-only');
+      expect(() => headerList.remove('content-type')).toThrow('read-only');
+      expect(() => headerList.clear()).toThrow('read-only');
+      expect(() => headerList.upsert({ key: 'X-New', value: 'val' })).toThrow('read-only');
+      expect(() => headerList.populate([])).toThrow('read-only');
+      expect(() => headerList.assimilate([])).toThrow('read-only');
     });
   });
 });

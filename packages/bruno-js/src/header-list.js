@@ -1,13 +1,14 @@
 const PropertyList = require('./property-list');
 const ReadOnlyPropertyList = require('./readonly-property-list');
-const { createHeadersProxy } = require('./headers-proxy');
 
 /**
- * HeaderList — the `req.headers` API for reading and writing headers in scripts.
+ * HeaderList — the `req.headerList` API for reading and writing headers in scripts.
  *
  * Extends PropertyList in dynamic mode: the header list is freshly read from the
  * request's headers object on every access, and write operations delegate to the
  * BrunoRequest instance (preserving `__headersToDelete` tracking).
+ *
+ * Access: `req.headerList` (PropertyList API) vs `req.headers` (raw headers object).
  *
  * ---
  *
@@ -75,28 +76,40 @@ const { createHeadersProxy } = require('./headers-proxy');
  */
 class HeaderList extends PropertyList {
   /**
-   * @param {BrunoRequest} brunoRequest - The BrunoRequest instance wrapping the raw request
+   * @param {BrunoRequest|object} source - BrunoRequest instance (dynamic mode)
+   *   or a plain headers object (static mode).
+   * @param {object} [options]
+   * @param {boolean} [options.writable=true] - When false, write methods throw.
    */
-  constructor(brunoRequest) {
-    super({
-      keyProperty: 'key',
-      valueProperty: 'value',
-      dataSource: () => {
-        const headers = brunoRequest.req.headers || {};
-        return Object.entries(headers).map(([key, value]) => ({ key, value }));
-      }
-    });
-    this._brunoRequest = brunoRequest;
+  constructor(source, { writable = true } = {}) {
+    if (writable) {
+      // Dynamic mode — reads always reflect current req.headers
+      super({
+        keyProperty: 'key',
+        valueProperty: 'value',
+        dataSource: () => {
+          const headers = source.req.headers || {};
+          return Object.entries(headers).map(([key, value]) => ({ key, value }));
+        }
+      });
+      this._brunoRequest = source;
+    } else {
+      // Static read-only mode — snapshot of response headers
+      const rawHeaders = source || {};
+      super({
+        keyProperty: 'key',
+        valueProperty: 'value',
+        items: Object.entries(rawHeaders).map(([key, value]) => ({ key, value }))
+      });
+      this._brunoRequest = null;
+    }
+    this._writable = writable;
+  }
 
-    // Return a Proxy for backward-compatible bracket access:
-    //   req.headers['Content-Type']       → reads from raw headers
-    //   req.headers['X-Custom'] = 'val'   → delegates to setHeader
-    //   delete req.headers['X-Custom']    → delegates to deleteHeader
-    //   Object.keys(req.headers)          → returns raw header names
-    return createHeadersProxy(this, () => brunoRequest.req.headers, {
-      onSet: (name, value) => brunoRequest.setHeader(name, value),
-      onDelete: (name) => brunoRequest.deleteHeader(name)
-    });
+  _assertWritable() {
+    if (!this._writable) {
+      throw new Error('HeaderList is read-only (response headers cannot be modified)');
+    }
   }
 
   // ── Write methods (BrunoRequest delegation) ──────────────────────────
@@ -146,6 +159,7 @@ class HeaderList extends PropertyList {
    * @param {object} item - Header object with `key` and `value`.
    */
   upsert(item) {
+    this._assertWritable();
     if (!item || typeof item !== 'object' || !item.key) return;
     this._brunoRequest.setHeader(item.key, item.value);
   }
@@ -156,6 +170,7 @@ class HeaderList extends PropertyList {
    * @param {Function|string|object} predicate
    */
   remove(predicate) {
+    this._assertWritable();
     if (typeof predicate === 'function') {
       const headers = this.all();
       for (const header of headers) {
@@ -174,6 +189,7 @@ class HeaderList extends PropertyList {
    * Remove all headers from the request.
    */
   clear() {
+    this._assertWritable();
     const headers = this.all();
     for (const header of headers) {
       this._brunoRequest.deleteHeader(header.key);
@@ -185,6 +201,7 @@ class HeaderList extends PropertyList {
    * @param {Array} items - Array of `{ key, value }` objects
    */
   populate(items) {
+    this._assertWritable();
     this.clear();
     const list = Array.isArray(items) ? items : [];
     for (const item of list) {
@@ -206,6 +223,7 @@ class HeaderList extends PropertyList {
    * @param {boolean} [prune=false] - If true, clear existing items first
    */
   assimilate(source, prune) {
+    this._assertWritable();
     if (prune) {
       this.clear();
     }
