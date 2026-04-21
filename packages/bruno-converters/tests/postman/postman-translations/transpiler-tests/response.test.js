@@ -682,4 +682,94 @@ describe('Response Translation', () => {
     const translatedCode = translateCode(code);
     expect(translatedCode).toContain('expect(res.getBody()).to.have.nested.property(path)');
   });
+
+  // --- JSON Schema assertions ---------------------------
+
+  it('should translate pm.response.to.have.jsonSchema with variable reference', () => {
+    const code = 'pm.response.to.have.jsonSchema(schema);';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toBe('expect(res.getBody()).to.have.jsonSchema(schema);');
+  });
+
+  it('should translate pm.response.to.have.jsonSchema with two arguments', () => {
+    const code = 'pm.response.to.have.jsonSchema(schema, options);';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toBe('expect(res.getBody()).to.have.jsonSchema(schema, options);');
+  });
+
+  it('should translate pm.response.to.have.jsonSchema with inline object', () => {
+    const code = 'pm.response.to.have.jsonSchema({type: "object"});';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toContain('expect(res.getBody()).to.have.jsonSchema({type: "object"})');
+  });
+
+  it('should translate pm.response.to.have.jsonSchema inside a test block', () => {
+    const code = `
+        pm.test("Schema is valid", function() {
+            pm.response.to.have.jsonSchema(schema);
+        });
+        `;
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toContain('test("Schema is valid", function() {');
+    expect(translatedCode).toContain('expect(res.getBody()).to.have.jsonSchema(schema)');
+  });
+
+  it('should translate pm.response.to.have.jsonSchema with response alias', () => {
+    const code = `
+        const resp = pm.response;
+        resp.to.have.jsonSchema(schema);
+        `;
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toBe(`
+        expect(res.getBody()).to.have.jsonSchema(schema);
+        `);
+  });
+
+  // --- Negated JSON Schema assertions --------------------
+
+  it('should translate pm.response.to.not.have.jsonSchema', () => {
+    const code = 'pm.response.to.not.have.jsonSchema(schema);';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toBe('expect(res.getBody()).to.not.have.jsonSchema(schema);');
+  });
+
+  it('should translate pm.response.not.to.have.jsonSchema', () => {
+    const code = 'pm.response.not.to.have.jsonSchema(schema);';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toBe('expect(res.getBody()).not.to.have.jsonSchema(schema);');
+  });
+
+  it('should translate pm.response.to.have.not.jsonSchema', () => {
+    const code = 'pm.response.to.have.not.jsonSchema(schema);';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toBe('expect(res.getBody()).to.have.not.jsonSchema(schema);');
+  });
+
+  it('should translate pm.response.to.not.have.jsonSchema with two arguments', () => {
+    const code = 'pm.response.to.not.have.jsonSchema(schema, options);';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toBe('expect(res.getBody()).to.not.have.jsonSchema(schema, options);');
+  });
+
+  it('should translate pm.response.to.not.have.jsonSchema inside a test block', () => {
+    const code = `
+        pm.test("Schema should not match", function() {
+            pm.response.to.not.have.jsonSchema(schema);
+        });
+        `;
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toContain('test("Schema should not match", function() {');
+    expect(translatedCode).toContain('expect(res.getBody()).to.not.have.jsonSchema(schema)');
+  });
+
+  it('should translate pm.response.to.not.have.jsonSchema with response alias', () => {
+    const code = `
+        const resp = pm.response;
+        resp.to.not.have.jsonSchema(schema);
+        `;
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toBe(`
+        expect(res.getBody()).to.not.have.jsonSchema(schema);
+        `);
+  });
 });

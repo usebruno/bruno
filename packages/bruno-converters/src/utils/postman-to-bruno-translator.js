@@ -502,6 +502,74 @@ const complexTransformations = [
     }
   },
 
+  // pm.response.to.have.jsonSchema(schema, options?) -> expect(res.getBody()).to.have.jsonSchema(schema, options?)
+  {
+    pattern: 'pm.response.to.have.jsonSchema',
+    transform: (path, j) => {
+      const args = path.parent.value.arguments;
+      return j.callExpression(
+        j.memberExpression(
+          j.callExpression(j.identifier('expect'), [
+            j.callExpression(j.identifier('res.getBody'), [])
+          ]),
+          j.identifier('to.have.jsonSchema')
+        ),
+        args
+      );
+    }
+  },
+
+  // pm.response.to.not.have.jsonSchema(schema, options?) -> expect(res.getBody()).to.not.have.jsonSchema(schema, options?)
+  {
+    pattern: 'pm.response.to.not.have.jsonSchema',
+    transform: (path, j) => {
+      const args = path.parent.value.arguments;
+      return j.callExpression(
+        j.memberExpression(
+          j.callExpression(j.identifier('expect'), [
+            j.callExpression(j.identifier('res.getBody'), [])
+          ]),
+          j.identifier('to.not.have.jsonSchema')
+        ),
+        args
+      );
+    }
+  },
+
+  // pm.response.not.to.have.jsonSchema(schema, options?) -> expect(res.getBody()).not.to.have.jsonSchema(schema, options?)
+  {
+    pattern: 'pm.response.not.to.have.jsonSchema',
+    transform: (path, j) => {
+      const args = path.parent.value.arguments;
+      return j.callExpression(
+        j.memberExpression(
+          j.callExpression(j.identifier('expect'), [
+            j.callExpression(j.identifier('res.getBody'), [])
+          ]),
+          j.identifier('not.to.have.jsonSchema')
+        ),
+        args
+      );
+    }
+  },
+
+  // pm.response.to.have.not.jsonSchema(schema, options?) -> expect(res.getBody()).to.have.not.jsonSchema(schema, options?)
+  {
+    pattern: 'pm.response.to.have.not.jsonSchema',
+    transform: (path, j) => {
+      const args = path.parent.value.arguments;
+      return j.callExpression(
+        j.memberExpression(
+          j.callExpression(j.identifier('expect'), [
+            j.callExpression(j.identifier('res.getBody'), [])
+          ]),
+          j.identifier('to.have.not.jsonSchema')
+        ),
+        args
+      );
+    }
+  },
+
   // Legacy postman.getResponseHeader(name) -> res.getHeader(name)
   {
     pattern: 'pm.getResponseHeader',

@@ -7,6 +7,7 @@ const { evaluateJsTemplateLiteral, evaluateJsExpression, createResponseParser } 
 const { interpolateString } = require('../interpolate-string');
 const { executeQuickJsVm } = require('../sandbox/quickjs');
 
+const Ajv = require('ajv');
 const { expect } = chai;
 chai.use(require('chai-string'));
 chai.use(function (chai, utils) {
@@ -21,6 +22,27 @@ chai.use(function (chai, utils) {
       && (Array.isArray(obj) || Object.prototype.toString.call(obj) === '[object Object]');
 
     this.assert(isJson, `expected ${utils.inspect(obj)} to be JSON`, `expected ${utils.inspect(obj)} not to be JSON`);
+  });
+});
+
+// Custom assertion for JSON Schema validation
+chai.use(function (chai) {
+  chai.Assertion.addMethod('jsonSchema', function (schema, ajvOptions) {
+    const ajv = new Ajv({ allErrors: true, ...ajvOptions });
+    let validate;
+    try {
+      validate = ajv.compile(schema);
+    } catch (e) {
+      this.assert(false, 'JSON schema compile error: ' + e.message, 'JSON schema compile error: ' + e.message);
+    }
+    const data = this._obj;
+    const isValid = validate(data);
+
+    this.assert(
+      isValid,
+      'expected #{this} to match JSON schema, validation errors: ' + (validate.errors ? JSON.stringify(validate.errors) : 'none'),
+      'expected #{this} to not match JSON schema'
+    );
   });
 });
 
