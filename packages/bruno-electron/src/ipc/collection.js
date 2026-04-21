@@ -50,6 +50,7 @@ const {
   removePath,
   getPaths,
   generateUniqueName,
+  getUniqueSiblingName,
   isDotEnvFile,
   isValidDotEnvFilename,
   isBrunoConfigFile,
@@ -1160,18 +1161,28 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
           return `${item.name}.${format}`;
         };
 
-        // Recursive function to parse the collection items and create files/folders
+        // Recursive function to parse the collection items and create files/folders.
+        // A per-directory Set of already-claimed sibling names (lowercased) deduplicates
+        // imports case-insensitively, so collections containing siblings like `OAuth2`
+        // and `oAuth2` don't silently overwrite each other on case-insensitive
+        // filesystems (macOS APFS/HFS+, Windows NTFS by default).
         const parseCollectionItems = async (items = [], currentPath) => {
+          const usedNamesLowercase = new Set();
+
           await Promise.all(items.map(async (item) => {
             if (['http-request', 'graphql-request', 'grpc-request', 'ws-request'].includes(item.type)) {
-              let sanitizedFilename = sanitizeName(getFilenameWithFormat(item, format));
+              const sanitizedFilename = sanitizeName(getFilenameWithFormat(item, format));
+              const ext = path.extname(sanitizedFilename);
+              const base = ext ? sanitizedFilename.slice(0, -ext.length) : sanitizedFilename;
+              const uniqueFilename = getUniqueSiblingName(base, ext, usedNamesLowercase);
               const content = await stringifyRequestViaWorker(item, { format });
-              const filePath = path.join(currentPath, sanitizedFilename);
+              const filePath = path.join(currentPath, uniqueFilename);
               safeWriteFileSync(filePath, content);
             }
             if (item.type === 'folder') {
-              let sanitizedFolderName = sanitizeName(item?.filename || item?.name);
-              const folderPath = path.join(currentPath, sanitizedFolderName);
+              const sanitizedFolderName = sanitizeName(item?.filename || item?.name);
+              const uniqueFolderName = getUniqueSiblingName(sanitizedFolderName, '', usedNamesLowercase);
+              const folderPath = path.join(currentPath, uniqueFolderName);
               fs.mkdirSync(folderPath, { recursive: true });
 
               if (item?.root?.meta?.name) {
@@ -1187,8 +1198,11 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
             }
             // Handle items of type 'js'
             if (item.type === 'js') {
-              let sanitizedFilename = sanitizeName(item?.filename || `${item.name}.js`);
-              const filePath = path.join(currentPath, sanitizedFilename);
+              const sanitizedFilename = sanitizeName(item?.filename || `${item.name}.js`);
+              const ext = path.extname(sanitizedFilename);
+              const base = ext ? sanitizedFilename.slice(0, -ext.length) : sanitizedFilename;
+              const uniqueFilename = getUniqueSiblingName(base, ext, usedNamesLowercase);
+              const filePath = path.join(currentPath, uniqueFilename);
               safeWriteFileSync(filePath, item.fileContent);
             }
           }));

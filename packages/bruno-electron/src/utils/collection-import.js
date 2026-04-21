@@ -1,7 +1,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const { ipcMain } = require('electron');
-const { sanitizeName, createDirectory, writeFile, safeWriteFileSync, getCollectionStats } = require('./filesystem');
+const { sanitizeName, createDirectory, writeFile, safeWriteFileSync, getCollectionStats, getUniqueSiblingName } = require('./filesystem');
 const { generateUidBasedOnHash, stringifyJson } = require('./common');
 const { stringifyRequestViaWorker, stringifyCollection, stringifyEnvironment, stringifyFolder, DEFAULT_COLLECTION_FORMAT } = require('@usebruno/filestore');
 
@@ -33,19 +33,29 @@ async function importCollection(collection, collectionLocation, mainWindow, uniq
     throw new Error(`collection: ${collectionPath} already exists`);
   }
 
-  // Recursive function to parse the collection items and create files/folders
+  // Recursive function to parse the collection items and create files/folders.
+  // A per-directory Set of already-claimed sibling names (lowercased) deduplicates
+  // imports case-insensitively, so collections containing siblings like `OAuth2`
+  // and `oAuth2` don't silently overwrite each other on case-insensitive
+  // filesystems (macOS APFS/HFS+, Windows NTFS by default).
   const parseCollectionItems = async (items = [], currentPath) => {
+    const usedNamesLowercase = new Set();
+
     for (const item of items) {
       if (['http-request', 'graphql-request', 'grpc-request'].includes(item.type)) {
-        let sanitizedFilename = sanitizeName(item.filename || `${item.name}.${format}`);
+        const sanitizedFilename = sanitizeName(item.filename || `${item.name}.${format}`);
+        const ext = path.extname(sanitizedFilename);
+        const base = ext ? sanitizedFilename.slice(0, -ext.length) : sanitizedFilename;
+        const uniqueFilename = getUniqueSiblingName(base, ext, usedNamesLowercase);
         const content = await stringifyRequestViaWorker(item, { format });
-        const filePath = path.join(currentPath, sanitizedFilename);
+        const filePath = path.join(currentPath, uniqueFilename);
         safeWriteFileSync(filePath, content);
       }
       if (item.type === 'folder') {
-        let sanitizedFolderName = sanitizeName(item.filename || item.name);
-        const folderPath = path.join(currentPath, sanitizedFolderName);
-        fs.mkdirSync(folderPath);
+        const sanitizedFolderName = sanitizeName(item.filename || item.name);
+        const uniqueFolderName = getUniqueSiblingName(sanitizedFolderName, '', usedNamesLowercase);
+        const folderPath = path.join(currentPath, uniqueFolderName);
+        fs.mkdirSync(folderPath, { recursive: true });
 
         if (item.root?.meta?.name) {
           const folderFilePath = path.join(folderPath, `folder.${format}`);
@@ -60,8 +70,11 @@ async function importCollection(collection, collectionLocation, mainWindow, uniq
       }
       // Handle items of type 'js'
       if (item.type === 'js') {
-        let sanitizedFilename = sanitizeName(item.filename || `${item.name}.js`);
-        const filePath = path.join(currentPath, sanitizedFilename);
+        const sanitizedFilename = sanitizeName(item.filename || `${item.name}.js`);
+        const ext = path.extname(sanitizedFilename);
+        const base = ext ? sanitizedFilename.slice(0, -ext.length) : sanitizedFilename;
+        const uniqueFilename = getUniqueSiblingName(base, ext, usedNamesLowercase);
+        const filePath = path.join(currentPath, uniqueFilename);
         safeWriteFileSync(filePath, item.fileContent);
       }
     }
