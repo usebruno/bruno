@@ -1,10 +1,8 @@
 import styled from 'styled-components';
 
 const StyledWrapper = styled.div`
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  overflow: hidden;
+  display: block;
+  width: 100%;
 
   &.is-resizing {
     cursor: col-resize !important;
@@ -12,9 +10,9 @@ const StyledWrapper = styled.div`
   }
 
   .table-container {
-    overflow: auto;
     border-radius: ${(props) => props.theme.border.radius.base};
     border: solid 1px ${(props) => props.theme.border.border0};
+    overflow: clip;
   }
 
   table {
