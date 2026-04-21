@@ -193,10 +193,17 @@ const StyledWrapper = styled.div`
   }
 
   .drag-handle {
+    opacity: 0;
+    transition: opacity 0.1s ease;
+
     .icon-grip,
     .icon-minus {
       color: ${(props) => props.theme.colors.text.muted};
     }
+  }
+
+  tbody tr:hover .drag-handle {
+    opacity: 1;
   }
 
   select {

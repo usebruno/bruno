@@ -20,8 +20,8 @@ const findScrollParent = (element) => {
 
 const TableRow = React.memo(
   ({ children, item, context, ...rest }) => {
-    const rowIndex = rest['data-item-index'];
-    const { reorderable, reorderableRowCount, isLastEmptyRow, onDragStart, onDragOver, onDrop, onDragEnd, onRowMouseEnter, onRowMouseLeave } = context;
+    const rowIndex = Number(rest['data-item-index']);
+    const { reorderable, reorderableRowCount, isLastEmptyRow, onDragStart, onDragOver, onDrop, onDragEnd } = context;
     const isEmpty = isLastEmptyRow(item, rowIndex);
     const canDrag = reorderable && !isEmpty && rowIndex < reorderableRowCount;
 
@@ -33,8 +33,6 @@ const TableRow = React.memo(
         onDragOver={canDrag ? (e) => onDragOver(e, rowIndex) : undefined}
         onDrop={canDrag ? (e) => onDrop(e, rowIndex) : undefined}
         onDragEnd={canDrag ? onDragEnd : undefined}
-        onMouseEnter={() => onRowMouseEnter(rowIndex)}
-        onMouseLeave={onRowMouseLeave}
       >
         {children}
       </tr>
@@ -65,7 +63,6 @@ const EditableTable = ({
   const virtuosoRef = useRef(null);
   const emptyRowUidRef = useRef(null);
   const prevRowCountRef = useRef(0);
-  const [hoveredRow, setHoveredRow] = useState(null);
   const [resizing, setResizing] = useState(null);
   const [tableHeight, setTableHeight] = useState(0);
   const [scrollParent, setScrollParent] = useState(null);
@@ -282,10 +279,9 @@ const EditableTable = ({
     e.dataTransfer.setData('text/plain', index);
   }, []);
 
-  const handleDragOver = useCallback((e, index) => {
+  const handleDragOver = useCallback((e) => {
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
-    setHoveredRow(index);
   }, []);
 
   const reorderableRowCount = showAddRow ? rowsWithEmpty.length - 1 : rowsWithEmpty.length;
@@ -293,31 +289,16 @@ const EditableTable = ({
   const handleDrop = useCallback((e, toIndex) => {
     e.preventDefault();
     const fromIndex = parseInt(e.dataTransfer.getData('text/plain'), 10);
-    if (fromIndex !== toIndex && onReorder) {
-      const reorderableRows = showAddRow ? rowsWithEmpty.slice(0, -1) : rowsWithEmpty;
-      const updatedOrder = [...reorderableRows];
-      const [movedRow] = updatedOrder.splice(fromIndex, 1);
-      if (!movedRow) {
-        setHoveredRow(null);
-        return;
-      }
-      updatedOrder.splice(toIndex, 0, movedRow);
-      onReorder({ updateReorderedItem: updatedOrder.map((row) => row.uid) });
-    }
-    setHoveredRow(null);
+    if (fromIndex === toIndex || !onReorder) return;
+    const reorderableRows = showAddRow ? rowsWithEmpty.slice(0, -1) : rowsWithEmpty;
+    const updatedOrder = [...reorderableRows];
+    const [movedRow] = updatedOrder.splice(fromIndex, 1);
+    if (!movedRow) return;
+    updatedOrder.splice(toIndex, 0, movedRow);
+    onReorder({ updateReorderedItem: updatedOrder.map((row) => row.uid) });
   }, [onReorder, rowsWithEmpty, showAddRow]);
 
-  const handleDragEnd = useCallback(() => {
-    setHoveredRow(null);
-  }, []);
-
-  const handleRowMouseEnter = useCallback((rowIndex) => {
-    setHoveredRow(rowIndex);
-  }, []);
-
-  const handleRowMouseLeave = useCallback(() => {
-    setHoveredRow(null);
-  }, []);
+  const handleDragEnd = useCallback(() => {}, []);
 
   const renderCell = useCallback((column, row, rowIndex) => {
     const isEmpty = isLastEmptyRow(row, rowIndex);
@@ -380,10 +361,8 @@ const EditableTable = ({
     onDragStart: handleDragStart,
     onDragOver: handleDragOver,
     onDrop: handleDrop,
-    onDragEnd: handleDragEnd,
-    onRowMouseEnter: handleRowMouseEnter,
-    onRowMouseLeave: handleRowMouseLeave
-  }), [reorderable, reorderableRowCount, isLastEmptyRow, handleDragStart, handleDragOver, handleDrop, handleDragEnd, handleRowMouseEnter, handleRowMouseLeave]);
+    onDragEnd: handleDragEnd
+  }), [reorderable, reorderableRowCount, isLastEmptyRow, handleDragStart, handleDragOver, handleDrop, handleDragEnd]);
 
   const fixedHeaderContent = useCallback(() => (
     <tr>
@@ -424,18 +403,14 @@ const EditableTable = ({
                 draggable
                 className="drag-handle group absolute z-10 left-[-8px] top-1/2 -translate-y-1/2 p-1 cursor-grab"
               >
-                {hoveredRow === rowIndex && (
-                  <>
-                    <IconGripVertical
-                      size={14}
-                      className="icon-grip hidden group-hover:block"
-                    />
-                    <IconMinusVertical
-                      size={14}
-                      className="icon-minus block group-hover:hidden"
-                    />
-                  </>
-                )}
+                <IconGripVertical
+                  size={14}
+                  className="icon-grip hidden group-hover:block"
+                />
+                <IconMinusVertical
+                  size={14}
+                  className="icon-minus block group-hover:hidden"
+                />
               </div>
             )}
             {!isEmpty && (
@@ -469,7 +444,7 @@ const EditableTable = ({
         )}
       </>
     );
-  }, [showCheckbox, reorderable, reorderableRowCount, hoveredRow, isLastEmptyRow, checkboxKey, disableCheckbox, handleCheckboxChange, columns, renderCell, showDelete, handleRemoveRow]);
+  }, [showCheckbox, reorderable, reorderableRowCount, isLastEmptyRow, checkboxKey, disableCheckbox, handleCheckboxChange, columns, renderCell, showDelete, handleRemoveRow]);
 
   return (
     <StyledWrapper
