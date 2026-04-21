@@ -856,4 +856,42 @@ describe('Response Translation', () => {
     const translatedCode = translateCode(code);
     expect(translatedCode).toContain('expect(res.getBody()).to.have.not.jsonBody("status", "error")');
   });
+
+  // --- pm.response.headers PropertyList methods → res.headerList.* ------
+
+  it('should translate pm.response.headers.has to res.headerList.has', () => {
+    const code = 'const hasCt = pm.response.headers.has("Content-Type");';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toBe('const hasCt = res.headerList.has("Content-Type");');
+  });
+
+  it('should translate pm.response.headers.all to res.headerList.all', () => {
+    const code = 'const allHeaders = pm.response.headers.all();';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toBe('const allHeaders = res.headerList.all();');
+  });
+
+  it('should translate pm.response.headers.each to res.headerList.each', () => {
+    const code = 'pm.response.headers.each(h => console.log(h.key));';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toBe('res.headerList.each(h => console.log(h.key));');
+  });
+
+  it('should translate pm.response.headers.filter to res.headerList.filter', () => {
+    const code = 'const custom = pm.response.headers.filter(h => h.key.startsWith("x-"));';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toBe('const custom = res.headerList.filter(h => h.key.startsWith("x-"));');
+  });
+
+  it('should translate pm.response.headers.count to res.headerList.count', () => {
+    const code = 'const n = pm.response.headers.count();';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toBe('const n = res.headerList.count();');
+  });
+
+  it('should translate pm.response.headers.toObject to res.headerList.toObject', () => {
+    const code = 'const obj = pm.response.headers.toObject();';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toBe('const obj = res.headerList.toObject();');
+  });
 });

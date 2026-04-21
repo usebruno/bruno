@@ -156,4 +156,54 @@ describe('Request Translation', () => {
     expect(translatedCode).toContain('req.setHeader("Authorization", "Bearer token")');
     expect(translatedCode).toContain('req.setHeader("Content-Type", "application/json")');
   });
+
+  // --- pm.request.headers PropertyList methods → req.headerList.* ------
+
+  it('should translate pm.request.headers.get to req.headerList.get', () => {
+    const code = 'const ct = pm.request.headers.get("Content-Type");';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toBe('const ct = req.headerList.get("Content-Type");');
+  });
+
+  it('should translate pm.request.headers.has to req.headerList.has', () => {
+    const code = 'const hasAuth = pm.request.headers.has("Authorization");';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toBe('const hasAuth = req.headerList.has("Authorization");');
+  });
+
+  it('should translate pm.request.headers.all to req.headerList.all', () => {
+    const code = 'const allHeaders = pm.request.headers.all();';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toBe('const allHeaders = req.headerList.all();');
+  });
+
+  it('should translate pm.request.headers.each to req.headerList.each', () => {
+    const code = 'pm.request.headers.each(h => console.log(h.key));';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toBe('req.headerList.each(h => console.log(h.key));');
+  });
+
+  it('should translate pm.request.headers.filter to req.headerList.filter', () => {
+    const code = 'const custom = pm.request.headers.filter(h => h.key.startsWith("X-"));';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toBe('const custom = req.headerList.filter(h => h.key.startsWith("X-"));');
+  });
+
+  it('should translate pm.request.headers.count to req.headerList.count', () => {
+    const code = 'const n = pm.request.headers.count();';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toBe('const n = req.headerList.count();');
+  });
+
+  it('should translate pm.request.headers.clear to req.headerList.clear', () => {
+    const code = 'pm.request.headers.clear();';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toBe('req.headerList.clear();');
+  });
+
+  it('should translate pm.request.headers.toObject to req.headerList.toObject', () => {
+    const code = 'const obj = pm.request.headers.toObject();';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toBe('const obj = req.headerList.toObject();');
+  });
 });

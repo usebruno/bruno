@@ -53,6 +53,34 @@ const simpleTranslations = {
 
   // Request headers
   'pm.request.headers.remove': 'req.deleteHeader',
+  'pm.request.headers.get': 'req.headerList.get',
+  'pm.request.headers.has': 'req.headerList.has',
+  'pm.request.headers.one': 'req.headerList.one',
+  'pm.request.headers.all': 'req.headerList.all',
+  'pm.request.headers.idx': 'req.headerList.idx',
+  'pm.request.headers.count': 'req.headerList.count',
+  'pm.request.headers.indexOf': 'req.headerList.indexOf',
+  'pm.request.headers.find': 'req.headerList.find',
+  'pm.request.headers.filter': 'req.headerList.filter',
+  'pm.request.headers.each': 'req.headerList.each',
+  'pm.request.headers.map': 'req.headerList.map',
+  'pm.request.headers.reduce': 'req.headerList.reduce',
+  'pm.request.headers.toObject': 'req.headerList.toObject',
+  'pm.request.headers.clear': 'req.headerList.clear',
+
+  // Response headers PropertyList methods (read-only)
+  'pm.response.headers.has': 'res.headerList.has',
+  'pm.response.headers.one': 'res.headerList.one',
+  'pm.response.headers.all': 'res.headerList.all',
+  'pm.response.headers.idx': 'res.headerList.idx',
+  'pm.response.headers.count': 'res.headerList.count',
+  'pm.response.headers.indexOf': 'res.headerList.indexOf',
+  'pm.response.headers.find': 'res.headerList.find',
+  'pm.response.headers.filter': 'res.headerList.filter',
+  'pm.response.headers.each': 'res.headerList.each',
+  'pm.response.headers.map': 'res.headerList.map',
+  'pm.response.headers.reduce': 'res.headerList.reduce',
+  'pm.response.headers.toObject': 'res.headerList.toObject',
 
   // Request properties (pm.request.*)
   'pm.request.url.getHost': 'req.getHost',
