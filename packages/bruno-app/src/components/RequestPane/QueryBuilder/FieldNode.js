@@ -231,12 +231,6 @@ const FieldNode = ({
         role="treeitem"
         aria-expanded={isExpanded}
         onClick={handleExpand}
-        // onKeyDown={(e) => {
-        //   if (e.key === 'Enter' || e.key === ' ') {
-        //     e.preventDefault();
-        //     handleExpand(e);
-        //   }
-        // }}
         tabIndex={0}
       >
         <span className="field-indent" style={{ width: indent }} />
@@ -269,12 +263,6 @@ const FieldNode = ({
         role="treeitem"
         aria-expanded={canExpand ? isExpanded : undefined}
         onClick={handleExpand}
-        // onKeyDown={(e) => {
-        //   if (e.key === 'Enter' || e.key === ' ') {
-        //     e.preventDefault();
-        //     handleExpand(e);
-        //   }
-        // }}
         tabIndex={0}
       >
         <span className="field-indent" style={{ width: indent }} />
@@ -420,12 +408,6 @@ const InputObjectArgRow = ({ arg, argKey, fieldPath, isArgEnabled, sectionIndent
         className="arg-row"
         style={{ paddingLeft: sectionIndent + 8 }}
         onClick={toggleExpand}
-        // onKeyDown={(e) => {
-        //   if (e.key === 'Enter' || e.key === ' ') {
-        //     e.preventDefault();
-        //     toggleExpand(e);
-        //   }
-        // }}
         tabIndex={0}
         role="button"
         aria-expanded={isExpanded}
@@ -487,12 +469,6 @@ const ListArgRow = ({ arg, fieldPath, isArgEnabled, argValue, sectionIndent, onT
         className="arg-row"
         style={{ paddingLeft: sectionIndent + 8 }}
         onClick={toggleExpand}
-        // onKeyDown={(e) => {
-        //   if (e.key === 'Enter' || e.key === ' ') {
-        //     e.preventDefault();
-        //     toggleExpand(e);
-        //   }
-        // }}
         tabIndex={0}
         role="button"
         aria-expanded={isExpanded}
