@@ -47,9 +47,12 @@ const StyledWrapper = styled.div`
     border: 1px solid ${(props) => transparentize(0.4, props.theme.border.border2)};
     border-radius: ${(props) => props.theme.border.radius.base};
     padding: ${(props) => `${props.$listPadding}px 0`};
+    margin: 0;
+    list-style: none;
   }
 
   .selection-item {
+    box-sizing: border-box;
     display: flex;
     align-items: center;
     min-height: ${(props) => `${props.$rowHeight}px`};
