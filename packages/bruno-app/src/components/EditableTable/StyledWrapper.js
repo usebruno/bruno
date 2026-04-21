@@ -80,6 +80,8 @@ const StyledWrapper = styled.div`
 
   tbody {
     tr {
+      height: 35px;
+      max-height: 35px;
       transition: background 0.1s ease;
 
       &:last-child td {
@@ -87,6 +89,8 @@ const StyledWrapper = styled.div`
       }
 
       td {
+        height: 35px;
+        max-height: 35px;
         padding: 1px 10px !important;
         border-top: none !important;
         border-left: none !important;
@@ -96,17 +100,23 @@ const StyledWrapper = styled.div`
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
+        box-sizing: border-box;
 
-        &:last-child {
-          border-right: none;
+        > div {
+          height: 33px;
+          max-height: 33px;
+          overflow: hidden;
         }
 
         /* Handle CodeMirror editors overflow */
         .cm-editor {
           max-width: 100%;
+          height: 33px !important;
+          max-height: 33px !important;
 
           .cm-scroller {
             overflow: hidden !important;
+            max-height: 33px;
           }
 
           .cm-content {
