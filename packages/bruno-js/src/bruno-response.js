@@ -13,7 +13,7 @@ class BrunoResponse {
     this.url = res?.request ? res.request.protocol + '//' + res.request.host + res.request.path : null;
 
     // HeaderList in static read-only mode — write methods throw
-    this._headerList = new HeaderList(res ? res.headers : {}, { writable: false });
+    this.headerList = new HeaderList(res ? res.headers : {}, { writable: false });
 
     // Make the instance callable
     const callable = (...args) => get(this.body, ...args);
@@ -21,13 +21,6 @@ class BrunoResponse {
     Object.assign(callable, this);
 
     return callable;
-  }
-
-  /**
-   * Returns a ReadOnlyPropertyList for the response headers.
-   */
-  get headerList() {
-    return this._headerList;
   }
 
   getStatus() {

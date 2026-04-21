@@ -449,12 +449,10 @@ describe('HeaderList (req.headerList)', () => {
       expect(list.has('X-Empty', '')).toBe(true);
     });
 
-    test('req.headerList is lazily created and cached', () => {
+    test('headerList is a HeaderList instance', () => {
       const rawReq = { url: 'https://example.com', method: 'GET', headers: {} };
       const brunoReq = new BrunoRequest(rawReq);
-      const list1 = brunoReq.headerList;
-      const list2 = brunoReq.headerList;
-      expect(list1).toBe(list2);
+      expect(brunoReq.headerList).toBeInstanceOf(HeaderList);
     });
   });
 });
@@ -480,10 +478,11 @@ describe('Response Headers (res.headerList)', () => {
 
   // ── Inheritance ────────────────────────────────────────────────────────
 
-  test('is a HeaderList', () => {
-    const { headerList } = createResHeaders();
-    expect(headerList).toBeInstanceOf(HeaderList);
-    expect(headerList).toBeInstanceOf(ReadOnlyPropertyList);
+  test('headerList is a HeaderList instance', () => {
+    const rawRes = { status: 200, statusText: 'OK', headers: { 'x-test': '1' }, data: null, responseTime: 0 };
+    const brunoRes = new BrunoResponse(rawRes);
+    expect(brunoRes.headerList).toBeInstanceOf(HeaderList);
+    expect(brunoRes.headerList).toBeInstanceOf(ReadOnlyPropertyList);
   });
 
   test('ReadOnlyPropertyList.isPropertyList returns true', () => {

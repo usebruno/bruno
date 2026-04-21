@@ -30,21 +30,12 @@ class BrunoRequest {
      * It must be noted that the request data is always a string and is what gets sent over the network
      * If the user wants to access the raw data, they can use getBody({raw: true}) method
      */
+    this.headerList = new HeaderList(this);
+
     const isJson = this.hasJSONContentType(this.req.headers);
     if (isJson) {
       this.body = this.__safeParseJSON(req.data);
     }
-  }
-
-  /**
-   * Returns a HeaderList (PropertyList) for the request headers.
-   * Lazily created and cached. Dynamic mode ensures reads always reflect current req.headers.
-   */
-  get headerList() {
-    if (!this._headerList) {
-      this._headerList = new HeaderList(this);
-    }
-    return this._headerList;
   }
 
   getUrl() {
