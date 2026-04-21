@@ -3,6 +3,7 @@ import styled from 'styled-components';
 const StyledWrapper = styled.div`
   display: block;
   width: 100%;
+  isolation: isolate;
 
   &.is-resizing {
     cursor: col-resize !important;

@@ -44,7 +44,6 @@ const Wrapper = styled.div`
     background: ${(props) => props.theme.bg};
     padding-top: 8px;
     padding-bottom: 4px;
-    z-index: 2;
   }
 
   input[type='text'] {
