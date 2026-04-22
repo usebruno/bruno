@@ -2,6 +2,7 @@ import React, { useCallback, useMemo, useRef, useState, useEffect } from 'react'
 import { IconTrash, IconAlertCircle, IconGripVertical, IconMinusVertical } from '@tabler/icons';
 import { Tooltip } from 'react-tooltip';
 import { uuid } from 'utils/common';
+import LazyEditorCell from 'components/LazyEditorCell';
 import StyledWrapper from './StyledWrapper';
 
 const MIN_COLUMN_WIDTH = 80;
@@ -292,13 +293,15 @@ const EditableTable = ({
     if (column.render) {
       return (
         <div className="flex items-center">
-          {column.render({
-            row,
-            value,
-            rowIndex,
-            isLastEmptyRow: isEmpty,
-            onChange: (newValue) => handleValueChange(row.uid, column.key, newValue)
-          })}
+          <LazyEditorCell value={value} placeholder={column.placeholder}>
+            {column.render({
+              row,
+              value,
+              rowIndex,
+              isLastEmptyRow: isEmpty,
+              onChange: (newValue) => handleValueChange(row.uid, column.key, newValue)
+            })}
+          </LazyEditorCell>
           {errorIcon}
         </div>
       );
