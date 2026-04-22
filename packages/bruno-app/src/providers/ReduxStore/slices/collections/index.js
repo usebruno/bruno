@@ -820,7 +820,12 @@ export const collectionsSlice = createSlice({
       const { collectionUid, environmentUid, variables } = action.payload;
       const collection = findCollectionByUid(state.collections, collectionUid);
       if (collection) {
-        collection.environmentsDraft = { environmentUid, variables };
+        // Reset the draft when switching environments; otherwise update variables in place.
+        if (!collection.environmentsDraft || collection.environmentsDraft.environmentUid !== environmentUid) {
+          collection.environmentsDraft = { environmentUid, variables };
+        } else {
+          collection.environmentsDraft.variables = variables;
+        }
       }
     },
     clearEnvironmentsDraft: (state, action) => {

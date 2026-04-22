@@ -142,6 +142,7 @@ const EnvironmentVariablesTable = ({
   const globalEnvironmentVariables = getGlobalEnvironmentVariables({ globalEnvironments, activeGlobalEnvironmentUid });
   if (_collection) {
     _collection.globalEnvironmentVariables = globalEnvironmentVariables;
+    _collection.activeEnvironmentUid = environment.uid;
   }
 
   // When collection is null (global/workspace environments), populate process env
