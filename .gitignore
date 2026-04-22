@@ -53,6 +53,7 @@ bruno.iml
 .codex
 .agents
 .agent
+.gstack
 skills-lock.json
 
 # Playwright
