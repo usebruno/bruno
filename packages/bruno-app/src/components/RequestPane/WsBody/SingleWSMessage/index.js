@@ -45,7 +45,6 @@ export const SingleWSMessage = ({
   const { displayedTheme } = useTheme();
   const preferences = useSelector((state) => state.app.preferences);
   const body = item.draft ? get(item, 'draft.request.body') : get(item, 'request.body');
-  const nameInputRef = useRef(null);
 
   const { name, content, type } = message;
   const displayMode = typeToMode(type);
@@ -62,14 +61,6 @@ export const SingleWSMessage = ({
       onNewRendered();
     }
   }, [isNew]);
-
-  // Focus the input when editing starts
-  useEffect(() => {
-    if (isEditing && nameInputRef.current) {
-      nameInputRef.current.focus();
-      nameInputRef.current.select();
-    }
-  }, [isEditing]);
 
   const saveName = (value) => {
     const trimmed = value.trim() || `message ${index + 1}`;
@@ -191,7 +182,12 @@ export const SingleWSMessage = ({
   };
 
   return (
-    <StyledWrapper className={!isSelected ? 'disabled' : ''} onMouseDownCapture={onSelect}>
+    <StyledWrapper
+      className={!isSelected ? 'disabled' : ''}
+      onMouseDownCapture={() => {
+        if (!isSelected) setTimeout(onSelect, 0);
+      }}
+    >
       <div
         className="accordion-header"
         data-testid={`ws-message-header-${index}`}
@@ -214,7 +210,10 @@ export const SingleWSMessage = ({
           )}
           {isEditing ? (
             <input
-              ref={nameInputRef}
+              ref={(node) => {
+                node?.focus();
+                node?.select();
+              }}
               className="name-input"
               data-testid={`ws-message-name-input-${index}`}
               value={editValue}

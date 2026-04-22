@@ -10,7 +10,7 @@ const MAX_RECENTLY_CLOSED_TABS = 50;
 const initialState = {
   tabs: [],
   activeTabUid: null,
-  recentlyClosedTabs: []
+  recentlyClosedTabs: [] // LIFO stack of closed tabs, grouped by collection
 };
 
 const tabTypeAlreadyExists = (tabs, collectionUid, type) => {

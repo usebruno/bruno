@@ -124,6 +124,72 @@ test.describe('websocket multi-message (bru format)', () => {
     await expect(locators.connectionControls.connect()).toBeVisible();
   });
 
+  test('first message is implicitly selected when no message is marked selected', async ({ pageWithUserData: page }) => {
+    const locators = buildWebsocketCommonLocators(page);
+
+    await openRequest(page, COLLECTION_NAME, MULTI_MSG_REQ);
+
+    // ws-multi-msg.bru has two messages with no `selected: true` flag. The
+    // main send button should therefore dispatch the first message.
+    await locators.connectionControls.connect().click();
+    await expect(locators.connectionControls.disconnect()).toBeAttached({
+      timeout: MAX_CONNECTION_TIME
+    });
+
+    await page.getByTestId('run-button').click();
+
+    // the first message's content ("subscribe"), and none should carry the
+    // second message's content ("hello world").
+    await expect(locators.messages().filter({ hasText: 'subscribe' }).first()).toBeAttached({
+      timeout: MAX_CONNECTION_TIME
+    });
+    await expect(locators.messages().filter({ hasText: 'hello world' })).toHaveCount(0);
+
+    await locators.connectionControls.disconnect().click();
+  });
+
+  test('selecting a different message routes run-button to that message', async ({ pageWithUserData: page }) => {
+    const locators = buildWebsocketCommonLocators(page);
+
+    await openRequest(page, COLLECTION_NAME, MULTI_MSG_REQ);
+
+    // Select the second message by clicking its header
+    await page.getByTestId('ws-message-header-1').click();
+
+    await locators.connectionControls.connect().click();
+    await expect(locators.connectionControls.disconnect()).toBeAttached({
+      timeout: MAX_CONNECTION_TIME
+    });
+
+    await page.getByTestId('run-button').click();
+
+    await expect(locators.messages().filter({ hasText: 'hello world' }).first()).toBeAttached({
+      timeout: MAX_CONNECTION_TIME
+    });
+    await expect(locators.messages().filter({ hasText: 'subscribe' })).toHaveCount(0);
+
+    await locators.connectionControls.disconnect().click();
+  });
+
+  test('per-message send button sends that specific message', async ({ pageWithUserData: page }) => {
+    const locators = buildWebsocketCommonLocators(page);
+
+    await openRequest(page, COLLECTION_NAME, MULTI_MSG_REQ);
+
+    // Hover the header to reveal hover-actions, then click the second
+    await page.getByTestId('ws-message-header-1').hover();
+    await page.getByTestId('ws-send-msg-1').click();
+
+    await expect(locators.connectionControls.disconnect()).toBeAttached({
+      timeout: MAX_CONNECTION_TIME
+    });
+    await expect(locators.messages().filter({ hasText: 'hello world' }).first()).toBeAttached({
+      timeout: MAX_CONNECTION_TIME
+    });
+
+    await locators.connectionControls.disconnect().click();
+  });
+
   test('prettify json message content', async ({ pageWithUserData: page }) => {
     const selectAllShortcut = process.platform === 'darwin' ? 'Meta+a' : 'Control+a';
 

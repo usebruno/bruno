@@ -410,19 +410,9 @@ const registerWsEventHandlers = (window) => {
           return { success: true };
         }
 
-        if (selectedMessageIndex !== undefined && selectedMessageIndex !== null) {
-          // Queue only the selected message (already interpolated by prepareWsRequest)
-          const message = messages[selectedMessageIndex];
-          if (message && message.content) {
-            wsClient.queueMessage(preparedRequest.uid, collection.uid, message.content, message.type);
-          }
-        } else {
-          // Queue all messages
-          messages
-            .filter((message) => message && message.content)
-            .forEach((message) => {
-              wsClient.queueMessage(preparedRequest.uid, collection.uid, message.content, message.type);
-            });
+        const message = messages[selectedMessageIndex];
+        if (message && message.content) {
+          wsClient.queueMessage(preparedRequest.uid, collection.uid, message.content, message.type);
         }
 
         return { success: true };

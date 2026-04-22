@@ -250,7 +250,7 @@ export const sendWsRequest = async (item, collection, environment, runtimeVariab
  * @param {Object} collection - The collection object
  * @param {Object} environment - The environment variables
  * @param {Object} runtimeVariables - The runtime variables
- * @param {number|null} selectedMessageIndex - Index of the message to queue (or null to queue all messages)
+ * @param {number} selectedMessageIndex - Index of the message to queue
  * @returns {Promise<Object>} - The result of the queue operation
  */
 export const queueWsMessage = async (item, collection, environment, runtimeVariables, selectedMessageIndex) => {
