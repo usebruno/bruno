@@ -21,16 +21,21 @@ const findScrollParent = (element) => {
 const TableRow = React.memo(
   ({ children, item, context, ...rest }) => {
     const rowIndex = Number(rest['data-item-index']);
-    const { reorderable, reorderableRowCount, isLastEmptyRow, onDragStart, onDragOver, onDrop, onDragEnd } = context;
+    const { reorderable, reorderableRowCount, isLastEmptyRow, dragOverRow, onDragStart, onDragOver, onDrop, onDragEnd, onDragLeave } = context;
     const isEmpty = isLastEmptyRow(item, rowIndex);
     const canDrag = reorderable && !isEmpty && rowIndex < reorderableRowCount;
+    const isDragOver = canDrag && dragOverRow === rowIndex;
+    const existingClass = rest.className || '';
+    const className = isDragOver ? `${existingClass} drag-over`.trim() : existingClass;
 
     return (
       <tr
         {...rest}
+        className={className}
         draggable={canDrag}
         onDragStart={canDrag ? (e) => onDragStart(e, rowIndex) : undefined}
         onDragOver={canDrag ? (e) => onDragOver(e, rowIndex) : undefined}
+        onDragLeave={canDrag ? (e) => onDragLeave(e, rowIndex) : undefined}
         onDrop={canDrag ? (e) => onDrop(e, rowIndex) : undefined}
         onDragEnd={canDrag ? onDragEnd : undefined}
       >
@@ -66,6 +71,7 @@ const EditableTable = ({
   const [resizing, setResizing] = useState(null);
   const [tableHeight, setTableHeight] = useState(0);
   const [scrollParent, setScrollParent] = useState(null);
+  const [dragOverRow, setDragOverRow] = useState(null);
   const widths = columnWidths || {};
 
   useLayoutEffect(() => {
@@ -279,15 +285,22 @@ const EditableTable = ({
     e.dataTransfer.setData('text/plain', index);
   }, []);
 
-  const handleDragOver = useCallback((e) => {
+  const handleDragOver = useCallback((e, index) => {
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
+    setDragOverRow((prev) => (prev === index ? prev : index));
+  }, []);
+
+  const handleDragLeave = useCallback((e, index) => {
+    if (e.currentTarget.contains(e.relatedTarget)) return;
+    setDragOverRow((prev) => (prev === index ? null : prev));
   }, []);
 
   const reorderableRowCount = showAddRow ? rowsWithEmpty.length - 1 : rowsWithEmpty.length;
 
   const handleDrop = useCallback((e, toIndex) => {
     e.preventDefault();
+    setDragOverRow(null);
     const fromIndex = parseInt(e.dataTransfer.getData('text/plain'), 10);
     if (fromIndex === toIndex || !onReorder) return;
     const reorderableRows = showAddRow ? rowsWithEmpty.slice(0, -1) : rowsWithEmpty;
@@ -298,7 +311,9 @@ const EditableTable = ({
     onReorder({ updateReorderedItem: updatedOrder.map((row) => row.uid) });
   }, [onReorder, rowsWithEmpty, showAddRow]);
 
-  const handleDragEnd = useCallback(() => {}, []);
+  const handleDragEnd = useCallback(() => {
+    setDragOverRow(null);
+  }, []);
 
   const renderCell = useCallback((column, row, rowIndex) => {
     const isEmpty = isLastEmptyRow(row, rowIndex);
@@ -358,11 +373,13 @@ const EditableTable = ({
     reorderable,
     reorderableRowCount,
     isLastEmptyRow,
+    dragOverRow,
     onDragStart: handleDragStart,
     onDragOver: handleDragOver,
+    onDragLeave: handleDragLeave,
     onDrop: handleDrop,
     onDragEnd: handleDragEnd
-  }), [reorderable, reorderableRowCount, isLastEmptyRow, handleDragStart, handleDragOver, handleDrop, handleDragEnd]);
+  }), [reorderable, reorderableRowCount, isLastEmptyRow, dragOverRow, handleDragStart, handleDragOver, handleDragLeave, handleDrop, handleDragEnd]);
 
   const fixedHeaderContent = useCallback(() => (
     <tr>

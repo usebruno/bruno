@@ -101,7 +101,7 @@ const StyledWrapper = styled.div`
         white-space: nowrap;
         box-sizing: border-box;
 
-        > div {
+        > div:not(.drag-handle) {
           height: 33px;
           max-height: 33px;
           overflow: hidden;
@@ -196,6 +196,9 @@ const StyledWrapper = styled.div`
   .drag-handle {
     opacity: 0;
     transition: opacity 0.1s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 
     .icon-grip,
     .icon-minus {
@@ -203,7 +206,8 @@ const StyledWrapper = styled.div`
     }
   }
 
-  tbody tr:hover .drag-handle {
+  tbody tr:hover .drag-handle,
+  tbody tr.drag-over .drag-handle {
     opacity: 1;
   }
 
