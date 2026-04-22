@@ -108,6 +108,130 @@ const addBruShimToContext = (vm, __brunoTestResults) => {
       })();
     `
   );
+  // Register custom chai assertion for jsonBody (Postman parity)
+  vm.evalCode(
+    `
+      (function() {
+        var proto = Object.getPrototypeOf(expect(null));
+
+        // Parse a property path into an array of keys.
+        // Handles: dot notation (a.b), numeric brackets (a[0]), quoted brackets (a["b.c"], a['key']),
+        // and combinations like data[0]["a.b"].name
+        //
+        // Examples:
+        //   "a.b.c"              -> ["a", "b", "c"]
+        //   "items[0].name"      -> ["items", "0", "name"]
+        //   'data["a.b"]'        -> ["data", "a.b"]
+        //   "matrix[0][1]"       -> ["matrix", "0", "1"]
+        //   'nested["x.y"].z'    -> ["nested", "x.y", "z"]
+        //   '["say \\"hi\\""]'   -> ["say \\"hi\\""]
+        function parsePath(path) {
+          var keys = [];
+          var i = 0;
+          while (i < path.length) {
+            if (path[i] === '.') {
+              i++;
+            } else if (path[i] === '[') {
+              i++;
+              if (i < path.length && (path[i] === "'" || path[i] === '"')) {
+                var quote = path[i];
+                i++;
+                var key = '';
+                while (i < path.length && path[i] !== quote) {
+                  if (path[i] === '\\\\' && i + 1 < path.length && path[i + 1] === quote) {
+                    key += quote;
+                    i += 2;
+                  } else {
+                    key += path[i];
+                    i++;
+                  }
+                }
+                i++; // skip closing quote
+                i++; // skip ']'
+                keys.push(key);
+              } else {
+                var key = '';
+                while (i < path.length && path[i] !== ']') {
+                  key += path[i];
+                  i++;
+                }
+                i++; // skip ']'
+                keys.push(key);
+              }
+            } else {
+              var key = '';
+              while (i < path.length && path[i] !== '.' && path[i] !== '[') {
+                key += path[i];
+                i++;
+              }
+              keys.push(key);
+            }
+          }
+          return keys;
+        }
+
+        function getNestedValue(obj, path) {
+          var keys = parsePath(path);
+          var current = obj;
+          for (var i = 0; i < keys.length; i++) {
+            var key = keys[i];
+            if (current === null || current === undefined || !Object.prototype.hasOwnProperty.call(Object(current), key)) {
+              return { found: false };
+            }
+            current = current[key];
+          }
+          return { found: true, value: current };
+        }
+
+        function deepEqual(a, b) {
+          if (a === b) return true;
+          if (a === null || b === null || typeof a !== 'object' || typeof b !== 'object') return false;
+          if (Array.isArray(a) !== Array.isArray(b)) return false;
+          var keysA = Object.keys(a);
+          var keysB = Object.keys(b);
+          if (keysA.length !== keysB.length) return false;
+          for (var i = 0; i < keysA.length; i++) {
+            if (!Object.prototype.hasOwnProperty.call(b, keysA[i]) || !deepEqual(a[keysA[i]], b[keysA[i]])) return false;
+          }
+          return true;
+        }
+
+        proto.jsonBody = function() {
+          var obj = this._obj;
+          var args = Array.prototype.slice.call(arguments);
+
+          if (args.length === 0) {
+            this.assert(
+              typeof obj === 'object' && obj !== null,
+              'expected value to be a JSON body (object or array)',
+              'expected value not to be a JSON body'
+            );
+          } else if (args.length === 1 && typeof args[0] === 'object' && args[0] !== null) {
+            this.assert(
+              deepEqual(obj, args[0]),
+              'expected body to deeply equal given object',
+              'expected body to not deeply equal given object'
+            );
+          } else if (args.length === 1) {
+            var result = getNestedValue(obj, String(args[0]));
+            this.assert(
+              result.found,
+              "expected body to have nested property '" + args[0] + "'",
+              "expected body to not have nested property '" + args[0] + "'"
+            );
+          } else {
+            var result = getNestedValue(obj, String(args[0]));
+            this.assert(
+              result.found && deepEqual(result.value, args[1]),
+              "expected body to have nested property '" + args[0] + "' equal to given value",
+              "expected body to not have nested property '" + args[0] + "' equal to given value"
+            );
+          }
+          return this;
+        };
+      })();
+    `
+  );
 };
 
 module.exports = addBruShimToContext;

@@ -65,6 +65,118 @@ chai.use(function (chai, utils) {
   });
 });
 
+// Custom assertion for jsonBody (Postman parity)
+chai.use(function (chai, utils) {
+  // Parse a property path into an array of keys.
+  // Handles: dot notation (a.b), numeric brackets (a[0]), quoted brackets (a["b.c"], a['key']),
+  // and combinations like data[0]["a.b"].name
+  //
+  // Examples:
+  //   "a.b.c"              -> ["a", "b", "c"]
+  //   "items[0].name"      -> ["items", "0", "name"]
+  //   'data["a.b"]'        -> ["data", "a.b"]
+  //   "matrix[0][1]"       -> ["matrix", "0", "1"]
+  //   'nested["x.y"].z'    -> ["nested", "x.y", "z"]
+  //   '["say \\"hi\\""]'   -> ["say \"hi\""]
+  function parsePath(path) {
+    const keys = [];
+    let i = 0;
+    while (i < path.length) {
+      if (path[i] === '.') {
+        // Skip dot separator
+        i++;
+      } else if (path[i] === '[') {
+        i++; // skip '['
+        if (i < path.length && (path[i] === '\'' || path[i] === '"')) {
+          // Quoted key — collect until matching unescaped quote + ']'
+          const quote = path[i];
+          i++; // skip opening quote
+          let key = '';
+          while (i < path.length && path[i] !== quote) {
+            if (path[i] === '\\' && i + 1 < path.length && path[i + 1] === quote) {
+              key += quote;
+              i += 2; // skip backslash + escaped quote
+            } else {
+              key += path[i];
+              i++;
+            }
+          }
+          i++; // skip closing quote
+          i++; // skip ']'
+          keys.push(key);
+        } else {
+          // Unquoted (numeric) key — collect until ']'
+          let key = '';
+          while (i < path.length && path[i] !== ']') {
+            key += path[i];
+            i++;
+          }
+          i++; // skip ']'
+          keys.push(key);
+        }
+      } else {
+        // Bare key — collect until '.', '[', or end
+        let key = '';
+        while (i < path.length && path[i] !== '.' && path[i] !== '[') {
+          key += path[i];
+          i++;
+        }
+        keys.push(key);
+      }
+    }
+    return keys;
+  }
+
+  function getNestedValue(obj, path) {
+    const keys = parsePath(path);
+    let current = obj;
+    for (const key of keys) {
+      if (current === null || current === undefined || !Object.prototype.hasOwnProperty.call(Object(current), key)) {
+        return { found: false };
+      }
+      current = current[key];
+    }
+    return { found: true, value: current };
+  }
+
+  chai.Assertion.addMethod('jsonBody', function () {
+    const obj = this._obj;
+    const args = Array.prototype.slice.call(arguments);
+
+    if (args.length === 0) {
+      // No args: check body is valid JSON (object or array)
+      this.assert(
+        typeof obj === 'object' && obj !== null,
+        `expected ${utils.inspect(obj)} to be a JSON body (object or array)`,
+        `expected ${utils.inspect(obj)} not to be a JSON body`
+      );
+    } else if (args.length === 1 && typeof args[0] === 'object' && args[0] !== null) {
+      // Object arg: deep equality
+      this.assert(
+        utils.eql(obj, args[0]),
+        `expected body to deeply equal ${utils.inspect(args[0])}`,
+        `expected body to not deeply equal ${utils.inspect(args[0])}`
+      );
+    } else if (args.length === 1) {
+      // String path: check nested property exists
+      const result = getNestedValue(obj, String(args[0]));
+      this.assert(
+        result.found,
+        `expected body to have nested property '${args[0]}'`,
+        `expected body to not have nested property '${args[0]}'`
+      );
+    } else {
+      // Path + value: check nested property equals value
+      const result = getNestedValue(obj, String(args[0]));
+      this.assert(
+        result.found && utils.eql(result.value, args[1]),
+        `expected body to have nested property '${args[0]}' equal to ${utils.inspect(args[1])}`,
+        `expected body to not have nested property '${args[0]}' equal to ${utils.inspect(args[1])}`
+      );
+    }
+  });
+});
+
 /**
  * Assertion operators
  *
