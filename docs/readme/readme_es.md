@@ -49,7 +49,7 @@ Bruno funciona sin conexión a internet. No tenemos intenciones de añadir sincr
 ## Commercial Versions ✨
 
 La mayoría de nuestras funciones son gratuitas y de código abierto.
-Nos esforzamos para lograr un equilibrio armonioso entre los [principios de código abierto y la susten](https://github.com/usebruno/bruno/discussions/269)
+Nos esforzamos para lograr un equilibrio armonioso entre los [principios de código abierto y la sostenibilidad](https://github.com/usebruno/bruno/discussions/269)
 
 Puedes revisar nuestras [versiones de pago](https://www.usebruno.com/pricing) para que puedas ver si hay funciones adicionales que tú o tu equipo puedan encontrar útiles! <br/>
 
@@ -63,7 +63,7 @@ Puedes revisar nuestras [versiones de pago](https://www.usebruno.com/pricing) pa
 - [Destacados 🎥](#destacados-)
 - [Comparte tus testimonios 📣](#comparte-tus-testimonios-)
 - [Publicar en nuevos gestores de paquetes](#publicar-en-nuevos-gestores-de-paquetes)
-- [Mentente en Contacto 🌐](#mantente-en-contacto-)
+- [Mantente en Contacto 🌐](#mantente-en-contacto-)
 - [Marca](#marca)
 - [Contribuye 👩‍💻🧑‍💻](#contribuye-)
 - [Autores](#autores)
