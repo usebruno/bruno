@@ -10,7 +10,8 @@ import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import Markdown from 'components/MarkDown';
 import CodeEditor from 'components/CodeEditor';
 import StyledWrapper from './StyledWrapper';
-import { usePersistedState, useTrackScroll } from 'hooks/usePersistedState';
+import { usePersistedState } from 'hooks/usePersistedState';
+import { useTrackScroll } from 'hooks/useTrackScroll';
 
 const Documentation = ({ item, collection }) => {
   const dispatch = useDispatch();

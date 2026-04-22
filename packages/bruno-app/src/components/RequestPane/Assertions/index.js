@@ -9,7 +9,8 @@ import SingleLineEditor from 'components/SingleLineEditor';
 import AssertionOperator from './AssertionOperator';
 import EditableTable from 'components/EditableTable';
 import StyledWrapper from './StyledWrapper';
-import { usePersistedState, useTrackScroll } from 'hooks/usePersistedState';
+import { usePersistedState } from 'hooks/usePersistedState';
+import { useTrackScroll } from 'hooks/useTrackScroll';
 
 const unaryOperators = [
   'isEmpty',

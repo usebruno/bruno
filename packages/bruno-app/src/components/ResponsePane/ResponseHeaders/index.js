@@ -1,6 +1,7 @@
 import React, { useRef } from 'react';
 import StyledWrapper from './StyledWrapper';
-import { usePersistedState, useTrackScroll } from 'hooks/usePersistedState';
+import { usePersistedState } from 'hooks/usePersistedState';
+import { useTrackScroll } from 'hooks/useTrackScroll';
 
 const ResponseHeaders = ({ headers, item }) => {
   const headersArray = typeof headers === 'object' ? Object.entries(headers) : [];

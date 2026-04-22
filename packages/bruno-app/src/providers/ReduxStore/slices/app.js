@@ -2,6 +2,7 @@ import { createSlice } from '@reduxjs/toolkit';
 import filter from 'lodash/filter';
 import brunoClipboard from 'utils/bruno-clipboard';
 import { addTab, focusTab } from './tabs';
+import { clearPersistedScope } from 'hooks/usePersistedState/PersistedScopeProvider';
 
 const initialState = {
   isDragging: false,
@@ -283,6 +284,8 @@ export const createCookieString = (cookieObj) => () => {
 
 export const completeQuitFlow = () => (dispatch, getState) => {
   const { ipcRenderer } = window;
+  // Wipe all `persisted::*` keys from localStorage before quitting
+  clearPersistedScope();
   return ipcRenderer.invoke('main:complete-quit-flow');
 };
 

@@ -4,7 +4,8 @@ import { findItemInCollection, findParentItemInCollection } from 'utils/collecti
 import { get } from 'lodash';
 import TimelineItem from './TimelineItem/index';
 import GrpcTimelineItem from './GrpcTimelineItem/index';
-import { usePersistedState, useTrackScroll } from 'hooks/usePersistedState';
+import { usePersistedState } from 'hooks/usePersistedState';
+import { useTrackScroll } from 'hooks/useTrackScroll';
 
 const getEffectiveAuthSource = (collection, item) => {
   const authMode = item.draft ? get(item, 'draft.request.auth.mode') : get(item, 'request.auth.mode');

@@ -14,7 +14,8 @@ import MultiLineEditor from 'components/MultiLineEditor';
 import EditableTable from 'components/EditableTable';
 import StyledWrapper from './StyledWrapper';
 import BulkEditor from '../../BulkEditor';
-import { usePersistedState, useTrackScroll } from 'hooks/usePersistedState';
+import { usePersistedState } from 'hooks/usePersistedState';
+import { useTrackScroll } from 'hooks/useTrackScroll';
 
 const QueryParams = ({ item, collection }) => {
   const dispatch = useDispatch();

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import StyledWrapper from './StyledWrapper';
-import { usePersistedState, useTrackScroll } from 'hooks/usePersistedState';
+import { usePersistedState } from 'hooks/usePersistedState';
+import { useTrackScroll } from 'hooks/useTrackScroll';
 import {
   IconChevronDown,
   IconChevronRight,

@@ -2,7 +2,8 @@ import React, { useRef } from 'react';
 import get from 'lodash/get';
 import VarsTable from './VarsTable';
 import StyledWrapper from './StyledWrapper';
-import { usePersistedState, useTrackScroll } from 'hooks/usePersistedState';
+import { usePersistedState } from 'hooks/usePersistedState';
+import { useTrackScroll } from 'hooks/useTrackScroll';
 
 const Vars = ({ item, collection }) => {
   const requestVars = item.draft ? get(item, 'draft.request.vars.req') : get(item, 'request.vars.req');

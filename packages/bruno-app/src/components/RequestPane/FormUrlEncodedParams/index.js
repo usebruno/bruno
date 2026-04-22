@@ -11,7 +11,8 @@ import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collection
 import { updateTableColumnWidths } from 'providers/ReduxStore/slices/tabs';
 import EditableTable from 'components/EditableTable';
 import StyledWrapper from './StyledWrapper';
-import { usePersistedState, useTrackScroll } from 'hooks/usePersistedState';
+import { usePersistedState } from 'hooks/usePersistedState';
+import { useTrackScroll } from 'hooks/useTrackScroll';
 
 const FormUrlEncodedParams = ({ item, collection }) => {
   const dispatch = useDispatch();

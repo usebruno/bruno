@@ -5,7 +5,8 @@ import StyledWrapper from './StyledWrapper';
 import { saveFolderRoot } from 'providers/ReduxStore/slices/collections/actions';
 import { useDispatch } from 'react-redux';
 import Button from 'ui/Button';
-import { usePersistedState, useTrackScroll } from 'hooks/usePersistedState';
+import { usePersistedState } from 'hooks/usePersistedState';
+import { useTrackScroll } from 'hooks/useTrackScroll';
 
 const Vars = ({ collection, folder }) => {
   const dispatch = useDispatch();

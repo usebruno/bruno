@@ -12,7 +12,8 @@ import { headers as StandardHTTPHeaders } from 'know-your-http-well';
 import { MimeTypes } from 'utils/codemirror/autocompleteConstants';
 import BulkEditor from '../../BulkEditor';
 import { headerNameRegex, headerValueRegex } from 'utils/common/regex';
-import { usePersistedState, useTrackScroll } from 'hooks/usePersistedState';
+import { usePersistedState } from 'hooks/usePersistedState';
+import { useTrackScroll } from 'hooks/useTrackScroll';
 
 const headerAutoCompleteList = StandardHTTPHeaders.map((e) => e.header);
 

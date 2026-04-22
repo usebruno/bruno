@@ -13,7 +13,8 @@ import StyledWrapper from './StyledWrapper';
 import { IconEdit, IconX, IconFileText } from '@tabler/icons';
 import Button from 'ui/Button/index';
 import ActionIcon from 'ui/ActionIcon/index';
-import { usePersistedState, useTrackScroll } from 'hooks/usePersistedState';
+import { usePersistedState } from 'hooks/usePersistedState';
+import { useTrackScroll } from 'hooks/useTrackScroll';
 
 const Docs = ({ collection }) => {
   const dispatch = useDispatch();

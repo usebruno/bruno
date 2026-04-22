@@ -11,7 +11,8 @@ import Markdown from 'components/MarkDown';
 import CodeEditor from 'components/CodeEditor';
 import Button from 'ui/Button';
 import StyledWrapper from './StyledWrapper';
-import { usePersistedState, useTrackScroll } from 'hooks/usePersistedState';
+import { usePersistedState } from 'hooks/usePersistedState';
+import { useTrackScroll } from 'hooks/useTrackScroll';
 
 const Documentation = ({ collection, folder }) => {
   const dispatch = useDispatch();
