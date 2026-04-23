@@ -64,7 +64,6 @@ export default class CodeEditor extends React.Component {
       lineNumbers: true,
       inputStyle: 'textarea',
       resetSelectionOnContextMenu: false,
-      viewportMargin: Infinity,
       spellcheck: true,
       selectionsMayTouchBoundary: true,
       lineWrapping: this.props.enableLineWrapping ?? true,
