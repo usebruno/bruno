@@ -61,7 +61,9 @@ const RequestTabPanel = () => {
   const isConsoleOpen = useSelector((state) => state.logs.isConsoleOpen);
 
   const isRequestTab = focusedTab && ['request', 'grpc-request', 'ws-request', 'graphql-request'].includes(focusedTab.type);
-  useKeybinding('sendRequest', () => {
+  useKeybinding('sendRequest', (e) => {
+    e?.preventDefault?.();
+    e?.stopPropagation?.();
     handleRun();
     return false;
   }, { enabled: !!isRequestTab, deps: [isRequestTab] });
