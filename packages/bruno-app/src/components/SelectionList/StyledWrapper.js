@@ -19,7 +19,7 @@ const StyledWrapper = styled.div`
     margin-bottom: 0.5rem;
   }
 
-  .selection-toolbar h3 {
+  .selection-title {
     margin: 0;
     font-size: ${(props) => props.theme.font.size.base};
     font-weight: 600;

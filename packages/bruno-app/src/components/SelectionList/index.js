@@ -25,7 +25,7 @@ const SelectionList = ({
       $listPadding={listPadding}
     >
       <div className="selection-toolbar">
-        <h3>{title}</h3>
+        <span className="selection-title">{title}</span>
         <label className="selection-toggle">
           <input
             type="checkbox"
