@@ -104,8 +104,7 @@ const serializeSnapshot = async (state) => {
       environment: '',
       lastActiveCollectionPathname,
       sorting: 'az',
-      collections: [...workspaceCollectionPaths],
-      collectionPathnames: [...workspaceCollectionPaths]
+      collections: [...workspaceCollectionPaths]
     });
   });
 
@@ -139,7 +138,7 @@ const serializeSnapshot = async (state) => {
 
     // Find which workspace this collection belongs to
     const workspacePathname = snapshot.workspaces.find((workspaceSnapshot) => {
-      return workspaceSnapshot.collectionPathnames.some((collectionPathname) => normalizePath(collectionPathname) === normalizedPath);
+      return workspaceSnapshot.collections.some((collectionPathname) => normalizePath(collectionPathname) === normalizedPath);
     })?.pathname || '';
 
     const selectedEnvironment = (collection.environments || []).find((env) => env.uid === collection.activeEnvironmentUid);

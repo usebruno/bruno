@@ -59,7 +59,6 @@ const workspaceSchema = yup.object({
   environment: yup.string().defined(),
   lastActiveCollectionPathname: yup.string().nullable(),
   sorting: yup.string().defined(),
-  collectionPathnames: yup.array().of(yup.string()).required(),
   collections: yup.array().of(yup.string()).optional()
 });
 
@@ -133,7 +132,7 @@ class SnapshotManager {
       environment: workspace.environment,
       lastActiveCollectionPathname: workspace.lastActiveCollectionPathname,
       sorting: workspace.sorting,
-      collectionPathnames: workspace.collectionPathnames
+      collections: workspace.collections
     };
   }
 
@@ -397,7 +396,7 @@ class SnapshotManager {
   }
 
   _normalizeWorkspaceEntry(pathname, workspace = {}) {
-    const collectionPathnames = this._normalizeCollectionPathList(workspace.collectionPathnames ?? workspace.collections);
+    const collections = this._normalizeCollectionPathList(workspace.collections);
 
     return {
       pathname,
@@ -406,8 +405,7 @@ class SnapshotManager {
         ? workspace.lastActiveCollectionPathname
         : null,
       sorting: typeof workspace.sorting === 'string' ? workspace.sorting : 'az',
-      collectionPathnames,
-      collections: collectionPathnames
+      collections
     };
   }
 
@@ -458,9 +456,9 @@ class SnapshotManager {
       return [...collectionMap.values()];
     }
 
-    const collectionEntries = isObject(collections) ? collections : {};
-    const tabsEntries = isObject(tabs) ? tabs : {};
-    const collectionPathnames = new Set([...Object.keys(collectionEntries), ...Object.keys(tabsEntries)]);
+    const collectionEntries = collections;
+    const tabsEntries = tabs;
+    const collectionPathnames = new Set([...collectionEntries, ...tabsEntries]);
 
     collectionPathnames.forEach((collectionPathname) => {
       const normalizedCollection = this._normalizeCollectionEntry(

@@ -49,7 +49,7 @@ describe('hydrateSnapshotLookups', () => {
     expect(workspace).toMatchObject({
       pathname: '/workspaces/main',
       sorting: 'az',
-      collectionPathnames: ['/collections/a']
+      collections: ['/collections/a']
     });
 
     expect(tabs).toMatchObject({
@@ -62,25 +62,23 @@ describe('hydrateSnapshotLookups', () => {
 
   it('builds lookup maps from map-based snapshot schema for backward compatibility', () => {
     const snapshot = {
-      workspaces: {
-        '/workspaces/main': {
+      workspaces: [
+        {
+          pathname: '/workspaces/main',
           sorting: 'az',
-          collectionPathnames: ['/collections/a']
+          collections: ['/collections/a']
         }
-      },
-      collections: {
-        '/collections/a': {
+      ],
+      collections: [
+        {
+          pathname: '/collections/a',
           environmentPath: 'Prod',
           isOpen: true,
-          isMounted: true
-        }
-      },
-      tabs: {
-        '/collections/a': {
+          isMounted: true,
           activeTab: { accessor: 'type', value: 'variables' },
           tabs: [{ type: 'variables', accessor: 'type', permanent: false }]
         }
-      }
+      ]
     };
 
     const lookups = hydrateSnapshotLookups(snapshot);
@@ -104,7 +102,7 @@ describe('hydrateSnapshotLookups', () => {
     expect(workspace).toMatchObject({
       pathname: '/workspaces/main',
       sorting: 'az',
-      collectionPathnames: ['/collections/a']
+      collections: ['/collections/a']
     });
 
     expect(tabs).toMatchObject({

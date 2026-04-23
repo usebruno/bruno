@@ -82,9 +82,7 @@ const normalizeCollectionSnapshotEntry = (pathname, entry = {}, tabsEntry = {}) 
 };
 
 const normalizeWorkspaceSnapshotEntry = (pathname, entry = {}) => {
-  const collectionPathnames = Array.isArray(entry.collectionPathnames)
-    ? entry.collectionPathnames.filter((collectionPathname) => typeof collectionPathname === 'string')
-    : (Array.isArray(entry.collections) ? entry.collections.filter((collectionPathname) => typeof collectionPathname === 'string') : []);
+  const collections = Array.isArray(entry.collections) ? entry.collections.filter((collectionPathname) => typeof collectionPathname === 'string') : [];
 
   return {
     pathname,
@@ -92,7 +90,7 @@ const normalizeWorkspaceSnapshotEntry = (pathname, entry = {}) => {
       ? entry.lastActiveCollectionPathname
       : null,
     sorting: typeof entry.sorting === 'string' ? entry.sorting : 'az',
-    collectionPathnames
+    collections
   };
 };
 
@@ -129,6 +127,7 @@ export const hydrateSnapshotLookups = (snapshot = {}) => {
 
       const collection = normalizeCollectionSnapshotEntry(collectionEntry.pathname, collectionEntry);
       collectionsByPath[collection.pathname] = {
+        pathname: collection.pathname,
         workspacePathname: typeof collection.workspacePathname === 'string' ? collection.workspacePathname : '',
         environment: collection.environment,
         environmentPath: collection.environmentPath,
@@ -136,32 +135,9 @@ export const hydrateSnapshotLookups = (snapshot = {}) => {
         isOpen: collection.isOpen,
         isMounted: collection.isMounted
       };
+
       tabsByCollectionPath[collection.pathname] = {
-        activeTab: collection.activeTab,
-        tabs: collection.tabs
-      };
-    });
-  } else if (isObject(snapshot.collections) || isObject(snapshot.tabs)) {
-    const collections = isObject(snapshot.collections) ? snapshot.collections : {};
-    const tabs = isObject(snapshot.tabs) ? snapshot.tabs : {};
-    const collectionPathnames = new Set([...Object.keys(collections), ...Object.keys(tabs)]);
-
-    collectionPathnames.forEach((collectionPathname) => {
-      const collection = normalizeCollectionSnapshotEntry(
-        collectionPathname,
-        collections[collectionPathname],
-        tabs[collectionPathname]
-      );
-
-      collectionsByPath[collectionPathname] = {
-        workspacePathname: collection.workspacePathname,
-        environment: collection.environment,
-        environmentPath: collection.environmentPath,
-        selectedEnvironment: collection.selectedEnvironment,
-        isOpen: collection.isOpen,
-        isMounted: collection.isMounted
-      };
-      tabsByCollectionPath[collectionPathname] = {
+        pathname: collection.pathname,
         activeTab: collection.activeTab,
         tabs: collection.tabs
       };
@@ -176,25 +152,13 @@ export const hydrateSnapshotLookups = (snapshot = {}) => {
 
       const workspace = normalizeWorkspaceSnapshotEntry(workspaceEntry.pathname, workspaceEntry);
       workspacesByPath[workspace.pathname] = {
+        pathname: workspace.pathname,
         lastActiveCollectionPathname: workspace.lastActiveCollectionPathname,
         sorting: workspace.sorting,
-        collectionPathnames: workspace.collectionPathnames
+        collections: workspace.collections
       };
 
-      workspace.collectionPathnames.forEach((collectionPathname) => {
-        setCollectionWorkspacePath(collectionPathname, workspace.pathname);
-      });
-    });
-  } else if (isObject(snapshot.workspaces)) {
-    Object.entries(snapshot.workspaces).forEach(([workspacePathname, workspaceEntry]) => {
-      const workspace = normalizeWorkspaceSnapshotEntry(workspacePathname, workspaceEntry);
-      workspacesByPath[workspace.pathname] = {
-        lastActiveCollectionPathname: workspace.lastActiveCollectionPathname,
-        sorting: workspace.sorting,
-        collectionPathnames: workspace.collectionPathnames
-      };
-
-      workspace.collectionPathnames.forEach((collectionPathname) => {
+      workspace.collections.forEach((collectionPathname) => {
         setCollectionWorkspacePath(collectionPathname, workspace.pathname);
       });
     });

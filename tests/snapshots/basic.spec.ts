@@ -561,8 +561,6 @@ test.describe('Snapshot: File Structure', () => {
       expect(firstWorkspace).toHaveProperty('lastActiveCollectionPathname');
       expect(firstWorkspace).toHaveProperty('sorting');
       expect(firstWorkspace).toHaveProperty('collections');
-      expect(firstWorkspace).toHaveProperty('collectionPathnames');
-      expect(Array.isArray(firstWorkspace.collectionPathnames)).toBe(true);
       expect(Array.isArray(firstWorkspace.collections)).toBe(true);
 
       // There should be at least one collection
