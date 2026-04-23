@@ -105,11 +105,10 @@ class SingleLineEditor extends Component {
     }
     setupLinkAware(this.editor);
 
-    // Add mousetrap class so Mousetrap captures shortcuts even when CodeMirror is focused
-    const cmInput = this.editor.getInputField();
-    if (cmInput) {
-      cmInput.classList.add('mousetrap');
-    }
+    /* Technical Note:
+      The manual manipulation of 'cmInput' was removed to prevent
+      focus conflicts with the accessible textarea implementation.
+    */
   }
 
   /** Enable or disable masking the rendered content of the editor */
@@ -315,12 +314,58 @@ class SingleLineEditor extends Component {
   render() {
     return (
       <div className={`flex flex-row items-center w-full overflow-x-auto ${this.props.className}`}>
-        <StyledWrapper
-          ref={this.editorRef}
-          className={`single-line-editor grow ${this.props.readOnly ? 'read-only' : ''}`}
-          $isCompact={this.props.isCompact}
-          {...(this.props['data-testid'] ? { 'data-testid': this.props['data-testid'] } : {})}
-        />
+        <div className="grow relative" style={{ display: 'flex', alignItems: 'center' }}>
+          {/* Visual Layer: CodeMirror container is hidden from the accessibility tree
+              to prevent screen readers from navigating its complex DOM. */}
+          <StyledWrapper
+            ref={this.editorRef}
+            aria-hidden="true"
+            className={`single-line-editor grow ${this.props.readOnly ? 'read-only' : ''}`}
+            $isCompact={this.props.isCompact}
+            {...(this.props['data-testid'] ? { 'data-testid': this.props['data-testid'] } : {})}
+          />
+
+          {/* Accessibility Layer: A transparent textarea handles focus and input.
+              This allows screen readers to use native text navigation while
+              maintaining single-line behavior. */}
+          <textarea
+            id="accessible-single-line-editor"
+            className="mousetrap"
+            rows="1"
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              width: '100%',
+              height: '100%',
+              opacity: 0,
+              zIndex: 10,
+              resize: 'none',
+              outline: 'none',
+              border: 'none',
+              background: 'transparent',
+              whiteSpace: 'nowrap',
+              overflow: 'hidden'
+            }}
+            value={this.props.value || ''}
+            aria-label={this.props.placeholder || 'Input'}
+            readOnly={this.props.readOnly}
+            onChange={(e) => {
+              const val = e.target.value.replace(/[\r\n]/g, '');
+              if (this.props.onChange) {
+                this.props.onChange(val);
+              }
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && this.props.onRun) {
+                this.props.onRun();
+              }
+              /* Stop propagation to prevent CodeMirror from stealing keyboard focus */
+              e.stopPropagation();
+            }}
+          />
+        </div>
+
         <div className="flex items-center">
           {this.secretEye(this.props.isSecret)}
         </div>

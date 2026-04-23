@@ -319,23 +319,23 @@ export default class CodeEditor extends React.Component {
     return (
       <StyledWrapper
         className={`h-full w-full flex flex-col relative graphiql-container ${this.props.readOnly ? 'read-only' : ''}`}
-        aria-label="Code Editor Wrapper"
         font={this.props.font}
         fontSize={this.props.fontSize}
       >
-        <CodeMirrorSearch
-          ref={(node) => {
-            if (!node) return;
-            this.searchBarRef.current = node;
-          }}
-          visible={this.state.searchBarVisible}
-          editor={this.editor}
-          onClose={() => this.setState({ searchBarVisible: false })}
-        />
+        <div aria-hidden="true">
+          <CodeMirrorSearch
+            ref={(node) => {
+              if (!node) return;
+              this.searchBarRef.current = node;
+            }}
+            visible={this.state.searchBarVisible}
+            editor={this.editor}
+            onClose={() => this.setState({ searchBarVisible: false })}
+          />
+        </div>
 
-        {/* Original CodeMirror container for syntax highlighting.
-          aria-hidden is set to true to prevent screen readers from
-          accessing the complex and inaccessible DOM structure.
+        {/* Visual Layer: CodeMirror container is hidden from the accessibility tree
+          to prevent screen readers from navigating its complex, non-semantic DOM.
         */}
         <div
           className={`editor-container${this.state.searchBarVisible ? ' search-bar-visible' : ''}`}
@@ -344,11 +344,12 @@ export default class CodeEditor extends React.Component {
           aria-hidden="true"
         />
 
-        {/* Accessible Overlay Textarea.
-          This layer stays on top to capture focus and keyboard events,
-          enabling screen readers to interact with the code effectively.
+        {/* Accessibility Layer: A transparent textarea handles focus and input.
+          This allows screen readers (like NVDA/JAWS) to use native text navigation
+          while CodeMirror provides syntax highlighting in the layer below.
         */}
         <textarea
+          id="accessible-bruno-editor"
           className="mousetrap"
           style={{
             position: 'absolute',
@@ -367,12 +368,13 @@ export default class CodeEditor extends React.Component {
           }}
           value={this.props.value || ''}
           aria-label={this.props.ariaLabel || 'Code Editor'}
+          readOnly={this.props.readOnly}
           onChange={(e) => {
             this.props.onEdit(e.target.value);
           }}
           onKeyDown={(e) => {
-            /* Stop event propagation to prevent CodeMirror from
-              intercepting keystrokes and breaking focus/accessibility state.
+            /* Stop propagation to ensure keyboard events are handled by the textarea
+               and not intercepted by CodeMirror's internal key handlers.
             */
             e.stopPropagation();
           }}
