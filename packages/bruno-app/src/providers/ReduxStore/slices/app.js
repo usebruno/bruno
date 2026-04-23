@@ -1,12 +1,19 @@
 import { createSlice } from '@reduxjs/toolkit';
 import filter from 'lodash/filter';
 import brunoClipboard from 'utils/bruno-clipboard';
+import { normalizePath } from 'utils/common/path';
 import { addTab, focusTab } from './tabs';
 
 const initialState = {
   isDragging: false,
   idbConnectionReady: false,
   snapshotReady: false,
+  snapshotHydration: {
+    workspaceUid: null,
+    pendingCollectionPathnames: [],
+    activeCollectionPathname: null,
+    startedAt: null
+  },
   leftSidebarWidth: 250,
   sidebarCollapsed: false,
   showSidebarSearch: false,
@@ -82,6 +89,43 @@ export const appSlice = createSlice({
     },
     setSnapshotReady: (state, action) => {
       state.snapshotReady = action.payload;
+    },
+    startSnapshotHydrationSession: (state, action) => {
+      const {
+        workspaceUid = null,
+        pendingCollectionPathnames = [],
+        activeCollectionPathname = null
+      } = action.payload || {};
+      const normalizedPathnames = [...new Set(
+        pendingCollectionPathnames
+          .filter(Boolean)
+          .map((pathname) => normalizePath(pathname))
+      )];
+
+      state.snapshotHydration = {
+        workspaceUid,
+        pendingCollectionPathnames: normalizedPathnames,
+        activeCollectionPathname: activeCollectionPathname ? normalizePath(activeCollectionPathname) : null,
+        startedAt: Date.now()
+      };
+    },
+    markSnapshotCollectionHydrated: (state, action) => {
+      const pathname = action.payload?.pathname;
+      if (!pathname) {
+        return;
+      }
+
+      const normalizedPathname = normalizePath(pathname);
+      state.snapshotHydration.pendingCollectionPathnames = state.snapshotHydration.pendingCollectionPathnames
+        .filter((pendingPathname) => normalizePath(pendingPathname) !== normalizedPathname);
+    },
+    clearSnapshotHydrationSession: (state) => {
+      state.snapshotHydration = {
+        workspaceUid: null,
+        pendingCollectionPathnames: [],
+        activeCollectionPathname: null,
+        startedAt: null
+      };
     },
     refreshScreenWidth: (state) => {
       state.screenWidth = window.innerWidth;
@@ -199,6 +243,9 @@ export const appSlice = createSlice({
 export const {
   idbConnectionReady,
   setSnapshotReady,
+  startSnapshotHydrationSession,
+  markSnapshotCollectionHydrated,
+  clearSnapshotHydrationSession,
   refreshScreenWidth,
   updateLeftSidebarWidth,
   updateIsDragging,

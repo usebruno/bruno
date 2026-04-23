@@ -14,13 +14,27 @@ import { sanitizeName } from 'utils/common/regex';
 import { clearCollectionState } from '../openapi-sync';
 import { updateGlobalEnvironments } from '../global-environments';
 import { addTab, restoreTabs } from '../tabs';
-import { setSnapshotReady } from '../app';
+import {
+  setSnapshotReady,
+  startSnapshotHydrationSession,
+  markSnapshotCollectionHydrated,
+  clearSnapshotHydrationSession
+} from '../app';
 import { openConsole, closeConsole, setActiveTab as setActiveDevToolsTab } from '../logs';
 import { normalizePath } from 'utils/common/path';
 import { hydrateTabs, getActiveTabFromSnapshot, hydrateSnapshotLookups } from 'utils/snapshot';
 import toast from 'react-hot-toast';
 
 const { ipcRenderer } = window;
+let snapshotHydrationTimer = null;
+const SNAPSHOT_HYDRATION_TIMEOUT_MS = 10000;
+
+const clearSnapshotHydrationTimeout = () => {
+  if (snapshotHydrationTimer) {
+    clearTimeout(snapshotHydrationTimer);
+    snapshotHydrationTimer = null;
+  }
+};
 
 const transformCollection = async (collection, type) => {
   switch (type) {
@@ -285,9 +299,12 @@ const loadWorkspaceCollectionsForSwitch = async (dispatch, workspace) => {
     return dispatch(openMultipleCollections(collectionPaths, { workspacePath }));
   };
 
+  let updatedWorkspace = null;
+  let requestedCollectionPaths = [];
+
   try {
     await dispatch(loadWorkspaceCollections(workspace.uid));
-    const updatedWorkspace = await dispatch((_, getState) => getState().workspaces.workspaces.find((w) => w.uid === workspace.uid));
+    updatedWorkspace = await dispatch((_, getState) => getState().workspaces.workspaces.find((w) => w.uid === workspace.uid));
 
     if (updatedWorkspace?.collections?.length > 0) {
       const alreadyOpenCollections = await dispatch((_, getState) =>
@@ -298,9 +315,11 @@ const loadWorkspaceCollectionsForSwitch = async (dispatch, workspace) => {
         .map((wc) => wc.path)
         .filter((p) => p && !alreadyOpenCollections.includes(normalizePath(p)));
 
-      const uniqueCollectionPaths = [...new Set(
-        collectionPaths
+      const uniqueCollectionPaths = [...new Map(
+        collectionPaths.map((collectionPath) => [normalizePath(collectionPath), collectionPath])
       ).values()];
+
+      requestedCollectionPaths = uniqueCollectionPaths;
 
       if (uniqueCollectionPaths.length > 0) {
         await openCollectionsFunction(uniqueCollectionPaths, updatedWorkspace.pathname);
@@ -309,9 +328,133 @@ const loadWorkspaceCollectionsForSwitch = async (dispatch, workspace) => {
 
     // Load API specs for this workspace
     await dispatch(loadWorkspaceApiSpecs(workspace.uid));
+
+    return {
+      updatedWorkspace,
+      requestedCollectionPaths
+    };
   } catch (error) {
     console.error('Failed to load workspace collections:', error);
+
+    return {
+      updatedWorkspace,
+      requestedCollectionPaths
+    };
   }
+};
+
+const maybeCompleteSnapshotHydrationSession = (dispatch, getState) => {
+  const state = getState();
+  const snapshotHydration = state.app.snapshotHydration;
+
+  if (!snapshotHydration?.workspaceUid) {
+    return false;
+  }
+
+  if (state.workspaces.activeWorkspaceUid !== snapshotHydration.workspaceUid) {
+    clearSnapshotHydrationTimeout();
+    dispatch(clearSnapshotHydrationSession());
+    return false;
+  }
+
+  if (snapshotHydration.pendingCollectionPathnames.length > 0) {
+    return false;
+  }
+
+  clearSnapshotHydrationTimeout();
+  dispatch(setSnapshotReady(true));
+  dispatch(clearSnapshotHydrationSession());
+  return true;
+};
+
+const scheduleSnapshotHydrationTimeout = (dispatch, getState, workspaceUid) => {
+  clearSnapshotHydrationTimeout();
+
+  snapshotHydrationTimer = setTimeout(() => {
+    const state = getState();
+    const session = state.app.snapshotHydration;
+
+    if (!session?.workspaceUid || session.workspaceUid !== workspaceUid) {
+      return;
+    }
+
+    const pendingCount = session.pendingCollectionPathnames.length;
+    if (pendingCount > 0) {
+      console.warn(
+        `Snapshot hydration timeout for workspace ${workspaceUid}. `
+        + `Proceeding with ${pendingCount} collection(s) still pending.`
+      );
+    }
+
+    dispatch(setSnapshotReady(true));
+    dispatch(clearSnapshotHydrationSession());
+    clearSnapshotHydrationTimeout();
+  }, SNAPSHOT_HYDRATION_TIMEOUT_MS);
+};
+
+export const hydrateSnapshotForOpenedCollection = (collectionPathname) => {
+  return async (dispatch, getState) => {
+    if (!collectionPathname) {
+      return;
+    }
+
+    const state = getState();
+    const snapshotHydration = state.app.snapshotHydration;
+
+    if (!snapshotHydration?.workspaceUid) {
+      return;
+    }
+
+    if (state.workspaces.activeWorkspaceUid !== snapshotHydration.workspaceUid) {
+      clearSnapshotHydrationTimeout();
+      dispatch(clearSnapshotHydrationSession());
+      return;
+    }
+
+    const normalizedCollectionPath = normalizePath(collectionPathname);
+    const isPendingHydration = snapshotHydration.pendingCollectionPathnames.some(
+      (pathname) => normalizePath(pathname) === normalizedCollectionPath
+    );
+
+    if (!isPendingHydration) {
+      return;
+    }
+
+    const collection = state.collections.collections.find(
+      (c) => c.pathname && normalizePath(c.pathname) === normalizedCollectionPath
+    );
+
+    if (!collection) {
+      return;
+    }
+
+    await hydrateTabs([collection], dispatch, restoreTabs);
+
+    if (
+      snapshotHydration.activeCollectionPathname
+      && normalizePath(snapshotHydration.activeCollectionPathname) === normalizedCollectionPath
+    ) {
+      dispatch(expandCollection(collection.uid));
+
+      const needsMount = collection.mountStatus !== 'mounted' && collection.mountStatus !== 'mounting';
+      if (needsMount) {
+        await dispatch(mountCollection({
+          collectionUid: collection.uid,
+          collectionPathname: collection.pathname,
+          brunoConfig: collection.brunoConfig,
+          skipTabRestore: true
+        })).catch((err) => console.error('Failed to mount active collection:', err));
+      }
+
+      const activeTab = await getActiveTabFromSnapshot(collection.pathname, collection);
+      if (activeTab) {
+        dispatch(addTab(activeTab));
+      }
+    }
+
+    dispatch(markSnapshotCollectionHydrated({ pathname: collection.pathname }));
+    maybeCompleteSnapshotHydrationSession(dispatch, getState);
+  };
 };
 
 export const loadWorkspaceApiSpecs = (workspaceUid) => {
@@ -349,7 +492,9 @@ export const loadWorkspaceApiSpecs = (workspaceUid) => {
 
 export const switchWorkspace = (workspaceUid) => {
   return async (dispatch, getState) => {
+    clearSnapshotHydrationTimeout();
     dispatch(setSnapshotReady(false));
+    dispatch(clearSnapshotHydrationSession());
 
     try {
       dispatch(setActiveWorkspace(workspaceUid));
@@ -378,12 +523,24 @@ export const switchWorkspace = (workspaceUid) => {
 
       // Mount scratch collection and load workspace collections
       const scratchCollection = await dispatch(mountScratchCollection(workspaceUid));
-      await loadWorkspaceCollectionsForSwitch(dispatch, workspace);
+      const { updatedWorkspace } = await loadWorkspaceCollectionsForSwitch(dispatch, workspace);
 
-      // Hydrate tabs for ALL collections from snapshot before snapshotReady
-      // This prevents overwriting tabs for unmounted collections
+      const latestWorkspace = updatedWorkspace || getState().workspaces.workspaces.find((w) => w.uid === workspaceUid);
+      const workspaceCollectionPaths = [...new Map(
+        (latestWorkspace?.collections || [])
+          .map((workspaceCollection) => workspaceCollection.path)
+          .filter(Boolean)
+          .map((collectionPath) => [normalizePath(collectionPath), collectionPath])
+      ).values()];
+      const workspaceCollectionPathSet = new Set(
+        workspaceCollectionPaths.map((collectionPath) => normalizePath(collectionPath))
+      );
+
+      // Hydrate tabs for workspace collections currently present in Redux
       const collections = getState().collections.collections.filter(
-        (c) => c.pathname && c.uid !== scratchCollection?.uid
+        (c) => c.pathname
+          && c.uid !== scratchCollection?.uid
+          && workspaceCollectionPathSet.has(normalizePath(c.pathname))
       );
       await hydrateTabs(collections, dispatch, restoreTabs, snapshotLookups);
 
@@ -407,7 +564,8 @@ export const switchWorkspace = (workspaceUid) => {
           await dispatch(mountCollection({
             collectionUid: activeCollection.uid,
             collectionPathname: activeCollection.pathname,
-            brunoConfig: activeCollection.brunoConfig
+            brunoConfig: activeCollection.brunoConfig,
+            skipTabRestore: true
           })).catch((err) => console.error('Failed to mount active collection:', err));
         }
 
@@ -423,9 +581,34 @@ export const switchWorkspace = (workspaceUid) => {
         // No active collection, focus the workspace overview tab
         dispatch(addTab({ uid: `${scratchCollection.uid}-overview`, collectionUid: scratchCollection.uid, type: 'workspaceOverview' }));
       }
+
+      const openWorkspaceCollectionPaths = new Set(
+        getState().collections.collections
+          .filter((c) => c.pathname && workspaceCollectionPathSet.has(normalizePath(c.pathname)))
+          .map((c) => normalizePath(c.pathname))
+      );
+
+      const pendingCollectionPathnames = workspaceCollectionPaths
+        .filter((collectionPath) => !openWorkspaceCollectionPaths.has(normalizePath(collectionPath)));
+
+      dispatch(startSnapshotHydrationSession({
+        workspaceUid,
+        pendingCollectionPathnames,
+        activeCollectionPathname: lastActiveCollectionPathname || null
+      }));
+
+      const completed = maybeCompleteSnapshotHydrationSession(dispatch, getState);
+      if (!completed && pendingCollectionPathnames.length > 0) {
+        scheduleSnapshotHydrationTimeout(dispatch, getState, workspaceUid);
+      }
+    } catch (error) {
+      console.error('Failed to switch workspace:', error);
     } finally {
-      // Mark snapshot as ready after workspace loading completes
-      dispatch(setSnapshotReady(true));
+      const state = getState();
+      const hasHydrationSession = Boolean(state.app.snapshotHydration?.workspaceUid);
+      if (!state.app.snapshotReady && !hasHydrationSession) {
+        dispatch(setSnapshotReady(true));
+      }
     }
   };
 };

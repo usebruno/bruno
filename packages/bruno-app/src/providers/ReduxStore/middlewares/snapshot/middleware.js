@@ -27,6 +27,7 @@ const DEBOUNCE_MS = 1000;
  */
 const serializeSnapshot = async (state) => {
   const { workspaces, collections, tabs, logs, globalEnvironments } = state;
+  const snapshotHydration = state.app?.snapshotHydration;
 
   // Get existing snapshot to preserve data for collections not currently loaded
   let existingSnapshot = null;
@@ -160,11 +161,17 @@ const serializeSnapshot = async (state) => {
     });
   });
 
+  const pendingHydrationPaths = new Set(
+    (snapshotHydration?.pendingCollectionPathnames || []).map((pathname) => normalizePath(pathname))
+  );
+
   // Preserve collections from existing snapshot that aren't currently loaded in Redux
+  // and collections that are still pending hydration during workspace switch.
   Object.values(existingSnapshotLookups.collectionsByPath || {}).forEach((existingCollection) => {
     const normalizedPath = normalizePath(existingCollection.pathname || '');
+    const shouldPreservePendingHydration = pendingHydrationPaths.has(normalizedPath);
 
-    if (!normalizedPath || serializedCollectionPaths.has(normalizedPath)) {
+    if (!normalizedPath || (serializedCollectionPaths.has(normalizedPath) && !shouldPreservePendingHydration)) {
       return;
     }
 
