@@ -358,6 +358,13 @@ export const tabsSlice = createSlice({
 
       state.tabs = tabs;
     },
+    updateTabState: (state, action) => {
+      const { uid, tabState } = action.payload;
+      const tab = find(state.tabs, (t) => t.uid === uid);
+      if (tab) {
+        tab.tabState = { ...tab.tabState, ...tabState };
+      }
+    },
     reopenLastClosedTab: (state, action) => {
       const collectionUid = action.payload?.collectionUid;
       // Find the last closed tab for this collection (LIFO). If no collectionUid is
@@ -401,6 +408,7 @@ export const {
   closeAllCollectionTabs,
   makeTabPermanent,
   reorderTabs,
+  updateTabState,
   reopenLastClosedTab,
   updateQueryBuilderOpen,
   updateQueryBuilderWidth,
