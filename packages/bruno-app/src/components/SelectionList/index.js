@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
 import StyledWrapper from './StyledWrapper';
 
 const SelectionList = ({
@@ -16,6 +16,14 @@ const SelectionList = ({
   emptyMessage = 'No items found'
 }) => {
   const allSelected = items.length > 0 && selectedItems.length === items.length;
+  const someSelected = items.length > 0 && selectedItems.length > 0 && !allSelected;
+  const selectAllRef = useRef(null);
+
+  useEffect(() => {
+    if (selectAllRef.current) {
+      selectAllRef.current.indeterminate = someSelected;
+    }
+  }, [someSelected]);
 
   return (
     <StyledWrapper
@@ -28,6 +36,8 @@ const SelectionList = ({
         <span className="selection-title">{title}</span>
         <label className="selection-toggle">
           <input
+            ref={selectAllRef}
+            className="checkbox"
             type="checkbox"
             checked={allSelected}
             onChange={onSelectAll}

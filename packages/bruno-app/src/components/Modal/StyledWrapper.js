@@ -208,21 +208,35 @@ const Wrapper = styled.div`
       outline-offset: 2px;
     }
 
-    &:checked {
+    &:checked,
+    &:indeterminate {
       background: ${(props) => props.theme.button2.color.primary.bg};
       border-color: ${(props) => props.theme.button2.color.primary.border};
+    }
 
-      &::after {
-        content: '';
-        position: absolute;
-        left: 4px;
-        top: 1px;
-        width: 5px;
-        height: 9px;
-        border: solid ${(props) => props.theme.button2.color.primary.text};
-        border-width: 0 2px 2px 0;
-        transform: rotate(45deg);
-      }
+    &:checked::after,
+    &:indeterminate::after {
+      content: '';
+      position: absolute;
+    }
+
+    &:checked::after {
+      left: 4px;
+      top: 1px;
+      width: 5px;
+      height: 9px;
+      border: solid ${(props) => props.theme.button2.color.primary.text};
+      border-width: 0 2px 2px 0;
+      transform: rotate(45deg);
+    }
+
+    &:indeterminate::after {
+      left: 2px;
+      top: 6px;
+      width: 10px;
+      height: 2px;
+      background: ${(props) => props.theme.button2.color.primary.text};
+      border-radius: 2px;
     }
   }
 `;

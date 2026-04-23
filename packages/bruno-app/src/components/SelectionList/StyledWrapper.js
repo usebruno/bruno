@@ -36,7 +36,6 @@ const StyledWrapper = styled.div`
   }
 
   .selection-toggle input[type='checkbox'] {
-    accent-color: ${(props) => props.theme.primary.solid};
     cursor: pointer;
     margin-right: 0.5rem;
   }
