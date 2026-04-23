@@ -62,6 +62,7 @@ export default class CodeEditor extends React.Component {
       value: this.props.value || '',
       placeholder: '...',
       lineNumbers: true,
+      tabIndex: -1,
       inputStyle: 'textarea',
       resetSelectionOnContextMenu: false,
       spellcheck: true,
@@ -321,17 +322,15 @@ export default class CodeEditor extends React.Component {
         font={this.props.font}
         fontSize={this.props.fontSize}
       >
-        <div aria-hidden="true">
-          <CodeMirrorSearch
-            ref={(node) => {
-              if (!node) return;
-              this.searchBarRef.current = node;
-            }}
-            visible={this.state.searchBarVisible}
-            editor={this.editor}
-            onClose={() => this.setState({ searchBarVisible: false })}
-          />
-        </div>
+        <CodeMirrorSearch
+          ref={(node) => {
+            if (!node) return;
+            this.searchBarRef.current = node;
+          }}
+          visible={this.state.searchBarVisible}
+          editor={this.editor}
+          onClose={() => this.setState({ searchBarVisible: false })}
+        />
 
         {/* Visual Layer: CodeMirror container is hidden from the accessibility tree
           to prevent screen readers from navigating its complex, non-semantic DOM.
@@ -369,12 +368,19 @@ export default class CodeEditor extends React.Component {
           aria-label={this.props.ariaLabel || 'Code Editor'}
           readOnly={this.props.readOnly}
           onChange={(e) => {
-            this.props.onEdit(e.target.value);
+            if (typeof this._onEdit === 'function') {
+              this._onEdit(e.target.value);
+            }
           }}
           onKeyDown={(e) => {
-            /* Stop propagation to ensure keyboard events are handled by the textarea
-               and not intercepted by CodeMirror's internal key handlers.
-            */
+            const isShortcut = e.ctrlKey || e.metaKey || e.altKey;
+            const isFunctionKey = e.key.startsWith('F');
+            const isEscape = e.key === 'Escape';
+
+            if (isShortcut || isFunctionKey || isEscape) {
+              return;
+            }
+
             e.stopPropagation();
           }}
         />

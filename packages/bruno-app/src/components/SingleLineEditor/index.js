@@ -13,32 +13,22 @@ const CodeMirror = require('codemirror');
 class SingleLineEditor extends Component {
   constructor(props) {
     super(props);
-    // Keep a cached version of the value, this cache will be updated when the
-    // editor is updated, which can later be used to protect the editor from
-    // unnecessary updates during the update lifecycle.
     this.cachedValue = props.value || '';
     this.editorRef = React.createRef();
     this.variables = {};
     this.readOnly = props.readOnly || false;
 
     this.state = {
-      maskInput: props.isSecret || false // Always mask the input by default (if it's a secret)
+      maskInput: props.isSecret || false
     };
   }
 
   componentDidMount() {
-    // Initialize CodeMirror as a single line editor
-    /** @type {import("codemirror").Editor} */
     const variables = getAllVariables(this.props.collection, this.props.item);
 
     const runHandler = () => {
       if (this.props.onRun) {
         this.props.onRun();
-      }
-    };
-    const saveHandler = () => {
-      if (this.props.onSave) {
-        this.props.onSave();
       }
     };
     const noopHandler = () => { };
@@ -55,7 +45,7 @@ class SingleLineEditor extends Component {
         item: this.props.item
       } : false,
       scrollbarStyle: null,
-      tabindex: 0,
+      tabindex: -1, // Prevent hidden editor from receiving keyboard focus
       readOnly: this.props.readOnly,
       extraKeys: {
         'Enter': runHandler,
@@ -69,7 +59,6 @@ class SingleLineEditor extends Component {
         },
         'Cmd-F': noopHandler,
         'Ctrl-F': noopHandler,
-        // Tabbing disabled to make tabindex work
         'Tab': false,
         'Shift-Tab': false
       }
@@ -78,7 +67,6 @@ class SingleLineEditor extends Component {
     const getAllVariablesHandler = () => getAllVariables(this.props.collection, this.props.item);
     const getAnywordAutocompleteHints = () => this.props.autocomplete || [];
 
-    // Setup AutoComplete Helper
     const autoCompleteOptions = {
       getAllVariables: getAllVariablesHandler,
       getAnywordAutocompleteHints,
@@ -99,23 +87,16 @@ class SingleLineEditor extends Component {
     this._enableMaskedEditor(this.props.isSecret);
     this.setState({ maskInput: this.props.isSecret });
 
-    // Add newline arrow markers if enabled
     if (this.props.showNewlineArrow) {
       this._updateNewlineMarkers();
     }
     setupLinkAware(this.editor);
-
-    /* Technical Note:
-      The manual manipulation of 'cmInput' was removed to prevent
-      focus conflicts with the accessible textarea implementation.
-    */
   }
 
-  /** Enable or disable masking the rendered content of the editor */
   _enableMaskedEditor = (enabled) => {
     if (typeof enabled !== 'boolean') return;
 
-    if (enabled == true) {
+    if (enabled === true) {
       if (!this.maskedEditor) this.maskedEditor = new MaskedEditor(this.editor, '*');
       this.maskedEditor.enable();
     } else {
@@ -133,14 +114,18 @@ class SingleLineEditor extends Component {
     }
   };
 
-  _onEdit = () => {
+  _onEdit = (value) => {
     if (!this.ignoreChangeEvent && this.editor) {
+      // If a value is passed directly (from textarea), update the editor
+      if (value !== undefined && value !== this.editor.getValue()) {
+        this.editor.setValue(value);
+      }
+
       this.cachedValue = this.editor.getValue();
       if (this.props.onChange && (this.props.value !== this.cachedValue)) {
         this.props.onChange(this.cachedValue);
       }
 
-      // Update newline markers after edit
       if (this.props.showNewlineArrow) {
         this._updateNewlineMarkers();
       }
@@ -150,9 +135,6 @@ class SingleLineEditor extends Component {
   _onPaste = (_, event) => this.props.onPaste?.(event);
 
   componentDidUpdate(prevProps) {
-    // Ensure the changes caused by this update are not interpreted as
-    // user-input changes which could otherwise result in an infinite
-    // event loop.
     this.ignoreChangeEvent = true;
 
     let variables = getAllVariables(this.props.collection, this.props.item);
@@ -163,7 +145,6 @@ class SingleLineEditor extends Component {
       this.addOverlay(variables);
     }
 
-    // Update collection and item when they change
     if (this.props.enableBrunoVarInfo !== false && this.editor.options.brunoVarInfo) {
       if (!isEqual(this.props.collection, this.editor.options.brunoVarInfo.collection)) {
         this.editor.options.brunoVarInfo.collection = this.props.collection;
@@ -180,20 +161,16 @@ class SingleLineEditor extends Component {
       this.cachedValue = String(this.props.value);
       this.editor.setValue(String(this.props.value) || '');
       this.editor.setCursor(cursor);
-      // Re-apply masking after setValue() since it destroys all CodeMirror marks
       if (this.maskedEditor && this.maskedEditor.isEnabled()) {
         this.maskedEditor.update();
       }
 
-      // Update newline markers after value change
       if (this.props.showNewlineArrow) {
         this._updateNewlineMarkers();
       }
     }
     if (!isEqual(this.props.isSecret, prevProps.isSecret)) {
-      // If the secret flag has changed, update the editor to reflect the change
       this._enableMaskedEditor(this.props.isSecret);
-      // also set the maskInput flag to the new value
       this.setState({ maskInput: this.props.isSecret });
     }
     if (this.props.readOnly !== prevProps.readOnly && this.editor) {
@@ -232,25 +209,18 @@ class SingleLineEditor extends Component {
     this.editor.setOption('mode', 'brunovariables');
   };
 
-  /**
-   * Update markers to show arrows for newlines
-   */
   _updateNewlineMarkers = () => {
     if (!this.editor) return;
-
-    // Clear existing markers
     this._clearNewlineMarkers();
 
     this.newlineMarkers = [];
     const content = this.editor.getValue();
 
-    // Find all newlines and replace them with arrow widgets
     for (let i = 0; i < content.length; i++) {
       if (content[i] === '\n') {
         const pos = this.editor.posFromIndex(i);
         const nextPos = this.editor.posFromIndex(i + 1);
 
-        // Create a widget to display the arrow
         const arrow = document.createElement('span');
         arrow.className = 'newline-arrow';
         arrow.textContent = '↲';
@@ -262,7 +232,6 @@ class SingleLineEditor extends Component {
           display: inline-block;
         `;
 
-        // Mark the newline character and replace it with the arrow widget
         const marker = this.editor.markText(pos, nextPos, {
           replacedWith: arrow,
           handleMouseEvents: true
@@ -273,17 +242,12 @@ class SingleLineEditor extends Component {
     }
   };
 
-  /**
-   * Clear all newline markers
-   */
   _clearNewlineMarkers = () => {
     if (this.newlineMarkers) {
       this.newlineMarkers.forEach((marker) => {
         try {
           marker.clear();
-        } catch (e) {
-          // Marker might already be cleared
-        }
+        } catch (e) { }
       });
       this.newlineMarkers = [];
     }
@@ -295,10 +259,6 @@ class SingleLineEditor extends Component {
     this._enableMaskedEditor(isVisible);
   };
 
-  /**
-   * @brief Eye icon to show/hide the secret value
-   * @returns ReactComponent The eye icon
-   */
   secretEye = (isSecret) => {
     return isSecret === true ? (
       <button type="button" className="mx-2" onClick={() => this.toggleVisibleSecret()}>
@@ -312,11 +272,15 @@ class SingleLineEditor extends Component {
   };
 
   render() {
+    // Accessibility: Use bullets for screen readers when input is masked
+    const valueToDisplay = this.state.maskInput
+      ? '•'.repeat((this.props.value || '').length)
+      : (this.props.value || '');
+
     return (
       <div className={`flex flex-row items-center w-full overflow-x-auto ${this.props.className}`}>
         <div className="grow relative" style={{ display: 'flex', alignItems: 'center' }}>
-          {/* Visual Layer: CodeMirror container is hidden from the accessibility tree
-              to prevent screen readers from navigating its complex DOM. */}
+          {/* Visual Layer: CodeMirror container hidden from the accessibility tree */}
           <StyledWrapper
             ref={this.editorRef}
             aria-hidden="true"
@@ -325,9 +289,7 @@ class SingleLineEditor extends Component {
             {...(this.props['data-testid'] ? { 'data-testid': this.props['data-testid'] } : {})}
           />
 
-          {/* Accessibility Layer: A transparent textarea handles focus and input.
-              This allows screen readers to use native text navigation while
-              maintaining single-line behavior. */}
+          {/* Accessibility Layer: Transparent textarea for native input and screen reader support */}
           <textarea
             id="accessible-single-line-editor"
             className="mousetrap"
@@ -345,22 +307,50 @@ class SingleLineEditor extends Component {
               border: 'none',
               background: 'transparent',
               whiteSpace: 'nowrap',
-              overflow: 'hidden'
+              overflow: 'hidden',
+              caretColor: this.props.theme === 'dark' ? 'white' : 'black'
             }}
-            value={this.props.value || ''}
+            value={valueToDisplay}
             aria-label={this.props.placeholder || 'Input'}
             readOnly={this.props.readOnly}
+            onPaste={(e) => {
+              if (typeof this._onPaste === 'function') {
+                this._onPaste(null, e);
+              }
+            }}
             onChange={(e) => {
               const val = e.target.value.replace(/[\r\n]/g, '');
-              if (this.props.onChange) {
-                this.props.onChange(val);
+              // Use internal method to sync with CodeMirror and trigger linting/validation
+              if (typeof this._onEdit === 'function') {
+                this._onEdit(val);
               }
             }}
             onKeyDown={(e) => {
+              const isShortcut = e.ctrlKey || e.metaKey || e.altKey;
+              const isFunctionKey = e.key.startsWith('F');
+              const isEscape = e.key === 'Escape';
+
+              // Support Alt+Enter for manual newline injection if allowed by props
+              if (e.key === 'Enter' && e.altKey && this.props.allowNewlines) {
+                const newValue = (this.props.value || '') + '\n';
+                if (typeof this._onEdit === 'function') {
+                  this._onEdit(newValue);
+                }
+                return;
+              }
+
+              // Trigger execution on Enter
               if (e.key === 'Enter' && this.props.onRun) {
                 this.props.onRun();
+                return;
               }
-              /* Stop propagation to prevent CodeMirror from stealing keyboard focus */
+
+              // Let global shortcuts and navigation keys bubble up to Mousetrap/App level
+              if (isShortcut || isFunctionKey || isEscape) {
+                return;
+              }
+
+              /* Prevent duplicate processing by hidden CodeMirror for standard typing */
               e.stopPropagation();
             }}
           />
@@ -373,4 +363,5 @@ class SingleLineEditor extends Component {
     );
   }
 }
+
 export default SingleLineEditor;
