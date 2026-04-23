@@ -298,8 +298,8 @@ const loadWorkspaceCollectionsForSwitch = async (dispatch, workspace) => {
         .map((wc) => wc.path)
         .filter((p) => p && !alreadyOpenCollections.includes(normalizePath(p)));
 
-      const uniqueCollectionPaths = [...new Map(
-        collectionPaths.map((p) => [normalizePath(p), p])
+      const uniqueCollectionPaths = [...new Set(
+        collectionPaths
       ).values()];
 
       if (uniqueCollectionPaths.length > 0) {
