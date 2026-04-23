@@ -1,6 +1,8 @@
 import { findItemInCollection, findItemInCollectionByPathname } from 'utils/collections';
 import path, { normalizePath } from 'utils/common/path';
 
+const isObject = (value) => value && typeof value === 'object' && !Array.isArray(value);
+
 const REQUEST_TAB_TYPES = new Set(['http-request', 'graphql-request', 'grpc-request', 'ws-request']);
 const SINGLETON_TAB_TYPES = new Set([
   'variables',
@@ -51,6 +53,200 @@ const normalizeSnapshotPathRef = (value) => {
   }
 
   return value.replace(/\\/g, '/').replace(/\/+$/, '');
+};
+
+const normalizeCollectionSnapshotEntry = (pathname, entry = {}, tabsEntry = {}) => {
+  const environment = isObject(entry.environment) ? entry.environment : {};
+  const fallbackEnvironmentPath = entry.environmentPath ?? entry.selectedEnvironment;
+
+  const collectionEnvironmentPath = typeof environment.collection === 'string'
+    ? environment.collection
+    : (typeof fallbackEnvironmentPath === 'string' ? fallbackEnvironmentPath : '');
+
+  return {
+    pathname,
+    workspacePathname: typeof entry.workspacePathname === 'string' ? entry.workspacePathname : '',
+    environment: {
+      collection: collectionEnvironmentPath,
+      global: typeof environment.global === 'string' ? environment.global : ''
+    },
+    environmentPath: typeof entry.environmentPath === 'string' ? entry.environmentPath : collectionEnvironmentPath,
+    selectedEnvironment: typeof entry.selectedEnvironment === 'string' ? entry.selectedEnvironment : '',
+    isOpen: typeof entry.isOpen === 'boolean' ? entry.isOpen : false,
+    isMounted: typeof entry.isMounted === 'boolean' ? entry.isMounted : false,
+    activeTab: tabsEntry.activeTab ?? entry.activeTab ?? null,
+    tabs: Array.isArray(tabsEntry.tabs)
+      ? tabsEntry.tabs.filter((tab) => isObject(tab))
+      : (Array.isArray(entry.tabs) ? entry.tabs.filter((tab) => isObject(tab)) : [])
+  };
+};
+
+const normalizeWorkspaceSnapshotEntry = (pathname, entry = {}) => {
+  const collectionPathnames = Array.isArray(entry.collectionPathnames)
+    ? entry.collectionPathnames.filter((collectionPathname) => typeof collectionPathname === 'string')
+    : (Array.isArray(entry.collections) ? entry.collections.filter((collectionPathname) => typeof collectionPathname === 'string') : []);
+
+  return {
+    pathname,
+    lastActiveCollectionPathname: typeof entry.lastActiveCollectionPathname === 'string'
+      ? entry.lastActiveCollectionPathname
+      : null,
+    sorting: typeof entry.sorting === 'string' ? entry.sorting : 'az',
+    collectionPathnames
+  };
+};
+
+export const hydrateSnapshotLookups = (snapshot = {}) => {
+  const collectionsByPath = {};
+  const tabsByCollectionPath = {};
+  const workspacesByPath = {};
+
+  const setCollectionWorkspacePath = (collectionPathname, workspacePathname) => {
+    const normalizedCollectionPathname = normalizePath(collectionPathname);
+    if (!normalizedCollectionPathname) {
+      return;
+    }
+
+    const matchingCollectionKey = Object.keys(collectionsByPath).find(
+      (key) => normalizePath(key) === normalizedCollectionPathname
+    );
+
+    if (!matchingCollectionKey) {
+      return;
+    }
+
+    collectionsByPath[matchingCollectionKey] = {
+      ...collectionsByPath[matchingCollectionKey],
+      workspacePathname
+    };
+  };
+
+  if (Array.isArray(snapshot.collections)) {
+    snapshot.collections.forEach((collectionEntry) => {
+      if (!isObject(collectionEntry) || typeof collectionEntry.pathname !== 'string') {
+        return;
+      }
+
+      const collection = normalizeCollectionSnapshotEntry(collectionEntry.pathname, collectionEntry);
+      collectionsByPath[collection.pathname] = {
+        workspacePathname: typeof collection.workspacePathname === 'string' ? collection.workspacePathname : '',
+        environment: collection.environment,
+        environmentPath: collection.environmentPath,
+        selectedEnvironment: collection.selectedEnvironment,
+        isOpen: collection.isOpen,
+        isMounted: collection.isMounted
+      };
+      tabsByCollectionPath[collection.pathname] = {
+        activeTab: collection.activeTab,
+        tabs: collection.tabs
+      };
+    });
+  } else if (isObject(snapshot.collections) || isObject(snapshot.tabs)) {
+    const collections = isObject(snapshot.collections) ? snapshot.collections : {};
+    const tabs = isObject(snapshot.tabs) ? snapshot.tabs : {};
+    const collectionPathnames = new Set([...Object.keys(collections), ...Object.keys(tabs)]);
+
+    collectionPathnames.forEach((collectionPathname) => {
+      const collection = normalizeCollectionSnapshotEntry(
+        collectionPathname,
+        collections[collectionPathname],
+        tabs[collectionPathname]
+      );
+
+      collectionsByPath[collectionPathname] = {
+        workspacePathname: collection.workspacePathname,
+        environment: collection.environment,
+        environmentPath: collection.environmentPath,
+        selectedEnvironment: collection.selectedEnvironment,
+        isOpen: collection.isOpen,
+        isMounted: collection.isMounted
+      };
+      tabsByCollectionPath[collectionPathname] = {
+        activeTab: collection.activeTab,
+        tabs: collection.tabs
+      };
+    });
+  }
+
+  if (Array.isArray(snapshot.workspaces)) {
+    snapshot.workspaces.forEach((workspaceEntry) => {
+      if (!isObject(workspaceEntry) || typeof workspaceEntry.pathname !== 'string') {
+        return;
+      }
+
+      const workspace = normalizeWorkspaceSnapshotEntry(workspaceEntry.pathname, workspaceEntry);
+      workspacesByPath[workspace.pathname] = {
+        lastActiveCollectionPathname: workspace.lastActiveCollectionPathname,
+        sorting: workspace.sorting,
+        collectionPathnames: workspace.collectionPathnames
+      };
+
+      workspace.collectionPathnames.forEach((collectionPathname) => {
+        setCollectionWorkspacePath(collectionPathname, workspace.pathname);
+      });
+    });
+  } else if (isObject(snapshot.workspaces)) {
+    Object.entries(snapshot.workspaces).forEach(([workspacePathname, workspaceEntry]) => {
+      const workspace = normalizeWorkspaceSnapshotEntry(workspacePathname, workspaceEntry);
+      workspacesByPath[workspace.pathname] = {
+        lastActiveCollectionPathname: workspace.lastActiveCollectionPathname,
+        sorting: workspace.sorting,
+        collectionPathnames: workspace.collectionPathnames
+      };
+
+      workspace.collectionPathnames.forEach((collectionPathname) => {
+        setCollectionWorkspacePath(collectionPathname, workspace.pathname);
+      });
+    });
+  }
+
+  const normalizedCollectionsByPath = {};
+  const normalizedTabsByCollectionPath = {};
+  const normalizedWorkspacesByPath = {};
+
+  Object.entries(collectionsByPath).forEach(([collectionPathname, collection]) => {
+    normalizedCollectionsByPath[normalizePath(collectionPathname)] = {
+      pathname: collectionPathname,
+      ...collection
+    };
+  });
+
+  Object.entries(tabsByCollectionPath).forEach(([collectionPathname, tabs]) => {
+    normalizedTabsByCollectionPath[normalizePath(collectionPathname)] = {
+      pathname: collectionPathname,
+      ...tabs
+    };
+  });
+
+  Object.entries(workspacesByPath).forEach(([workspacePathname, workspace]) => {
+    normalizedWorkspacesByPath[normalizePath(workspacePathname)] = {
+      pathname: workspacePathname,
+      ...workspace
+    };
+  });
+
+  return {
+    collectionsByPath: normalizedCollectionsByPath,
+    tabsByCollectionPath: normalizedTabsByCollectionPath,
+    workspacesByPath: normalizedWorkspacesByPath
+  };
+};
+
+const getTabsSnapshotFromLookups = (collectionPathname, snapshotLookups = {}) => {
+  const normalizedPathname = normalizePath(collectionPathname);
+  if (!normalizedPathname) {
+    return null;
+  }
+
+  const tabsEntry = snapshotLookups?.tabsByCollectionPath?.[normalizedPathname];
+  if (!tabsEntry) {
+    return null;
+  }
+
+  return {
+    activeTab: tabsEntry.activeTab,
+    tabs: Array.isArray(tabsEntry.tabs) ? tabsEntry.tabs : []
+  };
 };
 
 export const getCollectionEnvironmentPath = (collection, environment, defaultValue = null) => {
@@ -227,10 +423,12 @@ export const deserializeTab = (snapshotTab, collection) => {
   return tab;
 };
 
-export const hydrateCollectionTabs = async (collection, dispatch, restoreTabs) => {
+export const hydrateCollectionTabs = async (collection, dispatch, restoreTabs, snapshotLookups = null) => {
   const { ipcRenderer } = window;
 
-  const tabsSnapshot = await ipcRenderer.invoke('renderer:snapshot:get-tabs', collection.pathname).catch(() => null);
+  const tabsSnapshot = getTabsSnapshotFromLookups(collection.pathname, snapshotLookups)
+    || await ipcRenderer.invoke('renderer:snapshot:get-tabs', collection.pathname).catch(() => null);
+
   if (tabsSnapshot?.tabs?.length > 0) {
     dispatch(restoreTabs({
       collection,
@@ -240,16 +438,18 @@ export const hydrateCollectionTabs = async (collection, dispatch, restoreTabs) =
   }
 };
 
-export const hydrateTabs = async (collections, dispatch, restoreTabs) => {
+export const hydrateTabs = async (collections, dispatch, restoreTabs, snapshotLookups = null) => {
   await Promise.all(
-    collections.map((collection) => hydrateCollectionTabs(collection, dispatch, restoreTabs))
+    collections.map((collection) => hydrateCollectionTabs(collection, dispatch, restoreTabs, snapshotLookups))
   );
 };
 
-export const getActiveTabFromSnapshot = async (collectionPathname, collection) => {
+export const getActiveTabFromSnapshot = async (collectionPathname, collection, snapshotLookups = null) => {
   const { ipcRenderer } = window;
 
-  const tabsSnapshot = await ipcRenderer.invoke('renderer:snapshot:get-tabs', collectionPathname).catch(() => null);
+  const tabsSnapshot = getTabsSnapshotFromLookups(collectionPathname, snapshotLookups)
+    || await ipcRenderer.invoke('renderer:snapshot:get-tabs', collectionPathname).catch(() => null);
+
   if (!tabsSnapshot?.activeTab || !tabsSnapshot?.tabs?.length) return null;
 
   const { accessor, value } = tabsSnapshot.activeTab;

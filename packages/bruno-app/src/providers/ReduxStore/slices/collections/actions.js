@@ -2355,7 +2355,8 @@ export const selectEnvironment = (environmentUid, collectionUid) => (dispatch, g
       type: 'COLLECTION_ENVIRONMENT',
       data: {
         collectionPath: collection?.pathname,
-        environmentPath: getCollectionEnvironmentPath(collection, environment)
+        environmentPath: getCollectionEnvironmentPath(collection, environment),
+        selectedEnvironment: environment?.name || ''
       }
     });
 

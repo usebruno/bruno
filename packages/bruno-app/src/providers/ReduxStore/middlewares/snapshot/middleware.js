@@ -10,7 +10,8 @@ import {
   shouldExcludeTab,
   serializeTab,
   serializeActiveTab,
-  getCollectionEnvironmentPath
+  getCollectionEnvironmentPath,
+  hydrateSnapshotLookups
 } from 'utils/snapshot';
 import { normalizePath } from 'utils/common/path';
 
@@ -22,7 +23,7 @@ const DEBOUNCE_MS = 1000;
 
 /**
  * Serialize the current app state into a snapshot format
- * Produces map-based structure keyed by pathname for O(1) lookups
+ * Persists array-based schema and supports lookup hydration.
  */
 const serializeSnapshot = async (state) => {
   const { workspaces, collections, tabs, logs, globalEnvironments } = state;
@@ -34,6 +35,8 @@ const serializeSnapshot = async (state) => {
   } catch (err) {
     // Ignore - will create fresh snapshot
   }
+
+  const existingSnapshotLookups = hydrateSnapshotLookups(existingSnapshot || {});
 
   // Build a set of scratch collection UIDs to exclude
   const scratchCollectionUids = new Set(
@@ -63,21 +66,12 @@ const serializeSnapshot = async (state) => {
         tabData: {}
       }
     },
-    workspaces: {},
-    collections: {},
-    tabs: {}
+    workspaces: [],
+    collections: []
   };
 
   // Track which collection pathnames we've serialized from Redux
   const serializedCollectionPaths = new Set();
-
-  // Build a uid → pathname map for collections (used to resolve activeCollectionUid → pathname)
-  const collectionUidToPathname = new Map();
-  (collections.collections || []).forEach((c) => {
-    if (c.uid && c.pathname) {
-      collectionUidToPathname.set(c.uid, normalizePath(c.pathname));
-    }
-  });
 
   (workspaces.workspaces || []).forEach((workspace) => {
     if (!workspace.pathname) return;
@@ -101,15 +95,18 @@ const serializeSnapshot = async (state) => {
         : null;
     } else {
       // For non-active workspaces, preserve from existing snapshot
-      const existingWorkspace = existingSnapshot?.workspaces?.[workspace.pathname];
+      const existingWorkspace = existingSnapshotLookups.workspacesByPath[normalizePath(workspace.pathname)];
       lastActiveCollectionPathname = existingWorkspace?.lastActiveCollectionPathname || null;
     }
 
-    snapshot.workspaces[workspace.pathname] = {
+    snapshot.workspaces.push({
+      pathname: workspace.pathname,
+      environment: '',
       lastActiveCollectionPathname,
       sorting: 'az',
-      collectionPathnames: workspaceCollectionPaths
-    };
+      collections: [...workspaceCollectionPaths],
+      collectionPathnames: [...workspaceCollectionPaths]
+    });
   });
 
   (collections.collections || []).forEach((collection) => {
@@ -128,26 +125,6 @@ const serializeSnapshot = async (state) => {
 
     serializedCollectionPaths.add(normalizedPath);
 
-    // Find which workspace this collection belongs to
-    const workspacePathname = Object.keys(snapshot.workspaces).find((wp) => {
-      const ws = snapshot.workspaces[wp];
-      return ws.collectionPathnames.some((cp) => normalizePath(cp) === normalizedPath);
-    }) || '';
-
-    snapshot.collections[collection.pathname] = {
-      workspacePathname,
-      environment: {
-        collection: getCollectionEnvironmentPath(
-          collection,
-          (collection.environments || []).find((env) => env.uid === collection.activeEnvironmentUid),
-          ''
-        ),
-        global: globalEnvironments.activeGlobalEnvironmentUid || ''
-      },
-      isOpen: !collection.collapsed,
-      isMounted: collection.mountStatus === 'mounted'
-    };
-
     // Get transient directory for this collection to filter transient tabs
     const transientDirectory = collections.tempDirectories?.[collection.uid];
 
@@ -160,29 +137,57 @@ const serializeSnapshot = async (state) => {
       (t) => t.collectionUid === collection.uid && t.uid === tabs.activeTabUid && !shouldExcludeTab(t, transientDirectory)
     );
 
-    snapshot.tabs[collection.pathname] = {
+    // Find which workspace this collection belongs to
+    const workspacePathname = snapshot.workspaces.find((workspaceSnapshot) => {
+      return workspaceSnapshot.collectionPathnames.some((collectionPathname) => normalizePath(collectionPathname) === normalizedPath);
+    })?.pathname || '';
+
+    const selectedEnvironment = (collection.environments || []).find((env) => env.uid === collection.activeEnvironmentUid);
+    const environmentPath = getCollectionEnvironmentPath(collection, selectedEnvironment, '');
+
+    snapshot.collections.push({
+      pathname: collection.pathname,
+      workspacePathname,
+      environment: {
+        collection: environmentPath,
+        global: globalEnvironments.activeGlobalEnvironmentUid || ''
+      },
+      environmentPath,
+      selectedEnvironment: selectedEnvironment?.name || '',
+      isOpen: !collection.collapsed,
+      isMounted: collection.mountStatus === 'mounted',
       activeTab: serializeActiveTab(activeTabInCollection, collection),
       tabs: collectionTabs
-    };
+    });
   });
 
-  // Preserve collections and tabs from existing snapshot that aren't currently loaded in Redux
-  if (existingSnapshot) {
-    const existingCollections = existingSnapshot.collections || {};
-    const existingTabs = existingSnapshot.tabs || {};
+  // Preserve collections from existing snapshot that aren't currently loaded in Redux
+  Object.values(existingSnapshotLookups.collectionsByPath || {}).forEach((existingCollection) => {
+    const normalizedPath = normalizePath(existingCollection.pathname || '');
 
-    Object.keys(existingCollections).forEach((pathname) => {
-      if (!serializedCollectionPaths.has(normalizePath(pathname))) {
-        snapshot.collections[pathname] = existingCollections[pathname];
-      }
-    });
+    if (!normalizedPath || serializedCollectionPaths.has(normalizedPath)) {
+      return;
+    }
 
-    Object.keys(existingTabs).forEach((pathname) => {
-      if (!serializedCollectionPaths.has(normalizePath(pathname))) {
-        snapshot.tabs[pathname] = existingTabs[pathname];
-      }
+    const existingTabs = existingSnapshotLookups.tabsByCollectionPath?.[normalizedPath];
+
+    snapshot.collections.push({
+      pathname: existingCollection.pathname,
+      workspacePathname: existingCollection.workspacePathname || '',
+      environment: {
+        collection: existingCollection.environment?.collection || existingCollection.environmentPath || '',
+        global: existingCollection.environment?.global || ''
+      },
+      environmentPath: existingCollection.environment?.collection || existingCollection.environmentPath || '',
+      selectedEnvironment: existingCollection.selectedEnvironment || '',
+      isOpen: typeof existingCollection.isOpen === 'boolean' ? existingCollection.isOpen : false,
+      isMounted: typeof existingCollection.isMounted === 'boolean' ? existingCollection.isMounted : false,
+      activeTab: existingTabs?.activeTab || existingCollection.activeTab || null,
+      tabs: Array.isArray(existingTabs?.tabs)
+        ? existingTabs.tabs
+        : (Array.isArray(existingCollection.tabs) ? existingCollection.tabs : [])
     });
-  }
+  });
 
   return snapshot;
 };

@@ -518,7 +518,7 @@ test.describe('Snapshot: Edge Cases', () => {
 // ─── Snapshot File Structure ────────────────────────────────────────────────
 
 test.describe('Snapshot: File Structure', () => {
-  test('snapshot file uses map-based structure with correct keys', async ({ launchElectronApp, createTmpDir }) => {
+  test('snapshot file uses array-based structure with correct keys', async ({ launchElectronApp, createTmpDir }) => {
     const userDataPath = await createTmpDir('snap-structure');
     const colPath = await createTmpDir('col');
 
@@ -547,47 +547,39 @@ test.describe('Snapshot: File Structure', () => {
       expect(snapshot).toHaveProperty('extras.devTools');
       expect(snapshot).toHaveProperty('workspaces');
       expect(snapshot).toHaveProperty('collections');
-      expect(snapshot).toHaveProperty('tabs');
 
-      // workspaces, collections, tabs should be objects (maps), not arrays
-      expect(Array.isArray(snapshot.workspaces)).toBe(false);
-      expect(typeof snapshot.workspaces).toBe('object');
-      expect(Array.isArray(snapshot.collections)).toBe(false);
-      expect(typeof snapshot.collections).toBe('object');
-      expect(Array.isArray(snapshot.tabs)).toBe(false);
-      expect(typeof snapshot.tabs).toBe('object');
+      // workspaces and collections should be arrays
+      expect(Array.isArray(snapshot.workspaces)).toBe(true);
+      expect(Array.isArray(snapshot.collections)).toBe(true);
 
       // There should be at least one workspace
-      const workspaceKeys = Object.keys(snapshot.workspaces);
-      expect(workspaceKeys.length).toBeGreaterThanOrEqual(1);
+      expect(snapshot.workspaces.length).toBeGreaterThanOrEqual(1);
 
       // Workspace should have expected shape
-      const firstWorkspace = snapshot.workspaces[workspaceKeys[0]];
+      const firstWorkspace = snapshot.workspaces[0];
+      expect(firstWorkspace).toHaveProperty('pathname');
       expect(firstWorkspace).toHaveProperty('lastActiveCollectionPathname');
       expect(firstWorkspace).toHaveProperty('sorting');
+      expect(firstWorkspace).toHaveProperty('collections');
       expect(firstWorkspace).toHaveProperty('collectionPathnames');
       expect(Array.isArray(firstWorkspace.collectionPathnames)).toBe(true);
+      expect(Array.isArray(firstWorkspace.collections)).toBe(true);
 
       // There should be at least one collection
-      const collectionKeys = Object.keys(snapshot.collections);
-      expect(collectionKeys.length).toBeGreaterThanOrEqual(1);
+      expect(snapshot.collections.length).toBeGreaterThanOrEqual(1);
 
       // Collection should have expected shape
-      const firstCollection = snapshot.collections[collectionKeys[0]];
+      const firstCollection = snapshot.collections[0];
+      expect(firstCollection).toHaveProperty('pathname');
       expect(firstCollection).toHaveProperty('workspacePathname');
       expect(firstCollection).toHaveProperty('environment');
+      expect(firstCollection).toHaveProperty('environmentPath');
+      expect(firstCollection).toHaveProperty('selectedEnvironment');
       expect(firstCollection).toHaveProperty('isOpen');
       expect(firstCollection).toHaveProperty('isMounted');
-
-      // Tabs should exist for the collection
-      const tabKeys = Object.keys(snapshot.tabs);
-      expect(tabKeys.length).toBeGreaterThanOrEqual(1);
-
-      // Tab entry should have expected shape
-      const firstTabEntry = snapshot.tabs[tabKeys[0]];
-      expect(firstTabEntry).toHaveProperty('tabs');
-      expect(Array.isArray(firstTabEntry.tabs)).toBe(true);
-      expect(firstTabEntry).toHaveProperty('activeTab');
+      expect(firstCollection).toHaveProperty('tabs');
+      expect(Array.isArray(firstCollection.tabs)).toBe(true);
+      expect(firstCollection).toHaveProperty('activeTab');
     });
   });
 });

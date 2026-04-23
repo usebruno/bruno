@@ -641,7 +641,8 @@ const onWatcherSetupComplete = (win, watchPath, collectionUid, watcher) => {
   const hydratePayload = collectionSnapshotState
     ? {
         pathname: watchPath,
-        environmentPath: collectionSnapshotState?.environment?.collection || ''
+        environmentPath: collectionSnapshotState?.environment?.collection || '',
+        selectedEnvironment: collectionSnapshotState?.selectedEnvironment || ''
       }
     : null;
 

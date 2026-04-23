@@ -7,6 +7,14 @@ const ENV_FILE_EXTENSIONS = ['bru', 'yml', 'yaml'];
 
 const isObject = (value) => value && typeof value === 'object' && !Array.isArray(value);
 
+const normalizeLookupKey = (pathname) => {
+  if (typeof pathname !== 'string' || !pathname) {
+    return null;
+  }
+
+  return path.normalize(pathname);
+};
+
 const tabSchema = yup.object({
   type: yup.string().required(),
   accessor: yup.string().oneOf(['pathname', 'pathname::exampleName', 'type']).required(),
@@ -31,25 +39,28 @@ const activeTabSchema = yup.object({
   value: yup.string().required()
 });
 
-const tabsEntrySchema = yup.object({
-  activeTab: activeTabSchema.nullable(),
-  tabs: yup.array().of(tabSchema).required()
-});
-
 const collectionSchema = yup.object({
+  pathname: yup.string().required(),
   workspacePathname: yup.string().required(),
   environment: yup.object({
     collection: yup.string(),
     global: yup.string()
   }).required(),
+  environmentPath: yup.string().optional(),
+  selectedEnvironment: yup.string().optional(),
   isOpen: yup.boolean().required(),
-  isMounted: yup.boolean().required()
+  isMounted: yup.boolean().required(),
+  activeTab: activeTabSchema.nullable(),
+  tabs: yup.array().of(tabSchema).required()
 });
 
 const workspaceSchema = yup.object({
+  pathname: yup.string().required(),
+  environment: yup.string().defined(),
   lastActiveCollectionPathname: yup.string().nullable(),
   sorting: yup.string().defined(),
-  collectionPathnames: yup.array().of(yup.string()).required()
+  collectionPathnames: yup.array().of(yup.string()).required(),
+  collections: yup.array().of(yup.string()).optional()
 });
 
 const devToolsSchema = yup.object({
@@ -64,30 +75,8 @@ const snapshotSchema = yup.object({
   extras: yup.object({
     devTools: devToolsSchema.required()
   }).required(),
-  workspaces: yup.lazy((value) =>
-    yup.object(
-      Object.keys(value || {}).reduce((acc, key) => {
-        acc[key] = workspaceSchema;
-        return acc;
-      }, {})
-    )
-  ),
-  collections: yup.lazy((value) =>
-    yup.object(
-      Object.keys(value || {}).reduce((acc, key) => {
-        acc[key] = collectionSchema;
-        return acc;
-      }, {})
-    )
-  ),
-  tabs: yup.lazy((value) =>
-    yup.object(
-      Object.keys(value || {}).reduce((acc, key) => {
-        acc[key] = tabsEntrySchema;
-        return acc;
-      }, {})
-    )
-  )
+  workspaces: yup.array().of(workspaceSchema).required(),
+  collections: yup.array().of(collectionSchema).required()
 });
 
 const emptySnapshot = {
@@ -100,9 +89,8 @@ const emptySnapshot = {
       tabData: {}
     }
   },
-  workspaces: {},
-  collections: {},
-  tabs: {}
+  workspaces: [],
+  collections: []
 };
 
 class SnapshotManager {
@@ -119,23 +107,77 @@ class SnapshotManager {
   // --- Reads ---
 
   getSnapshot() {
-    return this.store.store;
+    return this._normalizeSnapshot(this.store.store);
   }
 
   getActiveWorkspacePath() {
-    return this.store.get('activeWorkspacePath', null);
+    const snapshot = this._normalizeSnapshot(this.store.store);
+    return snapshot.activeWorkspacePath;
   }
 
   getWorkspace(pathname) {
-    return this._getByPathWithNormalizedFallback('workspaces', pathname);
+    const normalizedPath = normalizeLookupKey(pathname);
+    if (!normalizedPath) {
+      return null;
+    }
+
+    const { workspacesByPath } = this._buildLookupMaps(this.store.store);
+    const workspace = workspacesByPath[normalizedPath];
+
+    if (!workspace) {
+      return null;
+    }
+
+    return {
+      pathname: workspace.pathname,
+      environment: workspace.environment,
+      lastActiveCollectionPathname: workspace.lastActiveCollectionPathname,
+      sorting: workspace.sorting,
+      collectionPathnames: workspace.collectionPathnames
+    };
   }
 
   getCollection(pathname) {
-    return this._getByPathWithNormalizedFallback('collections', pathname);
+    const normalizedPath = normalizeLookupKey(pathname);
+    if (!normalizedPath) {
+      return null;
+    }
+
+    const { collectionsByPath } = this._buildLookupMaps(this.store.store);
+    const collection = collectionsByPath[normalizedPath];
+
+    if (!collection) {
+      return null;
+    }
+
+    return {
+      pathname: collection.pathname,
+      workspacePathname: collection.workspacePathname,
+      environment: collection.environment,
+      environmentPath: collection.environmentPath,
+      selectedEnvironment: collection.selectedEnvironment,
+      isOpen: collection.isOpen,
+      isMounted: collection.isMounted
+    };
   }
 
   getTabs(collectionPathname) {
-    return this._getByPathWithNormalizedFallback('tabs', collectionPathname);
+    const normalizedPath = normalizeLookupKey(collectionPathname);
+    if (!normalizedPath) {
+      return null;
+    }
+
+    const { tabsByCollectionPath } = this._buildLookupMaps(this.store.store);
+    const tabsEntry = tabsByCollectionPath[normalizedPath];
+
+    if (!tabsEntry) {
+      return null;
+    }
+
+    return {
+      activeTab: tabsEntry.activeTab,
+      tabs: tabsEntry.tabs
+    };
   }
 
   // --- Writes ---
@@ -153,40 +195,109 @@ class SnapshotManager {
   }
 
   setActiveWorkspacePath(pathname) {
-    this.store.set('activeWorkspacePath', pathname);
+    const snapshot = this._normalizeSnapshot(this.store.store);
+    snapshot.activeWorkspacePath = typeof pathname === 'string' ? pathname : null;
+    this.store.store = snapshot;
   }
 
   setWorkspace(pathname, data) {
-    if (typeof pathname !== 'string' || !pathname) {
+    const normalizedPath = normalizeLookupKey(pathname);
+    if (!normalizedPath) {
       return;
     }
 
-    this.store.set(`workspaces.${this._escapeKey(pathname)}`, data);
+    const snapshot = this._normalizeSnapshot(this.store.store);
+    const normalizedEntry = this._normalizeWorkspaceEntry(pathname, data);
+    const workspaceIndex = snapshot.workspaces.findIndex((workspace) => normalizeLookupKey(workspace.pathname) === normalizedPath);
+
+    if (workspaceIndex === -1) {
+      snapshot.workspaces.push(normalizedEntry);
+    } else {
+      snapshot.workspaces[workspaceIndex] = normalizedEntry;
+    }
+
+    this.store.store = snapshot;
   }
 
   setCollection(pathname, data) {
-    if (typeof pathname !== 'string' || !pathname) {
+    const normalizedPath = normalizeLookupKey(pathname);
+    if (!normalizedPath) {
       return;
     }
 
-    this.store.set(`collections.${this._escapeKey(pathname)}`, data);
+    const snapshot = this._normalizeSnapshot(this.store.store);
+    const existingCollection = snapshot.collections.find((collection) => normalizeLookupKey(collection.pathname) === normalizedPath);
+
+    const mergedCollection = {
+      ...(existingCollection || {}),
+      ...(isObject(data) ? data : {}),
+      environment: {
+        ...(isObject(existingCollection?.environment) ? existingCollection.environment : {}),
+        ...(isObject(data?.environment) ? data.environment : {})
+      },
+      activeTab: data?.activeTab ?? existingCollection?.activeTab,
+      tabs: data?.tabs ?? existingCollection?.tabs,
+      environmentPath: data?.environmentPath ?? existingCollection?.environmentPath,
+      selectedEnvironment: data?.selectedEnvironment ?? existingCollection?.selectedEnvironment
+    };
+
+    const normalizedCollection = this._normalizeCollectionEntry(pathname, mergedCollection);
+    const collectionIndex = snapshot.collections.findIndex((collection) => normalizeLookupKey(collection.pathname) === normalizedPath);
+
+    if (collectionIndex === -1) {
+      snapshot.collections.push(normalizedCollection);
+    } else {
+      snapshot.collections[collectionIndex] = normalizedCollection;
+    }
+
+    this.store.store = snapshot;
   }
 
   setTabs(collectionPathname, data) {
-    if (typeof collectionPathname !== 'string' || !collectionPathname) {
+    const normalizedPath = normalizeLookupKey(collectionPathname);
+    if (!normalizedPath) {
       return;
     }
 
-    this.store.set(`tabs.${this._escapeKey(collectionPathname)}`, data);
+    const snapshot = this._normalizeSnapshot(this.store.store);
+    const collectionIndex = snapshot.collections.findIndex((collection) => normalizeLookupKey(collection.pathname) === normalizedPath);
+    const existingCollection = collectionIndex === -1 ? null : snapshot.collections[collectionIndex];
+
+    const normalizedCollection = this._normalizeCollectionEntry(collectionPathname, {
+      ...(existingCollection || {}),
+      activeTab: data?.activeTab,
+      tabs: data?.tabs
+    });
+
+    if (collectionIndex === -1) {
+      snapshot.collections.push(normalizedCollection);
+    } else {
+      snapshot.collections[collectionIndex] = normalizedCollection;
+    }
+
+    this.store.store = snapshot;
   }
 
   removeWorkspace(pathname) {
-    this._deleteByPathWithNormalizedFallback('workspaces', pathname);
+    const normalizedPath = normalizeLookupKey(pathname);
+    if (!normalizedPath) {
+      return;
+    }
+
+    const snapshot = this._normalizeSnapshot(this.store.store);
+    snapshot.workspaces = snapshot.workspaces.filter((workspace) => normalizeLookupKey(workspace.pathname) !== normalizedPath);
+    this.store.store = snapshot;
   }
 
   removeCollection(pathname) {
-    this._deleteByPathWithNormalizedFallback('collections', pathname);
-    this._deleteByPathWithNormalizedFallback('tabs', pathname);
+    const normalizedPath = normalizeLookupKey(pathname);
+    if (!normalizedPath) {
+      return;
+    }
+
+    const snapshot = this._normalizeSnapshot(this.store.store);
+    snapshot.collections = snapshot.collections.filter((collection) => normalizeLookupKey(collection.pathname) !== normalizedPath);
+    this.store.store = snapshot;
   }
 
   update({ type, data }) {
@@ -215,6 +326,8 @@ class SnapshotManager {
         collection: normalizedEnvironmentPath,
         global: typeof existingEnvironment.global === 'string' ? existingEnvironment.global : ''
       },
+      environmentPath: normalizedEnvironmentPath,
+      selectedEnvironment: typeof selectedEnvironment === 'string' ? selectedEnvironment : '',
       isOpen: typeof existingCollection.isOpen === 'boolean' ? existingCollection.isOpen : false,
       isMounted: typeof existingCollection.isMounted === 'boolean' ? existingCollection.isMounted : false
     });
@@ -239,9 +352,8 @@ class SnapshotManager {
       extras: {
         devTools: this._normalizeDevTools(snapshot?.extras?.devTools)
       },
-      workspaces: this._normalizeWorkspaceMap(snapshot.workspaces),
-      collections: this._normalizeCollectionMap(snapshot.collections),
-      tabs: this._normalizeTabsMap(snapshot.tabs)
+      workspaces: this._normalizeWorkspaceList(snapshot.workspaces),
+      collections: this._normalizeCollectionList(snapshot.collections, snapshot.tabs)
     };
   }
 
@@ -254,86 +366,141 @@ class SnapshotManager {
     };
   }
 
-  _normalizeWorkspaceMap(workspaces) {
-    if (!isObject(workspaces)) {
-      return {};
-    }
+  _normalizeWorkspaceList(workspaces) {
+    const workspaceMap = new Map();
 
-    return Object.entries(workspaces).reduce((acc, [workspacePath, workspace]) => {
-      if (!workspacePath || !isObject(workspace)) {
-        return acc;
-      }
+    if (Array.isArray(workspaces)) {
+      workspaces.forEach((workspace) => {
+        if (!isObject(workspace) || typeof workspace.pathname !== 'string') {
+          return;
+        }
 
-      const collectionPathnames = Array.isArray(workspace.collectionPathnames)
-        ? workspace.collectionPathnames.filter((collectionPath) => typeof collectionPath === 'string')
-        : [];
+        const normalizedWorkspace = this._normalizeWorkspaceEntry(workspace.pathname, workspace);
+        const normalizedPath = normalizeLookupKey(workspace.pathname);
 
-      acc[workspacePath] = {
-        lastActiveCollectionPathname: typeof workspace.lastActiveCollectionPathname === 'string'
-          ? workspace.lastActiveCollectionPathname
-          : null,
-        sorting: typeof workspace.sorting === 'string' ? workspace.sorting : 'az',
-        collectionPathnames
-      };
-
-      return acc;
-    }, {});
-  }
-
-  _normalizeCollectionMap(collections) {
-    if (Array.isArray(collections)) {
-      return this._migrateLegacyCollectionsArray(collections);
-    }
-
-    if (!isObject(collections)) {
-      return {};
-    }
-
-    return Object.entries(collections).reduce((acc, [collectionPath, collection]) => {
-      if (!collectionPath || !isObject(collection)) {
-        return acc;
-      }
-
-      acc[collectionPath] = this._normalizeCollectionEntry(collectionPath, collection);
-      return acc;
-    }, {});
-  }
-
-  _migrateLegacyCollectionsArray(collectionsArray = []) {
-    return collectionsArray.reduce((acc, collection) => {
-      if (!isObject(collection) || typeof collection.pathname !== 'string') {
-        return acc;
-      }
-
-      const collectionPath = collection.pathname;
-      const environmentRef = collection.environmentPath ?? collection.selectedEnvironment;
-
-      acc[collectionPath] = this._normalizeCollectionEntry(collectionPath, {
-        workspacePathname: '',
-        environment: {
-          collection: environmentRef,
-          global: ''
-        },
-        isOpen: false,
-        isMounted: false
+        if (normalizedPath) {
+          workspaceMap.set(normalizedPath, normalizedWorkspace);
+        }
       });
+    } else if (isObject(workspaces)) {
+      Object.entries(workspaces).forEach(([workspacePathname, workspace]) => {
+        const normalizedWorkspace = this._normalizeWorkspaceEntry(workspacePathname, workspace);
+        const normalizedPath = normalizeLookupKey(workspacePathname);
 
-      return acc;
-    }, {});
+        if (normalizedPath) {
+          workspaceMap.set(normalizedPath, normalizedWorkspace);
+        }
+      });
+    }
+
+    return [...workspaceMap.values()];
   }
 
-  _normalizeCollectionEntry(collectionPath, collection) {
-    const environment = isObject(collection.environment) ? collection.environment : {};
-    const collectionEnvironmentRef = environment.collection ?? collection.environmentPath ?? collection.selectedEnvironment;
+  _normalizeWorkspaceEntry(pathname, workspace = {}) {
+    const collectionPathnames = this._normalizeCollectionPathList(workspace.collectionPathnames ?? workspace.collections);
 
     return {
+      pathname,
+      environment: typeof workspace.environment === 'string' ? workspace.environment : '',
+      lastActiveCollectionPathname: typeof workspace.lastActiveCollectionPathname === 'string'
+        ? workspace.lastActiveCollectionPathname
+        : null,
+      sorting: typeof workspace.sorting === 'string' ? workspace.sorting : 'az',
+      collectionPathnames,
+      collections: collectionPathnames
+    };
+  }
+
+  _normalizeCollectionPathList(collectionPaths) {
+    if (!Array.isArray(collectionPaths)) {
+      return [];
+    }
+
+    const dedupedPaths = new Map();
+
+    collectionPaths.forEach((collectionPath) => {
+      const rawPath = typeof collectionPath === 'string'
+        ? collectionPath
+        : (isObject(collectionPath) && typeof collectionPath.path === 'string' ? collectionPath.path : null);
+
+      if (!rawPath) {
+        return;
+      }
+
+      const normalizedPath = normalizeLookupKey(rawPath);
+      if (!normalizedPath || dedupedPaths.has(normalizedPath)) {
+        return;
+      }
+
+      dedupedPaths.set(normalizedPath, rawPath);
+    });
+
+    return [...dedupedPaths.values()];
+  }
+
+  _normalizeCollectionList(collections, tabs) {
+    const collectionMap = new Map();
+
+    if (Array.isArray(collections)) {
+      collections.forEach((collection) => {
+        if (!isObject(collection) || typeof collection.pathname !== 'string') {
+          return;
+        }
+
+        const normalizedCollection = this._normalizeCollectionEntry(collection.pathname, collection);
+        const normalizedPath = normalizeLookupKey(collection.pathname);
+
+        if (normalizedPath) {
+          collectionMap.set(normalizedPath, normalizedCollection);
+        }
+      });
+
+      return [...collectionMap.values()];
+    }
+
+    const collectionEntries = isObject(collections) ? collections : {};
+    const tabsEntries = isObject(tabs) ? tabs : {};
+    const collectionPathnames = new Set([...Object.keys(collectionEntries), ...Object.keys(tabsEntries)]);
+
+    collectionPathnames.forEach((collectionPathname) => {
+      const normalizedCollection = this._normalizeCollectionEntry(
+        collectionPathname,
+        collectionEntries[collectionPathname],
+        tabsEntries[collectionPathname]
+      );
+      const normalizedPath = normalizeLookupKey(collectionPathname);
+
+      if (normalizedPath) {
+        collectionMap.set(normalizedPath, normalizedCollection);
+      }
+    });
+
+    return [...collectionMap.values()];
+  }
+
+  _normalizeCollectionEntry(pathname, collection = {}, tabsEntry = {}) {
+    const environment = isObject(collection.environment) ? collection.environment : {};
+    const tabsEntryObject = isObject(tabsEntry) ? tabsEntry : {};
+    const collectionEnvironmentRef = environment.collection ?? collection.environmentPath ?? collection.selectedEnvironment;
+    const normalizedEnvironmentPath = this._normalizeCollectionEnvironmentRef(pathname, collectionEnvironmentRef);
+
+    const tabs = Array.isArray(tabsEntryObject.tabs)
+      ? tabsEntryObject.tabs.filter((tab) => isObject(tab))
+      : (Array.isArray(collection.tabs) ? collection.tabs.filter((tab) => isObject(tab)) : []);
+
+    return {
+      pathname,
       workspacePathname: typeof collection.workspacePathname === 'string' ? collection.workspacePathname : '',
       environment: {
-        collection: this._normalizeCollectionEnvironmentRef(collectionPath, collectionEnvironmentRef),
+        collection: normalizedEnvironmentPath,
         global: typeof environment.global === 'string' ? environment.global : ''
       },
+      environmentPath: normalizedEnvironmentPath,
+      selectedEnvironment: typeof collection.selectedEnvironment === 'string' ? collection.selectedEnvironment : '',
       isOpen: typeof collection.isOpen === 'boolean' ? collection.isOpen : false,
-      isMounted: typeof collection.isMounted === 'boolean' ? collection.isMounted : false
+      isMounted: typeof collection.isMounted === 'boolean' ? collection.isMounted : false,
+      activeTab: this._normalizeActiveTab(tabsEntryObject.activeTab ?? collection.activeTab),
+      tabs
     };
   }
 
@@ -379,25 +546,6 @@ class SnapshotManager {
     return null;
   }
 
-  _normalizeTabsMap(tabs) {
-    if (!isObject(tabs)) {
-      return {};
-    }
-
-    return Object.entries(tabs).reduce((acc, [collectionPath, entry]) => {
-      if (!collectionPath || !isObject(entry)) {
-        return acc;
-      }
-
-      acc[collectionPath] = {
-        activeTab: this._normalizeActiveTab(entry.activeTab),
-        tabs: Array.isArray(entry.tabs) ? entry.tabs.filter((tab) => isObject(tab)) : []
-      };
-
-      return acc;
-    }, {});
-  }
-
   _normalizeActiveTab(activeTab) {
     if (!isObject(activeTab)) {
       return null;
@@ -413,58 +561,39 @@ class SnapshotManager {
     };
   }
 
-  _getByPathWithNormalizedFallback(rootKey, pathname) {
-    if (typeof pathname !== 'string' || !pathname) {
-      return null;
-    }
+  _buildLookupMaps(snapshot = {}) {
+    const normalizedSnapshot = this._normalizeSnapshot(snapshot);
+    const workspacesByPath = {};
+    const collectionsByPath = {};
+    const tabsByCollectionPath = {};
 
-    const entry = this.store.get(`${rootKey}.${this._escapeKey(pathname)}`, undefined);
-    if (entry !== undefined) {
-      return entry;
-    }
+    normalizedSnapshot.workspaces.forEach((workspace) => {
+      const normalizedPath = normalizeLookupKey(workspace.pathname);
+      if (!normalizedPath) {
+        return;
+      }
 
-    const rootValue = this.store.get(rootKey, {});
-    if (!isObject(rootValue)) {
-      return null;
-    }
+      workspacesByPath[normalizedPath] = workspace;
+    });
 
-    const normalizedPath = path.normalize(pathname);
-    const matchingKey = Object.keys(rootValue).find((key) => path.normalize(key) === normalizedPath);
+    normalizedSnapshot.collections.forEach((collection) => {
+      const normalizedPath = normalizeLookupKey(collection.pathname);
+      if (!normalizedPath) {
+        return;
+      }
 
-    if (!matchingKey) {
-      return null;
-    }
+      collectionsByPath[normalizedPath] = collection;
+      tabsByCollectionPath[normalizedPath] = {
+        activeTab: collection.activeTab,
+        tabs: collection.tabs
+      };
+    });
 
-    return rootValue[matchingKey] ?? null;
-  }
-
-  _deleteByPathWithNormalizedFallback(rootKey, pathname) {
-    if (typeof pathname !== 'string' || !pathname) {
-      return;
-    }
-
-    this.store.delete(`${rootKey}.${this._escapeKey(pathname)}`);
-
-    const rootValue = this.store.get(rootKey, {});
-    if (!isObject(rootValue)) {
-      return;
-    }
-
-    const normalizedPath = path.normalize(pathname);
-    const matchingKey = Object.keys(rootValue).find((key) => key !== pathname && path.normalize(key) === normalizedPath);
-
-    if (matchingKey) {
-      this.store.delete(`${rootKey}.${this._escapeKey(matchingKey)}`);
-    }
-  }
-
-  // electron-store uses dot notation for nested paths, so we need to escape dots in pathnames
-  _escapeKey(pathname) {
-    if (typeof pathname !== 'string') {
-      return '';
-    }
-
-    return pathname.replace(/\./g, '\\.');
+    return {
+      workspacesByPath,
+      collectionsByPath,
+      tabsByCollectionPath
+    };
   }
 }
 

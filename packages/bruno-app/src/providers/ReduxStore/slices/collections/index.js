@@ -2930,7 +2930,8 @@ export const collectionsSlice = createSlice({
                   type: 'COLLECTION_ENVIRONMENT',
                   data: {
                     collectionPath: collection?.pathname,
-                    environmentPath: getCollectionEnvironmentPath(collection, environment, environmentPath)
+                    environmentPath: getCollectionEnvironmentPath(collection, environment, environmentPath),
+                    selectedEnvironment: environment?.name || ''
                   }
                 });
               }

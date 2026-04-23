@@ -17,7 +17,7 @@ import { addTab, restoreTabs } from '../tabs';
 import { setSnapshotReady } from '../app';
 import { openConsole, closeConsole, setActiveTab as setActiveDevToolsTab } from '../logs';
 import { normalizePath } from 'utils/common/path';
-import { hydrateTabs, getActiveTabFromSnapshot } from 'utils/snapshot';
+import { hydrateTabs, getActiveTabFromSnapshot, hydrateSnapshotLookups } from 'utils/snapshot';
 import toast from 'react-hot-toast';
 
 const { ipcRenderer } = window;
@@ -359,9 +359,10 @@ export const switchWorkspace = (workspaceUid) => {
         return;
       }
 
-      // Load workspace snapshot
+      const fullSnapshot = await ipcRenderer.invoke('renderer:snapshot:get').catch(() => null);
+      const snapshotLookups = hydrateSnapshotLookups(fullSnapshot || {});
       const workspaceSnapshot = workspace.pathname
-        ? await ipcRenderer.invoke('renderer:snapshot:get-workspace', workspace.pathname).catch(() => null)
+        ? snapshotLookups.workspacesByPath[normalizePath(workspace.pathname)] || null
         : null;
 
       // Load global environments
@@ -384,7 +385,7 @@ export const switchWorkspace = (workspaceUid) => {
       const collections = getState().collections.collections.filter(
         (c) => c.pathname && c.uid !== scratchCollection?.uid
       );
-      await hydrateTabs(collections, dispatch, restoreTabs);
+      await hydrateTabs(collections, dispatch, restoreTabs, snapshotLookups);
 
       // Add workspace tabs
       if (scratchCollection?.uid) {
@@ -411,7 +412,7 @@ export const switchWorkspace = (workspaceUid) => {
         }
 
         // Focus the active tab from the collection's tab snapshot
-        const activeTab = await getActiveTabFromSnapshot(activeCollection.pathname, activeCollection);
+        const activeTab = await getActiveTabFromSnapshot(activeCollection.pathname, activeCollection, snapshotLookups);
 
         if (activeTab) {
           dispatch(addTab(activeTab));
