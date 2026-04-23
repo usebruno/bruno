@@ -62,6 +62,11 @@ export default class CodeEditor extends React.Component {
       value: this.props.value || '',
       placeholder: '...',
       lineNumbers: true,
+      inputStyle: 'textarea',
+      resetSelectionOnContextMenu: false,
+      viewportMargin: Infinity,
+      spellcheck: true,
+      selectionsMayTouchBoundary: true,
       lineWrapping: this.props.enableLineWrapping ?? true,
       tabSize: TAB_SIZE,
       mode: this.props.mode || 'application/ld+json',
@@ -215,20 +220,12 @@ export default class CodeEditor extends React.Component {
 
       // Setup lint error tooltip on line number hover
       this.cleanupLintErrorTooltip = setupLintErrorTooltip(editor);
-
-      // Add mousetrap class so Mousetrap captures shortcuts even when CodeMirror is focused
-      const cmInput = editor.getInputField();
-      if (cmInput) {
-        cmInput.classList.add('mousetrap');
-      }
     }
   }
 
   componentDidUpdate(prevProps) {
-    // Ensure the changes caused by this update are not interpreted as
-    // user-input changes which could otherwise result in an infinite
-    // event loop.
     this.ignoreChangeEvent = true;
+
     if (this.props.schema !== prevProps.schema && this.editor) {
       this.editor.options.lint.schema = this.props.schema;
       this.editor.options.hintOptions.schema = this.props.schema;
@@ -236,11 +233,24 @@ export default class CodeEditor extends React.Component {
       this.editor.options.jump.schema = this.props.schema;
       CodeMirror.signal(this.editor, 'change', this.editor);
     }
+
+    /* Accessibility-aware synchronization:
+      If the accessible textarea is focused, we update the CodeMirror value
+      without resetting the cursor to prevent focus theft and screen reader interruption.
+    */
     if (this.props.value !== prevProps.value && this.props.value !== this.cachedValue && this.editor) {
-      const cursor = this.editor.getCursor();
       this.cachedValue = String(this?.props?.value ?? '');
-      this.editor.setValue(String(this.props.value) || '');
-      this.editor.setCursor(cursor);
+      const isAccessibleFocused = document.activeElement?.id === 'accessible-bruno-editor';
+
+      if (isAccessibleFocused) {
+        // Update background editor for syntax highlighting without stealing focus
+        this.editor.setValue(String(this.props.value) || '');
+      } else {
+        // Standard sync for programmatic updates or mouse interaction
+        const cursor = this.editor.getCursor();
+        this.editor.setValue(String(this.props.value) || '');
+        this.editor.setCursor(cursor);
+      }
     }
 
     if (this.editor) {
@@ -249,7 +259,6 @@ export default class CodeEditor extends React.Component {
         this.addOverlay();
       }
 
-      // Update collection and item when they change
       if (this.props.enableBrunoVarInfo !== false && this.editor.options.brunoVarInfo) {
         if (!isEqual(this.props.collection, this.editor.options.brunoVarInfo.collection)) {
           this.editor.options.brunoVarInfo.collection = this.props.collection;
@@ -306,10 +315,11 @@ export default class CodeEditor extends React.Component {
     if (this.editor) {
       this.editor.refresh();
     }
+
     return (
       <StyledWrapper
         className={`h-full w-full flex flex-col relative graphiql-container ${this.props.readOnly ? 'read-only' : ''}`}
-        aria-label="Code Editor"
+        aria-label="Code Editor Wrapper"
         font={this.props.font}
         fontSize={this.props.fontSize}
       >
@@ -322,10 +332,50 @@ export default class CodeEditor extends React.Component {
           editor={this.editor}
           onClose={() => this.setState({ searchBarVisible: false })}
         />
+
+        {/* Original CodeMirror container for syntax highlighting.
+          aria-hidden is set to true to prevent screen readers from
+          accessing the complex and inaccessible DOM structure.
+        */}
         <div
           className={`editor-container${this.state.searchBarVisible ? ' search-bar-visible' : ''}`}
           ref={(node) => { this._node = node; }}
           style={{ height: '100%', width: '100%' }}
+          aria-hidden="true"
+        />
+
+        {/* Accessible Overlay Textarea.
+          This layer stays on top to capture focus and keyboard events,
+          enabling screen readers to interact with the code effectively.
+        */}
+        <textarea
+          className="mousetrap"
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            opacity: 0,
+            zIndex: 20,
+            resize: 'none',
+            outline: 'none',
+            border: 'none',
+            background: 'transparent',
+            color: 'transparent',
+            caretColor: 'white'
+          }}
+          value={this.props.value || ''}
+          aria-label={this.props.ariaLabel || 'Code Editor'}
+          onChange={(e) => {
+            this.props.onEdit(e.target.value);
+          }}
+          onKeyDown={(e) => {
+            /* Stop event propagation to prevent CodeMirror from
+              intercepting keystrokes and breaking focus/accessibility state.
+            */
+            e.stopPropagation();
+          }}
         />
       </StyledWrapper>
     );
