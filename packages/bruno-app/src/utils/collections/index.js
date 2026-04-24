@@ -1488,6 +1488,10 @@ export const calculateDraggedItemNewPathname = ({ draggedItem, targetItem, dropT
 
 // item sequence utils - END
 
+/**
+ * Normalize request tags to an array so downstream tag helpers can safely
+ * handle YAML collections that store a single tag as a scalar string.
+ */
 const normalizeTags = (tags) => {
   if (Array.isArray(tags)) {
     return tags;

@@ -87,7 +87,6 @@ describe('transformRequestToSaveToFilesystem', () => {
   });
 });
 
-
 describe('tag normalization helpers', () => {
   it('collects tags when a request stores tags as a single string', () => {
     const tags = getUniqueTagsFromItems([
@@ -119,5 +118,39 @@ describe('tag normalization helpers', () => {
     });
 
     expect(requestItems).toHaveLength(1);
+  });
+
+  it('ignores non-string and non-array tag values', () => {
+    const tags = getUniqueTagsFromItems([
+      {
+        type: 'http-request',
+        request: {},
+        tags: 42
+      },
+      {
+        type: 'http-request',
+        request: {},
+        draft: { tags: null }
+      }
+    ]);
+
+    const requestItems = getRequestItemsForCollectionRun({
+      recursive: false,
+      items: [
+        {
+          type: 'http-request',
+          request: {},
+          isTransient: false,
+          draft: { tags: 42 }
+        }
+      ],
+      tags: {
+        include: ['smoke'],
+        exclude: []
+      }
+    });
+
+    expect(tags).toEqual([]);
+    expect(requestItems).toHaveLength(0);
   });
 });
