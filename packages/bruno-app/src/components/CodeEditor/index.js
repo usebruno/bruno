@@ -62,7 +62,7 @@ export default class CodeEditor extends React.Component {
       value: this.props.value || '',
       placeholder: '...',
       lineNumbers: true,
-      tabIndex: -1,
+      tabindex: -1,
       inputStyle: 'textarea',
       resetSelectionOnContextMenu: false,
       spellcheck: true,
