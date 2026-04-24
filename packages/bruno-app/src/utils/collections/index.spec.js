@@ -1,5 +1,5 @@
 const { describe, it, expect } = require('@jest/globals');
-import { mergeHeaders, transformRequestToSaveToFilesystem } from './index';
+import { getRequestItemsForCollectionRun, getUniqueTagsFromItems, mergeHeaders, transformRequestToSaveToFilesystem } from './index';
 
 describe('mergeHeaders', () => {
   it('should include headers from collection, folder and request (with correct precedence)', () => {
@@ -84,5 +84,40 @@ describe('transformRequestToSaveToFilesystem', () => {
 
     expect(transformed.request.params[0].annotations).toEqual([{ name: 'param-note', value: 'keep me' }]);
     expect(transformed.request.headers[0].annotations).toEqual([{ name: 'header-note', value: 'keep me' }]);
+  });
+});
+
+
+describe('tag normalization helpers', () => {
+  it('collects tags when a request stores tags as a single string', () => {
+    const tags = getUniqueTagsFromItems([
+      {
+        type: 'http-request',
+        request: {},
+        tags: 'smoke'
+      }
+    ]);
+
+    expect(tags).toEqual(['smoke']);
+  });
+
+  it('filters runnable requests when draft tags are stored as a single string', () => {
+    const requestItems = getRequestItemsForCollectionRun({
+      recursive: false,
+      items: [
+        {
+          type: 'http-request',
+          request: {},
+          isTransient: false,
+          draft: { tags: 'smoke' }
+        }
+      ],
+      tags: {
+        include: ['smoke'],
+        exclude: []
+      }
+    });
+
+    expect(requestItems).toHaveLength(1);
   });
 });

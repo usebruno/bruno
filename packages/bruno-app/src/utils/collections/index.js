@@ -1488,13 +1488,24 @@ export const calculateDraggedItemNewPathname = ({ draggedItem, targetItem, dropT
 
 // item sequence utils - END
 
+const normalizeTags = (tags) => {
+  if (Array.isArray(tags)) {
+    return tags;
+  }
+  if (typeof tags === 'string') {
+    const trimmed = tags.trim();
+    return trimmed ? [trimmed] : [];
+  }
+  return [];
+};
+
 export const getUniqueTagsFromItems = (items = []) => {
   const allTags = new Set();
   const getTags = (items) => {
     items.forEach((item) => {
       if (isItemARequest(item)) {
         const tags = item.draft ? get(item, 'draft.tags', []) : get(item, 'tags', []);
-        tags.forEach((tag) => allTags.add(tag));
+        normalizeTags(tags).forEach((tag) => allTags.add(tag));
       }
       if (item.items) {
         getTags(item.items);
@@ -1525,7 +1536,7 @@ export const getRequestItemsForCollectionRun = ({ recursive, items = [], tags })
     const includeTags = tags.include ? tags.include : [];
     const excludeTags = tags.exclude ? tags.exclude : [];
     requestItems = requestItems.filter(({ tags: requestTags = [], draft }) => {
-      requestTags = draft?.tags || requestTags || [];
+      requestTags = normalizeTags(draft?.tags || requestTags || []);
       return isRequestTagsIncluded(requestTags, includeTags, excludeTags);
     });
   }
