@@ -3,7 +3,7 @@ import { uuid } from 'utils/common';
 import { buildPersistedEnvVariables } from 'utils/environments';
 import { sortByNameThenSequence } from 'utils/common/index';
 import path from 'utils/common/path';
-import { isRequestTagsIncluded } from '@usebruno/common';
+import { isRequestTagsIncluded, normalizeTags } from '@usebruno/common';
 
 const replaceTabsWithSpaces = (str, numSpaces = 2) => {
   if (!str || !str.length || !isString(str)) {
@@ -1487,21 +1487,6 @@ export const calculateDraggedItemNewPathname = ({ draggedItem, targetItem, dropT
 };
 
 // item sequence utils - END
-
-/**
- * Normalize request tags to an array so downstream tag helpers can safely
- * handle YAML collections that store a single tag as a scalar string.
- */
-const normalizeTags = (tags) => {
-  if (Array.isArray(tags)) {
-    return tags;
-  }
-  if (typeof tags === 'string') {
-    const trimmed = tags.trim();
-    return trimmed ? [trimmed] : [];
-  }
-  return [];
-};
 
 export const getUniqueTagsFromItems = (items = []) => {
   const allTags = new Set();
