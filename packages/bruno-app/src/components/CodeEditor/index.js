@@ -66,7 +66,7 @@ export default class CodeEditor extends React.Component {
       inputStyle: 'textarea',
       resetSelectionOnContextMenu: false,
       spellcheck: true,
-      selectionsMayTouchBoundary: true,
+      selectionsMayTouch: true,
       lineWrapping: this.props.enableLineWrapping ?? true,
       tabSize: TAB_SIZE,
       mode: this.props.mode || 'application/ld+json',
