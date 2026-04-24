@@ -50,6 +50,13 @@ export default class CodeEditor extends React.Component {
 
   componentDidMount() {
     const variables = getAllVariables(this.props.collection, this.props.item);
+    const runShortcut = () => {
+      if (this.props.onRun) {
+        this.props.onRun();
+        return;
+      }
+      return CodeMirror.Pass;
+    };
 
     const editor = (this.editor = CodeMirror(this._node, {
       value: this.props.value || '',
@@ -86,6 +93,8 @@ export default class CodeEditor extends React.Component {
         },
         'Cmd-H': this.props.readOnly ? false : 'replace',
         'Ctrl-H': this.props.readOnly ? false : 'replace',
+        'Cmd-Enter': runShortcut,
+        'Ctrl-Enter': runShortcut,
         'Tab': function (cm) {
           cm.getSelection().includes('\n') || editor.getLine(cm.getCursor().line) == cm.getSelection()
             ? cm.execCommand('indentMore')
