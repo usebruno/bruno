@@ -15,6 +15,7 @@ class SingleLineEditor extends Component {
     super(props);
     this.cachedValue = props.value || '';
     this.editorRef = React.createRef();
+    this.textareaRef = React.createRef();
     this.variables = {};
     this.readOnly = props.readOnly || false;
 
@@ -31,6 +32,7 @@ class SingleLineEditor extends Component {
     const runHandler = () => this.props.onRun?.();
 
     this.editor = CodeMirror(this.editorRef.current, {
+      value: String(this.props.value ?? ''),
       placeholder: this.props.placeholder ?? '',
       lineWrapping: false,
       lineNumbers: false,
@@ -40,7 +42,7 @@ class SingleLineEditor extends Component {
         variables, collection: this.props.collection, item: this.props.item
       } : false,
       scrollbarStyle: null,
-      tabindex: -1, // Keep hidden editor out of tab order
+      tabindex: -1,
       readOnly: this.props.readOnly,
       extraKeys: {
         'Enter': runHandler,
@@ -65,7 +67,6 @@ class SingleLineEditor extends Component {
     };
 
     this.brunoAutoCompleteCleanup = setupAutoComplete(this.editor, autoCompleteOptions);
-    this.editor.setValue(String(this.props.value ?? ''));
     this.editor.on('change', this._onEdit);
     this.editor.on('paste', this._onPaste);
     this.editor.on('blur', this._onBlur);
@@ -77,23 +78,32 @@ class SingleLineEditor extends Component {
 
   componentWillUnmount() {
     if (this.editor) {
-      if (this.editor?._destroyLinkAware) this.editor._destroyLinkAware();
+      if (typeof this.editor._destroyLinkAware === 'function') {
+        this.editor._destroyLinkAware();
+      }
       this.editor.off('change', this._onEdit);
       this.editor.off('paste', this._onPaste);
       this.editor.off('blur', this._onBlur);
       this._clearNewlineMarkers();
-      this.editor.getWrapperElement().remove();
+
+      const wrapper = this.editor.getWrapperElement();
+      if (wrapper && wrapper.parentNode) {
+        wrapper.parentNode.removeChild(wrapper);
+      }
     }
     if (typeof this.brunoAutoCompleteCleanup === 'function') this.brunoAutoCompleteCleanup();
     if (this.maskedEditor) this.maskedEditor.destroy();
     this.editor = null;
   }
 
-  _onEdit = (value) => {
+  _onEdit = (val) => {
     if (!this.ignoreChangeEvent && this.editor) {
-      if (value !== undefined && value !== this.editor.getValue()) {
+      const value = (typeof val === 'string') ? val : this.editor.getValue();
+
+      if (typeof val === 'string' && value !== this.editor.getValue()) {
         this.editor.setValue(value);
       }
+
       this.cachedValue = this.editor.getValue();
       if (this.props.onChange && (this.props.value !== this.cachedValue)) {
         this.props.onChange(this.cachedValue);
@@ -119,9 +129,15 @@ class SingleLineEditor extends Component {
     this.ignoreChangeEvent = true;
     if (this.props.value !== prevProps.value && this.props.value !== this.cachedValue && this.editor) {
       const nextValue = String(this.props.value ?? '');
-      const cursor = this.editor.getCursor();
-      this.editor.setValue(nextValue);
-      this.editor.setCursor(cursor);
+      const isAccessibleFocused = document.activeElement === this.textareaRef.current;
+
+      if (isAccessibleFocused) {
+        this.editor.setValue(nextValue);
+      } else {
+        const cursor = this.editor.getCursor();
+        this.editor.setValue(nextValue);
+        this.editor.setCursor(cursor);
+      }
       this.maskedEditor?.update();
     }
     if (this.props.isSecret !== prevProps.isSecret) {
@@ -179,6 +195,7 @@ class SingleLineEditor extends Component {
             {...(this.props['data-testid'] ? { 'data-testid': this.props['data-testid'] } : {})}
           />
           <textarea
+            ref={this.textareaRef}
             id={this.editorId}
             className="mousetrap"
             rows="1"
@@ -202,7 +219,10 @@ class SingleLineEditor extends Component {
                 }
                 return;
               }
-              if (isShortcut || e.key.startsWith('F') || e.key === 'Escape') return;
+
+              const isFunctionKey = /^F\d+$/.test(e.key);
+              if (isShortcut || isFunctionKey || e.key === 'Escape') return;
+
               e.stopPropagation();
             }}
           />

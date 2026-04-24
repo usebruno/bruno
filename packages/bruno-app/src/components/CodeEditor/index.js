@@ -32,6 +32,9 @@ export default class CodeEditor extends React.Component {
     this.variables = {};
     this.searchResultsCountElementId = 'search-results-count';
     this.searchBarRef = createRef();
+    this.textareaRef = createRef();
+
+    this.editorId = `bruno-editor-${Math.random().toString(36).substring(2, 9)}`;
 
     this.lintOptions = {
       esversion: 11,
@@ -208,10 +211,25 @@ export default class CodeEditor extends React.Component {
   componentWillUnmount() {
     if (this.editor) {
       this.editor.off('change', this._onEdit);
-      this.editor.getWrapperElement()?.remove();
+
+      if (typeof this.editor._destroyLinkAware === 'function') {
+        this.editor._destroyLinkAware();
+      }
+
+      const wrapper = this.editor.getWrapperElement();
+      if (wrapper && wrapper.parentNode) {
+        wrapper.parentNode.removeChild(wrapper);
+      }
     }
-    if (typeof this.brunoAutoCompleteCleanup === 'function') this.brunoAutoCompleteCleanup();
-    if (typeof this.cleanupLintErrorTooltip === 'function') this.cleanupLintErrorTooltip();
+
+    if (typeof this.brunoAutoCompleteCleanup === 'function') {
+      this.brunoAutoCompleteCleanup();
+    }
+
+    if (typeof this.cleanupLintErrorTooltip === 'function') {
+      this.cleanupLintErrorTooltip();
+    }
+
     this.editor = null;
   }
 
@@ -228,7 +246,7 @@ export default class CodeEditor extends React.Component {
 
     if (this.props.value !== prevProps.value && this.props.value !== this.cachedValue && this.editor) {
       this.cachedValue = String(this?.props?.value ?? '');
-      const isAccessibleFocused = document.activeElement?.id === 'accessible-bruno-editor';
+      const isAccessibleFocused = document.activeElement === this.textareaRef.current;
       const nextValue = String(this.props.value ?? '');
 
       if (isAccessibleFocused) {
@@ -318,7 +336,8 @@ export default class CodeEditor extends React.Component {
         />
 
         <textarea
-          id="accessible-bruno-editor"
+          ref={this.textareaRef}
+          id={this.editorId}
           className="mousetrap"
           style={{
             position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
@@ -365,7 +384,12 @@ export default class CodeEditor extends React.Component {
             }
 
             const isShortcut = e.ctrlKey || e.metaKey || e.altKey;
-            if (isShortcut || e.key.startsWith('F') || e.key === 'Escape') return;
+            const isFunctionKey = /^F\d+$/.test(e.key);
+            const isEscape = e.key === 'Escape';
+
+            if (isShortcut || isFunctionKey || isEscape) {
+              return;
+            }
 
             e.stopPropagation();
           }}
