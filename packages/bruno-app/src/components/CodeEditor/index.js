@@ -242,13 +242,14 @@ export default class CodeEditor extends React.Component {
       this.cachedValue = String(this?.props?.value ?? '');
       const isAccessibleFocused = document.activeElement?.id === 'accessible-bruno-editor';
 
+      const nextValue = String(this.props.value ?? '');
       if (isAccessibleFocused) {
         // Update background editor for syntax highlighting without stealing focus
-        this.editor.setValue(String(this.props.value) || '');
+        this.editor.setValue(nextValue);
       } else {
         // Standard sync for programmatic updates or mouse interaction
         const cursor = this.editor.getCursor();
-        this.editor.setValue(String(this.props.value) || '');
+        this.editor.setValue(nextValue);
         this.editor.setCursor(cursor);
       }
     }
