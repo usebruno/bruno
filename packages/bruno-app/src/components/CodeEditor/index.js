@@ -1,8 +1,8 @@
 /**
- *  Copyright (c) 2021 GraphQL Contributors.
+ * Copyright (c) 2021 GraphQL Contributors.
  *
- *  This source code is licensed under the MIT license found in the
- *  LICENSE file in the root directory of this source tree.
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
  */
 
 import React, { createRef } from 'react';
@@ -28,9 +28,6 @@ export default class CodeEditor extends React.Component {
   constructor(props) {
     super(props);
 
-    // Keep a cached version of the value, this cache will be updated when the
-    // editor is updated, which can later be used to protect the editor from
-    // unnecessary updates during the update lifecycle.
     this.cachedValue = props.value || '';
     this.variables = {};
     this.searchResultsCountElementId = 'search-results-count';
@@ -150,7 +147,6 @@ export default class CodeEditor extends React.Component {
           } else if (this.props.mode == 'application/xml') {
             var doc = new DOMParser();
             try {
-              // add header element and remove prefix namespaces for DOMParser
               var dcm = doc.parseFromString(
                 '<a> ' + internal.replace(/(?<=\<|<\/)\w+:/g, '') + '</a>',
                 'application/xml'
@@ -162,14 +158,10 @@ export default class CodeEditor extends React.Component {
         }
       }
     }));
+
     CodeMirror.registerHelper('lint', 'json', function (text) {
       let found = [];
-      if (!window.jsonlint) {
-        if (window.console) {
-          window.console.error('Error: window.jsonlint not defined, CodeMirror JSON linting cannot run.');
-        }
-        return found;
-      }
+      if (!window.jsonlint) return found;
       let jsonlint = window.jsonlint.parser || window.jsonlint;
       try {
         jsonlint.parse(stripJsonComments(text.replace(/(?<!"[^":{]*){{[^}]*}}(?![^"},]*")/g, '1')));
@@ -203,24 +195,24 @@ export default class CodeEditor extends React.Component {
       });
       this.addOverlay();
 
-      const getAllVariablesHandler = () => getAllVariables(this.props.collection, this.props.item);
-
-      // Setup AutoComplete Helper for all modes
-      const autoCompleteOptions = {
+      this.brunoAutoCompleteCleanup = setupAutoComplete(editor, {
         showHintsFor: this.props.showHintsFor,
-        getAllVariables: getAllVariablesHandler
-      };
-
-      this.brunoAutoCompleteCleanup = setupAutoComplete(
-        editor,
-        autoCompleteOptions
-      );
+        getAllVariables: () => getAllVariables(this.props.collection, this.props.item)
+      });
 
       setupLinkAware(editor);
-
-      // Setup lint error tooltip on line number hover
       this.cleanupLintErrorTooltip = setupLintErrorTooltip(editor);
     }
+  }
+
+  componentWillUnmount() {
+    if (this.editor) {
+      this.editor.off('change', this._onEdit);
+      this.editor.getWrapperElement()?.remove();
+    }
+    if (typeof this.brunoAutoCompleteCleanup === 'function') this.brunoAutoCompleteCleanup();
+    if (typeof this.cleanupLintErrorTooltip === 'function') this.cleanupLintErrorTooltip();
+    this.editor = null;
   }
 
   componentDidUpdate(prevProps) {
@@ -234,20 +226,14 @@ export default class CodeEditor extends React.Component {
       CodeMirror.signal(this.editor, 'change', this.editor);
     }
 
-    /* Accessibility-aware synchronization:
-      If the accessible textarea is focused, we update the CodeMirror value
-      without resetting the cursor to prevent focus theft and screen reader interruption.
-    */
     if (this.props.value !== prevProps.value && this.props.value !== this.cachedValue && this.editor) {
       this.cachedValue = String(this?.props?.value ?? '');
       const isAccessibleFocused = document.activeElement?.id === 'accessible-bruno-editor';
-
       const nextValue = String(this.props.value ?? '');
+
       if (isAccessibleFocused) {
-        // Update background editor for syntax highlighting without stealing focus
         this.editor.setValue(nextValue);
       } else {
-        // Standard sync for programmatic updates or mouse interaction
         const cursor = this.editor.getCursor();
         this.editor.setValue(nextValue);
         this.editor.setCursor(cursor);
@@ -259,7 +245,6 @@ export default class CodeEditor extends React.Component {
       if (!isEqual(variables, this.variables)) {
         this.addOverlay();
       }
-
       if (this.props.enableBrunoVarInfo !== false && this.editor.options.brunoVarInfo) {
         if (!isEqual(this.props.collection, this.editor.options.brunoVarInfo.collection)) {
           this.editor.options.brunoVarInfo.collection = this.props.collection;
@@ -268,26 +253,21 @@ export default class CodeEditor extends React.Component {
           this.editor.options.brunoVarInfo.item = this.props.item;
         }
       }
-    }
-
-    if (this.props.theme !== prevProps.theme && this.editor) {
-      this.editor.setOption('theme', this.props.theme === 'dark' ? 'monokai' : 'default');
-    }
-
-    if (this.props.initialScroll !== prevProps.initialScroll) {
-      this.editor.scrollTo(null, this.props.initialScroll);
-    }
-
-    if (this.props.enableLineWrapping !== prevProps.enableLineWrapping) {
-      this.editor.setOption('lineWrapping', this.props.enableLineWrapping);
-    }
-
-    if (this.props.mode !== prevProps.mode) {
-      this.editor.setOption('mode', this.props.mode);
-    }
-
-    if (this.props.readOnly !== prevProps.readOnly && this.editor) {
-      this.editor.setOption('readOnly', this.props.readOnly);
+      if (this.props.theme !== prevProps.theme) {
+        this.editor.setOption('theme', this.props.theme === 'dark' ? 'monokai' : 'default');
+      }
+      if (this.props.initialScroll !== prevProps.initialScroll) {
+        this.editor.scrollTo(null, this.props.initialScroll);
+      }
+      if (this.props.enableLineWrapping !== prevProps.enableLineWrapping) {
+        this.editor.setOption('lineWrapping', this.props.enableLineWrapping);
+      }
+      if (this.props.mode !== prevProps.mode) {
+        this.editor.setOption('mode', this.props.mode);
+      }
+      if (this.props.readOnly !== prevProps.readOnly) {
+        this.editor.setOption('readOnly', this.props.readOnly);
+      }
     }
 
     this.ignoreChangeEvent = false;
@@ -324,18 +304,12 @@ export default class CodeEditor extends React.Component {
         fontSize={this.props.fontSize}
       >
         <CodeMirrorSearch
-          ref={(node) => {
-            if (!node) return;
-            this.searchBarRef.current = node;
-          }}
+          ref={(node) => { if (node) this.searchBarRef.current = node; }}
           visible={this.state.searchBarVisible}
           editor={this.editor}
           onClose={() => this.setState({ searchBarVisible: false })}
         />
 
-        {/* Visual Layer: CodeMirror container is hidden from the accessibility tree
-          to prevent screen readers from navigating its complex, non-semantic DOM.
-        */}
         <div
           className={`editor-container${this.state.searchBarVisible ? ' search-bar-visible' : ''}`}
           ref={(node) => { this._node = node; }}
@@ -343,44 +317,55 @@ export default class CodeEditor extends React.Component {
           aria-hidden="true"
         />
 
-        {/* Accessibility Layer: A transparent textarea handles focus and input.
-          This allows screen readers (like NVDA/JAWS) to use native text navigation
-          while CodeMirror provides syntax highlighting in the layer below.
-        */}
         <textarea
           id="accessible-bruno-editor"
           className="mousetrap"
           style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            width: '100%',
-            height: '100%',
-            opacity: 0,
-            zIndex: 20,
-            resize: 'none',
-            outline: 'none',
-            border: 'none',
-            background: 'transparent',
-            color: 'transparent',
-            caretColor: 'white'
+            position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
+            opacity: 0, zIndex: 20, resize: 'none', outline: 'none', border: 'none',
+            background: 'transparent', color: 'transparent', caretColor: 'white'
           }}
           value={this.props.value || ''}
           aria-label={this.props.ariaLabel || 'Code Editor'}
           readOnly={this.props.readOnly}
           onChange={(e) => {
-            if (typeof this._onEdit === 'function') {
-              this._onEdit(e.target.value);
-            }
+            if (typeof this._onEdit === 'function') this._onEdit(e.target.value);
           }}
           onKeyDown={(e) => {
-            const isShortcut = e.ctrlKey || e.metaKey || e.altKey;
-            const isFunctionKey = e.key.startsWith('F');
-            const isEscape = e.key === 'Escape';
+            if (e.key === 'Tab') {
+              e.preventDefault();
+              if (this.editor) {
+                const cm = this.editor;
+                const textarea = e.target;
 
-            if (isShortcut || isFunctionKey || isEscape) {
+                const cursorPos = textarea.selectionStart;
+                const textBefore = textarea.value.substring(0, cursorPos);
+                const lines = textBefore.split('\n');
+                cm.setCursor({ line: lines.length - 1, ch: lines[lines.length - 1].length });
+
+                const isBlockAction = cm.getSelection().includes('\n') || cm.getLine(cm.getCursor().line) == cm.getSelection();
+                if (isBlockAction) {
+                  cm.execCommand('indentMore');
+                } else {
+                  cm.replaceSelection('  ', 'end');
+                }
+
+                const newCursorPos = isBlockAction ? textarea.selectionStart : cursorPos + 2;
+
+                this.cachedValue = cm.getValue();
+                if (this.props.onEdit) {
+                  this.props.onEdit(this.cachedValue);
+                }
+
+                setTimeout(() => {
+                  textarea.setSelectionRange(newCursorPos, newCursorPos);
+                }, 0);
+              }
               return;
             }
+
+            const isShortcut = e.ctrlKey || e.metaKey || e.altKey;
+            if (isShortcut || e.key.startsWith('F') || e.key === 'Escape') return;
 
             e.stopPropagation();
           }}
@@ -394,7 +379,6 @@ export default class CodeEditor extends React.Component {
     let variables = getAllVariables(this.props.collection, this.props.item);
     this.variables = variables;
 
-    // Update brunoVarInfo with latest variables
     if (this.props.enableBrunoVarInfo !== false && this.editor.options.brunoVarInfo) {
       this.editor.options.brunoVarInfo.variables = variables;
     }
@@ -403,10 +387,11 @@ export default class CodeEditor extends React.Component {
     this.editor.setOption('mode', 'brunovariables');
   };
 
-  _onEdit = () => {
+  _onEdit = (val) => {
     if (!this.ignoreChangeEvent && this.editor) {
-      this.editor.setOption('lint', this.editor.getValue().trim().length > 0 ? this.lintOptions : false);
-      this.cachedValue = this.editor.getValue();
+      const value = (typeof val === 'string') ? val : this.editor.getValue();
+      this.editor.setOption('lint', value.trim().length > 0 ? this.lintOptions : false);
+      this.cachedValue = value;
       if (this.props.onEdit) {
         this.props.onEdit(this.cachedValue);
       }
