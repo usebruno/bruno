@@ -45,7 +45,7 @@ const SelectionList = ({
           Select All
         </label>
       </div>
-      <ul className="selection-list">
+      <ul className="selection-list scrollbar-hover">
         {items.length === 0 && (
           <li className="selection-empty">{emptyMessage}</li>
         )}
