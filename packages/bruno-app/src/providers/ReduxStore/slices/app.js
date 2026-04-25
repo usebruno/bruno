@@ -57,6 +57,7 @@ const initialState = {
     library: 'curl',
     shouldInterpolate: true
   },
+  isCookiesModalOpen: false,
   cookies: [],
   taskQueue: [],
   gitOperationProgress: {},
@@ -119,6 +120,15 @@ export const appSlice = createSlice({
     },
     updateCookies: (state, action) => {
       state.cookies = action.payload;
+    },
+    openCookiesModal: (state) => {
+      state.isCookiesModalOpen = true;
+    },
+    closeCookiesModal: (state) => {
+      state.isCookiesModalOpen = false;
+    },
+    toggleCookiesModal: (state) => {
+      state.isCookiesModalOpen = !state.isCookiesModalOpen;
     },
     insertTaskIntoQueue: (state, action) => {
       state.taskQueue.push(action.payload);
@@ -206,6 +216,9 @@ export const {
   updatePreferences,
   updateActivePreferencesTab,
   updateCookies,
+  openCookiesModal,
+  closeCookiesModal,
+  toggleCookiesModal,
   insertTaskIntoQueue,
   removeTaskFromQueue,
   removeAllTasksFromQueue,

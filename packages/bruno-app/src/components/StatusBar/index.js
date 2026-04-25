@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import find from 'lodash/find';
 import { IconSettings, IconCookie, IconTool, IconSearch, IconPalette, IconBrandGithub } from '@tabler/icons';
@@ -12,6 +12,7 @@ import ThemeDropdown from './ThemeDropdown';
 import { openConsole } from 'providers/ReduxStore/slices/logs';
 import { addTab } from 'providers/ReduxStore/slices/tabs';
 import { useApp } from 'providers/App';
+import { openCookiesModal, closeCookiesModal } from 'providers/ReduxStore/slices/app';
 import StyledWrapper from './StyledWrapper';
 
 const StatusBar = () => {
@@ -21,11 +22,11 @@ const StatusBar = () => {
   const showHomePage = useSelector((state) => state.app.showHomePage);
   const showManageWorkspacePage = useSelector((state) => state.app.showManageWorkspacePage);
   const showApiSpecPage = useSelector((state) => state.app.showApiSpecPage);
+  const isCookiesModalOpen = useSelector((state) => state.app.isCookiesModalOpen);
   const tabs = useSelector((state) => state.tabs.tabs);
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
   const activeTab = find(tabs, (t) => t.uid === activeTabUid);
   const logs = useSelector((state) => state.logs.logs);
-  const [cookiesOpen, setCookiesOpen] = useState(false);
   const { version } = useApp();
 
   const activeWorkspace = workspaces.find((w) => w.uid === activeWorkspaceUid);
@@ -57,11 +58,11 @@ const StatusBar = () => {
 
   return (
     <StyledWrapper>
-      {cookiesOpen && (
+      {isCookiesModalOpen && (
         <Portal>
           <Cookies
             onClose={() => {
-              setCookiesOpen(false);
+              dispatch(closeCookiesModal());
               document.querySelector('[data-trigger="cookies"]').focus();
             }}
             aria-modal="true"
@@ -137,7 +138,7 @@ const StatusBar = () => {
             <button
               className="status-bar-button"
               data-trigger="cookies"
-              onClick={() => setCookiesOpen(true)}
+              onClick={() => dispatch(openCookiesModal())}
               tabIndex={0}
               aria-label="Open Cookies"
             >

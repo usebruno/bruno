@@ -10,7 +10,7 @@ import each from 'lodash/each';
 import { findCollectionByUid, findItemInCollection, flattenItems, isItemARequest, hasRequestChanges, findEnvironmentInCollection } from 'utils/collections';
 import { addTab, focusTab, reorderTabs } from 'providers/ReduxStore/slices/tabs';
 import { saveMultipleRequests, saveMultipleCollections, saveMultipleFolders, saveEnvironment, reopenClosedTab } from 'providers/ReduxStore/slices/collections/actions';
-import { toggleSidebarCollapse, toggleSidebarSearch, savePreferences } from 'providers/ReduxStore/slices/app';
+import { toggleSidebarCollapse, toggleSidebarSearch, savePreferences, toggleCookiesModal } from 'providers/ReduxStore/slices/app';
 import { openDevtoolsAndSwitchToTerminal } from 'utils/terminal';
 import { getKeyBindingsForActionAllOS } from './keyMappings';
 
@@ -120,6 +120,18 @@ export const HotkeysProvider = (props) => {
       unbindAction('globalSearch');
     };
   }, [userKeyBindings, keybindingsEnabled]);
+
+  // Toggle cookies modal
+  useEffect(() => {
+    bindAction('openCookies', () => {
+      dispatch(toggleCookiesModal());
+      return false;
+    });
+
+    return () => {
+      unbindAction('openCookies');
+    };
+  }, [dispatch, userKeyBindings, keybindingsEnabled]);
 
   // Switch to the previous tab (active-collection-tabs-only)
   useEffect(() => {
