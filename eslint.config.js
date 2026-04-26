@@ -3,6 +3,7 @@ const { defineConfig } = require('eslint/config');
 const globals = require('globals');
 const { fixupPluginRules } = require('@eslint/compat');
 const eslintPluginDiff = require('eslint-plugin-diff');
+const reactHooks = require('eslint-plugin-react-hooks');
 
 let stylistic;
 
@@ -39,7 +40,7 @@ module.exports = runESMImports().then(() => defineConfig([
       './eslint.config.js',
       'tests/**/*.{ts,js}',
       'playwright/**/*.{js,ts}',
-      'packages/bruno-app/**/*.{js,jsx,ts}',
+      'packages/bruno-app/**/*.{js,jsx,ts,tsx}',
       'packages/bruno-app/src/test-utils/mocks/codemirror.js',
       'packages/bruno-cli/**/*.js',
       'packages/bruno-common/**/*.ts',
@@ -78,12 +79,16 @@ module.exports = runESMImports().then(() => defineConfig([
       '@stylistic/max-len': ['off'],
       '@stylistic/jsx-one-expression-per-line': ['off'],
       '@stylistic/max-statements-per-line': ['off'],
-      '@stylistic/no-mixed-operators': ['off']
+      '@stylistic/no-mixed-operators': ['off'],
+      'no-case-declarations': 'error'
     }
   },
   {
-    files: ['packages/bruno-app/**/*.{js,jsx,ts}'],
+    files: ['packages/bruno-app/**/*.{js,jsx,ts,tsx}'],
     ignores: ['**/*.config.js', '**/public/**/*'],
+    plugins: {
+      'react-hooks': reactHooks
+    },
     languageOptions: {
       globals: {
         ...globals.browser,
@@ -101,7 +106,10 @@ module.exports = runESMImports().then(() => defineConfig([
       }
     },
     rules: {
-      'no-undef': 'error'
+      'no-undef': 'error',
+      'react-hooks/rules-of-hooks': 'error',
+      'react-hooks/purity': 'error',
+      'react-hooks/set-state-in-render': 'error'
     }
   },
   {
@@ -115,6 +123,13 @@ module.exports = runESMImports().then(() => defineConfig([
     },
     rules: {
       'no-undef': 'error'
+    }
+  },
+  {
+    // Storybook stories use hooks inside render functions which is a valid pattern
+    files: ['packages/bruno-app/**/*.stories.{js,jsx,ts,tsx}'],
+    rules: {
+      'react-hooks/rules-of-hooks': 'off'
     }
   },
   {

@@ -47,10 +47,11 @@ class UiStateSnapshotStore {
 
   update({ type, data }) {
     switch (type) {
-      case 'COLLECTION_ENVIRONMENT':
+      case 'COLLECTION_ENVIRONMENT': {
         const { collectionPath, environmentName } = data;
         this.updateCollectionEnvironment({ collectionPath, environmentName });
         break;
+      }
       default:
         break;
     }

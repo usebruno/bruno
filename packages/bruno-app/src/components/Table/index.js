@@ -1,13 +1,18 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, createRef } from 'react';
 import StyledWrapper from './StyledWrapper';
 
 const Table = ({ minColumnWidth = 1, headers = [], children }) => {
   const [activeColumnIndex, setActiveColumnIndex] = useState(null);
   const tableRef = useRef(null);
+  const columnRefs = useRef([]);
 
-  const columns = headers?.map((item) => ({
+  if (columnRefs.current.length !== headers.length) {
+    columnRefs.current = headers.map((_, i) => columnRefs.current[i] || createRef());
+  }
+
+  const columns = headers?.map((item, i) => ({
     ...item,
-    ref: useRef()
+    ref: columnRefs.current[i]
   }));
 
   const updateDivHeights = () => {
