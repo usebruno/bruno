@@ -4,9 +4,11 @@ import find from 'lodash/find';
 import { updateRequestDocs } from 'providers/ReduxStore/slices/collections';
 import { updateDocsEditing } from 'providers/ReduxStore/slices/tabs';
 import { useTheme } from 'providers/Theme';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
+import { getAllVariables } from 'utils/collections/index';
+import { interpolate } from '@usebruno/common';
 import Markdown from 'components/MarkDown';
 import CodeEditor from 'components/CodeEditor';
 import StyledWrapper from './StyledWrapper';
@@ -20,6 +22,17 @@ const Documentation = ({ item, collection }) => {
   const isEditing = focusedTab?.docsEditing || false;
   const docs = item.draft ? get(item, 'draft.request.docs') : get(item, 'request.docs');
   const preferences = useSelector((state) => state.app.preferences);
+
+  const interpolatedDocs = useMemo(() => {
+    if (!docs) return docs;
+    try {
+      const variables = getAllVariables(collection, item);
+      return interpolate(docs, variables);
+    } catch (e) {
+      console.warn('Failed to interpolate documentation variables:', e);
+      return docs;
+    }
+  }, [docs, collection, item]);
 
   const toggleViewMode = () => {
     dispatch(updateDocsEditing({ uid: activeTabUid, docsEditing: !isEditing }));
@@ -59,7 +72,7 @@ const Documentation = ({ item, collection }) => {
           mode="application/text"
         />
       ) : (
-        <Markdown collectionPath={collection.pathname} onDoubleClick={toggleViewMode} content={docs} />
+        <Markdown collectionPath={collection.pathname} onDoubleClick={toggleViewMode} content={interpolatedDocs} />
       )}
     </StyledWrapper>
   );
