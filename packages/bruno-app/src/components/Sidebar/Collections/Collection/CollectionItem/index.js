@@ -18,7 +18,8 @@ import {
   IconTrash,
   IconSettings,
   IconInfoCircle,
-  IconTerminal2
+  IconTerminal2,
+  IconPlus
 } from '@tabler/icons';
 import { useSelector, useDispatch } from 'react-redux';
 import { addTab, focusTab, makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
@@ -210,11 +211,13 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
   });
 
   const iconClassName = classnames({
-    'rotate-90': !itemIsCollapsed
+    'rotate-90': !itemIsCollapsed,
+    'chevron-icon': true
   });
 
   const examplesIconClassName = classnames({
-    'rotate-90': examplesExpanded
+    'rotate-90': examplesExpanded,
+    'chevron-icon': true
   });
 
   const itemRowClassName = classnames('flex collection-item-name relative items-center', {
@@ -233,12 +236,17 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
     );
   };
 
-  const handleClick = (event) => {
+  const handleItemClick = (event) => {
     if (event && event.detail != 1) return;
     // scroll to the active tab
     setTimeout(scrollToTheActiveTab, 50);
     const isRequest = isItemARequest(item);
     if (isRequest) {
+      // For requests with examples: if tab is already active, toggle examples instead
+      if (hasExamples && isTabForItemActive) {
+        setExamplesExpanded(!examplesExpanded);
+        return;
+      }
       if (isTabForItemPresent) {
         dispatch(
           focusTab({
@@ -256,22 +264,17 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
         })
       );
     } else {
-      dispatch(
-        addTab({
-          uid: item.uid,
-          collectionUid: collectionUid,
-          type: 'folder-settings'
-        })
-      );
-      if (item.collapsed) {
-        dispatch(
-          toggleCollectionItem({
-            itemUid: item.uid,
-            collectionUid: collectionUid
-          })
-        );
-      }
+      handleFolderCollapse(event);
     }
+  };
+
+  const handleSettingsClick = (e) => {
+    e.stopPropagation();
+    dispatch(addTab({
+      uid: item.uid,
+      collectionUid: collectionUid,
+      type: 'folder-settings'
+    }));
   };
 
   const handleFolderCollapse = (e) => {
@@ -636,13 +639,12 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
         onBlur={handleBlur}
         onContextMenu={handleContextMenu}
         data-testid="sidebar-collection-item-row"
+        onClick={handleItemClick}
       >
         <div className="flex items-center h-full w-full">
           {indents && indents.length
             ? indents.map((i) => (
                 <div
-                  onClick={handleClick}
-                  onDoubleClick={handleDoubleClick}
                   className="indent-block"
                   key={i}
                   style={{ width: 16, minWidth: 16, height: '100%' }}
@@ -654,8 +656,6 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
           <div
             className="flex flex-grow items-center h-full overflow-hidden"
             style={{ paddingLeft: 8 }}
-            onClick={handleClick}
-            onDoubleClick={handleDoubleClick}
           >
 
             {isFolder ? (
@@ -666,7 +666,6 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
                   className={iconClassName}
                   style={{ color: 'rgb(160 160 160)' }}
                   onClick={handleFolderCollapse}
-                  onDoubleClick={handleFolderDoubleClick}
                   data-testid="folder-chevron"
                 />
               </ActionIcon>
@@ -678,7 +677,6 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
                   className={examplesIconClassName}
                   style={{ color: 'rgb(160 160 160)' }}
                   onClick={handleExamplesCollapse}
-                  onDoubleClick={handleExamplesDoubleClick}
                   data-testid="request-item-chevron"
                 />
               </ActionIcon>
@@ -691,7 +689,17 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
               </span>
             </div>
           </div>
-          <div className="pr-2">
+          <div className="menu-icon pr-2 flex items-center">
+            {isFolder && (
+              <>
+                {/* <ActionIcon title="New Request" className="new-request-icon mr-1" onClick={(e) => { e.stopPropagation(); setNewRequestModalOpen(true); }}>
+                  <IconPlus size={18} strokeWidth={1.5} />
+                </ActionIcon> */}
+                <ActionIcon title="Folder Settings" className="settings-icon mr-1" onClick={handleSettingsClick} onDoubleClick={handleDoubleClick} data-testid="folder-settings-icon">
+                  <IconSettings size={18} strokeWidth={1.5} />
+                </ActionIcon>
+              </>
+            )}
             <MenuDropdown
               ref={menuDropdownRef}
               items={buildMenuItems()}
