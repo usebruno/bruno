@@ -892,6 +892,13 @@ export const collectionsSlice = createSlice({
         collection.collapsed = !collection.collapsed;
       }
     },
+    expandCollection: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload);
+
+      if (collection) {
+        collection.collapsed = false;
+      }
+    },
     toggleCollectionItem: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
 
@@ -3627,6 +3634,7 @@ export const {
   newEphemeralHttpRequest,
   collapseFullCollection,
   toggleCollection,
+  expandCollection,
   toggleCollectionItem,
   requestUrlChanged,
   updateItemSettings,

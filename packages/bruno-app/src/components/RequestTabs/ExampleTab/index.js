@@ -1,12 +1,13 @@
-import React, { useState, useRef, useMemo } from 'react';
+import React, { useState, useRef, useMemo, useEffect } from 'react';
 import { useDispatch } from 'react-redux';
-import { makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
+import { makeTabPermanent, syncTabUid } from 'providers/ReduxStore/slices/tabs';
 import { deleteRequestDraft } from 'providers/ReduxStore/slices/collections';
 import { saveRequest, closeTabs } from 'providers/ReduxStore/slices/collections/actions';
-import { hasExampleChanges, findItemInCollection } from 'utils/collections';
+import { hasExampleChanges, findItemInCollection, findItemInCollectionByPathname, areItemsLoading } from 'utils/collections';
 import ExampleIcon from 'components/Icons/ExampleIcon';
 import ConfirmRequestClose from '../RequestTab/ConfirmRequestClose';
 import RequestTabNotFound from '../RequestTab/RequestTabNotFound';
+import RequestTabLoading from '../RequestTab/RequestTabLoading';
 import StyledWrapper from '../RequestTab/StyledWrapper';
 import GradientCloseButton from '../RequestTab/GradientCloseButton';
 
@@ -16,11 +17,32 @@ const ExampleTab = ({ tab, collection }) => {
 
   const dropdownTippyRef = useRef();
 
-  // Get item and example data
-  const item = findItemInCollection(collection, tab.itemUid);
-  const example = useMemo(() => item?.examples?.find((ex) => ex.uid === tab.uid), [item?.examples, tab.uid]);
+  let item = findItemInCollection(collection, tab.itemUid);
+  if (!item && tab.pathname) {
+    item = findItemInCollectionByPathname(collection, tab.pathname);
+  }
 
-  const hasChanges = useMemo(() => hasExampleChanges(item, tab.uid), [item, tab.uid]);
+  const example = useMemo(() => {
+    if (!item?.examples) return null;
+    const byUid = item.examples.find((ex) => ex.uid === tab.uid);
+    if (byUid) return byUid;
+    if (tab.exampleName) {
+      return item.examples.find((ex) => ex.name === tab.exampleName);
+    }
+    return null;
+  }, [item?.examples, tab.uid, tab.exampleName]);
+
+  const hasChanges = useMemo(() => hasExampleChanges(item, example?.uid), [item, example?.uid]);
+
+  const isItemsLoading = useMemo(() => {
+    return collection?.mountStatus === 'mounting' || areItemsLoading(collection);
+  }, [collection?.mountStatus, collection]);
+
+  useEffect(() => {
+    if (example && example.uid !== tab.uid) {
+      dispatch(syncTabUid({ oldUid: tab.uid, newUid: example.uid }));
+    }
+  }, [example, tab.uid, dispatch]);
 
   const handleCloseClick = (event) => {
     event.stopPropagation();
@@ -63,6 +85,8 @@ const ExampleTab = ({ tab, collection }) => {
   };
 
   if (!item || !example) {
+    const displayName = tab.exampleName || tab.name;
+    const showLoading = displayName && isItemsLoading;
     return (
       <StyledWrapper
         className="flex items-center justify-between tab-container"
@@ -76,7 +100,11 @@ const ExampleTab = ({ tab, collection }) => {
           }
         }}
       >
-        <RequestTabNotFound handleCloseClick={handleCloseClick} />
+        {showLoading ? (
+          <RequestTabLoading handleCloseClick={handleCloseClick} name={displayName} />
+        ) : (
+          <RequestTabNotFound handleCloseClick={handleCloseClick} />
+        )}
       </StyledWrapper>
     );
   }

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import find from 'lodash/find';
 import toast from 'react-hot-toast';
 import { useSelector, useDispatch } from 'react-redux';
@@ -7,8 +7,8 @@ import HttpRequestPane from 'components/RequestPane/HttpRequestPane';
 import GrpcRequestPane from 'components/RequestPane/GrpcRequestPane/index';
 import ResponsePane from 'components/ResponsePane';
 import GrpcResponsePane from 'components/ResponsePane/GrpcResponsePane';
-import { findItemInCollection } from 'utils/collections';
-import { sendRequest } from 'providers/ReduxStore/slices/collections/actions';
+import { findItemInCollection, findItemInCollectionByPathname, areItemsLoading } from 'utils/collections';
+import { cancelRequest, sendRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { updateGqlDocsOpen } from 'providers/ReduxStore/slices/tabs';
 import RequestNotFound from './RequestNotFound';
 import QueryUrl from 'components/RequestPane/QueryUrl/index';
@@ -26,6 +26,7 @@ import { produce } from 'immer';
 import CollectionOverview from 'components/CollectionSettings/Overview';
 import RequestNotLoaded from './RequestNotLoaded';
 import RequestIsLoading from './RequestIsLoading';
+import RequestTabPanelLoading from './RequestTabPanelLoading';
 import FolderNotFound from './FolderNotFound';
 import ExampleNotFound from './ExampleNotFound';
 import WsQueryUrl from 'components/RequestPane/WsQueryUrl';
@@ -89,6 +90,11 @@ const RequestTabPanel = () => {
   });
 
   const collection = find(collections, (c) => c.uid === focusedTab?.collectionUid);
+
+  const isItemsLoading = useMemo(() => {
+    return collection?.mountStatus === 'mounting' || areItemsLoading(collection);
+  }, [collection?.mountStatus, collection]);
+
   const [dragging, setDragging] = useState(false);
   const draggingRef = useRef(false);
 
@@ -220,16 +226,34 @@ const RequestTabPanel = () => {
   }
 
   if (focusedTab.type === 'response-example') {
-    const item = findItemInCollection(collection, focusedTab.itemUid);
-    const example = item?.examples?.find((ex) => ex.uid === focusedTab.uid);
-
-    if (!example) {
-      return <ExampleNotFound itemUid={focusedTab.itemUid} exampleUid={focusedTab.uid} />;
+    let item = findItemInCollection(collection, focusedTab.itemUid);
+    if (!item && focusedTab.pathname) {
+      item = findItemInCollectionByPathname(collection, focusedTab.pathname);
     }
-    return <ResponseExample item={item} collection={collection} example={example} />;
+
+    let example = null;
+    if (item?.examples) {
+      example = item.examples.find((ex) => ex.uid === focusedTab.uid);
+      if (!example && focusedTab.exampleName) {
+        example = item.examples.find((ex) => ex.name === focusedTab.exampleName);
+      }
+    }
+
+    if (example) {
+      return <ResponseExample item={item} collection={collection} example={example} />;
+    }
+
+    const displayName = focusedTab.exampleName || focusedTab.name;
+    if (displayName && isItemsLoading) {
+      return <RequestTabPanelLoading name={displayName} />;
+    }
+    return <ExampleNotFound itemUid={focusedTab.itemUid} exampleUid={focusedTab.uid} />;
   }
 
-  const item = findItemInCollection(collection, activeTabUid);
+  let item = findItemInCollection(collection, activeTabUid);
+  if (!item && focusedTab.pathname) {
+    item = findItemInCollectionByPathname(collection, focusedTab.pathname);
+  }
   const isGrpcRequest = item?.type === 'grpc-request';
   const isWsRequest = item?.type === 'ws-request';
 
@@ -250,12 +274,19 @@ const RequestTabPanel = () => {
   }
 
   if (focusedTab.type === 'folder-settings') {
-    const folder = findItemInCollection(collection, focusedTab.folderUid);
-    if (!folder) {
-      return <FolderNotFound folderUid={focusedTab.folderUid} />;
+    let folder = findItemInCollection(collection, focusedTab.folderUid);
+    if (!folder && focusedTab.pathname) {
+      folder = findItemInCollectionByPathname(collection, focusedTab.pathname);
     }
 
-    return <FolderSettings collection={collection} folder={folder} />;
+    if (folder) {
+      return <FolderSettings collection={collection} folder={folder} />;
+    }
+
+    if (focusedTab.name && isItemsLoading) {
+      return <RequestTabPanelLoading name={focusedTab.name} />;
+    }
+    return <FolderNotFound folderUid={focusedTab.folderUid} />;
   }
 
   if (focusedTab.type === 'environment-settings') {
@@ -271,14 +302,17 @@ const RequestTabPanel = () => {
   }
 
   if (!item || !item.uid) {
-    return <RequestNotFound itemUid={activeTabUid} />;
+    const showLoading = focusedTab.name && isItemsLoading;
+    return showLoading
+      ? <RequestTabPanelLoading name={focusedTab.name} />
+      : <RequestNotFound itemUid={activeTabUid} />;
   }
 
-  if (item?.partial) {
+  if (item.partial) {
     return <RequestNotLoaded item={item} collection={collection} />;
   }
 
-  if (item?.loading) {
+  if (item.loading) {
     return <RequestIsLoading item={item} />;
   }
 
