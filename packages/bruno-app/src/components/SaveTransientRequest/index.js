@@ -361,7 +361,7 @@ const SaveTransientRequest = ({ item: itemProp, collection: collectionProp, isOp
   return (
     <StyledWrapper>
       <Modal
-        size="md"
+        size="sm"
         title={isSelectingCollection ? 'Select Collection' : 'Save Request'}
         handleCancel={handleCancel}
         handleConfirm={handleConfirm}
