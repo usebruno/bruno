@@ -74,7 +74,7 @@ jobs:
           os: ubuntu
 
       - name: Upload Playwright Report
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         if: ${{ !cancelled() }}
         with:
           name: playwright-report
