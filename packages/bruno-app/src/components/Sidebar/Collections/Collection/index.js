@@ -24,7 +24,7 @@ import {
 } from '@tabler/icons';
 import OpenAPISyncIcon from 'components/Icons/OpenAPISync';
 import { toggleCollection, collapseFullCollection } from 'providers/ReduxStore/slices/collections';
-import { mountCollection, moveCollectionAndPersist, handleCollectionItemDrop, pasteItem, showInFolder, saveCollectionSecurityConfig } from 'providers/ReduxStore/slices/collections/actions';
+import { mountCollection, moveCollectionAndPersist, handleCollectionItemDrop, pasteItem, showInFolder, saveCollectionSecurityConfig, removeCollection } from 'providers/ReduxStore/slices/collections/actions';
 import { useDispatch, useSelector } from 'react-redux';
 import { addTab, makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
 import { setFocusedSidebarPath } from 'providers/ReduxStore/slices/app';
@@ -34,7 +34,7 @@ import NewFolder from 'components/Sidebar/NewFolder';
 import CollectionItem from './CollectionItem';
 import RemoveCollection from './RemoveCollection';
 import { doesCollectionHaveItemsMatchingSearchText } from 'utils/collections/search';
-import { isItemAFolder, isItemARequest, areItemsLoading } from 'utils/collections';
+import { isItemAFolder, isItemARequest, areItemsLoading, flattenItems, hasRequestChanges } from 'utils/collections';
 import { isTabForItemActive } from 'src/selectors/tab';
 
 import RenameCollection from './RenameCollection';
@@ -73,8 +73,52 @@ const Collection = ({ collection, searchText }) => {
   const [isKeyboardFocused, setIsKeyboardFocused] = useState(false);
   const [showEmptyState, setShowEmptyState] = useState(false);
   const dispatch = useDispatch();
+  const allCollections = useSelector((state) => state.collections.collections);
   const isLoading = collection.isLoading;
+  const defaultRequestPaneTab = useSelector((state) => state.app.preferences.request.defaultRequestPaneTab || 'params');
   const collectionRef = useRef(null);
+
+  const hasAnyUnsavedChanges = (c) => {
+    if (c.draft) return true;
+    if (c.environmentsDraft) return true;
+    const items = flattenItems(c.items || []);
+    return items.some((item) => (isItemARequest(item) && hasRequestChanges(item)) || (item.type === 'folder' && item.draft));
+  };
+
+  const handleCloseAll = () => {
+    const collectionsToClose = allCollections.filter((c) => !hasAnyUnsavedChanges(c));
+    const collectionsWithDrafts = allCollections.filter((c) => hasAnyUnsavedChanges(c));
+
+    if (collectionsToClose.length === 0 && collectionsWithDrafts.length === 0) return;
+
+    collectionsToClose.forEach((c) => {
+      dispatch(removeCollection(c.uid));
+    });
+
+    if (collectionsWithDrafts.length > 0) {
+      toast.error(`${collectionsWithDrafts.length} collection(s) with unsaved changes were not closed.`);
+    } else if (collectionsToClose.length > 0) {
+      toast.success('All clean collections closed');
+    }
+  };
+
+  const handleCloseOthers = () => {
+    const others = allCollections.filter((c) => c.uid !== collection.uid);
+    const collectionsToClose = others.filter((c) => !hasAnyUnsavedChanges(c));
+    const collectionsWithDrafts = others.filter((c) => hasAnyUnsavedChanges(c));
+
+    if (collectionsToClose.length === 0 && collectionsWithDrafts.length === 0) return;
+
+    collectionsToClose.forEach((c) => {
+      dispatch(removeCollection(c.uid));
+    });
+
+    if (collectionsWithDrafts.length > 0) {
+      toast.error(`${collectionsWithDrafts.length} other collection(s) with unsaved changes were not closed.`);
+    } else if (collectionsToClose.length > 0) {
+      toast.success('Other clean collections closed');
+    }
+  };
   // Only count persisted items; transients don't affect empty state
   const itemCount = collection.items?.filter((i) => !i.isTransient).length || 0;
 
@@ -445,6 +489,22 @@ const Collection = ({ collection, searchText }) => {
       onClick: () => {
         setShowRemoveCollectionModal(true);
       }
+    },
+    {
+      id: 'divider-2',
+      type: 'divider'
+    },
+    {
+      id: 'close-others',
+      leftSection: IconX,
+      label: 'Close Others',
+      onClick: handleCloseOthers
+    },
+    {
+      id: 'close-all',
+      leftSection: IconX,
+      label: 'Close All',
+      onClick: handleCloseAll
     }
   ];
 
