@@ -68,6 +68,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
 
   const isSidebarDragging = useSelector((state) => state.app.isDragging);
   const collection = useSelector((state) => state.collections.collections?.find((c) => c.uid === collectionUid));
+  const defaultRequestPaneTab = useSelector((state) => state.app.preferences.request.defaultRequestPaneTab || 'params');
   const { hasCopiedItems } = useSelector((state) => state.app.clipboard);
   const dispatch = useDispatch();
 
@@ -251,7 +252,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
         addTab({
           uid: item.uid,
           collectionUid: collectionUid,
-          requestPaneTab: getDefaultRequestPaneTab(item),
+          requestPaneTab: getDefaultRequestPaneTab(item, defaultRequestPaneTab),
           type: 'request'
         })
       );
