@@ -45,17 +45,17 @@ const ReadOnlyPropertyList = require('./readonly-property-list');
  * |--------------------|----------------------------------------------------|----------------------|
  * | `has(name)`        | `true` if a header with that key exists            | `true`               |
  * | `has(name, value)` | `true` if key exists **and** value matches          | `false`              |
- * | `find(fn)`             | First header matching the predicate function       | `{ key: … }`         |
- * | `filter(fn)`           | Array of headers matching the predicate            | `[{ key: … }, …]`   |
+ * | `find(fn, context?)`   | First header matching the predicate function       | `{ key: … }`         |
+ * | `filter(fn, context?)` | Array of headers matching the predicate            | `[{ key: … }, …]`   |
  * | `indexOf(item)`    | Index of a header by string key or object, or `-1` | `0`                  |
  *
- * ## Iteration methods (inherited from ReadOnlyPropertyList)
+ * ## Iteration methods (optional `context` binds `this` in callbacks)
  *
- * | Method                  | Description                                  |
- * |-------------------------|----------------------------------------------|
- * | `each(fn)`              | Calls `fn(header, index)` for every header   |
- * | `map(fn)`               | Returns a new array of mapped values         |
- * | `reduce(fn, initial?)`  | Reduces headers to a single value            |
+ * | Method                       | Description                                  |
+ * |------------------------------|----------------------------------------------|
+ * | `each(fn, context?)`         | Calls `fn(header, index)` for every header   |
+ * | `map(fn, context?)`          | Returns a new array of mapped values         |
+ * | `reduce(fn, initial?, context?)` | Reduces headers to a single value        |
  *
  * ## Transform methods
  *
@@ -71,7 +71,7 @@ const ReadOnlyPropertyList = require('./readonly-property-list');
  * |-------------------------------|----------------------------------------------------------|
  * | `add(headerObj)`              | Sets a header (delegates to BrunoRequest.setHeader)       |
  * | `upsert(headerObj)`           | Sets (or replaces) a header; returns true/false/null      |
- * | `remove(predicate)`               | Deletes header(s) by name, predicate, or object           |
+ * | `remove(predicate, context?)`     | Deletes header(s) by name, predicate, or object           |
  * | `clear()`                     | Removes **all** headers (enabled and disabled)            |
  * | `populate(items)`             | Replaces all headers with a new set                       |
  * | `repopulate(items)`           | Alias for `populate()`                                    |
@@ -191,6 +191,36 @@ class HeaderList extends PropertyList {
     );
   }
 
+  // ── Iteration overrides (optional context binding) ─────────────────
+
+  /** @param {Function} fn @param {*} [context] */
+  each(fn, context) {
+    super.each(context !== undefined ? fn.bind(context) : fn);
+  }
+
+  /** @param {Function} fn @param {*} [context] @returns {Array} */
+  filter(fn, context) {
+    return super.filter(context !== undefined ? fn.bind(context) : fn);
+  }
+
+  /** @param {Function} fn @param {*} [context] @returns {object|undefined} */
+  find(fn, context) {
+    return super.find(context !== undefined ? fn.bind(context) : fn);
+  }
+
+  /** @param {Function} fn @param {*} [context] @returns {Array} */
+  map(fn, context) {
+    return super.map(context !== undefined ? fn.bind(context) : fn);
+  }
+
+  /** @param {Function} fn @param {*} [accumulator] @param {*} [context] @returns {*} */
+  reduce(fn, ...args) {
+    const hasAccumulator = args.length > 0;
+    const hasContext = args.length > 1;
+    const bound = hasContext ? fn.bind(args[1]) : fn;
+    return hasAccumulator ? super.reduce(bound, args[0]) : super.reduce(bound);
+  }
+
   // ── Write methods (BrunoRequest delegation) ──────────────────────────
 
   /**
@@ -238,13 +268,15 @@ class HeaderList extends PropertyList {
    * Remove header(s) matching a predicate, key string, or item reference.
    * String and object removal are case-insensitive.
    * @param {Function|string|object} predicate
+   * @param {*} [context] - Bind `this` for function predicates
    */
-  remove(predicate) {
+  remove(predicate, context) {
     this._assertWritable();
     if (typeof predicate === 'function') {
+      const bound = context !== undefined ? predicate.bind(context) : predicate;
       const headers = this.all();
       for (const header of headers) {
-        if (predicate(header)) {
+        if (bound(header)) {
           if (header.disabled) {
             this._removeDisabledHeader(header.key);
           } else {

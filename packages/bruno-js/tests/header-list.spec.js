@@ -658,6 +658,64 @@ describe('HeaderList (req.headerList)', () => {
     });
   });
 
+  // ── Context parameter ─────────────────────────────────────────────────
+
+  describe('context parameter on iteration methods', () => {
+    test('each(fn, context) binds this', () => {
+      const { list } = createReqHeaders({ A: '1' });
+      const ctx = { collected: [] };
+      list.each(function (h) { this.collected.push(h.key); }, ctx);
+      expect(ctx.collected).toContain('A');
+    });
+
+    test('filter(fn, context) binds this', () => {
+      const { list } = createReqHeaders({ A: '1', B: '2' });
+      const ctx = { target: 'A' };
+      const result = list.filter(function (h) { return h.key === this.target; }, ctx);
+      expect(result).toHaveLength(1);
+      expect(result[0].key).toBe('A');
+    });
+
+    test('find(fn, context) binds this', () => {
+      const { list } = createReqHeaders({ A: '1' });
+      const ctx = { target: 'A' };
+      const result = list.find(function (h) { return h.key === this.target; }, ctx);
+      expect(result.key).toBe('A');
+    });
+
+    test('map(fn, context) binds this', () => {
+      const { list } = createReqHeaders({ A: '1' });
+      const ctx = { prefix: 'X-' };
+      const result = list.map(function (h) { return this.prefix + h.key; }, ctx);
+      expect(result).toContain('X-A');
+    });
+
+    test('reduce(fn, accumulator, context) binds this', () => {
+      const { list } = createReqHeaders({ A: '1', B: '2' });
+      const ctx = { separator: '|' };
+      const result = list.reduce(function (acc, h) {
+        return acc + this.separator + h.key;
+      }, '', ctx);
+      expect(result).toBe('|A|B');
+    });
+
+    test('remove(fn, context) binds this', () => {
+      const { list, rawReq } = createReqHeaders({ A: '1', B: '2' });
+      const ctx = { target: 'A' };
+      list.remove(function (h) { return h.key === this.target; }, ctx);
+      expect(rawReq.headers['A']).toBeUndefined();
+      expect(rawReq.headers['B']).toBe('2');
+    });
+
+    test('works without context (no binding)', () => {
+      const { list } = createReqHeaders({ A: '1', B: '2' });
+      const keys = [];
+      list.each((h) => keys.push(h.key));
+      expect(keys).toContain('A');
+      expect(keys).toContain('B');
+    });
+  });
+
   // ── upsert() return values ────────────────────────────────────────────
 
   describe('upsert() return values', () => {
