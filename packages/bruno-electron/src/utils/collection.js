@@ -15,6 +15,7 @@ const FORMAT_CONFIG = {
 
 const mergeHeaders = (collection, request, requestTreePath) => {
   let headers = new Map();
+  const disabledHeaders = [];
 
   let collectionHeaders = collection?.draft?.root ? get(collection, 'draft.root.request.headers', []) : get(collection, 'root.request.headers', []);
   collectionHeaders.forEach((header) => {
@@ -24,6 +25,8 @@ const mergeHeaders = (collection, request, requestTreePath) => {
       } else {
         headers.set(header.name, header.value);
       }
+    } else if (header.name?.length > 0) {
+      disabledHeaders.push({ name: header.name, value: header.value, enabled: false });
     }
   });
 
@@ -38,6 +41,8 @@ const mergeHeaders = (collection, request, requestTreePath) => {
           } else {
             headers.set(header.name, header.value);
           }
+        } else if (header.name?.length > 0) {
+          disabledHeaders.push({ name: header.name, value: header.value, enabled: false });
         }
       });
     } else {
@@ -49,25 +54,17 @@ const mergeHeaders = (collection, request, requestTreePath) => {
           } else {
             headers.set(header.name, header.value);
           }
+        } else if (header.name?.length > 0) {
+          disabledHeaders.push({ name: header.name, value: header.value, enabled: false });
         }
       });
     }
   }
 
-  const mergedHeaders = Array.from(headers, ([name, value]) => ({ name, value, enabled: true }));
-
-  // Preserve disabled headers from the request item (last entry in requestTreePath)
-  const requestItem = requestTreePath[requestTreePath.length - 1];
-  if (requestItem) {
-    const itemHeaders = requestItem?.draft ? get(requestItem, 'draft.request.headers', []) : get(requestItem, 'request.headers', []);
-    itemHeaders.forEach((header) => {
-      if (!header.enabled && header.name?.length > 0) {
-        mergedHeaders.push({ name: header.name, value: header.value, enabled: false });
-      }
-    });
-  }
-
-  request.headers = mergedHeaders;
+  request.headers = [
+    ...Array.from(headers, ([name, value]) => ({ name, value, enabled: true })),
+    ...disabledHeaders
+  ];
 };
 
 const mergeVars = (collection, request, requestTreePath = []) => {
