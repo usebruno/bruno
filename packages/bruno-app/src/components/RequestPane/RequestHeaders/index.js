@@ -146,6 +146,7 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
         defaultRow={defaultRow}
         getRowError={getRowError}
         reorderable={true}
+        initialScroll={scroll}
         onReorder={handleHeaderDrag}
         columnWidths={headersWidths}
         onColumnWidthsChange={(widths) => handleColumnWidthsChange('request-headers', widths)}

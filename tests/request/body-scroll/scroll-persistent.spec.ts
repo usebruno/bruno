@@ -104,7 +104,7 @@ const selectBodyMode = async (page: Page, mode: string) => {
 // const SCROLL_TOLERANCE = 50;
 
 const expectScrollRestored = (restored: number, original: number) => {
-  expect(restored).toBeGreaterThan(0);
+  expect(restored).toBeGreaterThanOrEqual(original - 50);
 };
 
 // ===========================================================================
@@ -412,6 +412,7 @@ test.describe('Scroll Position Persistence', () => {
     test('Request Headers — scroll persists with many headers across tab switches', async ({ page, createTmpDir }) => {
       const tmpDir = await createTmpDir('scroll-req-headers');
       const scrollContainer = '.flex-boundary';
+      const firstVisibleRowLocator = () => page.getByTestId('editable-table').locator('table > tbody > tr:nth-child(2)');
 
       await test.step('Setup request and navigate to Headers tab', async () => {
         await createCollection(page, 'scroll-req-headers', tmpDir);
@@ -453,22 +454,22 @@ test.describe('Scroll Position Persistence', () => {
       });
 
       await test.step('Scroll down and capture position', async () => {
-        const container = page.locator(scrollContainer).first();
-        await container.evaluate((el) => { el.scrollTop = 400; });
-        saved = await container.evaluate((el) => el.scrollTop);
+        const element = await firstVisibleRowLocator();
+        saved = parseInt(await element.getAttribute('data-index') as string);
         expect(saved).toBeGreaterThan(0);
       });
 
       await test.step('Switch to Body tab and back to Headers', async () => {
         await selectRequestPaneTab(page, 'Body');
-
         await selectRequestPaneTab(page, 'Headers');
+        const tableRow = page.getByRole('row', { name: 'Name Value' }).getByRole('cell').first();
+        await expect(tableRow).toBeVisible({ timeout: 2000 });
       });
 
       await test.step('Verify scroll restored', async () => {
-        const container = page.locator(scrollContainer).first();
-        const restored = await container.evaluate((el) => el.scrollTop);
-        expectScrollRestored(restored, saved);
+        const element = await firstVisibleRowLocator();
+        const current = parseInt(await element.getAttribute('data-index') as string);
+        expect(current).toBe(saved);
       });
     });
   });

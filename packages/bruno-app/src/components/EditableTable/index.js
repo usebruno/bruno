@@ -62,6 +62,7 @@ const EditableTable = ({
   showAddRow = true,
   testId = 'editable-table',
   columnWidths,
+  initialScroll = 0,
   onColumnWidthsChange
 }) => {
   const wrapperRef = useRef(null);
@@ -463,25 +464,30 @@ const EditableTable = ({
     );
   }, [showCheckbox, reorderable, reorderableRowCount, isLastEmptyRow, checkboxKey, disableCheckbox, handleCheckboxChange, columns, renderCell, showDelete, handleRemoveRow]);
 
+  const initialTopMostItemIndex = useRef(Math.max(0, Math.floor(initialScroll / ROW_HEIGHT))).current;
+
   return (
     <StyledWrapper
       ref={wrapperRef}
       data-testid={testId}
       className={`${showCheckbox ? 'has-checkbox' : 'no-checkbox'} ${resizing ? 'is-resizing' : ''}`}
     >
-      <TableVirtuoso
-        ref={virtuosoRef}
-        className="table-container"
-        customScrollParent={scrollParent || undefined}
-        data={rowsWithEmpty}
-        components={{ TableRow }}
-        context={virtuosoContext}
-        defaultItemHeight={ROW_HEIGHT}
-        totalListHeightChanged={handleTotalHeightChanged}
-        computeItemKey={(_, item) => item.uid}
-        fixedHeaderContent={fixedHeaderContent}
-        itemContent={itemContent}
-      />
+      {scrollParent && (
+        <TableVirtuoso
+          ref={virtuosoRef}
+          className="table-container"
+          customScrollParent={scrollParent}
+          data={rowsWithEmpty}
+          components={{ TableRow }}
+          context={virtuosoContext}
+          defaultItemHeight={ROW_HEIGHT}
+          initialTopMostItemIndex={initialTopMostItemIndex}
+          totalListHeightChanged={handleTotalHeightChanged}
+          computeItemKey={(_, item) => item.uid}
+          fixedHeaderContent={fixedHeaderContent}
+          itemContent={itemContent}
+        />
+      )}
     </StyledWrapper>
   );
 };
