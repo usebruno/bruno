@@ -96,7 +96,7 @@ const createCollectionJsonFromPathname = (collectionPath) => {
 
 const mergeHeaders = (collection, request, requestTreePath) => {
   let headers = new Map();
-  const disabledHeaders = [];
+  let disabledHeaders = new Map();
 
   const collectionRoot = collection?.draft?.root || collection?.root || {};
   let collectionHeaders = get(collectionRoot, 'request.headers', []);
@@ -104,7 +104,7 @@ const mergeHeaders = (collection, request, requestTreePath) => {
     if (header.enabled) {
       headers.set(header.name, header.value);
     } else if (header.name?.length > 0) {
-      disabledHeaders.push({ name: header.name, value: header.value, enabled: false });
+      disabledHeaders.set(header.name, header.value);
     }
   });
 
@@ -116,7 +116,7 @@ const mergeHeaders = (collection, request, requestTreePath) => {
         if (header.enabled) {
           headers.set(header.name, header.value);
         } else if (header.name?.length > 0) {
-          disabledHeaders.push({ name: header.name, value: header.value, enabled: false });
+          disabledHeaders.set(header.name, header.value);
         }
       });
     } else {
@@ -125,7 +125,7 @@ const mergeHeaders = (collection, request, requestTreePath) => {
         if (header.enabled) {
           headers.set(header.name, header.value);
         } else if (header.name?.length > 0) {
-          disabledHeaders.push({ name: header.name, value: header.value, enabled: false });
+          disabledHeaders.set(header.name, header.value);
         }
       });
     }
@@ -133,7 +133,7 @@ const mergeHeaders = (collection, request, requestTreePath) => {
 
   request.headers = [
     ...Array.from(headers, ([name, value]) => ({ name, value, enabled: true })),
-    ...disabledHeaders
+    ...Array.from(disabledHeaders, ([name, value]) => ({ name, value, enabled: false }))
   ];
 };
 
