@@ -1,0 +1,33 @@
+meta {
+  name: assimilate
+  type: http
+  seq: 9
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+headers {
+  bruno: is-awesome
+}
+
+assert {
+  res.status: eq 200
+  res.body: eq pong
+}
+
+script:pre-request {
+  req.headerList.assimilate([
+    { key: 'x-merged', value: 'merged-value' }
+  ]);
+}
+
+tests {
+  test("req.headerList.assimilate(source) - merges without removing existing", function() {
+    expect(req.getHeader('bruno')).to.equal('is-awesome');
+    expect(req.getHeader('x-merged')).to.equal('merged-value');
+  });
+}

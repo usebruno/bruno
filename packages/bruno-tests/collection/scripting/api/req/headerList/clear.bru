@@ -1,0 +1,32 @@
+meta {
+  name: clear
+  type: http
+  seq: 7
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+headers {
+  bruno: is-awesome
+  della: is-beautiful
+}
+
+assert {
+  res.status: eq 200
+  res.body: eq pong
+}
+
+script:pre-request {
+  req.headerList.clear();
+}
+
+tests {
+  test("req.headerList.clear()", function() {
+    expect(req.headerList.count()).to.equal(0);
+    expect(req.getHeaders()).to.eql({});
+  });
+}
