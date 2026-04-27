@@ -473,11 +473,34 @@ const prepareRequest = async (item, collection = {}, abortController) => {
   }
 
   if (request.body.mode === 'multipartForm') {
-    if (!contentTypeDefined) {
-      axiosRequest.headers['content-type'] = 'multipart/form-data';
-    }
+    const FormData = require('form-data');
     const enabledParams = filter(request.body.multipartForm, (p) => p.enabled);
-    axiosRequest.data = enabledParams;
+    const form = new FormData();
+    each(enabledParams, (param) => {
+      if (param.type === 'file') {
+        const filePaths = Array.isArray(param.value) ? param.value : [param.value];
+        each(filePaths, (filePath) => {
+          if (filePath) {
+            const opts = { filename: path.basename(filePath) };
+            if (param.contentType) opts.contentType = param.contentType;
+            form.append(
+              param.name,
+              isLargeFile(filePath, STREAMING_FILE_SIZE_THRESHOLD)
+                ? fs.createReadStream(filePath)
+                : fs.readFileSync(filePath),
+              opts
+            );
+          }
+        });
+      } else {
+        const opts = param.contentType ? { contentType: param.contentType } : {};
+        form.append(param.name, param.value || '', Object.keys(opts).length ? opts : undefined);
+      }
+    });
+    if (!contentTypeDefined) {
+      Object.assign(axiosRequest.headers, form.getHeaders());
+    }
+    axiosRequest.data = form;
   }
 
   if (request.body.mode === 'graphql') {
