@@ -20,6 +20,8 @@ function disableSystemPac() {
 }
 
 test.describe('System Proxy with PAC', () => {
+  test.skip(process.platform !== 'darwin', 'macOS-only: relies on `networksetup` to set OS-level PAC');
+
   let servers: TestServers;
 
   test.beforeAll(async () => {

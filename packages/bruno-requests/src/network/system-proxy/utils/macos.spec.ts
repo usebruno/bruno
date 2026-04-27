@@ -211,6 +211,67 @@ describe('MacOSProxyResolver', () => {
       });
     });
 
+    it('should extract PAC URL when ProxyAutoConfigEnable is 1', async () => {
+      const scutilOutput = `<dictionary> {
+  HTTPEnable : 0
+  HTTPSEnable : 0
+  ProxyAutoConfigEnable : 1
+  ProxyAutoConfigURLString : http://wpad.usebruno.com/proxy.pac
+}`;
+
+      mockExecFile.mockResolvedValueOnce({ stdout: scutilOutput, stderr: '' });
+
+      const result = await detector.detect();
+
+      expect(result).toEqual({
+        http_proxy: null,
+        https_proxy: null,
+        no_proxy: null,
+        pac_url: 'http://wpad.usebruno.com/proxy.pac',
+        source: 'macos-system'
+      });
+    });
+
+    it('should return PAC URL alongside manual HTTP/HTTPS proxies when both are configured', async () => {
+      const scutilOutput = `<dictionary> {
+  HTTPEnable : 1
+  HTTPPort : 8080
+  HTTPProxy : proxy.usebruno.com
+  HTTPSEnable : 1
+  HTTPSPort : 8443
+  HTTPSProxy : secure-proxy.usebruno.com
+  ProxyAutoConfigEnable : 1
+  ProxyAutoConfigURLString : file:///etc/proxy.pac
+}`;
+
+      mockExecFile.mockResolvedValueOnce({ stdout: scutilOutput, stderr: '' });
+
+      const result = await detector.detect();
+
+      expect(result).toEqual({
+        http_proxy: 'http://proxy.usebruno.com:8080',
+        https_proxy: 'http://secure-proxy.usebruno.com:8443',
+        no_proxy: null,
+        pac_url: 'file:///etc/proxy.pac',
+        source: 'macos-system'
+      });
+    });
+
+    it('should not return PAC URL when ProxyAutoConfigEnable is 0', async () => {
+      const scutilOutput = `<dictionary> {
+  HTTPEnable : 0
+  HTTPSEnable : 0
+  ProxyAutoConfigEnable : 0
+  ProxyAutoConfigURLString : http://wpad.usebruno.com/proxy.pac
+}`;
+
+      mockExecFile.mockResolvedValueOnce({ stdout: scutilOutput, stderr: '' });
+
+      const result = await detector.detect();
+
+      expect(result.pac_url).toBeNull();
+    });
+
     it('should handle malformed scutil output gracefully', async () => {
       const scutilOutput = `<dictionary> {
   HTTPEnable : 1
