@@ -45,6 +45,7 @@ const ReadOnlyPropertyList = require('./readonly-property-list');
  * |--------------------|----------------------------------------------------|----------------------|
  * | `has(name)`        | `true` if a header with that key exists            | `true`               |
  * | `has(name, value)` | `true` if key exists **and** value matches          | `false`              |
+ * | `has(object)`      | `true` if a header with `object.key` exists         | `true`               |
  * | `find(fn, context?)`   | First header matching the predicate function       | `{ key: … }`         |
  * | `filter(fn, context?)` | Array of headers matching the predicate            | `[{ key: … }, …]`   |
  * | `indexOf(item)`    | Index of a header by string key or object, or `-1` | `0`                  |
@@ -69,11 +70,11 @@ const ReadOnlyPropertyList = require('./readonly-property-list');
  *
  * | Method                        | Description                                              |
  * |-------------------------------|----------------------------------------------------------|
- * | `add(headerObj)`              | Sets a header (delegates to BrunoRequest.setHeader)       |
+ * | `add(headerObj\|string)`      | Sets a header; accepts `{key,value}` or `"Key: Value"`    |
  * | `upsert(headerObj)`           | Sets (or replaces) a header; returns true/false/null      |
  * | `remove(predicate, context?)`     | Deletes header(s) by name, predicate, or object           |
  * | `clear()`                     | Removes **all** headers (enabled and disabled)            |
- * | `populate(items)`             | Replaces all headers with a new set                       |
+ * | `populate(items\|string)`     | Replaces all; accepts array or multi-line header string    |
  * | `repopulate(items)`           | Alias for `populate()`                                    |
  * | `prepend(item)`               | Alias for `add()` (headers are unordered)                 |
  * | `append(item)`                | Alias for `add()`                                         |
@@ -139,6 +140,18 @@ class HeaderList extends PropertyList {
       : a === b;
   }
 
+  /**
+   * Parse a "Key: Value" string into a { key, value } object.
+   * @param {string} str
+   * @returns {object|null}
+   */
+  static _parseHeaderString(str) {
+    if (typeof str !== 'string') return null;
+    const idx = str.indexOf(':');
+    if (idx === -1) return null;
+    return { key: str.substring(0, idx).trim(), value: str.substring(idx + 1).trim() };
+  }
+
   // ── Read method overrides (case-insensitive) ──────────────────────────
 
   /**
@@ -162,11 +175,15 @@ class HeaderList extends PropertyList {
 
   /**
    * Check if a header exists (case-insensitive).
-   * @param {string} name
+   * Accepts a string key, a string key + value, or an object with `key`.
+   * @param {string|object} name - Header key string or object with `key` property
    * @param {*} [value]
    * @returns {boolean}
    */
   has(name, value) {
+    if (name && typeof name === 'object' && name.key) {
+      return this.all().some((i) => HeaderList._ciEquals(i.key, name.key));
+    }
     const items = this.all();
     if (value !== undefined) {
       return items.some((i) => HeaderList._ciEquals(i.key, name) && i.value === value);
@@ -224,10 +241,13 @@ class HeaderList extends PropertyList {
   // ── Write methods (BrunoRequest delegation) ──────────────────────────
 
   /**
-   * Add a header (alias for {@link HeaderList#upsert}).
-   * @param {object} item - Header object with `key` and `value`.
+   * Add a header. Accepts a { key, value } object or a "Key: Value" string.
+   * @param {object|string} item
    */
   add(item) {
+    if (typeof item === 'string') {
+      item = HeaderList._parseHeaderString(item);
+    }
     this.upsert(item);
   }
 
@@ -337,11 +357,19 @@ class HeaderList extends PropertyList {
 
   /**
    * Replace all headers with a new set.
-   * @param {Array} items - Array of `{ key, value }` objects
+   * Accepts an array of { key, value } objects or a multi-line "Key: Value" string.
+   * @param {Array|string} items
    */
   populate(items) {
     this._assertWritable();
     this.clear();
+    if (typeof items === 'string') {
+      const lines = items.split(/\r?\n/).filter((l) => l.trim());
+      for (const line of lines) {
+        this.add(line);
+      }
+      return;
+    }
     const list = Array.isArray(items) ? items : [];
     for (const item of list) {
       this.add(item);
@@ -389,10 +417,9 @@ class HeaderList extends PropertyList {
    * @returns {string}
    */
   toString() {
-    return this.all()
-      .filter((h) => !h.disabled)
-      .map((h) => `${h.key}: ${h.value}`)
-      .join('\n');
+    const headers = this.all().filter((h) => !h.disabled);
+    if (headers.length === 0) return '';
+    return headers.map((h) => `${h.key}: ${h.value}`).join('\n') + '\n';
   }
 
   /**

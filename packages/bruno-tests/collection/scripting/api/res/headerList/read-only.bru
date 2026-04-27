@@ -40,4 +40,28 @@ tests {
   test("res.headerList.populate() throws read-only error", function() {
     expect(() => res.headerList.populate([])).to.throw('read-only');
   });
+
+  test("res.headerList.repopulate() throws read-only error", function() {
+    expect(() => res.headerList.repopulate([])).to.throw('read-only');
+  });
+
+  test("res.headerList.append() throws read-only error", function() {
+    expect(() => res.headerList.append({ key: 'x-test', value: 'test' })).to.throw('read-only');
+  });
+
+  test("res.headerList.prepend() throws read-only error", function() {
+    expect(() => res.headerList.prepend({ key: 'x-test', value: 'test' })).to.throw('read-only');
+  });
+
+  test("res.headerList.insert() throws read-only error", function() {
+    expect(() => res.headerList.insert({ key: 'x-test', value: 'test' })).to.throw('read-only');
+  });
+
+  test("res.headerList.insertAfter() throws read-only error", function() {
+    expect(() => res.headerList.insertAfter({ key: 'x-test', value: 'test' })).to.throw('read-only');
+  });
+
+  test("res.headerList.assimilate() throws read-only error", function() {
+    expect(() => res.headerList.assimilate([])).to.throw('read-only');
+  });
 }

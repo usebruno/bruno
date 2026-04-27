@@ -116,6 +116,13 @@ describe('HeaderList (req.headerList)', () => {
       expect(list.has('Content-Type', 'text/plain')).toBe(false);
     });
 
+    test('has() accepts an object with key property', () => {
+      const { list } = createReqHeaders();
+      expect(list.has({ key: 'Content-Type' })).toBe(true);
+      expect(list.has({ key: 'content-type' })).toBe(true);
+      expect(list.has({ key: 'X-Missing' })).toBe(false);
+    });
+
     test('find() returns first matching header', () => {
       const { list } = createReqHeaders();
       const found = list.find((h) => h.key.startsWith('Auth'));
@@ -226,9 +233,9 @@ describe('HeaderList (req.headerList)', () => {
       expect(obj['']).toBeUndefined();
     });
 
-    test('toString() returns HTTP wire format', () => {
+    test('toString() returns HTTP wire format with trailing newline', () => {
       const { list } = createReqHeaders({ A: '1', B: '2' });
-      expect(list.toString()).toBe('A: 1\nB: 2');
+      expect(list.toString()).toBe('A: 1\nB: 2\n');
     });
 
     test('toString() skips disabled headers', () => {
@@ -239,7 +246,7 @@ describe('HeaderList (req.headerList)', () => {
         disabledHeaders: [{ name: 'C', value: '3' }]
       };
       const brunoReq = new BrunoRequest(rawReq);
-      expect(brunoReq.headerList.toString()).toBe('A: 1\nB: 2');
+      expect(brunoReq.headerList.toString()).toBe('A: 1\nB: 2\n');
     });
 
     test('toJSON() returns same as all()', () => {
@@ -291,12 +298,24 @@ describe('HeaderList (req.headerList)', () => {
       expect(rawReq.headers['Content-Type']).toBe('text/plain');
     });
 
-    test('ignores null/undefined/non-object input', () => {
+    test('accepts a "Key: Value" string', () => {
+      const { list, rawReq } = createReqHeaders({});
+      list.add('X-Custom: my-value');
+      expect(rawReq.headers['X-Custom']).toBe('my-value');
+    });
+
+    test('ignores malformed string (no colon)', () => {
+      const { list } = createReqHeaders({});
+      const countBefore = list.count();
+      list.add('no-colon-here');
+      expect(list.count()).toBe(countBefore);
+    });
+
+    test('ignores null/undefined input', () => {
       const { list } = createReqHeaders();
       const countBefore = list.count();
       list.add(null);
       list.add(undefined);
-      list.add('not-an-object');
       expect(list.count()).toBe(countBefore);
     });
 
@@ -383,6 +402,14 @@ describe('HeaderList (req.headerList)', () => {
       expect(list.count()).toBe(countBefore);
     });
 
+    test('no-op for null/undefined predicate', () => {
+      const { list } = createReqHeaders();
+      const countBefore = list.count();
+      list.remove(null);
+      list.remove(undefined);
+      expect(list.count()).toBe(countBefore);
+    });
+
     test('removes disabled header by string', () => {
       const rawReq = {
         url: 'https://example.com',
@@ -465,6 +492,23 @@ describe('HeaderList (req.headerList)', () => {
       const { list } = createReqHeaders();
       list.populate(null);
       expect(list.count()).toBe(0);
+    });
+
+    test('accepts a multi-line header string', () => {
+      const { list, rawReq } = createReqHeaders({ Old: 'gone' });
+      list.populate('Content-Type: application/json\nAccept: */*');
+      expect(rawReq.headers['Old']).toBeUndefined();
+      expect(rawReq.headers['Content-Type']).toBe('application/json');
+      expect(rawReq.headers['Accept']).toBe('*/*');
+      expect(list.count()).toBe(2);
+    });
+
+    test('accepts a CRLF header string', () => {
+      const { list } = createReqHeaders({});
+      list.populate('A: 1\r\nB: 2\r\n');
+      expect(list.get('A')).toBe('1');
+      expect(list.get('B')).toBe('2');
+      expect(list.count()).toBe(2);
     });
   });
 
@@ -750,6 +794,19 @@ describe('HeaderList (req.headerList)', () => {
       expect(rawReq.headers['B']).toBeUndefined();
       expect(rawReq.headers['C']).toBeUndefined();
     });
+
+    test('prune also removes disabled headers not in source', () => {
+      const rawReq = {
+        url: 'https://example.com',
+        method: 'GET',
+        headers: { A: '1' },
+        disabledHeaders: [{ name: 'B', value: '2' }]
+      };
+      const brunoReq = new BrunoRequest(rawReq);
+      brunoReq.headerList.assimilate([{ key: 'A', value: 'updated' }], true);
+      expect(rawReq.headers['A']).toBe('updated');
+      expect(rawReq.disabledHeaders).toHaveLength(0);
+    });
   });
 
   // ── Edge cases ────────────────────────────────────────────────────────
@@ -921,9 +978,9 @@ describe('Response Headers (res.headerList)', () => {
       expect(headerList.toObject()).toEqual(defaultHeaders);
     });
 
-    test('toString() returns HTTP wire format', () => {
+    test('toString() returns HTTP wire format with trailing newline', () => {
       const { headerList } = createResHeaders({ a: '1', b: '2' });
-      expect(headerList.toString()).toBe('a: 1\nb: 2');
+      expect(headerList.toString()).toBe('a: 1\nb: 2\n');
     });
 
     test('toJSON() returns same as all()', () => {
@@ -972,6 +1029,24 @@ describe('Response Headers (res.headerList)', () => {
       expect(() => headerList.upsert({ key: 'X-New', value: 'val' })).toThrow('read-only');
       expect(() => headerList.populate([])).toThrow('read-only');
       expect(() => headerList.assimilate([])).toThrow('read-only');
+    });
+
+    test('response headers alias write methods also throw', () => {
+      const { headerList } = createResHeaders();
+      expect(() => headerList.append({ key: 'X-New', value: 'val' })).toThrow('read-only');
+      expect(() => headerList.prepend({ key: 'X-New', value: 'val' })).toThrow('read-only');
+      expect(() => headerList.insert({ key: 'X-New', value: 'val' })).toThrow('read-only');
+      expect(() => headerList.insertAfter({ key: 'X-New', value: 'val' })).toThrow('read-only');
+      expect(() => headerList.repopulate([])).toThrow('read-only');
+    });
+
+    test('case-insensitive reads work on response headers', () => {
+      const { headerList } = createResHeaders();
+      expect(headerList.get('CONTENT-TYPE')).toBe('application/json');
+      expect(headerList.one('CONTENT-TYPE')).toEqual({ key: 'content-type', value: 'application/json' });
+      expect(headerList.has('CONTENT-TYPE')).toBe(true);
+      expect(headerList.indexOf('CONTENT-TYPE')).toBeGreaterThanOrEqual(0);
+      expect(headerList.indexOf({ key: 'CONTENT-TYPE', value: 'application/json' })).toBeGreaterThanOrEqual(0);
     });
   });
 });
