@@ -2,11 +2,17 @@ const PropertyList = require('./property-list');
 const ReadOnlyPropertyList = require('./readonly-property-list');
 
 /**
- * HeaderList — the `req.headerList` API for reading and writing headers in scripts.
+ * HeaderList — the `req.headerList` / `res.headerList` API in scripts.
  *
  * Extends PropertyList in dynamic mode: the header list is freshly read from the
  * request's headers object on every access, and write operations delegate to the
  * BrunoRequest instance (preserving `__headersToDelete` tracking).
+ *
+ * Key differences from the base PropertyList:
+ * - **Case-insensitive** key lookups (HTTP headers are case-insensitive)
+ * - **Disabled headers** surfaced with `disabled: true`
+ * - **Read-only mode** for response headers (write methods throw)
+ * - Write operations delegate to BrunoRequest (preserving `__headersToDelete`)
  *
  * Access: `req.headerList` (PropertyList API) vs `req.headers` (raw headers object).
  *
@@ -23,27 +29,27 @@ const ReadOnlyPropertyList = require('./readonly-property-list');
  *
  * ---
  *
- * ## Read methods (inherited from ReadOnlyPropertyList)
+ * ## Read methods (case-insensitive key matching)
  *
  * | Method             | Description                                        | Example return value                            |
  * |--------------------|----------------------------------------------------|-------------------------------------------------|
- * | `get(name)`        | Value of the header with `key === name`            | `'application/json'`                            |
- * | `one(name)`        | Full header object for `key === name`              | `{ key: 'Content-Type', value: 'application/json' }` |
+ * | `get(name)`        | Value of the header with matching key              | `'application/json'`                            |
+ * | `one(name)`        | Full header object for matching key                | `{ key: 'Content-Type', value: 'application/json' }` |
  * | `all()`            | Cloned array of all header objects                 | `[{ key: 'Content-Type', … }, …]`              |
  * | `idx(index)`       | Header at positional index                         | `{ key: 'Content-Type', … }`                   |
  * | `count()`          | Number of headers                                  | `3`                                             |
  *
- * ## Search methods (inherited)
+ * ## Search methods (case-insensitive key matching)
  *
  * | Method             | Description                                        | Example return value |
  * |--------------------|----------------------------------------------------|----------------------|
  * | `has(name)`        | `true` if a header with that key exists            | `true`               |
  * | `has(name, value)` | `true` if key exists **and** value matches          | `false`              |
- * | `find(predicate)`  | First header matching the predicate function       | `{ key: … }`         |
- * | `filter(predicate)`| Array of headers matching the predicate            | `[{ key: … }, …]`   |
- * | `indexOf(item)`    | Index of a structurally-equal header, or `-1`      | `0`                  |
+ * | `find(fn)`             | First header matching the predicate function       | `{ key: … }`         |
+ * | `filter(fn)`           | Array of headers matching the predicate            | `[{ key: … }, …]`   |
+ * | `indexOf(item)`    | Index of a header by string key or object, or `-1` | `0`                  |
  *
- * ## Iteration methods (inherited)
+ * ## Iteration methods (inherited from ReadOnlyPropertyList)
  *
  * | Method                  | Description                                  |
  * |-------------------------|----------------------------------------------|
@@ -51,29 +57,29 @@ const ReadOnlyPropertyList = require('./readonly-property-list');
  * | `map(fn)`               | Returns a new array of mapped values         |
  * | `reduce(fn, initial?)`  | Reduces headers to a single value            |
  *
- * ## Transform methods (inherited)
+ * ## Transform methods
  *
- * | Method        | Description                                           | Example return value                              |
- * |---------------|-------------------------------------------------------|---------------------------------------------------|
- * | `toObject()`  | `{ key: value }` map of all headers                   | `{ 'Content-Type': 'application/json' }`          |
- * | `toString()`  | Semicolon-separated `key=value` string                 | `'Content-Type=application/json; Accept=*\/*'`    |
- * | `toJSON()`    | Same as `all()` — suitable for `JSON.stringify()`      | `[{ key: 'Content-Type', … }]`                    |
+ * | Method                                                        | Description                                           |
+ * |---------------------------------------------------------------|-------------------------------------------------------|
+ * | `toObject(excludeDisabled?, caseSensitive?, multiValue?, sanitizeKeys?)` | `{ key: value }` map of all headers      |
+ * | `toString()`                                                  | HTTP wire format `Key: Value\n...`, skips disabled     |
+ * | `toJSON()`                                                    | Same as `all()` — suitable for `JSON.stringify()`      |
  *
- * ## Write methods (HeaderList overrides — synchronous)
+ * ## Write methods (HeaderList overrides — synchronous, case-insensitive)
  *
- * | Method                   | Description                                          |
- * |--------------------------|------------------------------------------------------|
- * | `add(headerObj)`         | Sets a header (delegates to BrunoRequest.setHeader)   |
- * | `upsert(headerObj)`      | Sets (or replaces) a header                           |
- * | `remove(predicate)`      | Deletes header(s) by name, predicate, or object       |
- * | `clear()`                | Removes **all** headers                               |
- * | `populate(items)`        | Replaces all headers with a new set                   |
- * | `repopulate(items)`      | Alias for `populate()`                                |
- * | `prepend(item)`          | Alias for `add()` (headers are unordered)             |
- * | `append(item)`           | Alias for `add()`                                     |
- * | `insert(item)`           | Alias for `add()`                                     |
- * | `insertAfter(item)`      | Alias for `add()`                                     |
- * | `assimilate(source, prune)` | Merges headers from another source                 |
+ * | Method                        | Description                                              |
+ * |-------------------------------|----------------------------------------------------------|
+ * | `add(headerObj)`              | Sets a header (delegates to BrunoRequest.setHeader)       |
+ * | `upsert(headerObj)`           | Sets (or replaces) a header; returns true/false/null      |
+ * | `remove(predicate)`               | Deletes header(s) by name, predicate, or object           |
+ * | `clear()`                     | Removes **all** headers (enabled and disabled)            |
+ * | `populate(items)`             | Replaces all headers with a new set                       |
+ * | `repopulate(items)`           | Alias for `populate()`                                    |
+ * | `prepend(item)`               | Alias for `add()` (headers are unordered)                 |
+ * | `append(item)`                | Alias for `add()`                                         |
+ * | `insert(item)`                | Alias for `add()`                                         |
+ * | `insertAfter(item)`           | Alias for `add()`                                         |
+ * | `assimilate(source, prune?)` | Merges headers; prune removes items not in source          |
  */
 class HeaderList extends PropertyList {
   /**
@@ -96,7 +102,7 @@ class HeaderList extends PropertyList {
             value: h.value,
             disabled: true
           }));
-          return [...enabled, ...disabled];
+          return [...disabled, ...enabled];
         }
       });
       this._brunoRequest = source;
@@ -119,6 +125,72 @@ class HeaderList extends PropertyList {
     }
   }
 
+  // ── Case-insensitive key helpers ──────────────────────────────────────
+
+  /**
+   * Case-insensitive string comparison.
+   * @param {string} a
+   * @param {string} b
+   * @returns {boolean}
+   */
+  static _ciEquals(a, b) {
+    return typeof a === 'string' && typeof b === 'string'
+      ? a.toLowerCase() === b.toLowerCase()
+      : a === b;
+  }
+
+  // ── Read method overrides (case-insensitive) ──────────────────────────
+
+  /**
+   * Get the value of a header by key (case-insensitive).
+   * @param {string} name
+   * @returns {*}
+   */
+  get(name) {
+    const item = this.all().findLast((i) => HeaderList._ciEquals(i.key, name));
+    return item ? item.value : undefined;
+  }
+
+  /**
+   * Get the full header object by key (case-insensitive).
+   * @param {string} name
+   * @returns {object|undefined}
+   */
+  one(name) {
+    return this.all().findLast((i) => HeaderList._ciEquals(i.key, name));
+  }
+
+  /**
+   * Check if a header exists (case-insensitive).
+   * @param {string} name
+   * @param {*} [value]
+   * @returns {boolean}
+   */
+  has(name, value) {
+    const items = this.all();
+    if (value !== undefined) {
+      return items.some((i) => HeaderList._ciEquals(i.key, name) && i.value === value);
+    }
+    return items.some((i) => HeaderList._ciEquals(i.key, name));
+  }
+
+  /**
+   * Get the index of an item (case-insensitive key matching).
+   * Accepts a string key or an object with { key, value }.
+   * @param {string|object} item
+   * @returns {number} -1 if not found
+   */
+  indexOf(item) {
+    const items = this.all();
+    if (typeof item === 'string') {
+      return items.findIndex((i) => HeaderList._ciEquals(i.key, item));
+    }
+    if (!item || typeof item !== 'object') return -1;
+    return items.findIndex(
+      (i) => HeaderList._ciEquals(i.key, item.key) && i.value === item.value
+    );
+  }
+
   // ── Write methods (BrunoRequest delegation) ──────────────────────────
 
   /**
@@ -129,51 +201,42 @@ class HeaderList extends PropertyList {
     this.upsert(item);
   }
 
-  /**
-   * Alias for {@link HeaderList#add}.
-   * @param {object} item
-   */
-  append(item) {
-    this.add(item);
-  }
+  /** Alias for {@link HeaderList#add}. */
+  append(item) { this.add(item); }
+
+  /** Alias for {@link HeaderList#add}. */
+  prepend(item) { this.add(item); }
+
+  /** Alias for {@link HeaderList#add}. */
+  insert(item) { this.add(item); }
+
+  /** Alias for {@link HeaderList#add}. */
+  insertAfter(item) { this.add(item); }
 
   /**
-   * Alias for {@link HeaderList#add} (headers are unordered).
-   * @param {object} item
-   */
-  prepend(item) {
-    this.add(item);
-  }
-
-  /**
-   * Alias for {@link HeaderList#add} (headers are unordered).
-   * @param {object} item
-   */
-  insert(item) {
-    this.add(item);
-  }
-
-  /**
-   * Alias for {@link HeaderList#add} (headers are unordered).
-   * @param {object} item
-   */
-  insertAfter(item) {
-    this.add(item);
-  }
-
-  /**
-   * Set (or replace) a header on the request.
+   * Set (or replace) a header on the request (case-insensitive key match).
    * @param {object} item - Header object with `key` and `value`.
+   * @returns {boolean|null} `true` if added, `false` if updated, `null` if input was nil
    */
   upsert(item) {
     this._assertWritable();
-    if (!item || typeof item !== 'object' || !item.key) return;
+    if (!item || typeof item !== 'object' || !item.key) return null;
+    const headers = this._brunoRequest.req.headers || {};
+    const existingKey = Object.keys(headers).find(
+      (k) => HeaderList._ciEquals(k, item.key)
+    );
+    const existed = existingKey !== undefined;
+    // Remove old-cased key if casing differs
+    if (existed && existingKey !== item.key) {
+      delete headers[existingKey];
+    }
     this._brunoRequest.setHeader(item.key, item.value);
+    return !existed;
   }
 
   /**
    * Remove header(s) matching a predicate, key string, or item reference.
-   * Delegates to BrunoRequest.deleteHeader to preserve `__headersToDelete` tracking.
+   * String and object removal are case-insensitive.
    * @param {Function|string|object} predicate
    */
   remove(predicate) {
@@ -182,24 +245,61 @@ class HeaderList extends PropertyList {
       const headers = this.all();
       for (const header of headers) {
         if (predicate(header)) {
-          this._brunoRequest.deleteHeader(header.key);
+          if (header.disabled) {
+            this._removeDisabledHeader(header.key);
+          } else {
+            this._deleteHeaderCI(header.key);
+          }
         }
       }
     } else if (typeof predicate === 'string') {
-      this._brunoRequest.deleteHeader(predicate);
+      this._deleteHeaderCI(predicate);
+      this._removeDisabledHeader(predicate);
     } else if (predicate && typeof predicate === 'object' && predicate.key) {
-      this._brunoRequest.deleteHeader(predicate.key);
+      this._deleteHeaderCI(predicate.key);
+      this._removeDisabledHeader(predicate.key);
     }
   }
 
   /**
-   * Remove all headers from the request.
+   * Delete an enabled header by key (case-insensitive).
+   * @param {string} key
+   */
+  _deleteHeaderCI(key) {
+    const headers = this._brunoRequest.req.headers || {};
+    const matchingKey = Object.keys(headers).find(
+      (k) => HeaderList._ciEquals(k, key)
+    );
+    if (matchingKey) {
+      this._brunoRequest.deleteHeader(matchingKey);
+    }
+  }
+
+  /**
+   * Remove all disabled headers matching a key (case-insensitive).
+   * @param {string} key
+   */
+  _removeDisabledHeader(key) {
+    const arr = this._brunoRequest.req.disabledHeaders;
+    if (!arr) return;
+    this._brunoRequest.req.disabledHeaders = arr.filter(
+      (h) => !HeaderList._ciEquals(h.name, key)
+    );
+  }
+
+  /**
+   * Remove all headers (enabled and disabled) from the request.
    */
   clear() {
     this._assertWritable();
     const headers = this.all();
     for (const header of headers) {
-      this._brunoRequest.deleteHeader(header.key);
+      if (!header.disabled) {
+        this._brunoRequest.deleteHeader(header.key);
+      }
+    }
+    if (this._brunoRequest.req.disabledHeaders) {
+      this._brunoRequest.req.disabledHeaders = [];
     }
   }
 
@@ -224,28 +324,52 @@ class HeaderList extends PropertyList {
     this.populate(items);
   }
 
+  // ── Transform overrides ───────────────────────────────────────────────
+
   /**
-   * Convert to a wire-format string, skipping disabled headers.
-   * Matches Postman's Header.unparse() behavior.
+   * Convert to a plain object. Matches Postman's PropertyList.toObject() signature.
+   * @param {boolean} [excludeDisabled=false] - If true, skip disabled headers
+   * @param {boolean} [caseSensitive=true] - If false, lowercase all keys
+   * @param {boolean} [multiValue=false] - If true, only the first value of a duplicate key is kept
+   * @param {boolean} [sanitizeKeys=false] - If true, skip headers with falsy keys
+   * @returns {object}
+   */
+  toObject(excludeDisabled, caseSensitive, multiValue, sanitizeKeys) {
+    const result = {};
+    for (const item of this.all()) {
+      if (excludeDisabled && item.disabled) continue;
+      const key = caseSensitive === false ? item.key.toLowerCase() : item.key;
+      if (sanitizeKeys && !key) continue;
+      if (multiValue) {
+        if (!(key in result)) {
+          result[key] = item.value;
+        }
+      } else {
+        result[key] = item.value;
+      }
+    }
+    return result;
+  }
+
+  /**
+   * Convert to HTTP wire-format string, skipping disabled headers.
+   * Matches Postman's Header.unparse() behavior: `Key: Value\n...`
    * @returns {string}
    */
   toString() {
     return this.all()
       .filter((h) => !h.disabled)
-      .map((h) => `${h.key}=${h.value}`)
-      .join('; ');
+      .map((h) => `${h.key}: ${h.value}`)
+      .join('\n');
   }
 
   /**
    * Merge items from another PropertyList or array.
    * @param {PropertyList|Array} source - Source of items to merge
-   * @param {boolean} [prune=false] - If true, clear existing items first
+   * @param {boolean} [prune=false] - If true, remove items not present in source after merging
    */
   assimilate(source, prune) {
     this._assertWritable();
-    if (prune) {
-      this.clear();
-    }
     let items;
     if (ReadOnlyPropertyList.isPropertyList(source)) {
       items = source.all();
@@ -254,8 +378,23 @@ class HeaderList extends PropertyList {
     } else {
       items = [];
     }
+    // Merge source items into this list
     for (const item of items) {
       this.add(item);
+    }
+    // Prune: remove items from this list that are not in source
+    if (prune && items.length > 0) {
+      const sourceKeys = new Set(items.map((i) => (i.key || '').toLowerCase()));
+      const toRemove = this.all().filter(
+        (h) => !sourceKeys.has(h.key.toLowerCase())
+      );
+      for (const header of toRemove) {
+        if (header.disabled) {
+          this._removeDisabledHeader(header.key);
+        } else {
+          this._brunoRequest.deleteHeader(header.key);
+        }
+      }
     }
   }
 }

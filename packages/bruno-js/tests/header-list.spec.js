@@ -181,9 +181,54 @@ describe('HeaderList (req.headerList)', () => {
       expect(list.toObject()).toEqual(defaultHeaders);
     });
 
-    test('toString() returns semicolon-separated string', () => {
+    test('toObject(excludeDisabled) skips disabled headers', () => {
+      const rawReq = {
+        url: 'https://example.com',
+        method: 'GET',
+        headers: { A: '1' },
+        disabledHeaders: [{ name: 'B', value: '2' }]
+      };
+      const brunoReq = new BrunoRequest(rawReq);
+      expect(brunoReq.headerList.toObject(true)).toEqual({ A: '1' });
+      expect(brunoReq.headerList.toObject(false)).toEqual({ A: '1', B: '2' });
+    });
+
+    test('toObject(_, false) lowercases keys', () => {
+      const { list } = createReqHeaders({ 'Content-Type': 'json', 'Accept': '*/*' });
+      const obj = list.toObject(false, false);
+      expect(obj['content-type']).toBe('json');
+      expect(obj['accept']).toBe('*/*');
+    });
+
+    test('toObject(_, _, true) keeps first value for duplicate keys', () => {
+      const rawReq = {
+        url: 'https://example.com',
+        method: 'GET',
+        headers: { 'X-Custom': 'enabled-val' },
+        disabledHeaders: [{ name: 'X-Custom', value: 'disabled-val' }]
+      };
+      const brunoReq = new BrunoRequest(rawReq);
+      // disabled comes first in the list, so its value wins with multiValue
+      const obj = brunoReq.headerList.toObject(false, true, true);
+      expect(obj['X-Custom']).toBe('disabled-val');
+    });
+
+    test('toObject(_, _, _, true) skips headers with falsy keys', () => {
+      const rawReq = {
+        url: 'https://example.com',
+        method: 'GET',
+        headers: { 'A': '1', '': 'empty-key' },
+        disabledHeaders: []
+      };
+      const brunoReq = new BrunoRequest(rawReq);
+      const obj = brunoReq.headerList.toObject(false, true, false, true);
+      expect(obj.A).toBe('1');
+      expect(obj['']).toBeUndefined();
+    });
+
+    test('toString() returns HTTP wire format', () => {
       const { list } = createReqHeaders({ A: '1', B: '2' });
-      expect(list.toString()).toBe('A=1; B=2');
+      expect(list.toString()).toBe('A: 1\nB: 2');
     });
 
     test('toString() skips disabled headers', () => {
@@ -194,7 +239,7 @@ describe('HeaderList (req.headerList)', () => {
         disabledHeaders: [{ name: 'C', value: '3' }]
       };
       const brunoReq = new BrunoRequest(rawReq);
-      expect(brunoReq.headerList.toString()).toBe('A=1; B=2');
+      expect(brunoReq.headerList.toString()).toBe('A: 1\nB: 2');
     });
 
     test('toJSON() returns same as all()', () => {
@@ -337,6 +382,32 @@ describe('HeaderList (req.headerList)', () => {
       list.remove('X-Does-Not-Exist');
       expect(list.count()).toBe(countBefore);
     });
+
+    test('removes disabled header by string', () => {
+      const rawReq = {
+        url: 'https://example.com',
+        method: 'GET',
+        headers: { A: '1' },
+        disabledHeaders: [{ name: 'B', value: '2' }]
+      };
+      const brunoReq = new BrunoRequest(rawReq);
+      brunoReq.headerList.remove('B');
+      expect(rawReq.disabledHeaders).toHaveLength(0);
+      expect(brunoReq.headerList.has('B')).toBe(false);
+    });
+
+    test('removes disabled header by predicate', () => {
+      const rawReq = {
+        url: 'https://example.com',
+        method: 'GET',
+        headers: { A: '1' },
+        disabledHeaders: [{ name: 'B', value: '2' }]
+      };
+      const brunoReq = new BrunoRequest(rawReq);
+      brunoReq.headerList.remove((h) => h.disabled);
+      expect(rawReq.disabledHeaders).toHaveLength(0);
+      expect(brunoReq.headerList.count()).toBe(1);
+    });
   });
 
   describe('clear()', () => {
@@ -354,6 +425,20 @@ describe('HeaderList (req.headerList)', () => {
       expect(rawReq.__headersToDelete).toContain('Content-Type');
       expect(rawReq.__headersToDelete).toContain('Authorization');
       expect(rawReq.__headersToDelete).toContain('Accept');
+    });
+
+    test('clears disabled headers too', () => {
+      const rawReq = {
+        url: 'https://example.com',
+        method: 'GET',
+        headers: { A: '1' },
+        disabledHeaders: [{ name: 'B', value: '2' }]
+      };
+      const brunoReq = new BrunoRequest(rawReq);
+      expect(brunoReq.headerList.count()).toBe(2);
+      brunoReq.headerList.clear();
+      expect(brunoReq.headerList.count()).toBe(0);
+      expect(rawReq.disabledHeaders).toEqual([]);
     });
   });
 
@@ -453,8 +538,8 @@ describe('HeaderList (req.headerList)', () => {
       const brunoReq = new BrunoRequest(rawReq);
       const all = brunoReq.headerList.all();
       expect(all).toEqual([
-        { key: 'Content-Type', value: 'application/json' },
-        { key: 'X-Disabled', value: 'hidden', disabled: true }
+        { key: 'X-Disabled', value: 'hidden', disabled: true },
+        { key: 'Content-Type', value: 'application/json' }
       ]);
     });
 
@@ -509,6 +594,103 @@ describe('HeaderList (req.headerList)', () => {
       const brunoReq = new BrunoRequest(rawReq);
       expect(brunoReq.headerList.count()).toBe(1);
       expect(brunoReq.headerList.all()).toEqual([{ key: 'A', value: '1' }]);
+    });
+
+    test('enabled header wins over disabled with same key in get/one/toObject', () => {
+      const rawReq = {
+        url: 'https://example.com',
+        method: 'GET',
+        headers: { 'X-Custom': 'active' },
+        disabledHeaders: [{ name: 'X-Custom', value: 'old' }]
+      };
+      const brunoReq = new BrunoRequest(rawReq);
+      expect(brunoReq.headerList.get('X-Custom')).toBe('active');
+      expect(brunoReq.headerList.one('X-Custom')).toEqual({ key: 'X-Custom', value: 'active' });
+      expect(brunoReq.headerList.toObject()['X-Custom']).toBe('active');
+    });
+  });
+
+  // ── Case-insensitive key lookups ────────────────────────────────────
+
+  describe('case-insensitive key lookups', () => {
+    test('get() is case-insensitive', () => {
+      const { list } = createReqHeaders();
+      expect(list.get('content-type')).toBe('application/json');
+      expect(list.get('CONTENT-TYPE')).toBe('application/json');
+    });
+
+    test('one() is case-insensitive', () => {
+      const { list } = createReqHeaders();
+      expect(list.one('content-type')).toEqual({ key: 'Content-Type', value: 'application/json' });
+    });
+
+    test('has() is case-insensitive', () => {
+      const { list } = createReqHeaders();
+      expect(list.has('content-type')).toBe(true);
+      expect(list.has('CONTENT-TYPE')).toBe(true);
+      expect(list.has('content-type', 'application/json')).toBe(true);
+    });
+
+    test('indexOf() is case-insensitive for objects', () => {
+      const { list } = createReqHeaders();
+      expect(list.indexOf({ key: 'content-type', value: 'application/json' })).toBeGreaterThanOrEqual(0);
+    });
+
+    test('indexOf() accepts a string key (case-insensitive)', () => {
+      const { list } = createReqHeaders();
+      expect(list.indexOf('content-type')).toBeGreaterThanOrEqual(0);
+      expect(list.indexOf('CONTENT-TYPE')).toBeGreaterThanOrEqual(0);
+      expect(list.indexOf('X-Nonexistent')).toBe(-1);
+    });
+
+    test('remove() by string is case-insensitive', () => {
+      const { list, rawReq } = createReqHeaders();
+      list.remove('content-type');
+      expect(rawReq.headers['Content-Type']).toBeUndefined();
+    });
+
+    test('upsert() replaces existing header case-insensitively', () => {
+      const { list, rawReq } = createReqHeaders();
+      list.upsert({ key: 'content-type', value: 'text/plain' });
+      expect(rawReq.headers['content-type']).toBe('text/plain');
+      expect(rawReq.headers['Content-Type']).toBeUndefined();
+      expect(list.count()).toBe(3);
+    });
+  });
+
+  // ── upsert() return values ────────────────────────────────────────────
+
+  describe('upsert() return values', () => {
+    test('returns true when adding a new header', () => {
+      const { list } = createReqHeaders({});
+      expect(list.upsert({ key: 'X-New', value: 'val' })).toBe(true);
+    });
+
+    test('returns false when updating an existing header', () => {
+      const { list } = createReqHeaders({ 'X-Existing': 'old' });
+      expect(list.upsert({ key: 'X-Existing', value: 'new' })).toBe(false);
+    });
+
+    test('returns null for nil input', () => {
+      const { list } = createReqHeaders();
+      expect(list.upsert(null)).toBeNull();
+      expect(list.upsert(undefined)).toBeNull();
+      expect(list.upsert({ value: 'no-key' })).toBeNull();
+    });
+  });
+
+  // ── assimilate() prune semantics ──────────────────────────────────────
+
+  describe('assimilate() prune semantics', () => {
+    test('prune removes items not in source (selective, not total replacement)', () => {
+      const { list, rawReq } = createReqHeaders({ A: '1', B: '2', C: '3' });
+      // Source has A and D. After assimilate with prune:
+      // A should be kept (in both), B and C removed (not in source), D added
+      list.assimilate([{ key: 'A', value: 'updated' }, { key: 'D', value: '4' }], true);
+      expect(rawReq.headers['A']).toBe('updated');
+      expect(rawReq.headers['D']).toBe('4');
+      expect(rawReq.headers['B']).toBeUndefined();
+      expect(rawReq.headers['C']).toBeUndefined();
     });
   });
 
@@ -681,9 +863,9 @@ describe('Response Headers (res.headerList)', () => {
       expect(headerList.toObject()).toEqual(defaultHeaders);
     });
 
-    test('toString() returns semicolon-separated string', () => {
+    test('toString() returns HTTP wire format', () => {
       const { headerList } = createResHeaders({ a: '1', b: '2' });
-      expect(headerList.toString()).toBe('a=1; b=2');
+      expect(headerList.toString()).toBe('a: 1\nb: 2');
     });
 
     test('toJSON() returns same as all()', () => {

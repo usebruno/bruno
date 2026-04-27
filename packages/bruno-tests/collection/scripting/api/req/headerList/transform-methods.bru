@@ -31,8 +31,8 @@ tests {
   test("req.headerList.toString()", function() {
     const str = req.headerList.toString();
     expect(str).to.be.a('string');
-    expect(str).to.include('bruno=is-awesome');
-    expect(str).to.include('della=is-beautiful');
+    expect(str).to.include('bruno: is-awesome');
+    expect(str).to.include('della: is-beautiful');
   });
 
   test("req.headerList.toJSON()", function() {

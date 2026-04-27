@@ -30,7 +30,7 @@ tests {
   test("res.headerList.toString()", function() {
     const str = res.headerList.toString();
     expect(str).to.be.a('string');
-    expect(str).to.include('x-powered-by=Express');
+    expect(str).to.include('x-powered-by: Express');
   });
 
   test("res.headerList.toJSON()", function() {
