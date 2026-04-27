@@ -1,8 +1,11 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import find from 'lodash/find';
 import { IconLoader2, IconCloud } from '@tabler/icons';
 import fastJsonFormat from 'fast-json-format';
 import SpecViewer from 'components/ApiSpecPanel/SpecViewer';
 import StyledWrapper from 'components/ApiSpecPanel/StyledWrapper';
+import { updateApiSpecTabLeftPaneWidth } from 'providers/ReduxStore/slices/tabs';
 
 /**
  * Pretty-print JSON content for readable display. YAML content is returned as-is.
@@ -17,7 +20,17 @@ const prettyPrintSpec = (content) => {
   }
 };
 
-const OpenAPISpecTab = ({ collection }) => {
+const OpenAPISpecTab = ({ collection, tabUid }) => {
+  const dispatch = useDispatch();
+  const leftPaneWidth = useSelector((state) => {
+    const tab = find(state.tabs.tabs, (t) => t.uid === tabUid);
+    return tab?.apiSpecLeftPaneWidth ?? null;
+  });
+  const handleLeftPaneWidthChange = useCallback(
+    (w) => dispatch(updateApiSpecTabLeftPaneWidth({ uid: tabUid, apiSpecLeftPaneWidth: w })),
+    [dispatch, tabUid]
+  );
+
   const [specContent, setSpecContent] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -25,6 +38,16 @@ const OpenAPISpecTab = ({ collection }) => {
 
   const openApiSyncConfig = collection?.brunoConfig?.openapi?.[0];
   const sourceUrl = openApiSyncConfig?.sourceUrl;
+
+  const envContextRef = useRef({});
+  useEffect(() => {
+    envContextRef.current = {
+      activeEnvironmentUid: collection?.activeEnvironmentUid,
+      environments: collection?.environments,
+      runtimeVariables: collection?.runtimeVariables,
+      globalEnvironmentVariables: collection?.globalEnvironmentVariables
+    };
+  });
 
   const loadSpec = useCallback(async () => {
     setIsLoading(true);
@@ -42,12 +65,7 @@ const OpenAPISpecTab = ({ collection }) => {
             collectionUid: collection.uid,
             collectionPath: collection.pathname,
             sourceUrl,
-            environmentContext: {
-              activeEnvironmentUid: collection.activeEnvironmentUid,
-              environments: collection.environments,
-              runtimeVariables: collection.runtimeVariables,
-              globalEnvironmentVariables: collection.globalEnvironmentVariables
-            }
+            environmentContext: envContextRef.current
           });
           if (fetchResult.content) {
             setSpecContent(prettyPrintSpec(fetchResult.content));
@@ -64,7 +82,7 @@ const OpenAPISpecTab = ({ collection }) => {
     } finally {
       setIsLoading(false);
     }
-  }, [collection?.pathname, collection?.uid, collection?.activeEnvironmentUid, collection?.environments, collection?.runtimeVariables, collection?.globalEnvironmentVariables, sourceUrl]);
+  }, [collection?.pathname, collection?.uid, sourceUrl]);
 
   useEffect(() => {
     if (collection?.pathname) {
@@ -97,7 +115,12 @@ const OpenAPISpecTab = ({ collection }) => {
           <span>Showing spec file from {sourceUrl}.</span>
         </div>
       )}
-      <SpecViewer content={specContent} readOnly />
+      <SpecViewer
+        content={specContent}
+        readOnly
+        leftPaneWidth={leftPaneWidth}
+        onLeftPaneWidthChange={handleLeftPaneWidthChange}
+      />
     </StyledWrapper>
   );
 };
