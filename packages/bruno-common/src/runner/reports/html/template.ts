@@ -1,3 +1,28 @@
+type T_ReportCheckResult = {
+  status?: string;
+};
+
+type T_ReportRequestResult = {
+  status?: string;
+  testResults?: T_ReportCheckResult[];
+  assertionResults?: T_ReportCheckResult[];
+};
+
+export const getFilteredRequestResults = (results: T_ReportRequestResult[] = [], onlyFailed = false) => {
+  const indexedResults = (Array.isArray(results) ? results : []).map((value, index) => ({ value, index }));
+
+  if (!onlyFailed) {
+    return indexedResults;
+  }
+
+  return indexedResults.filter(
+    ({ value }) =>
+      value?.status === 'error'
+      || !!value?.testResults?.find((t) => t.status !== 'pass')
+      || !!value?.assertionResults?.find((t) => t.status !== 'pass')
+  );
+};
+
 export const htmlTemplateString = (resutsJsonString: string) => `<!DOCTYPE html>
 <html lang="en">
   <head>
@@ -423,6 +448,8 @@ export const htmlTemplateString = (resutsJsonString: string) => `<!DOCTYPE html>
     <script>
       const { createApp, ref, computed, onMounted } = Vue;
 
+      const getFilteredRequestResults = ${getFilteredRequestResults.toString()};
+
       function mergeTests(runnerResults) {
         if (!Array.isArray(runnerResults)) return runnerResults; 
 
@@ -645,16 +672,7 @@ export const htmlTemplateString = (resutsJsonString: string) => `<!DOCTYPE html>
         setup(props) {
           const onlyFailed = ref(false);
           const filteredResults = computed(() => {
-            const results = (props?.res?.results || []).map((value, index) => ({ value, index }));
-            if (onlyFailed.value) {
-              return results.filter(
-                ({ value }) =>
-                  value.status === 'error' ||
-                  !!value?.testResults?.find((t) => t.status !== 'pass') ||
-                  !!value?.assertionResults?.find((t) => t.status !== 'pass')
-              );
-            }
-            return results;
+            return getFilteredRequestResults(props?.res?.results, onlyFailed.value);
           });
           const iterationIndex = Number(props.res.iterationIndex) + 1;
           return {

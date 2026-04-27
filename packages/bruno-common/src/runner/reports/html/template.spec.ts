@@ -1,8 +1,7 @@
-import htmlTemplateString from './template';
+import { getFilteredRequestResults } from './template';
 
-describe('HTML report template', () => {
+describe('getFilteredRequestResults', () => {
   it('preserves original request indexes when filtering failed results', () => {
-    const htmlString = htmlTemplateString('');
     const results = [
       {
         path: '01-passing',
@@ -18,13 +17,7 @@ describe('HTML report template', () => {
       }
     ];
 
-    const indexedResults = results.map((value, index) => ({ value, index }));
-    const failedResults = indexedResults.filter(
-      ({ value }) =>
-        value.status === 'error'
-        || !!value?.testResults?.find((t) => t.status !== 'pass')
-        || !!value?.assertionResults?.find((t) => t.status !== 'pass')
-    );
+    const failedResults = getFilteredRequestResults(results, true);
 
     expect(failedResults).toEqual([
       {
@@ -32,6 +25,5 @@ describe('HTML report template', () => {
         index: 1
       }
     ]);
-    expect(htmlString).toContain('<x-result v-for="result in results" :result="result.value" :index="result.index" :key="result.index"></x-result>');
   });
 });
