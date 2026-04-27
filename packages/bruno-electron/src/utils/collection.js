@@ -13,7 +13,8 @@ const FORMAT_CONFIG = {
   bru: { ext: '.bru', collectionFile: 'collection.bru', folderFile: 'folder.bru' }
 };
 
-const mergeHeaders = (collection, request, requestTreePath) => {
+const mergeHeaders = (collection, request, requestTreePath, options = {}) => {
+  const { includeDisabledHeaders = false } = options;
   let headers = new Map();
   let disabledHeaders = new Map();
 
@@ -63,7 +64,7 @@ const mergeHeaders = (collection, request, requestTreePath) => {
 
   request.headers = [
     ...Array.from(headers, ([name, value]) => ({ name, value, enabled: true })),
-    ...Array.from(disabledHeaders, ([name, value]) => ({ name, value, enabled: false }))
+    ...(includeDisabledHeaders ? Array.from(disabledHeaders, ([name, value]) => ({ name, value, enabled: false })) : [])
   ];
 };
 
