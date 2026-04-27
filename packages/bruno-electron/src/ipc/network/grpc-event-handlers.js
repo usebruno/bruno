@@ -11,6 +11,7 @@ const prepareGrpcRequest = require('./prepare-grpc-request');
 const { normalizeAndResolvePath } = require('../../utils/filesystem');
 const { configureRequest } = require('./prepare-grpc-request');
 const { shouldUseProxy } = require('../../utils/proxy-util');
+const { getPacResolver } = require('@usebruno/requests');
 
 // Creating grpcClient at module level so it can be accessed from window-all-closed event
 let grpcClient;
@@ -29,7 +30,37 @@ let grpcClient;
  * @param {Object} interpolationOptions - Variable interpolation options
  * @returns {{ proxyUrl: string | null }}
  */
-const resolveGrpcProxyConfig = (proxyMode, proxyConfig, requestUrl, interpolationOptions) => {
+const resolveGrpcProxyConfig = async (proxyMode, proxyConfig, requestUrl, interpolationOptions) => {
+  if (proxyMode === 'pac') {
+    const pacSource = get(proxyConfig, 'pac.source');
+    if (!pacSource || !requestUrl) return { proxyUrl: null };
+
+    try {
+      const resolver = await getPacResolver({ pacSource });
+      const directives = await resolver.resolve(requestUrl);
+      if (!directives || !directives.length) return { proxyUrl: null };
+
+      for (const directive of directives) {
+        if (/^DIRECT$/i.test(directive)) return { proxyUrl: null };
+        if (/^(PROXY|HTTP)\s+/i.test(directive)) {
+          const hostPort = directive.split(/\s+/)[1];
+          return { proxyUrl: `http://${hostPort}` };
+        }
+        if (/^HTTPS\s+/i.test(directive)) {
+          console.warn('gRPC proxy: PAC returned an HTTPS proxy directive which is not supported for gRPC connections. Skipping.');
+          continue;
+        }
+        if (/^SOCKS/i.test(directive)) {
+          console.warn('gRPC proxy: PAC returned a SOCKS proxy directive which is not supported for gRPC connections. Skipping.');
+          continue;
+        }
+      }
+    } catch (e) {
+      console.warn('gRPC proxy: PAC resolution failed:', e.message);
+    }
+    return { proxyUrl: null };
+  }
+
   if (proxyMode === 'on') {
     const shouldProxy = shouldUseProxy(requestUrl, get(proxyConfig, 'bypassProxy', ''));
     if (!shouldProxy) return { proxyUrl: null };
@@ -170,7 +201,7 @@ const registerGrpcEventHandlers = (window) => {
       const pfx = httpsAgentRequestFields.pfx;
 
       // Resolve proxy configuration for gRPC
-      const grpcProxyConfig = resolveGrpcProxyConfig(proxyMode, proxyConfig, preparedRequest.url, interpolationOptions);
+      const grpcProxyConfig = await resolveGrpcProxyConfig(proxyMode, proxyConfig, preparedRequest.url, interpolationOptions);
 
       const requestSent = {
         type: 'request',
@@ -330,7 +361,7 @@ const registerGrpcEventHandlers = (window) => {
       const pfx = httpsAgentRequestFields.pfx;
 
       // Resolve proxy configuration for gRPC
-      const grpcProxyConfig = resolveGrpcProxyConfig(proxyMode, proxyConfig, preparedRequest.url, interpolationOptions);
+      const grpcProxyConfig = await resolveGrpcProxyConfig(proxyMode, proxyConfig, preparedRequest.url, interpolationOptions);
 
       // Send OAuth credentials update if available
       if (preparedRequest?.oauth2Credentials) {

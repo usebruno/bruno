@@ -84,8 +84,8 @@ export default class CodeEditor extends React.Component {
             this.searchBarRef.current?.focus();
           });
         },
-        'Cmd-H': 'replace',
-        'Ctrl-H': 'replace',
+        'Cmd-H': this.props.readOnly ? false : 'replace',
+        'Ctrl-H': this.props.readOnly ? false : 'replace',
         'Tab': function (cm) {
           cm.getSelection().includes('\n') || editor.getLine(cm.getCursor().line) == cm.getSelection()
             ? cm.execCommand('indentMore')

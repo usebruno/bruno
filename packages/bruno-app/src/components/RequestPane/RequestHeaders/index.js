@@ -150,7 +150,7 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
         columnWidths={headersWidths}
         onColumnWidthsChange={(widths) => handleColumnWidthsChange('request-headers', widths)}
       />
-      <div className="flex justify-end mt-2">
+      <div className="bulk-edit-bar flex justify-end mt-2">
         <button className="btn-action text-link select-none" data-testid="bulk-edit-toggle" onClick={toggleBulkEditMode}>
           Bulk Edit
         </button>

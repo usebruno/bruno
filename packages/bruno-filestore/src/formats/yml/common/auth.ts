@@ -129,7 +129,7 @@ const buildOAuth1Auth = (config?: BrunoAuth['oauth1']): AuthOAuth1 => {
   if (isString(config.accessTokenSecret)) auth.accessTokenSecret = config.accessTokenSecret;
   if (isString(config.callbackUrl)) auth.callbackUrl = config.callbackUrl;
   if (isString(config.verifier)) auth.verifier = config.verifier;
-  if (isString(config.signatureMethod)) auth.signatureEncoding = config.signatureMethod;
+  if (isString(config.signatureMethod)) auth.signatureMethod = config.signatureMethod;
   if (isString(config.privateKey)) {
     auth.privateKey = config.privateKeyType === 'file'
       ? { type: 'file' as const, value: config.privateKey }
@@ -272,7 +272,7 @@ export const toBrunoAuth = (auth: Auth | null | undefined): BrunoAuth | null => 
         accessTokenSecret: auth.accessTokenSecret || null,
         callbackUrl: auth.callbackUrl || null,
         verifier: auth.verifier || null,
-        signatureMethod: (auth.signatureEncoding as BrunoAuthOauth1['signatureMethod']) || 'HMAC-SHA1',
+        signatureMethod: (auth.signatureMethod as BrunoAuthOauth1['signatureMethod']) || 'HMAC-SHA1',
         privateKey: (typeof auth.privateKey === 'object' && auth.privateKey ? auth.privateKey.value : auth.privateKey) || null,
         privateKeyType: (typeof auth.privateKey === 'object' && auth.privateKey ? auth.privateKey.type : 'text') as BrunoAuthOauth1['privateKeyType'],
         timestamp: auth.timestamp || null,

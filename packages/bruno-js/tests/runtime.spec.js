@@ -365,5 +365,67 @@ describe('runtime', () => {
         expect(results[0].status).toBe('fail');
       });
     });
+
+    describe('jsonSchema', () => {
+      const chai = require('chai');
+
+      it('should pass when body matches a valid schema', () => {
+        const body = { name: 'John', age: 30 };
+        const schema = {
+          type: 'object',
+          properties: {
+            name: { type: 'string' },
+            age: { type: 'number' }
+          },
+          required: ['name', 'age']
+        };
+        chai.expect(body).to.have.jsonSchema(schema);
+      });
+
+      it('should fail when body has a type mismatch', () => {
+        const body = { name: 'John', age: 'thirty' };
+        const schema = {
+          type: 'object',
+          properties: {
+            name: { type: 'string' },
+            age: { type: 'number' }
+          },
+          required: ['name', 'age']
+        };
+        expect(() => chai.expect(body).to.have.jsonSchema(schema)).toThrow(/validation errors/);
+      });
+
+      it('should fail when a required field is missing', () => {
+        const body = { name: 'John' };
+        const schema = {
+          type: 'object',
+          properties: {
+            name: { type: 'string' },
+            age: { type: 'number' }
+          },
+          required: ['name', 'age']
+        };
+        expect(() => chai.expect(body).to.have.jsonSchema(schema)).toThrow(/validation errors/);
+      });
+
+      it('should pass with custom ajvOptions', () => {
+        const body = { name: 'John', age: 30 };
+        const schema = {
+          type: 'object',
+          properties: {
+            name: { type: 'string' },
+            age: { type: 'number' }
+          },
+          required: ['name', 'age']
+        };
+        chai.expect(body).to.have.jsonSchema(schema, { allErrors: false });
+      });
+
+      it('should support negation with .not', () => {
+        const body = { name: 'John' };
+        const schema = { type: 'array' };
+        chai.expect(body).to.not.have.jsonSchema(schema);
+      });
+    });
   });
 });

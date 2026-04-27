@@ -165,7 +165,7 @@ const QueryParams = ({ item, collection }) => {
           columnWidths={queryParamsWidths}
           onColumnWidthsChange={(widths) => handleColumnWidthsChange('query-params', widths)}
         />
-        <div className="flex justify-end mt-2">
+        <div className="bulk-edit-bar flex justify-end mt-2">
           <button className="btn-action text-link select-none" onClick={toggleBulkEditMode}>
             Bulk Edit
           </button>

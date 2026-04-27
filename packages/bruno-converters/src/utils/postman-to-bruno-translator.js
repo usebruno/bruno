@@ -467,38 +467,127 @@ const complexTransformations = [
     }
   },
 
-  // pm.response.to.have.jsonBody(path) -> expect(res.getBody()).to.have.nested.property(path)
+  // pm.response.to.have.jsonBody(...) -> expect(res.getBody()).to.have.jsonBody(...)
   {
     pattern: 'pm.response.to.have.jsonBody',
     transform: (path, j) => {
       const callExpr = path.parent.value;
       const args = callExpr.arguments;
+      const expectGetBody = j.callExpression(j.identifier('expect'), [j.callExpression(j.identifier('res.getBody'), [])]);
+      return j.callExpression(
+        j.memberExpression(expectGetBody, j.identifier('to.have.jsonBody')),
+        args
+      );
+    }
+  },
 
-      if (args.length === 0) {
-        // No path provided, just check that body exists
-        return j.memberExpression(
-          j.callExpression(j.identifier('expect'), [j.callExpression(j.identifier('res.getBody'), [])]),
-          j.identifier('to.exist')
-        );
-      } else if (args.length === 1) {
-        // Path provided, check property exists
-        return j.callExpression(
-          j.memberExpression(
-            j.callExpression(j.identifier('expect'), [j.callExpression(j.identifier('res.getBody'), [])]),
-            j.identifier('to.have.nested.property')
-          ),
-          args
-        );
-      } else {
-        // Path and value provided, check property equals value
-        return j.callExpression(
-          j.memberExpression(
-            j.callExpression(j.identifier('expect'), [j.callExpression(j.identifier('res.getBody'), [])]),
-            j.identifier('to.have.nested.property')
-          ),
-          args
-        );
-      }
+  // pm.response.to.not.have.jsonBody(...) -> expect(res.getBody()).to.not.have.jsonBody(...)
+  {
+    pattern: 'pm.response.to.not.have.jsonBody',
+    transform: (path, j) => {
+      const callExpr = path.parent.value;
+      const args = callExpr.arguments;
+      const expectGetBody = j.callExpression(j.identifier('expect'), [j.callExpression(j.identifier('res.getBody'), [])]);
+      return j.callExpression(
+        j.memberExpression(expectGetBody, j.identifier('to.not.have.jsonBody')),
+        args
+      );
+    }
+  },
+
+  // pm.response.to.have.jsonSchema(schema, options?) -> expect(res.getBody()).to.have.jsonSchema(schema, options?)
+  {
+    pattern: 'pm.response.to.have.jsonSchema',
+    transform: (path, j) => {
+      const args = path.parent.value.arguments;
+      return j.callExpression(
+        j.memberExpression(
+          j.callExpression(j.identifier('expect'), [
+            j.callExpression(j.identifier('res.getBody'), [])
+          ]),
+          j.identifier('to.have.jsonSchema')
+        ),
+        args
+      );
+    }
+  },
+
+  // pm.response.to.not.have.jsonSchema(schema, options?) -> expect(res.getBody()).to.not.have.jsonSchema(schema, options?)
+  {
+    pattern: 'pm.response.to.not.have.jsonSchema',
+    transform: (path, j) => {
+      const args = path.parent.value.arguments;
+      return j.callExpression(
+        j.memberExpression(
+          j.callExpression(j.identifier('expect'), [
+            j.callExpression(j.identifier('res.getBody'), [])
+          ]),
+          j.identifier('to.not.have.jsonSchema')
+        ),
+        args
+      );
+    }
+  },
+
+  // pm.response.not.to.have.jsonSchema(schema, options?) -> expect(res.getBody()).not.to.have.jsonSchema(schema, options?)
+  {
+    pattern: 'pm.response.not.to.have.jsonSchema',
+    transform: (path, j) => {
+      const args = path.parent.value.arguments;
+      return j.callExpression(
+        j.memberExpression(
+          j.callExpression(j.identifier('expect'), [
+            j.callExpression(j.identifier('res.getBody'), [])
+          ]),
+          j.identifier('not.to.have.jsonSchema')
+        ),
+        args
+      );
+    }
+  },
+
+  // pm.response.to.have.not.jsonSchema(schema, options?) -> expect(res.getBody()).to.have.not.jsonSchema(schema, options?)
+  {
+    pattern: 'pm.response.to.have.not.jsonSchema',
+    transform: (path, j) => {
+      const args = path.parent.value.arguments;
+      return j.callExpression(
+        j.memberExpression(
+          j.callExpression(j.identifier('expect'), [
+            j.callExpression(j.identifier('res.getBody'), [])
+          ]),
+          j.identifier('to.have.not.jsonSchema')
+        ),
+        args
+      );
+    }
+  },
+
+  // pm.response.not.to.have.jsonBody(...) -> expect(res.getBody()).not.to.have.jsonBody(...)
+  {
+    pattern: 'pm.response.not.to.have.jsonBody',
+    transform: (path, j) => {
+      const callExpr = path.parent.value;
+      const args = callExpr.arguments;
+      const expectGetBody = j.callExpression(j.identifier('expect'), [j.callExpression(j.identifier('res.getBody'), [])]);
+      return j.callExpression(
+        j.memberExpression(expectGetBody, j.identifier('not.to.have.jsonBody')),
+        args
+      );
+    }
+  },
+
+  // pm.response.to.have.not.jsonBody(...) -> expect(res.getBody()).to.have.not.jsonBody(...)
+  {
+    pattern: 'pm.response.to.have.not.jsonBody',
+    transform: (path, j) => {
+      const callExpr = path.parent.value;
+      const args = callExpr.arguments;
+      const expectGetBody = j.callExpression(j.identifier('expect'), [j.callExpression(j.identifier('res.getBody'), [])]);
+      return j.callExpression(
+        j.memberExpression(expectGetBody, j.identifier('to.have.not.jsonBody')),
+        args
+      );
     }
   },
 
