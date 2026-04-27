@@ -47,7 +47,9 @@ test.describe('websocket multi-message (yml format)', () => {
     // Add a second message to trigger format migration
     await page.getByTestId('ws-add-message').click();
     const nameInput = page.getByTestId(/^ws-message-name-input-/);
-    await nameInput.fill('new message');
+    await expect(nameInput).toBeVisible();
+    await nameInput.selectText();
+    await page.keyboard.type('new message');
     await nameInput.press('Enter');
 
     await saveRequest(page);
@@ -72,7 +74,8 @@ test.describe('websocket multi-message (yml format)', () => {
     const nameInput = page.getByTestId(/^ws-message-name-input-/);
     await expect(nameInput).toBeVisible();
 
-    await nameInput.fill('ping message');
+    await nameInput.selectText();
+    await page.keyboard.type('ping message');
     await nameInput.press('Enter');
 
     await expect(page.getByTestId(/^ws-message-label-/).filter({ hasText: 'ping message' })).toBeVisible();
@@ -277,7 +280,8 @@ test.describe('websocket multi-message (yml format)', () => {
     const nameInput = page.getByTestId('ws-message-name-input-0');
     await expect(nameInput).toBeVisible();
 
-    await nameInput.fill('subscribe request');
+    await nameInput.selectText();
+    await page.keyboard.type('subscribe request');
     await nameInput.press('Enter');
 
     await expect(page.getByTestId('ws-message-label-0').filter({ hasText: 'subscribe request' })).toBeVisible();

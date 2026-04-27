@@ -37,7 +37,8 @@ test.describe('websocket multi-message (bru format)', () => {
     const nameInput = page.getByTestId(/^ws-message-name-input-/);
     await expect(nameInput).toBeVisible();
 
-    await nameInput.fill('ping message');
+    await nameInput.selectText();
+    await page.keyboard.type('ping message');
     await nameInput.press('Enter');
 
     await expect(page.getByTestId(/^ws-message-label-/).filter({ hasText: 'ping message' })).toBeVisible();
@@ -241,7 +242,8 @@ test.describe('websocket multi-message (bru format)', () => {
     const nameInput = page.getByTestId('ws-message-name-input-0');
     await expect(nameInput).toBeVisible();
 
-    await nameInput.fill('subscribe request');
+    await nameInput.selectText();
+    await page.keyboard.type('subscribe request');
     await nameInput.press('Enter');
 
     await expect(page.getByTestId('ws-message-label-0').filter({ hasText: 'subscribe request' })).toBeVisible();

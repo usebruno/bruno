@@ -52,6 +52,7 @@ export const SingleWSMessage = ({
 
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(displayName);
+  const nameInputRef = useRef(null);
 
   // Auto-focus the name input when this is a newly created message
   useEffect(() => {
@@ -61,6 +62,13 @@ export const SingleWSMessage = ({
       onNewRendered();
     }
   }, [isNew]);
+
+  useEffect(() => {
+    if (isEditing && nameInputRef.current) {
+      nameInputRef.current.focus();
+      nameInputRef.current.select();
+    }
+  }, [isEditing]);
 
   const saveName = (value) => {
     const trimmed = value.trim() || `message ${index + 1}`;
@@ -210,10 +218,7 @@ export const SingleWSMessage = ({
           )}
           {isEditing ? (
             <input
-              ref={(node) => {
-                node?.focus();
-                node?.select();
-              }}
+              ref={nameInputRef}
               className="name-input"
               data-testid={`ws-message-name-input-${index}`}
               value={editValue}
