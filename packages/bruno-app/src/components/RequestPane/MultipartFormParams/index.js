@@ -238,6 +238,7 @@ const MultipartFormParams = ({ item, collection }) => {
         onReorder={handleParamDrag}
         columnWidths={multipartFormWidths}
         onColumnWidthsChange={(widths) => handleColumnWidthsChange('multipart-form', widths)}
+        initialScroll={scroll}
       />
     </StyledWrapper>
   );

@@ -11,7 +11,7 @@ import toast from 'react-hot-toast';
 import { variableNameRegex } from 'utils/common/regex';
 import { setCollectionVars } from 'providers/ReduxStore/slices/collections/index';
 
-const VarsTable = ({ collection, vars, varType }) => {
+const VarsTable = ({ collection, vars, varType, initialScroll = 0 }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
   const tabs = useSelector((state) => state.tabs.tabs);
@@ -87,6 +87,7 @@ const VarsTable = ({ collection, vars, varType }) => {
         getRowError={getRowError}
         columnWidths={collectionVarsWidths}
         onColumnWidthsChange={(widths) => handleColumnWidthsChange('collection-vars', widths)}
+        initialScroll={initialScroll}
       />
     </StyledWrapper>
   );

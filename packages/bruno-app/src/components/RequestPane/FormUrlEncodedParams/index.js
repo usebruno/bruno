@@ -97,6 +97,7 @@ const FormUrlEncodedParams = ({ item, collection }) => {
         onReorder={handleParamDrag}
         columnWidths={formUrlEncodedWidths}
         onColumnWidthsChange={(widths) => handleColumnWidthsChange('form-url-encoded', widths)}
+        initialScroll={scroll}
       />
     </StyledWrapper>
   );

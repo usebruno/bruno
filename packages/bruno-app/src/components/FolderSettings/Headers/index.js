@@ -143,6 +143,7 @@ const Headers = ({ collection, folder }) => {
         getRowError={getRowError}
         columnWidths={folderHeadersWidths}
         onColumnWidthsChange={(widths) => handleColumnWidthsChange('folder-headers', widths)}
+        initialScroll={scroll}
       />
       <div className="flex justify-end mt-2">
         <button className="text-link select-none" data-testid="bulk-edit-toggle" onClick={toggleBulkEditMode}>

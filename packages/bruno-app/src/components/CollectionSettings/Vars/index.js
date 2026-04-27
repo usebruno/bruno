@@ -22,11 +22,11 @@ const Vars = ({ collection }) => {
     <StyledWrapper className="w-full flex flex-col" ref={wrapperRef}>
       <div className="flex-1">
         <div className="mb-3 title text-xs">Pre Request</div>
-        <VarsTable collection={collection} vars={requestVars} varType="request" />
+        <VarsTable collection={collection} vars={requestVars} varType="request" initialScroll={scroll} />
       </div>
       <div className="flex-1">
         <div className="mt-3 mb-3 title text-xs">Post Response</div>
-        <VarsTable collection={collection} vars={responseVars} varType="response" />
+        <VarsTable collection={collection} vars={responseVars} varType="response" initialScroll={scroll} />
       </div>
       <div className="mt-6">
         <Button type="submit" size="sm" onClick={handleSave}>
