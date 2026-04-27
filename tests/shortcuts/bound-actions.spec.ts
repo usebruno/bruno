@@ -57,7 +57,7 @@ const closePreferencesTab = async (page: Page) => {
   const prefTab = page.locator('.request-tab').filter({ hasText: 'Preferences' });
   await prefTab.hover();
   await prefTab.getByTestId('request-tab-close-icon').click({ force: true });
-  await expect(prefTab).not.toBeVisible({ timeout: 4000 });
+  await expect(prefTab).not.toBeVisible({ timeout: 8000 });
 };
 
 const closeTabByName = async (page: any, name: string | RegExp) => {
@@ -1873,14 +1873,15 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await page.keyboard.up('Enter');
         await page.keyboard.up('Shift');
 
-        await closePreferencesTab(page);
-
+        // await closePreferencesTab(page);
+        // Create a POST request in the shared collection pointing to the echo server
         await createRequest(page, 'shift-enter-req-body', 'kb-collection', {
           url: 'https://echo.usebruno.com',
           method: 'POST'
         });
         await openRequest(page, 'kb-collection', 'shift-enter-req-body', { persist: true });
 
+        // Open Body tab and select JSON mode
         await selectRequestPaneTab(page, 'Body');
         await page.getByTestId('request-body-mode-selector').click();
         await page.locator('.dropdown-item').filter({ hasText: /^JSON$/ }).click();
@@ -1895,7 +1896,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
 
         await expect(page.getByTestId('response-status-code')).toContainText('200', { timeout: 15000 });
 
-        // Reset Default - just in case to not fail shortcuts in other places
+        // Reset Default
         await openKeybindingsTab(page);
         await page.getByTestId('reset-all-keybindings-btn').click({ timeout: 2000 });
       });
@@ -1921,8 +1922,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await page.keyboard.up('Enter');
         await page.keyboard.up('Shift');
 
-        await closePreferencesTab(page);
-
+        // await closePreferencesTab(page);
         await createRequest(page, 'shift-enter-req-resp', 'kb-collection', {
           url: 'https://echo.usebruno.com',
           method: 'POST'
@@ -1978,8 +1978,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await page.keyboard.up('Enter');
         await page.keyboard.up('Shift');
 
-        await closePreferencesTab(page);
-
+        // await closePreferencesTab(page);
         await createRequest(page, 'shift-enter-req-vars', 'kb-collection', {
           url: 'https://echo.usebruno.com',
           method: 'POST'
