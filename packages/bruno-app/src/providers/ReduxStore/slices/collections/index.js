@@ -735,7 +735,8 @@ export const collectionsSlice = createSlice({
           item.response = null;
           item.assertionResults = [];
           item.preRequestTestResults = [];
-          item.postRequestTestResults = [];
+          item.postResponseTestResults = [];
+          item.testResults = [];
         }
       }
     },
