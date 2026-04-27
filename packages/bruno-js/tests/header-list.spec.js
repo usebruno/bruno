@@ -55,7 +55,7 @@ describe('HeaderList (req.headerList)', () => {
       expect(list.one('X-Missing')).toBeUndefined();
     });
 
-    test('all() returns array of { key, value } objects', () => {
+    test('all() returns array of { key, value, disabled } objects', () => {
       const { list } = createReqHeaders();
       const all = list.all();
       expect(all).toHaveLength(3);
@@ -184,6 +184,17 @@ describe('HeaderList (req.headerList)', () => {
     test('toString() returns semicolon-separated string', () => {
       const { list } = createReqHeaders({ A: '1', B: '2' });
       expect(list.toString()).toBe('A=1; B=2');
+    });
+
+    test('toString() skips disabled headers', () => {
+      const rawReq = {
+        url: 'https://example.com',
+        method: 'GET',
+        headers: { A: '1', B: '2' },
+        disabledHeaders: [{ name: 'C', value: '3' }]
+      };
+      const brunoReq = new BrunoRequest(rawReq);
+      expect(brunoReq.headerList.toString()).toBe('A=1; B=2');
     });
 
     test('toJSON() returns same as all()', () => {
@@ -429,6 +440,78 @@ describe('HeaderList (req.headerList)', () => {
     });
   });
 
+  // ── Disabled headers ───────────────────────────────────────────────────
+
+  describe('disabled headers', () => {
+    test('all() includes disabled headers with disabled: true', () => {
+      const rawReq = {
+        url: 'https://example.com',
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
+        disabledHeaders: [{ name: 'X-Disabled', value: 'hidden' }]
+      };
+      const brunoReq = new BrunoRequest(rawReq);
+      const all = brunoReq.headerList.all();
+      expect(all).toEqual([
+        { key: 'Content-Type', value: 'application/json' },
+        { key: 'X-Disabled', value: 'hidden', disabled: true }
+      ]);
+    });
+
+    test('get() returns value of disabled header', () => {
+      const rawReq = {
+        url: 'https://example.com',
+        method: 'GET',
+        headers: {},
+        disabledHeaders: [{ name: 'X-Disabled', value: 'hidden' }]
+      };
+      const brunoReq = new BrunoRequest(rawReq);
+      expect(brunoReq.headerList.get('X-Disabled')).toBe('hidden');
+    });
+
+    test('has() finds disabled header', () => {
+      const rawReq = {
+        url: 'https://example.com',
+        method: 'GET',
+        headers: {},
+        disabledHeaders: [{ name: 'X-Disabled', value: 'hidden' }]
+      };
+      const brunoReq = new BrunoRequest(rawReq);
+      expect(brunoReq.headerList.has('X-Disabled')).toBe(true);
+    });
+
+    test('count() includes disabled headers', () => {
+      const rawReq = {
+        url: 'https://example.com',
+        method: 'GET',
+        headers: { A: '1' },
+        disabledHeaders: [{ name: 'B', value: '2' }]
+      };
+      const brunoReq = new BrunoRequest(rawReq);
+      expect(brunoReq.headerList.count()).toBe(2);
+    });
+
+    test('filter() can separate enabled from disabled headers', () => {
+      const rawReq = {
+        url: 'https://example.com',
+        method: 'GET',
+        headers: { A: '1' },
+        disabledHeaders: [{ name: 'B', value: '2' }]
+      };
+      const brunoReq = new BrunoRequest(rawReq);
+      const disabled = brunoReq.headerList.filter((h) => h.disabled);
+      expect(disabled).toHaveLength(1);
+      expect(disabled[0].key).toBe('B');
+    });
+
+    test('works with no disabledHeaders property', () => {
+      const rawReq = { url: 'https://example.com', method: 'GET', headers: { A: '1' } };
+      const brunoReq = new BrunoRequest(rawReq);
+      expect(brunoReq.headerList.count()).toBe(1);
+      expect(brunoReq.headerList.all()).toEqual([{ key: 'A', value: '1' }]);
+    });
+  });
+
   // ── Edge cases ────────────────────────────────────────────────────────
 
   describe('edge cases', () => {
@@ -509,7 +592,7 @@ describe('Response Headers (res.headerList)', () => {
       expect(headerList.one('content-type')).toEqual({ key: 'content-type', value: 'application/json' });
     });
 
-    test('all() returns array of { key, value } objects', () => {
+    test('all() returns array of { key, value, disabled } objects', () => {
       const { headerList } = createResHeaders();
       const all = headerList.all();
       expect(all).toHaveLength(3);

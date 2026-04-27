@@ -17,7 +17,8 @@ const ReadOnlyPropertyList = require('./readonly-property-list');
  * Every header surfaced by this list is a plain object:
  *
  * ```js
- * { key, value }
+ * { key, value }              // enabled header
+ * { key, value, disabled: true }  // disabled header
  * ```
  *
  * ---
@@ -89,7 +90,13 @@ class HeaderList extends PropertyList {
         valueProperty: 'value',
         dataSource: () => {
           const headers = source.req.headers || {};
-          return Object.entries(headers).map(([key, value]) => ({ key, value }));
+          const enabled = Object.entries(headers).map(([key, value]) => ({ key, value }));
+          const disabled = (source.req.disabledHeaders || []).map((h) => ({
+            key: h.name,
+            value: h.value,
+            disabled: true
+          }));
+          return [...enabled, ...disabled];
         }
       });
       this._brunoRequest = source;
@@ -215,6 +222,18 @@ class HeaderList extends PropertyList {
    */
   repopulate(items) {
     this.populate(items);
+  }
+
+  /**
+   * Convert to a wire-format string, skipping disabled headers.
+   * Matches Postman's Header.unparse() behavior.
+   * @returns {string}
+   */
+  toString() {
+    return this.all()
+      .filter((h) => !h.disabled)
+      .map((h) => `${h.key}=${h.value}`)
+      .join('; ');
   }
 
   /**

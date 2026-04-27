@@ -28,12 +28,15 @@ const prepareRequest = async (item = {}, collection = {}) => {
     mergeAuth(collection, request, requestTreePath);
   }
 
+  const disabledHeaders = [];
   each(get(request, 'headers', []), (h) => {
     if (h.enabled) {
       headers[h.name] = h.value;
       if (h.name.toLowerCase() === 'content-type') {
         contentTypeDefined = true;
       }
+    } else if (!h.enabled && h.name?.length > 0) {
+      disabledHeaders.push({ name: h.name, value: h.value });
     }
   });
 
@@ -41,6 +44,7 @@ const prepareRequest = async (item = {}, collection = {}) => {
     method: request.method,
     url: request.url,
     headers: headers,
+    disabledHeaders,
     name: item.name,
     pathname: item.pathname,
     tags: item.tags || [],
