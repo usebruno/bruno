@@ -160,11 +160,11 @@ const createPropertyListBridge = (vm, nativeList, targetObj, options) => {
   // operation inside the VM where the callback lives. Requires `all` in `syncReadObjectMethods`.
   if (withIterators) {
     evalCode += `const _allNative = ${globalPath}.all;
-    ${globalPath}.each = (fn) => { _allNative().forEach(fn); };
-    ${globalPath}.filter = (fn) => _allNative().filter(fn);
-    ${globalPath}.find = (fn) => _allNative().find(fn);
-    ${globalPath}.map = (fn) => _allNative().map(fn);
-    ${globalPath}.reduce = (fn, ...rest) => rest.length ? _allNative().reduce(fn, rest[0]) : _allNative().reduce(fn);\n`;
+    ${globalPath}.each = (fn, ctx) => { const b = ctx !== undefined ? fn.bind(ctx) : fn; _allNative().forEach(b); };
+    ${globalPath}.filter = (fn, ctx) => { const b = ctx !== undefined ? fn.bind(ctx) : fn; return _allNative().filter(b); };
+    ${globalPath}.find = (fn, ctx) => { const b = ctx !== undefined ? fn.bind(ctx) : fn; return _allNative().find(b); };
+    ${globalPath}.map = (fn, ctx) => { const b = ctx !== undefined ? fn.bind(ctx) : fn; return _allNative().map(b); };
+    ${globalPath}.reduce = (fn, ...rest) => { const ctx = rest.length > 1 ? rest[1] : undefined; const b = ctx !== undefined ? fn.bind(ctx) : fn; return rest.length > 0 ? _allNative().reduce(b, rest[0]) : _allNative().reduce(b); };\n`;
   }
 
   // Override `remove` when it's a syncWriteMethod so function predicates work in-VM.

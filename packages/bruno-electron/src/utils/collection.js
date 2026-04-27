@@ -54,7 +54,20 @@ const mergeHeaders = (collection, request, requestTreePath) => {
     }
   }
 
-  request.headers = Array.from(headers, ([name, value]) => ({ name, value, enabled: true }));
+  const mergedHeaders = Array.from(headers, ([name, value]) => ({ name, value, enabled: true }));
+
+  // Preserve disabled headers from the request item (last entry in requestTreePath)
+  const requestItem = requestTreePath[requestTreePath.length - 1];
+  if (requestItem) {
+    const itemHeaders = requestItem?.draft ? get(requestItem, 'draft.request.headers', []) : get(requestItem, 'request.headers', []);
+    itemHeaders.forEach((header) => {
+      if (!header.enabled && header.name?.length > 0) {
+        mergedHeaders.push({ name: header.name, value: header.value, enabled: false });
+      }
+    });
+  }
+
+  request.headers = mergedHeaders;
 };
 
 const mergeVars = (collection, request, requestTreePath = []) => {

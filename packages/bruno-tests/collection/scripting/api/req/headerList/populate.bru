@@ -33,6 +33,9 @@ tests {
     expect(req.getHeader('della')).to.be.undefined;
     expect(req.getHeader('x-new-one')).to.equal('one');
     expect(req.getHeader('x-new-two')).to.equal('two');
-    expect(req.headerList.count()).to.equal(2);
+    expect(req.headerList.has('x-new-one')).to.be.true;
+    expect(req.headerList.has('x-new-two')).to.be.true;
+    expect(req.headerList.has('bruno')).to.be.false;
+    expect(req.headerList.has('della')).to.be.false;
   });
 }

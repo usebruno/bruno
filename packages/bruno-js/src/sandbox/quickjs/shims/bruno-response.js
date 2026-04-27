@@ -129,8 +129,9 @@ const addBrunoResponseShimToContext = (vm, res) => {
   resFn.dispose();
 
   // Evaluate iterator code after res is on global (iterators reference globalThis.res.headerList)
+  // Wrapped in a block to avoid const redeclaration conflicts with req.headerList's evalCode
   if (resHeadersEvalCode) {
-    vm.evalCode(resHeadersEvalCode);
+    vm.evalCode(`{ ${resHeadersEvalCode} }`);
   }
 };
 
