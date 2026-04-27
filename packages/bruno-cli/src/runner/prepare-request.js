@@ -411,15 +411,22 @@ const prepareRequest = async (item = {}, collection = {}) => {
         const filePaths = Array.isArray(param.value) ? param.value : [param.value];
         each(filePaths, (filePath) => {
           if (filePath) {
+            if (!path.isAbsolute(filePath)) {
+              filePath = path.join(collectionPath, filePath);
+            }
             const opts = { filename: path.basename(filePath) };
             if (param.contentType) opts.contentType = param.contentType;
-            form.append(
-              param.name,
-              isLargeFile(filePath, STREAMING_FILE_SIZE_THRESHOLD)
-                ? fs.createReadStream(filePath)
-                : fs.readFileSync(filePath),
-              opts
-            );
+            try {
+              form.append(
+                param.name,
+                isLargeFile(filePath, STREAMING_FILE_SIZE_THRESHOLD)
+                  ? fs.createReadStream(filePath)
+                  : fs.readFileSync(filePath),
+                opts
+              );
+            } catch (error) {
+              console.error('Error reading file:', error);
+            }
           }
         });
       } else {

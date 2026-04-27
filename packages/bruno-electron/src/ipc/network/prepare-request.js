@@ -481,15 +481,22 @@ const prepareRequest = async (item, collection = {}, abortController) => {
         const filePaths = Array.isArray(param.value) ? param.value : [param.value];
         each(filePaths, (filePath) => {
           if (filePath) {
+            if (!path.isAbsolute(filePath)) {
+              filePath = path.join(collectionPath, filePath);
+            }
             const opts = { filename: path.basename(filePath) };
             if (param.contentType) opts.contentType = param.contentType;
-            form.append(
-              param.name,
-              isLargeFile(filePath, STREAMING_FILE_SIZE_THRESHOLD)
-                ? fs.createReadStream(filePath)
-                : fs.readFileSync(filePath),
-              opts
-            );
+            try {
+              form.append(
+                param.name,
+                isLargeFile(filePath, STREAMING_FILE_SIZE_THRESHOLD)
+                  ? fs.createReadStream(filePath)
+                  : fs.readFileSync(filePath),
+                opts
+              );
+            } catch (error) {
+              console.error('Error reading file:', error);
+            }
           }
         });
       } else {
@@ -497,9 +504,7 @@ const prepareRequest = async (item, collection = {}, abortController) => {
         form.append(param.name, param.value || '', Object.keys(opts).length ? opts : undefined);
       }
     });
-    if (!contentTypeDefined) {
-      Object.assign(axiosRequest.headers, form.getHeaders());
-    }
+    Object.assign(axiosRequest.headers, form.getHeaders());
     axiosRequest.data = form;
   }
 
