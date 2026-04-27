@@ -45,6 +45,7 @@ export const SingleWSMessage = ({
   const { displayedTheme } = useTheme();
   const preferences = useSelector((state) => state.app.preferences);
   const body = item.draft ? get(item, 'draft.request.body') : get(item, 'request.body');
+  const collections = useSelector((state) => state.collections.collections);
 
   const { name, content, type } = message;
   const displayMode = typeToMode(type);
@@ -52,7 +53,6 @@ export const SingleWSMessage = ({
 
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(displayName);
-  const nameInputRef = useRef(null);
 
   // Auto-focus the name input when this is a newly created message
   useEffect(() => {
@@ -62,13 +62,6 @@ export const SingleWSMessage = ({
       onNewRendered();
     }
   }, [isNew]);
-
-  useEffect(() => {
-    if (isEditing && nameInputRef.current) {
-      nameInputRef.current.focus();
-      nameInputRef.current.select();
-    }
-  }, [isEditing]);
 
   const saveName = (value) => {
     const trimmed = value.trim() || `message ${index + 1}`;
@@ -98,31 +91,15 @@ export const SingleWSMessage = ({
     saveName(editValue);
   };
 
-  const clickTimerRef = useRef(null);
-
-  useEffect(() => {
-    return () => clearTimeout(clickTimerRef.current);
-  }, []);
-
   const handleNameClick = useCallback((e) => {
     e.stopPropagation();
-    if (clickTimerRef.current) {
-      // Double click — cancel the pending single click toggle and enter edit mode
-      clearTimeout(clickTimerRef.current);
-      clickTimerRef.current = null;
-      setEditValue(displayName);
-      setIsEditing(true);
-    } else {
-      // First click — wait to see if a second click comes
-      clickTimerRef.current = setTimeout(() => {
-        clickTimerRef.current = null;
-        onToggle();
-      }, 250);
-    }
+    setEditValue(displayName);
+    setIsEditing(true);
   }, [displayName, onToggle]);
 
   const fontSize = get(preferences, 'font.codeFontSize', 14);
   const lineHeight = fontSize * 1.5;
+
   const editorHeight = useMemo(() => {
     const lineCount = (content || '').split('\n').length;
     const lines = lineCount + 1;
@@ -168,10 +145,9 @@ export const SingleWSMessage = ({
     }));
   };
 
-  const onSendMessage = async () => {
+  const onSendMessage = useCallback(async () => {
     try {
-      const state = dispatch((_, getState) => getState());
-      const col = findCollectionByUid(state.collections.collections, collection.uid);
+      const col = findCollectionByUid(collections, collection.uid);
       const environment = findEnvironmentInCollection(col, col?.activeEnvironmentUid);
 
       // Auto-connect if not already connected
@@ -187,7 +163,7 @@ export const SingleWSMessage = ({
     } catch (err) {
       toast.error(err.message || 'Failed to send message');
     }
-  };
+  }, [collections]);
 
   return (
     <StyledWrapper
@@ -218,7 +194,7 @@ export const SingleWSMessage = ({
           )}
           {isEditing ? (
             <input
-              ref={nameInputRef}
+              ref={(node) => node?.focus()}
               className="name-input"
               data-testid={`ws-message-name-input-${index}`}
               value={editValue}
@@ -228,7 +204,15 @@ export const SingleWSMessage = ({
               onClick={(e) => e.stopPropagation()}
             />
           ) : (
-            <span className="message-label" data-testid={`ws-message-label-${index}`} onClick={handleNameClick}>
+            <span
+              className="message-label"
+              data-testid={`ws-message-label-${index}`}
+              onClick={(e) => {
+                e.preventDefault();
+                onToggle();
+              }}
+              onDoubleClick={handleNameClick}
+            >
               {displayName}
             </span>
           )}
