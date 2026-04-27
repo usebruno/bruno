@@ -183,7 +183,7 @@ export default class CodeEditor extends React.Component {
         const wrapper = editor.getWrapperElement();
         if (wrapper && wrapper.offsetParent === null) return;
         this._lastScrollTop = editor.getScrollInfo().top;
-        if (this.props.onScroll && typeof this.props.onScroll === "function") {
+        if (this.props.onScroll && typeof this.props.onScroll === 'function') {
           this.props.onScroll(this._lastScrollTop);
         }
       });
