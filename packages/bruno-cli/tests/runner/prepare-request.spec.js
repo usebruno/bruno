@@ -601,6 +601,71 @@ describe('prepare-request: prepareRequest', () => {
     });
   });
 
+  describe('Header filtering', () => {
+    it('skips headers with empty name', async () => {
+      const item = {
+        request: {
+          method: 'GET',
+          url: 'https://example.com',
+          headers: [
+            { name: '', value: 'ghost', enabled: true },
+            { name: 'X-Valid', value: 'yes', enabled: true }
+          ]
+        }
+      };
+      const result = await prepareRequest(item);
+      expect(result.headers).not.toHaveProperty('');
+      expect(result.headers).toHaveProperty('X-Valid', 'yes');
+    });
+
+    it('skips disabled headers regardless of name', async () => {
+      const item = {
+        request: {
+          method: 'GET',
+          url: 'https://example.com',
+          headers: [
+            { name: 'X-Disabled', value: 'nope', enabled: false },
+            { name: 'X-Enabled', value: 'yes', enabled: true }
+          ]
+        }
+      };
+      const result = await prepareRequest(item);
+      expect(result.headers).not.toHaveProperty('X-Disabled');
+      expect(result.headers).toHaveProperty('X-Enabled', 'yes');
+    });
+
+    it('includes all valid enabled headers', async () => {
+      const item = {
+        request: {
+          method: 'GET',
+          url: 'https://example.com',
+          headers: [
+            { name: 'X-One', value: '1', enabled: true },
+            { name: 'X-Two', value: '2', enabled: true }
+          ]
+        }
+      };
+      const result = await prepareRequest(item);
+      expect(result.headers).toHaveProperty('X-One', '1');
+      expect(result.headers).toHaveProperty('X-Two', '2');
+    });
+
+    it('produces no headers when all have empty names', async () => {
+      const item = {
+        request: {
+          method: 'GET',
+          url: 'https://example.com',
+          headers: [
+            { name: '', value: '', enabled: true },
+            { name: '', value: 'some-value', enabled: true }
+          ]
+        }
+      };
+      const result = await prepareRequest(item);
+      expect(Object.keys(result.headers).filter((k) => k === '')).toHaveLength(0);
+    });
+  });
+
   describe('GraphQL request', () => {
     it('keeps variables as string for interpolation', async () => {
       const item = {
