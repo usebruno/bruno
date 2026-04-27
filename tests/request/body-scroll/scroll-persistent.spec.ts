@@ -25,7 +25,7 @@ const generateLargeScript = () =>
   Array.from({ length: 80 }, (_, i) => `// Line ${i + 1}\nconsole.log('step ${i + 1}');`).join('\n');
 
 const generateLargeXml = () =>
-  `<?xml version="1.0"?>\n<root>\n${Array.from({ length: 50 }, (_, i) => `  <item id="${i + 1}"><name>Item ${i + 1}</name></item>`).join('\n')}\n</root>`;
+  `<?xml version="1.0"?>\n<root>\n${Array.from({ length: 150 }, (_, i) => `  <item id="${i + 1}"><name>Item ${i + 1}</name></item>`).join('\n')}\n</root>`;
 
 // ---------------------------------------------------------------------------
 // CodeMirror helpers - interact with CM5 instances by CSS selector
@@ -101,10 +101,22 @@ const selectBodyMode = async (page: Page, mode: string) => {
 // Common assertion: scroll position is approximately restored
 // ---------------------------------------------------------------------------
 
-// const SCROLL_TOLERANCE = 50;
-
+// CodeMirror layout sub-pixel rounding, virtualised list buffers, and remount
+// timing can shift the restored scroll by a small amount even when persistence
+// is working correctly — assert "close to" rather than exact.
 const expectScrollRestored = (restored: number, original: number) => {
   expect(restored).toBeGreaterThan(0);
+  // 10% tolerance, with a 50px floor so small captured values still pass
+  const tolerance = Math.max(50, original * 0.1);
+  expect(restored).toBeGreaterThan(original - tolerance);
+  expect(restored).toBeLessThan(original + tolerance);
+};
+
+// For virtualised tables: assert the first-visible row index is near the expected
+// row, tolerating TableVirtuoso's buffer drift (±a few rows).
+const expectRowNear = (actual: number, expected: number, tolerance: number = 5) => {
+  expect(actual).toBeGreaterThan(expected - tolerance);
+  expect(actual).toBeLessThan(expected + tolerance);
 };
 
 // ===========================================================================
@@ -158,7 +170,7 @@ test.describe('Scroll Position Persistence', () => {
 
       await test.step('Scroll down and capture position', async () => {
         saved = await getEditorScroll(page, '.request-pane .CodeMirror');
-        expect(saved).toBeGreaterThan(0);
+        expectScrollRestored(saved, 1500);
       });
 
       await test.step('Switch to Headers then back to Body', async () => {
@@ -201,7 +213,7 @@ test.describe('Scroll Position Persistence', () => {
 
       await test.step('Capture scroll position', async () => {
         saved = await getEditorScroll(page, '.request-pane .CodeMirror');
-        expect(saved).toBeGreaterThan(0);
+        expectScrollRestored(saved, 1500);
       });
 
       await test.step('Switch to Params then back to Body', async () => {
@@ -249,7 +261,7 @@ test.describe('Scroll Position Persistence', () => {
 
         await setEditorScroll(page, PRE_SELECTOR, 1500);
         preReqSaved = await getEditorScroll(page, PRE_SELECTOR);
-        expect(preReqSaved).toBeGreaterThan(0);
+        expectScrollRestored(preReqSaved, 1500);
       });
 
       await test.step('Verify pre-request: switch to Headers and back', async () => {
@@ -287,7 +299,7 @@ test.describe('Scroll Position Persistence', () => {
       await test.step('Scroll post-response editor', async () => {
         await setEditorScroll(page, POST_SELECTOR, 1500);
         postResSaved = await getEditorScroll(page, POST_SELECTOR);
-        expect(postResSaved).toBeGreaterThan(0);
+        expectScrollRestored(postResSaved, 1500);
       });
 
       await test.step('Verify post-response: switch to Headers and back', async () => {
@@ -345,7 +357,7 @@ test.describe('Scroll Position Persistence', () => {
 
       await test.step('Capture scroll position', async () => {
         saved = await getEditorScroll(page, '[data-testid="test-script-editor"] .CodeMirror');
-        expect(saved).toBeGreaterThan(0);
+        expectScrollRestored(saved, 1500);
       });
 
       await test.step('Switch to Body then back to Tests', async () => {
@@ -393,7 +405,7 @@ test.describe('Scroll Position Persistence', () => {
 
       await test.step('Capture scroll position', async () => {
         scrollA = await getEditorScroll(page, '.request-pane .CodeMirror');
-        expect(scrollA).toBeGreaterThan(0);
+        expectScrollRestored(scrollA, 1500);
       });
 
       await test.step('Switch to req-b', async () => {
@@ -456,8 +468,8 @@ test.describe('Scroll Position Persistence', () => {
 
         const element = firstVisibleRowLocator();
         saved = parseInt(await element.getAttribute('data-index') as string);
-        // With 100 rows × 35px row height, halfway lands on row ~50; loose lower bound
-        expect(saved).toBeGreaterThan(30);
+        // With 100 rows × 35px row height, halfway lands on row ~50
+        expectRowNear(saved, 50);
       });
 
       await test.step('Switch to Body tab and back to Headers', async () => {
@@ -470,7 +482,7 @@ test.describe('Scroll Position Persistence', () => {
       await test.step('Verify scroll restored to ~row 50', async () => {
         const element = firstVisibleRowLocator();
         const current = parseInt(await element.getAttribute('data-index') as string);
-        expect(current).toBe(saved);
+        expectRowNear(current, 50);
       });
     });
   });
@@ -517,7 +529,7 @@ test.describe('Scroll Position Persistence', () => {
       await test.step('Scroll response editor and capture position', async () => {
         await setEditorScroll(page, responseEditor, 1500);
         saved = await getEditorScroll(page, responseEditor);
-        expect(saved).toBeGreaterThan(0);
+        expectScrollRestored(saved, 1500);
       });
 
       await test.step('Switch to Headers tab and back', async () => {
@@ -563,7 +575,7 @@ test.describe('Scroll Position Persistence', () => {
         await container.evaluate((el) => { el.scrollTop = 200; });
 
         saved = await container.evaluate((el) => el.scrollTop);
-        expect(saved).toBeGreaterThan(0);
+        expectScrollRestored(saved, 200);
       });
 
       await test.step('Switch to Response tab and back to Headers', async () => {
@@ -622,7 +634,7 @@ test.describe('Scroll Position Persistence', () => {
         await scrollParent.evaluate((el) => { el.scrollTop = 500; });
 
         saved = await scrollParent.evaluate((el) => el.scrollTop);
-        expect(saved).toBeGreaterThan(0);
+        expectScrollRestored(saved, 500);
       });
 
       await test.step('Switch to Response tab and back to Timeline', async () => {
@@ -685,7 +697,7 @@ test.describe('Scroll Position Persistence', () => {
 
       await test.step('Capture scroll position', async () => {
         saved = await getEditorScroll(page, '.CodeMirror');
-        expect(saved).toBeGreaterThan(0);
+        expectScrollRestored(saved, 400);
       });
 
       await test.step('Switch to post-response and back', async () => {
@@ -726,7 +738,7 @@ test.describe('Scroll Position Persistence', () => {
 
       await test.step('Capture scroll position', async () => {
         saved = await getEditorScroll(page, '.CodeMirror');
-        expect(saved).toBeGreaterThan(0);
+        expectScrollRestored(saved, 1500);
       });
 
       await test.step('Switch to headers and back', async () => {
@@ -773,7 +785,7 @@ test.describe('Scroll Position Persistence', () => {
 
       await test.step('Capture scroll position', async () => {
         saved = await getEditorScroll(page, '.CodeMirror');
-        expect(saved).toBeGreaterThan(0);
+        expectScrollRestored(saved, 1500);
       });
 
       await test.step('Switch to headers and back to docs edit mode', async () => {
@@ -817,7 +829,7 @@ test.describe('Scroll Position Persistence', () => {
         await page.getByTestId('tab-trigger-pre-request').click({ timeout: 2000 });
         await setEditorScroll(page, PRE_SELECTOR, 1500);
         saved = await getEditorScroll(page, PRE_SELECTOR);
-        expect(saved).toBeGreaterThan(0);
+        expectScrollRestored(saved, 1500);
       });
 
       await test.step('Switch to headers and back', async () => {
@@ -862,7 +874,7 @@ test.describe('Scroll Position Persistence', () => {
       await test.step('Scroll post-response editor', async () => {
         await setEditorScroll(page, POST_SELECTOR, 1500);
         saved = await getEditorScroll(page, POST_SELECTOR);
-        expect(saved).toBeGreaterThan(0);
+        expectScrollRestored(saved, 1500);
       });
 
       await test.step('Switch to headers and back', async () => {
@@ -932,7 +944,7 @@ test.describe('Scroll Position Persistence', () => {
         await page.getByTestId('tab-trigger-pre-request').click({ timeout: 2000 });
         await setEditorScroll(page, PRE_SELECTOR, 1500);
         preReqSaved = await getEditorScroll(page, PRE_SELECTOR);
-        expect(preReqSaved).toBeGreaterThan(0);
+        expectScrollRestored(preReqSaved, 1500);
       });
 
       await test.step('Verify pre-request: switch to headers and back', async () => {
@@ -964,7 +976,7 @@ test.describe('Scroll Position Persistence', () => {
       await test.step('Scroll post-response editor', async () => {
         await setEditorScroll(page, POST_SELECTOR, 1500);
         postResSaved = await getEditorScroll(page, POST_SELECTOR);
-        expect(postResSaved).toBeGreaterThan(0);
+        expectScrollRestored(postResSaved, 1500);
       });
 
       await test.step('Verify post-response: switch to headers and back', async () => {
@@ -1016,7 +1028,7 @@ test.describe('Scroll Position Persistence', () => {
 
       await test.step('Capture scroll position', async () => {
         saved = await getEditorScroll(page, '.CodeMirror');
-        expect(saved).toBeGreaterThan(0);
+        expectScrollRestored(saved, 1500);
       });
 
       await test.step('Switch to headers and back', async () => {
@@ -1063,7 +1075,7 @@ test.describe('Scroll Position Persistence', () => {
 
       await test.step('Capture scroll position', async () => {
         saved = await getEditorScroll(page, '.CodeMirror');
-        expect(saved).toBeGreaterThan(0);
+        expectScrollRestored(saved, 1500);
       });
 
       await test.step('Switch to headers and back to docs edit mode', async () => {
@@ -1117,32 +1129,15 @@ test.describe('Scroll Position Persistence', () => {
 
       await test.step('Scroll to ~middle of table (~row 50) and capture position', async () => {
         const container = page.locator(scrollContainer).first();
-        const before = await container.evaluate((el) => ({
-          scrollTop: el.scrollTop,
-          scrollHeight: el.scrollHeight,
-          clientHeight: el.clientHeight
-        }));
-        console.log('[coll headers container before scroll]', before);
-
+        // Scroll halfway through the virtualised list so ~row 50 becomes the first visible row
         await container.evaluate((el) => { el.scrollTop = el.scrollHeight / 2; });
+        // Allow TableVirtuoso to re-virtualise and the persistence debounce to flush
         await page.waitForTimeout(300);
-
-        const after = await container.evaluate((el) => ({
-          scrollTop: el.scrollTop,
-          scrollHeight: el.scrollHeight,
-          clientHeight: el.clientHeight
-        }));
-        console.log('[coll headers container after scroll]', after);
-
-        const trCount = await page.evaluate(() =>
-          document.querySelectorAll('[data-testid="editable-table"] table > tbody > tr').length
-        );
-        console.log('[coll headers tr count]', trCount);
 
         const element = firstVisibleRowLocator();
         saved = parseInt(await element.getAttribute('data-index') as string);
-        console.log('[coll headers saved]', saved);
-        expect(saved).toBeGreaterThan(40);
+        // With 100 rows × 35px row height, halfway lands on row ~50
+        expectRowNear(saved, 50);
       });
 
       await test.step('Switch to script tab and back to headers', async () => {
@@ -1155,8 +1150,7 @@ test.describe('Scroll Position Persistence', () => {
       await test.step('Verify scroll restored to ~row 50', async () => {
         const element = firstVisibleRowLocator();
         const current = parseInt(await element.getAttribute('data-index') as string);
-        expect(saved).toBeGreaterThan(45);
-        expect(saved).toBeLessThan(55);
+        expectRowNear(current, 50);
       });
     });
   });
