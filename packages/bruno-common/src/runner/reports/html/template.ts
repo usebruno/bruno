@@ -294,7 +294,7 @@ export const htmlTemplateString = (resutsJsonString: string) => `<!DOCTYPE html>
           </n-switch>
 
           <n-collapse>
-            <x-result v-for="(result, index) in results" :result="result" :index="index" :key="index"></x-result>
+            <x-result v-for="result in results" :result="result.value" :index="result.index" :key="result.index"></x-result>
           </n-collapse>
         </n-flex>
       </n-card>
@@ -645,15 +645,16 @@ export const htmlTemplateString = (resutsJsonString: string) => `<!DOCTYPE html>
         setup(props) {
           const onlyFailed = ref(false);
           const filteredResults = computed(() => {
+            const results = (props?.res?.results || []).map((value, index) => ({ value, index }));
             if (onlyFailed.value) {
-              return props?.res?.results?.filter(
-                (r) =>
-                  r.status === 'error' ||
-                  !!r?.testResults?.find((t) => t.status !== 'pass') ||
-                  !!r?.assertionResults?.find((t) => t.status !== 'pass')
+              return results.filter(
+                ({ value }) =>
+                  value.status === 'error' ||
+                  !!value?.testResults?.find((t) => t.status !== 'pass') ||
+                  !!value?.assertionResults?.find((t) => t.status !== 'pass')
               );
             }
-            return props.res.results;
+            return results;
           });
           const iterationIndex = Number(props.res.iterationIndex) + 1;
           return {
