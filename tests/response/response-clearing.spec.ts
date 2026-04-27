@@ -6,52 +6,63 @@ import {
   sendRequest,
   addAssertion,
   selectRequestPaneTab,
-  clickResponseAction
+  clickResponseAction,
+  selectResponsePaneTab
 } from '../utils/page/actions';
+import { buildCommonLocators } from '../utils/page/locators';
 
 test.describe('Response Clearing', () => {
   test.afterEach(async ({ page }) => {
     await closeAllCollections(page);
   });
 
-  test('should clear response and all test results when using clear button from dropdown menu', async ({
+  test('should clear response and all test results across all test tabs', async ({
     page,
     createTmpDir
   }) => {
-    const collectionName = 'response-clear-with-assertions';
-    const requestName = 'assertion-test';
+    const collectionName = 'response-clear-full-coverage';
+    const requestName = 'full-test';
 
-    await createCollection(page, collectionName, await createTmpDir(collectionName));
-    await createRequest(page, requestName, collectionName, {
-      url: 'https://testbench-sanity.usebruno.com/ping'
+    await test.step('Setup collection and request', async () => {
+      await createCollection(page, collectionName, await createTmpDir(collectionName));
+      await createRequest(page, requestName, collectionName, {
+        url: 'https://testbench-sanity.usebruno.com/ping'
+      });
     });
 
-    await selectRequestPaneTab(page, 'Assert');
+    await test.step('Add assertion test', async () => {
+      await selectRequestPaneTab(page, 'Assert');
 
-    await addAssertion(page, {
-      expr: 'res.body.title',
-      value: 'pong',
-      operator: 'eq'
+      await addAssertion(page, {
+        expr: 'res.body.title',
+        value: 'pong',
+        operator: 'eq'
+      });
     });
 
-    // Send request
-    await sendRequest(page, 200);
+    await test.step('Send request and verify assertion result exists', async () => {
+      await sendRequest(page, 200);
 
-    // OPTIONAL: check test badge if available (safe guard)
-    const testBadge = page.getByTestId('tests-tab-badge');
-    if (await testBadge.isVisible().catch(() => false)) {
-      const before = await testBadge.innerText();
+      const locators = buildCommonLocators(page);
+      await locators.response.pane().waitFor({ state: 'visible' });
 
-      // Clear response
+      await selectResponsePaneTab(page, 'Tests');
+
+      const testBadge = locators.paneTabs.responsiveTab('tests');
+
+      await expect(testBadge).toHaveCount(1);
+    });
+
+    await test.step('Clear response', async () => {
       await clickResponseAction(page, 'response-clear-btn');
+    });
 
-      // Badge should change or UI should update
-      const after = await testBadge.innerText().catch(() => null);
+    const locators = buildCommonLocators(page);
+    await selectResponsePaneTab(page, 'Tests');
 
-      expect(before !== after).toBeTruthy();
-    } else {
-      // Clear response (fallback)
-      await clickResponseAction(page, 'response-clear-btn');
-    }
+    const testsTab = locators.paneTabs.responsiveTab('tests');
+
+    await expect(testsTab).toBeVisible();
+    await expect(testsTab.locator('sup')).toHaveCount(0);
   });
 });
