@@ -100,7 +100,8 @@ const REQUEST_UID_PATHS = [
   'assertions',
   'body.formUrlEncoded',
   'body.multipartForm',
-  'body.file'
+  'body.file',
+  'body.ws'
 ];
 
 const ROOT_UID_PATHS = ['request.headers', 'request.vars.req', 'request.vars.res'];
