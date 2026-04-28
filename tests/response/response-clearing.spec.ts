@@ -5,6 +5,9 @@ import {
   createRequest,
   sendRequest,
   addAssertion,
+  addPreRequestScript,
+  addPostResponseScript,
+  addTestScript,
   selectRequestPaneTab,
   clickResponseAction,
   selectResponsePaneTab
@@ -40,29 +43,51 @@ test.describe('Response Clearing', () => {
       });
     });
 
-    await test.step('Send request and verify assertion result exists', async () => {
-      await sendRequest(page, 200);
+    await test.step('Add pre-request script test', async () => {
+      await addPreRequestScript(
+        page,
+        'test(\'pre-request runs\', () => { expect(1).to.equal(0); });'
+      );
+    });
 
-      const locators = buildCommonLocators(page);
+    await test.step('Add post-response script test', async () => {
+      await addPostResponseScript(
+        page,
+        'test(\'post-response runs\', () => { expect(res.status).to.equal(201); });'
+      );
+    });
+
+    await test.step('Add test script', async () => {
+      await addTestScript(
+        page,
+        'test(\'test script runs\', () => { expect(res.body.title).to.equal(\'pong\'); });'
+      );
+    });
+
+    const locators = buildCommonLocators(page);
+    const testsTab = locators.response.pane().getByTestId('responsive-tab-tests');
+
+    await test.step('Send request and verify all test result types appear', async () => {
+      await sendRequest(page, 200);
+      // await page.pause()
       await locators.response.pane().waitFor({ state: 'visible' });
 
       await selectResponsePaneTab(page, 'Tests');
 
-      const testBadge = locators.paneTabs.responsiveTab('tests');
-
-      await expect(testBadge).toHaveCount(1);
+      await expect(testsTab).toBeVisible();
+      // 1 assertion + 1 pre-request test + 1 post-response test + 1 test script = 4
+      await expect(testsTab.locator('sup')).toHaveText('4');
     });
 
     await test.step('Clear response', async () => {
       await clickResponseAction(page, 'response-clear-btn');
     });
 
-    const locators = buildCommonLocators(page);
-    await selectResponsePaneTab(page, 'Tests');
+    await test.step('Verify all test result counts are cleared', async () => {
+      await selectResponsePaneTab(page, 'Tests');
 
-    const testsTab = locators.paneTabs.responsiveTab('tests');
-
-    await expect(testsTab).toBeVisible();
-    await expect(testsTab.locator('sup')).toHaveCount(0);
+      await expect(testsTab).toBeVisible();
+      await expect(testsTab.locator('sup')).toHaveCount(0);
+    });
   });
 });

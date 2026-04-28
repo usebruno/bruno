@@ -1128,6 +1128,42 @@ const editCodeMirrorEditor = async (page: Page, editorTestId: string, newContent
 };
 
 /**
+ * Add a pre-request script (navigates to Script > Pre Request and replaces editor content)
+ * @param page - The page object
+ * @param content - The script content to add
+ */
+const addPreRequestScript = async (page: Page, content: string) => {
+  await test.step('Add pre-request script', async () => {
+    await selectScriptSubTab(page, 'pre-request');
+    await editCodeMirrorEditor(page, 'pre-request-script-editor', content);
+  });
+};
+
+/**
+ * Add a post-response script (navigates to Script > Post Response and replaces editor content)
+ * @param page - The page object
+ * @param content - The script content to add
+ */
+const addPostResponseScript = async (page: Page, content: string) => {
+  await test.step('Add post-response script', async () => {
+    await selectScriptSubTab(page, 'post-response');
+    await editCodeMirrorEditor(page, 'post-response-script-editor', content);
+  });
+};
+
+/**
+ * Add a test script (navigates to Tests tab and replaces editor content)
+ * @param page - The page object
+ * @param content - The test script content to add
+ */
+const addTestScript = async (page: Page, content: string) => {
+  await test.step('Add test script', async () => {
+    await selectRequestPaneTab(page, 'Tests');
+    await editCodeMirrorEditor(page, 'test-script-editor', content);
+  });
+};
+
+/**
  * Click send and wait for at least one error card to appear.
  * @param page - The page object
  */
@@ -1194,6 +1230,9 @@ export {
   switchWorkspace,
   selectScriptSubTab,
   editCodeMirrorEditor,
+  addPreRequestScript,
+  addPostResponseScript,
+  addTestScript,
   sendAndWaitForErrorCard,
   sendAndWaitForResponse
 };
