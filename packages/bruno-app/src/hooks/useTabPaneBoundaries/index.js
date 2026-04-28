@@ -55,6 +55,8 @@ export function useTabPaneBoundaries(activeTabUid) {
       dispatch(expandResponsePane({ uid: activeTabUid }));
     },
     reset() {
+      dispatch(expandRequestPane({ uid: activeTabUid }));
+      dispatch(expandResponsePane({ uid: activeTabUid }));
       dispatch(updateRequestPaneTabHeight({
         uid: activeTabUid,
         requestPaneHeight: MIN_TOP_PANE_HEIGHT
@@ -63,8 +65,6 @@ export function useTabPaneBoundaries(activeTabUid) {
         uid: activeTabUid,
         requestPaneWidth: (screenWidth - asideWidth) / DEFAULT_PANE_WIDTH_DIVISOR
       }));
-      dispatch(expandRequestPane({ uid: activeTabUid }));
-      dispatch(expandResponsePane({ uid: activeTabUid }));
     }
   };
 }
