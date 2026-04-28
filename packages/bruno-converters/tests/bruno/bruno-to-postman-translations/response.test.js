@@ -298,6 +298,18 @@ const headers2 = pm.response.headers;
     expect(translatedCode).toBe('const custom = pm.response.headers.filter(h => h.key.startsWith("x-"));');
   });
 
+  it('should translate res.headerList.one to pm.response.headers.one', () => {
+    const code = 'const first = res.headerList.one("content-type");';
+    const translatedCode = translateBruToPostman(code);
+    expect(translatedCode).toBe('const first = pm.response.headers.one("content-type");');
+  });
+
+  it('should translate res.headerList.find to pm.response.headers.find', () => {
+    const code = 'const found = res.headerList.find(h => h.key === "x-request-id");';
+    const translatedCode = translateBruToPostman(code);
+    expect(translatedCode).toBe('const found = pm.response.headers.find(h => h.key === "x-request-id");');
+  });
+
   it('should translate res.headerList.toObject to pm.response.headers.toObject', () => {
     const code = 'const obj = res.headerList.toObject();';
     const translatedCode = translateBruToPostman(code);
