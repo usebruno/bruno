@@ -65,6 +65,9 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
     delete request.headers[key];
     request.headers[_interpolate(key)] = _interpolate(value);
   });
+  if (request.apiKeyHeaderName) {
+    request.apiKeyHeaderName = _interpolate(request.apiKeyHeaderName);
+  }
 
   const contentType = getContentType(request.headers);
   const isGraphqlRequest = request.mode === 'graphql';

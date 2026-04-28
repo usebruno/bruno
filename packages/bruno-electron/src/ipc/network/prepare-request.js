@@ -85,6 +85,7 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
         if (apiKeyAuth.key.length === 0) break;
         if (apiKeyAuth.placement === 'header') {
           axiosRequest.headers[apiKeyAuth.key] = apiKeyAuth.value;
+          axiosRequest.apiKeyHeaderName = apiKeyAuth.key;
         } else if (apiKeyAuth.placement === 'queryparams') {
           // If the API key authentication is set and its placement is 'queryparams', add it to the axios request object. This will be used in the configureRequest function to append the API key to the query parameters of the request URL.
           axiosRequest.apiKeyAuthValueForQueryParams = apiKeyAuth;
@@ -338,6 +339,7 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
         if (apiKeyAuth.key.length === 0) break;
         if (apiKeyAuth.placement === 'header') {
           axiosRequest.headers[apiKeyAuth.key] = apiKeyAuth.value;
+          axiosRequest.apiKeyHeaderName = apiKeyAuth.key;
         } else if (apiKeyAuth.placement === 'queryparams') {
           // If the API key authentication is set and its placement is 'queryparams', add it to the axios request object. This will be used in the configureRequest function to append the API key to the query parameters of the request URL.
           axiosRequest.apiKeyAuthValueForQueryParams = apiKeyAuth;
