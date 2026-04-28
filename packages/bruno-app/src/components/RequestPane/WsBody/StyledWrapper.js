@@ -30,7 +30,7 @@ const Wrapper = styled.div`
     align-items: center;
     gap: 4px;
     font-size: 0.875rem;
-    color: ${(props) => props.theme.request.ws};
+    color: ${(props) => props.theme.primary.text};
     cursor: pointer;
     background: none;
     border: none;
