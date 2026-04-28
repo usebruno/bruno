@@ -35,6 +35,18 @@ const environmentSchema = Yup.object({
 
 const environmentsSchema = Yup.array().of(environmentSchema);
 
+const collectionScriptSchema = Yup.object({
+  uid: uidSchema,
+  name: Yup.string().min(1).required('name is required'),
+  file: Yup.string().min(1).required('file is required'),
+  runOn: Yup.array()
+    .of(Yup.string().oneOf(['appStart', 'collectionOpen', 'beforeCollectionRun']))
+    .default([]),
+  outputMode: Yup.string().oneOf(['envVars', 'stdout']).default('envVars')
+})
+  .noUnknown(true)
+  .strict();
+
 const keyValueSchema = Yup.object({
   uid: uidSchema,
   name: Yup.string().nullable(),
@@ -699,5 +711,6 @@ module.exports = {
   environmentSchema,
   environmentsSchema,
   collectionSchema,
+  collectionScriptSchema,
   annotationSchema
 };
