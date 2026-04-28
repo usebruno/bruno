@@ -66,6 +66,7 @@ import {
 
 import { each } from 'lodash';
 import { closeAllCollectionTabs, closeTabs as _closeTabs, focusTab, reopenLastClosedTab } from 'providers/ReduxStore/slices/tabs';
+import { clearOpenApiSyncTabState } from 'providers/ReduxStore/slices/openapi-sync';
 import { removeCollectionFromWorkspace } from 'providers/ReduxStore/slices/workspaces';
 import { resolveRequestFilename } from 'utils/common/platform';
 import { interpolateUrl, parsePathParams, splitOnFirst } from 'utils/url/index';
@@ -3170,6 +3171,9 @@ export const ensureActiveTabInCurrentWorkspace = () => (dispatch, getState) => {
 /**
  * Close tabs and delete any transient request files from the filesystem.
  * This thunk wraps the closeTabs reducer to handle transient file cleanup automatically.
+ * Also drops openapi-sync redux state (drift, storedSpec, tabUiState) for any
+ * openapi-sync tab that's about to close — collected BEFORE the close so we can
+ * still read the closing tabs' collectionUids from state.
  */
 export const closeTabs = ({ tabUids }) => async (dispatch, getState) => {
   const { ipcRenderer } = window;
@@ -3195,6 +3199,10 @@ export const closeTabs = ({ tabUids }) => async (dispatch, getState) => {
     }
   });
 
+  const closingOpenApiSyncCollectionUids = (state.tabs?.tabs || [])
+    .filter((t) => tabUids.includes(t.uid) && t.type === 'openapi-sync' && t.collectionUid)
+    .map((t) => t.collectionUid);
+
   // Close the tabs first
   await dispatch(_closeTabs({ tabUids }));
 
@@ -3205,6 +3213,11 @@ export const closeTabs = ({ tabUids }) => async (dispatch, getState) => {
   // After close, the reducer may have set active tab to one from another workspace. Ensure it belongs to this workspace: prefer any open in-workspace tab, then workspace overview if none.
   // Dispatch is synchronous; state is already updated by _closeTabs above.
   await dispatch(ensureActiveTabInCurrentWorkspace());
+
+  // Drop openapi-sync per-collection state (drift, storedSpec, tabUiState) for any closed openapi-sync tabs.
+  for (const collectionUid of closingOpenApiSyncCollectionUids) {
+    dispatch(clearOpenApiSyncTabState({ collectionUid }));
+  }
 
   // Delete transient files after tabs are closed
   for (const [tempDir, filePaths] of Object.entries(transientByTempDir)) {
