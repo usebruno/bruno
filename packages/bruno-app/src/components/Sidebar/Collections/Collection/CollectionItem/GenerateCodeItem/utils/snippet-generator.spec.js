@@ -1246,8 +1246,7 @@ describe('generateSnippet – encodeUrl setting', () => {
     const item = makeItem(rawUrl, { encodeUrl: false });
 
     const result = generateSnippet({ language, item, collection: baseCollection, shouldInterpolate: false });
-    expect(result).toContain('start=2026-02-01T00:00:00.000Z&a=b');
-    expect(result).not.toContain('%3A');
+    expect(result).toBe(`curl -X GET '${rawUrl}'`);
   });
 
   it('should encode URL with multiple query params in non-alphabetical order when encodeUrl is true', () => {
@@ -1255,9 +1254,7 @@ describe('generateSnippet – encodeUrl setting', () => {
     const item = makeItem(rawUrl, { encodeUrl: true });
 
     const result = generateSnippet({ language, item, collection: baseCollection, shouldInterpolate: false });
-    expect(result).toContain('%3A');
-    expect(result).toContain('start=');
-    expect(result).toContain('a=b');
+    expect(result).toBe('curl -X GET \'https://example.com/api?start=2026-02-01T00%3A00%3A00.000Z&a=b\'');
   });
 
   it('should preserve param order in raw URL when encodeUrl is false and params are reverse-alphabetical', () => {
@@ -1265,6 +1262,6 @@ describe('generateSnippet – encodeUrl setting', () => {
     const item = makeItem(rawUrl, { encodeUrl: false });
 
     const result = generateSnippet({ language, item, collection: baseCollection, shouldInterpolate: false });
-    expect(result).toContain('?z=last&a=first&m=middle');
+    expect(result).toBe(`curl -X GET '${rawUrl}'`);
   });
 });
