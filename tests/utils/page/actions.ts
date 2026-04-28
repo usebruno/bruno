@@ -828,7 +828,10 @@ const selectPaneTab = async (page: Page, paneSelector: string, tabName: string) 
 
       // Wait for dropdown to appear and click the menu item
       const dropdownItem = page.locator('.tippy-box .dropdown-item').filter({ hasText: tabName });
-      await dropdownItem.click();
+      await dropdownItem.waitFor({ state: 'visible' });
+
+      await page.waitForTimeout(50);
+      await dropdownItem.click({ force: true });
       await expect(visibleTab).toContainClass('active');
       return;
     }
