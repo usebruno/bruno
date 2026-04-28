@@ -8,6 +8,7 @@ const fs = require('node:fs');
 const { mergeHeaders, mergeScripts, mergeVars, mergeAuth, getTreePathFromCollectionToItem } = require('../utils/collection');
 const path = require('node:path');
 const { isLargeFile } = require('../utils/filesystem');
+const { createFormData } = require('../utils/form-data');
 const { getFormattedOauth2Credentials } = require('../utils/oauth2');
 
 const STREAMING_FILE_SIZE_THRESHOLD = 20 * 1024 * 1024; // 20MB
@@ -403,37 +404,8 @@ const prepareRequest = async (item = {}, collection = {}) => {
   }
 
   if (request.body.mode === 'multipartForm') {
-    const FormData = require('form-data');
     const enabledParams = filter(request.body.multipartForm, (p) => p.enabled);
-    const form = new FormData();
-    each(enabledParams, (param) => {
-      if (param.type === 'file') {
-        const filePaths = Array.isArray(param.value) ? param.value : [param.value];
-        each(filePaths, (filePath) => {
-          if (filePath) {
-            if (!path.isAbsolute(filePath)) {
-              filePath = path.join(collectionPath, filePath);
-            }
-            const opts = { filename: path.basename(filePath) };
-            if (param.contentType) opts.contentType = param.contentType;
-            try {
-              form.append(
-                param.name,
-                isLargeFile(filePath, STREAMING_FILE_SIZE_THRESHOLD)
-                  ? fs.createReadStream(filePath)
-                  : fs.readFileSync(filePath),
-                opts
-              );
-            } catch (error) {
-              console.error('Error reading file:', error);
-            }
-          }
-        });
-      } else {
-        const opts = param.contentType ? { contentType: param.contentType } : {};
-        form.append(param.name, param.value || '', Object.keys(opts).length ? opts : undefined);
-      }
-    });
+    const form = createFormData(enabledParams, collectionPath, STREAMING_FILE_SIZE_THRESHOLD);
     Object.assign(axiosRequest.headers, form.getHeaders());
     axiosRequest.data = form;
   }
