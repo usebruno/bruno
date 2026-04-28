@@ -175,7 +175,6 @@ const ManageWorkspace = () => {
                       </button>
                     </MenuDropdown>
                   )}
-
                 </div>
               </div>
             );
