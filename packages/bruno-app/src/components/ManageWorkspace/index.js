@@ -154,7 +154,6 @@ const ManageWorkspace = () => {
                       <span>{getRevealInFolderLabel()}</span>
                     </button>
                   )}
-
                   {(workspace.pathname || !isDefault) && (
                     <MenuDropdown
                       placement="bottom-end"
