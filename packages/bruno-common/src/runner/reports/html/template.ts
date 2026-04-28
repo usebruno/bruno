@@ -1,10 +1,6 @@
-type ReportRequestResult = {
-  status?: string;
-  testResults?: { status?: string }[];
-  assertionResults?: { status?: string }[];
-};
+import type { T_RunnerRequestExecutionResult } from '../../types';
 
-export const getFilteredRequestResults = (results: ReportRequestResult[] = [], onlyFailed = false) => {
+export const getFilteredRequestResults = (results: T_RunnerRequestExecutionResult[] = [], onlyFailed = false) => {
   const indexedResults = (Array.isArray(results) ? results : []).map((value, index) => ({ value, index }));
 
   if (!onlyFailed) {
