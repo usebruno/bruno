@@ -2,11 +2,8 @@ import { getFilteredRequestResults } from './template';
 import vm from 'vm';
 
 describe('getFilteredRequestResults', () => {
-  it('serialized function works in a plain JS context', () => {
-    const ctx = vm.createContext({});
-    vm.runInContext(`var fn = ${getFilteredRequestResults.toString()}`, ctx);
-
-    const result = vm.runInContext(`fn([
+  it('preserves original request indexes when filtering failed results', () => {
+    const results = [
       {
         path: '01-passing',
         status: 'pass',
@@ -19,11 +16,15 @@ describe('getFilteredRequestResults', () => {
         testResults: [{ description: 'forced failure', status: 'fail' }],
         assertionResults: []
       }
-    ], true)`, ctx);
+    ];
+    const ctx = vm.createContext({ results });
+    vm.runInContext(`var fn = ${getFilteredRequestResults.toString()}`, ctx);
+
+    const result = vm.runInContext('fn(results, true)', ctx);
 
     expect(result).toEqual([
       {
-        value: expect.objectContaining({ path: '02-failing', status: 'pass' }),
+        value: results[1],
         index: 1
       }
     ]);
