@@ -47,7 +47,8 @@ const defaultPreferences = {
     responsePaneOrientation: 'horizontal'
   },
   beta: {
-    'openapi-sync': false
+    'openapi-sync': false,
+    'monaco-editor': false
   },
   onboarding: {
     hasLaunchedBefore: false,
@@ -114,7 +115,8 @@ const preferencesSchema = Yup.object().shape({
     responsePaneOrientation: Yup.string().oneOf(['horizontal', 'vertical'])
   }),
   beta: Yup.object({
-    'openapi-sync': Yup.boolean()
+    'openapi-sync': Yup.boolean(),
+    'monaco-editor': Yup.boolean()
   }),
   onboarding: Yup.object({
     hasLaunchedBefore: Yup.boolean(),

@@ -1,7 +1,7 @@
 import React from 'react';
 import get from 'lodash/get';
 import find from 'lodash/find';
-import CodeEditor from 'components/CodeEditor';
+import ScriptEditor from 'components/ScriptEditor';
 import FormUrlEncodedParams from 'components/RequestPane/FormUrlEncodedParams';
 import MultipartFormParams from 'components/RequestPane/MultipartFormParams';
 import { useDispatch, useSelector } from 'react-redux';
@@ -61,7 +61,7 @@ const RequestBody = ({ item, collection }) => {
 
     return (
       <StyledWrapper className="w-full" data-testid="request-body-editor">
-        <CodeEditor
+        <ScriptEditor
           collection={collection}
           item={item}
           theme={displayedTheme}
