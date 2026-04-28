@@ -157,7 +157,6 @@ const configureRequest = async (
 
   if (request.ntlmConfig) {
     axiosInstance = NtlmClient(request.ntlmConfig, axiosInstance.defaults);
-    delete request.ntlmConfig;
   }
 
   if (request.oauth1config) {
@@ -301,7 +300,6 @@ const configureRequest = async (
   if (request.awsv4config) {
     request.awsv4config = await resolveAwsV4Credentials(request);
     addAwsV4Interceptor(axiosInstance, request);
-    delete request.awsv4config;
   }
 
   if (request.digestConfig) {

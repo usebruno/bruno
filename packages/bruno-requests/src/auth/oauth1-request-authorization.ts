@@ -365,9 +365,6 @@ export function applyOAuth1ToRequest(request: {
     version, realm, placement, includeBodyHash
   } = request.oauth1config;
 
-  // Clear credentials from the request object before any operation that could throw
-  delete (request as any).oauth1config;
-
   // Resolve private key: read from file if privateKeyType is 'file', otherwise use as-is
   let resolvedPrivateKey: string | undefined;
   if (privateKey) {
