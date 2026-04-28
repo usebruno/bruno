@@ -25,39 +25,108 @@ window.JSHINT = JSHINT;
 const TAB_SIZE = 2;
 
 /*
- * Per-tab Doc cache — why this exists:
+ * Per-tab editor state persistence — why this exists:
  *
- * CodeMirror 5 splits an editor into two objects: the Editor (UI shell) and the
- * Doc (content + cursor + selection + undo history + TextMarkers like folds).
- * Previously, every tab switch called `editor.setValue(newContent)` which mutates
- * the current Doc and destroys all of that state. Users lost folds, cursor,
- * selection, and undo history on every switch.
+ * Every tab switch causes CodeMirror's setValue() to wipe folds, cursor,
+ * selection, undo history, and scroll position. To preserve them, we serialize
+ * the relevant pieces to localStorage under a stable key for each editor and
+ * re-apply them on mount / tab switch. CodeMirror exposes a JSON-serializable
+ * representation of its undo stack via getHistory()/setHistory(), which is what
+ * makes Cmd-Z continue working across switches.
  *
- * Instead, we keep one Doc per (item, mode, readOnly) combination in this cache.
- * On tab switch we call `editor.swapDoc(cachedDoc)` — CM5's native multi-document
- * API — which atomically swaps the entire Doc and preserves every piece of
- * per-tab state for free.
- *
- * Constraint: a Doc can be attached to only one editor at a time (CM5 enforces
- * this via `doc.cm`). See componentWillUnmount for how we release the Doc.
+ * Note: we deliberately do NOT persist the content itself — the canonical value
+ * lives in Redux (props.value). We only persist the editor's "view" state on
+ * top of that content. If content has drifted between save and restore, fold
+ * positions are applied leniently (foldCode silently no-ops on invalid lines)
+ * and history is skipped to avoid an inconsistent undo stack.
  */
-const docCache = new Map();
+const STORAGE_PREFIX = 'persisted::codeeditor::';
 
-const getOrCreateDoc = (key, content, mode) => {
-  let doc = docCache.get(key);
-  if (doc) {
-    // The cached Doc may have stale content if props.value changed while this
-    // tab was inactive (e.g. a new response arrived). Sync the content so the
-    // user sees the latest value. This does reset fold state on this Doc, but
-    // that's correct — fold positions for old content are meaningless.
-    if (doc.getValue() !== content) {
-      doc.setValue(content);
-    }
-    return doc;
+const readPersistedEditorState = (key) => {
+  try {
+    const raw = localStorage.getItem(STORAGE_PREFIX + key);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
   }
-  doc = new CodeMirror.Doc(content, mode);
-  docCache.set(key, doc);
-  return doc;
+};
+
+const writePersistedEditorState = (key, state) => {
+  try {
+    if (state == null) {
+      localStorage.removeItem(STORAGE_PREFIX + key);
+    } else {
+      localStorage.setItem(STORAGE_PREFIX + key, JSON.stringify(state));
+    }
+  } catch {
+    // localStorage may be unavailable or full — silently ignore
+  }
+};
+
+// Removes every persisted CodeEditor entry whose docKey starts with `${tabUid}:`.
+// Called from the closeTabs thunk so a closed tab doesn't leak its editor state
+// (folds, history, cursor, scroll) in localStorage forever.
+export const clearCodeEditorPersistedState = (tabUid) => {
+  if (!tabUid) return;
+  try {
+    const prefix = `${STORAGE_PREFIX}${tabUid}:`;
+    Object.keys(localStorage)
+      .filter((k) => k.startsWith(prefix))
+      .forEach((k) => localStorage.removeItem(k));
+  } catch {
+    // localStorage may be unavailable — silently ignore
+  }
+};
+
+const captureEditorState = (editor) => {
+  if (!editor) return null;
+  const doc = editor.getDoc();
+  const folds = editor
+    .getAllMarks()
+    .filter((m) => m.__isFold)
+    .map((m) => m.find())
+    .filter(Boolean)
+    .map((range) => range.from);
+  return {
+    contentLength: doc.getValue().length,
+    cursor: doc.getCursor(),
+    selections: doc.listSelections(),
+    history: doc.getHistory(),
+    folds,
+    scrollY: editor.getScrollInfo().top
+  };
+};
+
+const applyEditorState = (editor, state, currentContent) => {
+  if (!editor || !state) return;
+  const doc = editor.getDoc();
+  const contentMatches = state.contentLength === (currentContent || '').length;
+
+  // History/cursor/selection only make sense if content didn't drift — applying
+  // a stale undo stack to different content would let Cmd-Z replay edits that
+  // no longer correspond to anything visible.
+  if (contentMatches) {
+    if (state.history) {
+      try { doc.setHistory(state.history); } catch {}
+    }
+    if (state.cursor) {
+      try { doc.setCursor(state.cursor); } catch {}
+    }
+    if (state.selections && state.selections.length) {
+      try { doc.setSelections(state.selections); } catch {}
+    }
+  }
+  // Folds are cheap and lenient — try them either way.
+  if (state.folds && state.folds.length) {
+    editor.operation(() => {
+      state.folds.forEach((from) => {
+        try { editor.foldCode(from); } catch {}
+      });
+    });
+  }
+  if (state.scrollY != null) {
+    try { editor.scrollTo(null, state.scrollY); } catch {}
+  }
 };
 
 export default class CodeEditor extends React.Component {
@@ -229,29 +298,14 @@ export default class CodeEditor extends React.Component {
     });
 
     if (editor) {
-      // CodeMirror(node, { value }) created a throwaway initial Doc from props.value.
-      // Replace it with this tab's cached Doc so any previously preserved folds,
-      // cursor, selection, and undo history are restored.
+      // CM5 was constructed with props.value, so the editor already shows the
+      // right content. Read this tab's previously persisted view state from
+      // localStorage and apply it on top — restores folds, cursor, selection,
+      // undo history, and scroll position.
       const docKey = this._getDocKey();
-      let doc = getOrCreateDoc(
-        docKey,
-        this.props.value || '',
-        this.props.mode || 'application/ld+json'
-      );
-      // Defensive fallback: a CM5 Doc can only be attached to one editor at a
-      // time. If the cached Doc is still attached to a previous (dead) editor —
-      // e.g. React StrictMode double-mounting, or an unmount that skipped our
-      // release logic — swapDoc would throw "document already in use". Replace
-      // the cache entry with a fresh Doc in that case.
-      if (doc.cm && doc.cm !== editor) {
-        doc = new CodeMirror.Doc(this.props.value || '', this.props.mode || 'application/ld+json');
-        docCache.set(docKey, doc);
-      }
-      if (doc !== editor.getDoc()) {
-        editor.swapDoc(doc);
-      }
       this._currentDocKey = docKey;
       this.cachedValue = editor.getValue();
+      applyEditorState(editor, readPersistedEditorState(docKey), this.cachedValue);
 
       editor.setOption('lint', this.props.mode && editor.getValue().trim().length > 0 ? this.lintOptions : false);
       editor.on('change', this._onEdit);
@@ -298,32 +352,25 @@ export default class CodeEditor extends React.Component {
     }
     if (this.editor) {
       // Two distinct update paths:
-      //   1. Doc key changed  → tab switch    → swapDoc (preserves all per-tab state)
-      //   2. Same doc, value changed → external content update → setValue (state resets)
+      //   1. Doc key changed → tab switch → snapshot outgoing state, load new content, restore incoming state
+      //   2. Same doc, value changed → external content update → setValue (view state resets)
       const newDocKey = this._getDocKey();
       const docKeyChanged = newDocKey !== this._currentDocKey;
 
       if (docKeyChanged) {
-        // Path 1 — tab switch. Look up (or create) the incoming tab's Doc and
-        // swap it in. CM5 handles the rest: the outgoing Doc keeps its folds,
-        // cursor, selection, undo history, and scroll in docCache for later;
-        // the incoming Doc restores whatever state it had when last visited.
-        let doc = getOrCreateDoc(
-          newDocKey,
-          this.props.value || '',
-          this.props.mode || 'application/ld+json'
-        );
-        // Same defensive fallback as componentDidMount — see there for why.
-        if (doc.cm && doc.cm !== this.editor) {
-          doc = new CodeMirror.Doc(this.props.value || '', this.props.mode || 'application/ld+json');
-          docCache.set(newDocKey, doc);
+        // Path 1 — tab switch.
+        // Snapshot the outgoing tab's view state to localStorage so a future
+        // visit can restore it. Then setValue the incoming content and apply
+        // any view state previously persisted for the incoming tab.
+        if (this._currentDocKey) {
+          writePersistedEditorState(this._currentDocKey, captureEditorState(this.editor));
         }
-        this.editor.swapDoc(doc);
+        this.cachedValue = String(this?.props?.value ?? '');
+        this.editor.setValue(String(this.props.value) || '');
         this._currentDocKey = newDocKey;
-        this.cachedValue = this.editor.getValue();
-        // swapDoc resets the editor's mode to whatever mode the incoming Doc
-        // was created with (raw, not the 'brunovariables' overlay). Re-apply
-        // the overlay and re-evaluate lint config for the new content.
+        applyEditorState(this.editor, readPersistedEditorState(newDocKey), this.cachedValue);
+        // setValue resets the editor's mode-overlay state — re-apply the
+        // brunovariables overlay and re-evaluate lint config for the new content.
         this.addOverlay();
         this.editor.setOption(
           'lint',
@@ -331,12 +378,15 @@ export default class CodeEditor extends React.Component {
         );
       } else if (this.props.value !== prevProps.value && this.props.value !== this.cachedValue) {
         // Path 2 — same tab, new external value (e.g. a fresh response arrived
-        // while this tab was active). Update the current Doc via setValue. Fold
-        // state resets because line positions no longer correspond to anything.
+        // while this tab was active). Update content; view state resets because
+        // line positions no longer correspond to anything. Invalidate the
+        // persisted snapshot too, since the saved cursor/folds/history reflect
+        // the prior content.
         const cursor = this.editor.getCursor();
         this.cachedValue = String(this?.props?.value ?? '');
         this.editor.setValue(String(this.props.value) || '');
         this.editor.setCursor(cursor);
+        writePersistedEditorState(this._currentDocKey, null);
       }
     }
 
@@ -386,27 +436,18 @@ export default class CodeEditor extends React.Component {
         this.props.onScroll(this.editor);
       }
 
+      // Snapshot view state to localStorage before tearing down the editor so
+      // the next mount of a CodeEditor with this docKey can restore folds,
+      // cursor, selection, undo history, and scroll position.
+      if (this._currentDocKey) {
+        writePersistedEditorState(this._currentDocKey, captureEditorState(this.editor));
+      }
+
       this.editor?._destroyLinkAware?.();
       this.editor.off('change', this._onEdit);
 
       // Clean up lint error tooltip
       this.cleanupLintErrorTooltip?.();
-
-      // Release the cached Doc before the editor goes away.
-      //
-      // A CM5 Doc can only be attached to one editor at a time (enforced via
-      // doc.cm). If we destroy this editor without swapping the cached Doc out,
-      // CM5 still considers the Doc attached — and the next CodeEditor to mount
-      // for this tab will throw "This document is already in use." on swapDoc.
-      //
-      // Swapping in a fresh throwaway Doc clears doc.cm on our cached Doc while
-      // leaving its content, folds, cursor, and undo history intact inside
-      // docCache, ready to be attached to the next editor instance.
-      try {
-        this.editor.swapDoc(new CodeMirror.Doc('', this.props.mode || 'application/ld+json'));
-      } catch (e) {
-        // noop — swapDoc can fail if the editor is already in a bad state
-      }
 
       const wrapper = this.editor.getWrapperElement();
       wrapper?.parentNode?.removeChild(wrapper);
