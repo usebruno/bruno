@@ -670,6 +670,58 @@ function processTransformations(ast, transformedNodes) {
   });
 }
 
+// Postman provides these as sandbox globals. Bruno requires explicit require()
+const POSTMAN_LIBRARY_GLOBALS = {
+  CryptoJS: 'crypto-js',
+  _: 'lodash',
+  moment: 'moment',
+  cheerio: 'cheerio',
+  tv4: 'tv4'
+};
+
+/**
+ * Inject require() for Postman sandbox globals (CryptoJS, _, moment, cheerio,
+ * tv4) used as X.foo or X(...) and not visible in any enclosing scope at the
+ * usage site. Requires are prepended to the program body, sorted alphabetically.
+ *
+ * @param {Collection} ast - jscodeshift AST
+ */
+function injectLibraryRequires(ast) {
+  const libraryNames = new Set(Object.keys(POSTMAN_LIBRARY_GLOBALS));
+  const usedLibraries = new Set();
+
+  ast.find(j.Identifier).forEach((path) => {
+    const name = path.value.name;
+    if (!libraryNames.has(name)) return;
+
+    const parent = path.parent.value;
+
+    // check for library usage: X.something (X is object) or X(...) (X is callee)
+    const isLibraryUsage
+      = (parent.type === 'MemberExpression' && parent.object === path.value && !parent.computed)
+        || (parent.type === 'CallExpression' && parent.callee === path.value);
+    if (!isLibraryUsage) return;
+
+    // skip if the name is bound in any enclosing scope at this position
+    if (path.scope && path.scope.lookup(name)) return;
+
+    usedLibraries.add(name);
+  });
+
+  if (usedLibraries.size === 0) return;
+
+  const declarations = [...usedLibraries].sort().map((name) =>
+    j.variableDeclaration('const', [
+      j.variableDeclarator(
+        j.identifier(name),
+        j.callExpression(j.identifier('require'), [j.literal(POSTMAN_LIBRARY_GLOBALS[name])])
+      )
+    ])
+  );
+
+  ast.get().value.program.body.unshift(...declarations);
+}
+
 /**
  * Translates Postman script code to Bruno script code
  * @param {string} code - The Postman script code to translate
@@ -699,6 +751,9 @@ function translateCode(code) {
 
   // Handle special Postman syntax patterns
   handleTestsBracketNotation(ast);
+
+  // Inject require() for Postman sandbox globals
+  injectLibraryRequires(ast);
 
   return ast.toSource();
 }
