@@ -360,6 +360,93 @@ const addCollectionToWorkspace = async (workspacePath, collection) => {
   });
 };
 
+const getCollectionGitignoreEntry = (workspacePath, collectionPath) => {
+  const absolute = path.isAbsolute(collectionPath)
+    ? collectionPath
+    : path.resolve(workspacePath, collectionPath);
+  const relative = path.relative(workspacePath, absolute);
+  if (!relative || relative.startsWith('..') || path.isAbsolute(relative)) return null;
+  return posixifyPath(relative).replace(/\/+$/, '') + '/';
+};
+
+const addCollectionToWorkspaceGitignore = async (workspacePath, collectionPath) => {
+  const entry = getCollectionGitignoreEntry(workspacePath, collectionPath);
+  if (!entry) return;
+
+  const gitignorePath = path.join(workspacePath, '.gitignore');
+  const existing = fs.existsSync(gitignorePath) ? fs.readFileSync(gitignorePath, 'utf8') : '';
+
+  if (existing.split('\n').some((line) => line.trim() === entry)) return;
+
+  const prefix = existing.length === 0 || existing.endsWith('\n') ? existing : existing + '\n';
+  await writeFile(gitignorePath, `${prefix}${entry}\n`);
+};
+
+const removeCollectionFromWorkspaceGitignore = async (workspacePath, collectionPath) => {
+  const entry = getCollectionGitignoreEntry(workspacePath, collectionPath);
+  if (!entry) return;
+
+  const gitignorePath = path.join(workspacePath, '.gitignore');
+  if (!fs.existsSync(gitignorePath)) return;
+
+  const lines = fs.readFileSync(gitignorePath, 'utf8').split('\n');
+  const filtered = lines.filter((line) => line.trim() !== entry);
+  if (filtered.length === lines.length) return;
+
+  await writeFile(gitignorePath, filtered.join('\n'));
+};
+
+const setCollectionGitRemote = async (workspacePath, collectionPath, remoteUrl) => {
+  if (typeof remoteUrl !== 'string' || remoteUrl.trim() === '') {
+    throw new Error('A non-empty Git remote URL is required');
+  }
+  const trimmedUrl = remoteUrl.trim();
+
+  return withLock(getWorkspaceLockKey(workspacePath), async () => {
+    const config = readWorkspaceConfig(workspacePath);
+    const target = path.normalize(collectionPath);
+    let matched = false;
+
+    config.collections = (config.collections || []).map((c) => {
+      if (getNormalizedAbsoluteCollectionPath(workspacePath, c) !== target) return c;
+      matched = true;
+      return { ...c, remote: trimmedUrl };
+    });
+
+    if (!matched) {
+      throw new Error('Collection not found in workspace');
+    }
+
+    await writeWorkspaceFileAtomic(workspacePath, generateYamlContent(config));
+    await addCollectionToWorkspaceGitignore(workspacePath, collectionPath);
+    return config;
+  });
+};
+
+const clearCollectionGitRemote = async (workspacePath, collectionPath) => {
+  return withLock(getWorkspaceLockKey(workspacePath), async () => {
+    const config = readWorkspaceConfig(workspacePath);
+    const target = path.normalize(collectionPath);
+    let matched = false;
+
+    config.collections = (config.collections || []).map((c) => {
+      if (getNormalizedAbsoluteCollectionPath(workspacePath, c) !== target) return c;
+      matched = true;
+      const updated = { ...c };
+      delete updated.remote;
+      return updated;
+    });
+
+    if (!matched) {
+      throw new Error('Collection not found in workspace');
+    }
+
+    await writeWorkspaceFileAtomic(workspacePath, generateYamlContent(config));
+    await removeCollectionFromWorkspaceGitignore(workspacePath, collectionPath);
+    return config;
+  });
+};
+
 const removeCollectionFromWorkspace = async (workspacePath, collectionPath) => {
   return withLock(getWorkspaceLockKey(workspacePath), async () => {
     const config = readWorkspaceConfig(workspacePath);
@@ -432,36 +519,34 @@ const reorderWorkspaceCollections = async (workspacePath, collectionPaths) => {
   });
 };
 
+const resolveAndFilterWorkspaceCollections = (workspacePath, rawCollections) => {
+  const seenPaths = new Set();
+
+  return (rawCollections || [])
+    .map((collection) => {
+      if (!collection.path) return collection;
+      const collectionPath = posixifyPath(collection.path);
+      const absolute = path.isAbsolute(collectionPath)
+        ? collectionPath
+        : path.resolve(workspacePath, collectionPath);
+      return { ...collection, path: absolute };
+    })
+    .map((collection) => {
+      if (!collection.path) return null;
+      const normalizedPath = path.normalize(collection.path);
+      if (seenPaths.has(normalizedPath)) return null;
+      seenPaths.add(normalizedPath);
+
+      if (isValidCollectionDirectory(collection.path)) return collection;
+      if (collection.remote) return { ...collection, notFoundLocally: true };
+      return null;
+    })
+    .filter(Boolean);
+};
+
 const getWorkspaceCollections = (workspacePath) => {
   const config = readWorkspaceConfig(workspacePath);
-  const collections = config.collections || [];
-
-  const seenPaths = new Set();
-  return collections
-    .map((collection) => {
-      const collectionPath = collection.path ? posixifyPath(collection.path) : collection.path;
-      if (collectionPath && !path.isAbsolute(collectionPath)) {
-        return {
-          ...collection,
-          path: path.resolve(workspacePath, collectionPath)
-        };
-      }
-      return { ...collection, path: collectionPath };
-    })
-    .filter((collection) => {
-      if (!collection.path) {
-        return false;
-      }
-      const normalizedPath = path.normalize(collection.path);
-      if (seenPaths.has(normalizedPath)) {
-        return false;
-      }
-      seenPaths.add(normalizedPath);
-      if (!isValidCollectionDirectory(collection.path)) {
-        return false;
-      }
-      return true;
-    });
+  return resolveAndFilterWorkspaceCollections(workspacePath, config.collections);
 };
 
 const getWorkspaceApiSpecs = (workspacePath) => {
@@ -571,8 +656,11 @@ module.exports = {
   updateWorkspaceDocs,
   addCollectionToWorkspace,
   removeCollectionFromWorkspace,
+  setCollectionGitRemote,
+  clearCollectionGitRemote,
   reorderWorkspaceCollections,
   getWorkspaceCollections,
+  resolveAndFilterWorkspaceCollections,
   getWorkspaceApiSpecs,
   addApiSpecToWorkspace,
   removeApiSpecFromWorkspace,
