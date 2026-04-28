@@ -65,8 +65,10 @@ const workspaceSchema = yup.object({
 const devToolsSchema = yup.object({
   open: yup.boolean().required(),
   height: yup.number().required(),
-  tab: yup.string().required(),
-  tabData: yup.object()
+  console: yup.object().shape({}).optional(),
+  network: yup.object().shape({}).optional(),
+  performance: yup.object().shape({}).optional(),
+  terminal: yup.object().shape({}).optional()
 });
 
 const snapshotSchema = yup.object({
@@ -83,9 +85,7 @@ const emptySnapshot = {
   extras: {
     devTools: {
       open: false,
-      height: 300,
-      tab: 'console',
-      tabData: {}
+      height: 300
     }
   },
   workspaces: [],
@@ -99,8 +99,6 @@ class SnapshotManager {
       clearInvalidConfig: true,
       defaults: emptySnapshot
     });
-
-    this._migrateLegacySnapshot();
   }
 
   // --- Reads ---
@@ -332,19 +330,6 @@ class SnapshotManager {
     });
   }
 
-  _migrateLegacySnapshot() {
-    try {
-      const currentSnapshot = this.store.store || {};
-      const normalizedSnapshot = this._normalizeSnapshot(currentSnapshot);
-
-      if (JSON.stringify(currentSnapshot) !== JSON.stringify(normalizedSnapshot)) {
-        this.store.store = normalizedSnapshot;
-      }
-    } catch (error) {
-      console.error('Failed to migrate snapshot:', error.message);
-    }
-  }
-
   _normalizeSnapshot(snapshot = {}) {
     return {
       activeWorkspacePath: typeof snapshot.activeWorkspacePath === 'string' ? snapshot.activeWorkspacePath : null,
@@ -357,12 +342,25 @@ class SnapshotManager {
   }
 
   _normalizeDevTools(devTools = {}) {
-    return {
+    const devToolKeys = [
+      'console',
+      'network',
+      'performance',
+      'terminal'
+    ];
+
+    const _snapshotEntry = {
       open: typeof devTools?.open === 'boolean' ? devTools.open : false,
-      height: typeof devTools?.height === 'number' ? devTools.height : 300,
-      tab: typeof devTools?.tab === 'string' ? devTools.tab : 'console',
-      tabData: isObject(devTools?.tabData) ? devTools.tabData : {}
+      height: typeof devTools?.height === 'number' ? devTools.height : 300
     };
+
+    devToolKeys.forEach((key) => {
+      if (key in devTools) {
+        _snapshotEntry[key] = devTools[key];
+      }
+    });
+
+    return _snapshotEntry;
   }
 
   _normalizeWorkspaceList(workspaces) {

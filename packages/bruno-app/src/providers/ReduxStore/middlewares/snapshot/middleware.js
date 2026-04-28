@@ -14,6 +14,7 @@ import {
   hydrateSnapshotLookups
 } from 'utils/snapshot';
 import { normalizePath } from 'utils/common/path';
+import { TAB_IDENFIERS as DEVTOOL_TABS } from 'providers/ReduxStore/slices/logs';
 
 const { ipcRenderer } = window;
 
@@ -57,14 +58,25 @@ const serializeSnapshot = async (state) => {
       .map((collectionPath) => normalizePath(collectionPath))
   );
 
+  const devToolsWithoutActive = Object.fromEntries(
+    Object.entries(existingSnapshot.extras.devTools).map(([k, v]) => {
+      if (DEVTOOL_TABS.indexOf(k) > -1) {
+        v.active = undefined;
+      }
+      return [k, v];
+    })
+  );
+
   const snapshot = {
     activeWorkspacePath: activeWorkspace?.pathname || null,
     extras: {
       devTools: {
+        ...devToolsWithoutActive,
         open: logs.isConsoleOpen,
         height: 300,
-        tab: logs.activeTab,
-        tabData: {}
+        [logs.activeTab]: {
+          active: true
+        }
       }
     },
     workspaces: [],

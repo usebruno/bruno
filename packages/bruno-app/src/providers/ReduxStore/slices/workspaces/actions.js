@@ -20,7 +20,7 @@ import {
   markSnapshotCollectionHydrated,
   clearSnapshotHydrationSession
 } from '../app';
-import { openConsole, closeConsole, setActiveTab as setActiveDevToolsTab } from '../logs';
+import { openConsole, closeConsole, setActiveTab as setActiveDevToolsTab, TAB_IDENFIERS as DEVTOOL_TABS } from '../logs';
 import { normalizePath } from 'utils/common/path';
 import { hydrateTabs, getActiveTabFromSnapshot, hydrateSnapshotLookups } from 'utils/snapshot';
 import toast from 'react-hot-toast';
@@ -724,14 +724,16 @@ export const workspaceOpenedEvent = (workspacePath, workspaceUid, workspaceConfi
 
       const currentState = getState();
       if (!currentState.app.snapshotReady && snapshot?.extras?.devTools) {
-        const { open, tab } = snapshot.extras.devTools;
+        const { open } = snapshot.extras.devTools;
         if (open) {
           dispatch(openConsole());
         } else {
           dispatch(closeConsole());
         }
-        if (tab) {
-          dispatch(setActiveDevToolsTab(tab));
+        const snapshotToolKeys = Object.keys(snapshot.extras.devTools).filter((devToolKey) => DEVTOOL_TABS.includes(devToolKey));
+        if (snapshotToolKeys.length > 0) {
+          const activeTab = snapshotToolKeys.find((tool) => snapshot.extras.devTools[tool].active);
+          dispatch(setActiveDevToolsTab(activeTab));
         }
       }
 
