@@ -1,0 +1,23 @@
+meta {
+  name: inherited-ntlm
+  type: http
+  seq: 1
+}
+
+get {
+  url: http://localhost:8081/ping
+  body: none
+  auth: inherit
+}
+
+script:pre-request {
+  test("detects inherited NTLM auth in pre-request script", function() {
+    expect(req.getAuthMode()).to.equal("ntlm");
+  });
+}
+
+tests {
+  test("detects inherited NTLM auth in test script", function() {
+    expect(req.getAuthMode()).to.equal("ntlm");
+  });
+}

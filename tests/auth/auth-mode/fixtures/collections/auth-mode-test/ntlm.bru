@@ -1,0 +1,29 @@
+meta {
+  name: ntlm
+  type: http
+  seq: 3
+}
+
+get {
+  url: http://localhost:8081/ping
+  body: none
+  auth: ntlm
+}
+
+auth:ntlm {
+  username: user
+  password: password
+  domain: domain
+}
+
+script:pre-request {
+  test("detects NTLM auth in pre-request script", function() {
+    expect(req.getAuthMode()).to.equal("ntlm");
+  });
+}
+
+tests {
+  test("detects NTLM auth in test script", function() {
+    expect(req.getAuthMode()).to.equal("ntlm");
+  });
+}

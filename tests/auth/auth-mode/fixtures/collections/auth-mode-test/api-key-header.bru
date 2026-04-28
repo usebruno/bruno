@@ -1,0 +1,34 @@
+meta {
+  name: api-key-header
+  type: http
+  seq: 10
+}
+
+get {
+  url: http://localhost:8081/ping
+  body: none
+  auth: apikey
+}
+
+auth:apikey {
+  key: {{api_key_header_name}}
+  value: {{api_key_value}}
+  placement: header
+}
+
+vars:pre-request {
+  api_key_header_name: X-API-Key
+  api_key_value: secret-key-value
+}
+
+script:pre-request {
+  test("detects API key auth for header placement in pre-request script", function() {
+    expect(req.getAuthMode()).to.equal("apikey");
+  });
+}
+
+tests {
+  test("detects API key auth for header placement in test script", function() {
+    expect(req.getAuthMode()).to.equal("apikey");
+  });
+}

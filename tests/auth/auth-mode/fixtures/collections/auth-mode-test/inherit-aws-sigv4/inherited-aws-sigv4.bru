@@ -1,0 +1,23 @@
+meta {
+  name: inherited-aws-sigv4
+  type: http
+  seq: 1
+}
+
+get {
+  url: http://localhost:8081/ping
+  body: none
+  auth: inherit
+}
+
+script:pre-request {
+  test("detects inherited AWS SigV4 auth in pre-request script", function() {
+    expect(req.getAuthMode()).to.equal("awsv4");
+  });
+}
+
+tests {
+  test("detects inherited AWS SigV4 auth in test script", function() {
+    expect(req.getAuthMode()).to.equal("awsv4");
+  });
+}

@@ -1,0 +1,23 @@
+meta {
+  name: no-auth
+  type: http
+  seq: 4
+}
+
+get {
+  url: http://localhost:8081/ping
+  body: none
+  auth: none
+}
+
+script:pre-request {
+  test("detects no auth in pre-request script", function() {
+    expect(req.getAuthMode()).to.equal("none");
+  });
+}
+
+tests {
+  test("detects no auth in test script", function() {
+    expect(req.getAuthMode()).to.equal("none");
+  });
+}

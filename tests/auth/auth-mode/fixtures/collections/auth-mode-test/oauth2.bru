@@ -1,0 +1,43 @@
+meta {
+  name: oauth2
+  type: http
+  seq: 9
+}
+
+get {
+  url: http://localhost:8081/ping
+  body: none
+  auth: oauth2
+}
+
+auth:oauth2 {
+  grant_type: authorization_code
+  callback_url: 
+  authorization_url: 
+  access_token_url: 
+  refresh_token_url: 
+  client_id: 
+  client_secret: 
+  scope: 
+  state: 
+  pkce: false
+  credentials_placement: body
+  credentials_id: credentials
+  token_source: access_token
+  token_placement: header
+  token_header_prefix: Bearer
+  auto_fetch_token: false
+  auto_refresh_token: false
+}
+
+script:pre-request {
+  test("detects OAuth2 auth in pre-request script", function() {
+    expect(req.getAuthMode()).to.equal("oauth2");
+  });
+}
+
+tests {
+  test("detects OAuth2 auth in test script", function() {
+    expect(req.getAuthMode()).to.equal("oauth2");
+  });
+}

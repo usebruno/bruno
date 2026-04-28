@@ -1,0 +1,34 @@
+meta {
+  name: api-key-query
+  type: http
+  seq: 11
+}
+
+get {
+  url: http://localhost:8081/ping
+  body: none
+  auth: apikey
+}
+
+auth:apikey {
+  key: {{api_key_query_name}}
+  value: {{api_key_value}}
+  placement: queryparams
+}
+
+vars:pre-request {
+  api_key_query_name: api_key
+  api_key_value: secret-key-value
+}
+
+script:pre-request {
+  test("detects API key auth for query placement in pre-request script", function() {
+    expect(req.getAuthMode()).to.equal("apikey");
+  });
+}
+
+tests {
+  test("detects API key auth for query placement in test script", function() {
+    expect(req.getAuthMode()).to.equal("apikey");
+  });
+}

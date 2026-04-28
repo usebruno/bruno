@@ -1,0 +1,40 @@
+meta {
+  name: oauth1
+  type: http
+  seq: 8
+}
+
+get {
+  url: http://localhost:8081/ping
+  body: none
+  auth: oauth1
+}
+
+auth:oauth1 {
+  consumer_key: consumer-key
+  consumer_secret: consumer-secret
+  access_token: access-token
+  token_secret: token-secret
+  callback_url: 
+  verifier: 
+  signature_method: PLAINTEXT
+  private_key: 
+  timestamp: 
+  nonce: 
+  version: 1.0
+  realm: 
+  placement: header
+  include_body_hash: false
+}
+
+script:pre-request {
+  test("detects OAuth1 auth in pre-request script", function() {
+    expect(req.getAuthMode()).to.equal("oauth1");
+  });
+}
+
+tests {
+  test("detects OAuth1 auth in test script", function() {
+    expect(req.getAuthMode()).to.equal("oauth1");
+  });
+}
