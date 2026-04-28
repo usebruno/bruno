@@ -23,37 +23,31 @@ const formatMultipartData = (multipartData, boundary) => {
     return 'file';
   };
 
-  const formatValue = (value) => {
-    if (Array.isArray(value)) {
-      return value.map((v) => String(v ?? '')).join(', ');
-    }
-    return String(value ?? '');
-  };
-
   const boundaryValue = normalizeBoundary(boundary);
   const parts = [];
 
   multipartData.forEach((field) => {
     if (!field || !field.name) return;
 
-    parts.push(`----${boundaryValue}`);
-    parts.push('Content-Disposition: form-data');
-
     if (field.type === 'file') {
       const filePaths = Array.isArray(field.value) ? field.value : (field.value ? [field.value] : ['']);
       filePaths.forEach((filePath) => {
-        parts.push(`----${boundaryValue}`);
-        parts.push('Content-Disposition: form-data');
         const fileName = getFileName(filePath);
-        parts.push(`name: ${field.name}`);
+        parts.push(`----${boundaryValue}`);
+        parts.push(`Content-Disposition: form-data; name: ${field.name}; filename: ${fileName}`);
+        if (field.contentType) parts.push(`Content-Type: ${field.contentType}`);
         parts.push(`value: [File: ${fileName}]`);
         parts.push('');
       });
     } else {
-      const value = formatValue(field.value);
-      parts.push(`name: ${field.name}`);
-      parts.push(`value: ${value}`);
-      parts.push('');
+      const values = Array.isArray(field.value) ? field.value : [field.value ?? ''];
+      values.forEach((val) => {
+        parts.push(`----${boundaryValue}`);
+        parts.push(`Content-Disposition: form-data; name: ${field.name}`);
+        if (field.contentType) parts.push(`Content-Type: ${field.contentType}`);
+        parts.push(`value: ${String(val ?? '')}`);
+        parts.push('');
+      });
     }
   });
 

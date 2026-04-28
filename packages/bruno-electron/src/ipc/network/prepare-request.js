@@ -475,6 +475,8 @@ const prepareRequest = async (item, collection = {}, abortController) => {
 
   if (request.body.mode === 'multipartForm') {
     const enabledParams = filter(request.body.multipartForm, (p) => p.enabled);
+    axiosRequest._originalMultipartData = enabledParams;
+    axiosRequest.collectionPath = collectionPath;
     const form = createFormData(enabledParams, collectionPath, STREAMING_FILE_SIZE_THRESHOLD);
     Object.assign(axiosRequest.headers, form.getHeaders());
     axiosRequest.data = form;
