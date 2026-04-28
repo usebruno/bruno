@@ -16,6 +16,7 @@ import StyledWrapper from './StyledWrapper';
 import MenuDropdown from 'ui/MenuDropdown/index';
 import Button from 'ui/Button';
 import { getRevealInFolderLabel } from 'utils/common/platform';
+import { openDevtoolsAndSwitchToTerminal } from 'utils/terminal';
 
 const ManageWorkspace = () => {
   const dispatch = useDispatch();
@@ -153,12 +154,20 @@ const ManageWorkspace = () => {
                       <span>{getRevealInFolderLabel()}</span>
                     </button>
                   )}
-                  {!isDefault && (
+
+                  {(workspace.pathname || !isDefault) && (
                     <MenuDropdown
                       placement="bottom-end"
                       items={[
-                        { id: 'rename', label: 'Rename', onClick: () => handleRenameClick(workspace) },
-                        { id: 'remove', label: 'Remove', onClick: () => handleCloseClick(workspace) }
+                        ...(workspace.pathname
+                          ? [{ id: 'open-in-terminal', label: 'Open in Terminal', onClick: () => openDevtoolsAndSwitchToTerminal(dispatch, workspace.pathname) }]
+                          : []),
+                        ...(!isDefault
+                          ? [
+                              { id: 'rename', label: 'Rename', onClick: () => handleRenameClick(workspace) },
+                              { id: 'remove', label: 'Remove', onClick: () => handleCloseClick(workspace) }
+                            ]
+                          : [])
                       ]}
                     >
                       <button className="more-actions-btn">
@@ -166,6 +175,7 @@ const ManageWorkspace = () => {
                       </button>
                     </MenuDropdown>
                   )}
+
                 </div>
               </div>
             );
