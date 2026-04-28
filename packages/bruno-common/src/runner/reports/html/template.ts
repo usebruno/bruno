@@ -1,14 +1,10 @@
-type T_ReportCheckResult = {
+type ReportRequestResult = {
   status?: string;
+  testResults?: { status?: string }[];
+  assertionResults?: { status?: string }[];
 };
 
-type T_ReportRequestResult = {
-  status?: string;
-  testResults?: T_ReportCheckResult[];
-  assertionResults?: T_ReportCheckResult[];
-};
-
-export const getFilteredRequestResults = (results: T_ReportRequestResult[] = [], onlyFailed = false) => {
+export const getFilteredRequestResults = (results: ReportRequestResult[] = [], onlyFailed = false) => {
   const indexedResults = (Array.isArray(results) ? results : []).map((value, index) => ({ value, index }));
 
   if (!onlyFailed) {
