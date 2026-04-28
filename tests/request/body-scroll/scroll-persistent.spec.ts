@@ -457,19 +457,15 @@ test.describe('Scroll Position Persistence', () => {
         expect(initial).toBe(0);
       });
 
-      let saved: number;
-
-      await test.step('Scroll to ~middle of table (~row 50) and capture position', async () => {
+      await test.step('Scroll to ~middle of table (~row 50)', async () => {
         const container = page.locator(scrollContainer).first();
         // Scroll halfway through the virtualised list so ~row 50 becomes the first visible row
         await container.evaluate((el) => { el.scrollTop = el.scrollHeight / 2; });
-        // Allow TableVirtuoso to re-virtualise and the persistence debounce to flush
-        await page.waitForTimeout(300);
 
+        // Auto-retry: wait for TableVirtuoso to land on a row in [45, 55]
+        // (matches the ~row 50 ± 5 range that expectRowNear asserts)
         const element = firstVisibleRowLocator();
-        saved = parseInt(await element.getAttribute('data-index') as string);
-        // With 100 rows × 35px row height, halfway lands on row ~50
-        expectRowNear(saved, 50);
+        await expect(element).toHaveAttribute('data-index', /^(4[5-9]|5[0-5])$/, { timeout: 2000 });
       });
 
       await test.step('Switch to Body tab and back to Headers', async () => {
@@ -904,7 +900,7 @@ test.describe('Scroll Position Persistence', () => {
     });
 
     // Helper to open collection settings
-    const openCollSettings = async (page: Page, collName: string) => {
+    const openCollectionSettings = async (page: Page, collName: string) => {
       const locators = buildCommonLocators(page);
       await locators.sidebar.collection(collName).hover();
       await locators.actions.collectionActions(collName).click({ timeout: 2000 });
@@ -924,7 +920,7 @@ test.describe('Scroll Position Persistence', () => {
 
       await test.step('Setup collection and add pre-request content', async () => {
         await createCollection(page, 'scroll-coll-script', tmpDir);
-        await openCollSettings(page, 'scroll-coll-script');
+        await openCollectionSettings(page, 'scroll-coll-script');
         await locators.paneTabs.collectionSettingsTab('script').click({ timeout: 2000 });
         await page.getByTestId('tab-trigger-pre-request').click({ timeout: 2000 });
         await setEditorContent(page, PRE_SELECTOR, generateLargeScript());
@@ -1008,7 +1004,7 @@ test.describe('Scroll Position Persistence', () => {
 
       await test.step('Setup and add test content', async () => {
         await createCollection(page, 'scroll-coll-tests', tmpDir);
-        await openCollSettings(page, 'scroll-coll-tests');
+        await openCollectionSettings(page, 'scroll-coll-tests');
         await locators.paneTabs.collectionSettingsTab('tests').click({ timeout: 2000 });
         await setEditorContent(page, '.CodeMirror', generateLargeScript());
       });
@@ -1049,7 +1045,7 @@ test.describe('Scroll Position Persistence', () => {
 
       await test.step('Setup and navigate to Docs tab', async () => {
         await createCollection(page, 'scroll-coll-docs', tmpDir);
-        await openCollSettings(page, 'scroll-coll-docs');
+        await openCollectionSettings(page, 'scroll-coll-docs');
         await locators.paneTabs.collectionSettingsTab('overview').click({ timeout: 2000 });
       });
 
@@ -1097,7 +1093,7 @@ test.describe('Scroll Position Persistence', () => {
 
       await test.step('Setup and navigate to Headers tab', async () => {
         await createCollection(page, 'scroll-coll-headers', tmpDir);
-        await openCollSettings(page, 'scroll-coll-headers');
+        await openCollectionSettings(page, 'scroll-coll-headers');
         await locators.paneTabs.collectionSettingsTab('headers').click({ timeout: 2000 });
       });
 
@@ -1125,19 +1121,15 @@ test.describe('Scroll Position Persistence', () => {
         expect(initial).toBe(0);
       });
 
-      let saved: number;
-
-      await test.step('Scroll to ~middle of table (~row 50) and capture position', async () => {
+      await test.step('Scroll to ~middle of table (~row 50)', async () => {
         const container = page.locator(scrollContainer).first();
         // Scroll halfway through the virtualised list so ~row 50 becomes the first visible row
         await container.evaluate((el) => { el.scrollTop = el.scrollHeight / 2; });
-        // Allow TableVirtuoso to re-virtualise and the persistence debounce to flush
-        await page.waitForTimeout(300);
 
+        // Auto-retry: wait for TableVirtuoso to land on a row in [45, 55]
+        // (matches the ~row 50 ± 5 range that expectRowNear asserts)
         const element = firstVisibleRowLocator();
-        saved = parseInt(await element.getAttribute('data-index') as string);
-        // With 100 rows × 35px row height, halfway lands on row ~50
-        expectRowNear(saved, 50);
+        await expect(element).toHaveAttribute('data-index', /^(4[5-9]|5[0-5])$/, { timeout: 2000 });
       });
 
       await test.step('Switch to script tab and back to headers', async () => {
