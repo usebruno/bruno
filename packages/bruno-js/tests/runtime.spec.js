@@ -1,10 +1,10 @@
 const { describe, it, expect, beforeAll } = require('@jest/globals');
-const { newQuickJSWASMModule } = require('quickjs-emscripten');
 const TestRuntime = require('../src/runtime/test-runtime');
 const ScriptRuntime = require('../src/runtime/script-runtime');
 const AssertRuntime = require('../src/runtime/assert-runtime');
 const Bru = require('../src/bru');
 const VarsRuntime = require('../src/runtime/vars-runtime');
+const { loader: quickJsLoader } = require('../src/sandbox/quickjs');
 
 describe('runtime', () => {
   describe('test-runtime', () => {
@@ -263,7 +263,7 @@ describe('runtime', () => {
 
   describe('assert-runtime', () => {
     beforeAll(async () => {
-      await newQuickJSWASMModule();
+      await quickJsLoader();
     });
 
     const baseRequest = {

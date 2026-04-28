@@ -174,5 +174,6 @@ const executeQuickJsVmAsync = async ({ script: externalScript, context: external
 
 module.exports = {
   executeQuickJsVm,
-  executeQuickJsVmAsync
+  executeQuickJsVmAsync,
+  loader
 };
