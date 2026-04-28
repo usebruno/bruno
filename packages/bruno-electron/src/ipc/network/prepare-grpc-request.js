@@ -136,12 +136,9 @@ const prepareGrpcRequest = async (item, collection, environment, runtimeVariable
     request.promptVariables = promptVariables;
   }
 
-  const disabledHeaders = [];
   each(get(request, 'headers', []), (h) => {
     if (h.enabled && h.name.length > 0) {
       headers[h.name] = h.value;
-    } else if (!h.enabled && h.name.length > 0) {
-      disabledHeaders.push({ name: h.name, value: h.value });
     }
   });
 
@@ -155,7 +152,6 @@ const prepareGrpcRequest = async (item, collection, environment, runtimeVariable
     methodType: request.methodType,
     url,
     headers,
-    disabledHeaders,
     processEnvVars,
     envVars,
     runtimeVariables,
