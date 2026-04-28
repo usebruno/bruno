@@ -1338,8 +1338,21 @@ const registerNetworkIpc = (mainWindow) => {
         for (const script of beforeRunScripts) {
           if (!isScriptPathSafe(collectionPath, script.file)) continue;
           try {
-            const { exitCode, stdout } = await runShellScript(collectionPath, script.file);
-            if (script.outputMode === 'envVars' && exitCode === 0) {
+            const { exitCode, stdout, stderr } = await runShellScript(collectionPath, script.file);
+            if (exitCode !== 0) {
+              const stderrTail = (stderr || '').slice(-500);
+              console.error(
+                `Collection script '${script.name}' exited with code ${exitCode}.${stderrTail ? ` stderr: ${stderrTail}` : ''}`
+              );
+              mainWindow.webContents.send('main:collection-script-output', {
+                collectionUid,
+                scriptUid: script.uid,
+                stream: 'stderr',
+                data: `Script '${script.name}' exited with code ${exitCode}.\n${stderrTail}`
+              });
+              continue;
+            }
+            if (script.outputMode === 'envVars') {
               const parsed = parseEnvVarsFromOutput(stdout);
               Object.assign(envVars, parsed);
               mainWindow.webContents.send('main:script-environment-update', {
@@ -1351,6 +1364,12 @@ const registerNetworkIpc = (mainWindow) => {
             }
           } catch (err) {
             console.error(`Collection script '${script.name}' failed:`, err.message);
+            mainWindow.webContents.send('main:collection-script-output', {
+              collectionUid,
+              scriptUid: script.uid,
+              stream: 'stderr',
+              data: `Script '${script.name}' failed: ${err.message}`
+            });
           }
         }
       }

@@ -5,7 +5,19 @@ const { isScriptPathSafe, parseEnvVarsFromOutput, runShellScript } = require('..
 const collectionSecurityStore = new CollectionSecurityStore();
 
 const registerCollectionScriptsIpc = (mainWindow) => {
-  ipcMain.handle('renderer:run-collection-script', async (event, { collectionUid, collectionPath, script }) => {
+  ipcMain.handle('renderer:run-collection-script', async (event, payload) => {
+    const { collectionUid, collectionPath, script } = payload || {};
+
+    if (typeof collectionPath !== 'string' || !collectionPath.length) {
+      return { error: 'Invalid request: collection path is required.' };
+    }
+    if (!script || typeof script !== 'object') {
+      return { error: 'Invalid request: script is required.' };
+    }
+    if (typeof script.file !== 'string' || !script.file.length) {
+      return { error: 'Invalid request: script.file is required.' };
+    }
+
     const securityConfig = collectionSecurityStore.getSecurityConfigForCollection(collectionPath);
     if (securityConfig?.jsSandboxMode !== 'developer') {
       return { error: 'Collection scripts require Developer Mode. Enable it in Collection Settings > Security.' };
