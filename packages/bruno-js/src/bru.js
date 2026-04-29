@@ -105,7 +105,12 @@ class Bru {
 
     this.globals = new VariableList(this.globalEnvironmentVariables, {
       interpolateFn: (val) => this.interpolate(val),
-      validateKey
+      validateKey,
+      filterKeys: ['__name__']
+    });
+    Object.defineProperty(this.globals, 'name', {
+      get: () => this.globalEnvironmentVariables.__name__,
+      enumerable: true
     });
     // TODO: globals.unset/clear work in the request lifecycle but do not update the UI.
     // Re-enable once the UI sync issue is resolved.
@@ -208,6 +213,10 @@ class Bru {
 
   getEnvName() {
     return this.envVariables.__name__;
+  }
+
+  getGlobalEnvName() {
+    return this.globalEnvironmentVariables.__name__;
   }
 
   getProcessEnv(key) {

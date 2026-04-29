@@ -18,6 +18,12 @@ const addBruShimToContext = (vm, bru) => {
   vm.setProp(bruObject, 'getEnvName', getEnvName);
   getEnvName.dispose();
 
+  let getGlobalEnvName = vm.newFunction('getGlobalEnvName', function () {
+    return marshallToVm(bru.getGlobalEnvName(), vm);
+  });
+  vm.setProp(bruObject, 'getGlobalEnvName', getGlobalEnvName);
+  getGlobalEnvName.dispose();
+
   let getCollectionName = vm.newFunction('getCollectionName', function () {
     return marshallToVm(bru.getCollectionName(), vm);
   });
@@ -588,6 +594,10 @@ const addBruShimToContext = (vm, bru) => {
     {
       ${globalsEvalCode}
     }
+    Object.defineProperty(globalThis.bru.globals, 'name', {
+      get: () => globalThis.bru.getGlobalEnvName(),
+      enumerable: true
+    });
 
     globalThis.bru.cookies.jar = () => {
       const _jar = globalThis.bru.cookies._jar();
