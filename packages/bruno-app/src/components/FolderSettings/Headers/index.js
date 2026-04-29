@@ -13,22 +13,22 @@ import { MimeTypes } from 'utils/codemirror/autocompleteConstants';
 import BulkEditor from 'components/BulkEditor/index';
 import Button from 'ui/Button';
 import { headerNameRegex, headerValueRegex } from 'utils/common/regex';
+import { selectActiveTabUid, selectActiveTabTableColumnWidths } from '../../../selectors/tabs';
 
 const headerAutoCompleteList = StandardHTTPHeaders.map((e) => e.header);
 
 const Headers = ({ collection, folder }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
-  const tabs = useSelector((state) => state.tabs.tabs);
-  const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
+  const activeTabUid = useSelector(selectActiveTabUid);
+  const tableColumnWidths = useSelector(selectActiveTabTableColumnWidths);
   const headers = folder.draft
     ? get(folder, 'draft.request.headers', [])
     : get(folder, 'root.request.headers', []);
   const [isBulkEditMode, setIsBulkEditMode] = useState(false);
 
   // Get column widths from Redux
-  const focusedTab = tabs?.find((t) => t.uid === activeTabUid);
-  const folderHeadersWidths = focusedTab?.tableColumnWidths?.['folder-headers'] || {};
+  const folderHeadersWidths = tableColumnWidths['folder-headers'] || {};
 
   const handleColumnWidthsChange = (tableId, widths) => {
     dispatch(updateTableColumnWidths({ uid: activeTabUid, tableId, widths }));

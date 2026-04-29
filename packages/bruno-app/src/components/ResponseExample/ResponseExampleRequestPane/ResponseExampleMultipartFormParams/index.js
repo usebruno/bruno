@@ -13,16 +13,16 @@ import MultiLineEditor from 'components/MultiLineEditor';
 import SingleLineEditor from 'components/SingleLineEditor';
 import StyledWrapper from './StyledWrapper';
 import { isWindowsOS } from 'utils/common/platform';
+import { selectActiveTabUid, selectActiveTabTableColumnWidths } from '../../../../selectors/tabs';
 
 const ResponseExampleMultipartFormParams = ({ item, collection, exampleUid, editMode = false }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
-  const tabs = useSelector((state) => state.tabs.tabs);
-  const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
+  const activeTabUid = useSelector(selectActiveTabUid);
+  const tableColumnWidths = useSelector(selectActiveTabTableColumnWidths);
 
   // Get column widths from Redux
-  const focusedTab = tabs?.find((t) => t.uid === activeTabUid);
-  const multipartFormWidths = focusedTab?.tableColumnWidths?.['example-multipart-form'] || {};
+  const multipartFormWidths = tableColumnWidths['example-multipart-form'] || {};
 
   const handleColumnWidthsChange = (tableId, widths) => {
     dispatch(updateTableColumnWidths({ uid: activeTabUid, tableId, widths }));

@@ -10,16 +10,16 @@ import StyledWrapper from './StyledWrapper';
 import toast from 'react-hot-toast';
 import { variableNameRegex } from 'utils/common/regex';
 import { setFolderVars } from 'providers/ReduxStore/slices/collections/index';
+import { selectActiveTabUid, selectActiveTabTableColumnWidths } from '../../../../selectors/tabs';
 
 const VarsTable = ({ folder, collection, vars, varType }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
-  const tabs = useSelector((state) => state.tabs.tabs);
-  const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
+  const activeTabUid = useSelector(selectActiveTabUid);
+  const tableColumnWidths = useSelector(selectActiveTabTableColumnWidths);
 
   // Get column widths from Redux
-  const focusedTab = tabs?.find((t) => t.uid === activeTabUid);
-  const folderVarsWidths = focusedTab?.tableColumnWidths?.['folder-vars'] || {};
+  const folderVarsWidths = tableColumnWidths['folder-vars'] || {};
 
   const handleColumnWidthsChange = (tableId, widths) => {
     dispatch(updateTableColumnWidths({ uid: activeTabUid, tableId, widths }));

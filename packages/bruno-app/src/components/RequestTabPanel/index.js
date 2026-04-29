@@ -41,6 +41,10 @@ import EnvironmentSettings from 'components/Environments/EnvironmentSettings';
 import GlobalEnvironmentSettings from 'components/Environments/GlobalEnvironmentSettings';
 import OpenAPISyncTab from 'components/OpenAPISyncTab';
 import OpenAPISpecTab from 'components/OpenAPISpecTab';
+import { selectTabs, selectActiveTabUid, selectActiveTab } from '../../selectors/tabs';
+import { selectGlobalEnvironments, selectActiveGlobalEnvironmentUid } from '../../selectors/global-environments';
+import { selectCollections } from '../../selectors/collections';
+import { selectActiveWorkspace } from '../../selectors/workspaces';
 
 const MIN_LEFT_PANE_WIDTH = 300;
 const MIN_RIGHT_PANE_WIDTH = 490;
@@ -49,14 +53,14 @@ const MIN_BOTTOM_PANE_HEIGHT = 150;
 
 const RequestTabPanel = () => {
   const dispatch = useDispatch();
-  const tabs = useSelector((state) => state.tabs.tabs);
-  const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
-  const focusedTab = find(tabs, (t) => t.uid === activeTabUid);
-  const { globalEnvironments, activeGlobalEnvironmentUid } = useSelector((state) => state.globalEnvironments);
-  const _collections = useSelector((state) => state.collections.collections);
+  const tabs = useSelector(selectTabs);
+  const activeTabUid = useSelector(selectActiveTabUid);
+  const focusedTab = useSelector(selectActiveTab);
+  const globalEnvironments = useSelector(selectGlobalEnvironments);
+  const activeGlobalEnvironmentUid = useSelector(selectActiveGlobalEnvironmentUid);
+  const _collections = useSelector(selectCollections);
   const preferences = useSelector((state) => state.app.preferences);
-  const { workspaces, activeWorkspaceUid } = useSelector((state) => state.workspaces);
-  const activeWorkspace = workspaces.find((w) => w.uid === activeWorkspaceUid);
+  const activeWorkspace = useSelector(selectActiveWorkspace);
   const isVerticalLayout = preferences?.layout?.responsePaneOrientation === 'vertical';
   const isConsoleOpen = useSelector((state) => state.logs.isConsoleOpen);
 

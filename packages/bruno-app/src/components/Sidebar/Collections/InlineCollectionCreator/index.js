@@ -10,6 +10,7 @@ import { DEFAULT_COLLECTION_FORMAT } from 'utils/common/constants';
 import { multiLineMsg } from 'utils/common';
 import { formatIpcError } from 'utils/common/error';
 import StyledWrapper from './StyledWrapper';
+import { selectWorkspaces, selectActiveWorkspaceUid, selectActiveWorkspace } from '../../../../selectors/workspaces';
 
 const InlineCollectionCreator = ({ onComplete, onCancel, onOpenAdvanced }) => {
   const inputRef = useRef(null);
@@ -20,9 +21,9 @@ const InlineCollectionCreator = ({ onComplete, onCancel, onOpenAdvanced }) => {
   const clickedOutsideRef = useRef(false);
 
   const preferences = useSelector((state) => state.app.preferences);
-  const workspaces = useSelector((state) => state.workspaces?.workspaces || []);
-  const activeWorkspaceUid = useSelector((state) => state.workspaces?.activeWorkspaceUid);
-  const activeWorkspace = workspaces.find((w) => w.uid === activeWorkspaceUid);
+  const workspaces = useSelector(selectWorkspaces);
+  const activeWorkspaceUid = useSelector(selectActiveWorkspaceUid);
+  const activeWorkspace = useSelector(selectActiveWorkspace);
   const isDefaultWorkspace = activeWorkspace?.type === 'default';
 
   const defaultLocation = isDefaultWorkspace

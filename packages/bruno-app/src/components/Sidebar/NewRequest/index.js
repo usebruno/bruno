@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useCallback, forwardRef, useState } from 'react';
+import React, { useRef, useEffect, useCallback, forwardRef, useState, useMemo } from 'react';
 import get from 'lodash/get';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
@@ -23,14 +23,16 @@ import StyledWrapper from './StyledWrapper';
 import SingleLineEditor from 'components/SingleLineEditor/index';
 import { useTheme } from 'styled-components';
 import Button from 'ui/Button';
+import { makeSelectCollectionByUid } from '../../../selectors/collections';
 
 const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
   const dispatch = useDispatch();
   const inputRef = useRef();
+  const selectCollectionByUid = useMemo(makeSelectCollectionByUid, []);
 
   const storedTheme = useTheme();
 
-  const collection = useSelector((state) => state.collections.collections?.find((c) => c.uid === collectionUid));
+  const collection = useSelector((state) => selectCollectionByUid(state, collectionUid));
   const collectionPresets = get(
     collection,
     collection?.draft?.brunoConfig ? 'draft.brunoConfig.presets' : 'brunoConfig.presets',
