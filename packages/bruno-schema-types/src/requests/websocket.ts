@@ -4,6 +4,7 @@ export interface WebSocketMessage {
   name?: string | null;
   type?: string | null;
   content?: string | null;
+  selected?: boolean | null;
 }
 
 export interface WebSocketRequestBody {

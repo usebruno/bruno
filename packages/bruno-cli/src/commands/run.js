@@ -220,7 +220,7 @@ const builder = async (yargs) => {
       type: 'string',
       description: 'Path to the Client certificate config file used for securing the connection in the request'
     })
-    .option('--noproxy', {
+    .option('noproxy', {
       type: 'boolean',
       description: 'Disable all proxy settings (both collection-defined and system proxies)',
       default: false

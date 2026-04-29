@@ -72,6 +72,7 @@ describe('prepare-request: prepareRequest', () => {
 
         const result = await prepareRequest(item, collection);
         expect(result.headers).toHaveProperty('x-api-key', '{{apiKey}}');
+        expect(result.apiKeyHeaderName).toEqual('x-api-key');
       });
 
       it('If collection auth is apikey in header and request has existing headers', async () => {
@@ -88,6 +89,7 @@ describe('prepare-request: prepareRequest', () => {
         const result = await prepareRequest(item, collection);
         expect(result.headers).toHaveProperty('Content-Type', 'application/json');
         expect(result.headers).toHaveProperty('x-api-key', '{{apiKey}}');
+        expect(result.apiKeyHeaderName).toEqual('x-api-key');
       });
 
       it('If collection auth is apikey in query parameters', async () => {
@@ -106,6 +108,7 @@ describe('prepare-request: prepareRequest', () => {
         const expected = urlObj.toString();
         const result = await prepareRequest(item, collection);
         expect(result.url).toEqual(expected);
+        expect(result.apiKeyHeaderName).toBeUndefined();
       });
     });
 
@@ -355,6 +358,7 @@ describe('prepare-request: prepareRequest', () => {
 
         const result = await prepareRequest(item);
         expect(result.headers).toHaveProperty('x-api-key', '{{apiKey}}');
+        expect(result.apiKeyHeaderName).toEqual('x-api-key');
       });
 
       it('If request auth is apikey in header and request has existing headers', async () => {
@@ -371,6 +375,7 @@ describe('prepare-request: prepareRequest', () => {
         const result = await prepareRequest(item);
         expect(result.headers).toHaveProperty('Content-Type', 'application/json');
         expect(result.headers).toHaveProperty('x-api-key', '{{apiKey}}');
+        expect(result.apiKeyHeaderName).toEqual('x-api-key');
       });
 
       it('If request auth is apikey in query parameters', async () => {
@@ -389,6 +394,7 @@ describe('prepare-request: prepareRequest', () => {
         const expected = urlObj.toString();
         const result = await prepareRequest(item);
         expect(result.url).toEqual(expected);
+        expect(result.apiKeyHeaderName).toBeUndefined();
       });
     });
 

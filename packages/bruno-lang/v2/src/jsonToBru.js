@@ -634,13 +634,16 @@ ${indentString(body.sparql)}
     // Convert each ws message to a separate body:ws block
     if (Array.isArray(body.ws)) {
       body.ws.forEach((message) => {
-        const { name, content, type = '' } = message;
+        const { name, content, type = '', selected } = message;
 
         bru += `body:ws {\n`;
 
         bru += `${indentString(`name: ${getValueString(name)}`)}\n`;
         if (type.length) {
           bru += `${indentString(`type: ${getValueString(type)}`)}\n`;
+        }
+        if (selected) {
+          bru += `${indentString(`selected: true`)}\n`;
         }
 
         // Convert content to JSON string if it's an object
