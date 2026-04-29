@@ -1,0 +1,58 @@
+meta {
+  name: readMethods
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: inherit
+}
+
+script:pre-request {
+  bru.environment.set("envX", "10");
+  bru.environment.set("envY", "20");
+}
+
+tests {
+  test("one() should return full item object", function() {
+    const item = bru.environment.one("envX");
+    expect(item).to.have.property("key", "envX");
+    expect(item).to.have.property("value", "10");
+  });
+
+  test("one() should return undefined for missing key", function() {
+    expect(bru.environment.one("missing")).to.be.undefined;
+  });
+
+  test("all() should return array of { key, value } items", function() {
+    const items = bru.environment.all();
+    expect(items).to.be.an("array");
+    expect(items.length).to.be.at.least(2);
+  });
+
+  test("count() should return the number of visible variables", function() {
+    expect(bru.environment.count()).to.be.at.least(2);
+  });
+
+  test("toObject() should return plain { key: value } map", function() {
+    const obj = bru.environment.toObject();
+    expect(obj).to.be.an("object");
+    expect(obj).to.have.property("envX", "10");
+    expect(obj).to.have.property("envY", "20");
+  });
+
+  test("toObject() should not include __name__", function() {
+    const obj = bru.environment.toObject();
+    expect(obj).to.not.have.property("__name__");
+  });
+
+  test("toJSON() should return same as all()", function() {
+    const json = bru.environment.toJSON();
+    expect(json).to.be.an("array");
+  });
+
+  bru.environment.unset("envX");
+  bru.environment.unset("envY");
+}

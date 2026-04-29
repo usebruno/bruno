@@ -1,0 +1,70 @@
+meta {
+  name: iteration
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: inherit
+}
+
+script:pre-request {
+  bru.variables.set("a", "1");
+  bru.variables.set("b", "2");
+  bru.variables.set("c", "3");
+}
+
+tests {
+  test("each() should iterate over all variables", function() {
+    const keys = [];
+    bru.variables.each(function(item) {
+      keys.push(item.key);
+    });
+    expect(keys).to.include("a");
+    expect(keys).to.include("b");
+    expect(keys).to.include("c");
+  });
+
+  test("find() should return matching item", function() {
+    const item = bru.variables.find(function(i) { return i.key === "b"; });
+    expect(item).to.have.property("value", "2");
+  });
+
+  test("find() should return undefined when no match", function() {
+    const item = bru.variables.find(function(i) { return i.key === "zzz"; });
+    expect(item).to.be.undefined;
+  });
+
+  test("filter() should return matching items", function() {
+    const result = bru.variables.filter(function(i) { return i.key !== "b"; });
+    expect(result).to.be.an("array");
+    expect(result.length).to.equal(2);
+  });
+
+  test("map() should transform items", function() {
+    const keys = bru.variables.map(function(i) { return i.key; });
+    expect(keys).to.include("a");
+    expect(keys).to.include("b");
+    expect(keys).to.include("c");
+  });
+
+  test("reduce() should accumulate values", function() {
+    const sum = bru.variables.reduce(function(acc, i) { return acc + Number(i.value); }, 0);
+    expect(sum).to.equal(6);
+  });
+
+  test("indexOf() should find item by structural equality", function() {
+    const item = bru.variables.one("a");
+    const idx = bru.variables.indexOf(item);
+    expect(idx).to.be.at.least(0);
+  });
+
+  test("indexOf() should return -1 for non-existent item", function() {
+    const idx = bru.variables.indexOf({ key: "nonexistent", value: "nope" });
+    expect(idx).to.equal(-1);
+  });
+
+  bru.variables.clear();
+}

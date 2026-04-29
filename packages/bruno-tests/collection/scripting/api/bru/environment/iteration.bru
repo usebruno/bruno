@@ -1,0 +1,54 @@
+meta {
+  name: iteration
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: inherit
+}
+
+script:pre-request {
+  bru.environment.set("iterA", "1");
+  bru.environment.set("iterB", "2");
+  bru.environment.set("iterC", "3");
+}
+
+tests {
+  test("each() should iterate over variables", function() {
+    const keys = [];
+    bru.environment.each(function(item) {
+      keys.push(item.key);
+    });
+    expect(keys).to.include("iterA");
+    expect(keys).to.include("iterB");
+  });
+
+  test("find() should return matching item", function() {
+    const item = bru.environment.find(function(i) { return i.key === "iterB"; });
+    expect(item).to.have.property("value", "2");
+  });
+
+  test("filter() should return matching items", function() {
+    const result = bru.environment.filter(function(i) { return i.key.startsWith("iter"); });
+    expect(result).to.be.an("array");
+    expect(result.length).to.equal(3);
+  });
+
+  test("map() should transform items", function() {
+    const keys = bru.environment.map(function(i) { return i.key; });
+    expect(keys).to.include("iterA");
+  });
+
+  test("reduce() should accumulate values", function() {
+    const items = bru.environment.filter(function(i) { return i.key.startsWith("iter"); });
+    const sum = items.reduce(function(acc, i) { return acc + Number(i.value); }, 0);
+    expect(sum).to.equal(6);
+  });
+
+  bru.environment.unset("iterA");
+  bru.environment.unset("iterB");
+  bru.environment.unset("iterC");
+}

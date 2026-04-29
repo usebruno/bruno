@@ -1,0 +1,39 @@
+meta {
+  name: has-unset-clear
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: inherit
+}
+
+script:pre-request {
+  bru.environment.set("envAlpha", "1");
+  bru.environment.set("envBeta", "2");
+}
+
+tests {
+  test("has() should return true for existing key", function() {
+    expect(bru.environment.has("envAlpha")).to.be.true;
+  });
+
+  test("has() should return false for nonexistent key", function() {
+    expect(bru.environment.has("nonexistent")).to.be.false;
+  });
+
+  test("unset() should remove a variable", function() {
+    bru.environment.unset("envAlpha");
+    expect(bru.environment.has("envAlpha")).to.be.false;
+  });
+
+  test("clear() should remove all variables except __name__", function() {
+    bru.environment.clear();
+    expect(bru.environment.has("envBeta")).to.be.false;
+    // name should still be accessible after clear
+    const name = bru.environment.name;
+    expect(name).to.be.a("string");
+  });
+}

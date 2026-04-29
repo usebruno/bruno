@@ -1,0 +1,37 @@
+meta {
+  name: get-set
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: inherit
+}
+
+script:pre-request {
+  bru.globals.set("testGlobalVar", "global-hello-123");
+  bru.globals.set("testGlobalObj", { scope: "global", active: true });
+}
+
+tests {
+  test("get() should return the value set by set()", function() {
+    expect(bru.globals.get("testGlobalVar")).to.equal("global-hello-123");
+  });
+
+  test("get() should return object values", function() {
+    const obj = bru.globals.get("testGlobalObj");
+    expect(obj).to.have.property("scope", "global");
+    expect(obj).to.have.property("active", true);
+  });
+
+  test("get() should return undefined for nonexistent key", function() {
+    expect(bru.globals.get("nonexistent")).to.be.undefined;
+  });
+
+  test("set() should overwrite existing value", function() {
+    bru.globals.set("testGlobalVar", "updated-456");
+    expect(bru.globals.get("testGlobalVar")).to.equal("updated-456");
+  });
+}
