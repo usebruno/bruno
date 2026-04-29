@@ -26,6 +26,7 @@ const CreateWorkspace = ({ onClose }) => {
 
   const formik = useFormik({
     enableReinitialize: true,
+    validateOnMount: true,
     initialValues: {
       workspaceName: '',
       workspaceFolderName: '',
@@ -97,7 +98,7 @@ const CreateWorkspace = ({ onClose }) => {
       handleConfirm={formik.handleSubmit}
       handleCancel={onClose}
       style="new"
-      confirmDisabled={isSubmitting}
+      confirmDisabled={isSubmitting || !formik.isValid}
     >
       <div>
         <form className="bruno-form" onSubmit={formik.handleSubmit}>
@@ -116,10 +117,17 @@ const CreateWorkspace = ({ onClose }) => {
               autoCapitalize="off"
               spellCheck="false"
               onChange={(e) => {
-                formik.handleChange(e);
+                const workspaceName = e.target.value;
                 if (!isEditing) {
-                  formik.setFieldValue('workspaceFolderName', sanitizeName(e.target.value));
+                  formik.setValues({
+                    ...formik.values,
+                    workspaceName,
+                    workspaceFolderName: sanitizeName(workspaceName)
+                  });
+                  return;
                 }
+
+                formik.handleChange(e);
               }}
               value={formik.values.workspaceName || ''}
             />
