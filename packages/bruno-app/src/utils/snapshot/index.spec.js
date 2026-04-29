@@ -1,6 +1,17 @@
-const { describe, it, expect } = require('@jest/globals');
+const { describe, it, expect, jest } = require('@jest/globals');
 
-import { hydrateSnapshotLookups } from './index';
+jest.mock('nanoid', () => {
+  let counter = 0;
+
+  return {
+    customAlphabet: jest.fn(() => () => {
+      counter += 1;
+      return `uuid-${counter}`;
+    })
+  };
+});
+
+const { deserializeTab, hydrateSnapshotLookups } = require('./index');
 
 describe('hydrateSnapshotLookups', () => {
   it('builds lookup maps from array-based snapshot schema', () => {
@@ -135,5 +146,39 @@ describe('hydrateSnapshotLookups', () => {
       workspacePathname: 'C:\\workspace',
       selectedEnvironment: 'Prod'
     });
+  });
+});
+
+describe('deserializeTab', () => {
+  const collection = {
+    uid: 'collection-uid',
+    pathname: '/collections/a'
+  };
+
+  it('restores collection-settings tab uid from collection uid', () => {
+    const snapshotTab = {
+      type: 'collection-settings',
+      accessor: 'type',
+      permanent: true,
+      collection: 'collection-from-snapshot'
+    };
+
+    const tab = deserializeTab(snapshotTab, collection);
+    expect(tab.uid).toBe('collection-from-snapshot');
+  });
+
+  it('generates unique uid for non-replaceable singleton type tabs', () => {
+    const snapshotTab = {
+      type: 'variables',
+      accessor: 'type',
+      permanent: false
+    };
+
+    const firstTab = deserializeTab(snapshotTab, collection);
+    const secondTab = deserializeTab(snapshotTab, collection);
+
+    expect(firstTab.uid).not.toBe('variables');
+    expect(secondTab.uid).not.toBe('variables');
+    expect(firstTab.uid).not.toBe(secondTab.uid);
   });
 });

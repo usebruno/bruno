@@ -1,5 +1,6 @@
 import { findItemInCollection, findItemInCollectionByPathname } from 'utils/collections';
 import path, { normalizePath } from 'utils/common/path';
+import { uuid } from 'utils/common';
 
 const isObject = (value) => value && typeof value === 'object' && !Array.isArray(value);
 
@@ -10,6 +11,13 @@ const SINGLETON_TAB_TYPES = new Set([
   'collection-settings',
   'collection-overview',
   'environment-settings',
+  'openapi-sync',
+  'openapi-spec'
+]);
+
+const NON_REPLACEABLE_SINGLETON_TAB_TYPES = new Set([
+  'collection-runner',
+  'variables',
   'openapi-sync',
   'openapi-spec'
 ]);
@@ -226,7 +234,7 @@ export const getCollectionEnvironmentPath = (collection, environment, defaultVal
     return environment.name || defaultValue;
   }
 
-  const extension = collection.brunoConfig?.version === '1' ? 'bru' : 'yml';
+  const extension = collection.format === 'yml' ? 'yml' : 'bru';
   return normalizePath(path.join(collection.pathname, 'environments', `${environment.name}.${extension}`));
 };
 
@@ -381,7 +389,19 @@ export const deserializeTab = (snapshotTab, collection) => {
     tab.itemUid = item?.uid || pathname;
     tab.exampleName = exampleName;
   } else if (accessor === 'type') {
-    tab.uid = type;
+    const collectionUidFromSnapshot = typeof snapshotTab.collection === 'string' && snapshotTab.collection.length > 0
+      ? snapshotTab.collection
+      : (typeof snapshotTab.collectionUid === 'string' && snapshotTab.collectionUid.length > 0
+          ? snapshotTab.collectionUid
+          : null);
+
+    if (type === 'collection-settings') {
+      tab.uid = collectionUidFromSnapshot || collection.uid;
+    } else if (NON_REPLACEABLE_SINGLETON_TAB_TYPES.has(type)) {
+      tab.uid = uuid();
+    } else {
+      tab.uid = type;
+    }
   }
 
   return tab;

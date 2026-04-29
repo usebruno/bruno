@@ -533,7 +533,8 @@ test.describe('Snapshot: File Structure', () => {
     });
 
     // Give the debounced save time to flush
-    await page.waitForTimeout(2000);
+    const snapshotPath = path.join(userDataPath, 'ui-state-snapshot.json');
+    await expect.poll(() => fs.existsSync(snapshotPath)).toBe(true);
 
     await test.step('Close app and inspect snapshot file', async () => {
       await closeElectronApp(app);
