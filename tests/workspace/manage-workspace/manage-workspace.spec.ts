@@ -44,6 +44,11 @@ test.describe('Manage Workspace', () => {
         await expect(page.getByText('Manage Workspace')).toBeVisible({ timeout: 5000 });
       });
 
+      await test.step('Verify default workspace has no actions menu', async () => {
+        const defaultWorkspaceItem = page.locator('.workspace-item').filter({ hasText: 'My Workspace' });
+        await expect(defaultWorkspaceItem.locator('.more-actions-btn')).toHaveCount(0);
+      });
+
       await test.step('Open terminal from workspace actions', async () => {
         const workspaceItem = page.locator('.workspace-item').filter({ hasText: 'Terminal Workspace' });
         await expect(workspaceItem).toBeVisible({ timeout: 5000 });
