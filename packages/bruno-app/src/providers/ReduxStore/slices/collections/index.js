@@ -734,6 +734,10 @@ export const collectionsSlice = createSlice({
             return;
           }
           item.response = null;
+          item.assertionResults = [];
+          item.preRequestTestResults = [];
+          item.postResponseTestResults = [];
+          item.testResults = [];
         }
       }
     },
