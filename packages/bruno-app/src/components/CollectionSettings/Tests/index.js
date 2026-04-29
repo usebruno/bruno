@@ -31,6 +31,7 @@ const Tests = ({ collection }) => {
       <div className="text-xs mb-4 text-muted">These tests will run any time a request in this collection is sent.</div>
       <CodeEditor
         collection={collection}
+        docKey={`${collection.uid}:collection-tests`}
         value={tests || ''}
         theme={displayedTheme}
         onEdit={onEdit}
