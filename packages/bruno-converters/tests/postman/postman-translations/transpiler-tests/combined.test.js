@@ -93,11 +93,11 @@ describe('Combined API Features Translation', () => {
     expect(translatedCode).not.toContain('pm.test("Auth flow works", function() {');
     expect(translatedCode).not.toContain('pm.expect(response.authenticated).to.be.true;');
     expect(translatedCode).not.toContain('pm.environment.set("userId", response.user.id);');
-    expect(translatedCode).toContain('const token = bru.getEnvVar("authToken");');
+    expect(translatedCode).toContain('const token = bru.environment.get("authToken");');
     expect(translatedCode).toContain('test("Auth flow works", function() {');
     expect(translatedCode).toContain('const response = res.getBody();');
     expect(translatedCode).toContain('expect(response.authenticated).to.be.true;');
-    expect(translatedCode).toContain('bru.setEnvVar("userId", response.user.id);');
+    expect(translatedCode).toContain('bru.environment.set("userId", response.user.id);');
   });
 
   // TODO: Restore once UI update fixes are live for setCollectionVar
@@ -111,14 +111,14 @@ describe('Combined API Features Translation', () => {
   it('should handle nested Postman API calls', () => {
     const code = 'pm.environment.set("computed", pm.variables.get("base") + "-suffix");';
     const translatedCode = translateCode(code);
-    expect(translatedCode).toBe('bru.setEnvVar("computed", bru.getVar("base") + "-suffix");');
+    expect(translatedCode).toBe('bru.environment.set("computed", bru.variables.get("base") + "-suffix");');
   });
 
   // TODO: Restore once UI update fixes are live for setCollectionVar
   it.skip('should handle more complex nested expressions', () => {
     const code = 'pm.collectionVariables.set("fullPath", pm.environment.get("baseUrl") + pm.variables.get("endpoint"));';
     const translatedCode = translateCode(code);
-    expect(translatedCode).toBe('bru.setCollectionVar("fullPath", bru.getEnvVar("baseUrl") + bru.getVar("endpoint"));');
+    expect(translatedCode).toBe('bru.setCollectionVar("fullPath", bru.environment.get("baseUrl") + bru.variables.get("endpoint"));');
   });
 
   // Unrelated code
@@ -141,7 +141,7 @@ describe('Combined API Features Translation', () => {
         };
         `;
     const translatedCode = translateCode(code);
-    expect(translatedCode).toContain('return "Bearer " + bru.getEnvVar("token");');
+    expect(translatedCode).toContain('return "Bearer " + bru.environment.get("token");');
   });
 
   it('should handle aliases with object destructuring', () => {
@@ -153,8 +153,8 @@ describe('Combined API Features Translation', () => {
     const translatedCode = translateCode(code);
 
     expect(translatedCode).toBe(`
-        bru.setEnvVar("token", "abc123");
-        bru.getVar("userId");
+        bru.environment.set("token", "abc123");
+        bru.variables.get("userId");
         `);
   });
 
@@ -169,7 +169,7 @@ describe('Combined API Features Translation', () => {
     const translatedCode = translateCode(code);
     expect(translatedCode).toBe(`
         function getAuthHeader() {
-            return "Bearer " + bru.getEnvVar("token");
+            return "Bearer " + bru.environment.get("token");
         }
         `);
   });
@@ -354,8 +354,8 @@ describe('Combined API Features Translation', () => {
     const translatedCode = translateCode(code);
 
     expect(translatedCode).toContain('test("Status code is 200", function() { expect(res.getStatus()).to.equal(200); });');
-    expect(translatedCode).toContain('bru.setEnvVar("userId", res.getBody().userId);');
-    expect(translatedCode).toContain('bru.setVar("token", res.getBody().token);');
+    expect(translatedCode).toContain('bru.environment.set("userId", res.getBody().userId);');
+    expect(translatedCode).toContain('bru.variables.set("token", res.getBody().token);');
   });
 
   // TODO: Restore once UI update fixes are live for setCollectionVar
@@ -377,7 +377,7 @@ describe('Combined API Features Translation', () => {
         `;
     const translatedCode = translateCode(code);
     expect(translatedCode).toBe(`
-        bru.getCollectionVar(bru.getEnvVar('key'))
+        bru.getCollectionVar(bru.environment.get('key'))
         test("Status code is 200", function() {
             expect(res.getStatus()).to.equal(200);
         });
@@ -393,8 +393,8 @@ describe('Combined API Features Translation', () => {
         `;
     const translatedCode = translateCode(code);
 
-    expect(translatedCode).toContain('const baseUrl = bru.getEnvVar("baseUrl");');
-    expect(translatedCode).toContain('const endpoint = bru.getVar("endpoint");');
+    expect(translatedCode).toContain('const baseUrl = bru.environment.get("baseUrl");');
+    expect(translatedCode).toContain('const endpoint = bru.variables.get("endpoint");');
     expect(translatedCode).toContain('const url = `${baseUrl}/api/${endpoint}`;');
     expect(translatedCode).toContain('console.log(`Response status: ${res.getStatus()}`);');
   });
@@ -408,9 +408,9 @@ describe('Combined API Features Translation', () => {
         `;
     const translatedCode = translateCode(code);
 
-    expect(translatedCode).toContain('const getAuthHeader = () => "Bearer " + bru.getEnvVar("token");');
+    expect(translatedCode).toContain('const getAuthHeader = () => "Bearer " + bru.environment.get("token");');
     expect(translatedCode).toContain('const processItems = items => items.forEach(item => {');
-    expect(translatedCode).toContain('bru.setVar(item.key, item.value);');
+    expect(translatedCode).toContain('bru.variables.set(item.key, item.value);');
   });
 
   it('test', () => {
@@ -420,7 +420,7 @@ describe('Combined API Features Translation', () => {
         `;
     const translatedCode = translateCode(code);
     expect(translatedCode).toBe(`
-        const key = bru.getGlobalEnvVar("key");
+        const key = bru.globals.get("key");
         `);
   });
 
@@ -460,8 +460,8 @@ describe('Combined API Features Translation', () => {
 
     const expectedOutput = `
         const expectedResponse = {
-            id: bru.getEnvVar("userId"),
-            token: bru.getVar("authToken"),
+            id: bru.environment.get("userId"),
+            token: bru.variables.get("authToken"),
             timestamp: new Date().getTime()
         };
         

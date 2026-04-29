@@ -30,7 +30,7 @@ describe('Testing Framework Translation', () => {
     const translatedCode = translateCode(code);
     expect(translatedCode).toBe(`
         test("Check environment and call successful", function () {
-            expect(bru.getEnvName()).to.equal("ENVIRONMENT_NAME");
+            expect(bru.environment.name).to.equal("ENVIRONMENT_NAME");
             expect(res.getStatus()).to.equal(200);
         });`);
   });
@@ -66,7 +66,7 @@ describe('Testing Framework Translation', () => {
     expect(translatedCode).toContain('test("Auth flow works", function() {');
     expect(translatedCode).toContain('const response = res.getBody();');
     expect(translatedCode).toContain('expect(response.authenticated).to.be.true;');
-    expect(translatedCode).toContain('bru.setEnvVar("userId", response.user.id);');
+    expect(translatedCode).toContain('bru.environment.set("userId", response.user.id);');
   });
 
   // TODO: Restore once UI update fixes are live for setCollectionVar
@@ -164,7 +164,7 @@ describe('Testing Framework Translation', () => {
         `;
     const translatedCode = translateCode(code);
 
-    expect(translatedCode).toContain('const endpoint = bru.getVar("currentEndpoint");');
+    expect(translatedCode).toContain('const endpoint = bru.variables.get("currentEndpoint");');
     expect(translatedCode).toContain('test(`${endpoint} returns correct data`, function() {');
     expect(translatedCode).toContain('const responseJson = res.getBody();');
     expect(translatedCode).toContain('expect(responseJson).to.be.an(\'object\');');
@@ -400,6 +400,6 @@ describe('Testing Framework Translation', () => {
     expect(translatedCode).toContain('expect(res.getStatus()).to.equal(200);');
     expect(translatedCode).toContain('test("Related users validation", function() {');
     expect(translatedCode).toContain('test(`User at index ${index}`, function() {');
-    expect(translatedCode).toContain('bru.setEnvVar("validUsers", JSON.stringify(validUsers));');
+    expect(translatedCode).toContain('bru.environment.set("validUsers", JSON.stringify(validUsers));');
   });
 });

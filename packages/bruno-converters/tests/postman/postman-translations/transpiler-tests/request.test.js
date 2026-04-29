@@ -102,8 +102,8 @@ describe('Request Translation', () => {
         `;
     const translatedCode = translateCode(code);
     expect(translatedCode).toContain('const requestData = req.getBody();');
-    expect(translatedCode).toContain('bru.setVar("lastRequestBody", JSON.stringify(requestData));');
-    expect(translatedCode).toContain('bru.setEnvVar("lastContentType", contentType);');
+    expect(translatedCode).toContain('bru.variables.set("lastRequestBody", JSON.stringify(requestData));');
+    expect(translatedCode).toContain('bru.environment.set("lastContentType", contentType);');
   });
 
   it('should translate legacy request.* properties', () => {

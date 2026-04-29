@@ -37,7 +37,7 @@ describe('Variable Chaining Resolution', () => {
     expect(translatedCode).not.toContain('const respVar');
     expect(translatedCode).not.toContain('const envVar');
     expect(translatedCode).toContain('const statusCode = res.getStatus();');
-    expect(translatedCode).toContain('const envValue = bru.getEnvVar("key");');
+    expect(translatedCode).toContain('const envValue = bru.environment.get("key");');
 
     // Check that unrelated variables are preserved
     expect(translatedCode).toContain('const unrelatedVar = "some value";');
@@ -82,7 +82,7 @@ describe('Variable Chaining Resolution', () => {
 
     // References to Postman objects should be properly translated
     expect(translatedCode).toContain('const statusCode = res.getStatus();');
-    expect(translatedCode).toContain('const baseUrl = bru.getEnvVar("baseUrl");');
+    expect(translatedCode).toContain('const baseUrl = bru.environment.get("baseUrl");');
 
     // Console logs with regular variables should be preserved
     expect(translatedCode).toContain('console.log("Counter value:", counter);');

@@ -83,7 +83,7 @@ describe('Legacy Tests[] Syntax Translation', () => {
     const translatedCode = translateCode(code);
     expect(translatedCode).toBe(`
         test("Response matches environment variable", function() {
-                expect(Boolean(res.getBody().id === bru.getEnvVar("expectedId"))).to.be.true;
+                expect(Boolean(res.getBody().id === bru.environment.get("expectedId"))).to.be.true;
         });`);
   });
 
@@ -98,7 +98,7 @@ describe('Legacy Tests[] Syntax Translation', () => {
     // but we can check for key transformations
     expect(translatedCode).toContain('test("Authentication header is present"');
     expect(translatedCode).toContain('test("Data count is correct"');
-    expect(translatedCode).toContain('res.getBody().items.length === bru.getVar("expectedCount")');
+    expect(translatedCode).toContain('res.getBody().items.length === bru.variables.get("expectedCount")');
   });
 
   // Additional robust tests for legacy tests[] syntax
@@ -274,10 +274,10 @@ describe('Legacy Tests[] Syntax Translation', () => {
     expect(translatedCode).toContain('expect(Boolean(res.headerList.has("Content-Type"))).to.be.true;');
     expect(translatedCode).toContain('test("Content-Type is JSON", function() {');
     expect(translatedCode).toContain('expect(Boolean(res.getHeader("Content-Type").includes("application/json"))).to.be.true;');
-    expect(translatedCode).toContain('const expectedItems = parseInt(bru.getEnvVar("expectedItemCount"));');
+    expect(translatedCode).toContain('const expectedItems = parseInt(bru.environment.get("expectedItemCount"));');
     expect(translatedCode).toContain('test("Has correct number of items", function() {');
     expect(translatedCode).toContain('expect(Boolean(response.items.length === expectedItems)).to.be.true;');
-    expect(translatedCode).toContain('const targetItem = response.items.find(item => item.name === bru.getVar("targetItemName"));');
-    expect(translatedCode).toContain('bru.setEnvVar("targetItemId", targetItem.id);');
+    expect(translatedCode).toContain('const targetItem = response.items.find(item => item.name === bru.variables.get("targetItemName"));');
+    expect(translatedCode).toContain('bru.environment.set("targetItemId", targetItem.id);');
   });
 });

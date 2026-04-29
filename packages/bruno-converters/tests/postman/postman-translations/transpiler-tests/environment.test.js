@@ -4,49 +4,49 @@ describe('Environment Variable Translation', () => {
   it('should translate pm.environment.get', () => {
     const code = 'pm.environment.get("test");';
     const translatedCode = translateCode(code);
-    expect(translatedCode).toBe('bru.getEnvVar("test");');
+    expect(translatedCode).toBe('bru.environment.get("test");');
   });
 
   it('should translate pm.environment.set', () => {
     const code = 'pm.environment.set("test", "value");';
     const translatedCode = translateCode(code);
-    expect(translatedCode).toBe('bru.setEnvVar("test", "value");');
+    expect(translatedCode).toBe('bru.environment.set("test", "value");');
   });
 
   it('should translate pm.environment.has', () => {
     const code = 'pm.environment.has("test")';
     const translatedCode = translateCode(code);
-    expect(translatedCode).toBe('bru.getEnvVar("test") !== undefined && bru.getEnvVar("test") !== null');
+    expect(translatedCode).toBe('bru.environment.has("test")');
   });
 
   it('should translate pm.environment.unset', () => {
     const code = 'pm.environment.unset("test");';
     const translatedCode = translateCode(code);
-    expect(translatedCode).toBe('bru.deleteEnvVar("test");');
+    expect(translatedCode).toBe('bru.environment.unset("test");');
   });
 
   it('should translate pm.environment.name', () => {
     const code = 'pm.environment.name;';
     const translatedCode = translateCode(code);
-    expect(translatedCode).toBe('bru.getEnvName();');
+    expect(translatedCode).toBe('bru.environment.name;');
   });
 
   it('should handle nested Postman API calls with environment', () => {
     const code = 'pm.environment.set("computed", pm.variables.get("base") + "-suffix");';
     const translatedCode = translateCode(code);
-    expect(translatedCode).toBe('bru.setEnvVar("computed", bru.getVar("base") + "-suffix");');
+    expect(translatedCode).toBe('bru.environment.set("computed", bru.variables.get("base") + "-suffix");');
   });
 
   it('should handle JSON operations with environment variables', () => {
     const code = 'pm.environment.set("user", JSON.stringify({ id: 123, name: "John" }));';
     const translatedCode = translateCode(code);
-    expect(translatedCode).toBe('bru.setEnvVar("user", JSON.stringify({ id: 123, name: "John" }));');
+    expect(translatedCode).toBe('bru.environment.set("user", JSON.stringify({ id: 123, name: "John" }));');
   });
 
   it('should handle JSON.parse with environment variables', () => {
     const code = 'const userData = JSON.parse(pm.environment.get("user"));';
     const translatedCode = translateCode(code);
-    expect(translatedCode).toBe('const userData = JSON.parse(bru.getEnvVar("user"));');
+    expect(translatedCode).toBe('const userData = JSON.parse(bru.environment.get("user"));');
   });
 
   it('should translate pm.environment.name with different access patterns', () => {
@@ -58,9 +58,9 @@ describe('Environment Variable Translation', () => {
         `;
     const translatedCode = translateCode(code);
     expect(translatedCode).toBe(`
-        const envName1 = bru.getEnvName();
-        const envName2 = bru.getEnvName();
-        console.log(bru.getEnvName());
+        const envName1 = bru.environment.name;
+        const envName2 = bru.environment.name;
+        console.log(bru.environment.name);
         `);
   });
 
@@ -75,11 +75,11 @@ describe('Environment Variable Translation', () => {
         `;
     const translatedCode = translateCode(code);
     expect(translatedCode).toBe(`
-        const name = bru.getEnvName();
-        const has = bru.getEnvVar("test") !== undefined && bru.getEnvVar("test") !== null;
-        const set = bru.setEnvVar("test", "value");
-        const get = bru.getEnvVar("test");
-        const unset = bru.deleteEnvVar("test");
+        const name = bru.environment.name;
+        const has = bru.environment.has("test");
+        const set = bru.environment.set("test", "value");
+        const get = bru.environment.get("test");
+        const unset = bru.environment.unset("test");
         `);
   });
 
@@ -87,19 +87,19 @@ describe('Environment Variable Translation', () => {
   it('should translate postman.setEnvironmentVariable', () => {
     const code = 'postman.setEnvironmentVariable("apiKey", "abc123");';
     const translatedCode = translateCode(code);
-    expect(translatedCode).toBe('bru.setEnvVar("apiKey", "abc123");');
+    expect(translatedCode).toBe('bru.environment.set("apiKey", "abc123");');
   });
 
   it('should translate postman.getEnvironmentVariable', () => {
     const code = 'const baseUrl = postman.getEnvironmentVariable("baseUrl");';
     const translatedCode = translateCode(code);
-    expect(translatedCode).toBe('const baseUrl = bru.getEnvVar("baseUrl");');
+    expect(translatedCode).toBe('const baseUrl = bru.environment.get("baseUrl");');
   });
 
   it('should translate postman.clearEnvironmentVariable', () => {
     const code = 'postman.clearEnvironmentVariable("tempToken");';
     const translatedCode = translateCode(code);
-    expect(translatedCode).toBe('bru.deleteEnvVar("tempToken");');
+    expect(translatedCode).toBe('bru.environment.unset("tempToken");');
   });
 
   it('should handle all environment variable methods together', () => {
@@ -114,10 +114,10 @@ describe('Environment Variable Translation', () => {
         `;
     const translatedCode = translateCode(code);
 
-    expect(translatedCode).toContain('const envName = bru.getEnvName();');
-    expect(translatedCode).toContain('const hasToken = bru.getEnvVar("token") !== undefined && bru.getEnvVar("token") !== null;');
-    expect(translatedCode).toContain('const token = bru.getEnvVar("token");');
-    expect(translatedCode).toContain('bru.setEnvVar("timestamp", new Date().toISOString());');
+    expect(translatedCode).toContain('const envName = bru.environment.name;');
+    expect(translatedCode).toContain('const hasToken = bru.environment.has("token");');
+    expect(translatedCode).toContain('const token = bru.environment.get("token");');
+    expect(translatedCode).toContain('bru.environment.set("timestamp", new Date().toISOString());');
   });
 
   // Additional robust tests for environment variables
@@ -129,8 +129,8 @@ describe('Environment Variable Translation', () => {
         const computedValue = pm.environment.get(prefix + "_" + suffix);
         `;
     const translatedCode = translateCode(code);
-    expect(translatedCode).toContain('bru.setEnvVar(prefix + "_" + suffix, "abc123");');
-    expect(translatedCode).toContain('const computedValue = bru.getEnvVar(prefix + "_" + suffix);');
+    expect(translatedCode).toContain('bru.environment.set(prefix + "_" + suffix, "abc123");');
+    expect(translatedCode).toContain('const computedValue = bru.environment.get(prefix + "_" + suffix);');
   });
 
   it('should handle environment variables in complex object structures', () => {
@@ -146,11 +146,11 @@ describe('Environment Variable Translation', () => {
         };
         `;
     const translatedCode = translateCode(code);
-    expect(translatedCode).toContain('baseUrl: bru.getEnvVar("apiUrl"),');
-    expect(translatedCode).toContain('"Authorization": "Bearer " + bru.getEnvVar("token"),');
-    expect(translatedCode).toContain('"X-Api-Key": bru.getEnvVar("apiKey") || "default-key"');
-    expect(translatedCode).toContain('timeout: parseInt(bru.getEnvVar("timeout") || "5000"),');
-    expect(translatedCode).toContain('validate: bru.getEnvVar("validateResponses") !== undefined && bru.getEnvVar("validateResponses") !== null');
+    expect(translatedCode).toContain('baseUrl: bru.environment.get("apiUrl"),');
+    expect(translatedCode).toContain('"Authorization": "Bearer " + bru.environment.get("token"),');
+    expect(translatedCode).toContain('"X-Api-Key": bru.environment.get("apiKey") || "default-key"');
+    expect(translatedCode).toContain('timeout: parseInt(bru.environment.get("timeout") || "5000"),');
+    expect(translatedCode).toContain('validate: bru.environment.has("validateResponses")');
   });
 
   it('should handle environment variables in conditionals correctly', () => {
@@ -166,8 +166,8 @@ describe('Environment Variable Translation', () => {
         }
         `;
     const translatedCode = translateCode(code);
-    expect(translatedCode).toContain('if (bru.getEnvVar("apiKey") !== undefined && bru.getEnvVar("apiKey") !== null) {');
-    expect(translatedCode).toContain('if (bru.getEnvVar("apiKey").length > 0) {');
+    expect(translatedCode).toContain('if (bru.environment.has("apiKey")) {');
+    expect(translatedCode).toContain('if (bru.environment.get("apiKey").length > 0) {');
   });
 
   it('should handle multiple levels of environment variable aliasing', () => {
@@ -180,9 +180,9 @@ describe('Environment Variable Translation', () => {
         `;
     const translatedCode = translateCode(code);
     expect(translatedCode).toBe(`
-        bru.setEnvVar("key", "value");
-        const value = bru.getEnvVar("key");
-        const exists = bru.getEnvVar("key") !== undefined && bru.getEnvVar("key") !== null;
+        bru.environment.set("key", "value");
+        const value = bru.environment.get("key");
+        const exists = bru.environment.has("key");
         `);
   });
 
@@ -202,9 +202,9 @@ describe('Environment Variable Translation', () => {
         pm.environment.set("tokenExpiry", expiryTime.getTime());
         `;
     const translatedCode = translateCode(code);
-    expect(translatedCode).toContain('bru.setEnvVar("requestTimestamp", timestamp);');
-    expect(translatedCode).toContain('bru.setEnvVar("requestId", uniqueId);');
-    expect(translatedCode).toContain('bru.setEnvVar("tokenExpiry", expiryTime.getTime());');
+    expect(translatedCode).toContain('bru.environment.set("requestTimestamp", timestamp);');
+    expect(translatedCode).toContain('bru.environment.set("requestId", uniqueId);');
+    expect(translatedCode).toContain('bru.environment.set("tokenExpiry", expiryTime.getTime());');
   });
 
   it('should handle environment variables in try-catch blocks', () => {
@@ -219,8 +219,8 @@ describe('Environment Variable Translation', () => {
         }
         `;
     const translatedCode = translateCode(code);
-    expect(translatedCode).toContain('const configStr = bru.getEnvVar("config");');
-    expect(translatedCode).toContain('bru.setEnvVar("configError", error.message);');
+    expect(translatedCode).toContain('const configStr = bru.environment.get("config");');
+    expect(translatedCode).toContain('bru.environment.set("configError", error.message);');
   });
 
   it('should handle legacy environment and pm.setEnvironmentVariable together', () => {
@@ -235,8 +235,8 @@ describe('Environment Variable Translation', () => {
         pm.setEnvironmentVariable("thirdKey", "thirdValue");
         `;
     const translatedCode = translateCode(code);
-    expect(translatedCode).toContain('bru.setEnvVar("legacyKey", "legacyValue");');
-    expect(translatedCode).toContain('const value = bru.getEnvVar("anotherKey");');
-    expect(translatedCode).toContain('bru.setEnvVar("thirdKey", "thirdValue");');
+    expect(translatedCode).toContain('bru.environment.set("legacyKey", "legacyValue");');
+    expect(translatedCode).toContain('const value = bru.environment.get("anotherKey");');
+    expect(translatedCode).toContain('bru.environment.set("thirdKey", "thirdValue");');
   });
 });
