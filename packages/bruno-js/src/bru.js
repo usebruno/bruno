@@ -107,6 +107,14 @@ class Bru {
       interpolateFn: (val) => this.interpolate(val),
       validateKey
     });
+    // TODO: globals.unset/clear work in the request lifecycle but do not update the UI.
+    // Re-enable once the UI sync issue is resolved.
+    this.globals.unset = () => {
+      throw new Error('globals.unset is not implemented yet');
+    };
+    this.globals.clear = () => {
+      throw new Error('globals.clear is not implemented yet');
+    };
 
     // Holds variables that are marked as persistent by scripts
     this.persistentEnvVariables = {};

@@ -525,12 +525,13 @@ const addBruShimToContext = (vm, bru) => {
   bruEnvironmentObject.dispose();
 
   // ── bru.globals (active global environment) ───────────────────────────
+  // TODO: Add 'unset' and 'clear' to syncWriteMethods once the UI sync issue is resolved.
   let bruGlobalsObject = vm.newObject();
   const { evalCode: globalsEvalCode } = createPropertyListBridge(vm, bru.globals, bruGlobalsObject, {
     globalPath: 'globalThis.bru.globals',
     syncReadMethods: ['get', 'has', 'count', 'indexOf', 'toObject', 'toString'],
     syncReadObjectMethods: ['one', 'all', 'idx', 'toJSON'],
-    syncWriteMethods: ['set', 'unset', 'clear'],
+    syncWriteMethods: ['set'],
     withIterators: true
   });
   vm.setProp(bruObject, 'globals', bruGlobalsObject);
