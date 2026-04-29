@@ -696,9 +696,9 @@ function injectLibraryRequires(ast) {
 
     const parent = path.parent.value;
 
-    // check for library usage: X.something (X is object) or X(...) (X is callee)
+    // check for library usage: X.foo / X['foo'] / X[expr] (X is object) or X(...) (X is callee)
     const isLibraryUsage
-      = (parent.type === 'MemberExpression' && parent.object === path.value && !parent.computed)
+      = (parent.type === 'MemberExpression' && parent.object === path.value)
         || (parent.type === 'CallExpression' && parent.callee === path.value);
     if (!isLibraryUsage) return;
 

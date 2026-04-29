@@ -13,6 +13,11 @@ describe('Postman Library Globals Auto-Require Injection', () => {
     expect(out).toContain(`moment().format('YYYY')`);
   });
 
+  it('injects require for computed member access (CryptoJS["MD5"])', () => {
+    const out = translateCode(`const h = CryptoJS['MD5']('hello').toString();`);
+    expect(out).toContain(`const CryptoJS = require("crypto-js")`);
+  });
+
   it('injects multiple requires in alphabetical order', () => {
     const out = translateCode(`
       const h = CryptoJS.MD5('x').toString();
