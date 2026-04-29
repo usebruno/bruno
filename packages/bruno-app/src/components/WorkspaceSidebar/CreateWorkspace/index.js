@@ -119,11 +119,11 @@ const CreateWorkspace = ({ onClose }) => {
               onChange={(e) => {
                 const workspaceName = e.target.value;
                 if (!isEditing) {
-                  formik.setValues({
-                    ...formik.values,
+                  formik.setValues((values) => ({
+                    ...values,
                     workspaceName,
                     workspaceFolderName: sanitizeName(workspaceName)
-                  });
+                  }));
                   return;
                 }
 
