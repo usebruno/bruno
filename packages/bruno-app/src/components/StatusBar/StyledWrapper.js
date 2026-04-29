@@ -70,6 +70,14 @@ const StyledWrapper = styled.div`
     align-items: center;
     padding: 2px 6px;
   }
+
+  .mock-server-status-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #22c55e;
+    display: inline-block;
+  }
 `;
 
 export default StyledWrapper;

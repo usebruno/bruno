@@ -12,7 +12,8 @@ import {
   IconX,
   IconCheck,
   IconFolder,
-  IconUpload
+  IconUpload,
+  IconServer2
 } from '@tabler/icons';
 import OpenAPISyncIcon from 'components/Icons/OpenAPISync';
 import { switchWorkspace, renameWorkspaceAction, exportWorkspaceAction, confirmWorkspaceCreation, cancelWorkspaceCreation } from 'providers/ReduxStore/slices/workspaces/actions';
@@ -48,6 +49,7 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
   const currentWorkspace = workspaces.find((w) => w.uid === activeWorkspaceUid);
   const gitRootPath = collection?.git?.gitRootPath;
   const isOpenAPISyncEnabled = useBetaFeature(BETA_FEATURES.OPENAPI_SYNC);
+  const isMockServerEnabled = useBetaFeature(BETA_FEATURES.MOCK_SERVER);
 
   // Workspace rename state
   const [isRenamingWorkspace, setIsRenamingWorkspace] = useState(false);
@@ -217,6 +219,14 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
       uid: uuid(),
       collectionUid: collection.uid,
       type: 'openapi-sync'
+    }));
+  };
+
+  const viewMockServer = () => {
+    dispatch(addTab({
+      uid: uuid(),
+      collectionUid: collection.uid,
+      type: 'mock-server-dashboard'
     }));
   };
 
@@ -584,6 +594,14 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
                 <IconRun size={16} strokeWidth={1.5} />
               </ActionIcon>
             </ToolHint>
+            {/* Mocker - visible when beta enabled */}
+            {isMockServerEnabled && (
+              <ToolHint text="Mocker" toolhintId="MockerToolhintId" place="bottom">
+                <ActionIcon onClick={viewMockServer} aria-label="Mocker" size="sm" data-testid="mocker">
+                  <IconServer2 size={16} strokeWidth={1.5} />
+                </ActionIcon>
+              </ToolHint>
+            )}
             {/* JS Sandbox Mode - always visible */}
             <JsSandboxMode collection={collection} />
             {/* Overflow menu */}

@@ -24,7 +24,8 @@ const ResponseExample = ({ item, collection, example }) => {
   const [leftPaneWidth, setLeftPaneWidth] = useState((screenWidth - leftSidebarWidth) / 2.2);
   const [topPaneHeight, setTopPaneHeight] = useState(MIN_TOP_PANE_HEIGHT);
   const [dragging, setDragging] = useState(false);
-  const [editMode, setEditMode] = useState(false);
+  const isNewExample = !example?.response?.body?.content;
+  const [editMode, setEditMode] = useState(isNewExample);
   const [showGenerateCodeModal, setShowGenerateCodeModal] = useState(false);
   const dragOffset = useRef({ x: 0, y: 0 });
   const mainSectionRef = useRef(null);

@@ -33,7 +33,8 @@ export const tabsSlice = createSlice({
         'workspaceOverview',
         'workspaceEnvironments',
         'openapi-sync',
-        'openapi-spec'
+        'openapi-spec',
+        'mock-server-dashboard'
       ];
 
       const existingTab = find(state.tabs, (tab) => tab.uid === uid);

@@ -6,7 +6,8 @@ import { useSelector } from 'react-redux';
  */
 export const BETA_FEATURES = Object.freeze({
   NODE_VM: 'nodevm',
-  OPENAPI_SYNC: 'openapi-sync'
+  OPENAPI_SYNC: 'openapi-sync',
+  MOCK_SERVER: 'mock-server'
 });
 
 /**

@@ -19,6 +19,11 @@ const BETA_FEATURES = [
     id: BETA_FEATURE_IDS.OPENAPI_SYNC,
     label: 'OpenAPI Sync',
     description: 'Synchronize your Bruno collection with an OpenAPI specification. Detect drift, review changes, and sync with a single click.'
+  },
+  {
+    id: BETA_FEATURE_IDS.MOCK_SERVER,
+    label: 'Mock Server',
+    description: 'Run a local mock server using response examples defined in your collection. Serve mock API responses for frontend development without a real backend.'
   }
 ];
 
