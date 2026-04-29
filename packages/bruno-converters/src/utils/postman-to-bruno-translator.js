@@ -12,10 +12,10 @@ const simpleTranslations = {
   'pm.globals.get': 'bru.globals.get',
   'pm.globals.set': 'bru.globals.set',
   'pm.globals.has': 'bru.globals.has',
-  'pm.globals.unset': 'bru.globals.unset',
+  // 'pm.globals.unset': 'bru.globals.unset',  // TODO: Re-enable once UI sync issue is resolved
   'pm.globals.replaceIn': 'bru.interpolate',
   'pm.globals.toObject': 'bru.globals.toObject',
-  'pm.globals.clear': 'bru.globals.clear',
+  // 'pm.globals.clear': 'bru.globals.clear',  // TODO: Re-enable once UI sync issue is resolved
 
   // Environment variables
   'pm.environment.get': 'bru.environment.get',
