@@ -244,7 +244,11 @@ const RequestTabPanel = () => {
   }
 
   if (focusedTab.type === 'collection-settings') {
-    return <CollectionSettings collection={collection} />;
+    return (
+      <ScopedPersistenceProvider scope={focusedTab.uid}>
+        <CollectionSettings collection={collection} />
+      </ScopedPersistenceProvider>
+    );
   }
 
   if (focusedTab.type === 'collection-overview') {
@@ -257,7 +261,11 @@ const RequestTabPanel = () => {
       return <FolderNotFound folderUid={focusedTab.folderUid} />;
     }
 
-    return <FolderSettings collection={collection} folder={folder} />;
+    return (
+      <ScopedPersistenceProvider scope={focusedTab.uid}>
+        <FolderSettings collection={collection} folder={folder} />
+      </ScopedPersistenceProvider>
+    );
   }
 
   if (focusedTab.type === 'environment-settings') {

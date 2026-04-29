@@ -12,6 +12,7 @@ import StatusDot from 'components/StatusDot';
 import { flattenItems, isItemARequest } from 'utils/collections';
 import StyledWrapper from './StyledWrapper';
 import Button from 'ui/Button';
+import { usePersistedState } from 'hooks/usePersistedState';
 
 const Script = ({ collection }) => {
   const dispatch = useDispatch();
@@ -38,13 +39,20 @@ const Script = ({ collection }) => {
   const { displayedTheme } = useTheme();
   const preferences = useSelector((state) => state.app.preferences);
 
-  // Refresh CodeMirror when tab becomes visible
+  const [preReqScroll, setPreReqScroll] = usePersistedState({ key: `collection-pre-req-scroll-${collection.uid}`, default: 0 });
+  const [postResScroll, setPostResScroll] = usePersistedState({ key: `collection-post-res-scroll-${collection.uid}`, default: 0 });
+
+  // Refresh CodeMirror when tab becomes visible and restore scroll position.
+  // CodeMirror's scrollTo() is silently ignored when the editor is inside a display:none container
+  // (TabsContent hides inactive tabs via display:none). After refresh() recalculates layout, we re-apply scrollTo().
   useEffect(() => {
     const timer = setTimeout(() => {
       if (activeTab === 'pre-request' && preRequestEditorRef.current?.editor) {
         preRequestEditorRef.current.editor.refresh();
+        preRequestEditorRef.current.editor.scrollTo(null, preReqScroll);
       } else if (activeTab === 'post-response' && postResponseEditorRef.current?.editor) {
         postResponseEditorRef.current.editor.refresh();
+        postResponseEditorRef.current.editor.scrollTo(null, postResScroll);
       }
     }, 0);
 
@@ -99,7 +107,7 @@ const Script = ({ collection }) => {
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="pre-request" className="mt-2">
+        <TabsContent value="pre-request" className="mt-2" dataTestId="collection-pre-request-script-editor">
           <CodeEditor
             ref={preRequestEditorRef}
             collection={collection}
@@ -111,10 +119,12 @@ const Script = ({ collection }) => {
             font={get(preferences, 'font.codeFont', 'default')}
             fontSize={get(preferences, 'font.codeFontSize')}
             showHintsFor={['req', 'bru']}
+            initialScroll={preReqScroll}
+            onScroll={setPreReqScroll}
           />
         </TabsContent>
 
-        <TabsContent value="post-response" className="mt-2">
+        <TabsContent value="post-response" className="mt-2" dataTestId="collection-post-response-script-editor">
           <CodeEditor
             ref={postResponseEditorRef}
             collection={collection}
@@ -126,6 +136,8 @@ const Script = ({ collection }) => {
             font={get(preferences, 'font.codeFont', 'default')}
             fontSize={get(preferences, 'font.codeFontSize')}
             showHintsFor={['req', 'res', 'bru']}
+            initialScroll={postResScroll}
+            onScroll={setPostResScroll}
           />
         </TabsContent>
       </Tabs>

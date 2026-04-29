@@ -1,26 +1,6 @@
 import styled from 'styled-components';
 
 const Wrapper = styled.div`
-  table {
-    width: 100%;
-    border-collapse: collapse;
-    font-weight: 500;
-    table-layout: fixed;
-
-    thead,
-    td {
-      border: 1px solid ${(props) => props.theme.table.border};
-    }
-
-    thead {
-      color: ${(props) => props.theme.table.thead.color};
-      font-size: ${(props) => props.theme.font.size.base};
-      user-select: none;
-    }
-    td {
-      padding: 6px 10px;
-      }
-  }
 
   .btn-action {
     font-size: ${(props) => props.theme.font.size.base};

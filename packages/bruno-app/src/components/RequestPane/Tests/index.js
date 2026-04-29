@@ -1,17 +1,20 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import get from 'lodash/get';
 import { useDispatch, useSelector } from 'react-redux';
 import CodeEditor from 'components/CodeEditor';
 import { updateRequestTests } from 'providers/ReduxStore/slices/collections';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { useTheme } from 'providers/Theme';
+import { usePersistedState } from 'hooks/usePersistedState';
 
 const Tests = ({ item, collection }) => {
   const dispatch = useDispatch();
+  const testsEditorRef = useRef(null);
   const tests = item.draft ? get(item, 'draft.request.tests') : get(item, 'request.tests');
 
   const { displayedTheme } = useTheme();
   const preferences = useSelector((state) => state.app.preferences);
+  const [testsScroll, setTestsScroll] = usePersistedState({ key: `request-tests-scroll-${item.uid}`, default: 0 });
 
   const onEdit = (value) => {
     dispatch(
@@ -29,6 +32,7 @@ const Tests = ({ item, collection }) => {
   return (
     <div data-testid="test-script-editor">
       <CodeEditor
+        ref={testsEditorRef}
         collection={collection}
         value={tests || ''}
         theme={displayedTheme}
@@ -39,6 +43,8 @@ const Tests = ({ item, collection }) => {
         onRun={onRun}
         onSave={onSave}
         showHintsFor={['req', 'res', 'bru']}
+        initialScroll={testsScroll}
+        onScroll={setTestsScroll}
       />
     </div>
   );

@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import get from 'lodash/get';
 import { useDispatch, useSelector } from 'react-redux';
 import { useTheme } from 'providers/Theme';
@@ -12,6 +12,8 @@ import { headers as StandardHTTPHeaders } from 'know-your-http-well';
 import { MimeTypes } from 'utils/codemirror/autocompleteConstants';
 import BulkEditor from '../../BulkEditor';
 import { headerNameRegex, headerValueRegex } from 'utils/common/regex';
+import { usePersistedState } from 'hooks/usePersistedState';
+import { useTrackScroll } from 'hooks/useTrackScroll';
 
 const headerAutoCompleteList = StandardHTTPHeaders.map((e) => e.header);
 
@@ -22,6 +24,9 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
   const headers = item.draft ? get(item, 'draft.request.headers') : get(item, 'request.headers');
   const [isBulkEditMode, setIsBulkEditMode] = useState(false);
+  const wrapperRef = useRef(null);
+  const [scroll, setScroll] = usePersistedState({ key: `request-headers-scroll-${item.uid}`, default: 0 });
+  useTrackScroll({ ref: wrapperRef, selector: '.flex-boundary', onChange: setScroll, initialValue: scroll });
 
   // Get column widths from Redux
   const focusedTab = tabs?.find((t) => t.uid === activeTabUid);
@@ -132,7 +137,7 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
   }
 
   return (
-    <StyledWrapper className="w-full">
+    <StyledWrapper className="w-full" ref={wrapperRef}>
       <EditableTable
         tableId="request-headers"
         columns={columns}
@@ -141,12 +146,13 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
         defaultRow={defaultRow}
         getRowError={getRowError}
         reorderable={true}
+        initialScroll={scroll}
         onReorder={handleHeaderDrag}
         columnWidths={headersWidths}
         onColumnWidthsChange={(widths) => handleColumnWidthsChange('request-headers', widths)}
       />
       <div className="bulk-edit-bar flex justify-end mt-2">
-        <button className="btn-action text-link select-none" onClick={toggleBulkEditMode}>
+        <button className="btn-action text-link select-none" data-testid="bulk-edit-toggle" onClick={toggleBulkEditMode}>
           Bulk Edit
         </button>
       </div>

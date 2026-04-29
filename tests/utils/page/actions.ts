@@ -77,10 +77,10 @@ const createCollection = async (page, collectionName: string, collectionLocation
     const createCollectionModal = page.locator('.bruno-modal-card').filter({ hasText: 'Create Collection' });
     await createCollectionModal.waitFor({ state: 'visible', timeout: 5000 });
 
-    await createCollectionModal.getByLabel('Name').fill(collectionName);
+    // Fill location FIRST — some modals auto-derive the name from the path,
+    // so filling name after location ensures it isn't overwritten.
     const locationInput = createCollectionModal.getByLabel('Location');
     if (await locationInput.isVisible()) {
-      // Location input can be read-only; drop the attribute so fill can type
       await locationInput.evaluate((el) => {
         const input = el as HTMLInputElement;
         input.removeAttribute('readonly');
@@ -88,10 +88,16 @@ const createCollection = async (page, collectionName: string, collectionLocation
       });
       await locationInput.fill(collectionLocation);
     }
+    const nameInput = createCollectionModal.getByLabel('Name');
+    await nameInput.clear();
+    await nameInput.fill(collectionName);
+    // Verify the name is correct before creating
+    await expect(nameInput).toHaveValue(collectionName, { timeout: 2000 });
     await createCollectionModal.getByRole('button', { name: 'Create', exact: true }).click();
 
     await createCollectionModal.waitFor({ state: 'detached', timeout: 15000 });
-    await page.waitForTimeout(200);
+    // Wait for the collection name to appear in the sidebar before proceeding
+    await page.locator('#sidebar-collection-name').filter({ hasText: collectionName }).waitFor({ state: 'visible', timeout: 5000 });
     await openCollection(page, collectionName);
   });
 };
