@@ -287,7 +287,7 @@ describe('runtime', () => {
 
     // Ensures each QuickJS evaluation gets a fresh context
     describe('quickjs context isolation across iterations', () => {
-      const ITERATION_COUNT = 30;
+      const ITERATION_COUNT = 350;
 
       it('should return correct res.status on every iteration', () => {
         for (let i = 0; i < ITERATION_COUNT; i++) {
