@@ -31,7 +31,7 @@ export const TabsTrigger = ({ value: triggerValue, children, className = '' }) =
   );
 };
 
-export const TabsContent = ({ value: contentValue, children, className = '', 'data-testid': dataTestId = '' }) => {
+export const TabsContent = ({ value: contentValue, children, className = '', dataTestId = '' }) => {
   const { value } = useContext(TabsContext);
   const isActive = value === contentValue;
 
