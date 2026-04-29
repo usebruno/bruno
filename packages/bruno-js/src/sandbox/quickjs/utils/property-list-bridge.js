@@ -72,6 +72,7 @@ const createAsyncBridge = (vm, targetObj, propName, nativeMethod) => {
  * @param {string} options.globalPath - Global path in QuickJS (e.g. 'globalThis.bru.cookies')
  * @param {string[]} [options.syncReadMethods] - Methods that return primitive values
  * @param {string[]} [options.syncReadObjectMethods] - Methods that return objects (need cleanCircularJson)
+ * @param {string[]} [options.syncWriteMethods] - Sync write methods (call native, return undefined)
  * @param {string[]} [options.asyncWriteMethods] - Async write methods (use _prefix bridge)
  * @param {boolean} [options.withIterators] - Whether to add each/find/filter/map/reduce
  * @returns {{ evalCode: string }} - JavaScript code to eval in the VM for async wrappers and iterators
@@ -104,7 +105,8 @@ const createPropertyListBridge = (vm, nativeList, targetObj, options) => {
     fn.consume((handle) => vm.setProp(targetObj, methodName, handle));
   }
 
-  // Sync write methods — void return, just call and discard
+
+  // Sync write methods — call native method, return undefined
   for (const methodName of syncWriteMethods) {
     const fn = vm.newFunction(methodName, (...vmArgs) => {
       const args = vmArgs.map((a) => vm.dump(a));

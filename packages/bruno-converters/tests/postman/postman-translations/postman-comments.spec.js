@@ -9,7 +9,7 @@ describe('postmanTranslations - comment handling', () => {
     `;
     const result = postmanTranslation(inputScript);
     expect(result).toContain('console.log(\'This script does not contain pm commands.\');');
-    expect(result).toContain('const data = bru.getEnvVar(\'key\');');
+    expect(result).toContain('const data = bru.environment.get(\'key\');');
   });
 
   // TODO: Restore once UI update fixes are live for setCollectionVar
@@ -27,7 +27,7 @@ describe('postmanTranslations - comment handling', () => {
 
   test('should handle multiple pm commands on the same line', () => {
     const inputScript = 'pm.environment.get(\'key\'); pm.environment.set(\'key\', \'value\');';
-    const expectedOutput = 'bru.getEnvVar(\'key\'); bru.setEnvVar(\'key\', \'value\');';
+    const expectedOutput = 'bru.environment.get(\'key\'); bru.environment.set(\'key\', \'value\');';
     expect(postmanTranslation(inputScript)).toBe(expectedOutput);
   });
 
@@ -45,11 +45,11 @@ describe('postmanTranslations - comment handling', () => {
     const expectedOutput = `
       // This is a comment
       const value = 'test';
-      bru.setEnvVar('key', value);
+      bru.environment.set('key', value);
       /*
         Multi-line comment
       */
-      const result = bru.getEnvVar('key');
+      const result = bru.environment.get('key');
       console.log('Result:', result);
     `;
     expect(postmanTranslation(inputScript)).toBe(expectedOutput);

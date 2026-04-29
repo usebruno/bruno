@@ -9,28 +9,32 @@ const cloneDeep = require('lodash/cloneDeep');
 // e.g., setCollectionVar only sets the variable in the request lifecycle, fails to update the table in the UI.
 const simpleTranslations = {
   // Global Variables
-  'pm.globals.get': 'bru.getGlobalEnvVar',
-  'pm.globals.set': 'bru.setGlobalEnvVar',
+  'pm.globals.get': 'bru.globals.get',
+  'pm.globals.set': 'bru.globals.set',
+  'pm.globals.has': 'bru.globals.has',
+  'pm.globals.unset': 'bru.globals.unset',
   'pm.globals.replaceIn': 'bru.interpolate',
-  // 'pm.globals.unset': 'bru.deleteGlobalEnvVar',
-  'pm.globals.toObject': 'bru.getAllGlobalEnvVars',
-  // 'pm.globals.clear': 'bru.deleteAllGlobalEnvVars',
+  'pm.globals.toObject': 'bru.globals.toObject',
+  'pm.globals.clear': 'bru.globals.clear',
 
   // Environment variables
-  'pm.environment.get': 'bru.getEnvVar',
-  'pm.environment.set': 'bru.setEnvVar',
-  'pm.environment.name': 'bru.getEnvName()',
-  'pm.environment.unset': 'bru.deleteEnvVar',
+  'pm.environment.get': 'bru.environment.get',
+  'pm.environment.set': 'bru.environment.set',
+  'pm.environment.has': 'bru.environment.has',
+  'pm.environment.name': 'bru.environment.name',
+  'pm.environment.unset': 'bru.environment.unset',
   'pm.environment.replaceIn': 'bru.interpolate',
-  'pm.environment.toObject': 'bru.getAllEnvVars',
-  'pm.environment.clear': 'bru.deleteAllEnvVars',
+  'pm.environment.toObject': 'bru.environment.toObject',
+  'pm.environment.clear': 'bru.environment.clear',
 
   // Variables
-  'pm.variables.get': 'bru.getVar',
-  'pm.variables.set': 'bru.setVar',
-  'pm.variables.has': 'bru.hasVar',
-  'pm.variables.toObject': 'bru.getAllVars',
+  'pm.variables.get': 'bru.variables.get',
+  'pm.variables.set': 'bru.variables.set',
+  'pm.variables.has': 'bru.variables.has',
+  'pm.variables.unset': 'bru.variables.unset',
+  'pm.variables.toObject': 'bru.variables.toObject',
   'pm.variables.replaceIn': 'bru.interpolate',
+  'pm.variables.clear': 'bru.variables.clear',
   // Collection variables
   'pm.collectionVariables.get': 'bru.getCollectionVar',
   // 'pm.collectionVariables.set': 'bru.setCollectionVar',
@@ -151,9 +155,9 @@ const simpleTranslations = {
   'pm.execution.skipRequest': 'bru.runner.skipRequest',
 
   // Legacy Postman API (deprecated) (we can use pm instead of postman, as we are converting all postman references to pm in the code as the part of pre-processing)
-  'pm.setEnvironmentVariable': 'bru.setEnvVar',
-  'pm.getEnvironmentVariable': 'bru.getEnvVar',
-  'pm.clearEnvironmentVariable': 'bru.deleteEnvVar',
+  'pm.setEnvironmentVariable': 'bru.environment.set',
+  'pm.getEnvironmentVariable': 'bru.environment.get',
+  'pm.clearEnvironmentVariable': 'bru.environment.unset',
 
   // Legacy response properties
   'responseCode.code': 'res.getStatus()',
@@ -172,31 +176,6 @@ const complexTransformations = [
   {
     pattern: 'pm.sendRequest',
     transform: sendRequestTransformer
-  },
-
-  // pm.environment.has requires special handling
-  {
-    pattern: 'pm.environment.has',
-    transform: (path, j) => {
-      const callExpr = path.parent.value;
-
-      const args = callExpr.arguments;
-
-      // Create: bru.getEnvVar(arg) !== undefined && bru.getEnvVar(arg) !== null
-      return j.logicalExpression(
-        '&&',
-        j.binaryExpression(
-          '!==',
-          j.callExpression(j.identifier('bru.getEnvVar'), args),
-          j.identifier('undefined')
-        ),
-        j.binaryExpression(
-          '!==',
-          j.callExpression(j.identifier('bru.getEnvVar'), args),
-          j.identifier('null')
-        )
-      );
-    }
   },
 
   {
@@ -315,30 +294,6 @@ const complexTransformations = [
       return j.callExpression(
         j.identifier('bru.runner.setNextRequest'),
         args
-      );
-    }
-  },
-
-  // pm.globals.has requires special handling
-  {
-    pattern: 'pm.globals.has',
-    transform: (path, j) => {
-      const callExpr = path.parent.value;
-      const args = callExpr.arguments;
-
-      // Create: bru.getGlobalEnvVar(arg) !== undefined && bru.getGlobalEnvVar(arg) !== null
-      return j.logicalExpression(
-        '&&',
-        j.binaryExpression(
-          '!==',
-          j.callExpression(j.identifier('bru.getGlobalEnvVar'), args),
-          j.identifier('undefined')
-        ),
-        j.binaryExpression(
-          '!==',
-          j.callExpression(j.identifier('bru.getGlobalEnvVar'), args),
-          j.identifier('null')
-        )
       );
     }
   },
