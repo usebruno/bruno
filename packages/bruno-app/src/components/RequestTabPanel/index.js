@@ -206,15 +206,34 @@ const RequestTabPanel = () => {
     setDragging(true);
   }, []);
 
+  const applyPointerResize = useCallback((e) => {
+    if (!mainSectionRef.current) return;
+    const mainRect = mainSectionRef.current.getBoundingClientRect();
+
+    if (isVerticalLayoutRef.current) {
+      const newHeight = e.clientY - mainRect.top;
+      const maxHeight = mainRect.height - MIN_BOTTOM_PANE_HEIGHT;
+      const clampedHeight = Math.max(MIN_TOP_PANE_HEIGHT, Math.min(newHeight, maxHeight));
+      setTopPaneHeight(clampedHeight);
+    } else {
+      const newWidth = e.clientX - mainRect.left;
+      const maxWidth = mainRect.width - MIN_RIGHT_PANE_WIDTH;
+      const clampedWidth = Math.max(MIN_LEFT_PANE_WIDTH, Math.min(newWidth, maxWidth));
+      setLeftPaneWidth(clampedWidth);
+    }
+  }, [setTopPaneHeight, setLeftPaneWidth]);
+
   const handleRequestIndicatorDragStart = useCallback((e) => {
     expandRequest();
+    applyPointerResize(e);
     startDragging(e);
-  }, [expandRequest, startDragging]);
+  }, [expandRequest, applyPointerResize, startDragging]);
 
   const handleResponseIndicatorDragStart = useCallback((e) => {
     expandResponse();
+    applyPointerResize(e);
     startDragging(e);
-  }, [expandResponse, startDragging]);
+  }, [expandResponse, applyPointerResize, startDragging]);
 
   useEffect(() => {
     document.addEventListener('mouseup', handleMouseUp);
