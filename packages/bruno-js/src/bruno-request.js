@@ -23,6 +23,7 @@ class BrunoRequest {
     this.name = req.name;
     this.pathParams = req.pathParams;
     this.tags = req.tags || [];
+    this.headerList = new HeaderList(this);
     /**
      * We automatically parse the JSON body if the content type is JSON
      * This is to make it easier for the user to access the body directly
@@ -30,8 +31,6 @@ class BrunoRequest {
      * It must be noted that the request data is always a string and is what gets sent over the network
      * If the user wants to access the raw data, they can use getBody({raw: true}) method
      */
-    this.headerList = new HeaderList(this);
-
     const isJson = this.hasJSONContentType(this.req.headers);
     if (isJson) {
       this.body = this.__safeParseJSON(req.data);
