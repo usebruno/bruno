@@ -182,7 +182,7 @@ const getStoredFilePath = (collectionPath, filePath) => {
       return filePath;
     }
 
-    return posixify(relativePath);
+    return relativePath;
   } catch (error) {
     return filePath;
   }

@@ -182,24 +182,24 @@ describe('Path Utilities - Windows Platform', () => {
   });
 
   describe('getStoredFilePath', () => {
-    it('should store in-collection files as POSIX relative paths with mixed separators', () => {
+    it('should store in-collection files as Windows relative paths with mixed separators', () => {
       const result = getStoredFilePath('C:/Users/John/Collections/Api', 'C:\\Users\\John\\Collections\\Api\\files\\payload.txt');
-      expect(result).toBe('files/payload.txt');
+      expect(result).toBe('files\\payload.txt');
     });
 
-    it('should store nested in-collection files as POSIX relative paths', () => {
+    it('should store nested in-collection files as Windows relative paths', () => {
       const result = getStoredFilePath('C:\\Users\\John\\Collections\\Api', 'C:\\Users\\John\\Collections\\Api\\folder\\payload.txt');
-      expect(result).toBe('folder/payload.txt');
+      expect(result).toBe('folder\\payload.txt');
     });
 
     it('should handle collection paths with trailing separators', () => {
       const result = getStoredFilePath('C:\\Users\\John\\Collections\\Api\\', 'C:\\Users\\John\\Collections\\Api\\folder\\payload.txt');
-      expect(result).toBe('folder/payload.txt');
+      expect(result).toBe('folder\\payload.txt');
     });
 
     it('should handle case differences in Windows drive paths', () => {
       const result = getStoredFilePath('c:\\users\\john\\collections\\api', 'C:\\Users\\John\\Collections\\Api\\folder\\payload.txt');
-      expect(result).toBe('folder/payload.txt');
+      expect(result).toBe('folder\\payload.txt');
     });
 
     it('should resolve dot segments before deciding whether a file is inside the collection', () => {
