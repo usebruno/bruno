@@ -102,6 +102,10 @@ class BrunoRequest {
       return 'bearer';
     } else if (this.headers?.['Authorization']?.startsWith('Basic') || this.req?.auth?.username) {
       return 'basic';
+    } else if (this.req?.apiKeyAuthValueForQueryParams) {
+      return 'apikey';
+    } else if (this.req?.apiKeyHeaderName && this.headers?.[this.req.apiKeyHeaderName] !== undefined) {
+      return 'apikey';
     } else if (this.req?.awsv4) {
       return 'awsv4';
     } else if (this.req?.digestConfig) {

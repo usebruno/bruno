@@ -1,5 +1,5 @@
 import type { Dispatch, SetStateAction } from 'react';
-import { useCallback, useState, useEffect } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { usePersistenceScope } from './PersistedScopeProvider';
 
 type Options<T> = {
@@ -13,17 +13,33 @@ export function usePersistedState<T>(options: Options<T>): [T, Dispatch<SetState
   const scope = usePersistenceScope();
   const storageKey = scope ? `persisted::${scope}::${options.key}` : options.key;
 
-  const [state, setState] = useState<T>(options.default ?? undefined);
+  const [state, setState] = useState<T>(() => {
+    try {
+      const raw = localStorage.getItem(storageKey);
+      if (raw !== null) {
+        const parsed = JSON.parse(raw);
+        if (parsed !== undefined) return parsed;
+      }
+    } catch {}
+    return options.default ?? undefined;
+  });
 
+  // Re-read from localStorage when storageKey changes (e.g. React reuses component instance with different data)
+  const prevKeyRef = useRef(storageKey);
   useEffect(() => {
-    const raw = localStorage.getItem(storageKey);
-    const existingState = JSON.parse(raw);
-
-    if (existingState !== undefined) {
-      setState(existingState);
-    }
-
-    return;
+    if (prevKeyRef.current === storageKey) return;
+    prevKeyRef.current = storageKey;
+    try {
+      const raw = localStorage.getItem(storageKey);
+      if (raw !== null) {
+        const parsed = JSON.parse(raw);
+        if (parsed !== undefined) {
+          setState(parsed);
+          return;
+        }
+      }
+    } catch {}
+    setState(options.default ?? undefined);
   }, [storageKey]);
 
   const onSet = useCallback(

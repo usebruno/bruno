@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import get from 'lodash/get';
 import { useDispatch, useSelector } from 'react-redux';
 import CodeEditor from 'components/CodeEditor';
@@ -7,13 +7,16 @@ import { saveFolderRoot } from 'providers/ReduxStore/slices/collections/actions'
 import { useTheme } from 'providers/Theme';
 import StyledWrapper from './StyledWrapper';
 import Button from 'ui/Button';
+import { usePersistedState } from 'hooks/usePersistedState';
 
 const Tests = ({ collection, folder }) => {
   const dispatch = useDispatch();
+  const testsEditorRef = useRef(null);
   const tests = folder.draft ? get(folder, 'draft.request.tests', '') : get(folder, 'root.request.tests', '');
 
   const { displayedTheme } = useTheme();
   const preferences = useSelector((state) => state.app.preferences);
+  const [testsScroll, setTestsScroll] = usePersistedState({ key: `folder-tests-scroll-${folder.uid}`, default: 0 });
 
   const onEdit = (value) => {
     dispatch(
@@ -31,6 +34,7 @@ const Tests = ({ collection, folder }) => {
     <StyledWrapper className="w-full flex flex-col h-full">
       <div className="text-xs mb-4 text-muted">These tests will run any time a request in this collection is sent.</div>
       <CodeEditor
+        ref={testsEditorRef}
         collection={collection}
         docKey={`${folder.uid}:folder-tests`}
         value={tests || ''}
@@ -41,6 +45,8 @@ const Tests = ({ collection, folder }) => {
         font={get(preferences, 'font.codeFont', 'default')}
         fontSize={get(preferences, 'font.codeFontSize')}
         showHintsFor={['req', 'res', 'bru']}
+        initialScroll={testsScroll}
+        onScroll={setTestsScroll}
       />
 
       <div className="mt-6">

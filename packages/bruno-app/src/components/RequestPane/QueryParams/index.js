@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import get from 'lodash/get';
 import InfoTip from 'components/InfoTip';
 import { useDispatch, useSelector } from 'react-redux';
@@ -14,6 +14,8 @@ import MultiLineEditor from 'components/MultiLineEditor';
 import EditableTable from 'components/EditableTable';
 import StyledWrapper from './StyledWrapper';
 import BulkEditor from '../../BulkEditor';
+import { usePersistedState } from 'hooks/usePersistedState';
+import { useTrackScroll } from 'hooks/useTrackScroll';
 
 const QueryParams = ({ item, collection }) => {
   const dispatch = useDispatch();
@@ -25,6 +27,9 @@ const QueryParams = ({ item, collection }) => {
   const pathParams = params.filter((param) => param.type === 'path');
 
   const [isBulkEditMode, setIsBulkEditMode] = useState(false);
+  const wrapperRef = useRef(null);
+  const [scroll, setScroll] = usePersistedState({ key: `request-params-scroll-${item.uid}`, default: 0 });
+  useTrackScroll({ ref: wrapperRef, selector: '.flex-boundary', onChange: setScroll, initialValue: scroll });
 
   // Get column widths from Redux
   const focusedTab = tabs?.find((t) => t.uid === activeTabUid);
@@ -146,7 +151,7 @@ const QueryParams = ({ item, collection }) => {
   }
 
   return (
-    <StyledWrapper className="w-full flex flex-col">
+    <StyledWrapper className="w-full flex flex-col" ref={wrapperRef}>
       <div className="flex-1">
         <div className="mb-3 title text-xs">Query</div>
         <EditableTable
@@ -160,7 +165,7 @@ const QueryParams = ({ item, collection }) => {
           columnWidths={queryParamsWidths}
           onColumnWidthsChange={(widths) => handleColumnWidthsChange('query-params', widths)}
         />
-        <div className="flex justify-end mt-2">
+        <div className="bulk-edit-bar flex justify-end mt-2">
           <button className="btn-action text-link select-none" onClick={toggleBulkEditMode}>
             Bulk Edit
           </button>

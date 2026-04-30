@@ -65,7 +65,7 @@ import {
 } from './index';
 
 import { each } from 'lodash';
-import { closeAllCollectionTabs, closeTabs as _closeTabs, focusTab, updateResponsePaneScrollPosition, reopenLastClosedTab } from 'providers/ReduxStore/slices/tabs';
+import { closeAllCollectionTabs, closeTabs as _closeTabs, focusTab, reopenLastClosedTab } from 'providers/ReduxStore/slices/tabs';
 import { removeCollectionFromWorkspace } from 'providers/ReduxStore/slices/workspaces';
 import { resolveRequestFilename } from 'utils/common/platform';
 import { interpolateUrl, parsePathParams, splitOnFirst } from 'utils/url/index';
@@ -559,13 +559,6 @@ export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
     }
 
     await dispatch(
-      updateResponsePaneScrollPosition({
-        uid: state.tabs.activeTabUid,
-        scrollY: 0
-      })
-    );
-
-    await dispatch(
       initRunRequestEvent({
         requestUid,
         itemUid,
@@ -583,7 +576,9 @@ export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
           toast.error(err.message);
         });
     } else if (isWsRequest) {
-      sendWsRequest(itemCopy, collectionCopy, environment, collectionCopy.runtimeVariables)
+      const wsMessages = itemCopy.draft?.request?.body?.ws || itemCopy.request?.body?.ws || [];
+      const wsSelectedMessageIndex = Math.max(0, wsMessages.findIndex((msg) => msg.selected));
+      sendWsRequest(itemCopy, collectionCopy, environment, collectionCopy.runtimeVariables, wsSelectedMessageIndex)
         .then(resolve)
         .catch((err) => {
           toast.error(err.message);
@@ -1610,6 +1605,7 @@ export const newWsRequest = (params) => (dispatch, getState) => {
           mode: 'ws',
           ws: [
             {
+              uid: uuid(),
               name: 'message 1',
               type: 'json',
               content: '{}'
@@ -3184,7 +3180,6 @@ export const closeTabs = ({ tabUids }) => async (dispatch, getState) => {
   // Find transient items and group by temp directory before closing tabs
   const transientByTempDir = {};
   each(tabUids, (tabUid) => {
-    clearPersistedScope(tabUid);
     for (const collection of collections) {
       const item = findItemInCollection(collection, tabUid);
       if (item?.isTransient && item.pathname) {
@@ -3202,6 +3197,10 @@ export const closeTabs = ({ tabUids }) => async (dispatch, getState) => {
 
   // Close the tabs first
   await dispatch(_closeTabs({ tabUids }));
+
+  // Clear persisted scope AFTER unmount — otherwise useTrackScroll's cleanup flush
+  // would rewrite scroll position to localStorage right after we cleared it.
+  each(tabUids, (tabUid) => clearPersistedScope(tabUid));
 
   // After close, the reducer may have set active tab to one from another workspace. Ensure it belongs to this workspace: prefer any open in-workspace tab, then workspace overview if none.
   // Dispatch is synchronous; state is already updated by _closeTabs above.

@@ -64,6 +64,11 @@ export const tabsSlice = createSlice({
           uid,
           collectionUid,
           requestPaneWidth: null,
+          requestPaneHeight: null,
+          requestPaneCollapsed: false,
+          responsePaneCollapsed: false,
+          requestPaneWidthBeforeCollapse: null,
+          requestPaneHeightBeforeCollapse: null,
           requestPaneTab: requestPaneTab || defaultRequestPaneTab,
           responsePaneTab: 'response',
           responseFormat: null,
@@ -87,9 +92,13 @@ export const tabsSlice = createSlice({
         uid,
         collectionUid,
         requestPaneWidth: null,
+        requestPaneHeight: null,
+        requestPaneCollapsed: false,
+        responsePaneCollapsed: false,
+        requestPaneWidthBeforeCollapse: null,
+        requestPaneHeightBeforeCollapse: null,
         requestPaneTab: requestPaneTab || defaultRequestPaneTab,
         responsePaneTab: 'response',
-        responsePaneScrollPosition: null,
         responseFormat: null,
         responseViewTab: null,
         responseFilter: null,
@@ -162,20 +171,6 @@ export const tabsSlice = createSlice({
 
       if (tab) {
         tab.responsePaneTab = action.payload.responsePaneTab;
-      }
-    },
-    updateResponsePaneScrollPosition: (state, action) => {
-      const tab = find(state.tabs, (t) => t.uid === action.payload.uid);
-
-      if (tab) {
-        tab.responsePaneScrollPosition = action.payload.scrollY;
-      }
-    },
-    updateRequestBodyScrollPosition: (state, action) => {
-      const tab = find(state.tabs, (t) => t.uid === action.payload.uid);
-
-      if (tab) {
-        tab.requestBodyScrollPosition = action.payload.scrollY;
       }
     },
     updateResponseFormat: (state, action) => {
@@ -331,6 +326,42 @@ export const tabsSlice = createSlice({
         console.error('Tab not found!');
       }
     },
+    collapseRequestPane: (state, action) => {
+      const tab = find(state.tabs, (t) => t.uid === action.payload.uid);
+      if (tab) {
+        tab.requestPaneCollapsed = true;
+        tab.responsePaneCollapsed = false;
+        tab.requestPaneWidthBeforeCollapse = tab.requestPaneWidth;
+        tab.requestPaneHeightBeforeCollapse = tab.requestPaneHeight;
+      }
+    },
+    collapseResponsePane: (state, action) => {
+      const tab = find(state.tabs, (t) => t.uid === action.payload.uid);
+      if (tab) {
+        tab.responsePaneCollapsed = true;
+        tab.requestPaneCollapsed = false;
+      }
+    },
+    expandRequestPane: (state, action) => {
+      const tab = find(state.tabs, (t) => t.uid === action.payload.uid);
+      if (tab) {
+        tab.requestPaneCollapsed = false;
+        if (tab.requestPaneWidthBeforeCollapse != null) {
+          tab.requestPaneWidth = tab.requestPaneWidthBeforeCollapse;
+        }
+        if (tab.requestPaneHeightBeforeCollapse != null) {
+          tab.requestPaneHeight = tab.requestPaneHeightBeforeCollapse;
+        }
+        tab.requestPaneWidthBeforeCollapse = null;
+        tab.requestPaneHeightBeforeCollapse = null;
+      }
+    },
+    expandResponsePane: (state, action) => {
+      const tab = find(state.tabs, (t) => t.uid === action.payload.uid);
+      if (tab) {
+        tab.responsePaneCollapsed = false;
+      }
+    },
     reorderTabs: (state, action) => {
       const { direction, sourceUid, targetUid } = action.payload;
       const tabs = state.tabs;
@@ -387,8 +418,6 @@ export const {
   updateRequestPaneTabHeight,
   updateRequestPaneTab,
   updateResponsePaneTab,
-  updateResponsePaneScrollPosition,
-  updateRequestBodyScrollPosition,
   updateResponseFormat,
   updateResponseViewTab,
   updateResponseFilter,
@@ -400,6 +429,10 @@ export const {
   closeTabs,
   closeAllCollectionTabs,
   makeTabPermanent,
+  collapseRequestPane,
+  collapseResponsePane,
+  expandRequestPane,
+  expandResponsePane,
   reorderTabs,
   reopenLastClosedTab,
   updateQueryBuilderOpen,

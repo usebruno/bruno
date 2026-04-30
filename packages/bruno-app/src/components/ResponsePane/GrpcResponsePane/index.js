@@ -148,15 +148,17 @@ const GrpcResponsePane = ({ item, collection }) => {
           rightContentRef={rightContentRef}
         />
       </div>
-      <section className="flex flex-col flex-grow px-4 h-0 mt-4">
+      <section className="response-pane-content">
         {isLoading ? <Overlay item={item} collection={collection} /> : null}
-        {!item?.response ? (
-          focusedTab?.responsePaneTab === 'timeline' && requestTimeline?.length ? (
-            <Timeline collection={collection} item={item} activeTabUid={activeTabUid} />
-          ) : null
-        ) : (
-          <>{getTabPanel(focusedTab.responsePaneTab)}</>
-        )}
+        <div className="response-tab-content">
+          {!item?.response ? (
+            focusedTab?.responsePaneTab === 'timeline' && requestTimeline?.length ? (
+              <Timeline collection={collection} item={item} activeTabUid={activeTabUid} />
+            ) : null
+          ) : (
+            <>{getTabPanel(focusedTab.responsePaneTab)}</>
+          )}
+        </div>
       </section>
     </StyledWrapper>
   );

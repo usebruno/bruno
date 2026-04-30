@@ -77,10 +77,10 @@ const createCollection = async (page, collectionName: string, collectionLocation
     const createCollectionModal = page.locator('.bruno-modal-card').filter({ hasText: 'Create Collection' });
     await createCollectionModal.waitFor({ state: 'visible', timeout: 5000 });
 
-    await createCollectionModal.getByLabel('Name').fill(collectionName);
+    // Fill location FIRST — some modals auto-derive the name from the path,
+    // so filling name after location ensures it isn't overwritten.
     const locationInput = createCollectionModal.getByLabel('Location');
     if (await locationInput.isVisible()) {
-      // Location input can be read-only; drop the attribute so fill can type
       await locationInput.evaluate((el) => {
         const input = el as HTMLInputElement;
         input.removeAttribute('readonly');
@@ -88,10 +88,16 @@ const createCollection = async (page, collectionName: string, collectionLocation
       });
       await locationInput.fill(collectionLocation);
     }
+    const nameInput = createCollectionModal.getByLabel('Name');
+    await nameInput.clear();
+    await nameInput.fill(collectionName);
+    // Verify the name is correct before creating
+    await expect(nameInput).toHaveValue(collectionName, { timeout: 2000 });
     await createCollectionModal.getByRole('button', { name: 'Create', exact: true }).click();
 
     await createCollectionModal.waitFor({ state: 'detached', timeout: 15000 });
-    await page.waitForTimeout(200);
+    // Wait for the collection name to appear in the sidebar before proceeding
+    await page.locator('#sidebar-collection-name').filter({ hasText: collectionName }).waitFor({ state: 'visible', timeout: 5000 });
     await openCollection(page, collectionName);
   });
 };
@@ -828,7 +834,10 @@ const selectPaneTab = async (page: Page, paneSelector: string, tabName: string) 
 
       // Wait for dropdown to appear and click the menu item
       const dropdownItem = page.locator('.tippy-box .dropdown-item').filter({ hasText: tabName });
-      await dropdownItem.click();
+      await dropdownItem.waitFor({ state: 'visible' });
+
+      await page.waitForTimeout(50);
+      await dropdownItem.click({ force: true });
       await expect(visibleTab).toContainClass('active');
       return;
     }
@@ -1128,6 +1137,42 @@ const editCodeMirrorEditor = async (page: Page, editorTestId: string, newContent
 };
 
 /**
+ * Add a pre-request script (navigates to Script > Pre Request and replaces editor content)
+ * @param page - The page object
+ * @param content - The script content to add
+ */
+const addPreRequestScript = async (page: Page, content: string) => {
+  await test.step('Add pre-request script', async () => {
+    await selectScriptSubTab(page, 'pre-request');
+    await editCodeMirrorEditor(page, 'pre-request-script-editor', content);
+  });
+};
+
+/**
+ * Add a post-response script (navigates to Script > Post Response and replaces editor content)
+ * @param page - The page object
+ * @param content - The script content to add
+ */
+const addPostResponseScript = async (page: Page, content: string) => {
+  await test.step('Add post-response script', async () => {
+    await selectScriptSubTab(page, 'post-response');
+    await editCodeMirrorEditor(page, 'post-response-script-editor', content);
+  });
+};
+
+/**
+ * Add a test script (navigates to Tests tab and replaces editor content)
+ * @param page - The page object
+ * @param content - The test script content to add
+ */
+const addTestScript = async (page: Page, content: string) => {
+  await test.step('Add test script', async () => {
+    await selectRequestPaneTab(page, 'Tests');
+    await editCodeMirrorEditor(page, 'test-script-editor', content);
+  });
+};
+
+/**
  * Click send and wait for at least one error card to appear.
  * @param page - The page object
  */
@@ -1194,6 +1239,9 @@ export {
   switchWorkspace,
   selectScriptSubTab,
   editCodeMirrorEditor,
+  addPreRequestScript,
+  addPostResponseScript,
+  addTestScript,
   sendAndWaitForErrorCard,
   sendAndWaitForResponse
 };
