@@ -182,7 +182,7 @@ ${indentString(`token_source: ${auth?.oauth2?.tokenSource || 'access_token'}`)}
 ${indentString(`token_placement: ${auth?.oauth2?.tokenPlacement || ''}`)}${
   auth?.oauth2?.tokenPlacement == 'header' ? '\n' + indentString(`token_header_prefix: ${auth?.oauth2?.tokenHeaderPrefix || ''}`) : ''
 }${
-  auth?.oauth2?.tokenPlacement !== 'header' ? '\n' + indentString(`token_query_key: ${auth?.oauth2?.tokenQueryKey || ''}`) : ''
+  (auth?.oauth2?.tokenPlacement === 'url' || auth?.oauth2?.tokenPlacement === 'query') ? '\n' + indentString(`token_query_key: ${auth?.oauth2?.tokenQueryKey || ''}`) : ''
 }
 ${indentString(`auto_fetch_token: ${(auth?.oauth2?.autoFetchToken ?? true).toString()}`)}
 ${indentString(`auto_refresh_token: ${(auth?.oauth2?.autoRefreshToken ?? false).toString()}`)}
@@ -208,7 +208,7 @@ ${indentString(`token_source: ${auth?.oauth2?.tokenSource || 'access_token'}`)}
 ${indentString(`token_placement: ${auth?.oauth2?.tokenPlacement || ''}`)}${
   auth?.oauth2?.tokenPlacement == 'header' ? '\n' + indentString(`token_header_prefix: ${auth?.oauth2?.tokenHeaderPrefix || ''}`) : ''
 }${
-  auth?.oauth2?.tokenPlacement !== 'header' ? '\n' + indentString(`token_query_key: ${auth?.oauth2?.tokenQueryKey || ''}`) : ''
+  auth?.oauth2?.tokenPlacement == 'url' ? '\n' + indentString(`token_query_key: ${auth?.oauth2?.tokenQueryKey || ''}`) : ''
 }
 ${indentString(`auto_fetch_token: ${(auth?.oauth2?.autoFetchToken ?? true).toString()}`)}
 ${indentString(`auto_refresh_token: ${(auth?.oauth2?.autoRefreshToken ?? false).toString()}`)}
@@ -229,7 +229,7 @@ ${indentString(`token_source: ${auth?.oauth2?.tokenSource || 'access_token'}`)}
 ${indentString(`token_placement: ${auth?.oauth2?.tokenPlacement || ''}`)}${
   auth?.oauth2?.tokenPlacement == 'header' ? '\n' + indentString(`token_header_prefix: ${auth?.oauth2?.tokenHeaderPrefix || ''}`) : ''
 }${
-  auth?.oauth2?.tokenPlacement !== 'header' ? '\n' + indentString(`token_query_key: ${auth?.oauth2?.tokenQueryKey || ''}`) : ''
+  auth?.oauth2?.tokenPlacement == 'url' ? '\n' + indentString(`token_query_key: ${auth?.oauth2?.tokenQueryKey || ''}`) : ''
 }
 ${indentString(`auto_fetch_token: ${(auth?.oauth2?.autoFetchToken ?? true).toString()}`)}
 }
@@ -250,7 +250,7 @@ ${indentString(`token_source: ${auth?.oauth2?.tokenSource || 'access_token'}`)}
 ${indentString(`token_placement: ${auth?.oauth2?.tokenPlacement || ''}`)}${
   auth?.oauth2?.tokenPlacement == 'header' ? '\n' + indentString(`token_header_prefix: ${auth?.oauth2?.tokenHeaderPrefix || ''}`) : ''
 }${
-  auth?.oauth2?.tokenPlacement !== 'header' ? '\n' + indentString(`token_query_key: ${auth?.oauth2?.tokenQueryKey || ''}`) : ''
+  auth?.oauth2?.tokenPlacement == 'url' ? '\n' + indentString(`token_query_key: ${auth?.oauth2?.tokenQueryKey || ''}`) : ''
 }
 ${indentString(`auto_fetch_token: ${(auth?.oauth2?.autoFetchToken ?? true).toString()}`)}
 ${indentString(`auto_refresh_token: ${(auth?.oauth2?.autoRefreshToken ?? false).toString()}`)}

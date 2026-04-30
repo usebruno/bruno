@@ -215,13 +215,14 @@ const OAuth2Implicit = ({ save, item = {}, request, handleRun, updateAuth, colle
           <MenuDropdown
             items={[
               { id: 'header', label: 'Headers', onClick: () => handleChange('tokenPlacement', 'header') },
-              { id: 'url', label: 'URL', onClick: () => handleChange('tokenPlacement', 'url') }
+              { id: 'url', label: 'URL', onClick: () => handleChange('tokenPlacement', 'url') },
+              { id: 'none', label: 'None', onClick: () => handleChange('tokenPlacement', 'none') }
             ]}
             selectedItemId={tokenPlacement}
             placement="bottom-end"
           >
             <div className="flex items-center justify-end token-placement-label select-none">
-              {tokenPlacement == 'url' ? 'URL' : 'Headers'}
+              {tokenPlacement == 'url' ? 'URL' : tokenPlacement == 'none' ? 'None' : 'Headers'}
               <IconCaretDown className="caret ml-1 mr-1" size={14} strokeWidth={2} />
             </div>
           </MenuDropdown>
@@ -244,7 +245,7 @@ const OAuth2Implicit = ({ save, item = {}, request, handleRun, updateAuth, colle
             />
           </div>
         </div>
-      ) : (
+      ) : tokenPlacement == 'url' ? (
         <div className="flex items-center gap-4 w-full" key="input-token-query-key">
           <label className="block min-w-[140px]">URL Query Key</label>
           <div className="oauth2-input-wrapper flex-1">
@@ -260,7 +261,7 @@ const OAuth2Implicit = ({ save, item = {}, request, handleRun, updateAuth, colle
             />
           </div>
         </div>
-      )}
+      ) : null}
 
       <div className="flex items-center gap-2.5 mt-2">
         <div className="flex items-center px-2.5 py-1.5 oauth2-icon-container rounded-md">
