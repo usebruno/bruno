@@ -90,6 +90,11 @@ const expectRequestFileToContainRelativePayload = async (requestFilePath: string
   await expect.poll(async () => fs.promises.readFile(requestFilePath, 'utf-8')).not.toContain(payloadPath);
 };
 
+const expectRequestFileNotToContainPayload = async (requestFilePath: string, payloadPath: string) => {
+  await expect.poll(async () => fs.promises.readFile(requestFilePath, 'utf-8')).not.toContain(` ${relativePayloadPath}\n`);
+  await expect.poll(async () => fs.promises.readFile(requestFilePath, 'utf-8')).not.toContain(payloadPath);
+};
+
 test.describe('OpenCollection multipart file paths', () => {
   test('keeps an in-collection multipart file relative after restart, OpenCollection edit, remove, and re-add', async ({
     launchElectronApp,
@@ -130,10 +135,12 @@ test.describe('OpenCollection multipart file paths', () => {
     await selectRequestPaneTab(page, 'Body');
     await removeFirstMultipartFile(page);
     await saveRequest(page);
+    await expectRequestFileNotToContainPayload(requestFilePath, payloadPath);
 
     await addMultipartFileToLastRow(page, electronApp, payloadPath);
     await saveRequest(page);
 
     await expectRequestFileToContainRelativePayload(requestFilePath, payloadPath);
+    await closeElectronApp(electronApp);
   });
 });
