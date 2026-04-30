@@ -23,7 +23,6 @@ script:pre-request {
   req.headerList.add({ key: 'x-added', value: 'via-add' });
   req.headerList.upsert({ key: 'x-upserted', value: 'via-upsert' });
   req.headerList.upsert({ key: 'bruno', value: 'is-the-best' });
-  req.headerList.append({ key: 'x', value: 'y' })
 }
 
 tests {
