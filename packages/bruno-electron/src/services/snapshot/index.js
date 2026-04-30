@@ -41,7 +41,7 @@ const activeTabSchema = yup.object({
 
 const collectionSchema = yup.object({
   pathname: yup.string().required(),
-  workspacePathname: yup.string().required(),
+  workspacePathname: yup.string().optional().default(''),
   environment: yup.object({
     collection: yup.string(),
     global: yup.string()
@@ -65,10 +65,10 @@ const workspaceSchema = yup.object({
 const devToolsSchema = yup.object({
   open: yup.boolean().required(),
   height: yup.number().required(),
-  console: yup.object().shape({}).optional(),
-  network: yup.object().shape({}).optional(),
-  performance: yup.object().shape({}).optional(),
-  terminal: yup.object().shape({}).optional()
+  console: yup.object().shape({ active: yup.boolean().optional() }).optional(),
+  network: yup.object().shape({ active: yup.boolean().optional() }).optional(),
+  performance: yup.object().shape({ active: yup.boolean().optional() }).optional(),
+  terminal: yup.object().shape({ active: yup.boolean().optional() }).optional()
 });
 
 const snapshotSchema = yup.object({
