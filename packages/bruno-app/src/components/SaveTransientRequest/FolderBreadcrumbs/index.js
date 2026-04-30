@@ -2,8 +2,6 @@ import React from 'react';
 import { IconChevronRight, IconDots } from '@tabler/icons';
 import Dropdown from 'components/Dropdown';
 
-const Chevron = () => <IconChevronRight size={16} strokeWidth={1.5} className="collection-name-chevron" />;
-
 const FolderBreadcrumbs = ({
   collectionName,
   breadcrumbs,
@@ -26,7 +24,7 @@ const FolderBreadcrumbs = ({
 
       {collapsed.length > 0 && (
         <>
-          <Chevron />
+          <IconChevronRight size={16} strokeWidth={1.5} className="collection-name-chevron" />
           <Dropdown
             placement="bottom-start"
             icon={(
@@ -53,7 +51,7 @@ const FolderBreadcrumbs = ({
 
       {last && (
         <>
-          <Chevron />
+          <IconChevronRight size={16} strokeWidth={1.5} className="collection-name-chevron" />
           <span
             className="collection-name-breadcrumb breadcrumb-last"
             onClick={(e) => {
@@ -67,7 +65,7 @@ const FolderBreadcrumbs = ({
         </>
       )}
 
-      {isAtRoot && <Chevron />}
+      {isAtRoot && <IconChevronRight size={16} strokeWidth={1.5} className="collection-name-chevron" />}
     </div>
   );
 };
