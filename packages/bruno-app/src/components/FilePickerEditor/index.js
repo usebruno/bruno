@@ -1,5 +1,5 @@
 import React from 'react';
-import path from 'utils/common/path';
+import { getStoredFilePath } from 'utils/common/path';
 import { useDispatch } from 'react-redux';
 import { browseFiles } from 'providers/ReduxStore/slices/collections/actions';
 import { IconX, IconUpload, IconFile } from '@tabler/icons';
@@ -48,13 +48,7 @@ const FilePickerEditor = ({
         // If file is in the collection's directory, then we use relative path
         // Otherwise, we use the absolute path
         filePaths = filePaths.map((filePath) => {
-          const collectionDir = collection.pathname;
-
-          if (filePath.startsWith(collectionDir)) {
-            return path.relative(collectionDir, filePath);
-          }
-
-          return filePath;
+          return getStoredFilePath(collection.pathname, filePath);
         });
 
         onChange(isSingleFilePicker ? filePaths[0] : filePaths);

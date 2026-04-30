@@ -5,7 +5,7 @@ jest.mock('platform', () => ({
   }
 }));
 
-import { getRelativePath, getBasename, getAbsoluteFilePath } from './path';
+import { getRelativePath, getBasename, getAbsoluteFilePath, getStoredFilePath } from './path';
 
 describe('Path Utilities - Unix Platform', () => {
   describe('getRelativePath', () => {
@@ -110,6 +110,57 @@ describe('Path Utilities - Unix Platform', () => {
     it('should handle current directory reference', () => {
       const result = getAbsoluteFilePath('/users/john/collections', './local-file.json');
       expect(result).toBe('/users/john/collections/local-file.json');
+    });
+  });
+
+  describe('getStoredFilePath', () => {
+    it('should store in-collection files as relative paths', () => {
+      const result = getStoredFilePath('/users/john/collections/api', '/users/john/collections/api/files/payload.txt');
+      expect(result).toBe('files/payload.txt');
+    });
+
+    it('should handle collection paths with trailing separators', () => {
+      const result = getStoredFilePath('/users/john/collections/api/', '/users/john/collections/api/files/payload.txt');
+      expect(result).toBe('files/payload.txt');
+    });
+
+    it('should resolve dot segments before deciding whether a file is inside the collection', () => {
+      const result = getStoredFilePath('/users/john/collections/api', '/users/john/collections/api/files/../payload.txt');
+      expect(result).toBe('payload.txt');
+    });
+
+    it('should keep paths that resolve outside the collection absolute', () => {
+      const filePath = '/users/john/collections/api/../payload.txt';
+      const result = getStoredFilePath('/users/john/collections/api', filePath);
+      expect(result).toBe(filePath);
+    });
+
+    it('should keep outside collection paths absolute', () => {
+      const filePath = '/users/john/downloads/payload.txt';
+      const result = getStoredFilePath('/users/john/collections/api', filePath);
+      expect(result).toBe(filePath);
+    });
+
+    it('should keep sibling prefix paths absolute', () => {
+      const filePath = '/users/john/collections/api-other/payload.txt';
+      const result = getStoredFilePath('/users/john/collections/api', filePath);
+      expect(result).toBe(filePath);
+    });
+
+    it('should keep same-path values unchanged', () => {
+      const filePath = '/users/john/collections/api';
+      const result = getStoredFilePath('/users/john/collections/api', filePath);
+      expect(result).toBe(filePath);
+    });
+
+    it('should store in-collection paths whose names begin with two dots as relative paths', () => {
+      const result = getStoredFilePath('/users/john/collections/api', '/users/john/collections/api/..payload.txt');
+      expect(result).toBe('..payload.txt');
+    });
+
+    it('should keep the original file path when inputs are missing', () => {
+      expect(getStoredFilePath('', '/users/john/downloads/payload.txt')).toBe('/users/john/downloads/payload.txt');
+      expect(getStoredFilePath('/users/john/collections/api', '')).toBe('');
     });
   });
 

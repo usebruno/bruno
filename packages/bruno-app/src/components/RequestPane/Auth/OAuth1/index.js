@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import get from 'lodash/get';
 import { useTheme } from 'providers/Theme';
 import { useDispatch } from 'react-redux';
-import path from 'utils/common/path';
+import path, { getStoredFilePath } from 'utils/common/path';
 import { IconSettings, IconShieldLock, IconAdjustmentsHorizontal, IconCaretDown, IconChevronRight, IconFile, IconX, IconUpload } from '@tabler/icons';
 import MenuDropdown from 'ui/MenuDropdown';
 import SingleLineEditor from 'components/SingleLineEditor';
@@ -70,8 +70,7 @@ const OAuth1 = ({ item = {}, collection, request, save, updateAuth }) => {
       .then((filePaths) => {
         if (filePaths && filePaths.length > 0) {
           let filePath = filePaths[0];
-          const collectionDir = collection.pathname;
-          filePath = path.relative(collectionDir, filePath);
+          filePath = getStoredFilePath(collection.pathname, filePath);
           dispatch(
             updateAuth({
               mode: 'oauth1',

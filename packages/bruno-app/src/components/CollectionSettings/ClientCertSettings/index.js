@@ -4,7 +4,7 @@ import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import StyledWrapper from './StyledWrapper';
 import { useRef } from 'react';
-import path from 'utils/common/path';
+import path, { getStoredFilePath } from 'utils/common/path';
 import SensitiveFieldWarning from 'components/SensitiveFieldWarning/index';
 import SingleLineEditor from 'components/SingleLineEditor/index';
 import { useDetectSensitiveField } from 'hooks/useDetectSensitiveField/index';
@@ -98,7 +98,7 @@ const ClientCertSettings = ({ collection }) => {
   const getFile = (e) => {
     const filePath = window?.ipcRenderer?.getFilePath(e?.files?.[0]);
     if (filePath) {
-      let relativePath = path.relative(collection.pathname, filePath);
+      let relativePath = getStoredFilePath(collection.pathname, filePath);
       formik.setFieldValue(e.name, relativePath);
     }
   };

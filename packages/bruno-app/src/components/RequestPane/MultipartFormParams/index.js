@@ -14,7 +14,7 @@ import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collection
 import { updateTableColumnWidths } from 'providers/ReduxStore/slices/tabs';
 import EditableTable from 'components/EditableTable';
 import StyledWrapper from './StyledWrapper';
-import path from 'utils/common/path';
+import { getStoredFilePath } from 'utils/common/path';
 import { usePersistedState } from 'hooks/usePersistedState';
 import { useTrackScroll } from 'hooks/useTrackScroll';
 import { isWindowsOS } from 'utils/common/platform';
@@ -60,11 +60,7 @@ const MultipartFormParams = ({ item, collection }) => {
     dispatch(browseFiles())
       .then((filePaths) => {
         const processedPaths = filePaths.map((filePath) => {
-          const collectionDir = collection.pathname;
-          if (filePath.startsWith(collectionDir)) {
-            return path.relative(collectionDir, filePath);
-          }
-          return filePath;
+          return getStoredFilePath(collection.pathname, filePath);
         });
 
         const currentParams = item.draft

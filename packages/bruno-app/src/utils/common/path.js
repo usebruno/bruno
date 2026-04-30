@@ -163,10 +163,35 @@ const getAbsoluteFilePath = (basePath, relativePath, shouldPosixify = false) => 
   return shouldPosixify ? posixify(result) : result;
 };
 
+const getStoredFilePath = (collectionPath, filePath) => {
+  if (!collectionPath || !filePath) {
+    return filePath;
+  }
+
+  try {
+    const resolvedCollectionPath = brunoPath.resolve(collectionPath);
+    const resolvedFilePath = brunoPath.resolve(filePath);
+    const relativePath = brunoPath.relative(resolvedCollectionPath, resolvedFilePath);
+
+    if (
+      !relativePath
+      || relativePath === '..'
+      || relativePath.startsWith(`..${brunoPath.sep}`)
+      || brunoPath.isAbsolute(relativePath)
+    ) {
+      return filePath;
+    }
+
+    return posixify(relativePath);
+  } catch (error) {
+    return filePath;
+  }
+};
+
 const normalizePath = (p) => {
   if (!p) return '';
   return p.replace(/\\/g, '/').replace(/\/+$/, '');
 };
 
 export default brunoPath;
-export { getRelativePath, getBasename, getAbsoluteFilePath, normalizePath };
+export { getRelativePath, getBasename, getAbsoluteFilePath, getStoredFilePath, normalizePath };
