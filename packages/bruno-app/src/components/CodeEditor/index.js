@@ -6,6 +6,7 @@
  */
 
 import React, { createRef } from 'react';
+import { connect } from 'react-redux';
 import { isEqual, escapeRegExp } from 'lodash';
 import { defineCodeMirrorBrunoVariablesMode } from 'utils/common/codemirror';
 import { setupAutoComplete, showRootHints } from 'utils/codemirror/autocomplete';
@@ -17,6 +18,7 @@ import { getAllVariables } from 'utils/collections';
 import { setupLinkAware } from 'utils/codemirror/linkAware';
 import { setupLintErrorTooltip } from 'utils/codemirror/lint-errors';
 import CodeMirrorSearch from 'components/CodeMirrorSearch/index';
+import { getCodeMirrorKeyForAction } from 'providers/Hotkeys/keyMappings';
 
 const CodeMirror = require('codemirror');
 window.jsonlint = jsonlint;
@@ -24,7 +26,7 @@ window.JSHINT = JSHINT;
 
 const TAB_SIZE = 2;
 
-export default class CodeEditor extends React.Component {
+class CodeEditor extends React.Component {
   constructor(props) {
     super(props);
 
@@ -56,6 +58,13 @@ export default class CodeEditor extends React.Component {
         return;
       }
       return CodeMirror.Pass;
+    };
+    const toggleComment = () => {
+      if (['application/ld+json', 'application/json'].includes(this.props.mode)) {
+        this.editor.toggleComment({ lineComment: '//', blockComment: '/*' });
+      } else {
+        this.editor.toggleComment();
+      }
     };
 
     const editor = (this.editor = CodeMirror(this._node, {
@@ -111,20 +120,7 @@ export default class CodeEditor extends React.Component {
         'Cmd-Y': 'foldAll',
         'Ctrl-I': 'unfoldAll',
         'Cmd-I': 'unfoldAll',
-        'Ctrl-/': () => {
-          if (['application/ld+json', 'application/json'].includes(this.props.mode)) {
-            this.editor.toggleComment({ lineComment: '//', blockComment: '/*' });
-          } else {
-            this.editor.toggleComment();
-          }
-        },
-        'Cmd-/': () => {
-          if (['application/ld+json', 'application/json'].includes(this.props.mode)) {
-            this.editor.toggleComment({ lineComment: '//', blockComment: '/*' });
-          } else {
-            this.editor.toggleComment();
-          }
-        },
+        ...(this.props.commentToggleKey ? { [this.props.commentToggleKey]: toggleComment } : {}),
         'Esc': () => {
           if (this.state.searchBarVisible) {
             this.setState({ searchBarVisible: false });
@@ -355,3 +351,9 @@ export default class CodeEditor extends React.Component {
     }
   };
 }
+
+const mapStateToProps = (state) => ({
+  commentToggleKey: getCodeMirrorKeyForAction('toggleComment', state.app.preferences?.keyBindings)
+});
+
+export default connect(mapStateToProps, null, null, { forwardRef: true })(CodeEditor);

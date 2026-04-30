@@ -70,6 +70,12 @@ export const KEY_BINDING_SECTIONS = [
     }
   },
   {
+    heading: 'Editor',
+    bindings: {
+      toggleComment: { mac: 'command+bind+/', windows: 'ctrl+bind+/', name: 'Toggle Comment' }
+    }
+  },
+  {
     heading: 'Others',
     bindings: {
       openPreferences: { mac: 'command+bind+,', windows: 'ctrl+bind+,', name: 'Open Preferences' }, // D
@@ -170,4 +176,22 @@ export const getKeyBindingsForActionAllOS = (action, userKeyBindings) => {
 
   // console.log('[keyMappings] getKeyBindingsForActionAllOS:', action, '->', combos);
   return combos.length > 0 ? combos : null;
+};
+
+const CM_MODIFIERS = { command: 'Cmd', ctrl: 'Ctrl', alt: 'Alt', shift: 'Shift' };
+const CM_MODIFIER_ORDER = ['Shift', 'Cmd', 'Ctrl', 'Alt'];
+
+export const getCodeMirrorKeyForAction = (action, userKeyBindings) => {
+  const binding = getMergedKeyBindings(userKeyBindings)[action];
+  if (!binding) return null;
+  const isMac = navigator.platform.toLowerCase().includes('mac');
+  const parts = (isMac ? binding.mac : binding.windows).split('+bind+').filter(Boolean);
+  const mods = [], keys = [];
+  for (const p of parts) {
+    const cm = CM_MODIFIERS[p.toLowerCase()];
+    cm ? mods.push(cm) : keys.push(p);
+  }
+  if (!keys.length) return null;
+  mods.sort((a, b) => CM_MODIFIER_ORDER.indexOf(a) - CM_MODIFIER_ORDER.indexOf(b));
+  return [...mods, ...keys].join('-');
 };
