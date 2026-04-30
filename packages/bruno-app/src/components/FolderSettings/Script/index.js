@@ -114,7 +114,7 @@ const Script = ({ collection, folder }) => {
           <CodeEditor
             ref={preRequestEditorRef}
             collection={collection}
-            docKey={`${folder.uid}:folder-script:pre-request`}
+            docKey="folder-script:pre-request"
             value={requestScript || ''}
             theme={displayedTheme}
             onEdit={onRequestScriptEdit}
@@ -132,7 +132,7 @@ const Script = ({ collection, folder }) => {
           <CodeEditor
             ref={postResponseEditorRef}
             collection={collection}
-            docKey={`${folder.uid}:folder-script:post-response`}
+            docKey="folder-script:post-response"
             value={responseScript || ''}
             theme={displayedTheme}
             onEdit={onResponseScriptEdit}

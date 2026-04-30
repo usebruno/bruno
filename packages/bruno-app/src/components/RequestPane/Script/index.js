@@ -107,7 +107,7 @@ const Script = ({ item, collection }) => {
           <CodeEditor
             ref={preRequestEditorRef}
             collection={collection}
-            docKey={`${item.uid}:script:pre-request`}
+            docKey="script:pre-request"
             value={requestScript || ''}
             theme={displayedTheme}
             font={get(preferences, 'font.codeFont', 'default')}
@@ -126,7 +126,7 @@ const Script = ({ item, collection }) => {
           <CodeEditor
             ref={postResponseEditorRef}
             collection={collection}
-            docKey={`${item.uid}:script:post-response`}
+            docKey="script:post-response"
             value={responseScript || ''}
             theme={displayedTheme}
             font={get(preferences, 'font.codeFont', 'default')}

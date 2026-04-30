@@ -34,7 +34,7 @@ const Tests = ({ item, collection }) => {
       <CodeEditor
         ref={testsEditorRef}
         collection={collection}
-        docKey={`${item.uid}:tests`}
+        docKey="tests"
         value={tests || ''}
         theme={displayedTheme}
         font={get(preferences, 'font.codeFont', 'default')}

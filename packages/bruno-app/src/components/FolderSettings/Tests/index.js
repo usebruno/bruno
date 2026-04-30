@@ -36,7 +36,7 @@ const Tests = ({ collection, folder }) => {
       <CodeEditor
         ref={testsEditorRef}
         collection={collection}
-        docKey={`${folder.uid}:folder-tests`}
+        docKey="folder-tests"
         value={tests || ''}
         theme={displayedTheme}
         onEdit={onEdit}

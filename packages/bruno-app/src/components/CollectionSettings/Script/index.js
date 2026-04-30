@@ -111,7 +111,7 @@ const Script = ({ collection }) => {
           <CodeEditor
             ref={preRequestEditorRef}
             collection={collection}
-            docKey={`${collection.uid}:collection-script:pre-request`}
+            docKey="collection-script:pre-request"
             value={requestScript || ''}
             theme={displayedTheme}
             onEdit={onRequestScriptEdit}
@@ -129,7 +129,7 @@ const Script = ({ collection }) => {
           <CodeEditor
             ref={postResponseEditorRef}
             collection={collection}
-            docKey={`${collection.uid}:collection-script:post-response`}
+            docKey="collection-script:post-response"
             value={responseScript || ''}
             theme={displayedTheme}
             onEdit={onResponseScriptEdit}
