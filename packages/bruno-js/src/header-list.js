@@ -76,15 +76,6 @@ const ReadOnlyPropertyList = require('./readonly-property-list');
  * | `clear()`                     | Removes **all** headers (enabled and disabled)            |
  * | `populate(items\|string)`     | Replaces all; accepts array or multi-line header string    |
  * | `repopulate(items)`           | Alias for `populate()`                                    |
- * | `prepend(item)`               | **Not implemented** — throws Error, use `add()`           |
- * | `append(item)`                | **Not implemented** — throws Error, use `add()`           |
- * | `insert(item)`                | **Not implemented** — throws Error, use `add()`           |
- * | `insertAfter(item)`           | **Not implemented** — throws Error, use `add()`           |
- *
- * **Note on unimplemented positional methods:** `prepend`, `append`, `insert`,
- * and `insertAfter` throw because headers are stored internally as a plain JS
- * object (`req.headers`), which does not support duplicate keys or ordering.
- * Use `add()` or `upsert()` instead.
  * | `assimilate(source, prune?)` | Merges headers; prune removes items not in source          |
  */
 class HeaderList extends PropertyList {
@@ -255,21 +246,6 @@ class HeaderList extends PropertyList {
     }
     this.upsert(item);
   }
-
-  /**
-   * Not implemented — headers are stored as a plain object, so ordering and
-   * duplicate keys are not supported. Use `add()` or `upsert()` instead.
-   */
-  append() { throw new Error('append() is not yet implemented. Use add() or upsert() instead.'); }
-
-  /** @see {@link HeaderList#append} */
-  prepend() { throw new Error('prepend() is not yet implemented. Use add() or upsert() instead.'); }
-
-  /** @see {@link HeaderList#append} */
-  insert() { throw new Error('insert() is not yet implemented. Use add() or upsert() instead.'); }
-
-  /** @see {@link HeaderList#append} */
-  insertAfter() { throw new Error('insertAfter() is not yet implemented. Use add() or upsert() instead.'); }
 
   /**
    * Set (or replace) a header on the request (case-insensitive key match).

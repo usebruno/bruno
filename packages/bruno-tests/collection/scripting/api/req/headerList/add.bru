@@ -29,28 +29,12 @@ tests {
   test("req.headerList.add(item)", function() {
     expect(req.getHeader('x-added')).to.equal('via-add');
   });
-  
+
   test("req.headerList.upsert(item) - new header", function() {
     expect(req.getHeader('x-upserted')).to.equal('via-upsert');
   });
-  
+
   test("req.headerList.upsert(item) - overwrite existing", function() {
     expect(req.getHeader('bruno')).to.equal('is-the-best');
-  });
-  
-  test("req.headerList.append() throws not-implemented", function() {
-    expect(() => req.headerList.append({ key: 'x', value: 'y' })).to.throw();
-  });
-  
-  test("req.headerList.prepend() throws not-implemented", function() {
-    expect(() => req.headerList.prepend({ key: 'x', value: 'y' })).to.throw();
-  });
-  
-  test("req.headerList.insert() throws not-implemented", function() {
-    expect(() => req.headerList.insert({ key: 'x', value: 'y' })).to.throw();
-  });
-  
-  test("req.headerList.insertAfter() throws not-implemented", function() {
-    expect(() => req.headerList.insertAfter({ key: 'x', value: 'y' })).to.throw();
   });
 }

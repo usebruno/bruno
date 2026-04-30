@@ -342,17 +342,6 @@ describe('HeaderList (req.headerList)', () => {
     });
   });
 
-  describe('append(), prepend(), insert(), insertAfter()', () => {
-    test('all throw not-yet-implemented errors', () => {
-      const { list } = createReqHeaders({});
-
-      expect(() => list.append({ key: 'A', value: '1' })).toThrow('not yet implemented');
-      expect(() => list.prepend({ key: 'B', value: '2' })).toThrow('not yet implemented');
-      expect(() => list.insert({ key: 'C', value: '3' })).toThrow('not yet implemented');
-      expect(() => list.insertAfter({ key: 'D', value: '4' })).toThrow('not yet implemented');
-    });
-  });
-
   describe('remove()', () => {
     test('removes header by key string', () => {
       const { list, rawReq } = createReqHeaders();
@@ -1024,12 +1013,8 @@ describe('Response Headers (res.headerList)', () => {
       expect(() => headerList.assimilate([])).toThrow('read-only');
     });
 
-    test('response headers alias write methods also throw', () => {
+    test('response headers repopulate throws read-only', () => {
       const { headerList } = createResHeaders();
-      expect(() => headerList.append({ key: 'X-New', value: 'val' })).toThrow('not yet implemented');
-      expect(() => headerList.prepend({ key: 'X-New', value: 'val' })).toThrow('not yet implemented');
-      expect(() => headerList.insert({ key: 'X-New', value: 'val' })).toThrow('not yet implemented');
-      expect(() => headerList.insertAfter({ key: 'X-New', value: 'val' })).toThrow('not yet implemented');
       expect(() => headerList.repopulate([])).toThrow('read-only');
     });
 
