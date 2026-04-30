@@ -180,16 +180,25 @@ export const getKeyBindingsForActionAllOS = (action, userKeyBindings) => {
 
 const CM_MODIFIERS = { command: 'Cmd', ctrl: 'Ctrl', alt: 'Alt', shift: 'Shift' };
 const CM_MODIFIER_ORDER = ['Shift', 'Cmd', 'Ctrl', 'Alt'];
+const CM_SPECIAL_KEYS = {
+  enter: 'Enter', esc: 'Esc', escape: 'Esc', space: 'Space', tab: 'Tab',
+  backspace: 'Backspace', delete: 'Delete', insert: 'Insert',
+  arrowup: 'Up', arrowdown: 'Down', arrowleft: 'Left', arrowright: 'Right',
+  pageup: 'PageUp', pagedown: 'PageDown', home: 'Home', end: 'End'
+};
 
 export const getCodeMirrorKeyForAction = (action, userKeyBindings) => {
   const binding = getMergedKeyBindings(userKeyBindings)[action];
   if (!binding) return null;
   const isMac = navigator.platform.toLowerCase().includes('mac');
-  const parts = (isMac ? binding.mac : binding.windows).split('+bind+').filter(Boolean);
+  const platformBinding = isMac ? binding.mac : binding.windows;
+  if (typeof platformBinding !== 'string' || !platformBinding.trim()) return null;
+  const parts = platformBinding.split('+bind+').filter(Boolean);
   const mods = [], keys = [];
   for (const p of parts) {
-    const cm = CM_MODIFIERS[p.toLowerCase()];
-    cm ? mods.push(cm) : keys.push(p);
+    const lower = p.toLowerCase();
+    const cm = CM_MODIFIERS[lower];
+    cm ? mods.push(cm) : keys.push(CM_SPECIAL_KEYS[lower] || p);
   }
   if (!keys.length) return null;
   mods.sort((a, b) => CM_MODIFIER_ORDER.indexOf(a) - CM_MODIFIER_ORDER.indexOf(b));

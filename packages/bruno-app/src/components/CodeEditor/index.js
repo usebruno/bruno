@@ -50,6 +50,14 @@ class CodeEditor extends React.Component {
     };
   }
 
+  toggleComment = () => {
+    if (['application/ld+json', 'application/json'].includes(this.props.mode)) {
+      this.editor.toggleComment({ lineComment: '//', blockComment: '/*' });
+    } else {
+      this.editor.toggleComment();
+    }
+  };
+
   componentDidMount() {
     const variables = getAllVariables(this.props.collection, this.props.item);
     const runShortcut = () => {
@@ -58,13 +66,6 @@ class CodeEditor extends React.Component {
         return;
       }
       return CodeMirror.Pass;
-    };
-    const toggleComment = () => {
-      if (['application/ld+json', 'application/json'].includes(this.props.mode)) {
-        this.editor.toggleComment({ lineComment: '//', blockComment: '/*' });
-      } else {
-        this.editor.toggleComment();
-      }
     };
 
     const editor = (this.editor = CodeMirror(this._node, {
@@ -120,7 +121,7 @@ class CodeEditor extends React.Component {
         'Cmd-Y': 'foldAll',
         'Ctrl-I': 'unfoldAll',
         'Cmd-I': 'unfoldAll',
-        ...(this.props.commentToggleKey ? { [this.props.commentToggleKey]: toggleComment } : {}),
+        ...(this.props.commentToggleKey ? { [this.props.commentToggleKey]: this.toggleComment } : {}),
         'Esc': () => {
           if (this.state.searchBarVisible) {
             this.setState({ searchBarVisible: false });
@@ -274,6 +275,13 @@ class CodeEditor extends React.Component {
 
     if (this.props.readOnly !== prevProps.readOnly && this.editor) {
       this.editor.setOption('readOnly', this.props.readOnly);
+    }
+
+    if (this.props.commentToggleKey !== prevProps.commentToggleKey && this.editor) {
+      const extraKeys = { ...(this.editor.getOption('extraKeys') || {}) };
+      if (prevProps.commentToggleKey) delete extraKeys[prevProps.commentToggleKey];
+      if (this.props.commentToggleKey) extraKeys[this.props.commentToggleKey] = this.toggleComment;
+      this.editor.setOption('extraKeys', extraKeys);
     }
 
     this.ignoreChangeEvent = false;
