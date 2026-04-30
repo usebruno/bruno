@@ -36,6 +36,7 @@ const useOpenAPISync = (collection) => {
 
   const updateDrift = (patch) => dispatch(setDrift({ collectionUid: collection.uid, patch }));
 
+  // useStore: tabs are read only inside handlers — useSelector would re-render on every tab change.
   const store = useStore();
 
   const isConfigured = !!openApiSyncConfig?.sourceUrl;
