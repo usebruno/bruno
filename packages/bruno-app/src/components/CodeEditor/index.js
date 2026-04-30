@@ -21,10 +21,10 @@ import {
   applyEditorState,
   captureEditorState,
   getDocKey,
-  isTabRecentlyCleared,
   readPersistedEditorState,
   writePersistedEditorState
 } from './state-persistence';
+import { usePersistenceScope } from 'hooks/usePersistedState/PersistedScopeProvider';
 
 const CodeMirror = require('codemirror');
 window.jsonlint = jsonlint;
@@ -32,9 +32,7 @@ window.JSHINT = JSHINT;
 
 const TAB_SIZE = 2;
 
-export { clearCodeEditorPersistedState } from './state-persistence';
-
-export default class CodeEditor extends React.Component {
+class CodeEditor extends React.Component {
   constructor(props) {
     super(props);
 
@@ -195,10 +193,14 @@ export default class CodeEditor extends React.Component {
       // right content. Read this tab's previously persisted view state from
       // localStorage and apply it on top — restores folds, cursor, selection,
       // undo history, and scroll position.
-      const docKey = this._getDocKey();
+      const docKey = getDocKey(this.props);
       this._currentDocKey = docKey;
       this.cachedValue = editor.getValue();
-      applyEditorState(editor, readPersistedEditorState(docKey), this.cachedValue);
+      applyEditorState(
+        editor,
+        readPersistedEditorState({ scope: this.props.persistenceScope, key: docKey }),
+        this.cachedValue
+      );
 
       editor.setOption('lint', this.props.mode && editor.getValue().trim().length > 0 ? this.lintOptions : false);
       editor.on('change', this._onEdit);
@@ -247,7 +249,7 @@ export default class CodeEditor extends React.Component {
       // Two distinct update paths:
       //   1. Doc key changed → tab switch → snapshot outgoing state, load new content, restore incoming state
       //   2. Same doc, value changed → external content update → setValue (view state resets)
-      const newDocKey = this._getDocKey();
+      const newDocKey = getDocKey(this.props);
       const docKeyChanged = newDocKey !== this._currentDocKey;
 
       if (docKeyChanged) {
@@ -256,12 +258,20 @@ export default class CodeEditor extends React.Component {
         // visit can restore it. Then setValue the incoming content and apply
         // any view state previously persisted for the incoming tab.
         if (this._currentDocKey) {
-          writePersistedEditorState(this._currentDocKey, captureEditorState(this.editor));
+          writePersistedEditorState({
+            scope: this.props.persistenceScope,
+            key: this._currentDocKey,
+            state: captureEditorState(this.editor)
+          });
         }
         this.cachedValue = String(this?.props?.value ?? '');
         this.editor.setValue(String(this.props.value) || '');
         this._currentDocKey = newDocKey;
-        applyEditorState(this.editor, readPersistedEditorState(newDocKey), this.cachedValue);
+        applyEditorState(
+          this.editor,
+          readPersistedEditorState({ scope: this.props.persistenceScope, key: newDocKey }),
+          this.cachedValue
+        );
         // setValue resets the editor's mode-overlay state — re-apply the
         // brunovariables overlay and re-evaluate lint config for the new content.
         this.addOverlay();
@@ -279,7 +289,7 @@ export default class CodeEditor extends React.Component {
         this.cachedValue = String(this?.props?.value ?? '');
         this.editor.setValue(String(this.props.value) || '');
         this.editor.setCursor(cursor);
-        writePersistedEditorState(this._currentDocKey, null);
+        writePersistedEditorState({ scope: this.props.persistenceScope, key: this._currentDocKey, state: null });
       }
     }
 
@@ -332,13 +342,12 @@ export default class CodeEditor extends React.Component {
       // Snapshot view state to localStorage before tearing down the editor so
       // the next mount of a CodeEditor with this docKey can restore folds,
       // cursor, selection, undo history, and scroll position.
-      //
-      // Skip the write if this tab is currently being closed — the closeTabs
-      // thunk has just cleared this tab's entries and we'd otherwise re-write
-      // them right back, defeating the cleanup.
-      const tabUid = this.props.item?.uid || this.props.collection?.uid;
-      if (this._currentDocKey && !isTabRecentlyCleared(tabUid)) {
-        writePersistedEditorState(this._currentDocKey, captureEditorState(this.editor));
+      if (this._currentDocKey) {
+        writePersistedEditorState({
+          scope: this.props.persistenceScope,
+          key: this._currentDocKey,
+          state: captureEditorState(this.editor)
+        });
       }
 
       this.editor?._destroyLinkAware?.();
@@ -407,3 +416,12 @@ export default class CodeEditor extends React.Component {
     }
   };
 }
+
+const CodeEditorWithPersistenceScope = React.forwardRef((props, ref) => {
+  const persistenceScope = usePersistenceScope();
+  return <CodeEditor {...props} persistenceScope={persistenceScope} ref={ref} />;
+});
+
+CodeEditorWithPersistenceScope.displayName = 'CodeEditor';
+
+export default CodeEditorWithPersistenceScope;

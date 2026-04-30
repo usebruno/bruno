@@ -16,7 +16,14 @@
  * and history is skipped to avoid an inconsistent undo stack.
  */
 
-export const STORAGE_PREFIX = 'persisted::codeeditor::';
+export const STORAGE_PREFIX = 'persisted::';
+export const DEFAULT_PERSISTENCE_SCOPE = 'global';
+export const STORAGE_SEGMENT = 'codeeditor';
+
+export const getScopedStorageKey = (scope, key) => {
+  const resolvedScope = scope || DEFAULT_PERSISTENCE_SCOPE;
+  return `${STORAGE_PREFIX}${resolvedScope}::${STORAGE_SEGMENT}::${key}`;
+};
 
 // Identifies which Doc state belongs to a given CodeEditor instance.
 //
@@ -36,55 +43,27 @@ export const getDocKey = (props) => {
   return `${id}:${mode}:${readOnly}`;
 };
 
-export const readPersistedEditorState = (key) => {
+export const readPersistedEditorState = ({ scope, key }) => {
   try {
-    const raw = localStorage.getItem(STORAGE_PREFIX + key);
+    const raw = localStorage.getItem(getScopedStorageKey(scope, key));
     return raw ? JSON.parse(raw) : null;
   } catch {
     return null;
   }
 };
 
-export const writePersistedEditorState = (key, state) => {
+export const writePersistedEditorState = ({ scope, key, state }) => {
   try {
+    const storageKey = getScopedStorageKey(scope, key);
     if (state == null) {
-      localStorage.removeItem(STORAGE_PREFIX + key);
+      localStorage.removeItem(storageKey);
     } else {
-      localStorage.setItem(STORAGE_PREFIX + key, JSON.stringify(state));
+      localStorage.setItem(storageKey, JSON.stringify(state));
     }
   } catch {
     // localStorage may be unavailable or full (Chromium ~10 MB cap). Editor
     // state is non-critical — content lives in Redux — so silently ignore.
   }
-};
-
-// Tab UIDs that were just cleared by the closeTabs thunk. componentWillUnmount
-// checks this set to avoid re-writing the entry it was about to delete: when a
-// tab closes, the thunk runs first (clears localStorage) and React unmounts
-// the CodeEditor afterward — without this guard, the unmount would re-save
-// state under the same key and the cleanup would be undone.
-const recentlyClearedTabUids = new Set();
-
-export const isTabRecentlyCleared = (tabUid) =>
-  Boolean(tabUid) && recentlyClearedTabUids.has(tabUid);
-
-// Removes every persisted CodeEditor entry whose docKey starts with `${tabUid}:`.
-// Called from the closeTabs thunk so a closed tab doesn't leak its editor state
-// (folds, history, cursor, scroll) in localStorage forever.
-export const clearCodeEditorPersistedState = (tabUid) => {
-  if (!tabUid) return;
-  recentlyClearedTabUids.add(tabUid);
-  try {
-    const prefix = `${STORAGE_PREFIX}${tabUid}:`;
-    Object.keys(localStorage)
-      .filter((k) => k.startsWith(prefix))
-      .forEach((k) => localStorage.removeItem(k));
-  } catch {
-    // localStorage may be unavailable — silently ignore
-  }
-  // Drop the marker after React has had a chance to unmount the CodeEditor and
-  // call componentWillUnmount. 1s is generous — unmount typically fires in <1ms.
-  setTimeout(() => recentlyClearedTabUids.delete(tabUid), 1000);
 };
 
 export const captureEditorState = (editor) => {
@@ -136,9 +115,4 @@ export const applyEditorState = (editor, state, currentContent) => {
   if (state.scrollY != null) {
     try { editor.scrollTo(null, state.scrollY); } catch {}
   }
-};
-
-// Test-only — resets internal state between tests.
-export const __resetForTests = () => {
-  recentlyClearedTabUids.clear();
 };
