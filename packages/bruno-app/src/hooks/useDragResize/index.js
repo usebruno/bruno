@@ -12,9 +12,9 @@ import { useCallback, useEffect, useRef, useState } from 'react';
  *   const effectiveWidth = dragging ? dragWidth : width;
  */
 export function useDragResize({ containerRef, width, onWidthChange, minLeft, minRight }) {
-  const draggingRef = useRef(false);
   // Mirror the live drag width in a ref so handleMouseUp can read the final
-  // value and dispatch outside of a setState updater (updaters must be pure).
+  // value without taking dragWidth as a dep (would re-create the handler on
+  // every mousemove and re-run the listener-attach effect).
   const dragWidthRef = useRef(null);
   const [dragging, setDragging] = useState(false);
   const [dragWidth, setDragWidth] = useState(null);
@@ -30,21 +30,19 @@ export function useDragResize({ containerRef, width, onWidthChange, minLeft, min
 
   const handleMouseMove = useCallback(
     (e) => {
-      if (!draggingRef.current || !containerRef.current) return;
+      const rect = containerRef.current?.getBoundingClientRect();
+      if (!rect) return;
       e.preventDefault();
-      const rect = containerRef.current.getBoundingClientRect();
-      const clamped = Math.max(minLeft, Math.min(e.clientX - rect.left, rect.width - minRight));
+      const clamped = clamp(e.clientX - rect.left);
       dragWidthRef.current = clamped;
       setDragWidth(clamped);
     },
-    [containerRef, minLeft, minRight]
+    [containerRef, clamp]
   );
 
   const handleMouseUp = useCallback(
     (e) => {
-      if (!draggingRef.current) return;
       e.preventDefault();
-      draggingRef.current = false;
       const finalWidth = dragWidthRef.current;
       dragWidthRef.current = null;
       setDragging(false);
@@ -63,7 +61,6 @@ export function useDragResize({ containerRef, width, onWidthChange, minLeft, min
       const seed = width != null ? width : rect ? rect.width / 2 : null;
       dragWidthRef.current = seed;
       setDragWidth(seed);
-      draggingRef.current = true;
       setDragging(true);
     },
     [containerRef, width]
@@ -78,28 +75,33 @@ export function useDragResize({ containerRef, width, onWidthChange, minLeft, min
   );
 
   useEffect(() => {
+    if (!dragging) return;
     document.addEventListener('mousemove', handleMouseMove);
     document.addEventListener('mouseup', handleMouseUp);
     return () => {
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [handleMouseMove, handleMouseUp]);
+  }, [dragging, handleMouseMove, handleMouseUp]);
 
   // Re-clamp the persisted width when the container resizes (e.g. window or
   // parent pane shrinks). Only dispatches if the clamped value differs.
+  // widthRef avoids tearing down the observer on every width change — the
+  // observer reads the latest width through the ref instead.
+  const widthRef = useRef(width);
+  widthRef.current = width;
+  const hasWidth = width != null;
   useEffect(() => {
-    if (width == null || !containerRef.current) return;
-    const el = containerRef.current;
+    if (!hasWidth || !containerRef.current) return;
     const ro = new ResizeObserver(() => {
-      const clamped = clamp(width);
-      if (clamped !== width && onWidthChange) {
+      const clamped = clamp(widthRef.current);
+      if (clamped !== widthRef.current && onWidthChange) {
         onWidthChange(clamped);
       }
     });
-    ro.observe(el);
+    ro.observe(containerRef.current);
     return () => ro.disconnect();
-  }, [width, clamp, onWidthChange, containerRef]);
+  }, [hasWidth, clamp, onWidthChange, containerRef]);
 
   return { dragging, dragWidth, dragbarProps: { onMouseDown, onDoubleClick } };
 }

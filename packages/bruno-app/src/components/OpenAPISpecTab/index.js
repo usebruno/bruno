@@ -39,15 +39,15 @@ const OpenAPISpecTab = ({ collection, tabUid }) => {
   const openApiSyncConfig = collection?.brunoConfig?.openapi?.[0];
   const sourceUrl = openApiSyncConfig?.sourceUrl;
 
+  // Latest env context for loadSpec's remote-fetch fallback. Kept out of
+  // loadSpec's deps so toggling a variable doesn't refire the spec load.
   const envContextRef = useRef({});
-  useEffect(() => {
-    envContextRef.current = {
-      activeEnvironmentUid: collection?.activeEnvironmentUid,
-      environments: collection?.environments,
-      runtimeVariables: collection?.runtimeVariables,
-      globalEnvironmentVariables: collection?.globalEnvironmentVariables
-    };
-  });
+  envContextRef.current = {
+    activeEnvironmentUid: collection?.activeEnvironmentUid,
+    environments: collection?.environments,
+    runtimeVariables: collection?.runtimeVariables,
+    globalEnvironmentVariables: collection?.globalEnvironmentVariables
+  };
 
   const loadSpec = useCallback(async () => {
     setIsLoading(true);

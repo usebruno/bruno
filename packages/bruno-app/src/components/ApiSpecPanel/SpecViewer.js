@@ -51,10 +51,14 @@ const SpecViewer = ({ content, readOnly, onSave, leftPaneWidth, onLeftPaneWidthC
     : { flex: '1 1 50%', minWidth: 0 };
 
   const [swaggerReady, setSwaggerReady] = useState(false);
+
   useEffect(() => {
     setSwaggerReady(false);
   }, [content]);
+
   const handleSwaggerComplete = useCallback(() => {
+    // Double rAF: wait for one full paint cycle so Swagger is actually on screen
+    // before hiding the loader — avoids a flash of unrendered content.
     requestAnimationFrame(() => {
       requestAnimationFrame(() => setSwaggerReady(true));
     });
