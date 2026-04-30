@@ -866,10 +866,14 @@ const selectRequestBodyMode = async (page: Page, mode: string) => {
 
 const mockBrowseFiles = async (electronApp: ElectronApplication, filePaths: string[]) => {
   await electronApp.evaluate(({ dialog }, selectedPaths: string[]) => {
-    dialog.showOpenDialog = async () => ({
-      canceled: false,
-      filePaths: selectedPaths
-    });
+    const originalShowOpenDialog = dialog.showOpenDialog;
+    dialog.showOpenDialog = async (...args) => {
+      dialog.showOpenDialog = originalShowOpenDialog;
+      return {
+        canceled: false,
+        filePaths: selectedPaths
+      };
+    };
   }, filePaths);
 };
 
@@ -882,7 +886,7 @@ const addMultipartFileToLastRow = async (page: Page, electronApp: ElectronApplic
 
     await expect(lastRow.locator('.upload-btn')).toBeVisible();
     await lastRow.locator('.upload-btn').click();
-    await expect(table.allRows().locator('.file-value-cell').first()).toContainText(path.basename(filePath));
+    await expect(lastRow.locator('.file-value-cell')).toContainText(path.basename(filePath));
   });
 };
 
