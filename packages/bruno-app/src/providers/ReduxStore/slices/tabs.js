@@ -10,6 +10,7 @@ const MAX_RECENTLY_CLOSED_TABS = 50;
 const initialState = {
   tabs: [],
   activeTabUid: null,
+  activeTabHistory: [], // stack of active tab UIDs (MRU)
   recentlyClosedTabs: [] // LIFO stack of closed tabs, grouped by collection
 };
 
@@ -39,6 +40,7 @@ export const tabsSlice = createSlice({
       const existingTab = find(state.tabs, (tab) => tab.uid === uid);
       if (existingTab) {
         state.activeTabUid = existingTab.uid;
+        state.activeTabHistory = [uid, ...state.activeTabHistory.filter((id) => id !== uid)];
         return;
       }
 
@@ -46,6 +48,7 @@ export const tabsSlice = createSlice({
         const existingTab = tabTypeAlreadyExists(state.tabs, collectionUid, type);
         if (existingTab) {
           state.activeTabUid = existingTab.uid;
+          state.activeTabHistory = [existingTab.uid, ...state.activeTabHistory.filter((id) => id !== existingTab.uid)];
           return;
         }
       }
@@ -60,6 +63,7 @@ export const tabsSlice = createSlice({
 
       const lastTab = state.tabs[state.tabs.length - 1];
       if (state.tabs.length > 0 && lastTab.preview) {
+        const replacedUid = lastTab.uid;
         state.tabs[state.tabs.length - 1] = {
           uid,
           collectionUid,
@@ -85,6 +89,7 @@ export const tabsSlice = createSlice({
         };
 
         state.activeTabUid = uid;
+        state.activeTabHistory = [uid, ...state.activeTabHistory.filter((id) => id !== uid && id !== replacedUid)];
         return;
       }
 
@@ -117,12 +122,14 @@ export const tabsSlice = createSlice({
         ...(isTransient ? { isTransient: true } : {})
       });
       state.activeTabUid = uid;
+      state.activeTabHistory = [uid, ...state.activeTabHistory.filter((id) => id !== uid)];
     },
     focusTab: (state, action) => {
       const { uid } = action.payload;
       const tabExists = state.tabs.some((t) => t.uid === uid);
       if (tabExists) {
         state.activeTabUid = uid;
+        state.activeTabHistory = [uid, ...state.activeTabHistory.filter((id) => id !== uid)];
       }
     },
     switchTab: (state, action) => {
@@ -144,6 +151,7 @@ export const tabsSlice = createSlice({
       }
 
       state.activeTabUid = state.tabs[toBeActivatedTabIndex].uid;
+      state.activeTabHistory = [state.activeTabUid, ...state.activeTabHistory.filter((id) => id !== state.activeTabUid)];
     },
     updateRequestPaneTabWidth: (state, action) => {
       const tab = find(state.tabs, (t) => t.uid === action.payload.uid);
@@ -282,6 +290,7 @@ export const tabsSlice = createSlice({
       state.tabs = filter(state.tabs, (t) =>
         !tabUids.includes(t.uid) || nonClosableTypes.includes(t.type)
       );
+      state.activeTabHistory = filter(state.activeTabHistory, (id) => !tabUids.includes(id));
 
       if (activeTab && state.tabs.length) {
         const { collectionUid } = activeTab;
@@ -310,7 +319,11 @@ export const tabsSlice = createSlice({
     closeAllCollectionTabs: (state, action) => {
       const { collectionUid } = action.payload;
       const prevActiveTabUid = state.activeTabUid;
+      const tabsToClose = filter(state.tabs, (t) => t.collectionUid === collectionUid);
+      const tabUidsToClose = tabsToClose.map((t) => t.uid);
+
       state.tabs = filter(state.tabs, (t) => t.collectionUid !== collectionUid);
+      state.activeTabHistory = filter(state.activeTabHistory, (id) => !tabUidsToClose.includes(id));
 
       const activeTabStillExists = state.tabs.some((t) => t.uid === prevActiveTabUid);
       if (!activeTabStillExists) {
@@ -406,6 +419,7 @@ export const tabsSlice = createSlice({
 
       state.tabs.push(tab);
       state.activeTabUid = tab.uid;
+      state.activeTabHistory = [tab.uid, ...state.activeTabHistory.filter((id) => id !== tab.uid)];
     }
   }
 });
