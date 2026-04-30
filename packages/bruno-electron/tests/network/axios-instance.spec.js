@@ -185,3 +185,32 @@ describe('axios-instance: DNS lookup behavior (GitHub #7343)', () => {
     expect(config.lookup).not.toBe(inheritedLookup);
   });
 });
+
+describe('axios-instance: auth config cleanup', () => {
+  test('should remove auth config before request reaches the axios adapter', async () => {
+    const axiosInstance = makeAxiosInstance();
+    const stubAdapter = createStubAdapter();
+
+    await axiosInstance({
+      url: 'https://api.example.com/test',
+      method: 'get',
+      adapter: stubAdapter,
+      ntlmConfig: { username: 'user', password: 'pass' },
+      awsv4config: { accessKeyId: 'access-key', secretAccessKey: 'secret-key' },
+      digestConfig: { username: 'digest-user', password: 'digest-pass' },
+      oauth1config: { consumerSecret: 'consumer-secret' },
+      oauth2: { clientSecret: 'client-secret' },
+      apiKeyHeaderName: 'x-api-key',
+      apiKeyAuthValueForQueryParams: 'api-key-value'
+    });
+
+    const config = stubAdapter.getConfig();
+    expect(config.ntlmConfig).toBeUndefined();
+    expect(config.awsv4config).toBeUndefined();
+    expect(config.digestConfig).toBeUndefined();
+    expect(config.oauth1config).toBeUndefined();
+    expect(config.oauth2).toBeUndefined();
+    expect(config.apiKeyHeaderName).toBeUndefined();
+    expect(config.apiKeyAuthValueForQueryParams).toBeUndefined();
+  });
+});
