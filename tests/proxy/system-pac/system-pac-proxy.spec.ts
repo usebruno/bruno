@@ -30,9 +30,12 @@ test.describe('System Proxy with PAC', () => {
 
   test.afterAll(async () => {
     // Always revert OS proxy settings, even if tests fail
-    disableSystemPac();
-    if (servers) {
-      await stopServers(servers);
+    try {
+      disableSystemPac();
+    } finally {
+      if (servers) {
+        await stopServers(servers);
+      }
     }
   });
 
