@@ -70,6 +70,12 @@ export const KEY_BINDING_SECTIONS = [
     }
   },
   {
+    heading: 'Editor',
+    bindings: {
+      toggleComment: { mac: 'command+bind+/', windows: 'ctrl+bind+/', name: 'Toggle Comment' }
+    }
+  },
+  {
     heading: 'Others',
     bindings: {
       openPreferences: { mac: 'command+bind+,', windows: 'ctrl+bind+,', name: 'Open Preferences' }, // D
@@ -170,4 +176,31 @@ export const getKeyBindingsForActionAllOS = (action, userKeyBindings) => {
 
   // console.log('[keyMappings] getKeyBindingsForActionAllOS:', action, '->', combos);
   return combos.length > 0 ? combos : null;
+};
+
+const CM_MODIFIERS = { command: 'Cmd', ctrl: 'Ctrl', alt: 'Alt', shift: 'Shift' };
+const CM_MODIFIER_ORDER = ['Shift', 'Cmd', 'Ctrl', 'Alt'];
+const CM_SPECIAL_KEYS = {
+  enter: 'Enter', esc: 'Esc', escape: 'Esc', space: 'Space', tab: 'Tab',
+  backspace: 'Backspace', delete: 'Delete', insert: 'Insert',
+  arrowup: 'Up', arrowdown: 'Down', arrowleft: 'Left', arrowright: 'Right',
+  pageup: 'PageUp', pagedown: 'PageDown', home: 'Home', end: 'End'
+};
+
+export const getCodeMirrorKeyForAction = (action, userKeyBindings) => {
+  const binding = getMergedKeyBindings(userKeyBindings)[action];
+  if (!binding) return null;
+  const isMac = navigator.platform.toLowerCase().includes('mac');
+  const platformBinding = isMac ? binding.mac : binding.windows;
+  if (typeof platformBinding !== 'string' || !platformBinding.trim()) return null;
+  const parts = platformBinding.split('+bind+').filter(Boolean);
+  const mods = [], keys = [];
+  for (const p of parts) {
+    const lower = p.toLowerCase();
+    const cm = CM_MODIFIERS[lower];
+    cm ? mods.push(cm) : keys.push(CM_SPECIAL_KEYS[lower] || p);
+  }
+  if (!keys.length) return null;
+  mods.sort((a, b) => CM_MODIFIER_ORDER.indexOf(a) - CM_MODIFIER_ORDER.indexOf(b));
+  return [...mods, ...keys].join('-');
 };
