@@ -61,4 +61,12 @@ describe('Postman Library Globals Auto-Require Injection', () => {
     `);
     expect(out).toContain(`const _ = require("lodash")`);
   });
+
+  it('preserves "use strict" directive prologue when injecting requires', () => {
+    const out = translateCode(`'use strict';\nmoment().format('YYYY');`);
+    const directiveIdx = out.indexOf('\'use strict\'');
+    const requireIdx = out.indexOf(`require("moment")`);
+    expect(directiveIdx).toBeGreaterThanOrEqual(0);
+    expect(requireIdx).toBeGreaterThan(directiveIdx);
+  });
 });

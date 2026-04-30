@@ -719,7 +719,20 @@ function injectLibraryRequires(ast) {
     ])
   );
 
-  ast.get().value.program.body.unshift(...declarations);
+  // insert after directive prologue if present
+  const body = ast.get().value.program.body;
+  let insertIndex = 0;
+  while (insertIndex < body.length) {
+    const node = body[insertIndex];
+    const isDirective
+      = node.type === 'ExpressionStatement'
+        && node.expression
+        && node.expression.type === 'Literal'
+        && typeof node.expression.value === 'string';
+    if (!isDirective) break;
+    insertIndex++;
+  }
+  body.splice(insertIndex, 0, ...declarations);
 }
 
 /**
