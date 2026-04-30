@@ -1,7 +1,6 @@
 import { test, expect, closeElectronApp } from '../../../playwright';
 import {
   addMultipartFileToLastRow,
-  createRequest,
   openRequest,
   removeFirstMultipartFile,
   saveRequest,
@@ -38,6 +37,28 @@ const setupOpenCollection = async (collectionDir: string, userDataDir: string) =
   await fs.promises.writeFile(
     path.join(collectionDir, relativePayloadPath),
     '{"ok":true}\n',
+    'utf-8'
+  );
+
+  await fs.promises.writeFile(
+    path.join(collectionDir, `${requestName}.yml`),
+    [
+      'info:',
+      `  name: ${requestName}`,
+      '  type: http',
+      '  seq: 1',
+      '',
+      'http:',
+      '  method: POST',
+      '  url: https://example.com/upload',
+      '',
+      'settings:',
+      '  encodeUrl: true',
+      '  timeout: 0',
+      '  followRedirects: true',
+      '  maxRedirects: 5',
+      ''
+    ].join('\n'),
     'utf-8'
   );
 
@@ -86,14 +107,11 @@ test.describe('OpenCollection multipart file paths', () => {
     await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
 
     await expect(page.locator('#sidebar-collection-name').filter({ hasText: collectionName })).toBeVisible();
-    await createRequest(page, requestName, collectionName, {
-      url: 'https://example.com/upload',
-      method: 'POST'
-    });
     await expect.poll(async () => fs.existsSync(requestFilePath), {
       timeout: 15000
     }).toBe(true);
 
+    await openRequest(page, collectionName, requestName, { persist: true });
     await selectRequestBodyMode(page, 'Multipart Form');
 
     await addMultipartFileToLastRow(page, electronApp, payloadPath);
