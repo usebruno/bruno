@@ -12,7 +12,7 @@ import * as path from 'path';
 
 const collectionName = 'RelativePathBug';
 const requestName = 'upload-payload';
-const relativePayloadPath = 'files/payload.json';
+const relativePayloadPath = path.join('files', 'payload.json');
 
 const writeJson = async (filePath: string, value: unknown) => {
   await fs.promises.writeFile(filePath, JSON.stringify(value, null, 2), 'utf-8');
@@ -86,7 +86,7 @@ const setupOpenCollection = async (collectionDir: string, userDataDir: string) =
 
 const expectRequestFileToContainRelativePayload = async (requestFilePath: string, payloadPath: string) => {
   await expect.poll(async () => fs.existsSync(requestFilePath)).toBe(true);
-  await expect.poll(async () => fs.promises.readFile(requestFilePath, 'utf-8')).toContain(relativePayloadPath);
+  await expect.poll(async () => fs.promises.readFile(requestFilePath, 'utf-8')).toContain(` ${relativePayloadPath}\n`);
   await expect.poll(async () => fs.promises.readFile(requestFilePath, 'utf-8')).not.toContain(payloadPath);
 };
 
