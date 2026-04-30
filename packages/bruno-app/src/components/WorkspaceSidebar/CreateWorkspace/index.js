@@ -26,7 +26,6 @@ const CreateWorkspace = ({ onClose }) => {
 
   const formik = useFormik({
     enableReinitialize: true,
-    validateOnMount: true,
     initialValues: {
       workspaceName: '',
       workspaceFolderName: '',
@@ -34,7 +33,8 @@ const CreateWorkspace = ({ onClose }) => {
     },
     validationSchema: Yup.object({
       workspaceName: Yup.string()
-        .min(1, 'Must be at least 1 character')
+        .trim()
+        .min(1, 'Workspace name can\'t be empty')
         .max(255, 'Must be 255 characters or less')
         .required('Workspace name is required')
         .test('unique-name', 'A workspace with this name already exists', function (value) {
@@ -70,6 +70,22 @@ const CreateWorkspace = ({ onClose }) => {
     }
   });
 
+  const handleSubmit = async (e) => {
+    e?.preventDefault?.();
+
+    const errors = await formik.validateForm();
+    if (Object.keys(errors).length > 0) {
+      formik.setTouched({
+        workspaceName: true,
+        workspaceFolderName: true,
+        workspaceLocation: true
+      });
+      return;
+    }
+
+    formik.handleSubmit();
+  };
+
   const browse = () => {
     dispatch(browseDirectory())
       .then((dirPath) => {
@@ -95,13 +111,13 @@ const CreateWorkspace = ({ onClose }) => {
       title="Create Workspace"
       description="Give your new workspace a name and choose its type to get started."
       confirmText={isSubmitting ? 'Creating...' : 'Create Workspace'}
-      handleConfirm={formik.handleSubmit}
+      handleConfirm={handleSubmit}
       handleCancel={onClose}
       style="new"
-      confirmDisabled={isSubmitting || !formik.isValid}
+      confirmDisabled={isSubmitting}
     >
       <div>
-        <form className="bruno-form" onSubmit={formik.handleSubmit}>
+        <form className="bruno-form" onSubmit={handleSubmit}>
           <div className="mb-4">
             <label htmlFor="workspaceName" className="block font-semibold mb-2">
               Name
