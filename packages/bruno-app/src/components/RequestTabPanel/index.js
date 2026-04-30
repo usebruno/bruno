@@ -385,9 +385,11 @@ const RequestTabPanel = () => {
     }
 
     if (folder) {
-      return <ScopedPersistenceProvider scope={focusedTab.uid}>
-            <FolderSettings collection={collection} folder={folder} />;
+      return (
+        <ScopedPersistenceProvider scope={focusedTab.uid}>
+          <FolderSettings collection={collection} folder={folder} />;
         </ScopedPersistenceProvider>
+      );
     }
 
     if (focusedTab.name && isItemsLoading) {
