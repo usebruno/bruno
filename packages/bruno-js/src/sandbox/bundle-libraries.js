@@ -15,6 +15,7 @@ const bundleLibraries = async () => {
     import * as cryptoJs from 'crypto-js';
     import tv4 from "tv4";
     import Ajv from "ajv";
+    import addFormats from "ajv-formats";
     globalThis.expect = expect;
     globalThis.assert = assert;
     globalThis.moment = moment;
@@ -23,6 +24,7 @@ const bundleLibraries = async () => {
     globalThis.Buffer = Buffer;
     globalThis.tv4 = tv4;
     globalThis.Ajv = Ajv;
+    globalThis.addFormats = addFormats;
     globalThis.requireObject = {
       ...(globalThis.requireObject || {}),
       'chai': { expect, assert },
@@ -32,7 +34,8 @@ const bundleLibraries = async () => {
       'atob': atob,
       'crypto-js': cryptoJs,
       'tv4': tv4,
-      'ajv': Ajv
+      'ajv': Ajv,
+      'ajv-formats': addFormats
     };
 `;
 

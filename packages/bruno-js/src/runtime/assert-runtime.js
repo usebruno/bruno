@@ -8,6 +8,7 @@ const { interpolateString } = require('../interpolate-string');
 const { executeQuickJsVm } = require('../sandbox/quickjs');
 
 const Ajv = require('ajv');
+const addFormats = require('ajv-formats');
 const { expect } = chai;
 chai.use(require('chai-string'));
 chai.use(function (chai, utils) {
@@ -29,6 +30,7 @@ chai.use(function (chai, utils) {
 chai.use(function (chai) {
   chai.Assertion.addMethod('jsonSchema', function (schema, ajvOptions) {
     const ajv = new Ajv({ allErrors: true, ...ajvOptions });
+    addFormats(ajv);
     let validate;
     try {
       validate = ajv.compile(schema);
