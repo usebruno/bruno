@@ -54,7 +54,7 @@ const SpecDiffModal = ({ specDrift, onClose }) => {
     }, 0);
 
     return () => clearTimeout(timer);
-  }, [specDrift?.unifiedDiff]);
+  }, [specDrift?.unifiedDiff, cache]);
 
   const goToChange = (idx) => {
     if (!changeBlocks.length) return;
@@ -156,6 +156,7 @@ const SpecDiffModal = ({ specDrift, onClose }) => {
                     ref={virtuosoRef}
                     totalCount={rows.length}
                     itemContent={renderItem}
+                    // Must match .diff-row min-height in OpenAPISyncTab/StyledWrapper.js
                     fixedItemHeight={18}
                     increaseViewportBy={400}
                     style={{ height: '100%' }}

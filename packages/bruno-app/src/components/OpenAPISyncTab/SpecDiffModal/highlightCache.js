@@ -8,8 +8,8 @@ export function createHighlightCache() {
   const cache = new Map();
 
   return {
-    // Character-level diff for a paired deletion + insertion row. Returns
-    // { left, right } HTML strings with <del>/<ins> wrapping changed substrings.
+    // Word-level diff for a paired del+ins row. Returns { left, right } HTML
+    // with <del>/<ins> around changed words.
     getWordDiff(leftContent, rightContent) {
       const key = `${leftContent}\x00${rightContent}`;
       const hit = cache.get(key);

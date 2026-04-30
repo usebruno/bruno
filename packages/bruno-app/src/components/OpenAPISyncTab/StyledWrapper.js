@@ -1542,6 +1542,7 @@ const StyledWrapper = styled.div`
         font-family: 'Fira Code', monospace;
         font-size: 12px;
         line-height: 1.5;
+        /* Must match Virtuoso's fixedItemHeight in SpecDiffModal/index.js */
         min-height: 18px;
         color: ${(props) => props.theme.text};
         font-variant-ligatures: none;
