@@ -10,6 +10,8 @@ const posixifyPath = (p) => (p ? p.replace(/\\/g, '/') : p);
 
 const WORKSPACE_TYPE = 'workspace';
 const OPENCOLLECTION_VERSION = '1.0.0';
+const GITIGNORE_MANAGED_BLOCK_START = '# Bruno managed collection remotes';
+const GITIGNORE_MANAGED_BLOCK_END = '# End Bruno managed collection remotes';
 
 const quoteYamlValue = (value) => {
   if (typeof value !== 'string') {
@@ -369,17 +371,36 @@ const getCollectionGitignoreEntry = (workspacePath, collectionPath) => {
   return posixifyPath(relative).replace(/\/+$/, '') + '/';
 };
 
+const findGitignoreManagedBlock = (lines) => {
+  const start = lines.findIndex((line) => line.trim() === GITIGNORE_MANAGED_BLOCK_START);
+  if (start === -1) return null;
+
+  const end = lines.findIndex((line, index) => index > start && line.trim() === GITIGNORE_MANAGED_BLOCK_END);
+  if (end === -1) return null;
+
+  return { start, end };
+};
+
 const addCollectionToWorkspaceGitignore = async (workspacePath, collectionPath) => {
   const entry = getCollectionGitignoreEntry(workspacePath, collectionPath);
   if (!entry) return;
 
   const gitignorePath = path.join(workspacePath, '.gitignore');
   const existing = fs.existsSync(gitignorePath) ? fs.readFileSync(gitignorePath, 'utf8') : '';
+  const lines = existing.split('\n');
 
-  if (existing.split('\n').some((line) => line.trim() === entry)) return;
+  if (lines.some((line) => line.trim() === entry)) return;
+
+  const managedBlock = findGitignoreManagedBlock(lines);
+  if (managedBlock) {
+    const updated = [...lines];
+    updated.splice(managedBlock.end, 0, entry);
+    await writeFile(gitignorePath, updated.join('\n'));
+    return;
+  }
 
   const prefix = existing.length === 0 || existing.endsWith('\n') ? existing : existing + '\n';
-  await writeFile(gitignorePath, `${prefix}${entry}\n`);
+  await writeFile(gitignorePath, `${prefix}${GITIGNORE_MANAGED_BLOCK_START}\n${entry}\n${GITIGNORE_MANAGED_BLOCK_END}\n`);
 };
 
 const removeCollectionFromWorkspaceGitignore = async (workspacePath, collectionPath) => {
@@ -390,8 +411,24 @@ const removeCollectionFromWorkspaceGitignore = async (workspacePath, collectionP
   if (!fs.existsSync(gitignorePath)) return;
 
   const lines = fs.readFileSync(gitignorePath, 'utf8').split('\n');
-  const filtered = lines.filter((line) => line.trim() !== entry);
-  if (filtered.length === lines.length) return;
+  const managedBlock = findGitignoreManagedBlock(lines);
+  if (!managedBlock) return;
+
+  const managedLines = lines.slice(managedBlock.start + 1, managedBlock.end);
+  const filteredManagedLines = managedLines.filter((line) => line.trim() !== entry);
+  if (filteredManagedLines.length === managedLines.length) return;
+
+  const hasManagedEntries = filteredManagedLines.some((line) => line.trim() !== '');
+  const filtered = hasManagedEntries
+    ? [
+        ...lines.slice(0, managedBlock.start + 1),
+        ...filteredManagedLines,
+        ...lines.slice(managedBlock.end)
+      ]
+    : [
+        ...lines.slice(0, managedBlock.start),
+        ...lines.slice(managedBlock.end + 1)
+      ];
 
   await writeFile(gitignorePath, filtered.join('\n'));
 };

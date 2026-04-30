@@ -223,12 +223,31 @@ describe('Git remote on workspace collections', () => {
   test('clearCollectionGitRemote removes the collection path from .gitignore', async () => {
     ensureCollectionDir('collections/api');
     writeYml([collection('API', 'collections/api', { remote: 'https://github.com/x/api' })]);
-    fs.writeFileSync(path.join(workspacePath, '.gitignore'), 'node_modules\ncollections/api/\n');
+    fs.writeFileSync(path.join(workspacePath, '.gitignore'), [
+      'node_modules',
+      '# Bruno managed collection remotes',
+      'collections/api/',
+      '# End Bruno managed collection remotes',
+      ''
+    ].join('\n'));
 
     await clearCollectionGitRemote(workspacePath, absPath('collections/api'));
 
     const gitignore = fs.readFileSync(path.join(workspacePath, '.gitignore'), 'utf8');
     expect(gitignore.split('\n')).not.toContain('collections/api/');
+    expect(gitignore).toContain('node_modules');
+  });
+
+  test('clearCollectionGitRemote preserves user-owned .gitignore entries', async () => {
+    ensureCollectionDir('collections/api');
+    writeYml([collection('API', 'collections/api')]);
+    fs.writeFileSync(path.join(workspacePath, '.gitignore'), 'node_modules\ncollections/api/\n');
+
+    await setCollectionGitRemote(workspacePath, absPath('collections/api'), 'https://github.com/x/api');
+    await clearCollectionGitRemote(workspacePath, absPath('collections/api'));
+
+    const gitignore = fs.readFileSync(path.join(workspacePath, '.gitignore'), 'utf8');
+    expect(gitignore.split('\n')).toContain('collections/api/');
     expect(gitignore).toContain('node_modules');
   });
 
