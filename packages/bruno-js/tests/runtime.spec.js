@@ -1,9 +1,10 @@
-const { describe, it, expect } = require('@jest/globals');
+const { describe, it, expect, beforeAll } = require('@jest/globals');
 const TestRuntime = require('../src/runtime/test-runtime');
 const ScriptRuntime = require('../src/runtime/script-runtime');
 const AssertRuntime = require('../src/runtime/assert-runtime');
 const Bru = require('../src/bru');
 const VarsRuntime = require('../src/runtime/vars-runtime');
+const { loader: quickJsLoader } = require('../src/sandbox/quickjs');
 
 describe('runtime', () => {
   describe('test-runtime', () => {
@@ -261,6 +262,10 @@ describe('runtime', () => {
   });
 
   describe('assert-runtime', () => {
+    beforeAll(async () => {
+      await quickJsLoader();
+    });
+
     const baseRequest = {
       method: 'GET',
       url: 'http://localhost:3000/',
@@ -275,10 +280,80 @@ describe('runtime', () => {
       headers: {}
     });
 
-    const runAssertions = (assertions, response, runtime = 'nodevm') => {
+    const runAssertions = (assertions, response, runtime = 'nodevm', runtimeVariables = {}) => {
       const assertRuntime = new AssertRuntime({ runtime });
-      return assertRuntime.runAssertions(assertions, { ...baseRequest }, response, {}, {}, process.env);
+      return assertRuntime.runAssertions(assertions, { ...baseRequest }, response, {}, runtimeVariables, process.env);
     };
+
+    // Ensures each QuickJS evaluation gets a fresh context
+    describe('quickjs context isolation across iterations', () => {
+      const ITERATION_COUNT = 350;
+
+      it('should return correct res.status on every iteration', () => {
+        for (let i = 0; i < ITERATION_COUNT; i++) {
+          const status = 200 + i;
+          const results = runAssertions(
+            [{ name: 'res.status', value: `eq ${status}`, enabled: true }],
+            { status, statusText: 'OK', data: {}, headers: {} },
+            'quickjs'
+          );
+          expect(results[0].status).toBe('pass');
+        }
+      });
+
+      it('should return correct res.body values on every iteration', () => {
+        for (let i = 0; i < ITERATION_COUNT; i++) {
+          const results = runAssertions(
+            [{ name: 'res.body.id', value: `eq ${i}`, enabled: true }],
+            { status: 200, statusText: 'OK', data: { id: i }, headers: {} },
+            'quickjs'
+          );
+          expect(results[0].status).toBe('pass');
+        }
+      });
+
+      it('should not return stale data from a previous iteration', () => {
+        // First call with status 200
+        runAssertions(
+          [{ name: 'res.status', value: 'eq 200', enabled: true }],
+          { status: 200, statusText: 'OK', data: { token: 'bearer_abc' }, headers: { authorization: 'bearer xyz' } },
+          'quickjs'
+        );
+
+        // Second call with status 404 — must not return 200 or any data from previous call
+        const results = runAssertions(
+          [
+            { name: 'res.status', value: 'eq 404', enabled: true },
+            { name: 'res.body.error', value: 'eq not_found', enabled: true }
+          ],
+          { status: 404, statusText: 'Not Found', data: { error: 'not_found' }, headers: {} },
+          'quickjs'
+        );
+
+        expect(results[0].status).toBe('pass');
+        expect(results[1].status).toBe('pass');
+      });
+
+      it('should not persist runtime variables from a previous call', () => {
+        // First call with runtime variable token = "one"
+        const results1 = runAssertions(
+          [{ name: 'token', value: 'eq one', enabled: true }],
+          { status: 200, statusText: 'OK', data: {}, headers: {} },
+          'quickjs',
+          { token: 'one' }
+        );
+        expect(results1[0].status).toBe('pass');
+
+        // Second call without token
+        const results2 = runAssertions(
+          [{ name: 'token', value: 'eq one', enabled: true }],
+          { status: 200, statusText: 'OK', data: {}, headers: {} },
+          'quickjs'
+        );
+        // Must fail — token should not exist in a fresh context
+        expect(results2[0].status).toBe('fail');
+      });
+    });
 
     describe('isJson', () => {
       it('should pass for a plain object', () => {
