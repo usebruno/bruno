@@ -22,39 +22,36 @@ assert {
 script:pre-request {
   req.headerList.add({ key: 'x-added', value: 'via-add' });
   req.headerList.upsert({ key: 'x-upserted', value: 'via-upsert' });
-  req.headerList.append({ key: 'x-appended', value: 'via-append' });
-  req.headerList.prepend({ key: 'x-prepended', value: 'via-prepend' });
-  req.headerList.insert({ key: 'x-inserted', value: 'via-insert' });
-  req.headerList.insertAfter({ key: 'x-inserted-after', value: 'via-insertAfter' });
   req.headerList.upsert({ key: 'bruno', value: 'is-the-best' });
+  req.headerList.append({ key: 'x', value: 'y' })
 }
 
 tests {
   test("req.headerList.add(item)", function() {
     expect(req.getHeader('x-added')).to.equal('via-add');
   });
-
+  
   test("req.headerList.upsert(item) - new header", function() {
     expect(req.getHeader('x-upserted')).to.equal('via-upsert');
   });
-
+  
   test("req.headerList.upsert(item) - overwrite existing", function() {
     expect(req.getHeader('bruno')).to.equal('is-the-best');
   });
-
-  test("req.headerList.append(item)", function() {
-    expect(req.getHeader('x-appended')).to.equal('via-append');
+  
+  test("req.headerList.append() throws not-implemented", function() {
+    expect(() => req.headerList.append({ key: 'x', value: 'y' })).to.throw();
   });
-
-  test("req.headerList.prepend(item)", function() {
-    expect(req.getHeader('x-prepended')).to.equal('via-prepend');
+  
+  test("req.headerList.prepend() throws not-implemented", function() {
+    expect(() => req.headerList.prepend({ key: 'x', value: 'y' })).to.throw();
   });
-
-  test("req.headerList.insert(item)", function() {
-    expect(req.getHeader('x-inserted')).to.equal('via-insert');
+  
+  test("req.headerList.insert() throws not-implemented", function() {
+    expect(() => req.headerList.insert({ key: 'x', value: 'y' })).to.throw();
   });
-
-  test("req.headerList.insertAfter(item)", function() {
-    expect(req.getHeader('x-inserted-after')).to.equal('via-insertAfter');
+  
+  test("req.headerList.insertAfter() throws not-implemented", function() {
+    expect(() => req.headerList.insertAfter({ key: 'x', value: 'y' })).to.throw();
   });
 }

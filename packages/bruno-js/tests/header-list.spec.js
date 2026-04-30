@@ -343,20 +343,13 @@ describe('HeaderList (req.headerList)', () => {
   });
 
   describe('append(), prepend(), insert(), insertAfter()', () => {
-    test('all delegate to add()', () => {
-      const { list, rawReq } = createReqHeaders({});
+    test('all throw not-implemented errors', () => {
+      const { list } = createReqHeaders({});
 
-      list.append({ key: 'A', value: '1' });
-      expect(rawReq.headers['A']).toBe('1');
-
-      list.prepend({ key: 'B', value: '2' });
-      expect(rawReq.headers['B']).toBe('2');
-
-      list.insert({ key: 'C', value: '3' });
-      expect(rawReq.headers['C']).toBe('3');
-
-      list.insertAfter({ key: 'D', value: '4' });
-      expect(rawReq.headers['D']).toBe('4');
+      expect(() => list.append({ key: 'A', value: '1' })).toThrow('not implemented');
+      expect(() => list.prepend({ key: 'B', value: '2' })).toThrow('not implemented');
+      expect(() => list.insert({ key: 'C', value: '3' })).toThrow('not implemented');
+      expect(() => list.insertAfter({ key: 'D', value: '4' })).toThrow('not implemented');
     });
   });
 
@@ -1033,10 +1026,10 @@ describe('Response Headers (res.headerList)', () => {
 
     test('response headers alias write methods also throw', () => {
       const { headerList } = createResHeaders();
-      expect(() => headerList.append({ key: 'X-New', value: 'val' })).toThrow('read-only');
-      expect(() => headerList.prepend({ key: 'X-New', value: 'val' })).toThrow('read-only');
-      expect(() => headerList.insert({ key: 'X-New', value: 'val' })).toThrow('read-only');
-      expect(() => headerList.insertAfter({ key: 'X-New', value: 'val' })).toThrow('read-only');
+      expect(() => headerList.append({ key: 'X-New', value: 'val' })).toThrow('not implemented');
+      expect(() => headerList.prepend({ key: 'X-New', value: 'val' })).toThrow('not implemented');
+      expect(() => headerList.insert({ key: 'X-New', value: 'val' })).toThrow('not implemented');
+      expect(() => headerList.insertAfter({ key: 'X-New', value: 'val' })).toThrow('not implemented');
       expect(() => headerList.repopulate([])).toThrow('read-only');
     });
 

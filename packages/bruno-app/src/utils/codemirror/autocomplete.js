@@ -62,10 +62,6 @@ const STATIC_API_HINTS = {
     'req.headerList.clear()',
     'req.headerList.populate(items)',
     'req.headerList.repopulate(items)',
-    'req.headerList.prepend(headerObj)',
-    'req.headerList.append(headerObj)',
-    'req.headerList.insert(headerObj)',
-    'req.headerList.insertAfter(headerObj)',
     'req.headerList.assimilate(source, prune)'
   ],
   res: [

@@ -76,15 +76,15 @@ const ReadOnlyPropertyList = require('./readonly-property-list');
  * | `clear()`                     | Removes **all** headers (enabled and disabled)            |
  * | `populate(items\|string)`     | Replaces all; accepts array or multi-line header string    |
  * | `repopulate(items)`           | Alias for `populate()`                                    |
- * | `prepend(item)`               | Alias for `add()` — see note below                        |
- * | `append(item)`                | Alias for `add()` — see note below                        |
- * | `insert(item)`                | Alias for `add()` — see note below                        |
- * | `insertAfter(item)`           | Alias for `add()` — see note below                        |
+ * | `prepend(item)`               | **Not implemented** — throws Error, use `add()`           |
+ * | `append(item)`                | **Not implemented** — throws Error, use `add()`           |
+ * | `insert(item)`                | **Not implemented** — throws Error, use `add()`           |
+ * | `insertAfter(item)`           | **Not implemented** — throws Error, use `add()`           |
  *
- * **Note on positional aliases:** `prepend`, `append`, `insert`, and `insertAfter`
- * all delegate to `add()` (which calls `upsert()`). Headers are stored internally
- * as a plain JS object (`req.headers`), so duplicate keys and ordering are not
- * supported. These aliases exist for Postman SDK API compatibility only.
+ * **Note on unimplemented positional methods:** `prepend`, `append`, `insert`,
+ * and `insertAfter` throw because headers are stored internally as a plain JS
+ * object (`req.headers`), which does not support duplicate keys or ordering.
+ * Use `add()` or `upsert()` instead.
  * | `assimilate(source, prune?)` | Merges headers; prune removes items not in source          |
  */
 class HeaderList extends PropertyList {
@@ -257,19 +257,19 @@ class HeaderList extends PropertyList {
   }
 
   /**
-   * Alias for {@link HeaderList#add}.
-   * Ordering/duplicates not supported — headers are stored as a plain object.
+   * Not implemented — headers are stored as a plain object, so ordering and
+   * duplicate keys are not supported. Use `add()` or `upsert()` instead.
    */
-  append(item) { this.add(item); }
+  append() { throw new Error('append() is not yet implemented. Use add() or upsert() instead.'); }
 
   /** @see {@link HeaderList#append} */
-  prepend(item) { this.add(item); }
+  prepend() { throw new Error('prepend() is not yet implemented. Use add() or upsert() instead.'); }
 
   /** @see {@link HeaderList#append} */
-  insert(item) { this.add(item); }
+  insert() { throw new Error('insert() is not yet implemented. Use add() or upsert() instead.'); }
 
   /** @see {@link HeaderList#append} */
-  insertAfter(item) { this.add(item); }
+  insertAfter() { throw new Error('insertAfter() is not yet implemented. Use add() or upsert() instead.'); }
 
   /**
    * Set (or replace) a header on the request (case-insensitive key match).
