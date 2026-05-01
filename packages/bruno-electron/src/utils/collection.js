@@ -14,16 +14,12 @@ const FORMAT_CONFIG = {
 };
 
 const mergeHeaders = (collection, request, requestTreePath) => {
-  let headers = new Map();
+  let headers = [];
 
   let collectionHeaders = collection?.draft?.root ? get(collection, 'draft.root.request.headers', []) : get(collection, 'root.request.headers', []);
   collectionHeaders.forEach((header) => {
     if (header.enabled) {
-      if (header?.name?.toLowerCase?.() === 'content-type') {
-        headers.set('content-type', header.value);
-      } else {
-        headers.set(header.name, header.value);
-      }
+      headers.push({ name: header.name, value: header.value, enabled: true });
     }
   });
 
@@ -33,28 +29,20 @@ const mergeHeaders = (collection, request, requestTreePath) => {
       let _headers = get(folderRoot, 'request.headers', []);
       _headers.forEach((header) => {
         if (header.enabled) {
-          if (header.name.toLowerCase() === 'content-type') {
-            headers.set('content-type', header.value);
-          } else {
-            headers.set(header.name, header.value);
-          }
+          headers.push({ name: header.name, value: header.value, enabled: true });
         }
       });
     } else {
       const _headers = i?.draft ? get(i, 'draft.request.headers', []) : get(i, 'request.headers', []);
       _headers.forEach((header) => {
         if (header.enabled) {
-          if (header.name.toLowerCase() === 'content-type') {
-            headers.set('content-type', header.value);
-          } else {
-            headers.set(header.name, header.value);
-          }
+          headers.push({ name: header.name, value: header.value, enabled: true });
         }
       });
     }
   }
 
-  request.headers = Array.from(headers, ([name, value]) => ({ name, value, enabled: true }));
+  request.headers = headers;
 };
 
 const mergeVars = (collection, request, requestTreePath = []) => {
