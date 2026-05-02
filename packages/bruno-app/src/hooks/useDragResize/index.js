@@ -59,11 +59,12 @@ export function useDragResize({ containerRef, width, onWidthChange, minLeft, min
       e.preventDefault();
       const rect = containerRef.current?.getBoundingClientRect();
       const seed = width != null ? width : rect ? rect.width / 2 : null;
-      dragWidthRef.current = seed;
-      setDragWidth(seed);
+      const seedClamped = seed != null ? clamp(seed) : null;
+      dragWidthRef.current = seedClamped;
+      setDragWidth(seedClamped);
       setDragging(true);
     },
-    [containerRef, width]
+    [containerRef, width, clamp]
   );
 
   const onDoubleClick = useCallback(

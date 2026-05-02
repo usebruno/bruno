@@ -93,6 +93,23 @@ describe('useDragResize', () => {
     expect(result.current.dragWidth).toBe(CONTAINER_WIDTH / 2);
   });
 
+  it('onMouseDown clamps an out-of-bounds width seed; immediate mouseup commits the clamped value', () => {
+    // Persisted width is past the right bound (max = 1000 - 300 = 700).
+    // Without clamping the seed, an immediate mouseup would persist 800.
+    const { result, onWidthChange } = renderDragResize({ width: 800 });
+
+    act(() => {
+      result.current.dragbarProps.onMouseDown({ preventDefault: jest.fn() });
+    });
+
+    expect(result.current.dragWidth).toBe(CONTAINER_WIDTH - MIN_RIGHT);
+
+    fireMouse('mouseup', 800);
+
+    expect(onWidthChange).toHaveBeenCalledTimes(1);
+    expect(onWidthChange).toHaveBeenCalledWith(CONTAINER_WIDTH - MIN_RIGHT);
+  });
+
   it('mousemove during drag updates dragWidth clamped to [minLeft, containerWidth - minRight]', () => {
     const { result } = renderDragResize({ width: 500 });
 
