@@ -13,49 +13,36 @@ const CodeMirror = require('codemirror');
 class SingleLineEditor extends Component {
   constructor(props) {
     super(props);
-    // Keep a cached version of the value, this cache will be updated when the
-    // editor is updated, which can later be used to protect the editor from
-    // unnecessary updates during the update lifecycle.
     this.cachedValue = props.value || '';
     this.editorRef = React.createRef();
+    this.textareaRef = React.createRef();
     this.variables = {};
     this.readOnly = props.readOnly || false;
 
+    // Instance-specific ID for screen reader consistency
+    this.editorId = `accessible-single-line-${Math.random().toString(36).substring(2, 9)}`;
+
     this.state = {
-      maskInput: props.isSecret || false // Always mask the input by default (if it's a secret)
+      maskInput: props.isSecret || false
     };
   }
 
   componentDidMount() {
-    // Initialize CodeMirror as a single line editor
-    /** @type {import("codemirror").Editor} */
     const variables = getAllVariables(this.props.collection, this.props.item);
-
-    const runHandler = () => {
-      if (this.props.onRun) {
-        this.props.onRun();
-      }
-    };
-    const saveHandler = () => {
-      if (this.props.onSave) {
-        this.props.onSave();
-      }
-    };
-    const noopHandler = () => { };
+    const runHandler = () => this.props.onRun?.();
 
     this.editor = CodeMirror(this.editorRef.current, {
+      value: String(this.props.value ?? ''),
       placeholder: this.props.placeholder ?? '',
       lineWrapping: false,
       lineNumbers: false,
       theme: this.props.theme === 'dark' ? 'monokai' : 'default',
       mode: 'brunovariables',
       brunoVarInfo: this.props.enableBrunoVarInfo !== false ? {
-        variables,
-        collection: this.props.collection,
-        item: this.props.item
+        variables, collection: this.props.collection, item: this.props.item
       } : false,
       scrollbarStyle: null,
-      tabindex: 0,
+      tabindex: -1,
       readOnly: this.props.readOnly,
       extraKeys: {
         'Enter': runHandler,
@@ -63,168 +50,101 @@ class SingleLineEditor extends Component {
           if (this.props.allowNewlines) {
             this.editor.setValue(this.editor.getValue() + '\n');
             this.editor.setCursor({ line: this.editor.lineCount(), ch: 0 });
-          } else if (this.props.onRun) {
-            this.props.onRun();
+          } else {
+            runHandler();
           }
         },
-        'Cmd-F': noopHandler,
-        'Ctrl-F': noopHandler,
-        // Tabbing disabled to make tabindex work
         'Tab': false,
         'Shift-Tab': false
       }
     });
 
-    const getAllVariablesHandler = () => getAllVariables(this.props.collection, this.props.item);
-    const getAnywordAutocompleteHints = () => this.props.autocomplete || [];
-
-    // Setup AutoComplete Helper
     const autoCompleteOptions = {
-      getAllVariables: getAllVariablesHandler,
-      getAnywordAutocompleteHints,
+      getAllVariables: () => getAllVariables(this.props.collection, this.props.item),
+      getAnywordAutocompleteHints: () => this.props.autocomplete || [],
       showHintsFor: this.props.showHintsFor || ['variables'],
       showHintsOnClick: this.props.showHintsOnClick
     };
 
-    this.brunoAutoCompleteCleanup = setupAutoComplete(
-      this.editor,
-      autoCompleteOptions
-    );
-
-    this.editor.setValue(String(this.props.value ?? ''));
+    this.brunoAutoCompleteCleanup = setupAutoComplete(this.editor, autoCompleteOptions);
     this.editor.on('change', this._onEdit);
     this.editor.on('paste', this._onPaste);
     this.editor.on('blur', this._onBlur);
+
     this.addOverlay(variables);
     this._enableMaskedEditor(this.props.isSecret);
-    this.setState({ maskInput: this.props.isSecret });
-
-    // Add newline arrow markers if enabled
-    if (this.props.showNewlineArrow) {
-      this._updateNewlineMarkers();
-    }
     setupLinkAware(this.editor);
-
-    // Add mousetrap class so Mousetrap captures shortcuts even when CodeMirror is focused
-    const cmInput = this.editor.getInputField();
-    if (cmInput) {
-      cmInput.classList.add('mousetrap');
-    }
-  }
-
-  /** Enable or disable masking the rendered content of the editor */
-  _enableMaskedEditor = (enabled) => {
-    if (typeof enabled !== 'boolean') return;
-
-    if (enabled == true) {
-      if (!this.maskedEditor) this.maskedEditor = new MaskedEditor(this.editor, '*');
-      this.maskedEditor.enable();
-    } else {
-      if (this.maskedEditor) {
-        this.maskedEditor.disable();
-        this.maskedEditor.destroy();
-        this.maskedEditor = null;
-      }
-    }
-  };
-
-  _onBlur = () => {
-    if (this.editor) {
-      this.editor.setCursor(this.editor.getCursor());
-    }
-  };
-
-  _onEdit = () => {
-    if (!this.ignoreChangeEvent && this.editor) {
-      this.cachedValue = this.editor.getValue();
-      if (this.props.onChange && (this.props.value !== this.cachedValue)) {
-        this.props.onChange(this.cachedValue);
-      }
-
-      // Update newline markers after edit
-      if (this.props.showNewlineArrow) {
-        this._updateNewlineMarkers();
-      }
-    }
-  };
-
-  _onPaste = (_, event) => this.props.onPaste?.(event);
-
-  componentDidUpdate(prevProps) {
-    // Ensure the changes caused by this update are not interpreted as
-    // user-input changes which could otherwise result in an infinite
-    // event loop.
-    this.ignoreChangeEvent = true;
-
-    let variables = getAllVariables(this.props.collection, this.props.item);
-    if (!isEqual(variables, this.variables)) {
-      if (this.props.enableBrunoVarInfo !== false && this.editor.options.brunoVarInfo) {
-        this.editor.options.brunoVarInfo.variables = variables;
-      }
-      this.addOverlay(variables);
-    }
-
-    // Update collection and item when they change
-    if (this.props.enableBrunoVarInfo !== false && this.editor.options.brunoVarInfo) {
-      if (!isEqual(this.props.collection, this.editor.options.brunoVarInfo.collection)) {
-        this.editor.options.brunoVarInfo.collection = this.props.collection;
-      }
-      if (!isEqual(this.props.item, this.editor.options.brunoVarInfo.item)) {
-        this.editor.options.brunoVarInfo.item = this.props.item;
-      }
-    }
-    if (this.props.theme !== prevProps.theme && this.editor) {
-      this.editor.setOption('theme', this.props.theme === 'dark' ? 'monokai' : 'default');
-    }
-    if (this.props.value !== prevProps.value && this.props.value !== this.cachedValue && this.editor) {
-      const cursor = this.editor.getCursor();
-      this.cachedValue = String(this.props.value);
-      this.editor.setValue(String(this.props.value) || '');
-      this.editor.setCursor(cursor);
-      // Re-apply masking after setValue() since it destroys all CodeMirror marks
-      if (this.maskedEditor && this.maskedEditor.isEnabled()) {
-        this.maskedEditor.update();
-      }
-
-      // Update newline markers after value change
-      if (this.props.showNewlineArrow) {
-        this._updateNewlineMarkers();
-      }
-    }
-    if (!isEqual(this.props.isSecret, prevProps.isSecret)) {
-      // If the secret flag has changed, update the editor to reflect the change
-      this._enableMaskedEditor(this.props.isSecret);
-      // also set the maskInput flag to the new value
-      this.setState({ maskInput: this.props.isSecret });
-    }
-    if (this.props.readOnly !== prevProps.readOnly && this.editor) {
-      this.editor.setOption('readOnly', this.props.readOnly);
-    }
-    if (this.props.placeholder !== prevProps.placeholder && this.editor) {
-      this.editor.setOption('placeholder', this.props.placeholder);
-    }
-    this.ignoreChangeEvent = false;
   }
 
   componentWillUnmount() {
     if (this.editor) {
-      if (this.editor?._destroyLinkAware) {
+      if (typeof this.editor._destroyLinkAware === 'function') {
         this.editor._destroyLinkAware();
       }
       this.editor.off('change', this._onEdit);
       this.editor.off('paste', this._onPaste);
       this.editor.off('blur', this._onBlur);
       this._clearNewlineMarkers();
-      this.editor.getWrapperElement().remove();
-      this.editor = null;
+
+      const wrapper = this.editor.getWrapperElement();
+      if (wrapper && wrapper.parentNode) {
+        wrapper.parentNode.removeChild(wrapper);
+      }
     }
-    if (this.brunoAutoCompleteCleanup) {
-      this.brunoAutoCompleteCleanup();
+    if (typeof this.brunoAutoCompleteCleanup === 'function') this.brunoAutoCompleteCleanup();
+    if (this.maskedEditor) this.maskedEditor.destroy();
+    this.editor = null;
+  }
+
+  _onEdit = (val) => {
+    if (!this.ignoreChangeEvent && this.editor) {
+      const value = (typeof val === 'string') ? val : this.editor.getValue();
+
+      if (typeof val === 'string' && value !== this.editor.getValue()) {
+        this.editor.setValue(value);
+      }
+
+      this.cachedValue = this.editor.getValue();
+      if (this.props.onChange && (this.props.value !== this.cachedValue)) {
+        this.props.onChange(this.cachedValue);
+      }
+      if (this.props.showNewlineArrow) this._updateNewlineMarkers();
     }
-    if (this.maskedEditor) {
+  };
+
+  _onPaste = (_, event) => this.props.onPaste?.(event);
+  _onBlur = () => this.editor?.setCursor(this.editor.getCursor());
+
+  _enableMaskedEditor = (enabled) => {
+    if (enabled) {
+      if (!this.maskedEditor) this.maskedEditor = new MaskedEditor(this.editor, '*');
+      this.maskedEditor.enable();
+    } else if (this.maskedEditor) {
       this.maskedEditor.destroy();
       this.maskedEditor = null;
     }
+  };
+
+  componentDidUpdate(prevProps) {
+    this.ignoreChangeEvent = true;
+    if (this.props.value !== prevProps.value && this.props.value !== this.cachedValue && this.editor) {
+      const nextValue = String(this.props.value ?? '');
+      const isAccessibleFocused = document.activeElement === this.textareaRef.current;
+
+      if (isAccessibleFocused) {
+        this.editor.setValue(nextValue);
+      } else {
+        const cursor = this.editor.getCursor();
+        this.editor.setValue(nextValue);
+        this.editor.setCursor(cursor);
+      }
+      this.maskedEditor?.update();
+    }
+    if (this.props.isSecret !== prevProps.isSecret) {
+      this._enableMaskedEditor(this.props.isSecret);
+      this.setState({ maskInput: this.props.isSecret });
+    }
+    this.ignoreChangeEvent = false;
   }
 
   addOverlay = (variables) => {
@@ -233,61 +153,26 @@ class SingleLineEditor extends Component {
     this.editor.setOption('mode', 'brunovariables');
   };
 
-  /**
-   * Update markers to show arrows for newlines
-   */
   _updateNewlineMarkers = () => {
     if (!this.editor) return;
-
-    // Clear existing markers
     this._clearNewlineMarkers();
-
     this.newlineMarkers = [];
     const content = this.editor.getValue();
-
-    // Find all newlines and replace them with arrow widgets
     for (let i = 0; i < content.length; i++) {
       if (content[i] === '\n') {
-        const pos = this.editor.posFromIndex(i);
-        const nextPos = this.editor.posFromIndex(i + 1);
-
-        // Create a widget to display the arrow
         const arrow = document.createElement('span');
         arrow.className = 'newline-arrow';
         arrow.textContent = '↲';
-        arrow.style.cssText = `
-          color: #888;
-          font-size: 8px;
-          margin: 0 2px;
-          vertical-align: middle;
-          display: inline-block;
-        `;
-
-        // Mark the newline character and replace it with the arrow widget
-        const marker = this.editor.markText(pos, nextPos, {
-          replacedWith: arrow,
-          handleMouseEvents: true
-        });
-
+        arrow.style.cssText = 'color: #888; font-size: 8px; margin: 0 2px; vertical-align: middle; display: inline-block;';
+        const marker = this.editor.markText(this.editor.posFromIndex(i), this.editor.posFromIndex(i + 1), { replacedWith: arrow });
         this.newlineMarkers.push(marker);
       }
     }
   };
 
-  /**
-   * Clear all newline markers
-   */
   _clearNewlineMarkers = () => {
-    if (this.newlineMarkers) {
-      this.newlineMarkers.forEach((marker) => {
-        try {
-          marker.clear();
-        } catch (e) {
-          // Marker might already be cleared
-        }
-      });
-      this.newlineMarkers = [];
-    }
+    this.newlineMarkers?.forEach((m) => m.clear());
+    this.newlineMarkers = [];
   };
 
   toggleVisibleSecret = () => {
@@ -296,36 +181,60 @@ class SingleLineEditor extends Component {
     this._enableMaskedEditor(isVisible);
   };
 
-  /**
-   * @brief Eye icon to show/hide the secret value
-   * @returns ReactComponent The eye icon
-   */
-  secretEye = (isSecret) => {
-    return isSecret === true ? (
-      <button type="button" className="mx-2" onClick={() => this.toggleVisibleSecret()}>
-        {this.state.maskInput === true ? (
-          <IconEyeOff size={18} strokeWidth={2} />
-        ) : (
-          <IconEye size={18} strokeWidth={2} />
-        )}
-      </button>
-    ) : null;
-  };
-
   render() {
+    const valueToDisplay = this.state.maskInput ? '•'.repeat((this.props.value || '').length) : (this.props.value || '');
+
     return (
       <div className={`flex flex-row items-center w-full overflow-x-auto ${this.props.className}`}>
-        <StyledWrapper
-          ref={this.editorRef}
-          className={`single-line-editor grow ${this.props.readOnly ? 'read-only' : ''}`}
-          $isCompact={this.props.isCompact}
-          {...(this.props['data-testid'] ? { 'data-testid': this.props['data-testid'] } : {})}
-        />
-        <div className="flex items-center">
-          {this.secretEye(this.props.isSecret)}
+        <div className="grow relative" style={{ display: 'flex', alignItems: 'center' }}>
+          <StyledWrapper
+            ref={this.editorRef}
+            aria-hidden="true"
+            className={`single-line-editor grow ${this.props.readOnly ? 'read-only' : ''}`}
+            $isCompact={this.props.isCompact}
+            {...(this.props['data-testid'] ? { 'data-testid': this.props['data-testid'] } : {})}
+          />
+          <textarea
+            ref={this.textareaRef}
+            id={this.editorId}
+            className="mousetrap"
+            rows="1"
+            style={{
+              position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', opacity: 0, zIndex: 10,
+              resize: 'none', outline: 'none', border: 'none', background: 'transparent', whiteSpace: 'nowrap',
+              overflow: 'hidden', caretColor: this.props.theme === 'dark' ? 'white' : 'black'
+            }}
+            value={valueToDisplay}
+            aria-label={this.props.placeholder || 'Input'}
+            readOnly={this.props.readOnly}
+            onPaste={(e) => this._onPaste(null, e)}
+            onChange={(e) => this._onEdit(e.target.value.replace(/[\r\n]/g, ''))}
+            onKeyDown={(e) => {
+              const isShortcut = e.ctrlKey || e.metaKey || e.altKey;
+              if (e.key === 'Enter') {
+                if (e.altKey && this.props.allowNewlines) {
+                  this._onEdit((this.props.value || '') + '\n');
+                } else {
+                  this.props.onRun?.();
+                }
+                return;
+              }
+
+              const isFunctionKey = /^F\d+$/.test(e.key);
+              if (isShortcut || isFunctionKey || e.key === 'Escape') return;
+
+              e.stopPropagation();
+            }}
+          />
         </div>
+        {this.props.isSecret && (
+          <button type="button" className="mx-2" onClick={this.toggleVisibleSecret}>
+            {this.state.maskInput ? <IconEyeOff size={18} /> : <IconEye size={18} />}
+          </button>
+        )}
       </div>
     );
   }
 }
+
 export default SingleLineEditor;

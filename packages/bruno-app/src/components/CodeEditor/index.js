@@ -1,8 +1,8 @@
 /**
- *  Copyright (c) 2021 GraphQL Contributors.
+ * Copyright (c) 2021 GraphQL Contributors.
  *
- *  This source code is licensed under the MIT license found in the
- *  LICENSE file in the root directory of this source tree.
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
  */
 
 import React, { createRef } from 'react';
@@ -28,13 +28,13 @@ export default class CodeEditor extends React.Component {
   constructor(props) {
     super(props);
 
-    // Keep a cached version of the value, this cache will be updated when the
-    // editor is updated, which can later be used to protect the editor from
-    // unnecessary updates during the update lifecycle.
     this.cachedValue = props.value || '';
     this.variables = {};
     this.searchResultsCountElementId = 'search-results-count';
     this.searchBarRef = createRef();
+    this.textareaRef = createRef();
+
+    this.editorId = `bruno-editor-${Math.random().toString(36).substring(2, 9)}`;
 
     this.lintOptions = {
       esversion: 11,
@@ -62,6 +62,11 @@ export default class CodeEditor extends React.Component {
       value: this.props.value || '',
       placeholder: '...',
       lineNumbers: true,
+      tabindex: -1,
+      inputStyle: 'textarea',
+      resetSelectionOnContextMenu: false,
+      spellcheck: true,
+      selectionsMayTouch: true,
       lineWrapping: this.props.enableLineWrapping ?? true,
       tabSize: TAB_SIZE,
       mode: this.props.mode || 'application/ld+json',
@@ -145,7 +150,6 @@ export default class CodeEditor extends React.Component {
           } else if (this.props.mode == 'application/xml') {
             var doc = new DOMParser();
             try {
-              // add header element and remove prefix namespaces for DOMParser
               var dcm = doc.parseFromString(
                 '<a> ' + internal.replace(/(?<=\<|<\/)\w+:/g, '') + '</a>',
                 'application/xml'
@@ -157,14 +161,10 @@ export default class CodeEditor extends React.Component {
         }
       }
     }));
+
     CodeMirror.registerHelper('lint', 'json', function (text) {
       let found = [];
-      if (!window.jsonlint) {
-        if (window.console) {
-          window.console.error('Error: window.jsonlint not defined, CodeMirror JSON linting cannot run.');
-        }
-        return found;
-      }
+      if (!window.jsonlint) return found;
       let jsonlint = window.jsonlint.parser || window.jsonlint;
       try {
         jsonlint.parse(stripJsonComments(text.replace(/(?<!"[^":{]*){{[^}]*}}(?![^"},]*")/g, '1')));
@@ -198,37 +198,44 @@ export default class CodeEditor extends React.Component {
       });
       this.addOverlay();
 
-      const getAllVariablesHandler = () => getAllVariables(this.props.collection, this.props.item);
-
-      // Setup AutoComplete Helper for all modes
-      const autoCompleteOptions = {
+      this.brunoAutoCompleteCleanup = setupAutoComplete(editor, {
         showHintsFor: this.props.showHintsFor,
-        getAllVariables: getAllVariablesHandler
-      };
-
-      this.brunoAutoCompleteCleanup = setupAutoComplete(
-        editor,
-        autoCompleteOptions
-      );
+        getAllVariables: () => getAllVariables(this.props.collection, this.props.item)
+      });
 
       setupLinkAware(editor);
-
-      // Setup lint error tooltip on line number hover
       this.cleanupLintErrorTooltip = setupLintErrorTooltip(editor);
-
-      // Add mousetrap class so Mousetrap captures shortcuts even when CodeMirror is focused
-      const cmInput = editor.getInputField();
-      if (cmInput) {
-        cmInput.classList.add('mousetrap');
-      }
     }
   }
 
+  componentWillUnmount() {
+    if (this.editor) {
+      this.editor.off('change', this._onEdit);
+
+      if (typeof this.editor._destroyLinkAware === 'function') {
+        this.editor._destroyLinkAware();
+      }
+
+      const wrapper = this.editor.getWrapperElement();
+      if (wrapper && wrapper.parentNode) {
+        wrapper.parentNode.removeChild(wrapper);
+      }
+    }
+
+    if (typeof this.brunoAutoCompleteCleanup === 'function') {
+      this.brunoAutoCompleteCleanup();
+    }
+
+    if (typeof this.cleanupLintErrorTooltip === 'function') {
+      this.cleanupLintErrorTooltip();
+    }
+
+    this.editor = null;
+  }
+
   componentDidUpdate(prevProps) {
-    // Ensure the changes caused by this update are not interpreted as
-    // user-input changes which could otherwise result in an infinite
-    // event loop.
     this.ignoreChangeEvent = true;
+
     if (this.props.schema !== prevProps.schema && this.editor) {
       this.editor.options.lint.schema = this.props.schema;
       this.editor.options.hintOptions.schema = this.props.schema;
@@ -236,11 +243,19 @@ export default class CodeEditor extends React.Component {
       this.editor.options.jump.schema = this.props.schema;
       CodeMirror.signal(this.editor, 'change', this.editor);
     }
+
     if (this.props.value !== prevProps.value && this.props.value !== this.cachedValue && this.editor) {
-      const cursor = this.editor.getCursor();
       this.cachedValue = String(this?.props?.value ?? '');
-      this.editor.setValue(String(this.props.value) || '');
-      this.editor.setCursor(cursor);
+      const isAccessibleFocused = document.activeElement === this.textareaRef.current;
+      const nextValue = String(this.props.value ?? '');
+
+      if (isAccessibleFocused) {
+        this.editor.setValue(nextValue);
+      } else {
+        const cursor = this.editor.getCursor();
+        this.editor.setValue(nextValue);
+        this.editor.setCursor(cursor);
+      }
     }
 
     if (this.editor) {
@@ -248,8 +263,6 @@ export default class CodeEditor extends React.Component {
       if (!isEqual(variables, this.variables)) {
         this.addOverlay();
       }
-
-      // Update collection and item when they change
       if (this.props.enableBrunoVarInfo !== false && this.editor.options.brunoVarInfo) {
         if (!isEqual(this.props.collection, this.editor.options.brunoVarInfo.collection)) {
           this.editor.options.brunoVarInfo.collection = this.props.collection;
@@ -258,26 +271,21 @@ export default class CodeEditor extends React.Component {
           this.editor.options.brunoVarInfo.item = this.props.item;
         }
       }
-    }
-
-    if (this.props.theme !== prevProps.theme && this.editor) {
-      this.editor.setOption('theme', this.props.theme === 'dark' ? 'monokai' : 'default');
-    }
-
-    if (this.props.initialScroll !== prevProps.initialScroll) {
-      this.editor.scrollTo(null, this.props.initialScroll);
-    }
-
-    if (this.props.enableLineWrapping !== prevProps.enableLineWrapping) {
-      this.editor.setOption('lineWrapping', this.props.enableLineWrapping);
-    }
-
-    if (this.props.mode !== prevProps.mode) {
-      this.editor.setOption('mode', this.props.mode);
-    }
-
-    if (this.props.readOnly !== prevProps.readOnly && this.editor) {
-      this.editor.setOption('readOnly', this.props.readOnly);
+      if (this.props.theme !== prevProps.theme) {
+        this.editor.setOption('theme', this.props.theme === 'dark' ? 'monokai' : 'default');
+      }
+      if (this.props.initialScroll !== prevProps.initialScroll) {
+        this.editor.scrollTo(null, this.props.initialScroll);
+      }
+      if (this.props.enableLineWrapping !== prevProps.enableLineWrapping) {
+        this.editor.setOption('lineWrapping', this.props.enableLineWrapping);
+      }
+      if (this.props.mode !== prevProps.mode) {
+        this.editor.setOption('mode', this.props.mode);
+      }
+      if (this.props.readOnly !== prevProps.readOnly) {
+        this.editor.setOption('readOnly', this.props.readOnly);
+      }
     }
 
     this.ignoreChangeEvent = false;
@@ -306,26 +314,85 @@ export default class CodeEditor extends React.Component {
     if (this.editor) {
       this.editor.refresh();
     }
+
     return (
       <StyledWrapper
         className={`h-full w-full flex flex-col relative graphiql-container ${this.props.readOnly ? 'read-only' : ''}`}
-        aria-label="Code Editor"
         font={this.props.font}
         fontSize={this.props.fontSize}
       >
         <CodeMirrorSearch
-          ref={(node) => {
-            if (!node) return;
-            this.searchBarRef.current = node;
-          }}
+          ref={(node) => { if (node) this.searchBarRef.current = node; }}
           visible={this.state.searchBarVisible}
           editor={this.editor}
           onClose={() => this.setState({ searchBarVisible: false })}
         />
+
         <div
           className={`editor-container${this.state.searchBarVisible ? ' search-bar-visible' : ''}`}
           ref={(node) => { this._node = node; }}
           style={{ height: '100%', width: '100%' }}
+          aria-hidden="true"
+        />
+
+        <textarea
+          ref={this.textareaRef}
+          id={this.editorId}
+          className="mousetrap"
+          style={{
+            position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
+            opacity: 0, zIndex: 20, resize: 'none', outline: 'none', border: 'none',
+            background: 'transparent', color: 'transparent', caretColor: 'white'
+          }}
+          value={this.props.value || ''}
+          aria-label={this.props.ariaLabel || 'Code Editor'}
+          readOnly={this.props.readOnly}
+          onChange={(e) => {
+            if (typeof this._onEdit === 'function') this._onEdit(e.target.value);
+          }}
+          onKeyDown={(e) => {
+            if (e.key === 'Tab') {
+              e.preventDefault();
+              if (this.editor) {
+                const cm = this.editor;
+                const textarea = e.target;
+
+                const cursorPos = textarea.selectionStart;
+                const textBefore = textarea.value.substring(0, cursorPos);
+                const lines = textBefore.split('\n');
+                cm.setCursor({ line: lines.length - 1, ch: lines[lines.length - 1].length });
+
+                const isBlockAction = cm.getSelection().includes('\n') || cm.getLine(cm.getCursor().line) == cm.getSelection();
+                if (isBlockAction) {
+                  cm.execCommand('indentMore');
+                } else {
+                  cm.replaceSelection('  ', 'end');
+                }
+
+                const newCursorPos = isBlockAction ? textarea.selectionStart : cursorPos + 2;
+
+                this.cachedValue = cm.getValue();
+                if (this.props.onEdit) {
+                  this.props.onEdit(this.cachedValue);
+                }
+
+                setTimeout(() => {
+                  textarea.setSelectionRange(newCursorPos, newCursorPos);
+                }, 0);
+              }
+              return;
+            }
+
+            const isShortcut = e.ctrlKey || e.metaKey || e.altKey;
+            const isFunctionKey = /^F\d+$/.test(e.key);
+            const isEscape = e.key === 'Escape';
+
+            if (isShortcut || isFunctionKey || isEscape) {
+              return;
+            }
+
+            e.stopPropagation();
+          }}
         />
       </StyledWrapper>
     );
@@ -336,7 +403,6 @@ export default class CodeEditor extends React.Component {
     let variables = getAllVariables(this.props.collection, this.props.item);
     this.variables = variables;
 
-    // Update brunoVarInfo with latest variables
     if (this.props.enableBrunoVarInfo !== false && this.editor.options.brunoVarInfo) {
       this.editor.options.brunoVarInfo.variables = variables;
     }
@@ -345,10 +411,11 @@ export default class CodeEditor extends React.Component {
     this.editor.setOption('mode', 'brunovariables');
   };
 
-  _onEdit = () => {
+  _onEdit = (val) => {
     if (!this.ignoreChangeEvent && this.editor) {
-      this.editor.setOption('lint', this.editor.getValue().trim().length > 0 ? this.lintOptions : false);
-      this.cachedValue = this.editor.getValue();
+      const value = (typeof val === 'string') ? val : this.editor.getValue();
+      this.editor.setOption('lint', value.trim().length > 0 ? this.lintOptions : false);
+      this.cachedValue = value;
       if (this.props.onEdit) {
         this.props.onEdit(this.cachedValue);
       }
