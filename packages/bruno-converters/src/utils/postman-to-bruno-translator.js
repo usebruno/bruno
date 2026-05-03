@@ -91,6 +91,32 @@ const simpleTranslations = {
   'pm.cookies.jar().unset': 'bru.cookies.jar().deleteCookie',
   'pm.cookies.jar().clear': 'bru.cookies.jar().deleteCookies',
 
+  // Direct cookie access (pm.cookies.get/has/toObject)
+  'pm.cookies.get': 'bru.cookies.get',
+  'pm.cookies.has': 'bru.cookies.has',
+  'pm.cookies.toObject': 'bru.cookies.toObject',
+  'pm.cookies.toString': 'bru.cookies.toString',
+  'pm.cookies.clear': 'bru.cookies.clear',
+  'pm.cookies.remove': 'bru.cookies.delete',
+
+  // PropertyList cookie methods (1:1 mappings)
+  'pm.cookies.one': 'bru.cookies.one',
+  'pm.cookies.all': 'bru.cookies.all',
+  'pm.cookies.idx': 'bru.cookies.idx',
+  'pm.cookies.count': 'bru.cookies.count',
+  'pm.cookies.indexOf': 'bru.cookies.indexOf',
+  'pm.cookies.find': 'bru.cookies.find',
+  'pm.cookies.filter': 'bru.cookies.filter',
+  'pm.cookies.each': 'bru.cookies.each',
+  'pm.cookies.map': 'bru.cookies.map',
+  'pm.cookies.reduce': 'bru.cookies.reduce',
+  'pm.cookies.add': 'bru.cookies.add',
+  'pm.cookies.upsert': 'bru.cookies.upsert',
+  // Lossy: position-aware inserts map to add (position irrelevant for cookies)
+  'pm.cookies.prepend': 'bru.cookies.add',
+  'pm.cookies.insert': 'bru.cookies.add',
+  'pm.cookies.insertAfter': 'bru.cookies.add',
+
   // Execution control
   'pm.execution.skipRequest': 'bru.runner.skipRequest',
 
@@ -259,94 +285,6 @@ const complexTransformations = [
       return j.callExpression(
         j.identifier('bru.runner.setNextRequest'),
         args
-      );
-    }
-  },
-
-  // pm.cookies.has(name) → await bru.cookies.jar().hasCookie(req.getUrl(), name)
-  {
-    pattern: 'pm.cookies.has',
-    transform: (path, j) => {
-      const callExpr = path.parent.value;
-      const args = callExpr.arguments;
-
-      const hasCookieCall = j.callExpression(
-        j.identifier('bru.cookies.jar().hasCookie'),
-        [j.identifier('req.getUrl()'), ...args]
-      );
-
-      return j.awaitExpression(hasCookieCall);
-    }
-  },
-
-  // pm.cookies.get(name) → (await bru.cookies.jar().getCookie(req.getUrl(), name))?.value
-  {
-    pattern: 'pm.cookies.get',
-    transform: (path, j) => {
-      const callExpr = path.parent.value;
-      const args = callExpr.arguments;
-
-      const getCookieCall = j.callExpression(
-        j.identifier('bru.cookies.jar().getCookie'),
-        [j.identifier('req.getUrl()'), ...args]
-      );
-
-      const awaitExpr = j.awaitExpression(getCookieCall);
-      const parenAwait = j.parenthesizedExpression
-        ? j.parenthesizedExpression(awaitExpr)
-        : awaitExpr;
-
-      return j.optionalMemberExpression(
-        parenAwait,
-        j.identifier('value'),
-        false,
-        true
-      );
-    }
-  },
-
-  // pm.cookies.toObject() → (await bru.cookies.jar().getCookies(req.getUrl())).reduce((obj, c) => ({...obj, [c.key]: c.value}), {})
-  {
-    pattern: 'pm.cookies.toObject',
-    transform: (path, j) => {
-      const getCookiesCall = j.callExpression(
-        j.identifier('bru.cookies.jar().getCookies'),
-        [j.identifier('req.getUrl()')]
-      );
-
-      const awaitExpr = j.awaitExpression(getCookiesCall);
-
-      // Build the reduce callback: (obj, c) => ({...obj, [c.key]: c.value})
-      const objParam = j.identifier('obj');
-      const cParam = j.identifier('c');
-
-      const spreadElement = j.spreadElement(objParam);
-      const computedProp = j.property(
-        'init',
-        j.memberExpression(cParam, j.identifier('key')),
-        j.memberExpression(cParam, j.identifier('value'))
-      );
-      computedProp.computed = true;
-
-      const objectExpr = j.objectExpression([spreadElement, computedProp]);
-
-      const arrowBody = j.parenthesizedExpression
-        ? j.parenthesizedExpression(objectExpr)
-        : objectExpr;
-
-      const reduceFn = j.arrowFunctionExpression(
-        [objParam, cParam],
-        arrowBody
-      );
-      reduceFn.expression = true;
-
-      // Build: (await ...).reduce(fn, {})
-      return j.callExpression(
-        j.memberExpression(
-          awaitExpr,
-          j.identifier('reduce')
-        ),
-        [reduceFn, j.objectExpression([])]
       );
     }
   },
@@ -529,38 +467,127 @@ const complexTransformations = [
     }
   },
 
-  // pm.response.to.have.jsonBody(path) -> expect(res.getBody()).to.have.nested.property(path)
+  // pm.response.to.have.jsonBody(...) -> expect(res.getBody()).to.have.jsonBody(...)
   {
     pattern: 'pm.response.to.have.jsonBody',
     transform: (path, j) => {
       const callExpr = path.parent.value;
       const args = callExpr.arguments;
+      const expectGetBody = j.callExpression(j.identifier('expect'), [j.callExpression(j.identifier('res.getBody'), [])]);
+      return j.callExpression(
+        j.memberExpression(expectGetBody, j.identifier('to.have.jsonBody')),
+        args
+      );
+    }
+  },
 
-      if (args.length === 0) {
-        // No path provided, just check that body exists
-        return j.memberExpression(
-          j.callExpression(j.identifier('expect'), [j.callExpression(j.identifier('res.getBody'), [])]),
-          j.identifier('to.exist')
-        );
-      } else if (args.length === 1) {
-        // Path provided, check property exists
-        return j.callExpression(
-          j.memberExpression(
-            j.callExpression(j.identifier('expect'), [j.callExpression(j.identifier('res.getBody'), [])]),
-            j.identifier('to.have.nested.property')
-          ),
-          args
-        );
-      } else {
-        // Path and value provided, check property equals value
-        return j.callExpression(
-          j.memberExpression(
-            j.callExpression(j.identifier('expect'), [j.callExpression(j.identifier('res.getBody'), [])]),
-            j.identifier('to.have.nested.property')
-          ),
-          args
-        );
-      }
+  // pm.response.to.not.have.jsonBody(...) -> expect(res.getBody()).to.not.have.jsonBody(...)
+  {
+    pattern: 'pm.response.to.not.have.jsonBody',
+    transform: (path, j) => {
+      const callExpr = path.parent.value;
+      const args = callExpr.arguments;
+      const expectGetBody = j.callExpression(j.identifier('expect'), [j.callExpression(j.identifier('res.getBody'), [])]);
+      return j.callExpression(
+        j.memberExpression(expectGetBody, j.identifier('to.not.have.jsonBody')),
+        args
+      );
+    }
+  },
+
+  // pm.response.to.have.jsonSchema(schema, options?) -> expect(res.getBody()).to.have.jsonSchema(schema, options?)
+  {
+    pattern: 'pm.response.to.have.jsonSchema',
+    transform: (path, j) => {
+      const args = path.parent.value.arguments;
+      return j.callExpression(
+        j.memberExpression(
+          j.callExpression(j.identifier('expect'), [
+            j.callExpression(j.identifier('res.getBody'), [])
+          ]),
+          j.identifier('to.have.jsonSchema')
+        ),
+        args
+      );
+    }
+  },
+
+  // pm.response.to.not.have.jsonSchema(schema, options?) -> expect(res.getBody()).to.not.have.jsonSchema(schema, options?)
+  {
+    pattern: 'pm.response.to.not.have.jsonSchema',
+    transform: (path, j) => {
+      const args = path.parent.value.arguments;
+      return j.callExpression(
+        j.memberExpression(
+          j.callExpression(j.identifier('expect'), [
+            j.callExpression(j.identifier('res.getBody'), [])
+          ]),
+          j.identifier('to.not.have.jsonSchema')
+        ),
+        args
+      );
+    }
+  },
+
+  // pm.response.not.to.have.jsonSchema(schema, options?) -> expect(res.getBody()).not.to.have.jsonSchema(schema, options?)
+  {
+    pattern: 'pm.response.not.to.have.jsonSchema',
+    transform: (path, j) => {
+      const args = path.parent.value.arguments;
+      return j.callExpression(
+        j.memberExpression(
+          j.callExpression(j.identifier('expect'), [
+            j.callExpression(j.identifier('res.getBody'), [])
+          ]),
+          j.identifier('not.to.have.jsonSchema')
+        ),
+        args
+      );
+    }
+  },
+
+  // pm.response.to.have.not.jsonSchema(schema, options?) -> expect(res.getBody()).to.have.not.jsonSchema(schema, options?)
+  {
+    pattern: 'pm.response.to.have.not.jsonSchema',
+    transform: (path, j) => {
+      const args = path.parent.value.arguments;
+      return j.callExpression(
+        j.memberExpression(
+          j.callExpression(j.identifier('expect'), [
+            j.callExpression(j.identifier('res.getBody'), [])
+          ]),
+          j.identifier('to.have.not.jsonSchema')
+        ),
+        args
+      );
+    }
+  },
+
+  // pm.response.not.to.have.jsonBody(...) -> expect(res.getBody()).not.to.have.jsonBody(...)
+  {
+    pattern: 'pm.response.not.to.have.jsonBody',
+    transform: (path, j) => {
+      const callExpr = path.parent.value;
+      const args = callExpr.arguments;
+      const expectGetBody = j.callExpression(j.identifier('expect'), [j.callExpression(j.identifier('res.getBody'), [])]);
+      return j.callExpression(
+        j.memberExpression(expectGetBody, j.identifier('not.to.have.jsonBody')),
+        args
+      );
+    }
+  },
+
+  // pm.response.to.have.not.jsonBody(...) -> expect(res.getBody()).to.have.not.jsonBody(...)
+  {
+    pattern: 'pm.response.to.have.not.jsonBody',
+    transform: (path, j) => {
+      const callExpr = path.parent.value;
+      const args = callExpr.arguments;
+      const expectGetBody = j.callExpression(j.identifier('expect'), [j.callExpression(j.identifier('res.getBody'), [])]);
+      return j.callExpression(
+        j.memberExpression(expectGetBody, j.identifier('to.have.not.jsonBody')),
+        args
+      );
     }
   },
 

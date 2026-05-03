@@ -1,9 +1,11 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import StyledWrapper from './StyledWrapper';
 import { findItemInCollection, findParentItemInCollection } from 'utils/collections/index';
 import { get } from 'lodash';
 import TimelineItem from './TimelineItem/index';
 import GrpcTimelineItem from './GrpcTimelineItem/index';
+import { usePersistedState } from 'hooks/usePersistedState';
+import { useTrackScroll } from 'hooks/useTrackScroll';
 
 const getEffectiveAuthSource = (collection, item) => {
   const authMode = item.draft ? get(item, 'draft.request.auth.mode') : get(item, 'request.auth.mode');
@@ -44,6 +46,9 @@ const getEffectiveAuthSource = (collection, item) => {
 };
 
 const Timeline = ({ collection, item }) => {
+  const wrapperRef = useRef(null);
+  const [scroll, setScroll] = usePersistedState({ key: `response-timeline-scroll-${item.uid}`, default: 0 });
+  useTrackScroll({ ref: wrapperRef, selector: null, onChange: setScroll, initialValue: scroll });
   // Get the effective auth source if auth mode is inherit
   const authSource = getEffectiveAuthSource(collection, item);
   const isGrpcRequest = item.type === 'grpc-request' || item.type === 'ws-request';
@@ -65,6 +70,7 @@ const Timeline = ({ collection, item }) => {
   return (
     <StyledWrapper
       className="pb-4 w-full flex flex-grow flex-col"
+      ref={wrapperRef}
     >
       {/* Timeline container with scrollbar */}
       <div

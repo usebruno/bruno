@@ -2,32 +2,50 @@ const { cloneDeep } = require('lodash');
 const xmlFormat = require('xml-formatter');
 const { interpolate: _interpolate } = require('@usebruno/common');
 const { sendRequest, createSendRequest } = require('@usebruno/requests').scripting;
-const { jar: createCookieJar } = require('@usebruno/requests').cookies;
+const { jar: createCookieJar, getCookiesForUrl } = require('@usebruno/requests').cookies;
+const CookieList = require('./cookie-list');
 
 const variableNameRegex = /^[\w-.]*$/;
 
 class Bru {
   /**
-   * @param {string} runtime - The runtime environment ('quickjs' or 'nodevm')
-   * @param {object} envVariables - Environment variables
-   * @param {object} runtimeVariables - Runtime variables
-   * @param {object} processEnvVars - Process environment variables
-   * @param {string} collectionPath - Path to the collection
-   * @param {object} collectionVariables - Collection-level variables
-   * @param {object} folderVariables - Folder-level variables
-   * @param {object} requestVariables - Request-level variables
-   * @param {object} globalEnvironmentVariables - Global environment variables
-   * @param {object} oauth2CredentialVariables - OAuth2 credential variables
-   * @param {string} collectionName - Name of the collection
-   * @param {object} promptVariables - Prompt variables
-   * @param {object} certsAndProxyConfig - Configuration for bru.sendRequest (proxy, certs, TLS)
-   * @param {string} certsAndProxyConfig.collectionPath - Path to the collection
-   * @param {object} certsAndProxyConfig.options - TLS and proxy options
-   * @param {object} [certsAndProxyConfig.clientCertificates] - Client certificate configuration
-   * @param {object} [certsAndProxyConfig.collectionLevelProxy] - Collection-level proxy settings
-   * @param {object} [certsAndProxyConfig.systemProxyConfig] - System proxy configuration
+   * @param {object} options - Single options object (destructured)
+   * @property {string} options.runtime - The runtime environment ('quickjs' or 'nodevm')
+   * @property {object} [options.envVariables={}] - Environment variables
+   * @property {object} [options.runtimeVariables={}] - Runtime variables
+   * @property {object} [options.processEnvVars={}] - Process environment variables (deep cloned)
+   * @property {string} [options.collectionPath] - Path to the collection
+   * @property {object} [options.collectionVariables={}] - Collection-level variables
+   * @property {object} [options.folderVariables={}] - Folder-level variables
+   * @property {object} [options.requestVariables={}] - Request-level variables
+   * @property {object} [options.globalEnvironmentVariables={}] - Global environment variables
+   * @property {object} [options.oauth2CredentialVariables={}] - OAuth2 credential variables
+   * @property {string} [options.collectionName] - Name of the collection
+   * @property {object} [options.promptVariables={}] - Prompt variables
+   * @property {object} [options.certsAndProxyConfig] - Configuration for bru.sendRequest (proxy, certs, TLS)
+   * @property {string} [options.certsAndProxyConfig.collectionPath] - Path to the collection
+   * @property {object} [options.certsAndProxyConfig.options] - TLS and proxy options
+   * @property {object} [options.certsAndProxyConfig.clientCertificates] - Client certificate configuration
+   * @property {object} [options.certsAndProxyConfig.collectionLevelProxy] - Collection-level proxy settings
+   * @property {object} [options.certsAndProxyConfig.systemProxyConfig] - System proxy configuration
+   * @property {string} [options.requestUrl] - The URL of the current request (used for cookie access)
    */
-  constructor(runtime, envVariables, runtimeVariables, processEnvVars, collectionPath, collectionVariables, folderVariables, requestVariables, globalEnvironmentVariables, oauth2CredentialVariables, collectionName, promptVariables, certsAndProxyConfig) {
+  constructor({
+    runtime,
+    envVariables,
+    runtimeVariables,
+    processEnvVars,
+    collectionPath,
+    collectionVariables,
+    folderVariables,
+    requestVariables,
+    globalEnvironmentVariables,
+    oauth2CredentialVariables,
+    collectionName,
+    promptVariables,
+    certsAndProxyConfig,
+    requestUrl
+  }) {
     this.envVariables = envVariables || {};
     this.runtimeVariables = runtimeVariables || {};
     this.promptVariables = promptVariables || {};
@@ -42,54 +60,13 @@ class Bru {
     // Use createSendRequest with config if provided, otherwise use default sendRequest
     this.sendRequest = certsAndProxyConfig ? createSendRequest(certsAndProxyConfig) : sendRequest;
     this.runtime = runtime;
-    this.cookies = {
-      jar: () => {
-        const cookieJar = createCookieJar();
-
-        return {
-          getCookie: (url, cookieName, callback) => {
-            const interpolatedUrl = this.interpolate(url);
-            return cookieJar.getCookie(interpolatedUrl, cookieName, callback);
-          },
-
-          getCookies: (url, callback) => {
-            const interpolatedUrl = this.interpolate(url);
-            return cookieJar.getCookies(interpolatedUrl, callback);
-          },
-
-          setCookie: (url, nameOrCookieObj, valueOrCallback, maybeCallback) => {
-            const interpolatedUrl = this.interpolate(url);
-            return cookieJar.setCookie(interpolatedUrl, nameOrCookieObj, valueOrCallback, maybeCallback);
-          },
-
-          setCookies: (url, cookiesArray, callback) => {
-            const interpolatedUrl = this.interpolate(url);
-            return cookieJar.setCookies(interpolatedUrl, cookiesArray, callback);
-          },
-
-          // Clear entire cookie jar
-          clear: (callback) => {
-            return cookieJar.clear(callback);
-          },
-
-          // Delete cookies for a specific URL/domain
-          deleteCookies: (url, callback) => {
-            const interpolatedUrl = this.interpolate(url);
-            return cookieJar.deleteCookies(interpolatedUrl, callback);
-          },
-
-          deleteCookie: (url, cookieName, callback) => {
-            const interpolatedUrl = this.interpolate(url);
-            return cookieJar.deleteCookie(interpolatedUrl, cookieName, callback);
-          },
-
-          hasCookie: (url, cookieName, callback) => {
-            const interpolatedUrl = this.interpolate(url);
-            return cookieJar.hasCookie(interpolatedUrl, cookieName, callback);
-          }
-        };
-      }
-    };
+    this.requestUrl = requestUrl;
+    this.cookies = new CookieList({
+      getUrl: () => this.interpolate(this.requestUrl),
+      interpolate: (str) => this.interpolate(str),
+      createCookieJar,
+      getCookiesForUrl
+    });
     // Holds variables that are marked as persistent by scripts
     this.persistentEnvVariables = {};
     // Holds credential IDs to be reset after script execution

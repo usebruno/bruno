@@ -2,12 +2,19 @@ import React, { useMemo, useCallback, useRef } from 'react';
 import Documentation from 'components/Documentation/index';
 import RequestHeaders from 'components/RequestPane/RequestHeaders';
 import StatusDot from 'components/StatusDot/index';
-import { find } from 'lodash';
+import ActionIcon from 'ui/ActionIcon';
+import ToolHint from 'components/ToolHint/index';
+import { IconPlus, IconWand } from '@tabler/icons';
+import { find, get } from 'lodash';
 import { updateRequestPaneTab } from 'providers/ReduxStore/slices/tabs';
+import { updateRequestBody } from 'providers/ReduxStore/slices/collections';
 import { useDispatch, useSelector } from 'react-redux';
 import HeightBoundContainer from 'ui/HeightBoundContainer';
 import ResponsiveTabs from 'ui/ResponsiveTabs';
 import { getPropertyFromDraftOrRequest } from 'utils/collections/index';
+import { prettifyJsonString, uuid } from 'utils/common/index';
+import xmlFormat from 'xml-formatter';
+import toast from 'react-hot-toast';
 import WsBody from '../WsBody/index';
 import StyledWrapper from './StyledWrapper';
 import WSAuth from './WSAuth';
@@ -24,6 +31,8 @@ const WSRequestPane = ({ item, collection, handleRun }) => {
   const focusedTab = find(tabs, (t) => t.uid === activeTabUid);
   const requestPaneTab = focusedTab?.requestPaneTab;
 
+  const body = item.draft ? get(item, 'draft.request.body') : get(item, 'request.body');
+
   const selectTab = useCallback(
     (tab) => {
       dispatch(updateRequestPaneTab({
@@ -33,6 +42,63 @@ const WSRequestPane = ({ item, collection, handleRun }) => {
     },
     [dispatch, item.uid]
   );
+
+  const addNewMessage = useCallback(() => {
+    const currentMessages = Array.isArray(body?.ws)
+      ? body.ws.map((msg) => ({ ...msg, selected: false }))
+      : [];
+    currentMessages.push({
+      uid: uuid(),
+      name: `message ${currentMessages.length + 1}`,
+      content: '{}',
+      type: 'json',
+      selected: true
+    });
+    dispatch(updateRequestBody({
+      content: currentMessages,
+      itemUid: item.uid,
+      collectionUid: collection.uid
+    }));
+  }, [body, dispatch, item.uid, collection.uid]);
+
+  const onPrettifyAll = useCallback(() => {
+    const currentMessages = [...(body?.ws || [])];
+    let changed = false;
+
+    currentMessages.forEach((msg, i) => {
+      if (msg.type === 'json') {
+        try {
+          const pretty = prettifyJsonString(msg.content);
+          if (pretty !== msg.content) {
+            currentMessages[i] = { ...msg, content: pretty };
+            changed = true;
+          }
+        } catch (e) {
+          // skip invalid json
+        }
+      } else if (msg.type === 'xml') {
+        try {
+          const pretty = xmlFormat(msg.content, { collapseContent: true });
+          if (pretty !== msg.content) {
+            currentMessages[i] = { ...msg, content: pretty };
+            changed = true;
+          }
+        } catch (e) {
+          // skip invalid xml
+        }
+      }
+    });
+
+    if (changed) {
+      dispatch(updateRequestBody({
+        content: currentMessages,
+        itemUid: item.uid,
+        collectionUid: collection.uid
+      }));
+    } else {
+      toast.error('Nothing to prettify');
+    }
+  }, [body, dispatch, item.uid, collection.uid]);
 
   const headers = getPropertyFromDraftOrRequest(item, 'request.headers');
   const docs = getPropertyFromDraftOrRequest(item, 'request.docs');
@@ -77,9 +143,8 @@ const WSRequestPane = ({ item, collection, handleRun }) => {
           <WsBody
             item={item}
             collection={collection}
-            hideModeSelector={true}
-            hidePrettifyButton={true}
             handleRun={handleRun}
+            onAddMessage={addNewMessage}
           />
         );
       }
@@ -99,17 +164,41 @@ const WSRequestPane = ({ item, collection, handleRun }) => {
         return <div className="mt-4">404 | Not found</div>;
       }
     }
-  }, [requestPaneTab, item, collection, handleRun]);
+  }, [requestPaneTab, item, collection, handleRun, addNewMessage]);
 
   if (!activeTabUid || !focusedTab?.uid || !requestPaneTab) {
     return <div className="pb-4 px-4">An error occurred!</div>;
   }
 
-  const rightContent = requestPaneTab === 'auth' ? (
-    <div ref={rightContentRef} className="flex flex-grow justify-start items-center">
-      <WSAuthMode item={item} collection={collection} />
-    </div>
-  ) : null;
+  let rightContent = null;
+  if (requestPaneTab === 'auth') {
+    rightContent = (
+      <div ref={rightContentRef} className="flex flex-grow justify-start items-center">
+        <WSAuthMode item={item} collection={collection} />
+      </div>
+    );
+  } else if (requestPaneTab === 'body') {
+    rightContent = (
+      <div ref={rightContentRef} className="flex items-center gap-2">
+        <ToolHint text="Prettify All" toolhintId="prettify-all-ws">
+          <ActionIcon
+            data-testid="ws-prettify-all"
+            onClick={onPrettifyAll}
+          >
+            <IconWand size={14} strokeWidth={1.5} />
+          </ActionIcon>
+        </ToolHint>
+        <ToolHint text="Add Message" toolhintId="add-msg-ws">
+          <ActionIcon
+            data-testid="ws-add-message"
+            onClick={addNewMessage}
+          >
+            <IconPlus size={15} strokeWidth={1.5} />
+          </ActionIcon>
+        </ToolHint>
+      </div>
+    );
+  }
 
   return (
     <StyledWrapper className="flex flex-col h-full relative">

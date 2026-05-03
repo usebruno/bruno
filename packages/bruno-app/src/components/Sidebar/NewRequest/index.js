@@ -316,12 +316,6 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
           <form
             className="bruno-form"
             onSubmit={formik.handleSubmit}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                e.preventDefault();
-                formik.handleSubmit();
-              }
-            }}
           >
             <div>
               <label htmlFor="requestName" className="block font-medium">
@@ -517,6 +511,7 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
                       className="flex px-2 items-center flex-grow input-container h-full min-w-0"
                     >
                       <SingleLineEditor
+                        onRun={() => formik.handleSubmit()}
                         onPaste={handlePaste}
                         placeholder="Request URL"
                         value={formik.values.requestUrl || ''}
@@ -599,7 +594,7 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
                 <Button type="button" color="secondary" variant="ghost" onClick={onClose} className="mr-2">
                   Cancel
                 </Button>
-                <Button type="submit">
+                <Button type="submit" data-testid="create-new-request-button">
                   Create
                 </Button>
               </div>

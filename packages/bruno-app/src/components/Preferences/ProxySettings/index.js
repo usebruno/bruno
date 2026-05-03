@@ -17,7 +17,22 @@ const ProxySettings = ({ close }) => {
 
   const proxySchema = Yup.object({
     disabled: Yup.boolean().optional(),
-    inherit: Yup.boolean().required(),
+    source: Yup.string().oneOf(['manual', 'pac', 'inherit']).required(),
+    pac: Yup.object({
+      source: Yup.string()
+        .optional()
+        .test('pac-url', 'Specify a valid PAC URL', (value) => {
+          if (!value) return true;
+          try {
+            const u = new URL(value);
+            return u.protocol === 'http:' || u.protocol === 'https:' || u.protocol === 'file:';
+          } catch {
+            return false;
+          }
+        })
+        .max(2048)
+        .nullable()
+    }).optional(),
     config: Yup.object({
       protocol: Yup.string().required().oneOf(['http', 'https', 'socks4', 'socks5']),
       hostname: Yup.string().max(1024),
@@ -39,7 +54,10 @@ const ProxySettings = ({ close }) => {
   const formik = useFormik({
     initialValues: {
       disabled: preferences.proxy.disabled || false,
-      inherit: preferences.proxy.inherit || false,
+      source: preferences.proxy.source || 'manual',
+      pac: {
+        source: preferences.proxy.pac?.source || ''
+      },
       config: {
         protocol: preferences.proxy.config?.protocol || 'http',
         hostname: preferences.proxy.config?.hostname || '',
@@ -86,33 +104,26 @@ const ProxySettings = ({ close }) => {
   );
 
   const [passwordVisible, setPasswordVisible] = useState(false);
+  const [proxyMode, setProxyMode] = useState(() => {
+    if (preferences.proxy.disabled) return 'off';
+    if (preferences.proxy.source === 'pac') return 'pac';
+    if (preferences.proxy.source === 'inherit') return 'inherit';
+    return 'manual';
+  });
+  const [pacInputMode, setPacInputMode] = useState(() =>
+    preferences.proxy.pac?.source?.startsWith('file://') ? 'file' : 'url'
+  );
 
   useEffect(() => {
-    formik.setValues({
-      disabled: preferences.proxy.disabled || false,
-      inherit: preferences.proxy.inherit || false,
-      config: {
-        protocol: preferences.proxy.config?.protocol || 'http',
-        hostname: preferences.proxy.config?.hostname || '',
-        port: preferences.proxy.config?.port || '',
-        auth: {
-          disabled: preferences.proxy.config?.auth?.disabled || false,
-          username: preferences.proxy.config?.auth?.username || '',
-          password: preferences.proxy.config?.auth?.password || ''
-        },
-        bypassProxy: preferences.proxy.config?.bypassProxy || ''
-      }
-    });
-  }, [preferences]);
-
-  useEffect(() => {
-    if (formik.dirty) {
+    if (formik.dirty && formik.isValid) {
+      // Don't auto-save PAC mode until a URL or file is actually selected.
+      if (proxyMode === 'pac' && !formik.values.pac.source) return;
       debouncedSave(formik.values);
     }
     return () => {
       debouncedSave.flush();
     };
-  }, [formik.values, formik.dirty, debouncedSave]);
+  }, [formik.values, formik.dirty, formik.isValid, debouncedSave, proxyMode]);
 
   return (
     <StyledWrapper>
@@ -128,10 +139,10 @@ const ProxySettings = ({ close }) => {
                 type="radio"
                 name="mode"
                 value="off"
-                checked={formik.values.disabled === true}
+                checked={proxyMode === 'off'}
                 onChange={(e) => {
+                  setProxyMode('off');
                   formik.setFieldValue('disabled', true);
-                  formik.setFieldValue('inherit', false);
                 }}
                 className="mr-1 cursor-pointer"
               />
@@ -141,11 +152,12 @@ const ProxySettings = ({ close }) => {
               <input
                 type="radio"
                 name="mode"
-                value="on"
-                checked={formik.values.disabled === false && formik.values.inherit === false}
+                value="manual"
+                checked={proxyMode === 'manual'}
                 onChange={(e) => {
+                  setProxyMode('manual');
                   formik.setFieldValue('disabled', false);
-                  formik.setFieldValue('inherit', false);
+                  formik.setFieldValue('source', 'manual');
                 }}
                 className="mr-1 cursor-pointer"
               />
@@ -155,24 +167,40 @@ const ProxySettings = ({ close }) => {
               <input
                 type="radio"
                 name="mode"
-                value="system"
-                checked={formik.values.disabled === false && formik.values.inherit === true}
+                value="inherit"
+                checked={proxyMode === 'inherit'}
                 onChange={(e) => {
+                  setProxyMode('inherit');
                   formik.setFieldValue('disabled', false);
-                  formik.setFieldValue('inherit', true);
+                  formik.setFieldValue('source', 'inherit');
                 }}
                 className="mr-1 cursor-pointer"
               />
               System Proxy
             </label>
+            <label className="flex items-center ml-4 cursor-pointer">
+              <input
+                type="radio"
+                name="mode"
+                value="pac"
+                checked={proxyMode === 'pac'}
+                onChange={(e) => {
+                  setProxyMode('pac');
+                  formik.setFieldValue('disabled', false);
+                  formik.setFieldValue('source', 'pac');
+                }}
+                className="mr-1 cursor-pointer"
+              />
+              PAC
+            </label>
           </div>
         </div>
-        {formik.values.disabled === false && formik.values.inherit === true ? (
+        {proxyMode === 'inherit' ? (
           <div className="mb-3 pt-1 text-muted system-proxy-settings">
             <SystemProxy />
           </div>
         ) : null}
-        {formik.values.disabled === false && formik.values.inherit === false ? (
+        {proxyMode === 'manual' ? (
           <>
             <div className="mb-3 flex items-center">
               <label className="settings-label" htmlFor="protocol">
@@ -350,6 +378,79 @@ const ProxySettings = ({ close }) => {
               {formik.touched.config?.bypassProxy && formik.errors.config?.bypassProxy ? (
                 <div className="ml-3 text-red-500">{formik.errors.config.bypassProxy}</div>
               ) : null}
+            </div>
+          </>
+        ) : null}
+        {proxyMode === 'pac' ? (
+          <>
+            <div className="mb-3">
+              <div className="flex items-center">
+                <label className="settings-label">PAC</label>
+                <div className="pac-mode-toggle">
+                  <button
+                    type="button"
+                    className={`pac-mode-btn ${pacInputMode === 'url' ? 'active' : ''}`}
+                    onClick={() => {
+                      setPacInputMode('url');
+                      formik.setFieldValue('pac.source', '');
+                    }}
+                  >
+                    URL
+                  </button>
+                  <button
+                    type="button"
+                    className={`pac-mode-btn ${pacInputMode === 'file' ? 'active' : ''}`}
+                    onClick={() => {
+                      setPacInputMode('file');
+                      formik.setFieldValue('pac.source', '');
+                    }}
+                  >
+                    File
+                  </button>
+                </div>
+                {pacInputMode === 'url' ? (
+                  <input
+                    id="pac.source"
+                    type="text"
+                    name="pac.source"
+                    className="block textbox pac-source-input"
+                    autoComplete="off"
+                    autoCorrect="off"
+                    autoCapitalize="off"
+                    spellCheck="false"
+                    onChange={formik.handleChange}
+                    value={formik.values.pac.source || ''}
+                    placeholder="https://example.com/proxy.pac"
+                  />
+                ) : (
+                  <button
+                    type="button"
+                    className="textbox pac-source-input pac-file-btn"
+                    onClick={() => {
+                      window.ipcRenderer
+                        .invoke('renderer:browse-pac-file')
+                        .then((fileUrl) => {
+                          if (fileUrl) {
+                            formik.setFieldValue('pac.source', fileUrl);
+                          }
+                        })
+                        .catch(() => toast.error('Failed to open file picker'));
+                    }}
+                  >
+                    {formik.values.pac.source
+                      ? decodeURIComponent(formik.values.pac.source.split('/').pop())
+                      : 'Choose file...'}
+                  </button>
+                )}
+                {formik.touched.pac?.source && formik.errors.pac?.source ? (
+                  <div className="ml-3 text-red-500">{formik.errors.pac.source}</div>
+                ) : null}
+              </div>
+              <p className="pac-hint">
+                {pacInputMode === 'url'
+                  ? 'Enter the URL to your PAC file'
+                  : 'Supports .pac files for automatic proxy configuration'}
+              </p>
             </div>
           </>
         ) : null}

@@ -1,7 +1,8 @@
 import React, { useCallback } from 'react';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { useTheme } from 'providers/Theme';
 import { saveCollectionSettings } from 'providers/ReduxStore/slices/collections/actions';
+import { updateTableColumnWidths } from 'providers/ReduxStore/slices/tabs';
 import MultiLineEditor from 'components/MultiLineEditor';
 import InfoTip from 'components/InfoTip';
 import EditableTable from 'components/EditableTable';
@@ -10,9 +11,19 @@ import toast from 'react-hot-toast';
 import { variableNameRegex } from 'utils/common/regex';
 import { setCollectionVars } from 'providers/ReduxStore/slices/collections/index';
 
-const VarsTable = ({ collection, vars, varType }) => {
+const VarsTable = ({ collection, vars, varType, initialScroll = 0 }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
+  const tabs = useSelector((state) => state.tabs.tabs);
+  const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
+
+  // Get column widths from Redux
+  const focusedTab = tabs?.find((t) => t.uid === activeTabUid);
+  const collectionVarsWidths = focusedTab?.tableColumnWidths?.['collection-vars'] || {};
+
+  const handleColumnWidthsChange = (tableId, widths) => {
+    dispatch(updateTableColumnWidths({ uid: activeTabUid, tableId, widths }));
+  };
 
   const onSave = () => dispatch(saveCollectionSettings(collection.uid));
 
@@ -68,11 +79,15 @@ const VarsTable = ({ collection, vars, varType }) => {
   return (
     <StyledWrapper className="w-full">
       <EditableTable
+        tableId="collection-vars"
         columns={columns}
         rows={vars}
         onChange={handleVarsChange}
         defaultRow={defaultRow}
         getRowError={getRowError}
+        columnWidths={collectionVarsWidths}
+        onColumnWidthsChange={(widths) => handleColumnWidthsChange('collection-vars', widths)}
+        initialScroll={initialScroll}
       />
     </StyledWrapper>
   );

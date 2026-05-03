@@ -5,6 +5,21 @@ const StyledWrapper = styled.div`
   overflow: hidden;
   border-radius: 4px;
 
+  .response-pane-content {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 0;
+    min-height: 0;
+    padding: 0 1rem;
+    margin-top: 1rem;
+  }
+
+  .response-tab-content {
+    flex: 1;
+    overflow-y: auto;
+    min-height: 0;
+  }
+
   div.tabs {
     div.tab {
       padding: 6px 0px;

@@ -82,7 +82,7 @@ const GrpcResponsePane = ({ item, collection }) => {
         return <ResponseTrailers trailers={response.trailers} />;
       }
       case 'timeline': {
-        return <Timeline collection={collection} item={item} />;
+        return <Timeline collection={collection} item={item} activeTabUid={activeTabUid} />;
       }
       default: {
         return <div>404 | Not found</div>;
@@ -148,15 +148,17 @@ const GrpcResponsePane = ({ item, collection }) => {
           rightContentRef={rightContentRef}
         />
       </div>
-      <section className="flex flex-col flex-grow px-4 h-0 mt-4">
+      <section className="response-pane-content">
         {isLoading ? <Overlay item={item} collection={collection} /> : null}
-        {!item?.response ? (
-          focusedTab?.responsePaneTab === 'timeline' && requestTimeline?.length ? (
-            <Timeline collection={collection} item={item} />
-          ) : null
-        ) : (
-          <>{getTabPanel(focusedTab.responsePaneTab)}</>
-        )}
+        <div className="response-tab-content">
+          {!item?.response ? (
+            focusedTab?.responsePaneTab === 'timeline' && requestTimeline?.length ? (
+              <Timeline collection={collection} item={item} activeTabUid={activeTabUid} />
+            ) : null
+          ) : (
+            <>{getTabPanel(focusedTab.responsePaneTab)}</>
+          )}
+        </div>
       </section>
     </StyledWrapper>
   );

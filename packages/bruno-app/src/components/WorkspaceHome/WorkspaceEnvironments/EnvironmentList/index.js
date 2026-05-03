@@ -82,6 +82,8 @@ const EnvironmentList = ({
   const envUids = environments ? environments.map((env) => env.uid) : [];
   const prevEnvUids = usePrevious(envUids);
 
+  const globalEnvironmentDraftUid = useSelector((state) => state.globalEnvironments.globalEnvironmentDraft?.environmentUid);
+
   const handleDotEnvModifiedChange = useCallback((modified) => {
     setIsDotEnvModified(modified);
     if (modified) {
@@ -89,10 +91,10 @@ const EnvironmentList = ({
         environmentUid: `dotenv:${selectedDotEnvFile}`,
         variables: []
       }));
-    } else {
+    } else if (globalEnvironmentDraftUid?.startsWith('dotenv:')) {
       dispatch(clearGlobalEnvironmentDraft());
     }
-  }, [dispatch, selectedDotEnvFile]);
+  }, [dispatch, selectedDotEnvFile, globalEnvironmentDraftUid]);
 
   useEffect(() => {
     if (dotEnvFiles.length === 0) {
@@ -729,6 +731,7 @@ const EnvironmentList = ({
 
             <CollapsibleSection
               title=".env Files"
+              testId="dotenv-files-section"
               expanded={dotEnvExpanded}
               onToggle={() => setDotEnvExpanded(!dotEnvExpanded)}
               badge={dotEnvFiles.length}
@@ -737,6 +740,7 @@ const EnvironmentList = ({
                   className="btn-action"
                   onClick={handleCreateDotEnvInlineClick}
                   title="Create .env file"
+                  data-testid="create-dotenv-file"
                 >
                   <IconPlus size={14} strokeWidth={1.5} />
                 </button>
@@ -761,6 +765,7 @@ const EnvironmentList = ({
                       ref={dotEnvInputRef}
                       type="text"
                       className="environment-name-input"
+                      data-testid="dotenv-name-input"
                       value={newDotEnvName}
                       onChange={handleDotEnvNameChange}
                       onKeyDown={handleDotEnvNameKeyDown}

@@ -29,6 +29,7 @@ const GlobalStyle = createGlobalStyle`
     border-radius: 4px !important;
     opacity: 1 !important;
     z-index: 9999 !important;
+    max-width: 100%;
   }
 
   .btn {
@@ -186,6 +187,12 @@ const GlobalStyle = createGlobalStyle`
   }
 
 
+  .collection-header-dropdown-label {
+    max-width: 124px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
   // scrollbar styling
   // the below media query targets non-touch devices
   @media not all and (pointer: coarse) {
@@ -209,10 +216,13 @@ const GlobalStyle = createGlobalStyle`
     }
   }
 
-  // Utility class for scrollbars that are hidden by default and shown on hover
+  // Utility class for scrollbars that are hidden by default and shown on hover.
+  // scrollbar-width/color: auto is required so macOS Chromium uses
+  // ::-webkit-scrollbar instead of standard overlay rendering, which
+  // auto-hides regardless of CSS.
   .scrollbar-hover {
-    scrollbar-width: thin;
-    scrollbar-color: transparent transparent;
+    scrollbar-width: auto !important;
+    scrollbar-color: auto;
 
     &::-webkit-scrollbar {
       width: 5px;
@@ -227,13 +237,10 @@ const GlobalStyle = createGlobalStyle`
       background-color: transparent;
       border-radius: 14px;
       border: 3px solid transparent;
-      background-clip: content-box;
       transition: background-color 0.2s ease;
     }
 
     &:hover {
-      scrollbar-color: ${(props) => props.theme.scrollbar.color} transparent;
-
       &::-webkit-scrollbar-thumb {
         background-color: ${(props) => props.theme.scrollbar.color};
       }

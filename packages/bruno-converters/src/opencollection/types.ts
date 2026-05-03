@@ -102,7 +102,8 @@ export type {
   AuthNTLM,
   AuthAwsV4,
   AuthApiKey,
-  AuthWsse
+  AuthWsse,
+  AuthOAuth1
 } from '@opencollection/types/common/auth';
 
 export type { AuthOAuth2 } from '@opencollection/types/common/auth-oauth2';
@@ -140,6 +141,7 @@ export type {
   AuthNTLM as BrunoAuthNTLM,
   AuthWsse as BrunoAuthWsse,
   AuthApiKey as BrunoAuthApiKey,
+  AuthOauth1 as BrunoAuthOauth1,
   OAuth2 as BrunoOAuth2
 } from '@usebruno/schema-types/common/auth';
 export type { MultipartFormEntry as BrunoMultipartFormEntry, MultipartForm as BrunoMultipartForm } from '@usebruno/schema-types/common/multipart-form';

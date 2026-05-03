@@ -1,15 +1,18 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useEffect, useRef } from 'react';
 import get from 'lodash/get';
+import find from 'lodash/find';
 import { useDispatch, useSelector } from 'react-redux';
 import CodeEditor from 'components/CodeEditor';
 import { updateCollectionRequestScript, updateCollectionResponseScript } from 'providers/ReduxStore/slices/collections';
 import { saveCollectionSettings } from 'providers/ReduxStore/slices/collections/actions';
+import { updateScriptPaneTab } from 'providers/ReduxStore/slices/tabs';
 import { useTheme } from 'providers/Theme';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from 'components/Tabs';
 import StatusDot from 'components/StatusDot';
 import { flattenItems, isItemARequest } from 'utils/collections';
 import StyledWrapper from './StyledWrapper';
 import Button from 'ui/Button';
+import { usePersistedState } from 'hooks/usePersistedState';
 
 const Script = ({ collection }) => {
   const dispatch = useDispatch();
@@ -18,34 +21,38 @@ const Script = ({ collection }) => {
   const requestScript = collection.draft?.root ? get(collection, 'draft.root.request.script.req', '') : get(collection, 'root.request.script.req', '');
   const responseScript = collection.draft?.root ? get(collection, 'draft.root.request.script.res', '') : get(collection, 'root.request.script.res', '');
 
-  // Default to post-response if pre-request script is empty
-  const getInitialTab = () => {
+  const tabs = useSelector((state) => state.tabs.tabs);
+  const focusedTab = find(tabs, (t) => t.uid === collection.uid);
+  const scriptPaneTab = focusedTab?.scriptPaneTab;
+
+  const getDefaultTab = () => {
     const hasPreRequestScript = requestScript && requestScript.trim().length > 0;
     return hasPreRequestScript ? 'pre-request' : 'post-response';
   };
 
-  const [activeTab, setActiveTab] = useState(getInitialTab);
-  const prevCollectionUidRef = useRef(collection.uid);
+  const activeTab = scriptPaneTab || getDefaultTab();
+
+  const setActiveTab = (tab) => {
+    dispatch(updateScriptPaneTab({ uid: collection.uid, scriptPaneTab: tab }));
+  };
 
   const { displayedTheme } = useTheme();
   const preferences = useSelector((state) => state.app.preferences);
 
-  // Update active tab only when switching to a different collection
-  useEffect(() => {
-    if (prevCollectionUidRef.current !== collection.uid) {
-      prevCollectionUidRef.current = collection.uid;
-      const hasPreRequestScript = requestScript && requestScript.trim().length > 0;
-      setActiveTab(hasPreRequestScript ? 'pre-request' : 'post-response');
-    }
-  }, [collection.uid, requestScript]);
+  const [preReqScroll, setPreReqScroll] = usePersistedState({ key: `collection-pre-req-scroll-${collection.uid}`, default: 0 });
+  const [postResScroll, setPostResScroll] = usePersistedState({ key: `collection-post-res-scroll-${collection.uid}`, default: 0 });
 
-  // Refresh CodeMirror when tab becomes visible
+  // Refresh CodeMirror when tab becomes visible and restore scroll position.
+  // CodeMirror's scrollTo() is silently ignored when the editor is inside a display:none container
+  // (TabsContent hides inactive tabs via display:none). After refresh() recalculates layout, we re-apply scrollTo().
   useEffect(() => {
     const timer = setTimeout(() => {
       if (activeTab === 'pre-request' && preRequestEditorRef.current?.editor) {
         preRequestEditorRef.current.editor.refresh();
+        preRequestEditorRef.current.editor.scrollTo(null, preReqScroll);
       } else if (activeTab === 'post-response' && postResponseEditorRef.current?.editor) {
         postResponseEditorRef.current.editor.refresh();
+        postResponseEditorRef.current.editor.scrollTo(null, postResScroll);
       }
     }, 0);
 
@@ -100,7 +107,7 @@ const Script = ({ collection }) => {
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="pre-request" className="mt-2">
+        <TabsContent value="pre-request" className="mt-2" dataTestId="collection-pre-request-script-editor">
           <CodeEditor
             ref={preRequestEditorRef}
             collection={collection}
@@ -112,10 +119,12 @@ const Script = ({ collection }) => {
             font={get(preferences, 'font.codeFont', 'default')}
             fontSize={get(preferences, 'font.codeFontSize')}
             showHintsFor={['req', 'bru']}
+            initialScroll={preReqScroll}
+            onScroll={setPreReqScroll}
           />
         </TabsContent>
 
-        <TabsContent value="post-response" className="mt-2">
+        <TabsContent value="post-response" className="mt-2" dataTestId="collection-post-response-script-editor">
           <CodeEditor
             ref={postResponseEditorRef}
             collection={collection}
@@ -127,6 +136,8 @@ const Script = ({ collection }) => {
             font={get(preferences, 'font.codeFont', 'default')}
             fontSize={get(preferences, 'font.codeFontSize')}
             showHintsFor={['req', 'res', 'bru']}
+            initialScroll={postResScroll}
+            onScroll={setPostResScroll}
           />
         </TabsContent>
       </Tabs>

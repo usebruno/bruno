@@ -1,6 +1,6 @@
 import type { Item as BrunoItem } from '@usebruno/schema-types/collection/item';
 import type { WebSocketRequest as BrunoWebSocketRequest } from '@usebruno/schema-types/requests/websocket';
-import type { WebSocketRequest, WebSocketMessage } from '@opencollection/types/requests/websocket';
+import type { WebSocketRequest, WebSocketMessage, WebSocketMessageVariant } from '@opencollection/types/requests/websocket';
 import { toBrunoAuth } from '../common/auth';
 import { toBrunoHttpHeaders } from '../common/headers';
 import { toBrunoVariables } from '../common/variables';
@@ -35,14 +35,26 @@ const parseWebsocketRequest = (ocRequest: WebSocketRequest): BrunoItem => {
 
   // message
   if (websocket?.message) {
-    const message = websocket.message as WebSocketMessage;
-    const messageData = ensureString(message.data);
-    if (messageData.trim().length) {
-      brunoRequest.body.ws = [{
-        name: '',
-        type: message.type || 'text',
-        content: messageData
-      }];
+    if (Array.isArray(websocket.message)) {
+      // multiple messages: WebSocketMessageVariant[]
+      const variants = websocket.message as WebSocketMessageVariant[];
+      brunoRequest.body.ws = variants.map((variant, index) => ({
+        name: variant.title || `message ${index + 1}`,
+        type: variant.message?.type || 'text',
+        content: ensureString(variant.message?.data),
+        selected: variant.selected || false
+      }));
+    } else {
+      // single message uses flat WebSocketMessage
+      const message = websocket.message as WebSocketMessage;
+      const messageData = ensureString(message.data);
+      if (messageData.trim().length) {
+        brunoRequest.body.ws = [{
+          name: '',
+          type: message.type || 'text',
+          content: messageData
+        }];
+      }
     }
   }
 

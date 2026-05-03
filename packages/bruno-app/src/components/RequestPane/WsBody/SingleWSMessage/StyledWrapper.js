@@ -1,72 +1,88 @@
 import styled from 'styled-components';
 
 const StyledWrapper = styled.div`
-  display: flex;
-  flex-direction: column;
+  border-bottom: 1px solid ${(props) => props.theme.border.border0};
+  transition: opacity 0.15s ease;
 
-  &.single {
-    height: 100%;
-
-    .editor-container {
-      height: calc(100% - 32px);
-    }
+  &.disabled {
+    opacity: 0.45;
   }
 
-  &:not(.single) {
-    min-height: 240px;
-    margin-bottom: 8px;
-
-    &.last {
-      margin-bottom: 0;
-    }
-  }
-
-  .message-toolbar {
+  .accordion-header {
     display: flex;
     align-items: center;
-    justify-content: flex-end;
-    gap: 4px;
-    padding: 4px 0px;
-    padding-top: 0px;
-    height: 32px;
-    flex-shrink: 0;
+    justify-content: space-between;
+    padding: 0.5rem 0;
+    cursor: pointer;
+    user-select: none;
 
-    .message-label {
-      font-size: ${(props) => props.theme.font.size.sm};
-      color: ${(props) => props.theme.colors.text.subtext1};
-      margin-right: auto;
-    }
-
-    .toolbar-actions {
+    .accordion-left {
       display: flex;
       align-items: center;
-      gap: 2px;
+      gap: 0.375rem;
+      flex: 1;
+      min-width: 0;
+      color: ${(props) => props.theme.text};
+
+      .message-label {
+        font-size: ${(props) => props.theme.font.size.sm};
+        cursor: default;
+      }
+
+      .name-input {
+        font-size: ${(props) => props.theme.font.size.sm};
+        color: inherit;
+        background: ${(props) => props.theme.background.surface1};
+        border: none;
+        border-radius: 0.375rem;
+        padding: 0.25rem 0.5rem;
+        outline: none;
+        flex: 1;
+      }
     }
 
-    .toolbar-btn {
+    .accordion-actions {
       display: flex;
       align-items: center;
-      justify-content: center;
-      width: 28px;
-      height: 28px;
-      border-radius: 4px;
-      color: ${(props) => props.theme.colors.text.muted};
-      transition: all 0.15s ease;
+      gap: 0.125rem;
 
-      &:hover {
-        background-color: ${(props) => props.theme.dropdown.hoverBg};
-        color: ${(props) => props.theme.text};
-      }
+      .hover-actions {
+        display: flex;
+        align-items: center;
+        gap: 0.125rem;
+        visibility: hidden;
+        opacity: 0;
+        transition: opacity 0.15s ease;
 
-      &.delete:hover {
-        color: ${(props) => props.theme.colors.text.danger};
+        .hover-action-btn {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 1.5rem;
+          height: 1.5rem;
+          border-radius: 0.25rem;
+          color: ${(props) => props.theme.text};
+          transition: all 0.15s ease;
+
+          &:hover {
+            background-color: ${(props) => props.theme.dropdown.hoverBg};
+          }
+
+          &.delete:hover {
+            color: ${(props) => props.theme.colors.text.danger};
+          }
+        }
       }
+    }
+
+    &:hover .hover-actions {
+      visibility: visible;
+      opacity: 1;
     }
   }
 
-  .editor-container {
-    flex: 1;
-    min-height: 0;
+  &:not(.disabled) .accordion-header .message-label {
+    color: ${(props) => props.theme.primary.text};
   }
 `;
 

@@ -1,5 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import StyledWrapper from './StyledWrapper';
+import { usePersistedState } from 'hooks/usePersistedState';
+import { useTrackScroll } from 'hooks/useTrackScroll';
 import {
   IconChevronDown,
   IconChevronRight,
@@ -78,11 +80,15 @@ const TestSection = ({
   );
 };
 
-const TestResults = ({ results, assertionResults, preRequestTestResults, postResponseTestResults }) => {
+const TestResults = ({ item, results, assertionResults, preRequestTestResults, postResponseTestResults }) => {
   results = results || [];
   assertionResults = assertionResults || [];
   preRequestTestResults = preRequestTestResults || [];
   postResponseTestResults = postResponseTestResults || [];
+
+  const wrapperRef = useRef(null);
+  const [scroll, setScroll] = usePersistedState({ key: `response-tests-scroll-${item?.uid}`, default: 0 });
+  useTrackScroll({ ref: wrapperRef, selector: '.response-tab-content', onChange: setScroll, initialValue: scroll });
 
   const [expandedSections, setExpandedSections] = useState({
     preRequest: true,
@@ -112,7 +118,7 @@ const TestResults = ({ results, assertionResults, preRequestTestResults, postRes
   }
 
   return (
-    <StyledWrapper className="flex flex-col">
+    <StyledWrapper className="flex flex-col" ref={wrapperRef}>
       <TestSection
         title="Pre-Request Tests"
         results={preRequestTestResults}

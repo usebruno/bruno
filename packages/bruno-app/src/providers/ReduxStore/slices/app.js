@@ -2,12 +2,15 @@ import { createSlice } from '@reduxjs/toolkit';
 import filter from 'lodash/filter';
 import brunoClipboard from 'utils/bruno-clipboard';
 import { addTab, focusTab } from './tabs';
+import { clearPersistedScope } from 'hooks/usePersistedState/PersistedScopeProvider';
 
 const initialState = {
   isDragging: false,
   idbConnectionReady: false,
   leftSidebarWidth: 250,
   sidebarCollapsed: false,
+  showSidebarSearch: false,
+  focusedSidebarPath: null,
   screenWidth: 500,
   showHomePage: false,
   showApiSpecPage: false,
@@ -139,6 +142,12 @@ export const appSlice = createSlice({
     toggleSidebarCollapse: (state) => {
       state.sidebarCollapsed = !state.sidebarCollapsed;
     },
+    toggleSidebarSearch: (state) => {
+      state.showSidebarSearch = !state.showSidebarSearch;
+    },
+    setFocusedSidebarPath: (state, action) => {
+      state.focusedSidebarPath = action.payload;
+    },
     updateGitOperationProgress: (state, action) => {
       const { uid, data } = action.payload;
       if (!state.gitOperationProgress[uid]) {
@@ -204,6 +213,8 @@ export const {
   updateSystemProxyVariables,
   updateGenerateCode,
   toggleSidebarCollapse,
+  toggleSidebarSearch,
+  setFocusedSidebarPath,
   updateGitOperationProgress,
   removeGitOperationProgress,
   setGitVersion,
@@ -273,6 +284,8 @@ export const createCookieString = (cookieObj) => () => {
 
 export const completeQuitFlow = () => (dispatch, getState) => {
   const { ipcRenderer } = window;
+  // Wipe all `persisted::*` keys from localStorage before quitting
+  clearPersistedScope();
   return ipcRenderer.invoke('main:complete-quit-flow');
 };
 

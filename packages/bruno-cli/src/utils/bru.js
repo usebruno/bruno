@@ -71,12 +71,13 @@ const bruToJson = (bru) => {
     }
 
     const sequence = _.get(json, 'meta.seq');
+    const tags = _.get(json, 'meta.tags', []);
     const transformedJson = {
       type: requestType,
       name: _.get(json, 'meta.name'),
       seq: !_.isNaN(sequence) ? Number(sequence) : 1,
       settings: _.get(json, 'settings', {}),
-      tags: _.get(json, 'meta.tags', []),
+      tags: Array.isArray(tags) ? tags : [],
       examples: _.get(json, 'examples', []),
       request: {
         url: _.get(json, requestType === 'grpc-request' ? 'grpc.url' : 'http.url'),

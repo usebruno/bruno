@@ -65,7 +65,7 @@ import {
 } from './index';
 
 import { each } from 'lodash';
-import { closeAllCollectionTabs, closeTabs as _closeTabs, focusTab, updateResponsePaneScrollPosition } from 'providers/ReduxStore/slices/tabs';
+import { closeAllCollectionTabs, closeTabs as _closeTabs, focusTab, reopenLastClosedTab } from 'providers/ReduxStore/slices/tabs';
 import { removeCollectionFromWorkspace } from 'providers/ReduxStore/slices/workspaces';
 import { resolveRequestFilename } from 'utils/common/platform';
 import { interpolateUrl, parsePathParams, splitOnFirst } from 'utils/url/index';
@@ -90,6 +90,7 @@ import { addTab } from 'providers/ReduxStore/slices/tabs';
 import { updateSettingsSelectedTab } from './index';
 import { saveGlobalEnvironment } from 'providers/ReduxStore/slices/global-environments';
 import { getTabToFocusForCurrentWorkspace } from 'providers/ReduxStore/slices/workspaces/getTabToFocusForCurrentWorkspace';
+import { clearPersistedScope } from 'hooks/usePersistedState/PersistedScopeProvider';
 
 // generate a unique names
 const generateUniqueName = (originalName, existingItems, isFolder) => {
@@ -529,6 +530,10 @@ export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
       return reject(new Error('Collection not found'));
     }
 
+    if (item.response?.stream?.running && item.cancelTokenUid) {
+      await dispatch(cancelRequest(item.cancelTokenUid, item, collection));
+    }
+
     let collectionCopy = cloneDeep(collection);
 
     const itemCopy = cloneDeep(item);
@@ -554,13 +559,6 @@ export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
     }
 
     await dispatch(
-      updateResponsePaneScrollPosition({
-        uid: state.tabs.activeTabUid,
-        scrollY: 0
-      })
-    );
-
-    await dispatch(
       initRunRequestEvent({
         requestUid,
         itemUid,
@@ -578,7 +576,9 @@ export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
           toast.error(err.message);
         });
     } else if (isWsRequest) {
-      sendWsRequest(itemCopy, collectionCopy, environment, collectionCopy.runtimeVariables)
+      const wsMessages = itemCopy.draft?.request?.body?.ws || itemCopy.request?.body?.ws || [];
+      const wsSelectedMessageIndex = Math.max(0, wsMessages.findIndex((msg) => msg.selected));
+      sendWsRequest(itemCopy, collectionCopy, environment, collectionCopy.runtimeVariables, wsSelectedMessageIndex)
         .then(resolve)
         .catch((err) => {
           toast.error(err.message);
@@ -586,10 +586,11 @@ export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
     } else {
       sendNetworkRequest(itemCopy, collectionCopy, environment, collectionCopy.runtimeVariables)
         .then((response) => {
+          const { requestSent, ...responseData } = response;
           // Ensure any timestamps in the response are converted to numbers
           const serializedResponse = {
-            ...response,
-            timeline: response.timeline?.map((entry) => ({
+            ...responseData,
+            timeline: responseData.timeline?.map((entry) => ({
               ...entry,
               timestamp: entry.timestamp instanceof Date ? entry.timestamp.getTime() : entry.timestamp
             }))
@@ -599,18 +600,23 @@ export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
             responseReceived({
               itemUid,
               collectionUid,
-              response: serializedResponse
+              response: serializedResponse,
+              requestSent
             })
           );
         })
         .then(resolve)
         .catch((err) => {
+          const request = itemCopy.draft?.request || itemCopy.request;
+          const requestSent = request ? { url: request.url, method: request.method } : undefined;
+
           if (err && err.message === 'Error invoking remote method \'send-http-request\': Error: Request cancelled') {
             dispatch(
               responseReceived({
                 itemUid,
                 collectionUid,
-                response: null
+                response: null,
+                requestSent
               })
             );
             return;
@@ -628,7 +634,8 @@ export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
             responseReceived({
               itemUid,
               collectionUid,
-              response: errorResponse
+              response: errorResponse,
+              requestSent
             })
           );
         });
@@ -637,7 +644,7 @@ export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
 };
 
 export const cancelRequest = (cancelTokenUid, item, collection) => (dispatch) => {
-  cancelNetworkRequest(cancelTokenUid)
+  return cancelNetworkRequest(cancelTokenUid)
     .then(() => {
       dispatch(
         requestCancelled({
@@ -1111,6 +1118,10 @@ export const handleCollectionItemDrop
       const draggedItemDirectory = findParentItemInCollection(sourceCollection, draggedItemUid) || sourceCollection;
       const draggedItemDirectoryItems = cloneDeep(draggedItemDirectory.items);
 
+      const sourceFormat = sourceCollection?.format || 'bru';
+      const targetFormat = collection?.format || 'bru';
+      const isCrossFormatMove = isCrossCollectionMove && sourceFormat !== targetFormat;
+
       const handleMoveToNewLocation = async ({
         draggedItem,
         draggedItemDirectoryItems,
@@ -1123,10 +1134,22 @@ export const handleCollectionItemDrop
         const { pathname: draggedItemPathname, uid: draggedItemUid } = draggedItem;
 
         const newDirname = path.dirname(newPathname);
-        await dispatch(moveItem({
-          targetDirname: newDirname,
-          sourcePathname: draggedItemPathname
-        }));
+
+        if (isCrossFormatMove && isItemARequest(draggedItem)) {
+          const { ipcRenderer } = window;
+          const result = await ipcRenderer.invoke('renderer:move-item-cross-format', {
+            targetDirname: newDirname,
+            sourcePathname: draggedItemPathname,
+            sourceFormat,
+            targetFormat
+          });
+          newPathname = result.newPathname;
+        } else {
+          await dispatch(moveItem({
+            targetDirname: newDirname,
+            sourcePathname: draggedItemPathname
+          }));
+        }
 
         // Update sequences in the source directory
         if (draggedItemDirectoryItems?.length) {
@@ -1190,6 +1213,11 @@ export const handleCollectionItemDrop
           if (!newPathname) return;
           if (targetItemPathname?.startsWith(draggedItemPathname)) return;
 
+          if (isCrossFormatMove && isItemAFolder(draggedItem)) {
+            toast.error('Moving folders between collections with different formats is not supported');
+            return;
+          }
+
           // Discard operation if dragging a root item to the collection name (same location)
           const isTargetTheCollection = targetItemPathname === collection.pathname;
           const isDraggedItemAtRoot = draggedItemDirectory === sourceCollection;
@@ -1209,6 +1237,11 @@ export const handleCollectionItemDrop
           } else {
             await handleReorderInSameLocation({ draggedItem, targetItemDirectoryItems, targetItem });
           }
+
+          if (isCrossCollectionMove) {
+            dispatch(closeTabs({ tabUids: [draggedItemUid] }));
+          }
+
           resolve();
         } catch (error) {
           console.error(error);
@@ -1572,6 +1605,7 @@ export const newWsRequest = (params) => (dispatch, getState) => {
           mode: 'ws',
           ws: [
             {
+              uid: uuid(),
               name: 'message 1',
               type: 'json',
               content: '{}'
@@ -3164,6 +3198,10 @@ export const closeTabs = ({ tabUids }) => async (dispatch, getState) => {
   // Close the tabs first
   await dispatch(_closeTabs({ tabUids }));
 
+  // Clear persisted scope AFTER unmount — otherwise useTrackScroll's cleanup flush
+  // would rewrite scroll position to localStorage right after we cleared it.
+  each(tabUids, (tabUid) => clearPersistedScope(tabUid));
+
   // After close, the reducer may have set active tab to one from another workspace. Ensure it belongs to this workspace: prefer any open in-workspace tab, then workspace overview if none.
   // Dispatch is synchronous; state is already updated by _closeTabs above.
   await dispatch(ensureActiveTabInCurrentWorkspace());
@@ -3179,4 +3217,12 @@ export const closeTabs = ({ tabUids }) => async (dispatch, getState) => {
       console.error('Failed to delete transient request files:', err);
     }
   }
+};
+
+/**
+ * Reopen last closed tab from the tabs slice stack and ensure active tab/workspace consistency.
+ */
+export const reopenClosedTab = ({ collectionUid } = {}) => async (dispatch) => {
+  dispatch(reopenLastClosedTab({ collectionUid }));
+  await dispatch(ensureActiveTabInCurrentWorkspace());
 };

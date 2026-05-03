@@ -73,6 +73,7 @@ const checkConnection = (host, port) =>
  */
 function makeAxiosInstance({
   proxyMode = 'off',
+  proxyModeReason = '',
   proxyConfig = {},
   requestMaxRedirects = 5,
   httpsAgentRequestFields = {},
@@ -153,6 +154,8 @@ function makeAxiosInstance({
           callback(null, ip, useIpv6 ? 6 : 4);
         });
       };
+    } else {
+      delete config.lookup;
     }
 
     config.headers['request-start-time'] = Date.now();
@@ -200,19 +203,17 @@ function makeAxiosInstance({
     };
 
     try {
-      // Now call setupProxyAgents and pass the timeline
-      setupProxyAgents({
+      // Now call setupProxyAgents and pass the timeline (async - may perform PAC resolution)
+      await setupProxyAgents({
         requestConfig: config,
-        proxyMode: proxyMode, // 'on', 'off', or 'system', depending on your settings
-        proxyConfig: proxyConfig,
+        proxyMode,
+        proxyModeReason,
+        proxyConfig,
         httpsAgentRequestFields: agentOptions,
-        interpolationOptions: interpolationOptions, // Provide your interpolation options
+        interpolationOptions,
         timeline
       });
     } catch (err) {
-      if (err.timeline) {
-        timeline = err.timeline;
-      }
       timeline.push({
         timestamp: new Date(),
         type: 'error',
@@ -268,7 +269,7 @@ function makeAxiosInstance({
       response.timeline = timeline;
       return response;
     },
-    (error) => {
+    async (error) => {
       const config = error.config;
       const timeline = config?.metadata?.timeline || [];
       timeline?.push({
@@ -415,9 +416,10 @@ function makeAxiosInstance({
           }
 
           try {
-            setupProxyAgents({
+            await setupProxyAgents({
               requestConfig,
               proxyMode,
+              proxyModeReason,
               proxyConfig,
               httpsAgentRequestFields,
               interpolationOptions,
