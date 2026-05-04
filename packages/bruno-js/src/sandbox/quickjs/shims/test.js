@@ -85,10 +85,17 @@ const addBruShimToContext = (vm, __brunoTestResults) => {
       (function() {
         var Ajv = require('ajv');
         var addFormats = require('ajv-formats');
+        var defaultAjv = new Ajv({ allErrors: true });
+        addFormats(defaultAjv);
         var proto = Object.getPrototypeOf(expect(null));
         proto.jsonSchema = function(schema, ajvOptions) {
-          var ajv = new Ajv(Object.assign({ allErrors: true }, ajvOptions || {}));
-          addFormats(ajv);
+          var ajv;
+          if (ajvOptions) {
+            ajv = new Ajv(Object.assign({ allErrors: true }, ajvOptions));
+            addFormats(ajv);
+          } else {
+            ajv = defaultAjv;
+          }
           var validate;
           try {
             validate = ajv.compile(schema);

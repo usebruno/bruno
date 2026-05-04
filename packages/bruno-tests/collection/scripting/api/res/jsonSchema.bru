@@ -27,7 +27,7 @@ body:json {
     "website": "https://example.com/john",
     "createdAt": "2024-01-15T10:30:00Z",
     "birthDate": "1994-05-20",
-    "loginTime": "10:30:00",
+    "loginTime": "10:30:00Z",
     "ipv4": "192.168.1.1",
     "ipv6": "::1",
     "id": "550e8400-e29b-41d4-a716-446655440000",
@@ -184,7 +184,7 @@ tests {
     expect(res.getBody()).to.have.jsonSchema(schema);
   });
 
-  test("jsonSchema with ajvOptions", function() {
+  test("jsonSchema with ajvOptions - allErrors", function() {
     const schema = {
       type: 'object',
       properties: {
@@ -194,6 +194,83 @@ tests {
       required: ['name', 'age']
     };
     expect(res.getBody()).to.have.jsonSchema(schema, { allErrors: true });
+  });
+
+  test("jsonSchema with ajvOptions - format validation with allErrors", function() {
+    const schema = {
+      type: 'object',
+      properties: {
+        email: { type: 'string', format: 'email' },
+        website: { type: 'string', format: 'uri' }
+      },
+      required: ['email', 'website']
+    };
+    expect(res.getBody()).to.have.jsonSchema(schema, { allErrors: true });
+  });
+
+  test("jsonSchema with ajvOptions - format rejection with allErrors", function() {
+    const schema = {
+      type: 'object',
+      properties: {
+        name: { type: 'string', format: 'email' },
+        age: { type: 'string', format: 'uri' }
+      },
+      required: ['name', 'age']
+    };
+    expect(res.getBody()).to.not.have.jsonSchema(schema, { allErrors: true });
+  });
+
+  test("jsonSchema with ajvOptions - additionalProperties false", function() {
+    const schema = {
+      type: 'object',
+      properties: {
+        name: { type: 'string' }
+      },
+      additionalProperties: false
+    };
+    expect(res.getBody()).to.not.have.jsonSchema(schema, { allErrors: true });
+  });
+
+  test("jsonSchema with ajvOptions - coerceTypes allows string as number", function() {
+    const schema = {
+      type: 'object',
+      properties: {
+        zip: { type: 'integer' }
+      },
+      required: ['zip']
+    };
+    // zip is "62701" (string) - fails without coercion
+    expect(res.getBody().address).to.not.have.jsonSchema(schema);
+    // passes with coerceTypes since "62701" can be coerced to integer
+    expect(res.getBody().address).to.have.jsonSchema(schema, { coerceTypes: true });
+  });
+
+  test("jsonSchema with ajvOptions - coerceTypes allows number as string", function() {
+    const schema = {
+      type: 'object',
+      properties: {
+        age: { type: 'string' }
+      },
+      required: ['age']
+    };
+    // age is 30 (number) - fails without coercion
+    expect(res.getBody()).to.not.have.jsonSchema(schema);
+    // passes with coerceTypes since 30 can be coerced to "30"
+    expect(res.getBody()).to.have.jsonSchema(schema, { coerceTypes: true });
+  });
+
+  test("jsonSchema with ajvOptions - strict false allows unknown keywords", function() {
+    const schema = {
+      type: 'object',
+      properties: {
+        name: { type: 'string', customKeyword: true }
+      },
+      required: ['name']
+    };
+    // unknown keyword "customKeyword" throws in strict mode (default)
+    expect(() => expect(res.getBody()).to.have.jsonSchema(schema)).to.throw('JSON schema compile error');
+    // passes with strict: false
+    expect(res.getBody()).to.have.jsonSchema(schema, { strict: false });
   });
 
   // --- ajv-formats: Passing validations ---
@@ -546,6 +623,94 @@ tests {
         name: { type: 'string', format: 'json-pointer' }
       },
       required: ['name']
+    };
+    expect(res.getBody()).to.not.have.jsonSchema(schema);
+  });
+
+  test("format: date - rejects non-date string", function() {
+    const schema = {
+      type: 'object',
+      properties: {
+        name: { type: 'string', format: 'date' }
+      },
+      required: ['name']
+    };
+    expect(res.getBody()).to.not.have.jsonSchema(schema);
+  });
+
+  test("format: time - rejects non-time string", function() {
+    const schema = {
+      type: 'object',
+      properties: {
+        name: { type: 'string', format: 'time' }
+      },
+      required: ['name']
+    };
+    expect(res.getBody()).to.not.have.jsonSchema(schema);
+  });
+
+  test("format: ipv6 - rejects non-IPv6 string", function() {
+    const schema = {
+      type: 'object',
+      properties: {
+        name: { type: 'string', format: 'ipv6' }
+      },
+      required: ['name']
+    };
+    expect(res.getBody()).to.not.have.jsonSchema(schema);
+  });
+
+  test("format: int64 - rejects non-integer field", function() {
+    const schema = {
+      type: 'object',
+      properties: {
+        name: { type: 'integer', format: 'int64' }
+      },
+      required: ['name']
+    };
+    expect(res.getBody()).to.not.have.jsonSchema(schema);
+  });
+
+  test("format: double - rejects non-number field", function() {
+    const schema = {
+      type: 'object',
+      properties: {
+        name: { type: 'number', format: 'double' }
+      },
+      required: ['name']
+    };
+    expect(res.getBody()).to.not.have.jsonSchema(schema);
+  });
+
+  test("format: regex - rejects non-string field as regex", function() {
+    const schema = {
+      type: 'object',
+      properties: {
+        isVerified: { type: 'string', format: 'regex' }
+      },
+      required: ['isVerified']
+    };
+    expect(res.getBody()).to.not.have.jsonSchema(schema);
+  });
+
+  test("format: uri-reference - rejects invalid URI reference", function() {
+    const schema = {
+      type: 'object',
+      properties: {
+        isVerified: { type: 'string', format: 'uri-reference' }
+      },
+      required: ['isVerified']
+    };
+    expect(res.getBody()).to.not.have.jsonSchema(schema);
+  });
+
+  test("format: uri-template - rejects invalid URI template", function() {
+    const schema = {
+      type: 'object',
+      properties: {
+        isVerified: { type: 'string', format: 'uri-template' }
+      },
+      required: ['isVerified']
     };
     expect(res.getBody()).to.not.have.jsonSchema(schema);
   });
