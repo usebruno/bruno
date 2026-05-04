@@ -64,6 +64,7 @@ const addBrunoResponseShimToContext = (vm, res) => {
       globalPath: 'globalThis.res.headerList',
       syncReadMethods: ['get', 'has', 'count', 'indexOf', 'toObject', 'toString'],
       syncReadObjectMethods: ['one', 'all', 'idx', 'toJSON'],
+      syncWriteMethods: ['add', 'upsert', 'remove', 'clear', 'populate', 'repopulate', 'assimilate'],
       withIterators: true
     });
     resHeadersEvalCode = bridge.evalCode;

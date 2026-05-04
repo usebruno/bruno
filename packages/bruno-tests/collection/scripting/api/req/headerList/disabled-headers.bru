@@ -44,9 +44,11 @@ tests {
   });
 
   test("req.headerList.count() includes disabled headers", function() {
+    const count = req.headerList.count();
     const all = req.headerList.all();
     const brunoHeaders = all.filter(h => ['bruno', 'della', 'x-disabled', 'x-another-disabled', 'x-folder-only-disabled'].includes(h.key));
     expect(brunoHeaders.length).to.equal(5);
+    expect(count).to.be.at.least(5);
   });
 
   test("req.headerList.filter() can separate enabled from disabled", function() {

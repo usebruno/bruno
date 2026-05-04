@@ -264,9 +264,9 @@ class HeaderList extends PropertyList {
       (k) => HeaderList.#ciEquals(k, item.key)
     );
     const existed = existingKey !== undefined;
-    // Remove old-cased key if casing differs
+    // Remove old-cased key if casing differs, tracking it for the axios interceptor
     if (existed && existingKey !== item.key) {
-      delete headers[existingKey];
+      this.#deleteHeader(existingKey);
     }
     headers[item.key] = item.value;
     return !existed;

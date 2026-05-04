@@ -673,6 +673,7 @@ describe('HeaderList (req.headerList)', () => {
       const { list, rawReq } = createReqHeaders();
       list.remove('content-type');
       expect(rawReq.headers['Content-Type']).toBeUndefined();
+      expect(rawReq.__headersToDelete).toContain('Content-Type');
     });
 
     test('upsert() replaces existing header case-insensitively', () => {
@@ -680,6 +681,7 @@ describe('HeaderList (req.headerList)', () => {
       list.upsert({ key: 'content-type', value: 'text/plain' });
       expect(rawReq.headers['content-type']).toBe('text/plain');
       expect(rawReq.headers['Content-Type']).toBeUndefined();
+      expect(rawReq.__headersToDelete).toContain('Content-Type');
       expect(list.count()).toBe(3);
     });
   });
