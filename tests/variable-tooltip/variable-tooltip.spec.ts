@@ -432,7 +432,7 @@ test.describe('Variable Tooltip', () => {
     });
   });
 
-  test.only('should keep tooltip open while editing when mouse leaves popup area', async ({ page, createTmpDir }) => {
+  test('should keep tooltip open while editing when mouse leaves popup area', async ({ page, createTmpDir }) => {
     const collectionName = 'tooltip-pin-test';
 
     await test.step('Setup collection, environment variable, and request', async () => {
@@ -485,7 +485,7 @@ test.describe('Variable Tooltip', () => {
     });
   });
 
-  test.only('should persist subsequent edits while popup stays open', async ({ page, createTmpDir }) => {
+  test('should persist subsequent edits while popup stays open', async ({ page, createTmpDir }) => {
     const collectionName = 'tooltip-subsequent-edit-test';
 
     await test.step('Setup collection, environment variable, and request', async () => {
@@ -569,7 +569,7 @@ test.describe('Variable Tooltip', () => {
     });
   });
 
-  test.only('should copy latest value after editing within the same tooltip', async ({ page, createTmpDir }) => {
+  test('should copy latest value after editing within the same tooltip', async ({ page, createTmpDir }) => {
     const collectionName = 'tooltip-copy-latest-test';
 
     await test.step('Setup collection, environment variable, and request', async () => {
