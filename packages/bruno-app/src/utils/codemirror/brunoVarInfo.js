@@ -132,7 +132,7 @@ const containsSecretVariableReferences = (rawValue, collection, item) => {
   return false;
 };
 
-const getCopyButton = (variableValue, onCopyCallback) => {
+const getCopyButton = (getVariableValue, onCopyCallback) => {
   const copyButton = document.createElement('button');
 
   copyButton.className = 'copy-button';
@@ -150,8 +150,11 @@ const getCopyButton = (variableValue, onCopyCallback) => {
       return;
     }
 
+    // Resolve the latest value at click time so edits/saves are reflected.
+    const valueToCopy = typeof getVariableValue === 'function' ? getVariableValue() : getVariableValue;
+
     navigator.clipboard
-      .writeText(variableValue)
+      .writeText(valueToCopy ?? '')
       .then(() => {
         isCopied = true;
         copyButton.innerHTML = CHECKMARK_ICON_SVG_TEXT;
@@ -415,6 +418,8 @@ export const renderVarInfo = (token, options) => {
     // Store original value for comparison and track editing state
     let originalValue = rawValue;
     let isEditing = false;
+    // Latest resolved value used by the copy button; updated after each successful save.
+    let currentInterpolatedValue = variableValue || '';
 
     cmEditor.setOption('extraKeys', {
       'Enter': (cm) => {
@@ -480,8 +485,9 @@ export const renderVarInfo = (token, options) => {
       iconsContainer.appendChild(toggleButton);
     }
 
-    // Copy button (copy actual value, not masked)
-    const copyButton = getCopyButton(variableValue || '', () => {
+    // Copy button (copy actual value, not masked). Uses a getter so it always
+    // reflects the latest saved value, not the value captured at popup creation.
+    const copyButton = getCopyButton(() => currentInterpolatedValue, () => {
       // Refocus the editor if it's currently in edit mode
       if (isEditing) {
         setTimeout(() => {
@@ -500,23 +506,30 @@ export const renderVarInfo = (token, options) => {
       if (isEditing) return;
 
       isEditing = true;
-      valueDisplay.style.display = 'none';
+
+      // Stage editor off-visual first to avoid a visible resize/text flash.
       editorContainer.style.display = 'block';
+      editorContainer.style.visibility = 'hidden';
 
       // Focus the editor and ensure proper sizing
-      setTimeout(() => {
+      requestAnimationFrame(() => {
         cmEditor.refresh();
+
+        // Adjust height based on content before revealing editor
+        const sizer = cmEditor.getWrapperElement().querySelector('.CodeMirror-sizer');
+        const contentHeight = sizer ? sizer.clientHeight : cmEditor.getScrollInfo().height;
+        editorContainer.style.height = `${calculateEditorHeight(contentHeight)}rem`;
+
+        // Swap display only after editor layout is ready
+        valueDisplay.style.display = 'none';
+        editorContainer.style.visibility = 'visible';
         cmEditor.focus();
 
         // Set cursor to end of content
         const lineCount = cmEditor.lineCount();
         const lastLine = cmEditor.getLine(lineCount - 1);
         cmEditor.setCursor(lineCount - 1, lastLine ? lastLine.length : 0);
-
-        // Adjust height based on content
-        const contentHeight = cmEditor.getScrollInfo().height;
-        editorContainer.style.height = `${calculateEditorHeight(contentHeight)}rem`;
-      }, 0);
+      });
     });
 
     // Save on blur and return to display mode
@@ -525,6 +538,7 @@ export const renderVarInfo = (token, options) => {
 
       // Switch back to display mode
       editorContainer.style.display = 'none';
+      editorContainer.style.visibility = 'visible';
       editorContainer.style.height = `${EDITOR_MIN_HEIGHT}rem`; // Reset to minimum height
       valueDisplay.style.display = 'block';
       isEditing = false;
@@ -549,6 +563,7 @@ export const renderVarInfo = (token, options) => {
 
             // Re-interpolate the new value to show the resolved value in display
             const interpolatedValue = interpolate(newValue, allVariables);
+            currentInterpolatedValue = interpolatedValue;
             // Check if the NEW value contains secret references
             const newHasSecretRefs = containsSecretVariableReferences(newValue, collection, item);
             const newShouldMask = isSecret || newHasSecretRefs;
@@ -810,8 +825,10 @@ if (!SERVER_RENDERED) {
   }
 
   function showPopup(cm, box, brunoVarInfo) {
-    // If there's already an active popup, remove it first
-    if (activePopup && activePopup.parentNode) {
+    // If there's already an active popup, hide it first to ensure listeners are cleaned up
+    if (activePopup && typeof activePopup._hidePopup === 'function') {
+      activePopup._hidePopup({ immediate: true });
+    } else if (activePopup && activePopup.parentNode) {
       activePopup.parentNode.removeChild(activePopup);
       activePopup = null;
     }
@@ -865,20 +882,49 @@ if (!SERVER_RENDERED) {
     popup.style.left = `${leftPos / 16}rem`;
 
     let popupTimeout;
+    let isPinned = false;
+    let isHidden = false;
 
     const onMouseOverPopup = function () {
       clearTimeout(popupTimeout);
     };
 
     const onMouseOut = function () {
+      if (isPinned) {
+        return;
+      }
       clearTimeout(popupTimeout);
       popupTimeout = setTimeout(hidePopup, 500);
     };
 
-    const hidePopup = function () {
+    const onPopupClick = function (e) {
+      if (!popup.contains(e.target)) {
+        return;
+      }
+      isPinned = true;
+      clearTimeout(popupTimeout);
+    };
+
+    const onDocumentClick = function (e) {
+      if (!popup.contains(e.target)) {
+        isPinned = false;
+        hidePopup();
+      }
+    };
+
+    const hidePopup = function (options = {}) {
+      if (isHidden) {
+        return;
+      }
+      isHidden = true;
+
+      const { immediate = false } = options;
+      clearTimeout(popupTimeout);
       CodeMirror.off(popup, 'mouseover', onMouseOverPopup);
       CodeMirror.off(popup, 'mouseout', onMouseOut);
+      CodeMirror.off(popup, 'click', onPopupClick);
       CodeMirror.off(cm.getWrapperElement(), 'mouseout', onMouseOut);
+      CodeMirror.off(document, 'click', onDocumentClick);
       CodeMirror.off(cm, 'change', onEditorChange);
 
       // Cleanup CodeMirror and MaskedEditor instances
@@ -908,6 +954,13 @@ if (!SERVER_RENDERED) {
         activePopup = null;
       }
 
+      if (immediate) {
+        if (popup.parentNode) {
+          popup.parentNode.removeChild(popup);
+        }
+        return;
+      }
+
       if (popup.style.opacity) {
         popup.style.opacity = 0;
         setTimeout(function () {
@@ -922,12 +975,19 @@ if (!SERVER_RENDERED) {
 
     // Hide popup when user types in the main editor
     const onEditorChange = function () {
-      hidePopup();
+      if (!isPinned) {
+        hidePopup();
+      }
     };
+
+    // Allow replacing existing popup with full cleanup
+    popup._hidePopup = hidePopup;
 
     CodeMirror.on(popup, 'mouseover', onMouseOverPopup);
     CodeMirror.on(popup, 'mouseout', onMouseOut);
+    CodeMirror.on(popup, 'click', onPopupClick);
     CodeMirror.on(cm.getWrapperElement(), 'mouseout', onMouseOut);
+    CodeMirror.on(document, 'click', onDocumentClick);
     CodeMirror.on(cm, 'change', onEditorChange);
   }
 }

@@ -431,4 +431,211 @@ test.describe('Variable Tooltip', () => {
       await expect(tooltip.locator('.var-value-editable-display')).not.toBeVisible();
     });
   });
+
+  test.only('should keep tooltip open while editing when mouse leaves popup area', async ({ page, createTmpDir }) => {
+    const collectionName = 'tooltip-pin-test';
+
+    await test.step('Setup collection, environment variable, and request', async () => {
+      await createCollection(page, collectionName, await createTmpDir('tooltip-pin-collection'));
+
+      await createEnvironment(page, 'Pin Env', 'collection');
+      await addEnvironmentVariables(page, [{ name: 'pinVar', value: 'pin-value' }]);
+      await saveEnvironment(page);
+      await closeEnvironmentPanel(page);
+
+      await createRequest(page, 'Pin Test Request', collectionName);
+      await page.locator('.collection-item-name').filter({ hasText: 'Pin Test Request' }).click();
+      const urlEditor = page.locator('#request-url .CodeMirror');
+      await urlEditor.click();
+      await page.keyboard.type('https://api.example.com?key={{pinVar}}');
+      await page.keyboard.press(saveShortcut);
+    });
+
+    await test.step('Tooltip stays open and accepts input while mouse is outside popup', async () => {
+      await page.mouse.move(0, 0);
+
+      const urlEditor = page.locator('#request-url .CodeMirror');
+      const pinVar = urlEditor.locator('.cm-variable-valid').filter({ hasText: 'pinVar' }).first();
+      await pinVar.hover();
+
+      const tooltip = page.locator('.CodeMirror-brunoVarInfo').first();
+      await expect(tooltip).toBeVisible();
+
+      // Click value display to enter edit mode (this also pins the popup)
+      const valueDisplay = tooltip.locator('.var-value-editable-display');
+      await valueDisplay.click();
+
+      const editor = tooltip.locator('.var-value-editor .CodeMirror');
+      await expect(editor).toBeVisible();
+
+      // Move mouse far outside the popup
+      await page.mouse.move(0, 0);
+
+      // Type with a per-keystroke delay so the typing window spans past the internal
+      // 500ms hide timer. If the popup were not pinned, it would hide mid-typing and
+      // the keystrokes would never reach the editor — the assertion below would fail.
+      // This validates pinning via real editor activity instead of a fixed sleep.
+      await page.keyboard.press('End');
+      await page.keyboard.type('-still-editable-after-mouse-left', { delay: 25 });
+
+      await expect(editor.locator('.CodeMirror-line')).toContainText(
+        'pin-value-still-editable-after-mouse-left'
+      );
+      await expect(tooltip).toBeVisible();
+    });
+  });
+
+  test.only('should persist subsequent edits while popup stays open', async ({ page, createTmpDir }) => {
+    const collectionName = 'tooltip-subsequent-edit-test';
+
+    await test.step('Setup collection, environment variable, and request', async () => {
+      await createCollection(page, collectionName, await createTmpDir('tooltip-subsequent-collection'));
+
+      await createEnvironment(page, 'Edit Env', 'collection');
+      await addEnvironmentVariables(page, [{ name: 'editVar', value: 'initial' }]);
+      await saveEnvironment(page);
+      await closeEnvironmentPanel(page);
+
+      await createRequest(page, 'Edit Test Request', collectionName);
+      await page.locator('.collection-item-name').filter({ hasText: 'Edit Test Request' }).click();
+      const urlEditor = page.locator('#request-url .CodeMirror');
+      await urlEditor.click();
+      await page.keyboard.type('https://api.example.com?key={{editVar}}');
+      await page.keyboard.press(saveShortcut);
+    });
+
+    await test.step('First edit saves via Enter and keeps popup open', async () => {
+      await page.mouse.move(0, 0);
+
+      const urlEditor = page.locator('#request-url .CodeMirror');
+      const editVar = urlEditor.locator('.cm-variable-valid').filter({ hasText: 'editVar' }).first();
+      await editVar.hover();
+
+      const tooltip = page.locator('.CodeMirror-brunoVarInfo').first();
+      await expect(tooltip).toBeVisible();
+
+      const valueDisplay = tooltip.locator('.var-value-editable-display');
+      await expect(valueDisplay).toContainText('initial');
+
+      await valueDisplay.click();
+
+      const editor = tooltip.locator('.var-value-editor .CodeMirror');
+      await expect(editor).toBeVisible();
+
+      await page.keyboard.press('End');
+      await page.keyboard.type('-one');
+
+      // Pressing Enter saves and keeps the popup open (does not click outside)
+      await page.keyboard.press('Enter');
+
+      // Display reflects the saved value, and tooltip is still visible
+      await expect(valueDisplay).toContainText('initial-one');
+      await expect(tooltip).toBeVisible();
+    });
+
+    await test.step('Second edit on the same popup also saves', async () => {
+      const tooltip = page.locator('.CodeMirror-brunoVarInfo').first();
+      await expect(tooltip).toBeVisible();
+
+      const valueDisplay = tooltip.locator('.var-value-editable-display');
+      await valueDisplay.click();
+
+      const editor = tooltip.locator('.var-value-editor .CodeMirror');
+      await expect(editor).toBeVisible();
+
+      await page.keyboard.press('End');
+      await page.keyboard.type('-two');
+
+      await page.keyboard.press('Enter');
+
+      await expect(valueDisplay).toContainText('initial-one-two');
+    });
+
+    await test.step('Reopen tooltip and verify the second edit persisted', async () => {
+      // Close the existing tooltip with an outside click, then re-hover to get a fresh one
+      await page.locator('body').click();
+      const tooltip = page.locator('.CodeMirror-brunoVarInfo').first();
+      await expect(tooltip).not.toBeVisible();
+
+      await page.mouse.move(0, 0);
+
+      const urlEditor = page.locator('#request-url .CodeMirror');
+      const editVar = urlEditor.locator('.cm-variable-valid').filter({ hasText: 'editVar' }).first();
+      await editVar.hover();
+
+      const newTooltip = page.locator('.CodeMirror-brunoVarInfo').first();
+      await expect(newTooltip).toBeVisible();
+      await expect(newTooltip.locator('.var-value-editable-display')).toContainText('initial-one-two');
+    });
+  });
+
+  test.only('should copy latest value after editing within the same tooltip', async ({ page, createTmpDir }) => {
+    const collectionName = 'tooltip-copy-latest-test';
+
+    await test.step('Setup collection, environment variable, and request', async () => {
+      await createCollection(page, collectionName, await createTmpDir('tooltip-copy-latest-collection'));
+
+      await createEnvironment(page, 'Copy Env', 'collection');
+      await addEnvironmentVariables(page, [{ name: 'copyVar', value: 'original-copy' }]);
+      await saveEnvironment(page);
+      await closeEnvironmentPanel(page);
+
+      await createRequest(page, 'Copy Test Request', collectionName);
+      await page.locator('.collection-item-name').filter({ hasText: 'Copy Test Request' }).click();
+      const urlEditor = page.locator('#request-url .CodeMirror');
+      await urlEditor.click();
+      await page.keyboard.type('https://api.example.com?key={{copyVar}}');
+      await page.keyboard.press(saveShortcut);
+    });
+
+    await test.step('Copy button copies the initial value', async () => {
+      await page.mouse.move(0, 0);
+
+      const urlEditor = page.locator('#request-url .CodeMirror');
+      const copyVar = urlEditor.locator('.cm-variable-valid').filter({ hasText: 'copyVar' }).first();
+      await copyVar.hover();
+
+      const tooltip = page.locator('.CodeMirror-brunoVarInfo').first();
+      await expect(tooltip).toBeVisible();
+
+      const copyButton = tooltip.locator('.copy-button');
+      await copyButton.click();
+
+      // Success state confirms writeText resolved before we read the clipboard
+      await expect(copyButton.locator('svg polyline')).toBeVisible({ timeout: 1000 });
+
+      const initialClipboard = await page.evaluate(() => navigator.clipboard.readText());
+      expect(initialClipboard).toBe('original-copy');
+
+      // Wait for the icon to revert so the next click is allowed
+      await expect(copyButton.locator('svg rect')).toBeVisible();
+    });
+
+    await test.step('Edit value, save with Enter, then copy without re-hovering', async () => {
+      const tooltip = page.locator('.CodeMirror-brunoVarInfo').first();
+      await expect(tooltip).toBeVisible();
+
+      const valueDisplay = tooltip.locator('.var-value-editable-display');
+      await valueDisplay.click();
+
+      const editor = tooltip.locator('.var-value-editor .CodeMirror');
+      await expect(editor).toBeVisible();
+
+      await page.keyboard.press('End');
+      await page.keyboard.type('-edited');
+
+      await page.keyboard.press('Enter');
+
+      // Wait for the display to reflect the saved value before clicking copy
+      await expect(valueDisplay).toContainText('original-copy-edited');
+
+      const copyButton = tooltip.locator('.copy-button');
+      await copyButton.click();
+
+      await expect(copyButton.locator('svg polyline')).toBeVisible({ timeout: 1000 });
+
+      const updatedClipboard = await page.evaluate(() => navigator.clipboard.readText());
+      expect(updatedClipboard).toBe('original-copy-edited');
+    });
+  });
 });
