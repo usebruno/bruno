@@ -30,8 +30,20 @@ chai.use(function (chai, utils) {
 const defaultAjv = new Ajv({ allErrors: true });
 addFormats(defaultAjv);
 
+const SUPPORTED_SCHEMA_VERSIONS = [
+  'http://json-schema.org/draft-07/schema#',
+  'http://json-schema.org/draft-07/schema'
+];
+
 chai.use(function (chai) {
   chai.Assertion.addMethod('jsonSchema', function (schema, ajvOptions) {
+    if (schema && schema.$schema && !SUPPORTED_SCHEMA_VERSIONS.includes(schema.$schema)) {
+      this.assert(
+        false,
+        `Unsupported JSON Schema version: "${schema.$schema}". Bruno currently only supports Draft-07 (http://json-schema.org/draft-07/schema#). Please remove the $schema property to use Draft-07, or update your schema to be Draft-07 compatible.`,
+        `Unsupported JSON Schema version: "${schema.$schema}".`
+      );
+    }
     let ajv;
     if (ajvOptions) {
       ajv = new Ajv({ allErrors: true, ...ajvOptions });
