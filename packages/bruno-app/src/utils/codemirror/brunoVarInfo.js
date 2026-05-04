@@ -418,8 +418,11 @@ export const renderVarInfo = (token, options) => {
     // Store original value for comparison and track editing state
     let originalValue = rawValue;
     let isEditing = false;
-    // Latest resolved value used by the copy button; updated after each successful save.
-    let currentInterpolatedValue = variableValue || '';
+    // Latest resolved value and mask state used by the copy button, eye toggle, and
+    // error-revert path. Updated after each successful save so subsequent redraws
+    // reflect the saved state. `??` preserves falsy-but-valid values like 0 / false.
+    let currentInterpolatedValue = variableValue ?? '';
+    let currentShouldMaskValue = shouldMaskValue;
 
     cmEditor.setOption('extraKeys', {
       'Enter': (cm) => {
@@ -466,8 +469,8 @@ export const renderVarInfo = (token, options) => {
         // Update icon
         toggleButton.innerHTML = isRevealed ? EYE_OFF_ICON_SVG : EYE_ICON_SVG;
 
-        // Update display mode
-        updateValueDisplay(valueDisplay, variableValue, shouldMaskValue, isMasked, isRevealed);
+        // Update display mode using live state so post-save values/masking are reflected.
+        updateValueDisplay(valueDisplay, currentInterpolatedValue, currentShouldMaskValue, isMasked, isRevealed);
 
         // Update editor mode
         if (maskedEditor) {
@@ -561,19 +564,22 @@ export const renderVarInfo = (token, options) => {
               }
             }
 
-            // Re-interpolate the new value to show the resolved value in display
+            // Re-interpolate the new value to show the resolved value in display.
+            // Use `??` so falsy-but-valid values (0 / false / '') survive the assignment.
             const interpolatedValue = interpolate(newValue, allVariables);
-            currentInterpolatedValue = interpolatedValue;
-            // Check if the NEW value contains secret references
+            currentInterpolatedValue = interpolatedValue ?? '';
+            // Check if the NEW value contains secret references and update live mask state
             const newHasSecretRefs = containsSecretVariableReferences(newValue, collection, item);
-            const newShouldMask = isSecret || newHasSecretRefs;
-            updateValueDisplay(valueDisplay, interpolatedValue, newShouldMask, isMasked, isRevealed);
+            currentShouldMaskValue = isSecret || newHasSecretRefs;
+            updateValueDisplay(valueDisplay, currentInterpolatedValue, currentShouldMaskValue, isMasked, isRevealed);
           })
           .catch((err) => {
             console.error('Failed to update variable:', err);
-            // Revert on error
+            // Revert on error to the last good state — currentInterpolatedValue and
+            // currentShouldMaskValue still hold pre-attempt values since the success
+            // block above never ran.
             cmEditor.setValue(originalValue);
-            updateValueDisplay(valueDisplay, variableValue, shouldMaskValue, isMasked, isRevealed);
+            updateValueDisplay(valueDisplay, currentInterpolatedValue, currentShouldMaskValue, isMasked, isRevealed);
           });
       }
     });
