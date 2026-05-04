@@ -437,13 +437,7 @@ tests {
       },
       required: ['name']
     };
-    let failed = false;
-    try {
-      expect(res.getBody()).to.have.jsonSchema(schema);
-    } catch (e) {
-      failed = true;
-    }
-    expect(failed).to.be.true;
+    expect(res.getBody()).to.not.have.jsonSchema(schema);
   });
 
   test("format: uri - rejects non-URI string", function() {
@@ -454,13 +448,7 @@ tests {
       },
       required: ['name']
     };
-    let failed = false;
-    try {
-      expect(res.getBody()).to.have.jsonSchema(schema);
-    } catch (e) {
-      failed = true;
-    }
-    expect(failed).to.be.true;
+    expect(res.getBody()).to.not.have.jsonSchema(schema);
   });
 
   test("format: date-time - rejects plain date string", function() {
@@ -471,13 +459,7 @@ tests {
       },
       required: ['birthDate']
     };
-    let failed = false;
-    try {
-      expect(res.getBody()).to.have.jsonSchema(schema);
-    } catch (e) {
-      failed = true;
-    }
-    expect(failed).to.be.true;
+    expect(res.getBody()).to.not.have.jsonSchema(schema);
   });
 
   test("format: ipv4 - rejects non-IP string", function() {
@@ -488,13 +470,7 @@ tests {
       },
       required: ['name']
     };
-    let failed = false;
-    try {
-      expect(res.getBody()).to.have.jsonSchema(schema);
-    } catch (e) {
-      failed = true;
-    }
-    expect(failed).to.be.true;
+    expect(res.getBody()).to.not.have.jsonSchema(schema);
   });
 
   test("format: uuid - rejects non-UUID string", function() {
@@ -505,13 +481,7 @@ tests {
       },
       required: ['name']
     };
-    let failed = false;
-    try {
-      expect(res.getBody()).to.have.jsonSchema(schema);
-    } catch (e) {
-      failed = true;
-    }
-    expect(failed).to.be.true;
+    expect(res.getBody()).to.not.have.jsonSchema(schema);
   });
 
   test("format: byte - rejects non-base64 string", function() {
@@ -522,13 +492,7 @@ tests {
       },
       required: ['email']
     };
-    let failed = false;
-    try {
-      expect(res.getBody()).to.have.jsonSchema(schema);
-    } catch (e) {
-      failed = true;
-    }
-    expect(failed).to.be.true;
+    expect(res.getBody()).to.not.have.jsonSchema(schema);
   });
 
   test("format: int32 - rejects value exceeding 32-bit range", function() {
@@ -539,13 +503,7 @@ tests {
       },
       required: ['int64Val']
     };
-    let failed = false;
-    try {
-      expect(res.getBody()).to.have.jsonSchema(schema);
-    } catch (e) {
-      failed = true;
-    }
-    expect(failed).to.be.true;
+    expect(res.getBody()).to.not.have.jsonSchema(schema);
   });
 
   test("format: float - rejects non-number field", function() {
@@ -556,13 +514,7 @@ tests {
       },
       required: ['name']
     };
-    let failed = false;
-    try {
-      expect(res.getBody()).to.have.jsonSchema(schema);
-    } catch (e) {
-      failed = true;
-    }
-    expect(failed).to.be.true;
+    expect(res.getBody()).to.not.have.jsonSchema(schema);
   });
 
   test("format: duration - rejects non-duration string", function() {
@@ -573,13 +525,7 @@ tests {
       },
       required: ['name']
     };
-    let failed = false;
-    try {
-      expect(res.getBody()).to.have.jsonSchema(schema);
-    } catch (e) {
-      failed = true;
-    }
-    expect(failed).to.be.true;
+    expect(res.getBody()).to.not.have.jsonSchema(schema);
   });
 
   test("format: hostname - rejects invalid hostname", function() {
@@ -590,13 +536,7 @@ tests {
       },
       required: ['email']
     };
-    let failed = false;
-    try {
-      expect(res.getBody()).to.have.jsonSchema(schema);
-    } catch (e) {
-      failed = true;
-    }
-    expect(failed).to.be.true;
+    expect(res.getBody()).to.not.have.jsonSchema(schema);
   });
 
   test("format: json-pointer - rejects non-pointer string", function() {
@@ -607,13 +547,7 @@ tests {
       },
       required: ['name']
     };
-    let failed = false;
-    try {
-      expect(res.getBody()).to.have.jsonSchema(schema);
-    } catch (e) {
-      failed = true;
-    }
-    expect(failed).to.be.true;
+    expect(res.getBody()).to.not.have.jsonSchema(schema);
   });
 
   // --- Failure validations ---
