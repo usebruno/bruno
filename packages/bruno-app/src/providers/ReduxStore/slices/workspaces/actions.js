@@ -230,6 +230,51 @@ export const openWorkspaceDialog = () => {
   };
 };
 
+export const connectCollectionToGit = ({ workspaceUid, collectionPath, remoteUrl }) => {
+  return async (dispatch, getState) => {
+    try {
+      const workspace = getState().workspaces.workspaces.find((w) => w.uid === workspaceUid);
+      if (!workspace) {
+        throw new Error('Workspace not found');
+      }
+
+      await ipcRenderer.invoke(
+        'renderer:connect-collection-to-git',
+        workspace.pathname,
+        collectionPath,
+        remoteUrl
+      );
+
+      return true;
+    } catch (error) {
+      toast.error(error.message || 'Failed to connect Git remote');
+      throw error;
+    }
+  };
+};
+
+export const disconnectCollectionFromGit = ({ workspaceUid, collectionPath }) => {
+  return async (dispatch, getState) => {
+    try {
+      const workspace = getState().workspaces.workspaces.find((w) => w.uid === workspaceUid);
+      if (!workspace) {
+        throw new Error('Workspace not found');
+      }
+
+      await ipcRenderer.invoke(
+        'renderer:disconnect-collection-from-git',
+        workspace.pathname,
+        collectionPath
+      );
+
+      return true;
+    } catch (error) {
+      toast.error(error.message || 'Failed to remove Git remote');
+      throw error;
+    }
+  };
+};
+
 export const removeCollectionFromWorkspaceAction = (workspaceUid, collectionPath, options = {}) => {
   return async (dispatch, getState) => {
     try {
@@ -283,7 +328,8 @@ const loadWorkspaceCollectionsForSwitch = async (dispatch, workspace) => {
   };
 
   try {
-    await dispatch(loadWorkspaceCollections(workspace.uid));
+    const shouldRefreshCollections = workspace.collections?.some((collection) => collection.notFoundLocally);
+    await dispatch(loadWorkspaceCollections(workspace.uid, shouldRefreshCollections));
     const updatedWorkspace = await dispatch((_, getState) => getState().workspaces.workspaces.find((w) => w.uid === workspace.uid));
 
     if (updatedWorkspace?.collections?.length > 0) {
@@ -292,6 +338,7 @@ const loadWorkspaceCollectionsForSwitch = async (dispatch, workspace) => {
       );
 
       const collectionPaths = updatedWorkspace.collections
+        .filter((wc) => !wc.notFoundLocally)
         .map((wc) => wc.path)
         .filter((p) => p && !alreadyOpenCollections.includes(normalizePath(p)));
 
@@ -531,6 +578,7 @@ export const workspaceConfigUpdatedEvent = (workspacePath, workspaceUid, workspa
 
         if (workspace?.collections?.length > 0) {
           const newCollectionPaths = workspace.collections
+            .filter((workspaceCollection) => !workspaceCollection.notFoundLocally)
             .map((workspaceCollection) => workspaceCollection.path)
             .filter((collectionPath) => collectionPath && !openCollections.includes(normalizePath(collectionPath)));
 
