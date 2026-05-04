@@ -6,7 +6,7 @@
  */
 
 import React, { createRef } from 'react';
-import { isEqual, escapeRegExp } from 'lodash';
+import { isEqual } from 'lodash';
 import { defineCodeMirrorBrunoVariablesMode } from 'utils/common/codemirror';
 import { setupAutoComplete, showRootHints } from 'utils/codemirror/autocomplete';
 import StyledWrapper from './StyledWrapper';
@@ -17,6 +17,14 @@ import { getAllVariables } from 'utils/collections';
 import { setupLinkAware } from 'utils/codemirror/linkAware';
 import { setupLintErrorTooltip } from 'utils/codemirror/lint-errors';
 import CodeMirrorSearch from 'components/CodeMirrorSearch/index';
+import {
+  applyEditorState,
+  captureEditorState,
+  getDocKey,
+  readPersistedEditorState,
+  writePersistedEditorState
+} from './state-persistence';
+import { usePersistenceScope } from 'hooks/usePersistedState/PersistedScopeProvider';
 
 const CodeMirror = require('codemirror');
 window.jsonlint = jsonlint;
@@ -24,7 +32,7 @@ window.JSHINT = JSHINT;
 
 const TAB_SIZE = 2;
 
-export default class CodeEditor extends React.Component {
+class CodeEditor extends React.Component {
   constructor(props) {
     super(props);
 
@@ -46,6 +54,12 @@ export default class CodeEditor extends React.Component {
     this.state = {
       searchBarVisible: false
     };
+  }
+
+  // Thin wrapper around the pure getDocKey helper from state-persistence.js.
+  // Kept on the class so the rest of the lifecycle code reads naturally.
+  _getDocKey() {
+    return getDocKey(this.props);
   }
 
   componentDidMount() {
@@ -184,6 +198,19 @@ export default class CodeEditor extends React.Component {
     });
 
     if (editor) {
+      // CM5 was constructed with props.value, so the editor already shows the
+      // right content. Read this tab's previously persisted view state from
+      // localStorage and apply it on top — restores folds, cursor, selection,
+      // undo history, and scroll position.
+      const docKey = getDocKey(this.props);
+      this._currentDocKey = docKey;
+      this.cachedValue = editor.getValue();
+      applyEditorState(
+        editor,
+        readPersistedEditorState({ scope: this.props.persistenceScope, key: docKey }),
+        this.cachedValue
+      );
+
       editor.setOption('lint', this.props.mode && editor.getValue().trim().length > 0 ? this.lintOptions : false);
       editor.on('change', this._onEdit);
       editor.scrollTo(null, this.props.initialScroll);
@@ -236,11 +263,52 @@ export default class CodeEditor extends React.Component {
       this.editor.options.jump.schema = this.props.schema;
       CodeMirror.signal(this.editor, 'change', this.editor);
     }
-    if (this.props.value !== prevProps.value && this.props.value !== this.cachedValue && this.editor) {
-      const cursor = this.editor.getCursor();
-      this.cachedValue = String(this?.props?.value ?? '');
-      this.editor.setValue(String(this.props.value) || '');
-      this.editor.setCursor(cursor);
+    if (this.editor) {
+      // Two distinct update paths:
+      //   1. Doc key changed → tab switch → snapshot outgoing state, load new content, restore incoming state
+      //   2. Same doc, value changed → external content update → setValue (view state resets)
+      const newDocKey = getDocKey(this.props);
+      const docKeyChanged = newDocKey !== this._currentDocKey;
+
+      if (docKeyChanged) {
+        // Path 1 — tab switch.
+        // Snapshot the outgoing tab's view state to localStorage so a future
+        // visit can restore it. Then setValue the incoming content and apply
+        // any view state previously persisted for the incoming tab.
+        if (this._currentDocKey) {
+          writePersistedEditorState({
+            scope: this.props.persistenceScope,
+            key: this._currentDocKey,
+            state: captureEditorState(this.editor)
+          });
+        }
+        this.cachedValue = String(this?.props?.value ?? '');
+        this.editor.setValue(String(this.props.value) || '');
+        this._currentDocKey = newDocKey;
+        applyEditorState(
+          this.editor,
+          readPersistedEditorState({ scope: this.props.persistenceScope, key: newDocKey }),
+          this.cachedValue
+        );
+        // setValue resets the editor's mode-overlay state — re-apply the
+        // brunovariables overlay and re-evaluate lint config for the new content.
+        this.addOverlay();
+        this.editor.setOption(
+          'lint',
+          this.props.mode && this.editor.getValue().trim().length > 0 ? this.lintOptions : false
+        );
+      } else if (this.props.value !== prevProps.value && this.props.value !== this.cachedValue) {
+        // Path 2 — same tab, new external value (e.g. a fresh response arrived
+        // while this tab was active). Update content; view state resets because
+        // line positions no longer correspond to anything. Invalidate the
+        // persisted snapshot too, since the saved cursor/folds/history reflect
+        // the prior content.
+        const cursor = this.editor.getCursor();
+        this.cachedValue = String(this?.props?.value ?? '');
+        this.editor.setValue(String(this.props.value) || '');
+        this.editor.setCursor(cursor);
+        writePersistedEditorState({ scope: this.props.persistenceScope, key: this._currentDocKey, state: null });
+      }
     }
 
     if (this.editor) {
@@ -287,6 +355,17 @@ export default class CodeEditor extends React.Component {
     if (this.editor) {
       if (this.props.onScroll) {
         this.props.onScroll(this._lastScrollTop);
+      }
+
+      // Snapshot view state to localStorage before tearing down the editor so
+      // the next mount of a CodeEditor with this docKey can restore folds,
+      // cursor, selection, undo history, and scroll position.
+      if (this._currentDocKey) {
+        writePersistedEditorState({
+          scope: this.props.persistenceScope,
+          key: this._currentDocKey,
+          state: captureEditorState(this.editor)
+        });
       }
 
       this.editor?._destroyLinkAware?.();
@@ -355,3 +434,12 @@ export default class CodeEditor extends React.Component {
     }
   };
 }
+
+const CodeEditorWithPersistenceScope = React.forwardRef((props, ref) => {
+  const persistenceScope = usePersistenceScope();
+  return <CodeEditor {...props} persistenceScope={persistenceScope} ref={ref} />;
+});
+
+CodeEditorWithPersistenceScope.displayName = 'CodeEditor';
+
+export default CodeEditorWithPersistenceScope;
