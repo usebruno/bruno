@@ -22,7 +22,6 @@ test.describe.serial('Multipart Form - Multi-File Selection', () => {
     await electronApp.evaluate(({ dialog }) => {
       if ((dialog as any).__originalShowOpenDialog) {
         dialog.showOpenDialog = (dialog as any).__originalShowOpenDialog;
-        delete (dialog as any).__originalShowOpenDialog;
       }
     });
   });
@@ -96,6 +95,9 @@ test.describe.serial('Multipart Form - Multi-File Selection', () => {
     const row = table.allRows().last();
 
     await electronApp.evaluate(({ dialog }, filePath: string) => {
+      if ((dialog as any).__originalShowOpenDialog === undefined) {
+        (dialog as any).__originalShowOpenDialog = dialog.showOpenDialog;
+      }
       dialog.showOpenDialog = async () => ({
         canceled: false,
         filePaths: [filePath]
