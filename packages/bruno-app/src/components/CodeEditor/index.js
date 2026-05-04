@@ -16,6 +16,7 @@ import stripJsonComments from 'strip-json-comments';
 import { getAllVariables } from 'utils/collections';
 import { setupLinkAware } from 'utils/codemirror/linkAware';
 import { setupLintErrorTooltip } from 'utils/codemirror/lint-errors';
+import { setupCodeMirrorResizeRefresh } from 'utils/codemirror/resize';
 import CodeMirrorSearch from 'components/CodeMirrorSearch/index';
 import {
   applyEditorState,
@@ -248,6 +249,8 @@ class CodeEditor extends React.Component {
       if (cmInput) {
         cmInput.classList.add('mousetrap');
       }
+
+      this.cleanupResizeRefresh = setupCodeMirrorResizeRefresh(editor, this._node);
     }
   }
 
@@ -373,6 +376,7 @@ class CodeEditor extends React.Component {
 
       // Clean up lint error tooltip
       this.cleanupLintErrorTooltip?.();
+      this.cleanupResizeRefresh?.();
 
       const wrapper = this.editor.getWrapperElement();
       wrapper?.parentNode?.removeChild(wrapper);
