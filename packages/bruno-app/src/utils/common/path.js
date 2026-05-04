@@ -163,6 +163,8 @@ const getAbsoluteFilePath = (basePath, relativePath, shouldPosixify = false) => 
   return shouldPosixify ? posixify(result) : result;
 };
 
+// Stores in-collection files as relative paths using the current platform's
+// separator style: backslashes on Windows, forward slashes on Unix-like systems.
 const getStoredFilePath = (collectionPath, filePath) => {
   if (!collectionPath || !filePath) {
     return filePath;
