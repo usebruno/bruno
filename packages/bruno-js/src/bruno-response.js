@@ -13,7 +13,7 @@ class BrunoResponse {
     this.url = res?.request ? res.request.protocol + '//' + res.request.host + res.request.path : null;
 
     // HeaderList in static read-only mode — write methods throw
-    this.headerList = new HeaderList(res ? res.headers : null, { writable: false });
+    this.headerList = new HeaderList(res, { writable: false });
 
     // Make the instance callable
     const callable = (...args) => get(this.body, ...args);

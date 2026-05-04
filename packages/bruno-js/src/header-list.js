@@ -5,15 +5,16 @@ const ReadOnlyPropertyList = require('./readonly-property-list');
  * HeaderList — the `req.headerList` / `res.headerList` API in scripts.
  *
  * Extends PropertyList in dynamic mode: the header list is freshly read from the
- * request's headers object on every access, and write operations delegate to the
- * BrunoRequest instance (preserving `__headersToDelete` tracking).
+ * request's headers object on every access, and write operations manipulate the
+ * request config directly (preserving `__headersToDelete` tracking).
  *
  * Key differences from the base PropertyList:
  * - **Case-insensitive** key lookups (HTTP headers are case-insensitive)
  * - **Disabled headers** surfaced with `disabled: true`
  * - **Read-only mode** for response headers (write methods throw)
- * - Write operations delegate to BrunoRequest (preserving `__headersToDelete`)
+ * - Write operations manipulate the request config directly (preserving `__headersToDelete`)
  *
+ * Accepts the raw request config object (`req`) directly — no dependency on BrunoRequest.
  * Access: `req.headerList` (PropertyList API) vs `req.headers` (raw headers object).
  *
  * ---
@@ -79,9 +80,12 @@ const ReadOnlyPropertyList = require('./readonly-property-list');
  * | `assimilate(source, prune?)` | Merges headers; prune removes items not in source          |
  */
 class HeaderList extends PropertyList {
+  #req;
+  #writable;
+
   /**
-   * @param {BrunoRequest|object} source - BrunoRequest instance (dynamic mode)
-   *   or a plain headers object (static mode).
+   * @param {object} source - Request config (dynamic mode) or response object
+   *   (static mode). Both must have a `headers` property.
    * @param {object} [options]
    * @param {boolean} [options.writable=true] - When false, write methods throw.
    */
@@ -92,9 +96,9 @@ class HeaderList extends PropertyList {
         keyProperty: 'key',
         valueProperty: 'value',
         dataSource: () => {
-          const headers = source.req.headers || {};
+          const headers = source.headers || {};
           const enabled = Object.entries(headers).map(([key, value]) => ({ key, value }));
-          const disabled = (source.req.disabledHeaders || []).map((h) => ({
+          const disabled = (source.disabledHeaders || []).map((h) => ({
             key: h.name,
             value: h.value,
             disabled: true
@@ -102,22 +106,22 @@ class HeaderList extends PropertyList {
           return [...disabled, ...enabled];
         }
       });
-      this._brunoRequest = source;
+      this.#req = source;
     } else {
       // Static read-only mode — snapshot of response headers
-      const rawHeaders = source || {};
+      const rawHeaders = (source && source.headers) || {};
       super({
         keyProperty: 'key',
         valueProperty: 'value',
         items: Object.entries(rawHeaders).map(([key, value]) => ({ key, value }))
       });
-      this._brunoRequest = null;
+      this.#req = null;
     }
-    this._writable = writable;
+    this.#writable = writable;
   }
 
-  _assertWritable() {
-    if (!this._writable) {
+  #assertWritable() {
+    if (!this.#writable) {
       throw new Error('HeaderList is read-only (response headers cannot be modified)');
     }
   }
@@ -130,7 +134,7 @@ class HeaderList extends PropertyList {
    * @param {string} b
    * @returns {boolean}
    */
-  static _ciEquals(a, b) {
+  static #ciEquals(a, b) {
     return typeof a === 'string' && typeof b === 'string'
       ? a.toLowerCase() === b.toLowerCase()
       : a === b;
@@ -141,7 +145,7 @@ class HeaderList extends PropertyList {
    * @param {string} str
    * @returns {object|null}
    */
-  static _parseHeaderString(str) {
+  static #parseHeaderString(str) {
     if (typeof str !== 'string') return null;
     const idx = str.indexOf(':');
     if (idx === -1) return null;
@@ -156,7 +160,7 @@ class HeaderList extends PropertyList {
    * @returns {*}
    */
   get(name) {
-    const item = this.all().findLast((i) => HeaderList._ciEquals(i.key, name));
+    const item = this.all().findLast((i) => HeaderList.#ciEquals(i.key, name));
     return item ? item.value : undefined;
   }
 
@@ -166,7 +170,7 @@ class HeaderList extends PropertyList {
    * @returns {object|undefined}
    */
   one(name) {
-    return this.all().findLast((i) => HeaderList._ciEquals(i.key, name));
+    return this.all().findLast((i) => HeaderList.#ciEquals(i.key, name));
   }
 
   /**
@@ -178,13 +182,13 @@ class HeaderList extends PropertyList {
    */
   has(name, value) {
     if (name && typeof name === 'object' && name.key) {
-      return this.all().some((i) => HeaderList._ciEquals(i.key, name.key));
+      return this.all().some((i) => HeaderList.#ciEquals(i.key, name.key));
     }
     const items = this.all();
     if (value !== undefined) {
-      return items.some((i) => HeaderList._ciEquals(i.key, name) && i.value === value);
+      return items.some((i) => HeaderList.#ciEquals(i.key, name) && i.value === value);
     }
-    return items.some((i) => HeaderList._ciEquals(i.key, name));
+    return items.some((i) => HeaderList.#ciEquals(i.key, name));
   }
 
   /**
@@ -196,11 +200,11 @@ class HeaderList extends PropertyList {
   indexOf(item) {
     const items = this.all();
     if (typeof item === 'string') {
-      return items.findIndex((i) => HeaderList._ciEquals(i.key, item));
+      return items.findIndex((i) => HeaderList.#ciEquals(i.key, item));
     }
     if (!item || typeof item !== 'object') return -1;
     return items.findIndex(
-      (i) => HeaderList._ciEquals(i.key, item.key) && i.value === item.value
+      (i) => HeaderList.#ciEquals(i.key, item.key) && i.value === item.value
     );
   }
 
@@ -234,7 +238,7 @@ class HeaderList extends PropertyList {
     return hasAccumulator ? super.reduce(bound, args[0]) : super.reduce(bound);
   }
 
-  // ── Write methods (BrunoRequest delegation) ──────────────────────────
+  // ── Write methods (direct request config manipulation) ────────────────
 
   /**
    * Add a header. Accepts a { key, value } object or a "Key: Value" string.
@@ -242,7 +246,7 @@ class HeaderList extends PropertyList {
    */
   add(item) {
     if (typeof item === 'string') {
-      item = HeaderList._parseHeaderString(item);
+      item = HeaderList.#parseHeaderString(item);
     }
     this.upsert(item);
   }
@@ -253,18 +257,18 @@ class HeaderList extends PropertyList {
    * @returns {boolean|null} `true` if added, `false` if updated, `null` if input was nil
    */
   upsert(item) {
-    this._assertWritable();
+    this.#assertWritable();
     if (!item || typeof item !== 'object' || !item.key) return null;
-    const headers = this._brunoRequest.req.headers || {};
+    const headers = this.#req.headers || {};
     const existingKey = Object.keys(headers).find(
-      (k) => HeaderList._ciEquals(k, item.key)
+      (k) => HeaderList.#ciEquals(k, item.key)
     );
     const existed = existingKey !== undefined;
     // Remove old-cased key if casing differs
     if (existed && existingKey !== item.key) {
       delete headers[existingKey];
     }
-    this._brunoRequest.setHeader(item.key, item.value);
+    headers[item.key] = item.value;
     return !existed;
   }
 
@@ -275,25 +279,40 @@ class HeaderList extends PropertyList {
    * @param {*} [context] - Bind `this` for function predicates
    */
   remove(predicate, context) {
-    this._assertWritable();
+    this.#assertWritable();
     if (typeof predicate === 'function') {
       const bound = context !== undefined ? predicate.bind(context) : predicate;
       const headers = this.all();
       for (const header of headers) {
         if (bound(header)) {
           if (header.disabled) {
-            this._removeDisabledHeader(header.key);
+            this.#removeDisabledHeader(header.key);
           } else {
-            this._deleteHeaderCI(header.key);
+            this.#deleteHeaderCI(header.key);
           }
         }
       }
     } else if (typeof predicate === 'string') {
-      this._deleteHeaderCI(predicate);
-      this._removeDisabledHeader(predicate);
+      this.#deleteHeaderCI(predicate);
+      this.#removeDisabledHeader(predicate);
     } else if (predicate && typeof predicate === 'object' && predicate.key) {
-      this._deleteHeaderCI(predicate.key);
-      this._removeDisabledHeader(predicate.key);
+      this.#deleteHeaderCI(predicate.key);
+      this.#removeDisabledHeader(predicate.key);
+    }
+  }
+
+  /**
+   * Delete a header by exact key and track it in `__headersToDelete`
+   * so the axios interceptor can suppress default headers added later.
+   * @param {string} name
+   */
+  #deleteHeader(name) {
+    delete this.#req.headers[name];
+    if (!this.#req.__headersToDelete) {
+      this.#req.__headersToDelete = [];
+    }
+    if (!this.#req.__headersToDelete.includes(name)) {
+      this.#req.__headersToDelete.push(name);
     }
   }
 
@@ -301,13 +320,13 @@ class HeaderList extends PropertyList {
    * Delete an enabled header by key (case-insensitive).
    * @param {string} key
    */
-  _deleteHeaderCI(key) {
-    const headers = this._brunoRequest.req.headers || {};
+  #deleteHeaderCI(key) {
+    const headers = this.#req.headers || {};
     const matchingKey = Object.keys(headers).find(
-      (k) => HeaderList._ciEquals(k, key)
+      (k) => HeaderList.#ciEquals(k, key)
     );
     if (matchingKey) {
-      this._brunoRequest.deleteHeader(matchingKey);
+      this.#deleteHeader(matchingKey);
     }
   }
 
@@ -315,11 +334,11 @@ class HeaderList extends PropertyList {
    * Remove all disabled headers matching a key (case-insensitive).
    * @param {string} key
    */
-  _removeDisabledHeader(key) {
-    const arr = this._brunoRequest.req.disabledHeaders;
+  #removeDisabledHeader(key) {
+    const arr = this.#req.disabledHeaders;
     if (!arr) return;
-    this._brunoRequest.req.disabledHeaders = arr.filter(
-      (h) => !HeaderList._ciEquals(h.name, key)
+    this.#req.disabledHeaders = arr.filter(
+      (h) => !HeaderList.#ciEquals(h.name, key)
     );
   }
 
@@ -327,15 +346,15 @@ class HeaderList extends PropertyList {
    * Remove all headers (enabled and disabled) from the request.
    */
   clear() {
-    this._assertWritable();
+    this.#assertWritable();
     const headers = this.all();
     for (const header of headers) {
       if (!header.disabled) {
-        this._brunoRequest.deleteHeader(header.key);
+        this.#deleteHeader(header.key);
       }
     }
-    if (this._brunoRequest.req.disabledHeaders) {
-      this._brunoRequest.req.disabledHeaders = [];
+    if (this.#req.disabledHeaders) {
+      this.#req.disabledHeaders = [];
     }
   }
 
@@ -345,7 +364,7 @@ class HeaderList extends PropertyList {
    * @param {Array|string} items
    */
   populate(items) {
-    this._assertWritable();
+    this.#assertWritable();
     this.clear();
     if (typeof items === 'string') {
       const lines = items.split(/\r?\n/).filter((l) => l.trim());
@@ -412,7 +431,7 @@ class HeaderList extends PropertyList {
    * @param {boolean} [prune=false] - If true, remove items not present in source after merging
    */
   assimilate(source, prune) {
-    this._assertWritable();
+    this.#assertWritable();
     let items;
     if (ReadOnlyPropertyList.isPropertyList(source)) {
       items = source.all();
@@ -433,9 +452,9 @@ class HeaderList extends PropertyList {
       );
       for (const header of toRemove) {
         if (header.disabled) {
-          this._removeDisabledHeader(header.key);
+          this.#removeDisabledHeader(header.key);
         } else {
-          this._brunoRequest.deleteHeader(header.key);
+          this.#deleteHeader(header.key);
         }
       }
     }
