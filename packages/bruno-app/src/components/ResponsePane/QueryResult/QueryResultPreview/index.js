@@ -54,6 +54,7 @@ const QueryResultPreview = ({
       <CodeEditor
         ref={editorRef}
         collection={collection}
+        docKey="response:editor"
         font={get(preferences, 'font.codeFont', 'default')}
         fontSize={get(preferences, 'font.codeFontSize')}
         theme={displayedTheme}
