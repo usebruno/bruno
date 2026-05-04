@@ -41,7 +41,9 @@ body:json {
     "regexPattern": "^[a-z]+$",
     "jsonPointer": "/foo/bar/0",
     "uriRef": "/relative/path",
-    "uriTemplate": "https://example.com/{user}"
+    "uriTemplate": "https://example.com/{user}",
+    "invalidRegex": "[invalid",
+    "invalidUriTemplate": "https://example.com/{invalid"
   }
 }
 
@@ -682,35 +684,35 @@ tests {
     expect(res.getBody()).to.not.have.jsonSchema(schema);
   });
 
-  test("format: regex - rejects non-string field as regex", function() {
+  test("format: regex - rejects invalid regex pattern", function() {
     const schema = {
       type: 'object',
       properties: {
-        isVerified: { type: 'string', format: 'regex' }
+        invalidRegex: { type: 'string', format: 'regex' }
       },
-      required: ['isVerified']
+      required: ['invalidRegex']
     };
     expect(res.getBody()).to.not.have.jsonSchema(schema);
   });
 
-  test("format: uri-reference - rejects invalid URI reference", function() {
+  test("format: uri-reference - rejects invalid URI reference string", function() {
     const schema = {
       type: 'object',
       properties: {
-        isVerified: { type: 'string', format: 'uri-reference' }
+        invalidRegex: { type: 'string', format: 'uri-reference' }
       },
-      required: ['isVerified']
+      required: ['invalidRegex']
     };
     expect(res.getBody()).to.not.have.jsonSchema(schema);
   });
 
-  test("format: uri-template - rejects invalid URI template", function() {
+  test("format: uri-template - rejects invalid URI template string", function() {
     const schema = {
       type: 'object',
       properties: {
-        isVerified: { type: 'string', format: 'uri-template' }
+        invalidUriTemplate: { type: 'string', format: 'uri-template' }
       },
-      required: ['isVerified']
+      required: ['invalidUriTemplate']
     };
     expect(res.getBody()).to.not.have.jsonSchema(schema);
   });
