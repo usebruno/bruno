@@ -19,8 +19,8 @@ const registerSnapshotIpc = () => {
     return snapshotManager.getCollection(pathname);
   });
 
-  ipcMain.handle('renderer:snapshot:get-tabs', async (event, collectionPathname) => {
-    return snapshotManager.getTabs(collectionPathname);
+  ipcMain.handle('renderer:snapshot:get-tabs', async (event, collectionPathname, workspacePathname) => {
+    return snapshotManager.getTabs(collectionPathname, workspacePathname);
   });
 
   // Writes

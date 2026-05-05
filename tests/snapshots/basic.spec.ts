@@ -1,12 +1,11 @@
 import path from 'path';
 import fs from 'fs';
-import { test, expect, closeElectronApp } from '../../playwright';
+import { test, expect, closeElectronApp, type Page } from '../../playwright';
 import {
   createCollection,
   createRequest,
   openRequest,
   openCollection,
-  createWorkspace,
   switchWorkspace,
   selectRequestPaneTab
 } from '../utils/page';
@@ -20,6 +19,42 @@ const readSnapshot = (userDataPath: string) => {
   const snapshotPath = path.join(userDataPath, 'ui-state-snapshot.json');
   if (!fs.existsSync(snapshotPath)) return null;
   return JSON.parse(fs.readFileSync(snapshotPath, 'utf-8'));
+};
+
+const clickCollectionsSortAction = async (page: Page, times: number = 1) => {
+  for (let i = 0; i < times; i += 1) {
+    await page.getByTestId('collections-header-actions-menu').click();
+    await page.getByTestId('collections-header-actions-menu-sort').click();
+  }
+};
+
+const expectSidebarCollectionOrder = async (page: Page, expectedNames: string[]) => {
+  const rows = page.getByTestId('sidebar-collection-row');
+
+  await expect.poll(async () => {
+    const actualNames: string[] = [];
+    const count = await rows.count();
+
+    for (let i = 0; i < count; i += 1) {
+      const name = await rows.nth(i).locator('#sidebar-collection-name').textContent();
+      if (name) {
+        actualNames.push(name.trim());
+      }
+    }
+
+    return actualNames;
+  }).toEqual(expectedNames);
+};
+
+const expectSnapshotWorkspaceSortings = async (userDataPath: string, expectedSortings: string[]) => {
+  await expect.poll(() => {
+    const snapshot = readSnapshot(userDataPath);
+    const sortings = Array.isArray(snapshot?.workspaces)
+      ? snapshot.workspaces.map((workspace) => workspace?.sorting).filter(Boolean)
+      : [];
+
+    return sortings.sort();
+  }).toEqual([...expectedSortings].sort());
 };
 
 // ─── Tab Persistence ────────────────────────────────────────────────────────
@@ -238,6 +273,95 @@ test.describe('Snapshot: Workspace State', () => {
     });
   });
 
+  test('workspace collection sorting persists across workspace switches and restart', async ({ launchElectronApp, createTmpDir }) => {
+    test.setTimeout(90000);
+    const userDataPath = await createTmpDir('snap-ws-collection-sorting');
+
+    const defaultColZPath = await createTmpDir('default-col-zulu');
+    const defaultColAPath = await createTmpDir('default-col-alpha');
+    const secondWorkspacePath = await createTmpDir('workspace-sorting-b');
+    const secondColMPath = await createTmpDir('ws2-col-middle');
+    const secondColAPath = await createTmpDir('ws2-col-alpha');
+
+    const WORKSPACE_YML = [
+      'opencollection: 1.0.0',
+      'info:',
+      '  name: WorkspaceB',
+      '  type: workspace',
+      'collections:',
+      'specs: []',
+      'docs: \'\'',
+      ''
+    ].join('\n');
+    fs.writeFileSync(path.join(secondWorkspacePath, 'workspace.yml'), WORKSPACE_YML);
+
+    const app = await launchElectronApp({ userDataPath });
+    const page = await app.firstWindow();
+    await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
+
+    await test.step('Create collections in default workspace and set A-Z sort', async () => {
+      await createCollection(page, 'Zulu', defaultColZPath);
+      await createCollection(page, 'Alpha', defaultColAPath);
+
+      await expectSidebarCollectionOrder(page, ['Zulu', 'Alpha']);
+
+      await clickCollectionsSortAction(page, 1);
+      await expectSidebarCollectionOrder(page, ['Alpha', 'Zulu']);
+      await expectSnapshotWorkspaceSortings(userDataPath, ['alphabetical']);
+    });
+
+    await test.step('Open second workspace and set Z-A sort', async () => {
+      await app.evaluate(
+        ({ dialog }, targetPath: string) => {
+          (dialog as any).showOpenDialog = () =>
+            Promise.resolve({ canceled: false, filePaths: [targetPath] });
+        },
+        secondWorkspacePath
+      );
+
+      await page.getByTestId('workspace-menu').click();
+      await page.locator('.dropdown-item').filter({ hasText: 'Open workspace' }).click();
+      await expect(page.getByTestId('workspace-name')).toHaveText('WorkspaceB', { timeout: 10000 });
+
+      await createCollection(page, 'Middle', secondColMPath);
+      await createCollection(page, 'AlphaWS2', secondColAPath);
+
+      await expectSidebarCollectionOrder(page, ['Middle', 'AlphaWS2']);
+
+      await clickCollectionsSortAction(page, 1);
+      await expectSidebarCollectionOrder(page, ['AlphaWS2', 'Middle']);
+
+      await clickCollectionsSortAction(page, 1);
+      await expectSidebarCollectionOrder(page, ['Middle', 'AlphaWS2']);
+      await expectSnapshotWorkspaceSortings(userDataPath, ['alphabetical', 'reverseAlphabetical']);
+    });
+
+    await test.step('Switch back and forth, verify per-workspace sort restore', async () => {
+      await switchWorkspace(page, 'My Workspace');
+      await expectSidebarCollectionOrder(page, ['Alpha', 'Zulu']);
+
+      await switchWorkspace(page, 'WorkspaceB');
+      await expectSidebarCollectionOrder(page, ['Middle', 'AlphaWS2']);
+    });
+
+    await test.step('Restart app and verify per-workspace sort still persists', async () => {
+      await page.waitForTimeout(2000);
+      await closeElectronApp(app);
+
+      const app2 = await launchElectronApp({ userDataPath });
+      const page2 = await app2.firstWindow();
+      await page2.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
+
+      await expect(page2.getByTestId('workspace-name')).toHaveText('WorkspaceB', { timeout: 10000 });
+      await expectSidebarCollectionOrder(page2, ['Middle', 'AlphaWS2']);
+
+      await switchWorkspace(page2, 'My Workspace');
+      await expectSidebarCollectionOrder(page2, ['Alpha', 'Zulu']);
+
+      await closeElectronApp(app2);
+    });
+  });
+
   test('each workspace remembers its own active collection', async ({ launchElectronApp, createTmpDir }) => {
     test.setTimeout(60000);
     const userDataPath = await createTmpDir('snap-ws-active-col');
@@ -426,6 +550,99 @@ test.describe('Snapshot: Multi-Workspace Tab Isolation', () => {
         await expect(locators.tabs.requestTab('ReqA')).toBeVisible({ timeout: 15000 });
         await expect(locators.tabs.requestTab('ReqB')).not.toBeVisible();
       });
+
+      await closeElectronApp(app2);
+    });
+  });
+
+  test('same collection in two workspaces keeps tabs isolated after restart', async ({ launchElectronApp, createTmpDir }) => {
+    test.setTimeout(90000);
+
+    const userDataPath = await createTmpDir('snap-tab-isolation-shared-col');
+    const sharedColPath = await createTmpDir('shared-col');
+    const workspaceBPath = await createTmpDir('workspace-b-shared-col');
+
+    const WORKSPACE_YML = [
+      'opencollection: 1.0.0',
+      'info:',
+      '  name: WorkspaceB',
+      '  type: workspace',
+      'collections:',
+      'specs: []',
+      'docs: \'\'',
+      ''
+    ].join('\n');
+    fs.writeFileSync(path.join(workspaceBPath, 'workspace.yml'), WORKSPACE_YML);
+
+    const app = await launchElectronApp({ userDataPath });
+    const page = await app.firstWindow();
+    await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
+
+    await test.step('Create shared collection in default workspace and open ReqA', async () => {
+      await createCollection(page, 'SharedCol', sharedColPath);
+      await createRequest(page, 'ReqA', 'SharedCol', { url: 'https://echo.usebruno.com', method: 'GET' });
+      await createRequest(page, 'ReqB', 'SharedCol', { url: 'https://echo.usebruno.com', method: 'GET' });
+      await openRequest(page, 'SharedCol', 'ReqA', { persist: true });
+    });
+
+    const sharedCollectionPath = path.join(sharedColPath, 'SharedCol');
+
+    await test.step('Open WorkspaceB and add the same collection path', async () => {
+      await app.evaluate(
+        ({ dialog }, targetPath: string) => {
+          (dialog as any).showOpenDialog = () =>
+            Promise.resolve({ canceled: false, filePaths: [targetPath] });
+        },
+        workspaceBPath
+      );
+      await page.getByTestId('workspace-menu').click();
+      await page.locator('.dropdown-item').filter({ hasText: 'Open workspace' }).click();
+      await expect(page.getByTestId('workspace-name')).toHaveText('WorkspaceB', { timeout: 10000 });
+
+      await app.evaluate(
+        ({ dialog }, targetPath: string) => {
+          (dialog as any).showOpenDialog = () =>
+            Promise.resolve({ canceled: false, filePaths: [targetPath] });
+        },
+        sharedCollectionPath
+      );
+
+      await page.getByTestId('collections-header-add-menu').click();
+      await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Open collection' }).click();
+
+      const locators = buildCommonLocators(page);
+      await expect(locators.sidebar.collection('SharedCol')).toBeVisible({ timeout: 10000 });
+    });
+
+    await test.step('In WorkspaceB open ReqB', async () => {
+      await openCollection(page, 'SharedCol');
+      await openRequest(page, 'SharedCol', 'ReqB', { persist: true });
+    });
+
+    await test.step('Close and restart app', async () => {
+      // snapshot saving is done in the background at 1000ms debounce
+      await page.waitForTimeout(2000);
+      await closeElectronApp(app);
+    });
+
+    await test.step('Verify tab isolation for same collection across workspaces', async () => {
+      const app2 = await launchElectronApp({ userDataPath });
+      const page2 = await app2.firstWindow();
+      await page2.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
+
+      await expect(page2.getByTestId('workspace-name')).toHaveText('WorkspaceB', { timeout: 10000 });
+
+      const locators = buildCommonLocators(page2);
+      await expect(locators.sidebar.collection('SharedCol')).toBeVisible({ timeout: 10000 });
+      await openCollection(page2, 'SharedCol');
+      await expect(locators.tabs.requestTab('ReqB')).toBeVisible({ timeout: 10000 });
+      await expect(locators.tabs.requestTab('ReqA')).not.toBeVisible();
+
+      await switchWorkspace(page2, 'My Workspace');
+      await expect(locators.sidebar.collection('SharedCol')).toBeVisible({ timeout: 10000 });
+      await openCollection(page2, 'SharedCol');
+      await expect(locators.tabs.requestTab('ReqA')).toBeVisible({ timeout: 15000 });
+      await expect(locators.tabs.requestTab('ReqB')).not.toBeVisible();
 
       await closeElectronApp(app2);
     });

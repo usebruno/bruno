@@ -19,7 +19,7 @@ describe('hydrateSnapshotLookups', () => {
       workspaces: [
         {
           pathname: '/workspaces/main',
-          sorting: 'az',
+          sorting: 'default',
           collections: ['/collections/a']
         }
       ],
@@ -59,7 +59,7 @@ describe('hydrateSnapshotLookups', () => {
 
     expect(workspace).toMatchObject({
       pathname: '/workspaces/main',
-      sorting: 'az',
+      sorting: 'default',
       collections: ['/collections/a']
     });
 
@@ -76,7 +76,7 @@ describe('hydrateSnapshotLookups', () => {
       workspaces: [
         {
           pathname: '/workspaces/main',
-          sorting: 'az',
+          sorting: 'default',
           collections: ['/collections/a']
         }
       ],
@@ -112,7 +112,7 @@ describe('hydrateSnapshotLookups', () => {
 
     expect(workspace).toMatchObject({
       pathname: '/workspaces/main',
-      sorting: 'az',
+      sorting: 'default',
       collections: ['/collections/a']
     });
 
@@ -127,7 +127,7 @@ describe('hydrateSnapshotLookups', () => {
       workspaces: [
         {
           pathname: 'C:\\workspace',
-          sorting: 'az',
+          sorting: 'default',
           collections: ['C:\\workspace\\collection']
         }
       ],
@@ -146,6 +146,71 @@ describe('hydrateSnapshotLookups', () => {
       workspacePathname: 'C:\\workspace',
       selectedEnvironment: 'Prod'
     });
+  });
+
+  it('keeps workspace-scoped tab snapshots when same collection exists in multiple workspaces', () => {
+    const sharedCollectionPath = '/collections/shared';
+    const workspaceAPath = '/workspaces/a';
+    const workspaceBPath = '/workspaces/b';
+
+    const snapshot = {
+      workspaces: [
+        {
+          pathname: workspaceAPath,
+          sorting: 'default',
+          collections: [sharedCollectionPath]
+        },
+        {
+          pathname: workspaceBPath,
+          sorting: 'default',
+          collections: [sharedCollectionPath]
+        }
+      ],
+      collections: [
+        {
+          pathname: sharedCollectionPath,
+          workspacePathname: workspaceAPath,
+          environment: {
+            collection: '',
+            global: ''
+          },
+          selectedEnvironment: '',
+          isOpen: true,
+          isMounted: false,
+          activeTab: { accessor: 'pathname', value: '/collections/shared/ReqA' },
+          tabs: [{ type: 'http-request', accessor: 'pathname', pathname: '/collections/shared/ReqA', permanent: true }]
+        },
+        {
+          pathname: sharedCollectionPath,
+          workspacePathname: workspaceBPath,
+          environment: {
+            collection: '',
+            global: ''
+          },
+          selectedEnvironment: '',
+          isOpen: true,
+          isMounted: false,
+          activeTab: { accessor: 'pathname', value: '/collections/shared/ReqB' },
+          tabs: [{ type: 'http-request', accessor: 'pathname', pathname: '/collections/shared/ReqB', permanent: true }]
+        }
+      ]
+    };
+
+    const lookups = hydrateSnapshotLookups(snapshot);
+    const keyA = `${workspaceAPath}::${sharedCollectionPath}`;
+    const keyB = `${workspaceBPath}::${sharedCollectionPath}`;
+
+    expect(lookups.tabsByWorkspaceAndCollectionPath[keyA]).toMatchObject({
+      activeTab: { accessor: 'pathname', value: '/collections/shared/ReqA' },
+      tabs: [{ pathname: '/collections/shared/ReqA' }]
+    });
+
+    expect(lookups.tabsByWorkspaceAndCollectionPath[keyB]).toMatchObject({
+      activeTab: { accessor: 'pathname', value: '/collections/shared/ReqB' },
+      tabs: [{ pathname: '/collections/shared/ReqB' }]
+    });
+
+    expect(lookups.hasWorkspaceScopedTabs).toBe(true);
   });
 });
 

@@ -15,6 +15,16 @@ const normalizeLookupKey = (pathname) => {
   return path.normalize(pathname);
 };
 
+const buildWorkspaceCollectionLookupKey = (workspacePathname, collectionPathname) => {
+  const normalizedCollectionPath = normalizeLookupKey(collectionPathname);
+  if (!normalizedCollectionPath) {
+    return null;
+  }
+
+  const normalizedWorkspacePath = normalizeLookupKey(workspacePathname || '');
+  return `${normalizedWorkspacePath || ''}::${normalizedCollectionPath}`;
+};
+
 const tabSchema = yup.object({
   type: yup.string().required(),
   accessor: yup.string().oneOf(['pathname', 'pathname::exampleName', 'type']).required(),
@@ -58,7 +68,7 @@ const workspaceSchema = yup.object({
   pathname: yup.string().required(),
   environment: yup.string().defined(),
   lastActiveCollectionPathname: yup.string().nullable(),
-  sorting: yup.string().defined(),
+  sorting: yup.mixed().oneOf(['alphabetical', 'reverseAlphabetical', 'default']),
   collections: yup.array().of(yup.string()).optional()
 });
 
@@ -159,14 +169,19 @@ class SnapshotManager {
     };
   }
 
-  getTabs(collectionPathname) {
+  getTabs(collectionPathname, workspacePathname = null) {
     const normalizedPath = normalizeLookupKey(collectionPathname);
     if (!normalizedPath) {
       return null;
     }
 
-    const { tabsByCollectionPath } = this._buildLookupMaps(this.store.store);
-    const tabsEntry = tabsByCollectionPath[normalizedPath];
+    const { tabsByCollectionPath, tabsByWorkspaceAndCollectionPath } = this._buildLookupMaps(this.store.store);
+    const workspaceCollectionKey = buildWorkspaceCollectionLookupKey(workspacePathname, collectionPathname);
+
+    let tabsEntry = workspaceCollectionKey ? tabsByWorkspaceAndCollectionPath[workspaceCollectionKey] : null;
+    if (!tabsEntry) {
+      tabsEntry = tabsByCollectionPath[normalizedPath];
+    }
 
     if (!tabsEntry) {
       return null;
@@ -404,7 +419,7 @@ class SnapshotManager {
       lastActiveCollectionPathname: typeof workspace.lastActiveCollectionPathname === 'string'
         ? workspace.lastActiveCollectionPathname
         : null,
-      sorting: typeof workspace.sorting === 'string' ? workspace.sorting : 'az',
+      sorting: typeof workspace.sorting === 'string' ? workspace.sorting : 'default',
       collections
     };
   }
@@ -447,8 +462,14 @@ class SnapshotManager {
 
         const normalizedCollection = this._normalizeCollectionEntry(collection.pathname, collection);
         const normalizedPath = normalizeLookupKey(collection.pathname);
+        const workspaceCollectionKey = buildWorkspaceCollectionLookupKey(
+          normalizedCollection.workspacePathname,
+          normalizedCollection.pathname
+        );
 
-        if (normalizedPath) {
+        if (workspaceCollectionKey) {
+          collectionMap.set(workspaceCollectionKey, normalizedCollection);
+        } else if (normalizedPath) {
           collectionMap.set(normalizedPath, normalizedCollection);
         }
       });
@@ -586,6 +607,7 @@ class SnapshotManager {
     const workspacesByPath = {};
     const collectionsByPath = {};
     const tabsByCollectionPath = {};
+    const tabsByWorkspaceAndCollectionPath = {};
 
     normalizedSnapshot.workspaces.forEach((workspace) => {
       const normalizedPath = normalizeLookupKey(workspace.pathname);
@@ -607,12 +629,21 @@ class SnapshotManager {
         activeTab: collection.activeTab,
         tabs: collection.tabs
       };
+
+      const workspaceCollectionKey = buildWorkspaceCollectionLookupKey(collection.workspacePathname, collection.pathname);
+      if (workspaceCollectionKey) {
+        tabsByWorkspaceAndCollectionPath[workspaceCollectionKey] = {
+          activeTab: collection.activeTab,
+          tabs: collection.tabs
+        };
+      }
     });
 
     return {
       workspacesByPath,
       collectionsByPath,
-      tabsByCollectionPath
+      tabsByCollectionPath,
+      tabsByWorkspaceAndCollectionPath
     };
   }
 }

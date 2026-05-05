@@ -90,7 +90,12 @@ import { updateSettingsSelectedTab } from './index';
 import { saveGlobalEnvironment } from 'providers/ReduxStore/slices/global-environments';
 import { getTabToFocusForCurrentWorkspace } from 'providers/ReduxStore/slices/workspaces/getTabToFocusForCurrentWorkspace';
 import { clearPersistedScope } from 'hooks/usePersistedState/PersistedScopeProvider';
-import { getCollectionEnvironmentPath, findCollectionEnvironmentFromSnapshot, hydrateCollectionTabs } from 'utils/snapshot';
+import {
+  getCollectionEnvironmentPath,
+  findCollectionEnvironmentFromSnapshot,
+  hydrateCollectionTabs,
+  hydrateSnapshotLookups
+} from 'utils/snapshot';
 
 // generate a unique names
 const generateUniqueName = (originalName, existingItems, isFolder) => {
@@ -2587,7 +2592,20 @@ export const openCollectionEvent = (uid, pathname, brunoConfig) => (dispatch, ge
 
       dispatch(workspaceEnvUpdateEvent({ processEnvVariables: workspaceProcessEnvVariables }));
 
-      resolve();
+      const workspacePathname = activeWorkspace?.pathname || null;
+
+      ipcRenderer.invoke('renderer:snapshot:get')
+        .then((snapshot) => hydrateSnapshotLookups(snapshot || {}))
+        .then((snapshotLookups) => hydrateCollectionTabs(
+          existingCollection,
+          dispatch,
+          restoreTabs,
+          snapshotLookups,
+          workspacePathname,
+          true
+        ))
+        .catch(() => null)
+        .finally(resolve);
       return;
     }
 
@@ -2997,7 +3015,7 @@ export const loadLargeRequest
     };
 
 export const mountCollection
-  = ({ collectionUid, collectionPathname, brunoConfig }) =>
+  = ({ collectionUid, collectionPathname, brunoConfig, skipTabRestore = false, workspacePathname = null }) =>
     (dispatch, getState) => {
       dispatch(updateCollectionMountStatus({ collectionUid, mountStatus: 'mounting' }));
       return new Promise(async (resolve, reject) => {
@@ -3007,8 +3025,8 @@ export const mountCollection
             dispatch(addTransientDirectory({ collectionUid, pathname: transientDirPath }));
 
             const collection = getState().collections.collections.find((c) => c.uid === collectionUid);
-            if (collection?.pathname) {
-              await hydrateCollectionTabs(collection, dispatch, restoreTabs);
+            if (!skipTabRestore && collection?.pathname) {
+              await hydrateCollectionTabs(collection, dispatch, restoreTabs, null, workspacePathname);
             }
           })
           .then(resolve)

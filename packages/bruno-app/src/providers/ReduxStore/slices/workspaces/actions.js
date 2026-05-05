@@ -9,7 +9,7 @@ import {
   setWorkspaceScratchCollection
 } from '../workspaces';
 import { createCollection, openCollection, openMultipleCollections, openScratchCollectionEvent, mountCollection } from '../collections/actions';
-import { removeCollection, addTransientDirectory, updateCollectionMountStatus, expandCollection } from '../collections';
+import { removeCollection, addTransientDirectory, updateCollectionMountStatus, expandCollection, sortCollections } from '../collections';
 import { sanitizeName } from 'utils/common/regex';
 import { clearCollectionState } from '../openapi-sync';
 import { updateGlobalEnvironments } from '../global-environments';
@@ -28,6 +28,16 @@ import toast from 'react-hot-toast';
 const { ipcRenderer } = window;
 let snapshotHydrationTimer = null;
 const SNAPSHOT_HYDRATION_TIMEOUT_MS = 10000;
+
+const COLLECTION_SORT_ORDER_BY_WORKSPACE_SORTING = {
+  default: 'default',
+  alphabetical: 'alphabetical',
+  reverseAlphabetical: 'reverseAlphabetical'
+};
+
+const normalizeCollectionSortOrder = (sorting) => {
+  return COLLECTION_SORT_ORDER_BY_WORKSPACE_SORTING[sorting] || 'default';
+};
 
 const clearSnapshotHydrationTimeout = () => {
   if (snapshotHydrationTimer) {
@@ -475,7 +485,10 @@ export const hydrateSnapshotForOpenedCollection = (collectionPathname) => {
       return;
     }
 
-    await hydrateTabs([collection], dispatch, restoreTabs);
+    const activeWorkspace = state.workspaces.workspaces.find((w) => w.uid === snapshotHydration.workspaceUid);
+    const activeWorkspacePathname = activeWorkspace?.pathname || null;
+
+    await hydrateTabs([collection], dispatch, restoreTabs, null, activeWorkspacePathname);
 
     if (
       snapshotHydration.activeCollectionPathname
@@ -489,11 +502,17 @@ export const hydrateSnapshotForOpenedCollection = (collectionPathname) => {
           collectionUid: collection.uid,
           collectionPathname: collection.pathname,
           brunoConfig: collection.brunoConfig,
-          skipTabRestore: true
+          skipTabRestore: true,
+          workspacePathname: activeWorkspacePathname
         })).catch((err) => console.error('Failed to mount active collection:', err));
       }
 
-      const activeTab = await getActiveTabFromSnapshot(collection.pathname, collection);
+      const activeTab = await getActiveTabFromSnapshot(
+        collection.pathname,
+        collection,
+        null,
+        activeWorkspacePathname
+      );
       if (activeTab) {
         dispatch(addTab(activeTab));
       }
@@ -556,6 +575,8 @@ export const switchWorkspace = (workspaceUid) => {
       const workspaceSnapshot = workspace.pathname
         ? snapshotLookups.workspacesByPath[normalizePath(workspace.pathname)] || null
         : null;
+      const snapshotCollectionSortOrder = normalizeCollectionSortOrder(workspaceSnapshot?.sorting);
+      dispatch(sortCollections({ order: snapshotCollectionSortOrder }));
 
       // Load global environments
       const envResult = await ipcRenderer.invoke('renderer:get-global-environments', {
@@ -589,7 +610,7 @@ export const switchWorkspace = (workspaceUid) => {
           && c.uid !== scratchCollection?.uid
           && workspaceCollectionPathSet.has(normalizePath(c.pathname))
       );
-      await hydrateTabs(collections, dispatch, restoreTabs, snapshotLookups);
+      await hydrateTabs(collections, dispatch, restoreTabs, snapshotLookups, workspace.pathname || null);
 
       // Add workspace tabs
       if (scratchCollection?.uid) {
@@ -612,12 +633,18 @@ export const switchWorkspace = (workspaceUid) => {
             collectionUid: activeCollection.uid,
             collectionPathname: activeCollection.pathname,
             brunoConfig: activeCollection.brunoConfig,
-            skipTabRestore: true
+            skipTabRestore: true,
+            workspacePathname: workspace.pathname || null
           })).catch((err) => console.error('Failed to mount active collection:', err));
         }
 
         // Focus the active tab from the collection's tab snapshot
-        const activeTab = await getActiveTabFromSnapshot(activeCollection.pathname, activeCollection, snapshotLookups);
+        const activeTab = await getActiveTabFromSnapshot(
+          activeCollection.pathname,
+          activeCollection,
+          snapshotLookups,
+          workspace.pathname || null
+        );
 
         if (activeTab) {
           dispatch(addTab(activeTab));
