@@ -58,7 +58,7 @@ const parseGrpcRequest = (ocRequest: GrpcRequest): BrunoItem => {
 
   // message
   const variants = grpc?.message as GrpcMessageVariant[] | undefined;
-  if (variants?.length) {
+  if (Array.isArray(variants) && variants.length) {
     brunoRequest.body.grpc = variants.map((variant, index) => ({
       name: variant.title || `message ${index + 1}`,
       content: ensureString(variant.message)
