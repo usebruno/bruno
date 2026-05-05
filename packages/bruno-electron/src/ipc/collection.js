@@ -1075,16 +1075,24 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
 
   ipcMain.handle('renderer:open-multiple-collections', async (e, collectionPaths, options = {}) => {
     if (watcher && mainWindow) {
-      await openCollectionsByPathname(mainWindow, watcher, collectionPaths);
+      const result = await openCollectionsByPathname(mainWindow, watcher, collectionPaths, options);
       if (options.workspacePath) {
         const { setCollectionWorkspace } = require('../store/process-env');
         const { generateUidBasedOnHash } = require('../utils/common');
-        for (const collectionPath of collectionPaths) {
+        for (const collectionPath of result?.opened || []) {
           const collectionUid = generateUidBasedOnHash(collectionPath);
           setCollectionWorkspace(collectionUid, options.workspacePath);
         }
       }
+
+      return result;
     }
+
+    return {
+      opened: [],
+      failed: [],
+      invalid: []
+    };
   });
 
   ipcMain.handle('renderer:set-collection-workspace', (event, collectionUid, workspacePath) => {

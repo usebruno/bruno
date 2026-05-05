@@ -3,6 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const yup = require('yup');
 
+const SNAPSHOT_VERSION = '0.0.1';
 const ENV_FILE_EXTENSIONS = ['bru', 'yml', 'yaml'];
 
 const isObject = (value) => value && typeof value === 'object' && !Array.isArray(value);
@@ -94,7 +95,7 @@ const snapshotSchema = yup.object({
 });
 
 const emptySnapshot = {
-  version: '0.0.1',
+  version: SNAPSHOT_VERSION,
   activeWorkspacePath: null,
   extras: {
     devTools: {
@@ -350,6 +351,7 @@ class SnapshotManager {
 
   _normalizeSnapshot(snapshot = {}) {
     return {
+      version: snapshot.version ?? SNAPSHOT_VERSION,
       activeWorkspacePath: typeof snapshot.activeWorkspacePath === 'string' ? snapshot.activeWorkspacePath : null,
       extras: {
         devTools: this._normalizeDevTools(snapshot?.extras?.devTools)

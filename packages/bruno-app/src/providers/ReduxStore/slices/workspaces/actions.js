@@ -27,7 +27,7 @@ import toast from 'react-hot-toast';
 
 const { ipcRenderer } = window;
 let snapshotHydrationTimer = null;
-const SNAPSHOT_HYDRATION_TIMEOUT_MS = 10000;
+const SNAPSHOT_HYDRATION_LONG_STOP_GUARD_MS = 5 * 60 * 1000;
 
 const COLLECTION_SORT_ORDER_BY_WORKSPACE_SORTING = {
   default: 'default',
@@ -355,12 +355,12 @@ const loadWorkspaceCollectionsForSwitch = async (dispatch, workspace) => {
   };
 
   let updatedWorkspace = null;
-  let requestedCollectionPaths = [];
+  let openedCollectionPaths = [];
 
   try {
     const shouldRefreshCollections = workspace.collections?.some((collection) => collection.notFoundLocally);
     await dispatch(loadWorkspaceCollections(workspace.uid, shouldRefreshCollections));
-    const updatedWorkspace = await dispatch((_, getState) => getState().workspaces.workspaces.find((w) => w.uid === workspace.uid));
+    updatedWorkspace = await dispatch((_, getState) => getState().workspaces.workspaces.find((w) => w.uid === workspace.uid));
 
     if (updatedWorkspace?.collections?.length > 0) {
       const alreadyOpenCollections = await dispatch((_, getState) =>
@@ -376,10 +376,19 @@ const loadWorkspaceCollectionsForSwitch = async (dispatch, workspace) => {
         collectionPaths.map((collectionPath) => [normalizePath(collectionPath), collectionPath])
       ).values()];
 
-      requestedCollectionPaths = uniqueCollectionPaths;
-
       if (uniqueCollectionPaths.length > 0) {
-        await openCollectionsFunction(uniqueCollectionPaths, updatedWorkspace.pathname);
+        const openResult = await openCollectionsFunction(uniqueCollectionPaths, updatedWorkspace.pathname);
+        openedCollectionPaths = Array.isArray(openResult?.opened)
+          ? openResult.opened
+          : uniqueCollectionPaths;
+
+        if (Array.isArray(openResult?.failed) && openResult.failed.length > 0) {
+          console.warn('Some workspace collections failed to open during switch:', openResult.failed);
+        }
+
+        if (Array.isArray(openResult?.invalid) && openResult.invalid.length > 0) {
+          console.warn('Some workspace collection paths were invalid during switch:', openResult.invalid);
+        }
       }
     }
 
@@ -388,14 +397,14 @@ const loadWorkspaceCollectionsForSwitch = async (dispatch, workspace) => {
 
     return {
       updatedWorkspace,
-      requestedCollectionPaths
+      openedCollectionPaths
     };
   } catch (error) {
     console.error('Failed to load workspace collections:', error);
 
     return {
       updatedWorkspace,
-      requestedCollectionPaths
+      openedCollectionPaths
     };
   }
 };
@@ -446,7 +455,7 @@ const scheduleSnapshotHydrationTimeout = (dispatch, getState, workspaceUid) => {
     dispatch(setSnapshotReady(true));
     dispatch(clearSnapshotHydrationSession());
     clearSnapshotHydrationTimeout();
-  }, SNAPSHOT_HYDRATION_TIMEOUT_MS);
+  }, SNAPSHOT_HYDRATION_LONG_STOP_GUARD_MS);
 };
 
 export const hydrateSnapshotForOpenedCollection = (collectionPathname) => {
@@ -591,7 +600,7 @@ export const switchWorkspace = (workspaceUid) => {
 
       // Mount scratch collection and load workspace collections
       const scratchCollection = await dispatch(mountScratchCollection(workspaceUid));
-      const { updatedWorkspace } = await loadWorkspaceCollectionsForSwitch(dispatch, workspace);
+      const { updatedWorkspace, openedCollectionPaths } = await loadWorkspaceCollectionsForSwitch(dispatch, workspace);
 
       const latestWorkspace = updatedWorkspace || getState().workspaces.workspaces.find((w) => w.uid === workspaceUid);
       const workspaceCollectionPaths = [...new Map(
@@ -662,7 +671,11 @@ export const switchWorkspace = (workspaceUid) => {
           .map((c) => normalizePath(c.pathname))
       );
 
-      const pendingCollectionPathnames = workspaceCollectionPaths
+      const expectedHydrationCollectionPathnames = Array.isArray(openedCollectionPaths) && openedCollectionPaths.length > 0
+        ? openedCollectionPaths
+        : [];
+
+      const pendingCollectionPathnames = expectedHydrationCollectionPathnames
         .filter((collectionPath) => !openWorkspaceCollectionPaths.has(normalizePath(collectionPath)));
 
       dispatch(startSnapshotHydrationSession({
