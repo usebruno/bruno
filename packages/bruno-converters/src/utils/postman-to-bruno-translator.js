@@ -53,6 +53,32 @@ const simpleTranslations = {
 
   // Request headers
   'pm.request.headers.remove': 'req.deleteHeader',
+  'pm.request.headers.get': 'req.headerList.get',
+  'pm.request.headers.has': 'req.headerList.has',
+  'pm.request.headers.one': 'req.headerList.one',
+  'pm.request.headers.all': 'req.headerList.all',
+  'pm.request.headers.count': 'req.headerList.count',
+  'pm.request.headers.indexOf': 'req.headerList.indexOf',
+  'pm.request.headers.find': 'req.headerList.find',
+  'pm.request.headers.filter': 'req.headerList.filter',
+  'pm.request.headers.each': 'req.headerList.forEach',
+  'pm.request.headers.map': 'req.headerList.map',
+  'pm.request.headers.reduce': 'req.headerList.reduce',
+  'pm.request.headers.toObject': 'req.headerList.toObject',
+  'pm.request.headers.clear': 'req.headerList.clear',
+
+  // Response headers PropertyList methods (read-only)
+  'pm.response.headers.has': 'res.headerList.has',
+  'pm.response.headers.one': 'res.headerList.one',
+  'pm.response.headers.all': 'res.headerList.all',
+  'pm.response.headers.count': 'res.headerList.count',
+  'pm.response.headers.indexOf': 'res.headerList.indexOf',
+  'pm.response.headers.find': 'res.headerList.find',
+  'pm.response.headers.filter': 'res.headerList.filter',
+  'pm.response.headers.each': 'res.headerList.forEach',
+  'pm.response.headers.map': 'res.headerList.map',
+  'pm.response.headers.reduce': 'res.headerList.reduce',
+  'pm.response.headers.toObject': 'res.headerList.toObject',
 
   // Request properties (pm.request.*)
   'pm.request.url.getHost': 'req.getHost',
@@ -670,6 +696,71 @@ function processTransformations(ast, transformedNodes) {
   });
 }
 
+// Postman provides these as sandbox globals. Bruno requires explicit require()
+const POSTMAN_LIBRARY_GLOBALS = {
+  CryptoJS: 'crypto-js',
+  _: 'lodash',
+  moment: 'moment',
+  cheerio: 'cheerio',
+  tv4: 'tv4'
+};
+
+/**
+ * Inject require() for Postman sandbox globals (CryptoJS, _, moment, cheerio,
+ * tv4) used as X.foo or X(...) and not visible in any enclosing scope at the
+ * usage site. Requires are prepended to the program body, sorted alphabetically.
+ *
+ * @param {Collection} ast - jscodeshift AST
+ */
+function injectLibraryRequires(ast) {
+  const libraryNames = new Set(Object.keys(POSTMAN_LIBRARY_GLOBALS));
+  const usedLibraries = new Set();
+
+  ast.find(j.Identifier).forEach((path) => {
+    const name = path.value.name;
+    if (!libraryNames.has(name)) return;
+
+    const parent = path.parent.value;
+
+    // check for library usage: X.foo / X['foo'] / X[expr] (X is object) or X(...) (X is callee)
+    const isLibraryUsage
+      = (parent.type === 'MemberExpression' && parent.object === path.value)
+        || (parent.type === 'CallExpression' && parent.callee === path.value);
+    if (!isLibraryUsage) return;
+
+    // skip if the name is bound in any enclosing scope at this position
+    if (path.scope && path.scope.lookup(name)) return;
+
+    usedLibraries.add(name);
+  });
+
+  if (usedLibraries.size === 0) return;
+
+  const declarations = [...usedLibraries].sort().map((name) =>
+    j.variableDeclaration('const', [
+      j.variableDeclarator(
+        j.identifier(name),
+        j.callExpression(j.identifier('require'), [j.literal(POSTMAN_LIBRARY_GLOBALS[name])])
+      )
+    ])
+  );
+
+  // insert after directive prologue if present
+  const body = ast.get().value.program.body;
+  let insertIndex = 0;
+  while (insertIndex < body.length) {
+    const node = body[insertIndex];
+    const isDirective
+      = node.type === 'ExpressionStatement'
+        && node.expression
+        && node.expression.type === 'Literal'
+        && typeof node.expression.value === 'string';
+    if (!isDirective) break;
+    insertIndex++;
+  }
+  body.splice(insertIndex, 0, ...declarations);
+}
+
 /**
  * Translates Postman script code to Bruno script code
  * @param {string} code - The Postman script code to translate
@@ -699,6 +790,9 @@ function translateCode(code) {
 
   // Handle special Postman syntax patterns
   handleTestsBracketNotation(ast);
+
+  // Inject require() for Postman sandbox globals
+  injectLibraryRequires(ast);
 
   return ast.toSource();
 }

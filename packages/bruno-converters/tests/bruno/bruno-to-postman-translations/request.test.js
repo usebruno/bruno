@@ -229,4 +229,78 @@ console.log("Headers:", JSON.stringify(pm.request.headers));
     const translatedCode = translateBruToPostman(code);
     expect(translatedCode).toContain('pm.request.url.variables.id');
   });
+
+  // --- req.headerList.* → pm.request.headers.* ------
+
+  it('should translate req.headerList.get to pm.request.headers.get', () => {
+    const code = 'const ct = req.headerList.get("Content-Type");';
+    const translatedCode = translateBruToPostman(code);
+    expect(translatedCode).toBe('const ct = pm.request.headers.get("Content-Type");');
+  });
+
+  it('should translate req.headerList.has to pm.request.headers.has', () => {
+    const code = 'const hasAuth = req.headerList.has("Authorization");';
+    const translatedCode = translateBruToPostman(code);
+    expect(translatedCode).toBe('const hasAuth = pm.request.headers.has("Authorization");');
+  });
+
+  it('should translate req.headerList.all to pm.request.headers.all', () => {
+    const code = 'const allHeaders = req.headerList.all();';
+    const translatedCode = translateBruToPostman(code);
+    expect(translatedCode).toBe('const allHeaders = pm.request.headers.all();');
+  });
+
+  it('should translate req.headerList.filter to pm.request.headers.filter', () => {
+    const code = 'const custom = req.headerList.filter(h => h.key.startsWith("X-"));';
+    const translatedCode = translateBruToPostman(code);
+    expect(translatedCode).toBe('const custom = pm.request.headers.filter(h => h.key.startsWith("X-"));');
+  });
+
+  it('should translate req.headerList.append to pm.request.headers.add', () => {
+    const code = 'req.headerList.append({key: "X-Custom", value: "test"});';
+    const translatedCode = translateBruToPostman(code);
+    expect(translatedCode).toBe('pm.request.headers.add({key: "X-Custom", value: "test"});');
+  });
+
+  it('should translate req.headerList.delete to pm.request.headers.remove', () => {
+    const code = 'req.headerList.delete("Authorization");';
+    const translatedCode = translateBruToPostman(code);
+    expect(translatedCode).toBe('pm.request.headers.remove("Authorization");');
+  });
+
+  it('should translate req.headerList.clear to pm.request.headers.clear', () => {
+    const code = 'req.headerList.clear();';
+    const translatedCode = translateBruToPostman(code);
+    expect(translatedCode).toBe('pm.request.headers.clear();');
+  });
+
+  it('should translate req.headerList.one to pm.request.headers.one', () => {
+    const code = 'const first = req.headerList.one("Content-Type");';
+    const translatedCode = translateBruToPostman(code);
+    expect(translatedCode).toBe('const first = pm.request.headers.one("Content-Type");');
+  });
+
+  it('should translate req.headerList.find to pm.request.headers.find', () => {
+    const code = 'const found = req.headerList.find(h => h.key === "Authorization");';
+    const translatedCode = translateBruToPostman(code);
+    expect(translatedCode).toBe('const found = pm.request.headers.find(h => h.key === "Authorization");');
+  });
+
+  it('should translate req.headerList.toObject to pm.request.headers.toObject', () => {
+    const code = 'const obj = req.headerList.toObject();';
+    const translatedCode = translateBruToPostman(code);
+    expect(translatedCode).toBe('const obj = pm.request.headers.toObject();');
+  });
+
+  it('should translate req.headerList.set to pm.request.headers.upsert', () => {
+    const code = 'req.headerList.set({key: "X-Custom", value: "updated"});';
+    const translatedCode = translateBruToPostman(code);
+    expect(translatedCode).toBe('pm.request.headers.upsert({key: "X-Custom", value: "updated"});');
+  });
+
+  it('should translate standalone req.headerList to pm.request.headers', () => {
+    const code = 'const hl = req.headerList;';
+    const translatedCode = translateBruToPostman(code);
+    expect(translatedCode).toBe('const hl = pm.request.headers;');
+  });
 });

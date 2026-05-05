@@ -164,6 +164,13 @@ export const tabsSlice = createSlice({
         tab.requestPaneHeight = action.payload.requestPaneHeight;
       }
     },
+    updateApiSpecTabLeftPaneWidth: (state, action) => {
+      const tab = find(state.tabs, (t) => t.uid === action.payload.uid);
+
+      if (tab) {
+        tab.apiSpecLeftPaneWidth = action.payload.apiSpecLeftPaneWidth;
+      }
+    },
     updateRequestPaneTab: (state, action) => {
       const tab = find(state.tabs, (t) => t.uid === action.payload.uid);
 
@@ -458,6 +465,7 @@ export const {
   switchTab,
   updateRequestPaneTabWidth,
   updateRequestPaneTabHeight,
+  updateApiSpecTabLeftPaneWidth,
   updateRequestPaneTab,
   updateResponsePaneTab,
   updateResponseFormat,

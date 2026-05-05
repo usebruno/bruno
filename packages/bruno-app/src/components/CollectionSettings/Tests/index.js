@@ -35,6 +35,7 @@ const Tests = ({ collection }) => {
       <CodeEditor
         ref={testsEditorRef}
         collection={collection}
+        docKey="collection-tests"
         value={tests || ''}
         theme={displayedTheme}
         onEdit={onEdit}
