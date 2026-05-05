@@ -1,4 +1,5 @@
 const { marshallToVm } = require('../utils');
+const { createPropertyListBridge } = require('../utils/property-list-bridge');
 
 // Marshal a QuickJS query argument to a host-compatible value.
 // Function handles are wrapped as native callbacks; other values are dumped as-is.
@@ -34,24 +35,42 @@ const addBrunoResponseShimToContext = (vm, res) => {
 
   const status = marshallToVm(res?.status, vm);
   const statusText = marshallToVm(res?.statusText, vm);
-  const headers = marshallToVm(res?.headers, vm);
   const body = marshallToVm(res?.body, vm);
   const responseTime = marshallToVm(res?.responseTime, vm);
   const url = marshallToVm(res?.url, vm);
 
   vm.setProp(resFn, 'status', status);
   vm.setProp(resFn, 'statusText', statusText);
-  vm.setProp(resFn, 'headers', headers);
   vm.setProp(resFn, 'body', body);
   vm.setProp(resFn, 'responseTime', responseTime);
   vm.setProp(resFn, 'url', url);
 
   status.dispose();
-  headers.dispose();
   body.dispose();
   responseTime.dispose();
   url.dispose();
   statusText.dispose();
+
+  // res.headers — plain headers object for backward-compatible bracket access
+  const headersVal = marshallToVm(res?.headers || {}, vm);
+  vm.setProp(resFn, 'headers', headersVal);
+  headersVal.dispose();
+
+  // res.headerList — read-only PropertyList bridge for structured header operations
+  let resHeadersEvalCode = '';
+  if (res?.headerList) {
+    const headerListObj = vm.newObject();
+    const bridge = createPropertyListBridge(vm, res.headerList, headerListObj, {
+      globalPath: 'globalThis.res.headerList',
+      syncReadMethods: ['get', 'has', 'count', 'indexOf', 'toObject', 'toString'],
+      syncReadObjectMethods: ['one', 'all', 'idx', 'toJSON'],
+      syncWriteMethods: ['append', 'set', 'delete', 'clear', 'populate', 'repopulate', 'assimilate'],
+      withIterators: true
+    });
+    resHeadersEvalCode = bridge.evalCode;
+    vm.setProp(resFn, 'headerList', headerListObj);
+    headerListObj.dispose();
+  }
 
   let getStatusText = vm.newFunction('getStatusText', function () {
     return marshallToVm(res.getStatusText(), vm);
@@ -109,6 +128,13 @@ const addBrunoResponseShimToContext = (vm, res) => {
 
   vm.setProp(vm.global, 'res', resFn);
   resFn.dispose();
+
+  // Evaluate iterator code after res is on global (iterators reference globalThis.res.headerList)
+  // Wrapped in a block to avoid const redeclaration conflicts with req.headerList's evalCode
+  // The bridge generates `each` (shared with CookieList); alias `forEach` for HeaderList's MDN-style API
+  if (resHeadersEvalCode) {
+    vm.evalCode(`{ ${resHeadersEvalCode} globalThis.res.headerList.forEach = globalThis.res.headerList.each; }`);
+  }
 };
 
 module.exports = addBrunoResponseShimToContext;
