@@ -158,7 +158,7 @@ class HeaderList extends PropertyList {
 
   /** @throws {Error} Use get(name) or all() instead. */
   idx() {
-    throw new Error('idx() is not supported on HeaderList. Use get(name) or all() instead.');
+    throw new Error('idx() is not supported on HeaderList. Use get(name) instead.');
   }
 
   /** @throws {Error} Use append() instead. */
