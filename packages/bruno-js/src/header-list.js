@@ -37,7 +37,6 @@ const ReadOnlyPropertyList = require('./readonly-property-list');
  * | `get(name)`        | Value of the header with matching key              | `'application/json'`                            |
  * | `one(name)`        | Full header object for matching key                | `{ key: 'Content-Type', value: 'application/json' }` |
  * | `all()`            | Cloned array of all header objects                 | `[{ key: 'Content-Type', … }, …]`              |
- * | `idx(index)`       | Header at positional index                         | `{ key: 'Content-Type', … }`                   |
  * | `count()`          | Number of headers                                  | `3`                                             |
  *
  * ## Search methods (case-insensitive key matching)
@@ -75,8 +74,8 @@ const ReadOnlyPropertyList = require('./readonly-property-list');
  * | `upsert(headerObj)`           | Sets (or replaces) a header; returns true/false/null      |
  * | `remove(predicate, context?)`     | Deletes header(s) by name, predicate, or object           |
  * | `clear()`                     | Removes **all** headers (enabled and disabled)            |
- * | `populate(items\|string)`     | Replaces all; accepts array or multi-line header string    |
- * | `repopulate(items)`           | Alias for `populate()`                                    |
+ * | `populate(items\|string)`     | Adds items, skipping keys that already exist                    |
+ * | `repopulate(items)`           | Clears all, then populates with new items                      |
  * | `assimilate(source, prune?)` | Merges headers; prune removes items not in source          |
  */
 class HeaderList extends PropertyList {
@@ -359,31 +358,42 @@ class HeaderList extends PropertyList {
   }
 
   /**
-   * Replace all headers with a new set.
+   * Load one or more headers into the list (without clearing existing ones).
    * Accepts an array of { key, value } objects or a multi-line "Key: Value" string.
+   *
+   * Headers whose key already exists are skipped (case-insensitive).
+   * Note: Postman's populate adds duplicate keys because Postman supports
+   * multiple headers with the same name. Bruno does not, so we skip
+   * existing keys to preserve the current value.
+   *
    * @param {Array|string} items
    */
   populate(items) {
     this.#assertWritable();
-    this.clear();
     if (typeof items === 'string') {
       const lines = items.split(/\r?\n/).filter((l) => l.trim());
       for (const line of lines) {
-        this.add(line);
+        const parsed = HeaderList.#parseHeaderString(line);
+        if (parsed && !this.has(parsed.key)) {
+          this.add(parsed);
+        }
       }
       return;
     }
     const list = Array.isArray(items) ? items : [];
     for (const item of list) {
-      this.add(item);
+      if (item && item.key && !this.has(item.key)) {
+        this.add(item);
+      }
     }
   }
 
   /**
-   * Clear and repopulate with new items.
-   * @param {Array} items
+   * Clear all headers and repopulate with new items.
+   * @param {Array|string} items
    */
   repopulate(items) {
+    this.clear();
     this.populate(items);
   }
 

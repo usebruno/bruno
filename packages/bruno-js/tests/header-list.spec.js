@@ -452,35 +452,35 @@ describe('HeaderList (req.headerList)', () => {
   });
 
   describe('populate()', () => {
-    test('replaces all headers with new set', () => {
+    test('adds new items, skipping keys that already exist', () => {
       const { list, rawReq } = createReqHeaders();
       list.populate([
-        { key: 'X-New', value: 'one' },
-        { key: 'X-Other', value: 'two' }
+        { key: 'Content-Type', value: 'text/plain' },
+        { key: 'X-New', value: 'one' }
       ]);
-      expect(list.count()).toBe(2);
+      expect(list.count()).toBe(4);
       expect(list.get('X-New')).toBe('one');
-      expect(list.get('X-Other')).toBe('two');
-      expect(rawReq.headers['Content-Type']).toBeUndefined();
+      // existing key is NOT overwritten
+      expect(rawReq.headers['Content-Type']).toBe('application/json');
     });
 
-    test('handles empty array', () => {
+    test('handles empty array (no-op)', () => {
       const { list } = createReqHeaders();
       list.populate([]);
-      expect(list.count()).toBe(0);
+      expect(list.count()).toBe(3);
     });
 
-    test('handles non-array input', () => {
+    test('handles non-array input (no-op)', () => {
       const { list } = createReqHeaders();
       list.populate(null);
-      expect(list.count()).toBe(0);
+      expect(list.count()).toBe(3);
     });
 
-    test('accepts a multi-line header string', () => {
+    test('accepts a multi-line header string, skipping existing keys', () => {
       const { list, rawReq } = createReqHeaders({ Old: 'gone' });
-      list.populate('Content-Type: application/json\nAccept: */*');
-      expect(rawReq.headers['Old']).toBeUndefined();
-      expect(rawReq.headers['Content-Type']).toBe('application/json');
+      list.populate('Old: overwritten\nAccept: */*');
+      // Old is not overwritten because it already exists
+      expect(rawReq.headers['Old']).toBe('gone');
       expect(rawReq.headers['Accept']).toBe('*/*');
       expect(list.count()).toBe(2);
     });
@@ -495,11 +495,12 @@ describe('HeaderList (req.headerList)', () => {
   });
 
   describe('repopulate()', () => {
-    test('delegates to populate()', () => {
-      const { list } = createReqHeaders();
+    test('clears existing headers then populates', () => {
+      const { list, rawReq } = createReqHeaders();
       list.repopulate([{ key: 'X-Only', value: 'val' }]);
       expect(list.count()).toBe(1);
       expect(list.get('X-Only')).toBe('val');
+      expect(rawReq.headers['Content-Type']).toBeUndefined();
     });
   });
 
