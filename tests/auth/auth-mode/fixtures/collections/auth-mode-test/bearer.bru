@@ -1,0 +1,27 @@
+meta {
+  name: bearer
+  type: http
+  seq: 5
+}
+
+get {
+  url: http://localhost:8081/ping
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: bearer-token
+}
+
+script:pre-request {
+  test("detects Bearer auth in pre-request script", function() {
+    expect(req.getAuthMode()).to.equal("bearer");
+  });
+}
+
+tests {
+  test("detects Bearer auth in test script", function() {
+    expect(req.getAuthMode()).to.equal("bearer");
+  });
+}

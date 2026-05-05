@@ -66,6 +66,17 @@ const createRedirectConfig = (error, redirectUrl) => {
   return requestConfig;
 };
 
+const deleteAuthConfig = (config) => {
+  // Keep auth configs on the runtime request for scripts, but don't pass them to transport.
+  delete config.ntlmConfig;
+  delete config.awsv4config;
+  delete config.digestConfig;
+  delete config.oauth1config;
+  delete config.oauth2;
+  delete config.apiKeyHeaderName;
+  delete config.apiKeyAuthValueForQueryParams;
+};
+
 /**
  * Function that configures axios with timing interceptors
  * Important to note here that the timings are not completely accurate.
@@ -98,6 +109,8 @@ function makeAxiosInstance({
   };
 
   instance.interceptors.request.use((config) => {
+    deleteAuthConfig(config);
+
     config.headers['request-start-time'] = Date.now();
 
     /**

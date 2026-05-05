@@ -100,16 +100,18 @@ class BrunoRequest {
       return 'oauth1';
     } else if (this.headers?.['Authorization']?.startsWith('Bearer')) {
       return 'bearer';
-    } else if (this.headers?.['Authorization']?.startsWith('Basic') || this.req?.auth?.username) {
+    } else if (this.headers?.['Authorization']?.startsWith('Basic') || this.req?.basicAuth) {
       return 'basic';
     } else if (this.req?.apiKeyAuthValueForQueryParams) {
       return 'apikey';
     } else if (this.req?.apiKeyHeaderName && this.headers?.[this.req.apiKeyHeaderName] !== undefined) {
       return 'apikey';
-    } else if (this.req?.awsv4) {
+    } else if (this.req?.awsv4config) {
       return 'awsv4';
     } else if (this.req?.digestConfig) {
       return 'digest';
+    } else if (this.req?.ntlmConfig) {
+      return 'ntlm';
     } else if (this.headers?.['X-WSSE'] || this.req?.auth?.username) {
       return 'wsse';
     } else {

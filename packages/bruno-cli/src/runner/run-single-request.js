@@ -604,9 +604,6 @@ const runSingleRequest = async function (
       }
 
       request.oauth2CredentialVariables = getFormattedOauth2Credentials();
-
-      // Remove oauth2 config from request to prevent it from being sent
-      delete request.oauth2;
     }
 
     let response, responseTime;
@@ -631,7 +628,6 @@ const runSingleRequest = async function (
 
       if (request.ntlmConfig) {
         axiosInstance = NtlmClient(request.ntlmConfig, axiosInstance.defaults);
-        delete request.ntlmConfig;
       }
 
       if (request.oauth1config) {
@@ -657,12 +653,10 @@ const runSingleRequest = async function (
 
         request.awsv4config = await resolveAwsV4Credentials(request);
         addAwsV4Interceptor(axiosInstance, request);
-        delete request.awsv4config;
       }
 
       if (request.digestConfig) {
         addDigestInterceptor(axiosInstance, request);
-        delete request.digestConfig;
       }
 
       /** @type {import('axios').AxiosResponse} */

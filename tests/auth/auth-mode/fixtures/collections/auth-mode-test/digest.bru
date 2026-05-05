@@ -1,0 +1,28 @@
+meta {
+  name: digest
+  type: http
+  seq: 6
+}
+
+get {
+  url: http://localhost:8081/ping
+  body: none
+  auth: digest
+}
+
+auth:digest {
+  username: user
+  password: password
+}
+
+script:pre-request {
+  test("detects Digest auth in pre-request script", function() {
+    expect(req.getAuthMode()).to.equal("digest");
+  });
+}
+
+tests {
+  test("detects Digest auth in test script", function() {
+    expect(req.getAuthMode()).to.equal("digest");
+  });
+}
