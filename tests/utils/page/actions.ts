@@ -306,7 +306,7 @@ const createRequest = async (
 
     await locators.dropdown.item('New Request').click();
 
-    if (requestType === 'gRPC') {
+    if (requestType !== 'HTTP') {
       await page.getByTestId(REQUEST_TYPE_TESTID[requestType]).click();
     }
 
