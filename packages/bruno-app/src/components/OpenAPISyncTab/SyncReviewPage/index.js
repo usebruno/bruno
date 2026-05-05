@@ -15,7 +15,7 @@ import ExpandableEndpointRow from '../EndpointChangeSection/ExpandableEndpointRo
 import ConfirmSyncModal from '../ConfirmSyncModal';
 import SpecDiffModal from '../SpecDiffModal';
 import Help from 'components/Help';
-import { setReviewDecision, setReviewDecisions, selectTabUiState } from 'providers/ReduxStore/slices/openapi-sync';
+import { setReviewDecision, setReviewDecisions } from 'providers/ReduxStore/slices/openapi-sync';
 
 /**
  * Categorize remoteDrift endpoints using three-way merge.
@@ -87,7 +87,7 @@ const SyncReviewPage = ({
   onApplySync
 }) => {
   const dispatch = useDispatch();
-  const tabUiState = useSelector(selectTabUiState(collectionUid));
+  const tabUiState = useSelector((state) => state.openapiSync?.tabUiState?.[collectionUid] || {});
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [showSpecDiffModal, setShowSpecDiffModal] = useState(false);
 
