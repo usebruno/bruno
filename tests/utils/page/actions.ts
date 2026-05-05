@@ -330,7 +330,7 @@ const createRequest = async (
       await page.keyboard.type(url);
     }
 
-    await page.getByTestId('create-new-request-button').click();
+    await locators.modal.button('Create').click();
 
     if (inFolder) {
       await expect(locators.sidebar.folderRequest(parentName, requestName)).toBeVisible();

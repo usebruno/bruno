@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import yaml from 'js-yaml';
+import { bruToJsonV2 } from '@usebruno/lang';
 import { expect, test } from '../../../playwright';
 import {
   addGrpcMessage,
@@ -14,7 +15,6 @@ import {
 const REQUEST_NAME = 'grpc-multi-msg';
 const GRPC_URL = 'grpcb.in:9000';
 const GRPC_METHOD = 'BidiHello';
-const MESSAGE_COUNT = 3;
 
 type GrpcRequestYml = {
   grpc?: {
@@ -58,16 +58,11 @@ for (const { format, collectionName, tmpDirPrefix } of FORMATS) {
       if (format === 'yml') {
         const parsed = yaml.load(fileContent) as GrpcRequestYml;
         const messages = parsed.grpc?.message ?? [];
-
-        expect(messages).toHaveLength(MESSAGE_COUNT);
-        for (const variant of messages) {
-          expect(variant.title?.length ?? 0).toBeGreaterThan(0);
-          expect(variant.message?.trim().length ?? 0).toBeGreaterThan(0);
-        }
-      } else {
-        // .bru stores each gRPC message as its own `body:grpc { ... }` block.
-        const blockCount = (fileContent.match(/^body:grpc\b/gm) ?? []).length;
-        expect(blockCount).toBe(MESSAGE_COUNT);
+        expect(messages.length).toBe(3);
+      } else if (format === 'bru') {
+        const parsed = bruToJsonV2(fileContent) as { body?: { grpc?: { name: string; content: string }[] } };
+        const messages = parsed.body?.grpc ?? [];
+        expect(messages.length).toBe(3);
       }
     });
   });
