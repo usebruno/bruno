@@ -871,10 +871,10 @@ describe('Response Translation', () => {
     expect(translatedCode).toBe('const allHeaders = res.headerList.all();');
   });
 
-  it('should translate pm.response.headers.each to res.headerList.each', () => {
+  it('should translate pm.response.headers.each to res.headerList.forEach', () => {
     const code = 'pm.response.headers.each(h => console.log(h.key));';
     const translatedCode = translateCode(code);
-    expect(translatedCode).toBe('res.headerList.each(h => console.log(h.key));');
+    expect(translatedCode).toBe('res.headerList.forEach(h => console.log(h.key));');
   });
 
   it('should translate pm.response.headers.filter to res.headerList.filter', () => {

@@ -177,10 +177,10 @@ describe('Request Translation', () => {
     expect(translatedCode).toBe('const allHeaders = req.headerList.all();');
   });
 
-  it('should translate pm.request.headers.each to req.headerList.each', () => {
+  it('should translate pm.request.headers.each to req.headerList.forEach', () => {
     const code = 'pm.request.headers.each(h => console.log(h.key));';
     const translatedCode = translateCode(code);
-    expect(translatedCode).toBe('req.headerList.each(h => console.log(h.key));');
+    expect(translatedCode).toBe('req.headerList.forEach(h => console.log(h.key));');
   });
 
   it('should translate pm.request.headers.filter to req.headerList.filter', () => {

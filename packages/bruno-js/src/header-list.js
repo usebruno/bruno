@@ -54,7 +54,7 @@ const ReadOnlyPropertyList = require('./readonly-property-list');
  *
  * | Method                       | Description                                  |
  * |------------------------------|----------------------------------------------|
- * | `each(fn, context?)`         | Calls `fn(header, index)` for every header   |
+ * | `forEach(fn, context?)`      | Calls `fn(header, index)` for every header   |
  * | `map(fn, context?)`          | Returns a new array of mapped values         |
  * | `reduce(fn, initial?, context?)` | Reduces headers to a single value        |
  *
@@ -62,21 +62,24 @@ const ReadOnlyPropertyList = require('./readonly-property-list');
  *
  * | Method                                                        | Description                                           |
  * |---------------------------------------------------------------|-------------------------------------------------------|
+ * | `entries()`                                                   | Array of `[key, value]` tuples                         |
+ * | `keys()`                                                      | Array of header key strings                            |
+ * | `values()`                                                    | Array of header value strings                          |
  * | `toObject(excludeDisabled?, caseSensitive?, multiValue?, sanitizeKeys?)` | `{ key: value }` map of all headers      |
  * | `toString()`                                                  | HTTP wire format `Key: Value\n...`, skips disabled     |
  * | `toJSON()`                                                    | Same as `all()` — suitable for `JSON.stringify()`      |
  *
  * ## Write methods (HeaderList overrides — synchronous, case-insensitive)
  *
- * | Method                        | Description                                              |
- * |-------------------------------|----------------------------------------------------------|
- * | `add(headerObj\|string)`      | Sets a header; accepts `{key,value}` or `"Key: Value"`    |
- * | `upsert(headerObj)`           | Sets (or replaces) a header; returns true/false/null      |
- * | `remove(predicate, context?)`     | Deletes header(s) by name, predicate, or object           |
- * | `clear()`                     | Removes **all** headers (enabled and disabled)            |
- * | `populate(items\|string)`     | Adds items, skipping keys that already exist                    |
- * | `repopulate(items)`           | Clears all, then populates with new items                      |
- * | `assimilate(source, prune?)` | Merges headers; prune removes items not in source          |
+ * | Method                            | Description                                              |
+ * |-----------------------------------|----------------------------------------------------------|
+ * | `append(headerObj\|name, value?)` | Sets a header; accepts `{key,value}`, `"Key: Value"`, or `(name, value)` |
+ * | `set(headerObj\|name, value?)`    | Sets (or replaces) a header; returns true/false/null      |
+ * | `delete(predicate, context?)`     | Deletes header(s) by name, predicate, or object           |
+ * | `clear()`                         | Removes **all** headers (enabled and disabled)            |
+ * | `populate(items\|string)`         | Adds items, skipping keys that already exist              |
+ * | `repopulate(items)`               | Clears all, then populates with new items                 |
+ * | `assimilate(source, prune?)`      | Merges headers; prune removes items not in source         |
  */
 class HeaderList extends PropertyList {
   #req;
@@ -210,7 +213,7 @@ class HeaderList extends PropertyList {
   // ── Iteration overrides (optional context binding) ─────────────────
 
   /** @param {Function} fn @param {*} [context] */
-  each(fn, context) {
+  forEach(fn, context) {
     super.each(context !== undefined ? fn.bind(context) : fn);
   }
 
@@ -240,23 +243,40 @@ class HeaderList extends PropertyList {
   // ── Write methods (direct request config manipulation) ────────────────
 
   /**
-   * Add a header. Accepts a { key, value } object or a "Key: Value" string.
-   * @param {object|string} item
+   * Append a header. Accepts a { key, value } object, a "Key: Value" string,
+   * or two arguments (name, value).
+   *
+   * Note: Unlike MDN's Headers.append(), this does not create duplicate keys
+   * (Bruno does not support multiple headers with the same name). Instead it
+   * delegates to set(), which overwrites any existing header with the same key.
+   *
+   * @param {object|string} itemOrName - Header object, "Key: Value" string, or header name
+   * @param {string} [value] - Header value (when using two-arg form)
    */
-  add(item) {
-    if (typeof item === 'string') {
-      item = HeaderList.#parseHeaderString(item);
+  append(itemOrName, value) {
+    if (typeof itemOrName === 'string' && value !== undefined) {
+      this.set({ key: itemOrName, value });
+      return;
     }
-    this.upsert(item);
+    if (typeof itemOrName === 'string') {
+      itemOrName = HeaderList.#parseHeaderString(itemOrName);
+    }
+    this.set(itemOrName);
   }
 
   /**
    * Set (or replace) a header on the request (case-insensitive key match).
-   * @param {object} item - Header object with `key` and `value`.
+   * Accepts a { key, value } object or two arguments (name, value).
+   * @param {object|string} itemOrName - Header object with `key` and `value`, or header name
+   * @param {string} [value] - Header value (when using two-arg form)
    * @returns {boolean|null} `true` if added, `false` if updated, `null` if input was nil
    */
-  upsert(item) {
+  set(itemOrName, value) {
     this.#assertWritable();
+    let item = itemOrName;
+    if (typeof itemOrName === 'string') {
+      item = { key: itemOrName, value };
+    }
     if (!item || typeof item !== 'object' || !item.key) return null;
     const headers = this.#req.headers || {};
     const existingKey = Object.keys(headers).find(
@@ -272,12 +292,12 @@ class HeaderList extends PropertyList {
   }
 
   /**
-   * Remove header(s) matching a predicate, key string, or item reference.
+   * Delete header(s) matching a predicate, key string, or item reference.
    * String and object removal are case-insensitive.
    * @param {Function|string|object} predicate
    * @param {*} [context] - Bind `this` for function predicates
    */
-  remove(predicate, context) {
+  delete(predicate, context) {
     this.#assertWritable();
     if (typeof predicate === 'function') {
       const bound = context !== undefined ? predicate.bind(context) : predicate;
@@ -375,7 +395,7 @@ class HeaderList extends PropertyList {
       for (const line of lines) {
         const parsed = HeaderList.#parseHeaderString(line);
         if (parsed && !this.has(parsed.key)) {
-          this.add(parsed);
+          this.append(parsed);
         }
       }
       return;
@@ -383,7 +403,7 @@ class HeaderList extends PropertyList {
     const list = Array.isArray(items) ? items : [];
     for (const item of list) {
       if (item && item.key && !this.has(item.key)) {
-        this.add(item);
+        this.append(item);
       }
     }
   }
@@ -398,6 +418,30 @@ class HeaderList extends PropertyList {
   }
 
   // ── Transform overrides ───────────────────────────────────────────────
+
+  /**
+   * Return all headers as [key, value] tuples.
+   * @returns {Array<[string, string]>}
+   */
+  entries() {
+    return this.all().map((h) => [h.key, h.value]);
+  }
+
+  /**
+   * Return all header keys.
+   * @returns {string[]}
+   */
+  keys() {
+    return this.all().map((h) => h.key);
+  }
+
+  /**
+   * Return all header values.
+   * @returns {string[]}
+   */
+  values() {
+    return this.all().map((h) => h.value);
+  }
 
   /**
    * Convert to a plain object. Matches Postman's PropertyList.toObject() signature.
@@ -452,7 +496,7 @@ class HeaderList extends PropertyList {
     }
     // Merge source items into this list
     for (const item of items) {
-      this.add(item);
+      this.append(item);
     }
     // Prune: remove items from this list that are not in source
     if (prune && items.length > 0) {

@@ -1,5 +1,5 @@
 meta {
-  name: remove
+  name: delete
   type: http
   seq: 6
 }
@@ -23,25 +23,25 @@ assert {
 }
 
 script:pre-request {
-  req.headerList.remove('bruno');
-  req.headerList.remove(h => h.key === 'della');
-  req.headerList.remove({ key: 'x-custom', value: 'test-value' });
+  req.headerList.delete('bruno');
+  req.headerList.delete(h => h.key === 'della');
+  req.headerList.delete({ key: 'x-custom', value: 'test-value' });
 }
 
 tests {
-  test("req.headerList.remove(name) - by string", function() {
+  test("req.headerList.delete(name) - by string", function() {
     expect(req.getHeader('bruno')).to.be.undefined;
   });
 
-  test("req.headerList.remove(predicate) - by function", function() {
+  test("req.headerList.delete(predicate) - by function", function() {
     expect(req.getHeader('della')).to.be.undefined;
   });
 
-  test("req.headerList.remove(object) - by object", function() {
+  test("req.headerList.delete(object) - by object", function() {
     expect(req.getHeader('x-custom')).to.be.undefined;
   });
 
-  test("req.headerList.remove does not affect other headers", function() {
+  test("req.headerList.delete does not affect other headers", function() {
     expect(req.getHeader('x-extra')).to.equal('extra-value');
   });
 }
