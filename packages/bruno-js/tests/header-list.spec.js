@@ -358,6 +358,13 @@ describe('HeaderList (req.headerList)', () => {
       list.set('Content-Type', 'text/html');
       expect(rawReq.headers['Content-Type']).toBe('text/html');
     });
+
+    test('with missing value sets header to undefined', () => {
+      const { list, rawReq } = createReqHeaders({});
+      list.set({ key: 'X-Foo' });
+      expect(rawReq.headers['X-Foo']).toBeUndefined();
+      expect(list.count()).toBe(1);
+    });
   });
 
   describe('delete()', () => {
@@ -519,6 +526,13 @@ describe('HeaderList (req.headerList)', () => {
       expect(list.count()).toBe(1);
       expect(list.get('X-Only')).toBe('val');
       expect(rawReq.headers['Content-Type']).toBeUndefined();
+    });
+
+    test('does not leave re-added headers in __headersToDelete', () => {
+      const { list, rawReq } = createReqHeaders({ 'Content-Type': 'application/json' });
+      list.repopulate([{ key: 'Content-Type', value: 'text/plain' }]);
+      expect(rawReq.__headersToDelete).not.toContain('Content-Type');
+      expect(rawReq.headers['Content-Type']).toBe('text/plain');
     });
   });
 
@@ -700,7 +714,8 @@ describe('HeaderList (req.headerList)', () => {
       list.set({ key: 'content-type', value: 'text/plain' });
       expect(rawReq.headers['content-type']).toBe('text/plain');
       expect(rawReq.headers['Content-Type']).toBeUndefined();
-      expect(rawReq.__headersToDelete).toContain('Content-Type');
+      // Header was re-added with new casing, so it should NOT be in __headersToDelete
+      expect(rawReq.__headersToDelete || []).not.toContain('Content-Type');
       expect(list.count()).toBe(3);
     });
   });

@@ -285,6 +285,12 @@ class HeaderList extends PropertyList {
       this.#deleteHeader(existingKey);
     }
     headers[item.key] = item.value;
+    // Remove from __headersToDelete since we just (re-)added this header
+    const toDelete = this.#req.__headersToDelete;
+    if (toDelete) {
+      const idx = toDelete.findIndex((k) => HeaderList.#ciEquals(k, item.key));
+      if (idx !== -1) toDelete.splice(idx, 1);
+    }
     return !existed;
   }
 
