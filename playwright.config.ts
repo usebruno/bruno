@@ -23,7 +23,8 @@ export default defineConfig({
       testDir: './tests',
       testIgnore: [
         'ssl/**', // custom CA certificate tests require separate server setup and certificate generation
-        'auth/**' // auth tests have their own project
+        'auth/**', // auth tests have their own project
+        'benchmarks/**'  
       ]
     },
     {
