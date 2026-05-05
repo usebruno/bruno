@@ -63,7 +63,7 @@ const addBrunoResponseShimToContext = (vm, res) => {
     const bridge = createPropertyListBridge(vm, res.headerList, headerListObj, {
       globalPath: 'globalThis.res.headerList',
       syncReadMethods: ['get', 'has', 'count', 'indexOf', 'toObject', 'toString'],
-      syncReadObjectMethods: ['one', 'all', 'idx', 'toJSON'],
+      syncReadObjectMethods: ['one', 'all', 'toJSON'],
       syncWriteMethods: ['append', 'set', 'delete', 'clear', 'populate', 'repopulate', 'assimilate'],
       withIterators: true
     });

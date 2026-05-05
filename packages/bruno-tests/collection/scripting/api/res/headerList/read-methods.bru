@@ -40,13 +40,6 @@ tests {
     expect(keys).to.include('x-powered-by');
   });
 
-  test("res.headerList.idx(index)", function() {
-    const first = res.headerList.idx(0);
-    expect(first).to.have.property('key');
-    expect(first).to.have.property('value');
-    expect(res.headerList.idx(-1)).to.be.undefined;
-  });
-
   test("res.headerList.count()", function() {
     expect(res.headerList.count()).to.be.at.least(1);
   });

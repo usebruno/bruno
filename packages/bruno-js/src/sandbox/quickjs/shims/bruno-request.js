@@ -38,7 +38,7 @@ const addBrunoRequestShimToContext = (vm, req) => {
   const { evalCode: headersEvalCode } = createPropertyListBridge(vm, req.headerList, headerListObj, {
     globalPath: 'globalThis.req.headerList',
     syncReadMethods: ['get', 'has', 'count', 'indexOf', 'toObject', 'toString'],
-    syncReadObjectMethods: ['one', 'all', 'idx', 'toJSON'],
+    syncReadObjectMethods: ['one', 'all', 'toJSON'],
     syncWriteMethods: ['append', 'set', 'delete', 'clear', 'populate', 'repopulate', 'assimilate'],
     withIterators: true
   });

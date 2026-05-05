@@ -73,17 +73,6 @@ describe('HeaderList (req.headerList)', () => {
       expect(a1).not.toBe(a2);
     });
 
-    test('idx() returns header at position', () => {
-      const { list } = createReqHeaders();
-      expect(list.idx(0)).toEqual({ key: 'Content-Type', value: 'application/json' });
-      expect(list.idx(2)).toEqual({ key: 'Accept', value: '*/*' });
-    });
-
-    test('idx() returns undefined for out-of-bounds', () => {
-      const { list } = createReqHeaders();
-      expect(list.idx(10)).toBeUndefined();
-    });
-
     test('count() returns number of headers', () => {
       const { list } = createReqHeaders();
       expect(list.count()).toBe(3);
@@ -921,11 +910,6 @@ describe('Response Headers (res.headerList)', () => {
     test('count() returns number of headers', () => {
       const { headerList } = createResHeaders();
       expect(headerList.count()).toBe(3);
-    });
-
-    test('idx() returns header at position', () => {
-      const { headerList } = createResHeaders();
-      expect(headerList.idx(1)).toEqual({ key: 'x-request-id', value: 'abc-123' });
     });
 
     test('indexOf() finds structurally-equal header', () => {
