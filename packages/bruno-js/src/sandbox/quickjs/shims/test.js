@@ -84,9 +84,29 @@ const addBruShimToContext = (vm, __brunoTestResults) => {
     `
       (function() {
         var Ajv = require('ajv');
+        var addFormats = require('ajv-formats');
+        var defaultAjv = new Ajv({ allErrors: true });
+        addFormats(defaultAjv);
+        var SUPPORTED_SCHEMA_VERSIONS = [
+          'http://json-schema.org/draft-07/schema#',
+          'http://json-schema.org/draft-07/schema'
+        ];
         var proto = Object.getPrototypeOf(expect(null));
         proto.jsonSchema = function(schema, ajvOptions) {
-          var ajv = new Ajv(Object.assign({ allErrors: true }, ajvOptions || {}));
+          if (schema && schema.$schema && !SUPPORTED_SCHEMA_VERSIONS.includes(schema.$schema)) {
+            this.assert(
+              false,
+              'Unsupported JSON Schema version: "' + schema.$schema + '". Bruno currently only supports Draft-07 (http://json-schema.org/draft-07/schema#). Please update your schema to be Draft-07 compatible and remove the $schema property.',
+              'Unsupported JSON Schema version: "' + schema.$schema + '".'
+            );
+          }
+          var ajv;
+          if (ajvOptions) {
+            ajv = new Ajv(Object.assign({ allErrors: true }, ajvOptions));
+            addFormats(ajv);
+          } else {
+            ajv = defaultAjv;
+          }
           var validate;
           try {
             validate = ajv.compile(schema);

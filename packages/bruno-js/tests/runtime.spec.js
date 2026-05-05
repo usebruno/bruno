@@ -501,6 +501,40 @@ describe('runtime', () => {
         const schema = { type: 'array' };
         chai.expect(body).to.not.have.jsonSchema(schema);
       });
+
+      it('should throw a clear error for unsupported Draft 2020-12 $schema', () => {
+        const body = { name: 'John' };
+        const schema = {
+          $schema: 'https://json-schema.org/draft/2020-12/schema',
+          type: 'object',
+          properties: { name: { type: 'string' } }
+        };
+        expect(() => chai.expect(body).to.have.jsonSchema(schema)).toThrow(/Unsupported JSON Schema version.*2020-12.*only supports Draft-07/);
+      });
+
+      it('should throw a clear error for unsupported Draft 2019-09 $schema', () => {
+        const body = { name: 'John' };
+        const schema = {
+          $schema: 'https://json-schema.org/draft/2019-09/schema',
+          type: 'object',
+          properties: { name: { type: 'string' } }
+        };
+        expect(() => chai.expect(body).to.have.jsonSchema(schema)).toThrow(/Unsupported JSON Schema version.*2019-09.*only supports Draft-07/);
+      });
+
+      it('should allow explicit Draft-07 $schema', () => {
+        const body = { name: 'John', age: 30 };
+        const schema = {
+          $schema: 'http://json-schema.org/draft-07/schema#',
+          type: 'object',
+          properties: {
+            name: { type: 'string' },
+            age: { type: 'number' }
+          },
+          required: ['name', 'age']
+        };
+        chai.expect(body).to.have.jsonSchema(schema);
+      });
     });
   });
 });

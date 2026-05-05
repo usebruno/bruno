@@ -8,6 +8,7 @@ const { interpolateString } = require('../interpolate-string');
 const { executeQuickJsVm } = require('../sandbox/quickjs');
 
 const Ajv = require('ajv');
+const addFormats = require('ajv-formats');
 const { expect } = chai;
 chai.use(require('chai-string'));
 chai.use(function (chai, utils) {
@@ -26,9 +27,30 @@ chai.use(function (chai, utils) {
 });
 
 // Custom assertion for JSON Schema validation
+const defaultAjv = new Ajv({ allErrors: true });
+addFormats(defaultAjv);
+
+const SUPPORTED_SCHEMA_VERSIONS = [
+  'http://json-schema.org/draft-07/schema#',
+  'http://json-schema.org/draft-07/schema'
+];
+
 chai.use(function (chai) {
   chai.Assertion.addMethod('jsonSchema', function (schema, ajvOptions) {
-    const ajv = new Ajv({ allErrors: true, ...ajvOptions });
+    if (schema && schema.$schema && !SUPPORTED_SCHEMA_VERSIONS.includes(schema.$schema)) {
+      this.assert(
+        false,
+        `Unsupported JSON Schema version: "${schema.$schema}". Bruno currently only supports Draft-07 (http://json-schema.org/draft-07/schema#). Please update your schema to be Draft-07 compatible and remove the $schema property.`,
+        `Unsupported JSON Schema version: "${schema.$schema}".`
+      );
+    }
+    let ajv;
+    if (ajvOptions) {
+      ajv = new Ajv({ allErrors: true, ...ajvOptions });
+      addFormats(ajv);
+    } else {
+      ajv = defaultAjv;
+    }
     let validate;
     try {
       validate = ajv.compile(schema);
