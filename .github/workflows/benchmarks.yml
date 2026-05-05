@@ -74,6 +74,7 @@ jobs:
 
       - name: Comment Benchmark Results on PR
         if: github.event_name == 'pull_request' && !cancelled() && matrix.os-name == 'ubuntu'
+        continue-on-error: true
         uses: actions/github-script@v7
         with:
           script: |
