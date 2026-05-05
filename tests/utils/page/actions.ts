@@ -109,9 +109,9 @@ const createCollection = async (
 
     // The File Format dropdown is hidden by default. Open the Advanced Options menu
     // and toggle "Show File Format" before selecting a non-default format.
-    if (format !== 'yml') {
+    if (format === 'bru') {
       await createCollectionModal.locator('.advanced-options .btn-advanced').click();
-      await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Show File Format' }).click();
+      await page.getByTestId('show-file-format-toggle').click();
       await createCollectionModal.locator('select#format').selectOption(format);
     }
 
@@ -306,7 +306,7 @@ const createRequest = async (
 
     await locators.dropdown.item('New Request').click();
 
-    if (requestType !== 'HTTP') {
+    if (requestType === 'gRPC') {
       await page.getByTestId(REQUEST_TYPE_TESTID[requestType]).click();
     }
 

@@ -73,11 +73,11 @@ const stringifyGrpcRequest = (item: BrunoItem): string => {
 
     // message
     if (brunoRequest.body?.mode === 'grpc' && brunoRequest.body.grpc?.length) {
-      const variants: GrpcMessageVariant[] = brunoRequest.body.grpc.map((msg, index) => ({
-        title: msg.name || `message ${index + 1}`,
-        message: msg.content || ''
+      const messages: GrpcMessageVariant[] = brunoRequest.body.grpc.map(({ name, content }, index) => ({
+        title: name || `message ${index + 1}`,
+        message: content || ''
       }));
-      grpc.message = variants;
+      grpc.message = messages;
     }
 
     // auth
