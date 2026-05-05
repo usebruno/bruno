@@ -500,23 +500,30 @@ export const renderVarInfo = (token, options) => {
       if (isEditing) return;
 
       isEditing = true;
-      valueDisplay.style.display = 'none';
+
+      // Stage editor off-visual first to avoid a visible resize/text flash.
       editorContainer.style.display = 'block';
+      editorContainer.style.visibility = 'hidden';
 
       // Focus the editor and ensure proper sizing
-      setTimeout(() => {
+      requestAnimationFrame(() => {
         cmEditor.refresh();
+
+        // Adjust height based on content before revealing editor
+        const sizer = cmEditor.getWrapperElement().querySelector('.CodeMirror-sizer');
+        const contentHeight = sizer ? sizer.clientHeight : cmEditor.getScrollInfo().height;
+        editorContainer.style.height = `${calculateEditorHeight(contentHeight)}rem`;
+
+        // Swap display only after editor layout is ready
+        valueDisplay.style.display = 'none';
+        editorContainer.style.visibility = 'visible';
         cmEditor.focus();
 
         // Set cursor to end of content
         const lineCount = cmEditor.lineCount();
         const lastLine = cmEditor.getLine(lineCount - 1);
         cmEditor.setCursor(lineCount - 1, lastLine ? lastLine.length : 0);
-
-        // Adjust height based on content
-        const contentHeight = cmEditor.getScrollInfo().height;
-        editorContainer.style.height = `${calculateEditorHeight(contentHeight)}rem`;
-      }, 0);
+      });
     });
 
     // Save on blur and return to display mode
@@ -525,6 +532,7 @@ export const renderVarInfo = (token, options) => {
 
       // Switch back to display mode
       editorContainer.style.display = 'none';
+      editorContainer.style.visibility = 'visible';
       editorContainer.style.height = `${EDITOR_MIN_HEIGHT}rem`; // Reset to minimum height
       valueDisplay.style.display = 'block';
       isEditing = false;
@@ -810,8 +818,10 @@ if (!SERVER_RENDERED) {
   }
 
   function showPopup(cm, box, brunoVarInfo) {
-    // If there's already an active popup, remove it first
-    if (activePopup && activePopup.parentNode) {
+    // If there's already an active popup, hide it first to ensure listeners are cleaned up
+    if (activePopup && typeof activePopup._hidePopup === 'function') {
+      activePopup._hidePopup({ immediate: true });
+    } else if (activePopup && activePopup.parentNode) {
       activePopup.parentNode.removeChild(activePopup);
       activePopup = null;
     }
@@ -865,20 +875,49 @@ if (!SERVER_RENDERED) {
     popup.style.left = `${leftPos / 16}rem`;
 
     let popupTimeout;
+    let isPinned = false;
+    let isHidden = false;
 
     const onMouseOverPopup = function () {
       clearTimeout(popupTimeout);
     };
 
     const onMouseOut = function () {
+      if (isPinned) {
+        return;
+      }
       clearTimeout(popupTimeout);
       popupTimeout = setTimeout(hidePopup, 500);
     };
 
-    const hidePopup = function () {
+    const onPopupClick = function (e) {
+      if (!popup.contains(e.target)) {
+        return;
+      }
+      isPinned = true;
+      clearTimeout(popupTimeout);
+    };
+
+    const onDocumentClick = function (e) {
+      if (!popup.contains(e.target)) {
+        isPinned = false;
+        hidePopup();
+      }
+    };
+
+    const hidePopup = function (options = {}) {
+      if (isHidden) {
+        return;
+      }
+      isHidden = true;
+
+      const { immediate = false } = options;
+      clearTimeout(popupTimeout);
       CodeMirror.off(popup, 'mouseover', onMouseOverPopup);
       CodeMirror.off(popup, 'mouseout', onMouseOut);
+      CodeMirror.off(popup, 'click', onPopupClick);
       CodeMirror.off(cm.getWrapperElement(), 'mouseout', onMouseOut);
+      CodeMirror.off(document, 'click', onDocumentClick);
       CodeMirror.off(cm, 'change', onEditorChange);
 
       // Cleanup CodeMirror and MaskedEditor instances
@@ -908,6 +947,13 @@ if (!SERVER_RENDERED) {
         activePopup = null;
       }
 
+      if (immediate) {
+        if (popup.parentNode) {
+          popup.parentNode.removeChild(popup);
+        }
+        return;
+      }
+
       if (popup.style.opacity) {
         popup.style.opacity = 0;
         setTimeout(function () {
@@ -922,12 +968,19 @@ if (!SERVER_RENDERED) {
 
     // Hide popup when user types in the main editor
     const onEditorChange = function () {
-      hidePopup();
+      if (!isPinned) {
+        hidePopup();
+      }
     };
+
+    // Allow replacing existing popup with full cleanup
+    popup._hidePopup = hidePopup;
 
     CodeMirror.on(popup, 'mouseover', onMouseOverPopup);
     CodeMirror.on(popup, 'mouseout', onMouseOut);
+    CodeMirror.on(popup, 'click', onPopupClick);
     CodeMirror.on(cm.getWrapperElement(), 'mouseout', onMouseOut);
+    CodeMirror.on(document, 'click', onDocumentClick);
     CodeMirror.on(cm, 'change', onEditorChange);
   }
 }
