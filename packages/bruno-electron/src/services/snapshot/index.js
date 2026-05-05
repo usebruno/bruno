@@ -64,11 +64,13 @@ const workspaceSchema = yup.object({
 
 const devToolsSchema = yup.object({
   open: yup.boolean().required(),
-  height: yup.number().required(),
-  console: yup.object().shape({ active: yup.boolean().optional() }).optional(),
-  network: yup.object().shape({ active: yup.boolean().optional() }).optional(),
-  performance: yup.object().shape({ active: yup.boolean().optional() }).optional(),
-  terminal: yup.object().shape({ active: yup.boolean().optional() }).optional()
+  activeTab: yup.string().defined(),
+  tabs: yup.object().shape({
+    console: yup.object().shape({}).optional(),
+    network: yup.object().shape({}).optional(),
+    performance: yup.object().shape({}).optional(),
+    terminal: yup.object().shape({}).optional()
+  })
 });
 
 const snapshotSchema = yup.object({
@@ -84,8 +86,7 @@ const emptySnapshot = {
   activeWorkspacePath: null,
   extras: {
     devTools: {
-      open: false,
-      height: 300
+      open: false
     }
   },
   workspaces: [],
@@ -351,12 +352,13 @@ class SnapshotManager {
 
     const _snapshotEntry = {
       open: typeof devTools?.open === 'boolean' ? devTools.open : false,
-      height: typeof devTools?.height === 'number' ? devTools.height : 300
+      activeTab: devTools.activeTab,
+      tabs: {}
     };
 
     devToolKeys.forEach((key) => {
       if (key in devTools) {
-        _snapshotEntry[key] = devTools[key];
+        _snapshotEntry.tabs[key] = devTools.tabs[key];
       }
     });
 
@@ -454,8 +456,8 @@ class SnapshotManager {
       return [...collectionMap.values()];
     }
 
-    const collectionEntries = collections;
-    const tabsEntries = tabs;
+    const collectionEntries = collections ?? [];
+    const tabsEntries = tabs ?? [];
     const collectionPathnames = new Set([...collectionEntries, ...tabsEntries]);
 
     collectionPathnames.forEach((collectionPathname) => {

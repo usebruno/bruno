@@ -58,25 +58,17 @@ const serializeSnapshot = async (state) => {
       .map((collectionPath) => normalizePath(collectionPath))
   );
 
-  const devToolsWithoutActive = Object.fromEntries(
-    Object.entries(existingSnapshot.extras.devTools).map(([k, v]) => {
-      if (DEVTOOL_TABS.indexOf(k) > -1) {
-        v.active = undefined;
-      }
-      return [k, v];
-    })
-  );
+  const existingDevTools = existingSnapshot?.extras?.devTools ?? {};
 
   const snapshot = {
     activeWorkspacePath: activeWorkspace?.pathname || null,
     extras: {
       devTools: {
-        ...devToolsWithoutActive,
         open: logs.isConsoleOpen,
-        height: 300,
-        [logs.activeTab]: {
-          active: true
-        }
+        activeTab: logs.activeTab ?? existingDevTools.activeTab ?? 'terminal',
+        tabs: Object.assign(existingDevTools.tabs, {
+          [logs.activeTab]: {}
+        })
       }
     },
     workspaces: [],

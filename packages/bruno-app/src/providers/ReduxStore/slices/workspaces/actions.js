@@ -777,11 +777,8 @@ export const workspaceOpenedEvent = (workspacePath, workspaceUid, workspaceConfi
         } else {
           dispatch(closeConsole());
         }
-        const snapshotToolKeys = Object.keys(snapshot.extras.devTools).filter((devToolKey) => DEVTOOL_TABS.includes(devToolKey));
-        if (snapshotToolKeys.length > 0) {
-          const activeTab = snapshotToolKeys.find((tool) => snapshot.extras.devTools[tool].active);
-          dispatch(setActiveDevToolsTab(activeTab));
-        }
+        const { activeTab = 'terminal' } = snapshot.extras.devTools;
+        dispatch(setActiveDevToolsTab(activeTab));
       }
 
       if (activeWorkspacePath) {

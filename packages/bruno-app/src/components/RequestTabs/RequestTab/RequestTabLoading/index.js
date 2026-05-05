@@ -1,5 +1,5 @@
 import React from 'react';
-import GradientCloseButton from './GradientCloseButton';
+import GradientCloseButton from '../GradientCloseButton';
 
 /**
  * RequestTabLoading
