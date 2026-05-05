@@ -1,46 +1,45 @@
 {
-  "description": "Benchmark baselines for collection mount times. Update by running: node tests/benchmarks/mounting/compare.js --update-baseline",
   "thresholdPercent": 20,
   "entries": {
     "bru-50": {
       "mean": 2000,
-      "p50": 1800
+      "p50": 900
     },
     "bru-200": {
-      "mean": 5000,
-      "p50": 4500
+      "mean": 1500,
+      "p50": 1500
     },
     "bru-500": {
-      "mean": 12000,
-      "p50": 11000
+      "mean": 4000,
+      "p50": 3800
     },
     "bru-1000": {
-      "mean": 25000,
-      "p50": 24000
+      "mean": 10500,
+      "p50": 10000
     },
-    "bru-5000": {
-      "mean": 120000,
-      "p50": 115000
+    "bru-3000": {
+      "mean": 420000,
+      "p50": 400000
     },
     "yml-50": {
-      "mean": 2000,
-      "p50": 1800
+      "mean": 700,
+      "p50": 650
     },
     "yml-200": {
-      "mean": 5000,
-      "p50": 4500
+      "mean": 1500,
+      "p50": 1500
     },
     "yml-500": {
-      "mean": 12000,
-      "p50": 11000
+      "mean": 4500,
+      "p50": 4300
     },
     "yml-1000": {
-      "mean": 25000,
-      "p50": 24000
+      "mean": 13000,
+      "p50": 12600
     },
-    "yml-5000": {
-      "mean": 120000,
-      "p50": 115000
+    "yml-3000": {
+      "mean": 180000,
+      "p50": 180000
     }
   }
 }

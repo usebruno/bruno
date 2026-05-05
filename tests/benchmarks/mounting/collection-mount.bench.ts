@@ -7,7 +7,7 @@ import { generateCollection, type CollectionFormat } from '../utils/collection-g
 import * as path from 'path';
 import * as fs from 'fs';
 
-const COLLECTION_SIZES = [50, 200, 500, 1000, 5000];
+const COLLECTION_SIZES = [50, 200, 500, 1000, 3000];
 const COLLECTION_FORMATS: CollectionFormat[] = ['bru', 'yml'];
 const ITERATIONS_PER_SIZE = 3;
 
