@@ -1,9 +1,12 @@
+const HeaderList = require('./header-list');
+
 class BrunoRequest {
   /**
    * The following properties are available as shorthand:
    * - req.url
    * - req.method
-   * - req.headers
+   * - req.headers (raw headers object)
+   * - req.headerList (PropertyList API for headers)
    * - req.timeout
    * - req.body
    *
@@ -20,6 +23,7 @@ class BrunoRequest {
     this.name = req.name;
     this.pathParams = req.pathParams;
     this.tags = req.tags || [];
+    this.headerList = new HeaderList(this.req);
     /**
      * We automatically parse the JSON body if the content type is JSON
      * This is to make it easier for the user to access the body directly
@@ -94,13 +98,14 @@ class BrunoRequest {
   }
 
   getAuthMode() {
+    const headers = this.req.headers;
     if (this.req?.oauth2) {
       return 'oauth2';
     } else if (this.req?.oauth1config) {
       return 'oauth1';
-    } else if (this.headers?.['Authorization']?.startsWith('Bearer')) {
+    } else if (headers?.['Authorization']?.startsWith('Bearer')) {
       return 'bearer';
-    } else if (this.headers?.['Authorization']?.startsWith('Basic') || this.req?.auth?.username) {
+    } else if (headers?.['Authorization']?.startsWith('Basic') || this.req?.auth?.username) {
       return 'basic';
     } else if (this.req?.apiKeyAuthValueForQueryParams) {
       return 'apikey';
@@ -110,7 +115,7 @@ class BrunoRequest {
       return 'awsv4';
     } else if (this.req?.digestConfig) {
       return 'digest';
-    } else if (this.headers?.['X-WSSE'] || this.req?.auth?.username) {
+    } else if (headers?.['X-WSSE'] || this.req?.auth?.username) {
       return 'wsse';
     } else {
       return 'none';
@@ -127,7 +132,6 @@ class BrunoRequest {
   }
 
   setHeaders(headers) {
-    this.headers = headers;
     this.req.headers = headers;
   }
 
@@ -140,12 +144,10 @@ class BrunoRequest {
   }
 
   setHeader(name, value) {
-    this.headers[name] = value;
     this.req.headers[name] = value;
   }
 
   deleteHeader(name) {
-    delete this.headers[name];
     delete this.req.headers[name];
 
     /**

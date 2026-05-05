@@ -1,0 +1,45 @@
+meta {
+  name: iteration-methods
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{host}}/api/echo/json
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "hello": "bruno"
+  }
+}
+
+assert {
+  res.status: eq 200
+}
+
+tests {
+  test("res.headerList.forEach(fn)", function() {
+    const keys = [];
+    res.headerList.forEach((header) => {
+      keys.push(header.key);
+    });
+    expect(keys).to.include('x-powered-by');
+  });
+
+  test("res.headerList.map(fn)", function() {
+    const keys = res.headerList.map(h => h.key);
+    expect(keys).to.be.an('array');
+    expect(keys).to.include('x-powered-by');
+  });
+
+  test("res.headerList.reduce(fn, initial)", function() {
+    const obj = res.headerList.reduce((acc, h) => {
+      acc[h.key] = h.value;
+      return acc;
+    }, {});
+    expect(obj['x-powered-by']).to.equal('Express');
+  });
+}

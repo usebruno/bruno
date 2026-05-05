@@ -1,0 +1,47 @@
+meta {
+  name: delete
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+headers {
+  bruno: is-awesome
+  della: is-beautiful
+  x-custom: test-value
+  x-extra: extra-value
+}
+
+assert {
+  res.status: eq 200
+  res.body: eq pong
+}
+
+script:pre-request {
+  req.headerList.delete('bruno');
+  req.headerList.delete(h => h.key === 'della');
+  req.headerList.delete({ key: 'x-custom', value: 'test-value' });
+}
+
+tests {
+  test("req.headerList.delete(name) - by string", function() {
+    expect(req.getHeader('bruno')).to.be.undefined;
+  });
+
+  test("req.headerList.delete(predicate) - by function", function() {
+    expect(req.getHeader('della')).to.be.undefined;
+  });
+
+  test("req.headerList.delete(object) - by object", function() {
+    expect(req.getHeader('x-custom')).to.be.undefined;
+  });
+
+  test("req.headerList.delete does not affect other headers", function() {
+    expect(req.getHeader('x-extra')).to.equal('extra-value');
+  });
+}

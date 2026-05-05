@@ -370,7 +370,7 @@ const prepareRequest = async (item, collection = {}, abortController) => {
   const scriptFlow = collection?.brunoConfig?.scripts?.flow ?? 'sandwich';
   const requestTreePath = getTreePathFromCollectionToItem(collection, item);
   if (requestTreePath && requestTreePath.length > 0) {
-    mergeHeaders(collection, request, requestTreePath);
+    mergeHeaders(collection, request, requestTreePath, { includeDisabledHeaders: true });
     mergeScripts(collection, request, requestTreePath, scriptFlow);
     mergeVars(collection, request, requestTreePath);
     mergeAuth(collection, request, requestTreePath);
@@ -379,12 +379,15 @@ const prepareRequest = async (item, collection = {}, abortController) => {
     request.promptVariables = collection?.promptVariables || {};
   }
 
+  const disabledHeaders = [];
   each(get(request, 'headers', []), (h) => {
     if (h.enabled && h.name.length > 0) {
       headers[h.name] = h.value;
       if (h.name.toLowerCase() === 'content-type') {
         contentTypeDefined = true;
       }
+    } else if (!h.enabled && h.name.length > 0) {
+      disabledHeaders.push({ name: h.name, value: h.value });
     }
   });
 
@@ -393,6 +396,7 @@ const prepareRequest = async (item, collection = {}, abortController) => {
     method: request.method,
     url,
     headers,
+    disabledHeaders,
     name: item.name,
     pathname: item.pathname,
     tags: item.tags || [],
