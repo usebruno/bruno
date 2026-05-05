@@ -55,17 +55,30 @@ const openCollection = async (page, collectionName: string) => {
   });
 };
 
+type CollectionFormat = 'yml' | 'bru';
+
+type CreateCollectionOptions = {
+  format?: CollectionFormat;
+};
+
 /**
  * Create a collection
  * @param page - The page object
  * @param collectionName - The name of the collection to create
  * @param collectionLocation - The location of the collection to create (eg)
- * @param options - The options for creating the collection
+ * @param options - Optional settings (format: 'yml' (default) or 'bru')
  *
  * @returns void
  */
-const createCollection = async (page, collectionName: string, collectionLocation: string) => {
-  await test.step(`Create collection "${collectionName}"`, async () => {
+const createCollection = async (
+  page,
+  collectionName: string,
+  collectionLocation: string,
+  options: CreateCollectionOptions = {}
+) => {
+  const { format = 'yml' } = options;
+
+  await test.step(`Create ${format} collection "${collectionName}"`, async () => {
     await page.getByTestId('collections-header-add-menu').click();
     await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Create collection' }).click();
 
@@ -93,6 +106,15 @@ const createCollection = async (page, collectionName: string, collectionLocation
     await nameInput.fill(collectionName);
     // Verify the name is correct before creating
     await expect(nameInput).toHaveValue(collectionName, { timeout: 2000 });
+
+    // The File Format dropdown is hidden by default. Open the Advanced Options menu
+    // and toggle "Show File Format" before selecting a non-default format.
+    if (format !== 'yml') {
+      await createCollectionModal.locator('.advanced-options .btn-advanced').click();
+      await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Show File Format' }).click();
+      await createCollectionModal.locator('select#format').selectOption(format);
+    }
+
     await createCollectionModal.getByRole('button', { name: 'Create', exact: true }).click();
 
     await createCollectionModal.waitFor({ state: 'detached', timeout: 15000 });
