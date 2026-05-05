@@ -71,14 +71,13 @@ test.describe('Benchmark: Collection Mount', () => {
           test.setTimeout((2 + Math.ceil(size / 100) * 2) * 60_000);
           const timings: number[] = [];
 
-          for (let i = 0; i < ITERATIONS_PER_SIZE; i++) {
-            const collectionName = `bench-${format}-${size}-iter-${i}`;
-            const collectionDir = await createTmpDir(`bench-${format}-${size}-${i}`);
-            generateCollection({ dir: collectionDir, name: collectionName, requestCount: size, format });
+          const collectionName = `bench-${format}-${size}`;
+          const collectionDir = await createTmpDir(`bench-${format}-${size}`);
+          generateCollection({ dir: collectionDir, name: collectionName, requestCount: size, format });
 
+          for (let i = 0; i < ITERATIONS_PER_SIZE; i++) {
             const elapsed = await measureCollectionMount(page, electronApp, collectionDir, collectionName);
             timings.push(Math.round(elapsed));
-            await page.waitForTimeout(500);
           }
 
           const key = resultKey(format, size);

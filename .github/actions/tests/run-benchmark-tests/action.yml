@@ -4,6 +4,9 @@ inputs:
   os:
     description: 'Operating system (ubuntu, macos, windows)'
     default: 'ubuntu'
+  update-baseline:
+    description: 'Update baseline instead of comparing'
+    default: 'false'
 runs:
   using: 'composite'
   steps:
@@ -17,7 +20,17 @@ runs:
       shell: bash
       run: npm run test:benchmark
 
+    - name: Update Baseline
+      if: inputs.update-baseline == 'true'
+      shell: bash
+      run: >-
+        node tests/benchmarks/utils/compare.js
+        --results tests/benchmarks/results/mounting.json
+        --baseline tests/benchmarks/mounting/baseline.json
+        --update-baseline
+
     - name: Compare Against Baseline
+      if: inputs.update-baseline != 'true'
       shell: bash
       run: >-
         node tests/benchmarks/utils/compare.js

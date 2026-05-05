@@ -13,7 +13,7 @@ const fs = require('fs');
 function buildCommentBody(results, baseline, title) {
   const threshold = baseline.thresholdPercent || 20;
   const resultEntries = results.entries || results;
-  const baselineEntries = baseline.entries || baseline.collections || {};
+  const baselineEntries = baseline.entries || {};
   const marker = `## ${title}`;
 
   let body = `${marker}\n\n`;
@@ -26,11 +26,12 @@ function buildCommentBody(results, baseline, title) {
     const base = baselineEntries[key];
     if (!base) continue;
 
-    const pct = ((data.mean - base.mean) / base.mean * 100).toFixed(1);
-    const status = pct > threshold ? '🔴 REGRESSION' : pct < -threshold ? '🟢 IMPROVED' : '✅ OK';
-    if (pct > threshold) hasRegression = true;
+    const changePercent = (data.mean - base.mean) / base.mean * 100;
+    const changeStr = changePercent.toFixed(1);
+    const status = changePercent > threshold ? '🔴 REGRESSION' : changePercent < -threshold ? '🟢 IMPROVED' : '✅ OK';
+    if (changePercent > threshold) hasRegression = true;
 
-    body += `| ${key} | ${Math.round(data.mean)} | ${base.mean} | ${pct > 0 ? '+' : ''}${pct}% | ${status} |\n`;
+    body += `| ${key} | ${Math.round(data.mean)} | ${base.mean} | ${changePercent > 0 ? '+' : ''}${changeStr}% | ${status} |\n`;
   }
 
   body += `\n> Threshold: ${threshold}% regression allowed\n`;

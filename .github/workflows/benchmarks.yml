@@ -1,6 +1,11 @@
 name: Benchmarks
 on:
   workflow_dispatch:
+    inputs:
+      update-baseline:
+        description: 'Update baseline with current results instead of comparing'
+        type: boolean
+        default: false
   pull_request:
     branches: [main, 'release/v*']
 
@@ -47,6 +52,7 @@ jobs:
         uses: ./.github/actions/tests/run-benchmark-tests
         with:
           os: ${{ matrix.os-name }}
+          update-baseline: ${{ github.event.inputs.update-baseline || 'false' }}
 
       - name: Upload Benchmark Results
         uses: actions/upload-artifact@v6

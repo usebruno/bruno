@@ -38,14 +38,14 @@ function loadJSON(filepath) {
   return JSON.parse(readFileSync(filepath, 'utf-8'));
 }
 
-function pctChange(baseline, current) {
+function percentChange(baseline, current) {
   if (baseline === 0) return current === 0 ? 0 : Infinity;
   return ((current - baseline) / baseline) * 100;
 }
 
-function formatPct(pct) {
-  const sign = pct > 0 ? '+' : '';
-  return `${sign}${pct.toFixed(1)}%`;
+function formatChange(change) {
+  const sign = change > 0 ? '+' : '';
+  return `${sign}${change.toFixed(1)}%`;
 }
 
 const args = parseArgs(process.argv);
@@ -59,7 +59,7 @@ const results = loadJSON(args.results);
 const baseline = loadJSON(args.baseline);
 const threshold = baseline.thresholdPercent || 20;
 const resultEntries = results.entries || results;
-const baselineEntries = baseline.entries || baseline.collections || {};
+const baselineEntries = baseline.entries || {};
 
 if (args.updateBaseline) {
   const newBaseline = {
@@ -94,11 +94,11 @@ for (const [key, data] of Object.entries(resultEntries)) {
     continue;
   }
 
-  const meanPct = pctChange(base.mean, data.mean);
-  const p50Pct = pctChange(base.p50, data.p50);
+  const meanChange = percentChange(base.mean, data.mean);
+  const p50Change = percentChange(base.p50, data.p50);
 
-  const meanStatus = meanPct > threshold ? 'FAIL' : meanPct < -threshold ? 'IMPROVED' : 'OK';
-  const p50Status = p50Pct > threshold ? 'FAIL' : p50Pct < -threshold ? 'IMPROVED' : 'OK';
+  const meanStatus = meanChange > threshold ? 'FAIL' : meanChange < -threshold ? 'IMPROVED' : 'OK';
+  const p50Status = p50Change > threshold ? 'FAIL' : p50Change < -threshold ? 'IMPROVED' : 'OK';
 
   if (meanStatus === 'FAIL' || p50Status === 'FAIL') {
     hasRegression = true;
@@ -107,10 +107,10 @@ for (const [key, data] of Object.entries(resultEntries)) {
   rows.push({
     key,
     'mean (ms)': `${Math.round(data.mean)} (baseline: ${base.mean})`,
-    'mean change': formatPct(meanPct),
+    'mean change': formatChange(meanChange),
     'mean status': meanStatus,
     'p50 (ms)': `${Math.round(data.p50)} (baseline: ${base.p50})`,
-    'p50 change': formatPct(p50Pct),
+    'p50 change': formatChange(p50Change),
     'p50 status': p50Status
   });
 }
