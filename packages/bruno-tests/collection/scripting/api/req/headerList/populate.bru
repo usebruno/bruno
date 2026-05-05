@@ -22,20 +22,21 @@ assert {
 
 script:pre-request {
   req.headerList.populate([
+    { key: 'bruno', value: 'overwritten' },
     { key: 'x-new-one', value: 'one' },
     { key: 'x-new-two', value: 'two' }
   ]);
 }
 
 tests {
-  test("req.headerList.populate(items) - replaces all headers", function() {
-    expect(req.getHeader('bruno')).to.be.undefined;
-    expect(req.getHeader('della')).to.be.undefined;
+  test("req.headerList.populate(items) - adds new headers, skips existing keys", function() {
+    // existing headers are preserved (not overwritten)
+    expect(req.getHeader('bruno')).to.equal('is-awesome');
+    expect(req.getHeader('della')).to.equal('is-beautiful');
+    // new headers are added
     expect(req.getHeader('x-new-one')).to.equal('one');
     expect(req.getHeader('x-new-two')).to.equal('two');
     expect(req.headerList.has('x-new-one')).to.be.true;
     expect(req.headerList.has('x-new-two')).to.be.true;
-    expect(req.headerList.has('bruno')).to.be.false;
-    expect(req.headerList.has('della')).to.be.false;
   });
 }
