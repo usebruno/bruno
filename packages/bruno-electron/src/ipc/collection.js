@@ -1629,9 +1629,9 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
     }
   });
 
-  ipcMain.handle('renderer:update-ui-state-snapshot', (event, { type, data }) => {
+  ipcMain.handle('renderer:update-ui-state-snapshot', async (event, { type, data }) => {
     try {
-      snapshotManager.update({ type, data });
+      await snapshotManager.update({ type, data });
     } catch (error) {
       throw new Error(error.message);
     }

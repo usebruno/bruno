@@ -298,17 +298,17 @@ class SnapshotManager {
     this.store.store = snapshot;
   }
 
-  update({ type, data }) {
+  async update({ type, data }) {
     switch (type) {
       case 'COLLECTION_ENVIRONMENT':
-        this.updateCollectionEnvironment(data || {});
+        await this.updateCollectionEnvironment(data || {});
         break;
       default:
         break;
     }
   }
 
-  updateCollectionEnvironment({ collectionPath, environmentPath, selectedEnvironment }) {
+  async updateCollectionEnvironment({ collectionPath, environmentPath, selectedEnvironment }) {
     if (!collectionPath) {
       return;
     }
@@ -316,7 +316,7 @@ class SnapshotManager {
     const existingCollection = this.getCollection(collectionPath) || {};
     const existingEnvironment = isObject(existingCollection.environment) ? existingCollection.environment : {};
     const incomingEnvironmentRef = environmentPath === undefined ? selectedEnvironment : environmentPath;
-    const normalizedEnvironmentPath = this._normalizeCollectionEnvironmentRef(collectionPath, incomingEnvironmentRef);
+    const normalizedEnvironmentPath = await this._normalizeCollectionEnvironmentRefAsync(collectionPath, incomingEnvironmentRef);
 
     this.setCollection(collectionPath, {
       workspacePathname: typeof existingCollection.workspacePathname === 'string' ? existingCollection.workspacePathname : '',
@@ -516,7 +516,24 @@ class SnapshotManager {
       return path.normalize(trimmedRef);
     }
 
-    const resolvedEnvironmentPath = this._resolveEnvironmentPathByName(collectionPath, trimmedRef);
+    return trimmedRef;
+  }
+
+  async _normalizeCollectionEnvironmentRefAsync(collectionPath, environmentRef) {
+    if (typeof environmentRef !== 'string') {
+      return '';
+    }
+
+    const trimmedRef = environmentRef.trim();
+    if (!trimmedRef) {
+      return '';
+    }
+
+    if (path.isAbsolute(trimmedRef)) {
+      return path.normalize(trimmedRef);
+    }
+
+    const resolvedEnvironmentPath = await this._resolveEnvironmentPathByNameAsync(collectionPath, trimmedRef);
     if (resolvedEnvironmentPath) {
       return resolvedEnvironmentPath;
     }
@@ -524,20 +541,25 @@ class SnapshotManager {
     return trimmedRef;
   }
 
-  _resolveEnvironmentPathByName(collectionPath, environmentName) {
+  async _resolveEnvironmentPathByNameAsync(collectionPath, environmentName) {
     if (typeof collectionPath !== 'string' || !collectionPath || typeof environmentName !== 'string' || !environmentName) {
       return null;
     }
 
     const environmentsDir = path.join(collectionPath, 'environments');
-    if (!fs.existsSync(environmentsDir)) {
+    try {
+      await fs.promises.access(environmentsDir, fs.constants.F_OK);
+    } catch {
       return null;
     }
 
     for (const extension of ENV_FILE_EXTENSIONS) {
       const environmentFilePath = path.join(environmentsDir, `${environmentName}.${extension}`);
-      if (fs.existsSync(environmentFilePath)) {
+      try {
+        await fs.promises.access(environmentFilePath, fs.constants.F_OK);
         return path.normalize(environmentFilePath);
+      } catch {
+        // keep checking other supported extensions
       }
     }
 
