@@ -1676,8 +1676,15 @@ export const collectionsSlice = createSlice({
           if (!item.draft) {
             item.draft = cloneDeep(item);
           }
-          item.draft.request.auth = {};
-          item.draft.request.auth.mode = action.payload.mode;
+          const newMode = action.payload.mode;
+          const savedMode = get(item, 'request.auth.mode');
+          item.draft.request.auth = { mode: newMode };
+          if (newMode === savedMode) {
+            const savedPayload = get(item, `request.auth.${newMode}`);
+            if (savedPayload !== undefined) {
+              item.draft.request.auth[newMode] = cloneDeep(savedPayload);
+            }
+          }
         }
       }
     },
@@ -2106,8 +2113,15 @@ export const collectionsSlice = createSlice({
             root: cloneDeep(collection.root)
           };
         }
-        set(collection, 'draft.root.request.auth', {});
-        set(collection, 'draft.root.request.auth.mode', action.payload.mode);
+        const newMode = action.payload.mode;
+        const savedMode = get(collection, 'root.request.auth.mode');
+        set(collection, 'draft.root.request.auth', { mode: newMode });
+        if (newMode === savedMode) {
+          const savedPayload = get(collection, `root.request.auth.${newMode}`);
+          if (savedPayload !== undefined) {
+            set(collection, `draft.root.request.auth.${newMode}`, cloneDeep(savedPayload));
+          }
+        }
       }
     },
     updateCollectionAuth: (state, action) => {
@@ -3304,8 +3318,15 @@ export const collectionsSlice = createSlice({
         if (!folder.draft) {
           folder.draft = cloneDeep(folder.root);
         }
-        set(folder, 'draft.request.auth', {});
-        set(folder, 'draft.request.auth.mode', action.payload.mode);
+        const newMode = action.payload.mode;
+        const savedMode = get(folder, 'root.request.auth.mode');
+        set(folder, 'draft.request.auth', { mode: newMode });
+        if (newMode === savedMode) {
+          const savedPayload = get(folder, `root.request.auth.${newMode}`);
+          if (savedPayload !== undefined) {
+            set(folder, `draft.request.auth.${newMode}`, cloneDeep(savedPayload));
+          }
+        }
       }
     },
     streamDataReceived: (state, action) => {
