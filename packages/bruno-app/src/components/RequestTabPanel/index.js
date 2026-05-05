@@ -376,7 +376,7 @@ const RequestTabPanel = () => {
   }
 
   if (focusedTab.type === 'openapi-spec') {
-    return <OpenAPISpecTab collection={collection} />;
+    return <OpenAPISpecTab collection={collection} tabUid={focusedTab.uid} />;
   }
 
   if (!item || !item.uid) {
