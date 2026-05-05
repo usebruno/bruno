@@ -183,21 +183,6 @@ describe('HeaderList (req.headerList)', () => {
   // ── Transform methods ─────────────────────────────────────────────────
 
   describe('transform methods', () => {
-    test('entries() returns [key, value] tuples', () => {
-      const { list } = createReqHeaders({ A: '1', B: '2' });
-      expect(list.entries()).toEqual([['A', '1'], ['B', '2']]);
-    });
-
-    test('keys() returns header key strings', () => {
-      const { list } = createReqHeaders({ A: '1', B: '2' });
-      expect(list.keys()).toEqual(['A', 'B']);
-    });
-
-    test('values() returns header value strings', () => {
-      const { list } = createReqHeaders({ A: '1', B: '2' });
-      expect(list.values()).toEqual(['1', '2']);
-    });
-
     test('toObject() returns plain key-value map', () => {
       const { list } = createReqHeaders();
       expect(list.toObject()).toEqual(defaultHeaders);

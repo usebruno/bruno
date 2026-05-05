@@ -62,9 +62,6 @@ const ReadOnlyPropertyList = require('./readonly-property-list');
  *
  * | Method                                                        | Description                                           |
  * |---------------------------------------------------------------|-------------------------------------------------------|
- * | `entries()`                                                   | Array of `[key, value]` tuples                         |
- * | `keys()`                                                      | Array of header key strings                            |
- * | `values()`                                                    | Array of header value strings                          |
  * | `toObject(excludeDisabled?, caseSensitive?, multiValue?, sanitizeKeys?)` | `{ key: value }` map of all headers      |
  * | `toString()`                                                  | HTTP wire format `Key: Value\n...`, skips disabled     |
  * | `toJSON()`                                                    | Same as `all()` — suitable for `JSON.stringify()`      |
@@ -418,30 +415,6 @@ class HeaderList extends PropertyList {
   }
 
   // ── Transform overrides ───────────────────────────────────────────────
-
-  /**
-   * Return all headers as [key, value] tuples.
-   * @returns {Array<[string, string]>}
-   */
-  entries() {
-    return this.all().map((h) => [h.key, h.value]);
-  }
-
-  /**
-   * Return all header keys.
-   * @returns {string[]}
-   */
-  keys() {
-    return this.all().map((h) => h.key);
-  }
-
-  /**
-   * Return all header values.
-   * @returns {string[]}
-   */
-  values() {
-    return this.all().map((h) => h.value);
-  }
 
   /**
    * Convert to a plain object. Matches Postman's PropertyList.toObject() signature.
