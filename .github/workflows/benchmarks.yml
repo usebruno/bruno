@@ -65,15 +65,15 @@ jobs:
           retention-days: 30
 
       - name: Commit Updated Baseline
-        if: github.event.inputs.update-baseline == 'true' && matrix.os-name == 'ubuntu'
+        if: github.event.inputs.update-baseline == 'true'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add tests/benchmarks/mounting/baseline.json
-          git diff --staged --quiet || git commit -m "chore: update benchmark baseline" && git push
+          git add tests/benchmarks/mounting/baseline.${{ matrix.os-name }}.json
+          git diff --staged --quiet || git commit -m "chore: update ${{ matrix.os-name }} benchmark baseline" && git push
 
       - name: Comment Benchmark Results on PR
-        if: github.event_name == 'pull_request' && !cancelled() && matrix.os-name == 'ubuntu'
+        if: github.event_name == 'pull_request' && !cancelled()
         continue-on-error: true
         uses: actions/github-script@v7
         with:
@@ -83,6 +83,6 @@ jobs:
               github,
               context,
               resultsPath: 'tests/benchmarks/results/mounting.json',
-              baselinePath: 'tests/benchmarks/mounting/baseline.json',
-              title: 'Benchmark Results — Collection Mount'
+              baselinePath: 'tests/benchmarks/mounting/baseline.${{ matrix.os-name }}.json',
+              title: 'Benchmark Results — Collection Mount (${{ matrix.os-name }})'
             });

@@ -26,7 +26,7 @@ runs:
       run: >-
         node tests/benchmarks/utils/compare.js
         --results tests/benchmarks/results/mounting.json
-        --baseline tests/benchmarks/mounting/baseline.json
+        --baseline tests/benchmarks/mounting/baseline.${{ inputs.os }}.json
         --update-baseline
 
     - name: Compare Against Baseline
@@ -35,4 +35,4 @@ runs:
       run: >-
         node tests/benchmarks/utils/compare.js
         --results tests/benchmarks/results/mounting.json
-        --baseline tests/benchmarks/mounting/baseline.json
+        --baseline tests/benchmarks/mounting/baseline.${{ inputs.os }}.json
