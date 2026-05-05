@@ -1503,143 +1503,154 @@ const StyledWrapper = styled.div`
     .text-diff-container {
       border-radius: ${(props) => props.theme.border.radius.sm};
       border: 1px solid ${(props) => props.theme.border.border1};
-      overflow: auto;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      background: ${(props) => props.theme.bg};
 
       .diff-column-headers {
-        display: flex;
+        display: grid;
+        grid-template-columns: 9ch 1fr 9ch 1fr;
         border-bottom: 1px solid ${(props) => props.theme.border.border1};
-        position: sticky;
-        top: 0;
-        z-index: 2;
         background: ${(props) => props.theme.bg};
+        flex-shrink: 0;
 
         .diff-column-label {
-          flex: 1;
           padding: 6px 12px;
           font-size: 12px;
           font-weight: 600;
           color: ${(props) => props.theme.colors.text.muted};
+          grid-column: span 2;
 
-          &:first-child {
-            border-right: 1px solid ${(props) => props.theme.border.border1};
+          &:last-child {
+            border-left: 1px solid ${(props) => props.theme.border.border1};
           }
         }
       }
 
-      .d2h-wrapper {
-        background-color: ${(props) => props.theme.bg} !important;
+      /* The Virtuoso scroll container fills the rest of the modal body. */
+      > div[data-testid='virtuoso-scroller'],
+      > div:last-child {
+        flex: 1 1 auto;
+        min-height: 0;
+      }
+
+      /* Active block gets a persistent 3px yellow bar down the left edge. */
+      .diff-row {
+        display: grid;
+        grid-template-columns: 9ch 1fr 9ch 1fr;
         font-family: 'Fira Code', monospace;
         font-size: 12px;
+        line-height: 1.5;
+        /* Must match Virtuoso's fixedItemHeight in SpecDiffModal/index.js */
+        min-height: 18px;
+        color: ${(props) => props.theme.text};
+        font-variant-ligatures: none;
+        font-feature-settings: 'liga' 0, 'calt' 0;
       }
 
-      .d2h-file-wrapper {
-        border: none;
-        border-radius: 0;
-        margin-bottom: 0;
+      /* Vertical divider between the two side-by-side panels. Applied to the
+         third grid cell (right-side line number), aligned with the header's
+         existing border-right on the "Current Spec" label. */
+      .diff-row > *:nth-child(3) {
+        border-left: 1px solid ${(props) => props.theme.border.border1};
       }
 
-      .d2h-file-header {
-        display: none;
+      .diff-row.diff-row-focused > .diff-cell-num:first-child {
+        box-shadow: inset 3px 0 0 ${(props) => props.theme.colors.text.yellow};
       }
 
-      .d2h-files-diff {
-        width: 100%;
+      .diff-row.diff-row-focused > .diff-cell-num {
+        color: ${(props) => props.theme.text};
+        font-weight: 600;
+      }
 
-        .d2h-file-side-diff:first-child {
-          border-right: 1px solid ${(props) => props.theme.border.border1};
+      .diff-cell-num {
+        padding: 0 0.5em;
+        text-align: right;
+        color: ${(props) => props.theme.colors.text.muted};
+        user-select: none;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+
+        &.diff-kind-del {
+          background-color: color-mix(in srgb, ${(props) => props.theme.colors.text.danger} 22%, transparent);
+        }
+
+        &.diff-kind-ins {
+          background-color: color-mix(in srgb, ${(props) => props.theme.colors.text.green} 15%, transparent);
+        }
+
+        &.diff-kind-empty {
+          background-color: ${(props) => rgba(props.theme.colors.text.muted, 0.05)};
         }
       }
 
-      .d2h-code-side-linenumber {
-        background: transparent !important;
-        position: static !important;
+      .diff-cell-code {
+        display: flex;
+        min-width: 0;
+        padding: 0 0.5em;
+        white-space: pre;
+        overflow: hidden;
+
+        &.diff-kind-del {
+          background-color: color-mix(in srgb, ${(props) => props.theme.colors.text.danger} 22%, transparent);
+        }
+
+        &.diff-kind-ins {
+          background-color: color-mix(in srgb, ${(props) => props.theme.colors.text.green} 15%, transparent);
+        }
+
+        &.diff-kind-empty {
+          background-color: ${(props) => rgba(props.theme.colors.text.muted, 0.05)};
+        }
       }
 
-      .d2h-diff-tbody {
-        tr td { border: none !important; }
+      .diff-prefix {
+        width: 1em;
+        flex-shrink: 0;
+        color: ${(props) => props.theme.colors.text.muted};
+        user-select: none;
       }
 
-      .d2h-ins {
-        background-color: color-mix(in srgb, ${(props) => props.theme.colors.text.green} 15%, transparent) !important;
-        border-color: color-mix(in srgb, ${(props) => props.theme.colors.text.green} 40%, transparent) !important;
+      .diff-content {
+        flex: 1 1 auto;
+        min-width: 0;
+        overflow-x: auto;
+        scrollbar-width: thin;
+
+        del {
+          background-color: color-mix(in srgb, ${(props) => props.theme.colors.text.danger} 40%, transparent);
+          text-decoration: none;
+        }
+
+        ins {
+          background-color: color-mix(in srgb, ${(props) => props.theme.colors.text.green} 40%, transparent);
+          text-decoration: none;
+        }
       }
 
-      .d2h-del {
-        background-color: color-mix(in srgb, ${(props) => props.theme.colors.text.danger} 15%, transparent) !important;
-        border-color: color-mix(in srgb, ${(props) => props.theme.colors.text.danger} 40%, transparent) !important;
-      }
+      /* Hunk row must be exactly 18px so Virtuoso's fixedItemHeight is
+         accurate. Borders would add 2px; we use inset box-shadow to get the
+         visual top/bottom rule without consuming layout space. Vertical
+         padding removed for the same reason. */
+      .diff-row-hunk {
+        grid-template-columns: 1fr;
+        background-color: ${(props) => rgba(props.theme.colors.text.muted, 0.08)};
+        color: ${(props) => props.theme.colors.text.muted};
+        box-shadow:
+          inset 0 1px 0 ${(props) => props.theme.border.border1},
+          inset 0 -1px 0 ${(props) => props.theme.border.border1};
 
-      .d2h-file-diff .d2h-ins.d2h-change {
-        background-color: color-mix(in srgb, ${(props) => props.theme.colors.text.green} 25%, transparent) !important;
-      }
-
-      .d2h-file-diff .d2h-del.d2h-change {
-        background-color: color-mix(in srgb, ${(props) => props.theme.colors.text.warning} 20%, transparent) !important;
-      }
-
-      .d2h-code-line ins,
-      .d2h-code-side-line ins {
-        background-color: color-mix(in srgb, ${(props) => props.theme.colors.text.green} 40%, transparent) !important;
-        text-decoration: none;
-      }
-
-      .d2h-code-line del,
-      .d2h-code-side-line del {
-        background-color: color-mix(in srgb, ${(props) => props.theme.colors.text.danger} 40%, transparent) !important;
-        text-decoration: none;
-      }
-
-      .d2h-code-line,
-      .d2h-code-side-line {
-        color: ${(props) => props.theme.text} !important;
-        word-break: break-all;
-      }
-
-      .d2h-code-line-ctn {
-        word-break: break-all;
-      }
-
-      .d2h-tag {
-        font-size: 9px;
-        font-weight: 500;
-        padding: 1px 5px;
-        border-radius: ${(props) => props.theme.border.radius.sm};
-        text-transform: uppercase;
-        letter-spacing: 0.02em;
-        border: none;
-      }
-
-      .d2h-changed-tag {
-        background-color: color-mix(in srgb, ${(props) => props.theme.colors.text.warning} 15%, transparent);
-        color: ${(props) => props.theme.colors.text.warning};
-      }
-
-      .d2h-added-tag {
-        background-color: color-mix(in srgb, ${(props) => props.theme.colors.text.green} 13%, transparent);
-        color: ${(props) => props.theme.colors.text.green};
-      }
-
-      .d2h-deleted-tag {
-        background-color: color-mix(in srgb, ${(props) => props.theme.colors.text.danger} 13%, transparent);
-        color: ${(props) => props.theme.colors.text.danger};
-      }
-
-      .d2h-renamed-tag,
-      .d2h-moved-tag {
-        display: none;
-      }
-
-      .d2h-file-wrapper,
-      .d2h-file-diff,
-      .d2h-code-wrapper,
-      .d2h-diff-table,
-      .d2h-code-line,
-      .d2h-code-side-line,
-      .d2h-code-line-ctn,
-      .d2h-code-linenumber,
-      .d2h-code-side-linenumber {
-        font-family: 'Fira Code', monospace !important;
-        font-size: 12px !important;
+        .diff-cell-hunk {
+          padding: 0 0.75em;
+          font-family: 'Fira Code', monospace;
+          font-size: 11px;
+          white-space: pre;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
       }
     }
 
@@ -1661,6 +1672,15 @@ const StyledWrapper = styled.div`
     }
 
     .spec-diff-modal {
+
+      .spec-diff-header {
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+      }
+
       .spec-diff-badges {
         display: flex;
         gap: 0.5rem;
@@ -1671,12 +1691,50 @@ const StyledWrapper = styled.div`
       .spec-diff-subtitle {
         font-size: ${(props) => props.theme.font.size.sm};
         color: ${(props) => props.theme.colors.text.muted};
-        margin: 0 0 0.75rem 0;
+      }
+
+      .spec-diff-nav {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+
+        .spec-diff-nav-counter {
+          font-size: ${(props) => props.theme.font.size.sm};
+          color: ${(props) => props.theme.colors.text.muted};
+        }
+
+        .spec-diff-nav-buttons {
+          display: flex;
+          gap: 0.5rem;
+        }
+
+        .spec-diff-nav-btn {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.25rem;
+          padding: 0.25rem 0.5rem;
+          font-size: ${(props) => props.theme.font.size.xs};
+          background: none;
+          border: 1px solid ${(props) => props.theme.border.border1};
+          border-radius: ${(props) => props.theme.border.radius.sm};
+          color: ${(props) => props.theme.text};
+          cursor: pointer;
+
+          &:hover:not(:disabled) {
+            background: ${(props) => props.theme.background.surface1};
+          }
+
+          &:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+          }
+        }
       }
 
       .spec-diff-body {
         .text-diff-container {
-          max-height: calc(80vh - 140px);
+          height: calc(80vh - 140px);
         }
       }
     }
