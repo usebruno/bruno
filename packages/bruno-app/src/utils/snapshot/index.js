@@ -544,7 +544,19 @@ export const hydrateCollectionTabs = async (
   )
   || await ipcRenderer.invoke('renderer:snapshot:get-tabs', collection.pathname, workspacePathname).catch(() => null);
 
-  if (tabsSnapshot && Array.isArray(tabsSnapshot.tabs)) {
+  const hasPersistedTabs = Array.isArray(tabsSnapshot?.tabs) && tabsSnapshot.tabs.length > 0;
+  const hasPersistedActiveTab = Boolean(tabsSnapshot?.activeTab);
+  const shouldRestoreEmptyWorkspaceScopedTabs = Boolean(workspacePathname) && (
+    strictWorkspaceScope
+    || Boolean(snapshotLookups?.hasWorkspaceScopedTabs)
+    || isCollectionSharedAcrossWorkspaces(snapshotLookups, collection.pathname)
+  );
+
+  if (
+    tabsSnapshot
+    && Array.isArray(tabsSnapshot.tabs)
+    && (hasPersistedTabs || hasPersistedActiveTab || shouldRestoreEmptyWorkspaceScopedTabs)
+  ) {
     dispatch(restoreTabs({
       collection,
       tabs: tabsSnapshot.tabs,

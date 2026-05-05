@@ -11,7 +11,7 @@ jest.mock('nanoid', () => {
   };
 });
 
-const { deserializeTab, hydrateSnapshotLookups } = require('./index');
+const { deserializeTab, hydrateSnapshotLookups, hydrateCollectionTabs } = require('./index');
 
 describe('hydrateSnapshotLookups', () => {
   it('builds lookup maps from array-based snapshot schema', () => {
@@ -245,5 +245,145 @@ describe('deserializeTab', () => {
     expect(firstTab.uid).not.toBe('variables');
     expect(secondTab.uid).not.toBe('variables');
     expect(firstTab.uid).not.toBe(secondTab.uid);
+  });
+});
+
+describe('hydrateCollectionTabs', () => {
+  beforeEach(() => {
+    global.window = {
+      ipcRenderer: {
+        invoke: jest.fn().mockResolvedValue(null)
+      }
+    };
+  });
+
+  afterEach(() => {
+    delete global.window;
+  });
+
+  it('does not restore tabs when snapshot has no tab state', async () => {
+    const snapshot = {
+      collections: [
+        {
+          pathname: '/collections/legacy',
+          selectedEnvironment: 'local'
+        }
+      ]
+    };
+    const lookups = hydrateSnapshotLookups(snapshot);
+    const dispatch = jest.fn();
+    const restoreTabs = jest.fn();
+
+    await hydrateCollectionTabs(
+      { uid: 'collection-uid', pathname: '/collections/legacy' },
+      dispatch,
+      restoreTabs,
+      lookups,
+      null,
+      true
+    );
+
+    expect(dispatch).not.toHaveBeenCalled();
+  });
+
+  it('restores empty tab state for shared collection workspace isolation', async () => {
+    const snapshot = {
+      workspaces: [
+        {
+          pathname: '/workspaces/a',
+          collections: ['/collections/shared']
+        },
+        {
+          pathname: '/workspaces/b',
+          collections: ['/collections/shared']
+        }
+      ],
+      collections: [
+        {
+          pathname: '/collections/shared',
+          workspacePathname: '/workspaces/a',
+          tabs: [
+            {
+              type: 'http-request',
+              accessor: 'pathname',
+              pathname: '/collections/shared/request-a.bru',
+              permanent: true
+            }
+          ],
+          activeTab: {
+            accessor: 'pathname',
+            value: '/collections/shared/request-a.bru'
+          }
+        },
+        {
+          pathname: '/collections/shared',
+          workspacePathname: '/workspaces/b',
+          tabs: [],
+          activeTab: null
+        }
+      ]
+    };
+    const lookups = hydrateSnapshotLookups(snapshot);
+    const dispatch = jest.fn();
+    const restoreTabs = jest.fn((payload) => ({
+      type: 'tabs/restoreTabs',
+      payload
+    }));
+
+    await hydrateCollectionTabs(
+      { uid: 'collection-uid', pathname: '/collections/shared' },
+      dispatch,
+      restoreTabs,
+      lookups,
+      '/workspaces/b',
+      true
+    );
+
+    expect(dispatch).toHaveBeenCalledTimes(1);
+    expect(restoreTabs).toHaveBeenCalledWith(expect.objectContaining({
+      tabs: [],
+      activeTab: null
+    }));
+  });
+
+  it('restores tabs when snapshot has persisted tabs', async () => {
+    const snapshot = {
+      collections: [
+        {
+          pathname: '/collections/legacy',
+          selectedEnvironment: 'local',
+          tabs: [
+            {
+              type: 'http-request',
+              accessor: 'pathname',
+              pathname: '/collections/legacy/request.bru',
+              permanent: true
+            }
+          ],
+          activeTab: {
+            accessor: 'pathname',
+            value: '/collections/legacy/request.bru'
+          }
+        }
+      ]
+    };
+    const lookups = hydrateSnapshotLookups(snapshot);
+    const dispatch = jest.fn();
+    const restoreTabs = jest.fn((payload) => ({
+      type: 'tabs/restoreTabs',
+      payload
+    }));
+
+    await hydrateCollectionTabs(
+      { uid: 'collection-uid', pathname: '/collections/legacy' },
+      dispatch,
+      restoreTabs,
+      lookups,
+      null,
+      true
+    );
+
+    expect(dispatch).toHaveBeenCalledTimes(1);
+    expect(restoreTabs).toHaveBeenCalledTimes(1);
   });
 });
