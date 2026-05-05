@@ -90,6 +90,17 @@ const SyncReviewPage = ({
   const tabUiState = useSelector((state) => state.openapiSync?.tabUiState?.[collectionUid] || {});
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [showSpecDiffModal, setShowSpecDiffModal] = useState(false);
+  const [isOpeningSpecDiff, setIsOpeningSpecDiff] = useState(false);
+
+  // setTimeout lets the button's spinner paint before the modal mounts —
+  // without it, React batches both state updates and the spinner never shows.
+  const handleOpenSpecDiff = () => {
+    setIsOpeningSpecDiff(true);
+    setTimeout(() => {
+      setShowSpecDiffModal(true);
+      setIsOpeningSpecDiff(false);
+    }, 0);
+  };
 
   const { specAddedEndpoints, specUpdatedEndpoints, localUpdatedEndpoints, specRemovedEndpoints } = useMemo(() => {
     if (!remoteDrift) {
@@ -228,8 +239,17 @@ const SyncReviewPage = ({
             {(specDrift?.unifiedDiff || decidableEndpoints.length > 0) && (
               <div className="bulk-actions">
                 {specDrift?.unifiedDiff && (
-                  <button className="bulk-btn" onClick={() => setShowSpecDiffModal(true)}>
-                    <IconArrowsDiff size={12} /> View Spec Diff
+                  <button
+                    className="bulk-btn"
+                    onClick={handleOpenSpecDiff}
+                    disabled={isOpeningSpecDiff || showSpecDiffModal}
+                  >
+                    {isOpeningSpecDiff ? (
+                      <IconLoader2 size={12} className="animate-spin" />
+                    ) : (
+                      <IconArrowsDiff size={12} />
+                    )}{' '}
+                    View Spec Diff
                   </button>
                 )}
                 {decidableEndpoints.length > 0 && (
