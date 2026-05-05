@@ -1,7 +1,7 @@
 import type { Item as BrunoItem } from '@usebruno/schema-types/collection/item';
 import type { KeyValue as BrunoKeyValue } from '@usebruno/schema-types/common/key-value';
 import type { GrpcRequest as BrunoGrpcRequest } from '@usebruno/schema-types/requests/grpc';
-import type { GrpcRequest, GrpcMetadata, GrpcMessage, GrpcRequestInfo, GrpcRequestDetails, GrpcRequestRuntime } from '@opencollection/types/requests/grpc';
+import type { GrpcRequest, GrpcMetadata, GrpcMessageVariant, GrpcRequestInfo, GrpcRequestDetails, GrpcRequestRuntime } from '@opencollection/types/requests/grpc';
 import type { Auth } from '@opencollection/types/common/auth';
 import type { Scripts } from '@opencollection/types/common/scripts';
 import type { Variable } from '@opencollection/types/common/variables';
@@ -73,16 +73,11 @@ const stringifyGrpcRequest = (item: BrunoItem): string => {
 
     // message
     if (brunoRequest.body?.mode === 'grpc' && brunoRequest.body.grpc?.length) {
-      const messages = brunoRequest.body.grpc;
-
-      // todo: bruno app supports only one message for now
-      // update this when bruno app supports multiple messages
-      if (messages.length) {
-        const message: GrpcMessage = messages[0].content || '';
-        if (message.trim().length) {
-          grpc.message = message;
-        }
-      }
+      const variants: GrpcMessageVariant[] = brunoRequest.body.grpc.map((msg, index) => ({
+        title: msg.name || `message ${index + 1}`,
+        message: msg.content || ''
+      }));
+      grpc.message = variants;
     }
 
     // auth
