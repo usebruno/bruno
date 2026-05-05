@@ -84,6 +84,7 @@ const devToolsSchema = yup.object({
 });
 
 const snapshotSchema = yup.object({
+  version: yup.string().defined(),
   activeWorkspacePath: yup.string().nullable(),
   extras: yup.object({
     devTools: devToolsSchema.required()
@@ -93,6 +94,7 @@ const snapshotSchema = yup.object({
 });
 
 const emptySnapshot = {
+  version: '0.0.1',
   activeWorkspacePath: null,
   extras: {
     devTools: {
