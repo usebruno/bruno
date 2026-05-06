@@ -21,9 +21,9 @@ assert {
 }
 
 tests {
-  test("req.headerList.forEach(fn)", function() {
+  test("req.headerList.each(fn)", function() {
     const keys = [];
-    req.headerList.forEach((header) => {
+    req.headerList.each((header) => {
       keys.push(header.key);
     });
     expect(keys).to.include('bruno');
