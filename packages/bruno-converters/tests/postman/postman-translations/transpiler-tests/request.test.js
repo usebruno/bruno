@@ -177,10 +177,10 @@ describe('Request Translation', () => {
     expect(translatedCode).toBe('const allHeaders = req.headerList.all();');
   });
 
-  it('should translate pm.request.headers.each to req.headerList.forEach', () => {
+  it('should translate pm.request.headers.each to req.headerList.each', () => {
     const code = 'pm.request.headers.each(h => console.log(h.key));';
     const translatedCode = translateCode(code);
-    expect(translatedCode).toBe('req.headerList.forEach(h => console.log(h.key));');
+    expect(translatedCode).toBe('req.headerList.each(h => console.log(h.key));');
   });
 
   it('should translate pm.request.headers.filter to req.headerList.filter', () => {
@@ -201,22 +201,22 @@ describe('Request Translation', () => {
     expect(translatedCode).toBe('req.headerList.clear();');
   });
 
-  it('should translate pm.request.headers.prepend to req.headerList.append', () => {
+  it('should translate pm.request.headers.prepend to req.headerList.add', () => {
     const code = 'pm.request.headers.prepend({key: "X-First", value: "1"});';
     const translatedCode = translateCode(code);
-    expect(translatedCode).toBe('req.headerList.append({key: "X-First", value: "1"});');
+    expect(translatedCode).toBe('req.headerList.add({key: "X-First", value: "1"});');
   });
 
-  it('should translate pm.request.headers.insert to req.headerList.append (drops positional ref)', () => {
+  it('should translate pm.request.headers.insert to req.headerList.add (drops positional ref)', () => {
     const code = 'pm.request.headers.insert({key: "X-Mid", value: "2"}, "ref");';
     const translatedCode = translateCode(code);
-    expect(translatedCode).toBe('req.headerList.append({key: "X-Mid", value: "2"});');
+    expect(translatedCode).toBe('req.headerList.add({key: "X-Mid", value: "2"});');
   });
 
-  it('should translate pm.request.headers.insertAfter to req.headerList.append (drops positional ref)', () => {
+  it('should translate pm.request.headers.insertAfter to req.headerList.add (drops positional ref)', () => {
     const code = 'pm.request.headers.insertAfter({key: "X-After", value: "3"}, "ref");';
     const translatedCode = translateCode(code);
-    expect(translatedCode).toBe('req.headerList.append({key: "X-After", value: "3"});');
+    expect(translatedCode).toBe('req.headerList.add({key: "X-After", value: "3"});');
   });
 
   it('should translate pm.request.headers.toObject to req.headerList.toObject', () => {
