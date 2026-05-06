@@ -79,18 +79,7 @@ const isCollectionSharedAcrossWorkspaces = (snapshotLookups = {}, collectionPath
     return false;
   }
 
-  let workspaceCount = 0;
-  Object.values(snapshotLookups.workspacesByPath || {}).forEach((workspace) => {
-    const hasCollection = (workspace?.collections || []).some(
-      (workspaceCollectionPathname) => normalizePath(workspaceCollectionPathname) === normalizedCollectionPathname
-    );
-
-    if (hasCollection) {
-      workspaceCount += 1;
-    }
-  });
-
-  return workspaceCount > 1;
+  return snapshotLookups.sharedCollectionPathnames?.has(normalizedCollectionPathname) ?? false;
 };
 
 const normalizeCollectionSnapshotEntry = (pathname, entry = {}, tabsEntry = {}) => {
@@ -139,26 +128,6 @@ export const hydrateSnapshotLookups = (snapshot = {}) => {
   const tabsByWorkspaceAndCollectionPath = {};
   const workspacesByPath = {};
 
-  const setCollectionWorkspacePath = (collectionPathname, workspacePathname) => {
-    const normalizedCollectionPathname = normalizePath(collectionPathname);
-    if (!normalizedCollectionPathname) {
-      return;
-    }
-
-    const matchingCollectionKey = Object.keys(collectionsByPath).find(
-      (key) => normalizePath(key) === normalizedCollectionPathname
-    );
-
-    if (!matchingCollectionKey) {
-      return;
-    }
-
-    collectionsByPath[matchingCollectionKey] = {
-      ...collectionsByPath[matchingCollectionKey],
-      workspacePathname
-    };
-  };
-
   if (Array.isArray(snapshot.collections)) {
     snapshot.collections.forEach((collectionEntry) => {
       if (!isObject(collectionEntry) || typeof collectionEntry.pathname !== 'string') {
@@ -167,12 +136,16 @@ export const hydrateSnapshotLookups = (snapshot = {}) => {
 
       const collection = normalizeCollectionSnapshotEntry(collectionEntry.pathname, collectionEntry);
       const normalizedCollectionPathname = normalizePath(collection.pathname);
+      if (!normalizedCollectionPathname) {
+        return;
+      }
+
       const workspaceCollectionKey = getWorkspaceCollectionSnapshotKey(
         collection.workspacePathname,
         collection.pathname
       );
 
-      collectionsByPath[collection.pathname] = {
+      collectionsByPath[normalizedCollectionPathname] = {
         pathname: collection.pathname,
         workspacePathname: typeof collection.workspacePathname === 'string' ? collection.workspacePathname : '',
         environment: collection.environment,
@@ -182,7 +155,7 @@ export const hydrateSnapshotLookups = (snapshot = {}) => {
         isMounted: collection.isMounted
       };
 
-      tabsByCollectionPath[collection.pathname] = {
+      tabsByCollectionPath[normalizedCollectionPathname] = {
         pathname: collection.pathname,
         activeTab: collection.activeTab,
         tabs: collection.tabs
@@ -206,16 +179,10 @@ export const hydrateSnapshotLookups = (snapshot = {}) => {
           tabs: collection.tabs
         };
       }
-
-      if (normalizedCollectionPathname && !tabsByCollectionPath[normalizedCollectionPathname]) {
-        tabsByCollectionPath[normalizedCollectionPathname] = {
-          pathname: collection.pathname,
-          activeTab: collection.activeTab,
-          tabs: collection.tabs
-        };
-      }
     });
   }
+
+  const collectionWorkspaceCounts = new Map();
 
   if (Array.isArray(snapshot.workspaces)) {
     snapshot.workspaces.forEach((workspaceEntry) => {
@@ -224,7 +191,12 @@ export const hydrateSnapshotLookups = (snapshot = {}) => {
       }
 
       const workspace = normalizeWorkspaceSnapshotEntry(workspaceEntry.pathname, workspaceEntry);
-      workspacesByPath[workspace.pathname] = {
+      const normalizedWorkspacePath = normalizePath(workspace.pathname);
+      if (!normalizedWorkspacePath) {
+        return;
+      }
+
+      workspacesByPath[normalizedWorkspacePath] = {
         pathname: workspace.pathname,
         lastActiveCollectionPathname: workspace.lastActiveCollectionPathname,
         sorting: workspace.sorting,
@@ -232,57 +204,39 @@ export const hydrateSnapshotLookups = (snapshot = {}) => {
       };
 
       workspace.collections.forEach((collectionPathname) => {
-        setCollectionWorkspacePath(collectionPathname, workspace.pathname);
+        const normalizedCollectionPath = normalizePath(collectionPathname);
+        if (!normalizedCollectionPath) {
+          return;
+        }
+
+        if (collectionsByPath[normalizedCollectionPath]) {
+          collectionsByPath[normalizedCollectionPath] = {
+            ...collectionsByPath[normalizedCollectionPath],
+            workspacePathname: workspace.pathname
+          };
+        }
+
+        collectionWorkspaceCounts.set(
+          normalizedCollectionPath,
+          (collectionWorkspaceCounts.get(normalizedCollectionPath) || 0) + 1
+        );
       });
     });
   }
 
-  const normalizedCollectionsByPath = {};
-  const normalizedTabsByCollectionPath = {};
-  const normalizedCollectionsByWorkspaceAndPath = {};
-  const normalizedTabsByWorkspaceAndCollectionPath = {};
-  const normalizedWorkspacesByPath = {};
-
-  Object.entries(collectionsByPath).forEach(([collectionPathname, collection]) => {
-    normalizedCollectionsByPath[normalizePath(collectionPathname)] = {
-      pathname: collectionPathname,
-      ...collection
-    };
-  });
-
-  Object.entries(tabsByCollectionPath).forEach(([collectionPathname, tabs]) => {
-    normalizedTabsByCollectionPath[normalizePath(collectionPathname)] = {
-      pathname: collectionPathname,
-      ...tabs
-    };
-  });
-
-  Object.entries(collectionsByWorkspaceAndPath).forEach(([workspaceCollectionKey, collection]) => {
-    normalizedCollectionsByWorkspaceAndPath[workspaceCollectionKey] = {
-      ...collection
-    };
-  });
-
-  Object.entries(tabsByWorkspaceAndCollectionPath).forEach(([workspaceCollectionKey, tabs]) => {
-    normalizedTabsByWorkspaceAndCollectionPath[workspaceCollectionKey] = {
-      ...tabs
-    };
-  });
-
-  Object.entries(workspacesByPath).forEach(([workspacePathname, workspace]) => {
-    normalizedWorkspacesByPath[normalizePath(workspacePathname)] = {
-      pathname: workspacePathname,
-      ...workspace
-    };
+  const sharedCollectionPathnames = new Set();
+  collectionWorkspaceCounts.forEach((count, normalizedPath) => {
+    if (count > 1) sharedCollectionPathnames.add(normalizedPath);
   });
 
   return {
-    collectionsByPath: normalizedCollectionsByPath,
-    tabsByCollectionPath: normalizedTabsByCollectionPath,
-    collectionsByWorkspaceAndPath: normalizedCollectionsByWorkspaceAndPath,
-    tabsByWorkspaceAndCollectionPath: normalizedTabsByWorkspaceAndCollectionPath,
-    hasWorkspaceScopedTabs: Object.keys(normalizedTabsByWorkspaceAndCollectionPath).length > 0,
-    workspacesByPath: normalizedWorkspacesByPath
+    collectionsByPath,
+    tabsByCollectionPath,
+    collectionsByWorkspaceAndPath,
+    tabsByWorkspaceAndCollectionPath,
+    hasWorkspaceScopedTabs: Object.keys(tabsByWorkspaceAndCollectionPath).length > 0,
+    sharedCollectionPathnames,
+    workspacesByPath
   };
 };
 

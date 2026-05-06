@@ -113,6 +113,7 @@ class SnapshotManager {
       clearInvalidConfig: true,
       defaults: emptySnapshot
     });
+    this._lookupCache = null;
   }
 
   // --- Reads ---
@@ -121,40 +122,13 @@ class SnapshotManager {
     return this._normalizeSnapshot(this.store.store);
   }
 
-  getActiveWorkspacePath() {
-    const snapshot = this._normalizeSnapshot(this.store.store);
-    return snapshot.activeWorkspacePath;
-  }
-
-  getWorkspace(pathname) {
-    const normalizedPath = normalizeLookupKey(pathname);
-    if (!normalizedPath) {
-      return null;
-    }
-
-    const { workspacesByPath } = this._buildLookupMaps(this.store.store);
-    const workspace = workspacesByPath[normalizedPath];
-
-    if (!workspace) {
-      return null;
-    }
-
-    return {
-      pathname: workspace.pathname,
-      environment: workspace.environment,
-      lastActiveCollectionPathname: workspace.lastActiveCollectionPathname,
-      sorting: workspace.sorting,
-      collections: workspace.collections
-    };
-  }
-
   getCollection(pathname) {
     const normalizedPath = normalizeLookupKey(pathname);
     if (!normalizedPath) {
       return null;
     }
 
-    const { collectionsByPath } = this._buildLookupMaps(this.store.store);
+    const { collectionsByPath } = this._buildLookupMaps();
     const collection = collectionsByPath[normalizedPath];
 
     if (!collection) {
@@ -178,7 +152,7 @@ class SnapshotManager {
       return null;
     }
 
-    const { tabsByCollectionPath, tabsByWorkspaceAndCollectionPath } = this._buildLookupMaps(this.store.store);
+    const { tabsByCollectionPath, tabsByWorkspaceAndCollectionPath } = this._buildLookupMaps();
     const workspaceCollectionKey = buildWorkspaceCollectionLookupKey(workspacePathname, collectionPathname);
 
     let tabsEntry = workspaceCollectionKey ? tabsByWorkspaceAndCollectionPath[workspaceCollectionKey] : null;
@@ -203,36 +177,12 @@ class SnapshotManager {
       const normalizedSnapshot = this._normalizeSnapshot(data);
       snapshotSchema.validateSync(normalizedSnapshot, { strict: false });
       this.store.store = normalizedSnapshot;
+      this._lookupCache = null;
       return true;
     } catch (err) {
       console.error('Failed to save snapshot:', err.message);
       return false;
     }
-  }
-
-  setActiveWorkspacePath(pathname) {
-    const snapshot = this._normalizeSnapshot(this.store.store);
-    snapshot.activeWorkspacePath = typeof pathname === 'string' ? pathname : null;
-    this.store.store = snapshot;
-  }
-
-  setWorkspace(pathname, data) {
-    const normalizedPath = normalizeLookupKey(pathname);
-    if (!normalizedPath) {
-      return;
-    }
-
-    const snapshot = this._normalizeSnapshot(this.store.store);
-    const normalizedEntry = this._normalizeWorkspaceEntry(pathname, data);
-    const workspaceIndex = snapshot.workspaces.findIndex((workspace) => normalizeLookupKey(workspace.pathname) === normalizedPath);
-
-    if (workspaceIndex === -1) {
-      snapshot.workspaces.push(normalizedEntry);
-    } else {
-      snapshot.workspaces[workspaceIndex] = normalizedEntry;
-    }
-
-    this.store.store = snapshot;
   }
 
   setCollection(pathname, data) {
@@ -267,53 +217,7 @@ class SnapshotManager {
     }
 
     this.store.store = snapshot;
-  }
-
-  setTabs(collectionPathname, data) {
-    const normalizedPath = normalizeLookupKey(collectionPathname);
-    if (!normalizedPath) {
-      return;
-    }
-
-    const snapshot = this._normalizeSnapshot(this.store.store);
-    const collectionIndex = snapshot.collections.findIndex((collection) => normalizeLookupKey(collection.pathname) === normalizedPath);
-    const existingCollection = collectionIndex === -1 ? null : snapshot.collections[collectionIndex];
-
-    const normalizedCollection = this._normalizeCollectionEntry(collectionPathname, {
-      ...(existingCollection || {}),
-      activeTab: data?.activeTab,
-      tabs: data?.tabs
-    });
-
-    if (collectionIndex === -1) {
-      snapshot.collections.push(normalizedCollection);
-    } else {
-      snapshot.collections[collectionIndex] = normalizedCollection;
-    }
-
-    this.store.store = snapshot;
-  }
-
-  removeWorkspace(pathname) {
-    const normalizedPath = normalizeLookupKey(pathname);
-    if (!normalizedPath) {
-      return;
-    }
-
-    const snapshot = this._normalizeSnapshot(this.store.store);
-    snapshot.workspaces = snapshot.workspaces.filter((workspace) => normalizeLookupKey(workspace.pathname) !== normalizedPath);
-    this.store.store = snapshot;
-  }
-
-  removeCollection(pathname) {
-    const normalizedPath = normalizeLookupKey(pathname);
-    if (!normalizedPath) {
-      return;
-    }
-
-    const snapshot = this._normalizeSnapshot(this.store.store);
-    snapshot.collections = snapshot.collections.filter((collection) => normalizeLookupKey(collection.pathname) !== normalizedPath);
-    this.store.store = snapshot;
+    this._lookupCache = null;
   }
 
   async update({ type, data }) {
@@ -606,8 +510,12 @@ class SnapshotManager {
     };
   }
 
-  _buildLookupMaps(snapshot = {}) {
-    const normalizedSnapshot = this._normalizeSnapshot(snapshot);
+  _buildLookupMaps() {
+    if (this._lookupCache) {
+      return this._lookupCache;
+    }
+
+    const normalizedSnapshot = this._normalizeSnapshot(this.store.store);
     const workspacesByPath = {};
     const collectionsByPath = {};
     const tabsByCollectionPath = {};
@@ -643,12 +551,14 @@ class SnapshotManager {
       }
     });
 
-    return {
+    this._lookupCache = {
       workspacesByPath,
       collectionsByPath,
       tabsByCollectionPath,
       tabsByWorkspaceAndCollectionPath
     };
+
+    return this._lookupCache;
   }
 }
 
