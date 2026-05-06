@@ -5,7 +5,8 @@ jest.mock('platform', () => ({
   }
 }));
 
-import { getRelativePath, getBasename, getAbsoluteFilePath, getStoredFilePath } from './path';
+import path from 'path';
+import { getRelativePath, getBasename, getAbsoluteFilePath, getRelativePathWithinBasePath } from './path';
 
 describe('Path Utilities - Unix Platform', () => {
   describe('getRelativePath', () => {
@@ -23,6 +24,14 @@ describe('Path Utilities - Unix Platform', () => {
 
     it('should return nested subdirectory path', () => {
       expect(getRelativePath('/users/john/projects', '/users/john/projects/src/components')).toBe('src/components');
+    });
+
+    it('should return ".." for direct parent directory', () => {
+      expect(getRelativePath('/users/john/projects', '/users/john')).toBe('..');
+    });
+
+    it('should return a path that starts with "../" when target is outside and nested', () => {
+      expect(getRelativePath('/users/john/projects', '/users/john/docs/readme.md')).toBe('../docs/readme.md');
     });
 
     it('should handle null/undefined inputs', () => {
@@ -113,54 +122,75 @@ describe('Path Utilities - Unix Platform', () => {
     });
   });
 
-  describe('getStoredFilePath', () => {
+  describe('getRelativePathWithinBasePath', () => {
     it('should store in-collection files as relative paths', () => {
-      const result = getStoredFilePath('/users/john/collections/api', '/users/john/collections/api/files/payload.txt');
+      const result = getRelativePathWithinBasePath('/users/john/collections/api', '/users/john/collections/api/files/payload.txt');
       expect(result).toBe('files/payload.txt');
     });
 
     it('should handle collection paths with trailing separators', () => {
-      const result = getStoredFilePath('/users/john/collections/api/', '/users/john/collections/api/files/payload.txt');
+      const result = getRelativePathWithinBasePath('/users/john/collections/api/', '/users/john/collections/api/files/payload.txt');
       expect(result).toBe('files/payload.txt');
     });
 
     it('should resolve dot segments before deciding whether a file is inside the collection', () => {
-      const result = getStoredFilePath('/users/john/collections/api', '/users/john/collections/api/files/../payload.txt');
+      const result = getRelativePathWithinBasePath('/users/john/collections/api', '/users/john/collections/api/files/../payload.txt');
       expect(result).toBe('payload.txt');
     });
 
     it('should keep paths that resolve outside the collection absolute', () => {
       const filePath = '/users/john/collections/api/../payload.txt';
-      const result = getStoredFilePath('/users/john/collections/api', filePath);
+      const result = getRelativePathWithinBasePath('/users/john/collections/api', filePath);
       expect(result).toBe(filePath);
     });
 
     it('should keep outside collection paths absolute', () => {
       const filePath = '/users/john/downloads/payload.txt';
-      const result = getStoredFilePath('/users/john/collections/api', filePath);
+      const result = getRelativePathWithinBasePath('/users/john/collections/api', filePath);
       expect(result).toBe(filePath);
     });
 
     it('should keep sibling prefix paths absolute', () => {
       const filePath = '/users/john/collections/api-other/payload.txt';
-      const result = getStoredFilePath('/users/john/collections/api', filePath);
+      const result = getRelativePathWithinBasePath('/users/john/collections/api', filePath);
       expect(result).toBe(filePath);
     });
 
     it('should keep same-path values unchanged', () => {
       const filePath = '/users/john/collections/api';
-      const result = getStoredFilePath('/users/john/collections/api', filePath);
+      const result = getRelativePathWithinBasePath('/users/john/collections/api', filePath);
       expect(result).toBe(filePath);
     });
 
     it('should store in-collection paths whose names begin with two dots as relative paths', () => {
-      const result = getStoredFilePath('/users/john/collections/api', '/users/john/collections/api/..payload.txt');
+      const result = getRelativePathWithinBasePath('/users/john/collections/api', '/users/john/collections/api/..payload.txt');
       expect(result).toBe('..payload.txt');
     });
 
     it('should keep the original file path when inputs are missing', () => {
-      expect(getStoredFilePath('', '/users/john/downloads/payload.txt')).toBe('/users/john/downloads/payload.txt');
-      expect(getStoredFilePath('/users/john/collections/api', '')).toBe('');
+      expect(getRelativePathWithinBasePath('', '/users/john/downloads/payload.txt')).toBe('/users/john/downloads/payload.txt');
+      expect(getRelativePathWithinBasePath('/users/john/collections/api', '')).toBe('');
+    });
+
+    it('should treat relative collection path as cwd-relative when file path is absolute', () => {
+      const collectionPath = 'collections/api';
+      const filePath = path.resolve(collectionPath, 'files/payload.txt');
+      const result = getRelativePathWithinBasePath(collectionPath, filePath);
+      expect(result).toBe('files/payload.txt');
+    });
+
+    it('should treat relative file path as cwd-relative when collection path is absolute', () => {
+      const collectionPath = path.resolve('collections/api');
+      const filePath = 'collections/api/files/payload.txt';
+      const result = getRelativePathWithinBasePath(collectionPath, filePath);
+      expect(result).toBe('files/payload.txt');
+    });
+
+    it('should treat both relative paths as cwd-relative for containment checks', () => {
+      const collectionPath = 'collections/api';
+      const filePath = 'collections/api/files/payload.txt';
+      const result = getRelativePathWithinBasePath(collectionPath, filePath);
+      expect(result).toBe('files/payload.txt');
     });
   });
 

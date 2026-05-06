@@ -163,20 +163,20 @@ const getAbsoluteFilePath = (basePath, relativePath, shouldPosixify = false) => 
   return shouldPosixify ? posixify(result) : result;
 };
 
-// Stores in-collection files as relative paths using the current platform's
-// separator style: backslashes on Windows, forward slashes on Unix-like systems.
-const getStoredFilePath = (collectionPath, filePath) => {
-  if (!collectionPath || !filePath) {
+// Returns a relative path when filePath is contained within basePath.
+// For paths outside basePath, this returns the original filePath unchanged.
+// Callers can choose whether relative output is posixified.
+const getRelativePathWithinBasePath = (basePath, filePath, shouldPosixify = false) => {
+  if (!basePath || !filePath) {
     return filePath;
   }
 
   try {
-    const resolvedCollectionPath = brunoPath.resolve(collectionPath);
-    const resolvedFilePath = brunoPath.resolve(filePath);
-    const relativePath = brunoPath.relative(resolvedCollectionPath, resolvedFilePath);
+    const relativePath = getRelativePath(basePath, filePath, shouldPosixify);
 
     if (
       !relativePath
+      || relativePath === '.'
       || relativePath === '..'
       || relativePath.startsWith(`..${brunoPath.sep}`)
       || brunoPath.isAbsolute(relativePath)
@@ -196,4 +196,4 @@ const normalizePath = (p) => {
 };
 
 export default brunoPath;
-export { getRelativePath, getBasename, getAbsoluteFilePath, getStoredFilePath, normalizePath };
+export { getRelativePath, getBasename, getAbsoluteFilePath, getRelativePathWithinBasePath, normalizePath };

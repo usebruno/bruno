@@ -7,7 +7,7 @@ import { updateResponseExampleMultipartFormParams } from 'providers/ReduxStore/s
 import { browseFiles } from 'providers/ReduxStore/slices/collections/actions';
 import { updateTableColumnWidths } from 'providers/ReduxStore/slices/tabs';
 import mime from 'mime-types';
-import path, { getStoredFilePath } from 'utils/common/path';
+import path, { getRelativePathWithinBasePath } from 'utils/common/path';
 import EditableTable from 'components/EditableTable';
 import MultiLineEditor from 'components/MultiLineEditor';
 import SingleLineEditor from 'components/SingleLineEditor';
@@ -51,7 +51,7 @@ const ResponseExampleMultipartFormParams = ({ item, collection, exampleUid, edit
     dispatch(browseFiles())
       .then((filePaths) => {
         const processedPaths = filePaths.map((filePath) => {
-          return getStoredFilePath(collection.pathname, filePath);
+          return getRelativePathWithinBasePath(collection.pathname, filePath);
         });
 
         const currentParams = params || [];
