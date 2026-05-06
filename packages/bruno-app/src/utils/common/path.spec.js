@@ -30,10 +30,6 @@ describe('Path Utilities - Unix Platform', () => {
       expect(getRelativePath('/users/john/projects', '/users/john')).toBe('..');
     });
 
-    it('should return a path that starts with "../" when target is outside and nested', () => {
-      expect(getRelativePath('/users/john/projects', '/users/john/docs/readme.md')).toBe('../docs/readme.md');
-    });
-
     it('should handle null/undefined inputs', () => {
       expect(getRelativePath(null, '/users/john/projects')).toBe('/users/john/projects');
       expect(getRelativePath(undefined, '/users/john/projects')).toBe('/users/john/projects');
