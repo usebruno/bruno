@@ -29,6 +29,21 @@ describe('HeaderList (req.headerList)', () => {
     expect(ReadOnlyPropertyList.isPropertyList(list)).toBe(true);
   });
 
+  // ── Blocked inherited methods ─────────────────────────────────────────
+
+  test('idx is undefined (blocked from ReadOnlyPropertyList)', () => {
+    const { list } = createReqHeaders();
+    expect(list.idx).toBeUndefined();
+  });
+
+  test('positional methods do not exist (not inherited from PropertyList)', () => {
+    const { list } = createReqHeaders();
+    expect(list.prepend).toBeUndefined();
+    expect(list.insert).toBeUndefined();
+    expect(list.insertAfter).toBeUndefined();
+    expect(list.append).toBeUndefined();
+  });
+
   // ── Read methods ──────────────────────────────────────────────────────
 
   describe('read methods', () => {
@@ -295,6 +310,12 @@ describe('HeaderList (req.headerList)', () => {
       const { list, rawReq } = createReqHeaders({});
       list.add('X-Custom', 'my-value');
       expect(rawReq.headers['X-Custom']).toBe('my-value');
+    });
+
+    test('two-arg form overwrites existing header', () => {
+      const { list, rawReq } = createReqHeaders();
+      list.add('Content-Type', 'text/plain');
+      expect(rawReq.headers['Content-Type']).toBe('text/plain');
     });
 
     test('ignores malformed string (no colon)', () => {
