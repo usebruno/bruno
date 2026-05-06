@@ -381,12 +381,12 @@ const prepareRequest = async (item, collection = {}, abortController) => {
 
   const disabledHeaders = [];
   each(get(request, 'headers', []), (h) => {
-    if (h.enabled && h.name.length > 0) {
+    if (h.enabled && h.name?.length > 0) {
       headers[h.name] = h.value;
       if (h.name.toLowerCase() === 'content-type') {
         contentTypeDefined = true;
       }
-    } else if (!h.enabled && h.name.length > 0) {
+    } else if (!h.enabled && h.name?.length > 0) {
       disabledHeaders.push({ name: h.name, value: h.value });
     }
   });
