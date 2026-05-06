@@ -15,6 +15,8 @@ import toast from 'react-hot-toast';
 import { Tooltip } from 'react-tooltip';
 import { getGlobalEnvironmentVariables } from 'utils/collections';
 import { stripEnvVarUid } from 'utils/environments';
+import { usePersistedState } from 'hooks/usePersistedState';
+import { useTrackScroll } from 'hooks/useTrackScroll';
 
 const MIN_H = 35 * 2;
 const MIN_COLUMN_WIDTH = 80;
@@ -59,6 +61,17 @@ const EnvironmentVariablesTable = ({
 
   const rowCount = (environment.variables?.length || 0) + 1;
   const [tableHeight, setTableHeight] = useState(rowCount * MIN_ROW_HEIGHT);
+
+  // We need to add <EditableTable/> component for env table
+  const [scroll, setScroll] = usePersistedState({
+    key: `persisted::${activeTabUid}::collection-envs-scroll-${environment.uid}`,
+    default: 0
+  });
+  const scrollerRef = useRef(null);
+  const [scrollerEl, setScrollerEl] = useState(null);
+  scrollerRef.current = scrollerEl;
+  const initialTopMostItemIndex = useRef(Math.max(0, Math.floor(scroll / MIN_ROW_HEIGHT))).current;
+  useTrackScroll({ ref: scrollerRef, onChange: setScroll, initialValue: scroll, enabled: !!scrollerEl });
 
   // Use environment UID as part of tableId so each environment has its own column widths
   const tableId = `env-vars-table-${environment.uid}`;
@@ -485,6 +498,8 @@ const EnvironmentVariablesTable = ({
         <TableVirtuoso
           className="table-container"
           style={{ height: tableHeight }}
+          scrollerRef={setScrollerEl}
+          initialTopMostItemIndex={initialTopMostItemIndex}
           overscan={Math.min(30, filteredVariables.length)}
           components={{ TableRow }}
           data={filteredVariables}
