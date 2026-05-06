@@ -951,10 +951,10 @@ describe('Response Translation', () => {
     expect(translatedCode).toContain('expect(res.getStatus()).to.equal(429)');
   });
 
-  it('should translate pm.response.to.be.withoutBody', () => {
-    const code = 'pm.response.to.be.withoutBody;';
+  it('should translate pm.response.to.be.withBody', () => {
+    const code = 'pm.response.to.be.withBody;';
     const translatedCode = translateCode(code);
-    expect(translatedCode).toContain('expect([204, 304]).to.include(res.getStatus())');
+    expect(translatedCode).toContain('expect(res.getBody()).to.be.ok');
   });
 
   it('should handle new status assertions inside test blocks', () => {
@@ -967,7 +967,6 @@ describe('Response Translation', () => {
             pm.response.to.be.forbidden;
             pm.response.to.be.notFound;
             pm.response.to.be.rateLimited;
-            pm.response.to.be.withoutBody;
         });
         `;
     const translatedCode = translateCode(code);
@@ -979,7 +978,6 @@ describe('Response Translation', () => {
     expect(translatedCode).toContain('expect(res.getStatus()).to.equal(403)');
     expect(translatedCode).toContain('expect(res.getStatus()).to.equal(404)');
     expect(translatedCode).toContain('expect(res.getStatus()).to.equal(429)');
-    expect(translatedCode).toContain('expect([204, 304]).to.include(res.getStatus())');
   });
 
   // --- .not negation for to.be.* assertions ---
@@ -1068,10 +1066,10 @@ describe('Response Translation', () => {
     expect(translatedCode).toContain('expect(res.getStatus()).to.not.equal(429)');
   });
 
-  it('should translate pm.response.to.not.be.withoutBody', () => {
-    const code = 'pm.response.to.not.be.withoutBody;';
+  it('should translate pm.response.to.not.be.withBody', () => {
+    const code = 'pm.response.to.not.be.withBody;';
     const translatedCode = translateCode(code);
-    expect(translatedCode).toContain('expect([204, 304]).to.not.include(res.getStatus())');
+    expect(translatedCode).toContain('expect(res.getBody()).to.not.be.ok');
   });
 
   it('should handle negated assertions inside test blocks', () => {

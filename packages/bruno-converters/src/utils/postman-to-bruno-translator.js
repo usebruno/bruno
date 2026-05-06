@@ -562,23 +562,23 @@ const complexTransformations = [
       );
     });
 
-    // Special case: withoutBody (204 or 304)
-    const buildWithoutBodyTransform = (chain) => (path, j) => {
+    // Special case: withBody checks actual body content
+    const buildWithBodyTransform = (chain) => (path, j) => {
       return j.callExpression(
         j.memberExpression(
           j.callExpression(j.identifier('expect'), [
-            j.arrayExpression([j.literal(204), j.literal(304)])
+            j.callExpression(j.identifier('res.getBody'), [])
           ]),
           j.identifier(chain)
         ),
-        [j.callExpression(j.identifier('res.getStatus'), [])]
+        []
       );
     };
 
     entries.push(
-      { pattern: 'pm.response.to.be.withoutBody', transform: buildWithoutBodyTransform('to.include') },
-      { pattern: 'pm.response.to.not.be.withoutBody', transform: buildWithoutBodyTransform('to.not.include') },
-      { pattern: 'pm.response.to.be.not.withoutBody', transform: buildWithoutBodyTransform('to.not.include') }
+      { pattern: 'pm.response.to.be.withBody', transform: buildWithBodyTransform('to.be.ok') },
+      { pattern: 'pm.response.to.not.be.withBody', transform: buildWithBodyTransform('to.not.be.ok') },
+      { pattern: 'pm.response.to.be.not.withBody', transform: buildWithBodyTransform('to.not.be.ok') }
     );
 
     return entries;
