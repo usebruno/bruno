@@ -577,9 +577,7 @@ export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
           toast.error(err.message);
         });
     } else if (isWsRequest) {
-      const wsMessages = itemCopy.draft?.request?.body?.ws || itemCopy.request?.body?.ws || [];
-      const wsSelectedMessageIndex = Math.max(0, wsMessages.findIndex((msg) => msg.selected));
-      sendWsRequest(itemCopy, collectionCopy, environment, collectionCopy.runtimeVariables, wsSelectedMessageIndex)
+      sendWsRequest(itemCopy, collectionCopy, environment, collectionCopy.runtimeVariables)
         .then(resolve)
         .catch((err) => {
           toast.error(err.message);
@@ -1606,7 +1604,6 @@ export const newWsRequest = (params) => (dispatch, getState) => {
           mode: 'ws',
           ws: [
             {
-              uid: uuid(),
               name: 'message 1',
               type: 'json',
               content: '{}'
