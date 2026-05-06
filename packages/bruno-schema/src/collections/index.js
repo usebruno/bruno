@@ -28,7 +28,8 @@ const environmentSchema = Yup.object({
   uid: uidSchema,
   name: Yup.string().min(1).required('name is required'),
   variables: Yup.array().of(environmentVariablesSchema).required('variables are required'),
-  color: Yup.string().nullable().optional()
+  color: Yup.string().nullable().optional(),
+  pathname: Yup.string().nullable()
 })
   .noUnknown(true)
   .strict();
