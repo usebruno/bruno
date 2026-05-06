@@ -1,5 +1,4 @@
 const HeaderList = require('../src/header-list');
-const PropertyList = require('../src/property-list');
 const ReadOnlyPropertyList = require('../src/readonly-property-list');
 const BrunoRequest = require('../src/bruno-request');
 const BrunoResponse = require('../src/bruno-response');
@@ -19,10 +18,9 @@ describe('HeaderList (req.headerList)', () => {
 
   // ── Inheritance ────────────────────────────────────────────────────────
 
-  test('extends PropertyList and ReadOnlyPropertyList', () => {
+  test('extends ReadOnlyPropertyList', () => {
     const { list } = createReqHeaders();
     expect(list).toBeInstanceOf(ReadOnlyPropertyList);
-    expect(list).toBeInstanceOf(PropertyList);
     expect(list).toBeInstanceOf(HeaderList);
   });
 

@@ -66,6 +66,10 @@ const simpleTranslations = {
   'pm.request.headers.reduce': 'req.headerList.reduce',
   'pm.request.headers.toObject': 'req.headerList.toObject',
   'pm.request.headers.clear': 'req.headerList.clear',
+  // Lossy: positional inserts map to append (position irrelevant for headers)
+  'pm.request.headers.prepend': 'req.headerList.append',
+  'pm.request.headers.insert': 'req.headerList.append',
+  'pm.request.headers.insertAfter': 'req.headerList.append',
 
   // Response headers PropertyList methods (read-only)
   'pm.response.headers.has': 'res.headerList.has',

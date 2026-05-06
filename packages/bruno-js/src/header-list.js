@@ -1,4 +1,3 @@
-const PropertyList = require('./property-list');
 const ReadOnlyPropertyList = require('./readonly-property-list');
 
 /**
@@ -78,7 +77,7 @@ const ReadOnlyPropertyList = require('./readonly-property-list');
  * | `repopulate(items)`               | Clears all, then populates with new items                 |
  * | `assimilate(source, prune?)`      | Merges headers; prune removes items not in source         |
  */
-class HeaderList extends PropertyList {
+class HeaderList extends ReadOnlyPropertyList {
   #req;
   #writable;
 
@@ -152,49 +151,10 @@ class HeaderList extends PropertyList {
   }
 
   // ── Blocked inherited methods ─────────────────────────────────────────
-  // These are inherited from PropertyList/ReadOnlyPropertyList but are not
-  // part of the HeaderList API. They either use old naming or operate on
-  // the internal _items array instead of the request config.
-
-  /** @throws {Error} Use get(name) or all() instead. */
-  idx() {
-    throw new Error('idx() is not supported on HeaderList. Use get(name) instead.');
-  }
-
-  /** @throws {Error} Use append() instead. */
-  add() {
-    throw new Error('add() is not supported on HeaderList. Use append() instead.');
-  }
-
-  /** @throws {Error} Use set() instead. */
-  upsert() {
-    throw new Error('upsert() is not supported on HeaderList. Use set() instead.');
-  }
-
-  /** @throws {Error} Use delete() instead. */
-  remove() {
-    throw new Error('remove() is not supported on HeaderList. Use delete() instead.');
-  }
-
-  /** @throws {Error} Use forEach() instead. */
-  each() {
-    throw new Error('each() is not supported on HeaderList. Use forEach() instead.');
-  }
-
-  /** @throws {Error} Not supported — headers are stored as a plain object. */
-  prepend() {
-    throw new Error('prepend() is not supported on HeaderList. Use append() or set() instead.');
-  }
-
-  /** @throws {Error} Not supported — headers are stored as a plain object. */
-  insert() {
-    throw new Error('insert() is not supported on HeaderList. Use append() or set() instead.');
-  }
-
-  /** @throws {Error} Not supported — headers are stored as a plain object. */
-  insertAfter() {
-    throw new Error('insertAfter() is not supported on HeaderList. Use append() or set() instead.');
-  }
+  // These are inherited from ReadOnlyPropertyList but are not part of
+  // the HeaderList API. Set to undefined so they are not callable.
+  idx = undefined;
+  each = undefined;
 
   // ── Read method overrides (case-insensitive) ──────────────────────────
 
