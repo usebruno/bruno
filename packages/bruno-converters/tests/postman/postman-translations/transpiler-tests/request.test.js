@@ -201,6 +201,24 @@ describe('Request Translation', () => {
     expect(translatedCode).toBe('req.headerList.clear();');
   });
 
+  it('should translate pm.request.headers.prepend to req.headerList.append', () => {
+    const code = 'pm.request.headers.prepend({key: "X-First", value: "1"});';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toBe('req.headerList.append({key: "X-First", value: "1"});');
+  });
+
+  it('should translate pm.request.headers.insert to req.headerList.append', () => {
+    const code = 'pm.request.headers.insert({key: "X-Mid", value: "2"}, "ref");';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toBe('req.headerList.append({key: "X-Mid", value: "2"}, "ref");');
+  });
+
+  it('should translate pm.request.headers.insertAfter to req.headerList.append', () => {
+    const code = 'pm.request.headers.insertAfter({key: "X-After", value: "3"}, "ref");';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toBe('req.headerList.append({key: "X-After", value: "3"}, "ref");');
+  });
+
   it('should translate pm.request.headers.toObject to req.headerList.toObject', () => {
     const code = 'const obj = pm.request.headers.toObject();';
     const translatedCode = translateCode(code);
