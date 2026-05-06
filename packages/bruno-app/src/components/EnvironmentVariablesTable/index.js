@@ -63,9 +63,6 @@ const EnvironmentVariablesTable = ({
   const [tableHeight, setTableHeight] = useState(rowCount * MIN_ROW_HEIGHT);
 
   // We need to add <EditableTable/> component for env table
-  // Scroll persistence — Virtuoso uses its own scroller (no customScrollParent here),
-  // so we receive the scroller element via scrollerRef and feed it to useTrackScroll.
-  // Key follows the standard `persisted::<activeTabUid>::<key>` format so clearPersistedScope works.
   const [scroll, setScroll] = usePersistedState({
     key: `persisted::${activeTabUid}::collection-envs-scroll-${environment.uid}`,
     default: 0
