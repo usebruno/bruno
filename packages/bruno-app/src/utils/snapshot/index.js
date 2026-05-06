@@ -79,7 +79,7 @@ const isCollectionSharedAcrossWorkspaces = (snapshotLookups = {}, collectionPath
     return false;
   }
 
-  return snapshotLookups.sharedCollectionPathnames?.has(normalizedCollectionPathname) ?? false;
+  return snapshotLookups?.sharedCollectionPathnames?.has(normalizedCollectionPathname) ?? false;
 };
 
 const normalizeCollectionSnapshotEntry = (pathname, entry = {}, tabsEntry = {}) => {
