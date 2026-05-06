@@ -188,7 +188,7 @@ meta {
         expect(() => parser(input)).toThrow();
       });
 
-      it('should fail when list item are not seperated by atleast one newline', () => {
+      it('should fail when two list items appear on the same line', () => {
         const input = `
 meta {
   tags: [ 
