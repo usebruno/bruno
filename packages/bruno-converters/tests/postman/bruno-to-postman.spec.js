@@ -412,11 +412,13 @@ describe('brunoToPostman null checks and fallbacks', () => {
     const result = brunoToPostman(simpleCollection);
     expect(result.item[0].request.auth).toEqual({
       type: 'bearer',
-      bearer: {
-        key: 'token',
-        value: '',
-        type: 'string'
-      }
+      bearer: [
+        {
+          key: 'token',
+          value: '',
+          type: 'string'
+        }
+      ]
     });
   });
 
@@ -443,12 +445,12 @@ describe('brunoToPostman null checks and fallbacks', () => {
       type: 'basic',
       basic: [
         {
-          key: 'password',
+          key: 'username',
           value: '',
           type: 'string'
         },
         {
-          key: 'username',
+          key: 'password',
           value: '',
           type: 'string'
         }
@@ -486,6 +488,11 @@ describe('brunoToPostman null checks and fallbacks', () => {
         {
           key: 'value',
           value: '',
+          type: 'string'
+        },
+        {
+          key: 'in',
+          value: 'header',
           type: 'string'
         }
       ]
@@ -1045,5 +1052,180 @@ describe('brunoToPostman item ordering', () => {
     const names = result.item.map((i) => i.name);
 
     expect(names).toEqual(['Apple', 'Mango', 'Zebra']);
+  });
+});
+
+describe('brunoToPostman v2.0 format', () => {
+  it('should use v2.0 schema URL', () => {
+    const simpleCollection = {
+      name: 'Test Collection',
+      items: []
+    };
+
+    const result = brunoToPostman(simpleCollection, '2.0');
+    expect(result.info.schema).toBe('https://schema.getpostman.com/json/collection/v2.0.0/collection.json');
+  });
+
+  it('should use object format for bearer auth in v2.0', () => {
+    const simpleCollection = {
+      items: [
+        {
+          name: 'Test Request',
+          type: 'http-request',
+          request: {
+            method: 'GET',
+            url: 'https://example.com',
+            auth: {
+              mode: 'bearer',
+              bearer: { token: 'test-token' }
+            }
+          }
+        }
+      ]
+    };
+
+    const result = brunoToPostman(simpleCollection, '2.0');
+    expect(result.item[0].request.auth).toEqual({
+      type: 'bearer',
+      bearer: {
+        token: 'test-token'
+      }
+    });
+  });
+
+  it('should use object format for basic auth in v2.0', () => {
+    const simpleCollection = {
+      items: [
+        {
+          name: 'Test Request',
+          type: 'http-request',
+          request: {
+            method: 'GET',
+            url: 'https://example.com',
+            auth: {
+              mode: 'basic',
+              basic: { username: 'user', password: 'pass' }
+            }
+          }
+        }
+      ]
+    };
+
+    const result = brunoToPostman(simpleCollection, '2.0');
+    expect(result.item[0].request.auth).toEqual({
+      type: 'basic',
+      basic: {
+        username: 'user',
+        password: 'pass'
+      }
+    });
+  });
+
+  it('should use object format for apikey auth in v2.0', () => {
+    const simpleCollection = {
+      items: [
+        {
+          name: 'Test Request',
+          type: 'http-request',
+          request: {
+            method: 'GET',
+            url: 'https://example.com',
+            auth: {
+              mode: 'apikey',
+              apikey: { key: 'api-key', value: 'secret', in: 'header' }
+            }
+          }
+        }
+      ]
+    };
+
+    const result = brunoToPostman(simpleCollection, '2.0');
+    expect(result.item[0].request.auth).toEqual({
+      type: 'apikey',
+      apikey: {
+        key: 'api-key',
+        value: 'secret',
+        in: 'header'
+      }
+    });
+  });
+});
+
+describe('brunoToPostman v2.1 format', () => {
+  it('should use v2.1 schema URL by default', () => {
+    const simpleCollection = {
+      name: 'Test Collection',
+      items: []
+    };
+
+    const result = brunoToPostman(simpleCollection);
+    expect(result.info.schema).toBe('https://schema.getpostman.com/json/collection/v2.1.0/collection.json');
+  });
+
+  it('should use array format for bearer auth in v2.1', () => {
+    const simpleCollection = {
+      items: [
+        {
+          name: 'Test Request',
+          type: 'http-request',
+          request: {
+            method: 'GET',
+            url: 'https://example.com',
+            auth: {
+              mode: 'bearer',
+              bearer: { token: 'test-token' }
+            }
+          }
+        }
+      ]
+    };
+
+    const result = brunoToPostman(simpleCollection, '2.1');
+    expect(result.item[0].request.auth).toEqual({
+      type: 'bearer',
+      bearer: [
+        {
+          key: 'token',
+          value: 'test-token',
+          type: 'string'
+        }
+      ]
+    });
+  });
+
+  it('should use array format for basic auth in v2.1', () => {
+    const simpleCollection = {
+      items: [
+        {
+          name: 'Test Request',
+          type: 'http-request',
+          request: {
+            method: 'GET',
+            url: 'https://example.com',
+            auth: {
+              mode: 'basic',
+              basic: { username: 'user', password: 'pass' }
+            }
+          }
+        }
+      ]
+    };
+
+    const result = brunoToPostman(simpleCollection, '2.1');
+    expect(result.item[0].request.auth).toEqual({
+      type: 'basic',
+      basic: [
+        {
+          key: 'username',
+          value: 'user',
+          type: 'string'
+        },
+        {
+          key: 'password',
+          value: 'pass',
+          type: 'string'
+        }
+      ]
+    });
   });
 });
