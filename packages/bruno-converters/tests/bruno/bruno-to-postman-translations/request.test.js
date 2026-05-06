@@ -292,6 +292,18 @@ console.log("Headers:", JSON.stringify(pm.request.headers));
     expect(translatedCode).toBe('const obj = pm.request.headers.toObject();');
   });
 
+  it('should translate req.headerList.toString to pm.request.headers.toString', () => {
+    const code = 'const str = req.headerList.toString();';
+    const translatedCode = translateBruToPostman(code);
+    expect(translatedCode).toBe('const str = pm.request.headers.toString();');
+  });
+
+  it('should translate req.headerList.toJSON to pm.request.headers.toJSON', () => {
+    const code = 'const json = req.headerList.toJSON();';
+    const translatedCode = translateBruToPostman(code);
+    expect(translatedCode).toBe('const json = pm.request.headers.toJSON();');
+  });
+
   it('should translate req.headerList.set to pm.request.headers.upsert', () => {
     const code = 'req.headerList.set({key: "X-Custom", value: "updated"});';
     const translatedCode = translateBruToPostman(code);

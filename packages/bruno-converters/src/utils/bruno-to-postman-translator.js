@@ -90,6 +90,8 @@ const simpleTranslations = {
   'req.headerList.map': 'pm.request.headers.map',
   'req.headerList.reduce': 'pm.request.headers.reduce',
   'req.headerList.toObject': 'pm.request.headers.toObject',
+  'req.headerList.toString': 'pm.request.headers.toString',
+  'req.headerList.toJSON': 'pm.request.headers.toJSON',
   'req.headerList.append': 'pm.request.headers.add',
   'req.headerList.set': 'pm.request.headers.upsert',
   'req.headerList.delete': 'pm.request.headers.remove',
@@ -130,6 +132,8 @@ const simpleTranslations = {
   'res.headerList.map': 'pm.response.headers.map',
   'res.headerList.reduce': 'pm.response.headers.reduce',
   'res.headerList.toObject': 'pm.response.headers.toObject',
+  'res.headerList.toString': 'pm.response.headers.toString',
+  'res.headerList.toJSON': 'pm.response.headers.toJSON',
 
   // Cookies jar
   'bru.cookies.jar': 'pm.cookies.jar',

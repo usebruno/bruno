@@ -894,4 +894,16 @@ describe('Response Translation', () => {
     const translatedCode = translateCode(code);
     expect(translatedCode).toBe('const obj = res.headerList.toObject();');
   });
+
+  it('should translate pm.response.headers.toString to res.headerList.toString', () => {
+    const code = 'const str = pm.response.headers.toString();';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toBe('const str = res.headerList.toString();');
+  });
+
+  it('should translate pm.response.headers.toJSON to res.headerList.toJSON', () => {
+    const code = 'const json = pm.response.headers.toJSON();';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toBe('const json = res.headerList.toJSON();');
+  });
 });
