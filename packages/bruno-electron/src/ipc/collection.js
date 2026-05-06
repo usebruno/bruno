@@ -63,7 +63,7 @@ const { moveRequestUid, deleteRequestUid, syncExampleUidsCache } = require('../c
 const { deleteCookiesForDomain, getDomainsWithCookies, addCookieForDomain, modifyCookieForDomain, parseCookieString, createCookieString, deleteCookie } = require('../utils/cookies');
 const EnvironmentSecretsStore = require('../store/env-secrets');
 const CollectionSecurityStore = require('../store/collection-security');
-const UiStateSnapshotStore = require('../store/ui-state-snapshot');
+const snapshotManager = require('../services/snapshot');
 const interpolateVars = require('./network/interpolate-vars');
 const { interpolateString } = require('./network/interpolate-string');
 const { getEnvVars, getTreePathFromCollectionToItem, mergeVars, parseBruFileMeta, hydrateRequestWithUuid, transformRequestToSaveToFilesystem } = require('../utils/collection');
@@ -79,7 +79,6 @@ const { saveSpecAndUpdateMetadata, cleanupSpecFilesForCollection } = require('./
 
 const environmentSecretsStore = new EnvironmentSecretsStore();
 const collectionSecurityStore = new CollectionSecurityStore();
-const uiStateSnapshotStore = new UiStateSnapshotStore();
 
 // size and file count limits to determine whether the bru files in the collection should be loaded asynchronously or not.
 const MAX_COLLECTION_SIZE_IN_MB = 20;
@@ -1076,16 +1075,24 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
 
   ipcMain.handle('renderer:open-multiple-collections', async (e, collectionPaths, options = {}) => {
     if (watcher && mainWindow) {
-      await openCollectionsByPathname(mainWindow, watcher, collectionPaths);
+      const result = await openCollectionsByPathname(mainWindow, watcher, collectionPaths, options);
       if (options.workspacePath) {
         const { setCollectionWorkspace } = require('../store/process-env');
         const { generateUidBasedOnHash } = require('../utils/common');
-        for (const collectionPath of collectionPaths) {
+        for (const collectionPath of result?.opened || []) {
           const collectionUid = generateUidBasedOnHash(collectionPath);
           setCollectionWorkspace(collectionUid, options.workspacePath);
         }
       }
+
+      return result;
     }
+
+    return {
+      opened: [],
+      failed: [],
+      invalid: []
+    };
   });
 
   ipcMain.handle('renderer:set-collection-workspace', (event, collectionUid, workspacePath) => {
@@ -1630,9 +1637,9 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
     }
   });
 
-  ipcMain.handle('renderer:update-ui-state-snapshot', (event, { type, data }) => {
+  ipcMain.handle('renderer:update-ui-state-snapshot', async (event, { type, data }) => {
     try {
-      uiStateSnapshotStore.update({ type, data });
+      await snapshotManager.update({ type, data });
     } catch (error) {
       throw new Error(error.message);
     }

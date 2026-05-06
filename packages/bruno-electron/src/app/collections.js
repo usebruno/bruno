@@ -128,14 +128,24 @@ const openCollection = async (win, watcher, collectionPath, options = {}) => {
       brunoConfig.size = size;
       brunoConfig.filesCount = filesCount;
       win.webContents.send('main:collection-opened', collectionPath, uid, brunoConfig);
+      return {
+        path: collectionPath,
+        opened: true,
+        alreadyOpen: true,
+        uid
+      };
     } catch (err) {
       if (!options.dontSendDisplayErrors) {
         win.webContents.send('main:display-error', {
           message: err.message || 'An error occurred while opening the local collection'
         });
       }
+      return {
+        path: collectionPath,
+        opened: false,
+        error: err.message || 'An error occurred while opening the local collection'
+      };
     }
-    return;
   }
 
   try {
@@ -155,17 +165,33 @@ const openCollection = async (win, watcher, collectionPath, options = {}) => {
 
     win.webContents.send('main:collection-opened', collectionPath, uid, brunoConfig);
     ipcMain.emit('main:collection-opened', win, collectionPath, uid, brunoConfig);
+    return {
+      path: collectionPath,
+      opened: true,
+      alreadyOpen: false,
+      uid
+    };
   } catch (err) {
     if (!options.dontSendDisplayErrors) {
       win.webContents.send('main:display-error', {
         message: err.message || 'An error occurred while opening the local collection'
       });
     }
+    return {
+      path: collectionPath,
+      opened: false,
+      error: err.message || 'An error occurred while opening the local collection'
+    };
   }
 };
 
 const openCollectionsByPathname = async (win, watcher, collectionPaths, options = {}) => {
   const seenPaths = new Set();
+  const result = {
+    opened: [],
+    failed: [],
+    invalid: []
+  };
 
   for (const collectionPath of collectionPaths) {
     const resolvedPath = path.isAbsolute(collectionPath)
@@ -179,11 +205,22 @@ const openCollectionsByPathname = async (win, watcher, collectionPaths, options 
     seenPaths.add(normalizedPath);
 
     if (isDirectory(resolvedPath)) {
-      await openCollection(win, watcher, resolvedPath, options);
+      const openResult = await openCollection(win, watcher, resolvedPath, options);
+      if (openResult?.opened) {
+        result.opened.push(openResult.path);
+      } else {
+        result.failed.push({
+          path: resolvedPath,
+          error: openResult?.error || 'Failed to open collection'
+        });
+      }
     } else {
       console.error(`Cannot open unknown folder: "${resolvedPath}"`);
+      result.invalid.push(resolvedPath);
     }
   }
+
+  return result;
 };
 
 module.exports = {

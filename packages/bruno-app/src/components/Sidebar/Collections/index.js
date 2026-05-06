@@ -6,12 +6,22 @@ import StyledWrapper from './StyledWrapper';
 import CreateOrOpenCollection from './CreateOrOpenCollection';
 import CollectionSearch from './CollectionSearch/index';
 import InlineCollectionCreator from './InlineCollectionCreator';
-import { normalizePath } from 'utils/common/path';
+import path, { normalizePath } from 'utils/common/path';
 import { isScratchCollection } from 'utils/collections';
+
+const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' });
+
+const getSidebarEntryName = (entry) => {
+  if (entry.kind === 'loaded') {
+    return entry.collection?.name || '';
+  }
+
+  return entry.entry?.name || path.basename(entry.entry?.path || '');
+};
 
 const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismissCreate, onOpenAdvancedCreate }) => {
   const [searchText, setSearchText] = useState('');
-  const { collections } = useSelector((state) => state.collections);
+  const { collections, collectionSortOrder } = useSelector((state) => state.collections);
   const { workspaces, activeWorkspaceUid } = useSelector((state) => state.workspaces);
 
   const activeWorkspace = workspaces.find((w) => w.uid === activeWorkspaceUid) || workspaces.find((w) => w.type === 'default');
@@ -40,8 +50,16 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
         entries.push({ kind: 'ghost', entry: wc, key: `ghost:${wc.path}` });
       }
     }
+    if (collectionSortOrder === 'alphabetical') {
+      return [...entries].sort((a, b) => collator.compare(getSidebarEntryName(a), getSidebarEntryName(b)));
+    }
+
+    if (collectionSortOrder === 'reverseAlphabetical') {
+      return [...entries].sort((a, b) => -collator.compare(getSidebarEntryName(a), getSidebarEntryName(b)));
+    }
+
     return entries;
-  }, [activeWorkspace, collections, workspaces, isDefaultWorkspace]);
+  }, [activeWorkspace, collections, workspaces, isDefaultWorkspace, collectionSortOrder]);
 
   if (!sidebarEntries.length) {
     return (

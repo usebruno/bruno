@@ -65,7 +65,7 @@ import {
 } from './index';
 
 import { each } from 'lodash';
-import { closeAllCollectionTabs, closeTabs as _closeTabs, focusTab, reopenLastClosedTab } from 'providers/ReduxStore/slices/tabs';
+import { closeAllCollectionTabs, closeTabs as _closeTabs, focusTab, restoreTabs, reopenLastClosedTab } from 'providers/ReduxStore/slices/tabs';
 import { clearOpenApiSyncTabState } from 'providers/ReduxStore/slices/openapi-sync';
 import { removeCollectionFromWorkspace } from 'providers/ReduxStore/slices/workspaces';
 import { resolveRequestFilename } from 'utils/common/platform';
@@ -74,7 +74,6 @@ import { sendCollectionOauth2Request as _sendCollectionOauth2Request } from 'uti
 import {
   getGlobalEnvironmentVariables,
   findCollectionByPathname,
-  findEnvironmentInCollectionByName,
   getReorderedItemsInTargetDirectory,
   resetSequencesInFolder,
   getReorderedItemsInSourceDirectory,
@@ -92,6 +91,12 @@ import { updateSettingsSelectedTab } from './index';
 import { saveGlobalEnvironment } from 'providers/ReduxStore/slices/global-environments';
 import { getTabToFocusForCurrentWorkspace } from 'providers/ReduxStore/slices/workspaces/getTabToFocusForCurrentWorkspace';
 import { clearPersistedScope } from 'hooks/usePersistedState/PersistedScopeProvider';
+import {
+  getCollectionEnvironmentPath,
+  findCollectionEnvironmentFromSnapshot,
+  hydrateCollectionTabs,
+  hydrateSnapshotLookups
+} from 'utils/snapshot';
 
 // generate a unique names
 const generateUniqueName = (originalName, existingItems, isFolder) => {
@@ -2338,16 +2343,20 @@ export const selectEnvironment = (environmentUid, collectionUid) => (dispatch, g
 
     const collectionCopy = cloneDeep(collection);
 
-    const environmentName = environmentUid ? findEnvironmentInCollection(collectionCopy, environmentUid)?.name : null;
+    const environment = environmentUid ? findEnvironmentInCollection(collectionCopy, environmentUid) : null;
 
-    if (environmentUid && !environmentName) {
+    if (environmentUid && !environment) {
       return reject(new Error('Environment not found'));
     }
 
     const { ipcRenderer } = window;
     ipcRenderer.invoke('renderer:update-ui-state-snapshot', {
       type: 'COLLECTION_ENVIRONMENT',
-      data: { collectionPath: collection?.pathname, environmentName }
+      data: {
+        collectionPath: collection?.pathname,
+        environmentPath: getCollectionEnvironmentPath(collection, environment),
+        selectedEnvironment: environment?.name || ''
+      }
     });
 
     dispatch(_selectEnvironment({ environmentUid, collectionUid }));
@@ -2581,7 +2590,20 @@ export const openCollectionEvent = (uid, pathname, brunoConfig) => (dispatch, ge
 
       dispatch(workspaceEnvUpdateEvent({ processEnvVariables: workspaceProcessEnvVariables }));
 
-      resolve();
+      const workspacePathname = activeWorkspace?.pathname || null;
+
+      ipcRenderer.invoke('renderer:snapshot:get')
+        .then((snapshot) => hydrateSnapshotLookups(snapshot || {}))
+        .then((snapshotLookups) => hydrateCollectionTabs(
+          existingCollection,
+          dispatch,
+          restoreTabs,
+          snapshotLookups,
+          workspacePathname,
+          true
+        ))
+        .catch(() => null)
+        .finally(resolve);
       return;
     }
 
@@ -2714,10 +2736,18 @@ export const collectionAddEnvFileEvent = (payload) => (dispatch, getState) => {
 
     environmentSchema
       .validate(environment)
-      .then(() =>
+      .then(() => {
+        const environmentWithPath = {
+          ...environment,
+          pathname: meta?.pathname || environment?.pathname
+        };
+
+        return environmentWithPath;
+      })
+      .then((environmentWithPath) =>
         dispatch(
           _collectionAddEnvFileEvent({
-            environment,
+            environment: environmentWithPath,
             collectionUid: meta.collectionUid
           })
         )
@@ -2841,17 +2871,16 @@ export const hydrateCollectionWithUiStateSnapshot = (payload) => (dispatch, getS
         resolve();
         return;
       }
-      const { pathname, selectedEnvironment } = collectionSnapshotData;
+      const { pathname } = collectionSnapshotData;
       const collection = findCollectionByPathname(state.collections.collections, pathname);
       const collectionCopy = cloneDeep(collection);
       const collectionUid = collectionCopy?.uid;
 
       // update selected environment
-      if (selectedEnvironment) {
-        const environment = findEnvironmentInCollectionByName(collectionCopy, selectedEnvironment);
-        if (environment) {
-          dispatch(_selectEnvironment({ environmentUid: environment?.uid, collectionUid }));
-        }
+      const environment = findCollectionEnvironmentFromSnapshot(collectionCopy, collectionSnapshotData);
+
+      if (environment) {
+        dispatch(_selectEnvironment({ environmentUid: environment?.uid, collectionUid }));
       }
 
       // todo: add any other redux state that you want to save
@@ -2984,14 +3013,19 @@ export const loadLargeRequest
     };
 
 export const mountCollection
-  = ({ collectionUid, collectionPathname, brunoConfig }) =>
+  = ({ collectionUid, collectionPathname, brunoConfig, skipTabRestore = false, workspacePathname = null }) =>
     (dispatch, getState) => {
       dispatch(updateCollectionMountStatus({ collectionUid, mountStatus: 'mounting' }));
       return new Promise(async (resolve, reject) => {
         callIpc('renderer:mount-collection', { collectionUid, collectionPathname, brunoConfig })
-          .then((transientDirPath) => {
+          .then(async (transientDirPath) => {
             dispatch(updateCollectionMountStatus({ collectionUid, mountStatus: 'mounted' }));
             dispatch(addTransientDirectory({ collectionUid, pathname: transientDirPath }));
+
+            const collection = getState().collections.collections.find((c) => c.uid === collectionUid);
+            if (!skipTabRestore && collection?.pathname) {
+              await hydrateCollectionTabs(collection, dispatch, restoreTabs, null, workspacePathname);
+            }
           })
           .then(resolve)
           .catch(() => {
