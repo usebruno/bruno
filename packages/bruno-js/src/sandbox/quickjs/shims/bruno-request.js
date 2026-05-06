@@ -39,7 +39,7 @@ const addBrunoRequestShimToContext = (vm, req) => {
     globalPath: 'globalThis.req.headerList',
     syncReadMethods: ['get', 'has', 'count', 'indexOf', 'toObject', 'toString'],
     syncReadObjectMethods: ['one', 'all', 'toJSON'],
-    syncWriteMethods: ['append', 'set', 'delete', 'clear', 'populate', 'repopulate', 'assimilate'],
+    syncWriteMethods: ['add', 'upsert', 'remove', 'clear', 'populate', 'repopulate', 'assimilate'],
     withIterators: true
   });
   vm.setProp(reqObject, 'headerList', headerListObj);
@@ -195,9 +195,8 @@ const addBrunoRequestShimToContext = (vm, req) => {
 
   // Evaluate iterator code after req is on global (iterators reference globalThis.req.headerList)
   // Wrapped in a block to avoid const redeclaration conflicts with other evalCode blocks
-  // The bridge generates `each` (shared with CookieList); alias `forEach` for HeaderList's MDN-style API
   if (headersEvalCode) {
-    vm.evalCode(`{ ${headersEvalCode} globalThis.req.headerList.forEach = globalThis.req.headerList.each; delete globalThis.req.headerList.each; }`);
+    vm.evalCode(`{ ${headersEvalCode} }`);
   }
 };
 

@@ -22,9 +22,9 @@ assert {
 }
 
 tests {
-  test("forEach(fn, context) binds this", function() {
+  test("each(fn, context) binds this", function() {
     var ctx = { keys: [] };
-    req.headerList.forEach(function(h) {
+    req.headerList.each(function(h) {
       this.keys.push(h.key);
     }, ctx);
     expect(ctx.keys).to.include('bruno');

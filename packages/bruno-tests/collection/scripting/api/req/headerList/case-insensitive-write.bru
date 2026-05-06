@@ -21,18 +21,18 @@ assert {
 }
 
 script:pre-request {
-  req.headerList.set({ key: 'x-custom', value: 'updated' });
-  req.headerList.delete('x-remove-me');
+  req.headerList.upsert({ key: 'x-custom', value: 'updated' });
+  req.headerList.remove('x-remove-me');
 }
 
 tests {
-  test("set() replaces header case-insensitively", function() {
+  test("upsert() replaces header case-insensitively", function() {
     expect(req.headerList.get('x-custom')).to.equal('updated');
     expect(req.getHeader('X-Custom')).to.be.undefined;
     expect(req.getHeader('x-custom')).to.equal('updated');
   });
 
-  test("delete() deletes header case-insensitively", function() {
+  test("remove() deletes header case-insensitively", function() {
     expect(req.headerList.has('X-Remove-Me')).to.be.false;
     expect(req.headerList.has('x-remove-me')).to.be.false;
   });

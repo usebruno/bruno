@@ -256,14 +256,14 @@ console.log("Headers:", JSON.stringify(pm.request.headers));
     expect(translatedCode).toBe('const custom = pm.request.headers.filter(h => h.key.startsWith("X-"));');
   });
 
-  it('should translate req.headerList.append to pm.request.headers.add', () => {
-    const code = 'req.headerList.append({key: "X-Custom", value: "test"});';
+  it('should translate req.headerList.add to pm.request.headers.add', () => {
+    const code = 'req.headerList.add({key: "X-Custom", value: "test"});';
     const translatedCode = translateBruToPostman(code);
     expect(translatedCode).toBe('pm.request.headers.add({key: "X-Custom", value: "test"});');
   });
 
-  it('should translate req.headerList.delete to pm.request.headers.remove', () => {
-    const code = 'req.headerList.delete("Authorization");';
+  it('should translate req.headerList.remove to pm.request.headers.remove', () => {
+    const code = 'req.headerList.remove("Authorization");';
     const translatedCode = translateBruToPostman(code);
     expect(translatedCode).toBe('pm.request.headers.remove("Authorization");');
   });
@@ -304,8 +304,8 @@ console.log("Headers:", JSON.stringify(pm.request.headers));
     expect(translatedCode).toBe('const json = pm.request.headers.toJSON();');
   });
 
-  it('should translate req.headerList.set to pm.request.headers.upsert', () => {
-    const code = 'req.headerList.set({key: "X-Custom", value: "updated"});';
+  it('should translate req.headerList.upsert to pm.request.headers.upsert', () => {
+    const code = 'req.headerList.upsert({key: "X-Custom", value: "updated"});';
     const translatedCode = translateBruToPostman(code);
     expect(translatedCode).toBe('pm.request.headers.upsert({key: "X-Custom", value: "updated"});');
   });

@@ -167,22 +167,18 @@ const createPropertyListBridge = (vm, nativeList, targetObj, options) => {
     ${globalPath}.reduce = (fn, ...rest) => { const ctx = rest.length > 1 ? rest[1] : undefined; const b = ctx !== undefined ? fn.bind(ctx) : fn; return rest.length > 0 ? _allNative().reduce(b, rest[0]) : _allNative().reduce(b); };\n`;
   }
 
-  // Override `remove`/`delete` when present in syncWriteMethods so function predicates work in-VM.
+  // Override `remove` when it's a syncWriteMethod so function predicates work in-VM.
   // The native bridge can't serialize function handles (vm.dump fails on functions).
-  // Instead: pull items via all(), run the predicate in-VM, call native method(key) per match.
-  // Both names are supported: CookieList uses `remove`, HeaderList uses `delete`.
-  if (withIterators) {
-    for (const name of ['remove', 'delete']) {
-      if (!syncWriteMethods.includes(name)) continue;
-      evalCode += `const _${name}Native = ${globalPath}.${name};
-      ${globalPath}.${name} = (predicate) => {
-        if (typeof predicate === 'function') {
-          _allNative().filter(predicate).forEach(item => _${name}Native(item.key));
-        } else {
-          _${name}Native(predicate);
-        }
-      };\n`;
-    }
+  // Instead: pull items via all(), run the predicate in-VM, call native remove(key) per match.
+  if (withIterators && syncWriteMethods.includes('remove')) {
+    evalCode += `const _removeNative = ${globalPath}.remove;
+    ${globalPath}.remove = (predicate) => {
+      if (typeof predicate === 'function') {
+        _allNative().filter(predicate).forEach(item => _removeNative(item.key));
+      } else {
+        _removeNative(predicate);
+      }
+    };\n`;
   }
 
   return { evalCode };

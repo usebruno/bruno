@@ -21,9 +21,9 @@ assert {
 }
 
 tests {
-  test("res.headerList.forEach(fn)", function() {
+  test("res.headerList.each(fn)", function() {
     const keys = [];
-    res.headerList.forEach((header) => {
+    res.headerList.each((header) => {
       keys.push(header.key);
     });
     expect(keys).to.include('x-powered-by');

@@ -29,6 +29,21 @@ describe('HeaderList (req.headerList)', () => {
     expect(ReadOnlyPropertyList.isPropertyList(list)).toBe(true);
   });
 
+  // ── Blocked inherited methods ─────────────────────────────────────────
+
+  test('idx is undefined (blocked from ReadOnlyPropertyList)', () => {
+    const { list } = createReqHeaders();
+    expect(list.idx).toBeUndefined();
+  });
+
+  test('positional methods do not exist (not inherited from PropertyList)', () => {
+    const { list } = createReqHeaders();
+    expect(list.prepend).toBeUndefined();
+    expect(list.insert).toBeUndefined();
+    expect(list.insertAfter).toBeUndefined();
+    expect(list.append).toBeUndefined();
+  });
+
   // ── Read methods ──────────────────────────────────────────────────────
 
   describe('read methods', () => {
@@ -138,10 +153,10 @@ describe('HeaderList (req.headerList)', () => {
   // ── Iteration methods ─────────────────────────────────────────────────
 
   describe('iteration methods', () => {
-    test('forEach() iterates over all headers', () => {
+    test('each() iterates over all headers', () => {
       const { list } = createReqHeaders();
       const keys = [];
-      list.forEach((h) => keys.push(h.key));
+      list.each((h) => keys.push(h.key));
       expect(keys).toEqual(['Content-Type', 'Authorization', 'Accept']);
     });
 
@@ -271,113 +286,119 @@ describe('HeaderList (req.headerList)', () => {
 
   // ── Write methods ─────────────────────────────────────────────────────
 
-  describe('append()', () => {
-    test('appends a new header to the request', () => {
+  describe('add()', () => {
+    test('adds a new header to the request', () => {
       const { list, rawReq } = createReqHeaders();
-      list.append({ key: 'X-Custom', value: 'test' });
+      list.add({ key: 'X-Custom', value: 'test' });
       expect(rawReq.headers['X-Custom']).toBe('test');
       expect(list.get('X-Custom')).toBe('test');
     });
 
     test('overwrites existing header', () => {
       const { list, rawReq } = createReqHeaders();
-      list.append({ key: 'Content-Type', value: 'text/plain' });
+      list.add({ key: 'Content-Type', value: 'text/plain' });
       expect(rawReq.headers['Content-Type']).toBe('text/plain');
     });
 
     test('accepts a "Key: Value" string', () => {
       const { list, rawReq } = createReqHeaders({});
-      list.append('X-Custom: my-value');
+      list.add('X-Custom: my-value');
       expect(rawReq.headers['X-Custom']).toBe('my-value');
     });
 
     test('accepts two-arg form (name, value)', () => {
       const { list, rawReq } = createReqHeaders({});
-      list.append('X-Custom', 'my-value');
+      list.add('X-Custom', 'my-value');
       expect(rawReq.headers['X-Custom']).toBe('my-value');
+    });
+
+    test('two-arg form overwrites existing header', () => {
+      const { list, rawReq } = createReqHeaders();
+      list.add('Content-Type', 'text/plain');
+      expect(rawReq.headers['Content-Type']).toBe('text/plain');
     });
 
     test('ignores malformed string (no colon)', () => {
       const { list } = createReqHeaders({});
       const countBefore = list.count();
-      list.append('no-colon-here');
+      list.add('no-colon-here');
       expect(list.count()).toBe(countBefore);
     });
 
     test('ignores null/undefined input', () => {
       const { list } = createReqHeaders();
       const countBefore = list.count();
-      list.append(null);
-      list.append(undefined);
+      list.add(null);
+      list.add(undefined);
       expect(list.count()).toBe(countBefore);
     });
 
     test('ignores object without key property', () => {
       const { list } = createReqHeaders();
       const countBefore = list.count();
-      list.append({ value: 'no-key' });
+      list.add({ value: 'no-key' });
       expect(list.count()).toBe(countBefore);
     });
   });
 
-  describe('set()', () => {
+  describe('upsert()', () => {
     test('sets a new header with object', () => {
       const { list, rawReq } = createReqHeaders();
-      list.set({ key: 'X-New', value: 'val' });
+      list.upsert({ key: 'X-New', value: 'val' });
       expect(rawReq.headers['X-New']).toBe('val');
     });
 
     test('sets a new header with two-arg form', () => {
       const { list, rawReq } = createReqHeaders();
-      list.set('X-New', 'val');
+      list.upsert('X-New', 'val');
       expect(rawReq.headers['X-New']).toBe('val');
     });
 
     test('replaces existing header', () => {
       const { list, rawReq } = createReqHeaders();
-      list.set({ key: 'Content-Type', value: 'text/html' });
+      list.upsert({ key: 'Content-Type', value: 'text/html' });
       expect(rawReq.headers['Content-Type']).toBe('text/html');
       expect(list.get('Content-Type')).toBe('text/html');
     });
 
     test('replaces existing header with two-arg form', () => {
       const { list, rawReq } = createReqHeaders();
-      list.set('Content-Type', 'text/html');
+      list.upsert('Content-Type', 'text/html');
       expect(rawReq.headers['Content-Type']).toBe('text/html');
     });
 
     test('with missing value sets header to undefined', () => {
       const { list, rawReq } = createReqHeaders({});
-      list.set({ key: 'X-Foo' });
+      list.upsert({ key: 'X-Foo' });
       expect(rawReq.headers['X-Foo']).toBeUndefined();
       expect(list.count()).toBe(1);
     });
   });
 
-  describe('delete()', () => {
+  describe('remove()', () => {
     test('removes header by key string', () => {
       const { list, rawReq } = createReqHeaders();
-      list.delete('Accept');
+      list.remove('Accept');
       expect(rawReq.headers['Accept']).toBeUndefined();
       expect(list.has('Accept')).toBe(false);
     });
 
     test('removes header by predicate function', () => {
       const { list, rawReq } = createReqHeaders();
-      list.delete((h) => h.key === 'Authorization');
+      list.remove((h) => h.key === 'Authorization');
       expect(rawReq.headers['Authorization']).toBeUndefined();
       expect(list.has('Authorization')).toBe(false);
     });
 
     test('removes header by object reference', () => {
       const { list, rawReq } = createReqHeaders();
-      list.delete({ key: 'Accept', value: '*/*' });
+      list.remove({ key: 'Accept', value: '*/*' });
       expect(rawReq.headers['Accept']).toBeUndefined();
     });
 
     test('removes multiple headers matching predicate', () => {
       const { list, rawReq } = createReqHeaders();
-      list.delete((h) => h.key.startsWith('A'));
+      list.remove((h) => h.key.startsWith('A'));
       expect(rawReq.headers['Authorization']).toBeUndefined();
       expect(rawReq.headers['Accept']).toBeUndefined();
       expect(rawReq.headers['Content-Type']).toBe('application/json');
@@ -385,22 +406,22 @@ describe('HeaderList (req.headerList)', () => {
 
     test('tracks removed headers in __headersToDelete', () => {
       const { list, rawReq } = createReqHeaders();
-      list.delete('Accept');
+      list.remove('Accept');
       expect(rawReq.__headersToDelete).toContain('Accept');
     });
 
     test('no-op for non-existent key', () => {
       const { list } = createReqHeaders();
       const countBefore = list.count();
-      list.delete('X-Does-Not-Exist');
+      list.remove('X-Does-Not-Exist');
       expect(list.count()).toBe(countBefore);
     });
 
     test('no-op for null/undefined predicate', () => {
       const { list } = createReqHeaders();
       const countBefore = list.count();
-      list.delete(null);
-      list.delete(undefined);
+      list.remove(null);
+      list.remove(undefined);
       expect(list.count()).toBe(countBefore);
     });
 
@@ -412,7 +433,7 @@ describe('HeaderList (req.headerList)', () => {
         disabledHeaders: [{ name: 'B', value: '2' }]
       };
       const brunoReq = new BrunoRequest(rawReq);
-      brunoReq.headerList.delete('B');
+      brunoReq.headerList.remove('B');
       expect(rawReq.disabledHeaders).toHaveLength(0);
       expect(brunoReq.headerList.has('B')).toBe(false);
     });
@@ -425,7 +446,7 @@ describe('HeaderList (req.headerList)', () => {
         disabledHeaders: [{ name: 'B', value: '2' }]
       };
       const brunoReq = new BrunoRequest(rawReq);
-      brunoReq.headerList.delete((h) => h.disabled);
+      brunoReq.headerList.remove((h) => h.disabled);
       expect(rawReq.disabledHeaders).toHaveLength(0);
       expect(brunoReq.headerList.count()).toBe(1);
     });
@@ -689,16 +710,16 @@ describe('HeaderList (req.headerList)', () => {
       expect(list.indexOf('X-Nonexistent')).toBe(-1);
     });
 
-    test('delete() by string is case-insensitive', () => {
+    test('remove() by string is case-insensitive', () => {
       const { list, rawReq } = createReqHeaders();
-      list.delete('content-type');
+      list.remove('content-type');
       expect(rawReq.headers['Content-Type']).toBeUndefined();
       expect(rawReq.__headersToDelete).toContain('Content-Type');
     });
 
-    test('set() replaces existing header case-insensitively', () => {
+    test('upsert() replaces existing header case-insensitively', () => {
       const { list, rawReq } = createReqHeaders();
-      list.set({ key: 'content-type', value: 'text/plain' });
+      list.upsert({ key: 'content-type', value: 'text/plain' });
       expect(rawReq.headers['content-type']).toBe('text/plain');
       expect(rawReq.headers['Content-Type']).toBeUndefined();
       // Header was re-added with new casing, so it should NOT be in __headersToDelete
@@ -710,10 +731,10 @@ describe('HeaderList (req.headerList)', () => {
   // ── Context parameter ─────────────────────────────────────────────────
 
   describe('context parameter on iteration methods', () => {
-    test('forEach(fn, context) binds this', () => {
+    test('each(fn, context) binds this', () => {
       const { list } = createReqHeaders({ A: '1' });
       const ctx = { collected: [] };
-      list.forEach(function (h) { this.collected.push(h.key); }, ctx);
+      list.each(function (h) { this.collected.push(h.key); }, ctx);
       expect(ctx.collected).toContain('A');
     });
 
@@ -748,10 +769,10 @@ describe('HeaderList (req.headerList)', () => {
       expect(result).toBe('|A|B');
     });
 
-    test('delete(fn, context) binds this', () => {
+    test('remove(fn, context) binds this', () => {
       const { list, rawReq } = createReqHeaders({ A: '1', B: '2' });
       const ctx = { target: 'A' };
-      list.delete(function (h) { return h.key === this.target; }, ctx);
+      list.remove(function (h) { return h.key === this.target; }, ctx);
       expect(rawReq.headers['A']).toBeUndefined();
       expect(rawReq.headers['B']).toBe('2');
     });
@@ -759,7 +780,7 @@ describe('HeaderList (req.headerList)', () => {
     test('works without context (no binding)', () => {
       const { list } = createReqHeaders({ A: '1', B: '2' });
       const keys = [];
-      list.forEach((h) => keys.push(h.key));
+      list.each((h) => keys.push(h.key));
       expect(keys).toContain('A');
       expect(keys).toContain('B');
     });
@@ -767,22 +788,22 @@ describe('HeaderList (req.headerList)', () => {
 
   // ── set() return values ────────────────────────────────────────────
 
-  describe('set() return values', () => {
+  describe('upsert() return values', () => {
     test('returns true when adding a new header', () => {
       const { list } = createReqHeaders({});
-      expect(list.set({ key: 'X-New', value: 'val' })).toBe(true);
+      expect(list.upsert({ key: 'X-New', value: 'val' })).toBe(true);
     });
 
     test('returns false when updating an existing header', () => {
       const { list } = createReqHeaders({ 'X-Existing': 'old' });
-      expect(list.set({ key: 'X-Existing', value: 'new' })).toBe(false);
+      expect(list.upsert({ key: 'X-Existing', value: 'new' })).toBe(false);
     });
 
     test('returns null for nil input', () => {
       const { list } = createReqHeaders();
-      expect(list.set(null)).toBeNull();
-      expect(list.set(undefined)).toBeNull();
-      expect(list.set({ value: 'no-key' })).toBeNull();
+      expect(list.upsert(null)).toBeNull();
+      expect(list.upsert(undefined)).toBeNull();
+      expect(list.upsert({ value: 'no-key' })).toBeNull();
     });
   });
 
@@ -947,10 +968,10 @@ describe('Response Headers (res.headerList)', () => {
   // ── Iteration methods ─────────────────────────────────────────────────
 
   describe('iteration methods', () => {
-    test('forEach() iterates over all headers', () => {
+    test('each() iterates over all headers', () => {
       const { headerList } = createResHeaders();
       const keys = [];
-      headerList.forEach((h) => keys.push(h.key));
+      headerList.each((h) => keys.push(h.key));
       expect(keys).toEqual(['content-type', 'x-request-id', 'cache-control']);
     });
 
@@ -1023,10 +1044,10 @@ describe('Response Headers (res.headerList)', () => {
 
     test('response headers are read-only (write methods throw)', () => {
       const { headerList } = createResHeaders();
-      expect(() => headerList.append({ key: 'X-New', value: 'val' })).toThrow('read-only');
-      expect(() => headerList.delete('content-type')).toThrow('read-only');
+      expect(() => headerList.add({ key: 'X-New', value: 'val' })).toThrow('read-only');
+      expect(() => headerList.remove('content-type')).toThrow('read-only');
       expect(() => headerList.clear()).toThrow('read-only');
-      expect(() => headerList.set({ key: 'X-New', value: 'val' })).toThrow('read-only');
+      expect(() => headerList.upsert({ key: 'X-New', value: 'val' })).toThrow('read-only');
       expect(() => headerList.populate([])).toThrow('read-only');
       expect(() => headerList.assimilate([])).toThrow('read-only');
     });

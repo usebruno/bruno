@@ -53,7 +53,7 @@ const ReadOnlyPropertyList = require('./readonly-property-list');
  *
  * | Method                       | Description                                  |
  * |------------------------------|----------------------------------------------|
- * | `forEach(fn, context?)`      | Calls `fn(header, index)` for every header   |
+ * | `each(fn, context?)`         | Calls `fn(header, index)` for every header   |
  * | `map(fn, context?)`          | Returns a new array of mapped values         |
  * | `reduce(fn, initial?, context?)` | Reduces headers to a single value        |
  *
@@ -69,9 +69,9 @@ const ReadOnlyPropertyList = require('./readonly-property-list');
  *
  * | Method                            | Description                                              |
  * |-----------------------------------|----------------------------------------------------------|
- * | `append(headerObj\|name, value?)` | Sets a header; accepts `{key,value}`, `"Key: Value"`, or `(name, value)` |
- * | `set(headerObj\|name, value?)`    | Sets (or replaces) a header; returns true/false/null      |
- * | `delete(predicate, context?)`     | Deletes header(s) by name, predicate, or object           |
+ * | `add(headerObj\|name, value?)`    | Sets a header; accepts `{key,value}`, `"Key: Value"`, or `(name, value)` |
+ * | `upsert(headerObj\|name, value?)` | Sets (or replaces) a header; returns true/false/null      |
+ * | `remove(predicate, context?)`     | Deletes header(s) by name, predicate, or object           |
  * | `clear()`                         | Removes **all** headers (enabled and disabled)            |
  * | `populate(items\|string)`         | Adds items, skipping keys that already exist              |
  * | `repopulate(items)`               | Clears all, then populates with new items                 |
@@ -151,10 +151,9 @@ class HeaderList extends ReadOnlyPropertyList {
   }
 
   // ── Blocked inherited methods ─────────────────────────────────────────
-  // These are inherited from ReadOnlyPropertyList but are not part of
-  // the HeaderList API. Set to undefined so they are not callable.
+  // idx is inherited from ReadOnlyPropertyList but not part of the
+  // HeaderList API. Set to undefined so it is not callable.
   idx = undefined;
-  each = undefined;
 
   // ── Read method overrides (case-insensitive) ──────────────────────────
 
@@ -215,7 +214,7 @@ class HeaderList extends ReadOnlyPropertyList {
   // ── Iteration overrides (optional context binding) ─────────────────
 
   /** @param {Function} fn @param {*} [context] */
-  forEach(fn, context) {
+  each(fn, context) {
     super.each(context !== undefined ? fn.bind(context) : fn);
   }
 
@@ -245,25 +244,21 @@ class HeaderList extends ReadOnlyPropertyList {
   // ── Write methods (direct request config manipulation) ────────────────
 
   /**
-   * Append a header. Accepts a { key, value } object, a "Key: Value" string,
-   * or two arguments (name, value).
-   *
-   * Note: Unlike MDN's Headers.append(), this does not create duplicate keys
-   * (Bruno does not support multiple headers with the same name). Instead it
-   * delegates to set(), which overwrites any existing header with the same key.
+   * Add a header. Accepts a { key, value } object, a "Key: Value" string,
+   * or two arguments (name, value). Delegates to upsert().
    *
    * @param {object|string} itemOrName - Header object, "Key: Value" string, or header name
    * @param {string} [value] - Header value (when using two-arg form)
    */
-  append(itemOrName, value) {
+  add(itemOrName, value) {
     if (typeof itemOrName === 'string' && value !== undefined) {
-      this.set({ key: itemOrName, value });
+      this.upsert({ key: itemOrName, value });
       return;
     }
     if (typeof itemOrName === 'string') {
       itemOrName = HeaderList.#parseHeaderString(itemOrName);
     }
-    this.set(itemOrName);
+    this.upsert(itemOrName);
   }
 
   /**
@@ -273,7 +268,7 @@ class HeaderList extends ReadOnlyPropertyList {
    * @param {string} [value] - Header value (when using two-arg form)
    * @returns {boolean|null} `true` if added, `false` if updated, `null` if input was nil
    */
-  set(itemOrName, value) {
+  upsert(itemOrName, value) {
     this.#assertWritable();
     let item = itemOrName;
     if (typeof itemOrName === 'string') {
@@ -300,12 +295,12 @@ class HeaderList extends ReadOnlyPropertyList {
   }
 
   /**
-   * Delete header(s) matching a predicate, key string, or item reference.
+   * Remove header(s) matching a predicate, key string, or item reference.
    * String and object removal are case-insensitive.
    * @param {Function|string|object} predicate
    * @param {*} [context] - Bind `this` for function predicates
    */
-  delete(predicate, context) {
+  remove(predicate, context) {
     this.#assertWritable();
     if (typeof predicate === 'function') {
       const bound = context !== undefined ? predicate.bind(context) : predicate;
@@ -403,7 +398,7 @@ class HeaderList extends ReadOnlyPropertyList {
       for (const line of lines) {
         const parsed = HeaderList.#parseHeaderString(line);
         if (parsed && !this.has(parsed.key)) {
-          this.append(parsed);
+          this.add(parsed);
         }
       }
       return;
@@ -411,7 +406,7 @@ class HeaderList extends ReadOnlyPropertyList {
     const list = Array.isArray(items) ? items : [];
     for (const item of list) {
       if (item && item.key && !this.has(item.key)) {
-        this.append(item);
+        this.add(item);
       }
     }
   }
@@ -480,7 +475,7 @@ class HeaderList extends ReadOnlyPropertyList {
     }
     // Merge source items into this list
     for (const item of items) {
-      this.append(item);
+      this.add(item);
     }
     // Prune: remove items from this list that are not in source
     if (prune && items.length > 0) {
