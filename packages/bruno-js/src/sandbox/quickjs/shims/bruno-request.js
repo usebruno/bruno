@@ -38,7 +38,7 @@ const addBrunoRequestShimToContext = (vm, req) => {
   const { evalCode: headersEvalCode } = createPropertyListBridge(vm, req.headerList, headerListObj, {
     globalPath: 'globalThis.req.headerList',
     syncReadMethods: ['get', 'has', 'count', 'indexOf', 'toObject', 'toString'],
-    syncReadObjectMethods: ['one', 'all', 'idx', 'toJSON'],
+    syncReadObjectMethods: ['one', 'all', 'toJSON'],
     syncWriteMethods: ['append', 'set', 'delete', 'clear', 'populate', 'repopulate', 'assimilate'],
     withIterators: true
   });
@@ -197,7 +197,7 @@ const addBrunoRequestShimToContext = (vm, req) => {
   // Wrapped in a block to avoid const redeclaration conflicts with other evalCode blocks
   // The bridge generates `each` (shared with CookieList); alias `forEach` for HeaderList's MDN-style API
   if (headersEvalCode) {
-    vm.evalCode(`{ ${headersEvalCode} globalThis.req.headerList.forEach = globalThis.req.headerList.each; }`);
+    vm.evalCode(`{ ${headersEvalCode} globalThis.req.headerList.forEach = globalThis.req.headerList.each; delete globalThis.req.headerList.each; }`);
   }
 };
 

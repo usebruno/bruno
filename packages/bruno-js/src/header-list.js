@@ -1,4 +1,3 @@
-const PropertyList = require('./property-list');
 const ReadOnlyPropertyList = require('./readonly-property-list');
 
 /**
@@ -78,7 +77,7 @@ const ReadOnlyPropertyList = require('./readonly-property-list');
  * | `repopulate(items)`               | Clears all, then populates with new items                 |
  * | `assimilate(source, prune?)`      | Merges headers; prune removes items not in source         |
  */
-class HeaderList extends PropertyList {
+class HeaderList extends ReadOnlyPropertyList {
   #req;
   #writable;
 
@@ -150,6 +149,12 @@ class HeaderList extends PropertyList {
     if (idx === -1) return null;
     return { key: str.substring(0, idx).trim(), value: str.substring(idx + 1).trim() };
   }
+
+  // ── Blocked inherited methods ─────────────────────────────────────────
+  // These are inherited from ReadOnlyPropertyList but are not part of
+  // the HeaderList API. Set to undefined so they are not callable.
+  idx = undefined;
+  each = undefined;
 
   // ── Read method overrides (case-insensitive) ──────────────────────────
 
