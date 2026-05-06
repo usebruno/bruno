@@ -3,6 +3,7 @@
  *
  * Results shape (written by benchmark tests):
  * {
+ *   "suite": { "name": "...", "unit": "ms", "direction": "smaller" },
  *   "entries": {
  *     "<key>": { mean, median, p50, p90, p99, stdDev, min, max, count, timings, ...meta }
  *   }
@@ -20,6 +21,15 @@
 import { existsSync, readFileSync, writeFileSync } from 'fs';
 import { summarize } from './stats';
 
+export type Direction = 'smaller' | 'bigger';
+export type Unit = 'ms' | 's' | 'ops/s' | 'bytes' | '%' | 'count';
+
+export interface SuiteMeta {
+  name: string;
+  unit: Unit;
+  direction: Direction;
+}
+
 export interface ResultEntry {
   mean: number;
   median: number;
@@ -35,6 +45,7 @@ export interface ResultEntry {
 }
 
 export interface ResultsFile {
+  suite: SuiteMeta;
   entries: Record<string, ResultEntry>;
 }
 
@@ -55,8 +66,8 @@ export function readResults(filePath: string): ResultsFile {
   return JSON.parse(readFileSync(filePath, 'utf-8'));
 }
 
-export function writeResults(filePath: string, entries: Record<string, ResultEntry>) {
-  const data: ResultsFile = { entries };
+export function writeResults(filePath: string, suite: SuiteMeta, entries: Record<string, ResultEntry>) {
+  const data: ResultsFile = { suite, entries };
   writeFileSync(filePath, JSON.stringify(data, null, 2));
 }
 

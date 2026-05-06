@@ -108,7 +108,7 @@ test.describe('Benchmark: Collection Mount', () => {
       entries[key] = buildResultEntry(timings, { format, size: Number(sizeStr) });
     }
 
-    writeResults(outputPath, entries);
+    writeResults(outputPath, { name: 'Collection Mount', unit: 'ms', direction: 'smaller' }, entries);
     console.log(`[BENCHMARK] Results written to ${outputPath}`);
   });
 });
