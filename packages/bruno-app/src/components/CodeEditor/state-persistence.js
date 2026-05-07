@@ -105,10 +105,21 @@ export const applyEditorState = (editor, state, currentContent) => {
     }
   }
   // Folds are cheap and lenient — try them either way.
+  // Sort innermost-first (line desc): when folds are nested, applying the
+  // inner one before the outer one is safer because brace-fold's findRange
+  // re-scans the line text. With outer-first, deeply nested arrays inside a
+  // folded object can fail to refold (issue specific to JSON arrays where
+  // the helper's lookback can land on the wrong opening character once the
+  // outer block is collapsed).
   if (state.folds && state.folds.length) {
+    const sorted = [...state.folds].sort(
+      (a, b) => b.line - a.line || b.ch - a.ch
+    );
     editor.operation(() => {
-      state.folds.forEach((from) => {
-        try { editor.foldCode(from); } catch {}
+      sorted.forEach((from) => {
+        try {
+          editor.foldCode(from, null, 'fold');
+        } catch {}
       });
     });
   }
