@@ -18,7 +18,8 @@ import StyledWrapper from './StyledWrapper';
 export const TYPE_BY_DECODER = {
   base64: 'binary',
   json: 'json',
-  xml: 'xml'
+  xml: 'xml',
+  protobuf: 'protobuf'
 };
 
 export const DECODER_BY_TYPE = invert(TYPE_BY_DECODER);
@@ -96,7 +97,8 @@ export const SingleWSMessage = ({
   const codemirrorMode = {
     text: 'application/text',
     xml: 'application/xml',
-    json: 'application/ld+json'
+    json: 'application/ld+json',
+    protobuf: 'application/ld+json'
   };
 
   const onPrettify = () => {
