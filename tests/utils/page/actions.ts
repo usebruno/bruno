@@ -1716,7 +1716,7 @@ const addGrpcMessage = async (page: Page) => {
  */
 const generateGrpcSampleMessage = async (page: Page, index: number = 0) => {
   await test.step(`Generate sample for gRPC message #${index}`, async () => {
-    await page.locator(`#regenerate-msg-${index} button`).click();
+    await page.getByTestId(`grpc-regenerate-message-${index}`).click();
   });
 };
 
