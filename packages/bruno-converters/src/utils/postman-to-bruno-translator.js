@@ -492,32 +492,6 @@ const complexTransformations = [
     }
   },
 
-  // Lossy: positional header inserts → append (only keep the first arg, drop positional ref)
-  // pm.request.headers.prepend(item) -> req.headerList.add(item)
-  {
-    pattern: 'pm.request.headers.prepend',
-    transform: (path, j) => {
-      const args = path.parent.value.arguments;
-      return j.callExpression(j.identifier('req.headerList.add'), args.length > 0 ? [args[0]] : []);
-    }
-  },
-  // pm.request.headers.insert(item, before) -> req.headerList.add(item)
-  {
-    pattern: 'pm.request.headers.insert',
-    transform: (path, j) => {
-      const args = path.parent.value.arguments;
-      return j.callExpression(j.identifier('req.headerList.add'), args.length > 0 ? [args[0]] : []);
-    }
-  },
-  // pm.request.headers.insertAfter(item, after) -> req.headerList.add(item)
-  {
-    pattern: 'pm.request.headers.insertAfter',
-    transform: (path, j) => {
-      const args = path.parent.value.arguments;
-      return j.callExpression(j.identifier('req.headerList.add'), args.length > 0 ? [args[0]] : []);
-    }
-  },
-
   // --- Data-driven status assertions (pm.response.to.be.*) ---
   // Helper: build expect(res.getStatus()).<chain>(<litArgs>) AST node
   ...(() => {
