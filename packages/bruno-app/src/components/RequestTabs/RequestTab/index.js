@@ -1,6 +1,6 @@
 import React, { useCallback, useState, useRef, Fragment, useMemo, useEffect } from 'react';
 import get from 'lodash/get';
-import { makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
+import { makeTabPermanent, syncTabUid } from 'providers/ReduxStore/slices/tabs';
 import { saveRequest, saveCollectionRoot, saveFolderRoot, saveEnvironment, saveCollectionSettings, closeTabs } from 'providers/ReduxStore/slices/collections/actions';
 import useKeybinding from 'hooks/useKeybinding';
 import { deleteRequestDraft, deleteCollectionDraft, deleteFolderDraft, clearEnvironmentsDraft } from 'providers/ReduxStore/slices/collections';
@@ -45,6 +45,20 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
   if (!item && tab.pathname) {
     item = findItemInCollectionByPathname(collection, tab.pathname);
   }
+
+  useEffect(() => {
+    const isRequestType = tab.type === 'request'
+      || tab.type === 'http-request'
+      || tab.type === 'graphql-request'
+      || tab.type === 'grpc-request'
+      || tab.type === 'ws-request';
+
+    if (!isRequestType || !tab.pathname || !item?.uid || tab.uid === item.uid) {
+      return;
+    }
+
+    dispatch(syncTabUid({ oldUid: tab.uid, newUid: item.uid }));
+  }, [dispatch, item?.uid, tab.pathname, tab.type, tab.uid]);
 
   const method = useMemo(() => {
     if (!item) return;

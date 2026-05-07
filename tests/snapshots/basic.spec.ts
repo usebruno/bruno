@@ -799,3 +799,94 @@ test.describe('Snapshot: File Structure', () => {
     });
   });
 });
+
+test.describe('Snapshot: Basic Request Movement', () => {
+  test('requests interactivity is also restored', async ({ launchElectronApp, createTmpDir }) => {
+    const userDataPath = await createTmpDir('snap-structure');
+    const colPath = await createTmpDir('col');
+
+    const app = await launchElectronApp({ userDataPath });
+    const page = await app.firstWindow();
+    await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
+
+    await test.step('Create collection and open a request', async () => {
+      await createCollection(page, 'TestCol', colPath);
+      await createRequest(page, 'Req1', 'TestCol', { url: 'https://echo.usebruno.com', method: 'GET' });
+      await openRequest(page, 'TestCol', 'Req1', { persist: true });
+      await selectRequestPaneTab(page, 'Headers');
+    });
+
+    await test.step('Close app and inspect snapshot file', async () => {
+      await page.waitForTimeout(2000);
+      await closeElectronApp(app);
+    });
+
+    await test.step('Verify request pane tabs remain interactive after restore', async () => {
+      const app2 = await launchElectronApp({ userDataPath });
+      const page2 = await app2.firstWindow();
+      await page2.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
+
+      const locators = buildCommonLocators(page2);
+      await expect(locators.tabs.requestTab('Req1')).toBeVisible({ timeout: 15000 });
+      await locators.tabs.requestTab('Req1').click({ force: true });
+
+      await selectRequestPaneTab(page2, 'Headers');
+      await selectRequestPaneTab(page2, 'Auth');
+      await selectRequestPaneTab(page2, 'Vars');
+      await selectRequestPaneTab(page2, 'Tests');
+      await selectRequestPaneTab(page2, 'Params');
+
+      await closeElectronApp(app2);
+    });
+  });
+
+  test('graphql request pane tab interactivity is restored after restart', async ({ launchElectronApp, createTmpDir }) => {
+    const userDataPath = await createTmpDir('snap-graphql-interactivity');
+    const colPath = await createTmpDir('col');
+
+    const app = await launchElectronApp({ userDataPath });
+    const page = await app.firstWindow();
+    await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
+
+    await test.step('Create collection and GraphQL request', async () => {
+      await createCollection(page, 'TestCol', colPath);
+
+      const locators = buildCommonLocators(page);
+      await locators.sidebar.collection('TestCol').hover();
+      await locators.actions.collectionActions('TestCol').click();
+      await locators.dropdown.item('New Request').click();
+
+      await page.getByTestId('graphql-request').click();
+      await page.getByTestId('request-name').fill('ReqGraph');
+      await page.getByTestId('new-request-url').locator('.CodeMirror').click();
+      await page.keyboard.type('https://echo.usebruno.com/graphql');
+      await locators.modal.button('Create').click();
+
+      await openRequest(page, 'TestCol', 'ReqGraph', { persist: true });
+      await selectRequestPaneTab(page, 'Headers');
+    });
+
+    await test.step('Close and restart app', async () => {
+      await page.waitForTimeout(2000);
+      await closeElectronApp(app);
+    });
+
+    await test.step('Verify GraphQL pane tabs remain interactive', async () => {
+      const app2 = await launchElectronApp({ userDataPath });
+      const page2 = await app2.firstWindow();
+      await page2.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
+
+      const locators = buildCommonLocators(page2);
+      await expect(locators.tabs.requestTab('ReqGraph')).toBeVisible({ timeout: 15000 });
+      await locators.tabs.requestTab('ReqGraph').click({ force: true });
+
+      await selectRequestPaneTab(page2, 'Headers');
+      await selectRequestPaneTab(page2, 'Auth');
+      await selectRequestPaneTab(page2, 'Vars');
+      await selectRequestPaneTab(page2, 'Tests');
+      await selectRequestPaneTab(page2, 'Query');
+
+      await closeElectronApp(app2);
+    });
+  });
+});
