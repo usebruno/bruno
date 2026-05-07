@@ -8,6 +8,7 @@ import {
   createCollection,
   createRequest,
   generateGrpcSampleMessage,
+  REQUEST_TYPE,
   saveRequest,
   selectGrpcMethod
 } from '../../utils/page/actions';
@@ -35,7 +36,7 @@ for (const { format, collectionName, tmpDirPrefix } of FORMATS) {
       collectionPath = await createTmpDir(tmpDirPrefix);
 
       await createCollection(page, collectionName, collectionPath, { format });
-      await createRequest(page, REQUEST_NAME, collectionName, { url: GRPC_URL, requestType: 'gRPC' });
+      await createRequest(page, REQUEST_NAME, collectionName, { url: GRPC_URL, requestType: REQUEST_TYPE.GRPC });
 
       await selectGrpcMethod(page, GRPC_METHOD);
 

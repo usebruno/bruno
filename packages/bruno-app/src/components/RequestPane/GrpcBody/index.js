@@ -39,7 +39,11 @@ const MessageToolbar = ({
         </ToolHint>
 
         <ToolHint text="Generate sample" toolhintId={`regenerate-msg-${index}`}>
-          <button onClick={onRegenerateMessage} className="toolbar-btn">
+          <button
+            onClick={onRegenerateMessage}
+            className="toolbar-btn"
+            data-testid={`grpc-regenerate-message-${index}`}
+          >
             <IconRefresh size={16} strokeWidth={1.5} />
           </button>
         </ToolHint>

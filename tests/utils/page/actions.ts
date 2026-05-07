@@ -126,22 +126,31 @@ const createCollection = async (
 
 const STANDARD_HTTP_METHODS = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS', 'HEAD', 'TRACE', 'CONNECT'];
 
+export const REQUEST_TYPE = Object.freeze({
+  HTTP: 'HTTP',
+  GRAPHQL: 'GraphQL',
+  GRPC: 'gRPC',
+  WEBSOCKET: 'WebSocket'
+} as const);
+
+export type RequestType = typeof REQUEST_TYPE[keyof typeof REQUEST_TYPE];
+
 type CreateRequestOptions = {
   url?: string;
   method?: string;
   inFolder?: boolean;
-  requestType?: 'HTTP' | 'GraphQL' | 'gRPC' | 'WebSocket';
+  requestType?: RequestType;
 };
 
-const REQUEST_TYPE_TESTID: Record<NonNullable<CreateRequestOptions['requestType']>, string> = {
-  HTTP: 'http-request',
-  GraphQL: 'graphql-request',
-  gRPC: 'grpc-request',
-  WebSocket: 'ws-request'
-};
+const REQUEST_TYPE_TESTID = Object.freeze({
+  [REQUEST_TYPE.HTTP]: 'http-request',
+  [REQUEST_TYPE.GRAPHQL]: 'graphql-request',
+  [REQUEST_TYPE.GRPC]: 'grpc-request',
+  [REQUEST_TYPE.WEBSOCKET]: 'ws-request'
+} as const);
 
 type CreateUntitledRequestOptions = {
-  requestType?: 'HTTP' | 'GraphQL' | 'WebSocket' | 'gRPC';
+  requestType?: RequestType;
   requestName?: string;
   url?: string;
   tag?: string;
@@ -204,7 +213,7 @@ const createUntitledRequest = async (
 };
 
 type CreateTransientRequestOptions = {
-  requestType?: 'HTTP' | 'GraphQL' | 'gRPC' | 'WebSocket';
+  requestType?: RequestType;
 };
 
 /**
@@ -306,7 +315,7 @@ const createRequest = async (
 
     await locators.dropdown.item('New Request').click();
 
-    if (requestType !== 'HTTP') {
+    if (requestType !== REQUEST_TYPE.HTTP) {
       await page.getByTestId(REQUEST_TYPE_TESTID[requestType]).click();
     }
 
@@ -1251,7 +1260,7 @@ const addGrpcMessage = async (page: Page) => {
  */
 const generateGrpcSampleMessage = async (page: Page, index: number = 0) => {
   await test.step(`Generate sample for gRPC message #${index}`, async () => {
-    await page.locator(`#regenerate-msg-${index} button`).click();
+    await page.getByTestId(`grpc-regenerate-message-${index}`).click();
   });
 };
 
