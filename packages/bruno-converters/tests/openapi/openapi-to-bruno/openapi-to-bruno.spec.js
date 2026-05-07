@@ -116,6 +116,32 @@ servers:
     expect(result.name).toBe('Untitled Collection');
   });
 
+  it('keeps duplicate operation display names clean when HTTP methods differ', () => {
+    const result = openApiToBruno({
+      openapi: '3.0.0',
+      info: { title: 'Projects API', version: '1.0.0' },
+      paths: {
+        '/projects': {
+          get: {
+            summary: '/projects',
+            responses: { 200: { description: 'OK' } }
+          },
+          post: {
+            summary: '/projects',
+            responses: { 201: { description: 'Created' } }
+          }
+        }
+      }
+    });
+
+    expect(result.items).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ name: '/projects', filename: 'GET projects', request: expect.objectContaining({ method: 'GET' }) }),
+        expect.objectContaining({ name: '/projects', filename: 'POST projects', request: expect.objectContaining({ method: 'POST' }) })
+      ])
+    );
+  });
+
   describe('authentication inheritance', () => {
     it('should set auth mode to inherit when no security is defined', () => {
       const openApiWithoutSecurity = `

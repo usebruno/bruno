@@ -11,6 +11,7 @@ import {
   groupRequestsByTags,
   groupRequestsByPath
 } from './openapi-common';
+import { getUniqueHttpRequestFilename } from '../utils/request-filename';
 
 const getContentLevelExample = (bodyContent) => {
   if (bodyContent.example !== undefined) return bodyContent.example;
@@ -158,7 +159,7 @@ const getParameterEntries = (param) => {
   return [{ value, enabled }];
 };
 
-const transformOpenapiRequestItem = (request, usedNames = new Set(), options = {}) => {
+const transformOpenapiRequestItem = (request, usedFilenames = new Set(), options = {}) => {
   let _operationObject = request.operationObject;
 
   let operationName = _operationObject.summary || _operationObject.operationId || _operationObject.description;
@@ -171,28 +172,13 @@ const transformOpenapiRequestItem = (request, usedNames = new Set(), options = {
     // Replace line breaks and normalize whitespace
     operationName = operationName.replace(/[\r\n\s]+/g, ' ').trim();
   }
-  if (usedNames.has(operationName)) {
-    // Make name unique to prevent filename collisions
-    // Try adding method info first
-    let uniqueName = `${operationName} (${request.method.toUpperCase()})`;
-
-    // If still not unique, add counter
-    let counter = 1;
-    while (usedNames.has(uniqueName)) {
-      uniqueName = `${operationName} (${counter})`;
-      counter++;
-    }
-
-    operationName = uniqueName;
-  }
-  usedNames.add(operationName);
-
   // replace OpenAPI links in path by Bruno variables
   let path = request.path.replace(/{([a-zA-Z]+)}/g, `{{${_operationObject.operationId}_$1}}`);
 
   const brunoRequestItem = {
     uid: uuid(),
     name: operationName,
+    filename: getUniqueHttpRequestFilename(operationName, request.method, usedFilenames),
     type: 'http-request',
     tags: sanitizeTags(request.operationObject.tags || [], options),
     request: {
@@ -792,7 +778,6 @@ const openAPIRuntimeExpressionToScript = (expression) => {
 };
 
 export const parseOpenApiCollection = (data, options = {}) => {
-  const usedNames = new Set();
   const brunoCollection = {
     name: '',
     uid: uuid(),
@@ -882,6 +867,7 @@ export const parseOpenApiCollection = (data, options = {}) => {
       // Default tag-based grouping
       let [groups, ungroupedRequests] = groupRequestsByTags(allRequests, options);
       let brunoFolders = groups.map((group) => {
+        const usedFilenames = new Set();
         return {
           uid: uuid(),
           name: group.name,
@@ -901,11 +887,12 @@ export const parseOpenApiCollection = (data, options = {}) => {
               name: group.name
             }
           },
-          items: group.requests.map((req) => transformOpenapiRequestItem(req, usedNames, options))
+          items: group.requests.map((req) => transformOpenapiRequestItem(req, usedFilenames, options))
         };
       });
 
-      let ungroupedItems = ungroupedRequests.map((req) => transformOpenapiRequestItem(req, usedNames, options));
+      const usedFilenames = new Set();
+      let ungroupedItems = ungroupedRequests.map((req) => transformOpenapiRequestItem(req, usedFilenames, options));
       let brunoCollectionItems = brunoFolders.concat(ungroupedItems);
       brunoCollection.items = brunoCollectionItems;
     }

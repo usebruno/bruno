@@ -535,7 +535,7 @@ export const groupRequestsByTags = (requests) => {
 /**
  * Groups requests by URL path segments and builds nested folder structures
  * @param {Array} requests - Array of parsed request objects
- * @param {Function} transformFn - Function to transform a request into a Bruno item: (request, usedNames, options) => brunoItem
+ * @param {Function} transformFn - Function to transform a request into a Bruno item: (request, usedFilenames, options) => brunoItem
  * @param {Object} options - Import options
  * @returns {Array} Array of Bruno folder items
  */
@@ -597,9 +597,9 @@ export const groupRequestsByPath = (requests, transformFn, options = {}) => {
 
   // Convert the nested structure to Bruno folder format
   const buildFolderStructure = (group) => {
-    // Create a new usedNames set for each folder/subfolder scope
-    const localUsedNames = new Set();
-    const items = group.requests.map((req) => transformFn(req, localUsedNames, options));
+    // Create a new filename namespace for each folder/subfolder scope
+    const localUsedFilenames = new Set();
+    const items = group.requests.map((req) => transformFn(req, localUsedFilenames, options));
 
     // Add sub-folders
     const subFolders = [];

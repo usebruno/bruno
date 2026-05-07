@@ -4,6 +4,7 @@ import { transformExampleStatusInCollection } from '@usebruno/common';
 import each from 'lodash/each';
 import postmanTranslation from './postman-translations';
 import { invalidVariableCharacterRegex } from '../constants/index';
+import { getUniqueHttpRequestFilename } from '../utils/request-filename';
 
 const AUTH_TYPES = Object.freeze({
   BASIC: 'basic',
@@ -366,7 +367,7 @@ export const processAuth = (auth, requestObject, isCollection = false) => {
 const importPostmanV2CollectionItem = (brunoParent, item, { useWorkers = false } = {}, scriptMap) => {
   brunoParent.items = brunoParent.items || [];
   const folderMap = {};
-  const requestMap = {};
+  const usedRequestFilenames = new Set();
 
   item.forEach((i, index) => {
     if (isItemAFolder(i)) {
@@ -438,19 +439,15 @@ const importPostmanV2CollectionItem = (brunoParent, item, { useWorkers = false }
       }
 
       const baseRequestName = i.name || 'Untitled Request';
-      let requestName = baseRequestName;
-      let count = 1;
-
-      while (requestMap[requestName]) {
-        requestName = `${baseRequestName}_${count}`;
-        count++;
-      }
+      const requestName = baseRequestName;
+      const filename = getUniqueHttpRequestFilename(requestName, method, usedRequestFilenames);
 
       const url = constructUrl(i.request.url);
 
       const brunoRequestItem = {
         uid: uuid(),
         name: requestName,
+        filename,
         type: 'http-request',
         seq: index + 1,
         request: {
@@ -800,8 +797,6 @@ const importPostmanV2CollectionItem = (brunoParent, item, { useWorkers = false }
           brunoRequestItem.examples.push(example);
         });
       }
-
-      requestMap[requestName] = brunoRequestItem;
     }
   });
 };
