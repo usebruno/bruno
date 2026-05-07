@@ -175,6 +175,38 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
     request.url = url.origin + interpolatedUrlPath + trailingSlash + url.search;
   }
 
+  // Append params:query entries to the URL. The desktop GUI keeps the URL
+  // bar and the params table in sync on edit, so by request-time the URL
+  // already carries every query param. The CLI never runs that sync step,
+  // so without this block any param defined only in the params:query block
+  // is silently dropped. See https://github.com/usebruno/bruno/issues/1681
+  each(request?.queryParams, (param) => {
+    param.name = _interpolate(param.name);
+    param.value = _interpolate(param.value);
+  });
+
+  if (request?.queryParams?.length) {
+    let url = request.url;
+
+    if (!url.startsWith('http://') && !url.startsWith('https://')) {
+      url = `http://${url}`;
+    }
+
+    try {
+      const urlObj = new URL(url);
+      each(request.queryParams, (param) => {
+        // Skip names already on the URL — the URL value (typically synced
+        // from the params table by the GUI) wins, mirroring GUI behaviour.
+        if (!urlObj.searchParams.has(param.name)) {
+          urlObj.searchParams.append(param.name, param.value ?? '');
+        }
+      });
+      request.url = urlObj.toString();
+    } catch (e) {
+      throw { message: 'Invalid URL format', originalError: e.message };
+    }
+  }
+
   if (request.proxy) {
     request.proxy.protocol = _interpolate(request.proxy.protocol);
     request.proxy.hostname = _interpolate(request.proxy.hostname);
