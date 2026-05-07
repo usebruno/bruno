@@ -23,7 +23,7 @@ const BodyBlock = ({ collection, data, dataBuffer, headers, error, item, type })
                 error={error}
                 key={item?.uid}
                 hideResultTypeSelector={type === 'request'}
-                docKey={`timeline-body:${type}`}
+                docKey={`timeline-body:${type}:${item?.uid}`}
               />
             </div>
           ) : (
