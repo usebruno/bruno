@@ -11,6 +11,10 @@ const SINGLETON_TAB_TYPES = new Set([
   'collection-settings',
   'collection-overview',
   'environment-settings',
+  'global-environment-settings',
+  'preferences',
+  'workspaceOverview',
+  'workspaceEnvironments',
   'openapi-sync',
   'openapi-spec'
 ]);
@@ -449,6 +453,12 @@ export const deserializeTab = (snapshotTab, collection) => {
     scriptPaneTab: null
   };
 
+  const isCollectionScopedSingleton = type === 'preferences'
+    || type === 'environment-settings'
+    || type === 'global-environment-settings';
+
+  const needsTypeBasedFallback = accessor === 'type' || (accessor === 'pathname' && !pathname && isCollectionScopedSingleton);
+
   if (accessor === 'pathname' && pathname) {
     const item = findItemInCollectionByPathname(collection, pathname);
     tab.uid = item?.uid || pathname;
@@ -461,7 +471,7 @@ export const deserializeTab = (snapshotTab, collection) => {
     tab.uid = example?.uid || `${pathname}::${exampleName}`;
     tab.itemUid = item?.uid || pathname;
     tab.exampleName = exampleName;
-  } else if (accessor === 'type') {
+  } else if (needsTypeBasedFallback) {
     const collectionUidFromSnapshot = typeof snapshotTab.collection === 'string' && snapshotTab.collection.length > 0
       ? snapshotTab.collection
       : (typeof snapshotTab.collectionUid === 'string' && snapshotTab.collectionUid.length > 0
@@ -470,6 +480,12 @@ export const deserializeTab = (snapshotTab, collection) => {
 
     if (type === 'collection-settings') {
       tab.uid = collectionUidFromSnapshot || collection.uid;
+    } else if (type === 'preferences') {
+      tab.uid = `${collection.uid}-preferences`;
+    } else if (type === 'environment-settings') {
+      tab.uid = `${collection.uid}-environment-settings`;
+    } else if (type === 'global-environment-settings') {
+      tab.uid = `${collection.uid}-global-environment-settings`;
     } else if (NON_REPLACEABLE_SINGLETON_TAB_TYPES.has(type)) {
       tab.uid = uuid();
     } else {

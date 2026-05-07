@@ -64,7 +64,7 @@ const RequestTabPanel = () => {
   const isVerticalLayout = preferences?.layout?.responsePaneOrientation === 'vertical';
   const isConsoleOpen = useSelector((state) => state.logs.isConsoleOpen);
 
-  const isRequestTab = focusedTab && ['http-request', 'grpc-request', 'ws-request', 'graphql-request'].includes(focusedTab.type);
+  const isRequestTab = focusedTab && ['request', 'http-request', 'grpc-request', 'ws-request', 'graphql-request'].includes(focusedTab.type);
   useKeybinding('sendRequest', (e) => {
     e?.preventDefault?.();
     e?.stopPropagation?.();
