@@ -179,7 +179,7 @@ test.describe('Snapshot: Tab Persistence', () => {
     });
   });
 
-  test.only('newly created request can be sent and remains sendable after restart', async ({ launchElectronApp, createTmpDir }) => {
+  test('newly created request can be sent and remains sendable after restart', async ({ launchElectronApp, createTmpDir }) => {
     test.setTimeout(60000);
     const userDataPath = await createTmpDir('snap-new-request-send');
     const colPath = await createTmpDir('col');
