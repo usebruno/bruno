@@ -6,7 +6,7 @@ import { toBrunoAuth } from '../common/auth';
 import { toBrunoVariables } from '../common/variables';
 import { toBrunoScripts } from '../common/scripts';
 import { toBrunoAssertions } from '../common/assertions';
-import { uuid, ensureString } from '../../../utils';
+import { uuid, ensureString, isNonEmptyString } from '../../../utils';
 
 const toBrunoGrpcMetadata = (metadata: GrpcMetadata[] | null | undefined): BrunoKeyValue[] | undefined => {
   if (!metadata?.length) {
@@ -57,12 +57,17 @@ const parseGrpcRequest = (ocRequest: GrpcRequest): BrunoItem => {
   };
 
   // message
-  const messages = grpc?.message as GrpcMessageVariant[] | undefined;
-  if (Array.isArray(messages)) {
-    brunoRequest.body.grpc = messages.map(({ title, message }, index) => ({
+  const rawMessage = grpc?.message;
+  if (Array.isArray(rawMessage)) {
+    brunoRequest.body.grpc = (rawMessage as GrpcMessageVariant[]).map(({ title, message }, index) => ({
       name: title || `message ${index + 1}`,
       content: ensureString(message)
     }));
+  } else if (isNonEmptyString(rawMessage)) {
+    brunoRequest.body.grpc = [{
+      name: '',
+      content: rawMessage as string
+    }];
   }
 
   // scripts
