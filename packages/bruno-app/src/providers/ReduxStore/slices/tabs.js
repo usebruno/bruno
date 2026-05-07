@@ -18,6 +18,28 @@ const tabTypeAlreadyExists = (tabs, collectionUid, type) => {
   return find(tabs, (tab) => tab.collectionUid === collectionUid && tab.type === type);
 };
 
+const findTabByPathname = (tabs, { collectionUid, pathname, type, exampleName }) => {
+  if (!pathname || !collectionUid || !type) {
+    return null;
+  }
+
+  return find(tabs, (tab) => {
+    if (tab.collectionUid !== collectionUid) {
+      return false;
+    }
+
+    if (tab.pathname !== pathname || tab.type !== type) {
+      return false;
+    }
+
+    if (type === 'response-example') {
+      return tab.exampleName === exampleName;
+    }
+
+    return true;
+  });
+};
+
 export const tabsSlice = createSlice({
   name: 'tabs',
   initialState,
@@ -40,6 +62,12 @@ export const tabsSlice = createSlice({
       const existingTab = find(state.tabs, (tab) => tab.uid === uid);
       if (existingTab) {
         state.activeTabUid = existingTab.uid;
+        return;
+      }
+
+      const existingPathnameTab = findTabByPathname(state.tabs, { collectionUid, pathname, type, exampleName });
+      if (existingPathnameTab) {
+        state.activeTabUid = existingPathnameTab.uid;
         return;
       }
 

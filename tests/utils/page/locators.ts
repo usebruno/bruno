@@ -5,6 +5,7 @@ export const buildCommonLocators = (page: Page) => ({
   saveButton: () => page
     .locator('.infotip')
     .filter({ hasText: /^Save/ }),
+  openPreferences: () => page.getByRole('button', { name: 'Open Preferences' }),
   sidebar: {
     collectionsContainer: () => page.getByTestId('collections'),
     collection: (name: string) => page.locator('#sidebar-collection-name').filter({ hasText: name }),

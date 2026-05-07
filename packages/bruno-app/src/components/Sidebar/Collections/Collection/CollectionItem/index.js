@@ -45,7 +45,11 @@ import CollectionItemIcon from './CollectionItemIcon';
 import ExampleItem from './ExampleItem';
 import ExampleIcon from 'components/Icons/ExampleIcon';
 import { scrollToTheActiveTab } from 'utils/tabs';
-import { isTabForItemActive as isTabForItemActiveSelector, isTabForItemPresent as isTabForItemPresentSelector } from 'src/selectors/tab';
+import {
+  getTabUidForItem as getTabUidForItemSelector,
+  isTabForItemActive as isTabForItemActiveSelector,
+  isTabForItemPresent as isTabForItemPresentSelector
+} from 'src/selectors/tab';
 import { isEqual } from 'lodash';
 import { createEmptyStateMenuItems } from 'utils/collections/emptyStateRequest';
 import { calculateDraggedItemNewPathname, getInitialExampleName, findParentItemInCollection } from 'utils/collections/index';
@@ -60,11 +64,20 @@ import useKeybinding from 'hooks/useKeybinding';
 
 const CollectionItem = ({ item, collectionUid, collectionPathname, searchText }) => {
   const { dropdownContainerRef } = useSidebarAccordion();
-  const _isTabForItemActiveSelector = isTabForItemActiveSelector({ itemUid: item.uid });
+  const selectorInput = {
+    itemUid: item.uid,
+    itemPathname: item.pathname,
+    collectionUid
+  };
+
+  const _isTabForItemActiveSelector = isTabForItemActiveSelector(selectorInput);
   const isTabForItemActive = useSelector(_isTabForItemActiveSelector, isEqual);
 
-  const _isTabForItemPresentSelector = isTabForItemPresentSelector({ itemUid: item.uid });
+  const _isTabForItemPresentSelector = isTabForItemPresentSelector(selectorInput);
   const isTabForItemPresent = useSelector(_isTabForItemPresentSelector, isEqual);
+
+  const _tabUidForItemSelector = getTabUidForItemSelector(selectorInput);
+  const tabUidForItem = useSelector(_tabUidForItemSelector, isEqual);
 
   const isSidebarDragging = useSelector((state) => state.app.isDragging);
   const collection = useSelector((state) => state.collections.collections?.find((c) => c.uid === collectionUid));
@@ -242,7 +255,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
       if (isTabForItemPresent) {
         dispatch(
           focusTab({
-            uid: item.uid
+            uid: tabUidForItem || item.uid
           })
         );
         return;
@@ -468,7 +481,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
   }
 
   const handleDoubleClick = (event) => {
-    dispatch(makeTabPermanent({ uid: item.uid }));
+    dispatch(makeTabPermanent({ uid: tabUidForItem || item.uid }));
   };
 
   // Sort items by their "seq" property.
@@ -547,7 +560,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
   const viewFolderSettings = () => {
     if (isItemAFolder(item)) {
       if (isTabForItemPresent) {
-        dispatch(focusTab({ uid: item.uid }));
+        dispatch(focusTab({ uid: tabUidForItem || item.uid }));
         return;
       }
       dispatch(
