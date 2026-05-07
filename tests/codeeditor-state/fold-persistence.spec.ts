@@ -114,37 +114,6 @@ const foldLine = async (cm: Locator, line: number) =>
     editor.foldCode({ line: l, ch: lineText.length }, null, 'fold');
   }, line);
 
-// Number of currently-rendered fold widgets in the editor.
-const foldMarkerCount = (cm: Locator) =>
-  cm.locator('.CodeMirror-foldmarker').count();
-
-// Number of fold markers tracked by CM internally — independent of viewport.
-const internalFoldCount = (cm: Locator) =>
-  cm.evaluate((el) => {
-    const editor = (el as any).CodeMirror;
-    if (!editor) return 0;
-    return editor.getAllMarks().filter((m: any) => m.__isFold).length;
-  });
-
-// Find the first localStorage key for a CodeEditor that ends with the given
-// suffix (e.g. ":application/ld+json:rw"). Returns null if none exists yet.
-const findPersistedKey = (page: Page, suffix: string) =>
-  page.evaluate((s) => {
-    const keys = Object.keys(localStorage).filter((k) => k.includes('::codeeditor::'));
-    return keys.find((k) => k.endsWith(s)) ?? null;
-  }, suffix);
-
-// Read the parsed state object from a persisted CodeEditor entry.
-const readPersisted = (page: Page, fullKey: string) =>
-  page.evaluate((k) => {
-    try {
-      const raw = localStorage.getItem(k);
-      return raw ? JSON.parse(raw) : null;
-    } catch {
-      return null;
-    }
-  }, fullKey);
-
 // --- tests ----------------------------------------------------------------
 
 test.describe('CodeEditor — fold state persists across tab switches', () => {
