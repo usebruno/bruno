@@ -24,20 +24,20 @@ export const isTabForItemActive = ({ itemUid, itemPathname, collectionUid }) => 
     return false;
   }
 
-  if (activeTabUid === itemUid) {
-    return true;
-  }
-
-  if (!itemPathname) {
-    return false;
-  }
-
   const activeTab = tabs.find((tab) => tab.uid === activeTabUid);
   if (!activeTab) {
     return false;
   }
 
   if (collectionUid && activeTab.collectionUid !== collectionUid) {
+    return false;
+  }
+
+  if (activeTabUid === itemUid) {
+    return true;
+  }
+
+  if (!itemPathname) {
     return false;
   }
 
