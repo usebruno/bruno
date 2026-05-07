@@ -7,6 +7,29 @@ test.describe('Create collection', () => {
     await closeAllCollections(page);
   });
 
+  test('should show validation error for whitespace-only name in modal and keep modal open', async ({ page }) => {
+    await page.getByTestId('collections-header-add-menu').click();
+    await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Create collection' }).click();
+
+    const inlineCreator = page.locator('.inline-collection-creator');
+    await inlineCreator.waitFor({ state: 'visible', timeout: 5000 });
+    await inlineCreator.locator('.cog-btn').click();
+
+    const createCollectionModal = page.locator('.bruno-modal-card').filter({ hasText: 'Create Collection' });
+    await createCollectionModal.waitFor({ state: 'visible', timeout: 5000 });
+
+    const submitButton = createCollectionModal.getByRole('button', { name: 'Create', exact: true });
+    await createCollectionModal.getByLabel('Name').fill('   ');
+    await expect(submitButton).toBeEnabled();
+    await submitButton.click();
+
+    await expect(createCollectionModal).toBeVisible();
+    await expect(submitButton).toBeEnabled();
+    await expect(createCollectionModal.getByText('Collection name can\'t be empty')).toBeVisible({ timeout: 2000 });
+
+    await createCollectionModal.getByRole('button', { name: 'Cancel' }).click();
+  });
+
   test('Create collection and add a simple HTTP request', async ({ page, createTmpDir }) => {
     const collectionName = 'test-collection';
     const requestName = 'ping';

@@ -45,7 +45,8 @@ const CreateCollection = ({ onClose, defaultLocation: propDefaultLocation, initi
     },
     validationSchema: Yup.object({
       collectionName: Yup.string()
-        .min(1, 'must be at least 1 character')
+        .trim()
+        .min(1, 'Collection name can\'t be empty')
         .max(255, 'must be 255 characters or less')
         .required('collection name is required'),
       collectionFolderName: Yup.string()
@@ -73,6 +74,23 @@ const CreateCollection = ({ onClose, defaultLocation: propDefaultLocation, initi
       }
     }
   });
+
+  const handleSubmit = async (e) => {
+    e?.preventDefault?.();
+
+    const errors = await formik.validateForm();
+    if (Object.keys(errors).length > 0) {
+      formik.setTouched({
+        collectionName: true,
+        collectionFolderName: true,
+        collectionLocation: true,
+        format: true
+      });
+      return;
+    }
+
+    formik.handleSubmit();
+  };
 
   const browse = () => {
     dispatch(browseDirectory())
@@ -114,7 +132,7 @@ const CreateCollection = ({ onClose, defaultLocation: propDefaultLocation, initi
     <Portal>
       <StyledWrapper>
         <Modal size="md" title="Create Collection" hideFooter={true} handleCancel={onClose}>
-          <form className="bruno-form" onSubmit={formik.handleSubmit}>
+          <form className="bruno-form" onSubmit={handleSubmit}>
             <div>
               <label htmlFor="collection-name" className="flex items-center font-medium">
                 Name
