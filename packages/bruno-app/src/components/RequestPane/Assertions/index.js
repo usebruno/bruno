@@ -183,6 +183,7 @@ const Assertions = ({ item, collection }) => {
         testId="assertions-table"
         columnWidths={assertionsWidths}
         onColumnWidthsChange={(widths) => handleColumnWidthsChange('assertions', widths)}
+        initialScroll={scroll}
       />
     </StyledWrapper>
   );
