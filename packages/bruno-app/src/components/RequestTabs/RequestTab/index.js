@@ -709,6 +709,9 @@ function RequestTabMenu({ menuDropdownRef, tabLabelRef, collectionRequestTabs, t
   const isRequestTab = currentTabItem && (currentTabItem.type === 'http-request' || currentTabItem.type === 'graphql-request' || currentTabItem.type === 'grpc-request' || currentTabItem.type === 'ws-request');
 
   const handleDuplicateAsTab = () => {
+    if (!currentTabItem?.uid || !collection?.uid) {
+      return;
+    }
     dispatch(cloneItemAsTransient(currentTabItem.uid, collection.uid)).catch((err) => {
       toast.error(err?.message || 'An error occurred while duplicating the request');
     });
