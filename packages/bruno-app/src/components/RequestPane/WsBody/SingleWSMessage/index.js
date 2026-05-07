@@ -98,7 +98,7 @@ export const SingleWSMessage = ({
     text: 'application/text',
     xml: 'application/xml',
     json: 'application/ld+json',
-    protobuf: 'application/ld+json'
+    protobuf: 'text/plain'
   };
 
   const onPrettify = () => {
@@ -153,7 +153,7 @@ export const SingleWSMessage = ({
           <WSRequestBodyMode mode={messageFormat} onModeChange={onUpdateMessageType} />
 
           <ToolHint text="Format" toolhintId={`prettify-msg-${index}`}>
-            <button onClick={onPrettify} className="toolbar-btn">
+            <button onClick={onPrettify} className="toolbar-btn" disabled={!['json', 'xml'].includes(codeType)}>
               <IconWand size={16} strokeWidth={1.5} />
             </button>
           </ToolHint>
