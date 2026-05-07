@@ -6,6 +6,7 @@ import {
   createRequest,
   openRequest,
   openCollection,
+  sendRequest,
   switchWorkspace,
   selectRequestPaneTab
 } from '../utils/page';
@@ -173,6 +174,44 @@ test.describe('Snapshot: Tab Persistence', () => {
       const locators = buildCommonLocators(page2);
       await expect(locators.tabs.requestTab('ReqKeep')).toBeVisible({ timeout: 10000 });
       await expect(locators.tabs.requestTab('ReqClose')).not.toBeVisible();
+
+      await closeElectronApp(app2);
+    });
+  });
+
+  test.only('newly created request can be sent and remains sendable after restart', async ({ launchElectronApp, createTmpDir }) => {
+    test.setTimeout(60000);
+    const userDataPath = await createTmpDir('snap-new-request-send');
+    const colPath = await createTmpDir('col');
+
+    const app = await launchElectronApp({ userDataPath });
+    const page = await app.firstWindow();
+    await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
+
+    await test.step('Create request via New Request modal and send via Send button', async () => {
+      await createCollection(page, 'TestCol', colPath);
+      await createRequest(page, 'PingReq', 'TestCol', { url: 'http://localhost:8081/ping', method: 'GET' });
+
+      const locators = buildCommonLocators(page);
+      await expect(locators.tabs.activeRequestTab()).toContainText('PingReq');
+      await sendRequest(page, 200);
+    });
+
+    await test.step('Close and restart app', async () => {
+      await page.waitForTimeout(2000);
+      await closeElectronApp(app);
+    });
+
+    await test.step('After restart, send the restored request via Send button', async () => {
+      const app2 = await launchElectronApp({ userDataPath });
+      const page2 = await app2.firstWindow();
+      await page2.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
+
+      const locators = buildCommonLocators(page2);
+      await expect(locators.tabs.requestTab('PingReq')).toBeVisible({ timeout: 15000 });
+      await locators.tabs.requestTab('PingReq').click({ force: true });
+      await expect(locators.tabs.activeRequestTab()).toContainText('PingReq');
+      await sendRequest(page2, 200);
 
       await closeElectronApp(app2);
     });

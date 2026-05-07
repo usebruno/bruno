@@ -64,7 +64,7 @@ export const tabsSlice = createSlice({
         state.tabs[state.tabs.length - 1] = {
           uid,
           collectionUid,
-          type: type || 'request',
+          type: type || 'http-request',
           pathname: pathname || null,
           requestPaneWidth: null,
           requestPaneHeight: null,
@@ -94,7 +94,7 @@ export const tabsSlice = createSlice({
       state.tabs.push({
         uid,
         collectionUid,
-        type: type || 'request',
+        type: type || 'http-request',
         pathname: pathname || null,
         requestPaneWidth: null,
         requestPaneHeight: null,
