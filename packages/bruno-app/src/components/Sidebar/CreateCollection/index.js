@@ -47,18 +47,18 @@ const CreateCollection = ({ onClose, defaultLocation: propDefaultLocation, initi
       collectionName: Yup.string()
         .trim()
         .min(1, 'Collection name can\'t be empty')
-        .max(255, 'must be 255 characters or less')
-        .required('collection name is required'),
+        .max(255, 'Must be 255 characters or less')
+        .required('Collection name is required'),
       collectionFolderName: Yup.string()
-        .min(1, 'must be at least 1 character')
-        .max(255, 'must be 255 characters or less')
+        .min(1, 'Must be at least 1 character')
+        .max(255, 'Must be 255 characters or less')
         .test('is-valid-collection-name', function (value) {
           const isValid = validateName(value);
           return isValid ? true : this.createError({ message: validateNameError(value) });
         })
-        .required('folder name is required'),
-      collectionLocation: Yup.string().min(1, 'location is required').required('location is required'),
-      format: Yup.string().oneOf(['bru', 'yml'], 'invalid format').required('format is required')
+        .required('Folder name is required'),
+      collectionLocation: Yup.string().min(1, 'Location is required').required('Location is required'),
+      format: Yup.string().oneOf(['bru', 'yml'], 'invalid format').required('Format is required')
     }),
     onSubmit: async (values) => {
       try {
@@ -74,23 +74,6 @@ const CreateCollection = ({ onClose, defaultLocation: propDefaultLocation, initi
       }
     }
   });
-
-  const handleSubmit = async (e) => {
-    e?.preventDefault?.();
-
-    const errors = await formik.validateForm();
-    if (Object.keys(errors).length > 0) {
-      formik.setTouched({
-        collectionName: true,
-        collectionFolderName: true,
-        collectionLocation: true,
-        format: true
-      });
-      return;
-    }
-
-    formik.handleSubmit();
-  };
 
   const browse = () => {
     dispatch(browseDirectory())
@@ -132,7 +115,7 @@ const CreateCollection = ({ onClose, defaultLocation: propDefaultLocation, initi
     <Portal>
       <StyledWrapper>
         <Modal size="md" title="Create Collection" hideFooter={true} handleCancel={onClose}>
-          <form className="bruno-form" onSubmit={handleSubmit}>
+          <form className="bruno-form" onSubmit={formik.handleSubmit}>
             <div>
               <label htmlFor="collection-name" className="flex items-center font-medium">
                 Name

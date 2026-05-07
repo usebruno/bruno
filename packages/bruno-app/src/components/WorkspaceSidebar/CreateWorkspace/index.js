@@ -70,22 +70,6 @@ const CreateWorkspace = ({ onClose }) => {
     }
   });
 
-  const handleSubmit = async (e) => {
-    e?.preventDefault?.();
-
-    const errors = await formik.validateForm();
-    if (Object.keys(errors).length > 0) {
-      formik.setTouched({
-        workspaceName: true,
-        workspaceFolderName: true,
-        workspaceLocation: true
-      });
-      return;
-    }
-
-    formik.handleSubmit();
-  };
-
   const browse = () => {
     dispatch(browseDirectory())
       .then((dirPath) => {
@@ -111,13 +95,13 @@ const CreateWorkspace = ({ onClose }) => {
       title="Create Workspace"
       description="Give your new workspace a name and choose its type to get started."
       confirmText={isSubmitting ? 'Creating...' : 'Create Workspace'}
-      handleConfirm={handleSubmit}
+      handleConfirm={formik.handleSubmit}
       handleCancel={onClose}
       style="new"
       confirmDisabled={isSubmitting}
     >
       <div>
-        <form className="bruno-form" onSubmit={handleSubmit}>
+        <form className="bruno-form" onSubmit={formik.handleSubmit}>
           <div className="mb-4">
             <label htmlFor="workspaceName" className="block font-semibold mb-2">
               Name
