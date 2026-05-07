@@ -1,7 +1,7 @@
 import React, { useCallback, useState, useRef, Fragment, useMemo, useEffect } from 'react';
 import get from 'lodash/get';
 import { makeTabPermanent, syncTabUid } from 'providers/ReduxStore/slices/tabs';
-import { saveRequest, saveCollectionRoot, saveFolderRoot, saveEnvironment, saveCollectionSettings, closeTabs } from 'providers/ReduxStore/slices/collections/actions';
+import { saveRequest, saveCollectionRoot, saveFolderRoot, saveEnvironment, saveCollectionSettings, closeTabs, cloneItemAsTransient } from 'providers/ReduxStore/slices/collections/actions';
 import useKeybinding from 'hooks/useKeybinding';
 import { deleteRequestDraft, deleteCollectionDraft, deleteFolderDraft, clearEnvironmentsDraft } from 'providers/ReduxStore/slices/collections';
 import { clearGlobalEnvironmentDraft } from 'providers/ReduxStore/slices/global-environments';
@@ -706,6 +706,14 @@ function RequestTabMenu({ menuDropdownRef, tabLabelRef, collectionRequestTabs, t
     await handleCloseMultipleTabs(collectionRequestTabs);
   }
 
+  const isRequestTab = currentTabItem && (currentTabItem.type === 'http-request' || currentTabItem.type === 'graphql-request' || currentTabItem.type === 'grpc-request' || currentTabItem.type === 'ws-request');
+
+  const handleDuplicateAsTab = () => {
+    dispatch(cloneItemAsTransient(currentTabItem.uid, collection.uid)).catch((err) => {
+      toast.error(err?.message || 'An error occurred while duplicating the request');
+    });
+  };
+
   const menuItems = useMemo(() => [
     {
       id: 'new-request',
@@ -716,6 +724,12 @@ function RequestTabMenu({ menuDropdownRef, tabLabelRef, collectionRequestTabs, t
       id: 'clone-request',
       label: 'Clone Request',
       onClick: () => setShowCloneRequestModal(true)
+    },
+    {
+      id: 'duplicate-as-tab',
+      label: 'Duplicate as Tab',
+      onClick: handleDuplicateAsTab,
+      disabled: !isRequestTab
     },
     {
       id: 'revert-changes',
@@ -756,7 +770,7 @@ function RequestTabMenu({ menuDropdownRef, tabLabelRef, collectionRequestTabs, t
       label: 'Close All',
       onClick: handleCloseAllTabs
     }
-  ], [currentTabUid, currentTabItem, hasOtherTabs, hasLeftTabs, hasRightTabs, collection, collectionRequestTabs, tabIndex, dispatch]);
+  ], [currentTabUid, currentTabItem, isRequestTab, hasOtherTabs, hasLeftTabs, hasRightTabs, collection, collectionRequestTabs, tabIndex, dispatch]);
 
   const menuDropdown = (
     <MenuDropdown
