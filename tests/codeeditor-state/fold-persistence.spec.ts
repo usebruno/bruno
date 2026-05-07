@@ -1,17 +1,3 @@
-/**
- * E2E coverage for CodeEditor fold/state persistence.
- *
- * Strategy — keep these tests robust by:
- *   1. Driving CodeMirror through its public API (cm.foldCode / cm.setValue) via
- *      page.evaluate, not gutter-click coordinates that race with rendering.
- *   2. Asserting state through Playwright's auto-retrying matchers
- *      (toBeVisible, toHaveCount, expect.poll) — never page.waitForTimeout.
- *   3. Using a stable POST {body} → /echo flow so the response is deterministic
- *      and the response editor always has the same shape we put in.
- *   4. Reading localStorage directly when the visual state is hard to inspect —
- *      the persistence layer is the system under test, so localStorage is the
- *      ground truth.
- */
 import { test, expect, Page, Locator } from '../../playwright';
 import {
   closeAllCollections,
@@ -57,6 +43,7 @@ const SAMPLE_BODY = JSON.stringify(
 //   29 → address   object  (3 keys)    → ↤3↦
 //   34 → tags      array   (6 strings) → ↤6↦
 //   42 → meta      object  (2 keys)    → ↤2↦
+
 const LARGE_BODY = JSON.stringify(
   {
     user: {
@@ -87,7 +74,7 @@ const LARGE_BODY = JSON.stringify(
   2
 );
 
-// --- helpers --------------------------------------------------------------
+// --- Helpers --------------------------------------------------------------
 
 const cmFor = (page: Page, scope: Locator) => scope.locator('.CodeMirror').first();
 
@@ -114,7 +101,7 @@ const foldLine = async (cm: Locator, line: number) =>
     editor.foldCode({ line: l, ch: lineText.length }, null, 'fold');
   }, line);
 
-// --- tests ----------------------------------------------------------------
+// --- Tests ----------------------------------------------------------------
 
 test.describe('CodeEditor — fold state persists across tab switches', () => {
   test.afterEach(async ({ page }) => {
