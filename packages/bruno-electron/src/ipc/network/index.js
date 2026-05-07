@@ -144,9 +144,10 @@ const configureRequest = async (
   request.maxRedirects = 0;
 
   const { promptVariables = {} } = collection;
-  let { proxyMode, proxyConfig, httpsAgentRequestFields, interpolationOptions } = certsAndProxyConfig;
+  let { proxyMode, proxyModeReason, proxyConfig, httpsAgentRequestFields, interpolationOptions } = certsAndProxyConfig;
   let axiosInstance = makeAxiosInstance({
     proxyMode,
+    proxyModeReason,
     proxyConfig,
     requestMaxRedirects,
     httpsAgentRequestFields,
@@ -239,7 +240,7 @@ const configureRequest = async (
               const url = new URL(request.url);
               url.searchParams.set(tokenQueryKey, tokenValue);
               request.url = url.toString();
-            } catch (error) {}
+            } catch (error) { }
           }
         }
         break;
@@ -256,7 +257,7 @@ const configureRequest = async (
               const url = new URL(request.url);
               url.searchParams.set(tokenQueryKey, tokenValue);
               request.url = url.toString();
-            } catch (error) {}
+            } catch (error) { }
           }
         }
         break;
@@ -273,7 +274,7 @@ const configureRequest = async (
               const url = new URL(request.url);
               url.searchParams.set(tokenQueryKey, tokenValue);
               request.url = url.toString();
-            } catch (error) {}
+            } catch (error) { }
           }
         }
         break;
@@ -290,7 +291,7 @@ const configureRequest = async (
               const url = new URL(request.url);
               url.searchParams.set(tokenQueryKey, tokenValue);
               request.url = url.toString();
-            } catch (error) {}
+            } catch (error) { }
           }
         }
         break;
@@ -353,9 +354,6 @@ const configureRequest = async (
     urlObj.searchParams.set(key, value);
     request.url = urlObj.toString();
   }
-
-  // Remove apiKeyAuthValueForQueryParams, already interpolated and added to URL
-  delete request.apiKeyAuthValueForQueryParams;
 
   return axiosInstance;
 };

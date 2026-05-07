@@ -35,7 +35,8 @@ taskMiddleware.startListening({
                 uid: item.uid,
                 collectionUid: collection.uid,
                 requestPaneTab: getDefaultRequestPaneTab(item),
-                preview: task?.preview ?? true
+                preview: task?.preview ?? true,
+                ...(item.isTransient ? { isTransient: true } : {})
               })
             );
           }
@@ -75,10 +76,11 @@ taskMiddleware.startListening({
             if (example) {
               listenerApi.dispatch(addTab({
                 uid: example.uid,
-                exampleUid: example.uid,
                 collectionUid: collection.uid,
                 type: 'response-example',
-                itemUid: item.uid
+                itemUid: item.uid,
+                pathname: item.pathname,
+                exampleName: example.name
               }));
             }
           }

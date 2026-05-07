@@ -1,24 +1,35 @@
 import 'github-markdown-css/github-markdown.css';
 import get from 'lodash/get';
+import find from 'lodash/find';
 import { updateFolderDocs } from 'providers/ReduxStore/slices/collections';
+import { updateDocsEditing } from 'providers/ReduxStore/slices/tabs';
 import { useTheme } from 'providers/Theme';
-import { useState } from 'react';
+import { useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { saveFolderRoot } from 'providers/ReduxStore/slices/collections/actions';
 import Markdown from 'components/MarkDown';
 import CodeEditor from 'components/CodeEditor';
 import Button from 'ui/Button';
 import StyledWrapper from './StyledWrapper';
+import { usePersistedState } from 'hooks/usePersistedState';
+import { useTrackScroll } from 'hooks/useTrackScroll';
 
 const Documentation = ({ collection, folder }) => {
   const dispatch = useDispatch();
   const { displayedTheme } = useTheme();
   const preferences = useSelector((state) => state.app.preferences);
-  const [isEditing, setIsEditing] = useState(false);
+  const tabs = useSelector((state) => state.tabs.tabs);
+  const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
+  const focusedTab = find(tabs, (t) => t.uid === activeTabUid);
+  const isEditing = focusedTab?.docsEditing || false;
   const docs = folder.draft ? get(folder, 'draft.docs', '') : get(folder, 'root.docs', '');
 
+  const wrapperRef = useRef(null);
+  const [scroll, setScroll] = usePersistedState({ key: `folder-docs-scroll-${folder.uid}`, default: 0 });
+  useTrackScroll({ ref: wrapperRef, selector: '.folder-settings-content', onChange: setScroll, enabled: !isEditing, initialValue: scroll });
+
   const toggleViewMode = () => {
-    setIsEditing((prev) => !prev);
+    dispatch(updateDocsEditing({ uid: activeTabUid, docsEditing: !isEditing }));
   };
 
   const onEdit = (value) => {
@@ -38,7 +49,7 @@ const Documentation = ({ collection, folder }) => {
   }
 
   return (
-    <StyledWrapper className="w-full relative flex flex-col">
+    <StyledWrapper className="w-full relative flex flex-col" ref={wrapperRef}>
       <div className="editing-mode flex justify-between items-center flex-shrink-0" role="tab" onClick={toggleViewMode}>
         {isEditing ? 'Preview' : 'Edit'}
       </div>
@@ -55,6 +66,8 @@ const Documentation = ({ collection, folder }) => {
               font={get(preferences, 'font.codeFont', 'default')}
               fontSize={get(preferences, 'font.codeFontSize')}
               mode="application/text"
+              initialScroll={scroll}
+              onScroll={setScroll}
             />
           </div>
           <div className="mt-6 flex-shrink-0">

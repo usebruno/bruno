@@ -271,7 +271,7 @@ describe('Legacy Tests[] Syntax Translation', () => {
     expect(translatedCode).toContain('test("Status code is 200", function() {');
     expect(translatedCode).toContain('expect(Boolean(res.getStatus() === 200)).to.be.true;');
     expect(translatedCode).toContain('test("Has content-type header", function() {');
-    expect(translatedCode).toContain('expect(Boolean(res.getHeaders().has("Content-Type"))).to.be.true;');
+    expect(translatedCode).toContain('expect(Boolean(res.headerList.has("Content-Type"))).to.be.true;');
     expect(translatedCode).toContain('test("Content-Type is JSON", function() {');
     expect(translatedCode).toContain('expect(Boolean(res.getHeader("Content-Type").includes("application/json"))).to.be.true;');
     expect(translatedCode).toContain('const expectedItems = parseInt(bru.getEnvVar("expectedItemCount"));');

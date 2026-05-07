@@ -15,13 +15,16 @@ import toast from 'react-hot-toast';
 import { Tooltip } from 'react-tooltip';
 import { getGlobalEnvironmentVariables } from 'utils/collections';
 import { stripEnvVarUid } from 'utils/environments';
+import { usePersistedState } from 'hooks/usePersistedState';
+import { useTrackScroll } from 'hooks/useTrackScroll';
 
 const MIN_H = 35 * 2;
 const MIN_COLUMN_WIDTH = 80;
+const MIN_ROW_HEIGHT = 35;
 
 const TableRow = React.memo(
-  ({ children, item }) => (
-    <tr key={item.uid} data-testid={`env-var-row-${item.name}`}>
+  ({ children, item, style, ...rest }) => (
+    <tr key={item.uid} style={style} {...rest} data-testid={`env-var-row-${item?.name}`}>
       {children}
     </tr>
   ),
@@ -56,7 +59,19 @@ const EnvironmentVariablesTable = ({
 
   const hasDraftForThisEnv = draft?.environmentUid === environment.uid;
 
-  const [tableHeight, setTableHeight] = useState(MIN_H);
+  const rowCount = (environment.variables?.length || 0) + 1;
+  const [tableHeight, setTableHeight] = useState(rowCount * MIN_ROW_HEIGHT);
+
+  // We need to add <EditableTable/> component for env table
+  const [scroll, setScroll] = usePersistedState({
+    key: `persisted::${activeTabUid}::collection-envs-scroll-${environment.uid}`,
+    default: 0
+  });
+  const scrollerRef = useRef(null);
+  const [scrollerEl, setScrollerEl] = useState(null);
+  scrollerRef.current = scrollerEl;
+  const initialTopMostItemIndex = useRef(Math.max(0, Math.floor(scroll / MIN_ROW_HEIGHT))).current;
+  useTrackScroll({ ref: scrollerRef, onChange: setScroll, initialValue: scroll, enabled: !!scrollerEl });
 
   // Use environment UID as part of tableId so each environment has its own column widths
   const tableId = `env-vars-table-${environment.uid}`;
@@ -483,6 +498,9 @@ const EnvironmentVariablesTable = ({
         <TableVirtuoso
           className="table-container"
           style={{ height: tableHeight }}
+          scrollerRef={setScrollerEl}
+          initialTopMostItemIndex={initialTopMostItemIndex}
+          overscan={Math.min(30, filteredVariables.length)}
           components={{ TableRow }}
           data={filteredVariables}
           totalListHeightChanged={handleTotalHeightChanged}
@@ -502,7 +520,6 @@ const EnvironmentVariablesTable = ({
               <td></td>
             </tr>
           )}
-          fixedItemHeight={35}
           computeItemKey={(virtualIndex, item) => `${environment.uid}-${item.index}`}
           itemContent={(virtualIndex, { variable, index: actualIndex }) => {
             const isLastRow = actualIndex === formik.values.length - 1;
@@ -535,7 +552,7 @@ const EnvironmentVariablesTable = ({
                         id={`${actualIndex}.name`}
                         name={`${actualIndex}.name`}
                         value={variable.name}
-                        placeholder={!variable.value || (typeof variable.value === 'string' && variable.value.trim() === '') ? 'Name' : ''}
+                        placeholder={!variable.name || (typeof variable.name === 'string' && variable.name.trim() === '') ? 'Name' : ''}
                         onChange={(e) => handleNameChange(actualIndex, e)}
                         onFocus={() => handleRowFocus(variable.uid)}
                         onBlur={() => {
@@ -560,7 +577,7 @@ const EnvironmentVariablesTable = ({
                       collection={_collection}
                       name={`${actualIndex}.value`}
                       value={variable.value}
-                      placeholder={isLastEmptyRow ? 'Value' : ''}
+                      placeholder={variable.value == null || (typeof variable.value === 'string' && variable.value.trim() === '') ? 'Value' : ''}
                       isSecret={variable.secret}
                       readOnly={typeof variable.value !== 'string'}
                       onChange={(newValue) => {
@@ -569,6 +586,19 @@ const EnvironmentVariablesTable = ({
                         if (variable.ephemeral) {
                           formik.setFieldValue(`${actualIndex}.ephemeral`, undefined, false);
                           formik.setFieldValue(`${actualIndex}.persistedValue`, undefined, false);
+                        }
+                        // Append a new empty row when editing value on the last row
+                        if (isLastRow) {
+                          setTimeout(() => {
+                            formik.setFieldValue(formik.values.length, {
+                              uid: uuid(),
+                              name: '',
+                              value: '',
+                              type: 'text',
+                              secret: false,
+                              enabled: true
+                            }, false);
+                          }, 0);
                         }
                       }}
                       onSave={handleSave}
@@ -610,6 +640,8 @@ const EnvironmentVariablesTable = ({
         />
       )}
 
+      {/* We should re-think of these buttons placement in component as we use TableVirtuoso which because of
+      these buttons renders at some transition: height 0.1s ease` */}
       <div className="button-container">
         <div className="flex items-center">
           <button type="button" className="submit" onClick={handleSave} data-testid="save-env">

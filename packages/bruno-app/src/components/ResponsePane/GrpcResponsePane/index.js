@@ -4,6 +4,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { updateResponsePaneTab } from 'providers/ReduxStore/slices/tabs';
 import Overlay from '../Overlay';
 import Placeholder from '../Placeholder';
+import HeightBoundContainer from 'ui/HeightBoundContainer';
 import GrpcResponseHeaders from './GrpcResponseHeaders';
 import GrpcStatusCode from './GrpcStatusCode';
 import ResponseTime from '../ResponseTime/index';
@@ -100,9 +101,9 @@ const GrpcResponsePane = ({ item, collection }) => {
 
   if (!item.response && !requestTimeline?.length) {
     return (
-      <StyledWrapper className="flex h-full relative">
+      <HeightBoundContainer>
         <Placeholder />
-      </StyledWrapper>
+      </HeightBoundContainer>
     );
   }
 
@@ -148,15 +149,17 @@ const GrpcResponsePane = ({ item, collection }) => {
           rightContentRef={rightContentRef}
         />
       </div>
-      <section className="flex flex-col flex-grow px-4 h-0 mt-4">
+      <section className="response-pane-content">
         {isLoading ? <Overlay item={item} collection={collection} /> : null}
-        {!item?.response ? (
-          focusedTab?.responsePaneTab === 'timeline' && requestTimeline?.length ? (
-            <Timeline collection={collection} item={item} activeTabUid={activeTabUid} />
-          ) : null
-        ) : (
-          <>{getTabPanel(focusedTab.responsePaneTab)}</>
-        )}
+        <div className="response-tab-content">
+          {!item?.response ? (
+            focusedTab?.responsePaneTab === 'timeline' && requestTimeline?.length ? (
+              <Timeline collection={collection} item={item} activeTabUid={activeTabUid} />
+            ) : null
+          ) : (
+            <>{getTabPanel(focusedTab.responsePaneTab)}</>
+          )}
+        </div>
       </section>
     </StyledWrapper>
   );

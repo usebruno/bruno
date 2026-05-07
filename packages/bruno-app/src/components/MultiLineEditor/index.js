@@ -30,6 +30,13 @@ class MultiLineEditor extends Component {
     // Initialize CodeMirror as a single line editor
     /** @type {import("codemirror").Editor} */
     const variables = getAllVariables(this.props.collection, this.props.item);
+    const runShortcut = () => {
+      if (this.props.onRun) {
+        this.props.onRun();
+        return;
+      }
+      return CodeMirror.Pass;
+    };
 
     this.editor = CodeMirror(this.editorRef.current, {
       lineWrapping: false,
@@ -47,6 +54,8 @@ class MultiLineEditor extends Component {
       extraKeys: {
         'Cmd-F': () => {},
         'Ctrl-F': () => {},
+        'Cmd-Enter': runShortcut,
+        'Ctrl-Enter': runShortcut,
         // Tabbing disabled to make tabindex work
         'Tab': false,
         'Shift-Tab': false

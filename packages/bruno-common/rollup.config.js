@@ -7,10 +7,11 @@ const peerDepsExternal = require('rollup-plugin-peer-deps-external');
 
 const packageJson = require('./package.json');
 
-function createBuildConfig({ inputDir, input, cjsOutput, esmOutput }) {
+function createBuildConfig({ inputDir, input, cjsOutput, esmOutput, dtsOutput, external = [] }) {
   return [
     {
       input,
+      external,
       output: [
         {
           file: cjsOutput,
@@ -36,30 +37,38 @@ function createBuildConfig({ inputDir, input, cjsOutput, esmOutput }) {
       treeshake: {
         moduleSideEffects: false
       }
+    },
+    {
+      input,
+      external,
+      output: { file: dtsOutput, format: 'es' },
+      plugins: [dts.default({ tsconfig: './tsconfig.json' })]
     }
   ];
 }
 
-// todo: configure declarations
 module.exports = [
   // Main package build
   ...createBuildConfig({
     inputDir: 'src/**/*',
     input: 'src/index.ts',
     cjsOutput: packageJson.main,
-    esmOutput: packageJson.module
+    esmOutput: packageJson.module,
+    dtsOutput: packageJson.types
   }),
   // reports/html
   ...createBuildConfig({
     inputDir: 'src/runner/**/*',
     input: 'src/runner/index.ts',
     cjsOutput: 'dist/runner/cjs/index.js',
-    esmOutput: 'dist/runner/esm/index.js'
+    esmOutput: 'dist/runner/esm/index.js',
+    dtsOutput: 'dist/runner/index.d.ts'
   }),
   ...createBuildConfig({
     inputDir: 'src/utils/**/*',
     input: 'src/utils/index.ts',
     cjsOutput: 'dist/utils/cjs/index.js',
-    esmOutput: 'dist/utils/esm/index.js'
-  })
+    esmOutput: 'dist/utils/esm/index.js',
+    dtsOutput: 'dist/utils/index.d.ts'
+  }),
 ];

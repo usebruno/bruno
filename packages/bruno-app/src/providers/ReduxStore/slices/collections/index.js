@@ -23,6 +23,7 @@ import toast from 'react-hot-toast';
 import mime from 'mime-types';
 import path from 'utils/common/path';
 import { getUniqueTagsFromItems } from 'utils/collections/index';
+import { getCollectionEnvironmentPath } from 'utils/snapshot';
 import * as exampleReducers from './exampleReducers';
 
 // gRPC status code meanings
@@ -733,6 +734,10 @@ export const collectionsSlice = createSlice({
             return;
           }
           item.response = null;
+          item.assertionResults = [];
+          item.preRequestTestResults = [];
+          item.postResponseTestResults = [];
+          item.testResults = [];
         }
       }
     },
@@ -890,6 +895,13 @@ export const collectionsSlice = createSlice({
 
       if (collection) {
         collection.collapsed = !collection.collapsed;
+      }
+    },
+    expandCollection: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload);
+
+      if (collection) {
+        collection.collapsed = false;
       }
     },
     toggleCollectionItem: (state, action) => {
@@ -1079,11 +1091,12 @@ export const collectionsSlice = createSlice({
         item.draft = cloneDeep(item);
       }
       const existingOtherParams = item.draft.request.params?.filter((p) => p.type !== 'query') || [];
-      const newQueryParams = map(params, ({ uid, name = '', value = '', description = '', type = 'query', enabled = true }) => ({
+      const newQueryParams = map(params, ({ uid, name = '', value = '', description = '', annotations = null, type = 'query', enabled = true }) => ({
         uid: uid || uuid(),
         name,
         value,
         description,
+        annotations,
         type,
         enabled
       }));
@@ -1325,11 +1338,12 @@ export const collectionsSlice = createSlice({
       if (!item.draft) {
         item.draft = cloneDeep(item);
       }
-      item.draft.request.headers = map(action.payload.headers, ({ uid, name = '', value = '', description = '', enabled = true }) => ({
+      item.draft.request.headers = map(action.payload.headers, ({ uid, name = '', value = '', description = '', annotations = null, enabled = true }) => ({
         uid: uid || uuid(),
         name,
         value,
         description,
+        annotations,
         enabled
       }));
     },
@@ -1353,11 +1367,12 @@ export const collectionsSlice = createSlice({
         collection.draft.root.request = {};
       }
 
-      collection.draft.root.request.headers = map(headers, ({ uid, name = '', value = '', description = '', enabled = true }) => ({
+      collection.draft.root.request.headers = map(headers, ({ uid, name = '', value = '', description = '', annotations = null, enabled = true }) => ({
         uid: uid || uuid(),
         name,
         value,
         description,
+        annotations,
         enabled
       }));
     },
@@ -1380,11 +1395,12 @@ export const collectionsSlice = createSlice({
       if (!folder.draft.request) {
         folder.draft.request = {};
       }
-      folder.draft.request.headers = map(headers, ({ uid, name = '', value = '', description = '', enabled = true }) => ({
+      folder.draft.request.headers = map(headers, ({ uid, name = '', value = '', description = '', annotations = null, enabled = true }) => ({
         uid: uid || uuid(),
         name,
         value,
         description,
+        annotations,
         enabled
       }));
     },
@@ -2880,6 +2896,7 @@ export const collectionsSlice = createSlice({
         if (existingEnv) {
           const prevEphemerals = (existingEnv.variables || []).filter((v) => v.ephemeral);
           existingEnv.name = environment.name;
+          existingEnv.pathname = environment.pathname;
           existingEnv.variables = environment.variables;
           existingEnv.color = environment.color;
           /*
@@ -2907,9 +2924,19 @@ export const collectionsSlice = createSlice({
               // Persist the selection to the UI state snapshot
               const { ipcRenderer } = window;
               if (ipcRenderer) {
+                const extension = collection?.brunoConfig?.version === '1' ? 'bru' : 'yml';
+                const environmentPath = environment?.pathname
+                  || (environment?.name && collection?.pathname
+                    ? path.join(collection.pathname, 'environments', `${environment.name}.${extension}`)
+                    : null);
+
                 ipcRenderer.invoke('renderer:update-ui-state-snapshot', {
                   type: 'COLLECTION_ENVIRONMENT',
-                  data: { collectionPath: collection?.pathname, environmentName: environment.name }
+                  data: {
+                    collectionPath: collection?.pathname,
+                    environmentPath: getCollectionEnvironmentPath(collection, environment, environmentPath),
+                    selectedEnvironment: environment?.name || ''
+                  }
                 });
               }
             }
@@ -3623,6 +3650,7 @@ export const {
   newEphemeralHttpRequest,
   collapseFullCollection,
   toggleCollection,
+  expandCollection,
   toggleCollectionItem,
   requestUrlChanged,
   updateItemSettings,

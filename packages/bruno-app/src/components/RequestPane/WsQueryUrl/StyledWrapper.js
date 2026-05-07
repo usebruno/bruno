@@ -3,12 +3,12 @@ import styled from 'styled-components';
 const StyledWrapper = styled.div`
   height: 2.1rem;
   position: relative;
-  border: ${(props) => props.theme.requestTabPanel.url.border};
-  border-radius: ${(props) => props.theme.border.radius.base};
 
   .input-container {
     background-color: ${(props) => props.theme.requestTabPanel.url.bg};
+    border: ${(props) => props.theme.requestTabPanel.url.border};
     border-radius: ${(props) => props.theme.border.radius.base};
+    position: relative;
 
     input {
       background-color: ${(props) => props.theme.requestTabPanel.url.bg};
@@ -99,6 +99,7 @@ const StyledWrapper = styled.div`
       }
     }
   }
+
 `;
 
 export default StyledWrapper;
