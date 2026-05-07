@@ -3,10 +3,10 @@ import {
   closeAllCollections,
   createCollection,
   createRequest,
-  createFolder,
   selectRequestPaneTab,
   selectResponsePaneTab,
   selectScriptSubTab,
+  openCollection,
   openRequest,
   sendRequest
 } from '../../utils/page';
@@ -20,12 +20,6 @@ const generateLargeJson = () => JSON.stringify(
   { users: Array.from({ length: 50 }, (_, i) => ({ id: i + 1, name: `User ${i + 1}`, email: `user${i + 1}@example.com` })) },
   null, 2
 );
-
-const generateLargeScript = () =>
-  Array.from({ length: 80 }, (_, i) => `// Line ${i + 1}\nconsole.log('step ${i + 1}');`).join('\n');
-
-const generateLargeXml = () =>
-  `<?xml version="1.0"?>\n<root>\n${Array.from({ length: 150 }, (_, i) => `  <item id="${i + 1}"><name>Item ${i + 1}</name></item>`).join('\n')}\n</root>`;
 
 // ---------------------------------------------------------------------------
 // CodeMirror helpers - interact with CM5 instances by CSS selector
@@ -119,6 +113,20 @@ const expectRowNear = (actual: number, expected: number, tolerance: number = 5) 
   expect(actual).toBeLessThan(expected + tolerance);
 };
 
+// Tests share an Electron worker, so localStorage carries scroll values from one
+// test into the next under the same `persisted::<tabUid>::<key>` namespace —
+// breaking the "initial scroll is 0" assertion. Wipe just the scroll-persistence
+// keys at the start of each test that exercises the fixture collection.
+const clearPersistedScrollState = async (page: Page) => {
+  await page.evaluate(() => {
+    try {
+      Object.keys(localStorage)
+        .filter((k) => k.startsWith('persisted::'))
+        .forEach((k) => localStorage.removeItem(k));
+    } catch {}
+  });
+};
+
 // ===========================================================================
 //  REQUEST PANE - scroll persistence
 // ===========================================================================
@@ -136,23 +144,22 @@ test.describe('Scroll Position Persistence', () => {
   // -------------------------------------------------------------------------
 
   test.describe('Request Pane', () => {
-    test.beforeEach(async ({ page }) => {
-      await closeAllCollections(page);
+    test.beforeEach(async ({ pageWithUserData: page }) => {
+      await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
+      await clearPersistedScrollState(page);
     });
 
     test.afterAll(async ({ page }) => {
       await closeAllCollections(page);
     });
 
-    test('Body (JSON) - scroll persists across tab switches', async ({ page, createTmpDir }) => {
-      const tmpDir = await createTmpDir('scroll-body-json');
+    test('Body (JSON) - scroll persists across tab switches', async ({ pageWithUserData: page }) => {
+      await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
 
       await test.step('Setup', async () => {
-        await createCollection(page, 'scroll-body-json', tmpDir);
-        await createRequest(page, 'req-1', 'scroll-body-json', { url: 'https://echo.usebruno.com' });
+        await openCollection(page, 'scroll-fixtures');
+        await openRequest(page, 'scroll-fixtures', 'body-json');
         await selectRequestPaneTab(page, 'Body');
-        await selectBodyMode(page, 'JSON');
-        await setEditorContent(page, '.request-pane .CodeMirror', generateLargeJson());
       });
 
       await test.step('Verify initial scroll is 0', async () => {
@@ -185,15 +192,13 @@ test.describe('Scroll Position Persistence', () => {
       });
     });
 
-    test('Body (XML) - scroll persists across tab switches', async ({ page, createTmpDir }) => {
-      const tmpDir = await createTmpDir('scroll-body-xml');
+    test('Body (XML) - scroll persists across tab switches', async ({ pageWithUserData: page }) => {
+      await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
 
       await test.step('Setup', async () => {
-        await createCollection(page, 'scroll-body-xml', tmpDir);
-        await createRequest(page, 'req-xml', 'scroll-body-xml', { url: 'https://echo.usebruno.com' });
+        await openCollection(page, 'scroll-fixtures');
+        await openRequest(page, 'scroll-fixtures', 'body-xml');
         await selectRequestPaneTab(page, 'Body');
-        await selectBodyMode(page, 'XML');
-        await setEditorContent(page, '.request-pane .CodeMirror', generateLargeXml());
       });
 
       await test.step('Verify initial scroll is 0', async () => {
@@ -228,8 +233,8 @@ test.describe('Scroll Position Persistence', () => {
       });
     });
 
-    test('Script - pre-request and post-response scroll persists across sub-tab switches', async ({ page, createTmpDir }) => {
-      const tmpDir = await createTmpDir('scroll-script');
+    test('Script - pre-request and post-response scroll persists across sub-tab switches', async ({ pageWithUserData: page }) => {
+      await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
       const PRE_SELECTOR = '[data-testid="pre-request-script-editor"] .CodeMirror';
       const POST_SELECTOR = '[data-testid="post-response-script-editor"] .CodeMirror';
 
@@ -238,11 +243,11 @@ test.describe('Scroll Position Persistence', () => {
 
       // --- Pre-request: add content, init hook, scroll, verify ---
 
-      await test.step('Switch to pre-request and add content', async () => {
-        await createCollection(page, 'scroll-script', tmpDir);
-        await createRequest(page, 'req-script', 'scroll-script', { url: 'https://echo.usebruno.com' });
+      await test.step('Open script request and switch to pre-request', async () => {
+        await openCollection(page, 'scroll-fixtures');
+        await openRequest(page, 'scroll-fixtures', 'script');
+        await selectRequestPaneTab(page, 'Script');
         await selectScriptSubTab(page, 'pre-request');
-        await setEditorContent(page, PRE_SELECTOR, generateLargeScript());
       });
 
       await test.step('Verify initial scroll is 0', async () => {
@@ -277,10 +282,8 @@ test.describe('Scroll Position Persistence', () => {
 
       // --- Post-response: add content, init hook, scroll, verify ---
 
-      await test.step('Switch to post-response and add content', async () => {
+      await test.step('Switch to post-response', async () => {
         await selectScriptSubTab(page, 'post-response');
-
-        await setEditorContent(page, POST_SELECTOR, generateLargeScript());
       });
 
       await test.step('Verify initial scroll is 0', async () => {
@@ -330,14 +333,13 @@ test.describe('Scroll Position Persistence', () => {
       });
     });
 
-    test('Tests editor - scroll persists across tab switches', async ({ page, createTmpDir }) => {
-      const tmpDir = await createTmpDir('scroll-tests');
+    test('Tests editor - scroll persists across tab switches', async ({ pageWithUserData: page }) => {
+      await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
 
       await test.step('Setup', async () => {
-        await createCollection(page, 'scroll-tests', tmpDir);
-        await createRequest(page, 'req-tests', 'scroll-tests', { url: 'https://echo.usebruno.com' });
+        await openCollection(page, 'scroll-fixtures');
+        await openRequest(page, 'scroll-fixtures', 'tests');
         await selectRequestPaneTab(page, 'Tests');
-        await setEditorContent(page, '[data-testid="test-script-editor"] .CodeMirror', generateLargeScript());
       });
 
       await test.step('Verify initial scroll is 0', async () => {
@@ -371,22 +373,18 @@ test.describe('Scroll Position Persistence', () => {
       });
     });
 
-    test('Scroll positions are independent per request', async ({ page, createTmpDir }) => {
-      const tmpDir = await createTmpDir('scroll-per-request');
+    test('Scroll positions are independent per request', async ({ pageWithUserData: page }) => {
+      await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
 
-      await test.step('Setup two requests with JSON bodies', async () => {
-        await createCollection(page, 'scroll-per-request', tmpDir);
-        await createRequest(page, 'req-a', 'scroll-per-request', { url: 'https://echo.usebruno.com' });
-        await createRequest(page, 'req-b', 'scroll-per-request', { url: 'https://echo.usebruno.com' });
+      await test.step('Open collection', async () => {
+        await openCollection(page, 'scroll-fixtures');
       });
 
       let scrollA: number;
 
-      await test.step('Open req-a, set body, initialize hook via tab switch, then scroll', async () => {
-        await openRequest(page, 'scroll-per-request', 'req-a');
+      await test.step('Open req-a and navigate to Body', async () => {
+        await openRequest(page, 'scroll-fixtures', 'req-a');
         await selectRequestPaneTab(page, 'Body');
-        await selectBodyMode(page, 'JSON');
-        await setEditorContent(page, '.request-pane .CodeMirror', generateLargeJson());
       });
 
       await test.step('Verify initial scroll is 0', async () => {
@@ -409,11 +407,11 @@ test.describe('Scroll Position Persistence', () => {
       });
 
       await test.step('Switch to req-b', async () => {
-        await openRequest(page, 'scroll-per-request', 'req-b');
+        await openRequest(page, 'scroll-fixtures', 'req-b');
       });
 
       await test.step('Switch back to req-a and verify scroll', async () => {
-        await openRequest(page, 'scroll-per-request', 'req-a');
+        await openRequest(page, 'scroll-fixtures', 'req-a');
         await selectRequestPaneTab(page, 'Body');
 
         const restored = await getEditorScroll(page, '.request-pane .CodeMirror');
@@ -421,34 +419,15 @@ test.describe('Scroll Position Persistence', () => {
       });
     });
 
-    test('Request Headers - scroll persists with many headers across tab switches', async ({ page, createTmpDir }) => {
-      const tmpDir = await createTmpDir('scroll-req-headers');
+    test('Request Headers - scroll persists with many headers across tab switches', async ({ pageWithUserData: page }) => {
+      await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
       const scrollContainer = '.flex-boundary';
       const firstVisibleRowLocator = () => page.getByTestId('editable-table').locator('table > tbody > tr:nth-child(2)');
 
       await test.step('Setup request and navigate to Headers tab', async () => {
-        await createCollection(page, 'scroll-req-headers', tmpDir);
-        await createRequest(page, 'req-headers', 'scroll-req-headers', { url: 'https://echo.usebruno.com' });
+        await openCollection(page, 'scroll-fixtures');
+        await openRequest(page, 'scroll-fixtures', 'headers-many');
         await selectRequestPaneTab(page, 'Headers');
-      });
-
-      await test.step('Add 100 headers via Bulk Edit', async () => {
-        const bulkEditBtn = page.getByTestId('bulk-edit-toggle');
-        await bulkEditBtn.scrollIntoViewIfNeeded();
-        await bulkEditBtn.click();
-
-        const bulkHeaders = Array.from({ length: 100 }, (_, i) =>
-          `X-Custom-Header-${i + 1}:value-${i + 1}`
-        ).join('\n');
-
-        // The bulk editor CodeMirror should now be visible in the request pane
-        const bulkEditor = page.locator('[data-testid="request-pane"] .CodeMirror').first();
-        await bulkEditor.evaluate((el, content) => {
-          const cm = (el as any).CodeMirror;
-          cm?.setValue(content);
-        }, bulkHeaders);
-
-        await page.getByTestId('key-value-edit-toggle').click();
       });
 
       await test.step('Verify initial scroll is 0', async () => {
@@ -479,6 +458,52 @@ test.describe('Scroll Position Persistence', () => {
         const element = firstVisibleRowLocator();
         const current = parseInt(await element.getAttribute('data-index') as string);
         expectRowNear(current, 50);
+      });
+    });
+
+    test('Assertions - scroll persists with many assertions across tab switches', async ({ pageWithUserData: page }) => {
+      await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
+      const scrollContainer = '.flex-boundary';
+      // Match the first row that actually has a data-index attribute. This skips
+      // Virtuoso's optional top-spacer tr (which has no data-index and is only
+      // rendered when scrolled past row 0).
+      const firstVisibleRowLocator = () =>
+        page.getByTestId('assertions-table').locator('table > tbody > tr[data-index]').first();
+
+      await test.step('Setup request and navigate to Assertions tab', async () => {
+        await openCollection(page, 'scroll-fixtures');
+        await openRequest(page, 'scroll-fixtures', 'assertions-many');
+        await selectRequestPaneTab(page, 'Assert');
+      });
+
+      await test.step('Verify initial scroll is 0', async () => {
+        const container = page.locator(scrollContainer).first();
+        await container.evaluate((el) => { el.scrollTop = 0; });
+        await expect(firstVisibleRowLocator()).toHaveAttribute('data-index', '0', { timeout: 2000 });
+        const initial = await container.evaluate((el) => el.scrollTop);
+        expect(initial).toBe(0);
+      });
+
+      await test.step('Scroll to ~middle of table (~row 30)', async () => {
+        const container = page.locator(scrollContainer).first();
+        await container.evaluate((el) => { el.scrollTop = el.scrollHeight / 2; });
+
+        const element = firstVisibleRowLocator();
+        await expect(element).toHaveAttribute('data-index', /^(2[5-9]|3[0-5])$/, { timeout: 2000 });
+      });
+
+      await test.step('Switch to Body tab and back to Assert', async () => {
+        await selectRequestPaneTab(page, 'Body');
+        await selectRequestPaneTab(page, 'Assert');
+        const header = page.getByTestId('assertions-table').locator('table thead tr').first();
+        await expect(header).toBeVisible({ timeout: 2000 });
+      });
+
+      await test.step('Verify scroll restored to ~row 30', async () => {
+        const element = firstVisibleRowLocator();
+        await expect(element).toHaveAttribute('data-index', /^(2[5-9]|3[0-5])$/, { timeout: 2000 });
+        const current = parseInt(await element.getAttribute('data-index') as string);
+        expectRowNear(current, 30);
       });
     });
   });
@@ -593,7 +618,7 @@ test.describe('Scroll Position Persistence', () => {
 
       await test.step('Create collection and request', async () => {
         await createCollection(page, 'scroll-response-timeline', tmpDir);
-        await createRequest(page, 'req-timeline', 'scroll-response-timeline', { url: 'http://localhost:8081' });
+        await createRequest(page, 'req-timeline', 'scroll-response-timeline', { url: 'http://localhost:8081/ping' });
       });
 
       await test.step('Send and cancel requests to generate timeline entries', async () => {
@@ -653,28 +678,27 @@ test.describe('Scroll Position Persistence', () => {
   // -------------------------------------------------------------------------
 
   test.describe('Folder Settings', () => {
-    test.beforeEach(async ({ page }) => {
-      await closeAllCollections(page);
+    test.beforeEach(async ({ pageWithUserData: page }) => {
+      await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
+      await clearPersistedScrollState(page);
     });
 
     test.afterAll(async ({ page }) => {
       await closeAllCollections(page);
     });
 
-    test('Folder Script - scroll persists across sub-tab switches', async ({ page, createTmpDir }) => {
-      const tmpDir = await createTmpDir('scroll-folder-script');
+    test('Folder Script - scroll persists across sub-tab switches', async ({ pageWithUserData: page }) => {
+      await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
       const locators = buildCommonLocators(page);
 
       await test.step('Setup folder', async () => {
-        await createCollection(page, 'scroll-folder-script', tmpDir);
-        await createFolder(page, 'test-folder', 'scroll-folder-script');
+        await openCollection(page, 'scroll-fixtures');
         await locators.sidebar.folder('test-folder').click({ timeout: 2000 });
       });
 
-      await test.step('Navigate to Script tab and fill pre-request', async () => {
+      await test.step('Navigate to Script tab pre-request', async () => {
         await locators.paneTabs.folderSettingsTab('script').click({ timeout: 2000 });
         await page.getByTestId('tab-trigger-pre-request').click({ timeout: 2000 });
-        await setEditorContent(page, '.CodeMirror', generateLargeScript());
       });
 
       await test.step('Verify initial scroll is 0', async () => {
@@ -707,16 +731,14 @@ test.describe('Scroll Position Persistence', () => {
       });
     });
 
-    test('Folder Tests - scroll persists across tab switches', async ({ page, createTmpDir }) => {
-      const tmpDir = await createTmpDir('scroll-folder-tests');
+    test('Folder Tests - scroll persists across tab switches', async ({ pageWithUserData: page }) => {
+      await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
       const locators = buildCommonLocators(page);
 
-      await test.step('Setup folder and add test content', async () => {
-        await createCollection(page, 'scroll-folder-tests', tmpDir);
-        await createFolder(page, 'test-folder', 'scroll-folder-tests');
+      await test.step('Open folder and navigate to Tests tab', async () => {
+        await openCollection(page, 'scroll-fixtures');
         await locators.sidebar.folder('test-folder').click({ timeout: 2000 });
         await locators.paneTabs.folderSettingsTab('test').click({ timeout: 2000 });
-        await setEditorContent(page, '.CodeMirror', generateLargeScript());
       });
 
       await test.step('Verify initial scroll is 0', async () => {
@@ -748,22 +770,19 @@ test.describe('Scroll Position Persistence', () => {
       });
     });
 
-    test('Folder Docs - scroll persists in edit mode across tab switches', async ({ page, createTmpDir }) => {
-      const tmpDir = await createTmpDir('scroll-folder-docs');
+    test('Folder Docs - scroll persists in edit mode across tab switches', async ({ pageWithUserData: page }) => {
+      await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
       const locators = buildCommonLocators(page);
-      const largeDocContent = Array.from({ length: 80 }, (_, i) => `## Section ${i + 1}\nLorem ipsum dolor sit amet for section ${i + 1}.`).join('\n\n');
 
-      await test.step('Setup folder and navigate to Docs tab', async () => {
-        await createCollection(page, 'scroll-folder-docs', tmpDir);
-        await createFolder(page, 'test-folder', 'scroll-folder-docs');
+      await test.step('Open folder and navigate to Docs tab', async () => {
+        await openCollection(page, 'scroll-fixtures');
         await locators.sidebar.folder('test-folder').click({ timeout: 2000 });
         await locators.paneTabs.folderSettingsTab('docs').click({ timeout: 2000 });
       });
 
-      await test.step('Click Edit and add large doc content', async () => {
+      await test.step('Click Edit', async () => {
         const editToggle = page.locator('.editing-mode');
         await editToggle.click({ timeout: 2000 });
-        await setEditorContent(page, '.CodeMirror', largeDocContent);
       });
 
       await test.step('Verify initial scroll is 0', async () => {
@@ -795,20 +814,18 @@ test.describe('Scroll Position Persistence', () => {
       });
     });
 
-    test('Folder Script pre-request - scroll persists across tab switches', async ({ page, createTmpDir }) => {
-      const tmpDir = await createTmpDir('scroll-folder-pre-req');
+    test('Folder Script pre-request - scroll persists across tab switches', async ({ pageWithUserData: page }) => {
+      await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
       const locators = buildCommonLocators(page);
       const PRE_SELECTOR = '[data-testid="folder-pre-request-script-editor"] .CodeMirror';
 
       let saved: number;
 
-      await test.step('Setup folder and add pre-request content', async () => {
-        await createCollection(page, 'scroll-folder-pre-req', tmpDir);
-        await createFolder(page, 'test-folder', 'scroll-folder-pre-req');
+      await test.step('Open folder and navigate to pre-request', async () => {
+        await openCollection(page, 'scroll-fixtures');
         await locators.sidebar.folder('test-folder').click({ timeout: 2000 });
         await locators.paneTabs.folderSettingsTab('script').click({ timeout: 2000 });
         await page.getByTestId('tab-trigger-pre-request').click({ timeout: 2000 });
-        await setEditorContent(page, PRE_SELECTOR, generateLargeScript());
       });
 
       await test.step('Verify initial scroll is 0', async () => {
@@ -840,20 +857,18 @@ test.describe('Scroll Position Persistence', () => {
       });
     });
 
-    test('Folder Script post-response - scroll persists across tab switches', async ({ page, createTmpDir }) => {
-      const tmpDir = await createTmpDir('scroll-folder-post-res');
+    test('Folder Script post-response - scroll persists across tab switches', async ({ pageWithUserData: page }) => {
+      await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
       const locators = buildCommonLocators(page);
       const POST_SELECTOR = '[data-testid="folder-post-response-script-editor"] .CodeMirror';
 
       let saved: number;
 
-      await test.step('Setup folder and add post-response content', async () => {
-        await createCollection(page, 'scroll-folder-post-res', tmpDir);
-        await createFolder(page, 'test-folder', 'scroll-folder-post-res');
+      await test.step('Open folder and navigate to post-response', async () => {
+        await openCollection(page, 'scroll-fixtures');
         await locators.sidebar.folder('test-folder').click({ timeout: 2000 });
         await locators.paneTabs.folderSettingsTab('script').click({ timeout: 2000 });
         await page.getByTestId('tab-trigger-post-response').click({ timeout: 2000 });
-        await setEditorContent(page, POST_SELECTOR, generateLargeScript());
       });
 
       await test.step('Verify initial scroll is 0', async () => {
@@ -891,8 +906,9 @@ test.describe('Scroll Position Persistence', () => {
   // -------------------------------------------------------------------------
 
   test.describe('Collection Settings', () => {
-    test.beforeEach(async ({ page }) => {
-      await closeAllCollections(page);
+    test.beforeEach(async ({ pageWithUserData: page }) => {
+      await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
+      await clearPersistedScrollState(page);
     });
 
     test.afterAll(async ({ page }) => {
@@ -907,8 +923,8 @@ test.describe('Scroll Position Persistence', () => {
       await locators.dropdown.item('Settings').click({ timeout: 2000 });
     };
 
-    test('Collection Script - pre-request and post-response scroll persists', async ({ page, createTmpDir }) => {
-      const tmpDir = await createTmpDir('scroll-coll-script');
+    test('Collection Script - pre-request and post-response scroll persists', async ({ pageWithUserData: page }) => {
+      await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
       const locators = buildCommonLocators(page);
       const PRE_SELECTOR = '[data-testid="collection-pre-request-script-editor"] .CodeMirror';
       const POST_SELECTOR = '[data-testid="collection-post-response-script-editor"] .CodeMirror';
@@ -918,12 +934,11 @@ test.describe('Scroll Position Persistence', () => {
 
       // --- Pre-request ---
 
-      await test.step('Setup collection and add pre-request content', async () => {
-        await createCollection(page, 'scroll-coll-script', tmpDir);
-        await openCollectionSettings(page, 'scroll-coll-script');
+      await test.step('Open collection settings and navigate to pre-request', async () => {
+        await openCollection(page, 'scroll-fixtures');
+        await openCollectionSettings(page, 'scroll-fixtures');
         await locators.paneTabs.collectionSettingsTab('script').click({ timeout: 2000 });
         await page.getByTestId('tab-trigger-pre-request').click({ timeout: 2000 });
-        await setEditorContent(page, PRE_SELECTOR, generateLargeScript());
       });
 
       await test.step('Verify initial scroll is 0', async () => {
@@ -953,9 +968,8 @@ test.describe('Scroll Position Persistence', () => {
 
       // --- Post-response ---
 
-      await test.step('Switch to post-response and add content', async () => {
+      await test.step('Switch to post-response', async () => {
         await page.getByTestId('tab-trigger-post-response').click({ timeout: 2000 });
-        await setEditorContent(page, POST_SELECTOR, generateLargeScript());
       });
 
       await test.step('Verify initial scroll is 0', async () => {
@@ -998,15 +1012,14 @@ test.describe('Scroll Position Persistence', () => {
       });
     });
 
-    test('Collection Tests - scroll persists across tab switches', async ({ page, createTmpDir }) => {
-      const tmpDir = await createTmpDir('scroll-coll-tests');
+    test('Collection Tests - scroll persists across tab switches', async ({ pageWithUserData: page }) => {
+      await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
       const locators = buildCommonLocators(page);
 
-      await test.step('Setup and add test content', async () => {
-        await createCollection(page, 'scroll-coll-tests', tmpDir);
-        await openCollectionSettings(page, 'scroll-coll-tests');
+      await test.step('Open collection settings and navigate to Tests tab', async () => {
+        await openCollection(page, 'scroll-fixtures');
+        await openCollectionSettings(page, 'scroll-fixtures');
         await locators.paneTabs.collectionSettingsTab('tests').click({ timeout: 2000 });
-        await setEditorContent(page, '.CodeMirror', generateLargeScript());
       });
 
       await test.step('Verify initial scroll is 0', async () => {
@@ -1038,22 +1051,20 @@ test.describe('Scroll Position Persistence', () => {
       });
     });
 
-    test('Collection Docs - scroll persists in edit mode across tab switches', async ({ page, createTmpDir }) => {
-      const tmpDir = await createTmpDir('scroll-coll-docs');
+    test('Collection Docs - scroll persists in edit mode across tab switches', async ({ pageWithUserData: page }) => {
+      await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
       const locators = buildCommonLocators(page);
-      const largeDocContent = Array.from({ length: 80 }, (_, i) => `## Section ${i + 1}\nLorem ipsum dolor sit amet for section ${i + 1}.`).join('\n\n');
 
-      await test.step('Setup and navigate to Docs tab', async () => {
-        await createCollection(page, 'scroll-coll-docs', tmpDir);
-        await openCollectionSettings(page, 'scroll-coll-docs');
+      await test.step('Open collection settings and navigate to Docs tab', async () => {
+        await openCollection(page, 'scroll-fixtures');
+        await openCollectionSettings(page, 'scroll-fixtures');
         await locators.paneTabs.collectionSettingsTab('overview').click({ timeout: 2000 });
       });
 
-      await test.step('Click Edit and add large doc content', async () => {
+      await test.step('Click Edit', async () => {
         // Collection docs has an edit icon button
         const editBtn = page.locator('.editing-mode');
         await editBtn.click({ timeout: 2000 });
-        await setEditorContent(page, '.CodeMirror', largeDocContent);
       });
 
       await test.step('Verify initial scroll is 0', async () => {
@@ -1085,34 +1096,16 @@ test.describe('Scroll Position Persistence', () => {
       });
     });
 
-    test('Collection Headers - scroll persists with many headers across tab switches', async ({ page, createTmpDir }) => {
-      const tmpDir = await createTmpDir('scroll-coll-headers');
+    test('Collection Headers - scroll persists with many headers across tab switches', async ({ pageWithUserData: page }) => {
+      await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
       const locators = buildCommonLocators(page);
       const scrollContainer = '.collection-settings-content';
       const firstVisibleRowLocator = () => page.getByTestId('editable-table').locator('table > tbody > tr:nth-child(2)');
 
-      await test.step('Setup and navigate to Headers tab', async () => {
-        await createCollection(page, 'scroll-coll-headers', tmpDir);
-        await openCollectionSettings(page, 'scroll-coll-headers');
+      await test.step('Open collection settings and navigate to Headers tab', async () => {
+        await openCollection(page, 'scroll-fixtures');
+        await openCollectionSettings(page, 'scroll-fixtures');
         await locators.paneTabs.collectionSettingsTab('headers').click({ timeout: 2000 });
-      });
-
-      await test.step('Add 100 headers via Bulk Edit', async () => {
-        const bulkEditBtn = page.getByTestId('bulk-edit-toggle');
-        await bulkEditBtn.scrollIntoViewIfNeeded();
-        await bulkEditBtn.click({ timeout: 2000 });
-
-        const bulkHeaders = Array.from({ length: 100 }, (_, i) =>
-          `X-Custom-Header-${i + 1}:value-${i + 1}`
-        ).join('\n');
-
-        const bulkEditor = page.locator('.CodeMirror').first();
-        await bulkEditor.evaluate((el, content) => {
-          const cm = (el as any).CodeMirror;
-          cm?.setValue(content);
-        }, bulkHeaders);
-
-        await page.getByTestId('key-value-edit-toggle').click({ timeout: 2000 });
       });
 
       await test.step('Verify initial scroll is 0', async () => {
