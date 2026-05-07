@@ -8,7 +8,7 @@ import { clearGlobalEnvironmentDraft } from 'providers/ReduxStore/slices/global-
 import { saveGlobalEnvironment } from 'providers/ReduxStore/slices/global-environments';
 import { useTheme } from 'providers/Theme';
 import { useDispatch, useSelector } from 'react-redux';
-import { findItemInCollection, findItemInCollectionByPathname, hasRequestChanges, areItemsLoading } from 'utils/collections';
+import { findItemInCollection, findItemInCollectionByPathname, hasRequestChanges, areItemsLoading, isItemARequest } from 'utils/collections';
 import ConfirmRequestClose from './ConfirmRequestClose';
 import ConfirmCollectionClose from './ConfirmCollectionClose';
 import ConfirmFolderClose from './ConfirmFolderClose';
@@ -706,7 +706,7 @@ function RequestTabMenu({ menuDropdownRef, tabLabelRef, collectionRequestTabs, t
     await handleCloseMultipleTabs(collectionRequestTabs);
   }
 
-  const isRequestTab = currentTabItem && (currentTabItem.type === 'http-request' || currentTabItem.type === 'graphql-request' || currentTabItem.type === 'grpc-request' || currentTabItem.type === 'ws-request');
+  const isRequestTab = currentTabItem && isItemARequest(currentTabItem);
 
   const handleDuplicateAsTab = () => {
     if (!currentTabItem?.uid || !collection?.uid) {
