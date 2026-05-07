@@ -62,7 +62,7 @@ const CreateCollection = ({ onClose, defaultLocation: propDefaultLocation, initi
     }),
     onSubmit: async (values) => {
       try {
-        await dispatch(createCollection(values.collectionName,
+        await dispatch(createCollection(values.collectionName.trim(),
           values.collectionFolderName,
           values.collectionLocation,
           { format: values.format }));

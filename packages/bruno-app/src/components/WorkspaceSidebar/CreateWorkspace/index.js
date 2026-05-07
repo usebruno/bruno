@@ -59,7 +59,7 @@ const CreateWorkspace = ({ onClose }) => {
       try {
         setIsSubmitting(true);
 
-        await dispatch(createWorkspaceAction(values.workspaceName, values.workspaceFolderName, values.workspaceLocation));
+        await dispatch(createWorkspaceAction(values.workspaceName.trim(), values.workspaceFolderName, values.workspaceLocation));
         toast.success('Workspace created!');
         onClose();
       } catch (error) {
