@@ -246,6 +246,39 @@ describe('deserializeTab', () => {
     expect(secondTab.uid).not.toBe('variables');
     expect(firstTab.uid).not.toBe(secondTab.uid);
   });
+
+  it('restores preferences uid scoped to collection uid', () => {
+    const snapshotTab = {
+      type: 'preferences',
+      accessor: 'type',
+      permanent: true
+    };
+
+    const tab = deserializeTab(snapshotTab, collection);
+    expect(tab.uid).toBe('collection-uid-preferences');
+  });
+
+  it('restores global environment settings uid scoped to collection uid', () => {
+    const snapshotTab = {
+      type: 'global-environment-settings',
+      accessor: 'type',
+      permanent: true
+    };
+
+    const tab = deserializeTab(snapshotTab, collection);
+    expect(tab.uid).toBe('collection-uid-global-environment-settings');
+  });
+
+  it('falls back to type-based uid restore for collection-scoped singleton tabs missing pathname', () => {
+    const snapshotTab = {
+      type: 'preferences',
+      accessor: 'pathname',
+      permanent: true
+    };
+
+    const tab = deserializeTab(snapshotTab, collection);
+    expect(tab.uid).toBe('collection-uid-preferences');
+  });
 });
 
 describe('hydrateCollectionTabs', () => {

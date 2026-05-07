@@ -6,7 +6,7 @@ import {
 } from '../utils/page';
 import { buildCommonLocators } from '../utils/page/locators';
 
-test.describe('Snapshot: Tab Persistence', () => {
+test.describe('Snapshot: Sidebar-Tab Restoration', () => {
   test('open tabs are restored after app restart and tied to the sidebar items', async ({ launchElectronApp, createTmpDir }) => {
     const userDataPath = await createTmpDir('snap-sidebar-state');
     const colPath = await createTmpDir('col');
