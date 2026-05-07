@@ -144,8 +144,17 @@ const CreateCollection = ({ onClose, defaultLocation: propDefaultLocation, initi
                 ref={inputRef}
                 className="block textbox mt-2 w-full"
                 onChange={(e) => {
+                  const collectionName = e.target.value;
+                  if (!isEditing) {
+                    formik.setValues((values) => ({
+                      ...values,
+                      collectionName,
+                      collectionFolderName: sanitizeName(collectionName)
+                    }));
+                    return;
+                  }
+
                   formik.handleChange(e);
-                  !isEditing && formik.setFieldValue('collectionFolderName', sanitizeName(e.target.value));
                 }}
                 autoComplete="off"
                 autoCorrect="off"
