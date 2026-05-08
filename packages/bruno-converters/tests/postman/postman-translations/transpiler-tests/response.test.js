@@ -994,6 +994,24 @@ describe('Response Translation', () => {
     expect(translatedCode).toContain('expect(res.getStatus()).to.not.be.within(200, 299)');
   });
 
+  it('should translate pm.response.to.be.not.forbidden (alternate position)', () => {
+    const code = 'pm.response.to.be.not.forbidden;';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toContain('expect(res.getStatus()).to.not.equal(403)');
+  });
+
+  it('should translate pm.response.to.be.not.serverError (alternate position)', () => {
+    const code = 'pm.response.to.be.not.serverError;';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toContain('expect(res.getStatus()).to.not.be.within(500, 599)');
+  });
+
+  it('should translate pm.response.to.be.not.withBody (alternate position)', () => {
+    const code = 'pm.response.to.be.not.withBody;';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toBe('expect(res.getBody()).to.not.be.ok;');
+  });
+
   it('should translate pm.response.to.not.be.success', () => {
     const code = 'pm.response.to.not.be.success;';
     const translatedCode = translateCode(code);

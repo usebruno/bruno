@@ -2,6 +2,7 @@ import sendRequestTransformer from './send-request-transformer';
 import { getMemberExpressionString } from './ast-utils';
 const j = require('jscodeshift');
 const cloneDeep = require('lodash/cloneDeep');
+const { buildStatusAssertionEntries } = require('./postman-status-assertions');
 
 // Simple 1:1 translations for straightforward replacements
 // TODO: Restore the commented-out translations once the UI update fixes are live.
@@ -267,13 +268,13 @@ const complexTransformations = [
   {
     pattern: 'pm.response.to.have.body',
     transform: (path, j) => {
-      const callExpr = path.parent.value;
-
-      const args = callExpr.arguments;
+      const args = path.parent.value.arguments;
 
       return j.callExpression(
         j.memberExpression(
-          j.callExpression(j.identifier('expect'), [j.identifier('res.getBody()')]),
+          j.callExpression(j.identifier('expect'), [
+            j.callExpression(j.identifier('res.getBody'), [])
+          ]),
           j.identifier('to.equal')
         ),
         args
@@ -331,7 +332,9 @@ const complexTransformations = [
       const args = path.parent.value.arguments;
       return j.callExpression(
         j.memberExpression(
-          j.callExpression(j.identifier('expect'), [j.identifier('res.getBody()')]),
+          j.callExpression(j.identifier('expect'), [
+            j.callExpression(j.identifier('res.getBody'), [])
+          ]),
           j.identifier('to.not.equal')
         ),
         args
@@ -485,69 +488,6 @@ const complexTransformations = [
     }
   },
 
-  // --- Data-driven status assertions (pm.response.to.be.*) ---
-  // Helper: build expect(res.getStatus()).<chain>(<litArgs>) AST node
-  ...(() => {
-    const buildStatusTransform = (chain, litArgs) => (path, j) => {
-      return j.callExpression(
-        j.memberExpression(
-          j.callExpression(j.identifier('expect'), [j.callExpression(j.identifier('res.getStatus'), [])]),
-          j.identifier(chain)
-        ),
-        litArgs.map((v) => j.literal(v))
-      );
-    };
-
-    const negateChain = (chain) => chain.replace('to.', 'to.not.');
-
-    const statusAssertions = [
-      // Range-based assertions
-      { name: 'ok', chain: 'to.be.within', args: [200, 299] },
-      { name: 'success', chain: 'to.be.within', args: [200, 299] },
-      { name: 'info', chain: 'to.be.within', args: [100, 199] },
-      { name: 'redirection', chain: 'to.be.within', args: [300, 399] },
-      { name: 'clientError', chain: 'to.be.within', args: [400, 499] },
-      { name: 'serverError', chain: 'to.be.within', args: [500, 599] },
-      { name: 'error', chain: 'to.be.at.least', args: [400] },
-      // Specific status code assertions
-      { name: 'accepted', chain: 'to.equal', args: [202] },
-      { name: 'badRequest', chain: 'to.equal', args: [400] },
-      { name: 'unauthorized', chain: 'to.equal', args: [401] },
-      { name: 'forbidden', chain: 'to.equal', args: [403] },
-      { name: 'notFound', chain: 'to.equal', args: [404] },
-      { name: 'rateLimited', chain: 'to.equal', args: [429] }
-    ];
-
-    const entries = [];
-
-    // Generate positive + negated entries for each status assertion
-    statusAssertions.forEach(({ name, chain, args }) => {
-      entries.push(
-        { pattern: `pm.response.to.be.${name}`, transform: buildStatusTransform(chain, args) },
-        { pattern: `pm.response.to.not.be.${name}`, transform: buildStatusTransform(negateChain(chain), args) },
-        { pattern: `pm.response.to.be.not.${name}`, transform: buildStatusTransform(negateChain(chain), args) }
-      );
-    });
-
-    // Special case: withBody checks actual body content
-    const buildWithBodyTransform = (chain) => (path, j) => {
-      return j.memberExpression(
-        j.callExpression(j.identifier('expect'), [
-          j.callExpression(j.identifier('res.getBody'), [])
-        ]),
-        j.identifier(chain)
-      );
-    };
-
-    entries.push(
-      { pattern: 'pm.response.to.be.withBody', transform: buildWithBodyTransform('to.be.ok') },
-      { pattern: 'pm.response.to.not.be.withBody', transform: buildWithBodyTransform('to.not.be.ok') },
-      { pattern: 'pm.response.to.be.not.withBody', transform: buildWithBodyTransform('to.not.be.ok') }
-    );
-
-    return entries;
-  })(),
-
   // pm.response.to.have.jsonBody(...) -> expect(res.getBody()).to.have.jsonBody(...)
   {
     pattern: 'pm.response.to.have.jsonBody',
@@ -680,7 +620,39 @@ const complexTransformations = [
       const args = callExpr.arguments;
       return j.callExpression(j.identifier('res.getHeader'), args);
     }
-  }
+  },
+
+  // pm.response.to.be.withBody -> expect(res.getBody()).to.be.ok
+  {
+    pattern: 'pm.response.to.be.withBody',
+    transform: (path, j) => {
+      return j.memberExpression(
+        j.callExpression(j.identifier('expect'), [j.callExpression(j.identifier('res.getBody'), [])]),
+        j.identifier('to.be.ok')
+      );
+    }
+  },
+  {
+    pattern: 'pm.response.to.not.be.withBody',
+    transform: (path, j) => {
+      return j.memberExpression(
+        j.callExpression(j.identifier('expect'), [j.callExpression(j.identifier('res.getBody'), [])]),
+        j.identifier('to.not.be.ok')
+      );
+    }
+  },
+  {
+    pattern: 'pm.response.to.be.not.withBody',
+    transform: (path, j) => {
+      return j.memberExpression(
+        j.callExpression(j.identifier('expect'), [j.callExpression(j.identifier('res.getBody'), [])]),
+        j.identifier('to.not.be.ok')
+      );
+    }
+  },
+
+  // --- Data-driven status assertions (pm.response.to.be.*) ---
+  ...buildStatusAssertionEntries()
 ];
 
 // Create a map for complex transformations to enable O(1) lookups
