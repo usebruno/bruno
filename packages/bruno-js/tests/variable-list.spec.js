@@ -248,22 +248,6 @@ describe('VariableList', () => {
     });
   });
 
-  // ── onSet callback ────────────────────────────────────────────────────
-
-  describe('onSet callback', () => {
-    test('called with key, value, and options', () => {
-      const onSet = jest.fn();
-      const list = new VariableList({}, { onSet });
-      list.set('key', 'val', { persist: true });
-      expect(onSet).toHaveBeenCalledWith('key', 'val', { persist: true });
-    });
-
-    test('not called when onSet is not provided', () => {
-      const list = new VariableList({});
-      expect(() => list.set('key', 'val')).not.toThrow();
-    });
-  });
-
   // ── Custom validateKey ────────────────────────────────────────────────
 
   describe('custom validateKey', () => {

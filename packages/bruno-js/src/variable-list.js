@@ -30,9 +30,8 @@ class VariableList extends PropertyList {
    * @param {Function} [options.interpolateFn] - Interpolation function (bru.interpolate)
    * @param {Function} [options.validateKey] - Custom key validation function (throws on invalid)
    * @param {string[]} [options.filterKeys] - Internal keys to exclude from reads (e.g. ['__name__'])
-   * @param {Function} [options.onSet] - Callback after set: (key, value, options) => void
    */
-  constructor(variablesObj, { interpolateFn, validateKey, filterKeys, onSet } = {}) {
+  constructor(variablesObj, { interpolateFn, validateKey, filterKeys } = {}) {
     super({
       keyProperty: 'key',
       valueProperty: 'value',
@@ -46,7 +45,6 @@ class VariableList extends PropertyList {
     this._interpolateFn = interpolateFn || ((v) => v);
     this._validateKeyFn = validateKey || null;
     this._filterKeys = filterKeys || [];
-    this._onSet = onSet || null;
   }
 
   // ── Read overrides ──────────────────────────────────────────────────
@@ -66,17 +64,13 @@ class VariableList extends PropertyList {
    * Set a variable. Validates the key name and mutates the underlying object.
    * @param {string} key
    * @param {*} value
-   * @param {object} [options] - Optional options (e.g. { persist: true } for env vars)
    */
-  set(key, value, options) {
+  set(key, value) {
     if (!key) {
       throw new Error('Creating a variable without specifying a name is not allowed.');
     }
     this.#validateKey(key);
     this._variablesObj[key] = value;
-    if (this._onSet) {
-      this._onSet(key, value, options);
-    }
   }
 
   /**

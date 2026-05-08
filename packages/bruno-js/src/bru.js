@@ -86,17 +86,7 @@ class Bru {
     this.environment = new VariableList(this.envVariables, {
       interpolateFn: (val) => this.interpolate(val),
       validateKey,
-      filterKeys: ['__name__'],
-      onSet: (key, value, options) => {
-        if (options?.persist) {
-          if (typeof value !== 'string') {
-            throw new Error(`Persistent environment variables must be strings. Received ${typeof value} for key "${key}".`);
-          }
-          this.persistentEnvVariables[key] = value;
-        } else if (this.persistentEnvVariables[key]) {
-          delete this.persistentEnvVariables[key];
-        }
-      }
+      filterKeys: ['__name__']
     });
     Object.defineProperty(this.environment, 'name', {
       get: () => this.envVariables.__name__,
