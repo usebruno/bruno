@@ -75,10 +75,10 @@ describe('Bruno to Postman Response Translation', () => {
     expect(translatedCode).toBe('pm.expect(pm.response.code).to.equal(201);');
   });
 
-  it('should transform expect(res.getHeaders()).to.have.property() to pm.expect(pm.response.headers).to.have.property()', () => {
-    const code = 'expect(res.getHeaders()).to.have.property("Content-Type".toLowerCase());';
+  it('should transform expect(res.getHeader()).to.exist to pm.response.to.have.header()', () => {
+    const code = 'expect(res.getHeader("Content-Type")).to.exist;';
     const translatedCode = translateBruToPostman(code);
-    expect(translatedCode).toBe('pm.expect(pm.response.headers).to.have.property("Content-Type".toLowerCase());');
+    expect(translatedCode).toBe('pm.expect(pm.response.headers.get("Content-Type")).to.exist;');
   });
 
   it('should transform expect(res.getBody()).to.equal() to pm.expect(pm.response.json()).to.equal()', () => {

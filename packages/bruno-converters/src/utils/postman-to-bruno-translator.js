@@ -238,40 +238,26 @@ const complexTransformations = [
     }
   },
 
-  // handle 'pm.response.to.have.header' to expect(res.getHeaders()).to.have.property(args)
+  // handle 'pm.response.to.have.header'
+  // Single arg:  expect(res.getHeader(arg)).to.exist
+  // Two args:    expect(res.getHeader(arg)).to.equal(arg2)
   {
     pattern: 'pm.response.to.have.header',
     transform: (path, j) => {
-      const callExpr = path.parent.value;
+      const args = path.parent.value.arguments;
+      const expectGetHeader = j.callExpression(j.identifier('expect'), [
+        j.callExpression(j.identifier('res.getHeader'), [args[0]])
+      ]);
 
-      const args = callExpr.arguments;
-
-      if (args.length > 0) {
-        // Apply toLowerCase() to the first argument
-        args[0] = j.callExpression(
-          j.memberExpression(
-            args[0],
-            j.identifier('toLowerCase')
-          ),
-          []
-        );
+      if (args.length === 1) {
+        // Existence check — returns a MemberExpression (not a call)
+        return j.memberExpression(expectGetHeader, j.identifier('to.exist'));
       }
 
-      // Create: expect(res.getHeaders()).to.have.property(args)
+      // Value check
       return j.callExpression(
-        j.memberExpression(
-          j.callExpression(
-            j.identifier('expect'),
-            [
-              j.callExpression(
-                j.identifier('res.getHeaders'),
-                []
-              )
-            ]
-          ),
-          j.identifier('to.have.property')
-        ),
-        args
+        j.memberExpression(expectGetHeader, j.identifier('to.equal')),
+        [args[1]]
       );
     }
   },
@@ -310,23 +296,24 @@ const complexTransformations = [
     }
   },
 
-  // pm.response.to.not.have.header -> expect(res.getHeaders()).to.not.have.property(args)
+  // handle 'pm.response.to.not.have.header'
+  // Single arg:  expect(res.getHeader(arg)).to.not.exist
+  // Two args:    expect(res.getHeader(arg)).to.not.equal(arg2)
   {
     pattern: 'pm.response.to.not.have.header',
     transform: (path, j) => {
       const args = path.parent.value.arguments;
-      if (args.length > 0) {
-        args[0] = j.callExpression(
-          j.memberExpression(args[0], j.identifier('toLowerCase')),
-          []
-        );
+      const expectGetHeader = j.callExpression(j.identifier('expect'), [
+        j.callExpression(j.identifier('res.getHeader'), [args[0]])
+      ]);
+
+      if (args.length === 1) {
+        return j.memberExpression(expectGetHeader, j.identifier('to.not.exist'));
       }
+
       return j.callExpression(
-        j.memberExpression(
-          j.callExpression(j.identifier('expect'), [j.callExpression(j.identifier('res.getHeaders'), [])]),
-          j.identifier('to.not.have.property')
-        ),
-        args
+        j.memberExpression(expectGetHeader, j.identifier('to.not.equal')),
+        [args[1]]
       );
     }
   },
