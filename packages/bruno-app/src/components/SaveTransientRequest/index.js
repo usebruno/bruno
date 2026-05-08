@@ -758,6 +758,17 @@ const SaveTransientRequest = ({ item: itemProp, collection: collectionProp, isOp
                 New Folder
               </Button>
             )}
+            {isSelectingCollection && !newCollection.show && availableCollections.length > 0 && (
+              <Button
+                type="button"
+                color="primary"
+                variant="ghost"
+                icon={<IconFolder size={16} strokeWidth={1.5} />}
+                onClick={handleShowNewCollection}
+              >
+                New collection
+              </Button>
+            )}
           </div>
           <div className="footer-right">
             <Button type="button" color="secondary" variant="ghost" onClick={handleCancel}>
