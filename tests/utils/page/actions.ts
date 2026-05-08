@@ -1,4 +1,4 @@
-import { test, expect, Page, ElectronApplication } from '../../../playwright';
+import { test, expect, Page, ElectronApplication, waitForReadyPage as waitForReadyPageImpl } from '../../../playwright';
 import process from 'node:process';
 import { buildCommonLocators, buildScriptErrorLocators } from './locators';
 
@@ -12,29 +12,10 @@ type WaitForAppReadyOptions = {
  * Wait for the Electron app to have a ready, loaded window.
  * Handles cases where the first window is slow to appear.
  */
-const waitForReadyPage = async (
+const waitForReadyPage = (
   app: ElectronApplication,
   options: WaitForAppReadyOptions = {}
-) => {
-  const { timeout = 45000 } = options;
-
-  // Try to grab an existing window; if none, wait for a new one.
-  let page: Page | null = null;
-  try {
-    page = await app.firstWindow();
-  } catch {
-    page = null;
-  }
-
-  if (!page) {
-    page = await app.waitForEvent('window', { timeout });
-  }
-
-  await page.locator('[data-app-state="loaded"]').waitFor({ timeout });
-  await page.waitForTimeout(200);
-
-  return page;
-};
+) => waitForReadyPageImpl(app, options);
 
 /**
  * Close all collections
@@ -59,7 +40,10 @@ const closeAllCollections = async (page) => {
       const hasDiscardButton = await page.getByRole('button', { name: 'Discard All and Remove' }).isVisible().catch(() => false);
 
       if (hasDiscardButton) {
-        // Drafts modal - click "Discard All and Remove" (force to avoid element stability issues)
+        // Drafts modal - the modal animates in and the footer can shift mid-frame,
+        // causing Playwright's "element is stable" actionability check to fail
+        // intermittently on slower machines. Use force to skip the stability check;
+        // visibility is already verified above via waitFor.
         await page.getByRole('button', { name: 'Discard All and Remove' }).click({ force: true });
       } else {
         // Regular modal - click the submit button
@@ -912,16 +896,42 @@ const selectPaneTab = async (page: Page, paneSelector: string, tabName: string) 
     await expect(pane).toBeVisible();
     await expect(pane.locator('.tabs')).toBeVisible();
 
-    await expect
-      .poll(
-        async () => trySelectPaneTabOnce(page, paneSelector, tabName),
-        {
-          message: `Tab "${tabName}" not found in visible tabs or overflow dropdown`,
-          timeout: 8000,
-          intervals: [100, 150, 200, 250]
-        }
-      )
-      .toBe(true);
+    // await expect
+    //   .poll(
+    //     async () => trySelectPaneTabOnce(page, paneSelector, tabName),
+    //     {
+    //       message: `Tab "${tabName}" not found in visible tabs or overflow dropdown`,
+    //       timeout: 8000,
+    //       intervals: [100, 150, 200, 250]
+    //     }
+    //   )
+    //   .toBe(true);
+
+    const visibleTab = pane.locator('.tabs').getByRole('tab', { name: tabName });
+    const overflowButton = pane.locator('.tabs .more-tabs');
+
+    // ResponsiveTabs recalculates layout via ResizeObserver/rAF, so the tab or
+    // the overflow trigger can detach mid-click. Retry the whole sequence so a
+    // mid-action remount doesn't fail the test.
+    await expect(async () => {
+      if (await visibleTab.isVisible()) {
+        await visibleTab.click({ timeout: 2000 });
+        await expect(visibleTab).toContainClass('active', { timeout: 2000 });
+        return;
+      }
+
+      if (await overflowButton.isVisible()) {
+        await overflowButton.click({ timeout: 2000 });
+
+        const dropdownItem = page.locator('.tippy-box .dropdown-item').filter({ hasText: tabName });
+        await dropdownItem.waitFor({ state: 'visible', timeout: 2000 });
+        await dropdownItem.click({ force: true, timeout: 2000 });
+        await expect(visibleTab).toContainClass('active', { timeout: 2000 });
+        return;
+      }
+
+      throw new Error(`Tab "${tabName}" not found in visible tabs or overflow dropdown`);
+    }).toPass({ timeout: 15000 });
   });
 };
 

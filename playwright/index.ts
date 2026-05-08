@@ -31,6 +31,28 @@ function isTracingEnabled(testInfo: TestInfo): boolean {
   return !!(testInfo as any)._tracing.traceOptions();
 }
 
+// Wait for the Electron app to have a ready, loaded window.
+// Handles cases where the first window is slow to appear (e.g. on Windows).
+export async function waitForReadyPage(app: ElectronApplication, options: { timeout?: number } = {}): Promise<Page> {
+  const { timeout = 45000 } = options;
+
+  let page: Page | null = null;
+  try {
+    page = await app.firstWindow();
+  } catch {
+    page = null;
+  }
+
+  if (!page) {
+    page = await app.waitForEvent('window', { timeout });
+  }
+
+  await page.locator('[data-app-state="loaded"]').waitFor({ timeout });
+  await page.waitForTimeout(200);
+
+  return page;
+}
+
 async function usePageWithTracing(
   context: BrowserContext,
   page: Page,
@@ -250,14 +272,14 @@ export const test = baseTest.extend<
   },
 
   page: async ({ electronApp, context }, use, testInfo) => {
-    const page = await electronApp.firstWindow();
+    const page = await waitForReadyPage(electronApp);
     await usePageWithTracing(context, page, testInfo, use);
   },
 
   newPage: async ({ launchElectronApp }, use, testInfo) => {
     const app = await launchElectronApp();
     const context = await app.context();
-    const page = await app.firstWindow();
+    const page = await waitForReadyPage(app);
     await usePageWithTracing(context, page, testInfo, use, { initTracing: true, useChunks: false });
   },
 
@@ -347,10 +369,8 @@ export const test = baseTest.extend<
     const app = await reuseOrLaunchElectronApp({ initUserDataPath: tmpAppDataDir, testFile: testInfo.file, templateVars });
 
     const context = await app.context();
-    const page = await app.firstWindow();
+    const page = await waitForReadyPage(app);
 
-    // Wait for app to be ready
-    await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
     await usePageWithTracing(context, page, testInfo, use, { initTracing: true });
   }
 });

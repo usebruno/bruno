@@ -1,6 +1,7 @@
 import path from 'path';
 import fs from 'fs';
 import { test, expect, closeElectronApp } from '../../../playwright';
+import { waitForReadyPage } from '../../utils/page';
 
 const env = {
   DISABLE_SAMPLE_COLLECTION_IMPORT: 'false'
@@ -33,8 +34,7 @@ test.describe('Default Workspace Migration', () => {
       });
 
       const app = await launchElectronApp({ userDataPath });
-      const page = await app.firstWindow();
-      await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
+      const page = await waitForReadyPage(app);
 
       await test.step('Verify workspace UI', async () => {
         await expect(page.getByTestId('workspace-name')).toHaveText('My Workspace');
@@ -85,8 +85,7 @@ test.describe('Default Workspace Migration', () => {
 
       // Launch app
       const app = await launchElectronApp({ userDataPath });
-      const page = await app.firstWindow();
-      await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
+      const page = await waitForReadyPage(app);
 
       await expect(page.getByTestId('workspace-name')).toHaveText('My Workspace');
 
@@ -128,8 +127,7 @@ test.describe('Default Workspace Migration', () => {
 
       // Launch app - sample collection should NOT be created (existing user)
       const app = await launchElectronApp({ userDataPath, dotEnv: env });
-      const page = await app.firstWindow();
-      await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
+      const page = await waitForReadyPage(app);
 
       // Verify default workspace is created
       await expect(page.getByTestId('workspace-name')).toHaveText('My Workspace');
@@ -148,8 +146,7 @@ test.describe('Default Workspace Migration', () => {
 
       // First launch - creates workspace
       const app1 = await launchElectronApp({ userDataPath });
-      const page1 = await app1.firstWindow();
-      await page1.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
+      const page1 = await waitForReadyPage(app1);
       await expect(page1.getByTestId('workspace-name')).toHaveText('My Workspace');
 
       // Verify initial workspace was created
@@ -161,8 +158,7 @@ test.describe('Default Workspace Migration', () => {
 
       // Second launch - should reuse existing workspace
       const app2 = await launchElectronApp({ userDataPath });
-      const page2 = await app2.firstWindow();
-      await page2.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
+      const page2 = await waitForReadyPage(app2);
       await expect(page2.getByTestId('workspace-name')).toHaveText('My Workspace');
 
       // workspace.yml should NOT have been modified
@@ -182,8 +178,7 @@ test.describe('Default Workspace Migration', () => {
 
       // Launch with completely empty user data (no preferences file)
       const app = await launchElectronApp({ userDataPath });
-      const page = await app.firstWindow();
-      await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
+      const page = await waitForReadyPage(app);
 
       await expect(page.getByTestId('workspace-name')).toHaveText('My Workspace');
 
