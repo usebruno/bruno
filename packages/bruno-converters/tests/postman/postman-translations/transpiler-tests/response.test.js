@@ -1150,6 +1150,26 @@ describe('Response Translation', () => {
     expect(translatedCode).toBe('expect(res.getBody()).to.not.equal("error");');
   });
 
+  // --- to.have.not.* (alternate .not position) ---
+
+  it('should translate pm.response.to.have.not.status (alternate position)', () => {
+    const code = 'pm.response.to.have.not.status(404);';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toBe('expect(res.getStatus()).to.not.equal(404);');
+  });
+
+  it('should translate pm.response.to.have.not.header (alternate position)', () => {
+    const code = 'pm.response.to.have.not.header("X-Error");';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toBe('expect(res.getHeaders()).to.not.have.property("X-Error".toLowerCase());');
+  });
+
+  it('should translate pm.response.to.have.not.body (alternate position)', () => {
+    const code = 'pm.response.to.have.not.body("error");';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toBe('expect(res.getBody()).to.not.equal("error");');
+  });
+
   it('should handle negated to.have.* assertions inside test blocks', () => {
     const code = `
         pm.test("Negative assertions", function() {

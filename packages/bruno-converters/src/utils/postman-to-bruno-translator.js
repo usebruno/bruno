@@ -212,99 +212,28 @@ const complexTransformations = [
       return j.callExpression(j.identifier('res.getHeader'), path.parent.value.arguments);
     }
   },
-  // Handle pm.response.to.have.status
-  {
-    pattern: 'pm.response.to.have.status',
+  // pm.response.to[.not].have.status -> expect(res.getStatus()).to[.not].equal(arg)
+  ...['to.have.status', 'to.not.have.status', 'to.have.not.status'].map((pattern) => ({
+    pattern: `pm.response.${pattern}`,
     transform: (path, j) => {
-      const callExpr = path.parent.value;
-
-      const args = callExpr.arguments;
-
-      // Create: expect(res.getStatus()).to.equal(arg)
-      return j.callExpression(
-        j.memberExpression(
-          j.callExpression(
-            j.identifier('expect'),
-            [
-              j.callExpression(
-                j.identifier('res.getStatus'),
-                []
-              )
-            ]
-          ),
-          j.identifier('to.equal')
-        ),
-        args
-      );
-    }
-  },
-
-  // handle 'pm.response.to.have.header' -> expect(res.getHeaders()).to.have.property(args)
-  // Header names are lowercased because axios normalizes response headers to lowercase
-  {
-    pattern: 'pm.response.to.have.header',
-    transform: (path, j) => {
-      const args = path.parent.value.arguments;
-
-      if (args.length > 0) {
-        args[0] = j.callExpression(
-          j.memberExpression(args[0], j.identifier('toLowerCase')),
-          []
-        );
-      }
-
-      return j.callExpression(
-        j.memberExpression(
-          j.callExpression(j.identifier('expect'), [
-            j.callExpression(j.identifier('res.getHeaders'), [])
-          ]),
-          j.identifier('to.have.property')
-        ),
-        args
-      );
-    }
-  },
-  // handle pm.response.to.have.body to expect(res.getBody()).to.equal(arg)
-  {
-    pattern: 'pm.response.to.have.body',
-    transform: (path, j) => {
-      const args = path.parent.value.arguments;
-
-      return j.callExpression(
-        j.memberExpression(
-          j.callExpression(j.identifier('expect'), [
-            j.callExpression(j.identifier('res.getBody'), [])
-          ]),
-          j.identifier('to.equal')
-        ),
-        args
-      );
-    }
-  },
-
-  // --- Negated variants for to.have.* assertions ---
-
-  // pm.response.to.not.have.status -> expect(res.getStatus()).to.not.equal(arg)
-  {
-    pattern: 'pm.response.to.not.have.status',
-    transform: (path, j) => {
-      const args = path.parent.value.arguments;
+      const negated = pattern.includes('.not.');
       return j.callExpression(
         j.memberExpression(
           j.callExpression(j.identifier('expect'), [j.callExpression(j.identifier('res.getStatus'), [])]),
-          j.identifier('to.not.equal')
+          j.identifier(negated ? 'to.not.equal' : 'to.equal')
         ),
-        args
+        path.parent.value.arguments
       );
     }
-  },
+  })),
 
-  // handle 'pm.response.to.not.have.header' -> expect(res.getHeaders()).to.not.have.property(args)
+  // pm.response.to[.not].have.header -> expect(res.getHeaders()).to[.not].have.property(args)
   // Header names are lowercased because axios normalizes response headers to lowercase
-  {
-    pattern: 'pm.response.to.not.have.header',
+  ...['to.have.header', 'to.not.have.header', 'to.have.not.header'].map((pattern) => ({
+    pattern: `pm.response.${pattern}`,
     transform: (path, j) => {
       const args = path.parent.value.arguments;
+      const negated = pattern.includes('.not.');
 
       if (args.length > 0) {
         args[0] = j.callExpression(
@@ -315,32 +244,28 @@ const complexTransformations = [
 
       return j.callExpression(
         j.memberExpression(
-          j.callExpression(j.identifier('expect'), [
-            j.callExpression(j.identifier('res.getHeaders'), [])
-          ]),
-          j.identifier('to.not.have.property')
+          j.callExpression(j.identifier('expect'), [j.callExpression(j.identifier('res.getHeaders'), [])]),
+          j.identifier(negated ? 'to.not.have.property' : 'to.have.property')
         ),
         args
       );
     }
-  },
+  })),
 
-  // pm.response.to.not.have.body -> expect(res.getBody()).to.not.equal(arg)
-  {
-    pattern: 'pm.response.to.not.have.body',
+  // pm.response.to[.not].have.body -> expect(res.getBody()).to[.not].equal(arg)
+  ...['to.have.body', 'to.not.have.body', 'to.have.not.body'].map((pattern) => ({
+    pattern: `pm.response.${pattern}`,
     transform: (path, j) => {
-      const args = path.parent.value.arguments;
+      const negated = pattern.includes('.not.');
       return j.callExpression(
         j.memberExpression(
-          j.callExpression(j.identifier('expect'), [
-            j.callExpression(j.identifier('res.getBody'), [])
-          ]),
-          j.identifier('to.not.equal')
+          j.callExpression(j.identifier('expect'), [j.callExpression(j.identifier('res.getBody'), [])]),
+          j.identifier(negated ? 'to.not.equal' : 'to.equal')
         ),
-        args
+        path.parent.value.arguments
       );
     }
-  },
+  })),
 
   // Handle pm.execution.setNextRequest(null)
   {
