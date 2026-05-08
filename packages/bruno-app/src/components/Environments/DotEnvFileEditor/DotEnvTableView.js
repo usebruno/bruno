@@ -5,7 +5,7 @@ import MultiLineEditor from 'components/MultiLineEditor/index';
 import DotEnvErrorMessage from './DotEnvErrorMessage';
 
 const TableRowInner = React.forwardRef(({ children, item, ...rest }, ref) => (
-  <tr ref={ref} {...rest} data-testid={`dotenv-var-row-${item.name}`}>
+  <tr ref={ref} {...rest} data-testid={`dotenv-var-row-${item.variable.name}`}>
     {children}
   </tr>
 ));

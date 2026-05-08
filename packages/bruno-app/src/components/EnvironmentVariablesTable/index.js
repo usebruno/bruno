@@ -40,7 +40,7 @@ const EnvVarsFillerRow = ({ height }) => (
 );
 
 const TableRowInner = React.forwardRef(({ children, item, ...rest }, ref) => (
-  <tr ref={ref} {...rest} data-testid={`env-var-row-${item.name}`}>
+  <tr ref={ref} {...rest} data-testid={`env-var-row-${item.variable.name}`}>
     {children}
   </tr>
 ));
