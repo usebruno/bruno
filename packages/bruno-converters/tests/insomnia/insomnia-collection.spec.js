@@ -7,6 +7,36 @@ describe('insomnia-collection', () => {
 
     expect(brunoCollection).toMatchObject(expectedOutput);
   });
+
+  it.each([
+    [
+      'basic',
+      {
+        type: 'basic',
+        useISO88591: false,
+        disabled: true,
+        username: 'john.doe',
+        password: 'john1234'
+      }
+    ],
+    [
+      'bearer',
+      {
+        type: 'bearer',
+        disabled: true,
+        token: 'token123'
+      }
+    ]
+  ])('should ignore disabled %s authentication', async (_authType, authentication) => {
+    const brunoCollection = insomniaToBruno(insomniaCollectionWithDisabledAuth(authentication));
+
+    expect(brunoCollection.items[0].request.auth).toMatchObject({
+      basic: null,
+      bearer: null,
+      digest: null,
+      mode: 'none'
+    });
+  });
 });
 
 const insomniaCollection = {
@@ -222,3 +252,27 @@ const expectedOutput = {
   uid: 'mockeduuidvalue123456',
   version: '1'
 };
+
+const insomniaCollectionWithDisabledAuth = (authentication) => ({
+  _type: 'export',
+  __export_format: 4,
+  __export_date: '2024-05-20T10:02:44.123Z',
+  __export_source: 'insomnia.desktop.app:v2021.5.2',
+  resources: [
+    {
+      _id: 'req_1',
+      _type: 'request',
+      parentId: 'wrk_1',
+      name: 'Request with disabled basic auth',
+      method: 'GET',
+      url: 'https://testbench-sanity.usebruno.com/ping',
+      parameters: [],
+      authentication
+    },
+    {
+      _id: 'wrk_1',
+      _type: 'workspace',
+      name: 'Hello World Workspace Insomnia'
+    }
+  ]
+});
