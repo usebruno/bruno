@@ -821,15 +821,15 @@ const selectPaneTab = async (page: Page, paneSelector: string, tabName: string) 
     const visibleTab = pane.locator('.tabs').getByRole('tab', { name: tabName });
 
     // Check if tab is directly visible
-    if (await visibleTab.isVisible()) {
+    if (await visibleTab.isVisible({ timeout: 1000 })) {
       await visibleTab.click();
-      await expect(visibleTab).toContainClass('active');
+      await expect(visibleTab).toContainClass('active', { timeout: 1000 });
       return;
     }
 
     const overflowButton = pane.locator('.tabs .more-tabs');
     // Check if there's an overflow dropdown
-    if (await overflowButton.isVisible()) {
+    if (await overflowButton.isVisible({ timeout: 1000 })) {
       await overflowButton.click();
 
       // Wait for dropdown to appear and click the menu item
@@ -851,7 +851,7 @@ const selectResponsePaneTab = async (page: Page, tabName: string) => {
 };
 
 const selectRequestPaneTab = async (page: Page, tabName: string) => {
-  await selectPaneTab(page, '[data-testid="request-pane"] > .px-4', tabName);
+  await selectPaneTab(page, '[data-testid="request-pane"]', tabName);
 };
 
 /**
@@ -1049,9 +1049,18 @@ const closeAllTabs = async (page: Page) => {
       return; // No request tabs to close
     }
 
-    // Right-click on the tab label to open context menu
-    await requestTabLabel.click({ button: 'right' });
-
+    const labelBox = await requestTabLabel.boundingBox();
+    if (labelBox) {
+      await requestTabLabel.click({
+        button: 'right',
+        position: {
+          x: Math.min(12, Math.max(2, labelBox.width * 0.15)),
+          y: Math.max(2, labelBox.height / 2)
+        }
+      });
+    } else {
+      await requestTabLabel.click({ button: 'right' });
+    }
     // Wait for the dropdown menu to appear
     const dropdown = page.locator('.tippy-box.dropdown');
     await dropdown.waitFor({ state: 'visible', timeout: 5000 });

@@ -1,6 +1,7 @@
 import { test, expect, Page } from '../../../playwright';
 import {
   closeAllCollections,
+  closeAllTabs,
   createCollection,
   createRequest,
   selectRequestPaneTab,
@@ -36,37 +37,15 @@ const getEditorScroll = async (page: Page, selector: string): Promise<number> =>
 };
 
 const setEditorScroll = async (page: Page, selector: string, scrollTop: number) => {
-  const editor = page.locator(selector).first();
-  // Ensure content is laid out
-  await editor.evaluate((el) => {
+  await page.locator(selector).first().evaluate((el, top) => {
     const cm = (el as any).CodeMirror;
-    cm?.refresh();
-  });
-  // Use mouse wheel to simulate real user scrolling
-  await editor.hover();
-  const box = await editor.boundingBox();
-  if (box) {
-    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
-    const scrollStep = 200;
-    const steps = Math.ceil(scrollTop / scrollStep);
-    for (let i = 0; i < steps; i++) {
-      await page.mouse.wheel(0, scrollStep);
-      await page.waitForTimeout(50);
-    }
-  }
-  await page.waitForTimeout(300);
-
-  // In Playwright's Electron environment, CM5's internal 'scroll' event may not
-  // fire reliably from mouse.wheel. Emit it manually so the persistence hook's
-  // onScroll handler fires and updates scrollPosRef + debounced localStorage save.
-  await editor.evaluate((el) => {
-    const cm = (el as any).CodeMirror;
-    if (cm && cm.constructor?.signal) {
-      cm.constructor.signal(cm, 'scroll', cm);
-    }
-  });
-  // Wait for debounced save (200ms) to complete
-  await page.waitForTimeout(400);
+    if (!cm) return;
+    // scrollTo fires CM's internal 'scroll' event, which useTrackScroll listens
+    // to via cm.on('scroll'). No mouse simulation needed.
+    cm.scrollTo(null, top);
+  }, scrollTop);
+  // Wait for debounce (200ms) + render buffer
+  await page.waitForTimeout(500);
 };
 
 const setEditorContent = async (page: Page, selector: string, content: string) => {
@@ -119,11 +98,9 @@ const expectRowNear = (actual: number, expected: number, tolerance: number = 5) 
 // keys at the start of each test that exercises the fixture collection.
 const clearPersistedScrollState = async (page: Page) => {
   await page.evaluate(() => {
-    try {
-      Object.keys(localStorage)
-        .filter((k) => k.startsWith('persisted::'))
-        .forEach((k) => localStorage.removeItem(k));
-    } catch {}
+    Object.keys(localStorage)
+      .filter((k) => k.startsWith('persisted::'))
+      .forEach((k) => localStorage.removeItem(k));
   });
 };
 
@@ -132,30 +109,18 @@ const clearPersistedScrollState = async (page: Page) => {
 // ===========================================================================
 
 test.describe('Scroll Position Persistence', () => {
-  test.beforeEach(async ({ page }) => {
-    await closeAllCollections(page);
-  });
-
-  test.afterAll(async ({ page }) => {
-    await closeAllCollections(page);
-  });
   // -------------------------------------------------------------------------
   //  Request Pane
   // -------------------------------------------------------------------------
 
   test.describe('Request Pane', () => {
     test.beforeEach(async ({ pageWithUserData: page }) => {
-      await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
+      try { await closeAllTabs(page); } catch {}
+      await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 20000 });
       await clearPersistedScrollState(page);
     });
 
-    test.afterAll(async ({ page }) => {
-      await closeAllCollections(page);
-    });
-
     test('Body (JSON) - scroll persists across tab switches', async ({ pageWithUserData: page }) => {
-      await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
-
       await test.step('Setup', async () => {
         await openCollection(page, 'scroll-fixtures');
         await openRequest(page, 'scroll-fixtures', 'body-json');
@@ -193,8 +158,6 @@ test.describe('Scroll Position Persistence', () => {
     });
 
     test('Body (XML) - scroll persists across tab switches', async ({ pageWithUserData: page }) => {
-      await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
-
       await test.step('Setup', async () => {
         await openCollection(page, 'scroll-fixtures');
         await openRequest(page, 'scroll-fixtures', 'body-xml');
@@ -234,7 +197,6 @@ test.describe('Scroll Position Persistence', () => {
     });
 
     test('Script - pre-request and post-response scroll persists across sub-tab switches', async ({ pageWithUserData: page }) => {
-      await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
       const PRE_SELECTOR = '[data-testid="pre-request-script-editor"] .CodeMirror';
       const POST_SELECTOR = '[data-testid="post-response-script-editor"] .CodeMirror';
 
@@ -334,11 +296,9 @@ test.describe('Scroll Position Persistence', () => {
     });
 
     test('Tests editor - scroll persists across tab switches', async ({ pageWithUserData: page }) => {
-      await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
-
       await test.step('Setup', async () => {
         await openCollection(page, 'scroll-fixtures');
-        await openRequest(page, 'scroll-fixtures', 'tests');
+        await openRequest(page, 'scroll-fixtures', 'tests', { persist: true });
         await selectRequestPaneTab(page, 'Tests');
       });
 
@@ -351,7 +311,6 @@ test.describe('Scroll Position Persistence', () => {
 
       await test.step('Initialize hook via tab switch, then scroll', async () => {
         await selectRequestPaneTab(page, 'Vars');
-
         await selectRequestPaneTab(page, 'Tests');
 
         await setEditorScroll(page, '[data-testid="test-script-editor"] .CodeMirror', 1500);
@@ -374,8 +333,6 @@ test.describe('Scroll Position Persistence', () => {
     });
 
     test('Scroll positions are independent per request', async ({ pageWithUserData: page }) => {
-      await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
-
       await test.step('Open collection', async () => {
         await openCollection(page, 'scroll-fixtures');
       });
@@ -383,7 +340,7 @@ test.describe('Scroll Position Persistence', () => {
       let scrollA: number;
 
       await test.step('Open req-a and navigate to Body', async () => {
-        await openRequest(page, 'scroll-fixtures', 'req-a');
+        await openRequest(page, 'scroll-fixtures', 'req-a', { persist: true });
         await selectRequestPaneTab(page, 'Body');
       });
 
@@ -420,13 +377,12 @@ test.describe('Scroll Position Persistence', () => {
     });
 
     test('Request Headers - scroll persists with many headers across tab switches', async ({ pageWithUserData: page }) => {
-      await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
       const scrollContainer = '.flex-boundary';
       const firstVisibleRowLocator = () => page.getByTestId('editable-table').locator('table > tbody > tr:nth-child(2)');
 
       await test.step('Setup request and navigate to Headers tab', async () => {
         await openCollection(page, 'scroll-fixtures');
-        await openRequest(page, 'scroll-fixtures', 'headers-many');
+        await openRequest(page, 'scroll-fixtures', 'headers-many', { persist: true });
         await selectRequestPaneTab(page, 'Headers');
       });
 
@@ -437,6 +393,9 @@ test.describe('Scroll Position Persistence', () => {
       });
 
       await test.step('Scroll to ~middle of table (~row 50)', async () => {
+        // Wait for Virtuoso to mount and register its customScrollParent scroll listener
+        // before setting scrollTop — otherwise the event fires before the listener exists.
+        await expect(firstVisibleRowLocator()).toBeVisible({ timeout: 3000 });
         const container = page.locator(scrollContainer).first();
         // Scroll halfway through the virtualised list so ~row 50 becomes the first visible row
         await container.evaluate((el) => { el.scrollTop = el.scrollHeight / 2; });
@@ -462,7 +421,6 @@ test.describe('Scroll Position Persistence', () => {
     });
 
     test('Assertions - scroll persists with many assertions across tab switches', async ({ pageWithUserData: page }) => {
-      await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
       const scrollContainer = '.flex-boundary';
       // Match the first row that actually has a data-index attribute. This skips
       // Virtuoso's optional top-spacer tr (which has no data-index and is only
@@ -477,9 +435,8 @@ test.describe('Scroll Position Persistence', () => {
       });
 
       await test.step('Verify initial scroll is 0', async () => {
+        await expect(firstVisibleRowLocator()).toBeVisible({ timeout: 2000 });
         const container = page.locator(scrollContainer).first();
-        await container.evaluate((el) => { el.scrollTop = 0; });
-        await expect(firstVisibleRowLocator()).toHaveAttribute('data-index', '0', { timeout: 2000 });
         const initial = await container.evaluate((el) => el.scrollTop);
         expect(initial).toBe(0);
       });
@@ -679,16 +636,12 @@ test.describe('Scroll Position Persistence', () => {
 
   test.describe('Folder Settings', () => {
     test.beforeEach(async ({ pageWithUserData: page }) => {
-      await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
+      try { await closeAllTabs(page); } catch {}
+      await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 20000 });
       await clearPersistedScrollState(page);
     });
 
-    test.afterAll(async ({ page }) => {
-      await closeAllCollections(page);
-    });
-
     test('Folder Script - scroll persists across sub-tab switches', async ({ pageWithUserData: page }) => {
-      await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
       const locators = buildCommonLocators(page);
 
       await test.step('Setup folder', async () => {
@@ -732,7 +685,6 @@ test.describe('Scroll Position Persistence', () => {
     });
 
     test('Folder Tests - scroll persists across tab switches', async ({ pageWithUserData: page }) => {
-      await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
       const locators = buildCommonLocators(page);
 
       await test.step('Open folder and navigate to Tests tab', async () => {
@@ -771,7 +723,6 @@ test.describe('Scroll Position Persistence', () => {
     });
 
     test('Folder Docs - scroll persists in edit mode across tab switches', async ({ pageWithUserData: page }) => {
-      await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
       const locators = buildCommonLocators(page);
 
       await test.step('Open folder and navigate to Docs tab', async () => {
@@ -815,7 +766,6 @@ test.describe('Scroll Position Persistence', () => {
     });
 
     test('Folder Script pre-request - scroll persists across tab switches', async ({ pageWithUserData: page }) => {
-      await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
       const locators = buildCommonLocators(page);
       const PRE_SELECTOR = '[data-testid="folder-pre-request-script-editor"] .CodeMirror';
 
@@ -858,7 +808,6 @@ test.describe('Scroll Position Persistence', () => {
     });
 
     test('Folder Script post-response - scroll persists across tab switches', async ({ pageWithUserData: page }) => {
-      await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
       const locators = buildCommonLocators(page);
       const POST_SELECTOR = '[data-testid="folder-post-response-script-editor"] .CodeMirror';
 
@@ -907,11 +856,12 @@ test.describe('Scroll Position Persistence', () => {
 
   test.describe('Collection Settings', () => {
     test.beforeEach(async ({ pageWithUserData: page }) => {
-      await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
+      try { await closeAllTabs(page); } catch {}
+      await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 20000 });
       await clearPersistedScrollState(page);
     });
 
-    test.afterAll(async ({ page }) => {
+    test.afterAll(async ({ pageWithUserData: page }) => {
       await closeAllCollections(page);
     });
 
@@ -924,7 +874,6 @@ test.describe('Scroll Position Persistence', () => {
     };
 
     test('Collection Script - pre-request and post-response scroll persists', async ({ pageWithUserData: page }) => {
-      await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
       const locators = buildCommonLocators(page);
       const PRE_SELECTOR = '[data-testid="collection-pre-request-script-editor"] .CodeMirror';
       const POST_SELECTOR = '[data-testid="collection-post-response-script-editor"] .CodeMirror';
@@ -1013,7 +962,6 @@ test.describe('Scroll Position Persistence', () => {
     });
 
     test('Collection Tests - scroll persists across tab switches', async ({ pageWithUserData: page }) => {
-      await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
       const locators = buildCommonLocators(page);
 
       await test.step('Open collection settings and navigate to Tests tab', async () => {
@@ -1052,7 +1000,6 @@ test.describe('Scroll Position Persistence', () => {
     });
 
     test('Collection Docs - scroll persists in edit mode across tab switches', async ({ pageWithUserData: page }) => {
-      await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
       const locators = buildCommonLocators(page);
 
       await test.step('Open collection settings and navigate to Docs tab', async () => {
@@ -1097,7 +1044,6 @@ test.describe('Scroll Position Persistence', () => {
     });
 
     test('Collection Headers - scroll persists with many headers across tab switches', async ({ pageWithUserData: page }) => {
-      await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
       const locators = buildCommonLocators(page);
       const scrollContainer = '.collection-settings-content';
       const firstVisibleRowLocator = () => page.getByTestId('editable-table').locator('table > tbody > tr:nth-child(2)');
@@ -1115,6 +1061,7 @@ test.describe('Scroll Position Persistence', () => {
       });
 
       await test.step('Scroll to ~middle of table (~row 50)', async () => {
+        await expect(firstVisibleRowLocator()).toBeVisible({ timeout: 3000 });
         const container = page.locator(scrollContainer).first();
         // Scroll halfway through the virtualised list so ~row 50 becomes the first visible row
         await container.evaluate((el) => { el.scrollTop = el.scrollHeight / 2; });
