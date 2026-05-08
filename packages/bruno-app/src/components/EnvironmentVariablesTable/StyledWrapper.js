@@ -4,6 +4,7 @@ const Wrapper = styled.div`
   display: flex;
   flex-direction: column;
   flex: 1;
+  min-height: 0;
   overflow: hidden;
 
   &.is-resizing {
@@ -11,18 +12,77 @@ const Wrapper = styled.div`
     user-select: none;
   }
 
+  .table-scroll-area {
+    flex: 1 1 0%;
+    min-height: 0;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    overflow: hidden;
+  }
+
+  .table-scroll-area .no-results {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /*
+   * react-virtuoso TableVirtuoso sets the scroller to height:100% and the viewport to
+   * position:absolute; height:100%, which stretches a single short row to the panel.
+   * These !important rules match the layout that keeps the table content-sized while
+   * still scrolling when rows exceed max-height (see #7229).
+   */
   .table-container {
-    overflow-y: auto;
+    height: auto !important;
+    flex: 0 1 auto !important;
+    min-height: 0 !important;
+    max-height: 100% !important;
+    overflow-y: auto !important;
+    position: relative !important;
+
+    min-width: 0;
+    width: 100%;
     border-radius: 8px;
     border: solid 1px ${(props) => props.theme.border.border0};
     transition: height 75ms cubic-bezier(0,1.12,.84,.64);
   }
 
+  .table-container [data-viewport-type='element'] {
+    height: auto !important;
+    position: relative !important;
+    top: auto !important;
+    width: 100% !important;
+
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
+    min-height: 0;
+    box-sizing: border-box;
+  }
+
+  .table-container [data-viewport-type='element'] > table {
+    flex: 0 0 auto;
+    width: 100%;
+    align-self: stretch;
+  }
+
   table {
     width: 100%;
+    height: max-content;
     border-collapse: collapse;
     table-layout: fixed;
     font-size: 12px;
+
+    /* Filler rows use aria-hidden on tr; real item rows do not.
+       Stops slack height from being assigned to the last data row in a tall scrollport. */
+    tbody tr:not([aria-hidden='true']) td {
+      height: 1px;
+    }
 
     td {
       vertical-align: middle;
@@ -60,6 +120,7 @@ const Wrapper = styled.div`
           position: absolute;
           right: 0;
           top: 0;
+          bottom: 0;
           width: 4px;
           cursor: col-resize;
           background: transparent;
@@ -82,8 +143,16 @@ const Wrapper = styled.div`
         }
 
         td {
+          vertical-align: top;
           border-bottom: solid 1px ${(props) => props.theme.border.border0};
           border-right: solid 1px ${(props) => props.theme.border.border0};
+
+          &:nth-child(1),
+          &:nth-child(2),
+          &:nth-child(4),
+          &:nth-child(5) {
+            vertical-align: middle;
+          }
 
           &:last-child {
             border-right: none;
