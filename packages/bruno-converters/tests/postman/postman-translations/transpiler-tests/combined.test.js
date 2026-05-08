@@ -438,7 +438,7 @@ describe('Combined API Features Translation', () => {
         test("Response validation", function() {
             expect(res.getStatus()).to.equal(200);
             expect(res.getBody()).to.equal({"success": true});
-            expect(res.getHeader("Content-Type")).to.equal("application/json");
+            expect(res.getHeaders()).to.have.property("Content-Type".toLowerCase(), "application/json");
         });
         `;
     expect(translatedCode).toBe(expectedOutput);

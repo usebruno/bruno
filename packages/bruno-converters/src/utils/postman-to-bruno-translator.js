@@ -238,26 +238,28 @@ const complexTransformations = [
     }
   },
 
-  // handle 'pm.response.to.have.header'
-  // Single arg:  expect(res.getHeader(arg)).to.exist
-  // Two args:    expect(res.getHeader(arg)).to.equal(arg2)
+  // handle 'pm.response.to.have.header' -> expect(res.getHeaders()).to.have.property(args)
+  // Header names are lowercased because axios normalizes response headers to lowercase
   {
     pattern: 'pm.response.to.have.header',
     transform: (path, j) => {
       const args = path.parent.value.arguments;
-      const expectGetHeader = j.callExpression(j.identifier('expect'), [
-        j.callExpression(j.identifier('res.getHeader'), [args[0]])
-      ]);
 
-      if (args.length === 1) {
-        // Existence check — returns a MemberExpression (not a call)
-        return j.memberExpression(expectGetHeader, j.identifier('to.exist'));
+      if (args.length > 0) {
+        args[0] = j.callExpression(
+          j.memberExpression(args[0], j.identifier('toLowerCase')),
+          []
+        );
       }
 
-      // Value check
       return j.callExpression(
-        j.memberExpression(expectGetHeader, j.identifier('to.equal')),
-        [args[1]]
+        j.memberExpression(
+          j.callExpression(j.identifier('expect'), [
+            j.callExpression(j.identifier('res.getHeaders'), [])
+          ]),
+          j.identifier('to.have.property')
+        ),
+        args
       );
     }
   },
@@ -296,24 +298,28 @@ const complexTransformations = [
     }
   },
 
-  // handle 'pm.response.to.not.have.header'
-  // Single arg:  expect(res.getHeader(arg)).to.not.exist
-  // Two args:    expect(res.getHeader(arg)).to.not.equal(arg2)
+  // handle 'pm.response.to.not.have.header' -> expect(res.getHeaders()).to.not.have.property(args)
+  // Header names are lowercased because axios normalizes response headers to lowercase
   {
     pattern: 'pm.response.to.not.have.header',
     transform: (path, j) => {
       const args = path.parent.value.arguments;
-      const expectGetHeader = j.callExpression(j.identifier('expect'), [
-        j.callExpression(j.identifier('res.getHeader'), [args[0]])
-      ]);
 
-      if (args.length === 1) {
-        return j.memberExpression(expectGetHeader, j.identifier('to.not.exist'));
+      if (args.length > 0) {
+        args[0] = j.callExpression(
+          j.memberExpression(args[0], j.identifier('toLowerCase')),
+          []
+        );
       }
 
       return j.callExpression(
-        j.memberExpression(expectGetHeader, j.identifier('to.not.equal')),
-        [args[1]]
+        j.memberExpression(
+          j.callExpression(j.identifier('expect'), [
+            j.callExpression(j.identifier('res.getHeaders'), [])
+          ]),
+          j.identifier('to.not.have.property')
+        ),
+        args
       );
     }
   },
@@ -525,14 +531,11 @@ const complexTransformations = [
 
     // Special case: withBody checks actual body content
     const buildWithBodyTransform = (chain) => (path, j) => {
-      return j.callExpression(
-        j.memberExpression(
-          j.callExpression(j.identifier('expect'), [
-            j.callExpression(j.identifier('res.getBody'), [])
-          ]),
-          j.identifier(chain)
-        ),
-        []
+      return j.memberExpression(
+        j.callExpression(j.identifier('expect'), [
+          j.callExpression(j.identifier('res.getBody'), [])
+        ]),
+        j.identifier(chain)
       );
     };
 

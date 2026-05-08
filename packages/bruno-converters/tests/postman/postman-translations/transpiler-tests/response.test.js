@@ -48,7 +48,7 @@ describe('Response Translation', () => {
   it('should transform pm.response.to.have.header with single argument', () => {
     const code = 'pm.response.to.have.header("Content-Type");';
     const translatedCode = translateCode(code);
-    expect(translatedCode).toBe('expect(res.getHeader("Content-Type")).to.exist;');
+    expect(translatedCode).toBe('expect(res.getHeaders()).to.have.property("Content-Type".toLowerCase());');
   });
 
   it('should transform multiple pm.response.to.have.header statements', () => {
@@ -59,8 +59,8 @@ describe('Response Translation', () => {
     const translatedCode = translateCode(code);
 
     // Check for the existence of all four assertions (two pairs)
-    expect(translatedCode).toContain('expect(res.getHeader("Content-Type")).to.equal("application/json");');
-    expect(translatedCode).toContain('expect(res.getHeader("Cache-Control")).to.equal("no-cache");');
+    expect(translatedCode).toContain('expect(res.getHeaders()).to.have.property("Content-Type".toLowerCase(), "application/json");');
+    expect(translatedCode).toContain('expect(res.getHeaders()).to.have.property("Cache-Control".toLowerCase(), "no-cache");');
   });
 
   it('should transform pm.response.to.have.header inside control structures', () => {
@@ -73,7 +73,7 @@ describe('Response Translation', () => {
 
     // The assertions should be inside the if block
     expect(translatedCode).toContain('if (res.getStatus() === 200) {');
-    expect(translatedCode).toContain('expect(res.getHeader("Content-Type")).to.equal("application/json");');
+    expect(translatedCode).toContain('expect(res.getHeaders()).to.have.property("Content-Type".toLowerCase(), "application/json");');
   });
 
   it('should transform pm.response.to.have.header with variable parameters', () => {
@@ -86,7 +86,7 @@ describe('Response Translation', () => {
 
     expect(translatedCode).toContain('const headerName = "Content-Type";');
     expect(translatedCode).toContain('const expectedValue = "application/json";');
-    expect(translatedCode).toContain('expect(res.getHeader(headerName)).to.equal(expectedValue);');
+    expect(translatedCode).toContain('expect(res.getHeaders()).to.have.property(headerName.toLowerCase(), expectedValue);');
   });
 
   // Response aliases tests
@@ -146,7 +146,7 @@ describe('Response Translation', () => {
         `;
     const translatedCode = translateCode(code);
     expect(translatedCode).toBe(`
-        expect(res.getHeader("Content-Type")).to.exist;
+        expect(res.getHeaders()).to.have.property("Content-Type".toLowerCase());
         `);
   });
 
@@ -158,7 +158,7 @@ describe('Response Translation', () => {
     const translatedCode = translateCode(code);
 
     // Check for both assertions when using an alias
-    expect(translatedCode).toContain('expect(res.getHeader("Content-Type")).to.equal("application/json");');
+    expect(translatedCode).toContain('expect(res.getHeaders()).to.have.property("Content-Type".toLowerCase(), "application/json");');
   });
 
   it('should translate response.status', () => {
@@ -323,8 +323,8 @@ describe('Response Translation', () => {
     expect(translatedCode).toContain('console.log("contentType", contentType);');
     expect(translatedCode).toContain('console.log("contentLength", contentLength);');
     expect(translatedCode).not.toContain('pm.test');
-    expect(translatedCode).toContain('expect(res.getHeader(\'Content-Type\')).to.exist');
-    expect(translatedCode).toContain('expect(res.getHeader(\'Content-Length\')).to.exist');
+    expect(translatedCode).toContain('expect(res.getHeaders()).to.have.property(\'Content-Type\'.toLowerCase())');
+    expect(translatedCode).toContain('expect(res.getHeaders()).to.have.property(\'Content-Length\'.toLowerCase())');
     expect(translatedCode).toContain('expect(contentType).to.include(\'application/json\')');
   });
 
@@ -474,8 +474,8 @@ describe('Response Translation', () => {
     expect(translatedCode).toContain('test("Response headers validation", function() {');
 
     // Check for header assertions inside the test callback
-    expect(translatedCode).toContain('expect(res.getHeader("Content-Type")).to.equal("application/json");');
-    expect(translatedCode).toContain('expect(res.getHeader("Cache-Control")).to.exist');
+    expect(translatedCode).toContain('expect(res.getHeaders()).to.have.property("Content-Type".toLowerCase(), "application/json");');
+    expect(translatedCode).toContain('expect(res.getHeaders()).to.have.property("Cache-Control".toLowerCase())');
 
     // Check that other test assertions are preserved
     expect(translatedCode).toContain('const responseTime = res.getResponseTime();');
@@ -499,10 +499,10 @@ describe('Response Translation', () => {
 
     // Check function transformations
     expect(translatedCode).toContain('function checkHeaderPresent(headerName) {');
-    expect(translatedCode).toContain('expect(res.getHeader(headerName)).to.exist');
+    expect(translatedCode).toContain('expect(res.getHeaders()).to.have.property(headerName.toLowerCase())');
 
     expect(translatedCode).toContain('function validateHeader(headerName, expectedValue) {');
-    expect(translatedCode).toContain('expect(res.getHeader(headerName)).to.equal(expectedValue);');
+    expect(translatedCode).toContain('expect(res.getHeaders()).to.have.property(headerName.toLowerCase(), expectedValue);');
 
     // Check function calls
     expect(translatedCode).toContain('checkHeaderPresent("Authorization");');
@@ -954,7 +954,7 @@ describe('Response Translation', () => {
   it('should translate pm.response.to.be.withBody', () => {
     const code = 'pm.response.to.be.withBody;';
     const translatedCode = translateCode(code);
-    expect(translatedCode).toContain('expect(res.getBody()).to.be.ok');
+    expect(translatedCode).toBe('expect(res.getBody()).to.be.ok;');
   });
 
   it('should handle new status assertions inside test blocks', () => {
@@ -1069,7 +1069,7 @@ describe('Response Translation', () => {
   it('should translate pm.response.to.not.be.withBody', () => {
     const code = 'pm.response.to.not.be.withBody;';
     const translatedCode = translateCode(code);
-    expect(translatedCode).toContain('expect(res.getBody()).to.not.be.ok');
+    expect(translatedCode).toBe('expect(res.getBody()).to.not.be.ok;');
   });
 
   it('should handle negated assertions inside test blocks', () => {
@@ -1117,13 +1117,13 @@ describe('Response Translation', () => {
   it('should translate pm.response.to.not.have.header', () => {
     const code = 'pm.response.to.not.have.header("X-Error");';
     const translatedCode = translateCode(code);
-    expect(translatedCode).toBe('expect(res.getHeader("X-Error")).to.not.exist;');
+    expect(translatedCode).toBe('expect(res.getHeaders()).to.not.have.property("X-Error".toLowerCase());');
   });
 
   it('should translate pm.response.to.not.have.header with value', () => {
     const code = 'pm.response.to.not.have.header("Content-Type", "text/plain");';
     const translatedCode = translateCode(code);
-    expect(translatedCode).toBe('expect(res.getHeader("Content-Type")).to.not.equal("text/plain");');
+    expect(translatedCode).toBe('expect(res.getHeaders()).to.not.have.property("Content-Type".toLowerCase(), "text/plain");');
   });
 
   it('should translate pm.response.to.not.have.body', () => {
@@ -1143,7 +1143,7 @@ describe('Response Translation', () => {
     const translatedCode = translateCode(code);
     expect(translatedCode).toContain('test("Negative assertions", function() {');
     expect(translatedCode).toContain('expect(res.getStatus()).to.not.equal(500)');
-    expect(translatedCode).toContain('expect(res.getHeader("X-Error")).to.not.exist');
+    expect(translatedCode).toContain('expect(res.getHeaders()).to.not.have.property("X-Error".toLowerCase())');
     expect(translatedCode).toContain('expect(res.getBody()).to.not.equal("error")');
   });
 

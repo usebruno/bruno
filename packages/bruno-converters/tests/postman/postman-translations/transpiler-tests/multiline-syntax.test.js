@@ -93,7 +93,7 @@ describe('Multiline Syntax Handling', () => {
     });
     `;
     const translatedCode = translateCode(code);
-    expect(translatedCode).toContain('expect(res.getHeader("content-type")).to.exist');
+    expect(translatedCode).toContain('expect(res.getHeaders()).to.have.property("content-type".toLowerCase())');
   });
 
   it('should handle response properties with multiline syntax', () => {
@@ -275,7 +275,7 @@ describe('Multiline Syntax Handling', () => {
 
     // Check response testing
     expect(translatedCode).toContain('expect(res.getStatus()).to.equal(200)');
-    expect(translatedCode).toContain('expect(res.getHeader("content-type")).to.exist');
+    expect(translatedCode).toContain('expect(res.getHeaders()).to.have.property("content-type".toLowerCase())');
 
     // Check jsonBody translations (positive and negation)
     expect(translatedCode).toContain('expect(res.getBody()).to.have.jsonBody("success", true)');
