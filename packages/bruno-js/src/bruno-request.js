@@ -240,7 +240,14 @@ class BrunoRequest {
     try {
       return JSON.parse(str);
     } catch (e) {
-      return str;
+      try {
+        // Replace unquoted Bruno template variables with JSON-safe placeholders
+        const normalized = str.replace(/:\s*\{\{([^}]+)\}\}/g, ': "__BRUNO_VAR__$1"');
+
+        return JSON.parse(normalized);
+      } catch (err) {
+        return str;
+      }
     }
   }
 
