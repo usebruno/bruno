@@ -241,10 +241,22 @@ class BrunoRequest {
       return JSON.parse(str);
     } catch (e) {
       try {
-        // Replace unquoted Bruno template variables with JSON-safe placeholders
-        const normalized = str.replace(/:\s*\{\{([^}]+)\}\}/g, ': "__BRUNO_VAR__$1"');
+        const placeholderPrefix = '__BRUNO_VAR__';
+        const normalized = str.replace(
+          /:\s*\{\{\s*([^}]+?)\s*\}\}/g,
+          ': "' + placeholderPrefix + '$1"'
+        );
 
-        return JSON.parse(normalized);
+        return JSON.parse(normalized, (key, value) => {
+          if (
+            typeof value === 'string' &&
+            value.startsWith(placeholderPrefix)
+          ) {
+            return `{{${value.slice(placeholderPrefix.length)}}}`;
+          }
+
+          return value;
+        });
       } catch (err) {
         return str;
       }
