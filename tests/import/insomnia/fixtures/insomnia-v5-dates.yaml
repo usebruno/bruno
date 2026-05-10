@@ -1,0 +1,52 @@
+type: collection.insomnia.rest/5.0
+schema_version: "5.1"
+name: Date Type Test
+meta:
+  id: wrk_date_test
+  created: 1776845227518
+  modified: 1776845227518
+collection:
+  - url: http://example.com/test
+    name: Date Request
+    meta:
+      id: req_date_test_001
+      created: 1776845260825
+      modified: 1778146479401
+      isPrivate: false
+      sortKey: -1776845260825
+    method: GET
+    parameters:
+      - name: date
+        value: 2024-01-01
+        disabled: false
+      - name: is_active
+        value: "false"
+        disabled: false
+      - name: limit
+        value: "0"
+        disabled: false
+      - name: version
+        value: "2.0"
+        disabled: false
+      - name: count
+        value: 42
+        disabled: false
+    settings:
+      renderRequestBody: true
+      encodeUrl: true
+      followRedirects: global
+      cookies:
+        send: true
+        store: true
+      rebuildPath: true
+environments:
+  name: Base
+  meta:
+    id: env_date_test_001
+    created: 1776845235974
+    modified: 1776845235974
+    isPrivate: false
+  data:
+    expiry_date: 2024-12-31
+    max_retries: "3"
+    enabled: "true"
