@@ -1,8 +1,8 @@
-import React, { useCallback, useRef } from 'react';
+import React, { useCallback, useLayoutEffect, useRef, useState } from 'react';
 import get from 'lodash/get';
 import { useDispatch, useSelector } from 'react-redux';
 import { useTheme } from 'providers/Theme';
-import { IconUpload, IconX, IconFile } from '@tabler/icons';
+import { IconUpload, IconX, IconFile, IconChevronDown } from '@tabler/icons';
 import {
   moveMultipartFormParam,
   setMultipartFormParams
@@ -10,14 +10,168 @@ import {
 import { browseFiles } from 'providers/ReduxStore/slices/collections/actions';
 import MultiLineEditor from 'components/MultiLineEditor';
 import SingleLineEditor from 'components/SingleLineEditor';
+import Dropdown from 'components/Dropdown';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { updateTableColumnWidths } from 'providers/ReduxStore/slices/tabs';
 import EditableTable from 'components/EditableTable';
-import StyledWrapper from './StyledWrapper';
+import StyledWrapper, { OverflowList } from './StyledWrapper';
 import path from 'utils/common/path';
 import { usePersistedState } from 'hooks/usePersistedState';
 import { useTrackScroll } from 'hooks/useTrackScroll';
 import { isWindowsOS } from 'utils/common/platform';
+
+const basename = (filePath) => {
+  if (!filePath) return '';
+  const separator = isWindowsOS() ? '\\' : '/';
+  return String(filePath).split(separator).pop() || String(filePath);
+};
+
+const MIN_CHIP_W = 75;
+const CHIP_GAP = 4;
+const UPLOAD_RESERVE = 28;
+const MORE_CHIP_RESERVE = 56;
+
+const FileChipsCell = ({ files, onRemove, onAdd }) => {
+  const containerRef = useRef(null);
+  const [visibleCount, setVisibleCount] = useState(files.length);
+
+  useLayoutEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    // Measure the td (column-width, stable) rather than the content-sized cell, which would feed back on visibleCount.
+    const td = container.closest('td') || container.parentElement;
+    if (!td) return;
+
+    const compute = () => {
+      const tdStyle = window.getComputedStyle(td);
+      const padX = parseFloat(tdStyle.paddingLeft) + parseFloat(tdStyle.paddingRight);
+      const total = td.clientWidth - padX;
+      if (files.length === 0) {
+        setVisibleCount(0);
+        return;
+      }
+
+      const allAtMin = files.length * MIN_CHIP_W + Math.max(0, files.length - 1) * CHIP_GAP;
+      if (allAtMin + UPLOAD_RESERVE <= total) {
+        setVisibleCount(files.length);
+        return;
+      }
+
+      const available = total - UPLOAD_RESERVE - MORE_CHIP_RESERVE;
+      const n = Math.max(0, Math.floor((available + CHIP_GAP) / (MIN_CHIP_W + CHIP_GAP)));
+      setVisibleCount(n);
+    };
+
+    compute();
+    const ro = new ResizeObserver(compute);
+    ro.observe(td);
+    return () => ro.disconnect();
+  }, [files]);
+
+  const visible = files.slice(0, visibleCount);
+  const overflow = files.slice(visibleCount);
+
+  const renderChip = (filePath, idx, opts = {}) => (
+    <div
+      key={`${filePath}-${idx}`}
+      className={`file-chip${opts.fullWidth ? ' file-chip-row' : ''}`}
+      title={filePath}
+    >
+      <IconFile size={14} stroke={1.5} className="file-chip-icon" />
+      <span className="file-chip-name">{basename(filePath)}</span>
+      <button
+        type="button"
+        className="file-chip-remove"
+        onClick={(e) => {
+          e.stopPropagation();
+          onRemove(filePath);
+        }}
+        title="Remove file"
+      >
+        <IconX size={13} stroke={1.5} />
+      </button>
+    </div>
+  );
+
+  const renderOverflowList = (list) => (
+    <OverflowList>
+      {list.map((p, i) => (
+        <div key={`o-${p}-${i}`} className="overflow-row" title={p}>
+          <IconFile size={14} stroke={1.5} className="overflow-row-icon" />
+          <span className="overflow-row-name">{basename(p)}</span>
+          <button
+            type="button"
+            className="overflow-row-remove"
+            onClick={(e) => {
+              e.stopPropagation();
+              onRemove(p);
+            }}
+            title="Remove file"
+          >
+            <IconX size={13} stroke={1.5} />
+          </button>
+        </div>
+      ))}
+    </OverflowList>
+  );
+
+  const collapsed = visibleCount === 0 && files.length > 0;
+
+  return (
+    <div className="file-value-cell" ref={containerRef}>
+      {collapsed ? (
+        <>
+          <Dropdown
+            placement="bottom-start"
+            appendTo={() => document.body}
+            icon={(
+              <button
+                type="button"
+                className="file-summary-chip"
+                onClick={(e) => e.stopPropagation()}
+                title={`${files.length} file${files.length > 1 ? 's' : ''}`}
+              >
+                <IconFile size={14} stroke={1.5} className="file-chip-icon" />
+                <span>{files.length} file{files.length > 1 ? 's' : ''}</span>
+                <IconChevronDown size={14} stroke={1.5} />
+              </button>
+            )}
+          >
+            {renderOverflowList(files)}
+          </Dropdown>
+          <div className="file-chips-row" />
+        </>
+      ) : (
+        <>
+          <div className="file-chips-row">
+            {visible.map((p, i) => renderChip(p, i))}
+          </div>
+          {overflow.length > 0 && (
+            <Dropdown
+              placement="bottom-end"
+              appendTo={() => document.body}
+              icon={(
+                <button
+                  type="button"
+                  className="file-more-chip"
+                  onClick={(e) => e.stopPropagation()}
+                  title={`${overflow.length} more file${overflow.length > 1 ? 's' : ''}`}
+                >
+                  +{overflow.length} more
+                </button>
+              )}
+            >
+              {renderOverflowList(overflow)}
+            </Dropdown>
+          )}
+        </>
+      )}
+      <button type="button" className="upload-btn ml-1" onClick={onAdd} title="Add files">
+        <IconUpload size={16} />
+      </button>
+    </div>
+  );
+};
 
 const MultipartFormParams = ({ item, collection }) => {
   const dispatch = useDispatch();
@@ -57,7 +211,7 @@ const MultipartFormParams = ({ item, collection }) => {
   }, [dispatch, collection.uid, item.uid]);
 
   const handleBrowseFiles = useCallback((row, onChange) => {
-    dispatch(browseFiles())
+    dispatch(browseFiles([], ['multiSelections']))
       .then((filePaths) => {
         const processedPaths = filePaths.map((filePath) => {
           const collectionDir = collection.pathname;
@@ -92,13 +246,21 @@ const MultipartFormParams = ({ item, collection }) => {
       });
   }, [dispatch, collection.pathname, item, handleParamsChange]);
 
-  const handleClearFile = useCallback((row) => {
+  const handleRemoveFile = useCallback((row, filePathToRemove) => {
     const currentParams = params || [];
+    const target = currentParams.find((p) => p.uid === row.uid);
+    if (!target || target.type !== 'file') return;
+    const currentValue = Array.isArray(target.value)
+      ? target.value
+      : (target.value ? [target.value] : []);
+    const nextValue = currentValue.filter((p) => p !== filePathToRemove);
+
     const updatedParams = currentParams.map((p) => {
-      if (p.uid === row.uid) {
+      if (p.uid !== row.uid) return p;
+      if (nextValue.length === 0) {
         return { ...p, type: 'text', value: '' };
       }
-      return p;
+      return { ...p, type: 'file', value: nextValue };
     });
     handleParamsChange(updatedParams);
   }, [params, handleParamsChange]);
@@ -119,19 +281,12 @@ const MultipartFormParams = ({ item, collection }) => {
     }
   }, [params, handleParamsChange]);
 
-  const getFileName = (filePaths) => {
+  const getFileList = (filePaths) => {
     if (!filePaths || (Array.isArray(filePaths) && filePaths.length === 0)) {
-      return null;
+      return [];
     }
     const paths = Array.isArray(filePaths) ? filePaths : [filePaths];
-    const validPaths = paths.filter((v) => v != null && v !== '');
-    if (validPaths.length === 0) return null;
-
-    const separator = isWindowsOS() ? '\\' : '/';
-    if (validPaths.length === 1) {
-      return validPaths[0].split(separator).pop();
-    }
-    return `${validPaths.length} file(s)`;
+    return paths.filter((v) => v != null && v !== '');
   };
 
   const columns = [
@@ -148,29 +303,14 @@ const MultipartFormParams = ({ item, collection }) => {
       placeholder: 'Value',
       width: '35%',
       render: ({ row, value, onChange }) => {
-        const isFile = row.type === 'file';
-        const fileName = isFile ? getFileName(value) : null;
-        if (fileName) {
+        const files = row.type === 'file' ? getFileList(value) : [];
+        if (files.length > 0) {
           return (
-            <div className="flex items-center file-value-cell">
-              <IconFile size={16} className="text-muted mr-1" />
-              <div className="file-name flex-1 truncate" title={Array.isArray(value) ? value.join(', ') : value}>
-                <SingleLineEditor
-                  theme={storedTheme}
-                  value={fileName}
-                  readOnly={true}
-                  collection={collection}
-                  item={item}
-                />
-              </div>
-              <button
-                className="clear-file-btn ml-1"
-                onClick={() => handleClearFile(row)}
-                title="Remove file"
-              >
-                <IconX size={16} />
-              </button>
-            </div>
+            <FileChipsCell
+              files={files}
+              onRemove={(filePath) => handleRemoveFile(row, filePath)}
+              onAdd={() => handleBrowseFiles(row, onChange)}
+            />
           );
         }
 

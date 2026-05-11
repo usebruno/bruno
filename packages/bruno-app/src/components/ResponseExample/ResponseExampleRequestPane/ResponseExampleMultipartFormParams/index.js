@@ -1,8 +1,8 @@
-import React, { useMemo, useCallback } from 'react';
+import React, { useMemo, useCallback, useLayoutEffect, useRef, useState } from 'react';
 import get from 'lodash/get';
 import { useDispatch, useSelector } from 'react-redux';
 import { useTheme } from 'providers/Theme';
-import { IconUpload, IconX, IconFile } from '@tabler/icons';
+import { IconUpload, IconX, IconFile, IconChevronDown } from '@tabler/icons';
 import { updateResponseExampleMultipartFormParams } from 'providers/ReduxStore/slices/collections';
 import { browseFiles } from 'providers/ReduxStore/slices/collections/actions';
 import { updateTableColumnWidths } from 'providers/ReduxStore/slices/tabs';
@@ -11,8 +11,166 @@ import path from 'utils/common/path';
 import EditableTable from 'components/EditableTable';
 import MultiLineEditor from 'components/MultiLineEditor';
 import SingleLineEditor from 'components/SingleLineEditor';
-import StyledWrapper from './StyledWrapper';
+import Dropdown from 'components/Dropdown';
+import StyledWrapper, { OverflowList } from './StyledWrapper';
 import { isWindowsOS } from 'utils/common/platform';
+
+const MIN_CHIP_W = 75;
+const CHIP_GAP = 4;
+const UPLOAD_RESERVE = 28;
+const MORE_CHIP_RESERVE = 56;
+
+const basename = (filePath) => {
+  if (!filePath) return '';
+  const separator = isWindowsOS() ? '\\' : '/';
+  return String(filePath).split(separator).pop() || String(filePath);
+};
+
+const FileChipsCell = ({ files, onRemove, onAdd, editMode }) => {
+  const containerRef = useRef(null);
+  const [visibleCount, setVisibleCount] = useState(files.length);
+
+  useLayoutEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    const td = container.closest('td') || container.parentElement;
+    if (!td) return;
+
+    const compute = () => {
+      const tdStyle = window.getComputedStyle(td);
+      const padX = parseFloat(tdStyle.paddingLeft) + parseFloat(tdStyle.paddingRight);
+      const total = td.clientWidth - padX;
+      if (files.length === 0) {
+        setVisibleCount(0);
+        return;
+      }
+
+      const allAtMin = files.length * MIN_CHIP_W + Math.max(0, files.length - 1) * CHIP_GAP;
+      if (allAtMin + UPLOAD_RESERVE <= total) {
+        setVisibleCount(files.length);
+        return;
+      }
+
+      const available = total - UPLOAD_RESERVE - MORE_CHIP_RESERVE;
+      const n = Math.max(0, Math.floor((available + CHIP_GAP) / (MIN_CHIP_W + CHIP_GAP)));
+      setVisibleCount(n);
+    };
+
+    compute();
+    const ro = new ResizeObserver(compute);
+    ro.observe(td);
+    return () => ro.disconnect();
+  }, [files]);
+
+  const visible = files.slice(0, visibleCount);
+  const overflow = files.slice(visibleCount);
+  const collapsed = visibleCount === 0 && files.length > 0;
+
+  const renderChip = (filePath, idx, opts = {}) => (
+    <div
+      key={`${filePath}-${idx}`}
+      className={`file-chip${opts.fullWidth ? ' file-chip-row' : ''}`}
+      title={filePath}
+    >
+      <IconFile size={14} stroke={1.5} className="file-chip-icon" />
+      <span className="file-chip-name">{basename(filePath)}</span>
+      {editMode && (
+        <button
+          type="button"
+          className="file-chip-remove"
+          onClick={(e) => {
+            e.stopPropagation();
+            onRemove(filePath);
+          }}
+          title="Remove file"
+        >
+          <IconX size={13} stroke={1.5} />
+        </button>
+      )}
+    </div>
+  );
+
+  const renderOverflowList = (list) => (
+    <OverflowList>
+      {list.map((p, i) => (
+        <div key={`o-${p}-${i}`} className="overflow-row" title={p}>
+          <IconFile size={14} stroke={1.5} className="overflow-row-icon" />
+          <span className="overflow-row-name">{basename(p)}</span>
+          {editMode && (
+            <button
+              type="button"
+              className="overflow-row-remove"
+              onClick={(e) => {
+                e.stopPropagation();
+                onRemove(p);
+              }}
+              title="Remove file"
+            >
+              <IconX size={13} stroke={1.5} />
+            </button>
+          )}
+        </div>
+      ))}
+    </OverflowList>
+  );
+
+  return (
+    <div className="file-value-cell" ref={containerRef}>
+      {collapsed ? (
+        <>
+          <Dropdown
+            placement="bottom-start"
+            appendTo={() => document.body}
+            icon={(
+              <button
+                type="button"
+                className="file-summary-chip"
+                onClick={(e) => e.stopPropagation()}
+                title={`${files.length} file${files.length > 1 ? 's' : ''}`}
+              >
+                <IconFile size={14} stroke={1.5} className="file-chip-icon" />
+                <span>{files.length} file{files.length > 1 ? 's' : ''}</span>
+                <IconChevronDown size={14} stroke={1.5} />
+              </button>
+            )}
+          >
+            {renderOverflowList(files)}
+          </Dropdown>
+          <div className="file-chips-row" />
+        </>
+      ) : (
+        <>
+          <div className="file-chips-row">
+            {visible.map((p, i) => renderChip(p, i))}
+          </div>
+          {overflow.length > 0 && (
+            <Dropdown
+              placement="bottom-end"
+              appendTo={() => document.body}
+              icon={(
+                <button
+                  type="button"
+                  className="file-more-chip"
+                  onClick={(e) => e.stopPropagation()}
+                  title={`${overflow.length} more file${overflow.length > 1 ? 's' : ''}`}
+                >
+                  +{overflow.length} more
+                </button>
+              )}
+            >
+              {renderOverflowList(overflow)}
+            </Dropdown>
+          )}
+        </>
+      )}
+      {editMode && (
+        <button type="button" className="upload-btn ml-1" onClick={onAdd} title="Add files">
+          <IconUpload size={16} />
+        </button>
+      )}
+    </div>
+  );
+};
 
 const ResponseExampleMultipartFormParams = ({ item, collection, exampleUid, editMode = false }) => {
   const dispatch = useDispatch();
@@ -48,8 +206,10 @@ const ResponseExampleMultipartFormParams = ({ item, collection, exampleUid, edit
   const handleBrowseFiles = useCallback((row, onChange) => {
     if (!editMode) return;
 
-    dispatch(browseFiles())
+    dispatch(browseFiles([], ['multiSelections']))
       .then((filePaths) => {
+        if (!Array.isArray(filePaths) || filePaths.length === 0) return;
+
         const processedPaths = filePaths.map((filePath) => {
           const collectionDir = collection.pathname;
           if (filePath.startsWith(collectionDir)) {
@@ -60,16 +220,21 @@ const ResponseExampleMultipartFormParams = ({ item, collection, exampleUid, edit
 
         const currentParams = params || [];
         const existingParam = currentParams.find((p) => p.uid === row.uid);
+        const existingValue = existingParam && existingParam.type === 'file' && Array.isArray(existingParam.value)
+          ? existingParam.value
+          : [];
+        const merged = [...existingValue];
+        for (const p of processedPaths) {
+          if (!merged.includes(p)) merged.push(p);
+        }
 
         let updatedParams;
         if (existingParam) {
-          // Update existing param
           updatedParams = currentParams.map((p) => {
             if (p.uid === row.uid) {
-              const updated = { ...p, type: 'file', value: processedPaths };
-              // Auto-detect content type from first file
-              if (processedPaths.length > 0) {
-                const contentType = mime.contentType(path.extname(processedPaths[0]));
+              const updated = { ...p, type: 'file', value: merged };
+              if (merged.length > 0 && !p.contentType) {
+                const contentType = mime.contentType(path.extname(merged[0]));
                 updated.contentType = contentType || '';
               }
               return updated;
@@ -77,18 +242,16 @@ const ResponseExampleMultipartFormParams = ({ item, collection, exampleUid, edit
             return p;
           });
         } else {
-          // Add new param (from EditableTable's empty row)
           const newParam = {
             uid: row.uid,
             name: row.name || '',
             type: 'file',
-            value: processedPaths,
+            value: merged,
             contentType: '',
             enabled: true
           };
-          // Auto-detect content type from first file
-          if (processedPaths.length > 0) {
-            const contentType = mime.contentType(path.extname(processedPaths[0]));
+          if (merged.length > 0) {
+            const contentType = mime.contentType(path.extname(merged[0]));
             newParam.contentType = contentType || '';
           }
           updatedParams = [...currentParams, newParam];
@@ -101,21 +264,24 @@ const ResponseExampleMultipartFormParams = ({ item, collection, exampleUid, edit
       });
   }, [editMode, dispatch, collection.pathname, params, handleParamsChange]);
 
-  const handleClearFile = useCallback((row) => {
+  const handleRemoveFile = useCallback((row, filePathToRemove) => {
     if (!editMode) return;
-
     const currentParams = params || [];
-    const existingParam = currentParams.find((p) => p.uid === row.uid);
+    const target = currentParams.find((p) => p.uid === row.uid);
+    if (!target || target.type !== 'file') return;
+    const currentValue = Array.isArray(target.value)
+      ? target.value
+      : (target.value ? [target.value] : []);
+    const nextValue = currentValue.filter((p) => p !== filePathToRemove);
 
-    if (existingParam) {
-      const updatedParams = currentParams.map((p) => {
-        if (p.uid === row.uid) {
-          return { ...p, type: 'text', value: '' };
-        }
-        return p;
-      });
-      handleParamsChange(updatedParams);
-    }
+    const updatedParams = currentParams.map((p) => {
+      if (p.uid !== row.uid) return p;
+      if (nextValue.length === 0) {
+        return { ...p, type: 'text', value: '' };
+      }
+      return { ...p, type: 'file', value: nextValue };
+    });
+    handleParamsChange(updatedParams);
   }, [editMode, params, handleParamsChange]);
 
   const handleValueChange = useCallback((row, newValue, onChange) => {
@@ -151,19 +317,12 @@ const ResponseExampleMultipartFormParams = ({ item, collection, exampleUid, edit
     }));
   }, [editMode, dispatch, item.uid, collection.uid, exampleUid, params]);
 
-  const getFileName = (filePaths) => {
+  const getFileList = (filePaths) => {
     if (!filePaths || (Array.isArray(filePaths) && filePaths.length === 0)) {
-      return null;
+      return [];
     }
     const paths = Array.isArray(filePaths) ? filePaths : [filePaths];
-    const validPaths = paths.filter((v) => v != null && v !== '');
-    if (validPaths.length === 0) return null;
-
-    const separator = isWindowsOS() ? '\\' : '/';
-    if (validPaths.length === 1) {
-      return validPaths[0].split(separator).pop();
-    }
-    return `${validPaths.length} file(s)`;
+    return paths.filter((v) => v != null && v !== '');
   };
 
   const columns = [
@@ -182,29 +341,15 @@ const ResponseExampleMultipartFormParams = ({ item, collection, exampleUid, edit
       width: '40%',
       readOnly: !editMode,
       render: ({ row, value, onChange }) => {
-        const isFile = row.type === 'file';
-        const fileName = isFile ? getFileName(value) : null;
-        if (fileName) {
+        const fileList = row.type === 'file' ? getFileList(value) : [];
+        if (fileList.length > 0) {
           return (
-            <div className="flex items-center file-value-cell">
-              <IconFile size={16} className="text-muted mr-1" />
-              <div className="file-name flex-1 truncate" title={Array.isArray(value) ? value.join(', ') : value}>
-                <SingleLineEditor
-                  theme={storedTheme}
-                  value={fileName}
-                  readOnly={true}
-                  collection={collection}
-                  item={item}
-                />
-              </div>
-              <button
-                className="clear-file-btn ml-1"
-                onClick={() => handleClearFile(row)}
-                title="Remove file"
-              >
-                <IconX size={16} />
-              </button>
-            </div>
+            <FileChipsCell
+              files={fileList}
+              onRemove={(filePath) => handleRemoveFile(row, filePath)}
+              onAdd={() => handleBrowseFiles(row, onChange)}
+              editMode={editMode}
+            />
           );
         }
 
@@ -224,13 +369,15 @@ const ResponseExampleMultipartFormParams = ({ item, collection, exampleUid, edit
                 placeholder={!value ? 'Value' : ''}
               />
             </div>
-            <button
-              className="upload-btn ml-1"
-              onClick={() => handleBrowseFiles(row, onChange)}
-              title="Select file"
-            >
-              <IconUpload size={16} />
-            </button>
+            {editMode && (
+              <button
+                className="upload-btn ml-1"
+                onClick={() => handleBrowseFiles(row, onChange)}
+                title="Select file"
+              >
+                <IconUpload size={16} />
+              </button>
+            )}
           </div>
         );
       }
