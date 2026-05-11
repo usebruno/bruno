@@ -2,6 +2,7 @@ import type { Environment as BrunoEnvironment, EnvironmentVariable as BrunoEnvir
 import type { Environment } from '@opencollection/types/config/environments';
 import type { Variable, SecretVariable } from '@opencollection/types/common/variables';
 import { stringifyYml } from './utils';
+import { ensureString } from '../../utils';
 
 const toOpenCollectionEnvironmentVariables = (variables: BrunoEnvironmentVariable[]): (Variable | SecretVariable)[] | undefined => {
   if (!variables?.length) {
@@ -9,11 +10,6 @@ const toOpenCollectionEnvironmentVariables = (variables: BrunoEnvironmentVariabl
   }
 
   const ocVariables: (Variable | SecretVariable)[] = variables
-    .filter((v: BrunoEnvironmentVariable) => {
-      // todo: currently neither bru lang nor bruno app supports non-string values
-      // update this when bruno app supports non-string values
-      return typeof v.value === 'string';
-    })
     .map((v: BrunoEnvironmentVariable): Variable | SecretVariable => {
       if (v.secret === true) {
         const secretVar: SecretVariable = {
@@ -28,7 +24,7 @@ const toOpenCollectionEnvironmentVariables = (variables: BrunoEnvironmentVariabl
 
       const variable: Variable = {
         name: v.name || '',
-        value: v.value as string
+        value: ensureString(v.value)
       };
 
       if (v.enabled === false) {
