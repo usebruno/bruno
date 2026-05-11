@@ -183,6 +183,82 @@ describe('interpolate-vars: interpolateVars', () => {
       });
     });
 
+    describe('With path params and encodeUrl setting (issue #7356)', () => {
+      it('encodes / inside path-param value when settings.encodeUrl is true', async () => {
+        const request = {
+          method: 'GET',
+          url: 'http://example.com/users/:id/profile',
+          settings: { encodeUrl: true },
+          pathParams: [{ type: 'path', name: 'id', value: 'aaa/bbb' }]
+        };
+
+        const result = interpolateVars(request, null, null, null);
+        expect(result.url).toBe('http://example.com/users/aaa%2Fbbb/profile');
+      });
+
+      it('encodes # and spaces inside path-param value when settings.encodeUrl is true', async () => {
+        const request = {
+          method: 'GET',
+          url: 'http://example.com/users/:id',
+          settings: { encodeUrl: true },
+          pathParams: [{ type: 'path', name: 'id', value: 'John#Doe Jr' }]
+        };
+
+        const result = interpolateVars(request, null, null, null);
+        expect(result.url).toBe('http://example.com/users/John%23Doe%20Jr');
+      });
+
+      it('does NOT encode path-param value when settings.encodeUrl is false (or unset)', async () => {
+        const request = {
+          method: 'GET',
+          url: 'http://example.com/users/:id/profile',
+          settings: { encodeUrl: false },
+          pathParams: [{ type: 'path', name: 'id', value: 'aaa/bbb' }]
+        };
+
+        const result = interpolateVars(request, null, null, null);
+        // Raw slash bleeds into path structure — intentional when toggle is off
+        expect(result.url).toBe('http://example.com/users/aaa/bbb/profile');
+      });
+
+      it('encodes path-param values inside OData segments when settings.encodeUrl is true', async () => {
+        const request = {
+          method: 'GET',
+          url: 'http://example.com/odata/Products(:productId)',
+          settings: { encodeUrl: true },
+          pathParams: [{ type: 'path', name: 'productId', value: 'ABC/123' }]
+        };
+
+        const result = interpolateVars(request, null, null, null);
+        expect(result.url).toBe('http://example.com/odata/Products(ABC%2F123)');
+      });
+
+      it('is idempotent for pre-encoded path-param values', async () => {
+        const request = {
+          method: 'GET',
+          url: 'http://example.com/users/:id',
+          settings: { encodeUrl: true },
+          pathParams: [{ type: 'path', name: 'id', value: 'aaa%2Fbbb' }]
+        };
+
+        const result = interpolateVars(request, null, null, null);
+        // %2F decoded then re-encoded back to %2F — no double-encoding
+        expect(result.url).toBe('http://example.com/users/aaa%2Fbbb');
+      });
+
+      it('encodes bare % once to %25 without double-encoding', async () => {
+        const request = {
+          method: 'GET',
+          url: 'http://example.com/items/:id',
+          settings: { encodeUrl: true },
+          pathParams: [{ type: 'path', name: 'id', value: '100%' }]
+        };
+
+        const result = interpolateVars(request, null, null, null);
+        expect(result.url).toBe('http://example.com/items/100%25');
+      });
+    });
+
     describe('With process environment variables', () => {
       /*
        * It should NOT turn process env vars into literal segments.

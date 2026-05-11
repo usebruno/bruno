@@ -29,3 +29,70 @@ describe('interpolate-vars: api key header name sidecar', () => {
     expect(request.apiKeyHeaderName).toEqual('X-API-Key');
   });
 });
+
+describe('interpolate-vars: path-param encoding (issue #7356)', () => {
+  it('encodes / inside path-param value when settings.encodeUrl is true', () => {
+    const request = {
+      method: 'GET',
+      url: 'http://example.com/users/:id/profile',
+      settings: { encodeUrl: true },
+      pathParams: [{ type: 'path', name: 'id', value: 'aaa/bbb' }]
+    };
+
+    interpolateVars(request, {}, {}, {});
+
+    expect(request.url).toBe('http://example.com/users/aaa%2Fbbb/profile');
+  });
+
+  it('does NOT encode path-param value when settings.encodeUrl is false', () => {
+    const request = {
+      method: 'GET',
+      url: 'http://example.com/users/:id/profile',
+      settings: { encodeUrl: false },
+      pathParams: [{ type: 'path', name: 'id', value: 'aaa/bbb' }]
+    };
+
+    interpolateVars(request, {}, {}, {});
+
+    expect(request.url).toBe('http://example.com/users/aaa/bbb/profile');
+  });
+
+  it('encodes # and spaces inside path-param value when settings.encodeUrl is true', () => {
+    const request = {
+      method: 'GET',
+      url: 'http://example.com/users/:id',
+      settings: { encodeUrl: true },
+      pathParams: [{ type: 'path', name: 'id', value: 'John#Doe Jr' }]
+    };
+
+    interpolateVars(request, {}, {}, {});
+
+    expect(request.url).toBe('http://example.com/users/John%23Doe%20Jr');
+  });
+
+  it('is idempotent for pre-encoded path-param values', () => {
+    const request = {
+      method: 'GET',
+      url: 'http://example.com/users/:id',
+      settings: { encodeUrl: true },
+      pathParams: [{ type: 'path', name: 'id', value: 'aaa%2Fbbb' }]
+    };
+
+    interpolateVars(request, {}, {}, {});
+
+    expect(request.url).toBe('http://example.com/users/aaa%2Fbbb');
+  });
+
+  it('encodes bare % once without double-encoding', () => {
+    const request = {
+      method: 'GET',
+      url: 'http://example.com/items/:id',
+      settings: { encodeUrl: true },
+      pathParams: [{ type: 'path', name: 'id', value: '100%' }]
+    };
+
+    interpolateVars(request, {}, {}, {});
+
+    expect(request.url).toBe('http://example.com/items/100%25');
+  });
+});

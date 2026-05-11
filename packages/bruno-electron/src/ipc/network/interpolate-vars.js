@@ -1,6 +1,6 @@
 const { interpolate } = require('@usebruno/common');
 const { each, forOwn, cloneDeep } = require('lodash');
-const { isFormData } = require('@usebruno/common').utils;
+const { isFormData, safeDecodeURIComponent } = require('@usebruno/common').utils;
 
 const getContentType = (headers = {}) => {
   let contentType = '';
@@ -167,6 +167,14 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
       throw { message: 'Invalid URL format', originalError: e.message };
     }
 
+    // Encode path-param values when the URL Encoding toggle is on, so values like
+    // "aaa/bbb" survive as "aaa%2Fbbb" rather than turning into extra path segments.
+    // safeDecode → encode keeps the transform idempotent: already-encoded values
+    // round-trip unchanged.
+    const encodePathParam = request.settings?.encodeUrl === true
+      ? (value) => encodeURIComponent(safeDecodeURIComponent(String(value)))
+      : (value) => value;
+
     const urlPathnameInterpolatedWithPathParams = url.pathname
       .split('/')
       .filter((path) => path !== '')
@@ -178,7 +186,7 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
           if (!existingPathParam) {
             return '/' + path;
           }
-          return '/' + existingPathParam.value;
+          return '/' + encodePathParam(existingPathParam.value);
         }
 
         // for OData-style parameters (parameters inside parentheses)
@@ -197,7 +205,7 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
               if (name) {
                 const existingPathParam = request.pathParams.find((param) => param.name === name);
                 if (existingPathParam) {
-                  result = result.replace(':' + match[1], existingPathParam.value);
+                  result = result.replace(':' + match[1], encodePathParam(existingPathParam.value));
                 }
               }
             }
