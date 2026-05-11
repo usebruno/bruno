@@ -86,7 +86,7 @@ servers:
   - url: https://example.com
 `;
     const { items: [req] } = openApiToBruno(spec);
-    expect(req.request.auth.mode).toBe('inherit');
+    expect(req.request.auth.mode).toBe('none');
     const apiKeyHeader = req.request.headers.find((h) => h.name === 'DEMO_API_KEY');
     expect(apiKeyHeader).toBeUndefined();
   });
@@ -125,6 +125,78 @@ servers:
       key: 'X-API-Key',
       placement: 'header'
     });
+  });
+
+  it('skips a security requirement when any required scheme is unsupported', () => {
+    const spec = `
+openapi: 3.0.3
+info:
+  title: Combined Security API
+  version: '1.0'
+components:
+  securitySchemes:
+    SessionCookie:
+      type: apiKey
+      in: cookie
+      name: SessionCookie
+    FirstHeader:
+      type: apiKey
+      in: header
+      name: X-First-Key
+    FallbackHeader:
+      type: apiKey
+      in: header
+      name: X-Fallback-Key
+security:
+  - SessionCookie: []
+    FirstHeader: []
+  - FallbackHeader: []
+paths:
+  /whoami:
+    get:
+      responses:
+        '200': { description: OK }
+servers:
+  - url: https://example.com
+`;
+    const collection = openApiToBruno(spec);
+
+    expect(collection.root.request.auth.mode).toBe('apikey');
+    expect(collection.root.request.auth.apikey.key).toBe('X-Fallback-Key');
+  });
+
+  it('disables inheritance when operation security only has unsupported schemes', () => {
+    const spec = `
+openapi: 3.0.3
+info:
+  title: Operation Cookie API-Key
+  version: '1.0'
+components:
+  securitySchemes:
+    ApiKeyHeader:
+      type: apiKey
+      in: header
+      name: X-API-Key
+    SessionCookie:
+      type: apiKey
+      in: cookie
+      name: SessionCookie
+security:
+  - ApiKeyHeader: []
+paths:
+  /whoami:
+    get:
+      security:
+        - SessionCookie: []
+      responses:
+        '200': { description: OK }
+servers:
+  - url: https://example.com
+`;
+    const { items: [req] } = openApiToBruno(spec);
+
+    expect(req.request.auth.mode).toBe('none');
+    expect(req.request.headers.find((h) => h.name === 'SessionCookie')).toBeUndefined();
   });
 
   it('maps OAuth2 authorizationCode flow to oauth2 grantType authorization_code', () => {

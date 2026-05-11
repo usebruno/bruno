@@ -42,12 +42,12 @@ const isSupportedSecurityScheme = (scheme) => {
 
 const getFirstSupportedSecurityScheme = (securityRequirements = [], securitySchemes = {}) => {
   for (const requirement of securityRequirements) {
-    for (const schemeName of Object.keys(requirement)) {
-      const scheme = securitySchemes[schemeName];
-      if (isSupportedSecurityScheme(scheme)) {
-        return scheme;
-      }
+    const schemes = Object.keys(requirement).map((schemeName) => securitySchemes[schemeName]);
+    if (schemes.some((scheme) => !isSupportedSecurityScheme(scheme))) {
+      continue;
     }
+
+    return schemes[0] || null;
   }
 
   return null;
@@ -359,6 +359,9 @@ const transformOpenapiRequestItem = (request, usedNames = new Set(), options = {
   let auth = null;
   if (_operationObject.security && _operationObject.security.length > 0) {
     auth = request.global.security.getFirstSupportedScheme(_operationObject.security);
+    if (!auth) {
+      brunoRequestItem.request.auth.mode = 'none';
+    }
   }
 
   if (auth) {
@@ -795,8 +798,8 @@ const getSecurity = (apiSpec) => {
   return {
     supported: hasSchemes
       ? defaultSchemes
-          .flatMap((scheme) => Object.keys(scheme).map((schemeName) => securitySchemes[schemeName]))
-          .filter(isSupportedSecurityScheme)
+          .map((scheme) => getFirstSupportedSecurityScheme([scheme], securitySchemes))
+          .filter(Boolean)
       : [],
     schemes: securitySchemes,
     getScheme: (schemeName) => {
