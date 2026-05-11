@@ -147,6 +147,21 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
     }
   };
 
+  const handleRequestTabMouseUp = (e) => {
+    if (e.button !== 1) {
+      return;
+    }
+
+    if (!hasChanges) {
+      isWS && closeWsConnection(item.uid);
+      return handleMouseUp(e);
+    }
+
+    e.stopPropagation();
+    e.preventDefault();
+    setShowConfirmClose(true);
+  };
+
   const getMethodColor = (method = '') => {
     const colorMap = {
       ...theme.request.methods,
@@ -518,7 +533,11 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
   }
 
   return (
-    <StyledWrapper className="flex items-center justify-between tab-container px-2">
+    <StyledWrapper
+      className="flex items-center justify-between tab-container px-2"
+      onMouseDown={handleMouseDown}
+      onMouseUp={handleRequestTabMouseUp}
+    >
       {showConfirmClose && (
         <ConfirmRequestClose
           item={item}
@@ -559,16 +578,6 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
         className={`flex items-baseline tab-label ${tab.preview ? 'italic' : ''}`}
         onContextMenu={handleRightClick}
         onDoubleClick={() => dispatch(makeTabPermanent({ uid: tab.uid }))}
-        onMouseDown={handleMouseDown}
-        onMouseUp={(e) => {
-          if (!hasChanges) return handleMouseUp(e);
-
-          if (e.button === 1) {
-            e.stopPropagation();
-            e.preventDefault();
-            setShowConfirmClose(true);
-          }
-        }}
       >
         <span className="tab-method uppercase" style={{ color: getMethodColor(method) }}>
           {method}
