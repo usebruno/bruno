@@ -42,6 +42,11 @@ const renderWithProviders = () => render(
 
 const getTitleBar = (container) => container.querySelector('.app-titlebar');
 
+const mockInvokeWithFullscreen = (isFullScreen) => jest.fn((channel) => {
+  if (channel === 'renderer:window-is-fullscreen') return Promise.resolve(isFullScreen);
+  return Promise.resolve(false);
+});
+
 describe('AppTitleBar — fullscreen state sync', () => {
   let ipcListeners;
 
@@ -70,7 +75,7 @@ describe('AppTitleBar — fullscreen state sync', () => {
     });
 
     it('should apply fullscreen class when window is already fullscreen at mount', async () => {
-      window.ipcRenderer.invoke = jest.fn().mockResolvedValue(true);
+      window.ipcRenderer.invoke = mockInvokeWithFullscreen(true);
 
       const { container } = renderWithProviders();
 
@@ -83,7 +88,7 @@ describe('AppTitleBar — fullscreen state sync', () => {
       const { container } = renderWithProviders();
 
       await waitFor(() => {
-        expect(window.ipcRenderer.invoke).toHaveBeenCalled();
+        expect(window.ipcRenderer.invoke).toHaveBeenCalledWith('renderer:window-is-fullscreen');
       });
       expect(getTitleBar(container)).not.toHaveClass('fullscreen');
     });
@@ -94,7 +99,7 @@ describe('AppTitleBar — fullscreen state sync', () => {
       const { container } = renderWithProviders();
 
       await waitFor(() => {
-        expect(window.ipcRenderer.invoke).toHaveBeenCalled();
+        expect(window.ipcRenderer.invoke).toHaveBeenCalledWith('renderer:window-is-fullscreen');
       });
 
       act(() => {
@@ -105,7 +110,7 @@ describe('AppTitleBar — fullscreen state sync', () => {
     });
 
     it('should remove fullscreen class on main:leave-full-screen event', async () => {
-      window.ipcRenderer.invoke = jest.fn().mockResolvedValue(true);
+      window.ipcRenderer.invoke = mockInvokeWithFullscreen(true);
 
       const { container } = renderWithProviders();
 
