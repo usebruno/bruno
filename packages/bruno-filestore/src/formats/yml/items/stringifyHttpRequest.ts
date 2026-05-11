@@ -113,7 +113,7 @@ const stringifyHttpRequest = (item: BrunoItem): string => {
     } else if (httpSettings?.encodeUrl === false) {
       settings.encodeUrl = false;
     } else {
-      settings.encodeUrl = true;
+      settings.encodeUrl = false;
     }
 
     const timeout = httpSettings?.timeout;

@@ -159,7 +159,9 @@ const transformInsomniaRequestItem = (request, index, allRequests) => {
   }
 
   const settings = {
-    encodeUrl: request.settings?.encodeUrl !== false && request.settingEncodeUrl !== false // handles v4 and v5 import
+    // Default to false; only true if the source format explicitly enabled encoding.
+    // Handles both Insomnia v5 (settings.encodeUrl) and v4 (settingEncodeUrl).
+    encodeUrl: request.settings?.encodeUrl === true || request.settingEncodeUrl === true
   };
 
   brunoRequestItem.settings = settings;

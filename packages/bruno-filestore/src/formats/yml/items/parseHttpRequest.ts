@@ -103,7 +103,7 @@ const parseHttpRequest = (ocRequest: HttpRequest): BrunoItem => {
     if (typeof ocRequest.settings.encodeUrl === 'boolean') {
       settings.encodeUrl = ocRequest.settings.encodeUrl;
     } else {
-      settings.encodeUrl = true;
+      settings.encodeUrl = false;
     }
 
     if (typeof ocRequest.settings.timeout === 'number') {
