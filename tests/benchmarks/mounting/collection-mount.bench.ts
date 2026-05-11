@@ -3,6 +3,7 @@ import { type ElectronApplication, type Page } from '@playwright/test';
 import { openCollection, closeAllCollections } from '../../utils/page';
 import { summarize } from '../utils/stats';
 import { writeResults, buildResultEntry, type ResultEntry } from '../utils/results';
+import { startTimer } from '../utils/timing';
 import { generateCollection, type CollectionFormat } from '../utils/collection-generator';
 import * as path from 'path';
 import * as fs from 'fs';
@@ -35,7 +36,7 @@ async function measureCollectionMount(
     });
   });
 
-  const start = performance.now();
+  const timer = startTimer();
 
   await page.getByTestId('collections-header-add-menu').click();
   await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Open collection' }).click();
@@ -44,7 +45,7 @@ async function measureCollectionMount(
   await openCollection(page, collectionName);
   await page.evaluate(() => (window as any).__benchMountDone);
 
-  const elapsed = performance.now() - start;
+  const elapsed = timer.elapsed();
 
   await electronApp.evaluate(({ dialog }) => {
     if ((dialog as any).__originalShowOpenDialog) {
@@ -77,7 +78,7 @@ test.describe('Benchmark: Collection Mount', () => {
 
           for (let i = 0; i < ITERATIONS_PER_SIZE; i++) {
             const elapsed = await measureCollectionMount(page, electronApp, collectionDir, collectionName);
-            timings.push(Math.round(elapsed));
+            timings.push(elapsed);
           }
 
           const key = resultKey(format, size);
