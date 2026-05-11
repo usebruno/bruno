@@ -87,30 +87,77 @@ test.describe('Multipart Form - Multiple File Upload', () => {
     }, files);
 
     const table = buildCommonLocators(page).table('editable-table');
-    await table.allRows().last().locator('.upload-btn').click();
+    await table.allRows().last().getByTestId('multipart-file-upload').click();
   };
 
-  test('uploading multiple files shows one chip per file', async ({ page, electronApp }) => {
+  // Reads all file names currently associated with the row, regardless of
+  // whether they render as inline chips, in a `+N more` overflow dropdown, or
+  // as a collapsed `N files` summary. The CI Linux runner has a small display,
+  // so the value column often collapses into one of the overflow modes.
+  const readFileNames = async (page: Page): Promise<string[]> => {
+    const inlineChips = page.getByTestId('multipart-file-chip');
+    const summary = page.getByTestId('multipart-file-summary');
+    const more = page.getByTestId('multipart-file-more');
+
+    const inlineNames = await inlineChips.allTextContents();
+    const overflowTrigger = (await summary.count()) > 0 ? summary : (await more.count()) > 0 ? more : null;
+
+    if (!overflowTrigger) {
+      return inlineNames;
+    }
+
+    await overflowTrigger.click();
+    const overflowRows = page.getByTestId('multipart-file-overflow-row');
+    await expect(overflowRows.first()).toBeVisible();
+    const overflowNames = await overflowRows.allTextContents();
+    // Close the popover by clicking the trigger again (Tippy click-toggle).
+    await overflowTrigger.click();
+    await expect(overflowRows.first()).toBeHidden();
+
+    // In summary mode all files are in the dropdown; in `+N more` mode the
+    // inline chips plus the dropdown rows together cover the full list.
+    return (await summary.count()) > 0 ? overflowNames : [...inlineNames, ...overflowNames];
+  };
+
+  // Removes a single file by name, handling inline-chip and overflow-row paths.
+  const removeFileByName = async (page: Page, fileName: string) => {
+    const inlineChip = page.getByTestId('multipart-file-chip').filter({ hasText: fileName });
+    if ((await inlineChip.count()) > 0) {
+      await inlineChip.getByTestId('multipart-file-chip-remove').click();
+      await expect(inlineChip).toHaveCount(0);
+      return;
+    }
+
+    const summary = page.getByTestId('multipart-file-summary');
+    const more = page.getByTestId('multipart-file-more');
+    const trigger = (await summary.count()) > 0 ? summary : more;
+    await trigger.click();
+
+    const row = page.getByTestId('multipart-file-overflow-row').filter({ hasText: fileName });
+    await expect(row).toBeVisible();
+    await row.getByTestId('multipart-file-overflow-remove').click();
+    await expect(row).toHaveCount(0);
+
+    // Close the popover if it's still open (it may have auto-closed when its
+    // last row disappeared).
+    if ((await trigger.count()) > 0 && (await page.getByTestId('multipart-file-overflow-row').first().isVisible().catch(() => false))) {
+      await trigger.click();
+    }
+  };
+
+  test('uploading multiple files registers one entry per file', async ({ page, electronApp }) => {
     await uploadFiles(page, electronApp, [fileA, fileB, fileC]);
 
-    const chips = page.locator('.file-chip');
-    await expect(chips).toHaveCount(3);
-    await expect(chips.nth(0).locator('.file-chip-name')).toHaveText('alpha.txt');
-    await expect(chips.nth(1).locator('.file-chip-name')).toHaveText('beta.txt');
-    await expect(chips.nth(2).locator('.file-chip-name')).toHaveText('gamma.txt');
+    const names = await readFileNames(page);
+    expect(names).toEqual(['alpha.txt', 'beta.txt', 'gamma.txt']);
   });
 
-  test('each chip can be removed individually', async ({ page, electronApp }) => {
+  test('each file can be removed individually', async ({ page, electronApp }) => {
     await uploadFiles(page, electronApp, [fileA, fileB, fileC]);
 
-    const chips = page.locator('.file-chip');
-    await expect(chips).toHaveCount(3);
+    await removeFileByName(page, 'beta.txt');
 
-    await chips.filter({ hasText: 'beta.txt' }).locator('.file-chip-remove').click();
-
-    await expect(chips).toHaveCount(2);
-    await expect(chips.filter({ hasText: 'alpha.txt' })).toBeVisible();
-    await expect(chips.filter({ hasText: 'gamma.txt' })).toBeVisible();
-    await expect(chips.filter({ hasText: 'beta.txt' })).toHaveCount(0);
+    const names = await readFileNames(page);
+    expect(names).toEqual(['alpha.txt', 'gamma.txt']);
   });
 });
