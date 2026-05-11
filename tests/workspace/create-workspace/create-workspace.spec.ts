@@ -24,8 +24,6 @@ function findCreatedWorkspaceDirs(location: string): string[] {
 }
 
 test.describe('Create Workspace', () => {
-  test.setTimeout(90000);
-
   test.describe('Inline Creation Flow', () => {
     test('should create workspace via inline rename and press Enter', async ({ launchElectronApp, createTmpDir }) => {
       const wsLocation = await createTmpDir('ws-location-enter');

@@ -4,8 +4,6 @@ import { test, expect, closeElectronApp } from '../../../playwright';
 import { waitForReadyPage } from '../../utils/page';
 
 test.describe('Default Workspace Recovery and Backup', () => {
-  test.setTimeout(90000);
-
   test.describe('Global Environments Backup', () => {
     test('should create backup file for global environments during migration', async ({ launchElectronApp, createTmpDir }) => {
       const userDataPath = await createTmpDir('global-env-backup');

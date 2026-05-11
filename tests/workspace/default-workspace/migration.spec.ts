@@ -8,8 +8,6 @@ const env = {
 };
 
 test.describe('Default Workspace Migration', () => {
-  test.setTimeout(90000);
-
   test.describe('Migration from lastOpenedCollections', () => {
     test('should migrate collections from lastOpenedCollections to new workspace', async ({ launchElectronApp, createTmpDir }) => {
       const userDataPath = await createTmpDir('default-workspace-migration');

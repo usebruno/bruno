@@ -1,14 +1,12 @@
 import path from 'path';
 import fs from 'fs';
 import yaml from 'js-yaml';
-import { test, expect } from '../../playwright';
+import { test, expect, closeElectronApp } from '../../playwright';
 import { createCollection, waitForReadyPage } from '../utils/page';
 
 type WorkspaceConfig = { collections?: { name: string }[] };
 
 test.describe('Collection reorder persistence', () => {
-  test.setTimeout(90000);
-
   test('reordered collection order persists after app restart', async ({ launchElectronApp, createTmpDir }) => {
     const userDataPath = await createTmpDir('collection-reorder-persistence');
     const colAPath = await createTmpDir('col-a');
@@ -40,8 +38,7 @@ test.describe('Collection reorder persistence', () => {
     });
 
     await test.step('Close app', async () => {
-      await app.context().close();
-      await app.close();
+      await closeElectronApp(app);
     });
 
     await test.step('Restart app and verify order persisted', async () => {
@@ -52,8 +49,7 @@ test.describe('Collection reorder persistence', () => {
       await expect(rows2.nth(0)).toContainText('ColB');
       await expect(rows2.nth(1)).toContainText('ColA');
 
-      await app2.context().close();
-      await app2.close();
+      await closeElectronApp(app2);
     });
   });
 
@@ -76,8 +72,7 @@ test.describe('Collection reorder persistence', () => {
     });
 
     await test.step('Close app', async () => {
-      await app.context().close();
-      await app.close();
+      await closeElectronApp(app);
     });
 
     await test.step('Verify workspace.yml has ColB before ColA', async () => {
