@@ -63,7 +63,7 @@ servers:
     expect(hasQueryParam).toBe(true);
   });
 
-  it('maps apiKey in cookie and treats it as a header', () => {
+  it('ignores apiKey in cookie instead of importing it as a header', () => {
     const spec = `
 openapi: 3.0.3
 info:
@@ -86,11 +86,45 @@ servers:
   - url: https://example.com
 `;
     const { items: [req] } = openApiToBruno(spec);
-    expect(req.request.auth.mode).toBe('apikey');
-    expect(req.request.auth.apikey.placement).toBe('header');
+    expect(req.request.auth.mode).toBe('inherit');
     const apiKeyHeader = req.request.headers.find((h) => h.name === 'DEMO_API_KEY');
-    expect(apiKeyHeader).toBeDefined();
-    expect(apiKeyHeader.value).toBe('{{apiKey}}');
+    expect(apiKeyHeader).toBeUndefined();
+  });
+
+  it('skips cookie apiKey global security and uses the next supported scheme', () => {
+    const spec = `
+openapi: 3.0.3
+info:
+  title: Cookie and Header API-Key
+  version: '1.0'
+components:
+  securitySchemes:
+    SessionCookie:
+      type: apiKey
+      in: cookie
+      name: SessionCookie
+    ApiKeyHeader:
+      type: apiKey
+      in: header
+      name: X-API-Key
+security:
+  - SessionCookie: []
+  - ApiKeyHeader: []
+paths:
+  /whoami:
+    get:
+      responses:
+        '200': { description: OK }
+servers:
+  - url: https://example.com
+`;
+    const collection = openApiToBruno(spec);
+
+    expect(collection.root.request.auth.mode).toBe('apikey');
+    expect(collection.root.request.auth.apikey).toMatchObject({
+      key: 'X-API-Key',
+      placement: 'header'
+    });
   });
 
   it('maps OAuth2 authorizationCode flow to oauth2 grantType authorization_code', () => {
