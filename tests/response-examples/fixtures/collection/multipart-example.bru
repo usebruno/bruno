@@ -1,0 +1,30 @@
+meta {
+  name: multipart-example
+  type: http
+  seq: 4
+}
+
+post {
+  url: https://api.example.com/upload
+  body: multipart-form
+  auth: none
+}
+
+body:multipart-form {
+  files: @file(alpha.txt|beta.txt|gamma.txt)
+}
+
+example {
+  name: Three Files Example
+  description: Example with three multipart file uploads
+
+  request: {
+    url: https://api.example.com/upload
+    method: post
+    mode: multipartForm
+
+    body:multipart-form: {
+      files: @file(alpha.txt|beta.txt|gamma.txt)
+    }
+  }
+}
