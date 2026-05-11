@@ -146,12 +146,7 @@ const Wrapper = styled.div`
 
     &:hover {
       border-color: ${(props) => props.theme.colors.text.muted};
-      background: ${(props) => {
-        const hoverBg = props.theme.requestTabs
-          && props.theme.requestTabs.icon
-          && props.theme.requestTabs.icon.hoverBg;
-        return hoverBg || 'rgba(255, 255, 255, 0.04)';
-      }};
+      background: ${(props) => props.theme.requestTabs.icon.hoverBg};
     }
   }
 
@@ -187,12 +182,7 @@ export const OverflowList = styled.div`
     color: ${(props) => props.theme.text};
 
     &:hover {
-      background: ${(props) => {
-        const hoverBg = props.theme.requestTabs
-          && props.theme.requestTabs.icon
-          && props.theme.requestTabs.icon.hoverBg;
-        return hoverBg || 'rgba(255, 255, 255, 0.04)';
-      }};
+      background: ${(props) => props.theme.requestTabs.icon.hoverBg};
     }
   }
 

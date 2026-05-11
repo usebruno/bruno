@@ -213,6 +213,8 @@ const MultipartFormParams = ({ item, collection }) => {
   const handleBrowseFiles = useCallback((row, onChange) => {
     dispatch(browseFiles([], ['multiSelections']))
       .then((filePaths) => {
+        if (!Array.isArray(filePaths) || filePaths.length === 0) return;
+
         const processedPaths = filePaths.map((filePath) => {
           const collectionDir = collection.pathname;
           if (filePath.startsWith(collectionDir)) {
@@ -224,19 +226,27 @@ const MultipartFormParams = ({ item, collection }) => {
         const currentParams = item.draft
           ? get(item, 'draft.request.body.multipartForm')
           : get(item, 'request.body.multipartForm');
-        const existsInParams = (currentParams || []).some((p) => p.uid === row.uid);
+        const existingParam = (currentParams || []).find((p) => p.uid === row.uid);
+        const existingValue = existingParam && existingParam.type === 'file' && Array.isArray(existingParam.value)
+          ? existingParam.value
+          : [];
+        const merged = [...existingValue];
+        for (const p of processedPaths) {
+          if (!merged.includes(p)) merged.push(p);
+        }
+
         let updatedParams;
-        if (existsInParams) {
+        if (existingParam) {
           updatedParams = currentParams.map((p) => {
             if (p.uid === row.uid) {
-              return { ...p, type: 'file', value: processedPaths };
+              return { ...p, type: 'file', value: merged };
             }
             return p;
           });
         } else {
           updatedParams = [
             ...(currentParams || []),
-            { uid: row.uid, name: row.name || '', enabled: true, type: 'file', value: processedPaths, contentType: '' }
+            { uid: row.uid, name: row.name || '', enabled: true, type: 'file', value: merged, contentType: '' }
           ];
         }
         handleParamsChange(updatedParams);
