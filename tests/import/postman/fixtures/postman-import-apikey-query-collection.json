@@ -1,0 +1,57 @@
+{
+  "info": {
+    "_postman_id": "6df527f0-77aa-4b67-957f-8a3f0c96a027",
+    "name": "My Collection",
+    "description": "### Welcome to Postman! This is your first collection. \n\nCollections are your starting point for building and testing APIs. You can use this one to:\n\n• Group related requests\n• Test your API in real-world scenarios\n• Document and share your requests\n\nUpdate the name and overview whenever you’re ready to make it yours.\n\n[Learn more about Postman Collections.](https://learning.postman.com/docs/collections/collections-overview/)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "54316404",
+    "_collection_link": "https://go.postman.co/collection/54316404-6df527f0-77aa-4b67-957f-8a3f0c96a027?source=collection_link"
+  },
+  "item": [
+    {
+      "name": "Query with API Key",
+      "request": {
+        "auth": {
+          "type": "apikey",
+          "apikey": [
+            {
+              "key": "in",
+              "value": "query",
+              "type": "string"
+            },
+            {
+              "key": "value",
+              "value": "hello",
+              "type": "string"
+            },
+            {
+              "key": "key",
+              "value": "hii",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "https://api.com/users?X-API-KEY=12345",
+          "protocol": "https",
+          "host": [
+            "api",
+            "com"
+          ],
+          "path": [
+            "users"
+          ],
+          "query": [
+            {
+              "key": "X-API-KEY",
+              "value": "12345"
+            }
+          ]
+        }
+      },
+      "response": []
+    }
+  ]
+}

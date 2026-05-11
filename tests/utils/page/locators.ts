@@ -86,7 +86,14 @@ export const buildCommonLocators = (page: Page) => ({
     requestTestId: () => page.getByTestId('request-name'),
     generateCodeButton: () => page.locator('#request-actions .infotip').first(),
     bodyModeSelector: () => page.getByTestId('request-body-mode-selector'),
-    bodyEditor: () => page.getByTestId('request-body-editor')
+    bodyEditor: () => page.getByTestId('request-body-editor'),
+    pane: () => page.getByTestId('request-pane')
+  },
+  auth: {
+    apiKey: {
+      placementSelector: () => page.locator('.auth-placement-selector'),
+      placementLabel: () => page.locator('.auth-placement-selector .auth-type-label')
+    }
   },
   tags: {
     input: () => page.getByTestId('tag-input').getByRole('textbox'),
@@ -118,7 +125,10 @@ export const buildCommonLocators = (page: Page) => ({
     locationModal: () => page.locator('[data-testid="import-collection-location-modal"]'),
     locationInput: () => page.locator('#collection-location'),
     fileInput: () => page.locator('input[type="file"]'),
-    envOption: (name: string) => page.locator('.dropdown-item').getByText(name, { exact: true })
+    envOption: (name: string) => page.locator('.dropdown-item').getByText(name, { exact: true }),
+    parsingError: () => page.getByText('Failed to parse the file'),
+    browseLink: (root?: Locator) => (root ?? page).getByText('Browse'),
+    importButton: (root?: Locator) => (root ?? page).getByRole('button', { name: 'Import' })
   },
   /**
    * Build generic table locators for any table with a testId
