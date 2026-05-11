@@ -4,7 +4,7 @@ const j = require('jscodeshift');
  * Generates data-driven status assertion entries for pm.response.to.be.*
  * Each assertion gets positive, to.not.be, and to.be.not variants.
  */
-const buildStatusAssertionEntries = () => {
+export const buildStatusAssertionEntries = () => {
   const buildStatusTransform = (chain, litArgs) => (path) => {
     return j.callExpression(
       j.memberExpression(
@@ -49,5 +49,3 @@ const buildStatusAssertionEntries = () => {
 
   return entries;
 };
-
-module.exports = { buildStatusAssertionEntries };

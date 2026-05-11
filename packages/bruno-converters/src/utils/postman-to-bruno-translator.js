@@ -2,7 +2,7 @@ import sendRequestTransformer from './send-request-transformer';
 import { getMemberExpressionString } from './ast-utils';
 const j = require('jscodeshift');
 const cloneDeep = require('lodash/cloneDeep');
-const { buildStatusAssertionEntries } = require('./postman-status-assertions');
+import { buildStatusAssertionEntries } from './postman-status-assertions';
 
 // Simple 1:1 translations for straightforward replacements
 // TODO: Restore the commented-out translations once the UI update fixes are live.
