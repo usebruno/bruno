@@ -86,7 +86,7 @@ test.describe('Default Location Feature', () => {
   test('Should use default location in Clone Collection modal', async ({ pageWithUserData: page }) => {
     // open the clone collection modal
     const collection = page.locator('.collection-name').first();
-    await collection.hover();
+    await collection.focus();
     await collection.locator('.collection-actions .icon').click();
     await page.locator('.dropdown-item').filter({ hasText: 'Clone' }).click();
 

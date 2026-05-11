@@ -533,27 +533,25 @@ test.describe('CodeEditor — undo (Cmd-Z) survives a tab switch', () => {
     await selectBodyMode(page, 'JSON');
     await setBodyContent(page, SAMPLE_BODY);
 
-    const insertSentinel = (sentinel: string, originSuffix: string) =>
-      cmFor(page, page.locator('.request-pane')).evaluate(
-        (el, args) => {
-          const editor = (el as any).CodeMirror;
-          editor.focus();
-          const doc = editor.getDoc();
-          const lastLine = doc.lastLine();
-          const lastLineLen = doc.getLine(lastLine).length;
-          doc.replaceRange(
-            `\n${args.sentinel}`,
-            { line: lastLine, ch: lastLineLen },
-            undefined,
-            `*${args.originSuffix}`
-          );
-        },
-        { sentinel, originSuffix }
-      );
-
-    await insertSentinel('// SENTINEL_ONE', 'sentinel-1');
-    await insertSentinel('// SENTINEL_TWO', 'sentinel-2');
-    await insertSentinel('// SENTINEL_THREE', 'sentinel-3');
+    // Insert all three sentinels in one `evaluate` (no `await` between calls):
+    await cmFor(page, page.locator('.request-pane')).evaluate((el) => {
+      const editor = (el as any).CodeMirror;
+      editor.focus();
+      const doc = editor.getDoc();
+      const append = (sentinel: string, originSuffix: string) => {
+        const lastLine = doc.lastLine();
+        const lastLineLen = doc.getLine(lastLine).length;
+        doc.replaceRange(
+          `\n${sentinel}`,
+          { line: lastLine, ch: lastLineLen },
+          undefined,
+          `*${originSuffix}`
+        );
+      };
+      append('// SENTINEL_ONE', 'sentinel-1');
+      append('// SENTINEL_TWO', 'sentinel-2');
+      append('// SENTINEL_THREE', 'sentinel-3');
+    });
 
     const cm = cmFor(page, page.locator('.request-pane'));
     await expect(cm).toContainText('SENTINEL_ONE');

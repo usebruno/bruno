@@ -71,6 +71,14 @@ test.describe('Import Insomnia v5 Collection - Environment Import', () => {
         .first()
         .click();
 
+      // Gate on the env-switch flatten pass having fully landed before
+      // per-row asserts. The flatten renders top-level keys first and the
+      // deepest nested keys (`config.*`) last; on slow runners the trailing
+      // batch can take longer than the 5s default. Waiting on the deepest
+      // key here guarantees every shallower input is also in DOM by the
+      // time the per-input asserts below run.
+      await page.locator('input[value="config.debug"]').waitFor({ state: 'visible', timeout: 15000 });
+
       // **Assertion 1: Basic Variables (Top-level keys)**
       // Verifies that simple key-value pairs from the base environment are imported correctly
       const baseUrlInput = page.locator('input[value="base_url"]');
@@ -133,6 +141,12 @@ test.describe('Import Insomnia v5 Collection - Environment Import', () => {
         .first()
         .click();
 
+      // Gate on the env-switch flatten pass having fully landed before
+      // per-row asserts. The deepest overridden key (`config.debug`) lands
+      // last in this env; waiting on it here guarantees every shallower
+      // input is also in DOM by the time the per-input asserts run.
+      await page.locator('input[value="config.debug"]').waitFor({ state: 'visible', timeout: 15000 });
+
       // **Assertion 1: Top-level Variable Override**
       // Verifies that staging environment overrides base environment values
       const stagingBaseUrlInput = page.locator('input[value="base_url"]');
@@ -184,6 +198,12 @@ test.describe('Import Insomnia v5 Collection - Environment Import', () => {
         .filter({ hasText: /^Development$/ })
         .first()
         .click();
+
+      // Gate on the env-switch flatten pass having fully landed before
+      // per-row asserts. Inherited base keys (like `user.roles[0]`) are the
+      // last to merge in for a sub-env; waiting on it here guarantees every
+      // other input is also in DOM by the time the per-input asserts run.
+      await page.locator('input[value="user.roles[0]"]').waitFor({ state: 'visible', timeout: 15000 });
 
       // **Assertion 1: Multiple Top-level Variable Overrides**
       // Verifies that development environment can override multiple base environment values

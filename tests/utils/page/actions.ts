@@ -95,14 +95,28 @@ const createCollection = async (page, collectionName: string, collectionLocation
 
     // Fill location FIRST — some modals auto-derive the name from the path,
     // so filling name after location ensures it isn't overwritten.
+    //
+    // The location input is `readOnly={true}` as a React prop and is a
+    // controlled input via formik. Two implications:
+    //   1. Removing `readonly` via DOM attribute is racy — the next React
+    //      render restores the prop. The modal's mount-effect focuses the
+    //      name field at +50ms, which can trigger that re-render between
+    //      our DOM tweak and the `fill()`, leaving the input read-only and
+    //      the fill silently no-ops.
+    //   2. Even if writable, controlled inputs require firing an `input`
+    //      event so the onChange handler runs and updates formik state.
+    // Use the native value setter (the React-controlled-input pattern) to
+    // bypass both. Then verify the value stuck so we fail loudly here
+    // instead of opaquely at the modal-hidden wait when Yup validation
+    // silently rejects an empty location.
     const locationInput = createCollectionModal.getByLabel('Location');
     if (await locationInput.isVisible()) {
-      await locationInput.evaluate((el) => {
-        const input = el as HTMLInputElement;
-        input.removeAttribute('readonly');
-        input.readOnly = false;
-      });
-      await locationInput.fill(collectionLocation);
+      await locationInput.evaluate((el, value) => {
+        const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')?.set;
+        setter?.call(el, value);
+        el.dispatchEvent(new Event('input', { bubbles: true }));
+      }, collectionLocation);
+      await expect(locationInput).toHaveValue(collectionLocation);
     }
     const nameInput = createCollectionModal.getByLabel('Name');
     await nameInput.clear();
@@ -111,7 +125,11 @@ const createCollection = async (page, collectionName: string, collectionLocation
     await expect(nameInput).toHaveValue(collectionName, { timeout: 2000 });
     await createCollectionModal.getByRole('button', { name: 'Create', exact: true }).click();
 
-    await createCollectionModal.waitFor({ state: 'detached', timeout: 15000 });
+    // The modal closes via `onClose()` in the form's `onSubmit` success path,
+    // which only runs after Yup validation passes — so this waitFor is the
+    // signal that the form actually submitted
+    await createCollectionModal.waitFor({ state: 'hidden', timeout: 5000 });
+    await expect(page.locator('.bruno-modal-backdrop')).toHaveCount(0);
     // Wait for the collection name to appear in the sidebar before proceeding
     await page.locator('#sidebar-collection-name').filter({ hasText: collectionName }).waitFor({ state: 'visible', timeout: 5000 });
     await openCollection(page, collectionName);
@@ -801,28 +819,52 @@ const switchResponseFormat = async (page: Page, format: string) => {
 };
 
 /**
- * Switch to the preview tab
- * @param page - The page object
+ * Set the response pane's preview/editor mode idempotently.
+ *
+ * The underlying `preview-response-tab` element is a `<ToggleSwitch>` that
+ * flips between editor and preview on click — it has no "set to X" semantics.
+ * It also lives inside the dropdown that `format-response-tab` opens, so it's
+ * not interactable until that dropdown is visible. Naively clicking it twice
+ * (once per call) loses state if any click misses the toggle window, leaving
+ * downstream asserts looking at the wrong mode (e.g. expecting CodeMirror
+ * lines while preview is showing).
+ *
+ * Strategy: open the dropdown, read the toggle's current state from its
+ * `title` attribute (which reflects `selectedTab` in the source), and click
+ * only when the current state differs from the desired one.
+ */
+const setResponsePreviewMode = async (page: Page, mode: 'editor' | 'preview') => {
+  const responseFormatTab = page.getByTestId('format-response-tab');
+  await responseFormatTab.click();
+  const dropdown = page.getByTestId('format-response-tab-dropdown');
+  await dropdown.waitFor({ state: 'visible', timeout: 5000 });
+  const toggle = page.getByTestId('preview-response-tab');
+  const isPreview = (await toggle.getAttribute('title')) === 'Turn off Preview Mode';
+  const wantPreview = mode === 'preview';
+  if (isPreview !== wantPreview) {
+    await toggle.click();
+  } else {
+    // Already in the desired mode — close the dropdown so subsequent
+    // interactions (format selection, asserts) aren't shadowed by it.
+    await responseFormatTab.click();
+  }
+};
+
+/**
+ * Switch the response pane into preview mode (idempotent).
  */
 const switchToPreviewTab = async (page: Page) => {
   await test.step('Switch to preview tab', async () => {
-    const responseFormatTab = page.getByTestId('format-response-tab');
-    await responseFormatTab.click();
-    const previewTab = page.getByTestId('preview-response-tab');
-    await previewTab.click();
+    await setResponsePreviewMode(page, 'preview');
   });
 };
 
 /**
- * Switch to the editor tab
- * @param page - The page object
+ * Switch the response pane into editor mode (idempotent).
  */
 const switchToEditorTab = async (page: Page) => {
   await test.step('Switch to editor tab', async () => {
-    const responseFormatTab = page.getByTestId('format-response-tab');
-    await responseFormatTab.click();
-    const previewTab = page.getByTestId('preview-response-tab');
-    await previewTab.click();
+    await setResponsePreviewMode(page, 'editor');
   });
 };
 

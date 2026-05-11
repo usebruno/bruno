@@ -96,23 +96,49 @@ async function usePageWithTracing(
  * Emits 'before-quit' first so cleanup handlers run (e.g., saving cookies to disk),
  * since app.exit() bypasses all lifecycle events.
  */
-export async function closeElectronApp(app: ElectronApplication) {
-  try {
-    await app.evaluate(async ({ app }) => {
-      app.emit('before-quit');
+/**
+ * Bound a promise so a hung Electron process can't burn the worker teardown
+ * budget. Resolves to `undefined` on timeout — the caller is expected to
+ * fall back to `app.close()` (which itself is bounded below) or SIGKILL.
+ */
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T | undefined> {
+  return new Promise((resolve) => {
+    const timer = setTimeout(() => resolve(undefined), ms);
+    promise.then(
+      (v) => {
+        clearTimeout(timer); resolve(v);
+      },
+      () => {
+        clearTimeout(timer); resolve(undefined);
+      }
+    );
+  });
+}
 
-      // Add a delay to ensure the app is fully closed
+export async function closeElectronApp(app: ElectronApplication) {
+  // Bound the graceful-quit roundtrip: if the renderer is unresponsive,
+  // `app.evaluate` can hang indefinitely (the inner `setTimeout(250)` runs in
+  // the renderer, which we can't observe externally).
+  await withTimeout(
+    app.evaluate(async ({ app }) => {
+      app.emit('before-quit');
       await new Promise((resolve) => setTimeout(resolve, 250));
       app.exit(0);
-    });
-  } catch {
-    // Expected: process exited before the CDP response was sent
-  }
+    }).catch(() => { /* process may have exited before CDP responded */ }),
+    3000
+  );
 
-  try {
-    await app.close();
-  } catch {
-    // Process already exited
+  // Bound `app.close()` too — it waits for the process to exit, and a wedged
+  // main process would otherwise hold the worker teardown open until the
+  // 30s default fires.
+  const closed = await withTimeout(
+    app.close().catch(() => { /* already exited */ }),
+    3000
+  );
+
+  if (closed === undefined) {
+    // Last resort: kill the underlying process so the worker can move on.
+    try { app.process()?.kill('SIGKILL'); } catch { /* already dead */ }
   }
 }
 
@@ -246,9 +272,9 @@ export const test = baseTest.extend<
         apps.push(app);
         return app;
       });
-      for (const app of apps) {
-        await closeElectronApp(app);
-      }
+      // Close every still-tracked app in parallel.
+      // `closeElectronApp` is internally bounded, so this can't hang.
+      await Promise.allSettled(apps.map((app) => closeElectronApp(app)));
     },
     { scope: 'worker' }
   ],

@@ -93,7 +93,10 @@ test.describe('manage protofile', () => {
     const requestTab = page.getByRole('tab', { name: 'gRPC sayHello' });
     await requestTab.hover();
     await requestTab.getByTestId('request-tab-close-icon').click({ force: true });
-    await page.getByRole('button', { name: 'Don\'t Save' }).click();
+    const dontSaveBtn = page.getByRole('button', { name: 'Don\'t Save' });
+    // Wait for actionability
+    await expect(dontSaveBtn).toBeVisible();
+    await dontSaveBtn.click();
   });
 
   test('product.proto fails to load methods when selected', async ({ pageWithUserData: page }) => {
@@ -120,8 +123,10 @@ test.describe('manage protofile', () => {
 
     const requestTab = page.getByRole('tab', { name: 'gRPC sayHello' });
     await requestTab.hover();
-    await requestTab.getByTestId('request-tab-close-icon').click({ force: true });
-    await page.getByRole('button', { name: 'Don\'t Save' }).click();
+    await requestTab.getByTestId('request-tab-close-icon').click();
+    const dontSaveBtn = page.getByRole('button', { name: 'Don\'t Save' });
+    await expect(dontSaveBtn).toBeVisible();
+    await dontSaveBtn.click();
   });
 
   test('product.proto successfully loads methods once import path is provided', async ({ pageWithUserData: page }) => {

@@ -502,7 +502,9 @@ test.describe('Create Workspace', () => {
         await expect(renameInput).toBeVisible({ timeout: 5000 });
         await renameInput.fill('Workspace One');
         await renameInput.press('Enter');
-        await expect(page.getByText('Workspace created!')).toBeVisible({ timeout: 10000 });
+        await expect(page.getByText('Workspace created!')).toBeVisible({ timeout: 5000 });
+        // Wait for the first toast to dismiss
+        await expect(page.getByText('Workspace created!')).toBeHidden();
         await expect(page.getByTestId('workspace-name')).toHaveText('Workspace One', { timeout: 5000 });
       });
 
@@ -513,7 +515,9 @@ test.describe('Create Workspace', () => {
         await expect(renameInput).toBeVisible({ timeout: 5000 });
         await renameInput.fill('Workspace Two');
         await renameInput.press('Enter');
-        await expect(page.getByText('Workspace created!')).toBeVisible({ timeout: 10000 });
+        await expect(page.getByText('Workspace created!')).toBeVisible({ timeout: 5000 });
+        // Wait for the first toast to dismiss
+        await expect(page.getByText('Workspace created!')).toBeHidden();
         await expect(page.getByTestId('workspace-name')).toHaveText('Workspace Two', { timeout: 5000 });
       });
 
