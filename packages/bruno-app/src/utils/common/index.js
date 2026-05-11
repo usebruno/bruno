@@ -1,7 +1,6 @@
 import { customAlphabet } from 'nanoid';
 import xmlFormat from 'xml-formatter';
 import { JSONPath } from 'jsonpath-plus';
-import fastJsonFormat from 'fast-json-format';
 import { format, applyEdits } from 'jsonc-parser';
 import { patternHasher } from '@usebruno/common/utils';
 import prettierFormat from 'prettier/standalone';
@@ -303,7 +302,7 @@ export const formatResponse = (data, dataBufferString, mode, filter, bufferThres
     }
 
     try {
-      return fastJsonFormat(rawData);
+      return prettifyJsonString(rawData);
     } catch (error) {}
 
     if (typeof data === 'string') {
