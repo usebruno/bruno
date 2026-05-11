@@ -61,7 +61,7 @@ Remember, these rules are here to make our codebase harmonious. If something doe
 
 ### E2E Tests 
 
-When reviewing Electron-specific Playwright tests (<project-root>/tests/*).
+When reviewing Electron-specific Playwright tests, treat `<project-root>/tests/**` as the canonical location for specs, typically matching `<project-root>/tests/**/*.spec.{ts,js}`. For broader Playwright workflow guidance, also refer to `docs/playwright-testing-guide.md`.
 
 Goal: rewrite or critique the tests so they are genuinely behavioural, maintainable, and safely parallelizable.
 
