@@ -1677,13 +1677,12 @@ export const collectionsSlice = createSlice({
             item.draft = cloneDeep(item);
           }
           const newMode = action.payload.mode;
-          const savedMode = get(item, 'request.auth.mode');
-          item.draft.request.auth = { mode: newMode };
+          const savedAuth = get(item, 'request.auth');
+          const savedMode = get(savedAuth, 'mode');
           if (newMode === savedMode) {
-            const savedPayload = get(item, `request.auth.${newMode}`);
-            if (savedPayload !== undefined) {
-              item.draft.request.auth[newMode] = cloneDeep(savedPayload);
-            }
+            item.draft.request.auth = cloneDeep(savedAuth);
+          } else {
+            item.draft.request.auth = { mode: newMode };
           }
         }
       }
@@ -2114,13 +2113,12 @@ export const collectionsSlice = createSlice({
           };
         }
         const newMode = action.payload.mode;
-        const savedMode = get(collection, 'root.request.auth.mode');
-        set(collection, 'draft.root.request.auth', { mode: newMode });
+        const savedAuth = get(collection, 'root.request.auth');
+        const savedMode = get(savedAuth, 'mode');
         if (newMode === savedMode) {
-          const savedPayload = get(collection, `root.request.auth.${newMode}`);
-          if (savedPayload !== undefined) {
-            set(collection, `draft.root.request.auth.${newMode}`, cloneDeep(savedPayload));
-          }
+          set(collection, 'draft.root.request.auth', cloneDeep(savedAuth));
+        } else {
+          set(collection, 'draft.root.request.auth', { mode: newMode });
         }
       }
     },
@@ -3319,13 +3317,12 @@ export const collectionsSlice = createSlice({
           folder.draft = cloneDeep(folder.root);
         }
         const newMode = action.payload.mode;
-        const savedMode = get(folder, 'root.request.auth.mode');
-        set(folder, 'draft.request.auth', { mode: newMode });
+        const savedAuth = get(folder, 'root.request.auth');
+        const savedMode = get(savedAuth, 'mode');
         if (newMode === savedMode) {
-          const savedPayload = get(folder, `root.request.auth.${newMode}`);
-          if (savedPayload !== undefined) {
-            set(folder, `draft.request.auth.${newMode}`, cloneDeep(savedPayload));
-          }
+          set(folder, 'draft.request.auth', cloneDeep(savedAuth));
+        } else {
+          set(folder, 'draft.request.auth', { mode: newMode });
         }
       }
     },

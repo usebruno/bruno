@@ -1,40 +1,16 @@
 import { test, expect } from '../../playwright';
-import type { Page } from '@playwright/test';
 import {
   closeAllCollections,
   createCollection,
   createRequest,
   createFolder,
   openRequest,
+  readField,
+  saveRequest,
+  selectAuthMode,
   selectRequestPaneTab,
-  saveRequest
+  typeIntoField
 } from '../utils/page';
-
-const dropdownItem = (page: Page, text: string) =>
-  page.locator('.dropdown-item').filter({ hasText: text });
-
-const fieldEditor = (page: Page, labelText: string) =>
-  page
-    .locator('label')
-    .filter({ hasText: new RegExp(`^${labelText}$`) })
-    .locator('..')
-    .locator('.single-line-editor-wrapper .CodeMirror');
-
-const selectAuthMode = async (page: Page, modeLabel: string) => {
-  await page.locator('.auth-mode-label').click();
-  await dropdownItem(page, modeLabel).click();
-};
-
-const typeIntoField = async (page: Page, labelText: string, value: string) => {
-  await fieldEditor(page, labelText).click();
-  await page.keyboard.type(value);
-};
-
-const readField = async (page: Page, labelText: string): Promise<string> => {
-  const editor = fieldEditor(page, labelText).first();
-  await editor.waitFor({ state: 'visible' });
-  return editor.evaluate((el: any) => (el as any).CodeMirror?.getValue() ?? '');
-};
 
 test.describe('Auth mode switch preserves saved data', () => {
   test.afterEach(async ({ page }) => {
