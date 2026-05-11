@@ -1,4 +1,4 @@
-import { encodeUrl, parseQueryParams, buildQueryString } from './index';
+import { encodeUrl, parseQueryParams, buildQueryString, safeDecodeURIComponent } from './index';
 
 describe('encodeUrl', () => {
   describe('basic functionality', () => {
@@ -75,16 +75,54 @@ describe('encodeUrl', () => {
     });
   });
 
-  describe('hash fragment handling', () => {
-    it('should preserve hash fragments with encoded query parameters', () => {
-      const url = 'https://example.com/api?name=john doe#section1';
-      const expected = 'https://example.com/api?name=john%20doe#section1';
+  describe('path segment encoding', () => {
+    it('should encode reserved chars in path segments', () => {
+      const url = 'https://example.com/api/list[123]';
+      const expected = 'https://example.com/api/list%5B123%5D';
       expect(encodeUrl(url)).toBe(expected);
     });
 
-    it('should preserve hash fragments with pipe operator in query', () => {
+    it('should encode spaces in path segments', () => {
+      const url = 'https://example.com/my path/users';
+      const expected = 'https://example.com/my%20path/users';
+      expect(encodeUrl(url)).toBe(expected);
+    });
+
+    it('should preserve already-encoded path segments (idempotent)', () => {
+      const url = 'https://example.com/users/aaa%2Fbbb';
+      const expected = 'https://example.com/users/aaa%2Fbbb';
+      expect(encodeUrl(url)).toBe(expected);
+    });
+
+    it('should preserve OData-style parenthesized path segments', () => {
+      const url = 'https://example.com/odata/Products(123)/Categories(456)';
+      const expected = 'https://example.com/odata/Products(123)/Categories(456)';
+      expect(encodeUrl(url)).toBe(expected);
+    });
+
+    it('should encode bare % in path', () => {
+      const url = 'https://example.com/path/50%';
+      const expected = 'https://example.com/path/50%25';
+      expect(encodeUrl(url)).toBe(expected);
+    });
+  });
+
+  describe('fragment handling (RFC 3986 §3.5)', () => {
+    it('should drop fragment from URL', () => {
+      const url = 'https://example.com/api?name=john doe#section1';
+      const expected = 'https://example.com/api?name=john%20doe';
+      expect(encodeUrl(url)).toBe(expected);
+    });
+
+    it('should drop fragment when there is no query string', () => {
+      const url = 'https://example.com/api/users#section';
+      const expected = 'https://example.com/api/users';
+      expect(encodeUrl(url)).toBe(expected);
+    });
+
+    it('should drop fragment containing reserved chars', () => {
       const url = 'https://example.com/api?filter=status|active#results';
-      const expected = 'https://example.com/api?filter=status%7Cactive#results';
+      const expected = 'https://example.com/api?filter=status%7Cactive';
       expect(encodeUrl(url)).toBe(expected);
     });
   });
@@ -102,23 +140,29 @@ describe('encodeUrl', () => {
       const expected = 'https://example.com/api?name=john%3Fage%3D25';
       expect(encodeUrl(url)).toBe(expected);
     });
+  });
 
-    it('should handle complex query parameters with multiple special characters', () => {
-      const url = 'https://example.com/api?search=hello world!@#$%^&*()&filter=active&sort=name asc';
-      const expected = 'https://example.com/api?search=hello%20world!%40#$%^&*()&filter=active&sort=name asc';
-      expect(encodeUrl(url)).toBe(expected);
-    });
+  describe('idempotency', () => {
+    const cases: Array<[string, string]> = [
+      ['https://x/api?q=hello world', 'https://x/api?q=hello%20world'],
+      ['https://x/api?q=hello%20world', 'https://x/api?q=hello%20world'],
+      ['https://x/api?q=50%', 'https://x/api?q=50%25'],
+      ['https://x/api?q=50%25', 'https://x/api?q=50%25'],
+      ['https://x/api/aaa[bbb]', 'https://x/api/aaa%5Bbbb%5D'],
+      ['https://x/api/aaa%5Bbbb%5D', 'https://x/api/aaa%5Bbbb%5D'],
+      ['https://x/api?token=abc==', 'https://x/api?token=abc%3D%3D'],
+      ['https://x/api?token=abc%3D%3D', 'https://x/api?token=abc%3D%3D'],
+      ['https://x/api?email=a@b.com', 'https://x/api?email=a%40b.com'],
+      ['https://x/api?email=a%40b.com', 'https://x/api?email=a%40b.com'],
+      ['https://x/api?name=john%20doe&email=john%40example.com', 'https://x/api?name=john%20doe&email=john%40example.com'],
+      ['https://x/api?filter=status%7Cactive&sort=name%7Casc', 'https://x/api?filter=status%7Cactive&sort=name%7Casc']
+    ];
 
-    it('should handle already encoded URLs', () => {
-      const url = 'https://example.com/api?name=john%20doe&email=john%40example.com';
-      const expected = 'https://example.com/api?name=john%2520doe&email=john%2540example.com';
-      expect(encodeUrl(url)).toBe(expected);
-    });
-
-    it('should handle pipe operator in already encoded URLs', () => {
-      const url = 'https://example.com/api?filter=status%7Cactive&sort=name%7Casc';
-      const expected = 'https://example.com/api?filter=status%257Cactive&sort=name%257Casc';
-      expect(encodeUrl(url)).toBe(expected);
+    it.each(cases)('encodes %s correctly and stays idempotent', (input, expected) => {
+      const once = encodeUrl(input);
+      expect(once).toBe(expected);
+      // Applying the encoder a second time must produce the same result.
+      expect(encodeUrl(once)).toBe(expected);
     });
   });
 
@@ -152,6 +196,29 @@ describe('encodeUrl', () => {
       const expected = 'https://api.shop.com/products?category=electronics&brand=apple%7Csamsung%7Cgoogle&price_range=100%3A1000&rating=4.5%3A5.0&availability=in_stock&sort=price%3Aasc&limit=50';
       expect(encodeUrl(url)).toBe(expected);
     });
+  });
+});
+
+describe('safeDecodeURIComponent', () => {
+  it('decodes well-formed escapes', () => {
+    expect(safeDecodeURIComponent('hello%20world')).toBe('hello world');
+    expect(safeDecodeURIComponent('a%40b.com')).toBe('a@b.com');
+  });
+
+  it('returns input unchanged when no escapes are present', () => {
+    expect(safeDecodeURIComponent('hello world')).toBe('hello world');
+  });
+
+  it('decodes valid escapes and leaves bare % intact when malformed', () => {
+    // '50%' is malformed; decoder must not throw and must leave '%' alone
+    expect(safeDecodeURIComponent('50%')).toBe('50%');
+    // Mixed: '%20' is a valid ASCII escape, the trailing '%' is bare
+    expect(safeDecodeURIComponent('hello%20world%')).toBe('hello world%');
+  });
+
+  it('handles strings with only malformed escapes', () => {
+    expect(safeDecodeURIComponent('%')).toBe('%');
+    expect(safeDecodeURIComponent('%G0')).toBe('%G0');
   });
 });
 
