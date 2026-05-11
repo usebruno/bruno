@@ -1050,12 +1050,14 @@ const closeAllTabs = async (page: Page) => {
     }
 
     const labelBox = await requestTabLabel.boundingBox();
-    if (labelBox) {
+    if (labelBox && labelBox.width > 2 && labelBox.height > 2) {
+      const preferredX = Math.min(12, Math.max(2, labelBox.width * 0.15));
+      const preferredY = Math.max(2, labelBox.height / 2);
       await requestTabLabel.click({
         button: 'right',
         position: {
-          x: Math.min(12, Math.max(2, labelBox.width * 0.15)),
-          y: Math.max(2, labelBox.height / 2)
+          x: Math.min(Math.max(1, preferredX), labelBox.width - 1),
+          y: Math.min(Math.max(1, preferredY), labelBox.height - 1)
         }
       });
     } else {
