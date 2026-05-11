@@ -1,4 +1,11 @@
 const CodeMirror = jest.fn((node, options) => {
+  const wrapperElement = {
+    parentNode: {
+      removeChild: jest.fn()
+    },
+    addEventListener: jest.fn(),
+    removeEventListener: jest.fn()
+  };
   const editor = {
     options,
     _currentValue: '',
@@ -14,6 +21,12 @@ const CodeMirror = jest.fn((node, options) => {
     refresh: jest.fn(),
     off: jest.fn(),
     showHint: jest.fn(),
+    getWrapperElement: jest.fn(() => wrapperElement),
+    getInputField: jest.fn(() => ({
+      classList: {
+        add: jest.fn()
+      }
+    })),
     on: jest.fn(function (event, handler) {
       if (event === 'keyup') {
         if (handler && handler.name === '_onKeyUpMockDataHints') {

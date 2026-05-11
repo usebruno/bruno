@@ -53,6 +53,14 @@ export default class QueryEditor extends React.Component {
   }
 
   componentDidMount() {
+    const runShortcut = () => {
+      if (this.props.onRun) {
+        this.props.onRun();
+        return;
+      }
+      return CodeMirror.Pass;
+    };
+
     const editor = (this.editor = CodeMirror(this._node, {
       value: this.props.value || '',
       lineNumbers: true,
@@ -124,6 +132,8 @@ export default class QueryEditor extends React.Component {
             this.props.onMergeQuery();
           }
         },
+        'Cmd-Enter': runShortcut,
+        'Ctrl-Enter': runShortcut,
         'Cmd-F': 'findPersistent',
         'Ctrl-F': 'findPersistent'
       }
