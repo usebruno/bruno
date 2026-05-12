@@ -18,7 +18,7 @@ const tabTypeAlreadyExists = (tabs, collectionUid, type) => {
   return find(tabs, (tab) => tab.collectionUid === collectionUid && tab.type === type);
 };
 
-const findTabByPathname = (tabs, { collectionUid, pathname, type, exampleName }) => {
+const findTabByPathname = (tabs, { collectionUid, pathname, type, exampleName, exampleIndex }) => {
   if (!pathname || !collectionUid || !type) {
     return null;
   }
@@ -33,6 +33,10 @@ const findTabByPathname = (tabs, { collectionUid, pathname, type, exampleName })
     }
 
     if (type === 'response-example') {
+      if (typeof exampleIndex === 'number' && exampleIndex >= 0 && typeof tab.exampleIndex === 'number' && tab.exampleIndex >= 0) {
+        return tab.exampleIndex === exampleIndex;
+      }
+
       return tab.exampleName === exampleName;
     }
 
@@ -45,7 +49,7 @@ export const tabsSlice = createSlice({
   initialState,
   reducers: {
     addTab: (state, action) => {
-      const { uid, collectionUid, type, requestPaneTab, preview, exampleUid, itemUid, pathname, exampleName, isTransient } = action.payload;
+      const { uid, collectionUid, type, requestPaneTab, preview, exampleUid, itemUid, pathname, exampleName, exampleIndex, isTransient } = action.payload;
 
       const nonReplaceableTabTypes = [
         'variables',
@@ -65,7 +69,7 @@ export const tabsSlice = createSlice({
         return;
       }
 
-      const existingPathnameTab = findTabByPathname(state.tabs, { collectionUid, pathname, type, exampleName });
+      const existingPathnameTab = findTabByPathname(state.tabs, { collectionUid, pathname, type, exampleName, exampleIndex });
       if (existingPathnameTab) {
         state.activeTabUid = existingPathnameTab.uid;
         return;
@@ -112,6 +116,7 @@ export const tabsSlice = createSlice({
           ...(exampleUid ? { exampleUid } : {}),
           ...(itemUid ? { itemUid } : {}),
           ...(exampleName ? { exampleName } : {}),
+          ...(typeof exampleIndex === 'number' ? { exampleIndex } : {}),
           ...(isTransient ? { isTransient: true } : {})
         };
 
@@ -147,6 +152,7 @@ export const tabsSlice = createSlice({
         ...(exampleUid ? { exampleUid } : {}),
         ...(itemUid ? { itemUid } : {}),
         ...(exampleName ? { exampleName } : {}),
+        ...(typeof exampleIndex === 'number' ? { exampleIndex } : {}),
         ...(isTransient ? { isTransient: true } : {})
       });
       state.activeTabUid = uid;
