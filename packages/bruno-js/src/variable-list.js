@@ -83,6 +83,9 @@ class VariableList {
     if (!key) {
       throw new Error('Creating a variable without specifying a name is not allowed.');
     }
+    if (this._filterKeys.includes(key)) {
+      throw new Error(`Variable name: "${key}" is a reserved internal variable and cannot be modified.`);
+    }
     this.#validateKey(key);
     this._variablesObj[key] = value;
   }
@@ -92,6 +95,9 @@ class VariableList {
    * @param {string} key
    */
   unset(key) {
+    if (this._filterKeys.includes(key)) {
+      throw new Error(`Variable name: "${key}" is a reserved internal variable and cannot be modified.`);
+    }
     delete this._variablesObj[key];
   }
 

@@ -126,6 +126,16 @@ describe('VariableList', () => {
       expect(list.has('host')).toBe(true);
     });
 
+    test('set() throws for filtered keys', () => {
+      expect(() => list.set('__name__', 'overwritten')).toThrow('reserved internal variable');
+      expect(vars.__name__).toBe('dev');
+    });
+
+    test('unset() throws for filtered keys', () => {
+      expect(() => list.unset('__name__')).toThrow('reserved internal variable');
+      expect(vars.__name__).toBe('dev');
+    });
+
     test('get() still returns filtered keys (direct access)', () => {
       // get() reads directly from the object, filterKeys only affects has/toObject/toJSON/clear
       const interpolated = new VariableList(vars, {
