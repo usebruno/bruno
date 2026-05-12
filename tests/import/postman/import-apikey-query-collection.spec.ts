@@ -73,23 +73,11 @@ test.describe('Import Postman Collection with API Key in Query Params', () => {
       await locationModal.waitFor({ state: 'hidden' });
     });
 
-    await test.step('Open collection', async () => {
+    await test.step('Open collection and verify request is displayed', async () => {
       await openCollection(page, 'My Collection');
-    });
-
-    await test.step('Verify collection name appears in sidebar', async () => {
       await expect(locators.sidebar.collection('My Collection')).toBeVisible();
-    });
-
-    await test.step('Verify request exists in the collection', async () => {
       await expect(locators.sidebar.request('Query with API Key')).toBeVisible();
-    });
-
-    await test.step('Click on the request to view details', async () => {
       await locators.sidebar.request('Query with API Key').click();
-    });
-
-    await test.step('Verify request details are displayed', async () => {
       await expect(locators.request.pane()).toBeVisible();
     });
 
