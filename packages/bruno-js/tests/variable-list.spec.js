@@ -57,6 +57,25 @@ describe('VariableList', () => {
       expect(list.has('missing')).toBe(false);
     });
 
+    test('has(key, value) returns true when value matches', () => {
+      expect(list.has('host', 'example.com')).toBe(true);
+    });
+
+    test('has(key, value) returns false when value does not match', () => {
+      expect(list.has('host', 'other.com')).toBe(false);
+    });
+
+    test('has(key, value) returns false for missing key', () => {
+      expect(list.has('missing', 'anything')).toBe(false);
+    });
+
+    test('has(key, undefined) distinguishes from has(key)', () => {
+      list.set('nullish', undefined);
+      expect(list.has('nullish')).toBe(true);
+      expect(list.has('nullish', undefined)).toBe(true);
+      expect(list.has('nullish', null)).toBe(false);
+    });
+
     test('unset() removes key from underlying object', () => {
       list.unset('host');
       expect(vars.host).toBeUndefined();

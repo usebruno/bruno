@@ -47,14 +47,19 @@ class VariableList {
   }
 
   /**
-   * Check if a variable exists by key.
+   * Check if a variable exists by key, optionally matching a value.
    * Returns false for keys in filterKeys.
    * @param {string} key
+   * @param {*} [value] - If provided, also checks that the stored value equals this
    * @returns {boolean}
    */
-  has(key) {
+  has(key, value) {
     if (this._filterKeys.includes(key)) return false;
-    return Object.hasOwn(this._variablesObj, key);
+    if (!Object.hasOwn(this._variablesObj, key)) return false;
+    if (arguments.length > 1) {
+      return this._variablesObj[key] === value;
+    }
+    return true;
   }
 
   /**
