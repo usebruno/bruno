@@ -105,7 +105,6 @@ const createPropertyListBridge = (vm, nativeList, targetObj, options) => {
     fn.consume((handle) => vm.setProp(targetObj, methodName, handle));
   }
 
-
   // Sync write methods — call native method, return undefined
   for (const methodName of syncWriteMethods) {
     const fn = vm.newFunction(methodName, (...vmArgs) => {
