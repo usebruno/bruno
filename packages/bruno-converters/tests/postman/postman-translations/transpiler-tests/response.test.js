@@ -954,7 +954,13 @@ describe('Response Translation', () => {
   it('should translate pm.response.to.be.withBody', () => {
     const code = 'pm.response.to.be.withBody;';
     const translatedCode = translateCode(code);
-    expect(translatedCode).toBe('expect(res.getBody()).to.be.ok;');
+    expect(translatedCode).toBe('expect(res.getBody()).to.not.equal(undefined);');
+  });
+
+  it('should translate withBody using undefined check (not truthiness) so falsy bodies work', () => {
+    const code = 'pm.response.to.be.withBody;';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toContain('to.not.equal(undefined)');
   });
 
   it('should handle new status assertions inside test blocks', () => {
@@ -1009,7 +1015,7 @@ describe('Response Translation', () => {
   it('should translate pm.response.to.be.not.withBody (alternate position)', () => {
     const code = 'pm.response.to.be.not.withBody;';
     const translatedCode = translateCode(code);
-    expect(translatedCode).toBe('expect(res.getBody()).to.not.be.ok;');
+    expect(translatedCode).toBe('expect(res.getBody()).to.equal(undefined);');
   });
 
   it('should translate pm.response.to.not.be.success', () => {
@@ -1087,7 +1093,7 @@ describe('Response Translation', () => {
   it('should translate pm.response.to.not.be.withBody', () => {
     const code = 'pm.response.to.not.be.withBody;';
     const translatedCode = translateCode(code);
-    expect(translatedCode).toBe('expect(res.getBody()).to.not.be.ok;');
+    expect(translatedCode).toBe('expect(res.getBody()).to.equal(undefined);');
   });
 
   it('should handle negated assertions inside test blocks', () => {

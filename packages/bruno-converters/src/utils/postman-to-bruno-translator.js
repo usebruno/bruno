@@ -547,31 +547,41 @@ const complexTransformations = [
     }
   },
 
-  // pm.response.to.be.withBody -> expect(res.getBody()).to.be.ok
+  // pm.response.to.be.withBody -> expect(res.getBody()).to.not.equal(undefined)
+  // Uses undefined check instead of truthiness (.to.be.ok) so falsy bodies (false, 0, null) pass correctly
   {
     pattern: 'pm.response.to.be.withBody',
     transform: (path, j) => {
-      return j.memberExpression(
-        j.callExpression(j.identifier('expect'), [j.callExpression(j.identifier('res.getBody'), [])]),
-        j.identifier('to.be.ok')
+      return j.callExpression(
+        j.memberExpression(
+          j.callExpression(j.identifier('expect'), [j.callExpression(j.identifier('res.getBody'), [])]),
+          j.identifier('to.not.equal')
+        ),
+        [j.identifier('undefined')]
       );
     }
   },
   {
     pattern: 'pm.response.to.not.be.withBody',
     transform: (path, j) => {
-      return j.memberExpression(
-        j.callExpression(j.identifier('expect'), [j.callExpression(j.identifier('res.getBody'), [])]),
-        j.identifier('to.not.be.ok')
+      return j.callExpression(
+        j.memberExpression(
+          j.callExpression(j.identifier('expect'), [j.callExpression(j.identifier('res.getBody'), [])]),
+          j.identifier('to.equal')
+        ),
+        [j.identifier('undefined')]
       );
     }
   },
   {
     pattern: 'pm.response.to.be.not.withBody',
     transform: (path, j) => {
-      return j.memberExpression(
-        j.callExpression(j.identifier('expect'), [j.callExpression(j.identifier('res.getBody'), [])]),
-        j.identifier('to.not.be.ok')
+      return j.callExpression(
+        j.memberExpression(
+          j.callExpression(j.identifier('expect'), [j.callExpression(j.identifier('res.getBody'), [])]),
+          j.identifier('to.equal')
+        ),
+        [j.identifier('undefined')]
       );
     }
   },
