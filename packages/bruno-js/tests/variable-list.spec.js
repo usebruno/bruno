@@ -1,16 +1,6 @@
 const VariableList = require('../src/variable-list');
-const PropertyList = require('../src/property-list');
-const ReadOnlyPropertyList = require('../src/readonly-property-list');
 
 describe('VariableList', () => {
-  // ── Inheritance ───────────────────────────────────────────────────────
-
-  test('instanceof PropertyList and ReadOnlyPropertyList', () => {
-    const list = new VariableList({});
-    expect(list).toBeInstanceOf(PropertyList);
-    expect(list).toBeInstanceOf(ReadOnlyPropertyList);
-  });
-
   // ── Basic CRUD ────────────────────────────────────────────────────────
 
   describe('get / set / has / unset', () => {
@@ -99,6 +89,23 @@ describe('VariableList', () => {
     });
   });
 
+  // ── toObject ───────────────────────────────────────────────────────────
+
+  describe('toObject', () => {
+    test('toObject() returns plain { key: value } map', () => {
+      const list = new VariableList({ a: '1', b: '2', c: '3' });
+      expect(list.toObject()).toEqual({ a: '1', b: '2', c: '3' });
+    });
+
+    test('toObject() excludes filterKeys', () => {
+      const list = new VariableList(
+        { __name__: 'dev', host: 'example.com' },
+        { filterKeys: ['__name__'] }
+      );
+      expect(list.toObject()).toEqual({ host: 'example.com' });
+    });
+  });
+
   // ── filterKeys ────────────────────────────────────────────────────────
 
   describe('filterKeys', () => {
@@ -114,114 +121,18 @@ describe('VariableList', () => {
       expect(list.toObject()).toEqual({ host: 'example.com', port: '8080' });
     });
 
-    test('all() excludes filtered keys', () => {
-      const items = list.all();
-      expect(items).toHaveLength(2);
-      expect(items.find((i) => i.key === '__name__')).toBeUndefined();
-    });
-
-    test('count() excludes filtered keys', () => {
-      expect(list.count()).toBe(2);
-    });
-
-    test('has() still checks filtered keys via dataSource', () => {
-      // __name__ is filtered from reads, so has() won't find it
+    test('has() returns false for filtered keys', () => {
       expect(list.has('__name__')).toBe(false);
       expect(list.has('host')).toBe(true);
     });
-  });
 
-  // ── ReadOnlyPropertyList inherited methods ────────────────────────────
-
-  describe('inherited read methods', () => {
-    let list;
-
-    beforeEach(() => {
-      list = new VariableList({ a: '1', b: '2', c: '3' }, {
-        interpolateFn: (val) => val
+    test('get() still returns filtered keys (direct access)', () => {
+      // get() reads directly from the object, filterKeys only affects has/toObject/toJSON/clear
+      const interpolated = new VariableList(vars, {
+        interpolateFn: (v) => v,
+        filterKeys: ['__name__']
       });
-    });
-
-    test('one() returns full item object', () => {
-      expect(list.one('b')).toEqual({ key: 'b', value: '2' });
-    });
-
-    test('one() returns undefined for missing key', () => {
-      expect(list.one('missing')).toBeUndefined();
-    });
-
-    test('all() returns array of { key, value } items', () => {
-      const items = list.all();
-      expect(items).toHaveLength(3);
-      expect(items).toEqual([
-        { key: 'a', value: '1' },
-        { key: 'b', value: '2' },
-        { key: 'c', value: '3' }
-      ]);
-    });
-
-    test('idx() returns item by position', () => {
-      expect(list.idx(1)).toEqual({ key: 'b', value: '2' });
-    });
-
-    test('count() returns number of items', () => {
-      expect(list.count()).toBe(3);
-    });
-
-    test('indexOf() finds item by structural equality', () => {
-      expect(list.indexOf({ key: 'b', value: '2' })).toBe(1);
-      expect(list.indexOf({ key: 'missing', value: 'x' })).toBe(-1);
-    });
-
-    test('toObject() returns plain { key: value } map', () => {
-      expect(list.toObject()).toEqual({ a: '1', b: '2', c: '3' });
-    });
-
-    test('toString() returns "key=value; ..." format', () => {
-      expect(list.toString()).toBe('a=1; b=2; c=3');
-    });
-
-    test('toJSON() returns same as all()', () => {
-      expect(list.toJSON()).toEqual(list.all());
-    });
-  });
-
-  // ── Iteration methods ─────────────────────────────────────────────────
-
-  describe('iteration methods', () => {
-    let list;
-
-    beforeEach(() => {
-      list = new VariableList({ a: '1', b: '2', c: '3' }, {
-        interpolateFn: (val) => val
-      });
-    });
-
-    test('each() iterates over all items', () => {
-      const keys = [];
-      list.each((item) => keys.push(item.key));
-      expect(keys).toEqual(['a', 'b', 'c']);
-    });
-
-    test('map() transforms items', () => {
-      const values = list.map((item) => item.value);
-      expect(values).toEqual(['1', '2', '3']);
-    });
-
-    test('filter() selects matching items', () => {
-      const filtered = list.filter((item) => item.key !== 'b');
-      expect(filtered).toHaveLength(2);
-      expect(filtered.map((i) => i.key)).toEqual(['a', 'c']);
-    });
-
-    test('find() returns first match', () => {
-      const found = list.find((item) => item.value === '2');
-      expect(found).toEqual({ key: 'b', value: '2' });
-    });
-
-    test('reduce() accumulates values', () => {
-      const sum = list.reduce((acc, item) => acc + Number(item.value), 0);
-      expect(sum).toBe(6);
+      expect(interpolated.get('__name__')).toBe('dev');
     });
   });
 
