@@ -132,7 +132,7 @@ const containsSecretVariableReferences = (rawValue, collection, item) => {
   return false;
 };
 
-const getCopyButton = (variableValue, onCopyCallback) => {
+const getCopyButton = (getVariableValue, onCopyCallback) => {
   const copyButton = document.createElement('button');
 
   copyButton.className = 'copy-button';
@@ -150,8 +150,11 @@ const getCopyButton = (variableValue, onCopyCallback) => {
       return;
     }
 
+    // Resolve the latest value at click time so edits/saves are reflected.
+    const valueToCopy = typeof getVariableValue === 'function' ? getVariableValue() : getVariableValue;
+
     navigator.clipboard
-      .writeText(variableValue)
+      .writeText(valueToCopy ?? '')
       .then(() => {
         isCopied = true;
         copyButton.innerHTML = CHECKMARK_ICON_SVG_TEXT;
@@ -415,6 +418,11 @@ export const renderVarInfo = (token, options) => {
     // Store original value for comparison and track editing state
     let originalValue = rawValue;
     let isEditing = false;
+    // Latest resolved value and mask state used by the copy button, eye toggle, and
+    // error-revert path. Updated after each successful save so subsequent redraws
+    // reflect the saved state. `??` preserves falsy-but-valid values like 0 / false.
+    let currentInterpolatedValue = variableValue ?? '';
+    let currentShouldMaskValue = shouldMaskValue;
 
     cmEditor.setOption('extraKeys', {
       'Enter': (cm) => {
@@ -461,8 +469,8 @@ export const renderVarInfo = (token, options) => {
         // Update icon
         toggleButton.innerHTML = isRevealed ? EYE_OFF_ICON_SVG : EYE_ICON_SVG;
 
-        // Update display mode
-        updateValueDisplay(valueDisplay, variableValue, shouldMaskValue, isMasked, isRevealed);
+        // Update display mode using live state so post-save values/masking are reflected.
+        updateValueDisplay(valueDisplay, currentInterpolatedValue, currentShouldMaskValue, isMasked, isRevealed);
 
         // Update editor mode
         if (maskedEditor) {
@@ -480,8 +488,9 @@ export const renderVarInfo = (token, options) => {
       iconsContainer.appendChild(toggleButton);
     }
 
-    // Copy button (copy actual value, not masked)
-    const copyButton = getCopyButton(variableValue || '', () => {
+    // Copy button (copy actual value, not masked). Uses a getter so it always
+    // reflects the latest saved value, not the value captured at popup creation.
+    const copyButton = getCopyButton(() => currentInterpolatedValue, () => {
       // Refocus the editor if it's currently in edit mode
       if (isEditing) {
         setTimeout(() => {
@@ -555,18 +564,22 @@ export const renderVarInfo = (token, options) => {
               }
             }
 
-            // Re-interpolate the new value to show the resolved value in display
+            // Re-interpolate the new value to show the resolved value in display.
+            // Use `??` so falsy-but-valid values (0 / false / '') survive the assignment.
             const interpolatedValue = interpolate(newValue, allVariables);
-            // Check if the NEW value contains secret references
+            currentInterpolatedValue = interpolatedValue ?? '';
+            // Check if the NEW value contains secret references and update live mask state
             const newHasSecretRefs = containsSecretVariableReferences(newValue, collection, item);
-            const newShouldMask = isSecret || newHasSecretRefs;
-            updateValueDisplay(valueDisplay, interpolatedValue, newShouldMask, isMasked, isRevealed);
+            currentShouldMaskValue = isSecret || newHasSecretRefs;
+            updateValueDisplay(valueDisplay, currentInterpolatedValue, currentShouldMaskValue, isMasked, isRevealed);
           })
           .catch((err) => {
             console.error('Failed to update variable:', err);
-            // Revert on error
+            // Revert on error to the last good state — currentInterpolatedValue and
+            // currentShouldMaskValue still hold pre-attempt values since the success
+            // block above never ran.
             cmEditor.setValue(originalValue);
-            updateValueDisplay(valueDisplay, variableValue, shouldMaskValue, isMasked, isRevealed);
+            updateValueDisplay(valueDisplay, currentInterpolatedValue, currentShouldMaskValue, isMasked, isRevealed);
           });
       }
     });
