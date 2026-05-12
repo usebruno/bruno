@@ -27,7 +27,7 @@ class TabPanelErrorBoundaryInner extends React.Component {
           <p className="text-sm opacity-70 max-w-md">
             This tab encountered an unexpected error. Close the tab and try reopening the request.
           </p>
-          <Button size="md" color="primary" onClick={this.props.onClose}>
+          <Button size="md" data-testid="tab-panel-error-boundary-close-tab" color="primary" onClick={this.props.onClose}>
             Close Tab
           </Button>
         </div>
