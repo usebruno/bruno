@@ -218,11 +218,7 @@ test.describe('Variable Tooltip', () => {
       // Click copy button
       await copyButton.click();
 
-      // Should show success state (checkmark)
-      await expect(copyButton.locator('svg polyline')).toBeVisible({ timeout: 1000 });
-
-      // Wait for it to revert back to copy icon
-      await expect(copyButton.locator('svg rect')).toBeVisible();
+      await expect.poll(() => page.evaluate(() => navigator.clipboard.readText()), { timeout: 1000 }).toBe('https://api.example.com/users/posts');
     });
   });
 
