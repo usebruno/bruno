@@ -34,6 +34,6 @@ tests {
     bru.variables.clear();
     expect(bru.variables.has("beta")).to.be.false;
     expect(bru.variables.has("gamma")).to.be.false;
-    expect(bru.variables.count()).to.equal(0);
+    expect(Object.keys(bru.variables.toObject()).length).to.equal(0);
   });
 }
