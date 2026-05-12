@@ -11,17 +11,24 @@ interface ExtractQueryParamsOptions {
   decode?: boolean;
 }
 
+// safeDecodeURIComponent is defined later in this file; use a forward reference here.
+// The encoder is idempotent: raw values get encoded once, already-encoded values
+// (e.g., user typed `%23` directly in a param value) round-trip unchanged.
 function buildQueryString(paramsArray: QueryParam[], { encode = false }: BuildQueryStringOptions = {}): string {
+  const transform = encode
+    ? (s: string) => encodeURIComponent(safeDecodeURIComponent(s))
+    : (s: string) => s;
+
   return paramsArray
     .filter(({ name }) => typeof name === 'string' && name.trim().length > 0)
     .map(({ name, value }) => {
-      const finalName = encode ? encodeURIComponent(name) : name;
+      const finalName = transform(name);
 
       if (value === undefined) {
         return finalName;
       }
 
-      const finalValue = encode ? encodeURIComponent(value) : value;
+      const finalValue = transform(value);
       return `${finalName}=${finalValue}`;
     })
     .join('&');

@@ -326,4 +326,63 @@ describe('buildQueryString', () => {
     const result = buildQueryString(params);
     expect(result).toBe('seat=&table=2');
   });
+
+  describe('idempotency when encode is true', () => {
+    it('encodes structural chars (#, &, =, ?, +) in values', () => {
+      const params = [
+        { name: 'tag', value: 'hello#world' },
+        { name: 'q', value: 'a&b' },
+        { name: 'eq', value: 'a=b' },
+        { name: 'qm', value: 'a?b' },
+        { name: 'plus', value: 'a+b' }
+      ];
+      const result = buildQueryString(params, { encode: true });
+      expect(result).toBe('tag=hello%23world&q=a%26b&eq=a%3Db&qm=a%3Fb&plus=a%2Bb');
+    });
+
+    it('does NOT double-encode already-encoded values', () => {
+      const params = [
+        { name: 'tag', value: 'hello%23world' },
+        { name: 'q', value: 'a%26b' }
+      ];
+      const result = buildQueryString(params, { encode: true });
+      expect(result).toBe('tag=hello%23world&q=a%26b');
+      expect(result).not.toContain('%2523');
+      expect(result).not.toContain('%2526');
+    });
+
+    it('preserves bare % by encoding it to %25 once', () => {
+      const params = [{ name: 'q', value: '50%' }];
+      const result = buildQueryString(params, { encode: true });
+      expect(result).toBe('q=50%25');
+    });
+
+    it('handles mixed raw + already-encoded values idempotently', () => {
+      const params = [
+        { name: 'raw', value: 'hello world' },
+        { name: 'enc', value: 'hello%20world' }
+      ];
+      const result = buildQueryString(params, { encode: true });
+      // Both should land on the same encoded form
+      expect(result).toBe('raw=hello%20world&enc=hello%20world');
+    });
+
+    it('applying encode twice produces the same output as applying once', () => {
+      const params = [
+        { name: 'tag', value: 'hello#world&more' },
+        { name: 'q', value: 'a=b+c' }
+      ];
+      const once = buildQueryString(params, { encode: true });
+      // Re-parse the encoded query, run through buildQueryString again — must be stable
+      const reparsed = parseQueryParams(once, { decode: false });
+      const twice = buildQueryString(reparsed, { encode: true });
+      expect(twice).toBe(once);
+    });
+
+    it('encodes structural chars in names too', () => {
+      const params = [{ name: 'a&b', value: 'v' }];
+      const result = buildQueryString(params, { encode: true });
+      expect(result).toBe('a%26b=v');
+    });
+  });
 });

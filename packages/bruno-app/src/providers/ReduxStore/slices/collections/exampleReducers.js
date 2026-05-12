@@ -401,7 +401,11 @@ export const updateResponseExampleParam = (state, action) => {
 
   if (paramToUpdate.type === 'query') {
     const parts = splitOnFirst(example.request.url, '?');
-    const query = stringifyQueryParams(filter(example.request.params, (p) => p.enabled && p.type === 'query'));
+    // encode: true keeps structural chars (#, &, =, ?, +) in values safe; idempotent
+    const query = stringifyQueryParams(
+      filter(example.request.params, (p) => p.enabled && p.type === 'query'),
+      { encode: true }
+    );
 
     if (!query || !query.length) {
       if (parts.length) {
@@ -443,7 +447,11 @@ export const deleteResponseExampleParam = (state, action) => {
 
   if (paramToDelete && paramToDelete.type === 'query') {
     const parts = splitOnFirst(example.request.url, '?');
-    const query = stringifyQueryParams(filter(example.request.params, (p) => p.enabled && p.type === 'query'));
+    // encode: true keeps structural chars (#, &, =, ?, +) in values safe; idempotent
+    const query = stringifyQueryParams(
+      filter(example.request.params, (p) => p.enabled && p.type === 'query'),
+      { encode: true }
+    );
 
     if (!query || !query.length) {
       if (parts.length) {
@@ -965,9 +973,10 @@ export const setResponseExampleParams = (state, action) => {
     type: type
   }));
 
-  // Update URL when query parameters change
+  // Update URL when query parameters change.
+  // encode: true keeps structural chars (#, &, =, ?, +) in values safe; idempotent.
   const queryParams = filter(example.request.params, (p) => p.enabled && p.type === 'query');
-  const query = stringifyQueryParams(queryParams);
+  const query = stringifyQueryParams(queryParams, { encode: true });
 
   if (!example.request.url) {
     example.request.url = '';

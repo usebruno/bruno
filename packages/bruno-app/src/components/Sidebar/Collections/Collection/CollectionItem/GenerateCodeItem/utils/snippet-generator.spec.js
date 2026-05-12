@@ -1535,3 +1535,140 @@ describe('generateSnippet – HTTPSnippet HAR-validator-rejected chars (always-e
     });
   });
 });
+
+// Documents URL-spec structural delimiter behavior in the URL bar. These are NOT
+// bugs — they reflect how the URL parser interprets reserved characters per RFC 3986.
+// Postman, Insomnia, curl, and every browser parse the same way. The Query Params
+describe('generateSnippet – URL-bar structural delimiters (?, #, &, =)', () => {
+  const language = { target: 'shell', client: 'curl' };
+  const baseCollection = { root: { request: { auth: { mode: 'none' }, headers: [] } } };
+
+  // Mirror HTTPSnippet's URL preservation (same realistic mock used elsewhere).
+  beforeEach(() => {
+    jest.clearAllMocks();
+    const getEncodedPath = (url) => {
+      const { parse } = require('url');
+      const { stringify } = require('query-string');
+      const parsed = parse(url, true, true);
+      if (!parsed.query || Object.keys(parsed.query).length === 0) {
+        return parsed.pathname;
+      }
+      const search = stringify(parsed.query, { sort: false });
+      return search ? `${parsed.pathname}?${search}` : parsed.pathname;
+    };
+    require('httpsnippet').HTTPSnippet = jest.fn().mockImplementation((harRequest) => ({
+      convert: jest.fn(() => {
+        const method = harRequest?.method || 'GET';
+        const url = harRequest?.url || 'http://example.com';
+        const { parse } = require('url');
+        const parsed = parse(url, false, true);
+        const encodedPath = getEncodedPath(url);
+        const fullEncodedUrl = `${parsed.protocol}//${parsed.host}${encodedPath}`;
+        return `curl -X ${method} '${fullEncodedUrl}'`;
+      })
+    }));
+  });
+
+  const makeItem = (url, settings) => ({
+    uid: 'delim-req',
+    request: { method: 'GET', url, headers: [], body: { mode: 'none' }, auth: { mode: 'none' } },
+    rawUrl: url,
+    ...(settings !== undefined && { settings })
+  });
+
+  describe('? (start-of-query) — first occurrence delimits, subsequent are data', () => {
+    const rawUrl = 'https://example.com/api?q=a?b';
+
+    it('toggle OFF — preserves second ? as raw', () => {
+      const item = makeItem(rawUrl, { encodeUrl: false });
+      const result = generateSnippet({ language, item, collection: baseCollection, shouldInterpolate: false });
+      expect(result).toContain('?q=a?b');
+    });
+
+    it('toggle ON — encodes second ? to %3F (treated as part of value)', () => {
+      const item = makeItem(rawUrl, { encodeUrl: true });
+      const result = generateSnippet({ language, item, collection: baseCollection, shouldInterpolate: false });
+      expect(result).toContain('q=a%3Fb');
+      expect(result).not.toContain('q=a?b');
+    });
+  });
+
+  describe('# (start-of-fragment) — always structural, never recoverable as value', () => {
+    const rawUrl = 'https://example.com/api?q=a#b';
+
+    it('toggle OFF — fragment kept in URL string (curl/HTTP drops on wire)', () => {
+      const item = makeItem(rawUrl, { encodeUrl: false });
+      const result = generateSnippet({ language, item, collection: baseCollection, shouldInterpolate: false });
+      expect(result).toContain('?q=a#b');
+    });
+
+    it('toggle ON — fragment dropped per RFC 3986 §3.5', () => {
+      const item = makeItem(rawUrl, { encodeUrl: true });
+      const result = generateSnippet({ language, item, collection: baseCollection, shouldInterpolate: false });
+      expect(result).toContain('?q=a');
+      expect(result).not.toContain('#b');
+      expect(result).not.toContain('%23b');
+    });
+  });
+
+  describe('& (param separator) — always structural', () => {
+    const rawUrl = 'https://example.com/api?q=a&b';
+
+    it('toggle OFF — preserves the literal & (parsed as 2 params on wire)', () => {
+      const item = makeItem(rawUrl, { encodeUrl: false });
+      const result = generateSnippet({ language, item, collection: baseCollection, shouldInterpolate: false });
+      expect(result).toContain('?q=a&b');
+    });
+
+    it('toggle ON — still 2 params, toggle does NOT recover the & as data', () => {
+      const item = makeItem(rawUrl, { encodeUrl: true });
+      const result = generateSnippet({ language, item, collection: baseCollection, shouldInterpolate: false });
+      // Toggle cannot reinterpret the URL grammar — & remains a param separator
+      expect(result).toContain('?q=a&b');
+      expect(result).not.toContain('a%26b');
+    });
+  });
+
+  describe('= (name/value separator) — first occurrence delimits, subsequent are data', () => {
+    const rawUrl = 'https://example.com/api?q=a=b';
+
+    it('toggle OFF — preserves second = as raw', () => {
+      const item = makeItem(rawUrl, { encodeUrl: false });
+      const result = generateSnippet({ language, item, collection: baseCollection, shouldInterpolate: false });
+      expect(result).toContain('?q=a=b');
+    });
+
+    it('toggle ON — encodes second = to %3D (treated as part of value)', () => {
+      const item = makeItem(rawUrl, { encodeUrl: true });
+      const result = generateSnippet({ language, item, collection: baseCollection, shouldInterpolate: false });
+      expect(result).toContain('q=a%3Db');
+      expect(result).not.toContain('q=a=b');
+    });
+  });
+
+  describe('cross-delimiter interactions', () => {
+    it('toggle OFF — mixed delimiters all preserved', () => {
+      const url = 'https://example.com/api?q=a?b&p=c=d#e';
+      const item = makeItem(url, { encodeUrl: false });
+      const result = generateSnippet({ language, item, collection: baseCollection, shouldInterpolate: false });
+      expect(result).toContain('q=a?b');
+      expect(result).toContain('p=c=d');
+      expect(result).toContain('#e');
+    });
+
+    it('toggle ON — fragment dropped, positional delimiters (? and =) encoded as value chars', () => {
+      const url = 'https://example.com/api?q=a?b&p=c=d#e';
+      const item = makeItem(url, { encodeUrl: true });
+      const result = generateSnippet({ language, item, collection: baseCollection, shouldInterpolate: false });
+      // Second ? in q's value gets encoded
+      expect(result).toContain('q=a%3Fb');
+      // Second = in p's value gets encoded
+      expect(result).toContain('p=c%3Dd');
+      // Fragment dropped per RFC
+      expect(result).not.toContain('#e');
+      expect(result).not.toContain('%23e');
+      // But & between params stays a separator
+      expect(result).toContain('&p=');
+    });
+  });
+});
