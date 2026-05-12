@@ -54,7 +54,7 @@ class VariableList {
    */
   has(key) {
     if (this._filterKeys.includes(key)) return false;
-    return key in this._variablesObj;
+    return Object.hasOwn(this._variablesObj, key);
   }
 
   /**
