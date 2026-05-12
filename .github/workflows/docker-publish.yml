@@ -1,0 +1,114 @@
+name: Publish Bruno CLI Docker Image
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Bruno CLI version to publish (e.g. 3.3.0)'
+        required: true
+        type: string
+      tag_as_latest:
+        description: 'Tag this version as latest on Docker Hub and GHCR?'
+        required: true
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  publish:
+    name: Build, Test and Publish
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Validate version input
+        run: |
+          if ! echo "${{ github.event.inputs.version }}" | grep -qE "^[0-9]+\.[0-9]+\.[0-9]+$"; then
+            echo "Invalid version format. Expected X.Y.Z (e.g. 3.3.0)"
+            exit 1
+          fi
+
+      - name: Set version variables
+        id: version
+        run: |
+          VERSION=${{ github.event.inputs.version }}
+          MAJOR=$(echo $VERSION | cut -d. -f1)
+          MINOR=$(echo $VERSION | cut -d. -f1,2)
+          echo "full=$VERSION" >> $GITHUB_OUTPUT
+          echo "major=$MAJOR" >> $GITHUB_OUTPUT
+          echo "minor=$MINOR" >> $GITHUB_OUTPUT
+
+      - name: Set up QEMU (for multi-arch builds)
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # ── Alpine ────────────────────────────────────────────────────────────
+
+      - name: Build and push alpine image (multi-arch)
+        uses: docker/build-push-action@v6
+        with:
+          context: ./packages/bruno-cli/docker/images/alpine
+          platforms: linux/amd64,linux/arm64
+          push: true
+          build-args: BRUNO_VERSION=${{ steps.version.outputs.full }}
+          tags: |
+            usebruno/cli:alpine
+            usebruno/cli:${{ steps.version.outputs.full }}
+            usebruno/cli:${{ steps.version.outputs.full }}-alpine
+            usebruno/cli:${{ steps.version.outputs.minor }}
+            usebruno/cli:${{ steps.version.outputs.minor }}-alpine
+            usebruno/cli:${{ steps.version.outputs.major }}
+            usebruno/cli:${{ steps.version.outputs.major }}-alpine
+            ghcr.io/usebruno/cli:alpine
+            ghcr.io/usebruno/cli:${{ steps.version.outputs.full }}
+            ghcr.io/usebruno/cli:${{ steps.version.outputs.full }}-alpine
+            ghcr.io/usebruno/cli:${{ steps.version.outputs.minor }}
+            ghcr.io/usebruno/cli:${{ steps.version.outputs.minor }}-alpine
+            ghcr.io/usebruno/cli:${{ steps.version.outputs.major }}
+            ghcr.io/usebruno/cli:${{ steps.version.outputs.major }}-alpine
+            ${{ github.event.inputs.tag_as_latest == 'true' && 'usebruno/cli:latest' || '' }}
+            ${{ github.event.inputs.tag_as_latest == 'true' && 'ghcr.io/usebruno/cli:latest' || '' }}
+
+      - name: Smoke test alpine
+        run: ./packages/bruno-cli/docker/smoke-test.sh usebruno/cli:${{ steps.version.outputs.full }}
+
+      # ── Debian ────────────────────────────────────────────────────────────
+
+      - name: Build and push debian image (multi-arch)
+        uses: docker/build-push-action@v6
+        with:
+          context: ./packages/bruno-cli/docker/images/debian
+          platforms: linux/amd64,linux/arm64
+          push: true
+          build-args: BRUNO_VERSION=${{ steps.version.outputs.full }}
+          tags: |
+            usebruno/cli:debian
+            usebruno/cli:${{ steps.version.outputs.full }}-debian
+            usebruno/cli:${{ steps.version.outputs.minor }}-debian
+            usebruno/cli:${{ steps.version.outputs.major }}-debian
+            ghcr.io/usebruno/cli:debian
+            ghcr.io/usebruno/cli:${{ steps.version.outputs.full }}-debian
+            ghcr.io/usebruno/cli:${{ steps.version.outputs.minor }}-debian
+            ghcr.io/usebruno/cli:${{ steps.version.outputs.major }}-debian
+
+      - name: Smoke test debian
+        run: ./packages/bruno-cli/docker/smoke-test.sh usebruno/cli:${{ steps.version.outputs.full }}-debian
