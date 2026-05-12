@@ -11,6 +11,10 @@ get {
 }
 
 script:pre-request {
+  // Save current env vars so we can restore after clear()
+  const saved = bru.environment.toObject();
+  bru.setVar("__savedEnv", JSON.stringify(saved));
+
   bru.environment.set("envAlpha", "1");
   bru.environment.set("envBeta", "2");
 }
@@ -36,4 +40,12 @@ tests {
     const name = bru.environment.name;
     expect(name).to.be.a("string");
   });
+}
+
+script:post-response {
+  // Restore environment variables that were wiped by clear()
+  const saved = JSON.parse(bru.getVar("__savedEnv"));
+  for (const [key, value] of Object.entries(saved)) {
+    bru.environment.set(key, value);
+  }
 }
