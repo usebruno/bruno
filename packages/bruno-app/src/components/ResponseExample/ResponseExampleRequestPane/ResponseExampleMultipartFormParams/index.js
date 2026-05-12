@@ -6,8 +6,8 @@ import { IconUpload } from '@tabler/icons';
 import { updateResponseExampleMultipartFormParams } from 'providers/ReduxStore/slices/collections';
 import { browseFiles } from 'providers/ReduxStore/slices/collections/actions';
 import { updateTableColumnWidths } from 'providers/ReduxStore/slices/tabs';
-import mime from 'mime-types';
-import path, { getRelativePath } from 'utils/common/path';
+import { getRelativePath } from 'utils/common/path';
+import { getMultipartAutoContentType } from 'utils/common/multipartContentType';
 import EditableTable from 'components/EditableTable';
 import MultiLineEditor from 'components/MultiLineEditor';
 import SingleLineEditor from 'components/SingleLineEditor';
@@ -74,33 +74,28 @@ const ResponseExampleMultipartFormParams = ({ item, collection, exampleUid, edit
           }
         }
 
+        const autoContentType = getMultipartAutoContentType(merged);
+
         let updatedParams;
         if (existingParam) {
           updatedParams = currentParams.map((p) => {
             if (p.uid === row.uid) {
-              const updated = { ...p, type: 'file', value: merged };
-              if (merged.length > 0 && !p.contentType) {
-                const contentType = mime.contentType(path.extname(merged[0]));
-                updated.contentType = contentType || '';
-              }
-              return updated;
+              return { ...p, type: 'file', value: merged, contentType: autoContentType };
             }
             return p;
           });
         } else {
-          const newParam = {
-            uid: row.uid,
-            name: row.name || '',
-            type: 'file',
-            value: merged,
-            contentType: '',
-            enabled: true
-          };
-          if (merged.length > 0) {
-            const contentType = mime.contentType(path.extname(merged[0]));
-            newParam.contentType = contentType || '';
-          }
-          updatedParams = [...currentParams, newParam];
+          updatedParams = [
+            ...currentParams,
+            {
+              uid: row.uid,
+              name: row.name || '',
+              type: 'file',
+              value: merged,
+              contentType: autoContentType,
+              enabled: true
+            }
+          ];
         }
 
         handleParamsChange(updatedParams);
@@ -123,9 +118,9 @@ const ResponseExampleMultipartFormParams = ({ item, collection, exampleUid, edit
     const updatedParams = currentParams.map((p) => {
       if (p.uid !== row.uid) return p;
       if (nextValue.length === 0) {
-        return { ...p, type: 'text', value: '' };
+        return { ...p, type: 'text', value: '', contentType: '' };
       }
-      return { ...p, type: 'file', value: nextValue };
+      return { ...p, type: 'file', value: nextValue, contentType: getMultipartAutoContentType(nextValue) };
     });
     handleParamsChange(updatedParams);
   }, [editMode, params, handleParamsChange]);

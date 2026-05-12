@@ -16,6 +16,7 @@ import { updateTableColumnWidths } from 'providers/ReduxStore/slices/tabs';
 import EditableTable from 'components/EditableTable';
 import StyledWrapper from './StyledWrapper';
 import { getRelativePath } from 'utils/common/path';
+import { getMultipartAutoContentType } from 'utils/common/multipartContentType';
 import { usePersistedState } from 'hooks/usePersistedState';
 import { useTrackScroll } from 'hooks/useTrackScroll';
 
@@ -85,18 +86,20 @@ const MultipartFormParams = ({ item, collection }) => {
           }
         }
 
+        const autoContentType = getMultipartAutoContentType(merged);
+
         let updatedParams;
         if (existingParam) {
           updatedParams = currentParams.map((p) => {
             if (p.uid === row.uid) {
-              return { ...p, type: 'file', value: merged };
+              return { ...p, type: 'file', value: merged, contentType: autoContentType };
             }
             return p;
           });
         } else {
           updatedParams = [
             ...(currentParams || []),
-            { uid: row.uid, name: row.name || '', enabled: true, type: 'file', value: merged, contentType: '' }
+            { uid: row.uid, name: row.name || '', enabled: true, type: 'file', value: merged, contentType: autoContentType }
           ];
         }
         handleParamsChange(updatedParams);
@@ -118,9 +121,9 @@ const MultipartFormParams = ({ item, collection }) => {
     const updatedParams = currentParams.map((p) => {
       if (p.uid !== row.uid) return p;
       if (nextValue.length === 0) {
-        return { ...p, type: 'text', value: '' };
+        return { ...p, type: 'text', value: '', contentType: '' };
       }
-      return { ...p, type: 'file', value: nextValue };
+      return { ...p, type: 'file', value: nextValue, contentType: getMultipartAutoContentType(nextValue) };
     });
     handleParamsChange(updatedParams);
   }, [params, handleParamsChange]);
