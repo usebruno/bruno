@@ -1,17 +1,14 @@
-const PropertyList = require('./property-list');
-
 const variableNameRegex = /^[\w-.]*$/;
 
 /**
- * VariableList — a PropertyList adapter for Bruno's variable scopes.
+ * VariableList — the `bru.variables` / `bru.environment` / `bru.globals` API in scripts.
  *
- * Wraps a plain `{ key: value }` object (e.g. runtimeVariables, envVariables,
- * globalEnvironmentVariables) and exposes the full PropertyList read interface
- * plus synchronous write methods that mutate the original object in place.
+ * A standalone key-value store that wraps a plain `{ key: value }` object
+ * (e.g. runtimeVariables, envVariables, globalEnvironmentVariables) and exposes
+ * the standard variable scope interface: get, set, has, unset, clear, toObject.
  *
- * Runs in **dynamic mode**: a dataSource function converts the object to
- * `[{ key, value }]` items on every read, so reads always reflect the latest state
- * (including mutations made through the legacy bru.setVar() / bru.setEnvVar() path).
+ * Write methods mutate the original object in place. Reads always reflect
+ * the latest state (including mutations made through the legacy bru.setVar() / bru.setEnvVar() paths).
  *
  * @example
  * const list = new VariableList(runtimeVariables, {
@@ -20,10 +17,10 @@ const variableNameRegex = /^[\w-.]*$/;
  * list.set('host', 'example.com');
  * list.get('host');       // 'example.com' (interpolated)
  * list.has('host');       // true
- * list.toObject();       // { host: 'example.com' }
+ * list.toObject();        // { host: 'example.com' }
  * list.unset('host');
  */
-class VariableList extends PropertyList {
+class VariableList {
   /**
    * @param {object} variablesObj - The plain { key: value } object to wrap (mutated in place)
    * @param {object} [options]
@@ -32,22 +29,13 @@ class VariableList extends PropertyList {
    * @param {string[]} [options.filterKeys] - Internal keys to exclude from reads (e.g. ['__name__'])
    */
   constructor(variablesObj, { interpolateFn, validateKey, filterKeys } = {}) {
-    super({
-      keyProperty: 'key',
-      valueProperty: 'value',
-      dataSource: () => {
-        return Object.entries(variablesObj)
-          .filter(([k]) => !filterKeys || !filterKeys.includes(k))
-          .map(([key, value]) => ({ key, value }));
-      }
-    });
     this._variablesObj = variablesObj;
     this._interpolateFn = interpolateFn || ((v) => v);
     this._validateKeyFn = validateKey || null;
     this._filterKeys = filterKeys || [];
   }
 
-  // ── Read overrides ──────────────────────────────────────────────────
+  // ── Read methods ────────────────────────────────────────────────────
 
   /**
    * Get the interpolated value of a variable by key.
@@ -56,6 +44,32 @@ class VariableList extends PropertyList {
    */
   get(key) {
     return this._interpolateFn(this._variablesObj[key]);
+  }
+
+  /**
+   * Check if a variable exists by key.
+   * Returns false for keys in filterKeys.
+   * @param {string} key
+   * @returns {boolean}
+   */
+  has(key) {
+    if (this._filterKeys.includes(key)) return false;
+    return key in this._variablesObj;
+  }
+
+  /**
+   * Convert all variables to a plain { key: value } object.
+   * Excludes keys listed in filterKeys.
+   * @returns {object}
+   */
+  toObject() {
+    const result = {};
+    for (const [k, v] of Object.entries(this._variablesObj)) {
+      if (!this._filterKeys.includes(k)) {
+        result[k] = v;
+      }
+    }
+    return result;
   }
 
   // ── Write methods ───────────────────────────────────────────────────
