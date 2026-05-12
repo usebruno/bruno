@@ -533,24 +533,50 @@ test.describe('CodeEditor — undo (Cmd-Z) survives a tab switch', () => {
     await selectBodyMode(page, 'JSON');
     await setBodyContent(page, SAMPLE_BODY);
 
-    // Insert all three sentinels in one `evaluate` (no `await` between calls):
+    // Insert all three sentinels with three distinct CM history entries
+    // (preserved by the `*`-prefixed origins) while ensuring the React
+    // wrapper sees only ONE onChange. The wrapper's `_onEdit` listener
+    // dispatches `updateRequestBody` on every `change` event; on slow
+    // runners three rapid dispatches don't always batch, and an
+    // intermediate re-render with a stale `props.value` can trigger
+    // `componentDidUpdate`'s `setValue(props.value)` path, wiping a
+    // just-inserted sentinel. We detach `change` listeners for the
+    // duration of the three `replaceRange`s, restore them after, then
+    // fire ONE synthetic change so the wrapper dispatches once with the
+    // final value — leaving editor content and redux state in sync before
+    // any downstream tab-switch reads from `props.value`.
     await cmFor(page, page.locator('.request-pane')).evaluate((el) => {
       const editor = (el as any).CodeMirror;
       editor.focus();
       const doc = editor.getDoc();
-      const append = (sentinel: string, originSuffix: string) => {
-        const lastLine = doc.lastLine();
-        const lastLineLen = doc.getLine(lastLine).length;
-        doc.replaceRange(
-          `\n${sentinel}`,
-          { line: lastLine, ch: lastLineLen },
-          undefined,
-          `*${originSuffix}`
-        );
-      };
-      append('// SENTINEL_ONE', 'sentinel-1');
-      append('// SENTINEL_TWO', 'sentinel-2');
-      append('// SENTINEL_THREE', 'sentinel-3');
+      // CM5 stores listeners in an internal `_handlers` map on the editor.
+      // Save and clear the `change` slot, do the inserts, restore, then
+      // fire one synthetic change to flush the final value through onEdit.
+      const handlersSlot = editor._handlers || (editor._handlers = {});
+      const savedChange = (handlersSlot.change || []).slice();
+      handlersSlot.change = [];
+      try {
+        const append = (sentinel: string, originSuffix: string) => {
+          const lastLine = doc.lastLine();
+          const lastLineLen = doc.getLine(lastLine).length;
+          doc.replaceRange(
+            `\n${sentinel}`,
+            { line: lastLine, ch: lastLineLen },
+            undefined,
+            `*${originSuffix}`
+          );
+        };
+        append('// SENTINEL_ONE', 'sentinel-1');
+        append('// SENTINEL_TWO', 'sentinel-2');
+        append('// SENTINEL_THREE', 'sentinel-3');
+      } finally {
+        handlersSlot.change = savedChange;
+      }
+      // `_onEdit` only reads `editor.getValue()`; the change descriptor
+      // arg is unused, so passing null is safe.
+      savedChange.forEach((handler: (cm: unknown, change: unknown) => void) => {
+        handler(editor, null);
+      });
     });
 
     const cm = cmFor(page, page.locator('.request-pane'));
