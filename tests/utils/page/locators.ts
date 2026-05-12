@@ -91,8 +91,8 @@ export const buildCommonLocators = (page: Page) => ({
   },
   auth: {
     apiKey: {
-      placementSelector: () => page.locator('.auth-placement-selector'),
-      placementLabel: () => page.locator('.auth-placement-selector .auth-type-label')
+      placementSelector: () => page.getByTestId('auth-placement-selector'),
+      placementLabel: () => page.getByTestId('auth-placement-label')
     }
   },
   tags: {
@@ -126,7 +126,7 @@ export const buildCommonLocators = (page: Page) => ({
     locationInput: () => page.locator('#collection-location'),
     fileInput: () => page.locator('input[type="file"]'),
     envOption: (name: string) => page.locator('.dropdown-item').getByText(name, { exact: true }),
-    parsingError: () => page.getByText('Failed to parse the file'),
+    parsingError: () => page.getByTestId('import-error-message'),
     browseLink: (root?: Locator) => (root ?? page).getByText('Browse'),
     importButton: (root?: Locator) => (root ?? page).getByRole('button', { name: 'Import' })
   },

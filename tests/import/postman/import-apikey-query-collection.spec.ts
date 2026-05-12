@@ -93,13 +93,10 @@ test.describe('Import Postman Collection with API Key in Query Params', () => {
       await expect(locators.request.pane()).toBeVisible();
     });
 
-    await test.step('Select Auth tab and verify API key details', async () => {
+    await test.step('Verify API key is set to Query Params within Auth section', async () => {
       await selectRequestPaneTab(page, 'Auth');
-    });
-
-    await test.step('Verify API key placement dropdown is set to Query Params', async () => {
       await expect(locators.auth.apiKey.placementSelector()).toBeVisible();
-      await expect(locators.auth.apiKey.placementLabel()).toHaveText(/Query Params/);
+      await expect(locators.auth.apiKey.placementLabel()).toHaveText('Query Params');
     });
   });
 });
