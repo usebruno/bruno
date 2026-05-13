@@ -345,6 +345,39 @@ describe('deserializeTab', () => {
     const tab = deserializeTab(snapshotTab, collectionWithDuplicateExamples);
     expect(tab.uid).toBe('example-1');
     expect(tab.exampleName).toBe('dup');
+    expect(tab.exampleIndex).toBe(0);
+  });
+
+  it('keeps example uid and index consistent when uid fallback is used', () => {
+    const collectionWithDuplicateExamples = {
+      uid: 'collection-uid',
+      pathname: '/collections/a',
+      items: [
+        {
+          uid: 'request-1',
+          pathname: '/collections/a/request-1.bru',
+          examples: [
+            { uid: 'example-1', name: 'dup' },
+            { uid: 'example-2', name: 'dup' }
+          ]
+        }
+      ]
+    };
+
+    const snapshotTab = {
+      type: 'response-example',
+      accessor: 'pathname::exampleIndex',
+      pathname: '/collections/a/request-1.bru',
+      exampleName: 'dup',
+      exampleUid: 'example-1',
+      exampleIndex: 99,
+      permanent: true
+    };
+
+    const tab = deserializeTab(snapshotTab, collectionWithDuplicateExamples);
+    expect(tab.uid).toBe('example-1');
+    expect(tab.exampleName).toBe('dup');
+    expect(tab.exampleIndex).toBe(0);
   });
 });
 

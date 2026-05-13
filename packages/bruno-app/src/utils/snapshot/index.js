@@ -475,6 +475,49 @@ export const isActiveTab = (tab, activeTab, collection) => {
   return false;
 };
 
+const resolveResponseExampleTabState = ({ item, pathname, exampleName, exampleIndex, exampleUid }) => {
+  const hasExamples = Array.isArray(item?.examples);
+  const hasProvidedExampleIndex = typeof exampleIndex === 'number' && exampleIndex >= 0;
+  const hasValidExampleIndex = hasExamples && hasProvidedExampleIndex && exampleIndex < item.examples.length;
+
+  let resolvedExample = null;
+  if (hasExamples) {
+    if (hasValidExampleIndex) {
+      resolvedExample = item.examples[exampleIndex] || null;
+    } else {
+      if (typeof exampleUid === 'string' && exampleUid.length > 0) {
+        resolvedExample = item.examples.find((ex) => ex.uid === exampleUid) || null;
+      }
+
+      if (!resolvedExample && exampleName) {
+        resolvedExample = item.examples.find((ex) => ex.name === exampleName) || null;
+      }
+    }
+  }
+
+  const resolvedExampleIndex = hasExamples && resolvedExample?.uid
+    ? item.examples.findIndex((ex) => ex.uid === resolvedExample.uid)
+    : -1;
+
+  const fallbackExampleIdentity = hasProvidedExampleIndex
+    ? `${pathname}::${exampleIndex}`
+    : `${pathname}::${exampleName}`;
+
+  let normalizedExampleIndex = null;
+  if (resolvedExampleIndex >= 0) {
+    normalizedExampleIndex = resolvedExampleIndex;
+  } else if (hasProvidedExampleIndex) {
+    normalizedExampleIndex = exampleIndex;
+  }
+
+  return {
+    uid: resolvedExample?.uid || fallbackExampleIdentity,
+    itemUid: item?.uid || pathname,
+    exampleName: resolvedExample?.name || exampleName,
+    exampleIndex: normalizedExampleIndex
+  };
+};
+
 export const deserializeTab = (snapshotTab, collection) => {
   const { accessor, pathname, exampleName, exampleIndex, exampleUid, type } = snapshotTab;
 
@@ -508,33 +551,11 @@ export const deserializeTab = (snapshotTab, collection) => {
     }
   } else if ((accessor === 'pathname::exampleName' || accessor === 'pathname::exampleIndex') && pathname) {
     const item = findItemInCollectionByPathname(collection, pathname);
-
-    const hasExamples = Array.isArray(item?.examples);
-    const hasValidExampleIndex = typeof exampleIndex === 'number' && exampleIndex >= 0;
-
-    let example = null;
-    if (hasExamples && typeof exampleUid === 'string' && exampleUid.length > 0) {
-      example = item.examples.find((ex) => ex.uid === exampleUid) || null;
-    }
-    if (!example && hasExamples && hasValidExampleIndex) {
-      example = item.examples[exampleIndex] || null;
-    }
-    if (!example && hasExamples && exampleName) {
-      example = item.examples.find((ex) => ex.name === exampleName) || null;
-    }
-
-    const fallbackExampleIdentity = hasValidExampleIndex
-      ? `${pathname}::${exampleIndex}`
-      : `${pathname}::${exampleName}`;
-
-    tab.uid = example?.uid || fallbackExampleIdentity;
-    tab.itemUid = item?.uid || pathname;
-    tab.exampleName = example?.name || exampleName;
-    if (hasValidExampleIndex) {
-      tab.exampleIndex = exampleIndex;
-    } else if (example && hasExamples) {
-      tab.exampleIndex = item.examples.findIndex((ex) => ex.uid === example.uid);
-    }
+    const resolvedTabState = resolveResponseExampleTabState({ item, pathname, exampleName, exampleIndex, exampleUid });
+    tab.uid = resolvedTabState.uid;
+    tab.itemUid = resolvedTabState.itemUid;
+    tab.exampleName = resolvedTabState.exampleName;
+    tab.exampleIndex = resolvedTabState.exampleIndex;
   } else if (needsTypeBasedFallback) {
     const collectionUidFromSnapshot = typeof snapshotTab.collection === 'string' && snapshotTab.collection.length > 0
       ? snapshotTab.collection
