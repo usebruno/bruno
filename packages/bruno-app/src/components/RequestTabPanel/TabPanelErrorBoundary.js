@@ -5,6 +5,7 @@ import find from 'lodash/find';
 import { closeTabs } from 'providers/ReduxStore/slices/collections/actions';
 import { NON_CLOSABLE_TAB_TYPES } from 'providers/ReduxStore/slices/tabs';
 import Button from 'ui/Button';
+import { useTheme } from 'providers/Theme';
 
 class TabPanelErrorBoundaryInner extends React.Component {
   constructor(props) {
@@ -21,13 +22,15 @@ class TabPanelErrorBoundaryInner extends React.Component {
   }
 
   render() {
+    const { theme } = this.props;
+
     if (this.state.hasError) {
       const { isClosable, onClose } = this.props;
       const errorMessage = this.state.error?.message;
 
       return (
         <div className="h-full flex flex-col items-center justify-center gap-3 px-6 text-center">
-          <IconAlertTriangle size={36} strokeWidth={1.5} className="text-yellow-500" />
+          <IconAlertTriangle size={36} strokeWidth={1.5} style={{ color: theme?.status?.warning?.text }} />
           <h2 className="text-lg font-medium">Something went wrong</h2>
           {isClosable ? (
             <p className="text-sm opacity-70 max-w-md">
@@ -60,13 +63,14 @@ const TabPanelErrorBoundary = ({ tabUid, children }) => {
   const tabs = useSelector((state) => state.tabs.tabs);
   const focusedTab = find(tabs, (t) => t.uid === tabUid);
   const isClosable = !focusedTab || !NON_CLOSABLE_TAB_TYPES.includes(focusedTab.type);
+  const { theme } = useTheme();
 
   const handleClose = () => {
     dispatch(closeTabs({ tabUids: [tabUid] }));
   };
 
   return (
-    <TabPanelErrorBoundaryInner isClosable={isClosable} onClose={handleClose}>
+    <TabPanelErrorBoundaryInner isClosable={isClosable} onClose={handleClose} theme={theme}>
       {children}
     </TabPanelErrorBoundaryInner>
   );
