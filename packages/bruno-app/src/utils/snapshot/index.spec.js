@@ -279,6 +279,78 @@ describe('deserializeTab', () => {
     const tab = deserializeTab(snapshotTab, collection);
     expect(tab.uid).toBe('collection-uid-preferences');
   });
+
+  it('defaults grpc request pane to body when snapshot request tab is missing', () => {
+    const snapshotTab = {
+      type: 'grpc-request',
+      accessor: 'pathname',
+      pathname: '/collections/a/grpc-request.bru',
+      permanent: true
+    };
+
+    const tab = deserializeTab(snapshotTab, collection);
+    expect(tab.requestPaneTab).toBe('body');
+  });
+
+  it('defaults websocket request pane to body when snapshot request tab is missing', () => {
+    const snapshotTab = {
+      type: 'ws-request',
+      accessor: 'pathname',
+      pathname: '/collections/a/ws-request.bru',
+      permanent: true
+    };
+
+    const tab = deserializeTab(snapshotTab, collection);
+    expect(tab.requestPaneTab).toBe('body');
+  });
+
+  it('resolves generic request snapshot type to item type using pathname', () => {
+    const collectionWithGrpcItem = {
+      ...collection,
+      items: [
+        {
+          uid: 'grpc-item-1',
+          pathname: '/collections/a/grpc-item.bru',
+          type: 'grpc-request'
+        }
+      ]
+    };
+
+    const snapshotTab = {
+      type: 'request',
+      accessor: 'pathname',
+      pathname: '/collections/a/grpc-item.bru',
+      permanent: true
+    };
+
+    const tab = deserializeTab(snapshotTab, collectionWithGrpcItem);
+    expect(tab.type).toBe('grpc-request');
+    expect(tab.requestPaneTab).toBe('body');
+  });
+
+  it('defaults to body for resolved websocket item type when generic snapshot request tab is missing', () => {
+    const collectionWithWsItem = {
+      ...collection,
+      items: [
+        {
+          uid: 'ws-item-1',
+          pathname: '/collections/a/ws-item.bru',
+          type: 'ws-request'
+        }
+      ]
+    };
+
+    const snapshotTab = {
+      type: 'request',
+      accessor: 'pathname',
+      pathname: '/collections/a/ws-item.bru',
+      permanent: true
+    };
+
+    const tab = deserializeTab(snapshotTab, collectionWithWsItem);
+    expect(tab.type).toBe('ws-request');
+    expect(tab.requestPaneTab).toBe('body');
+  });
 });
 
 describe('hydrateCollectionTabs', () => {
