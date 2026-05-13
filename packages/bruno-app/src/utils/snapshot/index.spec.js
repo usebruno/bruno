@@ -351,6 +351,42 @@ describe('deserializeTab', () => {
     expect(tab.type).toBe('ws-request');
     expect(tab.requestPaneTab).toBe('body');
   });
+
+  it('defaults graphql request pane to query when snapshot request tab is missing', () => {
+    const snapshotTab = {
+      type: 'graphql-request',
+      accessor: 'pathname',
+      pathname: '/collections/a/graphql-request.bru',
+      permanent: true
+    };
+
+    const tab = deserializeTab(snapshotTab, collection);
+    expect(tab.requestPaneTab).toBe('query');
+  });
+
+  it('resolves generic request snapshot type to graphql-request item type using pathname', () => {
+    const collectionWithGraphqlItem = {
+      ...collection,
+      items: [
+        {
+          uid: 'graphql-item-1',
+          pathname: '/collections/a/graphql-item.bru',
+          type: 'graphql-request'
+        }
+      ]
+    };
+
+    const snapshotTab = {
+      type: 'request',
+      accessor: 'pathname',
+      pathname: '/collections/a/graphql-item.bru',
+      permanent: true
+    };
+
+    const tab = deserializeTab(snapshotTab, collectionWithGraphqlItem);
+    expect(tab.type).toBe('graphql-request');
+    expect(tab.requestPaneTab).toBe('query');
+  });
 });
 
 describe('hydrateCollectionTabs', () => {

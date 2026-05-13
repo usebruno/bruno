@@ -247,4 +247,60 @@ test.describe('Snapshot: Request Pane Interactivity', () => {
       await closeElectronApp(app2);
     });
   });
+
+  test('graphql snapshot stores concrete type and query tab key', async ({ launchElectronApp, createTmpDir }) => {
+    const userDataPath = await createTmpDir('snap-graphql-snapshot-type-tab-key');
+    const colPath = await createTmpDir('col');
+
+    const app = await launchElectronApp({ userDataPath });
+    const page = await app.firstWindow();
+    await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
+
+    await test.step('Create collection and GraphQL request', async () => {
+      await createCollection(page, 'TestCol', colPath);
+
+      const locators = buildCommonLocators(page);
+      await locators.sidebar.collection('TestCol').hover();
+      await locators.actions.collectionActions('TestCol').click();
+      await locators.dropdown.item('New Request').click();
+
+      await page.getByTestId('graphql-request').click();
+      await page.getByTestId('request-name').fill('ReqGraphSnapshot');
+      await page.getByTestId('new-request-url').locator('.CodeMirror').click();
+      await page.keyboard.type('https://echo.usebruno.com/graphql');
+      await locators.modal.button('Create').click();
+
+      await openRequest(page, 'TestCol', 'ReqGraphSnapshot', { persist: true });
+      await selectRequestPaneTab(page, 'Headers');
+    });
+
+    await test.step('Close app and verify snapshot stores graphql-request/headers', async () => {
+      await page.waitForTimeout(2000);
+      await closeElectronApp(app);
+
+      const snapshotPath = path.join(userDataPath, 'ui-state-snapshot.json');
+      await expect.poll(() => fs.existsSync(snapshotPath)).toBe(true);
+
+      const snapshot = readSnapshot(userDataPath);
+      const tab = findSnapshotRequestTab(snapshot, 'ReqGraphSnapshot');
+      expect(tab).toBeTruthy();
+      expect(tab.type).toBe('graphql-request');
+      expect(tab.request?.tab).toBe('headers');
+    });
+
+    await test.step('Verify restore opens Headers tab and avoids 404', async () => {
+      const app2 = await launchElectronApp({ userDataPath });
+      const page2 = await app2.firstWindow();
+      await page2.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
+
+      const locators = buildCommonLocators(page2);
+      await expect(locators.tabs.requestTab('ReqGraphSnapshot')).toBeVisible({ timeout: 15000 });
+      await locators.tabs.requestTab('ReqGraphSnapshot').click({ force: true });
+
+      await expect(page2.getByTestId('responsive-tab-headers')).toHaveAttribute('aria-selected', 'true');
+      await expect(page2.locator('text=404 | Not found')).not.toBeVisible();
+
+      await closeElectronApp(app2);
+    });
+  });
 });

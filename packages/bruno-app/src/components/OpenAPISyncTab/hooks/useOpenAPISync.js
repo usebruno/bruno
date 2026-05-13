@@ -93,7 +93,7 @@ const useOpenAPISync = (collection) => {
         uid: itemUid,
         collectionUid: collection.uid,
         requestPaneTab: item ? getDefaultRequestPaneTab(item) : undefined,
-        type: 'request'
+        type: item?.type ?? 'request'
       }));
     }
   };
