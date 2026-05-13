@@ -261,7 +261,11 @@ const ImportCollectionLocation = ({ onClose, handleSubmit, rawData, format, sour
             ) : null}
 
             <div className="mt-1">
-              <span className="text-link cursor-pointer hover:underline" onClick={browse}>
+              <span
+                data-testid="import-collection-browse-link"
+                className="text-link cursor-pointer hover:underline"
+                onClick={browse}
+              >
                 Browse
               </span>
             </div>
