@@ -31,7 +31,11 @@ const assertTabPanelErrorBoundary = async (page: Page, collectionName: string, r
 
   await test.step('Verify fallback UI', async () => {
     await expect(page.getByText('Something went wrong')).toBeVisible();
-    await expect(page.getByText('This tab encountered an unexpected error. Close the tab and try reopening the request.')).toBeVisible();
+    await expect(
+      page.getByText(
+        'This tab encountered an unexpected error. Close it and try reopening the request. If the error repeats, the request file may be corrupt.'
+      )
+    ).toBeVisible();
     await expect(page.getByTestId('tab-panel-error-boundary-close-tab')).toBeVisible();
   });
 
