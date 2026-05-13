@@ -224,7 +224,6 @@ const ImportCollectionLocation = ({ onClose, handleSubmit, rawData, format, sour
         handleConfirm={onSubmit}
         handleCancel={onClose}
         dataTestId="import-collection-location-modal"
-        submitButtonTestId="import-collection-submit-button"
       >
         <form className="bruno-form" onSubmit={(e) => e.preventDefault()}>
           <div>

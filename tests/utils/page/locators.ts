@@ -128,7 +128,7 @@ export const buildCommonLocators = (page: Page) => ({
     envOption: (name: string) => page.locator('.dropdown-item').getByText(name, { exact: true }),
     parsingError: () => page.getByTestId('import-error-message'),
     browseLink: (root?: Locator) => (root ?? page).getByTestId('import-collection-browse-link'),
-    importButton: (root?: Locator) => (root ?? page).getByTestId('import-collection-submit-button')
+    importButton: (root?: Locator) => (root ?? page).getByTestId('import-collection-location-modal-submit-btn')
   },
   /**
    * Build generic table locators for any table with a testId

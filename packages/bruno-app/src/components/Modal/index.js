@@ -29,7 +29,7 @@ const ModalFooter = ({
   hideCancel,
   hideFooter,
   confirmButtonColor = 'primary',
-  submitButtonTestId
+  dataTestId = 'modal'
 }) => {
   confirmText = confirmText || 'Save';
   cancelText = cancelText || 'Cancel';
@@ -52,7 +52,7 @@ const ModalFooter = ({
           disabled={confirmDisabled}
           onClick={handleSubmit}
           className="submit"
-          data-testid={submitButtonTestId}
+          data-testid={`${dataTestId}-submit-btn`}
         >
           {confirmText}
         </Button>
@@ -79,8 +79,7 @@ const Modal = ({
   onClick,
   closeModalFadeTimeout = 500,
   dataTestId,
-  confirmButtonColor = 'primary',
-  submitButtonTestId
+  confirmButtonColor = 'primary'
 }) => {
   const modalRef = useRef(null);
   const [isClosing, setIsClosing] = useState(false);
@@ -154,7 +153,7 @@ const Modal = ({
           hideCancel={hideCancel}
           hideFooter={hideFooter}
           confirmButtonColor={confirmButtonColor}
-          submitButtonTestId={submitButtonTestId}
+          dataTestId={dataTestId}
         />
       </div>
 
