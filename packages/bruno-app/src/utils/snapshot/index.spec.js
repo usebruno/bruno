@@ -11,7 +11,13 @@ jest.mock('nanoid', () => {
   };
 });
 
-const { deserializeTab, hydrateSnapshotLookups, hydrateCollectionTabs } = require('./index');
+const {
+  deserializeTab,
+  hydrateSnapshotLookups,
+  hydrateCollectionTabs,
+  isActiveTab,
+  getActiveTabFromSnapshot
+} = require('./index');
 
 describe('hydrateSnapshotLookups', () => {
   it('builds lookup maps from array-based snapshot schema', () => {
@@ -280,6 +286,100 @@ describe('deserializeTab', () => {
     expect(tab.uid).toBe('collection-uid-preferences');
   });
 
+  it('restores response example by index when duplicate names exist', () => {
+    const collectionWithDuplicateExamples = {
+      uid: 'collection-uid',
+      pathname: '/collections/a',
+      items: [
+        {
+          uid: 'request-1',
+          pathname: '/collections/a/request-1.bru',
+          examples: [
+            { uid: 'example-1', name: 'dup' },
+            { uid: 'example-2', name: 'dup' }
+          ]
+        }
+      ]
+    };
+
+    const snapshotTab = {
+      type: 'response-example',
+      accessor: 'pathname::exampleIndex',
+      pathname: '/collections/a/request-1.bru',
+      exampleName: 'dup',
+      exampleIndex: 1,
+      permanent: true
+    };
+
+    const tab = deserializeTab(snapshotTab, collectionWithDuplicateExamples);
+    expect(tab.uid).toBe('example-2');
+    expect(tab.exampleName).toBe('dup');
+    expect(tab.exampleIndex).toBe(1);
+  });
+
+  it('falls back to first matching name when example index is missing or invalid', () => {
+    const collectionWithDuplicateExamples = {
+      uid: 'collection-uid',
+      pathname: '/collections/a',
+      items: [
+        {
+          uid: 'request-1',
+          pathname: '/collections/a/request-1.bru',
+          examples: [
+            { uid: 'example-1', name: 'dup' },
+            { uid: 'example-2', name: 'dup' }
+          ]
+        }
+      ]
+    };
+
+    const snapshotTab = {
+      type: 'response-example',
+      accessor: 'pathname::exampleIndex',
+      pathname: '/collections/a/request-1.bru',
+      exampleName: 'dup',
+      exampleIndex: 99,
+      permanent: true
+    };
+
+    const tab = deserializeTab(snapshotTab, collectionWithDuplicateExamples);
+    expect(tab.uid).toBe('example-1');
+    expect(tab.exampleName).toBe('dup');
+    expect(tab.exampleIndex).toBe(0);
+  });
+
+  it('keeps example uid and index consistent when uid fallback is used', () => {
+    const collectionWithDuplicateExamples = {
+      uid: 'collection-uid',
+      pathname: '/collections/a',
+      items: [
+        {
+          uid: 'request-1',
+          pathname: '/collections/a/request-1.bru',
+          examples: [
+            { uid: 'example-1', name: 'dup' },
+            { uid: 'example-2', name: 'dup' }
+          ]
+        }
+      ]
+    };
+
+    const snapshotTab = {
+      type: 'response-example',
+      accessor: 'pathname::exampleIndex',
+      pathname: '/collections/a/request-1.bru',
+      exampleName: 'dup',
+      exampleUid: 'example-1',
+      exampleIndex: 99,
+      permanent: true
+    };
+
+    const tab = deserializeTab(snapshotTab, collectionWithDuplicateExamples);
+    expect(tab.uid).toBe('example-1');
+    expect(tab.exampleName).toBe('dup');
+    expect(tab.exampleIndex).toBe(0);
+  });
+
   it('defaults grpc request pane to body when snapshot request tab is missing', () => {
     const snapshotTab = {
       type: 'grpc-request',
@@ -315,7 +415,6 @@ describe('deserializeTab', () => {
         }
       ]
     };
-
     const snapshotTab = {
       type: 'request',
       accessor: 'pathname',
@@ -386,6 +485,96 @@ describe('deserializeTab', () => {
     const tab = deserializeTab(snapshotTab, collectionWithGraphqlItem);
     expect(tab.type).toBe('graphql-request');
     expect(tab.requestPaneTab).toBe('query');
+  });
+});
+
+describe('active tab matching', () => {
+  it('does not mark response example tab as active for pathname accessor', () => {
+    const collection = {
+      uid: 'collection-uid',
+      pathname: '/collections/a',
+      items: [
+        {
+          uid: 'request-1',
+          pathname: '/collections/a/request-1.bru',
+          examples: [{ uid: 'example-1', name: 'Sample' }]
+        }
+      ]
+    };
+
+    const tab = {
+      uid: 'example-1',
+      type: 'response-example',
+      itemUid: 'request-1',
+      pathname: '/collections/a/request-1.bru',
+      exampleName: 'Sample'
+    };
+
+    const activeTab = {
+      accessor: 'pathname',
+      value: '/collections/a/request-1.bru'
+    };
+
+    expect(isActiveTab(tab, activeTab, collection)).toBe(false);
+  });
+});
+
+describe('getActiveTabFromSnapshot', () => {
+  beforeEach(() => {
+    global.window = global.window || {};
+    global.window.ipcRenderer = {
+      invoke: jest.fn()
+    };
+  });
+
+  afterEach(() => {
+    delete global.window.ipcRenderer;
+  });
+
+  it('resolves response example using index accessor when duplicate names exist', async () => {
+    const collection = {
+      uid: 'collection-uid',
+      pathname: '/collections/a',
+      items: [
+        {
+          uid: 'request-1',
+          pathname: '/collections/a/request-1.bru',
+          examples: [
+            { uid: 'example-1', name: 'dup' },
+            { uid: 'example-2', name: 'dup' }
+          ]
+        }
+      ]
+    };
+
+    window.ipcRenderer.invoke.mockResolvedValue({
+      activeTab: {
+        accessor: 'pathname::exampleIndex',
+        value: '/collections/a/request-1.bru::1'
+      },
+      tabs: [
+        {
+          type: 'response-example',
+          accessor: 'pathname::exampleIndex',
+          pathname: '/collections/a/request-1.bru',
+          exampleName: 'dup',
+          exampleIndex: 0,
+          permanent: true
+        },
+        {
+          type: 'response-example',
+          accessor: 'pathname::exampleIndex',
+          pathname: '/collections/a/request-1.bru',
+          exampleName: 'dup',
+          exampleIndex: 1,
+          permanent: true
+        }
+      ]
+    });
+
+    const activeTab = await getActiveTabFromSnapshot('/collections/a', collection, null, null);
+    expect(activeTab.uid).toBe('example-2');
+    expect(activeTab.exampleIndex).toBe(1);
   });
 });
 
