@@ -55,17 +55,30 @@ const openCollection = async (page, collectionName: string) => {
   });
 };
 
+type CollectionFormat = 'yml' | 'bru';
+
+type CreateCollectionOptions = {
+  format?: CollectionFormat;
+};
+
 /**
  * Create a collection
  * @param page - The page object
  * @param collectionName - The name of the collection to create
  * @param collectionLocation - The location of the collection to create (eg)
- * @param options - The options for creating the collection
+ * @param options - Optional settings (format: 'yml' (default) or 'bru')
  *
  * @returns void
  */
-const createCollection = async (page, collectionName: string, collectionLocation: string) => {
-  await test.step(`Create collection "${collectionName}"`, async () => {
+const createCollection = async (
+  page,
+  collectionName: string,
+  collectionLocation: string,
+  options: CreateCollectionOptions = {}
+) => {
+  const { format = 'yml' } = options;
+
+  await test.step(`Create ${format} collection "${collectionName}"`, async () => {
     await page.getByTestId('collections-header-add-menu').click();
     await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Create collection' }).click();
 
@@ -93,6 +106,15 @@ const createCollection = async (page, collectionName: string, collectionLocation
     await nameInput.fill(collectionName);
     // Verify the name is correct before creating
     await expect(nameInput).toHaveValue(collectionName, { timeout: 2000 });
+
+    // The File Format dropdown is hidden by default. Open the Advanced Options menu
+    // and toggle "Show File Format" before selecting a non-default format.
+    if (format === 'bru') {
+      await createCollectionModal.locator('.advanced-options .btn-advanced').click();
+      await page.getByTestId('show-file-format-toggle').click();
+      await createCollectionModal.locator('select#format').selectOption(format);
+    }
+
     await createCollectionModal.getByRole('button', { name: 'Create', exact: true }).click();
 
     await createCollectionModal.waitFor({ state: 'detached', timeout: 15000 });
@@ -104,14 +126,31 @@ const createCollection = async (page, collectionName: string, collectionLocation
 
 const STANDARD_HTTP_METHODS = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS', 'HEAD', 'TRACE', 'CONNECT'];
 
+export const REQUEST_TYPE = Object.freeze({
+  HTTP: 'HTTP',
+  GRAPHQL: 'GraphQL',
+  GRPC: 'gRPC',
+  WEBSOCKET: 'WebSocket'
+} as const);
+
+export type RequestType = typeof REQUEST_TYPE[keyof typeof REQUEST_TYPE];
+
 type CreateRequestOptions = {
   url?: string;
   method?: string;
   inFolder?: boolean;
+  requestType?: RequestType;
 };
 
+const REQUEST_TYPE_TESTID = Object.freeze({
+  [REQUEST_TYPE.HTTP]: 'http-request',
+  [REQUEST_TYPE.GRAPHQL]: 'graphql-request',
+  [REQUEST_TYPE.GRPC]: 'grpc-request',
+  [REQUEST_TYPE.WEBSOCKET]: 'ws-request'
+} as const);
+
 type CreateUntitledRequestOptions = {
-  requestType?: 'HTTP' | 'GraphQL' | 'WebSocket' | 'gRPC';
+  requestType?: RequestType;
   requestName?: string;
   url?: string;
   tag?: string;
@@ -174,7 +213,7 @@ const createUntitledRequest = async (
 };
 
 type CreateTransientRequestOptions = {
-  requestType?: 'HTTP' | 'GraphQL' | 'gRPC' | 'WebSocket';
+  requestType?: RequestType;
 };
 
 /**
@@ -258,10 +297,10 @@ const createRequest = async (
   parentName: string,
   options: CreateRequestOptions = {}
 ) => {
-  const { url, method, inFolder = false } = options;
+  const { url, method, inFolder = false, requestType = 'HTTP' } = options;
   const parentType = inFolder ? 'folder' : 'collection';
 
-  await test.step(`Create request "${requestName}" in ${parentType} "${parentName}"`, async () => {
+  await test.step(`Create ${requestType} request "${requestName}" in ${parentType} "${parentName}"`, async () => {
     const locators = buildCommonLocators(page);
 
     if (inFolder) {
@@ -275,9 +314,14 @@ const createRequest = async (
     }
 
     await locators.dropdown.item('New Request').click();
+
+    if (requestType !== REQUEST_TYPE.HTTP) {
+      await page.getByTestId(REQUEST_TYPE_TESTID[requestType]).click();
+    }
+
     await page.getByPlaceholder('Request Name').fill(requestName);
 
-    if (method) {
+    if (method && requestType === 'HTTP') {
       await page.locator('.bruno-modal .method-selector').click();
       const isStandardMethod = STANDARD_HTTP_METHODS.includes(method.toUpperCase());
       if (isStandardMethod) {
@@ -1029,6 +1073,7 @@ const deleteAssertion = async (page: Page, rowIndex: number) => {
  */
 const saveRequest = async (page: Page) => {
   await test.step('Save request', async () => {
+    await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
     const saveShortcut = process.platform === 'darwin' ? 'Meta+s' : 'Control+s';
     await page.keyboard.press(saveShortcut);
     await expect(page.getByText('Request saved successfully').last()).toBeVisible({ timeout: 3000 });
@@ -1198,6 +1243,42 @@ const sendAndWaitForResponse = async (page: Page) => {
   });
 };
 
+/**
+ * Click the gRPC "Add Message" button to append a new message to the request
+ * @param page - The page object
+ */
+const addGrpcMessage = async (page: Page) => {
+  await test.step('Add gRPC message', async () => {
+    await page.getByTestId('grpc-add-message-button').click();
+  });
+};
+
+/**
+ * Click the "Generate sample" button on a gRPC message to populate it with a sample payload
+ * @param page - The page object
+ * @param index - The 0-based index of the message (default: 0)
+ */
+const generateGrpcSampleMessage = async (page: Page, index: number = 0) => {
+  await test.step(`Generate sample for gRPC message #${index}`, async () => {
+    await page.getByTestId(`grpc-regenerate-message-${index}`).click();
+  });
+};
+
+/**
+ * Open the gRPC method dropdown and select a method by name
+ * @param page - The page object
+ * @param methodName - The name of the gRPC method to select (e.g. "BidiHello")
+ */
+const selectGrpcMethod = async (page: Page, methodName: string) => {
+  await test.step(`Select gRPC method "${methodName}"`, async () => {
+    await page.getByTestId('grpc-method-dropdown-trigger').click();
+    const dropdown = page.getByTestId('grpc-methods-dropdown');
+    await dropdown.waitFor({ state: 'visible', timeout: 5000 });
+    await dropdown.getByTestId('grpc-method-item').filter({ hasText: methodName }).first().click();
+    await expect(page.getByTestId('selected-grpc-method-name')).toContainText(methodName);
+  });
+};
+
 export {
   closeAllCollections,
   openCollection,
@@ -1243,7 +1324,10 @@ export {
   addPostResponseScript,
   addTestScript,
   sendAndWaitForErrorCard,
-  sendAndWaitForResponse
+  sendAndWaitForResponse,
+  selectGrpcMethod,
+  addGrpcMessage,
+  generateGrpcSampleMessage
 };
 
 export type { SandboxMode, EnvironmentType, EnvironmentVariable, ImportCollectionOptions, CreateRequestOptions, CreateUntitledRequestOptions, CreateTransientRequestOptions, AssertionInput };

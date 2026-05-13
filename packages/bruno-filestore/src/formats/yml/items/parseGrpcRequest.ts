@@ -1,12 +1,12 @@
 import type { Item as BrunoItem } from '@usebruno/schema-types/collection/item';
 import type { GrpcRequest as BrunoGrpcRequest } from '@usebruno/schema-types/requests/grpc';
-import type { GrpcRequest, GrpcMetadata } from '@opencollection/types/requests/grpc';
+import type { GrpcRequest, GrpcMetadata, GrpcMessageVariant } from '@opencollection/types/requests/grpc';
 import type { KeyValue as BrunoKeyValue } from '@usebruno/schema-types/common/key-value';
 import { toBrunoAuth } from '../common/auth';
 import { toBrunoVariables } from '../common/variables';
 import { toBrunoScripts } from '../common/scripts';
 import { toBrunoAssertions } from '../common/assertions';
-import { isNonEmptyString, uuid, ensureString } from '../../../utils';
+import { uuid, ensureString, isNonEmptyString } from '../../../utils';
 
 const toBrunoGrpcMetadata = (metadata: GrpcMetadata[] | null | undefined): BrunoKeyValue[] | undefined => {
   if (!metadata?.length) {
@@ -57,10 +57,16 @@ const parseGrpcRequest = (ocRequest: GrpcRequest): BrunoItem => {
   };
 
   // message
-  if (isNonEmptyString(grpc?.message)) {
+  const rawMessage = grpc?.message;
+  if (Array.isArray(rawMessage)) {
+    brunoRequest.body.grpc = (rawMessage as GrpcMessageVariant[]).map(({ title, message }, index) => ({
+      name: title || `message ${index + 1}`,
+      content: ensureString(message)
+    }));
+  } else if (isNonEmptyString(rawMessage)) {
     brunoRequest.body.grpc = [{
       name: '',
-      content: grpc?.message as string
+      content: rawMessage as string
     }];
   }
 
