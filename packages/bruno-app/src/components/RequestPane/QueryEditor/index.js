@@ -53,6 +53,16 @@ export default class QueryEditor extends React.Component {
   }
 
   componentDidMount() {
+    /**
+     * No-op. We claim Cmd-Enter / Ctrl-Enter here only to suppress CodeMirror's
+     * sublime keymap default (insertLineAfter), which would otherwise insert a
+     * newline. sendRequest dispatch is owned by Mousetrap — the editor input has
+     * the `mousetrap` class (added below) so the global
+     * useKeybinding('sendRequest', …) in RequestTabPanel handles it, and only
+     * in request tabs.
+     */
+    const runShortcut = () => {};
+
     const editor = (this.editor = CodeMirror(this._node, {
       value: this.props.value || '',
       lineNumbers: true,
@@ -125,7 +135,9 @@ export default class QueryEditor extends React.Component {
           }
         },
         'Cmd-F': 'findPersistent',
-        'Ctrl-F': 'findPersistent'
+        'Ctrl-F': 'findPersistent',
+        'Cmd-Enter': runShortcut,
+        'Ctrl-Enter': runShortcut
       }
     }));
     if (editor) {
