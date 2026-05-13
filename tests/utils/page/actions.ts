@@ -1253,7 +1253,7 @@ const createExampleFromSidebar = async (page: Page, requestName: string, example
   await descriptionInput.clear();
   await descriptionInput.fill(description);
   await page.getByRole('button', { name: 'Create Example' }).click();
-  await page.waitForSelector('text=Create Response Example', { state: 'detached' });
+  await expect(page.locator('text=Create Response Example')).not.toBeAttached();
 };
 
 const openExampleFromSidebar = async (page: Page, requestName: string, exampleName: string, index: number = 0) => {
