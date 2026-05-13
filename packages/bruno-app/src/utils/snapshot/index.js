@@ -349,6 +349,18 @@ const getAccessor = (tab) => {
   return 'pathname';
 };
 
+const getDefaultRequestPaneTabForType = (type) => {
+  if (type === 'grpc-request' || type === 'ws-request') {
+    return 'body';
+  }
+
+  if (type === 'graphql-request') {
+    return 'query';
+  }
+
+  return 'params';
+};
+
 export const serializeTab = (tab, collection) => {
   const accessor = getAccessor(tab);
   const serialized = {
@@ -436,6 +448,7 @@ export const isActiveTab = (tab, activeTab, collection) => {
 
 export const deserializeTab = (snapshotTab, collection) => {
   const { accessor, pathname, exampleName, type } = snapshotTab;
+  const restoredRequestPaneTab = typeof snapshotTab.request?.tab === 'string' ? snapshotTab.request.tab : null;
 
   const tab = {
     collectionUid: collection.uid,
@@ -443,7 +456,7 @@ export const deserializeTab = (snapshotTab, collection) => {
     preview: !snapshotTab.permanent,
     name: snapshotTab.name || null,
     pathname: pathname || null,
-    requestPaneTab: snapshotTab.request?.tab || 'params',
+    requestPaneTab: restoredRequestPaneTab || getDefaultRequestPaneTabForType(type),
     requestPaneWidth: snapshotTab.request?.width || null,
     requestPaneHeight: snapshotTab.request?.height || null,
     responsePaneTab: snapshotTab.response?.tab || 'response',
@@ -461,6 +474,11 @@ export const deserializeTab = (snapshotTab, collection) => {
 
   if (accessor === 'pathname' && pathname) {
     const item = findItemInCollectionByPathname(collection, pathname);
+    const resolvedType = item?.type || type;
+    tab.type = resolvedType;
+    if (!restoredRequestPaneTab) {
+      tab.requestPaneTab = getDefaultRequestPaneTabForType(resolvedType);
+    }
     tab.uid = item?.uid || pathname;
     if (type === 'folder-settings') {
       tab.folderUid = item?.uid || pathname;
