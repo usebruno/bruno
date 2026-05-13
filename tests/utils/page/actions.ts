@@ -814,67 +814,75 @@ const getResponseBody = async (page: Page): Promise<string> => {
 
 const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
+const trySelectPaneTabOnce = async (page: Page, paneSelector: string, tabName: string) => {
+  const pane = page.locator(paneSelector);
+  const visibleTab = pane.locator('.tabs').getByRole('tab', { name: tabName });
+
+  if (await visibleTab.isVisible().catch(() => false)) {
+    try {
+      await visibleTab.click({ timeout: 2000 });
+      await expect(visibleTab).toContainClass('active', { timeout: 500 });
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  const overflowButton = pane.locator('.tabs .more-tabs');
+  if (!(await overflowButton.isVisible().catch(() => false))) {
+    return false;
+  }
+
+  try {
+    await overflowButton.click({ force: true, timeout: 1000 });
+  } catch {
+    return false;
+  }
+
+  const dropdownItem = page
+    .getByRole('menuitem', { name: new RegExp(escapeRegExp(tabName), 'i') })
+    .first();
+
+  if (await dropdownItem.isVisible({ timeout: 1500 }).catch(() => false)) {
+    try {
+      await dropdownItem.click({ force: true, timeout: 2000 });
+      await expect(visibleTab).toContainClass('active', { timeout: 500 });
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  const fallbackDropdownItem = page.locator('.tippy-box .dropdown-item').filter({ hasText: tabName }).first();
+  if (await fallbackDropdownItem.isVisible({ timeout: 1500 }).catch(() => false)) {
+    try {
+      await fallbackDropdownItem.click({ force: true, timeout: 2000 });
+      await expect(visibleTab).toContainClass('active', { timeout: 500 });
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  return false;
+};
+
 const selectPaneTab = async (page: Page, paneSelector: string, tabName: string) => {
   await test.step(`Select tab "${tabName}" in ${paneSelector}`, async () => {
     const pane = page.locator(paneSelector);
     await expect(pane).toBeVisible();
     await expect(pane.locator('.tabs')).toBeVisible();
 
-    for (let attempt = 0; attempt < 10; attempt++) {
-      const visibleTab = pane.locator('.tabs').getByRole('tab', { name: tabName });
-
-      if (await visibleTab.isVisible().catch(() => false)) {
-        try {
-          await visibleTab.click({ timeout: 2000 });
-          await expect(visibleTab).toContainClass('active');
-          return;
-        } catch {
-          await page.waitForTimeout(150);
-          continue;
+    await expect
+      .poll(
+        async () => trySelectPaneTabOnce(page, paneSelector, tabName),
+        {
+          message: `Tab "${tabName}" not found in visible tabs or overflow dropdown`,
+          timeout: 8000,
+          intervals: [100, 150, 200, 250]
         }
-      }
-
-      const overflowButton = pane.locator('.tabs .more-tabs');
-      if (await overflowButton.isVisible().catch(() => false)) {
-        try {
-          await overflowButton.click({ force: true, timeout: 1000 });
-        } catch {
-          await page.waitForTimeout(150);
-          continue;
-        }
-
-        const dropdownItem = page
-          .getByRole('menuitem', { name: new RegExp(escapeRegExp(tabName), 'i') })
-          .first();
-
-        if (await dropdownItem.isVisible({ timeout: 1500 }).catch(() => false)) {
-          try {
-            await dropdownItem.click({ force: true, timeout: 2000 });
-            await expect(visibleTab).toContainClass('active');
-            return;
-          } catch {
-            await page.waitForTimeout(150);
-            continue;
-          }
-        }
-
-        const fallbackDropdownItem = page.locator('.tippy-box .dropdown-item').filter({ hasText: tabName }).first();
-        if (await fallbackDropdownItem.isVisible({ timeout: 1500 }).catch(() => false)) {
-          try {
-            await fallbackDropdownItem.click({ force: true, timeout: 2000 });
-            await expect(visibleTab).toContainClass('active');
-            return;
-          } catch {
-            await page.waitForTimeout(150);
-            continue;
-          }
-        }
-      }
-
-      await page.waitForTimeout(150);
-    }
-
-    throw new Error(`Tab "${tabName}" not found in visible tabs or overflow dropdown after retries`);
+      )
+      .toBe(true);
   });
 };
 
