@@ -8,6 +8,8 @@ import { isActiveTab as checkIsActiveTab, deserializeTab } from 'utils/snapshot'
 
 const MAX_RECENTLY_CLOSED_TABS = 50;
 
+export const NON_CLOSABLE_TAB_TYPES = ['workspaceOverview', 'workspaceEnvironments'];
+
 const initialState = {
   tabs: [],
   activeTabUid: null,
@@ -310,12 +312,10 @@ export const tabsSlice = createSlice({
       const activeTab = find(state.tabs, (t) => t.uid === state.activeTabUid);
       const tabUids = action.payload.tabUids || [];
 
-      const nonClosableTypes = ['workspaceOverview', 'workspaceEnvironments'];
-
       // Push closed tabs onto the recently closed stack (LIFO)
       // Exclude transient requests — they have no persisted file and can't be reopened
       const closedTabs = state.tabs.filter((t) =>
-        tabUids.includes(t.uid) && !nonClosableTypes.includes(t.type) && !t.isTransient
+        tabUids.includes(t.uid) && !NON_CLOSABLE_TAB_TYPES.includes(t.type) && !t.isTransient
       );
       if (closedTabs.length > 0) {
         state.recentlyClosedTabs.push(...closedTabs);
@@ -326,7 +326,7 @@ export const tabsSlice = createSlice({
       }
 
       state.tabs = filter(state.tabs, (t) =>
-        !tabUids.includes(t.uid) || nonClosableTypes.includes(t.type)
+        !tabUids.includes(t.uid) || NON_CLOSABLE_TAB_TYPES.includes(t.type)
       );
 
       if (activeTab && state.tabs.length) {
