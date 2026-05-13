@@ -127,8 +127,8 @@ export const buildCommonLocators = (page: Page) => ({
     fileInput: () => page.locator('input[type="file"]'),
     envOption: (name: string) => page.locator('.dropdown-item').getByText(name, { exact: true }),
     parsingError: () => page.getByTestId('import-error-message'),
-    browseLink: (root?: Locator) => (root ?? page).getByText('Browse'),
-    importButton: (root?: Locator) => (root ?? page).getByRole('button', { name: 'Import' })
+    browseLink: (root?: Locator) => (root ?? page).getByTestId('import-collection-browse-link'),
+    importButton: (root?: Locator) => (root ?? page).getByTestId('import-collection-submit-button')
   },
   /**
    * Build generic table locators for any table with a testId
