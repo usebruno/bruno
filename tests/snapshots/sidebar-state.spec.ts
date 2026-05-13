@@ -26,7 +26,12 @@ const createExampleFromSidebar = async (page: Page, requestName: string, example
 
 const openExampleFromSidebar = async (page: Page, requestName: string, exampleName: string, index: number = 0) => {
   const requestRow = page.locator('.collection-item-name').filter({ hasText: requestName }).first();
-  const exampleRow = page.locator('.collection-item-name').filter({ hasText: exampleName }).nth(index);
+  const requestBranch = requestRow.locator('..');
+  const exampleRow = requestBranch
+    .locator('.collection-item-name')
+    .filter({ has: page.locator('.example-icon') })
+    .getByText(exampleName, { exact: true })
+    .nth(index);
 
   if (!(await exampleRow.isVisible())) {
     await requestRow.getByTestId('request-item-chevron').click();
