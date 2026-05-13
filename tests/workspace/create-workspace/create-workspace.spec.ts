@@ -362,7 +362,7 @@ test.describe('Create Workspace', () => {
       await closeElectronApp(app);
     });
 
-    test('should show validation error for empty name in modal', async ({ launchElectronApp, createTmpDir }) => {
+    test('should show validation error for empty name in modal and keep modal open', async ({ launchElectronApp, createTmpDir }) => {
       const wsLocation = await createTmpDir('ws-location-modal-empty');
 
       const app = await launchElectronApp({ initUserDataPath, templateVars: { wsLocation } });
@@ -376,20 +376,57 @@ test.describe('Create Workspace', () => {
         await page.locator('.cog-btn').click();
       });
 
-      await test.step('Clear name and try to submit', async () => {
+      await test.step('Clear name and submit', async () => {
         const modal = page.locator('.bruno-modal-card').filter({ hasText: 'Create Workspace' });
         await modal.waitFor({ state: 'visible', timeout: 5000 });
+        const submitButton = modal.getByRole('button', { name: 'Create Workspace' });
 
-        // Ensure name field is empty
         await modal.locator('#workspace-name').fill('');
-        await modal.getByRole('button', { name: 'Create Workspace' }).click();
+        await expect(submitButton).toBeEnabled();
+        await submitButton.click();
       });
 
       await test.step('Verify validation error appears and modal stays open', async () => {
         const modal = page.locator('.bruno-modal-card').filter({ hasText: 'Create Workspace' });
+        const submitButton = modal.getByRole('button', { name: 'Create Workspace' });
         await expect(modal).toBeVisible();
-        const error = modal.locator('.text-red-500');
-        await expect(error.first()).toBeVisible({ timeout: 2000 });
+        await expect(submitButton).toBeEnabled();
+        await expect(modal.getByText('Workspace name is required')).toBeVisible({ timeout: 2000 });
+      });
+
+      await closeElectronApp(app);
+    });
+
+    test('should show validation error for whitespace-only name in modal and keep modal open', async ({ launchElectronApp, createTmpDir }) => {
+      const wsLocation = await createTmpDir('ws-location-modal-whitespace');
+
+      const app = await launchElectronApp({ initUserDataPath, templateVars: { wsLocation } });
+      const page = await app.firstWindow();
+      await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
+
+      await test.step('Start inline creation and open advanced modal', async () => {
+        await page.locator('.workspace-name-container').click();
+        await page.locator('.dropdown-item').filter({ hasText: 'Create workspace' }).click();
+        await expect(page.locator('.workspace-name-input')).toBeVisible({ timeout: 5000 });
+        await page.locator('.cog-btn').click();
+      });
+
+      await test.step('Enter whitespace-only name and submit', async () => {
+        const modal = page.locator('.bruno-modal-card').filter({ hasText: 'Create Workspace' });
+        await modal.waitFor({ state: 'visible', timeout: 5000 });
+        const submitButton = modal.getByRole('button', { name: 'Create Workspace' });
+
+        await modal.locator('#workspace-name').fill('   ');
+        await expect(submitButton).toBeEnabled();
+        await submitButton.click();
+      });
+
+      await test.step('Verify validation error appears and modal stays open', async () => {
+        const modal = page.locator('.bruno-modal-card').filter({ hasText: 'Create Workspace' });
+        const submitButton = modal.getByRole('button', { name: 'Create Workspace' });
+        await expect(modal).toBeVisible();
+        await expect(submitButton).toBeEnabled();
+        await expect(modal.getByText('Workspace name can\'t be empty')).toBeVisible({ timeout: 2000 });
       });
 
       await closeElectronApp(app);
