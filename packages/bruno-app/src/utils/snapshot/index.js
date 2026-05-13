@@ -344,7 +344,7 @@ export const findCollectionEnvironmentFromSnapshot = (collection, snapshotData =
 };
 
 const getAccessor = (tab) => {
-  if (tab.type === 'response-example') return 'pathname::exampleName';
+  if (tab.type === 'response-example') return 'pathname::exampleIndex';
   if (SINGLETON_TAB_TYPES.has(tab.type)) return 'type';
   return 'pathname';
 };
@@ -367,6 +367,23 @@ export const serializeTab = (tab, collection) => {
     const item = findItemInCollection(collection, tab.itemUid);
     serialized.pathname = item?.pathname || tab.pathname;
     serialized.exampleName = tab.exampleName;
+    const exampleIndex = item?.examples?.findIndex((example) => example.uid === tab.uid);
+    if (typeof exampleIndex === 'number' && exampleIndex >= 0) {
+      serialized.exampleIndex = exampleIndex;
+    }
+    serialized.exampleUid = tab.uid;
+    if (tab.name) {
+      serialized.name = tab.name;
+    }
+  } else if (accessor === 'pathname::exampleIndex') {
+    const item = findItemInCollection(collection, tab.itemUid);
+    serialized.pathname = item?.pathname || tab.pathname;
+    const exampleIndex = item?.examples?.findIndex((example) => example.uid === tab.uid);
+    if (typeof exampleIndex === 'number' && exampleIndex >= 0) {
+      serialized.exampleIndex = exampleIndex;
+    }
+    serialized.exampleName = tab.exampleName;
+    serialized.exampleUid = tab.uid;
     if (tab.name) {
       serialized.name = tab.name;
     }
@@ -408,6 +425,22 @@ export const serializeActiveTab = (tab, collection) => {
     return { accessor, value: `${pathname}::${tab.exampleName}` };
   }
 
+  if (accessor === 'pathname::exampleIndex') {
+    const item = findItemInCollection(collection, tab.itemUid);
+    const pathname = item?.pathname || tab.pathname;
+    const exampleIndex = item?.examples?.findIndex((example) => example.uid === tab.uid);
+
+    if (typeof exampleIndex === 'number' && exampleIndex >= 0) {
+      return { accessor, value: `${pathname}::${exampleIndex}` };
+    }
+
+    if (tab.exampleName) {
+      return { accessor: 'pathname::exampleName', value: `${pathname}::${tab.exampleName}` };
+    }
+
+    return { accessor, value: `${pathname}::-1` };
+  }
+
   return { accessor: 'type', value: tab.type };
 };
 
@@ -422,7 +455,7 @@ export const isActiveTab = (tab, activeTab, collection) => {
 
   if (accessor === 'pathname') {
     const item = findItemInCollection(collection, tab.uid);
-    return item?.pathname === value || tab.pathname === value;
+    return tab.type !== 'response-example' && (item?.pathname === value || tab.pathname === value);
   }
 
   if (accessor === 'pathname::exampleName') {
@@ -431,11 +464,63 @@ export const isActiveTab = (tab, activeTab, collection) => {
     return `${pathname}::${tab.exampleName}` === value;
   }
 
+  if (accessor === 'pathname::exampleIndex') {
+    const item = findItemInCollection(collection, tab.itemUid);
+    const pathname = item?.pathname || tab.pathname;
+    const exampleIndex = item?.examples?.findIndex((example) => example.uid === tab.uid);
+
+    return `${pathname}::${exampleIndex}` === value;
+  }
+
   return false;
 };
 
+const resolveResponseExampleTabState = ({ item, pathname, exampleName, exampleIndex, exampleUid }) => {
+  const hasExamples = Array.isArray(item?.examples);
+  const hasProvidedExampleIndex = typeof exampleIndex === 'number' && exampleIndex >= 0;
+  const hasValidExampleIndex = hasExamples && hasProvidedExampleIndex && exampleIndex < item.examples.length;
+
+  let resolvedExample = null;
+  if (hasExamples) {
+    if (hasValidExampleIndex) {
+      resolvedExample = item.examples[exampleIndex] || null;
+    } else {
+      if (typeof exampleUid === 'string' && exampleUid.length > 0) {
+        resolvedExample = item.examples.find((ex) => ex.uid === exampleUid) || null;
+      }
+
+      if (!resolvedExample && exampleName) {
+        resolvedExample = item.examples.find((ex) => ex.name === exampleName) || null;
+      }
+    }
+  }
+
+  const resolvedExampleIndex = hasExamples && resolvedExample?.uid
+    ? item.examples.findIndex((ex) => ex.uid === resolvedExample.uid)
+    : -1;
+
+  const fallbackExampleIdentity = hasProvidedExampleIndex
+    ? `${pathname}::${exampleIndex}`
+    : `${pathname}::${exampleName}`;
+
+  let normalizedExampleIndex = null;
+  if (resolvedExampleIndex >= 0) {
+    normalizedExampleIndex = resolvedExampleIndex;
+  } else if (hasProvidedExampleIndex) {
+    normalizedExampleIndex = exampleIndex;
+  }
+
+  return {
+    uid: resolvedExample?.uid || fallbackExampleIdentity,
+    itemUid: item?.uid || pathname,
+    exampleName: resolvedExample?.name || exampleName,
+    exampleIndex: normalizedExampleIndex
+  };
+};
+
 export const deserializeTab = (snapshotTab, collection) => {
-  const { accessor, pathname, exampleName, type } = snapshotTab;
+  const { accessor, pathname, exampleName, exampleIndex, exampleUid, type } = snapshotTab;
+  const restoredRequestPaneTab = typeof snapshotTab.request?.tab === 'string' ? snapshotTab.request.tab : null;
 
   const tab = {
     collectionUid: collection.uid,
@@ -465,12 +550,13 @@ export const deserializeTab = (snapshotTab, collection) => {
     if (type === 'folder-settings') {
       tab.folderUid = item?.uid || pathname;
     }
-  } else if (accessor === 'pathname::exampleName' && pathname && exampleName) {
+  } else if ((accessor === 'pathname::exampleName' || accessor === 'pathname::exampleIndex') && pathname) {
     const item = findItemInCollectionByPathname(collection, pathname);
-    const example = item?.examples?.find((ex) => ex.name === exampleName);
-    tab.uid = example?.uid || `${pathname}::${exampleName}`;
-    tab.itemUid = item?.uid || pathname;
-    tab.exampleName = exampleName;
+    const resolvedTabState = resolveResponseExampleTabState({ item, pathname, exampleName, exampleIndex, exampleUid });
+    tab.uid = resolvedTabState.uid;
+    tab.itemUid = resolvedTabState.itemUid;
+    tab.exampleName = resolvedTabState.exampleName;
+    tab.exampleIndex = resolvedTabState.exampleIndex;
   } else if (needsTypeBasedFallback) {
     const collectionUidFromSnapshot = typeof snapshotTab.collection === 'string' && snapshotTab.collection.length > 0
       ? snapshotTab.collection
@@ -555,9 +641,20 @@ export const getActiveTabFromSnapshot = async (collectionPathname, collection, s
   if (accessor === 'type') {
     snapshotTab = tabsSnapshot.tabs.find((t) => t.type === value);
   } else if (accessor === 'pathname') {
-    snapshotTab = tabsSnapshot.tabs.find((t) => t.pathname === value);
+    snapshotTab = tabsSnapshot.tabs.find((t) => t.pathname === value && t.type !== 'response-example');
   } else if (accessor === 'pathname::exampleName') {
     snapshotTab = tabsSnapshot.tabs.find((t) => `${t.pathname}::${t.exampleName}` === value);
+  } else if (accessor === 'pathname::exampleIndex') {
+    snapshotTab = tabsSnapshot.tabs.find((t) => `${t.pathname}::${t.exampleIndex}` === value);
+
+    if (!snapshotTab) {
+      const [pathname, rawIndex] = value.split('::');
+      const exampleIndex = Number(rawIndex);
+      if (pathname && Number.isInteger(exampleIndex) && exampleIndex >= 0) {
+        const candidateTabs = tabsSnapshot.tabs.filter((t) => t.type === 'response-example' && t.pathname === pathname);
+        snapshotTab = candidateTabs[exampleIndex] || null;
+      }
+    }
   }
 
   if (!snapshotTab) return null;

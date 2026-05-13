@@ -335,6 +335,9 @@ const RequestTabPanel = () => {
     let example = null;
     if (item?.examples) {
       example = item.examples.find((ex) => ex.uid === focusedTab.uid);
+      if (!example && typeof focusedTab.exampleIndex === 'number' && focusedTab.exampleIndex >= 0) {
+        example = item.examples[focusedTab.exampleIndex] || null;
+      }
       if (!example && focusedTab.exampleName) {
         example = item.examples.find((ex) => ex.name === focusedTab.exampleName);
       }
