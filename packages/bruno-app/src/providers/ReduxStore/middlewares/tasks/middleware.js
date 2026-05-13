@@ -82,7 +82,8 @@ taskMiddleware.startListening({
                 type: 'response-example',
                 itemUid: item.uid,
                 pathname: item.pathname,
-                exampleName: example.name
+                exampleName: example.name,
+                exampleIndex: task.exampleIndex
               }));
             }
           }

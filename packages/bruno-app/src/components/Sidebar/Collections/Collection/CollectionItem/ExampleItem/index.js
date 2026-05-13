@@ -37,13 +37,16 @@ const ExampleItem = ({ example, item, collection }) => {
   const indents = range((item.depth || 0) + 1);
 
   const handleExampleClick = () => {
+    const exampleIndex = item?.examples?.findIndex((ex) => ex.uid === example.uid);
+
     dispatch(addTab({
       uid: example.uid,
       collectionUid: collection.uid,
       type: 'response-example',
       itemUid: item.uid,
       pathname: item.pathname,
-      exampleName: example.name
+      exampleName: example.name,
+      exampleIndex: typeof exampleIndex === 'number' && exampleIndex >= 0 ? exampleIndex : undefined
     }));
   };
 
