@@ -233,7 +233,7 @@ const General = () => {
               disabled={formik.values.customCaCertificate.enabled ? false : true}
               onClick={() => inputFileCaCertificateRef.current.click()}
             >
-              select file
+              Select file
               <input
                 id="caCertFilePath"
                 type="file"
