@@ -49,6 +49,7 @@ type SystemProxyConfig = {
   http_proxy?: string;
   https_proxy?: string;
   no_proxy?: string;
+  pac_url?: string | null;
 };
 
 type ClientCertificate = {
@@ -349,8 +350,8 @@ const getCertsAndProxyConfig = ({
           proxyConfig = { pac: get(appLevelProxyConfig, 'pac.source') };
           proxyMode = 'pac';
         } else if (globalProxySource === 'inherit') {
-          const { http_proxy, https_proxy } = systemProxyConfig || {};
-          if (http_proxy?.length || https_proxy?.length) {
+          const { http_proxy, https_proxy, pac_url } = systemProxyConfig || {};
+          if (http_proxy?.length || https_proxy?.length || pac_url?.length) {
             proxyMode = 'system';
           }
         } else {
@@ -362,8 +363,8 @@ const getCertsAndProxyConfig = ({
       // else: app-level proxy is disabled, proxyMode stays 'off'
     } else {
       // No app-level proxy config (e.g. CLI), fall through to system proxy
-      const { http_proxy, https_proxy } = systemProxyConfig || {};
-      if (http_proxy?.length || https_proxy?.length) {
+      const { http_proxy, https_proxy, pac_url } = systemProxyConfig || {};
+      if (http_proxy?.length || https_proxy?.length || pac_url?.length) {
         proxyMode = 'system';
       }
     }
@@ -380,6 +381,63 @@ function extractHostname(url: string | undefined): string | null {
   } catch {
     return null;
   }
+}
+
+/**
+ * Resolves a PAC URL and creates the appropriate proxy agents from the first directive.
+ * Shared by both explicit PAC mode and system proxy mode (when OS has a PAC URL).
+ */
+async function resolveAgentsFromPac({
+  pacSource,
+  requestUrl,
+  isHttpsRequest,
+  tlsOptions,
+  timeline,
+  disableCache,
+  hostname
+}: {
+  pacSource: string;
+  requestUrl: string;
+  isHttpsRequest: boolean;
+  tlsOptions: TlsOptions;
+  timeline?: TimelineEntry[] | null;
+  disableCache: boolean;
+  hostname: string | null;
+}): Promise<AgentResult> {
+  const resolver = await getPacResolver({
+    pacSource,
+    httpsAgentRequestFields: { ca: tlsOptions.ca, rejectUnauthorized: tlsOptions.rejectUnauthorized, minVersion: tlsOptions.minVersion }
+  });
+  const directives = await resolver.resolve(requestUrl);
+
+  if (!directives || !directives.length) {
+    return {};
+  }
+
+  const first = directives[0];
+  if (/^(PROXY|HTTPS?)\s+/i.test(first)) {
+    const parts = first.split(/\s+/);
+    const keyword = parts[0].toUpperCase();
+    const hostPort = parts[1];
+    const scheme = keyword === 'HTTPS' ? 'https' : 'http';
+    const proxyUri = `${scheme}://${hostPort}`;
+    if (isHttpsRequest) {
+      return { httpsAgent: getOrCreateHttpsAgent({ AgentClass: PatchedHttpsProxyAgent, options: tlsOptions as any, proxyUri, timeline: timeline || null, disableCache, hostname }) as HttpsAgent };
+    } else {
+      return { httpAgent: getOrCreateHttpAgent({ AgentClass: HttpProxyAgent, options: { keepAlive: true }, proxyUri, timeline: timeline || null, disableCache, hostname }) };
+    }
+  } else if (/^SOCKS/i.test(first)) {
+    const hostPort = first.split(/\s+/)[1];
+    const proto = /^SOCKS4\s/i.test(first) ? 'socks4' : 'socks5';
+    const proxyUri = `${proto}://${hostPort}`;
+    if (isHttpsRequest) {
+      return { httpsAgent: getOrCreateHttpsAgent({ AgentClass: SocksProxyAgent, options: tlsOptions as any, proxyUri, timeline: timeline || null, disableCache, hostname }) as HttpsAgent };
+    } else {
+      return { httpAgent: getOrCreateHttpAgent({ AgentClass: SocksProxyAgent, options: { keepAlive: true }, proxyUri, timeline: timeline || null, disableCache, hostname }) };
+    }
+  }
+
+  return {};
 }
 
 async function createAgents({
@@ -459,32 +517,9 @@ async function createAgents({
     const pacSource = get(proxyConfig, 'pac.source');
     if (pacSource && requestUrl) {
       try {
-        const resolver = await getPacResolver({ pacSource, httpsAgentRequestFields: { ca: tlsOptions.ca, rejectUnauthorized: tlsOptions.rejectUnauthorized, minVersion: tlsOptions.minVersion } });
-        const directives = await resolver.resolve(requestUrl);
-        if (directives && directives.length) {
-          const first = directives[0];
-          if (/^(PROXY|HTTPS?)\s+/i.test(first)) {
-            const parts = first.split(/\s+/);
-            const keyword = parts[0].toUpperCase();
-            const hostPort = parts[1];
-            const scheme = keyword === 'HTTPS' ? 'https' : 'http';
-            const proxyUri = `${scheme}://${hostPort}`;
-            if (isHttpsRequest) {
-              httpsAgent = getOrCreateHttpsAgent({ AgentClass: PatchedHttpsProxyAgent, options: tlsOptions as any, proxyUri, timeline: timeline || null, disableCache, hostname }) as HttpsAgent;
-            } else {
-              httpAgent = getOrCreateHttpAgent({ AgentClass: HttpProxyAgent, options: { keepAlive: true }, proxyUri, timeline: timeline || null, disableCache, hostname });
-            }
-          } else if (/^SOCKS/i.test(first)) {
-            const hostPort = first.split(/\s+/)[1];
-            const proto = /^SOCKS4\s/i.test(first) ? 'socks4' : 'socks5';
-            const proxyUri = `${proto}://${hostPort}`;
-            if (isHttpsRequest) {
-              httpsAgent = getOrCreateHttpsAgent({ AgentClass: SocksProxyAgent, options: tlsOptions as any, proxyUri, timeline: timeline || null, disableCache, hostname }) as HttpsAgent;
-            } else {
-              httpAgent = getOrCreateHttpAgent({ AgentClass: SocksProxyAgent, options: { keepAlive: true }, proxyUri, timeline: timeline || null, disableCache, hostname });
-            }
-          }
-        }
+        const result = await resolveAgentsFromPac({ pacSource, requestUrl, isHttpsRequest, tlsOptions, timeline, disableCache, hostname });
+        if (result.httpAgent) httpAgent = result.httpAgent;
+        if (result.httpsAgent) httpsAgent = result.httpsAgent;
       } catch {
         // PAC resolution failed — fall through to direct connection
       }
@@ -493,25 +528,37 @@ async function createAgents({
     const http_proxy = get(systemProxyConfig, 'http_proxy');
     const https_proxy = get(systemProxyConfig, 'https_proxy');
     const no_proxy = get(systemProxyConfig, 'no_proxy');
-    const shouldUseSystemProxy = shouldUseProxy(requestUrl, no_proxy || '');
-    if (shouldUseSystemProxy) {
+    const pac_url = get(systemProxyConfig, 'pac_url');
+
+    // If the OS is configured with a PAC URL, resolve it using the existing PAC infrastructure
+    if (pac_url && requestUrl) {
       try {
-        if (http_proxy?.length && !isHttpsRequest) {
-          const parsedHttpProxy = new URL(http_proxy);
-          const isHttpsSystemProxy = parsedHttpProxy.protocol === 'https:';
-          const systemHttpProxyAgentOptions = isHttpsSystemProxy ? { keepAlive: true, ...tlsOptions } : { keepAlive: true };
-          httpAgent = getOrCreateHttpAgent({ AgentClass: HttpProxyAgent, options: systemHttpProxyAgentOptions as any, proxyUri: http_proxy, timeline: timeline || null, disableCache, hostname });
-        }
-      } catch (error) {
-        throw new Error('Invalid system http_proxy');
+        const result = await resolveAgentsFromPac({ pacSource: pac_url, requestUrl, isHttpsRequest, tlsOptions, timeline, disableCache, hostname });
+        if (result.httpAgent) httpAgent = result.httpAgent;
+        if (result.httpsAgent) httpsAgent = result.httpsAgent;
+      } catch {
       }
-      try {
-        if (https_proxy?.length && isHttpsRequest) {
-          new URL(https_proxy);
-          httpsAgent = getOrCreateHttpsAgent({ AgentClass: PatchedHttpsProxyAgent, options: tlsOptions as any, proxyUri: https_proxy, timeline: timeline || null, disableCache, hostname }) as HttpsAgent;
+    } else {
+      const shouldUseSystemProxy = shouldUseProxy(requestUrl, no_proxy || '');
+      if (shouldUseSystemProxy) {
+        try {
+          if (http_proxy?.length && !isHttpsRequest) {
+            const parsedHttpProxy = new URL(http_proxy);
+            const isHttpsSystemProxy = parsedHttpProxy.protocol === 'https:';
+            const systemHttpProxyAgentOptions = isHttpsSystemProxy ? { keepAlive: true, ...tlsOptions } : { keepAlive: true };
+            httpAgent = getOrCreateHttpAgent({ AgentClass: HttpProxyAgent, options: systemHttpProxyAgentOptions as any, proxyUri: http_proxy, timeline: timeline || null, disableCache, hostname });
+          }
+        } catch (error) {
+          throw new Error('Invalid system http_proxy');
         }
-      } catch (error) {
-        throw new Error('Invalid system https_proxy');
+        try {
+          if (https_proxy?.length && isHttpsRequest) {
+            new URL(https_proxy);
+            httpsAgent = getOrCreateHttpsAgent({ AgentClass: PatchedHttpsProxyAgent, options: tlsOptions as any, proxyUri: https_proxy, timeline: timeline || null, disableCache, hostname }) as HttpsAgent;
+          }
+        } catch (error) {
+          throw new Error('Invalid system https_proxy');
+        }
       }
     }
   }

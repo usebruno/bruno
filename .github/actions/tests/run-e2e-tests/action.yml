@@ -14,7 +14,7 @@ runs:
     - name: Run Playwright Tests (Ubuntu)
       if: inputs.os == 'ubuntu'
       shell: bash
-      run: xvfb-run npm run test:e2e
+      run: xvfb-run dbus-run-session -- npm run test:e2e
 
     - name: Run Playwright Tests
       if: inputs.os != 'ubuntu'

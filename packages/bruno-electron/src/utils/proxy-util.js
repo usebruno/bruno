@@ -104,6 +104,35 @@ class PatchedHttpsProxyAgent extends HttpsProxyAgent {
   }
 }
 
+async function resolveAgentsFromPac({ pacSource, requestUrl, requestConfig, tlsOptions, httpsAgentRequestFields, timeline, disableCache, hostname }) {
+  const resolver = await getPacResolver({ pacSource, httpsAgentRequestFields });
+  const directives = await resolver.resolve(requestUrl);
+
+  if (!directives || !directives.length) {
+    return null;
+  }
+
+  const first = directives[0];
+
+  if (/^(PROXY|HTTPS?)\s+/i.test(first)) {
+    const parts = first.split(/\s+/);
+    const keyword = parts[0].toUpperCase();
+    const hostPort = parts[1];
+    const scheme = keyword === 'HTTPS' ? 'https' : 'http';
+    const proxyUri = `${scheme}://${hostPort}`;
+    requestConfig.httpAgent = getOrCreateHttpAgent({ AgentClass: HttpProxyAgent, options: { keepAlive: true }, proxyUri, timeline, disableCache, hostname });
+    requestConfig.httpsAgent = getOrCreateHttpsAgent({ AgentClass: PatchedHttpsProxyAgent, options: tlsOptions, proxyUri, timeline, disableCache, hostname });
+  } else if (/^SOCKS/i.test(first)) {
+    const hostPort = first.split(/\s+/)[1];
+    const proto = /^SOCKS4\s/i.test(first) ? 'socks4' : 'socks5';
+    const proxyUri = `${proto}://${hostPort}`;
+    requestConfig.httpAgent = getOrCreateHttpAgent({ AgentClass: SocksProxyAgent, options: { keepAlive: true }, proxyUri, timeline, disableCache, hostname });
+    requestConfig.httpsAgent = getOrCreateHttpsAgent({ AgentClass: SocksProxyAgent, options: tlsOptions, proxyUri, timeline, disableCache, hostname });
+  }
+
+  return directives;
+}
+
 async function setupProxyAgents({
   requestConfig,
   proxyMode = 'off',
@@ -184,40 +213,56 @@ async function setupProxyAgents({
       }
     }
   } else if (proxyMode === 'system') {
-    const { http_proxy, https_proxy, no_proxy } = proxyConfig || {};
-    const shouldUseSystemProxy = shouldUseProxy(requestConfig.url, no_proxy || '');
-    if (shouldUseSystemProxy) {
+    const { http_proxy, https_proxy, no_proxy, pac_url } = proxyConfig || {};
+
+    // If the OS is configured with a PAC URL, resolve it using the existing PAC infrastructure
+    if (pac_url) {
+      if (timeline) timeline.push({ timestamp: new Date(), type: 'info', message: `Resolving system PAC: ${pac_url}` });
       try {
-        if (http_proxy?.length && !isHttpsRequest) {
-          const parsedHttpProxy = new URL(http_proxy);
-          const isHttpsSystemProxy = parsedHttpProxy.protocol === 'https:';
-          const systemHttpProxyAgentOptions = isHttpsSystemProxy ? { keepAlive: true, ...tlsOptions } : { keepAlive: true };
-          if (timeline) {
-            timeline.push({
-              timestamp: new Date(),
-              type: 'info',
-              message: `Using system proxy: ${http_proxy}`
-            });
-          }
-          requestConfig.httpAgent = getOrCreateHttpAgent({ AgentClass: HttpProxyAgent, options: systemHttpProxyAgentOptions, proxyUri: http_proxy, timeline, disableCache, hostname });
+        const directives = await resolveAgentsFromPac({ pacSource: pac_url, requestUrl: requestConfig.url, requestConfig, tlsOptions, httpsAgentRequestFields, timeline, disableCache, hostname });
+        if (directives) {
+          if (timeline) { timeline.push({ timestamp: new Date(), type: 'info', message: `PAC directives: ${directives.join('; ')}` }); }
+        } else {
+          if (timeline) { timeline.push({ timestamp: new Date(), type: 'info', message: 'System PAC resolved: DIRECT (no proxy)' }); }
         }
-      } catch (error) {
-        throw new Error(`Invalid system http_proxy "${http_proxy}": ${error.message}`);
+      } catch (err) {
+        if (timeline) { timeline.push({ timestamp: new Date(), type: 'error', message: `System PAC resolution failed: ${err.message}` }); }
       }
-      try {
-        if (https_proxy?.length && isHttpsRequest) {
-          new URL(https_proxy);
-          if (timeline) {
-            timeline.push({
-              timestamp: new Date(),
-              type: 'info',
-              message: `Using system proxy: ${https_proxy}`
-            });
+    } else {
+      const shouldUseSystemProxy = shouldUseProxy(requestConfig.url, no_proxy || '');
+      if (shouldUseSystemProxy) {
+        try {
+          if (http_proxy?.length && !isHttpsRequest) {
+            const parsedHttpProxy = new URL(http_proxy);
+            const isHttpsSystemProxy = parsedHttpProxy.protocol === 'https:';
+            const systemHttpProxyAgentOptions = isHttpsSystemProxy ? { keepAlive: true, ...tlsOptions } : { keepAlive: true };
+            if (timeline) {
+              timeline.push({
+                timestamp: new Date(),
+                type: 'info',
+                message: `Using system proxy: ${http_proxy}`
+              });
+            }
+            requestConfig.httpAgent = getOrCreateHttpAgent({ AgentClass: HttpProxyAgent, options: systemHttpProxyAgentOptions, proxyUri: http_proxy, timeline, disableCache, hostname });
           }
-          requestConfig.httpsAgent = getOrCreateHttpsAgent({ AgentClass: PatchedHttpsProxyAgent, options: tlsOptions, proxyUri: https_proxy, timeline, disableCache, hostname });
+        } catch (error) {
+          throw new Error(`Invalid system http_proxy "${http_proxy}": ${error.message}`);
         }
-      } catch (error) {
-        throw new Error(`Invalid system https_proxy "${https_proxy}": ${error.message}`);
+        try {
+          if (https_proxy?.length && isHttpsRequest) {
+            new URL(https_proxy);
+            if (timeline) {
+              timeline.push({
+                timestamp: new Date(),
+                type: 'info',
+                message: `Using system proxy: ${https_proxy}`
+              });
+            }
+            requestConfig.httpsAgent = getOrCreateHttpsAgent({ AgentClass: PatchedHttpsProxyAgent, options: tlsOptions, proxyUri: https_proxy, timeline, disableCache, hostname });
+          }
+        } catch (error) {
+          throw new Error(`Invalid system https_proxy "${https_proxy}": ${error.message}`);
+        }
       }
     }
   } else if (proxyMode === 'pac') {
@@ -225,26 +270,9 @@ async function setupProxyAgents({
     if (pacSource) {
       if (timeline) timeline.push({ timestamp: new Date(), type: 'info', message: `Resolving PAC: ${pacSource}` });
       try {
-        const resolver = await getPacResolver({ pacSource, httpsAgentRequestFields });
-        const directives = await resolver.resolve(requestConfig.url);
-        if (directives && directives.length) {
-          const first = directives[0];
+        const directives = await resolveAgentsFromPac({ pacSource, requestUrl: requestConfig.url, requestConfig, tlsOptions, httpsAgentRequestFields, timeline, disableCache, hostname });
+        if (directives) {
           if (timeline) timeline.push({ timestamp: new Date(), type: 'info', message: `PAC directives: ${directives.join('; ')}` });
-          if (/^(PROXY|HTTPS?)\s+/i.test(first)) {
-            const parts = first.split(/\s+/);
-            const keyword = parts[0].toUpperCase();
-            const hostPort = parts[1];
-            const scheme = keyword === 'HTTPS' ? 'https' : 'http';
-            const proxyUri = `${scheme}://${hostPort}`;
-            requestConfig.httpAgent = getOrCreateHttpAgent({ AgentClass: HttpProxyAgent, options: { keepAlive: true }, proxyUri, timeline, disableCache, hostname });
-            requestConfig.httpsAgent = getOrCreateHttpsAgent({ AgentClass: PatchedHttpsProxyAgent, options: tlsOptions, proxyUri, timeline, disableCache, hostname });
-          } else if (/^SOCKS/i.test(first)) {
-            const hostPort = first.split(/\s+/)[1];
-            const proto = /^SOCKS4\s/i.test(first) ? 'socks4' : 'socks5';
-            const proxyUri = `${proto}://${hostPort}`;
-            requestConfig.httpAgent = getOrCreateHttpAgent({ AgentClass: SocksProxyAgent, options: { keepAlive: true }, proxyUri, timeline, disableCache, hostname });
-            requestConfig.httpsAgent = getOrCreateHttpsAgent({ AgentClass: SocksProxyAgent, options: tlsOptions, proxyUri, timeline, disableCache, hostname });
-          }
         } else {
           if (timeline) timeline.push({ timestamp: new Date(), type: 'info', message: 'PAC resolved: DIRECT (no proxy)' });
         }
