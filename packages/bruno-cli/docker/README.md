@@ -4,7 +4,7 @@ Official Docker images for [Bruno CLI](https://www.usebruno.com), enabling conta
 
 ## Image structure
 
-```
+```text
 docker/
   ├── README.md           ← you are here
   └── images/
@@ -87,6 +87,12 @@ docker run --rm usebruno/cli --version
 ### Step 3 — Run your collection
 
 > Mount your collection directory to `/bruno` and pass `bru` arguments directly after the image name.
+
+> **Cross-platform note:** the examples below use `$(pwd)` which works in Bash / Zsh / Git Bash / WSL.
+> On Windows native shells, substitute `$(pwd)` with:
+>
+> - PowerShell: `${PWD}`
+> - CMD: `%cd%`
 
 ```bash
 # collection at your current directory
