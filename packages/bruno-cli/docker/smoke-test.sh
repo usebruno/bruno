@@ -109,11 +109,10 @@ if [ -n "$COLLECTION_PATH" ]; then
     exit 1
   fi
 
-  PASSED=$(echo "$SUMMARY_REQ" | grep -oE "[0-9]+[[:space:]]+Passed" | head -1 | grep -oE "[0-9]+")
-  FAILED=$(echo "$SUMMARY_REQ" | grep -oE "[0-9]+[[:space:]]+Failed" | head -1 | grep -oE "[0-9]+")
+  PASSED=$(echo "$SUMMARY_REQ" | grep -oE "([0-9]+[[:space:]]+Passed|Passed:[[:space:]]+[0-9]+)" | head -1 | grep -oE "[0-9]+")
+  FAILED=$(echo "$SUMMARY_REQ" | grep -oE "([0-9]+[[:space:]]+Failed|Failed:[[:space:]]+[0-9]+)" | head -1 | grep -oE "[0-9]+")
   PASSED=${PASSED:-0}
   FAILED=${FAILED:-0}
-
   echo "  Summary: $SUMMARY_REQ"
 
   if [ "$PASSED" -ge 1 ]; then
