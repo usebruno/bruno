@@ -87,57 +87,56 @@ async function usePageWithTracing(
   try { await testInfo.attach('trace', { path: tracePath }); } catch { }
 }
 
-/**
- * Gracefully close an Electron app by telling it to exit with code 0.
- * This avoids the macOS "quit unexpectedly" crash dialog that appears when
- * app.context().close() kills subprocesses (renderer/GPU) abruptly before
- * the main process can shut down cleanly.
- *
- * Emits 'before-quit' first so cleanup handlers run (e.g., saving cookies to disk),
- * since app.exit() bypasses all lifecycle events.
- */
-/**
- * Bound a promise so a hung Electron process can't burn the worker teardown
- * budget. Resolves to `undefined` on timeout — the caller is expected to
- * fall back to `app.close()` (which itself is bounded below) or SIGKILL.
- */
-function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T | undefined> {
+// Sentinel returned by `withTimeout` when the deadline fires before the wrapped
+// promise resolves. Using a unique symbol lets callers distinguish a real
+// timeout from a promise that legitimately resolved with `undefined`
+// (e.g. `Promise<void>` from `app.close()`).
+const WITH_TIMEOUT = Symbol('withTimeout/timeout');
+
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T | typeof WITH_TIMEOUT> {
   return new Promise((resolve) => {
-    const timer = setTimeout(() => resolve(undefined), ms);
+    const timer = setTimeout(() => resolve(WITH_TIMEOUT), ms);
     promise.then(
       (v) => {
         clearTimeout(timer); resolve(v);
       },
       () => {
-        clearTimeout(timer); resolve(undefined);
+        clearTimeout(timer); resolve(undefined as T);
       }
     );
   });
 }
 
+/**
+ * Close an Electron app gracefully so macOS Crash Reporter doesn't fire.
+ *
+ * Strategy: close all BrowserWindows from inside the main process. The
+ * default `window-all-closed` handler then triggers `app.quit()` →
+ * `before-quit` → `will-quit` → clean exit. Helper processes (renderer/GPU)
+ * shut down via the normal IPC handshake instead of detecting a broken
+ * channel and aborting — that abort is what produced the "Electron quit
+ * unexpectedly" dialog under the previous `app.exit(0)` approach.
+ *
+ * Each step is bounded so a wedged process can't burn the worker teardown
+ * budget. SIGKILL is only sent if the process is genuinely still alive
+ * after the graceful path has timed out.
+ */
 export async function closeElectronApp(app: ElectronApplication) {
-  // Bound the graceful-quit roundtrip: if the renderer is unresponsive,
-  // `app.evaluate` can hang indefinitely (the inner `setTimeout(250)` runs in
-  // the renderer, which we can't observe externally).
   await withTimeout(
-    app.evaluate(async ({ app }) => {
-      app.emit('before-quit');
-      await new Promise((resolve) => setTimeout(resolve, 250));
-      app.exit(0);
-    }).catch(() => { /* process may have exited before CDP responded */ }),
+    app.evaluate(({ BrowserWindow }) => {
+      for (const win of BrowserWindow.getAllWindows()) {
+        if (!win.isDestroyed()) win.close();
+      }
+    }).catch(() => { /* CDP may have closed already */ }),
     3000
   );
 
-  // Bound `app.close()` too — it waits for the process to exit, and a wedged
-  // main process would otherwise hold the worker teardown open until the
-  // 30s default fires.
   const closed = await withTimeout(
     app.close().catch(() => { /* already exited */ }),
-    3000
+    5000
   );
 
-  if (closed === undefined) {
-    // Last resort: kill the underlying process so the worker can move on.
+  if (closed === WITH_TIMEOUT) {
     try { app.process()?.kill('SIGKILL'); } catch { /* already dead */ }
   }
 }
