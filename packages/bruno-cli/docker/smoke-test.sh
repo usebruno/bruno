@@ -85,8 +85,10 @@ if [ -n "$COLLECTION_PATH" ]; then
   echo "----- bru run output -----"
 
   set +e
+  # Use --mount instead of -v so Windows-style paths (e.g. C:\repo\collection)
+  # don't collide with -v's host:container colon separator.
   OUTPUT=$(docker run --rm \
-    -v "$COLLECTION_PATH:/bruno" \
+    --mount "type=bind,source=$COLLECTION_PATH,target=/bruno" \
     "$IMAGE" \
     run "$RUN_TARGET" "$@" 2>&1)
   EXIT=$?
