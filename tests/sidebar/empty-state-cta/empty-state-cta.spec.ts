@@ -69,6 +69,17 @@ test.describe.serial('Sidebar empty-state "+ Add request" CTA', () => {
 
   // Collection has user content — root CTA should be hidden
 
+  test('should hide CTA when .bru collection contains a request', async ({ pageWithUserData: page }) => {
+    await test.step('Expand bru-with-request collection', async () => {
+      await expandCollection('bru-with-request');
+      await expect(locators.sidebar.request('bru-echo')).toBeVisible();
+    });
+
+    await test.step('Verify CTA is not rendered at collection root', async () => {
+      await expect(collectionScope(page, 'bru-with-request').getByTestId('add-request-cta')).toHaveCount(0);
+    });
+  });
+
   test('should hide CTA when .yml collection contains a request', async ({ pageWithUserData: page }) => {
     await test.step('Expand yml-with-request collection', async () => {
       await expandCollection('yml-with-request');
@@ -77,6 +88,17 @@ test.describe.serial('Sidebar empty-state "+ Add request" CTA', () => {
 
     await test.step('Verify CTA is not rendered at collection root', async () => {
       await expect(collectionScope(page, 'yml-with-request').getByTestId('add-request-cta')).toHaveCount(0);
+    });
+  });
+
+  test('should hide root CTA when .bru collection contains a folder', async ({ pageWithUserData: page }) => {
+    await test.step('Expand bru-folder-with-js collection', async () => {
+      await expandCollection('bru-folder-with-js');
+      await expect(locators.sidebar.folder('bru-scripts')).toBeVisible();
+    });
+
+    await test.step('Verify CTA is not rendered at collection root', async () => {
+      await expect(collectionScope(page, 'bru-folder-with-js').getByTestId('add-request-cta')).toHaveCount(0);
     });
   });
 
@@ -92,6 +114,19 @@ test.describe.serial('Sidebar empty-state "+ Add request" CTA', () => {
   });
 
   // Folder containing only a .js script — folder CTA should appear
+
+  test('should show folder CTA when a .bru folder contains only a .js script', async ({ pageWithUserData: page }) => {
+    await test.step('Expand bru-folder-with-js collection and the bru-scripts folder', async () => {
+      await expandCollection('bru-folder-with-js');
+      const folder = locators.sidebar.folder('bru-scripts');
+      await folder.waitFor({ state: 'visible' });
+      await folder.click();
+    });
+
+    await test.step('Verify folder-level CTA is visible', async () => {
+      await expect(collectionScope(page, 'bru-folder-with-js').getByTestId('add-request-cta-folder')).toBeVisible();
+    });
+  });
 
   test('should show folder CTA when a .yml folder contains only a .js script', async ({ pageWithUserData: page }) => {
     await test.step('Expand yml-with-folder collection and the yml-scripts folder', async () => {

@@ -4,7 +4,9 @@
     "{{collectionPath}}/empty-yml",
     "{{collectionPath}}/bru-with-js",
     "{{collectionPath}}/yml-with-js",
+    "{{collectionPath}}/bru-with-request",
     "{{collectionPath}}/yml-with-request",
+    "{{collectionPath}}/bru-folder-with-js",
     "{{collectionPath}}/yml-with-folder"
   ],
   "preferences": {
