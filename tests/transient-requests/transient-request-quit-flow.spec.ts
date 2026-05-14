@@ -2,7 +2,7 @@ import { test, expect } from '../../playwright';
 import { createCollection, createTransientRequest, fillRequestUrl, closeAllCollections } from '../utils/page';
 import { buildCommonLocators } from '../utils/page/locators';
 
-test.describe.serial('Transient Requests - Quit Flow', () => {
+test.describe('Transient Requests - Quit Flow', () => {
   test('should open transient save modal when saving during app quit flow', async ({ page, electronApp, createTmpDir }) => {
     const locators = buildCommonLocators(page);
     const collectionPath = await createTmpDir('transient-quit-flow');
