@@ -75,8 +75,9 @@ const Collection = ({ collection, searchText }) => {
   const dispatch = useDispatch();
   const isLoading = collection.isLoading;
   const collectionRef = useRef(null);
-  // Only count persisted items; transients don't affect empty state
-  const itemCount = collection.items?.filter((i) => !i.isTransient).length || 0;
+  // Only count persisted requests and folders; transients and file items
+  // (bruno.json, .js scripts) don't affect empty state
+  const itemCount = collection.items?.filter((i) => !i.isTransient && (isItemARequest(i) || isItemAFolder(i))).length || 0;
 
   const isCollectionFocused = useSelector(isTabForItemActive({ itemUid: collection.uid }));
   const { hasCopiedItems } = useSelector((state) => state.app.clipboard);
@@ -533,6 +534,7 @@ const Collection = ({ collection, searchText }) => {
                 </div>
                 <div style={{ paddingLeft: 8 }}>
                   <MenuDropdown
+                    data-testid="add-request-cta"
                     items={emptyStateMenuItems}
                     placement="bottom-start"
                     appendTo={dropdownContainerRef?.current || document.body}
