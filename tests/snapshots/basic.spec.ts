@@ -265,7 +265,6 @@ test.describe('Snapshot: Workspace State', () => {
   });
 
   test('workspace collection sorting persists across workspace switches and restart', async ({ launchElectronApp, createTmpDir }) => {
-    test.setTimeout(90000);
     const userDataPath = await createTmpDir('snap-ws-collection-sorting');
 
     const defaultColZPath = await createTmpDir('default-col-zulu');
@@ -540,8 +539,6 @@ test.describe('Snapshot: Multi-Workspace Tab Isolation', () => {
   });
 
   test('same collection in two workspaces keeps tabs isolated after restart', async ({ launchElectronApp, createTmpDir }) => {
-    test.setTimeout(90000);
-
     const userDataPath = await createTmpDir('snap-tab-isolation-shared-col');
     const sharedColPath = await createTmpDir('shared-col');
     const workspaceBPath = await createTmpDir('workspace-b-shared-col');
