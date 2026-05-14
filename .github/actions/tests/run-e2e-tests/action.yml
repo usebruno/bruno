@@ -4,11 +4,15 @@ inputs:
   os:
     description: 'Operating system (ubuntu, macos, windows)'
     default: 'ubuntu'
+  shell:
+    description: 'Shell to use (bash, pwsh)'
+    required: false
+    default: 'bash'
 runs:
   using: 'composite'
   steps:
     - name: Install Test Collection Dependencies
-      shell: bash
+      shell: ${{ inputs.shell }}
       run: npm ci --prefix packages/bruno-tests/collection
 
     - name: Run Playwright Tests (Ubuntu)
@@ -18,5 +22,5 @@ runs:
 
     - name: Run Playwright Tests
       if: inputs.os != 'ubuntu'
-      shell: bash
+      shell: ${{ inputs.shell }}
       run: npm run test:e2e

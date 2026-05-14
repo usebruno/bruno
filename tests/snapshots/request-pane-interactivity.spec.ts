@@ -4,7 +4,8 @@ import { test, expect, closeElectronApp } from '../../playwright';
 import {
   createCollection,
   openRequest,
-  selectRequestPaneTab
+  selectRequestPaneTab,
+  waitForReadyPage
 } from '../utils/page';
 import { buildCommonLocators } from '../utils/page/locators';
 
@@ -42,8 +43,7 @@ test.describe('Snapshot: Request Pane Interactivity', () => {
     const colPath = await createTmpDir('col');
 
     const app = await launchElectronApp({ userDataPath });
-    const page = await app.firstWindow();
-    await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
+    const page = await waitForReadyPage(app);
 
     await test.step('Create collection and gRPC request', async () => {
       await createCollection(page, 'TestCol', colPath);
@@ -70,8 +70,7 @@ test.describe('Snapshot: Request Pane Interactivity', () => {
 
     await test.step('Verify gRPC pane tabs remain interactive', async () => {
       const app2 = await launchElectronApp({ userDataPath });
-      const page2 = await app2.firstWindow();
-      await page2.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
+      const page2 = await waitForReadyPage(app2);
 
       const locators = buildCommonLocators(page2);
       await expect(locators.tabs.requestTab('ReqGrpc')).toBeVisible({ timeout: 15000 });
@@ -91,8 +90,7 @@ test.describe('Snapshot: Request Pane Interactivity', () => {
     const colPath = await createTmpDir('col');
 
     const app = await launchElectronApp({ userDataPath });
-    const page = await app.firstWindow();
-    await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
+    const page = await waitForReadyPage(app);
 
     await test.step('Create collection and WebSocket request', async () => {
       await createCollection(page, 'TestCol', colPath);
@@ -119,8 +117,7 @@ test.describe('Snapshot: Request Pane Interactivity', () => {
 
     await test.step('Verify WebSocket pane tabs remain interactive', async () => {
       const app2 = await launchElectronApp({ userDataPath });
-      const page2 = await app2.firstWindow();
-      await page2.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
+      const page2 = await waitForReadyPage(app2);
 
       const locators = buildCommonLocators(page2);
       await expect(locators.tabs.requestTab('ReqWs')).toBeVisible({ timeout: 15000 });

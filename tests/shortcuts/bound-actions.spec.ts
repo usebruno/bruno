@@ -150,7 +150,10 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
     test.describe('SHORTCUT: Close Tab', () => {
       test('default Cmd/Ctrl+W closes the active tab', async ({ page, createTmpDir }) => {
         await openRequest(page, collectionName, 'req-1', { persist: true });
-        await expect(page.locator('.request-tab').filter({ hasText: 'req-1' })).toBeVisible({ timeout: 2000 });
+        const reqTab = page.locator('.request-tab').filter({ hasText: 'req-1' });
+        // Click the tab to guarantee it's the focused/active tab before firing the shortcut.
+        await reqTab.click();
+        await expect(reqTab).toHaveClass(/active/, { timeout: 2000 });
 
         await page.keyboard.press(`${modifier}+KeyW`);
         await expect(page.locator('.request-tab')).toHaveCount(2, { timeout: 3000 });
