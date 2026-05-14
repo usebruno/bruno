@@ -23,7 +23,7 @@ test.describe('Code Generation URL Encoding', () => {
       await modal.closeButton().waitFor({ state: 'hidden' });
     });
 
-    test('should NOT double-encode pre-encoded URL (%20 stays %20)', async ({ pageWithUserData: page }) => {
+    test('should double-encode pre-encoded URL (%20 to %2520)', async ({ pageWithUserData: page }) => {
       const { sidebar, request, modal } = buildCommonLocators(page);
 
       await openCollection(page, 'encoding-test');
@@ -36,9 +36,7 @@ test.describe('Code Generation URL Encoding', () => {
       await expect(codeEditor).toBeVisible();
 
       const generatedCode = await codeEditor.textContent();
-      // Encoder is idempotent: pre-encoded input round-trips unchanged
-      expect(generatedCode).toContain('http://base.source?name=John%20Doe');
-      expect(generatedCode).not.toContain('%2520');
+      expect(generatedCode).toContain('http://base.source?name=John%2520Doe');
 
       await modal.closeButton().click();
       await modal.closeButton().waitFor({ state: 'hidden' });

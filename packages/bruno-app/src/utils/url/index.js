@@ -1,7 +1,6 @@
 import find from 'lodash/find';
 
 import { interpolate } from '@usebruno/common';
-import { safeDecodeURIComponent } from '@usebruno/common/utils';
 
 const hasLength = (str) => {
   if (!str || !str.length) {
@@ -112,14 +111,13 @@ export const interpolateUrl = ({ url, variables }) => {
 };
 
 export const interpolateUrlPathParams = (url, params, variables = {}, options = {}) => {
-  // When encodeUrl is true, each path-param value is run through
-  // safeDecodeURIComponent → encodeURIComponent so the encoding is idempotent:
-  // raw values get encoded once, already-encoded values round-trip unchanged.
+  // When encodeUrl is true, each path-param value is run through encodeURIComponent
+  // per PR #5507's design contract: pre-encoded values intentionally double-encode.
   // This is the only place that can disambiguate "/" inside a path-param value
   // (data) from "/" between path segments (structure) — once the value lands in
   // the URL string, the distinction is lost.
   const substituteValue = (value) =>
-    options.encodeUrl ? encodeURIComponent(safeDecodeURIComponent(value)) : value;
+    options.encodeUrl ? encodeURIComponent(value) : value;
 
   const getInterpolatedBasePath = (pathname, params) => {
     let replacedPathname = pathname

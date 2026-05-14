@@ -1,6 +1,6 @@
 const { interpolate } = require('@usebruno/common');
 const { each, forOwn, cloneDeep, find } = require('lodash');
-const { isFormData, safeDecodeURIComponent } = require('@usebruno/common').utils;
+const { isFormData } = require('@usebruno/common').utils;
 
 const getContentType = (headers = {}) => {
   let contentType = '';
@@ -132,10 +132,9 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
 
     // Encode path-param values when the URL Encoding toggle is on, so values like
     // "aaa/bbb" survive as "aaa%2Fbbb" rather than turning into extra path segments.
-    // safeDecode → encode keeps the transform idempotent: already-encoded values
-    // round-trip unchanged.
+    // Per PR #5507's contract, pre-encoded values intentionally double-encode.
     const encodePathParam = request.settings?.encodeUrl === true
-      ? (value) => encodeURIComponent(safeDecodeURIComponent(String(value)))
+      ? (value) => encodeURIComponent(String(value))
       : (value) => value;
 
     const interpolatedUrlPath = url.pathname

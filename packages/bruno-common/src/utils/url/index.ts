@@ -11,24 +11,21 @@ interface ExtractQueryParamsOptions {
   decode?: boolean;
 }
 
-// safeDecodeURIComponent is defined later in this file; use a forward reference here.
-// The encoder is idempotent: raw values get encoded once, already-encoded values
-// (e.g., user typed `%23` directly in a param value) round-trip unchanged.
+// Per PR #5507's design contract: when encode is true, always run encodeURIComponent
+// on the value, even if it's already encoded. Pre-encoded values double-encode
+// (`%23` → `%2523`) by design — useful for redirect URLs where the server expects
+// to receive the encoded form after one round of URL-decoding.
 function buildQueryString(paramsArray: QueryParam[], { encode = false }: BuildQueryStringOptions = {}): string {
-  const transform = encode
-    ? (s: string) => encodeURIComponent(safeDecodeURIComponent(s))
-    : (s: string) => s;
-
   return paramsArray
     .filter(({ name }) => typeof name === 'string' && name.trim().length > 0)
     .map(({ name, value }) => {
-      const finalName = transform(name);
+      const finalName = encode ? encodeURIComponent(name) : name;
 
       if (value === undefined) {
         return finalName;
       }
 
-      const finalValue = transform(value);
+      const finalValue = encode ? encodeURIComponent(value) : value;
       return `${finalName}=${finalValue}`;
     })
     .join('&');
@@ -87,21 +84,22 @@ const safeDecodeURIComponent = (s: string): string => {
 const encodePathSegments = (path: string): string =>
   path
     .split('/')
-    .map((segment) => encodeURIComponent(safeDecodeURIComponent(segment)))
+    .map((segment) => encodeURIComponent(segment))
     .join('/');
 
-// Idempotent URL encoder: decode-then-encode each path segment and each query
-// param. Already-encoded inputs (%20, %23, %25) round-trip unchanged; raw inputs
-// (space, #, %) are encoded once. Fragments are dropped per RFC 3986 §3.5 — they
-// are not part of the request target sent on the wire.
+// Per PR #5507's design contract: when the toggle is on, always run encodeURIComponent
+// on path segments and query name/value pairs, even if the input is already encoded.
+// Pre-encoded values double-encode (e.g. `%23` → `%2523`) by design — useful for
+// redirect URLs where the server expects the encoded form after one URL-decode.
 const encodeUrl = (url: string): string => {
   if (!url || typeof url !== 'string') {
     return url;
   }
 
-  // Strip fragment first (anything after the first '#')
+  // Split off fragment so it can be reattached verbatim after path/query encoding.
   const hashIdx = url.indexOf('#');
   const beforeHash = hashIdx >= 0 ? url.slice(0, hashIdx) : url;
+  const fragment = hashIdx >= 0 ? url.slice(hashIdx) : '';
 
   // Separate origin+path from the query string
   const queryIdx = beforeHash.indexOf('?');
@@ -121,11 +119,11 @@ const encodeUrl = (url: string): string => {
     const params = parseQueryParams(queryString, { decode: false });
     const rebuilt = params
       .map(({ name, value }) => {
-        const encodedName = encodeURIComponent(safeDecodeURIComponent(name));
+        const encodedName = encodeURIComponent(name);
         if (value === undefined) {
           return encodedName;
         }
-        const encodedValue = encodeURIComponent(safeDecodeURIComponent(value));
+        const encodedValue = encodeURIComponent(value);
         return `${encodedName}=${encodedValue}`;
       })
       .filter((pair) => pair.length > 0 && !pair.startsWith('='))
@@ -133,7 +131,7 @@ const encodeUrl = (url: string): string => {
     result += `?${rebuilt}`;
   }
 
-  return result;
+  return result + fragment;
 };
 
 /**

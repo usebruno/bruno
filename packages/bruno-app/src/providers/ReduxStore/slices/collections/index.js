@@ -1104,10 +1104,11 @@ export const collectionsSlice = createSlice({
       item.draft.request.params = [...newQueryParams, ...existingOtherParams];
 
       // Update the request URL to reflect the new query params.
-      // encode: true runs values through safeDecode → encodeURIComponent so structural
-      // chars (#, &, =, ?, +) in values become %XX. Idempotent — already-encoded
-      // values round-trip unchanged. Without this, "hash#tag" in a query value would
-      // serialize as ?key=hash#tag and the URL parser would treat "tag" as fragment.
+      // encode: true runs values through encodeURIComponent so structural chars
+      // (#, &, =, ?, +) in values become %XX. Without this, "hash#tag" in a query
+      // value would serialize as ?key=hash#tag and the URL parser would treat "tag"
+      // as fragment. Per PR #5507's design contract, pre-encoded values intentionally
+      // double-encode (%23 → %2523).
       const parts = splitOnFirst(item.draft.request.url, '?');
       const query = stringifyQueryParams(
         filter(item.draft.request.params, (p) => p.enabled && p.type === 'query'),

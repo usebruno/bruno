@@ -69,30 +69,4 @@ describe('interpolate-vars: path-param encoding (issue #7356)', () => {
 
     expect(request.url).toBe('http://example.com/users/John%23Doe%20Jr');
   });
-
-  it('is idempotent for pre-encoded path-param values', () => {
-    const request = {
-      method: 'GET',
-      url: 'http://example.com/users/:id',
-      settings: { encodeUrl: true },
-      pathParams: [{ type: 'path', name: 'id', value: 'aaa%2Fbbb' }]
-    };
-
-    interpolateVars(request, {}, {}, {});
-
-    expect(request.url).toBe('http://example.com/users/aaa%2Fbbb');
-  });
-
-  it('encodes bare % once without double-encoding', () => {
-    const request = {
-      method: 'GET',
-      url: 'http://example.com/items/:id',
-      settings: { encodeUrl: true },
-      pathParams: [{ type: 'path', name: 'id', value: '100%' }]
-    };
-
-    interpolateVars(request, {}, {}, {});
-
-    expect(request.url).toBe('http://example.com/items/100%25');
-  });
 });

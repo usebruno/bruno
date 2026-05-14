@@ -534,24 +534,4 @@ describe('Url Utils - interpolateUrlPathParams with { encodeUrl: true }', () => 
     // path-param encoded, query string preserved verbatim (raw path doesn't touch query)
     expect(result).toEqual('https://example.com/users/a%2Fb?q=keep me');
   });
-
-  it('should be idempotent for pre-encoded path-param values', () => {
-    const url = 'https://example.com/users/:id';
-    const params = [{ name: 'id', type: 'path', enabled: true, value: 'aaa%2Fbbb' }];
-
-    const result = interpolateUrlPathParams(url, params, {}, { encodeUrl: true });
-
-    // Already-encoded input round-trips: %2F decoded then re-encoded to %2F
-    expect(result).toEqual('https://example.com/users/aaa%2Fbbb');
-  });
-
-  it('should encode bare % to %25 without double-encoding (e.g., "100%")', () => {
-    const url = 'https://example.com/items/:id';
-    const params = [{ name: 'id', type: 'path', enabled: true, value: '100%' }];
-
-    const result = interpolateUrlPathParams(url, params, {}, { encodeUrl: true });
-
-    // Bare % preserved through safe-decode, then encoded once to %25
-    expect(result).toEqual('https://example.com/items/100%25');
-  });
 });

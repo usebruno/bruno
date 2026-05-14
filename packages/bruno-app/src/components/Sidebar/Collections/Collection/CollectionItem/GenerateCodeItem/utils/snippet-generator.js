@@ -79,10 +79,11 @@ const generateSnippet = ({ language, item, collection, shouldInterpolate = false
     // Always feed the HAR an encoded URL. HTTPSnippet's HAR validator rejects many
     // chars our URL.canParse accepts — literal space, <, >, ", \, ^, |, {, }, `,
     // raw unicode, etc. — so any of them in the raw URL would throw "Validation
-    // Failed" before we ever reach the post-processing below. encodeUrl is
-    // idempotent, so when the toggle is on the encoded URL matches desiredPath and
-    // no substitution happens; when it's off, the post-processing replaces the
-    // encoded path with stripOrigin(rawUrl) so the user sees their original chars.
+    // Failed" before we ever reach the post-processing below. Post-processing then
+    // substitutes the path/query: when the toggle is off, the encoded path is
+    // replaced with stripOrigin(rawUrl) so the user sees their original chars; when
+    // the toggle is on, desiredPath is encodeUrl(rawUrl) which per PR #5507
+    // intentionally double-encodes pre-encoded inputs.
     request.url = encodeUrlCommon(hashedRequestUrl);
 
     let result;

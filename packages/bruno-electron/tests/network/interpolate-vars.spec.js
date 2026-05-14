@@ -232,31 +232,6 @@ describe('interpolate-vars: interpolateVars', () => {
         const result = interpolateVars(request, null, null, null);
         expect(result.url).toBe('http://example.com/odata/Products(ABC%2F123)');
       });
-
-      it('is idempotent for pre-encoded path-param values', async () => {
-        const request = {
-          method: 'GET',
-          url: 'http://example.com/users/:id',
-          settings: { encodeUrl: true },
-          pathParams: [{ type: 'path', name: 'id', value: 'aaa%2Fbbb' }]
-        };
-
-        const result = interpolateVars(request, null, null, null);
-        // %2F decoded then re-encoded back to %2F — no double-encoding
-        expect(result.url).toBe('http://example.com/users/aaa%2Fbbb');
-      });
-
-      it('encodes bare % once to %25 without double-encoding', async () => {
-        const request = {
-          method: 'GET',
-          url: 'http://example.com/items/:id',
-          settings: { encodeUrl: true },
-          pathParams: [{ type: 'path', name: 'id', value: '100%' }]
-        };
-
-        const result = interpolateVars(request, null, null, null);
-        expect(result.url).toBe('http://example.com/items/100%25');
-      });
     });
 
     describe('With process environment variables', () => {
