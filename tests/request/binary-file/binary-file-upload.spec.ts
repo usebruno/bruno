@@ -136,7 +136,7 @@ test.describe.serial('File / Binary body upload', () => {
     }
   };
 
-  test.only('JSON content-type: file bytes are sent verbatim, not as serialized stream metadata', async ({
+  test('JSON content-type: file bytes are sent verbatim, not as serialized stream metadata', async ({
     page,
     electronApp
   }) => {
@@ -155,7 +155,6 @@ test.describe.serial('File / Binary body upload', () => {
 
     expect(responseText).toContain('"contentType": "application/json"');
 
-    console.log({ responseText });
     const jsonBytesReceivedMatch = responseText.match(/"bytesReceived":\s*(\d+)/);
     expect(jsonBytesReceivedMatch).not.toBeNull();
     expect(Number(jsonBytesReceivedMatch![1])).toBe(jsonFileSize);
