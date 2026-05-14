@@ -139,7 +139,7 @@ function makeAxiosInstance({
 
       return response;
     },
-    (error) => {
+    async (error) => {
       if (error.response) {
         const end = Date.now();
         const start = error.config.headers['request-start-time'];
@@ -179,7 +179,7 @@ function makeAxiosInstance({
 
           const requestConfig = createRedirectConfig(error, redirectUrl);
 
-          setupProxyAgents({
+          await setupProxyAgents({
             requestConfig,
             proxyMode,
             proxyConfig,

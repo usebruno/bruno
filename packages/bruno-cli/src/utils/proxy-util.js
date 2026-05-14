@@ -5,7 +5,7 @@ const { isEmpty, get, isUndefined, isNull } = require('lodash');
 const { HttpsProxyAgent } = require('https-proxy-agent');
 const { HttpProxyAgent } = require('http-proxy-agent');
 const { SocksProxyAgent } = require('socks-proxy-agent');
-const { getOrCreateHttpsAgent, getOrCreateHttpAgent } = require('@usebruno/requests');
+const { getOrCreateHttpsAgent, getOrCreateHttpAgent, getPacResolver } = require('@usebruno/requests');
 const { interpolateString } = require('../runner/interpolate-string');
 
 const DEFAULT_PORTS = {
@@ -102,7 +102,36 @@ class PatchedHttpsProxyAgent extends HttpsProxyAgent {
   }
 }
 
-function setupProxyAgents({
+async function resolveAgentsFromPac({ pacSource, requestUrl, requestConfig, tlsOptions, httpsAgentRequestFields, disableCache, hostname }) {
+  const resolver = await getPacResolver({ pacSource, httpsAgentRequestFields });
+  const directives = await resolver.resolve(requestUrl);
+
+  if (!directives || !directives.length) {
+    return null;
+  }
+
+  const first = directives[0];
+
+  if (/^(PROXY|HTTPS?)\s+/i.test(first)) {
+    const parts = first.split(/\s+/);
+    const keyword = parts[0].toUpperCase();
+    const hostPort = parts[1];
+    const scheme = keyword === 'HTTPS' ? 'https' : 'http';
+    const proxyUri = `${scheme}://${hostPort}`;
+    requestConfig.httpAgent = getOrCreateHttpAgent({ AgentClass: HttpProxyAgent, options: { keepAlive: true }, proxyUri, disableCache, hostname });
+    requestConfig.httpsAgent = getOrCreateHttpsAgent({ AgentClass: PatchedHttpsProxyAgent, options: tlsOptions, proxyUri, disableCache, hostname });
+  } else if (/^SOCKS/i.test(first)) {
+    const hostPort = first.split(/\s+/)[1];
+    const proto = /^SOCKS4\s/i.test(first) ? 'socks4' : 'socks5';
+    const proxyUri = `${proto}://${hostPort}`;
+    requestConfig.httpAgent = getOrCreateHttpAgent({ AgentClass: SocksProxyAgent, options: { keepAlive: true }, proxyUri, disableCache, hostname });
+    requestConfig.httpsAgent = getOrCreateHttpsAgent({ AgentClass: SocksProxyAgent, options: tlsOptions, proxyUri, disableCache, hostname });
+  }
+
+  return directives;
+}
+
+async function setupProxyAgents({
   requestConfig,
   proxyMode = 'off',
   proxyConfig,
@@ -163,26 +192,34 @@ function setupProxyAgents({
     }
   } else if (proxyMode === 'system') {
     try {
-      const { http_proxy, https_proxy, no_proxy } = systemProxyConfig || {};
-      const shouldUseSystemProxy = shouldUseProxy(requestConfig.url, no_proxy || '');
-      if (shouldUseSystemProxy) {
+      const { http_proxy, https_proxy, no_proxy, pac_url } = systemProxyConfig || {};
+
+      // If the OS is configured with a PAC URL, resolve it using the existing PAC infrastructure
+      if (pac_url) {
         try {
-          if (http_proxy?.length && !isHttpsRequest) {
-            const parsedHttpProxy = new URL(http_proxy);
-            const isHttpsSystemProxy = parsedHttpProxy.protocol === 'https:';
-            const systemHttpProxyAgentOptions = isHttpsSystemProxy ? { ...httpAgentOptions, ...tlsOptions } : httpAgentOptions;
-            requestConfig.httpAgent = getOrCreateHttpAgent({ AgentClass: HttpProxyAgent, options: systemHttpProxyAgentOptions, proxyUri: http_proxy, disableCache, hostname });
+          await resolveAgentsFromPac({ pacSource: pac_url, requestUrl: requestConfig.url, requestConfig, tlsOptions, httpsAgentRequestFields, disableCache, hostname });
+        } catch (error) {}
+      } else {
+        const shouldUseSystemProxy = shouldUseProxy(requestConfig.url, no_proxy || '');
+        if (shouldUseSystemProxy) {
+          try {
+            if (http_proxy?.length && !isHttpsRequest) {
+              const parsedHttpProxy = new URL(http_proxy);
+              const isHttpsSystemProxy = parsedHttpProxy.protocol === 'https:';
+              const systemHttpProxyAgentOptions = isHttpsSystemProxy ? { ...httpAgentOptions, ...tlsOptions } : httpAgentOptions;
+              requestConfig.httpAgent = getOrCreateHttpAgent({ AgentClass: HttpProxyAgent, options: systemHttpProxyAgentOptions, proxyUri: http_proxy, disableCache, hostname });
+            }
+          } catch (error) {
+            throw new Error('Invalid system http_proxy');
           }
-        } catch (error) {
-          throw new Error('Invalid system http_proxy');
-        }
-        try {
-          if (https_proxy?.length && isHttpsRequest) {
-            new URL(https_proxy);
-            requestConfig.httpsAgent = getOrCreateHttpsAgent({ AgentClass: PatchedHttpsProxyAgent, options: tlsOptions, proxyUri: https_proxy, disableCache, hostname });
+          try {
+            if (https_proxy?.length && isHttpsRequest) {
+              new URL(https_proxy);
+              requestConfig.httpsAgent = getOrCreateHttpsAgent({ AgentClass: PatchedHttpsProxyAgent, options: tlsOptions, proxyUri: https_proxy, disableCache, hostname });
+            }
+          } catch (error) {
+            throw new Error('Invalid system https_proxy');
           }
-        } catch (error) {
-          throw new Error('Invalid system https_proxy');
         }
       }
     } catch (error) {}

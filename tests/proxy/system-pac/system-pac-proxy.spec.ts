@@ -1,26 +1,46 @@
 import * as path from 'path';
-import { execSync } from 'child_process';
+import { execFileSync } from 'child_process';
 import { pathToFileURL } from 'url';
 import { test } from '../../../playwright';
 import { setSandboxMode, runCollection, validateRunnerResults } from '../../utils/page';
 import { startServers, stopServers, PAC_PORT, type TestServers } from '../pac/server';
 
-/**
- * Helpers to configure macOS system-level PAC proxy via networksetup.
- * These modify the real OS proxy settings, so cleanup is critical.
- */
-const NETWORK_SERVICE = 'Wi-Fi';
+// GNOME's system-wide proxy schema — provided by gsettings-desktop-schemas.
+// Writes need an active dbus session (see CI workflow's dbus-run-session wrapper).
+const GNOME_PROXY_SCHEMA = 'org.gnome.system.proxy';
 
 function enableSystemPac(pacUrl: string) {
-  execSync(`networksetup -setautoproxyurl "${NETWORK_SERVICE}" "${pacUrl}"`);
+  // Set URL first, then flip mode — otherwise auto mode briefly has no URL
+  execFileSync('gsettings', ['set', GNOME_PROXY_SCHEMA, 'autoconfig-url', pacUrl]);
+  execFileSync('gsettings', ['set', GNOME_PROXY_SCHEMA, 'mode', 'auto']);
 }
 
 function disableSystemPac() {
-  execSync(`networksetup -setautoproxystate "${NETWORK_SERVICE}" off`);
+  execFileSync('gsettings', ['reset', GNOME_PROXY_SCHEMA, 'mode']);
+  execFileSync('gsettings', ['reset', GNOME_PROXY_SCHEMA, 'autoconfig-url']);
+}
+
+// Detects schema availability so we can skip cleanly on minimal images
+// (e.g. containers without gsettings-desktop-schemas installed).
+function gnomeProxySchemaAvailable(): boolean {
+  try {
+    execFileSync('gsettings', ['get', GNOME_PROXY_SCHEMA, 'mode'], { stdio: 'ignore' });
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 test.describe('System Proxy with PAC', () => {
-  test.skip(process.platform !== 'darwin', 'macOS-only: relies on `networksetup` to set OS-level PAC');
+  test.skip(
+    process.platform !== 'linux',
+    'Linux-only: relies on gsettings to set OS-level PAC'
+  );
+
+  test.skip(
+    process.platform === 'linux' && !gnomeProxySchemaAvailable(),
+    'Linux: skipping because the org.gnome.system.proxy GSettings schema is not available on this runner'
+  );
 
   let servers: TestServers;
 
@@ -29,7 +49,7 @@ test.describe('System Proxy with PAC', () => {
   });
 
   test.afterAll(async () => {
-    // Always revert OS proxy settings, even if tests fail
+    // Revert OS proxy settings even if a test failed, so the runner is left clean.
     try {
       disableSystemPac();
     } finally {
@@ -39,17 +59,7 @@ test.describe('System Proxy with PAC', () => {
     }
   });
 
-  /**
-   * Verifies that system proxy mode honors OS-level PAC configuration.
-   *
-   * 1. Sets macOS system proxy to a PAC URL via networksetup
-   * 2. Launches Bruno with proxy source = "inherit" (system proxy mode)
-   * 3. The PAC file routes /proxied through the test proxy (which adds x-proxied header)
-   *    and returns DIRECT for /direct
-   * 4. Validates both paths worked correctly
-   *
-   * This tests the fix for: "System proxy mode ignores OS-level PAC"
-   */
+  // Covers the common corporate setup: PAC hosted at an HTTP URL (e.g. WPAD).
   test('resolves OS-level PAC URL in system proxy mode (HTTP PAC)', async ({ launchElectronApp }) => {
     const pacUrl = `http://localhost:${PAC_PORT}/test.pac`;
     enableSystemPac(pacUrl);
@@ -70,6 +80,7 @@ test.describe('System Proxy with PAC', () => {
     });
   });
 
+  // Covers the local-file PAC case (user-selected .pac file on disk).
   test('resolves OS-level PAC URL in system proxy mode (file:// PAC)', async ({ launchElectronApp }) => {
     const pacUrl = pathToFileURL(path.join(__dirname, '..', 'pac', 'fixtures', 'pac-files', 'test.pac')).href;
     enableSystemPac(pacUrl);
