@@ -2,7 +2,6 @@ const { describe, it, expect, beforeEach } = require('@jest/globals');
 
 // Mock all heavy dependencies before requiring the module
 jest.mock('../../src/runner/prepare-request', () => jest.fn());
-jest.mock('../../src/runner/interpolate-vars', () => jest.fn());
 jest.mock('../../src/runner/interpolate-string', () => ({
   interpolateString: jest.fn((s) => s),
   interpolateObject: jest.fn((o) => o)
@@ -69,6 +68,7 @@ jest.mock('../../src/store/tokenStore', () => ({
 // Default: no prompt variables detected
 const mockExtractPromptVariables = jest.fn(() => []);
 jest.mock('@usebruno/common', () => ({
+  interpolateVars: jest.fn(),
   utils: {
     encodeUrl: jest.fn((u) => u),
     buildFormUrlEncodedPayload: jest.fn(),

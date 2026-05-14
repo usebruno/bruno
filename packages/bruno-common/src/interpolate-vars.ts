@@ -1,6 +1,8 @@
-const { interpolate } = require('@usebruno/common');
-const { each, forOwn, cloneDeep } = require('lodash');
-const { isFormData } = require('@usebruno/common').utils;
+// @ts-nocheck — ported from the CLI/Electron runtimes; runtime contract is the same.
+// Types deferred to a follow-up; this file is intentionally JS-shaped to ease line-for-line review.
+import { each, forOwn, cloneDeep } from 'lodash';
+import interpolate from './interpolate';
+import { isFormData } from './utils/form-data';
 
 const getContentType = (headers = {}) => {
   let contentType = '';
@@ -10,7 +12,7 @@ const getContentType = (headers = {}) => {
     }
   });
 
-  return contentType;
+  return typeof contentType === 'string' ? contentType : '';
 };
 
 const getRawQueryString = (url) => {
@@ -24,15 +26,15 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
   const collectionVariables = request?.collectionVariables || {};
   const folderVariables = request?.folderVariables || {};
   const requestVariables = request?.requestVariables || {};
-  // we clone envVars because we don't want to modify the original object
   envVariables = cloneDeep(envVariables);
 
-  // envVars can inturn have values as {{process.env.VAR_NAME}}
+  // envVars can in turn have values as {{process.env.VAR_NAME}}
   // so we need to interpolate envVars first with processEnvVars
   forOwn(envVariables, (value, key) => {
     envVariables[key] = interpolate(value, {
       process: {
         env: {
+          ...processEnvVars
         }
       }
     });
@@ -60,13 +62,13 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
       }
     };
 
-    return interpolate(str, combinedVars, {
-      escapeJSONStrings
-    });
+    return interpolate(str, combinedVars, { escapeJSONStrings });
   };
 
   request.url = _interpolate(request.url);
   const isGrpcRequest = request.mode === 'grpc';
+  const isWsRequest = request.mode === 'ws';
+  const isGraphqlRequest = request.mode === 'graphql';
 
   forOwn(request.headers, (value, key) => {
     delete request.headers[key];
@@ -77,7 +79,6 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
   }
 
   const contentType = getContentType(request.headers);
-  const isGraphqlRequest = request.mode === 'graphql';
 
   // gRPC: interpolate entire body (JSON message template and any other keys).
   if (isGrpcRequest && request.body) {
@@ -85,8 +86,8 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
     const parsed = _interpolate(jsonDoc, { escapeJSONStrings: true });
     request.body = JSON.parse(parsed);
   }
+
   // Interpolate WebSocket message body
-  const isWsRequest = request.mode === 'ws';
   if (isWsRequest && request.body && request.body.ws && Array.isArray(request.body.ws)) {
     request.body.ws.forEach((message) => {
       if (message && message.content) {
@@ -95,9 +96,7 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
           JSON.parse(message.content);
           isJson = true;
         } catch (e) {}
-        message.content = _interpolate(message.content, {
-          escapeJSONStrings: isJson
-        });
+        message.content = _interpolate(message.content, { escapeJSONStrings: isJson });
       }
     });
   }
@@ -108,24 +107,16 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
     request.data.variables = _interpolate(request.data.variables, { escapeJSONStrings: true });
   }
 
-  if (typeof contentType === 'string' && !isGraphqlRequest) {
-    /*
-      We explicitly avoid interpolating buffer values because the file content is read as a buffer object in raw body mode.
-      Even if the selected file's content type is JSON, this prevents the buffer object from being interpolated.
-    */
+  if (!isGraphqlRequest) {
     if (contentType.includes('json') && !Buffer.isBuffer(request.data)) {
       if (typeof request.data === 'string') {
-        if (request.data.length) {
-          request.data = _interpolate(request.data, {
-            escapeJSONStrings: true
-          });
+        if (request?.data?.length) {
+          request.data = _interpolate(request.data, { escapeJSONStrings: true });
         }
       } else if (typeof request.data === 'object') {
         try {
-          const jsonDoc = JSON.stringify(request.data);
-          const parsed = _interpolate(jsonDoc, {
-            escapeJSONStrings: true
-          });
+          let parsed = JSON.stringify(request.data);
+          parsed = _interpolate(parsed, { escapeJSONStrings: true });
           request.data = JSON.parse(parsed);
         } catch (err) {}
       }
@@ -150,13 +141,14 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
     }
   }
 
-  each(request.pathParams, (param) => {
+  each(request?.pathParams, (param) => {
     param.value = _interpolate(param.value);
   });
 
   if (request?.pathParams?.length) {
     let url = request.url;
     const urlSearchRaw = getRawQueryString(request.url);
+
     if (!url.startsWith('http://') && !url.startsWith('https://')) {
       url = `http://${url}`;
     }
@@ -174,7 +166,7 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
       ? (value) => encodeURIComponent(String(value))
       : (value) => value;
 
-    const urlPathnameInterpolatedWithPathParams = url.pathname
+    const interpolatedUrlPath = url.pathname
       .split('/')
       .filter((path) => path !== '')
       .map((path) => {
@@ -216,7 +208,7 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
       .join('');
 
     const trailingSlash = url.pathname.endsWith('/') ? '/' : '';
-    request.url = url.origin + urlPathnameInterpolatedWithPathParams + trailingSlash + urlSearchRaw;
+    request.url = url.origin + interpolatedUrlPath + trailingSlash + urlSearchRaw;
   }
 
   if (request.proxy) {
@@ -231,18 +223,17 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
   }
 
   // todo: we have things happening in two places w.r.t basic auth
-  // need to refactor this in the future
+  //       need to refactor this in the future
   // the request.auth (basic auth) object gets set inside the prepare-request.js file
   if (request.basicAuth) {
     const username = _interpolate(request.basicAuth.username) || '';
     const password = _interpolate(request.basicAuth.password) || '';
-    // use auth header based approach and delete the request.auth object
+
     request.headers['Authorization'] = `Basic ${Buffer.from(`${username}:${password}`).toString('base64')}`;
     delete request.basicAuth;
   }
 
   if (request?.oauth2?.grantType) {
-    let username, password, scope, clientId, clientSecret;
     switch (request.oauth2.grantType) {
       case 'password':
         request.oauth2.accessTokenUrl = _interpolate(request.oauth2.accessTokenUrl) || '';
@@ -310,7 +301,6 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
 
     // Interpolate additional parameters for all OAuth2 grant types
     if (request.oauth2.additionalParameters) {
-      // Interpolate authorization parameters
       if (Array.isArray(request.oauth2.additionalParameters.authorization)) {
         request.oauth2.additionalParameters.authorization.forEach((param) => {
           if (param && param.enabled !== false) {
@@ -320,7 +310,6 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
         });
       }
 
-      // Interpolate token parameters
       if (Array.isArray(request.oauth2.additionalParameters.token)) {
         request.oauth2.additionalParameters.token.forEach((param) => {
           if (param && param.enabled !== false) {
@@ -330,7 +319,6 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
         });
       }
 
-      // Interpolate refresh parameters
       if (Array.isArray(request.oauth2.additionalParameters.refresh)) {
         request.oauth2.additionalParameters.refresh.forEach((param) => {
           if (param && param.enabled !== false) {
@@ -392,4 +380,4 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
   return request;
 };
 
-module.exports = interpolateVars;
+export default interpolateVars;

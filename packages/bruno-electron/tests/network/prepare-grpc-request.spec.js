@@ -1,14 +1,17 @@
 const { describe, it, expect, beforeEach } = require('@jest/globals');
 
 // Mock dependencies
-jest.mock('../../src/ipc/network/interpolate-vars');
+jest.mock('@usebruno/common', () => ({
+  ...jest.requireActual('@usebruno/common'),
+  interpolateVars: jest.fn()
+}));
 jest.mock('../../src/utils/collection');
 jest.mock('../../src/store/process-env');
 jest.mock('../../src/utils/oauth2');
 jest.mock('../../src/ipc/network/prepare-request');
 
 const prepareGrpcRequest = require('../../src/ipc/network/prepare-grpc-request');
-const interpolateVars = require('../../src/ipc/network/interpolate-vars');
+const { interpolateVars } = require('@usebruno/common');
 const { getEnvVars, getTreePathFromCollectionToItem } = require('../../src/utils/collection');
 const { getProcessEnvVars } = require('../../src/store/process-env');
 const { setAuthHeaders } = require('../../src/ipc/network/prepare-request');

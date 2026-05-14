@@ -1,5 +1,5 @@
 const { describe, it, expect } = require('@jest/globals');
-const interpolateVars = require('../../src/runner/interpolate-vars');
+const { interpolateVars } = require('@usebruno/common');
 
 describe('interpolate-vars: api key header name sidecar', () => {
   it('interpolates apiKeyHeaderName in lockstep with interpolated header keys', () => {

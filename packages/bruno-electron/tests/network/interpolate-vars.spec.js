@@ -1,4 +1,4 @@
-const interpolateVars = require('../../src/ipc/network/interpolate-vars');
+const { interpolateVars } = require('@usebruno/common');
 
 describe('interpolate-vars: interpolateVars', () => {
   describe('Interpolates string', () => {
