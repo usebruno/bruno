@@ -572,6 +572,15 @@ test.describe('CodeEditor — undo (Cmd-Z) survives a tab switch', () => {
       } finally {
         handlersSlot.change = savedChange;
       }
+      // Mirror real typing: a user's cursor lands at the end of the text
+      // they just typed, and CM5 scrolls the cursor into view. Without
+      // this, the viewport stays parked at the top, and on shorter
+      // viewports (e.g. macOS CI) the last appended line falls outside
+      // the rendered range — CM virtualizes off-viewport lines, so the
+      // sentinel is in the doc but not in the DOM, and `toContainText`
+      // can't see it.
+      const last = doc.lastLine();
+      editor.setCursor({ line: last, ch: doc.getLine(last).length });
       // `_onEdit` only reads `editor.getValue()`; the change descriptor
       // arg is unused, so passing null is safe.
       savedChange.forEach((handler: (cm: unknown, change: unknown) => void) => {
