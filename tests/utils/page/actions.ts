@@ -1255,7 +1255,7 @@ const sendAndWaitForResponse = async (page: Page) => {
 const fieldEditor = (page: Page, labelText: string) =>
   page
     .locator('label')
-    .filter({ hasText: new RegExp(`^${labelText}$`) })
+    .filter({ hasText: new RegExp(`^${escapeRegExp(labelText)}$`) })
     .locator('..')
     .locator('.single-line-editor-wrapper .CodeMirror');
 
