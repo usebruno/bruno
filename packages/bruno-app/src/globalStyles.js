@@ -187,6 +187,12 @@ const GlobalStyle = createGlobalStyle`
   }
 
 
+  .collection-header-dropdown-label {
+    max-width: 124px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
   // scrollbar styling
   // the below media query targets non-touch devices
   @media not all and (pointer: coarse) {

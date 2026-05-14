@@ -785,11 +785,10 @@ export const transformRequestToSaveToFilesystem = (item) => {
   if (itemToSave.request.body.mode === 'ws') {
     itemToSave.request.body = {
       ...itemToSave.request.body,
-      ws: itemToSave.request.body.ws.map(({ name, content, type, selected }, index) => ({
+      ws: itemToSave.request.body.ws.map(({ name, content, type }, index) => ({
         name: name ? name : `message ${index + 1}`,
         type,
-        content: replaceTabsWithSpaces(content),
-        selected: selected || false
+        content: replaceTabsWithSpaces(content)
       }))
     };
   }
@@ -1015,7 +1014,6 @@ export const refreshUidsInItem = (item) => {
   each(get(item, 'request.body.multipartForm'), (param) => (param.uid = uuid()));
   each(get(item, 'request.body.formUrlEncoded'), (param) => (param.uid = uuid()));
   each(get(item, 'request.body.file'), (param) => (param.uid = uuid()));
-  each(get(item, 'request.body.ws'), (msg) => (msg.uid = uuid()));
   each(get(item, 'request.assertions'), (assertion) => (assertion.uid = uuid()));
 
   return item;
@@ -1286,14 +1284,18 @@ export const getAllVariables = (collection, item) => {
 };
 
 // Merge headers from collection, folders, and request
-export const mergeHeaders = (collection, request, requestTreePath) => {
+export const mergeHeaders = (collection, request, requestTreePath, options = {}) => {
+  const { includeDisabledHeaders = false } = options;
   let headers = new Map();
+  let disabledHeaders = new Map();
 
   // Add collection headers first
   const collectionHeaders = collection?.draft?.root ? get(collection, 'draft.root.request.headers', []) : get(collection, 'root.request.headers', []);
   collectionHeaders.forEach((header) => {
     if (header.enabled) {
       headers.set(header.name, header);
+    } else if (header.name?.length > 0) {
+      disabledHeaders.set(header.name, header);
     }
   });
 
@@ -1305,6 +1307,8 @@ export const mergeHeaders = (collection, request, requestTreePath) => {
         folderHeaders.forEach((header) => {
           if (header.enabled) {
             headers.set(header.name, header);
+          } else if (header.name?.length > 0) {
+            disabledHeaders.set(header.name, header);
           }
         });
       }
@@ -1316,11 +1320,16 @@ export const mergeHeaders = (collection, request, requestTreePath) => {
   requestHeaders.forEach((header) => {
     if (header.enabled) {
       headers.set(header.name, header);
+    } else if (header.name?.length > 0) {
+      disabledHeaders.set(header.name, header);
     }
   });
 
   // Convert Map back to array
-  return Array.from(headers.values());
+  return [
+    ...Array.from(headers.values()),
+    ...(includeDisabledHeaders ? Array.from(disabledHeaders.values()) : [])
+  ];
 };
 
 export const maskInputValue = (value) => {

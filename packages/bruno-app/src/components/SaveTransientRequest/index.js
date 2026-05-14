@@ -361,7 +361,7 @@ const SaveTransientRequest = ({ item: itemProp, collection: collectionProp, isOp
   return (
     <StyledWrapper>
       <Modal
-        size="md"
+        size="sm"
         title={isSelectingCollection ? 'Select Collection' : 'Save Request'}
         handleCancel={handleCancel}
         handleConfirm={handleConfirm}
@@ -547,8 +547,18 @@ const SaveTransientRequest = ({ item: itemProp, collection: collectionProp, isOp
                   </ul>
                 ) : (
                   <div className="collection-empty-state">
-                    <p>No collections Yet</p>
+                    <p>No Collections Yet</p>
                     <p className="collection-empty-state-subtitle">Collections help you organize your requests. Create your first one to save this request.</p>
+                    <Button
+                      type="button"
+                      color="primary"
+                      variant="outline"
+                      icon={<IconFolder size={16} strokeWidth={1.5} />}
+                      onClick={handleShowNewCollection}
+                      className="mt-4"
+                    >
+                      New collection
+                    </Button>
                   </div>
                 )}
               </div>
@@ -748,7 +758,7 @@ const SaveTransientRequest = ({ item: itemProp, collection: collectionProp, isOp
                 New Folder
               </Button>
             )}
-            {isSelectingCollection && !newCollection.show && (
+            {isSelectingCollection && !newCollection.show && availableCollections.length > 0 && (
               <Button
                 type="button"
                 color="primary"

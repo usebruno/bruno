@@ -826,37 +826,77 @@ const getResponseBody = async (page: Page): Promise<string> => {
   return await page.locator('.response-pane').innerText();
 };
 
+const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+const trySelectPaneTabOnce = async (page: Page, paneSelector: string, tabName: string) => {
+  const pane = page.locator(paneSelector);
+  const visibleTab = pane.locator('.tabs').getByRole('tab', { name: tabName });
+
+  if (await visibleTab.isVisible().catch(() => false)) {
+    try {
+      await visibleTab.click({ timeout: 2000 });
+      await expect(visibleTab).toContainClass('active', { timeout: 500 });
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  const overflowButton = pane.locator('.tabs .more-tabs');
+  if (!(await overflowButton.isVisible().catch(() => false))) {
+    return false;
+  }
+
+  try {
+    await overflowButton.click({ force: true, timeout: 1000 });
+  } catch {
+    return false;
+  }
+
+  const dropdownItem = page
+    .getByRole('menuitem', { name: new RegExp(escapeRegExp(tabName), 'i') })
+    .first();
+
+  if (await dropdownItem.isVisible({ timeout: 1500 }).catch(() => false)) {
+    try {
+      await dropdownItem.click({ force: true, timeout: 2000 });
+      await expect(visibleTab).toContainClass('active', { timeout: 500 });
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  const fallbackDropdownItem = page.locator('.tippy-box .dropdown-item').filter({ hasText: tabName }).first();
+  if (await fallbackDropdownItem.isVisible({ timeout: 1500 }).catch(() => false)) {
+    try {
+      await fallbackDropdownItem.click({ force: true, timeout: 2000 });
+      await expect(visibleTab).toContainClass('active', { timeout: 500 });
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  return false;
+};
+
 const selectPaneTab = async (page: Page, paneSelector: string, tabName: string) => {
   await test.step(`Select tab "${tabName}" in ${paneSelector}`, async () => {
     const pane = page.locator(paneSelector);
     await expect(pane).toBeVisible();
     await expect(pane.locator('.tabs')).toBeVisible();
 
-    const visibleTab = pane.locator('.tabs').getByRole('tab', { name: tabName });
-
-    // Check if tab is directly visible
-    if (await visibleTab.isVisible()) {
-      await visibleTab.click();
-      await expect(visibleTab).toContainClass('active');
-      return;
-    }
-
-    const overflowButton = pane.locator('.tabs .more-tabs');
-    // Check if there's an overflow dropdown
-    if (await overflowButton.isVisible()) {
-      await overflowButton.click();
-
-      // Wait for dropdown to appear and click the menu item
-      const dropdownItem = page.locator('.tippy-box .dropdown-item').filter({ hasText: tabName });
-      await dropdownItem.waitFor({ state: 'visible' });
-
-      await page.waitForTimeout(50);
-      await dropdownItem.click({ force: true });
-      await expect(visibleTab).toContainClass('active');
-      return;
-    }
-
-    throw new Error(`Tab "${tabName}" not found in visible tabs or overflow dropdown`);
+    await expect
+      .poll(
+        async () => trySelectPaneTabOnce(page, paneSelector, tabName),
+        {
+          message: `Tab "${tabName}" not found in visible tabs or overflow dropdown`,
+          timeout: 8000,
+          intervals: [100, 150, 200, 250]
+        }
+      )
+      .toBe(true);
   });
 };
 
@@ -1251,6 +1291,41 @@ const readField = async (page: Page, labelText: string): Promise<string> => {
   return editor.evaluate((el: any) => (el as any).CodeMirror?.getValue() ?? '');
 };
 
+const createExampleFromSidebar = async (page: Page, requestName: string, exampleName: string, description: string = '') => {
+  const requestRow = page.locator('.collection-item-name').filter({ hasText: requestName }).first();
+
+  await requestRow.hover();
+  await requestRow.locator('..').locator('.menu-icon').click({ force: true });
+  await page.locator('.dropdown-item').filter({ hasText: 'Create Example' }).click();
+
+  const exampleInput = page.getByTestId('create-example-name-input');
+  await expect(exampleInput).toBeVisible();
+  await exampleInput.clear();
+  await exampleInput.fill(exampleName);
+  const descriptionInput = page.getByTestId('create-example-description-input');
+  await descriptionInput.clear();
+  await descriptionInput.fill(description);
+  await page.getByRole('button', { name: 'Create Example' }).click();
+  await expect(page.locator('text=Create Response Example')).not.toBeAttached();
+};
+
+const openExampleFromSidebar = async (page: Page, requestName: string, exampleName: string, index: number = 0) => {
+  const requestRow = page.locator('.collection-item-name').filter({ hasText: requestName }).first();
+  const requestBranch = requestRow.locator('..');
+  const exampleRow = requestBranch
+    .locator('.collection-item-name')
+    .filter({ has: page.locator('.example-icon') })
+    .getByText(exampleName, { exact: true })
+    .nth(index);
+
+  if (!(await exampleRow.isVisible())) {
+    await requestRow.getByTestId('request-item-chevron').click();
+  }
+
+  await expect(exampleRow).toBeVisible();
+  await exampleRow.click();  
+};
+
 export {
   closeAllCollections,
   openCollection,
@@ -1299,7 +1374,9 @@ export {
   sendAndWaitForResponse,
   selectAuthMode,
   typeIntoField,
-  readField
+  readField,
+  createExampleFromSidebar,
+  openExampleFromSidebar
 };
 
 export type { SandboxMode, EnvironmentType, EnvironmentVariable, ImportCollectionOptions, CreateRequestOptions, CreateUntitledRequestOptions, CreateTransientRequestOptions, AssertionInput };

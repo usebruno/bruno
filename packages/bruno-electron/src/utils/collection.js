@@ -13,8 +13,10 @@ const FORMAT_CONFIG = {
   bru: { ext: '.bru', collectionFile: 'collection.bru', folderFile: 'folder.bru' }
 };
 
-const mergeHeaders = (collection, request, requestTreePath) => {
+const mergeHeaders = (collection, request, requestTreePath, options = {}) => {
+  const { includeDisabledHeaders = false } = options;
   let headers = new Map();
+  let disabledHeaders = new Map();
 
   let collectionHeaders = collection?.draft?.root ? get(collection, 'draft.root.request.headers', []) : get(collection, 'root.request.headers', []);
   collectionHeaders.forEach((header) => {
@@ -24,6 +26,8 @@ const mergeHeaders = (collection, request, requestTreePath) => {
       } else {
         headers.set(header.name, header.value);
       }
+    } else if (header.name?.length > 0) {
+      disabledHeaders.set(header.name, header.value);
     }
   });
 
@@ -38,6 +42,8 @@ const mergeHeaders = (collection, request, requestTreePath) => {
           } else {
             headers.set(header.name, header.value);
           }
+        } else if (header.name?.length > 0) {
+          disabledHeaders.set(header.name, header.value);
         }
       });
     } else {
@@ -49,12 +55,17 @@ const mergeHeaders = (collection, request, requestTreePath) => {
           } else {
             headers.set(header.name, header.value);
           }
+        } else if (header.name?.length > 0) {
+          disabledHeaders.set(header.name, header.value);
         }
       });
     }
   }
 
-  request.headers = Array.from(headers, ([name, value]) => ({ name, value, enabled: true }));
+  request.headers = [
+    ...Array.from(headers, ([name, value]) => ({ name, value, enabled: true })),
+    ...(includeDisabledHeaders ? Array.from(disabledHeaders, ([name, value]) => ({ name, value, enabled: false })) : [])
+  ];
 };
 
 const mergeVars = (collection, request, requestTreePath = []) => {
@@ -568,8 +579,6 @@ const hydrateRequestWithUuid = (request, pathname) => {
   bodyFormUrlEncoded.forEach((param) => (param.uid = uuid()));
   bodyMultipartForm.forEach((param) => (param.uid = uuid()));
   file.forEach((param) => (param.uid = uuid()));
-  const wsMessages = get(request, 'request.body.ws', []);
-  wsMessages.forEach((msg) => (msg.uid = uuid()));
   examples.forEach((example, eIndex) => {
     example.uid = getExampleUid(pathname, eIndex);
     example.itemUid = request.uid;

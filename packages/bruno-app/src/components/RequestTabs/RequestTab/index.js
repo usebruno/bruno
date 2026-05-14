@@ -1,6 +1,6 @@
 import React, { useCallback, useState, useRef, Fragment, useMemo, useEffect } from 'react';
 import get from 'lodash/get';
-import { makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
+import { makeTabPermanent, syncTabUid } from 'providers/ReduxStore/slices/tabs';
 import { saveRequest, saveCollectionRoot, saveFolderRoot, saveEnvironment, saveCollectionSettings, closeTabs } from 'providers/ReduxStore/slices/collections/actions';
 import useKeybinding from 'hooks/useKeybinding';
 import { deleteRequestDraft, deleteCollectionDraft, deleteFolderDraft, clearEnvironmentsDraft } from 'providers/ReduxStore/slices/collections';
@@ -8,12 +8,13 @@ import { clearGlobalEnvironmentDraft } from 'providers/ReduxStore/slices/global-
 import { saveGlobalEnvironment } from 'providers/ReduxStore/slices/global-environments';
 import { useTheme } from 'providers/Theme';
 import { useDispatch, useSelector } from 'react-redux';
-import { findItemInCollection, hasRequestChanges } from 'utils/collections';
+import { findItemInCollection, findItemInCollectionByPathname, hasRequestChanges, areItemsLoading } from 'utils/collections';
 import ConfirmRequestClose from './ConfirmRequestClose';
 import ConfirmCollectionClose from './ConfirmCollectionClose';
 import ConfirmFolderClose from './ConfirmFolderClose';
 import ConfirmCloseEnvironment from 'components/Environments/ConfirmCloseEnvironment';
 import RequestTabNotFound from './RequestTabNotFound';
+import RequestTabLoading from './RequestTabLoading';
 import SpecialTab from './SpecialTab';
 import StyledWrapper from './StyledWrapper';
 import MenuDropdown from 'ui/MenuDropdown';
@@ -40,7 +41,24 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
 
   const menuDropdownRef = useRef();
 
-  const item = findItemInCollection(collection, tab.uid);
+  let item = findItemInCollection(collection, tab.uid);
+  if (!item && tab.pathname) {
+    item = findItemInCollectionByPathname(collection, tab.pathname);
+  }
+
+  useEffect(() => {
+    const isRequestType = tab.type === 'request'
+      || tab.type === 'http-request'
+      || tab.type === 'graphql-request'
+      || tab.type === 'grpc-request'
+      || tab.type === 'ws-request';
+
+    if (!isRequestType || !tab.pathname || !item?.uid || tab.uid === item.uid) {
+      return;
+    }
+
+    dispatch(syncTabUid({ oldUid: tab.uid, newUid: item.uid }));
+  }, [dispatch, item?.uid, tab.pathname, tab.type, tab.uid]);
 
   const method = useMemo(() => {
     if (!item) return;
@@ -57,6 +75,10 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
   }, [item]);
 
   const hasChanges = useMemo(() => hasRequestChanges(item), [item]);
+
+  const isItemsLoading = useMemo(() => {
+    return collection?.mountStatus === 'mounting' || areItemsLoading(collection);
+  }, [collection?.mountStatus, collection]);
 
   const isWS = item?.type === 'ws-request';
 
@@ -143,7 +165,10 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
     setShowConfirmCollectionClose(true);
   };
 
-  const folder = folderUid ? findItemInCollection(collection, folderUid) : null;
+  let folder = folderUid ? findItemInCollection(collection, folderUid) : null;
+  if (!folder && tab.type === 'folder-settings' && tab.pathname) {
+    folder = findItemInCollectionByPathname(collection, tab.pathname);
+  }
 
   const handleCloseFolderSettings = (event) => {
     if (!folder?.draft) {
@@ -433,7 +458,9 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
           />
         )}
         {tab.type === 'folder-settings' && !folder ? (
-          <RequestTabNotFound handleCloseClick={handleCloseClick} />
+          tab.name && isItemsLoading
+            ? <RequestTabLoading handleCloseClick={handleCloseClick} name={tab.name} />
+            : <RequestTabNotFound handleCloseClick={handleCloseClick} />
         ) : tab.type === 'folder-settings' ? (
           <SpecialTab handleCloseClick={handleCloseFolderSettings} handleDoubleClick={() => dispatch(makeTabPermanent({ uid: tab.uid }))} type={tab.type} tabName={folder?.name} hasDraft={hasFolderDraft} />
         ) : tab.type === 'collection-settings' ? (
@@ -467,9 +494,10 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
   }
 
   if (!item) {
+    const showLoading = tab.name && isItemsLoading;
     return (
       <StyledWrapper
-        className="flex items-center justify-between tab-container"
+        className="flex items-center justify-between tab-container px-2"
         onMouseDown={handleMouseDown}
         onMouseUp={(e) => {
           if (e.button === 1) {
@@ -480,7 +508,11 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
           }
         }}
       >
-        <RequestTabNotFound handleCloseClick={handleCloseClick} />
+        {showLoading ? (
+          <RequestTabLoading handleCloseClick={handleCloseClick} name={tab.name} />
+        ) : (
+          <RequestTabNotFound handleCloseClick={handleCloseClick} />
+        )}
       </StyledWrapper>
     );
   }

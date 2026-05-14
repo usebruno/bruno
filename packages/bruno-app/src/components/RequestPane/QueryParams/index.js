@@ -164,6 +164,7 @@ const QueryParams = ({ item, collection }) => {
           onReorder={handleQueryParamDrag}
           columnWidths={queryParamsWidths}
           onColumnWidthsChange={(widths) => handleColumnWidthsChange('query-params', widths)}
+          initialScroll={scroll}
         />
         <div className="bulk-edit-bar flex justify-end mt-2">
           <button className="btn-action text-link select-none" onClick={toggleBulkEditMode}>
@@ -196,6 +197,7 @@ const QueryParams = ({ item, collection }) => {
             showAddRow={false}
             columnWidths={pathParamsWidths}
             onColumnWidthsChange={(widths) => handleColumnWidthsChange('path-params', widths)}
+            initialScroll={scroll}
           />
         ) : (
           <div className="title pr-2 py-3 mt-2 text-xs"></div>

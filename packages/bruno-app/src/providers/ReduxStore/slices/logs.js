@@ -1,5 +1,14 @@
 import { createSlice } from '@reduxjs/toolkit';
 
+export const TABS = {
+  CONSOLE: 'console',
+  NETWORK: 'network',
+  PERFORMANCE: 'performance',
+  TERMINAL: 'terminal'
+};
+
+export const TAB_IDENFIERS = Object.values(TABS);
+
 const initialState = {
   logs: [],
   debugErrors: [],
