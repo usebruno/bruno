@@ -1323,7 +1323,7 @@ const openExampleFromSidebar = async (page: Page, requestName: string, exampleNa
   }
 
   await expect(exampleRow).toBeVisible();
-  await exampleRow.click();  
+  await exampleRow.click();
 };
 
 export {
