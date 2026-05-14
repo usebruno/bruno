@@ -1,7 +1,7 @@
 import path from 'path';
 import fs from 'fs';
 import { test, expect, closeElectronApp } from '../../../playwright';
-import { openCollection } from '../../utils/page';
+import { openCollection, waitForReadyPage } from '../../utils/page';
 
 const initUserDataPath = path.join(__dirname, 'init-user-data');
 const workspaceFixturePath = path.join(__dirname, 'fixtures', 'workspace');
@@ -64,8 +64,7 @@ test.describe('Global Environment Migration from workspace.yml', () => {
       userDataPath,
       templateVars: { workspacePath }
     });
-    const page1 = await app1.firstWindow();
-    await page1.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
+    const page1 = await waitForReadyPage(app1);
 
     // Open the collection so the env selector toolbar is visible
     await openCollection(page1, 'Test Collection');
@@ -81,8 +80,7 @@ test.describe('Global Environment Migration from workspace.yml', () => {
 
     // Restart — should still have Alpha selected (now from electron store)
     const app2 = await launchElectronApp({ userDataPath });
-    const page2 = await app2.firstWindow();
-    await page2.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
+    const page2 = await waitForReadyPage(app2);
 
     await openCollection(page2, 'Test Collection');
     await expect(page2.locator('.current-environment')).toContainText('Alpha');

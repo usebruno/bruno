@@ -4,7 +4,8 @@ import {
   createExampleFromSidebar,
   createRequest,
   openExampleFromSidebar,
-  openRequest
+  openRequest,
+  waitForReadyPage
 } from '../utils/page';
 import { buildCommonLocators } from '../utils/page/locators';
 
@@ -14,8 +15,7 @@ test.describe('Snapshot: Sidebar-Tab Restoration', () => {
     const colPath = await createTmpDir('col');
 
     const app = await launchElectronApp({ userDataPath });
-    const page = await app.firstWindow();
-    await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
+    const page = await waitForReadyPage(app);
 
     await test.step('Create collection with a request open it', async () => {
       await createCollection(page, 'TestCol', colPath);
@@ -31,8 +31,7 @@ test.describe('Snapshot: Sidebar-Tab Restoration', () => {
 
     await test.step('Verify tabs have opened and are tied to the sidebar', async () => {
       const app2 = await launchElectronApp({ userDataPath });
-      const page2 = await app2.firstWindow();
-      await page2.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
+      const page2 = await waitForReadyPage(app2);
 
       const locators = buildCommonLocators(page2);
       await openRequest(page2, 'TestCol', 'ReqAlpha', { persist: true });
@@ -48,8 +47,7 @@ test.describe('Snapshot: Sidebar-Tab Restoration', () => {
     const colPath = await createTmpDir('col');
 
     const app = await launchElectronApp({ userDataPath });
-    const page = await app.firstWindow();
-    await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
+    const page = await waitForReadyPage(app);
 
     await test.step('Create collection and keep one request tab open', async () => {
       await createCollection(page, 'TestCol', colPath);
@@ -64,8 +62,7 @@ test.describe('Snapshot: Sidebar-Tab Restoration', () => {
 
     await test.step('Click request from sidebar and reuse existing tab', async () => {
       const app2 = await launchElectronApp({ userDataPath });
-      const page2 = await app2.firstWindow();
-      await page2.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
+      const page2 = await waitForReadyPage(app2);
 
       const locators = buildCommonLocators(page2);
       await expect(locators.tabs.requestTab('ReqAlpha')).toHaveCount(1, { timeout: 15000 });

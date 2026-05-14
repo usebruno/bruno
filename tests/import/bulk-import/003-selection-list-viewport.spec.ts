@@ -82,5 +82,12 @@ test.describe('Bulk Import Selection List', () => {
       expect(scrolledVisibleRows).toContain(getViewportCollectionName(9));
       expect(scrolledVisibleRows).toContain(getViewportCollectionName(10));
     }).toPass({ timeout: 5000 });
+
+    // No collections were imported, so afterEach's closeAllCollections is a
+    // no-op. Close the Bulk Import modal explicitly — the page is shared
+    // worker-wide via the worker-scoped electronApp fixture, so the modal
+    // backdrop would otherwise intercept clicks in the next test.
+    await page.getByTestId('modal-close-button').click();
+    await expect(page.locator('.bruno-modal-backdrop')).toHaveCount(0);
   });
 });

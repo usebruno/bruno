@@ -7,7 +7,8 @@ import {
   openRequest,
   openCollection,
   switchWorkspace,
-  selectRequestPaneTab
+  selectRequestPaneTab,
+  waitForReadyPage
 } from '../utils/page';
 import { buildCommonLocators } from '../utils/page/locators';
 
@@ -65,8 +66,7 @@ test.describe('Snapshot: Tab Persistence', () => {
     const colPath = await createTmpDir('col');
 
     const app = await launchElectronApp({ userDataPath });
-    const page = await app.firstWindow();
-    await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
+    const page = await waitForReadyPage(app);
 
     await test.step('Create collection with two requests and open both', async () => {
       await createCollection(page, 'TestCol', colPath);
@@ -84,8 +84,7 @@ test.describe('Snapshot: Tab Persistence', () => {
 
     await test.step('Verify tabs restored in order', async () => {
       const app2 = await launchElectronApp({ userDataPath });
-      const page2 = await app2.firstWindow();
-      await page2.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
+      const page2 = await waitForReadyPage(app2);
 
       const locators = buildCommonLocators(page2);
       // Wait for snapshot hydration to restore tabs
@@ -109,8 +108,7 @@ test.describe('Snapshot: Tab Persistence', () => {
     const colPath = await createTmpDir('col');
 
     const app = await launchElectronApp({ userDataPath });
-    const page = await app.firstWindow();
-    await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
+    const page = await waitForReadyPage(app);
 
     await test.step('Create two requests and focus ReqAlpha', async () => {
       await createCollection(page, 'TestCol', colPath);
@@ -130,8 +128,7 @@ test.describe('Snapshot: Tab Persistence', () => {
 
     await test.step('Verify ReqAlpha is the active tab', async () => {
       const app2 = await launchElectronApp({ userDataPath });
-      const page2 = await app2.firstWindow();
-      await page2.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
+      const page2 = await waitForReadyPage(app2);
 
       const locators = buildCommonLocators(page2);
       await expect(locators.tabs.activeRequestTab()).toContainText('ReqAlpha', { timeout: 10000 });
@@ -145,8 +142,7 @@ test.describe('Snapshot: Tab Persistence', () => {
     const colPath = await createTmpDir('col');
 
     const app = await launchElectronApp({ userDataPath });
-    const page = await app.firstWindow();
-    await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
+    const page = await waitForReadyPage(app);
 
     await test.step('Create two requests, open both, close one', async () => {
       await createCollection(page, 'TestCol', colPath);
@@ -167,8 +163,7 @@ test.describe('Snapshot: Tab Persistence', () => {
 
     await test.step('Verify ReqClose is not restored', async () => {
       const app2 = await launchElectronApp({ userDataPath });
-      const page2 = await app2.firstWindow();
-      await page2.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
+      const page2 = await waitForReadyPage(app2);
 
       const locators = buildCommonLocators(page2);
       await expect(locators.tabs.requestTab('ReqKeep')).toBeVisible({ timeout: 10000 });
@@ -184,8 +179,7 @@ test.describe('Snapshot: Tab Persistence', () => {
     const colPath = await createTmpDir('col');
 
     const app = await launchElectronApp({ userDataPath });
-    const page = await app.firstWindow();
-    await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
+    const page = await waitForReadyPage(app);
 
     await test.step('Create request and switch to Headers tab', async () => {
       await createCollection(page, 'TestCol', colPath);
@@ -201,8 +195,7 @@ test.describe('Snapshot: Tab Persistence', () => {
 
     await test.step('Verify Headers tab is still selected', async () => {
       const app2 = await launchElectronApp({ userDataPath });
-      const page2 = await app2.firstWindow();
-      await page2.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
+      const page2 = await waitForReadyPage(app2);
 
       const locators = buildCommonLocators(page2);
       // The active collection's tabs should be auto-restored by switchWorkspace
@@ -240,8 +233,7 @@ test.describe('Snapshot: Workspace State', () => {
     fs.writeFileSync(path.join(workspaceBPath, 'workspace.yml'), WORKSPACE_YML);
 
     const app = await launchElectronApp({ userDataPath });
-    const page = await app.firstWindow();
-    await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
+    const page = await waitForReadyPage(app);
 
     await test.step('Open WorkspaceB and switch to it', async () => {
       await app.evaluate(
@@ -264,8 +256,7 @@ test.describe('Snapshot: Workspace State', () => {
 
     await test.step('Verify WorkspaceB is still active', async () => {
       const app2 = await launchElectronApp({ userDataPath });
-      const page2 = await app2.firstWindow();
-      await page2.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
+      const page2 = await waitForReadyPage(app2);
 
       await expect(page2.getByTestId('workspace-name')).toHaveText('WorkspaceB', { timeout: 10000 });
 
@@ -274,7 +265,6 @@ test.describe('Snapshot: Workspace State', () => {
   });
 
   test('workspace collection sorting persists across workspace switches and restart', async ({ launchElectronApp, createTmpDir }) => {
-    test.setTimeout(90000);
     const userDataPath = await createTmpDir('snap-ws-collection-sorting');
 
     const defaultColZPath = await createTmpDir('default-col-zulu');
@@ -296,8 +286,7 @@ test.describe('Snapshot: Workspace State', () => {
     fs.writeFileSync(path.join(secondWorkspacePath, 'workspace.yml'), WORKSPACE_YML);
 
     const app = await launchElectronApp({ userDataPath });
-    const page = await app.firstWindow();
-    await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
+    const page = await waitForReadyPage(app);
 
     await test.step('Create collections in default workspace and set A-Z sort', async () => {
       await createCollection(page, 'Zulu', defaultColZPath);
@@ -349,8 +338,7 @@ test.describe('Snapshot: Workspace State', () => {
       await closeElectronApp(app);
 
       const app2 = await launchElectronApp({ userDataPath });
-      const page2 = await app2.firstWindow();
-      await page2.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
+      const page2 = await waitForReadyPage(app2);
 
       await expect(page2.getByTestId('workspace-name')).toHaveText('WorkspaceB', { timeout: 10000 });
       await expectSidebarCollectionOrder(page2, ['Middle', 'AlphaWS2']);
@@ -381,8 +369,7 @@ test.describe('Snapshot: Workspace State', () => {
     fs.writeFileSync(path.join(workspaceBPath, 'workspace.yml'), WORKSPACE_YML);
 
     const app = await launchElectronApp({ userDataPath });
-    const page = await app.firstWindow();
-    await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
+    const page = await waitForReadyPage(app);
 
     await test.step('Create ColA with request in default workspace', async () => {
       await createCollection(page, 'ColA', colAPath);
@@ -441,8 +428,7 @@ test.describe('Snapshot: Collection State', () => {
     const colPath = await createTmpDir('col');
 
     const app = await launchElectronApp({ userDataPath });
-    const page = await app.firstWindow();
-    await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
+    const page = await waitForReadyPage(app);
 
     await test.step('Create collection and open a request (expands it)', async () => {
       await createCollection(page, 'TestCol', colPath);
@@ -461,8 +447,7 @@ test.describe('Snapshot: Collection State', () => {
 
     await test.step('Verify collection is still expanded', async () => {
       const app2 = await launchElectronApp({ userDataPath });
-      const page2 = await app2.firstWindow();
-      await page2.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
+      const page2 = await waitForReadyPage(app2);
 
       const locators = buildCommonLocators(page2);
       // The active collection should be expanded, showing items in sidebar
@@ -495,8 +480,7 @@ test.describe('Snapshot: Multi-Workspace Tab Isolation', () => {
     fs.writeFileSync(path.join(workspaceBPath, 'workspace.yml'), WORKSPACE_YML);
 
     const app = await launchElectronApp({ userDataPath });
-    const page = await app.firstWindow();
-    await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
+    const page = await waitForReadyPage(app);
 
     await test.step('Create ReqA in default workspace', async () => {
       await createCollection(page, 'ColA', colAPath);
@@ -529,8 +513,7 @@ test.describe('Snapshot: Multi-Workspace Tab Isolation', () => {
 
     await test.step('Verify WorkspaceB tabs do not show ReqA', async () => {
       const app2 = await launchElectronApp({ userDataPath });
-      const page2 = await app2.firstWindow();
-      await page2.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
+      const page2 = await waitForReadyPage(app2);
 
       // App should restore to WorkspaceB (last active)
       await expect(page2.getByTestId('workspace-name')).toHaveText('WorkspaceB', { timeout: 10000 });
@@ -556,8 +539,6 @@ test.describe('Snapshot: Multi-Workspace Tab Isolation', () => {
   });
 
   test('same collection in two workspaces keeps tabs isolated after restart', async ({ launchElectronApp, createTmpDir }) => {
-    test.setTimeout(90000);
-
     const userDataPath = await createTmpDir('snap-tab-isolation-shared-col');
     const sharedColPath = await createTmpDir('shared-col');
     const workspaceBPath = await createTmpDir('workspace-b-shared-col');
@@ -575,8 +556,7 @@ test.describe('Snapshot: Multi-Workspace Tab Isolation', () => {
     fs.writeFileSync(path.join(workspaceBPath, 'workspace.yml'), WORKSPACE_YML);
 
     const app = await launchElectronApp({ userDataPath });
-    const page = await app.firstWindow();
-    await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
+    const page = await waitForReadyPage(app);
 
     await test.step('Create shared collection in default workspace and open ReqA', async () => {
       await createCollection(page, 'SharedCol', sharedColPath);
@@ -627,8 +607,7 @@ test.describe('Snapshot: Multi-Workspace Tab Isolation', () => {
 
     await test.step('Verify tab isolation for same collection across workspaces', async () => {
       const app2 = await launchElectronApp({ userDataPath });
-      const page2 = await app2.firstWindow();
-      await page2.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
+      const page2 = await waitForReadyPage(app2);
 
       await expect(page2.getByTestId('workspace-name')).toHaveText('WorkspaceB', { timeout: 10000 });
 
@@ -656,8 +635,7 @@ test.describe('Snapshot: DevTools State', () => {
     const userDataPath = await createTmpDir('snap-devtools');
 
     const app = await launchElectronApp({ userDataPath });
-    const page = await app.firstWindow();
-    await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
+    const page = await waitForReadyPage(app);
 
     await test.step('Open devtools and switch to Performance tab', async () => {
       const devToolsButton = page.locator('button[data-trigger="dev-tools"]');
@@ -677,8 +655,7 @@ test.describe('Snapshot: DevTools State', () => {
 
     await test.step('Verify devtools is open with Performance tab active', async () => {
       const app2 = await launchElectronApp({ userDataPath });
-      const page2 = await app2.firstWindow();
-      await page2.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
+      const page2 = await waitForReadyPage(app2);
 
       // DevTools should be open
       await expect(page2.locator('.console-header')).toBeVisible({ timeout: 10000 });
@@ -705,8 +682,7 @@ test.describe('Snapshot: Edge Cases', () => {
     }
 
     const app = await launchElectronApp({ userDataPath });
-    const page = await app.firstWindow();
-    await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
+    const page = await waitForReadyPage(app);
 
     // App should load the default workspace without errors
     await expect(page.getByTestId('workspace-name')).toBeVisible({ timeout: 10000 });
@@ -722,8 +698,7 @@ test.describe('Snapshot: Edge Cases', () => {
     fs.writeFileSync(snapshotPath, '{ invalid json !!!', 'utf-8');
 
     const app = await launchElectronApp({ userDataPath });
-    const page = await app.firstWindow();
-    await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
+    const page = await waitForReadyPage(app);
 
     // App should recover and show default workspace
     await expect(page.getByTestId('workspace-name')).toBeVisible({ timeout: 10000 });
@@ -740,8 +715,7 @@ test.describe('Snapshot: File Structure', () => {
     const colPath = await createTmpDir('col');
 
     const app = await launchElectronApp({ userDataPath });
-    const page = await app.firstWindow();
-    await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
+    const page = await waitForReadyPage(app);
 
     await test.step('Create collection and open a request', async () => {
       await createCollection(page, 'TestCol', colPath);
@@ -806,8 +780,7 @@ test.describe('Snapshot: Basic Request Movement', () => {
     const colPath = await createTmpDir('col');
 
     const app = await launchElectronApp({ userDataPath });
-    const page = await app.firstWindow();
-    await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
+    const page = await waitForReadyPage(app);
 
     await test.step('Create collection and open a request', async () => {
       await createCollection(page, 'TestCol', colPath);
@@ -823,8 +796,7 @@ test.describe('Snapshot: Basic Request Movement', () => {
 
     await test.step('Verify request pane tabs remain interactive after restore', async () => {
       const app2 = await launchElectronApp({ userDataPath });
-      const page2 = await app2.firstWindow();
-      await page2.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
+      const page2 = await waitForReadyPage(app2);
 
       const locators = buildCommonLocators(page2);
       await expect(locators.tabs.requestTab('Req1')).toBeVisible({ timeout: 15000 });
@@ -845,8 +817,7 @@ test.describe('Snapshot: Basic Request Movement', () => {
     const colPath = await createTmpDir('col');
 
     const app = await launchElectronApp({ userDataPath });
-    const page = await app.firstWindow();
-    await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
+    const page = await waitForReadyPage(app);
 
     await test.step('Create collection and GraphQL request', async () => {
       await createCollection(page, 'TestCol', colPath);
@@ -873,8 +844,7 @@ test.describe('Snapshot: Basic Request Movement', () => {
 
     await test.step('Verify GraphQL pane tabs remain interactive', async () => {
       const app2 = await launchElectronApp({ userDataPath });
-      const page2 = await app2.firstWindow();
-      await page2.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
+      const page2 = await waitForReadyPage(app2);
 
       const locators = buildCommonLocators(page2);
       await expect(locators.tabs.requestTab('ReqGraph')).toBeVisible({ timeout: 15000 });
