@@ -90,7 +90,6 @@ docker run --rm usebruno/cli --version
 
 > **Cross-platform note:** the examples below use `$(pwd)` which works in Bash / Zsh / Git Bash / WSL.
 > On Windows native shells, substitute `$(pwd)` with:
->
 > - PowerShell: `${PWD}`
 > - CMD: `%cd%`
 
