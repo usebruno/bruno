@@ -1,0 +1,16 @@
+{
+  "lastOpenedCollections": [
+    "{{collectionPath}}/empty-bru",
+    "{{collectionPath}}/empty-yml",
+    "{{collectionPath}}/bru-with-js",
+    "{{collectionPath}}/yml-with-js",
+    "{{collectionPath}}/yml-with-request",
+    "{{collectionPath}}/yml-with-folder"
+  ],
+  "preferences": {
+    "onboarding": {
+      "hasLaunchedBefore": true,
+      "hasSeenWelcomeModal": true
+    }
+  }
+}
