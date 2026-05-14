@@ -259,7 +259,11 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
     } else if (tab.type === 'global-environment-settings') {
       if (globalEnvironmentDraft) {
         const { environmentUid, variables } = globalEnvironmentDraft;
-        dispatch(saveGlobalEnvironment({ variables, environmentUid }));
+        if (environmentUid?.startsWith('dotenv:')) {
+          window.dispatchEvent(new Event('dotenv-save'));
+        } else {
+          dispatch(saveGlobalEnvironment({ variables, environmentUid }));
+        }
       }
     } else if (tab.type === 'folder-settings') {
       if (folder) {
