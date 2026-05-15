@@ -8,7 +8,7 @@ import { findCollectionByUid, flattenItems, isItemARequest, hasRequestChanges, f
 import { pluralizeWord } from 'utils/common';
 import { getInvalidVariableNames } from 'utils/common/variables';
 import { completeQuitFlow } from 'providers/ReduxStore/slices/app';
-import { saveMultipleRequests, saveMultipleCollections, saveMultipleFolders, saveEnvironment, closeTabs } from 'providers/ReduxStore/slices/collections/actions';
+import { saveRequest, saveMultipleRequests, saveMultipleCollections, saveMultipleFolders, saveEnvironment, closeTabs } from 'providers/ReduxStore/slices/collections/actions';
 import { saveGlobalEnvironment, clearGlobalEnvironmentDraft } from 'providers/ReduxStore/slices/global-environments';
 import { deleteRequestDraft, deleteCollectionDraft, deleteFolderDraft, clearEnvironmentsDraft } from 'providers/ReduxStore/slices/collections';
 import { IconAlertTriangle } from '@tabler/icons';
@@ -150,6 +150,8 @@ const SaveRequestsModal = ({ onClose, forceCloseTabs = false, tabUidsToClose = [
       const collectionDrafts = allDrafts.filter((d) => d.type === 'collection');
       const folderDrafts = allDrafts.filter((d) => d.type === 'folder');
       const requestDrafts = allDrafts.filter((d) => isItemARequest(d));
+      const transientRequestDrafts = requestDrafts.filter((d) => d.isTransient);
+      const nonTransientRequestDrafts = requestDrafts.filter((d) => !d.isTransient);
       const collectionEnvironmentDrafts = allDrafts.filter((d) => d.type === 'collection-environment');
       const globalEnvironmentDrafts = allDrafts.filter((d) => d.type === 'global-environment');
 
@@ -164,8 +166,18 @@ const SaveRequestsModal = ({ onClose, forceCloseTabs = false, tabUidsToClose = [
       }
 
       // Save all request drafts
-      if (requestDrafts.length > 0) {
-        await dispatch(saveMultipleRequests(requestDrafts));
+      if (nonTransientRequestDrafts.length > 0) {
+        await dispatch(saveMultipleRequests(nonTransientRequestDrafts));
+      }
+
+      if (transientRequestDrafts.length > 0) {
+        await Promise.all(
+          transientRequestDrafts.map((draft) =>
+            dispatch(saveRequest(draft.uid, draft.collectionUid, true)).catch(() => null)
+          )
+        );
+        onClose();
+        return;
       }
 
       // Save environment drafts, skipping any with invalid variable names
