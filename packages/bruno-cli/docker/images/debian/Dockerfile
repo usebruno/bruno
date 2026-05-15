@@ -1,6 +1,6 @@
 FROM node:22-slim
 
-LABEL maintainer="Bruno <engineering@usebruno.com>"
+LABEL maintainer="Bruno <support@usebruno.com>"
 
 ARG BRUNO_VERSION
 ENV BRUNO_VERSION=${BRUNO_VERSION}
