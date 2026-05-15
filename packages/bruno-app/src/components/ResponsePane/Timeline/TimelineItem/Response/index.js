@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import BodyBlock from '../Common/Body/index';
 import Headers from '../Common/Headers/index';
 import Status from '../Common/Status/index';
@@ -12,14 +13,19 @@ const safeStringifyJSONIfNotString = (obj) => {
   try {
     return JSON.stringify(obj);
   } catch (e) {
-    return '[Unserializable Object]';
+    return null;
   }
 };
 
 const Response = ({ collection, response, item }) => {
+  const { t } = useTranslation();
   let { status, statusCode, statusText, dataBuffer, headers, data, error } = response || {};
   if (!dataBuffer) {
-    dataBuffer = Buffer.from(safeStringifyJSONIfNotString(data))?.toString('base64');
+    const stringified = safeStringifyJSONIfNotString(data);
+    dataBuffer = stringified ? Buffer.from(stringified)?.toString('base64') : null;
+  }
+  if (!dataBuffer && data !== null && data !== undefined && typeof data !== 'string') {
+    data = t('TIMELINE.UNSERIALIZABLE_OBJECT');
   }
 
   return (

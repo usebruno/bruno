@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { get, cloneDeep, isArray } from 'lodash';
 import { IconTrash } from '@tabler/icons';
 import { useDispatch } from 'react-redux';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from 'providers/Theme';
 import { addFile as _addFile, updateFile, deleteFile } from 'providers/ReduxStore/slices/collections/index';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
@@ -10,6 +11,7 @@ import FilePickerEditor from 'components/FilePickerEditor/index';
 import SingleLineEditor from 'components/SingleLineEditor/index';
 
 const FileBody = ({ item, collection }) => {
+  const { t } = useTranslation();
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
   const params = item.draft ? get(item, 'draft.request.body.file') : get(item, 'request.body.file');
@@ -71,13 +73,13 @@ const FileBody = ({ item, collection }) => {
         <thead>
           <tr>
             <td>
-              <div className="flex items-center justify-center">File</div>
+              <div className="flex items-center justify-center">{t('FILE_BODY.FILE')}</div>
             </td>
             <td>
-              <div className="flex items-center justify-center">Content-Type</div>
+              <div className="flex items-center justify-center">{t('FILE_BODY.CONTENT_TYPE')}</div>
             </td>
             <td>
-              <div className="flex items-center justify-center">Selected</div>
+              <div className="flex items-center justify-center">{t('FILE_BODY.SELECTED')}</div>
             </td>
             <td></td>
           </tr>
@@ -110,7 +112,7 @@ const FileBody = ({ item, collection }) => {
                         className="flex items-center justify-center"
                         onSave={onSave}
                         theme={storedTheme}
-                        placeholder="Auto"
+                        placeholder={t('FILE_BODY.AUTO')}
                         value={param.contentType}
                         onChange={(newValue) =>
                           handleParamChange(
@@ -154,7 +156,7 @@ const FileBody = ({ item, collection }) => {
       </table>
       <div>
         <button className="btn-add-param text-link pr-2 pt-3 select-none" onClick={addFile}>
-          + Add File
+          + {t('FILE_BODY.ADD_FILE')}
         </button>
       </div>
     </StyledWrapper>

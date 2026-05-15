@@ -4,6 +4,7 @@ import { useDispatch } from 'react-redux';
 import StyledWrapper from './StyledWrapper';
 import { responseCleared } from 'providers/ReduxStore/slices/collections/index';
 import ActionIcon from 'ui/ActionIcon/index';
+import { useTranslation } from 'react-i18next';
 
 // Hook to get clear response function
 export const useResponseClear = (item, collection) => {
@@ -25,6 +26,7 @@ export const useResponseClear = (item, collection) => {
 const ResponseClear = forwardRef(({ collection, item, children }, ref) => {
   const { clearResponse } = useResponseClear(item, collection);
   const elementRef = useRef(null);
+  const { t } = useTranslation();
 
   useImperativeHandle(ref, () => ({
     click: () => elementRef.current?.click(),
@@ -32,7 +34,7 @@ const ResponseClear = forwardRef(({ collection, item, children }, ref) => {
   }), []);
 
   return (
-    <div ref={elementRef} onClick={clearResponse} title={!children ? 'Clear response' : null} data-testid="response-clear-btn">
+    <div ref={elementRef} onClick={clearResponse} title={!children ? t('RESPONSE_PANE.CLEAR_RESPONSE') : null} data-testid="response-clear-btn">
       {children ? children : (
         <StyledWrapper className="flex items-center">
           <ActionIcon className="p-1">

@@ -887,35 +887,39 @@ export const isItemAFolder = (item) => {
   return !item.hasOwnProperty('request') && item.type === 'folder';
 };
 
-export const humanizeRequestBodyMode = (mode) => {
+export const humanizeRequestBodyMode = (mode, t) => {
   let label = 'No Body';
   switch (mode) {
     case 'json': {
-      label = 'JSON';
+      label = t ? t('BODY_MODE.JSON') : 'JSON';
       break;
     }
     case 'text': {
-      label = 'TEXT';
+      label = t ? t('BODY_MODE.TEXT') : 'TEXT';
       break;
     }
     case 'xml': {
-      label = 'XML';
+      label = t ? t('BODY_MODE.XML') : 'XML';
       break;
     }
     case 'sparql': {
-      label = 'SPARQL';
+      label = t ? t('BODY_MODE.SPARQL') : 'SPARQL';
       break;
     }
     case 'file': {
-      label = 'File / Binary';
+      label = t ? t('BODY_MODE.FILE_BINARY') : 'File / Binary';
       break;
     }
     case 'formUrlEncoded': {
-      label = 'Form URL Encoded';
+      label = t ? t('BODY_MODE.FORM_URL_ENCODED') : 'Form URL Encoded';
       break;
     }
     case 'multipartForm': {
-      label = 'Multipart Form';
+      label = t ? t('BODY_MODE.MULTIPART_FORM') : 'Multipart Form';
+      break;
+    }
+    default: {
+      label = t ? t('BODY_MODE.NO_BODY') : 'No Body';
       break;
     }
   }
@@ -923,47 +927,51 @@ export const humanizeRequestBodyMode = (mode) => {
   return label;
 };
 
-export const humanizeRequestAuthMode = (mode) => {
+export const humanizeRequestAuthMode = (mode, t) => {
   let label = 'No Auth';
   switch (mode) {
     case 'inherit': {
-      label = 'Inherit';
+      label = t ? t('REQUEST_AUTH.INHERIT') : 'Inherit';
       break;
     }
     case 'awsv4': {
-      label = 'AWS Sig V4';
+      label = t ? t('REQUEST_AUTH.AWS_SIG_V4') : 'AWS Sig V4';
       break;
     }
     case 'basic': {
-      label = 'Basic Auth';
+      label = t ? t('REQUEST_AUTH.BASIC_AUTH') : 'Basic Auth';
       break;
     }
     case 'bearer': {
-      label = 'Bearer Token';
+      label = t ? t('REQUEST_AUTH.BEARER_TOKEN') : 'Bearer Token';
       break;
     }
     case 'digest': {
-      label = 'Digest Auth';
+      label = t ? t('REQUEST_AUTH.DIGEST_AUTH') : 'Digest Auth';
       break;
     }
     case 'ntlm': {
-      label = 'NTLM';
+      label = t ? t('REQUEST_AUTH.NTLM_AUTH') : 'NTLM';
       break;
     }
     case 'oauth1': {
-      label = 'OAuth 1.0';
+      label = t ? t('REQUEST_AUTH.OAUTH_1_0') : 'OAuth 1.0';
       break;
     }
     case 'oauth2': {
-      label = 'OAuth 2.0';
+      label = t ? t('REQUEST_AUTH.OAUTH_2_0') : 'OAuth 2.0';
       break;
     }
     case 'wsse': {
-      label = 'WSSE Auth';
+      label = t ? t('REQUEST_AUTH.WSSE_AUTH') : 'WSSE Auth';
       break;
     }
     case 'apikey': {
-      label = 'API Key';
+      label = t ? t('REQUEST_AUTH.API_KEY') : 'API Key';
+      break;
+    }
+    default: {
+      label = t ? t('REQUEST_AUTH.NO_AUTH') : 'No Auth';
       break;
     }
   }

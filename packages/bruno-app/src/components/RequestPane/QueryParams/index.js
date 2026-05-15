@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useRef } from 'react';
 import get from 'lodash/get';
 import InfoTip from 'components/InfoTip';
+import { useTranslation } from 'react-i18next';
 import { useDispatch, useSelector } from 'react-redux';
 import { useTheme } from 'providers/Theme';
 import {
@@ -18,6 +19,7 @@ import { usePersistedState } from 'hooks/usePersistedState';
 import { useTrackScroll } from 'hooks/useTrackScroll';
 
 const QueryParams = ({ item, collection }) => {
+  const { t } = useTranslation();
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
   const tabs = useSelector((state) => state.tabs.tabs);
@@ -153,7 +155,7 @@ const QueryParams = ({ item, collection }) => {
   return (
     <StyledWrapper className="w-full flex flex-col" ref={wrapperRef}>
       <div className="flex-1">
-        <div className="mb-3 title text-xs">Query</div>
+        <div className="mb-3 title text-xs">{t('QUERY_PARAMS.QUERY')}</div>
         <EditableTable
           tableId="query-params"
           columns={queryColumns}
@@ -168,20 +170,15 @@ const QueryParams = ({ item, collection }) => {
         />
         <div className="bulk-edit-bar flex justify-end mt-2">
           <button className="btn-action text-link select-none" onClick={toggleBulkEditMode}>
-            Bulk Edit
+            {t('QUERY_PARAMS.BULK_EDIT')}
           </button>
         </div>
 
         <div className="mb-3 title text-xs flex items-stretch">
-          <span>Path</span>
+          <span>{t('QUERY_PARAMS.PATH')}</span>
           <InfoTip className="tooltip-mod" infotipId="path-param-InfoTip">
             <div>
-              Path variables are automatically added whenever the
-              <code className="font-mono mx-2">:name</code>
-              template is used in the URL. <br /> For example:
-              <code className="font-mono mx-2">
-                https://example.com/v1/users/<span>:id</span>
-              </code>
+              {t('QUERY_PARAMS.PATH_VARIABLE_INFO')}
             </div>
           </InfoTip>
         </div>

@@ -25,6 +25,7 @@ import {
   writePersistedEditorState
 } from './state-persistence';
 import { usePersistenceScope } from 'hooks/usePersistedState/PersistedScopeProvider';
+import { useTranslation } from 'react-i18next';
 
 const CodeMirror = require('codemirror');
 window.jsonlint = jsonlint;
@@ -74,7 +75,7 @@ class CodeEditor extends React.Component {
 
     const editor = (this.editor = CodeMirror(this._node, {
       value: this.props.value || '',
-      placeholder: '...',
+      placeholder: this.props.t ? this.props.t('CODE_EDITOR.PLACEHOLDER') : '...',
       lineNumbers: true,
       lineWrapping: this.props.enableLineWrapping ?? true,
       tabSize: TAB_SIZE,
@@ -414,7 +415,7 @@ class CodeEditor extends React.Component {
     return (
       <StyledWrapper
         className={`h-full w-full flex flex-col relative graphiql-container ${this.props.readOnly ? 'read-only' : ''}`}
-        aria-label="Code Editor"
+        aria-label={this.props.t ? this.props.t('CODE_EDITOR.ARIA_LABEL') : 'Code Editor'}
         font={this.props.font}
         fontSize={this.props.fontSize}
       >
@@ -463,7 +464,8 @@ class CodeEditor extends React.Component {
 
 const CodeEditorWithPersistenceScope = React.forwardRef((props, ref) => {
   const persistenceScope = usePersistenceScope();
-  return <CodeEditor {...props} persistenceScope={persistenceScope} ref={ref} />;
+  const { t } = useTranslation();
+  return <CodeEditor {...props} persistenceScope={persistenceScope} ref={ref} t={t} />;
 });
 
 CodeEditorWithPersistenceScope.displayName = 'CodeEditor';

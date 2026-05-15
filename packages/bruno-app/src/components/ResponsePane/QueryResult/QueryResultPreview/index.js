@@ -15,6 +15,7 @@ import TextPreview from './TextPreview';
 import HtmlPreview from './HtmlPreview';
 import VideoPreview from './VideoPreview';
 import JsonPreview from './JsonPreview';
+import { useTranslation } from 'react-i18next';
 
 const QueryResultPreview = ({
   selectedTab,
@@ -30,6 +31,7 @@ const QueryResultPreview = ({
   displayedTheme,
   docKey
 }) => {
+  const { t } = useTranslation();
   const preferences = useSelector((state) => state.app.preferences);
   const dispatch = useDispatch();
   const editorRef = useRef(null);
@@ -113,10 +115,10 @@ const QueryResultPreview = ({
       return (
         <div className="p-4 flex flex-col items-center justify-center h-full text-center">
           <div className="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-2">
-            No Preview Available
+            {t('QUERY_RESULT.NO_PREVIEW_AVAILABLE')}
           </div>
           <div className="text-sm text-gray-500 dark:text-gray-400">
-            Sorry, no preview is available for this content type.
+            {t('QUERY_RESULT.NO_PREVIEW_AVAILABLE_DESC')}
           </div>
         </div>
       );

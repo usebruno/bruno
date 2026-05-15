@@ -6,7 +6,7 @@ import { formatIpcError } from 'utils/common/error';
 
 const useSyncFlow = ({
   collection, specDrift, remoteDrift, collectionDrift,
-  setError, checkForUpdates
+  setError, checkForUpdates, t
 }) => {
   const dispatch = useDispatch();
 
@@ -78,16 +78,16 @@ const useSyncFlow = ({
 
       dispatch(clearCollectionUpdate({ collectionUid: collection.uid }));
       toast.success(
-        mode === 'spec-only' ? 'Spec updated successfully'
-          : mode === 'reset' ? 'Collection reset to spec successfully'
-            : 'Collection synced successfully'
+        mode === 'spec-only' ? t('OPENAPI_SYNC.TOAST_SPEC_UPDATED')
+          : mode === 'reset' ? t('OPENAPI_SYNC.TOAST_COLLECTION_RESET')
+            : t('OPENAPI_SYNC.TOAST_COLLECTION_SYNCED')
       );
 
       // Re-check to show "up to date" state
       await checkForUpdates();
     } catch (err) {
       console.error('Error syncing collection:', err);
-      setError(formatIpcError(err) || 'Failed to sync collection');
+      setError(formatIpcError(err) || t('OPENAPI_SYNC.ERROR_FAILED_TO_SYNC'));
     } finally {
       setIsSyncing(false);
     }
@@ -142,17 +142,17 @@ const useSyncFlow = ({
     const groups = [];
     const actuallyAdded = (remoteDrift.missing || []).filter((ep) => specAddedIds.has(ep.id));
     if (actuallyAdded.length > 0) {
-      groups.push({ label: 'New endpoints to add', type: 'add', endpoints: actuallyAdded });
+      groups.push({ label: t('OPENAPI_SYNC.NEW_ENDPOINTS_TO_ADD'), type: 'add', endpoints: actuallyAdded });
     }
     if (remoteDrift.modified?.length > 0) {
-      groups.push({ label: 'Endpoints to update', type: 'update', endpoints: remoteDrift.modified });
+      groups.push({ label: t('OPENAPI_SYNC.ENDPOINTS_TO_UPDATE'), type: 'update', endpoints: remoteDrift.modified });
     }
     const actuallyRemoved = (remoteDrift.localOnly || []).filter((ep) => specRemovedIds.has(ep.id));
     if (actuallyRemoved.length > 0) {
-      groups.push({ label: 'Endpoints to delete', type: 'remove', endpoints: actuallyRemoved });
+      groups.push({ label: t('OPENAPI_SYNC.ENDPOINTS_TO_DELETE'), type: 'remove', endpoints: actuallyRemoved });
     }
     return groups;
-  }, [remoteDrift, specAddedIds, specRemovedIds]);
+  }, [remoteDrift, specAddedIds, specRemovedIds, t]);
 
   return {
     isSyncing, showConfirmModal, confirmGroups,

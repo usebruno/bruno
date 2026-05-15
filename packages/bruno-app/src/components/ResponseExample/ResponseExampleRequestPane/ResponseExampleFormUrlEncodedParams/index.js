@@ -1,6 +1,7 @@
 import React, { useMemo, useCallback } from 'react';
 import get from 'lodash/get';
 import { useDispatch, useSelector } from 'react-redux';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from 'providers/Theme';
 import { updateResponseExampleFormUrlEncodedParams } from 'providers/ReduxStore/slices/collections';
 import { updateTableColumnWidths } from 'providers/ReduxStore/slices/tabs';
@@ -9,6 +10,7 @@ import MultiLineEditor from 'components/MultiLineEditor';
 import StyledWrapper from './StyledWrapper';
 
 const ResponseExampleFormUrlEncodedParams = ({ item, collection, exampleUid, editMode = false }) => {
+  const { t } = useTranslation();
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
   const tabs = useSelector((state) => state.tabs.tabs);
@@ -57,16 +59,16 @@ const ResponseExampleFormUrlEncodedParams = ({ item, collection, exampleUid, edi
   const columns = [
     {
       key: 'name',
-      name: 'Key',
+      name: t('RESPONSE_EXAMPLE.KEY'),
       isKeyField: true,
-      placeholder: 'Key',
+      placeholder: t('RESPONSE_EXAMPLE.KEY'),
       width: '40%',
       readOnly: !editMode
     },
     {
       key: 'value',
-      name: 'Value',
-      placeholder: 'Value',
+      name: t('RESPONSE_EXAMPLE.VALUE'),
+      placeholder: t('RESPONSE_EXAMPLE.VALUE'),
       width: '60%',
       readOnly: !editMode,
       render: ({ value, onChange }) => (
@@ -79,7 +81,7 @@ const ResponseExampleFormUrlEncodedParams = ({ item, collection, exampleUid, edi
           onRun={() => {}}
           collection={collection}
           item={item}
-          placeholder={!value ? 'Value' : ''}
+          placeholder={!value ? t('RESPONSE_EXAMPLE.VALUE') : ''}
         />
       )
     }

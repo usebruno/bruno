@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useRef } from 'react';
 import get from 'lodash/get';
 import { useDispatch, useSelector } from 'react-redux';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from 'providers/Theme';
 import { moveRequestHeader, setRequestHeaders } from 'providers/ReduxStore/slices/collections';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
@@ -18,6 +19,7 @@ import { useTrackScroll } from 'hooks/useTrackScroll';
 const headerAutoCompleteList = StandardHTTPHeaders.map((e) => e.header);
 
 const RequestHeaders = ({ item, collection, addHeaderText }) => {
+  const { t } = useTranslation();
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
   const tabs = useSelector((state) => state.tabs.tabs);
@@ -59,17 +61,17 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
     if (key === 'name') {
       if (!row.name || row.name.trim() === '') return null;
       if (!headerNameRegex.test(row.name)) {
-        return 'Header name cannot contain spaces or newlines';
+        return t('HEADERS.ERROR_NAME_INVALID');
       }
     }
     if (key === 'value') {
       if (!row.value) return null;
       if (!headerValueRegex.test(row.value)) {
-        return 'Header value cannot contain newlines';
+        return t('HEADERS.ERROR_VALUE_INVALID');
       }
     }
     return null;
-  }, []);
+  }, [t]);
 
   const toggleBulkEditMode = () => {
     setIsBulkEditMode(!isBulkEditMode);
@@ -153,7 +155,7 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
       />
       <div className="bulk-edit-bar flex justify-end mt-2">
         <button className="btn-action text-link select-none" data-testid="bulk-edit-toggle" onClick={toggleBulkEditMode}>
-          Bulk Edit
+          {t('HEADERS.BULK_EDIT')}
         </button>
       </div>
     </StyledWrapper>

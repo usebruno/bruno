@@ -10,6 +10,7 @@ import { flattenItems, isItemARequest, isItemTransientRequest } from 'utils/coll
 import filter from 'lodash/filter';
 import { get } from 'lodash';
 import { formatIpcError } from 'utils/common/error';
+import { useTranslation } from 'react-i18next';
 
 const REQUEST_TYPE = {
   HTTP: 'http',
@@ -51,6 +52,7 @@ const generateTransientRequestName = (collection) => {
 };
 
 const CreateTransientRequest = ({ collectionUid }) => {
+  const { t } = useTranslation();
   const [dropdownVisible, setDropdownVisible] = useState(false);
   const dropdownTippyRef = useRef();
   const dispatch = useDispatch();
@@ -104,8 +106,8 @@ const CreateTransientRequest = ({ collectionUid }) => {
         itemUid: null,
         isTransient: true
       })
-    ).catch((err) => toast.error(formatIpcError(err) || 'An error occurred while adding the request'));
-  }, [dispatch, collection, collectionPresets.requestUrl]);
+    ).catch((err) => toast.error(formatIpcError(err) || t('CREATE_REQUEST.REQUEST_ADD_ERROR')));
+  }, [dispatch, collection, collectionPresets.requestUrl, t]);
 
   const handleCreateGraphQLRequest = useCallback(() => {
     if (!collection) return;
@@ -131,8 +133,8 @@ const CreateTransientRequest = ({ collectionUid }) => {
           }
         }
       })
-    ).catch((err) => toast.error(formatIpcError(err) || 'An error occurred while adding the request'));
-  }, [dispatch, collection, collectionPresets.requestUrl]);
+    ).catch((err) => toast.error(formatIpcError(err) || t('CREATE_REQUEST.REQUEST_ADD_ERROR')));
+  }, [dispatch, collection, collectionPresets.requestUrl, t]);
 
   const handleCreateWebSocketRequest = useCallback(() => {
     if (!collection) return;
@@ -150,8 +152,8 @@ const CreateTransientRequest = ({ collectionUid }) => {
         itemUid: null,
         isTransient: true
       })
-    ).catch((err) => toast.error(formatIpcError(err) || 'An error occurred while adding the request'));
-  }, [dispatch, collection, collectionPresets.requestUrl]);
+    ).catch((err) => toast.error(formatIpcError(err) || t('CREATE_REQUEST.REQUEST_ADD_ERROR')));
+  }, [dispatch, collection, collectionPresets.requestUrl, t]);
 
   const handleCreateGrpcRequest = useCallback(() => {
     if (!collection) return;
@@ -168,8 +170,8 @@ const CreateTransientRequest = ({ collectionUid }) => {
         itemUid: null,
         isTransient: true
       })
-    ).catch((err) => toast.error(formatIpcError(err) || 'An error occurred while adding the request'));
-  }, [dispatch, collection, collectionPresets.requestUrl]);
+    ).catch((err) => toast.error(formatIpcError(err) || t('CREATE_REQUEST.REQUEST_ADD_ERROR')));
+  }, [dispatch, collection, collectionPresets.requestUrl, t]);
 
   const handleItemClick = (type) => {
     if (dropdownTippyRef.current) {
@@ -199,7 +201,7 @@ const CreateTransientRequest = ({ collectionUid }) => {
     <ActionIcon
       onClick={handleLeftClick}
       onContextMenu={handleRightClick}
-      aria-label="New Transient Request"
+      aria-label={t('CREATE_REQUEST.NEW_TRANSIENT_REQUEST_ARIA')}
       size="lg"
       style={{ marginBottom: '3px' }}
     >
@@ -219,25 +221,25 @@ const CreateTransientRequest = ({ collectionUid }) => {
         <div className="dropdown-icon">
           <IconApi size={16} strokeWidth={2} />
         </div>
-        <div className="dropdown-label">HTTP</div>
+        <div className="dropdown-label">{t('CREATE_REQUEST.HTTP')}</div>
       </div>
       <div className="dropdown-item" onClick={() => handleItemClick(REQUEST_TYPE.GRAPHQL)}>
         <div className="dropdown-icon">
           <IconBrandGraphql size={16} strokeWidth={2} />
         </div>
-        <div className="dropdown-label">GraphQL</div>
+        <div className="dropdown-label">{t('CREATE_REQUEST.GRAPHQL')}</div>
       </div>
       <div className="dropdown-item" onClick={() => handleItemClick(REQUEST_TYPE.GRPC)}>
         <div className="dropdown-icon">
           <IconCode size={16} strokeWidth={2} />
         </div>
-        <div className="dropdown-label">gRPC</div>
+        <div className="dropdown-label">{t('CREATE_REQUEST.GRPC')}</div>
       </div>
       <div className="dropdown-item" onClick={() => handleItemClick(REQUEST_TYPE.WEBSOCKET)}>
         <div className="dropdown-icon">
           <IconPlugConnected size={16} strokeWidth={2} />
         </div>
-        <div className="dropdown-label">WebSocket</div>
+        <div className="dropdown-label">{t('CREATE_REQUEST.WEBSOCKET')}</div>
       </div>
     </Dropdown>
   );

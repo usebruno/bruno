@@ -15,10 +15,12 @@ import { mountCollection } from 'providers/ReduxStore/slices/collections/actions
 import { getDefaultRequestPaneTab } from 'utils/collections';
 import { normalizePath } from 'utils/common/path';
 import { normalizeQuery, isValidQuery, highlightText, sortResults, getTypeLabel, getItemPath } from './utils/searchUtils';
-import { SEARCH_TYPES, MATCH_TYPES, SEARCH_CONFIG, DOCUMENTATION_RESULT } from './constants';
+import { SEARCH_TYPES, MATCH_TYPES, SEARCH_CONFIG, getDocumentationResult } from './constants';
 import StyledWrapper from './StyledWrapper';
+import { useTranslation } from 'react-i18next';
 
 const GlobalSearchModal = ({ isOpen, onClose }) => {
+  const { t } = useTranslation();
   const [query, setQuery] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [results, setResults] = useState([]);
@@ -53,7 +55,7 @@ const GlobalSearchModal = ({ isOpen, onClose }) => {
     }));
 
     collectionResults.sort((a, b) => a.name.localeCompare(b.name));
-    return [DOCUMENTATION_RESULT, ...collectionResults];
+    return [getDocumentationResult(t), ...collectionResults];
   };
 
   const searchInCollections = (searchTerms, enablePathMatch) => {
@@ -62,7 +64,7 @@ const GlobalSearchModal = ({ isOpen, onClose }) => {
     // Check for documentation match
     const queryLower = searchTerms.join(' ');
     if (['documentation', 'docs', 'bruno docs'].some((term) => term.includes(queryLower))) {
-      results.push(DOCUMENTATION_RESULT);
+      results.push(getDocumentationResult(t));
     }
 
     collections.forEach((collection) => {
@@ -85,7 +87,7 @@ const GlobalSearchModal = ({ isOpen, onClose }) => {
         const itemPathLower = itemPath.toLowerCase();
 
         if (isItemARequest(item)) {
-          // add an optional check for the item name to prevent a crash if it doesn’t exist.
+          // add an optional check for the item name to prevent a crash if it doesn't exist.
           const nameMatch = searchTerms.every((term) => (item.name || '').toLowerCase().includes(term));
           const urlMatch = searchTerms.every((term) => (item.request?.url || '').toLowerCase().includes(term));
           const pathMatch = enablePathMatch && searchTerms.every((term) => itemPathLower.includes(term));
@@ -372,15 +374,15 @@ const GlobalSearchModal = ({ isOpen, onClose }) => {
         aria-describedby="search-modal-description"
       >
         <div className="command-k-modal" onClick={(e) => e.stopPropagation()}>
-          <h1 id="search-modal-title" className="sr-only">Global Search</h1>
+          <h1 id="search-modal-title" className="sr-only">{t('GLOBAL_SEARCH.TITLE')}</h1>
           <p id="search-modal-description" className="sr-only">
-            Search through collections, requests, folders, and documentation. Use arrow keys to navigate results and Enter to select.
+            {t('GLOBAL_SEARCH.DESCRIPTION')}
           </p>
           <div aria-live="polite" aria-atomic="true" className="sr-only">
             {results.length > 0 && query
-              ? `${results.length} result${results.length === 1 ? '' : 's'} found`
+              ? t('GLOBAL_SEARCH.RESULTS_FOUND', { count: results.length })
               : query && results.length === 0
-                ? 'No results found'
+                ? t('GLOBAL_SEARCH.NO_RESULTS')
                 : ''}
           </div>
           <div className="command-k-header">
@@ -389,7 +391,7 @@ const GlobalSearchModal = ({ isOpen, onClose }) => {
               <input
                 ref={inputRef}
                 type="text"
-                placeholder="Search collections, requests, or documentation..."
+                placeholder={t('GLOBAL_SEARCH.PLACEHOLDER')}
                 value={query}
                 onChange={handleQueryChange}
                 onKeyDown={handleKeyNavigation}
@@ -398,7 +400,7 @@ const GlobalSearchModal = ({ isOpen, onClose }) => {
                 autoCorrect="off"
                 autoCapitalize="off"
                 spellCheck="false"
-                aria-label="Search collections, requests, or documentation"
+                aria-label={t('GLOBAL_SEARCH.PLACEHOLDER')}
                 aria-expanded={results.length > 0}
                 aria-controls="search-results"
                 aria-activedescendant={results.length > 0 ? `search-result-${selectedIndex}` : undefined}
@@ -410,7 +412,7 @@ const GlobalSearchModal = ({ isOpen, onClose }) => {
                 <button
                   onClick={clearSearch}
                   className="clear-button"
-                  aria-label="Clear search query"
+                  aria-label={t('GLOBAL_SEARCH.CLEAR')}
                   type="button"
                 >
                   <IconX size={16} aria-hidden="true" />
@@ -424,32 +426,32 @@ const GlobalSearchModal = ({ isOpen, onClose }) => {
             ref={resultsRef}
             id="search-results"
             role="listbox"
-            aria-label="Search results"
+            aria-label={t('GLOBAL_SEARCH.SEARCH_RESULTS_ARIA')}
           >
             {results.length === 0 && query ? (
               <div className="no-results">
                 <p>
-                  No results found for "{query}".
+                  {t('GLOBAL_SEARCH.NO_RESULTS_FOR', { query })}
                   <br />
                   <span className="block mt-2">
-                    The item might not exist yet, or its collection isn’t mounted. Press <strong>Enter</strong> here (or open it from the sidebar) to mount the collection automatically.
+                    {t('GLOBAL_SEARCH.NO_RESULTS_HINT')}
                   </span>
                 </p>
               </div>
             ) : results.length === 0 ? (
               <div className="empty-state">
                 <p>
-                  No collections are currently mounted or visible.
+                  {t('GLOBAL_SEARCH.NO_COLLECTIONS')}
                   <br />
                   <span className="block mt-2">
-                    Mount a collection via the sidebar or this search modal, then try again.
+                    {t('GLOBAL_SEARCH.NO_COLLECTIONS_HINT')}
                   </span>
                 </p>
               </div>
             ) : (
               results.map((result, index) => {
                 const isSelected = index === selectedIndex;
-                const typeLabel = getTypeLabel(result.type);
+                const typeLabel = getTypeLabel(result.type, t);
 
                 return (
                   <div
@@ -484,13 +486,13 @@ const GlobalSearchModal = ({ isOpen, onClose }) => {
                         {result.type === SEARCH_TYPES.REQUEST && result.method && (
                           <span
                             className={`method-badge ${result.method.toLowerCase()}`}
-                            aria-label={`HTTP method ${result.method.toUpperCase().replace(/-/g, ' ')}`}
+                            aria-label={t('GLOBAL_SEARCH.HTTP_METHOD_ARIA', { method: result.method.toUpperCase().replace(/-/g, ' ') })}
                           >
                             {result.method.toUpperCase().replace(/-/g, ' ')}
                           </span>
                         )}
                         {typeLabel && (
-                          <div className="result-type" aria-label={`Item type ${typeLabel}`}>
+                          <div className="result-type" aria-label={t('GLOBAL_SEARCH.ITEM_TYPE_ARIA', { type: typeLabel })}>
                             {typeLabel}
                           </div>
                         )}
@@ -507,15 +509,15 @@ const GlobalSearchModal = ({ isOpen, onClose }) => {
               <span aria-label="Use up and down arrows to navigate">
                 <span className="keycap" aria-hidden="true">↑</span>
                 <span className="keycap" aria-hidden="true">↓</span>
-                <span className="hint-label">to navigate</span>
+                <span className="hint-label">{t('GLOBAL_SEARCH.KEYBOARD_NAVIGATE')}</span>
               </span>
               <span aria-label="Press Enter to select">
                 <span className="keycap" aria-hidden="true">↵</span>
-                <span className="hint-label">to select</span>
+                <span className="hint-label">{t('GLOBAL_SEARCH.KEYBOARD_SELECT')}</span>
               </span>
               <span aria-label="Press Escape to close">
                 <span className="keycap" aria-hidden="true">esc</span>
-                <span className="hint-label">to close</span>
+                <span className="hint-label">{t('GLOBAL_SEARCH.KEYBOARD_CLOSE')}</span>
               </span>
             </div>
           </div>

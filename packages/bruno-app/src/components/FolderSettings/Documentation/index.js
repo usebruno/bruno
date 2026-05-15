@@ -13,9 +13,11 @@ import Button from 'ui/Button';
 import StyledWrapper from './StyledWrapper';
 import { usePersistedState } from 'hooks/usePersistedState';
 import { useTrackScroll } from 'hooks/useTrackScroll';
+import { useTranslation } from 'react-i18next';
 
 const Documentation = ({ collection, folder }) => {
   const dispatch = useDispatch();
+  const { t } = useTranslation();
   const { displayedTheme } = useTheme();
   const preferences = useSelector((state) => state.app.preferences);
   const tabs = useSelector((state) => state.tabs.tabs);
@@ -51,7 +53,7 @@ const Documentation = ({ collection, folder }) => {
   return (
     <StyledWrapper className="w-full relative flex flex-col" ref={wrapperRef}>
       <div className="editing-mode flex justify-between items-center flex-shrink-0" role="tab" onClick={toggleViewMode}>
-        {isEditing ? 'Preview' : 'Edit'}
+        {isEditing ? t('FOLDER_SETTINGS.PREVIEW') : t('FOLDER_SETTINGS.EDIT')}
       </div>
 
       {isEditing ? (
@@ -72,7 +74,7 @@ const Documentation = ({ collection, folder }) => {
           </div>
           <div className="mt-6 flex-shrink-0">
             <Button type="submit" size="sm" onClick={onSave}>
-              Save
+              {t('FOLDER_SETTINGS.SAVE')}
             </Button>
           </div>
         </div>

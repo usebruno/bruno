@@ -3,52 +3,56 @@ import { IconCaretDown, IconForms, IconBraces, IconCode, IconFileText, IconDatab
 import MenuDropdown from 'ui/MenuDropdown';
 import { humanizeRequestBodyMode } from 'utils/collections';
 import StyledWrapper from './StyledWrapper';
-
-const DEFAULT_MODES = [
-  {
-    name: 'Form',
-    options: [
-      { id: 'multipartForm', label: 'Multipart Form', leftSection: IconForms },
-      { id: 'formUrlEncoded', label: 'Form URL Encoded', leftSection: IconForms }
-    ]
-  },
-  {
-    name: 'Raw',
-    options: [
-      { id: 'json', label: 'JSON', leftSection: IconBraces },
-      { id: 'xml', label: 'XML', leftSection: IconCode },
-      { id: 'text', label: 'TEXT', leftSection: IconFileText },
-      { id: 'sparql', label: 'SPARQL', leftSection: IconDatabase }
-    ]
-  },
-  {
-    name: 'Other',
-    options: [
-      { id: 'file', label: 'File / Binary', leftSection: IconFile },
-      { id: 'none', label: 'No Body', leftSection: IconX }
-    ]
-  }
-];
+import { useTranslation } from 'react-i18next';
 
 const BodyModeSelector = ({
   currentMode,
   onModeChange,
-  modes = DEFAULT_MODES,
+  modes,
   disabled = false,
   className = '',
   wrapperClassName = '',
   placement = 'bottom-end'
 }) => {
+  const { t } = useTranslation();
+
+  const defaultModes = [
+    {
+      name: t('BODY_MODE.FORM'),
+      options: [
+        { id: 'multipartForm', label: t('BODY_MODE.MULTIPART_FORM'), leftSection: IconForms },
+        { id: 'formUrlEncoded', label: t('BODY_MODE.FORM_URL_ENCODED'), leftSection: IconForms }
+      ]
+    },
+    {
+      name: t('BODY_MODE.RAW'),
+      options: [
+        { id: 'json', label: t('BODY_MODE.JSON'), leftSection: IconBraces },
+        { id: 'xml', label: t('BODY_MODE.XML'), leftSection: IconCode },
+        { id: 'text', label: t('BODY_MODE.TEXT'), leftSection: IconFileText },
+        { id: 'sparql', label: t('BODY_MODE.SPARQL'), leftSection: IconDatabase }
+      ]
+    },
+    {
+      name: t('BODY_MODE.OTHER'),
+      options: [
+        { id: 'file', label: t('BODY_MODE.FILE_BINARY'), leftSection: IconFile },
+        { id: 'none', label: t('BODY_MODE.NO_BODY'), leftSection: IconX }
+      ]
+    }
+  ];
+
+  const effectiveModes = modes || defaultModes;
   // Add onClick handlers to mode options
   const menuItems = useMemo(() => {
-    return modes.map((group) => ({
+    return effectiveModes.map((group) => ({
       ...group,
       options: group.options.map((option) => ({
         ...option,
         onClick: () => onModeChange(option.id)
       }))
     }));
-  }, [modes, onModeChange]);
+  }, [effectiveModes, onModeChange]);
 
   return (
     <StyledWrapper className={wrapperClassName}>
@@ -63,7 +67,7 @@ const BodyModeSelector = ({
           groupStyle="select"
         >
           <div className="flex items-center justify-center pl-3 py-1 select-none selected-body-mode">
-            {humanizeRequestBodyMode(currentMode)}
+            {humanizeRequestBodyMode(currentMode, t)}
             {' '}
             <IconCaretDown className="caret ml-2" size={14} strokeWidth={2} />
           </div>

@@ -9,8 +9,10 @@ import { saveCollectionSettings } from 'providers/ReduxStore/slices/collections/
 import { get } from 'lodash';
 import toast from 'react-hot-toast';
 import Button from 'ui/Button';
+import { useTranslation } from 'react-i18next';
 
 const ProxySettings = ({ collection }) => {
+  const { t } = useTranslation();
   const dispatch = useDispatch();
   const initialProxyConfig = {
     inherit: true,
@@ -35,7 +37,7 @@ const ProxySettings = ({ collection }) => {
 
   const validateHostnameOnChange = (hostname) => {
     if (hostname && hostname.length > 1024) {
-      toast.error('Hostname must be less than 1024 characters');
+      toast.error(t('COLLECTION_SETTINGS_PROXY.HOSTNAME_LENGTH_ERROR'));
       return false;
     }
     return true;
@@ -47,11 +49,11 @@ const ProxySettings = ({ collection }) => {
     }
     const portNum = Number(port);
     if (isNaN(portNum)) {
-      toast.error('Port must be a valid number');
+      toast.error(t('COLLECTION_SETTINGS_PROXY.PORT_NUMBER_ERROR'));
       return false;
     }
     if (portNum < 1 || portNum > 65535) {
-      toast.error('Port must be between 1 and 65535');
+      toast.error(t('COLLECTION_SETTINGS_PROXY.PORT_RANGE_ERROR'));
       return false;
     }
     return true;
@@ -59,7 +61,7 @@ const ProxySettings = ({ collection }) => {
 
   const validateAuthUsernameOnChange = (username) => {
     if (username && username.length > 1024) {
-      toast.error('Username must be less than 1024 characters');
+      toast.error(t('COLLECTION_SETTINGS_PROXY.USERNAME_LENGTH_ERROR'));
       return false;
     }
     return true;
@@ -67,7 +69,7 @@ const ProxySettings = ({ collection }) => {
 
   const validateAuthPasswordOnChange = (password) => {
     if (password && password.length > 1024) {
-      toast.error('Password must be less than 1024 characters');
+      toast.error(t('COLLECTION_SETTINGS_PROXY.PASSWORD_LENGTH_ERROR'));
       return false;
     }
     return true;
@@ -75,7 +77,7 @@ const ProxySettings = ({ collection }) => {
 
   const validateBypassProxyOnChange = (bypassProxy) => {
     if (bypassProxy && bypassProxy.length > 1024) {
-      toast.error('Bypass proxy must be less than 1024 characters');
+      toast.error(t('COLLECTION_SETTINGS_PROXY.BYPASS_LENGTH_ERROR'));
       return false;
     }
     return true;
@@ -198,17 +200,17 @@ const ProxySettings = ({ collection }) => {
 
   return (
     <StyledWrapper className="h-full w-full">
-      <div className="text-xs mb-4 text-muted">Configure proxy settings for this collection.</div>
+      <div className="text-xs mb-4 text-muted">{t('COLLECTION_SETTINGS_PROXY.DESCRIPTION')}</div>
       <div className="bruno-form">
         <div className="mb-3 flex items-center">
           <label className="settings-label flex items-center" htmlFor="enabled">
-            Config
+            {t('COLLECTION_SETTINGS_PROXY.CONFIG')}
             <InfoTip infotipId="request-var">
               <div>
                 <ul>
-                  <li><span style={{ width: '50px', display: 'inline-block' }}>inherit</span> - inherit from global preferences</li>
-                  <li><span style={{ width: '50px', display: 'inline-block' }}>enabled</span> - use collection-specific proxy config</li>
-                  <li><span style={{ width: '50px', display: 'inline-block' }}>disabled</span> - disable proxy for this collection</li>
+                  <li><span style={{ width: '50px', display: 'inline-block' }}>{t('COLLECTION_SETTINGS_PROXY.INHERIT')}</span> - {t('COLLECTION_SETTINGS_PROXY.INHERIT_TIP')}</li>
+                  <li><span style={{ width: '50px', display: 'inline-block' }}>{t('COLLECTION_SETTINGS_PROXY.ENABLED')}</span> - {t('COLLECTION_SETTINGS_PROXY.ENABLED_TIP')}</li>
+                  <li><span style={{ width: '50px', display: 'inline-block' }}>{t('COLLECTION_SETTINGS_PROXY.DISABLED')}</span> - {t('COLLECTION_SETTINGS_PROXY.DISABLED_TIP')}</li>
                 </ul>
               </div>
             </InfoTip>
@@ -223,7 +225,7 @@ const ProxySettings = ({ collection }) => {
                 onChange={handleEnabledChange}
                 className="mr-1"
               />
-              inherit
+              {t('COLLECTION_SETTINGS_PROXY.INHERIT')}
             </label>
             <label className="flex items-center ml-4">
               <input
@@ -234,7 +236,7 @@ const ProxySettings = ({ collection }) => {
                 onChange={handleEnabledChange}
                 className="mr-1"
               />
-              enabled
+              {t('COLLECTION_SETTINGS_PROXY.ENABLED')}
             </label>
             <label className="flex items-center ml-4">
               <input
@@ -245,7 +247,7 @@ const ProxySettings = ({ collection }) => {
                 onChange={handleEnabledChange}
                 className="mr-1"
               />
-              disabled
+              {t('COLLECTION_SETTINGS_PROXY.DISABLED')}
             </label>
           </div>
         </div>
@@ -253,7 +255,7 @@ const ProxySettings = ({ collection }) => {
           <>
             <div className="mb-3 flex items-center">
               <label className="settings-label" htmlFor="protocol">
-                Protocol
+                {t('COLLECTION_SETTINGS_PROXY.PROTOCOL')}
               </label>
               <div className="flex items-center">
                 <label className="flex items-center">
@@ -304,7 +306,7 @@ const ProxySettings = ({ collection }) => {
             </div>
             <div className="mb-3 flex items-center">
               <label className="settings-label" htmlFor="hostname">
-                Hostname
+                {t('COLLECTION_SETTINGS_PROXY.HOSTNAME')}
               </label>
               <input
                 id="hostname"
@@ -321,7 +323,7 @@ const ProxySettings = ({ collection }) => {
             </div>
             <div className="mb-3 flex items-center">
               <label className="settings-label" htmlFor="port">
-                Port
+                {t('COLLECTION_SETTINGS_PROXY.PORT')}
               </label>
               <input
                 id="port"
@@ -338,7 +340,7 @@ const ProxySettings = ({ collection }) => {
             </div>
             <div className="mb-3 flex items-center">
               <label className="settings-label" htmlFor="auth.disabled">
-                Auth
+                {t('COLLECTION_SETTINGS_PROXY.AUTH')}
               </label>
               <input
                 type="checkbox"
@@ -350,7 +352,7 @@ const ProxySettings = ({ collection }) => {
             <div>
               <div className="mb-3 flex items-center">
                 <label className="settings-label" htmlFor="auth.username">
-                  Username
+                  {t('COLLECTION_SETTINGS_PROXY.USERNAME')}
                 </label>
                 <input
                   id="auth.username"
@@ -367,7 +369,7 @@ const ProxySettings = ({ collection }) => {
               </div>
               <div className="mb-3 flex items-center">
                 <label className="settings-label" htmlFor="auth.password">
-                  Password
+                  {t('COLLECTION_SETTINGS_PROXY.PASSWORD')}
                 </label>
                 <div className="textbox flex flex-row items-center w-[13.2rem] h-[1.70rem] relative">
                   <input
@@ -394,7 +396,7 @@ const ProxySettings = ({ collection }) => {
             </div>
             <div className="mb-3 flex items-center">
               <label className="settings-label" htmlFor="bypassProxy">
-                Proxy Bypass
+                {t('COLLECTION_SETTINGS_PROXY.BYPASS_PROXY')}
               </label>
               <input
                 id="bypassProxy"
@@ -413,7 +415,7 @@ const ProxySettings = ({ collection }) => {
         )}
         <div className="mt-6">
           <Button type="submit" size="sm" onClick={handleSave}>
-            Save
+            {t('COLLECTION_SETTINGS_PROXY.SAVE')}
           </Button>
         </div>
       </div>

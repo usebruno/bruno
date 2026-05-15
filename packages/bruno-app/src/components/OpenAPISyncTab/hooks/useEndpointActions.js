@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import toast from 'react-hot-toast';
 
-const useEndpointActions = (collection, collectionDrift, reloadDrift) => {
+const useEndpointActions = (collection, collectionDrift, reloadDrift, t) => {
   const [pendingAction, setPendingAction] = useState(null);
 
   // Action execution helper — runs IPC call(s), shows toast, reloads drift
@@ -26,8 +26,8 @@ const useEndpointActions = (collection, collectionDrift, reloadDrift) => {
   const handleResetEndpoint = (endpoint) => {
     setPendingAction({
       type: 'reset-endpoint',
-      title: 'Reset Endpoint',
-      message: `Are you sure you want to reset "${endpoint.method} ${endpoint.path}" to match the spec? Your local changes will be lost.`,
+      title: t('OPENAPI_SYNC.RESET_ENDPOINT'),
+      message: t('OPENAPI_SYNC.RESET_ENDPOINT_CONFIRM', { method: endpoint.method, path: endpoint.path }),
       endpoint
     });
   };
@@ -36,16 +36,16 @@ const useEndpointActions = (collection, collectionDrift, reloadDrift) => {
     if (!collectionDrift?.modified?.length) return;
     setPendingAction({
       type: 'reset-all-modified',
-      title: 'Reset All Modified',
-      message: `Are you sure you want to reset ${collectionDrift.modified.length} modified endpoint(s) to match the spec? Your local changes will be lost.`
+      title: t('OPENAPI_SYNC.RESET_ALL_MODIFIED'),
+      message: t('OPENAPI_SYNC.RESET_ALL_MODIFIED_CONFIRM', { count: collectionDrift.modified.length })
     });
   };
 
   const handleDeleteEndpoint = (endpoint) => {
     setPendingAction({
       type: 'delete-endpoint',
-      title: 'Delete Endpoint',
-      message: `Are you sure you want to delete "${endpoint.method} ${endpoint.path}"? This action cannot be undone.`,
+      title: t('OPENAPI_SYNC.DELETE_ENDPOINT'),
+      message: t('OPENAPI_SYNC.DELETE_ENDPOINT_CONFIRM', { method: endpoint.method, path: endpoint.path }),
       endpoint
     });
   };
@@ -54,8 +54,8 @@ const useEndpointActions = (collection, collectionDrift, reloadDrift) => {
     if (!collectionDrift?.localOnly?.length) return;
     setPendingAction({
       type: 'delete-all-local',
-      title: 'Delete All Local Endpoints',
-      message: `Are you sure you want to delete ${collectionDrift.localOnly.length} local-only endpoint(s)? This action cannot be undone.`
+      title: t('OPENAPI_SYNC.DELETE_ALL_LOCAL_ENDPOINTS'),
+      message: t('OPENAPI_SYNC.DELETE_ALL_LOCAL_ENDPOINTS_CONFIRM', { count: collectionDrift.localOnly.length })
     });
   };
 
@@ -66,16 +66,16 @@ const useEndpointActions = (collection, collectionDrift, reloadDrift) => {
 
     setPendingAction({
       type: 'revert-all',
-      title: 'Revert All Changes',
-      message: `Are you sure you want to revert all changes? This will reset ${modifiedCount} modified, restore ${missingCount} missing, and delete ${localOnlyCount} local-only endpoint(s).`
+      title: t('OPENAPI_SYNC.REVERT_ALL_CHANGES'),
+      message: t('OPENAPI_SYNC.REVERT_ALL_CHANGES_CONFIRM', { modifiedCount, missingCount, localOnlyCount })
     });
   };
 
   const handleAddMissingEndpoint = (endpoint) => {
     setPendingAction({
       type: 'restore-endpoint',
-      title: 'Restore Endpoint',
-      message: `Are you sure you want to restore "${endpoint.method} ${endpoint.path}" to your collection?`,
+      title: t('OPENAPI_SYNC.RESTORE_ENDPOINT'),
+      message: t('OPENAPI_SYNC.RESTORE_ENDPOINT_CONFIRM', { method: endpoint.method, path: endpoint.path }),
       endpoint
     });
   };
@@ -84,8 +84,8 @@ const useEndpointActions = (collection, collectionDrift, reloadDrift) => {
     if (!collectionDrift?.missing?.length) return;
     setPendingAction({
       type: 'restore-all-missing',
-      title: 'Restore All Missing',
-      message: `Are you sure you want to restore ${collectionDrift.missing.length} missing endpoint(s) to your collection?`
+      title: t('OPENAPI_SYNC.RESTORE_ALL_MISSING'),
+      message: t('OPENAPI_SYNC.RESTORE_ALL_MISSING_CONFIRM', { count: collectionDrift.missing.length })
     });
   };
 

@@ -8,9 +8,11 @@ import { flattenItems, isItemARequest } from 'utils/collections';
 import SensitiveFieldWarning from 'components/SensitiveFieldWarning';
 import EnvironmentVariablesTable from 'components/EnvironmentVariablesTable';
 import { sensitiveFields } from './constants';
+import { useTranslation } from 'react-i18next';
 
 const EnvironmentVariables = ({ environment, setIsModified, collection, searchQuery = '' }) => {
   const dispatch = useDispatch();
+  const { t } = useTranslation();
 
   const environmentsDraft = collection?.environmentsDraft;
   const hasDraftForThisEnv = environmentsDraft?.environmentUid === environment.uid;
@@ -92,13 +94,13 @@ const EnvironmentVariables = ({ environment, setIsModified, collection, searchQu
         return (
           <SensitiveFieldWarning
             fieldName={variable.name}
-            warningMessage="This variable is used in sensitive fields. Mark it as a secret for security"
+            warningMessage={t('ENV_SETTINGS.SENSITIVE_FIELD_WARNING')}
           />
         );
       }
       return null;
     },
-    [hasSensitiveUsage]
+    [hasSensitiveUsage, t]
   );
 
   return (

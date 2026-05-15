@@ -1,6 +1,7 @@
 import React, { useMemo, useCallback } from 'react';
 import get from 'lodash/get';
 import { useDispatch, useSelector } from 'react-redux';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from 'providers/Theme';
 import { IconUpload, IconX, IconFile } from '@tabler/icons';
 import { updateResponseExampleMultipartFormParams } from 'providers/ReduxStore/slices/collections';
@@ -15,6 +16,7 @@ import StyledWrapper from './StyledWrapper';
 import { isWindowsOS } from 'utils/common/platform';
 
 const ResponseExampleMultipartFormParams = ({ item, collection, exampleUid, editMode = false }) => {
+  const { t } = useTranslation();
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
   const tabs = useSelector((state) => state.tabs.tabs);
@@ -169,16 +171,16 @@ const ResponseExampleMultipartFormParams = ({ item, collection, exampleUid, edit
   const columns = [
     {
       key: 'name',
-      name: 'Key',
+      name: t('RESPONSE_EXAMPLE.KEY'),
       isKeyField: true,
-      placeholder: 'Key',
+      placeholder: t('RESPONSE_EXAMPLE.KEY'),
       width: '30%',
       readOnly: !editMode
     },
     {
       key: 'value',
-      name: 'Value',
-      placeholder: 'Value',
+      name: t('RESPONSE_EXAMPLE.VALUE'),
+      placeholder: t('RESPONSE_EXAMPLE.VALUE'),
       width: '40%',
       readOnly: !editMode,
       render: ({ row, value, onChange }) => {
@@ -200,7 +202,7 @@ const ResponseExampleMultipartFormParams = ({ item, collection, exampleUid, edit
               <button
                 className="clear-file-btn ml-1"
                 onClick={() => handleClearFile(row)}
-                title="Remove file"
+                title={t('RESPONSE_EXAMPLE.REMOVE_FILE')}
               >
                 <IconX size={16} />
               </button>
@@ -221,13 +223,13 @@ const ResponseExampleMultipartFormParams = ({ item, collection, exampleUid, edit
                 collection={collection}
                 item={item}
                 readOnly={!editMode}
-                placeholder={!value ? 'Value' : ''}
+                placeholder={!value ? t('RESPONSE_EXAMPLE.VALUE') : ''}
               />
             </div>
             <button
               className="upload-btn ml-1"
               onClick={() => handleBrowseFiles(row, onChange)}
-              title="Select file"
+              title={t('RESPONSE_EXAMPLE.SELECT_FILE')}
             >
               <IconUpload size={16} />
             </button>
@@ -237,15 +239,15 @@ const ResponseExampleMultipartFormParams = ({ item, collection, exampleUid, edit
     },
     {
       key: 'contentType',
-      name: 'Content-Type',
-      placeholder: 'Auto',
+      name: t('RESPONSE_EXAMPLE.CONTENT_TYPE'),
+      placeholder: t('RESPONSE_EXAMPLE.AUTO'),
       width: '30%',
       readOnly: !editMode,
       render: ({ value, onChange }) => (
         <SingleLineEditor
           onSave={() => {}}
           theme={storedTheme}
-          placeholder={!value ? 'Auto' : ''}
+          placeholder={!value ? t('RESPONSE_EXAMPLE.AUTO') : ''}
           value={value || ''}
           onChange={onChange}
           onRun={() => {}}

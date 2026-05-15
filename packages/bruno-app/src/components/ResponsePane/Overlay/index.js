@@ -5,11 +5,13 @@ import { cancelRequest } from 'providers/ReduxStore/slices/collections/actions';
 import StopWatch from '../../StopWatch';
 import StyledWrapper from './StyledWrapper';
 import Button from 'ui/Button/index';
+import { useTranslation } from 'react-i18next';
 
 const ResponseLoadingOverlay = ({ item, collection }) => {
   const dispatch = useDispatch();
   const preferences = useSelector((state) => state.app.preferences);
   const isVerticalLayout = preferences?.layout?.responsePaneOrientation === 'vertical';
+  const { t } = useTranslation();
 
   const handleCancelRequest = () => {
     dispatch(cancelRequest(item.cancelTokenUid, item, collection));
@@ -30,7 +32,7 @@ const ResponseLoadingOverlay = ({ item, collection }) => {
           onClick={handleCancelRequest}
           className="mt-4"
         >
-          Cancel Request
+          {t('RESPONSE_PANE.CANCEL_REQUEST')}
         </Button>
       </div>
     </StyledWrapper>

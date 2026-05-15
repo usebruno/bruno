@@ -8,6 +8,7 @@ import ResponseClear from '../ResponseClear';
 import ResponseLayoutToggle, { useResponseLayoutToggle } from '../ResponseLayoutToggle';
 import ResponseCopy from '../ResponseCopy/index';
 import StyledWrapper from './StyledWrapper';
+import { useTranslation } from 'react-i18next';
 
 const StyledMenuIcon = styled.button`
   display: flex;
@@ -28,7 +29,7 @@ const StyledMenuIcon = styled.button`
 const MenuIcon = forwardRef((props, ref) => (
   <StyledMenuIcon
     ref={ref}
-    title="More actions"
+    title={props.title}
     {...props}
   >
     <IconDots size={16} strokeWidth={1.5} />
@@ -39,6 +40,7 @@ MenuIcon.displayName = 'MenuIcon';
 
 const ResponsePaneActions = ({ item, collection, responseSize, selectedFormat, selectedTab, data, dataBuffer }) => {
   const { orientation } = useResponseLayoutToggle();
+  const { t } = useTranslation();
 
   // Refs to access child component imperative handles (click, isDisabled)
   const bookmarkButtonRef = useRef(null);
@@ -54,7 +56,7 @@ const ResponsePaneActions = ({ item, collection, responseSize, selectedFormat, s
   const gqlMenuItems = [
     {
       id: 'copy-response',
-      label: 'Copy response',
+      label: t('RESPONSE_PANE.COPY_RESPONSE'),
       leftSection: IconCopy,
       get disabled() {
         return copyButtonRef.current?.isDisabled ?? false;
@@ -63,7 +65,7 @@ const ResponsePaneActions = ({ item, collection, responseSize, selectedFormat, s
     },
     {
       id: 'download-response',
-      label: 'Download response',
+      label: t('RESPONSE_PANE.DOWNLOAD_RESPONSE'),
       leftSection: IconDownload,
       get disabled() {
         return downloadButtonRef.current?.isDisabled ?? false;
@@ -72,7 +74,7 @@ const ResponsePaneActions = ({ item, collection, responseSize, selectedFormat, s
     },
     {
       id: 'clear-response',
-      label: 'Clear response',
+      label: t('RESPONSE_PANE.CLEAR_RESPONSE'),
       leftSection: IconEraser,
       get disabled() {
         return clearButtonRef.current?.isDisabled ?? false;
@@ -81,7 +83,7 @@ const ResponsePaneActions = ({ item, collection, responseSize, selectedFormat, s
     },
     {
       id: 'change-layout',
-      label: 'Change layout',
+      label: t('RESPONSE_PANE.CHANGE_LAYOUT'),
       leftSection: orientation === 'vertical' ? IconLayoutColumns : IconLayoutRows,
       get disabled() {
         return layoutToggleButtonRef.current?.isDisabled ?? false;
@@ -93,7 +95,7 @@ const ResponsePaneActions = ({ item, collection, responseSize, selectedFormat, s
   const menuItems = [
     {
       id: 'copy-response',
-      label: 'Copy response',
+      label: t('RESPONSE_PANE.COPY_RESPONSE'),
       leftSection: IconCopy,
       get disabled() {
         return copyButtonRef.current?.isDisabled ?? false;
@@ -102,7 +104,7 @@ const ResponsePaneActions = ({ item, collection, responseSize, selectedFormat, s
     },
     {
       id: 'save-response',
-      label: 'Save response',
+      label: t('RESPONSE_PANE.SAVE_RESPONSE'),
       leftSection: IconBookmark,
       get disabled() {
         return bookmarkButtonRef.current?.isDisabled ?? false;
@@ -111,7 +113,7 @@ const ResponsePaneActions = ({ item, collection, responseSize, selectedFormat, s
     },
     {
       id: 'download-response',
-      label: 'Download response',
+      label: t('RESPONSE_PANE.DOWNLOAD_RESPONSE'),
       leftSection: IconDownload,
       get disabled() {
         return downloadButtonRef.current?.isDisabled ?? false;
@@ -120,7 +122,7 @@ const ResponsePaneActions = ({ item, collection, responseSize, selectedFormat, s
     },
     {
       id: 'clear-response',
-      label: 'Clear response',
+      label: t('RESPONSE_PANE.CLEAR_RESPONSE'),
       leftSection: IconEraser,
       get disabled() {
         return clearButtonRef.current?.isDisabled ?? false;
@@ -129,7 +131,7 @@ const ResponsePaneActions = ({ item, collection, responseSize, selectedFormat, s
     },
     {
       id: 'change-layout',
-      label: 'Change layout',
+      label: t('RESPONSE_PANE.CHANGE_LAYOUT'),
       leftSection: orientation === 'vertical' ? IconLayoutColumns : IconLayoutRows,
       get disabled() {
         return layoutToggleButtonRef.current?.isDisabled ?? false;
@@ -150,7 +152,7 @@ const ResponsePaneActions = ({ item, collection, responseSize, selectedFormat, s
           placement="bottom-end"
           data-testid="response-actions-menu"
         >
-          <MenuIcon />
+          <MenuIcon title={t('RESPONSE_PANE.MORE_ACTIONS')} />
         </MenuDropdown>
       </div>
       <div className="actions-buttons flex items-center gap-[2px]">

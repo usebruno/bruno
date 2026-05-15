@@ -6,9 +6,11 @@ import { useDispatch } from 'react-redux';
 import { updateRequestAuthMode } from 'providers/ReduxStore/slices/collections';
 import { humanizeRequestAuthMode } from 'utils/collections';
 import StyledWrapper from './StyledWrapper';
+import { useTranslation } from 'react-i18next';
 
 const AuthMode = ({ item, collection }) => {
   const dispatch = useDispatch();
+  const { t } = useTranslation();
   const authMode = item.draft ? get(item, 'draft.request.auth.mode') : get(item, 'request.auth.mode');
 
   const onModeChange = useCallback((value) => {
@@ -24,60 +26,60 @@ const AuthMode = ({ item, collection }) => {
   const menuItems = useMemo(() => [
     {
       id: 'awsv4',
-      label: 'AWS Sig v4',
+      label: t('REQUEST_AUTH.AWS_SIG_V4'),
       onClick: () => onModeChange('awsv4')
     },
     {
       id: 'basic',
-      label: 'Basic Auth',
+      label: t('REQUEST_AUTH.BASIC_AUTH'),
       onClick: () => onModeChange('basic')
     },
     {
       id: 'bearer',
-      label: 'Bearer Token',
+      label: t('REQUEST_AUTH.BEARER_TOKEN'),
       onClick: () => onModeChange('bearer')
     },
     {
       id: 'digest',
-      label: 'Digest Auth',
+      label: t('REQUEST_AUTH.DIGEST_AUTH'),
       onClick: () => onModeChange('digest')
     },
     {
       id: 'ntlm',
-      label: 'NTLM Auth',
+      label: t('REQUEST_AUTH.NTLM_AUTH'),
       onClick: () => onModeChange('ntlm')
     },
     {
       id: 'oauth1',
-      label: 'OAuth 1.0',
+      label: t('REQUEST_AUTH.OAUTH_1_0'),
       onClick: () => onModeChange('oauth1')
     },
     {
       id: 'oauth2',
-      label: 'OAuth 2.0',
+      label: t('REQUEST_AUTH.OAUTH_2_0'),
       onClick: () => onModeChange('oauth2')
     },
     {
       id: 'wsse',
-      label: 'WSSE Auth',
+      label: t('REQUEST_AUTH.WSSE_AUTH'),
       onClick: () => onModeChange('wsse')
     },
     {
       id: 'apikey',
-      label: 'API Key',
+      label: t('REQUEST_AUTH.API_KEY'),
       onClick: () => onModeChange('apikey')
     },
     {
       id: 'inherit',
-      label: 'Inherit',
+      label: t('REQUEST_AUTH.INHERIT'),
       onClick: () => onModeChange('inherit')
     },
     {
       id: 'none',
-      label: 'No Auth',
+      label: t('REQUEST_AUTH.NO_AUTH'),
       onClick: () => onModeChange('none')
     }
-  ], [onModeChange]);
+  ], [onModeChange, t]);
 
   return (
     <StyledWrapper>
@@ -89,7 +91,7 @@ const AuthMode = ({ item, collection }) => {
           showTickMark={true}
         >
           <div className="flex items-center justify-center auth-mode-label select-none">
-            {humanizeRequestAuthMode(authMode)} <IconCaretDown className="caret ml-1" size={14} strokeWidth={2} />
+            {humanizeRequestAuthMode(authMode, t)} <IconCaretDown className="caret ml-1" size={14} strokeWidth={2} />
           </div>
         </MenuDropdown>
       </div>

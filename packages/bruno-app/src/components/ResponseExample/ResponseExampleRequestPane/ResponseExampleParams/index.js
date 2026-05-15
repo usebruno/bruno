@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from 'providers/Theme';
 import get from 'lodash/get';
 import { moveResponseExampleParam, setResponseExampleParams } from 'providers/ReduxStore/slices/collections';
@@ -11,6 +12,7 @@ import InfoTip from 'components/InfoTip';
 import StyledWrapper from './StyledWrapper';
 
 const ResponseExampleParams = ({ editMode, item, collection, exampleUid }) => {
+  const { t } = useTranslation();
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
   const tabs = useSelector((state) => state.tabs.tabs);
@@ -195,7 +197,7 @@ const ResponseExampleParams = ({ editMode, item, collection, exampleUid }) => {
 
   return (
     <StyledWrapper className="w-full mt-4">
-      <div className="mb-3 title text-xs font-bold">Query parameters</div>
+      <div className="mb-3 title text-xs font-bold">{t('RESPONSE_EXAMPLE.QUERY_PARAMETERS')}</div>
       <EditableTable
         tableId="example-query-params"
         columns={queryColumns}
@@ -216,22 +218,17 @@ const ResponseExampleParams = ({ editMode, item, collection, exampleUid }) => {
             className="btn-action text-link select-none"
             onClick={toggleBulkEditMode}
           >
-            Bulk Edit
+            {t('RESPONSE_EXAMPLE.BULK_EDIT')}
           </button>
         </div>
       )}
       {pathParams && pathParams.length > 0 && (
         <>
           <div className="mb-3 title text-xs font-bold flex items-stretch mt-4">
-            <span>Path parameters</span>
+            <span>{t('RESPONSE_EXAMPLE.PATH_PARAMETERS')}</span>
             <InfoTip infotipId="path-param-InfoTip">
               <div>
-                Path variables are automatically added whenever the
-                <code className="font-mono mx-2">:name</code>
-                template is used in the URL. <br /> For example:
-                <code className="font-mono mx-2">
-                  https://example.com/v1/users/<span>:id</span>
-                </code>
+                {t('RESPONSE_EXAMPLE.PATH_PARAMS_HINT')}
               </div>
             </InfoTip>
           </div>

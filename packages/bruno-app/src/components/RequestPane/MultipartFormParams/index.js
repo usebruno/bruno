@@ -1,6 +1,7 @@
 import React, { useCallback, useRef } from 'react';
 import get from 'lodash/get';
 import { useDispatch, useSelector } from 'react-redux';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from 'providers/Theme';
 import { IconUpload, IconX, IconFile } from '@tabler/icons';
 import {
@@ -20,6 +21,7 @@ import { useTrackScroll } from 'hooks/useTrackScroll';
 import { isWindowsOS } from 'utils/common/platform';
 
 const MultipartFormParams = ({ item, collection }) => {
+  const { t } = useTranslation();
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
   const wrapperRef = useRef(null);
@@ -137,15 +139,15 @@ const MultipartFormParams = ({ item, collection }) => {
   const columns = [
     {
       key: 'name',
-      name: 'Key',
+      name: t('MULTIPART_FORM.KEY'),
       isKeyField: true,
-      placeholder: 'Key',
+      placeholder: t('MULTIPART_FORM.KEY'),
       width: '30%'
     },
     {
       key: 'value',
-      name: 'Value',
-      placeholder: 'Value',
+      name: t('MULTIPART_FORM.VALUE'),
+      placeholder: t('MULTIPART_FORM.VALUE'),
       width: '35%',
       render: ({ row, value, onChange }) => {
         const isFile = row.type === 'file';
@@ -166,7 +168,7 @@ const MultipartFormParams = ({ item, collection }) => {
               <button
                 className="clear-file-btn ml-1"
                 onClick={() => handleClearFile(row)}
-                title="Remove file"
+                title={t('MULTIPART_FORM.REMOVE_FILE')}
               >
                 <IconX size={16} />
               </button>
@@ -192,7 +194,7 @@ const MultipartFormParams = ({ item, collection }) => {
             <button
               className="upload-btn ml-1"
               onClick={() => handleBrowseFiles(row, onChange)}
-              title="Select file"
+              title={t('MULTIPART_FORM.SELECT_FILE')}
             >
               <IconUpload size={16} />
             </button>
@@ -202,8 +204,8 @@ const MultipartFormParams = ({ item, collection }) => {
     },
     {
       key: 'contentType',
-      name: 'Content-Type',
-      placeholder: 'Auto',
+      name: t('MULTIPART_FORM.CONTENT_TYPE'),
+      placeholder: t('MULTIPART_FORM.AUTO'),
       width: '20%',
       render: ({ value, onChange }) => (
         <SingleLineEditor

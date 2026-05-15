@@ -8,7 +8,7 @@ const Support = () => {
 
   return (
     <StyledWrapper>
-      <div className="section-header">Support</div>
+      <div className="section-header">{t('PREFERENCES.SUPPORT')}</div>
       <div className="rows">
         <div className="mb-2">
           <a href="https://docs.usebruno.com" target="_blank" className="flex items-end">

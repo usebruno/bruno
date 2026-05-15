@@ -1,5 +1,6 @@
 import React from 'react';
 import get from 'lodash/get';
+import { useTranslation } from 'react-i18next';
 import StyledWrapper from './StyledWrapper';
 import { saveCollectionSettings } from 'providers/ReduxStore/slices/collections/actions';
 import OAuth2AuthorizationCode from 'components/RequestPane/Auth/OAuth2/AuthorizationCode/index';
@@ -12,6 +13,7 @@ import GrantTypeSelector from 'components/RequestPane/Auth/OAuth2/GrantTypeSelec
 
 const GrantTypeComponentMap = ({ collection }) => {
   const dispatch = useDispatch();
+  const { t } = useTranslation();
 
   const save = () => {
     dispatch(saveCollectionSettings(collection.uid));
@@ -34,7 +36,7 @@ const GrantTypeComponentMap = ({ collection }) => {
       return <OAuth2Implicit save={save} request={request} updateAuth={updateCollectionAuth} collection={collection} />;
       break;
     default:
-      return <div>TBD</div>;
+      return <div>{t('COLLECTION_AUTH.TBD')}</div>;
       break;
   }
 };

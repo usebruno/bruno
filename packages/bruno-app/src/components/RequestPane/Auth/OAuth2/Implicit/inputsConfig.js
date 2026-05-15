@@ -1,20 +1,25 @@
-const inputsConfig = [
-  {
-    key: 'authorizationUrl',
-    label: 'Authorization URL'
-  },
-  {
-    key: 'clientId',
-    label: 'Client ID'
-  },
-  {
-    key: 'scope',
-    label: 'Scope'
-  },
-  {
-    key: 'state',
-    label: 'State'
-  }
-];
+import { useTranslation } from 'react-i18next';
 
-export { inputsConfig };
+const getInputsConfig = () => {
+  const { t } = useTranslation();
+  return [
+    {
+      key: 'authorizationUrl',
+      label: t('REQUEST_AUTH.AUTHORIZATION_URL')
+    },
+    {
+      key: 'clientId',
+      label: t('REQUEST_AUTH.CLIENT_ID')
+    },
+    {
+      key: 'scope',
+      label: t('REQUEST_AUTH.SCOPE')
+    },
+    {
+      key: 'state',
+      label: t('REQUEST_AUTH.STATE')
+    }
+  ];
+};
+
+export { getInputsConfig };

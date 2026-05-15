@@ -5,12 +5,14 @@ import get from 'lodash/get';
 import { IconDownload } from '@tabler/icons';
 import classnames from 'classnames';
 import ActionIcon from 'ui/ActionIcon/index';
+import { useTranslation } from 'react-i18next';
 
 const ResponseDownload = forwardRef(({ item, children }, ref) => {
   const { ipcRenderer } = window;
   const response = item.response || {};
   const isDisabled = !response.dataBuffer || response.stream?.running;
   const elementRef = useRef(null);
+  const { t } = useTranslation();
 
   useImperativeHandle(ref, () => ({
     click: () => elementRef.current?.click(),
@@ -26,12 +28,12 @@ const ResponseDownload = forwardRef(({ item, children }, ref) => {
         .invoke('renderer:save-response-to-file', response, item?.requestSent?.url, item.pathname)
         .then((result) => {
           if (result && result.success) {
-            toast.success('Response downloaded to file');
+            toast.success(t('RESPONSE_PANE.RESPONSE_DOWNLOADED'));
           }
           resolve();
         })
         .catch((err) => {
-          toast.error(get(err, 'error.message') || 'Something went wrong!');
+          toast.error(get(err, 'error.message') || t('RESPONSE_PANE.SOMETHING_WRONG'));
           reject(err);
         });
     });
@@ -42,7 +44,7 @@ const ResponseDownload = forwardRef(({ item, children }, ref) => {
       ref={elementRef}
       aria-disabled={isDisabled}
       onClick={saveResponseToFile}
-      title={!children ? 'Save response to file' : null}
+      title={!children ? t('RESPONSE_PANE.SAVE_RESPONSE_TO_FILE') : null}
       className={classnames({
         'opacity-50 cursor-not-allowed': isDisabled && !children
       })}

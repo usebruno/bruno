@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import ReactJson from 'react-json-view';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from 'providers/Theme';
 import {
   IconX,
@@ -205,6 +206,7 @@ const LogMessage = ({ message, args }) => {
 };
 
 const FilterDropdown = ({ filters, logCounts, onFilterToggle, onToggleAll }) => {
+  const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
 
@@ -227,11 +229,11 @@ const FilterDropdown = ({ filters, logCounts, onFilterToggle, onToggleAll }) => 
       <button
         className="filter-dropdown-trigger"
         onClick={() => setIsOpen(!isOpen)}
-        title="Filter logs by type"
+        title={t('DEVTOOLS.FILTER_LOGS_BY_TYPE')}
       >
         <IconFilter size={16} strokeWidth={1.5} />
         <span className="filter-summary">
-          {activeFilters.length === Object.keys(filters).length ? 'All' : `${activeFilters.length}/${Object.keys(filters).length}`}
+          {activeFilters.length === Object.keys(filters).length ? t('DEVTOOLS.ALL') : `${activeFilters.length}/${Object.keys(filters).length}`}
         </span>
         <IconChevronDown size={14} strokeWidth={1.5} />
       </button>
@@ -239,12 +241,12 @@ const FilterDropdown = ({ filters, logCounts, onFilterToggle, onToggleAll }) => 
       {isOpen && (
         <div className="filter-dropdown-menu right">
           <div className="filter-dropdown-header">
-            <span>Filter by Type</span>
+            <span>{t('DEVTOOLS.FILTER_BY_TYPE')}</span>
             <button
               className="filter-toggle-all"
               onClick={() => onToggleAll(!allFiltersEnabled)}
             >
-              {allFiltersEnabled ? 'Hide All' : 'Show All'}
+              {allFiltersEnabled ? t('DEVTOOLS.HIDE_ALL') : t('DEVTOOLS.SHOW_ALL')}
             </button>
           </div>
 
@@ -271,6 +273,7 @@ const FilterDropdown = ({ filters, logCounts, onFilterToggle, onToggleAll }) => 
 };
 
 const NetworkFilterDropdown = ({ filters, requestCounts, onFilterToggle, onToggleAll }) => {
+  const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
 
@@ -293,11 +296,11 @@ const NetworkFilterDropdown = ({ filters, requestCounts, onFilterToggle, onToggl
       <button
         className="filter-dropdown-trigger"
         onClick={() => setIsOpen(!isOpen)}
-        title="Filter requests by method"
+        title={t('DEVTOOLS.FILTER_REQUESTS_BY_METHOD')}
       >
         <IconFilter size={16} strokeWidth={1.5} />
         <span className="filter-summary">
-          {activeFilters.length === Object.keys(filters).length ? 'All' : `${activeFilters.length}/${Object.keys(filters).length}`}
+          {activeFilters.length === Object.keys(filters).length ? t('DEVTOOLS.ALL') : `${activeFilters.length}/${Object.keys(filters).length}`}
         </span>
         <IconChevronDown size={14} strokeWidth={1.5} />
       </button>
@@ -305,12 +308,12 @@ const NetworkFilterDropdown = ({ filters, requestCounts, onFilterToggle, onToggl
       {isOpen && (
         <div className="filter-dropdown-menu right">
           <div className="filter-dropdown-header">
-            <span>Filter by Method</span>
+            <span>{t('DEVTOOLS.FILTER_BY_METHOD')}</span>
             <button
               className="filter-toggle-all"
               onClick={() => onToggleAll(!allFiltersEnabled)}
             >
-              {allFiltersEnabled ? 'Hide All' : 'Show All'}
+              {allFiltersEnabled ? t('DEVTOOLS.HIDE_ALL') : t('DEVTOOLS.SHOW_ALL')}
             </button>
           </div>
 
@@ -336,6 +339,7 @@ const NetworkFilterDropdown = ({ filters, requestCounts, onFilterToggle, onToggl
 };
 
 const ConsoleTab = ({ logs, filters, logCounts, onFilterToggle, onToggleAll, onClearLogs }) => {
+  const { t } = useTranslation();
   const logsEndRef = useRef(null);
   const prevLogsCountRef = useRef(0);
 
@@ -355,8 +359,8 @@ const ConsoleTab = ({ logs, filters, logCounts, onFilterToggle, onToggleAll, onC
         {filteredLogs.length === 0 ? (
           <div className="console-empty">
             <IconTerminal2 size={48} strokeWidth={1} />
-            <p>No logs to display</p>
-            <span>Logs will appear here as your application runs</span>
+            <p>{t('DEVTOOLS.NO_LOGS')}</p>
+            <span>{t('DEVTOOLS.NO_LOGS_DESC')}</span>
           </div>
         ) : (
           <div className="logs-container">
@@ -378,6 +382,7 @@ const ConsoleTab = ({ logs, filters, logCounts, onFilterToggle, onToggleAll, onC
 };
 
 const Console = () => {
+  const { t } = useTranslation();
   const dispatch = useDispatch();
   const { logs, filters, activeTab, selectedRequest, selectedError, networkFilters, debugErrors } = useSelector((state) => state.logs);
   const collections = useSelector((state) => state.collections.collections);
@@ -504,7 +509,7 @@ const Console = () => {
               <button
                 className="control-button"
                 onClick={handleClearLogs}
-                title="Clear all logs"
+                title={t('DEVTOOLS.CLEAR_ALL_LOGS')}
               >
                 <IconTrash size={16} strokeWidth={1.5} />
               </button>
@@ -560,7 +565,7 @@ const Console = () => {
             onClick={() => handleTabChange('console')}
           >
             <IconTerminal2 size={16} strokeWidth={1.5} />
-            <span>Console</span>
+            <span>{t('DEVTOOLS.TAB_CONSOLE')}</span>
           </button>
 
           <button
@@ -568,7 +573,7 @@ const Console = () => {
             onClick={() => handleTabChange('network')}
           >
             <IconNetwork size={16} strokeWidth={1.5} />
-            <span>Network</span>
+            <span>{t('DEVTOOLS.TAB_NETWORK')}</span>
           </button>
 
           <button
@@ -576,7 +581,7 @@ const Console = () => {
             onClick={() => handleTabChange('performance')}
           >
             <IconDashboard size={16} strokeWidth={1.5} />
-            <span>Performance</span>
+            <span>{t('DEVTOOLS.TAB_PERFORMANCE')}</span>
           </button>
 
           <button
@@ -584,7 +589,7 @@ const Console = () => {
             onClick={() => handleTabChange('terminal')}
           >
             <IconTerminal2 size={16} strokeWidth={1.5} />
-            <span>Terminal</span>
+            <span>{t('DEVTOOLS.TAB_TERMINAL')}</span>
           </button>
 
           {/* <button
@@ -601,7 +606,7 @@ const Console = () => {
           <button
             className="control-button close-button"
             onClick={handlecloseConsole}
-            title="Close console"
+            title={t('DEVTOOLS.CLOSE_CONSOLE')}
           >
             <IconX size={16} strokeWidth={1.5} />
           </button>

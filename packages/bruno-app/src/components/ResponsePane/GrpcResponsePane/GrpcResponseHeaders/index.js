@@ -1,7 +1,9 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import StyledWrapper from './StyledWrapper';
 
 const GrpcResponseHeaders = ({ metadata }) => {
+  const { t } = useTranslation();
   // Ensure headers is an array
   const metadataArray = Array.isArray(metadata) ? metadata : [];
 
@@ -10,8 +12,8 @@ const GrpcResponseHeaders = ({ metadata }) => {
       <table>
         <thead>
           <tr>
-            <td>Name</td>
-            <td>Value</td>
+            <td>{t('GRPC_RESPONSE.NAME')}</td>
+            <td>{t('GRPC_RESPONSE.VALUE')}</td>
           </tr>
         </thead>
         <tbody>
@@ -25,7 +27,7 @@ const GrpcResponseHeaders = ({ metadata }) => {
           ) : (
             <tr>
               <td colSpan="2" className="text-center py-4 empty-message">
-                No metadata received
+                {t('GRPC_RESPONSE.NO_METADATA_RECEIVED')}
               </td>
             </tr>
           )}

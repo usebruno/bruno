@@ -1,9 +1,11 @@
 import React from 'react';
 import classnames from 'classnames';
+import { useTranslation } from 'react-i18next';
 import grpcStatusCodePhraseMap from './get-grpc-status-code-phrase';
 import StyledWrapper from './StyledWrapper';
 
 const GrpcStatusCode = ({ status, text }) => {
+  const { t } = useTranslation();
   // gRPC status codes: 0 is success, anything else is an error
   const getTabClassname = (status) => {
     const isPending = text === 'PENDING' || text === 'STREAMING';
@@ -14,7 +16,7 @@ const GrpcStatusCode = ({ status, text }) => {
     });
   };
 
-  const statusText = text || grpcStatusCodePhraseMap[status];
+  const statusText = text ? t(`GRPC_RESPONSE.STATUS_${text}`) : grpcStatusCodePhraseMap[status];
 
   return (
     <StyledWrapper className={getTabClassname(status)}>

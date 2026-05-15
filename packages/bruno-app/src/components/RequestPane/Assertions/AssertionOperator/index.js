@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 
 /**
  * Assertion operators
@@ -34,6 +35,7 @@ import React from 'react';
  */
 
 const AssertionOperator = ({ operator, onChange }) => {
+  const { t } = useTranslation();
   const operators = [
     'eq',
     'neq',
@@ -72,9 +74,9 @@ const AssertionOperator = ({ operator, onChange }) => {
   const getLabel = (operator) => {
     switch (operator) {
       case 'eq':
-        return 'equals';
+        return t('ASSERTIONS.OP_EQUALS');
       case 'neq':
-        return 'notEquals';
+        return t('ASSERTIONS.OP_NOT_EQUALS');
       default:
         return operator;
     }

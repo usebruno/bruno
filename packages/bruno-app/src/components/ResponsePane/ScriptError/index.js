@@ -8,6 +8,7 @@ import { normalizePath } from 'utils/common/path';
 import { addTab, updateRequestPaneTab, updateScriptPaneTab } from 'providers/ReduxStore/slices/tabs';
 import { updateSettingsSelectedTab, updatedFolderSettingsSelectedTab } from 'providers/ReduxStore/slices/collections';
 import StyledWrapper from './StyledWrapper';
+import { useTranslation } from 'react-i18next';
 
 /**
  * Determines the source of a script error (request, folder, or collection)
@@ -16,9 +17,9 @@ import StyledWrapper from './StyledWrapper';
  * Bruno executes scripts at three levels in order: collection -> folder -> request.
  * When an error occurs, the filePath tells us which level it came from:
  *
- *   filePath: "echo json.bru"          -> request-level  -> { sourceType: 'request',    label: 'Request' }
- *   filePath: "auth/folder.bru"        -> folder-level   -> { sourceType: 'folder',     label: 'Folder: auth', sourceUid: 'f1' }
- *   filePath: "collection.bru"         -> collection-level -> { sourceType: 'collection', label: 'Collection' }
+ *   filePath: "echo json.bru"          -> request-level  -> { sourceType: 'request',    labelKey: 'REQUEST' }
+ *   filePath: "auth/folder.bru"        -> folder-level   -> { sourceType: 'folder',     labelKey: 'FOLDER', folderName: 'auth', sourceUid: 'f1' }
+ *   filePath: "collection.bru"         -> collection-level -> { sourceType: 'collection', labelKey: 'COLLECTION' }
  *
  * For folder-level errors, this function walks the tree path from collection to
  * the current item to match the folder by its relative path, resolving its UID
@@ -29,7 +30,7 @@ import StyledWrapper from './StyledWrapper';
  * @param {object} item - The current request item
  * @param {object} collection - The parent collection (needs .pathname for folder matching)
  * @param {function} getTreePath - Function to get the tree path from collection root to item
- * @returns {{ sourceType: string, label: string, sourceUid?: string } | null}
+ * @returns {{ sourceType: string, labelKey: string, folderName?: string, sourceUid?: string } | null}
  */
 const getErrorSourceInfo = (filePath, item, collection, getTreePath) => {
   if (!filePath) return null;
@@ -44,7 +45,7 @@ const getErrorSourceInfo = (filePath, item, collection, getTreePath) => {
 
   // Folder level (check before collection to avoid folder.yml matching as collection)
   if (isFolderFile) {
-    const info = { sourceType: 'folder', label: 'Folder' };
+    const info = { sourceType: 'folder', labelKey: 'FOLDER' };
     const folderFileName = normalizedPath.split('/').pop();
 
     // Try to find the folder UID and name from the tree path
@@ -60,7 +61,8 @@ const getErrorSourceInfo = (filePath, item, collection, getTreePath) => {
               : folderFileName;
             if (folderRelPath === normalizedPath) {
               info.sourceUid = node.uid;
-              info.label = `Folder: ${node.name}`;
+              info.labelKey = 'FOLDER_WITH_NAME';
+              info.folderName = node.name;
               break;
             }
           }
@@ -73,14 +75,14 @@ const getErrorSourceInfo = (filePath, item, collection, getTreePath) => {
 
   // Collection level
   if (isCollectionFile) {
-    return { sourceType: 'collection', label: 'Collection' };
+    return { sourceType: 'collection', labelKey: 'COLLECTION' };
   }
 
   // Request level
-  return { sourceType: 'request', label: 'Request' };
+  return { sourceType: 'request', labelKey: 'REQUEST' };
 };
 
-const ScriptErrorCard = ({ title, message, errorContext, item, collection, scriptPhase, onClose }) => {
+const ScriptErrorCard = ({ title, message, errorContext, item, collection, scriptPhase, onClose, t }) => {
   const dispatch = useDispatch();
   const [showStack, setShowStack] = useState(false);
 
@@ -92,6 +94,14 @@ const ScriptErrorCard = ({ title, message, errorContext, item, collection, scrip
     collection,
     getTreePathFromCollectionToItem
   );
+
+  const getSourceLabel = () => {
+    if (!sourceInfo) return null;
+    if (sourceInfo.labelKey === 'FOLDER_WITH_NAME') {
+      return t('RESPONSE_PANE.FOLDER_WITH_NAME', { name: sourceInfo.folderName });
+    }
+    return t(`RESPONSE_PANE.${sourceInfo.labelKey}`);
+  };
 
   const canNavigate = sourceInfo
     && collection?.uid
@@ -154,7 +164,7 @@ const ScriptErrorCard = ({ title, message, errorContext, item, collection, scrip
         </div>
         {(sourceInfo || displayFilePath) && (
           <div className="script-error-source-label" data-testid="script-error-source-label">
-            {sourceInfo && <span>{sourceInfo.label}</span>}
+            {sourceInfo && <span>{getSourceLabel()}</span>}
             {displayFilePath && (
               <span
                 className={`script-error-file-path${canNavigate ? ' navigable' : ''}`}
@@ -163,7 +173,7 @@ const ScriptErrorCard = ({ title, message, errorContext, item, collection, scrip
                 tabIndex={canNavigate ? 0 : undefined}
                 onClick={handleNavigate}
                 onKeyDown={handleNavigateKeyDown}
-                title={canNavigate ? `Open ${displayFilePath}` : undefined}
+                title={canNavigate ? t('RESPONSE_PANE.OPEN_FILE', { path: displayFilePath }) : undefined}
               >
                 <span>{displayFilePath}</span>
                 {canNavigate && <IconExternalLink size={12} className="flex-shrink-0" />}
@@ -173,7 +183,7 @@ const ScriptErrorCard = ({ title, message, errorContext, item, collection, scrip
         )}
         <CodeSnippet lines={errorContext.lines} variant="error" />
         <div className="script-error-message" data-testid="script-error-message">
-          {errorContext.errorType || 'Error'}: {message}
+          {errorContext.errorType || t('RESPONSE_PANE.ERROR')}: {message}
         </div>
         {errorContext.stack && (
           <div>
@@ -182,10 +192,10 @@ const ScriptErrorCard = ({ title, message, errorContext, item, collection, scrip
               data-testid="script-error-stack-toggle"
               onClick={() => setShowStack(!showStack)}
               aria-expanded={showStack}
-              aria-label={`${showStack ? 'Hide' : 'Show'} stack trace`}
+              aria-label={`${showStack ? t('RESPONSE_PANE.HIDE') : t('RESPONSE_PANE.SHOW')} ${t('RESPONSE_PANE.STACK_TRACE')}`}
             >
               {showStack ? <IconChevronDown size={14} /> : <IconChevronRight size={14} />}
-              <span>{showStack ? 'Hide' : 'Show'} stack trace</span>
+              <span>{showStack ? t('RESPONSE_PANE.HIDE') : t('RESPONSE_PANE.SHOW')} {t('RESPONSE_PANE.STACK_TRACE')}</span>
             </button>
             {showStack && (
               <pre className="script-error-stack" data-testid="script-error-stack">{errorContext.stack}</pre>
@@ -201,6 +211,7 @@ const ScriptError = ({ item, collection, onClose }) => {
   const preRequestError = item?.preRequestScriptErrorMessage;
   const postResponseError = item?.postResponseScriptErrorMessage;
   const testScriptError = item?.testScriptErrorMessage;
+  const { t } = useTranslation();
 
   if (!preRequestError && !postResponseError && !testScriptError) return null;
 
@@ -213,9 +224,9 @@ const ScriptError = ({ item, collection, onClose }) => {
   // If no error context available for any error, fall back to ErrorBanner
   if (!hasAnyContext) {
     const errors = [];
-    if (preRequestError) errors.push({ title: 'Pre-Request Script Error', message: preRequestError });
-    if (postResponseError) errors.push({ title: 'Post-Response Script Error', message: postResponseError });
-    if (testScriptError) errors.push({ title: 'Test Script Error', message: testScriptError });
+    if (preRequestError) errors.push({ title: t('RESPONSE_PANE.PRE_REQUEST_SCRIPT_ERROR'), message: preRequestError });
+    if (postResponseError) errors.push({ title: t('RESPONSE_PANE.POST_RESPONSE_SCRIPT_ERROR'), message: postResponseError });
+    if (testScriptError) errors.push({ title: t('RESPONSE_PANE.TEST_SCRIPT_ERROR'), message: testScriptError });
     return <ErrorBanner errors={errors} onClose={onClose} className="mb-2" />;
   }
 
@@ -223,35 +234,38 @@ const ScriptError = ({ item, collection, onClose }) => {
     <div className="mb-2 flex flex-col gap-2">
       {preRequestError && (
         <ScriptErrorCard
-          title="Pre-Request Script Error"
+          title={t('RESPONSE_PANE.PRE_REQUEST_SCRIPT_ERROR')}
           message={preRequestError}
           errorContext={preRequestContext}
           item={item}
           collection={collection}
           scriptPhase="pre-request"
           onClose={onClose}
+          t={t}
         />
       )}
       {postResponseError && (
         <ScriptErrorCard
-          title="Post-Response Script Error"
+          title={t('RESPONSE_PANE.POST_RESPONSE_SCRIPT_ERROR')}
           message={postResponseError}
           errorContext={postResponseContext}
           item={item}
           collection={collection}
           scriptPhase="post-response"
           onClose={onClose}
+          t={t}
         />
       )}
       {testScriptError && (
         <ScriptErrorCard
-          title="Test Script Error"
+          title={t('RESPONSE_PANE.TEST_SCRIPT_ERROR')}
           message={testScriptError}
           errorContext={testContext}
           item={item}
           collection={collection}
           scriptPhase="test"
           onClose={onClose}
+          t={t}
         />
       )}
     </div>

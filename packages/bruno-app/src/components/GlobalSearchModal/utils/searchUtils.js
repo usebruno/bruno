@@ -62,11 +62,11 @@ export const sortResults = (results) => {
   });
 };
 
-export const getTypeLabel = (type) => {
+export const getTypeLabel = (type, t) => {
   const baseLabels = {
-    [SEARCH_TYPES.DOCUMENTATION]: 'Documentation',
-    [SEARCH_TYPES.COLLECTION]: 'Collection',
-    [SEARCH_TYPES.FOLDER]: 'Folder'
+    [SEARCH_TYPES.DOCUMENTATION]: t ? t('GLOBAL_SEARCH.TYPE_DOCUMENTATION') : 'Documentation',
+    [SEARCH_TYPES.COLLECTION]: t ? t('GLOBAL_SEARCH.TYPE_COLLECTION') : 'Collection',
+    [SEARCH_TYPES.FOLDER]: t ? t('GLOBAL_SEARCH.TYPE_FOLDER') : 'Folder'
   };
 
   return baseLabels[type] || '';

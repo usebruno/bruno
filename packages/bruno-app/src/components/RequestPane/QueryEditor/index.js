@@ -10,6 +10,7 @@ import isEqual from 'lodash/isEqual';
 import MD from 'markdown-it';
 import { format } from 'prettier/standalone';
 import prettierPluginGraphql from 'prettier/parser-graphql';
+import { useTranslation } from 'react-i18next';
 import { getAllVariables } from 'utils/collections';
 import { PLACEHOLDER } from 'utils/graphql/queryBuilder';
 import toast from 'react-hot-toast';
@@ -41,9 +42,10 @@ const createSafeGraphQLLinter = () => {
   };
 };
 
-export default class QueryEditor extends React.Component {
+class QueryEditor extends React.Component {
   constructor(props) {
     super(props);
+    this.t = props.t;
 
     // Keep a cached version of the value, this cache will be updated when the
     // editor is updated, which can later be used to protect the editor from
@@ -212,9 +214,9 @@ export default class QueryEditor extends React.Component {
       prettyQuery = prettyQuery.replace(/\{\s*__empty:\s*true\s*\}/g, '{}');
 
       this.editor.setValue(prettyQuery);
-      toast.success('Query prettified');
+      toast.success(this.t ? this.t('QUERY_EDITOR.PRETTIFY_SUCCESS') : 'Query prettified');
     } catch (e) {
-      toast.error('Error occurred while prettifying GraphQL query');
+      toast.error(this.t ? this.t('QUERY_EDITOR.PRETTIFY_ERROR') : 'Error occurred while prettifying GraphQL query');
     }
   };
 
@@ -231,7 +233,7 @@ export default class QueryEditor extends React.Component {
     return (
       <StyledWrapper
         className="h-full w-full flex flex-col relative graphiql-container"
-        aria-label="Query Editor"
+        aria-label={this.t ? this.t('QUERY_EDITOR.ARIA_LABEL') : 'Query Editor'}
         font={this.props.font}
         fontSize={this.props.fontSize}
         ref={(node) => {
@@ -271,7 +273,7 @@ export default class QueryEditor extends React.Component {
     const normalizeWhitespace = (line) => {
       // Unicode whitespace characters that break the interface.
       const invalidCharacters = Array.from({ length: 11 }, (_, i) => {
-        // \u2000 -> \u200a
+        // \u2000 ->
         return String.fromCharCode(0x2000 + i);
       }).concat(['\u2028', '\u2029', '\u202f', '\u00a0']);
 
@@ -286,3 +288,11 @@ export default class QueryEditor extends React.Component {
     }
   }
 }
+
+const QueryEditorWithTranslation = (props) => {
+  const { t } = useTranslation();
+  return <QueryEditor {...props} t={t} />;
+};
+
+export default QueryEditorWithTranslation;
+export { QueryEditor };

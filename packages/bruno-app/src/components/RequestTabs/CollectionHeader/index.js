@@ -37,7 +37,10 @@ import { useTheme } from 'providers/Theme';
 import { useBetaFeature, BETA_FEATURES } from 'utils/beta-features';
 import StatusBadge from 'ui/StatusBadge/index';
 
+import { useTranslation } from 'react-i18next';
+
 const CollectionHeader = ({ collection, isScratchCollection }) => {
+  const { t } = useTranslation();
   const dispatch = useDispatch();
   const workspaces = useSelector((state) => state.workspaces.workspaces);
   const activeWorkspaceUid = useSelector((state) => state.workspaces.activeWorkspaceUid);
@@ -222,11 +225,11 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
 
   // Build overflow menu items for the "..." dropdown
   const overflowMenuItems = [
-    { id: 'variables', label: 'Variables', leftSection: IconEye, onClick: viewVariables },
+    { id: 'variables', label: t('REQUEST_TABS.VARIABLES'), leftSection: IconEye, onClick: viewVariables },
     ...(isOpenAPISyncEnabled && !hasOpenApiSyncConfigured
-      ? [{ id: 'openapi-sync', label: 'OpenAPI', leftSection: OpenAPISyncIcon, rightSection: <StatusBadge status="info" size="xs">Beta</StatusBadge>, onClick: viewOpenApiSync }]
+      ? [{ id: 'openapi-sync', label: 'OpenAPI', leftSection: OpenAPISyncIcon, rightSection: <StatusBadge status="info" size="xs">{t('REQUEST_TABS.BETA')}</StatusBadge>, onClick: viewOpenApiSync }]
       : []),
-    { id: 'collection-settings', label: 'Collection Settings', leftSection: IconSettings, onClick: viewCollectionSettings }
+    { id: 'collection-settings', label: t('REQUEST_TABS.COLLECTION_SETTINGS'), leftSection: IconSettings, onClick: viewCollectionSettings }
   ];
 
   // Workspace action handlers (only used when isScratchCollection is true)
@@ -240,7 +243,7 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
   const handleCloseWorkspaceClick = () => {
     workspaceActionsRef.current?.hide();
     if (currentWorkspace?.type === 'default') {
-      toast.error('Cannot close the default workspace');
+      toast.error(t('REQUEST_TABS.CANNOT_CLOSE_DEFAULT_WORKSPACE'));
       return;
     }
     setCloseWorkspaceModalOpen(true);
@@ -251,7 +254,7 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
     const pathname = currentWorkspace?.pathname;
     if (pathname) {
       dispatch(showInFolder(pathname)).catch(() => {
-        toast.error('Error opening the folder');
+        toast.error(t('REQUEST_TABS.ERROR_OPENING_FOLDER'));
       });
     }
   };
@@ -264,21 +267,21 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
     dispatch(exportWorkspaceAction(uid))
       .then((result) => {
         if (!result?.canceled) {
-          toast.success('Workspace exported successfully');
+          toast.success(t('REQUEST_TABS.WORKSPACE_EXPORTED_SUCCESS'));
         }
       })
       .catch((error) => {
-        toast.error(error?.message || 'Error exporting workspace');
+        toast.error(error?.message || t('REQUEST_TABS.ERROR_EXPORTING_WORKSPACE'));
       });
   };
 
   const validateWorkspaceName = (name) => {
     const trimmed = name?.trim();
     if (!trimmed) {
-      return 'Name is required';
+      return t('REQUEST_TABS.NAME_REQUIRED');
     }
     if (trimmed.length > 255) {
-      return 'Must be 255 characters or less';
+      return t('REQUEST_TABS.NAME_MAX_255');
     }
     return null;
   };
@@ -296,7 +299,7 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
         dispatch(cancelWorkspaceCreation(currentWorkspace.uid));
         return;
       }
-      setWorkspaceNameError('Name is required');
+      setWorkspaceNameError(t('REQUEST_TABS.NAME_REQUIRED'));
       return;
     }
 
@@ -320,10 +323,10 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
           setIsRenamingWorkspace(false);
           setWorkspaceNameInput('');
           setWorkspaceNameError('');
-          toast.success('Workspace created!');
+          toast.success(t('REQUEST_TABS.WORKSPACE_CREATED'));
         })
         .catch((err) => {
-          toast.error(err?.message || 'An error occurred while creating the workspace');
+          toast.error(err?.message || t('REQUEST_TABS.ERROR_CREATING_WORKSPACE'));
         })
         .finally(() => {
           isSavingRef.current = false;
@@ -331,14 +334,14 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
     } else {
       dispatch(renameWorkspaceAction(uid, workspaceNameInput))
         .then(() => {
-          toast.success('Workspace renamed!');
+          toast.success(t('REQUEST_TABS.WORKSPACE_RENAMED'));
           setIsRenamingWorkspace(false);
           setWorkspaceNameInput('');
           setWorkspaceNameError('');
         })
         .catch((err) => {
-          toast.error(err?.message || 'An error occurred while renaming the workspace');
-          setWorkspaceNameError(err?.message || 'Failed to rename workspace');
+          toast.error(err?.message || t('REQUEST_TABS.ERROR_RENAMING_WORKSPACE'));
+          setWorkspaceNameError(err?.message || t('REQUEST_TABS.FAILED_RENAME_WORKSPACE'));
         })
         .finally(() => {
           isSavingRef.current = false;
@@ -440,7 +443,7 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
                     className="cog-btn"
                     onMouseDown={(e) => e.preventDefault()}
                     onClick={handleOpenAdvancedCreate}
-                    title="Advanced options"
+                    title={t('REQUEST_TABS.ADVANCED_OPTIONS')}
                   >
                     <IconSettings size={13} strokeWidth={1.5} />
                   </button>
@@ -451,7 +454,7 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
                   className="inline-action-btn save"
                   onClick={handleSaveWorkspaceRename}
                   onMouseDown={(e) => e.preventDefault()}
-                  title={currentWorkspace?.isCreating ? 'Create' : 'Save'}
+                  title={currentWorkspace?.isCreating ? t('REQUEST_TABS.CREATE') : t('REQUEST_TABS.SAVE')}
                 >
                   <IconCheck size={14} strokeWidth={2} />
                 </button>
@@ -459,7 +462,7 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
                   className="inline-action-btn cancel"
                   onClick={handleCancelWorkspaceRename}
                   onMouseDown={(e) => e.preventDefault()}
-                  title="Cancel"
+                  title={t('REQUEST_TABS.CANCEL')}
                 >
                   <IconX size={14} strokeWidth={2} />
                 </button>
@@ -591,8 +594,8 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
               </ToolHint>
             )}
             {/* Runner - always visible */}
-            <ToolHint text="Runner" toolhintId="RunnerToolhintId" place="bottom">
-              <ActionIcon onClick={handleRun} aria-label="Runner" size="sm" data-testid="runner">
+            <ToolHint text={t('REQUEST_TABS.RUNNER')} toolhintId="RunnerToolhintId" place="bottom">
+              <ActionIcon onClick={handleRun} aria-label={t('REQUEST_TABS.RUNNER')} size="sm" data-testid="runner">
                 <IconRun size={16} strokeWidth={1.5} />
               </ActionIcon>
             </ToolHint>
@@ -600,7 +603,11 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
             <JsSandboxMode collection={collection} />
             {/* Overflow menu */}
             <MenuDropdown items={overflowMenuItems} placement="bottom-end" data-testid="more-actions">
-              <ActionIcon label="More actions" size="sm" style={{ border: `1px solid ${theme.border.border1}`, borderRadius: theme.border.radius.base, width: 24, marginRight: 4, marginLeft: 4 }}>
+              <ActionIcon
+                label={t('REQUEST_TABS.MORE_ACTIONS')}
+                size="sm"
+                style={{ border: `1px solid ${theme.border.border1}`, borderRadius: theme.border.radius.base, width: 24, marginRight: 4, marginLeft: 4 }}
+              >
                 <IconDots size={16} strokeWidth={1.5} />
               </ActionIcon>
             </MenuDropdown>

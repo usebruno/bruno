@@ -77,7 +77,7 @@ const StyledSessionList = styled.div`
   }
 `;
 
-const SessionList = ({ sessions, activeSessionId, onSelectSession, onCloseSession }) => {
+const SessionList = ({ sessions, activeSessionId, onSelectSession, onCloseSession, t }) => {
   const getSessionDisplayInfo = (session) => {
     if (session.name) {
       return { name: session.name };
@@ -95,20 +95,20 @@ const SessionList = ({ sessions, activeSessionId, onSelectSession, onCloseSessio
 
       // If it's root or home directory
       if (normalizedPath === '' || normalizedPath === '/' || normalizedPath.match(/^[A-Z]:\/?$/)) {
-        return { name: 'Root' };
+        return { name: t('DEVTOOLS.ROOT') };
       }
     }
 
     // Fallback: use a cool name based on session ID
     const shortId = session.sessionId.split('_')[1]?.slice(-6) || session.sessionId.slice(-6);
-    return { name: `Terminal ${shortId}` };
+    return { name: `${t('DEVTOOLS.TAB_TERMINAL')} ${shortId}` };
   };
 
   const getFullPath = (session) => {
     if (session.cwd) {
       return session.cwd;
     }
-    return '~ (Home Directory)';
+    return t('DEVTOOLS.HOME_DIRECTORY');
   };
 
   return (

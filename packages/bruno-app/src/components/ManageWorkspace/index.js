@@ -16,9 +16,11 @@ import StyledWrapper from './StyledWrapper';
 import MenuDropdown from 'ui/MenuDropdown/index';
 import Button from 'ui/Button';
 import { getRevealInFolderLabel } from 'utils/common/platform';
+import { useTranslation } from 'react-i18next';
 
 const ManageWorkspace = () => {
   const dispatch = useDispatch();
+  const { t } = useTranslation();
   const { workspaces, activeWorkspaceUid } = useSelector((state) => state.workspaces);
   const preferences = useSelector((state) => state.app.preferences);
 
@@ -38,13 +40,13 @@ const ManageWorkspace = () => {
   const handleOpenWorkspace = (workspace) => {
     dispatch(switchWorkspace(workspace.uid));
     dispatch(showHomePage());
-    toast.success(`Switched to ${workspace.name}`);
+    toast.success(`${t('MANAGE_WORKSPACE.SWITCHED_TO')} ${workspace.name}`);
   };
 
   const handleShowInFolder = (workspace) => {
     if (workspace.pathname) {
       dispatch(showInFolder(workspace.pathname)).catch(() => {
-        toast.error('Error opening the folder');
+        toast.error(t('MANAGE_WORKSPACE.OPEN_FOLDER_ERROR'));
       });
     }
   };
@@ -55,7 +57,7 @@ const ManageWorkspace = () => {
 
   const handleCloseClick = (workspace) => {
     if (workspace.type === 'default') {
-      toast.error('Cannot remove the default workspace');
+      toast.error(t('MANAGE_WORKSPACE.CANNOT_REMOVE_DEFAULT'));
       return;
     }
     setDeleteWorkspaceModal({ open: true, workspace });
@@ -71,7 +73,7 @@ const ManageWorkspace = () => {
     try {
       await dispatch(createWorkspaceWithUniqueName(defaultLocation));
     } catch (error) {
-      toast.error(error?.message || 'Failed to create workspace');
+      toast.error(error?.message || t('MANAGE_WORKSPACE.CREATE_ERROR'));
     }
   };
 
@@ -100,17 +102,17 @@ const ManageWorkspace = () => {
           <div className="back-button" onClick={handleBack}>
             <IconArrowLeft size={18} strokeWidth={1.5} />
           </div>
-          <span className="header-title">Manage Workspace</span>
+          <span className="header-title">{t('MANAGE_WORKSPACE.TITLE')}</span>
         </div>
         <Button size="sm" onClick={handleCreateWorkspace} icon={<IconPlus size={14} strokeWidth={2} />}>
-          Create Workspace
+          {t('MANAGE_WORKSPACE.CREATE_WORKSPACE')}
         </Button>
       </div>
 
       <div className="workspace-list">
         {sortedWorkspaces.length === 0 ? (
           <div className="empty-state">
-            <span>No workspaces found</span>
+            <span>{t('MANAGE_WORKSPACE.NO_WORKSPACES')}</span>
           </div>
         ) : (
           sortedWorkspaces.map((workspace) => {
@@ -129,7 +131,7 @@ const ManageWorkspace = () => {
                       )}
                     </span>
                     <span className="workspace-name">{workspace.name}</span>
-                    {isDefault && <span className="default-badge">Default</span>}
+                    {isDefault && <span className="default-badge">{t('MANAGE_WORKSPACE.DEFAULT')}</span>}
                   </div>
                   {workspace.pathname && (
                     <div className="workspace-path">{workspace.pathname}</div>
@@ -142,7 +144,7 @@ const ManageWorkspace = () => {
                     onClick={() => handleOpenWorkspace(workspace)}
                   >
                     <IconLogin size={14} strokeWidth={1.5} />
-                    <span>Open</span>
+                    <span>{t('MANAGE_WORKSPACE.OPEN')}</span>
                   </button>
                   {workspace.pathname && workspace.type !== 'default' && (
                     <button
@@ -150,15 +152,15 @@ const ManageWorkspace = () => {
                       onClick={() => handleShowInFolder(workspace)}
                     >
                       <IconFolder size={14} strokeWidth={1.5} />
-                      <span>{getRevealInFolderLabel()}</span>
+                      <span>{t('COLLECTION.SHOW_IN_FOLDER')}</span>
                     </button>
                   )}
                   {!isDefault && (
                     <MenuDropdown
                       placement="bottom-end"
                       items={[
-                        { id: 'rename', label: 'Rename', onClick: () => handleRenameClick(workspace) },
-                        { id: 'remove', label: 'Remove', onClick: () => handleCloseClick(workspace) }
+                        { id: 'rename', label: t('MANAGE_WORKSPACE.RENAME'), onClick: () => handleRenameClick(workspace) },
+                        { id: 'remove', label: t('MANAGE_WORKSPACE.REMOVE'), onClick: () => handleCloseClick(workspace) }
                       ]}
                     >
                       <button className="more-actions-btn">

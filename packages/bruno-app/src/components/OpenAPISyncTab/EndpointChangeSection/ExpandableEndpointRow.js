@@ -13,9 +13,11 @@ import { formatIpcError } from 'utils/common/error';
 import StatusBadge from 'ui/StatusBadge';
 import Help from 'components/Help';
 import EndpointVisualDiff from './EndpointVisualDiff';
+import { useTranslation } from 'react-i18next';
 
 // Expandable row - can be used with or without decision buttons
 const ExpandableEndpointRow = ({ endpoint, decision, onDecisionChange, collectionPath, newSpec, showDecisions = true, decisionLabels, diffLeftLabel, diffRightLabel, swapDiffSides, collectionUid, actions }) => {
+  const { t } = useTranslation();
   const dispatch = useDispatch();
   const rowKey = endpoint.id || `${endpoint.method}-${endpoint.path}`;
   const isExpanded = useSelector((state) => {
@@ -45,7 +47,7 @@ const ExpandableEndpointRow = ({ endpoint, decision, onDecisionChange, collectio
         setDiffData(result);
       }
     } catch (err) {
-      setError(formatIpcError(err) || 'Failed to load diff data');
+      setError(formatIpcError(err) || t('OPENAPI_SYNC.FAILED_LOAD_DIFF'));
     } finally {
       setIsLoading(false);
     }
@@ -94,11 +96,11 @@ const ExpandableEndpointRow = ({ endpoint, decision, onDecisionChange, collectio
             status="danger"
             rightSection={(
               <Help icon="info" size={11} placement="top" width={250}>
-                This endpoint was modified in both the spec and your collection. Choose which version to keep.
+                {t('OPENAPI_SYNC.CONFLICT_HELP')}
               </Help>
             )}
           >
-            Conflict
+            {t('OPENAPI_SYNC.CONFLICT')}
           </StatusBadge>
         )}
 
@@ -109,16 +111,16 @@ const ExpandableEndpointRow = ({ endpoint, decision, onDecisionChange, collectio
             <button
               className={`decision-btn keep ${decision === 'keep-mine' ? 'selected' : ''}`}
               onClick={() => onDecisionChange('keep-mine')}
-              title="Keep your local version"
+              title={t('OPENAPI_SYNC.KEEP_LOCAL_VERSION')}
             >
-              <IconX size={12} /> {decisionLabels?.keep || 'Keep Mine'}
+              <IconX size={12} /> {decisionLabels?.keep || t('OPENAPI_SYNC.KEEP_MINE')}
             </button>
             <button
               className={`decision-btn accept ${decision === 'accept-incoming' ? 'selected' : ''}`}
               onClick={() => onDecisionChange('accept-incoming')}
-              title="Accept the spec version"
+              title={t('OPENAPI_SYNC.ACCEPT_SPEC_VERSION')}
             >
-              <IconCheck size={12} /> {decisionLabels?.accept || 'Accept Spec'}
+              <IconCheck size={12} /> {decisionLabels?.accept || t('OPENAPI_SYNC.ACCEPT_SPEC')}
             </button>
           </div>
         )}
@@ -129,20 +131,20 @@ const ExpandableEndpointRow = ({ endpoint, decision, onDecisionChange, collectio
           {isLoading && (
             <div className="diff-loading">
               <IconLoader2 size={16} className="spinning" />
-              <span>Loading diff...</span>
+              <span>{t('OPENAPI_SYNC.LOADING_DIFF')}</span>
             </div>
           )}
           {error && (
             <div className="diff-error">
-              Error: {error}
+              {t('OPENAPI_SYNC.ERROR_COLON')} {error}
             </div>
           )}
           {diffData && !isLoading && !error && (
             <EndpointVisualDiff
               oldData={diffData.oldData}
               newData={diffData.newData}
-              leftLabel={diffLeftLabel || 'Current (in collection)'}
-              rightLabel={diffRightLabel || 'Expected (from spec)'}
+              leftLabel={diffLeftLabel || t('OPENAPI_SYNC.CURRENT_IN_COLLECTION')}
+              rightLabel={diffRightLabel || t('OPENAPI_SYNC.EXPECTED_FROM_SPEC')}
               swapSides={swapDiffSides}
             />
           )}

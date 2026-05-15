@@ -1,10 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useDispatch } from 'react-redux';
+import { useTranslation } from 'react-i18next';
 import { updateResponseExampleStatusCode, updateResponseExampleStatusText } from 'providers/ReduxStore/slices/collections';
 import statusCodePhraseMap from 'components/ResponsePane/StatusCode/get-status-code-phrase';
 import StyledWrapper from './StyledWrapper';
 
 const ResponseExampleStatusInput = ({ item, collection, exampleUid, status, statusText }) => {
+  const { t } = useTranslation();
   const dispatch = useDispatch();
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [filteredSuggestions, setFilteredSuggestions] = useState([]);
@@ -172,7 +174,7 @@ const ResponseExampleStatusInput = ({ item, collection, exampleUid, status, stat
         onKeyDown={handleKeyDown}
         onBlur={handleBlur}
         onFocus={handleFocus}
-        placeholder="e.g., 200 OK, 404 Unknown, 999 Custom Error"
+        placeholder={t('RESPONSE_EXAMPLE.STATUS_PLACEHOLDER')}
         className={`response-status-input ${getStatusClass(status)}`}
         data-testid="response-status-input"
       />

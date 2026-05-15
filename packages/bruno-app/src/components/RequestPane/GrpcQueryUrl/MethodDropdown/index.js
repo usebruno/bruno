@@ -1,5 +1,6 @@
 import { IconChevronDown } from '@tabler/icons';
 import Dropdown from 'components/Dropdown/index';
+import { useTranslation } from 'react-i18next';
 import {
   IconGrpcBidiStreaming,
   IconGrpcClientStreaming,
@@ -18,6 +19,7 @@ const MethodDropdown = ({
   onMethodSelect,
   onMethodDropdownCreate
 }) => {
+  const { t } = useTranslation();
   const { theme } = useTheme();
   const [searchText, setSearchText] = useState('');
   const [focusedIndex, setFocusedIndex] = useState(-1);
@@ -78,7 +80,7 @@ const MethodDropdown = ({
       <div ref={ref} className="method-dropdown-trigger" data-testid="grpc-method-dropdown-trigger">
         {selectedGrpcMethod && <div className="method-dropdown-trigger-icon">{getIconForMethodType(selectedGrpcMethod.type)}</div>}
         <span className="method-dropdown-trigger-text" data-testid="selected-grpc-method-name">
-          {selectedGrpcMethod ? (selectedGrpcMethod.path.split('.').at(-1) || selectedGrpcMethod.path) : 'Select Method'}
+          {selectedGrpcMethod ? (selectedGrpcMethod.path.split('.').at(-1) || selectedGrpcMethod.path) : t('GRPC_METHOD_DROPDOWN.SELECT_METHOD')}
         </span>
         <IconChevronDown className="method-dropdown-caret" size={14} strokeWidth={2} />
       </div>
@@ -203,7 +205,7 @@ const MethodDropdown = ({
             {filteredMethods.length === 0 && (
               <div className="method-dropdown-empty-state">
                 <div className="method-dropdown-empty-state-text">
-                  No methods found for the search term
+                  {t('GRPC_METHOD_DROPDOWN.NO_METHODS_FOUND')}
                 </div>
               </div>
             )}

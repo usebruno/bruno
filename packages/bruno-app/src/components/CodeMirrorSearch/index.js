@@ -3,6 +3,7 @@ import { IconRegex, IconArrowUp, IconArrowDown, IconX, IconLetterCase, IconLette
 import ToolHint from 'components/ToolHint';
 import StyledWrapper from './StyledWrapper';
 import useDebounce from 'hooks/useDebounce';
+import { useTranslation } from 'react-i18next';
 
 function escapeRegExp(string) {
   return string.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&');
@@ -47,6 +48,7 @@ function createCacheKey(editor, searchText, regex, caseSensitive, wholeWord) {
 }
 
 const CodeMirrorSearch = forwardRef(({ visible, editor, onClose }, ref) => {
+  const { t } = useTranslation();
   const [searchText, setSearchText] = useState('');
   const [regex, setRegex] = useState(false);
   const [caseSensitive, setCaseSensitive] = useState(false);
@@ -230,7 +232,7 @@ const CodeMirrorSearch = forwardRef(({ visible, editor, onClose }, ref) => {
           type="text"
           value={searchText}
           onChange={(e) => handleSearchTextChange(e.target.value)}
-          placeholder="Search..."
+          placeholder={t('CODE_EDITOR_SEARCH.SEARCH_PLACEHOLDER')}
           spellCheck={false}
           onKeyDown={(e) => {
             if (e.key === 'Enter' && !e.shiftKey) handleNext();
@@ -238,19 +240,19 @@ const CodeMirrorSearch = forwardRef(({ visible, editor, onClose }, ref) => {
             if (e.key === 'Escape') handleSearchBarClose();
           }}
         />
-        <span className="searchbar-result-count">{matchCount > 0 ? `${matchIndex + 1} / ${matchCount}` : '0 results'}</span>
-        <ToolHint text="Regex search" toolhintId="searchbar-regex-toolhint" place="top">
+        <span className="searchbar-result-count">{matchCount > 0 ? `${matchIndex + 1} / ${matchCount}` : t('CODE_EDITOR_SEARCH.NO_RESULTS')}</span>
+        <ToolHint text={t('CODE_EDITOR_SEARCH.REGEX_SEARCH')} toolhintId="searchbar-regex-toolhint" place="top">
           <button className={`searchbar-icon-btn ${regex ? 'active' : ''}`} onClick={handleToggleRegex}><IconRegex size={16} /></button>
         </ToolHint>
-        <ToolHint text="Case sensitive" toolhintId="searchbar-case-toolhint" place="top">
+        <ToolHint text={t('CODE_EDITOR_SEARCH.CASE_SENSITIVE')} toolhintId="searchbar-case-toolhint" place="top">
           <button className={`searchbar-icon-btn ${caseSensitive ? 'active' : ''}`} onClick={handleToggleCase}><IconLetterCase size={14} /></button>
         </ToolHint>
-        <ToolHint text="Whole word" toolhintId="searchbar-wholeword-toolhint" place="top">
+        <ToolHint text={t('CODE_EDITOR_SEARCH.WHOLE_WORD')} toolhintId="searchbar-wholeword-toolhint" place="top">
           <button className={`searchbar-icon-btn ${wholeWord ? 'active' : ''}`} onClick={handleToggleWholeWord}><IconLetterW size={14} /></button>
         </ToolHint>
-        <button className="searchbar-icon-btn" title="Previous" onClick={handlePrev}><IconArrowUp size={14} /></button>
-        <button className="searchbar-icon-btn" title="Next" onClick={handleNext}><IconArrowDown size={14} /></button>
-        <button className="searchbar-icon-btn" title="Close" onClick={handleSearchBarClose}><IconX size={14} /></button>
+        <button className="searchbar-icon-btn" title={t('CODE_EDITOR_SEARCH.PREVIOUS')} onClick={handlePrev}><IconArrowUp size={14} /></button>
+        <button className="searchbar-icon-btn" title={t('CODE_EDITOR_SEARCH.NEXT')} onClick={handleNext}><IconArrowDown size={14} /></button>
+        <button className="searchbar-icon-btn" title={t('COMMON.CLOSE')} onClick={handleSearchBarClose}><IconX size={14} /></button>
       </div>
     </StyledWrapper>
   );

@@ -15,9 +15,11 @@ import Button from 'ui/Button/index';
 import ActionIcon from 'ui/ActionIcon/index';
 import { usePersistedState } from 'hooks/usePersistedState';
 import { useTrackScroll } from 'hooks/useTrackScroll';
+import { useTranslation } from 'react-i18next';
 
 const Docs = ({ collection }) => {
   const dispatch = useDispatch();
+  const { t } = useTranslation();
   const { displayedTheme } = useTheme();
   const tabs = useSelector((state) => state.tabs.tabs);
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
@@ -65,16 +67,16 @@ const Docs = ({ collection }) => {
       <div className="flex flex-row w-full justify-between items-center mb-4">
         <div className="text-lg font-medium flex items-center gap-2">
           <IconFileText size={20} strokeWidth={1.5} />
-          Documentation
+          {t('COLLECTION_DOCS.TITLE')}
         </div>
         <div className="flex flex-row gap-2 items-center justify-center">
           {isEditing ? (
             <>
               <Button type="button" color="secondary" onClick={handleDiscardChanges}>
-                Cancel
+                {t('COLLECTION_DOCS.CANCEL')}
               </Button>
               <Button type="button" onClick={onSave}>
-                Save
+                {t('COLLECTION_DOCS.SAVE')}
               </Button>
             </>
           ) : (
@@ -103,7 +105,7 @@ const Docs = ({ collection }) => {
             {
               docs?.length > 0
                 ? <Markdown collectionPath={collection.pathname} onDoubleClick={toggleViewMode} content={docs} />
-                : <Markdown collectionPath={collection.pathname} onDoubleClick={toggleViewMode} content={documentationPlaceholder} />
+                : <Markdown collectionPath={collection.pathname} onDoubleClick={toggleViewMode} content={t('COLLECTION_DOCS.PLACEHOLDER')} />
             }
           </div>
         </div>
@@ -113,27 +115,3 @@ const Docs = ({ collection }) => {
 };
 
 export default Docs;
-
-const documentationPlaceholder = `
-Welcome to your collection documentation! This space is designed to help you document your API collection effectively.
-
-## Overview
-Use this section to provide a high-level overview of your collection. You can describe:
-- The purpose of these API endpoints
-- Key features and functionalities
-- Target audience or users
-
-## Best Practices
-- Keep documentation up to date
-- Include request/response examples
-- Document error scenarios
-- Add relevant links and references
-
-## Markdown Support
-This documentation supports Markdown formatting! You can use:
-- **Bold** and *italic* text
-- \`code blocks\` and syntax highlighting
-- Tables and lists
-- [Links](https://usebruno.com)
-- And more!
-`;

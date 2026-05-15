@@ -1,57 +1,59 @@
 import React, { useMemo } from 'react';
 import get from 'lodash/get';
 import isEqual from 'lodash/isEqual';
-
-const AUTH_TYPE_LABELS = {
-  awsv4: 'AWS Signature v4',
-  basic: 'Basic Auth',
-  bearer: 'Bearer Token',
-  digest: 'Digest Auth',
-  ntlm: 'NTLM',
-  oauth2: 'OAuth 2.0',
-  wsse: 'WSSE',
-  apikey: 'API Key'
-};
-
-const AUTH_FIELD_LABELS = {
-  // AWS v4
-  accessKeyId: 'Access Key ID',
-  secretAccessKey: 'Secret Access Key',
-  sessionToken: 'Session Token',
-  service: 'Service',
-  region: 'Region',
-  profileName: 'Profile Name',
-  // Basic/Digest/NTLM/WSSE
-  username: 'Username',
-  password: 'Password',
-  domain: 'Domain',
-  // Bearer
-  token: 'Token',
-  // API Key
-  key: 'Key',
-  value: 'Value',
-  placement: 'Placement',
-  // OAuth2
-  grantType: 'Grant Type',
-  callbackUrl: 'Callback URL',
-  authorizationUrl: 'Authorization URL',
-  accessTokenUrl: 'Access Token URL',
-  refreshTokenUrl: 'Refresh Token URL',
-  clientId: 'Client ID',
-  clientSecret: 'Client Secret',
-  scope: 'Scope',
-  state: 'State',
-  pkce: 'PKCE',
-  credentialsPlacement: 'Credentials Placement',
-  credentialsId: 'Credentials ID',
-  tokenPlacement: 'Token Placement',
-  tokenHeaderPrefix: 'Token Header Prefix',
-  tokenQueryKey: 'Token Query Key',
-  autoFetchToken: 'Auto Fetch Token',
-  autoRefreshToken: 'Auto Refresh Token'
-};
+import { useTranslation } from 'react-i18next';
 
 const VisualDiffAuth = ({ oldData, newData, showSide }) => {
+  const { t } = useTranslation();
+
+  const AUTH_TYPE_LABELS = {
+    awsv4: t('GIT.VISUAL_DIFF.AUTH_TYPE.AWS_V4'),
+    basic: t('GIT.VISUAL_DIFF.AUTH_TYPE.BASIC'),
+    bearer: t('GIT.VISUAL_DIFF.AUTH_TYPE.BEARER'),
+    digest: t('GIT.VISUAL_DIFF.AUTH_TYPE.DIGEST'),
+    ntlm: t('GIT.VISUAL_DIFF.AUTH_TYPE.NTLM'),
+    oauth2: t('GIT.VISUAL_DIFF.AUTH_TYPE.OAUTH2'),
+    wsse: t('GIT.VISUAL_DIFF.AUTH_TYPE.WSSE'),
+    apikey: t('GIT.VISUAL_DIFF.AUTH_TYPE.API_KEY')
+  };
+
+  const AUTH_FIELD_LABELS = {
+    // AWS v4
+    accessKeyId: t('GIT.VISUAL_DIFF.AUTH_FIELD.ACCESS_KEY_ID'),
+    secretAccessKey: t('GIT.VISUAL_DIFF.AUTH_FIELD.SECRET_ACCESS_KEY'),
+    sessionToken: t('GIT.VISUAL_DIFF.AUTH_FIELD.SESSION_TOKEN'),
+    service: t('GIT.VISUAL_DIFF.AUTH_FIELD.SERVICE'),
+    region: t('GIT.VISUAL_DIFF.AUTH_FIELD.REGION'),
+    profileName: t('GIT.VISUAL_DIFF.AUTH_FIELD.PROFILE_NAME'),
+    // Basic/Digest/NTLM/WSSE
+    username: t('GIT.VISUAL_DIFF.AUTH_FIELD.USERNAME'),
+    password: t('GIT.VISUAL_DIFF.AUTH_FIELD.PASSWORD'),
+    domain: t('GIT.VISUAL_DIFF.AUTH_FIELD.DOMAIN'),
+    // Bearer
+    token: t('GIT.VISUAL_DIFF.AUTH_FIELD.TOKEN'),
+    // API Key
+    key: t('GIT.VISUAL_DIFF.AUTH_FIELD.KEY'),
+    value: t('GIT.VISUAL_DIFF.AUTH_FIELD.VALUE'),
+    placement: t('GIT.VISUAL_DIFF.AUTH_FIELD.PLACEMENT'),
+    // OAuth2
+    grantType: t('GIT.VISUAL_DIFF.AUTH_FIELD.GRANT_TYPE'),
+    callbackUrl: t('GIT.VISUAL_DIFF.AUTH_FIELD.CALLBACK_URL'),
+    authorizationUrl: t('GIT.VISUAL_DIFF.AUTH_FIELD.AUTHORIZATION_URL'),
+    accessTokenUrl: t('GIT.VISUAL_DIFF.AUTH_FIELD.ACCESS_TOKEN_URL'),
+    refreshTokenUrl: t('GIT.VISUAL_DIFF.AUTH_FIELD.REFRESH_TOKEN_URL'),
+    clientId: t('GIT.VISUAL_DIFF.AUTH_FIELD.CLIENT_ID'),
+    clientSecret: t('GIT.VISUAL_DIFF.AUTH_FIELD.CLIENT_SECRET'),
+    scope: t('GIT.VISUAL_DIFF.AUTH_FIELD.SCOPE'),
+    state: t('GIT.VISUAL_DIFF.AUTH_FIELD.STATE'),
+    pkce: t('GIT.VISUAL_DIFF.AUTH_FIELD.PKCE'),
+    credentialsPlacement: t('GIT.VISUAL_DIFF.AUTH_FIELD.CREDENTIALS_PLACEMENT'),
+    credentialsId: t('GIT.VISUAL_DIFF.AUTH_FIELD.CREDENTIALS_ID'),
+    tokenPlacement: t('GIT.VISUAL_DIFF.AUTH_FIELD.TOKEN_PLACEMENT'),
+    tokenHeaderPrefix: t('GIT.VISUAL_DIFF.AUTH_FIELD.TOKEN_HEADER_PREFIX'),
+    tokenQueryKey: t('GIT.VISUAL_DIFF.AUTH_FIELD.TOKEN_QUERY_KEY'),
+    autoFetchToken: t('GIT.VISUAL_DIFF.AUTH_FIELD.AUTO_FETCH_TOKEN'),
+    autoRefreshToken: t('GIT.VISUAL_DIFF.AUTH_FIELD.AUTO_REFRESH_TOKEN')
+  };
   const oldAuth = get(oldData, 'request.auth', {});
   const newAuth = get(newData, 'request.auth', {});
 
@@ -136,8 +138,8 @@ const VisualDiffAuth = ({ oldData, newData, showSide }) => {
             <thead>
               <tr>
                 <th style={{ width: '30px' }}></th>
-                <th style={{ width: '40%' }}>Field</th>
-                <th>Value</th>
+                <th style={{ width: '40%' }}>{t('GIT.VISUAL_DIFF.TABLE.FIELD')}</th>
+                <th>{t('GIT.VISUAL_DIFF.TABLE.VALUE')}</th>
               </tr>
             </thead>
             <tbody>
@@ -149,7 +151,7 @@ const VisualDiffAuth = ({ oldData, newData, showSide }) => {
                     </span>
                   )}
                 </td>
-                <td className="key-cell">Auth Mode</td>
+                <td className="key-cell">{t('GIT.VISUAL_DIFF.AUTH_MODE')}</td>
                 <td className="value-cell">{AUTH_TYPE_LABELS[currentMode] || currentMode}</td>
               </tr>
             </tbody>
@@ -170,8 +172,8 @@ const VisualDiffAuth = ({ oldData, newData, showSide }) => {
             <thead>
               <tr>
                 <th style={{ width: '30px' }}></th>
-                <th style={{ width: '40%' }}>Field</th>
-                <th>Value</th>
+                <th style={{ width: '40%' }}>{t('GIT.VISUAL_DIFF.TABLE.FIELD')}</th>
+                <th>{t('GIT.VISUAL_DIFF.TABLE.VALUE')}</th>
               </tr>
             </thead>
             <tbody>

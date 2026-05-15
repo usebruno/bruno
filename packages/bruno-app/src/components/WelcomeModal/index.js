@@ -12,6 +12,7 @@ import ThemeStep from './ThemeStep';
 import StorageStep from './StorageStep';
 import GetStartedStep from './GetStartedStep';
 import StyledWrapper from './StyledWrapper';
+import { useTranslation } from 'react-i18next';
 
 const TOTAL_STEPS = 4;
 
@@ -27,6 +28,7 @@ const WelcomeModal = ({ onDismiss, onImportCollection, onCreateCollection, onOpe
     themeVariantDark,
     setThemeVariantDark
   } = useTheme();
+  const { t } = useTranslation();
 
   const [step, setStep] = useState(1);
   const [collectionLocation, setCollectionLocation] = useState(defaultLocation);
@@ -51,7 +53,7 @@ const WelcomeModal = ({ onDismiss, onImportCollection, onCreateCollection, onOpe
         }
       };
       return dispatch(savePreferences(updatedPreferences)).catch(() => {
-        toast.error('Failed to save preferences');
+        toast.error(t('WELCOME.FAILED_SAVE_PREFERENCES'));
       });
     }
     return Promise.resolve();
@@ -107,11 +109,11 @@ const WelcomeModal = ({ onDismiss, onImportCollection, onCreateCollection, onOpe
             <Bruno width={48} />
           </div>
           <h1 className="welcome-heading">
-            {step === 1 ? 'Welcome to Bruno' : step === 4 ? 'Ready to go!' : 'Set up Bruno'}
+            {step === 1 ? t('WELCOME.WELCOME_TITLE') : step === 4 ? t('WELCOME.READY_TITLE') : t('WELCOME.SETUP_TITLE')}
           </h1>
           {step === 1 && (
             <p className="welcome-tagline">
-              A fast, Git-friendly, and open-source API client.
+              {t('WELCOME.TAGLINE')}
             </p>
           )}
         </div>
@@ -126,7 +128,7 @@ const WelcomeModal = ({ onDismiss, onImportCollection, onCreateCollection, onOpe
                 key={i}
                 className={`dot ${i + 1 === step ? 'active' : ''} ${i + 1 < step ? 'completed' : ''}`}
                 onClick={() => goTo(i + 1)}
-                aria-label={`Go to step ${i + 1}`}
+                aria-label={`${t('WELCOME.GO_STEP')} ${i + 1}`}
                 aria-current={i + 1 === step ? 'step' : undefined}
               />
             ))}
@@ -134,21 +136,21 @@ const WelcomeModal = ({ onDismiss, onImportCollection, onCreateCollection, onOpe
 
           <div className="footer-buttons">
             <Button type="button" color="secondary" variant="ghost" onClick={handleSaveAndDismiss}>
-              Skip
+              {t('WELCOME.SKIP')}
             </Button>
             {step > 1 && (
               <Button type="button" color="secondary" variant="ghost" onClick={() => goTo(step - 1)}>
-                Back
+                {t('WELCOME.BACK')}
               </Button>
             )}
             {!isLastStep && (
               <Button type="button" onClick={() => goTo(step + 1)}>
-                {step === 1 ? 'Get Started' : 'Next'}
+                {step === 1 ? t('WELCOME.GET_STARTED') : t('WELCOME.NEXT')}
               </Button>
             )}
             {isLastStep && (
               <Button type="button" color="secondary" onClick={handleSaveAndDismiss}>
-                I'll explore on my own
+                {t('WELCOME.EXPLORE_OWN')}
               </Button>
             )}
           </div>

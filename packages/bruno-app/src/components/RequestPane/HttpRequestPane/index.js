@@ -1,5 +1,6 @@
 import React, { useRef, useCallback, useMemo } from 'react';
 import classnames from 'classnames';
+import { useTranslation } from 'react-i18next';
 import { useSelector, useDispatch } from 'react-redux';
 import { find, get } from 'lodash';
 import { updateRequestPaneTab } from 'providers/ReduxStore/slices/tabs';
@@ -20,16 +21,16 @@ import HeightBoundContainer from 'ui/HeightBoundContainer';
 import AuthMode from '../Auth/AuthMode/index';
 
 const TAB_CONFIG = [
-  { key: 'params', label: 'Params' },
-  { key: 'body', label: 'Body' },
-  { key: 'headers', label: 'Headers' },
-  { key: 'auth', label: 'Auth' },
-  { key: 'vars', label: 'Vars' },
-  { key: 'script', label: 'Script' },
-  { key: 'assert', label: 'Assert' },
-  { key: 'tests', label: 'Tests' },
-  { key: 'docs', label: 'Docs' },
-  { key: 'settings', label: 'Settings' }
+  { key: 'params', label: 'HTTP_PANE.TAB_PARAMS' },
+  { key: 'body', label: 'HTTP_PANE.TAB_BODY' },
+  { key: 'headers', label: 'HTTP_PANE.TAB_HEADERS' },
+  { key: 'auth', label: 'HTTP_PANE.TAB_AUTH' },
+  { key: 'vars', label: 'HTTP_PANE.TAB_VARS' },
+  { key: 'script', label: 'HTTP_PANE.TAB_SCRIPT' },
+  { key: 'assert', label: 'HTTP_PANE.TAB_ASSERT' },
+  { key: 'tests', label: 'HTTP_PANE.TAB_TESTS' },
+  { key: 'docs', label: 'HTTP_PANE.TAB_DOCS' },
+  { key: 'settings', label: 'HTTP_PANE.TAB_SETTINGS' }
 ];
 
 const TAB_PANELS = {
@@ -46,6 +47,7 @@ const TAB_PANELS = {
 };
 
 const HttpRequestPane = ({ item, collection }) => {
+  const { t } = useTranslation();
   const dispatch = useDispatch();
   const tabs = useSelector((state) => state.tabs.tabs);
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
@@ -105,17 +107,17 @@ const HttpRequestPane = ({ item, collection }) => {
   }, [activeCounts, body.mode, auth.mode, script, item.preRequestScriptErrorMessage, item.postResponseScriptErrorMessage, item.testScriptErrorMessage, tests, docs, tags]);
 
   const allTabs = useMemo(
-    () => TAB_CONFIG.map(({ key, label }) => ({ key, label, indicator: indicators[key] })),
-    [indicators]
+    () => TAB_CONFIG.map(({ key, label }) => ({ key, label: t(label), indicator: indicators[key] })),
+    [indicators, t]
   );
 
   const tabPanel = useMemo(() => {
     const Component = TAB_PANELS[requestPaneTab];
-    return Component ? <Component key={item.uid} item={item} collection={collection} /> : <div className="mt-4">404 | Not found</div>;
-  }, [requestPaneTab, item, collection]);
+    return Component ? <Component key={item.uid} item={item} collection={collection} /> : <div className="mt-4">{t('REQUEST.NOT_FOUND')}</div>;
+  }, [requestPaneTab, item, collection, t]);
 
   if (!activeTabUid || !focusedTab?.uid || !requestPaneTab) {
-    return <div className="pb-4 px-4">An error occurred!</div>;
+    return <div className="pb-4 px-4">{t('REQUEST.ERROR_OCCURRED')}</div>;
   }
 
   const rightContent = requestPaneTab === 'body' ? (

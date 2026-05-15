@@ -3,11 +3,13 @@ import { flattenItems } from 'utils/collections';
 import { IconAlertTriangle } from '@tabler/icons';
 import StyledWrapper from './StyledWrapper';
 import { useDispatch, useSelector } from 'react-redux';
+import { useTranslation } from 'react-i18next';
 import { isItemARequest, itemIsOpenedInTabs } from 'utils/tabs/index';
 import { getDefaultRequestPaneTab } from 'utils/collections/index';
 import { addTab, focusTab } from 'providers/ReduxStore/slices/tabs';
 
 const RequestsNotLoaded = ({ collection }) => {
+  const { t } = useTranslation();
   const dispatch = useDispatch();
   const tabs = useSelector((state) => state.tabs.tabs);
   const flattenedItems = flattenItems(collection.items);
@@ -43,16 +45,16 @@ const RequestsNotLoaded = ({ collection }) => {
     <StyledWrapper className="w-full card my-2">
       <div className="flex items-center gap-2 px-3 py-2 title">
         <IconAlertTriangle size={16} className="warning-icon" />
-        <span className="font-medium">Following requests were not loaded</span>
+        <span className="font-medium">{t('COLLECTION_OVERVIEW.REQUESTS_NOT_LOADED')}</span>
       </div>
       <table className="w-full border-collapse">
         <thead>
           <tr>
             <th className="py-2 px-3 text-left font-medium">
-              Pathname
+              {t('COLLECTION_OVERVIEW.PATHNAME')}
             </th>
             <th className="py-2 px-3 text-left font-medium">
-              Size
+              {t('COLLECTION_OVERVIEW.SIZE')}
             </th>
           </tr>
         </thead>

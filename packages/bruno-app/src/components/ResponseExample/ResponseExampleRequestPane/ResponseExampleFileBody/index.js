@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import { get } from 'lodash';
 import { useDispatch, useSelector } from 'react-redux';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from 'providers/Theme';
 import { updateResponseExampleFileBodyParams } from 'providers/ReduxStore/slices/collections';
 import { updateTableColumnWidths } from 'providers/ReduxStore/slices/tabs';
@@ -13,6 +14,7 @@ import SingleLineEditor from 'components/SingleLineEditor/index';
 import RadioButton from 'components/RadioButton';
 
 const ResponseExampleFileBody = ({ item, collection, exampleUid, editMode = false }) => {
+  const { t } = useTranslation();
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
   const tabs = useSelector((state) => state.tabs.tabs);
@@ -119,9 +121,9 @@ const ResponseExampleFileBody = ({ item, collection, exampleUid, editMode = fals
   const columns = [
     {
       key: 'filePath',
-      name: 'File',
+      name: t('RESPONSE_EXAMPLE.FILE'),
       isKeyField: true,
-      placeholder: 'File',
+      placeholder: t('RESPONSE_EXAMPLE.FILE'),
       width: '50%',
       readOnly: !editMode,
       render: ({ row, value, onChange, isLastEmptyRow }) => (
@@ -137,8 +139,8 @@ const ResponseExampleFileBody = ({ item, collection, exampleUid, editMode = fals
     },
     {
       key: 'contentType',
-      name: 'Content-Type',
-      placeholder: 'Auto',
+      name: t('RESPONSE_EXAMPLE.CONTENT_TYPE'),
+      placeholder: t('RESPONSE_EXAMPLE.AUTO'),
       width: '30%',
       readOnly: !editMode,
       render: ({ value, onChange }) => (
@@ -146,7 +148,7 @@ const ResponseExampleFileBody = ({ item, collection, exampleUid, editMode = fals
           className="flex items-center justify-center"
           onSave={() => {}}
           theme={storedTheme}
-          placeholder={!value ? 'Auto' : ''}
+          placeholder={!value ? t('RESPONSE_EXAMPLE.AUTO') : ''}
           value={value || ''}
           onChange={onChange}
           onRun={() => {}}
@@ -157,7 +159,7 @@ const ResponseExampleFileBody = ({ item, collection, exampleUid, editMode = fals
     },
     {
       key: 'selected',
-      name: 'Selected',
+      name: t('RESPONSE_EXAMPLE.SELECTED'),
       width: '20%',
       readOnly: !editMode,
       render: ({ row, value, onChange, isLastEmptyRow, rowIndex }) => (

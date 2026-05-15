@@ -7,9 +7,11 @@ import { useDispatch } from 'react-redux';
 import Button from 'ui/Button';
 import { usePersistedState } from 'hooks/usePersistedState';
 import { useTrackScroll } from 'hooks/useTrackScroll';
+import { useTranslation } from 'react-i18next';
 
 const Vars = ({ collection, folder }) => {
   const dispatch = useDispatch();
+  const { t } = useTranslation();
   const requestVars = folder.draft ? get(folder, 'draft.request.vars.req', []) : get(folder, 'root.request.vars.req', []);
   const responseVars = folder.draft ? get(folder, 'draft.request.vars.res', []) : get(folder, 'root.request.vars.res', []);
   const handleSave = () => dispatch(saveFolderRoot(collection.uid, folder.uid));
@@ -21,16 +23,16 @@ const Vars = ({ collection, folder }) => {
   return (
     <StyledWrapper className="w-full flex flex-col" ref={wrapperRef}>
       <div>
-        <div className="mb-3 title text-xs">Pre Request</div>
+        <div className="mb-3 title text-xs">{t('FOLDER_SETTINGS.PRE_REQUEST')}</div>
         <VarsTable folder={folder} collection={collection} vars={requestVars} varType="request" initialScroll={scroll} />
       </div>
       <div>
-        <div className="mt-3 mb-3 title text-xs">Post Response</div>
+        <div className="mt-3 mb-3 title text-xs">{t('FOLDER_SETTINGS.POST_RESPONSE')}</div>
         <VarsTable folder={folder} collection={collection} vars={responseVars} varType="response" initialScroll={scroll} />
       </div>
       <div className="mt-6">
         <Button type="submit" size="sm" onClick={handleSave}>
-          Save
+          {t('FOLDER_SETTINGS.SAVE')}
         </Button>
       </div>
     </StyledWrapper>

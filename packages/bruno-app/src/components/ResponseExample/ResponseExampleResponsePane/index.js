@@ -11,8 +11,10 @@ import ResponseExampleResponseHeaders from './ResponseExampleResponseHeaders';
 import ResponseExampleStatusInput from './ResponseExampleStatusInput';
 import StyledWrapper from './StyledWrapper';
 import HeightBoundContainer from 'ui/HeightBoundContainer';
+import { useTranslation } from 'react-i18next';
 
 const ResponseExampleResponsePane = ({ item, collection, editMode, exampleUid, onSave }) => {
+  const { t } = useTranslation();
   const dispatch = useDispatch();
   const tabs = useSelector((state) => state.tabs.tabs);
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
@@ -57,7 +59,7 @@ const ResponseExampleResponsePane = ({ item, collection, editMode, exampleUid, o
         );
       }
       default: {
-        return <div>404 | Not found</div>;
+        return <div>{t('RESPONSE_EXAMPLE.NOT_FOUND')}</div>;
       }
     }
   };
@@ -65,11 +67,11 @@ const ResponseExampleResponsePane = ({ item, collection, editMode, exampleUid, o
   const tabConfig = [
     {
       name: 'response',
-      label: 'Response'
+      label: t('RESPONSE_EXAMPLE.RESPONSE')
     },
     {
       name: 'headers',
-      label: 'Headers',
+      label: t('RESPONSE_EXAMPLE.HEADERS'),
       count: (exampleData?.response?.headers || []).length
     }
   ];

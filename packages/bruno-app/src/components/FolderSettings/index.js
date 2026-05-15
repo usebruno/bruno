@@ -11,9 +11,11 @@ import Documentation from './Documentation';
 import Auth from './Auth';
 import StatusDot from 'components/StatusDot';
 import get from 'lodash/get';
+import { useTranslation } from 'react-i18next';
 
 const FolderSettings = ({ collection, folder }) => {
   const dispatch = useDispatch();
+  const { t } = useTranslation();
   let tab = 'headers';
   const { folderLevelSettingsSelectedTab } = collection;
   if (folderLevelSettingsSelectedTab?.[folder?.uid]) {
@@ -78,27 +80,27 @@ const FolderSettings = ({ collection, folder }) => {
       <div className="flex flex-col h-full relative px-4 py-4">
         <div className="flex flex-wrap items-center tabs" role="tablist">
           <div className={getTabClassname('headers')} role="tab" data-testid="folder-settings-tab-headers" onClick={() => setTab('headers')}>
-            Headers
+            {t('FOLDER_SETTINGS.HEADERS')}
             {activeHeadersCount > 0 && <sup className="ml-1 font-medium">{activeHeadersCount}</sup>}
           </div>
           <div className={getTabClassname('script')} role="tab" data-testid="folder-settings-tab-script" onClick={() => setTab('script')}>
-            Script
+            {t('FOLDER_SETTINGS.SCRIPT')}
             {hasScripts && <StatusDot />}
           </div>
           <div className={getTabClassname('test')} role="tab" data-testid="folder-settings-tab-test" onClick={() => setTab('test')}>
-            Test
+            {t('FOLDER_SETTINGS.TEST')}
             {hasTests && <StatusDot />}
           </div>
           <div className={getTabClassname('vars')} role="tab" data-testid="folder-settings-tab-vars" onClick={() => setTab('vars')}>
-            Vars
+            {t('FOLDER_SETTINGS.VARS')}
             {activeVarsCount > 0 && <sup className="ml-1 font-medium">{activeVarsCount}</sup>}
           </div>
           <div className={getTabClassname('auth')} role="tab" data-testid="folder-settings-tab-auth" onClick={() => setTab('auth')}>
-            Auth
+            {t('FOLDER_SETTINGS.AUTH')}
             {hasAuth && <StatusDot />}
           </div>
           <div className={getTabClassname('docs')} role="tab" data-testid="folder-settings-tab-docs" onClick={() => setTab('docs')}>
-            Docs
+            {t('FOLDER_SETTINGS.DOCS')}
           </div>
         </div>
         <section className="folder-settings-content flex mt-4 h-full overflow-auto">{getTabPanel(tab)}</section>

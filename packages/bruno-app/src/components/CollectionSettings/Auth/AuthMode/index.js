@@ -3,12 +3,14 @@ import get from 'lodash/get';
 import { IconCaretDown } from '@tabler/icons';
 import MenuDropdown from 'ui/MenuDropdown';
 import { useDispatch } from 'react-redux';
+import { useTranslation } from 'react-i18next';
 import { updateCollectionAuthMode } from 'providers/ReduxStore/slices/collections';
 import { humanizeRequestAuthMode } from 'utils/collections';
 import StyledWrapper from './StyledWrapper';
 
 const AuthMode = ({ collection }) => {
   const dispatch = useDispatch();
+  const { t } = useTranslation();
   const authMode = collection.draft?.root ? get(collection, 'draft.root.request.auth.mode') : get(collection, 'root.request.auth.mode');
 
   const onModeChange = useCallback((value) => {
@@ -23,55 +25,55 @@ const AuthMode = ({ collection }) => {
   const menuItems = useMemo(() => [
     {
       id: 'awsv4',
-      label: 'AWS Sig v4',
+      label: t('COLLECTION_AUTH.MODE_AWS_V4'),
       onClick: () => onModeChange('awsv4')
     },
     {
       id: 'basic',
-      label: 'Basic Auth',
+      label: t('COLLECTION_AUTH.MODE_BASIC'),
       onClick: () => onModeChange('basic')
     },
     {
       id: 'wsse',
-      label: 'WSSE Auth',
+      label: t('COLLECTION_AUTH.MODE_WSSE'),
       onClick: () => onModeChange('wsse')
     },
     {
       id: 'bearer',
-      label: 'Bearer Token',
+      label: t('COLLECTION_AUTH.MODE_BEARER'),
       onClick: () => onModeChange('bearer')
     },
     {
       id: 'digest',
-      label: 'Digest Auth',
+      label: t('COLLECTION_AUTH.MODE_DIGEST'),
       onClick: () => onModeChange('digest')
     },
     {
       id: 'ntlm',
-      label: 'NTLM Auth',
+      label: t('COLLECTION_AUTH.MODE_NTLM'),
       onClick: () => onModeChange('ntlm')
     },
     {
       id: 'oauth1',
-      label: 'OAuth 1.0',
+      label: t('COLLECTION_AUTH.MODE_OAUTH1'),
       onClick: () => onModeChange('oauth1')
     },
     {
       id: 'oauth2',
-      label: 'OAuth 2.0',
+      label: t('COLLECTION_AUTH.MODE_OAUTH2'),
       onClick: () => onModeChange('oauth2')
     },
     {
       id: 'apikey',
-      label: 'API Key',
+      label: t('COLLECTION_AUTH.MODE_API_KEY'),
       onClick: () => onModeChange('apikey')
     },
     {
       id: 'none',
-      label: 'No Auth',
+      label: t('COLLECTION_AUTH.MODE_NONE'),
       onClick: () => onModeChange('none')
     }
-  ], [onModeChange]);
+  ], [onModeChange, t]);
 
   return (
     <StyledWrapper>
@@ -82,7 +84,7 @@ const AuthMode = ({ collection }) => {
           selectedItemId={authMode}
         >
           <div className="flex items-center justify-center auth-mode-label select-none">
-            {humanizeRequestAuthMode(authMode)} <IconCaretDown className="caret ml-1" size={14} strokeWidth={2} />
+            {humanizeRequestAuthMode(authMode, t)} <IconCaretDown className="caret ml-1" size={14} strokeWidth={2} />
           </div>
         </MenuDropdown>
       </div>

@@ -10,6 +10,7 @@ import StyledWrapper from './StyledWrapper';
 import * as Yup from 'yup';
 import debounce from 'lodash/debounce';
 import get from 'lodash/get';
+import { useTranslation } from 'react-i18next';
 
 const cacheSchema = Yup.object().shape({
   sslSession: Yup.object({
@@ -20,6 +21,7 @@ const cacheSchema = Yup.object().shape({
 const Cache = () => {
   const preferences = useSelector((state) => state.app.preferences);
   const dispatch = useDispatch();
+  const { t } = useTranslation();
 
   const handleSave = useCallback(
     (newCachePreferences) => {
@@ -28,7 +30,7 @@ const Cache = () => {
           ...preferences,
           cache: newCachePreferences
         })
-      ).catch(() => toast.error('Failed to update cache preferences'));
+      ).catch(() => toast.error(t('PREFERENCES.CACHE_UPDATE_FAILED')));
     },
     [dispatch, preferences]
   );
@@ -82,14 +84,14 @@ const Cache = () => {
 
   const handleResetCache = () => {
     dispatch(clearHttpHttpsAgentCache())
-      .then(() => toast.success('ssl session cache cleared'))
-      .catch(() => toast.error('Failed to clear ssl session cache'));
+      .then(() => toast.success(t('PREFERENCES.SSL_CACHE_CLEARED')))
+      .catch(() => toast.error(t('PREFERENCES.SSL_CACHE_CLEAR_FAILED')));
   };
 
   return (
     <StyledWrapper className="w-full">
       <form className="bruno-form" onSubmit={formik.handleSubmit}>
-        <div className="section-title mt-6 mb-3">Cache SSL Session</div>
+        <div className="section-title mt-6 mb-3">{t('PREFERENCES.SSL_SESSION_CACHE')}</div>
 
         <div className="flex items-center my-2">
           <input
@@ -101,17 +103,16 @@ const Cache = () => {
             className="mousetrap mr-0"
           />
           <label className="block ml-2 select-none" htmlFor="sslSession.enabled">
-            Enable SSL session caching
+            {t('PREFERENCES.ENABLE_SSL_SESSION_CACHE')}
           </label>
         </div>
         <div className="text-xs mt-1 ml-6 opacity-70">
-          Reuses TLS sessions and connections across requests for faster handshakes. Disable to create a fresh connection for every
-          request.
+          {t('PREFERENCES.SSL_SESSION_CACHE_DESC')}
         </div>
 
         <div className="mt-6">
           <button type="button" className="text-link cursor-pointer hover:underline" onClick={handleResetCache}>
-            Clear
+            {t('PREFERENCES.CLEAR')}
           </button>
         </div>
       </form>

@@ -1,8 +1,10 @@
 import { IconFilter, IconX } from '@tabler/icons';
 import React, { useMemo, useRef, useState } from 'react';
 import { Tooltip as ReactInfotip } from 'react-tooltip';
+import { useTranslation } from 'react-i18next';
 
 const QueryResultFilter = ({ filter, filterExpanded, onChange, onExpandChange, mode }) => {
+  const { t } = useTranslation();
   const inputRef = useRef(null);
   const [isExpanded, setIsExpanded] = useState(filterExpanded || false);
 
@@ -29,27 +31,27 @@ const QueryResultFilter = ({ filter, filterExpanded, onChange, onExpandChange, m
 
   const infotipText = useMemo(() => {
     if (mode.includes('json')) {
-      return 'Filter with JSONPath';
+      return t('QUERY_RESULT_FILTER.FILTER_WITH_JSONPATH');
     }
 
     if (mode.includes('xml')) {
-      return 'Filter with XPath';
+      return t('QUERY_RESULT_FILTER.FILTER_WITH_XPATH');
     }
 
     return null;
-  }, [mode]);
+  }, [mode, t]);
 
   const placeholderText = useMemo(() => {
     if (mode.includes('json')) {
-      return '$.store.books..author';
+      return t('QUERY_RESULT_FILTER.JSONPATH_PLACEHOLDER');
     }
 
     if (mode.includes('xml')) {
-      return '/store/books//author';
+      return t('QUERY_RESULT_FILTER.XPATH_PLACEHOLDER');
     }
 
     return null;
-  }, [mode]);
+  }, [mode, t]);
 
   return (
     <div

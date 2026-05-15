@@ -2,6 +2,7 @@ import React, { useMemo, useRef } from 'react';
 import find from 'lodash/find';
 import { useDispatch, useSelector } from 'react-redux';
 import { updateResponsePaneTab } from 'providers/ReduxStore/slices/tabs';
+import { useTranslation } from 'react-i18next';
 import Overlay from '../Overlay';
 import Placeholder from '../Placeholder';
 import HeightBoundContainer from 'ui/HeightBoundContainer';
@@ -21,6 +22,7 @@ const WSResult = ({ response }) => {
 };
 
 const WSResponsePane = ({ item, collection }) => {
+  const { t } = useTranslation();
   const dispatch = useDispatch();
   const tabs = useSelector((state) => state.tabs.tabs);
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
@@ -47,21 +49,21 @@ const WSResponsePane = ({ item, collection }) => {
     return [
       {
         key: 'response',
-        label: 'Messages',
+        label: t('WS_RESPONSE.MESSAGES'),
         indicator: messagesCount > 0 ? <sup className="ml-1 font-medium">{messagesCount}</sup> : null
       },
       {
         key: 'headers',
-        label: 'Headers',
+        label: t('WS_RESPONSE.HEADERS'),
         indicator: headersCount > 0 ? <sup className="ml-1 font-medium">{headersCount}</sup> : null
       },
       {
         key: 'timeline',
-        label: 'Timeline',
+        label: t('WS_RESPONSE.TIMELINE'),
         indicator: null
       }
     ];
-  }, [messagesCount, headersCount]);
+  }, [messagesCount, headersCount, t]);
 
   const getTabPanel = (tab) => {
     switch (tab) {
@@ -75,7 +77,7 @@ const WSResponsePane = ({ item, collection }) => {
         return <Timeline collection={collection} item={item} activeTabUid={activeTabUid} />;
       }
       default: {
-        return <div>404 | Not found</div>;
+        return <div>{t('WS_RESPONSE.NOT_FOUND')}</div>;
       }
     }
   };
@@ -97,12 +99,12 @@ const WSResponsePane = ({ item, collection }) => {
   }
 
   if (!activeTabUid) {
-    return <div>Something went wrong</div>;
+    return <div>{t('WS_RESPONSE.SOMETHING_WRONG')}</div>;
   }
 
   const focusedTab = find(tabs, (t) => t.uid === activeTabUid);
   if (!focusedTab || !focusedTab.uid || !focusedTab.responsePaneTab) {
-    return <div className="pb-4 px-4">An error occurred!</div>;
+    return <div className="pb-4 px-4">{t('WS_RESPONSE.ERROR_OCCURRED')}</div>;
   }
 
   const rightContent = !isLoading ? (

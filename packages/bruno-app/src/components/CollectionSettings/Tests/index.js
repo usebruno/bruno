@@ -8,8 +8,10 @@ import { useTheme } from 'providers/Theme';
 import StyledWrapper from './StyledWrapper';
 import Button from 'ui/Button';
 import { usePersistedState } from 'hooks/usePersistedState';
+import { useTranslation } from 'react-i18next';
 
 const Tests = ({ collection }) => {
+  const { t } = useTranslation();
   const dispatch = useDispatch();
   const testsEditorRef = useRef(null);
   const tests = collection.draft?.root ? get(collection, 'draft.root.request.tests', '') : get(collection, 'root.request.tests', '');
@@ -31,7 +33,7 @@ const Tests = ({ collection }) => {
 
   return (
     <StyledWrapper className="w-full flex flex-col h-full">
-      <div className="text-xs mb-4 text-muted">These tests will run any time a request in this collection is sent.</div>
+      <div className="text-xs mb-4 text-muted">{t('COLLECTION_TESTS.DESC')}</div>
       <CodeEditor
         ref={testsEditorRef}
         collection={collection}
@@ -50,7 +52,7 @@ const Tests = ({ collection }) => {
 
       <div className="mt-6">
         <Button type="submit" size="sm" onClick={handleSave}>
-          Save
+          {t('COLLECTION_TESTS.SAVE')}
         </Button>
       </div>
     </StyledWrapper>

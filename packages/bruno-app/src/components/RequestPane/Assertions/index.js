@@ -1,6 +1,7 @@
 import React, { useCallback, useRef } from 'react';
 import get from 'lodash/get';
 import { useDispatch, useSelector } from 'react-redux';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from 'providers/Theme';
 import { moveAssertion, setRequestAssertions } from 'providers/ReduxStore/slices/collections';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
@@ -55,6 +56,7 @@ const parseAssertionOperator = (str = '') => {
 const isUnaryOperator = (operator) => unaryOperators.includes(operator);
 
 const Assertions = ({ item, collection }) => {
+  const { t } = useTranslation();
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
   const wrapperRef = useRef(null);
@@ -94,14 +96,14 @@ const Assertions = ({ item, collection }) => {
   const columns = [
     {
       key: 'name',
-      name: 'Expr',
+      name: t('ASSERTIONS.EXPR'),
       isKeyField: true,
-      placeholder: 'Expr',
+      placeholder: t('ASSERTIONS.EXPR'),
       width: '30%'
     },
     {
       key: 'operator',
-      name: 'Operator',
+      name: t('ASSERTIONS.OPERATOR'),
       width: '120px',
       getValue: (row) => parseAssertionOperator(row.value).operator,
       render: ({ row, rowIndex, isLastEmptyRow }) => {
@@ -139,7 +141,7 @@ const Assertions = ({ item, collection }) => {
     },
     {
       key: 'value',
-      name: 'Value',
+      name: t('ASSERTIONS.VALUE'),
       width: '30%',
       render: ({ row, value, onChange }) => {
         const { operator, value: assertionValue } = parseAssertionOperator(value);
@@ -157,7 +159,7 @@ const Assertions = ({ item, collection }) => {
             onRun={handleRun}
             collection={collection}
             item={item}
-            placeholder={!value ? 'Value' : ''}
+            placeholder={!value ? t('ASSERTIONS.VALUE') : ''}
           />
         );
       }

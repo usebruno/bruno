@@ -1,4 +1,5 @@
 import React, { useState, useRef, useMemo, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { IconCaretDown } from '@tabler/icons';
 import MenuDropdown from 'ui/MenuDropdown';
 import StyledWrapper from './StyledWrapper';
@@ -31,6 +32,7 @@ const TriggerButton = ({ method, methodSpanRef, showCaret, ...props }) => {
 };
 
 const HttpMethodSelector = ({ method = DEFAULT_METHOD, onMethodSelect, showCaret = false }) => {
+  const { t } = useTranslation();
   const [isCustomMode, setIsCustomMode] = useState(false);
   const inputRef = useRef();
   const selectedMethodRef = useRef(method);
@@ -119,13 +121,13 @@ const HttpMethodSelector = ({ method = DEFAULT_METHOD, onMethodSelect, showCaret
     // Add "Add Custom" item
     items.push({
       id: 'add-custom',
-      label: '+ Add Custom',
+      label: '+ ' + t('QUERY_URL.ADD_CUSTOM_METHOD'),
       onClick: handleAddCustomMethod,
       className: 'font-normal mt-1 text-link'
     });
 
     return items;
-  }, [handleMethodSelect, handleAddCustomMethod]);
+  }, [handleMethodSelect, handleAddCustomMethod, t]);
 
   // Determine selected item ID (only if method is a standard method)
   const selectedItemId = useMemo(() => {

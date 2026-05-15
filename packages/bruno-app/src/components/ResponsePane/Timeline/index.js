@@ -1,4 +1,5 @@
 import React, { useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import StyledWrapper from './StyledWrapper';
 import { findItemInCollection, findParentItemInCollection } from 'utils/collections/index';
 import { get } from 'lodash';
@@ -46,6 +47,7 @@ const getEffectiveAuthSource = (collection, item) => {
 };
 
 const Timeline = ({ collection, item }) => {
+  const { t } = useTranslation();
   const wrapperRef = useRef(null);
   const [scroll, setScroll] = usePersistedState({ key: `response-timeline-scroll-${item.uid}`, default: 0 });
   useTrackScroll({ ref: wrapperRef, selector: null, onChange: setScroll, initialValue: scroll });
@@ -117,7 +119,7 @@ const Timeline = ({ collection, item }) => {
               <div key={index} className="timeline-event">
                 <div className="timeline-event-header cursor-pointer flex items-center">
                   <div className="flex items-center">
-                    <span className="font-bold">OAuth2.0 Calls</span>
+                    <span className="font-bold">{t('TIMELINE.OAUTH2_CALLS')}</span>
                   </div>
                 </div>
                 <div className="mt-2">
@@ -135,7 +137,7 @@ const Timeline = ({ collection, item }) => {
                       </div>
                     ))
                   ) : (
-                    <div>No debug information available.</div>
+                    <div>{t('TIMELINE.NO_DEBUG_INFO')}</div>
                   )}
                 </div>
               </div>

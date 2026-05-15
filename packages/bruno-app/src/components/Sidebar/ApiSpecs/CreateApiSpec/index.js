@@ -12,6 +12,7 @@ import { exportApiSpec } from 'utils/exporters/openapi-spec';
 import { each } from 'lodash';
 import { showApiSpecPage } from 'providers/ReduxStore/slices/app';
 import { validateName, validateNameError } from 'utils/common/regex';
+import { useTranslation } from 'react-i18next';
 
 export const getEnvironmentVariablesKeyValuePairs = (envVariables) => {
   let variables = {};
@@ -30,6 +31,7 @@ const CreateApiSpec = ({ onClose }) => {
   const activeWorkspaceUid = useSelector((state) => state.workspaces.activeWorkspaceUid);
   const activeWorkspace = workspaces.find((w) => w.uid === activeWorkspaceUid);
   const [defaultApiSpecLocation, setDefaultApiSpecLocation] = React.useState('');
+  const { t } = useTranslation();
 
   const isDefaultWorkspace = !activeWorkspace || activeWorkspace.type === 'default';
 
@@ -59,17 +61,17 @@ const CreateApiSpec = ({ onClose }) => {
     },
     validationSchema: Yup.object({
       importFrom: Yup.string().oneOf(['blank', 'collection']),
-      collectionLocation: Yup.string().min(1, 'location is required'),
+      collectionLocation: Yup.string().min(1, t('SIDEBAR.CREATE_API_SPEC_LOCATION_REQUIRED')),
       environment: Yup.string(),
       apiSpecName: Yup.string()
-        .min(1, 'Must be at least 1 character')
-        .max(255, 'Must be 255 characters or less')
+        .min(1, t('SIDEBAR.CREATE_API_SPEC_MIN_1'))
+        .max(255, t('SIDEBAR.CREATE_API_SPEC_MAX_255'))
         .test('is-valid-filename', function (value) {
           const isValid = validateName(value);
           return isValid ? true : this.createError({ message: validateNameError(value) });
         })
-        .required('Name is required'),
-      apiSpecLocation: Yup.string().min(1, 'location is required').required('location is required')
+        .required(t('SIDEBAR.CREATE_API_SPEC_NAME_REQUIRED')),
+      apiSpecLocation: Yup.string().min(1, t('SIDEBAR.CREATE_API_SPEC_LOCATION_REQUIRED')).required(t('SIDEBAR.CREATE_API_SPEC_LOCATION_REQUIRED'))
     }),
     onSubmit: async (values) => {
       let yamlContent = '';
@@ -102,7 +104,7 @@ const CreateApiSpec = ({ onClose }) => {
           setTimeout(() => {
             dispatch(showApiSpecPage());
           }, 200);
-          toast.success('ApiSpec created');
+          toast.success(t('SIDEBAR.CREATE_API_SPEC_SUCCESS'));
           onClose();
         })
         .catch((err) => toast.error(err?.message));
@@ -162,7 +164,7 @@ const CreateApiSpec = ({ onClose }) => {
         })
         .catch((err) => {
           console.error('Error loading collection:', err);
-          toast.error('Failed to load collection');
+          toast.error(t('SIDEBAR.CREATE_API_SPEC_LOAD_ERROR'));
         });
     }
   }, [formik.values.collectionLocation]);
@@ -171,11 +173,11 @@ const CreateApiSpec = ({ onClose }) => {
 
   return (
     <StyledWrapper>
-      <Modal size="md" title="Create API Spec" confirmText="Create" handleConfirm={onSubmit} handleCancel={onClose}>
+      <Modal size="md" title={t('SIDEBAR.CREATE_API_SPEC_TITLE')} confirmText={t('COMMON.CREATE')} handleConfirm={onSubmit} handleCancel={onClose}>
         <form className="bruno-form" onSubmit={(e) => e.preventDefault()}>
           <div>
             <label htmlFor="api-spec-location" className="block font-semibold mb-2">
-              Template
+              {t('SIDEBAR.CREATE_API_SPEC_TEMPLATE')}
             </label>
             <div className="flex items-center">
               <input
@@ -188,7 +190,7 @@ const CreateApiSpec = ({ onClose }) => {
                 checked={formik.values.importFrom === 'blank'}
               />
               <label htmlFor="blank" className="ml-1 cursor-pointer select-none">
-                Blank spec
+                {t('SIDEBAR.CREATE_API_SPEC_BLANK')}
               </label>
               <input
                 id="collection"
@@ -200,7 +202,7 @@ const CreateApiSpec = ({ onClose }) => {
                 checked={formik.values.importFrom === 'collection'}
               />
               <label htmlFor="collection" className="ml-1 cursor-pointer select-none">
-                From Bruno Collection
+                {t('SIDEBAR.CREATE_API_SPEC_FROM_COLLECTION')}
               </label>
             </div>
             {formik.touched.importFrom && formik.errors.importFrom ? (
@@ -209,7 +211,7 @@ const CreateApiSpec = ({ onClose }) => {
             {formik.values.importFrom === 'collection' ? (
               <>
                 <label htmlFor="collection-location" className="block font-semibold mt-3">
-                  Collection Location
+                  {t('SIDEBAR.CREATE_API_SPEC_COLLECTION_LOCATION')}
                 </label>
                 <input
                   id="collection-location"
@@ -230,13 +232,13 @@ const CreateApiSpec = ({ onClose }) => {
                 ) : null}
                 <div className="mt-1">
                   <span className="text-link cursor-pointer hover:underline" onClick={browseCollection}>
-                    Browse
+                    {t('SIDEBAR.CREATE_API_SPEC_BROWSE')}
                   </span>
                 </div>
                 {environments && Object.keys(environments || {})?.length > 0 ? (
                   <>
                     <label htmlFor="api-spec-name" className="flex items-center font-semibold mt-3">
-                      Environment
+                      {t('SIDEBAR.CREATE_API_SPEC_ENVIRONMENT')}
                     </label>
                     <div className="relative">
                       <select
@@ -265,7 +267,7 @@ const CreateApiSpec = ({ onClose }) => {
               <div className="text-red-500">{formik.errors.environment}</div>
             ) : null}
             <label htmlFor="api-spec-name" className="flex items-center font-semibold mt-3">
-              Spec Name
+              {t('SIDEBAR.CREATE_API_SPEC_SPEC_NAME')}
             </label>
             <div className="relative">
               <input
@@ -292,7 +294,7 @@ const CreateApiSpec = ({ onClose }) => {
             ) : null}
 
             <label htmlFor="api-spec-location" className="block font-semibold mt-3">
-              Spec Location
+              {t('SIDEBAR.CREATE_API_SPEC_SPEC_LOCATION')}
             </label>
             <input
               id="api-spec-location"
@@ -313,11 +315,11 @@ const CreateApiSpec = ({ onClose }) => {
             ) : null}
             <div className="mt-1">
               <span className="text-link cursor-pointer hover:underline" onClick={browse}>
-                Browse
+                {t('SIDEBAR.CREATE_API_SPEC_BROWSE')}
               </span>
               {!isDefaultWorkspace && (
                 <span className="text-xs opacity-60 ml-2">
-                  (defaults to workspace's apispec folder)
+                  ({t('SIDEBAR.CREATE_API_SPEC_DEFAULT_NOTE')})
                 </span>
               )}
             </div>

@@ -2,25 +2,28 @@ import React, { useMemo } from 'react';
 import get from 'lodash/get';
 import isEqual from 'lodash/isEqual';
 import { computeLineDiffForOld, computeLineDiffForNew } from './utils/diffUtils';
-
-const BODY_TYPE_LABELS = {
-  json: 'JSON',
-  text: 'Text',
-  xml: 'XML',
-  sparql: 'SPARQL',
-  graphql: 'GraphQL',
-  formUrlEncoded: 'Form URL Encoded',
-  multipartForm: 'Multipart Form',
-  file: 'File',
-  grpc: 'gRPC',
-  ws: 'WebSocket'
-};
+import { useTranslation } from 'react-i18next';
 
 const TEXT_BODY_TYPES = ['json', 'text', 'xml', 'sparql'];
 const FORM_BODY_TYPES = ['formUrlEncoded', 'multipartForm'];
-const ALL_BODY_TYPES = Object.keys(BODY_TYPE_LABELS);
 
 const VisualDiffBody = ({ oldData, newData, showSide }) => {
+  const { t } = useTranslation();
+
+  const BODY_TYPE_LABELS = {
+    json: t('GIT.VISUAL_DIFF.BODY_TYPE.JSON'),
+    text: t('GIT.VISUAL_DIFF.BODY_TYPE.TEXT'),
+    xml: t('GIT.VISUAL_DIFF.BODY_TYPE.XML'),
+    sparql: t('GIT.VISUAL_DIFF.BODY_TYPE.SPARQL'),
+    graphql: t('GIT.VISUAL_DIFF.BODY_TYPE.GRAPHQL'),
+    formUrlEncoded: t('GIT.VISUAL_DIFF.BODY_TYPE.FORM_URL_ENCODED'),
+    multipartForm: t('GIT.VISUAL_DIFF.BODY_TYPE.MULTIPART_FORM'),
+    file: t('GIT.VISUAL_DIFF.BODY_TYPE.FILE'),
+    grpc: t('GIT.VISUAL_DIFF.BODY_TYPE.GRPC'),
+    ws: t('GIT.VISUAL_DIFF.BODY_TYPE.WEBSOCKET')
+  };
+
+  const ALL_BODY_TYPES = Object.keys(BODY_TYPE_LABELS);
   const oldBody = get(oldData, 'request.body', {});
   const newBody = get(newData, 'request.body', {});
 
@@ -80,8 +83,8 @@ const VisualDiffBody = ({ oldData, newData, showSide }) => {
           <tr>
             <th style={{ width: '30px' }}></th>
             <th className="checkbox-cell"></th>
-            <th style={{ width: '40%' }}>Key</th>
-            <th>Value</th>
+            <th style={{ width: '40%' }}>{t('GIT.VISUAL_DIFF.TABLE.KEY')}</th>
+            <th>{t('GIT.VISUAL_DIFF.TABLE.VALUE')}</th>
           </tr>
         </thead>
         <tbody>
@@ -135,8 +138,8 @@ const VisualDiffBody = ({ oldData, newData, showSide }) => {
           <tr>
             <th style={{ width: '30px' }}></th>
             <th className="checkbox-cell"></th>
-            <th>File Path</th>
-            <th style={{ width: '100px' }}>Content Type</th>
+            <th>{t('GIT.VISUAL_DIFF.FILE.FILE_PATH')}</th>
+            <th style={{ width: '100px' }}>{t('GIT.VISUAL_DIFF.FILE.CONTENT_TYPE')}</th>
           </tr>
         </thead>
         <tbody>
@@ -190,7 +193,7 @@ const VisualDiffBody = ({ oldData, newData, showSide }) => {
       return (
         <div key={index}>
           <div className="diff-section-header">
-            <span>{typeLabel}: {msg.name || `Message ${index + 1}`}{msg.type ? ` (${msg.type})` : ''}</span>
+            <span>{typeLabel}: {msg.name || `${t('GIT.VISUAL_DIFF.MESSAGE')} ${index + 1}`}{msg.type ? ` (${msg.type})` : ''}</span>
             {msgStatus !== 'unchanged' && (
               <span className={`status-badge ${msgStatus}`}>
                 {msgStatus === 'added' ? 'A' : msgStatus === 'deleted' ? 'D' : 'M'}
@@ -221,13 +224,13 @@ const VisualDiffBody = ({ oldData, newData, showSide }) => {
       <>
         {(currentQuery || otherQuery) && (
           <div>
-            <div className="diff-section-header">Query</div>
+            <div className="diff-section-header">{t('GIT.VISUAL_DIFF.GRAPHQL.QUERY')}</div>
             <div className="code-diff-content">{renderLineDiff(queryDiff)}</div>
           </div>
         )}
         {(currentVariables || otherVariables) && (
           <div>
-            <div className="diff-section-header">Variables</div>
+            <div className="diff-section-header">{t('GIT.VISUAL_DIFF.GRAPHQL.VARIABLES')}</div>
             <div className="code-diff-content">{renderLineDiff(variablesDiff)}</div>
           </div>
         )}
@@ -317,7 +320,7 @@ const VisualDiffBody = ({ oldData, newData, showSide }) => {
                     </span>
                   )}
                 </td>
-                <td className="key-cell">Body Mode</td>
+                <td className="key-cell">{t('GIT.VISUAL_DIFF.BODY_MODE')}</td>
                 <td className="value-cell">{BODY_TYPE_LABELS[currentMode] || currentMode}</td>
               </tr>
             </tbody>

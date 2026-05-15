@@ -2,15 +2,18 @@ import React, { useState } from 'react';
 import { isGitRepositoryUrl } from 'utils/git';
 import toast from 'react-hot-toast';
 import Button from 'ui/Button';
+import { useTranslation } from 'react-i18next';
+
 const GitHubTab = ({
   handleSubmit,
   setErrorMessage
 }) => {
   const [urlInput, setUrlInput] = useState('');
+  const { t } = useTranslation();
 
   const handleGitRepositoryImport = (url) => {
     if (!isGitRepositoryUrl(url)) {
-      setErrorMessage('Please enter a valid git repository URL');
+      setErrorMessage(t('SIDEBAR.IMPORT_GIT_INVALID'));
       return;
     }
     handleSubmit({ repositoryUrl: url, type: 'git-repository' });
@@ -33,7 +36,7 @@ const GitHubTab = ({
           value={urlInput}
           autoFocus
           onChange={(e) => setUrlInput(e.target.value)}
-          placeholder="Enter Git repository URL"
+          placeholder={t('SIDEBAR.IMPORT_GIT_PLACEHOLDER')}
           className="flex-1 px-3 py-1 textbox"
         />
         <Button
@@ -44,7 +47,7 @@ const GitHubTab = ({
           color="primary"
           style={{ height: '100%' }}
         >
-          Clone
+          {t('SIDEBAR.IMPORT_GIT_BUTTON')}
         </Button>
       </div>
     </form>

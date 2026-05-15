@@ -1,8 +1,11 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import Button from 'ui/Button';
 import StyledWrapper from './StyledWrapper';
 
 const SendButton = ({ isLoading = false, onSend, onCancel, testId = 'send-request-btn' }) => {
+  const { t } = useTranslation();
+
   return (
     <StyledWrapper className="ml-2">
       <Button
@@ -13,7 +16,7 @@ const SendButton = ({ isLoading = false, onSend, onCancel, testId = 'send-reques
         data-action={isLoading ? 'cancel' : 'send'}
         onClick={isLoading ? onCancel : onSend}
       >
-        {isLoading ? 'Cancel' : 'Send'}
+        {isLoading ? t('SEND_BUTTON.CANCEL') : t('SEND_BUTTON.SEND')}
       </Button>
     </StyledWrapper>
   );

@@ -2,9 +2,11 @@ import React from 'react';
 import classnames from 'classnames';
 import { IconAlertCircle } from '@tabler/icons';
 import ToolHint from 'components/ToolHint';
+import { useTranslation } from 'react-i18next';
 
 const ScriptErrorIcon = ({ itemUid, onClick, className }) => {
   const toolhintId = `script-error-icon-${itemUid}`;
+  const { t } = useTranslation();
 
   return (
     <>
@@ -20,7 +22,7 @@ const ScriptErrorIcon = ({ itemUid, onClick, className }) => {
       </div>
       <ToolHint
         toolhintId={toolhintId}
-        text="Script execution error occurred"
+        text={t('RESPONSE_PANE.SCRIPT_ERROR_OCCURRED')}
         place="bottom"
       />
     </>

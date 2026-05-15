@@ -5,16 +5,18 @@ import Modal from 'components/Modal/index';
 import { deleteEnvironment } from 'providers/ReduxStore/slices/collections/actions';
 import { useDispatch } from 'react-redux';
 import StyledWrapper from './StyledWrapper';
+import { useTranslation } from 'react-i18next';
 
 const DeleteEnvironment = ({ onClose, environment, collection }) => {
   const dispatch = useDispatch();
+  const { t } = useTranslation();
   const onConfirm = () => {
     dispatch(deleteEnvironment(environment.uid, collection.uid))
       .then(() => {
-        toast.success('Environment deleted successfully');
+        toast.success(t('ENV_SETTINGS.ENVIRONMENT_DELETED'));
         onClose();
       })
-      .catch(() => toast.error('An error occurred while deleting the environment'));
+      .catch(() => toast.error(t('ENV_SETTINGS.ENVIRONMENT_DELETE_ERROR')));
   };
 
   return (
@@ -22,13 +24,13 @@ const DeleteEnvironment = ({ onClose, environment, collection }) => {
       <StyledWrapper>
         <Modal
           size="sm"
-          title="Delete Environment"
-          confirmText="Delete"
+          title={t('ENV_SETTINGS.DELETE_ENVIRONMENT')}
+          confirmText={t('ENV_SETTINGS.DELETE')}
           handleConfirm={onConfirm}
           handleCancel={onClose}
           confirmButtonColor="danger"
         >
-          Are you sure you want to delete <span className="font-medium">{environment.name}</span> ?
+          {t('ENV_SETTINGS.DELETE_CONFIRM')} <span className="font-medium">{environment.name}</span> ?
         </Modal>
       </StyledWrapper>
     </Portal>

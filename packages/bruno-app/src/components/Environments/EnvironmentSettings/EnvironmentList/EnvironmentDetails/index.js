@@ -4,6 +4,7 @@ import { useDispatch } from 'react-redux';
 import { renameEnvironment, updateEnvironmentColor } from 'providers/ReduxStore/slices/collections/actions';
 import { validateName, validateNameError } from 'utils/common/regex';
 import toast from 'react-hot-toast';
+import { useTranslation } from 'react-i18next';
 import CopyEnvironment from 'components/Environments/EnvironmentSettings/CopyEnvironment';
 import DeleteEnvironment from 'components/Environments/EnvironmentSettings/DeleteEnvironment';
 import EnvironmentVariables from './EnvironmentVariables';
@@ -12,6 +13,7 @@ import StyledWrapper from './StyledWrapper';
 
 const EnvironmentDetails = ({ environment, setIsModified, collection, searchQuery, setSearchQuery, isSearchExpanded, setIsSearchExpanded, debouncedSearchQuery, searchInputRef }) => {
   const dispatch = useDispatch();
+  const { t } = useTranslation();
   const environments = collection?.environments || [];
 
   const [openDeleteModal, setOpenDeleteModal] = useState(false);
@@ -23,15 +25,15 @@ const EnvironmentDetails = ({ environment, setIsModified, collection, searchQuer
 
   const validateEnvironmentName = (name) => {
     if (!name || name.trim() === '') {
-      return 'Name is required';
+      return t('ENV_SETTINGS.NAME_REQUIRED');
     }
 
     if (name.length < 1) {
-      return 'Must be at least 1 character';
+      return t('ENV_SETTINGS.NAME_MIN_LENGTH');
     }
 
     if (name.length > 255) {
-      return 'Must be 255 characters or less';
+      return t('ENV_SETTINGS.NAME_MAX_LENGTH');
     }
 
     if (!validateName(name)) {
@@ -43,7 +45,7 @@ const EnvironmentDetails = ({ environment, setIsModified, collection, searchQuer
       (env) => env?.uid !== environment.uid && env?.name?.toLowerCase().trim() === trimmedName
     );
     if (isDuplicate) {
-      return 'Environment already exists';
+      return t('ENV_SETTINGS.ENVIRONMENT_EXISTS');
     }
 
     return null;
@@ -68,13 +70,13 @@ const EnvironmentDetails = ({ environment, setIsModified, collection, searchQuer
 
     dispatch(renameEnvironment(newName, environment.uid, collection.uid))
       .then(() => {
-        toast.success('Environment renamed!');
+        toast.success(t('ENV_SETTINGS.ENVIRONMENT_RENAMED'));
         setIsRenaming(false);
         setNewName('');
         setNameError('');
       })
       .catch(() => {
-        toast.error('An error occurred while renaming the environment');
+        toast.error(t('ENV_SETTINGS.ENVIRONMENT_RENAME_ERROR'));
       });
   };
 
@@ -164,7 +166,7 @@ const EnvironmentDetails = ({ environment, setIsModified, collection, searchQuer
                   className="inline-action-btn save"
                   onClick={handleSaveRename}
                   onMouseDown={(e) => e.preventDefault()}
-                  title="Save"
+                  title={t('ENV_SETTINGS.SAVE')}
                 >
                   <IconCheck size={14} strokeWidth={2} />
                 </button>
@@ -172,7 +174,7 @@ const EnvironmentDetails = ({ environment, setIsModified, collection, searchQuer
                   className="inline-action-btn cancel"
                   onClick={handleCancelRename}
                   onMouseDown={(e) => e.preventDefault()}
-                  title="Cancel"
+                  title={t('ENV_SETTINGS.CANCEL')}
                 >
                   <IconX size={14} strokeWidth={2} />
                 </button>
@@ -193,7 +195,7 @@ const EnvironmentDetails = ({ environment, setIsModified, collection, searchQuer
               <input
                 ref={searchInputRef}
                 type="text"
-                placeholder="Search variables..."
+                placeholder={t('ENV_SETTINGS.SEARCH_VARIABLES')}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onBlur={handleSearchBlur}
@@ -208,24 +210,24 @@ const EnvironmentDetails = ({ environment, setIsModified, collection, searchQuer
                   className="clear-search"
                   onClick={handleClearSearch}
                   onMouseDown={(e) => e.preventDefault()}
-                  title="Clear search"
+                  title={t('ENV_SETTINGS.CLEAR_SEARCH')}
                 >
                   <IconX size={14} strokeWidth={1.5} />
                 </button>
               )}
             </div>
           ) : (
-            <button onClick={handleSearchIconClick} title="Search variables">
+            <button onClick={handleSearchIconClick} title={t('ENV_SETTINGS.SEARCH_VARIABLES')}>
               <IconSearch size={15} strokeWidth={1.5} />
             </button>
           )}
-          <button onClick={handleRenameClick} title="Rename">
+          <button onClick={handleRenameClick} title={t('ENV_SETTINGS.RENAME')}>
             <IconEdit size={15} strokeWidth={1.5} />
           </button>
-          <button onClick={() => setOpenCopyModal(true)} title="Copy">
+          <button onClick={() => setOpenCopyModal(true)} title={t('ENV_SETTINGS.COPY')}>
             <IconCopy size={15} strokeWidth={1.5} />
           </button>
-          <button onClick={() => setOpenDeleteModal(true)} title="Delete">
+          <button onClick={() => setOpenDeleteModal(true)} title={t('ENV_SETTINGS.DELETE')}>
             <IconTrash size={15} strokeWidth={1.5} />
           </button>
         </div>

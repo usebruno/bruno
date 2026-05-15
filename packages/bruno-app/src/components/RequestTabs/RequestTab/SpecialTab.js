@@ -1,17 +1,20 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import GradientCloseButton from './GradientCloseButton';
 import { IconVariable, IconSettings, IconRun, IconFolder, IconDatabase, IconWorld, IconHome, IconFileCode } from '@tabler/icons';
 import OpenAPISyncIcon from 'components/Icons/OpenAPISync';
 import StatusBadge from 'ui/StatusBadge/index';
 
 const SpecialTab = ({ handleCloseClick, type, tabName, handleDoubleClick, hasDraft }) => {
+  const { t } = useTranslation();
+
   const getTabInfo = (type, tabName) => {
     switch (type) {
       case 'collection-settings': {
         return (
           <>
             <IconSettings size={14} strokeWidth={1.5} className="special-tab-icon flex-shrink-0" />
-            <span className="ml-1 tab-name">Collection</span>
+            <span className="ml-1 tab-name">{t('REQUEST_TABS.COLLECTION')}</span>
           </>
         );
       }
@@ -19,7 +22,7 @@ const SpecialTab = ({ handleCloseClick, type, tabName, handleDoubleClick, hasDra
         return (
           <>
             <IconSettings size={14} strokeWidth={1.5} className="special-tab-icon flex-shrink-0" />
-            <span className="ml-1 tab-name">Overview</span>
+            <span className="ml-1 tab-name">{t('REQUEST_TABS.OVERVIEW')}</span>
           </>
         );
       }
@@ -27,7 +30,7 @@ const SpecialTab = ({ handleCloseClick, type, tabName, handleDoubleClick, hasDra
         return (
           <>
             <IconFolder size={14} strokeWidth={1.5} className="special-tab-icon flex-shrink-0" />
-            <span className="ml-1 tab-name">{tabName || 'Folder'}</span>
+            <span className="ml-1 tab-name">{tabName || t('REQUEST_TABS.FOLDER')}</span>
           </>
         );
       }
@@ -35,7 +38,7 @@ const SpecialTab = ({ handleCloseClick, type, tabName, handleDoubleClick, hasDra
         return (
           <>
             <IconVariable size={14} strokeWidth={1.5} className="special-tab-icon flex-shrink-0" />
-            <span className="ml-1 tab-name">Variables</span>
+            <span className="ml-1 tab-name">{t('REQUEST_TABS.VARIABLES')}</span>
           </>
         );
       }
@@ -43,7 +46,7 @@ const SpecialTab = ({ handleCloseClick, type, tabName, handleDoubleClick, hasDra
         return (
           <>
             <IconRun size={14} strokeWidth={1.5} className="special-tab-icon flex-shrink-0" />
-            <span className="ml-1 tab-name">Runner</span>
+            <span className="ml-1 tab-name">{t('REQUEST_TABS.RUNNER')}</span>
           </>
         );
       }
@@ -51,7 +54,7 @@ const SpecialTab = ({ handleCloseClick, type, tabName, handleDoubleClick, hasDra
         return (
           <>
             <IconDatabase size={14} strokeWidth={1.5} className="special-tab-icon flex-shrink-0" />
-            <span className="ml-1 tab-name">Environments</span>
+            <span className="ml-1 tab-name">{t('REQUEST_TABS.ENVIRONMENTS')}</span>
           </>
         );
       }
@@ -59,7 +62,7 @@ const SpecialTab = ({ handleCloseClick, type, tabName, handleDoubleClick, hasDra
         return (
           <>
             <IconWorld size={14} strokeWidth={1.5} className="special-tab-icon flex-shrink-0" />
-            <span className="ml-1 tab-name">Global Environments</span>
+            <span className="ml-1 tab-name">{t('REQUEST_TABS.GLOBAL_ENVIRONMENTS')}</span>
           </>
         );
       }
@@ -67,7 +70,7 @@ const SpecialTab = ({ handleCloseClick, type, tabName, handleDoubleClick, hasDra
         return (
           <>
             <IconSettings size={14} strokeWidth={1.5} className="special-tab-icon flex-shrink-0" />
-            <span className="ml-1 tab-name">Preferences</span>
+            <span className="ml-1 tab-name">{t('REQUEST_TABS.PREFERENCES')}</span>
           </>
         );
       }
@@ -75,7 +78,7 @@ const SpecialTab = ({ handleCloseClick, type, tabName, handleDoubleClick, hasDra
         return (
           <>
             <IconHome size={14} strokeWidth={1.5} className="special-tab-icon flex-shrink-0" />
-            <span className="ml-1 tab-name">Overview</span>
+            <span className="ml-1 tab-name">{t('REQUEST_TABS.OVERVIEW')}</span>
           </>
         );
       }
@@ -83,7 +86,7 @@ const SpecialTab = ({ handleCloseClick, type, tabName, handleDoubleClick, hasDra
         return (
           <>
             <IconWorld size={14} strokeWidth={1.5} className="special-tab-icon flex-shrink-0" />
-            <span className="ml-1 tab-name">Environments</span>
+            <span className="ml-1 tab-name">{t('REQUEST_TABS.ENVIRONMENTS')}</span>
           </>
         );
       }
@@ -91,8 +94,8 @@ const SpecialTab = ({ handleCloseClick, type, tabName, handleDoubleClick, hasDra
         return (
           <>
             <OpenAPISyncIcon size={14} className="special-tab-icon flex-shrink-0" />
-            <span className="ml-1 tab-name mr-1">OpenAPI</span>
-            <StatusBadge status="info" size="xs">Beta</StatusBadge>
+            <span className="ml-1 tab-name mr-1">{t('REQUEST_TABS.OPENAPI')}</span>
+            <StatusBadge status="info" size="xs">{t('REQUEST_TABS.BETA')}</StatusBadge>
           </>
         );
       }
@@ -100,7 +103,7 @@ const SpecialTab = ({ handleCloseClick, type, tabName, handleDoubleClick, hasDra
         return (
           <>
             <IconFileCode size={14} strokeWidth={1.5} className="special-tab-icon flex-shrink-0" />
-            <span className="ml-1 tab-name">API Spec</span>
+            <span className="ml-1 tab-name">{t('REQUEST_TABS.API_SPEC')}</span>
           </>
         );
       }

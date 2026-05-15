@@ -1,5 +1,6 @@
 import React, { useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from 'providers/Theme';
 import { saveCollectionSettings } from 'providers/ReduxStore/slices/collections/actions';
 import { updateTableColumnWidths } from 'providers/ReduxStore/slices/tabs';
@@ -12,6 +13,7 @@ import { variableNameRegex } from 'utils/common/regex';
 import { setCollectionVars } from 'providers/ReduxStore/slices/collections/index';
 
 const VarsTable = ({ collection, vars, varType, initialScroll = 0 }) => {
+  const { t } = useTranslation();
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
   const tabs = useSelector((state) => state.tabs.tabs);
@@ -35,28 +37,28 @@ const VarsTable = ({ collection, vars, varType, initialScroll = 0 }) => {
     if (key !== 'name') return null;
     if (!row.name || row.name.trim() === '') return null;
     if (!variableNameRegex.test(row.name)) {
-      return 'Variable contains invalid characters. Must only contain alphanumeric characters, "-", "_", "."';
+      return t('COLLECTION_VARS.INVALID_VARIABLE_NAME');
     }
     return null;
-  }, []);
+  }, [t]);
 
   const columns = [
     {
       key: 'name',
-      name: 'Name',
+      name: t('COLLECTION_VARS.NAME'),
       isKeyField: true,
-      placeholder: 'Name',
+      placeholder: t('COLLECTION_VARS.NAME'),
       width: '40%'
     },
     {
       key: 'value',
-      name: varType === 'request' ? 'Value' : (
+      name: varType === 'request' ? t('COLLECTION_VARS.VALUE') : (
         <div className="flex items-center">
-          <span>Expr</span>
-          <InfoTip content="You can write any valid JS Template Literal here" infotipId={`collection-${varType}-var`} />
+          <span>{t('COLLECTION_VARS.EXPR')}</span>
+          <InfoTip content={t('COLLECTION_VARS.EXPR_INFO')} infotipId={`collection-${varType}-var`} />
         </div>
       ),
-      placeholder: varType === 'request' ? 'Value' : 'Expr',
+      placeholder: varType === 'request' ? t('COLLECTION_VARS.VALUE') : t('COLLECTION_VARS.EXPR'),
       render: ({ value, onChange }) => (
         <MultiLineEditor
           value={value || ''}
@@ -64,7 +66,7 @@ const VarsTable = ({ collection, vars, varType, initialScroll = 0 }) => {
           onSave={onSave}
           onChange={onChange}
           collection={collection}
-          placeholder={!value ? (varType === 'request' ? 'Value' : 'Expr') : ''}
+          placeholder={!value ? (varType === 'request' ? t('COLLECTION_VARS.VALUE') : t('COLLECTION_VARS.EXPR')) : ''}
         />
       )
     }

@@ -1,13 +1,15 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 const HeadersBlock = ({ headers, type }) => {
+  const { t } = useTranslation();
   const [areHeadersCollapsed, toggleHeaders] = useState(true);
 
   return (
     <div className="collapsible-section mt-2">
       <div className="section-header" onClick={() => toggleHeaders(!areHeadersCollapsed)}>
         <pre className="flex flex-row items-center">
-          <div className="opacity-70">{areHeadersCollapsed ? '▼' : '▶'}</div> Headers
+          <div className="opacity-70">{areHeadersCollapsed ? '▼' : '▶'}</div> {t('TIMELINE.HEADERS')}
           {headers && Object.keys(headers).length > 0
             && <div className="ml-1">({Object.keys(headers).length})</div>}
         </pre>
@@ -16,7 +18,7 @@ const HeadersBlock = ({ headers, type }) => {
         <div className="mt-1">
           {headers && Object.keys(headers).length > 0
             ? <Headers headers={headers} type={type} />
-            : <div className="timeline-item-timestamp">No Headers found</div>}
+            : <div className="timeline-item-timestamp">{t('TIMELINE.NO_HEADERS')}</div>}
         </div>
       )}
     </div>

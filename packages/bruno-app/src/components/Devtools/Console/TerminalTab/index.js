@@ -2,6 +2,7 @@ import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { Terminal } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
 import { IconTerminal2, IconPlus } from '@tabler/icons';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from 'providers/Theme';
 import StyledWrapper from './StyledWrapper';
 import SessionList from './SessionList';
@@ -60,7 +61,7 @@ const ensureParkingHost = () => {
   return parkingHost;
 };
 
-const createTerminalForSession = (sessionId, terminalTheme) => {
+const createTerminalForSession = (sessionId, terminalTheme, t) => {
   if (terminalInstances.has(sessionId)) {
     return terminalInstances.get(sessionId);
   }
@@ -112,7 +113,7 @@ const createTerminalForSession = (sessionId, terminalTheme) => {
     };
 
     const onExit = ({ exitCode, signal } = {}) => {
-      const msg = `\r\n[Process exited with code ${exitCode ?? ''} ${signal ? `(signal ${signal})` : ''}]\r\n`;
+      const msg = `\r\n[${t('DEVTOOLS.PROCESS_EXITED')} ${exitCode ?? ''} ${signal ? `(${t('DEVTOOLS.SIGNAL')} ${signal})` : ''}]\r\n`;
       const instance = terminalInstances.get(sessionId);
       if (instance && instance.terminal) {
         try {
@@ -162,10 +163,10 @@ const cleanupTerminalInstance = (sessionId) => {
   }
 };
 
-const openTerminalIntoContainer = async (container, sessionId, terminalTheme) => {
+const openTerminalIntoContainer = async (container, sessionId, terminalTheme, t) => {
   if (!container || !sessionId) return;
 
-  const instance = createTerminalForSession(sessionId, terminalTheme);
+  const instance = createTerminalForSession(sessionId, terminalTheme, t);
   const { terminal, fitAddon } = instance;
 
   if (!terminal.element) {
@@ -214,6 +215,7 @@ const fitTerminal = (activeSessionId, container) => {
 };
 
 const TerminalTab = () => {
+  const { t } = useTranslation();
   const terminalRef = useRef(null);
   const [sessions, setSessions] = useState([]);
   const [activeSessionId, setActiveSessionId] = useState(null);
@@ -379,7 +381,7 @@ const TerminalTab = () => {
     let mounted = true;
 
     const setupTerminal = async () => {
-      await openTerminalIntoContainer(terminalRef.current, activeSessionId, terminalTheme);
+      await openTerminalIntoContainer(terminalRef.current, activeSessionId, terminalTheme, t);
 
       if (mounted) {
         const instance = terminalInstances.get(activeSessionId);
@@ -414,7 +416,7 @@ const TerminalTab = () => {
         if (typeof fn === 'function') fn();
       });
     };
-  }, [activeSessionId]);
+  }, [activeSessionId, t, terminalTheme]);
 
   const onSessionMount = useCallback(
     (node) => {
@@ -434,7 +436,7 @@ const TerminalTab = () => {
         {/* Left Sidebar */}
         <div className="terminal-sessions-sidebar">
           <div className="terminal-sessions-header">
-            <span>Sessions</span>
+            <span>{t('DEVTOOLS.SESSIONS')}</span>
             <IconPlus
               size={16}
               style={{ cursor: 'pointer', color: '#888' }}
@@ -442,20 +444,21 @@ const TerminalTab = () => {
                 e.stopPropagation();
                 createNewSession();
               }}
-              title="New Terminal Session"
+              title={t('DEVTOOLS.NEW_TERMINAL_SESSION')}
             />
           </div>
           <div className="terminal-sessions-list">
             {isLoading ? (
-              <div style={{ padding: '12px', color: '#888', fontSize: '13px' }}>Loading sessions...</div>
+              <div style={{ padding: '12px', color: '#888', fontSize: '13px' }}>{t('DEVTOOLS.LOADING_SESSIONS')}</div>
             ) : sessions.length === 0 ? (
-              <div style={{ padding: '12px', color: '#888', fontSize: '13px' }}>No active sessions</div>
+              <div style={{ padding: '12px', color: '#888', fontSize: '13px' }}>{t('DEVTOOLS.NO_ACTIVE_SESSIONS')}</div>
             ) : (
               <SessionList
                 sessions={sessions}
                 activeSessionId={activeSessionId}
                 onSelectSession={setActiveSessionId}
                 onCloseSession={closeSession}
+                t={t}
               />
             )}
           </div>
@@ -466,7 +469,7 @@ const TerminalTab = () => {
           {!activeSessionId && window.ipcRenderer && (
             <div className="terminal-loading">
               <IconTerminal2 size={24} strokeWidth={1.5} />
-              <span>No terminal session selected</span>
+              <span>{t('DEVTOOLS.NO_TERMINAL_SESSION')}</span>
             </div>
           )}
           <div

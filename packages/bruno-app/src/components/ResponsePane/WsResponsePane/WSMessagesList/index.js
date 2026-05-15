@@ -6,6 +6,7 @@ import CodeEditor from 'components/CodeEditor/index';
 import { useTheme } from 'providers/Theme';
 import { useSelector } from 'react-redux';
 import { Virtuoso } from 'react-virtuoso';
+import { useTranslation } from 'react-i18next';
 
 const getContentMeta = (content) => {
   if (typeof content === 'object') {
@@ -60,6 +61,7 @@ const TypeIcon = ({ type }) => {
 };
 
 const WSMessageItem = memo(({ message, isOpen, onToggle }) => {
+  const { t } = useTranslation();
   const [showHex, setShowHex] = useState(false);
   const preferences = useSelector((state) => state.app.preferences);
   const { displayedTheme } = useTheme();
@@ -73,6 +75,7 @@ const WSMessageItem = memo(({ message, isOpen, onToggle }) => {
   let contentHexdump = message.messageHexdump;
   let parsedContent = parseContent(message.message);
   const dataType = getDataTypeText(parsedContent.type);
+  const dataTypeLabel = dataType === 'JSON' ? t('WS_RESPONSE.DATA_JSON') : t('WS_RESPONSE.DATA_RAW');
 
   useEffect(() => {
     if (notified.current === true) return;
@@ -146,7 +149,7 @@ const WSMessageItem = memo(({ message, isOpen, onToggle }) => {
               role="tab"
               onClick={() => setShowHex(true)}
             >
-              hexdump
+              {t('WS_RESPONSE.HEXDUMP')}
             </div>
             <div
               className={classnames('select-none capitalize', {
@@ -156,7 +159,7 @@ const WSMessageItem = memo(({ message, isOpen, onToggle }) => {
               role="tab"
               onClick={() => setShowHex(false)}
             >
-              {dataType.toLowerCase()}
+              {dataTypeLabel.toLowerCase()}
             </div>
           </div>
           <div className="mt-1 h-[300px] w-full">
@@ -175,6 +178,7 @@ const WSMessageItem = memo(({ message, isOpen, onToggle }) => {
 });
 
 const WSMessagesList = ({ messages = [] }) => {
+  const { t } = useTranslation();
   const virtuosoRef = useRef(null);
   const [scrollerElement, setScrollerElement] = useState(null);
   const [openMessages, setOpenMessages] = useState(new Set());
@@ -238,7 +242,7 @@ const WSMessagesList = ({ messages = [] }) => {
   }, []);
 
   if (!messages.length) {
-    return <StyledWrapper><div className="empty-state">No messages yet.</div></StyledWrapper>;
+    return <StyledWrapper><div className="empty-state">{t('WS_RESPONSE.NO_MESSAGES')}</div></StyledWrapper>;
   }
 
   return (

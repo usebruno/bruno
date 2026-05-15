@@ -14,9 +14,11 @@ import { updateCollectionClientCertificates } from 'providers/ReduxStore/slices/
 import { saveCollectionSettings } from 'providers/ReduxStore/slices/collections/actions';
 import get from 'lodash/get';
 import Button from 'ui/Button';
+import { useTranslation } from 'react-i18next';
 
 const ClientCertSettings = ({ collection }) => {
   const dispatch = useDispatch();
+  const { t } = useTranslation();
 
   // Get client certs from draft if exists, otherwise from brunoConfig
   const clientCertConfig = collection.draft?.brunoConfig
@@ -40,19 +42,19 @@ const ClientCertSettings = ({ collection }) => {
       domain: Yup.string()
         .required()
         .trim()
-        .test('not-empty-after-trim', 'Domain is required', (value) => value && value.trim().length > 0),
+        .test('not-empty-after-trim', t('COLLECTION_SETTINGS_CLIENT_CERT.DOMAIN_REQUIRED'), (value) => value && value.trim().length > 0),
       type: Yup.string().required().oneOf(['cert', 'pfx']),
       certFilePath: Yup.string().when('type', {
         is: (type) => type == 'cert',
-        then: Yup.string().min(1, 'certFilePath is a required field').required()
+        then: Yup.string().min(1, t('COLLECTION_SETTINGS_CLIENT_CERT.CERT_FILE_REQUIRED')).required()
       }),
       keyFilePath: Yup.string().when('type', {
         is: (type) => type == 'cert',
-        then: Yup.string().min(1, 'keyFilePath is a required field').required()
+        then: Yup.string().min(1, t('COLLECTION_SETTINGS_CLIENT_CERT.KEY_FILE_REQUIRED')).required()
       }),
       pfxFilePath: Yup.string().when('type', {
         is: (type) => type == 'pfx',
-        then: Yup.string().min(1, 'pfxFilePath is a required field').required()
+        then: Yup.string().min(1, t('COLLECTION_SETTINGS_CLIENT_CERT.PFX_FILE_REQUIRED')).required()
       }),
       passphrase: Yup.string()
     }),
@@ -145,12 +147,12 @@ const ClientCertSettings = ({ collection }) => {
 
   return (
     <StyledWrapper className="w-full h-full">
-      <div className="text-xs mb-4 text-muted">Add client certificates to be used for specific domains.</div>
+      <div className="text-xs mb-4 text-muted">{t('COLLECTION_SETTINGS_CLIENT_CERT.DESCRIPTION')}</div>
 
-      <h1 className="font-medium">Client Certificates</h1>
+      <h1 className="font-medium">{t('COLLECTION_SETTINGS_CLIENT_CERT.TITLE')}</h1>
       <ul className="mt-4">
         {!clientCertConfig.length
-          ? 'No client certificates added'
+          ? t('COLLECTION_SETTINGS_CLIENT_CERT.NO_CERTS')
           : clientCertConfig.map((clientCert, index) => (
               <li key={`client-cert-${index}`} className="flex items-center available-certificates p-2 rounded-lg mb-2">
                 <div className="flex items-center w-full justify-between">
@@ -170,11 +172,11 @@ const ClientCertSettings = ({ collection }) => {
             ))}
       </ul>
 
-      <h1 className="font-medium mt-8 mb-2">Add Client Certificate</h1>
+      <h1 className="font-medium mt-8 mb-2">{t('COLLECTION_SETTINGS_CLIENT_CERT.ADD_TITLE')}</h1>
       <form className="bruno-form" onSubmit={formik.handleSubmit}>
         <div className="mb-3 flex items-center">
           <label className="settings-label" htmlFor="domain">
-            Domain
+            {t('COLLECTION_SETTINGS_CLIENT_CERT.DOMAIN')}
           </label>
           <div className="relative flex items-center">
             <div className="absolute left-0 pl-2 text-gray-400 pointer-events-none flex items-center h-full">
@@ -200,7 +202,7 @@ const ClientCertSettings = ({ collection }) => {
         </div>
         <div className="mb-3 flex items-center">
           <label id="type-label" className="settings-label">
-            Type
+            {t('COLLECTION_SETTINGS_CLIENT_CERT.TYPE')}
           </label>
           <div className="flex items-center" aria-labelledby="type-label">
             <label className="flex items-center cursor-pointer" htmlFor="cert">
@@ -213,7 +215,7 @@ const ClientCertSettings = ({ collection }) => {
                 onChange={handleTypeChange}
                 className="mr-1"
               />
-              Cert
+              {t('COLLECTION_SETTINGS_CLIENT_CERT.CERT_OPTION')}
             </label>
             <label className="flex items-center ml-4 cursor-pointer" htmlFor="pfx">
               <input
@@ -225,7 +227,7 @@ const ClientCertSettings = ({ collection }) => {
                 onChange={handleTypeChange}
                 className="mr-1"
               />
-              PFX
+              {t('COLLECTION_SETTINGS_CLIENT_CERT.PFX_OPTION')}
             </label>
           </div>
         </div>
@@ -233,7 +235,7 @@ const ClientCertSettings = ({ collection }) => {
           <>
             <div className="mb-3 flex items-center">
               <label className="settings-label" htmlFor="certFilePath">
-                Cert file
+                {t('COLLECTION_SETTINGS_CLIENT_CERT.CERT_FILE')}
               </label>
               <div className="flex flex-row gap-2 justify-start">
                 <input
@@ -273,7 +275,7 @@ const ClientCertSettings = ({ collection }) => {
             </div>
             <div className="mb-3 flex items-center">
               <label className="settings-label" htmlFor="keyFilePath">
-                Key file
+                {t('COLLECTION_SETTINGS_CLIENT_CERT.KEY_FILE')}
               </label>
               <div className="flex flex-row gap-2">
                 <input
@@ -316,7 +318,7 @@ const ClientCertSettings = ({ collection }) => {
           <>
             <div className="mb-3 flex items-center">
               <label className="settings-label" htmlFor="pfxFilePath">
-                PFX file
+                {t('COLLECTION_SETTINGS_CLIENT_CERT.PFX_FILE')}
               </label>
               <div className="flex flex-row gap-2">
                 <input
@@ -358,7 +360,7 @@ const ClientCertSettings = ({ collection }) => {
         )}
         <div className="mb-3 flex items-center">
           <label className="settings-label" htmlFor="passphrase">
-            Passphrase
+            {t('COLLECTION_SETTINGS_CLIENT_CERT.PASSPHRASE')}
           </label>
           <div className="textbox flex flex-row items-center w-[300px] h-[1.70rem] relative">
             <SingleLineEditor
@@ -376,11 +378,11 @@ const ClientCertSettings = ({ collection }) => {
         </div>
         <div className="mt-6 flex flex-row gap-2 items-center">
           <Button type="submit" size="sm" data-testid="add-client-cert">
-            Add
+            {t('COLLECTION_SETTINGS_CLIENT_CERT.ADD')}
           </Button>
           <div className="h-4 border-l border-gray-600"></div>
           <Button type="button" size="sm" onClick={handleSave}>
-            Save
+            {t('COLLECTION_SETTINGS_CLIENT_CERT.SAVE')}
           </Button>
         </div>
       </form>

@@ -10,9 +10,11 @@ import StyledWrapper from './StyledWrapper';
 import toast from 'react-hot-toast';
 import { variableNameRegex } from 'utils/common/regex';
 import { setFolderVars } from 'providers/ReduxStore/slices/collections/index';
+import { useTranslation } from 'react-i18next';
 
 const VarsTable = ({ folder, collection, vars, varType, initialScroll = 0 }) => {
   const dispatch = useDispatch();
+  const { t } = useTranslation();
   const { storedTheme } = useTheme();
   const tabs = useSelector((state) => state.tabs.tabs);
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
@@ -40,28 +42,28 @@ const VarsTable = ({ folder, collection, vars, varType, initialScroll = 0 }) => 
     if (key !== 'name') return null;
     if (!row.name || row.name.trim() === '') return null;
     if (!variableNameRegex.test(row.name)) {
-      return 'Variable contains invalid characters. Must only contain alphanumeric characters, "-", "_", "."';
+      return t('FOLDER_SETTINGS.VAR_INVALID_CHARACTERS');
     }
     return null;
-  }, []);
+  }, [t]);
 
   const columns = [
     {
       key: 'name',
-      name: 'Name',
+      name: t('FOLDER_SETTINGS.NAME'),
       isKeyField: true,
-      placeholder: 'Name',
+      placeholder: t('FOLDER_SETTINGS.NAME'),
       width: '40%'
     },
     {
       key: 'value',
-      name: varType === 'request' ? 'Value' : (
+      name: varType === 'request' ? t('FOLDER_SETTINGS.VALUE') : (
         <div className="flex items-center">
-          <span>Expr</span>
-          <InfoTip content="You can write any valid JS expression here" infotipId={`folder-${varType}-var`} />
+          <span>{t('FOLDER_SETTINGS.EXPR')}</span>
+          <InfoTip content={t('FOLDER_SETTINGS.EXPR_INFO')} infotipId={`folder-${varType}-var`} />
         </div>
       ),
-      placeholder: varType === 'request' ? 'Value' : 'Expr',
+      placeholder: varType === 'request' ? t('FOLDER_SETTINGS.VALUE') : t('FOLDER_SETTINGS.EXPR'),
       render: ({ value, onChange }) => (
         <MultiLineEditor
           value={value || ''}
@@ -70,7 +72,7 @@ const VarsTable = ({ folder, collection, vars, varType, initialScroll = 0 }) => 
           onChange={onChange}
           collection={collection}
           item={folder}
-          placeholder={!value ? (varType === 'request' ? 'Value' : 'Expr') : ''}
+          placeholder={!value ? (varType === 'request' ? t('FOLDER_SETTINGS.VALUE') : t('FOLDER_SETTINGS.EXPR')) : ''}
         />
       )
     }

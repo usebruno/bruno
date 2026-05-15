@@ -1,22 +1,27 @@
-// https://grpc.github.io/grpc/core/md_doc_statuscodes.html
-const grpcStatusCodePhraseMap = {
-  0: 'OK',
-  1: 'Cancelled',
-  2: 'Unknown',
-  3: 'Invalid Argument',
-  4: 'Deadline Exceeded',
-  5: 'Not Found',
-  6: 'Already Exists',
-  7: 'Permission Denied',
-  8: 'Resource Exhausted',
-  9: 'Failed Precondition',
-  10: 'Aborted',
-  11: 'Out of Range',
-  12: 'Unimplemented',
-  13: 'Internal',
-  14: 'Unavailable',
-  15: 'Data Loss',
-  16: 'Unauthenticated'
+import { useTranslation } from 'react-i18next';
+
+const useGrpcStatusCodePhraseMap = () => {
+  const { t } = useTranslation();
+
+  return {
+    0: t('GRPC_RESPONSE.STATUS_OK'),
+    1: t('GRPC_RESPONSE.STATUS_CANCELLED'),
+    2: t('GRPC_RESPONSE.STATUS_UNKNOWN'),
+    3: t('GRPC_RESPONSE.STATUS_INVALID_ARGUMENT'),
+    4: t('GRPC_RESPONSE.STATUS_DEADLINE_EXCEEDED'),
+    5: t('GRPC_RESPONSE.STATUS_NOT_FOUND'),
+    6: t('GRPC_RESPONSE.STATUS_ALREADY_EXISTS'),
+    7: t('GRPC_RESPONSE.STATUS_PERMISSION_DENIED'),
+    8: t('GRPC_RESPONSE.STATUS_RESOURCE_EXHAUSTED'),
+    9: t('GRPC_RESPONSE.STATUS_FAILED_PRECONDITION'),
+    10: t('GRPC_RESPONSE.STATUS_ABORTED'),
+    11: t('GRPC_RESPONSE.STATUS_OUT_OF_RANGE'),
+    12: t('GRPC_RESPONSE.STATUS_UNIMPLEMENTED'),
+    13: t('GRPC_RESPONSE.STATUS_INTERNAL'),
+    14: t('GRPC_RESPONSE.STATUS_UNAVAILABLE'),
+    15: t('GRPC_RESPONSE.STATUS_DATA_LOSS'),
+    16: t('GRPC_RESPONSE.STATUS_UNAUTHENTICATED')
+  };
 };
 
-export default grpcStatusCodePhraseMap;
+export default useGrpcStatusCodePhraseMap;

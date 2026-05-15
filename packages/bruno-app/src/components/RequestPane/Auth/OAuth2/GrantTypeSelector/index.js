@@ -7,9 +7,11 @@ import { IconCaretDown, IconKey } from '@tabler/icons';
 import { humanizeGrantType } from 'utils/collections';
 import { useEffect } from 'react';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 const GrantTypeSelector = ({ item = {}, request, updateAuth, collection }) => {
   const dispatch = useDispatch();
+  const { t } = useTranslation();
   const oAuth = get(request, 'auth.oauth2', {});
   const [valuesCache, setValuesCache] = useState({
     ...oAuth
@@ -69,16 +71,16 @@ const GrantTypeSelector = ({ item = {}, request, updateAuth, collection }) => {
           <IconKey size={14} className="oauth2-icon" />
         </div>
         <span className="oauth2-section-label">
-          Grant Type
+          {t('REQUEST_AUTH.GRANT_TYPE')}
         </span>
       </div>
       <div className="inline-flex items-center cursor-pointer grant-type-mode-selector w-fit">
         <MenuDropdown
           items={[
-            { id: 'password', label: 'Password Credentials', onClick: () => onGrantTypeChange('password') },
-            { id: 'authorization_code', label: 'Authorization Code', onClick: () => onGrantTypeChange('authorization_code') },
-            { id: 'implicit', label: 'Implicit', onClick: () => onGrantTypeChange('implicit') },
-            { id: 'client_credentials', label: 'Client Credentials', onClick: () => onGrantTypeChange('client_credentials') }
+            { id: 'password', label: t('REQUEST_AUTH.PASSWORD_CREDENTIALS'), onClick: () => onGrantTypeChange('password') },
+            { id: 'authorization_code', label: t('REQUEST_AUTH.AUTHORIZATION_CODE'), onClick: () => onGrantTypeChange('authorization_code') },
+            { id: 'implicit', label: t('REQUEST_AUTH.IMPLICIT'), onClick: () => onGrantTypeChange('implicit') },
+            { id: 'client_credentials', label: t('REQUEST_AUTH.CLIENT_CREDENTIALS'), onClick: () => onGrantTypeChange('client_credentials') }
           ]}
           selectedItemId={oAuth?.grantType}
           placement="bottom-end"

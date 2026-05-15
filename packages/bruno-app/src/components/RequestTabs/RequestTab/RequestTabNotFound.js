@@ -2,7 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { IconAlertTriangle } from '@tabler/icons';
 import GradientCloseButton from './GradientCloseButton';
 
+import { useTranslation } from 'react-i18next';
+
 const RequestTabNotFound = ({ handleCloseClick }) => {
+  const { t } = useTranslation();
   const [showErrorMessage, setShowErrorMessage] = useState(false);
 
   // add a delay component in react that shows a loading spinner
@@ -24,7 +27,7 @@ const RequestTabNotFound = ({ handleCloseClick }) => {
         {showErrorMessage ? (
           <>
             <IconAlertTriangle size={18} strokeWidth={1.5} className="text-yellow-600" />
-            <span className="ml-1">Not Found</span>
+            <span className="ml-1">{t('REQUEST_TABS.NOT_FOUND')}</span>
           </>
         ) : null}
       </div>

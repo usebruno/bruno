@@ -12,8 +12,10 @@ import CodeEditor from 'components/CodeEditor';
 import StyledWrapper from './StyledWrapper';
 import { usePersistedState } from 'hooks/usePersistedState';
 import { useTrackScroll } from 'hooks/useTrackScroll';
+import { useTranslation } from 'react-i18next';
 
 const Documentation = ({ item, collection }) => {
+  const { t } = useTranslation();
   const dispatch = useDispatch();
   const { displayedTheme } = useTheme();
   const tabs = useSelector((state) => state.tabs.tabs);
@@ -50,7 +52,7 @@ const Documentation = ({ item, collection }) => {
   return (
     <StyledWrapper className="flex flex-col gap-y-1 h-full w-full relative" ref={wrapperRef}>
       <div className="editing-mode" role="tab" onClick={toggleViewMode}>
-        {isEditing ? 'Preview' : 'Edit'}
+        {isEditing ? t('DOCUMENTATION.PREVIEW') : t('DOCUMENTATION.EDIT')}
       </div>
 
       {isEditing ? (

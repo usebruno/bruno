@@ -14,8 +14,10 @@ import { useState } from 'react';
 import { IconArrowBackUp, IconEdit } from '@tabler/icons';
 import { findCollectionByUid } from 'utils/collections/index';
 import get from 'lodash/get';
+import { useTranslation } from 'react-i18next';
 
 const CloneCollection = ({ onClose, collectionUid }) => {
+  const { t } = useTranslation();
   const inputRef = useRef();
   const dispatch = useDispatch();
   const [isEditing, toggleEditing] = useState(false);
@@ -34,24 +36,24 @@ const CloneCollection = ({ onClose, collectionUid }) => {
   const formik = useFormik({
     enableReinitialize: true,
     initialValues: {
-      collectionName: `${name} copy`,
-      collectionFolderName: `${sanitizeName(name)} copy`,
+      collectionName: `${name} ${t('SIDEBAR_COLLECTIONS.COPY_SUFFIX')}`,
+      collectionFolderName: `${sanitizeName(name)} ${t('SIDEBAR_COLLECTIONS.COPY_SUFFIX')}`,
       collectionLocation: defaultLocation
     },
     validationSchema: Yup.object({
       collectionName: Yup.string()
-        .min(1, 'must be at least 1 character')
-        .max(255, 'must be 255 characters or less')
-        .required('collection name is required'),
+        .min(1, t('SIDEBAR_COLLECTIONS.MIN_1_CHAR'))
+        .max(255, t('SIDEBAR_COLLECTIONS.MAX_255_CHARS'))
+        .required(t('SIDEBAR_COLLECTIONS.COLLECTION_NAME_REQUIRED')),
       collectionFolderName: Yup.string()
-        .min(1, 'must be at least 1 character')
-        .max(255, 'must be 255 characters or less')
+        .min(1, t('SIDEBAR_COLLECTIONS.MIN_1_CHAR'))
+        .max(255, t('SIDEBAR_COLLECTIONS.MAX_255_CHARS'))
         .test('is-valid-collection-name', function (value) {
           const isValid = validateName(value);
           return isValid ? true : this.createError({ message: validateNameError(value) });
         })
-        .required('folder name is required'),
-      collectionLocation: Yup.string().min(1, 'location is required').required('location is required')
+        .required(t('SIDEBAR_COLLECTIONS.FOLDER_NAME_REQUIRED')),
+      collectionLocation: Yup.string().min(1, t('SIDEBAR_COLLECTIONS.LOCATION_REQUIRED')).required(t('SIDEBAR_COLLECTIONS.LOCATION_REQUIRED'))
     }),
     onSubmit: (values) => {
       dispatch(
@@ -63,10 +65,10 @@ const CloneCollection = ({ onClose, collectionUid }) => {
         )
       )
         .then(() => {
-          toast.success('Collection created!');
+          toast.success(t('SIDEBAR_COLLECTIONS.COLLECTION_CREATED'));
           onClose();
         })
-        .catch((e) => toast.error('An error occurred while creating the collection - ' + e));
+        .catch((e) => toast.error(t('SIDEBAR_COLLECTIONS.COLLECTION_CREATE_ERROR') + ' - ' + e));
     }
   });
 
@@ -93,11 +95,11 @@ const CloneCollection = ({ onClose, collectionUid }) => {
   const onSubmit = () => formik.handleSubmit();
 
   return (
-    <Modal size="md" title="Clone Collection" confirmText="Create" handleConfirm={onSubmit} handleCancel={onClose}>
+    <Modal size="md" title={t('SIDEBAR_COLLECTIONS.CLONE_COLLECTION')} confirmText={t('COMMON.CREATE')} handleConfirm={onSubmit} handleCancel={onClose}>
       <form className="bruno-form" onSubmit={(e) => e.preventDefault()}>
         <div>
           <label htmlFor="collection-name" className="flex items-center font-medium">
-            Name
+            {t('SIDEBAR_COLLECTIONS.NAME')}
           </label>
           <input
             id="collection-name"
@@ -120,7 +122,7 @@ const CloneCollection = ({ onClose, collectionUid }) => {
           ) : null}
 
           <label htmlFor="collection-location" className="block font-medium mt-3">
-            Location
+            {t('SIDEBAR_COLLECTIONS.LOCATION')}
           </label>
           <input
             id="collection-location"
@@ -143,20 +145,20 @@ const CloneCollection = ({ onClose, collectionUid }) => {
               className="text-link cursor-pointer hover:underline"
               onClick={browse}
             >
-              Browse
+              {t('SIDEBAR_COLLECTIONS.BROWSE')}
             </span>
           </div>
 
           <div className="mt-4">
             <div className="flex items-center justify-between">
               <label htmlFor="filename" className="flex items-center font-medium">
-                Folder Name
+                {t('SIDEBAR_COLLECTIONS.FOLDER_NAME')}
                 <Help width="300">
                   <p>
-                    The name of the folder used to store the collection.
+                    {t('SIDEBAR_COLLECTIONS.FOLDER_NAME_HELP')}
                   </p>
                   <p className="mt-2">
-                    You can choose a folder name different from your collection's name or one compatible with filesystem rules.
+                    {t('SIDEBAR_COLLECTIONS.FOLDER_NAME_HELP_2')}
                   </p>
                 </Help>
               </label>

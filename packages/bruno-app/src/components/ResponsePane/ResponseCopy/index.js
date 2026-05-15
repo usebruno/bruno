@@ -5,6 +5,7 @@ import { IconCopy, IconCheck } from '@tabler/icons';
 import classnames from 'classnames';
 import ActionIcon from 'ui/ActionIcon/index';
 import { formatResponse } from 'utils/common';
+import { useTranslation } from 'react-i18next';
 
 // Helper function to get text to copy
 const getTextToCopy = (selectedTab, selectedFormat, data, dataBuffer) => {
@@ -20,7 +21,7 @@ const getTextToCopy = (selectedTab, selectedFormat, data, dataBuffer) => {
 };
 
 // Hook to get copy response function
-export const useResponseCopy = (item, selectedFormat, selectedTab, data, dataBuffer) => {
+export const useResponseCopy = (item, selectedFormat, selectedTab, data, dataBuffer, t) => {
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
@@ -36,18 +37,19 @@ export const useResponseCopy = (item, selectedFormat, selectedTab, data, dataBuf
     try {
       const textToCopy = getTextToCopy(selectedTab, selectedFormat, data, dataBuffer);
       await navigator.clipboard.writeText(textToCopy);
-      toast.success('Response copied to clipboard');
+      toast.success(t('RESPONSE_PANE.RESPONSE_COPIED'));
       setCopied(true);
     } catch (error) {
-      toast.error('Failed to copy response');
+      toast.error(t('RESPONSE_PANE.COPY_FAILED'));
     }
-  }, [selectedTab, selectedFormat, data, dataBuffer]);
+  }, [selectedTab, selectedFormat, data, dataBuffer, t]);
 
   return { copyResponse, copied, hasData: !!data };
 };
 
 const ResponseCopy = forwardRef(({ item, children, selectedFormat, selectedTab, data, dataBuffer }, ref) => {
-  const { copyResponse, copied, hasData } = useResponseCopy(item, selectedFormat, selectedTab, data, dataBuffer);
+  const { t } = useTranslation();
+  const { copyResponse, copied, hasData } = useResponseCopy(item, selectedFormat, selectedTab, data, dataBuffer, t);
   const elementRef = useRef(null);
 
   const isDisabled = !hasData ? true : false;
@@ -74,7 +76,7 @@ const ResponseCopy = forwardRef(({ item, children, selectedFormat, selectedTab, 
     <div
       ref={elementRef}
       onClick={handleClick}
-      title={!children ? 'Copy response to clipboard' : null}
+      title={!children ? t('RESPONSE_PANE.COPY_RESPONSE_TO_CLIPBOARD') : null}
       onKeyDown={handleKeyDown}
       aria-disabled={isDisabled}
       className={classnames({

@@ -1,5 +1,6 @@
 import React from 'react';
 import { useDispatch } from 'react-redux';
+import { useTranslation } from 'react-i18next';
 import { updateResponseExampleRequest } from 'providers/ReduxStore/slices/collections';
 import BodyModeSelector from 'components/BodyModeSelector';
 import { format, applyEdits } from 'jsonc-parser';
@@ -7,6 +8,7 @@ import xmlFormat from 'xml-formatter';
 import { toastError } from 'utils/common/error';
 
 const ResponseExampleBodyMode = ({ item, collection, exampleUid, body, bodyMode, onBodyEdit, editMode = false }) => {
+  const { t } = useTranslation();
   const dispatch = useDispatch();
 
   const onModeChange = (value) => {
@@ -62,14 +64,14 @@ const ResponseExampleBodyMode = ({ item, collection, exampleUid, body, bodyMode,
         const prettyBodyJson = applyEdits(body.json, edits);
         onBodyEdit(prettyBodyJson);
       } catch (e) {
-        toastError(new Error('Unable to prettify. Invalid JSON format.'));
+        toastError(new Error(t('RESPONSE_EXAMPLE.PRETTIFY_JSON_ERROR')));
       }
     } else if (body?.xml && bodyMode === 'xml') {
       try {
         const prettyBodyXML = xmlFormat(body.xml, { collapseContent: true });
         onBodyEdit(prettyBodyXML);
       } catch (e) {
-        toastError(new Error('Unable to prettify. Invalid XML format.'));
+        toastError(new Error(t('RESPONSE_EXAMPLE.PRETTIFY_XML_ERROR')));
       }
     }
   };
@@ -81,7 +83,7 @@ const ResponseExampleBodyMode = ({ item, collection, exampleUid, body, bodyMode,
           className="btn-action text-link mr-2 py-1 px-2 text-xs"
           onClick={onPrettify}
         >
-          Prettify
+          {t('RESPONSE_EXAMPLE.PRETTIFY')}
         </button>
       )}
       <BodyModeSelector

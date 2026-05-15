@@ -2,6 +2,7 @@ import { IconTrash, IconWand } from '@tabler/icons';
 import CodeEditor from 'components/CodeEditor/index';
 import ToolHint from 'components/ToolHint/index';
 import { get } from 'lodash';
+import { useTranslation } from 'react-i18next';
 import invert from 'lodash/invert';
 import { updateRequestBody } from 'providers/ReduxStore/slices/collections';
 import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
@@ -33,6 +34,7 @@ export const SingleWSMessage = ({
   canClientSendMultipleMessages,
   isLast
 }) => {
+  const { t } = useTranslation();
   const dispatch = useDispatch();
   const { displayedTheme } = useTheme();
   const preferences = useSelector((state) => state.app.preferences);
@@ -115,7 +117,7 @@ export const SingleWSMessage = ({
           collectionUid: collection.uid
         }));
       } catch (e) {
-        toastError(new Error('Unable to prettify. Invalid JSON format.'));
+        toastError(new Error(t('REQUEST_BODY.PRETTIFY_JSON_ERROR')));
       }
     }
 
@@ -136,7 +138,7 @@ export const SingleWSMessage = ({
           collectionUid: collection.uid
         }));
       } catch (e) {
-        toastError(new Error('Unable to prettify. Invalid XML format.'));
+        toastError(new Error(t('REQUEST_BODY.PRETTIFY_XML_ERROR')));
       }
     }
   };
@@ -146,18 +148,18 @@ export const SingleWSMessage = ({
   return (
     <StyledWrapper className={`message-container ${isSingleMessage ? 'single' : ''} ${isLast ? 'last' : ''}`}>
       <div className="message-toolbar">
-        <span className="message-label">Message {index + 1}</span>
+        <span className="message-label">{t('WS_BODY.MESSAGE')} {index + 1}</span>
         <div className="toolbar-actions">
           <WSRequestBodyMode mode={messageFormat} onModeChange={onUpdateMessageType} />
 
-          <ToolHint text="Format" toolhintId={`prettify-msg-${index}`}>
+          <ToolHint text={t('WS_BODY.FORMAT')} toolhintId={`prettify-msg-${index}`}>
             <button onClick={onPrettify} className="toolbar-btn">
               <IconWand size={16} strokeWidth={1.5} />
             </button>
           </ToolHint>
 
           {index > 0 && (
-            <ToolHint text="Delete message" toolhintId={`delete-msg-${index}`}>
+            <ToolHint text={t('WS_BODY.DELETE_MESSAGE')} toolhintId={`delete-msg-${index}`}>
               <button onClick={onDeleteMessage} className="toolbar-btn delete">
                 <IconTrash size={16} strokeWidth={1.5} />
               </button>

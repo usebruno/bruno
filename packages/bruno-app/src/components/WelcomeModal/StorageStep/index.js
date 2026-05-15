@@ -1,39 +1,44 @@
 import React from 'react';
 import StyledWrapper from './StyledWrapper';
+import { useTranslation } from 'react-i18next';
 
-const StorageStep = ({ collectionLocation, onBrowse }) => (
-  <StyledWrapper className="step-body">
-    <div className="step-label">Storage</div>
-    <div className="step-title">Where should we store your collections?</div>
-    <div className="step-description">
-      Bruno saves collections as plain files on your filesystem, perfect for version control with Git.
-    </div>
+const StorageStep = ({ collectionLocation, onBrowse }) => {
+  const { t } = useTranslation();
 
-    <div className="location-input-group">
-      <div
-        className="location-path-display"
-        onClick={onBrowse}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault();
-            onBrowse();
-          }
-        }}
-        role="button"
-        tabIndex={0}
-      >
-        {collectionLocation ? (
-          <span className="path-text">{collectionLocation}</span>
-        ) : (
-          <span className="path-text path-placeholder">Click to choose a folder...</span>
-        )}
-        <span className="browse-label">Browse</span>
+  return (
+    <StyledWrapper className="step-body">
+      <div className="step-label">{t('WELCOME.STORAGE')}</div>
+      <div className="step-title">{t('WELCOME.STORAGE_TITLE')}</div>
+      <div className="step-description">
+        {t('WELCOME.STORAGE_DESC')}
       </div>
-    </div>
-    <div className="location-hint">
-      Each collection and workspace gets its own folder inside this directory. You can change this later.
-    </div>
-  </StyledWrapper>
-);
+
+      <div className="location-input-group">
+        <div
+          className="location-path-display"
+          onClick={onBrowse}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              onBrowse();
+            }
+          }}
+          role="button"
+          tabIndex={0}
+        >
+          {collectionLocation ? (
+            <span className="path-text">{collectionLocation}</span>
+          ) : (
+            <span className="path-text path-placeholder">{t('WELCOME.CLICK_CHOOSE_FOLDER')}</span>
+          )}
+          <span className="browse-label">{t('WELCOME.BROWSE')}</span>
+        </div>
+      </div>
+      <div className="location-hint">
+        {t('WELCOME.STORAGE_HINT')}
+      </div>
+    </StyledWrapper>
+  );
+};
 
 export default StorageStep;

@@ -6,6 +6,7 @@ import StyledWrapper from './StyledWrapper';
 import { IconReload } from '@tabler/icons';
 import { IconChevronDown, IconCheck } from '@tabler/icons';
 import Button from 'ui/Button/index';
+import { useTranslation } from 'react-i18next';
 const { percentageToZoomLevel } = require('@usebruno/common');
 
 // Zoom options for dropdown (50% to 150%)
@@ -31,6 +32,7 @@ const Zoom = () => {
   const dropdownRef = useRef(null);
   const dropdownMenuRef = useRef(null);
   const { ipcRenderer } = window;
+  const { t } = useTranslation();
 
   // Get saved zoom percentage from Redux preferences (single source of truth)
   const savedZoom = get(preferences, 'display.zoomPercentage', DEFAULT_ZOOM);
@@ -88,7 +90,7 @@ const Zoom = () => {
   return (
     <StyledWrapper>
       <div>
-        <label className="block">Interface Zoom</label>
+        <label className="block">{t('PREFERENCES.INTERFACE_ZOOM')}</label>
       </div>
       <div className="flex flex-row gap-1 items-center mt-2">
         <div className="zoom-field" ref={dropdownRef}>

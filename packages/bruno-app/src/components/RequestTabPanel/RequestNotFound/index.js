@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { closeTabs } from 'providers/ReduxStore/slices/collections/actions';
 import { useDispatch } from 'react-redux';
+import { useTranslation } from 'react-i18next';
 import ErrorBanner from 'ui/ErrorBanner';
 import Button from 'ui/Button';
 
 const RequestNotFound = ({ itemUid }) => {
   const dispatch = useDispatch();
+  const { t } = useTranslation();
   const [showErrorMessage, setShowErrorMessage] = useState(false);
 
   const closeTab = () => {
@@ -29,8 +31,8 @@ const RequestNotFound = ({ itemUid }) => {
 
   const errors = [
     {
-      title: 'Request no longer exists',
-      message: 'This can happen when the file associated with this request was deleted on your filesystem.'
+      title: t('REQUEST_TAB_PANEL.REQUEST_NOT_FOUND_TITLE'),
+      message: t('REQUEST_TAB_PANEL.REQUEST_NOT_FOUND_MESSAGE')
     }
   ];
 
@@ -38,7 +40,7 @@ const RequestNotFound = ({ itemUid }) => {
     <div className="mt-6 px-6">
       <ErrorBanner errors={errors} className="mb-4" />
       <Button size="md" color="secondary" variant="ghost" onClick={closeTab}>
-        Close Tab
+        {t('REQUEST_TAB_PANEL.CLOSE_TAB')}
       </Button>
     </div>
   );

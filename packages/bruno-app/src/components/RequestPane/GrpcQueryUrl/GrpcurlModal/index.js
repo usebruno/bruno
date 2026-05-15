@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useSelector } from 'react-redux';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from 'providers/Theme';
 import { IconCheck, IconCopy } from '@tabler/icons';
 import toast from 'react-hot-toast';
@@ -9,6 +10,7 @@ import CodeEditor from 'components/CodeEditor';
 import Button from 'ui/Button';
 
 const GrpcurlModal = ({ isOpen, onClose, command }) => {
+  const { t } = useTranslation();
   const { displayedTheme } = useTheme();
   const [copied, setCopied] = useState(false);
   const preferences = useSelector((state) => state.app.preferences);
@@ -17,10 +19,10 @@ const GrpcurlModal = ({ isOpen, onClose, command }) => {
     try {
       await navigator.clipboard.writeText(command);
       setCopied(true);
-      toast.success('Command copied to clipboard');
+      toast.success(t('GRPCURL_MODAL.COPIED'));
       setTimeout(() => setCopied(false), 2000);
     } catch (error) {
-      toast.error('Failed to copy command');
+      toast.error(t('GRPCURL_MODAL.COPY_FAILED'));
     }
   };
 
@@ -30,7 +32,7 @@ const GrpcurlModal = ({ isOpen, onClose, command }) => {
       handleCancel={onClose}
       title={(
         <div className="flex items-center gap-2">
-          <span>Generate gRPCurl Command</span>
+          <span>{t('GRPCURL_MODAL.TITLE')}</span>
         </div>
       )}
       size="lg"

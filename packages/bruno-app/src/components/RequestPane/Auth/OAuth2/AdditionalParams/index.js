@@ -8,10 +8,12 @@ import SingleLineEditor from 'components/SingleLineEditor/index';
 import MultiLineEditor from 'components/MultiLineEditor/index';
 import StyledWrapper from './StyledWrapper';
 import Table from 'components/Table/index';
+import { useTranslation } from 'react-i18next';
 
 const AdditionalParams = ({ item = {}, request, updateAuth, collection, handleSave }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
+  const { t } = useTranslation();
 
   const oAuth = get(request, 'auth.oauth2', {});
   const {
@@ -171,14 +173,14 @@ const AdditionalParams = ({ item = {}, request, updateAuth, collection, handleSa
           <IconAdjustmentsHorizontal size={14} className="oauth2-icon" />
         </div>
         <span className="oauth2-section-label">
-          Additional Parameters
+          {t('REQUEST_AUTH.ADDITIONAL_PARAMETERS')}
         </span>
       </div>
 
       <div className="tabs flex w-full gap-2 my-2">
-        {availableTabs.includes('authorization') && renderTab('authorization', 'Authorization')}
-        {availableTabs.includes('token') && renderTab('token', 'Token')}
-        {availableTabs.includes('refresh') && renderTab('refresh', 'Refresh')}
+        {availableTabs.includes('authorization') && renderTab('authorization', t('REQUEST_AUTH.AUTHORIZATION'))}
+        {availableTabs.includes('token') && renderTab('token', t('REQUEST_AUTH.TOKEN'))}
+        {availableTabs.includes('refresh') && renderTab('refresh', t('REQUEST_AUTH.REFRESH'))}
       </div>
       <Table
         headers={[
@@ -281,7 +283,7 @@ const AdditionalParams = ({ item = {}, request, updateAuth, collection, handleSa
         onClick={addButtonDisabled ? null : handleAddNewAdditionalParam}
       >
         <IconPlus size={16} strokeWidth={1.5} style={{ marginLeft: '2px' }} />
-        <span className="ml-1 text-gray-500">Add Parameter</span>
+        <span className="ml-1 text-gray-500">{t('REQUEST_AUTH.ADD_PARAMETER')}</span>
       </div>
     </StyledWrapper>
   );

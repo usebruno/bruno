@@ -15,9 +15,11 @@ import Portal from 'components/Portal';
 import Dropdown from 'components/Dropdown';
 import StyledWrapper from './StyledWrapper';
 import Button from 'ui/Button';
+import { useTranslation } from 'react-i18next';
 
 const RenameCollectionItem = ({ collectionUid, item, onClose }) => {
   const dispatch = useDispatch();
+  const { t } = useTranslation();
   const collection = useSelector((state) => state.collections.collections?.find((c) => c.uid === collectionUid));
   const isFolder = isItemAFolder(item);
   const inputRef = useRef();
@@ -38,18 +40,18 @@ const RenameCollectionItem = ({ collectionUid, item, onClose }) => {
     },
     validationSchema: Yup.object({
       name: Yup.string()
-        .min(1, 'must be at least 1 character')
-        .max(255, 'must be 255 characters or less')
-        .required('name is required'),
+        .min(1, t('SIDEBAR_COLLECTIONS.MIN_1_CHAR'))
+        .max(255, t('SIDEBAR_COLLECTIONS.MAX_255_CHARS'))
+        .required(t('SIDEBAR_COLLECTIONS.NAME_REQUIRED')),
       filename: Yup.string()
-        .min(1, 'must be at least 1 character')
-        .max(255, 'must be 255 characters or less')
-        .required('name is required')
+        .min(1, t('SIDEBAR_COLLECTIONS.MIN_1_CHAR'))
+        .max(255, t('SIDEBAR_COLLECTIONS.MAX_255_CHARS'))
+        .required(t('SIDEBAR_COLLECTIONS.NAME_REQUIRED'))
         .test('is-valid-name', function (value) {
           const isValid = validateName(value);
           return isValid ? true : this.createError({ message: validateNameError(value) });
         })
-        .test('not-reserved', `The file names "collection" and "folder" are reserved in bruno`, (value) => !['collection', 'folder'].includes(value))
+        .test('not-reserved', t('SIDEBAR_COLLECTIONS.RESERVED_FILE_NAMES'), (value) => !['collection', 'folder'].includes(value))
     }),
     onSubmit: async (values) => {
       // if there is unsaved changes in the request,
@@ -76,7 +78,7 @@ const RenameCollectionItem = ({ collectionUid, item, onClose }) => {
         }
         onClose();
       } catch (error) {
-        toast.error(error.message || 'An error occurred while renaming');
+        toast.error(error.message || t('SIDEBAR_COLLECTIONS.RENAME_ERROR'));
       }
     }
   });
@@ -94,7 +96,7 @@ const RenameCollectionItem = ({ collectionUid, item, onClose }) => {
           className="btn-advanced"
           type="button"
         >
-          Options
+          {t('SIDEBAR_COLLECTIONS.OPTIONS')}
         </button>
         <IconCaretDown className="caret ml-1" size={14} strokeWidth={2} />
       </div>
@@ -106,14 +108,14 @@ const RenameCollectionItem = ({ collectionUid, item, onClose }) => {
       <StyledWrapper>
         <Modal
           size="md"
-          title={`Rename ${isFolder ? 'Folder' : 'Request'}`}
+          title={t('SIDEBAR_COLLECTIONS.RENAME_ITEM', { type: isFolder ? t('SIDEBAR_COLLECTIONS.FOLDER') : t('SIDEBAR_COLLECTIONS.REQUEST') })}
           handleCancel={onClose}
           hideFooter
         >
           <form className="bruno-form" onSubmit={formik.handleSubmit}>
             <div className="flex flex-col mt-2">
               <label htmlFor="name" className="block font-medium">
-                {isFolder ? 'Folder' : 'Request'} Name
+                {isFolder ? t('SIDEBAR_COLLECTIONS.FOLDER') : t('SIDEBAR_COLLECTIONS.REQUEST')} {t('SIDEBAR_COLLECTIONS.NAME')}
               </label>
               <input
                 id="collection-item-name"
@@ -138,20 +140,20 @@ const RenameCollectionItem = ({ collectionUid, item, onClose }) => {
               <div className="mt-4">
                 <div className="flex items-center justify-between">
                   <label htmlFor="filename" className="flex items-center font-medium">
-                    {isFolder ? 'Folder' : 'File'} Name <small className="font-normal text-muted ml-1">(on filesystem)</small>
+                    {isFolder ? t('SIDEBAR_COLLECTIONS.FOLDER') : t('SIDEBAR_COLLECTIONS.FILE')} {t('SIDEBAR_COLLECTIONS.NAME')} <small className="font-normal text-muted ml-1">{t('SIDEBAR_COLLECTIONS.ON_FILESYSTEM')}</small>
                     { isFolder ? (
                       <Help width="300">
                         <p>
-                          You can choose to save the folder as a different name on your file system versus what is displayed in the app.
+                          {t('SIDEBAR_COLLECTIONS.FOLDER_FILESYSTEM_HELP')}
                         </p>
                       </Help>
                     ) : (
                       <Help width="300">
                         <p>
-                          Bruno saves each request as a file in your collection's folder.
+                          {t('SIDEBAR_COLLECTIONS.REQUEST_FILE_HELP')}
                         </p>
                         <p className="mt-2">
-                          You can choose a file name different from your request's name or one compatible with filesystem rules.
+                          {t('SIDEBAR_COLLECTIONS.FILENAME_DIFFERENT_HELP')}
                         </p>
                       </Help>
                     )}
@@ -179,7 +181,7 @@ const RenameCollectionItem = ({ collectionUid, item, onClose }) => {
                       id="file-name"
                       type="text"
                       name="filename"
-                      placeholder={isFolder ? 'Folder Name' : 'File Name'}
+                      placeholder={isFolder ? t('SIDEBAR_COLLECTIONS.FOLDER_NAME') : t('SIDEBAR_COLLECTIONS.FILE_NAME')}
                       className="!pr-10 block textbox mt-2 w-full"
                       autoComplete="off"
                       autoCorrect="off"
@@ -213,16 +215,16 @@ const RenameCollectionItem = ({ collectionUid, item, onClose }) => {
                       toggleShowFilesystemName(!showFilesystemName);
                     }}
                   >
-                    {showFilesystemName ? 'Hide Filesystem Name' : 'Show Filesystem Name'}
+                    {showFilesystemName ? t('SIDEBAR_COLLECTIONS.HIDE_FILESYSTEM_NAME') : t('SIDEBAR_COLLECTIONS.SHOW_FILESYSTEM_NAME')}
                   </div>
                 </Dropdown>
               </div>
               <div className="flex justify-end">
                 <Button type="button" color="secondary" variant="ghost" onClick={onClose} className="mr-2">
-                  Cancel
+                  {t('COMMON.CANCEL')}
                 </Button>
                 <Button type="submit" data-testid="rename-item-button">
-                  Rename
+                  {t('COMMON.RENAME')}
                 </Button>
               </div>
             </div>

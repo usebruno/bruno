@@ -6,9 +6,11 @@ import { useState, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import CloseApiSpec from '../CloseApiSpec/index';
 import { forwardRef } from 'react';
+import { useTranslation } from 'react-i18next';
 
 const ApiSpecItem = ({ apiSpec }) => {
   const dispatch = useDispatch();
+  const { t } = useTranslation();
 
   const activeApiSpecUid = useSelector((state) => state.apiSpec.activeApiSpecUid);
   const showApiSpecPage = useSelector((state) => state.app.showApiSpecPage);
@@ -56,7 +58,7 @@ const ApiSpecItem = ({ apiSpec }) => {
             <span className="dropdown-icon">
               <IconX size={16} strokeWidth={2} />
             </span>
-            Remove
+            {t('COMMON.REMOVE')}
           </div>
         </Dropdown>
       </div>

@@ -4,6 +4,7 @@ import SingleLineEditor from 'components/SingleLineEditor';
 import ToolHint from 'components/ToolHint/index';
 import { useFormik } from 'formik';
 import get from 'lodash/get';
+import { useTranslation } from 'react-i18next';
 import { updateItemSettings } from 'providers/ReduxStore/slices/collections';
 import { useTheme } from 'providers/Theme';
 import React, { useEffect } from 'react';
@@ -29,6 +30,7 @@ const ERRORS = {
 };
 
 const WSSettingsPane = ({ item, collection }) => {
+  const { t } = useTranslation();
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
   const requestPreferences = useSelector((state) => state.app.preferences.request);
@@ -48,22 +50,22 @@ const WSSettingsPane = ({ item, collection }) => {
   };
 
   const formErrors = {
-    timeout: isNaN(Number(connectionTimeout)) && ERRORS.timeout.invalid,
-    keepAliveInterval: isNaN(Number(keepAliveInterval)) && ERRORS.keepAliveInterval.invalid
+    timeout: isNaN(Number(connectionTimeout)) && t('WS_SETTINGS.TIMEOUT_INVALID'),
+    keepAliveInterval: isNaN(Number(keepAliveInterval)) && t('WS_SETTINGS.KEEP_ALIVE_INVALID')
   };
 
   return (
     <StyledWrapper className="flex flex-col gap-4 w-full">
       <section className="grid gap-4 items-center grid-cols-2">
         <div>
-          <label className="font-medium mb-2">Timeout</label>
+          <label className="font-medium mb-2">{t('WS_SETTINGS.TIMEOUT')}</label>
           <InfoTip
             infotipId="setting-connection-timeout"
             className="tooltip-mod max-w-lg"
             content={(
               <div>
                 <p>
-                  <span>Timeout in milliseconds</span>
+                  <span>{t('WS_SETTINGS.TIMEOUT_INFO')}</span>
                 </p>
               </div>
             )}
@@ -91,7 +93,7 @@ const WSSettingsPane = ({ item, collection }) => {
         </div>
 
         <div>
-          <label className="font-medium mb-2">Keep Alive Interval</label>
+          <label className="font-medium mb-2">{t('WS_SETTINGS.KEEP_ALIVE')}</label>
           <InfoTip
             infotipId="setting-keep-alive"
             className="tooltip-mod max-w-lg"
@@ -99,10 +101,10 @@ const WSSettingsPane = ({ item, collection }) => {
               <div>
                 <p>
                   <span>
-                    Keep the websocket alive by sending ping requests to the server at every interval (in millseconds)
+                    {t('WS_SETTINGS.KEEP_ALIVE_INFO')}
                   </span>
                 </p>
-                <p className="mt-2">0 (zero) = off</p>
+                <p className="mt-2">{t('WS_SETTINGS.KEEP_ALIVE_ZERO')}</p>
               </div>
             )}
           />

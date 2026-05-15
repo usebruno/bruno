@@ -4,6 +4,7 @@ import classnames from 'classnames';
 import MenuDropdown from 'ui/MenuDropdown';
 import ToggleSwitch from 'components/ToggleSwitch';
 import StyledWrapper from './StyledWrapper';
+import { useTranslation } from 'react-i18next';
 
 // Icon mapping for format options
 const FORMAT_ICONS = {
@@ -49,6 +50,7 @@ const QueryResultTypeSelector = ({
   isActiveTab,
   onTabSelect
 }) => {
+  const { t } = useTranslation();
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
   // Handle dropdown state change - only allow opening when active tab
@@ -101,7 +103,7 @@ const QueryResultTypeSelector = ({
 
   const header = (
     <div className="flex items-center justify-between gap-3 py-[0.35rem] px-[0.6rem]">
-      <span className="text-[0.8125rem] preview-response-tab-label">Preview</span>
+      <span className="text-[0.8125rem] preview-response-tab-label">{t('QUERY_RESULT.PREVIEW')}</span>
       <ToggleSwitch
         isOn={selectedTab === 'preview'}
         handleToggle={(e) => {
@@ -111,7 +113,7 @@ const QueryResultTypeSelector = ({
         }}
         size="2xs"
         data-testid="preview-response-tab"
-        title={selectedTab === 'preview' ? 'Turn off Preview Mode' : 'Turn on Preview Mode'}
+        title={selectedTab === 'preview' ? t('QUERY_RESULT.TURN_OFF_PREVIEW_MODE') : t('QUERY_RESULT.TURN_ON_PREVIEW_MODE')}
       />
     </div>
   );

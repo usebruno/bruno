@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import find from 'lodash/find';
 import toast from 'react-hot-toast';
 import { useSelector, useDispatch } from 'react-redux';
+import { useTranslation } from 'react-i18next';
 import GraphQLRequestPane from 'components/RequestPane/GraphQLRequestPane';
 import HttpRequestPane from 'components/RequestPane/HttpRequestPane';
 import GrpcRequestPane from 'components/RequestPane/GrpcRequestPane/index';
@@ -53,6 +54,7 @@ const EXPAND_EDGE_THRESHOLD = 100;
 
 const RequestTabPanel = () => {
   const dispatch = useDispatch();
+  const { t } = useTranslation();
   const tabs = useSelector((state) => state.tabs.tabs);
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
   const focusedTab = find(tabs, (t) => t.uid === activeTabUid);
@@ -299,7 +301,7 @@ const RequestTabPanel = () => {
   }
 
   if (!activeTabUid || !focusedTab) {
-    return <div className="pb-4 px-4">Loading...</div>;
+    return <div className="pb-4 px-4">{t('REQUEST_TAB_PANEL.LOADING')}</div>;
   }
 
   if (focusedTab.type === 'global-environment-settings') {
@@ -319,11 +321,11 @@ const RequestTabPanel = () => {
   }
 
   if (!focusedTab.uid || !focusedTab.collectionUid) {
-    return <div className="pb-4 px-4">An error occurred!</div>;
+    return <div className="pb-4 px-4">{t('REQUEST_TAB_PANEL.ERROR_OCCURRED')}</div>;
   }
 
   if (!collection || !collection.uid) {
-    return <div className="pb-4 px-4">Collection not found!</div>;
+    return <div className="pb-4 px-4">{t('REQUEST_TAB_PANEL.COLLECTION_NOT_FOUND')}</div>;
   }
 
   if (focusedTab.type === 'response-example') {
@@ -429,17 +431,17 @@ const RequestTabPanel = () => {
     const request = item.draft ? item.draft.request : item.request;
 
     if (isGrpcRequest && !request.url) {
-      toast.error('Please enter a valid gRPC server URL');
+      toast.error(t('REQUEST_TAB_PANEL.GRPC_URL_REQUIRED'));
       return;
     }
 
     if (isGrpcRequest && !request.method) {
-      toast.error('Please select a gRPC method');
+      toast.error(t('REQUEST_TAB_PANEL.GRPC_METHOD_REQUIRED'));
       return;
     }
 
     if (isWsRequest && !request.url) {
-      toast.error('Please enter a valid WebSocket URL');
+      toast.error(t('REQUEST_TAB_PANEL.WS_URL_REQUIRED'));
       return;
     }
     if (item.requestState !== 'sending' && item.requestState !== 'queued') {
@@ -568,7 +570,7 @@ const RequestTabPanel = () => {
         {item.type === 'graphql-request' ? (
           <div className={`graphql-docs-explorer-container ${showGqlDocs ? '' : 'hidden'}`}>
             <DocExplorer schema={schema} ref={(r) => (docExplorerRef.current = r)}>
-              <button className="mr-2" data-testid="graphql-docs-close-button" onClick={() => toggleDocs(false)} aria-label="Close Documentation Explorer">
+              <button className="mr-2" data-testid="graphql-docs-close-button" onClick={() => toggleDocs(false)} aria-label={t('REQUEST_TAB_PANEL.CLOSE_DOCS_EXPLORER')}>
                 {'\u2715'}
               </button>
             </DocExplorer>

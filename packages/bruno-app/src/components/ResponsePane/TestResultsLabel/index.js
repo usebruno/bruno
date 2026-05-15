@@ -1,14 +1,16 @@
 import React from 'react';
 import { IconCircleCheck, IconCircleX } from '@tabler/icons';
+import { useTranslation } from 'react-i18next';
 
 const TestResultsLabel = ({ results, assertionResults, preRequestTestResults, postResponseTestResults }) => {
   results = results || [];
   assertionResults = assertionResults || [];
   preRequestTestResults = preRequestTestResults || [];
   postResponseTestResults = postResponseTestResults || [];
+  const { t } = useTranslation();
 
   if (!results.length && !assertionResults.length && !preRequestTestResults.length && !postResponseTestResults.length) {
-    return 'Tests';
+    return t('RESPONSE_PANE.TESTS');
   }
 
   const numberOfTests = results.length;
@@ -28,7 +30,7 @@ const TestResultsLabel = ({ results, assertionResults, preRequestTestResults, po
 
   return (
     <div className="flex items-center">
-      <div>Tests</div>
+      <div>{t('RESPONSE_PANE.TESTS')}</div>
       {totalNumberOfFailedTests ? (
         <sup className="sups some-tests-failed ml-1 font-medium">{totalNumberOfFailedTests}</sup>
       ) : (

@@ -1,5 +1,6 @@
 import React from 'react';
 import { useSelector, useDispatch } from 'react-redux';
+import { useTranslation } from 'react-i18next';
 import { IconBug } from '@tabler/icons';
 import {
   setSelectedError,
@@ -7,7 +8,7 @@ import {
 } from 'providers/ReduxStore/slices/logs';
 import StyledWrapper from './StyledWrapper';
 
-const ErrorRow = ({ error, isSelected, onClick }) => {
+const ErrorRow = ({ error, isSelected, onClick, t }) => {
   const formatTime = (timestamp) => {
     const date = new Date(timestamp);
     return date.toLocaleTimeString('en-US', {
@@ -20,7 +21,7 @@ const ErrorRow = ({ error, isSelected, onClick }) => {
   };
 
   const getShortMessage = (message, maxLength = 80) => {
-    if (!message) return 'Unknown error';
+    if (!message) return t('DEVTOOLS.UNKNOWN_ERROR');
     return message.length > maxLength ? message.substring(0, maxLength) + '...' : message;
   };
 
@@ -58,6 +59,7 @@ const ErrorRow = ({ error, isSelected, onClick }) => {
 };
 
 const DebugTab = () => {
+  const { t } = useTranslation();
   const dispatch = useDispatch();
   const { debugErrors, selectedError } = useSelector((state) => state.logs);
 
@@ -75,15 +77,15 @@ const DebugTab = () => {
         {debugErrors.length === 0 ? (
           <div className="debug-empty">
             <IconBug size={48} strokeWidth={1} />
-            <p>No errors</p>
-            <span>console.error() calls will appear here</span>
+            <p>{t('DEVTOOLS.NO_ERRORS')}</p>
+            <span>{t('DEVTOOLS.NO_ERRORS_DESC')}</span>
           </div>
         ) : (
           <div className="errors-container">
             <div className="errors-header">
-              <div>Message</div>
-              <div>Location</div>
-              <div className="text-right">Time</div>
+              <div>{t('DEVTOOLS.MESSAGE')}</div>
+              <div>{t('DEVTOOLS.LOCATION')}</div>
+              <div className="text-right">{t('DEVTOOLS.TIME')}</div>
             </div>
 
             <div className="errors-list">
@@ -93,6 +95,7 @@ const DebugTab = () => {
                   error={error}
                   isSelected={selectedError?.id === error.id}
                   onClick={() => handleErrorClick(error)}
+                  t={t}
                 />
               ))}
             </div>

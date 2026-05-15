@@ -1,6 +1,7 @@
 import React from 'react';
 import get from 'lodash/get';
 import StyledWrapper from './StyledWrapper';
+import { useTranslation } from 'react-i18next';
 import { saveFolderRoot } from 'providers/ReduxStore/slices/collections/actions';
 import OAuth2AuthorizationCode from 'components/RequestPane/Auth/OAuth2/AuthorizationCode/index';
 import { updateFolderAuth as _updateFolderAuth } from 'providers/ReduxStore/slices/collections';
@@ -23,6 +24,7 @@ import Button from 'ui/Button';
 
 const GrantTypeComponentMap = ({ collection, folder, updateFolderAuth }) => {
   const dispatch = useDispatch();
+  const { t } = useTranslation();
 
   const save = () => {
     dispatch(saveFolderRoot(collection.uid, folder.uid));
@@ -42,12 +44,13 @@ const GrantTypeComponentMap = ({ collection, folder, updateFolderAuth }) => {
     case 'implicit':
       return <OAuth2Implicit save={save} item={folder} request={request} updateAuth={updateFolderAuth} collection={collection} folder={folder} />;
     default:
-      return <div>TBD</div>;
+      return <div>{t('FOLDER_SETTINGS.TBD')}</div>;
   }
 };
 
 const Auth = ({ collection, folder }) => {
   const dispatch = useDispatch();
+  const { t } = useTranslation();
   const folderRoot = folder?.draft || folder?.root;
   let request = get(folderRoot, 'request', {});
   const authMode = get(folderRoot, 'request.auth.mode');
@@ -206,8 +209,8 @@ const Auth = ({ collection, folder }) => {
         return (
           <>
             <div className="flex flex-row w-full mt-2 gap-2">
-              <div>Auth inherited from {source.name}: </div>
-              <div className="inherit-mode-text">{humanizeRequestAuthMode(source.auth?.mode)}</div>
+              <div>{t('FOLDER_SETTINGS.AUTH_INHERITED_FROM', { name: source.name })}: </div>
+              <div className="inherit-mode-text">{humanizeRequestAuthMode(source.auth?.mode, t)}</div>
             </div>
           </>
         );
@@ -223,8 +226,7 @@ const Auth = ({ collection, folder }) => {
   return (
     <StyledWrapper className="w-full">
       <div className="text-xs mb-4 text-muted">
-        Configures authentication for the entire folder. This applies to all requests using the{' '}
-        <span className="font-medium">Inherit</span> option in the <span className="font-medium">Auth</span> tab.
+        {t('FOLDER_SETTINGS.AUTH_DESCRIPTION')}
       </div>
       <div className="flex flex-grow justify-start items-center">
         <AuthMode collection={collection} folder={folder} />
@@ -232,7 +234,7 @@ const Auth = ({ collection, folder }) => {
       {getAuthView()}
       <div className="mt-6">
         <Button type="submit" size="sm" onClick={handleSave}>
-          Save
+          {t('FOLDER_SETTINGS.SAVE')}
         </Button>
       </div>
     </StyledWrapper>

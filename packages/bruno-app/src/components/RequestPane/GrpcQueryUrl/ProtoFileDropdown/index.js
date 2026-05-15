@@ -1,6 +1,7 @@
 import React, { forwardRef, useState } from 'react';
 import { IconFile, IconChevronDown } from '@tabler/icons';
 import { getBasename } from 'utils/common/path';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from 'providers/Theme';
 import { useDispatch } from 'react-redux';
 import { updateRequestProtoPath } from 'providers/ReduxStore/slices/collections';
@@ -23,6 +24,7 @@ const ProtoFileDropdown = ({
   onReflectionModeToggle,
   onProtoFileLoad
 }) => {
+  const { t } = useTranslation();
   const { theme } = useTheme();
   const dispatch = useDispatch();
   const [activeTab, setActiveTab] = useState('protofiles'); // 'protofiles' or 'importpaths'
@@ -35,7 +37,7 @@ const ProtoFileDropdown = ({
     const { success, filePath, error } = await protoFileManagement.browseForProtoFile();
     if (!success) {
       if (error) {
-        toast.error(`Failed to browse for proto file: ${error.message}`);
+        toast.error(t('GRPC_PROTO_DROPDOWN.BROWSE_FAILED', { error: error.message }));
       }
       return;
     }
@@ -43,15 +45,15 @@ const ProtoFileDropdown = ({
     const { success: addSuccess, relativePath, alreadyExists, error: addError } = await protoFileManagement.addProtoFileFromRequest(filePath);
     if (!addSuccess) {
       if (addError) {
-        toast.error(`Failed to add proto file: ${addError.message}`);
+        toast.error(t('GRPC_PROTO_DROPDOWN.ADD_FAILED', { error: addError.message }));
       }
       return;
     }
 
     if (alreadyExists) {
-      toast.error('Proto file already exists in collection settings');
+      toast.error(t('GRPC_PROTO_DROPDOWN.ALREADY_EXISTS'));
     } else {
-      toast.success('Added proto file to collection');
+      toast.success(t('GRPC_PROTO_DROPDOWN.ADDED'));
     }
 
     dispatch(updateRequestProtoPath({
@@ -67,7 +69,7 @@ const ProtoFileDropdown = ({
 
   const handleSelectCollectionProtoFile = (protoFile) => {
     if (!protoFile || !protoFile.exists) {
-      toast.error('Proto file not found');
+      toast.error(t('GRPC_PROTO_DROPDOWN.NOT_FOUND'));
       return;
     }
 
@@ -87,7 +89,7 @@ const ProtoFileDropdown = ({
     const { success, directoryPath, error } = await protoFileManagement.browseForImportDirectory();
     if (!success) {
       if (error) {
-        toast.error(`Failed to browse for import directory: ${error.message}`);
+        toast.error(t('GRPC_PROTO_DROPDOWN.BROWSE_IMPORT_FAILED', { error: error.message }));
       }
       return;
     }
@@ -95,24 +97,24 @@ const ProtoFileDropdown = ({
     const { success: addSuccess, error: addError } = await protoFileManagement.addImportPathFromRequest(directoryPath);
     if (!addSuccess) {
       if (addError) {
-        toast.error(`Failed to add import path: ${addError.message}`);
+        toast.error(t('GRPC_PROTO_DROPDOWN.ADD_IMPORT_FAILED', { error: addError.message }));
       }
       return;
     }
 
-    toast.success('Added import path to collection');
+    toast.success(t('GRPC_PROTO_DROPDOWN.IMPORT_ADDED'));
   };
 
   const handleToggleImportPath = async (index) => {
     const { success, enabled, error } = await protoFileManagement.toggleImportPathFromRequest(index);
     if (!success) {
       if (error) {
-        toast.error(`Failed to toggle import path: ${error.message}`);
+        toast.error(t('GRPC_PROTO_DROPDOWN.TOGGLE_FAILED', { error: error.message }));
       }
       return;
     }
 
-    toast.success(`Import path ${enabled ? 'enabled' : 'disabled'}`);
+    toast.success(t('GRPC_PROTO_DROPDOWN.IMPORT_PATH_TOGGLED', { status: enabled ? t('GRPC_PROTO_DROPDOWN.ENABLED') : t('GRPC_PROTO_DROPDOWN.DISABLED') }));
   };
 
   const handleOpenCollectionProtobufSettings = (e) => {
@@ -127,7 +129,7 @@ const ProtoFileDropdown = ({
           <IconFile size={20} strokeWidth={1.5} className="proto-file-dropdown-icon" />
         )}
         <span className="proto-file-dropdown-text">
-          {isReflectionMode ? 'Using Reflection' : (protoFilePath ? getBasename(collection.pathname, protoFilePath) : 'Select Proto File')}
+          {isReflectionMode ? t('GRPC_PROTO_DROPDOWN.USING_REFLECTION') : (protoFilePath ? getBasename(collection.pathname, protoFilePath) : t('GRPC_PROTO_DROPDOWN.SELECT_PROTO_FILE'))}
         </span>
         <IconChevronDown className="proto-file-dropdown-caret" size={14} strokeWidth={2} />
       </div>
@@ -148,10 +150,10 @@ const ProtoFileDropdown = ({
           <div className="proto-file-dropdown-content">
             <div className="proto-file-dropdown-mode-section" data-testid="grpc-mode-toggle">
               <div className="proto-file-dropdown-mode-controls">
-                <span>Mode</span>
+                <span>{t('GRPC_PROTO_DROPDOWN.MODE')}</span>
                 <div className="proto-file-dropdown-mode-options">
                   <span className={`proto-file-dropdown-mode-option ${!isReflectionMode ? 'proto-file-dropdown-mode-option--active' : ''}`} style={{ color: !isReflectionMode ? theme.primary.text : undefined }}>
-                    Proto File
+                    {t('GRPC_PROTO_DROPDOWN.PROTO_FILE')}
                   </span>
                   <ToggleSwitch
                     isOn={isReflectionMode}
@@ -160,7 +162,7 @@ const ProtoFileDropdown = ({
                     activeColor={theme.primary.solid}
                   />
                   <span className={`proto-file-dropdown-mode-option ${isReflectionMode ? 'proto-file-dropdown-mode-option--active' : ''}`} style={{ color: isReflectionMode ? theme.primary.text : undefined }}>
-                    Reflection
+                    {t('GRPC_PROTO_DROPDOWN.REFLECTION')}
                   </span>
                 </div>
               </div>
@@ -204,7 +206,7 @@ const ProtoFileDropdown = ({
 
             {isReflectionMode && (
               <div className="proto-file-dropdown-reflection-message">
-                Using server reflection to discover gRPC methods.
+                {t('GRPC_PROTO_DROPDOWN.REFLECTION_MESSAGE')}
               </div>
             )}
           </div>

@@ -3,6 +3,7 @@ import { useDrag, useDrop } from 'react-dnd';
 import { getEmptyImage } from 'react-dnd-html5-backend';
 import { IconGripVertical, IconCheck } from '@tabler/icons';
 import { useDispatch } from 'react-redux';
+import { useTranslation } from 'react-i18next';
 import { updateRunnerConfiguration } from 'providers/ReduxStore/slices/collections/actions';
 import StyledWrapper from './StyledWrapper';
 import { isItemARequest, isItemAFolder } from 'utils/collections';
@@ -174,6 +175,7 @@ const RequestItem = ({ item, index, moveItem, isSelected, onSelect, onDrop, isDi
 
 const RunConfigurationPanel = ({ collection, selectedItems, setSelectedItems, tags }) => {
   const dispatch = useDispatch();
+  const { t } = useTranslation();
   const [flattenedRequests, setFlattenedRequests] = useState([]);
   const [originalRequests, setOriginalRequests] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -397,7 +399,7 @@ const RunConfigurationPanel = ({ collection, selectedItems, setSelectedItems, ta
     <StyledWrapper data-testid="runner-config-panel">
       <div className="header">
         <div className="counter" data-testid="runner-config-counter">
-          {selectedItems.length} of {enabledCount} selected
+          {t('RUNNER_RESULTS.SELECTED_COUNT', { selected: selectedItems.length, total: enabledCount })}
         </div>
         <div className="actions">
           <Button
@@ -405,24 +407,24 @@ const RunConfigurationPanel = ({ collection, selectedItems, setSelectedItems, ta
             onClick={handleSelectAll}
             data-testid="runner-select-all"
           >
-            {selectedItems.length === enabledCount ? 'Deselect All' : 'Select All'}
+            {selectedItems.length === enabledCount ? t('RUNNER_RESULTS.DESELECT_ALL') : t('COMMON.SELECT_ALL')}
           </Button>
           <Button
             variant="ghost"
             onClick={handleReset}
-            title="Reset selection and order"
+            title={t('RUNNER_RESULTS.RESET_SELECTION_ORDER')}
             data-testid="runner-config-reset"
           >
-            Reset
+            {t('COMMON.RESET')}
           </Button>
         </div>
       </div>
 
       <div className="request-list">
         {isLoading ? (
-          <div className="loading-message">Loading requests...</div>
+          <div className="loading-message">{t('RUNNER_RESULTS.LOADING_REQUESTS')}</div>
         ) : flattenedRequests.length === 0 ? (
-          <div className="empty-message">No requests found in this collection</div>
+          <div className="empty-message">{t('RUNNER_RESULTS.NO_REQUESTS_FOUND')}</div>
         ) : (
           <div className="requests-container">
             {flattenedRequests.map((item, idx) => {

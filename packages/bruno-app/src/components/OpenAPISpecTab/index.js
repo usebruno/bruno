@@ -6,6 +6,7 @@ import fastJsonFormat from 'fast-json-format';
 import SpecViewer from 'components/ApiSpecPanel/SpecViewer';
 import StyledWrapper from 'components/ApiSpecPanel/StyledWrapper';
 import { updateApiSpecTabLeftPaneWidth } from 'providers/ReduxStore/slices/tabs';
+import { useTranslation } from 'react-i18next';
 
 /**
  * Pretty-print JSON content for readable display. YAML content is returned as-is.
@@ -21,6 +22,7 @@ const prettyPrintSpec = (content) => {
 };
 
 const OpenAPISpecTab = ({ collection, tabUid }) => {
+  const { t } = useTranslation();
   const dispatch = useDispatch();
   const leftPaneWidth = useSelector((state) => {
     const tab = find(state.tabs.tabs, (t) => t.uid === tabUid);
@@ -78,7 +80,7 @@ const OpenAPISpecTab = ({ collection, tabUid }) => {
         setSpecContent(prettyPrintSpec(result.content));
       }
     } catch (err) {
-      setError(err.message || 'Failed to read spec file');
+      setError(err.message || t('OPENAPI_SPEC_TAB.READ_SPEC_FAILED'));
     } finally {
       setIsLoading(false);
     }
@@ -94,7 +96,7 @@ const OpenAPISpecTab = ({ collection, tabUid }) => {
     return (
       <div className="flex items-center justify-center h-full gap-2 opacity-50">
         <IconLoader2 size={20} className="animate-spin" />
-        <span>Loading spec...</span>
+        <span>{t('OPENAPI_SPEC_TAB.LOADING')}</span>
       </div>
     );
   }
@@ -102,7 +104,7 @@ const OpenAPISpecTab = ({ collection, tabUid }) => {
   if (error || !specContent) {
     return (
       <div className="flex items-center justify-center h-full opacity-50">
-        <span>{error || 'No spec file found. Sync your collection first.'}</span>
+        <span>{error || t('OPENAPI_SPEC_TAB.NO_SPEC_FOUND')}</span>
       </div>
     );
   }
@@ -112,7 +114,7 @@ const OpenAPISpecTab = ({ collection, tabUid }) => {
       {isRemote && (
         <div className="flex items-center gap-1.5 px-3 py-1.5 text-xs opacity-60" style={{ borderBottom: '1px solid var(--color-border)' }}>
           <IconCloud size={14} />
-          <span>Showing spec file from {sourceUrl}.</span>
+          <span>{t('OPENAPI_SPEC_TAB.SHOWING_REMOTE_SPEC', { sourceUrl })}</span>
         </div>
       )}
       <SpecViewer

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import CollapsibleDiffRow from '../CollapsibleDiffRow';
 import StyledWrapper from './StyledWrapper';
+import { useTranslation } from 'react-i18next';
 
 /**
  * VisualDiffContent - Presentational component for rendering visual diffs
@@ -24,10 +25,11 @@ const VisualDiffContent = ({
   newData,
   sections,
   sectionHasChanges,
-  oldLabel = 'Before',
-  newLabel = 'After',
+  oldLabel,
+  newLabel,
   hideUnchanged = false
 }) => {
+  const { t } = useTranslation();
   const [collapsedSections, setCollapsedSections] = useState({});
 
   const toggleSection = (sectionKey) => {
@@ -54,19 +56,22 @@ const VisualDiffContent = ({
     return (
       <StyledWrapper>
         <div className="empty-state">
-          No content to display
+          {t('GIT.VISUAL_DIFF.NO_CONTENT')}
         </div>
       </StyledWrapper>
     );
   }
+
+  const resolvedOldLabel = oldLabel || t('GIT.VISUAL_DIFF.BEFORE');
+  const resolvedNewLabel = newLabel || t('GIT.VISUAL_DIFF.AFTER');
 
   return (
     <StyledWrapper>
 
       <div className="visual-diff-content">
         <div className="diff-header-row">
-          <div className="diff-header-pane old">{oldLabel}</div>
-          <div className="diff-header-pane new">{newLabel}</div>
+          <div className="diff-header-pane old">{resolvedOldLabel}</div>
+          <div className="diff-header-pane new">{resolvedNewLabel}</div>
         </div>
 
         <div className="diff-sections">

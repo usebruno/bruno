@@ -1,10 +1,14 @@
 import React from 'react';
 import classnames from 'classnames';
-import statusCodePhraseMap from './get-status-code-phrase';
+import useStatusCodePhraseMap from './get-status-code-phrase';
 import StyledWrapper from './StyledWrapper';
+import { useTranslation } from 'react-i18next';
 
 // Todo: text-error class is not getting pulled in for 500 errors
 const StatusCode = ({ status, statusText, isStreaming }) => {
+  const { t } = useTranslation();
+  const statusCodePhraseMap = useStatusCodePhraseMap();
+
   const getTabClassname = (status) => {
     return classnames({
       'text-ok': status >= 100 && status < 200,
@@ -17,7 +21,7 @@ const StatusCode = ({ status, statusText, isStreaming }) => {
 
   return (
     <StyledWrapper className={`response-status-code ${getTabClassname(status)}`} data-testid="response-status-code">
-      {status} {statusText || statusCodePhraseMap[status]} {isStreaming ? ' - STREAMING' : null}
+      {status} {statusText || statusCodePhraseMap[status]} {isStreaming ? ` - ${t('RESPONSE_PANE.STREAMING')}` : null}
     </StyledWrapper>
   );
 };

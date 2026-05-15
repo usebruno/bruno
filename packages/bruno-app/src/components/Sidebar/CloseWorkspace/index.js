@@ -4,39 +4,41 @@ import Modal from 'components/Modal';
 import { useDispatch, useSelector } from 'react-redux';
 import { IconFolder } from '@tabler/icons';
 import { closeWorkspaceAction } from 'providers/ReduxStore/slices/workspaces/actions';
+import { useTranslation } from 'react-i18next';
 
 const CloseWorkspace = ({ workspaceUid, onClose }) => {
   const dispatch = useDispatch();
   const { workspaces } = useSelector((state) => state.workspaces);
   const workspace = workspaces.find((w) => w.uid === workspaceUid);
+  const { t } = useTranslation();
 
   const onConfirm = async () => {
     try {
       if (!workspace) {
-        toast.error('Workspace not found');
+        toast.error(t('SIDEBAR.CLOSE_WORKSPACE_NOT_FOUND'));
         onClose();
         return;
       }
       if (workspace.type === 'default') {
-        toast.error('Cannot close the default workspace');
+        toast.error(t('SIDEBAR.CLOSE_WORKSPACE_DEFAULT_ERROR'));
         onClose();
         return;
       }
 
       await dispatch(closeWorkspaceAction(workspace.uid));
-      toast.success('Workspace closed');
+      toast.success(t('SIDEBAR.CLOSE_WORKSPACE_SUCCESS'));
       onClose();
     } catch (error) {
       console.error('Error closing workspace:', error);
-      toast.error('An error occurred while closing the workspace');
+      toast.error(t('SIDEBAR.CLOSE_WORKSPACE_ERROR'));
     }
   };
 
   return (
     <Modal
       size="sm"
-      title="Close Workspace"
-      confirmText="Close"
+      title={t('SIDEBAR.CLOSE_WORKSPACE_TITLE')}
+      confirmText={t('SIDEBAR.CLOSE_WORKSPACE_CONFIRM')}
       handleConfirm={onConfirm}
       handleCancel={onClose}
     >
@@ -48,10 +50,10 @@ const CloseWorkspace = ({ workspaceUid, onClose }) => {
         <div className="break-words text-xs mt-1">{workspace.pathname}</div>
       )}
       <div className="mt-4">
-        Are you sure you want to close workspace <span className="font-semibold">{workspace?.name}</span>?
+        {t('SIDEBAR.CLOSE_WORKSPACE_ARE_YOU_SURE')} <span className="font-semibold">{workspace?.name}</span>?
       </div>
       <div className="mt-4">
-        It will still be available in the file system at the above location and can be re-opened later.
+        {t('SIDEBAR.CLOSE_WORKSPACE_STILL_AVAILABLE')}
       </div>
     </Modal>
   );

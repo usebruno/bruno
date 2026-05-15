@@ -16,6 +16,7 @@ import StyledWrapper from './StyledWrapper';
 import { humanizeRequestAuthMode } from 'utils/collections';
 import OAuth2 from './OAuth2/index';
 import { findItemInCollection, findParentItemInCollection } from 'utils/collections/index';
+import { useTranslation } from 'react-i18next';
 
 const getTreePathFromCollectionToItem = (collection, _item) => {
   let path = [];
@@ -29,6 +30,7 @@ const getTreePathFromCollectionToItem = (collection, _item) => {
 
 const Auth = ({ item, collection }) => {
   const dispatch = useDispatch();
+  const { t } = useTranslation();
   const authMode = item.draft ? get(item, 'draft.request.auth.mode') : get(item, 'request.auth.mode');
   const requestTreePath = getTreePathFromCollectionToItem(collection, item);
 
@@ -74,7 +76,7 @@ const Auth = ({ item, collection }) => {
   const getAuthView = () => {
     switch (authMode) {
       case 'none': {
-        return <div className="mt-2">No Auth</div>;
+        return <div className="mt-2">{t('REQUEST_AUTH.NO_AUTH')}</div>;
       }
       case 'awsv4': {
         return <AwsV4Auth collection={collection} item={item} request={request} save={save} updateAuth={updateAuth} />;
@@ -108,8 +110,8 @@ const Auth = ({ item, collection }) => {
         return (
           <>
             <div className="flex flex-row w-full gap-2">
-              <div>Auth inherited from {source.name}: </div>
-              <div className="inherit-mode-text">{humanizeRequestAuthMode(source.auth?.mode)}</div>
+              <div>{t('REQUEST_AUTH.AUTH_INHERITED_FROM', { name: source.name })}: </div>
+              <div className="inherit-mode-text">{humanizeRequestAuthMode(source.auth?.mode, t)}</div>
             </div>
           </>
         );

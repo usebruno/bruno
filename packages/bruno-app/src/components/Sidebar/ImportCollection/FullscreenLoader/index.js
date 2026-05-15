@@ -1,17 +1,21 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { IconLoader2 } from '@tabler/icons';
-
-// Messages to cycle through while loading
-const loadingMessages = [
-  'Processing collection...',
-  'Analyzing requests...',
-  'Translating scripts...',
-  'Preparing collection...',
-  'Almost done...'
-];
+import { useTranslation } from 'react-i18next';
 
 const FullscreenLoader = ({ isLoading }) => {
   const [loadingMessage, setLoadingMessage] = useState('');
+  const { t } = useTranslation();
+
+  const loadingMessages = useMemo(
+    () => [
+      t('SIDEBAR.IMPORT_LOADING_PROCESSING'),
+      t('SIDEBAR.IMPORT_LOADING_ANALYZING'),
+      t('SIDEBAR.IMPORT_LOADING_TRANSLATING'),
+      t('SIDEBAR.IMPORT_LOADING_PREPARING'),
+      t('SIDEBAR.IMPORT_LOADING_ALMOST_DONE')
+    ],
+    [t]
+  );
 
   useEffect(() => {
     if (!isLoading) return;
@@ -25,7 +29,7 @@ const FullscreenLoader = ({ isLoading }) => {
     setLoadingMessage(loadingMessages[0]);
 
     return () => clearInterval(interval);
-  }, [isLoading]);
+  }, [isLoading, loadingMessages]);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm transition-all duration-300">
@@ -33,7 +37,7 @@ const FullscreenLoader = ({ isLoading }) => {
         <IconLoader2 className="animate-spin h-12 w-12 mb-4" strokeWidth={1.5} />
         <h3 className="text-lg font-medium text-zinc-900 dark:text-zinc-50 mb-2">{loadingMessage}</h3>
         <p className="text-zinc-500 dark:text-zinc-400">
-          This may take a moment depending on the collection size
+          {t('SIDEBAR.IMPORT_LOADING_TAKE_MOMENT')}
         </p>
       </div>
     </div>

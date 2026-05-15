@@ -1,5 +1,6 @@
 import React, { useMemo, useCallback } from 'react';
 import get from 'lodash/get';
+import { useTranslation } from 'react-i18next';
 import {
   IconCaretDown,
   IconForms,
@@ -20,36 +21,37 @@ import { toastError } from 'utils/common/error';
 import { prettifyJsonString } from 'utils/common/index';
 import xmlFormat from 'xml-formatter';
 
-const DEFAULT_MODES = [
-  {
-    name: 'Form',
-    options: [
-      { id: 'multipartForm', label: 'Multipart Form', leftSection: IconForms },
-      { id: 'formUrlEncoded', label: 'Form URL Encoded', leftSection: IconForms }
-    ]
-  },
-  {
-    name: 'Raw',
-    options: [
-      { id: 'json', label: 'JSON', leftSection: IconBraces },
-      { id: 'xml', label: 'XML', leftSection: IconCode },
-      { id: 'text', label: 'TEXT', leftSection: IconFileText },
-      { id: 'sparql', label: 'SPARQL', leftSection: IconDatabase }
-    ]
-  },
-  {
-    name: 'Other',
-    options: [
-      { id: 'file', label: 'File / Binary', leftSection: IconFile },
-      { id: 'none', label: 'No Body', leftSection: IconX }
-    ]
-  }
-];
-
 const RequestBodyMode = ({ item, collection }) => {
+  const { t } = useTranslation();
   const dispatch = useDispatch();
   const body = item.draft ? get(item, 'draft.request.body') : get(item, 'request.body');
   const bodyMode = body?.mode;
+
+  const DEFAULT_MODES = [
+    {
+      name: t('BODY_MODE.FORM'),
+      options: [
+        { id: 'multipartForm', label: t('BODY_MODE.MULTIPART_FORM'), leftSection: IconForms },
+        { id: 'formUrlEncoded', label: t('BODY_MODE.FORM_URL_ENCODED'), leftSection: IconForms }
+      ]
+    },
+    {
+      name: t('BODY_MODE.RAW'),
+      options: [
+        { id: 'json', label: t('BODY_MODE.JSON'), leftSection: IconBraces },
+        { id: 'xml', label: t('BODY_MODE.XML'), leftSection: IconCode },
+        { id: 'text', label: t('BODY_MODE.TEXT'), leftSection: IconFileText },
+        { id: 'sparql', label: t('BODY_MODE.SPARQL'), leftSection: IconDatabase }
+      ]
+    },
+    {
+      name: t('BODY_MODE.OTHER'),
+      options: [
+        { id: 'file', label: t('BODY_MODE.FILE_BINARY'), leftSection: IconFile },
+        { id: 'none', label: t('BODY_MODE.NO_BODY'), leftSection: IconX }
+      ]
+    }
+  ];
 
   const onModeChange = useCallback((value) => {
     dispatch(
@@ -73,7 +75,7 @@ const RequestBodyMode = ({ item, collection }) => {
           })
         );
       } catch (e) {
-        toastError(new Error('Unable to prettify. Invalid JSON format.'));
+        toastError(new Error(t('REQUEST_BODY.PRETTIFY_JSON_ERROR')));
       }
     } else if (body?.xml && bodyMode === 'xml') {
       try {
@@ -86,7 +88,7 @@ const RequestBodyMode = ({ item, collection }) => {
           })
         );
       } catch (e) {
-        toastError(new Error('Unable to prettify. Invalid XML format.'));
+        toastError(new Error(t('REQUEST_BODY.PRETTIFY_XML_ERROR')));
       }
     }
   };
@@ -99,7 +101,7 @@ const RequestBodyMode = ({ item, collection }) => {
         onClick: () => onModeChange(option.id)
       }))
     }));
-  }, [onModeChange]);
+  }, [onModeChange, DEFAULT_MODES]);
 
   return (
     <StyledWrapper>
@@ -112,13 +114,13 @@ const RequestBodyMode = ({ item, collection }) => {
           groupStyle="select"
         >
           <div className="flex items-center justify-center pl-3 py-1 select-none selected-body-mode">
-            {humanizeRequestBodyMode(bodyMode)} <IconCaretDown className="caret ml-1" size={14} strokeWidth={2} />
+            {humanizeRequestBodyMode(bodyMode, t)} <IconCaretDown className="caret ml-1" size={14} strokeWidth={2} />
           </div>
         </MenuDropdown>
       </div>
       {(bodyMode === 'json' || bodyMode === 'xml') && (
         <button className="ml-2" onClick={onPrettify}>
-          Prettify
+          {t('REQUEST_BODY.PRETTIFY')}
         </button>
       )}
     </StyledWrapper>

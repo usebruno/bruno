@@ -1,11 +1,13 @@
 import React, { useEffect, useRef, forwardRef } from 'react';
 import useGraphqlSchema from './useGraphqlSchema';
+import { useTranslation } from 'react-i18next';
 import { IconBook, IconDownload, IconLoader2, IconRefresh } from '@tabler/icons';
 import get from 'lodash/get';
 import { findEnvironmentInCollection } from 'utils/collections';
 import Dropdown from '../../Dropdown';
 
 const GraphQLSchemaActions = ({ item, collection, onSchemaLoad, toggleDocs }) => {
+  const { t } = useTranslation();
   const url = item.draft ? get(item, 'draft.request.url', '') : get(item, 'request.url', '');
   const pathname = item.draft ? get(item, 'draft.pathname', '') : get(item, 'pathname', '');
   const uid = item.draft ? get(item, 'draft.uid', '') : get(item, 'uid', '');
@@ -34,7 +36,7 @@ const GraphQLSchemaActions = ({ item, collection, onSchemaLoad, toggleDocs }) =>
         {isSchemaLoading && <IconLoader2 className="animate-spin" size={18} strokeWidth={1.5} />}
         {!isSchemaLoading && schema && <IconRefresh size={18} strokeWidth={1.5} />}
         {!isSchemaLoading && !schema && <IconDownload size={18} strokeWidth={1.5} />}
-        <span className="ml-1">Schema</span>
+        <span className="ml-1">{t('QUERY_BUILDER.SCHEMA')}</span>
       </div>
     );
   });
@@ -43,7 +45,7 @@ const GraphQLSchemaActions = ({ item, collection, onSchemaLoad, toggleDocs }) =>
     <div className="flex flex-grow justify-end items-center">
       <div className="flex items-center cursor-pointer hover:underline" onClick={toggleDocs}>
         <IconBook size={18} strokeWidth={1.5} />
-        <span className="ml-1">Docs</span>
+        <span className="ml-1">{t('QUERY_BUILDER.DOCS')}</span>
       </div>
       <Dropdown onCreate={onSchemaDropdownCreate} icon={<MenuIcon />} placement="bottom-start">
         <div
@@ -53,7 +55,7 @@ const GraphQLSchemaActions = ({ item, collection, onSchemaLoad, toggleDocs }) =>
             loadSchema('introspection');
           }}
         >
-          {schema && schemaSource === 'introspection' ? 'Refresh from Introspection' : 'Load from Introspection'}
+          {schema && schemaSource === 'introspection' ? t('QUERY_BUILDER.REFRESH_INTROSPECTION') : t('QUERY_BUILDER.LOAD_INTROSPECTION')}
         </div>
         <div
           className="dropdown-item"
@@ -62,7 +64,7 @@ const GraphQLSchemaActions = ({ item, collection, onSchemaLoad, toggleDocs }) =>
             loadSchema('file');
           }}
         >
-          Load from File
+          {t('QUERY_BUILDER.LOAD_FILE')}
         </div>
       </Dropdown>
     </div>

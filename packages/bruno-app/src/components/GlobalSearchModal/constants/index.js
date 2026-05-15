@@ -22,11 +22,16 @@ export const SEARCH_CONFIG = {
   DEBOUNCE_DELAY: 300
 };
 
-export const DOCUMENTATION_RESULT = {
+/**
+ * Get documentation result with translated strings
+ * @param {Function} t - Translation function
+ * @returns {Object} Documentation result object
+ */
+export const getDocumentationResult = (t) => ({
   type: SEARCH_TYPES.DOCUMENTATION,
-  item: { id: 'docs', name: 'Bruno Documentation' },
-  name: 'Bruno Documentation',
+  item: { id: 'docs', name: t('GLOBAL_SEARCH.DOCUMENTATION_NAME') },
+  name: t('GLOBAL_SEARCH.DOCUMENTATION_NAME'),
   path: '/',
-  description: 'Browse the official Bruno documentation',
+  description: t('GLOBAL_SEARCH.DOCUMENTATION_DESC'),
   matchType: MATCH_TYPES.DOCUMENTATION
-};
+});

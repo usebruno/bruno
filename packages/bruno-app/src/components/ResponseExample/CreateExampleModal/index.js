@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
 import Modal from 'components/Modal';
 import Portal from 'components/Portal';
+import { useTranslation } from 'react-i18next';
 
-const CreateExampleModal = ({ isOpen, onClose, onSave, title = 'Create Response Example', initialName = '' }) => {
+const CreateExampleModal = ({ isOpen, onClose, onSave, title, initialName = '' }) => {
+  const { t } = useTranslation();
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [nameError, setNameError] = useState('');
@@ -23,7 +25,7 @@ const CreateExampleModal = ({ isOpen, onClose, onSave, title = 'Create Response 
       setDescription('');
       setNameError('');
     } else {
-      setNameError('Example name is required');
+      setNameError(t('RESPONSE_EXAMPLE.NAME_REQUIRED'));
     }
   };
 
@@ -51,17 +53,17 @@ const CreateExampleModal = ({ isOpen, onClose, onSave, title = 'Create Response 
     <Portal>
       <Modal
         size="md"
-        title={title}
+        title={title || t('RESPONSE_EXAMPLE.CREATE_TITLE')}
         handleCancel={handleClose}
         handleConfirm={handleConfirm}
-        confirmText="Create Example"
-        cancelText="Cancel"
+        confirmText={t('RESPONSE_EXAMPLE.CREATE_EXAMPLE')}
+        cancelText={t('COMMON.CANCEL')}
         isOpen={isOpen}
       >
         <div className="space-y-4">
           <div>
             <label htmlFor="exampleName" className="block font-medium">
-              Example Name<span className="text-red-600">*</span>
+              {t('RESPONSE_EXAMPLE.EXAMPLE_NAME')}<span className="text-red-600">*</span>
             </label>
             <input
               id="exampleName"
@@ -82,7 +84,7 @@ const CreateExampleModal = ({ isOpen, onClose, onSave, title = 'Create Response 
 
           <div>
             <label htmlFor="exampleDescription" className="block font-medium">
-              Description
+              {t('RESPONSE_EXAMPLE.DESCRIPTION')}
             </label>
             <textarea
               id="exampleDescription"

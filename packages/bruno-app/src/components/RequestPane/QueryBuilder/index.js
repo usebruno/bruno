@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { IconCloudDownload, IconFileUpload, IconAlertTriangle, IconChevronRight, IconChevronDown } from '@tabler/icons';
+import { useTranslation } from 'react-i18next';
 import { getRootFields } from 'utils/graphql/queryBuilder';
 import useQueryBuilder from 'hooks/useQueryBuilder';
 import QueryBuilderTree from './QueryBuilderTree';
@@ -8,6 +9,7 @@ import Button from 'ui/Button';
 import StyledWrapper from './StyledWrapper';
 
 const QueryBuilder = ({ schema, onQueryChange, editorValue, onVariablesChange, variablesValue, loadSchema, isSchemaLoading, schemaError }) => {
+  const { t } = useTranslation();
   const {
     selections,
     expandedPaths,
@@ -87,7 +89,7 @@ const QueryBuilder = ({ schema, onQueryChange, editorValue, onVariablesChange, v
           {schemaError ? (
             <>
               <IconAlertTriangle size={32} strokeWidth={1.5} className="empty-state-icon warning" />
-              <div className="empty-state-title">Failed to Load Schema</div>
+              <div className="empty-state-title">{t('QUERY_BUILDER.FAILED_TO_LOAD_SCHEMA')}</div>
               <div className="empty-state-description">{schemaError.message}</div>
               <div className="empty-state-actions">
                 <Button
@@ -99,7 +101,7 @@ const QueryBuilder = ({ schema, onQueryChange, editorValue, onVariablesChange, v
                   disabled={isSchemaLoading}
                   onClick={() => loadSchema('introspection')}
                 >
-                  Try Again
+                  {t('QUERY_BUILDER.TRY_AGAIN')}
                 </Button>
                 <Button
                   variant="outline"
@@ -109,15 +111,15 @@ const QueryBuilder = ({ schema, onQueryChange, editorValue, onVariablesChange, v
                   disabled={isSchemaLoading}
                   onClick={() => loadSchema('file')}
                 >
-                  Upload Schema File
+                  {t('QUERY_BUILDER.UPLOAD_SCHEMA_FILE')}
                 </Button>
               </div>
             </>
           ) : (
             <>
-              <div className="empty-state-title">No Schema Loaded</div>
+              <div className="empty-state-title">{t('QUERY_BUILDER.NO_SCHEMA_LOADED')}</div>
               <div className="empty-state-description">
-                Load a GraphQL schema to explore operations and build queries visually.
+                {t('QUERY_BUILDER.NO_SCHEMA_DESCRIPTION')}
               </div>
               <div className="empty-state-actions">
                 <Button
@@ -129,7 +131,7 @@ const QueryBuilder = ({ schema, onQueryChange, editorValue, onVariablesChange, v
                   disabled={isSchemaLoading}
                   onClick={() => loadSchema('introspection')}
                 >
-                  Load from Introspection
+                  {t('QUERY_BUILDER.LOAD_INTROSPECTION')}
                 </Button>
                 <Button
                   variant="outline"
@@ -139,7 +141,7 @@ const QueryBuilder = ({ schema, onQueryChange, editorValue, onVariablesChange, v
                   disabled={isSchemaLoading}
                   onClick={() => loadSchema('file')}
                 >
-                  Upload Schema File
+                  {t('QUERY_BUILDER.UPLOAD_SCHEMA_FILE')}
                 </Button>
               </div>
             </>
@@ -157,8 +159,8 @@ const QueryBuilder = ({ schema, onQueryChange, editorValue, onVariablesChange, v
           <div className="sync-error-text">
             {syncError === 'multiple_operations' ? (
               <>
-                <strong>Multiple operations detected</strong>
-                <span>The Query Builder supports a single operation at a time. Combine into one operation to sync.</span>
+                <strong>{t('QUERY_BUILDER.MULTIPLE_OPERATIONS_DETECTED')}</strong>
+                <span>{t('QUERY_BUILDER.MULTIPLE_OPERATIONS_DESCRIPTION')}</span>
               </>
             ) : null}
           </div>
@@ -173,7 +175,7 @@ const QueryBuilder = ({ schema, onQueryChange, editorValue, onVariablesChange, v
         <div className="query-builder-search">
           <input
             type="text"
-            placeholder="Search operations..."
+            placeholder={t('QUERY_BUILDER.SEARCH_OPERATIONS')}
             value={searchText}
             className="mousetrap"
             onChange={(e) => setSearchText(e.target.value)}
@@ -223,7 +225,7 @@ const QueryBuilder = ({ schema, onQueryChange, editorValue, onVariablesChange, v
                     />
                   ) : (
                     <div className="empty-state">
-                      {searchText ? 'No matching fields.' : 'No fields available.'}
+                      {searchText ? t('QUERY_BUILDER.NO_MATCHING_FIELDS') : t('QUERY_BUILDER.NO_FIELDS_AVAILABLE')}
                     </div>
                   )
                 )}

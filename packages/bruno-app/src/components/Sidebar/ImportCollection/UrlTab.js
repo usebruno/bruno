@@ -2,17 +2,20 @@ import React, { useState } from 'react';
 import { fetchAndValidateApiSpecFromUrl } from 'utils/importers/common';
 import { isValidUrl } from 'utils/url/index';
 import Button from 'ui/Button';
+import { useTranslation } from 'react-i18next';
+
 const UrlTab = ({
   setIsLoading,
   handleSubmit,
   setErrorMessage
 }) => {
   const [urlInput, setUrlInput] = useState('');
+  const { t } = useTranslation();
 
   const handleUrlImport = async (event) => {
     event.preventDefault();
     if (!urlInput.trim() || !isValidUrl(urlInput.trim())) {
-      setErrorMessage('Please enter a valid URL');
+      setErrorMessage(t('SIDEBAR.IMPORT_URL_INVALID'));
       return;
     }
     setIsLoading(true);
@@ -22,7 +25,7 @@ const UrlTab = ({
       handleSubmit({ rawData: data, type: specType, sourceUrl: urlInput.trim(), rawContent });
     } catch (err) {
       console.error(err);
-      setErrorMessage('URL import failed. Please check the URL and try again.');
+      setErrorMessage(t('SIDEBAR.IMPORT_URL_FAILED'));
     } finally {
       setIsLoading(false);
     }
@@ -41,7 +44,7 @@ const UrlTab = ({
             setUrlInput(e.target.value);
             setErrorMessage('');
           }}
-          placeholder="Enter URL (OpenAPI/Swagger, Postman, or Insomnia specification)"
+          placeholder={t('SIDEBAR.IMPORT_URL_PLACEHOLDER')}
           className="flex-1 px-3 py-1 textbox"
         />
         <Button
@@ -52,7 +55,7 @@ const UrlTab = ({
           color="primary"
           style={{ height: '100%' }}
         >
-          Import
+          {t('SIDEBAR.IMPORT_URL_BUTTON')}
         </Button>
       </div>
     </form>

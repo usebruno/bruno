@@ -1,9 +1,13 @@
 import React from 'react';
 import classnames from 'classnames';
-import wsStatusCodePhraseMap from './get-ws-status-code-phrase';
+import { useTranslation } from 'react-i18next';
+import useWsStatusCodePhraseMap from './get-ws-status-code-phrase';
 import StyledWrapper from './StyledWrapper';
 
 const WSStatusCode = ({ status, text }) => {
+  const { t } = useTranslation();
+  const wsStatusCodePhraseMap = useWsStatusCodePhraseMap();
+
   const getTabClassname = (status) => {
     return classnames('ml-2', {
       // ok if normal connect and normal closure

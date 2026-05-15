@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import get from 'lodash/get';
 import find from 'lodash/find';
 import { useDispatch, useSelector } from 'react-redux';
+import { useTranslation } from 'react-i18next';
 import CodeEditor from 'components/CodeEditor';
 import { updateRequestScript, updateResponseScript } from 'providers/ReduxStore/slices/collections';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
@@ -12,6 +13,7 @@ import StatusDot from 'components/StatusDot';
 import { usePersistedState } from 'hooks/usePersistedState';
 
 const Script = ({ item, collection }) => {
+  const { t } = useTranslation();
   const dispatch = useDispatch();
   const preRequestEditorRef = useRef(null);
   const postResponseEditorRef = useRef(null);
@@ -90,13 +92,13 @@ const Script = ({ item, collection }) => {
       <Tabs value={activeTab} onValueChange={onScriptTabChange}>
         <TabsList>
           <TabsTrigger value="pre-request">
-            Pre Request
+            {t('REQUEST_SCRIPT.PRE_REQUEST')}
             {hasPreRequestScript && (
               <StatusDot type={item.preRequestScriptErrorMessage ? 'error' : 'default'} />
             )}
           </TabsTrigger>
           <TabsTrigger value="post-response">
-            Post Response
+            {t('REQUEST_SCRIPT.POST_RESPONSE')}
             {hasPostResponseScript && (
               <StatusDot type={item.postResponseScriptErrorMessage ? 'error' : 'default'} />
             )}

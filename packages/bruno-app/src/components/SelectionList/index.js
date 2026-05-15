@@ -1,4 +1,5 @@
 import React, { useRef, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import StyledWrapper from './StyledWrapper';
 
 const SelectionList = ({
@@ -13,8 +14,10 @@ const SelectionList = ({
   rowHeight = 30,
   rowGap = 2,
   listPadding = 8,
-  emptyMessage = 'No items found'
+  emptyMessage
 }) => {
+  const { t } = useTranslation();
+  const displayEmptyMessage = emptyMessage || t('SELECTION_LIST.NO_ITEMS');
   const allSelected = items.length > 0 && selectedItems.length === items.length;
   const someSelected = items.length > 0 && selectedItems.length > 0 && !allSelected;
   const selectAllRef = useRef(null);
@@ -42,12 +45,12 @@ const SelectionList = ({
             checked={allSelected}
             onChange={onSelectAll}
           />
-          Select All
+          {t('SELECTION_LIST.SELECT_ALL')}
         </label>
       </div>
       <ul className="selection-list scrollbar-hover">
         {items.length === 0 && (
-          <li className="selection-empty">{emptyMessage}</li>
+          <li className="selection-empty">{displayEmptyMessage}</li>
         )}
         {items.map((item) => {
           const itemId = getItemId(item);

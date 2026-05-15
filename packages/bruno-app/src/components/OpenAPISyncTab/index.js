@@ -13,8 +13,10 @@ import ConnectionSettingsModal from './ConnectionSettingsModal';
 import DisconnectSyncModal from './DisconnectSyncModal';
 import OverviewSection from './OverviewSection';
 import useOpenAPISync from './hooks/useOpenAPISync';
+import { useTranslation } from 'react-i18next';
 
 const OpenAPISyncTab = ({ collection }) => {
+  const { t } = useTranslation();
   const {
     sourceUrl, setSourceUrl,
     isLoading,
@@ -69,18 +71,18 @@ const OpenAPISyncTab = ({ collection }) => {
   })();
 
   const syncTabs = useMemo(() => [
-    { key: 'overview', label: 'Overview' },
+    { key: 'overview', label: t('OPENAPI_SYNC.OVERVIEW') },
     {
       key: 'collection-changes',
-      label: 'Collection Changes',
+      label: t('OPENAPI_SYNC.COLLECTION_CHANGES'),
       indicator: collectionChangesCount > 0 ? <span className="tab-count">{collectionChangesCount}</span> : null
     },
     {
       key: 'spec-updates',
-      label: 'Spec Updates',
+      label: t('OPENAPI_SYNC.SPEC_UPDATES'),
       indicator: specUpdatesCount > 0 ? <span className="tab-count">{specUpdatesCount}</span> : null
     }
-  ], [collectionChangesCount, specUpdatesCount]);
+  ], [collectionChangesCount, specUpdatesCount, t]);
 
   return (
     <StyledWrapper className="flex flex-col h-full relative px-4 pt-4 overflow-auto">
@@ -132,13 +134,13 @@ const OpenAPISyncTab = ({ collection }) => {
                   onOpenSettings={() => setShowSettingsModal(true)}
                 />
                 <p className="beta-feedback-inline">
-                  OpenAPI Sync is in Beta — we'd love to hear your feedback and suggestions.{' '}
+                  {t('OPENAPI_SYNC.BETA_FEEDBACK')}{' '}
                   <button
                     type="button"
                     className="beta-feedback-link"
                     onClick={() => window?.ipcRenderer?.openExternal('https://github.com/usebruno/bruno/discussions/7401')}
                   >
-                    Share feedback
+                    {t('OPENAPI_SYNC.SHARE_FEEDBACK')}
                   </button>
                 </p>
               </div>

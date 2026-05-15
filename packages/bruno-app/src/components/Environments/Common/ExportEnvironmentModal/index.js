@@ -7,9 +7,11 @@ import { useDispatch } from 'react-redux';
 import toast from 'react-hot-toast';
 import StyledWrapper from './StyledWrapper';
 import Button from 'ui/Button';
+import { useTranslation } from 'react-i18next';
 
 const ExportEnvironmentModal = ({ onClose, environments = [], environmentType }) => {
   const dispatch = useDispatch();
+  const { t } = useTranslation();
 
   // Helper function to truncate environment names
   const truncateEnvName = (name) => {
@@ -92,41 +94,41 @@ const ExportEnvironmentModal = ({ onClose, environments = [], environmentType })
 
     if (isMultiple) {
       return [
-        { value: 'single-file', label: 'Single JSON file', description: 'All environments in one JSON array' },
-        { value: 'folder', label: 'Separate files in folder', description: 'Each environment as a separate JSON file', disabled: false }
+        { value: 'single-file', label: t('ENVIRONMENTS.SINGLE_JSON_FILE'), description: t('ENVIRONMENTS.SINGLE_FILE_DESC') },
+        { value: 'folder', label: t('ENVIRONMENTS.SEPARATE_FILES'), description: t('ENVIRONMENTS.SEPARATE_FILES_DESC'), disabled: false }
       ];
     }
 
     return [
-      { value: 'single-object', label: 'Single JSON file', description: 'Export as a single environment JSON object' },
-      { value: 'folder', label: 'Separate files in folder', description: 'Each environment as a separate JSON file', disabled: true }
+      { value: 'single-object', label: t('ENVIRONMENTS.SINGLE_JSON_FILE'), description: t('ENVIRONMENTS.SINGLE_OBJECT_DESC') },
+      { value: 'folder', label: t('ENVIRONMENTS.SEPARATE_FILES'), description: t('ENVIRONMENTS.SEPARATE_FILES_DESC'), disabled: true }
     ];
-  }, [selectedCount, exportFormat]);
+  }, [selectedCount, exportFormat, t]);
 
   const handleExport = async () => {
     try {
       setIsExporting(true);
 
       if (!filePath) {
-        toast.error('Please select a location to save the files');
+        toast.error(t('ENVIRONMENTS.SELECT_LOCATION'));
         return;
       }
 
       if (selectedCount === 0) {
-        toast.error('Please select at least one environment to export');
+        toast.error(t('ENVIRONMENTS.SELECT_ENVIRONMENT'));
         return;
       }
 
       await exportBrunoEnvironment({ environments: selectedEnvs, environmentType, filePath, exportFormat });
 
       const successMessage = exportFormat === 'folder'
-        ? `Environments exported successfully to bruno-${environmentType}-environments folder`
-        : 'Environment(s) exported successfully';
+        ? t('ENVIRONMENTS.EXPORT_FOLDER_SUCCESS', { environmentType })
+        : t('ENVIRONMENTS.EXPORT_SUCCESS');
       toast.success(successMessage);
       onClose();
     } catch (error) {
       console.error('Export error:', error);
-      toast.error(error.message || 'Failed to export environments');
+      toast.error(error.message || t('ENVIRONMENTS.EXPORT_ERROR'));
     } finally {
       setIsExporting(false);
     }
@@ -137,7 +139,7 @@ const ExportEnvironmentModal = ({ onClose, environments = [], environmentType })
       <StyledWrapper>
         <Modal
           size="md"
-          title="Export Environments"
+          title={t('ENVIRONMENTS.EXPORT_ENVIRONMENTS')}
           hideFooter={true}
           handleCancel={onClose}
         >
@@ -148,14 +150,14 @@ const ExportEnvironmentModal = ({ onClose, environments = [], environmentType })
                 <div className="flex flex-col h-full">
                   <div className="flex justify-between items-center mb-2 pb-1">
                     <h3 className="font-medium text-theme">
-                      {environmentType === 'global' ? 'Global Environments' : 'Collection Environments'}
+                      {environmentType === 'global' ? t('ENVIRONMENTS.GLOBAL_ENVIRONMENTS') : t('ENVIRONMENTS.COLLECTION_ENVIRONMENTS')}
                     </h3>
                     <button
                       type="button"
                       onClick={handleSelectAll}
                       className="text-xs text-link px-1 py-0.5 rounded transition-colors"
                     >
-                      {environments.every((env) => selectedEnvironments[env.uid]) ? 'Deselect All' : 'Select All'}
+                      {environments.every((env) => selectedEnvironments[env.uid]) ? t('ENVIRONMENTS.DESELECT_ALL') : t('ENVIRONMENTS.SELECT_ALL')}
                     </button>
                   </div>
                   <div className="flex flex-col gap-1 flex-1 overflow-y-auto">
@@ -177,12 +179,12 @@ const ExportEnvironmentModal = ({ onClose, environments = [], environmentType })
                 <div className="flex flex-col h-full">
                   <div className="flex justify-between items-center mb-2 pb-1">
                     <h3 className="font-medium text-theme">
-                      {environmentType === 'global' ? 'Global Environments' : 'Collection Environments'}
+                      {environmentType === 'global' ? t('ENVIRONMENTS.GLOBAL_ENVIRONMENTS') : t('ENVIRONMENTS.COLLECTION_ENVIRONMENTS')}
                     </h3>
                   </div>
                   <div className="flex items-center justify-center flex-1 p-4 text-center">
                     <span className="text-xs text-muted">
-                      No {environmentType === 'global' ? 'global' : 'collection'} environments
+                      {t('ENVIRONMENTS.NO_ENVIRONMENTS_TYPE', { type: environmentType === 'global' ? t('ENVIRONMENTS.GLOBAL_LOWER') : t('ENVIRONMENTS.COLLECTION_LOWER') })}
                     </span>
                   </div>
                 </div>
@@ -193,7 +195,7 @@ const ExportEnvironmentModal = ({ onClose, environments = [], environmentType })
             {selectedCount > 0 && (
               <div className="mb-4">
                 <label className="block font-medium mb-2 text-theme">
-                  Export Format
+                  {t('ENVIRONMENTS.EXPORT_FORMAT')}
                 </label>
                 <div className="space-y-2">
                   {exportFormatOptions.map((option) => (
@@ -220,7 +222,7 @@ const ExportEnvironmentModal = ({ onClose, environments = [], environmentType })
             {/* Location Input Section */}
             <div className="mb-4">
               <label htmlFor="export-location" className="block font-medium mb-2 text-theme">
-                Location
+                {t('ENVIRONMENTS.LOCATION')}
               </label>
               <div className="flex flex-col relative items-center">
                 <input
@@ -232,7 +234,7 @@ const ExportEnvironmentModal = ({ onClose, environments = [], environmentType })
                   onClick={browse}
                   onChange={(e) => setFilePath(e.target.value)}
                   disabled={isExporting || selectedCount <= 0}
-                  placeholder="Select a target location"
+                  placeholder={t('ENVIRONMENTS.SELECT_TARGET_LOCATION')}
                   autoComplete="off"
                   autoCorrect="off"
                   autoCapitalize="off"
@@ -252,7 +254,7 @@ const ExportEnvironmentModal = ({ onClose, environments = [], environmentType })
                 disabled={isExporting}
                 className="mt-2 mr-2"
               >
-                Cancel
+                {t('ENVIRONMENTS.CANCEL')}
               </Button>
               <Button
                 type="button"
@@ -261,7 +263,7 @@ const ExportEnvironmentModal = ({ onClose, environments = [], environmentType })
                 disabled={isExporting || selectedCount === 0}
                 className="mt-2"
               >
-                {isExporting ? 'Exporting...' : `Export ${selectedCount || ''} Environment${selectedCount !== 1 ? 's' : ''}`}
+                {isExporting ? t('ENVIRONMENTS.EXPORTING') : t('ENVIRONMENTS.EXPORT_COUNT', { count: selectedCount })}
               </Button>
             </div>
           </div>

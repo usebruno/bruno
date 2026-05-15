@@ -1,6 +1,7 @@
 import React from 'react';
 import isEqual from 'lodash/isEqual';
 import get from 'lodash/get';
+import { useTranslation } from 'react-i18next';
 import VisualDiffUrlBar from 'components/Git/VisualDiffViewer/VisualDiffUrlBar';
 import VisualDiffParams from 'components/Git/VisualDiffViewer/VisualDiffParams';
 import VisualDiffHeaders from 'components/Git/VisualDiffViewer/VisualDiffHeaders';
@@ -95,12 +96,12 @@ const openAPIDiffHasContent = {
   }
 };
 
-const openAPIDiffSections = [
+const createOpenAPIDiffSections = (t) => [
   { key: 'url', title: 'URL', Component: VisualDiffUrlBar, hasContent: openAPIDiffHasContent.url },
-  { key: 'params', title: 'Parameters', Component: VisualDiffParams, hasContent: openAPIDiffHasContent.params },
-  { key: 'headers', title: 'Headers', Component: VisualDiffHeaders, hasContent: openAPIDiffHasContent.headers },
-  { key: 'auth', title: 'Authentication', Component: VisualDiffAuth, hasContent: openAPIDiffHasContent.auth },
-  { key: 'body', title: 'Body', Component: VisualDiffBody, hasContent: openAPIDiffHasContent.body }
+  { key: 'params', title: t('OPENAPI_SYNC.PARAMETERS'), Component: VisualDiffParams, hasContent: openAPIDiffHasContent.params },
+  { key: 'headers', title: t('OPENAPI_SYNC.HEADERS'), Component: VisualDiffHeaders, hasContent: openAPIDiffHasContent.headers },
+  { key: 'auth', title: t('OPENAPI_SYNC.AUTHENTICATION'), Component: VisualDiffAuth, hasContent: openAPIDiffHasContent.auth },
+  { key: 'body', title: t('OPENAPI_SYNC.BODY'), Component: VisualDiffBody, hasContent: openAPIDiffHasContent.body }
 ];
 
 /**
@@ -119,7 +120,8 @@ const EndpointVisualDiff = ({
   rightLabel = 'Expected (from spec)',
   swapSides = false
 }) => {
-  const sections = openAPIDiffSections;
+  const { t } = useTranslation();
+  const sections = createOpenAPIDiffSections(t);
 
   // Determine which data goes on which side based on swapSides
   const displayOldData = swapSides ? newData : oldData;

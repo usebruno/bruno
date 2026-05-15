@@ -1,6 +1,7 @@
 import React, { useCallback, useRef } from 'react';
 import get from 'lodash/get';
 import { useDispatch, useSelector } from 'react-redux';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from 'providers/Theme';
 import {
   moveFormUrlEncodedParam,
@@ -15,6 +16,7 @@ import { usePersistedState } from 'hooks/usePersistedState';
 import { useTrackScroll } from 'hooks/useTrackScroll';
 
 const FormUrlEncodedParams = ({ item, collection }) => {
+  const { t } = useTranslation();
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
   const wrapperRef = useRef(null);
@@ -54,15 +56,15 @@ const FormUrlEncodedParams = ({ item, collection }) => {
   const columns = [
     {
       key: 'name',
-      name: 'Key',
+      name: t('FORM_URL_ENCODED.KEY'),
       isKeyField: true,
-      placeholder: 'Key',
+      placeholder: t('FORM_URL_ENCODED.KEY'),
       width: '30%'
     },
     {
       key: 'value',
-      name: 'Value',
-      placeholder: 'Value',
+      name: t('FORM_URL_ENCODED.VALUE'),
+      placeholder: t('FORM_URL_ENCODED.VALUE'),
       render: ({ value, onChange }) => (
         <MultiLineEditor
           value={value || ''}

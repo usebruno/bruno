@@ -12,6 +12,7 @@ import { humanizeRequestAuthMode } from 'utils/collections';
 import { getTreePathFromCollectionToItem } from 'utils/collections/index';
 import { updateRequestAuthMode, updateAuth } from 'providers/ReduxStore/slices/collections';
 import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
+import { useTranslation } from 'react-i18next';
 
 // List of auth modes supported by gRPC
 // Note: Only header-based auth modes work with gRPC
@@ -21,6 +22,7 @@ const supportedGrpcAuthModes = ['basic', 'bearer', 'apikey', 'oauth2', 'wsse', '
 
 const GrpcAuth = ({ item, collection }) => {
   const dispatch = useDispatch();
+  const { t } = useTranslation();
   const authMode = item.draft ? get(item, 'draft.request.auth.mode') : get(item, 'request.auth.mode');
   const requestTreePath = getTreePathFromCollectionToItem(collection, item);
 
@@ -77,7 +79,7 @@ const GrpcAuth = ({ item, collection }) => {
   const getAuthView = () => {
     switch (authMode) {
       case 'none': {
-        return <div>No Auth</div>;
+        return <div>{t('REQUEST_AUTH.NO_AUTH')}</div>;
       }
       case 'basic': {
         return <BasicAuth collection={collection} item={item} updateAuth={updateAuth} request={request} save={save} />;
@@ -102,8 +104,8 @@ const GrpcAuth = ({ item, collection }) => {
           return (
             <>
               <div className="flex flex-row w-full gap-2">
-                <div>Auth inherited from {source.name}: </div>
-                <div className="inherit-mode-text">{humanizeRequestAuthMode(source.auth?.mode)}</div>
+                <div>{t('REQUEST_AUTH.AUTH_INHERITED_FROM', { name: source.name })}: </div>
+                <div className="inherit-mode-text">{humanizeRequestAuthMode(source.auth?.mode, t)}</div>
               </div>
             </>
           );
@@ -111,7 +113,7 @@ const GrpcAuth = ({ item, collection }) => {
           return (
             <>
               <div className="flex flex-row w-full gap-2">
-                <div>Inherited auth not supported by gRPC. Using no auth instead.</div>
+                <div>{t('REQUEST_AUTH.INHERITED_AUTH_NOT_SUPPORTED_GRPC')}</div>
               </div>
             </>
           );

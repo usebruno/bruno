@@ -9,15 +9,17 @@ import ActionIcon from 'ui/ActionIcon';
 import CreateApiSpec from 'components/Sidebar/ApiSpecs/CreateApiSpec';
 import ApiSpecs from 'components/Sidebar/ApiSpecs';
 import SidebarSection from 'components/Sidebar/SidebarSection';
+import { useTranslation } from 'react-i18next';
 
 const ApiSpecsSection = () => {
   const dispatch = useDispatch();
   const [createApiSpecModalOpen, setCreateApiSpecModalOpen] = useState(false);
+  const { t } = useTranslation();
 
   const handleOpenApiSpec = () => {
     dispatch(openApiSpec()).catch((err) => {
       console.error(err);
-      toast.error('An error occurred while opening the API spec');
+      toast.error(t('API_SPECS.ERROR_OPEN_API_SPEC'));
     });
   };
 
@@ -25,7 +27,7 @@ const ApiSpecsSection = () => {
     {
       id: 'create-api-spec',
       leftSection: IconPlus,
-      label: 'Create API Spec',
+      label: t('API_SPECS.CREATE_API_SPEC'),
       onClick: () => {
         setCreateApiSpecModalOpen(true);
       }
@@ -33,7 +35,7 @@ const ApiSpecsSection = () => {
     {
       id: 'open-api-spec',
       leftSection: IconFileCode,
-      label: 'Open API Spec',
+      label: t('API_SPECS.OPEN_API_SPEC'),
       onClick: () => {
         handleOpenApiSpec();
       }
@@ -48,7 +50,7 @@ const ApiSpecsSection = () => {
         placement="bottom-end"
       >
         <ActionIcon
-          label="Add new API Spec"
+          label={t('API_SPECS.ADD_NEW_API_SPEC')}
         >
           <IconPlus size={14} stroke={1.5} aria-hidden="true" />
         </ActionIcon>
@@ -65,7 +67,7 @@ const ApiSpecsSection = () => {
       )}
       <SidebarSection
         id="api-specs"
-        title="API Specs"
+        title={t('API_SPECS.API_SPECS')}
         icon={IconFileCode}
         actions={sectionActions}
         className="api-specs-section"

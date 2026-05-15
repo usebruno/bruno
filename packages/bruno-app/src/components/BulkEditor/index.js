@@ -4,10 +4,12 @@ import CodeEditor from 'components/CodeEditor';
 import { useTheme } from 'providers/Theme';
 import { useSelector } from 'react-redux';
 import { parseBulkKeyValue, serializeBulkKeyValue } from 'utils/common/bulkKeyValueUtils';
+import { useTranslation } from 'react-i18next';
 
 const BulkEditor = ({ params, onChange, onToggle, onSave, onRun }) => {
   const preferences = useSelector((state) => state.app.preferences);
   const { displayedTheme } = useTheme();
+  const { t } = useTranslation();
 
   const parsedParams = useMemo(() => serializeBulkKeyValue(params), [params]);
 
@@ -32,7 +34,7 @@ const BulkEditor = ({ params, onChange, onToggle, onSave, onRun }) => {
       </div>
       <div className="flex btn-action justify-between items-center mt-3">
         <button className="text-link select-none ml-auto" data-testid="key-value-edit-toggle" onClick={onToggle}>
-          Key/Value Edit
+          {t('BULK_EDITOR.KEY_VALUE_EDIT')}
         </button>
       </div>
     </>

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from 'providers/Theme';
 import Network from './Network/index';
 import Request from './Request/index';
@@ -10,6 +11,7 @@ import StyledWrapper from './StyledWrapper';
 import { usePersistedState } from 'hooks/usePersistedState/index';
 
 const TimelineItem = ({ timestamp, request, response, item, collection, isOauth2, hideTimestamp = false }) => {
+  const { t } = useTranslation();
   const { theme } = useTheme();
   const [isCollapsed, _toggleCollapse] = usePersistedState({
     key: `timeline-${timestamp}`,
@@ -45,20 +47,20 @@ const TimelineItem = ({ timestamp, request, response, item, collection, isOauth2
                 className={`timeline-item-tab ${activeTab === 'request' ? 'timeline-item-tab--active' : ''}`}
                 onClick={() => setActiveTab('request')}
               >
-                Request
+                {t('TIMELINE.REQUEST')}
               </button>
               <button
                 className={`timeline-item-tab ${activeTab === 'response' ? 'timeline-item-tab--active' : ''}`}
                 onClick={() => setActiveTab('response')}
               >
-                Response
+                {t('TIMELINE.RESPONSE')}
               </button>
               {showNetworkLogs && (
                 <button
                   className={`timeline-item-tab ${activeTab === 'networkLogs' ? 'timeline-item-tab--active' : ''}`}
                   onClick={() => setActiveTab('networkLogs')}
                 >
-                  Network Logs
+                  {t('TIMELINE.NETWORK_LOGS')}
                 </button>
               )}
             </div>

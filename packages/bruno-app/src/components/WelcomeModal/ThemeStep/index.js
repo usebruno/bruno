@@ -3,12 +3,7 @@ import { rgba } from 'polished';
 import { IconBrightnessUp, IconMoon, IconDeviceDesktop } from '@tabler/icons';
 import themes, { getLightThemes, getDarkThemes } from 'themes/index';
 import StyledWrapper from './StyledWrapper';
-
-const themeModes = [
-  { key: 'light', label: 'Light', icon: IconBrightnessUp },
-  { key: 'dark', label: 'Dark', icon: IconMoon },
-  { key: 'system', label: 'System', icon: IconDeviceDesktop }
-];
+import { useTranslation } from 'react-i18next';
 
 const ThemePreviewBox = ({ themeId, isDark }) => {
   const themeData = themes[themeId] || themes[isDark ? 'dark' : 'light'];
@@ -29,6 +24,14 @@ const ThemePreviewBox = ({ themeId, isDark }) => {
 };
 
 const ThemeStep = ({ storedTheme, setStoredTheme, themeVariantLight, setThemeVariantLight, themeVariantDark, setThemeVariantDark }) => {
+  const { t } = useTranslation();
+
+  const themeModes = [
+    { key: 'light', label: t('PREFERENCES.THEME_LIGHT'), icon: IconBrightnessUp },
+    { key: 'dark', label: t('PREFERENCES.THEME_DARK'), icon: IconMoon },
+    { key: 'system', label: t('PREFERENCES.THEME_SYSTEM'), icon: IconDeviceDesktop }
+  ];
+
   const lightThemeList = getLightThemes();
   const darkThemeList = getDarkThemes();
 
@@ -37,10 +40,10 @@ const ThemeStep = ({ storedTheme, setStoredTheme, themeVariantLight, setThemeVar
 
   return (
     <StyledWrapper className="step-body">
-      <div className="step-label">Appearance</div>
-      <div className="step-title">Choose your theme</div>
+      <div className="step-label">{t('WELCOME.APPEARANCE')}</div>
+      <div className="step-title">{t('WELCOME.CHOOSE_THEME')}</div>
       <div className="step-description">
-        Pick a look that feels right. You can always change this later in Preferences.
+        {t('WELCOME.CHOOSE_THEME_DESC')}
       </div>
 
       <div className="theme-mode-buttons">
@@ -61,16 +64,16 @@ const ThemeStep = ({ storedTheme, setStoredTheme, themeVariantLight, setThemeVar
 
       {showLight && (
         <div className="theme-variants-grid" style={{ marginBottom: showDark ? '1rem' : 0 }}>
-          {lightThemeList.map((t) => (
+          {lightThemeList.map((theme) => (
             <button
               type="button"
-              key={t.id}
-              className={`theme-variant-option ${themeVariantLight === t.id ? 'selected' : ''}`}
-              onClick={() => setThemeVariantLight(t.id)}
-              aria-pressed={themeVariantLight === t.id}
+              key={theme.id}
+              className={`theme-variant-option ${themeVariantLight === theme.id ? 'selected' : ''}`}
+              onClick={() => setThemeVariantLight(theme.id)}
+              aria-pressed={themeVariantLight === theme.id}
             >
-              <ThemePreviewBox themeId={t.id} isDark={false} />
-              <span className="variant-name">{t.name}</span>
+              <ThemePreviewBox themeId={theme.id} isDark={false} />
+              <span className="variant-name">{theme.name}</span>
             </button>
           ))}
         </div>
@@ -78,16 +81,16 @@ const ThemeStep = ({ storedTheme, setStoredTheme, themeVariantLight, setThemeVar
 
       {showDark && (
         <div className="theme-variants-grid">
-          {darkThemeList.map((t) => (
+          {darkThemeList.map((theme) => (
             <button
               type="button"
-              key={t.id}
-              className={`theme-variant-option ${themeVariantDark === t.id ? 'selected' : ''}`}
-              onClick={() => setThemeVariantDark(t.id)}
-              aria-pressed={themeVariantDark === t.id}
+              key={theme.id}
+              className={`theme-variant-option ${themeVariantDark === theme.id ? 'selected' : ''}`}
+              onClick={() => setThemeVariantDark(theme.id)}
+              aria-pressed={themeVariantDark === theme.id}
             >
-              <ThemePreviewBox themeId={t.id} isDark={true} />
-              <span className="variant-name">{t.name}</span>
+              <ThemePreviewBox themeId={theme.id} isDark={true} />
+              <span className="variant-name">{theme.name}</span>
             </button>
           ))}
         </div>

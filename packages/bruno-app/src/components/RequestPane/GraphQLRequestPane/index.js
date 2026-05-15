@@ -2,6 +2,7 @@ import React, { useEffect, useCallback, useMemo, useRef } from 'react';
 import find from 'lodash/find';
 import get from 'lodash/get';
 import classnames from 'classnames';
+import { useTranslation } from 'react-i18next';
 import { IconWand, IconDots, IconBook, IconDownload, IconRefresh, IconFile, IconChevronDown, IconChevronRight } from '@tabler/icons';
 import IconSidebarToggle from 'components/Icons/IconSidebarToggle';
 import ActionIcon from 'ui/ActionIcon';
@@ -42,6 +43,7 @@ const TAB_CONFIG = [
 ];
 
 const GraphQLRequestPane = ({ item, collection, onSchemaLoad, toggleDocs, handleGqlClickReference }) => {
+  const { t } = useTranslation();
   const dispatch = useDispatch();
   const tabs = useSelector((state) => state.tabs.tabs);
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
@@ -235,7 +237,7 @@ const GraphQLRequestPane = ({ item, collection, onSchemaLoad, toggleDocs, handle
                     <IconChevronRight size={14} strokeWidth={2} />
                   )}
                 </span>
-                <span>Variables</span>
+                <span>{t('GRAPHQL_PANE.VARIABLES')}</span>
               </button>
               {variablesOpen && (
                 <div className="flex-1 min-h-0 relative">
@@ -262,35 +264,35 @@ const GraphQLRequestPane = ({ item, collection, onSchemaLoad, toggleDocs, handle
       case 'settings':
         return <Settings item={item} collection={collection} />;
       default:
-        return <div className="mt-4">404 | Not found</div>;
+        return <div className="mt-4">{t('REQUEST.NOT_FOUND')}</div>;
     }
-  }, [requestPaneTab, item, collection, displayedTheme, schema, onSave, query, onRun, onQueryChange, handleGqlClickReference, handlePrettify, preferences, variables, variablesOpen, variablesHeight, dispatch]);
+  }, [requestPaneTab, item, collection, displayedTheme, schema, onSave, query, onRun, onQueryChange, handleGqlClickReference, handlePrettify, preferences, variables, variablesOpen, variablesHeight, dispatch, t]);
 
   const queryMenuItems = useMemo(() => [
     {
       id: 'docs',
-      label: 'Docs',
+      label: t('GRAPHQL_PANE.DOCS'),
       leftSection: IconBook,
       onClick: toggleDocs
     },
     {
       id: 'schema-introspection',
-      label: schema && schemaSource === 'introspection' ? 'Refresh from Introspection' : 'Load from Introspection',
+      label: schema && schemaSource === 'introspection' ? t('GRAPHQL_PANE.REFRESH_INTROSPECTION') : t('GRAPHQL_PANE.LOAD_INTROSPECTION'),
       leftSection: schema && schemaSource === 'introspection' ? IconRefresh : IconDownload,
       onClick: () => loadSchema('introspection'),
       disabled: isSchemaLoading
     },
     {
       id: 'schema-file',
-      label: 'Load from File',
+      label: t('GRAPHQL_PANE.LOAD_FILE'),
       leftSection: IconFile,
       onClick: () => loadSchema('file'),
       disabled: isSchemaLoading
     }
-  ], [toggleDocs, schema, schemaSource, loadSchema, isSchemaLoading]);
+  ], [toggleDocs, schema, schemaSource, loadSchema, isSchemaLoading, t]);
 
   if (!activeTabUid || !focusedTab?.uid || !requestPaneTab) {
-    return <div className="pb-4 px-4">An error occurred!</div>;
+    return <div className="pb-4 px-4">{t('REQUEST.ERROR_OCCURRED')}</div>;
   }
 
   const rightContent = requestPaneTab === 'auth' ? (
@@ -300,19 +302,19 @@ const GraphQLRequestPane = ({ item, collection, onSchemaLoad, toggleDocs, handle
   ) : requestPaneTab === 'query' ? (
     <div ref={schemaActionsRef} className="flex items-center gap-2">
       <ActionIcon
-        label="Prettify"
+        label={t('GRAPHQL_PANE.PRETTIFY')}
         onClick={handlePrettify}
       >
         <IconWand size={14} strokeWidth={1.5} />
       </ActionIcon>
       <ActionIcon
-        label={showQueryBuilder ? 'Hide Query Builder' : 'Show Query Builder'}
+        label={showQueryBuilder ? t('GRAPHQL_PANE.HIDE_BUILDER') : t('GRAPHQL_PANE.SHOW_BUILDER')}
         onClick={toggleQueryBuilder}
       >
         <IconSidebarToggle collapsed={!showQueryBuilder} size={16} strokeWidth={1.5} />
       </ActionIcon>
       <MenuDropdown items={queryMenuItems} placement="bottom-end">
-        <ActionIcon label="More actions">
+        <ActionIcon label={t('GRAPHQL_PANE.MORE_ACTIONS')}>
           <IconDots size={16} strokeWidth={1.5} />
         </ActionIcon>
       </MenuDropdown>

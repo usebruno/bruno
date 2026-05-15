@@ -24,6 +24,7 @@ import HeightBoundContainer from 'ui/HeightBoundContainer';
 import ResponseStopWatch from 'components/ResponsePane/ResponseStopWatch';
 import WSMessagesList from './WsResponsePane/WSMessagesList';
 import ResponsiveTabs from 'ui/ResponsiveTabs';
+import { useTranslation } from 'react-i18next';
 
 // Width threshold for expanded right-side action buttons
 const RIGHT_CONTENT_EXPANDED_WIDTH = 135;
@@ -35,6 +36,7 @@ const ResponsePane = ({ item, collection }) => {
   const isLoading = ['queued', 'sending'].includes(item.requestState);
   const [showScriptErrorCard, setShowScriptErrorCard] = useState(false);
   const rightContentRef = useRef(null);
+  const { t } = useTranslation();
 
   const response = item.response || {};
 
@@ -43,7 +45,7 @@ const ResponsePane = ({ item, collection }) => {
 
   // Initialize format and tab only once when data loads.
   const { initialFormat, initialTab, contentType } = useInitialResponseFormat(response?.dataBuffer, response?.headers);
-  const previewFormatOptions = useResponsePreviewFormatOptions(response?.dataBuffer, response?.headers);
+  const previewFormatOptions = useResponsePreviewFormatOptions(response?.dataBuffer, response?.headers, t);
 
   // Track previous response headers to detect when content-type changes
   const previousContentRef = useRef(contentType);
@@ -122,17 +124,17 @@ const ResponsePane = ({ item, collection }) => {
     return [
       {
         key: 'response',
-        label: 'Response',
+        label: t('RESPONSE.RESPONSE'),
         indicator: null
       },
       {
         key: 'headers',
-        label: 'Headers',
+        label: t('RESPONSE.HEADERS'),
         indicator: responseHeadersCount > 0 ? <sup className="ml-1 font-medium">{responseHeadersCount}</sup> : null
       },
       {
         key: 'timeline',
-        label: 'Timeline',
+        label: t('RESPONSE.TIMELINE'),
         indicator: null
       },
       {
@@ -148,7 +150,7 @@ const ResponsePane = ({ item, collection }) => {
         indicator: null
       }
     ];
-  }, [responseHeadersCount, item.testResults, item.assertionResults, item.preRequestTestResults, item.postResponseTestResults]);
+  }, [responseHeadersCount, item.testResults, item.assertionResults, item.preRequestTestResults, item.postResponseTestResults, t]);
 
   const getTabPanel = (tab) => {
     switch (tab) {
@@ -194,7 +196,7 @@ const ResponsePane = ({ item, collection }) => {
       }
 
       default: {
-        return <div>404 | Not found</div>;
+        return <div>{t('RESPONSE.NOT_FOUND')}</div>;
       }
     }
   };
@@ -224,11 +226,11 @@ const ResponsePane = ({ item, collection }) => {
   }
 
   if (!activeTabUid) {
-    return <div>Something went wrong</div>;
+    return <div>{t('RESPONSE.SOMETHING_WRONG')}</div>;
   }
 
   if (!focusedTab || !focusedTab.uid || !focusedTab.responsePaneTab) {
-    return <div className="pb-4 px-4">An error occurred!</div>;
+    return <div className="pb-4 px-4">{t('REQUEST.ERROR_OCCURRED')}</div>;
   }
 
   const rightContent = !isLoading ? (

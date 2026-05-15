@@ -1,9 +1,11 @@
 import React, { useCallback, useState, useMemo, useRef } from 'react';
 import { IconChevronRight, IconChevronDown, IconTrash, IconInfoCircle } from '@tabler/icons';
+import { useTranslation } from 'react-i18next';
 import { nanoid } from 'nanoid';
 import { getInputObjectFields } from 'utils/graphql/queryBuilder';
 
 const ListArgValueInput = ({ values, onChange, field, indent }) => {
+  const { t } = useTranslation();
   const [items, setItems] = useState(() => {
     const vals = Array.isArray(values) ? values : (values ? [values] : []);
     const mapped = vals.map((v) => ({ id: nanoid(), value: v }));
@@ -55,7 +57,7 @@ const ListArgValueInput = ({ values, onChange, field, indent }) => {
                   e.stopPropagation();
                   handleRemove(item.id);
                 }}
-                aria-label="Remove item"
+                aria-label={t('QUERY_BUILDER.REMOVE_ITEM')}
               >
                 <IconTrash size={13} strokeWidth={1.5} />
               </button>
@@ -68,10 +70,11 @@ const ListArgValueInput = ({ values, onChange, field, indent }) => {
 };
 
 const ArgValueInput = ({ value, onChange, field }) => {
+  const { t } = useTranslation();
   if (field.isEnum && field.enumValues) {
     return (
       <select value={value} onChange={(e) => onChange(e.target.value)} onClick={(e) => e.stopPropagation()}>
-        <option value="">Select option</option>
+        <option value="">{t('QUERY_BUILDER.SELECT_OPTION')}</option>
         {field.enumValues.map((v) => (
           <option key={v} value={v}>{v}</option>
         ))}
@@ -81,7 +84,7 @@ const ArgValueInput = ({ value, onChange, field }) => {
   if (field.isBoolean) {
     return (
       <select value={value} onChange={(e) => onChange(e.target.value)} onClick={(e) => e.stopPropagation()}>
-        <option value="">Select option</option>
+        <option value="">{t('QUERY_BUILDER.SELECT_OPTION')}</option>
         <option value="true">true</option>
         <option value="false">false</option>
       </select>
@@ -93,13 +96,14 @@ const ArgValueInput = ({ value, onChange, field }) => {
       value={value}
       onChange={(e) => onChange(e.target.value)}
       onClick={(e) => e.stopPropagation()}
-      placeholder="Enter value"
+      placeholder={t('QUERY_BUILDER.ENTER_VALUE')}
       className="mousetrap"
     />
   );
 };
 
 const InputObjectFields = ({ namedType, parentKey, fieldPath, indent, argValues, enabledArgs, onToggleInputField, onSetInputFieldValue }) => {
+  const { t } = useTranslation();
   const [expandedFields, setExpandedFields] = useState(new Set());
   const fields = useMemo(() => getInputObjectFields(namedType), [namedType]);
 
@@ -128,7 +132,7 @@ const InputObjectFields = ({ namedType, parentKey, fieldPath, indent, argValues,
       <React.Fragment key={field.name}>
         <div className="arg-row" style={{ paddingLeft: indent }} onClick={isExpandable ? toggleExpand : (e) => e.stopPropagation()}>
           {isExpandable ? (
-            <button type="button" className="field-chevron input-object-chevron" onClick={toggleExpand} aria-label={isExpanded ? 'Collapse' : 'Expand'}>
+            <button type="button" className="field-chevron input-object-chevron" onClick={toggleExpand} aria-label={isExpanded ? t('QUERY_BUILDER.COLLAPSE') : t('QUERY_BUILDER.EXPAND')}>
               {isExpanded ? (
                 <IconChevronDown size={12} strokeWidth={2} />
               ) : (
@@ -200,6 +204,7 @@ const FieldNode = ({
   onSetInputFieldValue,
   hasChildren
 }) => {
+  const { t } = useTranslation();
   const indent = depth * 20;
 
   const handleCheck = useCallback(
@@ -290,7 +295,7 @@ const FieldNode = ({
       {showSections && hasArgs && (
         <>
           <div className="section-header" style={{ paddingLeft: sectionIndent }}>
-            ARGUMENTS
+            {t('QUERY_BUILDER.ARGUMENTS')}
           </div>
           {field.args.map((arg) => {
             const argKey = `${field.path}.${arg.name}`;
@@ -377,7 +382,7 @@ const FieldNode = ({
 
       {showSections && hasChildren && hasArgs && (
         <div className="section-header" style={{ paddingLeft: sectionIndent }}>
-          FIELDS
+          {t('QUERY_BUILDER.FIELDS')}
         </div>
       )}
     </>

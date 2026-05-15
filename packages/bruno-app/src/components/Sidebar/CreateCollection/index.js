@@ -18,6 +18,7 @@ import { DEFAULT_COLLECTION_FORMAT } from 'utils/common/constants';
 import StyledWrapper from './StyledWrapper';
 import get from 'lodash/get';
 import Button from 'ui/Button';
+import { useTranslation } from 'react-i18next';
 
 const CreateCollection = ({ onClose, defaultLocation: propDefaultLocation, initialCollectionName = '' }) => {
   const inputRef = useRef();
@@ -27,6 +28,7 @@ const CreateCollection = ({ onClose, defaultLocation: propDefaultLocation, initi
   const [isEditing, toggleEditing] = useState(false);
   const [showFileFormat, setShowFileFormat] = useState(false);
   const preferences = useSelector((state) => state.app.preferences);
+  const { t } = useTranslation();
 
   const dropdownTippyRef = useRef();
   const onDropdownCreate = (ref) => (dropdownTippyRef.current = ref);
@@ -46,19 +48,19 @@ const CreateCollection = ({ onClose, defaultLocation: propDefaultLocation, initi
     validationSchema: Yup.object({
       collectionName: Yup.string()
         .trim()
-        .min(1, 'Collection name can\'t be empty')
-        .max(255, 'Must be 255 characters or less')
-        .required('Collection name is required'),
+        .min(1, t('DIALOG.COLLECTION_NAME_EMPTY'))
+        .max(255, t('DIALOG.COLLECTION_NAME_MAX'))
+        .required(t('DIALOG.COLLECTION_NAME_REQUIRED')),
       collectionFolderName: Yup.string()
-        .min(1, 'Must be at least 1 character')
-        .max(255, 'Must be 255 characters or less')
+        .min(1, t('DIALOG.COLLECTION_NAME_EMPTY'))
+        .max(255, t('DIALOG.COLLECTION_NAME_MAX'))
         .test('is-valid-collection-name', function (value) {
           const isValid = validateName(value);
           return isValid ? true : this.createError({ message: validateNameError(value) });
         })
-        .required('Folder name is required'),
-      collectionLocation: Yup.string().min(1, 'Location is required').required('Location is required'),
-      format: Yup.string().oneOf(['bru', 'yml'], 'invalid format').required('Format is required')
+        .required(t('DIALOG.FOLDER_NAME_REQUIRED')),
+      collectionLocation: Yup.string().min(1, t('DIALOG.LOCATION_REQUIRED')).required(t('DIALOG.LOCATION_REQUIRED')),
+      format: Yup.string().oneOf(['bru', 'yml'], t('DIALOG.INVALID_FORMAT')).required(t('DIALOG.FORMAT_REQUIRED'))
     }),
     onSubmit: async (values) => {
       try {
@@ -67,10 +69,10 @@ const CreateCollection = ({ onClose, defaultLocation: propDefaultLocation, initi
           values.collectionLocation,
           { format: values.format }));
 
-        toast.success('Collection created!');
+        toast.success(t('DIALOG.COLLECTION_CREATED'));
         onClose();
       } catch (e) {
-        toast.error(multiLineMsg('An error occurred while creating the collection', formatIpcError(e)));
+        toast.error(multiLineMsg(t('DIALOG.COLLECTION_CREATE_ERROR'), formatIpcError(e)));
       }
     }
   });
@@ -104,7 +106,7 @@ const CreateCollection = ({ onClose, defaultLocation: propDefaultLocation, initi
           className="btn-advanced"
           type="button"
         >
-          Options
+          {t('DIALOG.OPTIONS')}
         </button>
         <IconCaretDown className="caret ml-1" size={14} strokeWidth={2} />
       </div>
@@ -114,11 +116,11 @@ const CreateCollection = ({ onClose, defaultLocation: propDefaultLocation, initi
   return (
     <Portal>
       <StyledWrapper>
-        <Modal size="md" title="Create Collection" hideFooter={true} handleCancel={onClose}>
+        <Modal size="md" title={t('DIALOG.CREATE_COLLECTION_TITLE')} hideFooter={true} handleCancel={onClose}>
           <form className="bruno-form" onSubmit={formik.handleSubmit}>
             <div>
               <label htmlFor="collection-name" className="flex items-center font-medium">
-                Name
+                {t('DIALOG.NAME')}
               </label>
               <input
                 id="collection-name"
@@ -150,13 +152,13 @@ const CreateCollection = ({ onClose, defaultLocation: propDefaultLocation, initi
               ) : null}
 
               <label htmlFor="collection-location" className="font-medium mt-3 flex items-center">
-                Location
+                {t('DIALOG.LOCATION')}
                 <Help>
                   <p>
-                    Bruno stores your collections on your computer's filesystem.
+                    {t('DIALOG.BRUNO_STORES_DESC')}
                   </p>
                   <p className="mt-2">
-                    Choose the location where you want to store this collection.
+                    {t('DIALOG.CHOOSE_LOCATION_DESC')}
                   </p>
                 </Help>
               </label>
@@ -184,20 +186,20 @@ const CreateCollection = ({ onClose, defaultLocation: propDefaultLocation, initi
                   className="text-link cursor-pointer hover:underline"
                   onClick={browse}
                 >
-                  Browse
+                  {t('DIALOG.BROWSE')}
                 </span>
               </div>
               {formik.values.collectionName?.trim()?.length > 0 && (
                 <div className="mt-4">
                   <div className="flex items-center justify-between">
                     <label htmlFor="filename" className="flex items-center font-medium">
-                      Folder Name
+                      {t('DIALOG.FOLDER_NAME')}
                       <Help width="300">
                         <p>
-                          The name of the folder used to store the collection.
+                          {t('DIALOG.FOLDER_NAME_DESC')}
                         </p>
                         <p className="mt-2">
-                          You can choose a folder name different from your collection's name or one compatible with filesystem rules.
+                          {t('DIALOG.FOLDER_NAME_DIFFERENT_DESC')}
                         </p>
                       </Help>
                     </label>
@@ -246,16 +248,16 @@ const CreateCollection = ({ onClose, defaultLocation: propDefaultLocation, initi
               {showFileFormat && (
                 <div className="mt-4">
                   <label htmlFor="format" className="flex items-center font-medium">
-                    File Format
+                    {t('DIALOG.CREATE_COLLECTION_FORMAT')}
                     <Help width="300">
                       <p>
-                        Choose the file format for storing requests in this collection.
+                        {t('DIALOG.FILE_FORMAT_DESC')}
                       </p>
                       <p className="mt-2">
-                        <strong>OpenCollection (YAML):</strong> Industry-standard YAML format (.yml files)
+                        <strong>{t('DIALOG.FILE_FORMAT_YAML')}:</strong> {t('DIALOG.FILE_FORMAT_YAML_HELP')}
                       </p>
                       <p className="mt-1">
-                        <strong>BRU:</strong> Bruno's native file format (.bru files)
+                        <strong>{t('DIALOG.FILE_FORMAT_BRU')}:</strong> {t('DIALOG.FILE_FORMAT_BRU_HELP')}
                       </p>
                     </Help>
                   </label>
@@ -266,8 +268,8 @@ const CreateCollection = ({ onClose, defaultLocation: propDefaultLocation, initi
                     value={formik.values.format}
                     onChange={formik.handleChange}
                   >
-                    <option value="yml">OpenCollection (YAML)</option>
-                    <option value="bru">BRU Format (.bru)</option>
+                    <option value="yml">{t('DIALOG.FILE_FORMAT_YAML')}</option>
+                    <option value="bru">{t('DIALOG.FILE_FORMAT_BRU')}</option>
                   </select>
                   {formik.touched.format && formik.errors.format ? (
                     <div className="text-red-500">{formik.errors.format}</div>
@@ -286,16 +288,16 @@ const CreateCollection = ({ onClose, defaultLocation: propDefaultLocation, initi
                       setShowFileFormat(!showFileFormat);
                     }}
                   >
-                    {showFileFormat ? 'Hide File Format' : 'Show File Format'}
+                    {showFileFormat ? t('DIALOG.HIDE_FILE_FORMAT') : t('DIALOG.SHOW_FILE_FORMAT')}
                   </div>
                 </Dropdown>
               </div>
               <div className="flex justify-end">
                 <Button type="button" color="secondary" variant="ghost" onClick={onClose} className="mr-2">
-                  Cancel
+                  {t('COMMON.CANCEL')}
                 </Button>
                 <Button type="submit">
-                  Create
+                  {t('COMMON.CREATE')}
                 </Button>
               </div>
             </div>

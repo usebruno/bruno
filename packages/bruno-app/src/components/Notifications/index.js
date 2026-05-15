@@ -14,11 +14,13 @@ import { useDispatch, useSelector } from 'react-redux';
 import { humanizeDate, relativeDate } from 'utils/common';
 import ToolHint from 'components/ToolHint';
 import DOMPurify from 'dompurify';
+import { useTranslation } from 'react-i18next';
 
 const PAGE_SIZE = 5;
 
 const Notifications = () => {
   const dispatch = useDispatch();
+  const { t } = useTranslation();
   const { version } = useApp();
   const notifications = useSelector((state) => state.notifications.notifications);
 
@@ -79,17 +81,17 @@ const Notifications = () => {
 
   const modalCustomHeader = (
     <div className="flex flex-row gap-8">
-      <div className="bruno-modal-header-title">NOTIFICATIONS</div>
+      <div className="bruno-modal-header-title">{t('NOTIFICATIONS.TITLE').toUpperCase()}</div>
       {unreadNotifications.length > 0 && (
         <>
           <div className="normal-case font-normal">
-            {unreadNotifications.length} <span>unread notifications</span>
+            {unreadNotifications.length} <span>{t('NOTIFICATIONS.UNREAD_NOTIFICATIONS')}</span>
           </div>
           <button
             className={`select-none ${1 == 2 ? 'opacity-50' : 'text-link mark-as-read cursor-pointer hover:underline'}`}
             onClick={() => dispatch(markAllNotificationsAsRead())}
           >
-            Mark all as read
+            {t('NOTIFICATIONS.MARK_ALL_READ')}
           </button>
         </>
       )}
@@ -106,9 +108,9 @@ const Notifications = () => {
           }));
           setShowNotificationsModal(true);
         }}
-        aria-label="Check all Notifications"
+        aria-label={t('NOTIFICATIONS.CHECK_ALL')}
       >
-        <ToolHint text="Notifications" toolhintId="Notifications" offset={8}>
+        <ToolHint text={t('NOTIFICATIONS.TITLE')} toolhintId="Notifications" offset={8}>
           <IconBell
             size={16}
             aria-hidden
@@ -125,8 +127,8 @@ const Notifications = () => {
         <Portal>
           <Modal
             size="lg"
-            title="Notifications"
-            confirmText="Close"
+            title={t('NOTIFICATIONS.TITLE')}
+            confirmText={t('COMMON.CLOSE')}
             handleConfirm={() => {
               setShowNotificationsModal(false);
             }}
@@ -166,14 +168,14 @@ const Notifications = () => {
                         }`}
                         onClick={handlePrev}
                       >
-                        Prev
+                        {t('NOTIFICATIONS.PREV')}
                       </button>
                       <div className="flex flex-row items-center justify-center gap-1">
-                        Page
+                        {t('NOTIFICATIONS.PAGE')}
                         <div className="w-[20px] flex justify-center" style={{ width: '20px' }}>
                           {pageNumber}
                         </div>
-                        of
+                        {t('NOTIFICATIONS.OF')}
                         <div className="w-[20px] flex justify-center" style={{ width: '20px' }}>
                           {totalPages}
                         </div>
@@ -184,7 +186,7 @@ const Notifications = () => {
                         }`}
                         onClick={handleNext}
                       >
-                        Next
+                        {t('NOTIFICATIONS.NEXT')}
                       </button>
                     </div>
                   </div>
@@ -202,7 +204,7 @@ const Notifications = () => {
                   </div>
                 </div>
               ) : (
-                <div className="opacity-50 italic text-xs p-12 flex justify-center">You are all caught up!</div>
+                <div className="opacity-50 italic text-xs p-12 flex justify-center">{t('NOTIFICATIONS.ALL_CAUGHT_UP')}</div>
               )}
             </div>
           </Modal>

@@ -6,9 +6,11 @@ import { useDispatch, useSelector } from 'react-redux';
 import toast from 'react-hot-toast';
 import { renameCollection } from 'providers/ReduxStore/slices/collections/actions';
 import { findCollectionByUid } from 'utils/collections/index';
+import { useTranslation } from 'react-i18next';
 
 const RenameCollection = ({ collectionUid, onClose }) => {
   const dispatch = useDispatch();
+  const { t } = useTranslation();
   const inputRef = useRef();
   const collection = useSelector((state) => findCollectionByUid(state.collections.collections, collectionUid));
   const formik = useFormik({
@@ -18,17 +20,17 @@ const RenameCollection = ({ collectionUid, onClose }) => {
     },
     validationSchema: Yup.object({
       name: Yup.string()
-        .min(1, 'must be at least 1 character')
-        .required('name is required')
+        .min(1, t('SIDEBAR_COLLECTIONS.MIN_1_CHAR'))
+        .required(t('SIDEBAR_COLLECTIONS.NAME_REQUIRED'))
     }),
     onSubmit: (values) => {
       dispatch(renameCollection(values.name, collection.uid))
         .then(() => {
-          toast.success('Collection renamed!');
+          toast.success(t('SIDEBAR_COLLECTIONS.COLLECTION_RENAMED'));
           onClose();
         })
         .catch((err) => {
-          toast.error(err ? err.message : 'An error occurred while renaming the collection');
+          toast.error(err ? err.message : t('SIDEBAR_COLLECTIONS.RENAME_ERROR'));
         });
     }
   });
@@ -42,11 +44,11 @@ const RenameCollection = ({ collectionUid, onClose }) => {
   const onSubmit = () => formik.handleSubmit();
 
   return (
-    <Modal size="md" title="Rename Collection" confirmText="Rename" handleConfirm={onSubmit} handleCancel={onClose}>
+    <Modal size="md" title={t('SIDEBAR_COLLECTIONS.RENAME_COLLECTION')} confirmText={t('COMMON.RENAME')} handleConfirm={onSubmit} handleCancel={onClose}>
       <form className="bruno-form" onSubmit={(e) => e.preventDefault()}>
         <div>
           <label htmlFor="name" className="block font-medium">
-            Name
+            {t('SIDEBAR_COLLECTIONS.NAME')}
           </label>
           <input
             id="collection-name"

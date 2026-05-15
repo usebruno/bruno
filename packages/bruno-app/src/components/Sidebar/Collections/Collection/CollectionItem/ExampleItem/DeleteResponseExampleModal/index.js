@@ -4,9 +4,11 @@ import Portal from 'components/Portal';
 import { useDispatch } from 'react-redux';
 import { deleteResponseExample } from 'providers/ReduxStore/slices/collections';
 import { saveRequest, closeTabs } from 'providers/ReduxStore/slices/collections/actions';
+import { useTranslation } from 'react-i18next';
 
 const DeleteResponseExampleModal = ({ onClose, example, item, collection }) => {
   const dispatch = useDispatch();
+  const { t } = useTranslation();
 
   const onConfirm = (e) => {
     e.stopPropagation();
@@ -26,13 +28,13 @@ const DeleteResponseExampleModal = ({ onClose, example, item, collection }) => {
     <Portal>
       <Modal
         size="sm"
-        title="Delete Example"
-        confirmText="Delete"
+        title={t('SIDEBAR_COLLECTIONS.DELETE_EXAMPLE')}
+        confirmText={t('COMMON.DELETE')}
         handleConfirm={onConfirm}
         handleCancel={onClose}
         confirmButtonColor="danger"
       >
-        Are you sure you want to delete the example <span className="font-medium">{example.name}</span>?
+        {t('SIDEBAR_COLLECTIONS.DELETE_EXAMPLE_CONFIRM')} <span className="font-medium">{example.name}</span>?
       </Modal>
     </Portal>
   );

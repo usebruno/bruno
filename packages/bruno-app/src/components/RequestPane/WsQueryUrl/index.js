@@ -4,6 +4,7 @@ import classnames from 'classnames';
 import SingleLineEditor from 'components/SingleLineEditor/index';
 import { requestUrlChanged } from 'providers/ReduxStore/slices/collections';
 import { wsConnectOnly, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from 'providers/Theme';
 import React, { useEffect, useState, useMemo, useRef } from 'react';
 import toast from 'react-hot-toast';
@@ -38,6 +39,7 @@ const useWsConnectionStatus = (requestId) => {
 };
 
 const WsQueryUrl = ({ item, collection, handleRun }) => {
+  const { t } = useTranslation();
   const dispatch = useDispatch();
   const { theme, displayedTheme } = useTheme();
   // TODO: reaper, better state for connecting
@@ -69,12 +71,12 @@ const WsQueryUrl = ({ item, collection, handleRun }) => {
     e && e.stopPropagation();
     closeWsConnection(item.uid)
       .then(() => {
-        notify && toast.success('WebSocket connection closed');
+        notify && toast.success(t('WS_QUERY_URL.CONNECTION_CLOSED'));
         setConnectionStatus('disconnected');
       })
       .catch((err) => {
         console.error('Failed to close WebSocket connection:', err);
-        notify && toast.error('Failed to close WebSocket connection');
+        notify && toast.error(t('WS_QUERY_URL.CLOSE_FAILED'));
       });
   };
 
@@ -93,7 +95,7 @@ const WsQueryUrl = ({ item, collection, handleRun }) => {
   const handleRunClick = async (e) => {
     e.stopPropagation();
     if (!url) {
-      toast.error('Please enter a valid WebSocket URL');
+      toast.error(t('WS_QUERY_URL.URL_REQUIRED'));
       return;
     }
     handleRun(e);
@@ -155,7 +157,7 @@ const WsQueryUrl = ({ item, collection, handleRun }) => {
                 className={`${hasChanges ? 'cursor-pointer' : 'cursor-default'}`}
               />
               <span className="infotip-text text-xs">
-                Save <span className="shortcut">({saveShortcut})</span>
+                {t('QUERY_URL.SAVE')} <span className="shortcut">({saveShortcut})</span>
               </span>
             </div>
 
@@ -168,7 +170,7 @@ const WsQueryUrl = ({ item, collection, handleRun }) => {
                     size={20}
                     className="cursor-pointer"
                   />
-                  <span className="infotip-text text-xs">Close Connection</span>
+                  <span className="infotip-text text-xs">{t('WS_QUERY_URL.CLOSE_CONNECTION')}</span>
                 </div>
               </div>
             )}
@@ -184,7 +186,7 @@ const WsQueryUrl = ({ item, collection, handleRun }) => {
                     strokeWidth={1.5}
                     size={20}
                   />
-                  <span className="infotip-text text-xs">Connect</span>
+                  <span className="infotip-text text-xs">{t('WS_QUERY_URL.CONNECT')}</span>
                 </div>
               </div>
             )}
