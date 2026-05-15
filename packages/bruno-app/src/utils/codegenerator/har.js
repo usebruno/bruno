@@ -131,10 +131,13 @@ const createPostData = (body) => {
 };
 
 export const buildHarRequest = ({ request, headers }) => {
-  // NOTE:
-  // This is just a safety check.
-  // The interpolateUrlPathParams method validates the url, but it does not throw
-  if (!URL.canParse(request.url)) {
+  // Sanity check: must look like a URL (scheme + authority). snippet-generator
+  // pre-encodes the URL before calling us, so all reserved chars arrive as %XX —
+  // this regex just guards against completely malformed inputs (empty, "not a url").
+  // The stricter URL.canParse check was redundant once pre-encoding moved upstream
+  // and also fought HTTPSnippet's downstream validator in some edge cases.
+  const looksLikeUrl = /^[a-z][a-z0-9+.-]*:\/\/[^/?#]+/i.test(request.url || '');
+  if (!looksLikeUrl) {
     throw new Error('invalid request url');
   }
 

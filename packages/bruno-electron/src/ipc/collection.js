@@ -64,7 +64,7 @@ const { deleteCookiesForDomain, getDomainsWithCookies, addCookieForDomain, modif
 const EnvironmentSecretsStore = require('../store/env-secrets');
 const CollectionSecurityStore = require('../store/collection-security');
 const snapshotManager = require('../services/snapshot');
-const interpolateVars = require('./network/interpolate-vars');
+const { interpolateVars } = require('@usebruno/common');
 const { interpolateString } = require('./network/interpolate-string');
 const { getEnvVars, getTreePathFromCollectionToItem, mergeVars, parseBruFileMeta, hydrateRequestWithUuid, transformRequestToSaveToFilesystem } = require('../utils/collection');
 const { getProcessEnvVars } = require('../store/process-env');

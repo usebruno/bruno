@@ -2,7 +2,7 @@ const { ipcMain, app } = require('electron');
 const { WsClient } = require('@usebruno/requests');
 const { safeParseJSON, safeStringifyJSON } = require('../../utils/common');
 const { cloneDeep, each, get } = require('lodash');
-const interpolateVars = require('./interpolate-vars');
+const { interpolateVars } = require('@usebruno/common');
 const { preferencesUtil } = require('../../store/preferences');
 const { getCertsAndProxyConfig } = require('./cert-utils');
 const {

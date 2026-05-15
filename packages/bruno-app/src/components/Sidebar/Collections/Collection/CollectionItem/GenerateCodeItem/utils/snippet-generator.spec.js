@@ -1265,3 +1265,400 @@ describe('generateSnippet – encodeUrl setting', () => {
     expect(result).toBe(`curl -X GET '${rawUrl}'`);
   });
 });
+
+describe('generateSnippet – templated URLs with {{var}} placeholders', () => {
+  const language = { target: 'shell', client: 'curl' };
+  const baseCollection = { root: { request: { auth: { mode: 'none' }, headers: [] } } };
+
+  // Mirrors HTTPSnippet's internal encoding so post-processing's replaceAll has a
+  // realistic httpSnippetPath to match against — same pattern as the encodeUrl block.
+  const getEncodedPath = (url) => {
+    const { parse } = require('url');
+    const { stringify } = require('query-string');
+    const parsed = parse(url, true, true);
+    if (!parsed.query || Object.keys(parsed.query).length === 0) {
+      return parsed.pathname;
+    }
+    const search = stringify(parsed.query, { sort: false });
+    return search ? `${parsed.pathname}?${search}` : parsed.pathname;
+  };
+
+  const makeItem = (url, settings, rawUrl) => ({
+    uid: 'tmpl-req',
+    request: {
+      method: 'GET',
+      url,
+      headers: [],
+      body: { mode: 'none' },
+      auth: { mode: 'none' }
+    },
+    ...(settings !== undefined && { settings }),
+    ...(rawUrl !== undefined && { rawUrl })
+  });
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    require('httpsnippet').HTTPSnippet = jest.fn().mockImplementation((harRequest) => ({
+      convert: jest.fn(() => {
+        const method = harRequest?.method || 'GET';
+        const url = harRequest?.url || 'http://example.com';
+        const { parse } = require('url');
+        const parsed = parse(url, false, true);
+        const encodedPath = getEncodedPath(url);
+        const fullEncodedUrl = `${parsed.protocol}//${parsed.host}${encodedPath}`;
+        return `curl -X ${method} '${fullEncodedUrl}'`;
+      })
+    }));
+  });
+
+  it('generates snippet for URL with {{var}} in path (no interpolation)', () => {
+    const url = 'https://example.com/users/{{id}}';
+    const item = makeItem(url, { encodeUrl: false }, url);
+
+    const result = generateSnippet({ language, item, collection: baseCollection, shouldInterpolate: false });
+
+    expect(result).not.toBe('Error generating code snippet');
+    expect(result).toContain('{{id}}');
+    // Placeholder hash must be restored (no internal token leaking out)
+    expect(result).not.toContain('bruno-var-hash-');
+  });
+
+  it('generates snippet for URL with {{var}} in authority (host)', () => {
+    const url = 'https://{{baseUrl}}/users/list';
+    const item = makeItem(url, { encodeUrl: false }, url);
+
+    const result = generateSnippet({ language, item, collection: baseCollection, shouldInterpolate: false });
+
+    expect(result).not.toBe('Error generating code snippet');
+    expect(result).toContain('{{baseUrl}}');
+    expect(result).not.toContain('bruno-var-hash-');
+  });
+
+  it('generates snippet for URL with multiple {{var}} in path', () => {
+    const url = 'https://{{baseUrl}}/users/{{userId}}/posts/{{postId}}';
+    const item = makeItem(url, { encodeUrl: false }, url);
+
+    const result = generateSnippet({ language, item, collection: baseCollection, shouldInterpolate: false });
+
+    expect(result).toContain('{{baseUrl}}');
+    expect(result).toContain('{{userId}}');
+    expect(result).toContain('{{postId}}');
+    expect(result).not.toContain('bruno-var-hash-');
+  });
+
+  it('generates snippet for templated URL with encodeUrl: true (vars still restored)', () => {
+    const url = 'https://example.com/users/{{id}}?q=hello world';
+    const item = makeItem(url, { encodeUrl: true }, url);
+
+    const result = generateSnippet({ language, item, collection: baseCollection, shouldInterpolate: false });
+
+    expect(result).not.toBe('Error generating code snippet');
+    expect(result).toContain('{{id}}');
+    // Real space should still be encoded by encodeUrl
+    expect(result).toContain('hello%20world');
+    expect(result).not.toContain('bruno-var-hash-');
+  });
+
+  it('generates snippet for templated URL in query value', () => {
+    const url = 'https://example.com/api?token={{apiToken}}';
+    const item = makeItem(url, { encodeUrl: false }, url);
+
+    const result = generateSnippet({ language, item, collection: baseCollection, shouldInterpolate: false });
+
+    expect(result).toContain('{{apiToken}}');
+    expect(result).not.toContain('bruno-var-hash-');
+  });
+
+  it('does not leak the hash prefix if conversion throws partway through', () => {
+    // Force HTTPSnippet to throw; the outer catch returns 'Error generating code snippet'.
+    // We just want to confirm request.url is restored so subsequent calls aren't poisoned.
+    require('httpsnippet').HTTPSnippet = jest.fn(() => {
+      throw new Error('mock failure');
+    });
+    const url = 'https://{{baseUrl}}/users';
+    const item = makeItem(url, { encodeUrl: false }, url);
+    const originalUrlOnItem = item.request.url;
+
+    const result = generateSnippet({ language, item, collection: baseCollection, shouldInterpolate: false });
+
+    expect(result).toBe('Error generating code snippet');
+    // request.url restored on the shared object
+    expect(item.request.url).toBe(originalUrlOnItem);
+  });
+});
+
+describe('generateSnippet – HTTPSnippet HAR-validator-rejected chars (always-encode-before-HAR fix)', () => {
+  const language = { target: 'shell', client: 'curl' };
+  const baseCollection = { root: { request: { auth: { mode: 'none' }, headers: [] } } };
+
+  // Mirror HTTPSnippet's behavior: emit the URL it received in the HAR. The fix
+  // guarantees what it receives is always encoded, so the mock just echoes back.
+  beforeEach(() => {
+    jest.clearAllMocks();
+    require('httpsnippet').HTTPSnippet = jest.fn().mockImplementation((harRequest) => ({
+      convert: jest.fn(() => `curl -X ${harRequest?.method || 'GET'} '${harRequest?.url}'`)
+    }));
+  });
+
+  const makeItem = (url, settings) => ({
+    uid: 'reject-req',
+    request: { method: 'GET', url, headers: [], body: { mode: 'none' }, auth: { mode: 'none' } },
+    rawUrl: url,
+    ...(settings !== undefined && { settings })
+  });
+
+  // Each row: raw form (what the user typed) → encoded form (what should hit the wire / HAR)
+  const pathCases = [
+    { name: 'literal space', raw: 'a b', encoded: 'a%20b' },
+    { name: 'bare %', raw: '50%', encoded: '50%25' },
+    { name: 'square bracket [', raw: '[abc', encoded: '%5Babc' },
+    { name: 'square bracket ]', raw: 'abc]', encoded: 'abc%5D' },
+    { name: 'less-than <', raw: 'a<b', encoded: 'a%3Cb' },
+    { name: 'greater-than >', raw: 'a>b', encoded: 'a%3Eb' },
+    { name: 'double quote', raw: 'a"b', encoded: 'a%22b' },
+    { name: 'backslash', raw: 'a\\b', encoded: 'a%5Cb' },
+    { name: 'caret ^', raw: 'a^b', encoded: 'a%5Eb' },
+    { name: 'pipe |', raw: 'a|b', encoded: 'a%7Cb' },
+    { name: 'curly {', raw: 'a{b', encoded: 'a%7Bb' },
+    { name: 'curly }', raw: 'a}b', encoded: 'a%7Db' },
+    { name: 'backtick `', raw: 'a`b', encoded: 'a%60b' },
+    { name: 'raw unicode', raw: 'José', encoded: 'Jos%C3%A9' },
+    { name: 'high unicode', raw: '中文', encoded: '%E4%B8%AD%E6%96%87' }
+  ];
+
+  describe.each(pathCases)('path char "$name"', ({ raw, encoded }) => {
+    const rawUrl = `https://example.com/api/${raw}`;
+    const encodedUrl = `https://example.com/api/${encoded}`;
+
+    it('does not throw "Error generating code snippet" with toggle OFF', () => {
+      const item = makeItem(rawUrl, { encodeUrl: false });
+      const result = generateSnippet({ language, item, collection: baseCollection, shouldInterpolate: false });
+      expect(result).not.toBe('Error generating code snippet');
+    });
+
+    it('does not throw "Error generating code snippet" with toggle ON', () => {
+      const item = makeItem(rawUrl, { encodeUrl: true });
+      const result = generateSnippet({ language, item, collection: baseCollection, shouldInterpolate: false });
+      expect(result).not.toBe('Error generating code snippet');
+    });
+
+    it('toggle OFF → snippet output preserves the user-typed raw char via post-processing', () => {
+      const item = makeItem(rawUrl, { encodeUrl: false });
+      const result = generateSnippet({ language, item, collection: baseCollection, shouldInterpolate: false });
+      // Post-processing replaces encoded path with rawUrl, so the user sees their char
+      expect(result).toContain(rawUrl);
+    });
+
+    it('toggle ON → snippet output shows the encoded form', () => {
+      const item = makeItem(rawUrl, { encodeUrl: true });
+      const result = generateSnippet({ language, item, collection: baseCollection, shouldInterpolate: false });
+      expect(result).toContain(encodedUrl);
+    });
+  });
+
+  // Query-value cases need the chars inside `?key=value` rather than the path
+  const queryCases = [
+    { name: 'literal space', raw: 'a b', encoded: 'a%20b' },
+    { name: 'bare %', raw: '50%', encoded: '50%25' },
+    { name: 'square brackets', raw: 'a[b]', encoded: 'a%5Bb%5D' },
+    { name: 'less/greater', raw: 'a<b>', encoded: 'a%3Cb%3E' },
+    { name: 'double quote', raw: '"hi"', encoded: '%22hi%22' },
+    { name: 'backslash', raw: 'a\\b', encoded: 'a%5Cb' },
+    { name: 'caret', raw: 'a^b', encoded: 'a%5Eb' },
+    { name: 'pipe', raw: 'a|b', encoded: 'a%7Cb' },
+    { name: 'curly braces', raw: '{a}', encoded: '%7Ba%7D' },
+    { name: 'backtick', raw: '`a`', encoded: '%60a%60' },
+    { name: 'raw unicode', raw: 'José', encoded: 'Jos%C3%A9' }
+  ];
+
+  describe.each(queryCases)('query value char "$name"', ({ raw, encoded }) => {
+    const rawUrl = `https://example.com/api?q=${raw}`;
+    const encodedUrl = `https://example.com/api?q=${encoded}`;
+
+    it('does not throw with toggle OFF', () => {
+      const item = makeItem(rawUrl, { encodeUrl: false });
+      const result = generateSnippet({ language, item, collection: baseCollection, shouldInterpolate: false });
+      expect(result).not.toBe('Error generating code snippet');
+    });
+
+    it('toggle OFF → snippet output preserves user-typed query value', () => {
+      const item = makeItem(rawUrl, { encodeUrl: false });
+      const result = generateSnippet({ language, item, collection: baseCollection, shouldInterpolate: false });
+      expect(result).toContain(rawUrl);
+    });
+
+    it('toggle ON → snippet output shows the encoded form', () => {
+      const item = makeItem(rawUrl, { encodeUrl: true });
+      const result = generateSnippet({ language, item, collection: baseCollection, shouldInterpolate: false });
+      expect(result).toContain(encodedUrl);
+    });
+  });
+
+  // A few combination cases to prove path + query + multiple chars all work together
+  describe('combinations', () => {
+    it('handles multiple rejected chars in path simultaneously', () => {
+      const url = 'https://example.com/api/list[1]/José/{x}';
+      const item = makeItem(url, { encodeUrl: false });
+      const result = generateSnippet({ language, item, collection: baseCollection, shouldInterpolate: false });
+      expect(result).not.toBe('Error generating code snippet');
+      expect(result).toContain(url);
+    });
+
+    it('handles rejected chars in both path and query', () => {
+      const url = 'https://example.com/api/list[1]?q=a|b';
+      const item = makeItem(url, { encodeUrl: false });
+      const result = generateSnippet({ language, item, collection: baseCollection, shouldInterpolate: false });
+      expect(result).not.toBe('Error generating code snippet');
+      expect(result).toContain(url);
+    });
+
+    it('toggle ON + multiple rejected chars produces fully encoded snippet', () => {
+      const url = 'https://example.com/api/list[1]?q=a|b';
+      const item = makeItem(url, { encodeUrl: true });
+      const result = generateSnippet({ language, item, collection: baseCollection, shouldInterpolate: false });
+      expect(result).not.toBe('Error generating code snippet');
+      expect(result).toContain('list%5B1%5D');
+      expect(result).toContain('a%7Cb');
+      // No raw rejected chars left in output
+      expect(result).not.toMatch(/list\[1\]/);
+      expect(result).not.toMatch(/a\|b/);
+    });
+  });
+});
+
+// Documents URL-spec structural delimiter behavior in the URL bar. These are NOT
+// bugs — they reflect how the URL parser interprets reserved characters per RFC 3986.
+// Postman, Insomnia, curl, and every browser parse the same way. The Query Params
+describe('generateSnippet – URL-bar structural delimiters (?, #, &, =)', () => {
+  const language = { target: 'shell', client: 'curl' };
+  const baseCollection = { root: { request: { auth: { mode: 'none' }, headers: [] } } };
+
+  // Mirror HTTPSnippet's URL preservation (same realistic mock used elsewhere).
+  beforeEach(() => {
+    jest.clearAllMocks();
+    const getEncodedPath = (url) => {
+      const { parse } = require('url');
+      const { stringify } = require('query-string');
+      const parsed = parse(url, true, true);
+      if (!parsed.query || Object.keys(parsed.query).length === 0) {
+        return parsed.pathname;
+      }
+      const search = stringify(parsed.query, { sort: false });
+      return search ? `${parsed.pathname}?${search}` : parsed.pathname;
+    };
+    require('httpsnippet').HTTPSnippet = jest.fn().mockImplementation((harRequest) => ({
+      convert: jest.fn(() => {
+        const method = harRequest?.method || 'GET';
+        const url = harRequest?.url || 'http://example.com';
+        const { parse } = require('url');
+        const parsed = parse(url, false, true);
+        const encodedPath = getEncodedPath(url);
+        const fullEncodedUrl = `${parsed.protocol}//${parsed.host}${encodedPath}`;
+        return `curl -X ${method} '${fullEncodedUrl}'`;
+      })
+    }));
+  });
+
+  const makeItem = (url, settings) => ({
+    uid: 'delim-req',
+    request: { method: 'GET', url, headers: [], body: { mode: 'none' }, auth: { mode: 'none' } },
+    rawUrl: url,
+    ...(settings !== undefined && { settings })
+  });
+
+  describe('? (start-of-query) — first occurrence delimits, subsequent are data', () => {
+    const rawUrl = 'https://example.com/api?q=a?b';
+
+    it('toggle OFF — preserves second ? as raw', () => {
+      const item = makeItem(rawUrl, { encodeUrl: false });
+      const result = generateSnippet({ language, item, collection: baseCollection, shouldInterpolate: false });
+      expect(result).toContain('?q=a?b');
+    });
+
+    it('toggle ON — encodes second ? to %3F (treated as part of value)', () => {
+      const item = makeItem(rawUrl, { encodeUrl: true });
+      const result = generateSnippet({ language, item, collection: baseCollection, shouldInterpolate: false });
+      expect(result).toContain('q=a%3Fb');
+      expect(result).not.toContain('q=a?b');
+    });
+  });
+
+  describe('# (start-of-fragment) — always structural, never recoverable as value', () => {
+    const rawUrl = 'https://example.com/api?q=a#b';
+
+    it('toggle OFF — fragment kept in URL string (curl/HTTP drops on wire)', () => {
+      const item = makeItem(rawUrl, { encodeUrl: false });
+      const result = generateSnippet({ language, item, collection: baseCollection, shouldInterpolate: false });
+      expect(result).toContain('?q=a#b');
+    });
+
+    it('toggle ON — fragment dropped per RFC 3986 §3.5', () => {
+      const item = makeItem(rawUrl, { encodeUrl: true });
+      const result = generateSnippet({ language, item, collection: baseCollection, shouldInterpolate: false });
+      expect(result).toContain('?q=a');
+      expect(result).not.toContain('#b');
+      expect(result).not.toContain('%23b');
+    });
+  });
+
+  describe('& (param separator) — always structural', () => {
+    const rawUrl = 'https://example.com/api?q=a&b';
+
+    it('toggle OFF — preserves the literal & (parsed as 2 params on wire)', () => {
+      const item = makeItem(rawUrl, { encodeUrl: false });
+      const result = generateSnippet({ language, item, collection: baseCollection, shouldInterpolate: false });
+      expect(result).toContain('?q=a&b');
+    });
+
+    it('toggle ON — still 2 params, toggle does NOT recover the & as data', () => {
+      const item = makeItem(rawUrl, { encodeUrl: true });
+      const result = generateSnippet({ language, item, collection: baseCollection, shouldInterpolate: false });
+      // Toggle cannot reinterpret the URL grammar — & remains a param separator
+      expect(result).toContain('?q=a&b');
+      expect(result).not.toContain('a%26b');
+    });
+  });
+
+  describe('= (name/value separator) — first occurrence delimits, subsequent are data', () => {
+    const rawUrl = 'https://example.com/api?q=a=b';
+
+    it('toggle OFF — preserves second = as raw', () => {
+      const item = makeItem(rawUrl, { encodeUrl: false });
+      const result = generateSnippet({ language, item, collection: baseCollection, shouldInterpolate: false });
+      expect(result).toContain('?q=a=b');
+    });
+
+    it('toggle ON — encodes second = to %3D (treated as part of value)', () => {
+      const item = makeItem(rawUrl, { encodeUrl: true });
+      const result = generateSnippet({ language, item, collection: baseCollection, shouldInterpolate: false });
+      expect(result).toContain('q=a%3Db');
+      expect(result).not.toContain('q=a=b');
+    });
+  });
+
+  describe('cross-delimiter interactions', () => {
+    it('toggle OFF — mixed delimiters all preserved', () => {
+      const url = 'https://example.com/api?q=a?b&p=c=d#e';
+      const item = makeItem(url, { encodeUrl: false });
+      const result = generateSnippet({ language, item, collection: baseCollection, shouldInterpolate: false });
+      expect(result).toContain('q=a?b');
+      expect(result).toContain('p=c=d');
+      expect(result).toContain('#e');
+    });
+
+    it('toggle ON — fragment dropped, positional delimiters (? and =) encoded as value chars', () => {
+      const url = 'https://example.com/api?q=a?b&p=c=d#e';
+      const item = makeItem(url, { encodeUrl: true });
+      const result = generateSnippet({ language, item, collection: baseCollection, shouldInterpolate: false });
+      // Second ? in q's value gets encoded
+      expect(result).toContain('q=a%3Fb');
+      // Second = in p's value gets encoded
+      expect(result).toContain('p=c%3Dd');
+      // Fragment dropped per RFC
+      expect(result).not.toContain('#e');
+      expect(result).not.toContain('%23e');
+      // But & between params stays a separator
+      expect(result).toContain('&p=');
+    });
+  });
+});

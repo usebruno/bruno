@@ -13,13 +13,15 @@ import { getLanguages } from 'utils/codegenerator/targets';
 import { useSelector } from 'react-redux';
 import { getAllVariables, getGlobalEnvironmentVariables } from 'utils/collections/index';
 import { resolveInheritedAuth } from 'utils/auth';
+import { patternHasher } from '@usebruno/common/utils';
 
-const TEMPLATE_VAR_PATTERN = /\{\{([^}]+)\}\}/;
-
+// Templated URLs like `https://{{baseUrl}}/users/{{id}}` are valid input — the user
+// may want to copy the snippet with `{{var}}` placeholders intact. Hash the vars to a
+// URL-safe placeholder before validating so the URL parser doesn't reject them.
 const validateURLWithVars = (url) => {
-  const isValid = isValidUrl(url);
-  const hasMissingInterpolations = TEMPLATE_VAR_PATTERN.test(url);
-  return isValid && !hasMissingInterpolations;
+  if (!url) return false;
+  const { hashed } = patternHasher(url);
+  return isValidUrl(hashed);
 };
 
 const GenerateCodeItem = ({ collectionUid, item, onClose, isExample = false, exampleUid = null }) => {
@@ -92,16 +94,21 @@ const GenerateCodeItem = ({ collectionUid, item, onClose, isExample = false, exa
     variables
   });
 
+  // Encode path-param values when the URL Encoding toggle is on, so values like
+  // "aaa/bbb" become "aaa%2Fbbb" instead of bleeding into the path structure.
+  const encodeUrl = (item.draft?.settings?.encodeUrl ?? item.settings?.encodeUrl) === true;
+
   // interpolate the path params
   const finalUrl = interpolateUrlPathParams(
     interpolatedUrl,
     requestData.params,
-    variables
+    variables,
+    { encodeUrl }
   );
 
   // Raw URL: path params resolved via string replacement (no new URL() encoding),
   // preserving the user's original encoding choices for snippet generation.
-  const rawUrl = interpolateUrlPathParams(interpolatedUrl, requestData.params, variables, { raw: true });
+  const rawUrl = interpolateUrlPathParams(interpolatedUrl, requestData.params, variables, { raw: true, encodeUrl });
 
   // Get the full language object based on current preferences
   const selectedLanguage = useMemo(() => {

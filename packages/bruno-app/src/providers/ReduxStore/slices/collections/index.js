@@ -1103,10 +1103,16 @@ export const collectionsSlice = createSlice({
 
       item.draft.request.params = [...newQueryParams, ...existingOtherParams];
 
-      // Update the request URL to reflect the new query params
+      // Update the request URL to reflect the new query params.
+      // encode: true runs values through encodeURIComponent so structural chars
+      // (#, &, =, ?, +) in values become %XX. Without this, "hash#tag" in a query
+      // value would serialize as ?key=hash#tag and the URL parser would treat "tag"
+      // as fragment. Per PR #5507's design contract, pre-encoded values intentionally
+      // double-encode (%23 → %2523).
       const parts = splitOnFirst(item.draft.request.url, '?');
       const query = stringifyQueryParams(
-        filter(item.draft.request.params, (p) => p.enabled && p.type === 'query')
+        filter(item.draft.request.params, (p) => p.enabled && p.type === 'query'),
+        { encode: true }
       );
 
       // If there are enabled query params, append them to the URL
@@ -1142,9 +1148,12 @@ export const collectionsSlice = createSlice({
           });
           item.draft.request.params = [...reorderedQueryParams, ...pathParams];
 
-          // Update request URL
+          // Update request URL — encode: true keeps structural chars in values safe
           const parts = splitOnFirst(item.draft.request.url, '?');
-          const query = stringifyQueryParams(filter(item.draft.request.params, (p) => p.enabled && p.type === 'query'));
+          const query = stringifyQueryParams(
+            filter(item.draft.request.params, (p) => p.enabled && p.type === 'query'),
+            { encode: true }
+          );
           if (query && query.length) {
             item.draft.request.url = parts[0] + '?' + query;
           } else {
@@ -1173,10 +1182,11 @@ export const collectionsSlice = createSlice({
             queryParam.value = action.payload.queryParam.value;
             queryParam.enabled = action.payload.queryParam.enabled;
 
-            // update request url
+            // update request url — encode: true keeps structural chars in values safe
             const parts = splitOnFirst(item.draft.request.url, '?');
             const query = stringifyQueryParams(
-              filter(item.draft.request.params, (p) => p.enabled && p.type === 'query')
+              filter(item.draft.request.params, (p) => p.enabled && p.type === 'query'),
+              { encode: true }
             );
 
             // if no query is found, then strip the query params in url
@@ -1211,9 +1221,12 @@ export const collectionsSlice = createSlice({
           }
           item.draft.request.params = filter(item.draft.request.params, (p) => p.uid !== action.payload.paramUid);
 
-          // update request url
+          // update request url — encode: true keeps structural chars in values safe
           const parts = splitOnFirst(item.draft.request.url, '?');
-          const query = stringifyQueryParams(filter(item.draft.request.params, (p) => p.enabled && p.type === 'query'));
+          const query = stringifyQueryParams(
+            filter(item.draft.request.params, (p) => p.enabled && p.type === 'query'),
+            { encode: true }
+          );
           if (query && query.length) {
             item.draft.request.url = parts[0] + '?' + query;
           } else {

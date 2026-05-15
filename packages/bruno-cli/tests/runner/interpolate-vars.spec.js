@@ -1,5 +1,5 @@
 const { describe, it, expect } = require('@jest/globals');
-const interpolateVars = require('../../src/runner/interpolate-vars');
+const { interpolateVars } = require('@usebruno/common');
 
 describe('interpolate-vars: api key header name sidecar', () => {
   it('interpolates apiKeyHeaderName in lockstep with interpolated header keys', () => {
@@ -27,5 +27,46 @@ describe('interpolate-vars: api key header name sidecar', () => {
       'X-API-Key': 'secret-key-value'
     });
     expect(request.apiKeyHeaderName).toEqual('X-API-Key');
+  });
+});
+
+describe('interpolate-vars: path-param encoding (issue #7356)', () => {
+  it('encodes / inside path-param value when settings.encodeUrl is true', () => {
+    const request = {
+      method: 'GET',
+      url: 'http://example.com/users/:id/profile',
+      settings: { encodeUrl: true },
+      pathParams: [{ type: 'path', name: 'id', value: 'aaa/bbb' }]
+    };
+
+    interpolateVars(request, {}, {}, {});
+
+    expect(request.url).toBe('http://example.com/users/aaa%2Fbbb/profile');
+  });
+
+  it('does NOT encode path-param value when settings.encodeUrl is false', () => {
+    const request = {
+      method: 'GET',
+      url: 'http://example.com/users/:id/profile',
+      settings: { encodeUrl: false },
+      pathParams: [{ type: 'path', name: 'id', value: 'aaa/bbb' }]
+    };
+
+    interpolateVars(request, {}, {}, {});
+
+    expect(request.url).toBe('http://example.com/users/aaa/bbb/profile');
+  });
+
+  it('encodes # and spaces inside path-param value when settings.encodeUrl is true', () => {
+    const request = {
+      method: 'GET',
+      url: 'http://example.com/users/:id',
+      settings: { encodeUrl: true },
+      pathParams: [{ type: 'path', name: 'id', value: 'John#Doe Jr' }]
+    };
+
+    interpolateVars(request, {}, {}, {});
+
+    expect(request.url).toBe('http://example.com/users/John%23Doe%20Jr');
   });
 });

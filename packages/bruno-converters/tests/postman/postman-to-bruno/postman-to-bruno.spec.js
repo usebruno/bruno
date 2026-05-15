@@ -358,17 +358,17 @@ describe('postman-collection', () => {
       maxRedirects: 10
     });
 
-    // Test request with partial settings
+    // Test request with partial settings — disableUrlEncoding unspecified → defaults to false
     const requestWithPartialSettings = brunoCollection.items[1];
     expect(requestWithPartialSettings.settings).toEqual({
-      encodeUrl: true,
+      encodeUrl: false,
       followRedirects: true
     });
 
-    // Test request without settings
+    // Test request without settings — defaults to false
     const requestWithoutSettings = brunoCollection.items[2];
     expect(requestWithoutSettings.settings).toEqual({
-      encodeUrl: true
+      encodeUrl: false
     });
   });
 

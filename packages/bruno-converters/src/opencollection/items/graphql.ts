@@ -178,7 +178,7 @@ export const toOpenCollectionGraphqlItem = (item: BrunoItem): GraphQLRequest => 
   }
 
   const settings: GraphQLRequestSettings = {
-    encodeUrl: typeof brunoSettings.encodeUrl === 'boolean' ? brunoSettings.encodeUrl : true,
+    encodeUrl: typeof brunoSettings.encodeUrl === 'boolean' ? brunoSettings.encodeUrl : false,
     timeout: typeof brunoSettings.timeout === 'number' ? brunoSettings.timeout : 0,
     followRedirects: typeof brunoSettings.followRedirects === 'boolean' ? brunoSettings.followRedirects : true,
     maxRedirects: typeof brunoSettings.maxRedirects === 'number' ? brunoSettings.maxRedirects : 5
