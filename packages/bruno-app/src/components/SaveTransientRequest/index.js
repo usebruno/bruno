@@ -740,7 +740,7 @@ const SaveTransientRequest = ({ item: itemProp, collection: collectionProp, isOp
                     <div className="folder-empty-state">
                       <div className="flex flex-col items-center">
                         <span>
-                          {searchText.trim() ? 'No folders found' : 'No folder available' }
+                          {searchText.trim() ? 'No folders found' : 'No folders available' }
                         </span>
                         <Button
                           type="button"
