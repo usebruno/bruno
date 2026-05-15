@@ -7,7 +7,8 @@ import { closeTabs } from 'providers/ReduxStore/slices/collections/actions';
 import toast from 'react-hot-toast';
 import Modal from 'components/Modal';
 import Button from 'ui/Button';
-import SaveTransientRequest from './index';
+import SaveTransientRequest from '../index';
+import StyledWrapper from './StyledWrapper';
 
 const SaveTransientRequestContainer = () => {
   const dispatch = useDispatch();
@@ -86,13 +87,13 @@ const SaveTransientRequestContainer = () => {
           {modals.map((modal) => {
             const { item, collection } = modal;
             return (
-              <div
+              <StyledWrapper
                 key={item.uid}
-                className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded border border-gray-200"
+                className="flex items-center justify-between"
               >
                 <div className="flex flex-col flex-1 min-w-0 mr-3">
-                  <span className="text-sm text-gray-700 truncate">{item.name}</span>
-                  <span className="text-xs text-gray-500 truncate">
+                  <span className="text-sm request-name truncate">{item.name}</span>
+                  <span className="text-xs collection-name truncate">
                     {collection.name}
                   </span>
                 </div>
@@ -105,13 +106,13 @@ const SaveTransientRequestContainer = () => {
                 >
                   Save
                 </Button>
-              </div>
+              </StyledWrapper>
             );
           })}
         </div>
       </div>
 
-      <div className="flex justify-end mt-6 pt-4 border-t">
+      <div className="flex justify-end mt-6 pt-4">
         <Button color="danger" onClick={handleDiscardAll}>
           Discard All
         </Button>
