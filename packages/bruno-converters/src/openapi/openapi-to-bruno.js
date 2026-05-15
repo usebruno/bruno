@@ -781,13 +781,41 @@ const getSecurity = (apiSpec) => {
 
 const openAPIRuntimeExpressionToScript = (expression) => {
   // see https://swagger.io/docs/specification/links/#runtime-expressions
+  const prefix = '$response.body#';
+
   if (expression === '$response.body') {
     return 'res.body';
-  } else if (expression.startsWith('$response.body#')) {
-    let pointer = expression.substring(15);
-    // could use https://www.npmjs.com/package/json-pointer for better support
-    return `res.body${pointer.replace('/', '.')}`;
   }
+
+  if (expression.startsWith(prefix)) {
+    const pointer = expression.slice(prefix.length);
+
+    if (!pointer || pointer === '/') {
+      return 'res.body';
+    }
+
+    const segments = pointer
+      .replace(/^\//, '')
+      .split('/')
+      .map((segment) =>
+        segment
+          .replace(/~1/g, '/')
+          .replace(/~0/g, '~')
+      );
+
+    return segments.reduce((script, segment) => {
+      if (/^\d+$/.test(segment)) {
+        return `${script}[${segment}]`;
+      }
+
+      if (/^[A-Za-z_$][A-Za-z0-9_$]*$/.test(segment)) {
+        return `${script}.${segment}`;
+      }
+
+      return `${script}[${JSON.stringify(segment)}]`;
+    }, 'res.body');
+  }
+
   return expression;
 };
 
