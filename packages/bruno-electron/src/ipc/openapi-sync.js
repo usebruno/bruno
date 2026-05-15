@@ -13,6 +13,7 @@ const {
 } = require('@usebruno/filestore');
 const { openApiToBruno } = require('@usebruno/converters');
 const { writeFile, sanitizeName, getCollectionFormat, posixifyPath } = require('../utils/filesystem');
+const { getUniqueRequestFilename } = require('../utils/request-filename');
 const { getEnvVars } = require('../utils/collection');
 const { getProcessEnvVars } = require('../store/process-env');
 const { getCertsAndProxyConfig } = require('./network/cert-utils');
@@ -1241,7 +1242,7 @@ const registerOpenAPISyncIpc = (mainWindow) => {
           }
 
           const requestContent = await stringifyRequestViaWorker(specItem, { format });
-          const sanitizedFilename = `${sanitizeName(specItem.name || path.basename(specItem.filename || '', `.${format}`))}.${format}`;
+          const sanitizedFilename = getUniqueRequestFilename(specItem, format, (filename) => fs.existsSync(path.join(targetFolder, filename)));
           await writeFile(path.join(targetFolder, sanitizedFilename), requestContent);
         }
 
@@ -1372,7 +1373,7 @@ const registerOpenAPISyncIpc = (mainWindow) => {
               }
 
               const requestContent = await stringifyRequestViaWorker(newItem, { format });
-              const sanitizedFilename = `${sanitizeName(newItem.name || path.basename(newItem.filename || '', `.${format}`))}.${format}`;
+              const sanitizedFilename = getUniqueRequestFilename(newItem, format, (filename) => fs.existsSync(path.join(targetFolder, filename)));
               await writeFile(path.join(targetFolder, sanitizedFilename), requestContent);
             }
           }
@@ -1618,7 +1619,7 @@ const registerOpenAPISyncIpc = (mainWindow) => {
           }
 
           const requestContent = await stringifyRequestViaWorker(specItem, { format });
-          const sanitizedFilename = `${sanitizeName(specItem.name || path.basename(specItem.filename || '', `.${format}`))}.${format}`;
+          const sanitizedFilename = getUniqueRequestFilename(specItem, format, (filename) => fs.existsSync(path.join(targetFolder, filename)));
           await writeFile(path.join(targetFolder, sanitizedFilename), requestContent);
           addedCount++;
         }

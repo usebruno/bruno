@@ -3,7 +3,6 @@ import get from 'lodash/get';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import toast from 'react-hot-toast';
-import path from 'utils/common/path';
 import { uuid } from 'utils/common';
 import Modal from 'components/Modal';
 import { useDispatch, useSelector } from 'react-redux';
@@ -14,7 +13,8 @@ import HttpMethodSelector from 'components/RequestPane/QueryUrl/HttpMethodSelect
 import { getDefaultRequestPaneTab } from 'utils/collections';
 import { getRequestFromCurlCommand } from 'utils/curl';
 import { IconArrowBackUp, IconCaretDown, IconEdit } from '@tabler/icons';
-import { sanitizeName, validateName, validateNameError } from 'utils/common/regex';
+import { validateName, validateNameError } from 'utils/common/regex';
+import { getRequestFilenameBase } from 'utils/common/requestFilename';
 import Dropdown from 'components/Dropdown';
 import PathDisplay from 'components/PathDisplay';
 import Portal from 'components/Portal';
@@ -55,19 +55,23 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
   });
 
   // This function analyzes a given cURL command string and determines whether the request is a GraphQL or HTTP request.
-  const identifyCurlRequestType = (url, headers, body) => {
+  const getCurlRequestType = (url, headers, body) => {
     if (url.endsWith('/graphql')) {
-      setCurlRequestTypeDetected('graphql-request');
-      return;
+      return 'graphql-request';
     }
 
     const contentType = headers?.find((h) => h.name.toLowerCase() === 'content-type')?.value;
     if (contentType && contentType.includes('application/graphql')) {
-      setCurlRequestTypeDetected('graphql-request');
-      return;
+      return 'graphql-request';
     }
 
-    setCurlRequestTypeDetected('http-request');
+    return 'http-request';
+  };
+
+  const identifyCurlRequestType = (url, headers, body) => {
+    const requestType = getCurlRequestType(url, headers, body);
+    setCurlRequestTypeDetected(requestType);
+    return requestType;
   };
 
   const curlRequestTypeChange = (type) => {
@@ -75,6 +79,7 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
   };
 
   const [isEditing, toggleEditing] = useState(false);
+  const [isFilenameManuallyEdited, setFilenameManuallyEdited] = useState(false);
 
   const getRequestType = (collectionPresets) => {
     if (!collectionPresets || !collectionPresets.requestType) {
@@ -149,7 +154,7 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
     onSubmit: (values) => {
       const isGrpcRequest = values.requestType === 'grpc-request';
       const isWsRequest = values.requestType === 'ws-request';
-      const filename = values.filename;
+      let filename = values.filename;
 
       if (isGrpcRequest) {
         dispatch(
@@ -211,6 +216,13 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
       } else if (values.requestType === 'from-curl') {
         const request = getRequestFromCurlCommand(values.curlCommand, curlRequestTypeDetected);
         const settings = { encodeUrl: false };
+        filename = isFilenameManuallyEdited
+          ? values.filename
+          : getRequestFilenameBase({
+              requestName: values.requestName,
+              requestMethod: request.method,
+              requestType: curlRequestTypeDetected || 'http-request'
+            });
 
         dispatch(
           newHttpRequest({
@@ -261,6 +273,25 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
 
   const onSubmit = () => formik.handleSubmit();
 
+  const setAutoFilename = ({
+    requestName = formik.values.requestName,
+    requestMethod = formik.values.requestMethod,
+    requestType = formik.values.requestType
+  }) => {
+    if (isFilenameManuallyEdited) {
+      return;
+    }
+
+    const filenameRequestType = requestType === 'from-curl' ? curlRequestTypeDetected || 'http-request' : requestType;
+    formik.setFieldValue('filename', getRequestFilenameBase({ requestName, requestMethod, requestType: filenameRequestType }));
+  };
+
+  const handleRequestTypeChange = (event) => {
+    const requestType = event.target.value;
+    formik.setFieldValue('requestType', requestType);
+    setAutoFilename({ requestType });
+  };
+
   const handlePaste = useCallback(
     (event) => {
       const clipboardData = event.clipboardData || window.clipboardData;
@@ -276,14 +307,24 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
         // Identify the request type
         const request = getRequestFromCurlCommand(pastedData);
         if (request) {
-          identifyCurlRequestType(request.url, request.headers, request.body);
+          const requestType = identifyCurlRequestType(request.url, request.headers, request.body);
+          if (!isFilenameManuallyEdited) {
+            formik.setFieldValue(
+              'filename',
+              getRequestFilenameBase({
+                requestName: formik.values.requestName,
+                requestMethod: request.method,
+                requestType
+              })
+            );
+          }
         }
 
         // Prevent the default paste behavior to avoid pasting into the textarea
         event.preventDefault();
       }
     },
-    [formik]
+    [formik, isFilenameManuallyEdited, curlRequestTypeDetected]
   );
 
   const handleCurlCommandChange = (event) => {
@@ -293,7 +334,17 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
       const curlCommand = event.target.value;
       const request = getRequestFromCurlCommand(curlCommand);
       if (request) {
-        identifyCurlRequestType(request.url, request.headers, request.body);
+        const requestType = identifyCurlRequestType(request.url, request.headers, request.body);
+        if (!isFilenameManuallyEdited) {
+          formik.setFieldValue(
+            'filename',
+            getRequestFilenameBase({
+              requestName: formik.values.requestName,
+              requestMethod: request.method,
+              requestType
+            })
+          );
+        }
       }
     }
   };
@@ -331,7 +382,7 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
                       name="requestType"
                       value="http-request"
                       checked={formik.values.requestType === 'http-request'}
-                      onChange={formik.handleChange}
+                      onChange={handleRequestTypeChange}
                       data-testid="http-request"
                     />
                     <label htmlFor="http-request" className="ml-1 cursor-pointer select-none">
@@ -345,7 +396,7 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
                       name="requestType"
                       value="graphql-request"
                       checked={formik.values.requestType === 'graphql-request'}
-                      onChange={formik.handleChange}
+                      onChange={handleRequestTypeChange}
                       data-testid="graphql-request"
                     />
                     <label htmlFor="graphql-request" className="ml-1 cursor-pointer select-none">
@@ -362,7 +413,7 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
                       name="requestType"
                       value="grpc-request"
                       checked={formik.values.requestType === 'grpc-request'}
-                      onChange={formik.handleChange}
+                      onChange={handleRequestTypeChange}
                       data-testid="grpc-request"
                     />
                     <label htmlFor="grpc-request" className="ml-1 cursor-pointer select-none">
@@ -377,7 +428,7 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
                       name="requestType"
                       value="ws-request"
                       checked={formik.values.requestType === 'ws-request'}
-                      onChange={formik.handleChange}
+                      onChange={handleRequestTypeChange}
                       data-testid="ws-request"
                     />
                     <label htmlFor="ws-request" className="ml-1 cursor-pointer select-none">
@@ -394,7 +445,7 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
                       name="requestType"
                       value="from-curl"
                       checked={formik.values.requestType === 'from-curl'}
-                      onChange={formik.handleChange}
+                      onChange={handleRequestTypeChange}
                       data-testid="from-curl"
                     />
                     <label htmlFor="from-curl" className="ml-1 cursor-pointer select-none">
@@ -421,7 +472,7 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
                 spellCheck="false"
                 onChange={(e) => {
                   formik.setFieldValue('requestName', e.target.value);
-                  !isEditing && formik.setFieldValue('filename', sanitizeName(e.target.value));
+                  setAutoFilename({ requestName: e.target.value });
                 }}
                 value={formik.values.requestName || ''}
                 data-testid="request-name"
@@ -471,7 +522,10 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
                       autoCorrect="off"
                       autoCapitalize="off"
                       spellCheck="false"
-                      onChange={formik.handleChange}
+                      onChange={(e) => {
+                        setFilenameManuallyEdited(true);
+                        formik.handleChange(e);
+                      }}
                       value={formik.values.filename || ''}
                       data-testid="file-name"
                     />
@@ -500,7 +554,10 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
                       <div className="flex items-center h-full method-selector-container">
                         <HttpMethodSelector
                           method={formik.values.requestMethod}
-                          onMethodSelect={(val) => formik.setFieldValue('requestMethod', val)}
+                          onMethodSelect={(val) => {
+                            formik.setFieldValue('requestMethod', val);
+                            setAutoFilename({ requestMethod: val });
+                          }}
                           showCaret
                         />
                       </div>

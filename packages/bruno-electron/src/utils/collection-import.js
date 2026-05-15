@@ -2,6 +2,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { ipcMain } = require('electron');
 const { sanitizeName, createDirectory, writeFile, safeWriteFileSync, getCollectionStats } = require('./filesystem');
+const { getUniqueRequestFilename } = require('./request-filename');
 const { generateUidBasedOnHash, stringifyJson } = require('./common');
 const { stringifyRequestViaWorker, stringifyCollection, stringifyEnvironment, stringifyFolder, DEFAULT_COLLECTION_FORMAT } = require('@usebruno/filestore');
 
@@ -35,9 +36,13 @@ async function importCollection(collection, collectionLocation, mainWindow, uniq
 
   // Recursive function to parse the collection items and create files/folders
   const parseCollectionItems = async (items = [], currentPath) => {
+    const filenamesInFolder = new Set();
     for (const item of items) {
-      if (['http-request', 'graphql-request', 'grpc-request'].includes(item.type)) {
-        let sanitizedFilename = sanitizeName(item.filename || `${item.name}.${format}`);
+      if (['http-request', 'graphql-request', 'grpc-request', 'ws-request'].includes(item.type)) {
+        let sanitizedFilename = getUniqueRequestFilename(item, format, (filename) => {
+          return filenamesInFolder.has(filename) || fs.existsSync(path.join(currentPath, filename));
+        });
+        filenamesInFolder.add(sanitizedFilename);
         const content = await stringifyRequestViaWorker(item, { format });
         const filePath = path.join(currentPath, sanitizedFilename);
         safeWriteFileSync(filePath, content);
