@@ -7,7 +7,7 @@ import { closeTabs } from 'providers/ReduxStore/slices/collections/actions';
 import toast from 'react-hot-toast';
 import Modal from 'components/Modal';
 import Button from 'ui/Button';
-import SaveTransientRequest from '../index';
+import SaveTransientRequest from 'components/SaveTransientRequest';
 import StyledWrapper from './StyledWrapper';
 
 const SaveTransientRequestContainer = () => {
