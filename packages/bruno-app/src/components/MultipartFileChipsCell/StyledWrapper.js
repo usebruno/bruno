@@ -132,6 +132,7 @@ const Wrapper = styled.div`
     border-radius: 4px;
     transition: color 0.15s ease;
     flex: 0 0 auto;
+    margin-left: auto;
 
     &:hover {
       color: ${(props) => props.theme.text};

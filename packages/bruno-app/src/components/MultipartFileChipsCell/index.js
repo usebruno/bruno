@@ -1,6 +1,7 @@
 import React, { useLayoutEffect, useRef, useState } from 'react';
 import { IconUpload, IconX, IconFile, IconChevronDown } from '@tabler/icons';
 import Dropdown from 'components/Dropdown';
+import ToolHint from 'components/ToolHint';
 import path, { normalizePath } from 'utils/common/path';
 import Wrapper, { OverflowList } from './StyledWrapper';
 
@@ -16,6 +17,7 @@ const MORE_CHIP_RESERVE = 56;
 
 const MultipartFileChipsCell = ({ files, onRemove, onAdd, editMode = true }) => {
   const containerRef = useRef(null);
+  const tooltipPrefix = useRef(`mp-tip-${Math.random().toString(36).slice(2, 10)}`).current;
   const [visibleCount, setVisibleCount] = useState(files.length);
 
   useLayoutEffect(() => {
@@ -57,14 +59,19 @@ const MultipartFileChipsCell = ({ files, onRemove, onAdd, editMode = true }) => 
   const collapsed = visibleCount === 0 && files.length > 0;
 
   const renderChip = (filePath, idx) => (
-    <div
+    <ToolHint
       key={`${filePath}-${idx}`}
-      data-testid="multipart-file-chip"
+      text={filePath}
+      toolhintId={`${tooltipPrefix}-chip-${idx}`}
+      place="bottom-start"
+      positionStrategy="fixed"
+      delayShow={1000}
       className="file-chip"
-      title={filePath}
     >
       <IconFile size={14} stroke={1.5} className="file-chip-icon" />
-      <span className="file-chip-name">{basename(filePath)}</span>
+      <span className="file-chip-name" data-testid="multipart-file-chip">
+        {basename(filePath)}
+      </span>
       {editMode && (
         <button
           type="button"
@@ -79,20 +86,25 @@ const MultipartFileChipsCell = ({ files, onRemove, onAdd, editMode = true }) => 
           <IconX size={13} stroke={1.5} />
         </button>
       )}
-    </div>
+    </ToolHint>
   );
 
   const renderOverflowList = (list) => (
     <OverflowList>
       {list.map((p, i) => (
-        <div
+        <ToolHint
           key={`o-${p}-${i}`}
-          data-testid="multipart-file-overflow-row"
+          text={p}
+          toolhintId={`${tooltipPrefix}-overflow-${i}`}
+          place="bottom-start"
+          positionStrategy="fixed"
+          delayShow={1000}
           className="overflow-row"
-          title={p}
         >
           <IconFile size={14} stroke={1.5} className="overflow-row-icon" />
-          <span className="overflow-row-name">{basename(p)}</span>
+          <span className="overflow-row-name" data-testid="multipart-file-overflow-row">
+            {basename(p)}
+          </span>
           {editMode && (
             <button
               type="button"
@@ -107,7 +119,7 @@ const MultipartFileChipsCell = ({ files, onRemove, onAdd, editMode = true }) => 
               <IconX size={13} stroke={1.5} />
             </button>
           )}
-        </div>
+        </ToolHint>
       ))}
     </OverflowList>
   );
