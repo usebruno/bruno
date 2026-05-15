@@ -90,6 +90,32 @@ describe('runtime', () => {
         { description: 'format valid', status: 'pass' }
       ]);
     });
+
+    it('should return stopExecution when test scripts stop the runner', async () => {
+      const testFile = `
+                test('non-200 response', () => {
+                    expect.fail('response is not 200');
+                });
+                bru.runner.stopExecution();
+            `;
+
+      const runtime = new TestRuntime({ runtime: 'nodevm' });
+      const result = await runtime.runTests(
+        testFile,
+        { ...baseRequest },
+        { ...baseResponse },
+        {},
+        {},
+        '.',
+        null,
+        process.env
+      );
+
+      expect(result.results.map((el) => ({ description: el.description, status: el.status }))).toEqual([
+        { description: 'non-200 response', status: 'fail' }
+      ]);
+      expect(result.stopExecution).toBe(true);
+    });
   });
 
   describe('script-runtime', () => {
