@@ -9,7 +9,7 @@ body:ws {
     name: message 1
     content: '''
       {"foo":"bar"}
-    '''
+    ''' 
 }
 
 settings {
@@ -24,8 +24,7 @@ settings {
             {
               content: '{"foo":"bar"}',
               name: 'message 1',
-              type: 'json',
-              selected: false
+              type: 'json'
             }
           ]
         },
@@ -37,153 +36,6 @@ settings {
 
       const output = parser(input);
       expect(output).toEqual(expected);
-    });
-
-    it('parses a single message flagged with selected: true', () => {
-      const input = `
-body:ws {
-    type: json
-    name: message 1
-    selected: true
-    content: '''
-      {"foo":"bar"}
-    '''
-}
-`;
-
-      const expected = {
-        body: {
-          mode: 'ws',
-          ws: [
-            {
-              content: '{"foo":"bar"}',
-              name: 'message 1',
-              type: 'json',
-              selected: true
-            }
-          ]
-        }
-      };
-
-      const output = parser(input);
-      expect(output).toEqual(expected);
-    });
-
-    it('parses multiple messages with none marked as selected', () => {
-      const input = `
-body:ws {
-  name: message 1
-  type: json
-  content: '''
-    {"action":"subscribe"}
-  '''
-}
-
-body:ws {
-  name: message 2
-  type: text
-  content: '''
-    hello world
-  '''
-}
-`;
-
-      const expected = {
-        body: {
-          mode: 'ws',
-          ws: [
-            {
-              name: 'message 1',
-              type: 'json',
-              content: '{"action":"subscribe"}',
-              selected: false
-            },
-            {
-              name: 'message 2',
-              type: 'text',
-              content: 'hello world',
-              selected: false
-            }
-          ]
-        }
-      };
-
-      const output = parser(input);
-      expect(output).toEqual(expected);
-    });
-
-    it('parses multiple messages with exactly one marked as selected', () => {
-      const input = `
-body:ws {
-  name: message 1
-  type: json
-  content: '''
-    {"action":"subscribe"}
-  '''
-}
-
-body:ws {
-  name: message 2
-  type: text
-  selected: true
-  content: '''
-    hello world
-  '''
-}
-
-body:ws {
-  name: message 3
-  type: xml
-  content: '''
-    <ping/>
-  '''
-}
-`;
-
-      const expected = {
-        body: {
-          mode: 'ws',
-          ws: [
-            {
-              name: 'message 1',
-              type: 'json',
-              content: '{"action":"subscribe"}',
-              selected: false
-            },
-            {
-              name: 'message 2',
-              type: 'text',
-              content: 'hello world',
-              selected: true
-            },
-            {
-              name: 'message 3',
-              type: 'xml',
-              content: '<ping/>',
-              selected: false
-            }
-          ]
-        }
-      };
-
-      const output = parser(input);
-      expect(output).toEqual(expected);
-    });
-
-    it('treats selected: false as not selected', () => {
-      const input = `
-body:ws {
-  name: message 1
-  type: text
-  selected: false
-  content: '''
-    hello
-  '''
-}
-`;
-
-      const output = parser(input);
-      expect(output.body.ws[0].selected).toBe(false);
     });
   });
 

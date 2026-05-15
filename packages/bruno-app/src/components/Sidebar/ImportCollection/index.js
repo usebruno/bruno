@@ -70,6 +70,7 @@ const ImportCollection = ({ onClose, handleSubmit }) => {
 
         {errorMessage && (
           <div
+            data-testid="import-error-message"
             className="mb-4 p-2 border rounded-md"
             style={{
               backgroundColor: theme.status.danger.background,

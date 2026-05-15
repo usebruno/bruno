@@ -267,7 +267,7 @@ export const processAuth = (auth, requestObject, isCollection = false) => {
       requestObject.auth.apikey = {
         key: ensureString(authValues.key),
         value: ensureString(authValues.value),
-        placement: 'header' // By default we are placing the apikey values in headers!
+        placement: authValues.in === 'query' ? 'queryparams' : 'header' // map Postman `in` to Bruno placement; defaults to header
       };
       break;
     case AUTH_TYPES.DIGEST:

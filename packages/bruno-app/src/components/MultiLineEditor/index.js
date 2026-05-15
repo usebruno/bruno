@@ -30,13 +30,16 @@ class MultiLineEditor extends Component {
     // Initialize CodeMirror as a single line editor
     /** @type {import("codemirror").Editor} */
     const variables = getAllVariables(this.props.collection, this.props.item);
-    const runShortcut = () => {
-      if (this.props.onRun) {
-        this.props.onRun();
-        return;
-      }
-      return CodeMirror.Pass;
-    };
+    /**
+     * No-op. We claim Cmd-Enter / Ctrl-Enter here only to suppress CodeMirror's
+     * sublime keymap default (insertLineAfter), which would otherwise insert a
+     * newline. sendRequest dispatch is owned by Mousetrap — the editor input has
+     * the `mousetrap` class (added below) so the global
+     * useKeybinding('sendRequest', …) in RequestTabPanel handles it, and only
+     * in request tabs. Falling through with CodeMirror.Pass when onRun is absent
+     * would re-introduce the newline in collection/folder-level editors.
+     */
+    const runShortcut = () => {};
 
     this.editor = CodeMirror(this.editorRef.current, {
       lineWrapping: false,

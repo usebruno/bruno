@@ -1,9 +1,22 @@
-import { test, expect, Page, ElectronApplication } from '../../../playwright';
+import { test, expect, Page, ElectronApplication, waitForReadyPage as waitForReadyPageImpl } from '../../../playwright';
 import process from 'node:process';
 import * as path from 'path';
 import { buildCommonLocators, buildScriptErrorLocators } from './locators';
 
 type SandboxMode = 'safe' | 'developer';
+
+type WaitForAppReadyOptions = {
+  timeout?: number;
+};
+
+/**
+ * Wait for the Electron app to have a ready, loaded window.
+ * Handles cases where the first window is slow to appear.
+ */
+const waitForReadyPage = (
+  app: ElectronApplication,
+  options: WaitForAppReadyOptions = {}
+) => waitForReadyPageImpl(app, options);
 
 /**
  * Close all collections
@@ -28,8 +41,11 @@ const closeAllCollections = async (page) => {
       const hasDiscardButton = await page.getByRole('button', { name: 'Discard All and Remove' }).isVisible().catch(() => false);
 
       if (hasDiscardButton) {
-        // Drafts modal - click "Discard All and Remove"
-        await page.getByRole('button', { name: 'Discard All and Remove' }).click();
+        // Drafts modal - the modal animates in and the footer can shift mid-frame,
+        // causing Playwright's "element is stable" actionability check to fail
+        // intermittently on slower machines. Use force to skip the stability check;
+        // visibility is already verified above via waitFor.
+        await page.getByRole('button', { name: 'Discard All and Remove' }).click({ force: true });
       } else {
         // Regular modal - click the submit button
         await page.locator('.bruno-modal-footer .submit').click();
@@ -80,14 +96,28 @@ const createCollection = async (page, collectionName: string, collectionLocation
 
     // Fill location FIRST — some modals auto-derive the name from the path,
     // so filling name after location ensures it isn't overwritten.
+    //
+    // The location input is `readOnly={true}` as a React prop and is a
+    // controlled input via formik. Two implications:
+    //   1. Removing `readonly` via DOM attribute is racy — the next React
+    //      render restores the prop. The modal's mount-effect focuses the
+    //      name field at +50ms, which can trigger that re-render between
+    //      our DOM tweak and the `fill()`, leaving the input read-only and
+    //      the fill silently no-ops.
+    //   2. Even if writable, controlled inputs require firing an `input`
+    //      event so the onChange handler runs and updates formik state.
+    // Use the native value setter (the React-controlled-input pattern) to
+    // bypass both. Then verify the value stuck so we fail loudly here
+    // instead of opaquely at the modal-hidden wait when Yup validation
+    // silently rejects an empty location.
     const locationInput = createCollectionModal.getByLabel('Location');
     if (await locationInput.isVisible()) {
-      await locationInput.evaluate((el) => {
-        const input = el as HTMLInputElement;
-        input.removeAttribute('readonly');
-        input.readOnly = false;
-      });
-      await locationInput.fill(collectionLocation);
+      await locationInput.evaluate((el, value) => {
+        const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')?.set;
+        setter?.call(el, value);
+        el.dispatchEvent(new Event('input', { bubbles: true }));
+      }, collectionLocation);
+      await expect(locationInput).toHaveValue(collectionLocation);
     }
     const nameInput = createCollectionModal.getByLabel('Name');
     await nameInput.clear();
@@ -96,7 +126,11 @@ const createCollection = async (page, collectionName: string, collectionLocation
     await expect(nameInput).toHaveValue(collectionName, { timeout: 2000 });
     await createCollectionModal.getByRole('button', { name: 'Create', exact: true }).click();
 
-    await createCollectionModal.waitFor({ state: 'detached', timeout: 15000 });
+    // The modal closes via `onClose()` in the form's `onSubmit` success path,
+    // which only runs after Yup validation passes — so this waitFor is the
+    // signal that the form actually submitted
+    await createCollectionModal.waitFor({ state: 'hidden', timeout: 5000 });
+    await expect(page.locator('.bruno-modal-backdrop')).toHaveCount(0);
     // Wait for the collection name to appear in the sidebar before proceeding
     await page.locator('#sidebar-collection-name').filter({ hasText: collectionName }).waitFor({ state: 'visible', timeout: 5000 });
     await openCollection(page, collectionName);
@@ -770,37 +804,78 @@ const sendRequestAndWaitForResponse = async (page: Page,
 const switchResponseFormat = async (page: Page, format: string) => {
   await test.step(`Switch response format to ${format}`, async () => {
     const responseFormatTab = page.getByTestId('format-response-tab');
+    await responseFormatTab.waitFor({ state: 'visible', timeout: 15000 });
     await responseFormatTab.click();
     // Wait for dropdown to be visible before clicking the format option
     const dropdown = page.getByTestId('format-response-tab-dropdown');
-    await dropdown.waitFor({ state: 'visible' });
+    try {
+      await dropdown.waitFor({ state: 'visible', timeout: 15000 });
+    } catch {
+      // If the dropdown didn't appear, try clicking the tab again before failing
+      await responseFormatTab.click();
+      await dropdown.waitFor({ state: 'visible', timeout: 15000 });
+    }
     await dropdown.getByText(format).click();
   });
 };
 
 /**
- * Switch to the preview tab
- * @param page - The page object
+ * Set the response pane's preview/editor mode idempotently.
+ *
+ * The underlying `preview-response-tab` element is a `<ToggleSwitch>` that
+ * flips between editor and preview on click — it has no "set to X" semantics.
+ * It also lives inside the dropdown that `format-response-tab` opens, so it's
+ * not interactable until that dropdown is visible. Naively clicking it twice
+ * (once per call) loses state if any click misses the toggle window, leaving
+ * downstream asserts looking at the wrong mode (e.g. expecting CodeMirror
+ * lines while preview is showing).
+ *
+ * Strategy: open the dropdown, read the toggle's current state from its
+ * `title` attribute (which reflects `selectedTab` in the source), and click
+ * only when the current state differs from the desired one.
+ */
+const setResponsePreviewMode = async (page: Page, mode: 'editor' | 'preview') => {
+  const responseFormatTab = page.getByTestId('format-response-tab');
+  await responseFormatTab.click();
+  const dropdown = page.getByTestId('format-response-tab-dropdown');
+  await dropdown.waitFor({ state: 'visible', timeout: 5000 });
+  const toggle = page.getByTestId('preview-response-tab');
+  // The toggle's `title` reflects current state (`Turn off|on Preview Mode`).
+  // Wait until it's actually one of those values — `getAttribute` returns
+  // `null` if read before React flushes props to DOM, which would mislead
+  // the state check below into thinking we're already in editor mode and
+  // skip the toggle click, leaving us stuck in preview.
+  await expect(toggle).toHaveAttribute('title', /^Turn (off|on) Preview Mode$/);
+  const isPreview = (await toggle.getAttribute('title')) === 'Turn off Preview Mode';
+  const wantPreview = mode === 'preview';
+  if (isPreview !== wantPreview) {
+    await toggle.click();
+  } else {
+    // Already in the desired mode — close the dropdown so subsequent
+    // interactions (format selection, asserts) aren't shadowed by it.
+    await responseFormatTab.click();
+  }
+  // Confirm the dropdown actually closed before returning. Otherwise a
+  // subsequent format-selector click can land in a half-open state and
+  // miss the next interaction.
+  await dropdown.waitFor({ state: 'hidden', timeout: 5000 });
+};
+
+/**
+ * Switch the response pane into preview mode (idempotent).
  */
 const switchToPreviewTab = async (page: Page) => {
   await test.step('Switch to preview tab', async () => {
-    const responseFormatTab = page.getByTestId('format-response-tab');
-    await responseFormatTab.click();
-    const previewTab = page.getByTestId('preview-response-tab');
-    await previewTab.click();
+    await setResponsePreviewMode(page, 'preview');
   });
 };
 
 /**
- * Switch to the editor tab
- * @param page - The page object
+ * Switch the response pane into editor mode (idempotent).
  */
 const switchToEditorTab = async (page: Page) => {
   await test.step('Switch to editor tab', async () => {
-    const responseFormatTab = page.getByTestId('format-response-tab');
-    await responseFormatTab.click();
-    const previewTab = page.getByTestId('preview-response-tab');
-    await previewTab.click();
+    await setResponsePreviewMode(page, 'editor');
   });
 };
 
@@ -813,37 +888,103 @@ const getResponseBody = async (page: Page): Promise<string> => {
   return await page.locator('.response-pane').innerText();
 };
 
+const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+const trySelectPaneTabOnce = async (page: Page, paneSelector: string, tabName: string) => {
+  const pane = page.locator(paneSelector);
+  const visibleTab = pane.locator('.tabs').getByRole('tab', { name: tabName });
+
+  if (await visibleTab.isVisible().catch(() => false)) {
+    try {
+      await visibleTab.click({ timeout: 2000 });
+      await expect(visibleTab).toContainClass('active', { timeout: 500 });
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  const overflowButton = pane.locator('.tabs .more-tabs');
+  if (!(await overflowButton.isVisible().catch(() => false))) {
+    return false;
+  }
+
+  try {
+    await overflowButton.click({ force: true, timeout: 1000 });
+  } catch {
+    return false;
+  }
+
+  const dropdownItem = page
+    .getByRole('menuitem', { name: new RegExp(escapeRegExp(tabName), 'i') })
+    .first();
+
+  if (await dropdownItem.isVisible({ timeout: 1500 }).catch(() => false)) {
+    try {
+      await dropdownItem.click({ force: true, timeout: 2000 });
+      await expect(visibleTab).toContainClass('active', { timeout: 500 });
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  const fallbackDropdownItem = page.locator('.tippy-box .dropdown-item').filter({ hasText: tabName }).first();
+  if (await fallbackDropdownItem.isVisible({ timeout: 1500 }).catch(() => false)) {
+    try {
+      await fallbackDropdownItem.click({ force: true, timeout: 2000 });
+      await expect(visibleTab).toContainClass('active', { timeout: 500 });
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  return false;
+};
+
 const selectPaneTab = async (page: Page, paneSelector: string, tabName: string) => {
   await test.step(`Select tab "${tabName}" in ${paneSelector}`, async () => {
     const pane = page.locator(paneSelector);
     await expect(pane).toBeVisible();
     await expect(pane.locator('.tabs')).toBeVisible();
 
+    // await expect
+    //   .poll(
+    //     async () => trySelectPaneTabOnce(page, paneSelector, tabName),
+    //     {
+    //       message: `Tab "${tabName}" not found in visible tabs or overflow dropdown`,
+    //       timeout: 8000,
+    //       intervals: [100, 150, 200, 250]
+    //     }
+    //   )
+    //   .toBe(true);
+
     const visibleTab = pane.locator('.tabs').getByRole('tab', { name: tabName });
-
-    // Check if tab is directly visible
-    if (await visibleTab.isVisible()) {
-      await visibleTab.click();
-      await expect(visibleTab).toContainClass('active');
-      return;
-    }
-
     const overflowButton = pane.locator('.tabs .more-tabs');
-    // Check if there's an overflow dropdown
-    if (await overflowButton.isVisible()) {
-      await overflowButton.click();
 
-      // Wait for dropdown to appear and click the menu item
-      const dropdownItem = page.locator('.tippy-box .dropdown-item').filter({ hasText: tabName });
-      await dropdownItem.waitFor({ state: 'visible' });
+    // ResponsiveTabs recalculates layout via ResizeObserver/rAF, so the tab or
+    // the overflow trigger can detach mid-click. Retry the whole sequence so a
+    // mid-action remount doesn't fail the test.
+    await expect(async () => {
+      if (await visibleTab.isVisible()) {
+        await visibleTab.click({ timeout: 2000 });
+        await expect(visibleTab).toContainClass('active', { timeout: 2000 });
+        return;
+      }
 
-      await page.waitForTimeout(50);
-      await dropdownItem.click({ force: true });
-      await expect(visibleTab).toContainClass('active');
-      return;
-    }
+      if (await overflowButton.isVisible()) {
+        await overflowButton.click({ timeout: 2000 });
 
-    throw new Error(`Tab "${tabName}" not found in visible tabs or overflow dropdown`);
+        const dropdownItem = page.locator('.tippy-box .dropdown-item').filter({ hasText: tabName });
+        await dropdownItem.waitFor({ state: 'visible', timeout: 2000 });
+        await dropdownItem.click({ force: true, timeout: 2000 });
+        await expect(visibleTab).toContainClass('active', { timeout: 2000 });
+        return;
+      }
+
+      throw new Error(`Tab "${tabName}" not found in visible tabs or overflow dropdown`);
+    }).toPass({ timeout: 15000 });
   });
 };
 
@@ -929,8 +1070,9 @@ const clickResponseAction = async (page: Page, actionTestId: string) => {
   if (await actionButton.isVisible()) {
     await actionButton.click();
   } else {
-    // Open the menu dropdown
+    // Open the menu dropdown (wait for response pane to fully render)
     const menu = page.getByTestId('response-actions-menu');
+    await menu.waitFor({ state: 'visible', timeout: 15000 });
     await menu.click();
 
     // Click the corresponding menu item
@@ -1243,7 +1385,43 @@ const sendAndWaitForResponse = async (page: Page) => {
   });
 };
 
+const createExampleFromSidebar = async (page: Page, requestName: string, exampleName: string, description: string = '') => {
+  const requestRow = page.locator('.collection-item-name').filter({ hasText: requestName }).first();
+
+  await requestRow.hover();
+  await requestRow.locator('..').locator('.menu-icon').click({ force: true });
+  await page.locator('.dropdown-item').filter({ hasText: 'Create Example' }).click();
+
+  const exampleInput = page.getByTestId('create-example-name-input');
+  await expect(exampleInput).toBeVisible();
+  await exampleInput.clear();
+  await exampleInput.fill(exampleName);
+  const descriptionInput = page.getByTestId('create-example-description-input');
+  await descriptionInput.clear();
+  await descriptionInput.fill(description);
+  await page.getByRole('button', { name: 'Create Example' }).click();
+  await expect(page.locator('text=Create Response Example')).not.toBeAttached();
+};
+
+const openExampleFromSidebar = async (page: Page, requestName: string, exampleName: string, index: number = 0) => {
+  const requestRow = page.locator('.collection-item-name').filter({ hasText: requestName }).first();
+  const requestBranch = requestRow.locator('..');
+  const exampleRow = requestBranch
+    .locator('.collection-item-name')
+    .filter({ has: page.locator('.example-icon') })
+    .getByText(exampleName, { exact: true })
+    .nth(index);
+
+  if (!(await exampleRow.isVisible())) {
+    await requestRow.getByTestId('request-item-chevron').click();
+  }
+
+  await expect(exampleRow).toBeVisible();
+  await exampleRow.click();
+};
+
 export {
+  waitForReadyPage,
   closeAllCollections,
   openCollection,
   createCollection,
@@ -1292,7 +1470,9 @@ export {
   addPostResponseScript,
   addTestScript,
   sendAndWaitForErrorCard,
-  sendAndWaitForResponse
+  sendAndWaitForResponse,
+  createExampleFromSidebar,
+  openExampleFromSidebar
 };
 
 export type { SandboxMode, EnvironmentType, EnvironmentVariable, ImportCollectionOptions, CreateRequestOptions, CreateUntitledRequestOptions, CreateTransientRequestOptions, AssertionInput };

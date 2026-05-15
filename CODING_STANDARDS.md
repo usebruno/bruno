@@ -59,6 +59,47 @@ Remember, these rules are here to make our codebase harmonious. If something doe
 
 - Tests should be fast enough to run continuously. Avoid long-running operations unless absolutely necessary; prefer lightweight fixtures and isolated units.
 
+### E2E Tests 
+
+When reviewing Electron-specific Playwright tests, treat `<project-root>/tests/**` as the canonical location for specs, typically matching `<project-root>/tests/**/*.spec.{ts,js}`. For broader Playwright workflow guidance, also refer to `docs/playwright-testing-guide.md`.
+
+Goal: rewrite or critique the tests so they are genuinely behavioural, maintainable, and safely parallelizable.
+
+Rules:
+1. Tests must verify user-visible behaviour, not implementation details.
+   - Prefer assertions on UI state, persisted data, windows, dialogs, filesystem effects, and app-level outcomes.
+   - Avoid hardcoded waits, brittle selectors, fake internal state checks, and “click then expect mock called” tests unless the user behaviour is the point.
+
+2. Tests must be Electron-aware.
+   - Use Electron app launch patterns correctly.
+   - Handle main window, secondary windows, dialogs, menus, native prompts, clipboard, file pickers, and IPC-driven UI behaviour through observable outcomes.
+   - Do not reach into app internals unless absolutely necessary for setup or controlled test fixtures.
+
+3. Tests must be parallel-safe.
+   - No shared user data directories.
+   - No shared ports, files, DBs, caches, clipboard assumptions, or global app state.
+   - Each test gets isolated temp paths, unique workspace/project names, and deterministic cleanup.
+   - Avoid test ordering assumptions.
+
+4. No hardcoded mess.
+   - Replace magic timeouts with event-driven waits.
+   - Replace brittle text/index selectors with role, label, test id, or stable user-facing selectors.
+   - Replace duplicated setup with fixtures.
+   - Replace hardcoded absolute paths with temp dirs.
+   - Replace random sleeps with waiting for actual app signals.
+
+5. Every test should follow this shape:
+   - Arrange: create isolated fixture state.
+   - Act: perform real user actions.
+   - Assert: verify observable behavioural outcome.
+   - Cleanup: remove isolated resources.
+
+For each test file:
+- Identify behavioural vs non-behavioural tests.
+- Flag brittle selectors, hardcoded waits, shared state, serial dependencies, and fake assertions.
+- Rewrite the tests using Playwright best practices for Electron.
+- Make them parallel-ready.
+- Explain briefly why each rewrite is better.
 
 ## UI Specific instructions 
 

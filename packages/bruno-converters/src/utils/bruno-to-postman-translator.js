@@ -76,6 +76,30 @@ const simpleTranslations = {
   // Note: req.setHeader is handled in complexTransformations because it needs arg restructuring (two args -> object)
   'req.deleteHeader': 'pm.request.headers.remove',
 
+  // Request headerList PropertyList methods
+  'req.headerList': 'pm.request.headers',
+  'req.headerList.get': 'pm.request.headers.get',
+  'req.headerList.has': 'pm.request.headers.has',
+  'req.headerList.one': 'pm.request.headers.one',
+  'req.headerList.all': 'pm.request.headers.all',
+  'req.headerList.count': 'pm.request.headers.count',
+  'req.headerList.indexOf': 'pm.request.headers.indexOf',
+  'req.headerList.find': 'pm.request.headers.find',
+  'req.headerList.filter': 'pm.request.headers.filter',
+  'req.headerList.each': 'pm.request.headers.each',
+  'req.headerList.map': 'pm.request.headers.map',
+  'req.headerList.reduce': 'pm.request.headers.reduce',
+  'req.headerList.toObject': 'pm.request.headers.toObject',
+  'req.headerList.toString': 'pm.request.headers.toString',
+  'req.headerList.toJSON': 'pm.request.headers.toJSON',
+  'req.headerList.add': 'pm.request.headers.add',
+  'req.headerList.upsert': 'pm.request.headers.upsert',
+  'req.headerList.remove': 'pm.request.headers.remove',
+  'req.headerList.clear': 'pm.request.headers.clear',
+  'req.headerList.populate': 'pm.request.headers.populate',
+  'req.headerList.repopulate': 'pm.request.headers.repopulate',
+  'req.headerList.assimilate': 'pm.request.headers.assimilate',
+
   // URL helper methods
   'req.getHost': 'pm.request.url.getHost',
   'req.getPath': 'pm.request.url.getPath',
@@ -93,6 +117,23 @@ const simpleTranslations = {
   'res.getBody': 'pm.response.json',
   'res.getHeader': 'pm.response.headers.get',
   'res.getSize': 'pm.response.size',
+
+  // Response headerList PropertyList methods (read-only)
+  'res.headerList': 'pm.response.headers',
+  'res.headerList.get': 'pm.response.headers.get',
+  'res.headerList.has': 'pm.response.headers.has',
+  'res.headerList.one': 'pm.response.headers.one',
+  'res.headerList.all': 'pm.response.headers.all',
+  'res.headerList.count': 'pm.response.headers.count',
+  'res.headerList.indexOf': 'pm.response.headers.indexOf',
+  'res.headerList.find': 'pm.response.headers.find',
+  'res.headerList.filter': 'pm.response.headers.filter',
+  'res.headerList.each': 'pm.response.headers.each',
+  'res.headerList.map': 'pm.response.headers.map',
+  'res.headerList.reduce': 'pm.response.headers.reduce',
+  'res.headerList.toObject': 'pm.response.headers.toObject',
+  'res.headerList.toString': 'pm.response.headers.toString',
+  'res.headerList.toJSON': 'pm.response.headers.toJSON',
 
   // Cookies jar
   'bru.cookies.jar': 'pm.cookies.jar',

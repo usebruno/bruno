@@ -39,6 +39,7 @@ const registerNetworkIpc = require('./ipc/network');
 const registerCollectionsIpc = require('./ipc/collection');
 const registerFilesystemIpc = require('./ipc/filesystem');
 const registerPreferencesIpc = require('./ipc/preferences');
+const registerSnapshotIpc = require('./ipc/snapshot');
 const registerSystemMonitorIpc = require('./ipc/system-monitor');
 const registerWorkspaceIpc = require('./ipc/workspace');
 const registerApiSpecIpc = require('./ipc/apiSpec');
@@ -122,11 +123,11 @@ const focusMainWindow = () => {
   }
 };
 
-const closeAllWatchers = () => {
-  collectionWatcher.closeAllWatchers();
-  workspaceWatcher.closeAllWatchers();
-  apiSpecWatcher.closeAllWatchers();
-};
+const closeAllWatchers = () => Promise.allSettled([
+  collectionWatcher.closeAllWatchers(),
+  workspaceWatcher.closeAllWatchers(),
+  apiSpecWatcher.closeAllWatchers()
+]);
 
 // Parse protocol URL from command line arguments (if any)
 appProtocolUrl = getAppProtocolUrlFromArgv(process.argv);
@@ -462,6 +463,7 @@ app.on('ready', async () => {
   registerGlobalEnvironmentsIpc(mainWindow, globalEnvironmentsManager);
   registerCollectionsIpc(mainWindow, collectionWatcher);
   registerPreferencesIpc(mainWindow, collectionWatcher);
+  registerSnapshotIpc();
   registerWorkspaceIpc(mainWindow, workspaceWatcher);
   registerApiSpecIpc(mainWindow, apiSpecWatcher);
   registerNotificationsIpc(mainWindow, collectionWatcher);
@@ -471,28 +473,47 @@ app.on('ready', async () => {
   registerOpenAPISyncIpc(mainWindow);
 });
 
-// Quit the app once all windows are closed
-app.on('before-quit', () => {
-  closeAllWatchers();
-  // Release single instance lock to allow other instances to take over
-  if (useSingleInstance && gotTheLock) {
-    app.releaseSingleInstanceLock();
-  }
+// Quit the app once all windows are closed.
+//
+// We defer the actual exit until async cleanup (chokidar fsevents handles)
+// finishes — otherwise the main process exits while native watcher cleanup
+// is mid-flight, and Chromium helper processes can detect the broken IPC
+// channel and abort(), producing the macOS "quit unexpectedly" dialog.
+let quitInProgress = false;
+app.on('before-quit', (event) => {
+  if (quitInProgress) return;
+  quitInProgress = true;
+  event.preventDefault();
 
-  try {
-    cookiesStore.saveCookieJar(true);
-  } catch (err) {
-    console.warn('Failed to flush cookies on quit', err);
-  }
+  (async () => {
+    try {
+      await Promise.race([
+        closeAllWatchers(),
+        // Cap the wait so a stuck watcher can't block exit indefinitely.
+        new Promise((resolve) => setTimeout(resolve, 2000))
+      ]);
+    } catch {}
 
-  // Stop system monitoring
-  systemMonitor.stop();
+    if (useSingleInstance && gotTheLock) {
+      try { app.releaseSingleInstanceLock(); } catch {}
+    }
 
-  try {
-    terminalManager.killAll();
-  } catch (err) {
-    console.error('Failed to kill all terminals on quit', err);
-  }
+    try {
+      cookiesStore.saveCookieJar(true);
+    } catch (err) {
+      console.warn('Failed to flush cookies on quit', err);
+    }
+
+    systemMonitor.stop();
+
+    try {
+      terminalManager.killAll();
+    } catch (err) {
+      console.error('Failed to kill all terminals on quit', err);
+    }
+
+    app.exit(0);
+  })();
 });
 
 app.on('window-all-closed', app.quit);

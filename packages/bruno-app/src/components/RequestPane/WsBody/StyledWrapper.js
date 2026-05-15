@@ -5,10 +5,21 @@ const Wrapper = styled.div`
   flex-direction: column;
   width: 100%;
   height: 100%;
+  position: relative;
 
   .messages-container {
     flex: 1;
-    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+
+    &.single {
+      height: 100%;
+    }
+
+    &.multi {
+      overflow-y: auto;
+      padding-bottom: 48px;
+    }
   }
 
   .empty-state {
@@ -25,20 +36,13 @@ const Wrapper = styled.div`
     }
   }
 
-  .add-message-link {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    font-size: 0.875rem;
-    color: ${(props) => props.theme.primary.text};
-    cursor: pointer;
-    background: none;
-    border: none;
-    padding: 4px 0;
-
-    &:hover {
-      opacity: 0.8;
-    }
+  .add-message-footer {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 8px;
+    background: ${(props) => props.theme.bg};
   }
 `;
 
