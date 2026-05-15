@@ -48,7 +48,7 @@ test.describe.serial('File / Binary body upload', () => {
     // body is sent as an fs.ReadStream — this is the exact code path that
     // produced the bug. Anything <= 20 MiB would go through the Buffer path,
     // which was never broken.
-    const LARGE_JSON_BYTES = 25 * 1024 * 1024; // 25 MiB > 20 MiB threshold
+    const LARGE_JSON_BYTES = 80 * 1024 * 1024; // 25 MiB > 20 MiB threshold
     const jsonBuffer = Buffer.alloc(LARGE_JSON_BYTES, 'a');
     jsonFilePath = path.join(tmpDir, 'payload.json');
     await fs.promises.writeFile(jsonFilePath, jsonBuffer);
@@ -176,7 +176,6 @@ test.describe.serial('File / Binary body upload', () => {
     await openRequest(page, collectionName, octetRequestName, { persist: true });
     await configureFileBody(page);
 
-    // await page.pause()
     await sendRequest(page, 200, 30000);
 
     const locators = buildCommonLocators(page);
