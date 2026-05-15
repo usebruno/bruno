@@ -1,11 +1,153 @@
-// @ts-nocheck — ported from the CLI/Electron runtimes; runtime contract is the same.
-// Types deferred to a follow-up; this file is intentionally JS-shaped to ease line-for-line review.
 import { each, forOwn, cloneDeep } from 'lodash';
-import interpolate from './interpolate';
-import { isFormData } from './utils/form-data';
+import interpolate from '../interpolate';
+import { isFormData } from '../utils/form-data';
 
-const getContentType = (headers = {}) => {
-  let contentType = '';
+type VariableMap = Record<string, any>;
+
+interface PathParam {
+  name: string;
+  value: any;
+  type?: string;
+  [key: string]: any;
+}
+
+interface ProxyAuth {
+  username?: string;
+  password?: string;
+}
+
+interface ProxyConfig {
+  protocol?: string;
+  hostname?: string;
+  port?: string | number;
+  auth?: ProxyAuth;
+  [key: string]: any;
+}
+
+interface BasicAuth {
+  username?: string;
+  password?: string;
+}
+
+interface OAuth2AdditionalParam {
+  name?: string;
+  value?: string;
+  enabled?: boolean;
+  [key: string]: any;
+}
+
+interface OAuth2AdditionalParameters {
+  authorization?: OAuth2AdditionalParam[];
+  token?: OAuth2AdditionalParam[];
+  refresh?: OAuth2AdditionalParam[];
+}
+
+interface OAuth2Config {
+  grantType?: string;
+  accessTokenUrl?: string;
+  refreshTokenUrl?: string;
+  authorizationUrl?: string;
+  callbackUrl?: string;
+  username?: string;
+  password?: string;
+  clientId?: string;
+  clientSecret?: string;
+  scope?: string;
+  state?: string;
+  pkce?: any;
+  credentialsPlacement?: string;
+  credentialsId?: string;
+  tokenPlacement?: string;
+  tokenHeaderPrefix?: string;
+  tokenQueryKey?: string;
+  autoFetchToken?: any;
+  autoRefreshToken?: any;
+  additionalParameters?: OAuth2AdditionalParameters;
+  [key: string]: any;
+}
+
+interface AwsV4Config {
+  accessKeyId?: string;
+  secretAccessKey?: string;
+  sessionToken?: string;
+  service?: string;
+  region?: string;
+  profileName?: string;
+}
+
+interface CredentialsConfig {
+  username?: string;
+  password?: string;
+}
+
+interface NtlmConfig extends CredentialsConfig {
+  domain?: string;
+}
+
+interface OAuth1Config {
+  consumerKey?: string;
+  consumerSecret?: string;
+  accessToken?: string;
+  accessTokenSecret?: string;
+  callbackUrl?: string;
+  verifier?: string;
+  signatureMethod?: string;
+  privateKey?: string;
+  timestamp?: string;
+  nonce?: string;
+  version?: string;
+  realm?: string;
+  [key: string]: any;
+}
+
+interface WsMessage {
+  content?: string;
+  [key: string]: any;
+}
+
+interface RequestBody {
+  ws?: WsMessage[];
+  [key: string]: any;
+}
+
+interface RequestSettings {
+  encodeUrl?: boolean;
+  [key: string]: any;
+}
+
+export interface InterpolatableRequest {
+  url?: string;
+  mode?: string;
+  method?: string;
+  headers?: Record<string, any>;
+  data?: any;
+  body?: RequestBody;
+  pathParams?: PathParam[];
+  apiKeyHeaderName?: string;
+  settings?: RequestSettings;
+  globalEnvironmentVariables?: VariableMap;
+  oauth2CredentialVariables?: VariableMap;
+  collectionVariables?: VariableMap;
+  folderVariables?: VariableMap;
+  requestVariables?: VariableMap;
+  proxy?: ProxyConfig;
+  basicAuth?: BasicAuth;
+  oauth2?: OAuth2Config;
+  awsv4config?: AwsV4Config;
+  digestConfig?: CredentialsConfig;
+  wsse?: CredentialsConfig;
+  ntlmConfig?: NtlmConfig;
+  oauth1config?: OAuth1Config;
+  auth?: any;
+  [key: string]: any;
+}
+
+interface InterpolateOptions {
+  escapeJSONStrings?: boolean;
+}
+
+const getContentType = (headers: Record<string, any> = {}): string => {
+  let contentType: any = '';
   forOwn(headers, (value, key) => {
     if (key && key.toLowerCase() === 'content-type') {
       contentType = value;
@@ -15,17 +157,23 @@ const getContentType = (headers = {}) => {
   return typeof contentType === 'string' ? contentType : '';
 };
 
-const getRawQueryString = (url) => {
+const getRawQueryString = (url: string): string => {
   const queryIndex = url.indexOf('?');
   return queryIndex !== -1 ? url.slice(queryIndex) : '';
 };
 
-const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, processEnvVars = {}, promptVariables = {}) => {
-  const globalEnvironmentVariables = request?.globalEnvironmentVariables || {};
-  const oauth2CredentialVariables = request?.oauth2CredentialVariables || {};
-  const collectionVariables = request?.collectionVariables || {};
-  const folderVariables = request?.folderVariables || {};
-  const requestVariables = request?.requestVariables || {};
+const interpolateVars = (
+  request: InterpolatableRequest,
+  envVariables: VariableMap = {},
+  runtimeVariables: VariableMap = {},
+  processEnvVars: VariableMap = {},
+  promptVariables: VariableMap = {}
+): InterpolatableRequest => {
+  const globalEnvironmentVariables: VariableMap = request?.globalEnvironmentVariables || {};
+  const oauth2CredentialVariables: VariableMap = request?.oauth2CredentialVariables || {};
+  const collectionVariables: VariableMap = request?.collectionVariables || {};
+  const folderVariables: VariableMap = request?.folderVariables || {};
+  const requestVariables: VariableMap = request?.requestVariables || {};
   envVariables = cloneDeep(envVariables);
 
   // envVars can in turn have values as {{process.env.VAR_NAME}}
@@ -40,7 +188,7 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
     });
   });
 
-  const _interpolate = (str, { escapeJSONStrings } = {}) => {
+  const _interpolate = (str: any, { escapeJSONStrings }: InterpolateOptions = {}): any => {
     if (!str || !str.length || typeof str !== 'string') {
       return str;
     }
@@ -71,8 +219,8 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
   const isGraphqlRequest = request.mode === 'graphql';
 
   forOwn(request.headers, (value, key) => {
-    delete request.headers[key];
-    request.headers[_interpolate(key)] = _interpolate(value);
+    delete request.headers![key];
+    request.headers![_interpolate(key)] = _interpolate(value);
   });
   if (request.apiKeyHeaderName) {
     request.apiKeyHeaderName = _interpolate(request.apiKeyHeaderName);
@@ -122,7 +270,7 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
       }
     } else if (contentType === 'application/x-www-form-urlencoded') {
       if (request.data && Array.isArray(request.data)) {
-        request.data = request.data.map((d) => ({
+        request.data = request.data.map((d: any) => ({
           ...d,
           value: _interpolate(d?.value)
         }));
@@ -130,9 +278,9 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
     } else if (contentType.startsWith('multipart/')) {
       if (Array.isArray(request?.data) && !isFormData(request.data)) {
         try {
-          request.data = request?.data?.map((d) => ({
+          request.data = request?.data?.map((d: any) => ({
             ...d,
-            value: Array.isArray(d?.value) ? d.value.map((v) => _interpolate(v)) : _interpolate(d?.value)
+            value: Array.isArray(d?.value) ? d.value.map((v: any) => _interpolate(v)) : _interpolate(d?.value)
           }));
         } catch (err) {}
       }
@@ -141,13 +289,13 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
     }
   }
 
-  each(request?.pathParams, (param) => {
+  each(request?.pathParams, (param: PathParam) => {
     param.value = _interpolate(param.value);
   });
 
   if (request?.pathParams?.length) {
-    let url = request.url;
-    const urlSearchRaw = getRawQueryString(request.url);
+    let url: any = request.url;
+    const urlSearchRaw = getRawQueryString(request.url || '');
 
     if (!url.startsWith('http://') && !url.startsWith('https://')) {
       url = `http://${url}`;
@@ -155,25 +303,25 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
 
     try {
       url = new URL(url);
-    } catch (e) {
+    } catch (e: any) {
       throw { message: 'Invalid URL format', originalError: e.message };
     }
 
     // Encode path-param values when the URL Encoding toggle is on, so values like
     // "aaa/bbb" survive as "aaa%2Fbbb" rather than turning into extra path segments.
     // Per PR #5507's contract, pre-encoded values intentionally double-encode.
-    const encodePathParam = request.settings?.encodeUrl === true
+    const encodePathParam: (value: any) => string = request.settings?.encodeUrl === true
       ? (value) => encodeURIComponent(String(value))
       : (value) => value;
 
-    const interpolatedUrlPath = url.pathname
+    const interpolatedUrlPath = (url.pathname as string)
       .split('/')
       .filter((path) => path !== '')
       .map((path) => {
         // traditional path parameters
         if (path.startsWith(':')) {
           const paramName = path.slice(1);
-          const existingPathParam = request.pathParams.find((param) => param.name === paramName);
+          const existingPathParam = request.pathParams!.find((param) => param.name === paramName);
           if (!existingPathParam) {
             return '/' + path;
           }
@@ -187,14 +335,14 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
         // 3. Function(param=value)
         if (/^[A-Za-z0-9_.-]+\([^)]*\)$/.test(path)) {
           const paramRegex = /[:]([a-zA-Z_]\w*)/g;
-          let match;
+          let match: RegExpExecArray | null;
           let result = path;
           while ((match = paramRegex.exec(path))) {
             if (match[1]) {
               let name = match[1].replace(/[')"`]+$/, '');
               name = name.replace(/^[('"`]+/, '');
               if (name) {
-                const existingPathParam = request.pathParams.find((param) => param.name === name);
+                const existingPathParam = request.pathParams!.find((param) => param.name === name);
                 if (existingPathParam) {
                   result = result.replace(':' + match[1], encodePathParam(existingPathParam.value));
                 }
@@ -207,7 +355,7 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
       })
       .join('');
 
-    const trailingSlash = url.pathname.endsWith('/') ? '/' : '';
+    const trailingSlash = (url.pathname as string).endsWith('/') ? '/' : '';
     request.url = url.origin + interpolatedUrlPath + trailingSlash + urlSearchRaw;
   }
 
@@ -229,7 +377,7 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
     const username = _interpolate(request.basicAuth.username) || '';
     const password = _interpolate(request.basicAuth.password) || '';
 
-    request.headers['Authorization'] = `Basic ${Buffer.from(`${username}:${password}`).toString('base64')}`;
+    request.headers!['Authorization'] = `Basic ${Buffer.from(`${username}:${password}`).toString('base64')}`;
     delete request.basicAuth;
   }
 
@@ -367,7 +515,8 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
     request.oauth1config.accessTokenSecret = _interpolate(request.oauth1config.accessTokenSecret) || '';
     request.oauth1config.callbackUrl = _interpolate(request.oauth1config.callbackUrl) || '';
     request.oauth1config.verifier = _interpolate(request.oauth1config.verifier) || '';
-    request.oauth1config.signatureMethod = _interpolate(request.oauth1config.signatureMethod) || request.oauth1config.signatureMethod || 'HMAC-SHA1';
+    request.oauth1config.signatureMethod
+      = _interpolate(request.oauth1config.signatureMethod) || request.oauth1config.signatureMethod || 'HMAC-SHA1';
     request.oauth1config.privateKey = _interpolate(request.oauth1config.privateKey) || '';
     request.oauth1config.timestamp = _interpolate(request.oauth1config.timestamp) || '';
     request.oauth1config.nonce = _interpolate(request.oauth1config.nonce) || '';
