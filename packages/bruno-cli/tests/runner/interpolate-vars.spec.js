@@ -17,7 +17,7 @@ describe('interpolate-vars: interpolateVars', () => {
 
     const result = interpolateVars(request, { shouldNotApply: 'value' }, null, null);
     expect(result.data).toBe(streamPayload);
-   });
+  });
 });
 
 describe('interpolate-vars: api key header name sidecar', () => {
