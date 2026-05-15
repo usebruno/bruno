@@ -98,6 +98,14 @@ const promisifyStream = async (stream, abortController, closeOnFirst) => {
   });
 };
 
+const measureResponseTime = (config, headers, isStream) => {
+  const startTime = config?.headers?.['request-start-time'];
+  if (!isStream && startTime != null) {
+    return Date.now() - startTime;
+  }
+  return Number(headers.get('request-duration')) || 0;
+};
+
 const configureRequest = async (
   collectionUid,
   collection,
@@ -907,9 +915,8 @@ const registerNetworkIpc = (mainWindow) => {
         if (!isResponseStream) {
           response.data = await promisifyStream(response.data);
         }
-
+        responseTime = measureResponseTime(response.config, response.headers, isResponseStream);
         // Prevents the duration on leaking to the actual result
-        responseTime = response.headers.get('request-duration');
         response.headers.delete('request-duration');
       } catch (error) {
         deleteCancelToken(cancelTokenUid);
@@ -927,14 +934,13 @@ const registerNetworkIpc = (mainWindow) => {
         }
         if (error?.response) {
           response = error.response;
-
-          // Prevents the duration on leaking to the actual result
-          responseTime = response.headers.get('request-duration');
-          response.headers.delete('request-duration');
           isResponseStream = hasStreamHeaders(response.headers);
           if (!isResponseStream) {
             response.data = await promisifyStream(response.data);
           }
+          responseTime = measureResponseTime(response.config, response.headers, isResponseStream);
+          // Prevents the duration on leaking to the actual result
+          response.headers.delete('request-duration');
         } else {
           await executeRequestOnFailHandler(request, error);
 
@@ -1618,7 +1624,7 @@ const registerNetworkIpc = (mainWindow) => {
               const { data, dataBuffer } = parseDataFromResponse(response, request.__brunoDisableParsingResponseJson);
               response.data = data;
               response.dataBuffer = dataBuffer;
-              response.responseTime = response.headers.get('request-duration');
+              response.responseTime = measureResponseTime(response.config, response.headers, false);
               response.headers.delete('request-duration');
 
               // save cookies
@@ -1656,7 +1662,7 @@ const registerNetworkIpc = (mainWindow) => {
               if (error?.response) {
                 error.response.data = await promisifyStream(error.response.data, currentAbortController, false);
                 const { data, dataBuffer } = parseDataFromResponse(error.response);
-                error.response.responseTime = error.response.headers.get('request-duration');
+                error.response.responseTime = measureResponseTime(error.response.config, error.response.headers, false);
                 error.response.headers.delete('request-duration');
                 error.response.data = data;
                 error.response.dataBuffer = dataBuffer;
@@ -2010,3 +2016,6 @@ module.exports.configureRequest = configureRequest;
 module.exports.getCertsAndProxyConfig = getCertsAndProxyConfig;
 module.exports.fetchGqlSchemaHandler = fetchGqlSchemaHandler;
 module.exports.executeRequestOnFailHandler = executeRequestOnFailHandler;
+module.exports.promisifyStream = promisifyStream;
+module.exports.hasStreamHeaders = hasStreamHeaders;
+module.exports.measureResponseTime = measureResponseTime;
