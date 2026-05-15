@@ -1,5 +1,6 @@
 import React, { useCallback, useRef } from 'react';
 import get from 'lodash/get';
+import toast from 'react-hot-toast';
 import { useDispatch, useSelector } from 'react-redux';
 import { useTheme } from 'providers/Theme';
 import { IconUpload } from '@tabler/icons';
@@ -15,10 +16,13 @@ import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collection
 import { updateTableColumnWidths } from 'providers/ReduxStore/slices/tabs';
 import EditableTable from 'components/EditableTable';
 import StyledWrapper from './StyledWrapper';
-import { getRelativePath } from 'utils/common/path';
+import path, { getRelativePath, normalizePath } from 'utils/common/path';
 import { getMultipartAutoContentType } from 'utils/common/multipartContentType';
 import { usePersistedState } from 'hooks/usePersistedState';
 import { useTrackScroll } from 'hooks/useTrackScroll';
+
+const fileBasename = (filePath) =>
+  filePath ? path.basename(normalizePath(String(filePath))) : '';
 
 const MultipartFormParams = ({ item, collection }) => {
   const dispatch = useDispatch();
@@ -79,11 +83,20 @@ const MultipartFormParams = ({ item, collection }) => {
           : [];
         const seen = new Set(existingValue);
         const merged = [...existingValue];
+        const skipped = [];
         for (const p of processedPaths) {
           if (!seen.has(p)) {
             seen.add(p);
             merged.push(p);
+          } else {
+            skipped.push(p);
           }
+        }
+
+        if (skipped.length === 1) {
+          toast(`"${fileBasename(skipped[0])}" is already added`);
+        } else if (skipped.length > 1) {
+          toast(`${skipped.length} files are already added — skipped`);
         }
 
         const autoContentType = getMultipartAutoContentType(merged);
