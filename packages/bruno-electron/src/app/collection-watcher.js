@@ -403,7 +403,7 @@ const addDirectory = async (win, pathname, collectionUid, collectionPath) => {
       seq = folderData?.meta?.seq;
     }
   } catch (error) {
-    console.error(`Error occured while parsing folder.${format} file`);
+    console.error(`Error occurred while parsing folder.${format} file`);
     console.error(error);
   }
 
