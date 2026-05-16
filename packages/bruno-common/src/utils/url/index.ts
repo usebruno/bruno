@@ -96,10 +96,31 @@ const stripOrigin = (url: string): string => {
   return url.replace(/^https?:\/\/[^/?#]*/, '') || '/';
 };
 
+/**
+ * Replace the query string of a URL with one built from the given params,
+ * preserving the hash fragment. If params produce an empty query string,
+ * the URL's query is stripped entirely.
+ */
+const buildUrlWithQueryParams = (
+  url: string,
+  queryParams: QueryParam[],
+  options: BuildQueryStringOptions = {}
+): string => {
+  if (!url) return url;
+
+  const [urlWithoutHash, ...hashFragments] = url.split('#');
+  const [basePath] = urlWithoutHash.split('?');
+  const hash = hashFragments.length > 0 ? '#' + hashFragments.join('#') : '';
+  const queryString = buildQueryString(queryParams, options);
+
+  return queryString ? `${basePath}?${queryString}${hash}` : `${basePath}${hash}`;
+};
+
 export {
   encodeUrl,
   parseQueryParams,
   buildQueryString,
+  buildUrlWithQueryParams,
   stripOrigin,
   type QueryParam,
   type BuildQueryStringOptions,

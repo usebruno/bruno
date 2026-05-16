@@ -1,4 +1,4 @@
-import { parseQueryParams, buildQueryString as stringifyQueryParams } from '@usebruno/common/utils';
+import { parseQueryParams, buildQueryString as stringifyQueryParams, buildUrlWithQueryParams } from '@usebruno/common/utils';
 import { uuid } from 'utils/common';
 import { find, map, forOwn, concat, filter, each, cloneDeep, get, set, findIndex } from 'lodash';
 import { createSlice } from '@reduxjs/toolkit';
@@ -150,6 +150,20 @@ const initiatedWsResponse = {
   errorDetails: null,
   metadata: [],
   trailers: []
+};
+
+/**
+ * Applies enabled query params from request.params into request.url when a
+ * .bru file is loaded from disk. Without this the URL bar and outbound requests
+ * omit params:query entries until the user interacts with the params UI.
+ * Skipped when the .bru has no params:query block — otherwise an inline
+ * ?foo=bar in the URL would be stripped despite no modeled state to replace it.
+ */
+export const applyQueryParamsToUrl = (request) => {
+  if (!request || !request.params) return;
+  if (!request.params.some((p) => p.type === 'query')) return;
+  const enabledQueryParams = filter(request.params, (p) => p.enabled && p.type === 'query');
+  request.url = buildUrlWithQueryParams(request.url, enabledQueryParams);
 };
 
 export const collectionsSlice = createSlice({
@@ -2727,6 +2741,7 @@ export const collectionsSlice = createSlice({
             currentItem.seq = file.data.seq;
             currentItem.tags = file.data.tags;
             currentItem.request = mergeRequestWithPreservedUids(currentItem.request, file.data.request);
+            applyQueryParamsToUrl(currentItem.request);
             currentItem.filename = file.meta.name;
             currentItem.pathname = file.meta.pathname;
             currentItem.settings = file.data.settings;
@@ -2738,7 +2753,7 @@ export const collectionsSlice = createSlice({
             currentItem.error = file.error;
             currentItem.isTransient = isTransientFile;
           } else {
-            currentSubItems.push({
+            const newItem = {
               uid: file.data.uid,
               name: file.data.name,
               type: file.data.type,
@@ -2755,7 +2770,9 @@ export const collectionsSlice = createSlice({
               size: file.size,
               error: file.error,
               isTransient: isTransientFile
-            });
+            };
+            currentSubItems.push(newItem);
+            applyQueryParamsToUrl(newItem.request);
           }
         }
         addDepth(collection.items);
@@ -2846,6 +2863,7 @@ export const collectionsSlice = createSlice({
             item.seq = file.data.seq;
             item.tags = file.data.tags;
             item.request = mergeRequestWithPreservedUids(item.request, file.data.request);
+            applyQueryParamsToUrl(item.request);
             item.settings = file.data.settings;
             item.examples = file.data.examples;
             item.filename = file.meta.name;

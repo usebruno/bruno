@@ -717,4 +717,122 @@ describe('prepare-request: prepareRequest', () => {
       expect(result.data.variables).toBe('{}');
     });
   });
+
+  describe('Query param URL sync', () => {
+    const makeItem = (params, url) => ({
+      request: { method: 'GET', headers: [], params, url }
+    });
+
+    it('should append enabled query params to a URL with no query string', async () => {
+      const result = await prepareRequest(
+        makeItem(
+          [
+            { name: 'partial', value: 'true', type: 'query', enabled: true },
+            { name: 'limit', value: '10', type: 'query', enabled: true }
+          ],
+          'https://api.example.com/items'
+        )
+      );
+      expect(result.url).toBe('https://api.example.com/items?partial=true&limit=10');
+    });
+
+    it('should replace an existing query string with the params array', async () => {
+      const result = await prepareRequest(
+        makeItem(
+          [{ name: 'partial', value: 'true', type: 'query', enabled: true }],
+          'https://api.example.com/items?stale=yes&dropped=1'
+        )
+      );
+      expect(result.url).toBe('https://api.example.com/items?partial=true');
+    });
+
+    it('should exclude disabled query params from the URL', async () => {
+      const result = await prepareRequest(
+        makeItem(
+          [
+            { name: 'active', value: 'true', type: 'query', enabled: true },
+            { name: 'disabled_param', value: 'some_value', type: 'query', enabled: false }
+          ],
+          'https://api.example.com/items'
+        )
+      );
+      expect(result.url).toBe('https://api.example.com/items?active=true');
+    });
+
+    it('should strip an existing query string when all query params are disabled', async () => {
+      const result = await prepareRequest(
+        makeItem(
+          [
+            { name: 'param1', value: 'value1', type: 'query', enabled: false },
+            { name: 'param2', value: 'value2', type: 'query', enabled: false }
+          ],
+          'https://api.example.com/items?stale=yes'
+        )
+      );
+      expect(result.url).toBe('https://api.example.com/items');
+    });
+
+    it('should leave the URL unchanged when there are no query params and no query string', async () => {
+      const result = await prepareRequest(makeItem([], 'https://api.example.com/items'));
+      expect(result.url).toBe('https://api.example.com/items');
+    });
+
+    it('should preserve an inline URL query when the .bru has no params:query block', async () => {
+      const result = await prepareRequest(makeItem([], 'https://api.example.com/items?inline=1'));
+      expect(result.url).toBe('https://api.example.com/items?inline=1');
+    });
+
+    it('should preserve an inline URL query when the .bru only has path params', async () => {
+      const result = await prepareRequest(
+        makeItem(
+          [{ name: 'id', value: '123', type: 'path', enabled: true }],
+          'https://api.example.com/:id?inline=1'
+        )
+      );
+      expect(result.url).toBe('https://api.example.com/:id?inline=1');
+    });
+
+    it('should not affect path params while syncing query params', async () => {
+      const result = await prepareRequest(
+        makeItem(
+          [
+            { name: 'partial', value: 'true', type: 'query', enabled: true },
+            { name: 'id', value: '123', type: 'path', enabled: true }
+          ],
+          'https://api.example.com/:id/items'
+        )
+      );
+      expect(result.url).toBe('https://api.example.com/:id/items?partial=true');
+    });
+
+    it('should preserve a hash fragment when appending a query string', async () => {
+      const result = await prepareRequest(
+        makeItem(
+          [{ name: 'partial', value: 'true', type: 'query', enabled: true }],
+          'https://api.example.com/items#section'
+        )
+      );
+      expect(result.url).toBe('https://api.example.com/items?partial=true#section');
+    });
+
+    it('should preserve a hash fragment when replacing an existing query string', async () => {
+      const result = await prepareRequest(
+        makeItem(
+          [{ name: 'partial', value: 'true', type: 'query', enabled: true }],
+          'https://api.example.com/items?stale=yes#section'
+        )
+      );
+      expect(result.url).toBe('https://api.example.com/items?partial=true#section');
+    });
+
+    it('should pass param values through without encoding (encoding happens later in the pipeline)', async () => {
+      const result = await prepareRequest(
+        makeItem(
+          [{ name: 'q', value: 'hello world', type: 'query', enabled: true }],
+          'https://api.example.com/items'
+        )
+      );
+      expect(result.url).toBe('https://api.example.com/items?q=hello world');
+    });
+  });
 });
