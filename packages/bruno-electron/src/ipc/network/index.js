@@ -436,6 +436,20 @@ const fetchGqlSchemaHandler = async (event, endpoint, environment, _request, col
       };
     }
 
+    if (error.code === 'ENOTFOUND') {
+      const hostname = error.cause?.hostname || error.hostname || endpoint;
+      return Promise.reject(new Error(`Unable to reach the server at '${hostname}'. Please check the URL and your network connection.`));
+    }
+    if (error.code === 'ECONNREFUSED') {
+      return Promise.reject(new Error(`Connection refused by the server. The server may be down or not accepting connections.`));
+    }
+    if (error.code === 'ETIMEDOUT' || error.code === 'ECONNABORTED') {
+      return Promise.reject(new Error(`Request timed out. The server may be slow or unreachable.`));
+    }
+    if (error.code === 'CERT_HAS_EXPIRED' || error.code === 'UNABLE_TO_VERIFY_LEAF_SIGNATURE') {
+      return Promise.reject(new Error(`SSL certificate error. You can disable SSL verification in Preferences if needed.`));
+    }
+
     return Promise.reject(error);
   }
 };

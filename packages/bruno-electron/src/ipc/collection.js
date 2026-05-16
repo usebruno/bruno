@@ -75,6 +75,7 @@ const { transformBrunoConfigBeforeSave } = require('../utils/transformBrunoConfi
 const { REQUEST_TYPES } = require('../utils/constants');
 const { cancelOAuth2AuthorizationRequest, isOauth2AuthorizationRequestInProgress } = require('../utils/oauth2-protocol-handler');
 const { findUniqueFolderName } = require('../utils/collection-import');
+const { loadGqlSchemaFile } = require('../utils/graphql');
 const { saveSpecAndUpdateMetadata, cleanupSpecFilesForCollection } = require('./openapi-sync');
 
 const environmentSecretsStore = new EnvironmentSecretsStore();
@@ -1540,19 +1541,17 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
   });
 
   ipcMain.handle('renderer:load-gql-schema-file', async () => {
-    try {
-      const { filePaths } = await dialog.showOpenDialog(mainWindow, {
-        properties: ['openFile']
-      });
-      if (filePaths.length === 0) {
-        return;
-      }
-
-      const jsonData = fs.readFileSync(filePaths[0], 'utf8');
-      return safeParseJSON(jsonData);
-    } catch (err) {
-      return Promise.reject(new Error('Failed to load GraphQL schema file'));
+    const { filePaths } = await dialog.showOpenDialog(mainWindow, {
+      properties: ['openFile'],
+      filters: [
+        { name: 'GraphQL Schema Files', extensions: ['json', 'graphql', 'gql', 'sdl'] },
+        { name: 'All Files', extensions: ['*'] }
+      ]
+    });
+    if (filePaths.length === 0) {
+      return;
     }
+    return loadGqlSchemaFile(filePaths[0]);
   });
 
   const updateCookiesAndNotify = async () => {
