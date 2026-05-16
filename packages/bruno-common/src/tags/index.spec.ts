@@ -40,4 +40,44 @@ describe('isRequestTagsIncluded', () => {
     const result = isRequestTagsIncluded(requestTags, includeTags, excludeTags);
     expect(result).toBe(false);
   });
+
+  it('should handle requestTags as a single string when excluding', () => {
+    const result = isRequestTagsIncluded('ignore', [], ['ignore']);
+    expect(result).toBe(false);
+  });
+
+  it('should handle requestTags as a single string when including', () => {
+    const result = isRequestTagsIncluded('smoke', ['smoke'], []);
+    expect(result).toBe(true);
+  });
+
+  it('should handle requestTags as a single string that does not match exclude', () => {
+    const result = isRequestTagsIncluded('smoke', [], ['ignore']);
+    expect(result).toBe(true);
+  });
+
+  it('should handle requestTags as undefined without crashing', () => {
+    const result = isRequestTagsIncluded(undefined, [], ['ignore']);
+    expect(result).toBe(true);
+  });
+
+  it('should not include request when requestTags is undefined and includeTags is non-empty', () => {
+    const result = isRequestTagsIncluded(undefined, ['smoke'], []);
+    expect(result).toBe(false);
+  });
+
+  it('should handle requestTags as null without crashing', () => {
+    const result = isRequestTagsIncluded(null, [], ['ignore']);
+    expect(result).toBe(true);
+  });
+
+  it('should handle requestTags as a comma-separated string', () => {
+    const result = isRequestTagsIncluded('smoke, api', ['smoke'], []);
+    expect(result).toBe(true);
+  });
+
+  it('should handle comma-separated string with exclusion', () => {
+    const result = isRequestTagsIncluded('smoke, ignore', [], ['ignore']);
+    expect(result).toBe(false);
+  });
 });
