@@ -28,6 +28,10 @@ const { createFormData } = require('../../utils/form-data');
 const { findItemInCollectionByPathname, sortFolder, getAllRequestsInFolderRecursively, getEnvVars, getTreePathFromCollectionToItem, mergeVars, sortByNameThenSequence } = require('../../utils/collection');
 const { getOAuth2TokenUsingAuthorizationCode, getOAuth2TokenUsingClientCredentials, getOAuth2TokenUsingPasswordCredentials, getOAuth2TokenUsingImplicitGrant, updateCollectionOauth2Credentials, clearOauth2CredentialsByCredentialsId } = require('../../utils/oauth2');
 const { preferencesUtil } = require('../../store/preferences');
+const CollectionSecurityStore = require('../../store/collection-security');
+const { isScriptPathSafe, parseEnvVarsFromOutput, runShellScript } = require('../../utils/collection-scripts');
+
+const collectionSecurityStore = new CollectionSecurityStore();
 const { getProcessEnvVars } = require('../../store/process-env');
 const { getBrunoConfig } = require('../../store/bruno-config');
 const Oauth2Store = require('../../store/oauth2');
@@ -1320,6 +1324,52 @@ const registerNetworkIpc = (mainWindow) => {
         folderUid,
         cancelTokenUid
       });
+
+      // Run beforeCollectionRun scripts before the request loop begins.
+      // Results are merged into envVars so the runner picks them up immediately.
+      const securityConfig = collectionSecurityStore.getSecurityConfigForCollection(collectionPath);
+      if (securityConfig?.jsSandboxMode === 'developer') {
+        const beforeRunScripts = get(brunoConfig, 'collectionScripts', []).filter(
+          (s) => s.runOn?.includes('beforeCollectionRun')
+        );
+        for (const script of beforeRunScripts) {
+          if (!isScriptPathSafe(collectionPath, script.file)) continue;
+          try {
+            const { exitCode, stdout, stderr } = await runShellScript(collectionPath, script.file);
+            if (exitCode !== 0) {
+              const stderrTail = (stderr || '').slice(-500);
+              console.error(
+                `Collection script '${script.name}' exited with code ${exitCode}.${stderrTail ? ` stderr: ${stderrTail}` : ''}`
+              );
+              mainWindow.webContents.send('main:collection-script-output', {
+                collectionUid,
+                scriptUid: script.uid,
+                stream: 'stderr',
+                data: `Script '${script.name}' exited with code ${exitCode}.\n${stderrTail}`
+              });
+              continue;
+            }
+            if (script.outputMode === 'envVars') {
+              const parsed = parseEnvVarsFromOutput(stdout);
+              Object.assign(envVars, parsed);
+              mainWindow.webContents.send('main:script-environment-update', {
+                envVariables: parsed, runtimeVariables: {}, persistentEnvVariables: parsed, collectionUid
+              });
+              mainWindow.webContents.send('main:persistent-env-variables-update', {
+                persistentEnvVariables: parsed, collectionUid
+              });
+            }
+          } catch (err) {
+            console.error(`Collection script '${script.name}' failed:`, err.message);
+            mainWindow.webContents.send('main:collection-script-output', {
+              collectionUid,
+              scriptUid: script.uid,
+              stream: 'stderr',
+              data: `Script '${script.name}' failed: ${err.message}`
+            });
+          }
+        }
+      }
 
       try {
         let folderRequests = [];
