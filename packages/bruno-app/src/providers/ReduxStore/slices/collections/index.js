@@ -2695,6 +2695,10 @@ export const collectionsSlice = createSlice({
         const subDirectories = getSubdirectoriesFromRoot(collection.pathname, dirname);
         let currentPath = collection.pathname;
         let currentSubItems = collection.items;
+        // Track depth as we walk the tree: top-level items are depth 1,
+        // each subfolder level adds 1. After the loop, itemDepth is the
+        // depth for items inserted into currentSubItems.
+        let itemDepth = 1;
         for (const directoryName of subDirectories) {
           let childItem = currentSubItems.find((f) => f.type === 'folder' && f.filename === directoryName);
           currentPath = path.join(currentPath, directoryName);
@@ -2703,6 +2707,7 @@ export const collectionsSlice = createSlice({
               uid: uuid(),
               pathname: currentPath,
               name: directoryName,
+              depth: itemDepth,
               collapsed: true,
               type: 'folder',
               isTransient: isTransientFile,
@@ -2714,6 +2719,7 @@ export const collectionsSlice = createSlice({
             childItem.isTransient = true;
           }
           currentSubItems = childItem.items;
+          itemDepth++;
         }
 
         if (file.meta.name != 'folder.bru' && !currentSubItems.find((f) => f.name === file.meta.name)) {
@@ -2737,6 +2743,7 @@ export const collectionsSlice = createSlice({
             currentItem.size = file.size;
             currentItem.error = file.error;
             currentItem.isTransient = isTransientFile;
+            currentItem.depth = itemDepth;
           } else {
             currentSubItems.push({
               uid: file.data.uid,
@@ -2754,11 +2761,11 @@ export const collectionsSlice = createSlice({
               loading: file.loading,
               size: file.size,
               error: file.error,
-              isTransient: isTransientFile
+              isTransient: isTransientFile,
+              depth: itemDepth
             });
           }
         }
-        addDepth(collection.items);
       }
     },
     collectionAddDirectoryEvent: (state, action) => {
@@ -2773,6 +2780,7 @@ export const collectionsSlice = createSlice({
         const subDirectories = getSubdirectoriesFromRoot(collection.pathname, dir.meta.pathname);
         let currentPath = collection.pathname;
         let currentSubItems = collection.items;
+        let itemDepth = 1;
         for (const directoryName of subDirectories) {
           let childItem = currentSubItems.find((f) => f.type === 'folder' && f.filename === directoryName);
           currentPath = path.join(currentPath, directoryName);
@@ -2783,6 +2791,7 @@ export const collectionsSlice = createSlice({
               name: dir?.meta?.name || directoryName,
               seq: dir?.meta?.seq,
               filename: directoryName,
+              depth: itemDepth,
               collapsed: true,
               type: 'folder',
               isTransient: isTransientDir,
@@ -2794,9 +2803,163 @@ export const collectionsSlice = createSlice({
             childItem.isTransient = true;
           }
           currentSubItems = childItem.items;
+          itemDepth++;
         }
-        addDepth(collection.items);
       }
+    },
+    // Batched version: processes multiple addFile/addDir events in a single Redux update.
+    // This avoids 3000 separate dispatches (and 3000 React re-renders) during collection mount.
+    collectionBatchAddEvents: (state, action) => {
+      const { events } = action.payload;
+      const _t0 = performance.now();
+      let _addFileCount = 0, _addDirCount = 0, _collectionRootCount = 0, _folderRootCount = 0;
+
+      for (const event of events) {
+        if (event.type === 'addFile') {
+          _addFileCount++;
+          const file = event.val;
+          const isCollectionRoot = file.meta.collectionRoot ? true : false;
+          const isFolderRoot = file.meta.folderRoot ? true : false;
+          const collection = findCollectionByUid(state.collections, file.meta.collectionUid);
+
+          if (isCollectionRoot) {
+            _collectionRootCount++;
+            if (collection) {
+              collection.root = mergeRootWithPreservedUids(collection.root, file.data);
+            }
+            continue;
+          }
+
+          if (isFolderRoot) {
+            _folderRootCount++;
+            const folderPath = path.dirname(file.meta.pathname);
+            const folderItem = findItemInCollectionByPathname(collection, folderPath);
+            if (folderItem) {
+              if (file?.data?.meta?.name) {
+                folderItem.name = file?.data?.meta?.name;
+              }
+              folderItem.root = mergeRootWithPreservedUids(folderItem.root, file.data);
+              if (file?.data?.meta?.seq) {
+                folderItem.seq = file.data?.meta?.seq;
+              }
+            }
+            continue;
+          }
+
+          if (collection) {
+            const dirname = path.dirname(file.meta.pathname);
+            const tempDirectory = state.tempDirectories?.[file.meta.collectionUid];
+            const isTransientFile = tempDirectory && file.meta.pathname.startsWith(tempDirectory);
+
+            const subDirectories = getSubdirectoriesFromRoot(collection.pathname, dirname);
+            let currentPath = collection.pathname;
+            let currentSubItems = collection.items;
+            let itemDepth = 1;
+            for (const directoryName of subDirectories) {
+              let childItem = currentSubItems.find((f) => f.type === 'folder' && f.filename === directoryName);
+              currentPath = path.join(currentPath, directoryName);
+              if (!childItem) {
+                childItem = {
+                  uid: uuid(),
+                  pathname: currentPath,
+                  name: directoryName,
+                  depth: itemDepth,
+                  collapsed: true,
+                  type: 'folder',
+                  isTransient: isTransientFile,
+                  items: []
+                };
+                currentSubItems.push(childItem);
+              } else if (isTransientFile && !childItem.isTransient) {
+                childItem.isTransient = true;
+              }
+              currentSubItems = childItem.items;
+              itemDepth++;
+            }
+
+            if (file.meta.name != 'folder.bru' && !currentSubItems.find((f) => f.name === file.meta.name)) {
+              const currentItem = find(currentSubItems, (i) => i.uid === file.data.uid);
+              if (currentItem) {
+                currentItem.name = file.data.name;
+                currentItem.type = file.data.type;
+                currentItem.seq = file.data.seq;
+                currentItem.tags = file.data.tags;
+                currentItem.request = mergeRequestWithPreservedUids(currentItem.request, file.data.request);
+                currentItem.filename = file.meta.name;
+                currentItem.pathname = file.meta.pathname;
+                currentItem.settings = file.data.settings;
+                currentItem.examples = file.data.examples;
+                currentItem.draft = null;
+                currentItem.partial = file.partial;
+                currentItem.loading = file.loading;
+                currentItem.size = file.size;
+                currentItem.error = file.error;
+                currentItem.isTransient = isTransientFile;
+                currentItem.depth = itemDepth;
+              } else {
+                currentSubItems.push({
+                  uid: file.data.uid,
+                  name: file.data.name,
+                  type: file.data.type,
+                  seq: file.data.seq,
+                  tags: file.data.tags,
+                  request: file.data.request,
+                  settings: file.data.settings,
+                  examples: file.data.examples,
+                  filename: file.meta.name,
+                  pathname: file.meta.pathname,
+                  draft: null,
+                  partial: file.partial,
+                  loading: file.loading,
+                  size: file.size,
+                  error: file.error,
+                  isTransient: isTransientFile,
+                  depth: itemDepth
+                });
+              }
+            }
+          }
+        } else if (event.type === 'addDir') {
+          _addDirCount++;
+          const dir = event.val;
+          const collection = findCollectionByUid(state.collections, dir.meta.collectionUid);
+
+          if (collection) {
+            const tempDirectory = state.tempDirectories?.[dir.meta.collectionUid];
+            const isTransientDir = tempDirectory && dir.meta.pathname.startsWith(tempDirectory);
+
+            const subDirectories = getSubdirectoriesFromRoot(collection.pathname, dir.meta.pathname);
+            let currentPath = collection.pathname;
+            let currentSubItems = collection.items;
+            let itemDepth = 1;
+            for (const directoryName of subDirectories) {
+              let childItem = currentSubItems.find((f) => f.type === 'folder' && f.filename === directoryName);
+              currentPath = path.join(currentPath, directoryName);
+              if (!childItem) {
+                childItem = {
+                  uid: dir?.meta?.uid || uuid(),
+                  pathname: currentPath,
+                  name: dir?.meta?.name || directoryName,
+                  seq: dir?.meta?.seq,
+                  filename: directoryName,
+                  depth: itemDepth,
+                  collapsed: true,
+                  type: 'folder',
+                  isTransient: isTransientDir,
+                  items: []
+                };
+                currentSubItems.push(childItem);
+              } else if (isTransientDir && !childItem.isTransient) {
+                childItem.isTransient = true;
+              }
+              currentSubItems = childItem.items;
+              itemDepth++;
+            }
+          }
+        }
+      }
+      const _reducerMs = performance.now() - _t0;
+      console.log(`[REDUX-BATCH] events=${events.length}  reducerMs=${_reducerMs.toFixed(1)}  addFile=${_addFileCount}  addDir=${_addDirCount}  collectionRoot=${_collectionRootCount}  folderRoot=${_folderRootCount}`);
     },
     collectionChangeFileEvent: (state, action) => {
       const { file } = action.payload;
@@ -3730,6 +3893,7 @@ export const {
   updateCollectionProtobuf,
   collectionAddFileEvent,
   collectionAddDirectoryEvent,
+  collectionBatchAddEvents,
   collectionChangeFileEvent,
   collectionUnlinkFileEvent,
   collectionUnlinkDirectoryEvent,

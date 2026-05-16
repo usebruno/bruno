@@ -197,6 +197,7 @@ export default function RunnerResults({ collection }) {
     const savedConfiguration = get(collection, 'runnerConfiguration', null);
     const savedSelectedItems = savedConfiguration?.selectedRequestItems || [];
     const savedDelay = savedConfiguration?.delay !== undefined ? savedConfiguration.delay : delay;
+
     dispatch(
       runCollectionFolder(
         collection.uid,

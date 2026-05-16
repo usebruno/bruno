@@ -47,7 +47,10 @@ const defaultPreferences = {
     responsePaneOrientation: 'horizontal'
   },
   beta: {
-    'openapi-sync': false
+    'openapi-sync': false,
+    'sidebar-optimizations': true,
+    'skip-loading-badge-event': true,
+    'parallel-workers': true
   },
   onboarding: {
     hasLaunchedBefore: false,
@@ -114,7 +117,10 @@ const preferencesSchema = Yup.object().shape({
     responsePaneOrientation: Yup.string().oneOf(['horizontal', 'vertical'])
   }),
   beta: Yup.object({
-    'openapi-sync': Yup.boolean()
+    'openapi-sync': Yup.boolean(),
+    'sidebar-optimizations': Yup.boolean(),
+    'skip-loading-badge-event': Yup.boolean(),
+    'parallel-workers': Yup.boolean()
   }),
   onboarding: Yup.object({
     hasLaunchedBefore: Yup.boolean(),

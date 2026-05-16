@@ -19,6 +19,21 @@ const BETA_FEATURES = [
     id: BETA_FEATURE_IDS.OPENAPI_SYNC,
     label: 'OpenAPI Sync',
     description: 'Synchronize your Bruno collection with an OpenAPI specification. Detect drift, review changes, and sync with a single click.'
+  },
+  {
+    id: BETA_FEATURE_IDS.SIDEBAR_OPTIMIZATIONS,
+    label: 'Sidebar Optimizations',
+    description: 'Batches sidebar rendering updates for large collections. Reduces Redux dispatches from thousands to ~30, significantly improving load times for collections with 1000+ items.'
+  },
+  {
+    id: BETA_FEATURE_IDS.SKIP_LOADING_BADGE_EVENT,
+    label: 'Skip Loading Badge Event',
+    description: 'Eliminates the redundant per-file loading indicator IPC event during BRU collection loading. Reduces IPC events from 3 to 2 per file in the worker thread path.'
+  },
+  {
+    id: BETA_FEATURE_IDS.PARALLEL_WORKERS,
+    label: 'Parallel Workers',
+    description: 'Uses 4 parallel worker threads per lane instead of 1 for BRU file parsing. Distributes parsing work across multiple CPU cores for faster collection loading.'
   }
 ];
 

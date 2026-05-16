@@ -1,13 +1,17 @@
 import React from 'react';
 import { getTotalRequestCountInCollection } from 'utils/collections/';
-import { IconFolder, IconWorld, IconApi, IconShare, IconBook } from '@tabler/icons';
+import { IconFolder, IconWorld, IconApi, IconShare, IconBook, IconClock } from '@tabler/icons';
 import { areItemsLoading, getItemsLoadStats } from 'utils/collections/index';
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import ShareCollection from 'components/ShareCollection/index';
 import GenerateDocumentation from 'components/Sidebar/Collections/Collection/GenerateDocumentation';
 import { addTab } from 'providers/ReduxStore/slices/tabs';
 import StyledWrapper from './StyledWrapper';
+
+// Persists load times across collection switches and re-renders.
+// Key = collectionUid, Value = { startTime, finalTime }
+const _loadTimeCache = new Map();
 
 const Info = ({ collection }) => {
   const dispatch = useDispatch();
@@ -17,6 +21,38 @@ const Info = ({ collection }) => {
   const { loading: itemsLoadingCount, total: totalItems } = getItemsLoadStats(collection);
   const [showShareCollectionModal, toggleShowShareCollectionModal] = useState(false);
   const [showGenerateDocumentationModal, setShowGenerateDocumentationModal] = useState(false);
+
+  // --- Performance Benchmark Stopwatch (persisted per collection) ---
+  const collectionUid = collection?.uid;
+  const [elapsedMs, setElapsedMs] = useState(0);
+  const [finalTime, setFinalTime] = useState(() => _loadTimeCache.get(collectionUid)?.finalTime ?? null);
+  const intervalRef = useRef(null);
+
+  useEffect(() => {
+    const cached = _loadTimeCache.get(collectionUid);
+
+    if (isCollectionLoading) {
+      // Loading started — reset and start stopwatch
+      const startTime = performance.now();
+      _loadTimeCache.set(collectionUid, { startTime, finalTime: null });
+      setFinalTime(null);
+      setElapsedMs(0);
+      intervalRef.current = setInterval(() => {
+        setElapsedMs(performance.now() - startTime);
+      }, 10);
+    } else if (cached?.startTime && !cached?.finalTime) {
+      // Loading just finished — record final time
+      clearInterval(intervalRef.current);
+      const final = performance.now() - cached.startTime;
+      _loadTimeCache.set(collectionUid, { startTime: null, finalTime: final });
+      setFinalTime(final);
+    } else if (cached?.finalTime) {
+      // Switched back to a collection that already finished loading — restore
+      setFinalTime(cached.finalTime);
+    }
+
+    return () => clearInterval(intervalRef.current);
+  }, [isCollectionLoading, collectionUid]);
 
   const globalEnvironments = useSelector((state) => state.globalEnvironments.globalEnvironments);
 
@@ -97,6 +133,29 @@ const Info = ({ collection }) => {
                 {
                   isCollectionLoading ? `${totalItems - itemsLoadingCount} out of ${totalItems} requests in the collection loaded` : `${totalRequestsInCollection} request${totalRequestsInCollection !== 1 ? 's' : ''} in collection`
                 }
+              </div>
+            </div>
+          </div>
+
+          {/* Performance Benchmark Stopwatch */}
+          <div className="flex items-start">
+            <div className="icon-box requests flex-shrink-0 p-3 rounded-lg">
+              <IconClock className="w-5 h-5" stroke={1.5} />
+            </div>
+            <div className="ml-4">
+              <div className="font-medium">Load Time (Benchmark)</div>
+              <div className="mt-1 text-muted font-mono">
+                {isCollectionLoading ? (
+                  <span style={{ color: '#f59e0b' }}>
+                    {(elapsedMs / 1000).toFixed(2)}s
+                  </span>
+                ) : finalTime ? (
+                  <span style={{ color: '#10b981' }}>
+                    {(finalTime / 1000).toFixed(3)}s
+                  </span>
+                ) : (
+                  <span>Waiting for collection load...</span>
+                )}
               </div>
             </div>
           </div>

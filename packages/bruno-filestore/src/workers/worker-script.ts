@@ -1,4 +1,5 @@
-import { parentPort } from 'node:worker_threads';
+import { parentPort, threadId } from 'node:worker_threads';
+import { performance } from 'node:perf_hooks';
 import { parseBruRequest, stringifyBruRequest } from '../formats/bru';
 import { parseYmlItem, stringifyYmlItem } from '../formats/yml';
 import { CollectionFormat } from '../types';
@@ -18,6 +19,7 @@ parentPort?.on('message', async (message: WorkerMessage) => {
     const { data, format = DEFAULT_COLLECTION_FORMAT } = messageData;
     let result: any;
 
+    const t0 = performance.now();
     if (taskType === 'parse') {
       if (format === 'yml') {
         result = parseYmlItem(data);
@@ -32,6 +34,12 @@ parentPort?.on('message', async (message: WorkerMessage) => {
       }
     } else {
       throw new Error(`Unknown task type: ${taskType}`);
+    }
+    const parseMs = performance.now() - t0;
+
+    // Attach timing metadata to the result
+    if (result && typeof result === 'object') {
+      result.__workerTiming = { parseMs, threadId, dataSize: typeof data === 'string' ? data.length : 0 };
     }
 
     parentPort?.postMessage(result);
