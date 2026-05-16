@@ -1,4 +1,5 @@
-import React, { useState, useRef, useEffect, useCallback, memo } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo, memo } from 'react';
+import { hexy as hexdump } from 'hexy';
 import classnames from 'classnames';
 import StyledWrapper from './StyledWrapper';
 import { IconExclamationCircle, IconChevronRight, IconInfoCircle, IconChevronDown, IconArrowUpRight, IconArrowDownLeft } from '@tabler/icons';
@@ -59,9 +60,10 @@ const TypeIcon = ({ type }) => {
   }[type];
 };
 
-const WSMessageItem = memo(({ message, isOpen, onToggle }) => {
+const WSMessageItem = memo(({ message, onOpenChange }) => {
+  const [isOpen, setIsOpen] = useState(false);
   const [showHex, setShowHex] = useState(false);
-  const preferences = useSelector((state) => state.app.preferences);
+  const codeFont = useSelector((state) => state.app.preferences?.codeFont);
   const { displayedTheme } = useTheme();
   const [isNew, setIsNew] = useState(false);
   const notified = useRef(false);
@@ -70,9 +72,13 @@ const WSMessageItem = memo(({ message, isOpen, onToggle }) => {
   const isInfo = message.type === 'info';
   const isError = message.type === 'error';
   const isOutgoing = message.type === 'outgoing';
-  let contentHexdump = message.messageHexdump;
-  let parsedContent = parseContent(message.message);
+  const canOpenMessage = !isInfo && !isError;
+
+  // Parsed content is memoized — avoids JSON.parse/stringify on every render.
+  const parsedContent = useMemo(() => parseContent(message.message), [message.message]);
   const dataType = getDataTypeText(parsedContent.type);
+  // Hexdump is computed lazily — only when the message is expanded and the hex tab is active.
+  const contentHexdump = useMemo(() => (showHex ? hexdump(message.message) : null), [showHex, message.message]);
 
   useEffect(() => {
     if (notified.current === true) return;
@@ -87,12 +93,14 @@ const WSMessageItem = memo(({ message, isOpen, onToggle }) => {
     }
   }, [message.timestamp]);
 
-  const canOpenMessage = !isInfo && !isError;
-
-  const handleToggle = () => {
+  const handleToggle = useCallback(() => {
     if (!canOpenMessage) return;
-    onToggle?.(message.timestamp);
-  };
+    setIsOpen((prev) => {
+      const next = !prev;
+      onOpenChange?.(next ? 1 : -1);
+      return next;
+    });
+  }, [canOpenMessage, onOpenChange]);
 
   return (
     <div
@@ -164,7 +172,7 @@ const WSMessageItem = memo(({ message, isOpen, onToggle }) => {
               mode={showHex ? 'text/plain' : parsedContent.type}
               theme={displayedTheme}
               enableLineWrapping={showHex ? false : true}
-              font={preferences.codeFont || 'default'}
+              font={codeFont || 'default'}
               value={showHex ? contentHexdump : parsedContent.content}
             />
           </div>
@@ -177,61 +185,45 @@ const WSMessageItem = memo(({ message, isOpen, onToggle }) => {
 const WSMessagesList = ({ messages = [] }) => {
   const virtuosoRef = useRef(null);
   const [scrollerElement, setScrollerElement] = useState(null);
-  const [openMessages, setOpenMessages] = useState(new Set());
   const userScrolledAwayRef = useRef(false);
+  const openCountRef = useRef(0);
 
-  // Toggle message open/closed state by timestamp
-  const handleMessageToggle = useCallback((timestamp) => {
-    setOpenMessages((prev) => {
-      const next = new Set(prev);
-      if (next.has(timestamp)) {
-        next.delete(timestamp);
-      } else {
-        next.add(timestamp);
-      }
-      return next;
-    });
+  const handleOpenChange = useCallback((delta) => {
+    openCountRef.current += delta;
   }, []);
 
   useEffect(() => {
     if (!scrollerElement) return;
 
     const handleWheel = (e) => {
-      // deltaY < 0 means scrolling up
       if (e.deltaY < 0) {
         userScrolledAwayRef.current = true;
       }
     };
 
     scrollerElement.addEventListener('wheel', handleWheel, { passive: true });
-
-    return () => {
-      scrollerElement.removeEventListener('wheel', handleWheel);
-    };
+    return () => scrollerElement.removeEventListener('wheel', handleWheel);
   }, [scrollerElement]);
 
   const handleAtBottomStateChange = useCallback((atBottom) => {
     if (atBottom) {
-      // User scrolled back to bottom, re-enable auto-scroll
       userScrolledAwayRef.current = false;
     }
   }, []);
 
+  // Fully stable — no state dependencies, reads only refs.
   const followOutput = useCallback((isAtBottom) => {
-    // Don't auto-scroll if user has scrolled away or has messages open
-    if (userScrolledAwayRef.current || openMessages.size > 0) {
+    if (userScrolledAwayRef.current || openCountRef.current > 0) {
       return false;
     }
-    if (isAtBottom) {
-      return 'smooth';
-    }
-    return false;
-  }, [openMessages.size]);
+    return isAtBottom ? 'smooth' : false;
+  }, []);
 
+  // Stable renderItem: WSMessageItem manages its own open/closed state,
+  // so toggling one message never re-renders the others.
   const renderItem = useCallback((_, msg) => {
-    const isOpen = openMessages.has(msg.timestamp);
-    return <WSMessageItem message={msg} isOpen={isOpen} onToggle={handleMessageToggle} />;
-  }, [openMessages, handleMessageToggle]);
+    return <WSMessageItem message={msg} onOpenChange={handleOpenChange} />;
+  }, [handleOpenChange]);
 
   const computeItemKey = useCallback((_, msg) => {
     return msg.seq ?? msg.timestamp;
