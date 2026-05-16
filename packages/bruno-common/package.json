@@ -42,21 +42,21 @@
     "@babel/preset-typescript": "^7.27.0",
     "@faker-js/faker": "^9.7.0",
     "@jest/globals": "^29.7.0",
-    "@rollup/plugin-commonjs": "^23.0.2",
-    "@rollup/plugin-node-resolve": "^15.0.1",
+    "@rollup/plugin-commonjs": "^29.0.2",
+    "@rollup/plugin-node-resolve": "^16.0.3",
     "@rollup/plugin-terser": "^1.0.0",
-    "@rollup/plugin-typescript": "^12.1.2",
+    "@rollup/plugin-typescript": "^12.3.0",
     "@types/jest": "^29.5.14",
     "babel-jest": "^29.7.0",
     "form-data": "4.0.4",
     "is-ip": "^5.0.1",
     "moment": "^2.29.4",
-    "rollup": "3.30.0",
-    "rollup-plugin-dts": "^5.0.0",
+    "rollup": "4.60.3",
+    "rollup-plugin-dts": "^6.4.1",
     "rollup-plugin-peer-deps-external": "^2.2.4",
     "typescript": "^5.8.3"
   },
   "overrides": {
-    "rollup": "3.30.0"
+    "rollup": "4.60.3"
   }
 }
