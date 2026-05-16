@@ -3066,7 +3066,7 @@ export const collectionsSlice = createSlice({
       }
     },
     runFolderEvent: (state, action) => {
-      const { collectionUid, folderUid, itemUid, type, isRecursive, error, cancelTokenUid } = action.payload;
+      const { collectionUid, folderUid, itemUid, type, isRecursive, error, cancelTokenUid, iterationIndex } = action.payload;
       const collection = findCollectionByUid(state.collections, collectionUid);
 
       if (collection) {
@@ -3084,6 +3084,13 @@ export const collectionsSlice = createSlice({
           info.isRecursive = isRecursive;
           info.cancelTokenUid = cancelTokenUid;
           info.status = 'started';
+          info.totalIterations = action.payload.totalIterations || 1;
+        }
+
+        if (type === 'iteration-started') {
+          const info = collection.runnerResult.info;
+          info.currentIterationIndex = action.payload.iterationIndex;
+          info.totalIterations = action.payload.totalIterations;
         }
 
         if (type === 'testrun-ended') {
@@ -3100,7 +3107,8 @@ export const collectionsSlice = createSlice({
         if (type === 'request-queued') {
           collection.runnerResult.items.push({
             uid: request.uid,
-            status: 'queued'
+            status: 'queued',
+            iterationIndex: iterationIndex !== undefined ? iterationIndex : 0
           });
         }
 
@@ -3192,14 +3200,21 @@ export const collectionsSlice = createSlice({
       }
     },
     updateRunnerConfiguration: (state, action) => {
-      const { collectionUid, selectedRequestItems, requestItemsOrder, delay } = action.payload;
+      const { collectionUid, selectedRequestItems, requestItemsOrder, delay, advancedSettings, iterationDataFile, iterationCount } = action.payload;
       const collection = findCollectionByUid(state.collections, collectionUid);
       if (collection) {
         collection.runnerConfiguration = {
           ...collection.runnerConfiguration,
-          selectedRequestItems: selectedRequestItems || [],
-          requestItemsOrder: requestItemsOrder || [],
-          ...(delay !== undefined && { delay })
+          ...(selectedRequestItems !== undefined && { selectedRequestItems }),
+          ...(requestItemsOrder !== undefined && { requestItemsOrder }),
+          ...(delay !== undefined && { delay }),
+          ...(advancedSettings !== undefined && { advancedSettings }),
+          ...(iterationDataFile !== undefined && {
+            iterationDataFile: iterationDataFile
+              ? { filePath: iterationDataFile.filePath, rowCount: iterationDataFile.rowCount ?? iterationDataFile.rows?.length ?? 0 }
+              : null
+          }),
+          ...(iterationCount !== undefined && { iterationCount })
         };
       }
     },
