@@ -8,7 +8,7 @@ const { exists, isFile, isDirectory } = require('../utils/filesystem');
 const { runSingleRequest } = require('../runner/run-single-request');
 const { getEnvVars } = require('../utils/bru');
 const { parseEnvironmentJson } = require('../utils/environment');
-const { isRequestTagsIncluded } = require('@usebruno/common');
+const { isRequestTagsIncluded, normalizeTags } = require('@usebruno/common');
 const makeJUnitOutput = require('../reporters/junit');
 const makeHtmlOutput = require('../reporters/html');
 const { rpad } = require('../utils/common');
@@ -635,7 +635,7 @@ const handler = async function (argv) {
     }
 
     requestItems = requestItems.filter((item) => {
-      return isRequestTagsIncluded(item.tags, includeTags, excludeTags);
+      return isRequestTagsIncluded(normalizeTags(item.tags), includeTags, excludeTags);
     });
 
     const runtime = getJsSandboxRuntime(sandbox);

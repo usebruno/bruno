@@ -3,7 +3,7 @@ import { uuid } from 'utils/common';
 import { buildPersistedEnvVariables } from 'utils/environments';
 import { sortByNameThenSequence } from 'utils/common/index';
 import path from 'utils/common/path';
-import { isRequestTagsIncluded } from '@usebruno/common';
+import { isRequestTagsIncluded, normalizeTags } from '@usebruno/common';
 
 const replaceTabsWithSpaces = (str, numSpaces = 2) => {
   if (!str || !str.length || !isString(str)) {
@@ -1505,7 +1505,7 @@ export const getUniqueTagsFromItems = (items = []) => {
     items.forEach((item) => {
       if (isItemARequest(item)) {
         const tags = item.draft ? get(item, 'draft.tags', []) : get(item, 'tags', []);
-        tags.forEach((tag) => allTags.add(tag));
+        normalizeTags(tags).forEach((tag) => allTags.add(tag));
       }
       if (item.items) {
         getTags(item.items);
@@ -1536,7 +1536,7 @@ export const getRequestItemsForCollectionRun = ({ recursive, items = [], tags })
     const includeTags = tags.include ? tags.include : [];
     const excludeTags = tags.exclude ? tags.exclude : [];
     requestItems = requestItems.filter(({ tags: requestTags = [], draft }) => {
-      requestTags = draft?.tags || requestTags || [];
+      requestTags = normalizeTags(draft?.tags || requestTags || []);
       return isRequestTagsIncluded(requestTags, includeTags, excludeTags);
     });
   }

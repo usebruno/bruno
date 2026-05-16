@@ -31,7 +31,7 @@ const { preferencesUtil } = require('../../store/preferences');
 const { getProcessEnvVars } = require('../../store/process-env');
 const { getBrunoConfig } = require('../../store/bruno-config');
 const Oauth2Store = require('../../store/oauth2');
-const { isRequestTagsIncluded } = require('@usebruno/common');
+const { isRequestTagsIncluded, normalizeTags } = require('@usebruno/common');
 const { cookiesStore } = require('../../store/cookies');
 const registerGrpcEventHandlers = require('./grpc-event-handlers');
 const { registerWsEventHandlers } = require('./ws-event-handlers');
@@ -1344,7 +1344,7 @@ const registerNetworkIpc = (mainWindow) => {
           const includeTags = tags.include ? tags.include : [];
           const excludeTags = tags.exclude ? tags.exclude : [];
           folderRequests = folderRequests.filter(({ tags: requestTags = [], draft }) => {
-            requestTags = draft?.tags || requestTags || [];
+            requestTags = normalizeTags(draft?.tags || requestTags);
             return isRequestTagsIncluded(requestTags, includeTags, excludeTags);
           });
         }
