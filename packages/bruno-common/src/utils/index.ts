@@ -1,4 +1,5 @@
 export {
+  hasExplicitScheme,
   encodeUrl,
   parseQueryParams,
   buildQueryString,
