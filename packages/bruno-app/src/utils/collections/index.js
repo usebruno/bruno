@@ -902,6 +902,10 @@ export const humanizeRequestBodyMode = (mode) => {
       label = 'XML';
       break;
     }
+    case 'protobuf': {
+      label = 'PROTOBUF';
+      break;
+    }
     case 'sparql': {
       label = 'SPARQL';
       break;
