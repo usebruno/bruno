@@ -54,6 +54,7 @@ import { useBetaFeature, BETA_FEATURES } from 'utils/beta-features';
 import { useSidebarAccordion } from 'components/Sidebar/SidebarAccordionContext';
 import { createEmptyStateMenuItems } from 'utils/collections/emptyStateRequest';
 import useKeybinding from 'hooks/useKeybinding';
+import { DROP_PLACEMENTS, resolveCollectionDropPlacement } from './drop-placement';
 
 // Delay before showing empty collection state (ms)
 // This prevents flicker from race condition between loading state and item batch updates
@@ -69,7 +70,7 @@ const Collection = ({ collection, searchText }) => {
   const [showShareCollectionModal, setShowShareCollectionModal] = useState(false);
   const [showGenerateDocumentationModal, setShowGenerateDocumentationModal] = useState(false);
   const [showRemoveCollectionModal, setShowRemoveCollectionModal] = useState(false);
-  const [dropType, setDropType] = useState(null);
+  const [dropPlacement, setDropPlacement] = useState(null);
   const [isKeyboardFocused, setIsKeyboardFocused] = useState(false);
   const [showEmptyState, setShowEmptyState] = useState(false);
   const dispatch = useDispatch();
@@ -82,6 +83,7 @@ const Collection = ({ collection, searchText }) => {
   const isCollectionFocused = useSelector(isTabForItemActive({ itemUid: collection.uid }));
   const { hasCopiedItems } = useSelector((state) => state.app.clipboard);
   const menuDropdownRef = useRef(null);
+  const lastValidPlacementRef = useRef(null);
 
   // Open the OpenAPI Sync tab
   const openOpenAPISyncTab = () => {
@@ -235,6 +237,11 @@ const Collection = ({ collection, searchText }) => {
     return itemType === 'collection-item';
   };
 
+  const clearDropPlacement = () => {
+    lastValidPlacementRef.current = null;
+    setDropPlacement(null);
+  };
+
   const [{ isDragging }, drag, dragPreview] = useDrag({
     type: 'collection',
     item: collection,
@@ -246,34 +253,49 @@ const Collection = ({ collection, searchText }) => {
     }
   });
 
-  const [{ isOver }, drop] = useDrop({
+  const [{ isOver, canDrop }, drop] = useDrop({
     accept: ['collection', 'collection-item'],
-    hover: (_draggedItem, monitor) => {
-      const itemType = monitor.getItemType();
-      if (isCollectionItem(itemType)) {
-        // For collection items, always show full highlight (inside drop)
-        setDropType('inside');
-      } else {
-        // For collections, show line indicator (adjacent drop)
-        setDropType('adjacent');
+    hover: (draggedItem, monitor) => {
+      if (draggedItem.uid === collection.uid) {
+        clearDropPlacement();
+        return;
       }
+
+      const placement = resolveCollectionDropPlacement({
+        dragType: monitor.getItemType(),
+        rect: collectionRef.current?.getBoundingClientRect(),
+        clientOffset: monitor.getClientOffset()
+      });
+
+      lastValidPlacementRef.current = placement;
+      setDropPlacement(placement);
     },
     drop: (draggedItem, monitor) => {
+      const placement = lastValidPlacementRef.current;
+      if (!placement) return;
+
       const itemType = monitor.getItemType();
       if (isCollectionItem(itemType)) {
-        dispatch(handleCollectionItemDrop({ targetItem: collection, draggedItem, dropType: 'inside', collectionUid: collection.uid }));
+        dispatch(handleCollectionItemDrop({ targetItem: collection, draggedItem, placement, collectionUid: collection.uid }));
       } else {
-        dispatch(moveCollectionAndPersist({ draggedItem, targetItem: collection }));
+        dispatch(moveCollectionAndPersist({ draggedItem, targetItem: collection, placement }));
       }
-      setDropType(null);
+      clearDropPlacement();
     },
     canDrop: (draggedItem) => {
       return draggedItem.uid !== collection.uid;
     },
     collect: (monitor) => ({
-      isOver: monitor.isOver()
+      isOver: monitor.isOver(),
+      canDrop: monitor.canDrop()
     })
   });
+
+  useEffect(() => {
+    if (!isOver) {
+      clearDropPlacement();
+    }
+  }, [isOver]);
 
   useEffect(() => {
     dragPreview(getEmptyImage(), { captureDraggingState: true });
@@ -311,8 +333,10 @@ const Collection = ({ collection, searchText }) => {
   }
 
   const collectionRowClassName = classnames('flex py-1 collection-name items-center', {
-    'item-hovered': isOver && dropType === 'adjacent', // For collection-to-collection moves (show line)
-    'drop-target': isOver && dropType === 'inside', // For collection-item drops (highlight full area)
+    'item-hovered': isOver && canDrop,
+    'drop-target': isOver && canDrop && dropPlacement === DROP_PLACEMENTS.INSIDE,
+    'drop-target-above': isOver && canDrop && dropPlacement === DROP_PLACEMENTS.BEFORE,
+    'drop-target-below': isOver && canDrop && dropPlacement === DROP_PLACEMENTS.AFTER,
     'collection-focused-in-tab': isCollectionFocused && !isKeyboardFocused,
     'collection-keyboard-focused': isKeyboardFocused
   });
