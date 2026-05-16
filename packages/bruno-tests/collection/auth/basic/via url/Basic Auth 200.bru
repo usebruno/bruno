@@ -1,0 +1,20 @@
+meta {
+  name: Basic Auth 200
+  type: http
+  seq: 1
+}
+
+get {
+  url: https://user:user@httpbin.org/basic-auth/user/user
+  body: none
+  auth: inherit
+}
+
+assert {
+  res.status: eq 200
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

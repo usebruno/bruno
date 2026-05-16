@@ -528,6 +528,58 @@ describe('prepare-request: prepareRequest', () => {
         expect(result.digestConfig).toEqual(expected);
       });
     });
+
+    describe('Authentication via URL-embedded credentials', () => {
+      it('sets both basicAuth and digestConfig from URL credentials when auth mode is none', async () => {
+        item.request.url = 'https://admin:password@www.httpfaker.org/api/auth/digest/auth/admin/password';
+        item.request.auth = { mode: 'none' };
+
+        const result = await prepareRequest(item);
+        expect(result.basicAuth).toEqual({ username: 'admin', password: 'password' });
+        expect(result.digestConfig).toEqual({ username: 'admin', password: 'password' });
+      });
+
+      it('does not override explicit digestConfig with URL credentials', async () => {
+        item.request.url = 'https://urluser:urlpass@www.example.com/api/resource';
+        item.request.auth = {
+          mode: 'digest',
+          digest: { username: 'configuser', password: 'configpass' }
+        };
+
+        const result = await prepareRequest(item);
+        expect(result.digestConfig).toEqual({ username: 'configuser', password: 'configpass' });
+        expect(result.basicAuth).toBeUndefined();
+      });
+
+      it('does not override explicit basicAuth with URL credentials', async () => {
+        item.request.url = 'https://urluser:urlpass@www.example.com/api/resource';
+        item.request.auth = {
+          mode: 'basic',
+          basic: { username: 'configuser', password: 'configpass' }
+        };
+
+        const result = await prepareRequest(item);
+        expect(result.basicAuth).toEqual({ username: 'configuser', password: 'configpass' });
+      });
+
+      it('decodes percent-encoded credentials from URL', async () => {
+        item.request.url = 'https://user%40domain:p%40ss@www.example.com/api/resource';
+        item.request.auth = { mode: 'none' };
+
+        const result = await prepareRequest(item);
+        expect(result.basicAuth).toEqual({ username: 'user@domain', password: 'p@ss' });
+        expect(result.digestConfig).toEqual({ username: 'user@domain', password: 'p@ss' });
+      });
+
+      it('does not set basicAuth or digestConfig when URL has no credentials', async () => {
+        item.request.url = 'https://www.example.com/api/resource';
+        item.request.auth = { mode: 'none' };
+
+        const result = await prepareRequest(item);
+        expect(result.digestConfig).toBeUndefined();
+        expect(result.basicAuth).toBeUndefined();
+      });
+    });
   });
 
   describe('Request file body mode', () => {
