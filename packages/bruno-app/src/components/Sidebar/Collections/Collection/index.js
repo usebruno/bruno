@@ -24,7 +24,9 @@ import {
 } from '@tabler/icons';
 import OpenAPISyncIcon from 'components/Icons/OpenAPISync';
 import { toggleCollection, collapseFullCollection } from 'providers/ReduxStore/slices/collections';
-import { mountCollection, moveCollectionAndPersist, handleCollectionItemDrop, pasteItem, showInFolder, saveCollectionSecurityConfig } from 'providers/ReduxStore/slices/collections/actions';
+import { mountCollection, moveCollectionAndPersist, handleCollectionItemDrop, pasteItem, showInFolder, saveCollectionSecurityConfig, saveAllCollectionChanges } from 'providers/ReduxStore/slices/collections/actions';
+import { IconDeviceFloppy } from '@tabler/icons';
+import { flattenItems, isItemARequest, hasRequestChanges, findEnvironmentInCollection } from 'utils/collections';
 import { useDispatch, useSelector } from 'react-redux';
 import { addTab, makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
 import { setFocusedSidebarPath } from 'providers/ReduxStore/slices/app';
@@ -34,7 +36,7 @@ import NewFolder from 'components/Sidebar/NewFolder';
 import CollectionItem from './CollectionItem';
 import RemoveCollection from './RemoveCollection';
 import { doesCollectionHaveItemsMatchingSearchText } from 'utils/collections/search';
-import { isItemAFolder, isItemARequest, areItemsLoading } from 'utils/collections';
+import { isItemAFolder, areItemsLoading } from 'utils/collections';
 import { isTabForItemActive } from 'src/selectors/tab';
 
 import RenameCollection from './RenameCollection';
@@ -114,6 +116,16 @@ const Collection = ({ collection, searchText }) => {
       collectionPathname: collection.pathname,
       brunoConfig: collection.brunoConfig
     }));
+  };
+
+  const handleSaveAll = async () => {
+    try {
+      await dispatch(saveAllCollectionChanges(collection));
+      toast.success('All changes saved');
+    } catch (err) {
+      toast.error('Failed to save all changes');
+      console.error(err);
+    }
   };
 
   const hasSearchText = searchText && searchText?.trim()?.length;
@@ -364,6 +376,13 @@ const Collection = ({ collection, searchText }) => {
       onClick: () => {
         setShowCloneCollectionModalOpen(true);
       }
+    },
+    {
+      id: 'save-all',
+      leftSection: IconDeviceFloppy,
+      label: 'Save All',
+      rightSection: <span className="shortcut">{navigator.platform.toUpperCase().indexOf('MAC') >= 0 ? 'Cmd+Shift+S' : 'Ctrl+Shift+S'}</span>,
+      onClick: handleSaveAll
     },
     ...(isOpenAPISyncEnabled ? [{
       id: 'sync-openapi',
