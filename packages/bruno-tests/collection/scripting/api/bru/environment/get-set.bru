@@ -1,0 +1,51 @@
+meta {
+  name: get-set
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{localhost}}/ping
+  body: none
+  auth: inherit
+}
+
+script:pre-request {
+  bru.environment.set("testEnvVar", "env-hello-123");
+  bru.environment.set("testEnvObj", { api: "v2", debug: true });
+}
+
+tests {
+  test("get() should return the value set by set()", function() {
+    expect(bru.environment.get("testEnvVar")).to.equal("env-hello-123");
+  });
+
+  test("get() should return object values", function() {
+    const obj = bru.environment.get("testEnvObj");
+    expect(obj).to.have.property("api", "v2");
+    expect(obj).to.have.property("debug", true);
+  });
+
+  test("get() should return existing env var (host)", function() {
+    const host = bru.environment.get("host");
+    expect(host).to.be.a("string");
+    expect(host).to.contain("http");
+  });
+
+  test("get() should return undefined for nonexistent key", function() {
+    expect(bru.environment.get("nonexistent")).to.be.undefined;
+  });
+
+  test("set() should overwrite existing value", function() {
+    bru.environment.set("testEnvVar", "updated-456");
+    expect(bru.environment.get("testEnvVar")).to.equal("updated-456");
+  });
+
+  test("name should return the active environment name", function() {
+    const name = bru.environment.name;
+    expect(name).to.be.a("string");
+  });
+
+  bru.environment.unset("testEnvVar");
+  bru.environment.unset("testEnvObj");
+}

@@ -1,0 +1,33 @@
+meta {
+  name: has
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{localhost}}/ping
+  body: none
+  auth: inherit
+}
+
+script:pre-request {
+  bru.globals.set("globalAlpha", "1");
+}
+
+tests {
+  test("has() should return true for existing key", function() {
+    expect(bru.globals.has("globalAlpha")).to.be.true;
+  });
+
+  test("has() should return false for nonexistent key", function() {
+    expect(bru.globals.has("nonexistent")).to.be.false;
+  });
+
+  test("unset() should throw not implemented error", function() {
+    expect(function() { bru.globals.unset("globalAlpha"); }).to.throw("not implemented");
+  });
+
+  test("clear() should throw not implemented error", function() {
+    expect(function() { bru.globals.clear(); }).to.throw("not implemented");
+  });
+}

@@ -1,0 +1,37 @@
+meta {
+  name: get-set
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{localhost}}/ping
+  body: none
+  auth: inherit
+}
+
+script:pre-request {
+  bru.variables.set("testVar", "hello-123");
+  bru.variables.set("objVar", { name: "bruno", version: 2 });
+}
+
+tests {
+  test("get() should return the value set by set()", function() {
+    expect(bru.variables.get("testVar")).to.equal("hello-123");
+  });
+
+  test("get() should return object values", function() {
+    const obj = bru.variables.get("objVar");
+    expect(obj).to.have.property("name", "bruno");
+    expect(obj).to.have.property("version", 2);
+  });
+
+  test("get() should return undefined for nonexistent key", function() {
+    expect(bru.variables.get("nonexistent")).to.be.undefined;
+  });
+
+  test("set() should overwrite existing value", function() {
+    bru.variables.set("testVar", "updated-456");
+    expect(bru.variables.get("testVar")).to.equal("updated-456");
+  });
+}

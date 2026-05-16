@@ -1,0 +1,39 @@
+meta {
+  name: has-unset-clear
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{localhost}}/ping
+  body: none
+  auth: inherit
+}
+
+script:pre-request {
+  bru.variables.set("alpha", "1");
+  bru.variables.set("beta", "2");
+  bru.variables.set("gamma", "3");
+}
+
+tests {
+  test("has() should return true for existing key", function() {
+    expect(bru.variables.has("alpha")).to.be.true;
+  });
+
+  test("has() should return false for nonexistent key", function() {
+    expect(bru.variables.has("nonexistent")).to.be.false;
+  });
+
+  test("unset() should remove a variable", function() {
+    bru.variables.unset("alpha");
+    expect(bru.variables.has("alpha")).to.be.false;
+  });
+
+  test("clear() should remove all variables", function() {
+    bru.variables.clear();
+    expect(bru.variables.has("beta")).to.be.false;
+    expect(bru.variables.has("gamma")).to.be.false;
+    expect(Object.keys(bru.variables.toObject()).length).to.equal(0);
+  });
+}

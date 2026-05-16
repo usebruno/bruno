@@ -238,7 +238,7 @@ describe('Response Translation', () => {
 
     expect(translatedCode).not.toContain('const resp = pm.response;');
     expect(translatedCode).toContain('const data = res.getBody();');
-    expect(translatedCode).toContain('bru.setEnvVar("userId", data.user.id);');
+    expect(translatedCode).toContain('bru.environment.set("userId", data.user.id);');
   });
 
   it('should handle all response property methods together', () => {
@@ -338,7 +338,7 @@ describe('Response Translation', () => {
 
     expect(translatedCode).toContain('const { id, name, items } = res.getBody();');
     expect(translatedCode).toContain('const [first, second] = items;');
-    expect(translatedCode).toContain('bru.setEnvVar("userId", id);');
+    expect(translatedCode).toContain('bru.environment.set("userId", id);');
   });
 
   it('should handle response in complex conditionals', () => {
@@ -364,7 +364,7 @@ describe('Response Translation', () => {
     expect(translatedCode).toContain('if (res.getStatus() >= 200 && res.getStatus() < 300) {');
     expect(translatedCode).toContain('if (res.getHeader(\'Content-Type\').includes(\'application/json\')) {');
     expect(translatedCode).toContain('const data = res.getBody();');
-    expect(translatedCode).toContain('bru.setEnvVar("authToken", data.token);');
+    expect(translatedCode).toContain('bru.environment.set("authToken", data.token);');
     expect(translatedCode).toContain('} else if (res.getStatus() === 404) {');
     expect(translatedCode).toContain('console.error("Request failed with status:", res.getStatus());');
   });
@@ -383,9 +383,9 @@ describe('Response Translation', () => {
     const translatedCode = translateCode(code);
 
     expect(translatedCode).toContain('const data = res.getBody();');
-    expect(translatedCode).toContain('bru.setEnvVar("userData", JSON.stringify(data.user));');
+    expect(translatedCode).toContain('bru.environment.set("userData", JSON.stringify(data.user));');
     expect(translatedCode).toContain('const text = JSON.stringify(res.getBody());');
-    expect(translatedCode).toContain('bru.setEnvVar("rawResponse", text);');
+    expect(translatedCode).toContain('bru.environment.set("rawResponse", text);');
   });
 
   it('should handle JSON path style access to response data', () => {
@@ -403,7 +403,7 @@ describe('Response Translation', () => {
     expect(translatedCode).toContain('const userId = data.user.id;');
     expect(translatedCode).toContain('const userEmail = data.user.contact.email;');
     expect(translatedCode).toContain('const firstItem = data.items[0];');
-    expect(translatedCode).toContain('bru.setEnvVar("userId", userId);');
+    expect(translatedCode).toContain('bru.environment.set("userId", userId);');
   });
 
   it('should handle template literals with response data', () => {
@@ -417,7 +417,7 @@ describe('Response Translation', () => {
 
     expect(translatedCode).toContain('const data = res.getBody();');
     expect(translatedCode).toContain('const welcomeMessage = `Hello, ${data.user.name}! Your ID is ${data.user.id}.`;');
-    expect(translatedCode).toContain('bru.setEnvVar("welcomeMessage", welcomeMessage);');
+    expect(translatedCode).toContain('bru.environment.set("welcomeMessage", welcomeMessage);');
   });
 
   it('should handle response processing in arrow functions', () => {
@@ -435,7 +435,7 @@ describe('Response Translation', () => {
     expect(translatedCode).toContain('const items = res.getBody().items;');
     expect(translatedCode).toContain('return items.map(item => item.id);');
     expect(translatedCode).toContain('const itemIds = processItems();');
-    expect(translatedCode).toContain('bru.setEnvVar("itemIds", JSON.stringify(itemIds));');
+    expect(translatedCode).toContain('bru.environment.set("itemIds", JSON.stringify(itemIds));');
   });
 
   it('should handle complex inline operations with response data', () => {
@@ -454,8 +454,8 @@ describe('Response Translation', () => {
     expect(translatedCode).toContain('const totalValue = items.reduce((sum, item) => sum + item.price, 0);');
     expect(translatedCode).toContain('const highValueItems = items.filter(item => item.price > 100);');
     expect(translatedCode).toContain('const itemNames = items.map(item => item.name);');
-    expect(translatedCode).toContain('bru.setEnvVar("totalValue", totalValue);');
-    expect(translatedCode).toContain('bru.setEnvVar("highValueItemCount", highValueItems.length);');
+    expect(translatedCode).toContain('bru.environment.set("totalValue", totalValue);');
+    expect(translatedCode).toContain('bru.environment.set("highValueItemCount", highValueItems.length);');
   });
 
   it('should handle complex test structure with pm.response.to.have.header', () => {
