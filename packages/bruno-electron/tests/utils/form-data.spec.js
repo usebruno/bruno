@@ -17,6 +17,7 @@ describe('utils: formatMultipartData', () => {
     const result = formatMultipartData(data, 'boundary');
 
     expect(result).toContain('name: file');
+    expect(result).toContain('filename: Dumy.xml');
     expect(result).toContain('value: [File: Dumy.xml]');
   });
 
@@ -42,5 +43,46 @@ describe('utils: formatMultipartData', () => {
     const data = [{ name: 'field', type: 'text', value: 'value' }];
     expect(formatMultipartData(data, '--boundary')).toContain('----boundary');
     expect(formatMultipartData(data, 'boundary--')).toContain('----boundary');
+  });
+
+  test('should include per-part Content-Type when contentType is set on text field', () => {
+    const data = [{ name: 'message', type: 'text', value: '{"k":"v"}', contentType: 'application/json; charset=utf-8' }];
+    const result = formatMultipartData(data, 'boundary');
+
+    expect(result).toContain('Content-Type: application/json; charset=utf-8');
+  });
+
+  test('should only include Content-Type for parts that define contentType', () => {
+    const data = [
+      { name: 'json', type: 'text', value: '{"k":"v"}', contentType: 'application/json; charset=utf-8' },
+      { name: 'plain', type: 'text', value: 'hello' }
+    ];
+    const result = formatMultipartData(data, 'boundary');
+
+    expect(result).toContain('name: json');
+    expect(result).toContain('name: plain');
+    expect(result).toContain('Content-Type: application/json; charset=utf-8');
+    const contentTypeMatches = result.match(/Content-Type:/g) || [];
+    expect(contentTypeMatches.length).toBe(1);
+  });
+
+  test('should render array text values as separate parts', () => {
+    const data = [{ name: 'tag', type: 'text', value: ['a', 'b'] }];
+    const result = formatMultipartData(data, 'boundary');
+
+    const matches = result.match(/name: tag/g) || [];
+    expect(matches.length).toBe(2);
+    expect(result).toContain('value: a');
+    expect(result).toContain('value: b');
+  });
+
+  test('should render each file as a separate part with filename in disposition', () => {
+    const data = [{ name: 'attach', type: 'file', value: ['a.jpg', 'b.jpg'] }];
+    const result = formatMultipartData(data, 'boundary');
+
+    expect(result).toContain('filename: a.jpg');
+    expect(result).toContain('filename: b.jpg');
+    const matches = result.match(/name: attach/g) || [];
+    expect(matches.length).toBe(2);
   });
 });
