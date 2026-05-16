@@ -18,6 +18,12 @@ const addBruShimToContext = (vm, bru) => {
   vm.setProp(bruObject, 'getEnvName', getEnvName);
   getEnvName.dispose();
 
+  let getGlobalEnvName = vm.newFunction('getGlobalEnvName', function () {
+    return marshallToVm(bru.getGlobalEnvName(), vm);
+  });
+  vm.setProp(bruObject, 'getGlobalEnvName', getGlobalEnvName);
+  getGlobalEnvName.dispose();
+
   let getCollectionName = vm.newFunction('getCollectionName', function () {
     return marshallToVm(bru.getCollectionName(), vm);
   });
@@ -500,6 +506,42 @@ const addBruShimToContext = (vm, bru) => {
   vm.setProp(bruObject, 'cookies', bruCookiesObject);
   bruCookiesObject.dispose();
 
+  // ── bru.variables (runtime variables) ─────────────────────────────────
+  let bruVariablesObject = vm.newObject();
+  const { evalCode: variablesEvalCode } = createPropertyListBridge(vm, bru.variables, bruVariablesObject, {
+    globalPath: 'globalThis.bru.variables',
+    syncReadMethods: ['has'],
+    syncReadObjectMethods: ['get', 'toObject'],
+    syncWriteMethods: ['set', 'unset', 'clear'],
+    withIterators: false
+  });
+  vm.setProp(bruObject, 'variables', bruVariablesObject);
+  bruVariablesObject.dispose();
+
+  // ── bru.environment (active collection environment) ───────────────────
+  let bruEnvironmentObject = vm.newObject();
+  const { evalCode: environmentEvalCode } = createPropertyListBridge(vm, bru.environment, bruEnvironmentObject, {
+    globalPath: 'globalThis.bru.environment',
+    syncReadMethods: ['has'],
+    syncReadObjectMethods: ['get', 'toObject'],
+    syncWriteMethods: ['set', 'unset', 'clear'],
+    withIterators: false
+  });
+  vm.setProp(bruObject, 'environment', bruEnvironmentObject);
+  bruEnvironmentObject.dispose();
+
+  // ── bru.globals (active global environment) ───────────────────────────
+  let bruGlobalsObject = vm.newObject();
+  const { evalCode: globalsEvalCode } = createPropertyListBridge(vm, bru.globals, bruGlobalsObject, {
+    globalPath: 'globalThis.bru.globals',
+    syncReadMethods: ['has'],
+    syncReadObjectMethods: ['get', 'toObject'],
+    syncWriteMethods: ['set', 'unset', 'clear'],
+    withIterators: false
+  });
+  vm.setProp(bruObject, 'globals', bruGlobalsObject);
+  bruGlobalsObject.dispose();
+
   vm.setProp(bruObject, 'runner', bruRunnerObject);
   vm.setProp(vm.global, 'bru', bruObject);
   bruObject.dispose();
@@ -535,6 +577,26 @@ const addBruShimToContext = (vm, bru) => {
     {
       ${cookiesEvalCode}
     }
+
+    {
+      ${variablesEvalCode}
+    }
+
+    {
+      ${environmentEvalCode}
+    }
+    Object.defineProperty(globalThis.bru.environment, 'name', {
+      get: () => globalThis.bru.getEnvName(),
+      enumerable: true
+    });
+
+    {
+      ${globalsEvalCode}
+    }
+    Object.defineProperty(globalThis.bru.globals, 'name', {
+      get: () => globalThis.bru.getGlobalEnvName(),
+      enumerable: true
+    });
 
     globalThis.bru.cookies.jar = () => {
       const _jar = globalThis.bru.cookies._jar();

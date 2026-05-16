@@ -12,9 +12,9 @@ describe('Multiline Syntax Handling', () => {
     `;
     const translatedCode = translateCode(code);
     expect(translatedCode).toBe(`
-    const userId = bru.getVar("userId");
-    bru.setVar("timestamp", new Date().toISOString());
-    const hasToken = bru.hasVar("token");
+    const userId = bru.variables.get("userId");
+    bru.variables.set("timestamp", new Date().toISOString());
+    const hasToken = bru.variables.has("token");
     `);
   });
 
@@ -29,8 +29,8 @@ describe('Multiline Syntax Handling', () => {
     `;
     const translatedCode = translateCode(code);
     expect(translatedCode).toBe(`
-    const baseUrl = bru.getEnvVar("baseUrl");
-    bru.setEnvVar("requestTime", Date.now());
+    const baseUrl = bru.environment.get("baseUrl");
+    bru.environment.set("requestTime", Date.now());
     `);
   });
 
@@ -62,7 +62,7 @@ describe('Multiline Syntax Handling', () => {
     `;
     const translatedCode = translateCode(code);
     expect(translatedCode).toBe(`
-    if (bru.getEnvVar("apiKey") !== undefined && bru.getEnvVar("apiKey") !== null) {
+    if (bru.environment.has("apiKey")) {
       console.log("API Key exists");
     }
     `);
@@ -152,16 +152,16 @@ describe('Multiline Syntax Handling', () => {
     const translatedCode = translateCode(code);
     expect(translatedCode).toBe(`
     // Normal syntax
-    const normalVar = bru.getVar("normal");
+    const normalVar = bru.variables.get("normal");
     
     // Multiline syntax
-    const multilineVar = bru.getVar("multiline");
+    const multilineVar = bru.variables.get("multiline");
     
     // Normal syntax again
-    bru.setVar("normalSet", "value");
+    bru.variables.set("normalSet", "value");
     
     // Multiline syntax again
-    bru.setVar("multilineSet", "value");
+    bru.variables.set("multilineSet", "value");
     `);
   });
 
@@ -261,17 +261,17 @@ describe('Multiline Syntax Handling', () => {
 
     const translatedCode = translateCode(code);
 
-    expect(translatedCode).toContain('const baseUrl = bru.getEnvVar("baseUrl")');
-    expect(translatedCode).toContain('const apiKey = bru.getEnvVar("apiKey")');
-    expect(translatedCode).toContain('const userId = bru.getEnvVar("userId")');
+    expect(translatedCode).toContain('const baseUrl = bru.environment.get("baseUrl")');
+    expect(translatedCode).toContain('const apiKey = bru.environment.get("apiKey")');
+    expect(translatedCode).toContain('const userId = bru.environment.get("userId")');
 
     // Check variables translations
-    expect(translatedCode).toContain('bru.setVar("testId", "test-" + Date.now())');
-    expect(translatedCode).toContain('bru.setVar("timestamp", new Date().toISOString())');
+    expect(translatedCode).toContain('bru.variables.set("testId", "test-" + Date.now())');
+    expect(translatedCode).toContain('bru.variables.set("timestamp", new Date().toISOString())');
 
     // Check complex conditionals
-    expect(translatedCode).toContain('if (bru.getEnvVar("apiKey") !== undefined && bru.getEnvVar("apiKey") !== null &&');
-    expect(translatedCode).toContain('bru.hasVar("testId"))');
+    expect(translatedCode).toContain('if (bru.environment.has("apiKey") &&');
+    expect(translatedCode).toContain('bru.variables.has("testId"))');
 
     // Check response testing
     expect(translatedCode).toContain('expect(res.getStatus()).to.equal(200)');

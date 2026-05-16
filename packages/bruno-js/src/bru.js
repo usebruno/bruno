@@ -4,6 +4,7 @@ const { interpolate: _interpolate } = require('@usebruno/common');
 const { sendRequest, createSendRequest } = require('@usebruno/requests').scripting;
 const { jar: createCookieJar, getCookiesForUrl } = require('@usebruno/requests').cookies;
 const CookieList = require('./cookie-list');
+const VariableList = require('./variable-list');
 
 const variableNameRegex = /^[\w-.]*$/;
 
@@ -67,6 +68,49 @@ class Bru {
       createCookieJar,
       getCookiesForUrl
     });
+
+    const validateKey = (key) => {
+      if (variableNameRegex.test(key) === false) {
+        throw new Error(
+          `Variable name: "${key}" contains invalid characters!`
+          + ' Names must only contain alpha-numeric characters, "-", "_", "."'
+        );
+      }
+    };
+
+    this.variables = new VariableList(this.runtimeVariables, {
+      interpolateFn: (val) => this.interpolate(val),
+      validateKey
+    });
+
+    this.environment = new VariableList(this.envVariables, {
+      interpolateFn: (val) => this.interpolate(val),
+      validateKey,
+      filterKeys: ['__name__']
+    });
+    Object.defineProperty(this.environment, 'name', {
+      get: () => this.envVariables.__name__,
+      enumerable: true
+    });
+
+    this.globals = new VariableList(this.globalEnvironmentVariables, {
+      interpolateFn: (val) => this.interpolate(val),
+      validateKey,
+      filterKeys: ['__name__']
+    });
+    Object.defineProperty(this.globals, 'name', {
+      get: () => this.globalEnvironmentVariables.__name__,
+      enumerable: true
+    });
+    // TODO: globals.unset/clear work in the request lifecycle but do not update the UI.
+    // Re-enable once the UI sync issue is resolved.
+    this.globals.unset = () => {
+      throw new Error('globals.unset is not implemented yet');
+    };
+    this.globals.clear = () => {
+      throw new Error('globals.clear is not implemented yet');
+    };
+
     // Holds variables that are marked as persistent by scripts
     this.persistentEnvVariables = {};
     // Holds credential IDs to be reset after script execution
@@ -159,6 +203,10 @@ class Bru {
 
   getEnvName() {
     return this.envVariables.__name__;
+  }
+
+  getGlobalEnvName() {
+    return this.globalEnvironmentVariables.__name__;
   }
 
   getProcessEnv(key) {

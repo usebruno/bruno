@@ -1146,6 +1146,7 @@ export const getGlobalEnvironmentVariables = ({ globalEnvironments, activeGlobal
       }
     });
   }
+  variables.__name__ = environment?.name;
   return variables;
 };
 

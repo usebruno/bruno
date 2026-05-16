@@ -4,11 +4,35 @@ import translateCode from '../utils/postman-to-bruno-translator';
 // Currently these APIs only work within the request lifecycle but fail to update the UI tables.
 // e.g., setCollectionVar only sets the variable in the request lifecycle, fails to update the table in the UI.
 const replacements = {
-  'pm\\.environment\\.get\\(': 'bru.getEnvVar(',
-  'pm\\.environment\\.set\\(': 'bru.setEnvVar(',
-  'pm\\.variables\\.get\\(': 'bru.getVar(',
-  'pm\\.variables\\.set\\(': 'bru.setVar(',
+  // Environment variables
+  'pm\\.environment\\.get\\(': 'bru.environment.get(',
+  'pm\\.environment\\.set\\(': 'bru.environment.set(',
+  'pm\\.environment\\.has\\(': 'bru.environment.has(',
+  'pm\\.environment\\.unset\\(': 'bru.environment.unset(',
+  'pm\\.environment\\.replaceIn\\(': 'bru.interpolate(',
+  'pm\\.environment\\.toObject\\(': 'bru.environment.toObject(',
+  'pm\\.environment\\.clear\\(': 'bru.environment.clear(',
+  'pm\\.environment\\.name': 'bru.environment.name',
+
+  // Runtime variables
+  'pm\\.variables\\.get\\(': 'bru.variables.get(',
+  'pm\\.variables\\.set\\(': 'bru.variables.set(',
+  'pm\\.variables\\.has\\(': 'bru.variables.has(',
+  'pm\\.variables\\.unset\\(': 'bru.variables.unset(',
   'pm\\.variables\\.replaceIn\\(': 'bru.interpolate(',
+  'pm\\.variables\\.toObject\\(': 'bru.variables.toObject(',
+  'pm\\.variables\\.clear\\(': 'bru.variables.clear(',
+
+  // Global variables
+  'pm\\.globals\\.get\\(': 'bru.globals.get(',
+  'pm\\.globals\\.set\\(': 'bru.globals.set(',
+  'pm\\.globals\\.has\\(': 'bru.globals.has(',
+  // 'pm\\.globals\\.unset\\(': 'bru.globals.unset(',  // TODO: Re-enable once UI sync issue is resolved
+  'pm\\.globals\\.replaceIn\\(': 'bru.interpolate(',
+  'pm\\.globals\\.toObject\\(': 'bru.globals.toObject(',
+  // 'pm\\.globals\\.clear\\(': 'bru.globals.clear(',  // TODO: Re-enable once UI sync issue is resolved
+
+  // Collection variables
   'pm\\.collectionVariables\\.get\\(': 'bru.getCollectionVar(',
   // 'pm\\.collectionVariables\\.set\\(': 'bru.setCollectionVar(',
   'pm\\.collectionVariables\\.has\\(': 'bru.hasCollectionVar(',
@@ -21,19 +45,10 @@ const replacements = {
   'pm\\.response\\.to\\.have\\.status\\(': 'expect(res.getStatus()).to.equal(',
   'pm\\.response\\.json\\(': 'res.getBody(',
   'pm\\.expect\\(': 'expect(',
-  'pm\\.environment\\.has\\(([^)]+)\\)': 'bru.getEnvVar($1) !== undefined && bru.getEnvVar($1) !== null',
   'pm\\.response\\.code': 'res.getStatus()',
   'pm\\.response\\.text\\(\\)': 'JSON.stringify(res.getBody())',
   'pm\\.expect\\.fail\\(': 'expect.fail(',
   'pm\\.response\\.responseTime': 'res.getResponseTime()',
-  'pm\\.globals\\.set\\(': 'bru.setGlobalEnvVar(',
-  'pm\\.globals\\.get\\(': 'bru.getGlobalEnvVar(',
-  // 'pm\\.globals\\.unset\\(': 'bru.deleteGlobalEnvVar(',
-  'pm\\.globals\\.toObject\\(': 'bru.getAllGlobalEnvVars(',
-  // 'pm\\.globals\\.clear\\(': 'bru.deleteAllGlobalEnvVars(',
-  'pm\\.environment\\.toObject\\(': 'bru.getAllEnvVars(',
-  'pm\\.environment\\.clear\\(': 'bru.deleteAllEnvVars(',
-  'pm\\.variables\\.toObject\\(': 'bru.getAllVars(',
   // Request header PropertyList methods
   'pm\\.request\\.headers\\.remove\\(': 'req.deleteHeader(',
   'pm\\.request\\.headers\\.get\\(': 'req.headerList.get(',
@@ -91,7 +106,6 @@ const replacements = {
   'pm\\.response\\.responseSize': 'res.getSize().body',
   'pm\\.response\\.size\\(\\)\\.header': 'res.getSize().header',
   'pm\\.response\\.size\\(\\)\\.total': 'res.getSize().total',
-  'pm\\.environment\\.name': 'bru.getEnvName()',
   'pm\\.response\\.status': 'res.statusText',
   'pm\\.response\\.headers': 'res.getHeaders()',
   'tests\\[\'([^\']+)\'\\]\\s*=\\s*([^;]+);': 'test("$1", function() { expect(Boolean($2)).to.be.true; });',
@@ -121,9 +135,9 @@ const replacements = {
   'request\\.body': 'req.getBody()',
   'request\\.name': 'req.getName()',
   // deprecated translations
-  'postman\\.setEnvironmentVariable\\(': 'bru.setEnvVar(',
-  'postman\\.getEnvironmentVariable\\(': 'bru.getEnvVar(',
-  'postman\\.clearEnvironmentVariable\\(': 'bru.deleteEnvVar(',
+  'postman\\.setEnvironmentVariable\\(': 'bru.environment.set(',
+  'postman\\.getEnvironmentVariable\\(': 'bru.environment.get(',
+  'postman\\.clearEnvironmentVariable\\(': 'bru.environment.unset(',
   'pm\\.execution\\.skipRequest\\(\\)': 'bru.runner.skipRequest()',
   'pm\\.execution\\.skipRequest': 'bru.runner.skipRequest',
   'pm\\.execution\\.setNextRequest\\(null\\)': 'bru.runner.stopExecution()',

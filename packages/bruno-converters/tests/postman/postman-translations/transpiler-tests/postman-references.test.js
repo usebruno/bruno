@@ -5,7 +5,7 @@ describe('Postman to PM References Conversion', () => {
   it('should convert basic postman references to pm', () => {
     const code = 'postman.setEnvironmentVariable("key", "value");';
     const translatedCode = translateCode(code);
-    expect(translatedCode).toBe('bru.setEnvVar("key", "value");');
+    expect(translatedCode).toBe('bru.environment.set("key", "value");');
     // The key part is that it should convert postman.* to pm.* internally before
     // translating to bru.* APIs
   });
@@ -13,7 +13,7 @@ describe('Postman to PM References Conversion', () => {
   it('should convert postman variable access to pm', () => {
     const code = 'const value = postman.getEnvironmentVariable("key");';
     const translatedCode = translateCode(code);
-    expect(translatedCode).toBe('const value = bru.getEnvVar("key");');
+    expect(translatedCode).toBe('const value = bru.environment.get("key");');
   });
 
   it('should handle postman variable assignments', () => {
@@ -22,8 +22,8 @@ describe('Postman to PM References Conversion', () => {
     const baseUrl = postman.environment.get("baseUrl");
     `;
     const translatedCode = translateCode(code);
-    expect(translatedCode).toContain('const envVar = bru.getEnvVar("apiKey");');
-    expect(translatedCode).toContain('const baseUrl = bru.getEnvVar("baseUrl");');
+    expect(translatedCode).toContain('const envVar = bru.environment.get("apiKey");');
+    expect(translatedCode).toContain('const baseUrl = bru.environment.get("baseUrl");');
   });
 
   // More complex patterns
@@ -40,8 +40,8 @@ describe('Postman to PM References Conversion', () => {
     `;
 
     const translatedCode = translateCode(code);
-    expect(translatedCode).toContain('const apiKey = bru.getEnvVar("apiKey");');
-    expect(translatedCode).toContain('const baseUrl = bru.getEnvVar("baseUrl");');
+    expect(translatedCode).toContain('const apiKey = bru.environment.get("apiKey");');
+    expect(translatedCode).toContain('const baseUrl = bru.environment.get("baseUrl");');
     expect(translatedCode).toContain('test("Status code is 200", function() {');
     expect(translatedCode).toContain('expect(res.getStatus()).to.equal(200);');
   });
@@ -53,7 +53,7 @@ describe('Postman to PM References Conversion', () => {
     `;
 
     const translatedCode = translateCode(code);
-    expect(translatedCode).toContain('bru.setEnvVar("key", "value");');
+    expect(translatedCode).toContain('bru.environment.set("key", "value");');
   });
 
   // Complex control flows
@@ -69,10 +69,10 @@ describe('Postman to PM References Conversion', () => {
     `;
 
     const translatedCode = translateCode(code);
-    expect(translatedCode).toContain('if (bru.getEnvVar("isProduction") === "true") {');
-    expect(translatedCode).toContain('const apiUrl = bru.getEnvVar("prodUrl");');
+    expect(translatedCode).toContain('if (bru.environment.get("isProduction") === "true") {');
+    expect(translatedCode).toContain('const apiUrl = bru.environment.get("prodUrl");');
     expect(translatedCode).toContain('bru.setNextRequest("Production Flow");');
-    expect(translatedCode).toContain('const apiUrl = bru.getEnvVar("devUrl");');
+    expect(translatedCode).toContain('const apiUrl = bru.environment.get("devUrl");');
     expect(translatedCode).toContain('bru.setNextRequest("Development Flow");');
   });
 
@@ -90,7 +90,7 @@ describe('Postman to PM References Conversion', () => {
     const translatedCode = translateCode(code);
     expect(translatedCode).toContain('const responseCode = res.getStatus();');
     expect(translatedCode).toContain('const responseBody = res.getBody();');
-    expect(translatedCode).toContain('bru.setEnvVar("lastResponseCode", responseCode);');
+    expect(translatedCode).toContain('bru.environment.set("lastResponseCode", responseCode);');
   });
 
   // Postman in string literals should be untouched
@@ -124,8 +124,8 @@ describe('Postman to PM References Conversion', () => {
 
     const translatedCode = translateCode(code);
     // Should handle the aliases properly
-    expect(translatedCode).toContain('const apiKey = bru.getEnvVar("apiKey");');
-    expect(translatedCode).toContain('const userId = bru.getEnvVar("userId");');
+    expect(translatedCode).toContain('const apiKey = bru.environment.get("apiKey");');
+    expect(translatedCode).toContain('const userId = bru.environment.get("userId");');
     expect(translatedCode).toContain('test("Response is valid", function() {');
     expect(translatedCode).toContain('expect(code).to.equal(200);');
   });
