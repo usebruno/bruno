@@ -4,7 +4,7 @@ import { getAllVariables } from 'utils/collections';
 import { defineCodeMirrorBrunoVariablesMode } from 'utils/common/codemirror';
 import { setupAutoComplete } from 'utils/codemirror/autocomplete';
 import { MaskedEditor } from 'utils/common/masked-editor';
-import StyledWrapper from './StyledWrapper';
+import StyledWrapper, { EditorRoot } from './StyledWrapper';
 import { setupLinkAware } from 'utils/codemirror/linkAware';
 import { IconEye, IconEyeOff } from '@tabler/icons';
 
@@ -232,10 +232,10 @@ class MultiLineEditor extends Component {
   render() {
     const wrapperClass = `multi-line-editor grow ${this.props.readOnly ? 'read-only' : ''}`;
     return (
-      <div className={`flex flex-row justify-between w-full overflow-x-auto ${this.props.className}`}>
+      <EditorRoot className={this.props.className}>
         <StyledWrapper ref={this.editorRef} className={wrapperClass} />
         {this.secretEye(this.props.isSecret)}
-      </div>
+      </EditorRoot>
     );
   }
 }
