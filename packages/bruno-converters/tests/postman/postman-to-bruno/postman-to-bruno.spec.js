@@ -1146,6 +1146,74 @@ describe('postman-collection', () => {
     expect(headers[0].name).toBe('X-No-Value');
     expect(headers[0].value).toBe('');
   });
+
+  it('should deduplicate sibling folder names case-insensitively', async () => {
+    // Postman allows two folders to share the same name with different
+    // casing (e.g. OAuth2 vs oAuth2). On case-insensitive filesystems
+    // (default on Windows and macOS APFS) the writer collapses both to
+    // the same directory and silently overwrites the first. We rename
+    // case-only collisions at the converter level so the writer sees
+    // distinct names.
+    const collectionWithCaseCollidingFolders = {
+      info: {
+        _postman_id: 'test-case-folder-collision',
+        name: 'case-colliding folder names',
+        schema: 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json'
+      },
+      item: [
+        {
+          name: 'OAuth2',
+          item: [
+            {
+              name: 'first',
+              request: { method: 'GET', header: [], url: { raw: 'https://example.com/a' } }
+            }
+          ]
+        },
+        {
+          name: 'oAuth2',
+          item: [
+            {
+              name: 'second',
+              request: { method: 'GET', header: [], url: { raw: 'https://example.com/b' } }
+            }
+          ]
+        }
+      ]
+    };
+
+    const brunoCollection = await postmanToBruno(collectionWithCaseCollidingFolders);
+
+    expect(brunoCollection.items).toHaveLength(2);
+    expect(brunoCollection.items[0].name).toBe('OAuth2');
+    expect(brunoCollection.items[1].name).toBe('oAuth2_1');
+  });
+
+  it('should deduplicate sibling request names case-insensitively', async () => {
+    const collectionWithCaseCollidingRequests = {
+      info: {
+        _postman_id: 'test-case-request-collision',
+        name: 'case-colliding request names',
+        schema: 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json'
+      },
+      item: [
+        {
+          name: 'GetUser',
+          request: { method: 'GET', header: [], url: { raw: 'https://example.com/a' } }
+        },
+        {
+          name: 'getuser',
+          request: { method: 'GET', header: [], url: { raw: 'https://example.com/b' } }
+        }
+      ]
+    };
+
+    const brunoCollection = await postmanToBruno(collectionWithCaseCollidingRequests);
+
+    expect(brunoCollection.items).toHaveLength(2);
+    expect(brunoCollection.items[0].name).toBe('GetUser');
+    expect(brunoCollection.items[1].name).toBe('getuser_1');
+  });
 });
 
 // Simple Collection (postman)
