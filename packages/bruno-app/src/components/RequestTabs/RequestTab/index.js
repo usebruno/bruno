@@ -1,14 +1,14 @@
 import React, { useCallback, useState, useRef, Fragment, useMemo, useEffect } from 'react';
 import get from 'lodash/get';
 import { makeTabPermanent, syncTabUid } from 'providers/ReduxStore/slices/tabs';
-import { saveRequest, saveCollectionRoot, saveFolderRoot, saveEnvironment, saveCollectionSettings, closeTabs } from 'providers/ReduxStore/slices/collections/actions';
+import { saveRequest, saveCollectionRoot, saveFolderRoot, saveEnvironment, saveCollectionSettings, closeTabs, cloneItemAsTransient } from 'providers/ReduxStore/slices/collections/actions';
 import useKeybinding from 'hooks/useKeybinding';
 import { deleteRequestDraft, deleteCollectionDraft, deleteFolderDraft, clearEnvironmentsDraft } from 'providers/ReduxStore/slices/collections';
 import { clearGlobalEnvironmentDraft } from 'providers/ReduxStore/slices/global-environments';
 import { saveGlobalEnvironment } from 'providers/ReduxStore/slices/global-environments';
 import { useTheme } from 'providers/Theme';
 import { useDispatch, useSelector } from 'react-redux';
-import { findItemInCollection, findItemInCollectionByPathname, hasRequestChanges, areItemsLoading } from 'utils/collections';
+import { findItemInCollection, findItemInCollectionByPathname, hasRequestChanges, areItemsLoading, isItemARequest } from 'utils/collections';
 import ConfirmRequestClose from './ConfirmRequestClose';
 import ConfirmCollectionClose from './ConfirmCollectionClose';
 import ConfirmFolderClose from './ConfirmFolderClose';
@@ -710,6 +710,17 @@ function RequestTabMenu({ menuDropdownRef, tabLabelRef, collectionRequestTabs, t
     await handleCloseMultipleTabs(collectionRequestTabs);
   }
 
+  const isRequestTab = currentTabItem && isItemARequest(currentTabItem);
+
+  const handleDuplicateAsTab = () => {
+    if (!currentTabItem?.uid || !collection?.uid) {
+      return;
+    }
+    dispatch(cloneItemAsTransient(currentTabItem.uid, collection.uid)).catch((err) => {
+      toast.error(err?.message || 'An error occurred while duplicating the request');
+    });
+  };
+
   const menuItems = useMemo(() => [
     {
       id: 'new-request',
@@ -720,6 +731,12 @@ function RequestTabMenu({ menuDropdownRef, tabLabelRef, collectionRequestTabs, t
       id: 'clone-request',
       label: 'Clone Request',
       onClick: () => setShowCloneRequestModal(true)
+    },
+    {
+      id: 'duplicate-as-tab',
+      label: 'Duplicate as Tab',
+      onClick: handleDuplicateAsTab,
+      disabled: !isRequestTab
     },
     {
       id: 'revert-changes',
@@ -760,7 +777,7 @@ function RequestTabMenu({ menuDropdownRef, tabLabelRef, collectionRequestTabs, t
       label: 'Close All',
       onClick: handleCloseAllTabs
     }
-  ], [currentTabUid, currentTabItem, hasOtherTabs, hasLeftTabs, hasRightTabs, collection, collectionRequestTabs, tabIndex, dispatch]);
+  ], [currentTabUid, currentTabItem, isRequestTab, hasOtherTabs, hasLeftTabs, hasRightTabs, collection, collectionRequestTabs, tabIndex, dispatch]);
 
   const menuDropdown = (
     <MenuDropdown
