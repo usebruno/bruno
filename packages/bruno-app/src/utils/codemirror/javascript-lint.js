@@ -6,6 +6,7 @@
  */
 
 import { JSHINT } from 'jshint';
+import { findDeprecatedUsage } from './deprecation-lint';
 
 let CodeMirror;
 const SERVER_RENDERED = typeof window === 'undefined' || global['PREVENT_CODEMIRROR_RENDER'] === true;
@@ -94,6 +95,17 @@ if (!SERVER_RENDERED) {
     });
 
     if (errors) parseErrors(errors, result);
+
+    // Append deprecation warnings from the migration registry
+    const deprecations = findDeprecatedUsage(text);
+    for (const dep of deprecations) {
+      result.push({
+        message: dep.message,
+        severity: dep.severity,
+        from: CodeMirror.Pos(dep.from.line, dep.from.ch),
+        to: CodeMirror.Pos(dep.to.line, dep.to.ch)
+      });
+    }
 
     return result;
   }

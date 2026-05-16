@@ -83,6 +83,18 @@ class Bru {
       }
     };
 
+    // New namespaced env API (bru.env.*)
+    // These delegate to the same underlying implementations as the legacy flat methods.
+    this.env = {
+      get: (key) => this.getEnvVar(key),
+      set: (key, value, options) => this.setEnvVar(key, value, options),
+      has: (key) => this.hasEnvVar(key),
+      delete: (key) => this.deleteEnvVar(key),
+      getAll: () => this.getAllEnvVars(),
+      deleteAll: () => this.deleteAllEnvVars(),
+      getName: () => this.getEnvName()
+    };
+
     this.utils = {
       minifyJson: (json) => {
         if (json === null || json === undefined) {
