@@ -28,6 +28,31 @@ const getSchemaPropertyExampleValue = (prop, propName, parentExample = {}) => {
   return '';
 };
 
+const isSupportedSecurityScheme = (scheme) => {
+  if (!scheme) {
+    return false;
+  }
+
+  if (scheme.type === 'apiKey') {
+    return scheme.in === 'header' || scheme.in === 'query';
+  }
+
+  return true;
+};
+
+const getFirstSupportedSecurityScheme = (securityRequirements = [], securitySchemes = {}) => {
+  for (const requirement of securityRequirements) {
+    const schemes = Object.keys(requirement).map((schemeName) => securitySchemes[schemeName]);
+    if (schemes.some((scheme) => !isSupportedSecurityScheme(scheme))) {
+      continue;
+    }
+
+    return schemes[0] || null;
+  }
+
+  return null;
+};
+
 /**
  * Extracts parameter entries based on OpenAPI parameter schema
  * For enum parameters, creates multiple entries (one per enum value)
@@ -333,8 +358,10 @@ const transformOpenapiRequestItem = (request, usedNames = new Set(), options = {
 
   let auth = null;
   if (_operationObject.security && _operationObject.security.length > 0) {
-    const schemeName = Object.keys(_operationObject.security[0])[0];
-    auth = request.global.security.getScheme(schemeName);
+    auth = request.global.security.getFirstSupportedScheme(_operationObject.security);
+    if (!auth) {
+      brunoRequestItem.request.auth.mode = 'none';
+    }
   }
 
   if (auth) {
@@ -771,11 +798,16 @@ const getSecurity = (apiSpec) => {
   return {
     supported: hasSchemes
       ? defaultSchemes
-          .map((scheme) => securitySchemes[Object.keys(scheme)[0]])
+          .map((scheme) => getFirstSupportedSecurityScheme([scheme], securitySchemes))
           .filter(Boolean)
       : [],
     schemes: securitySchemes,
-    getScheme: (schemeName) => securitySchemes[schemeName]
+    getScheme: (schemeName) => {
+      const scheme = securitySchemes[schemeName];
+      return isSupportedSecurityScheme(scheme) ? scheme : null;
+    },
+    getFirstSupportedScheme: (securityRequirements) =>
+      getFirstSupportedSecurityScheme(securityRequirements, securitySchemes)
   };
 };
 
