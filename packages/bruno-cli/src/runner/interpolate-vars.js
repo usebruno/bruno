@@ -2,6 +2,8 @@ const { interpolate } = require('@usebruno/common');
 const { each, forOwn, cloneDeep, find } = require('lodash');
 const { isFormData } = require('@usebruno/common').utils;
 
+const isBinaryRequestBody = (data) => Buffer.isBuffer(data) || typeof data?.pipe === 'function';
+
 const getContentType = (headers = {}) => {
   let contentType = '';
   forOwn(headers, (value, key) => {
@@ -80,7 +82,7 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
 
   // Skip body interpolation for GraphQL requests.
   if (!isGraphqlRequest) {
-    if (contentType.includes('json') && !Buffer.isBuffer(request.data)) {
+    if (contentType.includes('json') && !isBinaryRequestBody(request.data)) {
       if (typeof request.data === 'string') {
         if (request?.data?.length) {
           request.data = _interpolate(request.data, { escapeJSONStrings: true });
