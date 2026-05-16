@@ -31,6 +31,12 @@ const EXIT_STATUS = {
   ERROR_GLOBAL_ENV_REQUIRES_WORKSPACE: 12,
   // The specified global environment was not found
   ERROR_GLOBAL_ENV_NOT_FOUND: 13,
+  // Collection is out of sync with spec (drift detected)
+  ERROR_DRIFT_DETECTED: 14,
+  // Invalid or missing OpenAPI spec
+  ERROR_INVALID_SPEC: 15,
+  // Sync fix failed
+  ERROR_SYNC_FAILED: 16,
   // Everything else
   ERROR_GENERIC: 255
 };
