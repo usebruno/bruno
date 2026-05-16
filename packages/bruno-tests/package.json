@@ -4,7 +4,8 @@
   "description": "",
   "main": "src/index.js",
   "scripts": {
-    "start": "node ."
+    "start": "node .",
+    "start:echo": "node src/echo-server.js"
   },
   "repository": {
     "type": "git",

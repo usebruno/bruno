@@ -12,8 +12,9 @@ get {
 
 script:pre-request {
   const axios = require("axios");
-  
-  const url = "https://testbench-sanity.usebruno.com/api/echo/json";
+
+  const host = bru.getEnvVar("host");
+  const url = host + "/api/echo/json";
   const response = await axios.post(url, {
     "hello": "bruno"
   });
