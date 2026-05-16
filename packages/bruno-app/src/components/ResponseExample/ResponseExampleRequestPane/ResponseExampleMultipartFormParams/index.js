@@ -48,7 +48,7 @@ const ResponseExampleMultipartFormParams = ({ item, collection, exampleUid, edit
   const handleBrowseFiles = useCallback((row, onChange) => {
     if (!editMode) return;
 
-    dispatch(browseFiles())
+    dispatch(browseFiles([], ['multiSelections']))
       .then((filePaths) => {
         const processedPaths = filePaths.map((filePath) => {
           const collectionDir = collection.pathname;
@@ -212,11 +212,11 @@ const ResponseExampleMultipartFormParams = ({ item, collection, exampleUid, edit
           <div className="flex items-center value-cell">
             <div className="flex-1">
               <MultiLineEditor
-                onSave={() => {}}
+                onSave={() => { }}
                 theme={storedTheme}
                 value={value || ''}
                 onChange={(newValue) => handleValueChange(row, newValue, onChange)}
-                onRun={() => {}}
+                onRun={() => { }}
                 allowNewlines={true}
                 collection={collection}
                 item={item}
@@ -243,12 +243,12 @@ const ResponseExampleMultipartFormParams = ({ item, collection, exampleUid, edit
       readOnly: !editMode,
       render: ({ value, onChange }) => (
         <SingleLineEditor
-          onSave={() => {}}
+          onSave={() => { }}
           theme={storedTheme}
           placeholder={!value ? 'Auto' : ''}
           value={value || ''}
           onChange={onChange}
-          onRun={() => {}}
+          onRun={() => { }}
           collection={collection}
           readOnly={!editMode}
         />
