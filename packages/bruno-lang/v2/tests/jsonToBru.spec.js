@@ -136,4 +136,42 @@ describe('jsonToBru stringify', () => {
       `);
     });
   });
+
+  describe('oauth2 token placement', () => {
+    it('omits token placement fields when tokenPlacement is none', () => {
+      const input = {
+        meta: {
+          name: 'oauth2-none',
+          type: 'http',
+          seq: 1
+        },
+        http: {
+          method: 'get',
+          url: 'https://api.example.com/users',
+          body: 'none',
+          auth: 'oauth2'
+        },
+        auth: {
+          mode: 'oauth2',
+          oauth2: {
+            grantType: 'client_credentials',
+            accessTokenUrl: 'https://auth.example.com/token',
+            clientId: 'client-id',
+            clientSecret: 'client-secret',
+            credentialsPlacement: 'body',
+            credentialsId: 'credentials',
+            tokenPlacement: 'none',
+            tokenHeaderPrefix: 'Bearer',
+            tokenQueryKey: 'access_token'
+          }
+        }
+      };
+
+      const output = stringify(input);
+
+      expect(output).toContain('token_placement: none');
+      expect(output).not.toContain('token_header_prefix:');
+      expect(output).not.toContain('token_query_key:');
+    });
+  });
 });

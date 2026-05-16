@@ -18,7 +18,7 @@ const processHeaders = (headers) => {
 const placeOAuth2Token = (grpcRequest, credentials, tokenPlacement, tokenHeaderPrefix, tokenQueryKey) => {
   if (tokenPlacement === 'header') {
     grpcRequest.headers['Authorization'] = `${tokenHeaderPrefix} ${credentials?.access_token}`;
-  } else {
+  } else if (tokenPlacement === 'url') {
     try {
       const url = new URL(grpcRequest.url);
       url?.searchParams?.set(tokenQueryKey, credentials?.access_token);

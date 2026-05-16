@@ -235,7 +235,7 @@ const configureRequest = async (
           const tokenValue = tokenSource === 'id_token' ? credentials?.id_token : credentials?.access_token;
           if (tokenPlacement == 'header' && tokenValue) {
             request.headers['Authorization'] = `${tokenHeaderPrefix} ${tokenValue}`.trim();
-          } else if (tokenValue) {
+          } else if (tokenPlacement == 'url' && tokenValue) {
             try {
               const url = new URL(request.url);
               url.searchParams.set(tokenQueryKey, tokenValue);
@@ -252,7 +252,7 @@ const configureRequest = async (
           const tokenValue = tokenSource === 'id_token' ? credentials?.id_token : credentials?.access_token;
           if (tokenPlacement == 'header' && tokenValue) {
             request.headers['Authorization'] = `${tokenHeaderPrefix} ${tokenValue}`.trim();
-          } else if (tokenValue) {
+          } else if (tokenPlacement == 'url' && tokenValue) {
             try {
               const url = new URL(request.url);
               url.searchParams.set(tokenQueryKey, tokenValue);
@@ -269,7 +269,7 @@ const configureRequest = async (
           const tokenValue = tokenSource === 'id_token' ? credentials?.id_token : credentials?.access_token;
           if (tokenPlacement == 'header' && tokenValue) {
             request.headers['Authorization'] = `${tokenHeaderPrefix} ${tokenValue}`.trim();
-          } else if (tokenValue) {
+          } else if (tokenPlacement == 'url' && tokenValue) {
             try {
               const url = new URL(request.url);
               url.searchParams.set(tokenQueryKey, tokenValue);
@@ -286,7 +286,7 @@ const configureRequest = async (
           const tokenValue = tokenSource === 'id_token' ? credentials?.id_token : credentials?.access_token;
           if (tokenPlacement == 'header' && tokenValue) {
             request.headers['Authorization'] = `${tokenHeaderPrefix} ${tokenValue}`.trim();
-          } else if (tokenValue) {
+          } else if (tokenPlacement == 'url' && tokenValue) {
             try {
               const url = new URL(request.url);
               url.searchParams.set(tokenQueryKey, tokenValue);

@@ -176,7 +176,7 @@ const prepareWsRequest = async (item, collection, environment, runtimeVariables,
         };
         if (tokenPlacement == 'header') {
           wsRequest.headers['Authorization'] = `${tokenHeaderPrefix} ${credentials?.access_token}`;
-        } else {
+        } else if (tokenPlacement == 'url') {
           try {
             const url = new URL(request.url);
             url?.searchParams?.set(tokenQueryKey, credentials?.access_token);
@@ -207,7 +207,7 @@ const prepareWsRequest = async (item, collection, environment, runtimeVariables,
         };
         if (tokenPlacement == 'header') {
           wsRequest.headers['Authorization'] = `${tokenHeaderPrefix} ${credentials?.access_token}`;
-        } else {
+        } else if (tokenPlacement == 'url') {
           try {
             const url = new URL(request.url);
             url?.searchParams?.set(tokenQueryKey, credentials?.access_token);
@@ -238,7 +238,7 @@ const prepareWsRequest = async (item, collection, environment, runtimeVariables,
         };
         if (tokenPlacement == 'header') {
           wsRequest.headers['Authorization'] = `${tokenHeaderPrefix} ${credentials?.access_token}`;
-        } else {
+        } else if (tokenPlacement == 'url') {
           try {
             const url = new URL(request.url);
             url?.searchParams?.set(tokenQueryKey, credentials?.access_token);

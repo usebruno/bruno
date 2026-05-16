@@ -174,13 +174,14 @@ const OAuth2PasswordCredentials = ({ save, item = {}, request, handleRun, update
           <MenuDropdown
             items={[
               { id: 'header', label: 'Header', onClick: () => handleChange('tokenPlacement', 'header') },
-              { id: 'url', label: 'URL', onClick: () => handleChange('tokenPlacement', 'url') }
+              { id: 'url', label: 'URL', onClick: () => handleChange('tokenPlacement', 'url') },
+              { id: 'none', label: 'None', onClick: () => handleChange('tokenPlacement', 'none') }
             ]}
             selectedItemId={tokenPlacement}
             placement="bottom-end"
           >
             <div className="flex items-center justify-end token-placement-label select-none">
-              {tokenPlacement == 'url' ? 'URL' : 'Headers'}
+              {tokenPlacement == 'url' ? 'URL' : tokenPlacement == 'none' ? 'None' : 'Headers'}
               <IconCaretDown className="caret ml-1 mr-1" size={14} strokeWidth={2} />
             </div>
           </MenuDropdown>
@@ -204,22 +205,24 @@ const OAuth2PasswordCredentials = ({ save, item = {}, request, handleRun, update
                 </div>
               </div>
             )
-          : (
-              <div className="flex items-center gap-4 w-full" key="input-token-query-param-key">
-                <label className="block min-w-[140px]">Query Param Key</label>
-                <div className="single-line-editor-wrapper flex-1">
-                  <SingleLineEditor
-                    value={oAuth['tokenQueryKey'] || ''}
-                    theme={storedTheme}
-                    onSave={handleSave}
-                    onChange={(val) => handleChange('tokenQueryKey', val)}
-                    onRun={handleRun}
-                    collection={collection}
-                    isCompact
-                  />
+          : tokenPlacement === 'url'
+            ? (
+                <div className="flex items-center gap-4 w-full" key="input-token-query-param-key">
+                  <label className="block min-w-[140px]">Query Param Key</label>
+                  <div className="single-line-editor-wrapper flex-1">
+                    <SingleLineEditor
+                      value={oAuth['tokenQueryKey'] || ''}
+                      theme={storedTheme}
+                      onSave={handleSave}
+                      onChange={(val) => handleChange('tokenQueryKey', val)}
+                      onRun={handleRun}
+                      collection={collection}
+                      isCompact
+                    />
+                  </div>
                 </div>
-              </div>
-            )
+              )
+            : null
       }
       <div className="flex items-center gap-2.5 mt-4 mb-2">
         <div className="flex items-center px-2.5 py-1.5 oauth2-icon-container rounded-md">
