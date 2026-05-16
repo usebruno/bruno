@@ -906,4 +906,299 @@ describe('Response Translation', () => {
     const translatedCode = translateCode(code);
     expect(translatedCode).toBe('const json = res.headerList.toJSON();');
   });
+
+  // --- New status assertions ---
+
+  it('should translate pm.response.to.be.info', () => {
+    const code = 'pm.response.to.be.info;';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toContain('expect(res.getStatus()).to.be.within(100, 199)');
+  });
+
+  it('should translate pm.response.to.be.accepted', () => {
+    const code = 'pm.response.to.be.accepted;';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toContain('expect(res.getStatus()).to.equal(202)');
+  });
+
+  it('should translate pm.response.to.be.badRequest', () => {
+    const code = 'pm.response.to.be.badRequest;';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toContain('expect(res.getStatus()).to.equal(400)');
+  });
+
+  it('should translate pm.response.to.be.unauthorized', () => {
+    const code = 'pm.response.to.be.unauthorized;';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toContain('expect(res.getStatus()).to.equal(401)');
+  });
+
+  it('should translate pm.response.to.be.forbidden', () => {
+    const code = 'pm.response.to.be.forbidden;';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toContain('expect(res.getStatus()).to.equal(403)');
+  });
+
+  it('should translate pm.response.to.be.notFound', () => {
+    const code = 'pm.response.to.be.notFound;';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toContain('expect(res.getStatus()).to.equal(404)');
+  });
+
+  it('should translate pm.response.to.be.rateLimited', () => {
+    const code = 'pm.response.to.be.rateLimited;';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toContain('expect(res.getStatus()).to.equal(429)');
+  });
+
+  it('should translate pm.response.to.be.withBody', () => {
+    const code = 'pm.response.to.be.withBody;';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toBe('expect(res.getBody()).to.not.equal(undefined);');
+  });
+
+  it('should translate withBody using undefined check (not truthiness) so falsy bodies work', () => {
+    const code = 'pm.response.to.be.withBody;';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toContain('to.not.equal(undefined)');
+  });
+
+  it('should handle new status assertions inside test blocks', () => {
+    const code = `
+        pm.test("Status checks", function() {
+            pm.response.to.be.info;
+            pm.response.to.be.accepted;
+            pm.response.to.be.badRequest;
+            pm.response.to.be.unauthorized;
+            pm.response.to.be.forbidden;
+            pm.response.to.be.notFound;
+            pm.response.to.be.rateLimited;
+        });
+        `;
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toContain('test("Status checks", function() {');
+    expect(translatedCode).toContain('expect(res.getStatus()).to.be.within(100, 199)');
+    expect(translatedCode).toContain('expect(res.getStatus()).to.equal(202)');
+    expect(translatedCode).toContain('expect(res.getStatus()).to.equal(400)');
+    expect(translatedCode).toContain('expect(res.getStatus()).to.equal(401)');
+    expect(translatedCode).toContain('expect(res.getStatus()).to.equal(403)');
+    expect(translatedCode).toContain('expect(res.getStatus()).to.equal(404)');
+    expect(translatedCode).toContain('expect(res.getStatus()).to.equal(429)');
+  });
+
+  // --- .not negation for to.be.* assertions ---
+
+  it('should translate pm.response.to.not.be.ok', () => {
+    const code = 'pm.response.to.not.be.ok;';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toContain('expect(res.getStatus()).to.not.be.within(200, 299)');
+  });
+
+  it('should translate pm.response.to.be.not.ok (alternate position)', () => {
+    const code = 'pm.response.to.be.not.ok;';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toContain('expect(res.getStatus()).to.not.be.within(200, 299)');
+  });
+
+  it('should translate pm.response.to.be.not.forbidden (alternate position)', () => {
+    const code = 'pm.response.to.be.not.forbidden;';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toContain('expect(res.getStatus()).to.not.equal(403)');
+  });
+
+  it('should translate pm.response.to.be.not.serverError (alternate position)', () => {
+    const code = 'pm.response.to.be.not.serverError;';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toContain('expect(res.getStatus()).to.not.be.within(500, 599)');
+  });
+
+  it('should translate pm.response.to.be.not.withBody (alternate position)', () => {
+    const code = 'pm.response.to.be.not.withBody;';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toBe('expect(res.getBody()).to.equal(undefined);');
+  });
+
+  it('should translate pm.response.to.not.be.success', () => {
+    const code = 'pm.response.to.not.be.success;';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toContain('expect(res.getStatus()).to.not.be.within(200, 299)');
+  });
+
+  it('should translate pm.response.to.not.be.serverError', () => {
+    const code = 'pm.response.to.not.be.serverError;';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toContain('expect(res.getStatus()).to.not.be.within(500, 599)');
+  });
+
+  it('should translate pm.response.to.not.be.clientError', () => {
+    const code = 'pm.response.to.not.be.clientError;';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toContain('expect(res.getStatus()).to.not.be.within(400, 499)');
+  });
+
+  it('should translate pm.response.to.not.be.redirection', () => {
+    const code = 'pm.response.to.not.be.redirection;';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toContain('expect(res.getStatus()).to.not.be.within(300, 399)');
+  });
+
+  it('should translate pm.response.to.not.be.error', () => {
+    const code = 'pm.response.to.not.be.error;';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toContain('expect(res.getStatus()).to.not.be.at.least(400)');
+  });
+
+  it('should translate pm.response.to.not.be.info', () => {
+    const code = 'pm.response.to.not.be.info;';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toContain('expect(res.getStatus()).to.not.be.within(100, 199)');
+  });
+
+  it('should translate pm.response.to.not.be.accepted', () => {
+    const code = 'pm.response.to.not.be.accepted;';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toContain('expect(res.getStatus()).to.not.equal(202)');
+  });
+
+  it('should translate pm.response.to.not.be.badRequest', () => {
+    const code = 'pm.response.to.not.be.badRequest;';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toContain('expect(res.getStatus()).to.not.equal(400)');
+  });
+
+  it('should translate pm.response.to.not.be.unauthorized', () => {
+    const code = 'pm.response.to.not.be.unauthorized;';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toContain('expect(res.getStatus()).to.not.equal(401)');
+  });
+
+  it('should translate pm.response.to.not.be.forbidden', () => {
+    const code = 'pm.response.to.not.be.forbidden;';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toContain('expect(res.getStatus()).to.not.equal(403)');
+  });
+
+  it('should translate pm.response.to.not.be.notFound', () => {
+    const code = 'pm.response.to.not.be.notFound;';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toContain('expect(res.getStatus()).to.not.equal(404)');
+  });
+
+  it('should translate pm.response.to.not.be.rateLimited', () => {
+    const code = 'pm.response.to.not.be.rateLimited;';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toContain('expect(res.getStatus()).to.not.equal(429)');
+  });
+
+  it('should translate pm.response.to.not.be.withBody', () => {
+    const code = 'pm.response.to.not.be.withBody;';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toBe('expect(res.getBody()).to.equal(undefined);');
+  });
+
+  it('should handle negated assertions inside test blocks', () => {
+    const code = `
+        pm.test("Response is not a server error", function() {
+            pm.response.to.not.be.serverError;
+            pm.response.to.not.be.clientError;
+        });
+        `;
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toContain('test("Response is not a server error", function() {');
+    expect(translatedCode).toContain('expect(res.getStatus()).to.not.be.within(500, 599)');
+    expect(translatedCode).toContain('expect(res.getStatus()).to.not.be.within(400, 499)');
+  });
+
+  it('should handle mixed positive and negated assertions', () => {
+    const code = `
+        pm.test("Mixed assertions", function() {
+            pm.response.to.be.success;
+            pm.response.to.not.be.serverError;
+        });
+        `;
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toContain('expect(res.getStatus()).to.be.within(200, 299)');
+    expect(translatedCode).toContain('expect(res.getStatus()).to.not.be.within(500, 599)');
+  });
+
+  it('should handle negated assertions with aliases', () => {
+    const code = `
+        const resp = pm.response;
+        resp.to.not.be.serverError;
+        `;
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toContain('expect(res.getStatus()).to.not.be.within(500, 599)');
+  });
+
+  // --- .not negation for to.have.* assertions ---
+
+  it('should translate pm.response.to.not.have.status', () => {
+    const code = 'pm.response.to.not.have.status(404);';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toBe('expect(res.getStatus()).to.not.equal(404);');
+  });
+
+  it('should translate pm.response.to.not.have.header', () => {
+    const code = 'pm.response.to.not.have.header("X-Error");';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toBe('expect(res.getHeaders()).to.not.have.property("X-Error".toLowerCase());');
+  });
+
+  it('should translate pm.response.to.not.have.header with value', () => {
+    const code = 'pm.response.to.not.have.header("Content-Type", "text/plain");';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toBe('expect(res.getHeaders()).to.not.have.property("Content-Type".toLowerCase(), "text/plain");');
+  });
+
+  it('should translate pm.response.to.not.have.body', () => {
+    const code = 'pm.response.to.not.have.body("error");';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toBe('expect(res.getBody()).to.not.equal("error");');
+  });
+
+  // --- to.have.not.* (alternate .not position) ---
+
+  it('should translate pm.response.to.have.not.status (alternate position)', () => {
+    const code = 'pm.response.to.have.not.status(404);';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toBe('expect(res.getStatus()).to.not.equal(404);');
+  });
+
+  it('should translate pm.response.to.have.not.header (alternate position)', () => {
+    const code = 'pm.response.to.have.not.header("X-Error");';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toBe('expect(res.getHeaders()).to.not.have.property("X-Error".toLowerCase());');
+  });
+
+  it('should translate pm.response.to.have.not.body (alternate position)', () => {
+    const code = 'pm.response.to.have.not.body("error");';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toBe('expect(res.getBody()).to.not.equal("error");');
+  });
+
+  it('should handle negated to.have.* assertions inside test blocks', () => {
+    const code = `
+        pm.test("Negative assertions", function() {
+            pm.response.to.not.have.status(500);
+            pm.response.to.not.have.header("X-Error");
+            pm.response.to.not.have.body("error");
+        });
+        `;
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toContain('test("Negative assertions", function() {');
+    expect(translatedCode).toContain('expect(res.getStatus()).to.not.equal(500)');
+    expect(translatedCode).toContain('expect(res.getHeaders()).to.not.have.property("X-Error".toLowerCase())');
+    expect(translatedCode).toContain('expect(res.getBody()).to.not.equal("error")');
+  });
+
+  it('should handle negated to.have.status with alias', () => {
+    const code = `
+        const resp = pm.response;
+        resp.to.not.have.status(404);
+        `;
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toBe(`
+        expect(res.getStatus()).to.not.equal(404);
+        `);
+  });
 });
