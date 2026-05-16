@@ -51,7 +51,7 @@ const handleWorkspaceFileChange = (win, workspacePath) => {
 
     win.webContents.send('main:workspace-config-updated', workspacePath, workspaceUid, {
       ...workspaceConfig,
-      name: isDefault ? DEFAULT_WORKSPACE_NAME : workspaceConfig.name,
+      name: isDefault ? (workspaceConfig.name || DEFAULT_WORKSPACE_NAME) : workspaceConfig.name,
       type: isDefault ? 'default' : workspaceConfig.type
     });
   } catch (error) {
