@@ -66,7 +66,20 @@ jest.mock('utils/collections/index', () => {
   };
 });
 
-import { generateSnippet } from './snippet-generator';
+import {
+  generateSnippet,
+  normalizePythonRequestsFileUploads
+} from './snippet-generator';
+
+describe('normalizePythonRequestsFileUploads', () => {
+  it('unwraps file upload open calls generated as strings', () => {
+    const snippet = `files = { "file": "open('tasks_service/upload_file/invalid.svg', 'rb')" }`;
+
+    expect(normalizePythonRequestsFileUploads(snippet)).toBe(
+      `files = { "file": open('tasks_service/upload_file/invalid.svg', 'rb') }`
+    );
+  });
+});
 
 describe('Snippet Generator - Simple Tests', () => {
   // Simple test request - easy to understand
@@ -175,6 +188,25 @@ describe('Snippet Generator - Simple Tests', () => {
     });
 
     expect(result).toBe('curl -X GET https://api.example.com/{{endpoint}}');
+  });
+
+  it('should generate Python requests multipart file uploads as open calls', () => {
+    require('httpsnippet').HTTPSnippet = jest.fn().mockImplementation(() => ({
+      convert: jest.fn(
+        () => `files = { "file": "open('tasks_service/upload_file/invalid.svg', 'rb')" }`
+      )
+    }));
+
+    const result = generateSnippet({
+      language: { target: 'python', client: 'requests' },
+      item: testRequest,
+      collection: testCollection,
+      shouldInterpolate: false
+    });
+
+    expect(result).toBe(
+      `files = { "file": open('tasks_service/upload_file/invalid.svg', 'rb') }`
+    );
   });
 
   it('should handle requests with different headers', () => {

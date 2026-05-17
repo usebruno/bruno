@@ -32,6 +32,14 @@ const addCurlAuthFlags = (curlCommand, auth) => {
   return curlCommand;
 };
 
+const normalizePythonRequestsFileUploads = (snippet) => {
+  if (!snippet) {
+    return snippet;
+  }
+
+  return snippet.replace(/"open\('([^']*)', 'rb'\)"/g, (_, filePath) => `open('${filePath}', 'rb')`);
+};
+
 const generateSnippet = ({ language, item, collection, shouldInterpolate = false }) => {
   try {
     // Get HTTPSnippet dynamically so mocks can be applied in tests
@@ -82,6 +90,10 @@ const generateSnippet = ({ language, item, collection, shouldInterpolate = false
       result = addCurlAuthFlags(result, effectiveAuth);
     }
 
+    if (language.target === 'python' && language.client === 'requests') {
+      result = normalizePythonRequestsFileUploads(result);
+    }
+
     // Respect encodeUrl setting: when not explicitly true, replace HTTPSnippet's encoded path+query with the raw version.
     // Replacing the path portion works for all targets since it's a substring of the full URL.
     // encodeUrl defaults to false in the UI when undefined/null
@@ -121,6 +133,4 @@ const generateSnippet = ({ language, item, collection, shouldInterpolate = false
   }
 };
 
-export {
-  generateSnippet
-};
+export { generateSnippet, normalizePythonRequestsFileUploads };
