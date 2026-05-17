@@ -227,7 +227,7 @@ const ResponseExampleMultipartFormParams = ({ item, collection, exampleUid, edit
             <button
               className="upload-btn ml-1"
               onClick={() => handleBrowseFiles(row, onChange)}
-              title="Select file"
+              title="Select File"
             >
               <IconUpload size={16} />
             </button>
