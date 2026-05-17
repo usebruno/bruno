@@ -147,6 +147,40 @@ const getBrunoTypeMetadata = (obj) => {
   return {};
 };
 
+const URL_REGEX = /https?:\/\/[^\s]+/g;
+
+const linkifyText = (text) => {
+  if (typeof text !== 'string') return text;
+  const parts = [];
+  let lastIndex = 0;
+  let match;
+  const regex = new RegExp(URL_REGEX.source, 'g');
+  while ((match = regex.exec(text)) !== null) {
+    if (match.index > lastIndex) {
+      parts.push(text.slice(lastIndex, match.index));
+    }
+    const url = match[0];
+    parts.push(
+      <a
+        key={match.index}
+        className="log-link"
+        href="#"
+        onClick={(e) => {
+          e.preventDefault();
+          window?.ipcRenderer?.openExternal(url);
+        }}
+      >
+        {url}
+      </a>
+    );
+    lastIndex = match.index + url.length;
+  }
+  if (lastIndex < text.length) {
+    parts.push(text.slice(lastIndex));
+  }
+  return parts.length > 0 ? parts : text;
+};
+
 const LogMessage = ({ message, args }) => {
   const { displayedTheme } = useTheme();
 
@@ -187,7 +221,7 @@ const LogMessage = ({ message, args }) => {
             </div>
           );
         }
-        return String(arg);
+        return linkifyText(String(arg));
       });
     }
     return msg;
@@ -199,7 +233,7 @@ const LogMessage = ({ message, args }) => {
     <span className="log-message">
       {Array.isArray(formattedMessage) ? formattedMessage.map((item, index) => (
         <span key={index}>{item} </span>
-      )) : formattedMessage}
+      )) : linkifyText(formattedMessage)}
     </span>
   );
 };

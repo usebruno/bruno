@@ -430,7 +430,21 @@ const StyledWrapper = styled.div`
     white-space: pre-wrap;
     word-break: break-word;
     flex: 1;
-    
+
+    .log-link {
+      color: ${(props) => props.theme.text?.link || '#4c9ce4'};
+      text-decoration: underline;
+      cursor: pointer;
+
+      &:hover {
+        opacity: 0.8;
+      }
+
+      &:visited {
+        color: ${(props) => props.theme.text?.link || '#4c9ce4'};
+      }
+    }
+
     .log-object {
       margin: 4px 0;
       padding: 8px;
