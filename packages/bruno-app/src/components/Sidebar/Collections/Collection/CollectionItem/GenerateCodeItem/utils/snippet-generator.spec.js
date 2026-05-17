@@ -996,6 +996,29 @@ describe('generateSnippet – encodeUrl setting', () => {
     expect(result).toContain('time=10:30');
   });
 
+  it('should preserve bracketed query values when encodeUrl is false', () => {
+    const rawUrl = 'https://example.com/filter?ids=[1, 2, 3]';
+    const item = makeItem(rawUrl, { encodeUrl: false });
+
+    const result = generateSnippet({ language, item, collection: baseCollection, shouldInterpolate: false });
+    const { HTTPSnippet } = require('httpsnippet');
+    const harRequest = HTTPSnippet.mock.calls[0][0];
+
+    expect(harRequest.url).toContain('ids=%5B1%2C%202%2C%203%5D');
+    expect(result).toContain('ids=[1, 2, 3]');
+    expect(result).not.toContain('%5B');
+    expect(result).not.toContain('Error generating code snippet');
+  });
+
+  it('should encode bracketed query values when encodeUrl is true', () => {
+    const rawUrl = 'https://example.com/filter?ids=[1, 2, 3]';
+    const item = makeItem(rawUrl, { encodeUrl: true });
+
+    const result = generateSnippet({ language, item, collection: baseCollection, shouldInterpolate: false });
+    expect(result).toContain('ids=%5B1%2C%202%2C%203%5D');
+    expect(result).not.toContain('Error generating code snippet');
+  });
+
   it('should encode URL when encodeUrl is true', () => {
     const rawUrl = 'https://example.com/api?token=abc123==&type=test';
     const item = makeItem(rawUrl, { encodeUrl: true });

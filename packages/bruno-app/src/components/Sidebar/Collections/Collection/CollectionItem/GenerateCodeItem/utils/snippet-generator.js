@@ -32,6 +32,10 @@ const addCurlAuthFlags = (curlCommand, auth) => {
   return curlCommand;
 };
 
+const encodeHarUrl = (url) => {
+  return encodeUrlCommon(url).replace(/\[/g, '%5B').replace(/\]/g, '%5D');
+};
+
 const generateSnippet = ({ language, item, collection, shouldInterpolate = false }) => {
   try {
     // Get HTTPSnippet dynamically so mocks can be applied in tests
@@ -67,9 +71,16 @@ const generateSnippet = ({ language, item, collection, shouldInterpolate = false
       request.params = interpolateParams(request.params, variables);
     }
 
+    const settings = item.draft ? get(item, 'draft.settings') : get(item, 'settings');
+    const rawUrl = item.rawUrl || request.url;
+    const requestForSnippet = {
+      ...request,
+      url: encodeHarUrl(request.url)
+    };
+
     // Build HAR request
     const harRequest = buildHarRequest({
-      request,
+      request: requestForSnippet,
       headers
     });
 
@@ -85,9 +96,7 @@ const generateSnippet = ({ language, item, collection, shouldInterpolate = false
     // Respect encodeUrl setting: when not explicitly true, replace HTTPSnippet's encoded path+query with the raw version.
     // Replacing the path portion works for all targets since it's a substring of the full URL.
     // encodeUrl defaults to false in the UI when undefined/null
-    const settings = item.draft ? get(item, 'draft.settings') : get(item, 'settings');
-    const rawUrl = item.rawUrl || request.url;
-    const parsed = parse(request.url, true, true);
+    const parsed = parse(requestForSnippet.url, true, true);
     const search = stringify(parsed.query, { sort: false });
     const httpSnippetPath = search ? `${parsed.pathname}?${search}` : parsed.pathname;
 
@@ -95,7 +104,7 @@ const generateSnippet = ({ language, item, collection, shouldInterpolate = false
     if (settings?.encodeUrl === true) {
       // Apply the same encodeUrl() transform used by the actual request execution path
       // so the snippet matches what's sent on the wire.
-      const encodedUrl = encodeUrlCommon(rawUrl);
+      const encodedUrl = encodeHarUrl(rawUrl);
       desiredPath = stripOrigin(encodedUrl);
       // Strip fragment per RFC 3986 §3.5
       desiredPath = desiredPath.replace(/#.*$/, '');
