@@ -16,6 +16,10 @@ function splitAuthHeaderKeyValue(str) {
   return [key, value];
 }
 
+/**
+ * Split a digest auth challenge on commas that separate parameters, while
+ * preserving commas that appear inside quoted values.
+ */
 function splitAuthHeaderParams(authHeader) {
   const params = [];
   let current = '';
