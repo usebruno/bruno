@@ -30,7 +30,7 @@
     ]
   },
   "dependencies": {
-    "@aws-sdk/credential-providers": "3.1019.0",
+    "@aws-sdk/credential-providers": "3.750.0",
     "@grpc/grpc-js": "^1.13.2",
     "@grpc/proto-loader": "^0.7.13",
     "@lydell/node-pty": "^1.1.0",
@@ -61,6 +61,7 @@
     "extract-zip": "^2.0.1",
     "form-data": "4.0.4",
     "fs-extra": "^10.1.0",
+    "fzstd": "^0.1.1",
     "graphql": "^16.6.0",
     "hexy": "^0.3.5",
     "http-proxy-agent": "^7.0.0",
@@ -73,6 +74,7 @@
     "nanoid": "3.3.8",
     "qs": "^6.14.1",
     "simple-git": "3.32.3",
+    "selfsigned": "^2.4.1",
     "socks-proxy-agent": "^8.0.2",
     "tough-cookie": "^6.0.0",
     "uuid": "^10.0.0",
