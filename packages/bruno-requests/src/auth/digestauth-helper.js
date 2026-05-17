@@ -16,6 +16,45 @@ function splitAuthHeaderKeyValue(str) {
   return [key, value];
 }
 
+function splitAuthHeaderParams(authHeader) {
+  const params = [];
+  let current = '';
+  let insideQuotes = false;
+  let escaped = false;
+
+  for (const char of authHeader) {
+    if (escaped) {
+      current += char;
+      escaped = false;
+      continue;
+    }
+
+    if (char === '\\' && insideQuotes) {
+      current += char;
+      escaped = true;
+      continue;
+    }
+
+    if (char === '"') {
+      insideQuotes = !insideQuotes;
+    }
+
+    if (char === ',' && !insideQuotes) {
+      params.push(current);
+      current = '';
+      continue;
+    }
+
+    current += char;
+  }
+
+  if (current) {
+    params.push(current);
+  }
+
+  return params;
+}
+
 function containsDigestHeader(response) {
   const authHeader = response?.headers?.['www-authenticate'];
   return authHeader ? authHeader.trim().toLowerCase().startsWith('digest') : false;
@@ -60,8 +99,7 @@ export function addDigestInterceptor(axiosInstance, request) {
         console.debug('Processing Digest Authentication Challenge');
         console.debug(error.response.headers['www-authenticate']);
 
-        const authDetails = error.response.headers['www-authenticate']
-          .split(',')
+        const authDetails = splitAuthHeaderParams(error.response.headers['www-authenticate'])
           .map((pair) => splitAuthHeaderKeyValue(pair).map((item) => item.trim()).map(stripQuotes))
           .reduce((acc, [key, value]) => {
             const normalizedKey = key.toLowerCase().replace('digest ', '');
