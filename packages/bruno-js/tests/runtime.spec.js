@@ -90,6 +90,50 @@ describe('runtime', () => {
         { description: 'format valid', status: 'pass' }
       ]);
     });
+
+    it('should return stopExecution when tests request runner stop', async () => {
+      const testFile = `
+                bru.runner.stopExecution();
+            `;
+
+      const runtime = new TestRuntime({ runtime: 'nodevm' });
+      const result = await runtime.runTests(
+        testFile,
+        { ...baseRequest },
+        { ...baseResponse },
+        {},
+        {},
+        '.',
+        null,
+        process.env
+      );
+      expect(result.stopExecution).toBe(true);
+    });
+
+    it('should preserve stopExecution when a test script throws', async () => {
+      const testFile = `
+                bru.runner.stopExecution();
+                throw new Error('boom');
+            `;
+
+      const runtime = new TestRuntime({ runtime: 'nodevm' });
+      await expect(
+        runtime.runTests(
+          testFile,
+          { ...baseRequest },
+          { ...baseResponse },
+          {},
+          {},
+          '.',
+          null,
+          process.env
+        )
+      ).rejects.toMatchObject({
+        partialResults: expect.objectContaining({
+          stopExecution: true
+        })
+      });
+    });
   });
 
   describe('script-runtime', () => {
