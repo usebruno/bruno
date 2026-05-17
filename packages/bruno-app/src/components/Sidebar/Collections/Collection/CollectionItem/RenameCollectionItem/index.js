@@ -15,6 +15,7 @@ import Portal from 'components/Portal';
 import Dropdown from 'components/Dropdown';
 import StyledWrapper from './StyledWrapper';
 import Button from 'ui/Button';
+import { getRequestFileExtension } from './utils';
 
 const RenameCollectionItem = ({ collectionUid, item, onClose }) => {
   const dispatch = useDispatch();
@@ -25,6 +26,7 @@ const RenameCollectionItem = ({ collectionUid, item, onClose }) => {
   const itemName = item?.name;
   const itemType = item?.type;
   const itemFilename = item?.filename ? path.parse(item?.filename).name : '';
+  const requestFileExtension = getRequestFileExtension(item?.filename, collection?.format);
   const [showFilesystemName, toggleShowFilesystemName] = useState(false);
 
   const dropdownTippyRef = useRef();
@@ -188,7 +190,7 @@ const RenameCollectionItem = ({ collectionUid, item, onClose }) => {
                       onChange={formik.handleChange}
                       value={formik.values.filename || ''}
                     />
-                    {itemType !== 'folder' && <span className="absolute right-2 top-4 flex justify-center items-center file-extension">.{collection?.format || 'bru'}</span>}
+                    {itemType !== 'folder' && <span className="absolute right-2 top-4 flex justify-center items-center file-extension">.{requestFileExtension}</span>}
                   </div>
                 ) : (
                   <div className="relative flex flex-row gap-1 items-center justify-between">
