@@ -96,7 +96,7 @@ const ConnectSpecForm = ({ sourceUrl, setSourceUrl, isLoading, error, setError, 
                 className="url-input file-pick-btn"
                 onClick={() => fileInputRef.current?.click()}
               >
-                {sourceUrl ? sourceUrl.split(/[\\/]/).pop() : 'Choose file...'}
+                {sourceUrl ? sourceUrl.split(/[\\/]/).pop() : 'Select File'}
               </button>
             </>
           )}
