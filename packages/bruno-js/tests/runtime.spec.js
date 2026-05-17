@@ -259,6 +259,23 @@ describe('runtime', () => {
 
       expect(result.runtimeVariables.title).toBe('{{$randomFirstName}}');
     });
+
+    it('should preserve shared object references as duplicated values', async () => {
+      const script = `
+        const objectArray = [{ id: 'abc' }, { id: 'def' }];
+        const filteredArray = objectArray.filter((obj) => obj.id === 'abc');
+
+        bru.setVar('objectArray', objectArray);
+        bru.setVar('filteredArray', filteredArray);
+      `;
+
+      const runtime = new ScriptRuntime({ runtime: 'nodevm' });
+
+      const result = await runtime.runRequestScript(script, {}, {}, {}, '.', null, process.env);
+
+      expect(result.runtimeVariables.objectArray).toEqual([{ id: 'abc' }, { id: 'def' }]);
+      expect(result.runtimeVariables.filteredArray).toEqual([{ id: 'abc' }]);
+    });
   });
 
   describe('assert-runtime', () => {
