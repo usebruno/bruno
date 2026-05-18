@@ -9,7 +9,7 @@ import {
 import fs from 'fs';
 
 test.describe('Snapshot: Deleted Workspace Restoration', () => {
-  test('', async ({ launchElectronApp, createTmpDir }) => {
+  test('falls back to default workspace when saved workspace is deleted', async ({ launchElectronApp, createTmpDir }) => {
     const userDataPath = await createTmpDir('snap-workspace-state');
     const workspacePath = await createTmpDir('demo-workspace');
     const defaultCollectionPath = await createTmpDir('default-workspace-col');
