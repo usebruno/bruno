@@ -16,6 +16,7 @@ import stripJsonComments from 'strip-json-comments';
 import { getAllVariables } from 'utils/collections';
 import { setupLinkAware } from 'utils/codemirror/linkAware';
 import { setupLintErrorTooltip } from 'utils/codemirror/lint-errors';
+import { improveJsonErrorMessage } from 'utils/codemirror/json-lint-utils';
 import { setupCodeMirrorResizeRefresh } from 'utils/codemirror/resize';
 import CodeMirrorSearch from 'components/CodeMirrorSearch/index';
 import {
@@ -191,10 +192,11 @@ class CodeEditor extends React.Component {
         const line = location?.start?.line;
         const column = location?.start?.column;
         if (line && column) {
+          const improvedMessage = improveJsonErrorMessage(message, text, line, column);
           found.push({
             from: CodeMirror.Pos(line - 1, column),
             to: CodeMirror.Pos(line - 1, column),
-            message
+            message: improvedMessage || message
           });
         }
       }
