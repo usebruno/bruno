@@ -76,8 +76,65 @@ function hideLintTooltip() {
 }
 
 /**
+ * Auto-show the first lint error tooltip on the currently visible area
+ * Called after every lint update to help users notice errors immediately
+ */
+const autoShowFirstVisibleError = (editor, container) => {
+  const lintState = editor.state.lint;
+  if (!lintState || !lintState.marked || lintState.marked.length === 0) {
+    return;
+  }
+
+  // Get the first lint error that is in the visible viewport
+  const scrollInfo = editor.getScrollInfo();
+  const firstVisibleLine = editor.lineAtHeight(scrollInfo.top, 'local');
+  const lastVisibleLine = editor.lineAtHeight(scrollInfo.top + scrollInfo.clientHeight, 'local');
+
+  let firstErrorInView = null;
+  for (const mark of lintState.marked) {
+    if (mark.__annotation) {
+      const line = mark.__annotation.from?.line;
+      if (line >= firstVisibleLine && line <= lastVisibleLine) {
+        firstErrorInView = mark.__annotation;
+        break;
+      }
+    }
+  }
+
+  // If no error in view, use the first error overall
+  if (!firstErrorInView) {
+    for (const mark of lintState.marked) {
+      if (mark.__annotation) {
+        firstErrorInView = mark.__annotation;
+        break;
+      }
+    }
+    if (firstErrorInView) {
+      // Scroll to the first error
+      editor.scrollIntoView({ line: firstErrorInView.from.line, ch: 0 }, 100);
+    }
+  }
+
+  if (firstErrorInView) {
+    // Find the line number element to position the tooltip
+    const lineNumberElements = editor.getWrapperElement().querySelectorAll('.CodeMirror-linenumber');
+    for (const el of lineNumberElements) {
+      const lineNum = parseInt(el.textContent, 10) - 1;
+      if (lineNum === firstErrorInView.from.line) {
+        showLintTooltip([firstErrorInView], el, container);
+        // Auto-hide after 8 seconds
+        clearTimeout(window.__brunoLintAutoHide);
+        window.__brunoLintAutoHide = setTimeout(() => hideLintTooltip(), 8000);
+        break;
+      }
+    }
+  }
+};
+
+/**
  * Setup lint error tooltip functionality for a CodeMirror editor
  * Shows lint errors when hovering over line numbers
+ * Also auto-shows the first error briefly when lint errors are detected
  *
  * @param {CodeMirror} editor - The CodeMirror editor instance
  * @returns {Function} Cleanup function to remove event listeners
@@ -86,6 +143,18 @@ export function setupLintErrorTooltip(editor) {
   const wrapper = editor.getWrapperElement();
   // Get the StyledWrapper container (parent of CodeMirror wrapper)
   const container = wrapper.closest('.graphiql-container') || wrapper.parentElement;
+
+  // Auto-show first lint error when user stops typing (debounced)
+  let lintAutoShowTimer;
+  const originalPerformLint = editor.performLint;
+  editor.performLint = function() {
+    const result = originalPerformLint.apply(this, arguments);
+    clearTimeout(lintAutoShowTimer);
+    lintAutoShowTimer = setTimeout(() => {
+      autoShowFirstVisibleError(editor, container);
+    }, 1200);
+    return result;
+  };
 
   const handleMouseOver = (e) => {
     const target = e.target;
@@ -133,6 +202,7 @@ export function setupLintErrorTooltip(editor) {
 
   // Return cleanup function
   return () => {
+    clearTimeout(lintAutoShowTimer);
     wrapper.removeEventListener('mouseover', handleMouseOver);
     wrapper.removeEventListener('mouseout', handleMouseOut);
     editor.off('scroll', handleScroll);
