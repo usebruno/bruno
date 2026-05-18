@@ -147,6 +147,15 @@ export function setupLintErrorTooltip(editor) {
   // Auto-show first lint error when user stops typing (debounced)
   let lintAutoShowTimer;
   const originalPerformLint = editor.performLint;
+  if (!originalPerformLint || typeof originalPerformLint !== 'function') {
+    console.warn('CodeMirror performLint not available, lint auto-show disabled');
+    return () => {
+      wrapper.removeEventListener('mouseover', handleMouseOver);
+      wrapper.removeEventListener('mouseout', handleMouseOut);
+      editor.off('scroll', handleScroll);
+      hideLintTooltip();
+    };
+  }
   editor.performLint = function() {
     const result = originalPerformLint.apply(this, arguments);
     clearTimeout(lintAutoShowTimer);

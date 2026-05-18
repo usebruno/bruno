@@ -83,8 +83,9 @@ const improveJsonErrorMessage = (message, text, line, column) => {
   }
 
   // 5. Comments in JSON (JSON does not support comments)
+  // Use position-aware check to avoid false positives on URLs in strings
   if (message.includes('Unexpected token')) {
-    if (errorLine.includes('//') || errorLine.includes('/*')) {
+    if (errorLine.match(/^\s*(\/\/|\/\*)/) || (!errorLine.includes('"') && (errorLine.includes('//') || errorLine.includes('/*')))) {
       return [
         'Comments not allowed: JSON does not support // or /* */ comments.',
         'Kommentare nicht erlaubt: JSON unterstützt keine // oder /* */ Kommentare.'
