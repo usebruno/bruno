@@ -80,7 +80,7 @@
     "watch:common": "npm run watch --workspace=packages/bruno-common",
     "watch:requests": "npm run watch --workspace=packages/bruno-requests",
     "test:codegen": "node playwright/codegen.ts",
-    "test:e2e": "playwright test --project=default",
+    "test:e2e": "playwright test --project=default --project=system-pac",
     "test:e2e:ssl": "playwright test --project=ssl",
     "test:e2e:auth": "playwright test --project=auth",
     "test:benchmark": "playwright test --config=playwright.benchmark.config.ts",
