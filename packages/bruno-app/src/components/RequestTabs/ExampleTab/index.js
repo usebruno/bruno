@@ -26,11 +26,15 @@ const ExampleTab = ({ tab, collection }) => {
     if (!item?.examples) return null;
     const byUid = item.examples.find((ex) => ex.uid === tab.uid);
     if (byUid) return byUid;
+    if (typeof tab.exampleIndex === 'number' && tab.exampleIndex >= 0) {
+      const byIndex = item.examples[tab.exampleIndex];
+      if (byIndex) return byIndex;
+    }
     if (tab.exampleName) {
       return item.examples.find((ex) => ex.name === tab.exampleName);
     }
     return null;
-  }, [item?.examples, tab.uid, tab.exampleName]);
+  }, [item?.examples, tab.uid, tab.exampleIndex, tab.exampleName]);
 
   const hasChanges = useMemo(() => hasExampleChanges(item, example?.uid), [item, example?.uid]);
 

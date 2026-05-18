@@ -2,7 +2,7 @@ import path from 'path';
 import fs from 'fs';
 import yaml from 'js-yaml';
 import { test, expect, closeElectronApp } from '../../../playwright';
-import { switchWorkspace, createCollection } from '../../utils/page';
+import { switchWorkspace, createCollection, waitForReadyPage } from '../../utils/page';
 
 type CollectionEntry = { name?: string; path?: string; remote?: string };
 type WorkspaceConfig = { collections?: CollectionEntry[] };
@@ -40,8 +40,7 @@ test.describe('Git-backed collections', () => {
       await copyFixture('workspace-with-collection', workspacePath);
 
       const app = await launchElectronApp({ initUserDataPath, templateVars: { workspacePath } });
-      const page = await app.firstWindow();
-      await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
+      const page = await waitForReadyPage(app);
 
       await switchWorkspace(page, FIXTURE_WS_NAME);
 
@@ -88,8 +87,7 @@ test.describe('Git-backed collections', () => {
       await copyFixture('workspace-with-collection', workspacePath);
 
       const app = await launchElectronApp({ initUserDataPath, templateVars: { workspacePath } });
-      const page = await app.firstWindow();
-      await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
+      const page = await waitForReadyPage(app);
 
       await switchWorkspace(page, FIXTURE_WS_NAME);
 
@@ -140,8 +138,7 @@ test.describe('Git-backed collections', () => {
       await copyFixture('workspace-with-collection', workspacePath);
 
       const app = await launchElectronApp({ initUserDataPath, templateVars: { workspacePath } });
-      const page = await app.firstWindow();
-      await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
+      const page = await waitForReadyPage(app);
 
       await switchWorkspace(page, FIXTURE_WS_NAME);
 
@@ -187,8 +184,7 @@ test.describe('Git-backed collections', () => {
       const collectionDir = await createTmpDir('git-default-coll');
 
       const app = await launchElectronApp();
-      const page = await app.firstWindow();
-      await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
+      const page = await waitForReadyPage(app);
 
       await test.step('Verify we are on the default workspace', async () => {
         await expect(page.getByTestId('workspace-name')).toHaveText('My Workspace', { timeout: 5000 });
@@ -221,8 +217,7 @@ test.describe('Git-backed collections', () => {
       await copyFixture('workspace-with-ghost', workspacePath);
 
       const app = await launchElectronApp({ initUserDataPath, templateVars: { workspacePath } });
-      const page = await app.firstWindow();
-      await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
+      const page = await waitForReadyPage(app);
 
       await switchWorkspace(page, GHOST_WS_NAME);
 
@@ -253,8 +248,7 @@ test.describe('Git-backed collections', () => {
       await copyFixture('workspace-with-ghost', workspacePath);
 
       const app = await launchElectronApp({ initUserDataPath, templateVars: { workspacePath } });
-      const page = await app.firstWindow();
-      await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
+      const page = await waitForReadyPage(app);
 
       await switchWorkspace(page, GHOST_WS_NAME);
 

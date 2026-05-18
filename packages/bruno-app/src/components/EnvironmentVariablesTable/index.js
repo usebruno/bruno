@@ -151,17 +151,21 @@ const EnvironmentVariablesTable = ({
   const prevEnvVariablesRef = useRef(environment.variables);
   const mountedRef = useRef(false);
 
-  let _collection = collection ? cloneDeep(collection) : {};
   const globalEnvironmentVariables = getGlobalEnvironmentVariables({ globalEnvironments, activeGlobalEnvironmentUid });
-  if (_collection) {
-    _collection.globalEnvironmentVariables = globalEnvironmentVariables;
-  }
-
-  // When collection is null (global/workspace environments), populate process env
-  // variables from the active workspace so that {{process.env.X}} can resolve
-  if (!collection && activeWorkspace?.processEnvVariables) {
-    _collection.workspaceProcessEnvVariables = activeWorkspace.processEnvVariables;
-  }
+  const workspaceProcessEnvVariables = activeWorkspace?.processEnvVariables;
+  // `_collection` flows into every row's MultiLineEditor as the variable-resolution
+  // context. Without memoization, `cloneDeep(collection)` runs on every render —
+  // and Formik triggers a re-render on every keystroke, so a single env edit
+  // session can deep-clone the entire collection 100+ times. That's the
+  // dominant cost behind the test-budget flake.
+  const _collection = useMemo(() => {
+    const c = collection ? cloneDeep(collection) : {};
+    c.globalEnvironmentVariables = globalEnvironmentVariables;
+    if (!collection && workspaceProcessEnvVariables) {
+      c.workspaceProcessEnvVariables = workspaceProcessEnvVariables;
+    }
+    return c;
+  }, [collection, globalEnvironmentVariables, workspaceProcessEnvVariables]);
 
   const initialValues = useMemo(() => {
     const vars = environment.variables || [];

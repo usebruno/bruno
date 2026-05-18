@@ -1683,8 +1683,14 @@ export const collectionsSlice = createSlice({
           if (!item.draft) {
             item.draft = cloneDeep(item);
           }
-          item.draft.request.auth = {};
-          item.draft.request.auth.mode = action.payload.mode;
+          const newMode = action.payload.mode;
+          const savedAuth = get(item, 'request.auth');
+          const savedMode = get(savedAuth, 'mode');
+          if (newMode === savedMode) {
+            item.draft.request.auth = cloneDeep(savedAuth);
+          } else {
+            item.draft.request.auth = { mode: newMode };
+          }
         }
       }
     },
@@ -2113,8 +2119,14 @@ export const collectionsSlice = createSlice({
             root: cloneDeep(collection.root)
           };
         }
-        set(collection, 'draft.root.request.auth', {});
-        set(collection, 'draft.root.request.auth.mode', action.payload.mode);
+        const newMode = action.payload.mode;
+        const savedAuth = get(collection, 'root.request.auth');
+        const savedMode = get(savedAuth, 'mode');
+        if (newMode === savedMode) {
+          set(collection, 'draft.root.request.auth', cloneDeep(savedAuth));
+        } else {
+          set(collection, 'draft.root.request.auth', { mode: newMode });
+        }
       }
     },
     updateCollectionAuth: (state, action) => {
@@ -3322,8 +3334,14 @@ export const collectionsSlice = createSlice({
         if (!folder.draft) {
           folder.draft = cloneDeep(folder.root);
         }
-        set(folder, 'draft.request.auth', {});
-        set(folder, 'draft.request.auth.mode', action.payload.mode);
+        const newMode = action.payload.mode;
+        const savedAuth = get(folder, 'root.request.auth');
+        const savedMode = get(savedAuth, 'mode');
+        if (newMode === savedMode) {
+          set(folder, 'draft.request.auth', cloneDeep(savedAuth));
+        } else {
+          set(folder, 'draft.request.auth', { mode: newMode });
+        }
       }
     },
     streamDataReceived: (state, action) => {

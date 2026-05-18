@@ -48,13 +48,22 @@ test.describe('Global Environment Import Tests', () => {
     const envTab = page.locator('.request-tab').filter({ hasText: 'Global Environments' });
     await expect(envTab).toBeVisible();
 
+    // Environment variables table uses react-virtuoso (virtual scroll),
+    // so only visible rows are in the DOM. Verify first visible batch,
+    // then scroll to reveal the rest.
     const variablesTable = page.locator('.table-container');
-    await expect(variablesTable.locator('input[name="0.name"]')).toHaveValue('host');
-    await expect(variablesTable.locator('input[name="1.name"]')).toHaveValue('userId');
-    await expect(variablesTable.locator('input[name="2.name"]')).toHaveValue('apiKey');
-    await expect(variablesTable.locator('input[name="3.name"]')).toHaveValue('postTitle');
-    await expect(variablesTable.locator('input[name="4.name"]')).toHaveValue('postBody');
-    await expect(variablesTable.locator('input[name="5.name"]')).toHaveValue('secretApiToken');
+    const envNameInputs = variablesTable.locator('input[name$=".name"]');
+    await expect(envNameInputs.nth(0)).toHaveValue('host');
+    await expect(envNameInputs.nth(1)).toHaveValue('userId');
+    await expect(envNameInputs.nth(2)).toHaveValue('apiKey');
+
+    // Scroll the virtualized table to reveal remaining rows
+    await variablesTable.evaluate((el) => el.scrollTop = el.scrollHeight);
+    await page.waitForTimeout(500);
+
+    await expect(variablesTable.locator('input[name$=".name"][value="postTitle"]')).toBeVisible();
+    await expect(variablesTable.locator('input[name$=".name"][value="postBody"]')).toBeVisible();
+    await expect(variablesTable.locator('input[name$=".name"][value="secretApiToken"]')).toBeVisible();
     await expect(variablesTable.locator('input[name="5.secret"]')).toBeChecked();
     await envTab.hover();
     await envTab.getByTestId('request-tab-close-icon').click({ force: true });

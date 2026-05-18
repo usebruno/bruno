@@ -256,7 +256,7 @@ const OAuth1 = ({ item = {}, collection, request, save, updateAuth }) => {
                 <button
                   className="flex items-center gap-1 oauth1-icon cursor-pointer text-link"
                   onClick={handleBrowse}
-                  title="Select file"
+                  title="Select File"
                   type="button"
                 >
                   <IconUpload size={14} />

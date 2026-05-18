@@ -439,7 +439,7 @@ const ProxySettings = ({ close }) => {
                   >
                     {formik.values.pac.source
                       ? decodeURIComponent(formik.values.pac.source.split('/').pop())
-                      : 'Choose file...'}
+                      : 'Select File'}
                   </button>
                 )}
                 {formik.touched.pac?.source && formik.errors.pac?.source ? (
