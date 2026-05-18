@@ -2,12 +2,12 @@ import React, { useMemo, useCallback, useRef } from 'react';
 import Documentation from 'components/Documentation/index';
 import RequestHeaders from 'components/RequestPane/RequestHeaders';
 import StatusDot from 'components/StatusDot/index';
-import { find } from 'lodash';
+import { find, get } from 'lodash';
 import { updateRequestPaneTab } from 'providers/ReduxStore/slices/tabs';
 import { useDispatch, useSelector } from 'react-redux';
 import HeightBoundContainer from 'ui/HeightBoundContainer';
 import ResponsiveTabs from 'ui/ResponsiveTabs';
-import { getPropertyFromDraftOrRequest } from 'utils/collections/index';
+import { getPropertyFromDraftOrRequest, getTreePathFromCollectionToItem } from 'utils/collections/index';
 import WsBody from '../WsBody/index';
 import StyledWrapper from './StyledWrapper';
 import WSAuth from './WSAuth';
@@ -38,6 +38,23 @@ const WSRequestPane = ({ item, collection, handleRun }) => {
   const docs = getPropertyFromDraftOrRequest(item, 'request.docs');
   const auth = getPropertyFromDraftOrRequest(item, 'request.auth');
 
+  const getEffectiveAuthMode = () => {
+    if (auth?.mode !== 'inherit') return auth?.mode;
+    const requestTreePath = getTreePathFromCollectionToItem(collection, item);
+    for (let i of [...requestTreePath].reverse()) {
+      if (i.type === 'folder') {
+        const folderAuth = get(i, 'root.request.auth');
+        if (folderAuth && folderAuth.mode && folderAuth.mode !== 'none' && folderAuth.mode !== 'inherit') {
+          return folderAuth.mode;
+        }
+      }
+    }
+    const collectionRoot = collection?.draft?.root || collection?.root || {};
+    return get(collectionRoot, 'request.auth.mode');
+  };
+  const effectiveAuthMode = getEffectiveAuthMode();
+  const hasAuth = effectiveAuthMode && effectiveAuthMode !== 'none';
+
   const activeHeadersLength = headers.filter((header) => header.enabled).length;
 
   const allTabs = useMemo(() => {
@@ -55,7 +72,7 @@ const WSRequestPane = ({ item, collection, handleRun }) => {
       {
         key: 'auth',
         label: 'Auth',
-        indicator: auth.mode !== 'none' ? <StatusDot type="default" /> : null
+        indicator: hasAuth ? <StatusDot type="default" /> : null
       },
       {
         key: 'settings',
@@ -68,7 +85,7 @@ const WSRequestPane = ({ item, collection, handleRun }) => {
         indicator: docs && docs.length > 0 ? <StatusDot type="default" /> : null
       }
     ];
-  }, [activeHeadersLength, auth.mode, docs]);
+  }, [activeHeadersLength, hasAuth, docs]);
 
   const tabPanel = useMemo(() => {
     switch (requestPaneTab) {

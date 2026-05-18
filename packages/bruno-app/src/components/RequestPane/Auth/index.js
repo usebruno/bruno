@@ -15,22 +15,11 @@ import ApiKeyAuth from './ApiKeyAuth';
 import StyledWrapper from './StyledWrapper';
 import { humanizeRequestAuthMode } from 'utils/collections';
 import OAuth2 from './OAuth2/index';
-import { findItemInCollection, findParentItemInCollection } from 'utils/collections/index';
-
-const getTreePathFromCollectionToItem = (collection, _item) => {
-  let path = [];
-  let item = findItemInCollection(collection, _item?.uid);
-  while (item) {
-    path.unshift(item);
-    item = findParentItemInCollection(collection, item?.uid);
-  }
-  return path;
-};
+import { getEffectiveAuthSource } from 'utils/auth';
 
 const Auth = ({ item, collection }) => {
   const dispatch = useDispatch();
   const authMode = item.draft ? get(item, 'draft.request.auth.mode') : get(item, 'request.auth.mode');
-  const requestTreePath = getTreePathFromCollectionToItem(collection, item);
 
   // Create a request object to pass to the auth components
   const request = item.draft
@@ -40,35 +29,6 @@ const Auth = ({ item, collection }) => {
   // Save function for request level
   const save = () => {
     return dispatch(saveRequest(item.uid, collection.uid));
-  };
-
-  const getEffectiveAuthSource = () => {
-    if (authMode !== 'inherit') return null;
-
-    const collectionRoot = collection?.draft?.root || collection?.root || {};
-    const collectionAuth = get(collectionRoot, 'request.auth');
-    let effectiveSource = {
-      type: 'collection',
-      name: 'Collection',
-      auth: collectionAuth
-    };
-
-    // Check folders in reverse to find the closest auth configuration
-    for (let i of [...requestTreePath].reverse()) {
-      if (i.type === 'folder') {
-        const folderAuth = get(i, 'root.request.auth');
-        if (folderAuth && folderAuth.mode && folderAuth.mode !== 'inherit') {
-          effectiveSource = {
-            type: 'folder',
-            name: i.name,
-            auth: folderAuth
-          };
-          break;
-        }
-      }
-    }
-
-    return effectiveSource;
   };
 
   const getAuthView = () => {
@@ -104,7 +64,7 @@ const Auth = ({ item, collection }) => {
         return <ApiKeyAuth collection={collection} item={item} request={request} save={save} updateAuth={updateAuth} />;
       }
       case 'inherit': {
-        const source = getEffectiveAuthSource();
+        const source = getEffectiveAuthSource(collection, item);
         return (
           <>
             <div className="flex flex-row w-full gap-2">

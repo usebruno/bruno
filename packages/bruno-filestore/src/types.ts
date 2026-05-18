@@ -20,3 +20,10 @@ export interface WorkerTask {
 export interface Lane {
   maxSize: number;
 }
+
+export interface BrunoPresetsExtension {
+  request?: {
+    type?: string;
+    url?: string;
+  };
+}

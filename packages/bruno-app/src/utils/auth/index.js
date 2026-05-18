@@ -41,3 +41,35 @@ export const resolveInheritedAuth = (item, collection) => {
     auth: effectiveAuth
   };
 };
+
+export const getEffectiveAuthSource = (collection, item) => {
+  const authMode = item?.draft
+    ? get(item, 'draft.request.auth.mode')
+    : (get(item, 'request.auth.mode') ?? get(item, 'root.request.auth.mode'));
+  if (authMode !== 'inherit') return null;
+
+  const collectionRoot = collection?.draft?.root || collection?.root || {};
+  const collectionAuth = get(collectionRoot, 'request.auth');
+  let effectiveSource = {
+    type: 'collection',
+    name: 'Collection',
+    auth: collectionAuth
+  };
+
+  const requestTreePath = getTreePathFromCollectionToItem(collection, item);
+  for (let i of [...requestTreePath].reverse()) {
+    if (i?.uid === item?.uid) continue;
+    if (i?.type !== 'folder') continue;
+    const folderAuth = get(i, 'root.request.auth');
+    if (folderAuth && folderAuth.mode && folderAuth.mode !== 'inherit') {
+      effectiveSource = {
+        type: 'folder',
+        name: i.name,
+        auth: folderAuth
+      };
+      break;
+    }
+  }
+
+  return effectiveSource;
+};

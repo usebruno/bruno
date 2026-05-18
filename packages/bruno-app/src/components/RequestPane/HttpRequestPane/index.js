@@ -18,6 +18,7 @@ import StatusDot from 'components/StatusDot';
 import ResponsiveTabs from 'ui/ResponsiveTabs';
 import HeightBoundContainer from 'ui/HeightBoundContainer';
 import AuthMode from '../Auth/AuthMode/index';
+import { getEffectiveAuthSource } from 'utils/auth';
 
 const TAB_CONFIG = [
   { key: 'params', label: 'Params' },
@@ -54,7 +55,6 @@ const HttpRequestPane = ({ item, collection }) => {
 
   const focusedTab = find(tabs, (t) => t.uid === activeTabUid);
   const requestPaneTab = focusedTab?.requestPaneTab;
-
   const getProperty = useCallback(
     (key) => (item.draft ? get(item, `draft.${key}`, []) : get(item, key, [])),
     [item.draft, item]
@@ -90,11 +90,15 @@ const HttpRequestPane = ({ item, collection }) => {
     const hasScriptError = item.preRequestScriptErrorMessage || item.postResponseScriptErrorMessage;
     const hasTestError = item.testScriptErrorMessage;
 
+    const source = auth.mode === 'inherit' ? getEffectiveAuthSource(collection, item) : null;
+    const effectiveAuthMode = auth.mode === 'inherit' ? source?.auth?.mode : auth.mode;
+    const hasAuth = effectiveAuthMode && effectiveAuthMode !== 'none';
+
     return {
       params: activeCounts.params > 0 ? <sup className="font-medium">{activeCounts.params}</sup> : null,
       body: body.mode !== 'none' ? <StatusDot /> : null,
       headers: activeCounts.headers > 0 ? <sup className="font-medium">{activeCounts.headers}</sup> : null,
-      auth: auth.mode !== 'none' ? <StatusDot /> : null,
+      auth: hasAuth ? <StatusDot /> : null,
       vars: activeCounts.vars > 0 ? <sup className="font-medium">{activeCounts.vars}</sup> : null,
       script: (script.req || script.res) ? (hasScriptError ? <StatusDot type="error" /> : <StatusDot />) : null,
       assert: activeCounts.assertions > 0 ? <sup className="font-medium">{activeCounts.assertions}</sup> : null,
@@ -102,7 +106,7 @@ const HttpRequestPane = ({ item, collection }) => {
       docs: docs?.length > 0 ? <StatusDot /> : null,
       settings: tags?.length > 0 ? <StatusDot /> : null
     };
-  }, [activeCounts, body.mode, auth.mode, script, item.preRequestScriptErrorMessage, item.postResponseScriptErrorMessage, item.testScriptErrorMessage, tests, docs, tags]);
+  }, [activeCounts, body.mode, auth.mode, script, item, collection, item.preRequestScriptErrorMessage, item.postResponseScriptErrorMessage, item.testScriptErrorMessage, tests, docs, tags]);
 
   const allTabs = useMemo(
     () => TAB_CONFIG.map(({ key, label }) => ({ key, label, indicator: indicators[key] })),

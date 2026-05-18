@@ -9,7 +9,7 @@ import OAuth2 from '../../Auth/OAuth2/index';
 import WsseAuth from '../../Auth/WsseAuth';
 import StyledWrapper from './StyledWrapper';
 import { humanizeRequestAuthMode } from 'utils/collections';
-import { getTreePathFromCollectionToItem } from 'utils/collections/index';
+import { getEffectiveAuthSource } from 'utils/auth';
 import { updateRequestAuthMode, updateAuth } from 'providers/ReduxStore/slices/collections';
 import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 
@@ -22,7 +22,6 @@ const supportedGrpcAuthModes = ['basic', 'bearer', 'apikey', 'oauth2', 'wsse', '
 const GrpcAuth = ({ item, collection }) => {
   const dispatch = useDispatch();
   const authMode = item.draft ? get(item, 'draft.request.auth.mode') : get(item, 'request.auth.mode');
-  const requestTreePath = getTreePathFromCollectionToItem(collection, item);
 
   const request = item.draft
     ? get(item, 'draft.request', {})
@@ -45,35 +44,6 @@ const GrpcAuth = ({ item, collection }) => {
     }
   }, [authMode, collection.uid, dispatch, item.uid]);
 
-  const getEffectiveAuthSource = () => {
-    if (authMode !== 'inherit') return null;
-
-    const collectionRoot = collection?.draft?.root || collection?.root || {};
-    const collectionAuth = get(collectionRoot, 'request.auth');
-    let effectiveSource = {
-      type: 'collection',
-      name: 'Collection',
-      auth: collectionAuth
-    };
-
-    // Check folders in reverse to find the closest auth configuration
-    for (let i of [...requestTreePath].reverse()) {
-      if (i.type === 'folder') {
-        const folderAuth = get(i, 'root.request.auth');
-        if (folderAuth && folderAuth.mode && folderAuth.mode !== 'none' && folderAuth.mode !== 'inherit') {
-          effectiveSource = {
-            type: 'folder',
-            name: i.name,
-            auth: folderAuth
-          };
-          break;
-        }
-      }
-    }
-
-    return effectiveSource;
-  };
-
   const getAuthView = () => {
     switch (authMode) {
       case 'none': {
@@ -95,7 +65,7 @@ const GrpcAuth = ({ item, collection }) => {
         return <WsseAuth collection={collection} item={item} updateAuth={updateAuth} request={request} save={save} />;
       }
       case 'inherit': {
-        const source = getEffectiveAuthSource();
+        const source = getEffectiveAuthSource(collection, item);
 
         // Only show inherited auth if it's one of the supported types
         if (source && supportedGrpcAuthModes.includes(source.auth?.mode)) {
