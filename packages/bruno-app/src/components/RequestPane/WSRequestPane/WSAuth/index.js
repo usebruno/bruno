@@ -6,7 +6,7 @@ import BasicAuth from '../../Auth/BasicAuth';
 import ApiKeyAuth from '../../Auth/ApiKeyAuth';
 import StyledWrapper from './StyledWrapper';
 import { humanizeRequestAuthMode } from 'utils/collections';
-import { getTreePathFromCollectionToItem } from 'utils/collections/index';
+import { getEffectiveAuthSource } from 'utils/auth';
 import { updateRequestAuthMode, updateAuth } from 'providers/ReduxStore/slices/collections';
 import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 
@@ -15,7 +15,6 @@ const supportedAuthModes = ['basic', 'bearer', 'apikey', 'oauth2', 'none', 'inhe
 const WSAuth = ({ item, collection }) => {
   const dispatch = useDispatch();
   const authMode = item.draft ? get(item, 'draft.request.auth.mode') : get(item, 'request.auth.mode');
-  const requestTreePath = getTreePathFromCollectionToItem(collection, item);
 
   const request = item.draft
     ? get(item, 'draft.request', {})
@@ -35,35 +34,6 @@ const WSAuth = ({ item, collection }) => {
       }));
     }
   }, [authMode, collection.uid, dispatch, item.uid]);
-
-  const getEffectiveAuthSource = () => {
-    if (authMode !== 'inherit') return null;
-
-    const collectionRoot = collection?.draft?.root || collection?.root || {};
-    const collectionAuth = get(collectionRoot, 'request.auth');
-    let effectiveSource = {
-      type: 'collection',
-      name: 'Collection',
-      auth: collectionAuth
-    };
-
-    // Check folders in reverse to find the closest auth configuration
-    for (let i of [...requestTreePath].reverse()) {
-      if (i.type === 'folder') {
-        const folderAuth = get(i, 'root.request.auth');
-        if (folderAuth && folderAuth.mode && folderAuth.mode !== 'none' && folderAuth.mode !== 'inherit') {
-          effectiveSource = {
-            type: 'folder',
-            name: i.name,
-            auth: folderAuth
-          };
-          break;
-        }
-      }
-    }
-
-    return effectiveSource;
-  };
 
   const getAuthView = () => {
     switch (authMode) {
@@ -91,7 +61,7 @@ const WSAuth = ({ item, collection }) => {
         );
       }
       case 'inherit': {
-        const source = getEffectiveAuthSource();
+        const source = getEffectiveAuthSource(collection, item);
 
         // Check if inherited auth is OAuth1/OAuth2 - not supported for WebSockets
         if (source?.auth?.mode === 'oauth1' || source?.auth?.mode === 'oauth2') {

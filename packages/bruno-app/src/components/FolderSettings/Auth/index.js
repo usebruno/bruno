@@ -18,8 +18,9 @@ import OAuth1 from 'components/RequestPane/Auth/OAuth1';
 import WsseAuth from 'components/RequestPane/Auth/WsseAuth';
 import ApiKeyAuth from 'components/RequestPane/Auth/ApiKeyAuth';
 import AwsV4Auth from 'components/RequestPane/Auth/AwsV4Auth';
-import { humanizeRequestAuthMode, getTreePathFromCollectionToItem } from 'utils/collections/index';
+import { humanizeRequestAuthMode } from 'utils/collections/index';
 import Button from 'ui/Button';
+import { getEffectiveAuthSource } from 'utils/auth';
 
 const GrantTypeComponentMap = ({ collection, folder, updateFolderAuth }) => {
   const dispatch = useDispatch();
@@ -51,41 +52,6 @@ const Auth = ({ collection, folder }) => {
   const folderRoot = folder?.draft || folder?.root;
   let request = get(folderRoot, 'request', {});
   const authMode = get(folderRoot, 'request.auth.mode');
-
-  const getEffectiveAuthSource = () => {
-    if (authMode !== 'inherit') return null;
-
-    const collectionRoot = collection?.draft?.root || collection?.root || {};
-    const collectionAuth = get(collectionRoot, 'request.auth');
-    let effectiveSource = {
-      type: 'collection',
-      name: 'Collection',
-      auth: collectionAuth
-    };
-
-    // Get path from collection to current folder
-    const folderTreePath = getTreePathFromCollectionToItem(collection, folder);
-
-    // Check parent folders to find closest auth configuration
-    // Skip the last item which is the current folder
-    for (let i = 0; i < folderTreePath.length - 1; i++) {
-      const parentFolder = folderTreePath[i];
-      if (parentFolder.type === 'folder') {
-        const parentFolderRoot = parentFolder?.draft || parentFolder?.root;
-        const folderAuth = get(parentFolderRoot, 'request.auth');
-        if (folderAuth && folderAuth.mode && folderAuth.mode !== 'inherit') {
-          effectiveSource = {
-            type: 'folder',
-            name: parentFolder.name,
-            auth: folderAuth
-          };
-          break;
-        }
-      }
-    }
-
-    return effectiveSource;
-  };
 
   const handleSave = () => {
     dispatch(saveFolderRoot(collection.uid, folder.uid));
@@ -202,7 +168,7 @@ const Auth = ({ collection, folder }) => {
         );
       }
       case 'inherit': {
-        const source = getEffectiveAuthSource();
+        const source = getEffectiveAuthSource(collection, folder);
         return (
           <>
             <div className="flex flex-row w-full mt-2 gap-2">

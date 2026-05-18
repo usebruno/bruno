@@ -8,8 +8,9 @@ import GrpcAuthMode from './GrpcAuth/GrpcAuthMode/index';
 import StatusDot from 'components/StatusDot/index';
 import HeightBoundContainer from 'ui/HeightBoundContainer';
 import find from 'lodash/find';
+import get from 'lodash/get';
 import Documentation from 'components/Documentation/index';
-import { getPropertyFromDraftOrRequest } from 'utils/collections/index';
+import { getPropertyFromDraftOrRequest, getTreePathFromCollectionToItem } from 'utils/collections/index';
 import ResponsiveTabs from 'ui/ResponsiveTabs';
 import StyledWrapper from './StyledWrapper';
 
@@ -55,6 +56,23 @@ const GrpcRequestPane = ({ item, collection, handleRun }) => {
   const docs = getPropertyFromDraftOrRequest(item, 'request.docs');
   const auth = getPropertyFromDraftOrRequest(item, 'request.auth');
 
+  const getEffectiveAuthMode = () => {
+    if (auth?.mode !== 'inherit') return auth?.mode;
+    const requestTreePath = getTreePathFromCollectionToItem(collection, item);
+    for (let i of [...requestTreePath].reverse()) {
+      if (i.type === 'folder') {
+        const folderAuth = get(i, 'root.request.auth');
+        if (folderAuth && folderAuth.mode && folderAuth.mode !== 'none' && folderAuth.mode !== 'inherit') {
+          return folderAuth.mode;
+        }
+      }
+    }
+    const collectionRoot = collection?.draft?.root || collection?.root || {};
+    return get(collectionRoot, 'request.auth.mode');
+  };
+  const effectiveAuthMode = getEffectiveAuthMode();
+  const hasAuth = effectiveAuthMode && effectiveAuthMode !== 'none';
+
   const activeHeadersLength = headers.filter((header) => header.enabled).length;
   const grpcMessagesCount = body?.grpc?.length || 0;
 
@@ -88,7 +106,7 @@ const GrpcRequestPane = ({ item, collection, handleRun }) => {
       {
         key: 'auth',
         label: 'Auth',
-        indicator: auth?.mode && auth.mode !== 'none' ? <StatusDot type="default" /> : null
+        indicator: hasAuth ? <StatusDot type="default" /> : null
       },
       {
         key: 'docs',
@@ -96,7 +114,7 @@ const GrpcRequestPane = ({ item, collection, handleRun }) => {
         indicator: docs && docs.length > 0 ? <StatusDot type="default" /> : null
       }
     ];
-  }, [grpcMessagesCount, isClientStreaming, activeHeadersLength, auth?.mode, docs]);
+  }, [grpcMessagesCount, isClientStreaming, activeHeadersLength, hasAuth, docs]);
 
   // Initialize tab to 'body' if no tab is currently set
   useEffect(() => {

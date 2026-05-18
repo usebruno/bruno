@@ -23,11 +23,12 @@ import { updateRequestGraphqlQuery, updateRequestGraphqlVariables } from 'provid
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import Documentation from 'components/Documentation/index';
 import useGraphqlSchema from '../GraphQLSchemaActions/useGraphqlSchema';
-import { findEnvironmentInCollection } from 'utils/collections';
+import { findEnvironmentInCollection, getTreePathFromCollectionToItem } from 'utils/collections';
 import HeightBoundContainer from 'ui/HeightBoundContainer';
 import Settings from 'components/RequestPane/Settings';
 import ResponsiveTabs from 'ui/ResponsiveTabs';
 import AuthMode from '../Auth/AuthMode/index';
+import StatusDot from 'components/StatusDot';
 
 const TAB_CONFIG = [
   { key: 'query', label: 'Query' },
@@ -172,7 +173,33 @@ const GraphQLRequestPane = ({ item, collection, onSchemaLoad, toggleDocs, handle
     [dispatch, item.uid]
   );
 
-  const allTabs = useMemo(() => TAB_CONFIG.map(({ key, label }) => ({ key, label })), []);
+  const auth = item.draft ? get(item, 'draft.request.auth') : get(item, 'request.auth');
+
+  const getEffectiveAuthMode = () => {
+    if (auth?.mode !== 'inherit') return auth?.mode;
+    const requestTreePath = getTreePathFromCollectionToItem(collection, item);
+    for (let i of [...requestTreePath].reverse()) {
+      if (i.type === 'folder') {
+        const folderAuth = get(i, 'root.request.auth');
+        if (folderAuth && folderAuth.mode && folderAuth.mode !== 'none' && folderAuth.mode !== 'inherit') {
+          return folderAuth.mode;
+        }
+      }
+    }
+    const collectionRoot = collection?.draft?.root || collection?.root || {};
+    return get(collectionRoot, 'request.auth.mode');
+  };
+  const effectiveAuthMode = getEffectiveAuthMode();
+  const hasAuth = effectiveAuthMode && effectiveAuthMode !== 'none';
+
+  const allTabs = useMemo(
+    () => TAB_CONFIG.map(({ key, label }) => ({
+      key,
+      label,
+      indicator: key === 'auth' && hasAuth ? <StatusDot /> : null
+    })),
+    [hasAuth]
+  );
 
   const handlePrettify = useCallback(() => {
     if (queryEditorRef.current?.beautifyRequestBody) {
