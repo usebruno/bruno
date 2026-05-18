@@ -144,26 +144,21 @@ export function setupLintErrorTooltip(editor) {
   // Get the StyledWrapper container (parent of CodeMirror wrapper)
   const container = wrapper.closest('.graphiql-container') || wrapper.parentElement;
 
-  // Auto-show first lint error when user stops typing (debounced)
+  // Auto-show first lint error when user stops typing (debounced on change event)
   let lintAutoShowTimer;
-  const originalPerformLint = editor.performLint;
-  if (!originalPerformLint || typeof originalPerformLint !== 'function') {
-    console.warn('CodeMirror performLint not available, lint auto-show disabled');
-    return () => {
-      wrapper.removeEventListener('mouseover', handleMouseOver);
-      wrapper.removeEventListener('mouseout', handleMouseOut);
-      editor.off('scroll', handleScroll);
-      hideLintTooltip();
-    };
-  }
-  editor.performLint = function() {
-    const result = originalPerformLint.apply(this, arguments);
+  editor.on('change', () => {
     clearTimeout(lintAutoShowTimer);
     lintAutoShowTimer = setTimeout(() => {
-      autoShowFirstVisibleError(editor, container);
+      // Force lint refresh, then show first error
+      if (editor.performLint) {
+        editor.performLint();
+      }
+      // Small delay to let lint markers populate
+      setTimeout(() => {
+        autoShowFirstVisibleError(editor, container);
+      }, 200);
     }, 1200);
-    return result;
-  };
+  });
 
   const handleMouseOver = (e) => {
     const target = e.target;
