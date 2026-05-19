@@ -310,14 +310,14 @@ The `-r` flag tells `bru run` to recurse into subfolders. Without it, `bru` only
 
 ### Try it from this repo
 
-A ready-to-run `docker-compose.yml` lives inside this repo's test collection at [`packages/bruno-tests/collection/docker-compose.yml`](../../bruno-tests/collection/docker-compose.yml). Run it directly:
+A ready-to-run `docker-compose.yml` lives in this repo at [`packages/bruno-tests/docker-compose.yml`](../../bruno-tests/docker-compose.yml). It mounts the sibling `collection/` directory into the container and runs the `echo` folder against the `Prod` environment:
 
 ```bash
-cd packages/bruno-tests/collection
+cd packages/bruno-tests
 docker compose run --rm bruno-cli
 ```
 
-This runs the `echo` folder against the `Prod` environment — a small set of requests against public endpoints that demonstrate the CLI executing requests and assertions inside a container.
+This fires a small set of requests against public endpoints that demonstrate the CLI executing requests and assertions inside a container.
 
 ### Standalone demo
 
