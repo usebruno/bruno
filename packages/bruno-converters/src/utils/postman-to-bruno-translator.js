@@ -9,32 +9,32 @@ const cloneDeep = require('lodash/cloneDeep');
 // e.g., setCollectionVar only sets the variable in the request lifecycle, fails to update the table in the UI.
 const simpleTranslations = {
   // Global Variables
-  'pm.globals.get': 'bru.globals.get',
-  'pm.globals.set': 'bru.globals.set',
-  'pm.globals.has': 'bru.globals.has',
-  // 'pm.globals.unset': 'bru.globals.unset',  // TODO: Re-enable once UI sync issue is resolved
+  'pm.globals.get': 'bru.getGlobalEnvVarList().get',
+  'pm.globals.set': 'bru.getGlobalEnvVarList().set',
+  'pm.globals.has': 'bru.getGlobalEnvVarList().has',
+  // 'pm.globals.unset': 'bru.getGlobalEnvVarList().delete',  // TODO: Re-enable once UI sync issue is resolved
   'pm.globals.replaceIn': 'bru.interpolate',
-  'pm.globals.toObject': 'bru.globals.toObject',
-  // 'pm.globals.clear': 'bru.globals.clear',  // TODO: Re-enable once UI sync issue is resolved
+  'pm.globals.toObject': 'bru.getGlobalEnvVarList().toObject',
+  // 'pm.globals.clear': 'bru.getGlobalEnvVarList().clear',  // TODO: Re-enable once UI sync issue is resolved
 
   // Environment variables
-  'pm.environment.get': 'bru.environment.get',
-  'pm.environment.set': 'bru.environment.set',
-  'pm.environment.has': 'bru.environment.has',
-  'pm.environment.name': 'bru.environment.name',
-  'pm.environment.unset': 'bru.environment.unset',
+  'pm.environment.get': 'bru.getEnvVarList().get',
+  'pm.environment.set': 'bru.getEnvVarList().set',
+  'pm.environment.has': 'bru.getEnvVarList().has',
+  'pm.environment.unset': 'bru.getEnvVarList().delete',
   'pm.environment.replaceIn': 'bru.interpolate',
-  'pm.environment.toObject': 'bru.environment.toObject',
-  'pm.environment.clear': 'bru.environment.clear',
+  'pm.environment.toObject': 'bru.getEnvVarList().toObject',
+  'pm.environment.clear': 'bru.getEnvVarList().clear',
+  'pm.environment.name': 'bru.getEnvName()',
 
   // Variables
-  'pm.variables.get': 'bru.variables.get',
-  'pm.variables.set': 'bru.variables.set',
-  'pm.variables.has': 'bru.variables.has',
-  'pm.variables.unset': 'bru.variables.unset',
-  'pm.variables.toObject': 'bru.variables.toObject',
+  'pm.variables.get': 'bru.getVarList().get',
+  'pm.variables.set': 'bru.getVarList().set',
+  'pm.variables.has': 'bru.getVarList().has',
+  'pm.variables.unset': 'bru.getVarList().delete',
+  'pm.variables.toObject': 'bru.getVarList().toObject',
   'pm.variables.replaceIn': 'bru.interpolate',
-  'pm.variables.clear': 'bru.variables.clear',
+  'pm.variables.clear': 'bru.getVarList().clear',
   // Collection variables
   'pm.collectionVariables.get': 'bru.getCollectionVar',
   // 'pm.collectionVariables.set': 'bru.setCollectionVar',
@@ -155,9 +155,9 @@ const simpleTranslations = {
   'pm.execution.skipRequest': 'bru.runner.skipRequest',
 
   // Legacy Postman API (deprecated) (we can use pm instead of postman, as we are converting all postman references to pm in the code as the part of pre-processing)
-  'pm.setEnvironmentVariable': 'bru.environment.set',
-  'pm.getEnvironmentVariable': 'bru.environment.get',
-  'pm.clearEnvironmentVariable': 'bru.environment.unset',
+  'pm.setEnvironmentVariable': 'bru.getEnvVarList().set',
+  'pm.getEnvironmentVariable': 'bru.getEnvVarList().get',
+  'pm.clearEnvironmentVariable': 'bru.getEnvVarList().delete',
 
   // Legacy response properties
   'responseCode.code': 'res.getStatus()',

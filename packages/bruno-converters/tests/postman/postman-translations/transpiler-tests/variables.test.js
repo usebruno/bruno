@@ -6,21 +6,21 @@ describe('Variables Translation', () => {
     const code = 'pm.variables.get("test");';
     const translatedCode = translateCode(code);
 
-    expect(translatedCode).toBe('bru.variables.get("test");');
+    expect(translatedCode).toBe('bru.getVarList().get("test");');
   });
 
   it('should translate pm.variables.set', () => {
     const code = 'pm.variables.set("test", "value");';
     const translatedCode = translateCode(code);
 
-    expect(translatedCode).toBe('bru.variables.set("test", "value");');
+    expect(translatedCode).toBe('bru.getVarList().set("test", "value");');
   });
 
   it('should translate pm.variables.has', () => {
     const code = 'pm.variables.has("userId");';
     const translatedCode = translateCode(code);
 
-    expect(translatedCode).toBe('bru.variables.has("userId");');
+    expect(translatedCode).toBe('bru.getVarList().has("userId");');
   });
 
   it('should translate pm.variables.replaceIn', () => {
@@ -98,14 +98,14 @@ describe('Variables Translation', () => {
     const code = 'pm.globals.get("test");';
     const translatedCode = translateCode(code);
 
-    expect(translatedCode).toBe('bru.globals.get("test");');
+    expect(translatedCode).toBe('bru.getGlobalEnvVarList().get("test");');
   });
 
   it('should handle pm.globals.set', () => {
     const code = 'pm.globals.set("test", "value");';
     const translatedCode = translateCode(code);
 
-    expect(translatedCode).toBe('bru.globals.set("test", "value");');
+    expect(translatedCode).toBe('bru.getGlobalEnvVarList().set("test", "value");');
   });
 
   // Alias tests for variables
@@ -119,9 +119,9 @@ describe('Variables Translation', () => {
     const translatedCode = translateCode(code);
 
     expect(translatedCode).toBe(`
-        const has = bru.variables.has("test");
-        const set = bru.variables.set("test", "value");
-        const get = bru.variables.get("test");
+        const has = bru.getVarList().has("test");
+        const set = bru.getVarList().set("test", "value");
+        const get = bru.getVarList().get("test");
         `);
   });
 
@@ -154,8 +154,8 @@ describe('Variables Translation', () => {
     const translatedCode = translateCode(code);
 
     expect(translatedCode).toBe(`
-        const get = bru.globals.get("test");
-        const set = bru.globals.set("test", "value");
+        const get = bru.getGlobalEnvVarList().get("test");
+        const set = bru.getGlobalEnvVarList().set("test", "value");
         `);
   });
 
@@ -164,7 +164,7 @@ describe('Variables Translation', () => {
     const code = 'const userStatus = pm.variables.has("userId") ? "logged-in" : "guest";';
     const translatedCode = translateCode(code);
 
-    expect(translatedCode).toBe('const userStatus = bru.variables.has("userId") ? "logged-in" : "guest";');
+    expect(translatedCode).toBe('const userStatus = bru.getVarList().has("userId") ? "logged-in" : "guest";');
   });
 
   it('should handle all variable methods together', () => {
@@ -178,9 +178,9 @@ describe('Variables Translation', () => {
         `;
     const translatedCode = translateCode(code);
 
-    expect(translatedCode).toContain('const hasUserId = bru.variables.has("userId");');
-    expect(translatedCode).toContain('const userId = bru.variables.get("userId");');
-    expect(translatedCode).toContain('bru.variables.set("requestTime", new Date().toISOString());');
+    expect(translatedCode).toContain('const hasUserId = bru.getVarList().has("userId");');
+    expect(translatedCode).toContain('const userId = bru.getVarList().get("userId");');
+    expect(translatedCode).toContain('bru.getVarList().set("requestTime", new Date().toISOString());');
   });
 
   // TODO: Restore once UI update fixes are live for setCollectionVar/deleteCollectionVar
@@ -207,7 +207,7 @@ describe('Variables Translation', () => {
     const code = 'pm.collectionVariables.set("fullPath", pm.environment.get("baseUrl") + pm.variables.get("endpoint"));';
     const translatedCode = translateCode(code);
 
-    expect(translatedCode).toBe('bru.setCollectionVar("fullPath", bru.environment.get("baseUrl") + bru.variables.get("endpoint"));');
+    expect(translatedCode).toBe('bru.setCollectionVar("fullPath", bru.getEnvVarList().get("baseUrl") + bru.getVarList().get("endpoint"));');
   });
 
   // replaceIn tests for different variable scopes
@@ -244,14 +244,14 @@ describe('Variables Translation', () => {
     const code = 'pm.globals.has("token");';
     const translatedCode = translateCode(code);
 
-    expect(translatedCode).toBe('bru.globals.has("token");');
+    expect(translatedCode).toBe('bru.getGlobalEnvVarList().has("token");');
   });
 
   it('should translate pm.globals.has in conditional', () => {
     const code = 'if (pm.globals.has("authToken")) { console.log("Token exists"); }';
     const translatedCode = translateCode(code);
 
-    expect(translatedCode).toContain('bru.globals.has("authToken")');
+    expect(translatedCode).toContain('bru.getGlobalEnvVarList().has("authToken")');
     expect(translatedCode).toContain('console.log("Token exists");');
   });
 
@@ -259,6 +259,6 @@ describe('Variables Translation', () => {
     const code = 'const hasGlobal = pm.globals.has("config");';
     const translatedCode = translateCode(code);
 
-    expect(translatedCode).toBe('const hasGlobal = bru.globals.has("config");');
+    expect(translatedCode).toBe('const hasGlobal = bru.getGlobalEnvVarList().has("config");');
   });
 });

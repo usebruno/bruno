@@ -25,8 +25,8 @@ describe('postmanTranslations - edge cases', () => {
     const expectedOutput = `
       const sampleObjects = [
         {
-          key: bru.environment.get('key'),
-          value: bru.variables.get('value')
+          key: bru.getEnvVarList().get('key'),
+          value: bru.getVarList().get('value')
         },
         {
           key: bru.getCollectionVar('key'),
@@ -35,11 +35,11 @@ describe('postmanTranslations - edge cases', () => {
       ];
       const dataTesting = Object.entries(sampleObjects || {}).reduce((acc, [key, value]) => {
         // this is a comment
-        acc[key] = bru.getCollectionVar(bru.environment.get(value));
+        acc[key] = bru.getCollectionVar(bru.getEnvVarList().get(value));
         return acc; // Return the accumulator
       }, {});
       Object.values(dataTesting).forEach((data) => {
-        bru.environment.set(data.key, bru.variables.get(data.value));
+        bru.getEnvVarList().set(data.key, bru.getVarList().get(data.value));
       });
     `;
     expect(postmanTranslation(inputScript)).toBe(expectedOutput);

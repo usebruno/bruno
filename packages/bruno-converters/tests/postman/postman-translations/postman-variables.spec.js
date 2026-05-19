@@ -7,8 +7,8 @@ describe('postmanTranslations - variables commands', () => {
       pm.environment.set('key', 'value');
     `;
     const result = postmanTranslation(inputScript);
-    expect(result).toContain('bru.environment.get(\'key\')');
-    expect(result).toContain('bru.environment.set(\'key\', \'value\')');
+    expect(result).toContain('bru.getEnvVarList().get(\'key\')');
+    expect(result).toContain('bru.getEnvVarList().set(\'key\', \'value\')');
   });
 
   test('should translate runtime variable commands', () => {
@@ -17,8 +17,8 @@ describe('postmanTranslations - variables commands', () => {
       pm.variables.set('key', 'value');
     `;
     const result = postmanTranslation(inputScript);
-    expect(result).toContain('bru.variables.get(\'key\')');
-    expect(result).toContain('bru.variables.set(\'key\', \'value\')');
+    expect(result).toContain('bru.getVarList().get(\'key\')');
+    expect(result).toContain('bru.getVarList().set(\'key\', \'value\')');
   });
 
   test('should translate pm.collectionVariables.get', () => {
@@ -30,7 +30,7 @@ describe('postmanTranslations - variables commands', () => {
   test('should translate pm.expect with pm.environment.has', () => {
     const inputScript = 'pm.expect(pm.environment.has(\'key\')).to.be.true;';
     const result = postmanTranslation(inputScript);
-    expect(result).toContain('bru.environment.has(\'key\')');
+    expect(result).toContain('bru.getEnvVarList().has(\'key\')');
     expect(result).toContain('.to.be.true');
   });
 
