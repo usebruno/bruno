@@ -2,17 +2,19 @@ import React, { useMemo, useCallback, useRef } from 'react';
 import Documentation from 'components/Documentation/index';
 import RequestHeaders from 'components/RequestPane/RequestHeaders';
 import StatusDot from 'components/StatusDot/index';
-import { find, get } from 'lodash';
+import { find } from 'lodash';
 import { updateRequestPaneTab } from 'providers/ReduxStore/slices/tabs';
 import { useDispatch, useSelector } from 'react-redux';
 import HeightBoundContainer from 'ui/HeightBoundContainer';
 import ResponsiveTabs from 'ui/ResponsiveTabs';
-import { getPropertyFromDraftOrRequest, getTreePathFromCollectionToItem } from 'utils/collections/index';
+import { getPropertyFromDraftOrRequest } from 'utils/collections/index';
 import WsBody from '../WsBody/index';
 import StyledWrapper from './StyledWrapper';
 import WSAuth from './WSAuth';
 import WSAuthMode from './WSAuth/WSAuthMode';
 import WSSettingsPane from '../WSSettingsPane/index';
+import { hasEffectiveAuth } from 'utils/auth';
+import { SUPPORTED_WS_AUTH_MODES } from 'utils/common/constants';
 
 const WSRequestPane = ({ item, collection, handleRun }) => {
   const dispatch = useDispatch();
@@ -36,24 +38,8 @@ const WSRequestPane = ({ item, collection, handleRun }) => {
 
   const headers = getPropertyFromDraftOrRequest(item, 'request.headers');
   const docs = getPropertyFromDraftOrRequest(item, 'request.docs');
-  const auth = getPropertyFromDraftOrRequest(item, 'request.auth');
 
-  const getEffectiveAuthMode = () => {
-    if (auth?.mode !== 'inherit') return auth?.mode;
-    const requestTreePath = getTreePathFromCollectionToItem(collection, item);
-    for (let i of [...requestTreePath].reverse()) {
-      if (i.type === 'folder') {
-        const folderAuth = get(i, 'root.request.auth');
-        if (folderAuth && folderAuth.mode && folderAuth.mode !== 'none' && folderAuth.mode !== 'inherit') {
-          return folderAuth.mode;
-        }
-      }
-    }
-    const collectionRoot = collection?.draft?.root || collection?.root || {};
-    return get(collectionRoot, 'request.auth.mode');
-  };
-  const effectiveAuthMode = getEffectiveAuthMode();
-  const hasAuth = effectiveAuthMode && effectiveAuthMode !== 'none';
+  const hasAuth = hasEffectiveAuth(collection, item, SUPPORTED_WS_AUTH_MODES);
 
   const activeHeadersLength = headers.filter((header) => header.enabled).length;
 

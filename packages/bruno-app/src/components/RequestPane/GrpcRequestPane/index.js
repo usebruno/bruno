@@ -8,11 +8,12 @@ import GrpcAuthMode from './GrpcAuth/GrpcAuthMode/index';
 import StatusDot from 'components/StatusDot/index';
 import HeightBoundContainer from 'ui/HeightBoundContainer';
 import find from 'lodash/find';
-import get from 'lodash/get';
 import Documentation from 'components/Documentation/index';
-import { getPropertyFromDraftOrRequest, getTreePathFromCollectionToItem } from 'utils/collections/index';
+import { getPropertyFromDraftOrRequest } from 'utils/collections/index';
 import ResponsiveTabs from 'ui/ResponsiveTabs';
 import StyledWrapper from './StyledWrapper';
+import { hasEffectiveAuth } from 'utils/auth';
+import { SUPPORTED_GRPC_AUTH_MODES } from 'utils/common/constants';
 
 const GrpcRequestPane = ({ item, collection, handleRun }) => {
   const dispatch = useDispatch();
@@ -54,24 +55,8 @@ const GrpcRequestPane = ({ item, collection, handleRun }) => {
   const body = getPropertyFromDraftOrRequest(item, 'request.body');
   const headers = getPropertyFromDraftOrRequest(item, 'request.headers');
   const docs = getPropertyFromDraftOrRequest(item, 'request.docs');
-  const auth = getPropertyFromDraftOrRequest(item, 'request.auth');
 
-  const getEffectiveAuthMode = () => {
-    if (auth?.mode !== 'inherit') return auth?.mode;
-    const requestTreePath = getTreePathFromCollectionToItem(collection, item);
-    for (let i of [...requestTreePath].reverse()) {
-      if (i.type === 'folder') {
-        const folderAuth = get(i, 'root.request.auth');
-        if (folderAuth && folderAuth.mode && folderAuth.mode !== 'none' && folderAuth.mode !== 'inherit') {
-          return folderAuth.mode;
-        }
-      }
-    }
-    const collectionRoot = collection?.draft?.root || collection?.root || {};
-    return get(collectionRoot, 'request.auth.mode');
-  };
-  const effectiveAuthMode = getEffectiveAuthMode();
-  const hasAuth = effectiveAuthMode && effectiveAuthMode !== 'none';
+  const hasAuth = hasEffectiveAuth(collection, item, SUPPORTED_GRPC_AUTH_MODES);
 
   const activeHeadersLength = headers.filter((header) => header.enabled).length;
   const grpcMessagesCount = body?.grpc?.length || 0;

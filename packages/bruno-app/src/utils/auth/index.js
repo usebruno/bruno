@@ -2,6 +2,7 @@ import { get } from 'lodash';
 import {
   getTreePathFromCollectionToItem
 } from 'utils/collections/index';
+import { AUTH_MODES } from 'utils/common/constants';
 
 // Resolve inherited auth by traversing up the folder hierarchy
 export const resolveInheritedAuth = (item, collection) => {
@@ -46,7 +47,7 @@ export const getEffectiveAuthSource = (collection, item) => {
   const authMode = item?.draft
     ? get(item, 'draft.request.auth.mode')
     : (get(item, 'request.auth.mode') ?? get(item, 'root.request.auth.mode'));
-  if (authMode !== 'inherit') return null;
+  if (authMode !== AUTH_MODES.INHERIT) return null;
 
   const collectionRoot = collection?.draft?.root || collection?.root || {};
   const collectionAuth = get(collectionRoot, 'request.auth');
@@ -61,7 +62,7 @@ export const getEffectiveAuthSource = (collection, item) => {
     if (i?.uid === item?.uid) continue;
     if (i?.type !== 'folder') continue;
     const folderAuth = get(i, 'root.request.auth');
-    if (folderAuth && folderAuth.mode && folderAuth.mode !== 'inherit') {
+    if (folderAuth && folderAuth.mode && folderAuth.mode !== AUTH_MODES.INHERIT) {
       effectiveSource = {
         type: 'folder',
         name: i.name,
@@ -72,4 +73,23 @@ export const getEffectiveAuthSource = (collection, item) => {
   }
 
   return effectiveSource;
+};
+
+// Returns the auth mode actually applied for an item — if the item is in
+// `inherit`, walks up to the nearest configured ancestor (folder or collection)
+// and returns that mode. Returns undefined when nothing is configured up the chain.
+export const getEffectiveAuthMode = (collection, item) => {
+  const auth = item?.draft ? get(item, 'draft.request.auth') : get(item, 'request.auth');
+  if (auth?.mode !== AUTH_MODES.INHERIT) return auth?.mode;
+  return getEffectiveAuthSource(collection, item)?.auth?.mode;
+};
+
+// Returns true when an item actually has auth applied — i.e. the effective mode
+// is set, not 'none', and (if a supportedModes list is passed) is one the
+// protocol can apply.
+export const hasEffectiveAuth = (collection, item, supportedModes) => {
+  const mode = getEffectiveAuthMode(collection, item);
+  if (!mode || mode === AUTH_MODES.NONE) return false;
+  if (supportedModes && !supportedModes.includes(mode)) return false;
+  return true;
 };
