@@ -10,7 +10,7 @@ const prepareGqlIntrospectionRequest = (endpoint, resolvedVars, request, collect
   }
 
   const queryParams = {
-    query: getIntrospectionQuery()
+    query: getIntrospectionQuery({ inputValueDeprecation: true })
   };
 
   let axiosRequest = {
