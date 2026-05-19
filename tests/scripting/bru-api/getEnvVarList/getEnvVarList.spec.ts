@@ -7,8 +7,8 @@ test.describe.serial('bru.getEnvVarList() API', () => {
     await selectEnvironment(page, 'Prod');
     await runFolder(page, 'bruno-testbench', ['scripting', 'api', 'bru', 'getEnvVarList']);
     await validateRunnerResults(page, {
-      totalRequests: 5,
-      passed: 5,
+      totalRequests: 6,
+      passed: 6,
       failed: 0
     });
   });
@@ -18,8 +18,8 @@ test.describe.serial('bru.getEnvVarList() API', () => {
     await selectEnvironment(page, 'Prod');
     await runFolder(page, 'bruno-testbench', ['scripting', 'api', 'bru', 'getEnvVarList']);
     await validateRunnerResults(page, {
-      totalRequests: 5,
-      passed: 5,
+      totalRequests: 6,
+      passed: 6,
       failed: 0
     });
   });

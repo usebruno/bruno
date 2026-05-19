@@ -1,0 +1,48 @@
+meta {
+  name: array-behavior
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+script:pre-request {
+  const globalEnvVarList = bru.getGlobalEnvVarList();
+  globalEnvVarList.set("arrTestGlobal", "globalVal");
+}
+
+tests {
+  test("should be an array", function() {
+    const globalEnvVarList = bru.getGlobalEnvVarList();
+    expect(Array.isArray(globalEnvVarList)).to.equal(true);
+  });
+
+  test("should have length reflecting entry count", function() {
+    const globalEnvVarList = bru.getGlobalEnvVarList();
+    expect(globalEnvVarList.length).to.be.greaterThan(0);
+  });
+
+  test("entries should be {key, value} objects", function() {
+    const globalEnvVarList = bru.getGlobalEnvVarList();
+    const entry = globalEnvVarList.find(e => e.key === "arrTestGlobal");
+    expect(entry).to.not.be.undefined;
+    expect(entry.key).to.equal("arrTestGlobal");
+    expect(entry.value).to.equal("globalVal");
+  });
+
+  test("filter should work", function() {
+    const globalEnvVarList = bru.getGlobalEnvVarList();
+    const filtered = globalEnvVarList.filter(e => e.key === "arrTestGlobal");
+    expect(filtered.length).to.equal(1);
+  });
+
+  test("should not include __name__ in array", function() {
+    const globalEnvVarList = bru.getGlobalEnvVarList();
+    const nameEntry = globalEnvVarList.find(e => e.key === "__name__");
+    expect(nameEntry).to.be.undefined;
+  });
+}

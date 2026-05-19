@@ -1,0 +1,64 @@
+meta {
+  name: array-behavior
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+script:pre-request {
+  const varList = bru.getVarList();
+  varList.set("arrTestA", "alpha");
+  varList.set("arrTestB", "beta");
+  varList.set("arrTestC", "gamma");
+}
+
+tests {
+  test("should be an array", function() {
+    const varList = bru.getVarList();
+    expect(Array.isArray(varList)).to.equal(true);
+  });
+
+  test("should have length reflecting entry count", function() {
+    const varList = bru.getVarList();
+    expect(varList.length).to.be.greaterThan(0);
+  });
+
+  test("entries should be {key, value} objects", function() {
+    const varList = bru.getVarList();
+    const entry = varList.find(e => e.key === "arrTestA");
+    expect(entry).to.not.be.undefined;
+    expect(entry.key).to.equal("arrTestA");
+    expect(entry.value).to.equal("alpha");
+  });
+
+  test("filter should work", function() {
+    const varList = bru.getVarList();
+    const filtered = varList.filter(e => e.key.startsWith("arrTest"));
+    expect(filtered.length).to.equal(3);
+  });
+
+  test("map should work", function() {
+    const varList = bru.getVarList();
+    const keys = varList.map(e => e.key);
+    expect(keys).to.include("arrTestA");
+    expect(keys).to.include("arrTestB");
+  });
+
+  test("forEach should work", function() {
+    const varList = bru.getVarList();
+    const collected = [];
+    varList.forEach(e => collected.push(e.key));
+    expect(collected).to.include("arrTestA");
+  });
+
+  // cleanup
+  const varList = bru.getVarList();
+  varList.delete("arrTestA");
+  varList.delete("arrTestB");
+  varList.delete("arrTestC");
+}

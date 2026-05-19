@@ -1,0 +1,49 @@
+meta {
+  name: array-behavior
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+tests {
+  test("should be an array", function() {
+    const envVarList = bru.getEnvVarList();
+    expect(Array.isArray(envVarList)).to.equal(true);
+  });
+
+  test("should have length reflecting entry count", function() {
+    const envVarList = bru.getEnvVarList();
+    expect(envVarList.length).to.be.greaterThan(0);
+  });
+
+  test("entries should be {key, value} objects", function() {
+    const envVarList = bru.getEnvVarList();
+    const entry = envVarList.find(e => e.key === "host");
+    expect(entry).to.not.be.undefined;
+    expect(entry.key).to.equal("host");
+    expect(entry.value).to.be.a("string");
+  });
+
+  test("filter should work", function() {
+    const envVarList = bru.getEnvVarList();
+    const filtered = envVarList.filter(e => e.key === "host");
+    expect(filtered.length).to.equal(1);
+  });
+
+  test("map should return keys", function() {
+    const envVarList = bru.getEnvVarList();
+    const keys = envVarList.map(e => e.key);
+    expect(keys).to.include("host");
+  });
+
+  test("should not include __name__ in array", function() {
+    const envVarList = bru.getEnvVarList();
+    const nameEntry = envVarList.find(e => e.key === "__name__");
+    expect(nameEntry).to.be.undefined;
+  });
+}
