@@ -82,10 +82,13 @@ class ErrorBoundary extends React.Component {
                 className="text-sm text-red-400 border border-red-400 hover:text-red-600 px-4 py-2 rounded transition cursor-pointer"
                 onClick={async (e) => {
                   e.preventDefault();
-                  if (this.state.clearCaches) {
-                    await this.clearCache();
+                  try {
+                    if (this.state.clearCaches) {
+                      await this.clearCache();
+                    }
+                  } finally {
+                    this.forceQuit();
                   }
-                  this.forceQuit();
                 }}
               >
                 Force Quit
