@@ -11,7 +11,11 @@ const registerSnapshotIpc = () => {
   });
 
   ipcMain.on('internal:snapshot:reset', () => {
-    snapshotManager.resetSnapshot();
+    try {
+      snapshotManager.resetSnapshot();
+    } catch (err) {
+      // digest error if reset fails
+    }
   });
 
   ipcMain.handle('renderer:snapshot:save', async (event, data) => {
