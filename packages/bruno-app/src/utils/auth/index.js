@@ -75,20 +75,14 @@ export const getEffectiveAuthSource = (collection, item) => {
   return effectiveSource;
 };
 
-// Returns the auth mode actually applied for an item — if the item is in
-// `inherit`, walks up to the nearest configured ancestor (folder or collection)
-// and returns that mode. Returns undefined when nothing is configured up the chain.
-export const getEffectiveAuthMode = (collection, item) => {
-  const auth = item?.draft ? get(item, 'draft.request.auth') : get(item, 'request.auth');
-  if (auth?.mode !== AUTH_MODES.INHERIT) return auth?.mode;
-  return getEffectiveAuthSource(collection, item)?.auth?.mode;
-};
-
-// Returns true when an item actually has auth applied — i.e. the effective mode
-// is set, not 'none', and (if a supportedModes list is passed) is one the
-// protocol can apply.
+// Returns true when an item actually has auth applied — resolves `inherit` up
+// the chain, then checks that the effective mode is set, not 'none', and (if a
+// supportedModes list is passed) is one the protocol can apply.
 export const hasEffectiveAuth = (collection, item, supportedModes) => {
-  const mode = getEffectiveAuthMode(collection, item);
+  const auth = item?.draft ? get(item, 'draft.request.auth') : get(item, 'request.auth');
+  const mode = auth?.mode === AUTH_MODES.INHERIT
+    ? getEffectiveAuthSource(collection, item)?.auth?.mode
+    : auth?.mode;
   if (!mode || mode === AUTH_MODES.NONE) return false;
   if (supportedModes && !supportedModes.includes(mode)) return false;
   return true;
