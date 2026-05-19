@@ -1,4 +1,4 @@
-import { encodeUrl, parseQueryParams, buildQueryString } from './index';
+import { encodeUrl, parseQueryParams, buildQueryString, safeDecodeURIComponent } from './index';
 
 describe('encodeUrl', () => {
   describe('basic functionality', () => {
@@ -75,16 +75,76 @@ describe('encodeUrl', () => {
     });
   });
 
-  describe('hash fragment handling', () => {
-    it('should preserve hash fragments with encoded query parameters', () => {
-      const url = 'https://example.com/api?name=john doe#section1';
-      const expected = 'https://example.com/api?name=john%20doe#section1';
+  describe('path encoding (added in URL encoding fix)', () => {
+    it('should encode spaces in path segments', () => {
+      const url = 'https://example.com/api/v1/path with spaces/users';
+      const expected = 'https://example.com/api/v1/path%20with%20spaces/users';
       expect(encodeUrl(url)).toBe(expected);
     });
 
-    it('should preserve hash fragments with pipe operator in query', () => {
+    it('should encode unicode in path segments', () => {
+      const url = 'https://example.com/api/José/profile';
+      const expected = 'https://example.com/api/Jos%C3%A9/profile';
+      expect(encodeUrl(url)).toBe(expected);
+    });
+
+    it('should encode square brackets in path segments', () => {
+      const url = 'https://example.com/list[123]';
+      const expected = 'https://example.com/list%5B123%5D';
+      expect(encodeUrl(url)).toBe(expected);
+    });
+
+    it('should leave separators between segments alone (slashes are structural)', () => {
+      const url = 'https://example.com/api/v1/users';
+      expect(encodeUrl(url)).toBe(url);
+    });
+
+    it('should encode angle brackets, quotes, pipes in the path', () => {
+      const url = 'https://example.com/api/a<b>c/"hi"/a|b/{x}';
+      const expected = 'https://example.com/api/a%3Cb%3Ec/%22hi%22/a%7Cb/%7Bx%7D';
+      expect(encodeUrl(url)).toBe(expected);
+    });
+
+    it('should encode the path even when there is no query string', () => {
+      const url = 'https://example.com/path with spaces';
+      const expected = 'https://example.com/path%20with%20spaces';
+      expect(encodeUrl(url)).toBe(expected);
+    });
+
+    it('should preserve the origin (scheme + authority) verbatim', () => {
+      const url = 'https://user:pass@example.com:8080/path with space';
+      const expected = 'https://user:pass@example.com:8080/path%20with%20space';
+      expect(encodeUrl(url)).toBe(expected);
+    });
+  });
+
+  describe('hash (#) treated as data, not RFC 3986 §3.5 fragment delimiter', () => {
+    // ON-mode design choice: `#` is encoded to %23 as a regular byte. The
+    // previous strip-or-preserve behavior caused surprising silent data loss
+    // in the snippet. To send a URL with a literal `#section` fragment, the
+    // toggle must be OFF — OFF preserves the user's URL byte-for-byte.
+
+    it('encodes # in a query value to %23 alongside other special chars', () => {
+      const url = 'https://example.com/api?name=john doe#section1';
+      const expected = 'https://example.com/api?name=john%20doe%23section1';
+      expect(encodeUrl(url)).toBe(expected);
+    });
+
+    it('encodes # alongside pipe operator in query value', () => {
       const url = 'https://example.com/api?filter=status|active#results';
-      const expected = 'https://example.com/api?filter=status%7Cactive#results';
+      const expected = 'https://example.com/api?filter=status%7Cactive%23results';
+      expect(encodeUrl(url)).toBe(expected);
+    });
+
+    it('encodes a bare # following a single-char value', () => {
+      const url = 'https://jsonplaceholder.typicode.com/todos/1?name=a#b';
+      const expected = 'https://jsonplaceholder.typicode.com/todos/1?name=a%23b';
+      expect(encodeUrl(url)).toBe(expected);
+    });
+
+    it('encodes # in a path segment (no query) to %23', () => {
+      const url = 'https://example.com/foo#bar';
+      const expected = 'https://example.com/foo%23bar';
       expect(encodeUrl(url)).toBe(expected);
     });
   });
@@ -104,8 +164,11 @@ describe('encodeUrl', () => {
     });
 
     it('should handle complex query parameters with multiple special characters', () => {
+      // `#`, `$`, `%`, `^` are all encoded as data when they appear in a query
+      // value (Option C — # is data, not a fragment delimiter). The bare-name
+      // `*()` survives encodeURIComponent unchanged (RFC 3986 unreserved set).
       const url = 'https://example.com/api?search=hello world!@#$%^&*()&filter=active&sort=name asc';
-      const expected = 'https://example.com/api?search=hello%20world!%40#$%^&*()&filter=active&sort=name asc';
+      const expected = 'https://example.com/api?search=hello%20world!%40%23%24%25%5E&*()&filter=active&sort=name%20asc';
       expect(encodeUrl(url)).toBe(expected);
     });
 
@@ -118,6 +181,47 @@ describe('encodeUrl', () => {
     it('should handle pipe operator in already encoded URLs', () => {
       const url = 'https://example.com/api?filter=status%7Cactive&sort=name%7Casc';
       const expected = 'https://example.com/api?filter=status%257Cactive&sort=name%257Casc';
+      expect(encodeUrl(url)).toBe(expected);
+    });
+  });
+
+  describe('PR #5507 contract — content-blind double-encoding (intentional)', () => {
+    // These assertions are the canary that proves no decode-encode wrap was slipped
+    // into the encoder. If any of them start failing, the contract has been broken.
+
+    it('should double-encode pre-encoded space in query value (%20 → %2520)', () => {
+      const url = 'https://example.com/api?name=John%20Doe';
+      const expected = 'https://example.com/api?name=John%2520Doe';
+      expect(encodeUrl(url)).toBe(expected);
+    });
+
+    it('should double-encode pre-encoded @ in query value (%40 → %2540)', () => {
+      const url = 'https://example.com/api?email=john%40example.com';
+      const expected = 'https://example.com/api?email=john%2540example.com';
+      expect(encodeUrl(url)).toBe(expected);
+    });
+
+    it('should double-encode pre-encoded pipe in query value (%7C → %257C)', () => {
+      const url = 'https://example.com/api?filter=status%7Cactive&sort=name%7Casc';
+      const expected = 'https://example.com/api?filter=status%257Cactive&sort=name%257Casc';
+      expect(encodeUrl(url)).toBe(expected);
+    });
+
+    it('should double-encode redirect URL with pre-encoded chars (the canonical #5507 case)', () => {
+      const url = 'https://auth.example.com/login?redirect=https%3A%2F%2Fother.com%2Fcb';
+      const expected = 'https://auth.example.com/login?redirect=https%253A%252F%252Fother.com%252Fcb';
+      expect(encodeUrl(url)).toBe(expected);
+    });
+
+    it('should double-encode pre-encoded %25 → %2525 (single % → %25 same source bytes)', () => {
+      const url = 'https://example.com/api?coupon=50%25';
+      const expected = 'https://example.com/api?coupon=50%2525';
+      expect(encodeUrl(url)).toBe(expected);
+    });
+
+    it('should encode bare % once to %25 in query value', () => {
+      const url = 'https://example.com/api?discount=50%';
+      const expected = 'https://example.com/api?discount=50%25';
       expect(encodeUrl(url)).toBe(expected);
     });
   });
@@ -150,6 +254,12 @@ describe('encodeUrl', () => {
     it('should handle e-commerce API filters', () => {
       const url = 'https://api.shop.com/products?category=electronics&brand=apple|samsung|google&price_range=100:1000&rating=4.5:5.0&availability=in_stock&sort=price:asc&limit=50';
       const expected = 'https://api.shop.com/products?category=electronics&brand=apple%7Csamsung%7Cgoogle&price_range=100%3A1000&rating=4.5%3A5.0&availability=in_stock&sort=price%3Aasc&limit=50';
+      expect(encodeUrl(url)).toBe(expected);
+    });
+
+    it('should handle a JSON-shaped array value (canonical #7913 reproducer)', () => {
+      const url = 'https://example.com/api?testArray=[[1, 2, 3], ["string", "string"]]';
+      const expected = 'https://example.com/api?testArray=%5B%5B1%2C%202%2C%203%5D%2C%20%5B%22string%22%2C%20%22string%22%5D%5D';
       expect(encodeUrl(url)).toBe(expected);
     });
   });
@@ -258,5 +368,42 @@ describe('buildQueryString', () => {
     ];
     const result = buildQueryString(params);
     expect(result).toBe('seat=&table=2');
+  });
+
+  it('should encode structural chars in values when encode is true (issue #5788 path)', () => {
+    // # & = ? + in values — structural in URL grammar, must be encoded so the params
+    // round-trip correctly. This is the contract the collections reducers rely on.
+    const params = [
+      { name: 'tag', value: 'test#abc' },
+      { name: 'a', value: 'x&y' },
+      { name: 'b', value: 'x=y' },
+      { name: 'c', value: 'x?y' },
+      { name: 'd', value: 'x+y' },
+      { name: 'e', value: 'hello world' }
+    ];
+    const result = buildQueryString(params, { encode: true });
+    expect(result).toBe('tag=test%23abc&a=x%26y&b=x%3Dy&c=x%3Fy&d=x%2By&e=hello%20world');
+  });
+});
+
+describe('safeDecodeURIComponent', () => {
+  it('should decode a well-formed escape sequence', () => {
+    expect(safeDecodeURIComponent('hello%20world')).toBe('hello world');
+  });
+
+  it('should leave a bare % alone (would otherwise throw)', () => {
+    expect(safeDecodeURIComponent('50%')).toBe('50%');
+  });
+
+  it('should decode well-formed escapes but leave bare % intact in mixed input', () => {
+    expect(safeDecodeURIComponent('50% off %20 sale')).toBe('50% off   sale');
+  });
+
+  it('should return empty string unchanged', () => {
+    expect(safeDecodeURIComponent('')).toBe('');
+  });
+
+  it('should be a no-op when there is nothing to decode', () => {
+    expect(safeDecodeURIComponent('hello')).toBe('hello');
   });
 });
