@@ -1,0 +1,26 @@
+meta {
+  name: clear
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+script:pre-request {
+  const varList = bru.getVarList();
+  varList.set("testVarListClearA", "a");
+  varList.set("testVarListClearB", "b");
+}
+
+tests {
+  test("should clear all vars", function() {
+    const varList = bru.getVarList();
+    varList.clear();
+    expect(varList.has("testVarListClearA")).to.equal(false);
+    expect(varList.has("testVarListClearB")).to.equal(false);
+  });
+}

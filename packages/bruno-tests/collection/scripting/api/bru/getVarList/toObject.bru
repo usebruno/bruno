@@ -1,0 +1,26 @@
+meta {
+  name: toObject
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+script:pre-request {
+  const varList = bru.getVarList();
+  varList.set("testVarListObjA", "alpha");
+  varList.set("testVarListObjB", "beta");
+}
+
+tests {
+  test("should return a plain object with all vars", function() {
+    const varList = bru.getVarList();
+    const obj = varList.toObject();
+    expect(obj.testVarListObjA).to.equal("alpha");
+    expect(obj.testVarListObjB).to.equal("beta");
+  });
+}

@@ -1,0 +1,31 @@
+meta {
+  name: clear
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+tests {
+  const envVarList = bru.getEnvVarList();
+  const savedVars = envVarList.toObject();
+  envVarList.clear();
+
+  test("should clear all env vars", function() {
+    expect(envVarList.has("host")).to.equal(false);
+  });
+
+  test("should preserve __name__ in backing store", function() {
+    const envName = bru.getEnvName();
+    expect(envName).to.equal("Prod");
+  });
+
+  // Restore env vars for subsequent requests
+  for (const [key, value] of Object.entries(savedVars)) {
+    envVarList.set(key, value);
+  }
+}

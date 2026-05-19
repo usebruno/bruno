@@ -3,7 +3,7 @@ const VariableList = require('../src/variable-list');
 describe('VariableList', () => {
   // ── Basic CRUD ────────────────────────────────────────────────────────
 
-  describe('get / set / has / unset', () => {
+  describe('get / set / has / delete', () => {
     let vars;
     let list;
 
@@ -76,14 +76,14 @@ describe('VariableList', () => {
       expect(list.has('nullish', null)).toBe(false);
     });
 
-    test('unset() removes key from underlying object', () => {
-      list.unset('host');
+    test('delete() removes key from underlying object', () => {
+      list.delete('host');
       expect(vars.host).toBeUndefined();
       expect(list.has('host')).toBe(false);
     });
 
-    test('unset() is a no-op for missing key', () => {
-      list.unset('nonexistent');
+    test('delete() is a no-op for missing key', () => {
+      list.delete('nonexistent');
       expect(Object.keys(vars)).toEqual(['host', 'port']);
     });
   });
@@ -150,8 +150,8 @@ describe('VariableList', () => {
       expect(vars.__name__).toBe('dev');
     });
 
-    test('unset() throws for filtered keys', () => {
-      expect(() => list.unset('__name__')).toThrow('reserved internal variable');
+    test('delete() throws for filtered keys', () => {
+      expect(() => list.delete('__name__')).toThrow('reserved internal variable');
       expect(vars.__name__).toBe('dev');
     });
 
@@ -173,7 +173,7 @@ describe('VariableList', () => {
       const list = new VariableList(vars);
       list.set('y', '20');
       expect(vars.y).toBe('20');
-      list.unset('x');
+      list.delete('x');
       expect(vars.x).toBeUndefined();
     });
 

@@ -1,0 +1,33 @@
+meta {
+  name: has
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+script:pre-request {
+  const globalEnvVarList = bru.getGlobalEnvVarList();
+  globalEnvVarList.set("testGlobalEnvVarListHas", "exists");
+}
+
+tests {
+  test("should return true for existing global env var", function() {
+    const globalEnvVarList = bru.getGlobalEnvVarList();
+    expect(globalEnvVarList.has("testGlobalEnvVarListHas")).to.equal(true);
+  });
+
+  test("should return false for missing global env var", function() {
+    const globalEnvVarList = bru.getGlobalEnvVarList();
+    expect(globalEnvVarList.has("nonExistentGlobalEnvVar")).to.equal(false);
+  });
+
+  test("should return false for __name__ (filtered key)", function() {
+    const globalEnvVarList = bru.getGlobalEnvVarList();
+    expect(globalEnvVarList.has("__name__")).to.equal(false);
+  });
+}

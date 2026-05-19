@@ -115,7 +115,7 @@ class VariableList {
    * Remove a variable by key.
    * @param {string} key
    */
-  unset(key) {
+  delete(key) {
     if (this._filterKeys.includes(key)) {
       throw new Error(`Variable name: "${key}" is a reserved internal variable and cannot be modified.`);
     }

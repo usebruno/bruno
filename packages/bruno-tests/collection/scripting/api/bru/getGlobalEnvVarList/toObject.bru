@@ -1,0 +1,30 @@
+meta {
+  name: toObject
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+script:pre-request {
+  const globalEnvVarList = bru.getGlobalEnvVarList();
+  globalEnvVarList.set("testGlobalEnvVarListObj", "objValue");
+}
+
+tests {
+  test("should return a plain object with global env vars", function() {
+    const globalEnvVarList = bru.getGlobalEnvVarList();
+    const obj = globalEnvVarList.toObject();
+    expect(obj.testGlobalEnvVarListObj).to.equal("objValue");
+  });
+
+  test("should not include __name__ in toObject()", function() {
+    const globalEnvVarList = bru.getGlobalEnvVarList();
+    const obj = globalEnvVarList.toObject();
+    expect(obj.__name__).to.be.undefined;
+  });
+}

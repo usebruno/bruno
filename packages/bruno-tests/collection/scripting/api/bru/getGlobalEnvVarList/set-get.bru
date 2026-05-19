@@ -1,0 +1,24 @@
+meta {
+  name: set-get
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+script:pre-request {
+  const globalEnvVarList = bru.getGlobalEnvVarList();
+  globalEnvVarList.set("testGlobalEnvVarListKey", "testGlobalEnvVarListValue");
+}
+
+tests {
+  test("should set and get global env var via getGlobalEnvVarList()", function() {
+    const globalEnvVarList = bru.getGlobalEnvVarList();
+    const val = globalEnvVarList.get("testGlobalEnvVarListKey");
+    expect(val).to.equal("testGlobalEnvVarListValue");
+  });
+}

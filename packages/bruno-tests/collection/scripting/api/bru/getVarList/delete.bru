@@ -1,0 +1,25 @@
+meta {
+  name: delete
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+script:pre-request {
+  const varList = bru.getVarList();
+  varList.set("testVarListDelete", "to-be-deleted");
+}
+
+tests {
+  test("should delete a var", function() {
+    const varList = bru.getVarList();
+    expect(varList.has("testVarListDelete")).to.equal(true);
+    varList.delete("testVarListDelete");
+    expect(varList.has("testVarListDelete")).to.equal(false);
+  });
+}

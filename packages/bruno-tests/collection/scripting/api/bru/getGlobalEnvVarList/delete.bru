@@ -1,0 +1,18 @@
+meta {
+  name: delete
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+tests {
+  test("should throw error (not yet implemented)", function() {
+    const globalEnvVarList = bru.getGlobalEnvVarList();
+    expect(() => globalEnvVarList.delete("anyKey")).to.throw();
+  });
+}

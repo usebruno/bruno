@@ -1,0 +1,31 @@
+meta {
+  name: set-get
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+script:pre-request {
+  const envVarList = bru.getEnvVarList();
+  envVarList.set("testEnvVarListKey", "testEnvVarListValue");
+}
+
+tests {
+  test("should set and get env var via getEnvVarList()", function() {
+    const envVarList = bru.getEnvVarList();
+    const val = envVarList.get("testEnvVarListKey");
+    expect(val).to.equal("testEnvVarListValue");
+  });
+
+  test("should read existing env vars", function() {
+    const envVarList = bru.getEnvVarList();
+    const host = envVarList.get("host");
+    expect(host).to.be.a("string");
+    expect(host).to.not.be.empty;
+  });
+}

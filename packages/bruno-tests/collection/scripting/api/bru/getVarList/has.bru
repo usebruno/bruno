@@ -1,0 +1,34 @@
+meta {
+  name: has
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+script:pre-request {
+  const varList = bru.getVarList();
+  varList.set("testVarListHas", "exists");
+}
+
+tests {
+  test("should return true for existing var", function() {
+    const varList = bru.getVarList();
+    expect(varList.has("testVarListHas")).to.equal(true);
+  });
+
+  test("should return false for missing var", function() {
+    const varList = bru.getVarList();
+    expect(varList.has("nonExistentVar")).to.equal(false);
+  });
+
+  test("should match value when second arg is provided", function() {
+    const varList = bru.getVarList();
+    expect(varList.has("testVarListHas", "exists")).to.equal(true);
+    expect(varList.has("testVarListHas", "wrong")).to.equal(false);
+  });
+}

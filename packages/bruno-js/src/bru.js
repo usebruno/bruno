@@ -9,6 +9,10 @@ const VariableList = require('./variable-list');
 const variableNameRegex = /^[\w-.]*$/;
 
 class Bru {
+  #varList;
+  #envVarList;
+  #globalEnvVarList;
+
   /**
    * @param {object} options - Single options object (destructured)
    * @property {string} options.runtime - The runtime environment ('quickjs' or 'nodevm')
@@ -78,36 +82,29 @@ class Bru {
       }
     };
 
-    this.variables = new VariableList(this.runtimeVariables, {
+    this.#varList = new VariableList(this.runtimeVariables, {
       interpolateFn: (val) => this.interpolate(val),
       validateKey
     });
 
-    this.environment = new VariableList(this.envVariables, {
+    this.#envVarList = new VariableList(this.envVariables, {
       interpolateFn: (val) => this.interpolate(val),
       validateKey,
       filterKeys: ['__name__']
-    });
-    Object.defineProperty(this.environment, 'name', {
-      get: () => this.envVariables.__name__,
-      enumerable: true
     });
 
-    this.globals = new VariableList(this.globalEnvironmentVariables, {
+    this.#globalEnvVarList = new VariableList(this.globalEnvironmentVariables, {
       interpolateFn: (val) => this.interpolate(val),
       validateKey,
       filterKeys: ['__name__']
     });
-    Object.defineProperty(this.globals, 'name', {
-      get: () => this.globalEnvironmentVariables.__name__,
-      enumerable: true
-    });
-    // TODO: globals.unset/clear work in the request lifecycle but do not update the UI.
+
+    // TODO: globalEnvVarList.unset/clear work in the request lifecycle but do not update the UI.
     // Re-enable once the UI sync issue is resolved.
-    this.globals.unset = () => {
-      throw new Error('globals.unset is not implemented yet');
+    this.#globalEnvVarList.delete = () => {
+      throw new Error('globals.delete is not implemented yet');
     };
-    this.globals.clear = () => {
+    this.#globalEnvVarList.clear = () => {
       throw new Error('globals.clear is not implemented yet');
     };
 
@@ -170,6 +167,18 @@ class Bru {
         throw new TypeError('minifyXml expects a string');
       }
     };
+  }
+
+  getVarList() {
+    return this.#varList;
+  }
+
+  getEnvVarList() {
+    return this.#envVarList;
+  }
+
+  getGlobalEnvVarList() {
+    return this.#globalEnvVarList;
   }
 
   interpolate = (strOrObj) => {

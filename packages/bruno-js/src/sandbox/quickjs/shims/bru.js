@@ -506,41 +506,41 @@ const addBruShimToContext = (vm, bru) => {
   vm.setProp(bruObject, 'cookies', bruCookiesObject);
   bruCookiesObject.dispose();
 
-  // ── bru.variables (runtime variables) ─────────────────────────────────
-  let bruVariablesObject = vm.newObject();
-  const { evalCode: variablesEvalCode } = createPropertyListBridge(vm, bru.variables, bruVariablesObject, {
-    globalPath: 'globalThis.bru.variables',
+  // ── bru.getVarList() (runtime variables) ──────────────────────────────
+  let bruVarListObject = vm.newObject();
+  const { evalCode: varListEvalCode } = createPropertyListBridge(vm, bru.getVarList(), bruVarListObject, {
+    globalPath: 'globalThis.__bruVarList',
     syncReadMethods: ['has'],
     syncReadObjectMethods: ['get', 'toObject'],
-    syncWriteMethods: ['set', 'unset', 'clear'],
+    syncWriteMethods: ['set', 'delete', 'clear'],
     withIterators: false
   });
-  vm.setProp(bruObject, 'variables', bruVariablesObject);
-  bruVariablesObject.dispose();
+  vm.setProp(vm.global, '__bruVarList', bruVarListObject);
+  bruVarListObject.dispose();
 
-  // ── bru.environment (active collection environment) ───────────────────
-  let bruEnvironmentObject = vm.newObject();
-  const { evalCode: environmentEvalCode } = createPropertyListBridge(vm, bru.environment, bruEnvironmentObject, {
-    globalPath: 'globalThis.bru.environment',
+  // ── bru.getEnvVarList() (active collection environment) ──────────────
+  let bruEnvVarListObject = vm.newObject();
+  const { evalCode: envVarListEvalCode } = createPropertyListBridge(vm, bru.getEnvVarList(), bruEnvVarListObject, {
+    globalPath: 'globalThis.__bruEnvVarList',
     syncReadMethods: ['has'],
     syncReadObjectMethods: ['get', 'toObject'],
-    syncWriteMethods: ['set', 'unset', 'clear'],
+    syncWriteMethods: ['set', 'delete', 'clear'],
     withIterators: false
   });
-  vm.setProp(bruObject, 'environment', bruEnvironmentObject);
-  bruEnvironmentObject.dispose();
+  vm.setProp(vm.global, '__bruEnvVarList', bruEnvVarListObject);
+  bruEnvVarListObject.dispose();
 
-  // ── bru.globals (active global environment) ───────────────────────────
-  let bruGlobalsObject = vm.newObject();
-  const { evalCode: globalsEvalCode } = createPropertyListBridge(vm, bru.globals, bruGlobalsObject, {
-    globalPath: 'globalThis.bru.globals',
+  // ── bru.getGlobalEnvVarList() (active global environment) ────────────
+  let bruGlobalEnvVarListObject = vm.newObject();
+  const { evalCode: globalEnvVarListEvalCode } = createPropertyListBridge(vm, bru.getGlobalEnvVarList(), bruGlobalEnvVarListObject, {
+    globalPath: 'globalThis.__bruGlobalEnvVarList',
     syncReadMethods: ['has'],
     syncReadObjectMethods: ['get', 'toObject'],
-    syncWriteMethods: ['set', 'unset', 'clear'],
+    syncWriteMethods: ['set', 'delete', 'clear'],
     withIterators: false
   });
-  vm.setProp(bruObject, 'globals', bruGlobalsObject);
-  bruGlobalsObject.dispose();
+  vm.setProp(vm.global, '__bruGlobalEnvVarList', bruGlobalEnvVarListObject);
+  bruGlobalEnvVarListObject.dispose();
 
   vm.setProp(bruObject, 'runner', bruRunnerObject);
   vm.setProp(vm.global, 'bru', bruObject);
@@ -579,24 +579,20 @@ const addBruShimToContext = (vm, bru) => {
     }
 
     {
-      ${variablesEvalCode}
+      ${varListEvalCode}
     }
 
     {
-      ${environmentEvalCode}
+      ${envVarListEvalCode}
     }
-    Object.defineProperty(globalThis.bru.environment, 'name', {
-      get: () => globalThis.bru.getEnvName(),
-      enumerable: true
-    });
 
     {
-      ${globalsEvalCode}
+      ${globalEnvVarListEvalCode}
     }
-    Object.defineProperty(globalThis.bru.globals, 'name', {
-      get: () => globalThis.bru.getGlobalEnvName(),
-      enumerable: true
-    });
+
+    globalThis.bru.getVarList = () => globalThis.__bruVarList;
+    globalThis.bru.getEnvVarList = () => globalThis.__bruEnvVarList;
+    globalThis.bru.getGlobalEnvVarList = () => globalThis.__bruGlobalEnvVarList;
 
     globalThis.bru.cookies.jar = () => {
       const _jar = globalThis.bru.cookies._jar();

@@ -1,0 +1,24 @@
+meta {
+  name: set-get
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+script:pre-request {
+  const varList = bru.getVarList();
+  varList.set("testVarListKey", "testVarListValue");
+}
+
+tests {
+  test("should set and get var via getVarList()", function() {
+    const varList = bru.getVarList();
+    const val = varList.get("testVarListKey");
+    expect(val).to.equal("testVarListValue");
+  });
+}

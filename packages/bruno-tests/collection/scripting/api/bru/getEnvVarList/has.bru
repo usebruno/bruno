@@ -1,0 +1,28 @@
+meta {
+  name: has
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+tests {
+  test("should return true for existing env var", function() {
+    const envVarList = bru.getEnvVarList();
+    expect(envVarList.has("host")).to.equal(true);
+  });
+
+  test("should return false for missing env var", function() {
+    const envVarList = bru.getEnvVarList();
+    expect(envVarList.has("nonExistentEnvVar")).to.equal(false);
+  });
+
+  test("should return false for __name__ (filtered key)", function() {
+    const envVarList = bru.getEnvVarList();
+    expect(envVarList.has("__name__")).to.equal(false);
+  });
+}
