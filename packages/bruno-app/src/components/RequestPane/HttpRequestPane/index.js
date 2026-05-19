@@ -18,7 +18,7 @@ import StatusDot from 'components/StatusDot';
 import ResponsiveTabs from 'ui/ResponsiveTabs';
 import HeightBoundContainer from 'ui/HeightBoundContainer';
 import AuthMode from '../Auth/AuthMode/index';
-import { getEffectiveAuthSource } from 'utils/auth';
+import { hasEffectiveAuth } from 'utils/auth';
 
 const TAB_CONFIG = [
   { key: 'params', label: 'Params' },
@@ -90,9 +90,7 @@ const HttpRequestPane = ({ item, collection }) => {
     const hasScriptError = item.preRequestScriptErrorMessage || item.postResponseScriptErrorMessage;
     const hasTestError = item.testScriptErrorMessage;
 
-    const source = auth.mode === 'inherit' ? getEffectiveAuthSource(collection, item) : null;
-    const effectiveAuthMode = auth.mode === 'inherit' ? source?.auth?.mode : auth.mode;
-    const hasAuth = effectiveAuthMode && effectiveAuthMode !== 'none';
+    const hasAuth = hasEffectiveAuth(collection, item);
 
     return {
       params: activeCounts.params > 0 ? <sup className="font-medium">{activeCounts.params}</sup> : null,

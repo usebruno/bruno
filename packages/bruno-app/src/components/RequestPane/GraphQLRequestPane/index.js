@@ -23,7 +23,8 @@ import { updateRequestGraphqlQuery, updateRequestGraphqlVariables } from 'provid
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import Documentation from 'components/Documentation/index';
 import useGraphqlSchema from '../GraphQLSchemaActions/useGraphqlSchema';
-import { findEnvironmentInCollection, getTreePathFromCollectionToItem } from 'utils/collections';
+import { findEnvironmentInCollection } from 'utils/collections';
+import { hasEffectiveAuth } from 'utils/auth';
 import HeightBoundContainer from 'ui/HeightBoundContainer';
 import Settings from 'components/RequestPane/Settings';
 import ResponsiveTabs from 'ui/ResponsiveTabs';
@@ -173,24 +174,7 @@ const GraphQLRequestPane = ({ item, collection, onSchemaLoad, toggleDocs, handle
     [dispatch, item.uid]
   );
 
-  const auth = item.draft ? get(item, 'draft.request.auth') : get(item, 'request.auth');
-
-  const getEffectiveAuthMode = () => {
-    if (auth?.mode !== 'inherit') return auth?.mode;
-    const requestTreePath = getTreePathFromCollectionToItem(collection, item);
-    for (let i of [...requestTreePath].reverse()) {
-      if (i.type === 'folder') {
-        const folderAuth = get(i, 'root.request.auth');
-        if (folderAuth && folderAuth.mode && folderAuth.mode !== 'none' && folderAuth.mode !== 'inherit') {
-          return folderAuth.mode;
-        }
-      }
-    }
-    const collectionRoot = collection?.draft?.root || collection?.root || {};
-    return get(collectionRoot, 'request.auth.mode');
-  };
-  const effectiveAuthMode = getEffectiveAuthMode();
-  const hasAuth = effectiveAuthMode && effectiveAuthMode !== 'none';
+  const hasAuth = hasEffectiveAuth(collection, item);
 
   const allTabs = useMemo(
     () => TAB_CONFIG.map(({ key, label }) => ({

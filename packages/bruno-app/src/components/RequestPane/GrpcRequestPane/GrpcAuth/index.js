@@ -13,11 +13,7 @@ import { getEffectiveAuthSource } from 'utils/auth';
 import { updateRequestAuthMode, updateAuth } from 'providers/ReduxStore/slices/collections';
 import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 
-// List of auth modes supported by gRPC
-// Note: Only header-based auth modes work with gRPC
-// Complex auth modes like AWS Sig v4, Digest, and NTLM require axios interceptors
-// and cannot be supported in gRPC requests as of now
-const supportedGrpcAuthModes = ['basic', 'bearer', 'apikey', 'oauth2', 'wsse', 'none', 'inherit'];
+import { SUPPORTED_GRPC_AUTH_MODES } from 'utils/common/constants';
 
 const GrpcAuth = ({ item, collection }) => {
   const dispatch = useDispatch();
@@ -33,7 +29,7 @@ const GrpcAuth = ({ item, collection }) => {
 
   // Reset to 'none' if current auth mode is not supported by gRPC
   useEffect(() => {
-    if (authMode && !supportedGrpcAuthModes.includes(authMode)) {
+    if (authMode && !SUPPORTED_GRPC_AUTH_MODES.includes(authMode)) {
       dispatch(
         updateRequestAuthMode({
           itemUid: item.uid,
@@ -68,7 +64,7 @@ const GrpcAuth = ({ item, collection }) => {
         const source = getEffectiveAuthSource(collection, item);
 
         // Only show inherited auth if it's one of the supported types
-        if (source && supportedGrpcAuthModes.includes(source.auth?.mode)) {
+        if (source && SUPPORTED_GRPC_AUTH_MODES.includes(source.auth?.mode)) {
           return (
             <>
               <div className="flex flex-row w-full gap-2">

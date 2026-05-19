@@ -11,6 +11,7 @@ import Documentation from './Documentation';
 import Auth from './Auth';
 import StatusDot from 'components/StatusDot';
 import get from 'lodash/get';
+import { AUTH_MODES } from 'utils/common/constants';
 
 const FolderSettings = ({ collection, folder }) => {
   const dispatch = useDispatch();
@@ -32,7 +33,7 @@ const FolderSettings = ({ collection, folder }) => {
   const activeVarsCount = requestVars.filter((v) => v.enabled).length + responseVars.filter((v) => v.enabled).length;
 
   const auth = get(folderRoot, 'request.auth.mode');
-  const hasAuth = auth && auth !== 'none';
+  const hasAuth = auth && auth !== AUTH_MODES.NONE;
 
   const setTab = (tab) => {
     dispatch(
