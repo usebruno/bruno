@@ -79,7 +79,9 @@ export const getEffectiveAuthSource = (collection, item) => {
 // the chain, then checks that the effective mode is set, not 'none', and (if a
 // supportedModes list is passed) is one the protocol can apply.
 export const hasEffectiveAuth = (collection, item, supportedModes) => {
-  const auth = item?.draft ? get(item, 'draft.request.auth') : get(item, 'request.auth');
+  const auth = item?.draft
+    ? get(item, 'draft.request.auth')
+    : (get(item, 'request.auth') ?? get(item, 'root.request.auth'));
   const mode = auth?.mode === AUTH_MODES.INHERIT
     ? getEffectiveAuthSource(collection, item)?.auth?.mode
     : auth?.mode;
