@@ -1283,6 +1283,69 @@ export const getAllVariables = (collection, item) => {
   };
 };
 
+/**
+ * Return the flattened list of variables that will be effective for a given request,
+ * together with the scope each one came from. Merge precedence matches the runtime
+ * behaviour in `getAllVariables` (later sources override earlier ones):
+ *   Collection < Environment < Folder < Request.
+ */
+export const getEffectiveRequestVariables = (collection, item) => {
+  const result = new Map();
+
+  if (!collection) {
+    return [];
+  }
+
+  const collectionRoot = collection?.draft?.root || collection?.root || {};
+  const collectionRequestVars = get(collectionRoot, 'request.vars.req', []);
+  collectionRequestVars.forEach((v) => {
+    if (v.name && v.enabled) {
+      result.set(v.name, { name: v.name, value: v.value, source: 'Collection', secret: false });
+    }
+  });
+
+  if (collection.activeEnvironmentUid) {
+    const environment = findEnvironmentInCollection(collection, collection.activeEnvironmentUid);
+    if (environment && Array.isArray(environment.variables)) {
+      environment.variables.forEach((v) => {
+        if (v.name && v.enabled) {
+          result.set(v.name, {
+            name: v.name,
+            value: v.value,
+            source: 'Environment',
+            secret: !!v.secret
+          });
+        }
+      });
+    }
+  }
+
+  const requestTreePath = getTreePathFromCollectionToItem(collection, item);
+  for (const pathItem of requestTreePath) {
+    if (!pathItem) continue;
+    if (pathItem.type === 'folder') {
+      const folderRoot = pathItem.draft || pathItem.root;
+      const vars = get(folderRoot, 'request.vars.req', []);
+      vars.forEach((v) => {
+        if (v.name && v.enabled) {
+          result.set(v.name, { name: v.name, value: v.value, source: 'Folder', secret: false });
+        }
+      });
+    }
+  }
+
+  if (item) {
+    const requestVars = item.draft ? get(item, 'draft.request.vars.req', []) : get(item, 'request.vars.req', []);
+    requestVars.forEach((v) => {
+      if (v.name && v.enabled) {
+        result.set(v.name, { name: v.name, value: v.value, source: 'Request', secret: false });
+      }
+    });
+  }
+
+  return Array.from(result.values()).sort((a, b) => a.name.localeCompare(b.name));
+};
+
 // Merge headers from collection, folders, and request
 export const mergeHeaders = (collection, request, requestTreePath, options = {}) => {
   const { includeDisabledHeaders = false } = options;
