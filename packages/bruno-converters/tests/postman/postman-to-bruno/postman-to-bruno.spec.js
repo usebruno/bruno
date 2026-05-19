@@ -1120,6 +1120,15 @@ describe('postman-collection', () => {
     expect(headers[1].value).toBe('example.com');
   });
 
+  it('should unwrap and import a Postman collection with { collection: { ... } } envelope', async () => {
+    const wrappedCollection = {
+      collection: { ...postmanCollection }
+    };
+
+    const brunoCollection = await postmanToBruno(wrappedCollection);
+    expect(brunoCollection).toMatchObject(expectedOutput);
+  });
+
   it('should handle string headers with no value', async () => {
     const collectionWithNoValueHeader = {
       info: {
