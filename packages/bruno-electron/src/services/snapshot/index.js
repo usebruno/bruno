@@ -189,12 +189,17 @@ class SnapshotManager {
 
   resetSnapshot() {
     this.store.delete('activeWorkspacePath');
-    this.store.set('workspaces', this.store.store.workspaces.map((d) => {
+    this.store.set('workspaces', (this.store.store?.workspaces ?? []).map((d) => {
       d.lastActiveCollectionPathname = undefined;
       return d;
     }));
-    this.store.set('collections', this.store.store.collections.map((d) => {
-      d.tabs = [];
+    this.store.set('collections', (this.store.store?.collections ?? []).map((d) => {
+      if ('tabs' in d) {
+        d.tabs = [];
+      }
+      if ('activeTab' in d) {
+        d.activeTab = undefined;
+      }
       return d;
     }));
   }
