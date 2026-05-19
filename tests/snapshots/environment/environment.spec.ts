@@ -1,13 +1,13 @@
 import path from 'path';
 import fs from 'fs';
-import { test, expect, closeElectronApp } from '../../playwright';
+import { test, expect, closeElectronApp } from '../../../playwright';
 import {
   createCollection,
   createEnvironment,
   openCollection,
   selectEnvironment,
   waitForReadyPage
-} from '../utils/page';
+} from '../../utils/page';
 
 const readSnapshot = (userDataPath: string) => {
   const snapshotPath = path.join(userDataPath, 'ui-state-snapshot.json');
@@ -18,7 +18,55 @@ const readSnapshot = (userDataPath: string) => {
   return JSON.parse(fs.readFileSync(snapshotPath, 'utf-8'));
 };
 
+const legacyPromptVariablesInitUserDataPath = path.join(
+  __dirname,
+  'init-user-data'
+);
+
+const migrationCollectionPath = path.join(
+  __dirname,
+  'fixtures/collection'
+);
+
 test.describe('Snapshot: Collection Environment Persistence', () => {
+  test.only('migrates legacy snapshot format and preserves selected collection environment', async ({ launchElectronApp, createTmpDir }) => {
+    const userDataPath = await createTmpDir('snap-legacy-env-migration');
+
+    const app = await launchElectronApp({
+      initUserDataPath: legacyPromptVariablesInitUserDataPath,
+      userDataPath
+    });
+    const page = await waitForReadyPage(app);
+
+    await test.step('Verify legacy selected environment is hydrated in UI', async () => {
+      await openCollection(page, 'migration-collection');
+      await expect(page.locator('.current-environment')).toContainText('local');
+    });
+
+    await test.step('Close app and verify snapshot migrated to new shape', async () => {
+      await page.waitForTimeout(2000);
+      await closeElectronApp(app);
+
+      const snapshot = readSnapshot(userDataPath);
+      expect(snapshot).not.toBeNull();
+      expect(snapshot).toHaveProperty('version');
+      expect(snapshot).toHaveProperty('activeWorkspacePath');
+      expect(snapshot).toHaveProperty('extras');
+      expect(snapshot).toHaveProperty('workspaces');
+      expect(snapshot).toHaveProperty('collections');
+      expect(Array.isArray(snapshot?.workspaces)).toBe(true);
+      expect(Array.isArray(snapshot?.collections)).toBe(true);
+
+      const migratedCollectionEntry = snapshot?.collections?.find(
+        (collection: any) => collection?.pathname === migrationCollectionPath
+      );
+      expect(migratedCollectionEntry).toBeTruthy();
+      console.log(JSON.stringify(migratedCollectionEntry));
+
+      expect(migratedCollectionEntry?.selectedEnvironment).toBe('local');
+    });
+  });
+
   test('keeps selected environments for non-active collections across snapshot saves', async ({ launchElectronApp, createTmpDir }) => {
     const userDataPath = await createTmpDir('snap-env-persistence');
     const firstCollectionPath = await createTmpDir('snap-col-a');
