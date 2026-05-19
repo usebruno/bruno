@@ -2,6 +2,7 @@ import sendRequestTransformer from './send-request-transformer';
 import { getMemberExpressionString } from './ast-utils';
 const j = require('jscodeshift');
 const cloneDeep = require('lodash/cloneDeep');
+import { buildStatusAssertionEntries } from './postman-status-assertions';
 
 // Simple 1:1 translations for straightforward replacements
 // TODO: Restore the commented-out translations once the UI update fixes are live.
@@ -211,87 +212,60 @@ const complexTransformations = [
       return j.callExpression(j.identifier('res.getHeader'), path.parent.value.arguments);
     }
   },
-  // Handle pm.response.to.have.status
-  {
-    pattern: 'pm.response.to.have.status',
+  // pm.response.to[.not].have.status -> expect(res.getStatus()).to[.not].equal(arg)
+  ...['to.have.status', 'to.not.have.status', 'to.have.not.status'].map((pattern) => ({
+    pattern: `pm.response.${pattern}`,
     transform: (path, j) => {
-      const callExpr = path.parent.value;
-
-      const args = callExpr.arguments;
-
-      // Create: expect(res.getStatus()).to.equal(arg)
+      const negated = pattern.includes('.not.');
       return j.callExpression(
         j.memberExpression(
-          j.callExpression(
-            j.identifier('expect'),
-            [
-              j.callExpression(
-                j.identifier('res.getStatus'),
-                []
-              )
-            ]
-          ),
-          j.identifier('to.equal')
+          j.callExpression(j.identifier('expect'), [j.callExpression(j.identifier('res.getStatus'), [])]),
+          j.identifier(negated ? 'to.not.equal' : 'to.equal')
         ),
-        args
+        path.parent.value.arguments
       );
     }
-  },
+  })),
 
-  // handle 'pm.response.to.have.header' to expect(res.getHeaders()).to.have.property(args)
-  {
-    pattern: 'pm.response.to.have.header',
+  // pm.response.to[.not].have.header -> expect(res.getHeaders()).to[.not].have.property(args)
+  // Header names are lowercased because axios normalizes response headers to lowercase
+  ...['to.have.header', 'to.not.have.header', 'to.have.not.header'].map((pattern) => ({
+    pattern: `pm.response.${pattern}`,
     transform: (path, j) => {
-      const callExpr = path.parent.value;
-
-      const args = callExpr.arguments;
+      const args = path.parent.value.arguments;
+      const negated = pattern.includes('.not.');
 
       if (args.length > 0) {
-        // Apply toLowerCase() to the first argument
         args[0] = j.callExpression(
-          j.memberExpression(
-            args[0],
-            j.identifier('toLowerCase')
-          ),
+          j.memberExpression(args[0], j.identifier('toLowerCase')),
           []
         );
       }
 
-      // Create: expect(res.getHeaders()).to.have.property(args)
       return j.callExpression(
         j.memberExpression(
-          j.callExpression(
-            j.identifier('expect'),
-            [
-              j.callExpression(
-                j.identifier('res.getHeaders'),
-                []
-              )
-            ]
-          ),
-          j.identifier('to.have.property')
+          j.callExpression(j.identifier('expect'), [j.callExpression(j.identifier('res.getHeaders'), [])]),
+          j.identifier(negated ? 'to.not.have.property' : 'to.have.property')
         ),
         args
       );
     }
-  },
-  // handle pm.response.to.have.body to expect(res.getBody()).to.equal(arg)
-  {
-    pattern: 'pm.response.to.have.body',
+  })),
+
+  // pm.response.to[.not].have.body -> expect(res.getBody()).to[.not].equal(arg)
+  ...['to.have.body', 'to.not.have.body', 'to.have.not.body'].map((pattern) => ({
+    pattern: `pm.response.${pattern}`,
     transform: (path, j) => {
-      const callExpr = path.parent.value;
-
-      const args = callExpr.arguments;
-
+      const negated = pattern.includes('.not.');
       return j.callExpression(
         j.memberExpression(
-          j.callExpression(j.identifier('expect'), [j.identifier('res.getBody()')]),
-          j.identifier('to.equal')
+          j.callExpression(j.identifier('expect'), [j.callExpression(j.identifier('res.getBody'), [])]),
+          j.identifier(negated ? 'to.not.equal' : 'to.equal')
         ),
-        args
+        path.parent.value.arguments
       );
     }
-  },
+  })),
 
   // Handle pm.execution.setNextRequest(null)
   {
@@ -439,90 +413,6 @@ const complexTransformations = [
     }
   },
 
-  // pm.response.to.be.ok -> expect(res.getStatus()).to.be.within(200, 299)
-  {
-    pattern: 'pm.response.to.be.ok',
-    transform: (path, j) => {
-      return j.callExpression(
-        j.memberExpression(
-          j.callExpression(j.identifier('expect'), [j.callExpression(j.identifier('res.getStatus'), [])]),
-          j.identifier('to.be.within')
-        ),
-        [j.literal(200), j.literal(299)]
-      );
-    }
-  },
-
-  // pm.response.to.be.success -> expect(res.getStatus()).to.be.within(200, 299)
-  {
-    pattern: 'pm.response.to.be.success',
-    transform: (path, j) => {
-      return j.callExpression(
-        j.memberExpression(
-          j.callExpression(j.identifier('expect'), [j.callExpression(j.identifier('res.getStatus'), [])]),
-          j.identifier('to.be.within')
-        ),
-        [j.literal(200), j.literal(299)]
-      );
-    }
-  },
-
-  // pm.response.to.be.redirection -> expect(res.getStatus()).to.be.within(300, 399)
-  {
-    pattern: 'pm.response.to.be.redirection',
-    transform: (path, j) => {
-      return j.callExpression(
-        j.memberExpression(
-          j.callExpression(j.identifier('expect'), [j.callExpression(j.identifier('res.getStatus'), [])]),
-          j.identifier('to.be.within')
-        ),
-        [j.literal(300), j.literal(399)]
-      );
-    }
-  },
-
-  // pm.response.to.be.clientError -> expect(res.getStatus()).to.be.within(400, 499)
-  {
-    pattern: 'pm.response.to.be.clientError',
-    transform: (path, j) => {
-      return j.callExpression(
-        j.memberExpression(
-          j.callExpression(j.identifier('expect'), [j.callExpression(j.identifier('res.getStatus'), [])]),
-          j.identifier('to.be.within')
-        ),
-        [j.literal(400), j.literal(499)]
-      );
-    }
-  },
-
-  // pm.response.to.be.serverError -> expect(res.getStatus()).to.be.within(500, 599)
-  {
-    pattern: 'pm.response.to.be.serverError',
-    transform: (path, j) => {
-      return j.callExpression(
-        j.memberExpression(
-          j.callExpression(j.identifier('expect'), [j.callExpression(j.identifier('res.getStatus'), [])]),
-          j.identifier('to.be.within')
-        ),
-        [j.literal(500), j.literal(599)]
-      );
-    }
-  },
-
-  // pm.response.to.be.error -> expect(res.getStatus()).to.be.at.least(400)
-  {
-    pattern: 'pm.response.to.be.error',
-    transform: (path, j) => {
-      return j.callExpression(
-        j.memberExpression(
-          j.callExpression(j.identifier('expect'), [j.callExpression(j.identifier('res.getStatus'), [])]),
-          j.identifier('to.be.at.least')
-        ),
-        [j.literal(400)]
-      );
-    }
-  },
-
   // pm.response.to.have.jsonBody(...) -> expect(res.getBody()).to.have.jsonBody(...)
   {
     pattern: 'pm.response.to.have.jsonBody',
@@ -655,7 +545,49 @@ const complexTransformations = [
       const args = callExpr.arguments;
       return j.callExpression(j.identifier('res.getHeader'), args);
     }
-  }
+  },
+
+  // pm.response.to.be.withBody -> expect(res.getBody()).to.not.equal(undefined)
+  // Uses undefined check instead of truthiness (.to.be.ok) so falsy bodies (false, 0, null) pass correctly
+  {
+    pattern: 'pm.response.to.be.withBody',
+    transform: (path, j) => {
+      return j.callExpression(
+        j.memberExpression(
+          j.callExpression(j.identifier('expect'), [j.callExpression(j.identifier('res.getBody'), [])]),
+          j.identifier('to.not.equal')
+        ),
+        [j.identifier('undefined')]
+      );
+    }
+  },
+  {
+    pattern: 'pm.response.to.not.be.withBody',
+    transform: (path, j) => {
+      return j.callExpression(
+        j.memberExpression(
+          j.callExpression(j.identifier('expect'), [j.callExpression(j.identifier('res.getBody'), [])]),
+          j.identifier('to.equal')
+        ),
+        [j.identifier('undefined')]
+      );
+    }
+  },
+  {
+    pattern: 'pm.response.to.be.not.withBody',
+    transform: (path, j) => {
+      return j.callExpression(
+        j.memberExpression(
+          j.callExpression(j.identifier('expect'), [j.callExpression(j.identifier('res.getBody'), [])]),
+          j.identifier('to.equal')
+        ),
+        [j.identifier('undefined')]
+      );
+    }
+  },
+
+  // --- Data-driven status assertions (pm.response.to.be.*) ---
+  ...buildStatusAssertionEntries()
 ];
 
 // Create a map for complex transformations to enable O(1) lookups
