@@ -1,5 +1,5 @@
 const _ = require('lodash');
-const { getValueString, indentString, serializeAnnotations } = require('./utils');
+const { getValueString, indentString, serializeAnnotations, buildAnnotationsFromVariable } = require('./utils');
 
 const envToJson = (json) => {
   const variables = _.get(json, 'variables', []);
@@ -9,10 +9,11 @@ const envToJson = (json) => {
   const vars = variables
     .filter((variable) => !variable.secret)
     .map((variable) => {
-      const { name, value, enabled, annotations } = variable;
+      const { name, value, enabled } = variable;
       const prefix = enabled ? '' : '~';
+      const annotationPrefix = serializeAnnotations(buildAnnotationsFromVariable(variable));
 
-      return indentString(`${serializeAnnotations(annotations)}${prefix}${name}: ${getValueString(value)}`);
+      return indentString(`${annotationPrefix}${prefix}${name}: ${getValueString(value)}`);
     });
 
   const secretVars = variables

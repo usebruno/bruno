@@ -89,6 +89,8 @@ export const deleteSecretsInEnvs = (envs) => {
     each(env.variables, (variable) => {
       if (variable.secret) {
         variable.value = '';
+        // Secrets never carry a datatype.
+        delete variable.datatype;
       }
     });
   });

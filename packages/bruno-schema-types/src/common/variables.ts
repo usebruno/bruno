@@ -9,7 +9,7 @@ export type VariableDatatype = 'string' | 'number' | 'boolean' | 'object';
 export interface Variable {
   uid: UID;
   name?: string | null;
-  value?: string | null;
+  value?: string | number | boolean | Record<string, unknown> | null;
   description?: string | null;
   enabled?: boolean;
   local?: boolean;

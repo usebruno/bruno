@@ -1,3 +1,5 @@
+const { parseValueByDatatype, BRUNO_VARIABLE_DATATYPES } = require('@usebruno/common/utils');
+
 // safely parse json
 const safeParseJson = (json) => {
   try {
@@ -33,8 +35,13 @@ const outdentString = (str, spaces = 2) => {
 
 const getValueString = (value) => {
   // Handle null, undefined, and empty strings
-  if (!value) {
+  if (!value && value !== 0 && value !== false) {
     return '';
+  }
+
+  // Stringify non-string values (objects, numbers, booleans)
+  if (typeof value !== 'string') {
+    value = typeof value === 'object' ? JSON.stringify(value, null, 2) : String(value);
   }
 
   const hasNewLines = value.includes('\n') || value.includes('\r');
@@ -74,14 +81,38 @@ function serializeAnnotations(annotations) {
     annotations
       .map((a) => {
         if (a.value === undefined) return `@${a.name}`;
-        if (a.value.includes('\n')) {
-          return `@${a.name}('''\n${indentString(a.value)}\n''')`;
+        const strValue = String(a.value);
+        if (strValue.includes('\n')) {
+          return `@${a.name}('''\n${indentString(strValue)}\n''')`;
         }
-        const quote = a.value.includes('\'') ? '"' : '\'';
-        return `@${a.name}(${quote}${a.value}${quote})`;
+        const quote = strValue.includes('\'') ? '"' : '\'';
+        return `@${a.name}(${quote}${strValue}${quote})`;
       })
       .join('\n') + '\n'
   );
+};
+
+const buildAnnotationsFromVariable = (variable) => {
+  const { annotations = [], datatype } = variable;
+  // Drop any datatype annotations from the existing list; they'll be rebuilt from the datatype field
+  const other = annotations.filter((a) => !BRUNO_VARIABLE_DATATYPES.includes(a.name));
+
+  if (datatype && datatype !== 'string') {
+    return [{ name: datatype }, ...other];
+  }
+
+  return other;
+};
+
+const extractTypedAnnotations = (rawAnnotations, result) => {
+  if (!rawAnnotations?.length) return;
+
+  const annotation = rawAnnotations.findLast((a) => BRUNO_VARIABLE_DATATYPES.includes(a.name));
+  // 'string' is the implicit default — don't materialize it as an explicit datatype field
+  if (!annotation || annotation.name === 'string') return;
+
+  result.datatype = annotation.name;
+  result.value = parseValueByDatatype(result.value, result.datatype);
 };
 
 module.exports = {
@@ -91,5 +122,7 @@ module.exports = {
   getValueString,
   getKeyString,
   getValueUrl,
-  serializeAnnotations
+  serializeAnnotations,
+  extractTypedAnnotations,
+  buildAnnotationsFromVariable
 };

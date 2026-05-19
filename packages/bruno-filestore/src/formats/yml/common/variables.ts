@@ -2,6 +2,13 @@ import { Variable, VariableTypedValue } from '@opencollection/types/common/varia
 import { FolderRequest as BrunoFolderRequest } from '@usebruno/schema-types/collection/folder';
 import { Variable as BrunoVariable, Variables as BrunoVariables } from '@usebruno/schema-types/common/variables';
 import { uuid, ensureString } from '../../../utils';
+import { valueToString } from '@usebruno/common/utils';
+import {
+  isTypedValue,
+  hasTypedMetadata,
+  toOpenCollectionTypedValue,
+  fromOpenCollectionTypedValue
+} from './datatype';
 
 export const isTypedValue = (value: unknown): value is VariableTypedValue => {
   return (
@@ -29,12 +36,10 @@ export const toOpenCollectionVariables = (variables: BrunoFolderRequest['vars'] 
   }
 
   const ocVariables: Variable[] = reqVarsArray.map((v: BrunoVariable): Variable => {
+    const valueStr = valueToString(v.value);
     const variable: Variable = {
       name: v.name || '',
-      value:
-        v.datatype && v.datatype !== 'string'
-          ? { type: v.datatype, data: ensureString(v.value) }
-          : v.value || ''
+      value: hasTypedMetadata(v) ? toOpenCollectionTypedValue(v, valueStr) : valueStr
     };
 
     if (v?.description?.trim().length) {
@@ -62,7 +67,7 @@ export const toBrunoVariables = (variables: Variable[] | null | undefined): { re
   const reqVars: BrunoVariables = [];
 
   variables.forEach((v: Variable) => {
-    const variable: BrunoVariable = {
+    const base: BrunoVariable = {
       uid: uuid(),
       name: ensureString(v.name),
       value: '',
@@ -71,19 +76,16 @@ export const toBrunoVariables = (variables: Variable[] | null | undefined): { re
     };
 
     if (isTypedValue(v.value)) {
-      variable.value = ensureString(v.value.data);
-      if (v.value.type !== 'string' && v.value.type !== 'null') {
-        variable.datatype = v.value.type;
-      }
+      Object.assign(base, fromOpenCollectionTypedValue(v.value));
     } else {
-      variable.value = ensureString(v.value);
+      base.value = ensureString(v.value);
     }
 
     if (v.description) {
-      variable.description = typeof v.description === 'string' ? v.description : (v.description as any)?.content || '';
+      base.description = typeof v.description === 'string' ? v.description : (v.description as any)?.content || '';
     }
 
-    reqVars.push(variable);
+    reqVars.push(base);
   });
 
   return { req: reqVars, res: [] };

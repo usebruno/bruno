@@ -243,4 +243,111 @@ vars:secret [
 `;
     expect(output).toEqual(expected);
   });
+
+  describe('typed environment variables', () => {
+    it('should serialize @number datatype as a decorator', () => {
+      const input = {
+        variables: [
+          { name: 'port', value: 3000, enabled: true, datatype: 'number' }
+        ]
+      };
+
+      const output = parser(input);
+      expect(output).toEqual(`vars {
+  @number
+  port: 3000
+}
+`);
+    });
+
+    it('should serialize @boolean datatype as a decorator', () => {
+      const input = {
+        variables: [
+          { name: 'isEnabled', value: true, enabled: true, datatype: 'boolean' }
+        ]
+      };
+
+      const output = parser(input);
+      expect(output).toEqual(`vars {
+  @boolean
+  isEnabled: true
+}
+`);
+    });
+
+    it('should serialize @object datatype with JSON-stringified multiline value', () => {
+      const input = {
+        variables: [
+          { name: 'config', value: { a: 1, b: 'x' }, enabled: true, datatype: 'object' }
+        ]
+      };
+
+      const output = parser(input);
+      expect(output).toContain('@object');
+      expect(output).toContain('"a": 1');
+      expect(output).toContain('"b": "x"');
+    });
+
+    it('should not emit a decorator for string datatype', () => {
+      const input = {
+        variables: [
+          { name: 'apiKey', value: 'abc123', enabled: true, datatype: 'string' }
+        ]
+      };
+
+      const output = parser(input);
+      expect(output).toEqual(`vars {
+  apiKey: abc123
+}
+`);
+    });
+
+    it('should drop datatype annotations from existing list and rebuild from datatype field', () => {
+      const input = {
+        variables: [
+          {
+            name: 'port',
+            value: 3000,
+            enabled: true,
+            annotations: [{ name: 'string' }, { name: 'description', value: 'service port' }],
+            datatype: 'number'
+          }
+        ]
+      };
+
+      const output = parser(input);
+      // @string from old annotations should be dropped, @number should be set from datatype
+      expect(output).toContain('@number');
+      expect(output).not.toContain('@string');
+      expect(output).toContain('@description(\'service port\')');
+    });
+
+    it('should not emit datatype for secret vars', () => {
+      const input = {
+        variables: [
+          { name: 'api_key', value: 'redacted', enabled: true, secret: true, datatype: 'number' }
+        ]
+      };
+
+      const output = parser(input);
+      // secret vars use the vars:secret block, no value or datatype emitted
+      expect(output).toContain('vars:secret');
+      expect(output).toContain('api_key');
+      expect(output).not.toContain('@number');
+      expect(output).not.toContain('redacted');
+    });
+
+    it('should round-trip non-string values through getValueString', () => {
+      const input = {
+        variables: [
+          { name: 'port', value: 8080, enabled: true, datatype: 'number' },
+          { name: 'flag', value: false, enabled: true, datatype: 'boolean' }
+        ]
+      };
+
+      const output = parser(input);
+      expect(output).toContain('port: 8080');
+      expect(output).toContain('flag: false');
+    });
+  });
 });

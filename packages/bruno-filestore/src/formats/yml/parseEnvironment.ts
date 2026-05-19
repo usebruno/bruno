@@ -3,13 +3,13 @@ import type { Environment } from '@opencollection/types/config/environments';
 import type { Variable, SecretVariable } from '@opencollection/types/common/variables';
 import { parseYml } from './utils';
 import { uuid, ensureString } from '../../utils';
-import { isTypedValue } from './common/variables';
+import { isTypedValue, fromOpenCollectionTypedValue } from './common/datatype';
 
 const isSecretVariable = (v: Variable | SecretVariable): v is SecretVariable => {
   return 'secret' in v && v.secret === true;
 };
 
-const toBrunoEnvironmentVariables = (variables: (Variable | SecretVariable)[] | null | undefined): BrunoEnvironmentVariable[] => {
+export const toBrunoEnvironmentVariables = (variables: (Variable | SecretVariable)[] | null | undefined): BrunoEnvironmentVariable[] => {
   if (!variables?.length) {
     return [];
   }
@@ -31,6 +31,7 @@ const toBrunoEnvironmentVariables = (variables: (Variable | SecretVariable)[] | 
 
       return variable;
     }
+
     const variable: BrunoEnvironmentVariable = {
       uid: uuid(),
       name: ensureString(v.name),
@@ -41,10 +42,7 @@ const toBrunoEnvironmentVariables = (variables: (Variable | SecretVariable)[] | 
     };
 
     if (isTypedValue(v.value)) {
-      variable.value = ensureString(v.value.data);
-      if (v.value.type !== 'string' && v.value.type !== 'null') {
-        variable.datatype = v.value.type;
-      }
+      Object.assign(variable, fromOpenCollectionTypedValue(v.value));
     } else {
       variable.value = ensureString(v.value);
     }

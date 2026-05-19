@@ -1,5 +1,5 @@
 import { collectionSchema, environmentSchema, itemSchema } from '@usebruno/schema';
-import { parseQueryParams, extractPromptVariables } from '@usebruno/common/utils';
+import { parseQueryParams, extractPromptVariables, valueToString, getDatatypeFromValue } from '@usebruno/common/utils';
 import { REQUEST_TYPES, DEFAULT_COLLECTION_FORMAT } from 'utils/common/constants';
 import cloneDeep from 'lodash/cloneDeep';
 import filter from 'lodash/filter';
@@ -2004,13 +2004,6 @@ export const saveEnvironment = (variables, environmentUid, collectionUid) => (di
       return reject(new Error('Environment not found'));
     }
 
-    /*
-     Modal Save writes what the user sees:
-     - Non-ephemeral vars are saved as-is (without metadata)
-     - Ephemeral vars:
-       - if persistedValue exists, save that (explicit persisted case)
-       - otherwise save the current UI value (treat as user-authored)
-     */
     const persisted = buildPersistedEnvVariables(variables, { mode: 'save' });
     environment.variables = persisted;
 
@@ -2021,8 +2014,6 @@ export const saveEnvironment = (variables, environmentUid, collectionUid) => (di
       .validate(environment)
       .then(() => ipcRenderer.invoke('renderer:save-environment', collection.pathname, envForValidation))
       .then(() => {
-        // Immediately sync Redux to the saved (persisted) set so old ephemerals
-        // aren’t around when the watcher event arrives.
         dispatch(_saveEnvironment({ variables: persisted, environmentUid, collectionUid }));
       })
       .then(resolve)
@@ -2346,19 +2337,33 @@ export const mergeAndPersistEnvironment
 
         let existingVars = environment.variables || [];
 
-        let normalizedNewVars = Object.entries(persistentEnvVariables).map(([name, value]) => ({
-          uid: uuid(),
-          name,
-          value,
-          type: 'text',
-          enabled: true,
-          secret: false
-        }));
+        let normalizedNewVars = Object.entries(persistentEnvVariables).map(([name, value]) => {
+          const inferred = getDatatypeFromValue(value);
+          return {
+            uid: uuid(),
+            name,
+            value,
+            type: 'text',
+            enabled: true,
+            secret: false,
+            ...(inferred !== 'string' ? { datatype: inferred } : {})
+          };
+        });
 
         const merged = existingVars.map((v) => {
           const found = normalizedNewVars.find((nv) => nv.name === v.name);
           if (found) {
-            return { ...v, value: found.value };
+            if (v.secret) {
+              const { datatype: _oldDatatype, ...rest } = v;
+              return { ...rest, value: valueToString(found.value) };
+            }
+            const { datatype: newDatatype } = found;
+            const { datatype: _oldDatatype, ...rest } = v;
+            return {
+              ...rest,
+              value: found.value,
+              ...(newDatatype ? { datatype: newDatatype } : {})
+            };
           }
           return v;
         });

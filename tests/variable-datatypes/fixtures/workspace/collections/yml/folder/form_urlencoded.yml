@@ -1,0 +1,55 @@
+info:
+  name: form_urlencoded
+  type: http
+  seq: 4
+
+http:
+  method: POST
+  url: https://httpbin.org/anything
+  body:
+    type: form-urlencoded
+    data:
+      - name: fu_str
+        value: "{{fu_str}}"
+      - name: fu_num
+        value: "{{fu_num}}"
+      - name: fu_bool
+        value: "{{fu_bool}}"
+      - name: fu_obj
+        value: "{{fu_obj}}"
+
+runtime:
+  variables:
+    - name: fu_str
+      value: form_string
+    - name: fu_num
+      value:
+        type: number
+        data: "42"
+    - name: fu_bool
+      value:
+        type: boolean
+        data: "true"
+    - name: fu_obj
+      value:
+        type: object
+        data: '{"key":"value"}'
+  scripts:
+    - type: tests
+      code: |-
+        test("form-urlencoded values stringify typed vars on the wire", () => {
+          const form = res.getBody().form;
+          // form-urlencoded only carries strings on the wire — `buildFormUrlEncodedPayload`
+          // in @usebruno/common's form-data utility coerces every value via String(),
+          // and `interpolate` (interpolate/index.ts:103-105) JSON-stringifies object
+          // values when substituting into the string template. httpbin echoes the
+          // wire-form fields back as strings.
+          expect(form.fu_str).to.equal("form_string");
+          expect(form.fu_num).to.equal("42");
+          expect(form.fu_bool).to.equal("true");
+          expect(form.fu_obj).to.equal('{"key":"value"}');
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
