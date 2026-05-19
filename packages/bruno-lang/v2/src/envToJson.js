@@ -1,5 +1,6 @@
 const ohm = require('ohm-js');
 const _ = require('lodash');
+const { extractTypedAnnotations } = require('./utils');
 
 // this is done to avoid breaking existing pairlist mapping so
 // the key is hidden and not added into the json automatically
@@ -86,6 +87,9 @@ const mapPairListToKeyValPairs = (pairList = []) => {
     if (rawAnnotations && rawAnnotations.length) {
       result.annotations = rawAnnotations;
     }
+
+    extractTypedAnnotations(rawAnnotations, result);
+
     return result;
   });
 };

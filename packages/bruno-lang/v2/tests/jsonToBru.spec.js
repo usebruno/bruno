@@ -136,4 +136,99 @@ describe('jsonToBru stringify', () => {
       `);
     });
   });
+
+  describe('vars:pre-request datatype decorators', () => {
+    const baseMeta = { name: 'test', type: 'http', seq: 1 };
+    const baseHttp = { method: 'get', url: 'http://localhost' };
+
+    it('emits datatype decorators for typed variables', () => {
+      const output = stringify({
+        meta: baseMeta,
+        http: baseHttp,
+        vars: {
+          req: [
+            { name: 'apiKey', value: 'abc', enabled: true, local: false },
+            { name: 'port', value: 3000, enabled: true, local: false, datatype: 'number' },
+            { name: 'flag', value: true, enabled: true, local: false, datatype: 'boolean' }
+          ]
+        }
+      });
+
+      expect(output).toContain('apiKey: abc');
+      expect(output).toContain('@number\n  port: 3000');
+      expect(output).toContain('@boolean\n  flag: true');
+    });
+
+    it('serializes @object values as multiline JSON', () => {
+      const output = stringify({
+        meta: baseMeta,
+        http: baseHttp,
+        vars: {
+          req: [
+            { name: 'config', value: { a: 1, b: 'x' }, enabled: true, local: false, datatype: 'object' }
+          ]
+        }
+      });
+
+      expect(output).toContain('@object');
+      expect(output).toContain('"a": 1');
+      expect(output).toContain('"b": "x"');
+    });
+
+    it('preserves local, disabled and disabled+local prefixes alongside datatype', () => {
+      const output = stringify({
+        meta: baseMeta,
+        http: baseHttp,
+        vars: {
+          req: [
+            { name: 'a', value: 1, enabled: true, local: true, datatype: 'number' },
+            { name: 'b', value: 2, enabled: false, local: false, datatype: 'number' },
+            { name: 'c', value: 3, enabled: false, local: true, datatype: 'number' }
+          ]
+        }
+      });
+
+      expect(output).toContain('@number\n  @a: 1');
+      expect(output).toContain('@number\n  ~b: 2');
+      expect(output).toContain('@number\n  ~@c: 3');
+    });
+
+    it('does not emit a datatype decorator for the string default', () => {
+      const output = stringify({
+        meta: baseMeta,
+        http: baseHttp,
+        vars: {
+          req: [
+            { name: 'apiKey', value: 'abc', enabled: true, local: false, datatype: 'string' }
+          ]
+        }
+      });
+
+      expect(output).not.toContain('@string');
+      expect(output).toContain('apiKey: abc');
+    });
+
+    it('drops a stale datatype annotation in favour of the datatype field', () => {
+      const output = stringify({
+        meta: baseMeta,
+        http: baseHttp,
+        vars: {
+          req: [
+            {
+              name: 'port',
+              value: 3000,
+              enabled: true,
+              local: false,
+              annotations: [{ name: 'string' }, { name: 'description', value: 'service port' }],
+              datatype: 'number'
+            }
+          ]
+        }
+      });
+
+      expect(output).toContain('@number');
+      expect(output).not.toContain('@string');
+      expect(output).toContain('@description(\'service port\')');
+    });
+  });
 });

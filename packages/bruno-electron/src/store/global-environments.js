@@ -1,5 +1,6 @@
 const _ = require('lodash');
 const Store = require('electron-store');
+const { parseValueByDatatype } = require('@usebruno/common/utils');
 const { encryptStringSafe, decryptStringSafe } = require('../utils/encryption');
 const { environmentSchema } = require('@usebruno/schema');
 const { posixifyPath } = require('../utils/filesystem');
@@ -72,6 +73,9 @@ class GlobalEnvironmentsStore {
       env?.variables?.forEach((v) => {
         if (!v.type) {
           v.type = 'text';
+        }
+        if (v.datatype && v.datatype !== 'string' && !v.secret) {
+          v.value = parseValueByDatatype(v.value, v.datatype);
         }
       });
     });
