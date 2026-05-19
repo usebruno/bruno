@@ -1,0 +1,6 @@
+services:
+  bruno-cli:
+    image: usebruno/cli:3.3
+    volumes:
+      - .:/bruno
+    command: ["run", "echo", "-r", "--env", "Prod"]

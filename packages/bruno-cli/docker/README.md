@@ -1,8 +1,8 @@
 # Bruno CLI Docker Images
 
-Official Docker images for [Bruno CLI](https://www.usebruno.com), enabling container-native API collection runs in CI/CD pipelines and local environments without requiring Node.js or npm on the host.
+Official Docker images for [Bruno CLI](https://www.usebruno.com), enabling container-native API collection runs in CI/CD pipelines and local environments without requiring Node.js or npm on the host. See the [Bruno CLI docs](https://docs.usebruno.com/bru-cli/overview) for CLI usage.
 
-## Image structure
+## Folder structure
 
 ```text
 docker/
@@ -12,7 +12,7 @@ docker/
       │   ├── Dockerfile  ← Alpine Linux variant (smallest, ~141MB)
       │   └── README.md
       └── debian/
-          ├── Dockerfile  ← Debian slim variant (~200MB+, glibc support)
+          ├── Dockerfile  ← Debian slim variant (~162MB, glibc support)
           └── README.md
 ```
 
@@ -43,15 +43,33 @@ docker pull ghcr.io/usebruno/cli:latest
 
 ## Tags
 
-| Tag | Example | Variant |
-|-----|---------|---------|
-| `latest` | `usebruno/cli:latest` | alpine |
-| `<version>` | `usebruno/cli:3.3.0` | alpine |
-| `<major.minor>` | `usebruno/cli:3.3` | alpine |
-| `<major>` | `usebruno/cli:3` | alpine |
-| `<version>-alpine` | `usebruno/cli:3.3.0-alpine` | alpine |
-| `<version>-debian` | `usebruno/cli:3.3.0-debian` | debian |
-| `debian` | `usebruno/cli:debian` | debian |
+Every release publishes the following tags to **both** Docker Hub (`usebruno/cli`) and GHCR (`ghcr.io/usebruno/cli`).
+
+### Alpine variant (default)
+
+| Tag pattern | Example | Notes |
+|-------------|---------|-------|
+| `latest` | `usebruno/cli:latest` | Newest release marked as latest. Only moves when the publish workflow is run with "Tag this version as latest" checked. |
+| `latest-alpine` | `usebruno/cli:latest-alpine` | Alias of `latest` — also alpine. |
+| `alpine` | `usebruno/cli:alpine` | Newest alpine, moves on every alpine publish. |
+| `<version>` | `usebruno/cli:3.3.0` | Exact version, immutable. |
+| `<version>-alpine` | `usebruno/cli:3.3.0-alpine` | Exact version, explicitly alpine. |
+| `<major.minor>` | `usebruno/cli:3.3` | Floats with patch releases (3.3.x). |
+| `<major.minor>-alpine` | `usebruno/cli:3.3-alpine` | Same, explicitly alpine. |
+| `<major>` | `usebruno/cli:3` | Floats with any 3.x.x release. |
+| `<major>-alpine` | `usebruno/cli:3-alpine` | Same, explicitly alpine. |
+
+### Debian variant
+
+| Tag pattern | Example | Notes |
+|-------------|---------|-------|
+| `latest-debian` | `usebruno/cli:latest-debian` | Newest debian release marked as latest (gated by the same checkbox). |
+| `debian` | `usebruno/cli:debian` | Newest debian, moves on every debian publish. |
+| `<version>-debian` | `usebruno/cli:3.3.0-debian` | Exact version, debian. |
+| `<major.minor>-debian` | `usebruno/cli:3.3-debian` | Floats with debian patch releases. |
+| `<major>-debian` | `usebruno/cli:3-debian` | Floats with any 3.x.x debian release. |
+
+The unsuffixed tags (`:latest`, `:3.3.0`, `:3.3`, `:3`, `:alpine`) always resolve to the alpine variant by convention.
 
 ---
 
@@ -86,22 +104,42 @@ docker run --rm usebruno/cli --version
 
 ### Step 3 — Run your collection
 
-> Mount your collection directory to `/bruno` and pass `bru` arguments directly after the image name.
+> These examples assume you are running `docker` from a directory that contains your Bruno collection (i.e. a folder with a `bruno.json` at its root). Mount that directory to `/bruno` and pass `bru` arguments directly after the image name. If your collection lives elsewhere on disk, see the path-based examples further down.
 
 > **Cross-platform note:** the examples below use `$(pwd)` which works in Bash / Zsh / Git Bash / WSL.
 > On Windows native shells, substitute `$(pwd)` with:
 > - PowerShell: `${PWD}`
 > - CMD: `%cd%`
 
+> **Note on `-r`:** Bruno CLI's `run` is non-recursive by default — it only looks at the target folder's direct children. If your collection has nested subfolders (most do), add `-r` to recurse: `bru run my-folder -r --env ci`. Targeting a single `.bru` or `.yml` file doesn't need `-r`.
+
 ```bash
-# collection at your current directory
+# run every request in the collection at your current directory
 docker run --rm -v $(pwd):/bruno usebruno/cli run --env staging
 
-# collection in a subfolder
+# run a specific subfolder (group of requests) within that collection
 docker run --rm -v $(pwd):/bruno usebruno/cli run ./api-tests --env staging
 
-# single request file
+# run a single .bru request file from that collection
 docker run --rm -v $(pwd):/bruno usebruno/cli run ./api-tests/login.bru --env staging
+```
+
+For Windows CMD users, swap `$(pwd)` with `%cd%`:
+
+```cmd
+docker run --rm -v %cd%:/bruno usebruno/cli run --env staging
+```
+
+#### Running a collection that lives at a different path
+
+If your collection is not in your current directory, point `docker` at its absolute path instead of `$(pwd)`:
+
+```bash
+# run every request in a collection at an arbitrary path
+docker run --rm -v /path/to/your/collection:/bruno usebruno/cli run --env staging
+
+# run a single .bru file from a collection at an arbitrary path
+docker run --rm -v /path/to/your/collection:/bruno usebruno/cli run ./auth/login.bru --env staging
 ```
 
 ---
@@ -249,6 +287,46 @@ api-tests:
 
 ---
 
+## Docker Compose
+
+### Quick example
+
+A minimal `docker-compose.yml` for running a Bruno collection alongside your project. Drop this file next to your `bruno.json`:
+
+```yaml
+services:
+  bruno-cli:
+    image: usebruno/cli:3.3
+    volumes:
+      - .:/bruno
+    command: ["run", ".", "-r", "--env", "ci"]
+```
+
+Then run:
+
+```bash
+docker compose run --rm bruno-cli
+```
+
+The `-r` flag tells `bru run` to recurse into subfolders. Without it, `bru` only scans the target's direct children — fine for a flat folder of `.bru` files, but most real collections have nested groups so `-r` is usually what you want.
+
+### Try it from this repo
+
+A ready-to-run `docker-compose.yml` lives inside this repo's test collection at [`packages/bruno-tests/collection/docker-compose.yml`](../../bruno-tests/collection/docker-compose.yml). Run it directly:
+
+```bash
+cd packages/bruno-tests/collection
+docker compose run --rm bruno-cli
+```
+
+This runs the `echo` folder against the `Prod` environment — a small set of requests against public endpoints that demonstrate the CLI executing requests and assertions inside a container.
+
+### Standalone demo
+
+For a clone-and-run demo with a curated collection, see [`bruno-collections/bruno-cli-docker`](https://github.com/bruno-collections/bruno-cli-docker).
+
+---
+
 ## Image details
 
 All variants include:
@@ -262,10 +340,14 @@ All variants include:
 
 ## All version × variant combinations
 
-| | Alpine | Debian |
+Using `<X.Y.Z>` as a placeholder for any released semver (e.g. `3.3.0`):
+
+| Selector | Alpine | Debian |
 |---|---|---|
-| `latest` | `usebruno/cli:latest` | `usebruno/cli:debian` |
-| `3` | `usebruno/cli:3` | `usebruno/cli:3-debian` |
-| `3.3` | `usebruno/cli:3.3` | `usebruno/cli:3.3-debian` |
-| `3.3.0` | `usebruno/cli:3.3.0` | `usebruno/cli:3.3.0-debian` |
-| `3.2.0` | `usebruno/cli:3.2.0` | `usebruno/cli:3.2.0-debian` |
+| Latest stable (when checkbox set) | `usebruno/cli:latest`, `usebruno/cli:latest-alpine` | `usebruno/cli:latest-debian` |
+| Newest of variant | `usebruno/cli:alpine` | `usebruno/cli:debian` |
+| Exact version | `usebruno/cli:<X.Y.Z>`, `usebruno/cli:<X.Y.Z>-alpine` | `usebruno/cli:<X.Y.Z>-debian` |
+| Minor float | `usebruno/cli:<X.Y>`, `usebruno/cli:<X.Y>-alpine` | `usebruno/cli:<X.Y>-debian` |
+| Major float | `usebruno/cli:<X>`, `usebruno/cli:<X>-alpine` | `usebruno/cli:<X>-debian` |
+
+All tags are mirrored to `ghcr.io/usebruno/cli` with the same suffix.
