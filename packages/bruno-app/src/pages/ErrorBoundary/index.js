@@ -83,7 +83,7 @@ class ErrorBoundary extends React.Component {
                 onClick={async (e) => {
                   e.preventDefault();
                   if (this.state.clearCaches) {
-                    return await this.clearCache();
+                    await this.clearCache();
                   }
                   this.forceQuit();
                 }}
