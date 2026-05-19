@@ -511,7 +511,7 @@ const addBruShimToContext = (vm, bru) => {
   const { evalCode: varListEvalCode } = createPropertyListBridge(vm, bru.getVarList(), bruVarListObject, {
     globalPath: 'globalThis.__bruVarList',
     syncReadMethods: ['has'],
-    syncReadObjectMethods: ['get', 'toObject'],
+    syncReadObjectMethods: ['get', 'toObject', '_getEntries'],
     syncWriteMethods: ['set', 'delete', 'clear'],
     withIterators: false
   });
@@ -523,7 +523,7 @@ const addBruShimToContext = (vm, bru) => {
   const { evalCode: envVarListEvalCode } = createPropertyListBridge(vm, bru.getEnvVarList(), bruEnvVarListObject, {
     globalPath: 'globalThis.__bruEnvVarList',
     syncReadMethods: ['has'],
-    syncReadObjectMethods: ['get', 'toObject'],
+    syncReadObjectMethods: ['get', 'toObject', '_getEntries'],
     syncWriteMethods: ['set', 'delete', 'clear'],
     withIterators: false
   });
@@ -535,7 +535,7 @@ const addBruShimToContext = (vm, bru) => {
   const { evalCode: globalEnvVarListEvalCode } = createPropertyListBridge(vm, bru.getGlobalEnvVarList(), bruGlobalEnvVarListObject, {
     globalPath: 'globalThis.__bruGlobalEnvVarList',
     syncReadMethods: ['has'],
-    syncReadObjectMethods: ['get', 'toObject'],
+    syncReadObjectMethods: ['get', 'toObject', '_getEntries'],
     syncWriteMethods: ['set', 'delete', 'clear'],
     withIterators: false
   });
@@ -590,9 +590,20 @@ const addBruShimToContext = (vm, bru) => {
       ${globalEnvVarListEvalCode}
     }
 
-    globalThis.bru.getVarList = () => globalThis.__bruVarList;
-    globalThis.bru.getEnvVarList = () => globalThis.__bruEnvVarList;
-    globalThis.bru.getGlobalEnvVarList = () => globalThis.__bruGlobalEnvVarList;
+    const __wrapVarList = (bridge) => {
+      const arr = bridge._getEntries();
+      arr.get = (...args) => bridge.get(...args);
+      arr.set = (...args) => bridge.set(...args);
+      arr.has = (...args) => bridge.has(...args);
+      arr.delete = (...args) => bridge.delete(...args);
+      arr.clear = (...args) => bridge.clear(...args);
+      arr.toObject = (...args) => bridge.toObject(...args);
+      arr._getEntries = (...args) => bridge._getEntries(...args);
+      return arr;
+    };
+    globalThis.bru.getVarList = () => __wrapVarList(globalThis.__bruVarList);
+    globalThis.bru.getEnvVarList = () => __wrapVarList(globalThis.__bruEnvVarList);
+    globalThis.bru.getGlobalEnvVarList = () => __wrapVarList(globalThis.__bruGlobalEnvVarList);
 
     globalThis.bru.cookies.jar = () => {
       const _jar = globalThis.bru.cookies._jar();

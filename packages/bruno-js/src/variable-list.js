@@ -96,6 +96,15 @@ class VariableList extends Array {
     return result;
   }
 
+  /**
+   * Returns a plain array copy of entries (for QuickJS bridge).
+   * @returns {Array<{key: string, value: *}>}
+   */
+  _getEntries() {
+    this.#syncFromObject();
+    return [...this];
+  }
+
   // ── Write methods ───────────────────────────────────────────────────
 
   /**
