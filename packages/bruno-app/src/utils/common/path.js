@@ -163,10 +163,60 @@ const getAbsoluteFilePath = (basePath, relativePath, shouldPosixify = false) => 
   return shouldPosixify ? posixify(result) : result;
 };
 
+/**
+ * Returns a relative path when filePath is contained within basePath.
+ * For paths outside basePath (or same path), returns the original filePath unchanged.
+ *
+ * @param {string} basePath - The base path to check containment against (e.g., collection pathname).
+ * @param {string} filePath - The absolute file path to compute a relative path for.
+ * @param {boolean} [shouldPosixify=false] - When true, output uses '/' separators for
+ *   cross-platform safety. Callers storing to version-controlled config files should opt in
+ *   by passing true. Default false preserves legacy platform-native separators for
+ *   backwards compatibility.
+ * @returns {string} Relative path if filePath is inside basePath, otherwise filePath itself.
+ *
+ * @example
+ * getRelativePathWithinBasePath('/users/john/collections/api', '/users/john/collections/api/files/payload.txt');
+ *  → "files/payload.txt"
+ *
+ * @example
+ * getRelativePathWithinBasePath('/users/john/collections/api', '/users/john/downloads/payload.txt');
+ *  → "/users/john/downloads/payload.txt"
+ *
+ * @example
+ * On Windows with posixify enabled
+ * getRelativePathWithinBasePath('C:\\Users\\John\\Collections\\Api', 'C:\\Users\\John\\Collections\\Api\\files\\payload.txt', true);
+ *  → "files/payload.txt"
+ */
+const getRelativePathWithinBasePath = (basePath, filePath, shouldPosixify = false) => {
+  if (!basePath || !filePath) {
+    return filePath;
+  }
+
+  try {
+    const relativePath = getRelativePath(basePath, filePath, shouldPosixify);
+    const sep = shouldPosixify ? '/' : brunoPath.sep;
+
+    if (
+      !relativePath
+      || relativePath === '.'
+      || relativePath === '..'
+      || relativePath.startsWith(`..${sep}`)
+      || brunoPath.isAbsolute(relativePath)
+    ) {
+      return shouldPosixify ? posixify(filePath) : filePath;
+    }
+
+    return relativePath;
+  } catch (error) {
+    return shouldPosixify ? posixify(filePath) : filePath;
+  }
+};
+
 const normalizePath = (p) => {
   if (!p) return '';
   return p.replace(/\\/g, '/').replace(/\/+$/, '');
 };
 
 export default brunoPath;
-export { getRelativePath, getBasename, getAbsoluteFilePath, normalizePath };
+export { getRelativePath, getBasename, getAbsoluteFilePath, getRelativePathWithinBasePath, normalizePath };
