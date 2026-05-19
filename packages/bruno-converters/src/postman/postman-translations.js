@@ -12,6 +12,7 @@ const replacements = {
   'pm\\.environment\\.replaceIn\\(': 'bru.interpolate(',
   'pm\\.environment\\.toObject\\(': 'bru.getEnvVarList().toObject(',
   'pm\\.environment\\.clear\\(': 'bru.getEnvVarList().clear(',
+  'pm\\.environment\\.name': 'bru.getEnvName()',
 
   // Runtime variables
   'pm\\.variables\\.get\\(': 'bru.getVarList().get(',

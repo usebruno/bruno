@@ -108,4 +108,48 @@ try {
     expect(translatedCode).toContain('const configStr = pm.environment.get("config");');
     expect(translatedCode).toContain('pm.environment.set("configError", error.message);');
   });
+
+  // ── bru.getEnvVarList() → pm.environment.* ───────────────────────
+
+  it('should translate bru.getEnvVarList().get', () => {
+    const code = 'bru.getEnvVarList().get("test");';
+    const translatedCode = translateBruToPostman(code);
+    expect(translatedCode).toBe('pm.environment.get("test");');
+  });
+
+  it('should translate bru.getEnvVarList().set', () => {
+    const code = 'bru.getEnvVarList().set("test", "value");';
+    const translatedCode = translateBruToPostman(code);
+    expect(translatedCode).toBe('pm.environment.set("test", "value");');
+  });
+
+  it('should translate bru.getEnvVarList().has', () => {
+    const code = 'bru.getEnvVarList().has("apiKey");';
+    const translatedCode = translateBruToPostman(code);
+    expect(translatedCode).toBe('pm.environment.has("apiKey");');
+  });
+
+  it('should translate bru.getEnvVarList().delete', () => {
+    const code = 'bru.getEnvVarList().delete("test");';
+    const translatedCode = translateBruToPostman(code);
+    expect(translatedCode).toBe('pm.environment.unset("test");');
+  });
+
+  it('should translate bru.getEnvVarList().toObject', () => {
+    const code = 'const vars = bru.getEnvVarList().toObject();';
+    const translatedCode = translateBruToPostman(code);
+    expect(translatedCode).toBe('const vars = pm.environment.toObject();');
+  });
+
+  it('should translate bru.getEnvVarList().clear', () => {
+    const code = 'bru.getEnvVarList().clear();';
+    const translatedCode = translateBruToPostman(code);
+    expect(translatedCode).toBe('pm.environment.clear();');
+  });
+
+  it('should handle bru.getEnvVarList() in complex expressions', () => {
+    const code = 'const hasKey = bru.getEnvVarList().has("token") ? "yes" : "no";';
+    const translatedCode = translateBruToPostman(code);
+    expect(translatedCode).toBe('const hasKey = pm.environment.has("token") ? "yes" : "no";');
+  });
 });

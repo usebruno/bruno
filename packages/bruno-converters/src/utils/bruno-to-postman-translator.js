@@ -207,7 +207,40 @@ const simpleTranslations = {
  *
  * Note: These are processed in order, so more specific patterns should come first.
  */
+// Helper: creates a simple call-expression rewrite for getter-based variable list APIs
+// e.g., bru.getVarList().get('key') -> pm.variables.get('key')
+const varListCallRewrite = (pmTarget) => (path) => {
+  return j.callExpression(
+    buildMemberExpressionFromString(pmTarget),
+    path.value.arguments
+  );
+};
+
 const complexTransformations = [
+  // ── bru.getVarList().* → pm.variables.* ─────────────────────────────
+  { pattern: 'bru.getVarList().get', transform: varListCallRewrite('pm.variables.get') },
+  { pattern: 'bru.getVarList().set', transform: varListCallRewrite('pm.variables.set') },
+  { pattern: 'bru.getVarList().has', transform: varListCallRewrite('pm.variables.has') },
+  { pattern: 'bru.getVarList().delete', transform: varListCallRewrite('pm.variables.unset') },
+  { pattern: 'bru.getVarList().toObject', transform: varListCallRewrite('pm.variables.toObject') },
+  { pattern: 'bru.getVarList().clear', transform: varListCallRewrite('pm.variables.clear') },
+
+  // ── bru.getEnvVarList().* → pm.environment.* ───────────────────────
+  { pattern: 'bru.getEnvVarList().get', transform: varListCallRewrite('pm.environment.get') },
+  { pattern: 'bru.getEnvVarList().set', transform: varListCallRewrite('pm.environment.set') },
+  { pattern: 'bru.getEnvVarList().has', transform: varListCallRewrite('pm.environment.has') },
+  { pattern: 'bru.getEnvVarList().delete', transform: varListCallRewrite('pm.environment.unset') },
+  { pattern: 'bru.getEnvVarList().toObject', transform: varListCallRewrite('pm.environment.toObject') },
+  { pattern: 'bru.getEnvVarList().clear', transform: varListCallRewrite('pm.environment.clear') },
+
+  // ── bru.getGlobalEnvVarList().* → pm.globals.* ─────────────────────
+  { pattern: 'bru.getGlobalEnvVarList().get', transform: varListCallRewrite('pm.globals.get') },
+  { pattern: 'bru.getGlobalEnvVarList().set', transform: varListCallRewrite('pm.globals.set') },
+  { pattern: 'bru.getGlobalEnvVarList().has', transform: varListCallRewrite('pm.globals.has') },
+  // { pattern: 'bru.getGlobalEnvVarList().delete', transform: varListCallRewrite('pm.globals.unset') },  // TODO: Re-enable once UI sync issue is resolved
+  { pattern: 'bru.getGlobalEnvVarList().toObject', transform: varListCallRewrite('pm.globals.toObject') },
+  // { pattern: 'bru.getGlobalEnvVarList().clear', transform: varListCallRewrite('pm.globals.clear') },  // TODO: Re-enable once UI sync issue is resolved
+
   // bru.sendRequest transformation
   {
     pattern: 'bru.sendRequest',
@@ -249,7 +282,6 @@ const complexTransformations = [
   {
     pattern: 'bru.getEnvName',
     transform: () => {
-      // Replace the entire call expression with just the member expression (property access)
       return buildMemberExpressionFromString('pm.environment.name');
     }
   },

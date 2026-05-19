@@ -134,4 +134,42 @@ console.log(\`Has userId: \${hasUserId}, User ID: \${userId}\`);
     const translatedCode = translateBruToPostman(code);
     expect(translatedCode).toBe('pm.variables.set("fullPath", pm.environment.get("baseUrl") + pm.variables.get("endpoint"));');
   });
+
+  // ── bru.getVarList() → pm.variables.* ─────────────────────────────
+
+  it('should translate bru.getVarList().get', () => {
+    const code = 'bru.getVarList().get("test");';
+    const translatedCode = translateBruToPostman(code);
+    expect(translatedCode).toBe('pm.variables.get("test");');
+  });
+
+  it('should translate bru.getVarList().set', () => {
+    const code = 'bru.getVarList().set("test", "value");';
+    const translatedCode = translateBruToPostman(code);
+    expect(translatedCode).toBe('pm.variables.set("test", "value");');
+  });
+
+  it('should translate bru.getVarList().has', () => {
+    const code = 'bru.getVarList().has("userId");';
+    const translatedCode = translateBruToPostman(code);
+    expect(translatedCode).toBe('pm.variables.has("userId");');
+  });
+
+  it('should translate bru.getVarList().delete', () => {
+    const code = 'bru.getVarList().delete("tempVar");';
+    const translatedCode = translateBruToPostman(code);
+    expect(translatedCode).toBe('pm.variables.unset("tempVar");');
+  });
+
+  it('should translate bru.getVarList().toObject', () => {
+    const code = 'const vars = bru.getVarList().toObject();';
+    const translatedCode = translateBruToPostman(code);
+    expect(translatedCode).toBe('const vars = pm.variables.toObject();');
+  });
+
+  it('should translate bru.getVarList().clear', () => {
+    const code = 'bru.getVarList().clear();';
+    const translatedCode = translateBruToPostman(code);
+    expect(translatedCode).toBe('pm.variables.clear();');
+  });
 });
