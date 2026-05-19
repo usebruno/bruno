@@ -105,12 +105,10 @@ docker run --rm usebruno/cli --version
 ### Step 3 — Run your collection
 
 > These examples assume you are running `docker` from a directory that contains your Bruno collection (i.e. a folder with a `bruno.json` at its root). Mount that directory to `/bruno` and pass `bru` arguments directly after the image name. If your collection lives elsewhere on disk, see the path-based examples further down.
-
 > **Cross-platform note:** the examples below use `$(pwd)` which works in Bash / Zsh / Git Bash / WSL.
 > On Windows native shells, substitute `$(pwd)` with:
 > - PowerShell: `${PWD}`
 > - CMD: `%cd%`
-
 > **Note on `-r`:** Bruno CLI's `run` is non-recursive by default — it only looks at the target folder's direct children. If your collection has nested subfolders (most do), add `-r` to recurse: `bru run my-folder -r --env ci`. Targeting a single `.bru` or `.yml` file doesn't need `-r`.
 
 ```bash
