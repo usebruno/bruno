@@ -4,7 +4,7 @@ import { setSandboxMode, runFolder, selectEnvironment, validateRunnerResults } f
 test.describe.serial('bru.getEnvVarList() API', () => {
   test('all getEnvVarList tests pass in developer mode', async ({ pageWithUserData: page }) => {
     await setSandboxMode(page, 'bruno-testbench', 'developer');
-    await selectEnvironment(page, 'Local');
+    await selectEnvironment(page, 'Prod');
     await runFolder(page, 'bruno-testbench', ['scripting', 'api', 'bru', 'getEnvVarList']);
     await validateRunnerResults(page, {
       totalRequests: 5,
@@ -15,7 +15,7 @@ test.describe.serial('bru.getEnvVarList() API', () => {
 
   test('all getEnvVarList tests pass in safe mode', async ({ pageWithUserData: page }) => {
     await setSandboxMode(page, 'bruno-testbench', 'safe');
-    await selectEnvironment(page, 'Local');
+    await selectEnvironment(page, 'Prod');
     await runFolder(page, 'bruno-testbench', ['scripting', 'api', 'bru', 'getEnvVarList']);
     await validateRunnerResults(page, {
       totalRequests: 5,
