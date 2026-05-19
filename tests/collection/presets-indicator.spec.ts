@@ -3,7 +3,7 @@ import { test, expect } from '../../playwright';
 import { closeAllCollections, createCollection } from '../utils/page';
 
 test.describe('Presets status dot in collection settings', () => {
-  test.afterAll(async ({ page }) => {
+  test.afterEach(async ({ page }) => {
     await closeAllCollections(page);
   });
 

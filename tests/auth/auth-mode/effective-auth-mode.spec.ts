@@ -83,7 +83,6 @@ test.describe('Effective auth mode resolution', () => {
   // BRU-3421 Issue 3: No Auth option not highlighted as selected in the auth dropdown
   test('Auth dropdown shows No Auth as the selected option after picking it', async ({ page, createTmpDir }) => {
     const collectionName = 'no-auth-dropdown-collection';
-    await page.pause();
     await test.step('Create a collection', async () => {
       await createCollection(page, collectionName, await createTmpDir());
     });
