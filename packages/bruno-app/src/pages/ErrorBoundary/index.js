@@ -21,6 +21,14 @@ class ErrorBoundary extends React.Component {
     this.setState({ hasError: true, error, errorInfo });
   }
 
+  async clearCachesAndReturnToApp() {
+    const { ipcRenderer } = window;
+    await ipcRenderer.invoke('main:cache-clear');
+    this.returnToApp();
+
+    this.setState({ hasError: false, error: null, errorInfo: null });
+  }
+
   returnToApp() {
     const { ipcRenderer } = window;
     ipcRenderer.invoke('open-file');
@@ -68,6 +76,13 @@ class ErrorBoundary extends React.Component {
                 Force Quit
               </a>
             </div>
+
+            <button
+              className="text-red-500 mt-3 px-4 py-2 mt-4 rounded transition"
+              onClick={() => this.clearCachesAndReturnToApp()}
+            >
+              Clear Caches and Return to App
+            </button>
           </div>
         </div>
       );

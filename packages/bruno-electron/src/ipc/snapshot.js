@@ -10,6 +10,10 @@ const registerSnapshotIpc = () => {
     return snapshotManager.getTabs(collectionPathname, workspacePathname);
   });
 
+  ipcMain.on('internal:snapshot:reset', () => {
+    snapshotManager.resetSnapshot();
+  });
+
   ipcMain.handle('renderer:snapshot:save', async (event, data) => {
     return snapshotManager.saveSnapshot(data);
   });

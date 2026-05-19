@@ -187,6 +187,18 @@ class SnapshotManager {
     }
   }
 
+  resetSnapshot() {
+    this.store.delete('activeWorkspacePath');
+    this.store.set('workspaces', this.store.store.workspaces.map((d) => {
+      d.lastActiveCollectionPathname = undefined;
+      return d;
+    }));
+    this.store.set('collections', this.store.store.collections.map((d) => {
+      d.tabs = [];
+      return d;
+    }));
+  }
+
   setCollection(pathname, data) {
     const normalizedPath = normalizeLookupKey(pathname);
     if (!normalizedPath) {
