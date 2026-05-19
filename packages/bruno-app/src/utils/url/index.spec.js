@@ -478,3 +478,70 @@ describe('Url Utils - interpolateUrlPathParams with { raw: true }', () => {
     expect(result).toEqual('https://example.com/api/:id');
   });
 });
+
+describe('Url Utils - interpolateUrlPathParams with { encodeUrl: true }', () => {
+  it('should encode / inside a path-param value (issue #7356)', () => {
+    const url = 'https://example.com/users/:id/profile';
+    const params = [{ name: 'id', type: 'path', enabled: true, value: 'aaa/bbb' }];
+
+    const result = interpolateUrlPathParams(url, params, {}, { encodeUrl: true });
+
+    expect(result).toEqual('https://example.com/users/aaa%2Fbbb/profile');
+  });
+
+  it('should encode # inside a path-param value', () => {
+    const url = 'https://example.com/users/:id';
+    const params = [{ name: 'id', type: 'path', enabled: true, value: 'aaa#bbb' }];
+
+    const result = interpolateUrlPathParams(url, params, {}, { encodeUrl: true });
+
+    expect(result).toEqual('https://example.com/users/aaa%23bbb');
+  });
+
+  it('should encode spaces inside a path-param value', () => {
+    const url = 'https://example.com/users/:id';
+    const params = [{ name: 'id', type: 'path', enabled: true, value: 'John Doe' }];
+
+    const result = interpolateUrlPathParams(url, params, {}, { encodeUrl: true });
+
+    expect(result).toEqual('https://example.com/users/John%20Doe');
+  });
+
+  it('should leave ASCII letters/digits alone', () => {
+    const url = 'https://example.com/users/:id';
+    const params = [{ name: 'id', type: 'path', enabled: true, value: '123abc' }];
+
+    const result = interpolateUrlPathParams(url, params, {}, { encodeUrl: true });
+
+    expect(result).toEqual('https://example.com/users/123abc');
+  });
+
+  it('should encode path-param values inside OData segments', () => {
+    const url = 'https://example.com/odata/Products(:productId)';
+    const params = [{ name: 'productId', type: 'path', enabled: true, value: 'ABC/123' }];
+
+    const result = interpolateUrlPathParams(url, params, {}, { encodeUrl: true });
+
+    expect(result).toEqual('https://example.com/odata/Products(ABC%2F123)');
+  });
+
+  it('should double-encode pre-encoded path-param value (PR #5507 contract)', () => {
+    const url = 'https://example.com/users/:id';
+    const params = [{ name: 'id', type: 'path', enabled: true, value: 'aaa%2Fbbb' }];
+
+    const result = interpolateUrlPathParams(url, params, {}, { encodeUrl: true });
+
+    // Per PR #5507, encoding is content-blind: `%2F` → `%252F`.
+    expect(result).toEqual('https://example.com/users/aaa%252Fbbb');
+  });
+
+  it('should also work with { raw: true } so snippet/runtime stay in sync', () => {
+    const url = 'https://example.com/users/:id?q=keep me';
+    const params = [{ name: 'id', type: 'path', enabled: true, value: 'a/b' }];
+
+    const result = interpolateUrlPathParams(url, params, {}, { raw: true, encodeUrl: true });
+
+    // path-param encoded, query string preserved verbatim (raw path doesn't touch query)
+    expect(result).toEqual('https://example.com/users/a%2Fb?q=keep me');
+  });
+});
