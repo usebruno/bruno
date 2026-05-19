@@ -12,6 +12,7 @@ const simpleTranslations = {
   // Global Variables
   'pm.globals.get': 'bru.getGlobalEnvVar',
   'pm.globals.set': 'bru.setGlobalEnvVar',
+  'pm.globals.has': 'bru.hasGlobalEnvVar',
   'pm.globals.replaceIn': 'bru.interpolate',
   // 'pm.globals.unset': 'bru.deleteGlobalEnvVar',
   'pm.globals.toObject': 'bru.getAllGlobalEnvVars',
@@ -289,30 +290,6 @@ const complexTransformations = [
       return j.callExpression(
         j.identifier('bru.runner.setNextRequest'),
         args
-      );
-    }
-  },
-
-  // pm.globals.has requires special handling
-  {
-    pattern: 'pm.globals.has',
-    transform: (path, j) => {
-      const callExpr = path.parent.value;
-      const args = callExpr.arguments;
-
-      // Create: bru.getGlobalEnvVar(arg) !== undefined && bru.getGlobalEnvVar(arg) !== null
-      return j.logicalExpression(
-        '&&',
-        j.binaryExpression(
-          '!==',
-          j.callExpression(j.identifier('bru.getGlobalEnvVar'), args),
-          j.identifier('undefined')
-        ),
-        j.binaryExpression(
-          '!==',
-          j.callExpression(j.identifier('bru.getGlobalEnvVar'), args),
-          j.identifier('null')
-        )
       );
     }
   },

@@ -244,23 +244,20 @@ describe('Variables Translation', () => {
     const code = 'pm.globals.has("token");';
     const translatedCode = translateCode(code);
 
-    expect(translatedCode).toContain('bru.getGlobalEnvVar("token") !== undefined');
-    expect(translatedCode).toContain('bru.getGlobalEnvVar("token") !== null');
+    expect(translatedCode).toBe('bru.hasGlobalEnvVar("token");');
   });
 
   it('should translate pm.globals.has in conditional', () => {
     const code = 'if (pm.globals.has("authToken")) { console.log("Token exists"); }';
     const translatedCode = translateCode(code);
 
-    expect(translatedCode).toContain('bru.getGlobalEnvVar("authToken") !== undefined');
-    expect(translatedCode).toContain('bru.getGlobalEnvVar("authToken") !== null');
-    expect(translatedCode).toContain('console.log("Token exists");');
+    expect(translatedCode).toBe('if (bru.hasGlobalEnvVar("authToken")) { console.log("Token exists"); }');
   });
 
   it('should translate pm.globals.has with variable assignment', () => {
     const code = 'const hasGlobal = pm.globals.has("config");';
     const translatedCode = translateCode(code);
 
-    expect(translatedCode).toContain('const hasGlobal = bru.getGlobalEnvVar("config") !== undefined && bru.getGlobalEnvVar("config") !== null');
+    expect(translatedCode).toBe('const hasGlobal = bru.hasGlobalEnvVar("config");');
   });
 });
