@@ -1,0 +1,19 @@
+meta {
+  name: path-param-space
+  type: http
+  seq: 16
+}
+
+get {
+  url: http://localhost:8081/api/echo/path/users/:id
+  body: none
+  auth: none
+}
+
+params:path {
+  id: John Doe
+}
+
+settings {
+  encodeUrl: false
+}

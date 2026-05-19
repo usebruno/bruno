@@ -1,0 +1,20 @@
+meta {
+  name: query-pipe
+  type: http
+  seq: 4
+}
+
+get {
+  url: http://localhost:8081/api/echo/path/api?filter=status|active&sort=name|asc
+  body: none
+  auth: none
+}
+
+params:query {
+  filter: status|active
+  sort: name|asc
+}
+
+settings {
+  encodeUrl: false
+}

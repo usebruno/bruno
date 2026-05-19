@@ -1,0 +1,20 @@
+meta {
+  name: query-double-encode
+  type: http
+  seq: 12
+}
+
+get {
+  url: http://localhost:8081/api/echo/path/login?redirect=https%3A%2F%2Fother.com%2Fcb&token=abc%2520xyz
+  body: none
+  auth: none
+}
+
+params:query {
+  redirect: https%3A%2F%2Fother.com%2Fcb
+  token: abc%2520xyz
+}
+
+settings {
+  encodeUrl: false
+}

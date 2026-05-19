@@ -1,0 +1,19 @@
+meta {
+  name: query-hash
+  type: http
+  seq: 9
+}
+
+get {
+  url: http://localhost:8081/api/echo/path/api?query=aaa#bbb
+  body: none
+  auth: none
+}
+
+params:query {
+  query: aaa#bbb
+}
+
+settings {
+  encodeUrl: false
+}

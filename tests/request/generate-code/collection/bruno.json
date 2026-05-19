@@ -1,0 +1,9 @@
+{
+  "version": "1",
+  "name": "generate-code-encoding",
+  "type": "collection",
+  "ignore": [
+    "node_modules",
+    ".git"
+  ]
+}

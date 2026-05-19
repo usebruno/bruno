@@ -1,0 +1,20 @@
+meta {
+  name: query-commas-colons
+  type: http
+  seq: 6
+}
+
+get {
+  url: http://localhost:8081/api/echo/path/filter?tags=a,b,c&time=10:30
+  body: none
+  auth: none
+}
+
+params:query {
+  tags: a,b,c
+  time: 10:30
+}
+
+settings {
+  encodeUrl: false
+}

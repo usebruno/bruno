@@ -1,0 +1,15 @@
+meta {
+  name: path-odata
+  type: http
+  seq: 9
+}
+
+get {
+  url: http://localhost:8081/api/echo/path/odata/Products(123)/Categories(456)?$expand=Items&$filter=Price gt 10
+  body: none
+  auth: none
+}
+
+settings {
+  encodeUrl: false
+}

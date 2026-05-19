@@ -1,0 +1,19 @@
+meta {
+  name: path-param-braces
+  type: http
+  seq: 26
+}
+
+get {
+  url: http://localhost:8081/api/echo/path/users/:id
+  body: none
+  auth: none
+}
+
+params:path {
+  id: {x}
+}
+
+settings {
+  encodeUrl: false
+}

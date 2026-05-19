@@ -1,0 +1,15 @@
+meta {
+  name: path-idempotent
+  type: http
+  seq: 9
+}
+
+get {
+  url: http://localhost:8081/api/echo/path/api/path%20with%20spaces/users
+  body: none
+  auth: none
+}
+
+settings {
+  encodeUrl: false
+}

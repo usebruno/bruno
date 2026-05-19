@@ -1,0 +1,19 @@
+meta {
+  name: fragment-preserved
+  type: http
+  seq: 10
+}
+
+get {
+  url: http://localhost:8081/api/echo/path/api?name=john doe#section1
+  body: none
+  auth: none
+}
+
+params:query {
+  name: john doe#section1
+}
+
+settings {
+  encodeUrl: false
+}

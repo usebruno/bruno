@@ -1,0 +1,20 @@
+meta {
+  name: query-unicode
+  type: http
+  seq: 5
+}
+
+get {
+  url: http://localhost:8081/api/echo/path/api?name=José&city=München
+  body: none
+  auth: none
+}
+
+params:query {
+  name: José
+  city: München
+}
+
+settings {
+  encodeUrl: false
+}
