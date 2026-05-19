@@ -18,15 +18,17 @@ import {
   IconTrash,
   IconSettings,
   IconInfoCircle,
-  IconTerminal2
+  IconTerminal2,
+  IconPlus
 } from '@tabler/icons';
 import { useSelector, useDispatch } from 'react-redux';
 import { addTab, focusTab, makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
-import { handleCollectionItemDrop, sendRequest, showInFolder, pasteItem, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
+import { handleCollectionItemDrop, sendRequest, showInFolder, pasteItem, saveRequest, renameItem } from 'providers/ReduxStore/slices/collections/actions';
 import { toggleCollectionItem, addResponseExample } from 'providers/ReduxStore/slices/collections';
 import { insertTaskIntoQueue } from 'providers/ReduxStore/slices/app';
 import { uuid } from 'utils/common';
-import { copyRequest, setFocusedSidebarPath } from 'providers/ReduxStore/slices/app';
+import { sanitizeName } from 'utils/common/regex';
+import { copyRequest, setFocusedSidebarPath, setItemBeingRenamed } from 'providers/ReduxStore/slices/app';
 import NewRequest from 'components/Sidebar/NewRequest';
 import NewFolder from 'components/Sidebar/NewFolder';
 import RenameCollectionItem from './RenameCollectionItem';
@@ -102,6 +104,56 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
   const hasSearchText = searchText && searchText?.trim()?.length;
   const itemIsCollapsed = hasSearchText ? false : item.collapsed;
   const isFolder = isItemAFolder(item);
+  const isRenaming = useSelector((state) => state.app.itemBeingRenamed === item.pathname);
+  const isRenameInFlightRef = useRef(false);
+  const [advancedNewRequestModalOpen, setAdvancedNewRequestModalOpen] = useState(false);
+
+  const handleInlineRenameCog = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dispatch(setItemBeingRenamed(null));
+    setAdvancedNewRequestModalOpen(true);
+  };
+
+  const performInlineRename = async (newName) => {
+    if (isRenameInFlightRef.current) return;
+    isRenameInFlightRef.current = true;
+    const trimmed = newName?.trim();
+    if (!trimmed || trimmed === item.name) {
+      dispatch(setItemBeingRenamed(null));
+      isRenameInFlightRef.current = false;
+      return;
+    }
+    try {
+      await dispatch(
+        renameItem({
+          itemUid: item.uid,
+          collectionUid,
+          newName: trimmed,
+          newFilename: sanitizeName(trimmed)
+        })
+      );
+    } catch (err) {
+      toast.error(err?.message || 'Failed to rename');
+    } finally {
+      dispatch(setItemBeingRenamed(null));
+      isRenameInFlightRef.current = false;
+    }
+  };
+
+  const handleRenameKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      performInlineRename(e.currentTarget.value);
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      dispatch(setItemBeingRenamed(null));
+    }
+  };
+
+  const handleRenameBlur = (e) => {
+    performInlineRename(e.currentTarget.value);
+  };
 
   // Check if request has examples (only for HTTP requests)
   const hasExamples = isItemARequest(item) && item.type === 'http-request' && item.examples && item.examples.length > 0;
@@ -544,7 +596,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
   const requestItems = sortItemsBySequence(filter(item.items, (i) => isItemARequest(i) && !i.isTransient));
   const showEmptyFolderMessage = isFolder && !hasSearchText && !folderItems?.length && !requestItems?.length;
 
-  const emptyFolderMenuItems = createEmptyStateMenuItems({ dispatch, collection, itemUid: item.uid });
+  const emptyFolderMenuItems = createEmptyStateMenuItems({ dispatch, collection, itemUid: item.uid, enterRenameMode: true });
 
   const handleGenerateCode = () => {
     if (
@@ -621,6 +673,13 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
       )}
       {newRequestModalOpen && (
         <NewRequest item={item} collectionUid={collectionUid} onClose={() => setNewRequestModalOpen(false)} />
+      )}
+      {advancedNewRequestModalOpen && (
+        <NewRequest
+          item={findParentItemInCollection(collection, item.uid)}
+          collectionUid={collectionUid}
+          onClose={() => setAdvancedNewRequestModalOpen(false)}
+        />
       )}
       {newFolderModalOpen && (
         <NewFolder item={item} collectionUid={collectionUid} onClose={() => setNewFolderModalOpen(false)} />
@@ -702,25 +761,81 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
 
             <div className="ml-1 flex w-full h-full items-center overflow-hidden">
               <CollectionItemIcon item={item} />
-              <span className="item-name" title={item.name}>
-                {item.name}
-              </span>
+              {isRenaming ? (
+                <div className="inline-rename-wrapper ml-1">
+                  <input
+                    ref={(el) => {
+                      if (el && !el.dataset.focused) {
+                        el.dataset.focused = '1';
+                        el.focus();
+                        el.select();
+                      }
+                    }}
+                    type="text"
+                    className="inline-rename-input"
+                    defaultValue={item.name}
+                    onClick={(e) => e.stopPropagation()}
+                    onDoubleClick={(e) => e.stopPropagation()}
+                    onKeyDown={handleRenameKeyDown}
+                    onFocus={(e) => e.stopPropagation()}
+                    onBlur={(e) => {
+                      e.stopPropagation();
+                      handleRenameBlur(e);
+                    }}
+                    autoComplete="off"
+                    autoCorrect="off"
+                    autoCapitalize="off"
+                    spellCheck="false"
+                    aria-label="Rename request"
+                    data-testid="inline-rename-input"
+                  />
+                  <button
+                    type="button"
+                    className="inline-rename-cog"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={handleInlineRenameCog}
+                    title="Advanced options"
+                    data-testid="inline-rename-cog"
+                  >
+                    <IconSettings size={13} strokeWidth={1.5} />
+                  </button>
+                </div>
+              ) : (
+                <span className="item-name" title={item.name}>
+                  {item.name}
+                </span>
+              )}
             </div>
           </div>
-          <div className="pr-2">
-            <MenuDropdown
-              ref={menuDropdownRef}
-              items={buildMenuItems()}
-              placement="bottom-start"
-              data-testid="collection-item-menu"
-              popperOptions={{ strategy: 'fixed' }}
-              appendTo={dropdownContainerRef?.current || document.body}
-            >
-              <ActionIcon className="menu-icon">
-                <IconDots size={18} className="collection-item-menu-icon" />
-              </ActionIcon>
-            </MenuDropdown>
-          </div>
+          {!isRenaming && (
+            <div className="flex items-center pr-2">
+              {isFolder ? (
+                <MenuDropdown
+                  items={emptyFolderMenuItems}
+                  placement="bottom-end"
+                  appendTo={dropdownContainerRef?.current || document.body}
+                  popperOptions={{ strategy: 'fixed' }}
+                  data-testid="folder-new-request"
+                >
+                  <ActionIcon className="menu-icon" aria-label="New Request">
+                    <IconPlus size={18} className="collection-item-menu-icon" />
+                  </ActionIcon>
+                </MenuDropdown>
+              ) : null}
+              <MenuDropdown
+                ref={menuDropdownRef}
+                items={buildMenuItems()}
+                placement="bottom-start"
+                data-testid="collection-item-menu"
+                popperOptions={{ strategy: 'fixed' }}
+                appendTo={dropdownContainerRef?.current || document.body}
+              >
+                <ActionIcon className="menu-icon">
+                  <IconDots size={18} className="collection-item-menu-icon" />
+                </ActionIcon>
+              </MenuDropdown>
+            </div>
+          )}
         </div>
       </div>
       {!itemIsCollapsed ? (

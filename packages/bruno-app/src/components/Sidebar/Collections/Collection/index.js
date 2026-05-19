@@ -20,7 +20,8 @@ import {
   IconSettings,
   IconTerminal2,
   IconFolder,
-  IconBook
+  IconBook,
+  IconPlus
 } from '@tabler/icons';
 import OpenAPISyncIcon from 'components/Icons/OpenAPISync';
 import { toggleCollection, collapseFullCollection } from 'providers/ReduxStore/slices/collections';
@@ -326,7 +327,7 @@ const Collection = ({ collection, searchText }) => {
   const folderItems = sortByNameThenSequence(filter(collection.items, (i) => isItemAFolder(i) && !i.isTransient));
   const showEmptyCollectionMessage = showEmptyState && !hasSearchText;
 
-  const emptyStateMenuItems = createEmptyStateMenuItems({ dispatch, collection, itemUid: null });
+  const emptyStateMenuItems = createEmptyStateMenuItems({ dispatch, collection, itemUid: null, enterRenameMode: true });
 
   const menuItems = [
     {
@@ -501,7 +502,26 @@ const Collection = ({ collection, searchText }) => {
           </div>
           {isLoading ? <IconLoader2 className="animate-spin mx-1" size={18} strokeWidth={1.5} /> : null}
         </div>
-        <div>
+        <div className="flex items-center">
+          <div>
+            <MenuDropdown
+              items={emptyStateMenuItems.map((it) => ({
+                ...it,
+                onClick: () => {
+                  ensureCollectionIsMounted();
+                  it.onClick?.();
+                }
+              }))}
+              placement="bottom-end"
+              appendTo={dropdownContainerRef?.current || document.body}
+              popperOptions={{ strategy: 'fixed' }}
+              data-testid="collection-new-request"
+            >
+              <ActionIcon className="collection-actions" aria-label="New Request">
+                <IconPlus size={18} />
+              </ActionIcon>
+            </MenuDropdown>
+          </div>
           <div className="pr-2">
             <MenuDropdown
               ref={menuDropdownRef}

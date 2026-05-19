@@ -99,6 +99,51 @@ const Wrapper = styled.div`
       overflow: hidden;
     }
 
+    .inline-rename-wrapper {
+      display: flex;
+      align-items: center;
+      flex: 1;
+      min-width: 0;
+      margin-left: -2px;
+      margin-right: 8px;
+      border: 1px solid ${(props) => props.theme.input.border};
+      border-radius: 3px;
+      background: ${(props) => props.theme.input.bg};
+
+      &:focus-within {
+        border-color: ${(props) => props.theme.input.focusBorder};
+      }
+    }
+
+    .inline-rename-input {
+      font-size: 13px;
+      padding: 1px 4px;
+      border: none;
+      background: transparent;
+      color: ${(props) => props.theme.text};
+      outline: none;
+      flex: 1;
+      min-width: 0;
+    }
+
+    .inline-rename-cog {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      width: 20px;
+      height: 100%;
+      border: none;
+      cursor: pointer;
+      background: transparent;
+      color: ${(props) => props.theme.text};
+      opacity: 0.5;
+
+      &:hover {
+        opacity: 1;
+      }
+    }
+
     /* Single source of truth for hover/focus states: background and menu icon visibility */
     &:hover,
     &.item-hovered,
