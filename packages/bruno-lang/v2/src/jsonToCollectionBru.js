@@ -1,6 +1,6 @@
 const _ = require('lodash');
 
-const { indentString, getValueString, getKeyString, serializeAnnotations } = require('./utils');
+const { indentString, getValueString, getKeyString, serializeAnnotations, buildAnnotationsFromVariable } = require('./utils');
 
 const enabled = (items = []) => items.filter((item) => item.enabled);
 const disabled = (items = []) => items.filter((item) => !item.enabled);
@@ -376,22 +376,26 @@ ${indentString(
     const varsLocalEnabled = _.filter(reqvars, (v) => v.enabled && v.local);
     const varsLocalDisabled = _.filter(reqvars, (v) => !v.enabled && v.local);
 
+    const serializeVar = (item, prefix = '') => {
+      return `${serializeAnnotations(buildAnnotationsFromVariable(item))}${prefix}${item.name}: ${getValueString(item.value)}`;
+    };
+
     bru += `vars:pre-request {`;
 
     if (varsEnabled.length) {
-      bru += `\n${indentString(varsEnabled.map((item) => `${serializeAnnotations(item.annotations)}${item.name}: ${getValueString(item.value)}`).join('\n'))}`;
+      bru += `\n${indentString(varsEnabled.map((item) => serializeVar(item)).join('\n'))}`;
     }
 
     if (varsLocalEnabled.length) {
-      bru += `\n${indentString(varsLocalEnabled.map((item) => `${serializeAnnotations(item.annotations)}@${item.name}: ${getValueString(item.value)}`).join('\n'))}`;
+      bru += `\n${indentString(varsLocalEnabled.map((item) => serializeVar(item, '@')).join('\n'))}`;
     }
 
     if (varsDisabled.length) {
-      bru += `\n${indentString(varsDisabled.map((item) => `${serializeAnnotations(item.annotations)}~${item.name}: ${getValueString(item.value)}`).join('\n'))}`;
+      bru += `\n${indentString(varsDisabled.map((item) => serializeVar(item, '~')).join('\n'))}`;
     }
 
     if (varsLocalDisabled.length) {
-      bru += `\n${indentString(varsLocalDisabled.map((item) => `${serializeAnnotations(item.annotations)}~@${item.name}: ${getValueString(item.value)}`).join('\n'))}`;
+      bru += `\n${indentString(varsLocalDisabled.map((item) => serializeVar(item, '~@')).join('\n'))}`;
     }
 
     bru += '\n}\n\n';
@@ -402,22 +406,26 @@ ${indentString(
     const varsLocalEnabled = _.filter(resvars, (v) => v.enabled && v.local);
     const varsLocalDisabled = _.filter(resvars, (v) => !v.enabled && v.local);
 
+    const serializeVar = (item, prefix = '') => {
+      return `${serializeAnnotations(buildAnnotationsFromVariable(item))}${prefix}${item.name}: ${getValueString(item.value)}`;
+    };
+
     bru += `vars:post-response {`;
 
     if (varsEnabled.length) {
-      bru += `\n${indentString(varsEnabled.map((item) => `${serializeAnnotations(item.annotations)}${item.name}: ${getValueString(item.value)}`).join('\n'))}`;
+      bru += `\n${indentString(varsEnabled.map((item) => serializeVar(item)).join('\n'))}`;
     }
 
     if (varsLocalEnabled.length) {
-      bru += `\n${indentString(varsLocalEnabled.map((item) => `${serializeAnnotations(item.annotations)}@${item.name}: ${getValueString(item.value)}`).join('\n'))}`;
+      bru += `\n${indentString(varsLocalEnabled.map((item) => serializeVar(item, '@')).join('\n'))}`;
     }
 
     if (varsDisabled.length) {
-      bru += `\n${indentString(varsDisabled.map((item) => `${serializeAnnotations(item.annotations)}~${item.name}: ${getValueString(item.value)}`).join('\n'))}`;
+      bru += `\n${indentString(varsDisabled.map((item) => serializeVar(item, '~')).join('\n'))}`;
     }
 
     if (varsLocalDisabled.length) {
-      bru += `\n${indentString(varsLocalDisabled.map((item) => `${serializeAnnotations(item.annotations)}~@${item.name}: ${getValueString(item.value)}`).join('\n'))}`;
+      bru += `\n${indentString(varsLocalDisabled.map((item) => serializeVar(item, '~@')).join('\n'))}`;
     }
 
     bru += '\n}\n\n';

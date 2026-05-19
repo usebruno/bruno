@@ -86,3 +86,10 @@ describe('transformRequestToSaveToFilesystem', () => {
     expect(transformed.request.headers[0].annotations).toEqual([{ name: 'header-note', value: 'keep me' }]);
   });
 });
+
+// TODO: tests pinning renderer-side aggregator behavior with typed variables
+// (`getEnvironmentVariables`, `getEnvVars`, `mergeVars`, `getGlobalEnvironmentVariables`)
+// were intentionally not added. The aggregators pass `variable.value` through
+// without coercion; coercion is handled at read time in bruno-lang (BRU),
+// bruno-filestore (YML), and bruno-electron's global-environments store.
+// Revisit if the renderer is expected to mirror the read-time coerced shape.

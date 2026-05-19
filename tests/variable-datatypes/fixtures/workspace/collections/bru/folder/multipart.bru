@@ -1,0 +1,46 @@
+meta {
+  name: multipart
+  type: http
+  seq: 2
+}
+
+post {
+  url: https://httpbin.org/anything
+  body: multipartForm
+  auth: none
+}
+
+body:multipart-form {
+  mp_str: {{mp_str}}
+  mp_num: {{mp_num}}
+  mp_bool: {{mp_bool}}
+  mp_obj: {{mp_obj}}
+}
+
+vars:pre-request {
+  mp_str: form_string
+  @number
+  mp_num: 42
+  @boolean
+  mp_bool: true
+  @object
+  mp_obj: '''
+    {"key":"value"}
+  '''
+}
+
+tests {
+  test("multipart text fields stringify typed values on the wire", () => {
+    const form = res.getBody().form;
+    // form-data only carries strings on the wire — `toFormValue` in
+    // bruno-electron/src/utils/form-data.js stringifies typed values before
+    // form.append. httpbin echoes the wire-form fields back as strings.
+    // For @object, interpolate JSON.stringifies the value when substituting
+    // into the string template (interpolate/index.ts:103-105), so the wire
+    // form carries the JSON string.
+    expect(form.mp_str).to.equal("form_string");
+    expect(form.mp_num).to.equal("42");
+    expect(form.mp_bool).to.equal("true");
+    expect(form.mp_obj).to.equal('{"key":"value"}');
+  });
+}

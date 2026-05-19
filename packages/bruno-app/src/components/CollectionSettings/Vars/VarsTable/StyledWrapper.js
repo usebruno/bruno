@@ -30,6 +30,22 @@ const Wrapper = styled.div`
     }
   }
 
+  /* Relax EditableTable's 35px row pin so multi-line values render fully. */
+  tbody tr,
+  tbody tr td {
+    height: auto !important;
+    max-height: none !important;
+  }
+  tbody tr td {
+    overflow: visible !important;
+    white-space: normal !important;
+  }
+  tbody tr td > div:not(.drag-handle) {
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
   .btn-add-var {
     font-size: ${(props) => props.theme.font.size.base};
   }

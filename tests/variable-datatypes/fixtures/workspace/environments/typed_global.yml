@@ -1,0 +1,19 @@
+name: typed_global
+
+variables:
+  - name: glob_str
+    value: global_string
+  - name: glob_num
+    value:
+      type: number
+      data: "400"
+  - name: glob_bool
+    value:
+      type: boolean
+      data: "false"
+  - name: glob_obj
+    value:
+      type: object
+      data: '{"scope":"global"}'
+  - secret: true
+    name: glob_secret_str

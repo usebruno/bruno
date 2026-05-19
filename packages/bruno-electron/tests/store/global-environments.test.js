@@ -1,4 +1,5 @@
 const { globalEnvironmentsStore } = require('../../src/store/global-environments');
+const { encryptStringSafe } = require('../../src/utils/encryption');
 
 // Previously, a bug caused environment variables to be saved without a type.
 // Since that issue is now fixed, this code ensures that anyone who imported
@@ -50,5 +51,76 @@ describe('global environment variable type backward compatibility', () => {
 
     expect(secretVar.name).toBe('secret_var');
     expect(secretVar.type).toBe('text');
+  });
+});
+
+describe('global environment variable read-time datatype parsing', () => {
+  beforeEach(() => {
+    globalEnvironmentsStore.store.clear();
+  });
+
+  const storedAs = (datatype, value) => ({
+    uid: 'yDlwWe3qgimPG20G7AbF7',
+    name: 'Test Environment',
+    variables: [
+      {
+        uid: 'b6BIHGaCrm4m97YA2dIdx',
+        name: 'v',
+        value,
+        datatype,
+        type: 'text',
+        enabled: true,
+        secret: false
+      }
+    ]
+  });
+
+  const readVar = () => globalEnvironmentsStore.getGlobalEnvironments()[0].variables[0];
+
+  it('parses @number string values into JS numbers', () => {
+    globalEnvironmentsStore.store.set('environments', [storedAs('number', '42')]);
+    expect(readVar().value).toBe(42);
+  });
+
+  it('parses @boolean string values into JS booleans', () => {
+    globalEnvironmentsStore.store.set('environments', [storedAs('boolean', 'false')]);
+    expect(readVar().value).toBe(false);
+  });
+
+  it('parses @object string values via JSON.parse', () => {
+    globalEnvironmentsStore.store.set('environments', [storedAs('object', '{"a":1}')]);
+    expect(readVar().value).toEqual({ a: 1 });
+  });
+
+  it('passes string-typed values through unchanged', () => {
+    globalEnvironmentsStore.store.set('environments', [storedAs('string', 'hello')]);
+    expect(readVar().value).toBe('hello');
+  });
+
+  it('is idempotent — already-coerced values stay put', () => {
+    globalEnvironmentsStore.store.set('environments', [storedAs('number', 42)]);
+    expect(readVar().value).toBe(42);
+  });
+
+  it('skips parsing on secret variables — value stays a string even if datatype is number', () => {
+    // Encrypt so the decryption round-trip yields '42' on read.
+    const encrypted = encryptStringSafe('42').value;
+    const env = {
+      uid: 'yDlwWe3qgimPG20G7AbF7',
+      name: 'Test Environment',
+      variables: [
+        {
+          uid: 'b6BIHGaCrm4m97YA2dIdx',
+          name: 'sec',
+          value: encrypted,
+          datatype: 'number',
+          type: 'text',
+          enabled: true,
+          secret: true
+        }
+      ]
+    };
+    globalEnvironmentsStore.store.set('environments', [env]);
+    expect(readVar().value).toBe('42');
   });
 });
