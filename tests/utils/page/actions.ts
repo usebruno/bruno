@@ -156,6 +156,14 @@ type CreateRequestOptions = {
   url?: string;
   method?: string;
   inFolder?: boolean;
+  requestType?: 'HTTP' | 'GraphQL' | 'gRPC' | 'WebSocket';
+};
+
+const REQUEST_TYPE_TESTID: Record<NonNullable<CreateRequestOptions['requestType']>, string> = {
+  HTTP: 'http-request',
+  GraphQL: 'graphql-request',
+  gRPC: 'grpc-request',
+  WebSocket: 'ws-request'
 };
 
 type CreateUntitledRequestOptions = {
@@ -306,10 +314,10 @@ const createRequest = async (
   parentName: string,
   options: CreateRequestOptions = {}
 ) => {
-  const { url, method, inFolder = false } = options;
+  const { url, method, inFolder = false, requestType = 'HTTP' } = options;
   const parentType = inFolder ? 'folder' : 'collection';
 
-  await test.step(`Create request "${requestName}" in ${parentType} "${parentName}"`, async () => {
+  await test.step(`Create ${requestType} request "${requestName}" in ${parentType} "${parentName}"`, async () => {
     const locators = buildCommonLocators(page);
 
     if (inFolder) {
@@ -323,6 +331,11 @@ const createRequest = async (
     }
 
     await locators.dropdown.item('New Request').click();
+
+    if (requestType !== 'HTTP') {
+      await page.getByTestId(REQUEST_TYPE_TESTID[requestType]).click();
+    }
+
     await page.getByPlaceholder('Request Name').fill(requestName);
 
     if (method) {

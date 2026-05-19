@@ -6,6 +6,7 @@ const StatusDot = ({ type = 'default' }) => (
     className={`ml-[.125rem] opacity-80 font-medium ${
       type === 'error' ? 'text-red-500' : ''
     }`}
+    data-testid="status-dot"
   >
     <DotIcon width="10" />
   </sup>

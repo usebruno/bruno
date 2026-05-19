@@ -173,7 +173,7 @@ const Auth = ({ collection, folder }) => {
           <>
             <div className="flex flex-row w-full mt-2 gap-2">
               <div>Auth inherited from {source.name}: </div>
-              <div className="inherit-mode-text">{humanizeRequestAuthMode(source.auth?.mode)}</div>
+              <div className="inherit-mode-text" data-testid="inherited-auth-mode">{humanizeRequestAuthMode(source.auth?.mode)}</div>
             </div>
           </>
         );
