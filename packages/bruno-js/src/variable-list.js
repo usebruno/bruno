@@ -1,42 +1,52 @@
 const variableNameRegex = /^[\w-.]*$/;
 
 /**
- * VariableList — the `bru.variables` / `bru.environment` / `bru.globals` API in scripts.
+ * VariableList — extends Array to provide a list of { key, value } variable entries
+ * with domain-specific methods (get, set, has, delete, clear, toObject).
  *
- * Internally stores variables as an array of { key, value } entries.
- * Accepts either a plain object or an array as input — objects are converted to array form.
- * Write methods sync back to the original object (for legacy compatibility)
- * until upstream callers switch to passing arrays directly.
+ * Returned by `bru.getVarList()`, `bru.getEnvVarList()`, `bru.getGlobalEnvVarList()`.
+ *
+ * Since it extends Array, all standard array methods (find, filter, map, forEach, etc.)
+ * work out of the box. Symbol.species is set to Array so derived methods return plain arrays.
  *
  * @example
- * const list = new VariableList(runtimeVariables, {
- *   interpolateFn: (val) => bru.interpolate(val)
- * });
+ * const list = bru.getEnvVarList();
  * list.set('host', 'example.com');
  * list.get('host');       // 'example.com' (interpolated)
  * list.has('host');       // true
  * list.toObject();        // { host: 'example.com' }
- * list.unset('host');
+ * list.filter(e => e.key.startsWith('h')); // plain Array
  */
-class VariableList {
+class VariableList extends Array {
+  // Derived methods (filter, map, slice, etc.) return plain Arrays, not VariableLists.
+  static get [Symbol.species]() {
+    return Array;
+  }
+
   /**
    * @param {object|Array<{key: string, value: *}>} variables - Plain object or array of {key, value}
    * @param {object} [options]
    * @param {Function} [options.interpolateFn] - Interpolation function (bru.interpolate)
    * @param {Function} [options.validateKey] - Custom key validation function (throws on invalid)
-   * @param {string[]} [options.filterKeys] - Internal keys to exclude from reads (e.g. ['__name__'])
+   * @param {string[]} [options.filterKeys] - Internal keys to exclude from the array (e.g. ['__name__'])
    */
   constructor(variables, { interpolateFn, validateKey, filterKeys } = {}) {
+    const filterList = filterKeys || [];
+    let entries;
     if (Array.isArray(variables)) {
-      this._entries = variables;
-      this._variablesObj = null;
+      entries = variables;
     } else {
-      this._variablesObj = variables;
-      this._entries = Object.entries(variables).map(([key, value]) => ({ key, value }));
+      entries = Object.entries(variables || {})
+        .filter(([key]) => !filterList.includes(key))
+        .map(([key, value]) => ({ key, value }));
     }
+
+    super(...entries);
+
+    this._variablesObj = Array.isArray(variables) ? null : variables;
     this._interpolateFn = interpolateFn || ((v) => v);
     this._validateKeyFn = validateKey || null;
-    this._filterKeys = filterKeys || [];
+    this._filterKeys = filterList;
   }
 
   // ── Read methods ────────────────────────────────────────────────────
@@ -48,7 +58,7 @@ class VariableList {
    */
   get(key) {
     this.#syncFromObject();
-    const entry = this._entries.find((e) => e.key === key);
+    const entry = this.find((e) => e.key === key);
     return this._interpolateFn(entry ? entry.value : undefined);
   }
 
@@ -62,7 +72,7 @@ class VariableList {
   has(key, value) {
     if (this._filterKeys.includes(key)) return false;
     this.#syncFromObject();
-    const entry = this._entries.find((e) => e.key === key);
+    const entry = this.find((e) => e.key === key);
     if (!entry) return false;
     if (arguments.length > 1) {
       return entry.value === value;
@@ -78,7 +88,7 @@ class VariableList {
   toObject() {
     this.#syncFromObject();
     const result = {};
-    for (const { key, value } of this._entries) {
+    for (const { key, value } of this) {
       if (!this._filterKeys.includes(key)) {
         result[key] = value;
       }
@@ -102,11 +112,11 @@ class VariableList {
     }
     this.#validateKey(key);
 
-    const entry = this._entries.find((e) => e.key === key);
+    const entry = this.find((e) => e.key === key);
     if (entry) {
       entry.value = value;
     } else {
-      this._entries.push({ key, value });
+      this.push({ key, value });
     }
     this.#syncToObject();
   }
@@ -119,9 +129,9 @@ class VariableList {
     if (this._filterKeys.includes(key)) {
       throw new Error(`Variable name: "${key}" is a reserved internal variable and cannot be modified.`);
     }
-    const idx = this._entries.findIndex((e) => e.key === key);
+    const idx = this.findIndex((e) => e.key === key);
     if (idx !== -1) {
-      this._entries.splice(idx, 1);
+      this.splice(idx, 1);
     }
     this.#syncToObject();
   }
@@ -130,45 +140,58 @@ class VariableList {
    * Remove all variables. Preserves keys listed in filterKeys.
    */
   clear() {
-    this._entries = this._entries.filter((e) => this._filterKeys.includes(e.key));
+    const kept = this.filter((e) => this._filterKeys.includes(e.key));
+    this.length = 0;
+    for (const entry of kept) {
+      this.push(entry);
+    }
     this.#syncToObject();
   }
 
   // ── Internal helpers ────────────────────────────────────────────────
 
   /**
-   * Sync from the legacy object into the internal array.
+   * Sync from the legacy object into the array.
    * Handles mutations made through legacy bru.setVar() / bru.setEnvVar() paths.
    * No-op when constructed with an array (no legacy object to sync from).
    */
   #syncFromObject() {
     if (!this._variablesObj) return;
-    const objKeys = new Set(Object.keys(this._variablesObj));
+    const objKeys = new Set(
+      Object.keys(this._variablesObj).filter((k) => !this._filterKeys.includes(k))
+    );
     // Remove entries that no longer exist in the object
-    this._entries = this._entries.filter((e) => objKeys.has(e.key));
+    for (let i = this.length - 1; i >= 0; i--) {
+      if (!objKeys.has(this[i].key)) {
+        this.splice(i, 1);
+      }
+    }
     // Update existing and add new entries
-    for (const [key, value] of Object.entries(this._variablesObj)) {
-      const entry = this._entries.find((e) => e.key === key);
+    for (const key of objKeys) {
+      const value = this._variablesObj[key];
+      const entry = this.find((e) => e.key === key);
       if (entry) {
         entry.value = value;
       } else {
-        this._entries.push({ key, value });
+        this.push({ key, value });
       }
     }
   }
 
   /**
-   * Sync the internal array back to the legacy object.
+   * Sync the array back to the legacy object.
    * No-op when constructed with an array (no legacy object to sync to).
    */
   #syncToObject() {
     if (!this._variablesObj) return;
-    // Remove all keys from the object
+    // Remove all non-filterKey keys from the object
     for (const key of Object.keys(this._variablesObj)) {
-      delete this._variablesObj[key];
+      if (!this._filterKeys.includes(key)) {
+        delete this._variablesObj[key];
+      }
     }
     // Write back from array
-    for (const { key, value } of this._entries) {
+    for (const { key, value } of this) {
       this._variablesObj[key] = value;
     }
   }

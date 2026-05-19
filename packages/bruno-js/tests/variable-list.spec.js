@@ -1,6 +1,58 @@
 const VariableList = require('../src/variable-list');
 
 describe('VariableList', () => {
+  // ── Array behavior ──────────────────────────────────────────────────
+
+  describe('array fundamentals', () => {
+    test('is a real Array', () => {
+      const list = new VariableList({ host: 'example.com', port: '8080' });
+      expect(Array.isArray(list)).toBe(true);
+      expect(list instanceof Array).toBe(true);
+    });
+
+    test('length reflects entry count', () => {
+      const list = new VariableList({ a: '1', b: '2', c: '3' });
+      expect(list.length).toBe(3);
+    });
+
+    test('entries are {key, value} objects', () => {
+      const list = new VariableList({ host: 'example.com' });
+      expect(list[0]).toEqual({ key: 'host', value: 'example.com' });
+    });
+
+    test('standard array methods work (filter, map, forEach, find)', () => {
+      const list = new VariableList({ a: '1', b: '2', c: '3' });
+      const filtered = list.filter((e) => e.key !== 'b');
+      expect(filtered).toEqual([{ key: 'a', value: '1' }, { key: 'c', value: '3' }]);
+
+      const keys = list.map((e) => e.key);
+      expect(keys).toEqual(['a', 'b', 'c']);
+
+      const found = list.find((e) => e.key === 'b');
+      expect(found).toEqual({ key: 'b', value: '2' });
+
+      const collected = [];
+      list.forEach((e) => collected.push(e.key));
+      expect(collected).toEqual(['a', 'b', 'c']);
+    });
+
+    test('Symbol.species ensures derived methods return plain Arrays', () => {
+      const list = new VariableList({ a: '1', b: '2' });
+      const filtered = list.filter((e) => e.key === 'a');
+      expect(filtered instanceof VariableList).toBe(false);
+      expect(Array.isArray(filtered)).toBe(true);
+    });
+
+    test('excludes filterKeys from array entries', () => {
+      const list = new VariableList(
+        { __name__: 'dev', host: 'example.com', port: '8080' },
+        { filterKeys: ['__name__'] }
+      );
+      expect(list.length).toBe(2);
+      expect(list.map((e) => e.key)).toEqual(['host', 'port']);
+    });
+  });
+
   // ── Basic CRUD ────────────────────────────────────────────────────────
 
   describe('get / set / has / delete', () => {
@@ -34,6 +86,12 @@ describe('VariableList', () => {
       list.set('newKey', 'newValue');
       expect(vars.newKey).toBe('newValue');
       expect(list.get('newKey')).toBe('newValue');
+    });
+
+    test('set() increases array length', () => {
+      const before = list.length;
+      list.set('newKey', 'newValue');
+      expect(list.length).toBe(before + 1);
     });
 
     test('set() throws on empty key', () => {
@@ -82,6 +140,12 @@ describe('VariableList', () => {
       expect(list.has('host')).toBe(false);
     });
 
+    test('delete() decreases array length', () => {
+      const before = list.length;
+      list.delete('host');
+      expect(list.length).toBe(before - 1);
+    });
+
     test('delete() is a no-op for missing key', () => {
       list.delete('nonexistent');
       expect(Object.keys(vars)).toEqual(['host', 'port']);
@@ -96,15 +160,17 @@ describe('VariableList', () => {
       const list = new VariableList(vars);
       list.clear();
       expect(Object.keys(vars)).toEqual([]);
+      expect(list.length).toBe(0);
     });
 
-    test('preserves filterKeys', () => {
+    test('preserves filterKeys in backing object but not in array', () => {
       const vars = { __name__: 'dev', host: 'example.com', port: '8080' };
       const list = new VariableList(vars, { filterKeys: ['__name__'] });
       list.clear();
       expect(vars.__name__).toBe('dev');
       expect(vars.host).toBeUndefined();
       expect(vars.port).toBeUndefined();
+      expect(list.length).toBe(0);
     });
   });
 
@@ -155,13 +221,8 @@ describe('VariableList', () => {
       expect(vars.__name__).toBe('dev');
     });
 
-    test('get() still returns filtered keys (direct access)', () => {
-      // get() reads directly from the object, filterKeys only affects has/toObject/toJSON/clear
-      const interpolated = new VariableList(vars, {
-        interpolateFn: (v) => v,
-        filterKeys: ['__name__']
-      });
-      expect(interpolated.get('__name__')).toBe('dev');
+    test('filtered keys are not in the array', () => {
+      expect(list.find((e) => e.key === '__name__')).toBeUndefined();
     });
   });
 
