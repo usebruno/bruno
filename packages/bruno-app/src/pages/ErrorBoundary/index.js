@@ -6,7 +6,7 @@ class ErrorBoundary extends React.Component {
   constructor(props) {
     super(props);
 
-    this.state = { hasError: false };
+    this.state = { hasError: false, clearCaches: false };
   }
 
   componentDidMount() {
@@ -19,6 +19,10 @@ class ErrorBoundary extends React.Component {
   componentDidCatch(error, errorInfo) {
     console.log({ error, errorInfo });
     this.setState({ hasError: true, error, errorInfo });
+  }
+
+  async clearCache() {
+    await window.ipcRenderer.invoke('main:cache-clear');
   }
 
   returnToApp() {
@@ -36,7 +40,7 @@ class ErrorBoundary extends React.Component {
   render() {
     if (this.state.hasError) {
       return (
-        <div className="flex text-center justify-center p-20 h-full">
+        <div className="flex text-center justify-center p-10 h-full">
           <div className="bg-white rounded-lg p-10 w-full">
             <div className="m-auto" style={{ width: '256px' }}>
               <Bruno width={256} />
@@ -63,8 +67,30 @@ class ErrorBoundary extends React.Component {
               Return to App
             </button>
 
-            <div className="text-red-500 mt-3">
-              <a href="" className="hover:underline cursor-pointer" onClick={this.forceQuit}>
+            <div className="mt-5 pt-4 border-t border-gray-100 flex flex-col items-center gap-2">
+              <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer select-none hover:text-gray-800 transition">
+                <input
+                  type="checkbox"
+                  checked={this.state.clearCaches}
+                  onChange={(e) => this.setState({ clearCaches: e.target.checked })}
+                  className="cursor-pointer"
+                />
+                Clear caches on quit
+              </label>
+              <a
+                href=""
+                className="text-sm text-red-400 border border-red-400 hover:text-red-600 px-4 py-2 rounded transition cursor-pointer"
+                onClick={async (e) => {
+                  e.preventDefault();
+                  try {
+                    if (this.state.clearCaches) {
+                      await this.clearCache();
+                    }
+                  } finally {
+                    this.forceQuit();
+                  }
+                }}
+              >
                 Force Quit
               </a>
             </div>
