@@ -29,7 +29,7 @@ const migrationCollectionPath = path.join(
 );
 
 test.describe('Snapshot: Collection Environment Persistence', () => {
-  test.only('migrates legacy snapshot format and preserves selected collection environment', async ({ launchElectronApp, createTmpDir }) => {
+  test('migrates legacy snapshot format and preserves selected collection environment', async ({ launchElectronApp, createTmpDir }) => {
     const userDataPath = await createTmpDir('snap-legacy-env-migration');
 
     const app = await launchElectronApp({
