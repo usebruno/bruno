@@ -79,7 +79,7 @@ const status = res.getStatus();
 const data = res.getBody();
 
 if (status === 200 && data.hasMore) {
-    bru.setNextRequest("Fetch Next Page");
+    bru.runner.setNextRequest("Fetch Next Page");
 } else if (status === 429) {
     console.log("Rate limited, skipping");
     bru.runner.skipRequest();
