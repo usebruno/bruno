@@ -93,10 +93,9 @@ const AI = () => {
     if (formik.dirty && formik.isValid) {
       debouncedSave(formik.values);
     }
-    return () => {
-      debouncedSave.flush();
-    };
   }, [formik.values, formik.dirty, formik.isValid, debouncedSave]);
+
+  useEffect(() => () => debouncedSave.flush(), [debouncedSave]);
 
   const modelsByProvider = useMemo(() => {
     const grouped = {};

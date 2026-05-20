@@ -143,6 +143,11 @@ const registerAiIpc = (mainWindow) => {
       }
     };
 
+    if (activeStreams.has(streamId)) {
+      send('main:ai-stream-error', { streamId, error: 'streamId is already active' });
+      return;
+    }
+
     if (!modelId || (!messages && !prompt)) {
       send('main:ai-stream-error', { streamId, error: 'model and messages/prompt are required' });
       return;

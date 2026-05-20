@@ -30,7 +30,7 @@ class AiKeyStore {
   }
 
   hasKey(providerId) {
-    return Boolean(this.store.get(`keys.${providerId}`));
+    return Boolean(this.getKey(providerId));
   }
 
   clearKey(providerId) {
@@ -41,7 +41,7 @@ class AiKeyStore {
     const stored = this.store.get('keys', {}) || {};
     const status = {};
     for (const providerId of Object.keys(stored)) {
-      status[providerId] = { configured: Boolean(stored[providerId]) };
+      status[providerId] = { configured: Boolean(this.getKey(providerId)) };
     }
     return status;
   }
