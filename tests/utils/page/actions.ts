@@ -1066,8 +1066,8 @@ const removeFirstMultipartFile = async (page: Page) => {
       await expect(overflowRemove).toBeVisible();
       await overflowRemove.click();
     }
-
-    await expect(firstRow.locator('.upload-btn')).toBeVisible();
+    await expect(firstRow.locator('.file-value-cell')).toHaveCount(0);
+    await expect(firstRow.locator('.value-cell')).toBeVisible();
   });
 };
 
