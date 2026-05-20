@@ -29,8 +29,8 @@ const MODEL_DEFINITIONS = {
   'gpt-5': { provider: 'openai', modelId: 'gpt-5', label: 'GPT-5' },
   'gpt-5-mini': { provider: 'openai', modelId: 'gpt-5-mini', label: 'GPT-5 Mini' },
   // Anthropic
-  'claude-sonnet-4-5': { provider: 'anthropic', modelId: 'claude-sonnet-4-5-20250514', label: 'Claude Sonnet 4.5' },
-  'claude-opus-4-5': { provider: 'anthropic', modelId: 'claude-opus-4-5-20250514', label: 'Claude Opus 4.5' },
+  'claude-opus-4-7': { provider: 'anthropic', modelId: 'claude-opus-4-7', label: 'Claude Opus 4.7' },
+  'claude-sonnet-4-6': { provider: 'anthropic', modelId: 'claude-sonnet-4-6', label: 'Claude Sonnet 4.6' },
   'claude-haiku-4-5': { provider: 'anthropic', modelId: 'claude-haiku-4-5-20251001', label: 'Claude Haiku 4.5' }
 };
 
