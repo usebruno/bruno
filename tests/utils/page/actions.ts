@@ -1041,16 +1041,33 @@ const addMultipartFileToLastRow = async (page: Page, electronApp: ElectronApplic
 
     await expect(lastRow.locator('.upload-btn')).toBeVisible();
     await lastRow.locator('.upload-btn').click();
-    await expect(lastRow.locator('.file-value-cell')).toContainText(path.basename(filePath));
+    await expect(lastRow.locator('.file-value-cell')).toBeVisible();
+    const inlineChip = lastRow.getByTestId('multipart-file-chip').filter({ hasText: path.basename(filePath) });
+    const summary = lastRow.getByTestId('multipart-file-summary');
+    await expect(inlineChip.or(summary)).toBeVisible();
   });
 };
 
 const removeFirstMultipartFile = async (page: Page) => {
   await test.step('Remove first multipart file', async () => {
     const table = buildCommonLocators(page).table('editable-table');
-    await expect(table.allRows().locator('.file-value-cell').first()).toBeVisible();
-    await table.allRows().first().locator('.clear-file-btn').click();
-    await expect(table.allRows().first().locator('.upload-btn')).toBeVisible();
+    const firstRow = table.allRows().first();
+    await expect(firstRow.locator('.file-value-cell')).toBeVisible();
+
+    const inlineRemove = firstRow.getByTestId('multipart-file-chip-remove').first();
+    const summary = firstRow.getByTestId('multipart-file-summary');
+
+    if (await inlineRemove.count() > 0) {
+      await inlineRemove.click();
+    } else {
+      await expect(summary).toBeVisible();
+      await summary.click();
+      const overflowRemove = page.getByTestId('multipart-file-overflow-remove').first();
+      await expect(overflowRemove).toBeVisible();
+      await overflowRemove.click();
+    }
+
+    await expect(firstRow.locator('.upload-btn')).toBeVisible();
   });
 };
 
