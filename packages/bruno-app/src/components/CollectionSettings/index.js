@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import classnames from 'classnames';
 import get from 'lodash/get';
 import { updateSettingsSelectedTab } from 'providers/ReduxStore/slices/collections';
@@ -15,10 +15,21 @@ import StyledWrapper from './StyledWrapper';
 import Vars from './Vars/index';
 import StatusDot from 'components/StatusDot';
 import Overview from './Overview/index';
+import Git from './Git';
 
 const CollectionSettings = ({ collection }) => {
   const dispatch = useDispatch();
   const tab = collection.settingsSelectedTab;
+  const [hasGitRepo, setHasGitRepo] = useState(false);
+
+  useEffect(() => {
+    if (!collection.pathname) return;
+    window.ipcRenderer
+      .invoke('renderer:git-has-repo', { collectionPath: collection.pathname })
+      .then((result) => setHasGitRepo(result))
+      .catch(() => setHasGitRepo(false));
+  }, [collection.pathname]);
+
   const setTab = (tab) => {
     dispatch(
       updateSettingsSelectedTab({
@@ -94,6 +105,9 @@ const CollectionSettings = ({ collection }) => {
       case 'protobuf': {
         return <Protobuf collection={collection} />;
       }
+      case 'git': {
+        return <Git collection={collection} />;
+      }
     }
   };
 
@@ -145,6 +159,11 @@ const CollectionSettings = ({ collection }) => {
           Protobuf
           {protobufConfig.protoFiles && protobufConfig.protoFiles.length > 0 && <StatusDot />}
         </div>
+        {hasGitRepo && (
+          <div className={getTabClassname('git')} role="tab" data-testid="collection-settings-tab-git" onClick={() => setTab('git')}>
+            Git
+          </div>
+        )}
       </div>
       <section className="collection-settings-content mt-4 h-full overflow-auto">{getTabPanel(tab)}</section>
     </StyledWrapper>

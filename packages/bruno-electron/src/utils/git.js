@@ -1760,8 +1760,145 @@ const getGitGraph = async (gitRootPath, branchName, limit = 50) => {
   }
 };
 
+const normalizeGitStatus = (statusCode = '') => {
+  if (!statusCode) return 'modified';
+  if (statusCode.startsWith('R')) return 'renamed';
+  switch (statusCode[0]) {
+    case 'A':
+      return 'added';
+    case 'D':
+      return 'deleted';
+    case 'M':
+      return 'modified';
+    default:
+      return 'modified';
+  }
+};
+
+const parseDiffNameStatusLine = (line, gitRootPath, collectionPath) => {
+  if (!line) return null;
+
+  const parts = line.split('\t');
+  const rawStatus = parts[0];
+  const status = normalizeGitStatus(rawStatus);
+  const relativePath = status === 'renamed' ? parts[2] : parts[1];
+
+  if (!relativePath) {
+    return null;
+  }
+
+  const absolutePath = path.resolve(gitRootPath, relativePath);
+  const collectionRelativePath = path.relative(collectionPath, absolutePath);
+  if (!collectionRelativePath || collectionRelativePath.startsWith('..')) {
+    return null;
+  }
+
+  return {
+    status,
+    statusCode: rawStatus,
+    path: relativePath.replace(/\\/g, '/'),
+    absolutePath: absolutePath.replace(/\\/g, '/'),
+    collectionRelativePath: collectionRelativePath.replace(/\\/g, '/'),
+    previousPath: status === 'renamed' && parts[1] ? parts[1].replace(/\\/g, '/') : null
+  };
+};
+
+const getPullChangeSummary = async ({ git, gitRootPath, collectionPath, beforeRef, afterRef, source }) => {
+  if (!beforeRef || !afterRef || beforeRef === afterRef) {
+    return {
+      source,
+      changedFiles: [],
+      hasChanges: false,
+      newPaths: [],
+      pulledAt: new Date().toISOString(),
+      beforeRef,
+      afterRef
+    };
+  }
+
+  const diffOutput = await git.diff(['--name-status', '--find-renames', `${beforeRef}..${afterRef}`]);
+  const changedFiles = diffOutput
+    .split('\n')
+    .map((line) => parseDiffNameStatusLine(line.trim(), gitRootPath, collectionPath))
+    .filter(Boolean);
+
+  return {
+    source,
+    changedFiles,
+    hasChanges: changedFiles.length > 0,
+    newPaths: changedFiles
+      .filter((file) => file.status === 'added')
+      .map((file) => file.absolutePath),
+    pulledAt: new Date().toISOString(),
+    beforeRef,
+    afterRef
+  };
+};
+
+// Force pull: fetch + hard reset to origin/<branch>. Discards ALL local changes —
+// never fails on conflicts. Used by the explicit "force pull" action.
+const forcePullGitChanges = async (collectionPath) => {
+  const gitRootPath = getCollectionGitRootPath(collectionPath);
+  if (!gitRootPath) throw new Error('No git repository found in this collection');
+
+  const git = getSimpleGitInstanceForPath(gitRootPath);
+  const currentBranch = await git.revparse(['--abbrev-ref', 'HEAD']);
+  const beforeRef = await git.revparse(['HEAD']).catch(() => null);
+  await git.fetch('origin', currentBranch);
+  await git.reset(['--hard', `origin/${currentBranch}`]);
+  const afterRef = await git.revparse(['HEAD']).catch(() => null);
+
+  return getPullChangeSummary({
+    git,
+    gitRootPath,
+    collectionPath,
+    beforeRef,
+    afterRef,
+    source: 'force-pull'
+  });
+};
+
+// Silent pull: used for auto-pull on collection open. No progress output.
+// Preserves local uncommitted changes and fails silently on conflicts,
+// no connection, or no remote configured.
+const silentPullGitChanges = async (collectionPath) => {
+  const gitRootPath = getCollectionGitRootPath(collectionPath);
+  if (!gitRootPath) return { skipped: true, reason: 'no git repo' };
+
+  const git = getSimpleGitInstanceForPath(gitRootPath);
+
+  // Check that a remote is configured before attempting pull
+  const remotes = await git.getRemotes(false);
+  if (!remotes || remotes.length === 0) {
+    return { skipped: true, reason: 'no remote configured' };
+  }
+
+  const currentBranch = await git.revparse(['--abbrev-ref', 'HEAD']).catch(() => null);
+  if (!currentBranch) return { skipped: true, reason: 'could not determine branch' };
+
+  const beforeRef = await git.revparse(['HEAD']).catch(() => null);
+  await git.pull('origin', currentBranch, ['--no-rebase']);
+  const afterRef = await git.revparse(['HEAD']).catch(() => null);
+  const summary = await getPullChangeSummary({
+    git,
+    gitRootPath,
+    collectionPath,
+    beforeRef,
+    afterRef,
+    source: 'auto-pull'
+  });
+
+  return {
+    skipped: false,
+    ...summary
+  };
+};
+
 module.exports = {
   getCollectionGitRootPath,
+  forcePullGitChanges,
+  silentPullGitChanges,
+  getPullChangeSummary,
   getCollectionGitRepoUrl,
   stageChanges,
   unstageChanges,

@@ -12,7 +12,9 @@ import {
   IconX,
   IconCheck,
   IconFolder,
-  IconUpload
+  IconUpload,
+  IconCloudDownload,
+  IconCloudUpload
 } from '@tabler/icons';
 import OpenAPISyncIcon from 'components/Icons/OpenAPISync';
 import { switchWorkspace, renameWorkspaceAction, exportWorkspaceAction, confirmWorkspaceCreation, cancelWorkspaceCreation } from 'providers/ReduxStore/slices/workspaces/actions';
@@ -55,6 +57,7 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
   const [workspaceNameError, setWorkspaceNameError] = useState('');
   const [closeWorkspaceModalOpen, setCloseWorkspaceModalOpen] = useState(false);
   const [createWorkspaceModalOpen, setCreateWorkspaceModalOpen] = useState(false);
+  const [hasWorkspaceGitRepo, setHasWorkspaceGitRepo] = useState(false);
 
   const switcherRef = useRef();
   const workspaceActionsRef = useRef();
@@ -270,6 +273,47 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
       .catch((error) => {
         toast.error(error?.message || 'Error exporting workspace');
       });
+  };
+
+  // Detect whether the workspace folder is inside a git repository
+  useEffect(() => {
+    const pathname = currentWorkspace?.pathname;
+    if (!pathname) {
+      setHasWorkspaceGitRepo(false);
+      return;
+    }
+    window.ipcRenderer
+      .invoke('renderer:git-has-repo', { collectionPath: pathname })
+      .then((result) => setHasWorkspaceGitRepo(result))
+      .catch(() => setHasWorkspaceGitRepo(false));
+  }, [currentWorkspace?.pathname]);
+
+  const handleWorkspaceGitPull = () => {
+    workspaceActionsRef.current?.hide();
+    const pathname = currentWorkspace?.pathname;
+    if (!pathname) return;
+    toast.promise(
+      window.ipcRenderer.invoke('renderer:git-pull', { collectionPath: pathname }),
+      {
+        loading: 'Running git pull...',
+        success: 'Pull completed successfully',
+        error: (err) => `Pull error: ${err?.message || 'unknown'}`
+      }
+    );
+  };
+
+  const handleWorkspaceGitPush = () => {
+    workspaceActionsRef.current?.hide();
+    const pathname = currentWorkspace?.pathname;
+    if (!pathname) return;
+    toast.promise(
+      window.ipcRenderer.invoke('renderer:git-push', { collectionPath: pathname }),
+      {
+        loading: 'Running git push...',
+        success: 'Push completed successfully',
+        error: (err) => `Push error: ${err?.message || 'unknown'}`
+      }
+    );
   };
 
   const validateWorkspaceName = (name) => {
@@ -556,6 +600,24 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
                 </div>
                 <span>{getRevealInFolderLabel()}</span>
               </div>
+              {hasWorkspaceGitRepo && (
+                <>
+                  <div className="dropdown-separator" />
+                  <div className="dropdown-item" onClick={handleWorkspaceGitPull}>
+                    <div className="dropdown-icon">
+                      <IconCloudDownload size={16} strokeWidth={1.5} />
+                    </div>
+                    <span>Git Pull</span>
+                  </div>
+                  <div className="dropdown-item" onClick={handleWorkspaceGitPush}>
+                    <div className="dropdown-icon">
+                      <IconCloudUpload size={16} strokeWidth={1.5} />
+                    </div>
+                    <span>Git Push</span>
+                  </div>
+                  <div className="dropdown-separator" />
+                </>
+              )}
               <div className="dropdown-item" onClick={handleExportWorkspace}>
                 <div className="dropdown-icon">
                   <IconUpload size={16} strokeWidth={1.5} />
