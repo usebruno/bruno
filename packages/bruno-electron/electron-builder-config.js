@@ -104,6 +104,7 @@ const config = {
     publisherName: 'Bruno Software Inc'
   },
   nsis: {
+    include: 'resources/installer.nsh',
     oneClick: false,
     allowToChangeInstallationDirectory: true,
     allowElevation: true,

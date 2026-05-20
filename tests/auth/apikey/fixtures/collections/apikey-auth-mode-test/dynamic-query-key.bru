@@ -1,0 +1,29 @@
+meta {
+  name: dynamic-query-key
+  type: http
+  seq: 2
+}
+
+get {
+  url: http://localhost:8081/ping
+  body: none
+  auth: apikey
+}
+
+auth:apikey {
+  key: {{api_key_query_name}}
+  value: {{api_key_value}}
+  placement: queryparams
+}
+
+vars:pre-request {
+  api_key_query_name: api_key
+  api_key_value: secret-key-value
+}
+
+tests {
+  test("detects API key auth when the query key is interpolated", function() {
+    expect(req.getAuthMode()).to.equal("apikey");
+    expect(req.getUrl()).to.contain("api_key=secret-key-value");
+  });
+}

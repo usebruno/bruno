@@ -267,7 +267,7 @@ export const processAuth = (auth, requestObject, isCollection = false) => {
       requestObject.auth.apikey = {
         key: ensureString(authValues.key),
         value: ensureString(authValues.value),
-        placement: 'header' // By default we are placing the apikey values in headers!
+        placement: authValues.in === 'query' ? 'queryparams' : 'header' // map Postman `in` to Bruno placement; defaults to header
       };
       break;
     case AUTH_TYPES.DIGEST:
@@ -950,7 +950,10 @@ const importPostmanV2Collection = async (collection, { useWorkers = false }) => 
 
 const parsePostmanCollection = async (collection, { useWorkers = false }) => {
   try {
-    let schema = get(collection, 'info.schema');
+    // Newer Postman exports wrap the collection in a { collection: { ... } } envelope
+    const parsedCollection = collection.collection?.info ? collection.collection : collection;
+
+    let schema = get(parsedCollection, 'info.schema');
 
     let v2Schemas = [
       'https://schema.getpostman.com/json/collection/v2.0.0/collection.json',
@@ -960,7 +963,7 @@ const parsePostmanCollection = async (collection, { useWorkers = false }) => {
     ];
 
     if (v2Schemas.includes(schema)) {
-      return await importPostmanV2Collection(collection, { useWorkers });
+      return await importPostmanV2Collection(parsedCollection, { useWorkers });
     }
 
     throw new Error('Unsupported Postman schema version. Only Postman Collection v2.0 and v2.1 are supported.');

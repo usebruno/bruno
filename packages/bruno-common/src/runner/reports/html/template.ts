@@ -1,3 +1,20 @@
+import type { T_RunnerRequestExecutionResult } from '../../types';
+
+export const getFilteredRequestResults = (results: T_RunnerRequestExecutionResult[] = [], onlyFailed = false) => {
+  const indexedResults = (Array.isArray(results) ? results : []).map((value, index) => ({ value, index }));
+
+  if (!onlyFailed) {
+    return indexedResults;
+  }
+
+  return indexedResults.filter(
+    ({ value }) =>
+      value?.status === 'error'
+      || !!value?.testResults?.find((t) => t.status !== 'pass')
+      || !!value?.assertionResults?.find((t) => t.status !== 'pass')
+  );
+};
+
 export const htmlTemplateString = (resutsJsonString: string) => `<!DOCTYPE html>
 <html lang="en">
   <head>
@@ -294,7 +311,7 @@ export const htmlTemplateString = (resutsJsonString: string) => `<!DOCTYPE html>
           </n-switch>
 
           <n-collapse>
-            <x-result v-for="(result, index) in results" :result="result" :index="index" :key="index"></x-result>
+            <x-result v-for="result in results" :result="result.value" :index="result.index" :key="result.index"></x-result>
           </n-collapse>
         </n-flex>
       </n-card>
@@ -422,6 +439,8 @@ export const htmlTemplateString = (resutsJsonString: string) => `<!DOCTYPE html>
     </script>
     <script>
       const { createApp, ref, computed, onMounted } = Vue;
+
+      const getFilteredRequestResults = ${getFilteredRequestResults.toString()};
 
       function mergeTests(runnerResults) {
         if (!Array.isArray(runnerResults)) return runnerResults; 
@@ -645,15 +664,7 @@ export const htmlTemplateString = (resutsJsonString: string) => `<!DOCTYPE html>
         setup(props) {
           const onlyFailed = ref(false);
           const filteredResults = computed(() => {
-            if (onlyFailed.value) {
-              return props?.res?.results?.filter(
-                (r) =>
-                  r.status === 'error' ||
-                  !!r?.testResults?.find((t) => t.status !== 'pass') ||
-                  !!r?.assertionResults?.find((t) => t.status !== 'pass')
-              );
-            }
-            return props.res.results;
+            return getFilteredRequestResults(props?.res?.results, onlyFailed.value);
           });
           const iterationIndex = Number(props.res.iterationIndex) + 1;
           return {

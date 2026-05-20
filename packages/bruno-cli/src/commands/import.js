@@ -74,7 +74,8 @@ const builder = (yargs) => {
 
 const isUrl = (str) => {
   try {
-    return Boolean(new URL(str));
+    const url = new URL(str);
+    return url.protocol === 'http:' || url.protocol === 'https:';
   } catch (error) {
     return false;
   }

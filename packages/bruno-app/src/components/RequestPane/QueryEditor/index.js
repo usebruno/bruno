@@ -16,6 +16,7 @@ import toast from 'react-hot-toast';
 import StyledWrapper from './StyledWrapper';
 import onHasCompletion from './onHasCompletion';
 import { setupLinkAware } from 'utils/codemirror/linkAware';
+import { setupCodeMirrorResizeRefresh } from 'utils/codemirror/resize';
 
 const CodeMirror = require('codemirror');
 
@@ -53,6 +54,16 @@ export default class QueryEditor extends React.Component {
   }
 
   componentDidMount() {
+    /**
+     * No-op. We claim Cmd-Enter / Ctrl-Enter here only to suppress CodeMirror's
+     * sublime keymap default (insertLineAfter), which would otherwise insert a
+     * newline. sendRequest dispatch is owned by Mousetrap — the editor input has
+     * the `mousetrap` class (added below) so the global
+     * useKeybinding('sendRequest', …) in RequestTabPanel handles it, and only
+     * in request tabs.
+     */
+    const runShortcut = () => {};
+
     const editor = (this.editor = CodeMirror(this._node, {
       value: this.props.value || '',
       lineNumbers: true,
@@ -125,7 +136,9 @@ export default class QueryEditor extends React.Component {
           }
         },
         'Cmd-F': 'findPersistent',
-        'Ctrl-F': 'findPersistent'
+        'Ctrl-F': 'findPersistent',
+        'Cmd-Enter': runShortcut,
+        'Ctrl-Enter': runShortcut
       }
     }));
     if (editor) {
@@ -137,6 +150,7 @@ export default class QueryEditor extends React.Component {
     this.addOverlay();
 
     setupLinkAware(editor);
+    this.cleanupResizeRefresh = setupCodeMirrorResizeRefresh(editor, this._node);
 
     // Add mousetrap class so Mousetrap captures shortcuts even when CodeMirror is focused
     const cmInput = editor.getInputField();
@@ -180,6 +194,7 @@ export default class QueryEditor extends React.Component {
       if (this.editor?._destroyLinkAware) {
         this.editor._destroyLinkAware();
       }
+      this.cleanupResizeRefresh?.();
       this.editor.off('change', this._onEdit);
       this.editor.off('keyup', this._onKeyUp);
       this.editor.off('hasCompletion', this._onHasCompletion);

@@ -5,6 +5,10 @@ inputs:
     description: 'Skip building libraries'
     required: false
     default: 'false'
+  shell:
+    description: 'Shell to use (bash, pwsh)'
+    required: false
+    default: 'bash'
 runs:
   using: 'composite'
   steps:
@@ -16,12 +20,12 @@ runs:
         cache-dependency-path: './package-lock.json'
 
     - name: Install node dependencies
-      shell: bash
+      shell: ${{ inputs.shell }}
       run: npm ci --legacy-peer-deps
 
     - name: Build libraries
       if: inputs.skip-build != 'true'
-      shell: bash
+      shell: ${{ inputs.shell }}
       run: |
         npm run build:graphql-docs
         npm run build:bruno-query

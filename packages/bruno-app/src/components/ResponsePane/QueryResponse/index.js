@@ -13,7 +13,8 @@ const QueryResponse = ({
   disableRunEventListener,
   headers,
   error,
-  hideResultTypeSelector
+  hideResultTypeSelector,
+  docKey
 }) => {
   const { initialFormat, initialTab } = useInitialResponseFormat(dataBuffer, headers);
   const previewFormatOptions = useResponsePreviewFormatOptions(dataBuffer, headers);
@@ -62,6 +63,7 @@ const QueryResponse = ({
           filterExpanded={filterExpanded}
           onFilterChange={setFilter}
           onFilterExpandChange={setFilterExpanded}
+          docKey={docKey}
         />
       </div>
     </StyledWrapper>

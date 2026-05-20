@@ -51,6 +51,28 @@ function createStubAdapter() {
   return adapter;
 }
 
+describe('axios-instance: default headers', () => {
+  test('setting User-Agent does not clobber the axios default Accept header', async () => {
+    const stubAdapter = createStubAdapter();
+    const instance = makeAxiosInstance();
+
+    await instance({ url: 'https://api.example.com/test', method: 'get', adapter: stubAdapter });
+
+    // axios.create() sets Accept by default; assigning a new object to defaults.headers.common
+    // would nuke it. Guard against that regression.
+    expect(stubAdapter.getConfig().headers['Accept']).toMatch(/application\/json/);
+  });
+
+  test('sets User-Agent header to bruno-runtime version', async () => {
+    const stubAdapter = createStubAdapter();
+    const instance = makeAxiosInstance();
+
+    await instance({ url: 'https://api.example.com/test', method: 'get', adapter: stubAdapter });
+
+    expect(stubAdapter.getConfig().headers['User-Agent']).toMatch(/^bruno-runtime\//);
+  });
+});
+
 describe('axios-instance: DNS lookup behavior (GitHub #7343)', () => {
   let axiosInstance;
 

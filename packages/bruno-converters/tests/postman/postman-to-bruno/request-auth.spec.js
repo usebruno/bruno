@@ -580,4 +580,67 @@ describe('Request Authentication', () => {
       basic: null, bearer: null, awsv4: null, apikey: null, oauth2: null, digest: null, oauth1: null
     });
   });
+
+  describe('API Key Auth placement', () => {
+    const buildApiKeyCollection = (apikey) => ({
+      info: {
+        name: 'API Key Collection',
+        schema: 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json'
+      },
+      item: [
+        {
+          name: 'API Key Request',
+          request: {
+            method: 'GET',
+            url: 'https://api.example.com/test',
+            auth: { type: 'apikey', apikey }
+          }
+        }
+      ]
+    });
+
+    it('should map Postman in=query to Bruno placement=queryparams', async () => {
+      const postmanCollection = buildApiKeyCollection([
+        { key: 'key', value: 'X-API-Key' },
+        { key: 'value', value: 'secret-token' },
+        { key: 'in', value: 'query' }
+      ]);
+
+      const result = await postmanToBruno(postmanCollection);
+
+      expect(result.items[0].request.auth.mode).toBe('apikey');
+      expect(result.items[0].request.auth.apikey).toEqual({
+        key: 'X-API-Key',
+        value: 'secret-token',
+        placement: 'queryparams'
+      });
+    });
+
+    it('should map Postman in=header to Bruno placement=header', async () => {
+      const postmanCollection = buildApiKeyCollection([
+        { key: 'key', value: 'X-API-Key' },
+        { key: 'value', value: 'secret-token' },
+        { key: 'in', value: 'header' }
+      ]);
+
+      const result = await postmanToBruno(postmanCollection);
+
+      expect(result.items[0].request.auth.apikey).toEqual({
+        key: 'X-API-Key',
+        value: 'secret-token',
+        placement: 'header'
+      });
+    });
+
+    it('should default placement to header when Postman in is absent', async () => {
+      const postmanCollection = buildApiKeyCollection([
+        { key: 'key', value: 'X-API-Key' },
+        { key: 'value', value: 'secret-token' }
+      ]);
+
+      const result = await postmanToBruno(postmanCollection);
+
+      expect(result.items[0].request.auth.apikey.placement).toBe('header');
+    });
+  });
 });

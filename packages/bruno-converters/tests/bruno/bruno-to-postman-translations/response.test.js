@@ -271,4 +271,54 @@ const headers2 = pm.response.headers;
 `;
     expect(translatedCode.trim()).toBe(expected.trim());
   });
+
+  // --- res.headerList.* → pm.response.headers.* ------
+
+  it('should translate res.headerList.get to pm.response.headers.get', () => {
+    const code = 'const ct = res.headerList.get("content-type");';
+    const translatedCode = translateBruToPostman(code);
+    expect(translatedCode).toBe('const ct = pm.response.headers.get("content-type");');
+  });
+
+  it('should translate res.headerList.has to pm.response.headers.has', () => {
+    const code = 'const hasCt = res.headerList.has("content-type");';
+    const translatedCode = translateBruToPostman(code);
+    expect(translatedCode).toBe('const hasCt = pm.response.headers.has("content-type");');
+  });
+
+  it('should translate res.headerList.all to pm.response.headers.all', () => {
+    const code = 'const allHeaders = res.headerList.all();';
+    const translatedCode = translateBruToPostman(code);
+    expect(translatedCode).toBe('const allHeaders = pm.response.headers.all();');
+  });
+
+  it('should translate res.headerList.filter to pm.response.headers.filter', () => {
+    const code = 'const custom = res.headerList.filter(h => h.key.startsWith("x-"));';
+    const translatedCode = translateBruToPostman(code);
+    expect(translatedCode).toBe('const custom = pm.response.headers.filter(h => h.key.startsWith("x-"));');
+  });
+
+  it('should translate res.headerList.one to pm.response.headers.one', () => {
+    const code = 'const first = res.headerList.one("content-type");';
+    const translatedCode = translateBruToPostman(code);
+    expect(translatedCode).toBe('const first = pm.response.headers.one("content-type");');
+  });
+
+  it('should translate res.headerList.find to pm.response.headers.find', () => {
+    const code = 'const found = res.headerList.find(h => h.key === "x-request-id");';
+    const translatedCode = translateBruToPostman(code);
+    expect(translatedCode).toBe('const found = pm.response.headers.find(h => h.key === "x-request-id");');
+  });
+
+  it('should translate res.headerList.toObject to pm.response.headers.toObject', () => {
+    const code = 'const obj = res.headerList.toObject();';
+    const translatedCode = translateBruToPostman(code);
+    expect(translatedCode).toBe('const obj = pm.response.headers.toObject();');
+  });
+
+  it('should translate standalone res.headerList to pm.response.headers', () => {
+    const code = 'const hl = res.headerList;';
+    const translatedCode = translateBruToPostman(code);
+    expect(translatedCode).toBe('const hl = pm.response.headers;');
+  });
 });

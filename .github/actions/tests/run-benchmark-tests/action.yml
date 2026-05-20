@@ -1,0 +1,38 @@
+name: 'Run Benchmark Tests'
+description: 'Run Playwright benchmark tests and compare against baseline'
+inputs:
+  os:
+    description: 'Operating system (ubuntu, macos, windows)'
+    default: 'ubuntu'
+  update-baseline:
+    description: 'Update baseline instead of comparing'
+    default: 'false'
+runs:
+  using: 'composite'
+  steps:
+    - name: Run Benchmark Tests (Ubuntu)
+      if: inputs.os == 'ubuntu'
+      shell: bash
+      run: xvfb-run npm run test:benchmark
+
+    - name: Run Benchmark Tests
+      if: inputs.os != 'ubuntu'
+      shell: bash
+      run: npm run test:benchmark
+
+    - name: Update Baseline
+      if: inputs.update-baseline == 'true'
+      shell: bash
+      run: >-
+        node tests/benchmarks/utils/compare.js
+        --results tests/benchmarks/results/mounting.json
+        --baseline tests/benchmarks/mounting/baseline.${{ inputs.os }}.json
+        --update-baseline
+
+    - name: Compare Against Baseline
+      if: inputs.update-baseline != 'true'
+      shell: bash
+      run: >-
+        node tests/benchmarks/utils/compare.js
+        --results tests/benchmarks/results/mounting.json
+        --baseline tests/benchmarks/mounting/baseline.${{ inputs.os }}.json

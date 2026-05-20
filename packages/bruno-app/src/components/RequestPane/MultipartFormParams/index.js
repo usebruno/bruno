@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useRef } from 'react';
 import get from 'lodash/get';
 import { useDispatch, useSelector } from 'react-redux';
 import { useTheme } from 'providers/Theme';
@@ -14,12 +14,17 @@ import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collection
 import { updateTableColumnWidths } from 'providers/ReduxStore/slices/tabs';
 import EditableTable from 'components/EditableTable';
 import StyledWrapper from './StyledWrapper';
-import path from 'utils/common/path';
+import { getRelativePathWithinBasePath } from 'utils/common/path';
+import { usePersistedState } from 'hooks/usePersistedState';
+import { useTrackScroll } from 'hooks/useTrackScroll';
 import { isWindowsOS } from 'utils/common/platform';
 
 const MultipartFormParams = ({ item, collection }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
+  const wrapperRef = useRef(null);
+  const [scroll, setScroll] = usePersistedState({ key: `request-body-multipartForm-scroll-${item.uid}`, default: 0 });
+  useTrackScroll({ ref: wrapperRef, selector: '.flex-boundary', onChange: setScroll, initialValue: scroll });
   const tabs = useSelector((state) => state.tabs.tabs);
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
   const params = item.draft ? get(item, 'draft.request.body.multipartForm') : get(item, 'request.body.multipartForm');
@@ -55,11 +60,7 @@ const MultipartFormParams = ({ item, collection }) => {
     dispatch(browseFiles())
       .then((filePaths) => {
         const processedPaths = filePaths.map((filePath) => {
-          const collectionDir = collection.pathname;
-          if (filePath.startsWith(collectionDir)) {
-            return path.relative(collectionDir, filePath);
-          }
-          return filePath;
+          return getRelativePathWithinBasePath(collection.pathname, filePath);
         });
 
         const currentParams = item.draft
@@ -187,7 +188,7 @@ const MultipartFormParams = ({ item, collection }) => {
             <button
               className="upload-btn ml-1"
               onClick={() => handleBrowseFiles(row, onChange)}
-              title="Select file"
+              title="Select File"
             >
               <IconUpload size={16} />
             </button>
@@ -222,7 +223,7 @@ const MultipartFormParams = ({ item, collection }) => {
   };
 
   return (
-    <StyledWrapper className="w-full">
+    <StyledWrapper className="w-full" ref={wrapperRef}>
       <EditableTable
         tableId="multipart-form"
         columns={columns}
@@ -233,6 +234,7 @@ const MultipartFormParams = ({ item, collection }) => {
         onReorder={handleParamDrag}
         columnWidths={multipartFormWidths}
         onColumnWidthsChange={(widths) => handleColumnWidthsChange('multipart-form', widths)}
+        initialScroll={scroll}
       />
     </StyledWrapper>
   );

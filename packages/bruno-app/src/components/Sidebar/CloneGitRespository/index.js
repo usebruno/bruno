@@ -15,6 +15,7 @@ import Portal from 'components/Portal';
 import { IconRefresh, IconCheck, IconAlertCircle, IconBrandGit } from '@tabler/icons';
 import { uuid } from 'utils/common/index';
 import StyledWrapper from './StyledWrapper';
+import SelectionList from 'components/SelectionList';
 import { getRepoNameFromUrl } from 'utils/git';
 import GitNotFoundModal from 'components/Git/GitNotFoundModal/index';
 import get from 'lodash/get';
@@ -162,6 +163,10 @@ const CloneGitRepository = ({ onClose, onFinish, collectionRepositoryUrl = null 
         ? prevSelected.filter((c) => c !== collection)
         : [...prevSelected, collection]
     );
+  };
+
+  const handleSelectAllCollections = (e) => {
+    setSelectedCollectionPaths(e.target.checked ? [...collectionPaths] : []);
   };
 
   const getRelativePath = (fullPath, pathname) => {
@@ -338,26 +343,16 @@ const CloneGitRepository = ({ onClose, onFinish, collectionRepositoryUrl = null 
                     </div>
                   )}
                   {collectionPaths.length > 0 && (
-                    <>
-                      <h3 className="text-sm mb-2">
-                        {collectionPaths.length} bruno collections found. Please select the collections to open:
-                      </h3>
-                      <ul>
-                        {collectionPaths.map((collection) => (
-                          <li key={collection} className="mb-2">
-                            <label className="flex items-center space-x-2">
-                              <input
-                                type="checkbox"
-                                checked={selectedCollectionPaths.includes(collection)}
-                                onChange={() => handleCollectionSelect(collection)}
-                                className="form-checkbox"
-                              />
-                              <span>{getRelativePath(formik.values.collectionLocation, collection)}</span>
-                            </label>
-                          </li>
-                        ))}
-                      </ul>
-                    </>
+                    <SelectionList
+                      title={`Collections (${collectionPaths.length})`}
+                      items={collectionPaths}
+                      selectedItems={selectedCollectionPaths}
+                      onSelectAll={handleSelectAllCollections}
+                      onItemToggle={handleCollectionSelect}
+                      getItemId={(collection) => collection}
+                      renderItemLabel={(collection) => getRelativePath(formik.values.collectionLocation, collection)}
+                      visibleRows={8}
+                    />
                   )}
                 </div>
               )}

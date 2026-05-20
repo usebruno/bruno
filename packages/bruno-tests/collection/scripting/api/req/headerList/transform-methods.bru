@@ -1,0 +1,44 @@
+meta {
+  name: transform-methods
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+headers {
+  bruno: is-awesome
+  della: is-beautiful
+}
+
+assert {
+  res.status: eq 200
+  res.body: eq pong
+}
+
+tests {
+  test("req.headerList.toObject()", function() {
+    const obj = req.headerList.toObject();
+    expect(obj).to.be.an('object');
+    expect(obj.bruno).to.equal('is-awesome');
+    expect(obj.della).to.equal('is-beautiful');
+  });
+
+  test("req.headerList.toString()", function() {
+    const str = req.headerList.toString();
+    expect(str).to.be.a('string');
+    expect(str).to.include('bruno: is-awesome');
+    expect(str).to.include('della: is-beautiful');
+  });
+
+  test("req.headerList.toJSON()", function() {
+    const json = req.headerList.toJSON();
+    expect(json).to.be.an('array');
+    const brunoHeader = json.find(h => h.key === 'bruno');
+    expect(brunoHeader).to.eql({ key: 'bruno', value: 'is-awesome' });
+  });
+}

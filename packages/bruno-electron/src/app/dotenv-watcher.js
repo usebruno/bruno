@@ -195,15 +195,21 @@ class DotEnvWatcher {
   }
 
   closeAll() {
-    for (const [path, watcher] of this.collectionWatchers) {
-      watcher.close();
-    }
+    const pending = [];
+    const collect = (watcher) => {
+      try {
+        const result = watcher?.close();
+        if (result && typeof result.then === 'function') pending.push(result);
+      } catch (err) {}
+    };
+
+    for (const [path, watcher] of this.collectionWatchers) collect(watcher);
     this.collectionWatchers.clear();
 
-    for (const [path, watcher] of this.workspaceWatchers) {
-      watcher.close();
-    }
+    for (const [path, watcher] of this.workspaceWatchers) collect(watcher);
     this.workspaceWatchers.clear();
+
+    return Promise.allSettled(pending);
   }
 }
 

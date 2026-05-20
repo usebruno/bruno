@@ -111,7 +111,7 @@ const HttpRequestPane = ({ item, collection }) => {
 
   const tabPanel = useMemo(() => {
     const Component = TAB_PANELS[requestPaneTab];
-    return Component ? <Component item={item} collection={collection} /> : <div className="mt-4">404 | Not found</div>;
+    return Component ? <Component key={item.uid} item={item} collection={collection} /> : <div className="mt-4">404 | Not found</div>;
   }, [requestPaneTab, item, collection]);
 
   if (!activeTabUid || !focusedTab?.uid || !requestPaneTab) {

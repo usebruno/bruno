@@ -72,6 +72,7 @@ describe('prepare-request: prepareRequest', () => {
 
         const result = await prepareRequest(item, collection);
         expect(result.headers).toHaveProperty('x-api-key', '{{apiKey}}');
+        expect(result.apiKeyHeaderName).toEqual('x-api-key');
       });
 
       it('If collection auth is apikey in header and request has existing headers', async () => {
@@ -88,6 +89,7 @@ describe('prepare-request: prepareRequest', () => {
         const result = await prepareRequest(item, collection);
         expect(result.headers).toHaveProperty('Content-Type', 'application/json');
         expect(result.headers).toHaveProperty('x-api-key', '{{apiKey}}');
+        expect(result.apiKeyHeaderName).toEqual('x-api-key');
       });
 
       it('If collection auth is apikey in query parameters', async () => {
@@ -106,6 +108,7 @@ describe('prepare-request: prepareRequest', () => {
         const expected = urlObj.toString();
         const result = await prepareRequest(item, collection);
         expect(result.url).toEqual(expected);
+        expect(result.apiKeyHeaderName).toBeUndefined();
       });
     });
 
@@ -355,6 +358,7 @@ describe('prepare-request: prepareRequest', () => {
 
         const result = await prepareRequest(item);
         expect(result.headers).toHaveProperty('x-api-key', '{{apiKey}}');
+        expect(result.apiKeyHeaderName).toEqual('x-api-key');
       });
 
       it('If request auth is apikey in header and request has existing headers', async () => {
@@ -371,6 +375,7 @@ describe('prepare-request: prepareRequest', () => {
         const result = await prepareRequest(item);
         expect(result.headers).toHaveProperty('Content-Type', 'application/json');
         expect(result.headers).toHaveProperty('x-api-key', '{{apiKey}}');
+        expect(result.apiKeyHeaderName).toEqual('x-api-key');
       });
 
       it('If request auth is apikey in query parameters', async () => {
@@ -389,6 +394,7 @@ describe('prepare-request: prepareRequest', () => {
         const expected = urlObj.toString();
         const result = await prepareRequest(item);
         expect(result.url).toEqual(expected);
+        expect(result.apiKeyHeaderName).toBeUndefined();
       });
     });
 
@@ -598,6 +604,71 @@ describe('prepare-request: prepareRequest', () => {
       expect(result.data).toBe(mockStream);
       expect(createReadStreamSpy).toHaveBeenCalled();
       expect(readFileSyncSpy).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('Header filtering', () => {
+    it('skips headers with empty name', async () => {
+      const item = {
+        request: {
+          method: 'GET',
+          url: 'https://example.com',
+          headers: [
+            { name: '', value: 'ghost', enabled: true },
+            { name: 'X-Valid', value: 'yes', enabled: true }
+          ]
+        }
+      };
+      const result = await prepareRequest(item);
+      expect(result.headers).not.toHaveProperty('');
+      expect(result.headers).toHaveProperty('X-Valid', 'yes');
+    });
+
+    it('skips disabled headers regardless of name', async () => {
+      const item = {
+        request: {
+          method: 'GET',
+          url: 'https://example.com',
+          headers: [
+            { name: 'X-Disabled', value: 'nope', enabled: false },
+            { name: 'X-Enabled', value: 'yes', enabled: true }
+          ]
+        }
+      };
+      const result = await prepareRequest(item);
+      expect(result.headers).not.toHaveProperty('X-Disabled');
+      expect(result.headers).toHaveProperty('X-Enabled', 'yes');
+    });
+
+    it('includes all valid enabled headers', async () => {
+      const item = {
+        request: {
+          method: 'GET',
+          url: 'https://example.com',
+          headers: [
+            { name: 'X-One', value: '1', enabled: true },
+            { name: 'X-Two', value: '2', enabled: true }
+          ]
+        }
+      };
+      const result = await prepareRequest(item);
+      expect(result.headers).toHaveProperty('X-One', '1');
+      expect(result.headers).toHaveProperty('X-Two', '2');
+    });
+
+    it('produces no headers when all have empty names', async () => {
+      const item = {
+        request: {
+          method: 'GET',
+          url: 'https://example.com',
+          headers: [
+            { name: '', value: '', enabled: true },
+            { name: '', value: 'some-value', enabled: true }
+          ]
+        }
+      };
+      const result = await prepareRequest(item);
+      expect(Object.keys(result.headers).filter((k) => k === '')).toHaveLength(0);
     });
   });
 

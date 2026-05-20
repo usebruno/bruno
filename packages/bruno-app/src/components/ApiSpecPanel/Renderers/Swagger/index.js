@@ -1,14 +1,15 @@
+import { memo } from 'react';
 import SwaggerUI from 'swagger-ui-react';
 import StyledWrapper from './StyledWrapper';
 
-const Swagger = ({ spec }) => {
+const Swagger = ({ spec, onComplete }) => {
   return (
     <StyledWrapper>
       <div className="swagger-root w-full">
-        <SwaggerUI spec={spec} />
+        <SwaggerUI spec={spec} onComplete={onComplete} />
       </div>
     </StyledWrapper>
   );
 };
 
-export default Swagger;
+export default memo(Swagger);
