@@ -23,7 +23,8 @@ import {
   runRequestEvent,
   scriptEnvironmentUpdateEvent,
   streamDataReceived,
-  setDotEnvVariables
+  setDotEnvVariables,
+  recordGitSyncEvent
 } from 'providers/ReduxStore/slices/collections';
 import { collectionAddEnvFileEvent, openCollectionEvent, hydrateCollectionWithUiStateSnapshot, mergeAndPersistEnvironment } from 'providers/ReduxStore/slices/collections/actions';
 import {
@@ -343,6 +344,35 @@ const useIpcEvents = () => {
       dispatch(setGitVersion(val));
     });
 
+    const gitSyncFinishedListener = ipcRenderer.on('main:git-sync-finished', (payload) => {
+      const state = store.getState();
+      const collection = state.collections?.collections?.find((c) => c.pathname === payload?.collectionPath);
+
+      if (!collection) {
+        return;
+      }
+
+      dispatch(recordGitSyncEvent({
+        collectionUid: collection.uid,
+        event: payload
+      }));
+
+      if (payload?.source === 'auto-pull') {
+        const totalChanges = payload?.changedFiles?.length || 0;
+        const message = totalChanges
+          ? `Collection updated from git with ${totalChanges} change${totalChanges !== 1 ? 's' : ''}`
+          : 'Collection auto-checked; no new changes arrived';
+        toast.success(message, { duration: 3500 });
+      }
+    });
+
+    const gitAutoPullFailedListener = ipcRenderer.on('main:git-auto-pull-failed', () => {
+      toast('Could not update the collection automatically.\nUse Git Pull or Force Pull in the Git tab.', {
+        icon: '⚠️',
+        duration: 6000
+      });
+    });
+
     return () => {
       removeCollectionTreeUpdateListener();
       removeApiSpecTreeUpdateListener();
@@ -376,6 +406,8 @@ const useIpcEvents = () => {
       removePersistentEnvVariablesUpdateListener();
       removeSystemResourcesListener();
       gitVersionListener();
+      gitSyncFinishedListener();
+      gitAutoPullFailedListener();
     };
   }, [isElectron]);
 };

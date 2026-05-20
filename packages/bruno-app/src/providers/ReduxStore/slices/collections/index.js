@@ -120,6 +120,61 @@ const initialState = {
   saveTransientRequestModals: []
 };
 
+const normalizeGitPath = (value = '') => value.replace(/\\/g, '/').replace(/\/+$/, '');
+
+const normalizeGitMarkerStatus = (status = '') => {
+  switch (status) {
+    case 'A':
+    case '?':
+    case 'added':
+      return 'added';
+    case 'D':
+    case 'deleted':
+      return 'deleted';
+    case 'R':
+    case 'renamed':
+      return 'renamed';
+    default:
+      return 'modified';
+  }
+};
+
+const mergeGitChangeMarkers = (existingMarkers = [], changedFiles = []) => {
+  const markerMap = new Map(
+    existingMarkers.map((marker) => [
+      normalizeGitPath(marker.path),
+      {
+        path: normalizeGitPath(marker.path),
+        status: normalizeGitMarkerStatus(marker.status)
+      }
+    ])
+  );
+
+  changedFiles.forEach((file) => {
+    const normalizedPath = normalizeGitPath(file.absolutePath || file.path);
+    if (!normalizedPath) {
+      return;
+    }
+
+    markerMap.set(normalizedPath, {
+      path: normalizedPath,
+      status: normalizeGitMarkerStatus(file.status || file.statusCode)
+    });
+  });
+
+  return Array.from(markerMap.values());
+};
+
+const withoutAcknowledgedGitMarkers = (markers = [], pathname) => {
+  const normalizedPath = normalizeGitPath(pathname);
+  const normalizedPrefix = `${normalizedPath}/`;
+
+  return markers.filter((marker) => {
+    const normalizedCandidate = normalizeGitPath(marker.path);
+    return normalizedCandidate !== normalizedPath && !normalizedCandidate.startsWith(normalizedPrefix);
+  });
+};
+
 const initiatedGrpcResponse = {
   statusCode: null,
   statusText: 'STREAMING',
@@ -184,6 +239,8 @@ export const collectionsSlice = createSlice({
       // for example, when a env is created, we want to auto select it the env modal
       collection.importedAt = new Date().getTime();
       collection.lastAction = null;
+      collection.gitSyncHistory = [];
+      collection.gitChangeMarkers = [];
 
       collapseAllItemsInCollection(collection);
       addDepth(collection.items);
@@ -263,6 +320,43 @@ export const collectionsSlice = createSlice({
 
       if (collection) {
         collection.lastAction = lastAction;
+      }
+    },
+    recordGitSyncEvent: (state, action) => {
+      const { collectionUid, event } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+
+      if (!collection || !event) {
+        return;
+      }
+
+      const historyEntry = {
+        id: event.id || `${event.source || 'pull'}-${event.pulledAt || Date.now()}`,
+        source: event.source || 'pull',
+        pulledAt: event.pulledAt || new Date().toISOString(),
+        hasChanges: !!event.hasChanges,
+        changedFiles: event.changedFiles || [],
+        beforeRef: event.beforeRef || null,
+        afterRef: event.afterRef || null
+      };
+
+      collection.gitSyncHistory = [historyEntry, ...(collection.gitSyncHistory || [])].slice(0, 12);
+      collection.gitChangeMarkers = mergeGitChangeMarkers(collection.gitChangeMarkers || [], event.changedFiles || []);
+    },
+    dismissGitChangeMarkers: (state, action) => {
+      const { collectionUid, pathname } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+
+      if (!collection || !pathname) {
+        return;
+      }
+
+      collection.gitChangeMarkers = withoutAcknowledgedGitMarkers(collection.gitChangeMarkers || [], pathname);
+    },
+    clearGitChangeMarkers: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+      if (collection) {
+        collection.gitChangeMarkers = [];
       }
     },
     updateSettingsSelectedTab: (state, action) => {
@@ -3636,6 +3730,9 @@ export const {
   removeCollection,
   sortCollections,
   updateLastAction,
+  recordGitSyncEvent,
+  dismissGitChangeMarkers,
+  clearGitChangeMarkers,
   updateSettingsSelectedTab,
   updatedFolderSettingsSelectedTab,
   collectionUnlinkEnvFileEvent,

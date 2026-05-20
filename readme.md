@@ -31,6 +31,8 @@
 | [Nederlands](docs/readme/readme_nl.md)
 | [فارسی](docs/readme/readme_fa.md)
 
+Форк Bruno для ИПК с поддержкой GIT
+
 Bruno is a new and innovative API client, aimed at revolutionizing the status quo represented by Postman and similar tools out there.
 
 Bruno stores your collections directly in a folder on your filesystem. We use a plain text markup language, Bru, to save information about API requests.

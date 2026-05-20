@@ -20,10 +20,12 @@ import {
   IconSettings,
   IconTerminal2,
   IconFolder,
-  IconBook
+  IconBook,
+  IconCloudDownload,
+  IconCloudUpload
 } from '@tabler/icons';
 import OpenAPISyncIcon from 'components/Icons/OpenAPISync';
-import { toggleCollection, collapseFullCollection } from 'providers/ReduxStore/slices/collections';
+import { toggleCollection, collapseFullCollection, dismissGitChangeMarkers } from 'providers/ReduxStore/slices/collections';
 import { mountCollection, moveCollectionAndPersist, handleCollectionItemDrop, pasteItem, showInFolder, saveCollectionSecurityConfig } from 'providers/ReduxStore/slices/collections/actions';
 import { useDispatch, useSelector } from 'react-redux';
 import { addTab, makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
@@ -59,6 +61,20 @@ import useKeybinding from 'hooks/useKeybinding';
 // This prevents flicker from race condition between loading state and item batch updates
 const EMPTY_STATE_DELAY_MS = 300;
 
+const getMarkerTone = (markers = []) => {
+  if (markers.some((marker) => marker.status === 'added')) return 'success';
+  if (markers.some((marker) => marker.status === 'renamed')) return 'info';
+  if (markers.some((marker) => marker.status === 'deleted')) return 'danger';
+  return markers.length ? 'warning' : 'muted';
+};
+
+const getCollectionMarkerLabel = (markers = []) => {
+  if (markers.some((marker) => marker.status === 'added')) return 'New';
+  if (markers.some((marker) => marker.status === 'renamed')) return 'Changed';
+  if (markers.some((marker) => marker.status === 'deleted')) return 'Deleted';
+  return markers.length ? 'Updated' : '';
+};
+
 const Collection = ({ collection, searchText }) => {
   const isOpenAPISyncEnabled = useBetaFeature(BETA_FEATURES.OPENAPI_SYNC);
   const { dropdownContainerRef } = useSidebarAccordion();
@@ -69,6 +85,7 @@ const Collection = ({ collection, searchText }) => {
   const [showShareCollectionModal, setShowShareCollectionModal] = useState(false);
   const [showGenerateDocumentationModal, setShowGenerateDocumentationModal] = useState(false);
   const [showRemoveCollectionModal, setShowRemoveCollectionModal] = useState(false);
+  const [hasGitRepo, setHasGitRepo] = useState(false);
   const [dropType, setDropType] = useState(null);
   const [isKeyboardFocused, setIsKeyboardFocused] = useState(false);
   const [showEmptyState, setShowEmptyState] = useState(false);
@@ -118,6 +135,10 @@ const Collection = ({ collection, searchText }) => {
 
   const hasSearchText = searchText && searchText?.trim()?.length;
   const collectionIsCollapsed = hasSearchText ? false : collection.collapsed;
+  const gitChangeMarkers = collection?.gitChangeMarkers || [];
+  const incomingCount = gitChangeMarkers.length;
+  const collectionMarkerTone = getMarkerTone(gitChangeMarkers);
+  const collectionMarkerLabel = getCollectionMarkerLabel(gitChangeMarkers);
 
   const iconClassName = classnames({
     'rotate-90': !collectionIsCollapsed
@@ -128,6 +149,13 @@ const Collection = ({ collection, searchText }) => {
     // Check if the click came from the chevron icon
     const isChevronClick = event.target.closest('svg')?.classList.contains('chevron-icon');
     setTimeout(scrollToTheActiveTab, 50);
+
+    if (incomingCount && collection.pathname) {
+      dispatch(dismissGitChangeMarkers({
+        collectionUid: collection.uid,
+        pathname: collection.pathname
+      }));
+    }
 
     ensureCollectionIsMounted();
 
@@ -328,6 +356,37 @@ const Collection = ({ collection, searchText }) => {
 
   const emptyStateMenuItems = createEmptyStateMenuItems({ dispatch, collection, itemUid: null });
 
+  // Detect whether the collection has a git repository
+  useEffect(() => {
+    if (!collection.pathname) return;
+    window.ipcRenderer
+      .invoke('renderer:git-has-repo', { collectionPath: collection.pathname })
+      .then((result) => setHasGitRepo(result))
+      .catch(() => setHasGitRepo(false));
+  }, [collection.pathname]);
+
+  const handleGitPull = () => {
+    toast.promise(
+      window.ipcRenderer.invoke('renderer:git-pull', { collectionPath: collection.pathname }),
+      {
+        loading: 'Running git pull...',
+        success: 'Pull completed successfully',
+        error: (err) => `Pull error: ${err?.message || 'unknown'}`
+      }
+    );
+  };
+
+  const handleGitPush = () => {
+    toast.promise(
+      window.ipcRenderer.invoke('renderer:git-push', { collectionPath: collection.pathname }),
+      {
+        loading: 'Running git push...',
+        success: 'Push completed successfully',
+        error: (err) => `Push error: ${err?.message || 'unknown'}`
+      }
+    );
+  };
+
   const menuItems = [
     {
       id: 'new-request',
@@ -420,6 +479,24 @@ const Collection = ({ collection, searchText }) => {
       label: getRevealInFolderLabel(),
       onClick: handleShowInFolder
     },
+    ...(hasGitRepo ? [
+      {
+        id: 'divider-git',
+        type: 'divider'
+      },
+      {
+        id: 'git-pull',
+        leftSection: IconCloudDownload,
+        label: 'Git Pull',
+        onClick: handleGitPull
+      },
+      {
+        id: 'git-push',
+        leftSection: IconCloudUpload,
+        label: 'Git Push',
+        onClick: handleGitPush
+      }
+    ] : []),
     {
       id: 'divider-1',
       type: 'divider'
@@ -496,8 +573,18 @@ const Collection = ({ collection, searchText }) => {
               onDoubleClick={handleCollectionDoubleClick}
             />
           </ActionIcon>
-          <div className="ml-1 w-full" id="sidebar-collection-name" title={collection.name}>
-            {collection.name}
+          <div className="ml-1 flex w-full items-center gap-2 overflow-hidden" id="sidebar-collection-name" title={collection.name}>
+            {incomingCount > 0 && (
+              <StatusBadge status={collectionMarkerTone} size="xs" radius="full">
+                {collectionMarkerLabel}
+              </StatusBadge>
+            )}
+            <span className="truncate">{collection.name}</span>
+            {incomingCount > 0 && (
+              <StatusBadge status={collectionMarkerTone} size="xs" radius="full">
+                {incomingCount}
+              </StatusBadge>
+            )}
           </div>
           {isLoading ? <IconLoader2 className="animate-spin mx-1" size={18} strokeWidth={1.5} /> : null}
         </div>

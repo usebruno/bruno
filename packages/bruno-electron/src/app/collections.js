@@ -6,6 +6,7 @@ const { isDirectory, getCollectionStats, normalizeAndResolvePath } = require('..
 const { generateUidBasedOnHash } = require('../utils/common');
 const { transformBrunoConfigAfterRead } = require('../utils/transformBrunoConfig');
 const { parseCollection } = require('@usebruno/filestore');
+const { silentPullGitChanges } = require('../utils/git');
 
 // Track scratch collection paths (temp directories for workspace scratch requests)
 const scratchCollectionPaths = new Set();
@@ -165,6 +166,23 @@ const openCollection = async (win, watcher, collectionPath, options = {}) => {
 
     win.webContents.send('main:collection-opened', collectionPath, uid, brunoConfig);
     ipcMain.emit('main:collection-opened', win, collectionPath, uid, brunoConfig);
+
+    // Silent auto-pull when opening the collection. Preserves uncommitted local
+    // changes and fails silently on conflicts, no connection, or no remote.
+    silentPullGitChanges(collectionPath)
+      .then((result) => {
+        if (!result.skipped) {
+          win.webContents.send('main:git-sync-finished', {
+            collectionPath,
+            ...result
+          });
+        }
+      })
+      .catch((err) => {
+        console.warn(`[git auto-pull] Error in collection "${collectionPath}":`, err.message);
+        win.webContents.send('main:git-auto-pull-failed', { collectionPath, error: err.message });
+      });
+
     return {
       path: collectionPath,
       opened: true,

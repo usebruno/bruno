@@ -50,6 +50,10 @@ const StyledWrapper = styled.div`
     margin-bottom: 16px;
   }
 
+  .git-section {
+    margin-bottom: 16px;
+  }
+
   .section-title {
     font-size: ${(props) => props.theme.font.size.sm};
     font-weight: 500;

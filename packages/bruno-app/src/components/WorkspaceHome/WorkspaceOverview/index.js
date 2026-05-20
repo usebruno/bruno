@@ -10,6 +10,7 @@ import BulkImportCollectionLocation from 'components/Sidebar/BulkImportCollectio
 import CloneGitRepository from 'components/Sidebar/CloneGitRespository';
 import Button from 'ui/Button';
 import CollectionsList from './CollectionsList';
+import WorkspaceGit from './WorkspaceGit';
 import WorkspaceDocs from '../WorkspaceDocs';
 import StyledWrapper from './StyledWrapper';
 
@@ -170,6 +171,8 @@ const WorkspaceOverview = ({ workspace }) => {
               </Button>
             </div>
           </div>
+
+          <WorkspaceGit workspace={workspace} />
 
           <div className="collections-section">
             <div className="section-title">Collections</div>
