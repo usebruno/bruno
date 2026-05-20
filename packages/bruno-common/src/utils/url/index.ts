@@ -1,3 +1,45 @@
+/**
+ * Returns true when `url` already carries an explicit network scheme.
+ *
+ * Per the WHATWG URL Standard, all network-fetch schemes (http, https, ftp,
+ * ws, wss, file) require "://" — the authority component is mandatory.
+ * This means "localhost:8080" is NOT a scheme: the colon separates host from
+ * port, so callers should prepend "http://" to it.
+ *
+ * The scheme character set (ASCII alpha/digit/+/-/.) follows the WHATWG URL
+ * scheme-state parser, which accepts the same characters as all major browsers.
+ * @see https://url.spec.whatwg.org/#scheme-state
+ *
+ * @example
+ * hasExplicitScheme('https://example.com') // true
+ * hasExplicitScheme('ftp://files.example') // true
+ * hasExplicitScheme('localhost:8080')       // false — port colon, not scheme
+ * hasExplicitScheme('example.com/api')      // false — no scheme at all
+ */
+function hasExplicitScheme(url: string): boolean {
+  // All WHATWG network schemes require authority ("://").
+  const authorityStart = url.indexOf('://');
+  if (authorityStart < 1) return false;
+
+  const scheme = url.slice(0, authorityStart);
+
+  // WHATWG URL scheme-state: first character must be ASCII alpha.
+  const first = scheme[0];
+  const isAlpha = (c: string) => {
+    return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z');
+  };
+
+  if (!isAlpha(first)) {
+    return false;
+  }
+
+  // Remaining characters must be ASCII alphanumeric, "+", "-", or ".".
+  const isSchemeChar = (c: string) => {
+    return isAlpha(c) || (c >= '0' && c <= '9') || c === '+' || c === '-' || c === '.';
+  };
+  return scheme.slice(1).split('').every(isSchemeChar);
+}
+
 interface QueryParam {
   name: string;
   value?: string;
@@ -97,6 +139,7 @@ const stripOrigin = (url: string): string => {
 };
 
 export {
+  hasExplicitScheme,
   encodeUrl,
   parseQueryParams,
   buildQueryString,
