@@ -9,7 +9,8 @@ export {
 export {
   buildFormUrlEncodedPayload,
   isFormData,
-  extractBoundaryFromContentType
+  extractBoundaryFromContentType,
+  shouldUseMultipartFormData
 } from './form-data';
 
 export {

@@ -56,3 +56,20 @@ export const extractBoundaryFromContentType = (contentType: unknown): string | n
   const match = contentType.match(/boundary="([^"]+)"|boundary=([^;\s]+)/i);
   return match ? (match[1] || match[2]) : null;
 };
+
+/**
+ * Determines whether request data should be wrapped into a FormData instance for a
+ * multipart/* request.
+ *
+ * Wrapping is only safe when data is an array of form fields ({ name, value, ... }).
+ * For text/json/xml body modes the body is already serialized as a string; wrapping
+ * such a string would silently produce an empty FormData (lodash forEach iterates the
+ * string character-by-character, finds no matching fields, and returns an empty form),
+ * dropping the request body entirely. See https://github.com/usebruno/bruno/issues/7995.
+ *
+ * @param data The request data to inspect.
+ * @returns True if data should be wrapped in FormData, false otherwise.
+ */
+export const shouldUseMultipartFormData = (data: unknown): boolean => {
+  return Array.isArray(data) && !isFormData(data);
+};

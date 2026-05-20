@@ -36,7 +36,7 @@ const { cookiesStore } = require('../../store/cookies');
 const registerGrpcEventHandlers = require('./grpc-event-handlers');
 const { registerWsEventHandlers } = require('./ws-event-handlers');
 const { getCertsAndProxyConfig, buildCertsAndProxyConfig } = require('./cert-utils');
-const { buildFormUrlEncodedPayload, isFormData, extractBoundaryFromContentType } = require('@usebruno/common').utils;
+const { buildFormUrlEncodedPayload, extractBoundaryFromContentType, shouldUseMultipartFormData } = require('@usebruno/common').utils;
 
 const ERROR_OCCURRED_WHILE_EXECUTING_REQUEST = 'Error occurred while executing the request!';
 
@@ -607,7 +607,7 @@ const registerNetworkIpc = (mainWindow) => {
 
     const contentType = contentTypeHeader ? request.headers[contentTypeHeader] : '';
     if (typeof contentType === 'string' && contentType.startsWith('multipart/')) {
-      if (!isFormData(request.data)) {
+      if (shouldUseMultipartFormData(request.data)) {
         request._originalMultipartData = request.data;
         request.collectionPath = collectionPath;
         let form = createFormData(request.data, collectionPath);
