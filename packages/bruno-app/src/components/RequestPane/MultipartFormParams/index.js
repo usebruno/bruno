@@ -16,7 +16,7 @@ import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collection
 import { updateTableColumnWidths } from 'providers/ReduxStore/slices/tabs';
 import EditableTable from 'components/EditableTable';
 import StyledWrapper from './StyledWrapper';
-import path, { getRelativePath, normalizePath } from 'utils/common/path';
+import path, { getRelativePathWithinBasePath, normalizePath } from 'utils/common/path';
 import { getMultipartAutoContentType } from 'utils/common/multipartContentType';
 import { usePersistedState } from 'hooks/usePersistedState';
 import { useTrackScroll } from 'hooks/useTrackScroll';
@@ -67,11 +67,7 @@ const MultipartFormParams = ({ item, collection }) => {
         if (!Array.isArray(filePaths) || filePaths.length === 0) return;
 
         const processedPaths = filePaths.map((filePath) => {
-          const collectionDir = collection.pathname;
-          if (filePath.startsWith(collectionDir)) {
-            return getRelativePath(collectionDir, filePath);
-          }
-          return filePath;
+          return getRelativePathWithinBasePath(collection.pathname, filePath);
         });
 
         const currentParams = item.draft

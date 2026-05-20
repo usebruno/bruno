@@ -7,7 +7,7 @@ import { IconUpload } from '@tabler/icons';
 import { updateResponseExampleMultipartFormParams } from 'providers/ReduxStore/slices/collections';
 import { browseFiles } from 'providers/ReduxStore/slices/collections/actions';
 import { updateTableColumnWidths } from 'providers/ReduxStore/slices/tabs';
-import path, { getRelativePath, normalizePath } from 'utils/common/path';
+import path, { getRelativePathWithinBasePath, normalizePath } from 'utils/common/path';
 import { getMultipartAutoContentType } from 'utils/common/multipartContentType';
 import EditableTable from 'components/EditableTable';
 import MultiLineEditor from 'components/MultiLineEditor';
@@ -57,11 +57,7 @@ const ResponseExampleMultipartFormParams = ({ item, collection, exampleUid, edit
         if (!Array.isArray(filePaths) || filePaths.length === 0) return;
 
         const processedPaths = filePaths.map((filePath) => {
-          const collectionDir = collection.pathname;
-          if (filePath.startsWith(collectionDir)) {
-            return getRelativePath(collectionDir, filePath);
-          }
-          return filePath;
+          return getRelativePathWithinBasePath(collection.pathname, filePath);
         });
 
         const currentParams = params || [];
