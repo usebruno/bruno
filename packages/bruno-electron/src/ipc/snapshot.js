@@ -2,6 +2,10 @@ const { ipcMain } = require('electron');
 const snapshotManager = require('../services/snapshot');
 
 const registerSnapshotIpc = () => {
+  ipcMain.handle('renderer:snapshot:mode', () => {
+    return snapshotManager.SNAPSHOT_MODE;
+  });
+
   ipcMain.handle('renderer:snapshot:get', async () => {
     return snapshotManager.getSnapshot();
   });

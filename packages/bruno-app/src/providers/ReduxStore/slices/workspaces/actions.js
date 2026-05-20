@@ -28,6 +28,21 @@ import toast from 'react-hot-toast';
 const { ipcRenderer } = window;
 let snapshotHydrationTimer = null;
 const SNAPSHOT_HYDRATION_LONG_STOP_GUARD_MS = 5 * 60 * 1000;
+let snapshotMode = null;
+
+const getSnapshotMode = async () => {
+  if (snapshotMode) {
+    return snapshotMode;
+  }
+
+  snapshotMode = await ipcRenderer.invoke('renderer:snapshot:mode')
+    .then((mode) => (mode === 'legacy' ? 'legacy' : 'modern'))
+    .catch(async () => {
+      return 'legacy';
+    });
+
+  return snapshotMode;
+};
 
 const COLLECTION_SORT_ORDER_BY_WORKSPACE_SORTING = {
   default: 'default',
@@ -460,6 +475,11 @@ const scheduleSnapshotHydrationTimeout = (dispatch, getState, workspaceUid) => {
 
 export const hydrateSnapshotForOpenedCollection = (collectionPathname) => {
   return async (dispatch, getState) => {
+    const mode = await getSnapshotMode();
+    if (mode !== 'modern') {
+      return;
+    }
+
     if (!collectionPathname) {
       return;
     }
@@ -567,6 +587,8 @@ export const loadWorkspaceApiSpecs = (workspaceUid) => {
 
 export const switchWorkspace = (workspaceUid) => {
   return async (dispatch, getState) => {
+    const mode = await getSnapshotMode();
+
     clearSnapshotHydrationTimeout();
     dispatch(setSnapshotReady(false));
     dispatch(clearSnapshotHydrationSession());
@@ -579,13 +601,20 @@ export const switchWorkspace = (workspaceUid) => {
         return;
       }
 
-      const fullSnapshot = await ipcRenderer.invoke('renderer:snapshot:get').catch(() => null);
-      const snapshotLookups = hydrateSnapshotLookups(fullSnapshot || {});
-      const workspaceSnapshot = workspace.pathname
-        ? snapshotLookups.workspacesByPath[normalizePath(workspace.pathname)] || null
-        : null;
-      const snapshotCollectionSortOrder = normalizeCollectionSortOrder(workspaceSnapshot?.sorting);
-      dispatch(sortCollections({ order: snapshotCollectionSortOrder }));
+      let snapshotLookups = null;
+      let workspaceSnapshot = null;
+
+      if (mode === 'modern') {
+        const fullSnapshot = await ipcRenderer.invoke('renderer:snapshot:get').catch(() => null);
+        snapshotLookups = hydrateSnapshotLookups(fullSnapshot || {});
+        workspaceSnapshot = workspace.pathname
+          ? snapshotLookups.workspacesByPath[normalizePath(workspace.pathname)] || null
+          : null;
+        const snapshotCollectionSortOrder = normalizeCollectionSortOrder(workspaceSnapshot?.sorting);
+        dispatch(sortCollections({ order: snapshotCollectionSortOrder }));
+      } else {
+        dispatch(sortCollections({ order: 'default' }));
+      }
 
       // Load global environments
       const envResult = await ipcRenderer.invoke('renderer:get-global-environments', {
@@ -619,7 +648,9 @@ export const switchWorkspace = (workspaceUid) => {
           && c.uid !== scratchCollection?.uid
           && workspaceCollectionPathSet.has(normalizePath(c.pathname))
       );
-      await hydrateTabs(collections, dispatch, restoreTabs, snapshotLookups, workspace.pathname || null);
+      if (mode === 'modern') {
+        await hydrateTabs(collections, dispatch, restoreTabs, snapshotLookups, workspace.pathname || null);
+      }
 
       // Add workspace tabs
       if (scratchCollection?.uid) {
@@ -628,12 +659,14 @@ export const switchWorkspace = (workspaceUid) => {
       }
 
       // Restore active collection from snapshot using lastActiveCollectionPathname
-      const lastActiveCollectionPathname = workspaceSnapshot?.lastActiveCollectionPathname || null;
+      const lastActiveCollectionPathname = mode === 'modern'
+        ? (workspaceSnapshot?.lastActiveCollectionPathname || null)
+        : null;
       const activeCollection = lastActiveCollectionPathname
         ? getState().collections.collections.find((c) => normalizePath(c.pathname) === normalizePath(lastActiveCollectionPathname))
         : null;
 
-      if (activeCollection) {
+      if (mode === 'modern' && activeCollection) {
         dispatch(expandCollection(activeCollection.uid));
 
         const needsMount = activeCollection.mountStatus !== 'mounted' && activeCollection.mountStatus !== 'mounting';
@@ -663,6 +696,11 @@ export const switchWorkspace = (workspaceUid) => {
       } else if (scratchCollection?.uid) {
         // No active collection, focus the workspace overview tab
         dispatch(addTab({ uid: `${scratchCollection.uid}-overview`, collectionUid: scratchCollection.uid, type: 'workspaceOverview' }));
+      }
+
+      if (mode !== 'modern') {
+        dispatch(setSnapshotReady(true));
+        return;
       }
 
       const openWorkspaceCollectionPaths = new Set(
@@ -806,12 +844,13 @@ export const workspaceOpenedEvent = (workspacePath, workspaceUid, workspaceConfi
 
     let shouldSwitch = false;
     try {
-      const snapshot = await ipcRenderer.invoke('renderer:snapshot:get');
+      const mode = await getSnapshotMode();
+      const snapshot = mode === 'modern' ? await ipcRenderer.invoke('renderer:snapshot:get') : null;
       const activeWorkspacePath = snapshot?.activeWorkspacePath;
       const normalizedWorkspacePath = normalizePath(workspacePath || '');
 
       const currentState = getState();
-      if (!currentState.app.snapshotReady && snapshot?.extras?.devTools) {
+      if (mode === 'modern' && !currentState.app.snapshotReady && snapshot?.extras?.devTools) {
         const { open } = snapshot.extras.devTools;
         if (open) {
           dispatch(openConsole());

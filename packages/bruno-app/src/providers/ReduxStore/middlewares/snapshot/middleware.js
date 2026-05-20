@@ -17,6 +17,21 @@ import { normalizePath } from 'utils/common/path';
 import { TAB_IDENFIERS as DEVTOOL_TABS } from 'providers/ReduxStore/slices/logs';
 
 const { ipcRenderer } = window;
+let snapshotMode = null;
+
+const getSnapshotMode = async () => {
+  if (snapshotMode) {
+    return snapshotMode;
+  }
+
+  snapshotMode = await ipcRenderer.invoke('renderer:snapshot:mode')
+    .then((mode) => (mode === 'legacy' ? 'legacy' : 'modern'))
+    .catch(async () => {
+      return 'legacy';
+    });
+
+  return snapshotMode;
+};
 
 // Debounce timer reference
 let saveTimer = null;
@@ -287,6 +302,24 @@ const flushSnapshotNow = async (getState) => {
   }
 };
 
+const scheduleSaveIfModern = async (getState) => {
+  const mode = await getSnapshotMode();
+  if (mode !== 'modern') {
+    return;
+  }
+
+  scheduleSave(getState);
+};
+
+const flushSnapshotNowIfModern = async (getState) => {
+  const mode = await getSnapshotMode();
+  if (mode !== 'modern') {
+    return;
+  }
+
+  await flushSnapshotNow(getState);
+};
+
 /**
  * Snapshot middleware
  * Only saves after app signals it's ready (snapshotReady = true)
@@ -301,14 +334,14 @@ export const snapshotMiddleware = ({ getState }) => (next) => (action) => {
       saveTimer = null;
     }
 
-    void flushSnapshotNow(getState);
+    flushSnapshotNowIfModern(getState);
     return result;
   }
 
   // Only save if snapshot is ready (app has finished initial loading)
   const state = getState();
   if (state.app.snapshotReady && SAVE_TRIGGERS.has(action.type)) {
-    scheduleSave(getState);
+    scheduleSaveIfModern(getState);
   }
 
   return result;
