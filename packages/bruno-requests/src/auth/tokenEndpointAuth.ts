@@ -20,6 +20,8 @@ export type TokenEndpointAuthMethod
     | 'client_secret_post'
     | 'client_secret_jwt'
     | 'private_key_jwt'
+    | 'tls_client_auth'
+    | 'self_signed_tls_client_auth'
     | 'none';
 
 export type TokenEndpointAuthSigningAlg
@@ -205,6 +207,17 @@ export const applyTokenEndpointAuth = async (opts: TokenEndpointAuthOptions): Pr
       bodyParams.client_id = clientId;
     }
     return { headers: {}, bodyParams };
+  }
+
+  // RFC 8705 §2 — mTLS client authentication. Authentication happens at the TLS layer via
+  // the client certificate; the token request only carries `client_id` (RFC 8705 §2.1 makes it
+  // REQUIRED). The TLS cert itself is supplied by Bruno's per-domain client certificate config
+  // (Collection Settings → Client Certificates), already plumbed into the axios HTTPS agent.
+  if (method === 'tls_client_auth' || method === 'self_signed_tls_client_auth') {
+    if (clientId === '') {
+      throw new Error(`${method} requires client_id`);
+    }
+    return { headers: {}, bodyParams: { client_id: clientId } };
   }
 
   if (method === 'client_secret_jwt') {

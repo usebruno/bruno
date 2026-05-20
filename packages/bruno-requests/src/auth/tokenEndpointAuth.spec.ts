@@ -62,6 +62,37 @@ describe('applyTokenEndpointAuth', () => {
     });
   });
 
+  describe('tls_client_auth / self_signed_tls_client_auth (RFC 8705)', () => {
+    it('tls_client_auth emits only client_id and no Authorization header', async () => {
+      const result = await applyTokenEndpointAuth({
+        tokenEndpointAuthMethod: 'tls_client_auth',
+        clientId: CLIENT_ID,
+        accessTokenUrl: TOKEN_URL
+      });
+      expect(result.headers).toEqual({});
+      expect(result.bodyParams).toEqual({ client_id: CLIENT_ID });
+    });
+
+    it('self_signed_tls_client_auth emits only client_id', async () => {
+      const result = await applyTokenEndpointAuth({
+        tokenEndpointAuthMethod: 'self_signed_tls_client_auth',
+        clientId: CLIENT_ID,
+        accessTokenUrl: TOKEN_URL
+      });
+      expect(result.headers).toEqual({});
+      expect(result.bodyParams).toEqual({ client_id: CLIENT_ID });
+    });
+
+    it('rejects when client_id is missing (RFC 8705 §2.1 makes it REQUIRED)', async () => {
+      await expect(
+        applyTokenEndpointAuth({
+          tokenEndpointAuthMethod: 'tls_client_auth',
+          accessTokenUrl: TOKEN_URL
+        })
+      ).rejects.toThrow(/client_id/);
+    });
+  });
+
   describe('none (RFC 7591 §2)', () => {
     it('emits only client_id when set, no Authorization header', async () => {
       const result = await applyTokenEndpointAuth({

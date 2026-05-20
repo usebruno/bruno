@@ -9,14 +9,35 @@ import MenuDropdown from 'ui/MenuDropdown';
 import SensitiveFieldWarning from 'components/SensitiveFieldWarning';
 import { browseFiles } from 'providers/ReduxStore/slices/collections/actions';
 
-// OAuth 2.0 client authentication methods, RFC 7591 §2 / OIDC Core 1.0 §9.
+// OAuth 2.0 client authentication methods.
+// First four + `none`: RFC 7591 §2 / OIDC Core 1.0 §9.
+// mTLS variants: RFC 8705 §2.
 const METHOD_OPTIONS = [
   { id: 'client_secret_basic', label: 'client_secret_basic' },
   { id: 'client_secret_post', label: 'client_secret_post' },
   { id: 'client_secret_jwt', label: 'client_secret_jwt' },
   { id: 'private_key_jwt', label: 'private_key_jwt' },
+  { id: 'tls_client_auth', label: 'tls_client_auth' },
+  { id: 'self_signed_tls_client_auth', label: 'self_signed_tls_client_auth' },
   { id: 'none', label: 'none' }
 ];
+
+// Mirrors the host-pattern matching used by bruno-electron's cert-utils.js so the UI's
+// "no certificate configured" warning matches what the request runtime will actually see.
+const hasClientCertForUrl = (brunoConfig, accessTokenUrl) => {
+  if (!accessTokenUrl) return false;
+  const certs = brunoConfig?.clientCertificates?.certs;
+  if (!Array.isArray(certs) || certs.length === 0) return false;
+  return certs.some((cert) => {
+    const domain = cert?.domain;
+    if (!domain) return false;
+    const hostRegex = new RegExp(
+      '^(https:\\/\\/|grpc:\\/\\/|grpcs:\\/\\/|ws:\\/\\/|wss:\\/\\/)?'
+      + domain.replaceAll('.', '\\.').replaceAll('*', '.*')
+    );
+    return hostRegex.test(accessTokenUrl);
+  });
+};
 
 const SECRET_JWT_ALGS = ['HS256', 'HS384', 'HS512'];
 const PRIVATE_KEY_JWT_ALGS = [
@@ -49,6 +70,8 @@ const ClientAuthMethod = ({ oAuth, handleChange, patchOAuth, handleRun, handleSa
   const usesClientSecret = method === 'client_secret_basic' || method === 'client_secret_post' || method === 'client_secret_jwt';
   const isJwt = method === 'client_secret_jwt' || method === 'private_key_jwt';
   const isPrivateKeyJwt = method === 'private_key_jwt';
+  const isMtls = method === 'tls_client_auth' || method === 'self_signed_tls_client_auth';
+  const mtlsCertMissing = isMtls && !hasClientCertForUrl(collection?.brunoConfig, oAuth?.accessTokenUrl);
   const privateKeyFormat = oAuth.privateKeyFormat || 'pem';
   const privateKey = oAuth.privateKey || '';
   const isFileBacked = oAuth.privateKeyType === 'file' && privateKey;
@@ -92,6 +115,16 @@ const ClientAuthMethod = ({ oAuth, handleChange, patchOAuth, handleRun, handleSa
           </MenuDropdown>
         </div>
       </div>
+
+      {mtlsCertMissing && (
+        <div className="flex items-start gap-4 w-full" key="mtls-cert-warning">
+          <label className="block min-w-[140px]"></label>
+          <div className="flex-1 text-xs oauth2-mtls-warning">
+            No client certificate is configured for the token endpoint hostname. mTLS authentication requires
+            a matching certificate under <strong>Collection Settings → Client Certificates</strong>.
+          </div>
+        </div>
+      )}
 
       {usesClientSecret && (
         <div className="flex items-center gap-4 w-full" key="input-client-secret">
