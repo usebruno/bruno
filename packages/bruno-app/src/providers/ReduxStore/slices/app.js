@@ -59,6 +59,15 @@ const initialState = {
       sslSession: {
         enabled: false
       }
+    },
+    ai: {
+      enabled: false,
+      providers: {
+        openai: { enabled: false },
+        anthropic: { enabled: false }
+      },
+      models: {},
+      defaultModel: ''
     }
   },
   generateCode: {
