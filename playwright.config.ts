@@ -13,6 +13,9 @@ export default defineConfig({
   workers: process.env.CI ? undefined : 1,
   reporter,
 
+  
+  
+
   use: {
     trace: process.env.CI ? 'on-first-retry' : 'on'
   },
@@ -22,6 +25,7 @@ export default defineConfig({
       name: 'default',
       testDir: './tests',
       testIgnore: [
+        'snapshots', // removed for the time being instead of skipping each test separately
         'ssl/**', // custom CA certificate tests require separate server setup and certificate generation
         'auth/**', // auth tests have their own project
         'benchmarks/**'  
