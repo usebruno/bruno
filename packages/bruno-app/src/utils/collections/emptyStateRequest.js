@@ -29,13 +29,13 @@ const dispatchByType = (dispatch, requestType, baseParams) => {
   }
 };
 
-export const createRequest = async ({ dispatch, collection, itemUid, requestType, enterRenameMode = false }) => {
+export const createRequest = async ({ dispatch, collection, itemUid, requestType, requestName, enterRenameMode = false }) => {
   try {
-    const uniqueName = await generateUniqueRequestName(collection, 'Untitled', itemUid);
-    const filename = sanitizeName(uniqueName);
+    const name = requestName?.trim() || (await generateUniqueRequestName(collection, 'Untitled', itemUid));
+    const filename = sanitizeName(name);
 
     const baseParams = {
-      requestName: uniqueName,
+      requestName: name,
       filename,
       requestUrl: '',
       collectionUid: collection.uid,
@@ -47,8 +47,10 @@ export const createRequest = async ({ dispatch, collection, itemUid, requestType
     if (enterRenameMode && newItemPathname) {
       dispatch(setItemBeingRenamed(newItemPathname));
     }
+    return newItemPathname;
   } catch (err) {
     toast.error(formatIpcError(err) || 'An error occurred while adding the request');
+    throw err;
   }
 };
 

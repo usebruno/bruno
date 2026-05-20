@@ -54,6 +54,7 @@ import {
 } from 'src/selectors/tab';
 import { isEqual } from 'lodash';
 import { createEmptyStateMenuItems } from 'utils/collections/emptyStateRequest';
+import InlineRequestCreator from 'components/Sidebar/InlineRequestCreator';
 import { calculateDraggedItemNewPathname, getInitialExampleName, findParentItemInCollection } from 'utils/collections/index';
 import { sortByNameThenSequence } from 'utils/common/index';
 import { getRevealInFolderLabel } from 'utils/common/platform';
@@ -107,6 +108,8 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
   const isRenaming = useSelector((state) => state.app.itemBeingRenamed === item.pathname);
   const isRenameInFlightRef = useRef(false);
   const [advancedNewRequestModalOpen, setAdvancedNewRequestModalOpen] = useState(false);
+  const [isInlineCreatingRequest, setIsInlineCreatingRequest] = useState(false);
+  const requestCreationStyle = useSelector((state) => state.app.preferences?.sidebar?.requestCreationStyle || 'modal');
 
   const handleInlineRenameCog = (e) => {
     e.preventDefault();
@@ -596,7 +599,12 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
   const requestItems = sortItemsBySequence(filter(item.items, (i) => isItemARequest(i) && !i.isTransient));
   const showEmptyFolderMessage = isFolder && !hasSearchText && !folderItems?.length && !requestItems?.length;
 
-  const emptyFolderMenuItems = createEmptyStateMenuItems({ dispatch, collection, itemUid: item.uid, enterRenameMode: true });
+  const emptyFolderMenuItems = createEmptyStateMenuItems({
+    dispatch,
+    collection,
+    itemUid: item.uid,
+    enterRenameMode: requestCreationStyle === 'inline-rename'
+  });
 
   const handleGenerateCode = () => {
     if (
@@ -810,17 +818,46 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
           {!isRenaming && (
             <div className="flex items-center pr-2">
               {isFolder ? (
-                <MenuDropdown
-                  items={emptyFolderMenuItems}
-                  placement="bottom-end"
-                  appendTo={dropdownContainerRef?.current || document.body}
-                  popperOptions={{ strategy: 'fixed' }}
-                  data-testid="folder-new-request"
-                >
-                  <ActionIcon className="menu-icon" aria-label="New Request">
+                requestCreationStyle === 'inline-create' ? (
+                  <ActionIcon
+                    className="menu-icon"
+                    aria-label="New Request"
+                    data-testid="folder-new-request"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (item.collapsed) {
+                        dispatch(toggleCollectionItem({ itemUid: item.uid, collectionUid }));
+                      }
+                      setIsInlineCreatingRequest(true);
+                    }}
+                  >
+                    <IconPlus size={16} className="collection-item-menu-icon" />
+                  </ActionIcon>
+                ) : requestCreationStyle === 'inline-rename' ? (
+                  <MenuDropdown
+                    items={emptyFolderMenuItems}
+                    placement="bottom-end"
+                    appendTo={dropdownContainerRef?.current || document.body}
+                    popperOptions={{ strategy: 'fixed' }}
+                    data-testid="folder-new-request"
+                  >
+                    <ActionIcon className="menu-icon" aria-label="New Request">
+                      <IconPlus size={16} className="collection-item-menu-icon" />
+                    </ActionIcon>
+                  </MenuDropdown>
+                ) : (
+                  <ActionIcon
+                    className="menu-icon"
+                    aria-label="New Request"
+                    data-testid="folder-new-request"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setNewRequestModalOpen(true);
+                    }}
+                  >
                     <IconPlus size={18} className="collection-item-menu-icon" />
                   </ActionIcon>
-                </MenuDropdown>
+                )
               ) : null}
               <MenuDropdown
                 ref={menuDropdownRef}
@@ -850,6 +887,17 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
                 return <CollectionItem key={i.uid} item={i} collectionUid={collectionUid} collectionPathname={collectionPathname} searchText={searchText} />;
               })
             : null}
+          {isInlineCreatingRequest ? (
+            <InlineRequestCreator
+              collection={collection}
+              parentItemUid={item.uid}
+              depth={item.depth + 1}
+              onDone={({ openAdvanced } = {}) => {
+                setIsInlineCreatingRequest(false);
+                if (openAdvanced) setNewRequestModalOpen(true);
+              }}
+            />
+          ) : null}
           {showEmptyFolderMessage ? (
             <div className="empty-folder-message">
               {range(item.depth + 1).map((i) => (

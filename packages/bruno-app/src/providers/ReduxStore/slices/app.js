@@ -60,6 +60,10 @@ const initialState = {
       sslSession: {
         enabled: false
       }
+    },
+    sidebar: {
+      // Demo toggle: 'modal' | 'inline-rename' | 'inline-create'
+      requestCreationStyle: 'modal'
     }
   },
   generateCode: {
