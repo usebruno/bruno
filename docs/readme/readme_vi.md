@@ -1,5 +1,5 @@
 <br />
-<img src="../../assets/images/logo-transparent.png" width="80"/>
+<img src="../../assets/images/logo-transparent.png" width="80" alt="Bruno logo"/>
 
 ### Bruno - IDE mã nguồn mở để khám phá và kiểm thử APIs.
 
@@ -174,7 +174,7 @@ Ngay cả khi bạn không thể đóng góp bằng code, đừng ngần ngại 
 
 <div align="center">
     <a href="https://github.com/usebruno/bruno/graphs/contributors">
-        <img src="https://contrib.rocks/image?repo=usebruno/bruno" />
+        <img src="https://contrib.rocks/image?repo=usebruno/bruno" alt="Danh sách contributors của Bruno" />
     </a>
 </div>
 
