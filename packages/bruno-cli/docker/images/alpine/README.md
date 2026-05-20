@@ -20,8 +20,8 @@ docker build \
 
 ```bash
 # Run a collection
-docker run --rm -v $(pwd):/bruno usebruno/cli:alpine run --env staging
+docker run -v $(pwd):/bruno usebruno/cli:alpine run
 
 # with pinned version
-docker run --rm -v $(pwd):/bruno usebruno/cli:3.3.0-alpine run --env staging
+docker run -v $(pwd):/bruno usebruno/cli:3.3.0-alpine run
 ```
