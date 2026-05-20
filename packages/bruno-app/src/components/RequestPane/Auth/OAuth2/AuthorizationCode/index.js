@@ -40,7 +40,7 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
 
   const handleSave = () => { save(); };
 
-  const handleChange = (key, value) => {
+  const patchOAuth = (patch) => {
     dispatch(
       updateAuth({
         mode: 'oauth2',
@@ -49,11 +49,13 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
         content: {
           ...oAuth,
           grantType: 'authorization_code',
-          [key]: value
+          ...patch
         }
       })
     );
   };
+
+  const handleChange = (key, value) => patchOAuth({ [key]: value });
 
   const handlePKCEToggle = () => {
     handleChange('pkce', !Boolean(oAuth?.pkce));
@@ -161,6 +163,7 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
       <ClientAuthMethod
         oAuth={oAuth}
         handleChange={handleChange}
+        patchOAuth={patchOAuth}
         handleRun={handleRun}
         handleSave={handleSave}
         collection={collection}

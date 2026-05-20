@@ -35,7 +35,7 @@ const OAuth2ClientCredentials = ({ save, item = {}, request, handleRun, updateAu
 
   const handleSave = () => { save(); };
 
-  const handleChange = (key, value) => {
+  const patchOAuth = (patch) => {
     dispatch(
       updateAuth({
         mode: 'oauth2',
@@ -44,11 +44,13 @@ const OAuth2ClientCredentials = ({ save, item = {}, request, handleRun, updateAu
         content: {
           ...oAuth,
           grantType: 'client_credentials',
-          [key]: value
+          ...patch
         }
       })
     );
   };
+
+  const handleChange = (key, value) => patchOAuth({ [key]: value });
 
   return (
     <StyledWrapper className="mt-2 flex w-full gap-4 flex-col">
@@ -91,6 +93,7 @@ const OAuth2ClientCredentials = ({ save, item = {}, request, handleRun, updateAu
       <ClientAuthMethod
         oAuth={oAuth}
         handleChange={handleChange}
+        patchOAuth={patchOAuth}
         handleRun={handleRun}
         handleSave={handleSave}
         collection={collection}
