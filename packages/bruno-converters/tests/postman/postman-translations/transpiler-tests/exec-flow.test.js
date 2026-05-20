@@ -5,7 +5,7 @@ describe('Execution Flow Translation', () => {
   it('should translate pm.setNextRequest', () => {
     const code = 'pm.setNextRequest("Get User Details");';
     const translatedCode = translateCode(code);
-    expect(translatedCode).toBe('bru.setNextRequest("Get User Details");');
+    expect(translatedCode).toBe('bru.runner.setNextRequest("Get User Details");');
   });
 
   it('should translate pm.setNextRequest(null) to bru.runner.stopExecution()', () => {
@@ -18,6 +18,12 @@ describe('Execution Flow Translation', () => {
     const code = 'pm.setNextRequest("null");';
     const translatedCode = translateCode(code);
     expect(translatedCode).toBe('bru.runner.stopExecution();');
+  });
+
+  it('should keep pm.setNextRequest(<request name>) as bru.setNextRequest(<request name>) for non-null arguments', () => {
+    const code = 'pm.setNextRequest("Get User Details");';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toBe('bru.runner.setNextRequest("Get User Details");');
   });
 
   it('should translate pm.execution.skipRequest', () => {
@@ -71,6 +77,6 @@ describe('Execution Flow Translation', () => {
     expect(translatedCode).toContain('} else if (res.getStatus() === 500) {');
     expect(translatedCode).toContain('bru.runner.stopExecution();');
     expect(translatedCode).toContain('} else {');
-    expect(translatedCode).toContain('bru.setNextRequest("Get User Details");');
+    expect(translatedCode).toContain('bru.runner.setNextRequest("Get User Details");');
   });
 });

@@ -281,7 +281,7 @@ const complexTransformations = [
       }
 
       return j.callExpression(
-        j.identifier('bru.setNextRequest'),
+        j.identifier('bru.runner.setNextRequest'),
         args
       );
     }
