@@ -111,32 +111,24 @@ docker run --rm usebruno/cli --version
 > - CMD: `%cd%`
 > **Adding `bru` options:** The examples below show docker-specific flags. For all `bru run` options — recurse (`-r`), environments, variables, reporters, bail, and more — see the [Bruno CLI docs](https://docs.usebruno.com/bru-cli/overview).
 
-> **Note on `--rm`:** Examples below omit `--rm`. Docker keeps stopped containers around after they exit, which lets you `docker logs` or `docker inspect` them later for debugging. If you'd rather have Docker auto-delete the container as soon as `bru` finishes — useful for CI runs or to avoid `docker ps -a` filling up with stale entries — append `--rm` to any `docker run` (or `docker compose run`) command:
->
-> ```bash
-> docker run --rm -v $(pwd):/bruno usebruno/cli run --env staging
-> ```
->
-> It's purely a cleanup convenience; it doesn't affect the image, mounts, stdout output, or exit code.
-
 ```bash
 # run every request in the Bruno collection (current dir)
-docker run -v $(pwd):/bruno usebruno/cli run --env staging
+docker run -v $(pwd):/bruno usebruno/cli run 
 
 # run a specific subfolder (group of requests) within that collection
-docker run -v $(pwd):/bruno usebruno/cli run ./api-tests --env staging
+docker run -v $(pwd):/bruno usebruno/cli run ./api-tests
 
 # run a single .bru request file from that collection
-docker run -v $(pwd):/bruno usebruno/cli run ./api-tests/login.bru --env staging
+docker run -v $(pwd):/bruno usebruno/cli run ./api-tests/login.bru
 
 # write a JUnit XML report (lands in the current directory because of the bind mount)
-docker run -v $(pwd):/bruno usebruno/cli run --env staging --reporter-junit results.xml
+docker run -v $(pwd):/bruno usebruno/cli run --reporter-junit results.xml
 ```
 
 For Windows CMD users, swap `$(pwd)` with `%cd%`:
 
 ```cmd
-docker run -v %cd%:/bruno usebruno/cli run --env staging
+docker run -v %cd%:/bruno usebruno/cli run 
 ```
 
 #### Running a collection that lives at a different path
@@ -145,11 +137,19 @@ If your collection is not in your current directory, point `docker` at its path 
 
 ```bash
 # run every request in a collection at an arbitrary path
-docker run -v /path/to/your/collection:/bruno usebruno/cli run --env staging
+docker run -v /path/to/your/collection:/bruno usebruno/cli run
 
 # run a single .bru file from a collection at an arbitrary path
-docker run -v /path/to/your/collection:/bruno usebruno/cli run ./auth/login.bru --env staging
+docker run -v /path/to/your/collection:/bruno usebruno/cli run ./auth/login.bru
 ```
+
+> **Note on `--rm`:** Examples below include `--rm`. Docker keeps stopped containers around after they exit, which lets you `docker logs` or `docker inspect` them later for debugging. If you'd rather have Docker auto-delete the container as soon as `bru` finishes — useful for CI runs or to avoid `docker ps -a` filling up with stale entries — append `--rm` to any `docker run` (or `docker compose run`) command:
+>
+> ```bash
+> docker run --rm -v $(pwd):/bruno usebruno/cli run
+> ```
+>
+> It's purely a cleanup convenience; it doesn't affect the image, mounts, stdout output, or exit code.
 
 ---
 
@@ -167,13 +167,13 @@ docker run -v $(pwd):/bruno usebruno/cli run --env production
 
 ```bash
 # exact version — safest for production, no surprise updates
-docker run -v $(pwd):/bruno usebruno/cli:3.3.0 run --env staging
+docker run -v $(pwd):/bruno usebruno/cli:3.3.0 run
 
 # major.minor — gets patch fixes automatically
-docker run -v $(pwd):/bruno usebruno/cli:3.3 run --env staging
+docker run -v $(pwd):/bruno usebruno/cli:3.3 run
 
 # latest — always newest, not recommended for production CI
-docker run -v $(pwd):/bruno usebruno/cli:latest run --env staging
+docker run -v $(pwd):/bruno usebruno/cli:latest run
 ```
 
 ---
@@ -182,13 +182,13 @@ docker run -v $(pwd):/bruno usebruno/cli:latest run --env staging
 
 ```bash
 # alpine (default) — use this for most cases
-docker run -v $(pwd):/bruno usebruno/cli:3.3.0 run --env staging
+docker run -v $(pwd):/bruno usebruno/cli:3.3.0 run
 
 # alpine — explicitly use the alpine-based image variant
-docker run -v $(pwd):/bruno usebruno/cli:3.3.0-alpine run --env staging
+docker run -v $(pwd):/bruno usebruno/cli:3.3.0-alpine run
 
 # debian — use if you hit SSL, glibc, or native module issues
-docker run -v $(pwd):/bruno usebruno/cli:3.3.0-debian run --env staging
+docker run -v $(pwd):/bruno usebruno/cli:3.3.0-debian run
 ```
 
 ---
@@ -226,14 +226,14 @@ jobs:
         run: |
           docker run --rm \
             -v ${{ github.workspace }}:/bruno \
-            usebruno/cli:3.3 run --env staging --output results.xml --format junit
+            usebruno/cli:latest run --output results.xml --format junit
 
       - name: Publish Test Report
         uses: dorny/test-reporter@v3
-        if: always()
+        if: success() || failure()
         with:
           name: Bruno Test Results
-          path: results.xml
+          path: ${{github.workspace}}/results.xml
           reporter: java-junit
 ```
 
@@ -241,9 +241,9 @@ jobs:
 
 ```yaml
 api-tests:
-  image: usebruno/cli:3.3
+  image: usebruno/cli:latest
   script:
-    - bru run --env staging --output results.xml --format junit
+    - bru run --output results.xml --format junit
   artifacts:
     reports:
       junit: results.xml
