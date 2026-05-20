@@ -109,7 +109,7 @@ docker run --rm usebruno/cli --version
 > On Windows native shells, substitute `$(pwd)` with:
 > - PowerShell: `${PWD}`
 > - CMD: `%cd%`
-> **Note on `-r`:** Bruno CLI's `run` is non-recursive by default — it only looks at the target folder's direct children. If your collection has nested subfolders (most do), add `-r` to recurse: `bru run my-folder -r --env ci`. Targeting a single `.bru` or `.yml` file doesn't need `-r`.
+> **Adding `bru` options:** The examples below show docker-specific flags. For all `bru run` options — recurse (`-r`), environments, variables, reporters, bail, and more — see the [Bruno CLI docs](https://docs.usebruno.com/bru-cli/overview).
 
 > **Note on `--rm`:** Examples below omit `--rm`. Docker keeps stopped containers around after they exit, which lets you `docker logs` or `docker inspect` them later for debugging. If you'd rather have Docker auto-delete the container as soon as `bru` finishes — useful for CI runs or to avoid `docker ps -a` filling up with stale entries — append `--rm` to any `docker run` (or `docker compose run`) command:
 >
@@ -128,6 +128,9 @@ docker run -v $(pwd):/bruno usebruno/cli run ./api-tests --env staging
 
 # run a single .bru request file from that collection
 docker run -v $(pwd):/bruno usebruno/cli run ./api-tests/login.bru --env staging
+
+# write a JUnit XML report (lands in the current directory because of the bind mount)
+docker run -v $(pwd):/bruno usebruno/cli run --env staging --reporter-junit results.xml
 ```
 
 For Windows CMD users, swap `$(pwd)` with `%cd%`:
@@ -138,7 +141,7 @@ docker run -v %cd%:/bruno usebruno/cli run --env staging
 
 #### Running a collection that lives at a different path
 
-If your collection is not in your current directory, point `docker` at its absolute path instead of `$(pwd)`:
+If your collection is not in your current directory, point `docker` at its path (relative or absolute) instead of `$(pwd)`:
 
 ```bash
 # run every request in a collection at an arbitrary path
@@ -160,55 +163,7 @@ docker run -v $(pwd):/bruno usebruno/cli run --env production
 
 ---
 
-### Step 5 — Pass variables at runtime
-
-```bash
-# override a single variable
-docker run \
-  -v $(pwd):/bruno \
-  usebruno/cli run --env staging --env-var API_KEY=your_key
-
-# override multiple variables
-docker run \
-  -v $(pwd):/bruno \
-  usebruno/cli run --env staging \
-  --env-var BASE_URL=https://api.example.com \
-  --env-var API_KEY=secret123
-
-# load variables from a file
-docker run \
-  -v $(pwd):/bruno \
-  --env-file .env \
-  usebruno/cli run --env staging
-```
-
----
-
-### Step 6 — Save test results
-
-```bash
-# JSON report
-docker run \
-  -v $(pwd):/bruno \
-  usebruno/cli run --env staging --output results.json --format json
-
-# JUnit XML report (for CI test reporters)
-docker run \
-  -v $(pwd):/bruno \
-  usebruno/cli run --env staging --output results.xml --format junit
-```
-
----
-
-### Step 7 — Stop on first failure
-
-```bash
-docker run -v $(pwd):/bruno usebruno/cli run --env staging --bail
-```
-
----
-
-### Step 8 — Pin the right version
+### Step 5 — Pin the right version
 
 ```bash
 # exact version — safest for production, no surprise updates
@@ -223,11 +178,14 @@ docker run -v $(pwd):/bruno usebruno/cli:latest run --env staging
 
 ---
 
-### Step 9 — Choose alpine or debian
+### Step 6 — Choose alpine or debian
 
 ```bash
 # alpine (default) — use this for most cases
 docker run -v $(pwd):/bruno usebruno/cli:3.3.0 run --env staging
+
+# alpine — explicitly use the alpine-based image variant
+docker run -v $(pwd):/bruno usebruno/cli:3.3.0-alpine run --env staging
 
 # debian — use if you hit SSL, glibc, or native module issues
 docker run -v $(pwd):/bruno usebruno/cli:3.3.0-debian run --env staging
@@ -306,7 +264,7 @@ services:
     container_name: bruno-cli-runner
     volumes:
       - /path/to/your/collection:/bruno
-      - ./reports:/reports
+      - /path/to/reports:/reports
     command:
       run .
       -r
@@ -322,7 +280,7 @@ Then run:
 docker compose run bruno-cli
 ```
 
-The `-r` flag tells `bru run` to recurse into subfolders. Without it, `bru` only scans the target's direct children — fine for a flat folder of `.bru` files, but most real collections have nested groups so `-r` is usually what you want. The `./reports:/reports` mount catches the JSON, JUnit XML, and HTML reports on the host — drop any `--reporter-*` flag to skip that format.
+The `/path/to/reports:/reports` mount catches the JSON, JUnit XML, and HTML reports on the host — drop any `--reporter-*` flag to skip that format.
 
 ### Try it from this repo
 
@@ -350,18 +308,3 @@ All variants include:
 - **User:** `node` (UID 1000, non-root)
 - **Architectures:** `linux/amd64`, `linux/arm64`
 
----
-
-## All version × variant combinations
-
-Using `<X.Y.Z>` as a placeholder for any released semver (e.g. `3.3.0`):
-
-| Selector | Alpine | Debian |
-|---|---|---|
-| Latest stable (when checkbox set) | `usebruno/cli:latest`, `usebruno/cli:latest-alpine` | `usebruno/cli:latest-debian` |
-| Newest of variant | `usebruno/cli:alpine` | `usebruno/cli:debian` |
-| Exact version | `usebruno/cli:<X.Y.Z>`, `usebruno/cli:<X.Y.Z>-alpine` | `usebruno/cli:<X.Y.Z>-debian` |
-| Minor float | `usebruno/cli:<X.Y>`, `usebruno/cli:<X.Y>-alpine` | `usebruno/cli:<X.Y>-debian` |
-| Major float | `usebruno/cli:<X>`, `usebruno/cli:<X>-alpine` | `usebruno/cli:<X>-debian` |
-
-All tags are mirrored to `ghcr.io/usebruno/cli` with the same suffix.
