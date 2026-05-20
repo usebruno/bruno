@@ -50,17 +50,31 @@ describe('index: configureRequest — URL normalization', () => {
     expect(request.url).toEqual('ws://example.com/socket');
   });
 
-  it('does not prepend http:// to {{baseUrl}}/api/v1 (template variable)', async () => {
-    const url = '{{baseUrl}}/api/v1';
-    const request = { method: 'GET', url, body: {} };
-    await configureRequest(null, {}, request, null, null, null, null);
-    expect(request.url).toEqual(url);
-  });
+  describe('with variables in the url and no interpolation values', () => {
+    it('does not prepend http:// to {{baseUrl}}/api/v1 (template variable)', async () => {
+      const url = '{{baseUrl}}/api/v1';
+      const request = { method: 'GET', url, body: {} };
+      expect.assertions(2);
+      try {
+        await configureRequest(null, {}, request, null, null, null, null);
+      } catch (err) {
+        expect(err.message).toBe('Invalid URL');
+      } finally {
+        expect(request.url).toEqual(url);
+      }
+    });
 
-  it('does not prepend http:// to {{baseUrl}} alone (template variable)', async () => {
-    const url = '{{baseUrl}}';
-    const request = { method: 'GET', url, body: {} };
-    await configureRequest(null, {}, request, null, null, null, null);
-    expect(request.url).toEqual(url);
+    it('does not prepend http:// to {{baseUrl}} alone (template variable)', async () => {
+      const url = '{{baseUrl}}';
+      const request = { method: 'GET', url, body: {} };
+      expect.assertions(2);
+      try {
+        await configureRequest(null, {}, request, null, null, null, null);
+      } catch (err) {
+        expect(err.message).toBe('Invalid URL');
+      } finally {
+        expect(request.url).toEqual(url);
+      }
+    });
   });
 });
