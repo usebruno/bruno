@@ -222,6 +222,10 @@ class Bru {
     }
   }
 
+  hasGlobalEnvVar(key) {
+    return Object.hasOwn(this.globalEnvironmentVariables, key);
+  }
+
   getGlobalEnvVar(key) {
     return this.interpolate(this.globalEnvironmentVariables[key]);
   }

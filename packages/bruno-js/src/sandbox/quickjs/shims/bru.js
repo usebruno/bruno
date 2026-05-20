@@ -116,6 +116,12 @@ const addBruShimToContext = (vm, bru) => {
   vm.setProp(bruObject, 'getAllGlobalEnvVars', getAllGlobalEnvVars);
   getAllGlobalEnvVars.dispose();
 
+  let hasGlobalEnvVar = vm.newFunction('hasGlobalEnvVar', function (key) {
+    return marshallToVm(bru.hasGlobalEnvVar(vm.dump(key)), vm);
+  });
+  vm.setProp(bruObject, 'hasGlobalEnvVar', hasGlobalEnvVar);
+  hasGlobalEnvVar.dispose();
+
   // TODO: deleteAllGlobalEnvVars works in the request lifecycle but does not update the UI.
   // Re-enable once the UI sync issue is resolved.
   // let deleteAllGlobalEnvVars = vm.newFunction('deleteAllGlobalEnvVars', function () {
