@@ -1,8 +1,17 @@
-import { test, expect, Page } from '../../../playwright';
+import { test, expect, Page, ElectronApplication, waitForReadyPage as waitForReadyPageImpl } from '../../../playwright';
 import process from 'node:process';
 import { buildCommonLocators, buildScriptErrorLocators } from './locators';
 
 type SandboxMode = 'safe' | 'developer';
+
+type WaitForAppReadyOptions = {
+  timeout?: number;
+};
+
+const waitForReadyPage = (
+  app: ElectronApplication,
+  options: WaitForAppReadyOptions = {}
+) => waitForReadyPageImpl(app, options);
 
 /**
  * Close all collections
@@ -1274,6 +1283,7 @@ const openExampleFromSidebar = async (page: Page, requestName: string, exampleNa
 };
 
 export {
+  waitForReadyPage,
   closeAllCollections,
   openCollection,
   createCollection,
