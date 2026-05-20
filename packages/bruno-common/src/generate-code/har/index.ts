@@ -388,6 +388,7 @@ const looksLikeUrl = (url: string | undefined): boolean =>
  *   - 'awsv4'                                 → runtime-only signing
  *   - 'wsse'                                  → runtime-only signing
  */
+
 const authToHeaders = (
   auth: BrunoAuth | undefined,
   variables: Record<string, unknown>,
