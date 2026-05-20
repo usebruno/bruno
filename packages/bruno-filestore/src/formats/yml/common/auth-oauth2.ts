@@ -294,24 +294,63 @@ const buildImplicitFlow = (oauth: BrunoOAuth2): OAuth2ImplicitFlow => {
   return flow;
 };
 
+// Bruno-namespaced extension carried inside the OpenCollection auth block so OAuth2 client-auth
+// fields that OpenCollection doesn't model natively (RFC 7591 / OIDC §9 methods beyond basic /
+// post, JWT-bearer assertion config, mTLS) round-trip through yml collections. Older Bruno builds
+// without these features just see the OpenCollection-modeled subset and ignore the extension.
+const BRUNO_OAUTH2_EXTENSION_KEY = 'x-bruno-oauth2';
+
+const OAUTH2_EXTENSION_FIELDS: (keyof BrunoOAuth2)[] = [
+  'tokenEndpointAuthMethod', 'tokenEndpointAuthSigningAlg',
+  'privateKey', 'privateKeyType', 'privateKeyFormat', 'keyId',
+  'audience', 'assertionLifetime', 'additionalClaims'
+];
+
+// `client_secret_basic` and `client_secret_post` are losslessly representable via OpenCollection's
+// existing `credentials.placement` field — we don't need to carry those in the extension.
+const isPlacementRepresentable = (method?: string | null): boolean =>
+  method === 'client_secret_basic' || method === 'client_secret_post';
+
+const oauth2ExtensionFromBruno = (oauth: BrunoOAuth2): Record<string, unknown> | undefined => {
+  const ext: Record<string, unknown> = {};
+  for (const k of OAUTH2_EXTENSION_FIELDS) {
+    if (k === 'tokenEndpointAuthMethod' && isPlacementRepresentable(oauth.tokenEndpointAuthMethod)) {
+      continue;
+    }
+    const v = (oauth as any)[k];
+    if (v !== undefined && v !== null && v !== '') {
+      ext[k] = v;
+    }
+  }
+  return Object.keys(ext).length > 0 ? ext : undefined;
+};
+
 export const toOpenCollectionOAuth2 = (oauth?: BrunoOAuth2 | null): AuthOAuth2 | undefined => {
   if (!oauth) {
     return undefined;
   }
 
+  let flow: AuthOAuth2 | undefined;
   switch (oauth.grantType) {
     case 'client_credentials':
-      return buildClientCredentialsFlow(oauth);
+      flow = buildClientCredentialsFlow(oauth); break;
     case 'password':
-      return buildResourceOwnerPasswordFlow(oauth);
+      flow = buildResourceOwnerPasswordFlow(oauth); break;
     case 'authorization_code':
-      return buildAuthorizationCodeFlow(oauth);
+      flow = buildAuthorizationCodeFlow(oauth); break;
     case 'implicit':
-      return buildImplicitFlow(oauth);
+      flow = buildImplicitFlow(oauth); break;
     default:
       console.warn(`toOpenCollectionOAuth2: Unsupported OAuth2 grant type "${oauth.grantType}".`);
       return undefined;
   }
+  if (!flow) return undefined;
+
+  const ext = oauth2ExtensionFromBruno(oauth);
+  if (ext) {
+    (flow as unknown as Record<string, unknown>)[BRUNO_OAUTH2_EXTENSION_KEY] = ext;
+  }
+  return flow;
 };
 
 const reversePlacementMapping = (placement?: OAuth2AdditionalParameter['placement']): 'headers' | 'queryparams' | 'body' | null => {
@@ -577,6 +616,16 @@ export const toBrunoOAuth2 = (oauth: AuthOAuth2 | null | undefined): BrunoOAuth2
     if (authCodeFlow.pkce !== undefined) {
       // If pkce.disabled is true, set pkce to false; otherwise set to true
       brunoOAuth.pkce = !authCodeFlow.pkce.disabled;
+    }
+  }
+
+  // Restore any Bruno-extended OAuth2 client-auth state from the namespaced extension. Carries
+  // anything OpenCollection doesn't model natively (advanced client-auth methods, JWT-bearer
+  // assertion config, mTLS).
+  const ext = (oauth as any)[BRUNO_OAUTH2_EXTENSION_KEY] as Record<string, unknown> | undefined;
+  if (ext) {
+    for (const [k, v] of Object.entries(ext)) {
+      (brunoOAuth as any)[k] = v;
     }
   }
 
