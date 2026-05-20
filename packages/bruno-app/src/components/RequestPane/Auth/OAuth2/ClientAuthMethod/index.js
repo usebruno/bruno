@@ -63,11 +63,7 @@ const ClientAuthMethod = ({ oAuth, handleChange, patchOAuth, handleRun, handleSa
     dispatch(browseFiles(filters, []))
       .then((filePaths) => {
         if (filePaths && filePaths.length > 0) {
-          let filePath = filePaths[0];
-          if (collection?.pathname) {
-            filePath = path.relative(collection.pathname, filePath);
-          }
-          patchOAuth({ privateKey: filePath, privateKeyType: 'file' });
+          patchOAuth({ privateKey: filePaths[0], privateKeyType: 'file' });
         }
       })
       .catch((err) => console.error(err));
