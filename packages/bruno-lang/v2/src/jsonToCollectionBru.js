@@ -1,6 +1,6 @@
 const _ = require('lodash');
 
-const { indentString, getValueString, getKeyString, serializeAnnotations } = require('./utils');
+const { indentString, getValueString, getKeyString, oauth2ClientAuthLines, serializeAnnotations } = require('./utils');
 
 const enabled = (items = []) => items.filter((item) => item.enabled);
 const disabled = (items = []) => items.filter((item) => !item.enabled);
@@ -176,7 +176,7 @@ ${indentString(`password: ${auth?.oauth2?.password || ''}`)}
 ${indentString(`client_id: ${auth?.oauth2?.clientId || ''}`)}
 ${indentString(`client_secret: ${auth?.oauth2?.clientSecret || ''}`)}
 ${indentString(`scope: ${auth?.oauth2?.scope || ''}`)}
-${indentString(`credentials_placement: ${auth?.oauth2?.credentialsPlacement || ''}`)}
+${oauth2ClientAuthLines(auth?.oauth2)}
 ${indentString(`credentials_id: ${auth?.oauth2?.credentialsId || ''}`)}
 ${indentString(`token_source: ${auth?.oauth2?.tokenSource || 'access_token'}`)}
 ${indentString(`token_placement: ${auth?.oauth2?.tokenPlacement || ''}`)}${
@@ -202,7 +202,7 @@ ${indentString(`client_secret: ${auth?.oauth2?.clientSecret || ''}`)}
 ${indentString(`scope: ${auth?.oauth2?.scope || ''}`)}
 ${indentString(`state: ${auth?.oauth2?.state || ''}`)}
 ${indentString(`pkce: ${(auth?.oauth2?.pkce || false).toString()}`)}
-${indentString(`credentials_placement: ${auth?.oauth2?.credentialsPlacement || ''}`)}
+${oauth2ClientAuthLines(auth?.oauth2)}
 ${indentString(`credentials_id: ${auth?.oauth2?.credentialsId || ''}`)}
 ${indentString(`token_source: ${auth?.oauth2?.tokenSource || 'access_token'}`)}
 ${indentString(`token_placement: ${auth?.oauth2?.tokenPlacement || ''}`)}${
@@ -244,7 +244,7 @@ ${indentString(`refresh_token_url: ${auth?.oauth2?.refreshTokenUrl || ''}`)}
 ${indentString(`client_id: ${auth?.oauth2?.clientId || ''}`)}
 ${indentString(`client_secret: ${auth?.oauth2?.clientSecret || ''}`)}
 ${indentString(`scope: ${auth?.oauth2?.scope || ''}`)}
-${indentString(`credentials_placement: ${auth?.oauth2?.credentialsPlacement || ''}`)}
+${oauth2ClientAuthLines(auth?.oauth2)}
 ${indentString(`credentials_id: ${auth?.oauth2?.credentialsId || ''}`)}
 ${indentString(`token_source: ${auth?.oauth2?.tokenSource || 'access_token'}`)}
 ${indentString(`token_placement: ${auth?.oauth2?.tokenPlacement || ''}`)}${

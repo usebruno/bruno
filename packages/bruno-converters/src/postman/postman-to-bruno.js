@@ -319,7 +319,7 @@ export const processAuth = (auth, requestObject, isCollection = false) => {
         scope: findValueUsingKey('scope'),
         state: findValueUsingKey('state'),
         tokenPlacement: findValueUsingKey('addTokenTo') === 'header' ? 'header' : 'url',
-        credentialsPlacement: findValueUsingKey('client_authentication') === 'body' ? 'body' : 'basic_auth_header'
+        tokenEndpointAuthMethod: findValueUsingKey('client_authentication') === 'body' ? 'client_secret_post' : 'client_secret_basic'
       };
 
       switch (postmanGrantType) {

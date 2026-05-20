@@ -4,6 +4,7 @@ const { authorizeUserInWindow } = require('../ipc/network/authorize-user-in-wind
 const { authorizeUserInSystemBrowser } = require('../ipc/network/authorize-user-in-system-browser');
 const Oauth2Store = require('../store/oauth2');
 const { makeAxiosInstance } = require('../ipc/network/axios-instance');
+const { applyTokenEndpointAuth } = require('@usebruno/requests');
 const { safeParseJSON, safeStringifyJSON } = require('./common');
 const { preferencesUtil } = require('../store/preferences');
 const qs = require('qs');
@@ -148,7 +149,6 @@ const getOAuth2TokenUsingAuthorizationCode = async ({ request, collectionUid, fo
     callbackUrl,
     scope,
     pkce,
-    credentialsPlacement,
     authorizationUrl,
     credentialsId,
     autoRefreshToken,
@@ -257,25 +257,19 @@ const getOAuth2TokenUsingAuthorizationCode = async ({ request, collectionUid, fo
     'content-type': 'application/x-www-form-urlencoded',
     'Accept': 'application/json'
   };
-  if (credentialsPlacement === 'basic_auth_header') {
-    const secret = clientSecret ?? '';
-    axiosRequestConfig.headers['Authorization'] = `Basic ${Buffer.from(`${clientId}:${secret}`).toString('base64')}`;
-  }
 
   const data = {
     grant_type: 'authorization_code',
     code: authorizationCode,
     redirect_uri: effectiveCallbackUrl
   };
-  if (credentialsPlacement !== 'basic_auth_header') {
-    data.client_id = clientId;
-  }
-  if (clientSecret && clientSecret.trim() !== '' && credentialsPlacement !== 'basic_auth_header') {
-    data.client_secret = clientSecret;
-  }
   if (pkce) {
     data['code_verifier'] = codeVerifier;
   }
+
+  const clientAuth = await applyTokenEndpointAuth({ ...oAuth, accessTokenUrl: url });
+  Object.assign(axiosRequestConfig.headers, clientAuth.headers);
+  Object.assign(data, clientAuth.bodyParams);
 
   axiosRequestConfig.url = url;
   axiosRequestConfig.responseType = 'arraybuffer';
@@ -377,7 +371,6 @@ const getOAuth2TokenUsingClientCredentials = async ({ request, collectionUid, fo
     clientId,
     clientSecret,
     scope,
-    credentialsPlacement,
     credentialsId,
     autoRefreshToken,
     autoFetchToken,
@@ -463,22 +456,17 @@ const getOAuth2TokenUsingClientCredentials = async ({ request, collectionUid, fo
     'content-type': 'application/x-www-form-urlencoded',
     'Accept': 'application/json'
   };
-  if (credentialsPlacement === 'basic_auth_header') {
-    const secret = clientSecret ?? '';
-    axiosRequestConfig.headers['Authorization'] = `Basic ${Buffer.from(`${clientId}:${secret}`).toString('base64')}`;
-  }
   const data = {
     grant_type: 'client_credentials'
   };
-  if (credentialsPlacement !== 'basic_auth_header') {
-    data.client_id = clientId;
-  }
-  if (clientSecret && clientSecret.trim() !== '' && credentialsPlacement !== 'basic_auth_header') {
-    data.client_secret = clientSecret;
-  }
   if (scope && scope.trim() !== '') {
     data.scope = scope;
   }
+
+  const clientAuth = await applyTokenEndpointAuth({ ...oAuth, accessTokenUrl: url });
+  Object.assign(axiosRequestConfig.headers, clientAuth.headers);
+  Object.assign(data, clientAuth.bodyParams);
+
   axiosRequestConfig.url = url;
   axiosRequestConfig.responseType = 'arraybuffer';
   if (additionalParameters?.token?.length) {
@@ -507,7 +495,6 @@ const getOAuth2TokenUsingPasswordCredentials = async ({ request, collectionUid, 
     clientId,
     clientSecret,
     scope,
-    credentialsPlacement,
     credentialsId,
     autoRefreshToken,
     autoFetchToken,
@@ -611,24 +598,19 @@ const getOAuth2TokenUsingPasswordCredentials = async ({ request, collectionUid, 
     'content-type': 'application/x-www-form-urlencoded',
     'Accept': 'application/json'
   };
-  if (credentialsPlacement === 'basic_auth_header') {
-    const secret = clientSecret ?? '';
-    axiosRequestConfig.headers['Authorization'] = `Basic ${Buffer.from(`${clientId}:${secret}`).toString('base64')}`;
-  }
   const data = {
     grant_type: 'password',
     username,
     password
   };
-  if (credentialsPlacement !== 'basic_auth_header') {
-    data.client_id = clientId;
-  }
-  if (clientSecret && clientSecret.trim() !== '' && credentialsPlacement !== 'basic_auth_header') {
-    data.client_secret = clientSecret;
-  }
   if (scope && scope.trim() !== '') {
     data.scope = scope;
   }
+
+  const clientAuth = await applyTokenEndpointAuth({ ...oAuth, accessTokenUrl: url });
+  Object.assign(axiosRequestConfig.headers, clientAuth.headers);
+  Object.assign(data, clientAuth.bodyParams);
+
   axiosRequestConfig.url = url;
   axiosRequestConfig.responseType = 'arraybuffer';
   if (additionalParameters?.token?.length) {
@@ -648,7 +630,7 @@ const getOAuth2TokenUsingPasswordCredentials = async ({ request, collectionUid, 
 
 const refreshOauth2Token = async ({ requestCopy, collectionUid, certsAndProxyConfig }) => {
   const oAuth = get(requestCopy, 'oauth2', {});
-  const { clientId, clientSecret, credentialsId, credentialsPlacement, additionalParameters } = oAuth;
+  const { credentialsId, additionalParameters } = oAuth;
   const url = oAuth.refreshTokenUrl ? oAuth.refreshTokenUrl : oAuth.accessTokenUrl;
 
   const credentials = getStoredOauth2Credentials({ collectionUid, url, credentialsId });
@@ -661,22 +643,17 @@ const refreshOauth2Token = async ({ requestCopy, collectionUid, certsAndProxyCon
       grant_type: 'refresh_token',
       refresh_token: credentials.refresh_token
     };
-    if (credentialsPlacement !== 'basic_auth_header') {
-      data.client_id = clientId;
-    }
-    if (clientSecret && clientSecret.trim() !== '' && credentialsPlacement !== 'basic_auth_header') {
-      data.client_secret = clientSecret;
-    }
     let axiosRequestConfig = {};
     axiosRequestConfig.method = 'POST';
     axiosRequestConfig.headers = {
       'content-type': 'application/x-www-form-urlencoded',
       'Accept': 'application/json'
     };
-    if (credentialsPlacement === 'basic_auth_header') {
-      const secret = clientSecret ?? '';
-      axiosRequestConfig.headers['Authorization'] = `Basic ${Buffer.from(`${clientId}:${secret}`).toString('base64')}`;
-    }
+
+    const clientAuth = await applyTokenEndpointAuth({ ...oAuth, accessTokenUrl: url });
+    Object.assign(axiosRequestConfig.headers, clientAuth.headers);
+    Object.assign(data, clientAuth.bodyParams);
+
     axiosRequestConfig.url = url;
     axiosRequestConfig.responseType = 'arraybuffer';
     if (additionalParameters?.refresh?.length) {

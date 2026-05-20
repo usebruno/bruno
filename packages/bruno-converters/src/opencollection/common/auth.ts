@@ -36,11 +36,11 @@ const fromOpenCollectionOAuth2 = (auth: AuthOAuth2): BrunoAuth => {
     return 'access_token';
   };
 
-  const getCredentialsPlacement = (credentials: AuthOAuth2['credentials']): 'body' | 'basic_auth_header' => {
+  const getTokenEndpointAuthMethod = (credentials: AuthOAuth2['credentials']): 'client_secret_basic' | 'client_secret_post' => {
     if (credentials && 'placement' in credentials && credentials.placement === 'basic_auth_header') {
-      return 'basic_auth_header';
+      return 'client_secret_basic';
     }
-    return 'body';
+    return 'client_secret_post';
   };
 
   const buildOAuth2Config = (base: Partial<BrunoOAuth2>): BrunoAuth => {
@@ -64,7 +64,7 @@ const fromOpenCollectionOAuth2 = (auth: AuthOAuth2): BrunoAuth => {
         scope: base.scope || null,
         state: base.state || null,
         pkce: base.pkce ?? false,
-        credentialsPlacement: base.credentialsPlacement || null,
+        tokenEndpointAuthMethod: base.tokenEndpointAuthMethod || null,
         credentialsId: base.credentialsId || null,
         tokenPlacement: base.tokenPlacement || null,
         tokenHeaderPrefix: base.tokenHeaderPrefix || null,
@@ -89,7 +89,7 @@ const fromOpenCollectionOAuth2 = (auth: AuthOAuth2): BrunoAuth => {
         clientId: auth.credentials?.clientId || null,
         clientSecret: auth.credentials?.clientSecret || null,
         scope: auth.scope || null,
-        credentialsPlacement: getCredentialsPlacement(auth.credentials),
+        tokenEndpointAuthMethod: getTokenEndpointAuthMethod(auth.credentials),
         credentialsId: auth.tokenConfig?.id || 'credentials',
         tokenPlacement: getTokenPlacement(auth.tokenConfig),
         tokenHeaderPrefix: getTokenHeaderPrefix(auth.tokenConfig),
@@ -108,7 +108,7 @@ const fromOpenCollectionOAuth2 = (auth: AuthOAuth2): BrunoAuth => {
         username: auth.resourceOwner?.username || null,
         password: auth.resourceOwner?.password || null,
         scope: auth.scope || null,
-        credentialsPlacement: getCredentialsPlacement(auth.credentials),
+        tokenEndpointAuthMethod: getTokenEndpointAuthMethod(auth.credentials),
         credentialsId: auth.tokenConfig?.id || 'credentials',
         tokenPlacement: getTokenPlacement(auth.tokenConfig),
         tokenHeaderPrefix: getTokenHeaderPrefix(auth.tokenConfig),
@@ -128,7 +128,7 @@ const fromOpenCollectionOAuth2 = (auth: AuthOAuth2): BrunoAuth => {
         clientSecret: auth.credentials?.clientSecret || null,
         scope: auth.scope || null,
         pkce: (auth.pkce && !auth.pkce.disabled) || null,
-        credentialsPlacement: getCredentialsPlacement(auth.credentials),
+        tokenEndpointAuthMethod: getTokenEndpointAuthMethod(auth.credentials),
         credentialsId: auth.tokenConfig?.id || 'credentials',
         tokenPlacement: getTokenPlacement(auth.tokenConfig),
         tokenHeaderPrefix: getTokenHeaderPrefix(auth.tokenConfig),
@@ -330,7 +330,7 @@ const toOpenCollectionOAuth2 = (oauth2: BrunoOAuth2 | null | undefined): AuthOAu
         credentials: {
           clientId: oauth2.clientId || '',
           clientSecret: oauth2.clientSecret || '',
-          placement: oauth2.credentialsPlacement === 'basic_auth_header' ? 'basic_auth_header' : 'body'
+          placement: oauth2.tokenEndpointAuthMethod === 'client_secret_basic' ? 'basic_auth_header' : 'body'
         },
         scope: oauth2.scope || '',
         tokenConfig: {
@@ -354,7 +354,7 @@ const toOpenCollectionOAuth2 = (oauth2: BrunoOAuth2 | null | undefined): AuthOAu
         credentials: {
           clientId: oauth2.clientId || '',
           clientSecret: oauth2.clientSecret || '',
-          placement: oauth2.credentialsPlacement === 'basic_auth_header' ? 'basic_auth_header' : 'body'
+          placement: oauth2.tokenEndpointAuthMethod === 'client_secret_basic' ? 'basic_auth_header' : 'body'
         },
         resourceOwner: {
           username: oauth2.username || '',
@@ -384,7 +384,7 @@ const toOpenCollectionOAuth2 = (oauth2: BrunoOAuth2 | null | undefined): AuthOAu
         credentials: {
           clientId: oauth2.clientId || '',
           clientSecret: oauth2.clientSecret || '',
-          placement: oauth2.credentialsPlacement === 'basic_auth_header' ? 'basic_auth_header' : 'body'
+          placement: oauth2.tokenEndpointAuthMethod === 'client_secret_basic' ? 'basic_auth_header' : 'body'
         },
         scope: oauth2.scope || '',
         pkce: oauth2.pkce ? { method: 'S256' } : undefined,

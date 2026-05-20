@@ -450,7 +450,7 @@ const buildOAuth2Config = (def, requestedScopes) => ({
   clientSecret: '{{oauth_client_secret}}',
   scope: requestedScopes && requestedScopes.length > 0 ? requestedScopes.join(' ') : Object.keys(def.scopes || {}).join(' '),
   state: '{{oauth_state}}',
-  credentialsPlacement: 'header',
+  tokenEndpointAuthMethod: 'client_secret_post',
   tokenPlacement: 'header',
   tokenHeaderPrefix: 'Bearer',
   autoFetchToken: false,

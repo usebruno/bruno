@@ -75,6 +75,26 @@ export interface OAuthAdditionalParameters {
   refresh?: OAuthAdditionalParameter[] | null;
 }
 
+export type TokenEndpointAuthMethod
+  = | 'client_secret_basic'
+    | 'client_secret_post'
+    | 'client_secret_jwt'
+    | 'private_key_jwt'
+    | 'none';
+
+export type TokenEndpointAuthSigningAlg
+  = | 'HS256' | 'HS384' | 'HS512'
+    | 'RS256' | 'RS384' | 'RS512'
+    | 'PS256' | 'PS384' | 'PS512'
+    | 'ES256' | 'ES384' | 'ES512'
+    | 'EdDSA';
+
+export interface OAuth2AdditionalClaim {
+  name?: string | null;
+  value?: string | null;
+  enabled?: boolean;
+}
+
 export interface OAuth2 {
   grantType: OAuthGrantType;
   username?: string | null;
@@ -87,7 +107,17 @@ export interface OAuth2 {
   scope?: string | null;
   state?: string | null;
   pkce?: boolean | null;
+  /** @deprecated Replaced by tokenEndpointAuthMethod (RFC 7591 §2 / OIDC Core §9). Read for backward compatibility; never written. */
   credentialsPlacement?: 'body' | 'basic_auth_header' | null;
+  tokenEndpointAuthMethod?: TokenEndpointAuthMethod | null;
+  tokenEndpointAuthSigningAlg?: TokenEndpointAuthSigningAlg | null;
+  privateKey?: string | null;
+  privateKeyType?: 'file' | 'text' | null;
+  privateKeyFormat?: 'pem' | 'jwk' | null;
+  keyId?: string | null;
+  audience?: string | null;
+  assertionLifetime?: number | null;
+  additionalClaims?: OAuth2AdditionalClaim[] | null;
   credentialsId?: string | null;
   tokenPlacement?: string | null;
   tokenHeaderPrefix?: string | null;

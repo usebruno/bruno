@@ -285,6 +285,30 @@ const oauth2AdditionalParametersSchema = Yup.object({
     .noUnknown(true)
     .strict();
 
+const oauth2AdditionalClaimSchema = Yup.object({
+  name: Yup.string().nullable(),
+  value: Yup.string().nullable(),
+  enabled: Yup.boolean()
+})
+  .noUnknown(true)
+  .strict();
+
+const tokenEndpointAuthMethodValues = [
+  'client_secret_basic',
+  'client_secret_post',
+  'client_secret_jwt',
+  'private_key_jwt',
+  'none'
+];
+
+const tokenEndpointAuthSigningAlgValues = [
+  'HS256', 'HS384', 'HS512',
+  'RS256', 'RS384', 'RS512',
+  'PS256', 'PS384', 'PS512',
+  'ES256', 'ES384', 'ES512',
+  'EdDSA'
+];
+
 const oauth2Schema = Yup.object({
   grantType: Yup.string()
     .oneOf(['client_credentials', 'password', 'authorization_code', 'implicit'])
@@ -343,6 +367,51 @@ const oauth2Schema = Yup.object({
     is: (val) => ['client_credentials', 'password', 'authorization_code'].includes(val),
     then: Yup.string().nullable(),
     otherwise: Yup.string().nullable().strip()
+  }),
+  tokenEndpointAuthMethod: Yup.string().when('grantType', {
+    is: (val) => ['client_credentials', 'password', 'authorization_code'].includes(val),
+    then: Yup.string().oneOf(tokenEndpointAuthMethodValues).nullable(),
+    otherwise: Yup.string().nullable().strip()
+  }),
+  tokenEndpointAuthSigningAlg: Yup.string().when('grantType', {
+    is: (val) => ['client_credentials', 'password', 'authorization_code'].includes(val),
+    then: Yup.string().oneOf(tokenEndpointAuthSigningAlgValues).nullable(),
+    otherwise: Yup.string().nullable().strip()
+  }),
+  privateKey: Yup.string().when('grantType', {
+    is: (val) => ['client_credentials', 'password', 'authorization_code'].includes(val),
+    then: Yup.string().nullable(),
+    otherwise: Yup.string().nullable().strip()
+  }),
+  privateKeyType: Yup.string().when('grantType', {
+    is: (val) => ['client_credentials', 'password', 'authorization_code'].includes(val),
+    then: Yup.string().oneOf(['text', 'file']).nullable(),
+    otherwise: Yup.string().nullable().strip()
+  }),
+  privateKeyFormat: Yup.string().when('grantType', {
+    is: (val) => ['client_credentials', 'password', 'authorization_code'].includes(val),
+    then: Yup.string().oneOf(['pem', 'jwk']).nullable(),
+    otherwise: Yup.string().nullable().strip()
+  }),
+  keyId: Yup.string().when('grantType', {
+    is: (val) => ['client_credentials', 'password', 'authorization_code'].includes(val),
+    then: Yup.string().nullable(),
+    otherwise: Yup.string().nullable().strip()
+  }),
+  audience: Yup.string().when('grantType', {
+    is: (val) => ['client_credentials', 'password', 'authorization_code'].includes(val),
+    then: Yup.string().nullable(),
+    otherwise: Yup.string().nullable().strip()
+  }),
+  assertionLifetime: Yup.number().when('grantType', {
+    is: (val) => ['client_credentials', 'password', 'authorization_code'].includes(val),
+    then: Yup.number().integer().positive().nullable(),
+    otherwise: Yup.number().nullable().strip()
+  }),
+  additionalClaims: Yup.array().when('grantType', {
+    is: (val) => ['client_credentials', 'password', 'authorization_code'].includes(val),
+    then: Yup.array().of(oauth2AdditionalClaimSchema).nullable(),
+    otherwise: Yup.array().nullable().strip()
   }),
   credentialsId: Yup.string().when('grantType', {
     is: (val) => ['client_credentials', 'password', 'authorization_code', 'implicit'].includes(val),
