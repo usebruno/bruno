@@ -1031,6 +1031,10 @@ export const humanizeGrantType = (mode) => {
       return 'Client Credentials';
     case 'implicit':
       return 'Implicit';
+    case 'openid_code':
+      return 'OpenID Connect Code Flow';
+    case 'openid_hybrid':
+      return 'OpenID Connect Hybrid Flow';
     default:
       return mode;
   }

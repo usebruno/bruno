@@ -78,7 +78,9 @@ const GrantTypeSelector = ({ item = {}, request, updateAuth, collection }) => {
             { id: 'password', label: 'Password Credentials', onClick: () => onGrantTypeChange('password') },
             { id: 'authorization_code', label: 'Authorization Code', onClick: () => onGrantTypeChange('authorization_code') },
             { id: 'implicit', label: 'Implicit', onClick: () => onGrantTypeChange('implicit') },
-            { id: 'client_credentials', label: 'Client Credentials', onClick: () => onGrantTypeChange('client_credentials') }
+            { id: 'client_credentials', label: 'Client Credentials', onClick: () => onGrantTypeChange('client_credentials') },
+            { id: 'openid_code', label: 'OpenID Connect Code Flow', onClick: () => onGrantTypeChange('openid_code') },
+            { id: 'openid_hybrid', label: 'OpenID Connect Hybrid Flow', onClick: () => onGrantTypeChange('openid_hybrid') }
           ]}
           selectedItemId={oAuth?.grantType}
           placement="bottom-end"

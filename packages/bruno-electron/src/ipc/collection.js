@@ -68,7 +68,9 @@ const interpolateVars = require('./network/interpolate-vars');
 const { interpolateString } = require('./network/interpolate-string');
 const { getEnvVars, getTreePathFromCollectionToItem, mergeVars, parseBruFileMeta, hydrateRequestWithUuid, transformRequestToSaveToFilesystem } = require('../utils/collection');
 const { getProcessEnvVars } = require('../store/process-env');
-const { getOAuth2TokenUsingAuthorizationCode, getOAuth2TokenUsingClientCredentials, getOAuth2TokenUsingPasswordCredentials, getOAuth2TokenUsingImplicitGrant, refreshOauth2Token } = require('../utils/oauth2');
+const { getOAuth2TokenUsingAuthorizationCode, getOAuth2TokenUsingClientCredentials, getOAuth2TokenUsingPasswordCredentials, getOAuth2TokenUsingImplicitGrant, getOIDCToken, refreshOauth2Token } = require('../utils/oauth2');
+const { fetchOpenIDConfiguration } = require('@usebruno/requests');
+const { makeAxiosInstance } = require('./network/axios-instance');
 const { getCertsAndProxyConfig } = require('./network/cert-utils');
 const collectionWatcher = require('../app/collection-watcher');
 const { transformBrunoConfigBeforeSave } = require('../utils/transformBrunoConfig');
@@ -1761,6 +1763,17 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
               forceFetch: true
             }).then(handleOAuth2Response);
 
+          case 'openid_code':
+          case 'openid_hybrid':
+            interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
+            return await getOIDCToken({
+              request: requestCopy,
+              collectionUid,
+              forceFetch: true,
+              certsAndProxyConfigForTokenUrl,
+              certsAndProxyConfigForRefreshUrl
+            }).then(handleOAuth2Response);
+
           default:
             return {
               error: `Unsupported grant type: ${grantType}`,
@@ -1773,6 +1786,44 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
       }
     } catch (error) {
       return Promise.reject(error);
+    }
+  });
+
+  // OpenID Connect Discovery — fetch /.well-known/openid-configuration from an OP issuer URL.
+  ipcMain.handle('renderer:oidc-discover', async (event, { issuerUrl, collection }) => {
+    try {
+      const collectionUid = collection?.uid;
+      const collectionPath = collection?.pathname;
+      const { runtimeVariables, environments = [], activeEnvironmentUid, globalEnvironmentVariables } = collection || {};
+      const environment = _.find(environments, (e) => e.uid === activeEnvironmentUid);
+      const envVars = getEnvVars(environment);
+      const processEnvVars = getProcessEnvVars(collectionUid);
+      const interpolated = interpolateString(issuerUrl, {
+        globalEnvironmentVariables,
+        envVars,
+        processEnvVars,
+        runtimeVariables
+      });
+      const certsAndProxyConfig = await getCertsAndProxyConfig({
+        collectionUid,
+        collection,
+        request: { url: interpolated },
+        envVars,
+        runtimeVariables,
+        processEnvVars,
+        collectionPath,
+        globalEnvironmentVariables
+      });
+      const axiosInstance = makeAxiosInstance({
+        proxyMode: certsAndProxyConfig.proxyMode,
+        proxyConfig: certsAndProxyConfig.proxyConfig,
+        httpsAgentRequestFields: certsAndProxyConfig.httpsAgentRequestFields,
+        interpolationOptions: certsAndProxyConfig.interpolationOptions
+      });
+      const metadata = await fetchOpenIDConfiguration(interpolated, axiosInstance);
+      return metadata;
+    } catch (error) {
+      return Promise.reject(error?.response?.data || error?.message || error);
     }
   });
 

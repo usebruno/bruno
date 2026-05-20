@@ -107,6 +107,12 @@ export const parseBruRequest = (data: string | any, parsed: boolean = false): an
       if (hasAdditionalParameters) {
         transformedJson.request.auth.oauth2.additionalParameters = additionalParameters;
       }
+
+      // OIDC JAR — RFC 9101. Custom claims merged into the signed Request Object.
+      const requestObjectClaims = (json as any).oauth2_request_object_additional_claims;
+      if (Array.isArray(requestObjectClaims) && requestObjectClaims.length > 0) {
+        transformedJson.request.auth.oauth2.requestObjectAdditionalClaims = requestObjectClaims;
+      }
     }
     return transformedJson;
   } catch (error) {
@@ -261,6 +267,10 @@ export const parseBruCollection = (data: string | any, parsed: boolean = false):
     // add oauth2 additional parameters if they exist
     const hasOauth2GrantType = json?.auth?.oauth2?.grantType;
     if (hasOauth2GrantType) {
+      const requestObjectClaims = (json as any).oauth2_request_object_additional_claims;
+      if (Array.isArray(requestObjectClaims) && requestObjectClaims.length > 0) {
+        transformedJson.request.auth.oauth2.requestObjectAdditionalClaims = requestObjectClaims;
+      }
       const additionalParameters = getOauth2AdditionalParameters(json);
       const hasAdditionalParameters = Object.keys(additionalParameters).length > 0;
       if (hasAdditionalParameters) {

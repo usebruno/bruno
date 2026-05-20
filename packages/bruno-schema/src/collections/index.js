@@ -311,9 +311,24 @@ const tokenEndpointAuthSigningAlgValues = [
   'EdDSA'
 ];
 
+// Grant types that hit the authorization endpoint (PKCE, OIDC, JAR, PAR may apply).
+const authorizationFlowGrantTypes = [
+  'authorization_code',
+  'implicit',
+  'openid_code',
+  'openid_hybrid'
+];
+
+// Grant types that issue ID tokens / accept OIDC parameters.
+const oidcGrantTypes = ['openid_code', 'openid_hybrid'];
+
+const oidcResponseTypeValues = ['code', 'code id_token', 'code id_token token'];
+const oidcResponseModeValues = ['query', 'fragment'];
+const oidcPromptValues = ['none', 'login', 'consent', 'select_account'];
+
 const oauth2Schema = Yup.object({
   grantType: Yup.string()
-    .oneOf(['client_credentials', 'password', 'authorization_code', 'implicit'])
+    .oneOf(['client_credentials', 'password', 'authorization_code', 'implicit', 'openid_code', 'openid_hybrid'])
     .required('grantType is required'),
   username: Yup.string().when('grantType', {
     is: (val) => ['client_credentials', 'password'].includes(val),
@@ -326,134 +341,214 @@ const oauth2Schema = Yup.object({
     otherwise: Yup.string().nullable().strip()
   }),
   callbackUrl: Yup.string().when('grantType', {
-    is: (val) => ['authorization_code', 'implicit'].includes(val),
+    is: (val) => ['authorization_code', 'implicit', 'openid_code', 'openid_hybrid'].includes(val),
     then: Yup.string().nullable(),
     otherwise: Yup.string().nullable().strip()
   }),
   authorizationUrl: Yup.string().when('grantType', {
-    is: (val) => ['authorization_code', 'implicit'].includes(val),
+    is: (val) => ['authorization_code', 'implicit', 'openid_code', 'openid_hybrid'].includes(val),
     then: Yup.string().nullable(),
     otherwise: Yup.string().nullable().strip()
   }),
   accessTokenUrl: Yup.string().when('grantType', {
-    is: (val) => ['client_credentials', 'password', 'authorization_code'].includes(val),
+    is: (val) => ['client_credentials', 'password', 'authorization_code', 'openid_code', 'openid_hybrid'].includes(val),
     then: Yup.string().nullable(),
     otherwise: Yup.string().nullable().strip()
   }),
   clientId: Yup.string().when('grantType', {
-    is: (val) => ['client_credentials', 'password', 'authorization_code', 'implicit'].includes(val),
+    is: (val) => ['client_credentials', 'password', 'authorization_code', 'implicit', 'openid_code', 'openid_hybrid'].includes(val),
     then: Yup.string().nullable(),
     otherwise: Yup.string().nullable().strip()
   }),
   clientSecret: Yup.string().when('grantType', {
-    is: (val) => ['client_credentials', 'password', 'authorization_code'].includes(val),
+    is: (val) => ['client_credentials', 'password', 'authorization_code', 'openid_code', 'openid_hybrid'].includes(val),
     then: Yup.string().nullable(),
     otherwise: Yup.string().nullable().strip()
   }),
   scope: Yup.string().when('grantType', {
-    is: (val) => ['client_credentials', 'password', 'authorization_code', 'implicit'].includes(val),
+    is: (val) => ['client_credentials', 'password', 'authorization_code', 'implicit', 'openid_code', 'openid_hybrid'].includes(val),
     then: Yup.string().nullable(),
     otherwise: Yup.string().nullable().strip()
   }),
   state: Yup.string().when('grantType', {
-    is: (val) => ['authorization_code', 'implicit'].includes(val),
+    is: (val) => ['authorization_code', 'implicit', 'openid_code', 'openid_hybrid'].includes(val),
     then: Yup.string().nullable(),
     otherwise: Yup.string().nullable().strip()
   }),
   pkce: Yup.boolean().when('grantType', {
-    is: (val) => ['authorization_code'].includes(val),
+    is: (val) => ['authorization_code', 'openid_code', 'openid_hybrid'].includes(val),
     then: Yup.boolean().default(false),
     otherwise: Yup.boolean()
   }),
   credentialsPlacement: Yup.string().when('grantType', {
-    is: (val) => ['client_credentials', 'password', 'authorization_code'].includes(val),
+    is: (val) => ['client_credentials', 'password', 'authorization_code', 'openid_code', 'openid_hybrid'].includes(val),
     then: Yup.string().nullable(),
     otherwise: Yup.string().nullable().strip()
   }),
   tokenEndpointAuthMethod: Yup.string().when('grantType', {
-    is: (val) => ['client_credentials', 'password', 'authorization_code'].includes(val),
+    is: (val) => ['client_credentials', 'password', 'authorization_code', 'openid_code', 'openid_hybrid'].includes(val),
     then: Yup.string().oneOf(tokenEndpointAuthMethodValues).nullable(),
     otherwise: Yup.string().nullable().strip()
   }),
   tokenEndpointAuthSigningAlg: Yup.string().when('grantType', {
-    is: (val) => ['client_credentials', 'password', 'authorization_code'].includes(val),
+    is: (val) => ['client_credentials', 'password', 'authorization_code', 'openid_code', 'openid_hybrid'].includes(val),
     then: Yup.string().oneOf(tokenEndpointAuthSigningAlgValues).nullable(),
     otherwise: Yup.string().nullable().strip()
   }),
   privateKey: Yup.string().when('grantType', {
-    is: (val) => ['client_credentials', 'password', 'authorization_code'].includes(val),
+    is: (val) => ['client_credentials', 'password', 'authorization_code', 'openid_code', 'openid_hybrid'].includes(val),
     then: Yup.string().nullable(),
     otherwise: Yup.string().nullable().strip()
   }),
   privateKeyType: Yup.string().when('grantType', {
-    is: (val) => ['client_credentials', 'password', 'authorization_code'].includes(val),
+    is: (val) => ['client_credentials', 'password', 'authorization_code', 'openid_code', 'openid_hybrid'].includes(val),
     then: Yup.string().oneOf(['text', 'file']).nullable(),
     otherwise: Yup.string().nullable().strip()
   }),
   privateKeyFormat: Yup.string().when('grantType', {
-    is: (val) => ['client_credentials', 'password', 'authorization_code'].includes(val),
+    is: (val) => ['client_credentials', 'password', 'authorization_code', 'openid_code', 'openid_hybrid'].includes(val),
     then: Yup.string().oneOf(['pem', 'jwk']).nullable(),
     otherwise: Yup.string().nullable().strip()
   }),
   keyId: Yup.string().when('grantType', {
-    is: (val) => ['client_credentials', 'password', 'authorization_code'].includes(val),
+    is: (val) => ['client_credentials', 'password', 'authorization_code', 'openid_code', 'openid_hybrid'].includes(val),
     then: Yup.string().nullable(),
     otherwise: Yup.string().nullable().strip()
   }),
   audience: Yup.string().when('grantType', {
-    is: (val) => ['client_credentials', 'password', 'authorization_code'].includes(val),
+    is: (val) => ['client_credentials', 'password', 'authorization_code', 'openid_code', 'openid_hybrid'].includes(val),
     then: Yup.string().nullable(),
     otherwise: Yup.string().nullable().strip()
   }),
   assertionLifetime: Yup.number().when('grantType', {
-    is: (val) => ['client_credentials', 'password', 'authorization_code'].includes(val),
+    is: (val) => ['client_credentials', 'password', 'authorization_code', 'openid_code', 'openid_hybrid'].includes(val),
     then: Yup.number().integer().positive().nullable(),
     otherwise: Yup.number().nullable().strip()
   }),
   additionalClaims: Yup.array().when('grantType', {
-    is: (val) => ['client_credentials', 'password', 'authorization_code'].includes(val),
+    is: (val) => ['client_credentials', 'password', 'authorization_code', 'openid_code', 'openid_hybrid'].includes(val),
     then: Yup.array().of(oauth2AdditionalClaimSchema).nullable(),
     otherwise: Yup.array().nullable().strip()
   }),
+  issuer: Yup.string().when('grantType', {
+    is: (val) => oidcGrantTypes.includes(val),
+    then: Yup.string().nullable(),
+    otherwise: Yup.string().nullable().strip()
+  }),
+  responseType: Yup.string().when('grantType', {
+    is: (val) => oidcGrantTypes.includes(val),
+    then: Yup.string().oneOf(oidcResponseTypeValues).nullable(),
+    otherwise: Yup.string().nullable().strip()
+  }),
+  responseMode: Yup.string().when('grantType', {
+    is: (val) => oidcGrantTypes.includes(val),
+    then: Yup.string().oneOf(oidcResponseModeValues).nullable(),
+    otherwise: Yup.string().nullable().strip()
+  }),
+  nonce: Yup.string().when('grantType', {
+    is: (val) => oidcGrantTypes.includes(val),
+    then: Yup.string().nullable(),
+    otherwise: Yup.string().nullable().strip()
+  }),
+  prompt: Yup.string().when('grantType', {
+    is: (val) => oidcGrantTypes.includes(val),
+    then: Yup.string().nullable(),
+    otherwise: Yup.string().nullable().strip()
+  }),
+  loginHint: Yup.string().when('grantType', {
+    is: (val) => oidcGrantTypes.includes(val),
+    then: Yup.string().nullable(),
+    otherwise: Yup.string().nullable().strip()
+  }),
+  maxAge: Yup.number().when('grantType', {
+    is: (val) => oidcGrantTypes.includes(val),
+    then: Yup.number().integer().positive().nullable(),
+    otherwise: Yup.number().nullable().strip()
+  }),
+  acrValues: Yup.string().when('grantType', {
+    is: (val) => oidcGrantTypes.includes(val),
+    then: Yup.string().nullable(),
+    otherwise: Yup.string().nullable().strip()
+  }),
+  useRequestObject: Yup.boolean().when('grantType', {
+    is: (val) => oidcGrantTypes.includes(val),
+    then: Yup.boolean().nullable(),
+    otherwise: Yup.boolean().nullable().strip()
+  }),
+  requestObjectSigningAlg: Yup.string().when('grantType', {
+    is: (val) => oidcGrantTypes.includes(val),
+    then: Yup.string().oneOf(tokenEndpointAuthSigningAlgValues).nullable(),
+    otherwise: Yup.string().nullable().strip()
+  }),
+  requestObjectAdditionalClaims: Yup.array().when('grantType', {
+    is: (val) => oidcGrantTypes.includes(val),
+    then: Yup.array().of(oauth2AdditionalClaimSchema).nullable(),
+    otherwise: Yup.array().nullable().strip()
+  }),
+  usePAR: Yup.boolean().when('grantType', {
+    is: (val) => oidcGrantTypes.includes(val),
+    then: Yup.boolean().nullable(),
+    otherwise: Yup.boolean().nullable().strip()
+  }),
+  parEndpoint: Yup.string().when('grantType', {
+    is: (val) => oidcGrantTypes.includes(val),
+    then: Yup.string().nullable(),
+    otherwise: Yup.string().nullable().strip()
+  }),
+  jwksUri: Yup.string().when('grantType', {
+    is: (val) => oidcGrantTypes.includes(val),
+    then: Yup.string().nullable(),
+    otherwise: Yup.string().nullable().strip()
+  }),
+  userinfoEndpoint: Yup.string().when('grantType', {
+    is: (val) => oidcGrantTypes.includes(val),
+    then: Yup.string().nullable(),
+    otherwise: Yup.string().nullable().strip()
+  }),
+  endSessionEndpoint: Yup.string().when('grantType', {
+    is: (val) => oidcGrantTypes.includes(val),
+    then: Yup.string().nullable(),
+    otherwise: Yup.string().nullable().strip()
+  }),
   credentialsId: Yup.string().when('grantType', {
-    is: (val) => ['client_credentials', 'password', 'authorization_code', 'implicit'].includes(val),
+    is: (val) => ['client_credentials', 'password', 'authorization_code', 'implicit', 'openid_code', 'openid_hybrid'].includes(val),
     then: Yup.string().nullable(),
     otherwise: Yup.string().nullable().strip()
   }),
   tokenSource: Yup.string().when('grantType', {
-    is: (val) => ['client_credentials', 'password', 'authorization_code', 'implicit'].includes(val),
+    is: (val) => ['client_credentials', 'password', 'authorization_code', 'implicit', 'openid_code', 'openid_hybrid'].includes(val),
     then: Yup.string().oneOf(['access_token', 'id_token']).optional(),
     otherwise: Yup.string().optional().strip()
   }),
   tokenPlacement: Yup.string().when('grantType', {
-    is: (val) => ['client_credentials', 'password', 'authorization_code', 'implicit'].includes(val),
+    is: (val) => ['client_credentials', 'password', 'authorization_code', 'implicit', 'openid_code', 'openid_hybrid'].includes(val),
     then: Yup.string().nullable(),
     otherwise: Yup.string().nullable().strip()
   }),
   tokenHeaderPrefix: Yup.string().when(['grantType', 'tokenPlacement'], {
     is: (grantType, tokenPlacement) => 
-      ['client_credentials', 'password', 'authorization_code', 'implicit'].includes(grantType) && tokenPlacement === 'header',
+      ['client_credentials', 'password', 'authorization_code', 'implicit', 'openid_code', 'openid_hybrid'].includes(grantType) && tokenPlacement === 'header',
     then: Yup.string().nullable(),
     otherwise: Yup.string().nullable().strip()
   }),
   tokenQueryKey: Yup.string().when(['grantType', 'tokenPlacement'], {
     is: (grantType, tokenPlacement) => 
-      ['client_credentials', 'password', 'authorization_code', 'implicit'].includes(grantType) && tokenPlacement === 'url',
+      ['client_credentials', 'password', 'authorization_code', 'implicit', 'openid_code', 'openid_hybrid'].includes(grantType) && tokenPlacement === 'url',
     then: Yup.string().nullable(),
     otherwise: Yup.string().nullable().strip()
   }),
   refreshTokenUrl: Yup.string().when('grantType', {
-    is: (val) => ['client_credentials', 'password', 'authorization_code'].includes(val),
+    is: (val) => ['client_credentials', 'password', 'authorization_code', 'openid_code', 'openid_hybrid'].includes(val),
     then: Yup.string().nullable(),
     otherwise: Yup.string().nullable().strip()
   }),
   autoRefreshToken: Yup.boolean().when('grantType', {
-    is: (val) => ['client_credentials', 'password', 'authorization_code'].includes(val),
+    is: (val) => ['client_credentials', 'password', 'authorization_code', 'openid_code', 'openid_hybrid'].includes(val),
     then: Yup.boolean().default(false),
     otherwise: Yup.boolean()
   }),
   autoFetchToken: Yup.boolean().when('grantType', {
-    is: (val) => ['authorization_code', 'implicit'].includes(val),
+    is: (val) => ['authorization_code', 'implicit', 'openid_code', 'openid_hybrid'].includes(val),
     then: Yup.boolean().default(true),
     otherwise: Yup.boolean()
   }),

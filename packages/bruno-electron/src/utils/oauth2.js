@@ -4,7 +4,12 @@ const { authorizeUserInWindow } = require('../ipc/network/authorize-user-in-wind
 const { authorizeUserInSystemBrowser } = require('../ipc/network/authorize-user-in-system-browser');
 const Oauth2Store = require('../store/oauth2');
 const { makeAxiosInstance } = require('../ipc/network/axios-instance');
-const { applyTokenEndpointAuth } = require('@usebruno/requests');
+const {
+  applyTokenEndpointAuth,
+  buildAuthorizationRequest,
+  pushAuthorizationRequest,
+  fetchOpenIDConfiguration
+} = require('@usebruno/requests');
 const { safeParseJSON, safeStringifyJSON } = require('./common');
 const { preferencesUtil } = require('../store/preferences');
 const qs = require('qs');
@@ -919,6 +924,241 @@ const updateCollectionOauth2Credentials = ({ collectionUid, itemUid, collectionO
   return filteredOauth2Credentials;
 };
 
+// ============================================================================
+// OpenID Connect — Code Flow (openid_code) and Hybrid Flow (openid_hybrid)
+// ============================================================================
+// Same authorization-code grant exchange as OAuth2, with the following additions:
+//   - OIDC params (nonce/prompt/login_hint/max_age/acr_values) sent to the authorization endpoint
+//   - Signed Request Object (JAR — RFC 9101): authz params packed into a JWT
+//   - Pushed Authorization Request (PAR — RFC 9126): JWT or params POSTed to the OP's PAR
+//     endpoint to obtain a request_uri
+//   - Hybrid Flow: response_type contains id_token, returned in the URL fragment alongside the
+//     authorization code
+//
+// The token-exchange step is identical to the existing authorization_code flow.
+
+const getOIDCToken = async ({ request, collectionUid, forceFetch = false, certsAndProxyConfigForTokenUrl, certsAndProxyConfigForRefreshUrl }) => {
+  let codeVerifier = generateCodeVerifier();
+  let codeChallenge = generateCodeChallenge(codeVerifier);
+
+  let requestCopy = cloneDeep(request);
+  const oAuth = get(requestCopy, 'oauth2', {});
+  const {
+    grantType,
+    clientId,
+    clientSecret,
+    callbackUrl,
+    scope,
+    pkce,
+    authorizationUrl,
+    credentialsId,
+    autoRefreshToken,
+    autoFetchToken,
+    additionalParameters,
+    useRequestObject,
+    usePAR,
+    parEndpoint
+  } = oAuth;
+  const effectiveCallbackUrl = callbackUrl && callbackUrl.length ? callbackUrl : BRUNO_OAUTH2_CALLBACK_URL;
+  const url = oAuth.accessTokenUrl;
+
+  if (!authorizationUrl) {
+    return { error: 'Authorization URL is required for OpenID Connect', credentials: null, url, credentialsId };
+  }
+  if (!url) {
+    return { error: 'Access Token URL is required for OpenID Connect', credentials: null, url: authorizationUrl, credentialsId };
+  }
+  if (!clientId) {
+    return { error: 'Client ID is required for OpenID Connect', credentials: null, url, credentialsId };
+  }
+  if (usePAR && !parEndpoint) {
+    return { error: 'PAR is enabled but par_endpoint is not configured', credentials: null, url, credentialsId };
+  }
+
+  // Reuse the existing cache + auto-refresh logic from the auth-code path.
+  if (!forceFetch) {
+    const storedCredentials = getStoredOauth2Credentials({ collectionUid, url, credentialsId });
+    if (storedCredentials) {
+      if (!isTokenExpired(storedCredentials)) {
+        return { collectionUid, url, credentials: storedCredentials, credentialsId };
+      } else if (autoRefreshToken && storedCredentials.refresh_token) {
+        try {
+          const refreshed = await refreshOauth2Token({ requestCopy, collectionUid, certsAndProxyConfig: certsAndProxyConfigForRefreshUrl });
+          return { collectionUid, url, credentials: refreshed.credentials, credentialsId };
+        } catch (error) {
+          clearOauth2Credentials({ collectionUid, url, credentialsId });
+          if (!autoFetchToken) {
+            return { collectionUid, url, credentials: storedCredentials, credentialsId };
+          }
+        }
+      } else if (autoRefreshToken && !storedCredentials.refresh_token) {
+        if (autoFetchToken) {
+          clearOauth2Credentials({ collectionUid, url, credentialsId });
+        } else {
+          return { collectionUid, url, credentials: storedCredentials, credentialsId };
+        }
+      } else if (!autoRefreshToken && autoFetchToken) {
+        clearOauth2Credentials({ collectionUid, url, credentialsId });
+      } else {
+        return { collectionUid, url, credentials: storedCredentials, credentialsId };
+      }
+    } else if (!autoFetchToken) {
+      return { collectionUid, url, credentials: storedCredentials, credentialsId };
+    }
+  }
+
+  // 1. Build the authorization request (params + optional signed Request Object).
+  const { params: authzParams, signedRequest, effectiveNonce } = await buildAuthorizationRequest({
+    clientId,
+    redirectUri: effectiveCallbackUrl,
+    scope,
+    state: oAuth.state,
+    codeChallenge: pkce ? codeChallenge : undefined,
+    codeChallengeMethod: pkce ? 'S256' : undefined,
+    responseType: oAuth.responseType || (grantType === 'openid_hybrid' ? 'code id_token' : 'code'),
+    responseMode: oAuth.responseMode,
+    nonce: oAuth.nonce,
+    prompt: oAuth.prompt,
+    loginHint: oAuth.loginHint,
+    maxAge: oAuth.maxAge,
+    acrValues: oAuth.acrValues,
+    additionalAuthorizationParams: additionalParameters?.authorization,
+    useRequestObject,
+    requestObjectSigningAlg: oAuth.requestObjectSigningAlg,
+    requestObjectAdditionalClaims: oAuth.requestObjectAdditionalClaims,
+    clientSecret,
+    privateKey: oAuth.privateKey,
+    privateKeyType: oAuth.privateKeyType,
+    privateKeyFormat: oAuth.privateKeyFormat,
+    keyId: oAuth.keyId,
+    collectionPath: undefined, // private keys are absolute paths in current UI
+    issuer: oAuth.issuer,
+    accessTokenUrl: url
+  });
+
+  // Remember the effective nonce so we can persist it alongside the credentials for later
+  // ID-Token validation.
+  oAuth.nonce = effectiveNonce;
+
+  // 2. PAR (RFC 9126) — POST the request to the OP's pushed_authorization_request_endpoint.
+  let authorizeUrl;
+  let parDebugInfo = null;
+  if (usePAR && parEndpoint) {
+    const axiosInstance = makeAxiosInstance({
+      proxyMode: certsAndProxyConfigForTokenUrl?.proxyMode,
+      proxyConfig: certsAndProxyConfigForTokenUrl?.proxyConfig,
+      httpsAgentRequestFields: certsAndProxyConfigForTokenUrl?.httpsAgentRequestFields,
+      interpolationOptions: certsAndProxyConfigForTokenUrl?.interpolationOptions
+    });
+    try {
+      const { request_uri } = await pushAuthorizationRequest({
+        parEndpoint,
+        clientId,
+        params: authzParams,
+        signedRequest,
+        clientAuth: { ...oAuth, accessTokenUrl: url },
+        axiosInstance
+      });
+      const u = new URL(authorizationUrl);
+      u.searchParams.set('client_id', clientId);
+      u.searchParams.set('request_uri', request_uri);
+      authorizeUrl = u.toString();
+    } catch (error) {
+      return Promise.reject(safeStringifyJSON(error?.response?.data || error?.message || 'PAR request failed'));
+    }
+  } else if (signedRequest) {
+    // JAR by-value — append `request=<JWT>` to the authz URL.
+    const u = new URL(authorizationUrl);
+    u.searchParams.set('client_id', clientId);
+    u.searchParams.set('request', signedRequest);
+    authorizeUrl = u.toString();
+  } else {
+    // No JAR / no PAR — append all params to the authz URL.
+    const u = new URL(authorizationUrl);
+    for (const [k, v] of Object.entries(authzParams)) {
+      u.searchParams.set(k, v);
+    }
+    if (additionalParameters?.authorization?.length) {
+      additionalParameters.authorization.forEach((param) => {
+        if (param.enabled && param.name && param.sendIn === 'queryparams') {
+          u.searchParams.set(param.name, param.value || '');
+        }
+      });
+    }
+    authorizeUrl = u.toString();
+  }
+
+  // 3. Open the browser and let the user authenticate.
+  const useSystemBrowser = preferencesUtil.shouldUseSystemBrowser();
+  const authorizeFunction = useSystemBrowser ? authorizeUserInSystemBrowser : authorizeUserInWindow;
+  let authorizationCode;
+  let hybridTokens;
+  let browserDebugInfo;
+  try {
+    const result = await authorizeFunction({
+      authorizeUrl,
+      callbackUrl: effectiveCallbackUrl,
+      session: oauth2Store.getSessionIdOfCollection({ collectionUid, url }),
+      additionalHeaders: getAdditionalHeaders(additionalParameters?.authorization),
+      grantType
+    });
+    authorizationCode = result.authorizationCode;
+    hybridTokens = result.hybridTokens;
+    browserDebugInfo = result.debugInfo;
+  } catch (err) {
+    return Promise.reject(safeStringifyJSON({ error: err?.message || 'Authorization failed' }));
+  }
+
+  if (!authorizationCode) {
+    return Promise.reject(safeStringifyJSON({ error: 'No authorization code returned' }));
+  }
+
+  // 4. Token exchange — identical to the auth-code flow.
+  let axiosRequestConfig = {
+    method: 'POST',
+    url,
+    headers: {
+      'content-type': 'application/x-www-form-urlencoded',
+      'Accept': 'application/json'
+    },
+    responseType: 'arraybuffer'
+  };
+  const data = {
+    grant_type: 'authorization_code',
+    code: authorizationCode,
+    redirect_uri: effectiveCallbackUrl
+  };
+  if (pkce) {
+    data.code_verifier = codeVerifier;
+  }
+  const clientAuth = await applyTokenEndpointAuth({ ...oAuth, accessTokenUrl: url });
+  Object.assign(axiosRequestConfig.headers, clientAuth.headers);
+  Object.assign(data, clientAuth.bodyParams);
+  if (additionalParameters?.token?.length) {
+    applyAdditionalParameters(axiosRequestConfig, data, additionalParameters.token);
+  }
+  axiosRequestConfig.data = qs.stringify(data);
+
+  try {
+    const { credentials, requestDetails } = await getCredentialsFromTokenUrl({ requestConfig: axiosRequestConfig, certsAndProxyConfig: certsAndProxyConfigForTokenUrl });
+    // Hybrid Flow: id_token may also have been returned in the authorization-response fragment.
+    // If the token exchange didn't supply one, fall back to the fragment id_token.
+    if (hybridTokens?.id_token && credentials && !credentials.id_token) {
+      credentials.id_token = hybridTokens.id_token;
+    }
+    if (credentials && effectiveNonce) {
+      credentials.nonce = effectiveNonce;
+    }
+    const debugInfo = { data: [requestDetails].filter(Boolean) };
+    if (browserDebugInfo) debugInfo.data.unshift(...(browserDebugInfo.data || []));
+    if (parDebugInfo) debugInfo.data.unshift(parDebugInfo);
+    credentials && persistOauth2Credentials({ collectionUid, url, credentials, credentialsId });
+    return { collectionUid, url, credentials, credentialsId, debugInfo };
+  } catch (error) {
+    return Promise.reject(safeStringifyJSON(error?.response?.data));
+  }
+};
+
 module.exports = {
   persistOauth2Credentials,
   clearOauth2Credentials,
@@ -928,6 +1168,7 @@ module.exports = {
   getOAuth2TokenUsingClientCredentials,
   getOAuth2TokenUsingPasswordCredentials,
   getOAuth2TokenUsingImplicitGrant,
+  getOIDCToken,
   refreshOauth2Token,
   generateCodeVerifier,
   generateCodeChallenge,

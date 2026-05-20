@@ -2,6 +2,11 @@ export {
   addDigestInterceptor,
   getOAuth2Token,
   applyTokenEndpointAuth,
+  signJwt,
+  resolveJwtSigningKey,
+  buildAuthorizationRequest,
+  pushAuthorizationRequest,
+  fetchOpenIDConfiguration,
   createOAuth1Authorizer,
   computeBodyHash,
   applyOAuth1ToRequest
@@ -11,7 +16,16 @@ export type {
   TokenEndpointAuthSigningAlg,
   TokenEndpointAuthOptions,
   TokenEndpointAuthResult,
-  AdditionalClaim
+  AdditionalClaim,
+  SignJwtOptions,
+  JwtSigningKeyOptions,
+  ResolvedJwtSigningKey,
+  AuthorizationRequestOptions,
+  AuthorizationRequestResult,
+  AuthorizationRequestAdditionalParam,
+  AuthorizationRequestAdditionalClaim,
+  PushAuthorizationRequestOptions,
+  OidcMetadata
 } from './auth';
 export { GrpcClient, generateGrpcSampleMessage } from './grpc';
 export { WsClient } from './ws/ws-client';

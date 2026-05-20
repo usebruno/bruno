@@ -219,8 +219,25 @@ const authorizeUserInWindow = ({ authorizeUrl, callbackUrl, session, additionalH
             };
 
             return resolve({ implicitTokens, debugInfo });
+          } else if (grantType === 'openid_hybrid') {
+            // OpenID Connect Hybrid Flow (OIDC Core 1.0 §3.3): response_type contains `id_token`
+            // (and may also include `token`). The OP returns the response in the URL fragment.
+            // We extract both the authorization code (for the subsequent token exchange) and the
+            // id_token / access_token / state from the fragment.
+            const callbackUrlObj = new URL(finalUrl);
+            const hash = callbackUrlObj.hash.substring(1);
+            const hashParams = new URLSearchParams(hash);
+            const authorizationCode = callbackUrlObj.searchParams.get('code') || hashParams.get('code');
+            const hybridTokens = {
+              id_token: hashParams.get('id_token'),
+              access_token: hashParams.get('access_token'),
+              token_type: hashParams.get('token_type'),
+              expires_in: hashParams.get('expires_in'),
+              state: hashParams.get('state')
+            };
+            return resolve({ authorizationCode, hybridTokens, debugInfo });
           } else {
-            // Default case - authorization code flow
+            // Default case - authorization code flow (incl. openid_code)
             const callbackUrlWithCode = new URL(finalUrl);
             const authorizationCode = callbackUrlWithCode.searchParams.get('code');
             return resolve({ authorizationCode, debugInfo });

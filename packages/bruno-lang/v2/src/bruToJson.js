@@ -41,8 +41,8 @@ const grammar = ohm.grammar(`Bru {
   params = paramspath | paramsquery
   
   // Oauth2 additional parameters
-  authOauth2Configs = oauth2AuthReqConfig | oauth2AccessTokenReqConfig | oauth2RefreshTokenReqConfig
-  oauth2AuthReqConfig = oauth2AuthReqHeaders | oauth2AuthReqQueryParams 
+  authOauth2Configs = oauth2AuthReqConfig | oauth2AccessTokenReqConfig | oauth2RefreshTokenReqConfig | oauth2RequestObjectAdditionalClaims
+  oauth2AuthReqConfig = oauth2AuthReqHeaders | oauth2AuthReqQueryParams
   oauth2AccessTokenReqConfig = oauth2AccessTokenReqHeaders | oauth2AccessTokenReqQueryParams | oauth2AccessTokenReqBody
   oauth2RefreshTokenReqConfig = oauth2RefreshTokenReqHeaders | oauth2RefreshTokenReqQueryParams | oauth2RefreshTokenReqBody
  
@@ -155,6 +155,7 @@ const grammar = ohm.grammar(`Bru {
   oauth2RefreshTokenReqHeaders = "auth:oauth2:additional_params:refresh_token_req:headers" dictionary
   oauth2RefreshTokenReqQueryParams = "auth:oauth2:additional_params:refresh_token_req:queryparams" dictionary
   oauth2RefreshTokenReqBody = "auth:oauth2:additional_params:refresh_token_req:body" dictionary
+  oauth2RequestObjectAdditionalClaims = "auth:oauth2:request_object_additional_claims" dictionary
 
   body = "body" st* "{" nl* textblock tagend
   bodyjson = "body:json" st* "{" nl* textblock tagend
@@ -843,6 +844,22 @@ const sem = grammar.createSemantics().addAttribute('ast', {
     const keyIdKey = _.find(auth, { name: 'key_id' });
     const audienceKey = _.find(auth, { name: 'audience' });
     const assertionLifetimeKey = _.find(auth, { name: 'assertion_lifetime' });
+    // OpenID Connect (openid_code, openid_hybrid grant types) — RFC 9101 JAR, RFC 9126 PAR, OIDC Core
+    const issuerKey = _.find(auth, { name: 'issuer' });
+    const responseTypeKey = _.find(auth, { name: 'response_type' });
+    const responseModeKey = _.find(auth, { name: 'response_mode' });
+    const nonceKey = _.find(auth, { name: 'nonce' });
+    const promptKey = _.find(auth, { name: 'prompt' });
+    const loginHintKey = _.find(auth, { name: 'login_hint' });
+    const maxAgeKey = _.find(auth, { name: 'max_age' });
+    const acrValuesKey = _.find(auth, { name: 'acr_values' });
+    const useRequestObjectKey = _.find(auth, { name: 'use_request_object' });
+    const requestObjectSigningAlgKey = _.find(auth, { name: 'request_object_signing_alg' });
+    const usePARKey = _.find(auth, { name: 'use_par' });
+    const parEndpointKey = _.find(auth, { name: 'par_endpoint' });
+    const jwksUriKey = _.find(auth, { name: 'jwks_uri' });
+    const userinfoEndpointKey = _.find(auth, { name: 'userinfo_endpoint' });
+    const endSessionEndpointKey = _.find(auth, { name: 'end_session_endpoint' });
 
     // tokenEndpointAuthMethod (RFC 7591 §2 / OIDC Core §9) supersedes the legacy credentials_placement
     // field. Read the new key first; fall back to mapping the legacy values so old collections still
@@ -956,7 +973,51 @@ const sem = grammar.createSemantics().addAttribute('ast', {
                       tokenQueryKey: tokenQueryKeyKey?.value ? tokenQueryKeyKey.value : 'access_token',
                       autoFetchToken: autoFetchTokenKey ? safeParseJson(autoFetchTokenKey?.value) ?? true : true
                     }
-                  : {}
+                  : (grantTypeKey?.value === 'openid_code' || grantTypeKey?.value === 'openid_hybrid')
+                      ? {
+                          grantType: grantTypeKey.value,
+                          callbackUrl: callbackUrlKey ? callbackUrlKey.value : '',
+                          authorizationUrl: authorizationUrlKey ? authorizationUrlKey.value : '',
+                          accessTokenUrl: accessTokenUrlKey ? accessTokenUrlKey.value : '',
+                          refreshTokenUrl: refreshTokenUrlKey ? refreshTokenUrlKey.value : '',
+                          clientId: clientIdKey ? clientIdKey.value : '',
+                          clientSecret: clientSecretKey ? clientSecretKey.value : '',
+                          scope: scopeKey ? scopeKey.value : '',
+                          state: stateKey ? stateKey.value : '',
+                          pkce: pkceKey ? safeParseJson(pkceKey?.value) ?? false : false,
+                          tokenEndpointAuthMethod,
+                          tokenEndpointAuthSigningAlg: tokenEndpointAuthSigningAlgKey?.value || '',
+                          privateKey,
+                          privateKeyType,
+                          privateKeyFormat: privateKeyFormatKey?.value || '',
+                          keyId: keyIdKey?.value || '',
+                          audience: audienceKey?.value || '',
+                          assertionLifetime: assertionLifetimeKey?.value ? safeParseJson(assertionLifetimeKey.value) : null,
+                          // OIDC + JAR + PAR specifics
+                          issuer: issuerKey?.value || '',
+                          responseType: responseTypeKey?.value || (grantTypeKey.value === 'openid_hybrid' ? 'code id_token' : 'code'),
+                          responseMode: responseModeKey?.value || '',
+                          nonce: nonceKey?.value || '',
+                          prompt: promptKey?.value || '',
+                          loginHint: loginHintKey?.value || '',
+                          maxAge: maxAgeKey?.value ? safeParseJson(maxAgeKey.value) : null,
+                          acrValues: acrValuesKey?.value || '',
+                          useRequestObject: useRequestObjectKey ? safeParseJson(useRequestObjectKey?.value) ?? false : false,
+                          requestObjectSigningAlg: requestObjectSigningAlgKey?.value || '',
+                          usePAR: usePARKey ? safeParseJson(usePARKey?.value) ?? false : false,
+                          parEndpoint: parEndpointKey?.value || '',
+                          jwksUri: jwksUriKey?.value || '',
+                          userinfoEndpoint: userinfoEndpointKey?.value || '',
+                          endSessionEndpoint: endSessionEndpointKey?.value || '',
+                          credentialsId: credentialsIdKey?.value ? credentialsIdKey.value : 'credentials',
+                          tokenSource: tokenSourceKey?.value ? tokenSourceKey.value : 'access_token',
+                          tokenPlacement: tokenPlacementKey?.value ? tokenPlacementKey.value : 'header',
+                          tokenHeaderPrefix: tokenHeaderPrefixKey?.value ? tokenHeaderPrefixKey.value : '',
+                          tokenQueryKey: tokenQueryKeyKey?.value ? tokenQueryKeyKey.value : 'access_token',
+                          autoFetchToken: autoFetchTokenKey ? safeParseJson(autoFetchTokenKey?.value) ?? true : true,
+                          autoRefreshToken: autoRefreshTokenKey ? safeParseJson(autoRefreshTokenKey?.value) ?? false : false
+                        }
+                      : {}
       }
     };
   },
@@ -998,6 +1059,11 @@ const sem = grammar.createSemantics().addAttribute('ast', {
   oauth2RefreshTokenReqBody(_1, dictionary) {
     return {
       oauth2_additional_parameters_refresh_token_req_bodyvalues: mapPairListToKeyValPairs(dictionary.ast)
+    };
+  },
+  oauth2RequestObjectAdditionalClaims(_1, dictionary) {
+    return {
+      oauth2_request_object_additional_claims: mapPairListToKeyValPairs(dictionary.ast)
     };
   },
   authwsse(_1, dictionary) {

@@ -154,19 +154,87 @@ const signClientAssertion = async (
   signingKey: Uint8Array | KeyLike,
   algorithm: TokenEndpointAuthSigningAlg,
   effectiveKeyId: string | undefined
-): Promise<string> => {
-  const header: { alg: TokenEndpointAuthSigningAlg; typ: 'JWT'; kid?: string } = {
-    alg: algorithm,
-    typ: 'JWT'
-  };
-  if (effectiveKeyId) {
-    header.kid = effectiveKeyId;
-  }
+): Promise<string> => signJwt(
+  { algorithm, keyId: effectiveKeyId, claims: buildClaims(opts) },
+  signingKey
+);
 
-  const claims = buildClaims(opts);
-  return new SignJWT(claims as Record<string, unknown>)
+/**
+ * Signs a JWT with the given key material and algorithm. The `protectedHeaderType` controls the
+ * `typ` header — `'JWT'` for client assertions (RFC 7519 default) or `'oauth-authz-req+jwt'` for
+ * JAR Request Objects (RFC 9101 §10.8).
+ */
+export interface SignJwtOptions {
+  algorithm: TokenEndpointAuthSigningAlg;
+  protectedHeaderType?: 'JWT' | 'oauth-authz-req+jwt';
+  keyId?: string;
+  claims: Record<string, unknown>;
+}
+
+export const signJwt = async (
+  opts: SignJwtOptions,
+  signingKey: Uint8Array | KeyLike
+): Promise<string> => {
+  const header: { alg: TokenEndpointAuthSigningAlg; typ: 'JWT' | 'oauth-authz-req+jwt'; kid?: string } = {
+    alg: opts.algorithm,
+    typ: opts.protectedHeaderType || 'JWT'
+  };
+  if (opts.keyId) {
+    header.kid = opts.keyId;
+  }
+  return new SignJWT(opts.claims)
     .setProtectedHeader(header)
     .sign(signingKey);
+};
+
+/**
+ * Resolves a JWT signing key from the OAuth2 client-auth signing config. Handles all combinations of
+ * key source (inline / file path), format (PEM / JWK / JWK Set), and HMAC (client secret) used by
+ * both `client_secret_jwt` / `private_key_jwt` client assertions and JAR Request Object signing.
+ */
+export interface JwtSigningKeyOptions {
+  clientSecret?: string; // HMAC keys (HS* algs)
+  privateKey?: string;
+  privateKeyType?: 'text' | 'file' | '';
+  privateKeyFormat?: 'pem' | 'jwk' | '';
+  keyId?: string;
+  collectionPath?: string;
+}
+
+export interface ResolvedJwtSigningKey {
+  signingKey: Uint8Array | KeyLike;
+  effectiveKeyId: string | undefined;
+}
+
+export const resolveJwtSigningKey = async (
+  opts: JwtSigningKeyOptions,
+  algorithm: TokenEndpointAuthSigningAlg
+): Promise<ResolvedJwtSigningKey> => {
+  // HS* algorithms use the client secret as a raw HMAC key.
+  if (algorithm.startsWith('HS')) {
+    const secret = opts.clientSecret ?? '';
+    if (secret === '') {
+      throw new Error(`Signing with ${algorithm} requires a client_secret`);
+    }
+    return { signingKey: new TextEncoder().encode(secret), effectiveKeyId: opts.keyId || undefined };
+  }
+
+  // Asymmetric algorithms — resolve from PEM/JWK/file.
+  const keyMaterial = resolveKeyMaterial(opts as TokenEndpointAuthOptions);
+  let effectiveKeyId = opts.keyId || undefined;
+
+  if (opts.privateKeyFormat === 'jwk') {
+    const { jwk, effectiveKid } = selectJwkFromString(keyMaterial, opts.keyId || undefined);
+    const signingKey = (await importJWK(jwk, algorithm)) as KeyLike;
+    if (!effectiveKeyId && effectiveKid) {
+      effectiveKeyId = effectiveKid;
+    }
+    return { signingKey, effectiveKeyId };
+  }
+
+  // PEM (RFC 7468) PKCS#8 — default.
+  const signingKey = await importPKCS8(keyMaterial, algorithm);
+  return { signingKey, effectiveKeyId };
 };
 
 /**

@@ -6,6 +6,7 @@ import OAuth2PasswordCredentials from './PasswordCredentials/index';
 import OAuth2AuthorizationCode from './AuthorizationCode/index';
 import OAuth2Implicit from './Implicit/index';
 import OAuth2ClientCredentials from './ClientCredentials/index';
+import OpenIDConnect from './OpenIDConnect/index';
 import { updateAuth } from 'providers/ReduxStore/slices/collections';
 import { saveRequest, sendRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { useDispatch } from 'react-redux';
@@ -36,6 +37,10 @@ const GrantTypeComponentMap = ({ item, collection }) => {
       break;
     case 'client_credentials':
       return <OAuth2ClientCredentials item={item} save={save} request={request} handleRun={handleRun} updateAuth={updateAuth} collection={collection} />;
+      break;
+    case 'openid_code':
+    case 'openid_hybrid':
+      return <OpenIDConnect item={item} save={save} request={request} handleRun={handleRun} updateAuth={updateAuth} collection={collection} grantType={grantType} />;
       break;
     default:
       return <div>TBD</div>;

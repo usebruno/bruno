@@ -2438,6 +2438,13 @@ export const browseFiles = (filters, properties) => (_dispatch, _getState) => {
   });
 };
 
+// OpenID Connect Discovery — fetch /.well-known/openid-configuration for the given issuer URL.
+// Returns the parsed OP metadata for the caller to merge into the auth form state.
+export const discoverOidc = (issuerUrl, collection) => (_dispatch, _getState) => {
+  const { ipcRenderer } = window;
+  return ipcRenderer.invoke('renderer:oidc-discover', { issuerUrl, collection });
+};
+
 export const saveCollectionSettings = (collectionUid, brunoConfig = null, silent = false) => (dispatch, getState) => {
   const state = getState();
   const collection = findCollectionByUid(state.collections.collections, collectionUid);

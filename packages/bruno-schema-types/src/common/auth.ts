@@ -60,7 +60,24 @@ export type OAuthGrantType
   = | 'client_credentials'
     | 'password'
     | 'authorization_code'
-    | 'implicit';
+    | 'implicit'
+    | 'openid_code'
+    | 'openid_hybrid';
+
+export type OIDCResponseType
+  = | 'code'
+    | 'code id_token'
+    | 'code id_token token';
+
+export type OIDCResponseMode
+  = | 'query'
+    | 'fragment';
+
+export type OIDCPrompt
+  = | 'none'
+    | 'login'
+    | 'consent'
+    | 'select_account';
 
 export interface OAuthAdditionalParameter {
   name?: string | null;
@@ -120,6 +137,23 @@ export interface OAuth2 {
   audience?: string | null;
   assertionLifetime?: number | null;
   additionalClaims?: OAuth2AdditionalClaim[] | null;
+  // OpenID Connect (openid_code, openid_hybrid grant types)
+  issuer?: string | null;
+  responseType?: OIDCResponseType | null;
+  responseMode?: OIDCResponseMode | null;
+  nonce?: string | null;
+  prompt?: OIDCPrompt | null;
+  loginHint?: string | null;
+  maxAge?: number | null;
+  acrValues?: string | null;
+  useRequestObject?: boolean | null;
+  requestObjectSigningAlg?: TokenEndpointAuthSigningAlg | null;
+  requestObjectAdditionalClaims?: OAuth2AdditionalClaim[] | null;
+  usePAR?: boolean | null;
+  parEndpoint?: string | null;
+  jwksUri?: string | null;
+  userinfoEndpoint?: string | null;
+  endSessionEndpoint?: string | null;
   credentialsId?: string | null;
   tokenPlacement?: string | null;
   tokenHeaderPrefix?: string | null;

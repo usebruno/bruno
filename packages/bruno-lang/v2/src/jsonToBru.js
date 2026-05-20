@@ -369,6 +369,59 @@ ${indentString(`auto_fetch_token: ${(auth?.oauth2?.autoFetchToken ?? true).toStr
 
 `;
         break;
+      case 'openid_code':
+      case 'openid_hybrid':
+        bru += `auth:oauth2 {
+${indentString(`grant_type: ${auth.oauth2.grantType}`)}
+${indentString(`issuer: ${auth?.oauth2?.issuer || ''}`)}
+${indentString(`callback_url: ${auth?.oauth2?.callbackUrl || ''}`)}
+${indentString(`authorization_url: ${auth?.oauth2?.authorizationUrl || ''}`)}
+${indentString(`access_token_url: ${auth?.oauth2?.accessTokenUrl || ''}`)}
+${indentString(`refresh_token_url: ${auth?.oauth2?.refreshTokenUrl || ''}`)}
+${indentString(`client_id: ${auth?.oauth2?.clientId || ''}`)}
+${indentString(`client_secret: ${auth?.oauth2?.clientSecret || ''}`)}
+${indentString(`scope: ${auth?.oauth2?.scope || ''}`)}
+${indentString(`state: ${auth?.oauth2?.state || ''}`)}
+${indentString(`pkce: ${(auth?.oauth2?.pkce || false).toString()}`)}
+${oauth2ClientAuthLines(auth?.oauth2)}
+${indentString(`response_type: ${auth?.oauth2?.responseType || (auth.oauth2.grantType === 'openid_hybrid' ? 'code id_token' : 'code')}`)}${
+  auth?.oauth2?.responseMode ? '\n' + indentString(`response_mode: ${auth.oauth2.responseMode}`) : ''
+}${
+  auth?.oauth2?.nonce ? '\n' + indentString(`nonce: ${auth.oauth2.nonce}`) : ''
+}${
+  auth?.oauth2?.prompt ? '\n' + indentString(`prompt: ${auth.oauth2.prompt}`) : ''
+}${
+  auth?.oauth2?.loginHint ? '\n' + indentString(`login_hint: ${auth.oauth2.loginHint}`) : ''
+}${
+  auth?.oauth2?.maxAge != null && auth?.oauth2?.maxAge !== '' ? '\n' + indentString(`max_age: ${auth.oauth2.maxAge}`) : ''
+}${
+  auth?.oauth2?.acrValues ? '\n' + indentString(`acr_values: ${auth.oauth2.acrValues}`) : ''
+}
+${indentString(`use_request_object: ${(auth?.oauth2?.useRequestObject || false).toString()}`)}${
+  auth?.oauth2?.requestObjectSigningAlg ? '\n' + indentString(`request_object_signing_alg: ${auth.oauth2.requestObjectSigningAlg}`) : ''
+}
+${indentString(`use_par: ${(auth?.oauth2?.usePAR || false).toString()}`)}${
+  auth?.oauth2?.parEndpoint ? '\n' + indentString(`par_endpoint: ${auth.oauth2.parEndpoint}`) : ''
+}${
+  auth?.oauth2?.jwksUri ? '\n' + indentString(`jwks_uri: ${auth.oauth2.jwksUri}`) : ''
+}${
+  auth?.oauth2?.userinfoEndpoint ? '\n' + indentString(`userinfo_endpoint: ${auth.oauth2.userinfoEndpoint}`) : ''
+}${
+  auth?.oauth2?.endSessionEndpoint ? '\n' + indentString(`end_session_endpoint: ${auth.oauth2.endSessionEndpoint}`) : ''
+}
+${indentString(`credentials_id: ${auth?.oauth2?.credentialsId || ''}`)}
+${indentString(`token_source: ${auth?.oauth2?.tokenSource || 'access_token'}`)}
+${indentString(`token_placement: ${auth?.oauth2?.tokenPlacement || ''}`)}${
+  auth?.oauth2?.tokenPlacement == 'header' ? '\n' + indentString(`token_header_prefix: ${auth?.oauth2?.tokenHeaderPrefix || ''}`) : ''
+}${
+  auth?.oauth2?.tokenPlacement !== 'header' ? '\n' + indentString(`token_query_key: ${auth?.oauth2?.tokenQueryKey || ''}`) : ''
+}
+${indentString(`auto_fetch_token: ${(auth?.oauth2?.autoFetchToken ?? true).toString()}`)}
+${indentString(`auto_refresh_token: ${(auth?.oauth2?.autoRefreshToken ?? false).toString()}`)}
+}
+
+`;
+        break;
     }
 
     if (auth?.oauth2?.additionalParameters) {
@@ -477,6 +530,20 @@ ${indentString(
 
 `;
       }
+    }
+
+    // OIDC JAR — RFC 9101. Custom claims merged into the signed Request Object.
+    const requestObjectClaims = auth?.oauth2?.requestObjectAdditionalClaims?.filter((c) => c?.name?.length);
+    if (requestObjectClaims?.length) {
+      bru += `auth:oauth2:request_object_additional_claims {
+${indentString(
+  requestObjectClaims
+    .map((item) => `${item.enabled === false ? '~' : ''}${getKeyString(item.name)}: ${getValueString(item.value)}`)
+    .join('\n')
+)}
+}
+
+`;
     }
   }
 
