@@ -68,6 +68,15 @@ const defaultPreferences = {
     sslSession: {
       enabled: false
     }
+  },
+  ai: {
+    enabled: false,
+    providers: {
+      openai: { enabled: false },
+      anthropic: { enabled: false }
+    },
+    models: {},
+    defaultModel: ''
   }
 };
 
@@ -135,6 +144,12 @@ const preferencesSchema = Yup.object().shape({
     sslSession: Yup.object({
       enabled: Yup.boolean()
     })
+  }).optional(),
+  ai: Yup.object({
+    enabled: Yup.boolean(),
+    providers: Yup.object().optional(),
+    models: Yup.object().optional(),
+    defaultModel: Yup.string().max(200).nullable()
   }).optional()
 });
 
