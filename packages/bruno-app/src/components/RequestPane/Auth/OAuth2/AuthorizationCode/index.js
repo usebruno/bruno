@@ -11,7 +11,7 @@ import { inputsConfig } from './inputsConfig';
 import Oauth2TokenViewer from '../Oauth2TokenViewer/index';
 import Oauth2ActionButtons from '../Oauth2ActionButtons/index';
 import AdditionalParams from '../AdditionalParams/index';
-import ClientAuthMethod, { HIDES_CLIENT_SECRET } from '../ClientAuthMethod/index';
+import ClientAuthMethod from '../ClientAuthMethod/index';
 import SensitiveFieldWarning from 'components/SensitiveFieldWarning';
 import { savePreferences } from 'providers/ReduxStore/slices/app';
 import toast from 'react-hot-toast';
@@ -35,7 +35,6 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
     autoFetchToken
   } = oAuth;
 
-  const tokenEndpointAuthMethod = oAuth.tokenEndpointAuthMethod || 'client_secret_post';
   const refreshTokenUrlAvailable = refreshTokenUrl?.trim() !== '';
   const isAutoRefreshDisabled = !refreshTokenUrlAvailable;
 
@@ -133,7 +132,7 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
         </div>
       </div>
       {inputsConfig
-        .filter((input) => !(input.key === 'clientSecret' && HIDES_CLIENT_SECRET.has(tokenEndpointAuthMethod)))
+        .filter((input) => input.key !== 'clientSecret')
         .map((input) => {
           const { key, label, isSecret } = input;
           const value = oAuth[key] || '';

@@ -42,12 +42,15 @@ const ClientAuthMethod = ({ oAuth, handleChange, handleRun, handleSave, collecti
   const method = oAuth.tokenEndpointAuthMethod || 'client_secret_post';
   const algs = algorithmOptions(method);
   const currentAlg = oAuth.tokenEndpointAuthSigningAlg || (algs.length ? defaultAlgorithm(method) : '');
+  const usesClientSecret = method === 'client_secret_basic' || method === 'client_secret_post' || method === 'client_secret_jwt';
   const isJwt = method === 'client_secret_jwt' || method === 'private_key_jwt';
   const isPrivateKeyJwt = method === 'private_key_jwt';
   const privateKeyFormat = oAuth.privateKeyFormat || 'pem';
   const privateKeyType = oAuth.privateKeyType || 'text';
   const privateKey = oAuth.privateKey || '';
   const sensitivity = isSensitive(privateKey);
+  const clientSecret = oAuth.clientSecret || '';
+  const clientSecretSensitivity = isSensitive(clientSecret);
 
   return (
     <>
@@ -70,6 +73,28 @@ const ClientAuthMethod = ({ oAuth, handleChange, handleRun, handleSave, collecti
           </MenuDropdown>
         </div>
       </div>
+
+      {usesClientSecret && (
+        <div className="flex items-center gap-4 w-full" key="input-client-secret">
+          <label className="block min-w-[140px]">Client Secret</label>
+          <div className="single-line-editor-wrapper flex-1 flex items-center">
+            <SingleLineEditor
+              value={clientSecret}
+              theme={storedTheme}
+              onSave={handleSave}
+              onChange={(val) => handleChange('clientSecret', val)}
+              onRun={handleRun}
+              collection={collection}
+              item={item}
+              isSecret
+              isCompact
+            />
+            {clientSecretSensitivity.showWarning && (
+              <SensitiveFieldWarning fieldName="clientSecret" warningMessage={clientSecretSensitivity.warningMessage} />
+            )}
+          </div>
+        </div>
+      )}
 
       {isJwt && (
         <div className="flex items-center gap-4 w-full" key="input-signing-alg">
@@ -214,8 +239,5 @@ const ClientAuthMethod = ({ oAuth, handleChange, handleRun, handleSave, collecti
     </>
   );
 };
-
-// Methods that don't need a Client Secret field
-export const HIDES_CLIENT_SECRET = new Set(['private_key_jwt', 'none']);
 
 export default ClientAuthMethod;

@@ -11,7 +11,7 @@ import MenuDropdown from 'ui/MenuDropdown';
 import Oauth2TokenViewer from '../Oauth2TokenViewer/index';
 import Oauth2ActionButtons from '../Oauth2ActionButtons/index';
 import AdditionalParams from '../AdditionalParams/index';
-import ClientAuthMethod, { HIDES_CLIENT_SECRET } from '../ClientAuthMethod/index';
+import ClientAuthMethod from '../ClientAuthMethod/index';
 import SensitiveFieldWarning from 'components/SensitiveFieldWarning/index';
 
 const OAuth2PasswordCredentials = ({ save, item = {}, request, handleRun, updateAuth, collection }) => {
@@ -30,7 +30,6 @@ const OAuth2PasswordCredentials = ({ save, item = {}, request, handleRun, update
     tokenSource
   } = oAuth;
 
-  const tokenEndpointAuthMethod = oAuth.tokenEndpointAuthMethod || 'client_secret_post';
   const refreshTokenUrlAvailable = refreshTokenUrl?.trim() !== '';
   const isAutoRefreshDisabled = !refreshTokenUrlAvailable;
 
@@ -63,7 +62,7 @@ const OAuth2PasswordCredentials = ({ save, item = {}, request, handleRun, update
         </span>
       </div>
       {inputsConfig
-        .filter((input) => !(input.key === 'clientSecret' && HIDES_CLIENT_SECRET.has(tokenEndpointAuthMethod)))
+        .filter((input) => input.key !== 'clientSecret')
         .map((input) => {
           const { key, label, isSecret } = input;
           const value = oAuth[key] || '';

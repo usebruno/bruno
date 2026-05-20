@@ -64,12 +64,29 @@ const mapAdditionalParameters = (params?: BrunoOAuthAdditionalParameter[] | null
   return mapped.length > 0 ? mapped : undefined;
 };
 
+// Map Bruno's tokenEndpointAuthMethod (RFC 7591 §2 / OIDC Core §9) to OpenCollection's placement.
+// OpenCollection only models the two basic methods; the JWT-bearer methods collapse to "body" as
+// the closest semantic equivalent (assertions are sent in the form-encoded body). `none` has no
+// equivalent and is omitted.
+const placementForMethod = (method?: string | null): 'basic_auth_header' | 'body' | undefined => {
+  if (method === 'client_secret_basic') return 'basic_auth_header';
+  if (method === 'client_secret_post' || method === 'client_secret_jwt' || method === 'private_key_jwt') return 'body';
+  return undefined;
+};
+
+const methodForPlacement = (placement?: string | null): 'client_secret_basic' | 'client_secret_post' | undefined => {
+  if (placement === 'basic_auth_header') return 'client_secret_basic';
+  if (placement === 'body') return 'client_secret_post';
+  return undefined;
+};
+
 const buildClientCredentials = (oauth: BrunoOAuth2): OAuth2ClientCredentials | undefined => {
   const credentials: OAuth2ClientCredentials = {};
 
   isNonEmptyString(oauth.clientId) && (credentials.clientId = oauth.clientId);
   isNonEmptyString(oauth.clientSecret) && (credentials.clientSecret = oauth.clientSecret);
-  isNonEmptyString(oauth.credentialsPlacement) && (credentials.placement = oauth.credentialsPlacement);
+  const placement = placementForMethod(oauth.tokenEndpointAuthMethod) ?? oauth.credentialsPlacement;
+  isNonEmptyString(placement) && (credentials.placement = placement);
 
   return Object.keys(credentials).length > 0 ? credentials : undefined;
 };
@@ -351,6 +368,7 @@ export const toBrunoOAuth2 = (oauth: AuthOAuth2 | null | undefined): BrunoOAuth2
     state: null,
     pkce: false, // Default to false for all grant types
     credentialsPlacement: null,
+    tokenEndpointAuthMethod: null,
     credentialsId: null,
     tokenPlacement: null,
     tokenHeaderPrefix: null,
@@ -369,7 +387,7 @@ export const toBrunoOAuth2 = (oauth: AuthOAuth2 | null | undefined): BrunoOAuth2
       if (oauth.refreshTokenUrl) brunoOAuth.refreshTokenUrl = oauth.refreshTokenUrl;
       if (oauth.credentials?.clientId) brunoOAuth.clientId = oauth.credentials.clientId;
       if (oauth.credentials?.clientSecret) brunoOAuth.clientSecret = oauth.credentials.clientSecret;
-      if (oauth.credentials?.placement) brunoOAuth.credentialsPlacement = oauth.credentials.placement;
+      if (oauth.credentials?.placement) brunoOAuth.tokenEndpointAuthMethod = methodForPlacement(oauth.credentials.placement);
       if (oauth.scope) brunoOAuth.scope = oauth.scope;
 
       // token config
@@ -413,7 +431,7 @@ export const toBrunoOAuth2 = (oauth: AuthOAuth2 | null | undefined): BrunoOAuth2
       if (oauth.refreshTokenUrl) brunoOAuth.refreshTokenUrl = oauth.refreshTokenUrl;
       if (oauth.credentials?.clientId) brunoOAuth.clientId = oauth.credentials.clientId;
       if (oauth.credentials?.clientSecret) brunoOAuth.clientSecret = oauth.credentials.clientSecret;
-      if (oauth.credentials?.placement) brunoOAuth.credentialsPlacement = oauth.credentials.placement;
+      if (oauth.credentials?.placement) brunoOAuth.tokenEndpointAuthMethod = methodForPlacement(oauth.credentials.placement);
       if (oauth.resourceOwner?.username) brunoOAuth.username = oauth.resourceOwner.username;
       if (oauth.resourceOwner?.password) brunoOAuth.password = oauth.resourceOwner.password;
       if (oauth.scope) brunoOAuth.scope = oauth.scope;
@@ -461,7 +479,7 @@ export const toBrunoOAuth2 = (oauth: AuthOAuth2 | null | undefined): BrunoOAuth2
       if (oauth.callbackUrl) brunoOAuth.callbackUrl = oauth.callbackUrl;
       if (oauth.credentials?.clientId) brunoOAuth.clientId = oauth.credentials.clientId;
       if (oauth.credentials?.clientSecret) brunoOAuth.clientSecret = oauth.credentials.clientSecret;
-      if (oauth.credentials?.placement) brunoOAuth.credentialsPlacement = oauth.credentials.placement;
+      if (oauth.credentials?.placement) brunoOAuth.tokenEndpointAuthMethod = methodForPlacement(oauth.credentials.placement);
       if (oauth.scope) brunoOAuth.scope = oauth.scope;
       if (oauth.state) brunoOAuth.state = oauth.state;
 
