@@ -104,7 +104,7 @@ docker run --rm usebruno/cli --version
 
 ### Step 3 — Run your collection
 
-> These examples assume you are running `docker` from a directory which is your Bruno collection (i.e. a folder with a `bruno.json` at its root). Mount that directory to `/bruno` and pass `bru` arguments directly after the image name. If your collection lives elsewhere on disk, see the path-based examples further down.
+> These examples assume you are running `docker` from your Bruno collection directory. Mount that directory to `/bruno` and pass `bru` arguments directly after the image name. If your collection lives elsewhere on disk, see the path-based examples further down.
 > **Cross-platform note:** the examples below use `$(pwd)` which works in Bash / Zsh / Git Bash / WSL.
 > On Windows native shells, substitute `$(pwd)` with:
 > - PowerShell: `${PWD}`
@@ -297,15 +297,15 @@ api-tests:
 
 ### Quick example
 
-A minimal `docker-compose.yml` for running a Bruno collection alongside your project. Drop this file next to your `bruno.json`:
+A minimal `docker-compose.yml` for running a Bruno collection alongside your project:
 
 ```yaml
 services:
   bruno-cli:
-    image: usebruno/cli:3.3
+    image: usebruno/cli:latest
     container_name: bruno-cli-runner
     volumes:
-      - .:/bruno
+      - /path/to/your/collection:/bruno
       - ./reports:/reports
     command:
       run .

@@ -1,6 +1,6 @@
 services:
   bruno-cli:
-    image: usebruno/cli:3.3
+    image: usebruno/cli:latest
     container_name: bruno-cli-runner
     volumes:
       - ./collection:/bruno
