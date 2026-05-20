@@ -30,6 +30,7 @@ const replacements = {
   'pm\\.response\\.responseTime': 'res.getResponseTime()',
   'pm\\.globals\\.set\\(': 'bru.setGlobalEnvVar(',
   'pm\\.globals\\.get\\(': 'bru.getGlobalEnvVar(',
+  'pm\\.globals\\.has\\(': 'bru.hasGlobalEnvVar(',
   // 'pm\\.globals\\.unset\\(': 'bru.deleteGlobalEnvVar(',
   'pm\\.globals\\.toObject\\(': 'bru.getAllGlobalEnvVars(',
   // 'pm\\.globals\\.clear\\(': 'bru.deleteAllGlobalEnvVars(',
