@@ -68,14 +68,18 @@ jest.mock('../../src/store/tokenStore', () => ({
 
 // Default: no prompt variables detected
 const mockExtractPromptVariables = jest.fn(() => []);
-jest.mock('@usebruno/common', () => ({
-  utils: {
-    encodeUrl: jest.fn((u) => u),
-    buildFormUrlEncodedPayload: jest.fn(),
-    extractPromptVariables: mockExtractPromptVariables,
-    isFormData: jest.fn(() => false)
-  }
-}));
+jest.mock('@usebruno/common', () => {
+  const ogUtils = jest.requireActual('@usebruno/common').utils;
+  return {
+    utils: {
+      encodeUrl: jest.fn((u) => u),
+      buildFormUrlEncodedPayload: jest.fn(),
+      extractPromptVariables: mockExtractPromptVariables,
+      isFormData: jest.fn(() => false),
+      hasExplicitScheme: ogUtils.hasExplicitScheme
+    }
+  };
+});
 
 const prepareRequest = require('../../src/runner/prepare-request');
 const { makeAxiosInstance } = require('../../src/utils/axios-instance');
