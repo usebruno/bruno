@@ -111,21 +111,29 @@ docker run --rm usebruno/cli --version
 > - CMD: `%cd%`
 > **Note on `-r`:** Bruno CLI's `run` is non-recursive by default — it only looks at the target folder's direct children. If your collection has nested subfolders (most do), add `-r` to recurse: `bru run my-folder -r --env ci`. Targeting a single `.bru` or `.yml` file doesn't need `-r`.
 
+> **Note on `--rm`:** Examples below omit `--rm`. Docker keeps stopped containers around after they exit, which lets you `docker logs` or `docker inspect` them later for debugging. If you'd rather have Docker auto-delete the container as soon as `bru` finishes — useful for CI runs or to avoid `docker ps -a` filling up with stale entries — append `--rm` to any `docker run` (or `docker compose run`) command:
+>
+> ```bash
+> docker run --rm -v $(pwd):/bruno usebruno/cli run --env staging
+> ```
+>
+> It's purely a cleanup convenience; it doesn't affect the image, mounts, stdout output, or exit code.
+
 ```bash
 # run every request in the collection at your current directory
-docker run --rm -v $(pwd):/bruno usebruno/cli run --env staging
+docker run -v $(pwd):/bruno usebruno/cli run --env staging
 
 # run a specific subfolder (group of requests) within that collection
-docker run --rm -v $(pwd):/bruno usebruno/cli run ./api-tests --env staging
+docker run -v $(pwd):/bruno usebruno/cli run ./api-tests --env staging
 
 # run a single .bru request file from that collection
-docker run --rm -v $(pwd):/bruno usebruno/cli run ./api-tests/login.bru --env staging
+docker run -v $(pwd):/bruno usebruno/cli run ./api-tests/login.bru --env staging
 ```
 
 For Windows CMD users, swap `$(pwd)` with `%cd%`:
 
 ```cmd
-docker run --rm -v %cd%:/bruno usebruno/cli run --env staging
+docker run -v %cd%:/bruno usebruno/cli run --env staging
 ```
 
 #### Running a collection that lives at a different path
@@ -134,10 +142,10 @@ If your collection is not in your current directory, point `docker` at its absol
 
 ```bash
 # run every request in a collection at an arbitrary path
-docker run --rm -v /path/to/your/collection:/bruno usebruno/cli run --env staging
+docker run -v /path/to/your/collection:/bruno usebruno/cli run --env staging
 
 # run a single .bru file from a collection at an arbitrary path
-docker run --rm -v /path/to/your/collection:/bruno usebruno/cli run ./auth/login.bru --env staging
+docker run -v /path/to/your/collection:/bruno usebruno/cli run ./auth/login.bru --env staging
 ```
 
 ---
@@ -145,9 +153,9 @@ docker run --rm -v /path/to/your/collection:/bruno usebruno/cli run ./auth/login
 ### Step 4 — Choose your environment
 
 ```bash
-docker run --rm -v $(pwd):/bruno usebruno/cli run --env local
-docker run --rm -v $(pwd):/bruno usebruno/cli run --env staging
-docker run --rm -v $(pwd):/bruno usebruno/cli run --env production
+docker run -v $(pwd):/bruno usebruno/cli run --env local
+docker run -v $(pwd):/bruno usebruno/cli run --env staging
+docker run -v $(pwd):/bruno usebruno/cli run --env production
 ```
 
 ---
@@ -156,19 +164,19 @@ docker run --rm -v $(pwd):/bruno usebruno/cli run --env production
 
 ```bash
 # override a single variable
-docker run --rm \
+docker run \
   -v $(pwd):/bruno \
   usebruno/cli run --env staging --env-var API_KEY=your_key
 
 # override multiple variables
-docker run --rm \
+docker run \
   -v $(pwd):/bruno \
   usebruno/cli run --env staging \
   --env-var BASE_URL=https://api.example.com \
   --env-var API_KEY=secret123
 
 # load variables from a file
-docker run --rm \
+docker run \
   -v $(pwd):/bruno \
   --env-file .env \
   usebruno/cli run --env staging
@@ -180,12 +188,12 @@ docker run --rm \
 
 ```bash
 # JSON report
-docker run --rm \
+docker run \
   -v $(pwd):/bruno \
   usebruno/cli run --env staging --output results.json --format json
 
 # JUnit XML report (for CI test reporters)
-docker run --rm \
+docker run \
   -v $(pwd):/bruno \
   usebruno/cli run --env staging --output results.xml --format junit
 ```
@@ -195,7 +203,7 @@ docker run --rm \
 ### Step 7 — Stop on first failure
 
 ```bash
-docker run --rm -v $(pwd):/bruno usebruno/cli run --env staging --bail
+docker run -v $(pwd):/bruno usebruno/cli run --env staging --bail
 ```
 
 ---
@@ -204,13 +212,13 @@ docker run --rm -v $(pwd):/bruno usebruno/cli run --env staging --bail
 
 ```bash
 # exact version — safest for production, no surprise updates
-docker run --rm -v $(pwd):/bruno usebruno/cli:3.3.0 run --env staging
+docker run -v $(pwd):/bruno usebruno/cli:3.3.0 run --env staging
 
 # major.minor — gets patch fixes automatically
-docker run --rm -v $(pwd):/bruno usebruno/cli:3.3 run --env staging
+docker run -v $(pwd):/bruno usebruno/cli:3.3 run --env staging
 
 # latest — always newest, not recommended for production CI
-docker run --rm -v $(pwd):/bruno usebruno/cli:latest run --env staging
+docker run -v $(pwd):/bruno usebruno/cli:latest run --env staging
 ```
 
 ---
@@ -219,10 +227,10 @@ docker run --rm -v $(pwd):/bruno usebruno/cli:latest run --env staging
 
 ```bash
 # alpine (default) — use this for most cases
-docker run --rm -v $(pwd):/bruno usebruno/cli:3.3.0 run --env staging
+docker run -v $(pwd):/bruno usebruno/cli:3.3.0 run --env staging
 
 # debian — use if you hit SSL, glibc, or native module issues
-docker run --rm -v $(pwd):/bruno usebruno/cli:3.3.0-debian run --env staging
+docker run -v $(pwd):/bruno usebruno/cli:3.3.0-debian run --env staging
 ```
 
 ---
@@ -258,7 +266,7 @@ jobs:
 
       - name: Run Bruno collection
         run: |
-          docker run --rm \
+          docker run \
             -v ${{ github.workspace }}:/bruno \
             usebruno/cli:3.3 run --env staging --output results.xml --format junit
 
@@ -303,7 +311,7 @@ services:
 Then run:
 
 ```bash
-docker compose run --rm bruno-cli
+docker compose run bruno-cli
 ```
 
 The `-r` flag tells `bru run` to recurse into subfolders. Without it, `bru` only scans the target's direct children — fine for a flat folder of `.bru` files, but most real collections have nested groups so `-r` is usually what you want.
@@ -314,7 +322,7 @@ A ready-to-run `docker-compose.yml` lives in this repo at [`packages/bruno-tests
 
 ```bash
 cd packages/bruno-tests
-docker compose run --rm bruno-cli
+docker compose run bruno-cli
 ```
 
 This fires a small set of requests against public endpoints that demonstrate the CLI executing requests and assertions inside a container.
