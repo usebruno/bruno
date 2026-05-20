@@ -8,6 +8,18 @@ describe('Execution Flow Translation', () => {
     expect(translatedCode).toBe('bru.setNextRequest("Get User Details");');
   });
 
+  it('should translate pm.setNextRequest(null) to bru.runner.stopExecution()', () => {
+    const code = 'pm.setNextRequest(null);';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toBe('bru.runner.stopExecution();');
+  });
+
+  it('should translate pm.setNextRequest("null") to bru.runner.stopExecution()', () => {
+    const code = 'pm.setNextRequest("null");';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toBe('bru.runner.stopExecution();');
+  });
+
   it('should translate pm.execution.skipRequest', () => {
     const code = 'if (condition) pm.execution.skipRequest();';
     const translatedCode = translateCode(code);

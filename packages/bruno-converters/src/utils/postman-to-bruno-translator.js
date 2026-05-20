@@ -41,9 +41,6 @@ const simpleTranslations = {
   // 'pm.collectionVariables.clear': 'bru.deleteAllCollectionVars',
   // 'pm.collectionVariables.toObject': 'bru.getAllCollectionVars',
 
-  // Request flow control
-  'pm.setNextRequest': 'bru.setNextRequest',
-
   // Testing
   'pm.test': 'test',
   'pm.expect': 'expect',
@@ -266,6 +263,29 @@ const complexTransformations = [
       );
     }
   })),
+
+  // Handle pm.setNextRequest(null) / pm.setNextRequest('null') — stop the runner
+  {
+    pattern: 'pm.setNextRequest',
+    transform: (path, j) => {
+      const callExpr = path.parent.value;
+      const args = callExpr.arguments;
+
+      if (
+        args[0] && args[0].type === 'Literal' && (args[0].value === null || args[0].value === 'null')
+      ) {
+        return j.callExpression(
+          j.identifier('bru.runner.stopExecution'),
+          []
+        );
+      }
+
+      return j.callExpression(
+        j.identifier('bru.setNextRequest'),
+        args
+      );
+    }
+  },
 
   // Handle pm.execution.setNextRequest(null)
   {

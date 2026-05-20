@@ -15,6 +15,11 @@ const replacements = {
   // 'pm\\.collectionVariables\\.unset\\(': 'bru.deleteCollectionVar(',
   // 'pm\\.collectionVariables\\.clear\\(': 'bru.deleteAllCollectionVars(',
   // 'pm\\.collectionVariables\\.toObject\\(': 'bru.getAllCollectionVars(',
+  // More specific patterns must come before the general pm.setNextRequest( rule.
+  // Passing null/'null' to Postman's setNextRequest stops the runner; Bruno's
+  // bru.setNextRequest(null) does not — only bru.runner.stopExecution() does.
+  'pm\\.setNextRequest\\(null\\)': 'bru.runner.stopExecution()',
+  'pm\\.setNextRequest\\([\'\"]null[\'\"]\\)': 'bru.runner.stopExecution()',
   'pm\\.setNextRequest\\(': 'bru.setNextRequest(',
   'pm\\.test\\(': 'test(',
   'pm.response.to.have\\.status\\(': 'expect(res.getStatus()).to.equal(',
