@@ -224,7 +224,7 @@ jobs:
 
       - name: Run Bruno collection
         run: |
-          docker run \
+          docker run --rm \
             -v ${{ github.workspace }}:/bruno \
             usebruno/cli:3.3 run --env staging --output results.xml --format junit
 
@@ -263,7 +263,7 @@ services:
     image: usebruno/cli:latest
     container_name: bruno-cli-runner
     volumes:
-      - /path/to/your/collection:/bruno
+      - /path/to/collection:/bruno
       - /path/to/reports:/reports
     command:
       run .
