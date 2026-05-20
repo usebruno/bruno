@@ -104,7 +104,7 @@ docker run --rm usebruno/cli --version
 
 ### Step 3 — Run your collection
 
-> These examples assume you are running `docker` from a directory that contains your Bruno collection (i.e. a folder with a `bruno.json` at its root). Mount that directory to `/bruno` and pass `bru` arguments directly after the image name. If your collection lives elsewhere on disk, see the path-based examples further down.
+> These examples assume you are running `docker` from a directory which is your Bruno collection (i.e. a folder with a `bruno.json` at its root). Mount that directory to `/bruno` and pass `bru` arguments directly after the image name. If your collection lives elsewhere on disk, see the path-based examples further down.
 > **Cross-platform note:** the examples below use `$(pwd)` which works in Bash / Zsh / Git Bash / WSL.
 > On Windows native shells, substitute `$(pwd)` with:
 > - PowerShell: `${PWD}`
@@ -120,7 +120,7 @@ docker run --rm usebruno/cli --version
 > It's purely a cleanup convenience; it doesn't affect the image, mounts, stdout output, or exit code.
 
 ```bash
-# run every request in the collection at your current directory
+# run every request in the Bruno collection (current dir)
 docker run -v $(pwd):/bruno usebruno/cli run --env staging
 
 # run a specific subfolder (group of requests) within that collection
@@ -303,9 +303,17 @@ A minimal `docker-compose.yml` for running a Bruno collection alongside your pro
 services:
   bruno-cli:
     image: usebruno/cli:3.3
+    container_name: bruno-cli-runner
     volumes:
       - .:/bruno
-    command: ["run", ".", "-r", "--env", "ci"]
+      - ./reports:/reports
+    command:
+      run .
+      -r
+      --env ci
+      --reporter-json /reports/results.json
+      --reporter-junit /reports/results.xml
+      --reporter-html /reports/results.html
 ```
 
 Then run:
@@ -314,11 +322,11 @@ Then run:
 docker compose run bruno-cli
 ```
 
-The `-r` flag tells `bru run` to recurse into subfolders. Without it, `bru` only scans the target's direct children — fine for a flat folder of `.bru` files, but most real collections have nested groups so `-r` is usually what you want.
+The `-r` flag tells `bru run` to recurse into subfolders. Without it, `bru` only scans the target's direct children — fine for a flat folder of `.bru` files, but most real collections have nested groups so `-r` is usually what you want. The `./reports:/reports` mount catches the JSON, JUnit XML, and HTML reports on the host — drop any `--reporter-*` flag to skip that format.
 
 ### Try it from this repo
 
-A ready-to-run `docker-compose.yml` lives in this repo at [`packages/bruno-tests/docker-compose.yml`](../../bruno-tests/docker-compose.yml). It mounts the sibling `collection/` directory into the container and runs the `echo` folder against the `Prod` environment:
+A ready-to-run `docker-compose.yml` lives in this repo at [`packages/bruno-tests/docker-compose.yml`](../../bruno-tests/docker-compose.yml). It mounts the sibling `collection/` directory into the container, runs the `echo` folder against the `Prod` environment, and writes JSON, JUnit XML, and HTML reports into `packages/bruno-tests/reports/`:
 
 ```bash
 cd packages/bruno-tests
