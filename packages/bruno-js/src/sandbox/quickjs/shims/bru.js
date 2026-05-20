@@ -338,6 +338,12 @@ const addBruShimToContext = (vm, bru) => {
   });
   sendRequestHandle.consume((handle) => vm.setProp(bruObject, '_sendRequest', handle));
 
+  // Registered on vm.global (not bru) so it stays off user-facing autocomplete.
+  let setScopeHandle = vm.newFunction('__bruSetScope', (scopeArg) => {
+    bru._currentScope = vm.dump(scopeArg) || null;
+  });
+  setScopeHandle.consume((handle) => vm.setProp(vm.global, '__bruSetScope', handle));
+
   const sleep = vm.newFunction('sleep', (timer) => {
     const t = vm.getString(timer);
     const promise = vm.newPromise();

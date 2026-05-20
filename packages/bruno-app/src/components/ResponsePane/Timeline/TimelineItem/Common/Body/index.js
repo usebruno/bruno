@@ -1,35 +1,37 @@
-import QueryResponse from 'components/ResponsePane/QueryResponse/index';
 import { useState } from 'react';
+import { IconChevronDown, IconChevronRight } from '@tabler/icons';
+import QueryResponse from 'components/ResponsePane/QueryResponse/index';
 
 const BodyBlock = ({ collection, data, dataBuffer, headers, error, item, type }) => {
-  const [isBodyCollapsed, toggleBody] = useState(true);
+  const [isOpen, setIsOpen] = useState(true);
+  const hasBody = !!(data || dataBuffer);
+
   return (
-    <div className="collapsible-section">
-      <div className="section-header" onClick={() => toggleBody(!isBodyCollapsed)}>
-        <pre className="flex flex-row items-center">
-          <div className="opacity-70">{isBodyCollapsed ? '▼' : '▶'}</div> Body
-        </pre>
+    <div className="tl-block">
+      <div className="tl-block-h" onClick={() => setIsOpen(!isOpen)}>
+        <span className="tl-block-chev">
+          {isOpen ? <IconChevronDown size={12} strokeWidth={2} /> : <IconChevronRight size={12} strokeWidth={2} />}
+        </span>
+        Body
       </div>
-      {isBodyCollapsed && (
-        <div className="mt-2">
-          {data || dataBuffer ? (
-            <div className="h-96 overflow-auto">
-              <QueryResponse
-                item={item}
-                collection={collection}
-                data={data}
-                dataBuffer={dataBuffer}
-                headers={headers}
-                error={error}
-                key={item?.uid}
-                hideResultTypeSelector={type === 'request'}
-                docKey={`timeline-body:${type}:${item?.uid}`}
-              />
-            </div>
-          ) : (
-            <div className="timeline-item-timestamp">No Body found</div>
-          )}
-        </div>
+      {isOpen && (
+        hasBody ? (
+          <div className="h-96 overflow-auto">
+            <QueryResponse
+              item={item}
+              collection={collection}
+              data={data}
+              dataBuffer={dataBuffer}
+              headers={headers}
+              error={error}
+              key={item?.uid}
+              hideResultTypeSelector={type === 'request'}
+              docKey={`timeline-body:${type}:${item?.uid}`}
+            />
+          </div>
+        ) : (
+          <div className="tl-empty">No Body found</div>
+        )
       )}
     </div>
   );

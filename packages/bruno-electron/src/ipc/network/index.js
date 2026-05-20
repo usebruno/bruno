@@ -2,6 +2,7 @@ const https = require('https');
 const axios = require('axios');
 const path = require('path');
 const { applyOAuth1ToRequest } = require('@usebruno/requests');
+const { buildScriptedEntry } = require('@usebruno/requests').scripting;
 const qs = require('qs');
 const decomment = require('decomment');
 const contentDispositionParser = require('content-disposition');
@@ -741,7 +742,7 @@ const registerNetworkIpc = (mainWindow) => {
     // requestUid is passed when a request is triggered; defaults to uuid() if not provided (e.g., bru.runRequest())
     const requestUid = item.requestUid || uuid();
 
-    const runRequestByItemPathname = async (relativeItemPathname) => {
+    const runRequestByItemPathname = async (relativeItemPathname, callerBru) => {
       return new Promise(async (resolve, reject) => {
         const format = getCollectionFormat(collection.pathname);
         let itemPathname = path.join(collection.pathname, relativeItemPathname);
@@ -750,10 +751,68 @@ const registerNetworkIpc = (mainWindow) => {
         }
         const _item = cloneDeep(findItemInCollectionByPathname(collection, itemPathname));
         if (_item) {
-          const res = await runRequest({ item: _item, collection, envVars, processEnvVars, runtimeVariables, runInBackground: true });
+          const startedAt = Date.now();
+          let res, err;
+          try {
+            res = await runRequest({ item: _item, collection, envVars, processEnvVars, runtimeVariables, runInBackground: true });
+          } catch (e) {
+            err = e;
+          }
+          const completedAt = Date.now();
+          const sent = res?.requestSent || {};
+          callerBru?._recordScriptedRequest?.({
+            source: 'runRequest',
+            ...buildScriptedEntry({
+              request: {
+                method: sent.method,
+                url: sent.url || res?.url,
+                headers: sent.headers,
+                data: sent.data
+              },
+              response: res
+                ? {
+                    status: res.status,
+                    statusText: res.statusText,
+                    headers: res.headers,
+                    data: res.data,
+                    dataBuffer: res.dataBuffer,
+                    size: res.size,
+                    duration: res.duration
+                  }
+                : null,
+              error: err || (res?.error ? { message: res.error } : null),
+              startedAt,
+              completedAt
+            })
+          });
+          if (err) {
+            reject(err);
+            return;
+          }
           resolve(res);
+          return;
         }
         reject(`bru.runRequest: invalid request path - ${itemPathname}`);
+      });
+    };
+
+    // Suppressed for nested (runInBackground) runs so a bru.runRequest target's
+    // scripts don't double-emit into the parent's timeline.
+    const emitScriptedRequestEvents = (phase, scriptResult) => {
+      if (runInBackground) return;
+      const entries = scriptResult?.scriptedRequestEntries || [];
+      entries.forEach((entry) => {
+        mainWindow.webContents.send('main:run-request-event', {
+          type: 'scripted-request',
+          collectionUid,
+          itemUid: item.uid,
+          requestUid,
+          phase,
+          source: entry.source,
+          scope: entry.scope || null,
+          timestamp: entry.startedAt,
+          data: { request: entry.request, response: entry.response }
+        });
       });
     };
 
@@ -817,6 +876,8 @@ const registerNetworkIpc = (mainWindow) => {
       if (preRequestError?.partialResults) {
         preRequestScriptResult = preRequestError.partialResults;
       }
+
+      emitScriptedRequestEvents('pre-request', preRequestScriptResult);
 
       preRequestScriptResult = appendScriptErrorResult('pre-request', preRequestScriptResult, preRequestError);
 
@@ -1000,6 +1061,8 @@ const registerNetworkIpc = (mainWindow) => {
           postResponseScriptResult = postResponseError.partialResults;
         }
 
+        emitScriptedRequestEvents('post-response', postResponseScriptResult);
+
         postResponseScriptResult = appendScriptErrorResult('post-response', postResponseScriptResult, postResponseError);
 
         if (postResponseScriptResult?.results) {
@@ -1077,6 +1140,8 @@ const registerNetworkIpc = (mainWindow) => {
               };
             }
           }
+
+          emitScriptedRequestEvents('tests', testResults);
 
           testResults = appendScriptErrorResult('test', testResults, testError);
 
@@ -1386,6 +1451,21 @@ const registerNetworkIpc = (mainWindow) => {
             itemUid
           };
 
+          const emitRunnerScriptedRequestEvents = (phase, scriptResult) => {
+            const entries = scriptResult?.scriptedRequestEntries || [];
+            entries.forEach((entry) => {
+              mainWindow.webContents.send('main:run-folder-event', {
+                type: 'scripted-request',
+                ...eventData,
+                phase,
+                source: entry.source,
+                scope: entry.scope || null,
+                timestamp: entry.startedAt,
+                data: { request: entry.request, response: entry.response }
+              });
+            });
+          };
+
           let timeStart;
           let timeEnd;
 
@@ -1478,6 +1558,7 @@ const registerNetworkIpc = (mainWindow) => {
             }
 
             preRequestScriptResult = appendScriptErrorResult('pre-request', preRequestScriptResult, preRequestError);
+            emitRunnerScriptedRequestEvents('pre-request', preRequestScriptResult);
 
             if (preRequestScriptResult?.results) {
               mainWindow.webContents.send('main:run-folder-event', {
@@ -1722,6 +1803,7 @@ const registerNetworkIpc = (mainWindow) => {
             }
 
             postResponseScriptResult = appendScriptErrorResult('post-response', postResponseScriptResult, postResponseError);
+            emitRunnerScriptedRequestEvents('post-response', postResponseScriptResult);
 
             notifyScriptExecution({
               channel: 'main:run-folder-event',
@@ -1813,6 +1895,7 @@ const registerNetworkIpc = (mainWindow) => {
               }
 
               testResults = appendScriptErrorResult('test', testResults, testError);
+              emitRunnerScriptedRequestEvents('tests', testResults);
 
               if (testResults?.nextRequestName !== undefined) {
                 nextRequestName = testResults.nextRequestName;

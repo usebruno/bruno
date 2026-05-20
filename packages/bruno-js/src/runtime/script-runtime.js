@@ -7,6 +7,7 @@ const { createBruTestResultMethods } = require('../utils/results');
 const { runScriptInNodeVm } = require('../sandbox/node-vm');
 const { executeQuickJsVmAsync } = require('../sandbox/quickjs');
 const { SANDBOX } = require('../utils/sandbox');
+const { bindRunRequest, createScopeSetter } = require('./scripted-entries');
 
 class ScriptRuntime {
   constructor(props) {
@@ -63,7 +64,8 @@ class ScriptRuntime {
       test,
       expect: chai.expect,
       assert: chai.assert,
-      __brunoTestResults: __brunoTestResults
+      __brunoTestResults: __brunoTestResults,
+      __bruSetScope: createScopeSetter(bru)
     };
 
     if (onConsoleLog && typeof onConsoleLog === 'function') {
@@ -81,9 +83,7 @@ class ScriptRuntime {
       };
     }
 
-    if (runRequestByItemPathname) {
-      context.bru.runRequest = runRequestByItemPathname;
-    }
+    bindRunRequest(bru, runRequestByItemPathname);
 
     // Helper to build the result object for pre-request scripts
     // Extracted to avoid duplication across runtime branches
@@ -97,7 +97,8 @@ class ScriptRuntime {
       results: cleanJson(__brunoTestResults.getResults()),
       nextRequestName: bru.nextRequest,
       skipRequest: bru.skipRequest,
-      stopExecution: bru.stopExecution
+      stopExecution: bru.stopExecution,
+      scriptedRequestEntries: cleanJson(bru.scriptedRequestEntries || [])
     });
 
     // Track script errors to attach partial results before re-throwing
@@ -199,7 +200,8 @@ class ScriptRuntime {
       test,
       expect: chai.expect,
       assert: chai.assert,
-      __brunoTestResults: __brunoTestResults
+      __brunoTestResults: __brunoTestResults,
+      __bruSetScope: createScopeSetter(bru)
     };
 
     if (onConsoleLog && typeof onConsoleLog === 'function') {
@@ -217,9 +219,7 @@ class ScriptRuntime {
       };
     }
 
-    if (runRequestByItemPathname) {
-      context.bru.runRequest = runRequestByItemPathname;
-    }
+    bindRunRequest(bru, runRequestByItemPathname);
 
     // Helper to build the result object for post-response scripts
     // Extracted to avoid duplication across runtime branches
@@ -233,7 +233,8 @@ class ScriptRuntime {
       results: cleanJson(__brunoTestResults.getResults()),
       nextRequestName: bru.nextRequest,
       skipRequest: bru.skipRequest,
-      stopExecution: bru.stopExecution
+      stopExecution: bru.stopExecution,
+      scriptedRequestEntries: cleanJson(bru.scriptedRequestEntries || [])
     });
 
     // Track script errors to attach partial results before re-throwing

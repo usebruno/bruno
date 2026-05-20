@@ -3043,6 +3043,22 @@ export const collectionsSlice = createSlice({
             }
           }
 
+          if (type === 'scripted-request') {
+            const { phase, source, scope, timestamp, data } = action.payload;
+            if (!collection.timeline) collection.timeline = [];
+            collection.timeline.push({
+              type: 'scripted-request',
+              collectionUid,
+              itemUid,
+              requestUid,
+              phase,
+              source,
+              scope: scope || null,
+              timestamp,
+              data
+            });
+          }
+
           if (type === 'assertion-results') {
             const { results } = action.payload;
             item.assertionResults = results;
@@ -3165,6 +3181,21 @@ export const collectionsSlice = createSlice({
           const item = collection.runnerResult.items.findLast((i) => i.uid === request.uid);
           item.preRequestScriptErrorMessage = action.payload.errorMessage;
           item.preRequestScriptErrorContext = action.payload.errorContext || null;
+        }
+
+        if (type === 'scripted-request') {
+          const { phase, source, scope, timestamp, data } = action.payload;
+          if (!collection.timeline) collection.timeline = [];
+          collection.timeline.push({
+            type: 'scripted-request',
+            collectionUid,
+            itemUid,
+            phase,
+            source,
+            scope: scope || null,
+            timestamp,
+            data
+          });
         }
       }
     },

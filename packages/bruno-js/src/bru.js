@@ -1,7 +1,7 @@
 const { cloneDeep } = require('lodash');
 const xmlFormat = require('xml-formatter');
 const { interpolate: _interpolate } = require('@usebruno/common');
-const { sendRequest, createSendRequest } = require('@usebruno/requests').scripting;
+const { createSendRequest } = require('@usebruno/requests').scripting;
 const { jar: createCookieJar, getCookiesForUrl } = require('@usebruno/requests').cookies;
 const CookieList = require('./cookie-list');
 
@@ -57,8 +57,13 @@ class Bru {
     this.oauth2CredentialVariables = oauth2CredentialVariables || {};
     this.collectionPath = collectionPath;
     this.collectionName = collectionName;
-    // Use createSendRequest with config if provided, otherwise use default sendRequest
-    this.sendRequest = certsAndProxyConfig ? createSendRequest(certsAndProxyConfig) : sendRequest;
+    // Set by the host-side `__bruSetScope` global at the top of each segment's IIFE
+    // (see wrapAndJoinScripts in bruno-electron/src/utils/collection.js).
+    this._currentScope = null;
+    this.scriptedRequestEntries = [];
+    this.sendRequest = createSendRequest(certsAndProxyConfig, {
+      onComplete: (entry) => this._recordScriptedRequest({ source: 'sendRequest', ...entry })
+    });
     this.runtime = runtime;
     this.requestUrl = requestUrl;
     this.cookies = new CookieList({
@@ -155,6 +160,14 @@ class Bru {
 
   cwd() {
     return this.collectionPath;
+  }
+
+  // Drained by the IPC layer after each script phase; not exposed in QuickJS shims.
+  _recordScriptedRequest(entry) {
+    this.scriptedRequestEntries.push({
+      ...entry,
+      scope: this._currentScope ? { ...this._currentScope } : null
+    });
   }
 
   getEnvName() {

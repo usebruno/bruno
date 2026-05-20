@@ -1,52 +1,46 @@
 import { useState } from 'react';
+import { IconChevronDown, IconChevronRight } from '@tabler/icons';
 
-const HeadersBlock = ({ headers, type }) => {
-  const [areHeadersCollapsed, toggleHeaders] = useState(true);
+const toEntries = (headers) => {
+  if (!headers) return [];
+  if (Array.isArray(headers)) {
+    return headers.map((h) => ({ name: h?.name, value: h?.value }));
+  }
+  return Object.entries(headers).map(([name, value]) => ({ name, value }));
+};
+
+const Headers = ({ headers }) => {
+  const [isOpen, setIsOpen] = useState(true);
+  const entries = toEntries(headers);
+  const count = entries.length;
 
   return (
-    <div className="collapsible-section mt-2">
-      <div className="section-header" onClick={() => toggleHeaders(!areHeadersCollapsed)}>
-        <pre className="flex flex-row items-center">
-          <div className="opacity-70">{areHeadersCollapsed ? '▼' : '▶'}</div> Headers
-          {headers && Object.keys(headers).length > 0
-            && <div className="ml-1">({Object.keys(headers).length})</div>}
-        </pre>
+    <div className="tl-block">
+      <div className="tl-block-h" onClick={() => setIsOpen(!isOpen)}>
+        <span className="tl-block-chev">
+          {isOpen ? <IconChevronDown size={12} strokeWidth={2} /> : <IconChevronRight size={12} strokeWidth={2} />}
+        </span>
+        Headers
+        <span className="tl-block-count">({count})</span>
       </div>
-      {areHeadersCollapsed && (
-        <div className="mt-1">
-          {headers && Object.keys(headers).length > 0
-            ? <Headers headers={headers} type={type} />
-            : <div className="timeline-item-timestamp">No Headers found</div>}
-        </div>
+      {isOpen && (
+        count === 0
+          ? <div className="tl-empty">No Headers found</div>
+          : (
+              <table className="tl-headers-table">
+                <tbody>
+                  {entries.map((h, i) => (
+                    <tr key={i}>
+                      <td className="tl-headers-key">{h.name}</td>
+                      <td className="tl-headers-val">{String(h.value)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )
       )}
     </div>
   );
 };
 
-const Headers = ({ headers, type }) => {
-  if (Array.isArray(headers)) {
-    return (
-      <div className="mt-1">
-        {headers.map((header, index) => (
-          <pre key={index} className="mb-1 whitespace-pre-wrap">
-            {type === 'request' ? '>' : '<'}&nbsp;<span className="opacity-60">{header?.name}:</span>
-            <span className="whitespace-pre-wrap">{String(header?.value)}</span>
-          </pre>
-        ))}
-      </div>
-    );
-  } else {
-    return (
-      <div className="mt-1">
-        {Object.entries(headers).map(([key, value], index) => (
-          <pre key={index} className="mb-1 whitespace-pre-wrap">
-            {type === 'request' ? '>' : '<'}&nbsp;<span className="opacity-60">{key}:</span>
-            <span>{String(value)}</span>
-          </pre>
-        ))}
-      </div>
-    );
-  }
-};
-
-export default HeadersBlock;
+export default Headers;
