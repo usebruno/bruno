@@ -3,41 +3,30 @@ import StyledWrapper from './StyledWrapper';
 import TimelineItem from '../Timeline/TimelineItem';
 
 const RunnerTimeline = ({ request = {}, response = {}, item, collection }) => {
-  // Build a single newest-first list — main, oauth sub-calls, and scripted
-  // entries together — matching how the regular Timeline orders them.
-  // The Runner stores main in runnerResult (not collection.timeline), so we
-  // synthesize a main entry from props and merge it with the timeline entries.
+  // Reads from the runner item only — never collection.timeline — so a later
+  // single-request invocation of the same item can't bleed into this view.
   const entries = useMemo(() => {
-    const timeline = collection?.timeline?.filter((e) => e.itemUid === item.uid) || [];
-
     const mainTimestamp = request?.timestamp ?? response?.timestamp ?? Date.now();
 
-    // Anchor oauth sub-calls just below main (newest-first within the group).
-    // The regular Timeline does the same via expandOauthEntry — here we can do
-    // it directly since main isn't in collection.timeline for the Runner.
-    const oauth = timeline
-      .filter((e) => e.type === 'oauth2')
-      .flatMap((event) => {
-        const debugInfo = event.data?.debugInfo || [];
-        return [...debugInfo].reverse().map((sub, i) => ({
-          kind: 'oauth2',
-          timestamp: mainTimestamp - 1 - i,
-          request: sub?.request,
-          response: sub?.response
-        }));
-      });
-
-    const scripted = timeline
-      .filter((e) => e.type === 'scripted-request')
-      .map((e) => ({
-        kind: 'scripted',
-        timestamp: e.timestamp,
-        request: e.data?.request,
-        response: e.data?.response,
-        source: e.source,
-        scope: e.scope,
-        phase: e.phase
+    const oauth = (item?.oauth2DebugEntries || []).flatMap((event) => {
+      const debugInfo = event.debugInfo || [];
+      return [...debugInfo].reverse().map((sub, i) => ({
+        kind: 'oauth2',
+        timestamp: mainTimestamp - 1 - i,
+        request: sub?.request,
+        response: sub?.response
       }));
+    });
+
+    const scripted = (item?.scriptedRequestEntries || []).map((e) => ({
+      kind: 'scripted',
+      timestamp: e.timestamp,
+      request: e.data?.request,
+      response: e.data?.response,
+      source: e.source,
+      scope: e.scope,
+      phase: e.phase
+    }));
 
     const main = {
       kind: 'main',
@@ -47,7 +36,7 @@ const RunnerTimeline = ({ request = {}, response = {}, item, collection }) => {
     };
 
     return [main, ...oauth, ...scripted].sort((a, b) => b.timestamp - a.timestamp);
-  }, [collection?.timeline, item.uid, request, response]);
+  }, [item?.oauth2DebugEntries, item?.scriptedRequestEntries, request, response]);
 
   return (
     <StyledWrapper className="pb-4 w-full">

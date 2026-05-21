@@ -53,9 +53,8 @@ type BuildScriptedEntryArgs = {
   completedAt: number;
 };
 
-// Convert axios's `AxiosHeaders` (or any header-like value) to a plain enumerable object.
-// AxiosHeaders is a class instance whose property descriptors and methods don't survive
-// V8 structured cloning across Electron's IPC boundary, leaving the renderer with `{}`.
+// AxiosHeaders is a class instance; its methods don't survive Electron's IPC
+// structured clone, leaving the renderer with `{}`. Flatten to a plain object.
 const toPlainHeaders = (headers: any): Record<string, any> => {
   if (!headers) return {};
   if (typeof headers.toJSON === 'function') {
@@ -66,10 +65,7 @@ const toPlainHeaders = (headers: any): Record<string, any> => {
   return out;
 };
 
-// Encode response body to base64 to match the main request's `dataBuffer` shape.
-// The Timeline UI uses dataBuffer as the source of truth for content-type detection
-// and CodeMirror sizing — generating it eagerly here (rather than via the Response
-// component's render-time fallback) keeps the layout stable on first mount.
+// Build dataBuffer eagerly so the Timeline's CodeMirror can size itself on mount.
 const toResponseDataBuffer = (data: any): string => {
   try {
     if (data === null || data === undefined) return '';
@@ -82,8 +78,7 @@ const toResponseDataBuffer = (data: any): string => {
   }
 };
 
-// Shared by send-request.ts (sendRequest) and bruno-electron's IPC layer
-// (runRequest) so both produce identically-shaped entries for the Timeline.
+// Shared with bruno-electron's runRequest so both produce identical entries.
 const buildScriptedEntry = ({
   request,
   response,
@@ -131,8 +126,7 @@ type SendRequestOptions = {
  * This allows bru.sendRequest to use the same proxy/certs config as the main request.
  *
  * @param config - Configuration for proxy, certs, and TLS options (same as getHttpHttpsAgents)
- * @param options - Optional sink invoked after each call resolves or errors. Used by the
- *                  Bruno script runtime to surface scripted requests in the Timeline.
+ * @param options - Optional onComplete sink invoked after each call; used by the Timeline.
  * @returns A sendRequest function that applies the config to each request
  */
 const createSendRequest = (config?: SendRequestConfig, options?: SendRequestOptions) => {

@@ -121,7 +121,10 @@ describe('createSendRequest', () => {
     const mockResponse = { data: 'test' };
     mockAxios.mockResolvedValue(mockResponse);
 
-    const customSendRequest = createSendRequest({ proxyConfig: {} });
+    // `proxyConfig` isn't a real key on SendRequestConfig — this test asserts
+    // that whatever the caller passes is spread through to getHttpHttpsAgents
+    // verbatim. Cast to `any` so the deliberately-loose call still type-checks.
+    const customSendRequest = createSendRequest({ proxyConfig: {} } as any);
     await customSendRequest({ url: 'https://example.com' });
 
     expect(mockGetHttpHttpsAgents).toHaveBeenCalledWith({
@@ -145,7 +148,7 @@ describe('createSendRequest', () => {
     });
     mockAxios.mockResolvedValue({ data: 'test' });
 
-    const customSendRequest = createSendRequest({ proxyConfig: {} });
+    const customSendRequest = createSendRequest({ proxyConfig: {} } as any);
     await customSendRequest({
       url: 'https://example.com',
       httpAgent: configHttpAgent,
@@ -179,7 +182,8 @@ describe('createSendRequest', () => {
     const mockResponse = { data: 'pong' };
     mockAxios.mockResolvedValue(mockResponse);
 
-    const customSendRequest = createSendRequest({ collectionPath: '/test' });
+    // SendRequestConfig also requires `options`; cast for a fixture-only partial.
+    const customSendRequest = createSendRequest({ collectionPath: '/test' } as any);
     const result = await customSendRequest('https://example.com/ping');
 
     expect(result).toBe(mockResponse);

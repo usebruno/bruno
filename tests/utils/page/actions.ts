@@ -502,6 +502,20 @@ const createFolder = async (
   });
 };
 
+/**
+ * Expand a folder in the sidebar so its child requests/subfolders become visible.
+ * No-op if the folder is already expanded.
+ */
+const expandFolder = async (page: Page, folderName: string) => {
+  await test.step(`Expand folder "${folderName}"`, async () => {
+    const locators = buildCommonLocators(page);
+    const chevron = locators.folder.chevron(folderName);
+    await chevron.waitFor({ state: 'visible', timeout: 5000 });
+    const isExpanded = await chevron.evaluate((el: HTMLElement) => el.classList.contains('rotate-90'));
+    if (!isExpanded) await chevron.click();
+  });
+};
+
 type EnvironmentType = 'collection' | 'global';
 
 /**
@@ -1213,6 +1227,58 @@ const addTestScript = async (page: Page, content: string) => {
 };
 
 /**
+ * Add a script to a folder's Settings → Script tab.
+ * @param page - The page object
+ * @param folderName - The folder to target (must be visible in the sidebar)
+ * @param phase - Which phase to write: 'pre-request' or 'post-response'
+ * @param content - The script content to add
+ */
+const addFolderScript = async (
+  page: Page,
+  folderName: string,
+  phase: 'pre-request' | 'post-response',
+  content: string
+) => {
+  await test.step(`Add ${phase} script on folder "${folderName}"`, async () => {
+    const locators = buildCommonLocators(page);
+    await locators.sidebar.folder(folderName).first().dblclick();
+    await locators.paneTabs.folderSettingsTab('script').click();
+    await locators.paneTabs.tabTrigger(phase).click();
+    await editCodeMirrorEditor(page, `folder-${phase}-script-editor`, content);
+    const saveShortcut = process.platform === 'darwin' ? 'Meta+s' : 'Control+s';
+    await page.keyboard.press(saveShortcut);
+    await page.waitForTimeout(400);
+  });
+};
+
+/**
+ * Add a script to a collection's Settings → Script tab.
+ * @param page - The page object
+ * @param collectionName - The collection to target
+ * @param phase - Which phase to write: 'pre-request' or 'post-response'
+ * @param content - The script content to add
+ */
+const addCollectionScript = async (
+  page: Page,
+  collectionName: string,
+  phase: 'pre-request' | 'post-response',
+  content: string
+) => {
+  await test.step(`Add ${phase} script on collection "${collectionName}"`, async () => {
+    const locators = buildCommonLocators(page);
+    await locators.sidebar.collection(collectionName).hover();
+    await locators.actions.collectionActions(collectionName).click();
+    await locators.dropdown.item('Settings').click();
+    await locators.paneTabs.collectionSettingsTab('script').click();
+    await locators.paneTabs.tabTrigger(phase).click();
+    await editCodeMirrorEditor(page, `collection-${phase}-script-editor`, content);
+    const saveShortcut = process.platform === 'darwin' ? 'Meta+s' : 'Control+s';
+    await page.keyboard.press(saveShortcut);
+    await page.waitForTimeout(400);
+  });
+};
+
+/**
  * Click send and wait for at least one error card to appear.
  * @param page - The page object
  */
@@ -1317,6 +1383,9 @@ export {
   addPreRequestScript,
   addPostResponseScript,
   addTestScript,
+  addFolderScript,
+  addCollectionScript,
+  expandFolder,
   sendAndWaitForErrorCard,
   sendAndWaitForResponse,
   createExampleFromSidebar,

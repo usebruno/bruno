@@ -64,7 +64,7 @@ test.describe('Timeline URL Update', () => {
       await selectResponsePaneTab(page, 'Timeline');
 
       // Get all timeline entries
-      const timelineItems = page.locator('.timeline-item');
+      const timelineItems = page.locator('.tl-row-wrap');
       await expect(timelineItems).toHaveCount(2, { timeout: 5000 });
 
       // Most recent entry (first in list) should show the second URL

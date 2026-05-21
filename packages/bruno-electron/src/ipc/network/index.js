@@ -739,7 +739,7 @@ const registerNetworkIpc = (mainWindow) => {
     const collectionUid = collection.uid;
     const collectionPath = collection.pathname;
     const cancelTokenUid = uuid();
-    // requestUid is passed when a request is triggered; defaults to uuid() if not provided (e.g., bru.runRequest())
+    // Nested bru.runRequest() invocations have no item.requestUid; mint one.
     const requestUid = item.requestUid || uuid();
 
     const runRequestByItemPathname = async (relativeItemPathname, callerBru) => {
@@ -796,8 +796,7 @@ const registerNetworkIpc = (mainWindow) => {
       });
     };
 
-    // Suppressed for nested (runInBackground) runs so a bru.runRequest target's
-    // scripts don't double-emit into the parent's timeline.
+    // Skipped for nested bru.runRequest targets so their scripts don't double-emit.
     const emitScriptedRequestEvents = (phase, scriptResult) => {
       if (runInBackground) return;
       const entries = scriptResult?.scriptedRequestEntries || [];
@@ -1358,7 +1357,7 @@ const registerNetworkIpc = (mainWindow) => {
         }
       });
 
-      const runRequestByItemPathname = async (relativeItemPathname) => {
+      const runRequestByItemPathname = async (relativeItemPathname, callerBru) => {
         return new Promise(async (resolve, reject) => {
           const format = getCollectionFormat(collection.pathname);
           let itemPathname = path.join(collection.pathname, relativeItemPathname);
@@ -1367,8 +1366,46 @@ const registerNetworkIpc = (mainWindow) => {
           }
           const _item = cloneDeep(findItemInCollectionByPathname(collection, itemPathname));
           if (_item) {
-            const res = await runRequest({ item: _item, collection, envVars, processEnvVars, runtimeVariables, runInBackground: true });
+            const startedAt = Date.now();
+            let res, err;
+            try {
+              res = await runRequest({ item: _item, collection, envVars, processEnvVars, runtimeVariables, runInBackground: true });
+            } catch (e) {
+              err = e;
+            }
+            const completedAt = Date.now();
+            const sent = res?.requestSent || {};
+            callerBru?._recordScriptedRequest?.({
+              source: 'runRequest',
+              ...buildScriptedEntry({
+                request: {
+                  method: sent.method,
+                  url: sent.url || res?.url,
+                  headers: sent.headers,
+                  data: sent.data
+                },
+                response: res
+                  ? {
+                      status: res.status,
+                      statusText: res.statusText,
+                      headers: res.headers,
+                      data: res.data,
+                      dataBuffer: res.dataBuffer,
+                      size: res.size,
+                      duration: res.duration
+                    }
+                  : null,
+                error: err || (res?.error ? { message: res.error } : null),
+                startedAt,
+                completedAt
+              })
+            });
+            if (err) {
+              reject(err);
+              return;
+            }
             resolve(res);
+            return;
           }
           reject(`bru.runRequest: invalid request path - ${itemPathname}`);
         });
@@ -1659,8 +1696,21 @@ const registerNetworkIpc = (mainWindow) => {
                 collectionUid,
                 credentialsId: request?.oauth2Credentials?.credentialsId,
                 ...(request?.oauth2Credentials?.folderUid ? { folderUid: request.oauth2Credentials.folderUid } : { itemUid: item.uid }),
-                debugInfo: request?.oauth2Credentials?.debugInfo
+                debugInfo: request?.oauth2Credentials?.debugInfo,
+                // Reducer updates the cache but skips the timeline push for 'runner'.
+                executionMode: 'runner'
               });
+
+              // RunnerTimeline reads oauth from the runner item, not collection.timeline.
+              if (request.oauth2Credentials.debugInfo) {
+                mainWindow.webContents.send('main:run-folder-event', {
+                  type: 'oauth2-debug',
+                  ...eventData,
+                  url: request.oauth2Credentials.url,
+                  credentialsId: request.oauth2Credentials.credentialsId,
+                  debugInfo: request.oauth2Credentials.debugInfo
+                });
+              }
 
               const { credentialsId, credentials } = request.oauth2Credentials;
               request.oauth2CredentialVariables = request.oauth2CredentialVariables || {};

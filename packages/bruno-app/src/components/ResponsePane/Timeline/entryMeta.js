@@ -1,4 +1,4 @@
-// Keys here match getEntryKind() in buildEntries.js; adding a new kind here lights up the rest of the UI.
+// Keys must match getEntryKind() in buildEntries.js.
 export const ENTRY_KINDS = {
   main: { chipLabel: 'Main', badgeLabel: 'main', badgeClass: 'tl-badge tl-badge--main' },
   oauth: { chipLabel: 'OAuth', badgeLabel: 'oauth2.0', badgeClass: 'tl-badge tl-badge--oauth2' },

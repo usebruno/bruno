@@ -57,8 +57,7 @@ class Bru {
     this.oauth2CredentialVariables = oauth2CredentialVariables || {};
     this.collectionPath = collectionPath;
     this.collectionName = collectionName;
-    // Set by the host-side `__bruSetScope` global at the top of each segment's IIFE
-    // (see wrapAndJoinScripts in bruno-electron/src/utils/collection.js).
+    // Set by the host-side __bruSetScope global at the top of each segment's IIFE.
     this._currentScope = null;
     this.scriptedRequestEntries = [];
     this.sendRequest = createSendRequest(certsAndProxyConfig, {
@@ -162,7 +161,6 @@ class Bru {
     return this.collectionPath;
   }
 
-  // Drained by the IPC layer after each script phase; not exposed in QuickJS shims.
   _recordScriptedRequest(entry) {
     this.scriptedRequestEntries.push({
       ...entry,

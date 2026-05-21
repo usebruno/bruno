@@ -39,9 +39,9 @@ const isVisibleEntry = (entry, itemUid, authSource) => {
 
 const expandOauthEntry = (entry, paired) => {
   const debugInfo = entry.data?.debugInfo || [];
-  if (debugInfo.length === 0) {
-    return [{ ...entry, timestamp: paired != null ? paired - 1 : entry.timestamp }];
-  }
+  // No sub-calls to render — drop the parent so the OAuth chip count
+  // matches the rows actually shown.
+  if (debugInfo.length === 0) return [];
   const n = debugInfo.length;
   const mainAnchor = paired != null ? paired : entry.timestamp + n;
   return debugInfo.map((sub, i) => ({

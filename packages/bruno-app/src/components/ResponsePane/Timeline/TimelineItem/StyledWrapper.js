@@ -1,15 +1,13 @@
 import styled from 'styled-components';
 
 const StyledWrapper = styled.div`
-  /* ===== Row (the trigger / collapsed state) ===== */
   .tl-row-wrap {
     min-width: 0;
   }
 
   .tl-row {
     display: grid;
-    /* Fixed widths for badge and time columns so they line up consistently
-       across rows (auto-sizing made them shift with content width). */
+    /* Badge and time use fixed widths so they line up across rows. */
     grid-template-columns: 14px auto 50px minmax(0, 1fr) 96px 100px;
     column-gap: 10px;
     align-items: center;
@@ -54,8 +52,6 @@ const StyledWrapper = styled.div`
     font-size: 11px;
   }
 
-  /* Add right-side padding on the method cell so there's a bit more visual
-     distance between METHOD and the URL that follows. */
   .tl-col-method {
     padding-right: 14px;
   }
@@ -71,7 +67,6 @@ const StyledWrapper = styled.div`
     text-align: right;
   }
 
-  /* Source-tag pill, variant-I pill style */
   .tl-badge {
     font-size: 10px;
     font-weight: 600;
@@ -99,7 +94,6 @@ const StyledWrapper = styled.div`
     color: ${(props) => props.theme.colors.text.purple || '#c79bdc'};
   }
 
-  /* ===== Detail (the expanded content) ===== */
   .tl-detail {
     border-top: 1px dashed ${(props) => props.theme.border.border1};
     margin-top: 4px;
@@ -151,9 +145,8 @@ const StyledWrapper = styled.div`
     flex-shrink: 0;
   }
 
-  /* Tabs (Request / Response / Network) — outer padding compensates for the
-     first tab button's 14px left padding so the tab text aligns with the
-     URL line above and the status pill in the trigger row. */
+  /* Outer padding compensates for the first tab's 14px left padding so the
+     tab text lines up with the URL above. */
   .tl-tabs {
     display: flex;
     align-items: center;
@@ -177,7 +170,6 @@ const StyledWrapper = styled.div`
   .tl-tab.is-active {
     color: ${(props) => props.theme.tabs.active.color};
   }
-  /* Underline indicator — only spans the text, not the side padding */
   .tl-tab.is-active::after {
     content: '';
     position: absolute;
@@ -208,7 +200,6 @@ const StyledWrapper = styled.div`
     color: ${(props) => props.theme.colors.text.muted};
   }
 
-  /* Flat (non-collapsible) blocks inside each tab pane */
   .tl-block {
     margin-top: 14px;
   }
@@ -247,7 +238,6 @@ const StyledWrapper = styled.div`
     letter-spacing: 0;
   }
 
-  /* Headers as 2-column table */
   .tl-headers-table {
     width: 100%;
     border-collapse: collapse;

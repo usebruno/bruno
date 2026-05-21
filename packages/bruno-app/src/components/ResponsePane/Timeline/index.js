@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import StyledWrapper from './StyledWrapper';
 import { findItemInCollection, findParentItemInCollection } from 'utils/collections/index';
 import { get } from 'lodash';
@@ -62,10 +62,15 @@ const Timeline = ({ collection, item }) => {
   );
   const counts = useMemo(() => countByKind(entries), [entries]);
 
-  // Hide the chip bar when only main entries exist (no other category to filter to).
   const visibleChips = FILTER_CHIPS.filter((chip) => chip.id === 'all' || counts[chip.id] > 0);
   const hasOtherKinds = counts.pre > 0 || counts.post > 0 || counts.oauth > 0;
   const showFilterBar = entries.length > 0 && hasOtherKinds;
+
+  useEffect(() => {
+    if (activeFilter === 'all') return;
+    const stillVisible = visibleChips.some((chip) => chip.id === activeFilter);
+    if (!stillVisible) setActiveFilter('all');
+  }, [activeFilter, visibleChips]);
 
   return (
     <StyledWrapper

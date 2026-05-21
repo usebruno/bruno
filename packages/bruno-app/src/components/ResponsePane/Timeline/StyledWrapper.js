@@ -10,7 +10,6 @@ const StyledWrapper = styled.div`
     flex: 1;
   }
 
-  /* Filter chip bar — variant I row layout, flat list above */
   .timeline-filter-bar {
     display: flex;
     align-items: center;

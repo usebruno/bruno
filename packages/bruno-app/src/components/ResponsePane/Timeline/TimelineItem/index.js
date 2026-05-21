@@ -44,13 +44,11 @@ const TimelineItem = ({
     default: false
   });
   const [activeTab, setActiveTab] = useState('request');
-  // CodeMirror reads its layout on mount, so mounting inside `display: none`
-  // leaves the editor blank. Lazy-mount each tab on first activation and keep
-  // it mounted thereafter; subsequent switches only toggle display.
+  // CodeMirror reads its size on mount and stays blank if hidden — lazy-mount
+  // each tab on first visit and keep it mounted, toggling display only.
   const [visitedTabs, setVisitedTabs] = useState({ request: true });
   const toggleExpand = () => _toggleExpand((prev) => !prev);
 
-  // Re-expand resets visitedTabs so each tab re-mounts visible (see above).
   useEffect(() => {
     if (isExpanded) setVisitedTabs({ [activeTab]: true });
   }, [isExpanded]);
@@ -88,8 +86,7 @@ const TimelineItem = ({
     ev?.preventDefault?.();
     ev?.stopPropagation?.();
     if (!navTarget) return;
-    // Tests has its own tab outside the Script pane. CollectionSettings expects
-    // 'tests' (plural), FolderSettings expects 'test' (singular).
+    // Collection settings expect tab 'tests' (plural); folder settings expect 'test' (singular).
     const isTestsPhase = phase === 'tests';
     const scriptPaneTab = phase || 'pre-request';
     if (navTarget.kind === 'collection') {

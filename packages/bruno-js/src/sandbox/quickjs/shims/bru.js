@@ -338,7 +338,7 @@ const addBruShimToContext = (vm, bru) => {
   });
   sendRequestHandle.consume((handle) => vm.setProp(bruObject, '_sendRequest', handle));
 
-  // Registered on vm.global (not bru) so it stays off user-facing autocomplete.
+  // On vm.global, not bru, to stay off user-facing autocomplete.
   let setScopeHandle = vm.newFunction('__bruSetScope', (scopeArg) => {
     bru._currentScope = vm.dump(scopeArg) || null;
   });
