@@ -186,11 +186,12 @@ const grammar = ohm.grammar(`Bru {
 // returning the remaining annotations untouched. Allows the GUI to render
 // per-field descriptions in a dedicated column while round-tripping cleanly.
 const extractDescription = (annotations) => {
-  if (!annotations || !annotations.length) return { description: '', remaining: [] };
-  let description = '';
+  if (!annotations || !annotations.length) return { description: undefined, remaining: [] };
+  // Track presence separately so empty string `@description('')` is preserved.
+  let description;
   const remaining = [];
   for (const ann of annotations) {
-    if (ann && ann.name === 'description' && typeof ann.value === 'string' && !description) {
+    if (ann && ann.name === 'description' && typeof ann.value === 'string' && description === undefined) {
       description = ann.value;
     } else {
       remaining.push(ann);
@@ -242,7 +243,7 @@ const mapRequestParams = (pairList = [], type) => {
     }
 
     const result = { name, value, enabled, type };
-    if (description) result.description = description;
+    if (description !== undefined) result.description = description;
     if (remaining.length) result.annotations = remaining;
     return result;
   });

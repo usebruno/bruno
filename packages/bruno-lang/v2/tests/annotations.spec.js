@@ -385,6 +385,32 @@ params:query {
     expect(bru).toContain('q: hello');
   });
 
+  it('@description("") empty string on params:query is preserved', () => {
+    const input = `
+params:query {
+  @description('')
+  q: hello
+}
+`;
+    const output = parser(input);
+    expect(output.params).toEqual([
+      { name: 'q', value: 'hello', enabled: true, type: 'query', description: '' }
+    ]);
+  });
+
+  it('empty-string description round-trip for query/path params', () => {
+    const json = {
+      params: [
+        { name: 'q', value: 'hello', enabled: true, type: 'query', description: '' },
+        { name: 'userId', value: '123', enabled: true, type: 'path', description: '' }
+      ]
+    };
+    const bru = jsonToBru(json);
+    expect(bru).toContain('@description(\'\')');
+    const parsed = parser(bru);
+    expect(parsed.params).toEqual(json.params);
+  });
+
   it('annotation on params:path block', () => {
     const input = `
 params:path {

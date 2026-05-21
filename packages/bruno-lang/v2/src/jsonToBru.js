@@ -10,12 +10,14 @@ const disabled = (items = [], key = 'enabled') => items.filter((item) => !item[k
 // annotation block. If description exists, it's emitted as @description("...").
 // Mirrors the extractDescription logic in bruToJson.
 const serializeItemAnnotations = (item) => {
-  const description = item && typeof item.description === 'string' ? item.description : '';
   const existing = (item && Array.isArray(item.annotations)) ? item.annotations : [];
-  if (!description) return serializeAnnotations(existing);
-  // Avoid duplicating if @description already present
+  // Presence check (not truthiness) so explicit empty-string descriptions
+  // round-trip as @description('') instead of being dropped.
+  const hasDescriptionField
+    = item && Object.prototype.hasOwnProperty.call(item, 'description') && typeof item.description === 'string';
+  if (!hasDescriptionField) return serializeAnnotations(existing);
   const hasDescAnnotation = existing.some((a) => a && a.name === 'description');
-  const merged = hasDescAnnotation ? existing : [{ name: 'description', value: description }, ...existing];
+  const merged = hasDescAnnotation ? existing : [{ name: 'description', value: item.description }, ...existing];
   return serializeAnnotations(merged);
 };
 

@@ -114,13 +114,14 @@ const QueryParams = ({ item, collection }) => {
       key: 'name',
       name: 'Name',
       isKeyField: true,
-      width: '30%',
+      width: '25%',
       readOnly: true
     },
     {
       key: 'value',
       name: 'Value',
       placeholder: 'Value',
+      width: '40%',
       render: ({ row, value, onChange }) => (
         <MultiLineEditor
           value={value || ''}
@@ -130,6 +131,22 @@ const QueryParams = ({ item, collection }) => {
           onRun={handleRun}
           collection={collection}
           item={item}
+        />
+      )
+    },
+    {
+      key: 'description',
+      name: 'Description',
+      placeholder: 'Description',
+      render: ({ row, value }) => (
+        <input
+          type="text"
+          autoComplete="off"
+          spellCheck="false"
+          className="mousetrap"
+          value={value || ''}
+          placeholder="Description"
+          onChange={(e) => handlePathParamChange(row.uid, 'description', e.target.value)}
         />
       )
     }
