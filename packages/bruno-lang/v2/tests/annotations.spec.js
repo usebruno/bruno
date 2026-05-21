@@ -362,6 +362,29 @@ params:query {
     ]);
   });
 
+  it('@description on params:query is promoted to top-level `description` field', () => {
+    const input = `
+params:query {
+  @description('search keyword')
+  q: hello
+}
+`;
+    const output = parser(input);
+    expect(output.params).toEqual([
+      { name: 'q', value: 'hello', enabled: true, type: 'query', description: 'search keyword' }
+    ]);
+  });
+
+  it('serializeItemAnnotations — query param description round-trip', () => {
+    const json = {
+      params: [{ name: 'q', value: 'hello', enabled: true, type: 'query', description: 'search keyword' }]
+    };
+    const bru = jsonToBru(json);
+    expect(bru).toContain('params:query {');
+    expect(bru).toContain('@description(\'search keyword\')');
+    expect(bru).toContain('q: hello');
+  });
+
   it('annotation on params:path block', () => {
     const input = `
 params:path {
@@ -370,8 +393,10 @@ params:path {
 }
 `;
     const output = parser(input);
+    // @description is promoted to a dedicated `description` field so the UI
+    // can render it as a column. Other annotations stay in `annotations`.
     expect(output.params).toEqual([
-      { name: 'userId', value: '123', enabled: true, type: 'path', annotations: [{ name: 'description', value: 'user id' }] }
+      { name: 'userId', value: '123', enabled: true, type: 'path', description: 'user id' }
     ]);
   });
 

@@ -182,6 +182,23 @@ const grammar = ohm.grammar(`Bru {
   docs = "docs" st* "{" nl* textblock tagend
 }`);
 
+// Extract @description annotation into a top-level `description` string,
+// returning the remaining annotations untouched. Allows the GUI to render
+// per-field descriptions in a dedicated column while round-tripping cleanly.
+const extractDescription = (annotations) => {
+  if (!annotations || !annotations.length) return { description: '', remaining: [] };
+  let description = '';
+  const remaining = [];
+  for (const ann of annotations) {
+    if (ann && ann.name === 'description' && typeof ann.value === 'string' && !description) {
+      description = ann.value;
+    } else {
+      remaining.push(ann);
+    }
+  }
+  return { description, remaining };
+};
+
 const mapPairListToKeyValPairs = (pairList = [], parseEnabled = true) => {
   if (!pairList.length) {
     return [];
@@ -217,6 +234,7 @@ const mapRequestParams = (pairList = [], type) => {
     let name = _.keys(pair)[0];
     let value = pair[name];
     const rawAnnotations = pair[ANNOTATIONS_KEY];
+    const { description, remaining } = extractDescription(rawAnnotations);
     let enabled = true;
     if (name && name.length && name.charAt(0) === '~') {
       name = name.slice(1);
@@ -224,7 +242,8 @@ const mapRequestParams = (pairList = [], type) => {
     }
 
     const result = { name, value, enabled, type };
-    if (rawAnnotations && rawAnnotations.length) result.annotations = rawAnnotations;
+    if (description) result.description = description;
+    if (remaining.length) result.annotations = remaining;
     return result;
   });
 };

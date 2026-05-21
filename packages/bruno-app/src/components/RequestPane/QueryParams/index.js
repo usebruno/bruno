@@ -81,12 +81,13 @@ const QueryParams = ({ item, collection }) => {
       name: 'Name',
       isKeyField: true,
       placeholder: 'Name',
-      width: '30%'
+      width: '25%'
     },
     {
       key: 'value',
       name: 'Value',
       placeholder: 'Value',
+      width: '40%',
       render: ({ value, onChange }) => (
         <MultiLineEditor
           value={value || ''}
@@ -100,6 +101,11 @@ const QueryParams = ({ item, collection }) => {
           placeholder={!value ? 'Value' : ''}
         />
       )
+    },
+    {
+      key: 'description',
+      name: 'Description',
+      placeholder: 'Description'
     }
   ];
 

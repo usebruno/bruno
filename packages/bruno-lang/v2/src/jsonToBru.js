@@ -6,6 +6,19 @@ const jsonToExampleBru = require('./example/jsonToBru');
 const enabled = (items = [], key = 'enabled') => items.filter((item) => item[key]);
 const disabled = (items = [], key = 'enabled') => items.filter((item) => !item[key]);
 
+// Combine item.description (string) + item.annotations into a single serialized
+// annotation block. If description exists, it's emitted as @description("...").
+// Mirrors the extractDescription logic in bruToJson.
+const serializeItemAnnotations = (item) => {
+  const description = item && typeof item.description === 'string' ? item.description : '';
+  const existing = (item && Array.isArray(item.annotations)) ? item.annotations : [];
+  if (!description) return serializeAnnotations(existing);
+  // Avoid duplicating if @description already present
+  const hasDescAnnotation = existing.some((a) => a && a.name === 'description');
+  const merged = hasDescAnnotation ? existing : [{ name: 'description', value: description }, ...existing];
+  return serializeAnnotations(merged);
+};
+
 // remove the last line if two new lines are found
 const stripLastLine = (text) => {
   if (!text || !text.length) return text;
@@ -128,7 +141,7 @@ const jsonToBru = (json) => {
       if (enabled(queryParams).length) {
         bru += `\n${indentString(
           enabled(queryParams)
-            .map((item) => `${serializeAnnotations(item.annotations)}${getKeyString(item.name)}: ${getValueString(item.value)}`)
+            .map((item) => `${serializeItemAnnotations(item)}${getKeyString(item.name)}: ${getValueString(item.value)}`)
             .join('\n')
         )}`;
       }
@@ -136,7 +149,7 @@ const jsonToBru = (json) => {
       if (disabled(queryParams).length) {
         bru += `\n${indentString(
           disabled(queryParams)
-            .map((item) => `${serializeAnnotations(item.annotations)}~${getKeyString(item.name)}: ${getValueString(item.value)}`)
+            .map((item) => `${serializeItemAnnotations(item)}~${getKeyString(item.name)}: ${getValueString(item.value)}`)
             .join('\n')
         )}`;
       }
@@ -147,7 +160,7 @@ const jsonToBru = (json) => {
     if (pathParams.length) {
       bru += 'params:path {';
 
-      bru += `\n${indentString(pathParams.map((item) => `${serializeAnnotations(item.annotations)}${item.name}: ${getValueString(item.value)}`).join('\n'))}`;
+      bru += `\n${indentString(pathParams.map((item) => `${serializeItemAnnotations(item)}${item.name}: ${getValueString(item.value)}`).join('\n'))}`;
 
       bru += '\n}\n\n';
     }
