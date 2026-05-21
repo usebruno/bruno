@@ -140,6 +140,7 @@ const QueryParams = ({ item, collection }) => {
       placeholder: 'Description',
       render: ({ row, value }) => (
         <input
+          data-testid={`path-param-description-${row.uid}`}
           type="text"
           autoComplete="off"
           spellCheck="false"
