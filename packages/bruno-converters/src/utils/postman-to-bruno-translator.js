@@ -264,16 +264,16 @@ const complexTransformations = [
     }
   })),
 
-  // Handle pm.setNextRequest(null) / pm.setNextRequest('null') — stop the runner
+  // Handle pm.setNextRequest(null) — stop the runner.
+  // Note: the string 'null' is a valid request name in Postman, so only the
+  // actual null literal triggers stopExecution(); 'null' falls through to setNextRequest.
   {
     pattern: 'pm.setNextRequest',
     transform: (path, j) => {
       const callExpr = path.parent.value;
       const args = callExpr.arguments;
 
-      if (
-        args[0] && args[0].type === 'Literal' && (args[0].value === null || args[0].value === 'null')
-      ) {
+      if (args[0] && args[0].type === 'Literal' && args[0].value === null) {
         return j.callExpression(
           j.identifier('bru.runner.stopExecution'),
           []
@@ -287,7 +287,7 @@ const complexTransformations = [
     }
   },
 
-  // Handle pm.execution.setNextRequest(null)
+  // Handle pm.execution.setNextRequest(null) — same null-vs-'null' rule as above.
   {
     pattern: 'pm.execution.setNextRequest',
     transform: (path, j) => {
@@ -295,10 +295,9 @@ const complexTransformations = [
 
       const args = callExpr.arguments;
 
-      // If argument is null or 'null', transform to bru.runner.stopExecution()
-      if (
-        args[0].type === 'Literal' && (args[0].value === null || args[0].value === 'null')
-      ) {
+      // Only the actual null literal triggers stopExecution(); the string 'null'
+      // is a valid request name and falls through to setNextRequest.
+      if (args[0] && args[0].type === 'Literal' && args[0].value === null) {
         return j.callExpression(
           j.identifier('bru.runner.stopExecution'),
           []
