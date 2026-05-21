@@ -20,6 +20,7 @@ const simpleTranslations = {
   // Global variables
   'bru.getGlobalEnvVar': 'pm.globals.get',
   'bru.setGlobalEnvVar': 'pm.globals.set',
+  'bru.hasGlobalEnvVar': 'pm.globals.has',
   // 'bru.deleteGlobalEnvVar': 'pm.globals.unset',
   'bru.getAllGlobalEnvVars': 'pm.globals.toObject',
   // 'bru.deleteAllGlobalEnvVars': 'pm.globals.clear',

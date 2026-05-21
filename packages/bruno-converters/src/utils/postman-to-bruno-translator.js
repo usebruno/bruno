@@ -12,6 +12,7 @@ const simpleTranslations = {
   // Global Variables
   'pm.globals.get': 'bru.getGlobalEnvVar',
   'pm.globals.set': 'bru.setGlobalEnvVar',
+  'pm.globals.has': 'bru.hasGlobalEnvVar',
   'pm.globals.replaceIn': 'bru.interpolate',
   // 'pm.globals.unset': 'bru.deleteGlobalEnvVar',
   'pm.globals.toObject': 'bru.getAllGlobalEnvVars',
@@ -289,10 +290,9 @@ const complexTransformations = [
 
   // Handle pm.execution.setNextRequest(null) — same null-vs-'null' rule as above.
   {
-    pattern: 'pm.execution.setNextRequest',
+    pattern: 'pm.setNextRequest',
     transform: (path, j) => {
       const callExpr = path.parent.value;
-
       const args = callExpr.arguments;
 
       // Only the actual null literal triggers stopExecution(); the string 'null'
@@ -304,7 +304,6 @@ const complexTransformations = [
         );
       }
 
-      // Otherwise, keep as bru.runner.setNextRequest with the same argument
       return j.callExpression(
         j.identifier('bru.runner.setNextRequest'),
         args
@@ -312,26 +311,28 @@ const complexTransformations = [
     }
   },
 
-  // pm.globals.has requires special handling
+  // Handle pm.execution.setNextRequest(null)
   {
-    pattern: 'pm.globals.has',
+    pattern: 'pm.execution.setNextRequest',
     transform: (path, j) => {
       const callExpr = path.parent.value;
+
       const args = callExpr.arguments;
 
-      // Create: bru.getGlobalEnvVar(arg) !== undefined && bru.getGlobalEnvVar(arg) !== null
-      return j.logicalExpression(
-        '&&',
-        j.binaryExpression(
-          '!==',
-          j.callExpression(j.identifier('bru.getGlobalEnvVar'), args),
-          j.identifier('undefined')
-        ),
-        j.binaryExpression(
-          '!==',
-          j.callExpression(j.identifier('bru.getGlobalEnvVar'), args),
-          j.identifier('null')
-        )
+      // If argument is null or 'null', transform to bru.runner.stopExecution()
+      if (
+        args[0].type === 'Literal' && (args[0].value === null || args[0].value === 'null')
+      ) {
+        return j.callExpression(
+          j.identifier('bru.runner.stopExecution'),
+          []
+        );
+      }
+
+      // Otherwise, keep as bru.runner.setNextRequest with the same argument
+      return j.callExpression(
+        j.identifier('bru.runner.setNextRequest'),
+        args
       );
     }
   },

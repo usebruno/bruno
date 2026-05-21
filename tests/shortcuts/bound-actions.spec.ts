@@ -242,7 +242,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
 
     test.describe('SHORTCUT: Save', () => {
       test('default Cmd/Ctrl+S save tab', async ({ page, createTmpDir }) => {
-        await page.locator('.collection-name').filter({ hasText: 'kb-collection' }).dblclick();
+        await page.getByTestId('collections').locator('.collection-name').filter({ hasText: 'kb-collection' }).dblclick();
         await expect(page.locator('.request-tab').filter({ hasText: 'collection' })).toBeVisible({ timeout: 2000 });
 
         // Verify initially there is NO draft indicator (close icon is present)
@@ -295,7 +295,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
 
         await closePreferencesTab(page);
 
-        await page.locator('.collection-name').filter({ hasText: 'kb-collection' }).dblclick();
+        await page.getByTestId('collections').locator('.collection-name').filter({ hasText: 'kb-collection' }).dblclick();
         await expect(page.locator('.request-tab').filter({ hasText: 'collection' })).toBeVisible({ timeout: 2000 });
 
         // Verify initially there is NO draft indicator (close icon is present)
@@ -336,7 +336,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
 
     test.describe('SHORTCUT: Save All Tabs', () => {
       test('default Cmd/Ctrl+Shift+S save all tabs', async ({ page }) => {
-        await page.locator('.collection-name').filter({ hasText: 'kb-collection' }).dblclick();
+        await page.getByTestId('collections').locator('.collection-name').filter({ hasText: 'kb-collection' }).dblclick();
         await expect(page.locator('.request-tab').filter({ hasText: 'collection' })).toBeVisible({ timeout: 2000 });
 
         // Verify initially there is NO draft indicator (close icon is present)
@@ -422,7 +422,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
 
         await closePreferencesTab(page);
 
-        await page.locator('.collection-name').filter({ hasText: collectionName }).dblclick();
+        await page.getByTestId('collections').locator('.collection-name').filter({ hasText: collectionName }).dblclick();
         await expect(page.locator('.request-tab').filter({ hasText: 'collection' })).toBeVisible({ timeout: 2000 });
 
         // Verify initially there is NO draft indicator (close icon is present)
@@ -801,7 +801,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await openRequest(page, collectionName, 'req-2', { persist: true });
 
         // Open Collection-Settings tab (double-click collection name)
-        await page.locator('.collection-name').filter({ hasText: 'kb-collection' }).dblclick();
+        await page.getByTestId('collections').locator('.collection-name').filter({ hasText: 'kb-collection' }).dblclick();
         await expect(page.locator('.request-tab').filter({ hasText: 'collection' })).toBeVisible({ timeout: 2000 });
 
         // Open Runner tab
@@ -923,7 +923,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await page.keyboard.up('KeyN');
         await page.keyboard.up('Alt');
 
-        await page.locator('.collection-name').filter({ hasText: 'kb-collection' }).click();
+        await page.getByTestId('collections').locator('.collection-name').filter({ hasText: 'kb-collection' }).click();
 
         await page.keyboard.down('Alt');
         await page.keyboard.down('KeyN');
@@ -946,7 +946,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await page.keyboard.up('KeyY');
         await page.keyboard.up('Alt');
 
-        await page.locator('.collection-name').filter({ hasText: 'kb-collection' }).dblclick();
+        await page.getByTestId('collections').locator('.collection-name').filter({ hasText: 'kb-collection' }).dblclick();
         await openRequest(page, 'kb-collection', 'req-1', { persist: true });
         await page.keyboard.press(`${modifier}+KeyR`);
 
@@ -996,7 +996,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await page.keyboard.up('KeyY');
         await page.keyboard.up('Alt');
 
-        await page.locator('.collection-name').filter({ hasText: 'kb-collection' }).click();
+        await page.getByTestId('collections').locator('.collection-name').filter({ hasText: 'kb-collection' }).click();
         await page.keyboard.press(`${modifier}+KeyR`);
 
         // Verify rename modal opens
@@ -1011,7 +1011,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await page.locator('.submit').click();
 
         // Verify renamed request appears in sidebar
-        await expect(page.locator('.collection-name').filter({ hasText: 'kb-collection-renamed' })).toBeVisible({ timeout: 3000 });
+        await expect(page.getByTestId('collections').locator('.collection-name').filter({ hasText: 'kb-collection-renamed' })).toBeVisible({ timeout: 3000 });
       });
 
       test('customized Alt+X open rename item modal for request', async ({ page, createTmpDir }) => {
@@ -1097,7 +1097,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
           await page.keyboard.press('Alt+KeyX');
         });
 
-        await page.locator('.collection-name').filter({ hasText: collectionName }).click();
+        await page.getByTestId('collections').locator('.collection-name').filter({ hasText: collectionName }).click();
         await page.keyboard.down('Alt');
         await page.keyboard.down('KeyX');
         await page.keyboard.up('KeyX');
@@ -1115,7 +1115,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await page.locator('.submit').click();
 
         // Verify renamed request appears in sidebar
-        await expect(page.locator('.collection-name').filter({ hasText: 'kb-collection-renamed-altx' })).toBeVisible({ timeout: 2000 });
+        await expect(page.getByTestId('collections').locator('.collection-name').filter({ hasText: 'kb-collection-renamed-altx' })).toBeVisible({ timeout: 2000 });
       });
     });
 
@@ -1417,7 +1417,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
     test.describe('SHORTCUT: Open Terminal', () => {
       test('default Cmd/Ctrl+T opens terminal', async ({ page, createTmpDir }) => {
         // Open Collection-Settings tab (double-click collection name)
-        await page.locator('.collection-name').filter({ hasText: 'kb-collection' }).click();
+        await page.getByTestId('collections').locator('.collection-name').filter({ hasText: 'kb-collection' }).click();
         await expect(page.locator('.request-tab').filter({ hasText: 'collection' })).toBeVisible({ timeout: 2000 });
 
         // Press Cmd/Ctrl+T to open terminal at workspace level
@@ -1467,7 +1467,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await page.keyboard.up('KeyT');
         await page.keyboard.up('Alt');
 
-        await page.locator('.collection-name').filter({ hasText: 'kb-collection' }).click();
+        await page.getByTestId('collections').locator('.collection-name').filter({ hasText: 'kb-collection' }).click();
         await expect(page.locator('.request-tab').filter({ hasText: 'collection' })).toBeVisible({ timeout: 2000 });
 
         // Press Cmd/Ctrl+T to open terminal at workspace level
