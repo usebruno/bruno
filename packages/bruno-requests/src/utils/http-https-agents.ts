@@ -216,7 +216,7 @@ const TARGET_TLS_OPTIONS = ['cert', 'key', 'pfx', 'passphrase', 'rejectUnauthori
  * `ca` to a secureContext (via addCACert) before construction, so custom CAs
  * are added on top of the OpenSSL defaults rather than replacing them.
  */
-class PatchedHttpsProxyAgent extends HttpsProxyAgent<any> {
+export class PatchedHttpsProxyAgent extends HttpsProxyAgent<any> {
   private constructorOpts: any;
 
   constructor(proxy: string, opts: any) {
@@ -383,61 +383,77 @@ function extractHostname(url: string | undefined): string | null {
   }
 }
 
-/**
- * Resolves a PAC URL and creates the appropriate proxy agents from the first directive.
- * Shared by both explicit PAC mode and system proxy mode (when OS has a PAC URL).
- */
-async function resolveAgentsFromPac({
-  pacSource,
-  requestUrl,
-  isHttpsRequest,
-  tlsOptions,
-  timeline,
-  disableCache,
-  hostname
-}: {
+type ResolveAgentsFromPacParams = {
   pacSource: string;
   requestUrl: string;
-  isHttpsRequest: boolean;
   tlsOptions: TlsOptions;
+  httpsAgentRequestFields?: HttpsAgentRequestFields;
+  requestProtocol?: 'http' | 'https' | 'both';
   timeline?: TimelineEntry[] | null;
   disableCache: boolean;
   hostname: string | null;
-}): Promise<AgentResult> {
-  const resolver = await getPacResolver({
-    pacSource,
-    httpsAgentRequestFields: { ca: tlsOptions.ca, rejectUnauthorized: tlsOptions.rejectUnauthorized, minVersion: tlsOptions.minVersion }
-  });
+};
+
+type ResolveAgentsFromPacResult = {
+  directives: string[] | null;
+  httpAgent?: HttpAgent;
+  httpsAgent?: HttpsAgent | HttpsProxyAgent<any> | SocksProxyAgent;
+};
+
+/**
+ * Resolves a PAC URL and creates proxy agents from the first directive.
+ * `requestProtocol` controls which agent(s) get created:
+ *   - 'http' or 'https': create only the matching agent (optimization for known request type)
+ *   - 'both' (default): create both, caller picks
+ */
+export async function resolveAgentsFromPac({
+  pacSource,
+  requestUrl,
+  tlsOptions,
+  httpsAgentRequestFields,
+  requestProtocol = 'both',
+  timeline,
+  disableCache,
+  hostname
+}: ResolveAgentsFromPacParams): Promise<ResolveAgentsFromPacResult> {
+  const pacResolverFields = httpsAgentRequestFields || {
+    ca: tlsOptions.ca,
+    rejectUnauthorized: tlsOptions.rejectUnauthorized,
+    minVersion: tlsOptions.minVersion
+  };
+  const resolver = await getPacResolver({ pacSource, httpsAgentRequestFields: pacResolverFields });
   const directives = await resolver.resolve(requestUrl);
 
   if (!directives || !directives.length) {
-    return {};
+    return { directives: null };
   }
 
+  const wantHttp = requestProtocol === 'http' || requestProtocol === 'both';
+  const wantHttps = requestProtocol === 'https' || requestProtocol === 'both';
   const first = directives[0];
+
   if (/^(PROXY|HTTPS?)\s+/i.test(first)) {
     const parts = first.split(/\s+/);
     const keyword = parts[0].toUpperCase();
     const hostPort = parts[1];
     const scheme = keyword === 'HTTPS' ? 'https' : 'http';
     const proxyUri = `${scheme}://${hostPort}`;
-    if (isHttpsRequest) {
-      return { httpsAgent: getOrCreateHttpsAgent({ AgentClass: PatchedHttpsProxyAgent, options: tlsOptions as any, proxyUri, timeline: timeline || null, disableCache, hostname }) as HttpsAgent };
-    } else {
-      return { httpAgent: getOrCreateHttpAgent({ AgentClass: HttpProxyAgent, options: { keepAlive: true }, proxyUri, timeline: timeline || null, disableCache, hostname }) };
-    }
-  } else if (/^SOCKS/i.test(first)) {
+    const result: ResolveAgentsFromPacResult = { directives };
+    if (wantHttp) result.httpAgent = getOrCreateHttpAgent({ AgentClass: HttpProxyAgent, options: { keepAlive: true }, proxyUri, timeline: timeline || null, disableCache, hostname });
+    if (wantHttps) result.httpsAgent = getOrCreateHttpsAgent({ AgentClass: PatchedHttpsProxyAgent, options: tlsOptions as any, proxyUri, timeline: timeline || null, disableCache, hostname }) as HttpsAgent;
+    return result;
+  }
+  if (/^SOCKS/i.test(first)) {
     const hostPort = first.split(/\s+/)[1];
     const proto = /^SOCKS4\s/i.test(first) ? 'socks4' : 'socks5';
     const proxyUri = `${proto}://${hostPort}`;
-    if (isHttpsRequest) {
-      return { httpsAgent: getOrCreateHttpsAgent({ AgentClass: SocksProxyAgent, options: tlsOptions as any, proxyUri, timeline: timeline || null, disableCache, hostname }) as HttpsAgent };
-    } else {
-      return { httpAgent: getOrCreateHttpAgent({ AgentClass: SocksProxyAgent, options: { keepAlive: true }, proxyUri, timeline: timeline || null, disableCache, hostname }) };
-    }
+    const result: ResolveAgentsFromPacResult = { directives };
+    if (wantHttp) result.httpAgent = getOrCreateHttpAgent({ AgentClass: SocksProxyAgent, options: { keepAlive: true }, proxyUri, timeline: timeline || null, disableCache, hostname });
+    if (wantHttps) result.httpsAgent = getOrCreateHttpsAgent({ AgentClass: SocksProxyAgent, options: tlsOptions as any, proxyUri, timeline: timeline || null, disableCache, hostname }) as HttpsAgent;
+    return result;
   }
 
-  return {};
+  return { directives };
 }
 
 async function createAgents({
@@ -517,7 +533,7 @@ async function createAgents({
     const pacSource = get(proxyConfig, 'pac.source');
     if (pacSource && requestUrl) {
       try {
-        const result = await resolveAgentsFromPac({ pacSource, requestUrl, isHttpsRequest, tlsOptions, timeline, disableCache, hostname });
+        const result = await resolveAgentsFromPac({ pacSource, requestUrl, requestProtocol: isHttpsRequest ? 'https' : 'http', tlsOptions, timeline, disableCache, hostname });
         if (result.httpAgent) httpAgent = result.httpAgent;
         if (result.httpsAgent) httpsAgent = result.httpsAgent;
       } catch {
@@ -533,7 +549,7 @@ async function createAgents({
     // If the OS is configured with a PAC URL, resolve it using the existing PAC infrastructure
     if (pac_url && requestUrl) {
       try {
-        const result = await resolveAgentsFromPac({ pacSource: pac_url, requestUrl, isHttpsRequest, tlsOptions, timeline, disableCache, hostname });
+        const result = await resolveAgentsFromPac({ pacSource: pac_url, requestUrl, requestProtocol: isHttpsRequest ? 'https' : 'http', tlsOptions, timeline, disableCache, hostname });
         if (result.httpAgent) httpAgent = result.httpAgent;
         if (result.httpsAgent) httpsAgent = result.httpsAgent;
       } catch {
@@ -619,4 +635,4 @@ const getHttpHttpsAgents = async ({
 
 export { getHttpHttpsAgents };
 
-export type { GetHttpHttpsAgentsParams };
+export type { GetHttpHttpsAgentsParams, ResolveAgentsFromPacParams, ResolveAgentsFromPacResult };

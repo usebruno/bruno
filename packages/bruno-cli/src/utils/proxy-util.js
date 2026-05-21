@@ -2,10 +2,14 @@ const parseUrl = require('url').parse;
 const http = require('node:http');
 const https = require('node:https');
 const { isEmpty, get, isUndefined, isNull } = require('lodash');
-const { HttpsProxyAgent } = require('https-proxy-agent');
 const { HttpProxyAgent } = require('http-proxy-agent');
 const { SocksProxyAgent } = require('socks-proxy-agent');
-const { getOrCreateHttpsAgent, getOrCreateHttpAgent, getPacResolver } = require('@usebruno/requests');
+const {
+  getOrCreateHttpsAgent,
+  getOrCreateHttpAgent,
+  resolveAgentsFromPac,
+  PatchedHttpsProxyAgent
+} = require('@usebruno/requests');
 const { interpolateString } = require('../runner/interpolate-string');
 
 const DEFAULT_PORTS = {
@@ -67,69 +71,6 @@ const shouldUseProxy = (url, proxyBypass) => {
     return !hostname.endsWith(parsedProxyHostname);
   });
 };
-
-/**
- * Options that should be forwarded from the constructor to the target TLS upgrade.
- */
-const TARGET_TLS_OPTIONS = ['cert', 'key', 'pfx', 'passphrase', 'rejectUnauthorized', 'secureContext'];
-
-/**
- * Patched version of HttpsProxyAgent that correctly handles TLS options for
- * both the proxy connection and the target server connection.
- *
- * The upstream HttpsProxyAgent (https://github.com/TooTallNate/proxy-agents/issues/194)
- * ignores constructor options when upgrading the tunneled socket to TLS for the
- * target server. This patch forwards the relevant TLS options to the target upgrade.
- */
-class PatchedHttpsProxyAgent extends HttpsProxyAgent {
-  constructor(proxy, opts) {
-    super(proxy, opts);
-    this.constructorOpts = opts;
-  }
-
-  async connect(req, opts) {
-    const targetOpts = { ...opts };
-
-    if (this.constructorOpts) {
-      for (const key of TARGET_TLS_OPTIONS) {
-        if (key in this.constructorOpts) {
-          targetOpts[key] = this.constructorOpts[key];
-        }
-      }
-    }
-
-    return super.connect(req, targetOpts);
-  }
-}
-
-async function resolveAgentsFromPac({ pacSource, requestUrl, requestConfig, tlsOptions, httpsAgentRequestFields, disableCache, hostname }) {
-  const resolver = await getPacResolver({ pacSource, httpsAgentRequestFields });
-  const directives = await resolver.resolve(requestUrl);
-
-  if (!directives || !directives.length) {
-    return null;
-  }
-
-  const first = directives[0];
-
-  if (/^(PROXY|HTTPS?)\s+/i.test(first)) {
-    const parts = first.split(/\s+/);
-    const keyword = parts[0].toUpperCase();
-    const hostPort = parts[1];
-    const scheme = keyword === 'HTTPS' ? 'https' : 'http';
-    const proxyUri = `${scheme}://${hostPort}`;
-    requestConfig.httpAgent = getOrCreateHttpAgent({ AgentClass: HttpProxyAgent, options: { keepAlive: true }, proxyUri, disableCache, hostname });
-    requestConfig.httpsAgent = getOrCreateHttpsAgent({ AgentClass: PatchedHttpsProxyAgent, options: tlsOptions, proxyUri, disableCache, hostname });
-  } else if (/^SOCKS/i.test(first)) {
-    const hostPort = first.split(/\s+/)[1];
-    const proto = /^SOCKS4\s/i.test(first) ? 'socks4' : 'socks5';
-    const proxyUri = `${proto}://${hostPort}`;
-    requestConfig.httpAgent = getOrCreateHttpAgent({ AgentClass: SocksProxyAgent, options: { keepAlive: true }, proxyUri, disableCache, hostname });
-    requestConfig.httpsAgent = getOrCreateHttpsAgent({ AgentClass: SocksProxyAgent, options: tlsOptions, proxyUri, disableCache, hostname });
-  }
-
-  return directives;
-}
 
 async function setupProxyAgents({
   requestConfig,
@@ -197,7 +138,9 @@ async function setupProxyAgents({
       // If the OS is configured with a PAC URL, resolve it using the existing PAC infrastructure
       if (pac_url) {
         try {
-          await resolveAgentsFromPac({ pacSource: pac_url, requestUrl: requestConfig.url, requestConfig, tlsOptions, httpsAgentRequestFields, disableCache, hostname });
+          const { httpAgent, httpsAgent } = await resolveAgentsFromPac({ pacSource: pac_url, requestUrl: requestConfig.url, tlsOptions, httpsAgentRequestFields, disableCache, hostname });
+          if (httpAgent) requestConfig.httpAgent = httpAgent;
+          if (httpsAgent) requestConfig.httpsAgent = httpsAgent;
         } catch (error) {}
       } else {
         const shouldUseSystemProxy = shouldUseProxy(requestConfig.url, no_proxy || '');
