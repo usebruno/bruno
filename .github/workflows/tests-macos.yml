@@ -50,8 +50,12 @@ jobs:
   e2e-test:
     name: Playwright E2E Tests (macOS)
     timeout-minutes: 150
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}-e2e
+      cancel-in-progress: true
     runs-on: 
-      - macos-latest
+      - self-hosted
+      - macOS
       - e2e
     steps:
       - uses: actions/checkout@v6
