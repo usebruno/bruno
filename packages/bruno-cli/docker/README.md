@@ -2,22 +2,6 @@
 
 Official Docker images for [Bruno CLI](https://www.usebruno.com), enabling container-native API collection runs in CI/CD pipelines and local environments without requiring Node.js or npm on the host. See the [Bruno CLI docs](https://docs.usebruno.com/bru-cli/overview) for CLI usage.
 
-## Folder structure
-
-```text
-docker/
-  ├── README.md           ← you are here
-  └── images/
-      ├── alpine/
-      │   ├── Dockerfile  ← Alpine Linux variant
-      │   └── README.md
-      └── debian/
-          ├── Dockerfile  ← Debian slim variant (glibc support)
-          └── README.md
-```
-
----
-
 ## Registries
 
 ```bash
