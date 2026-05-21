@@ -313,10 +313,26 @@ const OAUTH2_EXTENSION_FIELDS: (keyof BrunoOAuth2)[] = [
 const isPlacementRepresentable = (method?: string | null): boolean =>
   method === 'client_secret_basic' || method === 'client_secret_post';
 
+// Fields that only make sense when the active method signs a JWT (client_secret_jwt /
+// private_key_jwt). Skipped on serialization when the active method is something else, so a
+// previously-configured JWT method's material doesn't linger in yml after the user switches away.
+const JWT_ONLY_EXTENSION_FIELDS: Set<keyof BrunoOAuth2> = new Set([
+  'tokenEndpointAuthSigningAlg',
+  'privateKey', 'privateKeyType', 'privateKeyFormat', 'keyId',
+  'audience', 'assertionLifetime', 'additionalClaims'
+]);
+
+const isJwtMethod = (method?: string | null): boolean =>
+  method === 'client_secret_jwt' || method === 'private_key_jwt';
+
 const oauth2ExtensionFromBruno = (oauth: BrunoOAuth2): Record<string, unknown> | undefined => {
   const ext: Record<string, unknown> = {};
+  const jwtActive = isJwtMethod(oauth.tokenEndpointAuthMethod);
   for (const k of OAUTH2_EXTENSION_FIELDS) {
     if (k === 'tokenEndpointAuthMethod' && isPlacementRepresentable(oauth.tokenEndpointAuthMethod)) {
+      continue;
+    }
+    if (JWT_ONLY_EXTENSION_FIELDS.has(k) && !jwtActive) {
       continue;
     }
     const v = (oauth as any)[k];
@@ -623,11 +639,14 @@ export const toBrunoOAuth2 = (oauth: AuthOAuth2 | null | undefined): BrunoOAuth2
 
   // Restore any Bruno-extended OAuth2 client-auth state from the namespaced extension. Carries
   // anything OpenCollection doesn't model natively (advanced client-auth methods, JWT-bearer
-  // assertion config, mTLS).
+  // assertion config, mTLS). Whitelisted to OAUTH2_EXTENSION_FIELDS so a hand-edited extension
+  // can't override canonical flow fields like grantType or the endpoint URLs.
   const ext = (oauth as any)[BRUNO_OAUTH2_EXTENSION_KEY] as Record<string, unknown> | undefined;
   if (ext) {
-    for (const [k, v] of Object.entries(ext)) {
-      (brunoOAuth as any)[k] = v;
+    for (const k of OAUTH2_EXTENSION_FIELDS) {
+      if (k in ext) {
+        (brunoOAuth as any)[k] = ext[k];
+      }
     }
   }
 
