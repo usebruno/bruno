@@ -9,10 +9,10 @@ docker/
   ├── README.md           ← you are here
   └── images/
       ├── alpine/
-      │   ├── Dockerfile  ← Alpine Linux variant (smallest, ~141MB)
+      │   ├── Dockerfile  ← Alpine Linux variant
       │   └── README.md
       └── debian/
-          ├── Dockerfile  ← Debian slim variant (~162MB, glibc support)
+          ├── Dockerfile  ← Debian slim variant (glibc support)
           └── README.md
 ```
 
@@ -94,7 +94,7 @@ docker pull usebruno/cli:3.3.0-debian
 
 ---
 
-### Step 2 — Check it works
+#### Check it works
 
 ```bash
 docker run --rm usebruno/cli --version
@@ -102,7 +102,7 @@ docker run --rm usebruno/cli --version
 
 ---
 
-### Step 3 — Run your collection
+### Step 2 — Run your collection
 
 > These examples assume you are running `docker` from your Bruno collection directory. Mount that directory to `/bruno` and pass `bru` arguments directly after the image name. If your collection lives elsewhere on disk, see the path-based examples further down.
 
@@ -143,72 +143,13 @@ docker run -v /path/to/your/collection:/bruno usebruno/cli run ./auth/login.bru
 ```
 
 > **Note on `--rm`:** Examples below include `--rm`. Docker keeps stopped containers around after they exit, which lets you `docker logs` or `docker inspect` them later for debugging. If you'd rather have Docker auto-delete the container as soon as `bru` finishes — useful for CI runs or to avoid `docker ps -a` filling up with stale entries — append `--rm` to any `docker run` (or `docker compose run`) command:
->
-> ```bash
-> docker run --rm -v $(pwd):/bruno usebruno/cli run
-> ```
->
+
+```bash
+docker run --rm -v $(pwd):/bruno usebruno/cli run
+```
+
 > It's purely a cleanup convenience; it doesn't affect the image, mounts, stdout output, or exit code.
 
----
-
-### Step 4 — Choose your environment
-
-```bash
-docker run -v $(pwd):/bruno usebruno/cli run --env local
-docker run -v $(pwd):/bruno usebruno/cli run --env staging
-docker run -v $(pwd):/bruno usebruno/cli run --env production
-```
-
----
-
-### Step 5 — Pin the right version
-
-```bash
-# exact version — safest for production, no surprise updates
-docker run -v $(pwd):/bruno usebruno/cli:3.3.0 run
-
-# major.minor — gets patch fixes automatically
-docker run -v $(pwd):/bruno usebruno/cli:3.3 run
-
-# latest — always newest, not recommended for production CI
-docker run -v $(pwd):/bruno usebruno/cli:latest run
-```
-
----
-
-### Step 6 — Choose alpine or debian
-
-```bash
-# alpine (default) — use this for most cases
-docker run -v $(pwd):/bruno usebruno/cli:3.3.0 run
-
-# alpine — explicitly use the alpine-based image variant
-docker run -v $(pwd):/bruno usebruno/cli:3.3.0-alpine run
-
-# debian — use if you hit SSL, glibc, or native module issues
-docker run -v $(pwd):/bruno usebruno/cli:3.3.0-debian run
-```
-
----
-
-## Usage by variant
-
-### Alpine variant
-
-See [Alpine README](https://github.com/usebruno/bruno/blob/main/packages/bruno-cli/docker/images/alpine/README.md) for:
-- Building the Alpine image
-- When to use Alpine
-- Variant-specific options
-
-### Debian variant
-
-See [Debian README](https://github.com/usebruno/bruno/blob/main/packages/bruno-cli/docker/images/debian/README.md) for:
-- Building the Debian image
-- When to use Debian
-- Compatibility notes
-
----
 
 ## CI/CD integration
 
