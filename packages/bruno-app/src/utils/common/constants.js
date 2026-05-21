@@ -25,7 +25,7 @@ export const AUTH_MODES = {
   INHERIT: 'inherit'
 };
 
-// Auth modes supported WS protocol.
+// Auth modes supported by WS protocol.
 export const SUPPORTED_WS_AUTH_MODES = [
   AUTH_MODES.BASIC,
   AUTH_MODES.BEARER,
@@ -35,7 +35,7 @@ export const SUPPORTED_WS_AUTH_MODES = [
   AUTH_MODES.INHERIT
 ];
 
-// Auth modes supported GRPC protocol
+// Auth modes supported by GRPC protocol
 export const SUPPORTED_GRPC_AUTH_MODES = [
   AUTH_MODES.BASIC,
   AUTH_MODES.BEARER,
