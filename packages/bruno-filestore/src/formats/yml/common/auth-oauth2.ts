@@ -65,12 +65,14 @@ const mapAdditionalParameters = (params?: BrunoOAuthAdditionalParameter[] | null
 };
 
 // Map Bruno's tokenEndpointAuthMethod (RFC 7591 §2 / OIDC Core §9) to OpenCollection's placement.
-// OpenCollection only models the two basic methods; the JWT-bearer methods collapse to "body" as
-// the closest semantic equivalent (assertions are sent in the form-encoded body). `none` has no
-// equivalent and is omitted.
+// OpenCollection only models client_secret_basic / client_secret_post; the JWT-bearer (and mTLS,
+// and `none`) methods have no OpenCollection equivalent and are carried in the x-bruno-oauth2
+// extension instead. Returning undefined here leaves `credentials.placement` unset rather than
+// writing a misleading "body" value that an external OpenCollection reader would interpret as
+// client_secret_post.
 const placementForMethod = (method?: string | null): 'basic_auth_header' | 'body' | undefined => {
   if (method === 'client_secret_basic') return 'basic_auth_header';
-  if (method === 'client_secret_post' || method === 'client_secret_jwt' || method === 'private_key_jwt') return 'body';
+  if (method === 'client_secret_post') return 'body';
   return undefined;
 };
 
