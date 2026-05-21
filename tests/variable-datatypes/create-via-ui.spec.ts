@@ -180,6 +180,8 @@ test.describe('Datatype selector — new collection created via UI', () => {
     await page.getByRole('button', { name: 'Create', exact: true }).click();
     await expect(page.locator('.request-tab').filter({ hasText: 'Environments' })).toBeVisible();
 
+    const envRows = page.locator('tbody tr[data-testid^="env-var-row-"]');
+
     for (let i = 0; i < TYPED_DATATYPES.length; i++) {
       const dt = TYPED_DATATYPES[i];
       const name = `env_${dt}`;
@@ -189,6 +191,10 @@ test.describe('Datatype selector — new collection created via UI', () => {
         await emptyRow.locator('input[placeholder="Name"]').fill(name);
         const namedRow = page.locator(`[data-testid="env-var-row-${name}"]`);
         await expect(namedRow).toBeVisible();
+        // EnvironmentVariablesTable.handleNameChange appends a trailing empty
+        // row via setTimeout(0). If we click the value editor before that
+        // append re-renders, focus can be dropped — wait for the new row.
+        await expect(envRows).toHaveCount(i + 2);
 
         const valueEditor = namedRow.locator('.CodeMirror').first();
         await valueEditor.click({ force: true });
