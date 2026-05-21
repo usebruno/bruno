@@ -14,6 +14,12 @@ describe('Bruno to Postman Execution Control Translation', () => {
     expect(translatedCode).toBe('pm.execution.setNextRequest("Create Order");');
   });
 
+  it('should preserve the string "null" as a request name when translating bru.runner.setNextRequest("null")', () => {
+    const code = 'bru.runner.setNextRequest("null");';
+    const translatedCode = translateBruToPostman(code);
+    expect(translatedCode).toBe('pm.execution.setNextRequest("null");');
+  });
+
   // skipRequest translation
   it('should translate bru.runner.skipRequest', () => {
     const code = 'bru.runner.skipRequest();';

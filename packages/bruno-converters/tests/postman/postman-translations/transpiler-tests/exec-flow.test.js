@@ -14,10 +14,10 @@ describe('Execution Flow Translation', () => {
     expect(translatedCode).toBe('bru.runner.stopExecution();');
   });
 
-  it('should translate pm.setNextRequest("null") to bru.runner.stopExecution()', () => {
+  it('should translate pm.setNextRequest("null") to bru.runner.setNextRequest("null") (string is a valid request name)', () => {
     const code = 'pm.setNextRequest("null");';
     const translatedCode = translateCode(code);
-    expect(translatedCode).toBe('bru.runner.stopExecution();');
+    expect(translatedCode).toBe('bru.runner.setNextRequest("null");');
   });
 
   it('should keep pm.setNextRequest(<request name>) as bru.setNextRequest(<request name>) for non-null arguments', () => {
@@ -38,10 +38,22 @@ describe('Execution Flow Translation', () => {
     expect(translatedCode).toBe('bru.runner.stopExecution();');
   });
 
-  it('should translate pm.execution.setNextRequest("null")', () => {
+  it('should translate pm.execution.setNextRequest("null") to bru.runner.setNextRequest("null") (string is a valid request name)', () => {
     const code = 'pm.execution.setNextRequest("null");';
     const translatedCode = translateCode(code);
-    expect(translatedCode).toBe('bru.runner.stopExecution();');
+    expect(translatedCode).toBe('bru.runner.setNextRequest("null");');
+  });
+
+  it('should translate pm.execution.setNextRequest("req1") to bru.runner.setNextRequest("req1")', () => {
+    const code = 'pm.execution.setNextRequest("req1");';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toBe('bru.runner.setNextRequest("req1");');
+  });
+
+  it('should translate pm.execution.setNextRequest() with no arguments to bru.runner.setNextRequest()', () => {
+    const code = 'pm.execution.setNextRequest();';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toBe('bru.runner.setNextRequest();');
   });
 
   it('should handle pm.execution.setNextRequest with non-null parameters', () => {
