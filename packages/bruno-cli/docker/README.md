@@ -31,8 +31,8 @@ docker pull ghcr.io/usebruno/cli:latest
 
 | Variant | Base image | Details |
 |---------|-----------|---------|
-| **Alpine** (default) | `node:22-alpine` | [→ Alpine README](./images/alpine/README.md) |
-| **Debian** | `node:22-slim` | [→ Debian README](./images/debian/README.md) |
+| **Alpine** (default) | `node:22-alpine` | [→ Alpine README](https://github.com/usebruno/bruno/blob/main/packages/bruno-cli/docker/images/alpine/README.md) |
+| **Debian** | `node:22-slim` | [→ Debian README](https://github.com/usebruno/bruno/blob/main/packages/bruno-cli/docker/images/debian/README.md) |
 
 ### Quick choice
 
@@ -105,10 +105,9 @@ docker run --rm usebruno/cli --version
 ### Step 3 — Run your collection
 
 > These examples assume you are running `docker` from your Bruno collection directory. Mount that directory to `/bruno` and pass `bru` arguments directly after the image name. If your collection lives elsewhere on disk, see the path-based examples further down.
-> **Cross-platform note:** the examples below use `$(pwd)` which works in Bash / Zsh / Git Bash / WSL.
-> On Windows native shells, substitute `$(pwd)` with:
-> - PowerShell: `${PWD}`
-> - CMD: `%cd%`
+
+> **Cross-platform note:** the examples below use `$(pwd)` which works in Bash / Zsh / Git Bash / WSL. On Windows native shells, substitute `$(pwd)` with `${PWD}` (PowerShell) or `%cd%` (CMD).
+
 > **Adding `bru` options:** The examples below show docker-specific flags. For all `bru run` options — recurse (`-r`), environments, variables, reporters, bail, and more — see the [Bruno CLI docs](https://docs.usebruno.com/bru-cli/overview).
 
 ```bash
@@ -197,14 +196,14 @@ docker run -v $(pwd):/bruno usebruno/cli:3.3.0-debian run
 
 ### Alpine variant
 
-See [Alpine README](./images/alpine/README.md) for:
+See [Alpine README](https://github.com/usebruno/bruno/blob/main/packages/bruno-cli/docker/images/alpine/README.md) for:
 - Building the Alpine image
 - When to use Alpine
 - Variant-specific options
 
 ### Debian variant
 
-See [Debian README](./images/debian/README.md) for:
+See [Debian README](https://github.com/usebruno/bruno/blob/main/packages/bruno-cli/docker/images/debian/README.md) for:
 - Building the Debian image
 - When to use Debian
 - Compatibility notes
@@ -284,7 +283,7 @@ The `/path/to/reports:/reports` mount catches the JSON, JUnit XML, and HTML repo
 
 ### Try it from this repo
 
-A ready-to-run `docker-compose.yml` lives in this repo at [`packages/bruno-tests/docker-compose.yml`](../../bruno-tests/docker-compose.yml). It mounts the sibling `collection/` directory into the container, runs the `echo` folder against the `Prod` environment, and writes JSON, JUnit XML, and HTML reports into `packages/bruno-tests/reports/`:
+A ready-to-run `docker-compose.yml` lives in this repo at [`packages/bruno-tests/docker-compose.yml`](https://github.com/usebruno/bruno/blob/main/packages/bruno-tests/docker-compose.yml). It mounts the sibling `collection/` directory into the container, runs the `echo` folder against the `Prod` environment, and writes JSON, JUnit XML, and HTML reports into `packages/bruno-tests/reports/`:
 
 ```bash
 cd packages/bruno-tests
