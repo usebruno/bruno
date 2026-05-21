@@ -15,7 +15,7 @@ const ToolHint = ({
   theme = null,
   className = '',
   delayShow = 200,
-  'data-testid': dataTestId
+  dataTestId
 }) => {
   const { theme: contextTheme } = useTheme();
   const appliedTheme = theme || contextTheme;

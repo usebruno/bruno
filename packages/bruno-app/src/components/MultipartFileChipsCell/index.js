@@ -67,7 +67,7 @@ const MultipartFileChipsCell = ({ files, onRemove, onAdd, editMode = true }) => 
       positionStrategy="fixed"
       delayShow={1000}
       className="file-chip"
-      data-testid="multipart-file-chip"
+      dataTestId="multipart-file-chip"
     >
       <IconFile size={14} stroke={1.5} className="file-chip-icon" />
       <span className="file-chip-name">
@@ -101,7 +101,7 @@ const MultipartFileChipsCell = ({ files, onRemove, onAdd, editMode = true }) => 
           positionStrategy="fixed"
           delayShow={1000}
           className="overflow-row"
-          data-testid="multipart-file-overflow-row"
+          dataTestId="multipart-file-overflow-row"
         >
           <IconFile size={14} stroke={1.5} className="overflow-row-icon" />
           <span className="overflow-row-name">
