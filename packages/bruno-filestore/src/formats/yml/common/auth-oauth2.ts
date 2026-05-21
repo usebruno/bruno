@@ -318,8 +318,15 @@ const isPlacementRepresentable = (method?: string | null): boolean =>
 // previously-configured JWT method's material doesn't linger in yml after the user switches away.
 const JWT_ONLY_EXTENSION_FIELDS: Set<keyof BrunoOAuth2> = new Set([
   'tokenEndpointAuthSigningAlg',
-  'privateKey', 'privateKeyType', 'privateKeyFormat', 'keyId',
+  'keyId',
   'audience', 'assertionLifetime', 'additionalClaims'
+]);
+
+// Private-key material is meaningful only for private_key_jwt; client_secret_jwt signs with the
+// client secret. Separated so a private_key_jwt → client_secret_jwt switch doesn't leave the
+// PEM/JWK lying around in yml.
+const PRIVATE_KEY_JWT_ONLY_EXTENSION_FIELDS: Set<keyof BrunoOAuth2> = new Set([
+  'privateKey', 'privateKeyType', 'privateKeyFormat'
 ]);
 
 const isJwtMethod = (method?: string | null): boolean =>
@@ -328,11 +335,15 @@ const isJwtMethod = (method?: string | null): boolean =>
 const oauth2ExtensionFromBruno = (oauth: BrunoOAuth2): Record<string, unknown> | undefined => {
   const ext: Record<string, unknown> = {};
   const jwtActive = isJwtMethod(oauth.tokenEndpointAuthMethod);
+  const privateKeyJwtActive = oauth.tokenEndpointAuthMethod === 'private_key_jwt';
   for (const k of OAUTH2_EXTENSION_FIELDS) {
     if (k === 'tokenEndpointAuthMethod' && isPlacementRepresentable(oauth.tokenEndpointAuthMethod)) {
       continue;
     }
     if (JWT_ONLY_EXTENSION_FIELDS.has(k) && !jwtActive) {
+      continue;
+    }
+    if (PRIVATE_KEY_JWT_ONLY_EXTENSION_FIELDS.has(k) && !privateKeyJwtActive) {
       continue;
     }
     const v = (oauth as any)[k];
