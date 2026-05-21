@@ -86,11 +86,11 @@ const HttpRequestPane = ({ item, collection }) => {
     [dispatch, item.uid]
   );
 
+  const hasAuth = hasEffectiveAuth(collection, item);
+
   const indicators = useMemo(() => {
     const hasScriptError = item.preRequestScriptErrorMessage || item.postResponseScriptErrorMessage;
     const hasTestError = item.testScriptErrorMessage;
-
-    const hasAuth = hasEffectiveAuth(collection, item);
 
     return {
       params: activeCounts.params > 0 ? <sup className="font-medium">{activeCounts.params}</sup> : null,
@@ -104,7 +104,7 @@ const HttpRequestPane = ({ item, collection }) => {
       docs: docs?.length > 0 ? <StatusDot /> : null,
       settings: tags?.length > 0 ? <StatusDot /> : null
     };
-  }, [activeCounts, body.mode, auth.mode, script, item, collection, item.preRequestScriptErrorMessage, item.postResponseScriptErrorMessage, item.testScriptErrorMessage, tests, docs, tags]);
+  }, [activeCounts, body.mode, hasAuth, script, item.preRequestScriptErrorMessage, item.postResponseScriptErrorMessage, item.testScriptErrorMessage, tests, docs, tags]);
 
   const allTabs = useMemo(
     () => TAB_CONFIG.map(({ key, label }) => ({ key, label, indicator: indicators[key] })),
