@@ -288,29 +288,6 @@ const complexTransformations = [
     }
   },
 
-  // Handle pm.execution.setNextRequest(null) — same null-vs-'null' rule as above.
-  {
-    pattern: 'pm.setNextRequest',
-    transform: (path, j) => {
-      const callExpr = path.parent.value;
-      const args = callExpr.arguments;
-
-      // Only the actual null literal triggers stopExecution(); the string 'null'
-      // is a valid request name and falls through to setNextRequest.
-      if (args[0] && args[0].type === 'Literal' && args[0].value === null) {
-        return j.callExpression(
-          j.identifier('bru.runner.stopExecution'),
-          []
-        );
-      }
-
-      return j.callExpression(
-        j.identifier('bru.runner.setNextRequest'),
-        args
-      );
-    }
-  },
-
   // Handle pm.execution.setNextRequest(null)
   {
     pattern: 'pm.execution.setNextRequest',
@@ -321,7 +298,7 @@ const complexTransformations = [
 
       // If argument is null or 'null', transform to bru.runner.stopExecution()
       if (
-        args[0].type === 'Literal' && (args[0].value === null || args[0].value === 'null')
+        args[0] && args[0].type === 'Literal' && (args[0].value === null)
       ) {
         return j.callExpression(
           j.identifier('bru.runner.stopExecution'),

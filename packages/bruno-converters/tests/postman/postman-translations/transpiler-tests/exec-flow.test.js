@@ -44,6 +44,18 @@ describe('Execution Flow Translation', () => {
     expect(translatedCode).toBe('bru.runner.setNextRequest("null");');
   });
 
+  it('should translate pm.execution.setNextRequest("req1") to bru.runner.setNextRequest("req1")', () => {
+    const code = 'pm.execution.setNextRequest("req1");';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toBe('bru.runner.setNextRequest("req1");');
+  });
+
+  it('should translate pm.execution.setNextRequest() with no arguments to bru.runner.setNextRequest()', () => {
+    const code = 'pm.execution.setNextRequest();';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toBe('bru.runner.setNextRequest();');
+  });
+
   it('should handle pm.execution.setNextRequest with non-null parameters', () => {
     const code = `
         // Continue normal flow
