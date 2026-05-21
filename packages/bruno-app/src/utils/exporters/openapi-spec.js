@@ -4,7 +4,8 @@ import { isValidUrl } from 'utils/url/index';
 const xml2js = require('xml2js');
 
 export const exportApiSpec = ({ variables, items, name, environments }) => {
-  items = items.filter((item) => !['grpc-request'].includes(item.type));
+  // Filter out transient items and grpc requests
+  items = items.filter((item) => !['grpc-request'].includes(item.type) && !item.isTransient);
 
   const components = {
     schemas: {},
@@ -80,7 +81,7 @@ export const exportApiSpec = ({ variables, items, name, environments }) => {
     const { pathname, depth } = item;
     if (!pathname) return;
 
-    const parts = pathname.split('\\');
+    const parts = pathname.split(/[\\/]/);
     const baseDepth = parts.length - depth;
     if (depth === 1) return '';
 
