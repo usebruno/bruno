@@ -289,6 +289,181 @@ const scrollEnvTableToBottom = async (page: Page) => {
  */
 const mismatchIcon = (row: Locator) => row.locator('svg.text-yellow-600');
 
+// Popups are position:fixed and overlap the next token; the mouse-leave close
+// timer (500ms + fade) is too slow between hovers, so we tear them down first.
+// `.first()` on `.cm-variable-valid` disambiguates prefix overlaps;
+// exact-match on `.var-name` waits for the popup to rebind to the new token
+// instead of latching onto a stale one.
+const hoverVarInBody = async (page: Page, varName: string) => {
+  // _hidePopup runs the popup's own cleanup (listeners, MaskedEditor.destroy,
+  // inner CodeMirror teardown); raw .remove() leaks across the loop.
+  await page.evaluate(() => {
+    document.querySelectorAll('.CodeMirror-brunoVarInfo').forEach((el: any) => {
+      if (typeof el._hidePopup === 'function') el._hidePopup({ immediate: true });
+      else el.remove();
+    });
+  });
+  await page.mouse.move(0, 0);
+
+  const bodyEditor = buildCommonLocators(page).request.bodyEditor().locator('.CodeMirror');
+  const varToken = bodyEditor.locator('.cm-variable-valid').filter({ hasText: varName }).first();
+  await expect(varToken).toBeVisible();
+  await varToken.hover();
+
+  const tooltip = page.locator('.CodeMirror-brunoVarInfo').filter({
+    has: page.locator('.var-name').filter({ hasText: new RegExp(`^${varName}$`) })
+  });
+  await expect(tooltip).toBeVisible();
+  return tooltip;
+};
+
+// Objects render as pretty-printed JSON in the popup — parse back and
+// deep-compare so the assertion isn't coupled to whitespace.
+const expectPopupParsedValue = async (tooltip: Locator, expected: string | number | boolean | object) => {
+  const display = tooltip.locator('.var-value-editable-display, .var-value-display').first();
+  await expect(display).toBeVisible();
+
+  if (typeof expected === 'object' && expected !== null) {
+    await expect.poll(async () => {
+      const text = (await display.textContent()) ?? '';
+      try {
+        return JSON.parse(text);
+      } catch {
+        return text;
+      }
+    }).toEqual(expected);
+  } else {
+    await expect(display).toHaveText(String(expected));
+  }
+};
+
+const executeAndOpenBody = async (page: Page) => {
+  // The all-tests-pass assertion doubles as a wait for post-response
+  // dispatches (main:script-environment-update) to land before we hover.
+  await sendAndAssertAllTestsPass(page);
+  await selectRequestPaneTab(page, 'Body');
+};
+
+const expectPopupMaskedValue = async (page: Page, varName: string, actualValue: string) => {
+  const tooltip = await hoverVarInBody(page, varName);
+  const display = tooltip.locator('.var-value-editable-display').first();
+  await expect(display).toBeVisible();
+  await expect(display).toHaveText('*'.repeat(actualValue.length));
+  await expect(display).not.toContainText(actualValue);
+  await expect(tooltip.locator('.secret-toggle-button')).toBeVisible();
+};
+
+// Guards the editor seeding path: objects must not be dispatched as
+// `[object Object]`, and confirms primitives still seed correctly under
+// the JSON.stringify branch.
+const expectPopupEditorOpensWith = async (tooltip: Locator, expected: string | object) => {
+  await tooltip.locator('.var-value-editable-display').click();
+  const editor = tooltip.locator('.var-value-editor .CodeMirror');
+  await expect(editor).toBeVisible();
+  const code = editor.locator('.CodeMirror-code');
+
+  if (typeof expected === 'object' && expected !== null) {
+    await expect.poll(async () => {
+      const text = (await code.textContent()) ?? '';
+      if (text.includes('[object Object]')) return text;
+      try {
+        return JSON.parse(text);
+      } catch {
+        return text;
+      }
+    }).toEqual(expected);
+  } else {
+    await expect.poll(async () => (await code.textContent()) ?? '').toBe(String(expected));
+  }
+};
+
+const BODY_VAR_VALUES: Array<[string, string | object]> = [
+  ['coll_str', 'collection_string'],
+  ['coll_num', '100'],
+  ['coll_bool', 'false'],
+  ['coll_obj', { scope: 'collection' }],
+  ['fold_str', 'folder_string'],
+  ['fold_num', '200'],
+  ['fold_bool', 'true'],
+  ['fold_obj', { scope: 'folder' }],
+  ['req_str', 'request_string'],
+  ['req_num', '42'],
+  ['req_bool', 'true'],
+  ['req_obj', { key: 'value' }],
+  // Precision must survive the file → parse → coerce path.
+  ['req_obj_precision', {
+    integer: 123,
+    negativeInteger: -99,
+    zero: 0,
+    float: 2.718,
+    negativeFloat: -1.618,
+    largeDouble: 12345.678901234567,
+    smallDouble: 9.876e-12,
+    booleanTrue: true,
+    booleanFalse: false
+  }],
+  // {} must render as the object, not fall back to the empty string.
+  ['req_obj_empty', {}],
+  // String([1,2,3]) === "1,2,3" — distinct from the object regression.
+  ['req_arr', [1, 2, 'three', true]],
+  // @number with non-numeric data falls back to the raw string.
+  ['mismatched_num', 'not-a-number'],
+  ['env_str', 'env_string'],
+  ['env_num', '300'],
+  ['env_bool', 'true'],
+  ['env_obj', { scope: 'env' }],
+  // Falsy typed values are a known regression surface — must not render as empty.
+  ['falsy_num', '0'],
+  ['falsy_bool', 'false'],
+  ['glob_str', 'global_string'],
+  ['glob_num', '400'],
+  ['glob_bool', 'false'],
+  ['glob_obj', { scope: 'global' }],
+  ['runtime_str', 'runtime_string'],
+  ['runtime_num', '999'],
+  ['runtime_bool', 'true'],
+  ['runtime_obj', { nested: 'yes' }],
+  ['inferred_env_num', '700'],
+  ['inferred_env_bool', 'true'],
+  ['inferred_env_obj', { from: 'script' }],
+  ['inferred_glob_num', '800'],
+  ['inferred_glob_bool', 'false'],
+  ['inferred_glob_obj', { from: 'script' }]
+];
+
+// Asserted separately: the popup masks these and the value must never reach the DOM.
+const BODY_SECRET_VAR_VALUES: Array<[string, string]> = [
+  ['env_secret_str', 'secret_env_string'],
+  ['glob_secret_str', 'secret_global_string']
+];
+
+const setupBodyHover = async (page: Page, collectionName: string) => {
+  await openRequestInCollection(page, collectionName);
+  await selectEnvironment(page, 'test_env', 'collection');
+  await selectEnvironment(page, 'typed_global', 'global');
+  await executeAndOpenBody(page);
+};
+
+const runBodyHoverPopupAssertions = async (page: Page, collectionName: string) => {
+  await setupBodyHover(page, collectionName);
+
+  for (const [name, expected] of BODY_VAR_VALUES) {
+    await expectPopupParsedValue(await hoverVarInBody(page, name), expected);
+  }
+  for (const [name, actual] of BODY_SECRET_VAR_VALUES) {
+    await expectPopupMaskedValue(page, name, actual);
+  }
+};
+
+const runBodyEditorSeedAssertions = async (page: Page, collectionName: string) => {
+  await setupBodyHover(page, collectionName);
+
+  // runtime_* are read-only in the popup, so they have no editable display to click.
+  for (const [name, expected] of BODY_VAR_VALUES.filter(([n]) => !n.startsWith('runtime_'))) {
+    await expectPopupEditorOpensWith(await hoverVarInBody(page, name), expected);
+  }
+};
+
 test.afterEach(async ({ pageWithUserData: page }) => {
   await closeAllTabs(page);
 });
@@ -427,6 +602,14 @@ test.describe('Datatype selector — BRU collection fixture', () => {
     await expectEnvVarTypeLabel(page, 'env_bool', 'boolean');
   });
 
+  test('hover popup: body variables show parsed values for each datatype after execution', async ({ pageWithUserData: page }) => {
+    await runBodyHoverPopupAssertions(page, BRU_COLLECTION);
+  });
+
+  test('hover popup: clicking to edit seeds the editor with the right text for every datatype', async ({ pageWithUserData: page }) => {
+    await runBodyEditorSeedAssertions(page, BRU_COLLECTION);
+  });
+
   test('save: datatype change round-trips to request.bru, then execution honors the new datatype', async ({
     restartApp,
     workspaceFixturePath
@@ -512,6 +695,14 @@ test.describe('Datatype selector — YML collection fixture', () => {
 
     await expectEnvVarTypeLabel(page, 'falsy_num', 'number');
     await expectEnvVarTypeLabel(page, 'falsy_bool', 'boolean');
+  });
+
+  test('hover popup: body variables show parsed values for each datatype after execution', async ({ pageWithUserData: page }) => {
+    await runBodyHoverPopupAssertions(page, YML_COLLECTION);
+  });
+
+  test('hover popup: clicking to edit seeds the editor with the right text for every datatype', async ({ pageWithUserData: page }) => {
+    await runBodyEditorSeedAssertions(page, YML_COLLECTION);
   });
 
   test('save: datatype change round-trips to request.yml, then execution honors the new datatype', async ({
