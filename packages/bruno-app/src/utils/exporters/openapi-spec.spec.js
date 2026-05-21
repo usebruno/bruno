@@ -506,6 +506,50 @@ describe('exportApiSpec - duplicate operation variants', () => {
 });
 
 describe('exportApiSpec - parameter and body value preservation', () => {
+  it('should export form request body media types without trailing colons', () => {
+    const variables = { baseUrl: 'https://api.example.com' };
+    const items = [
+      {
+        name: 'Upload avatar',
+        type: 'http-request',
+        request: {
+          url: '{{baseUrl}}/avatars',
+          method: 'POST',
+          params: [],
+          headers: [],
+          body: {
+            mode: 'multipartForm',
+            multipartForm: [{ name: 'avatar', value: 'avatar.png' }]
+          },
+          auth: {}
+        }
+      },
+      {
+        name: 'Create session',
+        type: 'http-request',
+        request: {
+          url: '{{baseUrl}}/sessions',
+          method: 'POST',
+          params: [],
+          headers: [],
+          body: {
+            mode: 'formUrlEncoded',
+            formUrlEncoded: [{ name: 'email', value: 'ada@example.com' }]
+          },
+          auth: {}
+        }
+      }
+    ];
+
+    const { content } = exportApiSpec({ variables, items, name: 'Test API' });
+    const parsed = require('js-yaml').load(content);
+
+    expect(parsed.components.requestBodies.upload_avatar.content).toHaveProperty('multipart/form-data');
+    expect(parsed.components.requestBodies.upload_avatar.content).not.toHaveProperty('multipart/form-data:');
+    expect(parsed.components.requestBodies.create_session.content).toHaveProperty('application/x-www-form-urlencoded');
+    expect(parsed.components.requestBodies.create_session.content).not.toHaveProperty('application/x-www-form-urlencoded:');
+  });
+
   it('should export path parameter values from params array', () => {
     const variables = { baseUrl: 'https://api.example.com' };
     const items = [{

@@ -313,7 +313,7 @@ export const exportApiSpec = ({ variables, items, name, environments }) => {
             components.schemas[multipartFormComponentId] = generateProperyShape(multipartFormToKeyValue);
             components.requestBodies[multipartFormComponentId] = {
               content: {
-                'multipart/form-data:': {
+                'multipart/form-data': {
                   schema: {
                     $ref: `#/components/schemas/${multipartFormComponentId}`
                   }
@@ -336,7 +336,7 @@ export const exportApiSpec = ({ variables, items, name, environments }) => {
             components.schemas[formUrlEncodedComponentId] = generateProperyShape(formUrlEncodedToKeyValue);
             components.requestBodies[formUrlEncodedComponentId] = {
               content: {
-                'application/x-www-form-urlencoded:': {
+                'application/x-www-form-urlencoded': {
                   schema: {
                     $ref: `#/components/schemas/${formUrlEncodedComponentId}`
                   }
