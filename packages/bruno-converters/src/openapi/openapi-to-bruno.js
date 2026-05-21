@@ -855,21 +855,30 @@ export const parseOpenApiCollection = (data, options = {}) => {
               method.toLowerCase()
             );
           })
-          .map(([method, operationObject]) => {
-            const mergedParams = mergeParams(pathItemParams, operationObject.parameters || []);
+          .reduce((requests, [method, operationObject]) => {
+            const variants = Array.isArray(operationObject['x-bruno-variants']) ? operationObject['x-bruno-variants'] : [];
+            const operations = [operationObject, ...variants.filter((variant) => variant && typeof variant === 'object')];
 
-            return {
-              method: method,
-              path: path.replace(/{([^}]+)}/g, ':$1'), // Replace placeholders enclosed in curly braces with colons
-              originalPath: path, // Keep original path for grouping
-              operationObject: { ...operationObject, parameters: mergedParams },
-              global: {
-                server: '{{baseUrl}}',
-                security: securityConfig
-              },
-              servers: operationObject.servers || pathItemObject.servers || null
-            };
-          });
+            operations.forEach((operation) => {
+              const operationObjectCleaned = { ...operation };
+              delete operationObjectCleaned['x-bruno-variants'];
+              const mergedParams = mergeParams(pathItemParams, operationObjectCleaned.parameters || []);
+
+              requests.push({
+                method: method,
+                path: path.replace(/{([^}]+)}/g, ':$1'), // Replace placeholders enclosed in curly braces with colons
+                originalPath: path, // Keep original path for grouping
+                operationObject: { ...operationObjectCleaned, parameters: mergedParams },
+                global: {
+                  server: '{{baseUrl}}',
+                  security: securityConfig
+                },
+                servers: operationObjectCleaned.servers || pathItemObject.servers || null
+              });
+            });
+
+            return requests;
+          }, []);
       })
       .reduce((acc, val) => acc.concat(val), []); // flatten
 

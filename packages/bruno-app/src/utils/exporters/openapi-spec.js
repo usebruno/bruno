@@ -89,6 +89,25 @@ export const exportApiSpec = ({ variables, items, name, environments }) => {
     return parts[tagIndex];
   };
 
+  const componentIds = new Set();
+
+  const getComponentId = (item) => {
+    const baseId = String(item?.name || 'request')
+      .replace(/[^a-zA-Z0-9._-]+/g, '_')
+      .replace(/^_+|_+$/g, '')
+      .toLowerCase() || 'request';
+    let componentId = baseId;
+    let suffix = 1;
+
+    while (componentIds.has(componentId)) {
+      componentId = `${baseId}_${suffix}`;
+      suffix += 1;
+    }
+    componentIds.add(componentId);
+
+    return componentId;
+  };
+
   // Resolve a raw request URL to a path and optional operation-level server override.
   // Checks for request-level baseUrl overrides (vars.req), then {{baseUrl}} placeholder,
   // then known baseUrl sources. Falls back to full resolution for unknown URLs.
@@ -198,23 +217,29 @@ export const exportApiSpec = ({ variables, items, name, environments }) => {
 
       // BODY
 
-      let schemaId = `${item?.name?.split(' ').join('_').toLowerCase()}`;
-      let securitySchemaId = `${item?.name?.split(' ').join('_').toLowerCase()}`;
-      let requestBodyId = `${item?.name?.split(' ').join('_').toLowerCase()}`;
+      let componentId;
+      const getItemComponentId = () => {
+        if (!componentId) {
+          componentId = getComponentId(item);
+        }
+
+        return componentId;
+      };
       if (body?.mode) {
         switch (body?.mode) {
           case 'json':
             if (!body?.json) break;
             try {
+              const componentId = getItemComponentId();
               const parsedJson = JSON.parse(body.json);
               const schema = generateProperyShape(parsedJson);
               schema.example = parsedJson;
-              components.schemas[schemaId] = schema;
-              components.requestBodies[requestBodyId] = {
+              components.schemas[componentId] = schema;
+              components.requestBodies[componentId] = {
                 content: {
                   'application/json': {
                     schema: {
-                      $ref: `#/components/schemas/${schemaId}`
+                      $ref: `#/components/schemas/${componentId}`
                     }
                   }
                 },
@@ -222,19 +247,20 @@ export const exportApiSpec = ({ variables, items, name, environments }) => {
                 required: true
               };
               pathBody['requestBody'] = {
-                $ref: `#/components/requestBodies/${requestBodyId}`
+                $ref: `#/components/requestBodies/${componentId}`
               };
             } catch (error) {
               addWarning(`Failed to parse JSON in request body: ${error.message}`, item?.name);
-              components.schemas[schemaId] = {
+              const componentId = getItemComponentId();
+              components.schemas[componentId] = {
                 type: 'object',
                 properties: {}
               };
-              components.requestBodies[requestBodyId] = {
+              components.requestBodies[componentId] = {
                 content: {
                   'application/json': {
                     schema: {
-                      $ref: `#/components/schemas/${schemaId}`
+                      $ref: `#/components/schemas/${componentId}`
                     }
                   }
                 },
@@ -242,7 +268,7 @@ export const exportApiSpec = ({ variables, items, name, environments }) => {
                 required: true
               };
               pathBody['requestBody'] = {
-                $ref: `#/components/requestBodies/${requestBodyId}`
+                $ref: `#/components/requestBodies/${componentId}`
               };
             }
             break;
@@ -254,14 +280,15 @@ export const exportApiSpec = ({ variables, items, name, environments }) => {
                 addWarning('Failed to parse XML in request body', item?.name);
                 break;
               }
+              const componentId = getItemComponentId();
               const xmlSchema = generateProperyShape(jsonResult);
               xmlSchema.example = jsonResult;
-              components.schemas[schemaId] = xmlSchema;
-              components.requestBodies[requestBodyId] = {
+              components.schemas[componentId] = xmlSchema;
+              components.requestBodies[componentId] = {
                 content: {
                   'application/xml': {
                     schema: {
-                      $ref: `#/components/schemas/${schemaId}`
+                      $ref: `#/components/schemas/${componentId}`
                     }
                   }
                 },
@@ -269,7 +296,7 @@ export const exportApiSpec = ({ variables, items, name, environments }) => {
                 required: true
               };
               pathBody['requestBody'] = {
-                $ref: `#/components/requestBodies/${requestBodyId}`
+                $ref: `#/components/requestBodies/${componentId}`
               };
             } catch (error) {
               addWarning(`Failed to parse XML in request body: ${error.message}`, item?.name);
@@ -277,16 +304,17 @@ export const exportApiSpec = ({ variables, items, name, environments }) => {
             break;
           case 'multipartForm':
             if (!body?.multipartForm) break;
+            const multipartFormComponentId = getItemComponentId();
             let multipartFormToKeyValue = body?.multipartForm.reduce((acc, f) => {
               acc[f?.name] = f.value;
               return acc;
             }, {});
-            components.schemas[schemaId] = generateProperyShape(multipartFormToKeyValue);
-            components.requestBodies[requestBodyId] = {
+            components.schemas[multipartFormComponentId] = generateProperyShape(multipartFormToKeyValue);
+            components.requestBodies[multipartFormComponentId] = {
               content: {
                 'multipart/form-data:': {
                   schema: {
-                    $ref: `#/components/schemas/${schemaId}`
+                    $ref: `#/components/schemas/${multipartFormComponentId}`
                   }
                 }
               },
@@ -294,21 +322,22 @@ export const exportApiSpec = ({ variables, items, name, environments }) => {
               required: true
             };
             pathBody['requestBody'] = {
-              $ref: `#/components/requestBodies/${requestBodyId}`
+              $ref: `#/components/requestBodies/${multipartFormComponentId}`
             };
             break;
           case 'formUrlEncoded':
             if (!body?.formUrlEncoded) break;
+            const formUrlEncodedComponentId = getItemComponentId();
             let formUrlEncodedToKeyValue = body?.formUrlEncoded.reduce((acc, f) => {
               acc[f?.name] = f.value;
               return acc;
             }, {});
-            components.schemas[schemaId] = generateProperyShape(formUrlEncodedToKeyValue);
-            components.requestBodies[requestBodyId] = {
+            components.schemas[formUrlEncodedComponentId] = generateProperyShape(formUrlEncodedToKeyValue);
+            components.requestBodies[formUrlEncodedComponentId] = {
               content: {
                 'application/x-www-form-urlencoded:': {
                   schema: {
-                    $ref: `#/components/schemas/${schemaId}`
+                    $ref: `#/components/schemas/${formUrlEncodedComponentId}`
                   }
                 }
               },
@@ -316,7 +345,7 @@ export const exportApiSpec = ({ variables, items, name, environments }) => {
               required: true
             };
             pathBody['requestBody'] = {
-              $ref: `#/components/requestBodies/${requestBodyId}`
+              $ref: `#/components/requestBodies/${formUrlEncodedComponentId}`
             };
             break;
           case 'text':
@@ -341,29 +370,32 @@ export const exportApiSpec = ({ variables, items, name, environments }) => {
       if (auth?.mode) {
         switch (auth?.mode) {
           case 'basic':
-            components.securitySchemes[securitySchemaId] = {
+            componentId = getItemComponentId();
+            components.securitySchemes[componentId] = {
               type: 'http',
               scheme: 'basic'
             };
             pathBody['security'] = {
-              [securitySchemaId]: []
+              [componentId]: []
             };
             break;
           case 'bearer':
-            components.securitySchemes[securitySchemaId] = {
+            componentId = getItemComponentId();
+            components.securitySchemes[componentId] = {
               type: 'http',
               scheme: 'bearer'
             };
             pathBody['security'] = {
-              [securitySchemaId]: []
+              [componentId]: []
             };
             break;
           case 'oauth2':
             if (!auth?.oauth2?.grantType) break;
+            componentId = getItemComponentId();
             const { authorizationUrl, accessTokenUrl, callbackUrl, scope } = auth?.oauth2;
             switch (auth?.oauth2?.grantType) {
               case 'authorization_code':
-                components.securitySchemes[securitySchemaId] = {
+                components.securitySchemes[componentId] = {
                   type: 'oauth2',
                   flows: {
                     authorizationCode: {
@@ -380,11 +412,11 @@ export const exportApiSpec = ({ variables, items, name, environments }) => {
                   }
                 };
                 pathBody['security'] = {
-                  [securitySchemaId]: []
+                  [componentId]: []
                 };
                 break;
               case 'password':
-                components.securitySchemes[securitySchemaId] = {
+                components.securitySchemes[componentId] = {
                   type: 'oauth2',
                   flows: {
                     password: {
@@ -400,11 +432,11 @@ export const exportApiSpec = ({ variables, items, name, environments }) => {
                   }
                 };
                 pathBody['security'] = {
-                  [securitySchemaId]: []
+                  [componentId]: []
                 };
                 break;
               case 'client_credentials':
-                components.securitySchemes[securitySchemaId] = {
+                components.securitySchemes[componentId] = {
                   type: 'oauth2',
                   flows: {
                     password: {
@@ -420,30 +452,32 @@ export const exportApiSpec = ({ variables, items, name, environments }) => {
                   }
                 };
                 pathBody['security'] = {
-                  [securitySchemaId]: []
+                  [componentId]: []
                 };
                 break;
             }
             break;
           case 'awsv4':
-            components.securitySchemes[securitySchemaId] = {
+            componentId = getItemComponentId();
+            components.securitySchemes[componentId] = {
               'type': 'apiKey',
               'name': 'Authorization',
               'in': 'header',
               'x-amazon-apigateway-authtype': 'awsSigv4'
             };
             pathBody['security'] = {
-              [securitySchemaId]: []
+              [componentId]: []
             };
             break;
           case 'digest':
-            components.securitySchemes[securitySchemaId] = {
+            componentId = getItemComponentId();
+            components.securitySchemes[componentId] = {
               type: 'digest',
               scheme: 'digest',
               description: 'Digest Authentication'
             };
             pathBody['security'] = {
-              [securitySchemaId]: []
+              [componentId]: []
             };
             break;
           default:
@@ -463,11 +497,23 @@ export const exportApiSpec = ({ variables, items, name, environments }) => {
       if (!acc[item?.url]) {
         acc[item?.url] = {};
       }
-      acc[item?.url][item?.method] = item?.data;
-      // Add operation-level server override inside the operation object (not path-item level)
-      // so the import can read it back from operationObject.servers
+      const operation = item?.data;
+
       if (item?.operationLevelServer) {
-        acc[item?.url][item?.method].servers = [item.operationLevelServer];
+        // Add operation-level server override inside the operation object (not path-item level)
+        // so the import can read it back from operationObject.servers
+        operation.servers = [item.operationLevelServer];
+      }
+
+      let operationObject = acc[item?.url][item?.method];
+
+      if (operationObject) {
+        operationObject['x-bruno-variants'] = [
+          ...(operationObject['x-bruno-variants'] || []),
+          operation
+        ];
+      } else {
+        acc[item?.url][item?.method] = operation;
       }
       return acc;
     }, {});
