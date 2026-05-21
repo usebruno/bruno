@@ -35,6 +35,16 @@ describe('applyTokenEndpointAuth', () => {
       expect(result.headers.Authorization).toBe(expected);
       expect(result.bodyParams).toEqual({});
     });
+
+    it('rejects when client_id is missing', async () => {
+      await expect(
+        applyTokenEndpointAuth({
+          tokenEndpointAuthMethod: 'client_secret_basic',
+          clientSecret: CLIENT_SECRET,
+          accessTokenUrl: TOKEN_URL
+        })
+      ).rejects.toThrow(/client_id/);
+    });
   });
 
   describe('client_secret_post (RFC 6749 §2.3.1)', () => {
@@ -59,6 +69,16 @@ describe('applyTokenEndpointAuth', () => {
         accessTokenUrl: TOKEN_URL
       });
       expect(result.bodyParams).toEqual({ client_id: CLIENT_ID });
+    });
+
+    it('rejects when client_id is missing', async () => {
+      await expect(
+        applyTokenEndpointAuth({
+          tokenEndpointAuthMethod: 'client_secret_post',
+          clientSecret: CLIENT_SECRET,
+          accessTokenUrl: TOKEN_URL
+        })
+      ).rejects.toThrow(/client_id/);
     });
   });
 
@@ -179,6 +199,16 @@ describe('applyTokenEndpointAuth', () => {
         })
       ).rejects.toThrow(/client_secret/);
     });
+
+    it('rejects when client_id is missing', async () => {
+      await expect(
+        applyTokenEndpointAuth({
+          tokenEndpointAuthMethod: 'client_secret_jwt',
+          clientSecret: CLIENT_SECRET,
+          accessTokenUrl: TOKEN_URL
+        })
+      ).rejects.toThrow(/client_id/);
+    });
   });
 
   describe('private_key_jwt (RFC 7523 §2.2)', () => {
@@ -275,6 +305,19 @@ describe('applyTokenEndpointAuth', () => {
           accessTokenUrl: TOKEN_URL
         })
       ).rejects.toThrow(/private key/i);
+    });
+
+    it('rejects when client_id is missing', async () => {
+      await expect(
+        applyTokenEndpointAuth({
+          tokenEndpointAuthMethod: 'private_key_jwt',
+          tokenEndpointAuthSigningAlg: 'RS256',
+          privateKey: rsaPrivatePem,
+          privateKeyType: 'text',
+          privateKeyFormat: 'pem',
+          accessTokenUrl: TOKEN_URL
+        })
+      ).rejects.toThrow(/client_id/);
     });
   });
 

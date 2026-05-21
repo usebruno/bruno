@@ -181,6 +181,9 @@ export const applyTokenEndpointAuth = async (opts: TokenEndpointAuthOptions): Pr
   const clientSecret = opts.clientSecret ?? '';
 
   if (method === 'client_secret_basic') {
+    if (clientId === '') {
+      throw new Error('client_secret_basic requires a client_id');
+    }
     // RFC 6749 §2.3.1 strictly requires application/x-www-form-urlencoded encoding of clientId/secret
     // before the `:` join + base64. Matching Bruno's prior behaviour (and curl, Postman, axios) we
     // base64 the raw bytes; clients that put special characters in client_id/secret may need the
@@ -194,6 +197,9 @@ export const applyTokenEndpointAuth = async (opts: TokenEndpointAuthOptions): Pr
   }
 
   if (method === 'client_secret_post') {
+    if (clientId === '') {
+      throw new Error('client_secret_post requires a client_id');
+    }
     const bodyParams: Record<string, string> = { client_id: clientId };
     if (clientSecret !== '') {
       bodyParams.client_secret = clientSecret;
@@ -221,6 +227,9 @@ export const applyTokenEndpointAuth = async (opts: TokenEndpointAuthOptions): Pr
   }
 
   if (method === 'client_secret_jwt') {
+    if (clientId === '') {
+      throw new Error('client_secret_jwt requires a client_id');
+    }
     if (clientSecret === '') {
       throw new Error('client_secret_jwt requires a client_secret');
     }
@@ -242,6 +251,9 @@ export const applyTokenEndpointAuth = async (opts: TokenEndpointAuthOptions): Pr
   }
 
   if (method === 'private_key_jwt') {
+    if (clientId === '') {
+      throw new Error('private_key_jwt requires a client_id');
+    }
     const alg = (opts.tokenEndpointAuthSigningAlg || DEFAULT_PRIVATE_KEY_JWT_ALG) as TokenEndpointAuthSigningAlg;
     const keyMaterial = resolveKeyMaterial(opts);
 
