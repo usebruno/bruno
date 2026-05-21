@@ -51,6 +51,8 @@ http:
         "req_obj": {{req_obj}},
         "req_obj_precision": {{req_obj_precision}},
         "req_obj_empty": {{req_obj_empty}},
+        "req_arr": {{req_arr}},
+        "mismatched_num": "{{mismatched_num}}",
         "env_str": "{{env_str}}",
         "env_num": {{env_num}},
         "env_bool": {{env_bool}},
@@ -103,6 +105,10 @@ runtime:
       value:
         type: number
         data: not-a-number
+    - name: req_arr
+      value:
+        type: object
+        data: '[1, 2, "three", true]'
   scripts:
     - type: before-request
       code: |-
@@ -166,6 +172,9 @@ runtime:
           // stays an object — not a string fallback.
           expect(typeof bru.getRequestVar("req_obj_empty")).to.equal("object");
           expect(bru.getRequestVar("req_obj_empty")).to.deep.equal({});
+
+          expect(Array.isArray(bru.getRequestVar("req_arr"))).to.equal(true);
+          expect(bru.getRequestVar("req_arr")).to.deep.equal([1, 2, "three", true]);
 
           // mismatched_num is declared as @number but its data is the literal
           // string "not-a-number". coerceValueByDatatype falls through (Number()
@@ -303,6 +312,8 @@ runtime:
           expect(json.req_obj_precision.booleanTrue).to.equal(true);
           expect(json.req_obj_precision.booleanFalse).to.equal(false);
           expect(json.req_obj_empty).to.deep.equal({});
+          expect(json.req_arr).to.deep.equal([1, 2, "three", true]);
+          expect(json.mismatched_num).to.equal("not-a-number");
           expect(json.env_num).to.equal(300);
           expect(json.env_bool).to.equal(true);
           expect(json.env_obj).to.deep.equal({ scope: "env" });
