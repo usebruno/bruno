@@ -15,8 +15,9 @@ const replacements = {
   // 'pm\\.collectionVariables\\.unset\\(': 'bru.deleteCollectionVar(',
   // 'pm\\.collectionVariables\\.clear\\(': 'bru.deleteAllCollectionVars(',
   // 'pm\\.collectionVariables\\.toObject\\(': 'bru.getAllCollectionVars(',
+  // Only the actual null literal stops the runner; the string 'null' is a valid
+  // request name and falls through to setNextRequest.
   'pm\\.setNextRequest\\(null\\)': 'bru.runner.stopExecution()',
-  'pm\\.setNextRequest\\([\'\"]null[\'\"]\\)': 'bru.runner.stopExecution()',
   'pm\\.setNextRequest\\(': 'bru.runner.setNextRequest(',
   'pm\\.test\\(': 'test(',
   'pm.response.to.have\\.status\\(': 'expect(res.getStatus()).to.equal(',
@@ -129,8 +130,9 @@ const replacements = {
   'postman\\.clearEnvironmentVariable\\(': 'bru.deleteEnvVar(',
   'pm\\.execution\\.skipRequest\\(\\)': 'bru.runner.skipRequest()',
   'pm\\.execution\\.skipRequest': 'bru.runner.skipRequest',
+  // Only the actual null literal stops the runner; the string 'null' falls through to setNextRequest.
   'pm\\.execution\\.setNextRequest\\(null\\)': 'bru.runner.stopExecution()',
-  'pm\\.execution\\.setNextRequest\\(\'null\'\\)': 'bru.runner.stopExecution()',
+  'pm\\.execution\\.setNextRequest\\(': 'bru.runner.setNextRequest(',
   // Cookie jar translations — order matters:
   // 1. Specific jar method patterns must come before the general jar() pattern,
   //    otherwise jar() consumes the prefix and the method patterns never match.
