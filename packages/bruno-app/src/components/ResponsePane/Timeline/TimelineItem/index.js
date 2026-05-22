@@ -49,6 +49,12 @@ const TimelineItem = ({
   // each tab on first visit and keep it mounted, toggling display only.
   const [visitedTabs, setVisitedTabs] = useState({ request: true });
   const toggleExpand = () => _toggleExpand((prev) => !prev);
+  const handleRowKeyDown = (ev) => {
+    if (ev.key === 'Enter' || ev.key === ' ') {
+      ev.preventDefault();
+      toggleExpand();
+    }
+  };
 
   useEffect(() => {
     if (isExpanded) setVisitedTabs({ [activeTab]: true });
@@ -128,7 +134,14 @@ const TimelineItem = ({
   return (
     <StyledWrapper>
       <div className={`tl-row-wrap ${isOauth2 ? 'tl-row-wrap--oauth2' : ''}`}>
-        <div className={`tl-row ${isExpanded ? 'is-expanded' : ''}`} onClick={toggleExpand}>
+        <div
+          className={`tl-row ${isExpanded ? 'is-expanded' : ''}`}
+          role="button"
+          tabIndex={0}
+          aria-expanded={isExpanded}
+          onClick={toggleExpand}
+          onKeyDown={handleRowKeyDown}
+        >
           <div className="tl-col-chev">
             {isExpanded ? <IconChevronDown size={14} strokeWidth={2} /> : <IconChevronRight size={14} strokeWidth={2} />}
           </div>

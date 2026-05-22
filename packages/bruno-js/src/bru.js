@@ -60,9 +60,14 @@ class Bru {
     // Set by the host-side __bruSetScope global at the top of each segment's IIFE.
     this._currentScope = null;
     this.scriptedRequestEntries = [];
-    this.sendRequest = createSendRequest(certsAndProxyConfig, {
-      onComplete: (entry) => this._recordScriptedRequest({ source: 'sendRequest', ...entry })
-    });
+    this.sendRequest = (...args) => {
+      const scopeSnapshot = this._currentScope ? { ...this._currentScope } : null;
+      const send = createSendRequest(certsAndProxyConfig, {
+        onComplete: (entry) =>
+          this._recordScriptedRequest({ source: 'sendRequest', scope: scopeSnapshot, ...entry })
+      });
+      return send(...args);
+    };
     this.runtime = runtime;
     this.requestUrl = requestUrl;
     this.cookies = new CookieList({
@@ -162,10 +167,13 @@ class Bru {
   }
 
   _recordScriptedRequest(entry) {
-    this.scriptedRequestEntries.push({
-      ...entry,
-      scope: this._currentScope ? { ...this._currentScope } : null
-    });
+    // Prefer scope passed in by the caller (snapshot at call time). Fall back to
+    // _currentScope for callers that don't supply one (e.g. bru.runRequest).
+    const { scope: providedScope, ...rest } = entry;
+    const scope = providedScope !== undefined
+      ? providedScope
+      : (this._currentScope ? { ...this._currentScope } : null);
+    this.scriptedRequestEntries.push({ ...rest, scope });
   }
 
   getEnvName() {

@@ -30,11 +30,12 @@ const statusColor = (theme, statusCode) => {
 const ResponseMeta = ({ code, statusText, duration, size }) => {
   const { theme } = useTheme();
   const sizeLabel = formatBytes(size);
-  const hasAny = code || statusText || (typeof duration === 'number') || sizeLabel;
+  const hasCode = code != null;
+  const hasAny = hasCode || statusText || (typeof duration === 'number') || sizeLabel;
   if (!hasAny) return null;
   return (
     <div className="tl-response-meta">
-      {(code || statusText) && (
+      {(hasCode || statusText) && (
         <span className="tl-response-meta-status" style={{ color: statusColor(theme, code) }}>
           {code} {statusText || ''}
         </span>

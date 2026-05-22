@@ -16,13 +16,19 @@ const Headers = ({ headers }) => {
 
   return (
     <div className="tl-block">
-      <div className="tl-block-h" onClick={() => setIsOpen(!isOpen)}>
+      <button
+        type="button"
+        className="tl-block-h"
+        aria-expanded={isOpen}
+        data-testid="headers-toggle"
+        onClick={() => setIsOpen(!isOpen)}
+      >
         <span className="tl-block-chev">
           {isOpen ? <IconChevronDown size={12} strokeWidth={2} /> : <IconChevronRight size={12} strokeWidth={2} />}
         </span>
         Headers
         <span className="tl-block-count">({count})</span>
-      </div>
+      </button>
       {isOpen && (
         count === 0
           ? <div className="tl-empty">No Headers found</div>

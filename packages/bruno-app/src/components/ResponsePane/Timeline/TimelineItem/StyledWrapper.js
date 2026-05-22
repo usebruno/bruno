@@ -1,4 +1,5 @@
 import styled from 'styled-components';
+import { rgba } from 'polished';
 
 const StyledWrapper = styled.div`
   .tl-row-wrap {
@@ -19,10 +20,14 @@ const StyledWrapper = styled.div`
     border-top: 1px solid ${(props) => props.theme.border.border1};
   }
   .tl-row:hover {
-    background: ${(props) => props.theme.bg2 || 'rgba(255, 255, 255, 0.04)'};
+    background: ${(props) => props.theme.bg2 || rgba(props.theme.text, 0.04)};
   }
   .tl-row.is-expanded {
-    background: ${(props) => props.theme.bg2 || 'rgba(255, 255, 255, 0.06)'};
+    background: ${(props) => props.theme.bg2 || rgba(props.theme.text, 0.06)};
+  }
+  .tl-row:focus-visible {
+    outline: 2px solid ${(props) => props.theme.textLink};
+    outline-offset: -2px;
   }
   .tl-row-wrap:first-child .tl-row {
     border-top: none;
@@ -73,25 +78,25 @@ const StyledWrapper = styled.div`
     padding: 2px 8px;
     border-radius: 10px;
     letter-spacing: 0.02em;
-    background: ${(props) => props.theme.bg2 || 'rgba(212, 161, 74, 0.12)'};
+    background: ${(props) => props.theme.bg2 || rgba(props.theme.text, 0.06)};
     color: ${(props) => props.theme.colors.text.muted};
     white-space: nowrap;
   }
   .tl-badge--main {
-    background: rgba(109, 197, 120, 0.14);
+    background: ${(props) => rgba(props.theme.colors.text.green, 0.14)};
     color: ${(props) => props.theme.colors.text.green};
   }
   .tl-badge--oauth2 {
-    background: rgba(74, 143, 212, 0.12);
-    color: ${(props) => props.theme.textLink || '#7eafdc'};
+    background: ${(props) => rgba(props.theme.textLink, 0.12)};
+    color: ${(props) => props.theme.textLink};
   }
   .tl-badge--scripted {
-    background: rgba(212, 161, 74, 0.12);
-    color: ${(props) => props.theme.colors.text.yellow || '#c8a468'};
+    background: ${(props) => rgba(props.theme.colors.text.yellow, 0.12)};
+    color: ${(props) => props.theme.colors.text.yellow};
   }
   .tl-badge--run-request {
-    background: rgba(184, 127, 212, 0.14);
-    color: ${(props) => props.theme.colors.text.purple || '#c79bdc'};
+    background: ${(props) => rgba(props.theme.colors.text.purple, 0.14)};
+    color: ${(props) => props.theme.colors.text.purple};
   }
 
   .tl-detail {
@@ -212,6 +217,11 @@ const StyledWrapper = styled.div`
     gap: 8px;
     padding: 6px 0;
     margin-bottom: 8px;
+    width: 100%;
+    background: none;
+    border: none;
+    text-align: left;
+    font-family: inherit;
     font-size: 11px;
     font-weight: 600;
     text-transform: uppercase;
@@ -252,7 +262,7 @@ const StyledWrapper = styled.div`
     border-bottom: none;
   }
   .tl-headers-table tr:hover {
-    background: ${(props) => props.theme.bg2 || 'rgba(255, 255, 255, 0.03)'};
+    background: ${(props) => props.theme.bg2 || rgba(props.theme.text, 0.03)};
   }
   .tl-headers-table td {
     padding: 5px 10px 5px 0;

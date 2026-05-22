@@ -1,4 +1,7 @@
-// Mocked so we can drive onComplete directly without hitting the network.
+// Mocked so we can drive onComplete directly without hitting the network. We
+// defer onComplete to a microtask so it fires after the synchronous call site
+// returns — same timing as a real network call, and what the race-condition
+// test below relies on.
 jest.mock('@usebruno/requests', () => {
   const realCookies = jest.requireActual('@usebruno/requests').cookies;
   return {
@@ -7,6 +10,7 @@ jest.mock('@usebruno/requests', () => {
       createSendRequest: jest.fn((_config, options) => {
         return async (requestConfig) => {
           const normalized = typeof requestConfig === 'string' ? { url: requestConfig } : requestConfig;
+          await Promise.resolve();
           options?.onComplete?.({
             request: {
               method: (normalized.method || 'GET').toUpperCase(),
@@ -86,6 +90,23 @@ describe('Bru — scripted request capture', () => {
     expect(bru.scriptedRequestEntries).toHaveLength(2);
     expect(bru.scriptedRequestEntries[0].scope).toEqual({ type: 'collection', sourceFile: 'collection.bru' });
     expect(bru.scriptedRequestEntries[1].scope).toEqual({ type: 'request', sourceFile: 'auth/login.bru' });
+  });
+
+  test('uses scope at call time, not completion time, for non-awaited sendRequest', async () => {
+    const bru = makeBru();
+
+    // Fire-and-forget call in scope A.
+    bru._currentScope = { type: 'collection', sourceFile: 'collection.bru' };
+    const inFlight = bru.sendRequest('https://example.com/late');
+
+    // The host moves to the next segment and __bruSetScope flips the scope
+    // before the network call settles.
+    bru._currentScope = { type: 'request', sourceFile: 'auth/login.bru' };
+
+    await inFlight;
+
+    expect(bru.scriptedRequestEntries).toHaveLength(1);
+    expect(bru.scriptedRequestEntries[0].scope).toEqual({ type: 'collection', sourceFile: 'collection.bru' });
   });
 
   test('_recordScriptedRequest accepts entries from other sources (e.g. runRequest)', () => {

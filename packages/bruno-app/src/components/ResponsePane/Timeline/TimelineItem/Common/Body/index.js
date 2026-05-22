@@ -8,12 +8,18 @@ const BodyBlock = ({ collection, data, dataBuffer, headers, error, item, type })
 
   return (
     <div className="tl-block">
-      <div className="tl-block-h" onClick={() => setIsOpen(!isOpen)}>
+      <button
+        type="button"
+        className="tl-block-h"
+        aria-expanded={isOpen}
+        data-testid="response-body-toggle"
+        onClick={() => setIsOpen(!isOpen)}
+      >
         <span className="tl-block-chev">
           {isOpen ? <IconChevronDown size={12} strokeWidth={2} /> : <IconChevronRight size={12} strokeWidth={2} />}
         </span>
         Body
-      </div>
+      </button>
       {isOpen && (
         hasBody ? (
           <div className="h-96 overflow-auto">
