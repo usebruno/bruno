@@ -1,5 +1,5 @@
 import { describe, it, expect } from '@jest/globals';
-import { buildFormUrlEncodedPayload, isFormData, extractBoundaryFromContentType } from './form-data';
+import { buildFormUrlEncodedPayload, isFormData, extractBoundaryFromContentType, shouldUseMultipartFormData } from './form-data';
 import FormData from 'form-data';
 
 describe('buildFormUrlEncodedPayload', () => {
@@ -207,5 +207,72 @@ describe('extractBoundaryFromContentType', () => {
 
   it('should extract quoted boundary when other params exist', () => {
     expect(extractBoundaryFromContentType('multipart/mixed; charset=utf-8; boundary="my-boundary"')).toBe('my-boundary');
+  });
+});
+
+describe('shouldUseMultipartFormData', () => {
+  // Regression coverage for https://github.com/usebruno/bruno/issues/7995
+  // Bruno v3.2.0+ silently dropped raw multipart/mixed bodies because the multipart
+  // wrap path was entered even when request.data was already a serialized string.
+  // This predicate is the gate that prevents that.
+
+  it('returns true for an array of form fields (multipartForm body mode)', () => {
+    const data = [
+      { name: 'description', value: 'value1', type: 'text' },
+      { name: 'attachment', value: ['file.pdf'], type: 'file' }
+    ];
+    expect(shouldUseMultipartFormData(data)).toBe(true);
+  });
+
+  it('returns true for an empty array (empty multipart form is still a form)', () => {
+    expect(shouldUseMultipartFormData([])).toBe(true);
+  });
+
+  it('returns false for a raw multipart/mixed body string (text body mode)', () => {
+    const rawMultipartBody = [
+      '--TestBoundary123',
+      'Content-Type: application/json',
+      '',
+      '{"test": true}',
+      '--TestBoundary123--',
+      ''
+    ].join('\r\n');
+    expect(shouldUseMultipartFormData(rawMultipartBody)).toBe(false);
+  });
+
+  it('returns false for an empty string', () => {
+    expect(shouldUseMultipartFormData('')).toBe(false);
+  });
+
+  it('returns false for a JSON-serialized string (json body mode)', () => {
+    expect(shouldUseMultipartFormData('{"a":1}')).toBe(false);
+  });
+
+  it('returns false for null and undefined', () => {
+    expect(shouldUseMultipartFormData(null)).toBe(false);
+    expect(shouldUseMultipartFormData(undefined)).toBe(false);
+  });
+
+  it('returns false for a plain object', () => {
+    expect(shouldUseMultipartFormData({})).toBe(false);
+    expect(shouldUseMultipartFormData({ name: 'x', value: 'y' })).toBe(false);
+  });
+
+  it('returns false for primitive numbers and booleans', () => {
+    expect(shouldUseMultipartFormData(0)).toBe(false);
+    expect(shouldUseMultipartFormData(42)).toBe(false);
+    expect(shouldUseMultipartFormData(true)).toBe(false);
+    expect(shouldUseMultipartFormData(false)).toBe(false);
+  });
+
+  it('returns false for an already-wrapped FormData instance', () => {
+    const formData = new FormData();
+    formData.append('key', 'value');
+    expect(shouldUseMultipartFormData(formData)).toBe(false);
+  });
+
+  it('returns false for a Buffer (binary body mode)', () => {
+    const buffer = Buffer.from('binary content');
+    expect(shouldUseMultipartFormData(buffer)).toBe(false);
   });
 });

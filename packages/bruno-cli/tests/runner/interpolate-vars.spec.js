@@ -18,6 +18,51 @@ describe('interpolate-vars: interpolateVars', () => {
     const result = interpolateVars(request, { shouldNotApply: 'value' }, null, null);
     expect(result.data).toBe(streamPayload);
   });
+
+  // Regression coverage for https://github.com/usebruno/bruno/issues/7995
+  it('preserves raw string body when Content-Type is multipart/mixed (manually constructed multipart)', () => {
+    const rawMultipartBody = [
+      '--TestBoundary123',
+      'Content-Type: application/json',
+      '',
+      '{"test": true}',
+      '--TestBoundary123--',
+      ''
+    ].join('\r\n');
+
+    const request = {
+      method: 'POST',
+      url: 'https://httpbin.dev/post',
+      headers: { 'content-type': 'multipart/mixed; boundary=TestBoundary123' },
+      data: rawMultipartBody
+    };
+
+    const result = interpolateVars(request, {}, null, null);
+
+    expect(result.data).toBe(rawMultipartBody);
+    expect(result.data).toContain('--TestBoundary123');
+    expect(result.data).toContain('{"test": true}');
+    expect(result.data).toContain('--TestBoundary123--');
+  });
+
+  it('still interpolates per-field values when Content-Type is multipart/mixed with array data (multipartForm body mode)', () => {
+    const request = {
+      method: 'POST',
+      url: 'https://example.com/upload',
+      headers: { 'content-type': 'multipart/mixed; boundary=----mixed' },
+      data: [
+        { name: 'part1', value: '{{envVar}}', type: 'text' },
+        { name: 'part2', value: '{{another}}', type: 'text' }
+      ]
+    };
+
+    const result = interpolateVars(request, { envVar: 'first', another: 'second' }, null, null);
+
+    expect(result.data).toEqual([
+      { name: 'part1', value: 'first', type: 'text' },
+      { name: 'part2', value: 'second', type: 'text' }
+    ]);
+  });
 });
 
 describe('interpolate-vars: api key header name sidecar', () => {

@@ -1,6 +1,6 @@
 const { interpolate } = require('@usebruno/common');
 const { each, forOwn, cloneDeep, find } = require('lodash');
-const { isFormData } = require('@usebruno/common').utils;
+const { shouldUseMultipartFormData } = require('@usebruno/common').utils;
 
 const isBinaryRequestBody = (data) => Buffer.isBuffer(data) || typeof data?.pipe === 'function';
 
@@ -102,7 +102,7 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
         }));
       }
     } else if (contentType.startsWith('multipart/')) {
-      if (Array.isArray(request?.data) && !isFormData(request.data)) {
+      if (shouldUseMultipartFormData(request?.data)) {
         try {
           request.data = request?.data?.map((d) => ({
             ...d,
