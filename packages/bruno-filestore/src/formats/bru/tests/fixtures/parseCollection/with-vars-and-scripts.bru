@@ -1,0 +1,13 @@
+vars:pre-request {
+  shared_var: shared-value
+}
+
+script:pre-request {
+  bru.setVar('runtime_var', 'runtime-value');
+}
+
+tests {
+  test('collection-level test runs', () => {
+    expect(true).to.be.true;
+  });
+}

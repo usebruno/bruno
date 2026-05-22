@@ -1,6 +1,7 @@
 import { test, expect } from '../../../playwright';
 import {
   AUTH_MODE_LABELS,
+  buildCommonLocators,
   closeAllCollections,
   createCollection,
   createFolder,
@@ -18,37 +19,38 @@ test.describe('Modified indicator for auth tab', () => {
 
   test('Folder Auth tab indicator dot reflects effective auth (shows on inherit, hides on No Auth)', async ({ page, createTmpDir }) => {
     const collectionName = 'modified-indicator-collection';
+    const locators = buildCommonLocators(page);
 
     await test.step('Create a collection', async () => {
       await createCollection(page, collectionName, await createTmpDir());
     });
 
     await test.step('Set auth type for the collection as Bearer Token', async () => {
-      await page.getByTestId('collection-settings-tab-auth').click();
+      await locators.paneTabs.collectionSettingsTab('auth').click();
       await selectAuthMode(page, AUTH_MODE_LABELS.BEARER);
       await page.getByRole('button', { name: 'Save' }).click();
     });
 
     await test.step('Verify the collection auth mode shows Bearer Token', async () => {
-      await expect(page.getByTestId('auth-mode-selector')).toContainText(AUTH_MODE_LABELS.BEARER);
+      await expect(locators.auth.modeSelector()).toContainText(AUTH_MODE_LABELS.BEARER);
     });
 
     await test.step('Create folder-1 inside the collection and set auth type for folder-1 as Inherit', async () => {
       await createFolder(page, 'folder-1', collectionName, true);
-      await page.locator('.collection-item-name').filter({ hasText: 'folder-1' }).dblclick();
-      await page.getByTestId('folder-settings-tab-auth').click();
+      await locators.sidebar.folder('folder-1').dblclick();
+      await locators.paneTabs.folderSettingsTab('auth').click();
       await selectAuthMode(page, AUTH_MODE_LABELS.INHERIT);
       await page.getByRole('button', { name: 'Save' }).click();
     });
 
     await test.step('Verify folder-1 inherits Bearer Token from the collection', async () => {
       await expect(page.getByText('Auth inherited from Collection:')).toBeVisible();
-      await expect(page.getByTestId('inherited-auth-mode')).toHaveText(AUTH_MODE_LABELS.BEARER);
+      await expect(locators.auth.inheritedMode()).toHaveText(AUTH_MODE_LABELS.BEARER);
     });
 
     await test.step('Verify the Auth tab shows the status dot for folder-1 (inheriting Bearer Token)', async () => {
       await expect(
-        page.getByTestId('folder-settings-tab-auth').getByTestId('status-dot')
+        locators.paneTabs.folderSettingsTab('auth').getByTestId('status-dot')
       ).toBeVisible();
     });
 
@@ -59,7 +61,7 @@ test.describe('Modified indicator for auth tab', () => {
 
     await test.step('Verify the Auth tab does NOT show the status dot for folder-1 (No Auth)', async () => {
       await expect(
-        page.getByTestId('folder-settings-tab-auth').getByTestId('status-dot')
+        locators.paneTabs.folderSettingsTab('auth').getByTestId('status-dot')
       ).toBeHidden();
     });
   });
@@ -74,21 +76,22 @@ test.describe('Modified indicator for auth tab', () => {
   for (const { protocol, requestType, requestName, url } of requestProtocolCases) {
     test(`${protocol} request inheriting auth from its folder shows the modified indicator dot`, async ({ page, createTmpDir }) => {
       const collectionName = `${protocol.toLowerCase()}-inherit-indicator-collection`;
+      const locators = buildCommonLocators(page);
 
       await test.step('Create a collection', async () => {
         await createCollection(page, collectionName, await createTmpDir());
       });
 
       await test.step('Set auth type for the collection as Bearer Token', async () => {
-        await page.getByTestId('collection-settings-tab-auth').click();
+        await locators.paneTabs.collectionSettingsTab('auth').click();
         await selectAuthMode(page, AUTH_MODE_LABELS.BEARER);
         await page.getByRole('button', { name: 'Save' }).click();
       });
 
       await test.step('Create folder-1 inside the collection and set auth type for folder-1 as Basic Auth', async () => {
         await createFolder(page, 'folder-1', collectionName, true);
-        await page.locator('.collection-item-name').filter({ hasText: 'folder-1' }).dblclick();
-        await page.getByTestId('folder-settings-tab-auth').click();
+        await locators.sidebar.folder('folder-1').dblclick();
+        await locators.paneTabs.folderSettingsTab('auth').click();
         await selectAuthMode(page, AUTH_MODE_LABELS.BASIC);
         await page.getByRole('button', { name: 'Save' }).click();
       });
@@ -103,7 +106,7 @@ test.describe('Modified indicator for auth tab', () => {
 
       await test.step(`Verify the ${protocol} request Auth tab shows the status dot (inheriting Basic Auth from folder-1)`, async () => {
         await expect(
-          page.getByTestId('responsive-tab-auth').getByTestId('status-dot')
+          locators.paneTabs.responsiveTab('auth').getByTestId('status-dot')
         ).toBeVisible();
       });
 
@@ -111,7 +114,7 @@ test.describe('Modified indicator for auth tab', () => {
         await selectAuthMode(page, AUTH_MODE_LABELS.NONE);
         await saveRequest(page);
         await expect(
-          page.getByTestId('responsive-tab-auth').getByTestId('status-dot')
+          locators.paneTabs.responsiveTab('auth').getByTestId('status-dot')
         ).toBeHidden();
       });
 
@@ -119,7 +122,7 @@ test.describe('Modified indicator for auth tab', () => {
         await selectAuthMode(page, AUTH_MODE_LABELS.BASIC);
         await saveRequest(page);
         await expect(
-          page.getByTestId('responsive-tab-auth').getByTestId('status-dot')
+          locators.paneTabs.responsiveTab('auth').getByTestId('status-dot')
         ).toBeVisible();
       });
     });

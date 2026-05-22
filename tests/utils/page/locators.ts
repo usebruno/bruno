@@ -97,7 +97,16 @@ export const buildCommonLocators = (page: Page) => ({
     },
     oauth2: {
       grantTypeDropdown: () => page.getByTestId('grant-type-dropdown')
-    }
+    },
+    modeSelector: () => page.getByTestId('auth-mode-selector'),
+    modeLabel: () => page.getByTestId('auth-mode-label'),
+    inheritedMode: () => page.getByTestId('inherited-auth-mode'),
+    dropdownItem: (id: string) => page.getByTestId(`auth-mode-dropdown-${id}`)
+  },
+  presets: {
+    requestType: (type: 'http' | 'graphql' | 'grpc' | 'ws') =>
+      page.getByTestId(`presets-request-type-${type}`),
+    requestUrl: () => page.getByTestId('presets-request-url')
   },
   tags: {
     input: () => page.getByTestId('tag-input').getByRole('textbox'),

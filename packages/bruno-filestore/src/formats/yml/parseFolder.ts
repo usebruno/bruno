@@ -21,7 +21,7 @@ const parseFolder = (ymlString: string): FolderRoot => {
       },
       request: {
         headers: [],
-        auth: toBrunoAuth(ocFolder.request?.auth),
+        auth: null,
         script: {
           req: null,
           res: null
@@ -37,6 +37,11 @@ const parseFolder = (ymlString: string): FolderRoot => {
 
     if (ocFolder.request) {
       const folderRequest = folderRoot.request!;
+      // auth
+      const auth = toBrunoAuth(ocFolder.request.auth);
+      if (auth) {
+        folderRequest.auth = auth;
+      }
 
       // headers
       const headers = toBrunoHttpHeaders(ocFolder.request.headers);
