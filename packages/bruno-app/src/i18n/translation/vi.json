@@ -1,0 +1,23 @@
+{
+    "COMMON": {
+        "COLLECTIONS": "Bộ sưu tập",
+        "DOCUMENTATION": "Tài liệu",
+        "REPORT_ISSUES": "Báo cáo sự cố",
+        "GITHUB": "GitHub",
+        "DISCORD": "Discord",
+        "TWITTER": "Twitter"
+    },
+    "WELCOME": {
+        "ABOUT_BRUNO": "IDE mã nguồn mở để khám phá và kiểm thử API",
+        "LINKS": "Liên kết",
+        "CREATE_COLLECTION": "Tạo bộ sưu tập",
+        "OPEN_COLLECTION": "Mở bộ sưu tập",
+        "IMPORT_COLLECTION": "Nhập bộ sưu tập",
+        "COLLECTION_IMPORT_SUCCESS": "Đã nhập bộ sưu tập thành công",
+        "COLLECTION_IMPORT_ERROR": "Đã xảy ra lỗi khi nhập bộ sưu tập. Vui lòng kiểm tra log để biết thêm thông tin.",
+        "COLLECTION_OPEN_ERROR": "Đã xảy ra lỗi khi mở bộ sưu tập",
+        "GLOBAL_SEARCH_TIP_PART1": "Nhấn",
+        "GLOBAL_SEARCH_TIP_PART2": "(mac) hoặc",
+        "GLOBAL_SEARCH_TIP_PART3": "(windows) bất cứ lúc nào để nhanh chóng tìm kiếm bộ sưu tập, thư mục và request"
+    }
+}

@@ -17,6 +17,7 @@
 | [हिंदी](docs/contributing/contributing_hi.md)
 | [Dutch](docs/contributing/contributing_nl.md)
 | [فارسی](docs/contributing/contributing_fa.md)
+| [Tiếng Việt](docs/contributing/contributing_vi.md)
 
 ## Let's make Bruno better, together!!
 

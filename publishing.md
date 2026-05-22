@@ -11,6 +11,7 @@
 | [日本語](docs/publishing/publishing_ja.md)
 | [Nederlands](docs/publishing/publishing_nl.md)
 | [فارسی](docs/publishing/publishing_fa.md)
+| [Tiếng Việt](docs/publishing/publishing_vi.md)
 
 ### Publishing Bruno to a new package manager
 
