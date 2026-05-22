@@ -942,9 +942,9 @@ if (!SERVER_RENDERED) {
       CodeMirror.off(popup, 'mouseout', onMouseOut);
       CodeMirror.off(popup, 'click', onPopupClick);
       CodeMirror.off(cm.getWrapperElement(), 'mouseout', onMouseOut);
-      document.removeEventListener('mousedown', onDocumentMouseDown, true);
       CodeMirror.off(document, 'click', onDocumentClick);
       CodeMirror.off(cm, 'change', onEditorChange);
+      document.removeEventListener('mousedown', onDocumentMouseDown, true);
 
       // Cleanup CodeMirror and MaskedEditor instances
       const valueContainer = popup.querySelector('.var-value-container');
