@@ -295,6 +295,36 @@ describe('interpolate-vars: interpolateVars', () => {
     });
   });
 
+  describe('form-urlencoded body with key name from variable', () => {
+    it('interpolates value in each key-value pair', () => {
+      const request = {
+        method: 'POST',
+        url: 'http://api.example/submit',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        data: [
+          { name: 'field1', value: '{{var1}}' },
+          { name: 'field2', value: 'static' },
+          { name: 'field3', value: '{{var2}}' },
+          { name: '{{var1}}', value: 'should-interpolate-key' }
+        ]
+      };
+
+      const result = interpolateVars(
+        request,
+        { var1: 'value1', var2: 'value2' },
+        null,
+        null
+      );
+
+      expect(result.data).toEqual([
+        { name: 'field1', value: 'value1' },
+        { name: 'field2', value: 'static' },
+        { name: 'field3', value: 'value2' },
+        { name: 'value1', value: 'should-interpolate-key' }
+      ]);
+    });
+  });
+
   describe('Multipart body (multipart/form-data and multipart/mixed)', () => {
     it('interpolates value in each part when Content-Type is multipart/form-data', () => {
       const request = {
