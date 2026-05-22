@@ -30,6 +30,7 @@ const TimelineItem = ({
   timestamp,
   request,
   response,
+  error,
   item,
   collection,
   isOauth2,
@@ -61,7 +62,9 @@ const TimelineItem = ({
   const { method, url = '' } = request || {};
   // Main-request entries use `status`; scripted entries use `statusCode`.
   const { status, statusCode } = response || {};
-  const code = statusCode ?? status;
+  // bru.sendRequest network failures leave response null — surface "Error"
+  // so the row matches the main-request error rendering instead of going blank.
+  const code = statusCode ?? status ?? (error ? 'Error' : undefined);
   const showNetworkLogs = response?.timeline && response.timeline.length > 0;
   const badge = getBadge({ source, isOauth2 });
 
@@ -69,7 +72,7 @@ const TimelineItem = ({
   const scopeType = scope?.type || (isMainOrOauth ? null : 'request');
   const scopeFile = scope?.sourceFile
     || (scopeType === 'request' ? (item?.filename || (item?.name ? `${item.name}.bru` : null)) : null);
-  const sourceFile = isMainOrOauth ? null : scopeFile;
+  const sourceFile = isMainOrOauth || collection?.format === 'yml' ? null : scopeFile;
 
   const folderForScope = scopeType === 'folder'
     ? findFolderByScopeFile(collection, scope?.sourceFile)

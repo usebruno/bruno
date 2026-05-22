@@ -3,9 +3,12 @@ import { rgba } from 'polished';
 
 const Status = ({ statusCode }) => {
   const { theme } = useTheme();
+  const isErrorString = typeof statusCode === 'string' && statusCode.toLowerCase() === 'error';
 
   let color = theme.colors.text.muted;
-  if (statusCode >= 200 && statusCode < 300) {
+  if (isErrorString) {
+    color = theme.requestTabPanel.responseError;
+  } else if (statusCode >= 200 && statusCode < 300) {
     color = theme.requestTabPanel.responseOk;
   } else if (statusCode >= 300 && statusCode < 400) {
     color = theme.colors.text.warning;
@@ -13,7 +16,7 @@ const Status = ({ statusCode }) => {
     color = theme.requestTabPanel.responseError;
   }
 
-  const isStatusKnown = typeof statusCode === 'number' && statusCode > 0;
+  const isStatusKnown = (typeof statusCode === 'number' && statusCode > 0) || isErrorString;
   const background = isStatusKnown ? rgba(color, 0.12) : 'transparent';
 
   return (

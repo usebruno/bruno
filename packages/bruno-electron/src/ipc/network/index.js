@@ -810,7 +810,7 @@ const registerNetworkIpc = (mainWindow) => {
           source: entry.source,
           scope: entry.scope || null,
           timestamp: entry.startedAt,
-          data: { request: entry.request, response: entry.response }
+          data: { request: entry.request, response: entry.response, error: entry.error }
         });
       });
     };
@@ -1498,7 +1498,7 @@ const registerNetworkIpc = (mainWindow) => {
                 source: entry.source,
                 scope: entry.scope || null,
                 timestamp: entry.startedAt,
-                data: { request: entry.request, response: entry.response }
+                data: { request: entry.request, response: entry.response, error: entry.error }
               });
             });
           };

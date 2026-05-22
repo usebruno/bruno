@@ -155,6 +155,7 @@ const Timeline = ({ collection, item }) => {
                   timestamp={entry.timestamp}
                   request={entry.data?.request}
                   response={entry.data?.response}
+                  error={entry.data?.error}
                   item={item}
                   collection={collection}
                   source={entry.source || 'sendRequest'}
