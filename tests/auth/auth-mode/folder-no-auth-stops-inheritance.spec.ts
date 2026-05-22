@@ -1,6 +1,7 @@
 import { test, expect } from '../../../playwright';
 import {
   AUTH_MODE_LABELS,
+  buildCommonLocators,
   closeAllCollections,
   createCollection,
   createFolder,
@@ -20,12 +21,14 @@ test.afterEach(async ({ page }) => {
 
 test('Request inherits No Auth from the folder — collection Bearer Token is overridden', async ({ page, createTmpDir }) => {
   const collectionName = 'folder-no-auth-inheritance';
+  const locators = buildCommonLocators(page);
+
   await test.step('Create a collection', async () => {
     await createCollection(page, collectionName, await createTmpDir());
   });
 
   await test.step('Set auth type for the collection as Bearer Token', async () => {
-    await page.getByTestId('collection-settings-tab-auth').click();
+    await locators.paneTabs.collectionSettingsTab('auth').click();
     await selectAuthMode(page, AUTH_MODE_LABELS.BEARER);
     await typeIntoField(page, 'Token', 'your_secret_token');
     await page.getByRole('button', { name: 'Save' }).click();
@@ -33,8 +36,8 @@ test('Request inherits No Auth from the folder — collection Bearer Token is ov
 
   await test.step('Create folder-1 inside the collection and set auth type for folder-1 as No Auth', async () => {
     await createFolder(page, 'folder-1', collectionName, true);
-    await page.locator('.collection-item-name').filter({ hasText: 'folder-1' }).dblclick();
-    await page.getByTestId('folder-settings-tab-auth').click();
+    await locators.sidebar.folder('folder-1').dblclick();
+    await locators.paneTabs.folderSettingsTab('auth').click();
     await selectAuthMode(page, AUTH_MODE_LABELS.NONE);
     await page.getByRole('button', { name: 'Save' }).click();
   });
@@ -59,6 +62,6 @@ test('Request inherits No Auth from the folder — collection Bearer Token is ov
   });
 
   await test.step('Verify the response status code is 401 Unauthorized', async () => {
-    await expect(page.getByTestId('response-status-code')).toContainText('401');
+    await expect(locators.response.statusCode()).toContainText('401');
   });
 });
