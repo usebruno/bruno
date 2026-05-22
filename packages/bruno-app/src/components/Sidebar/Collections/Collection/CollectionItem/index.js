@@ -127,10 +127,6 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
     return false;
   }, { enabled: isKeyboardFocused, deps: [isKeyboardFocused] });
 
-  // Folder rows: open the New Request modal targeting this folder. When this
-  // row has keyboard focus its binding overrides the global one in
-  // HotkeysProvider, so the modal mounts with `item={item}` (see below) and the
-  // request gets created inside the folder rather than at the collection root.
   useKeybinding('newRequest', () => {
     if (!isFolder) return false;
     setNewRequestModalOpen(true);
