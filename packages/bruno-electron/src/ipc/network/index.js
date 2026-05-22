@@ -941,7 +941,10 @@ const registerNetworkIpc = (mainWindow) => {
         cancelTokenUid
       });
 
-      if (request.oauth2Credentials?.credentials && request.oauth2Credentials?.credentialsId) {
+      if (
+        request.oauth2Credentials?.credentialsId
+        && (request.oauth2Credentials.credentials || request.oauth2Credentials.debugInfo)
+      ) {
         mainWindow.webContents.send('main:credentials-update', {
           credentials: request?.oauth2Credentials?.credentials,
           url: request?.oauth2Credentials?.url,
@@ -951,11 +954,13 @@ const registerNetworkIpc = (mainWindow) => {
           debugInfo: request?.oauth2Credentials?.debugInfo
         });
 
-        const { credentialsId, credentials } = request.oauth2Credentials;
-        request.oauth2CredentialVariables = request.oauth2CredentialVariables || {};
-        Object.entries(credentials).forEach(([key, value]) => {
-          request.oauth2CredentialVariables[`$oauth2.${credentialsId}.${key}`] = value;
-        });
+        if (request.oauth2Credentials.credentials) {
+          const { credentialsId, credentials } = request.oauth2Credentials;
+          request.oauth2CredentialVariables = request.oauth2CredentialVariables || {};
+          Object.entries(credentials).forEach(([key, value]) => {
+            request.oauth2CredentialVariables[`$oauth2.${credentialsId}.${key}`] = value;
+          });
+        }
       }
 
       let response, responseTime, axiosDataStream;
@@ -1689,7 +1694,10 @@ const registerNetworkIpc = (mainWindow) => {
               collection.globalEnvironmentVariables
             );
 
-            if (request.oauth2Credentials?.credentials && request.oauth2Credentials?.credentialsId) {
+            if (
+              request.oauth2Credentials?.credentialsId
+              && (request.oauth2Credentials.credentials || request.oauth2Credentials.debugInfo)
+            ) {
               mainWindow.webContents.send('main:credentials-update', {
                 credentials: request?.oauth2Credentials?.credentials,
                 url: request?.oauth2Credentials?.url,
@@ -1712,18 +1720,20 @@ const registerNetworkIpc = (mainWindow) => {
                 });
               }
 
-              const { credentialsId, credentials } = request.oauth2Credentials;
-              request.oauth2CredentialVariables = request.oauth2CredentialVariables || {};
-              Object.entries(credentials).forEach(([key, value]) => {
-                request.oauth2CredentialVariables[`$oauth2.${credentialsId}.${key}`] = value;
-              });
+              if (request.oauth2Credentials.credentials) {
+                const { credentialsId, credentials } = request.oauth2Credentials;
+                request.oauth2CredentialVariables = request.oauth2CredentialVariables || {};
+                Object.entries(credentials).forEach(([key, value]) => {
+                  request.oauth2CredentialVariables[`$oauth2.${credentialsId}.${key}`] = value;
+                });
 
-              collection.oauth2Credentials = updateCollectionOauth2Credentials({
-                itemUid: item.uid,
-                collectionUid,
-                collectionOauth2Credentials: collection.oauth2Credentials,
-                requestOauth2Credentials: request.oauth2Credentials
-              });
+                collection.oauth2Credentials = updateCollectionOauth2Credentials({
+                  itemUid: item.uid,
+                  collectionUid,
+                  collectionOauth2Credentials: collection.oauth2Credentials,
+                  requestOauth2Credentials: request.oauth2Credentials
+                });
+              }
             }
 
             timeStart = Date.now();

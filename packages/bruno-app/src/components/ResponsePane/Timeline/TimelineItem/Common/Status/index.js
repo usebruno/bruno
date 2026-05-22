@@ -1,14 +1,13 @@
+import React from 'react';
 import { useTheme } from 'providers/Theme';
 import { rgba } from 'polished';
 
 const Status = ({ statusCode }) => {
   const { theme } = useTheme();
-  const isErrorString = typeof statusCode === 'string' && statusCode.toLowerCase() === 'error';
+  const isStringCode = typeof statusCode === 'string' && statusCode.length > 0;
 
   let color = theme.colors.text.muted;
-  if (isErrorString) {
-    color = theme.requestTabPanel.responseError;
-  } else if (statusCode >= 200 && statusCode < 300) {
+  if (statusCode >= 200 && statusCode < 300) {
     color = theme.requestTabPanel.responseOk;
   } else if (statusCode >= 300 && statusCode < 400) {
     color = theme.colors.text.warning;
@@ -16,7 +15,7 @@ const Status = ({ statusCode }) => {
     color = theme.requestTabPanel.responseError;
   }
 
-  const isStatusKnown = (typeof statusCode === 'number' && statusCode > 0) || isErrorString;
+  const isStatusKnown = (typeof statusCode === 'number' && statusCode > 0) || isStringCode;
   const background = isStatusKnown ? rgba(color, 0.12) : 'transparent';
 
   return (

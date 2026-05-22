@@ -251,6 +251,26 @@ describe('collectionAddOauth2CredentialsByUrl — executionMode gating', () => {
     );
   });
 
+  test('failed token requests (credentials=null) still push the oauth2 entry into timeline (#7776)', () => {
+    let state = makeInitialState();
+    state = reducer(state, collectionAddOauth2CredentialsByUrl({
+      collectionUid: COLLECTION_UID,
+      folderUid: null,
+      itemUid: ITEM_UID,
+      url: 'https://idp.example.com/token',
+      credentials: null,
+      credentialsId: 'credentials',
+      debugInfo
+    }));
+
+    const collection = state.collections[0];
+    expect(collection.timeline).toHaveLength(1);
+    expect(collection.timeline[0]).toEqual(
+      expect.objectContaining({ type: 'oauth2', itemUid: ITEM_UID })
+    );
+    expect(collection.timeline[0].data.credentials).toBeNull();
+  });
+
   test('executionMode = "runner" updates the credential cache but skips the timeline push', () => {
     let state = makeInitialState();
     state = reducer(state, collectionAddOauth2CredentialsByUrl({

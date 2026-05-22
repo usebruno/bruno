@@ -67,10 +67,15 @@ const TimelineItem = ({
 
   const { method, url = '' } = request || {};
   // Main-request entries use `status`; scripted entries use `statusCode`.
-  const { status, statusCode } = response || {};
-  // bru.sendRequest network failures leave response null — surface "Error"
-  // so the row matches the main-request error rendering instead of going blank.
-  const code = statusCode ?? status ?? (error ? 'Error' : undefined);
+  const { status, statusCode, statusText } = response || {};
+  const numericCode = typeof statusCode === 'number'
+    ? statusCode
+    : typeof status === 'number'
+      ? status
+      : null;
+  const code = numericCode != null
+    ? numericCode
+    : (statusText || (error ? 'Error' : undefined));
   const showNetworkLogs = response?.timeline && response.timeline.length > 0;
   const badge = getBadge({ source, isOauth2 });
 
