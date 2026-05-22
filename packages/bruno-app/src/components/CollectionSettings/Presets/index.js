@@ -47,6 +47,7 @@ const PresetsSettings = ({ collection }) => {
           <div className="flex items-center">
             <input
               id="http"
+              data-testid="presets-request-type-http"
               className="cursor-pointer"
               type="radio"
               name="requestType"
@@ -60,6 +61,7 @@ const PresetsSettings = ({ collection }) => {
 
             <input
               id="graphql"
+              data-testid="presets-request-type-graphql"
               className="ml-4 cursor-pointer"
               type="radio"
               name="requestType"
@@ -73,6 +75,7 @@ const PresetsSettings = ({ collection }) => {
 
             <input
               id="grpc"
+              data-testid="presets-request-type-grpc"
               className="ml-4 cursor-pointer"
               type="radio"
               name="requestType"
@@ -86,6 +89,7 @@ const PresetsSettings = ({ collection }) => {
 
             <input
               id="ws"
+              data-testid="presets-request-type-ws"
               className="ml-4 cursor-pointer"
               type="radio"
               name="requestType"
@@ -106,6 +110,7 @@ const PresetsSettings = ({ collection }) => {
             <div className="flex items-center flex-grow input-container h-full">
               <input
                 id="request-url"
+                data-testid="presets-request-url"
                 type="text"
                 name="requestUrl"
                 placeholder="Request URL"

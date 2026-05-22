@@ -64,14 +64,14 @@ export const getEffectiveAuthSource = (collection, item) => {
     if (i?.uid === item?.uid) continue;
     if (i?.type !== 'folder') continue;
     const folderAuth = get(i, 'root.request.auth');
-    if (folderAuth && folderAuth.mode && folderAuth.mode !== AUTH_MODES.INHERIT) {
-      effectiveSource = {
-        type: 'folder',
-        name: i.name,
-        auth: folderAuth
-      };
-      break;
-    }
+    const folderMode = folderAuth?.mode || AUTH_MODES.NONE;
+    if (folderMode === AUTH_MODES.INHERIT) continue;
+    effectiveSource = {
+      type: 'folder',
+      name: i.name,
+      auth: folderAuth ?? { mode: AUTH_MODES.NONE }
+    };
+    break;
   }
 
   return effectiveSource;

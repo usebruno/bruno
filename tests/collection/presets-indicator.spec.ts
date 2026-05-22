@@ -1,17 +1,18 @@
 import type { Locator } from '@playwright/test';
 import { test, expect } from '../../playwright';
-import { closeAllCollections, createCollection } from '../utils/page';
+import { buildCommonLocators, closeAllCollections, createCollection } from '../utils/page';
 
 test.describe('Presets status dot in collection settings', () => {
   test.afterEach(async ({ page }) => {
     await closeAllCollections(page);
   });
 
-  test('Presets dot appears only when request type is non-http or request URL is set', async ({
+  test('Presets dot is hidden on a fresh collection and stays visible once a preset has been saved (even at defaults)', async ({
     page,
     createTmpDir
   }) => {
     const collectionName = 'test-presets-indicator';
+    const locators = buildCommonLocators(page);
     let presetsTab: Locator;
 
     await test.step('Create a fresh collection (opens collection settings tab)', async () => {
@@ -19,53 +20,54 @@ test.describe('Presets status dot in collection settings', () => {
     });
 
     await test.step('Open the Presets sub-tab', async () => {
-      presetsTab = page.getByTestId('collection-settings-tab-presets');
+      presetsTab = locators.paneTabs.collectionSettingsTab('presets');
       // visibility of the Presets sub-tab implies the collection settings tab is open
       await expect(presetsTab).toBeVisible();
       await presetsTab.click();
     });
 
     await test.step('Verify default state: HTTP selected and request URL is empty', async () => {
-      await expect(page.locator('input#http')).toBeChecked();
-      await expect(page.locator('input#graphql')).not.toBeChecked();
-      await expect(page.locator('input#grpc')).not.toBeChecked();
-      await expect(page.locator('input#ws')).not.toBeChecked();
-      await expect(page.locator('input#request-url')).toHaveValue('');
+      await expect(locators.presets.requestType('http')).toBeChecked();
+      await expect(locators.presets.requestType('graphql')).not.toBeChecked();
+      await expect(locators.presets.requestType('grpc')).not.toBeChecked();
+      await expect(locators.presets.requestType('ws')).not.toBeChecked();
+      await expect(locators.presets.requestUrl()).toHaveValue('');
     });
 
     await test.step('Verify Presets dot is NOT visible when HTTP is selected and URL is empty', async () => {
-      await expect(presetsTab.locator('sup')).toHaveCount(0);
+      await expect(presetsTab.getByTestId('status-dot')).toBeHidden();
     });
 
-    await test.step('Select GraphQL request type and save', async () => {
-      await page.locator('input#graphql').check();
+    await test.step('Select gRPC request type and save', async () => {
+      await locators.presets.requestType('grpc').check();
       await page.getByRole('button', { name: 'Save' }).click();
     });
 
-    // Non-default = anything other than HTTP (the default request type). Here: GraphQL, with the URL still empty —
-    // so the dot must appear purely because the request type is non-default.
     await test.step('Verify Presets dot appears when a non-default request type is selected', async () => {
-      await expect(presetsTab.locator('sup')).toHaveCount(1);
+      await expect(presetsTab.getByTestId('status-dot')).toBeVisible();
     });
 
     await test.step('Switch back to HTTP and set a request URL, then save', async () => {
-      await page.locator('input#http').check();
-      await page.locator('input#request-url').fill('https://example.com');
+      await locators.presets.requestType('http').check();
+      await locators.presets.requestUrl().fill('https://example.com');
       await page.getByRole('button', { name: 'Save' }).click();
     });
 
     await test.step('Verify Presets dot remains visible when request URL is set', async () => {
-      await expect(presetsTab.locator('sup')).toHaveCount(1);
+      await expect(presetsTab.getByTestId('status-dot')).toBeVisible();
     });
 
-    await test.step('Clear the request URL with HTTP selected, then save', async () => {
-      await page.locator('input#request-url').fill('');
-      await expect(page.locator('input#http')).toBeChecked();
+    await test.step('Clear the request URL with HTTP selected, then save (returns to default values)', async () => {
+      await locators.presets.requestUrl().fill('');
+      await expect(locators.presets.requestType('http')).toBeChecked();
       await page.getByRole('button', { name: 'Save' }).click();
     });
 
-    await test.step('Verify Presets dot disappears when state returns to defaults', async () => {
-      await expect(presetsTab.locator('sup')).toHaveCount(0);
+    // Once any preset has been saved, brunoConfig.presets exists with requestType: 'http'.
+    // hasPresets in CollectionSettings is `Boolean(requestUrl) || Boolean(requestType)`, so
+    // requestType: 'http' is truthy and the dot persists even when state matches the defaults.
+    await test.step('Verify Presets dot stays visible after returning to defaults (presets have been touched)', async () => {
+      await expect(presetsTab.getByTestId('status-dot')).toBeVisible();
     });
   });
 });

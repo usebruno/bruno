@@ -15,7 +15,6 @@ import StyledWrapper from './StyledWrapper';
 import Vars from './Vars/index';
 import StatusDot from 'components/StatusDot';
 import Overview from './Overview/index';
-import { DEFAULT_PRESET_REQUEST_TYPE } from 'utils/common/constants';
 
 const CollectionSettings = ({ collection }) => {
   const dispatch = useDispatch();
@@ -61,7 +60,7 @@ const CollectionSettings = ({ collection }) => {
     ? get(collection, 'draft.brunoConfig.protobuf', {})
     : get(collection, 'brunoConfig.protobuf', {});
   const presets = collection.draft?.brunoConfig ? get(collection, 'draft.brunoConfig.presets', {}) : get(collection, 'brunoConfig.presets', {});
-  const hasPresets = presets && ((presets.requestType && presets.requestType !== DEFAULT_PRESET_REQUEST_TYPE) || (presets.requestUrl && presets.requestUrl !== ''));
+  const hasPresets = presets && (Boolean(presets.requestUrl) || Boolean(presets.requestType));
 
   const getTabPanel = (tab) => {
     switch (tab) {
