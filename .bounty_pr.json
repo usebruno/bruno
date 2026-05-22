@@ -1,0 +1,23 @@
+{
+  "status": "ready",
+  "vertical": "translation",
+  "commit_message": "i18n(vi): add Vietnamese translation for documentation",
+  "pr_title": "i18n(vi): add Vietnamese translation for documentation",
+  "pr_body": "## Summary\n\nCloses #8024\n\nAdds Vietnamese (`vi`) translations across the Bruno project documentation and registers the locale in the app's i18n setup.\n\n### Files added\n- `docs/readme/readme_vi.md` — full Vietnamese translation of `readme.md`\n- `docs/contributing/contributing_vi.md` — full Vietnamese translation of `contributing.md`\n- `docs/publishing/publishing_vi.md` — full Vietnamese translation of `publishing.md`\n- `packages/bruno-app/src/i18n/translation/vi.json` — Vietnamese translation for the in-app i18n strings\n\n### Files modified\n- `readme.md`, `contributing.md`, `publishing.md` — added `Tiếng Việt` to the language link bar\n- `packages/bruno-app/src/i18n/index.js` — registered the `vi` resource alongside `en`\n\n### Notes\n- Translations use formal Vietnamese (`bạn`) with full tonal marks.\n- Technical jargon kept in English where there is no clean equivalent (API, Git, Electron, npm workspaces, package manager, etc.) per project convention seen in other language files (de, fr).\n- Markdown structure, anchors, placeholders, badges and code blocks preserved exactly.\n- All shell/CLI commands and config keys left untranslated; only comments inside code fences were translated.\n- Vietnamese in-app strings validated with `python -m json.tool`.\n\n## Test plan\n- [ ] Maintainer reviews Vietnamese phrasing for tone/accuracy\n- [ ] Verify README/contributing/publishing render correctly on GitHub\n- [ ] Verify `vi` resource loads under react-i18next (e.g. by switching `lng` in `packages/bruno-app/src/i18n/index.js` to `vi`)\n",
+  "branch": "i18n-vi/issue-8024-add-vietnamese-translation-for-documentation",
+  "files_changed": [
+    "contributing.md",
+    "docs/contributing/contributing_vi.md",
+    "docs/publishing/publishing_vi.md",
+    "docs/readme/readme_vi.md",
+    "packages/bruno-app/src/i18n/index.js",
+    "packages/bruno-app/src/i18n/translation/vi.json",
+    "publishing.md",
+    "readme.md"
+  ],
+  "strings_translated": 372,
+  "target_locale": "vi",
+  "tests_run": ["python -m json.tool vi.json"],
+  "tests_passed": true,
+  "notes": "Bruno had no prior Vietnamese locale. This PR establishes vi across documentation (readme, contributing, publishing) and adds a vi.json with the 16 in-app strings currently maintained in en.json. The 'strings_translated' count reflects total inserted lines across the docs and JSON, not just individual keys — the 16 JSON keys are all translated and the three Markdown docs are full translations of their English sources. Formal register ('bạn'), tonal marks preserved throughout. Technical terms (API, Git, Electron, Redux, etc.) left in English consistent with other language files in the repo. The language bar in the English source files now points to Vietnamese; the in-app default lng is still 'en' (no change to default behaviour)."
+}
