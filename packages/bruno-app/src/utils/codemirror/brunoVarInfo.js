@@ -890,7 +890,6 @@ if (!SERVER_RENDERED) {
     let popupTimeout;
     let isPinned = false;
     let isHidden = false;
-    let mouseDownInsidePopup = false;
 
     const onMouseOverPopup = function () {
       clearTimeout(popupTimeout);
@@ -912,15 +911,7 @@ if (!SERVER_RENDERED) {
       clearTimeout(popupTimeout);
     };
 
-    const onDocumentMouseDown = function (e) {
-      mouseDownInsidePopup = popup.contains(e.target);
-    };
-
     const onDocumentClick = function (e) {
-      if (mouseDownInsidePopup) {
-        mouseDownInsidePopup = false;
-        return;
-      }
       if (popup.contains(document.activeElement)) {
         return;
       }
@@ -944,7 +935,6 @@ if (!SERVER_RENDERED) {
       CodeMirror.off(cm.getWrapperElement(), 'mouseout', onMouseOut);
       CodeMirror.off(document, 'click', onDocumentClick);
       CodeMirror.off(cm, 'change', onEditorChange);
-      document.removeEventListener('mousedown', onDocumentMouseDown, true);
 
       // Cleanup CodeMirror and MaskedEditor instances
       const valueContainer = popup.querySelector('.var-value-container');
@@ -1006,7 +996,6 @@ if (!SERVER_RENDERED) {
     CodeMirror.on(popup, 'mouseout', onMouseOut);
     CodeMirror.on(popup, 'click', onPopupClick);
     CodeMirror.on(cm.getWrapperElement(), 'mouseout', onMouseOut);
-    // document.addEventListener('mousedown', onDocumentMouseDown, true);
     CodeMirror.on(document, 'click', onDocumentClick);
     CodeMirror.on(cm, 'change', onEditorChange);
   }
