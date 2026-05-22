@@ -114,9 +114,12 @@ const parseXML = (xmlString) => {
 };
 
 const addSuffixToDuplicateName = (item, index, allItems) => {
-  // Check if the request name already exist and if so add a number suffix
+  // Check if the request name already exists (case-insensitively, so siblings like
+  // `OAuth2` and `oAuth2` get distinct names on case-insensitive filesystems) and
+  // if so add a number suffix.
+  const itemNameLower = (item.name || '').toLowerCase();
   const nameSuffix = allItems.reduce((nameSuffix, otherItem, otherIndex) => {
-    if (otherItem.name === item.name && otherIndex < index) {
+    if ((otherItem.name || '').toLowerCase() === itemNameLower && otherIndex < index) {
       nameSuffix++;
     }
     return nameSuffix;

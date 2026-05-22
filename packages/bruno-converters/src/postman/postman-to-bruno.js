@@ -374,7 +374,10 @@ const importPostmanV2CollectionItem = (brunoParent, item, { useWorkers = false }
       let folderName = baseFolderName;
       let count = 1;
 
-      while (folderMap[folderName]) {
+      // Dedupe case-insensitively so siblings like `OAuth2` and `oAuth2` get
+      // distinct names on the case-insensitive filesystems (macOS, Windows)
+      // where they'd otherwise collide on disk.
+      while (folderMap[folderName.toLowerCase()]) {
         folderName = `${baseFolderName}_${count}`;
         count++;
       }
@@ -429,7 +432,7 @@ const importPostmanV2CollectionItem = (brunoParent, item, { useWorkers = false }
         }
       }
 
-      folderMap[folderName] = brunoFolderItem;
+      folderMap[folderName.toLowerCase()] = brunoFolderItem;
     } else if (i.request) {
       const method = i?.request?.method?.toUpperCase();
       if (!method || typeof method !== 'string' || !method.trim()) {
@@ -441,7 +444,9 @@ const importPostmanV2CollectionItem = (brunoParent, item, { useWorkers = false }
       let requestName = baseRequestName;
       let count = 1;
 
-      while (requestMap[requestName]) {
+      // Dedupe case-insensitively so siblings like `GetUser` and `getuser`
+      // get distinct filenames on case-insensitive filesystems.
+      while (requestMap[requestName.toLowerCase()]) {
         requestName = `${baseRequestName}_${count}`;
         count++;
       }
@@ -801,7 +806,7 @@ const importPostmanV2CollectionItem = (brunoParent, item, { useWorkers = false }
         });
       }
 
-      requestMap[requestName] = brunoRequestItem;
+      requestMap[requestName.toLowerCase()] = brunoRequestItem;
     }
   });
 };

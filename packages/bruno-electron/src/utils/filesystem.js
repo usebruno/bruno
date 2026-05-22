@@ -233,6 +233,33 @@ const generateUniqueName = (baseName, checkExists) => {
   return uniqueName;
 };
 
+/**
+ * Return a unique name for a sibling entry (folder or file) within a parent
+ * directory, appending " - N" when a collision is detected. Case-insensitive
+ * matching is used so that imports do not corrupt each other on case-insensitive
+ * filesystems (macOS APFS/HFS+, Windows NTFS by default) — where e.g. `OAuth2`
+ * and `oAuth2` resolve to the same path.
+ *
+ * The `usedNamesLowercase` Set is mutated: the returned name is added to it so
+ * the caller can pass the same Set for every sibling in a given parent.
+ *
+ * @param {string} baseName - Desired name without extension.
+ * @param {string} extension - File extension including leading dot ('' for folders).
+ * @param {Set<string>} usedNamesLowercase - Already-used names in this parent, lowercased.
+ * @returns {string} A unique name (original case preserved).
+ */
+const getUniqueSiblingName = (baseName, extension, usedNamesLowercase) => {
+  const ext = extension || '';
+  let candidate = `${baseName}${ext}`;
+  let counter = 1;
+  while (usedNamesLowercase.has(candidate.toLowerCase())) {
+    counter++;
+    candidate = `${baseName} - ${counter}${ext}`;
+  }
+  usedNamesLowercase.add(candidate.toLowerCase());
+  return candidate;
+};
+
 const getCollectionFormat = (collectionPath) => {
   const ocYmlPath = path.join(collectionPath, 'opencollection.yml');
   if (fs.existsSync(ocYmlPath)) {
@@ -539,6 +566,7 @@ module.exports = {
   getPaths,
   isLargeFile,
   generateUniqueName,
+  getUniqueSiblingName,
   getCollectionFormat,
   isDotEnvFile,
   isValidDotEnvFilename,
