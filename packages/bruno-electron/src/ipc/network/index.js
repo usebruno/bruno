@@ -1817,6 +1817,10 @@ const registerNetworkIpc = (mainWindow) => {
                 nextRequestName = testResults.nextRequestName;
               }
 
+              if (testResults?.stopExecution) {
+                stopRunnerExecution = true;
+              }
+
               mainWindow.webContents.send('main:run-folder-event', {
                 type: 'test-results',
                 testResults: testResults.results,

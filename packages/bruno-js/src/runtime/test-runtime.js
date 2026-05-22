@@ -131,7 +131,8 @@ class TestRuntime {
       persistentEnvVariables: cleanJson(bru.persistentEnvVariables),
       oauth2CredentialsToReset: bru.oauth2CredentialsToReset,
       results: cleanJson(__brunoTestResults.getResults()),
-      nextRequestName: bru.nextRequest
+      nextRequestName: bru.nextRequest,
+      stopExecution: bru.stopExecution
     };
 
     if (scriptError) {
