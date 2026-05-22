@@ -23,7 +23,7 @@ export function fastLookup(
   // .local domains use mDNS (RFC 6762 — https://datatracker.ietf.org/doc/html/rfc6762)
   // which only the OS resolver understands. c-ares queries public DNS and may
   // return wrong results.
-  if (hostname.endsWith('.local')) {
+  if (hostname.toLowerCase().endsWith('.local')) {
     return dns.lookup(hostname, options ?? {}, (err, address, family) => {
       callback(err, address, family);
     });

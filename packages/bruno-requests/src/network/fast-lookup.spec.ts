@@ -44,6 +44,19 @@ describe('fastLookup', () => {
     });
   });
 
+  it('should use dns.lookup for mixed-case .LOCAL hostnames', (done) => {
+    mockResolve('resolve4', ['192.0.78.134']);
+    mockLookup('192.168.33.254', 4);
+
+    fastLookup('FHIR.LOCAL', {}, (err, address, family) => {
+      expect(err).toBeNull();
+      expect(address).toBe('192.168.33.254');
+      expect(family).toBe(4);
+      expect(dns.resolve4).not.toHaveBeenCalled();
+      done();
+    });
+  });
+
   it('should fall back to dns.lookup when both resolvers fail', (done) => {
     mockResolve('resolve4', [], new Error('ENOTFOUND'));
     mockResolve('resolve6', [], new Error('ENOTFOUND'));
