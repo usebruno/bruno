@@ -786,13 +786,13 @@ const mergeAuth = (collection, request, requestTreePath) => {
   let effectiveAuth = collectionAuth;
   let lastFolderWithAuth = null;
 
-  // Traverse through the path to find the closest auth configuration
+  // Innermost folder with a non-inherit mode wins. 'none' is a valid stop;
+  // only 'inherit' (or missing mode) means keep walking up.
   for (let i of requestTreePath) {
     if (i.type === 'folder') {
       const folderRoot = i?.draft || i?.root;
       const folderAuth = get(folderRoot, 'request.auth');
-      // Only consider folders that have a valid auth mode
-      if (folderAuth && folderAuth.mode && folderAuth.mode !== 'none' && folderAuth.mode !== 'inherit') {
+      if (folderAuth && folderAuth.mode && folderAuth.mode !== 'inherit') {
         effectiveAuth = folderAuth;
         lastFolderWithAuth = i;
       }
