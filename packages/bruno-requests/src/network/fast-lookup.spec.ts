@@ -57,6 +57,32 @@ describe('fastLookup', () => {
     });
   });
 
+  it('should use dns.lookup directly for localhost (RFC 6761)', (done) => {
+    mockResolve('resolve4', ['93.184.216.34']); // hijacked result
+    mockLookup('127.0.0.1', 4);
+
+    fastLookup('localhost', {}, (err, address, family) => {
+      expect(err).toBeNull();
+      expect(address).toBe('127.0.0.1');
+      expect(family).toBe(4);
+      expect(dns.resolve4).not.toHaveBeenCalled();
+      done();
+    });
+  });
+
+  it('should use dns.lookup for .localhost subdomains', (done) => {
+    mockResolve('resolve4', ['93.184.216.34']);
+    mockLookup('127.0.0.1', 4);
+
+    fastLookup('api.localhost', {}, (err, address, family) => {
+      expect(err).toBeNull();
+      expect(address).toBe('127.0.0.1');
+      expect(family).toBe(4);
+      expect(dns.resolve4).not.toHaveBeenCalled();
+      done();
+    });
+  });
+
   it('should fall back to dns.lookup when both resolvers fail', (done) => {
     mockResolve('resolve4', [], new Error('ENOTFOUND'));
     mockResolve('resolve6', [], new Error('ENOTFOUND'));
