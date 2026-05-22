@@ -60,7 +60,6 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
           <RunnerTimeline
             request={requestSent}
             response={responseReceived}
-            error={error}
             item={item}
             collection={collection}
           />

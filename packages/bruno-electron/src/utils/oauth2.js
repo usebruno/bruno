@@ -109,8 +109,7 @@ const getCredentialsFromTokenUrl = async ({ requestConfig, certsAndProxyConfig }
         request: {
           url: requestUrl,
           headers: requestHeaders,
-          data: requestData,
-          method: 'POST'
+          data: requestData
         },
         response: {
           status: '-',
