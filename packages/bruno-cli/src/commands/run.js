@@ -171,6 +171,11 @@ const builder = async (yargs) => {
       describe: 'Path to write json file results to',
       type: 'string'
     })
+    .option('reporter-json-stdout', {
+      type: 'boolean',
+      default: false,
+      description: 'Print run results JSON to stdout. Human-readable logs are redirected to stderr.'
+    })
     .option('reporter-junit', {
       describe: 'Path to write junit file results to',
       type: 'string'
@@ -280,6 +285,10 @@ const builder = async (yargs) => {
       '$0 run request.bru --reporter-junit results.xml --reporter-html results.html',
       'Run a request and write the results to results.html in html format and results.xml in junit format in the current directory'
     )
+    .example(
+      '$0 run request.bru --reporter-json-stdout',
+      'Run a request and print json results to stdout'
+    )
     .example('$0 run request.bru --tests-only', 'Run all requests that have a test')
     .example(
       '$0 run request.bru --cacert myCustomCA.pem',
@@ -307,6 +316,13 @@ const builder = async (yargs) => {
 };
 
 const handler = async function (argv) {
+  const originalConsoleLog = console.log;
+  const shouldUseJsonStdout = Boolean(argv.reporterJsonStdout);
+
+  if (shouldUseJsonStdout) {
+    console.log = (...args) => console.error(...args);
+  }
+
   try {
     let {
       paths,
@@ -771,17 +787,16 @@ const handler = async function (argv) {
     const runCompletionTime = new Date().toISOString();
     const totalTime = results.reduce((acc, res) => acc + res.response.responseTime, 0);
     console.log(chalk.dim(chalk.grey(`Ran all requests - ${totalTime} ms`)));
+    const outputJson = {
+      summary,
+      results
+    };
 
     // Extract environment name from envVars if available
     const environmentName = envVars?.__name__ || null;
 
     const formatKeys = Object.keys(formats);
     if (formatKeys && formatKeys.length > 0) {
-      const outputJson = {
-        summary,
-        results
-      };
-
       const reporters = {
         json: (path) => fs.writeFileSync(path, JSON.stringify(outputJson, null, 2)),
         junit: (path) => makeJUnitOutput(results, path),
@@ -815,6 +830,10 @@ const handler = async function (argv) {
       }
     }
 
+    if (shouldUseJsonStdout) {
+      process.stdout.write(`${JSON.stringify(outputJson, null, 2)}\n`);
+    }
+
     if ((summary.failedAssertions + summary.failedTests + summary.failedPreRequestTests + summary.failedPostResponseTests + summary.failedRequests > 0) || (summary?.errorRequests > 0)) {
       process.exit(constants.EXIT_STATUS.ERROR_FAILED_COLLECTION);
     }
@@ -822,6 +841,8 @@ const handler = async function (argv) {
     console.log('Something went wrong');
     console.error(chalk.red(err.message));
     process.exit(constants.EXIT_STATUS.ERROR_GENERIC);
+  } finally {
+    console.log = originalConsoleLog;
   }
 };
 
