@@ -361,6 +361,7 @@ export const exportApiSpec = ({ variables, items, name, environments }) => {
           case 'oauth2':
             if (!auth?.oauth2?.grantType) break;
             const { authorizationUrl, accessTokenUrl, callbackUrl, scope } = auth?.oauth2;
+            const scopes = scope ? { [scope]: '' } : {};
             switch (auth?.oauth2?.grantType) {
               case 'authorization_code':
                 components.securitySchemes[securitySchemaId] = {
@@ -369,13 +370,7 @@ export const exportApiSpec = ({ variables, items, name, environments }) => {
                     authorizationCode: {
                       authorizationUrl,
                       tokenUrl: accessTokenUrl,
-                      ...(scope.length > 0
-                        ? {
-                            scopes: {
-                              [scope]: ''
-                            }
-                          }
-                        : {})
+                      scopes
                     }
                   }
                 };
@@ -389,13 +384,7 @@ export const exportApiSpec = ({ variables, items, name, environments }) => {
                   flows: {
                     password: {
                       tokenUrl: accessTokenUrl,
-                      ...(scope.length > 0
-                        ? {
-                            scopes: {
-                              [scope]: ''
-                            }
-                          }
-                        : {})
+                      scopes
                     }
                   }
                 };
@@ -409,13 +398,7 @@ export const exportApiSpec = ({ variables, items, name, environments }) => {
                   flows: {
                     password: {
                       tokenUrl: accessTokenUrl,
-                      ...(scope.length > 0
-                        ? {
-                            scopes: {
-                              [scope]: ''
-                            }
-                          }
-                        : {})
+                      scopes
                     }
                   }
                 };

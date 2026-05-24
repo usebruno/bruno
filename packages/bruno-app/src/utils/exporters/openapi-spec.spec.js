@@ -476,3 +476,70 @@ describe('exportApiSpec - multi-environment servers', () => {
     expect(content).toContain('description: Staging');
   });
 });
+
+describe('exportApiSpec - OAuth2 scope handling (BRU-3297)', () => {
+  const makeOauth2Item = (grantType, scope) => ({
+    name: 'Req',
+    type: 'http-request',
+    request: {
+      url: 'https://api.example.com/users',
+      method: 'GET',
+      params: [],
+      headers: [],
+      body: {},
+      auth: {
+        mode: 'oauth2',
+        oauth2: {
+          grantType,
+          authorizationUrl: 'https://auth.example.com/authorize',
+          accessTokenUrl: 'https://auth.example.com/token',
+          callbackUrl: 'https://app.example.com/callback',
+          scope
+        }
+      }
+    }
+  });
+
+  // No-throw checks for all 3 grant types affected by BRU-3297.
+  describe.each([
+    'authorization_code',
+    'password',
+    'client_credentials'
+  ])('grant type %s', (grantType) => {
+    it(`should not throw when scope is null`, () => {
+      const items = [makeOauth2Item(grantType, null)];
+      expect(() => exportApiSpec({ variables: {}, items, name: 'Test' })).not.toThrow();
+    });
+
+    it(`should not throw when scope is undefined`, () => {
+      const items = [makeOauth2Item(grantType, undefined)];
+      expect(() => exportApiSpec({ variables: {}, items, name: 'Test' })).not.toThrow();
+    });
+  });
+
+  // Content assertions limited to grants whose flow key is correct in current code.
+  // `client_credentials` writes flow key `password:` due to a separate bug, not in scope of BRU-3297.
+  describe.each([
+    ['authorization_code', 'authorizationCode'],
+    ['password', 'password']
+  ])('grant type %s emits valid scopes object', (grantType, flowKey) => {
+    it(`should emit empty scopes object when scope is null (OpenAPI 3.0 requires scopes key)`, () => {
+      const items = [makeOauth2Item(grantType, null)];
+      const { content } = exportApiSpec({ variables: {}, items, name: 'Test' });
+      expect(content).toContain(`${flowKey}:`);
+      expect(content).toMatch(new RegExp(`${flowKey}:[\\s\\S]*?scopes:\\s*{}`));
+    });
+
+    it(`should emit empty scopes object when scope is empty string`, () => {
+      const items = [makeOauth2Item(grantType, '')];
+      const { content } = exportApiSpec({ variables: {}, items, name: 'Test' });
+      expect(content).toMatch(new RegExp(`${flowKey}:[\\s\\S]*?scopes:\\s*{}`));
+    });
+
+    it(`should emit scope entry when scope is a non-empty string`, () => {
+      const items = [makeOauth2Item(grantType, 'openid')];
+      const { content } = exportApiSpec({ variables: {}, items, name: 'Test' });
+      expect(content).toContain('openid:');
+    });
+  });
+});
