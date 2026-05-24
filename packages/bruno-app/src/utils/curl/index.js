@@ -7,7 +7,10 @@ export const getRequestFromCurlCommand = (curlCommand, requestType = 'http-reque
   const parseFormData = (parsedBody) => {
     const formData = [];
     forOwn(parsedBody, (value, key) => {
-      formData.push({ name: key, value, enabled: true });
+      const values = Array.isArray(value) ? value : [value];
+      values.forEach((item) => {
+        formData.push({ name: key, value: item, enabled: true });
+      });
     });
 
     return formData;
