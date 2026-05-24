@@ -171,6 +171,23 @@ const CodeMirrorSearch = forwardRef(({ visible, editor, onClose }, ref) => {
     doSearch(0);
   }, [debouncedSearchText, doSearch]);
 
+  useEffect(() => {
+    if (!editor || !visible || !debouncedSearchText) {
+      return;
+    }
+
+    const handleEditorChange = () => {
+      searchCacheKey.current = '';
+      doSearch(0);
+    };
+
+    editor.on('change', handleEditorChange);
+
+    return () => {
+      editor.off('change', handleEditorChange);
+    };
+  }, [debouncedSearchText, doSearch, editor, visible]);
+
   const handleSearchBarClose = useCallback(() => {
     searchMarks.current.forEach((mark) => mark.clear());
     searchMarks.current = [];
