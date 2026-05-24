@@ -517,11 +517,10 @@ describe('exportApiSpec - OAuth2 scope handling (BRU-3297)', () => {
     });
   });
 
-  // Content assertions limited to grants whose flow key is correct in current code.
-  // `client_credentials` writes flow key `password:` due to a separate bug, not in scope of BRU-3297.
   describe.each([
     ['authorization_code', 'authorizationCode'],
-    ['password', 'password']
+    ['password', 'password'],
+    ['client_credentials', 'clientCredentials']
   ])('grant type %s emits valid scopes object', (grantType, flowKey) => {
     it(`should emit empty scopes object when scope is null (OpenAPI 3.0 requires scopes key)`, () => {
       const items = [makeOauth2Item(grantType, null)];

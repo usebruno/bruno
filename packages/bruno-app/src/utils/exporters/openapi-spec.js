@@ -396,7 +396,7 @@ export const exportApiSpec = ({ variables, items, name, environments }) => {
                 components.securitySchemes[securitySchemaId] = {
                   type: 'oauth2',
                   flows: {
-                    password: {
+                    clientCredentials: {
                       tokenUrl: accessTokenUrl,
                       scopes
                     }
