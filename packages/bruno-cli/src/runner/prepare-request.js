@@ -408,7 +408,7 @@ const prepareRequest = async (item = {}, collection = {}) => {
     axiosRequest.data = enabledParams;
   }
 
-  if (request.body.mode === 'multipartForm') {
+  if (request.body.mode === 'multipartForm' || request.body.mode === 'multipart-form') {
     axiosRequest.headers['content-type'] = 'multipart/form-data';
     const enabledParams = filter(request.body.multipartForm, (p) => p.enabled);
     axiosRequest.data = enabledParams;
