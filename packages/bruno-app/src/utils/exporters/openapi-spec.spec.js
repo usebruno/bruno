@@ -517,8 +517,6 @@ describe('exportApiSpec - OAuth2 scope handling (BRU-3297)', () => {
     });
   });
 
-  // Content assertions limited to grants whose flow key is correct in current code.
-  // `client_credentials` writes flow key `password:` due to a separate bug, not in scope of BRU-3297.
   describe.each([
     ['authorization_code', 'authorizationCode'],
     ['password', 'password']
