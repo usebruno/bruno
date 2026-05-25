@@ -2,6 +2,7 @@ import React from 'react';
 import get from 'lodash/get';
 import AwsV4Auth from './AwsV4Auth';
 import BearerAuth from './BearerAuth';
+import JwtBearerAuth from './JwtBearerAuth';
 import BasicAuth from './BasicAuth';
 import DigestAuth from './DigestAuth';
 import WsseAuth from './WsseAuth';
@@ -84,6 +85,9 @@ const Auth = ({ item, collection }) => {
       }
       case 'bearer': {
         return <BearerAuth collection={collection} item={item} request={request} save={save} updateAuth={updateAuth} />;
+      }
+      case 'jwtBearer': {
+        return <JwtBearerAuth collection={collection} item={item} request={request} save={save} updateAuth={updateAuth} />;
       }
       case 'digest': {
         return <DigestAuth collection={collection} item={item} request={request} save={save} updateAuth={updateAuth} />;

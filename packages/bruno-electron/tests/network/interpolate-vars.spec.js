@@ -427,6 +427,68 @@ describe('interpolate-vars: interpolateVars', () => {
     });
   });
 
+  describe('JWT Bearer auth', () => {
+    const jwt = require('jsonwebtoken');
+
+    it('signs the JWT with the configured secret and sets the Authorization header', () => {
+      const request = {
+        method: 'GET',
+        url: 'http://api.example/x',
+        headers: {},
+        jwtBearerConfig: {
+          algorithm: 'HS256',
+          secret: 'bruno',
+          payload: '{"iss":"issuer","sub":"42"}'
+        }
+      };
+
+      const result = interpolateVars(request, {}, null, null);
+
+      expect(result.headers['Authorization']).toMatch(/^Bearer [A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/);
+      expect(result.jwtBearerConfig).toBeUndefined();
+
+      const token = result.headers['Authorization'].replace(/^Bearer /, '');
+      const decoded = jwt.verify(token, 'bruno', { algorithms: ['HS256'] });
+      expect(decoded.iss).toBe('issuer');
+      expect(decoded.sub).toBe('42');
+    });
+
+    it('interpolates variables in secret and payload before signing', () => {
+      const request = {
+        method: 'GET',
+        url: 'http://api.example/x',
+        headers: {},
+        jwtBearerConfig: {
+          algorithm: 'HS512',
+          secret: '{{SECRET}}',
+          payload: '{"iss":"{{ISS}}","aud":"configurations"}'
+        }
+      };
+
+      const result = interpolateVars(request, { SECRET: 'realSecret', ISS: 'realIssuer' }, null, null);
+
+      const token = result.headers['Authorization'].replace(/^Bearer /, '');
+      const decoded = jwt.verify(token, 'realSecret', { algorithms: ['HS512'] });
+      expect(decoded.iss).toBe('realIssuer');
+      expect(decoded.aud).toBe('configurations');
+    });
+
+    it('throws a descriptive error when payload is not valid JSON', () => {
+      const request = {
+        method: 'GET',
+        url: 'http://api.example/x',
+        headers: {},
+        jwtBearerConfig: {
+          algorithm: 'HS256',
+          secret: 's',
+          payload: '{not-json'
+        }
+      };
+
+      expect(() => interpolateVars(request, {}, null, null)).toThrow(/JWT Bearer auth: payload is not valid JSON/);
+    });
+  });
+
   describe('File body streaming', () => {
     it('keeps stream-backed JSON request bodies intact', () => {
       const streamPayload = {

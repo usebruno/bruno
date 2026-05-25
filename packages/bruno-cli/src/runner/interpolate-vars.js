@@ -1,5 +1,6 @@
 const { interpolate } = require('@usebruno/common');
 const { each, forOwn, cloneDeep, find } = require('lodash');
+const jwt = require('jsonwebtoken');
 const { isFormData } = require('@usebruno/common').utils;
 
 const isBinaryRequestBody = (data) => Buffer.isBuffer(data) || typeof data?.pipe === 'function';
@@ -280,6 +281,29 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
     request.ntlmConfig.username = _interpolate(request.ntlmConfig.username) || '';
     request.ntlmConfig.password = _interpolate(request.ntlmConfig.password) || '';
     request.ntlmConfig.domain = _interpolate(request.ntlmConfig.domain) || '';
+  }
+
+  // interpolate vars for jwt bearer auth and sign the token
+  if (request.jwtBearerConfig) {
+    const algorithm = request.jwtBearerConfig.algorithm || 'HS256';
+    const secret = _interpolate(request.jwtBearerConfig.secret) || '';
+    const payloadStr = _interpolate(request.jwtBearerConfig.payload) || '';
+
+    let payloadObj;
+    try {
+      payloadObj = payloadStr ? JSON.parse(payloadStr) : {};
+    } catch (e) {
+      throw new Error(`JWT Bearer auth: payload is not valid JSON (${e.message})`);
+    }
+
+    try {
+      const token = jwt.sign(payloadObj, secret, { algorithm });
+      request.headers['Authorization'] = `Bearer ${token}`;
+    } catch (e) {
+      throw new Error(`JWT Bearer auth: failed to sign token (${e.message})`);
+    }
+
+    delete request.jwtBearerConfig;
   }
 
   // interpolate vars for oauth1config auth

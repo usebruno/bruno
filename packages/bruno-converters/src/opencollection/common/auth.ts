@@ -49,6 +49,7 @@ const fromOpenCollectionOAuth2 = (auth: AuthOAuth2): BrunoAuth => {
       awsv4: null,
       basic: null,
       bearer: null,
+      jwtBearer: null,
       digest: null,
       ntlm: null,
       oauth1: null,
@@ -158,6 +159,7 @@ const fromOpenCollectionOAuth2 = (auth: AuthOAuth2): BrunoAuth => {
         awsv4: null,
         basic: null,
         bearer: null,
+        jwtBearer: null,
         digest: null,
         ntlm: null,
         oauth1: null,
@@ -174,6 +176,7 @@ export const fromOpenCollectionAuth = (auth: Auth | undefined): BrunoAuth => {
     awsv4: null,
     basic: null,
     bearer: null,
+    jwtBearer: null,
     digest: null,
     ntlm: null,
     oauth1: null,
@@ -516,6 +519,11 @@ export const toOpenCollectionAuth = (auth: BrunoAuth | null | undefined): Auth |
 
     case 'oauth2':
       return toOpenCollectionOAuth2(auth.oauth2);
+
+    case 'jwtBearer':
+      // OpenCollection has no native equivalent; jwtBearer is Bruno-only.
+      // The native .bru representation preserves it for end-to-end Bruno use.
+      return undefined;
 
     default:
       return undefined;

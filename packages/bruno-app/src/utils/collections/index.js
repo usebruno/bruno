@@ -373,6 +373,13 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
               token: get(si.request, 'auth.bearer.token', '')
             };
             break;
+          case 'jwtBearer':
+            di.request.auth.jwtBearer = {
+              algorithm: get(si.request, 'auth.jwtBearer.algorithm', 'HS256'),
+              secret: get(si.request, 'auth.jwtBearer.secret', ''),
+              payload: get(si.request, 'auth.jwtBearer.payload', '')
+            };
+            break;
           case 'digest':
             di.request.auth.digest = {
               username: get(si.request, 'auth.digest.username', ''),
@@ -940,6 +947,10 @@ export const humanizeRequestAuthMode = (mode) => {
     }
     case 'bearer': {
       label = 'Bearer Token';
+      break;
+    }
+    case 'jwtBearer': {
+      label = 'JWT Bearer';
       break;
     }
     case 'digest': {

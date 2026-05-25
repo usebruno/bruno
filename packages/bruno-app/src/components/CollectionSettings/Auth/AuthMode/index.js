@@ -42,6 +42,11 @@ const AuthMode = ({ collection }) => {
       onClick: () => onModeChange('bearer')
     },
     {
+      id: 'jwtBearer',
+      label: 'JWT Bearer',
+      onClick: () => onModeChange('jwtBearer')
+    },
+    {
       id: 'digest',
       label: 'Digest Auth',
       onClick: () => onModeChange('digest')

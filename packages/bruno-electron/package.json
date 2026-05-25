@@ -68,6 +68,7 @@
     "iconv-lite": "^0.6.3",
     "is-valid-path": "^0.1.1",
     "js-yaml": "^4.1.1",
+    "jsonwebtoken": "^9.0.3",
     "lodash": "^4.17.21",
     "mime-types": "^2.1.35",
     "nanoid": "3.3.8",

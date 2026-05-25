@@ -12,6 +12,7 @@ import GrantTypeSelector from 'components/RequestPane/Auth/OAuth2/GrantTypeSelec
 import AuthMode from '../AuthMode';
 import BasicAuth from 'components/RequestPane/Auth/BasicAuth';
 import BearerAuth from 'components/RequestPane/Auth/BearerAuth';
+import JwtBearerAuth from 'components/RequestPane/Auth/JwtBearerAuth';
 import DigestAuth from 'components/RequestPane/Auth/DigestAuth';
 import NTLMAuth from 'components/RequestPane/Auth/NTLMAuth';
 import OAuth1 from 'components/RequestPane/Auth/OAuth1';
@@ -114,6 +115,17 @@ const Auth = ({ collection, folder }) => {
       case 'bearer': {
         return (
           <BearerAuth
+            collection={collection}
+            item={folder}
+            updateAuth={updateFolderAuth}
+            request={request}
+            save={() => handleSave()}
+          />
+        );
+      }
+      case 'jwtBearer': {
+        return (
+          <JwtBearerAuth
             collection={collection}
             item={folder}
             updateAuth={updateFolderAuth}

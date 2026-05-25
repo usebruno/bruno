@@ -68,6 +68,14 @@ const prepareRequest = async (item = {}, collection = {}) => {
       axiosRequest.headers['Authorization'] = `Bearer ${get(collectionAuth, 'bearer.token', '')}`;
     }
 
+    if (collectionAuth.mode === 'jwtBearer') {
+      axiosRequest.jwtBearerConfig = {
+        algorithm: get(collectionAuth, 'jwtBearer.algorithm') || 'HS256',
+        secret: get(collectionAuth, 'jwtBearer.secret') || '',
+        payload: get(collectionAuth, 'jwtBearer.payload') || ''
+      };
+    }
+
     if (collectionAuth.mode === 'apikey') {
       if (collectionAuth.apikey?.placement === 'header') {
         axiosRequest.headers[collectionAuth.apikey?.key] = collectionAuth.apikey?.value;
@@ -242,6 +250,14 @@ const prepareRequest = async (item = {}, collection = {}) => {
 
     if (request.auth.mode === 'bearer') {
       axiosRequest.headers['Authorization'] = `Bearer ${get(request, 'auth.bearer.token', '')}`;
+    }
+
+    if (request.auth.mode === 'jwtBearer') {
+      axiosRequest.jwtBearerConfig = {
+        algorithm: get(request, 'auth.jwtBearer.algorithm') || 'HS256',
+        secret: get(request, 'auth.jwtBearer.secret') || '',
+        payload: get(request, 'auth.jwtBearer.payload') || ''
+      };
     }
 
     if (request.auth.mode === 'wsse') {

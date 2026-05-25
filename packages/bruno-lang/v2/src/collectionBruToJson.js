@@ -8,7 +8,7 @@ const ANNOTATIONS_KEY = Symbol('annotations');
 
 const grammar = ohm.grammar(`Bru {
   BruFile = (meta | query | headers | auth | auths | vars | script | tests | docs)*
-  auths = authawsv4 | authbasic | authbearer | authdigest | authNTLM | authOAuth1 | authOAuth2 | authwsse | authapikey | authOauth2Configs
+  auths = authawsv4 | authbasic | authbearer | authjwtbearer | authdigest | authNTLM | authOAuth1 | authOAuth2 | authwsse | authapikey | authOauth2Configs
 
   // Oauth2 additional parameters
   authOauth2Configs = oauth2AuthReqConfig | oauth2AccessTokenReqConfig | oauth2RefreshTokenReqConfig
@@ -87,6 +87,7 @@ const grammar = ohm.grammar(`Bru {
   authawsv4 = "auth:awsv4" dictionary
   authbasic = "auth:basic" dictionary
   authbearer = "auth:bearer" dictionary
+  authjwtbearer = "auth:jwtbearer" dictionary
   authdigest = "auth:digest" dictionary
   authNTLM = "auth:ntlm" dictionary
   authOAuth1 = "auth:oauth1" dictionary
@@ -353,6 +354,24 @@ const sem = grammar.createSemantics().addAttribute('ast', {
       auth: {
         bearer: {
           token
+        }
+      }
+    };
+  },
+  authjwtbearer(_1, dictionary) {
+    const auth = mapPairListToKeyValPairs(dictionary.ast, false);
+    const algorithmKey = _.find(auth, { name: 'algorithm' });
+    const secretKey = _.find(auth, { name: 'secret' });
+    const payloadKey = _.find(auth, { name: 'payload' });
+    const algorithm = algorithmKey ? algorithmKey.value : 'HS256';
+    const secret = secretKey ? secretKey.value : '';
+    const payload = payloadKey ? payloadKey.value : '';
+    return {
+      auth: {
+        jwtBearer: {
+          algorithm,
+          secret,
+          payload
         }
       }
     };

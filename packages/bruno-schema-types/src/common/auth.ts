@@ -21,6 +21,14 @@ export interface AuthBearer {
   token?: string | null;
 }
 
+export type JwtBearerAlgorithm = 'HS256' | 'HS384' | 'HS512';
+
+export interface AuthJwtBearer {
+  algorithm?: JwtBearerAlgorithm | null;
+  secret?: string | null;
+  payload?: string | null;
+}
+
 export interface AuthDigest {
   username?: string | null;
   password?: string | null;
@@ -105,6 +113,7 @@ export type AuthMode
     | 'awsv4'
     | 'basic'
     | 'bearer'
+    | 'jwtBearer'
     | 'digest'
     | 'ntlm'
     | 'oauth1'
@@ -117,6 +126,7 @@ export interface Auth {
   awsv4?: AuthAwsV4 | null;
   basic?: AuthBasic | null;
   bearer?: AuthBearer | null;
+  jwtBearer?: AuthJwtBearer | null;
   digest?: AuthDigest | null;
   ntlm?: AuthNTLM | null;
   oauth1?: AuthOauth1 | null;

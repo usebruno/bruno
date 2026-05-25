@@ -4,6 +4,7 @@ import { useDispatch } from 'react-redux';
 import AuthMode from './AuthMode';
 import AwsV4Auth from './AwsV4Auth';
 import BearerAuth from './BearerAuth';
+import JwtBearerAuth from './JwtBearerAuth';
 import BasicAuth from './BasicAuth';
 import DigestAuth from './DigestAuth';
 import WsseAuth from './WsseAuth';
@@ -31,6 +32,9 @@ const Auth = ({ collection }) => {
       }
       case 'bearer': {
         return <BearerAuth collection={collection} />;
+      }
+      case 'jwtBearer': {
+        return <JwtBearerAuth collection={collection} />;
       }
       case 'digest': {
         return <DigestAuth collection={collection} />;
