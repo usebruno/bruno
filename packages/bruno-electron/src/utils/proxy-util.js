@@ -159,7 +159,7 @@ async function setupProxyAgents({
     if (pac_url) {
       if (timeline) timeline.push({ timestamp: new Date(), type: 'info', message: `Resolving system PAC: ${pac_url}` });
       try {
-        const { directives, httpAgent, httpsAgent } = await resolveAgentsFromPac({ pacSource: pac_url, requestUrl: requestConfig.url, tlsOptions, httpsAgentRequestFields, timeline, disableCache, hostname });
+        const { directives, httpAgent, httpsAgent } = await resolveAgentsFromPac({ pacSource: pac_url, requestUrl: requestConfig.url, requestProtocol: isHttpsRequest ? 'https' : 'http', tlsOptions, httpsAgentRequestFields, timeline, disableCache, hostname });
         if (httpAgent) requestConfig.httpAgent = httpAgent;
         if (httpsAgent) requestConfig.httpsAgent = httpsAgent;
         if (directives) {
@@ -212,7 +212,7 @@ async function setupProxyAgents({
     if (pacSource) {
       if (timeline) timeline.push({ timestamp: new Date(), type: 'info', message: `Resolving PAC: ${pacSource}` });
       try {
-        const { directives, httpAgent, httpsAgent } = await resolveAgentsFromPac({ pacSource, requestUrl: requestConfig.url, tlsOptions, httpsAgentRequestFields, timeline, disableCache, hostname });
+        const { directives, httpAgent, httpsAgent } = await resolveAgentsFromPac({ pacSource, requestUrl: requestConfig.url, requestProtocol: isHttpsRequest ? 'https' : 'http', tlsOptions, httpsAgentRequestFields, timeline, disableCache, hostname });
         if (httpAgent) requestConfig.httpAgent = httpAgent;
         if (httpsAgent) requestConfig.httpsAgent = httpsAgent;
         if (directives) {

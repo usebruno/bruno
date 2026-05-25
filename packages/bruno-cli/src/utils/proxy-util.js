@@ -138,7 +138,7 @@ async function setupProxyAgents({
       // If the OS is configured with a PAC URL, resolve it using the existing PAC infrastructure
       if (pac_url) {
         try {
-          const { httpAgent, httpsAgent } = await resolveAgentsFromPac({ pacSource: pac_url, requestUrl: requestConfig.url, tlsOptions, httpsAgentRequestFields, disableCache, hostname });
+          const { httpAgent, httpsAgent } = await resolveAgentsFromPac({ pacSource: pac_url, requestUrl: requestConfig.url, requestProtocol: isHttpsRequest ? 'https' : 'http', tlsOptions, httpsAgentRequestFields, disableCache, hostname });
           if (httpAgent) requestConfig.httpAgent = httpAgent;
           if (httpsAgent) requestConfig.httpsAgent = httpsAgent;
         } catch (error) {}
