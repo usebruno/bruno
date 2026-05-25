@@ -20,8 +20,8 @@ docker build \
 
 ```bash
 # Run a collection
-docker run --rm -v $(pwd):/bruno usebruno/cli:debian run --env staging
+docker run -v $(pwd):/bruno usebruno/cli:debian run 
 
 # with pinned version
-docker run --rm -v $(pwd):/bruno usebruno/cli:3.3.0-debian run --env staging
+docker run -v $(pwd):/bruno usebruno/cli:3.3.0-debian run 
 ```
