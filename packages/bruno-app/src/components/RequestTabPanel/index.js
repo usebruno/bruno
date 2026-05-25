@@ -396,7 +396,7 @@ const RequestTabPanel = () => {
     if (folder) {
       return (
         <ScopedPersistenceProvider scope={focusedTab.uid}>
-          <FolderSettings collection={collection} folder={folder} />;
+          <FolderSettings collection={collection} folder={folder} />
         </ScopedPersistenceProvider>
       );
     }
