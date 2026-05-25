@@ -425,5 +425,199 @@ describe('interpolate-vars: interpolateVars', () => {
       expect(result.data).toContain('{"test": true}');
       expect(result.data).toContain('--TestBoundary123--');
     });
+
+    it('interpolates variables in text-based multipart/mixed body with manual boundaries', () => {
+      // User manually constructs a multipart/mixed body as a string
+      const boundary = 'CustomBoundary123';
+      const rawMultipartBody = [
+        `--${boundary}`,
+        'Content-Type: text/plain',
+        '',
+        'Token: {{token}}',
+        `--${boundary}`,
+        'Content-Type: application/json',
+        '',
+        '{"id": "{{id}}", "msg": "{{msg}}"}',
+        `--${boundary}--`,
+        ''
+      ].join('\r\n');
+
+      const request = {
+        method: 'POST',
+        url: 'https://api.example/send',
+        headers: { 'content-type': `multipart/mixed; boundary=${boundary}` },
+        data: rawMultipartBody
+      };
+
+      const result = interpolateVars(request, { token: 'abc123', id: 42, msg: 'hello' }, null, null);
+
+      expect(result.data).toContain('Token: abc123');
+      expect(result.data).toContain('{"id": "42", "msg": "hello"}');
+      // Ensure boundaries are preserved
+      expect(result.data).toContain(`--${boundary}`);
+      expect(result.data).toContain(`--${boundary}--`);
+    });
+
+    it('interpolates variables in boundary lines themselves', () => {
+      const boundaryVar = 'BoundaryVar';
+      const rawMultipartBody = [
+        `--{{boundary}}`,
+        'Content-Type: text/plain',
+        '',
+        'Hello',
+        `--{{boundary}}--`,
+        ''
+      ].join('\r\n');
+      const request = {
+        method: 'POST',
+        url: 'https://api.example/send',
+        headers: { 'content-type': 'multipart/mixed; boundary={{boundary}}' },
+        data: rawMultipartBody
+      };
+      const result = interpolateVars(request, { boundary: boundaryVar }, null, null);
+      expect(result.data).toContain(`--${boundaryVar}`);
+      expect(result.data).toContain(`--${boundaryVar}--`);
+    });
+
+    it('interpolates variables that resolve to empty string or undefined', () => {
+      const boundary = 'B';
+      const rawMultipartBody = [
+        `--${boundary}`,
+        'Content-Type: text/plain',
+        '',
+        'Token: {{missingVar}}',
+        `--${boundary}--`,
+        ''
+      ].join('\r\n');
+      const request = {
+        method: 'POST',
+        url: 'https://api.example/send',
+        headers: { 'content-type': `multipart/mixed; boundary=${boundary}` },
+        data: rawMultipartBody
+      };
+      const result = interpolateVars(request, {} /* no missingVar */, null, null);
+      expect(result.data).toContain('Token: ');
+    });
+
+    it('interpolates multiple variables in a single line or JSON object', () => {
+      const boundary = 'B2';
+      const rawMultipartBody = [
+        `--${boundary}`,
+        'Content-Type: application/json',
+        '',
+        '{"id": "{{id}}", "msg": "{{msg}}", "extra": "{{extra}}"}',
+        `--${boundary}--`,
+        ''
+      ].join('\r\n');
+      const request = {
+        method: 'POST',
+        url: 'https://api.example/send',
+        headers: { 'content-type': `multipart/mixed; boundary=${boundary}` },
+        data: rawMultipartBody
+      };
+      const result = interpolateVars(request, { id: 1, msg: 'hi', extra: 'x' }, null, null);
+      expect(result.data).toContain('"id": "1", "msg": "hi", "extra": "x"');
+    });
+
+    it('interpolates variables inside quoted and unquoted contexts', () => {
+      const boundary = 'B3';
+      const rawMultipartBody = [
+        `--${boundary}`,
+        'Content-Disposition: form-data; name="{{fieldName}}"',
+        '',
+        'Value',
+        `--${boundary}--`,
+        ''
+      ].join('\r\n');
+      const request = {
+        method: 'POST',
+        url: 'https://api.example/send',
+        headers: { 'content-type': `multipart/mixed; boundary=${boundary}` },
+        data: rawMultipartBody
+      };
+      const result = interpolateVars(request, { fieldName: 'theField' }, null, null);
+      expect(result.data).toContain('name="theField"');
+    });
+
+    it('interpolates variables in both part headers and part bodies', () => {
+      const boundary = 'B4';
+      const rawMultipartBody = [
+        `--${boundary}`,
+        'Content-Type: text/plain; charset={{charset}}',
+        '',
+        'Token: {{token}}',
+        `--${boundary}--`,
+        ''
+      ].join('\r\n');
+      const request = {
+        method: 'POST',
+        url: 'https://api.example/send',
+        headers: { 'content-type': `multipart/mixed; boundary=${boundary}` },
+        data: rawMultipartBody
+      };
+      const result = interpolateVars(request, { charset: 'utf-8', token: 'abc' }, null, null);
+      expect(result.data).toContain('charset=utf-8');
+      expect(result.data).toContain('Token: abc');
+    });
+
+    it('interpolates variables in the final boundary line', () => {
+      const boundary = 'B5';
+      const rawMultipartBody = [
+        `--${boundary}`,
+        'Content-Type: text/plain',
+        '',
+        'End',
+        `--{{finalBoundary}}--`,
+        ''
+      ].join('\r\n');
+      const request = {
+        method: 'POST',
+        url: 'https://api.example/send',
+        headers: { 'content-type': `multipart/mixed; boundary=${boundary}` },
+        data: rawMultipartBody
+      };
+      const result = interpolateVars(request, { finalBoundary: boundary }, null, null);
+      expect(result.data).toContain(`--${boundary}--`);
+    });
+
+    it('interpolates variables that appear multiple times in the body', () => {
+      const boundary = 'B6';
+      const rawMultipartBody = [
+        `--${boundary}`,
+        'Content-Type: text/plain',
+        '',
+        'Token: {{token}}, Again: {{token}}',
+        `--${boundary}--`,
+        ''
+      ].join('\r\n');
+      const request = {
+        method: 'POST',
+        url: 'https://api.example/send',
+        headers: { 'content-type': `multipart/mixed; boundary=${boundary}` },
+        data: rawMultipartBody
+      };
+      const result = interpolateVars(request, { token: 'repeat' }, null, null);
+      expect(result.data.match(/repeat/g).length).toBe(2);
+    });
+
+    it('leaves body unchanged if no variables present', () => {
+      const boundary = 'B7';
+      const rawMultipartBody = [
+        `--${boundary}`,
+        'Content-Type: text/plain',
+        '',
+        'No variables here',
+        `--${boundary}--`,
+        ''
+      ].join('\r\n');
+      const request = {
+        method: 'POST',
+        url: 'https://api.example/send',
+        headers: { 'content-type': `multipart/mixed; boundary=${boundary}` },
+        data: rawMultipartBody
+      };
+      const result = interpolateVars(request, {}, null, null);
+      expect(result.data).toBe(rawMultipartBody);
+    });
   });
 });
