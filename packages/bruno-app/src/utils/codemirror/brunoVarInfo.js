@@ -915,6 +915,7 @@ if (!SERVER_RENDERED) {
       if (popup.contains(document.activeElement)) {
         return;
       }
+
       if (!popup.contains(e.target)) {
         isPinned = false;
         hidePopup();
