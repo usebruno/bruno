@@ -286,6 +286,31 @@ describe('deserializeTab', () => {
     expect(tab.uid).toBe('collection-uid-preferences');
   });
 
+  it('defaults folder settings request pane tab to headers', () => {
+    const snapshotTab = {
+      type: 'folder-settings',
+      accessor: 'pathname',
+      pathname: '/collections/a/folder',
+      permanent: true
+    };
+
+    const tab = deserializeTab(snapshotTab, collection);
+    expect(tab.requestPaneTab).toBe('headers');
+  });
+
+  it('restores folder settings request pane tab from snapshot', () => {
+    const snapshotTab = {
+      type: 'folder-settings',
+      accessor: 'pathname',
+      pathname: '/collections/a/folder',
+      request: { tab: 'auth' },
+      permanent: true
+    };
+
+    const tab = deserializeTab(snapshotTab, collection);
+    expect(tab.requestPaneTab).toBe('auth');
+  });
+
   it('restores response example by index when duplicate names exist', () => {
     const collectionWithDuplicateExamples = {
       uid: 'collection-uid',
