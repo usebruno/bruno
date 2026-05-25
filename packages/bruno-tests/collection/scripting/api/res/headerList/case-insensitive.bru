@@ -1,0 +1,49 @@
+meta {
+  name: case-insensitive
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{host}}/api/echo/json
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "hello": "bruno"
+  }
+}
+
+assert {
+  res.status: eq 200
+}
+
+tests {
+  test("res.headerList.get() is case-insensitive", function() {
+    expect(res.headerList.get('X-Powered-By')).to.equal('Express');
+    expect(res.headerList.get('x-powered-by')).to.equal('Express');
+    expect(res.headerList.get('X-POWERED-BY')).to.equal('Express');
+  });
+
+  test("res.headerList.one() is case-insensitive", function() {
+    var header = res.headerList.one('X-POWERED-BY');
+    expect(header).to.not.be.undefined;
+    expect(header.value).to.equal('Express');
+  });
+
+  test("res.headerList.has() is case-insensitive", function() {
+    expect(res.headerList.has('X-Powered-By')).to.be.true;
+    expect(res.headerList.has('x-powered-by')).to.be.true;
+    expect(res.headerList.has('X-POWERED-BY')).to.be.true;
+    expect(res.headerList.has('x-powered-by', 'Express')).to.be.true;
+    expect(res.headerList.has('X-POWERED-BY', 'wrong')).to.be.false;
+  });
+
+  test("res.headerList.indexOf() is case-insensitive with string", function() {
+    expect(res.headerList.indexOf('x-powered-by')).to.be.at.least(0);
+    expect(res.headerList.indexOf('X-POWERED-BY')).to.be.at.least(0);
+    expect(res.headerList.indexOf('nonexistent')).to.equal(-1);
+  });
+}

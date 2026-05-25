@@ -1,0 +1,19 @@
+meta:
+  name: valid-tags-yml-request
+  type: http
+  seq: 2
+  tags:
+    - smoke
+    - sanity
+
+info:
+  name: valid-tags-yml-request
+  type: http
+  seq: 2
+  tags:
+    - smoke
+    - sanity
+
+http:
+  method: GET
+  url: https://httpbin.org/get

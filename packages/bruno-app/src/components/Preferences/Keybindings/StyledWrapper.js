@@ -39,7 +39,6 @@ const StyledWrapper = styled.div`
   .section-divider {
     height: 1px;
     background: ${(props) => props.theme.input.border};
-    margin: 10px 0;
   }
 
   .tables-container {
@@ -75,7 +74,7 @@ const StyledWrapper = styled.div`
 
   thead {
     color: ${(props) => props.theme.table.thead.color} !important;
-    background: ${(props) => props.theme.sidebar.bg};
+    background: ${(props) => props.theme.table.striped};
     user-select: none;
 
     td {
@@ -100,9 +99,8 @@ const StyledWrapper = styled.div`
     tr {
       transition: background 0.1s ease;
       height: 30px;
-
       td {
-        padding: 0 10px !important;
+        padding: 0px 10px !important;
         border: none !important;
         vertical-align: middle;
         background: transparent;
@@ -111,7 +109,7 @@ const StyledWrapper = styled.div`
     }
 
     tr:hover:not(.row-editing) td {
-      background: ${(props) => props.theme.sidebar.bg};
+      background: ${(props) => props.theme.background.surface0};
       cursor: pointer;
     }
 
@@ -120,7 +118,7 @@ const StyledWrapper = styled.div`
     }
 
     tr.section-heading-row td {
-      font-weight: 600;
+      font-weight: 700;
       padding: 6px 10px !important;
       user-select: none;
     }
@@ -131,7 +129,27 @@ const StyledWrapper = styled.div`
     }
 
     tr.section-last-row td {
+      border-bottom: none !important;
+    }
+
+    tr.section-spacer-row {
+      height: 8px;
+      pointer-events: none;
+    }
+
+    tr.section-spacer-row td {
+      padding: 0 !important;
+      height: 8px;
+      line-height: 8px;
+      font-size: 0;
+      background: transparent !important;
+      border: none !important;
       border-bottom: solid 1px ${(props) => props.theme.border.border0} !important;
+    }
+
+    tr.section-spacer-row:hover td {
+      background: transparent !important;
+      cursor: default;
     }
   }
 
@@ -180,7 +198,7 @@ const StyledWrapper = styled.div`
   }
 
   .shortcut-input--editing {
-    outline: 1px solid #E4AE49;
+    outline: 1px solid ${(props) => props.theme.status.warning.border};
     border-radius: 4px;
     min-width: 100%;
     max-width: 100%;
@@ -189,7 +207,7 @@ const StyledWrapper = styled.div`
   }
 
   .shortcut-input--error.shortcut-input--editing {
-    outline: 1px solid #CE4F3B;
+    outline: 1px solid ${(props) => props.theme.status.danger.border};
     min-width: 100%;
     max-width: 100%;
   }
@@ -220,39 +238,41 @@ const StyledWrapper = styled.div`
     align-items: center;
     justify-content: center;
     min-width: 20px;
-    height: 22px;
+    height: 20px;
     padding: 2px;
     border-radius: 3px;
     border: 1px solid ${(props) => props.theme.input.border};
     background: ${(props) => props.theme.background.base};
     color: ${(props) => props.theme.table.input.color};
-    font-size: 12px;
+    font-size: 10px;
     font-weight: 500;
     line-height: 1;
   }
 
-  tbody tr.row-success td {
-    background: #2E8A540F;
+  tbody tr.row-success td,
+  tbody tr.row-success:hover td {
+    background: ${(props) => props.theme.status.success.background} !important;
   }
 
-  tbody tr.row-error td {
-    background: #D32F2F0F;
+  tbody tr.row-error td,
+  tbody tr.row-error:hover td {
+    background: ${(props) => props.theme.status.danger.background} !important;
   }
 
   .success-icon {
-    color: #2E8A54;
+    color: ${(props) => props.theme.status.success.text};
     display: inline-flex;
     align-items: center;
   }
 
   .error-icon {
-    color: #CE4F3B;
+    color: ${(props) => props.theme.status.danger.text};
     display: inline-flex;
     align-items: center;
   }
 
   .input-error-icon {
-    color: #CE4F3B;
+    color: ${(props) => props.theme.status.danger.text};
     display: inline-flex;
     align-items: center;
     margin-left: auto;
@@ -294,6 +314,11 @@ const StyledWrapper = styled.div`
     border-radius: 6px;
     padding: 0px 6px;
     cursor: pointer;
+
+    &:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
   }
 
   .action-btn {

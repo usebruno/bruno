@@ -88,7 +88,7 @@ const generateSnippet = ({ language, item, collection, shouldInterpolate = false
     const settings = item.draft ? get(item, 'draft.settings') : get(item, 'settings');
     const rawUrl = item.rawUrl || request.url;
     const parsed = parse(request.url, true, true);
-    const search = stringify(parsed.query);
+    const search = stringify(parsed.query, { sort: false });
     const httpSnippetPath = search ? `${parsed.pathname}?${search}` : parsed.pathname;
 
     let desiredPath;

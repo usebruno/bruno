@@ -118,7 +118,8 @@ const transformInsomniaRequestItem = (request, index, allRequests) => {
     };
   }
 
-  const mimeType = get(request, 'body.mimeType', '').split(';')[0];
+  const bodyMimeType = get(request, 'body.mimeType');
+  const mimeType = (bodyMimeType || '').split(';')[0];
 
   if (mimeType === 'application/json') {
     brunoRequestItem.request.body.mode = 'json';
@@ -146,7 +147,7 @@ const transformInsomniaRequestItem = (request, index, allRequests) => {
         enabled: !param.disabled
       });
     });
-  } else if (mimeType === 'text/plain') {
+  } else if (mimeType === 'text/plain' || (bodyMimeType === '' && request.body?.text)) {
     brunoRequestItem.request.body.mode = 'text';
     brunoRequestItem.request.body.text = normalizeVariables(request.body.text);
   } else if (mimeType === 'text/xml' || mimeType === 'application/xml') {

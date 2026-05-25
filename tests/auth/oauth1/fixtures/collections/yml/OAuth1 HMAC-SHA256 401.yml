@@ -12,7 +12,7 @@ http:
     consumerSecret: wrong_secret
     accessToken: access_token_1
     accessTokenSecret: token_secret_1
-    signatureEncoding: HMAC-SHA256
+    signatureMethod: HMAC-SHA256
     version: "1.0"
     placement: header
     includeBodyHash: false

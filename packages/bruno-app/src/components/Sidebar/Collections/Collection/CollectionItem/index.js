@@ -45,7 +45,11 @@ import CollectionItemIcon from './CollectionItemIcon';
 import ExampleItem from './ExampleItem';
 import ExampleIcon from 'components/Icons/ExampleIcon';
 import { scrollToTheActiveTab } from 'utils/tabs';
-import { isTabForItemActive as isTabForItemActiveSelector, isTabForItemPresent as isTabForItemPresentSelector } from 'src/selectors/tab';
+import {
+  getTabUidForItem as getTabUidForItemSelector,
+  isTabForItemActive as isTabForItemActiveSelector,
+  isTabForItemPresent as isTabForItemPresentSelector
+} from 'src/selectors/tab';
 import { isEqual } from 'lodash';
 import { createEmptyStateMenuItems } from 'utils/collections/emptyStateRequest';
 import { calculateDraggedItemNewPathname, getInitialExampleName, findParentItemInCollection } from 'utils/collections/index';
@@ -60,11 +64,20 @@ import useKeybinding from 'hooks/useKeybinding';
 
 const CollectionItem = ({ item, collectionUid, collectionPathname, searchText }) => {
   const { dropdownContainerRef } = useSidebarAccordion();
-  const _isTabForItemActiveSelector = isTabForItemActiveSelector({ itemUid: item.uid });
+  const selectorInput = {
+    itemUid: item.uid,
+    itemPathname: item.pathname,
+    collectionUid
+  };
+
+  const _isTabForItemActiveSelector = isTabForItemActiveSelector(selectorInput);
   const isTabForItemActive = useSelector(_isTabForItemActiveSelector, isEqual);
 
-  const _isTabForItemPresentSelector = isTabForItemPresentSelector({ itemUid: item.uid });
+  const _isTabForItemPresentSelector = isTabForItemPresentSelector(selectorInput);
   const isTabForItemPresent = useSelector(_isTabForItemPresentSelector, isEqual);
+
+  const _tabUidForItemSelector = getTabUidForItemSelector(selectorInput);
+  const tabUidForItem = useSelector(_tabUidForItemSelector, isEqual);
 
   const isSidebarDragging = useSelector((state) => state.app.isDragging);
   const collection = useSelector((state) => state.collections.collections?.find((c) => c.uid === collectionUid));
@@ -242,7 +255,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
       if (isTabForItemPresent) {
         dispatch(
           focusTab({
-            uid: item.uid
+            uid: tabUidForItem || item.uid
           })
         );
         return;
@@ -252,7 +265,8 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
           uid: item.uid,
           collectionUid: collectionUid,
           requestPaneTab: getDefaultRequestPaneTab(item),
-          type: 'request'
+          type: item.type,
+          pathname: item.pathname
         })
       );
     } else {
@@ -260,7 +274,8 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
         addTab({
           uid: item.uid,
           collectionUid: collectionUid,
-          type: 'folder-settings'
+          type: 'folder-settings',
+          pathname: item.pathname
         })
       );
       if (item.collapsed) {
@@ -466,7 +481,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
   }
 
   const handleDoubleClick = (event) => {
-    dispatch(makeTabPermanent({ uid: item.uid }));
+    dispatch(makeTabPermanent({ uid: tabUidForItem || item.uid }));
   };
 
   // Sort items by their "seq" property.
@@ -545,14 +560,15 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
   const viewFolderSettings = () => {
     if (isItemAFolder(item)) {
       if (isTabForItemPresent) {
-        dispatch(focusTab({ uid: item.uid }));
+        dispatch(focusTab({ uid: tabUidForItem || item.uid }));
         return;
       }
       dispatch(
         addTab({
           uid: item.uid,
           collectionUid,
-          type: 'folder-settings'
+          type: 'folder-settings',
+          pathname: item.pathname
         })
       );
     }
@@ -728,6 +744,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
               ))}
               <div style={{ paddingLeft: 8 }}>
                 <MenuDropdown
+                  data-testid="add-request-cta-folder"
                   items={emptyFolderMenuItems}
                   placement="bottom-start"
                   appendTo={dropdownContainerRef?.current || document.body}

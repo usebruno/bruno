@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useEffect, useRef } from 'react';
 import get from 'lodash/get';
 import find from 'lodash/find';
 import { useDispatch, useSelector } from 'react-redux';
@@ -9,6 +9,7 @@ import { updateScriptPaneTab } from 'providers/ReduxStore/slices/tabs';
 import { useTheme } from 'providers/Theme';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from 'components/Tabs';
 import StatusDot from 'components/StatusDot';
+import { usePersistedState } from 'hooks/usePersistedState';
 
 const Script = ({ item, collection }) => {
   const dispatch = useDispatch();
@@ -33,14 +34,21 @@ const Script = ({ item, collection }) => {
   const { displayedTheme } = useTheme();
   const preferences = useSelector((state) => state.app.preferences);
 
-  // Refresh CodeMirror when tab becomes visible
+  const [preReqScroll, setPreReqScroll] = usePersistedState({ key: `request-pre-req-scroll-${item.uid}`, default: 0 });
+  const [postResScroll, setPostResScroll] = usePersistedState({ key: `request-post-res-scroll-${item.uid}`, default: 0 });
+
+  // Refresh CodeMirror when tab becomes visible and restore scroll position.
+  // CodeMirror's scrollTo() is silently ignored when the editor is inside a display:none container
+  // (TabsContent hides inactive tabs via display:none). So the scroll set during componentDidMount
+  // is lost for the hidden editor. After refresh() recalculates layout, we re-apply scrollTo().
   useEffect(() => {
-    // Small delay to ensure DOM is updated
     const timer = setTimeout(() => {
       if (activeTab === 'pre-request' && preRequestEditorRef.current?.editor) {
         preRequestEditorRef.current.editor.refresh();
+        preRequestEditorRef.current.editor.scrollTo(null, preReqScroll);
       } else if (activeTab === 'post-response' && postResponseEditorRef.current?.editor) {
         postResponseEditorRef.current.editor.refresh();
+        postResponseEditorRef.current.editor.scrollTo(null, postResScroll);
       }
     }, 0);
 
@@ -99,6 +107,7 @@ const Script = ({ item, collection }) => {
           <CodeEditor
             ref={preRequestEditorRef}
             collection={collection}
+            docKey="script:pre-request"
             value={requestScript || ''}
             theme={displayedTheme}
             font={get(preferences, 'font.codeFont', 'default')}
@@ -108,6 +117,8 @@ const Script = ({ item, collection }) => {
             onRun={onRun}
             onSave={onSave}
             showHintsFor={['req', 'bru']}
+            initialScroll={preReqScroll}
+            onScroll={setPreReqScroll}
           />
         </TabsContent>
 
@@ -115,6 +126,7 @@ const Script = ({ item, collection }) => {
           <CodeEditor
             ref={postResponseEditorRef}
             collection={collection}
+            docKey="script:post-response"
             value={responseScript || ''}
             theme={displayedTheme}
             font={get(preferences, 'font.codeFont', 'default')}
@@ -124,6 +136,8 @@ const Script = ({ item, collection }) => {
             onRun={onRun}
             onSave={onSave}
             showHintsFor={['req', 'res', 'bru']}
+            initialScroll={postResScroll}
+            onScroll={setPostResScroll}
           />
         </TabsContent>
       </Tabs>

@@ -181,6 +181,7 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
         name: header.name,
         value: header.value,
         description: header.description,
+        annotations: header.annotations,
         enabled: header.enabled
       };
     });
@@ -193,6 +194,7 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
         name: param.name,
         value: param.value,
         description: param.description,
+        annotations: param.annotations,
         type: param.type,
         enabled: param.enabled
       };
@@ -745,6 +747,7 @@ export const transformRequestToSaveToFilesystem = (item) => {
         name: param.name,
         value: param.value,
         description: param.description,
+        annotations: param.annotations,
         type: param.type,
         enabled: param.enabled
       });
@@ -757,6 +760,7 @@ export const transformRequestToSaveToFilesystem = (item) => {
       name: header.name,
       value: header.value,
       description: header.description,
+      annotations: header.annotations,
       enabled: header.enabled
     });
   });
@@ -813,6 +817,7 @@ export const transformCollectionRootToSave = (collection) => {
       name: header.name,
       value: header.value,
       description: header.description,
+      annotations: header.annotations,
       enabled: header.enabled
     });
   });
@@ -843,6 +848,7 @@ export const transformFolderRootToSave = (folder) => {
       name: header.name,
       value: header.value,
       description: header.description,
+      annotations: header.annotations,
       enabled: header.enabled
     });
   });
@@ -1278,14 +1284,18 @@ export const getAllVariables = (collection, item) => {
 };
 
 // Merge headers from collection, folders, and request
-export const mergeHeaders = (collection, request, requestTreePath) => {
+export const mergeHeaders = (collection, request, requestTreePath, options = {}) => {
+  const { includeDisabledHeaders = false } = options;
   let headers = new Map();
+  let disabledHeaders = new Map();
 
   // Add collection headers first
   const collectionHeaders = collection?.draft?.root ? get(collection, 'draft.root.request.headers', []) : get(collection, 'root.request.headers', []);
   collectionHeaders.forEach((header) => {
     if (header.enabled) {
       headers.set(header.name, header);
+    } else if (header.name?.length > 0) {
+      disabledHeaders.set(header.name, header);
     }
   });
 
@@ -1297,6 +1307,8 @@ export const mergeHeaders = (collection, request, requestTreePath) => {
         folderHeaders.forEach((header) => {
           if (header.enabled) {
             headers.set(header.name, header);
+          } else if (header.name?.length > 0) {
+            disabledHeaders.set(header.name, header);
           }
         });
       }
@@ -1308,11 +1320,16 @@ export const mergeHeaders = (collection, request, requestTreePath) => {
   requestHeaders.forEach((header) => {
     if (header.enabled) {
       headers.set(header.name, header);
+    } else if (header.name?.length > 0) {
+      disabledHeaders.set(header.name, header);
     }
   });
 
   // Convert Map back to array
-  return Array.from(headers.values());
+  return [
+    ...Array.from(headers.values()),
+    ...(includeDisabledHeaders ? Array.from(disabledHeaders.values()) : [])
+  ];
 };
 
 export const maskInputValue = (value) => {

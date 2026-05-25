@@ -11,6 +11,7 @@ import InfoTip from 'components/InfoTip/index';
 import Help from 'components/Help';
 import { addGlobalEnvironment } from 'providers/ReduxStore/slices/global-environments';
 import Dropdown from 'components/Dropdown';
+import SelectionList from 'components/SelectionList';
 import { postmanToBruno } from 'utils/importers/postman-collection';
 import { convertInsomniaToBruno } from 'utils/importers/insomnia-collection';
 import { convertOpenapiToBruno } from 'utils/importers/openapi-collection';
@@ -180,9 +181,6 @@ export const BulkImportCollectionLocation = ({
   // Initialize selected items based on import type
   const [selectedCollections, setSelectedCollections] = useState(importedCollection.map((col) => col.uid));
   const [selectedEnvironments, setSelectedEnvironments] = useState(isBulkImport ? importedEnvironmentFromBulk.map((env) => env.uid) : []);
-
-  const allCollectionsSelected = selectedCollections.length === importedCollection.length;
-  const allEnvironmentsSelected = selectedEnvironments.length === importedEnvironment.length;
 
   // Sort collections to show selected items first, then unselected items
   // This helps users see their selections at the top of the list
@@ -443,7 +441,7 @@ export const BulkImportCollectionLocation = ({
 
   useEffect(() => {
     if (!isElectron()) {
-      return () => {};
+      return () => { };
     }
 
     const { ipcRenderer } = window;
@@ -667,79 +665,33 @@ export const BulkImportCollectionLocation = ({
             ) : (
               <>
                 <div className="mb-6">
-                  <div className="font-semibold mb-2 flex justify-between items-center">
-                    <span>Collections ({importedCollection.length})</span>
-                    <label className="flex items-center text-sm font-normal select-none cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={allCollectionsSelected}
-                        onChange={handleSelectAllCollections}
-                        className="mr-2"
-                      />
-                      Select All
-                    </label>
-                  </div>
-                  <div className="max-h-[180px] overflow-y-scroll border border-slate-600 rounded-md py-2">
-                    {importedCollection.length === 0 && (
-                      <div className="px-4 py-2 text-gray-400 italic">
-                        No collections found
-                      </div>
-                    )}
-                    {sortedCollections.map((collection) => (
-                      <label
-                        key={collection.uid}
-                        className="flex items-center px-4 py-1.5 text-sm font-normal select-none cursor-pointer justify-between"
-                      >
-                        <div className="flex items-center flex-1">
-                          <input
-                            type="checkbox"
-                            checked={selectedCollections.includes(collection.uid)}
-                            onChange={() => handleCollectionToggle(collection.uid)}
-                            className="mr-3"
-                          />
-                          <span>{collection.name}</span>
-                        </div>
-                      </label>
-                    ))}
-                  </div>
+                  <SelectionList
+                    title={`Collections (${importedCollection.length})`}
+                    items={sortedCollections}
+                    selectedItems={selectedCollections}
+                    onSelectAll={handleSelectAllCollections}
+                    onItemToggle={handleCollectionToggle}
+                    getItemId={(collection) => collection.uid}
+                    renderItemLabel={(collection) => collection.name}
+                    visibleRows={5}
+                    emptyMessage="No collections found"
+                  />
                 </div>
 
                 {importType === 'bulk' && (
                   <>
                     <div className="mb-4">
-                      <div className="font-semibold mb-2 flex justify-between items-center">
-                        <span>Environments ({importedEnvironment.length})</span>
-                        <label className="flex items-center text-sm font-normal select-none cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={allEnvironmentsSelected}
-                            onChange={handleSelectAllEnvironments}
-                            className="mr-2"
-                          />
-                          Select All
-                        </label>
-                      </div>
-                      <div className="max-h-[180px] overflow-y-scroll border border-slate-600 rounded-md py-2 scrollbar-visible">
-                        {importedEnvironment.length === 0 && (
-                          <div className="px-4 py-2 text-gray-400 italic">
-                            No environments found
-                          </div>
-                        )}
-                        {sortedEnvironments.map((env) => (
-                          <label
-                            key={env.uid}
-                            className="flex items-center px-4 py-1.5 text-sm font-normal select-none cursor-pointer"
-                          >
-                            <input
-                              type="checkbox"
-                              checked={selectedEnvironments.includes(env.uid)}
-                              onChange={() => handleEnvironmentToggle(env.uid)}
-                              className="mr-3"
-                            />
-                            <span>{env.name}</span>
-                          </label>
-                        ))}
-                      </div>
+                      <SelectionList
+                        title={`Environments (${importedEnvironment.length})`}
+                        items={sortedEnvironments}
+                        selectedItems={selectedEnvironments}
+                        onSelectAll={handleSelectAllEnvironments}
+                        onItemToggle={handleEnvironmentToggle}
+                        getItemId={(env) => env.uid}
+                        renderItemLabel={(env) => env.name}
+                        visibleRows={5}
+                        emptyMessage="No environments found"
+                      />
                     </div>
 
                     <div className="mb-6">

@@ -7,6 +7,28 @@ describe('insomnia-collection', () => {
 
     expect(brunoCollection).toMatchObject(expectedOutput);
   });
+
+  it('should import v5 empty mimeType bodies as Bruno text bodies', async () => {
+    const brunoCollection = insomniaToBruno(insomniaCollectionWithEmptyMimeTypeBody);
+
+    expect(brunoCollection.items[0].request.body).toMatchObject({
+      mode: 'text',
+      text: 'line1\nline2\n{{base_url}}',
+      json: null,
+      xml: null
+    });
+  });
+
+  it('should ignore v5 empty raw bodies when mimeType is blank', async () => {
+    const brunoCollection = insomniaToBruno(insomniaCollectionWithEmptyMimeTypeAndEmptyTextBody);
+
+    expect(brunoCollection.items[0].request.body).toMatchObject({
+      mode: 'none',
+      text: null,
+      json: null,
+      xml: null
+    });
+  });
 });
 
 const insomniaCollection = `
@@ -193,3 +215,30 @@ const expectedOutput = {
   uid: 'mockeduuidvalue123456',
   version: '1'
 };
+
+const insomniaCollectionWithEmptyMimeTypeBody = `
+type: collection.insomnia.rest/5.0
+name: Text Body Workspace
+collection:
+  - url: https://example.com/raw
+    name: Raw Text Body
+    method: POST
+    body:
+      mimeType: ""
+      text: |-
+        line1
+        line2
+        {{ base_url }}
+`;
+
+const insomniaCollectionWithEmptyMimeTypeAndEmptyTextBody = `
+type: collection.insomnia.rest/5.0
+name: Empty Text Body Workspace
+collection:
+  - url: https://example.com/raw-empty
+    name: Empty Raw Text Body
+    method: POST
+    body:
+      mimeType: ""
+      text: ""
+`;

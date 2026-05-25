@@ -74,8 +74,13 @@ test.describe('Import Insomnia v4 Collection - Environment Import', () => {
         .first()
         .click();
 
-      // Wait for environment variables to load - use input selector as it's more reliable
-      await expect(page.locator('input[value="baseUrl"]')).toBeVisible({ timeout: 10000 });
+      // Gate on the env-switch flatten pass having fully landed before
+      // per-row asserts. The flatten renders top-level keys first and the
+      // deepest nested keys (array-indexed `user.roles[*]`) last; on slow
+      // runners the trailing batch can take longer than the 5s default.
+      // Waiting on the deepest asserted key here guarantees every shallower
+      // input is also in DOM by the time the per-input asserts below run.
+      await page.locator('input[value="user.roles[1]"]').waitFor({ state: 'visible', timeout: 15000 });
 
       // **Assertion 1: Basic Variables (Top-level keys)**
       // Verifies that simple key-value pairs from the base environment are imported correctly
@@ -125,6 +130,12 @@ test.describe('Import Insomnia v4 Collection - Environment Import', () => {
         .first()
         .click();
 
+      // Gate on the env-switch flatten pass having fully landed before
+      // per-row asserts. Inherited deep keys (like `user.roles[0]`) are the
+      // last to merge in for a sub-env; waiting on it here guarantees every
+      // other input is also in DOM by the time the per-input asserts run.
+      await page.locator('input[value="user.roles[0]"]').waitFor({ state: 'visible', timeout: 15000 });
+
       // **Assertion 1: Top-level Variable Override**
       // Verifies that staging environment overrides base environment values
       const v4StagingBaseUrlInput = page.locator('input[value="baseUrl"]');
@@ -167,6 +178,13 @@ test.describe('Import Insomnia v4 Collection - Environment Import', () => {
         .filter({ hasText: /^Development$/ })
         .first()
         .click();
+
+      // Gate on the env-switch merge pass having fully landed before
+      // per-row asserts. The sub-env's newly-added keys (`newFeature.*`)
+      // are the last to merge in; waiting on the deepest of those here
+      // guarantees every other input is also in DOM by the time the
+      // per-input asserts below run.
+      await page.locator('input[value="newFeature.version"]').waitFor({ state: 'visible', timeout: 15000 });
 
       // **Assertion 1: Multiple Top-level Variable Overrides**
       // Verifies that development environment can override multiple base environment values

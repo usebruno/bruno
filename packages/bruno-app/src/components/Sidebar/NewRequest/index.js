@@ -316,18 +316,6 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
           <form
             className="bruno-form"
             onSubmit={formik.handleSubmit}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && !e.defaultPrevented) {
-                const isTextInput
-                  = ['input', 'textarea'].includes(e.target.tagName.toLowerCase())
-                    || e.target.isContentEditable;
-
-                if (!isTextInput) {
-                  e.preventDefault();
-                  formik.handleSubmit();
-                }
-              }
-            }}
           >
             <div>
               <label htmlFor="requestName" className="block font-medium">
@@ -523,6 +511,7 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
                       className="flex px-2 items-center flex-grow input-container h-full min-w-0"
                     >
                       <SingleLineEditor
+                        onRun={() => formik.handleSubmit()}
                         onPaste={handlePaste}
                         placeholder="Request URL"
                         value={formik.values.requestUrl || ''}

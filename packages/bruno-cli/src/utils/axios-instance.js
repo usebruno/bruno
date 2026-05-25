@@ -92,10 +92,11 @@ function makeAxiosInstance({
     headers: {}
   });
 
-  // Set User-Agent manually (using transformRequest to delete headers instead)
-  instance.defaults.headers.common = {
-    'User-Agent': `bruno-runtime/${CLI_VERSION}`
-  };
+  // Extend common headers with User-Agent rather than replacing the object.
+  // axios.create() preserves defaults.headers.common = { Accept: 'application/json, text/plain, */*' }.
+  // Assigning a new object (= { 'User-Agent': ... }) would nuke that default, causing servers that
+  // rely on content-negotiation to receive requests with no Accept header.
+  instance.defaults.headers.common['User-Agent'] = `bruno-runtime/${CLI_VERSION}`;
 
   instance.interceptors.request.use((config) => {
     config.headers['request-start-time'] = Date.now();

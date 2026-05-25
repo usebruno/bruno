@@ -1,6 +1,7 @@
 export type { UID } from './uid';
 export type { KeyValue } from './key-value';
 export type { Variable, Variables } from './variables';
+export type { Annotation } from './annotation';
 export type { MultipartFormEntry, MultipartForm } from './multipart-form';
 export type { FileEntry, FileList } from './file';
 export type { GraphqlBody } from './graphql';

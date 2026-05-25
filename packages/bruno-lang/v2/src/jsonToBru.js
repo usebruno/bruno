@@ -585,10 +585,11 @@ ${indentString(body.sparql)}
             const selected = item.selected ? '' : '~';
             const contentType
               = item.contentType && item.contentType !== '' ? ' @contentType(' + item.contentType + ')' : '';
+            const annotPrefix = serializeAnnotations(item.annotations);
             const filePath = item.filePath || '';
             const value = `@file(${filePath})`;
             const itemName = 'file';
-            return `${selected}${itemName}: ${value}${contentType}`;
+            return `${annotPrefix}${selected}${itemName}: ${value}${contentType}`;
           })
           .join('\n')
       )}`;

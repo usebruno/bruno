@@ -10,7 +10,7 @@ const { ipcMain } = require('electron');
 const { each, get, extend, cloneDeep, merge } = require('lodash');
 const { NtlmClient } = require('axios-ntlm');
 const { VarsRuntime, AssertRuntime, ScriptRuntime, TestRuntime, formatErrorWithContextV2 } = require('@usebruno/js');
-const { encodeUrl } = require('@usebruno/common').utils;
+const { encodeUrl, hasExplicitScheme } = require('@usebruno/common').utils;
 const { extractPromptVariables } = require('@usebruno/common').utils;
 const { interpolateString } = require('./interpolate-string');
 const { resolveAwsV4Credentials, addAwsV4Interceptor } = require('./awsv4auth-helper');
@@ -108,9 +108,8 @@ const configureRequest = async (
   collectionPath,
   globalEnvironmentVariables
 ) => {
-  const protocolRegex = /^([-+\w]{1,25})(:?\/\/|:)/;
   const hasVariables = request.url.startsWith('{{');
-  if (!hasVariables && !protocolRegex.test(request.url)) {
+  if (!hasVariables && !hasExplicitScheme(request.url)) {
     request.url = `http://${request.url}`;
   }
 
@@ -240,7 +239,7 @@ const configureRequest = async (
               const url = new URL(request.url);
               url.searchParams.set(tokenQueryKey, tokenValue);
               request.url = url.toString();
-            } catch (error) {}
+            } catch (error) { }
           }
         }
         break;
@@ -257,7 +256,7 @@ const configureRequest = async (
               const url = new URL(request.url);
               url.searchParams.set(tokenQueryKey, tokenValue);
               request.url = url.toString();
-            } catch (error) {}
+            } catch (error) { }
           }
         }
         break;
@@ -274,7 +273,7 @@ const configureRequest = async (
               const url = new URL(request.url);
               url.searchParams.set(tokenQueryKey, tokenValue);
               request.url = url.toString();
-            } catch (error) {}
+            } catch (error) { }
           }
         }
         break;
@@ -291,7 +290,7 @@ const configureRequest = async (
               const url = new URL(request.url);
               url.searchParams.set(tokenQueryKey, tokenValue);
               request.url = url.toString();
-            } catch (error) {}
+            } catch (error) { }
           }
         }
         break;
@@ -354,9 +353,6 @@ const configureRequest = async (
     urlObj.searchParams.set(key, value);
     request.url = urlObj.toString();
   }
-
-  // Remove apiKeyAuthValueForQueryParams, already interpolated and added to URL
-  delete request.apiKeyAuthValueForQueryParams;
 
   return axiosInstance;
 };

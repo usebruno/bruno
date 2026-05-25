@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useRef } from 'react';
 import get from 'lodash/get';
 import { useDispatch, useSelector } from 'react-redux';
 import { useTheme } from 'providers/Theme';
@@ -11,10 +11,15 @@ import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collection
 import { updateTableColumnWidths } from 'providers/ReduxStore/slices/tabs';
 import EditableTable from 'components/EditableTable';
 import StyledWrapper from './StyledWrapper';
+import { usePersistedState } from 'hooks/usePersistedState';
+import { useTrackScroll } from 'hooks/useTrackScroll';
 
 const FormUrlEncodedParams = ({ item, collection }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
+  const wrapperRef = useRef(null);
+  const [scroll, setScroll] = usePersistedState({ key: `request-body-formUrlEncoded-scroll-${item.uid}`, default: 0 });
+  useTrackScroll({ ref: wrapperRef, selector: '.flex-boundary', onChange: setScroll, initialValue: scroll });
   const tabs = useSelector((state) => state.tabs.tabs);
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
   const params = item.draft ? get(item, 'draft.request.body.formUrlEncoded') : get(item, 'request.body.formUrlEncoded');
@@ -81,7 +86,7 @@ const FormUrlEncodedParams = ({ item, collection }) => {
   };
 
   return (
-    <StyledWrapper className="w-full">
+    <StyledWrapper className="w-full" ref={wrapperRef}>
       <EditableTable
         tableId="form-url-encoded"
         columns={columns}
@@ -92,6 +97,7 @@ const FormUrlEncodedParams = ({ item, collection }) => {
         onReorder={handleParamDrag}
         columnWidths={formUrlEncodedWidths}
         onColumnWidthsChange={(widths) => handleColumnWidthsChange('form-url-encoded', widths)}
+        initialScroll={scroll}
       />
     </StyledWrapper>
   );

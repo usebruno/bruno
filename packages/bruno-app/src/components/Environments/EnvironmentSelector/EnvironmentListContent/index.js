@@ -17,7 +17,11 @@ const EnvironmentListContent = ({
       {environments && environments.length > 0 ? (
         <>
           <div className="environment-list">
-            <div className="dropdown-item no-environment" onClick={() => onEnvironmentSelect(null)}>
+            <div
+              className={`dropdown-item no-environment ${!activeEnvironmentUid ? 'dropdown-item-active' : ''}`}
+              onClick={() => onEnvironmentSelect(null)}
+            >
+              <span className="w-2 shrink-0" />
               <span>No Environment</span>
             </div>
             <ToolHint

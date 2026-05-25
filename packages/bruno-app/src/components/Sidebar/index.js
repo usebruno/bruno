@@ -4,9 +4,10 @@ import StyledWrapper from './StyledWrapper';
 
 import { useState, useEffect, useRef } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { updateLeftSidebarWidth, updateIsDragging } from 'providers/ReduxStore/slices/app';
+import { updateLeftSidebarWidth, updateIsDragging, toggleSidebarSearch } from 'providers/ReduxStore/slices/app';
 import CollectionsSection from './Sections/CollectionsSection/index';
 import ApiSpecsSection from './Sections/ApiSpecsSection/index';
+import useKeybinding from 'hooks/useKeybinding';
 
 const MIN_LEFT_SIDEBAR_WIDTH = 220;
 const MAX_LEFT_SIDEBAR_WIDTH = 600;
@@ -30,6 +31,14 @@ const Sidebar = () => {
 
   const dispatch = useDispatch();
   const [dragging, setDragging] = useState(false);
+
+  // Sidebar search
+  useKeybinding('sidebarSearch', (e) => {
+    const target = e?.target || document.activeElement;
+    if (target?.closest?.('.CodeMirror')) return; // let editor's native `Find` handle it
+    dispatch(toggleSidebarSearch());
+    return false;
+  });
 
   const currentWidth = sidebarCollapsed ? 0 : asideWidth;
 

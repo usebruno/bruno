@@ -22,18 +22,21 @@ const prepareRequest = async (item = {}, collection = {}) => {
   const scriptFlow = brunoConfig?.scripts?.flow ?? 'sandwich';
   const requestTreePath = getTreePathFromCollectionToItem(collection, item);
   if (requestTreePath && requestTreePath.length > 0) {
-    mergeHeaders(collection, request, requestTreePath);
+    mergeHeaders(collection, request, requestTreePath, { includeDisabledHeaders: true });
     mergeScripts(collection, request, requestTreePath, scriptFlow);
     mergeVars(collection, request, requestTreePath);
     mergeAuth(collection, request, requestTreePath);
   }
 
+  const disabledHeaders = [];
   each(get(request, 'headers', []), (h) => {
-    if (h.enabled) {
+    if (h.enabled && h.name?.length > 0) {
       headers[h.name] = h.value;
       if (h.name.toLowerCase() === 'content-type') {
         contentTypeDefined = true;
       }
+    } else if (!h.enabled && h.name?.length > 0) {
+      disabledHeaders.push({ name: h.name, value: h.value });
     }
   });
 
@@ -41,6 +44,7 @@ const prepareRequest = async (item = {}, collection = {}) => {
     method: request.method,
     url: request.url,
     headers: headers,
+    disabledHeaders,
     name: item.name,
     pathname: item.pathname,
     tags: item.tags || [],
@@ -67,6 +71,7 @@ const prepareRequest = async (item = {}, collection = {}) => {
     if (collectionAuth.mode === 'apikey') {
       if (collectionAuth.apikey?.placement === 'header') {
         axiosRequest.headers[collectionAuth.apikey?.key] = collectionAuth.apikey?.value;
+        axiosRequest.apiKeyHeaderName = collectionAuth.apikey?.key;
       }
 
       if (collectionAuth.apikey?.placement === 'queryparams') {
@@ -309,6 +314,7 @@ const prepareRequest = async (item = {}, collection = {}) => {
     if (request.auth.mode === 'apikey') {
       if (request.auth.apikey?.placement === 'header') {
         axiosRequest.headers[request.auth.apikey?.key] = request.auth.apikey?.value;
+        axiosRequest.apiKeyHeaderName = request.auth.apikey?.key;
       }
 
       if (request.auth.apikey?.placement === 'queryparams') {

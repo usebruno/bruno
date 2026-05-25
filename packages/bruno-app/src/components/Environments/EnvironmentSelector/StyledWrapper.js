@@ -117,6 +117,10 @@ const Wrapper = styled.div`
     overflow: hidden;
   }
 
+  .no-environment {
+    color: ${(props) => props.theme.colors.text.subtext0};
+  }
+
   .environment-list {
     flex: 1;
     overflow-y: auto;

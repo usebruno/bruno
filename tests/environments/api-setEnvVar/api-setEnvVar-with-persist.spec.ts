@@ -1,5 +1,5 @@
 import { test, expect, closeElectronApp } from '../../../playwright';
-import { sendRequest } from '../../utils/page';
+import { sendRequest, waitForReadyPage } from '../../utils/page';
 
 test.describe.serial('bru.setEnvVar(name, value, { persist: true })', () => {
   test('set env var with persist using script', async ({ pageWithUserData: page, restartApp }) => {
@@ -23,8 +23,8 @@ test.describe.serial('bru.setEnvVar(name, value, { persist: true })', () => {
     await page.getByTestId('environment-selector-trigger').click();
     // open environment configuration
 
-    await page.locator('#configure-env').hover();
-    await page.locator('#configure-env').click();
+    await page.locator('#configure-env').waitFor({ state: 'visible' });
+    await page.locator('#configure-env').dispatchEvent('click');
 
     const envTab = page.locator('.request-tab').filter({ has: page.locator('.tab-label', { hasText: 'Environments' }) });
     await expect(envTab).toBeVisible();
@@ -36,7 +36,7 @@ test.describe.serial('bru.setEnvVar(name, value, { persist: true })', () => {
 
     // we restart the app to confirm that the environment variable is persisted
     const newApp = await restartApp();
-    const newPage = await newApp.firstWindow();
+    const newPage = await waitForReadyPage(newApp);
 
     // select the collection and request
     await newPage.locator('#sidebar-collection-name').click();
@@ -44,7 +44,8 @@ test.describe.serial('bru.setEnvVar(name, value, { persist: true })', () => {
 
     // open environment dropdown
     await newPage.getByTestId('environment-selector-trigger').click();
-    await newPage.locator('#configure-env').click();
+    await newPage.locator('#configure-env').waitFor({ state: 'visible' });
+    await newPage.locator('#configure-env').dispatchEvent('click');
 
     const newEnvTab = newPage.locator('.request-tab').filter({ hasText: 'Environments' });
     await expect(newEnvTab).toBeVisible();

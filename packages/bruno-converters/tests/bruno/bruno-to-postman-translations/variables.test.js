@@ -51,6 +51,12 @@ describe('Bruno to Postman Variables Translation', () => {
     expect(translatedCode).toBe('pm.globals.set("test", "value");');
   });
 
+  it('should translate bru.hasGlobalEnvVar', () => {
+    const code = 'bru.hasGlobalEnvVar("token");';
+    const translatedCode = translateBruToPostman(code);
+    expect(translatedCode).toBe('pm.globals.has("token");');
+  });
+
   // Collection variables tests
   it('should translate bru.getCollectionVar', () => {
     const code = 'bru.getCollectionVar("baseUrl");';

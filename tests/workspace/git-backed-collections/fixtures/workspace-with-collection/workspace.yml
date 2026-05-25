@@ -1,0 +1,12 @@
+opencollection: 1.0.0
+info:
+  name: "Fixture WS"
+  type: workspace
+
+collections:
+  - name: "SampleColl"
+    path: "collections/sample-coll"
+
+specs:
+
+docs: ''
