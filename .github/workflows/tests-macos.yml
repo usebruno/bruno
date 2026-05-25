@@ -53,10 +53,7 @@ jobs:
     concurrency:
       group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}-e2e
       cancel-in-progress: true
-    strategy:
-      matrix:
-        runner: ${{ github.repository == 'usebruno/bruno' && fromJson('["self-hosted", "macOS"]') || fromJson('["macos-latest"]') }}
-    runs-on: ${{ matrix.runner }}
+    runs-on: macos-latest
     steps:
       - uses: actions/checkout@v6
 
