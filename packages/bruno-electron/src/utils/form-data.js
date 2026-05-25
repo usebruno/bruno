@@ -58,10 +58,13 @@ const formatMultipartData = (multipartData, boundary) => {
   return parts.join('\n');
 };
 
-const createFormData = (data, collectionPath) => {
+const createFormData = (data, collectionPath, boundary) => {
   // make axios work in node using form data
   // reference: https://github.com/axios/axios/issues/1006#issuecomment-320165427
   const form = new FormData();
+  if (boundary) {
+    form.setBoundary(boundary);
+  }
   forEach(data, (datum) => {
     const { name, type, value, contentType } = datum;
     let options = {};
