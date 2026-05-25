@@ -45,7 +45,7 @@ const TimelineItem = ({
     default: false
   });
   const [activeTab, setActiveTab] = useState('request');
-  // CodeMirror reads its size on mount and stays blank if hidden — lazy-mount
+  // CodeMirror reads its size on mount and stays blank if hidden. Lazy-mount
   // each tab on first visit and keep it mounted, toggling display only.
   const [visitedTabs, setVisitedTabs] = useState({ request: true });
   const toggleExpand = () => _toggleExpand((prev) => !prev);

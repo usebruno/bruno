@@ -26,7 +26,6 @@ const statusColor = (theme, statusCode) => {
   return theme.colors.text.muted;
 };
 
-// Main-request entries use `status`; scripted entries use `statusCode`.
 const ResponseMeta = ({ code, statusText, duration, size }) => {
   const { theme } = useTheme();
   const sizeLabel = formatBytes(size);

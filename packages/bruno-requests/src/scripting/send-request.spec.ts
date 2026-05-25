@@ -121,7 +121,7 @@ describe('createSendRequest', () => {
     const mockResponse = { data: 'test' };
     mockAxios.mockResolvedValue(mockResponse);
 
-    // `proxyConfig` isn't a real key on SendRequestConfig — this test asserts
+    // `proxyConfig` isn't a real key on SendRequestConfig. This test asserts
     // that whatever the caller passes is spread through to getHttpHttpsAgents
     // verbatim. Cast to `any` so the deliberately-loose call still type-checks.
     const customSendRequest = createSendRequest({ proxyConfig: {} } as any);

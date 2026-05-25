@@ -73,7 +73,7 @@ const runAndValidate = async (page, collectionName: string) => {
 /**
  * After sending a request, switch to the Timeline tab, expand the latest timeline row,
  * and return its locator. The expanded detail panel defaults to the Request tab,
- * which shows the sent URL, headers and body — what OAuth1 placement assertions need.
+ * which shows the sent URL, headers and body (what OAuth1 placement assertions need).
  */
 const openTimelineRequest = async (page) => {
   await selectResponsePaneTab(page, 'Timeline');

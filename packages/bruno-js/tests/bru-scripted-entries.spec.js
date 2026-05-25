@@ -1,7 +1,7 @@
 // Mocked so we can drive onComplete directly without hitting the network. We
 // defer onComplete to a microtask so it fires after the synchronous call site
-// returns — same timing as a real network call, and what the race-condition
-// test below relies on.
+// returns (same timing as a real network call, and what the race-condition
+// test below relies on).
 jest.mock('@usebruno/requests', () => {
   const realCookies = jest.requireActual('@usebruno/requests').cookies;
   return {
@@ -83,7 +83,7 @@ describe('Bru — scripted request capture', () => {
     bru._currentScope = { type: 'collection', sourceFile: 'collection.bru' };
     await bru.sendRequest('https://example.com/a');
 
-    // Flip scope — the earlier entry must keep its original snapshot.
+    // Flip scope. The earlier entry must keep its original snapshot.
     bru._currentScope = { type: 'request', sourceFile: 'auth/login.bru' };
     await bru.sendRequest('https://example.com/b');
 

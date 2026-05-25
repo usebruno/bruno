@@ -140,7 +140,7 @@ const createSendRequest = (config?: SendRequestConfig, options?: SendRequestOpti
   ) => {
     if (!onComplete) return;
     const completedAt = Date.now();
-    // A 4xx/5xx surfaces as a thrown error with the response attached — record it too.
+    // A 4xx/5xx surfaces as a thrown error with the response attached. Record it too.
     const resp = response || error?.response || null;
     try {
       onComplete(buildScriptedEntry({
