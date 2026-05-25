@@ -36,9 +36,13 @@ const Headers = ({ headers, type }) => {
       </div>
     );
   } else {
+    // Multi-valued headers (e.g. Set-Cookie) arrive as arrays; render one line per value.
+    const flattened = Object.entries(headers).flatMap(([key, value]) =>
+      Array.isArray(value) ? value.map((v) => [key, v]) : [[key, value]]
+    );
     return (
       <div className="mt-1">
-        {Object.entries(headers).map(([key, value], index) => (
+        {flattened.map(([key, value], index) => (
           <pre key={index} className="mb-1 whitespace-pre-wrap">
             {type === 'request' ? '>' : '<'}&nbsp;<span className="opacity-60">{key}:</span>
             <span>{String(value)}</span>

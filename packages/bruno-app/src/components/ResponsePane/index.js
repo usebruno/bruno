@@ -114,7 +114,9 @@ const ResponsePane = ({ item, collection }) => {
       return 0;
     }
   }, [response.size, response.dataBuffer]);
-  const responseHeadersCount = typeof response.headers === 'object' ? Object.entries(response.headers).length : 0;
+  const responseHeadersCount = typeof response.headers === 'object' && response.headers !== null
+    ? Object.values(response.headers).reduce((count, value) => count + (Array.isArray(value) ? value.length : 1), 0)
+    : 0;
 
   const hasScriptError = item?.preRequestScriptErrorMessage || item?.postResponseScriptErrorMessage || item?.testScriptErrorMessage;
 
