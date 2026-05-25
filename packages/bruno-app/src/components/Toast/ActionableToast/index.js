@@ -15,14 +15,16 @@ import StyledWrapper from './StyledWrapper';
  *  - t            — the toast instance from react-hot-toast (required)
  *  - accentColor  — CSS color for the left strip (default: theme.status.danger.text)
  *  - maxWidth     — max width in px (default: 420)
+ *  - testId       — optional data-testid on the toast root (for e2e)
  *  - children     — toast body content
  */
-const ActionableToast = ({ t, accentColor, maxWidth = 420, children }) => {
+const ActionableToast = ({ t, accentColor, maxWidth = 420, testId, children }) => {
   const { theme } = useTheme();
   const accent = accentColor || theme.status?.danger?.text || theme.colors?.text?.danger;
 
   return (
     <StyledWrapper
+      data-testid={testId}
       $maxWidth={maxWidth}
       style={{
         opacity: t.visible ? 1 : 0,
@@ -31,7 +33,11 @@ const ActionableToast = ({ t, accentColor, maxWidth = 420, children }) => {
     >
       <div className="toast-accent" style={{ background: accent }} />
       <div className="toast-body">
-        <button className="toast-close" onClick={() => toast.dismiss(t.id)}>
+        <button
+          className="toast-close"
+          data-testid={testId ? `${testId}-close` : undefined}
+          onClick={() => toast.dismiss(t.id)}
+        >
           <IconX size={14} />
         </button>
         {children}

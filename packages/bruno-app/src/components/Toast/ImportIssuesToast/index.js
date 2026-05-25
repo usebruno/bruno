@@ -62,7 +62,7 @@ const ImportIssuesToastContent = ({ issues, summary }) => {
 
   return (
     <StyledWrapper>
-      <div className="toast-title">Imported with issues: {summary}</div>
+      <div className="toast-title" data-testid="import-issues-toast-title">Imported with issues: {summary}</div>
       <div className="toast-hint">Open DevTools console to see which items failed and why.</div>
       {hasSourceItems && (
         <label className="toast-checkbox">
@@ -70,6 +70,7 @@ const ImportIssuesToastContent = ({ issues, summary }) => {
             type="checkbox"
             checked={includeItems}
             onChange={(e) => setIncludeItems(e.target.checked)}
+            data-testid="import-issues-include-items-checkbox"
           />
           <div className="toast-checkbox-text">
             <span className="toast-checkbox-label">Include failed request data</span>
@@ -78,11 +79,11 @@ const ImportIssuesToastContent = ({ issues, summary }) => {
         </label>
       )}
       <div className="toast-actions">
-        <button className="toast-btn" onClick={handleReport}>
+        <button className="toast-btn" onClick={handleReport} data-testid="import-issues-report-btn">
           <IconBrandGithub size={13} />
           Report on GitHub
         </button>
-        <button className="toast-btn" onClick={handleCopy}>
+        <button className="toast-btn" onClick={handleCopy} data-testid="import-issues-copy-btn">
           <IconCopy size={13} />
           Copy Issues
         </button>
@@ -111,7 +112,7 @@ export const showImportIssuesToast = (issues) => {
 
   activeImportToastId = toast.custom(
     (t) => (
-      <ActionableToast t={t}>
+      <ActionableToast t={t} testId="import-issues-toast">
         <ImportIssuesToastContent issues={issues} summary={summary} />
       </ActionableToast>
     ),
