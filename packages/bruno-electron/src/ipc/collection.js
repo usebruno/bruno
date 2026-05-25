@@ -2127,9 +2127,10 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
   ipcMain.handle('renderer:convert-postman-to-bruno', async (event, postmanCollection) => {
     try {
       // Convert Postman collection to Bruno format
-      const brunoCollection = await postmanToBruno(postmanCollection, { useWorkers: true });
+      // Returns { collection, issues } where issues tracks items that were skipped or degraded
+      const result = await postmanToBruno(postmanCollection, { useWorkers: true });
 
-      return brunoCollection;
+      return result;
     } catch (error) {
       console.error('Error converting Postman to Bruno:', error);
       return Promise.reject(error);

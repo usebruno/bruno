@@ -26,7 +26,7 @@ describe('Request Authentication', () => {
       ]
     };
 
-    const result = await postmanToBruno(postmanCollection);
+    const { collection: result } = await postmanToBruno(postmanCollection);
 
     expect(result.items[0].request.auth).toEqual({
       mode: 'basic',
@@ -69,7 +69,7 @@ describe('Request Authentication', () => {
       ]
     };
 
-    const result = await postmanToBruno(postmanCollection);
+    const { collection: result } = await postmanToBruno(postmanCollection);
 
     expect(result.items[0].items[0].request.auth).toEqual({
       mode: 'inherit',
@@ -110,7 +110,7 @@ describe('Request Authentication', () => {
       ]
     };
 
-    const result = await postmanToBruno(postmanCollection);
+    const { collection: result } = await postmanToBruno(postmanCollection);
 
     expect(result.items[0].items[0].request.auth).toEqual({
       mode: 'inherit',
@@ -156,7 +156,7 @@ describe('Request Authentication', () => {
       ]
     };
 
-    const result = await postmanToBruno(postmanCollection);
+    const { collection: result } = await postmanToBruno(postmanCollection);
 
     // Check folder first
     expect(result.items[0].root.request.auth).toEqual({
@@ -199,7 +199,7 @@ describe('Request Authentication', () => {
       ]
     };
 
-    const result = await postmanToBruno(postmanCollection);
+    const { collection: result } = await postmanToBruno(postmanCollection);
 
     expect(result.items[0].items[0].request.auth).toEqual({
       mode: 'none', // <<<< KEY CHECK
@@ -250,7 +250,7 @@ describe('Request Authentication', () => {
       ]
     };
 
-    const result = await postmanToBruno(postmanCollection);
+    const { collection: result } = await postmanToBruno(postmanCollection);
 
     // Check Folder Level 1
     expect(result.items[0].root.request.auth).toEqual({
@@ -311,7 +311,7 @@ describe('Request Authentication', () => {
       ]
     };
 
-    const result = await postmanToBruno(postmanCollection);
+    const { collection: result } = await postmanToBruno(postmanCollection);
 
     // Check Folder Level 1
     expect(result.items[0].root.request.auth).toEqual({
@@ -366,7 +366,7 @@ describe('Request Authentication', () => {
       ]
     };
 
-    const result = await postmanToBruno(postmanCollection);
+    const { collection: result } = await postmanToBruno(postmanCollection);
 
     expect(result.items[0].request.auth).toEqual({
       mode: 'oauth1',
@@ -428,7 +428,7 @@ describe('Request Authentication', () => {
       ]
     };
 
-    const result = await postmanToBruno(postmanCollection);
+    const { collection: result } = await postmanToBruno(postmanCollection);
 
     expect(result.items[0].request.auth.mode).toBe('oauth1');
     expect(result.items[0].request.auth.oauth1.placement).toBe('header');
@@ -471,7 +471,7 @@ describe('Request Authentication', () => {
       ]
     };
 
-    const result = await postmanToBruno(postmanCollection);
+    const { collection: result } = await postmanToBruno(postmanCollection);
 
     expect(result.items[0].request.auth.mode).toBe('oauth1');
     expect(result.items[0].request.auth.oauth1.signatureMethod).toBe('RSA-SHA1');
@@ -508,7 +508,7 @@ describe('Request Authentication', () => {
       ]
     };
 
-    const result = await postmanToBruno(postmanCollection);
+    const { collection: result } = await postmanToBruno(postmanCollection);
 
     // Collection root should have oauth1
     expect(result.root.request.auth.mode).toBe('oauth1');
@@ -560,7 +560,7 @@ describe('Request Authentication', () => {
       ]
     };
 
-    const result = await postmanToBruno(postmanCollection);
+    const { collection: result } = await postmanToBruno(postmanCollection);
 
     // Check Folder Level 1
     expect(result.items[0].root.request.auth).toEqual({
@@ -606,7 +606,7 @@ describe('Request Authentication', () => {
         { key: 'in', value: 'query' }
       ]);
 
-      const result = await postmanToBruno(postmanCollection);
+      const { collection: result } = await postmanToBruno(postmanCollection);
 
       expect(result.items[0].request.auth.mode).toBe('apikey');
       expect(result.items[0].request.auth.apikey).toEqual({
@@ -623,7 +623,7 @@ describe('Request Authentication', () => {
         { key: 'in', value: 'header' }
       ]);
 
-      const result = await postmanToBruno(postmanCollection);
+      const { collection: result } = await postmanToBruno(postmanCollection);
 
       expect(result.items[0].request.auth.apikey).toEqual({
         key: 'X-API-Key',
@@ -638,7 +638,7 @@ describe('Request Authentication', () => {
         { key: 'value', value: 'secret-token' }
       ]);
 
-      const result = await postmanToBruno(postmanCollection);
+      const { collection: result } = await postmanToBruno(postmanCollection);
 
       expect(result.items[0].request.auth.apikey.placement).toBe('header');
     });

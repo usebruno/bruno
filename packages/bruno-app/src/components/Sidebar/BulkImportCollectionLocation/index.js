@@ -10,6 +10,7 @@ import { IconX, IconLoader2, IconCheck, IconCaretDown } from '@tabler/icons';
 import InfoTip from 'components/InfoTip/index';
 import Help from 'components/Help';
 import { addGlobalEnvironment } from 'providers/ReduxStore/slices/global-environments';
+import { addLog } from 'providers/ReduxStore/slices/logs';
 import Dropdown from 'components/Dropdown';
 import SelectionList from 'components/SelectionList';
 import { postmanToBruno } from 'utils/importers/postman-collection';
@@ -19,6 +20,7 @@ import { processBrunoCollection } from 'utils/importers/bruno-collection';
 import { wsdlToBruno } from '@usebruno/converters';
 import StyledWrapper from './StyledWrapper';
 import toast from 'react-hot-toast';
+import { showImportIssuesToast } from 'components/Toast/ImportIssuesToast';
 import get from 'lodash/get';
 
 const STATUS = {
@@ -66,8 +68,10 @@ const getCollectionName = (format, rawData) => {
 };
 
 // Convert raw data to Bruno collection format
+// Returns { collection, issues } where issues tracks items that were skipped or degraded
 const convertCollection = async (format, rawData, groupingType) => {
   let collection;
+  let issues = [];
 
   switch (format) {
     case 'openapi':
@@ -76,9 +80,12 @@ const convertCollection = async (format, rawData, groupingType) => {
     case 'wsdl':
       collection = await wsdlToBruno(rawData);
       break;
-    case 'postman':
-      collection = await postmanToBruno(rawData);
+    case 'postman': {
+      const result = await postmanToBruno(rawData);
+      collection = result.collection;
+      issues = result.issues || [];
       break;
+    }
     case 'insomnia':
       collection = convertInsomniaToBruno(rawData);
       break;
@@ -89,7 +96,7 @@ const convertCollection = async (format, rawData, groupingType) => {
       throw new Error('Unknown collection format');
   }
 
-  return collection;
+  return { collection, issues };
 };
 
 export function normalizeName(name) {
@@ -150,6 +157,7 @@ export const BulkImportCollectionLocation = ({
   const [collectionFormat, setCollectionFormat] = useState('bru');
   const [renamedCollectionNames, setRenamedCollectionNames] = useState({});
   const [renamedEnvironmentNames, setRenamedEnvironmentNames] = useState({});
+  const [importIssues, setImportIssues] = useState({});
 
   // Extract data based on import type
   const importType = importData?.type;
@@ -159,6 +167,21 @@ export const BulkImportCollectionLocation = ({
   // For bulk import (ZIP files)
   const importedCollectionFromBulk = isBulkImport ? importData.collection : [];
   const importedEnvironmentFromBulk = isBulkImport ? (importData.environment || []) : [];
+
+  // Extract per-collection issues from bulk import data
+  useEffect(() => {
+    if (isBulkImport && importData.issues) {
+      const issuesMap = {};
+      importData.issues.forEach((entry, index) => {
+        if (entry.issues && entry.issues.length > 0 && importedCollectionFromBulk[index]) {
+          issuesMap[importedCollectionFromBulk[index].uid] = entry.issues;
+        }
+      });
+      if (Object.keys(issuesMap).length > 0) {
+        setImportIssues(issuesMap);
+      }
+    }
+  }, [isBulkImport, importData]);
 
   // For multiple files import
   const filesData = isMultipleImport ? importData.filesData : [];
@@ -275,18 +298,45 @@ export const BulkImportCollectionLocation = ({
 
       if (isMultipleImport) {
         // Convert selected files to collections at submit time
+        const collectedIssues = {};
         for (const item of selectedItems) {
           try {
-            const collection = await convertCollection(item._fileData.type, item._fileData.data, groupingType);
+            const { collection, issues } = await convertCollection(item._fileData.type, item._fileData.data, groupingType);
             if (collection) {
               // Preserve the synthetic UID so status tracking, rename tracking,
               // and UI rendering all use the same key
               collection.uid = item.uid;
               filteredCollections.push(collection);
+              if (issues && issues.length > 0) {
+                collectedIssues[item.uid] = issues;
+              }
             }
           } catch (err) {
             console.warn(`Failed to convert file ${item._fileData.file.name}:`, err);
           }
+        }
+        if (Object.keys(collectedIssues).length > 0) {
+          setImportIssues(collectedIssues);
+
+          // Aggregate all issues across collections into one toast
+          const allIssues = [];
+          const timestamp = new Date().toISOString();
+          Object.entries(collectedIssues).forEach(([uid, issues]) => {
+            const item = selectedItems.find((s) => s.uid === uid);
+            const name = item?.name || uid;
+
+            // Prefix each issue path with collection name for context
+            issues.forEach((issue) => {
+              allIssues.push({ ...issue, path: `${name} > ${issue.path}` });
+              const logType = issue.severity === 'error' ? 'error' : 'warn';
+              const logArgs = [`[${name} > ${issue.path}] ${issue.message}`];
+              if (issue.sourceItem) logArgs.push(issue.sourceItem);
+              dispatch(addLog({ type: logType, args: logArgs, timestamp }));
+            });
+          });
+
+          // Single toast for all collections
+          showImportIssuesToast(allIssues);
         }
       } else if (isBulkImport) {
         // For bulk import, use selected collections directly
@@ -601,6 +651,25 @@ export const BulkImportCollectionLocation = ({
                             >
                               See error
                             </button>
+                          )}
+                          {status[collection.uid] === STATUS.SUCCESS && importIssues[collection.uid] && (
+                            <div className="flex items-center gap-2">
+                              <span className="text-yellow-600 text-xs">
+                                {importIssues[collection.uid].filter((i) => i.severity === 'error').length} item(s) skipped
+                              </span>
+                              <button
+                                onClick={() => {
+                                  const text = importIssues[collection.uid]
+                                    .map((i) => `[${i.severity.toUpperCase()}] ${i.path} — ${i.message}`)
+                                    .join('\n');
+                                  navigator.clipboard.writeText(text);
+                                  toast.success('Copied to clipboard', { duration: 2000 });
+                                }}
+                                className="text-yellow-600 text-xs hover:underline"
+                              >
+                                Copy
+                              </button>
+                            </div>
                           )}
                         </div>
                       ))}
