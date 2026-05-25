@@ -2,7 +2,7 @@ export const getEntryKind = (entry) => {
   if (entry.type === 'request') return 'main';
   if (entry.type === 'oauth2') return 'oauth';
   if (entry.type === 'scripted-request') {
-    // 'post-response' and 'tests' both run after the main response — bucket together.
+    // 'post-response' and 'tests' both run after the main response bucket together.
     if (entry.phase === 'post-response' || entry.phase === 'tests') return 'post';
     return 'pre';
   }
@@ -39,8 +39,7 @@ const isVisibleEntry = (entry, itemUid, authSource) => {
 
 const expandOauthEntry = (entry, paired) => {
   const debugInfo = entry.data?.debugInfo || [];
-  // No sub-calls to render — drop the parent so the OAuth chip count
-  // matches the rows actually shown.
+  // No sub-calls to render drop the parent so the OAuth chip count
   if (debugInfo.length === 0) return [];
   const n = debugInfo.length;
   const mainAnchor = paired != null ? paired : entry.timestamp + n;

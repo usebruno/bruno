@@ -735,7 +735,7 @@ const registerNetworkIpc = (mainWindow) => {
     return scriptResult;
   };
 
-  const runRequest = async ({ item, collection, envVars, processEnvVars, runtimeVariables, runInBackground = false }) => {
+  const runRequest = async ({ item, collection, envVars, processEnvVars, runtimeVariables, runInBackground = false, callerBru = null }) => {
     const collectionUid = collection.uid;
     const collectionPath = collection.pathname;
     const cancelTokenUid = uuid();
@@ -791,18 +791,20 @@ const registerNetworkIpc = (mainWindow) => {
           const startedAt = Date.now();
           let res, err;
           try {
-            res = await runRequest({ item: _item, collection, envVars, processEnvVars, runtimeVariables, runInBackground: true });
+            res = await runRequest({ item: _item, collection, envVars, processEnvVars, runtimeVariables, runInBackground: true, callerBru });
           } catch (e) {
             err = e;
           }
           const completedAt = Date.now();
           const sent = res?.requestSent || {};
+          // Cancel/network-error early-returns don't include requestSent; fall back
+          const fallbackRequest = _item.request || {};
           callerBru?._recordScriptedRequest?.({
             source: 'runRequest',
             ...buildScriptedEntry({
               request: {
-                method: sent.method,
-                url: sent.url || res?.url,
+                method: sent.method || fallbackRequest.method,
+                url: sent.url || res?.url || fallbackRequest.url,
                 headers: sent.headers,
                 data: sent.data
               },
@@ -833,10 +835,17 @@ const registerNetworkIpc = (mainWindow) => {
       });
     };
 
-    // Skipped for nested bru.runRequest targets so their scripts don't double-emit.
+    // For nested bru.runRequest targets, bubble the inner script's scripted
+    // entries up to the outer caller's bru so the outer Timeline still shows
+    // them (instead of dropping them silently).
     const emitScriptedRequestEvents = (phase, scriptResult) => {
-      if (runInBackground) return;
       const entries = scriptResult?.scriptedRequestEntries || [];
+      if (runInBackground) {
+        if (callerBru) {
+          entries.forEach((entry) => callerBru._recordScriptedRequest?.(entry));
+        }
+        return;
+      }
       entries.forEach((entry) => {
         mainWindow.webContents.send('main:run-request-event', {
           type: 'scripted-request',
