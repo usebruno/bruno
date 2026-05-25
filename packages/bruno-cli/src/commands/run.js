@@ -20,6 +20,7 @@ const { hasExecutableTestInScript } = require('../utils/request');
 const { createSkippedFileResults } = require('../utils/run');
 const { sanitizeResultsForReporter } = require('../utils/sanitize-results');
 const { getSystemProxy } = require('@usebruno/requests');
+const { parseDataFile } = require('../utils/data-file');
 const command = 'run [paths...]';
 const desc = 'Run one or more requests/folders';
 
@@ -246,6 +247,16 @@ const builder = async (yargs) => {
       type: 'boolean',
       description: 'Allow verbose output for debugging purposes'
     })
+    .option('iteration-data', {
+      alias: 'd',
+      type: 'string',
+      description: 'Path to a CSV or JSON file. The collection runs once per row/entry in the file'
+    })
+    .option('iteration-count', {
+      alias: 'n',
+      type: 'number',
+      description: 'Number of times to run the collection (ignored when --iteration-data is provided)'
+    })
     .example('$0 run request.bru', 'Run a request')
     .example('$0 run request.bru --env local', 'Run a request with the environment set to local')
     .example('$0 run request.bru --env-file env.bru', 'Run a request with the environment from env.bru file')
@@ -303,6 +314,18 @@ const builder = async (yargs) => {
     .example(
       '$0 run request.bru --global-env production --workspace-path /path/to/workspace',
       'Run a request with a global environment from the specified workspace'
+    )
+    .example(
+      '$0 run folder --iteration-data data.csv',
+      'Run all requests in a folder once per row in the CSV file'
+    )
+    .example(
+      '$0 run folder --iteration-data data.json',
+      'Run all requests in a folder once per entry in the JSON array file'
+    )
+    .example(
+      '$0 run folder --iteration-count 5',
+      'Run all requests in a folder 5 times'
     );
 };
 
@@ -339,9 +362,39 @@ const handler = async function (argv) {
       delay,
       tags: includeTags,
       excludeTags,
-      verbose
+      verbose,
+      iterationData: iterationDataFile,
+      iterationCount
     } = argv;
     const collectionPath = process.cwd();
+
+    // Load iteration data file if provided
+    let iterationDataRows = null;
+    if (iterationDataFile) {
+      const resolvedDataFile = path.resolve(collectionPath, iterationDataFile);
+      if (!(await exists(resolvedDataFile))) {
+        console.error(chalk.red(`Iteration data file not found: `) + chalk.dim(iterationDataFile));
+        process.exit(constants.EXIT_STATUS.ERROR_FILE_NOT_FOUND);
+      }
+      try {
+        iterationDataRows = parseDataFile(resolvedDataFile);
+        if (iterationDataRows.length === 0) {
+          console.warn(chalk.yellow(`Iteration data file is empty, running collection once with no data.`));
+          iterationDataRows = [{}];
+        }
+      } catch (err) {
+        console.error(chalk.red(`Failed to parse iteration data file: ${err.message}`));
+        process.exit(constants.EXIT_STATUS.ERROR_INVALID_FILE);
+      }
+    } else if (iterationCount !== undefined) {
+      if (!Number.isInteger(iterationCount) || iterationCount <= 0) {
+        console.error(chalk.red(`--iteration-count must be a positive integer, got: ${iterationCount}`));
+        process.exit(constants.EXIT_STATUS.ERROR_GENERIC);
+      }
+      iterationDataRows = Array.from({ length: iterationCount }, () => ({}));
+    } else {
+      iterationDataRows = [{}];
+    }
 
     let collection = createCollectionJsonFromPathname(collectionPath);
     const { root: collectionRoot, brunoConfig } = collection;
@@ -649,118 +702,142 @@ const handler = async function (argv) {
       }
     }
 
-    const runSingleRequestByPathname = async (relativeItemPathname) => {
-      const ext = FORMAT_CONFIG[collection.format].ext;
-      return new Promise(async (resolve, reject) => {
+    const totalIterations = iterationDataRows.length;
+    let bailOuter = false;
+
+    for (let iterationIndex = 0; iterationIndex < totalIterations; iterationIndex++) {
+      if (bailOuter) break;
+
+      const currentIterationData = iterationDataRows[iterationIndex];
+
+      if (totalIterations > 1) {
+        console.log(chalk.cyan(`\n--- Iteration ${iterationIndex + 1} / ${totalIterations} ---\n`));
+      }
+
+      // Reset runtimeVariables at the start of each iteration and seed with iteration data
+      for (const key of Object.keys(runtimeVariables)) {
+        delete runtimeVariables[key];
+      }
+      Object.assign(runtimeVariables, currentIterationData);
+
+      const runSingleRequestByPathname = async (relativeItemPathname) => {
+        const ext = FORMAT_CONFIG[collection.format].ext;
         let itemPathname = path.join(collectionPath, relativeItemPathname);
         if (itemPathname && !itemPathname?.endsWith(ext)) {
           itemPathname = `${itemPathname}${ext}`;
         }
         const requestItem = cloneDeep(findItemInCollection(collection, itemPathname));
-        if (requestItem) {
-          const res = await runSingleRequest(
-            requestItem,
-            collectionPath,
-            runtimeVariables,
-            envVars,
-            processEnvVars,
-            brunoConfig,
-            collectionRoot,
-            runtime,
-            collection,
-            runSingleRequestByPathname,
-            globalEnvVars
-          );
-          resolve(res?.response);
+        if (!requestItem) {
+          throw new Error(`bru.runRequest: invalid request path - ${itemPathname}`);
         }
-        reject(`bru.runRequest: invalid request path - ${itemPathname}`);
-      });
-    };
+        requestItem.__brunoIterationData = currentIterationData;
+        requestItem.__brunoIterationIndex = iterationIndex;
+        const res = await runSingleRequest(
+          requestItem,
+          collectionPath,
+          runtimeVariables,
+          envVars,
+          processEnvVars,
+          brunoConfig,
+          collectionRoot,
+          runtime,
+          collection,
+          runSingleRequestByPathname,
+          globalEnvVars
+        );
+        return res?.response;
+      };
 
-    let currentRequestIndex = 0;
-    let nJumps = 0; // count the number of jumps to avoid infinite loops
-    while (currentRequestIndex < requestItems.length) {
-      const requestItem = cloneDeep(requestItems[currentRequestIndex]);
-      const { name, pathname } = requestItem;
+      let currentRequestIndex = 0;
+      let nJumps = 0; // count the number of jumps to avoid infinite loops
+      while (currentRequestIndex < requestItems.length) {
+        const requestItem = cloneDeep(requestItems[currentRequestIndex]);
+        requestItem.__brunoIterationData = currentIterationData;
+        requestItem.__brunoIterationIndex = iterationIndex;
+        const { name, pathname } = requestItem;
 
-      const start = process.hrtime();
-      const result = await runSingleRequest(
-        requestItem,
-        collectionPath,
-        runtimeVariables,
-        envVars,
-        processEnvVars,
-        brunoConfig,
-        collectionRoot,
-        runtime,
-        collection,
-        runSingleRequestByPathname,
-        globalEnvVars
-      );
+        const start = process.hrtime();
+        const result = await runSingleRequest(
+          requestItem,
+          collectionPath,
+          runtimeVariables,
+          envVars,
+          processEnvVars,
+          brunoConfig,
+          collectionRoot,
+          runtime,
+          collection,
+          runSingleRequestByPathname,
+          globalEnvVars
+        );
 
-      const isLastRun = currentRequestIndex === requestItems.length - 1;
-      const isValidDelay = !Number.isNaN(delay) && delay > 0;
-      if (isValidDelay && !isLastRun) {
-        console.log(chalk.yellow(`Waiting for ${delay}ms or ${(delay / 1000).toFixed(3)}s before next request.`));
-        await new Promise((resolve) => setTimeout(resolve, delay));
-      }
+        const isLastRun = currentRequestIndex === requestItems.length - 1;
+        const isValidDelay = !Number.isNaN(delay) && delay > 0;
+        if (isValidDelay && !isLastRun) {
+          console.log(chalk.yellow(`Waiting for ${delay}ms or ${(delay / 1000).toFixed(3)}s before next request.`));
+          await new Promise((resolve) => setTimeout(resolve, delay));
+        }
 
-      if (Number.isNaN(delay) && !isLastRun) {
-        console.log(chalk.red(`Ignoring delay because it's not a valid number.`));
-      }
+        if (Number.isNaN(delay) && !isLastRun) {
+          console.log(chalk.red(`Ignoring delay because it's not a valid number.`));
+        }
 
-      results.push({
-        ...result,
-        runDuration: process.hrtime(start)[0] + process.hrtime(start)[1] / 1e9,
-        suitename: pathname.replace('.bru', ''),
-        name,
-        path: result.test?.filename || path.relative(collectionPath, pathname)
-      });
+        results.push({
+          ...result,
+          iterationIndex,
+          runDuration: process.hrtime(start)[0] + process.hrtime(start)[1] / 1e9,
+          suitename: pathname.replace('.bru', ''),
+          name,
+          path: result.test?.filename || path.relative(collectionPath, pathname)
+        });
 
-      sanitizeResultsForReporter(results, {
-        skipAllHeaders: reporterSkipAllHeaders,
-        skipHeaders: reporterSkipHeaders,
-        skipRequestBody: reporterSkipRequestBody || reporterSkipBody,
-        skipResponseBody: reporterSkipResponseBody || reporterSkipBody
-      });
+        sanitizeResultsForReporter(results, {
+          skipAllHeaders: reporterSkipAllHeaders,
+          skipHeaders: reporterSkipHeaders,
+          skipRequestBody: reporterSkipRequestBody || reporterSkipBody,
+          skipResponseBody: reporterSkipResponseBody || reporterSkipBody
+        });
 
-      // bail if option is set and there is a failure
-      if (bail) {
-        const requestFailure = result?.error && !result?.skipped;
-        const testFailure = result?.testResults?.find((iter) => iter.status === 'fail');
-        const assertionFailure = result?.assertionResults?.find((iter) => iter.status === 'fail');
-        const preRequestTestFailure = result?.preRequestTestResults?.find((iter) => iter.status === 'fail');
-        const postResponseTestFailure = result?.postResponseTestResults?.find((iter) => iter.status === 'fail');
-        if (requestFailure || testFailure || assertionFailure || preRequestTestFailure || postResponseTestFailure) {
+        // bail if option is set and there is a failure
+        if (bail) {
+          const requestFailure = result?.error && !result?.skipped;
+          const testFailure = result?.testResults?.find((iter) => iter.status === 'fail');
+          const assertionFailure = result?.assertionResults?.find((iter) => iter.status === 'fail');
+          const preRequestTestFailure = result?.preRequestTestResults?.find((iter) => iter.status === 'fail');
+          const postResponseTestFailure = result?.postResponseTestResults?.find((iter) => iter.status === 'fail');
+          if (requestFailure || testFailure || assertionFailure || preRequestTestFailure || postResponseTestFailure) {
+            bailOuter = true;
+            break;
+          }
+        }
+
+        // determine next request
+        const nextRequestName = result?.nextRequestName;
+
+        if (result?.shouldStopRunnerExecution) {
+          bailOuter = true;
           break;
         }
-      }
 
-      // determine next request
-      const nextRequestName = result?.nextRequestName;
-
-      if (result?.shouldStopRunnerExecution) {
-        break;
-      }
-
-      if (nextRequestName !== undefined) {
-        nJumps++;
-        if (nJumps > 10000) {
-          console.error(chalk.red(`Too many jumps, possible infinite loop`));
-          process.exit(constants.EXIT_STATUS.ERROR_INFINITE_LOOP);
-        }
-        if (nextRequestName === null) {
-          break;
-        }
-        const nextRequestIdx = requestItems.findIndex((iter) => iter.name === nextRequestName);
-        if (nextRequestIdx >= 0) {
-          currentRequestIndex = nextRequestIdx;
+        if (nextRequestName !== undefined) {
+          nJumps++;
+          if (nJumps > 10000) {
+            console.error(chalk.red(`Too many jumps, possible infinite loop`));
+            process.exit(constants.EXIT_STATUS.ERROR_INFINITE_LOOP);
+          }
+          if (nextRequestName === null) {
+            break;
+          }
+          const nextRequestIdx = requestItems.findIndex((iter) => iter.name === nextRequestName);
+          if (nextRequestIdx >= 0) {
+            currentRequestIndex = nextRequestIdx;
+          } else {
+            console.error('Could not find request with name \'' + nextRequestName + '\'');
+            currentRequestIndex++;
+          }
         } else {
-          console.error('Could not find request with name \'' + nextRequestName + '\'');
           currentRequestIndex++;
         }
-      } else {
-        currentRequestIndex++;
       }
     }
 

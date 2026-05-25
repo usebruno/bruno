@@ -44,7 +44,9 @@ class Bru {
     collectionName,
     promptVariables,
     certsAndProxyConfig,
-    requestUrl
+    requestUrl,
+    iterationData,
+    iterationIndex
   }) {
     this.envVariables = envVariables || {};
     this.runtimeVariables = runtimeVariables || {};
@@ -81,6 +83,16 @@ class Bru {
       setNextRequest: (nextRequest) => {
         this.nextRequest = nextRequest;
       }
+    };
+
+    const _iterationData = iterationData || {};
+    this.iterationData = {
+      get: (key) => _iterationData[key],
+      toObject: () => Object.assign({}, _iterationData)
+    };
+
+    this.iteration = {
+      index: typeof iterationIndex === 'number' ? iterationIndex : 0
     };
 
     this.utils = {

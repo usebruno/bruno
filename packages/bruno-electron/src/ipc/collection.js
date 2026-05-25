@@ -163,6 +163,77 @@ const validatePathIsInsideCollection = (filePath) => {
   }
 };
 
+const parseIterationCSV = (content) => {
+  const normalized = content.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+
+  const splitLines = (text) => {
+    const lines = [];
+    let current = '';
+    let inQuotes = false;
+    for (let i = 0; i < text.length; i++) {
+      const ch = text[i];
+      if (ch === '"') {
+        if (inQuotes && text[i + 1] === '"') {
+          current += '""'; i++;
+        } else {
+          inQuotes = !inQuotes; current += ch;
+        }
+      } else if (ch === '\n' && !inQuotes) {
+        lines.push(current);
+        current = '';
+      } else {
+        current += ch;
+      }
+    }
+    if (current.length > 0) lines.push(current);
+    return lines;
+  };
+
+  const parseFields = (line) => {
+    const fields = [];
+    let pos = 0;
+    while (pos <= line.length) {
+      if (line[pos] === '"') {
+        let field = '';
+        pos++;
+        while (pos < line.length) {
+          if (line[pos] === '"') {
+            if (line[pos + 1] === '"') {
+              field += '"'; pos += 2;
+            } else {
+              pos++; break;
+            }
+          } else {
+            field += line[pos]; pos++;
+          }
+        }
+        fields.push(field);
+        if (line[pos] === ',') pos++;
+      } else {
+        const commaIdx = line.indexOf(',', pos);
+        if (commaIdx === -1) {
+          fields.push(line.slice(pos)); pos = line.length + 1;
+        } else {
+          fields.push(line.slice(pos, commaIdx)); pos = commaIdx + 1;
+        }
+      }
+    }
+    return fields;
+  };
+
+  const lines = splitLines(normalized).filter((l) => l.trim().length > 0);
+  if (lines.length === 0) return [];
+  const headers = parseFields(lines[0]).map((h) => h.trim());
+  if (headers.length === 0) return [];
+
+  return lines.slice(1).map((line) => {
+    const values = parseFields(line);
+    const row = {};
+    headers.forEach((header, idx) => { row[header] = values[idx] !== undefined ? values[idx] : ''; });
+    return row;
+  });
+};
+
 const registerRendererEventHandlers = (mainWindow, watcher) => {
   // create collection
   ipcMain.handle(
@@ -2478,6 +2549,45 @@ const registerMainEventHandlers = (mainWindow, watcher) => {
 
   ipcMain.handle('main:force-quit', () => {
     process.exit();
+  });
+
+  ipcMain.handle('renderer:load-iteration-data-file', async () => {
+    const { filePaths, canceled } = await dialog.showOpenDialog(mainWindow, {
+      properties: ['openFile'],
+      filters: [
+        { name: 'Data Files', extensions: ['csv', 'json'] },
+        { name: 'CSV Files', extensions: ['csv'] },
+        { name: 'JSON Files', extensions: ['json'] }
+      ]
+    });
+
+    if (canceled || filePaths.length === 0) {
+      return null;
+    }
+
+    const filePath = filePaths[0];
+    const ext = path.extname(filePath).toLowerCase();
+    const content = fs.readFileSync(filePath, 'utf8');
+
+    if (ext === '.json') {
+      let data;
+      try {
+        data = JSON.parse(content);
+      } catch (err) {
+        throw new Error(`Failed to parse JSON data file: ${err.message}`);
+      }
+      if (!Array.isArray(data)) {
+        throw new Error('JSON data file must contain an array of objects at the top level.');
+      }
+      return { filePath, rows: data };
+    }
+
+    if (ext === '.csv') {
+      const rows = parseIterationCSV(content);
+      return { filePath, rows };
+    }
+
+    throw new Error(`Unsupported data file format "${ext}". Supported formats: .csv, .json`);
   });
 };
 
