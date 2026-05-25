@@ -386,7 +386,11 @@ function makeAxiosInstance({
                     message: `Recreating consumed FormData for ${statusCode} redirect`
                   });
 
-                  const recreatedForm = createFormData(error.config._originalMultipartData, error.config.collectionPath);
+                  const recreatedForm = createFormData(
+                    error.config._originalMultipartData,
+                    error.config.collectionPath,
+                    error.config._multipartBoundary
+                  );
                   requestConfig.data = recreatedForm;
 
                   const formHeaders = recreatedForm.getHeaders();
@@ -395,6 +399,7 @@ function makeAxiosInstance({
                   // preserve the original data for potential future redirects
                   requestConfig._originalMultipartData = error.config._originalMultipartData;
                   requestConfig.collectionPath = error.config.collectionPath;
+                  requestConfig._multipartBoundary = error.config._multipartBoundary;
                 } else {
                   timeline.push({
                     timestamp: new Date(),
@@ -405,6 +410,7 @@ function makeAxiosInstance({
               } else {
                 requestConfig._originalMultipartData = error.config._originalMultipartData;
                 requestConfig.collectionPath = error.config.collectionPath;
+                requestConfig._multipartBoundary = error.config._multipartBoundary;
               }
             }
           }

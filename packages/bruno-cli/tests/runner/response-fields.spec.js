@@ -75,6 +75,7 @@ jest.mock('@usebruno/common', () => {
       encodeUrl: jest.fn((u) => u),
       buildFormUrlEncodedPayload: jest.fn(),
       extractPromptVariables: mockExtractPromptVariables,
+      extractBoundaryFromContentType: ogUtils.extractBoundaryFromContentType,
       isFormData: jest.fn(() => false),
       hasExplicitScheme: ogUtils.hasExplicitScheme
     }
@@ -84,6 +85,7 @@ jest.mock('@usebruno/common', () => {
 const prepareRequest = require('../../src/runner/prepare-request');
 const { makeAxiosInstance } = require('../../src/utils/axios-instance');
 const { runSingleRequest } = require('../../src/runner/run-single-request');
+const { createFormData } = require('../../src/utils/form-data');
 
 const baseItem = {
   pathname: '/test-collection/request.bru',
@@ -193,5 +195,35 @@ describe('runSingleRequest: duration and size fields (issue #7352)', () => {
     expect(result.response.duration).toBe(0);
     expect(result.response.size).toBe(0);
     expect(result.response.responseTime).toBe(0);
+  });
+
+  it('should pass explicit multipart boundary to createFormData', async () => {
+    const form = { getBoundary: () => 'boundary-from-form', getHeaders: () => ({}) };
+    createFormData.mockReturnValue(form);
+
+    prepareRequest.mockResolvedValue({
+      method: 'POST',
+      url: 'http://example.com/api',
+      headers: { 'content-type': 'multipart/mixed; boundary=TestBoundary123' },
+      data: [{ name: 'part', type: 'text', value: 'hello' }],
+      settings: {}
+    });
+
+    const mockAxios = jest.fn().mockResolvedValue({
+      status: 200,
+      statusText: 'OK',
+      headers: { get: () => null, delete: jest.fn() },
+      data: 'ok',
+      request: { protocol: 'http:', host: 'example.com', path: '/api' }
+    });
+    makeAxiosInstance.mockReturnValue(mockAxios);
+
+    await runSingleRequest(...baseArgs);
+
+    expect(createFormData).toHaveBeenCalledWith(
+      [{ name: 'part', type: 'text', value: 'hello' }],
+      '/test-collection',
+      'TestBoundary123'
+    );
   });
 });

@@ -3,15 +3,15 @@ const FormData = require('form-data');
 const fs = require('fs');
 const path = require('path');
 
+const normalizeBoundary = (b) => {
+  const value = b || 'boundary';
+  return value.replace(/^--+/, '').replace(/--+$/, '');
+};
+
 const formatMultipartData = (multipartData, boundary) => {
   if (!Array.isArray(multipartData) || multipartData.length === 0) {
     return '';
   }
-
-  const normalizeBoundary = (b) => {
-    const value = b || 'boundary';
-    return value.replace(/^--+/, '').replace(/--+$/, '');
-  };
 
   const getFileName = (filePath) => {
     if (typeof filePath === 'string' && filePath.trim()) {
@@ -63,7 +63,7 @@ const createFormData = (data, collectionPath, boundary) => {
   // reference: https://github.com/axios/axios/issues/1006#issuecomment-320165427
   const form = new FormData();
   if (boundary) {
-    form.setBoundary(boundary);
+    form.setBoundary(normalizeBoundary(boundary));
   }
   forEach(data, (datum) => {
     const { name, type, value, contentType } = datum;

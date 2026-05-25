@@ -47,7 +47,11 @@ const createRedirectConfig = (error, redirectUrl) => {
       const formData = requestConfig.data;
       if (formData._released || (formData._streams && formData._streams.length === 0)) {
         if (error.config._originalMultipartData && error.config.collectionPath) {
-          const recreatedForm = createFormData(error.config._originalMultipartData, error.config.collectionPath);
+          const recreatedForm = createFormData(
+            error.config._originalMultipartData,
+            error.config.collectionPath,
+            error.config._multipartBoundary
+          );
           requestConfig.data = recreatedForm;
           const formHeaders = recreatedForm.getHeaders();
           Object.assign(requestConfig.headers, formHeaders);
@@ -55,10 +59,12 @@ const createRedirectConfig = (error, redirectUrl) => {
           // preserve the original data for potential future redirects
           requestConfig._originalMultipartData = error.config._originalMultipartData;
           requestConfig.collectionPath = error.config.collectionPath;
+          requestConfig._multipartBoundary = error.config._multipartBoundary;
         }
       } else {
         requestConfig._originalMultipartData = error.config._originalMultipartData;
         requestConfig.collectionPath = error.config.collectionPath;
+        requestConfig._multipartBoundary = error.config._multipartBoundary;
       }
     }
   }
