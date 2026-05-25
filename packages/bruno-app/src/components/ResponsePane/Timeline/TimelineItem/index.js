@@ -15,11 +15,9 @@ import { addTab, updateRequestPaneTab, updateScriptPaneTab } from 'providers/Red
 import { updateSettingsSelectedTab, updatedFolderSettingsSelectedTab } from 'providers/ReduxStore/slices/collections';
 import { getBadge } from '../entryMeta';
 
-// scope.sourceFile is a posix-relative path (e.g. "subdir/folder.bru"); match
-// against each folder's relative path so Windows backslashes don't matter.
 const findFolderByScopeFile = (collection, sourceFile) => {
   if (!collection?.pathname || !sourceFile) return null;
-  const dir = sourceFile.replace(/\/folder\.(?:bru|yml)$/, '');
+  const dir = sourceFile.replace(/\/folder\.bru$/, '');
   if (!dir || dir === sourceFile) return null;
   return flattenItems(collection.items || []).find(
     (i) => i.type === 'folder' && getRelativePath(collection.pathname, i.pathname) === dir

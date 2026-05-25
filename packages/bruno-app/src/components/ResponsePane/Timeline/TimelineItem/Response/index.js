@@ -1,4 +1,5 @@
 import { useTheme } from 'providers/Theme';
+import { formatSize } from 'utils/common';
 import BodyBlock from '../Common/Body/index';
 import Headers from '../Common/Headers/index';
 
@@ -12,13 +13,6 @@ const safeStringifyJSONIfNotString = (obj) => {
   }
 };
 
-const formatBytes = (n) => {
-  if (typeof n !== 'number' || !isFinite(n) || n < 0) return null;
-  if (n < 1024) return `${n}B`;
-  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)}KB`;
-  return `${(n / (1024 * 1024)).toFixed(2)}MB`;
-};
-
 const statusColor = (theme, statusCode) => {
   if (statusCode >= 200 && statusCode < 300) return theme.requestTabPanel.responseOk;
   if (statusCode >= 300 && statusCode < 400) return theme.colors.text.warning;
@@ -28,7 +22,7 @@ const statusColor = (theme, statusCode) => {
 
 const ResponseMeta = ({ code, statusText, duration, size }) => {
   const { theme } = useTheme();
-  const sizeLabel = formatBytes(size);
+  const sizeLabel = typeof size === 'number' ? formatSize(size) : null;
   const hasCode = code != null;
   const hasAny = hasCode || statusText || (typeof duration === 'number') || sizeLabel;
   if (!hasAny) return null;

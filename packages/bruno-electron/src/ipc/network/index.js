@@ -835,9 +835,6 @@ const registerNetworkIpc = (mainWindow) => {
       });
     };
 
-    // For nested bru.runRequest targets, bubble the inner script's scripted
-    // entries up to the outer caller's bru so the outer Timeline still shows
-    // them (instead of dropping them silently).
     const emitScriptedRequestEvents = (phase, scriptResult) => {
       const entries = scriptResult?.scriptedRequestEntries || [];
       if (runInBackground) {
