@@ -751,6 +751,43 @@ const registerNetworkIpc = (mainWindow) => {
         }
         const _item = cloneDeep(findItemInCollectionByPathname(collection, itemPathname));
         if (_item) {
+          // WS/gRPC items live on separate IPC channels and can't be driven via
+          // the HTTP runRequest. Record a Skipped row so the user sees feedback.
+          if (_item.type === 'ws-request' || _item.type === 'grpc-request') {
+            const protocolLabel = _item.type === 'ws-request' ? 'WebSocket' : 'gRPC';
+            const startedAt = Date.now();
+            callerBru?._recordScriptedRequest?.({
+              source: 'runRequest',
+              request: {
+                method: (_item.request?.method || 'GET').toString().toUpperCase(),
+                url: _item.request?.url,
+                headers: {},
+                data: null
+              },
+              response: {
+                statusCode: null,
+                statusText: 'Skipped',
+                headers: {},
+                data: null,
+                dataBuffer: '',
+                size: 0,
+                duration: 0
+              },
+              error: null,
+              startedAt,
+              completedAt: startedAt
+            });
+            resolve({
+              status: 'skipped',
+              statusText: `bru.runRequest does not support ${protocolLabel} requests`,
+              headers: {},
+              data: null,
+              duration: 0,
+              size: 0
+            });
+            return;
+          }
+
           const startedAt = Date.now();
           let res, err;
           try {
@@ -1366,6 +1403,43 @@ const registerNetworkIpc = (mainWindow) => {
           }
           const _item = cloneDeep(findItemInCollectionByPathname(collection, itemPathname));
           if (_item) {
+            // WS/gRPC items live on separate IPC channels and can't be driven via
+            // the HTTP runRequest. Record a Skipped row so the user sees feedback.
+            if (_item.type === 'ws-request' || _item.type === 'grpc-request') {
+              const protocolLabel = _item.type === 'ws-request' ? 'WebSocket' : 'gRPC';
+              const startedAt = Date.now();
+              callerBru?._recordScriptedRequest?.({
+                source: 'runRequest',
+                request: {
+                  method: (_item.request?.method || 'GET').toString().toUpperCase(),
+                  url: _item.request?.url,
+                  headers: {},
+                  data: null
+                },
+                response: {
+                  statusCode: null,
+                  statusText: 'Skipped',
+                  headers: {},
+                  data: null,
+                  dataBuffer: '',
+                  size: 0,
+                  duration: 0
+                },
+                error: null,
+                startedAt,
+                completedAt: startedAt
+              });
+              resolve({
+                status: 'skipped',
+                statusText: `bru.runRequest does not support ${protocolLabel} requests`,
+                headers: {},
+                data: null,
+                duration: 0,
+                size: 0
+              });
+              return;
+            }
+
             const startedAt = Date.now();
             let res, err;
             try {
