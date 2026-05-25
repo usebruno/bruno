@@ -369,7 +369,12 @@ const importPostmanV2CollectionItem = (brunoParent, item, { useWorkers = false }
   const requestMap = {};
 
   item.forEach((i, index) => {
-    const itemName = (i && i.name) || `Item ${index + 1}`;
+    if (typeof i !== 'object' || i === null) {
+      issues.push({ path: parentPath ? `${parentPath} / Item ${index + 1}` : `Item ${index + 1}`, severity: 'error', message: 'Malformed collection item (not an object)' });
+      return;
+    }
+
+    const itemName = i.name || `Item ${index + 1}`;
     const itemPath = parentPath ? `${parentPath} / ${itemName}` : itemName;
 
     if (isItemAFolder(i)) {
@@ -434,11 +439,12 @@ const importPostmanV2CollectionItem = (brunoParent, item, { useWorkers = false }
 
       folderMap[folderName] = brunoFolderItem;
     } else if (i.request) {
-      const method = i?.request?.method?.toUpperCase();
-      if (!method || typeof method !== 'string' || !method.trim()) {
+      const rawMethod = i?.request?.method;
+      if (!rawMethod || typeof rawMethod !== 'string' || !rawMethod.trim()) {
         issues.push({ path: itemPath, severity: 'error', message: 'Missing or invalid request method', sourceItem: i });
         return;
       }
+      const method = rawMethod.toUpperCase();
 
       try {
         const baseRequestName = i.name || 'Untitled Request';

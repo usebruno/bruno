@@ -177,9 +177,9 @@ export const BulkImportCollectionLocation = ({
           issuesMap[importedCollectionFromBulk[index].uid] = entry.issues;
         }
       });
-      if (Object.keys(issuesMap).length > 0) {
-        setImportIssues(issuesMap);
-      }
+      setImportIssues(issuesMap);
+    } else {
+      setImportIssues({});
     }
   }, [isBulkImport, importData]);
 
@@ -658,12 +658,16 @@ export const BulkImportCollectionLocation = ({
                                 {importIssues[collection.uid].filter((i) => i.severity === 'error').length} item(s) skipped
                               </span>
                               <button
-                                onClick={() => {
+                                onClick={async () => {
                                   const text = importIssues[collection.uid]
                                     .map((i) => `[${i.severity.toUpperCase()}] ${i.path} — ${i.message}`)
                                     .join('\n');
-                                  navigator.clipboard.writeText(text);
-                                  toast.success('Copied to clipboard', { duration: 2000 });
+                                  try {
+                                    await navigator.clipboard.writeText(text);
+                                    toast.success('Copied to clipboard', { duration: 2000 });
+                                  } catch (err) {
+                                    toast.error('Failed to copy to clipboard', { duration: 3000 });
+                                  }
                                 }}
                                 className="text-yellow-600 text-xs hover:underline"
                               >

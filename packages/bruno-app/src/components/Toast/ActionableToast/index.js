@@ -34,7 +34,9 @@ const ActionableToast = ({ t, accentColor, maxWidth = 420, testId, children }) =
       <div className="toast-accent" style={{ background: accent }} />
       <div className="toast-body">
         <button
+          type="button"
           className="toast-close"
+          aria-label="Close toast"
           data-testid={testId ? `${testId}-close` : undefined}
           onClick={() => toast.dismiss(t.id)}
         >

@@ -22,7 +22,7 @@ const ImportIssuesToastContent = ({ issues, summary }) => {
     return `\n\n### Failed Items\n> **Please redact any sensitive information (API keys, tokens, passwords, internal URLs) before submitting.**\n\`\`\`json\n${itemsJson}\n\`\`\``;
   };
 
-  const handleCopy = () => {
+  const handleCopy = async () => {
     let text = issuesSummary;
     if (includeItems) {
       const itemsWithSource = issues.filter((i) => i.sourceItem);
@@ -33,8 +33,12 @@ const ImportIssuesToastContent = ({ issues, summary }) => {
         text += `\n\nFailed Items:\n${itemsText}`;
       }
     }
-    navigator.clipboard.writeText(text);
-    toast.success('Copied to clipboard', { duration: 2000 });
+    try {
+      await navigator.clipboard.writeText(text);
+      toast.success('Copied to clipboard', { duration: 2000 });
+    } catch (err) {
+      toast.error('Failed to copy to clipboard', { duration: 3000 });
+    }
   };
 
   const handleReport = () => {
