@@ -8,6 +8,7 @@ const fs = require('node:fs');
 const { mergeHeaders, mergeScripts, mergeVars, mergeAuth, getTreePathFromCollectionToItem } = require('../utils/collection');
 const path = require('node:path');
 const { isLargeFile } = require('../utils/filesystem');
+const { createFormData } = require('../utils/form-data');
 const { getFormattedOauth2Credentials } = require('../utils/oauth2');
 
 const STREAMING_FILE_SIZE_THRESHOLD = 20 * 1024 * 1024; // 20MB
@@ -409,9 +410,10 @@ const prepareRequest = async (item = {}, collection = {}) => {
   }
 
   if (request.body.mode === 'multipartForm') {
-    axiosRequest.headers['content-type'] = 'multipart/form-data';
     const enabledParams = filter(request.body.multipartForm, (p) => p.enabled);
-    axiosRequest.data = enabledParams;
+    const form = createFormData(enabledParams, collectionPath, STREAMING_FILE_SIZE_THRESHOLD);
+    Object.assign(axiosRequest.headers, form.getHeaders());
+    axiosRequest.data = form;
   }
 
   if (request.body.mode === 'graphql') {
