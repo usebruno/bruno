@@ -607,15 +607,16 @@ const registerNetworkIpc = (mainWindow) => {
 
     const contentType = contentTypeHeader ? request.headers[contentTypeHeader] : '';
     if (typeof contentType === 'string' && contentType.startsWith('multipart/')) {
-      if (!isFormData(request.data)) {
+      if (typeof request.data !== 'string' && !isFormData(request.data)) {
+        const existingBoundary = extractBoundaryFromContentType(contentType);
         request._originalMultipartData = request.data;
         request.collectionPath = collectionPath;
-        let form = createFormData(request.data, collectionPath);
+        let form = createFormData(request.data, collectionPath, existingBoundary);
+        request._multipartBoundary = existingBoundary || form.getBoundary();
         request.data = form;
         if (contentType !== 'multipart/form-data') {
           // Patch: Axios leverages getHeaders method to get the headers so FormData should be monkey patched
           const formHeaders = form.getHeaders();
-          const existingBoundary = extractBoundaryFromContentType(contentType);
           if (existingBoundary) {
             formHeaders['content-type'] = contentType;
           } else {

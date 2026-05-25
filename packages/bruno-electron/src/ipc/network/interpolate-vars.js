@@ -140,7 +140,9 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
         }));
       }
     } else if (contentType.startsWith('multipart/')) {
-      if (Array.isArray(request?.data) && !isFormData(request.data)) {
+      if (request?.data && typeof request.data === 'string') {
+        request.data = _interpolate(request.data);
+      } else if (Array.isArray(request?.data) && !isFormData(request.data)) {
         try {
           request.data = request?.data?.map((d) => ({
             ...d,

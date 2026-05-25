@@ -3,10 +3,15 @@ const FormData = require('form-data');
 const fs = require('fs');
 const path = require('path');
 
-const createFormData = (data, collectionPath) => {
+const normalizeBoundary = (b) => b.replace(/^--+/, '').replace(/--+$/, '');
+
+const createFormData = (data, collectionPath, boundary) => {
   // make axios work in node using form data
   // reference: https://github.com/axios/axios/issues/1006#issuecomment-320165427
   const form = new FormData();
+  if (boundary) {
+    form.setBoundary(normalizeBoundary(boundary));
+  }
   forEach(data, (datum) => {
     const { name, type, value, contentType } = datum;
     let options = {};
