@@ -20,4 +20,5 @@ body:multipart-form {
 
 assert {
   res.body: matches ^[-]+[a-z0-9]+
+  res.body: matches Content-Type:\s*multipart\/mixed;\s*boundary=
 }
