@@ -93,7 +93,6 @@ test.describe('Snapshot: folder Pane Interactivity', () => {
 
       const snapshot = readSnapshot(userDataPath);
       const tab = findSnapshotFolderTab(snapshot, 'TestFolder');
-      console.log({ tab });
       expect(tab).toBeTruthy();
       expect(tab.type).toBe('folder-settings');
       expect(tab.permanent).toBe(true);
