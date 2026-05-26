@@ -20,7 +20,8 @@ import {
   IconSettings,
   IconTerminal2,
   IconFolder,
-  IconBook
+  IconBook,
+  IconPlus
 } from '@tabler/icons';
 import OpenAPISyncIcon from 'components/Icons/OpenAPISync';
 import { toggleCollection, collapseFullCollection } from 'providers/ReduxStore/slices/collections';
@@ -53,6 +54,7 @@ import StatusBadge from 'ui/StatusBadge';
 import { useBetaFeature, BETA_FEATURES } from 'utils/beta-features';
 import { useSidebarAccordion } from 'components/Sidebar/SidebarAccordionContext';
 import { createEmptyStateMenuItems } from 'utils/collections/emptyStateRequest';
+import InlineRequestCreator from 'components/Sidebar/InlineRequestCreator';
 import useKeybinding from 'hooks/useKeybinding';
 
 // Delay before showing empty collection state (ms)
@@ -72,6 +74,7 @@ const Collection = ({ collection, searchText }) => {
   const [dropType, setDropType] = useState(null);
   const [isKeyboardFocused, setIsKeyboardFocused] = useState(false);
   const [showEmptyState, setShowEmptyState] = useState(false);
+  const [isInlineCreatingRequest, setIsInlineCreatingRequest] = useState(false);
   const dispatch = useDispatch();
   const isLoading = collection.isLoading;
   const collectionRef = useRef(null);
@@ -81,6 +84,7 @@ const Collection = ({ collection, searchText }) => {
 
   const isCollectionFocused = useSelector(isTabForItemActive({ itemUid: collection.uid }));
   const { hasCopiedItems } = useSelector((state) => state.app.clipboard);
+  const requestCreationStyle = useSelector((state) => state.app.preferences?.sidebar?.requestCreationStyle || 'modal');
   const menuDropdownRef = useRef(null);
 
   // Open the OpenAPI Sync tab
@@ -326,7 +330,12 @@ const Collection = ({ collection, searchText }) => {
   const folderItems = sortByNameThenSequence(filter(collection.items, (i) => isItemAFolder(i) && !i.isTransient));
   const showEmptyCollectionMessage = showEmptyState && !hasSearchText;
 
-  const emptyStateMenuItems = createEmptyStateMenuItems({ dispatch, collection, itemUid: null });
+  const emptyStateMenuItems = createEmptyStateMenuItems({
+    dispatch,
+    collection,
+    itemUid: null,
+    enterRenameMode: requestCreationStyle === 'inline-rename'
+  });
 
   const menuItems = [
     {
@@ -501,7 +510,57 @@ const Collection = ({ collection, searchText }) => {
           </div>
           {isLoading ? <IconLoader2 className="animate-spin mx-1" size={18} strokeWidth={1.5} /> : null}
         </div>
-        <div>
+        <div className="flex items-center">
+          <div>
+            {requestCreationStyle === 'inline-create' ? (
+              <ActionIcon
+                className="collection-actions"
+                aria-label="New Request"
+                data-testid="collection-new-request"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  ensureCollectionIsMounted();
+                  if (collection.collapsed) {
+                    dispatch(toggleCollection(collection.uid));
+                  }
+                  setIsInlineCreatingRequest(true);
+                }}
+              >
+                <IconPlus size={16} />
+              </ActionIcon>
+            ) : requestCreationStyle === 'inline-rename' ? (
+              <MenuDropdown
+                items={emptyStateMenuItems.map((it) => ({
+                  ...it,
+                  onClick: () => {
+                    ensureCollectionIsMounted();
+                    it.onClick?.();
+                  }
+                }))}
+                placement="bottom-end"
+                appendTo={dropdownContainerRef?.current || document.body}
+                popperOptions={{ strategy: 'fixed' }}
+                data-testid="collection-new-request"
+              >
+                <ActionIcon className="collection-actions" aria-label="New Request">
+                  <IconPlus size={16} />
+                </ActionIcon>
+              </MenuDropdown>
+            ) : (
+              <ActionIcon
+                className="collection-actions"
+                aria-label="New Request"
+                data-testid="collection-new-request"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  ensureCollectionIsMounted();
+                  setShowNewRequestModal(true);
+                }}
+              >
+                <IconPlus size={18} />
+              </ActionIcon>
+            )}
+          </div>
           <div className="pr-2">
             <MenuDropdown
               ref={menuDropdownRef}
@@ -527,6 +586,17 @@ const Collection = ({ collection, searchText }) => {
             {requestItems?.map?.((i) => {
               return <CollectionItem key={i.uid} item={i} collectionUid={collection.uid} collectionPathname={collection.pathname} searchText={searchText} />;
             })}
+            {isInlineCreatingRequest ? (
+              <InlineRequestCreator
+                collection={collection}
+                parentItemUid={null}
+                depth={0}
+                onDone={({ openAdvanced } = {}) => {
+                  setIsInlineCreatingRequest(false);
+                  if (openAdvanced) setShowNewRequestModal(true);
+                }}
+              />
+            ) : null}
             {showEmptyCollectionMessage ? (
               <div className="empty-collection-message">
                 <div className="indent-block" style={{ width: 16, minWidth: 16, height: '100%' }}>

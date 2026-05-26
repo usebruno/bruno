@@ -19,6 +19,7 @@ const initialState = {
   sidebarCollapsed: false,
   showSidebarSearch: false,
   focusedSidebarPath: null,
+  itemBeingRenamed: null,
   screenWidth: 500,
   showHomePage: false,
   showApiSpecPage: false,
@@ -59,6 +60,10 @@ const initialState = {
       sslSession: {
         enabled: false
       }
+    },
+    sidebar: {
+      // Demo toggle: 'modal' | 'inline-rename' | 'inline-create'
+      requestCreationStyle: 'modal'
     }
   },
   generateCode: {
@@ -196,6 +201,9 @@ export const appSlice = createSlice({
     setFocusedSidebarPath: (state, action) => {
       state.focusedSidebarPath = action.payload;
     },
+    setItemBeingRenamed: (state, action) => {
+      state.itemBeingRenamed = action.payload;
+    },
     updateGitOperationProgress: (state, action) => {
       const { uid, data } = action.payload;
       if (!state.gitOperationProgress[uid]) {
@@ -267,6 +275,7 @@ export const {
   toggleSidebarCollapse,
   toggleSidebarSearch,
   setFocusedSidebarPath,
+  setItemBeingRenamed,
   updateGitOperationProgress,
   removeGitOperationProgress,
   setGitVersion,

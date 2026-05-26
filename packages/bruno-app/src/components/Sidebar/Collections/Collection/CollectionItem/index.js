@@ -18,15 +18,17 @@ import {
   IconTrash,
   IconSettings,
   IconInfoCircle,
-  IconTerminal2
+  IconTerminal2,
+  IconPlus
 } from '@tabler/icons';
 import { useSelector, useDispatch } from 'react-redux';
 import { addTab, focusTab, makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
-import { handleCollectionItemDrop, sendRequest, showInFolder, pasteItem, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
+import { handleCollectionItemDrop, sendRequest, showInFolder, pasteItem, saveRequest, renameItem } from 'providers/ReduxStore/slices/collections/actions';
 import { toggleCollectionItem, addResponseExample } from 'providers/ReduxStore/slices/collections';
 import { insertTaskIntoQueue } from 'providers/ReduxStore/slices/app';
 import { uuid } from 'utils/common';
-import { copyRequest, setFocusedSidebarPath } from 'providers/ReduxStore/slices/app';
+import { sanitizeName } from 'utils/common/regex';
+import { copyRequest, setFocusedSidebarPath, setItemBeingRenamed } from 'providers/ReduxStore/slices/app';
 import NewRequest from 'components/Sidebar/NewRequest';
 import NewFolder from 'components/Sidebar/NewFolder';
 import RenameCollectionItem from './RenameCollectionItem';
@@ -52,6 +54,7 @@ import {
 } from 'src/selectors/tab';
 import { isEqual } from 'lodash';
 import { createEmptyStateMenuItems } from 'utils/collections/emptyStateRequest';
+import InlineRequestCreator from 'components/Sidebar/InlineRequestCreator';
 import { calculateDraggedItemNewPathname, getInitialExampleName, findParentItemInCollection } from 'utils/collections/index';
 import { sortByNameThenSequence } from 'utils/common/index';
 import { getRevealInFolderLabel } from 'utils/common/platform';
@@ -102,6 +105,58 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
   const hasSearchText = searchText && searchText?.trim()?.length;
   const itemIsCollapsed = hasSearchText ? false : item.collapsed;
   const isFolder = isItemAFolder(item);
+  const isRenaming = useSelector((state) => state.app.itemBeingRenamed === item.pathname);
+  const isRenameInFlightRef = useRef(false);
+  const [advancedNewRequestModalOpen, setAdvancedNewRequestModalOpen] = useState(false);
+  const [isInlineCreatingRequest, setIsInlineCreatingRequest] = useState(false);
+  const requestCreationStyle = useSelector((state) => state.app.preferences?.sidebar?.requestCreationStyle || 'modal');
+
+  const handleInlineRenameCog = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dispatch(setItemBeingRenamed(null));
+    setAdvancedNewRequestModalOpen(true);
+  };
+
+  const performInlineRename = async (newName) => {
+    if (isRenameInFlightRef.current) return;
+    isRenameInFlightRef.current = true;
+    const trimmed = newName?.trim();
+    if (!trimmed || trimmed === item.name) {
+      dispatch(setItemBeingRenamed(null));
+      isRenameInFlightRef.current = false;
+      return;
+    }
+    try {
+      await dispatch(
+        renameItem({
+          itemUid: item.uid,
+          collectionUid,
+          newName: trimmed,
+          newFilename: sanitizeName(trimmed)
+        })
+      );
+    } catch (err) {
+      toast.error(err?.message || 'Failed to rename');
+    } finally {
+      dispatch(setItemBeingRenamed(null));
+      isRenameInFlightRef.current = false;
+    }
+  };
+
+  const handleRenameKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      performInlineRename(e.currentTarget.value);
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      dispatch(setItemBeingRenamed(null));
+    }
+  };
+
+  const handleRenameBlur = (e) => {
+    performInlineRename(e.currentTarget.value);
+  };
 
   // Check if request has examples (only for HTTP requests)
   const hasExamples = isItemARequest(item) && item.type === 'http-request' && item.examples && item.examples.length > 0;
@@ -544,7 +599,12 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
   const requestItems = sortItemsBySequence(filter(item.items, (i) => isItemARequest(i) && !i.isTransient));
   const showEmptyFolderMessage = isFolder && !hasSearchText && !folderItems?.length && !requestItems?.length;
 
-  const emptyFolderMenuItems = createEmptyStateMenuItems({ dispatch, collection, itemUid: item.uid });
+  const emptyFolderMenuItems = createEmptyStateMenuItems({
+    dispatch,
+    collection,
+    itemUid: item.uid,
+    enterRenameMode: requestCreationStyle === 'inline-rename'
+  });
 
   const handleGenerateCode = () => {
     if (
@@ -621,6 +681,13 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
       )}
       {newRequestModalOpen && (
         <NewRequest item={item} collectionUid={collectionUid} onClose={() => setNewRequestModalOpen(false)} />
+      )}
+      {advancedNewRequestModalOpen && (
+        <NewRequest
+          item={findParentItemInCollection(collection, item.uid)}
+          collectionUid={collectionUid}
+          onClose={() => setAdvancedNewRequestModalOpen(false)}
+        />
       )}
       {newFolderModalOpen && (
         <NewFolder item={item} collectionUid={collectionUid} onClose={() => setNewFolderModalOpen(false)} />
@@ -702,25 +769,110 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
 
             <div className="ml-1 flex w-full h-full items-center overflow-hidden">
               <CollectionItemIcon item={item} />
-              <span className="item-name" title={item.name}>
-                {item.name}
-              </span>
+              {isRenaming ? (
+                <div className="inline-rename-wrapper ml-1">
+                  <input
+                    ref={(el) => {
+                      if (el && !el.dataset.focused) {
+                        el.dataset.focused = '1';
+                        el.focus();
+                        el.select();
+                      }
+                    }}
+                    type="text"
+                    className="inline-rename-input"
+                    defaultValue={item.name}
+                    onClick={(e) => e.stopPropagation()}
+                    onDoubleClick={(e) => e.stopPropagation()}
+                    onKeyDown={handleRenameKeyDown}
+                    onFocus={(e) => e.stopPropagation()}
+                    onBlur={(e) => {
+                      e.stopPropagation();
+                      handleRenameBlur(e);
+                    }}
+                    autoComplete="off"
+                    autoCorrect="off"
+                    autoCapitalize="off"
+                    spellCheck="false"
+                    aria-label="Rename request"
+                    data-testid="inline-rename-input"
+                  />
+                  <button
+                    type="button"
+                    className="inline-rename-cog"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={handleInlineRenameCog}
+                    title="Advanced options"
+                    data-testid="inline-rename-cog"
+                  >
+                    <IconSettings size={13} strokeWidth={1.5} />
+                  </button>
+                </div>
+              ) : (
+                <span className="item-name" title={item.name}>
+                  {item.name}
+                </span>
+              )}
             </div>
           </div>
-          <div className="pr-2">
-            <MenuDropdown
-              ref={menuDropdownRef}
-              items={buildMenuItems()}
-              placement="bottom-start"
-              data-testid="collection-item-menu"
-              popperOptions={{ strategy: 'fixed' }}
-              appendTo={dropdownContainerRef?.current || document.body}
-            >
-              <ActionIcon className="menu-icon">
-                <IconDots size={18} className="collection-item-menu-icon" />
-              </ActionIcon>
-            </MenuDropdown>
-          </div>
+          {!isRenaming && (
+            <div className="flex items-center pr-2">
+              {isFolder ? (
+                requestCreationStyle === 'inline-create' ? (
+                  <ActionIcon
+                    className="menu-icon"
+                    aria-label="New Request"
+                    data-testid="folder-new-request"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (item.collapsed) {
+                        dispatch(toggleCollectionItem({ itemUid: item.uid, collectionUid }));
+                      }
+                      setIsInlineCreatingRequest(true);
+                    }}
+                  >
+                    <IconPlus size={16} className="collection-item-menu-icon" />
+                  </ActionIcon>
+                ) : requestCreationStyle === 'inline-rename' ? (
+                  <MenuDropdown
+                    items={emptyFolderMenuItems}
+                    placement="bottom-end"
+                    appendTo={dropdownContainerRef?.current || document.body}
+                    popperOptions={{ strategy: 'fixed' }}
+                    data-testid="folder-new-request"
+                  >
+                    <ActionIcon className="menu-icon" aria-label="New Request">
+                      <IconPlus size={16} className="collection-item-menu-icon" />
+                    </ActionIcon>
+                  </MenuDropdown>
+                ) : (
+                  <ActionIcon
+                    className="menu-icon"
+                    aria-label="New Request"
+                    data-testid="folder-new-request"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setNewRequestModalOpen(true);
+                    }}
+                  >
+                    <IconPlus size={18} className="collection-item-menu-icon" />
+                  </ActionIcon>
+                )
+              ) : null}
+              <MenuDropdown
+                ref={menuDropdownRef}
+                items={buildMenuItems()}
+                placement="bottom-start"
+                data-testid="collection-item-menu"
+                popperOptions={{ strategy: 'fixed' }}
+                appendTo={dropdownContainerRef?.current || document.body}
+              >
+                <ActionIcon className="menu-icon">
+                  <IconDots size={18} className="collection-item-menu-icon" />
+                </ActionIcon>
+              </MenuDropdown>
+            </div>
+          )}
         </div>
       </div>
       {!itemIsCollapsed ? (
@@ -735,6 +887,17 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
                 return <CollectionItem key={i.uid} item={i} collectionUid={collectionUid} collectionPathname={collectionPathname} searchText={searchText} />;
               })
             : null}
+          {isInlineCreatingRequest ? (
+            <InlineRequestCreator
+              collection={collection}
+              parentItemUid={item.uid}
+              depth={item.depth + 1}
+              onDone={({ openAdvanced } = {}) => {
+                setIsInlineCreatingRequest(false);
+                if (openAdvanced) setNewRequestModalOpen(true);
+              }}
+            />
+          ) : null}
           {showEmptyFolderMessage ? (
             <div className="empty-folder-message">
               {range(item.depth + 1).map((i) => (

@@ -1381,7 +1381,7 @@ export const newHttpRequest = (params) => (dispatch, getState) => {
                 preview: false
               })
             );
-            resolve();
+            resolve(fullName);
           })
           .catch(reject);
       } else {
@@ -1412,7 +1412,7 @@ export const newHttpRequest = (params) => (dispatch, getState) => {
                 itemPathname: fullName
               })
             );
-            resolve();
+            resolve(fullName);
           })
           .catch(reject);
       } else {
@@ -1442,7 +1442,7 @@ export const newHttpRequest = (params) => (dispatch, getState) => {
                   itemPathname: fullName
                 })
               );
-              resolve();
+              resolve(fullName);
             })
             .catch(reject);
         } else {
@@ -1538,7 +1538,7 @@ export const newGrpcRequest = (params) => (dispatch, getState) => {
               preview: false
             })
           );
-          resolve();
+          resolve(fullName);
         })
         .catch(reject);
     } else {
@@ -1574,7 +1574,7 @@ export const newGrpcRequest = (params) => (dispatch, getState) => {
               itemPathname: fullName
             })
           );
-          resolve();
+          resolve(fullName);
         })
         .catch(reject);
     }
@@ -1666,7 +1666,7 @@ export const newWsRequest = (params) => (dispatch, getState) => {
               preview: false
             })
           );
-          resolve();
+          resolve(fullName);
         })
         .catch(reject);
     } else {
@@ -1702,7 +1702,7 @@ export const newWsRequest = (params) => (dispatch, getState) => {
               itemPathname: fullName
             })
           );
-          resolve();
+          resolve(fullName);
         })
         .catch(reject);
     }

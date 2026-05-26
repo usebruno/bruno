@@ -393,6 +393,39 @@ const General = () => {
           <div className="text-red-500">{formik.errors.defaultLocation}</div>
         ) : null}
       </form>
+      <div className="section-header mt-2">Request Creation Style (Demo)</div>
+      <p className="text-muted mt-1 text-xs">
+        Switches the behavior of the sidebar <code>+</code> button on collection and folder rows.
+      </p>
+      <div className="flex flex-col mt-3 gap-2 mb-16 pb-12" data-testid="request-creation-style-radio-group">
+        {[
+          { value: 'modal', label: 'Modal — opens the New Request dialog (current default)' },
+          { value: 'inline-rename', label: 'Inline rename — creates request immediately, then inline-renames' },
+          { value: 'inline-create', label: 'Inline create — type chip + name input + cog, deferred create' }
+        ].map((opt) => (
+          <label key={opt.value} className="flex items-center select-none cursor-pointer">
+            <input
+              type="radio"
+              name="requestCreationStyle"
+              value={opt.value}
+              checked={(preferences?.sidebar?.requestCreationStyle || 'modal') === opt.value}
+              onChange={() => {
+                dispatch(
+                  savePreferences({
+                    ...preferences,
+                    sidebar: {
+                      ...(preferences?.sidebar || {}),
+                      requestCreationStyle: opt.value
+                    }
+                  })
+                ).catch(() => toast.error('Failed to update preference'));
+              }}
+              className="mr-2"
+            />
+            <span>{opt.label}</span>
+          </label>
+        ))}
+      </div>
     </StyledWrapper>
   );
 };
