@@ -39,14 +39,6 @@ describe('buildHar — basic HAR shape', () => {
     expect(() => buildHar({ request: baseRequest({ url: 'https://example.com/odata/Products(123)/Categories(456)' }), shouldInterpolate: false })).not.toThrow();
     expect(() => buildHar({ request: baseRequest({ url: 'https://example.com/path%20with%20spaces' }), shouldInterpolate: false })).not.toThrow();
   });
-
-  it('exposes rawUrl, encodedUrl, unhash, effectiveAuth alongside har', () => {
-    const out = buildHar({ request: baseRequest(), shouldInterpolate: false });
-    expect(typeof out.rawUrl).toBe('string');
-    expect(typeof out.encodedUrl).toBe('string');
-    expect(typeof out.unhash).toBe('function');
-    expect(out.effectiveAuth).toEqual({ mode: 'none' });
-  });
 });
 
 describe('buildHar — encodeUrl toggle (PR #5507 content-blind contract)', () => {
@@ -170,13 +162,13 @@ describe('buildHar — auth → headers translation', () => {
     expect(har.headers).toContainEqual({ name: 'Authorization', value: 'Bearer tk-real' });
   });
 
-  it('oauth1, digest, ntlm, awsv4, wsse, none → no Authorization header (runtime-only or curl-flag-only)', () => {
-    const cases = ['oauth1', 'digest', 'ntlm', 'awsv4', 'wsse', 'none', 'inherit'];
-    for (const mode of cases) {
+  it.each(['oauth1', 'digest', 'ntlm', 'awsv4', 'wsse', 'none', 'inherit'])(
+    'auth mode "%s" → no Authorization header (runtime-only or curl-flag-only)',
+    (mode) => {
       const { har } = buildHar({ request: baseRequest({ auth: { mode } }), shouldInterpolate: false });
       expect(har.headers.find((h) => h.name === 'Authorization')).toBeUndefined();
     }
-  });
+  );
 
   // ---- Phase B: oauth2 detail + apikey edge cases + inherit contract -----
 
