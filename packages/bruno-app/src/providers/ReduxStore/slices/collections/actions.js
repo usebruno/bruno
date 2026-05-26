@@ -3270,3 +3270,54 @@ export const reopenClosedTab = ({ collectionUid } = {}) => async (dispatch) => {
   dispatch(reopenLastClosedTab({ collectionUid }));
   await dispatch(ensureActiveTabInCurrentWorkspace());
 };
+
+export const saveAllCollectionChanges = (collection) => async (dispatch) => {
+  const collectionUid = collection.uid;
+
+  const requestDrafts = [];
+  const collectionDrafts = [];
+  const folderDrafts = [];
+  const promises = [];
+
+  // Collection settings draft
+  if (collection.draft) {
+    collectionDrafts.push({ collectionUid });
+  }
+
+  // Environment draft
+  if (collection.environmentsDraft) {
+    const { environmentUid, variables } = collection.environmentsDraft;
+    const environment = findEnvironmentInCollection(collection, environmentUid);
+    if (environment && variables) {
+      promises.push(dispatch(saveEnvironment(variables, environmentUid, collectionUid)));
+    }
+  }
+
+  // Request and folder drafts
+  const items = flattenItems(collection.items || []);
+  const requests = items.filter((item) => isItemARequest(item) && item.draft);
+  requests.forEach((draft) => {
+    requestDrafts.push({ ...draft, collectionUid });
+  });
+
+  const folders = items.filter((item) => item.type === 'folder' && item.draft);
+  folders.forEach((folder) => {
+    folderDrafts.push({ folderUid: folder.uid, collectionUid });
+  });
+
+  if (collectionDrafts.length > 0) {
+    promises.push(dispatch(saveMultipleCollections(collectionDrafts)));
+  }
+  if (folderDrafts.length > 0) {
+    promises.push(dispatch(saveMultipleFolders(folderDrafts)));
+  }
+  if (requestDrafts.length > 0) {
+    promises.push(dispatch(saveMultipleRequests(requestDrafts)));
+  }
+
+  if (promises.length === 0) {
+    return;
+  }
+
+  return Promise.all(promises);
+};

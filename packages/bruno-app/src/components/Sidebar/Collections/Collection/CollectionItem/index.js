@@ -36,7 +36,7 @@ import RunCollectionItem from './RunCollectionItem';
 import GenerateCodeItem from './GenerateCodeItem';
 import { isItemARequest, isItemAFolder } from 'utils/tabs';
 import { doesRequestMatchSearchText, doesFolderHaveItemsMatchSearchText } from 'utils/collections/search';
-import { getDefaultRequestPaneTab } from 'utils/collections';
+import { getDefaultRequestPaneTab, hasRequestChanges } from 'utils/collections';
 import toast from 'react-hot-toast';
 import StyledWrapper from './StyledWrapper';
 import NetworkError from 'components/ResponsePane/NetworkError/index';
@@ -105,6 +105,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
 
   // Check if request has examples (only for HTTP requests)
   const hasExamples = isItemARequest(item) && item.type === 'http-request' && item.examples && item.examples.length > 0;
+  const hasUnsavedChanges = isItemARequest(item) && hasRequestChanges(item);
 
   // Sidebar shortcuts — only active when this sidebar item has keyboard focus
   useKeybinding('cloneItem', () => {
@@ -705,6 +706,11 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
               <span className="item-name" title={item.name}>
                 {item.name}
               </span>
+              {hasUnsavedChanges ? (
+                <ActionIcon style={{ width: 16, minWidth: 16 }}>
+                  <span className="unsaved-indicator" />
+                </ActionIcon>
+              ) : null}
             </div>
           </div>
           <div className="pr-2">

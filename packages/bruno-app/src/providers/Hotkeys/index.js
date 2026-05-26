@@ -21,6 +21,7 @@ export const HotkeysProvider = (props) => {
   const tabs = useSelector((state) => state.tabs.tabs);
   const collections = useSelector((state) => state.collections.collections);
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
+  const activeTabHistory = useSelector((state) => state.tabs.activeTabHistory);
   const userKeyBindings = useSelector((state) => state.app.preferences?.keyBindings);
   const keybindingsEnabled = useSelector((state) => state.app.preferences?.keybindingsEnabled !== false);
   const [showNewRequestModal, setShowNewRequestModal] = useState(false);
@@ -123,35 +124,62 @@ export const HotkeysProvider = (props) => {
 
   // Switch to the previous tab (active-collection-tabs-only)
   useEffect(() => {
-    bindAction('switchToPreviousTab', (e) => {
+    const handler = (e) => {
       const collectionTabs = getCollectionTabs();
       if (collectionTabs.length === 0) return false;
       const currentIndex = collectionTabs.findIndex((t) => t.uid === activeTabUid);
       const prevIndex = (currentIndex - 1 + collectionTabs.length) % collectionTabs.length;
       dispatch(focusTab({ uid: collectionTabs[prevIndex].uid }));
       return false;
-    });
+    };
+
+    bindAction('switchToPreviousTab', handler);
+    bindAction('switchToPreviousTabAlternate', handler);
 
     return () => {
       unbindAction('switchToPreviousTab');
+      unbindAction('switchToPreviousTabAlternate');
     };
   }, [activeTabUid, tabs, dispatch, userKeyBindings, keybindingsEnabled]);
 
   // Switch to the next tab (active-collection-tabs-only)
   useEffect(() => {
-    bindAction('switchToNextTab', (e) => {
+    const handler = (e) => {
       const collectionTabs = getCollectionTabs();
       if (collectionTabs.length === 0) return false;
       const currentIndex = collectionTabs.findIndex((t) => t.uid === activeTabUid);
       const nextIndex = (currentIndex + 1) % collectionTabs.length;
       dispatch(focusTab({ uid: collectionTabs[nextIndex].uid }));
       return false;
-    });
+    };
+
+    bindAction('switchToNextTab', handler);
+    bindAction('switchToNextTabAlternate', handler);
 
     return () => {
       unbindAction('switchToNextTab');
+      unbindAction('switchToNextTabAlternate');
     };
   }, [activeTabUid, tabs, dispatch, userKeyBindings, keybindingsEnabled]);
+
+  // Switch to recently used tab
+  useEffect(() => {
+    bindAction('switchToRecentlyUsedTab', (e) => {
+      if (activeTabHistory.length < 2) return false;
+
+      // The first element is the current tab, so we switch to the second one
+      const recentTabUid = activeTabHistory[0] === activeTabUid ? activeTabHistory[1] : activeTabHistory[0];
+
+      if (recentTabUid) {
+        dispatch(focusTab({ uid: recentTabUid }));
+      }
+      return false;
+    });
+
+    return () => {
+      unbindAction('switchToRecentlyUsedTab');
+    };
+  }, [activeTabUid, activeTabHistory, dispatch, userKeyBindings, keybindingsEnabled]);
 
   // Switch to tab at position (Cmd+1 through Cmd+8) and last tab (Cmd+9) — collection-scoped
   useEffect(() => {
