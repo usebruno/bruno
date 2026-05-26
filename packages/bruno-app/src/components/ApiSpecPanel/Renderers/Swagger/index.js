@@ -2,8 +2,6 @@ import { memo } from 'react';
 import SwaggerUI from 'swagger-ui-react';
 import StyledWrapper from './StyledWrapper';
 
-const { ipcRenderer } = window.require('electron');
-
 const serializeHeaders = (headers) => {
   if (!headers) return {};
   if (typeof headers.entries === 'function') {
@@ -18,13 +16,12 @@ const serializeBody = (body) => {
   if (body == null) return undefined;
   if (typeof body === 'string') return body;
   if (body instanceof URLSearchParams) return body.toString();
-  if (body instanceof ArrayBuffer) return Buffer.from(body).toString('binary');
-  // FormData / file uploads are not yet supported by the IPC bridge.
+  // FormData / Blob / ArrayBuffer not yet supported by the IPC bridge.
   return body;
 };
 
 const proxiedFetch = async (url, options = {}) => {
-  const result = await ipcRenderer.invoke('renderer:swagger-fetch', {
+  const result = await window.ipcRenderer.invoke('renderer:swagger-fetch', {
     url,
     method: options.method || 'GET',
     headers: serializeHeaders(options.headers),
@@ -35,7 +32,9 @@ const proxiedFetch = async (url, options = {}) => {
     throw new TypeError(`${result.code}: ${result.message}`);
   }
 
-  const bodyBytes = result.bodyBase64
+  // The Response constructor throws if a null-body status carries a body.
+  const nullBodyStatus = [101, 204, 205, 304].includes(result.status);
+  const bodyBytes = !nullBodyStatus && result.bodyBase64
     ? Uint8Array.from(atob(result.bodyBase64), (c) => c.charCodeAt(0))
     : null;
 
