@@ -11,10 +11,10 @@ const { parseEnvironmentJson } = require('../utils/environment');
 const { isRequestTagsIncluded } = require('@usebruno/common');
 const makeJUnitOutput = require('../reporters/junit');
 const makeHtmlOutput = require('../reporters/html');
-const { rpad } = require('../utils/common');
 const { getOptions } = require('../utils/bru');
 const { parseDotEnv, parseEnvironment } = require('@usebruno/filestore');
 const constants = require('../constants');
+const Table = require('cli-table3');
 const { findItemInCollection, createCollectionJsonFromPathname, getCallStack, FORMAT_CONFIG } = require('../utils/collection');
 const { hasExecutableTestInScript } = require('../utils/request');
 const { createSkippedFileResults } = require('../utils/run');
@@ -23,86 +23,66 @@ const { getSystemProxy } = require('@usebruno/requests');
 const command = 'run [paths...]';
 const desc = 'Run one or more requests/folders';
 
-const formatTestSummary = (label, maxLength, passed, failed, total, errorCount = 0, skippedCount = 0) => {
-  const parts = [
-    `${rpad(label, maxLength)} ${chalk.green(`${passed} passed`)}`
-  ];
+const formatRequestsCellFromSummary = (summary) => {
+  const total = summary.totalRequests || 0;
+  const passed = summary.passedRequests || 0;
+  const failedOrErrored = (summary.failedRequests || 0) + (summary.errorRequests || 0);
+  const totalSkipped = summary.skippedRequests || 0;
+  const skippedByBail = summary.skippedByBail || 0;
+  const skippedByUser = Math.max(totalSkipped - skippedByBail, 0);
 
-  if (failed > 0) parts.push(chalk.red(`${failed} failed`));
-  if (errorCount > 0) parts.push(chalk.red(`${errorCount} error`));
-  if (skippedCount > 0) parts.push(chalk.magenta(`${skippedCount} skipped`));
+  const parts = [];
+  if (passed > 0) parts.push(chalk.green(`${passed} Passed`));
+  if (failedOrErrored > 0) parts.push(chalk.red(`${failedOrErrored} Failed`));
+  if (skippedByUser > 0) parts.push(chalk.magenta(`${skippedByUser} Skipped`));
+  if (skippedByBail > 0) parts.push(chalk.hex(constants.ORANGE_COLOR)(`${skippedByBail} Skipped (Bail)`));
 
-  parts.push(`${total} total`);
-
-  return parts.join(', ');
+  return parts.length ? `${total} (${parts.join(', ')})` : `${total}`;
 };
 
-const printRunSummary = (results) => {
-  const {
-    totalRequests,
-    passedRequests,
-    failedRequests,
-    skippedRequests,
-    errorRequests,
-    totalAssertions,
-    passedAssertions,
-    failedAssertions,
-    totalTests,
-    passedTests,
-    failedTests,
-    totalPreRequestTests,
-    passedPreRequestTests,
-    failedPreRequestTests,
-    totalPostResponseTests,
-    passedPostResponseTests,
-    failedPostResponseTests
-  } = getRunnerSummary(results);
+const printGenericTable = (headers, rows, title) => {
+  const colAligns = headers.map((_, idx) => (idx === 0 ? 'left' : 'center'));
+  const table = new Table({ head: headers, style: { head: [], border: [] }, colAligns });
+  rows.forEach((row) => table.push(row));
+  console.log('\n' + chalk.bold(title));
+  console.log(table.toString());
+};
 
-  const maxLength = 12;
+const printRunSummary = (results, bailInfo) => {
+  const summary = getRunnerSummary(results);
+  const skippedByBail = bailInfo?.skippedByBail || 0;
+  const augmentedSummary = { ...summary, skippedByBail };
 
-  const requestSummary = formatTestSummary('Requests:', maxLength, passedRequests, failedRequests, totalRequests, errorRequests, skippedRequests);
-  const testSummary = formatTestSummary('Tests:', maxLength, passedTests, failedTests, totalTests);
-  const assertSummary = formatTestSummary('Assertions:', maxLength, passedAssertions, failedAssertions, totalAssertions);
+  const duration = Math.round(
+    results.reduce((acc, res) => acc + (res.runDuration || 0), 0) * 1000
+  );
 
-  let preRequestTestSummary = '';
-  if (totalPreRequestTests > 0) {
-    preRequestTestSummary = formatTestSummary('Pre-Request Tests:', maxLength, passedPreRequestTests, failedPreRequestTests, totalPreRequestTests);
-  }
+  const hasFailures
+    = summary.failedRequests > 0
+      || summary.failedAssertions > 0
+      || summary.failedTests > 0
+      || (summary.errorRequests || 0) > 0;
 
-  let postResponseTestSummary = '';
-  if (totalPostResponseTests > 0) {
-    postResponseTestSummary = formatTestSummary('Post-Response Tests:', maxLength, passedPostResponseTests, failedPostResponseTests, totalPostResponseTests);
-  }
+  const status = hasFailures
+    ? chalk.red.bold('✗ FAIL')
+    : chalk.green.bold('✓ PASS');
 
-  console.log('\n' + chalk.bold(requestSummary));
-  if (preRequestTestSummary) {
-    console.log(chalk.bold(preRequestTestSummary));
-  }
-  if (postResponseTestSummary) {
-    console.log(chalk.bold(postResponseTestSummary));
-  }
-  console.log(chalk.bold(testSummary));
-  console.log(chalk.bold(assertSummary));
+  const requests = formatRequestsCellFromSummary(augmentedSummary);
+  const tests = `${summary.passedTests}/${summary.totalTests}`;
+  const assertions = `${summary.passedAssertions}/${summary.totalAssertions}`;
 
-  return {
-    totalRequests,
-    passedRequests,
-    failedRequests,
-    skippedRequests,
-    errorRequests,
-    totalAssertions,
-    passedAssertions,
-    failedAssertions,
-    totalTests,
-    passedTests,
-    failedTests,
-    totalPreRequestTests,
-    passedPreRequestTests,
-    failedPreRequestTests,
-    totalPostResponseTests,
-    passedPostResponseTests,
-    failedPostResponseTests
-  };
+  const headers = [chalk.bold('Metric'), chalk.bold('Result')];
+  const rows = [
+    ['Status', status],
+    ['Requests', requests],
+    ['Tests', tests],
+    ['Assertions', assertions],
+    ['Duration (ms)', duration]
+  ];
+
+  printGenericTable(headers, rows, '📊 Execution Summary');
+
+  return { ...summary, skippedByBail };
 };
 
 const getJsSandboxRuntime = (sandbox) => {
@@ -679,6 +659,7 @@ const handler = async function (argv) {
 
     let currentRequestIndex = 0;
     let nJumps = 0; // count the number of jumps to avoid infinite loops
+    let bailInfo = null; // populated only if --bail triggers
     while (currentRequestIndex < requestItems.length) {
       const requestItem = cloneDeep(requestItems[currentRequestIndex]);
       const { name, pathname } = requestItem;
@@ -732,6 +713,49 @@ const handler = async function (argv) {
         const preRequestTestFailure = result?.preRequestTestResults?.find((iter) => iter.status === 'fail');
         const postResponseTestFailure = result?.postResponseTestResults?.find((iter) => iter.status === 'fail');
         if (requestFailure || testFailure || assertionFailure || preRequestTestFailure || postResponseTestFailure) {
+          // Pick the most specific reason for the user-facing message
+          let bailReason;
+          if (requestFailure) bailReason = 'request failure';
+          else if (assertionFailure) bailReason = 'assertion failure';
+          else if (preRequestTestFailure) bailReason = 'pre-request test failure';
+          else if (postResponseTestFailure) bailReason = 'post-response test failure';
+          else bailReason = 'test failure';
+
+          const remainingItems = requestItems.slice(currentRequestIndex + 1);
+
+          // Synthesize "Skipped (Bail)" placeholder results for the requests that never
+          // ran due to bail. These let getRunnerSummary count them as skipped, and the
+          // summary table can distinguish them from user-initiated skips via skipReason.
+          for (const ri of remainingItems) {
+            results.push({
+              status: 'skipped',
+              skipped: true,
+              skipReason: 'bail',
+              testResults: [],
+              assertionResults: [],
+              preRequestTestResults: [],
+              postResponseTestResults: [],
+              response: { status: 'skipped', responseTime: 0 },
+              runDuration: 0,
+              suitename: ri.pathname.replace('.bru', ''),
+              name: ri.name,
+              path: path.relative(collectionPath, ri.pathname)
+            });
+          }
+
+          bailInfo = {
+            bailed: true,
+            bailReason,
+            bailedAt: name,
+            skippedByBail: remainingItems.length
+          };
+
+          console.log(
+            '\n' + chalk.hex(constants.ORANGE_COLOR)(
+              `Bail: Stopping run, ${bailReason} in "${name}". Remaining ${remainingItems.length} request(s) skipped.`
+            )
+          );
+
           break;
         }
       }
@@ -767,7 +791,7 @@ const handler = async function (argv) {
     const skippedFileResults = createSkippedFileResults(global.brunoSkippedFiles || [], collectionPath);
     results.push(...skippedFileResults);
 
-    const summary = printRunSummary(results);
+    const summary = printRunSummary(results, bailInfo);
     const runCompletionTime = new Date().toISOString();
     const totalTime = results.reduce((acc, res) => acc + res.response.responseTime, 0);
     console.log(chalk.dim(chalk.grey(`Ran all requests - ${totalTime} ms`)));
