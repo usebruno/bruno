@@ -390,10 +390,11 @@ export const exportApiSpec = ({ variables, items, name, environments }) => {
               [componentId]: []
             };
             break;
-          case 'oauth2':
+          case 'oauth2': {
             if (!auth?.oauth2?.grantType) break;
             componentId = getItemComponentId();
             const { authorizationUrl, accessTokenUrl, callbackUrl, scope } = auth?.oauth2;
+            const scopes = scope ? { [scope]: '' } : {};
             switch (auth?.oauth2?.grantType) {
               case 'authorization_code':
                 components.securitySchemes[componentId] = {
@@ -402,13 +403,7 @@ export const exportApiSpec = ({ variables, items, name, environments }) => {
                     authorizationCode: {
                       authorizationUrl,
                       tokenUrl: accessTokenUrl,
-                      ...(scope.length > 0
-                        ? {
-                            scopes: {
-                              [scope]: ''
-                            }
-                          }
-                        : {})
+                      scopes
                     }
                   }
                 };
@@ -422,13 +417,7 @@ export const exportApiSpec = ({ variables, items, name, environments }) => {
                   flows: {
                     password: {
                       tokenUrl: accessTokenUrl,
-                      ...(scope.length > 0
-                        ? {
-                            scopes: {
-                              [scope]: ''
-                            }
-                          }
-                        : {})
+                      scopes
                     }
                   }
                 };
@@ -442,13 +431,7 @@ export const exportApiSpec = ({ variables, items, name, environments }) => {
                   flows: {
                     password: {
                       tokenUrl: accessTokenUrl,
-                      ...(scope.length > 0
-                        ? {
-                            scopes: {
-                              [scope]: ''
-                            }
-                          }
-                        : {})
+                      scopes
                     }
                   }
                 };
@@ -458,6 +441,7 @@ export const exportApiSpec = ({ variables, items, name, environments }) => {
                 break;
             }
             break;
+          }
           case 'awsv4':
             componentId = getItemComponentId();
             components.securitySchemes[componentId] = {
