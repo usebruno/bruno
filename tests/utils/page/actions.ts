@@ -1527,45 +1527,76 @@ const openExampleFromSidebar = async (page: Page, requestName: string, exampleNa
   await exampleRow.click();
 };
 
+/**
+ * Open the Generate Code dialog and return the visible snippet text.
+ * @param page - The page object
+ * @returns The text content of the generated code snippet
+ */
 const getGeneratedSnippet = async (page: Page): Promise<string> => {
-  const { request } = buildCommonLocators(page);
+  return await test.step('Open Generate Code dialog and read snippet', async () => {
+    const { request } = buildCommonLocators(page);
 
-  await request.generateCodeButton().click();
-  await expect(page.getByRole('dialog')).toBeVisible();
+    await request.generateCodeButton().click();
+    await expect(page.getByRole('dialog')).toBeVisible();
 
-  const codeEditor = page.locator('.editor-content .CodeMirror').first();
-  await expect(codeEditor).toBeVisible();
+    const codeEditor = page.locator('.editor-content .CodeMirror').first();
+    await expect(codeEditor).toBeVisible();
 
-  return (await codeEditor.textContent()) ?? '';
-};
-
-const closeGenerateCodeDialog = async (page: Page) => {
-  const { modal } = buildCommonLocators(page);
-  await modal.closeButton().click();
-  await modal.closeButton().waitFor({ state: 'hidden' });
-};
-
-const openRequestInFolder = async (page: Page, folderName: string, requestName: string) => {
-  const { sidebar } = buildCommonLocators(page);
-  await sidebar.folder(folderName).click();
-
-  const folderWrapper = page.locator('.collection-item-name').filter({ hasText: folderName }).locator('..');
-  const escapedName = requestName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  const requestRow = folderWrapper.locator('.collection-item-name').filter({
-    has: page.locator('.item-name').filter({ hasText: new RegExp(`^${escapedName}$`) })
+    return (await codeEditor.textContent()) ?? '';
   });
-  await requestRow.click();
 };
 
+/**
+ * Close the Generate Code dialog and wait for it to disappear.
+ * @param page - The page object
+ * @returns void
+ */
+const closeGenerateCodeDialog = async (page: Page) => {
+  await test.step('Close Generate Code dialog', async () => {
+    const { modal } = buildCommonLocators(page);
+    await modal.closeButton().click();
+    await modal.closeButton().waitFor({ state: 'hidden' });
+  });
+};
+
+/**
+ * Open a request inside a folder by exact request name.
+ * @param page - The page object
+ * @param folderName - The name of the folder containing the request
+ * @param requestName - The exact name of the request to open
+ * @returns void
+ */
+const openRequestInFolder = async (page: Page, folderName: string, requestName: string) => {
+  await test.step(`Open request "${requestName}" in folder "${folderName}"`, async () => {
+    const { sidebar } = buildCommonLocators(page);
+    await sidebar.folder(folderName).click();
+
+    const folderWrapper = page.locator('.collection-item-name').filter({ hasText: folderName }).locator('..');
+    const escapedName = requestName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const requestRow = folderWrapper.locator('.collection-item-name').filter({
+      has: page.locator('.item-name').filter({ hasText: new RegExp(`^${escapedName}$`) })
+    });
+    await requestRow.click();
+  });
+};
+
+/**
+ * Toggle the URL encoding setting on the current request idempotently.
+ * @param page - The page object
+ * @param enabled - Whether URL encoding should be enabled
+ * @returns void
+ */
 const setUrlEncoding = async (page: Page, enabled: boolean) => {
-  await selectRequestPaneTab(page, 'Settings');
-  const toggle = page.getByTestId('encode-url-toggle');
-  await expect(toggle).toBeVisible();
-  const current = (await toggle.getAttribute('aria-checked')) === 'true';
-  if (current !== enabled) {
-    await toggle.click();
-    await expect(toggle).toHaveAttribute('aria-checked', String(enabled));
-  }
+  await test.step(`Set URL encoding ${enabled ? 'ON' : 'OFF'}`, async () => {
+    await selectRequestPaneTab(page, 'Settings');
+    const toggle = page.getByTestId('encode-url-toggle');
+    await expect(toggle).toBeVisible();
+    const current = (await toggle.getAttribute('aria-checked')) === 'true';
+    if (current !== enabled) {
+      await toggle.click();
+      await expect(toggle).toHaveAttribute('aria-checked', String(enabled));
+    }
+  });
 };
 
 type DialogOptions = {
@@ -1642,8 +1673,8 @@ export {
   typeIntoField,
   readField,
   createExampleFromSidebar,
-  openWorkspaceFromDialog,
   openExampleFromSidebar,
+  openWorkspaceFromDialog,
   getGeneratedSnippet,
   closeGenerateCodeDialog,
   openRequestInFolder,
