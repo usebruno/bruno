@@ -253,18 +253,19 @@ const interpolateRequest = (request: BrunoRequest, variables: Record<string, unk
  * `options.encodeUrl=false`.
  */
 /**
- * Replace each `:id` (or OData `Foo(:id)`) position in the URL with a
- * unique URL-safe placeholder, and return a map of placeholder → raw value.
+ * Replace each `:id` position in the URL with a `patternHasher`-generated
+ * placeholder, and return a `restore(url, { encode })` callable that the
+ * caller invokes after `encodeUrl` has run.
  *
- * The placeholder shape is `__BRUNO_PATH_PARAM_<n>__` — alphanumeric plus
- * underscore only, so `encodeURIComponent` and `encodeUrl` leave it untouched.
- * The caller then runs `encodeUrl` on the URL (encoding any non-placeholder
- * path chars correctly) and finally calls `restorePathParamPlaceholders` to
- * swap each placeholder for either the raw value (toggle OFF) or the
- * single-encoded value (toggle ON).
+ * The placeholder shape is `bruno-var-hash-<djb2>` — alphanumeric plus dash
+ * only, so `encodeURIComponent` and `encodeUrl` leave it untouched.
+ * `restore()` first unhashes placeholders back to `:id` literals (via
+ * `patternHasher`'s own restore), then substitutes each `:id` for the
+ * path-param value — raw when `encode=false`, single-encoded via
+ * `encodeURIComponent` when `encode=true`.
  *
- * This indirection is what prevents the double-encoding that fall out of
- * doing `substitute-with-encoding → encodeUrl` back to back: the second pass
+ * This indirection prevents the double-encoding that fall out of doing
+ * `substitute-with-encoding → encodeUrl` back to back: the second pass
  * would content-blind-encode the already-encoded segment (e.g. `aaa%2Fbbb`
  * → `aaa%252Fbbb`) per PR #5507. By hiding path-param positions behind
  * placeholders during the `encodeUrl` pass, encoding happens exactly once
@@ -273,10 +274,10 @@ const interpolateRequest = (request: BrunoRequest, variables: Record<string, unk
 const hashPathParamPositions = (
   url: string,
   pathParams: BrunoKV[] | undefined
-): { url: string; placeholders: Map<string, string> } => {
-  const placeholders = new Map<string, string>();
+): { url: string; restore: (input: string, opts: { encode: boolean }) => string } => {
+  const noopRestore = (input: string) => input;
   if (!url || !Array.isArray(pathParams) || pathParams.length === 0) {
-    return { url, placeholders };
+    return { url, restore: noopRestore };
   }
 
   let prefix = '';
@@ -286,9 +287,7 @@ const hashPathParamPositions = (
     prefix = '__BRUNO_HAR_HTTP_PLACEHOLDER__';
   }
 
-  // Walk segment-by-segment to support both `:id` and OData `Foo(:id)`
-  // shapes. Plain string ops (no `new URL()`) so reserved chars in
-  // path-param values never get lost.
+  // Pre-split authority so `:pass` in `user:pass@host` is not treated as a path-param.
   const separatorIdx = working.search(/[?#]/);
   const pathPart = separatorIdx >= 0 ? working.substring(0, separatorIdx) : working;
   const rest = separatorIdx >= 0 ? working.substring(separatorIdx) : '';
@@ -297,72 +296,32 @@ const hashPathParamPositions = (
   const authority = authorityMatch?.[1] ?? '';
   const path = authorityMatch?.[2] ?? pathPart;
 
-  const enabledPathParams = pathParams.filter((p) => p && p.enabled !== false);
+  const enabledByName = new Map<string, string>(
+    pathParams
+      .filter((p) => p && p.enabled !== false && (p.type === undefined || p.type === 'path'))
+      .map((p) => [p.name, p.value == null ? '' : String(p.value)])
+  );
 
-  let counter = 0;
-  const nextPlaceholder = (value: string): string => {
-    const ph = `__BRUNO_PATH_PARAM_${counter++}__`;
-    placeholders.set(ph, value == null ? '' : String(value));
-    return ph;
+  // patternHasher protects `:name` patterns from being mangled by encodeUrl.
+  // restore() puts them back literally; the substitute step below swaps them
+  // for the path-param value (raw or encoded).
+  const PATH_PARAM_RE = /:[a-zA-Z_]\w*/g;
+  const { hashed, restore: hashRestore } = patternHasher(path, PATH_PARAM_RE);
+
+  let finalUrl = authority + hashed + rest;
+  if (prefix) finalUrl = finalUrl.replace(/^http:\/\//, '');
+
+  const restore = (input: string, { encode }: { encode: boolean }): string => {
+    const withLiterals = hashRestore(input);
+    return withLiterals.replace(PATH_PARAM_RE, (match) => {
+      const name = match.slice(1);
+      if (!enabledByName.has(name)) return match;
+      const value = enabledByName.get(name) ?? '';
+      return encode ? encodeURIComponent(value) : value;
+    });
   };
 
-  const substitutedPath = path
-    .split('/')
-    .map((segment, idx) => {
-      if (idx === 0 && segment === '') return ''; // leading slash artifact
-
-      // Traditional `:paramName`
-      if (segment.startsWith(':')) {
-        const name = segment.slice(1);
-        const match = enabledPathParams.find((p) => p?.name === name && (p?.type === undefined || p?.type === 'path'));
-        return match ? nextPlaceholder(match.value) : segment;
-      }
-
-      // OData-style: EntitySet(':keyName') or EntitySet(:keyName) or Function(:p1, :p2)
-      if (/^[A-Za-z0-9_.-]+\([^)]*\)$/.test(segment)) {
-        const regex = /[:]([a-zA-Z_]\w*)/g;
-        let m: RegExpExecArray | null;
-        let result = segment;
-        while ((m = regex.exec(segment))) {
-          if (!m[1]) continue;
-          let bareName = m[1].replace(/[')"`]+$/, '');
-          bareName = bareName.replace(/^[('"`]+/, '');
-          if (!bareName) continue;
-          const match = enabledPathParams.find((p) => p?.name === bareName && (p?.type === undefined || p?.type === 'path'));
-          if (match) {
-            result = result.replace(':' + m[1], nextPlaceholder(match.value));
-          }
-        }
-        return result;
-      }
-
-      return segment;
-    })
-    .join('/');
-
-  let finalUrl = authority + substitutedPath + rest;
-  if (prefix) finalUrl = finalUrl.replace(/^http:\/\//, '');
-  return { url: finalUrl, placeholders };
-};
-
-/**
- * Swap each placeholder back to its real value. When `encode` is true the
- * value goes through `encodeURIComponent` (single-encoded — the path-param
- * value never makes it through `encodeUrl` so there's no second pass to
- * double-encode it). When `encode` is false the value is restored raw.
- */
-const restorePathParamPlaceholders = (
-  url: string,
-  placeholders: Map<string, string>,
-  options: { encode: boolean }
-): string => {
-  if (!url || placeholders.size === 0) return url;
-  let result = url;
-  for (const [placeholder, value] of placeholders) {
-    const replacement = options.encode ? encodeURIComponent(value) : value;
-    result = result.replaceAll(placeholder, replacement);
-  }
-  return result;
+  return { url: finalUrl, restore };
 };
 
 /**
@@ -623,26 +582,26 @@ export function buildHar(input: BuildHarInput): BuildHarOutput {
   // usage, `shouldInterpolate=false` means "preserve URL-bar templates".
   const { hashed: hashedUrl, restore: restoreUrlVars } = patternHasher(working.url || '');
 
-  // Step 3 — Hash path-param positions to URL-safe placeholders, capture the
-  // raw values in a map. The URL now contains tokens like `__BRUNO_PATH_PARAM_0__`
-  // instead of `:id`, so the next `encodeUrl()` pass can encode non-path-param
-  // chars in the path without touching path-param values. This is what makes
-  // encoding single-pass for path-params (issue #7356) while still letting
-  // `encodeUrl()` correctly handle other path chars / query encoding.
+  // Step 3 — Hash path-param positions via `patternHasher`. The URL now
+  // contains opaque `bruno-var-hash-XXX` tokens instead of `:id`, so the
+  // next `encodeUrl()` pass can encode non-path-param chars in the path
+  // without touching path-param positions. `restorePathParams` (returned
+  // here) unhashes those tokens back to `:id` literals and then substitutes
+  // each one for the path-param value (raw or encoded per the flag).
   const encodeFlag = working.settings?.encodeUrl === true;
-  const { url: urlWithPlaceholders, placeholders } = hashPathParamPositions(hashedUrl, working.pathParams);
+  const { url: urlWithPlaceholders, restore: restorePathParams } = hashPathParamPositions(hashedUrl, working.pathParams);
 
   // Step 4 — Apply `encodeUrl()` to the URL with placeholders. Placeholders
-  // are alphanumeric+underscore, so `encodeURIComponent` (used per path
-  // segment inside `encodeUrl`) leaves them untouched. The rest of the path
-  // and query are encoded per the existing content-blind contract (PR #5507).
+  // are alphanumeric+dash, so `encodeURIComponent` (used per path segment
+  // inside `encodeUrl`) leaves them untouched. The rest of the path and
+  // query are encoded per the existing content-blind contract (PR #5507).
   const encodedUrlWithPlaceholders = encodeUrl(urlWithPlaceholders);
 
   // Step 5 — Restore placeholders. `rawUrl` always uses raw values (for the
   // toggle-OFF display swap upstream). `encodedUrl` uses single-encoded
   // values when toggle is ON, raw when OFF.
-  const rawUrl = restorePathParamPlaceholders(urlWithPlaceholders, placeholders, { encode: false });
-  const encodedUrl = restorePathParamPlaceholders(encodedUrlWithPlaceholders, placeholders, { encode: encodeFlag });
+  const rawUrl = restorePathParams(urlWithPlaceholders, { encode: false });
+  const encodedUrl = restorePathParams(encodedUrlWithPlaceholders, { encode: encodeFlag });
 
   // Sanity gate. Stays here so HAR consumers see exactly what we'd send.
   if (!looksLikeUrl(encodedUrl)) {
