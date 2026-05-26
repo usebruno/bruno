@@ -11,6 +11,7 @@ const mixRouter = require('./mix');
 const wsRouter = require('./ws');
 const setupGraphQL = require('./graphql');
 const sseRouter = require('./sse');
+const ndjsonRouter = require('./ndjson');
 const fileBinaryRouter = require('./file-binary');
 
 const app = new express();
@@ -57,6 +58,7 @@ app.use('/api/multipart', multipartRouter);
 app.use('/api/redirect', redirectRouter);
 app.use('/api/mix', mixRouter);
 app.use('/api/sse', sseRouter);
+app.use('/api/ndjson', ndjsonRouter);
 
 app.get('/ping', function (req, res) {
   return res.send('pong');

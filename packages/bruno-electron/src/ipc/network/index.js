@@ -36,9 +36,12 @@ const { cookiesStore } = require('../../store/cookies');
 const registerGrpcEventHandlers = require('./grpc-event-handlers');
 const { registerWsEventHandlers } = require('./ws-event-handlers');
 const { getCertsAndProxyConfig, buildCertsAndProxyConfig } = require('./cert-utils');
+const { getStreamType, createNdjsonSplitter } = require('./streaming');
 const { buildFormUrlEncodedPayload, isFormData, extractBoundaryFromContentType } = require('@usebruno/common').utils;
 
 const ERROR_OCCURRED_WHILE_EXECUTING_REQUEST = 'Error occurred while executing the request!';
+// Hoisted to avoid allocating a fresh Buffer per NDJSON record on hot streams.
+const NDJSON_NEWLINE = Buffer.from('\n');
 
 const saveCookies = (url, headers) => {
   if (preferencesUtil.shouldStoreCookies()) {
@@ -65,11 +68,6 @@ const getJsSandboxRuntime = (collection) => {
 
   // default runtime is `quickjs`
   return 'quickjs';
-};
-
-const hasStreamHeaders = (headers) => {
-  const headerSplit = (headers.get('content-type') ?? '').split(';').map((d) => d.trim());
-  return headerSplit.indexOf('text/event-stream') > -1;
 };
 
 const promisifyStream = async (stream, abortController, closeOnFirst) => {
@@ -901,7 +899,7 @@ const registerNetworkIpc = (mainWindow) => {
       try {
         /** @type {import('axios').AxiosResponse} */
         response = await axiosInstance(request);
-        isResponseStream = hasStreamHeaders(response.headers);
+        isResponseStream = getStreamType(response.headers) !== null;
 
         if (!isResponseStream) {
           response.data = await promisifyStream(response.data);
@@ -930,7 +928,7 @@ const registerNetworkIpc = (mainWindow) => {
           // Prevents the duration on leaking to the actual result
           responseTime = response.headers.get('request-duration');
           response.headers.delete('request-duration');
-          isResponseStream = hasStreamHeaders(response.headers);
+          isResponseStream = getStreamType(response.headers) !== null;
           if (!isResponseStream) {
             response.data = await promisifyStream(response.data);
           }
@@ -1209,23 +1207,35 @@ const registerNetworkIpc = (mainWindow) => {
     const response = await runRequest({ item, collection, envVars, processEnvVars, runtimeVariables, runInBackground: false });
     if (response.stream) {
       const stream = response.stream;
+      const streamType = getStreamType(response.headers);
       response.stream = { running: response.status >= 200 && response.status < 300 };
 
-      stream.on('data', (newData) => {
+      // Emits one IPC chunk to the renderer. We don't reuse parseDataFromResponse
+      // here: per-record JSON.parse and BOM stripping are both wrong. The
+      // renderer's streamDataReceived reducer expects data.data as a string.
+      const sendChunk = (chunkData) => {
         seq += 1;
-
-        const parsed = parseDataFromResponse({ data: newData, headers: {} });
-
+        const dataBuffer = Buffer.from(chunkData);
         mainWindow.webContents.send('main:http-stream-new-data', {
           collectionUid,
           itemUid: item.uid,
           seq,
           timestamp: Date.now(),
-          data: parsed
+          data: { data: dataBuffer.toString('utf-8'), dataBuffer }
         });
-      });
+      };
 
-      stream.on('close', () => {
+      // Re-append the terminator the splitter stripped so the renderer's
+      // concatenated item.response.dataBuffer is well-formed NDJSON on download.
+      // (Canonicalizes CRLF→LF and synthesizes a terminator for an unterminated
+      // last record — the saved buffer is normalized NDJSON, not byte-faithful.)
+      const splitter = streamType === 'ndjson'
+        ? createNdjsonSplitter((record) => sendChunk(Buffer.concat([record, NDJSON_NEWLINE])))
+        : null;
+
+      const finish = () => {
+        // Idempotent: a second call (e.g. 'close' after 'error') no-ops once the
+        // cancel token has been deleted.
         if (!cancelTokens[response.cancelTokenUid]) return;
 
         mainWindow.webContents.send('main:http-stream-end', {
@@ -1236,6 +1246,30 @@ const registerNetworkIpc = (mainWindow) => {
         });
 
         deleteCancelToken(response.cancelTokenUid);
+      };
+
+      stream.on('data', (newData) => {
+        if (splitter) {
+          splitter.push(newData);
+        } else {
+          sendChunk(newData);
+        }
+      });
+
+      stream.on('close', () => {
+        // Skip flush after cancellation — the renderer is no longer listening.
+        if (splitter && cancelTokens[response.cancelTokenUid]) {
+          splitter.flush();
+        }
+        finish();
+      });
+
+      // Without an 'error' listener a mid-stream socket error would crash the
+      // Electron main process via an uncaughtException. Treat as end-of-stream
+      // and drop any buffered partial record (likely truncated JSON).
+      stream.on('error', (err) => {
+        console.error('Error during streaming response:', err);
+        finish();
       });
     }
     return response;
