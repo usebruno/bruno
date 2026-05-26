@@ -1,6 +1,7 @@
 const { interpolate } = require('@usebruno/common');
 const { each, forOwn, cloneDeep } = require('lodash');
 const { isFormData } = require('@usebruno/common').utils;
+const { OAUTH2_INTERPOLATABLE_STRING_FIELDS } = require('./oauth2-fields');
 
 const isBinaryRequestBody = (data) => Buffer.isBuffer(data) || typeof data?.pipe === 'function';
 
@@ -238,70 +239,23 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
   }
 
   if (request?.oauth2?.grantType) {
-    let username, password, scope, clientId, clientSecret;
-    switch (request.oauth2.grantType) {
-      case 'password':
-        request.oauth2.accessTokenUrl = _interpolate(request.oauth2.accessTokenUrl) || '';
-        request.oauth2.refreshTokenUrl = _interpolate(request.oauth2.refreshTokenUrl) || '';
-        request.oauth2.username = _interpolate(request.oauth2.username) || '';
-        request.oauth2.password = _interpolate(request.oauth2.password) || '';
-        request.oauth2.clientId = _interpolate(request.oauth2.clientId) || '';
-        request.oauth2.clientSecret = _interpolate(request.oauth2.clientSecret) || '';
-        request.oauth2.scope = _interpolate(request.oauth2.scope) || '';
-        request.oauth2.credentialsPlacement = _interpolate(request.oauth2.credentialsPlacement) || '';
-        request.oauth2.credentialsId = _interpolate(request.oauth2.credentialsId) || '';
-        request.oauth2.tokenPlacement = _interpolate(request.oauth2.tokenPlacement) || '';
-        request.oauth2.tokenHeaderPrefix = _interpolate(request.oauth2.tokenHeaderPrefix) || '';
-        request.oauth2.tokenQueryKey = _interpolate(request.oauth2.tokenQueryKey) || '';
-        request.oauth2.autoFetchToken = _interpolate(request.oauth2.autoFetchToken);
-        request.oauth2.autoRefreshToken = _interpolate(request.oauth2.autoRefreshToken);
-        break;
-      case 'implicit':
-        request.oauth2.callbackUrl = _interpolate(request.oauth2.callbackUrl) || '';
-        request.oauth2.authorizationUrl = _interpolate(request.oauth2.authorizationUrl) || '';
-        request.oauth2.clientId = _interpolate(request.oauth2.clientId) || '';
-        request.oauth2.scope = _interpolate(request.oauth2.scope) || '';
-        request.oauth2.state = _interpolate(request.oauth2.state) || '';
-        request.oauth2.credentialsId = _interpolate(request.oauth2.credentialsId) || '';
-        request.oauth2.tokenPlacement = _interpolate(request.oauth2.tokenPlacement) || '';
-        request.oauth2.tokenHeaderPrefix = _interpolate(request.oauth2.tokenHeaderPrefix) || '';
-        request.oauth2.tokenQueryKey = _interpolate(request.oauth2.tokenQueryKey) || '';
-        request.oauth2.autoFetchToken = _interpolate(request.oauth2.autoFetchToken);
-        break;
-      case 'authorization_code':
-        request.oauth2.callbackUrl = _interpolate(request.oauth2.callbackUrl) || '';
-        request.oauth2.authorizationUrl = _interpolate(request.oauth2.authorizationUrl) || '';
-        request.oauth2.accessTokenUrl = _interpolate(request.oauth2.accessTokenUrl) || '';
-        request.oauth2.refreshTokenUrl = _interpolate(request.oauth2.refreshTokenUrl) || '';
-        request.oauth2.clientId = _interpolate(request.oauth2.clientId) || '';
-        request.oauth2.clientSecret = _interpolate(request.oauth2.clientSecret) || '';
-        request.oauth2.scope = _interpolate(request.oauth2.scope) || '';
-        request.oauth2.state = _interpolate(request.oauth2.state) || '';
-        request.oauth2.pkce = _interpolate(request.oauth2.pkce) || false;
-        request.oauth2.credentialsPlacement = _interpolate(request.oauth2.credentialsPlacement) || '';
-        request.oauth2.credentialsId = _interpolate(request.oauth2.credentialsId) || '';
-        request.oauth2.tokenPlacement = _interpolate(request.oauth2.tokenPlacement) || '';
-        request.oauth2.tokenHeaderPrefix = _interpolate(request.oauth2.tokenHeaderPrefix) || '';
-        request.oauth2.tokenQueryKey = _interpolate(request.oauth2.tokenQueryKey) || '';
-        request.oauth2.autoFetchToken = _interpolate(request.oauth2.autoFetchToken);
-        request.oauth2.autoRefreshToken = _interpolate(request.oauth2.autoRefreshToken);
-        break;
-      case 'client_credentials':
-        request.oauth2.accessTokenUrl = _interpolate(request.oauth2.accessTokenUrl) || '';
-        request.oauth2.refreshTokenUrl = _interpolate(request.oauth2.refreshTokenUrl) || '';
-        request.oauth2.clientId = _interpolate(request.oauth2.clientId) || '';
-        request.oauth2.clientSecret = _interpolate(request.oauth2.clientSecret) || '';
-        request.oauth2.scope = _interpolate(request.oauth2.scope) || '';
-        request.oauth2.credentialsPlacement = _interpolate(request.oauth2.credentialsPlacement) || '';
-        request.oauth2.credentialsId = _interpolate(request.oauth2.credentialsId) || '';
-        request.oauth2.tokenPlacement = _interpolate(request.oauth2.tokenPlacement) || '';
-        request.oauth2.tokenHeaderPrefix = _interpolate(request.oauth2.tokenHeaderPrefix) || '';
-        request.oauth2.tokenQueryKey = _interpolate(request.oauth2.tokenQueryKey) || '';
-        request.oauth2.autoFetchToken = _interpolate(request.oauth2.autoFetchToken);
-        request.oauth2.autoRefreshToken = _interpolate(request.oauth2.autoRefreshToken);
-        break;
-      default:
-        break;
+    // Interpolate every string-valued OAuth2 field that's present. Booleans and structured
+    // fields (additionalClaims, additionalParameters) are handled separately below.
+    for (const field of OAUTH2_INTERPOLATABLE_STRING_FIELDS) {
+      if (request.oauth2[field] !== undefined) {
+        request.oauth2[field] = _interpolate(request.oauth2[field]) || '';
+      }
+    }
+
+    // Interpolate enabled additionalClaims rows (used as JWT claims in client_secret_jwt /
+    // private_key_jwt assertions). Same pattern as additionalParameters below.
+    if (Array.isArray(request.oauth2.additionalClaims)) {
+      request.oauth2.additionalClaims.forEach((claim) => {
+        if (claim && claim.enabled !== false) {
+          claim.name = _interpolate(claim.name) || '';
+          claim.value = _interpolate(claim.value) || '';
+        }
+      });
     }
 
     // Interpolate additional parameters for all OAuth2 grant types
