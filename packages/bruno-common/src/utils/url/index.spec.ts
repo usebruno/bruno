@@ -1,4 +1,4 @@
-import { encodeUrl, parseQueryParams, buildQueryString, safeDecodeURIComponent } from './index';
+import { encodeUrl, parseQueryParams, buildQueryString, hasExplicitScheme, safeDecodeURIComponent } from './index';
 
 describe('encodeUrl', () => {
   describe('basic functionality', () => {
@@ -405,5 +405,51 @@ describe('safeDecodeURIComponent', () => {
 
   it('should be a no-op when there is nothing to decode', () => {
     expect(safeDecodeURIComponent('hello')).toBe('hello');
+  });
+});
+
+describe('hasExplicitScheme', () => {
+  // should return false
+  const noScheme: [string, string][] = [
+    ['bare hostname', 'test-domain'],
+    ['localhost', 'localhost'],
+    ['localhost:port (key regression)', 'localhost:8080'],
+    ['localhost:port/path', 'localhost:8080/path'],
+    ['127.0.0.1:port', '127.0.0.1:3000'],
+    ['bare IP', '192.168.1.1'],
+    ['IP:port', '192.168.1.1:8080'],
+    ['hostname with path', 'example.com/api/v1']
+  ];
+
+  for (const [label, url] of noScheme) {
+    it(`false (no explicit scheme) — ${label}`, () => {
+      expect(hasExplicitScheme(url)).toBe(false);
+    });
+  }
+
+  // should return true
+  const withScheme: [string, string][] = [
+    ['http://', 'http://example.com'],
+    ['https://', 'https://example.com'],
+    ['ftp://', 'ftp://test-domain'],
+    ['ws://', 'ws://example.com/socket'],
+    ['wss://', 'wss://example.com/socket'],
+    ['custom scheme', 'myapp://deep-link']
+  ];
+
+  for (const [label, url] of withScheme) {
+    it(`true (has explicit scheme) — ${label}`, () => {
+      expect(hasExplicitScheme(url)).toBe(true);
+    });
+  }
+
+  it('{{baseUrl}}/api — no scheme injection for template variables', async () => {
+    const url = '{{baseUrl}}/api/v1';
+    expect(hasExplicitScheme(url)).toBe(false);
+  });
+
+  it('{{baseUrl}} alone — no scheme injection for template variables', async () => {
+    const url = '{{baseUrl}}';
+    expect(hasExplicitScheme(url)).toBe(false);
   });
 });

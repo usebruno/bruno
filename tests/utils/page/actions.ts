@@ -1,5 +1,6 @@
 import { test, expect, Page, ElectronApplication, waitForReadyPage as waitForReadyPageImpl } from '../../../playwright';
 import process from 'node:process';
+import * as path from 'path';
 import { buildCommonLocators, buildScriptErrorLocators } from './locators';
 
 type SandboxMode = 'safe' | 'developer';
@@ -80,7 +81,12 @@ const openCollection = async (page, collectionName: string) => {
  *
  * @returns void
  */
-const createCollection = async (page, collectionName: string, collectionLocation: string) => {
+const createCollection = async (
+  page,
+  collectionName: string,
+  collectionLocation: string,
+  format?: 'bru' | 'yml'
+) => {
   await test.step(`Create collection "${collectionName}"`, async () => {
     await page.getByTestId('collections-header-add-menu').click();
     await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Create collection' }).click();
@@ -123,6 +129,15 @@ const createCollection = async (page, collectionName: string, collectionLocation
     await nameInput.fill(collectionName);
     // Verify the name is correct before creating
     await expect(nameInput).toHaveValue(collectionName, { timeout: 2000 });
+
+    if (format) {
+      await createCollectionModal.locator('.advanced-options .btn-advanced').click();
+      await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Show File Format' }).click();
+      const formatSelect = createCollectionModal.locator('#format');
+      await formatSelect.waitFor({ state: 'visible', timeout: 5000 });
+      await formatSelect.selectOption(format);
+    }
+
     await createCollectionModal.getByRole('button', { name: 'Create', exact: true }).click();
 
     // The modal closes via `onClose()` in the form's `onSubmit` success path,
@@ -762,6 +777,43 @@ const openRequest = async (page: Page, collectionName: string, requestName: stri
   });
 };
 /**
+ * Open a folder's settings tab by clicking on it in the sidebar
+ * @param page - The page object
+ * @param collectionName - The name of the collection
+ * @param folderName - The name of the folder
+ * @param options - Optional settings (persist: double-click to make tab permanent)
+ * @returns void
+ */
+const openfolder = async (page: Page, collectionName: string, folderName: string, { persist = false } = {}) => {
+  await test.step(`Open folder "${folderName}" in collection "${collectionName}"`, async () => {
+    const collectionContainer = page.getByTestId('sidebar-collection-row').filter({ hasText: collectionName });
+    await collectionContainer.click();
+    const collectionWrapper = collectionContainer.locator('..');
+    const folder = collectionWrapper.getByTestId('sidebar-collection-item-row').filter({ hasText: folderName });
+    if (!persist) {
+      await folder.click();
+    } else {
+      await folder.dblclick();
+    }
+  });
+};
+
+/**
+ * Select a tab in the folder settings pane
+ * @param page - The page object
+ * @param tabName - The tab name key (e.g. 'auth', 'headers', 'docs', 'script', 'vars', 'test')
+ * @returns void
+ */
+const selectfolderPaneTab = async (page: Page, tabName: string) => {
+  await test.step(`Select folder pane tab "${tabName}"`, async () => {
+    const locators = buildCommonLocators(page);
+    const tab = locators.paneTabs.folderSettingsTab(tabName.toLowerCase());
+    await tab.click();
+    await expect(tab).toContainClass('active');
+  });
+};
+
+/**
  * Open a request within a folder
  * @param page - The page object
  * @param folderName - The name of the folder
@@ -993,6 +1045,67 @@ const selectResponsePaneTab = async (page: Page, tabName: string) => {
 
 const selectRequestPaneTab = async (page: Page, tabName: string) => {
   await selectPaneTab(page, '[data-testid="request-pane"] > .px-4', tabName);
+};
+
+const selectRequestBodyMode = async (page: Page, mode: string) => {
+  await test.step(`Select request body mode "${mode}"`, async () => {
+    await selectRequestPaneTab(page, 'Body');
+    const locators = buildCommonLocators(page);
+    await locators.request.bodyModeSelector().click();
+    await locators.dropdown.item(mode).click();
+  });
+};
+
+const mockBrowseFiles = async (electronApp: ElectronApplication, filePaths: string[]) => {
+  await electronApp.evaluate(({ dialog }, selectedPaths: string[]) => {
+    const originalShowOpenDialog = dialog.showOpenDialog;
+    dialog.showOpenDialog = async (...args) => {
+      dialog.showOpenDialog = originalShowOpenDialog;
+      return {
+        canceled: false,
+        filePaths: selectedPaths
+      };
+    };
+  }, filePaths);
+};
+
+const addMultipartFileToLastRow = async (page: Page, electronApp: ElectronApplication, filePath: string) => {
+  await test.step(`Add multipart file "${path.basename(filePath)}"`, async () => {
+    await mockBrowseFiles(electronApp, [filePath]);
+
+    const table = buildCommonLocators(page).table('editable-table');
+    const lastRow = table.allRows().last();
+
+    await expect(lastRow.locator('.upload-btn')).toBeVisible();
+    await lastRow.locator('.upload-btn').click();
+    await expect(lastRow.locator('.file-value-cell')).toBeVisible();
+    const inlineChip = lastRow.getByTestId('multipart-file-chip').filter({ hasText: path.basename(filePath) });
+    const summary = lastRow.getByTestId('multipart-file-summary');
+    await expect(inlineChip.or(summary)).toBeVisible();
+  });
+};
+
+const removeFirstMultipartFile = async (page: Page) => {
+  await test.step('Remove first multipart file', async () => {
+    const table = buildCommonLocators(page).table('editable-table');
+    const firstRow = table.allRows().first();
+    await expect(firstRow.locator('.file-value-cell')).toBeVisible();
+
+    const inlineRemove = firstRow.getByTestId('multipart-file-chip-remove').first();
+    const summary = firstRow.getByTestId('multipart-file-summary');
+
+    if (await inlineRemove.count() > 0) {
+      await inlineRemove.click();
+    } else {
+      await expect(summary).toBeVisible();
+      await summary.click();
+      const overflowRemove = page.getByTestId('multipart-file-overflow-remove').first();
+      await expect(overflowRemove).toBeVisible();
+      await overflowRemove.click();
+    }
+    await expect(firstRow.locator('.file-value-cell')).toHaveCount(0);
+    await expect(firstRow.locator('.value-cell')).toBeVisible();
+  });
 };
 
 /**
@@ -1340,6 +1453,45 @@ const sendAndWaitForResponse = async (page: Page) => {
   });
 };
 
+const fieldEditor = (page: Page, labelText: string) =>
+  page
+    .locator('label')
+    .filter({ hasText: new RegExp(`^${escapeRegExp(labelText)}$`) })
+    .locator('..')
+    .locator('.single-line-editor-wrapper .CodeMirror');
+
+/**
+ * Open the auth mode dropdown and pick a mode by its visible label.
+ * @param page - The page object
+ * @param modeLabel - Dropdown item text (e.g. 'Bearer Token', 'Basic Auth')
+ */
+const selectAuthMode = async (page: Page, modeLabel: string) => {
+  await page.locator('.auth-mode-label').click();
+  await page.locator('.dropdown-item').filter({ hasText: modeLabel }).click();
+};
+
+/**
+ * Type into a single-line CodeMirror editor identified by its sibling label.
+ * @param page - The page object
+ * @param labelText - Exact label text next to the editor
+ * @param value - The text to type
+ */
+const typeIntoField = async (page: Page, labelText: string, value: string) => {
+  await fieldEditor(page, labelText).click();
+  await page.keyboard.type(value);
+};
+
+/**
+ * Read the current value of a single-line CodeMirror editor identified by its sibling label.
+ * @param page - The page object
+ * @param labelText - Exact label text next to the editor
+ */
+const readField = async (page: Page, labelText: string): Promise<string> => {
+  const editor = fieldEditor(page, labelText).first();
+  await editor.waitFor({ state: 'visible' });
+  return editor.evaluate((el: any) => (el as any).CodeMirror?.getValue() ?? '');
+};
+
 const createExampleFromSidebar = async (page: Page, requestName: string, exampleName: string, description: string = '') => {
   const requestRow = page.locator('.collection-item-name').filter({ hasText: requestName }).first();
 
@@ -1375,12 +1527,6 @@ const openExampleFromSidebar = async (page: Page, requestName: string, exampleNa
   await exampleRow.click();
 };
 
-/**
- * Open the generate-code dialog for the currently-selected request and return
- * the snippet text from the first CodeMirror editor in the dialog.
- *
- * Default language is whatever Bruno preselects (shell/curl).
- */
 const getGeneratedSnippet = async (page: Page): Promise<string> => {
   const { request } = buildCommonLocators(page);
 
@@ -1393,25 +1539,12 @@ const getGeneratedSnippet = async (page: Page): Promise<string> => {
   return (await codeEditor.textContent()) ?? '';
 };
 
-/**
- * Close the generate-code dialog. The caller should always pair this with
- * `getGeneratedSnippet` to keep tests isolated.
- */
 const closeGenerateCodeDialog = async (page: Page) => {
   const { modal } = buildCommonLocators(page);
   await modal.closeButton().click();
   await modal.closeButton().waitFor({ state: 'hidden' });
 };
 
-/**
- * Click the folder, then click a request inside it. The folder is expanded
- * lazily — clicking its row toggles expansion in the sidebar.
- *
- * Uses an **exact-name** match on the inner `.item-name` span (not the
- * default `hasText` substring on `.collection-item-name` row). The default
- * locator's substring match collides on prefix-overlapping names like
- * `path-odata` vs `params-path-odata`.
- */
 const openRequestInFolder = async (page: Page, folderName: string, requestName: string) => {
   const { sidebar } = buildCommonLocators(page);
   await sidebar.folder(folderName).click();
@@ -1424,11 +1557,6 @@ const openRequestInFolder = async (page: Page, folderName: string, requestName: 
   await requestRow.click();
 };
 
-/**
- * Set the request's "URL Encoding" toggle (Settings tab) to the desired
- * state. Idempotent — reads `aria-checked` first and only clicks when the
- * current state differs.
- */
 const setUrlEncoding = async (page: Page, enabled: boolean) => {
   await selectRequestPaneTab(page, 'Settings');
   const toggle = page.getByTestId('encode-url-toggle');
@@ -1438,6 +1566,23 @@ const setUrlEncoding = async (page: Page, enabled: boolean) => {
     await toggle.click();
     await expect(toggle).toHaveAttribute('aria-checked', String(enabled));
   }
+};
+
+type DialogOptions = {
+  showOpenDialog: () => Promise<{ canceled: boolean; filePaths: string[] }>;
+};
+
+const openWorkspaceFromDialog = async (app: any, page: any, targetPath: string) => {
+  await app.evaluate(
+    ({ dialog }: { dialog: DialogOptions }, workspacePath: string) => {
+      dialog.showOpenDialog = () =>
+        Promise.resolve({ canceled: false, filePaths: [workspacePath] });
+    },
+    targetPath
+  );
+
+  await page.getByTestId('workspace-menu').click();
+  await page.locator('.dropdown-item').filter({ hasText: 'Open workspace' }).click();
 };
 
 export {
@@ -1463,11 +1608,17 @@ export {
   selectEnvironment,
   sendRequest,
   openRequest,
+  openfolder,
   openFolderRequest,
+  selectfolderPaneTab,
   getResponseBody,
   expectResponseContains,
   selectRequestPaneTab,
+  selectRequestBodyMode,
   selectResponsePaneTab,
+  mockBrowseFiles,
+  addMultipartFileToLastRow,
+  removeFirstMultipartFile,
   sendRequestAndWaitForResponse,
   switchResponseFormat,
   switchToPreviewTab,
@@ -1487,7 +1638,11 @@ export {
   addTestScript,
   sendAndWaitForErrorCard,
   sendAndWaitForResponse,
+  selectAuthMode,
+  typeIntoField,
+  readField,
   createExampleFromSidebar,
+  openWorkspaceFromDialog,
   openExampleFromSidebar,
   getGeneratedSnippet,
   closeGenerateCodeDialog,

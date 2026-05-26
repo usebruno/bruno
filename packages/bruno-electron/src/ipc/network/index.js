@@ -10,7 +10,7 @@ const { ipcMain } = require('electron');
 const { each, get, extend, cloneDeep, merge } = require('lodash');
 const { NtlmClient } = require('axios-ntlm');
 const { VarsRuntime, AssertRuntime, ScriptRuntime, TestRuntime, formatErrorWithContextV2 } = require('@usebruno/js');
-const { encodeUrl } = require('@usebruno/common').utils;
+const { encodeUrl, hasExplicitScheme } = require('@usebruno/common').utils;
 const { extractPromptVariables } = require('@usebruno/common').utils;
 const { interpolateString } = require('./interpolate-string');
 const { resolveAwsV4Credentials, addAwsV4Interceptor } = require('./awsv4auth-helper');
@@ -108,9 +108,8 @@ const configureRequest = async (
   collectionPath,
   globalEnvironmentVariables
 ) => {
-  const protocolRegex = /^([-+\w]{1,25})(:?\/\/|:)/;
   const hasVariables = request.url.startsWith('{{');
-  if (!hasVariables && !protocolRegex.test(request.url)) {
+  if (!hasVariables && !hasExplicitScheme(request.url)) {
     request.url = `http://${request.url}`;
   }
 
@@ -608,7 +607,7 @@ const registerNetworkIpc = (mainWindow) => {
 
     const contentType = contentTypeHeader ? request.headers[contentTypeHeader] : '';
     if (typeof contentType === 'string' && contentType.startsWith('multipart/')) {
-      if (!isFormData(request.data)) {
+      if (typeof request.data !== 'string' && !isFormData(request.data)) {
         request._originalMultipartData = request.data;
         request.collectionPath = collectionPath;
         let form = createFormData(request.data, collectionPath);

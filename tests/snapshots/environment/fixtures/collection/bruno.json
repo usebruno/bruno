@@ -1,0 +1,10 @@
+{
+  "version": "1",
+  "name": "migration-collection",
+  "type": "collection",
+  "ignore": [
+    "node_modules",
+    ".git"
+  ],
+  "filesCount": 1
+}

@@ -275,6 +275,10 @@ app.on('ready', async () => {
     return mainWindow.isMaximized();
   });
 
+  ipcMain.handle('renderer:window-is-fullscreen', () => {
+    return mainWindow.isFullScreen();
+  });
+
   ipcMain.handle('renderer:open-preferences', () => {
     ipcMain.emit('main:open-preferences');
   });
@@ -471,6 +475,11 @@ app.on('ready', async () => {
   registerSystemMonitorIpc(mainWindow, systemMonitor);
   registerGitIpc(mainWindow);
   registerOpenAPISyncIpc(mainWindow);
+
+  // Internal delegator
+  ipcMain.handle('main:cache-clear', async () => {
+    ipcMain.emit('internal:snapshot:reset');
+  });
 });
 
 // Quit the app once all windows are closed.

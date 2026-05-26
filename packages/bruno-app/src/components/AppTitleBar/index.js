@@ -52,6 +52,14 @@ const AppTitleBar = () => {
     const { ipcRenderer } = window;
     if (!ipcRenderer) return;
 
+    ipcRenderer.invoke('renderer:window-is-fullscreen')
+      .then((fullscreen) => {
+        setIsFullScreen(fullscreen);
+      })
+      .catch((error) => {
+        console.error('Error getting initial fullscreen state:', error);
+      });
+
     const removeEnterFullScreenListener = ipcRenderer.on('main:enter-full-screen', () => {
       setIsFullScreen(true);
     });
