@@ -48,9 +48,9 @@ const printGenericTable = (headers, rows, title) => {
   console.log(table.toString());
 };
 
-const printRunSummary = (results, bailInfo) => {
+const printRunSummary = (results) => {
   const summary = getRunnerSummary(results);
-  const skippedByBail = bailInfo?.skippedByBail || 0;
+  const skippedByBail = results.filter((r) => r?.skipReason === 'bail').length;
   const augmentedSummary = { ...summary, skippedByBail };
 
   const duration = Math.round(
@@ -806,7 +806,7 @@ const handler = async function (argv) {
     const skippedFileResults = createSkippedFileResults(global.brunoSkippedFiles || [], collectionPath);
     results.push(...skippedFileResults);
 
-    const summary = printRunSummary(results, bailInfo);
+    const summary = printRunSummary(results);
     const runCompletionTime = new Date().toISOString();
     const totalTime = results.reduce((acc, res) => acc + res.response.responseTime, 0);
     console.log(chalk.dim(chalk.grey(`Ran all requests - ${totalTime} ms`)));
