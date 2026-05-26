@@ -35,7 +35,7 @@ const formatRequestsCellFromSummary = (summary) => {
   if (passed > 0) parts.push(chalk.green(`${passed} Passed`));
   if (failedOrErrored > 0) parts.push(chalk.red(`${failedOrErrored} Failed`));
   if (skippedByUser > 0) parts.push(chalk.magenta(`${skippedByUser} Skipped`));
-  if (skippedByBail > 0) parts.push(chalk.hex(constants.ORANGE_COLOR)(`${skippedByBail} Skipped (Bail)`));
+  if (skippedByBail > 0) parts.push(chalk.hex(constants.COLORS.ORANGE)(`${skippedByBail} Skipped (Bail)`));
 
   return parts.length ? `${total} (${parts.join(', ')})` : `${total}`;
 };
@@ -766,7 +766,7 @@ const handler = async function (argv) {
           };
 
           console.log(
-            '\n' + chalk.hex(constants.ORANGE_COLOR)(
+            '\n' + chalk.hex(constants.COLORS.ORANGE)(
               `Bail: Stopping run, ${bailReason} in "${name}". Remaining ${remainingItems.length} request(s) skipped.`
             )
           );

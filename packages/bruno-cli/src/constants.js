@@ -2,7 +2,9 @@ const { version } = require('../package.json');
 
 const CLI_EPILOGUE = `Documentation: https://docs.usebruno.com (v${version})`;
 const CLI_VERSION = version;
-const ORANGE_COLOR = '#FFA500';
+const COLORS = {
+  ORANGE: '#FFA500'
+};
 
 // Exit codes
 const EXIT_STATUS = {
@@ -40,5 +42,5 @@ module.exports = {
   CLI_EPILOGUE,
   CLI_VERSION,
   EXIT_STATUS,
-  ORANGE_COLOR
+  COLORS
 };
