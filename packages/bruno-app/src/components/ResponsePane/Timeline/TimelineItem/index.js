@@ -17,7 +17,7 @@ import { getBadge } from '../entryMeta';
 
 const findFolderByScopeFile = (collection, sourceFile) => {
   if (!collection?.pathname || !sourceFile) return null;
-  const dir = sourceFile.replace(/\/folder\.bru$/, '');
+  const dir = sourceFile.replace(/\/folder\.(?:bru|yml)$/, '');
   if (!dir || dir === sourceFile) return null;
   return flattenItems(collection.items || []).find(
     (i) => i.type === 'folder' && getRelativePath(collection.pathname, i.pathname) === dir
@@ -79,9 +79,10 @@ const TimelineItem = ({
 
   const isMainOrOauth = !source || source === 'main' || isOauth2;
   const scopeType = scope?.type || (isMainOrOauth ? null : 'request');
+  const requestExt = collection?.format === 'yml' ? '.yml' : '.bru';
   const scopeFile = scope?.sourceFile
-    || (scopeType === 'request' ? (item?.filename || (item?.name ? `${item.name}.bru` : null)) : null);
-  const sourceFile = isMainOrOauth || collection?.format === 'yml' ? null : scopeFile;
+    || (scopeType === 'request' ? (item?.filename || (item?.name ? `${item.name}${requestExt}` : null)) : null);
+  const sourceFile = isMainOrOauth ? null : scopeFile;
 
   const folderForScope = scopeType === 'folder'
     ? findFolderByScopeFile(collection, scope?.sourceFile)
