@@ -138,4 +138,71 @@ describe('proxySwaggerFetch', () => {
     const call = mockRequest.mock.calls[0][0];
     expect(call.validateStatus(599)).toBe(true);
   });
+
+  test.each(['PUT', 'DELETE', 'PATCH'])('forwards %s method with body to axios', async (method) => {
+    mockRequest.mockResolvedValueOnce({
+      status: 200,
+      statusText: 'OK',
+      headers: {},
+      data: Buffer.from('')
+    });
+
+    await proxySwaggerFetch({
+      url: 'https://example.com/pet/10',
+      method,
+      headers: { 'Content-Type': 'application/json' },
+      body: '{"id":10}'
+    });
+
+    expect(mockRequest).toHaveBeenCalledWith(expect.objectContaining({
+      url: 'https://example.com/pet/10',
+      method,
+      data: '{"id":10}'
+    }));
+  });
+
+  test('forwards Authorization header for auth-required endpoints', async () => {
+    mockRequest.mockResolvedValueOnce({
+      status: 200,
+      statusText: 'OK',
+      headers: {},
+      data: Buffer.from('{"authenticated":true}')
+    });
+
+    await proxySwaggerFetch({
+      url: 'https://example.com/secure',
+      method: 'GET',
+      headers: {
+        'Authorization': 'Bearer test-token',
+        'X-Api-Key': 'abc123'
+      }
+    });
+
+    expect(mockRequest).toHaveBeenCalledWith(expect.objectContaining({
+      headers: {
+        'Authorization': 'Bearer test-token',
+        'X-Api-Key': 'abc123'
+      }
+    }));
+  });
+
+  test('accepts plain http:// targets (no scheme restriction)', async () => {
+    mockRequest.mockResolvedValueOnce({
+      status: 200,
+      statusText: 'OK',
+      headers: {},
+      data: Buffer.from('ok')
+    });
+
+    const result = await proxySwaggerFetch({
+      url: 'http://example.com/data',
+      method: 'GET',
+      headers: {}
+    });
+
+    expect(result.error).toBeUndefined();
+    expect(mockRequest).toHaveBeenCalledWith(expect.objectContaining({
+      url: 'http://example.com/data'
+    }));
+  });
 });
