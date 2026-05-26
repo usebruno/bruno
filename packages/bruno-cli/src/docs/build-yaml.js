@@ -53,6 +53,11 @@ function validateYaml(yamlStr) {
 
 // ── Document assembly ─────────────────────────────────────────────────────────
 
+/**
+ * Assemble the full OpenCollection document object from the normalised collection model.
+ * @param {object} col
+ * @returns {object}
+ */
 function assembleDocument(col) {
   const doc = { opencollection: col.opencollection || '1.0.0' };
 
@@ -75,6 +80,11 @@ function assembleDocument(col) {
 
 // ── Environments ──────────────────────────────────────────────────────────────
 
+/**
+ * Serialise a single environment to OpenCollection format.
+ * @param {object} env
+ * @returns {object}
+ */
 function serializeEnvironment(env) {
   return {
     name: env.name,
@@ -89,10 +99,20 @@ function serializeEnvironment(env) {
 
 // ── Items (folders and requests) ──────────────────────────────────────────────
 
+/**
+ * Serialise a single item (folder or request).
+ * @param {object} item
+ * @returns {object}
+ */
 function serializeItem(item) {
   return item.type === 'folder' ? serializeFolder(item) : serializeRequest(item);
 }
 
+/**
+ * Serialise a folder item, including its child items.
+ * @param {object} folder
+ * @returns {object}
+ */
 function serializeFolder(folder) {
   const out = {
     type: 'folder',
@@ -111,6 +131,11 @@ function serializeFolder(folder) {
   return out;
 }
 
+/**
+ * Serialise a request item with its info, protocol block, runtime, docs, etc.
+ * @param {object} req
+ * @returns {object}
+ */
 function serializeRequest(req) {
   // Determine protocol key: http | graphql | grpc | websocket
   const protocolKey = ['http', 'graphql', 'grpc', 'websocket'].find((k) => req[k]);
@@ -138,6 +163,11 @@ function serializeRequest(req) {
   return out;
 }
 
+/**
+ * Serialise the request info block, removing undefined values.
+ * @param {object} info
+ * @returns {object}
+ */
 function serializeRequestInfo(info) {
   return compact({
     name: info.name,
@@ -147,6 +177,11 @@ function serializeRequestInfo(info) {
   });
 }
 
+/**
+ * Serialise a protocol block (method, url, headers, params, body, auth).
+ * @param {object} block
+ * @returns {object}
+ */
 function serializeProtocolBlock(block) {
   if (!block || typeof block !== 'object') return {};
 
@@ -176,6 +211,12 @@ function serializeProtocolBlock(block) {
   return out;
 }
 
+/**
+ * Serialise a body block to { type, data?, fields? }.
+ * Returns null for empty or 'none' type bodies.
+ * @param {object} body
+ * @returns {object|null}
+ */
 function serializeBody(body) {
   if (!body || !body.type || body.type === 'none') return null;
 
@@ -193,6 +234,12 @@ function serializeBody(body) {
   return out;
 }
 
+/**
+ * Serialise runtime scripts, auth, and vars.
+ * Returns null if runtime is empty.
+ * @param {object} runtime
+ * @returns {object|null}
+ */
 function serializeRuntime(runtime) {
   if (!runtime) return null;
   const out = {};
@@ -212,7 +259,9 @@ function serializeRuntime(runtime) {
 
 // ── Utilities ─────────────────────────────────────────────────────────────────
 
-/** Remove keys whose value is undefined (not null — null is a valid YAML value). */
+/**
+ * Remove keys whose value is undefined (not null — null is a valid YAML value).
+ */
 function compact(obj) {
   const out = {};
   for (const [k, v] of Object.entries(obj)) {

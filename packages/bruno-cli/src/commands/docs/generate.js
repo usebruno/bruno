@@ -136,6 +136,12 @@ exports.handler = async (argv) => {
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
+/**
+ * Recursively count requests and folders in the items tree.
+ * @param {Array} items
+ * @param {{ requests: number, folders: number }} acc
+ * @returns {{ requests: number, folders: number }}
+ */
 function countItems(items, acc = { requests: 0, folders: 0 }) {
   for (const item of items) {
     if (item.type === 'folder') {

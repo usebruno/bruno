@@ -27,6 +27,7 @@ const yaml = require('js-yaml');
 // Re-use @usebruno/lang for .bru files, exactly as run.js does.
 // We lazy-require so the module only fails if someone actually has a .bru collection.
 let _bruUtils = null;
+/** Lazy-load and cache the @usebruno/lang bridge utility. */
 function getBruUtils() {
   if (!_bruUtils) {
     try {
@@ -79,6 +80,13 @@ function loadCollection(collectionDir, { titleOverride = null } = {}) {
 
 // ── Root metadata ─────────────────────────────────────────────────────────────
 
+/**
+ * Read collection-level metadata (name, version, description, config)
+ * from either opencollection.yml or bruno.json.
+ * @param {string} collectionDir
+ * @param {boolean} isOpenCollection
+ * @returns {{ name: string|null, version: string|null, description: string|null, config: object }}
+ */
 function readRootMeta(collectionDir, isOpenCollection) {
   if (isOpenCollection) {
     const raw = loadYamlFile(path.join(collectionDir, 'opencollection.yml')) || {};
@@ -105,6 +113,13 @@ function readRootMeta(collectionDir, isOpenCollection) {
 
 // ── Environments ──────────────────────────────────────────────────────────────
 
+/**
+ * Read all environment files from the environments/ sub-directory.
+ * Supports .yml (OpenCollection) and .bru (classic) formats.
+ * @param {string} collectionDir
+ * @param {boolean} isOpenCollection
+ * @returns {Array<{ name: string, variables: Array }>}
+ */
 function readEnvironments(collectionDir, isOpenCollection) {
   const envDir = path.join(collectionDir, 'environments');
   if (!fs.existsSync(envDir)) return [];
@@ -138,6 +153,11 @@ function readEnvironments(collectionDir, isOpenCollection) {
   return results;
 }
 
+/**
+ * Normalise environment variables to a consistent { name, value, enabled, secret? } shape.
+ * @param {Array} vars
+ * @returns {Array}
+ */
 function normalizeEnvVars(vars) {
   if (!Array.isArray(vars)) return [];
   return vars
@@ -152,6 +172,13 @@ function normalizeEnvVars(vars) {
 
 // ── OpenCollection YAML items ─────────────────────────────────────────────────
 
+/**
+ * Recursively scan a directory for OpenCollection YAML items.
+ * Directories become folders, .yml files become requests.
+ * @param {string} dir
+ * @param {string} rootDir
+ * @returns {Array}
+ */
 function readOpenCollectionItems(dir, rootDir) {
   const items = [];
 
@@ -169,6 +196,12 @@ function readOpenCollectionItems(dir, rootDir) {
   return items;
 }
 
+/**
+ * Read a folder.yml and recursively collect its child items.
+ * @param {string} folderPath
+ * @param {string} rootDir
+ * @returns {object|null}
+ */
 function readOpenCollectionFolder(folderPath, rootDir) {
   const metaFile = path.join(folderPath, 'folder.yml');
   const raw = fs.existsSync(metaFile) ? (loadYamlFile(metaFile) || {}) : {};
@@ -188,6 +221,12 @@ function readOpenCollectionFolder(folderPath, rootDir) {
   };
 }
 
+/**
+ * Parse a single OpenCollection YAML request file.
+ * Detects the protocol (http/graphql/grpc/websocket) and normalises the block.
+ * @param {string} filePath
+ * @returns {object|null}
+ */
 function readOpenCollectionRequest(filePath) {
   const raw = loadYamlFile(filePath);
   if (!raw || typeof raw !== 'object') return null;
@@ -220,6 +259,12 @@ function readOpenCollectionRequest(filePath) {
 
 // ── .bru items ────────────────────────────────────────────────────────────────
 
+/**
+ * Recursively scan a directory for .bru items.
+ * @param {string} dir
+ * @param {string} rootDir
+ * @returns {Array}
+ */
 function readBruItems(dir, rootDir) {
   const items = [];
   const { bruToJson } = getBruUtils();
@@ -241,6 +286,12 @@ function readBruItems(dir, rootDir) {
   return items;
 }
 
+/**
+ * Read a folder.bru for metadata, then recursively collect child items.
+ * @param {string} folderPath
+ * @param {string} rootDir
+ * @returns {object|null}
+ */
 function readBruFolder(folderPath, rootDir) {
   const { collectionBruToJson } = getBruUtils();
   let name = formatDirName(path.basename(folderPath));
@@ -289,6 +340,11 @@ function normalizeBruRequest(bruJson) {
   };
 }
 
+/**
+ * Normalise a .bru body object to { type, data }.
+ * @param {object} body
+ * @returns {object|null}
+ */
 function normalizeBruBody(body) {
   if (!body || body.mode === 'none') return null;
 
@@ -304,11 +360,18 @@ function normalizeBruBody(body) {
 
 // ── Normalization helpers ─────────────────────────────────────────────────────
 
+/**
+ * Normalise a protocol block (http/graphql/grpc/websocket) to a consistent shape.
+ * Coerces method to uppercase string.  Returns empty object if input is falsy.
+ * @param {object} proto
+ * @param {object} rawRequest  The full raw request (fallback for auth)
+ * @returns {object}
+ */
 function normalizeProtocolBlock(proto, rawRequest) {
   if (!proto || typeof proto !== 'object') return {};
 
   const out = {};
-  if (proto.method) out.method = proto.method.toUpperCase();
+  if (proto.method) out.method = String(proto.method).toUpperCase();
   if (proto.url) out.url = proto.url;
   if (proto.path) out.path = proto.path; // grpc
 
@@ -346,6 +409,12 @@ function normalizeProtocolBlock(proto, rawRequest) {
   return out;
 }
 
+/**
+ * Normalise an array of { name, key, value, ... } objects to { name, value, enabled?, description? }.
+ * Filters out entries without a name or key.
+ * @param {Array} arr
+ * @returns {Array}
+ */
 function normalizeKvArray(arr) {
   return arr
     .filter((i) => i && (i.name || i.key))
@@ -357,6 +426,12 @@ function normalizeKvArray(arr) {
     }));
 }
 
+/**
+ * Normalise runtime scripts from both OpenCollection (runtime.scripts) and legacy .bru (script.req/res) formats.
+ * @param {object} runtime
+ * @param {object} [legacyScript]
+ * @returns {object|undefined}
+ */
 function normalizeRuntime(runtime, legacyScript) {
   const scripts = [];
 
@@ -382,6 +457,11 @@ function normalizeRuntime(runtime, legacyScript) {
 
 // ── Detection helpers ─────────────────────────────────────────────────────────
 
+/**
+ * Detect the request protocol from the top-level keys of a raw OpenCollection request.
+ * @param {object} raw
+ * @returns {string|null}
+ */
 function detectProtocol(raw) {
   if (raw.http) return 'http';
   if (raw.graphql) return 'graphql';
@@ -397,6 +477,10 @@ function hasDocContent(docs) {
 
 // ── Sorting ───────────────────────────────────────────────────────────────────
 
+/**
+ * Sort items in-place by seq, then by name (case-insensitive).
+ * @param {Array} items
+ */
 function sortItems(items) {
   items.sort((a, b) => {
     const sa = toSeq(a.seq ?? (a.info && a.info.seq));
@@ -410,6 +494,7 @@ function sortItems(items) {
 
 // ── Low-level utils ───────────────────────────────────────────────────────────
 
+/** Read and parse a YAML file, returning null on any failure. */
 function loadYamlFile(fp) {
   try {
     return yaml.load(fs.readFileSync(fp, 'utf8'));
@@ -418,19 +503,23 @@ function loadYamlFile(fp) {
   }
 }
 
+/** Safe directory listing that returns empty array on error. */
 function safeReaddir(dir) {
   try { return fs.readdirSync(dir); } catch { return []; }
 }
 
+/** Safe directory listing with file-type metadata. */
 function safeReaddirWithTypes(dir) {
   try { return fs.readdirSync(dir, { withFileTypes: true }); } catch { return []; }
 }
 
+/** Convert a value to a numeric sequence number, defaulting to Infinity. */
 function toSeq(val) {
   const n = Number(val);
   return Number.isFinite(n) ? n : Infinity;
 }
 
+/** Convert a directory name (kebab-case, snake_case) to Title Case. */
 function formatDirName(name) {
   return name.replace(/[-_]/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 }

@@ -73,14 +73,14 @@ function render(currentTheme) {
       target         : target,
       opencollection : collectionYaml,
       theme          : currentTheme,
-      ...(gitCollectionUrl ? { gitCollectionUrl: gitCollectionUrl } : {}),
+      ...(gitCollectionUrl ? { gitCollectionUrl: gitCollectionUrl } : {})
     });
 
   } else if (Component && typeof Component.mount === 'function') {
     Component.mount(target, {
       opencollection : collectionYaml,
       theme          : currentTheme,
-      ...(gitCollectionUrl ? { gitCollectionUrl: gitCollectionUrl } : {}),
+      ...(gitCollectionUrl ? { gitCollectionUrl: gitCollectionUrl } : {})
     });
 
   } else {
@@ -114,6 +114,11 @@ render(theme);
 </html>`;
 }
 
+/**
+ * Escape HTML special characters for safe embedding in HTML content.
+ * @param {string} str
+ * @returns {string}
+ */
 function escapeHtml(str) {
   return String(str || '')
     .replace(/&/g, '&amp;')
