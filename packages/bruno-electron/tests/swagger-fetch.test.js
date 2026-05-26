@@ -96,6 +96,22 @@ describe('proxySwaggerFetch', () => {
     expect(result.code).toBe('CERT_HAS_EXPIRED');
   });
 
+  test('returns INVALID_REQUEST when called with no payload', async () => {
+    const result = await proxySwaggerFetch();
+
+    expect(result.error).toBe(true);
+    expect(result.code).toBe('INVALID_REQUEST');
+    expect(mockRequest).not.toHaveBeenCalled();
+  });
+
+  test('returns INVALID_REQUEST when url is missing', async () => {
+    const result = await proxySwaggerFetch({ method: 'GET' });
+
+    expect(result.error).toBe(true);
+    expect(result.code).toBe('INVALID_REQUEST');
+    expect(mockRequest).not.toHaveBeenCalled();
+  });
+
   test('forwards method, headers, and body to axios', async () => {
     mockRequest.mockResolvedValueOnce({
       status: 201,

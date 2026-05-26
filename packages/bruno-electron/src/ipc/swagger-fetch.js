@@ -1,7 +1,17 @@
 const { getCertsAndProxyConfig } = require('./network/cert-utils');
 const { makeAxiosInstance } = require('./network/axios-instance');
 
-const proxySwaggerFetch = async ({ url, method, headers, body }) => {
+const proxySwaggerFetch = async (req = {}) => {
+  const { url, method, headers, body } = req || {};
+
+  if (!url || typeof url !== 'string') {
+    return {
+      error: true,
+      code: 'INVALID_REQUEST',
+      message: 'Missing or invalid url'
+    };
+  }
+
   try {
     const { proxyMode, proxyConfig, httpsAgentRequestFields, interpolationOptions }
       = await getCertsAndProxyConfig({
