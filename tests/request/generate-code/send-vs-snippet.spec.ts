@@ -25,6 +25,7 @@ test.describe('Send Request — every fixture, ON and OFF', () => {
     'path-unicode',
     'path-idempotent',
     'path-odata',
+    'path-fragment',
     // params:path
     'params-path-odata',
     'params-path-space',

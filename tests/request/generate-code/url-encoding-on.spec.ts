@@ -226,6 +226,22 @@ test.describe('Generate Code – URL Encoding ON', () => {
 
       await closeGenerateCodeDialog(page);
     });
+
+    test('encodes # in path (no query) as %23 — Option C', async ({ pageWithUserData: page }) => {
+      // Variant of the fragment-preserved case where `#` sits directly in the
+      // path (no `?` ahead of it). In ON mode encodePathSegments runs over the
+      // path and encodes `#` to %23 like any other reserved byte, so the wire
+      // URL keeps `hash%23tag` intact instead of treating `#tag` as a fragment
+      // that downstream HTTP clients would strip.
+      await openCollection(page, COLLECTION);
+      await openRequestInFolder(page, FOLDER, 'path-fragment');
+      await setUrlEncoding(page, true);
+
+      const snippet = await getGeneratedSnippet(page);
+      expect(snippet).toContain('http://localhost:8081/api/echo/path/hash%23tag');
+
+      await closeGenerateCodeDialog(page);
+    });
   });
 
   test.describe('Path-params table (params:path)', () => {

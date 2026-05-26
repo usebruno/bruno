@@ -220,6 +220,22 @@ test.describe('Generate Code – URL Encoding OFF', () => {
 
       await closeGenerateCodeDialog(page);
     });
+
+    test('preserves # directly in path (no query ahead of it)', async ({ pageWithUserData: page }) => {
+      // Variant of fragment-preserved where the `#` sits in the path with no
+      // `?` before it. OFF mode keeps the URL byte-for-byte in the snippet
+      // (`hash#tag`). On the wire, downstream HTTP clients treat `#tag` as a
+      // fragment and strip it — so the server receives `/hash` only. The
+      // snippet still shows the user's literal input; that's the OFF contract.
+      await openCollection(page, COLLECTION);
+      await openRequestInFolder(page, FOLDER, 'path-fragment');
+      await setUrlEncoding(page, false);
+
+      const snippet = await getGeneratedSnippet(page);
+      expect(snippet).toContain('http://localhost:8081/api/echo/path/hash#tag');
+
+      await closeGenerateCodeDialog(page);
+    });
   });
 
   test.describe('Path-params table (params:path)', () => {
