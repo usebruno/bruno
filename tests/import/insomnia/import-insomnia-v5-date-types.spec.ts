@@ -23,13 +23,34 @@ test.describe('Import Insomnia Collection - date types preserved', () => {
     const requestFilePath = path.join(collectionDir, collectionName, 'Date Request.yml');
     const yamlContent = fs.readFileSync(requestFilePath, 'utf8');
 
-    expect(yamlContent).toContain('value: 2024-01-01');
-    expect(yamlContent).not.toContain('Mon Jan');
-    expect(yamlContent).not.toContain('GMT');
+    expect(yamlContent).toContain(`  params:
+    - name: date
+      value: 2024-01-01
+      type: query
+    - name: is_active
+      value: "false"
+      type: query
+    - name: limit
+      value: "0"
+      type: query
+    - name: version
+      value: "2.0"
+      type: query
+    - name: count
+      value: "42"
+      type: query
+`);
 
-    expect(yamlContent).toMatch(/value:\s*"false"/);
-    expect(yamlContent).toMatch(/value:\s*"0"/);
-    expect(yamlContent).toMatch(/value:\s*"2\.0"/);
-    expect(yamlContent).toContain('value: "42"');
+    const envFilePath = path.join(collectionDir, collectionName, 'environments', 'Base.yml');
+    const envContent = fs.readFileSync(envFilePath, 'utf8');
+
+    expect(envContent).toContain(`variables:
+  - name: expiry_date
+    value: 2024-12-31
+  - name: max_retries
+    value: "3"
+  - name: enabled
+    value: "true"
+`);
   });
 });
