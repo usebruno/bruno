@@ -727,7 +727,23 @@ const handler = async function (argv) {
           // ran due to bail. These let getRunnerSummary count them as skipped, and the
           // summary table can distinguish them from user-initiated skips via skipReason.
           for (const ri of remainingItems) {
+            const relativePath = path.relative(collectionPath, ri.pathname);
             results.push({
+              test: {
+                filename: relativePath
+              },
+              request: {
+                method: null,
+                url: null,
+                headers: null,
+                data: null
+              },
+              response: {
+                status: 'skipped',
+                statusText: null,
+                data: null,
+                responseTime: 0
+              },
               status: 'skipped',
               skipped: true,
               skipReason: 'bail',
@@ -735,11 +751,10 @@ const handler = async function (argv) {
               assertionResults: [],
               preRequestTestResults: [],
               postResponseTestResults: [],
-              response: { status: 'skipped', responseTime: 0 },
               runDuration: 0,
               suitename: ri.pathname.replace('.bru', ''),
               name: ri.name,
-              path: path.relative(collectionPath, ri.pathname)
+              path: relativePath
             });
           }
 
