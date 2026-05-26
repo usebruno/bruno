@@ -1,26 +1,10 @@
 import { test, expect, Page } from '../../../playwright';
-import { openCollection, sendRequest } from '../../utils/page';
-import { openRequestInFolder, setUrlEncoding } from './helpers';
+import { openCollection, sendRequest, openRequestInFolder, setUrlEncoding } from '../../utils/page';
 
 const COLLECTION = 'generate-code-encoding';
 const FOLDER = 'requests';
 
-/**
- * For every fixture in `collection/requests/`, send the request twice —
- * once with URL Encoding toggle ON, once with it OFF — and confirm both
- * sends succeed (HTTP 200 + the echo server returns its `"url": …` field).
- *
- * Purpose: see what Bruno's runtime actually puts on the wire for each
- * fixture, in both encoding modes. A failure here means Bruno couldn't
- * send the URL at all (validator rejected, axios threw, etc.) — that's a
- * regression worth catching independently of any snippet comparison.
- *
- * The exact wire URL is visible in the response preview pane; this spec
- * intentionally doesn't pin specific encoded forms (the bytes axios puts
- * on the wire can differ from what the snippet displays — that's by
- * design for OFF mode).
- */
-test.describe.serial('Send Request — every fixture, ON and OFF', () => {
+test.describe('Send Request — every fixture, ON and OFF', () => {
   const fixtures = [
     // query-side
     'query-spaces',

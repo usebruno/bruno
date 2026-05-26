@@ -1,29 +1,10 @@
 import { test, expect } from '../../../playwright';
-import { openCollection } from '../../utils/page';
-import { closeGenerateCodeDialog, getGeneratedSnippet, openRequestInFolder, setUrlEncoding } from './helpers';
+import { openCollection, closeGenerateCodeDialog, getGeneratedSnippet, openRequestInFolder, setUrlEncoding } from '../../utils/page';
 
 const COLLECTION = 'generate-code-encoding';
 const FOLDER = 'requests';
 
-/**
- * Generate-Code with URL Encoding toggle OFF.
- *
- * All fixtures live in the single shared `collection/requests/` folder with
- * `encodeUrl: false` baked in — same files the ON spec uses. Each test
- * explicitly calls `setUrlEncoding(page, false)` to be defensive about state
- * that might be carried over within the same Electron worker.
- *
- * Contract: the snippet must preserve the user-typed URL byte-for-byte
- * (modulo HTTP-spec exceptions for the path on http-target). The
- * pre-encode-then-replace-back path in snippet-generator ensures chars
- * HTTPSnippet's HAR validator would reject (literal space / `[` / `<` /
- * unicode) still round-trip without "Error generating code snippet".
- *
- * Each test asserts the complete expected URL as a single contiguous
- * substring of the snippet — every char position is checked, not just
- * scattered per-param fragments.
- */
-test.describe.serial('Generate Code – URL Encoding OFF', () => {
+test.describe('Generate Code – URL Encoding OFF', () => {
   test.describe('Query preservation', () => {
     test('preserves literal spaces in query values (no %20)', async ({ pageWithUserData: page }) => {
       await openCollection(page, COLLECTION);

@@ -1,33 +1,10 @@
 import { test, expect } from '../../../playwright';
-import { openCollection } from '../../utils/page';
-import { closeGenerateCodeDialog, getGeneratedSnippet, openRequestInFolder, setUrlEncoding } from './helpers';
+import { openCollection, closeGenerateCodeDialog, getGeneratedSnippet, openRequestInFolder, setUrlEncoding } from '../../utils/page';
 
 const COLLECTION = 'generate-code-encoding';
 const FOLDER = 'requests';
 
-/**
- * Generate-Code with URL Encoding toggle ON.
- *
- * All fixtures live in the single shared `collection/requests/` folder with
- * `encodeUrl: false` baked in — same files the OFF spec uses. Each test
- * explicitly calls `setUrlEncoding(page, true)` (via the Settings tab) to
- * flip the toggle before generating the code snippet.
- *
- * These mirror the unit-test coverage in
- * packages/bruno-common/src/utils/url/index.spec.ts and
- * packages/bruno-app/.../snippet-generator.spec.js for the encodeUrl=true path.
- * The contract has two halves:
- *   1. PATH side is idempotent (raw OR pre-encoded input both produce a single
- *      encoding on the wire — protects against double-encoding via
- *      `new URL().pathname`).
- *   2. QUERY side is content-blind per PR #5507 (pre-encoded input
- *      intentionally double-encodes; this is the redirect-URL use case).
- *
- * Each test asserts the complete expected URL as a single contiguous
- * substring of the snippet — every char position is checked, not just
- * scattered per-param fragments.
- */
-test.describe.serial('Generate Code – URL Encoding ON', () => {
+test.describe('Generate Code – URL Encoding ON', () => {
   test.describe('Query encoding', () => {
     test('encodes spaces in query values once (John Doe → John%20Doe)', async ({ pageWithUserData: page }) => {
       await openCollection(page, COLLECTION);

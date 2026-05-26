@@ -1375,6 +1375,71 @@ const openExampleFromSidebar = async (page: Page, requestName: string, exampleNa
   await exampleRow.click();
 };
 
+/**
+ * Open the generate-code dialog for the currently-selected request and return
+ * the snippet text from the first CodeMirror editor in the dialog.
+ *
+ * Default language is whatever Bruno preselects (shell/curl).
+ */
+const getGeneratedSnippet = async (page: Page): Promise<string> => {
+  const { request } = buildCommonLocators(page);
+
+  await request.generateCodeButton().click();
+  await expect(page.getByRole('dialog')).toBeVisible();
+
+  const codeEditor = page.locator('.editor-content .CodeMirror').first();
+  await expect(codeEditor).toBeVisible();
+
+  return (await codeEditor.textContent()) ?? '';
+};
+
+/**
+ * Close the generate-code dialog. The caller should always pair this with
+ * `getGeneratedSnippet` to keep tests isolated.
+ */
+const closeGenerateCodeDialog = async (page: Page) => {
+  const { modal } = buildCommonLocators(page);
+  await modal.closeButton().click();
+  await modal.closeButton().waitFor({ state: 'hidden' });
+};
+
+/**
+ * Click the folder, then click a request inside it. The folder is expanded
+ * lazily — clicking its row toggles expansion in the sidebar.
+ *
+ * Uses an **exact-name** match on the inner `.item-name` span (not the
+ * default `hasText` substring on `.collection-item-name` row). The default
+ * locator's substring match collides on prefix-overlapping names like
+ * `path-odata` vs `params-path-odata`.
+ */
+const openRequestInFolder = async (page: Page, folderName: string, requestName: string) => {
+  const { sidebar } = buildCommonLocators(page);
+  await sidebar.folder(folderName).click();
+
+  const folderWrapper = page.locator('.collection-item-name').filter({ hasText: folderName }).locator('..');
+  const escapedName = requestName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const requestRow = folderWrapper.locator('.collection-item-name').filter({
+    has: page.locator('.item-name').filter({ hasText: new RegExp(`^${escapedName}$`) })
+  });
+  await requestRow.click();
+};
+
+/**
+ * Set the request's "URL Encoding" toggle (Settings tab) to the desired
+ * state. Idempotent — reads `aria-checked` first and only clicks when the
+ * current state differs.
+ */
+const setUrlEncoding = async (page: Page, enabled: boolean) => {
+  await selectRequestPaneTab(page, 'Settings');
+  const toggle = page.getByTestId('encode-url-toggle');
+  await expect(toggle).toBeVisible();
+  const current = (await toggle.getAttribute('aria-checked')) === 'true';
+  if (current !== enabled) {
+    await toggle.click();
+    await expect(toggle).toHaveAttribute('aria-checked', String(enabled));
+  }
+};
+
 export {
   waitForReadyPage,
   closeAllCollections,
@@ -1423,7 +1488,11 @@ export {
   sendAndWaitForErrorCard,
   sendAndWaitForResponse,
   createExampleFromSidebar,
-  openExampleFromSidebar
+  openExampleFromSidebar,
+  getGeneratedSnippet,
+  closeGenerateCodeDialog,
+  openRequestInFolder,
+  setUrlEncoding
 };
 
 export type { SandboxMode, EnvironmentType, EnvironmentVariable, ImportCollectionOptions, CreateRequestOptions, CreateUntitledRequestOptions, CreateTransientRequestOptions, AssertionInput };
