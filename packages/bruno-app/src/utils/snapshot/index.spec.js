@@ -311,6 +311,31 @@ describe('deserializeTab', () => {
     expect(tab.requestPaneTab).toBe('auth');
   });
 
+  it('keeps folder-settings type when pathname resolves to a non-request item', () => {
+    const collectionWithFolderItem = {
+      ...collection,
+      items: [
+        {
+          uid: 'folder-1',
+          pathname: '/collections/a/folder',
+          type: 'folder'
+        }
+      ]
+    };
+
+    const snapshotTab = {
+      type: 'folder-settings',
+      accessor: 'pathname',
+      pathname: '/collections/a/folder',
+      permanent: true
+    };
+
+    const tab = deserializeTab(snapshotTab, collectionWithFolderItem);
+    expect(tab.type).toBe('folder-settings');
+    expect(tab.folderUid).toBe('folder-1');
+    expect(tab.requestPaneTab).toBe('headers');
+  });
+
   it('restores response example by index when duplicate names exist', () => {
     const collectionWithDuplicateExamples = {
       uid: 'collection-uid',
