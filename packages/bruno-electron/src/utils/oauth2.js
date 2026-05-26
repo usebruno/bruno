@@ -135,6 +135,63 @@ const getCredentialsFromTokenUrl = async ({ requestConfig, certsAndProxyConfig }
   return { credentials: parsedResponseData, requestDetails };
 };
 
+/**
+ * Execute the POST to the token endpoint shared by every OAuth2 grant that goes through it.
+ * The caller supplies the grant-specific form body (`data`); this helper applies the configured
+ * token-endpoint client authentication (RFC 7591 §2 / OIDC Core §9), merges enabled token-stage
+ * additional parameters, form-encodes the body, makes the request, persists the resulting
+ * credentials, and appends the request/response frame to debugInfo. Returns the credentials and
+ * the (possibly extended) debugInfo so the caller can shape its own return value.
+ *
+ * `debugInfo` may carry frames from earlier steps (the in-window browser flow's request); when
+ * absent a fresh `{ data: [] }` is initialised.
+ */
+const performTokenExchange = async ({
+  oAuth,
+  url,
+  data,
+  additionalTokenParams,
+  certsAndProxyConfig,
+  collectionUid,
+  credentialsId,
+  debugInfo
+}) => {
+  const axiosRequestConfig = {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/x-www-form-urlencoded',
+      'Accept': 'application/json'
+    },
+    url,
+    responseType: 'arraybuffer'
+  };
+
+  const clientAuth = await applyTokenEndpointAuth({ ...oAuth, accessTokenUrl: url });
+  Object.assign(axiosRequestConfig.headers, clientAuth.headers);
+  Object.assign(data, clientAuth.bodyParams);
+
+  if (additionalTokenParams?.length) {
+    applyAdditionalParameters(axiosRequestConfig, data, additionalTokenParams);
+  }
+  axiosRequestConfig.data = qs.stringify(data);
+
+  const { credentials, requestDetails } = await getCredentialsFromTokenUrl({
+    requestConfig: axiosRequestConfig,
+    certsAndProxyConfig
+  });
+
+  const effectiveDebugInfo = debugInfo || { data: [] };
+  if (!effectiveDebugInfo.data) {
+    effectiveDebugInfo.data = [];
+  }
+  effectiveDebugInfo.data.push(requestDetails);
+
+  if (credentials) {
+    persistOauth2Credentials({ collectionUid, url, credentials, credentialsId });
+  }
+  return { credentials, debugInfo: effectiveDebugInfo };
+};
+
 // AUTHORIZATION CODE
 
 const getOAuth2TokenUsingAuthorizationCode = async ({ request, collectionUid, forceFetch = false, certsAndProxyConfigForTokenUrl, certsAndProxyConfigForRefreshUrl }) => {
@@ -249,14 +306,7 @@ const getOAuth2TokenUsingAuthorizationCode = async ({ request, collectionUid, fo
   }
 
   // Fetch new token process
-  let { authorizationCode, debugInfo } = await getOAuth2AuthorizationCode(requestCopy, codeChallenge, collectionUid);
-
-  let axiosRequestConfig = {};
-  axiosRequestConfig.method = 'POST';
-  axiosRequestConfig.headers = {
-    'content-type': 'application/x-www-form-urlencoded',
-    'Accept': 'application/json'
-  };
+  const { authorizationCode, debugInfo } = await getOAuth2AuthorizationCode(requestCopy, codeChallenge, collectionUid);
 
   const data = {
     grant_type: 'authorization_code',
@@ -267,30 +317,18 @@ const getOAuth2TokenUsingAuthorizationCode = async ({ request, collectionUid, fo
     data['code_verifier'] = codeVerifier;
   }
 
-  const clientAuth = await applyTokenEndpointAuth({ ...oAuth, accessTokenUrl: url });
-  Object.assign(axiosRequestConfig.headers, clientAuth.headers);
-  Object.assign(data, clientAuth.bodyParams);
-
-  axiosRequestConfig.url = url;
-  axiosRequestConfig.responseType = 'arraybuffer';
-  // Apply additional parameters to token request
-  if (additionalParameters?.token?.length) {
-    applyAdditionalParameters(axiosRequestConfig, data, additionalParameters.token);
-  }
-  axiosRequestConfig.data = qs.stringify(data);
   try {
-    const { credentials, requestDetails } = await getCredentialsFromTokenUrl({ requestConfig: axiosRequestConfig, certsAndProxyConfig: certsAndProxyConfigForTokenUrl });
-
-    // Ensure debugInfo.data is initialized
-    if (!debugInfo) {
-      debugInfo = { data: [] };
-    } else if (!debugInfo.data) {
-      debugInfo.data = [];
-    }
-
-    debugInfo.data.push(requestDetails);
-    credentials && persistOauth2Credentials({ collectionUid, url, credentials, credentialsId });
-    return { collectionUid, url, credentials, credentialsId, debugInfo };
+    const { credentials, debugInfo: finalDebugInfo } = await performTokenExchange({
+      oAuth,
+      url,
+      data,
+      additionalTokenParams: additionalParameters?.token,
+      certsAndProxyConfig: certsAndProxyConfigForTokenUrl,
+      collectionUid,
+      credentialsId,
+      debugInfo
+    });
+    return { collectionUid, url, credentials, credentialsId, debugInfo: finalDebugInfo };
   } catch (error) {
     return Promise.reject(error);
   }
