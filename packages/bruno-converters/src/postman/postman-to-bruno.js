@@ -374,7 +374,7 @@ const importPostmanV2CollectionItem = (brunoParent, item, { useWorkers = false }
       let folderName = baseFolderName;
       let count = 1;
 
-      while (folderMap[folderName]) {
+      while (folderMap[folderName.toLowerCase()]) {
         folderName = `${baseFolderName}_${count}`;
         count++;
       }
@@ -429,7 +429,7 @@ const importPostmanV2CollectionItem = (brunoParent, item, { useWorkers = false }
         }
       }
 
-      folderMap[folderName] = brunoFolderItem;
+      folderMap[folderName.toLowerCase()] = brunoFolderItem;
     } else if (i.request) {
       const method = i?.request?.method?.toUpperCase();
       if (!method || typeof method !== 'string' || !method.trim()) {
@@ -441,7 +441,7 @@ const importPostmanV2CollectionItem = (brunoParent, item, { useWorkers = false }
       let requestName = baseRequestName;
       let count = 1;
 
-      while (requestMap[requestName]) {
+      while (requestMap[requestName.toLowerCase()]) {
         requestName = `${baseRequestName}_${count}`;
         count++;
       }
@@ -801,7 +801,7 @@ const importPostmanV2CollectionItem = (brunoParent, item, { useWorkers = false }
         });
       }
 
-      requestMap[requestName] = brunoRequestItem;
+      requestMap[requestName.toLowerCase()] = brunoRequestItem;
     }
   });
 };
