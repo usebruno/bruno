@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import get from 'lodash/get';
 import { useDispatch } from 'react-redux';
 import GrpcAuthMode from './GrpcAuthMode';
@@ -22,6 +22,11 @@ const GrpcAuth = ({ item, collection }) => {
   const request = item.draft
     ? get(item, 'draft.request', {})
     : get(item, 'request', {});
+
+  const inheritedSource = useMemo(
+    () => (authMode === 'inherit' ? getEffectiveAuthSource(collection, item) : null),
+    [authMode, item.uid, collection.uid]
+  );
 
   const save = () => {
     return saveRequest(item.uid, collection.uid);
@@ -61,15 +66,13 @@ const GrpcAuth = ({ item, collection }) => {
         return <WsseAuth collection={collection} item={item} updateAuth={updateAuth} request={request} save={save} />;
       }
       case 'inherit': {
-        const source = getEffectiveAuthSource(collection, item);
-
         // Only show inherited auth if it's one of the supported types
-        if (source && SUPPORTED_GRPC_AUTH_MODES.includes(source.auth?.mode)) {
+        if (inheritedSource && SUPPORTED_GRPC_AUTH_MODES.includes(inheritedSource.auth?.mode)) {
           return (
             <>
               <div className="flex flex-row w-full gap-2">
-                <div>Auth inherited from {source.name}: </div>
-                <div className="inherit-mode-text">{humanizeRequestAuthMode(source.auth?.mode)}</div>
+                <div>Auth inherited from {inheritedSource.name}: </div>
+                <div className="inherit-mode-text">{humanizeRequestAuthMode(inheritedSource.auth?.mode)}</div>
               </div>
             </>
           );

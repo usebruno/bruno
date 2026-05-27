@@ -174,7 +174,11 @@ const GraphQLRequestPane = ({ item, collection, onSchemaLoad, toggleDocs, handle
     [dispatch, item.uid]
   );
 
-  const hasAuth = hasEffectiveAuth(collection, item);
+  const itemAuthMode = item.draft?.request?.auth?.mode ?? item.request?.auth?.mode ?? item.root?.request?.auth?.mode;
+  const hasAuth = useMemo(
+    () => hasEffectiveAuth(collection, item),
+    [item.uid, itemAuthMode, collection.uid]
+  );
 
   const allTabs = useMemo(
     () => TAB_CONFIG.map(({ key, label }) => ({

@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import get from 'lodash/get';
 import { useDispatch } from 'react-redux';
 import BearerAuth from '../../Auth/BearerAuth';
@@ -23,6 +23,11 @@ const WSAuth = ({ item, collection }) => {
   const save = () => {
     return saveRequest(item.uid, collection.uid);
   };
+
+  const inheritedSource = useMemo(
+    () => (authMode === 'inherit' ? getEffectiveAuthSource(collection, item) : null),
+    [authMode, item.uid, collection.uid]
+  );
 
   // Reset to 'none' if current auth mode is not supported
   useEffect(() => {
@@ -61,26 +66,24 @@ const WSAuth = ({ item, collection }) => {
         );
       }
       case 'inherit': {
-        const source = getEffectiveAuthSource(collection, item);
-
         // Check if inherited auth is OAuth1/OAuth2 - not supported for WebSockets
-        if (source?.auth?.mode === 'oauth1' || source?.auth?.mode === 'oauth2') {
+        if (inheritedSource?.auth?.mode === 'oauth1' || inheritedSource?.auth?.mode === 'oauth2') {
           return (
             <>
               <div className="flex flex-row w-full mt-2 gap-2">
-                {source.auth.mode === 'oauth1' ? 'OAuth 1.0' : 'OAuth 2'} not <strong>yet</strong> supported by WebSockets. Using no auth instead.
+                {inheritedSource.auth.mode === 'oauth1' ? 'OAuth 1.0' : 'OAuth 2'} not <strong>yet</strong> supported by WebSockets. Using no auth instead.
               </div>
             </>
           );
         }
 
         // Only show inherited auth if it's one of the supported types
-        if (source && SUPPORTED_WS_AUTH_MODES.includes(source.auth?.mode)) {
+        if (inheritedSource && SUPPORTED_WS_AUTH_MODES.includes(inheritedSource.auth?.mode)) {
           return (
             <>
               <div className="flex flex-row w-full gap-2">
-                <div> Auth inherited from {source.name}: </div>
-                <div className="inherit-mode-text">{humanizeRequestAuthMode(source.auth?.mode)}</div>
+                <div> Auth inherited from {inheritedSource.name}: </div>
+                <div className="inherit-mode-text">{humanizeRequestAuthMode(inheritedSource.auth?.mode)}</div>
               </div>
             </>
           );

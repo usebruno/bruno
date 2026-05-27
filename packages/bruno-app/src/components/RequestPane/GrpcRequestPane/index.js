@@ -55,7 +55,11 @@ const GrpcRequestPane = ({ item, collection, handleRun }) => {
   const body = getPropertyFromDraftOrRequest(item, 'request.body');
   const headers = getPropertyFromDraftOrRequest(item, 'request.headers');
   const docs = getPropertyFromDraftOrRequest(item, 'request.docs');
-  const hasAuth = hasEffectiveAuth(collection, item, SUPPORTED_GRPC_AUTH_MODES);
+  const itemAuthMode = item.draft?.request?.auth?.mode ?? item.request?.auth?.mode ?? item.root?.request?.auth?.mode;
+  const hasAuth = useMemo(
+    () => hasEffectiveAuth(collection, item, SUPPORTED_GRPC_AUTH_MODES),
+    [item.uid, itemAuthMode, collection.uid]
+  );
   const activeHeadersLength = headers.filter((header) => header.enabled).length;
   const grpcMessagesCount = body?.grpc?.length || 0;
 

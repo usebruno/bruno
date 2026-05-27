@@ -45,6 +45,7 @@ export const resolveInheritedAuth = (item, collection) => {
 };
 
 export const getEffectiveAuthSource = (collection, item) => {
+  console.log('eeeeeee');
   const authMode = item?.draft
     ? get(item, 'draft.request.auth.mode')
     : (get(item, 'request.auth.mode') ?? get(item, 'root.request.auth.mode'));
@@ -81,6 +82,7 @@ export const getEffectiveAuthSource = (collection, item) => {
 // the chain, then checks that the effective mode is set, not 'none', and (if a
 // supportedModes list is passed) is one the protocol can apply.
 export const hasEffectiveAuth = (collection, item, supportedModes) => {
+  console.log('dddd');
   const auth = item?.draft
     ? get(item, 'draft.request.auth')
     : (get(item, 'request.auth') ?? get(item, 'root.request.auth'));

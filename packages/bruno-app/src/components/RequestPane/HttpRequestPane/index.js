@@ -86,7 +86,11 @@ const HttpRequestPane = ({ item, collection }) => {
     [dispatch, item.uid]
   );
 
-  const hasAuth = hasEffectiveAuth(collection, item);
+  const itemAuthMode = item.draft?.request?.auth?.mode ?? item.request?.auth?.mode ?? item.root?.request?.auth?.mode;
+  const hasAuth = useMemo(
+    () => hasEffectiveAuth(collection, item),
+    [item.uid, itemAuthMode, collection.uid]
+  );
 
   const indicators = useMemo(() => {
     const hasScriptError = item.preRequestScriptErrorMessage || item.postResponseScriptErrorMessage;

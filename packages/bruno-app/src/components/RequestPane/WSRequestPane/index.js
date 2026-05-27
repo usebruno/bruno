@@ -38,7 +38,11 @@ const WSRequestPane = ({ item, collection, handleRun }) => {
 
   const headers = getPropertyFromDraftOrRequest(item, 'request.headers');
   const docs = getPropertyFromDraftOrRequest(item, 'request.docs');
-  const hasAuth = hasEffectiveAuth(collection, item, SUPPORTED_WS_AUTH_MODES);
+  const itemAuthMode = item.draft?.request?.auth?.mode ?? item.request?.auth?.mode ?? item.root?.request?.auth?.mode;
+  const hasAuth = useMemo(
+    () => hasEffectiveAuth(collection, item, SUPPORTED_WS_AUTH_MODES),
+    [item.uid, itemAuthMode, collection.uid]
+  );
   const activeHeadersLength = headers.filter((header) => header.enabled).length;
 
   const allTabs = useMemo(() => {
