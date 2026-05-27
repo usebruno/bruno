@@ -545,3 +545,57 @@ describe('Url Utils - interpolateUrlPathParams with { encodeUrl: true }', () => 
     expect(result).toEqual('https://example.com/users/a%2Fb?q=keep me');
   });
 });
+
+describe('Url Utils - interpolateUrlPathParams backward compatibility (encodeUrl off / unset)', () => {
+  it('default options: / in value stays literal (mirror of issue #7356 case)', () => {
+    const url = 'https://example.com/users/:id/profile';
+    const params = [{ name: 'id', type: 'path', enabled: true, value: 'aaa/bbb' }];
+    expect(interpolateUrlPathParams(url, params)).toEqual('https://example.com/users/aaa/bbb/profile');
+  });
+
+  it('default options: # in value stays literal', () => {
+    const url = 'https://example.com/users/:id';
+    const params = [{ name: 'id', type: 'path', enabled: true, value: 'aaa#bbb' }];
+    expect(interpolateUrlPathParams(url, params)).toEqual('https://example.com/users/aaa#bbb');
+  });
+
+  it('default options: space in value stays literal', () => {
+    const url = 'https://example.com/users/:id';
+    const params = [{ name: 'id', type: 'path', enabled: true, value: 'John Doe' }];
+    expect(interpolateUrlPathParams(url, params)).toEqual('https://example.com/users/John Doe');
+  });
+
+  it('default options: ASCII letters/digits unchanged (no-op case)', () => {
+    const url = 'https://example.com/users/:id';
+    const params = [{ name: 'id', type: 'path', enabled: true, value: '123abc' }];
+    expect(interpolateUrlPathParams(url, params)).toEqual('https://example.com/users/123abc');
+  });
+
+  it('OData segments: default options leave value raw', () => {
+    const url = 'https://example.com/odata/Products(:productId)';
+    const params = [{ name: 'productId', type: 'path', enabled: true, value: 'ABC/123' }];
+    expect(interpolateUrlPathParams(url, params)).toEqual('https://example.com/odata/Products(ABC/123)');
+  });
+
+  it('pre-encoded value: default options preserve as-typed (no double-encode)', () => {
+    const url = 'https://example.com/users/:id';
+    const params = [{ name: 'id', type: 'path', enabled: true, value: 'aaa%2Fbbb' }];
+    expect(interpolateUrlPathParams(url, params)).toEqual('https://example.com/users/aaa%2Fbbb');
+  });
+
+  it('explicit encodeUrl: false behaves identically to default (no options)', () => {
+    const url = 'https://example.com/users/:id';
+    const params = [{ name: 'id', type: 'path', enabled: true, value: 'aaa/bbb' }];
+    const a = interpolateUrlPathParams(url, params);
+    const b = interpolateUrlPathParams(url, params, {}, { encodeUrl: false });
+    expect(a).toEqual(b);
+    expect(a).toEqual('https://example.com/users/aaa/bbb');
+  });
+
+  it('raw: true without encodeUrl matches pre-PR raw output', () => {
+    const url = 'https://example.com/users/:id?q=hello world';
+    const params = [{ name: 'id', type: 'path', enabled: true, value: 'a/b' }];
+    expect(interpolateUrlPathParams(url, params, {}, { raw: true }))
+      .toEqual('https://example.com/users/a/b?q=hello world');
+  });
+});
