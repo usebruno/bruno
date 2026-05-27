@@ -14,7 +14,7 @@ import WSAuth from './WSAuth';
 import WSAuthMode from './WSAuth/WSAuthMode';
 import WSSettingsPane from '../WSSettingsPane/index';
 import { hasEffectiveAuth } from 'utils/auth';
-import { SUPPORTED_WS_AUTH_MODES } from 'utils/common/constants';
+import { AUTH_MODES_WS } from 'utils/common/constants';
 
 const WSRequestPane = ({ item, collection, handleRun }) => {
   const dispatch = useDispatch();
@@ -40,7 +40,7 @@ const WSRequestPane = ({ item, collection, handleRun }) => {
   const docs = getPropertyFromDraftOrRequest(item, 'request.docs');
   const itemAuthMode = item.draft?.request?.auth?.mode ?? item.request?.auth?.mode ?? item.root?.request?.auth?.mode;
   const hasAuth = useMemo(
-    () => hasEffectiveAuth(collection, item, SUPPORTED_WS_AUTH_MODES),
+    () => hasEffectiveAuth(collection, item, AUTH_MODES_WS),
     [item.uid, itemAuthMode, collection.uid]
   );
   const activeHeadersLength = headers.filter((header) => header.enabled).length;

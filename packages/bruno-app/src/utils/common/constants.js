@@ -2,6 +2,15 @@ export const REQUEST_TYPES = ['http-request', 'graphql-request', 'grpc-request',
 
 export const DEFAULT_COLLECTION_FORMAT = 'yml';
 
+export const PRESET_REQUEST_TYPES = {
+  HTTP: 'http',
+  GRAPHQL: 'graphql',
+  GRPC: 'grpc',
+  WS: 'ws'
+};
+
+export const DEFAULT_PRESET_REQUEST_TYPE = PRESET_REQUEST_TYPES.HTTP;
+
 export const AUTH_MODES = {
   AWSV4: 'awsv4',
   BASIC: 'basic',
