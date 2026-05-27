@@ -124,7 +124,7 @@ const StyledWrapper = styled.div`
     flex-direction: column;
     align-items: stretch;
     gap: ${(props) => `${props.$rowGap}px`};
-    height: ${getListHeight};
+    max-height: ${getListHeight};
     overflow-y: auto;
     overflow-x: hidden;
     scrollbar-gutter: stable;
@@ -144,9 +144,8 @@ const StyledWrapper = styled.div`
     grid-template-columns: 1.5rem minmax(0, 1fr);
     align-items: start;
     width: 100%;
-    height: ${(props) => `${props.$rowHeight}px`};
     gap: 0.375rem;
-    padding: 0;
+    padding: 0.25rem 0;
     background: transparent;
     border-radius: ${(props) => props.theme.border.radius.base};
     cursor: pointer;
@@ -156,13 +155,13 @@ const StyledWrapper = styled.div`
   .selection-item input[type='checkbox'] {
     justify-self: center;
     align-self: start;
-    margin-top: 0.25rem;
+    margin-top: 0.275rem;
   }
 
   .selection-content {
     display: flex;
     flex-direction: column;
-    justify-content: center;
+    justify-content: flex-start;
     min-width: 0;
     overflow: hidden;
     gap: 0;
