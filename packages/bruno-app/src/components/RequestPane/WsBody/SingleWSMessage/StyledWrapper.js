@@ -26,7 +26,11 @@ const StyledWrapper = styled.div`
 
       .message-label {
         font-size: ${(props) => props.theme.font.size.sm};
-        cursor: default;
+        cursor: text;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
       }
 
       .name-input {
