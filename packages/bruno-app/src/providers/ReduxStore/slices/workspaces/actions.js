@@ -248,8 +248,10 @@ export const openWorkspaceDialog = () => {
         }));
 
         await dispatch(switchWorkspace(workspaceUid));
-
+        toast.success('Workspace opened successfully');
         return result;
+      } else {
+        return null;
       }
     } catch (error) {
       throw error;
