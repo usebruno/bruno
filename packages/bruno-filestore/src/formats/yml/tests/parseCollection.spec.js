@@ -48,4 +48,16 @@ describe('yml parseCollection - presets', () => {
     expect(Array.isArray(brunoConfig.presets.requestUrl)).toBe(false);
     expect(brunoConfig.ignore).toEqual(['node_modules', '.git']);
   });
+
+  it('parses a realistic collection with request.type http and request.url set', () => {
+    const { brunoConfig } = parseCollection(loadFixture('url-only-realistic'));
+
+    expect(brunoConfig.presets).toEqual({
+      requestType: 'http',
+      requestUrl: 'https://example.com/graphql'
+    });
+    expect(Array.isArray(brunoConfig.presets.requestType)).toBe(false);
+    expect(Array.isArray(brunoConfig.presets.requestUrl)).toBe(false);
+    expect(brunoConfig.ignore).toEqual(['node_modules', '.git']);
+  });
 });

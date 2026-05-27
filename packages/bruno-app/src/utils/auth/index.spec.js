@@ -234,6 +234,33 @@ describe('auth-utils.getEffectiveAuthSource', () => {
     });
   });
 
+  it('handles a folder item with draft by reading its draft.request.auth.mode (not the saved root mode)', () => {
+    // Saved mode is 'basic' (would return null since not inherit), but draft is 'inherit'
+    // so the walk should run and resolve to the collection.
+    const collection = {
+      uid: 'c1',
+      root: { request: { auth: { mode: 'bearer', bearer: { token: 'COLLECTION_LEVEL_TOKEN' } } } },
+      items: [
+        {
+          uid: 'folder-draft-inherit',
+          type: 'folder',
+          name: 'FolderDraftInherit',
+          root: { request: { auth: { mode: 'basic', basic: { username: 'saved', password: 'saved' } } } },
+          draft: { request: { auth: { mode: 'inherit' } } },
+          items: []
+        }
+      ]
+    };
+    const folder = collection.items[0];
+
+    const source = getEffectiveAuthSource(collection, folder);
+    expect(source).toEqual({
+      type: 'collection',
+      name: 'Collection',
+      auth: { mode: 'bearer', bearer: { token: 'COLLECTION_LEVEL_TOKEN' } }
+    });
+  });
+
   it('skips ancestor folders whose auth.mode is itself "inherit"', () => {
     // Parent folder also inherits — walk should continue past it to collection.
     const collection = {

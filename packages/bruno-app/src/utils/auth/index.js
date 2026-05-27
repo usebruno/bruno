@@ -45,7 +45,6 @@ export const resolveInheritedAuth = (item, collection) => {
 };
 
 export const getEffectiveAuthSource = (collection, item) => {
-  console.log('eeeeeee');
   const authMode = item?.draft
     ? get(item, 'draft.request.auth.mode')
     : (get(item, 'request.auth.mode') ?? get(item, 'root.request.auth.mode'));
@@ -64,13 +63,13 @@ export const getEffectiveAuthSource = (collection, item) => {
     const i = requestTreePath[idx];
     if (i?.uid === item?.uid) continue;
     if (i?.type !== 'folder') continue;
-    const folderAuth = get(i, 'root.request.auth');
-    const folderMode = folderAuth?.mode || AUTH_MODES.NONE;
-    if (folderMode === AUTH_MODES.INHERIT) continue;
+    const folderAuth = i?.draft ? get(i, 'draft.request.auth') : get(i, 'root.request.auth');
+    if (!folderAuth || !folderAuth.mode) continue;
+    if (folderAuth.mode === AUTH_MODES.INHERIT) continue;
     effectiveSource = {
       type: 'folder',
       name: i.name,
-      auth: folderAuth ?? { mode: AUTH_MODES.NONE }
+      auth: folderAuth
     };
     break;
   }
@@ -82,7 +81,6 @@ export const getEffectiveAuthSource = (collection, item) => {
 // the chain, then checks that the effective mode is set, not 'none', and (if a
 // supportedModes list is passed) is one the protocol can apply.
 export const hasEffectiveAuth = (collection, item, supportedModes) => {
-  console.log('dddd');
   const auth = item?.draft
     ? get(item, 'draft.request.auth')
     : (get(item, 'request.auth') ?? get(item, 'root.request.auth'));
