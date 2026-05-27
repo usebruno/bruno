@@ -52,9 +52,10 @@ test.describe('Bulk Import - Select all', () => {
     const collectionsHeading = bulkImportModal.getByTestId('selection-heading').filter({ hasText: 'Collections' });
     await expect(collectionsHeading.getByTestId('selection-count')).toHaveText(String(totalCollections));
 
-    const collectionList = bulkImportModal.getByTestId('selection-list').first();
+    const collectionsSection = collectionsHeading.locator('..');
+    const collectionList = collectionsSection.getByTestId('selection-list');
     const itemCheckboxes = collectionList.locator('.selection-item input[type="checkbox"]');
-    const selectAllToggle = bulkImportModal.getByTestId('selection-select-all-toggle').first();
+    const selectAllToggle = collectionsSection.getByTestId('selection-select-all-toggle');
     const selectAllCheckbox = selectAllToggle.locator('input[type="checkbox"]');
 
     await expect(itemCheckboxes).toHaveCount(totalCollections);
@@ -110,7 +111,7 @@ test.describe('Bulk Import - Select all', () => {
       await selectAllToggle.click();
       await expect(selectAllCheckbox).not.toBeChecked();
 
-      const searchInput = bulkImportModal.getByTestId('selection-search-input').first();
+      const searchInput = collectionsSection.getByTestId('selection-search-input');
       await searchInput.fill('01');
 
       const visibleCount = await itemCheckboxes.count();
