@@ -1,4 +1,6 @@
 // Mock electron before requiring axios-instance
+const net = require('net');
+
 jest.mock('electron', () => ({
   app: {
     getVersion: () => '1.0.0'
@@ -51,6 +53,24 @@ function createStubAdapter() {
   return adapter;
 }
 
+function createLfOnlyHeaderServer() {
+  const server = net.createServer((socket) => {
+    socket.once('data', () => {
+      socket.write('HTTP/1.1 200 OK\r\nContent-Type: text/plain\nContent-Length: 2\n\nOK');
+      socket.end();
+    });
+  });
+
+  return new Promise((resolve) => {
+    server.listen(0, '127.0.0.1', () => {
+      resolve({
+        server,
+        url: `http://127.0.0.1:${server.address().port}`
+      });
+    });
+  });
+}
+
 describe('axios-instance: default headers', () => {
   test('setting User-Agent does not clobber the axios default Accept header', async () => {
     const stubAdapter = createStubAdapter();
@@ -70,6 +90,22 @@ describe('axios-instance: default headers', () => {
     await instance({ url: 'https://api.example.com/test', method: 'get', adapter: stubAdapter });
 
     expect(stubAdapter.getConfig().headers['User-Agent']).toMatch(/^bruno-runtime\//);
+  });
+});
+
+describe('axios-instance: HTTP parser tolerance', () => {
+  test('accepts LF-only response header terminators', async () => {
+    const { server, url } = await createLfOnlyHeaderServer();
+    const instance = makeAxiosInstance();
+
+    try {
+      const response = await instance({ url, method: 'get' });
+
+      expect(response.status).toBe(200);
+      expect(response.data.toString()).toBe('OK');
+    } finally {
+      server.close();
+    }
   });
 });
 
