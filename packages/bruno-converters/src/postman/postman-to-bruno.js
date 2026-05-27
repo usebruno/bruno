@@ -303,7 +303,8 @@ export const processAuth = (auth, requestObject, isCollection = false) => {
         authorization_code_with_pkce: 'authorization_code',
         authorization_code: 'authorization_code',
         client_credentials: 'client_credentials',
-        password_credentials: 'password'
+        password_credentials: 'password',
+        implicit: 'implicit'
       };
 
       const postmanGrantType = findValueUsingKey('grant_type');
@@ -348,6 +349,13 @@ export const processAuth = (auth, requestObject, isCollection = false) => {
           break;
         case 'client_credentials':
           requestObject.auth.oauth2 = baseOAuth2Config;
+          break;
+        case 'implicit':
+          requestObject.auth.oauth2 = {
+            ...baseOAuth2Config,
+            authorizationUrl: findValueUsingKey('authUrl'),
+            callbackUrl: findValueUsingKey('redirect_uri')
+          };
           break;
         default:
           console.warn('Unexpected OAuth2 grant type after mapping:', targetGrantType);
