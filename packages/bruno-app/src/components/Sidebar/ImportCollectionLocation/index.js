@@ -183,7 +183,7 @@ const ImportCollectionLocation = ({ onClose, handleSubmit, rawData, format, sour
         if (skipped > 0) parts.push(`skipped ${skipped} item(s)`);
         if (warnings > 0) parts.push(`${warnings} warning(s)`);
         const timestamp = new Date().toISOString();
-        dispatch(addLog({ type: 'error', args: [`Import: ${collectionName} — ${parts.join(', ')}`], timestamp }));
+        dispatch(addLog({ type: 'warn', args: [`Import: ${collectionName} — ${parts.join(', ')}`], timestamp }));
         issues.forEach((issue) => {
           const logType = issue.severity === 'error' ? 'error' : 'warn';
           const logArgs = [`[${issue.path}] ${issue.message}`];

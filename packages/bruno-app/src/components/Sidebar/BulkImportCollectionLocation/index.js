@@ -330,7 +330,7 @@ export const BulkImportCollectionLocation = ({
             if (warnings > 0) parts.push(`${warnings} warning(s)`);
 
             // Per-collection summary header
-            dispatch(addLog({ type: 'error', args: [`Import: ${name} — ${parts.join(', ')}`], timestamp }));
+            dispatch(addLog({ type: 'warn', args: [`Import: ${name} — ${parts.join(', ')}`], timestamp }));
 
             // Individual issues for this collection
             issues.forEach((issue) => {
