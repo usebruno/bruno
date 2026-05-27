@@ -1228,8 +1228,6 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
             };
           }
           brunoConfig.proxy = transformProxyConfig(brunoConfig.proxy);
-          console.log('Transformed Bruno Config:', brunoConfig);
-
           return brunoConfig;
         };
 
