@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import get from 'lodash/get';
 import StyledWrapper from './StyledWrapper';
 import { saveFolderRoot } from 'providers/ReduxStore/slices/collections/actions';
@@ -63,6 +63,11 @@ const Auth = ({ collection, folder }) => {
       folderUid: folder.uid
     });
   };
+
+  const inheritedSource = useMemo(
+    () => (authMode === 'inherit' ? getEffectiveAuthSource(collection, folder) : null),
+    [authMode, folder?.uid, collection?.uid]
+  );
 
   const getAuthView = () => {
     switch (authMode) {
@@ -168,12 +173,11 @@ const Auth = ({ collection, folder }) => {
         );
       }
       case 'inherit': {
-        const source = getEffectiveAuthSource(collection, folder);
         return (
           <>
             <div className="flex flex-row w-full mt-2 gap-2">
-              <div>Auth inherited from {source.name}: </div>
-              <div className="inherit-mode-text" data-testid="inherited-auth-mode">{humanizeRequestAuthMode(source.auth?.mode)}</div>
+              <div>Auth inherited from {inheritedSource.name}: </div>
+              <div className="inherit-mode-text" data-testid="inherited-auth-mode">{humanizeRequestAuthMode(inheritedSource.auth?.mode)}</div>
             </div>
           </>
         );

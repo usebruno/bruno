@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import get from 'lodash/get';
 import AwsV4Auth from './AwsV4Auth';
 import BearerAuth from './BearerAuth';
@@ -30,6 +30,11 @@ const Auth = ({ item, collection }) => {
   const save = () => {
     return dispatch(saveRequest(item.uid, collection.uid));
   };
+
+  const inheritedSource = useMemo(
+    () => (authMode === 'inherit' ? getEffectiveAuthSource(collection, item) : null),
+    [authMode, item.uid, collection.uid]
+  );
 
   const getAuthView = () => {
     switch (authMode) {
@@ -64,12 +69,11 @@ const Auth = ({ item, collection }) => {
         return <ApiKeyAuth collection={collection} item={item} request={request} save={save} updateAuth={updateAuth} />;
       }
       case 'inherit': {
-        const source = getEffectiveAuthSource(collection, item);
         return (
           <>
             <div className="flex flex-row w-full gap-2">
-              <div>Auth inherited from {source.name}: </div>
-              <div className="inherit-mode-text" data-testid="inherited-auth-mode">{humanizeRequestAuthMode(source.auth?.mode)}</div>
+              <div>Auth inherited from {inheritedSource.name}: </div>
+              <div className="inherit-mode-text" data-testid="inherited-auth-mode">{humanizeRequestAuthMode(inheritedSource.auth?.mode)}</div>
             </div>
           </>
         );

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import classnames from 'classnames';
 import { updatedFolderSettingsSelectedTab } from 'providers/ReduxStore/slices/collections';
 import { useDispatch } from 'react-redux';
@@ -31,7 +31,11 @@ const FolderSettings = ({ collection, folder }) => {
   const responseVars = folderRoot?.request?.vars?.res || [];
   const activeVarsCount = requestVars.filter((v) => v.enabled).length + responseVars.filter((v) => v.enabled).length;
 
-  const hasAuth = hasEffectiveAuth(collection, folder);
+  const folderAuthMode = folder?.draft?.request?.auth?.mode ?? folder?.root?.request?.auth?.mode;
+  const hasAuth = useMemo(
+    () => hasEffectiveAuth(collection, folder),
+    [folder?.uid, folderAuthMode, collection?.uid]
+  );
 
   const setTab = (tab) => {
     dispatch(

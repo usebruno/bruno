@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useRef, useMemo } from 'react';
 import StyledWrapper from './StyledWrapper';
 import { findItemInCollection, findParentItemInCollection } from 'utils/collections/index';
 import { get } from 'lodash';
@@ -50,7 +50,11 @@ const Timeline = ({ collection, item }) => {
   const [scroll, setScroll] = usePersistedState({ key: `response-timeline-scroll-${item.uid}`, default: 0 });
   useTrackScroll({ ref: wrapperRef, selector: null, onChange: setScroll, initialValue: scroll });
   // Get the effective auth source if auth mode is inherit
-  const authSource = getEffectiveAuthSource(collection, item);
+  const itemAuthMode = item.draft?.request?.auth?.mode ?? item.request?.auth?.mode ?? item.root?.request?.auth?.mode;
+  const authSource = useMemo(
+    () => getEffectiveAuthSource(collection, item),
+    [item.uid, itemAuthMode, collection.uid]
+  );
   const isGrpcRequest = item.type === 'grpc-request' || item.type === 'ws-request';
 
   // Filter timeline entries based on new rules
