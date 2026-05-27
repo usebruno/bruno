@@ -24,7 +24,8 @@ export default defineConfig({
       testIgnore: [
         'ssl/**', // custom CA certificate tests require separate server setup and certificate generation
         'auth/**', // auth tests have their own project
-        'benchmarks/**'  
+        'benchmarks/**',
+        'proxy/system-pac/**' // shares ports with proxy/pac — runs in its own project after default
       ]
     },
     {
@@ -34,6 +35,12 @@ export default defineConfig({
     {
       name: 'ssl',
       testDir: './tests/ssl'
+    },
+    {
+      // system-pac and pac specs share the same PAC/proxy/target ports.
+      name: 'system-pac',
+      testDir: './tests/proxy/system-pac',
+      dependencies: ['default']
     }
   ],
 
