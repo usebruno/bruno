@@ -12,6 +12,7 @@ const loadSystemProxy = async () => {
       http_proxy: null,
       https_proxy: null,
       no_proxy: null,
+      pac_url: null,
       source: 'error'
     };
   }

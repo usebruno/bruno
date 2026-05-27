@@ -2,10 +2,14 @@ const parseUrl = require('url').parse;
 const http = require('node:http');
 const https = require('node:https');
 const { isEmpty, get, isUndefined, isNull } = require('lodash');
-const { HttpsProxyAgent } = require('https-proxy-agent');
 const { HttpProxyAgent } = require('http-proxy-agent');
 const { SocksProxyAgent } = require('socks-proxy-agent');
-const { getOrCreateHttpsAgent, getOrCreateHttpAgent } = require('@usebruno/requests');
+const {
+  getOrCreateHttpsAgent,
+  getOrCreateHttpAgent,
+  resolveAgentsFromPac,
+  PatchedHttpsProxyAgent
+} = require('@usebruno/requests');
 const { interpolateString } = require('../runner/interpolate-string');
 
 const DEFAULT_PORTS = {
@@ -68,41 +72,7 @@ const shouldUseProxy = (url, proxyBypass) => {
   });
 };
 
-/**
- * Options that should be forwarded from the constructor to the target TLS upgrade.
- */
-const TARGET_TLS_OPTIONS = ['cert', 'key', 'pfx', 'passphrase', 'rejectUnauthorized', 'secureContext'];
-
-/**
- * Patched version of HttpsProxyAgent that correctly handles TLS options for
- * both the proxy connection and the target server connection.
- *
- * The upstream HttpsProxyAgent (https://github.com/TooTallNate/proxy-agents/issues/194)
- * ignores constructor options when upgrading the tunneled socket to TLS for the
- * target server. This patch forwards the relevant TLS options to the target upgrade.
- */
-class PatchedHttpsProxyAgent extends HttpsProxyAgent {
-  constructor(proxy, opts) {
-    super(proxy, opts);
-    this.constructorOpts = opts;
-  }
-
-  async connect(req, opts) {
-    const targetOpts = { ...opts };
-
-    if (this.constructorOpts) {
-      for (const key of TARGET_TLS_OPTIONS) {
-        if (key in this.constructorOpts) {
-          targetOpts[key] = this.constructorOpts[key];
-        }
-      }
-    }
-
-    return super.connect(req, targetOpts);
-  }
-}
-
-function setupProxyAgents({
+async function setupProxyAgents({
   requestConfig,
   proxyMode = 'off',
   proxyConfig,
@@ -163,26 +133,36 @@ function setupProxyAgents({
     }
   } else if (proxyMode === 'system') {
     try {
-      const { http_proxy, https_proxy, no_proxy } = systemProxyConfig || {};
-      const shouldUseSystemProxy = shouldUseProxy(requestConfig.url, no_proxy || '');
-      if (shouldUseSystemProxy) {
+      const { http_proxy, https_proxy, no_proxy, pac_url } = systemProxyConfig || {};
+
+      // If the OS is configured with a PAC URL, resolve it using the existing PAC infrastructure
+      if (pac_url) {
         try {
-          if (http_proxy?.length && !isHttpsRequest) {
-            const parsedHttpProxy = new URL(http_proxy);
-            const isHttpsSystemProxy = parsedHttpProxy.protocol === 'https:';
-            const systemHttpProxyAgentOptions = isHttpsSystemProxy ? { ...httpAgentOptions, ...tlsOptions } : httpAgentOptions;
-            requestConfig.httpAgent = getOrCreateHttpAgent({ AgentClass: HttpProxyAgent, options: systemHttpProxyAgentOptions, proxyUri: http_proxy, disableCache, hostname });
+          const { httpAgent, httpsAgent } = await resolveAgentsFromPac({ pacSource: pac_url, requestUrl: requestConfig.url, requestProtocol: isHttpsRequest ? 'https' : 'http', tlsOptions, httpsAgentRequestFields, disableCache, hostname });
+          if (httpAgent) requestConfig.httpAgent = httpAgent;
+          if (httpsAgent) requestConfig.httpsAgent = httpsAgent;
+        } catch (error) {}
+      } else {
+        const shouldUseSystemProxy = shouldUseProxy(requestConfig.url, no_proxy || '');
+        if (shouldUseSystemProxy) {
+          try {
+            if (http_proxy?.length && !isHttpsRequest) {
+              const parsedHttpProxy = new URL(http_proxy);
+              const isHttpsSystemProxy = parsedHttpProxy.protocol === 'https:';
+              const systemHttpProxyAgentOptions = isHttpsSystemProxy ? { ...httpAgentOptions, ...tlsOptions } : httpAgentOptions;
+              requestConfig.httpAgent = getOrCreateHttpAgent({ AgentClass: HttpProxyAgent, options: systemHttpProxyAgentOptions, proxyUri: http_proxy, disableCache, hostname });
+            }
+          } catch (error) {
+            throw new Error('Invalid system http_proxy');
           }
-        } catch (error) {
-          throw new Error('Invalid system http_proxy');
-        }
-        try {
-          if (https_proxy?.length && isHttpsRequest) {
-            new URL(https_proxy);
-            requestConfig.httpsAgent = getOrCreateHttpsAgent({ AgentClass: PatchedHttpsProxyAgent, options: tlsOptions, proxyUri: https_proxy, disableCache, hostname });
+          try {
+            if (https_proxy?.length && isHttpsRequest) {
+              new URL(https_proxy);
+              requestConfig.httpsAgent = getOrCreateHttpsAgent({ AgentClass: PatchedHttpsProxyAgent, options: tlsOptions, proxyUri: https_proxy, disableCache, hostname });
+            }
+          } catch (error) {
+            throw new Error('Invalid system https_proxy');
           }
-        } catch (error) {
-          throw new Error('Invalid system https_proxy');
         }
       }
     } catch (error) {}
