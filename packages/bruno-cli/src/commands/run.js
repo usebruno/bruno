@@ -50,8 +50,6 @@ const printGenericTable = (headers, rows, title) => {
 
 const printRunSummary = (results) => {
   const summary = getRunnerSummary(results);
-  const skippedByBail = results.filter((r) => r?.skipReason === 'bail').length;
-  const augmentedSummary = { ...summary, skippedByBail };
 
   const duration = Math.round(
     results.reduce((acc, res) => acc + (res.runDuration || 0), 0) * 1000
@@ -67,7 +65,7 @@ const printRunSummary = (results) => {
     ? chalk.red.bold('✗ FAIL')
     : chalk.green.bold('✓ PASS');
 
-  const requests = formatRequestsCellFromSummary(augmentedSummary);
+  const requests = formatRequestsCellFromSummary(summary);
   const tests = `${summary.passedTests}/${summary.totalTests}`;
   const assertions = `${summary.passedAssertions}/${summary.totalAssertions}`;
 
@@ -82,7 +80,7 @@ const printRunSummary = (results) => {
 
   printGenericTable(headers, rows, '📊 Execution Summary');
 
-  return { ...summary, skippedByBail };
+  return summary;
 };
 
 const getJsSandboxRuntime = (sandbox) => {
