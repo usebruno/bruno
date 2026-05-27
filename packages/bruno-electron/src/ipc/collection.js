@@ -28,6 +28,7 @@ const { cookiesStore } = require('../store/cookies');
 const { parseLargeRequestWithRedaction } = require('../utils/parse');
 const { wsClient } = require('../ipc/network/ws-event-handlers');
 const { hasSubDirectories } = require('../utils/filesystem');
+const { transformProxyConfig } = require('@usebruno/requests');
 
 const {
   DEFAULT_GITIGNORE,
@@ -1226,6 +1227,8 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
               ignore: ['node_modules', '.git']
             };
           }
+          brunoConfig.proxy = transformProxyConfig(brunoConfig.proxy);
+          console.log('Transformed Bruno Config:', brunoConfig);
 
           return brunoConfig;
         };
