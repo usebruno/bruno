@@ -255,10 +255,13 @@ function makeAxiosInstance({
       });
 
       Object.entries(response.headers).forEach(([key, value]) => {
-        timeline.push({
-          timestamp: new Date(),
-          type: 'responseHeader',
-          message: `${key}: ${value}`
+        const values = Array.isArray(value) ? value : [value];
+        values.forEach((v) => {
+          timeline.push({
+            timestamp: new Date(),
+            type: 'responseHeader',
+            message: `${key}: ${v}`
+          });
         });
       });
 
@@ -290,10 +293,13 @@ function makeAxiosInstance({
             message: `HTTP/${error.response.httpVersion || '1.1'} ${error.response.status} ${error.response.statusText}`
           });
           Object.entries(error.response.headers).forEach(([key, value]) => {
-            timeline.push({
-              timestamp: new Date(),
-              type: 'responseHeader',
-              message: `${key}: ${value}`
+            const values = Array.isArray(value) ? value : [value];
+            values.forEach((v) => {
+              timeline.push({
+                timestamp: new Date(),
+                type: 'responseHeader',
+                message: `${key}: ${v}`
+              });
             });
           });
           timeline.push({
