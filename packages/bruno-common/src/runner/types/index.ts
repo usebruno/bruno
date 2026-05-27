@@ -88,6 +88,7 @@ export type T_RunnerRequestExecutionResult = {
   request: T_EmptyRequest | T_Request;
   response: T_EmptyResponse | T_Response | T_SkippedResponse;
   status: null | undefined | string;
+  skipped?: boolean;
   skipReason?: string;
   error: null | undefined | string;
   assertionResults?: T_AssertionResult[];

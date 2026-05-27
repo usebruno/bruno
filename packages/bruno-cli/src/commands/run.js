@@ -4,7 +4,7 @@ const path = require('path');
 const yaml = require('js-yaml');
 const { forOwn, cloneDeep } = require('lodash');
 const { getRunnerSummary } = require('@usebruno/common/runner');
-const { exists, isFile, isDirectory } = require('../utils/filesystem');
+const { exists, isFile, isDirectory, stripExtension } = require('../utils/filesystem');
 const { runSingleRequest } = require('../runner/run-single-request');
 const { getEnvVars } = require('../utils/bru');
 const { parseEnvironmentJson } = require('../utils/environment');
@@ -691,7 +691,7 @@ const handler = async function (argv) {
       results.push({
         ...result,
         runDuration: process.hrtime(start)[0] + process.hrtime(start)[1] / 1e9,
-        suitename: pathname.replace('.bru', ''),
+        suitename: stripExtension(pathname),
         name,
         path: result.test?.filename || path.relative(collectionPath, pathname)
       });
@@ -750,7 +750,7 @@ const handler = async function (argv) {
               preRequestTestResults: [],
               postResponseTestResults: [],
               runDuration: 0,
-              suitename: ri.pathname.replace('.bru', ''),
+              suitename: stripExtension(ri.pathname),
               name: ri.name,
               path: relativePath
             });
