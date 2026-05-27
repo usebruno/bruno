@@ -111,15 +111,7 @@ export const interpolateUrl = ({ url, variables }) => {
 };
 
 export const interpolateUrlPathParams = (url, params, variables = {}, options = {}) => {
-  // Issue #7356: when the URL Encoding toggle is on, each path-param value is run
-  // through encodeURIComponent so values like `aaa/bbb` survive as `aaa%2Fbbb`
-  // (literal data) rather than `aaa/bbb` (extra path segment). Per PR #5507 the
-  // encoder is content-blind — pre-encoded values intentionally double-encode.
-  // This helper is the only place that can disambiguate "/" inside a value (data)
-  // from "/" between path segments (structure) — once it lands in the URL string,
-  // the distinction is lost.
-  const substituteValue = (value) =>
-    options.encodeUrl ? encodeURIComponent(value) : value;
+  const substituteValue = (value) => options.encodeUrl ? encodeURIComponent(value) : value;
 
   const getInterpolatedBasePath = (pathname, params) => {
     let replacedPathname = pathname
