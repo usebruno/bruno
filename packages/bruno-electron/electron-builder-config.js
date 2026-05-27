@@ -98,6 +98,10 @@ const config = {
       {
         target: 'nsis',
         arch: ['x64', 'arm64']
+      },
+      {
+        target: 'portable',
+        arch: ['x64', 'arm64']
       }
     ],
     sign: null,
@@ -110,6 +114,9 @@ const config = {
     allowElevation: true,
     createDesktopShortcut: true,
     createStartMenuShortcut: true
+  },
+  portable: {
+    artifactName: '${name}_${version}_${arch}_win-portable.${ext}'
   }
 };
 
