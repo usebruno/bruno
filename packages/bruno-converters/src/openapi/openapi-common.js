@@ -499,15 +499,16 @@ export const createBrunoExample = ({ brunoRequestItem, exampleValue, exampleName
 /**
  * Groups requests by their first tag
  * @param {Array} requests - Array of parsed request objects
+ * @param {Object} options - Sanitization options (forwarded to sanitizeTag)
  * @returns {Array} Tuple of [tagGroups, ungroupedRequests]
  */
-export const groupRequestsByTags = (requests) => {
+export const groupRequestsByTags = (requests, options = {}) => {
   let _groups = {};
   let ungrouped = [];
   each(requests, (request) => {
     let tags = request.operationObject.tags || [];
     if (tags.length > 0) {
-      let tag = sanitizeTag(tags[0].trim()); // take first tag, trim whitespace, and sanitize
+      let tag = sanitizeTag(tags[0].trim(), options); // take first tag, trim whitespace, and sanitize
 
       if (tag) {
         if (!_groups[tag]) {

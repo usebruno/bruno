@@ -60,11 +60,18 @@ export const sanitizeTag = (tag, options = {}) => {
 
   let usableTagString = typeof tag == 'string' ? tag : 'name' in tag ? tag.name : '';
 
-  let sanitized = usableTagString.trim();
+  let trimmed = usableTagString.trim();
+
+  // OpenCollection (yml) schema imposes no character restriction on tags.
+  // Preserve the source value verbatim so folder names round-trip (BRU-3175).
+  if (options.collectionFormat === 'yml') {
+    return trimmed || null;
+  }
 
   // BRU format only supports alphanumeric, hyphens, and underscores in tags
   // The BRU grammar defines listitem as: (alnum | "_" | "-")+
   // Spaces are NOT allowed, so we replace them with underscores
+  let sanitized = trimmed;
 
   // Replace spaces with underscores first
   sanitized = sanitized.replace(/\s+/g, '_');
