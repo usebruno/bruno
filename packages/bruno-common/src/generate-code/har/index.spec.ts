@@ -1443,3 +1443,91 @@ describe('buildHar — defensive / robustness', () => {
     expect(names).not.toContain('X-Drop');
   });
 });
+
+// # encoding decision-tree matrix — covers the 7 active scenarios from the
+// fixings/snippet-vs-sendrequest.md docs. Each scenario asserts both the
+// rawUrl (OFF: byte-for-byte) and the encodedUrl (ON: # → %23 per Option C).
+// Skipped: hash-bang routing (#!/page) — deprecated since 2015.
+describe('buildHar — # encoding scenarios (decision-tree coverage)', () => {
+  it('Scenario 1: # at fragment position (/docs/api#authentication) — anchor for SPA/static docs', () => {
+    const url = 'https://example.com/docs/api#authentication';
+    const off = buildHar({ request: baseRequest({ url, settings: { encodeUrl: false } }), shouldInterpolate: false });
+    const on = buildHar({ request: baseRequest({ url, settings: { encodeUrl: true } }), shouldInterpolate: false });
+
+    // OFF: snippet shows the literal `#authentication` (user intent preserved)
+    expect(off.rawUrl).toBe('https://example.com/docs/api#authentication');
+    // ON: `#` becomes `%23` so the byte survives downstream URL parsing
+    expect(on.encodedUrl).toBe('https://example.com/docs/api%23authentication');
+  });
+
+  it('Scenario 2: # inside a query value (?query=aaa#bbb)', () => {
+    const url = 'http://localhost:6000/request-echo?query=aaa#bbb';
+    const off = buildHar({ request: baseRequest({ url, settings: { encodeUrl: false } }), shouldInterpolate: false });
+    const on = buildHar({
+      request: baseRequest({
+        url,
+        params: [{ name: 'query', value: 'aaa#bbb', type: 'query', enabled: true }],
+        settings: { encodeUrl: true }
+      }),
+      shouldInterpolate: false
+    });
+
+    expect(off.rawUrl).toBe('http://localhost:6000/request-echo?query=aaa#bbb');
+    expect(on.encodedUrl).toBe('http://localhost:6000/request-echo?query=aaa%23bbb');
+  });
+
+  it('Scenario 3: # in path-param value with trailing path (:id=john#doe, /users/:id/profile)', () => {
+    // The trailing /profile demonstrates the "silent data loss" case in OFF mode:
+    // axios on the wire treats `#doe/profile` as a fragment and strips it, so the
+    // server only sees `/users/john`. ON mode encodes `#` to `%23`, preserving
+    // both the value AND the /profile suffix on the wire.
+    const url = 'https://example.com/users/:id/profile';
+    const pathParams = [{ name: 'id', value: 'john#doe', type: 'path', enabled: true }];
+    const off = buildHar({ request: baseRequest({ url, pathParams, settings: { encodeUrl: false } }), shouldInterpolate: false });
+    const on = buildHar({ request: baseRequest({ url, pathParams, settings: { encodeUrl: true } }), shouldInterpolate: false });
+
+    expect(off.rawUrl).toBe('https://example.com/users/john#doe/profile');
+    expect(on.encodedUrl).toBe('https://example.com/users/john%23doe/profile');
+  });
+
+  it('Scenario 4: # in semantic path with trailing data (/issues/#1234)', () => {
+    const url = 'https://example.com/issues/#1234';
+    const off = buildHar({ request: baseRequest({ url, settings: { encodeUrl: false } }), shouldInterpolate: false });
+    const on = buildHar({ request: baseRequest({ url, settings: { encodeUrl: true } }), shouldInterpolate: false });
+
+    expect(off.rawUrl).toBe('https://example.com/issues/#1234');
+    expect(on.encodedUrl).toBe('https://example.com/issues/%231234');
+  });
+
+  it('Scenario 5: SPA hash-router URL (/#/dashboard/settings)', () => {
+    const url = 'https://yourapp.com/#/dashboard/settings';
+    const off = buildHar({ request: baseRequest({ url, settings: { encodeUrl: false } }), shouldInterpolate: false });
+    const on = buildHar({ request: baseRequest({ url, settings: { encodeUrl: true } }), shouldInterpolate: false });
+
+    expect(off.rawUrl).toBe('https://yourapp.com/#/dashboard/settings');
+    // Each path segment is independently encoded; the standalone `#` becomes `%23`
+    expect(on.encodedUrl).toBe('https://yourapp.com/%23/dashboard/settings');
+  });
+
+  it('Scenario 7: # directly in path (browser-address-bar style)', () => {
+    // Same shape as Scenario 1 but with the # following a path segment with no
+    // trailing slash. Behaves identically — # is data in ON, fragment in OFF.
+    const url = 'http://localhost:6000/request-echo/hash#tag';
+    const off = buildHar({ request: baseRequest({ url, settings: { encodeUrl: false } }), shouldInterpolate: false });
+    const on = buildHar({ request: baseRequest({ url, settings: { encodeUrl: true } }), shouldInterpolate: false });
+
+    expect(off.rawUrl).toBe('http://localhost:6000/request-echo/hash#tag');
+    expect(on.encodedUrl).toBe('http://localhost:6000/request-echo/hash%23tag');
+  });
+
+  it('Scenario 8: OAuth-style fragment (/callback#access_token=...&token_type=Bearer)', () => {
+    // OAuth implicit-flow callback. The entire token payload after `#` is treated
+    // as one path segment by encodeUrl, so `#`, `=`, and `&` all get encoded.
+    const url = 'https://myapp.com/callback#access_token=abc123&token_type=Bearer';
+    const off = buildHar({ request: baseRequest({ url, settings: { encodeUrl: false } }), shouldInterpolate: false });
+    const on = buildHar({ request: baseRequest({ url, settings: { encodeUrl: true } }), shouldInterpolate: false });
+
+    expect(off.rawUrl).toBe('https://myapp.com/callback#access_token=abc123&token_type=Bearer');
+    expect(on.encodedUrl).toBe('https://myapp.com/callback%23access_token%3Dabc123%26token_type%3DBearer');
+  });
+});
