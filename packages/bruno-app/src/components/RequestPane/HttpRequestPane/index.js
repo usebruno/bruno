@@ -100,7 +100,7 @@ const HttpRequestPane = ({ item, collection }) => {
       params: activeCounts.params > 0 ? <sup className="font-medium">{activeCounts.params}</sup> : null,
       body: body.mode !== 'none' ? <StatusDot /> : null,
       headers: activeCounts.headers > 0 ? <sup className="font-medium">{activeCounts.headers}</sup> : null,
-      auth: hasAuth ? <StatusDot /> : null,
+      auth: hasAuth ? <StatusDot dataTestId="auth" /> : null,
       vars: activeCounts.vars > 0 ? <sup className="font-medium">{activeCounts.vars}</sup> : null,
       script: (script.req || script.res) ? (hasScriptError ? <StatusDot type="error" /> : <StatusDot />) : null,
       assert: activeCounts.assertions > 0 ? <sup className="font-medium">{activeCounts.assertions}</sup> : null,
