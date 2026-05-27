@@ -10,18 +10,23 @@ import {
 } from 'providers/ReduxStore/slices/collections/actions';
 import { removeGitOperationProgress } from 'providers/ReduxStore/slices/app';
 import Modal from 'components/Modal';
-import path from 'utils/common/path';
+import SelectionFooter from 'components/SelectionFooter';
+import path, { getRelativePath } from 'utils/common/path';
 import Portal from 'components/Portal';
-import { IconRefresh, IconCheck, IconAlertCircle, IconBrandGit } from '@tabler/icons';
+import { IconRefresh, IconAlertCircle, IconBrandGit } from '@tabler/icons';
 import { uuid } from 'utils/common/index';
 import StyledWrapper from './StyledWrapper';
 import SelectionList from 'components/SelectionList';
 import { getRepoNameFromUrl } from 'utils/git';
 import GitNotFoundModal from 'components/Git/GitNotFoundModal/index';
+import ScanWarning from 'components/ScanWarning';
+import SkippedPathsWarning from 'components/SkippedPathsWarning';
+import toast from 'react-hot-toast';
 import get from 'lodash/get';
 
 const CloneGitRepository = ({ onClose, onFinish, collectionRepositoryUrl = null }) => {
   const [collectionPaths, setCollectionPaths] = useState([]);
+  const [skippedCollectionPaths, setSkippedCollectionPaths] = useState([]);
   const [selectedCollectionPaths, setSelectedCollectionPaths] = useState([]);
   const [processUid, setProcessUid] = useState(uuid());
   const [steps, setSteps] = useState([]);
@@ -69,6 +74,7 @@ const CloneGitRepository = ({ onClose, onFinish, collectionRepositoryUrl = null 
   };
 
   const cloneFinished = () => {
+    toast.success('Repository cloned successfully');
     setSteps((prev) =>
       prev.map((step) =>
         step.step === 'clone'
@@ -100,6 +106,7 @@ const CloneGitRepository = ({ onClose, onFinish, collectionRepositoryUrl = null 
   };
 
   const scanFinished = () => {
+    toast.success('Repository scanned successfully');
     setSteps((prev) =>
       prev.map((step) =>
         step.step === 'scan' ? { ...step, title: 'Scan successful', completed: true, info: '' } : step
@@ -132,10 +139,11 @@ const CloneGitRepository = ({ onClose, onFinish, collectionRepositoryUrl = null 
         dispatch(removeGitOperationProgress(processUid));
 
         scanInProgress();
-        const foundCollectionPaths = await dispatch(scanForBrunoFiles(targetPath));
+        const scanResult = await dispatch(scanForBrunoFiles(targetPath));
 
         scanFinished();
-        setCollectionPaths(foundCollectionPaths);
+        setCollectionPaths(scanResult?.items || []);
+        setSkippedCollectionPaths(scanResult?.skippedItems || []);
       } catch (err) {
         cloneError();
         dispatch(removeGitOperationProgress(processUid));
@@ -157,22 +165,20 @@ const CloneGitRepository = ({ onClose, onFinish, collectionRepositoryUrl = null 
       });
   };
 
-  const handleCollectionSelect = (collection) => {
+  const handleCollectionSelect = (collectionPathname) => {
     setSelectedCollectionPaths((prevSelected) =>
-      prevSelected.includes(collection)
-        ? prevSelected.filter((c) => c !== collection)
-        : [...prevSelected, collection]
+      prevSelected.includes(collectionPathname)
+        ? prevSelected.filter((pathname) => pathname !== collectionPathname)
+        : [...prevSelected, collectionPathname]
     );
   };
 
-  const handleSelectAllCollections = (e) => {
-    setSelectedCollectionPaths(e.target.checked ? [...collectionPaths] : []);
-  };
-
-  const getRelativePath = (fullPath, pathname) => {
-    let relativePath = path.relative(fullPath, pathname);
-    const { dir, name } = path.parse(relativePath);
-    return path.join(dir, name);
+  const handleSelectAllCollections = (e, filteredCollectionPaths) => {
+    setSelectedCollectionPaths((prevSelected) => (
+      e.target.checked
+        ? Array.from(new Set([...prevSelected, ...filteredCollectionPaths]))
+        : prevSelected.filter((pathname) => !filteredCollectionPaths.includes(pathname))
+    ));
   };
 
   const isScanCompleted = () => steps.some((step) => step.step === 'scan' && step.completed);
@@ -182,6 +188,14 @@ const CloneGitRepository = ({ onClose, onFinish, collectionRepositoryUrl = null 
   const isFooterHidden = () => steps.some((step) => !step.completed);
 
   const isError = () => steps.some((step) => step.error);
+
+  const footerLeft = isScanCompleted() && collectionPaths?.length > 0
+    ? (
+        <SelectionFooter>
+          <span>{selectedCollectionPaths.length}</span> of {collectionPaths.length} selected
+        </SelectionFooter>
+      )
+    : null;
 
   const handleConfirm = () => {
     const buttonText = getConfirmText();
@@ -234,6 +248,7 @@ const CloneGitRepository = ({ onClose, onFinish, collectionRepositoryUrl = null 
         hideCancel={isError() || (isScanCompleted() && !collectionPaths?.length)}
         showBackButton={isError()}
         handleBack={handleBackButtonClick}
+        footerLeft={footerLeft}
       >
         <StyledWrapper>
           {view === 'form' && (
@@ -305,22 +320,16 @@ const CloneGitRepository = ({ onClose, onFinish, collectionRepositoryUrl = null 
           )}
           {view === 'progress' && (
             <>
-              {steps.length > 0 && (
-                <div className="mt-4">
+              {steps.some((step) => !step.completed || step.error) && (
+                <div className="clone-progress-steps">
                   <ul>
-                    {steps.map((step, index) => (
+                    {steps.filter((step) => !step.completed || step.error).map((step, index) => (
                       <li key={index} className="flex-col items-center space-x-2 mt-1">
                         <div className="flex">
                           {step.error ? (
                             <IconAlertCircle className="text-red-500" size={18} strokeWidth={1.5} />
                           ) : (
-                            <>
-                              {step.completed ? (
-                                <IconCheck className="text-green-500" size={18} strokeWidth={1.5} />
-                              ) : (
-                                <IconRefresh className="text-yellow-500 animate-spin" size={18} strokeWidth={1.5} />
-                              )}
-                            </>
+                            <IconRefresh className="text-yellow-500 animate-spin" size={18} strokeWidth={1.5} />
                           )}
                           <span className="ml-2">{step.title}</span>
                         </div>
@@ -335,23 +344,28 @@ const CloneGitRepository = ({ onClose, onFinish, collectionRepositoryUrl = null 
                 </div>
               )}
               {isScanCompleted() && (
-                <div className="mt-4 mb-4">
+                <div className="w-full min-w-0 flex flex-col gap-3">
+                  <SkippedPathsWarning paths={skippedCollectionPaths} itemNoun="collections" />
                   {collectionPaths.length === 0 && (
-                    <div className="flex">
+                    <ScanWarning className="flex items-start gap-2">
                       <IconAlertCircle className="text-yellow-500" size={18} strokeWidth={1.5} />
-                      <h3 className="text-sm ml-2">No bruno collections found in this repository.</h3>
-                    </div>
+                      <div>No Bruno collections were found in this repository.</div>
+                    </ScanWarning>
                   )}
                   {collectionPaths.length > 0 && (
                     <SelectionList
-                      title={`Collections (${collectionPaths.length})`}
+                      title="Collections"
+                      searchPlaceholder="Search Collections"
                       items={collectionPaths}
                       selectedItems={selectedCollectionPaths}
                       onSelectAll={handleSelectAllCollections}
                       onItemToggle={handleCollectionSelect}
-                      getItemId={(collection) => collection}
-                      renderItemLabel={(collection) => getRelativePath(formik.values.collectionLocation, collection)}
+                      getItemId={(collection) => collection.pathname}
+                      renderItemTitle={(collection) => collection.name}
+                      renderItemDescription={(collection) => getRelativePath(formik.values.collectionLocation, collection.pathname)}
                       visibleRows={8}
+                      rowHeight={60}
+                      rowGap={4}
                     />
                   )}
                 </div>

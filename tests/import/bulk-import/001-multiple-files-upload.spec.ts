@@ -32,7 +32,9 @@ test.describe('Multiple Files Upload', () => {
     await expect(bulkImportModal.locator('.bruno-modal-header-title')).toContainText('Bulk Import');
 
     // Check that the Collections count shows 2 collections in the Bulk Import modal
-    await expect(bulkImportModal.getByText('Collections (2)')).toBeVisible();
+    const collectionsHeading = bulkImportModal.locator('.selection-heading').filter({ hasText: 'Collections' });
+    await expect(collectionsHeading).toBeVisible();
+    await expect(collectionsHeading.locator('.selection-count')).toHaveText('2');
 
     // Verify collection names are displayed
     await expect(bulkImportModal.getByText('Sample Postman Collection')).toBeVisible();

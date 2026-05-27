@@ -224,6 +224,7 @@ const openCollectionsByPathname = async (win, watcher, collectionPaths, options 
 };
 
 module.exports = {
+  getCollectionConfigFile,
   openCollection,
   openCollectionDialog,
   openCollectionsByPathname,

@@ -233,13 +233,19 @@ export const BulkImportCollectionLocation = ({
       prev.includes(uid) ? prev.filter((id) => id !== uid) : [...prev, uid]
     );
   };
-  const handleSelectAllCollections = (e) => {
-    setSelectedCollections(e.target.checked ? importedCollection.map((col) => col.uid) : []);
+  const handleSelectAllCollections = (e, filteredCollectionUids) => {
+    setSelectedCollections((prevSelected) => (
+      e.target.checked
+        ? Array.from(new Set([...prevSelected, ...filteredCollectionUids]))
+        : prevSelected.filter((uid) => !filteredCollectionUids.includes(uid))
+    ));
   };
-  const handleSelectAllEnvironments = (e) => {
-    setSelectedEnvironments(
-      e.target.checked ? importedEnvironment.map((env) => env.uid) : []
-    );
+  const handleSelectAllEnvironments = (e, filteredEnvironmentUids) => {
+    setSelectedEnvironments((prevSelected) => (
+      e.target.checked
+        ? Array.from(new Set([...prevSelected, ...filteredEnvironmentUids]))
+        : prevSelected.filter((uid) => !filteredEnvironmentUids.includes(uid))
+    ));
   };
 
   const onDropdownCreate = (ref) => {
@@ -664,33 +670,42 @@ export const BulkImportCollectionLocation = ({
               </>
             ) : (
               <>
-                <div className="mb-6">
+                <div className="w-full mb-6">
                   <SelectionList
-                    title={`Collections (${importedCollection.length})`}
+                    title="Collections"
+                    searchPlaceholder="Search Collections"
                     items={sortedCollections}
                     selectedItems={selectedCollections}
                     onSelectAll={handleSelectAllCollections}
                     onItemToggle={handleCollectionToggle}
                     getItemId={(collection) => collection.uid}
-                    renderItemLabel={(collection) => collection.name}
+                    renderItemTitle={(collection) => collection.name}
+                    renderItemDescription={(collection) => collection._fileData?.file?.name}
                     visibleRows={5}
+                    rowHeight={isMultipleImport ? 60 : 30}
+                    rowGap={4}
                     emptyMessage="No collections found"
+                    showSelectedCount={true}
                   />
                 </div>
 
                 {importType === 'bulk' && (
                   <>
-                    <div className="mb-4">
+                    <div className="w-full mb-6">
                       <SelectionList
-                        title={`Environments (${importedEnvironment.length})`}
+                        title="Environments"
+                        searchPlaceholder="Search Environments"
                         items={sortedEnvironments}
                         selectedItems={selectedEnvironments}
                         onSelectAll={handleSelectAllEnvironments}
                         onItemToggle={handleEnvironmentToggle}
                         getItemId={(env) => env.uid}
-                        renderItemLabel={(env) => env.name}
-                        visibleRows={5}
+                        renderItemTitle={(env) => env.name}
+                        visibleRows={4}
+                        rowHeight={30}
+                        rowGap={4}
                         emptyMessage="No environments found"
+                        showSelectedCount={true}
                       />
                     </div>
 

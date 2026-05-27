@@ -16,7 +16,7 @@ const getFullyVisibleRowNames = async (list: Locator) => {
         const rect = item.getBoundingClientRect();
         return rect.top >= listRect.top && rect.bottom <= listRect.bottom;
       })
-      .map((item) => item.textContent?.trim())
+      .map((item) => item.querySelector('.selection-item-title')?.textContent?.trim())
       .filter(Boolean);
   });
 };
@@ -61,7 +61,9 @@ test.describe('Bulk Import Selection List', () => {
 
     const bulkImportModal = page.getByRole('dialog');
     await expect(bulkImportModal.locator('.bruno-modal-header-title')).toContainText('Bulk Import');
-    await expect(bulkImportModal.getByText('Collections (10)')).toBeVisible();
+    const collectionsHeading = bulkImportModal.locator('.selection-heading').filter({ hasText: 'Collections' });
+    await expect(collectionsHeading).toBeVisible();
+    await expect(collectionsHeading.locator('.selection-count')).toHaveText('10');
 
     const collectionList = bulkImportModal.locator('.selection-list').first();
     await expect(collectionList).toBeVisible();

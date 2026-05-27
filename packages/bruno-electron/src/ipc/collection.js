@@ -57,7 +57,7 @@ const {
   isCollectionRootBruFile,
   scanForBrunoFiles
 } = require('../utils/filesystem');
-const { openCollectionDialog, openCollectionsByPathname, registerScratchCollectionPath } = require('../app/collections');
+const { getCollectionConfigFile, openCollectionDialog, openCollectionsByPathname, registerScratchCollectionPath } = require('../app/collections');
 const { generateUidBasedOnHash, stringifyJson, safeStringifyJSON, safeParseJSON } = require('../utils/common');
 const { moveRequestUid, deleteRequestUid, syncExampleUidsCache } = require('../cache/requestUids');
 const { deleteCookiesForDomain, getDomainsWithCookies, addCookieForDomain, modifyCookieForDomain, parseCookieString, createCookieString, deleteCookie } = require('../utils/cookies');
@@ -2459,9 +2459,30 @@ const registerMainEventHandlers = (mainWindow, watcher) => {
     app.addRecentDocument(pathname);
   });
 
-  ipcMain.handle('renderer:scan-for-bruno-files', (event, dir) => {
+  ipcMain.handle('renderer:scan-for-bruno-files', async (event, dir) => {
     try {
-      return scanForBrunoFiles(dir);
+      const collectionPaths = await scanForBrunoFiles(dir);
+
+      const scanResults = await Promise.all(
+        collectionPaths.map(async (pathname) => {
+          try {
+            const brunoConfig = await getCollectionConfigFile(pathname);
+
+            return {
+              pathname,
+              name: brunoConfig.name
+            };
+          } catch (error) {
+            console.warn(`Skipping invalid Bruno collection at ${pathname}: ${error.message}`);
+            return { pathname, skipped: true };
+          }
+        })
+      );
+
+      return {
+        items: scanResults.filter((result) => !result.skipped),
+        skippedItems: scanResults.filter((result) => result.skipped).map(({ pathname }) => pathname)
+      };
     } catch (error) {
       throw new Error(error.message);
     }

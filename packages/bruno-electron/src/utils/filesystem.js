@@ -490,7 +490,7 @@ const scanForBrunoFiles = async (dir) => {
             return;
           }
           scanDir(fullPath);
-        } else if (file === 'bruno.json') {
+        } else if ((file === 'bruno.json' || file === 'opencollection.yml') && !brunoFolders.includes(currentDir)) {
           brunoFolders.push(currentDir);
         }
       });
