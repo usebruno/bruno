@@ -11,8 +11,8 @@ export const getAuthHeaders = (requestAuth, collection = null, item = null) => {
 
   switch (requestAuth.mode) {
     case 'basic':
-      const username = get(requestAuth, 'basic.username', '');
-      const password = get(requestAuth, 'basic.password', '');
+      const username = get(requestAuth, 'basic.username') || '';
+      const password = get(requestAuth, 'basic.password') || '';
       const basicToken = Buffer.from(`${username}:${password}`).toString('base64');
 
       return [

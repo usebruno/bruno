@@ -479,6 +479,23 @@ describe('Snippet Generator - Simple Tests', () => {
       })
     );
   });
+
+  it('should treat a null basic auth username as an empty string', () => {
+    const { getAuthHeaders: actualGetAuthHeaders } = jest.requireActual('utils/codegenerator/auth');
+
+    const headers = actualGetAuthHeaders({
+      mode: 'basic',
+      basic: { username: null, password: 'pwd' }
+    });
+
+    // ":pwd" encoded is "OnB3ZA==" — never "null:pwd" ("bnVsbDpwd2Q=")
+    expect(headers).toContainEqual(
+      expect.objectContaining({
+        name: 'Authorization',
+        value: 'Basic OnB3ZA=='
+      })
+    );
+  });
 });
 
 // Snippet should include inherited headers
