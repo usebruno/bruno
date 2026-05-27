@@ -13,7 +13,7 @@ import { getEffectiveAuthSource } from 'utils/auth';
 import { updateRequestAuthMode, updateAuth } from 'providers/ReduxStore/slices/collections';
 import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 
-import { SUPPORTED_GRPC_AUTH_MODES } from 'utils/common/constants';
+import { AUTH_MODES_GRPC } from 'utils/common/constants';
 
 const GrpcAuth = ({ item, collection }) => {
   const dispatch = useDispatch();
@@ -34,7 +34,7 @@ const GrpcAuth = ({ item, collection }) => {
 
   // Reset to 'none' if current auth mode is not supported by gRPC
   useEffect(() => {
-    if (authMode && !SUPPORTED_GRPC_AUTH_MODES.includes(authMode)) {
+    if (authMode && !AUTH_MODES_GRPC.includes(authMode)) {
       dispatch(
         updateRequestAuthMode({
           itemUid: item.uid,
@@ -67,7 +67,7 @@ const GrpcAuth = ({ item, collection }) => {
       }
       case 'inherit': {
         // Only show inherited auth if it's one of the supported types
-        if (inheritedSource && SUPPORTED_GRPC_AUTH_MODES.includes(inheritedSource.auth?.mode)) {
+        if (inheritedSource && AUTH_MODES_GRPC.includes(inheritedSource.auth?.mode)) {
           return (
             <>
               <div className="flex flex-row w-full gap-2">

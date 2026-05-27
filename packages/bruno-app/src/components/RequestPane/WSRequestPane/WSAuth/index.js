@@ -10,7 +10,7 @@ import { getEffectiveAuthSource } from 'utils/auth';
 import { updateRequestAuthMode, updateAuth } from 'providers/ReduxStore/slices/collections';
 import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 
-import { SUPPORTED_WS_AUTH_MODES } from 'utils/common/constants';
+import { AUTH_MODES_WS } from 'utils/common/constants';
 
 const WSAuth = ({ item, collection }) => {
   const dispatch = useDispatch();
@@ -31,7 +31,7 @@ const WSAuth = ({ item, collection }) => {
 
   // Reset to 'none' if current auth mode is not supported
   useEffect(() => {
-    if (authMode && !SUPPORTED_WS_AUTH_MODES.includes(authMode)) {
+    if (authMode && !AUTH_MODES_WS.includes(authMode)) {
       dispatch(updateRequestAuthMode({
         itemUid: item.uid,
         collectionUid: collection.uid,
@@ -78,7 +78,7 @@ const WSAuth = ({ item, collection }) => {
         }
 
         // Only show inherited auth if it's one of the supported types
-        if (inheritedSource && SUPPORTED_WS_AUTH_MODES.includes(inheritedSource.auth?.mode)) {
+        if (inheritedSource && AUTH_MODES_WS.includes(inheritedSource.auth?.mode)) {
           return (
             <>
               <div className="flex flex-row w-full gap-2">

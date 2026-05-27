@@ -13,7 +13,7 @@ import { getPropertyFromDraftOrRequest } from 'utils/collections/index';
 import ResponsiveTabs from 'ui/ResponsiveTabs';
 import StyledWrapper from './StyledWrapper';
 import { hasEffectiveAuth } from 'utils/auth';
-import { SUPPORTED_GRPC_AUTH_MODES } from 'utils/common/constants';
+import { AUTH_MODES_GRPC } from 'utils/common/constants';
 
 const GrpcRequestPane = ({ item, collection, handleRun }) => {
   const dispatch = useDispatch();
@@ -57,7 +57,7 @@ const GrpcRequestPane = ({ item, collection, handleRun }) => {
   const docs = getPropertyFromDraftOrRequest(item, 'request.docs');
   const itemAuthMode = item.draft?.request?.auth?.mode ?? item.request?.auth?.mode ?? item.root?.request?.auth?.mode;
   const hasAuth = useMemo(
-    () => hasEffectiveAuth(collection, item, SUPPORTED_GRPC_AUTH_MODES),
+    () => hasEffectiveAuth(collection, item, AUTH_MODES_GRPC),
     [item.uid, itemAuthMode, collection.uid]
   );
   const activeHeadersLength = headers.filter((header) => header.enabled).length;
