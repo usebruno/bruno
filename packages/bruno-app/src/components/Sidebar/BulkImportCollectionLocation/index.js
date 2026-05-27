@@ -318,18 +318,25 @@ export const BulkImportCollectionLocation = ({
         if (Object.keys(collectedIssues).length > 0) {
           setImportIssues(collectedIssues);
 
-          // Aggregate all issues across collections into one toast
           const allIssues = [];
           const timestamp = new Date().toISOString();
           Object.entries(collectedIssues).forEach(([uid, issues]) => {
             const item = selectedItems.find((s) => s.uid === uid);
             const name = item?.name || uid;
+            const skipped = issues.filter((i) => i.severity === 'error').length;
+            const warnings = issues.filter((i) => i.severity === 'warning').length;
+            const parts = [];
+            if (skipped > 0) parts.push(`skipped ${skipped} item(s)`);
+            if (warnings > 0) parts.push(`${warnings} warning(s)`);
 
-            // Prefix each issue path with collection name for context
+            // Per-collection summary header
+            dispatch(addLog({ type: 'error', args: [`Import: ${name} — ${parts.join(', ')}`], timestamp }));
+
+            // Individual issues for this collection
             issues.forEach((issue) => {
               allIssues.push({ ...issue, path: `${name} > ${issue.path}` });
               const logType = issue.severity === 'error' ? 'error' : 'warn';
-              const logArgs = [`[${name} > ${issue.path}] ${issue.message}`];
+              const logArgs = [`[${issue.path}] ${issue.message}`];
               if (issue.sourceItem) logArgs.push(issue.sourceItem);
               dispatch(addLog({ type: logType, args: logArgs, timestamp }));
             });

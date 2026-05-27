@@ -177,13 +177,13 @@ const ImportCollectionLocation = ({ onClose, handleSubmit, rawData, format, sour
         showImportIssuesToast(issues);
 
         // Log each issue to Bruno's internal console
-        const errors = issues.filter((i) => i.severity === 'error');
-        const warnings = issues.filter((i) => i.severity === 'warning');
+        const skipped = issues.filter((i) => i.severity === 'error').length;
+        const warnings = issues.filter((i) => i.severity === 'warning').length;
         const parts = [];
-        if (errors.length > 0) parts.push(`${errors.length} item(s) skipped`);
-        if (warnings.length > 0) parts.push(`${warnings.length} warning(s)`);
+        if (skipped > 0) parts.push(`skipped ${skipped} item(s)`);
+        if (warnings > 0) parts.push(`${warnings} warning(s)`);
         const timestamp = new Date().toISOString();
-        dispatch(addLog({ type: 'warn', args: [`Import: ${parts.join(', ')}`], timestamp }));
+        dispatch(addLog({ type: 'error', args: [`Import: ${collectionName} — ${parts.join(', ')}`], timestamp }));
         issues.forEach((issue) => {
           const logType = issue.severity === 'error' ? 'error' : 'warn';
           const logArgs = [`[${issue.path}] ${issue.message}`];
