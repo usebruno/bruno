@@ -184,7 +184,7 @@ const GraphQLRequestPane = ({ item, collection, onSchemaLoad, toggleDocs, handle
     () => TAB_CONFIG.map(({ key, label }) => ({
       key,
       label,
-      indicator: key === 'auth' && hasAuth ? <StatusDot /> : null
+      indicator: key === 'auth' && hasAuth ? <StatusDot dataTestId="auth" /> : null
     })),
     [hasAuth]
   );

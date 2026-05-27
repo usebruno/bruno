@@ -98,7 +98,7 @@ const FolderSettings = ({ collection, folder }) => {
           </div>
           <div className={getTabClassname('auth')} role="tab" data-testid="folder-settings-tab-auth" onClick={() => setTab('auth')}>
             Auth
-            {hasAuth && <StatusDot />}
+            {hasAuth && <StatusDot dataTestId="auth" />}
           </div>
           <div className={getTabClassname('docs')} role="tab" data-testid="folder-settings-tab-docs" onClick={() => setTab('docs')}>
             Docs

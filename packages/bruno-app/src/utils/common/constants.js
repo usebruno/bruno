@@ -17,7 +17,7 @@ export const AUTH_MODES = {
 };
 
 // Auth modes supported by WS protocol.
-export const SUPPORTED_WS_AUTH_MODES = [
+export const AUTH_MODES_WS = [
   AUTH_MODES.BASIC,
   AUTH_MODES.BEARER,
   AUTH_MODES.APIKEY,
@@ -27,7 +27,7 @@ export const SUPPORTED_WS_AUTH_MODES = [
 ];
 
 // Auth modes supported by GRPC protocol
-export const SUPPORTED_GRPC_AUTH_MODES = [
+export const AUTH_MODES_GRPC = [
   AUTH_MODES.BASIC,
   AUTH_MODES.BEARER,
   AUTH_MODES.APIKEY,

@@ -60,7 +60,7 @@ const WSRequestPane = ({ item, collection, handleRun }) => {
       {
         key: 'auth',
         label: 'Auth',
-        indicator: hasAuth ? <StatusDot type="default" /> : null
+        indicator: hasAuth ? <StatusDot type="default" dataTestId="auth" /> : null
       },
       {
         key: 'settings',
