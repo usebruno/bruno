@@ -34,9 +34,9 @@ test.describe('All Collection Types Bulk Import', () => {
     await expect(bulkImportModal.locator('.bruno-modal-header-title')).toContainText('Bulk Import');
 
     // Check that the Collections count shows 4 collections in the Bulk Import modal
-    const collectionsHeading = bulkImportModal.locator('.selection-heading').filter({ hasText: 'Collections' });
+    const collectionsHeading = bulkImportModal.getByTestId('selection-heading').filter({ hasText: 'Collections' });
     await expect(collectionsHeading).toBeVisible();
-    await expect(collectionsHeading.locator('.selection-count')).toHaveText('4');
+    await expect(collectionsHeading.getByTestId('selection-count')).toHaveText('4');
     await expect(bulkImportModal.getByText('Sample Postman Collection')).toBeVisible();
     await expect(bulkImportModal.getByText('Sample Insomnia Collection')).toBeVisible();
     await expect(bulkImportModal.getByText('Sample Bruno Collection')).toBeVisible();

@@ -61,11 +61,11 @@ test.describe('Bulk Import Selection List', () => {
 
     const bulkImportModal = page.getByRole('dialog');
     await expect(bulkImportModal.locator('.bruno-modal-header-title')).toContainText('Bulk Import');
-    const collectionsHeading = bulkImportModal.locator('.selection-heading').filter({ hasText: 'Collections' });
+    const collectionsHeading = bulkImportModal.getByTestId('selection-heading').filter({ hasText: 'Collections' });
     await expect(collectionsHeading).toBeVisible();
-    await expect(collectionsHeading.locator('.selection-count')).toHaveText('10');
+    await expect(collectionsHeading.getByTestId('selection-count')).toHaveText('10');
 
-    const collectionList = bulkImportModal.locator('.selection-list').first();
+    const collectionList = bulkImportModal.getByTestId('selection-list').first();
     await expect(collectionList).toBeVisible();
 
     const initialVisibleRows = await getFullyVisibleRowNames(collectionList);

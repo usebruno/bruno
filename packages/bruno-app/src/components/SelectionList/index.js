@@ -81,22 +81,23 @@ const SelectionList = ({
       $rowHeight={rowHeight}
       $rowGap={rowGap}
     >
-      <div className="selection-heading">
+      <div className="selection-heading" data-testid="selection-heading">
         <span className="selection-title">{title}</span>
-        <span className="selection-count">{items.length}</span>
+        <span className="selection-count" data-testid="selection-count">{items.length}</span>
       </div>
       <div className="selection-panel">
         <div className="selection-toolbar">
           <label className="selection-search">
             <IconSearch size={16} strokeWidth={1.5} />
             <input
+              data-testid="selection-search-input"
               type="text"
               value={searchText}
               onChange={(e) => setSearchText(e.target.value)}
               placeholder={searchPlaceholder || `Search ${title}`}
             />
           </label>
-          <label className="selection-toggle">
+          <label className="selection-toggle" data-testid="selection-select-all-toggle">
             <input
               ref={selectAllRef}
               className="checkbox"
@@ -107,7 +108,7 @@ const SelectionList = ({
             Select all
           </label>
         </div>
-        <ul className="selection-list scrollbar-hover">
+        <ul className="selection-list scrollbar-hover" data-testid="selection-list">
           {items.length === 0 && (
             <li className="selection-empty">
               <span className="selection-empty-message">{emptyMessage}</span>

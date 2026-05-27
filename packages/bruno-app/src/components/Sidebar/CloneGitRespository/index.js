@@ -327,9 +327,9 @@ const CloneGitRepository = ({ onClose, onFinish, collectionRepositoryUrl = null 
                       <li key={index} className="flex-col items-center space-x-2 mt-1">
                         <div className="flex">
                           {step.error ? (
-                            <IconAlertCircle className="text-red-500" size={18} strokeWidth={1.5} />
+                            <IconAlertCircle className="clone-step-error-icon" size={18} strokeWidth={1.5} />
                           ) : (
-                            <IconRefresh className="text-yellow-500 animate-spin" size={18} strokeWidth={1.5} />
+                            <IconRefresh className="clone-step-progress-icon animate-spin" size={18} strokeWidth={1.5} />
                           )}
                           <span className="ml-2">{step.title}</span>
                         </div>
@@ -348,7 +348,7 @@ const CloneGitRepository = ({ onClose, onFinish, collectionRepositoryUrl = null 
                   <SkippedPathsWarning paths={skippedCollectionPaths} itemNoun="collections" />
                   {collectionPaths.length === 0 && (
                     <ScanWarning className="flex items-start gap-2">
-                      <IconAlertCircle className="text-yellow-500" size={18} strokeWidth={1.5} />
+                      <IconAlertCircle className="scan-warning-icon" size={18} strokeWidth={1.5} />
                       <div>No Bruno collections were found in this repository.</div>
                     </ScanWarning>
                   )}

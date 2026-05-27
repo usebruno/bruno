@@ -49,12 +49,12 @@ test.describe('Bulk Import - Select all', () => {
     const bulkImportModal = page.getByRole('dialog');
     await expect(bulkImportModal.locator('.bruno-modal-header-title')).toContainText('Bulk Import');
 
-    const collectionsHeading = bulkImportModal.locator('.selection-heading').filter({ hasText: 'Collections' });
-    await expect(collectionsHeading.locator('.selection-count')).toHaveText(String(totalCollections));
+    const collectionsHeading = bulkImportModal.getByTestId('selection-heading').filter({ hasText: 'Collections' });
+    await expect(collectionsHeading.getByTestId('selection-count')).toHaveText(String(totalCollections));
 
-    const collectionList = bulkImportModal.locator('.selection-list').first();
+    const collectionList = bulkImportModal.getByTestId('selection-list').first();
     const itemCheckboxes = collectionList.locator('.selection-item input[type="checkbox"]');
-    const selectAllToggle = bulkImportModal.locator('.selection-toggle').first();
+    const selectAllToggle = bulkImportModal.getByTestId('selection-select-all-toggle').first();
     const selectAllCheckbox = selectAllToggle.locator('input[type="checkbox"]');
 
     await expect(itemCheckboxes).toHaveCount(totalCollections);
@@ -110,7 +110,7 @@ test.describe('Bulk Import - Select all', () => {
       await selectAllToggle.click();
       await expect(selectAllCheckbox).not.toBeChecked();
 
-      const searchInput = bulkImportModal.locator('.selection-search input').first();
+      const searchInput = bulkImportModal.getByTestId('selection-search-input').first();
       await searchInput.fill('01');
 
       const visibleCount = await itemCheckboxes.count();

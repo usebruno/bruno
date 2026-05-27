@@ -50,6 +50,7 @@ const ModalFooter = ({
             <button
               type="button"
               onClick={handleBack}
+              data-testid={`${dataTestId}-back-btn`}
               className="btn btn-md btn-link text-link hover:underline"
             >
               Back

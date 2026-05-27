@@ -22,6 +22,14 @@ const StyledWrapper = styled.div`
   .clone-progress-steps {
     margin-bottom: 0.5rem;
   }
+
+  .clone-step-error-icon {
+    color: ${(props) => props.theme.status.danger.text};
+  }
+
+  .clone-step-progress-icon {
+    color: ${(props) => props.theme.status.warning.text};
+  }
 `;
 
 export default StyledWrapper;
