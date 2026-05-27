@@ -236,6 +236,54 @@ test.describe('Generate Code – URL Encoding OFF', () => {
 
       await closeGenerateCodeDialog(page);
     });
+
+    test('preserves /issues/#1234 verbatim (semantic-path fragment)', async ({ pageWithUserData: page }) => {
+      // Scenario 4: GitHub/GitLab-style issue link with `#` after a trailing
+      // slash. OFF mode keeps the user's typed form intact in the snippet.
+      // Note: on the wire, HTTP clients strip everything from `#` onwards,
+      // so the server only ever sees `/issues/` — that's the deliberate cost
+      // of OFF mode for fragment-style URLs.
+      await openCollection(page, COLLECTION);
+      await openRequestInFolder(page, FOLDER, 'path-issues-fragment');
+      await setUrlEncoding(page, false);
+
+      const snippet = await getGeneratedSnippet(page);
+      expect(snippet).toContain('https://httpbin.org/anything/issues#1234');
+
+      await closeGenerateCodeDialog(page);
+    });
+
+    test('preserves SPA hash-router URL (/#/dashboard/settings)', async ({ pageWithUserData: page }) => {
+      // Scenario 5: legacy SPA hash-routing. OFF mode keeps the literal `#`
+      // so the snippet matches what the user typed. The wire only sees `/path/`
+      // (axios strips the fragment) — fine for SPAs since the JS reads
+      // location.hash to decide what to render.
+      await openCollection(page, COLLECTION);
+      await openRequestInFolder(page, FOLDER, 'path-spa-route');
+      await setUrlEncoding(page, false);
+
+      const snippet = await getGeneratedSnippet(page);
+      expect(snippet).toContain('https://httpbin.org/anything/spa#/dashboard/settings');
+
+      await closeGenerateCodeDialog(page);
+    });
+
+    test('preserves OAuth callback fragment verbatim', async ({ pageWithUserData: page }) => {
+      // Scenario 8: OAuth implicit-flow callback. The fragment is the entire
+      // point — it keeps the access_token out of server logs. OFF mode
+      // preserves the literal `#access_token=…` in the snippet so users can
+      // see/copy the URL form they typed.
+      await openCollection(page, COLLECTION);
+      await openRequestInFolder(page, FOLDER, 'oauth-callback-fragment');
+      await setUrlEncoding(page, false);
+
+      const snippet = await getGeneratedSnippet(page);
+      expect(snippet).toContain(
+        'https://httpbin.org/anything/callback#access_token=abc123&token_type=Bearer'
+      );
+
+      await closeGenerateCodeDialog(page);
+    });
   });
 
   test.describe('Path-params table (params:path)', () => {
@@ -252,6 +300,23 @@ test.describe('Generate Code – URL Encoding OFF', () => {
       const snippet = await getGeneratedSnippet(page);
       expect(snippet).not.toBe('Error generating code snippet');
       expect(snippet).toContain('http://localhost:8081/api/echo/path/users/aaa bbb');
+
+      await closeGenerateCodeDialog(page);
+    });
+
+    test('path-param value with # — /profile suffix kept in snippet (but lost on wire)', async ({ pageWithUserData: page }) => {
+      // Scenario 3 from the # encoding decision tree: when `:id = john#doe`
+      // and the URL template has `/profile` after `:id`, OFF mode keeps
+      // `/profile` visible in the snippet (so the user sees what they typed).
+      // On the wire, downstream HTTP clients strip `#doe/profile` as a
+      // fragment — that's the cost of OFF for this shape. To send the full
+      // path to the server, toggle ON (encodes `#` to `%23`).
+      await openCollection(page, COLLECTION);
+      await openRequestInFolder(page, FOLDER, 'path-param-hash-trailing');
+      await setUrlEncoding(page, false);
+
+      const snippet = await getGeneratedSnippet(page);
+      expect(snippet).toContain('http://localhost:8081/api/echo/path/users/john#doe/profile');
 
       await closeGenerateCodeDialog(page);
     });

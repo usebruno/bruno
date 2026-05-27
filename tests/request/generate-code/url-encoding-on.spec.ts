@@ -242,6 +242,52 @@ test.describe('Generate Code – URL Encoding ON', () => {
 
       await closeGenerateCodeDialog(page);
     });
+
+    test('encodes # in a semantic-path issue link (/issues/#1234)', async ({ pageWithUserData: page }) => {
+      // Scenario 4 from the # encoding decision tree: GitHub-style "/issues/#1234"
+      // where the `#` separates the path from a frontend deep-link. In ON mode
+      // it's treated as data (`%231234`), so the encoded path can survive a
+      // server-side URL-decode pass that expects to receive the literal `#`.
+      await openCollection(page, COLLECTION);
+      await openRequestInFolder(page, FOLDER, 'path-issues-fragment');
+      await setUrlEncoding(page, true);
+
+      const snippet = await getGeneratedSnippet(page);
+      expect(snippet).toContain('https://httpbin.org/anything/issues%231234');
+
+      await closeGenerateCodeDialog(page);
+    });
+
+    test('encodes # in an SPA hash-router URL (/#/dashboard/settings)', async ({ pageWithUserData: page }) => {
+      // Scenario 5: legacy SPA hash-routing pattern. In ON mode each path
+      // segment is independently encoded — the standalone `#` segment becomes
+      // `%23`, preserving the literal byte for the server.
+      await openCollection(page, COLLECTION);
+      await openRequestInFolder(page, FOLDER, 'path-spa-route');
+      await setUrlEncoding(page, true);
+
+      const snippet = await getGeneratedSnippet(page);
+      expect(snippet).toContain('https://httpbin.org/anything/spa%23/dashboard/settings');
+
+      await closeGenerateCodeDialog(page);
+    });
+
+    test('encodes # and reserved chars in an OAuth callback fragment', async ({ pageWithUserData: page }) => {
+      // Scenario 8: OAuth implicit-flow callback URL with token data in the
+      // fragment. In ON mode the entire segment after the last `/` is encoded
+      // — `#` → `%23`, `=` → `%3D`, `&` → `%26` — so the whole token payload
+      // becomes literal data in the path.
+      await openCollection(page, COLLECTION);
+      await openRequestInFolder(page, FOLDER, 'oauth-callback-fragment');
+      await setUrlEncoding(page, true);
+
+      const snippet = await getGeneratedSnippet(page);
+      expect(snippet).toContain(
+        'https://httpbin.org/anything/callback%23access_token%3Dabc123%26token_type%3DBearer'
+      );
+
+      await closeGenerateCodeDialog(page);
+    });
   });
 
   test.describe('Path-params table (params:path)', () => {
@@ -271,6 +317,22 @@ test.describe('Generate Code – URL Encoding ON', () => {
       const snippet = await getGeneratedSnippet(page);
       expect(snippet).not.toBe('Error generating code snippet');
       expect(snippet).toContain('http://localhost:8081/api/echo/path/users/aaa%20bbb');
+
+      await closeGenerateCodeDialog(page);
+    });
+
+    test('path-param value with # preserves the trailing /profile segment (regression: no silent loss)', async ({ pageWithUserData: page }) => {
+      // Scenario 3 from the # encoding decision tree: when the user types
+      // `:id = john#doe` and the template has `/profile` after `:id`, the
+      // snippet must keep `/profile` visible. In ON mode the `#` is encoded
+      // to `%23`, which prevents downstream tools from treating the rest of
+      // the path as a fragment and silently dropping `/profile`.
+      await openCollection(page, COLLECTION);
+      await openRequestInFolder(page, FOLDER, 'path-param-hash-trailing');
+      await setUrlEncoding(page, true);
+
+      const snippet = await getGeneratedSnippet(page);
+      expect(snippet).toContain('http://localhost:8081/api/echo/path/users/john%23doe/profile');
 
       await closeGenerateCodeDialog(page);
     });
