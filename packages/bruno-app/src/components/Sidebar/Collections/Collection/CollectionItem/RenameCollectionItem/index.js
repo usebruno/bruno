@@ -8,6 +8,7 @@ import { renameItem, saveRequest, closeTabs } from 'providers/ReduxStore/slices/
 import path from 'utils/common/path';
 import { IconArrowBackUp, IconEdit, IconCaretDown } from '@tabler/icons';
 import { sanitizeName, validateName, validateNameError } from 'utils/common/regex';
+import { getHttpRequestFilenameBase } from 'utils/common/requestFilename';
 import toast from 'react-hot-toast';
 import Help from 'components/Help';
 import PathDisplay from 'components/PathDisplay';
@@ -25,6 +26,10 @@ const RenameCollectionItem = ({ collectionUid, item, onClose }) => {
   const itemName = item?.name;
   const itemType = item?.type;
   const itemFilename = item?.filename ? path.parse(item?.filename).name : '';
+  const isHttpRequest = itemType === 'http-request';
+  const expectedHttpFilename = isHttpRequest ? getHttpRequestFilenameBase(itemName, item?.request?.method) : null;
+  const hasCustomFilename = isHttpRequest && itemFilename !== expectedHttpFilename;
+  const [isFilenameManuallyEdited, setFilenameManuallyEdited] = useState(hasCustomFilename);
   const [showFilesystemName, toggleShowFilesystemName] = useState(false);
 
   const dropdownTippyRef = useRef();
@@ -127,7 +132,12 @@ const RenameCollectionItem = ({ collectionUid, item, onClose }) => {
                 spellCheck="false"
                 onChange={(e) => {
                   formik.setFieldValue('name', e.target.value);
-                  !isEditing && formik.setFieldValue('filename', sanitizeName(e.target.value));
+                  if (!isFilenameManuallyEdited) {
+                    const filename = isHttpRequest
+                      ? getHttpRequestFilenameBase(e.target.value, item?.request?.method)
+                      : sanitizeName(e.target.value);
+                    formik.setFieldValue('filename', filename);
+                  }
                 }}
                 value={formik.values.name || ''}
               />
@@ -185,7 +195,10 @@ const RenameCollectionItem = ({ collectionUid, item, onClose }) => {
                       autoCorrect="off"
                       autoCapitalize="off"
                       spellCheck="false"
-                      onChange={formik.handleChange}
+                      onChange={(e) => {
+                        setFilenameManuallyEdited(true);
+                        formik.handleChange(e);
+                      }}
                       value={formik.values.filename || ''}
                     />
                     {itemType !== 'folder' && <span className="absolute right-2 top-4 flex justify-center items-center file-extension">.{collection?.format || 'bru'}</span>}

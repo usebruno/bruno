@@ -59,6 +59,7 @@ const {
 } = require('../utils/filesystem');
 const { openCollectionDialog, openCollectionsByPathname, registerScratchCollectionPath } = require('../app/collections');
 const { generateUidBasedOnHash, stringifyJson, safeStringifyJSON, safeParseJSON } = require('../utils/common');
+const { getUniqueRequestFilename } = require('../utils/request-filename');
 const { moveRequestUid, deleteRequestUid, syncExampleUidsCache } = require('../cache/requestUids');
 const { deleteCookiesForDomain, getDomainsWithCookies, addCookieForDomain, modifyCookieForDomain, parseCookieString, createCookieString, deleteCookie } = require('../utils/cookies');
 const EnvironmentSecretsStore = require('../store/env-secrets');
@@ -1156,22 +1157,15 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
           coll.name = uniqueName;
         }
 
-        const getFilenameWithFormat = (item, format) => {
-          if (item?.filename) {
-            const ext = path.extname(item.filename);
-            if (ext === '.bru' || ext === '.yml') {
-              return item.filename.replace(ext, `.${format}`);
-            }
-            return item.filename;
-          }
-          return `${item.name}.${format}`;
-        };
-
         // Recursive function to parse the collection items and create files/folders
         const parseCollectionItems = async (items = [], currentPath) => {
-          await Promise.all(items.map(async (item) => {
+          const filenamesInFolder = new Set();
+          for (const item of items) {
             if (['http-request', 'graphql-request', 'grpc-request', 'ws-request'].includes(item.type)) {
-              let sanitizedFilename = sanitizeName(getFilenameWithFormat(item, format));
+              let sanitizedFilename = getUniqueRequestFilename(item, format, (filename) => {
+                return filenamesInFolder.has(filename) || fs.existsSync(path.join(currentPath, filename));
+              });
+              filenamesInFolder.add(sanitizedFilename);
               const content = await stringifyRequestViaWorker(item, { format });
               const filePath = path.join(currentPath, sanitizedFilename);
               safeWriteFileSync(filePath, content);
@@ -1198,7 +1192,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
               const filePath = path.join(currentPath, sanitizedFilename);
               safeWriteFileSync(filePath, item.fileContent);
             }
-          }));
+          }
         };
 
         const parseEnvironments = async (environments = [], collectionPath) => {
@@ -1328,14 +1322,16 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
       const format = getCollectionFormat(collectionPathname);
 
       // Recursive function to parse the folder and create files/folders
-      const parseCollectionItems = (items = [], currentPath) => {
-        items.forEach(async (item) => {
-          if (['http-request', 'graphql-request', 'grpc-request'].includes(item.type)) {
+      const parseCollectionItems = async (items = [], currentPath) => {
+        const filenamesInFolder = new Set();
+        for (const item of items) {
+          if (['http-request', 'graphql-request', 'grpc-request', 'ws-request'].includes(item.type)) {
             const content = await stringifyRequestViaWorker(item, { format });
 
-            // Use the correct file extension based on target format
-            const baseName = path.parse(item.filename).name;
-            const newFilename = format === 'yml' ? `${baseName}.yml` : `${baseName}.bru`;
+            const newFilename = getUniqueRequestFilename(item, format, (filename) => {
+              return filenamesInFolder.has(filename) || fs.existsSync(path.join(currentPath, filename));
+            });
+            filenamesInFolder.add(newFilename);
             const filePath = path.join(currentPath, newFilename);
 
             safeWriteFileSync(filePath, content);
@@ -1355,10 +1351,10 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
             }
 
             if (item.items && item.items.length) {
-              parseCollectionItems(item.items, folderPath);
+              await parseCollectionItems(item.items, folderPath);
             }
           }
-        });
+        }
       };
 
       await createDirectory(collectionPath);

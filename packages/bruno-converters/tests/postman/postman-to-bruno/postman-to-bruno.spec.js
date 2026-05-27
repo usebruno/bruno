@@ -27,6 +27,38 @@ describe('postman-collection', () => {
     ]);
   });
 
+  it('keeps duplicate request display names clean when HTTP methods differ', async () => {
+    const brunoCollection = await postmanToBruno({
+      info: {
+        name: 'Projects API',
+        schema: 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json'
+      },
+      item: [
+        {
+          name: '/projects',
+          request: {
+            method: 'GET',
+            url: 'https://api.example.com/projects'
+          }
+        },
+        {
+          name: '/projects',
+          request: {
+            method: 'POST',
+            url: 'https://api.example.com/projects'
+          }
+        }
+      ]
+    });
+
+    expect(brunoCollection.items).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ name: '/projects', filename: 'GET projects', request: expect.objectContaining({ method: 'GET' }) }),
+        expect.objectContaining({ name: '/projects', filename: 'POST projects', request: expect.objectContaining({ method: 'POST' }) })
+      ])
+    );
+  });
+
   it('should handle falsy values in collection variables', async () => {
     const collectionWithFalsyVars = {
       info: {

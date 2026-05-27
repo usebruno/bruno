@@ -3,6 +3,7 @@ const os = require('os');
 const fs = require('fs');
 const path = require('path');
 const { sanitizeName } = require('./filesystem');
+const { getUniqueRequestFilename } = require('./request-filename');
 const { parseRequest, parseCollection, parseFolder, stringifyCollection, stringifyFolder, stringifyEnvironment, stringifyRequest } = require('@usebruno/filestore');
 const constants = require('../constants');
 const chalk = require('chalk');
@@ -11,7 +12,7 @@ const FORMAT_CONFIG = {
   yml: { ext: '.yml', collectionFile: 'opencollection.yml', folderFile: 'folder.yml' },
   bru: { ext: '.bru', collectionFile: 'collection.bru', folderFile: 'folder.bru' }
 };
-const REQUEST_ITEM_TYPES = ['http-request', 'graphql-request'];
+const REQUEST_ITEM_TYPES = ['http-request', 'graphql-request', 'grpc-request', 'ws-request'];
 
 const getCollectionFormat = (collectionPath) => {
   if (fs.existsSync(path.join(collectionPath, 'opencollection.yml'))) return 'yml';
@@ -596,6 +597,7 @@ const createCollectionFromBrunoObject = async (collection, dirPath, options = {}
  */
 const processCollectionItems = async (items = [], currentPath, options = {}) => {
   const { format = 'bru' } = options;
+  const filenamesInFolder = new Set();
   for (const item of items) {
     if (item.type === 'folder') {
       // Create folder
@@ -620,18 +622,10 @@ const processCollectionItems = async (items = [], currentPath, options = {}) => 
       }
     } else if (REQUEST_ITEM_TYPES.includes(item.type)) {
       // Create request file
-      let sanitizedFilename;
-      if (format == 'yml') {
-        sanitizedFilename = sanitizeName(item?.filename || `${item.name}.yml`);
-        if (!sanitizedFilename.endsWith('.yml')) {
-          sanitizedFilename += '.yml';
-        }
-      } else {
-        sanitizedFilename = sanitizeName(item?.filename || `${item.name}.bru`);
-        if (!sanitizedFilename.endsWith('.bru')) {
-          sanitizedFilename += '.bru';
-        }
-      }
+      let sanitizedFilename = getUniqueRequestFilename(item, format, (filename) => {
+        return filenamesInFolder.has(filename) || fs.existsSync(path.join(currentPath, filename));
+      });
+      filenamesInFolder.add(sanitizedFilename);
 
       // Convert to YML format
       const itemJson = {

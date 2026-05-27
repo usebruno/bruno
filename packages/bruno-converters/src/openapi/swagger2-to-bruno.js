@@ -13,6 +13,7 @@ import {
   groupRequestsByTags,
   groupRequestsByPath
 } from './openapi-common';
+import { getUniqueHttpRequestFilename } from '../utils/request-filename';
 
 /**
  * Gets the value for a Swagger 2.0 parameter based on example, default, or enum
@@ -120,11 +121,11 @@ const addParamToRequest = (brunoRequestItem, location, name, value, description,
 /**
  * Transforms a single Swagger 2.0 operation into a Bruno request item
  * @param {Object} request - The parsed request object with operationObject, method, path, global
- * @param {Set} usedNames - Set of already-used operation names (for deduplication)
+ * @param {Set} usedFilenames - Set of already-used request filenames in the current folder
  * @param {Object} options - Import options
  * @returns {Object} Bruno request item
  */
-const transformSwaggerRequestItem = (request, usedNames = new Set(), options = {}) => {
+const transformSwaggerRequestItem = (request, usedFilenames = new Set(), options = {}) => {
   const op = request.operationObject;
   const consumes = op.consumes || request.global.consumes || ['application/json'];
   const produces = op.produces || request.global.produces || ['application/json'];
@@ -136,23 +137,12 @@ const transformSwaggerRequestItem = (request, usedNames = new Set(), options = {
   // Sanitize operation name to prevent Bruno parsing issues
   if (operationName) operationName = operationName.replace(/[\r\n\s]+/g, ' ').trim();
 
-  // Make names unique to prevent filename collisions
-  if (usedNames.has(operationName)) {
-    let uniqueName = `${operationName} (${request.method.toUpperCase()})`;
-    let counter = 1;
-    while (usedNames.has(uniqueName)) {
-      uniqueName = `${operationName} (${counter})`;
-      counter++;
-    }
-    operationName = uniqueName;
-  }
-  usedNames.add(operationName);
-
   let path = request.path;
 
   const brunoRequestItem = {
     uid: uuid(),
     name: operationName,
+    filename: getUniqueHttpRequestFilename(operationName, request.method, usedFilenames),
     type: 'http-request',
     tags: sanitizeTags(op.tags || [], options),
     request: {
@@ -537,7 +527,6 @@ const buildCollectionAuth = (def) => {
  * @returns {Object} Bruno collection
  */
 export const parseSwagger2Collection = (data, options = {}) => {
-  const usedNames = new Set();
   const brunoCollection = {
     name: '',
     uid: uuid(),
@@ -611,20 +600,24 @@ export const parseSwagger2Collection = (data, options = {}) => {
       brunoCollection.items = groupRequestsByPath(allRequests, transformSwaggerRequestItem, options);
     } else {
       let [groups, ungroupedRequests] = groupRequestsByTags(allRequests);
-      let brunoFolders = groups.map((group) => ({
-        uid: uuid(),
-        name: group.name,
-        type: 'folder',
-        root: {
-          request: {
-            auth: { mode: 'inherit', basic: null, bearer: null, digest: null, apikey: null, oauth2: null }
+      let brunoFolders = groups.map((group) => {
+        const usedFilenames = new Set();
+        return {
+          uid: uuid(),
+          name: group.name,
+          type: 'folder',
+          root: {
+            request: {
+              auth: { mode: 'inherit', basic: null, bearer: null, digest: null, apikey: null, oauth2: null }
+            },
+            meta: { name: group.name }
           },
-          meta: { name: group.name }
-        },
-        items: group.requests.map((req) => transformSwaggerRequestItem(req, usedNames, options))
-      }));
+          items: group.requests.map((req) => transformSwaggerRequestItem(req, usedFilenames, options))
+        };
+      });
 
-      let ungroupedItems = ungroupedRequests.map((req) => transformSwaggerRequestItem(req, usedNames, options));
+      const usedFilenames = new Set();
+      let ungroupedItems = ungroupedRequests.map((req) => transformSwaggerRequestItem(req, usedFilenames, options));
       brunoCollection.items = brunoFolders.concat(ungroupedItems);
     }
 
