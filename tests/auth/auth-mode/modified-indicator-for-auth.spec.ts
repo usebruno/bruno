@@ -50,7 +50,7 @@ test.describe('Modified indicator for auth tab', () => {
 
     await test.step('Verify the Auth tab shows the status dot for folder-1 (inheriting Bearer Token)', async () => {
       await expect(
-        locators.paneTabs.folderSettingsTab('auth').getByTestId('status-dot')
+        locators.paneTabs.folderSettingsTab('auth').getByTestId('status-dot-auth')
       ).toBeVisible();
     });
 
@@ -61,7 +61,7 @@ test.describe('Modified indicator for auth tab', () => {
 
     await test.step('Verify the Auth tab does NOT show the status dot for folder-1 (No Auth)', async () => {
       await expect(
-        locators.paneTabs.folderSettingsTab('auth').getByTestId('status-dot')
+        locators.paneTabs.folderSettingsTab('auth').getByTestId('status-dot-auth')
       ).toBeHidden();
     });
   });
@@ -106,7 +106,7 @@ test.describe('Modified indicator for auth tab', () => {
 
       await test.step(`Verify the ${protocol} request Auth tab shows the status dot (inheriting Basic Auth from folder-1)`, async () => {
         await expect(
-          locators.paneTabs.responsiveTab('auth').getByTestId('status-dot')
+          locators.paneTabs.responsiveTab('auth').getByTestId('status-dot-auth')
         ).toBeVisible();
       });
 
@@ -114,7 +114,7 @@ test.describe('Modified indicator for auth tab', () => {
         await selectAuthMode(page, AUTH_MODE_LABELS.NONE);
         await saveRequest(page);
         await expect(
-          locators.paneTabs.responsiveTab('auth').getByTestId('status-dot')
+          locators.paneTabs.responsiveTab('auth').getByTestId('status-dot-auth')
         ).toBeHidden();
       });
 
@@ -122,8 +122,25 @@ test.describe('Modified indicator for auth tab', () => {
         await selectAuthMode(page, AUTH_MODE_LABELS.BASIC);
         await saveRequest(page);
         await expect(
-          locators.paneTabs.responsiveTab('auth').getByTestId('status-dot')
+          locators.paneTabs.responsiveTab('auth').getByTestId('status-dot-auth')
         ).toBeVisible();
+      });
+
+      await test.step('Change folder-1 auth type to No Auth', async () => {
+        await locators.sidebar.folder('folder-1').dblclick();
+        await locators.paneTabs.folderSettingsTab('auth').click();
+        await selectAuthMode(page, AUTH_MODE_LABELS.NONE);
+        await page.getByRole('button', { name: 'Save' }).click();
+      });
+
+      await test.step(`Set the ${protocol} request auth back to Inherit and verify the dot is hidden (folder is No Auth)`, async () => {
+        await openRequest(page, collectionName, requestName);
+        await selectRequestPaneTab(page, 'Auth');
+        await selectAuthMode(page, AUTH_MODE_LABELS.INHERIT);
+        await saveRequest(page);
+        await expect(
+          locators.paneTabs.responsiveTab('auth').getByTestId('status-dot-auth')
+        ).toBeHidden();
       });
     });
   }
