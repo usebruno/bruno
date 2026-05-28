@@ -28,6 +28,7 @@ const ModalFooter = ({
   confirmDisabled,
   hideCancel,
   hideFooter,
+  footerLeft,
   confirmButtonColor = 'primary',
   dataTestId = 'modal'
 }) => {
@@ -39,24 +40,27 @@ const ModalFooter = ({
   }
 
   return (
-    <div className="flex justify-end p-4 bruno-modal-footer">
-      <span className={hideCancel ? 'hidden' : 'mr-2'}>
-        <Button type="button" color="secondary" variant="ghost" onClick={handleCancel}>
-          {cancelText}
-        </Button>
-      </span>
-      <span>
-        <Button
-          type="submit"
-          color={confirmButtonColor}
-          disabled={confirmDisabled}
-          onClick={handleSubmit}
-          className="submit"
-          data-testid={`${dataTestId}-submit-btn`}
-        >
-          {confirmText}
-        </Button>
-      </span>
+    <div className="flex justify-between items-center p-4 bruno-modal-footer">
+      <div>{footerLeft}</div>
+      <div className="flex justify-end">
+        <span className={hideCancel ? 'hidden' : 'mr-2'}>
+          <Button type="button" color="secondary" variant="ghost" onClick={handleCancel}>
+            {cancelText}
+          </Button>
+        </span>
+        <span>
+          <Button
+            type="submit"
+            color={confirmButtonColor}
+            disabled={confirmDisabled}
+            onClick={handleSubmit}
+            className="submit"
+            data-testid={`${dataTestId}-submit-btn`}
+          >
+            {confirmText}
+          </Button>
+        </span>
+      </div>
     </div>
   );
 };
@@ -74,6 +78,7 @@ const Modal = ({
   hideCancel,
   hideFooter,
   hideClose,
+  footerLeft,
   disableCloseOnOutsideClick,
   disableEscapeKey,
   onClick,
@@ -152,6 +157,7 @@ const Modal = ({
           confirmDisabled={confirmDisabled}
           hideCancel={hideCancel}
           hideFooter={hideFooter}
+          footerLeft={footerLeft}
           confirmButtonColor={confirmButtonColor}
           dataTestId={dataTestId}
         />
