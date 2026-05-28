@@ -129,7 +129,19 @@ export const buildCommonLocators = (page: Page) => ({
     envOption: (name: string) => page.locator('.dropdown-item').getByText(name, { exact: true }),
     parsingError: () => page.getByTestId('import-error-message'),
     browseLink: (root?: Locator) => (root ?? page).getByTestId('import-collection-browse-link'),
-    importButton: (root?: Locator) => (root ?? page).getByTestId('import-collection-location-modal-submit-btn')
+    importButton: (root?: Locator) => (root ?? page).getByTestId('import-collection-location-modal-submit-btn'),
+    ...(() => {
+      const issuesToast = () => page.getByTestId('import-issues-toast').last();
+      return {
+        issuesToast,
+        issuesToastTitle: () => issuesToast().getByTestId('import-issues-toast-title'),
+        issuesToastCopyBtn: () => issuesToast().getByTestId('import-issues-copy-btn'),
+        issuesToastReportBtn: () => issuesToast().getByTestId('import-issues-report-btn'),
+        issuesToastIncludeItemsCheckbox: () => issuesToast().getByTestId('import-issues-include-items-checkbox'),
+        issuesToastCloseBtn: () => issuesToast().getByTestId('import-issues-toast-close'),
+        issuesToastUrlTooLongWarning: () => issuesToast().getByTestId('import-issues-url-too-long-warning')
+      };
+    })()
   },
   /**
    * Build generic table locators for any table with a testId

@@ -19,6 +19,22 @@ const waitForReadyPage = (
 ) => waitForReadyPageImpl(app, options);
 
 /**
+ * Dismiss all import issues toasts (they use infinite duration and persist across tests).
+ * @param page - The page object
+ * @returns void
+ */
+const dismissImportIssuesToasts = async (page: Page) => {
+  await test.step('Dismiss import issues toasts', async () => {
+    const toasts = page.getByTestId('import-issues-toast');
+    while (await toasts.count() > 0) {
+      const toast = toasts.first();
+      await toast.getByTestId('import-issues-toast-close').click();
+      await expect(toast).not.toBeVisible({ timeout: 5000 });
+    }
+  });
+};
+
+/**
  * Close all collections
  * @param page - The page object
  * @returns void
@@ -428,6 +444,7 @@ const deleteCollectionFromOverview = async (page: Page, collectionName: string) 
  */
 type ImportCollectionOptions = {
   expectedCollectionName?: string;
+  expectIssues?: boolean;
 };
 
 const importCollection = async (
@@ -469,6 +486,11 @@ const importCollection = async (
       await expect(
         page.locator('#sidebar-collection-name').filter({ hasText: options.expectedCollectionName })
       ).toBeVisible();
+    }
+
+    // Wait for import issues toast if expected
+    if (options.expectIssues) {
+      await expect(locators.import.issuesToast()).toBeVisible({ timeout: 10000 });
     }
 
     if (options.expectedCollectionName) {
@@ -1546,6 +1568,7 @@ const openWorkspaceFromDialog = async (app: any, page: any, targetPath: string) 
 
 export {
   waitForReadyPage,
+  dismissImportIssuesToasts,
   closeAllCollections,
   openCollection,
   createCollection,
