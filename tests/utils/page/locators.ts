@@ -138,7 +138,8 @@ export const buildCommonLocators = (page: Page) => ({
         issuesToastCopyBtn: () => issuesToast().getByTestId('import-issues-copy-btn'),
         issuesToastReportBtn: () => issuesToast().getByTestId('import-issues-report-btn'),
         issuesToastIncludeItemsCheckbox: () => issuesToast().getByTestId('import-issues-include-items-checkbox'),
-        issuesToastCloseBtn: () => issuesToast().getByTestId('import-issues-toast-close')
+        issuesToastCloseBtn: () => issuesToast().getByTestId('import-issues-toast-close'),
+        issuesToastUrlTooLongWarning: () => issuesToast().getByTestId('import-issues-url-too-long-warning')
       };
     })()
   },

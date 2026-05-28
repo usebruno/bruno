@@ -94,10 +94,18 @@ const StyledWrapper = styled.div`
   }
 
   .toast-warning {
+    display: flex;
+    align-items: flex-start;
+    gap: 4px;
     font-size: 11px;
-    color: ${(props) => props.theme.colors.text.danger};
+    color: ${(props) => props.theme.colors.text.warning};
     margin-bottom: 8px;
     line-height: 1.4;
+
+    .toast-warning-icon {
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
   }
 
   .toast-actions {

@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import toast from 'react-hot-toast';
-import { IconBrandGithub, IconCopy, IconX } from '@tabler/icons';
+import { IconAlertCircle, IconBrandGithub, IconCopy, IconX } from '@tabler/icons';
 import StyledWrapper from './StyledWrapper';
 
 const GITHUB_ISSUES_URL = 'https://github.com/usebruno/bruno/issues/new';
@@ -125,7 +125,10 @@ const ImportIssuesToastContent = ({ t, issues, summary }) => {
           </label>
         )}
         {isUrlTooLong && (
-          <div className="toast-warning">Issue details are too long to embed in the URL. Clicking &quot;Report on GitHub&quot; will copy them to your clipboard — paste it once the GitHub issue page opens.</div>
+          <div className="toast-warning" data-testid="import-issues-url-too-long-warning">
+            <IconAlertCircle size={14} className="toast-warning-icon" />
+            <span>Issue details are too long to embed in the URL. Clicking &quot;Report on GitHub&quot; will copy them to your clipboard — paste it once the GitHub issue page opens.</span>
+          </div>
         )}
         <div className="toast-actions">
           <button className="toast-btn" onClick={handleReport} data-testid="import-issues-report-btn">
