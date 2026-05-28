@@ -7,7 +7,7 @@ test.describe('Presets status dot in collection settings', () => {
     await closeAllCollections(page);
   });
 
-  test('Presets dot is hidden on a fresh collection and stays visible once a preset has been saved (even at defaults)', async ({
+  test('Presets dot reflects whether saved presets differ from defaults', async ({
     page,
     createTmpDir
   }) => {
