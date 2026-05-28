@@ -1,8 +1,6 @@
 import styled from 'styled-components';
 
 const StyledWrapper = styled.div`
-  margin-inline: -1rem;
-  margin-block: -1rem;
   display: flex;
   flex-direction: row;
   width: 800px;
@@ -196,17 +194,17 @@ const StyledWrapper = styled.div`
   .notif-detail {
     flex: 1;
     min-width: 0;
-    padding: 6px 12px 16px 12px;
+    padding: 6px 6px 0 0;
     display: flex;
     flex-direction: column;
-    gap: 16px;
-    overflow-y: auto;
+    gap: 8px;
   }
 
   .notif-detail-header {
     display: flex;
     flex-direction: column;
     gap: 10px;
+    padding: 0 12px;
   }
 
   .notif-detail-meta {

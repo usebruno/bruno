@@ -24,6 +24,7 @@ const NotificationDetail = ({ notification }) => {
     <style>
       html, body { margin: 0; padding: 0; background: ${theme.notifications.bg}; }
       body {
+        padding: 8px 12px;
         font-family: Inter, sans-serif;
         font-size: 12px;
         line-height: 20px;

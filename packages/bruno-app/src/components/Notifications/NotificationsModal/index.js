@@ -48,6 +48,7 @@ const NotificationsModal = ({ notifications, onClose }) => {
         hideFooter={true}
         disableCloseOnOutsideClick={true}
         disableEscapeKey={true}
+        noPadding={true}
       >
         <StyledWrapper className="notifications-modal" ref={containerRef}>
           {isEmpty ? (
