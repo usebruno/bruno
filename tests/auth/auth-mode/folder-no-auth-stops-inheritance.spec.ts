@@ -66,10 +66,10 @@ test('Request inherits No Auth from the folder — collection Bearer Token is ov
   });
 
   await test.step('Open the latest timeline entry and verify no Authorization header was sent', async () => {
-    const timelineItem = page.locator('.timeline-item').last();
-    await timelineItem.locator('.oauth-request-item-header').click();
+    const timelineItem = locators.timeline.lastItem();
+    await locators.timeline.itemHeader(timelineItem).click();
     await expect(timelineItem).toContainText('No Headers found');
-    await page.getByRole('button', { name: 'Clear Timeline' }).click();
+    await locators.timeline.clearButton().click();
   });
 
   await test.step('Change folder-1 auth type to Bearer Token with the expected token', async () => {
@@ -87,9 +87,9 @@ test('Request inherits No Auth from the folder — collection Bearer Token is ov
     await expect(locators.response.statusCode()).toContainText('200');
   });
 
-  await test.step('Open the latest timeline entry and verify no Authorization header was sent', async () => {
-    const timelineItem = page.locator('.timeline-item').last();
-    await timelineItem.locator('.oauth-request-item-header').click();
+  await test.step('Open the latest timeline entry and verify the Bearer token was sent', async () => {
+    const timelineItem = locators.timeline.lastItem();
+    await locators.timeline.itemHeader(timelineItem).click();
     await expect(timelineItem).toContainText('Bearer your_secret_token');
   });
 });
