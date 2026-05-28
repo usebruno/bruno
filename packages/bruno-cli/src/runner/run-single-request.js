@@ -421,8 +421,8 @@ const runSingleRequest = async function (
     } else if (!collectionProxyDisabled && collectionProxyInherit) {
       // Inherit from system proxy
       if (cachedSystemProxy) {
-        const { http_proxy, https_proxy } = cachedSystemProxy;
-        if (http_proxy?.length || https_proxy?.length) {
+        const { http_proxy, https_proxy, pac_url } = cachedSystemProxy;
+        if (http_proxy?.length || https_proxy?.length || pac_url?.length) {
           proxyMode = 'system';
         }
       }
@@ -430,7 +430,7 @@ const runSingleRequest = async function (
     }
     // else: collection proxy is disabled, proxyMode stays 'off'
 
-    setupProxyAgents({
+    await setupProxyAgents({
       requestConfig: request,
       proxyMode,
       proxyConfig,
