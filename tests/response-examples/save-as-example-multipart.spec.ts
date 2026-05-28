@@ -4,7 +4,7 @@ import path from 'path';
 
 const fixturePath = path.join(__dirname, 'fixtures', 'collection', 'multipart-example.bru');
 
-test.describe.serial('Response Example - multipart files preserved when creating example from request', () => {
+test.describe('Response Example - multipart files preserved when creating example from request', () => {
   // Snapshot the fixture so we restore the exact working-tree state (including
   // any uncommitted changes), not whatever HEAD has.
   let originalFixture: string;
