@@ -22,10 +22,7 @@ const useNotifications = () => {
     () => notifications.filter((n) => !clearedIds?.includes(n.id)),
     [notifications, clearedIds]
   );
-  const unreadCount = useMemo(
-    () => visibleNotifications.filter((n) => !n.read).length,
-    [visibleNotifications]
-  );
+  const unreadCount = visibleNotifications.filter((n) => !n.read).length;
   // Pin the Unread set on tab entry so reading items doesn't make them vanish.
   const listed = useMemo(() => {
     if (activeTab !== TABS.UNREAD) return visibleNotifications;
