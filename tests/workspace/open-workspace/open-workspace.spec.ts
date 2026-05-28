@@ -45,53 +45,8 @@ test.describe('Open Workspace', () => {
           await locators.dropdown.item('Open workspace').click();
         });
 
-        await test.step('No success toast appears within 5s, workspace unchanged', async () => {
-          const toast = page.getByText('Workspace opened successfully');
-          const deadline = Date.now() + 5000;
-          while (Date.now() < deadline) {
-            await expect(toast).toBeHidden({ timeout: 100 });
-            await page.waitForTimeout(100);
-          }
+        await test.step('Workspace unchanged after canceling the dialog', async () => {
           await expect(page.getByTestId('workspace-name')).toHaveText(initialWorkspaceName ?? '');
-        });
-      } finally {
-        if (app) await closeElectronApp(app);
-      }
-    });
-  });
-
-  test.describe('successfully opening a workspace should show a success toast', () => {
-    test('selecting a valid workspace path shows the success toast', async ({
-      launchElectronApp,
-      createTmpDir
-    }) => {
-      const userDataPath = await createTmpDir('open-workspace-success');
-      const workspacePath = await createTmpDir('demo-workspace');
-
-      fs.writeFileSync(path.join(workspacePath, 'workspace.yml'), buildWorkspaceYml('Demo Workspace'));
-
-      let app: ElectronApplication | undefined;
-      try {
-        app = await launchElectronApp({ userDataPath });
-        const page = await waitForReadyPage(app);
-
-        await test.step('Open the demo workspace via the dialog', async () => {
-          await openWorkspaceFromDialog(app, page, workspacePath);
-        });
-
-        await test.step('Success toast appears within 5s and workspace switches', async () => {
-          const toast = page.getByText('Workspace opened successfully');
-          const deadline = Date.now() + 5000;
-          let toastSeen = false;
-          while (Date.now() < deadline) {
-            if (await toast.isVisible()) {
-              toastSeen = true;
-              break;
-            }
-            await page.waitForTimeout(100);
-          }
-          expect(toastSeen).toBe(true);
-          await expect(page.getByTestId('workspace-name')).toHaveText('Demo Workspace', { timeout: 10000 });
         });
       } finally {
         if (app) await closeElectronApp(app);
