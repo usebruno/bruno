@@ -24,15 +24,16 @@ const SelectionList = ({
   rowGap = 4,
   emptyMessage = 'No items found',
   maxWidth = SELECTION_LIST_MAX_WIDTH,
-  showSelectedCount = false
+  showSelectedCount = false,
+  dataTestId
 }) => {
   const [searchText, setSearchText] = useState('');
   const selectAllRef = useRef(null);
   const trimmedSearchText = searchText.trim();
   const matchedItems = trimmedSearchText ? search(trimmedSearchText, items, {
     keySelector: (item) => [
-      renderItemTitle?.(item),
-      renderItemDescription?.(item)
+      renderItemTitle(item),
+      renderItemDescription ? renderItemDescription(item) : null
     ]
       .filter(Boolean)
       .join(' ')
@@ -80,6 +81,7 @@ const SelectionList = ({
       $visibleRows={listRows}
       $rowHeight={rowHeight}
       $rowGap={rowGap}
+      data-testid={dataTestId}
     >
       <div className="selection-heading" data-testid="selection-heading">
         <span className="selection-title">{title}</span>
