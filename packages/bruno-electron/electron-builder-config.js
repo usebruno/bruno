@@ -95,7 +95,6 @@ const config = {
     artifactName: '${name}_${version}_${arch}_win.${ext}',
     icon: 'resources/icons/win/icon.ico',
     target: [
-
       {
         target: 'nsis',
         arch: ['x64', 'arm64']
