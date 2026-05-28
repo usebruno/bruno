@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@fontsource/inter": "^5.0.15",
+    "@msgpack/msgpack": "^3.1.1",
     "@prantlf/jsonlint": "^16.0.0",
     "@reduxjs/toolkit": "^1.8.0",
     "@tabler/icons": "^1.46.0",
