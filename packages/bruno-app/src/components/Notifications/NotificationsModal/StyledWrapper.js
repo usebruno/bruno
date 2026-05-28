@@ -184,7 +184,8 @@ const StyledWrapper = styled.div`
     }
   }
 
-  .notif-item-date {
+  .notif-item-date,
+  .notif-detail-date {
     color: ${(props) => props.theme.colors.text.muted};
     font-size: 12px;
     line-height: 20px;
@@ -245,13 +246,6 @@ const StyledWrapper = styled.div`
       background-color: ${(props) => props.theme.status.success.background};
       color: ${(props) => props.theme.status.success.text};
     }
-  }
-
-  .notif-detail-date {
-    color: ${(props) => props.theme.colors.text.muted};
-    font-size: 12px;
-    line-height: 20px;
-    font-weight: 500;
   }
 
   .notif-detail-title {
