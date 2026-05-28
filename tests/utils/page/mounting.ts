@@ -18,91 +18,92 @@ export type CollectionTreeStructure = {
 /**
  * Build locators for collection tree elements in the sidebar
  */
-export const buildCollectionTreeLocators = (page: Page) => ({
+export const buildCollectionTreeLocators = (page: Page) => {
+  const collectionRow = (name: string) => page.getByTestId('sidebar-collection-row').filter({
+    has: page.locator('#sidebar-collection-name', { hasText: name })
+  });
+
+  const itemScope = (collectionName?: string) => collectionName
+    ? collectionRow(collectionName).locator('..')
+    : page;
+
+  return {
   /**
    * Collection-level locators
    */
-  collection: {
+    collection: {
     /** Get collection row by name */
-    row: (name: string) => page.getByTestId('sidebar-collection-row').filter({
-      has: page.locator('#sidebar-collection-name', { hasText: name })
-    }),
-    /** Get collection name element */
-    name: (name: string) => page.locator('#sidebar-collection-name').filter({ hasText: name }),
-    /** Get collection chevron (expand/collapse icon) */
-    chevron: (name: string) => page.getByTestId('sidebar-collection-row').filter({
-      has: page.locator('#sidebar-collection-name', { hasText: name })
-    }).locator('.chevron-icon'),
-    /** Get collection loading spinner */
-    loadingSpinner: (name: string) => page.getByTestId('sidebar-collection-row').filter({
-      has: page.locator('#sidebar-collection-name', { hasText: name })
-    }).locator('.animate-spin'),
-    /** Check if collection is expanded (chevron rotated) */
-    isExpanded: async (name: string) => {
-      const chevron = page.getByTestId('sidebar-collection-row').filter({
-        has: page.locator('#sidebar-collection-name', { hasText: name })
-      }).locator('.rotate-90');
-      return await chevron.count() > 0;
-    }
-  },
+      row: collectionRow,
+      /** Get collection name element */
+      name: (name: string) => page.locator('#sidebar-collection-name').filter({ hasText: name }),
+      /** Get collection chevron (expand/collapse icon) */
+      chevron: (name: string) => collectionRow(name).locator('.chevron-icon'),
+      /** Get collection loading spinner */
+      loadingSpinner: (name: string) => collectionRow(name).locator('.animate-spin'),
+      /** Check if collection is expanded (chevron rotated) */
+      isExpanded: async (name: string) => {
+        return await collectionRow(name).locator('.rotate-90').count() > 0;
+      }
+    },
 
-  /**
+    /**
    * Collection item (folder/request) locators
    */
-  item: {
-    /** Get item row by name (exact match) */
-    row: (name: string) => page.getByTestId('sidebar-collection-item-row').filter({
-      has: page.locator('.item-name').getByText(name, { exact: true })
-    }),
-    /** Get item name element */
-    name: (name: string) => page.locator('.item-name').getByText(name, { exact: true }),
-    /** Get all item rows */
-    allRows: () => page.getByTestId('sidebar-collection-item-row'),
-    /** Check if a given item row is a folder (has folder chevron) */
-    isFolderRow: (itemRow: ReturnType<Page['locator']>) => itemRow.getByTestId('folder-chevron'),
-    /** Get the name text from an item row */
-    getNameFromRow: (itemRow: ReturnType<Page['locator']>) => itemRow.locator('.item-name').first()
-  },
+    item: {
+    /** Get item row by name (exact match) and collectionName */
+      row: (name: string, collectionName?: string) => itemScope(collectionName).getByTestId('sidebar-collection-item-row').filter({
+        has: page.locator('.item-name').getByText(name, { exact: true })
+      }),
+      /** Get item name element */
+      name: (name: string) => page.locator('.item-name').getByText(name, { exact: true }),
+      /** Get all item rows */
+      allRows: (collectionName?: string) => itemScope(collectionName).getByTestId('sidebar-collection-item-row'),
+      /** Check if a given item row is a folder (has folder chevron) */
+      isFolderRow: (itemRow: ReturnType<Page['locator']>) => itemRow.getByTestId('folder-chevron'),
+      /** Get the name text from an item row */
+      getNameFromRow: (itemRow: ReturnType<Page['locator']>) => itemRow.locator('.item-name').first()
+    },
 
-  /**
+    /**
    * Folder-specific locators
    */
-  folder: {
+    folder: {
     /** Get folder row by name (exact match) */
-    row: (name: string) => page.getByTestId('sidebar-collection-item-row').filter({
-      has: page.locator('.item-name').getByText(name, { exact: true })
-    }).filter({
-      has: page.getByTestId('folder-chevron')
-    }),
-    /** Get folder chevron (expand/collapse icon) - exact name match */
-    chevron: (name: string) => page.getByTestId('sidebar-collection-item-row').filter({
-      has: page.locator('.item-name').getByText(name, { exact: true })
-    }).getByTestId('folder-chevron'),
-    /** Check if folder is expanded (exact name match) */
-    isExpanded: async (name: string) => {
-      const row = page.getByTestId('sidebar-collection-item-row').filter({
+      row: (name: string, collectionName?: string) => itemScope(collectionName).getByTestId('sidebar-collection-item-row').filter({
         has: page.locator('.item-name').getByText(name, { exact: true })
-      });
-      return await row.locator('.rotate-90').count() > 0;
-    }
-  },
+      }).filter({
+        has: page.getByTestId('folder-chevron')
+      }),
+      /** Get folder chevron (expand/collapse icon) - exact name match */
+      chevron: (name: string, collectionName?: string) => itemScope(collectionName).getByTestId('sidebar-collection-item-row').filter({
+        has: page.locator('.item-name').getByText(name, { exact: true })
+      }).getByTestId('folder-chevron'),
+      /** Check if folder is expanded (exact name match) */
+      isExpanded: async (name: string, collectionName?: string) => {
+        const row = itemScope(collectionName).getByTestId('sidebar-collection-item-row').filter({
+          has: page.locator('.item-name').getByText(name, { exact: true })
+        });
+        return await row.locator('.rotate-90').count() > 0;
+      }
+    },
 
-  /**
+    /**
    * Request-specific locators
    */
-  request: {
+    request: {
     /** Get request row by name */
-    row: (name: string) => page.getByTestId('sidebar-collection-item-row').filter({
-      has: page.locator('.item-name', { hasText: name })
-    }).filter({
-      hasNot: page.getByTestId('folder-chevron')
-    }),
-    /** Get request method badge */
-    methodBadge: (name: string) => page.getByTestId('sidebar-collection-item-row').filter({
-      has: page.locator('.item-name', { hasText: name })
-    }).locator('.mr-1 span').first()
-  }
-});
+      row: (name: string, collectionName?: string) => itemScope(collectionName).getByTestId('sidebar-collection-item-row').filter({
+        has: page.locator('.item-name', { hasText: name })
+      }).filter({
+        hasNot: page.getByTestId('folder-chevron')
+      }),
+      /** Get request method badge */
+      methodBadge: (name: string, collectionName?: string) => itemScope(collectionName).getByTestId('sidebar-collection-item-row').filter({
+        has: page.locator('.item-name', { hasText: name })
+      }).locator('.mr-1 span').first()
+    }
+  };
+};
 
 /**
  * Open a collection from a filesystem path by mocking the Electron dialog
@@ -239,7 +240,7 @@ export const getCollectionTreeStructure = async (
     const collectionWrapper = collectionRow.locator('..');
     const childrenContainer = collectionWrapper.locator(':scope > div:not([data-testid="sidebar-collection-row"]) > div').first();
 
-    const items = await extractItemsFromContainer(page, childrenContainer);
+    const items = await extractItemsFromContainer(page, childrenContainer, collectionName);
 
     return {
       name: collectionName,
@@ -249,11 +250,12 @@ export const getCollectionTreeStructure = async (
 };
 
 /**
- * Helper function to extract items from a container (collection or folder)
+ * Helper function to extract items from a container (collection or folder).
  */
 async function extractItemsFromContainer(
   page: Page,
-  container: ReturnType<Page['locator']>
+  container: ReturnType<Page['locator']>,
+  collectionName?: string
 ): Promise<CollectionTreeItem[]> {
   const locators = buildCollectionTreeLocators(page);
   const items: CollectionTreeItem[] = [];
@@ -272,14 +274,20 @@ async function extractItemsFromContainer(
     const isFolder = await locators.item.isFolderRow(itemRow).count() > 0;
 
     if (isFolder) {
-      // It's a folder - use expandFolder helper to expand if needed
-      await expandFolder(page, itemName);
+      // It's a folder - expand it via the chevron in this exact row to avoid
+      // matching same-named folders elsewhere in the tree.
+      const folderChevron = locators.item.isFolderRow(itemRow);
+      const rowIsExpanded = await itemRow.locator('.rotate-90').count() > 0;
+      if (!rowIsExpanded) {
+        await folderChevron.click();
+        await expect.poll(async () => await itemRow.locator('.rotate-90').count() > 0).toBe(true);
+      }
 
       // Children are in a sibling div after the item row (within the same wrapper)
       // Structure: wrapper > [item-row, children-container]
       const childrenContainer = wrapper.locator(':scope > div:not([data-testid="sidebar-collection-item-row"])').first();
       const hasChildren = await childrenContainer.count() > 0;
-      const nestedItems = hasChildren ? await extractItemsFromContainer(page, childrenContainer) : [];
+      const nestedItems = hasChildren ? await extractItemsFromContainer(page, childrenContainer, collectionName) : [];
 
       items.push({
         name: itemName,
@@ -287,8 +295,9 @@ async function extractItemsFromContainer(
         items: nestedItems
       });
     } else {
-      // It's a request - get the method from badge using locator
-      const methodBadge = locators.request.methodBadge(itemName);
+      // It's a request - read the method badge from this exact row to avoid
+      // colliding with same-named requests elsewhere.
+      const methodBadge = itemRow.locator('.mr-1 span').first();
       let method = '';
       if (await methodBadge.count() > 0) {
         method = (await methodBadge.innerText()).trim().toUpperCase();
@@ -310,16 +319,16 @@ async function extractItemsFromContainer(
  * @param page - The Playwright page object
  * @param folderName - The name of the folder to expand
  */
-export const expandFolder = async (page: Page, folderName: string): Promise<void> => {
+export const expandFolder = async (page: Page, folderName: string, collectionName?: string): Promise<void> => {
   const locators = buildCollectionTreeLocators(page);
 
   await test.step(`Expand folder "${folderName}"`, async () => {
-    const isExpanded = await locators.folder.isExpanded(folderName);
+    const isExpanded = await locators.folder.isExpanded(folderName, collectionName);
 
     if (!isExpanded) {
-      await locators.folder.chevron(folderName).click();
+      await locators.folder.chevron(folderName, collectionName).click();
       // Wait for expansion to complete
-      await expect.poll(() => locators.folder.isExpanded(folderName)).toBe(true);
+      await expect.poll(() => locators.folder.isExpanded(folderName, collectionName)).toBe(true);
     }
   });
 };
@@ -329,16 +338,16 @@ export const expandFolder = async (page: Page, folderName: string): Promise<void
  * @param page - The Playwright page object
  * @param folderName - The name of the folder to collapse
  */
-export const collapseFolder = async (page: Page, folderName: string): Promise<void> => {
+export const collapseFolder = async (page: Page, folderName: string, collectionName?: string): Promise<void> => {
   const locators = buildCollectionTreeLocators(page);
 
   await test.step(`Collapse folder "${folderName}"`, async () => {
-    const isExpanded = await locators.folder.isExpanded(folderName);
+    const isExpanded = await locators.folder.isExpanded(folderName, collectionName);
 
     if (isExpanded) {
-      await locators.folder.chevron(folderName).click();
+      await locators.folder.chevron(folderName, collectionName).click();
       // Wait for collapse to complete
-      await expect.poll(() => locators.folder.isExpanded(folderName)).toBe(false);
+      await expect.poll(() => locators.folder.isExpanded(folderName, collectionName)).toBe(false);
     }
   });
 };
@@ -349,9 +358,9 @@ export const collapseFolder = async (page: Page, folderName: string): Promise<vo
  * @param folderName - The name of the folder to check
  * @returns True if the folder is expanded, false otherwise
  */
-export const isFolderExpanded = async (page: Page, folderName: string): Promise<boolean> => {
+export const isFolderExpanded = async (page: Page, folderName: string, collectionName?: string): Promise<boolean> => {
   const locators = buildCollectionTreeLocators(page);
-  return await locators.folder.isExpanded(folderName);
+  return await locators.folder.isExpanded(folderName, collectionName);
 };
 
 /**

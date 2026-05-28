@@ -108,20 +108,11 @@ for (const format of formats) {
 
       const requests = collectRequests(tree.items);
 
-      // We generated with mixedMethods=true, so we should have various methods
+      // mixedMethods=true cycles deterministically through [GET, POST, PUT, DELETE, PATCH]
+      // via globalIndex % HTTP_METHODS.length, so with >=5 requests every method appears.
+      // UI truncates methods > 5 chars to 3 chars (DELETE -> DEL).
       const methods = requests.map((r) => r.method).filter(Boolean);
-      const uniqueMethods = [...new Set(methods)];
-
-      // With 10 requests and mixed methods cycling through GET, POST, PUT, DELETE, PATCH
-      // we should have at least 2 different methods
-      expect(uniqueMethods.length).toBeGreaterThanOrEqual(2);
-
-      // All methods should be valid HTTP methods (UI truncates methods > 5 chars to 3 chars)
-      // DELETE -> DEL, OPTIONS -> OPT, etc.
-      const validMethods = ['GET', 'POST', 'PUT', 'DEL', 'PATCH', 'HEAD', 'OPT'];
-      for (const method of uniqueMethods) {
-        expect(validMethods).toContain(method);
-      }
+      expect(new Set(methods)).toEqual(new Set(['GET', 'POST', 'PUT', 'DEL', 'PATCH']));
     });
 
     test('should have correct parent-child relationships via naming convention', async () => {

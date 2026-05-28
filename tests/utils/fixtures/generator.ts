@@ -373,7 +373,10 @@ export async function generateCollectionPair(
   cleanup: () => Promise<void>;
 }> {
   const bru = await generateCollection({ ...options, format: 'bru' });
-  const yml = await generateCollection({ ...options, format: 'yml' });
+  const yml = await generateCollection({ ...options, format: 'yml' }).catch(async (err) => {
+    await bru.cleanup();
+    throw err;
+  });
 
   return {
     bru,

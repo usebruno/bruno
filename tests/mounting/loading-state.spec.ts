@@ -61,10 +61,6 @@ for (const format of formats) {
       });
       await expect(collectionRow).toBeVisible({ timeout: 30000 });
 
-      // Loading spinner should not be visible
-      const loadingSpinner = collectionRow.locator('.animate-spin');
-      await expect(loadingSpinner).not.toBeVisible();
-
       // Verify via helper
       const loading = await isCollectionLoading(page, 'Test Collection');
       expect(loading).toBe(false);
