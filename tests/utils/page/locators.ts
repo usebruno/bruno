@@ -96,6 +96,11 @@ export const buildCommonLocators = (page: Page) => ({
       placementLabel: () => page.getByTestId('auth-placement-label')
     }
   },
+  presets: {
+    requestType: (type: 'http' | 'graphql' | 'grpc' | 'ws') =>
+      page.getByTestId(`presets-request-type-${type}`),
+    requestUrl: () => page.getByTestId('presets-request-url')
+  },
   tags: {
     input: () => page.getByTestId('tag-input').getByRole('textbox'),
     item: (tagName: string) => page.locator('.tag-item', { hasText: tagName })
