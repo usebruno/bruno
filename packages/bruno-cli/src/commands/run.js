@@ -4,17 +4,17 @@ const path = require('path');
 const yaml = require('js-yaml');
 const { forOwn, cloneDeep } = require('lodash');
 const { getRunnerSummary } = require('@usebruno/common/runner');
-const { exists, isFile, isDirectory } = require('../utils/filesystem');
+const { exists, isFile, isDirectory, stripExtension } = require('../utils/filesystem');
 const { runSingleRequest } = require('../runner/run-single-request');
 const { getEnvVars } = require('../utils/bru');
 const { parseEnvironmentJson } = require('../utils/environment');
 const { isRequestTagsIncluded } = require('@usebruno/common');
 const makeJUnitOutput = require('../reporters/junit');
 const makeHtmlOutput = require('../reporters/html');
-const { rpad } = require('../utils/common');
 const { getOptions } = require('../utils/bru');
 const { parseDotEnv, parseEnvironment } = require('@usebruno/filestore');
 const constants = require('../constants');
+const Table = require('cli-table3');
 const { findItemInCollection, createCollectionJsonFromPathname, getCallStack, FORMAT_CONFIG } = require('../utils/collection');
 const { hasExecutableTestInScript } = require('../utils/request');
 const { createSkippedFileResults } = require('../utils/run');
@@ -23,86 +23,64 @@ const { getSystemProxy } = require('@usebruno/requests');
 const command = 'run [paths...]';
 const desc = 'Run one or more requests/folders';
 
-const formatTestSummary = (label, maxLength, passed, failed, total, errorCount = 0, skippedCount = 0) => {
-  const parts = [
-    `${rpad(label, maxLength)} ${chalk.green(`${passed} passed`)}`
-  ];
+const formatRequestsCellFromSummary = (summary) => {
+  const total = summary.totalRequests || 0;
+  const passed = summary.passedRequests || 0;
+  const failedOrErrored = (summary.failedRequests || 0) + (summary.errorRequests || 0);
+  const totalSkipped = summary.skippedRequests || 0;
+  const skippedByBail = summary.skippedByBail || 0;
+  const skippedByUser = Math.max(totalSkipped - skippedByBail, 0);
 
-  if (failed > 0) parts.push(chalk.red(`${failed} failed`));
-  if (errorCount > 0) parts.push(chalk.red(`${errorCount} error`));
-  if (skippedCount > 0) parts.push(chalk.magenta(`${skippedCount} skipped`));
+  const parts = [];
+  if (passed > 0) parts.push(chalk.green(`${passed} Passed`));
+  if (failedOrErrored > 0) parts.push(chalk.red(`${failedOrErrored} Failed`));
+  if (skippedByUser > 0) parts.push(chalk.magenta(`${skippedByUser} Skipped`));
+  if (skippedByBail > 0) parts.push(chalk.hex(constants.COLORS.ORANGE)(`${skippedByBail} Skipped (Bail)`));
 
-  parts.push(`${total} total`);
+  return parts.length ? `${total} (${parts.join(', ')})` : `${total}`;
+};
 
-  return parts.join(', ');
+const printGenericTable = (headers, rows, title) => {
+  const colAligns = headers.map((_, idx) => (idx === 0 ? 'left' : 'center'));
+  const table = new Table({ head: headers, style: { head: [], border: [] }, colAligns });
+  rows.forEach((row) => table.push(row));
+  console.log('\n' + chalk.bold(title));
+  console.log(table.toString());
 };
 
 const printRunSummary = (results) => {
-  const {
-    totalRequests,
-    passedRequests,
-    failedRequests,
-    skippedRequests,
-    errorRequests,
-    totalAssertions,
-    passedAssertions,
-    failedAssertions,
-    totalTests,
-    passedTests,
-    failedTests,
-    totalPreRequestTests,
-    passedPreRequestTests,
-    failedPreRequestTests,
-    totalPostResponseTests,
-    passedPostResponseTests,
-    failedPostResponseTests
-  } = getRunnerSummary(results);
+  const summary = getRunnerSummary(results);
 
-  const maxLength = 12;
+  const duration = Math.round(
+    results.reduce((acc, res) => acc + (res.runDuration || 0), 0) * 1000
+  );
 
-  const requestSummary = formatTestSummary('Requests:', maxLength, passedRequests, failedRequests, totalRequests, errorRequests, skippedRequests);
-  const testSummary = formatTestSummary('Tests:', maxLength, passedTests, failedTests, totalTests);
-  const assertSummary = formatTestSummary('Assertions:', maxLength, passedAssertions, failedAssertions, totalAssertions);
+  const hasFailures
+    = summary.failedRequests > 0
+      || summary.failedAssertions > 0
+      || summary.failedTests > 0
+      || (summary.errorRequests || 0) > 0;
 
-  let preRequestTestSummary = '';
-  if (totalPreRequestTests > 0) {
-    preRequestTestSummary = formatTestSummary('Pre-Request Tests:', maxLength, passedPreRequestTests, failedPreRequestTests, totalPreRequestTests);
-  }
+  const status = hasFailures
+    ? chalk.red.bold('✗ FAIL')
+    : chalk.green.bold('✓ PASS');
 
-  let postResponseTestSummary = '';
-  if (totalPostResponseTests > 0) {
-    postResponseTestSummary = formatTestSummary('Post-Response Tests:', maxLength, passedPostResponseTests, failedPostResponseTests, totalPostResponseTests);
-  }
+  const requests = formatRequestsCellFromSummary(summary);
+  const tests = `${summary.passedTests}/${summary.totalTests}`;
+  const assertions = `${summary.passedAssertions}/${summary.totalAssertions}`;
 
-  console.log('\n' + chalk.bold(requestSummary));
-  if (preRequestTestSummary) {
-    console.log(chalk.bold(preRequestTestSummary));
-  }
-  if (postResponseTestSummary) {
-    console.log(chalk.bold(postResponseTestSummary));
-  }
-  console.log(chalk.bold(testSummary));
-  console.log(chalk.bold(assertSummary));
+  const headers = [chalk.bold('Metric'), chalk.bold('Result')];
+  const rows = [
+    ['Status', status],
+    ['Requests', requests],
+    ['Tests', tests],
+    ['Assertions', assertions],
+    ['Duration (ms)', duration]
+  ];
 
-  return {
-    totalRequests,
-    passedRequests,
-    failedRequests,
-    skippedRequests,
-    errorRequests,
-    totalAssertions,
-    passedAssertions,
-    failedAssertions,
-    totalTests,
-    passedTests,
-    failedTests,
-    totalPreRequestTests,
-    passedPreRequestTests,
-    failedPreRequestTests,
-    totalPostResponseTests,
-    passedPostResponseTests,
-    failedPostResponseTests
-  };
+  printGenericTable(headers, rows, '📊 Execution Summary');
+
+  return summary;
 };
 
 const getJsSandboxRuntime = (sandbox) => {
@@ -679,6 +657,7 @@ const handler = async function (argv) {
 
     let currentRequestIndex = 0;
     let nJumps = 0; // count the number of jumps to avoid infinite loops
+    let bailInfo = null; // populated only if --bail triggers
     while (currentRequestIndex < requestItems.length) {
       const requestItem = cloneDeep(requestItems[currentRequestIndex]);
       const { name, pathname } = requestItem;
@@ -712,7 +691,7 @@ const handler = async function (argv) {
       results.push({
         ...result,
         runDuration: process.hrtime(start)[0] + process.hrtime(start)[1] / 1e9,
-        suitename: pathname.replace('.bru', ''),
+        suitename: stripExtension(pathname),
         name,
         path: result.test?.filename || path.relative(collectionPath, pathname)
       });
@@ -732,6 +711,64 @@ const handler = async function (argv) {
         const preRequestTestFailure = result?.preRequestTestResults?.find((iter) => iter.status === 'fail');
         const postResponseTestFailure = result?.postResponseTestResults?.find((iter) => iter.status === 'fail');
         if (requestFailure || testFailure || assertionFailure || preRequestTestFailure || postResponseTestFailure) {
+          // Pick the most specific reason for the user-facing message
+          let bailReason;
+          if (requestFailure) bailReason = 'request failure';
+          else if (assertionFailure) bailReason = 'assertion failure';
+          else if (preRequestTestFailure) bailReason = 'pre-request test failure';
+          else if (postResponseTestFailure) bailReason = 'post-response test failure';
+          else bailReason = 'test failure';
+
+          const remainingItems = requestItems.slice(currentRequestIndex + 1);
+
+          // Synthesize "Skipped (Bail)" placeholder results for the requests that never
+          // ran due to bail. These let getRunnerSummary count them as skipped, and the
+          // summary table can distinguish them from user-initiated skips via skipReason.
+          for (const ri of remainingItems) {
+            const relativePath = path.relative(collectionPath, ri.pathname);
+            results.push({
+              test: {
+                filename: relativePath
+              },
+              request: {
+                method: null,
+                url: null,
+                headers: null,
+                data: null
+              },
+              response: {
+                status: 'skipped',
+                statusText: null,
+                data: null,
+                responseTime: 0
+              },
+              status: 'skipped',
+              skipped: true,
+              skipReason: 'bail',
+              testResults: [],
+              assertionResults: [],
+              preRequestTestResults: [],
+              postResponseTestResults: [],
+              runDuration: 0,
+              suitename: stripExtension(ri.pathname),
+              name: ri.name,
+              path: relativePath
+            });
+          }
+
+          bailInfo = {
+            bailed: true,
+            bailReason,
+            bailedAt: name,
+            skippedByBail: remainingItems.length
+          };
+
+          console.log(
+            '\n' + chalk.hex(constants.COLORS.ORANGE)(
+              `Bail: Stopping run, ${bailReason} in "${name}". Remaining ${remainingItems.length} request(s) skipped.`
+            )
+          );
+
           break;
         }
       }
