@@ -7,3 +7,14 @@ export { default as wsdlToBruno } from './wsdl/wsdl-to-bruno.js';
 export { default as postmanTranslation } from './postman/postman-translations.js';
 export { openCollectionToBruno } from './opencollection/opencollection-to-bruno.js';
 export { brunoToOpenCollection } from './opencollection/bruno-to-opencollection.js';
+export {
+  migrations,
+  getApplicableMigrations,
+  getCurrentVersion,
+  getAllMigrations,
+  migrateScript,
+  detectDeprecatedUsage,
+  formatMigrationReport,
+  migrateCollection,
+  formatCollectionReport
+} from './migrations/index.js';

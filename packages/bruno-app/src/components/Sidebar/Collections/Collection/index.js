@@ -20,7 +20,8 @@ import {
   IconSettings,
   IconTerminal2,
   IconFolder,
-  IconBook
+  IconBook,
+  IconRefresh
 } from '@tabler/icons';
 import OpenAPISyncIcon from 'components/Icons/OpenAPISync';
 import { toggleCollection, collapseFullCollection } from 'providers/ReduxStore/slices/collections';
@@ -43,6 +44,7 @@ import CloneCollection from './CloneCollection';
 import { scrollToTheActiveTab } from 'utils/tabs';
 import ShareCollection from 'components/ShareCollection/index';
 import GenerateDocumentation from './GenerateDocumentation';
+import MigrateCollection from './MigrateCollection';
 import { CollectionItemDragPreview } from './CollectionItem/CollectionItemDragPreview/index';
 import { sortByNameThenSequence } from 'utils/common/index';
 import { getRevealInFolderLabel } from 'utils/common/platform';
@@ -69,6 +71,7 @@ const Collection = ({ collection, searchText }) => {
   const [showShareCollectionModal, setShowShareCollectionModal] = useState(false);
   const [showGenerateDocumentationModal, setShowGenerateDocumentationModal] = useState(false);
   const [showRemoveCollectionModal, setShowRemoveCollectionModal] = useState(false);
+  const [showMigrateCollectionModal, setShowMigrateCollectionModal] = useState(false);
   const [dropType, setDropType] = useState(null);
   const [isKeyboardFocused, setIsKeyboardFocused] = useState(false);
   const [showEmptyState, setShowEmptyState] = useState(false);
@@ -421,6 +424,15 @@ const Collection = ({ collection, searchText }) => {
       onClick: handleShowInFolder
     },
     {
+      id: 'migrate-scripts',
+      leftSection: IconRefresh,
+      label: 'Migrate Scripts',
+      onClick: () => {
+        ensureCollectionIsMounted();
+        setShowMigrateCollectionModal(true);
+      }
+    },
+    {
       id: 'divider-1',
       type: 'divider'
     },
@@ -467,6 +479,9 @@ const Collection = ({ collection, searchText }) => {
       )}
       {showCloneCollectionModalOpen && (
         <CloneCollection collectionUid={collection.uid} onClose={() => setShowCloneCollectionModalOpen(false)} />
+      )}
+      {showMigrateCollectionModal && (
+        <MigrateCollection collectionUid={collection.uid} onClose={() => setShowMigrateCollectionModal(false)} />
       )}
       <CollectionItemDragPreview />
       <div

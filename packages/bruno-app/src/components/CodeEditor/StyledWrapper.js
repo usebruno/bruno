@@ -45,6 +45,21 @@ const StyledWrapper = styled.div`
     text-decoration: underline;
   }
 
+  /* Override default lint underlines (hardcoded PNG) with theme-aware CSS underlines */
+  .CodeMirror-lint-mark-warning {
+    background-image: none !important;
+    text-decoration: wavy underline ${(props) => props.theme.colors.text.warning};
+    text-decoration-skip-ink: none;
+    text-underline-offset: 2px;
+  }
+
+  .CodeMirror-lint-mark-error {
+    background-image: none !important;
+    text-decoration: wavy underline ${(props) => props.theme.colors.text.danger};
+    text-decoration-skip-ink: none;
+    text-underline-offset: 2px;
+  }
+
   /* Removes the glow outline around the folded json */
   .CodeMirror-foldmarker {
     text-shadow: none;
