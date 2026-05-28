@@ -43,6 +43,7 @@ describe('tabs slice - collapse/expand reducers', () => {
     const next = reducer(makeState({ requestPaneCollapsed: true }), expandRequestPane({ uid: 'tab-1' }));
 
     expect(next.tabs[0].requestPaneCollapsed).toBe(false);
+    expect(next.tabs[0].responsePaneCollapsed).toBe(false);
     expect(next.tabs[0].requestPaneWidth).toBeNull();
     expect(next.tabs[0].requestPaneHeight).toBeNull();
   });
@@ -51,6 +52,7 @@ describe('tabs slice - collapse/expand reducers', () => {
     const next = reducer(makeState({ responsePaneCollapsed: true }), expandResponsePane({ uid: 'tab-1' }));
 
     expect(next.tabs[0].responsePaneCollapsed).toBe(false);
+    expect(next.tabs[0].requestPaneCollapsed).toBe(false);
     expect(next.tabs[0].requestPaneWidth).toBeNull();
     expect(next.tabs[0].requestPaneHeight).toBeNull();
   });
