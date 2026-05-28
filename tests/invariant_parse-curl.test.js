@@ -1,43 +1,43 @@
-const parseCurlCommand = require('./parse-curl');
+const parseCurlCommand = require('../packages/bruno-app/src/utils/curl/parse-curl').default;
 
-describe("cURL parser must not allow unsanitized data injection into URL for GET requests", () => {
+describe('cURL parser must not allow unsanitized data injection into URL for GET requests', () => {
   const payloads = [
     // Path traversal / injection
-    "/../../../etc/passwd",
-    "/../../secret",
-    "/../admin",
+    '/../../../etc/passwd',
+    '/../../secret',
+    '/../admin',
     // Host injection
-    "@evil.com",
-    "@attacker.com/steal",
+    '@evil.com',
+    '@attacker.com/steal',
     // Protocol injection
-    "javascript:alert(1)",
-    "data:text/html,<script>alert(1)</script>",
+    'javascript:alert(1)',
+    'data:text/html,<script>alert(1)</script>',
     // Fragment injection
-    "#fragment&injected=true",
+    '#fragment&injected=true',
     // Additional query param injection that changes semantics
-    "&admin=true&role=superuser",
+    '&admin=true&role=superuser',
     // Null byte injection
-    "\x00malicious",
+    '\x00malicious',
     // CRLF injection
-    "\r\nHost: evil.com",
-    "\r\nX-Injected: header",
+    '\r\nHost: evil.com',
+    '\r\nX-Injected: header',
     // URL scheme override
-    "//evil.com/path",
-    "\\\\evil.com\\path",
+    '//evil.com/path',
+    '\\\\evil.com\\path',
     // Encoded traversal
-    "%2F..%2F..%2Fetc%2Fpasswd",
-    "%40evil.com",
+    '%2F..%2F..%2Fetc%2Fpasswd',
+    '%40evil.com',
     // Whitespace and special chars
-    " evil.com",
-    "\tevil.com",
+    ' evil.com',
+    '\tevil.com',
     // Multiple query string manipulation
-    "?override=true&host=evil.com",
+    '?override=true&host=evil.com',
     // Unicode tricks
-    "\u0000evil",
-    "\u202aevil.com",
+    '\u0000evil',
+    '\u202aevil.com',
   ];
 
-  test.each(payloads)("rejects adversarial data payload injected into GET URL: %s", (payload) => {
+  test.each(payloads)('rejects adversarial data payload injected into GET URL: %s', (payload) => {
     const curlCommand = `curl -G "https://legitimate.example.com/api/endpoint" --data "${payload}"`;
 
     let result;
@@ -53,13 +53,13 @@ describe("cURL parser must not allow unsanitized data injection into URL for GET
       return;
     }
 
-    const finalUrl = result.url || "";
+    const finalUrl = result.url || '';
 
     // INVARIANT 1: The host must remain legitimate.example.com
     // The payload must not be able to redirect to a different host
     try {
       const parsed = new URL(finalUrl);
-      expect(parsed.hostname).toBe("legitimate.example.com");
+      expect(parsed.hostname).toBe('legitimate.example.com');
       expect(parsed.protocol).toMatch(/^https?:$/);
     } catch (urlParseError) {
       // If the resulting URL is not parseable as a valid URL, that's a problem
@@ -75,8 +75,8 @@ describe("cURL parser must not allow unsanitized data injection into URL for GET
     expect(finalUrl).not.toMatch(/\r|\n/);
 
     // INVARIANT 3: The URL must not contain null bytes
-    expect(finalUrl).not.toContain("\x00");
-    expect(finalUrl).not.toContain("\u0000");
+    expect(finalUrl).not.toContain('\x00');
+    expect(finalUrl).not.toContain('\u0000');
 
     // INVARIANT 4: The URL must not reference known malicious hosts
     expect(finalUrl).not.toMatch(/evil\.com/i);
@@ -101,7 +101,7 @@ describe("cURL parser must not allow unsanitized data injection into URL for GET
     expect(urlPath).not.toMatch(/^\/\.\./);
   });
 
-  test("GET request with benign data parameter should produce a valid URL with query string", () => {
+  test('GET request with benign data parameter should produce a valid URL with query string', () => {
     const curlCommand = `curl -G "https://legitimate.example.com/api/search" --data "q=hello&page=1"`;
 
     let result;
@@ -114,21 +114,21 @@ describe("cURL parser must not allow unsanitized data injection into URL for GET
 
     if (!result) return;
 
-    const finalUrl = result.url || "";
+    const finalUrl = result.url || '';
 
     // Benign data should result in a URL that still points to the correct host
     if (finalUrl.length > 0) {
       try {
         const parsed = new URL(finalUrl);
-        expect(parsed.hostname).toBe("legitimate.example.com");
+        expect(parsed.hostname).toBe('legitimate.example.com');
       } catch {
         // If URL is not parseable, it should at least contain the original host
-        expect(finalUrl).toContain("legitimate.example.com");
+        expect(finalUrl).toContain('legitimate.example.com');
       }
     }
   });
 
-  test("parser must handle empty data gracefully without corrupting URL", () => {
+  test('parser must handle empty data gracefully without corrupting URL', () => {
     const curlCommand = `curl -G "https://legitimate.example.com/api/endpoint" --data ""`;
 
     let result;
@@ -140,9 +140,9 @@ describe("cURL parser must not allow unsanitized data injection into URL for GET
 
     if (!result) return;
 
-    const finalUrl = result.url || "";
+    const finalUrl = result.url || '';
     if (finalUrl.length > 0) {
-      expect(finalUrl).toContain("legitimate.example.com");
+      expect(finalUrl).toContain('legitimate.example.com');
       expect(finalUrl).not.toMatch(/evil\.com/i);
     }
   });
