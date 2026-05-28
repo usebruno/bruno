@@ -1444,10 +1444,12 @@ describe('buildHar — defensive / robustness', () => {
   });
 });
 
-// # encoding decision-tree matrix — covers the 7 active scenarios from the
-// fixings/snippet-vs-sendrequest.md docs. Each scenario asserts both the
-// rawUrl (OFF: byte-for-byte) and the encodedUrl (ON: # → %23 per Option C).
-// Skipped: hash-bang routing (#!/page) — deprecated since 2015.
+/**
+ * `#` encoding decision-tree matrix — covers every scenario from the
+ * fixings/snippet-vs-sendrequest.md docs. Each scenario asserts both the
+ * rawUrl (OFF: byte-for-byte) and the encodedUrl (ON: per the path/query
+ * encoding contracts). `b` variants test pre-encoded URL-bar input.
+ */
 describe('buildHar — # encoding scenarios (decision-tree coverage)', () => {
   it('Scenario 1: # at fragment position (/docs/api#authentication) — anchor for SPA/static docs', () => {
     const url = 'https://example.com/docs/api#authentication';
@@ -1476,6 +1478,32 @@ describe('buildHar — # encoding scenarios (decision-tree coverage)', () => {
     expect(on.encodedUrl).toBe('http://localhost:6000/request-echo?query=aaa%23bbb');
   });
 
+  it('Scenario 2b: pre-encoded query (?query=aaa%23bbb) — ON double-encodes %23 → %2523', () => {
+    // Pre-encoded URL bar — `%23` is in the typed input. Per PR #5507's
+    // content-blind contract, ON mode re-encodes content-blindly so `%23`
+    // becomes `%2523` (one more encoding pass). OFF preserves byte-for-byte.
+    const url = 'https://example.com/api?query=aaa%23bbb';
+    const off = buildHar({
+      request: baseRequest({
+        url,
+        params: [{ name: 'query', value: 'aaa%23bbb', type: 'query', enabled: true }],
+        settings: { encodeUrl: false }
+      }),
+      shouldInterpolate: false
+    });
+    const on = buildHar({
+      request: baseRequest({
+        url,
+        params: [{ name: 'query', value: 'aaa%23bbb', type: 'query', enabled: true }],
+        settings: { encodeUrl: true }
+      }),
+      shouldInterpolate: false
+    });
+
+    expect(off.rawUrl).toBe('https://example.com/api?query=aaa%23bbb');
+    expect(on.encodedUrl).toBe('https://example.com/api?query=aaa%2523bbb');
+  });
+
   it('Scenario 3: # in path-param value with trailing path (:id=john#doe, /users/:id/profile)', () => {
     // The trailing /profile demonstrates the "silent data loss" case in OFF mode:
     // axios on the wire treats `#doe/profile` as a fragment and strips it, so the
@@ -1499,6 +1527,19 @@ describe('buildHar — # encoding scenarios (decision-tree coverage)', () => {
     expect(on.encodedUrl).toBe('https://example.com/issues/%231234');
   });
 
+  it('Scenario 4b: pre-encoded issue tracker path (/issues/%231234) — idempotent path encoding', () => {
+    // Pre-encoded URL bar with `%23` in the path. Path-side encoding is
+    // idempotent (decode-then-encode via safeDecodeURIComponent), so ON mode
+    // keeps `%231234` exactly — it does NOT double-encode like the query side.
+    // This is the key asymmetry between path and query encoding contracts.
+    const url = 'https://example.com/issues/%231234';
+    const off = buildHar({ request: baseRequest({ url, settings: { encodeUrl: false } }), shouldInterpolate: false });
+    const on = buildHar({ request: baseRequest({ url, settings: { encodeUrl: true } }), shouldInterpolate: false });
+
+    expect(off.rawUrl).toBe('https://example.com/issues/%231234');
+    expect(on.encodedUrl).toBe('https://example.com/issues/%231234');
+  });
+
   it('Scenario 5: SPA hash-router URL (/#/dashboard/settings)', () => {
     const url = 'https://yourapp.com/#/dashboard/settings';
     const off = buildHar({ request: baseRequest({ url, settings: { encodeUrl: false } }), shouldInterpolate: false });
@@ -1517,6 +1558,17 @@ describe('buildHar — # encoding scenarios (decision-tree coverage)', () => {
     const on = buildHar({ request: baseRequest({ url, settings: { encodeUrl: true } }), shouldInterpolate: false });
 
     expect(off.rawUrl).toBe('http://localhost:6000/request-echo/hash#tag');
+    expect(on.encodedUrl).toBe('http://localhost:6000/request-echo/hash%23tag');
+  });
+
+  it('Scenario 7b: pre-encoded direct path (/path/hash%23tag) — idempotent path encoding', () => {
+    // Mirror of 4b for the typed-in-address-bar case. Same idempotent
+    // path-side encoding contract: `%23` survives ON mode without becoming `%2523`.
+    const url = 'http://localhost:6000/request-echo/hash%23tag';
+    const off = buildHar({ request: baseRequest({ url, settings: { encodeUrl: false } }), shouldInterpolate: false });
+    const on = buildHar({ request: baseRequest({ url, settings: { encodeUrl: true } }), shouldInterpolate: false });
+
+    expect(off.rawUrl).toBe('http://localhost:6000/request-echo/hash%23tag');
     expect(on.encodedUrl).toBe('http://localhost:6000/request-echo/hash%23tag');
   });
 

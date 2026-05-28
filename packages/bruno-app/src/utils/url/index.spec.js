@@ -598,4 +598,45 @@ describe('Url Utils - interpolateUrlPathParams backward compatibility (encodeUrl
     expect(interpolateUrlPathParams(url, params, {}, { raw: true }))
       .toEqual('https://example.com/users/a/b?q=hello world');
   });
+
+  // Acceptance-criteria coverage (decision-tree table from the PR reviewer).
+  // Mirrors every row of the "OFF mode passes through unchanged" requirement.
+  // URL: https://api.example.com/users/:role_name — same template across all 7.
+  const ACCEPTANCE_URL = 'https://api.example.com/users/:role_name';
+  const accept = (value) => [{ name: 'role_name', type: 'path', enabled: true, value }];
+
+  it('#1: aaa/bbb passes through raw (no %2F)', () => {
+    expect(interpolateUrlPathParams(ACCEPTANCE_URL, accept('aaa/bbb')))
+      .toEqual('https://api.example.com/users/aaa/bbb');
+  });
+
+  it('#2: aaa#bbb passes through raw (no %23)', () => {
+    expect(interpolateUrlPathParams(ACCEPTANCE_URL, accept('aaa#bbb')))
+      .toEqual('https://api.example.com/users/aaa#bbb');
+  });
+
+  it('#3: aaa bbb passes through raw (no %20)', () => {
+    expect(interpolateUrlPathParams(ACCEPTANCE_URL, accept('aaa bbb')))
+      .toEqual('https://api.example.com/users/aaa bbb');
+  });
+
+  it('#4: 50% passes through raw (bare % preserved)', () => {
+    expect(interpolateUrlPathParams(ACCEPTANCE_URL, accept('50%')))
+      .toEqual('https://api.example.com/users/50%');
+  });
+
+  it('#5: a&b=c passes through raw (no %26 / %3D)', () => {
+    expect(interpolateUrlPathParams(ACCEPTANCE_URL, accept('a&b=c')))
+      .toEqual('https://api.example.com/users/a&b=c');
+  });
+
+  it('#6: 名前 passes through raw (unicode preserved as literal UTF-8)', () => {
+    expect(interpolateUrlPathParams(ACCEPTANCE_URL, accept('名前')))
+      .toEqual('https://api.example.com/users/名前');
+  });
+
+  it('#7: a%20b (pre-encoded) passes through raw (no double-encoding)', () => {
+    expect(interpolateUrlPathParams(ACCEPTANCE_URL, accept('a%20b')))
+      .toEqual('https://api.example.com/users/a%20b');
+  });
 });
