@@ -461,8 +461,8 @@ const convertDataToQueryString = (request) => {
     url += '&';
   }
 
-  // append data to url as query string
-  url += request.data;
+  // append data to url as query string (encode to prevent URL injection)
+  url += new URLSearchParams(request.data).toString();
 
   const { url: formattedUrl, queries } = parseUrl(url);
 
