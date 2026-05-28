@@ -1,11 +1,29 @@
-export const flattenObject = (obj: Record<string, any>, parentKey: string = ''): Record<string, any> => {
-  return Object.entries(obj).reduce((acc: Record<string, any>, [key, value]: [string, any]) => {
-    const newKey = parentKey ? (Array.isArray(obj) ? `${parentKey}[${key}]` : `${parentKey}.${key}`) : key;
-    if (typeof value === 'object' && value !== null) {
-      Object.assign(acc, flattenObject(value, newKey));
-    } else {
-      acc[newKey] = value;
-    }
-    return acc;
-  }, {});
-};
+export {
+  hasExplicitScheme,
+  encodeUrl,
+  parseQueryParams,
+  buildQueryString,
+  stripOrigin
+} from './url';
+
+export {
+  buildFormUrlEncodedPayload,
+  isFormData,
+  extractBoundaryFromContentType
+} from './form-data';
+
+export {
+  patternHasher
+} from './template-hasher';
+
+export {
+  PROMPT_VARIABLE_TEXT_PATTERN,
+  PROMPT_VARIABLE_TEMPLATE_PATTERN,
+  extractPromptVariables,
+  extractPromptVariablesFromString
+} from './prompt-variables';
+
+export {
+  jsonToDotenv,
+  DotenvVariable
+} from './jsonToDotenv';

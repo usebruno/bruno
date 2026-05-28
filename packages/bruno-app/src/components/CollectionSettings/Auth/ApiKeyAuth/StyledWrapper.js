@@ -2,7 +2,8 @@ import styled from 'styled-components';
 
 const Wrapper = styled.div`
   label {
-    font-size: 0.8125rem;
+    font-size: ${(props) => props.theme.font.size.sm};
+    color: ${(props) => props.theme.colors.text.subtext1};
   }
 
   .single-line-editor-wrapper {
@@ -13,7 +14,8 @@ const Wrapper = styled.div`
   }
 
   .auth-placement-selector {
-    padding: 0.5rem 0px;
+    font-size: ${(props) => props.theme.font.size.sm};
+    padding: 0.2rem 0px;
     border-radius: 3px;
     border: solid 1px ${(props) => props.theme.input.border};
     background-color: ${(props) => props.theme.input.bg};
@@ -37,7 +39,6 @@ const Wrapper = styled.div`
 
     .auth-type-label {
       width: fit-content;
-      color: ${(props) => props.theme.colors.text.yellow};
       justify-content: space-between;
       padding: 0 0.5rem;
     }

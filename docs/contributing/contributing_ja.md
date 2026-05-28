@@ -40,6 +40,8 @@ npm i --legacy-peer-deps
 npm run build:graphql-docs
 npm run build:bruno-query
 npm run build:bruno-common
+npm run build:bruno-converters
+npm run build:bruno-requests
 
 # run next app (terminal 1)
 npm run dev:web
@@ -65,11 +67,11 @@ find . -type f -name "package-lock.json" -delete
 ### テストを動かすには
 
 ```bash
-# bruno-schema
+# ブルーノスキーマのテストを実行します
 npm test --workspace=packages/bruno-schema
 
-# bruno-lang
-npm test --workspace=packages/bruno-lang
+# すべてのワークスペースでテストを実行します
+npm test --workspaces --if-present
 ```
 
 ### プルリクエストの手順

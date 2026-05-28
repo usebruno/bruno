@@ -1,12 +1,15 @@
+const HeaderList = require('./header-list');
+
 class BrunoRequest {
   /**
    * The following properties are available as shorthand:
    * - req.url
    * - req.method
-   * - req.headers
+   * - req.headers (raw headers object)
+   * - req.headerList (PropertyList API for headers)
    * - req.timeout
    * - req.body
-   * 
+   *
    * Above shorthands are useful for accessing the request properties directly in the scripts
    * It must be noted that the user cannot set these properties directly.
    * They should use the respective setter methods to set these properties.
@@ -17,13 +20,16 @@ class BrunoRequest {
     this.method = req.method;
     this.headers = req.headers;
     this.timeout = req.timeout;
-
+    this.name = req.name;
+    this.pathParams = req.pathParams;
+    this.tags = req.tags || [];
+    this.headerList = new HeaderList(this.req);
     /**
      * We automatically parse the JSON body if the content type is JSON
      * This is to make it easier for the user to access the body directly
-     * 
+     *
      * It must be noted that the request data is always a string and is what gets sent over the network
-     * If the user wants to access the raw data, they can use getBody({raw: true}) method 
+     * If the user wants to access the raw data, they can use getBody({raw: true}) method
      */
     const isJson = this.hasJSONContentType(this.req.headers);
     if (isJson) {
@@ -40,21 +46,76 @@ class BrunoRequest {
     this.req.url = url;
   }
 
+  getHost() {
+    try {
+      const url = new URL(this.req.url);
+      return url.host;
+    } catch (e) {
+      return '';
+    }
+  }
+
+  getPath() {
+    try {
+      const url = new URL(this.req.url);
+      let pathname = url.pathname;
+
+      // If path params exist, interpolate them into the pathname
+      if (this.req.pathParams && Array.isArray(this.req.pathParams)) {
+        pathname = pathname
+          .split('/')
+          .map((segment) => {
+            if (segment.startsWith(':')) {
+              const paramName = segment.slice(1);
+              const pathParam = this.req.pathParams.find((param) => param.name === paramName);
+              if (pathParam && pathParam.value) {
+                return pathParam.value;
+              }
+            }
+            return segment;
+          })
+          .join('/');
+      }
+
+      return pathname;
+    } catch (e) {
+      return '';
+    }
+  }
+
+  getQueryString() {
+    try {
+      const url = new URL(this.req.url);
+      // Return query string without the leading '?'
+      return url.search ? url.search.substring(1) : '';
+    } catch (e) {
+      return '';
+    }
+  }
+
   getMethod() {
     return this.req.method;
   }
+
   getAuthMode() {
+    const headers = this.req.headers;
     if (this.req?.oauth2) {
       return 'oauth2';
-    } else if (this.headers?.['Authorization']?.startsWith('Bearer')) {
+    } else if (this.req?.oauth1config) {
+      return 'oauth1';
+    } else if (headers?.['Authorization']?.startsWith('Bearer')) {
       return 'bearer';
-    } else if (this.headers?.['Authorization']?.startsWith('Basic') || this.req?.auth?.username) {
+    } else if (headers?.['Authorization']?.startsWith('Basic') || this.req?.auth?.username) {
       return 'basic';
+    } else if (this.req?.apiKeyAuthValueForQueryParams) {
+      return 'apikey';
+    } else if (this.req?.apiKeyHeaderName && this.headers?.[this.req.apiKeyHeaderName] !== undefined) {
+      return 'apikey';
     } else if (this.req?.awsv4) {
       return 'awsv4';
     } else if (this.req?.digestConfig) {
       return 'digest';
-    } else if (this.headers?.['X-WSSE'] || this.req?.auth?.username) {
+    } else if (headers?.['X-WSSE'] || this.req?.auth?.username) {
       return 'wsse';
     } else {
       return 'none';
@@ -71,8 +132,11 @@ class BrunoRequest {
   }
 
   setHeaders(headers) {
-    this.headers = headers;
     this.req.headers = headers;
+  }
+
+  deleteHeaders(headers) {
+    headers.forEach((name) => this.deleteHeader(name));
   }
 
   getHeader(name) {
@@ -80,8 +144,23 @@ class BrunoRequest {
   }
 
   setHeader(name, value) {
-    this.headers[name] = value;
     this.req.headers[name] = value;
+  }
+
+  deleteHeader(name) {
+    delete this.req.headers[name];
+
+    /**
+      Store header name to be applied in the axios request interceptor.
+      Default headers (user-agent, accept, accept-encoding, etc.) are added after
+      the pre-request script runs, so we track them here and delete them later.
+    */
+    if (!this.req.__headersToDelete) {
+      this.req.__headersToDelete = [];
+    }
+    if (!this.req.__headersToDelete.includes(name)) {
+      this.req.__headersToDelete.push(name);
+    }
   }
 
   hasJSONContentType(headers) {
@@ -91,7 +170,7 @@ class BrunoRequest {
 
   /**
    * Get the body of the request
-   * 
+   *
    * We automatically parse and return the JSON body if the content type is JSON
    * If the user wants the raw body, they can pass the raw option as true
    */
@@ -115,7 +194,7 @@ class BrunoRequest {
    * Otherwise
    *  - We set the request data as the data itself
    *  - We set the body property as the data itself
-   * 
+   *
    * If the user wants to override this behavior, they can pass the raw option as true
    */
   setBody(data, options = {}) {
@@ -149,6 +228,14 @@ class BrunoRequest {
     this.req.timeout = timeout;
   }
 
+  onFail(callback) {
+    if (typeof callback === 'function') {
+      this.req.onFailHandler = callback;
+    } else if (callback) {
+      throw new Error(`${callback} is not a function`);
+    }
+  }
+
   __safeParseJSON(str) {
     try {
       return JSON.parse(str);
@@ -168,7 +255,6 @@ class BrunoRequest {
   __isObject(obj) {
     return obj !== null && typeof obj === 'object';
   }
-  
 
   disableParsingResponseJson() {
     this.req.__brunoDisableParsingResponseJson = true;
@@ -176,6 +262,28 @@ class BrunoRequest {
 
   getExecutionMode() {
     return this.req.__bruno__executionMode;
+  }
+
+  getName() {
+    return this.req.name;
+  }
+
+  getPathParams() {
+    const params = Array.isArray(this.req.pathParams) ? this.req.pathParams : [];
+
+    return params.map((param) => ({
+      name: param.name,
+      value: param.value,
+      type: param.type
+    }));
+  }
+
+  /**
+   * Get the tags associated with this request
+   * @returns {Array<string>} Array of tag strings
+   */
+  getTags() {
+    return this.req.tags || [];
   }
 }
 

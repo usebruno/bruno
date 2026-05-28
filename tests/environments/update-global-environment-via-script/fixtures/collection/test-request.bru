@@ -1,0 +1,24 @@
+meta {
+  name: Test Request
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/users
+  body: json
+  auth: inherit
+}
+
+script:pre-request {
+  //update already existing enabled env variable
+  bru.setGlobalEnvVar("existingEnvEnabled", "newExistingEnvEnabledValue");
+
+  //update already existing disabled env variable
+  bru.setGlobalEnvVar("existingEnvDisabled", "newExistingEnvDisabledValue");
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

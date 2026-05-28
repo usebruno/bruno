@@ -1,0 +1,63 @@
+meta {
+  name: OAuth1 RSA-SHA1 200
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{localhost}}/api/auth/oauth1/resource
+  body: none
+  auth: oauth1
+}
+
+auth:oauth1 {
+  consumer_key: consumer_key_1
+  consumer_secret: 
+  access_token: access_token_1
+  token_secret: token_secret_1
+  callback_url: 
+  verifier: 
+  signature_method: RSA-SHA1
+  private_key: '''
+    -----BEGIN PRIVATE KEY-----
+    MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQCf/ioOwb6uGm01
+    WjL89sBOKmvMuwyGW33w+ud3eV5dWbHZbJTgCHMtjUVqGE4sVPnX8wfKgb00hVGZ
+    ZhbRsqquUMJL+7RHZA1G3ZcC2WPmrUvIpi13W7F/+wizRjDrutgK0oc4L7zUPhgE
+    +d+Qe6JHvFL376hqkD9Z6vd9jVNRDv7D2uJcG+Uc7ePM6yLzQeJILnfvSwxna89G
+    6YxfbYNjf/VKAcRM6UAR8aRGm/A9Qmdwsy08iRzlM0K5lid7Ath7ADJ+D6ezUIhl
+    qiI6sVrZdpsFXzuvcxjgAts54XoQsLCDZudTmzMs4BftswULCQFdj6c2oye9QKsu
+    EoZ0CvwNAgMBAAECggEAA1kIJu2QQIhhB0rEjQfaF5309NW9JK/pag91+claW3hd
+    q6papc1yIN6MjfRwPlE7i8npZygL03uEAkJhRoYHOEU3AOwFZluw7hiuPkBaQiDC
+    Ld1RpOZlnRidoqgHV1y+LzZ0ieJwgGhu4ZEbnSRZIvMihqRHJo5aJQGGUuQ60r6w
+    Z5N6j7GGCV14oGck6+0k/NhYrkhpbyl+AHPZeQ20L9ZaSpl+GD3RUgvx4nOhN1Fx
+    agovDCKwmRPSpuuBw6Wun1hKC9MuuL89CCy2yZ+MrjQmQJ/onKZKR2fc1I5g2JRu
+    z7xObQq/tAXIHKM27YYY5J3NcGtsy9tLpdtFDle/wQKBgQDfBaBURNs/ccVMMXSZ
+    T5lOo337Rv3bGFnoLwURUZrjJNGrHqLzeZvTNt0sXQX6Jbdeb5qnC/icng+QDEod
+    9hRVDz1rN+2YqG6AMvrX5dQSK1PmkwVHLles4sX7DsZaiKNYFFbXc9rt7kXBwDoE
+    LXYidqUIqZiOjMqCyNlfyHHnRQKBgQC3ppq7TCEWIfqLzsfOoqaKD/fDOrQLLmor
+    7RvAdGa+EyVeB1G+NQO00KN6U9W+SNPz0cEUYUZQiAaAghUGkNurrS1shr5k7aTX
+    pXpXtaA+xSEAd6w8lTl9mAfwZMBCcsfjyjPf1RPjZ6Tj2fdHqnsllSU5843LOqZK
+    CBXiitdKKQKBgQCVNEloN0zLLE1HxUpxiwxQzRZqtrr9ClST/mkQhhzuW+Kd7fgs
+    la5HZ0we8vkdun/sARRhL6Qa+7ADugUX+Frv8SsxARDG8eBDilfBevQfV7dg6fk8
+    /ucPNgQoC2Fujj1hnvHeYJcWWTN4BSeLRfLj6aZNnlD/BXgyeTbcWtjBVQKBgBhG
+    npd5hboePbczWzgWSftgBvk4jkoYFZK+4fc7q8UeVMcsIoMJEPdayPFHma5whAvr
+    wyEFhrzobiuYhlz60v7LgoChAxPmUe7rgdOMP6Vse2NLbmoHs7TFXu9I8h0WfRPA
+    S8EfsmRR8/rmeghwIZ0jLOuPJUQi+Y45qWLrxW+ZAoGAMXYhio9y93M0nRqjiiCR
+    YibnhpZxvrNiLPxNiUi/WxcWEvulpmbKxLUhiWJB1ZmRTiGYlnclQXUuRyaOQNTo
+    5TVAaNzDXayWVbxhx3Lb8NUV+QNUJEJOgjq4+NYw8fUZCr7T64pGGM4DJHPuHCBo
+    dJv7UByPuMKBIOYpy3Z+iWs=
+    -----END PRIVATE KEY-----
+  '''
+  timestamp: 
+  nonce: 
+  version: 1.0
+  realm: 
+  placement: header
+  include_body_hash: false
+}
+
+assert {
+  res.status: eq 200
+  res.body.resource.name: eq oauth1-test-resource
+  res.body.resource.email: eq oauth1@example.com
+}

@@ -22,6 +22,15 @@ const StyledWrapper = styled.div`
       animation: rotateCounterClockwise 1s linear infinite;
     }
   }
+
+  // spinner and request time content looks better centered vertically in vertical layout
+  // while in horizontal layout, it looks better when the content is aligned to the top
+  &.vertical-layout {
+    div.overlay {
+      justify-content: center;
+      padding: 1rem;
+    }
+  }
 `;
 
 export default StyledWrapper;

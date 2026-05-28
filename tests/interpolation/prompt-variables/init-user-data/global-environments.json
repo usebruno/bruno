@@ -1,0 +1,27 @@
+{
+  "environments": [
+    {
+      "uid": "FlaexlO7lcH7UtEpWsVyz",
+      "name": "E2E_Global",
+      "variables": [
+        {
+          "uid": "lflBDSYBdHkUedYhBF4Ty",
+          "name": "globalEnvVar",
+          "value": "{{?Enter Global Env Variable}}",
+          "type": "text",
+          "secret": false,
+          "enabled": true
+        },
+        {
+          "uid": "lflBDSYBdHkUedYhBF4Ty",
+          "name": "globalEnvVarDisabled",
+          "value": "{{?Should Not Prompt globalEnvVarDisabled}}",
+          "type": "text",
+          "secret": false,
+          "enabled": false
+        }
+      ]
+    }
+  ],
+  "activeGlobalEnvironmentUid": "FlaexlO7lcH7UtEpWsVyz"
+}

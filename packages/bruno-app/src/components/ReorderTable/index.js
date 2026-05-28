@@ -79,7 +79,7 @@ const ReorderTable = ({ children, updateReorderedItem }) => {
                   <>
                     <div
                       draggable
-                      className="group drag-handle absolute z-10 left-[-17px] p-3.5 py-3.5 px-2.5 top-[3px] cursor-grab"
+                      className="group drag-handle absolute z-10 left-[-17px] top-1/2 -translate-y-[80%] p-2.5 cursor-grab"
                     >
                       {hoveredRow === index && (
                         <>

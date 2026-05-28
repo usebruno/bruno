@@ -1,0 +1,17 @@
+meta {
+  name: cli-json-env-test
+  type: http
+}
+
+http {
+  method: POST
+  url: {{baseUrl}}
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "ping": "pong"
+  }
+}

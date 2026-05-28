@@ -81,6 +81,25 @@ headers {
     expect(output).toEqual(expected);
   });
 
+  it('should parse single header with empty key', () => {
+    const input = `
+headers {
+  : world
+}`;
+
+    const output = parser(input);
+    const expected = {
+      headers: [
+        {
+          name: '',
+          value: 'world',
+          enabled: true
+        }
+      ]
+    };
+    expect(output).toEqual(expected);
+  });
+
   it('should parse multi headers', () => {
     const input = `
 headers {

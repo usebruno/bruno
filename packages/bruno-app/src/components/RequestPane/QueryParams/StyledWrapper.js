@@ -2,12 +2,12 @@ import styled from 'styled-components';
 
 const Wrapper = styled.div`
   div.title {
-    color: var(--color-tab-inactive);
+    color: ${(props) => props.theme.colors.text.subtext0};
   }
   table {
     width: 100%;
     border-collapse: collapse;
-    font-weight: 600;
+    font-weight: 500;
     table-layout: fixed;
 
     thead,
@@ -17,7 +17,7 @@ const Wrapper = styled.div`
 
     thead {
       color: ${(props) => props.theme.table.thead.color};
-      font-size: 0.8125rem;
+      font-size: ${(props) => props.theme.font.size.base};
       user-select: none;
     }
     td {
@@ -31,11 +31,19 @@ const Wrapper = styled.div`
     }
   }
 
-  .btn-add-param {
-    font-size: 0.8125rem;
+  .btn-action {
+    font-size: ${(props) => props.theme.font.size.base};
     &:hover span {
       text-decoration: underline;
     }
+  }
+
+  .bulk-edit-bar {
+    position: sticky;
+    bottom: 0;
+    background: ${(props) => props.theme.bg};
+    padding-top: 8px;
+    padding-bottom: 4px;
   }
 
   input[type='text'] {

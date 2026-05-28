@@ -1,0 +1,160 @@
+meta {
+  name: sign with callback token
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{host}}/api/echo
+  body: none
+  auth: inherit
+}
+
+tests {
+  const jwt = require('jsonwebtoken');
+  const HS_SECRET = 'supersecret';
+  
+  const payload = { sub: 'user123' };
+  
+  function once(fn) {
+    let called = false;
+    return (...args) => {
+      if (!called) {
+        called = true;
+        fn(...args);
+      }
+    };
+  }
+  
+  function signAsync(payload, secret, options = {}) {
+    return new Promise((resolve, reject) => {
+      jwt.sign(payload, secret, options, (err, token) => {
+        if (err) reject(err);
+        else resolve(token);
+      });
+    });
+  }
+  
+  // ------------------------------------------------------------
+  // 1. Named Normal Callback
+  // ------------------------------------------------------------
+  test('sign — named normal callback', function () {
+    function signCallback(err, token) {
+      expect(err).to.be.null;
+      expect(token).to.be.a('string');
+  
+      // Verify token to ensure correctness
+      const decoded = jwt.verify(token, HS_SECRET, { algorithms: ['HS256'] });
+      expect(decoded.sub).to.equal('user123');
+  
+      console.log('Named callback signed token:', token);
+    }
+  
+    jwt.sign(payload, HS_SECRET, { algorithm: 'HS256', expiresIn: '15m' }, signCallback);
+  });
+  
+  // ------------------------------------------------------------
+  // 2. Anonymous Callback
+  // ------------------------------------------------------------
+  test('sign — anonymous callback', function () {
+    jwt.sign(payload, HS_SECRET, { algorithm: 'HS256' }, function (err, token) {
+      expect(err).to.be.null;
+      expect(token).to.be.a('string');
+  
+      const decoded = jwt.verify(token, HS_SECRET, { algorithms: ['HS256'] });
+      expect(decoded.sub).to.equal('user123');
+  
+      console.log('Anonymous callback signed token:', token);
+    });
+  });
+  
+  // ------------------------------------------------------------
+  // 3. Arrow Function Callback
+  // ------------------------------------------------------------
+  test('sign — arrow function callback', function () {
+    jwt.sign(payload, HS_SECRET, { algorithm: 'HS256' }, (err, token) => {
+      expect(err).to.be.null;
+      expect(token).to.be.a('string');
+  
+      const decoded = jwt.verify(token, HS_SECRET, { algorithms: ['HS256'] });
+      expect(decoded.sub).to.equal('user123');
+  
+      console.log('Arrow callback signed token:', token);
+    });
+  });
+  
+  // ------------------------------------------------------------
+  // 4. Bound Method Callback
+  // ------------------------------------------------------------
+  test('sign — bound method callback', function () {
+    const signer = {
+      prefix: '[SIGN]',
+      done(err, token) {
+        expect(err).to.be.null;
+        expect(token).to.be.a('string');
+  
+        const decoded = jwt.verify(token, HS_SECRET, { algorithms: ['HS256'] });
+        expect(decoded.sub).to.equal('user123');
+  
+        console.log(this.prefix, 'Bound callback signed token:', token);
+      },
+    };
+  
+    jwt.sign(payload, HS_SECRET, { algorithm: 'HS256' }, signer.done.bind(signer));
+  });
+  
+  // ------------------------------------------------------------
+  // 5. Higher-Order Callback
+  // ------------------------------------------------------------
+  function makeSignCallback(label) {
+    return (err, token) => {
+      expect(err).to.be.null;
+      expect(token).to.be.a('string');
+  
+      const decoded = jwt.verify(token, HS_SECRET, { algorithms: ['HS256'] });
+      expect(decoded.sub).to.equal('user123');
+  
+      console.log(label, 'Higher-order callback signed token:', token);
+    };
+  }
+  
+  test('sign — higher-order callback', function () {
+    const cb = makeSignCallback('[CUSTOM LABEL]');
+    jwt.sign(payload, HS_SECRET, { algorithm: 'HS256' }, cb);
+  });
+  
+  // ------------------------------------------------------------
+  // 6. Once-Wrapped Callback
+  // ------------------------------------------------------------
+  test('sign — once-wrapped callback', function () {
+    const cb = once((err, token) => {
+      expect(err).to.be.null;
+      expect(token).to.be.a('string');
+  
+      const decoded = jwt.verify(token, HS_SECRET, { algorithms: ['HS256'] });
+      expect(decoded.sub).to.equal('user123');
+  
+      console.log('Once callback executed and signed token:', token);
+    });
+  
+    jwt.sign(payload, HS_SECRET, { algorithm: 'HS256' }, cb);
+  });
+  
+  // ------------------------------------------------------------
+  // 7. Promise / Async-Await
+  // ------------------------------------------------------------
+  test('sign — promise wrapper with async/await', async function () {
+    const token = await signAsync(payload, HS_SECRET, { algorithm: 'HS256', expiresIn: '15m' });
+    expect(token).to.be.a('string');
+  
+    const decoded = jwt.verify(token, HS_SECRET, { algorithms: ['HS256'] });
+    expect(decoded.sub).to.equal('user123');
+  
+    console.log('Promise/async signed token:', token);
+  });
+  
+}
+
+settings {
+  encodeUrl: true
+}

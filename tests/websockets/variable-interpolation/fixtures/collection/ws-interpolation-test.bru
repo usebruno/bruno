@@ -1,0 +1,20 @@
+meta {
+  name: ws-interpolation-test
+  type: ws
+  seq: 1
+}
+
+ws {
+  url: wss://echo.{{url}}.org
+  auth: inherit
+}
+
+body:ws {
+  name: message 1
+  content: '''
+    {
+      "test": "{{data}}"
+    }
+  '''
+}
+

@@ -47,3 +47,28 @@ yarn-error.log*
 #dev editor
 bruno.iml
 .idea
+.vscode
+.cursor
+.claude
+.codex
+.agents
+.agent
+skills-lock.json
+
+# Playwright
+/blob-report/
+
+# Benchmark results (generated at runtime)
+tests/benchmarks/results/
+/benchmark-report/
+
+# Development plan files
+CLAUDE.md
+AGENTS.md
+*.plan.md
+
+# packages dist
+packages/bruno-filestore/dist
+packages/bruno-requests/dist
+packages/bruno-schema-types/dist
+packages/bruno-converters/dist

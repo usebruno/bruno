@@ -1,0 +1,58 @@
+/**
+ * Builds a URL-encoded payload from various data formats
+ *
+ * This function handles multiple input formats:
+ * - Array of objects with 'name' and 'value' properties (preserves order)
+ *
+ * @param data The request body data
+ * @returns URL-encoded string suitable for application/x-www-form-urlencoded content type
+ *
+ * @example
+ * // Array format (preserves order)
+ * buildFormUrlEncodedPayload([{name: 'a', value: '1'}, {name: 'b', value: '2'}])
+ * // Returns: 'a=1&b=2'
+ */
+export const buildFormUrlEncodedPayload = (params: Array<{ name: string; value: string | number | boolean | undefined }>): string => {
+  // Ensure params is iterable (array)
+  if (!Array.isArray(params)) {
+    return '';
+  }
+
+  const resultParams = new URLSearchParams();
+
+  for (const param of params) {
+    // Invalid items are ignored
+    if (typeof param !== 'object' || param === null) continue;
+    if (!('name' in param)) continue;
+
+    // Append parameter with value (default to empty string if undefined/null)
+    resultParams.append(param.name, String(param.value ?? ''));
+  }
+
+  return resultParams.toString();
+};
+
+/**
+ * Determines if the given object is a FormData instance.
+ * Supports native FormData (Node 18+, browser) and the 'form-data' npm package.
+ * @param obj - Object to check.
+ * @returns True if obj is a FormData instance, false otherwise.
+ */
+export const isFormData = (obj: unknown): boolean => {
+  // Check constructor name (works for both native FormData and form-data npm package)
+  // todo: checking constructor.name can produce false positives for objects that have a constructor.name property set to 'FormData', but this is rare.
+  return obj?.constructor?.name === 'FormData';
+};
+
+/**
+ * Extracts boundary parameter from a Content-Type header value.
+ * @param contentType - The Content-Type header value (e.g., "multipart/mixed; boundary=my-boundary")
+ * @returns The boundary value if found, or null if not present
+ */
+export const extractBoundaryFromContentType = (contentType: unknown): string | null => {
+  if (typeof contentType !== 'string') {
+    return null;
+  }
+  const match = contentType.match(/boundary="([^"]+)"|boundary=([^;\s]+)/i);
+  return match ? (match[1] || match[2]) : null;
+};

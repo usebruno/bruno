@@ -1,0 +1,65 @@
+meta {
+  name: Multiline ContentType Test
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{host}}/test
+  body: multipartForm
+}
+
+example {
+  name: Example with multiline strings and contentType
+  
+  request: {
+    url: {{host}}/test
+    method: POST
+    mode: multipartForm
+    body:multipart-form: {
+      test: '''
+        {
+        "hello" : "there"
+        }
+      ''' @contentType(application/json)
+      simple: cat and mouse @contentType(text/plain)
+      array: '''
+        [
+        "coolade", 
+        "blast"
+        ]
+      '''
+      jsonValue: '''
+        {
+          "key": "value",
+          "nested": {
+            "data": 123
+          }
+        }
+      ''' @contentType(application/json)
+      textValue: '''
+        This is a
+        multiline text
+        value
+      ''' @contentType(text/plain)
+    }
+  }
+  
+  response: {
+    status: {
+      code: 200
+      text: OK
+    }
+    
+    body: {
+      type: json
+      content: '''
+        {
+          "status": "success",
+          "message": "Data received"
+        }
+      '''
+    }
+  }
+}
+

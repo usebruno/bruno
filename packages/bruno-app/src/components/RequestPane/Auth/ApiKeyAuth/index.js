@@ -5,25 +5,27 @@ import { IconCaretDown } from '@tabler/icons';
 import Dropdown from 'components/Dropdown';
 import { useTheme } from 'providers/Theme';
 import SingleLineEditor from 'components/SingleLineEditor';
-import { updateAuth } from 'providers/ReduxStore/slices/collections';
-import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
+import { sendRequest } from 'providers/ReduxStore/slices/collections/actions';
 import StyledWrapper from './StyledWrapper';
 import { humanizeRequestAPIKeyPlacement } from 'utils/collections';
 
-const ApiKeyAuth = ({ item, collection }) => {
+const ApiKeyAuth = ({ item, collection, updateAuth, request, save }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
   const dropdownTippyRef = useRef();
   const onDropdownCreate = (ref) => (dropdownTippyRef.current = ref);
 
-  const apikeyAuth = item.draft ? get(item, 'draft.request.auth.apikey', {}) : get(item, 'request.auth.apikey', {});
+  const apikeyAuth = get(request, 'auth.apikey', {});
 
   const handleRun = () => dispatch(sendRequest(item, collection.uid));
-  const handleSave = () => dispatch(saveRequest(item.uid, collection.uid));
+
+  const handleSave = () => {
+    save();
+  };
 
   const Icon = forwardRef((props, ref) => {
     return (
-      <div ref={ref} className="flex items-center justify-end auth-type-label select-none">
+      <div ref={ref} data-testid="auth-placement-label" className="flex items-center justify-end auth-type-label select-none">
         {humanizeRequestAPIKeyPlacement(apikeyAuth?.placement)}
         <IconCaretDown className="caret ml-1 mr-1" size={14} strokeWidth={2} />
       </div>
@@ -45,23 +47,23 @@ const ApiKeyAuth = ({ item, collection }) => {
   };
 
   useEffect(() => {
-    !apikeyAuth?.placement &&
-      dispatch(
-        updateAuth({
-          mode: 'apikey',
-          collectionUid: collection.uid,
-          itemUid: item.uid,
-          content: {
-            placement: 'header'
-          }
-        })
-      );
+    !apikeyAuth?.placement
+    && dispatch(
+      updateAuth({
+        mode: 'apikey',
+        collectionUid: collection.uid,
+        itemUid: item.uid,
+        content: {
+          placement: 'header'
+        }
+      })
+    );
   }, [apikeyAuth]);
 
   return (
-    <StyledWrapper className="mt-2 w-full">
-      <label className="block font-medium mb-2">Key</label>
-      <div className="single-line-editor-wrapper mb-2">
+    <StyledWrapper className="w-full">
+      <label className="block mb-1">Key</label>
+      <div className="single-line-editor-wrapper mb-3">
         <SingleLineEditor
           value={apikeyAuth.key || ''}
           theme={storedTheme}
@@ -69,11 +71,12 @@ const ApiKeyAuth = ({ item, collection }) => {
           onChange={(val) => handleAuthChange('key', val)}
           onRun={handleRun}
           collection={collection}
+          isCompact
         />
       </div>
 
-      <label className="block font-medium mb-2">Value</label>
-      <div className="single-line-editor-wrapper mb-2">
+      <label className="block mb-1">Value</label>
+      <div className="single-line-editor-wrapper mb-3">
         <SingleLineEditor
           value={apikeyAuth.value || ''}
           theme={storedTheme}
@@ -81,16 +84,17 @@ const ApiKeyAuth = ({ item, collection }) => {
           onChange={(val) => handleAuthChange('value', val)}
           onRun={handleRun}
           collection={collection}
+          isCompact
         />
       </div>
 
-      <label className="block font-medium mb-2">Add To</label>
-      <div className="inline-flex items-center cursor-pointer auth-placement-selector w-fit">
+      <label className="block mb-1">Add To</label>
+      <div data-testid="auth-placement-selector" className="inline-flex items-center cursor-pointer auth-placement-selector w-fit">
         <Dropdown onCreate={onDropdownCreate} icon={<Icon />} placement="bottom-end">
           <div
             className="dropdown-item"
             onClick={() => {
-              dropdownTippyRef.current.hide();
+              dropdownTippyRef?.current?.hide();
               handleAuthChange('placement', 'header');
             }}
           >
@@ -99,11 +103,11 @@ const ApiKeyAuth = ({ item, collection }) => {
           <div
             className="dropdown-item"
             onClick={() => {
-              dropdownTippyRef.current.hide();
+              dropdownTippyRef?.current?.hide();
               handleAuthChange('placement', 'queryparams');
             }}
           >
-            Query Params
+            Query Param
           </div>
         </Dropdown>
       </div>

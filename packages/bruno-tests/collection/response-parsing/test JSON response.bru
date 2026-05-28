@@ -1,0 +1,22 @@
+meta {
+  name: test JSON response
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{httpfaker}}/api/echo/custom
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "headers": { "content-type": "application/json" },
+    "contentJSON": { "message": "hello" }
+  }
+}
+
+assert {
+  res.body.message: eq hello
+}

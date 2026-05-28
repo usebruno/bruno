@@ -1,0 +1,65 @@
+meta {
+  name: node-zlib
+  type: http
+  seq: 17
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+script:pre-request {
+  // Skip in safe mode - these tests require developer sandbox
+  if (bru.isSafeMode()) {
+    bru.runner.skipRequest();
+    return;
+  }
+}
+
+tests {
+  const zlib = require('node:zlib');
+
+  const testData = Buffer.from('Hello Bruno! '.repeat(100));
+
+  test("gzip and gunzip", function() {
+    const compressed = zlib.gzipSync(testData);
+    expect(compressed.length).to.be.lessThan(testData.length);
+
+    const decompressed = zlib.gunzipSync(compressed);
+    expect(decompressed.toString()).to.equal(testData.toString());
+  });
+
+  test("deflate and inflate", function() {
+    const compressed = zlib.deflateSync(testData);
+    expect(compressed.length).to.be.lessThan(testData.length);
+
+    const decompressed = zlib.inflateSync(compressed);
+    expect(decompressed.toString()).to.equal(testData.toString());
+  });
+
+  test("deflateRaw and inflateRaw", function() {
+    const compressed = zlib.deflateRawSync(testData);
+    const decompressed = zlib.inflateRawSync(compressed);
+    expect(decompressed.toString()).to.equal(testData.toString());
+  });
+
+  test("brotli compression", function() {
+    const compressed = zlib.brotliCompressSync(testData);
+    expect(compressed.length).to.be.lessThan(testData.length);
+
+    const decompressed = zlib.brotliDecompressSync(compressed);
+    expect(decompressed.toString()).to.equal(testData.toString());
+  });
+
+  test("compression levels", function() {
+    const high = zlib.gzipSync(testData, { level: 9 });
+    const low = zlib.gzipSync(testData, { level: 1 });
+    expect(high.length).to.be.at.most(low.length);
+  });
+
+  test("zlib.constants", function() {
+    expect(zlib.constants).to.have.property('Z_BEST_COMPRESSION');
+  });
+}

@@ -20,23 +20,54 @@ const defaultPreferences = {
     },
     storeCookies: true,
     sendCookies: true,
-    timeout: 0
+    timeout: 0,
+    oauth2: {
+      useSystemBrowser: false
+    }
   },
   font: {
     codeFont: 'default',
-    codeFontSize: 14
+    codeFontSize: 13
   },
   proxy: {
-    mode: 'off',
-    protocol: 'http',
-    hostname: '',
-    port: null,
-    auth: {
-      enabled: false,
-      username: '',
-      password: ''
-    },
-    bypassProxy: ''
+    source: 'inherit',
+    pac: { source: '' },
+    config: {
+      protocol: 'http',
+      hostname: '',
+      port: null,
+      auth: {
+        username: '',
+        password: ''
+      },
+      bypassProxy: ''
+    }
+  },
+  layout: {
+    responsePaneOrientation: 'horizontal'
+  },
+  beta: {
+    'openapi-sync': false
+  },
+  onboarding: {
+    hasLaunchedBefore: false,
+    hasSeenWelcomeModal: true
+  },
+  general: {
+    defaultLocation: '',
+    defaultWorkspacePath: ''
+  },
+  autoSave: {
+    enabled: false,
+    interval: 1000
+  },
+  display: {
+    zoomPercentage: 100
+  },
+  cache: {
+    sslSession: {
+      enabled: false
+    }
   }
 };
 
@@ -52,24 +83,59 @@ const preferencesSchema = Yup.object().shape({
     }),
     storeCookies: Yup.boolean(),
     sendCookies: Yup.boolean(),
-    timeout: Yup.number()
+    timeout: Yup.number(),
+    oauth2: Yup.object({
+      useSystemBrowser: Yup.boolean()
+    })
   }),
   font: Yup.object().shape({
     codeFont: Yup.string().nullable(),
     codeFontSize: Yup.number().min(1).max(32).nullable()
   }),
   proxy: Yup.object({
-    mode: Yup.string().oneOf(['off', 'on', 'system']),
-    protocol: Yup.string().oneOf(['http', 'https', 'socks4', 'socks5']),
-    hostname: Yup.string().max(1024),
-    port: Yup.number().min(1).max(65535).nullable(),
-    auth: Yup.object({
-      enabled: Yup.boolean(),
-      username: Yup.string().max(1024),
-      password: Yup.string().max(1024)
+    disabled: Yup.boolean().optional(),
+    source: Yup.string().oneOf(['manual', 'pac', 'inherit']).required(),
+    pac: Yup.object({
+      source: Yup.string().optional().max(2048).nullable()
     }).optional(),
-    bypassProxy: Yup.string().optional().max(1024)
-  })
+    config: Yup.object({
+      protocol: Yup.string().oneOf(['http', 'https', 'socks4', 'socks5']),
+      hostname: Yup.string().max(1024),
+      port: Yup.number().min(1).max(65535).nullable(),
+      auth: Yup.object({
+        disabled: Yup.boolean().optional(),
+        username: Yup.string().max(1024),
+        password: Yup.string().max(1024)
+      }).optional(),
+      bypassProxy: Yup.string().optional().max(1024)
+    }).required()
+  }),
+  layout: Yup.object({
+    responsePaneOrientation: Yup.string().oneOf(['horizontal', 'vertical'])
+  }),
+  beta: Yup.object({
+    'openapi-sync': Yup.boolean()
+  }),
+  onboarding: Yup.object({
+    hasLaunchedBefore: Yup.boolean(),
+    hasSeenWelcomeModal: Yup.boolean()
+  }),
+  general: Yup.object({
+    defaultLocation: Yup.string().max(1024).nullable(),
+    defaultWorkspacePath: Yup.string().max(1024).nullable()
+  }),
+  autoSave: Yup.object({
+    enabled: Yup.boolean(),
+    interval: Yup.number().min(100)
+  }),
+  display: Yup.object({
+    zoomPercentage: Yup.number().min(50).max(150)
+  }),
+  cache: Yup.object({
+    sslSession: Yup.object({
+      enabled: Yup.boolean()
+    })
+  }).optional()
 });
 
 class PreferencesStore {
@@ -83,17 +149,122 @@ class PreferencesStore {
   getPreferences() {
     let preferences = this.store.get('preferences', {});
 
-    // This to support the old preferences format
-    // In the old format, we had a proxy.enabled flag
-    // In the new format, this maps to proxy.mode = 'on'
-    if (preferences?.proxy?.enabled) {
-      preferences.proxy.mode = 'on';
+    // Handle existing users without proxy settings
+    // They should get disabled proxy by default, not inherit from system
+    // New users (empty preferences) will get defaultPreferences.proxy via merge
+    if (Object.keys(preferences).length > 0 && !preferences.proxy) {
+      preferences.proxy = {
+        source: 'manual',
+        disabled: true,
+        config: {
+          protocol: 'http',
+          hostname: '',
+          port: null,
+          auth: {
+            username: '',
+            password: ''
+          },
+          bypassProxy: ''
+        }
+      };
     }
 
-    // Delete the proxy.enabled property if it exists, regardless of its value
-    // This is a part of migration to the new preferences format
-    if (preferences?.proxy && 'enabled' in preferences.proxy) {
-      delete preferences.proxy.enabled;
+    if (preferences?.proxy) {
+      const proxy = preferences.proxy || {};
+
+      // Check if this is an old format that needs migration
+      const hasOldFormat = proxy.hasOwnProperty('enabled') || proxy.hasOwnProperty('mode');
+
+      if (hasOldFormat) {
+        let newProxy = {
+          source: 'inherit',
+          pac: { source: '' },
+          config: {
+            protocol: proxy.protocol || 'http',
+            hostname: proxy.hostname || '',
+            port: proxy.port || null,
+            auth: {
+              username: get(proxy, 'auth.username', ''),
+              password: get(proxy, 'auth.password', '')
+            },
+            bypassProxy: proxy.bypassProxy || ''
+          }
+        };
+
+        // Handle old format 1: enabled (boolean)
+        if (proxy.hasOwnProperty('enabled') && typeof proxy.enabled === 'boolean') {
+          newProxy.source = 'manual';
+          newProxy.disabled = !proxy.enabled;
+        } else if (proxy.hasOwnProperty('mode')) {
+          // Handle old format 2: mode ('off' | 'on' | 'system')
+          if (proxy.mode === 'off') {
+            newProxy.source = 'manual';
+            newProxy.disabled = true;
+          } else if (proxy.mode === 'on') {
+            newProxy.source = 'manual';
+          } else if (proxy.mode === 'system') {
+            newProxy.source = 'inherit';
+          }
+        }
+
+        // Migrate auth.enabled to auth.disabled
+        if (get(proxy, 'auth.enabled') === false) {
+          newProxy.config.auth.disabled = true;
+        }
+
+        // Omit disabled: false at top level (optional field)
+        if (newProxy.disabled === false) {
+          delete newProxy.disabled;
+        }
+        // Omit auth.disabled: false (optional field)
+        if (newProxy.config.auth.disabled === false) {
+          delete newProxy.config.auth.disabled;
+        }
+
+        preferences.proxy = newProxy;
+        this.store.set('preferences', preferences);
+      }
+
+      // Migrate intermediate format: inherit boolean → source string
+      if (!hasOldFormat && proxy.hasOwnProperty('inherit')) {
+        if (proxy.inherit === true) {
+          preferences.proxy.source = 'inherit';
+        } else if (!proxy.source) {
+          preferences.proxy.source = 'manual';
+        }
+        delete preferences.proxy.inherit;
+        this.store.set('preferences', preferences);
+      }
+    }
+
+    // Migrate font size from 14px to 13px for existing users
+    // Only migrate once if codeFont is 'default' (or not set) and codeFontSize is 14
+    // This ensures the migration only happens once and doesn't override user's explicit choices
+    // If user explicitly sets it to 14px after migration, it won't be migrated again
+    const fontSizeMigrated = get(preferences, '_migrations.codeFontSize14to13', false);
+    if (!fontSizeMigrated) {
+      const codeFont = get(preferences, 'font.codeFont', 'default');
+      const codeFontSize = get(preferences, 'font.codeFontSize');
+
+      // Only migrate if it's the old default combination (codeFont is default and size is 14)
+      if (codeFont === 'default' && codeFontSize === 14) {
+        preferences.font.codeFontSize = 13;
+        // Mark migration as complete
+        if (!preferences._migrations) {
+          preferences._migrations = {};
+        }
+        preferences._migrations.codeFontSize14to13 = true;
+        // Save the migrated preferences back to the store
+        this.store.set('preferences', preferences);
+      }
+    }
+
+    // Migrate from defaultCollectionLocation to defaultLocation
+    if (preferences.general?.defaultCollectionLocation !== undefined
+      && preferences.general?.defaultLocation === undefined) {
+      preferences.general.defaultLocation = preferences.general.defaultCollectionLocation;
+      delete preferences.general.defaultCollectionLocation;
+      this.store.set('preferences', preferences);
     }
 
     return merge({}, defaultPreferences, preferences);
@@ -141,7 +312,7 @@ const preferencesUtil = {
     return get(getPreferences(), 'request.timeout', 0);
   },
   getGlobalProxyConfig: () => {
-    return get(getPreferences(), 'proxy', {});
+    return get(getPreferences(), 'proxy', defaultPreferences.proxy);
   },
   shouldStoreCookies: () => {
     return get(getPreferences(), 'request.storeCookies', true);
@@ -149,13 +320,33 @@ const preferencesUtil = {
   shouldSendCookies: () => {
     return get(getPreferences(), 'request.sendCookies', true);
   },
-  getSystemProxyEnvVariables: () => {
-    const { http_proxy, HTTP_PROXY, https_proxy, HTTPS_PROXY, no_proxy, NO_PROXY } = process.env;
-    return {
-      http_proxy: http_proxy || HTTP_PROXY,
-      https_proxy: https_proxy || HTTPS_PROXY,
-      no_proxy: no_proxy || NO_PROXY
-    };
+  shouldUseSystemBrowser: () => {
+    return get(getPreferences(), 'request.oauth2.useSystemBrowser', false);
+  },
+  getResponsePaneOrientation: () => {
+    return get(getPreferences(), 'layout.responsePaneOrientation', 'horizontal');
+  },
+  isBetaFeatureEnabled: (featureName) => {
+    return get(getPreferences(), `beta.${featureName}`, false);
+  },
+  getZoomPercentage: () => {
+    return get(getPreferences(), 'display.zoomPercentage', 100);
+  },
+  isSslSessionCachingEnabled: () => {
+    return get(getPreferences(), 'cache.sslSession.enabled', false);
+  },
+  hasLaunchedBefore: () => {
+    return get(getPreferences(), 'onboarding.hasLaunchedBefore', false);
+  },
+  markAsLaunched: async () => {
+    const preferences = getPreferences();
+    preferences.onboarding.hasLaunchedBefore = true;
+
+    try {
+      await savePreferences(preferences);
+    } catch (err) {
+      console.error('Failed to save preferences in markAsLaunched:', err);
+    }
   }
 };
 

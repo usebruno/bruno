@@ -1,72 +1,4 @@
-import { parseQueryParams, splitOnFirst, parsePathParams, interpolateUrl, interpolateUrlPathParams } from './index';
-
-describe('Url Utils - parseQueryParams', () => {
-  it('should parse query - case 1', () => {
-    const params = parseQueryParams('');
-    expect(params).toEqual([]);
-  });
-
-  it('should parse query - case 2', () => {
-    const params = parseQueryParams('a');
-    expect(params).toEqual([{ name: 'a', value: '' }]);
-  });
-
-  it('should parse query - case 3', () => {
-    const params = parseQueryParams('a=');
-    expect(params).toEqual([{ name: 'a', value: '' }]);
-  });
-
-  it('should parse query - case 4', () => {
-    const params = parseQueryParams('a=1');
-    expect(params).toEqual([{ name: 'a', value: '1' }]);
-  });
-
-  it('should parse query - case 5', () => {
-    const params = parseQueryParams('a=1&');
-    expect(params).toEqual([{ name: 'a', value: '1' }]);
-  });
-
-  it('should parse query - case 6', () => {
-    const params = parseQueryParams('a=1&b');
-    expect(params).toEqual([
-      { name: 'a', value: '1' },
-      { name: 'b', value: '' }
-    ]);
-  });
-
-  it('should parse query - case 7', () => {
-    const params = parseQueryParams('a=1&b=');
-    expect(params).toEqual([
-      { name: 'a', value: '1' },
-      { name: 'b', value: '' }
-    ]);
-  });
-
-  it('should parse query - case 8', () => {
-    const params = parseQueryParams('a=1&b=2');
-    expect(params).toEqual([
-      { name: 'a', value: '1' },
-      { name: 'b', value: '2' }
-    ]);
-  });
-
-  it('should parse query with "=" character - case 9', () => {
-    const params = parseQueryParams('a=1&b={color=red,size=large}&c=3');
-    expect(params).toEqual([
-      { name: 'a', value: '1' },
-      { name: 'b', value: '{color=red,size=large}' },
-      { name: 'c', value: '3' }
-    ]);
-  });
-
-  it('should parse query with fragment - case 10', () => {
-    const params = parseQueryParams('a=1&b=2#I-AM-FRAGMENT');
-    expect(params).toEqual([
-      { name: 'a', value: '1' },
-      { name: 'b', value: '2' }
-    ]);
-  });
-});
+import { splitOnFirst, parsePathParams, interpolateUrl, interpolateUrlPathParams } from './index';
 
 describe('Url Utils - parsePathParams', () => {
   it('should parse path - case 1', () => {
@@ -111,6 +43,236 @@ describe('Url Utils - parsePathParams', () => {
       { name: 'postId', value: '' }
     ]);
   });
+
+  it('should parse path param inside parentheses and quotes', () => {
+    const params = parsePathParams('https://example.com/ExchangeRates(\':ExchangeRateOID\')');
+    expect(params).toEqual([{ name: 'ExchangeRateOID', value: '' }]);
+  });
+
+  it('should parse path param inside parentheses and no quotes', () => {
+    const params = parsePathParams('https://example.com/ExchangeRates(:ExchangeRateOID)');
+    expect(params).toEqual([{ name: 'ExchangeRateOID', value: '' }]);
+  });
+
+  it('should parse multiple path params inside parentheses', () => {
+    const params = parsePathParams('https://example.com/Exchange(:ExchangeId)/ExchangeRates(:ExchangeRateOID)');
+    expect(params).toEqual([{ name: 'ExchangeId', value: '' }, { name: 'ExchangeRateOID', value: '' }]);
+  });
+
+  it('should parse mix and match of normal and param inside parentheses', () => {
+    const params = parsePathParams('https://example.com/Exchange(:ExchangeId)/:key');
+    expect(params).toEqual([{ name: 'ExchangeId', value: '' }, { name: 'key', value: '' }]);
+  });
+
+  // OData-specific test cases for enhanced path parameter parsing
+  it('should parse OData entity key with single quotes', () => {
+    const params = parsePathParams('https://example.com/odata/Products(\':productId\')');
+    expect(params).toEqual([{ name: 'productId', value: '' }]);
+  });
+
+  it('should parse OData entity key with double quotes', () => {
+    const params = parsePathParams('https://example.com/odata/Products(":productId")');
+    expect(params).toEqual([{ name: 'productId', value: '' }]);
+  });
+
+  it('should parse OData entity key with backticks', () => {
+    const params = parsePathParams('https://example.com/odata/Products(`:productId`)');
+    expect(params).toEqual([{ name: 'productId', value: '' }]);
+  });
+
+  it('should handle OData parameters with mixed quote types', () => {
+    const params = parsePathParams('https://example.com/odata/Products(\':productId\')/Categories(":categoryId")');
+    expect(params).toEqual([{ name: 'productId', value: '' }, { name: 'categoryId', value: '' }]);
+  });
+
+  it('should parse OData entity key with parentheses only', () => {
+    const params = parsePathParams('https://example.com/odata/Products(:productId)');
+    expect(params).toEqual([{ name: 'productId', value: '' }]);
+  });
+
+  it('should parse OData composite key with mixed parameter styles', () => {
+    // Test both positional and named parameter styles in the same key
+    const params = parsePathParams('https://example.com/odata/Orders(:orderId,ProductId=:productId)');
+    expect(params).toEqual([{ name: 'orderId', value: '' }, { name: 'productId', value: '' }]);
+  });
+
+  it('should parse OData navigation property with key', () => {
+    const params = parsePathParams('https://example.com/odata/Orders(:orderId)/Items(\':itemId\')');
+    expect(params).toEqual([{ name: 'orderId', value: '' }, { name: 'itemId', value: '' }]);
+  });
+
+  it('should parse OData function with parameters', () => {
+    const params = parsePathParams('https://example.com/odata/GetProductsByCategory(categoryId=\':categoryId\')');
+    expect(params).toEqual([{ name: 'categoryId', value: '' }]);
+  });
+
+  it('should parse OData action with complex parameters', () => {
+    const params = parsePathParams('https://example.com/odata/Products(\':productId\')/Rate(rating=:rating,comment=\':comment\')');
+    expect(params).toEqual([{ name: 'productId', value: '' }, { name: 'rating', value: '' }, { name: 'comment', value: '' }]);
+  });
+
+  it('should handle OData parameters with special characters in names', () => {
+    const params = parsePathParams('https://example.com/odata/Products(\':product-id\')');
+    expect(params).toEqual([{ name: 'product', value: '' }]);
+  });
+
+  it('should handle OData parameters with underscores in names', () => {
+    const params = parsePathParams('https://example.com/odata/Products(\':product_id\')');
+    expect(params).toEqual([{ name: 'product_id', value: '' }]);
+  });
+
+  it('should parse OData composite key with positional parameters', () => {
+    const params = parsePathParams('https://example.com/odata/Orders(:orderId,:productId)');
+    expect(params).toEqual([{ name: 'orderId', value: '' }, { name: 'productId', value: '' }]);
+  });
+
+  it('should parse OData composite key with named parameters', () => {
+    const params = parsePathParams('https://example.com/odata/Orders(OrderId=:orderId,ProductId=:productId)');
+    expect(params).toEqual([{ name: 'orderId', value: '' }, { name: 'productId', value: '' }]);
+  });
+
+  it('should handle OData navigation properties', () => {
+    const params = parsePathParams('https://example.com/odata/Orders(:orderId)/Items');
+    expect(params).toEqual([{ name: 'orderId', value: '' }]);
+  });
+
+  it('should handle OData function parameters', () => {
+    const params = parsePathParams('https://example.com/odata/Products/GetProductsByCategory(categoryId=:categoryId)');
+    expect(params).toEqual([{ name: 'categoryId', value: '' }]);
+  });
+
+  it('should handle OData parameters with query options in path', () => {
+    const params = parsePathParams('https://example.com/odata/Products(\':productId\')?$expand=Category');
+    expect(params).toEqual([{ name: 'productId', value: '' }]);
+  });
+
+  it('should handle OData parameters with multiple segments and mixed syntax', () => {
+    const params = parsePathParams('https://example.com/odata/Orders(:orderId)/Items(\':itemId\')/Properties(:propName)');
+    expect(params).toEqual([{ name: 'orderId', value: '' }, { name: 'itemId', value: '' }, { name: 'propName', value: '' }]);
+  });
+
+  it('should handle OData parameters with empty string values', () => {
+    const params = parsePathParams('https://example.com/odata/Products(\'\')');
+    expect(params).toEqual([]);
+  });
+
+  it('should NOT treat colons in datetime values as path parameters', () => {
+    const params = parsePathParams(
+      'https://api10.successfactors.com/odata/v2/EmpJob(seqNumber=1L,startDate=datetime\'2021-08-29T00:00:00\',userId=\'213668\')'
+    );
+    expect(params).toEqual([]);
+  });
+
+  it('should still parse named path params in OData segments with datetime values', () => {
+    const params = parsePathParams(
+      'https://example.com/odata/EmpJob(startDate=datetime\'2021-08-29T00:00:00\',userId=:userId)'
+    );
+    expect(params).toEqual([{ name: 'userId', value: '' }]);
+  });
+
+  it('should NOT treat embedded colons as path parameters (regression fix)', () => {
+    // This test case reproduces the bug reported in issue #5805
+    const params = parsePathParams('/start/1:2:AHLS-HASD/form');
+    expect(params).toEqual([]);
+  });
+
+  it('should NOT treat embedded colons as path parameters in full URLs', () => {
+    const params = parsePathParams('https://example.com/start/1:2:AHLS-HASD/form');
+    expect(params).toEqual([]);
+  });
+});
+
+describe('Url Utils - URN parsing', () => {
+  it('should handle basic URN segments correctly', () => {
+    // Test case from issue #5817 - Don't treat URN segments as path parameters
+    const params = parsePathParams('https://example.com/urn:ard:show:3479462da794e97');
+    expect(params).toEqual([]);
+
+    // Test case for path parameter that starts with urn:
+    const params2 = parsePathParams('https://example.com/:urn_type');
+    expect(params2).toEqual([{ name: 'urn_type', value: '' }]);
+  });
+
+  it('should handle URNs with special characters', () => {
+    const params = parsePathParams('https://example.com/urn:isbn:0-330.12345-X');
+    expect(params).toEqual([]);
+
+    // URN with percent-encoded characters
+    const params2 = parsePathParams('https://example.com/urn:uuid:6e8bc430%2D9c3a-11d9-9669-0800200c9a66');
+    expect(params).toEqual([]);
+  });
+
+  it('should handle mixed URN and path parameter scenarios', () => {
+    // URN followed by path parameter
+    const params = parsePathParams('https://example.com/urn:nbn:de:bvb/123/:section');
+    expect(params).toEqual([{ name: 'section', value: '' }]);
+
+    // Path parameter followed by URN
+    const params2 = parsePathParams('https://example.com/:type/urn:isbn:123');
+    expect(params2).toEqual([{ name: 'type', value: '' }]);
+
+    // URN-like path parameter (not a real URN)
+    const params3 = parsePathParams('https://example.com/:urn:type');
+    expect(params3).toEqual([{ name: 'urn:type', value: '' }]);
+  });
+
+  it('should handle edge cases with URN-like patterns', () => {
+    // URN with uppercase (should be case-insensitive)
+    const params = parsePathParams('https://example.com/URN:isbn:123');
+    expect(params).toEqual([]);
+
+    // Path that looks like URN but isn't
+    const params2 = parsePathParams('https://example.com/noturn:something:here');
+    expect(params2).toEqual([]);
+
+    // Multiple colons in path parameter
+    const params3 = parsePathParams('https://example.com/:urn:isbn:type');
+    expect(params3).toEqual([{ name: 'urn:isbn:type', value: '' }]);
+  });
+
+  it('should handle URNs in complex URLs', () => {
+    // URN with query parameters
+    const params = parsePathParams('https://example.com/urn:isbn:123?format=:format');
+    expect(params).toEqual([]);
+
+    // Multiple URNs and path parameters
+    const params2 = parsePathParams('https://example.com/:category/urn:isbn:123/:subcategory/urn:issn:456');
+    expect(params2).toEqual([
+      { name: 'category', value: '' },
+      { name: 'subcategory', value: '' }
+    ]);
+
+    // URN with fragment
+    const params3 = parsePathParams('https://example.com/urn:nbn:de:bvb:123#:section');
+    expect(params3).toEqual([]);
+  });
+});
+
+describe('Url Utils - OData parameters', () => {
+  it('should handle OData parameters with escaped quotes', () => {
+    const params = parsePathParams('https://example.com/odata/Products(\'ABC\'\'123\')');
+    expect(params).toEqual([]);
+  });
+
+  it('should handle OData parameters with spaces in quotes', () => {
+    const params = parsePathParams('https://example.com/odata/Products(\'Product Name With Spaces\')');
+    expect(params).toEqual([]);
+  });
+
+  it('should handle OData parameters with numeric keys', () => {
+    const params = parsePathParams('https://example.com/odata/Products(12345)');
+    expect(params).toEqual([]);
+  });
+
+  it('should handle OData parameters with GUID keys', () => {
+    const params = parsePathParams('https://example.com/odata/Products(\'123e4567-e89b-12d3-a456-426614174000\')');
+    expect(params).toEqual([]);
+  });
+
+  it('should handle OData with query parameters for variable interpolation', () => {
+    const params = parsePathParams('https://example.com/odata/Products?$filter=Category eq \'{{category}}\'&$orderby={{sortField}}');
+    expect(params).toEqual([]);
+  });
 });
 
 describe('Url Utils - splitOnFirst', () => {
@@ -138,6 +300,33 @@ describe('Url Utils - splitOnFirst', () => {
     const params = splitOnFirst('a=1&b=2', '&');
     expect(params).toEqual(['a=1', 'b=2']);
   });
+
+  it('should skip ? inside {{ }} template variables', () => {
+    const url = 'https://example.com/domain/{{?domain_id}}?include_dcv=true&include_validation=true';
+    const params = splitOnFirst(url, '?');
+    expect(params).toEqual([
+      'https://example.com/domain/{{?domain_id}}',
+      'include_dcv=true&include_validation=true'
+    ]);
+  });
+
+  it('should handle multiple prompt variables in URL path', () => {
+    const url = 'http://localhost:{{?port}}/api/{{?resource}}?key=value';
+    const params = splitOnFirst(url, '?');
+    expect(params).toEqual([
+      'http://localhost:{{?port}}/api/{{?resource}}',
+      'key=value'
+    ]);
+  });
+
+  it('should handle prompt variable in query param value', () => {
+    const url = 'https://example.com/api?token={{?token}}&active=true';
+    const params = splitOnFirst(url, '?');
+    expect(params).toEqual([
+      'https://example.com/api',
+      'token={{?token}}&active=true'
+    ]);
+  });
 });
 
 describe('Url Utils - interpolateUrl, interpolateUrlPathParams', () => {
@@ -145,11 +334,7 @@ describe('Url Utils - interpolateUrl, interpolateUrlPathParams', () => {
     const url = '{{host}}/api/:id/path?foo={{foo}}&bar={{bar}}&baz={{process.env.baz}}';
     const expectedUrl = 'https://example.com/api/:id/path?foo=foo_value&bar=bar_value&baz=baz_value';
 
-    const envVars = { host: 'https://example.com', foo: 'foo_value' };
-    const runtimeVariables = { bar: 'bar_value' };
-    const processEnvVars = { baz: 'baz_value' };
-
-    const result = interpolateUrl({ url, envVars, runtimeVariables, processEnvVars });
+    const result = interpolateUrl({ url, variables: { 'host': 'https://example.com', 'foo': 'foo_value', 'bar': 'bar_value', 'process.env.baz': 'baz_value' } });
 
     expect(result).toEqual(expectedUrl);
   });
@@ -169,12 +354,31 @@ describe('Url Utils - interpolateUrl, interpolateUrlPathParams', () => {
     const params = [{ name: 'id', type: 'path', enabled: true, value: '123' }];
     const expectedUrl = 'https://example.com/api/123/path?foo=foo_value&bar=bar_value&baz=baz_value';
 
-    const envVars = { host: 'https://example.com', foo: 'foo_value' };
-    const runtimeVariables = { bar: 'bar_value' };
-    const processEnvVars = { baz: 'baz_value' };
-
-    const intermediateResult = interpolateUrl({ url, envVars, runtimeVariables, processEnvVars });
+    const intermediateResult = interpolateUrl({ url, variables: { 'host': 'https://example.com', 'foo': 'foo_value', 'bar': 'bar_value', 'process.env.baz': 'baz_value' } });
     const result = interpolateUrlPathParams(intermediateResult, params);
+
+    expect(result).toEqual(expectedUrl);
+  });
+
+  it('should interpolate path params correctly', () => {
+    const url = 'https://example.com/api/:id/path/:user';
+    const params = [{ name: 'id', type: 'path', enabled: true, value: '123' }, { name: 'user', type: 'path', enabled: true, value: '{{user}}' }];
+    const variables = { user: 'John' };
+    const expectedUrl = 'https://example.com/api/123/path/John';
+
+    const result = interpolateUrlPathParams(url, params, variables);
+
+    expect(result).toEqual(expectedUrl);
+  });
+
+  it('should interpolate url and path params correctly', () => {
+    const url = '{{host}}/api/:id/path/:user?foo={{foo}}&bar={{bar}}&baz={{process.env.baz}}';
+    const params = [{ name: 'id', type: 'path', enabled: true, value: '123' }, { name: 'user', type: 'path', enabled: true, value: '{{user}}' }];
+    const variables = { 'host': 'https://example.com', 'foo': 'foo_value', 'bar': 'bar_value', 'process.env.baz': 'baz_value', 'user': 'John' };
+    const expectedUrl = 'https://example.com/api/123/path/John?foo=foo_value&bar=bar_value&baz=baz_value';
+
+    const intermediateResult = interpolateUrl({ url, variables });
+    const result = interpolateUrlPathParams(intermediateResult, params, variables);
 
     expect(result).toEqual(expectedUrl);
   });
@@ -207,5 +411,70 @@ describe('Url Utils - interpolateUrl, interpolateUrlPathParams', () => {
     const result = interpolateUrlPathParams(url, params);
 
     expect(result).toEqual(expectedUrl);
+  });
+});
+
+describe('Url Utils - interpolateUrlPathParams with { raw: true }', () => {
+  it('should resolve :params without encoding (spaces stay as spaces)', () => {
+    const url = 'https://example.com/api/:id/path';
+    const params = [{ name: 'id', type: 'path', enabled: true, value: 'hello world' }];
+
+    const result = interpolateUrlPathParams(url, params, {}, { raw: true });
+
+    expect(result).toEqual('https://example.com/api/hello world/path');
+  });
+
+  it('should preserve query string and fragment as-is', () => {
+    const url = 'https://example.com/api/:id?foo=bar&baz=qux#section';
+    const params = [{ name: 'id', type: 'path', enabled: true, value: '123' }];
+
+    const result = interpolateUrlPathParams(url, params, {}, { raw: true });
+
+    expect(result).toEqual('https://example.com/api/123?foo=bar&baz=qux#section');
+  });
+
+  it('should return URL unchanged when no path params match', () => {
+    const url = 'https://example.com/api/path?q=1';
+    const params = [{ name: 'id', type: 'path', enabled: true, value: '123' }];
+
+    const result = interpolateUrlPathParams(url, params, {}, { raw: true });
+
+    expect(result).toEqual('https://example.com/api/path?q=1');
+  });
+
+  it('should return URL unchanged when params array is empty', () => {
+    const url = 'https://example.com/api/:id';
+    const params = [];
+
+    const result = interpolateUrlPathParams(url, params, {}, { raw: true });
+
+    expect(result).toEqual('https://example.com/api/:id');
+  });
+
+  it('should handle OData-style params', () => {
+    const url = 'https://example.com/odata/Products(\':productId\')';
+    const params = [{ name: 'productId', type: 'path', enabled: true, value: 'ABC 123' }];
+
+    const result = interpolateUrlPathParams(url, params, {}, { raw: true });
+
+    expect(result).toEqual('https://example.com/odata/Products(\'ABC 123\')');
+  });
+
+  it('should preserve existing percent-encoding', () => {
+    const url = 'https://example.com/api/:id/already%20encoded';
+    const params = [{ name: 'id', type: 'path', enabled: true, value: '456' }];
+
+    const result = interpolateUrlPathParams(url, params, {}, { raw: true });
+
+    expect(result).toEqual('https://example.com/api/456/already%20encoded');
+  });
+
+  it('should skip disabled params', () => {
+    const url = 'https://example.com/api/:id';
+    const params = [{ name: 'id', type: 'path', enabled: false, value: '123' }];
+
+    const result = interpolateUrlPathParams(url, params, {}, { raw: true });
+
+    expect(result).toEqual('https://example.com/api/:id');
   });
 });

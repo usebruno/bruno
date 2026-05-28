@@ -1,0 +1,22 @@
+meta {
+  name: LotOfReplies
+  type: grpc
+  seq: 2
+}
+
+grpc {
+  url: {{host}}
+  method: /hello.HelloService/LotsOfReplies
+  body: grpc
+  auth: inherit
+  methodType: server-streaming
+}
+
+body:grpc {
+  name: message 1
+  content: '''
+    {
+      "greeting": "suadeo"
+    }
+  '''
+}

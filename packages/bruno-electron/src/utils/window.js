@@ -36,10 +36,10 @@ const isPositionValid = (bounds) => {
   const area = getArea(bounds);
 
   return (
-    bounds.x >= area.x &&
-    bounds.y >= area.y &&
-    bounds.x + bounds.width <= area.x + area.width &&
-    bounds.y + bounds.height <= area.y + area.height
+    bounds.x >= area.x
+    && bounds.y >= area.y
+    && bounds.x + bounds.width <= area.x + area.width
+    && bounds.y + bounds.height <= area.y + area.height
   );
 };
 

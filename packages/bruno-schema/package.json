@@ -10,10 +10,8 @@
   "scripts": {
     "test": "jest"
   },
-  "peerDependencies": {
-    "yup": "^0.32.11"
-  },
   "dependencies": {
-    "nanoid": "3.3.8"
+    "nanoid": "3.3.8",
+    "yup": "^0.32.11"
   }
 }

@@ -18,6 +18,7 @@ script:pre-request {
     "hello": "bruno"
   });
   
+  req.setHeader('Content-Type', 'application/json');
   req.setBody(response.data);
   req.setMethod("POST");
   req.setUrl(url);

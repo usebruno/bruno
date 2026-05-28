@@ -4,6 +4,7 @@
     "type": "http",
     "seq": 1
   },
+  "tags": ["foo", "bar"],
   "http": {
     "method": "GET",
     "url": "https://reqres.in/api/users"

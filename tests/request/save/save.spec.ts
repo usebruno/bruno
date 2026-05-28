@@ -1,0 +1,65 @@
+import { test, expect, Locator, Page } from '../../../playwright';
+import { closeAllCollections, createCollection } from '../../utils/page';
+import { buildCommonLocators } from '../../utils/page/locators';
+import { waitForPredicate } from '../../utils/wait';
+
+const isRequestSaved = async (saveButton: Locator) => {
+  // Saved state uses the className cursor-default; unsaved uses cursor-pointer.
+  return await saveButton.locator('svg').evaluate((node) => (node as HTMLElement).classList.contains('cursor-default'));
+};
+
+const setup = async (page: Page, createTmpDir: (tag?: string | undefined) => Promise<string>) => {
+  await createCollection(page, 'source-collection', await createTmpDir('source-collection'));
+
+  const sourceCollection = page.locator('.collection-name').filter({ hasText: 'source-collection' });
+  await sourceCollection.hover();
+  await sourceCollection.locator('.collection-actions .icon').click();
+  await page.locator('.dropdown-item').filter({ hasText: 'New Request' }).click();
+  await page.getByPlaceholder('Request Name').fill('test-request');
+  await page.locator('#new-request-url .CodeMirror').click();
+  await page.locator('textarea').fill('https://echo.usebruno.com');
+  await page.getByRole('button', { name: 'Create' }).click();
+  await expect(page.locator('.collection-item-name').filter({ hasText: 'test-request' })).toBeVisible();
+};
+
+test.describe.serial('save requests', () => {
+  test.beforeAll(async ({ page }) => {
+    await closeAllCollections(page);
+  });
+
+  test('saves new http request', async ({ page, createTmpDir }) => {
+    // prep the collection by creating a new collection and a new http request
+    await setup(page, createTmpDir);
+
+    const locators = buildCommonLocators(page);
+    const originalUrl = 'https://echo.usebruno.com';
+    const replacementUrl = 'ws://localhost:8082';
+
+    const clearText = async (text: string) => {
+      for (let i = text.length; i > 0; i--) {
+        await page.keyboard.press('Backspace');
+      }
+    };
+
+    // Open the request tab
+    await page.locator('.collection-item-name').filter({ hasText: 'test-request' }).dblclick();
+    await expect(page.locator('.request-tab .tab-label').filter({ hasText: 'test-request' })).toBeVisible();
+
+    // remove the original url from the request
+    await page.locator('.input-container').filter({ hasText: originalUrl }).first().click();
+    await clearText(originalUrl);
+
+    // replace it with an arbitrary url
+    await page.keyboard.insertText(replacementUrl);
+
+    // check if the request is now unsaved
+    await expect(await isRequestSaved(locators.saveButton())).toBe(false);
+
+    // trigger a save
+    locators.saveButton().click();
+
+    // Wait for it to be saved
+    const result = await waitForPredicate(() => isRequestSaved(locators.saveButton()));
+    await expect(result).toBe(true);
+  });
+});

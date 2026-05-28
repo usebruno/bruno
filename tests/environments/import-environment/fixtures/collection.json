@@ -1,0 +1,67 @@
+{
+  "info": {
+    "name": "Environment Test Collection",
+    "description": "Test collection for environment import and usage tests",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_postman_id": "env-test-collection-id"
+  },
+  "item": [
+    {
+      "name": "Get Posts with Environment Variables",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{apiKey}}",
+            "type": "text"
+          },
+          {
+            "key": "X-Secret-Token",
+            "value": "{{secretApiToken}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{host}}/posts/{{userId}}",
+          "host": ["{{host}}"],
+          "path": ["posts", "{{userId}}"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Create Post with Body Variables",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{apiKey}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          },
+          {
+            "key": "X-Secret-Token",
+            "value": "{{secretApiToken}}",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"{{postTitle}}\",\n  \"body\": \"{{postBody}}\",\n  \"userId\": {{userId}}\n}"
+        },
+        "url": {
+          "raw": "{{host}}/posts",
+          "host": ["{{host}}"],
+          "path": ["posts"]
+        }
+      },
+      "response": []
+    }
+  ]
+}

@@ -1,5 +1,6 @@
-const { cleanJson } = require('../../../utils');
+const { cleanJson, cleanCircularJson } = require('../../../utils');
 const { marshallToVm } = require('../utils');
+const { createPropertyListBridge } = require('../utils/property-list-bridge');
 
 const addBruShimToContext = (vm, bru) => {
   const bruObject = vm.newObject();
@@ -17,11 +18,29 @@ const addBruShimToContext = (vm, bru) => {
   vm.setProp(bruObject, 'getEnvName', getEnvName);
   getEnvName.dispose();
 
+  let getCollectionName = vm.newFunction('getCollectionName', function () {
+    return marshallToVm(bru.getCollectionName(), vm);
+  });
+  vm.setProp(bruObject, 'getCollectionName', getCollectionName);
+  getCollectionName.dispose();
+
+  let isSafeMode = vm.newFunction('isSafeMode', function () {
+    return marshallToVm(bru.isSafeMode(), vm);
+  });
+  vm.setProp(bruObject, 'isSafeMode', isSafeMode);
+  isSafeMode.dispose();
+
   let getProcessEnv = vm.newFunction('getProcessEnv', function (key) {
     return marshallToVm(bru.getProcessEnv(vm.dump(key)), vm);
   });
   vm.setProp(bruObject, 'getProcessEnv', getProcessEnv);
   getProcessEnv.dispose();
+
+  let interpolate = vm.newFunction('interpolate', function (str) {
+    return marshallToVm(bru.interpolate(vm.dump(str)), vm);
+  });
+  vm.setProp(bruObject, 'interpolate', interpolate);
+  interpolate.dispose();
 
   let hasEnvVar = vm.newFunction('hasEnvVar', function (key) {
     return marshallToVm(bru.hasEnvVar(vm.dump(key)), vm);
@@ -35,17 +54,29 @@ const addBruShimToContext = (vm, bru) => {
   vm.setProp(bruObject, 'getEnvVar', getEnvVar);
   getEnvVar.dispose();
 
-  let setEnvVar = vm.newFunction('setEnvVar', function (key, value) {
-    bru.setEnvVar(vm.dump(key), vm.dump(value));
+  let setEnvVar = vm.newFunction('setEnvVar', function (key, value, options = {}) {
+    bru.setEnvVar(vm.dump(key), vm.dump(value), vm.dump(options));
   });
   vm.setProp(bruObject, 'setEnvVar', setEnvVar);
   setEnvVar.dispose();
 
   let deleteEnvVar = vm.newFunction('deleteEnvVar', function (key) {
-    return marshallToVm(bru.deleteEnvVar(vm.dump(key)), vm);
+    bru.deleteEnvVar(vm.dump(key));
   });
   vm.setProp(bruObject, 'deleteEnvVar', deleteEnvVar);
   deleteEnvVar.dispose();
+
+  let getAllEnvVars = vm.newFunction('getAllEnvVars', function () {
+    return marshallToVm(bru.getAllEnvVars(), vm);
+  });
+  vm.setProp(bruObject, 'getAllEnvVars', getAllEnvVars);
+  getAllEnvVars.dispose();
+
+  let deleteAllEnvVars = vm.newFunction('deleteAllEnvVars', function () {
+    bru.deleteAllEnvVars();
+  });
+  vm.setProp(bruObject, 'deleteAllEnvVars', deleteAllEnvVars);
+  deleteAllEnvVars.dispose();
 
   let getGlobalEnvVar = vm.newFunction('getGlobalEnvVar', function (key) {
     return marshallToVm(bru.getGlobalEnvVar(vm.dump(key)), vm);
@@ -53,11 +84,51 @@ const addBruShimToContext = (vm, bru) => {
   vm.setProp(bruObject, 'getGlobalEnvVar', getGlobalEnvVar);
   getGlobalEnvVar.dispose();
 
+  let getOauth2CredentialVar = vm.newFunction('getOauth2CredentialVar', function (key) {
+    return marshallToVm(bru.getOauth2CredentialVar(vm.dump(key)), vm);
+  });
+  vm.setProp(bruObject, 'getOauth2CredentialVar', getOauth2CredentialVar);
+  getOauth2CredentialVar.dispose();
+
+  let resetOauth2Credential = vm.newFunction('resetOauth2Credential', function (credentialId) {
+    bru.resetOauth2Credential(vm.dump(credentialId));
+  });
+  vm.setProp(bruObject, 'resetOauth2Credential', resetOauth2Credential);
+  resetOauth2Credential.dispose();
+
   let setGlobalEnvVar = vm.newFunction('setGlobalEnvVar', function (key, value) {
     bru.setGlobalEnvVar(vm.dump(key), vm.dump(value));
   });
   vm.setProp(bruObject, 'setGlobalEnvVar', setGlobalEnvVar);
   setGlobalEnvVar.dispose();
+
+  // TODO: deleteGlobalEnvVar works in the request lifecycle but does not update the UI.
+  // Re-enable once the UI sync issue is resolved.
+  // let deleteGlobalEnvVar = vm.newFunction('deleteGlobalEnvVar', function (key) {
+  //   bru.deleteGlobalEnvVar(vm.dump(key));
+  // });
+  // vm.setProp(bruObject, 'deleteGlobalEnvVar', deleteGlobalEnvVar);
+  // deleteGlobalEnvVar.dispose();
+
+  let getAllGlobalEnvVars = vm.newFunction('getAllGlobalEnvVars', function () {
+    return marshallToVm(bru.getAllGlobalEnvVars(), vm);
+  });
+  vm.setProp(bruObject, 'getAllGlobalEnvVars', getAllGlobalEnvVars);
+  getAllGlobalEnvVars.dispose();
+
+  let hasGlobalEnvVar = vm.newFunction('hasGlobalEnvVar', function (key) {
+    return marshallToVm(bru.hasGlobalEnvVar(vm.dump(key)), vm);
+  });
+  vm.setProp(bruObject, 'hasGlobalEnvVar', hasGlobalEnvVar);
+  hasGlobalEnvVar.dispose();
+
+  // TODO: deleteAllGlobalEnvVars works in the request lifecycle but does not update the UI.
+  // Re-enable once the UI sync issue is resolved.
+  // let deleteAllGlobalEnvVars = vm.newFunction('deleteAllGlobalEnvVars', function () {
+  //   bru.deleteAllGlobalEnvVars();
+  // });
+  // vm.setProp(bruObject, 'deleteAllGlobalEnvVars', deleteAllGlobalEnvVars);
+  // deleteAllGlobalEnvVars.dispose();
 
   let hasVar = vm.newFunction('hasVar', function (key) {
     return marshallToVm(bru.hasVar(vm.dump(key)), vm);
@@ -88,6 +159,12 @@ const addBruShimToContext = (vm, bru) => {
   });
   vm.setProp(bruObject, 'deleteAllVars', deleteAllVars);
   deleteAllVars.dispose();
+
+  let getAllVars = vm.newFunction('getAllVars', function () {
+    return marshallToVm(bru.getAllVars(), vm);
+  });
+  vm.setProp(bruObject, 'getAllVars', getAllVars);
+  getAllVars.dispose();
 
   let setNextRequest = vm.newFunction('setNextRequest', function (nextRequest) {
     bru.setNextRequest(vm.dump(nextRequest));
@@ -143,9 +220,48 @@ const addBruShimToContext = (vm, bru) => {
   vm.setProp(bruObject, 'getCollectionVar', getCollectionVar);
   getCollectionVar.dispose();
 
+  // TODO: setCollectionVar works in the request lifecycle but does not update the UI.
+  // Re-enable once the UI sync issue is resolved.
+  // let setCollectionVar = vm.newFunction('setCollectionVar', function (key, value) {
+  //   bru.setCollectionVar(vm.dump(key), vm.dump(value));
+  // });
+  // vm.setProp(bruObject, 'setCollectionVar', setCollectionVar);
+  // setCollectionVar.dispose();
+
+  let hasCollectionVar = vm.newFunction('hasCollectionVar', function (key) {
+    return marshallToVm(bru.hasCollectionVar(vm.dump(key)), vm);
+  });
+  vm.setProp(bruObject, 'hasCollectionVar', hasCollectionVar);
+  hasCollectionVar.dispose();
+
+  // TODO: deleteCollectionVar works in the request lifecycle but does not update the UI.
+  // Re-enable once the UI sync issue is resolved.
+  // let deleteCollectionVar = vm.newFunction('deleteCollectionVar', function (key) {
+  //   bru.deleteCollectionVar(vm.dump(key));
+  // });
+  // vm.setProp(bruObject, 'deleteCollectionVar', deleteCollectionVar);
+  // deleteCollectionVar.dispose();
+
+  // TODO: deleteAllCollectionVars works in the request lifecycle but does not update the UI.
+  // Re-enable once the UI sync issue is resolved.
+  // let deleteAllCollectionVars = vm.newFunction('deleteAllCollectionVars', function () {
+  //   bru.deleteAllCollectionVars();
+  // });
+  // vm.setProp(bruObject, 'deleteAllCollectionVars', deleteAllCollectionVars);
+  // deleteAllCollectionVars.dispose();
+
+  // TODO: getAllCollectionVars works in the request lifecycle but does not update the UI.
+  // Re-enable once the UI sync issue is resolved.
+  // let getAllCollectionVars = vm.newFunction('getAllCollectionVars', function () {
+  //   return marshallToVm(bru.getAllCollectionVars(), vm);
+  // });
+  // vm.setProp(bruObject, 'getAllCollectionVars', getAllCollectionVars);
+  // getAllCollectionVars.dispose();
+
   let getTestResults = vm.newFunction('getTestResults', () => {
     const promise = vm.newPromise();
-    bru.getTestResults()
+    bru
+      .getTestResults()
       .then((results) => {
         promise.resolve(marshallToVm(cleanJson(results), vm));
       })
@@ -166,7 +282,8 @@ const addBruShimToContext = (vm, bru) => {
 
   let getAssertionResults = vm.newFunction('getAssertionResults', () => {
     const promise = vm.newPromise();
-    bru.getAssertionResults()
+    bru
+      .getAssertionResults()
       .then((results) => {
         promise.resolve(marshallToVm(cleanJson(results), vm));
       })
@@ -187,10 +304,10 @@ const addBruShimToContext = (vm, bru) => {
 
   let runRequestHandle = vm.newFunction('runRequest', (args) => {
     const promise = vm.newPromise();
-    bru.runRequest(vm.dump(args))
+    bru
+      .runRequest(vm.dump(args))
       .then((response) => {
-        const { status, headers, data, dataBuffer, size } = response || {};
-        promise.resolve(marshallToVm(cleanJson({ status, headers, data, dataBuffer, size }), vm));
+        promise.resolve(marshallToVm(cleanCircularJson(response), vm));
       })
       .catch((err) => {
         promise.resolve(
@@ -207,6 +324,26 @@ const addBruShimToContext = (vm, bru) => {
   });
   runRequestHandle.consume((handle) => vm.setProp(bruObject, 'runRequest', handle));
 
+  let sendRequestHandle = vm.newFunction('_sendRequest', (args) => {
+    const promise = vm.newPromise();
+    bru
+      .sendRequest(vm.dump(args))
+      .then((response) => {
+        promise.resolve(marshallToVm(cleanCircularJson(response), vm));
+      })
+      .catch((err) => {
+        promise.reject(
+          marshallToVm(
+            cleanJson(err),
+            vm
+          )
+        );
+      });
+    promise.settled.then(vm.runtime.executePendingJobs);
+    return promise.handle;
+  });
+  sendRequestHandle.consume((handle) => vm.setProp(bruObject, '_sendRequest', handle));
+
   const sleep = vm.newFunction('sleep', (timer) => {
     const t = vm.getString(timer);
     const promise = vm.newPromise();
@@ -218,9 +355,228 @@ const addBruShimToContext = (vm, bru) => {
   });
   sleep.consume((handle) => vm.setProp(bruObject, 'sleep', handle));
 
+  let bruCookiesObject = vm.newObject();
+  const { evalCode: cookiesEvalCode } = createPropertyListBridge(vm, bru.cookies, bruCookiesObject, {
+    globalPath: 'globalThis.bru.cookies',
+    syncReadMethods: ['get', 'has', 'count', 'indexOf', 'toObject', 'toString'],
+    syncReadObjectMethods: ['one', 'all', 'idx', 'toJSON'],
+    asyncWriteMethods: ['add', 'upsert', 'remove', 'clear', 'delete'],
+    withIterators: true
+  });
+
+  const _jarFn = vm.newFunction('_jar', () => {
+    const nativeJar = bru.cookies.jar();
+    const jarObj = vm.newObject();
+
+    const _getCookieFn = vm.newFunction('_getCookie', (url, cookieName) => {
+      const promise = vm.newPromise();
+      nativeJar.getCookie(vm.dump(url), vm.dump(cookieName), (err, cookie) => {
+        if (err) {
+          promise.reject(marshallToVm(cleanJson(err), vm));
+        } else {
+          promise.resolve(marshallToVm(cleanCircularJson(cookie), vm));
+        }
+      });
+      promise.settled.then(vm.runtime.executePendingJobs);
+      return promise.handle;
+    });
+    _getCookieFn.consume((handle) => vm.setProp(jarObj, '_getCookie', handle));
+
+    const _getCookiesFn = vm.newFunction('_getCookies', (url) => {
+      const promise = vm.newPromise();
+      nativeJar.getCookies(vm.dump(url), (err, cookies) => {
+        if (err) {
+          promise.reject(marshallToVm(cleanJson(err), vm));
+        } else {
+          promise.resolve(marshallToVm(cleanCircularJson(cookies), vm));
+        }
+      });
+      promise.settled.then(vm.runtime.executePendingJobs);
+      return promise.handle;
+    });
+    _getCookiesFn.consume((handle) => vm.setProp(jarObj, '_getCookies', handle));
+
+    const _setCookieFn = vm.newFunction('_setCookie', (url, nameOrCookieObj, value) => {
+      const promise = vm.newPromise();
+      const dumpedUrl = vm.dump(url);
+      const dumpedNameOrObj = vm.dump(nameOrCookieObj);
+
+      // Check if the second argument is an object (cookie object case)
+      if (typeof dumpedNameOrObj === 'object' && dumpedNameOrObj !== null) {
+        // Cookie object case: setCookie(url, cookieObject, callback)
+        nativeJar.setCookie(dumpedUrl, dumpedNameOrObj, (err) => {
+          if (err) {
+            promise.reject(marshallToVm(cleanJson(err), vm));
+          } else {
+            promise.resolve(vm.undefined);
+          }
+        });
+      } else {
+        // Name/value case: setCookie(url, name, value, callback)
+        const dumpedValue = value ? vm.dump(value) : '';
+        nativeJar.setCookie(dumpedUrl, dumpedNameOrObj, dumpedValue, (err) => {
+          if (err) {
+            promise.reject(marshallToVm(cleanJson(err), vm));
+          } else {
+            promise.resolve(vm.undefined);
+          }
+        });
+      }
+
+      promise.settled.then(vm.runtime.executePendingJobs);
+      return promise.handle;
+    });
+    _setCookieFn.consume((handle) => vm.setProp(jarObj, '_setCookie', handle));
+
+    const _setCookiesFn = vm.newFunction('_setCookies', (url, cookiesArray) => {
+      const promise = vm.newPromise();
+
+      nativeJar.setCookies(vm.dump(url), vm.dump(cookiesArray), (err) => {
+        if (err) {
+          promise.reject(marshallToVm(cleanJson(err), vm));
+        } else {
+          promise.resolve(vm.undefined);
+        }
+      });
+      promise.settled.then(vm.runtime.executePendingJobs);
+      return promise.handle;
+    });
+    _setCookiesFn.consume((handle) => vm.setProp(jarObj, '_setCookies', handle));
+
+    const _clearFn = vm.newFunction('_clear', () => {
+      const promise = vm.newPromise();
+      nativeJar.clear((err) => {
+        if (err) {
+          promise.reject(marshallToVm(cleanJson(err), vm));
+        } else {
+          promise.resolve(vm.undefined);
+        }
+      });
+      promise.settled.then(vm.runtime.executePendingJobs);
+      return promise.handle;
+    });
+    _clearFn.consume((handle) => vm.setProp(jarObj, '_clear', handle));
+
+    const _deleteCookiesFn = vm.newFunction('_deleteCookies', (url) => {
+      const promise = vm.newPromise();
+      nativeJar.deleteCookies(vm.dump(url), (err) => {
+        if (err) {
+          promise.reject(marshallToVm(cleanJson(err), vm));
+        } else {
+          promise.resolve(vm.undefined);
+        }
+      });
+      promise.settled.then(vm.runtime.executePendingJobs);
+      return promise.handle;
+    });
+    _deleteCookiesFn.consume((handle) => vm.setProp(jarObj, '_deleteCookies', handle));
+
+    const _deleteCookieFn = vm.newFunction('_deleteCookie', (url, cookieName) => {
+      const promise = vm.newPromise();
+      nativeJar.deleteCookie(vm.dump(url), vm.dump(cookieName), (err) => {
+        if (err) {
+          promise.reject(marshallToVm(cleanJson(err), vm));
+        } else {
+          promise.resolve(vm.undefined);
+        }
+      });
+      promise.settled.then(vm.runtime.executePendingJobs);
+      return promise.handle;
+    });
+    _deleteCookieFn.consume((handle) => vm.setProp(jarObj, '_deleteCookie', handle));
+
+    const _hasCookieFn = vm.newFunction('_hasCookie', (url, cookieName) => {
+      const promise = vm.newPromise();
+      nativeJar.hasCookie(vm.dump(url), vm.dump(cookieName), (err, exists) => {
+        if (err) {
+          promise.reject(marshallToVm(cleanJson(err), vm));
+        } else {
+          promise.resolve(marshallToVm(exists, vm));
+        }
+      });
+      promise.settled.then(vm.runtime.executePendingJobs);
+      return promise.handle;
+    });
+    _hasCookieFn.consume((handle) => vm.setProp(jarObj, '_hasCookie', handle));
+
+    return jarObj;
+  });
+  _jarFn.consume((handle) => vm.setProp(bruCookiesObject, '_jar', handle));
+
+  vm.setProp(bruObject, 'cookies', bruCookiesObject);
+  bruCookiesObject.dispose();
+
   vm.setProp(bruObject, 'runner', bruRunnerObject);
   vm.setProp(vm.global, 'bru', bruObject);
   bruObject.dispose();
+
+  vm.evalCode(`
+    // sendRequest with callback: normalize error.status (axios uses error.response.status) so
+    // tests like expect(error.status).to.eql(404) pass in safe sandbox; return response after
+    // success callback for consistent promise resolution.
+    globalThis.bru.sendRequest = async (requestConfig, callback) => {
+      if (!callback) return await globalThis.bru._sendRequest(requestConfig);
+      try {
+        const response = await globalThis.bru._sendRequest(requestConfig);
+        try {
+          await callback(null, response);
+          return response;
+        }
+        catch(error) {
+          return Promise.reject(error);
+        }
+      }
+      catch(error) {
+        const errObj = JSON.parse(JSON.stringify(error));
+        if (errObj && errObj.response && typeof errObj.response.status === 'number') errObj.status = errObj.response.status;
+        try {
+          await callback(errObj, null);
+        }
+        catch(err) {
+          return Promise.reject(err);
+        }
+      }
+    };
+
+    {
+      ${cookiesEvalCode}
+    }
+
+    globalThis.bru.cookies.jar = () => {
+      const _jar = globalThis.bru.cookies._jar();
+
+      const callWithCallback = async (promiseFn, callback) => {
+        if (!callback) return await promiseFn();
+        try {
+          const result = await promiseFn();
+          try { await callback(null, result); } catch(cbErr) { return Promise.reject(cbErr); }
+        } catch(err) {
+          try { await callback(err, null); } catch(cbErr) { return Promise.reject(cbErr); }
+        }
+      };
+
+      return {
+        getCookie: (url, name, cb) => callWithCallback(() => _jar._getCookie(url, name), cb),
+        getCookies: (url, cb) => callWithCallback(() => _jar._getCookies(url), cb),
+        setCookie: (url, nameOrCookieObj, valueOrCallback, maybeCallback) => {
+          if (typeof nameOrCookieObj === 'object' && nameOrCookieObj !== null) {
+            const callback = typeof valueOrCallback === 'function' ? valueOrCallback : undefined;
+            return callWithCallback(() => _jar._setCookie(url, nameOrCookieObj), callback);
+          } else {
+            const value = typeof valueOrCallback === 'string' ? valueOrCallback : '';
+            const callback = typeof maybeCallback === 'function' ? maybeCallback : 
+                           (typeof valueOrCallback === 'function' ? valueOrCallback : undefined);
+            return callWithCallback(() => _jar._setCookie(url, nameOrCookieObj, value), callback);
+          }
+        },
+        setCookies: (url, cookiesArray, cb) => callWithCallback(() => _jar._setCookies(url, cookiesArray), cb),
+        clear: (cb) => callWithCallback(() => _jar._clear(), cb),
+        deleteCookies: (url, cb) => callWithCallback(() => _jar._deleteCookies(url), cb),
+        deleteCookie: (url, name, cb) => callWithCallback(() => _jar._deleteCookie(url, name), cb),
+        hasCookie: (url, name, cb) => callWithCallback(() => _jar._hasCookie(url, name), cb)
+      };
+    };
+  `);
 };
 
 module.exports = addBruShimToContext;

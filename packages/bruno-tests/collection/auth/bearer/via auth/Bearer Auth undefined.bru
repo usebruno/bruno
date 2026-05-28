@@ -1,0 +1,27 @@
+meta {
+  name: Bearer Auth undefined
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{host}}/api/auth/bearer/protected
+  body: none
+  auth: bearer
+}
+
+headers {
+  Authorization: Bearer {{bearer_auth_token}}
+}
+
+assert {
+  res.body.message: eq Unauthorized
+  res.status: eq 401
+}
+
+tests {
+  test("selected auth overrides Authorization header always", function() {
+    const authHeader =  req.getHeader("Authorization")
+    expect(authHeader).to.eql("Bearer ")
+  })
+}

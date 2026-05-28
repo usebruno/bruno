@@ -35,6 +35,22 @@ class WindowStateStore {
   setMaximized(isMaximized) {
     this.store.set('maximized', isMaximized);
   }
+
+  getThemeMode() {
+    return this.store.get('themeMode') || 'system';
+  }
+
+  setThemeMode(mode) {
+    this.store.set('themeMode', mode);
+  }
+
+  getThemeBg() {
+    return this.store.get('themeBg') || '#ffffff';
+  }
+
+  setThemeBg(bg) {
+    this.store.set('themeBg', bg);
+  }
 }
 
 module.exports = WindowStateStore;

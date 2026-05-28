@@ -1,0 +1,6 @@
+name: Development
+variables:
+  - name: baseUrl
+    value: https://api.dev.example.com
+  - name: apiKey
+    value: dev-api-key-123

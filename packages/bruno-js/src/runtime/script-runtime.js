@@ -1,38 +1,16 @@
-const { NodeVM } = require('@usebruno/vm2');
-const path = require('path');
-const http = require('http');
-const https = require('https');
-const stream = require('stream');
-const util = require('util');
-const zlib = require('zlib');
-const url = require('url');
-const punycode = require('punycode');
-const fs = require('fs');
-const { get } = require('lodash');
+const chai = require('chai');
 const Bru = require('../bru');
 const BrunoRequest = require('../bruno-request');
 const BrunoResponse = require('../bruno-response');
 const { cleanJson } = require('../utils');
-
-// Inbuilt Library Support
-const ajv = require('ajv');
-const addFormats = require('ajv-formats');
-const atob = require('atob');
-const btoa = require('btoa');
-const lodash = require('lodash');
-const moment = require('moment');
-const uuid = require('uuid');
-const nanoid = require('nanoid');
-const axios = require('axios');
-const fetch = require('node-fetch');
-const chai = require('chai');
-const CryptoJS = require('crypto-js');
-const NodeVault = require('node-vault');
+const { createBruTestResultMethods } = require('../utils/results');
+const { runScriptInNodeVm } = require('../sandbox/node-vm');
 const { executeQuickJsVmAsync } = require('../sandbox/quickjs');
+const { SANDBOX } = require('../utils/sandbox');
 
 class ScriptRuntime {
   constructor(props) {
-    this.runtime = props?.runtime || 'vm2';
+    this.runtime = props?.runtime || 'quickjs';
   }
 
   // This approach is getting out of hand
@@ -46,36 +24,46 @@ class ScriptRuntime {
     onConsoleLog,
     processEnvVars,
     scriptingConfig,
-    runRequestByItemPathname
+    runRequestByItemPathname,
+    collectionName
   ) {
     const globalEnvironmentVariables = request?.globalEnvironmentVariables || {};
+    const oauth2CredentialVariables = request?.oauth2CredentialVariables || {};
     const collectionVariables = request?.collectionVariables || {};
     const folderVariables = request?.folderVariables || {};
     const requestVariables = request?.requestVariables || {};
-    const bru = new Bru(envVariables, runtimeVariables, processEnvVars, collectionPath, collectionVariables, folderVariables, requestVariables, globalEnvironmentVariables);
+    const promptVariables = request?.promptVariables || {};
+    const assertionResults = request?.assertionResults || [];
+    const certsAndProxyConfig = request?.certsAndProxyConfig;
+    const scriptPath = request?.pathname;
+    const bru = new Bru({
+      runtime: this.runtime,
+      envVariables,
+      runtimeVariables,
+      processEnvVars,
+      collectionPath,
+      collectionVariables,
+      folderVariables,
+      requestVariables,
+      globalEnvironmentVariables,
+      oauth2CredentialVariables,
+      collectionName,
+      promptVariables,
+      certsAndProxyConfig,
+      requestUrl: request?.url
+    });
     const req = new BrunoRequest(request);
-    const allowScriptFilesystemAccess = get(scriptingConfig, 'filesystemAccess.allow', false);
-    const moduleWhitelist = get(scriptingConfig, 'moduleWhitelist', []);
-    const additionalContextRoots = get(scriptingConfig, 'additionalContextRoots', []);
-    const additionalContextRootsAbsolute = lodash
-      .chain(additionalContextRoots)
-      .map((acr) => (acr.startsWith('/') ? acr : path.join(collectionPath, acr)))
-      .value();
 
-    const whitelistedModules = {};
-
-    for (let module of moduleWhitelist) {
-      try {
-        whitelistedModules[module] = require(module);
-      } catch (e) {
-        // Ignore
-        console.warn(e);
-      }
-    }
+    // extend bru with result getter methods
+    const { __brunoTestResults, test } = createBruTestResultMethods(bru, assertionResults, chai);
 
     const context = {
       bru,
-      req
+      req,
+      test,
+      expect: chai.expect,
+      assert: chai.assert,
+      __brunoTestResults: __brunoTestResults
     };
 
     if (onConsoleLog && typeof onConsoleLog === 'function') {
@@ -93,76 +81,71 @@ class ScriptRuntime {
       };
     }
 
-    if(runRequestByItemPathname) {
+    if (runRequestByItemPathname) {
       context.bru.runRequest = runRequestByItemPathname;
     }
 
-    if (this.runtime === 'quickjs') {
-      await executeQuickJsVmAsync({
-        script: script,
-        context: context,
-        collectionPath
-      });
-
-      return {
-        request,
-        envVariables: cleanJson(envVariables),
-        runtimeVariables: cleanJson(runtimeVariables),
-        globalEnvironmentVariables: cleanJson(globalEnvironmentVariables),
-        nextRequestName: bru.nextRequest,
-        skipRequest: bru.skipRequest,
-        stopExecution: bru.stopExecution
-      };
-    }
-
-    // default runtime is vm2
-    const vm = new NodeVM({
-      sandbox: context,
-      require: {
-        context: 'sandbox',
-        external: true,
-        root: [collectionPath, ...additionalContextRootsAbsolute],
-        mock: {
-          // node libs
-          path,
-          stream,
-          util,
-          url,
-          http,
-          https,
-          punycode,
-          zlib,
-          // 3rd party libs
-          ajv,
-          'ajv-formats': addFormats,
-          atob,
-          btoa,
-          lodash,
-          moment,
-          uuid,
-          nanoid,
-          axios,
-          chai,
-          'node-fetch': fetch,
-          'crypto-js': CryptoJS,
-          ...whitelistedModules,
-          fs: allowScriptFilesystemAccess ? fs : undefined,
-          'node-vault': NodeVault
-        }
-      }
-    });
-    const asyncVM = vm.run(`module.exports = async () => { ${script} }`, path.join(collectionPath, 'vm.js'));
-    await asyncVM();
-
-    return {
+    // Helper to build the result object for pre-request scripts
+    // Extracted to avoid duplication across runtime branches
+    const buildRequestScriptResult = () => ({
       request,
       envVariables: cleanJson(envVariables),
       runtimeVariables: cleanJson(runtimeVariables),
+      persistentEnvVariables: bru.persistentEnvVariables,
       globalEnvironmentVariables: cleanJson(globalEnvironmentVariables),
+      oauth2CredentialsToReset: bru.oauth2CredentialsToReset,
+      results: cleanJson(__brunoTestResults.getResults()),
       nextRequestName: bru.nextRequest,
       skipRequest: bru.skipRequest,
       stopExecution: bru.stopExecution
-    };
+    });
+
+    // Track script errors to attach partial results before re-throwing
+    // This ensures that any test() calls that passed before the error are preserved
+    // Similar pattern to test-runtime.js which already handles this correctly
+    let scriptError = null;
+
+    if (this.runtime === SANDBOX.NODEVM) {
+      try {
+        await runScriptInNodeVm({
+          script,
+          context,
+          collectionPath,
+          scriptingConfig,
+          scriptPath
+        });
+      } catch (error) {
+        scriptError = error;
+      }
+
+      // If script errored, attach partial results so callers can display passed tests
+      // before the error occurred (e.g., 2 tests pass, then script throws)
+      if (scriptError) {
+        scriptError.partialResults = buildRequestScriptResult();
+        throw scriptError;
+      }
+
+      return buildRequestScriptResult();
+    }
+
+    // default runtime is `quickjs`
+    try {
+      await executeQuickJsVmAsync({
+        script: script,
+        context: context,
+        collectionPath,
+        scriptPath
+      });
+    } catch (error) {
+      scriptError = error;
+    }
+
+    if (scriptError) {
+      scriptError.partialResults = buildRequestScriptResult();
+      throw scriptError;
+    }
+
+    return buildRequestScriptResult();
   }
 
   async runResponseScript(
@@ -175,33 +158,48 @@ class ScriptRuntime {
     onConsoleLog,
     processEnvVars,
     scriptingConfig,
-    runRequestByItemPathname
+    runRequestByItemPathname,
+    collectionName
   ) {
     const globalEnvironmentVariables = request?.globalEnvironmentVariables || {};
+    const oauth2CredentialVariables = request?.oauth2CredentialVariables || {};
     const collectionVariables = request?.collectionVariables || {};
     const folderVariables = request?.folderVariables || {};
     const requestVariables = request?.requestVariables || {};
-    const bru = new Bru(envVariables, runtimeVariables, processEnvVars, collectionPath, collectionVariables, folderVariables, requestVariables, globalEnvironmentVariables);
+    const promptVariables = request?.promptVariables || {};
+    const assertionResults = request?.assertionResults || {};
+    const certsAndProxyConfig = request?.certsAndProxyConfig;
+    const scriptPath = request?.pathname;
+    const bru = new Bru({
+      runtime: this.runtime,
+      envVariables,
+      runtimeVariables,
+      processEnvVars,
+      collectionPath,
+      collectionVariables,
+      folderVariables,
+      requestVariables,
+      globalEnvironmentVariables,
+      oauth2CredentialVariables,
+      collectionName,
+      promptVariables,
+      certsAndProxyConfig,
+      requestUrl: request?.url
+    });
     const req = new BrunoRequest(request);
     const res = new BrunoResponse(response);
-    const allowScriptFilesystemAccess = get(scriptingConfig, 'filesystemAccess.allow', false);
-    const moduleWhitelist = get(scriptingConfig, 'moduleWhitelist', []);
 
-    const whitelistedModules = {};
-
-    for (let module of moduleWhitelist) {
-      try {
-        whitelistedModules[module] = require(module);
-      } catch (e) {
-        // Ignore
-        console.warn(e);
-      }
-    }
+    // extend bru with result getter methods
+    const { __brunoTestResults, test } = createBruTestResultMethods(bru, assertionResults, chai);
 
     const context = {
       bru,
       req,
-      res
+      res,
+      test,
+      expect: chai.expect,
+      assert: chai.assert,
+      __brunoTestResults: __brunoTestResults
     };
 
     if (onConsoleLog && typeof onConsoleLog === 'function') {
@@ -219,76 +217,71 @@ class ScriptRuntime {
       };
     }
 
-    if(runRequestByItemPathname) {
+    if (runRequestByItemPathname) {
       context.bru.runRequest = runRequestByItemPathname;
     }
 
-    if (this.runtime === 'quickjs') {
-      await executeQuickJsVmAsync({
-        script: script,
-        context: context,
-        collectionPath
-      });
-
-      return {
-        response,
-        envVariables: cleanJson(envVariables),
-        runtimeVariables: cleanJson(runtimeVariables),
-        globalEnvironmentVariables: cleanJson(globalEnvironmentVariables),
-        nextRequestName: bru.nextRequest,
-        skipRequest: bru.skipRequest,
-        stopExecution: bru.stopExecution
-      };
-    }
-
-    // default runtime is vm2
-    const vm = new NodeVM({
-      sandbox: context,
-      require: {
-        context: 'sandbox',
-        external: true,
-        root: [collectionPath],
-        mock: {
-          // node libs
-          path,
-          stream,
-          util,
-          url,
-          http,
-          https,
-          punycode,
-          zlib,
-          // 3rd party libs
-          ajv,
-          'ajv-formats': addFormats,
-          atob,
-          btoa,
-          lodash,
-          moment,
-          uuid,
-          nanoid,
-          axios,
-          'node-fetch': fetch,
-          'crypto-js': CryptoJS,
-          ...whitelistedModules,
-          fs: allowScriptFilesystemAccess ? fs : undefined,
-          'node-vault': NodeVault
-        }
-      }
-    });
-
-    const asyncVM = vm.run(`module.exports = async () => { ${script} }`, path.join(collectionPath, 'vm.js'));
-    await asyncVM();
-
-    return {
+    // Helper to build the result object for post-response scripts
+    // Extracted to avoid duplication across runtime branches
+    const buildResponseScriptResult = () => ({
       response,
       envVariables: cleanJson(envVariables),
+      persistentEnvVariables: cleanJson(bru.persistentEnvVariables),
       runtimeVariables: cleanJson(runtimeVariables),
       globalEnvironmentVariables: cleanJson(globalEnvironmentVariables),
+      oauth2CredentialsToReset: bru.oauth2CredentialsToReset,
+      results: cleanJson(__brunoTestResults.getResults()),
       nextRequestName: bru.nextRequest,
       skipRequest: bru.skipRequest,
       stopExecution: bru.stopExecution
-    };
+    });
+
+    // Track script errors to attach partial results before re-throwing
+    // This ensures that any test() calls that passed before the error are preserved
+    // Similar pattern to test-runtime.js which already handles this correctly
+    let scriptError = null;
+
+    if (this.runtime === SANDBOX.NODEVM) {
+      try {
+        await runScriptInNodeVm({
+          script,
+          context,
+          collectionPath,
+          scriptingConfig,
+          scriptPath
+        });
+      } catch (error) {
+        scriptError = error;
+      }
+
+      // If script errored, attach partial results so callers can display passed tests
+      // before the error occurred (e.g., 2 tests pass, then script throws)
+      if (scriptError) {
+        scriptError.partialResults = buildResponseScriptResult();
+        throw scriptError;
+      }
+
+      return buildResponseScriptResult();
+    }
+
+    // default runtime is `quickjs`
+    try {
+      await executeQuickJsVmAsync({
+        script: script,
+        context: context,
+        collectionPath,
+        scriptPath
+      });
+    } catch (error) {
+      scriptError = error;
+    }
+
+    if (scriptError) {
+      scriptError.partialResults = buildResponseScriptResult();
+      throw scriptError;
+    }
+
+    return buildResponseScriptResult();
   }
 }
 

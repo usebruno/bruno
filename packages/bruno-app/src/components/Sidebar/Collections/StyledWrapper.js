@@ -1,20 +1,22 @@
 import styled from 'styled-components';
 
 const Wrapper = styled.div`
-  .collections-badge {
-    margin-inline: 0.5rem;
-    background-color: ${(props) => props.theme.sidebar.badge.bg};
-    border-radius: 5px;
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 0%;
+  min-height: 0;
+  overflow: hidden;
+  padding-top: 4px;
+  padding-bottom: 4px;
 
-    .caret {
-      margin-left: 0.25rem;
-      color: rgb(140, 140, 140);
-      fill: rgb(140, 140, 140);
-    }
-  }
+  .collections-list {
+    flex: 1 1 0%;
+    min-height: 0;
+    padding-top: 4px;
+    padding-bottom: 4px;
+    overflow-y: auto;
+    overflow-x: hidden;
 
-  span.close-icon {
-    color: ${(props) => props.theme.colors.text.muted};
   }
 `;
 

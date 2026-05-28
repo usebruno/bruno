@@ -1,0 +1,38 @@
+meta {
+  name: request
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{host}}/api/echo
+  body: text
+  auth: none
+}
+
+body:json {
+  Ping Test Request
+  Host: {{host}}
+  
+  Multiline Data:
+  {{multiline_data}}
+  
+  End of multiline content.
+}
+
+body:text {
+  {{host}}
+  {{multiline_data}}
+}
+
+tests {
+  test("should get 200 response", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("should resolve multiline_data variable correctly", function() {
+    const body = res.getBody();
+    // Verify the multiline variable was resolved and contains all three lines
+    expect(body.body).to.equal("https://www.httpfaker.org\nline1\nline2\nline3");
+  });
+}

@@ -1,0 +1,114 @@
+meta {
+  name: verify with callback token
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{host}}/api/echo
+  body: none
+  auth: inherit
+}
+
+tests {
+  const jwt = require('jsonwebtoken');
+  
+  const HS_SECRET = 'supersecret';
+  
+  const token = jwt.sign({ sub: 'user123' }, HS_SECRET, {
+    algorithm: 'HS256',
+    expiresIn: '15m',
+  });
+  
+  function once(fn) {
+    let called = false;
+    return (...args) => {
+      if (!called) {
+        called = true;
+        fn(...args);
+      }
+    };
+  }
+  
+  function verifyAsync(token, secret, options = {}) {
+    return new Promise((resolve, reject) => {
+      jwt.verify(token, secret, options, (err, decoded) => {
+        if (err) reject(err);
+        else resolve(decoded);
+      });
+    });
+  }
+  
+  test('verify — named normal callback', function () {
+    function verifyCallback(err, decoded) {
+      expect(err).to.be.null;
+      expect(decoded.sub).to.equal('user123');
+      console.log('Named callback verified user:', decoded.sub);
+    }
+  
+    jwt.verify(token, HS_SECRET, { algorithms: ['HS256'] }, verifyCallback);
+  });
+  
+  test('verify — anonymous callback', function () {
+    jwt.verify(token, HS_SECRET, { algorithms: ['HS256'] }, function (err, decoded) {
+      expect(err).to.be.null;
+      expect(decoded.sub).to.equal('user123');
+      console.log('Anonymous callback verified user:', decoded.sub);
+    });
+  });
+  
+  test('verify — arrow function callback', function () {
+    jwt.verify(token, HS_SECRET, { algorithms: ['HS256'] }, (err, decoded) => {
+      expect(err).to.be.null;
+      expect(decoded.sub).to.equal('user123');
+      console.log('Arrow callback verified user:', decoded.sub);
+    });
+  });
+  
+  test('verify — bound method callback', function () {
+    const handler = {
+      prefix: '[VERIFY]',
+      done(err, decoded) {
+        expect(err).to.be.null;
+        expect(decoded.sub).to.equal('user123');
+        console.log(this.prefix, 'Bound callback verified user:', decoded.sub);
+      },
+    };
+  
+    jwt.verify(token, HS_SECRET, { algorithms: ['HS256'] }, handler.done.bind(handler));
+  });
+  
+  function makeVerifyCallback(label) {
+    return (err, decoded) => {
+      expect(err).to.be.null;
+      expect(decoded.sub).to.equal('user123');
+      console.log(label, 'Higher-order callback verified user:', decoded.sub);
+    };
+  }
+  
+  test('verify — higher-order callback', function () {
+    const cb = makeVerifyCallback('[CUSTOM LABEL]');
+    jwt.verify(token, HS_SECRET, { algorithms: ['HS256'] }, cb);
+  });
+  
+  test('verify — once-wrapped callback', function () {
+    const cb = once((err, decoded) => {
+      expect(err).to.be.null;
+      expect(decoded.sub).to.equal('user123');
+      console.log('Once callback executed and verified user:', decoded.sub);
+    });
+  
+    jwt.verify(token, HS_SECRET, { algorithms: ['HS256'] }, cb);
+  });
+  
+  test('verify — promise wrapper with async/await', async function () {
+    const decoded = await verifyAsync(token, HS_SECRET, { algorithms: ['HS256'] });
+    expect(decoded.sub).to.equal('user123');
+    console.log('Promise/async verified user:', decoded.sub);
+  });
+  
+}
+
+settings {
+  encodeUrl: true
+}

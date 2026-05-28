@@ -1,0 +1,32 @@
+meta {
+  name: string body
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{echo-host}}
+  body: formUrlEncoded
+  auth: inherit
+}
+
+script:pre-request {
+  req.setBody("key=value&name=bruno");
+}
+
+tests {
+  test("req.setBody() with string format - request body", function() {
+    const data = req.getBody();
+    expect(data).to.eql("key=value&name=bruno");
+  });
+  
+  test("req.setBody() with string format - response body", function() {
+    const data = res.getBody();
+    expect(data).to.eql("key=value&name=bruno");
+  });
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

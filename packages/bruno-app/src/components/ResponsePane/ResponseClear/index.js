@@ -1,13 +1,15 @@
-import React from 'react';
+import React, { forwardRef, useImperativeHandle, useRef } from 'react';
 import { IconEraser } from '@tabler/icons';
 import { useDispatch } from 'react-redux';
 import StyledWrapper from './StyledWrapper';
 import { responseCleared } from 'providers/ReduxStore/slices/collections/index';
+import ActionIcon from 'ui/ActionIcon/index';
 
-const ResponseClear = ({ collection, item }) => {
+// Hook to get clear response function
+export const useResponseClear = (item, collection) => {
   const dispatch = useDispatch();
 
-  const clearResponse = () =>
+  const clearResponse = () => {
     dispatch(
       responseCleared({
         itemUid: item.uid,
@@ -15,13 +17,33 @@ const ResponseClear = ({ collection, item }) => {
         response: null
       })
     );
+  };
+
+  return { clearResponse };
+};
+
+const ResponseClear = forwardRef(({ collection, item, children }, ref) => {
+  const { clearResponse } = useResponseClear(item, collection);
+  const elementRef = useRef(null);
+
+  useImperativeHandle(ref, () => ({
+    click: () => elementRef.current?.click(),
+    isDisabled: false
+  }), []);
 
   return (
-    <StyledWrapper className="ml-2 flex items-center">
-      <button onClick={clearResponse} title="Clear response">
-        <IconEraser size={16} strokeWidth={1.5} />
-      </button>
-    </StyledWrapper>
+    <div ref={elementRef} onClick={clearResponse} title={!children ? 'Clear response' : null} data-testid="response-clear-btn">
+      {children ? children : (
+        <StyledWrapper className="flex items-center">
+          <ActionIcon className="p-1">
+            <IconEraser size={16} strokeWidth={2} />
+          </ActionIcon>
+        </StyledWrapper>
+      )}
+    </div>
   );
-};
+});
+
+ResponseClear.displayName = 'ResponseClear';
+
 export default ResponseClear;

@@ -1,0 +1,119 @@
+const fs = require('node:fs');
+const path = require('node:path');
+const { app, ipcMain } = require('electron');
+const { preferencesUtil, getPreferences, savePreferences } = require('../store/preferences');
+const { importCollection, findUniqueFolderName } = require('../utils/collection-import');
+const { resolveDefaultLocation } = require('../utils/default-location');
+
+let pendingSampleCollection = null;
+
+// When workspaces are ready, send any pending collection-opened event
+// This ensures the sample collection appears in the sidebar after the workspace exists
+ipcMain.on('main:workspaces-ready', (mainWindow) => {
+  if (pendingSampleCollection) {
+    const { mainWindow: win, collectionPath, uid, brunoConfig } = pendingSampleCollection;
+    win.webContents.send('main:collection-opened', collectionPath, uid, brunoConfig);
+    ipcMain.emit('main:collection-opened', win, collectionPath, uid, brunoConfig);
+    pendingSampleCollection = null;
+  }
+});
+
+/**
+ * Import sample collection for new users
+ */
+async function importSampleCollection(collectionLocation, mainWindow) {
+  // Handle both development and production paths
+  const sampleCollectionPath = app.isPackaged
+    ? path.join(process.resourcesPath, 'data', 'sample-collection.json')
+    : path.join(app.getAppPath(), 'resources', 'data', 'sample-collection.json');
+
+  if (!fs.existsSync(sampleCollectionPath)) {
+    throw new Error(`Sample collection file not found at: ${sampleCollectionPath}`);
+  }
+
+  const sampleCollectionData = fs.readFileSync(sampleCollectionPath, 'utf8');
+  const sampleCollection = JSON.parse(sampleCollectionData);
+
+  const collectionName = await findUniqueFolderName('Sample API Collection', collectionLocation);
+
+  const collectionToImport = {
+    ...sampleCollection,
+    name: collectionName
+  };
+
+  try {
+    const {
+      collectionPath: createdPath,
+      uid,
+      brunoConfig
+    } = await importCollection(
+      collectionToImport,
+      collectionLocation,
+      mainWindow,
+      collectionName,
+      undefined, // format - use default
+      { skipOpenEvent: true } // Don't send event yet - renderer isn't ready
+    );
+
+    return { collectionPath: createdPath, uid, brunoConfig };
+  } catch (error) {
+    console.error('Failed to import sample collection:', error);
+    throw error;
+  }
+}
+
+/**
+ * Onboard new users by creating a sample collection.
+ *
+ * This also determines whether the welcome modal should be shown:
+ * - Genuinely new users (no collections, no previous launch) → show welcome modal
+ * - Existing users upgrading (have collections but no hasLaunchedBefore flag) → skip welcome modal
+ *
+ * Called directly from the renderer:ready IPC handler in preferences.js to ensure
+ * preferences are set correctly before being sent to the renderer.
+ */
+async function onboardUser(mainWindow, lastOpenedCollections) {
+  try {
+    if (preferencesUtil.hasLaunchedBefore()) {
+      return;
+    }
+
+    // Check if user already has collections — this indicates an existing user
+    // upgrading to a version that introduced onboarding, not a genuinely new user
+    const collections = lastOpenedCollections ? lastOpenedCollections.getAll() : [];
+    const isExistingUser = collections.length > 0;
+
+    if (isExistingUser) {
+      // Existing user upgrading: mark as launched, don't show welcome modal
+      // hasSeenWelcomeModal is intentionally NOT set here — it will be absent
+      // from preferences, and the renderer defaults absent values to true (no modal)
+      await preferencesUtil.markAsLaunched();
+      return;
+    }
+
+    // Genuinely new user
+    if (process.env.DISABLE_SAMPLE_COLLECTION_IMPORT !== 'true') {
+      const collectionLocation = resolveDefaultLocation();
+      const collectionInfo = await importSampleCollection(collectionLocation, mainWindow);
+
+      // Store collection info to open after renderer is ready
+      // The main:collection-opened event is deferred until main:renderer-ready is emitted
+      pendingSampleCollection = { mainWindow, ...collectionInfo };
+    }
+
+    // Mark as launched and explicitly enable the welcome modal for new users
+    const preferences = getPreferences();
+    preferences.onboarding = {
+      ...preferences.onboarding,
+      hasLaunchedBefore: true,
+      hasSeenWelcomeModal: false
+    };
+    await savePreferences(preferences);
+  } catch (error) {
+    console.error('Failed to handle onboarding:', error);
+    // Still mark as launched to prevent retry on next startup
+    await preferencesUtil.markAsLaunched();
+  }
+}
+
+module.exports = onboardUser;

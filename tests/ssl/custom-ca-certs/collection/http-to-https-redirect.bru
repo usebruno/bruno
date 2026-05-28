@@ -1,0 +1,16 @@
+meta {
+  name: http-to-https-redirect
+  type: http
+  seq: 7
+}
+
+get {
+  url: http://localhost:8091
+  body: none
+  auth: inherit
+}
+
+assert {
+  res.status: eq 200
+  res.body: eq helloworld
+}

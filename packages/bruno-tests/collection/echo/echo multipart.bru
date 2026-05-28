@@ -12,6 +12,9 @@ post {
 
 body:multipart-form {
   foo: {"bar":"baz"} @contentType(application/json--test)
+  multiline: '''
+    "multiline-test"
+  ''' @contentType(application/json--multiline--test)
   form-data-key: {{form-data-key}}
   form-data-stringified-object: {{form-data-stringified-object}}
   file: @file(bruno.png)
@@ -21,6 +24,7 @@ assert {
   res.body: contains form-data-value
   res.body: contains {"foo":123}
   res.body: contains Content-Type: application/json--test
+  res.body: contains Content-Type: application/json--multiline--test
 }
 
 script:pre-request {

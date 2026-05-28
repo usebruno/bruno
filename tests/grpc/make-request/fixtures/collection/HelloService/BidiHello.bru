@@ -1,0 +1,31 @@
+meta {
+  name: BidiHello
+  type: grpc
+  seq: 4
+}
+
+grpc {
+  url: {{host}}
+  method: /hello.HelloService/BidiHello
+  body: grpc
+  auth: inherit
+  methodType: bidi-streaming
+}
+
+body:grpc {
+  name: message 1
+  content: '''
+    {
+      "greeting": "cuius"
+    }
+  '''
+}
+
+body:grpc {
+  name: message 2
+  content: '''
+    {
+      "greeting": "adfectus"
+    }
+  '''
+}

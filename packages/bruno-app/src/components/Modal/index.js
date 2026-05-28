@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import StyledWrapper from './StyledWrapper';
 import useFocusTrap from 'hooks/useFocusTrap';
+import Button from 'ui/Button';
 
 const ESC_KEY_CODE = 27;
 const ENTER_KEY_CODE = 13;
@@ -9,14 +10,15 @@ const ModalHeader = ({ title, handleCancel, customHeader, hideClose }) => (
   <div className="bruno-modal-header">
     {customHeader ? customHeader : <>{title ? <div className="bruno-modal-header-title">{title}</div> : null}</>}
     {handleCancel && !hideClose ? (
-      <div className="close cursor-pointer" onClick={handleCancel ? () => handleCancel() : null}>
+      // TODO: Remove data-test-id and use data-testid instead across the codebase.
+      <div className="close cursor-pointer" onClick={handleCancel ? () => handleCancel() : null} data-testid="modal-close-button">
         ×
       </div>
     ) : null}
   </div>
 );
 
-const ModalContent = ({ children }) => <div className="bruno-modal-content px-4 py-6">{children}</div>;
+const ModalContent = ({ children }) => <div className="bruno-modal-content px-4 py-4">{children}</div>;
 
 const ModalFooter = ({
   confirmText,
@@ -25,7 +27,10 @@ const ModalFooter = ({
   handleCancel,
   confirmDisabled,
   hideCancel,
-  hideFooter
+  hideFooter,
+  footerLeft,
+  confirmButtonColor = 'primary',
+  dataTestId = 'modal'
 }) => {
   confirmText = confirmText || 'Save';
   cancelText = cancelText || 'Cancel';
@@ -35,22 +40,27 @@ const ModalFooter = ({
   }
 
   return (
-    <div className="flex justify-end p-4 bruno-modal-footer">
-      <span className={hideCancel ? 'hidden' : 'mr-2'}>
-        <button type="button" onClick={handleCancel} className="btn btn-md btn-close">
-          {cancelText}
-        </button>
-      </span>
-      <span>
-        <button
-          type="submit"
-          className="submit btn btn-md btn-secondary"
-          disabled={confirmDisabled}
-          onClick={handleSubmit}
-        >
-          {confirmText}
-        </button>
-      </span>
+    <div className="flex justify-between items-center p-4 bruno-modal-footer">
+      <div>{footerLeft}</div>
+      <div className="flex justify-end">
+        <span className={hideCancel ? 'hidden' : 'mr-2'}>
+          <Button type="button" color="secondary" variant="ghost" onClick={handleCancel}>
+            {cancelText}
+          </Button>
+        </span>
+        <span>
+          <Button
+            type="submit"
+            color={confirmButtonColor}
+            disabled={confirmDisabled}
+            onClick={handleSubmit}
+            className="submit"
+            data-testid={`${dataTestId}-submit-btn`}
+          >
+            {confirmText}
+          </Button>
+        </span>
+      </div>
     </div>
   );
 };
@@ -68,23 +78,33 @@ const Modal = ({
   hideCancel,
   hideFooter,
   hideClose,
+  footerLeft,
   disableCloseOnOutsideClick,
   disableEscapeKey,
   onClick,
-  closeModalFadeTimeout = 500
+  closeModalFadeTimeout = 500,
+  dataTestId,
+  confirmButtonColor = 'primary'
 }) => {
   const modalRef = useRef(null);
   const [isClosing, setIsClosing] = useState(false);
 
   const handleKeydown = (event) => {
     const { keyCode, shiftKey, ctrlKey, altKey, metaKey } = event;
+
+    // Only handle events from elements inside this modal
+    if (keyCode !== ESC_KEY_CODE && (!modalRef.current || !modalRef.current.contains(event.target))) {
+      return;
+    }
+
     switch (keyCode) {
       case ESC_KEY_CODE: {
         if (disableEscapeKey) return;
         return closeModal({ type: 'esc' });
       }
       case ENTER_KEY_CODE: {
-        if (!shiftKey && !ctrlKey && !altKey && !metaKey && handleConfirm) {
+        const isSubmitButton = event.target?.type === 'submit';
+        if (!shiftKey && !ctrlKey && !altKey && !metaKey && handleConfirm && !isSubmitButton && !confirmDisabled) {
           return handleConfirm();
         }
       }
@@ -103,7 +123,7 @@ const Modal = ({
     return () => {
       document.removeEventListener('keydown', handleKeydown);
     };
-  }, [disableEscapeKey, document, handleConfirm]);
+  }, [disableEscapeKey, document, handleConfirm, confirmDisabled]);
 
   let classes = 'bruno-modal';
   if (isClosing) {
@@ -120,6 +140,7 @@ const Modal = ({
         role="dialog"
         aria-labelledby="modal-title"
         aria-describedby="modal-description"
+        data-testid={dataTestId}
       >
         <ModalHeader
           title={title}
@@ -136,6 +157,9 @@ const Modal = ({
           confirmDisabled={confirmDisabled}
           hideCancel={hideCancel}
           hideFooter={hideFooter}
+          footerLeft={footerLeft}
+          confirmButtonColor={confirmButtonColor}
+          dataTestId={dataTestId}
         />
       </div>
 

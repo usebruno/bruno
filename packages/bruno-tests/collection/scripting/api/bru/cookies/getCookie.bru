@@ -1,0 +1,45 @@
+meta {
+  name: getCookie
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{localhost}}/ping
+  body: none
+  auth: inherit
+}
+
+script:pre-request {
+  const jar = bru.cookies.jar()
+  
+  jar.setCookie("https://testbench-sanity.usebruno.com", "name", "value")
+}
+
+tests {
+  const jar = bru.cookies.jar()
+  // Await so the callback runs before jar.clear() below; otherwise the test script can finish
+  // before the callback registers/runs the test, causing a flaky failure (e.g. in CI).
+  await jar.getCookie("https://testbench-sanity.usebruno.com", "name", function(error, data) {
+    if(error) {
+      console.error("Cookie retrieval error:", error)
+      throw new Error(`Failed to get cookie: ${error.message || error}`)
+    }
+    
+    test("should successfully retrieve cookie data", function() {
+      expect(data).to.have.property('key');
+      expect(data).to.have.property('value');
+      expect(data.key).to.equal("name");
+      expect(data.value).to.be.a('string');
+      expect(data.value).to.not.be.empty;
+      expect(data.domain).to.include('usebruno.com');
+      console.log("Retrieved cookie:", data);
+    });
+  })
+  
+  jar.clear()
+}
+
+settings {
+  encodeUrl: true
+}

@@ -30,6 +30,54 @@ const marshallToVm = (value, vm) => {
   }
 };
 
+/**
+ * Invokes a QuickJS function handle.
+ * - Returns a Promise
+ *
+ * @param {Object} vm - QuickJS VM instance
+ * @param {QuickJSHandle} quickFn - A QuickJS function handle
+ * @param {Array} args - Arguments to pass to the function
+ * @returns {Promise<any>} - The result as a Promise
+ */
+async function invokeFunction(vm, quickFn, args = []) {
+  if (vm.typeof(quickFn) !== 'function') {
+    throw new TypeError('Target is not a QuickJS function');
+  }
+
+  const result = vm.callFunction(quickFn, vm.global, ...args);
+
+  if (result.error) {
+    const error = vm.dump(result.error);
+    result.error.dispose();
+    throw error;
+  }
+
+  // Check if the result is a QuickJS Promise handle (async functions)
+  if (vm.typeof(result.value) === 'object' && result.value.constructor && vm.typeof(result.value.constructor) === 'function') {
+    try {
+      const promiseHandle = vm.unwrapResult(result);
+      const resolvedResult = await vm.resolvePromise(promiseHandle);
+      promiseHandle.dispose();
+      const resolvedHandle = vm.unwrapResult(resolvedResult);
+      const value = vm.dump(resolvedHandle);
+      resolvedHandle.dispose();
+      return Promise.resolve(value);
+    } catch (promiseError) {
+      // If it's not a valid Promise, throw an error
+      result.value.dispose();
+      throw new Error(`Invalid Promise handle: ${promiseError.message}`);
+    }
+  }
+
+  const value = vm.dump(result.value);
+  result.value.dispose();
+
+  return (value && typeof value.then === 'function')
+    ? value
+    : Promise.resolve(value);
+}
+
 module.exports = {
-  marshallToVm
+  marshallToVm,
+  invokeFunction
 };

@@ -1,0 +1,16 @@
+meta {
+  name: request
+  type: http
+  seq: 6
+}
+
+get {
+  url: https://localhost:8090
+  body: none
+  auth: inherit
+}
+
+assert {
+  res.status: eq 200
+  res.body: eq helloworld
+}

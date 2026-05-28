@@ -2,18 +2,27 @@ const { BrowserWindow } = require('electron');
 const { preferencesUtil } = require('../../store/preferences');
 
 const matchesCallbackUrl = (url, callbackUrl) => {
-  return url ? url.href.startsWith(callbackUrl.href) : false;
+  if (!url) return false;
+  // Match the callback URL and require an OAuth2 response indicator
+  // (code query params for authorization code flow, or hash fragment for implicit flow).
+  // This prevents false matches on intermediate pages (e.g. /auth/login) when the
+  // callback URL is a root path like https://hostname/.
+  return url.href.startsWith(callbackUrl.href)
+    && (url.searchParams.has('code') || url.hash.length > 1);
 };
 
-const authorizeUserInWindow = ({ authorizeUrl, callbackUrl, session }) => {
+const authorizeUserInWindow = ({ authorizeUrl, callbackUrl, session, additionalHeaders = {}, grantType = 'authorization_code' }) => {
   return new Promise(async (resolve, reject) => {
     let finalUrl = null;
+    let debugInfo = {
+      data: []
+    };
+    let currentMainRequest = null;
 
     let allOpenWindows = BrowserWindow.getAllWindows();
 
-    // main window id is '1'
-    // get all other windows
-    let windowsExcludingMain = allOpenWindows.filter((w) => w.id != 1);
+    // Close all windows except the main window (assumed to have id 1)
+    let windowsExcludingMain = allOpenWindows.filter((w) => w.id !== 1);
     windowsExcludingMain.forEach((w) => {
       w.close();
     });
@@ -27,26 +36,127 @@ const authorizeUserInWindow = ({ authorizeUrl, callbackUrl, session }) => {
     });
     window.on('ready-to-show', window.show.bind(window));
 
-    // We want browser window to comply with "SSL/TLS Certificate Verification" toggle in Preferences
+    // Ensure the browser window complies with "SSL/TLS Certificate Verification" preference
     window.webContents.on('certificate-error', (event, url, error, certificate, callback) => {
       event.preventDefault();
-      callback(!preferencesUtil.shouldVerifyTls());
+      const shouldAllow = !preferencesUtil.shouldVerifyTls();
+      if (!shouldAllow) {
+        console.error(`Bruno OAuth: SSL Certificate verification failed for ${url}. Error: ${error}`);
+        console.error('Bruno OAuth: Disable "SSL/TLS Certificate Verification" in settings to proceed with OAuth flows that use self-signed certificates.');
+      }
+      callback(shouldAllow);
+    });
+
+    const { session: webSession } = window.webContents;
+
+    // Intercept request events and gather data
+    webSession.webRequest.onBeforeRequest((details, callback) => {
+      const { id: requestId, url, method, resourceType, frameId } = details;
+      if (resourceType === 'mainFrame') {
+        // This is a main frame request
+        currentMainRequest = {
+          requestId,
+          resourceType,
+          frameId,
+          request: {
+            url,
+            method,
+            headers: {},
+            error: null
+          },
+          response: {
+            headers: {},
+            status: null,
+            statusText: null,
+            error: null
+          },
+          fromCache: false,
+          completed: true,
+          requests: [] // No sub-requests in this context
+        };
+        // Add to mainRequests
+
+        // pushing the currentMainRequest to debugInfo
+        // the currentMainRequest will be further updated by object reference
+        debugInfo.data.push(currentMainRequest);
+      }
+
+      callback({ cancel: false });
+    });
+
+    webSession.webRequest.onBeforeSendHeaders((details, callback) => {
+      const { id: requestId, requestHeaders, method, url } = details;
+
+      if (details.resourceType === 'mainFrame' && Object.keys(additionalHeaders).length > 0) {
+        // Add our custom headers
+        for (const [name, value] of Object.entries(additionalHeaders)) {
+          requestHeaders[name] = value;
+        }
+      }
+
+      if (currentMainRequest?.requestId === requestId) {
+        currentMainRequest.request = {
+          url,
+          headers: requestHeaders,
+          method
+        };
+      }
+      callback({ cancel: false, requestHeaders });
+    });
+
+    webSession.webRequest.onHeadersReceived((details, callback) => {
+      const { id: requestId, url, statusCode, responseHeaders, method } = details;
+      if (currentMainRequest?.requestId === requestId) {
+        currentMainRequest.response = {
+          url,
+          method,
+          status: statusCode,
+          headers: responseHeaders
+        };
+      }
+      callback({ cancel: false, responseHeaders });
+    });
+
+    webSession.webRequest.onCompleted((details) => {
+      const { id: requestId, fromCache } = details;
+      if (currentMainRequest?.requestId === requestId) {
+        currentMainRequest.completed = true;
+        currentMainRequest.fromCache = fromCache;
+      }
+    });
+
+    webSession.webRequest.onErrorOccurred((details) => {
+      const { id: requestId, error } = details;
+      if (currentMainRequest?.requestId === requestId) {
+        currentMainRequest.response.error = error;
+      }
     });
 
     function onWindowRedirect(url) {
-      // check if the redirect is to the callback URL and if it contains an authorization code
-      if (matchesCallbackUrl(new URL(url), new URL(callbackUrl))) {
-        if (!new URL(url).searchParams.has('code')) {
-          reject(new Error('Invalid Callback URL: Does not contain an authorization code'));
-        }
-        finalUrl = url;
-        window.close();
+      // Handle redirects as needed
+      let urlObj;
+      let callbackUrlObj;
+
+      try {
+        urlObj = new URL(url);
+      } catch (e) {
+        // Invalid redirect URL, skip processing
+        return;
       }
-      if (url.match(/(error=).*/) || url.match(/(error_description=).*/) || url.match(/(error_uri=).*/)) {
-        const _url = new URL(url);
-        const error = _url.searchParams.get('error');
-        const errorDescription = _url.searchParams.get('error_description');
-        const errorUri = _url.searchParams.get('error_uri');
+
+      try {
+        callbackUrlObj = new URL(callbackUrl);
+      } catch (e) {
+        // Invalid callback URL, skip matching but still check for errors below
+        callbackUrlObj = null;
+      }
+
+      // Handle OAuth error responses first, so we reject with
+      // a descriptive error instead of resolving with a null authorization code
+      if (urlObj.searchParams.has('error')) {
+        const error = urlObj.searchParams.get('error');
+        const errorDescription = urlObj.searchParams.get('error_description');
+        const errorUri = urlObj.searchParams.get('error_uri');
         let errorData = {
           message: 'Authorization Failed!',
           error,
@@ -55,16 +165,66 @@ const authorizeUserInWindow = ({ authorizeUrl, callbackUrl, session }) => {
         };
         reject(new Error(JSON.stringify(errorData)));
         window.close();
+        return;
+      }
+
+      if (callbackUrlObj && matchesCallbackUrl(urlObj, callbackUrlObj)) {
+        finalUrl = url;
+        window.close();
+        return;
       }
     }
 
+    // Update currentMainRequest when navigation occurs
+    window.webContents.on('did-start-navigation', (event, url, isInPlace, isMainFrame) => {
+      if (isMainFrame) {
+        // Reset currentMainRequest since a new navigation is starting
+        currentMainRequest = null;
+      }
+    });
+
+    window.webContents.on('did-navigate', (event, url) => {
+      onWindowRedirect(url);
+    });
+
+    window.webContents.on('will-redirect', (event, url) => {
+      onWindowRedirect(url);
+    });
+
     window.on('close', () => {
+      // Clean up listeners to prevent memory leaks
+      window.webContents.removeAllListeners();
+      webSession.webRequest.onBeforeRequest(null);
+      webSession.webRequest.onBeforeSendHeaders(null);
+      webSession.webRequest.onHeadersReceived(null);
+      webSession.webRequest.onCompleted(null);
+      webSession.webRequest.onErrorOccurred(null);
+
       if (finalUrl) {
         try {
-          const callbackUrlWithCode = new URL(finalUrl);
-          const authorizationCode = callbackUrlWithCode.searchParams.get('code');
+          // Handle different grant types differently
+          if (grantType === 'implicit') {
+            // For implicit flow, tokens are in the URL hash fragment
+            const urlWithHash = new URL(finalUrl);
+            const hash = urlWithHash.hash.substring(1); // Remove the leading #
+            const hashParams = new URLSearchParams(hash);
 
-          return resolve({ authorizationCode });
+            // Extract tokens from hash fragment
+            const implicitTokens = {
+              access_token: hashParams.get('access_token'),
+              token_type: hashParams.get('token_type'),
+              expires_in: hashParams.get('expires_in'),
+              state: hashParams.get('state'),
+              scope: hashParams.get('scope')
+            };
+
+            return resolve({ implicitTokens, debugInfo });
+          } else {
+            // Default case - authorization code flow
+            const callbackUrlWithCode = new URL(finalUrl);
+            const authorizationCode = callbackUrlWithCode.searchParams.get('code');
+            return resolve({ authorizationCode, debugInfo });
+          }
         } catch (error) {
           return reject(error);
         }
@@ -73,20 +233,10 @@ const authorizeUserInWindow = ({ authorizeUrl, callbackUrl, session }) => {
       }
     });
 
-    // wait for the window to navigate to the callback url
-    const didNavigateListener = (_, url) => {
-      onWindowRedirect(url);
-    };
-    window.webContents.on('did-navigate', didNavigateListener);
-    const willRedirectListener = (_, authorizeUrl) => {
-      onWindowRedirect(authorizeUrl);
-    };
-    window.webContents.on('will-redirect', willRedirectListener);
-
     try {
       await window.loadURL(authorizeUrl);
     } catch (error) {
-      // If browser redirects before load finished, loadURL throws an error with code ERR_ABORTED. This should be ignored.
+      // Ignore ERR_ABORTED errors that occur during redirects
       if (error.code === 'ERR_ABORTED') {
         console.debug('Ignoring ERR_ABORTED during authorizeUserInWindow');
         return;

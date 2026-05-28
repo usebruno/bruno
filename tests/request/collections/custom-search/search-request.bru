@@ -1,0 +1,46 @@
+meta {
+  name: search-test-request
+  type: http
+  seq: 1
+}
+
+get {
+  url: https://echo.usebruno.com
+  body: none
+  auth: inherit
+}
+
+script:pre-request {
+  const testVariable = "hello world";
+  const anotherVariable = "search test";
+  console.log("This is a test log message");
+  const searchableText = "find me";
+  
+  const apiKey = "test-api-key-123";
+  const baseUrl = "https://api.example.com";
+  console.log("Pre-request script executed");
+  
+  const uniquePreVar = "only in pre-request";
+  const commonVar = "common content";
+  
+  const searchableText2 = "find me again";
+  const searchableText3 = "find me third time";
+  console.log("More searchableText instances");
+}
+
+script:post-response {
+  const responseData = "response content";
+  const searchableResponse = "find this too";
+  console.log("Response processed");
+  
+  const statusCode = bru.getResponseStatus();
+  const responseTime = bru.getResponseTime();
+  console.log("Response status:", statusCode);
+  
+  const uniquePostVar = "only in post-response";
+  const commonVar = "common content";
+  
+  const searchableResponse2 = "find this too again";
+  const searchableResponse3 = "find this too third time";
+  console.log("More searchableResponse instances");
+}

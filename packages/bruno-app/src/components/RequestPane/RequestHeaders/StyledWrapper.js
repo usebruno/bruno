@@ -1,29 +1,20 @@
 import styled from 'styled-components';
 
 const Wrapper = styled.div`
-  table {
-    width: 100%;
-    border-collapse: collapse;
-    font-weight: 600;
-    table-layout: fixed;
 
-    thead,
-    td {
-      border: 1px solid ${(props) => props.theme.table.border};
+  .btn-action {
+    font-size: ${(props) => props.theme.font.size.base};
+    &:hover span {
+      text-decoration: underline;
     }
-
-    thead {
-      color: ${(props) => props.theme.table.thead.color};
-      font-size: 0.8125rem;
-      user-select: none;
-    }
-    td {
-      padding: 6px 10px;
-      }
   }
 
-  .btn-add-header {
-    font-size: 0.8125rem;
+  .bulk-edit-bar {
+    position: sticky;
+    bottom: 0;
+    background: ${(props) => props.theme.bg};
+    padding-top: 8px;
+    padding-bottom: 4px;
   }
 
   input[type='text'] {

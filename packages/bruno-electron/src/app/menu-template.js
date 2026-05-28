@@ -1,7 +1,8 @@
 const { ipcMain } = require('electron');
 const os = require('os');
-const openAboutWindow = require('about-window').default;
-const { join } = require('path');
+const { BrowserWindow } = require('electron');
+const { version } = require('../../package.json');
+const aboutBruno = require('./about-bruno');
 
 const template = [
   {
@@ -24,15 +25,13 @@ const template = [
           }
         ]
       },
+      { type: 'separator' },
       {
-        label: 'Preferences',
-        accelerator: 'CommandOrControl+,',
+        label: 'Quit',
         click() {
-          ipcMain.emit('main:open-preferences');
+          ipcMain.emit('main:start-quit-flow');
         }
       },
-      { type: 'separator' },
-      { role: 'quit' },
       {
         label: 'Force Quit',
         click() {
@@ -61,9 +60,30 @@ const template = [
     submenu: [
       { role: 'toggledevtools' },
       { type: 'separator' },
-      { role: 'resetzoom' },
-      { role: 'zoomin' },
-      { role: 'zoomout' },
+      {
+        label: 'Actual Size',
+        accelerator: 'CommandOrControl+0',
+        registerAccelerator: false,
+        click() {
+          ipcMain.emit('menu:reset-zoom');
+        }
+      },
+      {
+        label: 'Zoom In',
+        accelerator: 'CommandOrControl+Plus',
+        registerAccelerator: false,
+        click() {
+          ipcMain.emit('menu:zoom-in');
+        }
+      },
+      {
+        label: 'Zoom Out',
+        accelerator: 'CommandOrControl+-',
+        registerAccelerator: false,
+        click() {
+          ipcMain.emit('menu:zoom-out');
+        }
+      },
       { type: 'separator' },
       { role: 'togglefullscreen' }
     ]
@@ -77,14 +97,17 @@ const template = [
     submenu: [
       {
         label: 'About Bruno',
-        click: () =>
-          openAboutWindow({
-            product_name: 'Bruno',
-            icon_path: join(__dirname, '../about/256x256.png'),
-            css_path: join(__dirname, '../about/about.css'),
-            homepage: 'https://www.usebruno.com/',
-            package_json_dir: join(__dirname, '../..')
-          })
+        click: () => {
+          const aboutWindow = new BrowserWindow({
+            width: 350,
+            height: 250,
+            webPreferences: {
+              nodeIntegration: true
+            }
+          });
+          aboutWindow.removeMenu();
+          aboutWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(aboutBruno({ version }))}`);
+        }
       },
       { label: 'Documentation', click: () => ipcMain.emit('main:open-docs') }
     ]

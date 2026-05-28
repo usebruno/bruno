@@ -1,0 +1,6 @@
+{
+  "info": {
+    "name": "Malformed Collection"
+  },
+  "item": "this should be an array, not a string"
+}

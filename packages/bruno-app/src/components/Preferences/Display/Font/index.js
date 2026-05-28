@@ -1,15 +1,18 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import get from 'lodash/get';
+import debounce from 'lodash/debounce';
 import { useSelector, useDispatch } from 'react-redux';
 import { savePreferences } from 'providers/ReduxStore/slices/app';
 import StyledWrapper from './StyledWrapper';
+import toast from 'react-hot-toast';
 
-const Font = ({ close }) => {
+const Font = () => {
   const dispatch = useDispatch();
   const preferences = useSelector((state) => state.app.preferences);
+  const isInitialMount = useRef(true);
 
   const [codeFont, setCodeFont] = useState(get(preferences, 'font.codeFont', 'default'));
-  const [codeFontSize, setCodeFontSize] = useState(get(preferences, 'font.codeFontSize', '14'));
+  const [codeFontSize, setCodeFontSize] = useState(get(preferences, 'font.codeFontSize', '13'));
 
   const handleCodeFontChange = (event) => {
     setCodeFont(event.target.value);
@@ -21,19 +24,40 @@ const Font = ({ close }) => {
     setCodeFontSize(clampedSize);
   };
 
-  const handleSave = () => {
+  const handleSave = useCallback((font, fontSize) => {
     dispatch(
       savePreferences({
         ...preferences,
         font: {
-          codeFont,
-          codeFontSize
+          codeFont: font,
+          codeFontSize: fontSize
         }
       })
-    ).then(() => {
-      close();
+    ).catch(() => {
+      toast.error('Failed to save preferences');
     });
-  };
+  }, [dispatch, preferences]);
+
+  const handleSaveRef = useRef(handleSave);
+  handleSaveRef.current = handleSave;
+
+  const debouncedSave = useCallback(
+    debounce((font, fontSize) => {
+      handleSaveRef.current(font, fontSize);
+    }, 500),
+    []
+  );
+
+  useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
+    }
+    debouncedSave(codeFont, codeFontSize);
+    return () => {
+      debouncedSave.flush();
+    };
+  }, [codeFont, codeFontSize, debouncedSave]);
 
   return (
     <StyledWrapper>
@@ -63,12 +87,6 @@ const Font = ({ close }) => {
             defaultValue={codeFontSize}
           />
         </div>
-      </div>
-
-      <div className="mt-10">
-        <button type="submit" className="submit btn btn-sm btn-secondary" onClick={handleSave}>
-          Save
-        </button>
       </div>
     </StyledWrapper>
   );

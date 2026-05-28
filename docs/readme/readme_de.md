@@ -3,7 +3,7 @@
 
 ### Bruno - Opensource IDE zum Erkunden und Testen von APIs.
 
-[![GitHub version](https://badge.fury.io/gh/usebruno%2Fbruno.svg)](https://badge.fury.io/gh/usebruno%bruno)
+[![GitHub version](https://badge.fury.io/gh/usebruno%2Fbruno.svg)](https://badge.fury.io/gh/usebruno%2Fbruno)
 [![CI](https://github.com/usebruno/bruno/actions/workflows/tests.yml/badge.svg?branch=main)](https://github.com/usebruno/bruno/actions/workflows/tests.yml)
 [![Commit Activity](https://img.shields.io/github/commit-activity/m/usebruno/bruno)](https://github.com/usebruno/bruno/pulse)
 [![X](https://img.shields.io/twitter/follow/use_bruno?style=social&logo=x)](https://twitter.com/use_bruno)
@@ -43,13 +43,6 @@ Bruno ist ein reines Offline-Tool. Es gibt keine Pläne, Bruno um eine Cloud-Syn
 
 ![bruno](/assets/images/landing-2.png) <br /><br />
 
-### Golden Edition ✨
-
-Die meisten unserer Funktionen sind kostenlos und quelloffen.
-Wir bemühen uns um ein Gleichgewicht zwischen [Open-Source-Prinzipien und Nachhaltigkeit](https://github.com/usebruno/bruno/discussions/269)
-
-Du kannst die [Golden Edition](https://www.usebruno.com/pricing) bestellen **$19**! <br/>
-
 ### Installation
 
 Bruno ist als Download [auf unserer Website](https://www.usebruno.com/downloads) für Mac, Windows und Linux verfügbar.
@@ -78,12 +71,14 @@ flatpak install com.usebruno.Bruno
 
 # Auf Linux via Apt
 sudo mkdir -p /etc/apt/keyrings
-sudo gpg --no-default-keyring --keyring /etc/apt/keyrings/bruno.gpg --keyserver keyserver.ubuntu.com --recv-keys 9FA6017ECABE0266
-
-echo "deb [signed-by=/etc/apt/keyrings/bruno.gpg] http://debian.usebruno.com/ bruno stable" | sudo tee /etc/apt/sources.list.d/bruno.list
-
-sudo apt update
-sudo apt install bruno
+sudo apt update && sudo apt install gpg curl
+curl -fsSL "https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x9FA6017ECABE0266" \
+  | gpg --dearmor \
+  | sudo tee /etc/apt/keyrings/bruno.gpg > /dev/null
+sudo chmod 644 /etc/apt/keyrings/bruno.gpg
+echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/bruno.gpg] http://debian.usebruno.com/ bruno stable" \
+  | sudo tee /etc/apt/sources.list.d/bruno.list
+sudo apt update && sudo apt install bruno
 ```
 
 ### Einsatz auf verschiedensten Plattformen 🖥️

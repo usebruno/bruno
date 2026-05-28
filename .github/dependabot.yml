@@ -1,0 +1,31 @@
+version: 2
+
+updates:
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: weekly
+  
+  - package-ecosystem: npm
+    directory: "/"
+    schedule:
+      interval: weekly
+    groups:
+      bruno-dependencies:
+        patterns:
+          - "*usebruno*"
+      babel-dependencies:
+        patterns:
+          - "*babel*"
+      fortawesome-dependencies:
+        patterns:
+          - "*fortawesome*"
+      electron-dependencies:
+        patterns:
+          - "*electron*"
+      rollup-dependencies:
+        patterns:
+          - "*rollup*"
+      jest-dependencies:
+        patterns:
+          - "*jest*"

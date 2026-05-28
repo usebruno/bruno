@@ -1,0 +1,26 @@
+meta {
+  name: deleteCollectionVar
+  type: http
+  seq: 27
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+script:pre-request {
+  // TODO: skipped because deleteCollectionVar does not update the UI
+  bru.runner.skipRequest();
+  return;
+  bru.setCollectionVar("testDeleteCollectionVar", "to-be-deleted");
+  bru.deleteCollectionVar("testDeleteCollectionVar");
+}
+
+tests {
+  test("should delete collection var", function() {
+    const val = bru.getCollectionVar("testDeleteCollectionVar");
+    expect(val).to.be.undefined;
+  });
+}

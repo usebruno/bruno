@@ -1,0 +1,22 @@
+meta {
+  name: test plain text utf16-le with BOM response
+  type: http
+  seq: 16
+}
+
+post {
+  url: {{httpfaker}}/api/echo/custom
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "headers": { "content-type": "text/plain; charset=utf-16" },
+    "contentBase64": "//50AGgAaQBzACAAaQBzACAAZQBuAGMAbwBkAGUAZAAgAHcAaQB0AGgAIAB1AHQAZgAxADYALQBsAGUAIAB3AGkAdABoACAAQgBPAE0A"
+  }
+}
+
+assert {
+  res.body: eq "this is encoded with utf16-le with BOM"
+}

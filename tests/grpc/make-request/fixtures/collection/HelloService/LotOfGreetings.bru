@@ -1,0 +1,31 @@
+meta {
+  name: LotOfGreetings
+  type: grpc
+  seq: 3
+}
+
+grpc {
+  url: {{host}}
+  method: /hello.HelloService/LotsOfGreetings
+  body: grpc
+  auth: inherit
+  methodType: client-streaming
+}
+
+body:grpc {
+  name: message 1
+  content: '''
+    {
+      "greeting": "sortitus"
+    }
+  '''
+}
+
+body:grpc {
+  name: message 2
+  content: '''
+    {
+      "greeting": "porro"
+    }
+  '''
+}

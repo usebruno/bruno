@@ -20,11 +20,11 @@ const notarize = async function (params) {
 
   try {
     await electron_notarize.notarize({
-        appBundleId: appId,
-        appPath: appPath,
-        appleId: process.env.APPLE_ID,
-        appleIdPassword: process.env.APPLE_ID_PASSWORD,
-        ascProvider: 'W7LPPWA48L'
+      appBundleId: appId,
+      appPath: appPath,
+      appleId: process.env.APPLE_ID,
+      appleIdPassword: process.env.APPLE_ID_PASSWORD,
+      ascProvider: 'W7LPPWA48L'
     });
   } catch (error) {
     console.error(error);

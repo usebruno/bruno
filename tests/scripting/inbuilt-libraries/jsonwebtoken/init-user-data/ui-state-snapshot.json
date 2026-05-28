@@ -1,0 +1,8 @@
+{
+    "collections": [
+        {
+			"pathname": "{{projectRoot}}/tests/scripting/inbuilt-libraries/jsonwebtoken/fixtures/collection",
+			"selectedEnvironment": "Prod"
+		}
+    ]
+}

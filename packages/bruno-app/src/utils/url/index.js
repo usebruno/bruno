@@ -1,11 +1,6 @@
-import isEmpty from 'lodash/isEmpty';
-import trim from 'lodash/trim';
-import each from 'lodash/each';
-import filter from 'lodash/filter';
 import find from 'lodash/find';
 
-import brunoCommon from '@usebruno/common';
-const { interpolate } = brunoCommon;
+import { interpolate } from '@usebruno/common';
 
 const hasLength = (str) => {
   if (!str || !str.length) {
@@ -15,20 +10,6 @@ const hasLength = (str) => {
   str = str.trim();
 
   return str.length > 0;
-};
-
-export const parseQueryParams = (query) => {
-  try {
-    if (!query || !query.length) {
-      return [];
-    }
-
-    return Array.from(new URLSearchParams(query.split('#')[0]).entries())
-      .map(([name, value]) => ({ name, value }));
-  } catch (error) {
-    console.error('Error parsing query params:', error);
-    return [];
-  }
 };
 
 export const parsePathParams = (url) => {
@@ -51,39 +32,40 @@ export const parsePathParams = (url) => {
     paths = uri.split('/');
   }
 
-  paths = paths.reduce((acc, path) => {
-    if (path !== '' && path[0] === ':') {
-      let name = path.slice(1, path.length);
-      if (name) {
-        let isExist = find(acc, (path) => path.name === name);
-        if (!isExist) {
-          acc.push({ name: path.slice(1, path.length), value: '' });
-        }
+  // Enhanced: also match :param inside parentheses and/or quotes
+  const foundParams = new Set();
+  paths.forEach((segment) => {
+    // traditional path parameters
+    if (segment.startsWith(':')) {
+      const name = segment.slice(1);
+      if (name && !foundParams.has(name)) {
+        foundParams.add(name);
+      }
+      return;
+    }
+
+    // for OData-style parameters (parameters inside parentheses)
+    // Check if segment matches valid OData syntax:
+    // 1. EntitySet('key') or EntitySet(key)
+    // 2. EntitySet(Key1=value1,Key2=value2)
+    // 3. Function(param=value)
+    if (!/^[A-Za-z0-9_.-]+\([^)]*\)$/.test(segment)) {
+      return;
+    }
+
+    const paramRegex = /[:]([a-zA-Z_]\w*)/g;
+    let match;
+    while ((match = paramRegex.exec(segment))) {
+      if (!match[1]) continue;
+
+      let name = match[1].replace(/[')"`]+$/, '');
+      name = name.replace(/^[('"`]+/, '');
+      if (name && !foundParams.has(name)) {
+        foundParams.add(name);
       }
     }
-    return acc;
-  }, []);
-  return paths;
-};
-
-export const stringifyQueryParams = (params) => {
-  if (!params || isEmpty(params)) {
-    return '';
-  }
-
-  let queryString = [];
-  each(params, (p) => {
-    const hasEmptyName = isEmpty(trim(p.name));
-    const hasEmptyVal = isEmpty(trim(p.value));
-
-    // query param name must be present
-    if (!hasEmptyName) {
-      // if query param value is missing, push only <param-name>, else push <param-name: param-value>
-      queryString.push(hasEmptyVal ? p.name : `${p.name}=${p.value}`);
-    }
   });
-
-  return queryString.join('&');
+  return Array.from(foundParams).map((name) => ({ name, value: '' }));
 };
 
 export const splitOnFirst = (str, char) => {
@@ -91,7 +73,10 @@ export const splitOnFirst = (str, char) => {
     return [str];
   }
 
-  let index = str.indexOf(char);
+  // Mask {{ }} template variables so their contents don't interfere with the search
+  const masked = str.replace(/\{\{.*?\}\}/g, (match) => '_'.repeat(match.length));
+  const index = masked.indexOf(char);
+
   if (index === -1) {
     return [str];
   }
@@ -108,43 +93,87 @@ export const isValidUrl = (url) => {
   }
 };
 
-export const interpolateUrl = ({ url, globalEnvironmentVariables = {}, envVars, runtimeVariables, processEnvVars }) => {
+export const isHttpUrl = (url) => {
+  try {
+    const parsed = new URL(url);
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+  } catch {
+    return false;
+  }
+};
+
+export const interpolateUrl = ({ url, variables }) => {
   if (!url || !url.length || typeof url !== 'string') {
     return;
   }
 
-  return interpolate(url, {
-    ...globalEnvironmentVariables,
-    ...envVars,
-    ...runtimeVariables,
-    process: {
-      env: {
-        ...processEnvVars
-      }
-    }
-  });
+  return interpolate(url, variables);
 };
 
-export const interpolateUrlPathParams = (url, params) => {
+export const interpolateUrlPathParams = (url, params, variables = {}, options = {}) => {
   const getInterpolatedBasePath = (pathname, params) => {
-    return pathname
+    let replacedPathname = pathname
       .split('/')
       .map((segment) => {
+        // traditional path parameters
         if (segment.startsWith(':')) {
-          const pathParamName = segment.slice(1);
-          const pathParam = params.find((p) => p?.name === pathParamName && p?.type === 'path');
+          const name = segment.slice(1);
+          const pathParam = params.find((p) => p?.name === name && p?.type === 'path');
           return pathParam ? pathParam.value : segment;
         }
-        return segment;
+
+        // for OData-style parameters (parameters inside parentheses)
+        // Check if segment matches valid OData syntax:
+        // 1. EntitySet('key') or EntitySet(key)
+        // 2. EntitySet(Key1=value1,Key2=value2)
+        // 3. Function(param=value)
+        if (!/^[A-Za-z0-9_.-]+\([^)]*\)$/.test(segment)) {
+          return segment;
+        }
+
+        const regex = /[:]([a-zA-Z_]\w*)/g;
+        let match;
+        let result = segment;
+        while ((match = regex.exec(segment))) {
+          if (!match[1]) continue;
+
+          let name = match[1].replace(/[')"`]+$/, '');
+          name = name.replace(/^[('"`]+/, '');
+          if (!name) continue;
+
+          const pathParam = params.find((p) => p?.name === name && p?.type === 'path');
+          if (pathParam) {
+            result = result.replace(':' + match[1], pathParam.value);
+          }
+        }
+        return result;
       })
       .join('/');
-  };
 
-  let uri;
+    return interpolate(replacedPathname, variables);
+  };
 
   if (!url.startsWith('http://') && !url.startsWith('https://')) {
     url = `http://${url}`;
   }
+
+  // When raw is true, resolve :params via pure string manipulation without
+  // passing through new URL(), which would percent-encode characters like spaces.
+  // This preserves the user's original encoding choices for snippet generation.
+  if (options.raw) {
+    const enabledPathParams = (params || []).filter((p) => p.enabled !== false && p.type === 'path');
+    if (enabledPathParams.length === 0) return url;
+
+    const separatorIdx = url.search(/[?#]/);
+    const pathPart = separatorIdx >= 0 ? url.substring(0, separatorIdx) : url;
+    const rest = separatorIdx >= 0 ? url.substring(separatorIdx) : '';
+
+    // resolvedPath includes the origin (scheme + host) since pathPart is the full URL before ?/#
+    const resolvedPath = getInterpolatedBasePath(pathPart, enabledPathParams);
+    return `${resolvedPath}${rest}`;
+  }
+
+  let uri;
 
   try {
     uri = new URL(url);

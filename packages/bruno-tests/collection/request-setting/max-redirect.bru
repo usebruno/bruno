@@ -1,0 +1,24 @@
+meta {
+  name: max-redirect
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{localhost}}/api/redirect/3
+  body: none
+  auth: inherit
+}
+
+script:post-response {
+  test("body should include redirecting", function() {
+    const data = res.status;
+    expect(data).to.be.equal(200)
+  });
+}
+
+settings {
+  encodeUrl: true
+  followRedirects: true
+  maxRedirects: 5
+}

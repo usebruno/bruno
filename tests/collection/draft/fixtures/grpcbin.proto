@@ -1,0 +1,77 @@
+syntax = "proto3";
+
+package grpcbin;
+
+service GRPCBin {
+  // This endpoint
+  rpc Index(EmptyMessage) returns (IndexReply) {}
+  // Unary endpoint that takes no argument and replies an empty message.
+  rpc Empty(EmptyMessage) returns (EmptyMessage) {}
+  // Unary endpoint that replies a received DummyMessage
+  rpc DummyUnary(DummyMessage) returns (DummyMessage) {}
+  // Stream endpoint that sends back 10 times the received DummyMessage
+  rpc DummyServerStream(DummyMessage) returns (stream DummyMessage) {}
+  // Stream endpoint that receives 10 DummyMessages and replies with the last received one
+  rpc DummyClientStream(stream DummyMessage) returns (DummyMessage) {}
+  // Stream endpoint that sends back a received DummyMessage indefinitely (chat mode)
+  rpc DummyBidirectionalStreamStream(stream DummyMessage) returns (stream DummyMessage) {}
+  // Unary endpoint that raises a specified (by code) gRPC error
+  rpc SpecificError(SpecificErrorRequest) returns (EmptyMessage) {}
+  // Unary endpoint that raises a random gRPC error
+  rpc RandomError(EmptyMessage) returns (EmptyMessage) {}
+  // Unary endpoint that returns headers
+  rpc HeadersUnary(EmptyMessage) returns (HeadersMessage) {}
+  // Unary endpoint that returns no respnose
+  rpc NoResponseUnary(EmptyMessage) returns (EmptyMessage) {}
+}
+
+message HeadersMessage {
+  message Values {
+    repeated string values = 1;
+  }
+  map<string, Values> Metadata = 1;
+}
+
+message SpecificErrorRequest {
+  uint32 code = 1;
+  string reason = 2;
+}
+
+message EmptyMessage {}
+
+message DummyMessage {
+  message Sub {
+    string f_string = 1;
+  }
+  enum Enum {
+    ENUM_0 = 0;
+    ENUM_1 = 1;
+    ENUM_2 = 2;
+  }
+  string f_string = 1;
+  repeated string f_strings = 2;
+  int32 f_int32 = 3;
+  repeated int32 f_int32s = 4;
+  Enum f_enum = 5;
+  repeated Enum f_enums = 6;
+  Sub f_sub = 7;
+  repeated Sub f_subs = 8;
+  bool f_bool = 9;
+  repeated bool f_bools = 10;
+  int64 f_int64 = 11;
+  repeated int64 f_int64s= 12;
+  bytes f_bytes = 13;
+  repeated bytes f_bytess = 14;
+  float f_float = 15;
+  repeated float f_floats = 16;
+  // TODO: timestamp, duration, oneof, any, maps, fieldmask, wrapper type, struct, listvalue, value, nullvalue, deprecated
+}
+
+message IndexReply {
+  message Endpoint {
+    string path = 1;
+    string description = 2;
+  }
+  string description = 1;
+  repeated Endpoint endpoints = 2;
+}

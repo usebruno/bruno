@@ -70,11 +70,11 @@ find . -type f -name "package-lock.json" -delete
 ### 測試
 
 ```bash
-# bruno-schema
+# 執行布魯諾架構測試
 npm test --workspace=packages/bruno-schema
 
-# bruno-lang
-npm test --workspace=packages/bruno-lang
+# 對所有工作區執行測試
+npm test --workspaces --if-present
 ```
 
 ### 發送 Pull Request

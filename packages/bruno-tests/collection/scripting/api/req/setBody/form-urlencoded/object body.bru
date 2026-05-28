@@ -1,0 +1,37 @@
+meta {
+  name: object body
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{echo-host}}
+  body: formUrlEncoded
+  auth: inherit
+}
+
+script:pre-request {
+  req.setBody({
+    "key": "value with spaces",
+    "name": "bruno",
+    "array": ["test", "value"],
+  });
+}
+
+tests {
+  // https://github.com/usebruno/bruno/issues/5813
+  test("req.setBody() with object - request body", function() {
+    const data = req.getBody();
+    expect(data).to.eql("key=value%20with%20spaces&name=bruno&array=test&array=value");
+  });
+  
+  test("req.setBody() with object - response body", function() {
+    const data = res.getBody();
+    expect(data).to.eql("key=value%20with%20spaces&name=bruno&array=test&array=value");
+  });
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

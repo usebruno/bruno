@@ -1,0 +1,52 @@
+{
+  "name": "@usebruno/schema-types",
+  "version": "0.0.1",
+  "description": "TypeScript types for Bruno schema",
+  "author": "Bruno Software Inc.",
+  "main": "dist/schema-types.js",
+  "types": "dist/schema-types.d.ts",
+  "files": [
+    "dist",
+    "src",
+    "package.json"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "clean": "rm -rf dist",
+    "prepublishOnly": "npm run build"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./common/*": {
+      "types": "./dist/common/*.d.ts",
+      "default": "./dist/common/*.js"
+    },
+    "./config/*": {
+      "types": "./dist/config/*.d.ts",
+      "default": "./dist/config/*.js"
+    },
+    "./collection/*": {
+      "types": "./dist/collection/*.d.ts",
+      "default": "./dist/collection/*.js"
+    },
+    "./requests/*": {
+      "types": "./dist/requests/*.d.ts",
+      "default": "./dist/requests/*.js"
+    }
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0"
+  },
+  "license": "MIT",
+  "keywords": [
+    "bruno",
+    "types",
+    "typescript",
+    "api",
+    "http"
+  ]
+}
+

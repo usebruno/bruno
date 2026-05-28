@@ -185,7 +185,7 @@ vars:secret [
         },
         {
           name: 'token',
-          value: null,
+          value: '',
           enabled: true,
           secret: true
         }
@@ -220,19 +220,19 @@ vars:secret [
         },
         {
           name: 'access_token',
-          value: null,
+          value: '',
           enabled: true,
           secret: true
         },
         {
           name: 'access_secret',
-          value: null,
+          value: '',
           enabled: true,
           secret: true
         },
         {
           name: 'access_password',
-          value: null,
+          value: '',
           enabled: false,
           secret: true
         }
@@ -262,7 +262,7 @@ vars:secret [access_key]
         },
         {
           name: 'access_key',
-          value: null,
+          value: '',
           enabled: true,
           secret: true
         }
@@ -292,21 +292,133 @@ vars:secret [access_key,access_secret,    access_password  ]
         },
         {
           name: 'access_key',
-          value: null,
+          value: '',
           enabled: true,
           secret: true
         },
         {
           name: 'access_secret',
-          value: null,
+          value: '',
           enabled: true,
           secret: true
         },
         {
           name: 'access_password',
-          value: null,
+          value: '',
           enabled: true,
           secret: true
+        }
+      ]
+    };
+
+    expect(output).toEqual(expected);
+  });
+
+  it('should parse multiline variable values', () => {
+    const input = `
+vars {
+  json_data: '''
+    {
+      "name": "test",
+      "value": 123
+    }
+  '''
+}`;
+
+    const output = parser(input);
+    const expected = {
+      variables: [
+        {
+          name: 'json_data',
+          value: '{\n  "name": "test",\n  "value": 123\n}',
+          enabled: true,
+          secret: false
+        }
+      ]
+    };
+
+    expect(output).toEqual(expected);
+  });
+
+  it('should parse multiline variable that has indentation', () => {
+    const input = `
+vars {
+  script: '''
+    function test() {
+      console.log("hello");
+      return true;
+    }
+  '''
+}`;
+
+    const output = parser(input);
+    const expected = {
+      variables: [
+        {
+          name: 'script',
+          value: 'function test() {\n  console.log("hello");\n  return true;\n}',
+          enabled: true,
+          secret: false
+        }
+      ]
+    };
+
+    expect(output).toEqual(expected);
+  });
+
+  it('should parse disabled multiline variable', () => {
+    const input = `
+vars {
+  ~disabled_multiline: '''
+    line 1
+    line 2
+    line 3
+  '''
+}`;
+
+    const output = parser(input);
+    const expected = {
+      variables: [
+        {
+          name: 'disabled_multiline',
+          value: 'line 1\nline 2\nline 3',
+          enabled: false,
+          secret: false
+        }
+      ]
+    };
+
+    expect(output).toEqual(expected);
+  });
+
+  it('should parse multiple multiline variables', () => {
+    const input = `
+vars {
+  config: '''
+    debug=true
+    port=3000
+  '''
+  template: '''
+    <html>
+      <body>Hello World</body>
+    </html>
+  '''
+}`;
+
+    const output = parser(input);
+    const expected = {
+      variables: [
+        {
+          name: 'config',
+          value: 'debug=true\nport=3000',
+          enabled: true,
+          secret: false
+        },
+        {
+          name: 'template',
+          value: '<html>\n  <body>Hello World</body>\n</html>',
+          enabled: true,
+          secret: false
         }
       ]
     };

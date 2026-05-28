@@ -1,0 +1,9 @@
+{
+  "version": "1",
+  "name": "jsonwebtoken",
+  "type": "collection",
+  "ignore": [
+    "node_modules",
+    ".git"
+  ]
+}

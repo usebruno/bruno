@@ -40,6 +40,8 @@ npm i --legacy-peer-deps
 npm run build:graphql-docs
 npm run build:bruno-query
 npm run build:bruno-common
+npm run build:bruno-converters
+npm run build:bruno-requests
 
 # next 앱 실행 (1번 터미널)
 npm run dev:web
@@ -66,11 +68,11 @@ find . -type f -name "package-lock.json" -delete
 ### 테스팅
 
 ```bash
-# bruno-schema
+# bruno-schema 테스트 실행
 npm test --workspace=packages/bruno-schema
 
-# bruno-lang
-npm test --workspace=packages/bruno-lang
+# 모든 작업 공간에서 테스트 실행
+npm test --workspaces --if-present
 ```
 
 ### Pull Requests 요청

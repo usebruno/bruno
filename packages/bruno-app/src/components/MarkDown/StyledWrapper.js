@@ -9,41 +9,41 @@ const StyledMarkdownBodyWrapper = styled.div`
     box-sizing: border-box;
     height: 100%;
     margin: 0 auto;
-    font-size: 0.875rem;
+    font-size: ${(props) => props.theme.font.size.base};
 
     h1 {
       margin: 0.67em 0;
       font-weight: var(--base-text-weight-semibold, 600);
       padding-bottom: 0.3em;
-      font-size: 1.3;
+      font-size: 2.2em;
       border-bottom: 1px solid var(--color-border-muted);
     }
 
     h2 {
       font-weight: var(--base-text-weight-semibold, 600);
       padding-bottom: 0.3em;
-      font-size: 1.2;
+      font-size: 1.7em;
       border-bottom: 1px solid var(--color-border-muted);
     }
 
     h3 {
       font-weight: var(--base-text-weight-semibold, 600);
-      font-size: 1.1em;
+      font-size: 1.45em;
     }
 
     h4 {
       font-weight: var(--base-text-weight-semibold, 600);
-      font-size: 1em;
+      font-size: 1.1em;
     }
 
     h5 {
       font-weight: var(--base-text-weight-semibold, 600);
-      font-size: 0.95em;
+      font-size: 0.975em;
     }
 
     h6 {
       font-weight: var(--base-text-weight-semibold, 600);
-      font-size: 0.9em;
+      font-size: 0.85em;
       color: var(--color-fg-muted);
     }
 
@@ -77,6 +77,14 @@ const StyledMarkdownBodyWrapper = styled.div`
         border: 1px solid ${(props) => props.theme.table.border};
         background-color: ${(props) => props.theme.bg};
       }
+    }
+
+    p {
+      white-space: pre-wrap;
+    }
+
+    div {
+      white-space: pre-wrap;
     }
   }
 `;

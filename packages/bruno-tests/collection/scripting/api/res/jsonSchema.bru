@@ -1,0 +1,888 @@
+meta {
+  name: jsonSchema
+  type: http
+  seq: 9
+}
+
+post {
+  url: {{host}}/api/echo/json
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "name": "John",
+    "age": 30,
+    "email": "john@example.com",
+    "status": "active",
+    "score": 95.5,
+    "isVerified": true,
+    "tags": ["developer", "tester"],
+    "address": {
+      "street": "123 Main St",
+      "city": "Springfield",
+      "zip": "62701"
+    },
+    "website": "https://example.com/john",
+    "createdAt": "2024-01-15T10:30:00Z",
+    "birthDate": "1994-05-20",
+    "loginTime": "10:30:00Z",
+    "ipv4": "192.168.1.1",
+    "ipv6": "::1",
+    "id": "550e8400-e29b-41d4-a716-446655440000",
+    "encodedData": "SGVsbG8gV29ybGQ=",
+    "int32Val": 2147483647,
+    "int64Val": 2147483648,
+    "floatVal": 3.14,
+    "doubleVal": 1.7976931348623157e+308,
+    "duration": "P3Y6M4DT12H30M5S",
+    "hostname": "example.com",
+    "regexPattern": "^[a-z]+$",
+    "jsonPointer": "/foo/bar/0",
+    "uriRef": "/relative/path",
+    "uriTemplate": "https://example.com/{user}",
+    "invalidRegex": "[invalid",
+    "invalidUriTemplate": "https://example.com/{invalid"
+  }
+}
+
+tests {
+  // --- Passing validations ---
+
+  test("Basic object with properties and required", function() {
+    const schema = {
+      type: 'object',
+      properties: {
+        name: { type: 'string' },
+        age: { type: 'number' },
+        email: { type: 'string' },
+        status: { type: 'string' },
+        score: { type: 'number' },
+        isVerified: { type: 'boolean' },
+        tags: { type: 'array' },
+        address: { type: 'object' }
+      },
+      required: ['name', 'age', 'email']
+    };
+    expect(res.getBody()).to.have.jsonSchema(schema);
+  });
+
+  test("Nested object validation", function() {
+    const schema = {
+      type: 'object',
+      properties: {
+        address: {
+          type: 'object',
+          properties: {
+            street: { type: 'string' },
+            city: { type: 'string' },
+            zip: { type: 'string' }
+          },
+          required: ['street', 'city', 'zip']
+        }
+      }
+    };
+    expect(res.getBody()).to.have.jsonSchema(schema);
+  });
+
+  test("Array items validation", function() {
+    const schema = {
+      type: 'object',
+      properties: {
+        tags: {
+          type: 'array',
+          items: { type: 'string' }
+        }
+      }
+    };
+    expect(res.getBody()).to.have.jsonSchema(schema);
+  });
+
+  test("String pattern (regex)", function() {
+    const schema = {
+      type: 'object',
+      properties: {
+        email: {
+          type: 'string',
+          pattern: '^[^@]+@[^@]+\\.[^@]+$'
+        }
+      }
+    };
+    expect(res.getBody()).to.have.jsonSchema(schema);
+  });
+
+  test("Enum validation", function() {
+    const schema = {
+      type: 'object',
+      properties: {
+        status: {
+          type: 'string',
+          enum: ['active', 'inactive', 'pending']
+        }
+      }
+    };
+    expect(res.getBody()).to.have.jsonSchema(schema);
+  });
+
+  test("Number range (minimum/maximum)", function() {
+    const schema = {
+      type: 'object',
+      properties: {
+        age: {
+          type: 'number',
+          minimum: 0,
+          maximum: 150
+        }
+      }
+    };
+    expect(res.getBody()).to.have.jsonSchema(schema);
+  });
+
+  test("String length constraints (minLength/maxLength)", function() {
+    const schema = {
+      type: 'object',
+      properties: {
+        name: {
+          type: 'string',
+          minLength: 1,
+          maxLength: 100
+        }
+      }
+    };
+    expect(res.getBody()).to.have.jsonSchema(schema);
+  });
+
+  test("allOf composition", function() {
+    const schema = {
+      allOf: [
+        {
+          type: 'object',
+          properties: { name: { type: 'string' } },
+          required: ['name']
+        },
+        {
+          type: 'object',
+          properties: { age: { type: 'number' } },
+          required: ['age']
+        }
+      ]
+    };
+    expect(res.getBody()).to.have.jsonSchema(schema);
+  });
+
+  test("anyOf composition", function() {
+    const schema = {
+      type: 'object',
+      properties: {
+        score: {
+          anyOf: [
+            { type: 'number' },
+            { type: 'string' }
+          ]
+        }
+      }
+    };
+    expect(res.getBody()).to.have.jsonSchema(schema);
+  });
+
+  test("jsonSchema with ajvOptions - allErrors", function() {
+    const schema = {
+      type: 'object',
+      properties: {
+        name: { type: 'string' },
+        age: { type: 'number' }
+      },
+      required: ['name', 'age']
+    };
+    expect(res.getBody()).to.have.jsonSchema(schema, { allErrors: true });
+  });
+
+  test("jsonSchema with ajvOptions - format validation with allErrors", function() {
+    const schema = {
+      type: 'object',
+      properties: {
+        email: { type: 'string', format: 'email' },
+        website: { type: 'string', format: 'uri' }
+      },
+      required: ['email', 'website']
+    };
+    expect(res.getBody()).to.have.jsonSchema(schema, { allErrors: true });
+  });
+
+  test("jsonSchema with ajvOptions - format rejection with allErrors", function() {
+    const schema = {
+      type: 'object',
+      properties: {
+        name: { type: 'string', format: 'email' },
+        age: { type: 'string', format: 'uri' }
+      },
+      required: ['name', 'age']
+    };
+    expect(res.getBody()).to.not.have.jsonSchema(schema, { allErrors: true });
+  });
+
+  test("jsonSchema with ajvOptions - additionalProperties false", function() {
+    const schema = {
+      type: 'object',
+      properties: {
+        name: { type: 'string' }
+      },
+      additionalProperties: false
+    };
+    expect(res.getBody()).to.not.have.jsonSchema(schema, { allErrors: true });
+  });
+
+  test("jsonSchema with ajvOptions - coerceTypes allows string as number", function() {
+    const schema = {
+      type: 'object',
+      properties: {
+        zip: { type: 'integer' }
+      },
+      required: ['zip']
+    };
+    // zip is "62701" (string) - fails without coercion
+    expect(res.getBody().address).to.not.have.jsonSchema(schema);
+    // passes with coerceTypes since "62701" can be coerced to integer
+    expect(res.getBody().address).to.have.jsonSchema(schema, { coerceTypes: true });
+  });
+
+  test("jsonSchema with ajvOptions - coerceTypes allows number as string", function() {
+    const schema = {
+      type: 'object',
+      properties: {
+        age: { type: 'string' }
+      },
+      required: ['age']
+    };
+    // age is 30 (number) - fails without coercion
+    expect(res.getBody()).to.not.have.jsonSchema(schema);
+    // passes with coerceTypes since 30 can be coerced to "30"
+    expect(res.getBody()).to.have.jsonSchema(schema, { coerceTypes: true });
+  });
+
+  test("jsonSchema with ajvOptions - strict false allows unknown keywords", function() {
+    const schema = {
+      type: 'object',
+      properties: {
+        name: { type: 'string', customKeyword: true }
+      },
+      required: ['name']
+    };
+    // unknown keyword "customKeyword" throws in strict mode (default)
+    expect(() => expect(res.getBody()).to.have.jsonSchema(schema)).to.throw('JSON schema compile error');
+    // passes with strict: false
+    expect(res.getBody()).to.have.jsonSchema(schema, { strict: false });
+  });
+
+  // --- ajv-formats: Passing validations ---
+
+  test("format: email - valid email", function() {
+    const schema = {
+      type: 'object',
+      properties: {
+        email: { type: 'string', format: 'email' }
+      },
+      required: ['email']
+    };
+    expect(res.getBody()).to.have.jsonSchema(schema);
+  });
+
+  test("format: uri - valid URI", function() {
+    const schema = {
+      type: 'object',
+      properties: {
+        website: { type: 'string', format: 'uri' }
+      },
+      required: ['website']
+    };
+    expect(res.getBody()).to.have.jsonSchema(schema);
+  });
+
+  test("format: date-time - valid ISO 8601 date-time", function() {
+    const schema = {
+      type: 'object',
+      properties: {
+        createdAt: { type: 'string', format: 'date-time' }
+      },
+      required: ['createdAt']
+    };
+    expect(res.getBody()).to.have.jsonSchema(schema);
+  });
+
+  test("format: date - valid date", function() {
+    const schema = {
+      type: 'object',
+      properties: {
+        birthDate: { type: 'string', format: 'date' }
+      },
+      required: ['birthDate']
+    };
+    expect(res.getBody()).to.have.jsonSchema(schema);
+  });
+
+  test("format: time - valid time", function() {
+    const schema = {
+      type: 'object',
+      properties: {
+        loginTime: { type: 'string', format: 'time' }
+      },
+      required: ['loginTime']
+    };
+    expect(res.getBody()).to.have.jsonSchema(schema);
+  });
+
+  test("format: ipv4 - valid IPv4 address", function() {
+    const schema = {
+      type: 'object',
+      properties: {
+        ipv4: { type: 'string', format: 'ipv4' }
+      },
+      required: ['ipv4']
+    };
+    expect(res.getBody()).to.have.jsonSchema(schema);
+  });
+
+  test("format: ipv6 - valid IPv6 address", function() {
+    const schema = {
+      type: 'object',
+      properties: {
+        ipv6: { type: 'string', format: 'ipv6' }
+      },
+      required: ['ipv6']
+    };
+    expect(res.getBody()).to.have.jsonSchema(schema);
+  });
+
+  test("format: uuid - valid UUID", function() {
+    const schema = {
+      type: 'object',
+      properties: {
+        id: { type: 'string', format: 'uuid' }
+      },
+      required: ['id']
+    };
+    expect(res.getBody()).to.have.jsonSchema(schema);
+  });
+
+  test("format: byte - valid base64 string", function() {
+    const schema = {
+      type: 'object',
+      properties: {
+        encodedData: { type: 'string', format: 'byte' }
+      },
+      required: ['encodedData']
+    };
+    expect(res.getBody()).to.have.jsonSchema(schema);
+  });
+
+  test("format: int32 - valid 32-bit integer", function() {
+    const schema = {
+      type: 'object',
+      properties: {
+        int32Val: { type: 'integer', format: 'int32' }
+      },
+      required: ['int32Val']
+    };
+    expect(res.getBody()).to.have.jsonSchema(schema);
+  });
+
+  test("format: int64 - valid 64-bit integer", function() {
+    const schema = {
+      type: 'object',
+      properties: {
+        int64Val: { type: 'integer', format: 'int64' }
+      },
+      required: ['int64Val']
+    };
+    expect(res.getBody()).to.have.jsonSchema(schema);
+  });
+
+  test("format: float - valid float", function() {
+    const schema = {
+      type: 'object',
+      properties: {
+        floatVal: { type: 'number', format: 'float' }
+      },
+      required: ['floatVal']
+    };
+    expect(res.getBody()).to.have.jsonSchema(schema);
+  });
+
+  test("format: double - valid double", function() {
+    const schema = {
+      type: 'object',
+      properties: {
+        doubleVal: { type: 'number', format: 'double' }
+      },
+      required: ['doubleVal']
+    };
+    expect(res.getBody()).to.have.jsonSchema(schema);
+  });
+
+  test("format: duration - valid ISO 8601 duration", function() {
+    const schema = {
+      type: 'object',
+      properties: {
+        duration: { type: 'string', format: 'duration' }
+      },
+      required: ['duration']
+    };
+    expect(res.getBody()).to.have.jsonSchema(schema);
+  });
+
+  test("format: hostname - valid hostname", function() {
+    const schema = {
+      type: 'object',
+      properties: {
+        hostname: { type: 'string', format: 'hostname' }
+      },
+      required: ['hostname']
+    };
+    expect(res.getBody()).to.have.jsonSchema(schema);
+  });
+
+  test("format: regex - valid regex pattern", function() {
+    const schema = {
+      type: 'object',
+      properties: {
+        regexPattern: { type: 'string', format: 'regex' }
+      },
+      required: ['regexPattern']
+    };
+    expect(res.getBody()).to.have.jsonSchema(schema);
+  });
+
+  test("format: json-pointer - valid JSON pointer", function() {
+    const schema = {
+      type: 'object',
+      properties: {
+        jsonPointer: { type: 'string', format: 'json-pointer' }
+      },
+      required: ['jsonPointer']
+    };
+    expect(res.getBody()).to.have.jsonSchema(schema);
+  });
+
+  test("format: uri-reference - valid URI reference", function() {
+    const schema = {
+      type: 'object',
+      properties: {
+        uriRef: { type: 'string', format: 'uri-reference' }
+      },
+      required: ['uriRef']
+    };
+    expect(res.getBody()).to.have.jsonSchema(schema);
+  });
+
+  test("format: uri-template - valid URI template", function() {
+    const schema = {
+      type: 'object',
+      properties: {
+        uriTemplate: { type: 'string', format: 'uri-template' }
+      },
+      required: ['uriTemplate']
+    };
+    expect(res.getBody()).to.have.jsonSchema(schema);
+  });
+
+  test("Multiple formats in one schema", function() {
+    const schema = {
+      type: 'object',
+      properties: {
+        email: { type: 'string', format: 'email' },
+        website: { type: 'string', format: 'uri' },
+        createdAt: { type: 'string', format: 'date-time' },
+        ipv4: { type: 'string', format: 'ipv4' },
+        id: { type: 'string', format: 'uuid' },
+        encodedData: { type: 'string', format: 'byte' },
+        int32Val: { type: 'integer', format: 'int32' },
+        floatVal: { type: 'number', format: 'float' },
+        duration: { type: 'string', format: 'duration' },
+        hostname: { type: 'string', format: 'hostname' }
+      },
+      required: ['email', 'website', 'createdAt', 'ipv4', 'id', 'encodedData', 'int32Val', 'floatVal', 'duration', 'hostname']
+    };
+    expect(res.getBody()).to.have.jsonSchema(schema);
+  });
+
+  // --- ajv-formats: Failure validations ---
+
+  test("format: email - rejects non-email string", function() {
+    const schema = {
+      type: 'object',
+      properties: {
+        name: { type: 'string', format: 'email' }
+      },
+      required: ['name']
+    };
+    expect(res.getBody()).to.not.have.jsonSchema(schema);
+  });
+
+  test("format: uri - rejects non-URI string", function() {
+    const schema = {
+      type: 'object',
+      properties: {
+        name: { type: 'string', format: 'uri' }
+      },
+      required: ['name']
+    };
+    expect(res.getBody()).to.not.have.jsonSchema(schema);
+  });
+
+  test("format: date-time - rejects plain date string", function() {
+    const schema = {
+      type: 'object',
+      properties: {
+        birthDate: { type: 'string', format: 'date-time' }
+      },
+      required: ['birthDate']
+    };
+    expect(res.getBody()).to.not.have.jsonSchema(schema);
+  });
+
+  test("format: ipv4 - rejects non-IP string", function() {
+    const schema = {
+      type: 'object',
+      properties: {
+        name: { type: 'string', format: 'ipv4' }
+      },
+      required: ['name']
+    };
+    expect(res.getBody()).to.not.have.jsonSchema(schema);
+  });
+
+  test("format: uuid - rejects non-UUID string", function() {
+    const schema = {
+      type: 'object',
+      properties: {
+        name: { type: 'string', format: 'uuid' }
+      },
+      required: ['name']
+    };
+    expect(res.getBody()).to.not.have.jsonSchema(schema);
+  });
+
+  test("format: byte - rejects non-base64 string", function() {
+    const schema = {
+      type: 'object',
+      properties: {
+        email: { type: 'string', format: 'byte' }
+      },
+      required: ['email']
+    };
+    expect(res.getBody()).to.not.have.jsonSchema(schema);
+  });
+
+  test("format: int32 - rejects value exceeding 32-bit range", function() {
+    const schema = {
+      type: 'object',
+      properties: {
+        int64Val: { type: 'integer', format: 'int32' }
+      },
+      required: ['int64Val']
+    };
+    expect(res.getBody()).to.not.have.jsonSchema(schema);
+  });
+
+  test("format: float - rejects non-number field", function() {
+    const schema = {
+      type: 'object',
+      properties: {
+        name: { type: 'number', format: 'float' }
+      },
+      required: ['name']
+    };
+    expect(res.getBody()).to.not.have.jsonSchema(schema);
+  });
+
+  test("format: duration - rejects non-duration string", function() {
+    const schema = {
+      type: 'object',
+      properties: {
+        name: { type: 'string', format: 'duration' }
+      },
+      required: ['name']
+    };
+    expect(res.getBody()).to.not.have.jsonSchema(schema);
+  });
+
+  test("format: hostname - rejects invalid hostname", function() {
+    const schema = {
+      type: 'object',
+      properties: {
+        email: { type: 'string', format: 'hostname' }
+      },
+      required: ['email']
+    };
+    expect(res.getBody()).to.not.have.jsonSchema(schema);
+  });
+
+  test("format: json-pointer - rejects non-pointer string", function() {
+    const schema = {
+      type: 'object',
+      properties: {
+        name: { type: 'string', format: 'json-pointer' }
+      },
+      required: ['name']
+    };
+    expect(res.getBody()).to.not.have.jsonSchema(schema);
+  });
+
+  test("format: date - rejects non-date string", function() {
+    const schema = {
+      type: 'object',
+      properties: {
+        name: { type: 'string', format: 'date' }
+      },
+      required: ['name']
+    };
+    expect(res.getBody()).to.not.have.jsonSchema(schema);
+  });
+
+  test("format: time - rejects non-time string", function() {
+    const schema = {
+      type: 'object',
+      properties: {
+        name: { type: 'string', format: 'time' }
+      },
+      required: ['name']
+    };
+    expect(res.getBody()).to.not.have.jsonSchema(schema);
+  });
+
+  test("format: ipv6 - rejects non-IPv6 string", function() {
+    const schema = {
+      type: 'object',
+      properties: {
+        name: { type: 'string', format: 'ipv6' }
+      },
+      required: ['name']
+    };
+    expect(res.getBody()).to.not.have.jsonSchema(schema);
+  });
+
+  test("format: int64 - rejects non-integer field", function() {
+    const schema = {
+      type: 'object',
+      properties: {
+        name: { type: 'integer', format: 'int64' }
+      },
+      required: ['name']
+    };
+    expect(res.getBody()).to.not.have.jsonSchema(schema);
+  });
+
+  test("format: double - rejects non-number field", function() {
+    const schema = {
+      type: 'object',
+      properties: {
+        name: { type: 'number', format: 'double' }
+      },
+      required: ['name']
+    };
+    expect(res.getBody()).to.not.have.jsonSchema(schema);
+  });
+
+  test("format: regex - rejects invalid regex pattern", function() {
+    const schema = {
+      type: 'object',
+      properties: {
+        invalidRegex: { type: 'string', format: 'regex' }
+      },
+      required: ['invalidRegex']
+    };
+    expect(res.getBody()).to.not.have.jsonSchema(schema);
+  });
+
+  test("format: uri-reference - rejects invalid URI reference string", function() {
+    const schema = {
+      type: 'object',
+      properties: {
+        invalidRegex: { type: 'string', format: 'uri-reference' }
+      },
+      required: ['invalidRegex']
+    };
+    expect(res.getBody()).to.not.have.jsonSchema(schema);
+  });
+
+  test("format: uri-template - rejects invalid URI template string", function() {
+    const schema = {
+      type: 'object',
+      properties: {
+        invalidUriTemplate: { type: 'string', format: 'uri-template' }
+      },
+      required: ['invalidUriTemplate']
+    };
+    expect(res.getBody()).to.not.have.jsonSchema(schema);
+  });
+
+  // --- Failure validations ---
+
+  test("Type mismatch - schema expects array, response is object", function() {
+    const schema = { type: 'array' };
+    let failed = false;
+    try {
+      expect(res.getBody()).to.have.jsonSchema(schema);
+    } catch (e) {
+      failed = true;
+    }
+    expect(failed).to.be.true;
+  });
+
+  test("Missing required field", function() {
+    const schema = {
+      type: 'object',
+      required: ['nonExistentField']
+    };
+    let failed = false;
+    try {
+      expect(res.getBody()).to.have.jsonSchema(schema);
+    } catch (e) {
+      failed = true;
+    }
+    expect(failed).to.be.true;
+  });
+
+  test("additionalProperties false rejects extra fields", function() {
+    const schema = {
+      type: 'object',
+      properties: {
+        name: { type: 'string' }
+      },
+      additionalProperties: false
+    };
+    let failed = false;
+    try {
+      expect(res.getBody()).to.have.jsonSchema(schema);
+    } catch (e) {
+      failed = true;
+    }
+    expect(failed).to.be.true;
+  });
+
+  test("Enum mismatch", function() {
+    const schema = {
+      type: 'object',
+      properties: {
+        status: {
+          type: 'string',
+          enum: ['deleted', 'archived']
+        }
+      },
+      required: ['status']
+    };
+    let failed = false;
+    try {
+      expect(res.getBody()).to.have.jsonSchema(schema);
+    } catch (e) {
+      failed = true;
+    }
+    expect(failed).to.be.true;
+  });
+
+  test("Pattern mismatch - name does not match digits-only", function() {
+    const schema = {
+      type: 'object',
+      properties: {
+        name: {
+          type: 'string',
+          pattern: '^[0-9]+$'
+        }
+      },
+      required: ['name']
+    };
+    let failed = false;
+    try {
+      expect(res.getBody()).to.have.jsonSchema(schema);
+    } catch (e) {
+      failed = true;
+    }
+    expect(failed).to.be.true;
+  });
+
+  // --- Malformed schema (ajv.compile error) ---
+
+  test("Malformed schema - invalid type throws assertion error", function() {
+    const schema = { type: 'invalidType' };
+    expect(() => expect(res.getBody()).to.have.jsonSchema(schema)).to.throw('JSON schema compile error');
+  });
+
+  // --- .not (negation) validations ---
+
+  test(".not with mismatched type - body is object, not array", function() {
+    const schema = { type: 'array' };
+    expect(res.getBody()).to.not.have.jsonSchema(schema);
+  });
+
+  test(".not with missing required field", function() {
+    const schema = {
+      type: 'object',
+      required: ['nonExistent']
+    };
+    expect(res.getBody()).to.not.have.jsonSchema(schema);
+  });
+
+  test(".not fails when schema actually matches", function() {
+    const schema = { type: 'object' };
+    let failed = false;
+    try {
+      expect(res.getBody()).to.not.have.jsonSchema(schema);
+    } catch (e) {
+      failed = true;
+    }
+    expect(failed).to.be.true;
+  });
+
+  // --- not.to.have (negation) validations ---
+
+  test("not.to.have with mismatched type - body is object, not array", function() {
+    const schema = { type: 'array' };
+    expect(res.getBody()).not.to.have.jsonSchema(schema);
+  });
+
+  test("not.to.have with missing required field", function() {
+    const schema = {
+      type: 'object',
+      required: ['nonExistent']
+    };
+    expect(res.getBody()).not.to.have.jsonSchema(schema);
+  });
+
+  test("not.to.have fails when schema actually matches", function() {
+    const schema = { type: 'object' };
+    let failed = false;
+    try {
+      expect(res.getBody()).not.to.have.jsonSchema(schema);
+    } catch (e) {
+      failed = true;
+    }
+    expect(failed).to.be.true;
+  });
+
+  // --- to.have.not (negation) validations ---
+
+  test("to.have.not with mismatched type - body is object, not array", function() {
+    const schema = { type: 'array' };
+    expect(res.getBody()).to.have.not.jsonSchema(schema);
+  });
+
+  test("to.have.not with missing required field", function() {
+    const schema = {
+      type: 'object',
+      required: ['nonExistent']
+    };
+    expect(res.getBody()).to.have.not.jsonSchema(schema);
+  });
+
+  test("to.have.not fails when schema actually matches", function() {
+    const schema = { type: 'object' };
+    let failed = false;
+    try {
+      expect(res.getBody()).to.have.not.jsonSchema(schema);
+    } catch (e) {
+      failed = true;
+    }
+    expect(failed).to.be.true;
+  });
+}

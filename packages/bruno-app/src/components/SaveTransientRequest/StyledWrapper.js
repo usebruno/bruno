@@ -1,0 +1,534 @@
+import styled from 'styled-components';
+
+const StyledWrapper = styled.div`
+  .bruno-modal-card.modal-sm {
+    width: 500px;
+  }
+
+  .save-request-form {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+
+  .form-section {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .form-label {
+    display: block;
+    font-weight: 500;
+    margin-bottom: 8px;
+    color: ${(props) => props.theme.text};
+  }
+
+  .form-input {
+    display: block;
+    width: 100%;
+    line-height: 1.42857143;
+    padding: 0.45rem;
+    border-radius: ${(props) => props.theme.border.radius.sm};
+    background-color: ${(props) => props.theme.input.bg};
+    border: 1px solid ${(props) => props.theme.input.border};
+    color: ${(props) => props.theme.text};
+    transition: border-color ease-in-out 0.1s;
+
+    &:focus {
+      border: solid 1px ${(props) => props.theme.input.focusBorder} !important;
+      outline: none !important;
+    }
+  }
+
+  .collections-section {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .collections-label {
+    display: block;
+    font-weight: 500;
+    margin-bottom: 8px;
+    color: ${(props) => props.theme.text};
+  }
+
+  .collection-name {
+    display: flex;
+    align-items: center;
+    font-size: 14px;
+    margin-bottom: 12px;
+    color: ${(props) => props.theme.colors.text.muted};
+    min-width: 0;
+  }
+
+  .collection-name-clickable {
+    cursor: pointer;
+  }
+
+  .collection-name-breadcrumb {
+    cursor: pointer;
+  }
+
+  .collection-name-chevron {
+    margin: 0 4px;
+    flex-shrink: 0;
+  }
+
+  .breadcrumb-container {
+    display: flex;
+    align-items: center;
+    overflow: hidden;
+    white-space: nowrap;
+    min-width: 0;
+  }
+
+  .breadcrumb-collection-name,
+  .breadcrumb-last {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 40px;
+    flex: 0 1 auto;
+  }
+
+  .breadcrumb-ellipsis-btn {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    padding: 2px 4px;
+    border-radius: ${(props) => props.theme.border.radius.sm};
+    flex-shrink: 0;
+    color: ${(props) => props.theme.colors.text.yellow};
+
+    &:hover {
+      background-color: ${(props) => props.theme.plainGrid.hoverBg};
+    }
+  }
+
+  .breadcrumb-dropdown {
+    min-width: 120px;
+    max-width: 250px;
+
+    .dropdown-item {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+  }
+
+  .search-container {
+    margin-bottom: 12px;
+  }
+
+  .folder-list {
+    border: 1px solid ${(props) => props.theme.border.border1};
+    border-radius: ${(props) => props.theme.border.radius.sm};
+    max-height: 256px;
+    overflow-y: auto;
+    background-color: ${(props) => props.theme.modal.body.bg};
+    padding: 8px 8px;
+  }
+
+  .folder-list-items {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    border-radius: ${(props) => props.theme.border.radius.sm};
+  }
+
+  .folder-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 12px;
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+    color: ${(props) => props.theme.text};
+    border-radius: ${(props) => props.theme.border.radius.sm};
+    user-select: none;
+    &:hover {
+      background-color: ${(props) => props.theme.plainGrid.hoverBg};
+    }
+
+    &.selected {
+      background-color: ${(props) => props.theme.plainGrid.hoverBg};
+    }
+  }
+
+  .folder-item-content {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    overflow: hidden;
+
+    svg {
+      flex-shrink: 0;
+    }
+  }
+
+  .folder-item-name {
+    color: ${(props) => props.theme.text};
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .folder-empty-state {
+    padding: 16px 12px;
+    text-align: center;
+    font-size: 14px;
+    color: ${(props) => props.theme.colors.text.muted};
+  }
+
+  .collection-list {
+    border: 1px solid ${(props) => props.theme.border.border1};
+    border-radius: ${(props) => props.theme.border.radius.sm};
+    max-height: 320px;
+    overflow-y: auto;
+    background-color: ${(props) => props.theme.modal.body.bg};
+    padding: 8px 8px;
+  }
+
+  .collection-list-items {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    border-radius: ${(props) => props.theme.border.radius.sm};
+  }
+
+  .collection-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 14px;
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+    color: ${(props) => props.theme.text};
+    border-radius: ${(props) => props.theme.border.radius.sm};
+    user-select: none;
+    border: 1px solid ${(props) => props.theme.border.border1};
+    overflow: hidden;
+
+    &:hover {
+      background-color: ${(props) => props.theme.plainGrid.hoverBg};
+      border-color: ${(props) => props.theme.colors.text.muted};
+    }
+  }
+
+  .collection-item-content {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+    overflow: hidden;
+
+    svg {
+      flex-shrink: 0;
+    }
+  }
+
+  .collection-item-name {
+    color: ${(props) => props.theme.text};
+    font-weight: 500;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .collection-empty-state {
+    padding: 20px 16px;
+    text-align: center;
+    font-size: 14px;
+    color: ${(props) => props.theme.colors.text.muted};
+    line-height: 1.5;
+  }
+
+  .animate-spin {
+    animation: spin 1s linear infinite;
+  }
+
+  @keyframes spin {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  .icon-success {
+    color: ${(props) => props.theme.colors.success};
+  }
+
+  .custom-modal-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 0px 0px 0px;
+    background-color: ${(props) => props.theme.modal.body.bg};
+    border-top: 1px solid ${(props) => props.theme.border.border0};
+    border-bottom-left-radius: ${(props) => props.theme.border.radius.base};
+    border-bottom-right-radius: ${(props) => props.theme.border.radius.base};
+  }
+
+  .footer-left {
+    display: flex;
+    align-items: center;
+  }
+
+  .footer-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .text-muted {
+    color: ${(props) => props.theme.colors.text.muted};
+  }
+
+  .new-folder-item {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 10px 12px;
+    border-top: 1px solid ${(props) => props.theme.border.border1};
+    margin-top: 4px;
+    padding-top: 12px;
+  }
+
+  .new-folder-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 4px;
+  }
+
+  .new-folder-header-label {
+    font-size: 13px;
+    font-weight: 500;
+    color: ${(props) => props.theme.text};
+  }
+
+  .new-folder-input-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .new-folder-input {
+    flex: 1;
+    padding: 6px 8px;
+    border-radius: ${(props) => props.theme.border.radius.sm};
+    background-color: ${(props) => props.theme.input.bg};
+    border: 1px solid ${(props) => props.theme.input.border};
+    color: ${(props) => props.theme.text};
+    font-size: 14px;
+    transition: border-color ease-in-out 0.1s;
+
+    &:focus {
+      border: solid 1px ${(props) => props.theme.input.focusBorder} !important;
+      outline: none !important;
+    }
+
+    &::placeholder {
+      color: ${(props) => props.theme.colors.text.muted};
+    }
+  }
+
+  .new-folder-actions {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .new-folder-action-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px;
+    border: none;
+    background: transparent;
+    color: ${(props) => props.theme.colors.text.muted};
+    cursor: pointer;
+    border-radius: ${(props) => props.theme.border.radius.sm};
+    transition: all 0.15s ease;
+
+    &:hover {
+      background-color: ${(props) => props.theme.plainGrid.hoverBg};
+      color: ${(props) => props.theme.text};
+    }
+
+    &:active {
+      opacity: 0.7;
+    }
+  }
+
+  .new-folder-filesystem-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .new-folder-filesystem-label {
+    font-size: 13px;
+    font-weight: 500;
+    color: ${(props) => props.theme.text};
+  }
+
+  .filesystem-input-container {
+    display: flex;
+    align-items: center;
+    background: ${(props) => props.theme.requestTabPanel.url.bg};
+    border-radius: 4px;
+    padding: 8px 12px;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    margin-top: 8px;
+  }
+
+  .filesystem-input-icon {
+    flex-shrink: 0;
+    margin-right: 8px;
+    color: ${(props) => props.theme.colors.text.yellow};
+  }
+
+  .filesystem-input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: ${(props) => props.theme.colors.text.yellow};
+    font-size: ${(props) => props.theme.font.size.base};
+
+    &::placeholder {
+      color: ${(props) => props.theme.colors.text.muted};
+    }
+  }
+
+  .new-folder-toggle-filesystem-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 8px;
+    margin-top: 4px;
+    border: none;
+    background: transparent;
+    color: ${(props) => props.theme.colors.text.muted};
+    cursor: pointer;
+    border-radius: ${(props) => props.theme.border.radius.sm};
+    font-size: 12px;
+    transition: all 0.15s ease;
+    align-self: flex-start;
+
+    &:hover {
+      background-color: ${(props) => props.theme.plainGrid.hoverBg};
+      color: ${(props) => props.theme.text};
+    }
+  }
+
+  .new-folder-error {
+    color: ${(props) => props.theme.colors.danger};
+    font-size: 12px;
+    margin-top: 4px;
+  }
+
+  /* New Collection Input Styles */
+  .new-collection-item {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 12px;
+    border-top: 1px solid ${(props) => props.theme.border.border1};
+    margin-top: 4px;
+
+    &:first-child {
+      border-top: none;
+      margin-top: 0;
+    }
+  }
+
+  .new-collection-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .new-collection-label {
+    font-size: 13px;
+    font-weight: 500;
+    color: ${(props) => props.theme.text};
+  }
+
+  .new-collection-input {
+    width: 100%;
+    padding: 8px 10px;
+    border-radius: ${(props) => props.theme.border.radius.sm};
+    background-color: ${(props) => props.theme.input.bg};
+    border: 1px solid ${(props) => props.theme.input.border};
+    color: ${(props) => props.theme.text};
+    font-size: 14px;
+    transition: border-color ease-in-out 0.1s;
+
+    &:focus {
+      border: solid 1px ${(props) => props.theme.input.focusBorder} !important;
+      outline: none !important;
+    }
+
+    &::placeholder {
+      color: ${(props) => props.theme.colors.text.muted};
+    }
+
+    &.cursor-pointer {
+      cursor: pointer;
+    }
+  }
+
+  .new-collection-location-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .new-collection-select {
+    width: 100%;
+    padding: 8px 10px;
+    padding-right: 28px;
+    border-radius: ${(props) => props.theme.border.radius.sm};
+    background-color: ${(props) => props.theme.input.bg};
+    border: 1px solid ${(props) => props.theme.input.border};
+    color: ${(props) => props.theme.text};
+    font-size: 14px;
+    cursor: pointer;
+    transition: border-color ease-in-out 0.1s;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23666' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+
+    &:focus {
+      border: solid 1px ${(props) => props.theme.input.focusBorder} !important;
+      outline: none !important;
+    }
+  }
+
+  .new-collection-actions-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 4px;
+  }
+
+  .collection-empty-state-subtitle {
+    font-size: 12px;
+    margin-top: 4px;
+    opacity: 0.8;
+  }
+`;
+
+export default StyledWrapper;

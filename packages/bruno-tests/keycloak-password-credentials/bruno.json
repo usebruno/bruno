@@ -1,0 +1,9 @@
+{
+  "version": "1",
+  "name": "keycloak-password-credentials",
+  "type": "collection",
+  "ignore": [
+    "node_modules",
+    ".git"
+  ]
+}

@@ -81,7 +81,7 @@ const AssertionOperator = ({ operator, onChange }) => {
   };
 
   return (
-    <select value={operator} onChange={handleChange} className="mousetrap">
+    <select value={operator} onChange={handleChange} className="mousetrap" data-testid="assertion-operator-select">
       {operators.map((operator) => (
         <option key={operator} value={operator}>
           {getLabel(operator)}

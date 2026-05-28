@@ -1,0 +1,9 @@
+{
+  "version": "1",
+  "name": "Environment Import Test Collection",
+  "type": "collection",
+  "ignore": [
+    "node_modules",
+    ".git"
+  ]
+}

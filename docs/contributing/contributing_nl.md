@@ -40,6 +40,8 @@ npm i --legacy-peer-deps
 npm run build:graphql-docs
 npm run build:bruno-query
 npm run build:bruno-common
+npm run build:bruno-converters
+npm run build:bruno-requests
 
 # draai next app (terminal 1)
 npm run dev:web
@@ -65,11 +67,11 @@ find . -type f -name "package-lock.json" -delete
 ### Testen
 
 ```bash
-# bruno-schema
+# voer bruno-schema tests uit
 npm test --workspace=packages/bruno-schema
 
-# bruno-lang
-npm test --workspace=packages/bruno-lang
+# voer tests uit over alle werkruimten
+npm test --workspaces --if-present
 ```
 
 ### Pull Requests indienen

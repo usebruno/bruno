@@ -1,130 +1,101 @@
-import React, { useState } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
-import {
-  IconSearch,
-  IconFolders,
-  IconArrowsSort,
-  IconSortAscendingLetters,
-  IconSortDescendingLetters,
-  IconX
-} from '@tabler/icons';
-import Collection from '../Collections/Collection';
-import CreateCollection from '../CreateCollection';
+import React, { useState, useMemo } from 'react';
+import { useSelector } from 'react-redux';
+import Collection from './Collection';
+import GitRemoteCollectionRow from './GitRemoteCollectionRow';
 import StyledWrapper from './StyledWrapper';
 import CreateOrOpenCollection from './CreateOrOpenCollection';
-import { DndProvider } from 'react-dnd';
-import { HTML5Backend } from 'react-dnd-html5-backend';
-import { sortCollections } from 'providers/ReduxStore/slices/collections/actions';
+import CollectionSearch from './CollectionSearch/index';
+import InlineCollectionCreator from './InlineCollectionCreator';
+import path, { normalizePath } from 'utils/common/path';
+import { isScratchCollection } from 'utils/collections';
 
-// todo: move this to a separate folder
-// the coding convention is to keep all the components in a folder named after the component
-const CollectionsBadge = () => {
-  const dispatch = useDispatch();
-  const { collections } = useSelector((state) => state.collections);
-  const { collectionSortOrder } = useSelector((state) => state.collections);
-  const sortCollectionOrder = () => {
-    let order;
-    switch (collectionSortOrder) {
-      case 'default':
-        order = 'alphabetical';
-        break;
-      case 'alphabetical':
-        order = 'reverseAlphabetical';
-        break;
-      case 'reverseAlphabetical':
-        order = 'default';
-        break;
-    }
-    dispatch(sortCollections({ order }));
-  };
-  return (
-    <div className="items-center mt-2 relative">
-      <div className="collections-badge flex items-center justify-between px-2">
-        <div className="flex items-center  py-1 select-none">
-          <span className="mr-2">
-            <IconFolders size={18} strokeWidth={1.5} />
-          </span>
-          <span>Collections</span>
-        </div>
-        {collections.length >= 1 && (
-          <button onClick={() => sortCollectionOrder()}>
-            {collectionSortOrder == 'default' ? (
-              <IconArrowsSort size={18} strokeWidth={1.5} />
-            ) : collectionSortOrder == 'alphabetical' ? (
-              <IconSortAscendingLetters size={18} strokeWidth={1.5} />
-            ) : (
-              <IconSortDescendingLetters size={18} strokeWidth={1.5} />
-            )}
-          </button>
-        )}
-      </div>
-    </div>
-  );
+const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' });
+
+const getSidebarEntryName = (entry) => {
+  if (entry.kind === 'loaded') {
+    return entry.collection?.name || '';
+  }
+
+  return entry.entry?.name || path.basename(entry.entry?.path || '');
 };
 
-const Collections = () => {
+const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismissCreate, onOpenAdvancedCreate }) => {
   const [searchText, setSearchText] = useState('');
-  const { collections } = useSelector((state) => state.collections);
-  const [createCollectionModalOpen, setCreateCollectionModalOpen] = useState(false);
+  const { collections, collectionSortOrder } = useSelector((state) => state.collections);
+  const { workspaces, activeWorkspaceUid } = useSelector((state) => state.workspaces);
 
-  if (!collections || !collections.length) {
+  const activeWorkspace = workspaces.find((w) => w.uid === activeWorkspaceUid) || workspaces.find((w) => w.type === 'default');
+  const isDefaultWorkspace = activeWorkspace?.type === 'default';
+
+  // Build the sidebar list in workspace.yml order. Each entry is either a fully
+  // loaded collection (rendered via <Collection />) or, for non-default workspaces,
+  // a "ghost" git-backed entry whose local folder is missing (rendered via
+  // <GitRemoteCollectionRow /> so the user can click to clone it).
+  const sidebarEntries = useMemo(() => {
+    if (!activeWorkspace?.collections?.length) return [];
+
+    const loadedByPath = new Map();
+    for (const c of collections) {
+      if (isScratchCollection(c, workspaces)) continue;
+      if (c.pathname) loadedByPath.set(normalizePath(c.pathname), c);
+    }
+
+    const entries = [];
+    for (const wc of activeWorkspace.collections) {
+      if (!wc.path) continue;
+      const loaded = loadedByPath.get(normalizePath(wc.path));
+      if (loaded) {
+        entries.push({ kind: 'loaded', collection: loaded, key: loaded.uid });
+      } else if (wc.remote && !isDefaultWorkspace) {
+        entries.push({ kind: 'ghost', entry: wc, key: `ghost:${wc.path}` });
+      }
+    }
+    if (collectionSortOrder === 'alphabetical') {
+      return [...entries].sort((a, b) => collator.compare(getSidebarEntryName(a), getSidebarEntryName(b)));
+    }
+
+    if (collectionSortOrder === 'reverseAlphabetical') {
+      return [...entries].sort((a, b) => -collator.compare(getSidebarEntryName(a), getSidebarEntryName(b)));
+    }
+
+    return entries;
+  }, [activeWorkspace, collections, workspaces, isDefaultWorkspace, collectionSortOrder]);
+
+  if (!sidebarEntries.length) {
     return (
       <StyledWrapper>
-        <CollectionsBadge />
-        <CreateOrOpenCollection />
+        {isCreatingCollection && (
+          <InlineCollectionCreator
+            onComplete={onDismissCreate}
+            onCancel={onDismissCreate}
+            onOpenAdvanced={onOpenAdvancedCreate}
+          />
+        )}
+        {!isCreatingCollection && <CreateOrOpenCollection onCreateClick={onCreateClick} />}
       </StyledWrapper>
     );
   }
 
   return (
-    <StyledWrapper>
-      {createCollectionModalOpen ? <CreateCollection onClose={() => setCreateCollectionModalOpen(false)} /> : null}
+    <StyledWrapper data-testid="collections">
+      {showSearch && (
+        <CollectionSearch searchText={searchText} setSearchText={setSearchText} />
+      )}
 
-      <CollectionsBadge />
-
-      <div className="mt-4 relative collection-filter px-2">
-        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-          <span className="text-gray-500 sm:text-sm">
-            <IconSearch size={16} strokeWidth={1.5} />
-          </span>
-        </div>
-        <input
-          type="text"
-          name="search"
-          placeholder="search"
-          id="search"
-          autoComplete="off"
-          autoCorrect="off"
-          autoCapitalize="off"
-          spellCheck="false"
-          className="block w-full pl-7 py-1 sm:text-sm"
-          value={searchText}
-          onChange={(e) => setSearchText(e.target.value.toLowerCase())}
-        />
-        {searchText !== '' && (
-          <div className="absolute inset-y-0 right-0 pr-4 flex items-center">
-            <span
-              className="close-icon"
-              onClick={() => {
-                setSearchText('');
-              }}
-            >
-              <IconX size={16} strokeWidth={1.5} className="cursor-pointer" />
-            </span>
-          </div>
+      <div className="collections-list">
+        {isCreatingCollection && (
+          <InlineCollectionCreator
+            onComplete={onDismissCreate}
+            onCancel={onDismissCreate}
+            onOpenAdvanced={onOpenAdvancedCreate}
+          />
         )}
-      </div>
-
-      <div className="mt-4 flex flex-col overflow-hidden hover:overflow-y-auto absolute top-32 bottom-10 left-0 right-0">
-        {collections && collections.length
-          ? collections.map((c) => {
-              return (
-                <DndProvider backend={HTML5Backend} key={c.uid}>
-                  <Collection searchText={searchText} collection={c} key={c.uid} />
-                </DndProvider>
-              );
-            })
-          : null}
+        {sidebarEntries.map((entry) => {
+          if (entry.kind === 'loaded') {
+            return <Collection searchText={searchText} collection={entry.collection} key={entry.key} />;
+          }
+          return <GitRemoteCollectionRow entry={entry.entry} key={entry.key} />;
+        })}
       </div>
     </StyledWrapper>
   );

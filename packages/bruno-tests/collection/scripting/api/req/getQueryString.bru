@@ -1,0 +1,29 @@
+meta {
+  name: getQueryString
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{host}}/ping?page=1&limit=10&sort=desc
+  body: none
+  auth: none
+}
+
+params:query {
+  page: 1
+  limit: 10
+  sort: desc
+}
+
+assert {
+  res.status: eq 200
+  res.body: eq pong
+}
+
+tests {
+  test("req.getQueryString()", function() {
+    const queryString = req.getQueryString();
+    expect(queryString).to.equal("page=1&limit=10&sort=desc");
+  });
+}

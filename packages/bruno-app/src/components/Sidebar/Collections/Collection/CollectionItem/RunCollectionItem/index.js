@@ -1,16 +1,26 @@
-import React from 'react';
+import React, { useState } from 'react';
 import get from 'lodash/get';
 import { uuid } from 'utils/common';
 import Modal from 'components/Modal';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { addTab } from 'providers/ReduxStore/slices/tabs';
 import { runCollectionFolder } from 'providers/ReduxStore/slices/collections/actions';
 import { flattenItems } from 'utils/collections';
 import StyledWrapper from './StyledWrapper';
 import { areItemsLoading } from 'utils/collections';
+import RunnerTags from 'components/RunnerResults/RunnerTags/index';
+import { getRequestItemsForCollectionRun } from 'utils/collections/index';
+import Button from 'ui/Button';
 
-const RunCollectionItem = ({ collection, item, onClose }) => {
+const RunCollectionItem = ({ collectionUid, item, onClose }) => {
   const dispatch = useDispatch();
+  const [delay, setDelay] = useState('');
+
+  const collection = useSelector((state) => state.collections.collections?.find((c) => c.uid === collectionUid));
+  const isCollectionRunInProgress = collection?.runnerResult?.info?.status && (collection?.runnerResult?.info?.status !== 'ended');
+
+  // tags for the collection run
+  const tags = get(collection, 'runnerTags', { include: [], exclude: [] });
 
   const onSubmit = (recursive) => {
     dispatch(
@@ -20,60 +30,97 @@ const RunCollectionItem = ({ collection, item, onClose }) => {
         type: 'collection-runner'
       })
     );
-    dispatch(runCollectionFolder(collection.uid, item ? item.uid : null, recursive));
+    if (!isCollectionRunInProgress) {
+      dispatch(runCollectionFolder(collection.uid, item ? item.uid : null, recursive, delay ? Number(delay) : null, tags));
+    }
     onClose();
   };
 
-  const getRequestsCount = (items) => {
-    const requestTypes = ['http-request', 'graphql-request']
-    return items.filter(req => requestTypes.includes(req.type)).length;
-  }
-
-  const runLength = item ? getRequestsCount(item.items) : get(collection, 'items.length', 0);
-  const flattenedItems = flattenItems(item ? item.items : collection.items);
-  const recursiveRunLength = getRequestsCount(flattenedItems);
+  const handleViewRunner = (e) => {
+    e.preventDefault();
+    dispatch(
+      addTab({
+        uid: uuid(),
+        collectionUid: collection.uid,
+        type: 'collection-runner'
+      })
+    );
+    onClose();
+  };
 
   const isFolderLoading = areItemsLoading(item);
-  console.log(item);
-  console.log(isFolderLoading);
+
+  const requestItemsForRecursiveFolderRun = getRequestItemsForCollectionRun({ recursive: true, tags, items: item ? item.items : collection.items });
+  const totalRequestItemsCountForRecursiveFolderRun = requestItemsForRecursiveFolderRun.length;
+  const shouldDisableRecursiveFolderRun = totalRequestItemsCountForRecursiveFolderRun <= 0;
+
+  const requestItemsForFolderRun = getRequestItemsForCollectionRun({ recursive: false, tags, items: item ? item.items : collection.items });
+  const totalRequestItemsCountForFolderRun = requestItemsForFolderRun.length;
+  const shouldDisableFolderRun = totalRequestItemsCountForFolderRun <= 0;
 
   return (
     <StyledWrapper>
       <Modal size="md" title="Collection Runner" hideFooter={true} handleCancel={onClose}>
-        {!runLength && !recursiveRunLength ? (
-          <div className="mb-8">No request found in this folder.</div>
-        ) : (
-          <div>
-            <div className="mb-1">
-              <span className="font-medium">Run</span>
-              <span className="ml-1 text-xs">({runLength} requests)</span>
-            </div>
-            <div className="mb-8">This will only run the requests in this folder.</div>
-            <div className="mb-1">
-              <span className="font-medium">Recursive Run</span>
-              <span className="ml-1 text-xs">({recursiveRunLength} requests)</span>
-            </div>
-            <div className={isFolderLoading ? "mb-2" : "mb-8"}>This will run all the requests in this folder and all its subfolders.</div>
-            {isFolderLoading ? <div className='mb-8 warning'>Requests in this folder are still loading.</div> : null}
-            <div className="flex justify-end bruno-modal-footer">
-              <span className="mr-3">
-                <button type="button" onClick={onClose} className="btn btn-md btn-close">
-                  Cancel
-                </button>
-              </span>
-              <span>
-                <button type="submit" disabled={!recursiveRunLength} className="submit btn btn-md btn-secondary mr-3" onClick={() => onSubmit(true)}>
-                  Recursive Run
-                </button>
-              </span>
-              <span>
-                <button type="submit" disabled={!runLength} className="submit btn btn-md btn-secondary" onClick={() => onSubmit(false)}>
-                  Run
-                </button>
-              </span>
-            </div>
+        <div>
+          <div className="mb-1">
+            <span className="font-medium">Run</span>
+            <span className="ml-1 text-xs">({totalRequestItemsCountForFolderRun} requests)</span>
           </div>
-        )}
+          <div className="mb-3 description">This will only run the requests in this folder.</div>
+          <div className="mb-1">
+            <span className="font-medium">Recursive Run</span>
+            <span className="ml-1 text-xs">({totalRequestItemsCountForRecursiveFolderRun} requests)</span>
+          </div>
+          <div className={`description ${isFolderLoading ? 'mb-2' : 'mb-6'}`}>This will run all the requests in this folder and all its subfolders.</div>
+          {isFolderLoading ? <div className="mb-8 warning">Requests in this folder are still loading.</div> : null}
+          {isCollectionRunInProgress ? <div className="mb-6 warning">A Collection Run is already in progress.</div> : null}
+
+          <hr className="divider" />
+
+          {/* Timings */}
+          <div className="flex flex-col items-start gap-2 mb-8">
+            <label htmlFor="runner-delay" className="block text-sm">Delay between requests (ms)</label>
+            <input
+              id="runner-delay"
+              type="number"
+              className="textbox w-1/2"
+              placeholder="e.g. 5"
+              autoComplete="off"
+              autoCorrect="off"
+              autoCapitalize="off"
+              spellCheck="false"
+              value={delay}
+              onChange={(e) => setDelay(e.target.value)}
+            />
+          </div>
+
+          {/* Tags for the collection run */}
+          <RunnerTags collectionUid={collection.uid} className="mb-6" />
+
+          <div className="flex justify-end bruno-modal-footer">
+            <Button type="button" color="secondary" variant="ghost" onClick={onClose} className="mr-3">
+              Cancel
+            </Button>
+            {
+              isCollectionRunInProgress
+                ? (
+                    <Button type="submit" onClick={handleViewRunner}>
+                      View Run
+                    </Button>
+                  )
+                : (
+                    <>
+                      <Button type="submit" disabled={shouldDisableRecursiveFolderRun} onClick={() => onSubmit(true)} className="mr-3">
+                        Recursive Run
+                      </Button>
+                      <Button type="submit" disabled={shouldDisableFolderRun} onClick={() => onSubmit(false)}>
+                        Run
+                      </Button>
+                    </>
+                  )
+            }
+          </div>
+        </div>
       </Modal>
     </StyledWrapper>
   );

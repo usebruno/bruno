@@ -47,6 +47,10 @@ const jsonToToml = (json) => {
     }
   };
 
+  if (json.tags && json.tags.length) {
+    formattedJson.tags = get(json, 'tags', []);
+  }
+
   if (json.headers && json.headers.length) {
     const hasDuplicateHeaders = keyValPairHasDuplicateKeys(json.headers);
     const hasReservedHeaders = keyValPairHasReservedKeys(json.headers);
@@ -90,6 +94,12 @@ const jsonToToml = (json) => {
       formattedJson.script = formattedJson.script || {};
       formattedJson.script['tests'] = testsScript + '\n';
     }
+  }
+
+  if (json.settings && Object.keys(json.settings).length > 0) {
+    formattedJson.settings = {
+      encodeUrl: typeof settings.encodeUrl === 'boolean' ? settings.encodeUrl : settings.encodeUrl === 'true'
+    };
   }
 
   return stringify(formattedJson);

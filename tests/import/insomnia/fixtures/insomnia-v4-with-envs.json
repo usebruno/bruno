@@ -1,0 +1,123 @@
+{
+  "_type": "export",
+  "__export_format": 4,
+  "__export_date": "2025-01-01T12:00:00.000Z",
+  "__export_source": "insomnia.desktop.app:v10.3.1",
+  "resources": [
+    {
+      "_id": "req_fdedb34f7d5541d0aa7a917ce37ec067",
+      "parentId": "wrk_398c634c4fbc4774bcff39cbff44b31b",
+      "modified": 1689952276171,
+      "created": 1689951240510,
+      "url": "{{baseUrl}}/api/users",
+      "name": "Get Users",
+      "description": "Fetch all users from the API",
+      "method": "GET",
+      "body": {},
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Accept",
+          "value": "application/json"
+        }
+      ],
+      "authentication": {},
+      "metaSortKey": -1689951414329,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "wrk_398c634c4fbc4774bcff39cbff44b31b",
+      "parentId": null,
+      "modified": 1743678539806,
+      "created": 1743678539806,
+      "name": "Test API Collection v4 with Environments",
+      "description": "Test collection for Insomnia v4 format with environments",
+      "scope": "collection",
+      "_type": "workspace"
+    },
+    {
+      "_id": "env_93781eb62f074459bb67692112b76da0",
+      "parentId": "wrk_398c634c4fbc4774bcff39cbff44b31b",
+      "modified": 1743681240772,
+      "created": 1689951235312,
+      "name": "Base Environment",
+      "data": {
+        "baseUrl": "https://api.example.com",
+        "authToken": "your_auth_token_here",
+        "user": {
+          "name": "admin",
+          "id": 123,
+          "roles": ["admin", "user"]
+        },
+        "config": {
+          "timeout": 30000,
+          "retries": 3,
+          "debug": true
+        }
+      },
+      "dataPropertyOrder": null,
+      "color": null,
+      "isPrivate": false,
+      "metaSortKey": 1689951235312,
+      "_type": "environment"
+    },
+    {
+      "_id": "env_staging_123",
+      "parentId": "env_93781eb62f074459bb67692112b76da0",
+      "modified": 1743681240772,
+      "created": 1689951235312,
+      "name": "Staging",
+      "data": {
+        "baseUrl": "https://staging-api.example.com",
+        "user": {
+          "name": "staging_admin"
+        },
+        "config": {
+          "timeout": 60000,
+          "debug": false
+        }
+      },
+      "dataPropertyOrder": null,
+      "color": null,
+      "isPrivate": false,
+      "metaSortKey": 1689951235312,
+      "_type": "environment"
+    },
+    {
+      "_id": "env_dev_456",
+      "parentId": "env_93781eb62f074459bb67692112b76da0",
+      "modified": 1743681240772,
+      "created": 1689951235312,
+      "name": "Development",
+      "data": {
+        "baseUrl": "https://dev-api.example.com",
+        "authToken": "dev_token_123",
+        "newFeature": {
+          "enabled": true,
+          "version": 2.099123123
+        }
+      },
+      "dataPropertyOrder": null,
+      "color": null,
+      "isPrivate": false,
+      "metaSortKey": 1689951235312,
+      "_type": "environment"
+    },
+    {
+      "_id": "jar_09963a0322c24b698ecd2f866ae9a6ab",
+      "parentId": "wrk_398c634c4fbc4774bcff39cbff44b31b",
+      "modified": 1689951235313,
+      "created": 1689951235313,
+      "name": "Default Jar",
+      "cookies": [],
+      "_type": "cookie_jar"
+    }
+  ]
+}

@@ -1,0 +1,57 @@
+meta {
+  name: node-querystring
+  type: http
+  seq: 16
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+script:pre-request {
+  // Skip in safe mode - these tests require developer sandbox
+  if (bru.isSafeMode()) {
+    bru.runner.skipRequest();
+    return;
+  }
+}
+
+tests {
+  const qs = require('node:querystring');
+
+  test("querystring.parse", function() {
+    const parsed = qs.parse('foo=1&bar=2&foo=3');
+    expect(parsed.bar).to.equal('2');
+    expect(parsed.foo).to.deep.equal(['1', '3']);
+  });
+
+  test("querystring.parse with custom separators", function() {
+    const parsed = qs.parse('foo:1;bar:2', ';', ':');
+    expect(parsed.foo).to.equal('1');
+    expect(parsed.bar).to.equal('2');
+  });
+
+  test("querystring.stringify", function() {
+    expect(qs.stringify({ foo: 'bar', baz: 'qux' })).to.equal('foo=bar&baz=qux');
+    expect(qs.stringify({ foo: ['a', 'b'] })).to.equal('foo=a&foo=b');
+  });
+
+  test("querystring.stringify with custom separators", function() {
+    expect(qs.stringify({ foo: 'bar', baz: 'qux' }, ';', ':')).to.equal('foo:bar;baz:qux');
+  });
+
+  test("querystring.escape and unescape", function() {
+    expect(qs.escape('hello world')).to.equal('hello%20world');
+    expect(qs.unescape('hello%20world')).to.equal('hello world');
+  });
+
+  test("querystring roundtrip", function() {
+    const obj = { name: 'Bruno', version: '1.0' };
+    const encoded = qs.stringify(obj);
+    const decoded = qs.parse(encoded);
+    expect(decoded.name).to.equal('Bruno');
+    expect(decoded.version).to.equal('1.0');
+  });
+}

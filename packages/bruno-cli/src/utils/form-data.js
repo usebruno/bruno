@@ -39,4 +39,4 @@ const createFormData = (data, collectionPath) => {
 
 module.exports = {
   createFormData
-}
+};

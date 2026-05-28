@@ -1,0 +1,44 @@
+meta {
+  name: Get UUID
+  type: http
+  seq: 2
+}
+
+post {
+  url: https://echo.usebruno.com
+  body: json
+  auth: none
+}
+
+headers {
+  Accept: application/json
+}
+
+body:json {
+  {
+    "uuid": "49889366-72d2-4ba6-a0b7-94de29a04dc4"
+  }
+}
+
+tests {
+  test("This test will fail", function() {
+    expect(res.getStatus()).to.equal(404); // Intentional failure
+  });
+  
+  test("Status code is 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("Response is an object", function() {
+    expect(res.getBody()).to.be.an('object');
+  });
+  
+  test("Response has uuid property", function() {
+    expect(res.getBody()).to.have.property('uuid');
+  });
+  
+  test("UUID is a string", function() {
+    const body = res.getBody();
+    expect(body.uuid).to.be.a('string');
+  });
+}

@@ -1,0 +1,109 @@
+meta {
+  name: sign
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{host}}/api/echo
+  body: none
+  auth: inherit
+}
+
+script:pre-request {
+  const jwt = require('jsonwebtoken');
+  
+  const payload = {
+    userId: 123,
+    username: 'testuser',
+    role: 'admin',
+    iat: Math.floor(Date.now() / 1000)
+  };
+  
+  const secret = bru.getEnvVar('secret');
+  
+  const options = {
+    algorithm: 'HS256',
+    expiresIn: '1h'
+  };
+  
+  try {
+    console.log('Testing JWT encoding...');
+    const token = jwt.sign(payload, secret, options);
+    
+    console.log('JWT Token encoded successfully:', token);
+    
+    bru.setEnvVar('jwt_token', token);
+    
+    bru.setEnvVar('original_payload', JSON.stringify(payload));
+    
+    console.log('JWT encoding test passed!');
+    
+  } catch (error) {
+    console.error('JWT encoding failed:', error.message);
+    throw error;
+  }
+}
+
+tests {
+  const atob = require('atob')
+  
+  test("JWT token should be generated", function() {
+    const jwtToken = bru.getEnvVar('jwt_token');
+    expect(jwtToken).to.exist;
+  });
+  
+  test("JWT token should be a string", function() {
+    const jwtToken = bru.getEnvVar('jwt_token');
+    expect(typeof jwtToken).to.equal('string');
+  });
+  
+  test("JWT token should have 3 parts (header.payload.signature)", function() {
+    const jwtToken = bru.getEnvVar('jwt_token');
+    const parts = jwtToken.split('.');
+    expect(parts.length).to.equal(3);
+  });
+  
+  test("JWT token should be valid base64", function() {
+    const jwtToken = bru.getEnvVar('jwt_token');
+    const parts = jwtToken.split('.');
+    
+    // Test that each part is valid base64
+    parts.forEach((part, index) => {
+      try {
+        atob(part);
+      } catch (e) {
+        throw new Error(`JWT part ${index + 1} is not valid base64`);
+      }
+    });
+  });
+  
+  test("JWT token should contain expected payload data", function() {
+    const jwtToken = bru.getEnvVar('jwt_token');
+    const originalPayload = JSON.parse(bru.getEnvVar('original_payload'));
+    
+    // Decode the payload part (second part of JWT)
+    const parts = jwtToken.split('.');
+    const payloadPart = parts[1];
+    const decodedPayload = JSON.parse(atob(payloadPart));
+    console.log(decodedPayload)
+    
+    expect(decodedPayload.userId).to.equal(originalPayload.userId);
+    expect(decodedPayload.username).to.equal(originalPayload.username);
+    expect(decodedPayload.role).to.equal(originalPayload.role);
+  });
+  
+  test("JWT token should have proper header", function() {
+    const jwtToken = bru.getEnvVar('jwt_token');
+    const parts = jwtToken.split('.');
+    const headerPart = parts[0];
+    const header = JSON.parse(atob(headerPart));
+    
+    expect(header.alg).to.equal('HS256');
+    expect(header.typ).to.equal('JWT');
+  });
+}
+
+settings {
+  encodeUrl: true
+}

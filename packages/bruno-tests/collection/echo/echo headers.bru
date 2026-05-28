@@ -1,0 +1,22 @@
+meta {
+  name: echo headers
+  type: http
+  seq: 13
+}
+
+post {
+  url: {{echo-host}}
+  body: none
+  auth: inherit
+}
+
+headers {
+  Custom-Header-String: bruno
+}
+
+tests {
+  test("test headers",function() {
+    expect(res.getHeaders()).to.have.property("Custom-Header-String".toLowerCase())
+    expect(res.getHeaders()).to.have.property("Custom-Header-String".toLowerCase(), "bruno")
+  })
+}

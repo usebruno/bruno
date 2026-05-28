@@ -1,6 +1,6 @@
 const darkTheme = {
-  brand: '#546de5',
-  text: 'rgb(52 52 52)',
+  'brand': '#546de5',
+  'text': 'rgb(52 52 52)',
   'primary-text': '#ffffff',
   'primary-theme': '#1e1e1e',
   'secondary-text': '#929292',

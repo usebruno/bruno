@@ -1,0 +1,57 @@
+meta {
+  name: buffer
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+script:pre-request {
+  // Skip in safe mode - these tests require developer sandbox
+  if (bru.isSafeMode()) {
+    bru.runner.skipRequest();
+    return;
+  }
+}
+
+tests {
+  test("Buffer.from and toString", function() {
+    const buf = Buffer.from('hello bruno', 'utf8');
+    expect(buf.toString()).to.equal('hello bruno');
+    expect(buf.toString('base64')).to.equal('aGVsbG8gYnJ1bm8=');
+    expect(buf.toString('hex')).to.equal('68656c6c6f206272756e6f');
+    expect(buf.length).to.equal(11);
+  });
+
+  test("Buffer.from with base64 and hex", function() {
+    expect(Buffer.from('aGVsbG8=', 'base64').toString()).to.equal('hello');
+    expect(Buffer.from('68656c6c6f', 'hex').toString()).to.equal('hello');
+  });
+
+  test("Buffer.alloc", function() {
+    const buf = Buffer.alloc(10, 0);
+    expect(buf.length).to.equal(10);
+    expect(buf[0]).to.equal(0);
+  });
+
+  test("Buffer.concat", function() {
+    const result = Buffer.concat([Buffer.from('hello '), Buffer.from('world')]);
+    expect(result.toString()).to.equal('hello world');
+  });
+
+  test("Buffer.isBuffer", function() {
+    expect(Buffer.isBuffer(Buffer.from('test'))).to.equal(true);
+    expect(Buffer.isBuffer('string')).to.equal(false);
+    expect(Buffer.isBuffer(new Uint8Array(4))).to.equal(false);
+  });
+
+  test("Buffer.subarray", function() {
+    const buf = Buffer.from('hello bruno');
+    expect(buf.subarray(0, 5).toString()).to.equal('hello');
+    expect(buf.subarray(6).toString()).to.equal('bruno');
+  });
+}

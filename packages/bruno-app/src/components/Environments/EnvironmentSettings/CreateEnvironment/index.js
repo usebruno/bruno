@@ -6,14 +6,15 @@ import * as Yup from 'yup';
 import { useDispatch } from 'react-redux';
 import Portal from 'components/Portal';
 import Modal from 'components/Modal';
+import { validateName, validateNameError } from 'utils/common/regex';
 
-const CreateEnvironment = ({ collection, onClose }) => {
+const CreateEnvironment = ({ collection, onClose, onEnvironmentCreated }) => {
   const dispatch = useDispatch();
   const inputRef = useRef();
 
- const validateEnvironmentName = (name) => {
-   return !collection?.environments?.some((env) => env?.name?.toLowerCase().trim() === name?.toLowerCase().trim());
- };
+  const validateEnvironmentName = (name) => {
+    return !collection?.environments?.some((env) => env?.name?.toLowerCase().trim() === name?.toLowerCase().trim());
+  };
 
   const formik = useFormik({
     enableReinitialize: true,
@@ -23,7 +24,11 @@ const CreateEnvironment = ({ collection, onClose }) => {
     validationSchema: Yup.object({
       name: Yup.string()
         .min(1, 'Must be at least 1 character')
-        .max(50, 'Must be 50 characters or less')
+        .max(255, 'Must be 255 characters or less')
+        .test('is-valid-filename', function (value) {
+          const isValid = validateName(value);
+          return isValid ? true : this.createError({ message: validateNameError(value) });
+        })
         .required('Name is required')
         .test('duplicate-name', 'Environment already exists', validateEnvironmentName)
     }),
@@ -32,6 +37,10 @@ const CreateEnvironment = ({ collection, onClose }) => {
         .then(() => {
           toast.success('Environment created in collection');
           onClose();
+          // Call the callback if provided
+          if (onEnvironmentCreated) {
+            onEnvironmentCreated();
+          }
         })
         .catch(() => toast.error('An error occurred while creating the environment'));
     }
@@ -50,15 +59,15 @@ const CreateEnvironment = ({ collection, onClose }) => {
   return (
     <Portal>
       <Modal
-        size="sm"
-        title={'Create Environment'}
+        size="md"
+        title="Create Environment"
         confirmText="Create"
         handleConfirm={onSubmit}
         handleCancel={onClose}
       >
-        <form className="bruno-form" onSubmit={e => e.preventDefault()}>
+        <form className="bruno-form" onSubmit={(e) => e.preventDefault()}>
           <div>
-            <label htmlFor="name" className="block font-semibold">
+            <label htmlFor="name" className="block font-medium">
               Environment Name
             </label>
             <div className="flex items-center mt-2">

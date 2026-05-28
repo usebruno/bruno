@@ -1,29 +1,42 @@
-const { get, each, filter } = require('lodash');
+const get = require('lodash/get');
+const each = require('lodash/each');
+const filter = require('lodash/filter');
+const find = require('lodash/find');
 const decomment = require('decomment');
 const crypto = require('node:crypto');
-const { mergeHeaders, mergeScripts, mergeVars, getTreePathFromCollectionToItem } = require('../utils/collection');
-const { createFormData } = require('../utils/form-data');
+const fs = require('node:fs');
+const { mergeHeaders, mergeScripts, mergeVars, mergeAuth, getTreePathFromCollectionToItem } = require('../utils/collection');
+const path = require('node:path');
+const { isLargeFile } = require('../utils/filesystem');
+const { getFormattedOauth2Credentials } = require('../utils/oauth2');
 
-const prepareRequest = (item = {}, collection = {}) => {
+const STREAMING_FILE_SIZE_THRESHOLD = 20 * 1024 * 1024; // 20MB
+
+const prepareRequest = async (item = {}, collection = {}) => {
   const request = item?.request;
-  const brunoConfig = get(collection, 'brunoConfig', {});
+  const brunoConfig = collection.draft?.brunoConfig ? get(collection, 'draft.brunoConfig', {}) : get(collection, 'brunoConfig', {});
+  const collectionPath = collection?.pathname;
   const headers = {};
   let contentTypeDefined = false;
 
   const scriptFlow = brunoConfig?.scripts?.flow ?? 'sandwich';
   const requestTreePath = getTreePathFromCollectionToItem(collection, item);
   if (requestTreePath && requestTreePath.length > 0) {
-    mergeHeaders(collection, request, requestTreePath);
+    mergeHeaders(collection, request, requestTreePath, { includeDisabledHeaders: true });
     mergeScripts(collection, request, requestTreePath, scriptFlow);
     mergeVars(collection, request, requestTreePath);
+    mergeAuth(collection, request, requestTreePath);
   }
 
+  const disabledHeaders = [];
   each(get(request, 'headers', []), (h) => {
-    if (h.enabled) {
+    if (h.enabled && h.name?.length > 0) {
       headers[h.name] = h.value;
       if (h.name.toLowerCase() === 'content-type') {
         contentTypeDefined = true;
       }
+    } else if (!h.enabled && h.name?.length > 0) {
+      disabledHeaders.push({ name: h.name, value: h.value });
     }
   });
 
@@ -31,28 +44,36 @@ const prepareRequest = (item = {}, collection = {}) => {
     method: request.method,
     url: request.url,
     headers: headers,
-    pathParams: request?.params?.filter((param) => param.type === 'path'),
-    responseType: 'arraybuffer'
+    disabledHeaders,
+    name: item.name,
+    pathname: item.pathname,
+    tags: item.tags || [],
+    pathParams: request.params?.filter((param) => param.type === 'path'),
+    settings: item.settings,
+    responseType: 'arraybuffer',
+    mode: request.body?.mode
   };
 
-  const collectionAuth = get(collection, 'root.request.auth');
+  const collectionRoot = collection?.draft?.root || collection?.root || {};
+  const collectionAuth = get(collectionRoot, 'request.auth');
   if (collectionAuth && request.auth?.mode === 'inherit') {
     if (collectionAuth.mode === 'basic') {
-      axiosRequest.auth = {
+      axiosRequest.basicAuth = {
         username: get(collectionAuth, 'basic.username'),
         password: get(collectionAuth, 'basic.password')
       };
     }
 
     if (collectionAuth.mode === 'bearer') {
-      axiosRequest.headers['Authorization'] = `Bearer ${get(collectionAuth, 'bearer.token')}`;
+      axiosRequest.headers['Authorization'] = `Bearer ${get(collectionAuth, 'bearer.token', '')}`;
     }
 
     if (collectionAuth.mode === 'apikey') {
       if (collectionAuth.apikey?.placement === 'header') {
         axiosRequest.headers[collectionAuth.apikey?.key] = collectionAuth.apikey?.value;
+        axiosRequest.apiKeyHeaderName = collectionAuth.apikey?.key;
       }
-      
+
       if (collectionAuth.apikey?.placement === 'queryparams') {
         if (axiosRequest.url && collectionAuth.apikey?.key) {
           try {
@@ -65,11 +86,116 @@ const prepareRequest = (item = {}, collection = {}) => {
         }
       }
     }
+
+    if (collectionAuth.mode === 'digest') {
+      axiosRequest.digestConfig = {
+        username: get(collectionAuth, 'digest.username'),
+        password: get(collectionAuth, 'digest.password')
+      };
+    }
+
+    if (collectionAuth.mode === 'oauth2') {
+      const grantType = get(collectionAuth, 'oauth2.grantType');
+
+      if (grantType === 'client_credentials') {
+        axiosRequest.oauth2 = {
+          grantType,
+          accessTokenUrl: get(collectionAuth, 'oauth2.accessTokenUrl'),
+          refreshTokenUrl: get(collectionAuth, 'oauth2.refreshTokenUrl'),
+          clientId: get(collectionAuth, 'oauth2.clientId'),
+          clientSecret: get(collectionAuth, 'oauth2.clientSecret'),
+          scope: get(collectionAuth, 'oauth2.scope'),
+          credentialsPlacement: get(collectionAuth, 'oauth2.credentialsPlacement'),
+          credentialsId: get(collectionAuth, 'oauth2.credentialsId'),
+          tokenPlacement: get(collectionAuth, 'oauth2.tokenPlacement'),
+          tokenHeaderPrefix: get(collectionAuth, 'oauth2.tokenHeaderPrefix'),
+          tokenQueryKey: get(collectionAuth, 'oauth2.tokenQueryKey'),
+          autoFetchToken: get(collectionAuth, 'oauth2.autoFetchToken'),
+          autoRefreshToken: get(collectionAuth, 'oauth2.autoRefreshToken'),
+          additionalParameters: get(collectionAuth, 'oauth2.additionalParameters', { authorization: [], token: [], refresh: [] })
+        };
+      } else if (grantType === 'password') {
+        axiosRequest.oauth2 = {
+          grantType,
+          accessTokenUrl: get(collectionAuth, 'oauth2.accessTokenUrl'),
+          refreshTokenUrl: get(collectionAuth, 'oauth2.refreshTokenUrl'),
+          username: get(collectionAuth, 'oauth2.username'),
+          password: get(collectionAuth, 'oauth2.password'),
+          clientId: get(collectionAuth, 'oauth2.clientId'),
+          clientSecret: get(collectionAuth, 'oauth2.clientSecret'),
+          scope: get(collectionAuth, 'oauth2.scope'),
+          credentialsPlacement: get(collectionAuth, 'oauth2.credentialsPlacement'),
+          credentialsId: get(collectionAuth, 'oauth2.credentialsId'),
+          tokenPlacement: get(collectionAuth, 'oauth2.tokenPlacement'),
+          tokenHeaderPrefix: get(collectionAuth, 'oauth2.tokenHeaderPrefix'),
+          tokenQueryKey: get(collectionAuth, 'oauth2.tokenQueryKey'),
+          autoFetchToken: get(collectionAuth, 'oauth2.autoFetchToken'),
+          autoRefreshToken: get(collectionAuth, 'oauth2.autoRefreshToken'),
+          additionalParameters: get(collectionAuth, 'oauth2.additionalParameters', { authorization: [], token: [], refresh: [] })
+        };
+      }
+    }
+    if (collectionAuth.mode === 'awsv4') {
+      axiosRequest.awsv4config = {
+        accessKeyId: get(collectionAuth, 'awsv4.accessKeyId'),
+        secretAccessKey: get(collectionAuth, 'awsv4.secretAccessKey'),
+        sessionToken: get(collectionAuth, 'awsv4.sessionToken'),
+        service: get(collectionAuth, 'awsv4.service'),
+        region: get(collectionAuth, 'awsv4.region'),
+        profileName: get(collectionAuth, 'awsv4.profileName')
+      };
+    }
+
+    if (collectionAuth.mode === 'ntlm') {
+      axiosRequest.ntlmConfig = {
+        username: get(collectionAuth, 'ntlm.username'),
+        password: get(collectionAuth, 'ntlm.password'),
+        domain: get(collectionAuth, 'ntlm.domain')
+      };
+    }
+
+    if (collectionAuth.mode === 'oauth1') {
+      axiosRequest.oauth1config = {
+        consumerKey: get(collectionAuth, 'oauth1.consumerKey'),
+        consumerSecret: get(collectionAuth, 'oauth1.consumerSecret'),
+        accessToken: get(collectionAuth, 'oauth1.accessToken'),
+        accessTokenSecret: get(collectionAuth, 'oauth1.accessTokenSecret'),
+        callbackUrl: get(collectionAuth, 'oauth1.callbackUrl'),
+        verifier: get(collectionAuth, 'oauth1.verifier'),
+        signatureMethod: get(collectionAuth, 'oauth1.signatureMethod'),
+        privateKey: get(collectionAuth, 'oauth1.privateKey'),
+        privateKeyType: get(collectionAuth, 'oauth1.privateKeyType'),
+        timestamp: get(collectionAuth, 'oauth1.timestamp'),
+        nonce: get(collectionAuth, 'oauth1.nonce'),
+        version: get(collectionAuth, 'oauth1.version'),
+        realm: get(collectionAuth, 'oauth1.realm'),
+        placement: get(collectionAuth, 'oauth1.placement'),
+        includeBodyHash: get(collectionAuth, 'oauth1.includeBodyHash')
+      };
+    }
+
+    if (collectionAuth.mode === 'wsse') {
+      const username = get(collectionAuth, 'wsse.username', '');
+      const password = get(collectionAuth, 'wsse.password', '');
+
+      const ts = new Date().toISOString();
+      const nonce = crypto.randomBytes(16).toString('hex');
+
+      // Create the password digest using SHA-1 as required for WSSE
+      const hash = crypto.createHash('sha1');
+      hash.update(nonce + ts + password);
+      const digest = Buffer.from(hash.digest('hex').toString('utf8')).toString('base64');
+
+      // Construct the WSSE header
+      axiosRequest.headers[
+        'X-WSSE'
+      ] = `UsernameToken Username="${username}", PasswordDigest="${digest}", Nonce="${nonce}", Created="${ts}"`;
+    }
   }
 
   if (request.auth && request.auth.mode !== 'inherit') {
     if (request.auth.mode === 'basic') {
-      axiosRequest.auth = {
+      axiosRequest.basicAuth = {
         username: get(request, 'auth.basic.username'),
         password: get(request, 'auth.basic.password')
       };
@@ -94,8 +220,28 @@ const prepareRequest = (item = {}, collection = {}) => {
       };
     }
 
+    if (request.auth.mode === 'oauth1') {
+      axiosRequest.oauth1config = {
+        consumerKey: get(request, 'auth.oauth1.consumerKey'),
+        consumerSecret: get(request, 'auth.oauth1.consumerSecret'),
+        accessToken: get(request, 'auth.oauth1.accessToken'),
+        accessTokenSecret: get(request, 'auth.oauth1.accessTokenSecret'),
+        callbackUrl: get(request, 'auth.oauth1.callbackUrl'),
+        verifier: get(request, 'auth.oauth1.verifier'),
+        signatureMethod: get(request, 'auth.oauth1.signatureMethod'),
+        privateKey: get(request, 'auth.oauth1.privateKey'),
+        privateKeyType: get(request, 'auth.oauth1.privateKeyType'),
+        timestamp: get(request, 'auth.oauth1.timestamp'),
+        nonce: get(request, 'auth.oauth1.nonce'),
+        version: get(request, 'auth.oauth1.version'),
+        realm: get(request, 'auth.oauth1.realm'),
+        placement: get(request, 'auth.oauth1.placement'),
+        includeBodyHash: get(request, 'auth.oauth1.includeBodyHash')
+      };
+    }
+
     if (request.auth.mode === 'bearer') {
-      axiosRequest.headers['Authorization'] = `Bearer ${get(request, 'auth.bearer.token')}`;
+      axiosRequest.headers['Authorization'] = `Bearer ${get(request, 'auth.bearer.token', '')}`;
     }
 
     if (request.auth.mode === 'wsse') {
@@ -115,18 +261,89 @@ const prepareRequest = (item = {}, collection = {}) => {
         'X-WSSE'
       ] = `UsernameToken Username="${username}", PasswordDigest="${digest}", Nonce="${nonce}", Created="${ts}"`;
     }
+
+    if (request.auth.mode === 'digest') {
+      axiosRequest.digestConfig = {
+        username: get(request, 'auth.digest.username'),
+        password: get(request, 'auth.digest.password')
+      };
+    }
+
+    if (request.auth.mode === 'oauth2') {
+      const grantType = get(request, 'auth.oauth2.grantType');
+
+      if (grantType === 'client_credentials') {
+        axiosRequest.oauth2 = {
+          grantType: grantType,
+          accessTokenUrl: get(request, 'auth.oauth2.accessTokenUrl'),
+          refreshTokenUrl: get(request, 'auth.oauth2.refreshTokenUrl'),
+          clientId: get(request, 'auth.oauth2.clientId'),
+          clientSecret: get(request, 'auth.oauth2.clientSecret'),
+          scope: get(request, 'auth.oauth2.scope'),
+          credentialsPlacement: get(request, 'auth.oauth2.credentialsPlacement'),
+          credentialsId: get(request, 'auth.oauth2.credentialsId'),
+          tokenPlacement: get(request, 'auth.oauth2.tokenPlacement'),
+          tokenHeaderPrefix: get(request, 'auth.oauth2.tokenHeaderPrefix'),
+          tokenQueryKey: get(request, 'auth.oauth2.tokenQueryKey'),
+          autoFetchToken: get(request, 'auth.oauth2.autoFetchToken'),
+          autoRefreshToken: get(request, 'auth.oauth2.autoRefreshToken'),
+          additionalParameters: get(request, 'auth.oauth2.additionalParameters', { authorization: [], token: [], refresh: [] })
+        };
+      } else if (grantType === 'password') {
+        axiosRequest.oauth2 = {
+          grantType: grantType,
+          accessTokenUrl: get(request, 'auth.oauth2.accessTokenUrl'),
+          refreshTokenUrl: get(request, 'auth.oauth2.refreshTokenUrl'),
+          username: get(request, 'auth.oauth2.username'),
+          password: get(request, 'auth.oauth2.password'),
+          clientId: get(request, 'auth.oauth2.clientId'),
+          clientSecret: get(request, 'auth.oauth2.clientSecret'),
+          scope: get(request, 'auth.oauth2.scope'),
+          credentialsPlacement: get(request, 'auth.oauth2.credentialsPlacement'),
+          credentialsId: get(request, 'auth.oauth2.credentialsId'),
+          tokenPlacement: get(request, 'auth.oauth2.tokenPlacement'),
+          tokenHeaderPrefix: get(request, 'auth.oauth2.tokenHeaderPrefix'),
+          tokenQueryKey: get(request, 'auth.oauth2.tokenQueryKey'),
+          autoFetchToken: get(request, 'auth.oauth2.autoFetchToken'),
+          autoRefreshToken: get(request, 'auth.oauth2.autoRefreshToken'),
+          additionalParameters: get(request, 'auth.oauth2.additionalParameters', { authorization: [], token: [], refresh: [] })
+        };
+      }
+    }
+
+    if (request.auth.mode === 'apikey') {
+      if (request.auth.apikey?.placement === 'header') {
+        axiosRequest.headers[request.auth.apikey?.key] = request.auth.apikey?.value;
+        axiosRequest.apiKeyHeaderName = request.auth.apikey?.key;
+      }
+
+      if (request.auth.apikey?.placement === 'queryparams') {
+        if (axiosRequest.url && request.auth.apikey?.key) {
+          try {
+            const urlObj = new URL(request.url);
+            urlObj.searchParams.set(request.auth.apikey?.key, request.auth.apikey?.value);
+            axiosRequest.url = urlObj.toString();
+          } catch (error) {
+            console.error('Invalid URL:', request.url, error);
+          }
+        }
+      }
+    }
   }
 
   request.body = request.body || {};
 
   if (request.body.mode === 'json') {
-    if (!contentTypeDefined) {
-      axiosRequest.headers['content-type'] = 'application/json';
-    }
-    try {
-      axiosRequest.data = decomment(request?.body?.json);
-    } catch (error) {
-      axiosRequest.data = request?.body?.json;
+    const jsonBody = request.body.json;
+    if (jsonBody && jsonBody.length > 0) {
+      if (!contentTypeDefined) {
+        axiosRequest.headers['content-type'] = 'application/json';
+      }
+      try {
+        axiosRequest.data = decomment(jsonBody);
+      } catch (error) {
+        axiosRequest.data = jsonBody;
+      }
     }
   }
 
@@ -151,14 +368,46 @@ const prepareRequest = (item = {}, collection = {}) => {
     axiosRequest.data = request.body.sparql;
   }
 
-  if (request.body.mode === 'formUrlEncoded') {
-    axiosRequest.headers['content-type'] = 'application/x-www-form-urlencoded';
-    const params = {};
-    const enabledParams = filter(request.body.formUrlEncoded, (p) => p.enabled);
-    each(enabledParams, (p) => (params[p.name] = p.value));
-    axiosRequest.data = params;
+  if (request.body.mode === 'file') {
+    if (!contentTypeDefined) {
+      axiosRequest.headers['content-type'] = 'application/octet-stream'; // Default headers for binary file uploads
+    }
+
+    const bodyFile = find(request.body.file, (param) => param.selected);
+    if (bodyFile) {
+      let { filePath, contentType } = bodyFile;
+
+      axiosRequest.headers['content-type'] = contentType;
+
+      if (filePath) {
+        if (!path.isAbsolute(filePath)) {
+          filePath = path.join(collectionPath, filePath);
+        }
+
+        try {
+          // Large files can cause "JavaScript heap out of memory" errors when loaded entirely into memory.
+          if (isLargeFile(filePath, STREAMING_FILE_SIZE_THRESHOLD)) {
+            // For large files: Use streaming to avoid memory issues
+            axiosRequest.data = fs.createReadStream(filePath);
+          } else {
+            // For smaller files: Use synchronous read for better performance
+            axiosRequest.data = fs.readFileSync(filePath);
+          }
+        } catch (error) {
+          console.error('Error reading file:', error);
+        }
+      }
+    }
   }
-  
+
+  if (request.body.mode === 'formUrlEncoded') {
+    if (!contentTypeDefined) {
+      axiosRequest.headers['content-type'] = 'application/x-www-form-urlencoded';
+    }
+    const enabledParams = filter(request.body.formUrlEncoded, (p) => p.enabled);
+    axiosRequest.data = enabledParams;
+  }
+
   if (request.body.mode === 'multipartForm') {
     axiosRequest.headers['content-type'] = 'multipart/form-data';
     const enabledParams = filter(request.body.multipartForm, (p) => p.enabled);
@@ -168,12 +417,24 @@ const prepareRequest = (item = {}, collection = {}) => {
   if (request.body.mode === 'graphql') {
     const graphqlQuery = {
       query: get(request, 'body.graphql.query'),
-      variables: JSON.parse(decomment(get(request, 'body.graphql.variables') || '{}'))
+      // Parse variables only after interpolation (github.com/usebruno/bruno/issues/884)
+      variables: decomment(get(request, 'body.graphql.variables') || '{}')
     };
     if (!contentTypeDefined) {
       axiosRequest.headers['content-type'] = 'application/json';
     }
     axiosRequest.data = graphqlQuery;
+  }
+
+  // if the mode is 'none' then set the content-type header to null to prevent axios from adding default. #1693
+  // AWS SigV4 requires Content-Type header in canonical request for signature calculation,
+  // even with no body. Omitting it would cause authentication failures.
+  if (request.body.mode === 'none' && (!request.auth || request.auth.mode !== 'awsv4')) {
+    if (!contentTypeDefined) {
+      // Setting to null tells axios not to add a default Content-Type header
+      // Use lowercase to match what scripts use, avoiding duplicate headers
+      axiosRequest.headers['content-type'] = null;
+    }
   }
 
   if (request.script) {
@@ -182,12 +443,14 @@ const prepareRequest = (item = {}, collection = {}) => {
 
   if (request.tests) {
     axiosRequest.tests = request.tests;
+    axiosRequest.testsMetadata = request.testsMetadata;
   }
 
   axiosRequest.vars = request.vars;
   axiosRequest.collectionVariables = request.collectionVariables;
   axiosRequest.folderVariables = request.folderVariables;
   axiosRequest.requestVariables = request.requestVariables;
+  axiosRequest.oauth2CredentialVariables = getFormattedOauth2Credentials();
 
   return axiosRequest;
 };

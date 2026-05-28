@@ -1,0 +1,15 @@
+{
+  "maximized": false,
+  "lastOpenedCollections": [
+    "{{projectRoot}}/tests/grpc/make-request/fixtures/collection"
+  ],
+  "preferences": {
+    "onboarding": {
+      "hasLaunchedBefore": true,
+      "hasSeenWelcomeModal": true
+    },
+    "beta": {
+      "nodevm": false
+    }
+  }
+}

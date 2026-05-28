@@ -1,0 +1,299 @@
+meta {
+  name: Multiple Examples Variations
+  type: http
+  seq: 1
+}
+
+get {
+  url: https://api.example.com/data
+}
+
+params:query {
+  page: 1
+  limit: 10
+  sort: desc
+}
+
+headers {
+  accept: application/json
+  x-client: bruno
+}
+
+auth:bearer {
+  token: token-for-multiple-examples
+}
+
+body:json {
+  {
+    "query": "search",
+    "filters": []
+  }
+}
+
+example {
+  name: Simple GET Request
+  description: Basic GET request with minimal data
+  
+  request: {
+    url: https://api.example.com/data?id=123
+    method: get
+    mode: none
+    headers: {
+      accept: "application/json"
+    }
+  }
+  
+  response: {
+    status: {
+      code: 200
+      text: OK
+    }
+  
+    body: {
+      type: json
+      content: '''
+        {
+          "id": 123,
+          "name": "Item",
+          "value": 42
+        }
+      '''
+    }
+  }
+}
+
+example {
+  name: Complex Search Query
+  description: GET request with complex query parameters
+  
+  request: {
+    url: https://api.example.com/data?page=1&limit=20&sort=name&order=asc&filter[status]=active&filter[type]=premium
+    method: get
+    mode: none
+    headers: {
+      accept: "application/json",
+      x-api-key: "search-key-789"
+    }
+  }
+  
+  response: {
+    status: {
+      code: 200
+      text: OK
+    }
+  
+    body: {
+      type: json
+      content: '''
+        {
+          "data": [
+            {
+              "id": 1,
+              "name": "Premium Item 1",
+              "status": "active",
+              "type": "premium"
+            },
+            {
+              "id": 2,
+              "name": "Premium Item 2",  
+              "status": "active",
+              "type": "premium"
+            }
+          ],
+          "pagination": {
+            "page": 1,
+            "limit": 20,
+            "total": 2
+          }
+        }
+      '''
+    }
+  }
+}
+
+example {
+  name: Text Response Example
+  description: Request returning plain text response
+  
+  request: {
+    url: https://api.example.com/data/text
+    method: get
+    mode: none
+    headers: {
+      accept: "text/plain"
+    }
+  }
+  
+  response: {
+    status: {
+      code: 200
+      text: OK
+    }
+  
+    body: {
+      type: text
+      content: '''
+        This is a plain text response
+        Multiple lines of content
+        No JSON formatting needed
+      '''
+    }
+  }
+}
+
+example {
+  name: XML Response with Nested Structure
+  description: Example with complex XML response
+  
+  request: {
+    url: https://api.example.com/data/xml
+    method: get
+    mode: none
+    headers: {
+      accept: "application/xml"
+    }
+  }
+  
+  response: {
+    status: {
+      code: 200
+      text: OK
+    }
+  
+    body: {
+      type: xml
+      content: '''
+        <?xml version="1.0" encoding="UTF-8"?>
+        <response>
+          <metadata>
+            <version>1.0</version>
+            <timestamp>2024-01-15T15:00:00Z</timestamp>
+          </metadata>
+          <data>
+            <item id="1">
+              <name>Item One</name>
+              <value>100</value>
+              <nested>
+                <attribute key="type">primary</attribute>
+              </nested>
+            </item>
+            <item id="2">
+              <name>Item Two</name>
+              <value>200</value>
+              <nested>
+                <attribute key="type">secondary</attribute>
+              </nested>
+            </item>
+          </data>
+        </response>
+      '''
+    }
+  }
+}
+
+example {
+  name: GraphQL Query Example
+  description: Example with GraphQL query body
+  
+  request: {
+    url: https://api.example.com/graphql
+    method: post
+    mode: graphql
+    headers: {
+      content-type: "application/json",
+      authorization: "Bearer graphql-token-xyz"
+    }
+  
+    body:graphql: {
+      query {
+        user(id: "123") {
+          id
+          name
+          email
+          posts {
+            title
+            content
+          }
+        }
+      }
+    }
+  }
+  
+  response: {
+    status: {
+      code: 200
+      text: OK
+    }
+  
+    body: {
+      type: json
+      content: '''
+        {
+          "data": {
+            "user": {
+              "id": "123",
+              "name": "John Doe",
+              "email": "john@example.com",
+              "posts": [
+                {
+                  "title": "First Post",
+                  "content": "This is my first blog post"
+                }
+              ]
+            }
+          }
+        }
+      '''
+    }
+  }
+}
+
+example {
+  name: SPARQL Query Example
+  description: Example with SPARQL query
+  
+  request: {
+    url: https://sparql.example.com/query
+    method: post
+    mode: sparql
+    headers: {
+      content-type: "application/sparql-query"
+    }
+  
+    body:sparql: {
+      SELECT ?name ?email WHERE {
+        ?person <http://example.org/name> ?name .
+        ?person <http://example.org/email> ?email .
+        ?person <http://example.org/age> ?age .
+        FILTER(?age > 18)
+      }
+    }
+  }
+  
+  response: {
+    status: {
+      code: 200
+      text: OK
+    }
+  
+    body: {
+      type: json
+      content: '''
+        {
+          "results": {
+            "bindings": [
+              {
+                "name": {
+                  "value": "John Doe"
+                },
+                "email": {
+                  "value": "john@example.com"
+                }
+              }
+            ]
+          }
+        }
+      '''
+    }
+  }
+}

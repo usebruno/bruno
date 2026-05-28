@@ -1,0 +1,65 @@
+meta {
+  name: intl
+  type: http
+  seq: 10
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+script:pre-request {
+  // Skip in safe mode - these tests require developer sandbox
+  if (bru.isSafeMode()) {
+    bru.runner.skipRequest();
+    return;
+  }
+}
+
+tests {
+  test("Intl.DateTimeFormat", function() {
+    const formatter = new Intl.DateTimeFormat('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+    expect(formatter.format(new Date('2024-06-15'))).to.equal('June 15, 2024');
+  });
+
+  test("Intl.NumberFormat", function() {
+    const currency = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
+    expect(currency.format(1234.56)).to.equal('$1,234.56');
+
+    const percent = new Intl.NumberFormat('en-US', { style: 'percent', minimumFractionDigits: 1 });
+    expect(percent.format(0.456)).to.equal('45.6%');
+  });
+
+  test("Intl.Collator", function() {
+    const collator = new Intl.Collator('en', { sensitivity: 'base' });
+    expect(collator.compare('a', 'A')).to.equal(0);
+    expect(collator.compare('a', 'b')).to.be.lessThan(0);
+  });
+
+  test("Intl.PluralRules", function() {
+    const rules = new Intl.PluralRules('en-US');
+    expect(rules.select(1)).to.equal('one');
+    expect(rules.select(5)).to.equal('other');
+  });
+
+  test("Intl.RelativeTimeFormat", function() {
+    const rtf = new Intl.RelativeTimeFormat('en', { numeric: 'auto' });
+    expect(rtf.format(-1, 'day')).to.equal('yesterday');
+    expect(rtf.format(1, 'day')).to.equal('tomorrow');
+  });
+
+  test("Intl.ListFormat", function() {
+    const formatter = new Intl.ListFormat('en', { style: 'long', type: 'conjunction' });
+    expect(formatter.format(['Apple', 'Banana', 'Cherry'])).to.equal('Apple, Banana, and Cherry');
+  });
+
+  test("Intl.DisplayNames", function() {
+    const regions = new Intl.DisplayNames(['en'], { type: 'region' });
+    expect(regions.of('US')).to.equal('United States');
+
+    const languages = new Intl.DisplayNames(['en'], { type: 'language' });
+    expect(languages.of('fr')).to.equal('French');
+  });
+}

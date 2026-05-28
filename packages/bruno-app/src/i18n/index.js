@@ -4,8 +4,8 @@ import translationEn from './translation/en.json';
 
 const resources = {
   en: {
-    translation: translationEn,
-  },
+    translation: translationEn
+  }
 };
 
 i18n

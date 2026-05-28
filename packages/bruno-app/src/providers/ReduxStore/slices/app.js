@@ -1,15 +1,31 @@
 import { createSlice } from '@reduxjs/toolkit';
 import filter from 'lodash/filter';
-import toast from 'react-hot-toast';
+import brunoClipboard from 'utils/bruno-clipboard';
+import { normalizePath } from 'utils/common/path';
+import { addTab, focusTab } from './tabs';
+import { clearPersistedScope } from 'hooks/usePersistedState/PersistedScopeProvider';
 
 const initialState = {
   isDragging: false,
   idbConnectionReady: false,
-  leftSidebarWidth: 222,
+  snapshotReady: false,
+  snapshotHydration: {
+    workspaceUid: null,
+    pendingCollectionPathnames: [],
+    activeCollectionPathname: null,
+    startedAt: null
+  },
+  leftSidebarWidth: 250,
+  sidebarCollapsed: false,
+  showSidebarSearch: false,
+  focusedSidebarPath: null,
   screenWidth: 500,
   showHomePage: false,
-  showPreferences: false,
+  showApiSpecPage: false,
+  showManageWorkspacePage: false,
   isEnvironmentSettingsModalOpen: false,
+  isGlobalEnvironmentSettingsModalOpen: false,
+  activePreferencesTab: 'general',
   preferences: {
     request: {
       sslVerification: true,
@@ -20,15 +36,49 @@ const initialState = {
       keepDefaultCaCertificates: {
         enabled: true
       },
-      timeout: 0
+      timeout: 0,
+      oauth2: {
+        useSystemBrowser: false
+      }
     },
     font: {
       codeFont: 'default'
+    },
+    general: {
+      defaultLocation: ''
+    },
+    onboarding: {
+      hasLaunchedBefore: false,
+      hasSeenWelcomeModal: true
+    },
+    autoSave: {
+      enabled: false,
+      interval: 1000
+    },
+    cache: {
+      sslSession: {
+        enabled: false
+      }
     }
+  },
+  generateCode: {
+    mainLanguage: 'Shell',
+    library: 'curl',
+    shouldInterpolate: true
   },
   cookies: [],
   taskQueue: [],
-  systemProxyEnvVariables: {}
+  gitOperationProgress: {},
+  gitVersion: null,
+  clipboard: {
+    hasCopiedItems: false // Whether clipboard has Bruno data (for UI)
+  },
+  systemProxyVariables: {},
+  envVarSearch: {
+    collection: { query: '', expanded: false },
+    global: { query: '', expanded: false }
+  },
+  isCreatingCollection: false
 };
 
 export const appSlice = createSlice({
@@ -37,6 +87,46 @@ export const appSlice = createSlice({
   reducers: {
     idbConnectionReady: (state) => {
       state.idbConnectionReady = true;
+    },
+    setSnapshotReady: (state, action) => {
+      state.snapshotReady = action.payload;
+    },
+    startSnapshotHydrationSession: (state, action) => {
+      const {
+        workspaceUid = null,
+        pendingCollectionPathnames = [],
+        activeCollectionPathname = null
+      } = action.payload || {};
+      const normalizedPathnames = [...new Set(
+        pendingCollectionPathnames
+          .filter(Boolean)
+          .map((pathname) => normalizePath(pathname))
+      )];
+
+      state.snapshotHydration = {
+        workspaceUid,
+        pendingCollectionPathnames: normalizedPathnames,
+        activeCollectionPathname: activeCollectionPathname ? normalizePath(activeCollectionPathname) : null,
+        startedAt: Date.now()
+      };
+    },
+    markSnapshotCollectionHydrated: (state, action) => {
+      const pathname = action.payload?.pathname;
+      if (!pathname) {
+        return;
+      }
+
+      const normalizedPathname = normalizePath(pathname);
+      state.snapshotHydration.pendingCollectionPathnames = state.snapshotHydration.pendingCollectionPathnames
+        .filter((pendingPathname) => normalizePath(pendingPathname) !== normalizedPathname);
+    },
+    clearSnapshotHydrationSession: (state) => {
+      state.snapshotHydration = {
+        workspaceUid: null,
+        pendingCollectionPathnames: [],
+        activeCollectionPathname: null,
+        startedAt: null
+      };
     },
     refreshScreenWidth: (state) => {
       state.screenWidth = window.innerWidth;
@@ -47,20 +137,34 @@ export const appSlice = createSlice({
     updateIsDragging: (state, action) => {
       state.isDragging = action.payload.isDragging;
     },
-    updateEnvironmentSettingsModalVisibility: (state, action) => {
-      state.isEnvironmentSettingsModalOpen = action.payload;
-    },
     showHomePage: (state) => {
       state.showHomePage = true;
+      state.showApiSpecPage = false;
+      state.showManageWorkspacePage = false;
     },
     hideHomePage: (state) => {
       state.showHomePage = false;
     },
-    showPreferences: (state, action) => {
-      state.showPreferences = action.payload;
+    showManageWorkspacePage: (state) => {
+      state.showManageWorkspacePage = true;
+      state.showHomePage = false;
+      state.showApiSpecPage = false;
+    },
+    hideManageWorkspacePage: (state) => {
+      state.showManageWorkspacePage = false;
+    },
+    showApiSpecPage: (state) => {
+      state.showHomePage = false;
+      state.showApiSpecPage = true;
+    },
+    hideApiSpecPage: (state) => {
+      state.showApiSpecPage = false;
     },
     updatePreferences: (state, action) => {
       state.preferences = action.payload;
+    },
+    updateActivePreferencesTab: (state, action) => {
+      state.activePreferencesTab = action.payload.tab;
     },
     updateCookies: (state, action) => {
       state.cookies = action.payload;
@@ -74,27 +178,102 @@ export const appSlice = createSlice({
     removeAllTasksFromQueue: (state) => {
       state.taskQueue = [];
     },
-    updateSystemProxyEnvVariables: (state, action) => {
-      state.systemProxyEnvVariables = action.payload;
+    updateSystemProxyVariables: (state, action) => {
+      state.systemProxyVariables = action.payload;
+    },
+    updateGenerateCode: (state, action) => {
+      state.generateCode = {
+        ...state.generateCode,
+        ...action.payload
+      };
+    },
+    toggleSidebarCollapse: (state) => {
+      state.sidebarCollapsed = !state.sidebarCollapsed;
+    },
+    toggleSidebarSearch: (state) => {
+      state.showSidebarSearch = !state.showSidebarSearch;
+    },
+    setFocusedSidebarPath: (state, action) => {
+      state.focusedSidebarPath = action.payload;
+    },
+    updateGitOperationProgress: (state, action) => {
+      const { uid, data } = action.payload;
+      if (!state.gitOperationProgress[uid]) {
+        state.gitOperationProgress[uid] = { progressData: [] };
+      }
+      state.gitOperationProgress[uid].progressData.push(data);
+    },
+    removeGitOperationProgress: (state, action) => {
+      delete state.gitOperationProgress[action.payload];
+    },
+    setGitVersion: (state, action) => {
+      state.gitVersion = action.payload;
+    },
+    setClipboard: (state, action) => {
+      // Update clipboard UI state
+      state.clipboard.hasCopiedItems = action.payload.hasCopiedItems;
+    },
+    setEnvVarSearchQuery: (state, { payload: { context, query } }) => {
+      if (!state.envVarSearch[context]) return;
+      state.envVarSearch[context].query = query;
+    },
+    setEnvVarSearchExpanded: (state, { payload: { context, expanded } }) => {
+      if (!state.envVarSearch[context]) return;
+      state.envVarSearch[context].expanded = expanded;
+    },
+    setIsCreatingCollection: (state, action) => {
+      state.isCreatingCollection = action.payload;
     }
+  },
+  extraReducers: (builder) => {
+    // Automatically hide special pages when any tab is added or focused
+    builder
+      .addCase(addTab, (state) => {
+        state.showHomePage = false;
+        state.showApiSpecPage = false;
+        state.showManageWorkspacePage = false;
+      })
+      .addCase(focusTab, (state) => {
+        state.showHomePage = false;
+        state.showApiSpecPage = false;
+        state.showManageWorkspacePage = false;
+      });
   }
 });
 
 export const {
   idbConnectionReady,
+  setSnapshotReady,
+  startSnapshotHydrationSession,
+  markSnapshotCollectionHydrated,
+  clearSnapshotHydrationSession,
   refreshScreenWidth,
   updateLeftSidebarWidth,
   updateIsDragging,
-  updateEnvironmentSettingsModalVisibility,
   showHomePage,
   hideHomePage,
-  showPreferences,
+  showManageWorkspacePage,
+  hideManageWorkspacePage,
+  showApiSpecPage,
+  hideApiSpecPage,
   updatePreferences,
+  updateActivePreferencesTab,
   updateCookies,
   insertTaskIntoQueue,
   removeTaskFromQueue,
   removeAllTasksFromQueue,
-  updateSystemProxyEnvVariables
+  updateSystemProxyVariables,
+  updateGenerateCode,
+  toggleSidebarCollapse,
+  toggleSidebarSearch,
+  setFocusedSidebarPath,
+  updateGitOperationProgress,
+  removeGitOperationProgress,
+  setGitVersion,
+  setClipboard,
+  setEnvVarSearchQuery,
+  setEnvVarSearchExpanded,
+  setIsCreatingCollection
 } = appSlice.actions;
 
 export const savePreferences = (preferences) => (dispatch, getState) => {
@@ -103,14 +282,9 @@ export const savePreferences = (preferences) => (dispatch, getState) => {
 
     ipcRenderer
       .invoke('renderer:save-preferences', preferences)
-      .then(() => toast.success('Preferences saved successfully'))
       .then(() => dispatch(updatePreferences(preferences)))
       .then(resolve)
-      .catch((err) => {
-        toast.error('An error occurred while saving preferences');
-        console.error(err);
-        reject(err);
-      });
+      .catch(reject);
   });
 };
 
@@ -122,9 +296,86 @@ export const deleteCookiesForDomain = (domain) => (dispatch, getState) => {
   });
 };
 
+export const deleteCookie = (domain, path, cookieKey) => (dispatch, getState) => {
+  return new Promise((resolve, reject) => {
+    const { ipcRenderer } = window;
+
+    ipcRenderer.invoke('renderer:delete-cookie', domain, path, cookieKey).then(resolve).catch(reject);
+  });
+};
+
+export const addCookie = (domain, cookie) => (dispatch, getState) => {
+  return new Promise((resolve, reject) => {
+    const { ipcRenderer } = window;
+
+    ipcRenderer.invoke('renderer:add-cookie', domain, cookie).then(resolve).catch(reject);
+  });
+};
+
+export const modifyCookie = (domain, oldCookie, cookie) => (dispatch, getState) => {
+  return new Promise((resolve, reject) => {
+    const { ipcRenderer } = window;
+
+    ipcRenderer.invoke('renderer:modify-cookie', domain, oldCookie, cookie).then(resolve).catch(reject);
+  });
+};
+
+export const getParsedCookie = (cookieStr) => () => {
+  return new Promise((resolve, reject) => {
+    const { ipcRenderer } = window;
+    ipcRenderer.invoke('renderer:get-parsed-cookie', cookieStr).then(resolve).catch(reject);
+  });
+};
+
+export const createCookieString = (cookieObj) => () => {
+  return new Promise((resolve, reject) => {
+    const { ipcRenderer } = window;
+    ipcRenderer.invoke('renderer:create-cookie-string', cookieObj).then(resolve).catch(reject);
+  });
+};
+
 export const completeQuitFlow = () => (dispatch, getState) => {
   const { ipcRenderer } = window;
+  // Wipe all `persisted::*` keys from localStorage before quitting
+  clearPersistedScope();
   return ipcRenderer.invoke('main:complete-quit-flow');
+};
+
+export const copyRequest = (item) => (dispatch, getState) => {
+  brunoClipboard.write(item);
+  dispatch(setClipboard({ hasCopiedItems: true }));
+  return Promise.resolve();
+};
+
+export const getSystemProxyVariables = () => (dispatch, getState) => {
+  return new Promise((resolve, reject) => {
+    const { ipcRenderer } = window;
+    ipcRenderer.invoke('renderer:get-system-proxy-variables')
+      .then((variables) => {
+        dispatch(updateSystemProxyVariables(variables));
+        return variables;
+      })
+      .then(resolve).catch(reject);
+  });
+};
+
+export const refreshSystemProxy = () => (dispatch, getState) => {
+  return new Promise((resolve, reject) => {
+    const { ipcRenderer } = window;
+    ipcRenderer.invoke('renderer:refresh-system-proxy')
+      .then((variables) => {
+        dispatch(updateSystemProxyVariables(variables));
+        return variables;
+      })
+      .then(resolve).catch(reject);
+  });
+};
+
+export const clearHttpHttpsAgentCache = () => () => {
+  return new Promise((resolve, reject) => {
+    const { ipcRenderer } = window;
+    ipcRenderer.invoke('renderer:clear-http-https-agent-cache').then(resolve).catch(reject);
+  });
 };
 
 export default appSlice.reducer;

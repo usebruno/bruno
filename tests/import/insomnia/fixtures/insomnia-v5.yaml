@@ -1,0 +1,129 @@
+type: collection.insomnia.rest/5.0
+name: Test API Collection v5
+meta:
+  id: wrk_7faf891d273e4b7ea82bdbaa641ee17a
+  created: 1743683067888
+  modified: 1743683067888
+collection:
+  - name: API Tests
+    meta:
+      id: fld_ab2a1533f2be48c194883bf07d693292
+      created: 1743683080329
+      modified: 1743683080329
+      sortKey: -1743683080329
+    children:
+      - name: Authentication
+        meta:
+          id: fld_e7bcaad160254179a9c86e39a58c6893
+          created: 1743683088154
+          modified: 1743683090190
+          sortKey: -1743683090140
+        children:
+          - url: "{{ _.base_url }}/api/auth/login"
+            name: Login User
+            meta:
+              id: req_d48ab8553cff4eb486b816e064cf99a4
+              created: 1743683199141
+              modified: 1743683342872
+              isPrivate: false
+              sortKey: -1743683199141
+            method: POST
+            body:
+              mimeType: application/json
+              text: |-
+                {
+                  "username": "testuser",
+                  "password": "testpass123"
+                }
+            headers:
+              - name: Content-Type
+                value: application/json
+              - name: User-Agent
+                value: insomnia/10.3.1
+            settings:
+              renderRequestBody: true
+              encodeUrl: true
+              followRedirects: global
+              cookies:
+                send: true
+                store: true
+              rebuildPath: true
+      - url: "{{ _.base_url }}/api/users"
+        name: Get Users
+        meta:
+          id: req_0393b8ff4ee1454daddacdda33fd33ea
+          created: 1743683426423
+          modified: 1743683632735
+          isPrivate: false
+          description: Retrieve all users from the system
+          sortKey: -1743683429031
+        method: GET
+        headers:
+          - name: Authorization
+            value: Bearer {{ _.auth_token }}
+          - name: User-Agent
+            value: insomnia/10.3.1
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+  - name: Data Management
+    meta:
+      id: fld_4736de73a1634b16960fa9e90d78f868
+      created: 1743683403969
+      modified: 1743683403969
+      sortKey: -1743683403969
+    children:
+      - url: "{{ _.base_url }}/api/posts"
+        name: Create Post
+        meta:
+          id: req_10db7ec1332d4444aa551e70a1bfae33
+          created: 1743683795359
+          modified: 1743683832200
+          isPrivate: false
+          sortKey: -1743683429131
+        method: POST
+        body:
+          mimeType: application/json
+          text: |-
+            {
+              "title": "Test Post",
+              "content": "This is a test post content",
+              "author": "Test Author"
+            }
+        headers:
+          - name: Content-Type
+            value: application/json
+          - name: Authorization
+            value: Bearer {{ _.auth_token }}
+          - name: User-Agent
+            value: insomnia/10.3.1
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+cookieJar:
+  name: Default Jar
+  meta:
+    id: jar_25f97142fa796ae37f7f4937c0ebf3a07869d0a8
+    created: 1743683067908
+    modified: 1743683833282
+  cookies: []
+environments:
+  name: Base Environment
+  meta:
+    id: env_25f97142fa796ae37f7f4937c0ebf3a07869d0a8
+    created: 1743683067895
+    modified: 1743683476058
+    isPrivate: false
+  data:
+    base_url: https://api.example.com
+    auth_token: your_auth_token_here

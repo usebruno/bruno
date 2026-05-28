@@ -1,0 +1,23 @@
+meta {
+  name: multiple-errors
+  type: http
+  seq: 4
+}
+
+get {
+  url: http://localhost:8081/ping
+  body: none
+  auth: none
+}
+
+script:pre-request {
+  console.log("this works fine");
+}
+
+script:post-response {
+  postResponseMissingVar();
+}
+
+tests {
+  testMissingVar();
+}

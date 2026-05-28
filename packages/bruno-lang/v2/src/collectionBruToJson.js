@@ -1,10 +1,20 @@
 const ohm = require('ohm-js');
 const _ = require('lodash');
-const { outdentString } = require('../../v1/src/utils');
+const { safeParseJson, outdentString } = require('./utils');
+
+// this is done to avoid breaking existing pairlist mapping so
+// the key is hidden and not added into the json automatically
+const ANNOTATIONS_KEY = Symbol('annotations');
 
 const grammar = ohm.grammar(`Bru {
   BruFile = (meta | query | headers | auth | auths | vars | script | tests | docs)*
-  auths = authawsv4 | authbasic | authbearer | authdigest | authNTLM |authOAuth2 | authwsse | authapikey
+  auths = authawsv4 | authbasic | authbearer | authdigest | authNTLM | authOAuth1 | authOAuth2 | authwsse | authapikey | authOauth2Configs
+
+  // Oauth2 additional parameters
+  authOauth2Configs = oauth2AuthReqConfig | oauth2AccessTokenReqConfig | oauth2RefreshTokenReqConfig
+  oauth2AuthReqConfig = oauth2AuthReqHeaders | oauth2AuthReqQueryParams 
+  oauth2AccessTokenReqConfig = oauth2AccessTokenReqHeaders | oauth2AccessTokenReqQueryParams | oauth2AccessTokenReqBody
+  oauth2RefreshTokenReqConfig = oauth2RefreshTokenReqHeaders | oauth2RefreshTokenReqQueryParams | oauth2RefreshTokenReqBody
 
   nl = "\\r"? "\\n"
   st = " " | "\\t"
@@ -14,12 +24,39 @@ const grammar = ohm.grammar(`Bru {
   keychar = ~(tagend | st | nl | ":") any
   valuechar = ~(nl | tagend) any
 
+  // Multiline text block surrounded by '''
+  multilinetextblockdelimiter = "'''"
+  multilinetextblock = multilinetextblockdelimiter (~multilinetextblockdelimiter any)* multilinetextblockdelimiter
+
+  // Annotation support (decorators on pairs)
+  annotationname = annotationchar+
+  annotationchar = ~("(" | ")" | " " | "\\t" | "\\r" | "\\n" | ":") any
+  annotationsinglequotedargchar = ~"'" any
+  annotationsinglequotedarg = "'" annotationsinglequotedargchar* "'"
+  annotationdoublequotedargchar = ~"\\"" any
+  annotationdoublequotedarg = "\\"" annotationdoublequotedargchar* "\\""
+  annotationunquotedargchar = ~")" any
+  annotationunquotedarg = annotationunquotedargchar*
+  annotationargvalue = annotationsinglequotedarg | annotationdoublequotedarg | annotationunquotedarg
+  annotationmultilinetextblock = multilinetextblockdelimiter (~multilinetextblockdelimiter any)* multilinetextblockdelimiter
+  annotationargscontents = annotationmultilinetextblock | annotationargvalue
+  annotationargs = "(" annotationargscontents ")"
+  annotation = "@" annotationname annotationargs?
+  annotationentry = st* annotation ~":" st* nl
+  pairannotations = annotationentry*
+
   // Dictionary Blocks
   dictionary = st* "{" pairlist? tagend
   pairlist = optionalnl* pair (~tagend stnl* pair)* (~tagend space)*
-  pair = st* key st* ":" st* value st*
+  pair = st* pairannotations st* (quoted_key | key) st* ":" st* value st*
+  disable_char = "~"
+  quote_char = "\\""
+  esc_char = "\\\\"
+  esc_quote_char = esc_char quote_char
+  quoted_key_char = ~(quote_char | esc_quote_char | nl) any
+  quoted_key = disable_char? quote_char (esc_quote_char | quoted_key_char)* quote_char
   key = keychar*
-  value = valuechar*
+  value = multilinetextblock | valuechar*
 
   // Text Blocks
   textblock = textline (~tagend nl textline)*
@@ -29,6 +66,15 @@ const grammar = ohm.grammar(`Bru {
   meta = "meta" dictionary
 
   auth = "auth" dictionary
+
+  oauth2AuthReqHeaders = "auth:oauth2:additional_params:auth_req:headers" dictionary
+  oauth2AuthReqQueryParams = "auth:oauth2:additional_params:auth_req:queryparams" dictionary
+  oauth2AccessTokenReqHeaders = "auth:oauth2:additional_params:access_token_req:headers" dictionary
+  oauth2AccessTokenReqQueryParams = "auth:oauth2:additional_params:access_token_req:queryparams" dictionary
+  oauth2AccessTokenReqBody = "auth:oauth2:additional_params:access_token_req:body" dictionary
+  oauth2RefreshTokenReqHeaders = "auth:oauth2:additional_params:refresh_token_req:headers" dictionary
+  oauth2RefreshTokenReqQueryParams = "auth:oauth2:additional_params:refresh_token_req:queryparams" dictionary
+  oauth2RefreshTokenReqBody = "auth:oauth2:additional_params:refresh_token_req:body" dictionary
 
   headers = "headers" dictionary
 
@@ -43,6 +89,7 @@ const grammar = ohm.grammar(`Bru {
   authbearer = "auth:bearer" dictionary
   authdigest = "auth:digest" dictionary
   authNTLM = "auth:ntlm" dictionary
+  authOAuth1 = "auth:oauth1" dictionary
   authOAuth2 = "auth:oauth2" dictionary
   authwsse = "auth:wsse" dictionary
   authapikey = "auth:apikey" dictionary
@@ -61,12 +108,12 @@ const mapPairListToKeyValPairs = (pairList = [], parseEnabled = true) => {
   return _.map(pairList[0], (pair) => {
     let name = _.keys(pair)[0];
     let value = pair[name];
+    const rawAnnotations = pair[ANNOTATIONS_KEY];
 
     if (!parseEnabled) {
-      return {
-        name,
-        value
-      };
+      const result = { name, value };
+      if (rawAnnotations && rawAnnotations.length) result.annotations = rawAnnotations;
+      return result;
     }
 
     let enabled = true;
@@ -75,11 +122,11 @@ const mapPairListToKeyValPairs = (pairList = [], parseEnabled = true) => {
       enabled = false;
     }
 
-    return {
-      name,
-      value,
-      enabled
-    };
+    const result = { name, value, enabled };
+    if (rawAnnotations && rawAnnotations.length) {
+      result.annotations = rawAnnotations;
+    }
+    return result;
   });
 };
 
@@ -117,15 +164,90 @@ const sem = grammar.createSemantics().addAttribute('ast', {
   pairlist(_1, pair, _2, rest, _3) {
     return [pair.ast, ...rest.ast];
   },
-  pair(_1, key, _2, _3, _4, value, _5) {
+  pairannotations(entries) {
+    return entries.ast;
+  },
+  annotationentry(_1, annotation, _2, _3) {
+    return annotation.ast;
+  },
+  annotation(_at, name, argsIter) {
+    const annotObj = { name: name.ast };
+    const argsArr = argsIter.ast;
+    if (argsArr.length > 0) {
+      annotObj.value = argsArr[0];
+    }
+    return annotObj;
+  },
+  annotationname(chars) {
+    return chars.sourceString;
+  },
+  annotationsinglequotedarg(_open, chars, _close) {
+    return chars.sourceString;
+  },
+  annotationdoublequotedarg(_open, chars, _close) {
+    return chars.sourceString;
+  },
+  annotationunquotedarg(chars) {
+    return chars.sourceString;
+  },
+  annotationargvalue(alt) {
+    return alt.ast;
+  },
+  annotationmultilinetextblock(_1, content, _2) {
+    const lines = content.sourceString.split('\n');
+    let minIndent = 4;
+    const dedented = lines.map((line) => (line.trim() === '' ? '' : line.substring(minIndent)));
+    if (dedented.length > 0 && dedented[0] === '') dedented.shift();
+    if (dedented.length > 0 && dedented[dedented.length - 1] === '') dedented.pop();
+    return dedented.join('\n');
+  },
+  annotationargscontents(alt) {
+    return alt.ast;
+  },
+  annotationargs(_open, value, _close) {
+    return value.ast;
+  },
+  pair(_1, annotations, _2, key, _3, _4, _5, value, _6) {
     let res = {};
     res[key.ast] = value.ast ? value.ast.trim() : '';
+    const annotationList = annotations.ast;
+    if (annotationList && annotationList.length > 0) {
+      res[ANNOTATIONS_KEY] = annotationList;
+    }
     return res;
+  },
+  quoted_key(disabled, _1, chars, _2) {
+    // unquote and handle disabled prefix
+    return (disabled ? disabled.sourceString : '') + chars.ast.join('');
+  },
+  esc_quote_char(_1, quote) {
+    // unescape
+    return quote.sourceString;
+  },
+  quoted_key_char(char) {
+    // return the character itself
+    return char.sourceString;
   },
   key(chars) {
     return chars.sourceString ? chars.sourceString.trim() : '';
   },
   value(chars) {
+    if (chars.ctorName === 'list') {
+      return chars.ast;
+    }
+    try {
+      let isMultiline = chars.sourceString?.startsWith(`'''`) && chars.sourceString?.endsWith(`'''`);
+      if (isMultiline) {
+        const multilineString = chars.sourceString?.replace(/^'''|'''$/g, '');
+        return multilineString
+          .split('\n')
+          .map((line) => line.slice(4))
+          .join('\n');
+      }
+      return chars.sourceString ? chars.sourceString.trim() : '';
+    } catch (err) {
+      console.error(err);
+    }
     return chars.sourceString ? chars.sourceString.trim() : '';
   },
   textblock(line, _1, rest) {
@@ -136,6 +258,10 @@ const sem = grammar.createSemantics().addAttribute('ast', {
   },
   textchar(char) {
     return char.sourceString;
+  },
+  multilinetextblock(_1, content, _2) {
+    // Join all the content between the triple quotes and trim it
+    return content.sourceString.trim();
   },
   nl(_1, _2) {
     return '';
@@ -163,7 +289,7 @@ const sem = grammar.createSemantics().addAttribute('ast', {
 
     return {
       auth: {
-        mode: auth ? auth.mode : 'none'
+        mode: auth?.mode || 'none'
       }
     };
   },
@@ -266,6 +392,40 @@ const sem = grammar.createSemantics().addAttribute('ast', {
       }
     };
   },
+  authOAuth1(_1, dictionary) {
+    const auth = mapPairListToKeyValPairs(dictionary.ast, false);
+    const findValue = (name) => {
+      const item = _.find(auth, { name });
+      return item ? item.value : '';
+    };
+    return {
+      auth: {
+        oauth1: {
+          consumerKey: findValue('consumer_key'),
+          consumerSecret: findValue('consumer_secret'),
+          accessToken: findValue('access_token'),
+          accessTokenSecret: findValue('token_secret'),
+          callbackUrl: findValue('callback_url'),
+          verifier: findValue('verifier'),
+          signatureMethod: findValue('signature_method'),
+          privateKey: (() => {
+            const val = findValue('private_key');
+            return val && val.startsWith('@file(') && val.endsWith(')') ? val.slice(6, -1) : val;
+          })(),
+          privateKeyType: (() => {
+            const val = findValue('private_key');
+            return val && val.startsWith('@file(') && val.endsWith(')') ? 'file' : 'text';
+          })(),
+          timestamp: findValue('timestamp'),
+          nonce: findValue('nonce'),
+          version: findValue('version'),
+          realm: findValue('realm'),
+          placement: findValue('placement'),
+          includeBodyHash: findValue('include_body_hash') === 'true'
+        }
+      }
+    };
+  },
   authOAuth2(_1, dictionary) {
     const auth = mapPairListToKeyValPairs(dictionary.ast, false);
     const grantTypeKey = _.find(auth, { name: 'grant_type' });
@@ -274,11 +434,20 @@ const sem = grammar.createSemantics().addAttribute('ast', {
     const callbackUrlKey = _.find(auth, { name: 'callback_url' });
     const authorizationUrlKey = _.find(auth, { name: 'authorization_url' });
     const accessTokenUrlKey = _.find(auth, { name: 'access_token_url' });
+    const refreshTokenUrlKey = _.find(auth, { name: 'refresh_token_url' });
     const clientIdKey = _.find(auth, { name: 'client_id' });
     const clientSecretKey = _.find(auth, { name: 'client_secret' });
     const scopeKey = _.find(auth, { name: 'scope' });
     const stateKey = _.find(auth, { name: 'state' });
     const pkceKey = _.find(auth, { name: 'pkce' });
+    const credentialsPlacementKey = _.find(auth, { name: 'credentials_placement' });
+    const credentialsIdKey = _.find(auth, { name: 'credentials_id' });
+    const tokenPlacementKey = _.find(auth, { name: 'token_placement' });
+    const tokenHeaderPrefixKey = _.find(auth, { name: 'token_header_prefix' });
+    const tokenQueryKeyKey = _.find(auth, { name: 'token_query_key' });
+    const autoFetchTokenKey = _.find(auth, { name: 'auto_fetch_token' });
+    const autoRefreshTokenKey = _.find(auth, { name: 'auto_refresh_token' });
+    const tokenSourceKey = _.find(auth, { name: 'token_source' });
     return {
       auth: {
         oauth2:
@@ -286,34 +455,116 @@ const sem = grammar.createSemantics().addAttribute('ast', {
             ? {
                 grantType: grantTypeKey ? grantTypeKey.value : '',
                 accessTokenUrl: accessTokenUrlKey ? accessTokenUrlKey.value : '',
+                refreshTokenUrl: refreshTokenUrlKey ? refreshTokenUrlKey.value : '',
                 username: usernameKey ? usernameKey.value : '',
                 password: passwordKey ? passwordKey.value : '',
                 clientId: clientIdKey ? clientIdKey.value : '',
                 clientSecret: clientSecretKey ? clientSecretKey.value : '',
-                scope: scopeKey ? scopeKey.value : ''
+                scope: scopeKey ? scopeKey.value : '',
+                credentialsPlacement: credentialsPlacementKey?.value ? credentialsPlacementKey.value : 'body',
+                credentialsId: credentialsIdKey?.value ? credentialsIdKey.value : 'credentials',
+                tokenSource: tokenSourceKey?.value ? tokenSourceKey.value : 'access_token',
+                tokenPlacement: tokenPlacementKey?.value ? tokenPlacementKey.value : 'header',
+                tokenHeaderPrefix: tokenHeaderPrefixKey?.value ? tokenHeaderPrefixKey.value : '',
+                tokenQueryKey: tokenQueryKeyKey?.value ? tokenQueryKeyKey.value : 'access_token',
+                autoFetchToken: autoFetchTokenKey ? safeParseJson(autoFetchTokenKey?.value) ?? true : true,
+                autoRefreshToken: autoRefreshTokenKey ? safeParseJson(autoRefreshTokenKey?.value) ?? false : false
               }
             : grantTypeKey?.value && grantTypeKey?.value == 'authorization_code'
-            ? {
-                grantType: grantTypeKey ? grantTypeKey.value : '',
-                callbackUrl: callbackUrlKey ? callbackUrlKey.value : '',
-                authorizationUrl: authorizationUrlKey ? authorizationUrlKey.value : '',
-                accessTokenUrl: accessTokenUrlKey ? accessTokenUrlKey.value : '',
-                clientId: clientIdKey ? clientIdKey.value : '',
-                clientSecret: clientSecretKey ? clientSecretKey.value : '',
-                scope: scopeKey ? scopeKey.value : '',
-                state: stateKey ? stateKey.value : '',
-                pkce: pkceKey ? JSON.parse(pkceKey?.value || false) : false
-              }
-            : grantTypeKey?.value && grantTypeKey?.value == 'client_credentials'
-            ? {
-                grantType: grantTypeKey ? grantTypeKey.value : '',
-                accessTokenUrl: accessTokenUrlKey ? accessTokenUrlKey.value : '',
-                clientId: clientIdKey ? clientIdKey.value : '',
-                clientSecret: clientSecretKey ? clientSecretKey.value : '',
-                scope: scopeKey ? scopeKey.value : ''
-              }
-            : {}
+              ? {
+                  grantType: grantTypeKey ? grantTypeKey.value : '',
+                  callbackUrl: callbackUrlKey ? callbackUrlKey.value : '',
+                  authorizationUrl: authorizationUrlKey ? authorizationUrlKey.value : '',
+                  accessTokenUrl: accessTokenUrlKey ? accessTokenUrlKey.value : '',
+                  refreshTokenUrl: refreshTokenUrlKey ? refreshTokenUrlKey.value : '',
+                  clientId: clientIdKey ? clientIdKey.value : '',
+                  clientSecret: clientSecretKey ? clientSecretKey.value : '',
+                  scope: scopeKey ? scopeKey.value : '',
+                  state: stateKey ? stateKey.value : '',
+                  pkce: pkceKey ? safeParseJson(pkceKey?.value) ?? false : false,
+                  credentialsPlacement: credentialsPlacementKey?.value ? credentialsPlacementKey.value : 'body',
+                  credentialsId: credentialsIdKey?.value ? credentialsIdKey.value : 'credentials',
+                  tokenSource: tokenSourceKey?.value ? tokenSourceKey.value : 'access_token',
+                  tokenPlacement: tokenPlacementKey?.value ? tokenPlacementKey.value : 'header',
+                  tokenHeaderPrefix: tokenHeaderPrefixKey?.value ? tokenHeaderPrefixKey.value : '',
+                  tokenQueryKey: tokenQueryKeyKey?.value ? tokenQueryKeyKey.value : 'access_token',
+                  autoFetchToken: autoFetchTokenKey ? safeParseJson(autoFetchTokenKey?.value) ?? true : true,
+                  autoRefreshToken: autoRefreshTokenKey ? safeParseJson(autoRefreshTokenKey?.value) ?? false : false
+                }
+              : grantTypeKey?.value && grantTypeKey?.value == 'implicit'
+                ? {
+                    grantType: grantTypeKey ? grantTypeKey.value : '',
+                    callbackUrl: callbackUrlKey ? callbackUrlKey.value : '',
+                    authorizationUrl: authorizationUrlKey ? authorizationUrlKey.value : '',
+                    clientId: clientIdKey ? clientIdKey.value : '',
+                    scope: scopeKey ? scopeKey.value : '',
+                    state: stateKey ? stateKey.value : '',
+                    credentialsId: credentialsIdKey?.value ? credentialsIdKey.value : 'credentials',
+                    tokenSource: tokenSourceKey?.value ? tokenSourceKey.value : 'access_token',
+                    tokenPlacement: tokenPlacementKey?.value ? tokenPlacementKey.value : 'header',
+                    tokenHeaderPrefix: tokenHeaderPrefixKey?.value ? tokenHeaderPrefixKey.value : '',
+                    tokenQueryKey: tokenQueryKeyKey?.value ? tokenQueryKeyKey.value : 'access_token',
+                    autoFetchToken: autoFetchTokenKey ? safeParseJson(autoFetchTokenKey?.value) ?? true : true
+                  }
+                : grantTypeKey?.value && grantTypeKey?.value == 'client_credentials'
+                  ? {
+                      grantType: grantTypeKey ? grantTypeKey.value : '',
+                      accessTokenUrl: accessTokenUrlKey ? accessTokenUrlKey.value : '',
+                      refreshTokenUrl: refreshTokenUrlKey ? refreshTokenUrlKey.value : '',
+                      clientId: clientIdKey ? clientIdKey.value : '',
+                      clientSecret: clientSecretKey ? clientSecretKey.value : '',
+                      scope: scopeKey ? scopeKey.value : '',
+                      credentialsPlacement: credentialsPlacementKey?.value ? credentialsPlacementKey.value : 'body',
+                      credentialsId: credentialsIdKey?.value ? credentialsIdKey.value : 'credentials',
+                      tokenSource: tokenSourceKey?.value ? tokenSourceKey.value : 'access_token',
+                      tokenPlacement: tokenPlacementKey?.value ? tokenPlacementKey.value : 'header',
+                      tokenHeaderPrefix: tokenHeaderPrefixKey?.value ? tokenHeaderPrefixKey.value : '',
+                      tokenQueryKey: tokenQueryKeyKey?.value ? tokenQueryKeyKey.value : 'access_token',
+                      autoFetchToken: autoFetchTokenKey ? safeParseJson(autoFetchTokenKey?.value) ?? true : true,
+                      autoRefreshToken: autoRefreshTokenKey ? safeParseJson(autoRefreshTokenKey?.value) ?? false : false
+                    }
+                  : {}
       }
+    };
+  },
+  oauth2AuthReqHeaders(_1, dictionary) {
+    return {
+      oauth2_additional_parameters_auth_req_headers: mapPairListToKeyValPairs(dictionary.ast)
+    };
+  },
+  oauth2AuthReqQueryParams(_1, dictionary) {
+    return {
+      oauth2_additional_parameters_auth_req_queryparams: mapPairListToKeyValPairs(dictionary.ast)
+    };
+  },
+  oauth2AccessTokenReqHeaders(_1, dictionary) {
+    return {
+      oauth2_additional_parameters_access_token_req_headers: mapPairListToKeyValPairs(dictionary.ast)
+    };
+  },
+  oauth2AccessTokenReqQueryParams(_1, dictionary) {
+    return {
+      oauth2_additional_parameters_access_token_req_queryparams: mapPairListToKeyValPairs(dictionary.ast)
+    };
+  },
+  oauth2AccessTokenReqBody(_1, dictionary) {
+    return {
+      oauth2_additional_parameters_access_token_req_bodyvalues: mapPairListToKeyValPairs(dictionary.ast)
+    };
+  },
+  oauth2RefreshTokenReqHeaders(_1, dictionary) {
+    return {
+      oauth2_additional_parameters_refresh_token_req_headers: mapPairListToKeyValPairs(dictionary.ast)
+    };
+  },
+  oauth2RefreshTokenReqQueryParams(_1, dictionary) {
+    return {
+      oauth2_additional_parameters_refresh_token_req_queryparams: mapPairListToKeyValPairs(dictionary.ast)
+    };
+  },
+  oauth2RefreshTokenReqBody(_1, dictionary) {
+    return {
+      oauth2_additional_parameters_refresh_token_req_bodyvalues: mapPairListToKeyValPairs(dictionary.ast)
     };
   },
   authwsse(_1, dictionary) {
@@ -329,8 +580,8 @@ const sem = grammar.createSemantics().addAttribute('ast', {
           password
         }
       }
-    }
-  }, 
+    };
+  },
   authapikey(_1, dictionary) {
     const auth = mapPairListToKeyValPairs(dictionary.ast, false);
 
@@ -419,7 +670,9 @@ const parser = (input) => {
   const match = grammar.match(input);
 
   if (match.succeeded()) {
-    return sem(match).ast;
+    let ast = sem(match).ast;
+
+    return ast;
   } else {
     throw new Error(match.message);
   }

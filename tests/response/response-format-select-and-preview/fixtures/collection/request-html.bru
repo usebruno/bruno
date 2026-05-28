@@ -1,0 +1,23 @@
+meta {
+  name: request-html
+  type: http
+  seq: 5
+}
+
+post {
+  url: https://www.httpfaker.org/api/echo/custom
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "headers": { "content-type": "text/html" },
+    "content": "<h1>hello</h1>"
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

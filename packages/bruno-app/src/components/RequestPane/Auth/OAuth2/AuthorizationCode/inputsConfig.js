@@ -1,9 +1,5 @@
 const inputsConfig = [
   {
-    key: 'callbackUrl',
-    label: 'Callback URL'
-  },
-  {
     key: 'authorizationUrl',
     label: 'Authorization URL'
   },

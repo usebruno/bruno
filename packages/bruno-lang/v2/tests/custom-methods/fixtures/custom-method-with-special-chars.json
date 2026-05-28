@@ -1,0 +1,11 @@
+{
+  "meta": {
+    "name": "Custom Method with Special Characters",
+    "type": "http",
+    "seq": "3"
+  },
+  "http": {
+    "method": "CUSTOM@METHOD",
+    "url": "https://api.example.com/special-method"
+  }
+}

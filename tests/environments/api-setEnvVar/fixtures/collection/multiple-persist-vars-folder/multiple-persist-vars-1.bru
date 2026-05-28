@@ -1,0 +1,15 @@
+meta {
+  name: multiple-persist-vars-1
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+script:pre-request {
+  bru.setEnvVar("multiple-persist-vars-key1", "value1", { persist: true });
+}

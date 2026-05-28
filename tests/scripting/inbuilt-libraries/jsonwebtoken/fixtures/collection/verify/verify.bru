@@ -1,0 +1,104 @@
+meta {
+  name: verify
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{host}}/api/echo
+  body: none
+  auth: inherit
+}
+
+script:pre-request {
+  const jwt = require('jsonwebtoken');
+  
+  const validPayload = {
+    userId: 789,
+    username: 'verifyuser',
+    role: 'admin',
+    iat: Math.floor(Date.now() / 1000)
+  };
+  
+  const secret = bru.getEnvVar('secret') || 'test-secret-key';
+  const wrongSecret = 'wrong-secret-key';
+  
+  const validToken = jwt.sign(validPayload, secret, { algorithm: 'HS256', expiresIn: '1h' });
+  const invalidToken = jwt.sign(validPayload, wrongSecret, { algorithm: 'HS256', expiresIn: '1h' });
+   
+  
+  bru.setEnvVar('valid_token', validToken);
+  bru.setEnvVar('invalid_token', invalidToken);
+  
+  try {
+    console.log('Testing JWT verification...');
+    console.log('Valid token:', validToken);
+    
+    const verified = jwt.verify(validToken, secret);
+  
+    const verifiedWithOptions = jwt.verify(validToken, secret, { 
+      algorithms: ['HS256'],
+      ignoreExpiration: false 
+    });
+    if (!verifiedWithOptions) {
+      throw new Error('Verification with options should work');
+    }
+    
+    console.log('JWT verification test passed!');
+  
+    bru.setEnvVar('verified_payload', JSON.stringify(verified));
+    
+  } catch (error) {
+    console.error('JWT verification failed:', error.message);
+    throw error;
+  }
+}
+
+tests {
+  test("Verified payload should exist", function() {
+    const verifiedPayload = bru.getEnvVar('verified_payload');
+    expect(verifiedPayload).to.exist;
+  });
+  
+  test("Verified payload should be valid JSON", function() {
+    const verifiedPayload = bru.getEnvVar('verified_payload');
+    const parsed = JSON.parse(verifiedPayload);
+    expect(typeof parsed).to.equal('object');
+  });
+  
+  test("Verified payload should contain correct user data", function() {
+    const verifiedPayload = JSON.parse(bru.getEnvVar('verified_payload'));
+    
+    expect(verifiedPayload.userId).to.equal(789);
+    expect(verifiedPayload.username).to.equal('verifyuser');
+    expect(verifiedPayload.role).to.equal('admin');
+  });
+  
+  test("Verified payload should have timestamp fields", function() {
+    const verifiedPayload = JSON.parse(bru.getEnvVar('verified_payload'));
+    
+    expect(verifiedPayload.iat).to.exist;
+    expect(verifiedPayload.exp).to.exist;
+    expect(typeof verifiedPayload.iat).to.equal('number');
+    expect(typeof verifiedPayload.exp).to.equal('number');
+  });
+  
+  test("Invalid token with wrong secret should throw error", function() {
+    const jwt = require('jsonwebtoken');
+    const invalidToken = bru.getEnvVar('invalid_token');
+    const secret = bru.getEnvVar('secret') || 'test-secret-key';
+    
+    try {
+      jwt.verify(invalidToken, secret);
+      expect.fail('Expected JWT verification to throw an error for invalid token');
+    } catch (error) {
+      expect(error).to.exist;
+      expect(error.message).to.equal('invalid signature');
+      console.log('Invalid token correctly threw error:', error.message);
+    }
+  });
+}
+
+settings {
+  encodeUrl: true
+}

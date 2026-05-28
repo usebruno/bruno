@@ -3,17 +3,27 @@ require('dotenv').config({ path: process.env.DOTENV_PATH });
 const config = {
   appId: 'com.usebruno.app',
   productName: 'Bruno',
-  electronVersion: '33.2.1',
+  electronVersion: '37.6.1',
   directories: {
     buildResources: 'resources',
     output: 'out'
   },
+  extraResources: [
+    {
+      from: 'resources/data/sample-collection.json',
+      to: 'data/sample-collection.json'
+    }
+  ],
   files: ['**/*'],
   afterSign: 'notarize.js',
   mac: {
     artifactName: '${name}_${version}_${arch}_${os}.${ext}',
     category: 'public.app-category.developer-tools',
     target: [
+      {
+        target: 'pkg',
+        arch: ['x64', 'arm64']
+      },
       {
         target: 'dmg',
         arch: ['x64', 'arm64']
@@ -27,10 +37,19 @@ const config = {
     hardenedRuntime: true,
     identity: 'Anoop MD (W7LPPWA48L)',
     entitlements: 'resources/entitlements.mac.plist',
-    entitlementsInherit: 'resources/entitlements.mac.plist'
+    entitlementsInherit: 'resources/entitlements.mac.plist',
+    notarize: false,
+    protocols: [
+      {
+        name: 'Bruno',
+        schemes: [
+          'bruno'
+        ]
+      }
+    ]
   },
   linux: {
-    artifactName: '${name}_${version}_${arch}_linux.${ext}',
+    artifactName: '${name}_${version}_${arch}_${os}.${ext}',
     icon: 'resources/icons/png',
     target: [
       {
@@ -38,36 +57,66 @@ const config = {
         arch: ['x64', 'arm64']
       },
       {
-        target: 'snap',
-        arch: ['x64']
-      },
-      {
         target: 'deb',
         arch: ['x64', 'arm64']
       },
       {
         target: 'rpm',
-        arch: ['x64']
+        arch: ['x64', 'arm64']
+      }
+    ],
+    protocols: [
+      {
+        name: 'Bruno',
+        schemes: ['bruno']
       }
     ],
     category: 'Development',
     desktop: {
-      Name: 'Bruno',
-      Type: 'Application',
-      Categories: 'Development'
+      MimeType: 'x-scheme-handler/bruno;'
     }
   },
+  deb: {
+    // Docs: https://www.electron.build/configuration/linux#debian-package-options
+    depends: [
+      'libgtk-3-0',
+      'libnotify4',
+      'libnss3',
+      'libxss1',
+      'libxtst6',
+      'xdg-utils',
+      'libatspi2.0-0',
+      'libuuid1',
+      'libsecret-1-0',
+      'libasound2' // #1036
+    ]
+  },
   win: {
-    icon: 'resources/icons/png',
-    certificateFile: `${process.env.WIN_CERT_FILEPATH}`,
-    certificatePassword: `${process.env.WIN_CERT_PASSWORD}`,
-    target: [{ target: 'nsis' }, { target: 'portable' }],
+    artifactName: '${name}_${version}_${arch}_win.${ext}',
+    icon: 'resources/icons/win/icon.ico',
+    target: [
+      {
+        target: 'nsis',
+        arch: ['x64', 'arm64']
+      },
+      {
+        target: 'portable',
+        arch: ['x64', 'arm64']
+      }
+    ],
+    sign: null,
+    publisherName: 'Bruno Software Inc'
   },
   nsis: {
-    artifactName: '${name}_${version}_${arch}_win.${ext}',
+    include: 'resources/installer.nsh',
+    oneClick: false,
+    allowToChangeInstallationDirectory: true,
+    allowElevation: true,
+    createDesktopShortcut: true,
+    createStartMenuShortcut: true
   },
   portable: {
-    artifactName: '${name}_${version}_${arch}_win-portable.${ext}',
+    artifactName: '${name}_${version}_${arch}_win-portable.${ext}'
   }
 };
 

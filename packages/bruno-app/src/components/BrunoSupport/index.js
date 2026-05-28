@@ -6,7 +6,7 @@ import StyledWrapper from './StyledWrapper';
 const BrunoSupport = ({ onClose }) => {
   return (
     <StyledWrapper>
-      <Modal size="sm" title={'Support'} handleCancel={onClose} hideFooter={true}>
+      <Modal size="sm" title="Support" handleCancel={onClose} hideFooter={true}>
         <div className="collection-options">
           <div className="mt-2">
             <a href="https://docs.usebruno.com" target="_blank" className="flex items-end">

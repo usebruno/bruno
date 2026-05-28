@@ -1,18 +1,20 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import get from 'lodash/get';
 import { useDispatch, useSelector } from 'react-redux';
 import CodeEditor from 'components/CodeEditor';
 import { updateRequestTests } from 'providers/ReduxStore/slices/collections';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { useTheme } from 'providers/Theme';
-import StyledWrapper from './StyledWrapper';
+import { usePersistedState } from 'hooks/usePersistedState';
 
 const Tests = ({ item, collection }) => {
   const dispatch = useDispatch();
+  const testsEditorRef = useRef(null);
   const tests = item.draft ? get(item, 'draft.request.tests') : get(item, 'request.tests');
 
   const { displayedTheme } = useTheme();
   const preferences = useSelector((state) => state.app.preferences);
+  const [testsScroll, setTestsScroll] = usePersistedState({ key: `request-tests-scroll-${item.uid}`, default: 0 });
 
   const onEdit = (value) => {
     dispatch(
@@ -28,9 +30,11 @@ const Tests = ({ item, collection }) => {
   const onSave = () => dispatch(saveRequest(item.uid, collection.uid));
 
   return (
-    <StyledWrapper className="w-full">
+    <div data-testid="test-script-editor">
       <CodeEditor
+        ref={testsEditorRef}
         collection={collection}
+        docKey="tests"
         value={tests || ''}
         theme={displayedTheme}
         font={get(preferences, 'font.codeFont', 'default')}
@@ -39,8 +43,11 @@ const Tests = ({ item, collection }) => {
         mode="javascript"
         onRun={onRun}
         onSave={onSave}
+        showHintsFor={['req', 'res', 'bru']}
+        initialScroll={testsScroll}
+        onScroll={setTestsScroll}
       />
-    </StyledWrapper>
+    </div>
   );
 };
 

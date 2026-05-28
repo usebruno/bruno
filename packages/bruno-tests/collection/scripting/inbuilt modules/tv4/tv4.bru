@@ -1,0 +1,39 @@
+meta {
+  name: tv4
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{host}}/api/echo/json
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "name": "John",
+    "age": 30
+  }
+}
+
+tests {
+  const tv4 = require("tv4")
+  
+  const schema = {
+    type: 'object',
+    properties: {
+      name: { type: 'string' },
+      age: { type: 'number' }
+    }
+  };
+  
+  let responseData = res.getBody();
+  
+  let isValid = tv4.validate(responseData, schema);
+  
+  test("Response body matches expected schema", function () {
+      expect(isValid, tv4.error ? tv4.error.message : "").to.be.true;
+  });
+  
+}

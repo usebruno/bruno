@@ -13,14 +13,29 @@ post {
 body:form-urlencoded {
   form-data-key: {{form-data-key}}
   form-data-stringified-object: {{form-data-stringified-object}}
-}
-
-assert {
-  res.body: eq form-data-key=form-data-value&form-data-stringified-object=%7B%22foo%22%3A123%7D
+  key_1: value_1
+  key_2: value_2
+  key_1: value_3
+  key_2: value_4
 }
 
 script:pre-request {
   let obj = JSON.stringify({foo:123});
   bru.setVar('form-data-key', 'form-data-value');
   bru.setVar('form-data-stringified-object', obj);
+}
+
+tests {
+  test("form-urlencoded body with variables and duplicate keys", function() {
+    const expected = [
+      "form-data-key=form-data-value",
+      "form-data-stringified-object=%7B%22foo%22%3A123%7D", // {"foo":123} URL encoded
+      "key_1=value_1",
+      "key_2=value_2", 
+      "key_1=value_3", // duplicate key with different value
+      "key_2=value_4"  // duplicate key with different value
+    ].join("&");
+    
+    expect(res.getBody()).to.eql(expected);
+  });
 }

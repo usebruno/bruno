@@ -1,0 +1,23 @@
+meta {
+  name: getStatusText
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+assert {
+  res.statusText: eq OK
+  res.body: eq pong
+}
+
+tests {
+  test("res.getStatusText()", function() {
+    const statusText = res.getStatusText()
+    expect(statusText).to.equal('OK');
+  });
+}

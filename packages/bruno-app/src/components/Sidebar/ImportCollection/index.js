@@ -1,109 +1,125 @@
 import React, { useState } from 'react';
-import importBrunoCollection from 'utils/importers/bruno-collection';
-import importPostmanCollection from 'utils/importers/postman-collection';
-import importInsomniaCollection from 'utils/importers/insomnia-collection';
-import importOpenapiCollection from 'utils/importers/openapi-collection';
-import { toastError } from 'utils/common/error';
+import { IconFileImport, IconBrandGit, IconUnlink, IconX } from '@tabler/icons';
 import Modal from 'components/Modal';
+import Portal from 'components/Portal';
+import classnames from 'classnames';
+import StyledWrapper from './StyledWrapper';
+import FileTab from './FileTab';
+import GitHubTab from './GitHubTab';
+import UrlTab from './UrlTab';
+import FullscreenLoader from './FullscreenLoader/index';
+import { useTheme } from 'providers/Theme';
+
+const IMPORT_TABS = {
+  FILE: 'file',
+  GITHUB: 'github',
+  URL: 'url'
+};
 
 const ImportCollection = ({ onClose, handleSubmit }) => {
-  const [options, setOptions] = useState({
-    enablePostmanTranslations: {
-      enabled: true,
-      label: 'Auto translate postman scripts',
-      subLabel:
-        "When enabled, Bruno will try as best to translate the scripts from the imported collection to Bruno's format."
-    }
-  });
-  const handleImportBrunoCollection = () => {
-    importBrunoCollection()
-      .then(({ collection }) => {
-        handleSubmit({ collection });
-      })
-      .catch((err) => toastError(err, 'Import collection failed'));
+  const { theme } = useTheme();
+  const [isLoading, setIsLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+  const [tab, setTab] = useState(IMPORT_TABS.FILE);
+
+  const handleTabSelect = (value) => () => {
+    setTab(value);
+    setErrorMessage('');
   };
 
-  const handleImportPostmanCollection = () => {
-    importPostmanCollection(options)
-      .then(({ collection, translationLog }) => {
-        handleSubmit({ collection, translationLog });
-      })
-      .catch((err) => toastError(err, 'Postman Import collection failed'));
-  };
-
-  const handleImportInsomniaCollection = () => {
-    importInsomniaCollection()
-      .then(({ collection }) => {
-        handleSubmit({ collection });
-      })
-      .catch((err) => toastError(err, 'Insomnia Import collection failed'));
-  };
-
-  const handleImportOpenapiCollection = () => {
-    importOpenapiCollection()
-      .then(({ collection }) => {
-        handleSubmit({ collection });
-      })
-      .catch((err) => toastError(err, 'OpenAPI v3 Import collection failed'));
-  };
-  const toggleOptions = (event, optionKey) => {
-    setOptions({
-      ...options,
-      [optionKey]: {
-        ...options[optionKey],
-        enabled: !options[optionKey].enabled
-      }
+  const getTabClassname = (tabName) => {
+    return classnames(`flex tab items-center py-2 px-4 ${tabName}`, {
+      active: tabName === tab
     });
   };
-  const CollectionButton = ({ children, className, onClick }) => {
-    return (
-      <button
-        type="button"
-        onClick={onClick}
-        className={`rounded bg-transparent px-2.5 py-1 text-xs font-semibold text-zinc-900 dark:text-zinc-50 shadow-sm ring-1 ring-inset ring-zinc-300 dark:ring-zinc-500 hover:bg-gray-50 dark:hover:bg-zinc-700
-        ${className}`}
-      >
-        {children}
-      </button>
-    );
-  };
+
+  if (isLoading) {
+    return <FullscreenLoader isLoading={isLoading} />;
+  }
+
   return (
-    <Modal size="sm" title="Import Collection" hideFooter={true} handleCancel={onClose}>
-      <div className="flex flex-col">
-        <h3 className="text-sm">Select the type of your existing collection :</h3>
-        <div className="mt-4 grid grid-rows-2 grid-flow-col gap-2">
-          <CollectionButton onClick={handleImportBrunoCollection}>Bruno Collection</CollectionButton>
-          <CollectionButton onClick={handleImportPostmanCollection}>Postman Collection</CollectionButton>
-          <CollectionButton onClick={handleImportInsomniaCollection}>Insomnia Collection</CollectionButton>
-          <CollectionButton onClick={handleImportOpenapiCollection}>OpenAPI V3 Spec</CollectionButton>
-        </div>
-        <div className="flex justify-start w-full mt-4 max-w-[450px]">
-          {Object.entries(options || {}).map(([key, option]) => (
-            <div key={key} className="relative flex items-start">
-              <div className="flex h-6 items-center">
-                <input
-                  id="comments"
-                  aria-describedby="comments-description"
-                  name="comments"
-                  type="checkbox"
-                  checked={option.enabled}
-                  onChange={(e) => toggleOptions(e, key)}
-                  className="h-3.5 w-3.5 rounded border-zinc-300 dark:ring-offset-zinc-800 bg-transparent text-indigo-600 dark:text-indigo-500 focus:ring-indigo-600 dark:focus:ring-indigo-500"
-                />
+    <Portal>
+      <Modal size="md" title="Import Collection" hideFooter={true} handleCancel={onClose} dataTestId="import-collection-modal">
+        <StyledWrapper className="flex flex-col h-full">
+          <div className="flex w-full mb-6">
+            <div className="flex justify-start w-full tabs">
+              <div
+                className={getTabClassname(IMPORT_TABS.FILE)}
+                onClick={handleTabSelect(IMPORT_TABS.FILE)}
+                data-testid="file-tab"
+              >
+                <IconFileImport size={18} strokeWidth={1.5} className="mr-2" />
+                File
               </div>
-              <div className="ml-2 text-sm leading-6">
-                <label htmlFor="comments" className="font-medium text-gray-900 dark:text-zinc-50">
-                  {option.label}
-                </label>
-                <p id="comments-description" className="text-zinc-500 text-xs dark:text-zinc-400">
-                  {option.subLabel}
-                </p>
+              <div
+                className={getTabClassname(IMPORT_TABS.GITHUB)}
+                onClick={handleTabSelect(IMPORT_TABS.GITHUB)}
+                data-testid="github-tab"
+              >
+                <IconBrandGit size={18} strokeWidth={1.5} className="mr-2" />
+                Git Repository
+              </div>
+              <div
+                className={getTabClassname(IMPORT_TABS.URL)}
+                onClick={handleTabSelect(IMPORT_TABS.URL)}
+                data-testid="url-tab"
+              >
+                <IconUnlink size={18} strokeWidth={1.5} className="mr-2" />
+                URL
               </div>
             </div>
-          ))}
-        </div>
-      </div>
-    </Modal>
+          </div>
+
+          {errorMessage && (
+            <div
+              data-testid="import-error-message"
+              className="mb-4 p-2 border rounded-md"
+              style={{
+                backgroundColor: theme.status.danger.background,
+                borderColor: theme.status.danger.border
+              }}
+            >
+              <div className="flex gap-2">
+                <div
+                  className="text-xs flex-1"
+                  style={{ color: theme.status.danger.text }}
+                >
+                  {errorMessage}
+                </div>
+                <div
+                  className="close-button flex items-center cursor-pointer"
+                  onClick={() => setErrorMessage('')}
+                  style={{ color: theme.status.danger.text }}
+                >
+                  <IconX size={16} strokeWidth={1.5} />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {tab === IMPORT_TABS.FILE && (
+            <FileTab
+              setIsLoading={setIsLoading}
+              handleSubmit={handleSubmit}
+              setErrorMessage={setErrorMessage}
+            />
+          )}
+          {tab === IMPORT_TABS.GITHUB && (
+            <GitHubTab
+              handleSubmit={handleSubmit}
+              setErrorMessage={setErrorMessage}
+            />
+          )}
+          {tab === IMPORT_TABS.URL && (
+            <UrlTab
+              setIsLoading={setIsLoading}
+              handleSubmit={handleSubmit}
+              setErrorMessage={setErrorMessage}
+            />
+          )}
+        </StyledWrapper>
+      </Modal>
+    </Portal>
   );
 };
 

@@ -1,0 +1,35 @@
+meta {
+  name: echo request
+  type: http
+  seq: 1
+}
+
+post {
+  url: https://echo.usebruno.com
+  body: json
+  auth: none
+}
+
+body:form-urlencoded {
+  apikey: secret
+  numbers: +91998877665
+  ~message: hello
+}
+
+body:multipart-form {
+  apikey: secret
+  numbers: +91998877665
+  ~message: hello
+}
+
+body:file {
+  file: @file(path/to/file.json) @contentType(application/json)
+  file: @file(path/to/file.json) @contentType(application/json)
+  ~file: @file(path/to/file2.json) @contentType(application/json)
+}
+
+body:graphql:vars {
+  {
+    "limit": 5
+  }
+}
