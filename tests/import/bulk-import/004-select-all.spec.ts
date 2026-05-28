@@ -49,10 +49,9 @@ test.describe('Bulk Import - Select all', () => {
     const bulkImportModal = page.getByRole('dialog');
     await expect(bulkImportModal.locator('.bruno-modal-header-title')).toContainText('Bulk Import');
 
-    const collectionsHeading = bulkImportModal.getByTestId('selection-heading').filter({ hasText: 'Collections' });
-    await expect(collectionsHeading.getByTestId('selection-count')).toHaveText(String(totalCollections));
+    const collectionsSection = bulkImportModal.getByTestId('selection-section-collections');
+    await expect(collectionsSection.getByTestId('selection-count')).toHaveText(String(totalCollections));
 
-    const collectionsSection = collectionsHeading.locator('..');
     const collectionList = collectionsSection.getByTestId('selection-list');
     const itemCheckboxes = collectionList.locator('.selection-item input[type="checkbox"]');
     const selectAllToggle = collectionsSection.getByTestId('selection-select-all-toggle');

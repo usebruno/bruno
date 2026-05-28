@@ -672,6 +672,7 @@ export const BulkImportCollectionLocation = ({
               <>
                 <div className="w-full mb-6">
                   <SelectionList
+                    dataTestId="selection-section-collections"
                     title="Collections"
                     searchPlaceholder="Search Collections"
                     items={sortedCollections}
@@ -693,6 +694,7 @@ export const BulkImportCollectionLocation = ({
                   <>
                     <div className="w-full mb-6">
                       <SelectionList
+                        dataTestId="selection-section-environments"
                         title="Environments"
                         searchPlaceholder="Search Environments"
                         items={sortedEnvironments}
