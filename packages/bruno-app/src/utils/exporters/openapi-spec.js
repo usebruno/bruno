@@ -5,7 +5,7 @@ const xml2js = require('xml2js');
 
 export const exportApiSpec = ({ variables, items, name, environments }) => {
   // Filter out transient items and grpc requests
-  items = items.filter((item) => !['grpc-request'].includes(item.type) && !item.isTransient);
+  items = items.filter((item) => ['http-request', 'graphql-request'].includes(item.type) && !item.isTransient);
 
   const components = {
     schemas: {},
