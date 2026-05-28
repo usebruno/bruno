@@ -1,3 +1,4 @@
+import classnames from 'classnames';
 import { IconDotsVertical } from '@tabler/icons';
 import { useRef } from 'react';
 import Dropdown from 'components/Dropdown';
@@ -19,14 +20,14 @@ const NotificationTabs = ({ activeTab, unreadCount, onTabChange, onMarkAllRead, 
       <div className="notif-tab-group">
         <button
           type="button"
-          className={`notif-tab ${activeTab === TABS.ALL ? 'active' : ''}`}
+          className={classnames('notif-tab', { active: activeTab === TABS.ALL })}
           onClick={() => onTabChange(TABS.ALL)}
         >
           All
         </button>
         <button
           type="button"
-          className={`notif-tab ${activeTab === TABS.UNREAD ? 'active' : ''}`}
+          className={classnames('notif-tab', { active: activeTab === TABS.UNREAD })}
           onClick={() => onTabChange(TABS.UNREAD)}
         >
           Unread
@@ -35,7 +36,7 @@ const NotificationTabs = ({ activeTab, unreadCount, onTabChange, onMarkAllRead, 
       </div>
       <Dropdown icon={menuIcon} placement="bottom-end" onCreate={onDropdownCreate}>
         <div
-          className={`dropdown-item ${unreadCount === 0 ? 'disabled' : ''}`}
+          className={classnames('dropdown-item', { disabled: unreadCount === 0 })}
           onClick={() => {
             if (unreadCount === 0) return;
             hideDropdown();

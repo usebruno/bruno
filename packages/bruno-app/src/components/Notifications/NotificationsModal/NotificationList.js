@@ -1,3 +1,4 @@
+import classnames from 'classnames';
 import { relativeDate } from 'utils/common';
 
 const NotificationList = ({ items, selectedId, onSelect }) => {
@@ -9,10 +10,10 @@ const NotificationList = ({ items, selectedId, onSelect }) => {
         return (
           <li
             key={notification.id}
-            className={`notif-list-item ${isActive ? 'active' : ''} ${isUnread ? 'unread' : ''}`}
+            className={classnames('notif-list-item', { active: isActive, unread: isUnread })}
             onClick={() => onSelect(notification)}
           >
-            <div className={`notif-item-title ${isUnread ? 'unread' : ''}`}>{notification.title}</div>
+            <div className={classnames('notif-item-title', { unread: isUnread })}>{notification.title}</div>
             <div className="notif-item-date">{relativeDate(notification.date)}</div>
           </li>
         );

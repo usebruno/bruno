@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react';
+import classnames from 'classnames';
 import { useDragResize } from 'hooks/useDragResize';
 import Modal from 'components/Modal/index';
 import Portal from 'components/Portal';
@@ -68,7 +69,7 @@ const NotificationsModal = ({ notifications, onClose }) => {
                 <NotificationList items={listed} selectedId={selectedNotification?.id} onSelect={onSelect} />
               </div>
               <div
-                className={`notif-resize-handle ${dragging ? 'dragging' : ''}`}
+                className={classnames('notif-resize-handle', { dragging })}
                 {...dragbarProps}
                 role="separator"
                 aria-orientation="vertical"
