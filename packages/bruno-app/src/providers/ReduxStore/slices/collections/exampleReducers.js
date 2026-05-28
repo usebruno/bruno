@@ -22,7 +22,7 @@ export const addResponseExample = (state, action) => {
   }
 
   // Ensure body always has a mode field (default to 'none' if not present)
-  const requestBody = item.draft.request.body || {};
+  const requestBody = cloneDeep(item.draft.request.body || {});
   if (!requestBody.mode) {
     requestBody.mode = 'none';
   }
