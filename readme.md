@@ -1,6 +1,10 @@
 <br />
 <img src="assets/images/logo-transparent.png" width="80"/>
 
+> ⚠️ **Fork Notice:** This is a fork of [usebruno/bruno](https://github.com/usebruno/bruno) with AI-generated improvements.
+> All credit goes to the original authors. See the upstream repo for the official version, releases, and documentation.
+> Changes in this fork: improved JSON error messages (EN/DE), auto-show lint tooltips — created with AI assistance.
+
 ### Bruno - Opensource IDE for exploring and testing APIs.
 
 [![GitHub version](https://badge.fury.io/gh/usebruno%2Fbruno.svg)](https://badge.fury.io/gh/usebruno%2Fbruno)
