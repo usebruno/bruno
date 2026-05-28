@@ -1,8 +1,11 @@
 import styled from 'styled-components';
 
-const StyledWrapper = styled.a`
+const StyledWrapper = styled.button`
   position: relative;
   cursor: pointer;
+  background: none;
+  border: none;
+  padding: 0;
 
   .notification-count {
     position: absolute;
