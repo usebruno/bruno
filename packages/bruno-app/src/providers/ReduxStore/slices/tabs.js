@@ -104,8 +104,6 @@ export const tabsSlice = createSlice({
           requestPaneHeight: null,
           requestPaneCollapsed: false,
           responsePaneCollapsed: false,
-          requestPaneWidthBeforeCollapse: null,
-          requestPaneHeightBeforeCollapse: null,
           requestPaneTab: requestPaneTab || defaultRequestPaneTab,
           responsePaneTab: 'response',
           responseFormat: null,
@@ -135,8 +133,6 @@ export const tabsSlice = createSlice({
         requestPaneHeight: null,
         requestPaneCollapsed: false,
         responsePaneCollapsed: false,
-        requestPaneWidthBeforeCollapse: null,
-        requestPaneHeightBeforeCollapse: null,
         requestPaneTab: requestPaneTab || defaultRequestPaneTab,
         responsePaneTab: 'response',
         responseFormat: null,
@@ -383,8 +379,6 @@ export const tabsSlice = createSlice({
       if (tab) {
         tab.requestPaneCollapsed = true;
         tab.responsePaneCollapsed = false;
-        tab.requestPaneWidthBeforeCollapse = tab.requestPaneWidth;
-        tab.requestPaneHeightBeforeCollapse = tab.requestPaneHeight;
       }
     },
     collapseResponsePane: (state, action) => {
@@ -398,20 +392,18 @@ export const tabsSlice = createSlice({
       const tab = find(state.tabs, (t) => t.uid === action.payload.uid);
       if (tab) {
         tab.requestPaneCollapsed = false;
-        if (tab.requestPaneWidthBeforeCollapse != null) {
-          tab.requestPaneWidth = tab.requestPaneWidthBeforeCollapse;
-        }
-        if (tab.requestPaneHeightBeforeCollapse != null) {
-          tab.requestPaneHeight = tab.requestPaneHeightBeforeCollapse;
-        }
-        tab.requestPaneWidthBeforeCollapse = null;
-        tab.requestPaneHeightBeforeCollapse = null;
+        // Drag-to-collapse leaves requestPaneWidth/Height clamped to min/max; reset so the panes return to their default share of the space on expand.
+        tab.requestPaneWidth = null;
+        tab.requestPaneHeight = null;
       }
     },
     expandResponsePane: (state, action) => {
       const tab = find(state.tabs, (t) => t.uid === action.payload.uid);
       if (tab) {
         tab.responsePaneCollapsed = false;
+        // Drag-to-collapse leaves requestPaneWidth/Height clamped to min/max; reset so the panes return to their default share of the space on expand.
+        tab.requestPaneWidth = null;
+        tab.requestPaneHeight = null;
       }
     },
     reorderTabs: (state, action) => {
