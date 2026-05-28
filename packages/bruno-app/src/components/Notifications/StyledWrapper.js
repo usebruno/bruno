@@ -14,7 +14,7 @@ const StyledWrapper = styled.a`
     min-width: 14px;
     height: 14px;
     padding: 0 3px;
-    color: white;
+    color: ${(props) => props.theme.background.base};
     font-size: 9px;
     font-weight: 600;
     line-height: 1;

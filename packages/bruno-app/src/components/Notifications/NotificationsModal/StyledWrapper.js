@@ -8,13 +8,13 @@ const StyledWrapper = styled.div`
   max-width: 100%;
   max-height: 70vh;
   overflow: hidden;
-  background-color: ${(props) => props.theme.background.base};
+  background-color: ${(props) => props.theme.notifications.bg};
 
   .notif-sidebar {
     flex: 0 0 auto;
     display: flex;
     flex-direction: column;
-    background-color: ${(props) => props.theme.background.base};
+    background-color: ${(props) => props.theme.notifications.list.bg};
   }
 
   .notif-resize-handle {
@@ -77,9 +77,9 @@ const StyledWrapper = styled.div`
       font-weight: 500;
 
       .notif-tab-badge {
-        background-color: ${(props) => props.theme.background.surface0};
-        color: ${(props) => props.theme.background.base};
-        border-color: ${(props) => props.theme.background.surface1};
+        background-color: ${(props) => props.theme.notifications.list.active.bg};
+        color: ${(props) => props.theme.notifications.bg};
+        border-color: ${(props) => props.theme.notifications.list.hoverBg};
       }
     }
   }
@@ -110,7 +110,7 @@ const StyledWrapper = styled.div`
     border-radius: 4px;
 
     &:hover {
-      background-color: ${(props) => props.theme.background.surface1};
+      background-color: ${(props) => props.theme.notifications.list.hoverBg};
     }
   }
 
@@ -121,7 +121,7 @@ const StyledWrapper = styled.div`
     overflow-y: auto;
     flex: 1;
     min-height: 0;
-    background-color: ${(props) => props.theme.background.base};
+    background-color: ${(props) => props.theme.notifications.list.bg};
   }
 
   .notif-list-empty {
@@ -142,19 +142,19 @@ const StyledWrapper = styled.div`
     gap: 0;
 
     &:hover {
-      background-color: ${(props) => props.theme.background.surface1};
+      background-color: ${(props) => props.theme.notifications.list.hoverBg};
     }
 
     &.unread {
-      background-color: ${(props) => props.theme.background.surface0};
+      background-color: ${(props) => props.theme.notifications.list.active.bg};
 
       &:hover {
-        background-color: ${(props) => props.theme.background.surface1};
+        background-color: ${(props) => props.theme.notifications.list.hoverBg};
       }
     }
 
     &.active {
-      background-color: ${(props) => props.theme.background.surface0};
+      background-color: ${(props) => props.theme.notifications.list.active.bg};
 
       &::before {
         content: '';
@@ -167,7 +167,7 @@ const StyledWrapper = styled.div`
       }
 
       &:hover {
-        background-color: ${(props) => props.theme.background.surface2};
+        background-color: ${(props) => props.theme.notifications.list.active.hoverBg};
       }
     }
   }

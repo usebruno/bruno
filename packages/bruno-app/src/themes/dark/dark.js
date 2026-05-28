@@ -305,14 +305,12 @@ const darkTheme = {
   notifications: {
     bg: palette.background.BASE,
     list: {
-      bg: palette.background.SURFACE0,
-      borderRight: 'transparent',
+      bg: palette.background.BASE,
       borderBottom: palette.border.BORDER0,
-      hoverBg: palette.background.SURFACE1,
+      hoverBg: colors.GRAY_3,
       active: {
-        border: palette.hues.BLUE,
-        bg: palette.background.SURFACE1,
-        hoverBg: palette.background.SURFACE2
+        bg: palette.background.SURFACE0,
+        hoverBg: colors.GRAY_4
       }
     }
   },

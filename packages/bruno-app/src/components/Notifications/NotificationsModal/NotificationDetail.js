@@ -42,7 +42,7 @@ const NotificationDetail = ({ notification }) => {
     <meta charset="utf-8" />
     <base target="_blank" />
     <style>
-      html, body { margin: 0; padding: 0; background: ${theme.background.base}; }
+      html, body { margin: 0; padding: 0; background: ${theme.notifications.bg}; }
       body {
         padding: 8px 12px;
         font-family: Inter, sans-serif;
