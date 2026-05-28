@@ -50,7 +50,7 @@ describe('yml parseCollection - presets', () => {
   });
 
   it('parses a realistic collection with request.type http and request.url set', () => {
-    const { brunoConfig } = parseCollection(loadFixture('url-only-realistic'));
+    const { brunoConfig } = parseCollection(loadFixture('type-and-url-realistic'));
 
     expect(brunoConfig.presets).toEqual({
       requestType: 'http',
