@@ -1,0 +1,29 @@
+import styled from 'styled-components';
+
+const StyledWrapper = styled.a`
+  position: relative;
+  cursor: pointer;
+
+  .notification-count {
+    position: absolute;
+    top: -4px;
+    right: -6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 14px;
+    height: 14px;
+    padding: 0 3px;
+    color: white;
+    font-size: 9px;
+    font-weight: 600;
+    line-height: 1;
+    border-radius: 999px;
+    background-color: ${(props) => props.theme.colors.text.yellow};
+    border: 1.5px solid ${(props) => props.theme.sidebar.bg};
+    box-sizing: border-box;
+    pointer-events: none;
+  }
+`;
+
+export default StyledWrapper;

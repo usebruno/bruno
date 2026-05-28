@@ -1,39 +1,16 @@
 import styled from 'styled-components';
 
 const StyledWrapper = styled.div`
-  .notification-count {
-    position: absolute;
-    top: -4px;
-    right: -6px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 14px;
-    height: 14px;
-    padding: 0 3px;
-    color: white;
-    font-size: 9px;
-    font-weight: 600;
-    line-height: 1;
-    border-radius: 999px;
-    background-color: ${(props) => props.theme.colors.text.yellow};
-    border: 1.5px solid ${(props) => props.theme.sidebar.bg};
-    box-sizing: border-box;
-    pointer-events: none;
-  }
-
-  .notifications-modal {
-    margin-inline: -1rem;
-    margin-block: -1rem;
-    display: flex;
-    flex-direction: row;
-    width: 800px;
-    height: 520px;
-    max-width: 100%;
-    max-height: 70vh;
-    overflow: hidden;
-    background-color: ${(props) => props.theme.notifications.bg};
-  }
+  margin-inline: -1rem;
+  margin-block: -1rem;
+  display: flex;
+  flex-direction: row;
+  width: 800px;
+  height: 520px;
+  max-width: 100%;
+  max-height: 70vh;
+  overflow: hidden;
+  background-color: ${(props) => props.theme.notifications.bg};
 
   .notif-sidebar {
     flex: 0 0 auto;
@@ -307,26 +284,6 @@ const StyledWrapper = styled.div`
 
   .notif-empty-text {
     font-style: italic;
-  }
-
-  .notif-empty-actions {
-    display: flex;
-    gap: 8px;
-  }
-
-  .notif-empty-btn {
-    padding: 6px 10px;
-    font-size: 12px;
-    line-height: 18px;
-    border-radius: 6px;
-    border: 1px solid ${(props) => props.theme.notifications.list.borderBottom};
-    background: ${(props) => props.theme.background.base};
-    color: ${(props) => props.theme.text};
-    cursor: pointer;
-
-    &:hover {
-      background-color: ${(props) => props.theme.notifications.list.hoverBg};
-    }
   }
 `;
 

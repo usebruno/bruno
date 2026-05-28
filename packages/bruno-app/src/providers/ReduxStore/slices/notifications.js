@@ -2,6 +2,7 @@ import toast from 'react-hot-toast';
 import { createSlice } from '@reduxjs/toolkit';
 import { getAppInstallDate } from 'utils/common/platform';
 import semver from 'semver';
+import { version } from '../../../../package.json';
 
 const getReadNotificationIds = () => {
   try {
@@ -40,7 +41,6 @@ const setClearedNotificationIds = (val) => {
 };
 
 const initialState = {
-  loading: false,
   notifications: [],
   readNotificationIds: getReadNotificationIds() || [],
   clearedNotificationIds: getClearedNotificationIds() || []
@@ -70,9 +70,6 @@ export const notificationSlice = createSlice({
   name: 'notifications',
   initialState,
   reducers: {
-    setFetchingStatus: (state, action) => {
-      state.loading = action.payload.fetching;
-    },
     setNotifications: (state, action) => {
       let notifications = action.payload.notifications || [];
       let readNotificationIds = state.readNotificationIds;
@@ -124,41 +121,19 @@ export const notificationSlice = createSlice({
       const merged = Array.from(new Set([...(state.clearedNotificationIds || []), ...ids]));
       state.clearedNotificationIds = merged;
       setClearedNotificationIds(merged);
-    },
-    resetClearedNotifications: (state) => {
-      state.clearedNotificationIds = [];
-      setClearedNotificationIds([]);
     }
   }
 });
 
 export const {
   setNotifications,
-  setFetchingStatus,
   markNotificationAsRead,
   markAllNotificationsAsRead,
-  clearAllNotifications,
-  resetClearedNotifications
+  clearAllNotifications
 } = notificationSlice.actions;
 
-export const fetchNotifications = ({ currentVersion }) => (dispatch) => {
-  return new Promise((resolve) => {
-    const { ipcRenderer } = window;
-    dispatch(setFetchingStatus(true));
-    ipcRenderer
-      .invoke('renderer:fetch-notifications')
-      .then((notifications) => {
-        notifications = filterNotificationsByVersion(notifications, currentVersion);
-        dispatch(setNotifications({ notifications }));
-        dispatch(setFetchingStatus(false));
-        resolve(notifications);
-      })
-      .catch((err) => {
-        dispatch(setFetchingStatus(false));
-        console.error(err);
-        resolve([]);
-      });
-  });
+export const loadNotifications = (notifications) => (dispatch) => {
+  dispatch(setNotifications({ notifications: filterNotificationsByVersion(notifications, version) }));
 };
 
 export default notificationSlice.reducer;
