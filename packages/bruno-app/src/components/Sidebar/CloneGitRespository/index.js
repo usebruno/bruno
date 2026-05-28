@@ -17,6 +17,7 @@ import { IconRefresh, IconAlertCircle, IconBrandGit } from '@tabler/icons';
 import { uuid } from 'utils/common/index';
 import StyledWrapper from './StyledWrapper';
 import SelectionList from 'components/SelectionList';
+import Button from 'ui/Button';
 import { getRepoNameFromUrl } from 'utils/git';
 import GitNotFoundModal from 'components/Git/GitNotFoundModal/index';
 import ScanWarning from 'components/ScanWarning';
@@ -189,13 +190,35 @@ const CloneGitRepository = ({ onClose, onFinish, collectionRepositoryUrl = null 
 
   const isError = () => steps.some((step) => step.error);
 
-  const footerLeft = isScanCompleted() && collectionPaths?.length > 0
-    ? (
+  const handleBackButtonClick = () => {
+    setView('form');
+    setSteps([]);
+    setSelectedCollectionPaths([]);
+  };
+
+  const renderFooterLeft = () => {
+    if (isError()) {
+      return (
+        <Button
+          type="button"
+          variant="ghost"
+          color="secondary"
+          onClick={handleBackButtonClick}
+          data-testid="clone-git-repository-modal-back-btn"
+        >
+          Back
+        </Button>
+      );
+    }
+    if (isScanCompleted() && collectionPaths?.length > 0) {
+      return (
         <SelectionFooter>
           <span>{selectedCollectionPaths.length}</span> of {collectionPaths.length} selected
         </SelectionFooter>
-      )
-    : null;
+      );
+    }
+    return null;
+  };
 
   const handleConfirm = () => {
     const buttonText = getConfirmText();
@@ -225,12 +248,6 @@ const CloneGitRepository = ({ onClose, onFinish, collectionRepositoryUrl = null 
         ? 'Close'
         : 'Open';
 
-  const handleBackButtonClick = () => {
-    setView('form');
-    setSteps([]);
-    setSelectedCollectionPaths([]);
-  };
-
   if (!gitVersion) {
     return <GitNotFoundModal onClose={onClose} />;
   }
@@ -246,9 +263,7 @@ const CloneGitRepository = ({ onClose, onFinish, collectionRepositoryUrl = null 
         confirmDisabled={isConfirmDisabled()}
         hideFooter={isFooterHidden()}
         hideCancel={isError() || (isScanCompleted() && !collectionPaths?.length)}
-        showBackButton={isError()}
-        handleBack={handleBackButtonClick}
-        footerLeft={footerLeft}
+        footerLeft={renderFooterLeft()}
       >
         <StyledWrapper>
           {view === 'form' && (
