@@ -303,16 +303,16 @@ const darkTheme = {
   },
 
   notifications: {
-    bg: colors.GRAY_3,
+    bg: palette.background.BASE,
     list: {
-      bg: '3D3D3D',
-      borderRight: '#4f4f4f',
-      borderBottom: '#545454',
-      hoverBg: '#434343',
+      bg: palette.background.SURFACE0,
+      borderRight: 'transparent',
+      borderBottom: palette.border.BORDER0,
+      hoverBg: palette.background.SURFACE1,
       active: {
-        border: '#569cd6',
-        bg: '#4f4f4f',
-        hoverBg: '#4f4f4f'
+        border: palette.hues.BLUE,
+        bg: palette.background.SURFACE1,
+        hoverBg: palette.background.SURFACE2
       }
     }
   },

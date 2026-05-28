@@ -8,7 +8,7 @@ const StyledWrapper = styled.div`
   max-width: 100%;
   max-height: 70vh;
   overflow: hidden;
-  background-color: ${(props) => props.theme.notifications.bg};
+  background-color: ${(props) => props.theme.background.base};
 
   .notif-sidebar {
     flex: 0 0 auto;
@@ -73,13 +73,13 @@ const StyledWrapper = styled.div`
 
     &.active {
       background-color: ${(props) => props.theme.colors.text.yellow};
-      color: white;
+      color: ${(props) => props.theme.background.base};
       font-weight: 500;
 
       .notif-tab-badge {
-        background-color: rgba(255, 255, 255, 0.25);
-        color: white;
-        border-color: rgba(255, 255, 255, 0.35);
+        background-color: ${(props) => props.theme.background.surface0};
+        color: ${(props) => props.theme.background.base};
+        border-color: ${(props) => props.theme.background.surface1};
       }
     }
   }
@@ -110,7 +110,7 @@ const StyledWrapper = styled.div`
     border-radius: 4px;
 
     &:hover {
-      background-color: ${(props) => props.theme.notifications.list.hoverBg};
+      background-color: ${(props) => props.theme.background.surface1};
     }
   }
 
@@ -142,15 +142,19 @@ const StyledWrapper = styled.div`
     gap: 0;
 
     &:hover {
-      background-color: ${(props) => props.theme.notifications.list.hoverBg};
+      background-color: ${(props) => props.theme.background.surface1};
     }
 
     &.unread {
-      background-color: ${(props) => props.theme.background.mantle};
+      background-color: ${(props) => props.theme.background.surface0};
+
+      &:hover {
+        background-color: ${(props) => props.theme.background.surface1};
+      }
     }
 
     &.active {
-      background-color: ${(props) => props.theme.background.mantle};
+      background-color: ${(props) => props.theme.background.surface0};
 
       &::before {
         content: '';
@@ -163,7 +167,7 @@ const StyledWrapper = styled.div`
       }
 
       &:hover {
-        background-color: ${(props) => props.theme.notifications.list.active.hoverBg};
+        background-color: ${(props) => props.theme.background.surface2};
       }
     }
   }
@@ -220,33 +224,11 @@ const StyledWrapper = styled.div`
     padding: 4px 8px;
     border-radius: 6px;
     border: 1px solid ${(props) => props.theme.notifications.list.borderBottom};
-    background-color: rgba(141, 67, 177, 0.10);
-    color: #8d43b1;
     font-size: 12px;
     line-height: 20px;
     font-weight: 400;
     display: inline-flex;
     align-items: center;
-
-    &[data-variant='security'] {
-      background-color: ${(props) => props.theme.status.danger.background};
-      color: ${(props) => props.theme.status.danger.text};
-    }
-
-    &[data-variant='release'] {
-      background-color: ${(props) => props.theme.status.info.background};
-      color: ${(props) => props.theme.status.info.text};
-    }
-
-    &[data-variant='announcement'] {
-      background-color: rgba(211, 127, 23, 0.10);
-      color: ${(props) => props.theme.colors.text.yellow};
-    }
-
-    &[data-variant='tip'] {
-      background-color: ${(props) => props.theme.status.success.background};
-      color: ${(props) => props.theme.status.success.text};
-    }
   }
 
   .notif-detail-title {

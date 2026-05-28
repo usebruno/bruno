@@ -297,7 +297,7 @@ const lightTheme = {
     list: {
       bg: palette.background.SURFACE0,
       borderRight: 'transparent',
-      borderBottom: palette.border.BORDER2,
+      borderBottom: palette.border.BORDER0,
       hoverBg: palette.background.SURFACE1,
       active: {
         border: palette.hues.BLUE,

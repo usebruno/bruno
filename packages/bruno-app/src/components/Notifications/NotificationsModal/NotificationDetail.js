@@ -2,6 +2,26 @@ import DOMPurify from 'dompurify';
 import { useTheme } from 'providers/Theme';
 import { humanizeDate } from 'utils/common';
 
+const TYPE_VARIANT_MAP = {
+  'security': 'danger',
+  'release': 'info',
+  'tip': 'success',
+  'announcement': 'warning',
+  'new-feature': 'warning'
+};
+
+const HASH_BUCKETS = ['info', 'success', 'warning', 'danger'];
+
+const hashString = (str) => str.toLowerCase().slice(0, 6).split('').reduce((acc, c) => acc + c.charCodeAt(0), 0);
+
+const getBadgeStyle = (typeId, theme) => {
+  const variant = TYPE_VARIANT_MAP[typeId] ?? HASH_BUCKETS[hashString(typeId) % HASH_BUCKETS.length];
+  return {
+    backgroundColor: theme.status[variant].background,
+    color: theme.status[variant].text
+  };
+};
+
 const getSanitizedDescription = (description) => {
   return DOMPurify.sanitize(description || '', {
     ALLOWED_TAGS: ['a', 'ul', 'img', 'li', 'div', 'span', 'p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'br', 'strong', 'em'],
@@ -22,7 +42,7 @@ const NotificationDetail = ({ notification }) => {
     <meta charset="utf-8" />
     <base target="_blank" />
     <style>
-      html, body { margin: 0; padding: 0; background: ${theme.notifications.bg}; }
+      html, body { margin: 0; padding: 0; background: ${theme.background.base}; }
       body {
         padding: 8px 12px;
         font-family: Inter, sans-serif;
@@ -56,7 +76,7 @@ const NotificationDetail = ({ notification }) => {
       <div className="notif-detail-header">
         <div className="notif-detail-meta">
           {notification.type && (
-            <span className="notif-type-badge" data-variant={notification.type.toLowerCase().split(/\s+/)[0]}>
+            <span className="notif-type-badge" style={getBadgeStyle(notification.typeId ?? notification.type, theme)}>
               {notification.type}
             </span>
           )}
