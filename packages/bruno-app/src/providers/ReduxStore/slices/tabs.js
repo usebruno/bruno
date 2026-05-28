@@ -392,7 +392,7 @@ export const tabsSlice = createSlice({
       const tab = find(state.tabs, (t) => t.uid === action.payload.uid);
       if (tab) {
         tab.requestPaneCollapsed = false;
-        // Drag-to-collapse leaves requestPaneWidth/Height clamped to min/max; reset so the panes return to their default share of the space on expand.
+        // reset so the panes return to their default size on expand
         tab.requestPaneWidth = null;
         tab.requestPaneHeight = null;
       }
@@ -401,7 +401,7 @@ export const tabsSlice = createSlice({
       const tab = find(state.tabs, (t) => t.uid === action.payload.uid);
       if (tab) {
         tab.responsePaneCollapsed = false;
-        // Drag-to-collapse leaves requestPaneWidth/Height clamped to min/max; reset so the panes return to their default share of the space on expand.
+        // reset so the panes return to their default size on expand
         tab.requestPaneWidth = null;
         tab.requestPaneHeight = null;
       }
