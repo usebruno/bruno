@@ -20,7 +20,6 @@ import SelectionList from 'components/SelectionList';
 import Button from 'ui/Button';
 import { getRepoNameFromUrl } from 'utils/git';
 import GitNotFoundModal from 'components/Git/GitNotFoundModal/index';
-import ScanWarning from 'components/ScanWarning';
 import SkippedPathsWarning from 'components/SkippedPathsWarning';
 import toast from 'react-hot-toast';
 import get from 'lodash/get';
@@ -362,10 +361,10 @@ const CloneGitRepository = ({ onClose, onFinish, collectionRepositoryUrl = null 
                 <div className="w-full min-w-0 flex flex-col gap-3">
                   <SkippedPathsWarning paths={skippedCollectionPaths} itemNoun="collections" />
                   {collectionPaths.length === 0 && (
-                    <ScanWarning className="flex items-start gap-2">
+                    <div className="scan-warning flex items-start gap-2">
                       <IconAlertCircle className="scan-warning-icon" size={18} strokeWidth={1.5} />
                       <div>No Bruno collections were found in this repository.</div>
-                    </ScanWarning>
+                    </div>
                   )}
                   {collectionPaths.length > 0 && (
                     <SelectionList

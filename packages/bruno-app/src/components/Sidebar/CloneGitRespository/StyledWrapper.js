@@ -30,6 +30,20 @@ const StyledWrapper = styled.div`
   .clone-step-progress-icon {
     color: ${(props) => props.theme.status.warning.text};
   }
+
+  .scan-warning {
+    color: ${(props) => props.theme.status.warning.text};
+    background-color: ${(props) => props.theme.status.warning.background};
+    border: 1px solid ${(props) => props.theme.status.warning.border};
+    border-radius: ${(props) => props.theme.border.radius.base};
+    padding: 0.375rem 0.5rem;
+    font-size: ${(props) => props.theme.font.size.sm};
+  }
+
+  .scan-warning-icon {
+    color: ${(props) => props.theme.status.warning.text};
+    flex-shrink: 0;
+  }
 `;
 
 export default StyledWrapper;

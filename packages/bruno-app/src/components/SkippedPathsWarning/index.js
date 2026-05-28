@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { IconAlertTriangle } from '@tabler/icons';
-import ScanWarning from 'components/ScanWarning';
+import StyledWrapper from './StyledWrapper';
 
 const SkippedPathsWarning = ({ paths, itemNoun }) => {
   const [showDetails, setShowDetails] = useState(false);
@@ -10,7 +10,7 @@ const SkippedPathsWarning = ({ paths, itemNoun }) => {
   }
 
   return (
-    <ScanWarning>
+    <StyledWrapper>
       <div className="flex items-center justify-between gap-2">
         <span className="flex items-center gap-2">
           <IconAlertTriangle size={16} strokeWidth={1.5} className="scan-warning-icon" />
@@ -33,7 +33,7 @@ const SkippedPathsWarning = ({ paths, itemNoun }) => {
           ))}
         </ul>
       )}
-    </ScanWarning>
+    </StyledWrapper>
   );
 };
 

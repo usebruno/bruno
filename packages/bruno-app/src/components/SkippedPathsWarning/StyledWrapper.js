@@ -1,6 +1,6 @@
 import styled from 'styled-components';
 
-const ScanWarning = styled.div`
+const StyledWrapper = styled.div`
   color: ${(props) => props.theme.status.warning.text};
   background-color: ${(props) => props.theme.status.warning.background};
   border: 1px solid ${(props) => props.theme.status.warning.border};
@@ -59,4 +59,4 @@ const ScanWarning = styled.div`
   }
 `;
 
-export default ScanWarning;
+export default StyledWrapper;
