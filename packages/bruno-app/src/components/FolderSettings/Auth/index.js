@@ -66,7 +66,7 @@ const Auth = ({ collection, folder }) => {
 
   const inheritedSource = useMemo(
     () => (authMode === 'inherit' ? getEffectiveAuthSource(collection, folder) : null),
-    [authMode, folder?.uid, collection?.uid]
+    [authMode, folder, collection]
   );
 
   const getAuthView = () => {

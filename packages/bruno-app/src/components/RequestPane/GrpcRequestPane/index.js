@@ -58,7 +58,7 @@ const GrpcRequestPane = ({ item, collection, handleRun }) => {
   const itemAuthMode = item.draft?.request?.auth?.mode ?? item.request?.auth?.mode ?? item.root?.request?.auth?.mode;
   const hasAuth = useMemo(
     () => hasEffectiveAuth(collection, item, AUTH_MODES_GRPC),
-    [item.uid, itemAuthMode, collection.uid]
+    [item, itemAuthMode, collection]
   );
   const activeHeadersLength = headers.filter((header) => header.enabled).length;
   const grpcMessagesCount = body?.grpc?.length || 0;

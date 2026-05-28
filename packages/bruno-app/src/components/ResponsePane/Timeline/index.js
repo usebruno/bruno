@@ -57,7 +57,7 @@ const Timeline = ({ collection, item }) => {
   const itemAuthMode = item.draft?.request?.auth?.mode ?? item.request?.auth?.mode ?? item.root?.request?.auth?.mode;
   const authSource = useMemo(
     () => getEffectiveAuthSource(collection, item),
-    [item.uid, itemAuthMode, collection.uid]
+    [item, itemAuthMode, collection]
   );
   const isGrpcRequest = item.type === 'grpc-request' || item.type === 'ws-request';
 

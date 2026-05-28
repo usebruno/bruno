@@ -25,7 +25,7 @@ const GrpcAuth = ({ item, collection }) => {
 
   const inheritedSource = useMemo(
     () => (authMode === 'inherit' ? getEffectiveAuthSource(collection, item) : null),
-    [authMode, item.uid, collection.uid]
+    [authMode, item, collection]
   );
 
   const save = () => {

@@ -26,7 +26,7 @@ const WSAuth = ({ item, collection }) => {
 
   const inheritedSource = useMemo(
     () => (authMode === 'inherit' ? getEffectiveAuthSource(collection, item) : null),
-    [authMode, item.uid, collection.uid]
+    [authMode, item, collection]
   );
 
   // Reset to 'none' if current auth mode is not supported

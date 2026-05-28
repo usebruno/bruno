@@ -34,7 +34,7 @@ const FolderSettings = ({ collection, folder }) => {
   const folderAuthMode = folder?.draft?.request?.auth?.mode ?? folder?.root?.request?.auth?.mode;
   const hasAuth = useMemo(
     () => hasEffectiveAuth(collection, folder),
-    [folder?.uid, folderAuthMode, collection?.uid]
+    [folder, folderAuthMode, collection]
   );
 
   const setTab = (tab) => {

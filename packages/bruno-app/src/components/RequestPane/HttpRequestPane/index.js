@@ -89,7 +89,7 @@ const HttpRequestPane = ({ item, collection }) => {
   const itemAuthMode = item.draft?.request?.auth?.mode ?? item.request?.auth?.mode ?? item.root?.request?.auth?.mode;
   const hasAuth = useMemo(
     () => hasEffectiveAuth(collection, item),
-    [item.uid, itemAuthMode, collection.uid]
+    [item, itemAuthMode, collection]
   );
 
   const indicators = useMemo(() => {
