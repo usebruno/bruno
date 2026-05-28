@@ -1,20 +1,19 @@
 import styled from 'styled-components';
+import { rgba } from 'polished';
 
 const StyledWrapper = styled.div`
   position: relative;
   display: flex;
-  background: ${(props) => props.theme.background.surface0};
+  background: ${(props) => props.theme.background.base};
   color: ${(props) => props.theme.text};
-  border: 1px solid ${(props) => props.theme.border.border1};
+  border: 1px solid ${(props) => props.theme.border.border2};
   border-radius: ${(props) => props.theme.border.radius.md};
   overflow: hidden;
   max-width: 420px;
   min-width: 380px;
   margin-bottom: 2rem;
   margin-right: 0.75rem;
-  box-shadow: 0 4px 12px ${(props) => props.theme.modal?.backdrop?.opacity
-    ? `rgba(0, 0, 0, ${props.theme.modal.backdrop.opacity / 100})`
-    : 'rgba(0, 0, 0, 0.1)'};
+  box-shadow: ${(props) => props.theme.shadow.lg};
   transition: all 0.3s ease;
 
   .toast-accent {
@@ -27,23 +26,28 @@ const StyledWrapper = styled.div`
   .toast-body {
     flex: 1;
     padding: 12px 14px;
-    padding-right: 32px;
   }
 
   .toast-close {
     position: absolute;
     top: 8px;
     right: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
     background: none;
     border: none;
     cursor: pointer;
-    color: ${(props) => props.theme.colors.text.subtext1};
-    padding: 2px;
-    line-height: 1;
-    display: flex;
+    color: ${(props) => props.theme.text};
+    border-radius: ${(props) => props.theme.border.radius.sm};
+    opacity: 0.7;
+    transition: opacity 0.2s ease, background-color 0.2s ease;
 
     &:hover {
-      color: ${(props) => props.theme.text};
+      opacity: 1;
+      background-color: ${(props) => rgba(props.theme.text, 0.1)};
     }
   }
 
@@ -96,9 +100,13 @@ const StyledWrapper = styled.div`
   .toast-warning {
     display: flex;
     align-items: flex-start;
-    gap: 4px;
+    gap: 6px;
     font-size: 11px;
-    color: ${(props) => props.theme.colors.text.warning};
+    color: ${(props) => props.theme.status.warning.text};
+    background: ${(props) => props.theme.status.warning.background};
+    border: 1px solid ${(props) => props.theme.status.warning.border};
+    border-radius: ${(props) => props.theme.border.radius.sm};
+    padding: 6px 8px;
     margin-bottom: 8px;
     line-height: 1.4;
 
