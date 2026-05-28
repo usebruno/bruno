@@ -25,11 +25,9 @@ const ModalFooter = ({
   cancelText,
   handleSubmit,
   handleCancel,
-  handleBack,
   confirmDisabled,
   hideCancel,
   hideFooter,
-  showBackButton,
   footerLeft,
   confirmButtonColor = 'primary',
   dataTestId = 'modal'
@@ -45,21 +43,6 @@ const ModalFooter = ({
     <div className="flex justify-between items-center p-4 bruno-modal-footer">
       <div>{footerLeft}</div>
       <div className="flex justify-end">
-        {showBackButton ? (
-          <span className="mr-2">
-            <button
-              type="button"
-              onClick={handleBack}
-              data-testid={`${dataTestId}-back-btn`}
-              className="btn btn-md btn-link text-link hover:underline"
-            >
-              Back
-            </button>
-          </span>
-        ) : (
-          <span className="mr-2"></span>
-        )}
-
         <span className={hideCancel ? 'hidden' : 'mr-2'}>
           <Button type="button" color="secondary" variant="ghost" onClick={handleCancel}>
             {cancelText}
@@ -89,7 +72,6 @@ const Modal = ({
   confirmText,
   cancelText,
   handleCancel,
-  handleBack,
   handleConfirm = () => {},
   children,
   confirmDisabled,
@@ -99,7 +81,6 @@ const Modal = ({
   footerLeft,
   disableCloseOnOutsideClick,
   disableEscapeKey,
-  showBackButton = false,
   onClick,
   closeModalFadeTimeout = 500,
   dataTestId,
@@ -173,11 +154,9 @@ const Modal = ({
           cancelText={cancelText}
           handleCancel={() => closeModal({ type: 'button' })}
           handleSubmit={handleConfirm}
-          handleBack={handleBack}
           confirmDisabled={confirmDisabled}
           hideCancel={hideCancel}
           hideFooter={hideFooter}
-          showBackButton={showBackButton}
           footerLeft={footerLeft}
           confirmButtonColor={confirmButtonColor}
           dataTestId={dataTestId}
