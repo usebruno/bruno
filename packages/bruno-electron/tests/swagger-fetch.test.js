@@ -186,6 +186,35 @@ describe('proxySwaggerFetch', () => {
     }));
   });
 
+  test('normalizes AxiosHeaders instance to plain object via toJSON', async () => {
+    // Axios v1 returns response.headers as an AxiosHeaders instance.
+    // It must be serialized to a plain object before crossing the IPC boundary.
+    const axiosHeaders = {
+      'content-type': 'application/json',
+      'set-cookie': ['a=1', 'b=2'],
+      toJSON() {
+        return {
+          'content-type': this['content-type'],
+          'set-cookie': this['set-cookie']
+        };
+      }
+    };
+    mockRequest.mockResolvedValueOnce({
+      status: 200,
+      statusText: 'OK',
+      headers: axiosHeaders,
+      data: Buffer.from('')
+    });
+
+    const result = await proxySwaggerFetch({ url: 'https://example.com/x', method: 'GET', headers: {} });
+
+    expect(result.headers).toEqual({
+      'content-type': 'application/json',
+      'set-cookie': ['a=1', 'b=2']
+    });
+    expect(typeof result.headers.toJSON).toBe('undefined');
+  });
+
   test('accepts plain http:// targets (no scheme restriction)', async () => {
     mockRequest.mockResolvedValueOnce({
       status: 200,

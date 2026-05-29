@@ -47,10 +47,14 @@ const proxySwaggerFetch = async (req = {}) => {
       ? response.data
       : Buffer.from(response.data || '');
 
+    const headersPlain = typeof response.headers?.toJSON === 'function'
+      ? response.headers.toJSON()
+      : { ...(response.headers || {}) };
+
     return {
       status: response.status,
       statusText: response.statusText || '',
-      headers: response.headers || {},
+      headers: headersPlain,
       bodyBase64: dataBuf.toString('base64')
     };
   } catch (err) {
