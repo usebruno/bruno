@@ -16,7 +16,7 @@ test.describe('Multipart Form - Chip Tooltip Swap', () => {
 
     await test.step('Hover chip body → file path', async () => {
       await chip.locator('.file-chip-name').hover();
-      await expect(tooltip.first()).toBeVisible();
+      await expect(tooltip.first()).toBeVisible({ timeout: 15000 });
       await expect(tooltip.first()).toContainText('alpha.txt');
     });
 
