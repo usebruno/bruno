@@ -1,0 +1,46 @@
+{
+  "info": {
+    "_postman_id": "b7368879-4f3f-46e1-a187-0b0821517151",
+    "name": "My Collection",
+    "description": "### Welcome to Postman! This is your first collection. \n\nCollections are your starting point for building and testing APIs. You can use this one to:\n\n• Group related requests\n• Test your API in real-world scenarios\n• Document and share your requests\n\nUpdate the name and overview whenever you’re ready to make it yours.\n\n[Learn more about Postman Collections.](https://learning.postman.com/docs/collections/collections-overview/)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "55235588",
+    "_collection_link": "https://go.postman.co/collection/55235588-b7368879-4f3f-46e1-a187-0b0821517151?source=collection_link"
+  },
+  "item": [
+    {
+      "name": "Binary body mode",
+      "protocolProfileBehavior": {
+        "disableBodyPruning": true
+      },
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "file",
+          "file": {
+            "src": "/tmp/binary-payload.bin"
+          }
+        },
+        "url": {
+          "raw": "https://api.com/users?X-API-KEY=12345",
+          "protocol": "https",
+          "host": [
+            "api",
+            "com"
+          ],
+          "path": [
+            "users"
+          ],
+          "query": [
+            {
+              "key": "X-API-KEY",
+              "value": "12345"
+            }
+          ]
+        }
+      },
+      "response": []
+    }
+  ]
+}
