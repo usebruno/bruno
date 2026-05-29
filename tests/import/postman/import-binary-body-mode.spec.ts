@@ -4,18 +4,17 @@ import { closeAllCollections, openCollection, selectRequestPaneTab } from '../..
 import { buildCommonLocators } from '../../utils/page/locators';
 
 test.describe('Import Postman Collection with binary body mode', () => {
-  let originalShowOpenDialog;
-
   test.beforeAll(async ({ electronApp }) => {
     await electronApp.evaluate(({ dialog }) => {
-      originalShowOpenDialog = dialog.showOpenDialog;
+      (global as any)._originalShowOpenDialog = dialog.showOpenDialog;
     });
   });
 
   test.afterAll(async ({ electronApp, page }) => {
     await closeAllCollections(page);
     await electronApp.evaluate(({ dialog }) => {
-      dialog.showOpenDialog = originalShowOpenDialog;
+      dialog.showOpenDialog = (global as any)._originalShowOpenDialog;
+      delete (global as any)._originalShowOpenDialog;
     });
   });
 
