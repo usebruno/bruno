@@ -19,7 +19,7 @@
         "body": {
           "mode": "file",
           "file": {
-            "src": "/tmp/binary-payload.bin"
+            "src": "./binary-payload.bin"
           }
         },
         "url": {
