@@ -2,10 +2,14 @@ import DOMPurify from 'dompurify';
 import { useTheme } from 'providers/Theme';
 import { humanizeDate } from 'utils/common';
 
-const getBadgeStyle = (color, theme) => ({
-  backgroundColor: theme.status[color].background,
-  color: theme.status[color].text
-});
+const getBadgeStyle = (color, theme) => {
+  const status = theme.status[color];
+  if (!status) return {};
+  return {
+    backgroundColor: status.background,
+    color: status.text
+  };
+};
 
 const getSanitizedDescription = (description) => {
   return DOMPurify.sanitize(description || '', {
