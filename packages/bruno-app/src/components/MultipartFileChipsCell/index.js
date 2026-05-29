@@ -7,6 +7,44 @@ import Wrapper, { OverflowList } from './StyledWrapper';
 
 const basename = (filePath) => (filePath ? path.basename(normalizePath(String(filePath))) : '');
 
+const FileEntry = ({ filePath, toolhintId, editMode, onRemove, variant }) => {
+  const [overRemove, setOverRemove] = useState(false);
+  const isChip = variant === 'chip';
+
+  return (
+    <ToolHint
+      text={overRemove ? 'Remove file' : filePath}
+      toolhintId={toolhintId}
+      place={overRemove ? 'bottom-end' : 'bottom-start'}
+      positionStrategy="fixed"
+      tooltipStyle={{ maxWidth: '320px', whiteSpace: 'normal', wordBreak: 'break-all' }}
+      delayShow={overRemove ? 200 : 1000}
+      className={isChip ? 'file-chip' : 'overflow-row'}
+      dataTestId={isChip ? 'multipart-file-chip' : 'multipart-file-overflow-row'}
+    >
+      <IconFile size={14} stroke={1.5} className={isChip ? 'file-chip-icon' : 'overflow-row-icon'} />
+      <span className={isChip ? 'file-chip-name' : 'overflow-row-name'}>
+        {basename(filePath)}
+      </span>
+      {editMode && (
+        <button
+          type="button"
+          data-testid={isChip ? 'multipart-file-chip-remove' : 'multipart-file-overflow-remove'}
+          className={isChip ? 'file-chip-remove' : 'overflow-row-remove'}
+          onMouseEnter={() => setOverRemove(true)}
+          onMouseLeave={() => setOverRemove(false)}
+          onClick={(e) => {
+            e.stopPropagation();
+            onRemove(filePath);
+          }}
+        >
+          <IconX size={13} stroke={1.5} />
+        </button>
+      )}
+    </ToolHint>
+  );
+};
+
 // Keep in sync with the corresponding CSS values in StyledWrapper.js:
 //   MIN_CHIP_W  ↔ .file-chip { min-width: 75px }
 //   CHIP_GAP    ↔ .file-chips-row { gap: 4px }
@@ -19,6 +57,8 @@ const MultipartFileChipsCell = ({ files, onRemove, onAdd, editMode = true }) => 
   const containerRef = useRef(null);
   const tooltipPrefix = useRef(`mp-tip-${Math.random().toString(36).slice(2, 10)}`).current;
   const [visibleCount, setVisibleCount] = useState(files.length);
+  const [summaryOpen, setSummaryOpen] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
 
   useLayoutEffect(() => {
     const container = containerRef.current;
@@ -59,69 +99,27 @@ const MultipartFileChipsCell = ({ files, onRemove, onAdd, editMode = true }) => 
   const collapsed = visibleCount === 0 && files.length > 0;
 
   const renderChip = (filePath, idx) => (
-    <ToolHint
+    <FileEntry
       key={`${filePath}-${idx}`}
-      text={filePath}
+      variant="chip"
+      filePath={filePath}
       toolhintId={`${tooltipPrefix}-chip-${idx}`}
-      place="bottom-start"
-      positionStrategy="fixed"
-      delayShow={1000}
-      className="file-chip"
-      dataTestId="multipart-file-chip"
-    >
-      <IconFile size={14} stroke={1.5} className="file-chip-icon" />
-      <span className="file-chip-name">
-        {basename(filePath)}
-      </span>
-      {editMode && (
-        <button
-          type="button"
-          data-testid="multipart-file-chip-remove"
-          className="file-chip-remove"
-          onClick={(e) => {
-            e.stopPropagation();
-            onRemove(filePath);
-          }}
-          title="Remove file"
-        >
-          <IconX size={13} stroke={1.5} />
-        </button>
-      )}
-    </ToolHint>
+      editMode={editMode}
+      onRemove={onRemove}
+    />
   );
 
   const renderOverflowList = (list) => (
     <OverflowList>
       {list.map((p, i) => (
-        <ToolHint
+        <FileEntry
           key={`o-${p}-${i}`}
-          text={p}
+          variant="overflow"
+          filePath={p}
           toolhintId={`${tooltipPrefix}-overflow-${i}`}
-          place="bottom-start"
-          positionStrategy="fixed"
-          delayShow={1000}
-          className="overflow-row"
-          dataTestId="multipart-file-overflow-row"
-        >
-          <IconFile size={14} stroke={1.5} className="overflow-row-icon" />
-          <span className="overflow-row-name">
-            {basename(p)}
-          </span>
-          {editMode && (
-            <button
-              type="button"
-              data-testid="multipart-file-overflow-remove"
-              className="overflow-row-remove"
-              onClick={(e) => {
-                e.stopPropagation();
-                onRemove(p);
-              }}
-              title="Remove file"
-            >
-              <IconX size={13} stroke={1.5} />
-            </button>
-          )}
-        </ToolHint>
+          editMode={editMode}
+          onRemove={onRemove}
+        />
       ))}
     </OverflowList>
   );
@@ -133,6 +131,8 @@ const MultipartFileChipsCell = ({ files, onRemove, onAdd, editMode = true }) => 
           <Dropdown
             placement="bottom-start"
             appendTo={() => document.body}
+            onMount={() => setSummaryOpen(true)}
+            onHidden={() => setSummaryOpen(false)}
             icon={(
               <button
                 type="button"
@@ -147,7 +147,7 @@ const MultipartFileChipsCell = ({ files, onRemove, onAdd, editMode = true }) => 
               </button>
             )}
           >
-            {renderOverflowList(files)}
+            {summaryOpen ? renderOverflowList(files) : null}
           </Dropdown>
 
         </>
@@ -160,6 +160,8 @@ const MultipartFileChipsCell = ({ files, onRemove, onAdd, editMode = true }) => 
             <Dropdown
               placement="bottom-end"
               appendTo={() => document.body}
+              onMount={() => setMoreOpen(true)}
+              onHidden={() => setMoreOpen(false)}
               icon={(
                 <button
                   type="button"
@@ -172,7 +174,7 @@ const MultipartFileChipsCell = ({ files, onRemove, onAdd, editMode = true }) => 
                 </button>
               )}
             >
-              {renderOverflowList(overflow)}
+              {moreOpen ? renderOverflowList(overflow) : null}
             </Dropdown>
           )}
         </>
