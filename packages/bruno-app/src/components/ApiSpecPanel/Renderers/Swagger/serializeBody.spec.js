@@ -1,4 +1,14 @@
-import { serializeBody, UNSUPPORTED_BODY_MESSAGE } from './serializeBody';
+import { serializeBody, UNSUPPORTED_BODY_MESSAGE, UNSUPPORTED_BODY_TYPE_CODE } from './serializeBody';
+
+// Helper: invoke serializeBody and return the thrown error (or fail).
+const catchSerializeError = (body) => {
+  try {
+    serializeBody(body);
+  } catch (err) {
+    return err;
+  }
+  throw new Error('expected serializeBody to throw');
+};
 
 describe('serializeBody', () => {
   describe('supported body types', () => {
@@ -57,6 +67,26 @@ describe('serializeBody', () => {
 
     it('message names the supported alternatives', () => {
       expect(UNSUPPORTED_BODY_MESSAGE('FormData')).toMatch(/JSON, URL-encoded forms, plain text/);
+    });
+  });
+
+  describe('error metadata preservation (Bijin review feedback)', () => {
+    it('attaches err.code = UNSUPPORTED_BODY_TYPE so callers can branch programmatically', () => {
+      const err = catchSerializeError(new FormData());
+      expect(err.code).toBe(UNSUPPORTED_BODY_TYPE_CODE);
+      expect(UNSUPPORTED_BODY_TYPE_CODE).toBe('UNSUPPORTED_BODY_TYPE');
+    });
+
+    it('attaches err.bodyType naming the specific unsupported type', () => {
+      expect(catchSerializeError(new FormData()).bodyType).toBe('FormData');
+      expect(catchSerializeError(new Blob(['x'])).bodyType).toBe('Blob');
+      expect(catchSerializeError(new File(['x'], 'a.txt')).bodyType).toBe('File');
+      expect(catchSerializeError(new ArrayBuffer(4)).bodyType).toBe('ArrayBuffer');
+      expect(catchSerializeError(new Uint8Array([1, 2])).bodyType).toBe('Uint8Array');
+    });
+
+    it('thrown error is still a TypeError instance', () => {
+      expect(catchSerializeError(new FormData())).toBeInstanceOf(TypeError);
     });
   });
 });

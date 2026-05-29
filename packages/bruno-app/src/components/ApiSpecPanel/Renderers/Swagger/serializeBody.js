@@ -18,10 +18,22 @@ const detectBodyType = (body) => {
   return typeof body;
 };
 
+export const UNSUPPORTED_BODY_TYPE_CODE = 'UNSUPPORTED_BODY_TYPE';
+
 export const UNSUPPORTED_BODY_MESSAGE = (typeName) =>
   `Request body type "${typeName}" isn't supported in Swagger Try-it-out yet. `
   + `Supported types: JSON, URL-encoded forms, plain text. `
   + `Use a Bruno request for file uploads / binary bodies.`;
+
+// Build a TypeError that carries the detected type as a property so downstream
+// catchers can branch on `err.code` / `err.bodyType` instead of regex-parsing
+// the message. Mirrors the IPC-error preservation pattern used in index.js.
+const unsupportedBodyError = (typeName) => {
+  const err = new TypeError(UNSUPPORTED_BODY_MESSAGE(typeName));
+  err.code = UNSUPPORTED_BODY_TYPE_CODE;
+  err.bodyType = typeName;
+  return err;
+};
 
 export const serializeBody = (body) => {
   const typeName = detectBodyType(body);
@@ -38,11 +50,11 @@ export const serializeBody = (body) => {
     case 'Blob':
     case 'ArrayBuffer':
     case 'ReadableStream':
-      throw new TypeError(UNSUPPORTED_BODY_MESSAGE(typeName));
+      throw unsupportedBodyError(typeName);
     default:
       // TypedArrays land here (Uint8Array, etc.) — also unsupported by the bridge.
       if (ArrayBuffer.isView && ArrayBuffer.isView(body)) {
-        throw new TypeError(UNSUPPORTED_BODY_MESSAGE(typeName));
+        throw unsupportedBodyError(typeName);
       }
       // Plain objects, numbers, booleans — pass through. SwaggerUI rarely sends
       // these as body directly (it stringifies JSON before fetch), but keep the
