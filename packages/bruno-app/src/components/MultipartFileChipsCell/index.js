@@ -15,8 +15,9 @@ const FileEntry = ({ filePath, toolhintId, editMode, onRemove, variant }) => {
     <ToolHint
       text={overRemove ? 'Remove file' : filePath}
       toolhintId={toolhintId}
-      place="bottom-start"
+      place={overRemove ? 'bottom-end' : 'bottom-start'}
       positionStrategy="fixed"
+      tooltipStyle={{ maxWidth: '320px', whiteSpace: 'normal', wordBreak: 'break-all' }}
       delayShow={overRemove ? 200 : 1000}
       className={isChip ? 'file-chip' : 'overflow-row'}
       dataTestId={isChip ? 'multipart-file-chip' : 'multipart-file-overflow-row'}
@@ -56,6 +57,8 @@ const MultipartFileChipsCell = ({ files, onRemove, onAdd, editMode = true }) => 
   const containerRef = useRef(null);
   const tooltipPrefix = useRef(`mp-tip-${Math.random().toString(36).slice(2, 10)}`).current;
   const [visibleCount, setVisibleCount] = useState(files.length);
+  const [summaryOpen, setSummaryOpen] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
 
   useLayoutEffect(() => {
     const container = containerRef.current;
@@ -128,6 +131,8 @@ const MultipartFileChipsCell = ({ files, onRemove, onAdd, editMode = true }) => 
           <Dropdown
             placement="bottom-start"
             appendTo={() => document.body}
+            onMount={() => setSummaryOpen(true)}
+            onHidden={() => setSummaryOpen(false)}
             icon={(
               <button
                 type="button"
@@ -142,7 +147,7 @@ const MultipartFileChipsCell = ({ files, onRemove, onAdd, editMode = true }) => 
               </button>
             )}
           >
-            {renderOverflowList(files)}
+            {summaryOpen ? renderOverflowList(files) : null}
           </Dropdown>
 
         </>
@@ -155,6 +160,8 @@ const MultipartFileChipsCell = ({ files, onRemove, onAdd, editMode = true }) => 
             <Dropdown
               placement="bottom-end"
               appendTo={() => document.body}
+              onMount={() => setMoreOpen(true)}
+              onHidden={() => setMoreOpen(false)}
               icon={(
                 <button
                   type="button"
@@ -167,7 +174,7 @@ const MultipartFileChipsCell = ({ files, onRemove, onAdd, editMode = true }) => 
                 </button>
               )}
             >
-              {renderOverflowList(overflow)}
+              {moreOpen ? renderOverflowList(overflow) : null}
             </Dropdown>
           )}
         </>
