@@ -1,4 +1,5 @@
 import styled from 'styled-components';
+import { rgba } from 'polished';
 
 const StyledWrapper = styled.div`
   display: flex;
@@ -72,14 +73,14 @@ const StyledWrapper = styled.div`
     gap: 4px;
 
     &.active {
-      background-color: ${(props) => props.theme.colors.text.yellow};
+      background-color: ${(props) => props.theme.brand};
       color: ${(props) => props.theme.background.base};
       font-weight: 500;
 
       .notif-tab-badge {
-        background-color: ${(props) => props.theme.notifications.list.active.bg};
-        color: ${(props) => props.theme.notifications.bg};
-        border-color: ${(props) => props.theme.notifications.list.hoverBg};
+        background-color: ${(props) => props.theme.background.base};
+        color: ${(props) => props.theme.brand};
+        border-color: ${(props) => props.theme.background.base};
       }
     }
   }
@@ -90,8 +91,8 @@ const StyledWrapper = styled.div`
     padding: 0 4px;
     border-radius: 999px;
     border: 1px solid ${(props) => props.theme.notifications.list.borderBottom};
-    background-color: rgba(211, 127, 23, 0.10);
-    color: ${(props) => props.theme.colors.text.yellow};
+    background-color: ${(props) => rgba(props.theme.brand, 0.1)};
+    color: ${(props) => props.theme.brand};
     font-size: 11px;
     line-height: 14px;
     font-weight: 500;
@@ -154,8 +155,6 @@ const StyledWrapper = styled.div`
     }
 
     &.active {
-      background-color: ${(props) => props.theme.notifications.list.active.bg};
-
       &::before {
         content: '';
         position: absolute;
@@ -164,10 +163,6 @@ const StyledWrapper = styled.div`
         bottom: 0;
         width: 2px;
         background-color: ${(props) => props.theme.colors.text.yellow};
-      }
-
-      &:hover {
-        background-color: ${(props) => props.theme.notifications.list.active.hoverBg};
       }
     }
   }
@@ -217,6 +212,7 @@ const StyledWrapper = styled.div`
     align-items: center;
     gap: 8px;
     margin-top: 1px;
+    min-height: 24px;
   }
 
   .notif-type-badge {

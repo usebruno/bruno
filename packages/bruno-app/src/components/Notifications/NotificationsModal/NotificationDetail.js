@@ -2,25 +2,10 @@ import DOMPurify from 'dompurify';
 import { useTheme } from 'providers/Theme';
 import { humanizeDate } from 'utils/common';
 
-const TYPE_VARIANT_MAP = {
-  'security': 'danger',
-  'release': 'info',
-  'tip': 'success',
-  'announcement': 'warning',
-  'new-feature': 'warning'
-};
-
-const HASH_BUCKETS = ['info', 'success', 'warning', 'danger'];
-
-const hashString = (str) => str.toLowerCase().slice(0, 6).split('').reduce((acc, c) => acc + c.charCodeAt(0), 0);
-
-const getBadgeStyle = (typeId, theme) => {
-  const variant = TYPE_VARIANT_MAP[typeId] ?? HASH_BUCKETS[hashString(typeId) % HASH_BUCKETS.length];
-  return {
-    backgroundColor: theme.status[variant].background,
-    color: theme.status[variant].text
-  };
-};
+const getBadgeStyle = (color, theme) => ({
+  backgroundColor: theme.status[color].background,
+  color: theme.status[color].text
+});
 
 const getSanitizedDescription = (description) => {
   return DOMPurify.sanitize(description || '', {
@@ -75,8 +60,8 @@ const NotificationDetail = ({ notification }) => {
     <div className="notif-detail">
       <div className="notif-detail-header">
         <div className="notif-detail-meta">
-          {notification.type && (
-            <span className="notif-type-badge" style={getBadgeStyle(notification.typeId ?? notification.type, theme)}>
+          {notification.color && (
+            <span className="notif-type-badge" style={getBadgeStyle(notification.color, theme)}>
               {notification.type}
             </span>
           )}

@@ -22,7 +22,7 @@ const StyledWrapper = styled.button`
     font-weight: 600;
     line-height: 1;
     border-radius: 999px;
-    background-color: ${(props) => props.theme.colors.text.yellow};
+    background-color: ${(props) => props.theme.brand};
     border: 1.5px solid ${(props) => props.theme.sidebar.bg};
     box-sizing: border-box;
     pointer-events: none;

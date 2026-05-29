@@ -1,6 +1,6 @@
 import classnames from 'classnames';
 import { IconDotsVertical } from '@tabler/icons';
-import { useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import Dropdown from 'components/Dropdown';
 import { TABS } from '../hooks/useNotifications';
 
@@ -14,6 +14,18 @@ const NotificationTabs = ({ activeTab, unreadCount, onTabChange, onMarkAllRead, 
   const dropdownTippyRef = useRef(null);
   const onDropdownCreate = (ref) => (dropdownTippyRef.current = ref);
   const hideDropdown = () => dropdownTippyRef.current?.hide();
+
+  // Clicks inside the detail iframe don't bubble to the parent document, so
+  // tippy's outside-click dismissal never fires. Closing on iframe focus covers it.
+  useEffect(() => {
+    const onWindowBlur = () => {
+      if (document.activeElement?.tagName === 'IFRAME') {
+        hideDropdown();
+      }
+    };
+    window.addEventListener('blur', onWindowBlur);
+    return () => window.removeEventListener('blur', onWindowBlur);
+  }, []);
 
   return (
     <div className="notif-tabs">

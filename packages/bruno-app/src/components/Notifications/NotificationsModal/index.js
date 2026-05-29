@@ -52,31 +52,29 @@ const NotificationsModal = ({ notifications, onClose }) => {
         noPadding={true}
       >
         <StyledWrapper className="notifications-modal" ref={containerRef}>
+          <div className="notif-sidebar" style={{ width: effectiveWidth, flexBasis: effectiveWidth }}>
+            <NotificationTabs
+              activeTab={activeTab}
+              unreadCount={unreadCount}
+              onTabChange={onTabChange}
+              onMarkAllRead={onMarkAllRead}
+              onClearAll={onClearAll}
+            />
+            <NotificationList items={listed} selectedId={selectedNotification?.id} onSelect={onSelect} />
+          </div>
+          <div
+            className={classnames('notif-resize-handle', { dragging })}
+            {...dragbarProps}
+            role="separator"
+            aria-orientation="vertical"
+            aria-label="Resize sidebar"
+          />
           {isEmpty ? (
             <div className="notif-empty">
               <div className="notif-empty-text">You are all caught up!</div>
             </div>
           ) : (
-            <>
-              <div className="notif-sidebar" style={{ width: effectiveWidth, flexBasis: effectiveWidth }}>
-                <NotificationTabs
-                  activeTab={activeTab}
-                  unreadCount={unreadCount}
-                  onTabChange={onTabChange}
-                  onMarkAllRead={onMarkAllRead}
-                  onClearAll={onClearAll}
-                />
-                <NotificationList items={listed} selectedId={selectedNotification?.id} onSelect={onSelect} />
-              </div>
-              <div
-                className={classnames('notif-resize-handle', { dragging })}
-                {...dragbarProps}
-                role="separator"
-                aria-orientation="vertical"
-                aria-label="Resize sidebar"
-              />
-              <NotificationDetail notification={selectedNotification} />
-            </>
+            <NotificationDetail notification={selectedNotification} />
           )}
         </StyledWrapper>
       </Modal>
