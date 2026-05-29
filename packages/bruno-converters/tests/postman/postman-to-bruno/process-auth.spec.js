@@ -449,7 +449,6 @@ describe('processAuth', () => {
       clientSecret: 'test-client-secret',
       scope: 'test-scope',
       state: 'test-state',
-      pkce: true,
       tokenPlacement: 'header',
       credentialsPlacement: 'body'
     });
