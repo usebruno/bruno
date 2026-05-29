@@ -514,6 +514,62 @@ describe('Send Request Translation', () => {
     });
   });
 
+  describe('Binary/File Body Mode', () => {
+    it('should show the correct translation for file/binary body mode', () => {
+      const code = `
+        pm.sendRequest({
+            url: 'https://echo.usebruno.com',
+            method: 'POST',
+            header: {
+                'Content-Type': 'application/octet-stream',
+            },
+            body: {
+                mode: 'file',
+                file: {
+                    src: '/path/to/file.bin'
+                }
+            }
+        }, function (error, response) {
+            if (error) {
+                const errorCode = error.code;
+                console.log(errorCode);
+            }
+            if (response) {
+                const response_body = response.json();
+                const response_headers = response.headers;
+                console.log(response_body, response_headers);
+            }
+        });
+      `;
+      const translatedCode = translateCode(code);
+      expect(translatedCode).toBe(`
+        await bru.sendRequest({
+            url: 'https://echo.usebruno.com',
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/octet-stream',
+            },
+            body: {
+                mode: 'file',
+                file: {
+                    src: '/path/to/file.bin'
+                }
+            }
+        }, async function(error, response) {
+            if (error) {
+                const errorCode = error.code;
+                console.log(errorCode);
+            }
+            if (response) {
+                const response_body = response.data;
+                const response_headers = response.headers;
+                console.log(response_body, response_headers);
+            }
+        });
+      `);
+    });
+  });
+
   describe('Headers and Content-Type Handling', () => {
     it('should rename header property to headers', () => {
       const code = `
