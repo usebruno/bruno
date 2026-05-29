@@ -4,10 +4,25 @@ import StyledWrapper from './StyledWrapper';
 import SingleLineEditor from 'components/SingleLineEditor/index';
 import { useTheme } from 'providers/Theme/index';
 
+// BRU file grammar restricts list items to `(alnum | "_" | "-")+`, so tag input
+// must enforce that for `.bru`-format collections to keep generated files
+// parseable. OpenCollection (yml) has no such restriction — its `Tag` schema is
+// just `string`, so any non-empty trimmed value is valid.
+//
+// Returns `null` on valid input, or an error message string to display.
+export const validateTagName = (text, collectionFormat) => {
+  if (!text || !text.trim()) return null; // empty handled by caller
+  if (collectionFormat === 'bru') {
+    return /^[\p{L}\p{N}_-]+$/u.test(text)
+      ? null
+      : 'Tags in BRU format must only contain letters, numbers, "-", "_".';
+  }
+  // yml / opencollection / unknown: allow any non-empty string
+  return null;
+};
+
 const TagList = ({ tagsHintList = [], handleAddTag, tags, handleRemoveTag, onSave, handleValidation, collectionFormat }) => {
   const { displayedTheme } = useTheme();
-  const isBruFormat = collectionFormat === 'bru';
-  const tagNameRegex = isBruFormat ? /^[\p{L}\p{N}_-]+$/u : /^[\p{L}\p{N}_-](?:[\p{L}\p{N}_\s-]*[\p{L}\p{N}_-])?$/u;
   const [text, setText] = useState('');
   const [error, setError] = useState('');
 
@@ -20,11 +35,9 @@ const TagList = ({ tagsHintList = [], handleAddTag, tags, handleRemoveTag, onSav
     if (!text.trim()) {
       return;
     }
-    if (!tagNameRegex.test(text)) {
-      setError(isBruFormat
-        ? 'Tags in BRU format must only contain letters, numbers, "-", "_".'
-        : 'Tags must only contain letters, numbers, spaces, "-", "_"'
-      );
+    const validationError = validateTagName(text, collectionFormat);
+    if (validationError) {
+      setError(validationError);
       return;
     }
     if (tags.includes(text)) {
