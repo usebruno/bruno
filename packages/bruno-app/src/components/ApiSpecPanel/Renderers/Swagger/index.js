@@ -1,6 +1,7 @@
 import { memo } from 'react';
 import SwaggerUI from 'swagger-ui-react';
 import StyledWrapper from './StyledWrapper';
+import { serializeBody } from './serializeBody';
 
 const serializeHeaders = (headers) => {
   if (!headers) return {};
@@ -10,14 +11,6 @@ const serializeHeaders = (headers) => {
     return out;
   }
   return { ...headers };
-};
-
-const serializeBody = (body) => {
-  if (body == null) return undefined;
-  if (typeof body === 'string') return body;
-  if (body instanceof URLSearchParams) return body.toString();
-  // FormData / Blob / ArrayBuffer not yet supported by the IPC bridge.
-  return body;
 };
 
 const proxiedFetch = async (url, options = {}) => {
