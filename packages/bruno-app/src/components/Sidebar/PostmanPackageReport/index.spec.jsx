@@ -97,8 +97,46 @@ describe('PostmanPackageReport', () => {
 
   it('returns nothing when there is no actionable package', () => {
     const { container } = renderModal({
-      report: { hasAny: false, needsInstall: [], unsupported: [], safeMode: ['uuid'], devMode: ['lodash'] }
+      report: { hasAny: false, needsInstall: [], unsupported: [], safeMode: ['uuid'], devMode: [] }
     });
+    expect(container).toBeEmptyDOMElement();
+  });
+
+  it('prompts to switch to Developer Mode when only dev-mode libs are referenced (Safe Mode)', () => {
+    renderModal({
+      report: {
+        hasAny: true,
+        needsInstall: [],
+        unsupported: [],
+        safeMode: [],
+        devMode: ['lodash', 'moment']
+      }
+    });
+    expect(screen.getByText('Scripts use libraries that need Developer Mode')).toBeInTheDocument();
+    expect(screen.getAllByText('lodash').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('moment').length).toBeGreaterThan(0);
+    expect(screen.getByTestId('switch-to-developer-mode')).toBeInTheDocument();
+    expect(screen.getByTestId('postman-package-report-modal-submit-btn')).toHaveTextContent('Done');
+  });
+
+  it('auto-dismisses when only dev-mode libs are referenced and the collection is already in Developer Mode', () => {
+    mockCollection = {
+      uid: 'col-1',
+      pathname: '/collections/demo',
+      securityConfig: { jsSandboxMode: 'developer' }
+    };
+    const onClose = jest.fn();
+    const { container } = renderModal({
+      onClose,
+      report: {
+        hasAny: true,
+        needsInstall: [],
+        unsupported: [],
+        safeMode: [],
+        devMode: ['lodash']
+      }
+    });
+    expect(onClose).toHaveBeenCalled();
     expect(container).toBeEmptyDOMElement();
   });
 

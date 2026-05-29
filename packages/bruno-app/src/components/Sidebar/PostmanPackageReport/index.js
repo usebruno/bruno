@@ -1,4 +1,4 @@
-import React, { Fragment, useMemo, useState } from 'react';
+import React, { Fragment, useEffect, useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import toast from 'react-hot-toast';
 import {
@@ -83,13 +83,22 @@ const PostmanPackageReport = ({ report, collectionPath, onClose }) => {
 
   const needsInstall = report?.needsInstall || [];
   const unsupported = report?.unsupported || [];
+  const devMode = report?.devMode || [];
 
   const installCommand = useMemo(
     () => (needsInstall.length ? `npm install --save ${needsInstall.join(' ')}` : ''),
     [needsInstall]
   );
 
-  const hasActionable = needsInstall.length > 0 || unsupported.length > 0;
+  const needsDevModeOnly
+    = needsInstall.length === 0 && devMode.length > 0 && !isDeveloperMode;
+  const hasActionable
+    = needsInstall.length > 0 || unsupported.length > 0 || needsDevModeOnly;
+
+  useEffect(() => {
+    if (report && !hasActionable) onClose();
+  }, [report, hasActionable, onClose]);
+
   if (!report || !hasActionable) return null;
 
   const installDone = installResult && installResult.success;
@@ -228,6 +237,34 @@ const PostmanPackageReport = ({ report, collectionPath, onClose }) => {
                 </span>
               </div>
             )}
+          </div>
+        )}
+
+        {needsDevModeOnly && !installDone && !installing && (
+          <div className="pkg-section pkg-devmode">
+            <div className="pkg-devmode-head">
+              <IconAlertTriangle size={18} strokeWidth={1.75} />
+              <span className="pkg-devmode-title">Scripts use libraries that need Developer Mode</span>
+            </div>
+            <p className="pkg-devmode-desc">
+              Your imported scripts call {renderPackageExamples(devMode)}
+              {', '}which need <strong>Developer Mode</strong> to run.
+            </p>
+            <PackageList items={devMode} />
+            <div className="pkg-devmode-trust">
+              <IconShieldLock size={15} strokeWidth={1.75} />
+              <span>Only enable Developer Mode for collections you trust.</span>
+            </div>
+            <Button
+              color="primary"
+              size="sm"
+              loading={switchingMode}
+              icon={<IconCode size={15} strokeWidth={2} />}
+              onClick={handleSwitchToDeveloperMode}
+              data-testid="switch-to-developer-mode"
+            >
+              Switch to Developer Mode
+            </Button>
           </div>
         )}
 

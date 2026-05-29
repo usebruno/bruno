@@ -36,6 +36,21 @@ describe('postman-package-detector :: normalizePackageName', () => {
     expect(normalizePackageName('/abs/path')).toBeNull();
   });
 
+  test('strips node: prefix from Node builtin specifiers', () => {
+    expect(normalizePackageName('node:crypto')).toBe('crypto');
+    expect(normalizePackageName('node:fs/promises')).toBe('fs');
+  });
+
+  test('drops subpath imports to the package root', () => {
+    expect(normalizePackageName('lodash/get')).toBe('lodash');
+    expect(normalizePackageName('lodash/fp/map')).toBe('lodash');
+  });
+
+  test('drops subpath imports on scoped packages but keeps the scope', () => {
+    expect(normalizePackageName('@scope/pkg/sub')).toBe('@scope/pkg');
+    expect(normalizePackageName('npm:@scope/pkg/sub')).toBe('@scope/pkg');
+  });
+
   test('returns null for non-string or empty inputs', () => {
     expect(normalizePackageName(null)).toBeNull();
     expect(normalizePackageName(undefined)).toBeNull();
@@ -199,10 +214,20 @@ describe('postman-package-detector :: buildPackageReport', () => {
     expect(report.unsupported).toEqual(['postman-collection']);
   });
 
-  test('sets hasAny=false when only safe-mode / dev-mode packages are present', () => {
-    // These work out of the box in Bruno (safe-mode shims or Node builtins)
-    // surfacing a prompt for them would be noise.
-    const report = buildPackageReport(['uuid', 'lodash', 'path']);
+  test('sets hasAny=true when only dev-mode libs are referenced', () => {
+    // Libraries like lodash work only in Developer Mode, so a Safe-Mode
+    // collection still needs a prompt — the modal decides whether to show a
+    // switch CTA based on the collection's current sandbox mode.
+    const report = buildPackageReport(['lodash']);
+    expect(report.hasAny).toBe(true);
+    expect(report.devMode).toEqual(['lodash']);
+    expect(report.needsInstall).toEqual([]);
+  });
+
+  test('sets hasAny=false when only safe-mode packages are referenced', () => {
+    // Safe-mode shims (uuid, axios, etc.) work out of the box regardless of
+    // sandbox mode, so surfacing a prompt would be noise.
+    const report = buildPackageReport(['uuid', 'path']);
     expect(report.hasAny).toBe(false);
     expect(report.needsInstall).toEqual([]);
     expect(report.unsupported).toEqual([]);

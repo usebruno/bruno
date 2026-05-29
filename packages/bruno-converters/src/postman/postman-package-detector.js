@@ -15,7 +15,10 @@ const BARE_REQUIRE_REGEX = /(?<![\w$.])require\s*\(\s*(['"`])([^'"`]+)\1\s*\)/g;
  *   "lodash"               -> "lodash"
  *   "npm:lodash"           -> "lodash"
  *   "npm:lodash@4.17.21"   -> "lodash"
+ *   "lodash/get"           -> "lodash"
+ *   "node:crypto"          -> "crypto"
  *   "@scope/pkg"           -> "@scope/pkg"
+ *   "@scope/pkg/sub"       -> "@scope/pkg"
  *   "npm:@scope/pkg@1.2.3" -> "@scope/pkg"
  *   "./helpers"            -> null   (relative, not a package)
  *
@@ -29,10 +32,17 @@ const normalizePackageName = (raw) => {
     return null;
   }
   if (name.startsWith('npm:')) name = name.slice(4);
+  if (name.startsWith('node:')) name = name.slice(5);
   // Scoped packages keep the leading '@'; only strip a *second* '@' as a version separator.
   const searchStart = name.startsWith('@') ? 1 : 0;
   const atIndex = name.indexOf('@', searchStart);
   if (atIndex !== -1) name = name.slice(0, atIndex);
+  // Strip subpath imports so `lodash/get` and `@scope/pkg/sub` resolve to their package roots.
+  if (name.startsWith('@')) {
+    name = name.split('/').slice(0, 2).join('/');
+  } else {
+    name = name.split('/')[0];
+  }
   return name || null;
 };
 
@@ -148,7 +158,11 @@ const classifyPackages = (packages) => {
 
 const buildPackageReport = (packages) => {
   const classified = classifyPackages(packages);
-  const hasAny = classified.needsInstall.length + classified.unsupported.length > 0;
+  const hasAny
+    = classified.needsInstall.length
+      + classified.unsupported.length
+      + classified.devMode.length
+      > 0;
   return { ...classified, hasAny };
 };
 
