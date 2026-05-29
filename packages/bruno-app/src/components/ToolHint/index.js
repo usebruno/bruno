@@ -14,7 +14,8 @@ const ToolHint = ({
   positionStrategy,
   theme = null,
   className = '',
-  delayShow = 200
+  delayShow = 200,
+  dataTestId
 }) => {
   const { theme: contextTheme } = useTheme();
   const appliedTheme = theme || contextTheme;
@@ -37,7 +38,7 @@ const ToolHint = ({
 
   return (
     <>
-      {!anchorSelect && <span id={toolhintId} className={className}>{children}</span>}
+      {!anchorSelect && <span id={toolhintId} className={className} data-testid={dataTestId}>{children}</span>}
       {anchorSelect && children}
       <ReactToolHint
         {...toolhintProps_final}

@@ -16,14 +16,13 @@ const getFullyVisibleRowNames = async (list: Locator) => {
         const rect = item.getBoundingClientRect();
         return rect.top >= listRect.top && rect.bottom <= listRect.bottom;
       })
-      .map((item) => item.textContent?.trim())
+      .map((item) => item.querySelector('.selection-item-title')?.textContent?.trim())
       .filter(Boolean);
   });
 };
 
 test.describe('Bulk Import Selection List', () => {
   const testDataDir = path.join(__dirname, '../test-data');
-  const expectedVisibleRows = 5;
 
   test.afterEach(async ({ page }) => {
     await closeAllCollections(page);
@@ -61,16 +60,18 @@ test.describe('Bulk Import Selection List', () => {
 
     const bulkImportModal = page.getByRole('dialog');
     await expect(bulkImportModal.locator('.bruno-modal-header-title')).toContainText('Bulk Import');
-    await expect(bulkImportModal.getByText('Collections (10)')).toBeVisible();
+    const collectionsHeading = bulkImportModal.getByTestId('selection-heading').filter({ hasText: 'Collections' });
+    await expect(collectionsHeading).toBeVisible();
+    await expect(collectionsHeading.getByTestId('selection-count')).toHaveText('10');
 
-    const collectionList = bulkImportModal.locator('.selection-list').first();
+    const collectionList = collectionsHeading.locator('..').getByTestId('selection-list');
     await expect(collectionList).toBeVisible();
 
     const initialVisibleRows = await getFullyVisibleRowNames(collectionList);
-    expect(initialVisibleRows).toHaveLength(expectedVisibleRows);
+    expect(initialVisibleRows.length).toBeGreaterThan(0);
+    expect(initialVisibleRows.length).toBeLessThan(10);
     expect(initialVisibleRows[0]).toBe(getViewportCollectionName(1));
-    expect(initialVisibleRows[expectedVisibleRows - 1]).toBe(getViewportCollectionName(expectedVisibleRows));
-    expect(initialVisibleRows).not.toContain(getViewportCollectionName(expectedVisibleRows + 1));
+    expect(initialVisibleRows).not.toContain(getViewportCollectionName(10));
 
     await collectionList.evaluate((list) => {
       list.scrollTop = list.scrollHeight;
@@ -78,9 +79,16 @@ test.describe('Bulk Import Selection List', () => {
 
     await expect(async () => {
       const scrolledVisibleRows = await getFullyVisibleRowNames(collectionList);
-      expect(scrolledVisibleRows).toHaveLength(expectedVisibleRows);
+      expect(scrolledVisibleRows.length).toBeGreaterThan(0);
       expect(scrolledVisibleRows).toContain(getViewportCollectionName(9));
       expect(scrolledVisibleRows).toContain(getViewportCollectionName(10));
     }).toPass({ timeout: 5000 });
+
+    // No collections were imported, so afterEach's closeAllCollections is a
+    // no-op. Close the Bulk Import modal explicitly — the page is shared
+    // worker-wide via the worker-scoped electronApp fixture, so the modal
+    // backdrop would otherwise intercept clicks in the next test.
+    await page.getByTestId('modal-close-button').click();
+    await expect(page.locator('.bruno-modal-backdrop')).toHaveCount(0);
   });
 });

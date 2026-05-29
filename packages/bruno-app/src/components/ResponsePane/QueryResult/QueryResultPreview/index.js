@@ -27,7 +27,8 @@ const QueryResultPreview = ({
   codeMirrorMode,
   previewMode,
   disableRunEventListener,
-  displayedTheme
+  displayedTheme,
+  docKey
 }) => {
   const preferences = useSelector((state) => state.app.preferences);
   const dispatch = useDispatch();
@@ -54,7 +55,7 @@ const QueryResultPreview = ({
       <CodeEditor
         ref={editorRef}
         collection={collection}
-        docKey="response:editor"
+        docKey={docKey || 'response:editor'}
         font={get(preferences, 'font.codeFont', 'default')}
         fontSize={get(preferences, 'font.codeFontSize')}
         theme={displayedTheme}

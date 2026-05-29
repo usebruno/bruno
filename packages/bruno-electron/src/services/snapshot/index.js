@@ -28,11 +28,13 @@ const buildWorkspaceCollectionLookupKey = (workspacePathname, collectionPathname
 
 const tabSchema = yup.object({
   type: yup.string().required(),
-  accessor: yup.string().oneOf(['pathname', 'pathname::exampleName', 'type']).required(),
+  accessor: yup.string().oneOf(['pathname', 'pathname::exampleName', 'pathname::exampleIndex', 'type']).required(),
   pathname: yup.string().nullable(),
   permanent: yup.boolean().required(),
   name: yup.string().optional(),
   exampleName: yup.string().optional(),
+  exampleIndex: yup.number().integer().min(0).optional(),
+  exampleUid: yup.string().optional(),
   request: yup.object({
     tab: yup.string(),
     width: yup.number().nullable(),
@@ -46,7 +48,7 @@ const tabSchema = yup.object({
 });
 
 const activeTabSchema = yup.object({
-  accessor: yup.string().oneOf(['pathname', 'pathname::exampleName', 'type']).required(),
+  accessor: yup.string().oneOf(['pathname', 'pathname::exampleName', 'pathname::exampleIndex', 'type']).required(),
   value: yup.string().required()
 });
 
@@ -183,6 +185,23 @@ class SnapshotManager {
       console.error('Failed to save snapshot:', err.message);
       return false;
     }
+  }
+
+  resetSnapshot() {
+    this.store.delete('activeWorkspacePath');
+    this.store.set('workspaces', (this.store.store?.workspaces ?? []).map((d) => {
+      d.lastActiveCollectionPathname = undefined;
+      return d;
+    }));
+    this.store.set('collections', (this.store.store?.collections ?? []).map((d) => {
+      if ('tabs' in d) {
+        d.tabs = [];
+      }
+      if ('activeTab' in d) {
+        d.activeTab = undefined;
+      }
+      return d;
+    }));
   }
 
   setCollection(pathname, data) {
@@ -500,7 +519,7 @@ class SnapshotManager {
       return null;
     }
 
-    if (!['pathname', 'pathname::exampleName', 'type'].includes(activeTab.accessor) || typeof activeTab.value !== 'string') {
+    if (!['pathname', 'pathname::exampleName', 'pathname::exampleIndex', 'type'].includes(activeTab.accessor) || typeof activeTab.value !== 'string') {
       return null;
     }
 

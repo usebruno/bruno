@@ -7,6 +7,7 @@ import Sidebar from 'components/Sidebar';
 import StatusBar from 'components/StatusBar';
 import AppTitleBar from 'components/AppTitleBar';
 import ApiSpecPanel from 'components/ApiSpecPanel';
+import TabPanelErrorBoundary from 'components/RequestTabPanel/TabPanelErrorBoundary';
 // import ErrorCapture from 'components/ErrorCapture';
 import { useSelector } from 'react-redux';
 import { isElectron } from 'utils/common/platform';
@@ -145,7 +146,9 @@ export default function Main() {
             ) : (
               <>
                 <RequestTabs />
-                <RequestTabPanel key={activeTabUid} />
+                <TabPanelErrorBoundary key={activeTabUid} tabUid={activeTabUid}>
+                  <RequestTabPanel key={activeTabUid} />
+                </TabPanelErrorBoundary>
               </>
             )}
           </section>

@@ -1,4 +1,10 @@
 import { exportApiSpec } from './openapi-spec';
+import path from 'path';
+import openApiToBruno from '../../../../bruno-converters/src/openapi/openapi-to-bruno';
+
+jest.mock('nanoid', () => ({
+  ...jest.requireActual('nanoid')
+}));
 
 // Mock @usebruno/common to provide a working interpolate function
 jest.mock('@usebruno/common', () => ({
@@ -128,6 +134,8 @@ describe('exportApiSpec - server variables reconstruction', () => {
       {
         name: 'Get users',
         type: 'http-request',
+        pathname: path.join('collection', 'Active Users', 'Get users.bru'),
+        depth: 2,
         request: {
           url: '{{baseUrl}}/users',
           method: 'GET',
@@ -209,7 +217,339 @@ describe('exportApiSpec - server variables reconstruction', () => {
   });
 });
 
+describe('exportApiSpec - duplicate operation variants', () => {
+  const flattenItemsForExport = (items, parentPath = 'collection') => {
+    return items.flatMap((item) => {
+      if (item.type === 'folder') {
+        return flattenItemsForExport(item.items || [], path.join(parentPath, item.name));
+      }
+
+      return [{
+        ...item,
+        pathname: path.join(parentPath, `${item.name}.bru`),
+        depth: parentPath.split(path.sep).length
+      }];
+    });
+  };
+
+  it('should preserve duplicate path and method requests in x-bruno-variants', () => {
+    const items = [
+      {
+        name: 'Get users',
+        type: 'http-request',
+        pathname: path.join('collection', 'Active Users', 'Get users.bru'),
+        depth: 2,
+        request: {
+          url: '{{baseUrl}}/users',
+          method: 'GET',
+          params: [{ name: 'status', value: 'active', enabled: true, type: 'query' }],
+          headers: [],
+          body: {},
+          auth: {}
+        }
+      },
+      {
+        name: 'Get users inactive',
+        type: 'http-request',
+        pathname: path.join('collection', 'Inactive Users', 'Get users inactive.bru'),
+        depth: 2,
+        request: {
+          url: '{{baseUrl}}/users',
+          method: 'GET',
+          params: [{ name: 'status', value: 'inactive', enabled: true, type: 'query' }],
+          headers: [],
+          body: {},
+          auth: {},
+          vars: {
+            req: [{ name: 'baseUrl', value: 'https://files.example.com', enabled: true }]
+          }
+        }
+      },
+      {
+        name: 'Get users pending',
+        type: 'http-request',
+        pathname: path.join('collection', 'Pending Users', 'Get users pending.bru'),
+        depth: 2,
+        request: {
+          url: '{{baseUrl}}/users',
+          method: 'GET',
+          params: [{ name: 'status', value: 'pending', enabled: true, type: 'query' }],
+          headers: [],
+          body: {},
+          auth: {},
+          vars: {
+            req: [{ name: 'baseUrl', value: 'https://audit.example.com', enabled: true }]
+          }
+        }
+      }
+    ];
+
+    const { content } = exportApiSpec({
+      variables: { baseUrl: 'https://api.example.com' },
+      items,
+      name: 'Test API'
+    });
+    const parsed = require('js-yaml').load(content);
+    const operation = parsed.paths['/users'].get;
+    const variants = operation['x-bruno-variants'];
+
+    expect(operation.summary).toBe('Get users');
+    expect(operation.tags).toEqual(['Active Users']);
+    expect(operation.parameters[0]).toMatchObject({ name: 'status', example: 'active' });
+    expect(variants).toHaveLength(2);
+    expect(variants[0].summary).toBe('Get users inactive');
+    expect(variants[0].tags).toEqual(['Inactive Users']);
+    expect(variants[0].parameters[0]).toMatchObject({ name: 'status', example: 'inactive' });
+    expect(variants[0].servers[0].url).toBe('https://files.example.com');
+    expect(variants[1].summary).toBe('Get users pending');
+    expect(variants[1].tags).toEqual(['Pending Users']);
+    expect(variants[1].parameters[0]).toMatchObject({ name: 'status', example: 'pending' });
+    expect(variants[1].servers[0].url).toBe('https://audit.example.com');
+  });
+
+  it('should preserve distinct bodies for duplicate operations with the same name', () => {
+    const items = [
+      {
+        name: 'Update user',
+        type: 'http-request',
+        request: {
+          url: '{{baseUrl}}/users',
+          method: 'POST',
+          params: [],
+          headers: [],
+          body: { mode: 'json', json: '{"status":"active"}' },
+          auth: { mode: 'basic' }
+        }
+      },
+      {
+        name: 'Update user',
+        type: 'http-request',
+        request: {
+          url: '{{baseUrl}}/users',
+          method: 'POST',
+          params: [],
+          headers: [],
+          body: { mode: 'json', json: '{"status":"inactive"}' },
+          auth: { mode: 'bearer' }
+        }
+      }
+    ];
+
+    const { content } = exportApiSpec({
+      variables: { baseUrl: 'https://api.example.com' },
+      items,
+      name: 'Test API'
+    });
+    const parsed = require('js-yaml').load(content);
+    const operation = parsed.paths['/users'].post;
+    const variant = operation['x-bruno-variants'][0];
+
+    expect(operation.requestBody.$ref).toBe('#/components/requestBodies/update_user');
+    expect(variant.requestBody.$ref).toBe('#/components/requestBodies/update_user_1');
+    expect(parsed.components.schemas.update_user.example).toEqual({ status: 'active' });
+    expect(parsed.components.schemas.update_user_1.example).toEqual({ status: 'inactive' });
+    expect(operation.security).toEqual({ update_user: [] });
+    expect(variant.security).toEqual({ update_user_1: [] });
+    expect(parsed.components.securitySchemes.update_user.scheme).toBe('basic');
+    expect(parsed.components.securitySchemes.update_user_1.scheme).toBe('bearer');
+  });
+
+  it('should suffix conflicting component refs by request name', () => {
+    const items = [
+      {
+        name: 'Sync user',
+        type: 'http-request',
+        request: {
+          url: '{{baseUrl}}/users',
+          method: 'POST',
+          params: [],
+          headers: [],
+          body: { mode: 'json', json: '{"name":"Ada"}' },
+          auth: {}
+        }
+      },
+      {
+        name: 'Sync user',
+        type: 'http-request',
+        request: {
+          url: '{{baseUrl}}/users/{userId}',
+          method: 'PUT',
+          params: [],
+          headers: [],
+          body: { mode: 'json', json: '{"name":"Grace"}' },
+          auth: {}
+        }
+      }
+    ];
+
+    const firstExport = exportApiSpec({
+      variables: { baseUrl: 'https://api.example.com' },
+      items,
+      name: 'Test API'
+    });
+    const firstParsed = require('js-yaml').load(firstExport.content);
+
+    expect(firstParsed.paths['/users'].post.requestBody.$ref).toBe('#/components/requestBodies/sync_user');
+    expect(firstParsed.paths['/users/{userId}'].put.requestBody.$ref).toBe('#/components/requestBodies/sync_user_1');
+    expect(Object.keys(firstParsed.components.schemas).sort()).toEqual(['sync_user', 'sync_user_1']);
+  });
+
+  it('should not reserve component names for requests without exported components', () => {
+    const items = [
+      {
+        name: 'Sync user',
+        type: 'http-request',
+        request: {
+          url: '{{baseUrl}}/users',
+          method: 'GET',
+          params: [],
+          headers: [],
+          body: {},
+          auth: {}
+        }
+      },
+      {
+        name: 'Sync user',
+        type: 'http-request',
+        request: {
+          url: '{{baseUrl}}/users/{userId}',
+          method: 'PUT',
+          params: [],
+          headers: [],
+          body: { mode: 'json', json: '{"name":"Grace"}' },
+          auth: {}
+        }
+      }
+    ];
+
+    const { content } = exportApiSpec({
+      variables: { baseUrl: 'https://api.example.com' },
+      items,
+      name: 'Test API'
+    });
+    const parsed = require('js-yaml').load(content);
+
+    expect(parsed.paths['/users/{userId}'].put.requestBody.$ref).toBe('#/components/requestBodies/sync_user');
+    expect(Object.keys(parsed.components.schemas)).toEqual(['sync_user']);
+  });
+
+  it('should round-trip duplicate operation variants without nesting x-bruno-variants', () => {
+    const items = [
+      {
+        name: 'Get users',
+        type: 'http-request',
+        pathname: path.join('collection', 'Active Users', 'Get users.bru'),
+        depth: 2,
+        request: {
+          url: '{{baseUrl}}/users',
+          method: 'GET',
+          params: [{ name: 'status', value: 'active', enabled: true, type: 'query' }],
+          headers: [],
+          body: {},
+          auth: {}
+        }
+      },
+      {
+        name: 'Get users inactive',
+        type: 'http-request',
+        pathname: path.join('collection', 'Inactive Users', 'Get users inactive.bru'),
+        depth: 2,
+        request: {
+          url: '{{baseUrl}}/users',
+          method: 'GET',
+          params: [{ name: 'status', value: 'inactive', enabled: true, type: 'query' }],
+          headers: [],
+          body: {},
+          auth: {},
+          vars: {
+            req: [{ name: 'baseUrl', value: 'https://files.example.com', enabled: true }]
+          }
+        }
+      },
+      {
+        name: 'Get users pending',
+        type: 'http-request',
+        pathname: path.join('collection', 'Pending Users', 'Get users pending.bru'),
+        depth: 2,
+        request: {
+          url: '{{baseUrl}}/users',
+          method: 'GET',
+          params: [{ name: 'status', value: 'pending', enabled: true, type: 'query' }],
+          headers: [],
+          body: {},
+          auth: {},
+          vars: {
+            req: [{ name: 'baseUrl', value: 'https://audit.example.com', enabled: true }]
+          }
+        }
+      }
+    ];
+    const variables = { baseUrl: 'https://api.example.com' };
+    const firstExport = exportApiSpec({ variables, items, name: 'Test API' });
+    const imported = openApiToBruno(require('js-yaml').load(firstExport.content));
+    const reExportItems = flattenItemsForExport(imported.items);
+
+    const secondExport = exportApiSpec({
+      variables: Object.fromEntries(imported.environments[0].variables.map((variable) => [variable.name, variable.value])),
+      items: reExportItems,
+      name: imported.name
+    });
+    const operation = require('js-yaml').load(secondExport.content).paths['/users'].get;
+
+    expect(operation['x-bruno-variants']).toHaveLength(2);
+    expect(operation['x-bruno-variants'].map((variant) => variant.summary)).toEqual([
+      'Get users inactive',
+      'Get users pending'
+    ]);
+    expect(operation['x-bruno-variants'].every((variant) => !variant['x-bruno-variants'])).toBe(true);
+  });
+});
+
 describe('exportApiSpec - parameter and body value preservation', () => {
+  it('should export form request body media types without trailing colons', () => {
+    const variables = { baseUrl: 'https://api.example.com' };
+    const items = [
+      {
+        name: 'Upload avatar',
+        type: 'http-request',
+        request: {
+          url: '{{baseUrl}}/avatars',
+          method: 'POST',
+          params: [],
+          headers: [],
+          body: {
+            mode: 'multipartForm',
+            multipartForm: [{ name: 'avatar', value: 'avatar.png' }]
+          },
+          auth: {}
+        }
+      },
+      {
+        name: 'Create session',
+        type: 'http-request',
+        request: {
+          url: '{{baseUrl}}/sessions',
+          method: 'POST',
+          params: [],
+          headers: [],
+          body: {
+            mode: 'formUrlEncoded',
+            formUrlEncoded: [{ name: 'email', value: 'ada@example.com' }]
+          },
+          auth: {}
+        }
+      }
+    ];
+
+    const { content } = exportApiSpec({ variables, items, name: 'Test API' });
+    const parsed = require('js-yaml').load(content);
+
+    expect(parsed.components.requestBodies.upload_avatar.content).toHaveProperty('multipart/form-data');
+    expect(parsed.components.requestBodies.upload_avatar.content).not.toHaveProperty('multipart/form-data:');
+    expect(parsed.components.requestBodies.create_session.content).toHaveProperty('application/x-www-form-urlencoded');
+    expect(parsed.components.requestBodies.create_session.content).not.toHaveProperty('application/x-www-form-urlencoded:');
+  });
+
   it('should export path parameter values from params array', () => {
     const variables = { baseUrl: 'https://api.example.com' };
     const items = [{
@@ -474,5 +814,70 @@ describe('exportApiSpec - multi-environment servers', () => {
     // Both should appear as separate server entries (each maps to a Bruno environment on import)
     expect(content).toContain('description: Production');
     expect(content).toContain('description: Staging');
+  });
+});
+
+describe('exportApiSpec - OAuth2 scope handling (BRU-3297)', () => {
+  const makeOauth2Item = (grantType, scope) => ({
+    name: 'Req',
+    type: 'http-request',
+    request: {
+      url: 'https://api.example.com/users',
+      method: 'GET',
+      params: [],
+      headers: [],
+      body: {},
+      auth: {
+        mode: 'oauth2',
+        oauth2: {
+          grantType,
+          authorizationUrl: 'https://auth.example.com/authorize',
+          accessTokenUrl: 'https://auth.example.com/token',
+          callbackUrl: 'https://app.example.com/callback',
+          scope
+        }
+      }
+    }
+  });
+
+  // No-throw checks for all 3 grant types affected by BRU-3297.
+  describe.each([
+    'authorization_code',
+    'password',
+    'client_credentials'
+  ])('grant type %s', (grantType) => {
+    it(`should not throw when scope is null`, () => {
+      const items = [makeOauth2Item(grantType, null)];
+      expect(() => exportApiSpec({ variables: {}, items, name: 'Test' })).not.toThrow();
+    });
+
+    it(`should not throw when scope is undefined`, () => {
+      const items = [makeOauth2Item(grantType, undefined)];
+      expect(() => exportApiSpec({ variables: {}, items, name: 'Test' })).not.toThrow();
+    });
+  });
+
+  describe.each([
+    ['authorization_code', 'authorizationCode'],
+    ['password', 'password']
+  ])('grant type %s emits valid scopes object', (grantType, flowKey) => {
+    it(`should emit empty scopes object when scope is null (OpenAPI 3.0 requires scopes key)`, () => {
+      const items = [makeOauth2Item(grantType, null)];
+      const { content } = exportApiSpec({ variables: {}, items, name: 'Test' });
+      expect(content).toContain(`${flowKey}:`);
+      expect(content).toMatch(new RegExp(`${flowKey}:[\\s\\S]*?scopes:\\s*{}`));
+    });
+
+    it(`should emit empty scopes object when scope is empty string`, () => {
+      const items = [makeOauth2Item(grantType, '')];
+      const { content } = exportApiSpec({ variables: {}, items, name: 'Test' });
+      expect(content).toMatch(new RegExp(`${flowKey}:[\\s\\S]*?scopes:\\s*{}`));
+    });
+
+    it(`should emit scope entry when scope is a non-empty string`, () => {
+      const items = [makeOauth2Item(grantType, 'openid')];
+      const { content } = exportApiSpec({ variables: {}, items, name: 'Test' });
+      expect(content).toContain('openid:');
+    });
   });
 });

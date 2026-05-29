@@ -36,7 +36,8 @@
     "api-scripting"
   ],
   "scripts": {
-    "test": "node --experimental-vm-modules $(npx which jest)"
+    "test": "node --experimental-vm-modules $(npx which jest)",
+    "test:ci": "node --experimental-vm-modules ../../node_modules/jest/bin/jest.js"
   },
   "files": [
     "src",
@@ -58,6 +59,7 @@
     "axios-ntlm": "^1.4.2",
     "chai": "^4.3.7",
     "chalk": "^3.0.0",
+    "cli-table3": "^0.6.5",
     "decomment": "^0.9.5",
     "form-data": "4.0.4",
     "fs-extra": "^10.1.0",
