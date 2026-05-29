@@ -20,14 +20,32 @@ const detectBodyType = (body) => {
 
 export const UNSUPPORTED_BODY_TYPE_CODE = 'UNSUPPORTED_BODY_TYPE';
 
+// Map the Web API class name to a user-friendly subject that reads naturally in
+// the error message. SwaggerUI itself supports these body types fine; the
+// limitation is Bruno's renderer↔main IPC bridge, not Swagger.
+const friendlyBodySubject = (typeName) => {
+  switch (typeName) {
+    case 'File': return 'File upload';
+    case 'Blob': return 'Binary file upload';
+    case 'FormData': return 'Multipart form data';
+    case 'ArrayBuffer': return 'Binary data';
+    case 'ReadableStream': return 'Streaming upload';
+    default:
+      // TypedArrays (Uint8Array etc.) and anything else unknown.
+      if (typeof typeName === 'string' && typeName.endsWith('Array')) return 'Binary data';
+      return 'This request body type';
+  }
+};
+
 export const UNSUPPORTED_BODY_MESSAGE = (typeName) =>
-  `Request body type "${typeName}" isn't supported in Swagger Try-it-out yet. `
-  + `Supported types: JSON, URL-encoded forms, plain text. `
-  + `Use a Bruno request for file uploads / binary bodies.`;
+  `${friendlyBodySubject(typeName)} via the Swagger Try-it-out panel isn't supported in Bruno yet. `
+  + `Supported body types: JSON, URL-encoded forms, plain text. `
+  + `Create a Bruno request to test this endpoint.`;
 
 // Build a TypeError that carries the detected type as a property so downstream
 // catchers can branch on `err.code` / `err.bodyType` instead of regex-parsing
-// the message. Mirrors the IPC-error preservation pattern used in index.js.
+// the message. `err.bodyType` keeps the raw Web API class name for diagnostics;
+// the user-visible message uses the friendly subject above.
 const unsupportedBodyError = (typeName) => {
   const err = new TypeError(UNSUPPORTED_BODY_MESSAGE(typeName));
   err.code = UNSUPPORTED_BODY_TYPE_CODE;

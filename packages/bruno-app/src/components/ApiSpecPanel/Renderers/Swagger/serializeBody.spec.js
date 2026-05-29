@@ -32,40 +32,43 @@ describe('serializeBody', () => {
   });
 
   describe('unsupported body types (BRU-3300)', () => {
-    it('throws TypeError for FormData with type name in message', () => {
+    it('throws TypeError for FormData using "Multipart form data" subject', () => {
       const fd = new FormData();
       fd.append('file', new Blob(['x']));
       expect(() => serializeBody(fd)).toThrow(TypeError);
-      expect(() => serializeBody(fd)).toThrow(/FormData/);
-      expect(() => serializeBody(fd)).toThrow(/Use a Bruno request/);
+      expect(() => serializeBody(fd)).toThrow(/Multipart form data/);
+      expect(() => serializeBody(fd)).toThrow(/Create a Bruno request/);
     });
 
-    it('throws TypeError for Blob with type name in message', () => {
+    it('throws TypeError for Blob using "Binary file upload" subject', () => {
       const blob = new Blob(['payload']);
       expect(() => serializeBody(blob)).toThrow(TypeError);
-      expect(() => serializeBody(blob)).toThrow(/Blob/);
+      expect(() => serializeBody(blob)).toThrow(/Binary file upload/);
     });
 
-    it('throws TypeError for File with type name in message', () => {
+    it('throws TypeError for File using "File upload" subject', () => {
       const file = new File(['payload'], 'test.txt', { type: 'text/plain' });
       expect(() => serializeBody(file)).toThrow(TypeError);
-      // File is a Blob subtype; detector prefers the more specific File label.
-      expect(() => serializeBody(file)).toThrow(/File/);
+      expect(() => serializeBody(file)).toThrow(/File upload/);
     });
 
-    it('throws TypeError for ArrayBuffer', () => {
+    it('throws TypeError for ArrayBuffer using "Binary data" subject', () => {
       const buf = new ArrayBuffer(8);
       expect(() => serializeBody(buf)).toThrow(TypeError);
-      expect(() => serializeBody(buf)).toThrow(/ArrayBuffer/);
+      expect(() => serializeBody(buf)).toThrow(/Binary data/);
     });
 
-    it('throws TypeError for TypedArray with specific constructor name', () => {
+    it('throws TypeError for TypedArray using "Binary data" subject', () => {
       const u8 = new Uint8Array([1, 2, 3]);
       expect(() => serializeBody(u8)).toThrow(TypeError);
-      expect(() => serializeBody(u8)).toThrow(/Uint8Array/);
+      expect(() => serializeBody(u8)).toThrow(/Binary data/);
     });
 
-    it('message names the supported alternatives', () => {
+    it('message attributes the limitation to Bruno, not Swagger', () => {
+      expect(UNSUPPORTED_BODY_MESSAGE('FormData')).toMatch(/isn't supported in Bruno yet/);
+    });
+
+    it('message lists supported alternatives', () => {
       expect(UNSUPPORTED_BODY_MESSAGE('FormData')).toMatch(/JSON, URL-encoded forms, plain text/);
     });
   });
