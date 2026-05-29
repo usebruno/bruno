@@ -1,4 +1,5 @@
 import { test, expect } from '../../../playwright';
+import type { Locator } from '@playwright/test';
 import { closeAllCollections } from '../../utils/page';
 
 test.describe('Multipart Form - Chip Tooltip Swap', () => {
@@ -10,12 +11,26 @@ test.describe('Multipart Form - Chip Tooltip Swap', () => {
     await page.locator('#sidebar-collection-name').getByText('collection').click();
     await page.locator('.collection-item-name').filter({ hasText: 'chip-tooltip' }).click();
 
-    const chip = page.getByTestId('multipart-file-chip').first();
-    const removeBtn = chip.getByTestId('multipart-file-chip-remove');
     const tooltip = page.locator('[role="tooltip"], .react-tooltip').filter({ visible: true });
 
+    const inlineChip = page.getByTestId('multipart-file-chip').first();
+    const summary = page.getByTestId('multipart-file-summary');
+    await expect(inlineChip.or(summary).first()).toBeVisible({ timeout: 15000 });
+
+    let nameTarget: Locator, removeBtn: Locator;
+    if (await summary.count()) {
+      await summary.click();
+      const row = page.getByTestId('multipart-file-overflow-row').first();
+      await expect(row).toBeVisible();
+      nameTarget = row.locator('.overflow-row-name');
+      removeBtn = row.getByTestId('multipart-file-overflow-remove');
+    } else {
+      nameTarget = inlineChip.locator('.file-chip-name');
+      removeBtn = inlineChip.getByTestId('multipart-file-chip-remove');
+    }
+
     await test.step('Hover chip body → file path', async () => {
-      await chip.locator('.file-chip-name').hover();
+      await nameTarget.hover();
       await expect(tooltip.first()).toBeVisible({ timeout: 15000 });
       await expect(tooltip.first()).toContainText('alpha.txt');
     });
@@ -26,7 +41,7 @@ test.describe('Multipart Form - Chip Tooltip Swap', () => {
     });
 
     await test.step('Hover back to chip body → path again', async () => {
-      await chip.locator('.file-chip-name').hover();
+      await nameTarget.hover();
       await expect(tooltip.first()).not.toHaveText('Remove file');
       await expect(tooltip.first()).toContainText('alpha.txt');
     });
