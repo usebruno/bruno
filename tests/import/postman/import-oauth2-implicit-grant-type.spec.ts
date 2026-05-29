@@ -22,7 +22,6 @@ test.describe('Import Postman Collection with OAuth2.0 Implicit Grant Type', () 
   test('should import Postman collection with OAuth2.0 Implicit Grant Type successfully', async ({ page, electronApp, createTmpDir }) => {
     const postmanFile = path.resolve(__dirname, 'fixtures', 'postman-import-oauth2-implicit-grant-type.json');
     const locators = buildCommonLocators(page);
-    console.log('locators:', locators);
     const importDir = await createTmpDir('imported-collection');
 
     await electronApp.evaluate(({ dialog }, { importDir }) => {
