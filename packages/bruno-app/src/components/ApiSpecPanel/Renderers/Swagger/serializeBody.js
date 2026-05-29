@@ -20,25 +20,26 @@ const detectBodyType = (body) => {
 
 export const UNSUPPORTED_BODY_TYPE_CODE = 'UNSUPPORTED_BODY_TYPE';
 
-// Map the Web API class name to a user-friendly subject that reads naturally in
-// the error message. SwaggerUI itself supports these body types fine; the
-// limitation is Bruno's renderer↔main IPC bridge, not Swagger.
-const friendlyBodySubject = (typeName) => {
-  switch (typeName) {
-    case 'File': return 'File upload';
-    case 'Blob': return 'Binary file upload';
-    case 'FormData': return 'Multipart form data';
-    case 'ArrayBuffer': return 'Binary data';
-    case 'ReadableStream': return 'Streaming upload';
-    default:
-      // TypedArrays (Uint8Array etc.) and anything else unknown.
-      if (typeof typeName === 'string' && typeName.endsWith('Array')) return 'Binary data';
-      return 'This request body type';
-  }
+// Mapping from Web API class name (the raw detected type) to the user-facing
+// subject used in the error message. SwaggerUI itself supports these body
+// types fine; the limitation is Bruno's renderer↔main IPC bridge, not Swagger.
+const BODY_TYPE_LABEL_MAP = {
+  File: 'File upload',
+  Blob: 'Binary file upload',
+  FormData: 'Multipart form data',
+  ArrayBuffer: 'Binary data',
+  ReadableStream: 'Streaming upload'
+};
+
+const mapBodyTypeToLabel = (typeName) => {
+  if (BODY_TYPE_LABEL_MAP[typeName]) return BODY_TYPE_LABEL_MAP[typeName];
+  // TypedArrays (Uint8Array, Float32Array, etc.) share a label.
+  if (typeof typeName === 'string' && typeName.endsWith('Array')) return 'Binary data';
+  return 'This request body type';
 };
 
 export const UNSUPPORTED_BODY_MESSAGE = (typeName) =>
-  `${friendlyBodySubject(typeName)} via the Swagger Try-it-out panel isn't supported in Bruno yet. `
+  `${mapBodyTypeToLabel(typeName)} via the Swagger Try-it-out panel isn't supported in Bruno yet. `
   + `Supported body types: JSON, URL-encoded forms, plain text. `
   + `Create a Bruno request to test this endpoint.`;
 
