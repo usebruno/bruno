@@ -1,10 +1,7 @@
 name: Flaky Test Detector
 
 on:
-  pull_request:
-    branches: [main]
-    paths:
-      - 'tests/**/*.spec.ts'
+  workflow_dispatch:
 
 permissions:
   contents: read

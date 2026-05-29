@@ -10,44 +10,44 @@ runs:
   steps:
     - name: Test Package bruno-js
       shell: ${{ inputs.shell }}
-      run: npm run test:ci --workspace=packages/bruno-js
+      run: npm run test:ci --workspace=packages/bruno-js -- --detectOpenHandles
 
     - name: Test Package bruno-cli
       shell: ${{ inputs.shell }}
-      run: npm run test:ci --workspace=packages/bruno-cli
+      run: npm run test:ci --workspace=packages/bruno-cli -- --detectOpenHandles
 
     - name: Test Package bruno-query
       shell: ${{ inputs.shell }}
-      run: npm run test --workspace=packages/bruno-query
+      run: npm run test --workspace=packages/bruno-query -- --detectOpenHandles
 
     - name: Test Package bruno-lang
       shell: ${{ inputs.shell }}
-      run: npm run test --workspace=packages/bruno-lang
+      run: npm run test --workspace=packages/bruno-lang -- --detectOpenHandles
 
     - name: Test Package bruno-schema
       shell: ${{ inputs.shell }}
-      run: npm run test --workspace=packages/bruno-schema
+      run: npm run test --workspace=packages/bruno-schema -- --detectOpenHandles
 
     - name: Test Package bruno-app
       shell: ${{ inputs.shell }}
-      run: npm run test --workspace=packages/bruno-app
+      run: npm run test --workspace=packages/bruno-app -- --detectOpenHandles
 
     - name: Test Package bruno-common
       shell: ${{ inputs.shell }}
-      run: npm run test --workspace=packages/bruno-common
+      run: npm run test --workspace=packages/bruno-common -- --detectOpenHandles
 
     - name: Test Package bruno-converters
       shell: ${{ inputs.shell }}
-      run: npm run test:ci --workspace=packages/bruno-converters
+      run: npm run test:ci --workspace=packages/bruno-converters -- --detectOpenHandles
 
     - name: Test Package bruno-electron
       shell: ${{ inputs.shell }}
-      run: npm run test:ci --workspace=packages/bruno-electron
+      run: npm run test:ci --workspace=packages/bruno-electron -- --detectOpenHandles
 
     - name: Test Package bruno-requests
       shell: ${{ inputs.shell }}
-      run: npm run test --workspace=packages/bruno-requests
+      run: npm run test --workspace=packages/bruno-requests -- --detectOpenHandles
 
     - name: Test Package bruno-filestore
       shell: ${{ inputs.shell }}
-      run: npm run test --workspace=packages/bruno-filestore
+      run: npm run test --workspace=packages/bruno-filestore -- --detectOpenHandles
