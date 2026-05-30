@@ -147,18 +147,23 @@ export const sanitizeUrl = (url) => {
   return sanitizedUrl;
 };
 
-export const brunoToPostman = (collection) => {
+export const brunoToPostman = (collection, version = '2.1') => {
   delete collection.uid;
   delete collection.processEnvVariables;
   deleteUidsInItems(collection.items);
   deleteUidsInEnvs(collection.environments);
   deleteSecretsInEnvs(collection.environments);
 
+  const schemaMap = {
+    '2.0': 'https://schema.getpostman.com/json/collection/v2.0.0/collection.json',
+    '2.1': 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json'
+  };
+
   const generateInfoSection = () => {
     return {
       name: collection.name,
       description: collection.root?.docs,
-      schema: 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json'
+      schema: schemaMap[version] || schemaMap['2.1']
     };
   };
 
@@ -377,44 +382,85 @@ export const brunoToPostman = (collection) => {
 
   const generateAuth = (itemAuth) => {
     switch (itemAuth?.mode) {
-      case 'bearer':
+      case 'bearer': {
+        const token = itemAuth.bearer?.token || '';
+        if (version === '2.0') {
+          return {
+            type: 'bearer',
+            bearer: {
+              token: token
+            }
+          };
+        }
         return {
           type: 'bearer',
-          bearer: {
-            key: 'token',
-            value: itemAuth.bearer?.token || '',
-            type: 'string'
-          }
+          bearer: [
+            {
+              key: 'token',
+              value: token,
+              type: 'string'
+            }
+          ]
         };
+      }
       case 'basic': {
+        const username = itemAuth.basic?.username || '';
+        const password = itemAuth.basic?.password || '';
+        if (version === '2.0') {
+          return {
+            type: 'basic',
+            basic: {
+              username: username,
+              password: password
+            }
+          };
+        }
         return {
           type: 'basic',
           basic: [
             {
-              key: 'password',
-              value: itemAuth.basic?.password || '',
+              key: 'username',
+              value: username,
               type: 'string'
             },
             {
-              key: 'username',
-              value: itemAuth.basic?.username || '',
+              key: 'password',
+              value: password,
               type: 'string'
             }
           ]
         };
       }
       case 'apikey': {
+        const key = itemAuth.apikey?.key || '';
+        const value = itemAuth.apikey?.value || '';
+        const inValue = itemAuth.apikey?.in || 'header';
+        if (version === '2.0') {
+          return {
+            type: 'apikey',
+            apikey: {
+              key: key,
+              value: value,
+              in: inValue
+            }
+          };
+        }
         return {
           type: 'apikey',
           apikey: [
             {
               key: 'key',
-              value: itemAuth.apikey?.key || '',
+              value: key,
               type: 'string'
             },
             {
               key: 'value',
-              value: itemAuth.apikey?.value || '',
+              value: value,
+              type: 'string'
+            },
+            {
+              key: 'in',
+              value: inValue,
               type: 'string'
             }
           ]
