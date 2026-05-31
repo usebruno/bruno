@@ -1,13 +1,17 @@
 import DOMPurify from 'dompurify';
+import { rgba } from 'polished';
 import { useTheme } from 'providers/Theme';
 import { humanizeDate } from 'utils/common';
 
+const isHexColor = (value) => /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(value);
+
+// color is a hex string: solid text on a 15% tinted bg.
+// Falls back to the theme's purple when the supplied color isn't a valid hex.
 const getBadgeStyle = (color, theme) => {
-  const status = theme.status[color];
-  if (!status) return {};
+  const badgeColor = isHexColor(color) ? color : theme.colors.text.purple;
   return {
-    backgroundColor: status.background,
-    color: status.text
+    backgroundColor: rgba(badgeColor, 0.15),
+    color: badgeColor
   };
 };
 
@@ -64,7 +68,7 @@ const NotificationDetail = ({ notification }) => {
     <div className="notif-detail">
       <div className="notif-detail-header">
         <div className="notif-detail-meta">
-          {notification.color && (
+          {notification.type && (
             <span className="notif-type-badge" style={getBadgeStyle(notification.color, theme)}>
               {notification.type}
             </span>
@@ -74,6 +78,7 @@ const NotificationDetail = ({ notification }) => {
         <div className="notif-detail-title">{notification.title}</div>
       </div>
       <iframe
+        key={notification.id}
         className="notif-detail-body"
         title="Notification details"
         sandbox="allow-popups"
