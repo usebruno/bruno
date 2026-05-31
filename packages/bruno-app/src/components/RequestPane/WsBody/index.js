@@ -38,7 +38,7 @@ const WSBody = ({ item, collection, handleRun }) => {
     }));
   };
 
-  if (!body?.ws || !Array.isArray(body.ws)) {
+  if (!body?.ws || !Array.isArray(body.ws) || body.ws.length === 0) {
     return (
       <StyledWrapper>
         <div className="empty-state">
