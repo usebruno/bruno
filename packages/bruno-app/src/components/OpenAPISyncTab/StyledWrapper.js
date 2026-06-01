@@ -1,5 +1,5 @@
 import styled from 'styled-components';
-import { rgba, darken } from 'polished';
+import { rgba } from 'polished';
 
 const StyledWrapper = styled.div`
 
@@ -687,7 +687,7 @@ const StyledWrapper = styled.div`
       background: ${(props) => props.theme.colors.text.muted};
 
       &.active {
-        background: ${(props) => props.theme.colors.text.green};
+        background: ${(props) => props.theme.button2.color.primary.bg};
       }
 
       .toggle-knob {
@@ -2288,9 +2288,8 @@ const StyledWrapper = styled.div`
     white-space: nowrap;
 
     &.active {
-      background: ${(props) => darken(0.03, props.theme.background.base)};
-      color: ${(props) => props.theme.button2.color.secondary.text};
-      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.18);
+      background: ${(props) => props.theme.button2.color.primary.bg};
+      color: ${(props) => props.theme.button2.color.primary.text};
     }
 
     &:hover:not(.active) {
