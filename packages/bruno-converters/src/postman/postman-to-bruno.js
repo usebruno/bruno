@@ -550,7 +550,7 @@ const importPostmanV2CollectionItem = (brunoParent, item, { useWorkers = false }
               oauth1: null,
               oauth2: null,
               digest: null,
-                ntlm: null
+              ntlm: null
             },
             headers: [],
             params: [],
@@ -673,22 +673,21 @@ const importPostmanV2CollectionItem = (brunoParent, item, { useWorkers = false }
           }
         }
 
-      if (bodyMode === 'graphql') {
-        brunoRequestItem.type = 'graphql-request';
-        brunoRequestItem.request.body.mode = 'graphql';
-        brunoRequestItem.request.body.graphql = parseGraphQLRequest(i.request.body.graphql);
-      }
+        if (bodyMode === 'graphql') {
+          brunoRequestItem.type = 'graphql-request';
+          brunoRequestItem.request.body.mode = 'graphql';
+          brunoRequestItem.request.body.graphql = parseGraphQLRequest(i.request.body.graphql);
+        }
 
-      if (bodyMode === 'file') {
-        brunoRequestItem.request.body.mode = 'file';
-        brunoRequestItem.request.body.file.push({
-          uid: uuid(),
-          selected: true,
-          filePath: ensureString(i.request.body.file?.src),
-          contentType: 'application/octet-stream'
-        });
-        // brunoRequestItem.request.body.file = ensureString(i.request.body.file);
-      }
+        if (bodyMode === 'file') {
+          brunoRequestItem.request.body.mode = 'file';
+          brunoRequestItem.request.body.file.push({
+            uid: uuid(),
+            selected: true,
+            filePath: ensureString(i.request.body.file?.src),
+            contentType: 'application/octet-stream'
+          });
+        }
 
         each(normalizeHeaders(i.request.header), (header) => {
           if (header.key == null && header.value == null) return;
@@ -747,37 +746,37 @@ const importPostmanV2CollectionItem = (brunoParent, item, { useWorkers = false }
             const exampleUrl = constructUrl(originalRequest.url);
             const exampleMethod = originalRequest.method?.toUpperCase() || method;
 
-          const example = {
-            uid: uuid(),
-            itemUid: brunoRequestItem.uid,
-            name: exampleName,
-            description: '',
-            type: 'http-request',
-            request: {
-              url: exampleUrl,
-              method: exampleMethod,
-              headers: [],
-              params: [],
-              body: {
-                mode: 'none',
-                json: null,
-                text: null,
-                xml: null,
-                formUrlEncoded: [],
-                multipartForm: [],
-                file: []
+            const example = {
+              uid: uuid(),
+              itemUid: brunoRequestItem.uid,
+              name: exampleName,
+              description: '',
+              type: 'http-request',
+              request: {
+                url: exampleUrl,
+                method: exampleMethod,
+                headers: [],
+                params: [],
+                body: {
+                  mode: 'none',
+                  json: null,
+                  text: null,
+                  xml: null,
+                  formUrlEncoded: [],
+                  multipartForm: [],
+                  file: []
+                }
+              },
+              response: {
+                status: response.code || null,
+                statusText: response.status || '',
+                headers: [],
+                body: {
+                  type: getBodyTypeFromContentTypeHeader(response.header),
+                  content: response.body || ''
+                }
               }
-            },
-            response: {
-              status: response.code || null,
-              statusText: response.status || '',
-              headers: [],
-              body: {
-                type: getBodyTypeFromContentTypeHeader(response.header),
-                content: response.body || ''
-              }
-            }
-          };
+            };
 
             // Convert original request headers
             if (originalRequest.header) {
@@ -879,15 +878,14 @@ const importPostmanV2CollectionItem = (brunoParent, item, { useWorkers = false }
                 }
               }
             } else if (bodyMode === 'file') {
-            example.request.body.mode = 'file';
-            example.request.body.file.push({
-              uid: uuid(),
-              selected: true,
-              filePath: ensureString(i.request.body.file?.src),
-              contentType: 'application/octet-stream'
-            });
-            // brunoRequestItem.request.body.file = ensureString(i.request.body.file);
-          }
+              example.request.body.mode = 'file';
+              example.request.body.file.push({
+                uid: uuid(),
+                selected: true,
+                filePath: ensureString(i.request.body.file?.src),
+                contentType: 'application/octet-stream'
+              });
+            }
 
             // Convert response headers
             if (response.header) {
