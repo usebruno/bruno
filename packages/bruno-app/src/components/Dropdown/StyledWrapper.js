@@ -15,7 +15,7 @@ const Wrapper = styled.div`
     props.theme.dropdown.border && props.theme.dropdown.border !== 'none'
       ? `border: 1px solid ${props.theme.dropdown.border};`
       : ''}
-  max-height: 90vh;
+  max-height: 50vh;
   overflow-y: auto;
   max-width: unset !important;
   padding: 0.25rem;
