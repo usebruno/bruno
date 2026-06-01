@@ -967,6 +967,68 @@ export const cloneItem = (newName, newFilename, itemUid, collectionUid) => (disp
   });
 };
 
+// Duplicates a request into the collection's temp directory as a transient (unsaved) request,
+// mirroring Postman's "Duplicate Tab" behavior. Folders are not supported — they require a
+// committed name on disk to be meaningful.
+export const cloneItemAsTransient = (itemUid, collectionUid) => (dispatch, getState) => {
+  const state = getState();
+  const collection = findCollectionByUid(state.collections.collections, collectionUid);
+
+  return new Promise((resolve, reject) => {
+    if (!collection) {
+      return reject(new Error('Collection not found'));
+    }
+
+    const tempDirectory = state.collections.tempDirectories?.[collectionUid];
+    if (!tempDirectory) {
+      return reject(new Error('Temporary directory is not initialized for this collection'));
+    }
+
+    const item = findItemInCollection(cloneDeep(collection), itemUid);
+    if (!item) {
+      return reject(new Error('Unable to locate item'));
+    }
+    if (isItemAFolder(item)) {
+      return reject(new Error('Folders cannot be duplicated as a tab'));
+    }
+
+    const transientRequests = filter(
+      flattenItems(collection.items),
+      (i) => isItemARequest(i) && i.pathname && i.pathname.startsWith(tempDirectory)
+    );
+    const { newName, newFilename } = generateUniqueName(`${item.name} copy`, transientRequests, false);
+    const filename = resolveRequestFilename(newFilename, collection.format);
+
+    // The `isTransient` flag is inferred at load time from the file's path
+    // (it's never persisted to disk), so we don't set it here — the schema is strict.
+    const itemToSave = refreshUidsInItem(transformRequestToSaveToFilesystem(item));
+    set(itemToSave, 'name', trim(newName));
+    set(itemToSave, 'filename', trim(filename));
+    const items = filter(collection.items, (i) => isItemAFolder(i) || isItemARequest(i));
+    itemToSave.seq = items.length + 1;
+
+    const fullPathname = path.join(tempDirectory, filename);
+    const { ipcRenderer } = window;
+
+    itemSchema
+      .validate(itemToSave)
+      .then(() => ipcRenderer.invoke('renderer:new-request', fullPathname, itemToSave))
+      .then(() => {
+        dispatch(
+          insertTaskIntoQueue({
+            uid: uuid(),
+            type: 'OPEN_REQUEST',
+            collectionUid,
+            itemPathname: fullPathname,
+            preview: false
+          })
+        );
+        resolve();
+      })
+      .catch(reject);
+  });
+};
+
 export const pasteItem = (targetCollectionUid, targetItemUid = null) => (dispatch, getState) => {
   const state = getState();
 
