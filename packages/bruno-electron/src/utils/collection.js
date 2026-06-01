@@ -151,12 +151,9 @@ const mergeVars = (collection, request, requestTreePath = []) => {
   }
 };
 
-/**
- * Wraps a script in an IIFE closure to isolate its scope
- * @param {string} script - The script code to wrap
- * @returns {string} The wrapped script
- */
-const wrapScriptInClosure = (script) => {
+// __bruSetScope must stay on the IIFE opener line so wrapAndJoinScripts' line
+// counts (and stack-trace mapping) are unaffected.
+const wrapScriptInClosure = (script, scopeInfo = null) => {
   if (!script || script.trim() === '') {
     return '';
   }
@@ -164,7 +161,10 @@ const wrapScriptInClosure = (script) => {
   // Wrap script in async IIFE to create isolated scope
   // This prevents variable re-declaration errors and allows early returns
   // to only affect the current script segment
-  return `await (async () => {
+  const scopeSetter = scopeInfo
+    ? ` __bruSetScope(${JSON.stringify(scopeInfo)});`
+    : '';
+  return `await (async () => {${scopeSetter}
 ${script}
 })();`;
 };
@@ -212,8 +212,17 @@ ${script}
  *   }
  * }
  */
-const wrapAndJoinScripts = (scripts, requestIndex, segmentSources = null) => {
-  const wrapped = scripts.map((s) => wrapScriptInClosure(s));
+const wrapAndJoinScripts = (scripts, requestIndex, segmentSources = null, requestSegmentSource = null) => {
+  const buildScopeInfo = (i) => {
+    if (i === requestIndex && requestSegmentSource?.displayPath) {
+      return { type: 'request', sourceFile: requestSegmentSource.displayPath };
+    }
+    const seg = segmentSources?.[i];
+    if (!seg?.type || !seg?.displayPath) return null;
+    return { type: seg.type, sourceFile: seg.displayPath };
+  };
+
+  const wrapped = scripts.map((s, i) => wrapScriptInClosure(s, buildScopeInfo(i)));
   const code = wrapped.filter(Boolean).join('\n\n');
 
   let offset = 0;
@@ -260,9 +269,14 @@ const mergeScripts = (collection, request, requestTreePath, scriptFlow) => {
   const format = collection.format || 'bru';
   const config = FORMAT_CONFIG[format];
   const collectionSource = {
+    type: 'collection',
     filePath: path.join(collection.pathname, config.collectionFile),
     displayPath: config.collectionFile
   };
+
+  const requestSegmentSource = request?.pathname && collection?.pathname
+    ? { displayPath: posixifyPath(path.relative(collection.pathname, request.pathname)) }
+    : null;
 
   const withContent = (source, script) =>
     script?.trim() ? { ...source, scriptContent: script } : source;
@@ -278,6 +292,7 @@ const mergeScripts = (collection, request, requestTreePath, scriptFlow) => {
     if (i.type === 'folder') {
       const folderRoot = i?.draft || i?.root;
       const folderSource = {
+        type: 'folder',
         filePath: path.join(i.pathname, config.folderFile),
         displayPath: posixifyPath(path.relative(collection.pathname, path.join(i.pathname, config.folderFile)))
       };
@@ -310,7 +325,7 @@ const mergeScripts = (collection, request, requestTreePath, scriptFlow) => {
   // Wrap scripts, join them, and annotate metadata with the original request script content.
   // Returns { code, metadata } where metadata.requestScriptContent is set.
   const buildCombinedScript = (scripts, requestIndex, sources, originalScript) => {
-    const result = wrapAndJoinScripts(scripts, requestIndex, sources);
+    const result = wrapAndJoinScripts(scripts, requestIndex, sources, requestSegmentSource);
     if (result.metadata) {
       result.metadata.requestScriptContent = originalScript;
     }
