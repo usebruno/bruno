@@ -250,6 +250,8 @@ export const openWorkspaceDialog = () => {
         await dispatch(switchWorkspace(workspaceUid));
 
         return result;
+      } else {
+        return null;
       }
     } catch (error) {
       throw error;
