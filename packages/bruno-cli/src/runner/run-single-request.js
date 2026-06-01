@@ -31,6 +31,24 @@ const getCACertHostRegex = (domain) => {
   return '^https:\\/\\/' + domain.replaceAll('.', '\\.').replaceAll('*', '.*');
 };
 
+const getContentType = (headers = {}) => {
+  let contentType = '';
+  forOwn(headers, (value, key) => {
+    if (key && key.toLowerCase() === 'content-type') {
+      contentType = value;
+    }
+  });
+
+  return typeof contentType === 'string' ? contentType : '';
+};
+
+const preserveRawJsonStringBody = (request) => {
+  const contentType = getContentType(request.headers).toLowerCase();
+  if (!request.transformRequest && typeof request.data === 'string' && contentType.includes('json')) {
+    request.transformRequest = [(data) => data];
+  }
+};
+
 /**
  * Extract prompt variables from a request
  * Tries to respect the hierarchy of the variables and avoid unnecessary prompts as much as possible
@@ -663,6 +681,8 @@ const runSingleRequest = async function (
         addDigestInterceptor(axiosInstance, request);
         delete request.digestConfig;
       }
+
+      preserveRawJsonStringBody(request);
 
       /** @type {import('axios').AxiosResponse} */
       response = await axiosInstance(request);

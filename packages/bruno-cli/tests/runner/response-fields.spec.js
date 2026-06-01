@@ -195,3 +195,70 @@ describe('runSingleRequest: duration and size fields (issue #7352)', () => {
     expect(result.response.responseTime).toBe(0);
   });
 });
+
+describe('runSingleRequest: JSON string request bodies', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('should preserve raw string bodies for JSON requests', async () => {
+    const rawBody = '{"authorizationResult": ano }';
+    const headers = {
+      get: (key) => key === 'request-duration' ? '0' : null,
+      delete: jest.fn()
+    };
+
+    prepareRequest.mockResolvedValue({
+      method: 'POST',
+      url: 'http://example.com/api',
+      headers: { 'Content-Type': 'application/json' },
+      data: rawBody,
+      settings: {}
+    });
+
+    const mockAxios = jest.fn().mockResolvedValue({
+      status: 200,
+      statusText: 'OK',
+      headers,
+      data: 'ok',
+      request: { protocol: 'http:', host: 'example.com', path: '/api' }
+    });
+    makeAxiosInstance.mockReturnValue(mockAxios);
+
+    await runSingleRequest(...baseArgs);
+
+    const sentRequest = mockAxios.mock.calls[0][0];
+    expect(sentRequest.data).toBe(rawBody);
+    expect(sentRequest.transformRequest).toHaveLength(1);
+    expect(sentRequest.transformRequest[0](rawBody)).toBe(rawBody);
+  });
+
+  it('should not override axios transforms for JSON object bodies', async () => {
+    const headers = {
+      get: (key) => key === 'request-duration' ? '0' : null,
+      delete: jest.fn()
+    };
+
+    prepareRequest.mockResolvedValue({
+      method: 'POST',
+      url: 'http://example.com/api',
+      headers: { 'content-type': 'application/json' },
+      data: { ok: true },
+      settings: {}
+    });
+
+    const mockAxios = jest.fn().mockResolvedValue({
+      status: 200,
+      statusText: 'OK',
+      headers,
+      data: 'ok',
+      request: { protocol: 'http:', host: 'example.com', path: '/api' }
+    });
+    makeAxiosInstance.mockReturnValue(mockAxios);
+
+    await runSingleRequest(...baseArgs);
+
+    const sentRequest = mockAxios.mock.calls[0][0];
+    expect(sentRequest.transformRequest).toBeUndefined();
+  });
+});
