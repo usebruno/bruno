@@ -4,8 +4,6 @@
  * Fetches environment variables from the user's shell configuration files (e.g., .zshenv, .bashrc)
  */
 
-import { fetchWindowsShellEnv } from './shell-env-windows';
-
 export const PROXY_ENV_KEYS = [
   'http_proxy',
   'HTTP_PROXY',
@@ -19,7 +17,7 @@ export const PROXY_ENV_KEYS = [
 
 const fetchShellEnv = async (): Promise<Record<string, string>> => {
   if (process.platform === 'win32') {
-    return fetchWindowsShellEnv();
+    return {};
   }
 
   try {
