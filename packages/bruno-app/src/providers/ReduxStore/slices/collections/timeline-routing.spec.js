@@ -273,3 +273,92 @@ describe('collectionAddOauth2CredentialsByUrl — executionMode gating', () => {
     expect(collection.timeline || []).toHaveLength(0);
   });
 });
+
+describe('nested bru.runRequest under Runner — oauth2 routes to outer runner item', () => {
+  const credentials = { access_token: 'abc', expires_in: 60 };
+  const debugInfoData = [{ request: { url: 'token-url' }, response: { status: 200 } }];
+
+  const seedRunner = (state) => {
+    state = reducer(state, runFolderEvent({
+      type: 'testrun-started',
+      collectionUid: COLLECTION_UID,
+      folderUid: null,
+      isRecursive: false,
+      cancelTokenUid: 'cancel-1'
+    }));
+    state = reducer(state, runFolderEvent({
+      type: 'request-queued',
+      collectionUid: COLLECTION_UID,
+      folderUid: null,
+      itemUid: ITEM_UID
+    }));
+    return state;
+  };
+
+  test('emits credentials-update + oauth2-debug → runner item gets the row, standalone timeline stays empty', () => {
+    let state = seedRunner(makeInitialState());
+
+    // Event 1: credentials-update with executionMode='runner' (suppresses standalone push).
+    state = reducer(state, collectionAddOauth2CredentialsByUrl({
+      collectionUid: COLLECTION_UID,
+      folderUid: null,
+      itemUid: ITEM_UID,
+      url: 'https://idp.example.com/token',
+      credentials,
+      credentialsId: 'credentials',
+      debugInfo: { data: debugInfoData },
+      executionMode: 'runner'
+    }));
+
+    // Event 2: oauth2-debug carrying the OUTER runner item's eventData.
+    state = reducer(state, runFolderEvent({
+      type: 'oauth2-debug',
+      collectionUid: COLLECTION_UID,
+      folderUid: null,
+      itemUid: ITEM_UID,
+      url: 'https://idp.example.com/token',
+      credentialsId: 'credentials',
+      debugInfo: { data: debugInfoData }
+    }));
+
+    const collection = state.collections[0];
+    const runnerItem = collection.runnerResult.items.find((i) => i.uid === ITEM_UID);
+
+    // Cache is updated so subsequent requests reuse the token.
+    expect(collection.oauth2Credentials).toHaveLength(1);
+    // Runner timeline picks it up via the runner item.
+    expect(runnerItem.oauth2DebugEntries).toHaveLength(1);
+    expect(runnerItem.oauth2DebugEntries[0]).toEqual(
+      expect.objectContaining({
+        url: 'https://idp.example.com/token',
+        credentialsId: 'credentials',
+        debugInfo: debugInfoData
+      })
+    );
+    // Standalone tab must NOT see the oauth row.
+    expect(collection.timeline || []).toHaveLength(0);
+  });
+
+  test('regression guard: omitting executionMode (the pre-fix shape) leaks oauth2 onto collection.timeline', () => {
+    let state = seedRunner(makeInitialState());
+
+    // Pre-fix emit: no executionMode field → reducer treats it as standalone.
+    state = reducer(state, collectionAddOauth2CredentialsByUrl({
+      collectionUid: COLLECTION_UID,
+      folderUid: null,
+      itemUid: ITEM_UID,
+      url: 'https://idp.example.com/token',
+      credentials,
+      credentialsId: 'credentials',
+      debugInfo: { data: debugInfoData }
+    }));
+
+    const collection = state.collections[0];
+    const runnerItem = collection.runnerResult.items.find((i) => i.uid === ITEM_UID);
+
+    expect(collection.timeline || []).toHaveLength(1);
+    expect(collection.timeline[0]).toEqual(expect.objectContaining({ type: 'oauth2' }));
+    // And the runner item gets nothing — exactly the bug the user reported.
+    expect(runnerItem.oauth2DebugEntries || []).toHaveLength(0);
+  });
+});

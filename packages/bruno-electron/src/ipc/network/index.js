@@ -735,7 +735,7 @@ const registerNetworkIpc = (mainWindow) => {
     return scriptResult;
   };
 
-  const runRequest = async ({ item, collection, envVars, processEnvVars, runtimeVariables, runInBackground = false, callerBru = null }) => {
+  const runRequest = async ({ item, collection, envVars, processEnvVars, runtimeVariables, runInBackground = false, callerBru = null, parentExecutionMode = null, parentRunnerEventData = null }) => {
     const collectionUid = collection.uid;
     const collectionPath = collection.pathname;
     const cancelTokenUid = uuid();
@@ -791,7 +791,7 @@ const registerNetworkIpc = (mainWindow) => {
           const startedAt = Date.now();
           let res, err;
           try {
-            res = await runRequest({ item: _item, collection, envVars, processEnvVars, runtimeVariables, runInBackground: true, callerBru });
+            res = await runRequest({ item: _item, collection, envVars, processEnvVars, runtimeVariables, runInBackground: true, callerBru, parentExecutionMode, parentRunnerEventData });
           } catch (e) {
             err = e;
           }
@@ -991,8 +991,21 @@ const registerNetworkIpc = (mainWindow) => {
           collectionUid,
           credentialsId: request?.oauth2Credentials?.credentialsId,
           ...(request?.oauth2Credentials?.folderUid ? { folderUid: request.oauth2Credentials.folderUid } : { itemUid: item.uid }),
-          debugInfo: request?.oauth2Credentials?.debugInfo
+          debugInfo: request?.oauth2Credentials?.debugInfo,
+          // When invoked via bru.runRequest from inside the Runner, route the oauth2 timeline
+          // entry onto the outer runner item instead of leaking into collection.timeline.
+          ...(parentExecutionMode === 'runner' ? { executionMode: 'runner' } : {})
         });
+
+        if (parentExecutionMode === 'runner' && parentRunnerEventData && request.oauth2Credentials.debugInfo) {
+          mainWindow.webContents.send('main:run-folder-event', {
+            type: 'oauth2-debug',
+            ...parentRunnerEventData,
+            url: request.oauth2Credentials.url,
+            credentialsId: request.oauth2Credentials.credentialsId,
+            debugInfo: request.oauth2Credentials.debugInfo
+          });
+        }
 
         const { credentialsId, credentials } = request.oauth2Credentials;
         request.oauth2CredentialVariables = request.oauth2CredentialVariables || {};
@@ -1390,6 +1403,9 @@ const registerNetworkIpc = (mainWindow) => {
       const processEnvVars = getProcessEnvVars(collectionUid);
       let stopRunnerExecution = false;
       let currentAbortController;
+      // Tracks the outer runner item currently executing so a nested bru.runRequest
+      // can route its oauth2 timeline entry back to this item.
+      let currentRunnerEventData = null;
 
       const abortController = new AbortController();
       saveCancelToken(cancelTokenUid, abortController);
@@ -1449,7 +1465,16 @@ const registerNetworkIpc = (mainWindow) => {
             const startedAt = Date.now();
             let res, err;
             try {
-              res = await runRequest({ item: _item, collection, envVars, processEnvVars, runtimeVariables, runInBackground: true });
+              res = await runRequest({
+                item: _item,
+                collection,
+                envVars,
+                processEnvVars,
+                runtimeVariables,
+                runInBackground: true,
+                parentExecutionMode: 'runner',
+                parentRunnerEventData: currentRunnerEventData
+              });
             } catch (e) {
               err = e;
             }
@@ -1567,6 +1592,7 @@ const registerNetworkIpc = (mainWindow) => {
             folderUid,
             itemUid
           };
+          currentRunnerEventData = eventData;
 
           const emitRunnerScriptedRequestEvents = (phase, scriptResult) => {
             const entries = scriptResult?.scriptedRequestEntries || [];
