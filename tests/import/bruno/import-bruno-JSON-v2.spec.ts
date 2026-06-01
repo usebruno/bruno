@@ -4,7 +4,7 @@ import { importCollection, closeAllCollections } from '../../utils/page';
 import { buildCommonLocators } from '../../utils/page/locators';
 
 test.describe('Import Bruno v2 JSON collection', () => {
-  test.afterAll(async ({ page }) => {
+  test.afterEach(async ({ page }) => {
     await closeAllCollections(page);
   });
 
