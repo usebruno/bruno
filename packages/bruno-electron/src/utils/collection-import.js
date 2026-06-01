@@ -94,7 +94,9 @@ async function importCollection(collection, collectionLocation, mainWindow, uniq
       };
     }
 
-    brunoConfig.proxy = transformProxyConfig(brunoConfig.proxy);
+    if (brunoConfig.proxy) {
+      brunoConfig.proxy = transformProxyConfig(brunoConfig.proxy);
+    }
 
     return brunoConfig;
   };
