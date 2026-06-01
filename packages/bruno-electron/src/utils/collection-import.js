@@ -4,6 +4,7 @@ const { ipcMain } = require('electron');
 const { sanitizeName, createDirectory, writeFile, safeWriteFileSync, getCollectionStats } = require('./filesystem');
 const { generateUidBasedOnHash, stringifyJson } = require('./common');
 const { stringifyRequestViaWorker, stringifyCollection, stringifyEnvironment, stringifyFolder, DEFAULT_COLLECTION_FORMAT } = require('@usebruno/filestore');
+const { transformProxyConfig } = require('@usebruno/requests/dist/cjs');
 
 /**
  * Recursively find a unique folder name by appending incremental numbers
@@ -91,6 +92,10 @@ async function importCollection(collection, collectionLocation, mainWindow, uniq
         type: 'collection',
         ignore: ['node_modules', '.git']
       };
+    }
+
+    if (brunoConfig.proxy) {
+      brunoConfig.proxy = transformProxyConfig(brunoConfig.proxy);
     }
 
     return brunoConfig;

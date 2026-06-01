@@ -28,6 +28,7 @@ const { cookiesStore } = require('../store/cookies');
 const { parseLargeRequestWithRedaction } = require('../utils/parse');
 const { wsClient } = require('../ipc/network/ws-event-handlers');
 const { hasSubDirectories } = require('../utils/filesystem');
+const { transformProxyConfig } = require('@usebruno/requests');
 
 const {
   DEFAULT_GITIGNORE,
@@ -1227,7 +1228,9 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
               ignore: ['node_modules', '.git']
             };
           }
-
+          if (brunoConfig.proxy) {
+            brunoConfig.proxy = transformProxyConfig(brunoConfig.proxy);
+          }
           return brunoConfig;
         };
 
@@ -2442,7 +2445,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
 
         await fsExtra.move(collectionDir, finalCollectionPath);
         if (tempDir !== collectionDir) {
-          await fsExtra.remove(tempDir).catch(() => {});
+          await fsExtra.remove(tempDir).catch(() => { });
         }
 
         const uid = generateUidBasedOnHash(finalCollectionPath);
@@ -2455,7 +2458,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
 
         return finalCollectionPath;
       } catch (error) {
-        await fsExtra.remove(tempDir).catch(() => {});
+        await fsExtra.remove(tempDir).catch(() => { });
         throw error;
       }
     } catch (error) {
