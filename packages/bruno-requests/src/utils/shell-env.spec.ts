@@ -115,15 +115,4 @@ describe('refreshShellEnvProxyVars', () => {
     expect(process.env.http_proxy).toBeUndefined();
     expect(process.env.https_proxy).toBeUndefined();
   });
-
-  test('should return empty object on Windows without changing process.env', async () => {
-    Object.defineProperty(process, 'platform', { value: 'win32' });
-    process.env.http_proxy = 'http://existing-proxy:8080';
-    mockShellEnvResult = { http_proxy: 'http://shell-proxy:8080' };
-
-    const result = await refreshShellEnvProxyVars();
-
-    expect(result).toEqual({});
-    expect(process.env.http_proxy).toBe('http://existing-proxy:8080');
-  });
 });
