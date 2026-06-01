@@ -1,12 +1,23 @@
-const { describe, it, expect } = require('@jest/globals');
-const { makeAxiosInstance } = require('../../src/utils/axios-instance');
+const { describe, it, expect, beforeEach } = require('@jest/globals');
 
-function createStubAdapter() {
+jest.mock('../../src/utils/cookies', () => ({
+  addCookieToJar: jest.fn(),
+  getCookieStringForUrl: jest.fn(() => '')
+}));
+
+jest.mock('../../src/utils/proxy-util', () => ({
+  setupProxyAgents: jest.fn()
+}));
+
+const { makeAxiosInstance } = require('../../src/utils/axios-instance');
+const { addCookieToJar } = require('../../src/utils/cookies');
+
+function createStubAdapter(responseHeaders = {}) {
   let capturedConfig = null;
 
   const adapter = (config) => {
     capturedConfig = config;
-    return Promise.resolve({ data: {}, status: 200, statusText: 'OK', headers: {}, config });
+    return Promise.resolve({ data: {}, status: 200, statusText: 'OK', headers: responseHeaders, config });
   };
 
   adapter.getConfig = () => capturedConfig;
@@ -15,6 +26,10 @@ function createStubAdapter() {
 }
 
 describe('makeAxiosInstance', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
   it('setting User-Agent does not clobber the axios default Accept header', async () => {
     const stubAdapter = createStubAdapter();
     const instance = makeAxiosInstance();
@@ -33,5 +48,30 @@ describe('makeAxiosInstance', () => {
     await instance({ url: 'https://api.example.com/test', method: 'get', adapter: stubAdapter });
 
     expect(stubAdapter.getConfig().headers['User-Agent']).toMatch(/^bruno-runtime\//);
+  });
+
+  it('saves Set-Cookie headers from successful responses', async () => {
+    const stubAdapter = createStubAdapter({
+      'set-cookie': ['session=abc123; Path=/; HttpOnly']
+    });
+    const instance = makeAxiosInstance();
+
+    await instance({ url: 'https://api.example.com/login', method: 'get', adapter: stubAdapter });
+
+    expect(addCookieToJar).toHaveBeenCalledWith(
+      'session=abc123; Path=/; HttpOnly',
+      'https://api.example.com/login'
+    );
+  });
+
+  it('does not save successful response cookies when cookies are disabled', async () => {
+    const stubAdapter = createStubAdapter({
+      'set-cookie': ['session=abc123; Path=/; HttpOnly']
+    });
+    const instance = makeAxiosInstance({ disableCookies: true });
+
+    await instance({ url: 'https://api.example.com/login', method: 'get', adapter: stubAdapter });
+
+    expect(addCookieToJar).not.toHaveBeenCalled();
   });
 });
