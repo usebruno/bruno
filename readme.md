@@ -77,7 +77,7 @@ You can also install Bruno via package managers like Homebrew, Chocolatey, Scoop
 
 ```sh
 # On Mac via Homebrew
-brew install bruno
+brew install --cask bruno
 
 # On Windows via Chocolatey
 choco install bruno

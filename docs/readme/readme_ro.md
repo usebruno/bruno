@@ -49,7 +49,7 @@ De asemenea, puteţi instala Bruno cu un gestionar de pachete precum Homebrew, C
 
 ```sh
 # Pe Mac cu Homebrew
-brew install bruno
+brew install --cask bruno
 
 # Pe Windows cu Chocolatey
 choco install bruno
