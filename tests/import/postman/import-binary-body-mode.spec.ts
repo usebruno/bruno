@@ -34,39 +34,18 @@ test.describe('Import Postman Collection with binary body mode', () => {
     await test.step('Open import collection modal', async () => {
       await locators.plusMenu.button().click();
       await locators.plusMenu.importCollection().click();
-    });
-
-    await test.step('Wait for import modal and verify title', async () => {
       const importModal = page.getByRole('dialog');
       await importModal.waitFor({ state: 'visible' });
       await expect(locators.modal.title('Import Collection')).toBeVisible();
-    });
-
-    await test.step('Upload Postman collection file using hidden file input', async () => {
       await locators.import.fileInput().setInputFiles(postmanFile);
       await locators.import.locationModal().waitFor({ state: 'visible', timeout: 10000 });
-    });
-
-    await test.step('Verify no parsing errors occurred', async () => {
       const hasError = await locators.import.parsingError().isVisible().catch(() => false);
       if (hasError) {
         throw new Error('Collection import failed with parsing error');
       }
-    });
-
-    await test.step('Verify location selection modal appears', async () => {
       await expect(locators.modal.title('Import Collection')).toBeVisible();
-    });
-
-    await test.step('Verify collection name appears in location modal', async () => {
       await expect(locators.import.locationModal().getByText('My Collection')).toBeVisible();
-    });
-
-    await test.step('Click Browse link to select collection folder', async () => {
       await locators.import.browseLink(locators.import.locationModal()).click();
-    });
-
-    await test.step('Complete import by clicking import button', async () => {
       const locationModal = locators.import.locationModal();
       await locators.import.importButton(locationModal).click();
       await locationModal.waitFor({ state: 'hidden' });
