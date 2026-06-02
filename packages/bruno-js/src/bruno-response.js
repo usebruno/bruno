@@ -32,7 +32,12 @@ class BrunoResponse {
   }
 
   getHeader(name) {
-    return this.res && this.res.headers ? this.res.headers[name] : null;
+    if (!this.res?.headers || typeof name !== 'string') {
+      return null;
+    }
+    const headers = this.res.headers;
+    const lowerCaseName = name.toLowerCase();
+    return headers[lowerCaseName] ?? null;
   }
 
   getHeaders() {

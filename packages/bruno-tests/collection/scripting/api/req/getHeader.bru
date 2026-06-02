@@ -12,6 +12,7 @@ get {
 
 headers {
   bruno: is-awesome
+  Content-Type: application/json
 }
 
 
@@ -25,4 +26,9 @@ tests {
     const h = req.getHeader('bruno');
     expect(h).to.equal("is-awesome");
   });
+
+  test("case sensitive check", function() {
+    const h=req.getHeader('Content-Type');
+    expect(h).to.equal("application/json")
+  } )
 }
