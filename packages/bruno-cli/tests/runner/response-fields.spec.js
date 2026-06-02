@@ -233,6 +233,39 @@ describe('runSingleRequest: JSON string request bodies', () => {
     expect(sentRequest.transformRequest[0](rawBody)).toBe(rawBody);
   });
 
+  it('should not override existing transforms for JSON string bodies', async () => {
+    const rawBody = '{"authorizationResult": ano }';
+    const transformRequest = jest.fn((data) => data);
+    const headers = {
+      get: (key) => key === 'request-duration' ? '0' : null,
+      delete: jest.fn()
+    };
+
+    prepareRequest.mockResolvedValue({
+      method: 'POST',
+      url: 'http://example.com/api',
+      headers: { 'Content-Type': 'application/json' },
+      data: rawBody,
+      transformRequest,
+      settings: {}
+    });
+
+    const mockAxios = jest.fn().mockResolvedValue({
+      status: 200,
+      statusText: 'OK',
+      headers,
+      data: 'ok',
+      request: { protocol: 'http:', host: 'example.com', path: '/api' }
+    });
+    makeAxiosInstance.mockReturnValue(mockAxios);
+
+    await runSingleRequest(...baseArgs);
+
+    const sentRequest = mockAxios.mock.calls[0][0];
+    expect(sentRequest.data).toBe(rawBody);
+    expect(sentRequest.transformRequest).toBe(transformRequest);
+  });
+
   it('should not override axios transforms for JSON object bodies', async () => {
     const headers = {
       get: (key) => key === 'request-duration' ? '0' : null,
