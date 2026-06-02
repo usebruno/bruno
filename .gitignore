@@ -73,3 +73,4 @@ packages/bruno-requests/dist
 packages/bruno-schema-types/dist
 packages/bruno-converters/dist
 packages/bruno-pool/dist
+packages/bruno-storage/dist
