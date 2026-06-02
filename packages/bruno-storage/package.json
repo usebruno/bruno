@@ -1,0 +1,22 @@
+{
+  "name": "@usebruno/storage",
+  "version": "0.1.0",
+  "description": "Lazy SQLite storage for Bruno — a thin node:sqlite wrapper with schema, pragmas, transactions, and cached statements. No native dependencies.",
+  "author": "Bruno Software Inc.",
+  "license": "MIT",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "src",
+    "package.json"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "clean": "rm -rf dist"
+  },
+  "devDependencies": {
+    "@types/node": "^24.1.0",
+    "typescript": "5.4.5"
+  }
+}
