@@ -384,7 +384,7 @@ const createGruvboxLightTheme = (variant) => {
         color: palette.text.SUBTEXT2,
         bg: 'transparent',
         border: 'transparent',
-        hoverBorder: ''
+        hoverBorder: 'transparent'
       },
       disabled: {
         color: palette.text.SUBTEXT0,
