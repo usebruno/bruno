@@ -177,18 +177,6 @@ const EditableTable = ({
       return [createEmptyRow()];
     }
 
-    const lastRow = rows[rows.length - 1];
-    const keyColumn = columns.find((col) => col.isKeyField);
-
-    if (keyColumn) {
-      const lastRowKeyValue = keyColumn.getValue ? keyColumn.getValue(lastRow) : lastRow[keyColumn.key];
-      const isLastRowEmpty = !lastRowKeyValue || (typeof lastRowKeyValue === 'string' && lastRowKeyValue.trim() === '');
-
-      if (isLastRowEmpty) {
-        return rows;
-      }
-    }
-
     if (!emptyRowUidRef.current || rows.some((r) => r.uid === emptyRowUidRef.current)) {
       emptyRowUidRef.current = uuid();
     }
@@ -231,7 +219,7 @@ const EditableTable = ({
     const isLast = rowIndex === rowsWithEmpty.length - 1;
     const wasEmpty = isEmptyRow(currentRow);
 
-    const keyColumn = columns.find((col) => col.isKeyField);
+    const keyColumn = columns.find((col) => col.key === key);
     const isKeyFieldChange = keyColumn && keyColumn.key === key;
 
     let updatedRows = rowsWithEmpty.map((row) => {
@@ -262,12 +250,10 @@ const EditableTable = ({
       return false;
     };
 
-    const result = updatedRows.filter((row, i) => {
-      if (showAddRow && i === updatedRows.length - 1) {
-        return hasAnyValue(row);
-      }
-      return true;
-    });
+    // Remove any fully-empty rows from the persisted data. The trailing empty
+    // "add row" is re-added by the rowsWithEmpty memo, so there's always
+    // exactly one empty row at the bottom and never a stray empty row above it.
+    const result = showAddRow ? updatedRows.filter(hasAnyValue) : updatedRows;
 
     onChange(result);
   }, [rowsWithEmpty, columns, onChange, checkboxKey, defaultRow, isEmptyRow, showAddRow]);
