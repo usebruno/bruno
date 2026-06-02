@@ -25,6 +25,40 @@ function createStubAdapter(responseHeaders = {}) {
   return adapter;
 }
 
+function createRedirectStubAdapter(finalHeaders = {}) {
+  let callCount = 0;
+  let capturedConfig = null;
+
+  const adapter = (config) => {
+    capturedConfig = config;
+    callCount += 1;
+
+    if (callCount === 1) {
+      return Promise.reject({
+        config,
+        response: {
+          status: 302,
+          statusText: 'Found',
+          headers: { location: 'https://api.example.com/final' },
+          config
+        }
+      });
+    }
+
+    return Promise.resolve({
+      data: {},
+      status: 200,
+      statusText: 'OK',
+      headers: finalHeaders,
+      config
+    });
+  };
+
+  adapter.getConfig = () => capturedConfig;
+
+  return adapter;
+}
+
 describe('makeAxiosInstance', () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -61,6 +95,20 @@ describe('makeAxiosInstance', () => {
     expect(addCookieToJar).toHaveBeenCalledWith(
       'session=abc123; Path=/; HttpOnly',
       'https://api.example.com/login'
+    );
+  });
+
+  it('saves Set-Cookie headers against the final URL after a redirect', async () => {
+    const stubAdapter = createRedirectStubAdapter({
+      'set-cookie': ['session=final; Path=/; HttpOnly']
+    });
+    const instance = makeAxiosInstance();
+
+    await instance({ url: 'https://api.example.com/login', method: 'get', adapter: stubAdapter });
+
+    expect(addCookieToJar).toHaveBeenCalledWith(
+      'session=final; Path=/; HttpOnly',
+      'https://api.example.com/final'
     );
   });
 
