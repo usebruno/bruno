@@ -37,7 +37,6 @@ test('Auto-appends an empty header row when either Name or Value is filled', asy
     await expect(rows).toHaveCount(1);
   });
 
-  await page.pause();
   await test.step('Typing into the Name field appends a new empty row', async () => {
     const nameEditor = rows.first().locator('[data-testid="column-name"] .CodeMirror');
     await nameEditor.click();
