@@ -1,5 +1,5 @@
 import styled from 'styled-components';
-import { rgba } from 'polished';
+import { rgba, darken } from 'polished';
 
 const StyledWrapper = styled.div`
 
@@ -724,9 +724,9 @@ const StyledWrapper = styled.div`
         transition: all 0.15s;
 
         &.active {
-          border-color: ${(props) => props.theme.button2.color.primary.border};
-          background: ${(props) => props.theme.button2.color.primary.bg};
-          color: ${(props) => props.theme.button2.color.primary.text};
+          border-color: ${(props) => props.theme.accents.primary};
+          background: ${(props) => rgba(props.theme.accents.primary, 0.07)};
+          color: ${(props) => props.theme.accents.primary};
         }
       }
     }
@@ -2288,8 +2288,9 @@ const StyledWrapper = styled.div`
     white-space: nowrap;
 
     &.active {
-      background: ${(props) => props.theme.button2.color.primary.bg};
-      color: ${(props) => props.theme.button2.color.primary.text};
+      background: ${(props) => darken(0.03, props.theme.background.base)};
+      color: ${(props) => props.theme.button2.color.secondary.text};
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.18);
     }
 
     &:hover:not(.active) {
