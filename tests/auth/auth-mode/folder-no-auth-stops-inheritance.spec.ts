@@ -46,7 +46,7 @@ test('Request inherits No Auth from the folder — collection Bearer Token is ov
     const requestName = 'http-request-1';
     await createRequest(page, requestName, 'folder-1', {
       inFolder: true,
-      requestType: 'HTTP',
+      requestType: 'http',
       method: 'GET',
       url: 'https://testbench-sanity.usebruno.com/api/auth/bearer/protected'
     });
