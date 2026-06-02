@@ -815,15 +815,15 @@ const importPostmanV2CollectionItem = (brunoParent, item, { useWorkers = false }
                   example.request.body.mode = 'text';
                   example.request.body.text = originalRequest.body.raw;
                 }
+              } else if (bodyMode === 'file') {
+                example.request.body.mode = 'file';
+                example.request.body.file.push({
+                  uid: uuid(),
+                  selected: true,
+                  filePath: ensureString(originalRequest.request.body.file?.src),
+                  contentType: 'application/octet-stream'
+                });
               }
-            } else if (bodyMode === 'file') {
-              example.request.body.mode = 'file';
-              example.request.body.file.push({
-                uid: uuid(),
-                selected: true,
-                filePath: ensureString(i.request.body.file?.src),
-                contentType: 'application/octet-stream'
-              });
             }
 
             // Convert response headers
