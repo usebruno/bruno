@@ -617,7 +617,7 @@ export const collectionsSlice = createSlice({
 
       // Process based on event type
       switch (eventType) {
-        case 'response':
+        case 'response': {
           const { error, res } = eventData;
 
           //  Handle error if present
@@ -636,13 +636,14 @@ export const collectionsSlice = createSlice({
             ? [...(currentResponse?.responses || []), res]
             : [...(currentResponse?.responses || [])];
           break;
+        }
 
         case 'metadata':
           updatedResponse.headers = eventData.metadata;
           updatedResponse.metadata = eventData.metadata;
           break;
 
-        case 'status':
+        case 'status': {
           // Extract status info
           const statusCode = eventData.status?.code;
           const statusDetails = eventData.status?.details;
@@ -666,8 +667,9 @@ export const collectionsSlice = createSlice({
           }
 
           break;
+        }
 
-        case 'error':
+        case 'error': {
           // Extract error details
           const errorCode = eventData.error?.code || 2; // Default to UNKNOWN if no code
           const errorDetails = eventData.error?.details || eventData.error?.message;
@@ -685,6 +687,7 @@ export const collectionsSlice = createSlice({
           }
 
           break;
+        }
 
         case 'end':
           state.activeConnections = state.activeConnections.filter((id) => id !== itemUid);
@@ -3556,7 +3559,7 @@ export const collectionsSlice = createSlice({
           });
           break;
 
-        case 'close':
+        case 'close': {
           const { code, reason } = eventData;
           updatedResponse.isError = false;
           updatedResponse.error = '';
@@ -3572,8 +3575,9 @@ export const collectionsSlice = createSlice({
             seq: eventData.seq
           });
           break;
+        }
 
-        case 'error':
+        case 'error': {
           const errorDetails = eventData.error || eventData.message;
           updatedResponse.isError = true;
           updatedResponse.error = errorDetails || 'WebSocket error occurred';
@@ -3589,6 +3593,7 @@ export const collectionsSlice = createSlice({
           });
 
           break;
+        }
 
         case 'connecting':
           updatedResponse.status = 'CONNECTING';

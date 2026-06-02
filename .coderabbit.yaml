@@ -36,6 +36,17 @@ reviews:
         - Avoid relying on Unix-only signals (e.g., `SIGKILL`) without Windows fallbacks
         - Use `os.tmpdir()` instead of hardcoding `/tmp`
         - Environment variable access should handle platform differences (e.g., `HOME` vs `USERPROFILE`)
+
+        Enforce `no-case-declarations`:
+        - Variables declared with `let`, `const`, or `class` inside `switch` `case`/`default` clauses must be wrapped in a block (`{ ... }`) to avoid scope leakage across cases.
+    - path: 'packages/bruno-app/**/*.{js,jsx,ts,tsx}'
+      instructions: |
+        Enforce React Hooks linting rules (eslint-plugin-react-hooks):
+        - `react-hooks/rules-of-hooks`: Hooks must only be called at the top level of a React function component or a custom Hook. Never call Hooks inside loops, conditions, nested functions, or event handlers.
+        - `react-hooks/purity`: Components and Hooks must be pure — no side effects during render. Ensure render logic is free of mutations to external variables, non-idempotent function calls, or reading mutable values outside of React's state/ref system.
+        - `react-hooks/set-state-in-render`: Never call state setter functions (e.g., `setState`, `dispatch`) directly during render. State updates must happen inside event handlers, effects, or callbacks — not in the component body.
+        - Exception: Storybook stories (`*.stories.{js,jsx,ts,tsx}`) are exempt from `rules-of-hooks` since using Hooks inside render functions is a valid Storybook pattern.
+
     - path: 'tests/**/**.*'
       instructions: |
         Review the following e2e test code written using the Playwright test library. Ensure that:

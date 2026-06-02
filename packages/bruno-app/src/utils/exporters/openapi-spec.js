@@ -303,7 +303,7 @@ export const exportApiSpec = ({ variables, items, name, environments }) => {
               addWarning(`Failed to parse XML in request body: ${error.message}`, item?.name);
             }
             break;
-          case 'multipartForm':
+          case 'multipartForm': {
             if (!body?.multipartForm) break;
             const multipartFormComponentId = getItemComponentId();
             let multipartFormToKeyValue = body?.multipartForm.reduce((acc, f) => {
@@ -326,7 +326,8 @@ export const exportApiSpec = ({ variables, items, name, environments }) => {
               $ref: `#/components/requestBodies/${multipartFormComponentId}`
             };
             break;
-          case 'formUrlEncoded':
+          }
+          case 'formUrlEncoded': {
             if (!body?.formUrlEncoded) break;
             const formUrlEncodedComponentId = getItemComponentId();
             let formUrlEncodedToKeyValue = body?.formUrlEncoded.reduce((acc, f) => {
@@ -349,6 +350,7 @@ export const exportApiSpec = ({ variables, items, name, environments }) => {
               $ref: `#/components/requestBodies/${formUrlEncodedComponentId}`
             };
             break;
+          }
           case 'text':
             if (!body?.text) break;
             pathBody['requestBody'] = {

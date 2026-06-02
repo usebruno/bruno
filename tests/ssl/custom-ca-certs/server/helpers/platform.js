@@ -38,7 +38,7 @@ function killProcessOnPort(port) {
       case 'linux':
         execCommand(`lsof -ti :${port} | xargs kill -9`);
         break;
-      case 'windows':
+      case 'windows': {
         const result = execCommandSilent(`netstat -ano | findstr :${port}`);
         const lines = result.toString().split('\n');
         for (const line of lines) {
@@ -48,6 +48,7 @@ function killProcessOnPort(port) {
           }
         }
         break;
+      }
     }
   } catch (error) {}
 }

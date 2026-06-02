@@ -405,7 +405,7 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
               includeBodyHash: get(si.request, 'auth.oauth1.includeBodyHash', false)
             };
             break;
-          case 'oauth2':
+          case 'oauth2': {
             let grantType = get(si.request, 'auth.oauth2.grantType', '');
             switch (grantType) {
               case 'password':
@@ -485,6 +485,7 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
                 break;
             }
             break;
+          }
           case 'apikey':
             di.request.auth.apikey = {
               key: get(si.request, 'auth.apikey.key', ''),

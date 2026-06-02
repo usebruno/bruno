@@ -162,6 +162,9 @@ const RemoveCollectionsModal = ({ collectionUids, onClose }) => {
     }
   };
 
+  const displayedCollections = useMemo(() => showAllCollections ? collectionsWithUnsavedChanges : getDisplayItems(collectionsWithUnsavedChanges),
+    [collectionsWithUnsavedChanges, showAllCollections]);
+
   if (collectionUids.length === 0) {
     return null;
   }
@@ -170,9 +173,6 @@ const RemoveCollectionsModal = ({ collectionUids, onClose }) => {
   const singleCollectionName = hasMultipleCollections
     ? null
     : findCollectionByUid(allCollections, collectionUids[0])?.name;
-
-  const displayedCollections = useMemo(() => showAllCollections ? collectionsWithUnsavedChanges : getDisplayItems(collectionsWithUnsavedChanges),
-    [collectionsWithUnsavedChanges, showAllCollections]);
   const hasMoreCollections = collectionsWithUnsavedChanges.length > displayedCollections.length;
   const hiddenCollectionsCount = collectionsWithUnsavedChanges.length - displayedCollections.length;
 

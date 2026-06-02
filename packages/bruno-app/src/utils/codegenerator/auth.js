@@ -10,7 +10,7 @@ export const getAuthHeaders = (requestAuth, collection = null, item = null) => {
   }
 
   switch (requestAuth.mode) {
-    case 'basic':
+    case 'basic': {
       const username = get(requestAuth, 'basic.username', '');
       const password = get(requestAuth, 'basic.password', '');
       const basicToken = Buffer.from(`${username}:${password}`).toString('base64');
@@ -22,6 +22,7 @@ export const getAuthHeaders = (requestAuth, collection = null, item = null) => {
           value: `Basic ${basicToken}`
         }
       ];
+    }
     case 'bearer':
       return [
         {
@@ -30,7 +31,7 @@ export const getAuthHeaders = (requestAuth, collection = null, item = null) => {
           value: `Bearer ${get(requestAuth, 'bearer.token', '')}`
         }
       ];
-    case 'apikey':
+    case 'apikey': {
       const apiKeyAuth = get(requestAuth, 'apikey', {});
       const key = get(apiKeyAuth, 'key', '');
       const value = get(apiKeyAuth, 'value', '');
@@ -46,6 +47,7 @@ export const getAuthHeaders = (requestAuth, collection = null, item = null) => {
         ];
       }
       return [];
+    }
     case 'oauth1':
       // OAuth1 requires runtime signing (nonce, timestamp, signature) that
       // cannot be pre-computed for a static code snippet.
