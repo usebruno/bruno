@@ -219,7 +219,7 @@ const EditableTable = ({
     const isLast = rowIndex === rowsWithEmpty.length - 1;
     const wasEmpty = isEmptyRow(currentRow);
 
-    const keyColumn = columns.find((col) => col.key === key);
+    const keyColumn = columns.find((col) => col.isKeyField);
     const isKeyFieldChange = keyColumn && keyColumn.key === key;
 
     let updatedRows = rowsWithEmpty.map((row) => {
