@@ -56,6 +56,7 @@ jobs:
           npm run build:bruno-requests
           npm run build:schema-types
           npm run build:bruno-filestore
+          npm run build:bruno-pool
 
       - name: Run Playwright tests
         run: xvfb-run npm run test:e2e
