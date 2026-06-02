@@ -36,3 +36,4 @@ runs:
         npm run build:schema-types
         npm run build:bruno-filestore
         npm run build:bruno-pool
+        npm run build:bruno-storage
