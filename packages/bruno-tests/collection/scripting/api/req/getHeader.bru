@@ -27,8 +27,13 @@ tests {
     expect(h).to.equal("is-awesome");
   });
 
-  test("case sensitive check", function() {
-    const h=req.getHeader('Content-Type');
-    expect(h).to.equal("application/json")
-  } )
+  test("req.getHeader() is case-insensitive when header key uses mixed case", function() {
+    expect(req.getHeader('Content-Type')).to.equal('application/json');
+    expect(req.getHeader('content-type')).to.equal('application/json');
+    expect(req.getHeader('CONTENT-TYPE')).to.equal('application/json');
+  });
+
+  test("req.getHeader() returns null for missing headers", function() {
+    expect(req.getHeader('x-does-not-exist')).to.be.null;
+  });
 }
