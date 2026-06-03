@@ -16,6 +16,10 @@ const RAW_MODES = [
   {
     label: 'TEXT',
     key: 'text'
+  },
+  {
+    label: 'PROTOBUF',
+    key: 'protobuf'
   }
 ];
 

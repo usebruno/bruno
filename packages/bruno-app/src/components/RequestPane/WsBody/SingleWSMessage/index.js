@@ -18,7 +18,8 @@ import StyledWrapper from './StyledWrapper';
 export const TYPE_BY_DECODER = {
   base64: 'binary',
   json: 'json',
-  xml: 'xml'
+  xml: 'xml',
+  protobuf: 'protobuf'
 };
 
 export const DECODER_BY_TYPE = invert(TYPE_BY_DECODER);
@@ -96,7 +97,8 @@ export const SingleWSMessage = ({
   const codemirrorMode = {
     text: 'application/text',
     xml: 'application/xml',
-    json: 'application/ld+json'
+    json: 'application/ld+json',
+    protobuf: 'text/plain'
   };
 
   const onPrettify = () => {
@@ -151,7 +153,7 @@ export const SingleWSMessage = ({
           <WSRequestBodyMode mode={messageFormat} onModeChange={onUpdateMessageType} />
 
           <ToolHint text="Format" toolhintId={`prettify-msg-${index}`}>
-            <button onClick={onPrettify} className="toolbar-btn">
+            <button onClick={onPrettify} className="toolbar-btn" disabled={!['json', 'xml'].includes(codeType)}>
               <IconWand size={16} strokeWidth={1.5} />
             </button>
           </ToolHint>
