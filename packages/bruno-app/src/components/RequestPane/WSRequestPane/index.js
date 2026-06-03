@@ -1,4 +1,5 @@
 import React, { useMemo, useCallback, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import Documentation from 'components/Documentation/index';
 import RequestHeaders from 'components/RequestPane/RequestHeaders';
 import StatusDot from 'components/StatusDot/index';
@@ -16,6 +17,7 @@ import WSSettingsPane from '../WSSettingsPane/index';
 
 const WSRequestPane = ({ item, collection, handleRun }) => {
   const dispatch = useDispatch();
+  const { t } = useTranslation();
   const tabs = useSelector((state) => state.tabs.tabs);
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
 
@@ -44,31 +46,31 @@ const WSRequestPane = ({ item, collection, handleRun }) => {
     return [
       {
         key: 'body',
-        label: 'Message',
+        label: t('REQUEST_PANE.MESSAGE'),
         indicator: null
       },
       {
         key: 'headers',
-        label: 'Headers',
+        label: t('REQUEST_PANE.HEADERS'),
         indicator: activeHeadersLength > 0 ? <sup className="ml-[.125rem] font-medium">{activeHeadersLength}</sup> : null
       },
       {
         key: 'auth',
-        label: 'Auth',
+        label: t('REQUEST_PANE.AUTH'),
         indicator: auth.mode !== 'none' ? <StatusDot type="default" /> : null
       },
       {
         key: 'settings',
-        label: 'Settings',
+        label: t('REQUEST_PANE.SETTINGS'),
         indicator: null
       },
       {
         key: 'docs',
-        label: 'Docs',
+        label: t('REQUEST_PANE.DOCS'),
         indicator: docs && docs.length > 0 ? <StatusDot type="default" /> : null
       }
     ];
-  }, [activeHeadersLength, auth.mode, docs]);
+  }, [activeHeadersLength, auth.mode, docs, t]);
 
   const tabPanel = useMemo(() => {
     switch (requestPaneTab) {
@@ -96,7 +98,7 @@ const WSRequestPane = ({ item, collection, handleRun }) => {
         return <Documentation item={item} collection={collection} />;
       }
       default: {
-        return <div className="mt-4">404 | Not found</div>;
+        return <div className="mt-4">{t('REQUEST_PANE.NOT_FOUND')}</div>;
       }
     }
   }, [requestPaneTab, item, collection, handleRun]);

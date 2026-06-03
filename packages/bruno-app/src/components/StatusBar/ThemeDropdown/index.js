@@ -1,4 +1,5 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import Tippy from '@tippyjs/react';
 import { IconCheck, IconSun, IconMoon, IconDeviceDesktop } from '@tabler/icons';
 import ToolHint from 'components/ToolHint';
@@ -15,6 +16,7 @@ const MODE_BUTTONS = [
 ];
 
 const ThemeDropdown = ({ children }) => {
+  const { t } = useTranslation();
   // Dropdown state
   const [isOpen, setIsOpen] = useState(false);
   const [tooltipEnabled, setTooltipEnabled] = useState(true);
@@ -216,7 +218,7 @@ const ThemeDropdown = ({ children }) => {
       <div className="theme-list" role="listbox" aria-label={label}>
         <div className="theme-list-label">
           {label}
-          {isActiveSystemTheme && <span className="active-badge">Active</span>}
+          {isActiveSystemTheme && <span className="active-badge">{t('STATUS_BAR.ACTIVE')}</span>}
         </div>
         {themes.map((theme, index) => {
           const isActive = currentVariant === theme.id;
@@ -272,25 +274,25 @@ const ThemeDropdown = ({ children }) => {
         ref={menuRef}
         className={`theme-menu ${isSystemMode ? 'two-columns' : ''}`}
         role="dialog"
-        aria-label="Theme selector"
+        aria-label={t('STATUS_BAR.THEME_SELECTOR')}
       >
         <div className="mode-section">
-          <div className="mode-label" id="mode-label">Appearance</div>
+          <div className="mode-label" id="mode-label">{t('STATUS_BAR.APPEARANCE')}</div>
           {renderModeButtons()}
         </div>
 
         <div className={`theme-lists ${isSystemMode ? 'two-columns' : ''}`}>
           {(storedTheme === 'light' || isSystemMode)
-            && renderThemeList(lightThemes, true, themeVariantLight, 'Light theme')}
+            && renderThemeList(lightThemes, true, themeVariantLight, t('STATUS_BAR.LIGHT_THEME'))}
           {(storedTheme === 'dark' || isSystemMode)
-            && renderThemeList(darkThemes, false, themeVariantDark, 'Dark theme')}
+            && renderThemeList(darkThemes, false, themeVariantDark, t('STATUS_BAR.DARK_THEME'))}
         </div>
       </div>
     </StyledWrapper>
   );
 
   return (
-    <ToolHint text="Theme" toolhintId="ThemeDropdown" place="top" offset={10} hidden={!tooltipEnabled}>
+    <ToolHint text={t('STATUS_BAR.THEME')} toolhintId="ThemeDropdown" place="top" offset={10} hidden={!tooltipEnabled}>
       <Tippy
         content={menuContent}
         placement="top-start"

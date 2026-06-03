@@ -1,4 +1,5 @@
 import React, { useMemo, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import get from 'lodash/get';
 import {
   IconCaretDown,
@@ -19,35 +20,11 @@ import { updateRequestBody } from 'providers/ReduxStore/slices/collections/index
 import { toastError } from 'utils/common/error';
 import { prettifyJsonString } from 'utils/common/index';
 import xmlFormat from 'xml-formatter';
-
-const DEFAULT_MODES = [
-  {
-    name: 'Form',
-    options: [
-      { id: 'multipartForm', label: 'Multipart Form', leftSection: IconForms },
-      { id: 'formUrlEncoded', label: 'Form URL Encoded', leftSection: IconForms }
-    ]
-  },
-  {
-    name: 'Raw',
-    options: [
-      { id: 'json', label: 'JSON', leftSection: IconBraces },
-      { id: 'xml', label: 'XML', leftSection: IconCode },
-      { id: 'text', label: 'TEXT', leftSection: IconFileText },
-      { id: 'sparql', label: 'SPARQL', leftSection: IconDatabase }
-    ]
-  },
-  {
-    name: 'Other',
-    options: [
-      { id: 'file', label: 'File / Binary', leftSection: IconFile },
-      { id: 'none', label: 'No Body', leftSection: IconX }
-    ]
-  }
-];
+import { DEFAULT_MODES } from 'components/BodyModeSelector';
 
 const RequestBodyMode = ({ item, collection }) => {
   const dispatch = useDispatch();
+  const { t } = useTranslation();
   const body = item.draft ? get(item, 'draft.request.body') : get(item, 'request.body');
   const bodyMode = body?.mode;
 
@@ -118,7 +95,7 @@ const RequestBodyMode = ({ item, collection }) => {
       </div>
       {(bodyMode === 'json' || bodyMode === 'xml') && (
         <button className="ml-2" onClick={onPrettify}>
-          Prettify
+          {t('REQUEST_PANE.PRETTIFY')}
         </button>
       )}
     </StyledWrapper>

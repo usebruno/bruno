@@ -6,9 +6,11 @@ import { useDispatch } from 'react-redux';
 import Button from 'ui/Button';
 import StyledWrapper from './StyledWrapper';
 import { SingleWSMessage } from './SingleWSMessage/index';
+import { useTranslation } from 'react-i18next';
 
 const WSBody = ({ item, collection, handleRun }) => {
   const dispatch = useDispatch();
+  const { t } = useTranslation();
   const messagesContainerRef = useRef(null);
   const body = item.draft ? get(item, 'draft.request.body') : get(item, 'request.body');
 
@@ -42,7 +44,7 @@ const WSBody = ({ item, collection, handleRun }) => {
     return (
       <StyledWrapper>
         <div className="empty-state">
-          <p>No WebSocket messages available</p>
+          <p>{t('REQUEST_PANE.NO_WEBSOCKET_MESSAGES_AVAILABLE')}</p>
           <Button
             onClick={addNewMessage}
             variant="filled"
@@ -50,7 +52,7 @@ const WSBody = ({ item, collection, handleRun }) => {
             size="sm"
             icon={<IconPlus size={14} strokeWidth={1.5} />}
           >
-            Add Message
+            {t('REQUEST_PANE.ADD_MESSAGE')}
           </Button>
         </div>
       </StyledWrapper>

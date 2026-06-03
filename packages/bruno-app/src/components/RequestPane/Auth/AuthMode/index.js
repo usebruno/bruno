@@ -1,4 +1,5 @@
 import React, { useMemo, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import get from 'lodash/get';
 import { IconCaretDown } from '@tabler/icons';
 import MenuDropdown from 'ui/MenuDropdown';
@@ -9,6 +10,7 @@ import StyledWrapper from './StyledWrapper';
 
 const AuthMode = ({ item, collection }) => {
   const dispatch = useDispatch();
+  const { t } = useTranslation();
   const authMode = item.draft ? get(item, 'draft.request.auth.mode') : get(item, 'request.auth.mode');
 
   const onModeChange = useCallback((value) => {
@@ -24,60 +26,60 @@ const AuthMode = ({ item, collection }) => {
   const menuItems = useMemo(() => [
     {
       id: 'awsv4',
-      label: 'AWS Sig v4',
+      label: t('REQUEST_PANE.AWS_SIG_V4'),
       onClick: () => onModeChange('awsv4')
     },
     {
       id: 'basic',
-      label: 'Basic Auth',
+      label: t('REQUEST_PANE.BASIC_AUTH'),
       onClick: () => onModeChange('basic')
     },
     {
       id: 'bearer',
-      label: 'Bearer Token',
+      label: t('REQUEST_PANE.BEARER_TOKEN'),
       onClick: () => onModeChange('bearer')
     },
     {
       id: 'digest',
-      label: 'Digest Auth',
+      label: t('REQUEST_PANE.DIGEST_AUTH'),
       onClick: () => onModeChange('digest')
     },
     {
       id: 'ntlm',
-      label: 'NTLM Auth',
+      label: t('REQUEST_PANE.NTLM_AUTH'),
       onClick: () => onModeChange('ntlm')
     },
     {
       id: 'oauth1',
-      label: 'OAuth 1.0',
+      label: t('REQUEST_PANE.OAUTH_1'),
       onClick: () => onModeChange('oauth1')
     },
     {
       id: 'oauth2',
-      label: 'OAuth 2.0',
+      label: t('REQUEST_PANE.OAUTH_2'),
       onClick: () => onModeChange('oauth2')
     },
     {
       id: 'wsse',
-      label: 'WSSE Auth',
+      label: t('REQUEST_PANE.WSSE_AUTH'),
       onClick: () => onModeChange('wsse')
     },
     {
       id: 'apikey',
-      label: 'API Key',
+      label: t('REQUEST_PANE.API_KEY'),
       onClick: () => onModeChange('apikey')
     },
     {
       id: 'inherit',
-      label: 'Inherit',
+      label: t('REQUEST_PANE.INHERIT'),
       onClick: () => onModeChange('inherit')
     },
     {
       id: 'none',
-      label: 'No Auth',
+      label: t('REQUEST_PANE.NO_AUTH'),
       onClick: () => onModeChange('none')
     }
-  ], [onModeChange]);
+  ], [onModeChange, t]);
 
   return (
     <StyledWrapper>

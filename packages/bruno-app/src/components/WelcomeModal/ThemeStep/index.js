@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { rgba } from 'polished';
 import { IconBrightnessUp, IconMoon, IconDeviceDesktop } from '@tabler/icons';
 import themes, { getLightThemes, getDarkThemes } from 'themes/index';
@@ -29,6 +30,7 @@ const ThemePreviewBox = ({ themeId, isDark }) => {
 };
 
 const ThemeStep = ({ storedTheme, setStoredTheme, themeVariantLight, setThemeVariantLight, themeVariantDark, setThemeVariantDark }) => {
+  const { t } = useTranslation();
   const lightThemeList = getLightThemes();
   const darkThemeList = getDarkThemes();
 
@@ -37,10 +39,10 @@ const ThemeStep = ({ storedTheme, setStoredTheme, themeVariantLight, setThemeVar
 
   return (
     <StyledWrapper className="step-body">
-      <div className="step-label">Appearance</div>
-      <div className="step-title">Choose your theme</div>
+      <div className="step-label">{t('WELCOME.APPEARANCE')}</div>
+      <div className="step-title">{t('WELCOME.CHOOSE_YOUR_THEME')}</div>
       <div className="step-description">
-        Pick a look that feels right. You can always change this later in Preferences.
+        {t('WELCOME.THEME_DESCRIPTION')}
       </div>
 
       <div className="theme-mode-buttons">

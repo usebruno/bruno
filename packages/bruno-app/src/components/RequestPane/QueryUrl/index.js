@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import get from 'lodash/get';
 import { useDispatch } from 'react-redux';
 import {
@@ -26,6 +27,7 @@ import GenerateCodeItem from 'components/Sidebar/Collections/Collection/Collecti
 import toast from 'react-hot-toast';
 
 const QueryUrl = ({ item, collection, handleRun }) => {
+  const { t } = useTranslation();
   const { theme, storedTheme } = useTheme();
   const dispatch = useDispatch();
   const method = item.draft ? get(item, 'draft.request.method') : get(item, 'request.method');
@@ -88,7 +90,7 @@ const QueryUrl = ({ item, collection, handleRun }) => {
     if (item?.request?.url !== '' || (item.draft?.request?.url !== undefined && item.draft?.request?.url !== '')) {
       setGenerateCodeItemModalOpen(true);
     } else {
-      toast.error('URL is required');
+      toast.error(t('REQUEST_PANE.URL_IS_REQUIRED'));
     }
   };
 
@@ -168,9 +170,9 @@ const QueryUrl = ({ item, collection, handleRun }) => {
       }
     } catch (error) {
       console.error('Error parsing cURL command:', error);
-      toast.error('Failed to parse GraphQL query');
+      toast.error(t('REQUEST_PANE.FAILED_TO_PARSE_GRAPHQL_QUERY'));
     }
-  }, [dispatch, item.uid, collection.uid]);
+  }, [dispatch, item.uid, collection.uid, t]);
 
   const handleHttpPaste = useCallback((event) => {
     // Only enable curl paste detection for HTTP requests
@@ -382,7 +384,7 @@ const QueryUrl = ({ item, collection, handleRun }) => {
       toast.error('Failed to parse cURL command');
     }
   },
-  [dispatch, item.uid, item.type, collection.uid]
+  [dispatch, item.uid, item.type, collection.uid, t]
   );
   const handleCancelRequest = (e) => {
     e.preventDefault();
@@ -402,7 +404,7 @@ const QueryUrl = ({ item, collection, handleRun }) => {
           <SingleLineEditor
             ref={editorRef}
             value={url}
-            placeholder="Enter URL or paste a cURL request"
+            placeholder={t('REQUEST_PANE.ENTER_URL_OR_CURL')}
             onSave={(finalValue) => onSave(finalValue)}
             theme={storedTheme}
             onChange={(newValue) => onUrlChange(newValue)}
@@ -415,7 +417,7 @@ const QueryUrl = ({ item, collection, handleRun }) => {
           />
           <div className="flex items-center h-full mx-2 gap-3" id="request-actions">
             <div
-              title="Generate Code"
+              title={t('REQUEST_PANE.GENERATE_CODE')}
               className="infotip"
               onClick={(e) => {
                 handleGenerateCode(e);

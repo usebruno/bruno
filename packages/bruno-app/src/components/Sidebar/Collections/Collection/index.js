@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { getEmptyImage } from 'react-dnd-html5-backend';
 import classnames from 'classnames';
 import { uuid } from 'utils/common';
@@ -60,6 +61,7 @@ import useKeybinding from 'hooks/useKeybinding';
 const EMPTY_STATE_DELAY_MS = 300;
 
 const Collection = ({ collection, searchText }) => {
+  const { t } = useTranslation();
   const isOpenAPISyncEnabled = useBetaFeature(BETA_FEATURES.OPENAPI_SYNC);
   const { dropdownContainerRef } = useSidebarAccordion();
   const [showNewFolderModal, setShowNewFolderModal] = useState(false);
@@ -191,17 +193,17 @@ const Collection = ({ collection, searchText }) => {
   const handleShowInFolder = () => {
     dispatch(showInFolder(collection.pathname)).catch((error) => {
       console.error('Error opening the folder', error);
-      toast.error('Error opening the folder');
+      toast.error(t('SIDEBAR.ERROR_OPENING_FOLDER'));
     });
   };
 
   const handlePasteItem = () => {
     dispatch(pasteItem(collection.uid, null))
       .then(() => {
-        toast.success('Item pasted successfully');
+        toast.success(t('SIDEBAR.ITEM_PASTED_SUCCESSFULLY'));
       })
       .catch((err) => {
-        toast.error(err ? err.message : 'An error occurred while pasting the item');
+        toast.error(err ? err.message : t('SIDEBAR.ERROR_PASTING_ITEM'));
       });
   };
 
@@ -332,7 +334,7 @@ const Collection = ({ collection, searchText }) => {
     {
       id: 'new-request',
       leftSection: IconFilePlus,
-      label: 'New Request',
+      label: t('SIDEBAR.NEW_REQUEST'),
       onClick: () => {
         ensureCollectionIsMounted();
         setShowNewRequestModal(true);
@@ -341,7 +343,7 @@ const Collection = ({ collection, searchText }) => {
     {
       id: 'new-folder',
       leftSection: IconFolderPlus,
-      label: 'New Folder',
+      label: t('SIDEBAR.NEW_FOLDER'),
       onClick: () => {
         ensureCollectionIsMounted();
         setShowNewFolderModal(true);
@@ -350,7 +352,7 @@ const Collection = ({ collection, searchText }) => {
     {
       id: 'run',
       leftSection: IconPlayerPlay,
-      label: 'Run',
+      label: t('COMMON.RUN'),
       onClick: () => {
         ensureCollectionIsMounted();
         handleRun();
@@ -359,7 +361,7 @@ const Collection = ({ collection, searchText }) => {
     {
       id: 'clone',
       leftSection: IconCopy,
-      label: 'Clone',
+      label: t('COMMON.CLONE'),
       testId: 'clone-collection',
       onClick: () => {
         setShowCloneCollectionModalOpen(true);
@@ -369,7 +371,7 @@ const Collection = ({ collection, searchText }) => {
       id: 'sync-openapi',
       leftSection: OpenAPISyncIcon,
       label: 'OpenAPI',
-      rightSection: <StatusBadge status="info" size="xs">Beta</StatusBadge>,
+      rightSection: <StatusBadge status="info" size="xs">{t('SIDEBAR.BETA')}</StatusBadge>,
       onClick: openOpenAPISyncTab
     }] : []),
     ...(hasCopiedItems
@@ -377,7 +379,7 @@ const Collection = ({ collection, searchText }) => {
           {
             id: 'paste',
             leftSection: IconClipboard,
-            label: 'Paste',
+            label: t('COMMON.PASTE'),
             onClick: handlePasteItem
           }
         ]
@@ -385,7 +387,7 @@ const Collection = ({ collection, searchText }) => {
     {
       id: 'rename',
       leftSection: IconEdit,
-      label: 'Rename',
+      label: t('COMMON.RENAME'),
       onClick: () => {
         setShowRenameCollectionModal(true);
       }
@@ -393,7 +395,7 @@ const Collection = ({ collection, searchText }) => {
     {
       id: 'share',
       leftSection: IconShare,
-      label: 'Share',
+      label: t('SIDEBAR.SHARE'),
       onClick: () => {
         ensureCollectionIsMounted();
         setShowShareCollectionModal(true);
@@ -402,7 +404,7 @@ const Collection = ({ collection, searchText }) => {
     {
       id: 'generate-docs',
       leftSection: IconBook,
-      label: 'Generate Docs',
+      label: t('SIDEBAR.GENERATE_DOCS'),
       onClick: () => {
         ensureCollectionIsMounted();
         setShowGenerateDocumentationModal(true);
@@ -411,13 +413,13 @@ const Collection = ({ collection, searchText }) => {
     {
       id: 'collapse',
       leftSection: IconFoldDown,
-      label: 'Collapse',
+      label: t('COMMON.COLLAPSE'),
       onClick: handleCollapseFullCollection
     },
     {
       id: 'show-in-folder',
       leftSection: IconFolder,
-      label: getRevealInFolderLabel(),
+      label: t(getRevealInFolderLabel()),
       onClick: handleShowInFolder
     },
     {
@@ -427,13 +429,13 @@ const Collection = ({ collection, searchText }) => {
     {
       id: 'settings',
       leftSection: IconSettings,
-      label: 'Settings',
+      label: t('COMMON.SETTINGS'),
       onClick: viewCollectionSettings
     },
     {
       id: 'terminal',
       leftSection: IconTerminal2,
-      label: 'Open in Terminal',
+      label: t('SIDEBAR.OPEN_IN_TERMINAL'),
       onClick: async () => {
         const collectionCwd = collection.pathname;
         await openDevtoolsAndSwitchToTerminal(dispatch, collectionCwd);
@@ -442,7 +444,7 @@ const Collection = ({ collection, searchText }) => {
     {
       id: 'remove',
       leftSection: IconX,
-      label: 'Remove',
+      label: t('COMMON.REMOVE'),
       onClick: () => {
         setShowRemoveCollectionModal(true);
       }
@@ -540,7 +542,7 @@ const Collection = ({ collection, searchText }) => {
                     appendTo={dropdownContainerRef?.current || document.body}
                     popperOptions={{ strategy: 'fixed' }}
                   >
-                    <button className="ml-1 add-request-link">+ Add request</button>
+                    <button className="ml-1 add-request-link">{t('SIDEBAR.ADD_REQUEST')}</button>
                   </MenuDropdown>
                 </div>
               </div>

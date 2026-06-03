@@ -1,4 +1,5 @@
 import React, { useRef, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import Modal from 'components/Modal';
@@ -8,6 +9,7 @@ import { renameCollection } from 'providers/ReduxStore/slices/collections/action
 import { findCollectionByUid } from 'utils/collections/index';
 
 const RenameCollection = ({ collectionUid, onClose }) => {
+  const { t } = useTranslation();
   const dispatch = useDispatch();
   const inputRef = useRef();
   const collection = useSelector((state) => findCollectionByUid(state.collections.collections, collectionUid));
@@ -18,17 +20,17 @@ const RenameCollection = ({ collectionUid, onClose }) => {
     },
     validationSchema: Yup.object({
       name: Yup.string()
-        .min(1, 'must be at least 1 character')
-        .required('name is required')
+        .min(1, t('SIDEBAR.MUST_BE_AT_LEAST_1_CHAR'))
+        .required(t('SIDEBAR.NAME_REQUIRED'))
     }),
     onSubmit: (values) => {
       dispatch(renameCollection(values.name, collection.uid))
         .then(() => {
-          toast.success('Collection renamed!');
+          toast.success(t('SIDEBAR.COLLECTION_RENAMED'));
           onClose();
         })
         .catch((err) => {
-          toast.error(err ? err.message : 'An error occurred while renaming the collection');
+          toast.error(err ? err.message : t('SIDEBAR.ERROR_RENAMING_COLLECTION'));
         });
     }
   });
@@ -42,11 +44,11 @@ const RenameCollection = ({ collectionUid, onClose }) => {
   const onSubmit = () => formik.handleSubmit();
 
   return (
-    <Modal size="md" title="Rename Collection" confirmText="Rename" handleConfirm={onSubmit} handleCancel={onClose}>
+    <Modal size="md" title={t('SIDEBAR.RENAME_COLLECTION')} confirmText={t('COMMON.RENAME')} handleConfirm={onSubmit} handleCancel={onClose}>
       <form className="bruno-form" onSubmit={(e) => e.preventDefault()}>
         <div>
           <label htmlFor="name" className="block font-medium">
-            Name
+            {t('COMMON.NAME')}
           </label>
           <input
             id="collection-name"

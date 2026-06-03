@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useRef } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
+import { useTranslation } from 'react-i18next';
 import {
   IconBox,
   IconTrash,
@@ -28,6 +29,7 @@ import RemoveGitRemote from './RemoveGitRemote';
 import StyledWrapper from './StyledWrapper';
 
 const CollectionsList = ({ workspace }) => {
+  const { t } = useTranslation();
   const dispatch = useDispatch();
   const { collections } = useSelector((state) => state.collections);
   const dropdownRefs = useRef({});
@@ -287,8 +289,8 @@ const CollectionsList = ({ workspace }) => {
         {workspaceCollections.length === 0 ? (
           <div className="empty-state">
             <IconBox size={32} strokeWidth={1.5} className="empty-icon" />
-            <h3 className="empty-title">No collections yet</h3>
-            <p className="empty-description">Create your first collection or open an existing one to get started.</p>
+            <h3 className="empty-title">{t('WORKSPACE.OVERVIEW.NO_COLLECTIONS_YET')}</h3>
+            <p className="empty-description">{t('WORKSPACE.OVERVIEW.NO_COLLECTIONS_YET_DESC')}</p>
           </div>
         ) : (
           workspaceCollections.map((collection, index) => (
@@ -360,7 +362,7 @@ const CollectionsList = ({ workspace }) => {
                       }}
                     >
                       <IconFolder size={16} strokeWidth={1.5} />
-                      <span>{getRevealInFolderLabel()}</span>
+                      <span>{t(getRevealInFolderLabel())}</span>
                     </div>
                     {!isDefaultWorkspace && (
                       <>

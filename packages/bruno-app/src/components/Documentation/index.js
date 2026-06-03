@@ -1,6 +1,7 @@
 import 'github-markdown-css/github-markdown.css';
 import get from 'lodash/get';
 import find from 'lodash/find';
+import { useTranslation } from 'react-i18next';
 import { updateRequestDocs } from 'providers/ReduxStore/slices/collections';
 import { updateDocsEditing } from 'providers/ReduxStore/slices/tabs';
 import { useTheme } from 'providers/Theme';
@@ -15,6 +16,7 @@ import { useTrackScroll } from 'hooks/useTrackScroll';
 
 const Documentation = ({ item, collection }) => {
   const dispatch = useDispatch();
+  const { t } = useTranslation();
   const { displayedTheme } = useTheme();
   const tabs = useSelector((state) => state.tabs.tabs);
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
@@ -50,7 +52,7 @@ const Documentation = ({ item, collection }) => {
   return (
     <StyledWrapper className="flex flex-col gap-y-1 h-full w-full relative" ref={wrapperRef}>
       <div className="editing-mode" role="tab" onClick={toggleViewMode}>
-        {isEditing ? 'Preview' : 'Edit'}
+        {isEditing ? t('REQUEST_PANE.DOCS_PREVIEW') : t('REQUEST_PANE.DOCS_EDIT')}
       </div>
 
       {isEditing ? (

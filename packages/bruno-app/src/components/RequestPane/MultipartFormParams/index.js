@@ -3,6 +3,7 @@ import get from 'lodash/get';
 import toast from 'react-hot-toast';
 import { useDispatch, useSelector } from 'react-redux';
 import { useTheme } from 'providers/Theme';
+import { useTranslation } from 'react-i18next';
 import { IconUpload } from '@tabler/icons';
 import {
   moveMultipartFormParam,
@@ -26,6 +27,7 @@ const fileBasename = (filePath) =>
 
 const MultipartFormParams = ({ item, collection }) => {
   const dispatch = useDispatch();
+  const { t } = useTranslation();
   const { storedTheme } = useTheme();
   const wrapperRef = useRef(null);
   const [scroll, setScroll] = usePersistedState({ key: `request-body-multipartForm-scroll-${item.uid}`, default: 0 });
@@ -90,9 +92,9 @@ const MultipartFormParams = ({ item, collection }) => {
         }
 
         if (skipped.length === 1) {
-          toast(`"${fileBasename(skipped[0])}" is already added`);
+          toast(`"${fileBasename(skipped[0])}" ${t('REQUEST_PANE.IS_ALREADY_ADDED')}`);
         } else if (skipped.length > 1) {
-          toast(`${skipped.length} files are already added — skipped`);
+          toast(`${skipped.length} ${t('REQUEST_PANE.FILES_ARE_ALREADY_ADDED_SKIPPED')}`);
         }
 
         const autoContentType = getMultipartAutoContentType(merged);
@@ -171,8 +173,8 @@ const MultipartFormParams = ({ item, collection }) => {
     },
     {
       key: 'value',
-      name: 'Value',
-      placeholder: 'Value',
+      name: t('REQUEST_PANE.VALUE'),
+      placeholder: t('REQUEST_PANE.VALUE'),
       width: '35%',
       render: ({ row, value, onChange }) => {
         const files = row.type === 'file' ? getFileList(value) : [];
@@ -198,14 +200,14 @@ const MultipartFormParams = ({ item, collection }) => {
                 allowNewlines={true}
                 collection={collection}
                 item={item}
-                placeholder={!value ? 'Value' : ''}
+                placeholder={!value ? t('REQUEST_PANE.VALUE') : ''}
               />
             </div>
             <button
               data-testid="multipart-file-upload"
               className="upload-btn ml-1"
               onClick={() => handleBrowseFiles(row, onChange)}
-              title="Select File"
+              title={t('REQUEST_PANE.SELECT_FILE')}
             >
               <IconUpload size={16} />
             </button>
@@ -222,7 +224,7 @@ const MultipartFormParams = ({ item, collection }) => {
         <SingleLineEditor
           onSave={onSave}
           theme={storedTheme}
-          placeholder={!value ? 'Auto' : ''}
+          placeholder={!value ? t('REQUEST_PANE.AUTO') : ''}
           value={value || ''}
           onChange={onChange}
           onRun={handleRun}

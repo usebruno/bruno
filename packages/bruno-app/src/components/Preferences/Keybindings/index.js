@@ -1,5 +1,6 @@
 import React, { useMemo, useRef, useState, useEffect, Fragment } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from 'providers/Theme';
 
 import StyledWrapper from './StyledWrapper';
@@ -299,6 +300,7 @@ const ERROR = {
 
 const Keybindings = () => {
   const dispatch = useDispatch();
+  const { t } = useTranslation();
   const preferences = useSelector((state) => state.app.preferences);
   const { theme } = useTheme();
 
@@ -348,6 +350,17 @@ const Keybindings = () => {
     return merged;
   }, [preferences?.keyBindings, sectionDefaults]);
 
+  const HEADING_KEY_MAP = {
+    'Tabs': 'TABS',
+    'Sidebar': 'SIDEBAR',
+    'Requests': 'REQUESTS',
+    'Collections & Environment': 'COLLECTIONS_ENVIRONMENT',
+    'Search': 'SEARCH',
+    'View': 'VIEW',
+    'Developer Tool': 'DEVELOPER_TOOL',
+    'Others': 'OTHERS'
+  };
+
   // Build grouped rows for current OS only and skip hidden bindings.
   const groupedKeyMappings = useMemo(() => {
     return KEY_BINDING_SECTIONS.map((section) => {
@@ -366,12 +379,15 @@ const Keybindings = () => {
         })
         .filter(Boolean);
 
+      const headingKey = HEADING_KEY_MAP[section.heading];
+      const translatedHeading = headingKey ? t(`PREFERENCES_PAGE.KEYBINDING_SECTIONS.${headingKey}`) : section.heading;
+
       return {
-        heading: section.heading,
+        heading: translatedHeading,
         rows
       };
     }).filter((section) => section.rows.length > 0);
-  }, [keyBindings, os]);
+  }, [keyBindings, os, t]);
 
   // editingAction:
   // The row currently in edit mode.
@@ -454,7 +470,7 @@ const Keybindings = () => {
     const sig = comboSignature(arr);
 
     if (!sig) {
-      return { code: ERROR.EMPTY, message: `Shortcut can’t be empty.` };
+      return { code: ERROR.EMPTY, message: t('PREFERENCES_PAGE.SHORTCUT_CANT_BE_EMPTY') };
     }
 
     if (isOnlyModifiers(arr)) {
@@ -478,7 +494,7 @@ const Keybindings = () => {
     if (nonModifierCount > 1) {
       return {
         code: ERROR.MULTIPLE_NON_MODIFIERS,
-        message: 'Only one non-modifier key allowed (e.g. Cmd + Shift + K).'
+        message: t('PREFERENCES_PAGE.ONLY_ONE_NON_MODIFIER_KEY')
       };
     }
 
@@ -492,7 +508,7 @@ const Keybindings = () => {
     if (buildUsedSignatures(action).has(sig)) {
       return {
         code: ERROR.DUPLICATE,
-        message: 'This shortcut is already in use.'
+        message: t('PREFERENCES_PAGE.SHORTCUT_ALREADY_IN_USE')
       };
     }
 
@@ -586,7 +602,7 @@ const Keybindings = () => {
     };
 
     dispatch(savePreferences(updatedPreferences));
-    toast.success('All shortcuts have been reset to default');
+    toast.success(t('PREFERENCES_PAGE.ALL_SHORTCUTS_RESET_TO_DEFAULT'));
   };
 
   const startEditing = (action) => {
@@ -800,7 +816,7 @@ const Keybindings = () => {
   return (
     <StyledWrapper className="w-full">
       <div className="section-header">
-        <span>Keybindings</span>
+        <span>{t('PREFERENCES_PAGE.KEYBINDINGS')}</span>
 
         <div className="section-actions">
           <ToggleSwitch
@@ -827,8 +843,8 @@ const Keybindings = () => {
             <table>
               <thead>
                 <tr>
-                  <td>Command</td>
-                  <td>Keybinding</td>
+                  <td>{t('PREFERENCES_PAGE.COMMAND')}</td>
+                  <td>{t('PREFERENCES_PAGE.KEYBINDING')}</td>
                 </tr>
               </thead>
               <tbody>
@@ -939,7 +955,7 @@ const Keybindings = () => {
                                     <span
                                       className="pencil-icon"
                                       data-testid={`keybinding-edit-${action}`}
-                                      title="Customize keys"
+                                      title={t('PREFERENCES_PAGE.CUSTOMIZE_KEYS')}
                                     >
                                       <IconPencil size={14} stroke={1.5} />
                                     </span>
@@ -973,7 +989,7 @@ const Keybindings = () => {
             </table>
           </div>
         ) : (
-          <div className="empty-state">No key bindings available</div>
+          <div className="empty-state">{t('PREFERENCES_PAGE.NO_KEY_BINDINGS_AVAILABLE')}</div>
         )}
       </div>
     </StyledWrapper>

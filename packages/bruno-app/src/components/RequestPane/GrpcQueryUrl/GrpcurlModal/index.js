@@ -7,8 +7,10 @@ import get from 'lodash/get';
 import Modal from 'components/Modal/index';
 import CodeEditor from 'components/CodeEditor';
 import Button from 'ui/Button';
+import { useTranslation } from 'react-i18next';
 
 const GrpcurlModal = ({ isOpen, onClose, command }) => {
+  const { t } = useTranslation();
   const { displayedTheme } = useTheme();
   const [copied, setCopied] = useState(false);
   const preferences = useSelector((state) => state.app.preferences);
@@ -17,10 +19,10 @@ const GrpcurlModal = ({ isOpen, onClose, command }) => {
     try {
       await navigator.clipboard.writeText(command);
       setCopied(true);
-      toast.success('Command copied to clipboard');
+      toast.success(t('REQUEST_PANE.COMMAND_COPIED_TO_CLIPBOARD'));
       setTimeout(() => setCopied(false), 2000);
     } catch (error) {
-      toast.error('Failed to copy command');
+      toast.error(t('REQUEST_PANE.FAILED_TO_COPY_COMMAND'));
     }
   };
 
@@ -30,7 +32,7 @@ const GrpcurlModal = ({ isOpen, onClose, command }) => {
       handleCancel={onClose}
       title={(
         <div className="flex items-center gap-2">
-          <span>Generate gRPCurl Command</span>
+          <span>{t('REQUEST_PANE.GENERATE_GRPCURL_COMMAND')}</span>
         </div>
       )}
       size="lg"

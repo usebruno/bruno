@@ -16,6 +16,7 @@ import { isEqual } from 'lodash';
 import { useDispatch, useSelector } from 'react-redux';
 import { usePersistedState } from 'hooks/usePersistedState';
 import { useTrackScroll } from 'hooks/useTrackScroll';
+import { useTranslation } from 'react-i18next';
 import { addGlobalEnvironment, renameGlobalEnvironment, selectGlobalEnvironment, setGlobalEnvironmentDraft, clearGlobalEnvironmentDraft } from 'providers/ReduxStore/slices/global-environments';
 import {
   saveWorkspaceDotEnvVariables,
@@ -42,6 +43,7 @@ const EnvironmentList = ({
   setShowExportModal
 }) => {
   const dispatch = useDispatch();
+  const { t } = useTranslation();
   const globalEnvs = useSelector((state) => state?.globalEnvironments?.globalEnvironments);
   const envSearchQuery = useSelector((state) => state.app.envVarSearch?.global?.query ?? '');
   const isEnvSearchExpanded = useSelector((state) => state.app.envVarSearch?.global?.expanded ?? false);
@@ -558,7 +560,7 @@ const EnvironmentList = ({
 
           <div className="sections-container">
             <CollapsibleSection
-              title="Environments"
+              title={t('WORKSPACE_ENVIRONMENTS.ENVIRONMENTS')}
               expanded={environmentsExpanded}
               onToggle={() => setEnvironmentsExpanded(!environmentsExpanded)}
               actions={(
@@ -610,7 +612,7 @@ const EnvironmentList = ({
                 <input
                   ref={envListSearchInputRef}
                   type="text"
-                  placeholder="Search environments..."
+                  placeholder={t('WORKSPACE_ENVIRONMENTS.SEARCH_ENVIRONMENTS')}
                   value={searchText}
                   onChange={(e) => setSearchText(e.target.value)}
                   className="env-list-search-input"
@@ -735,14 +737,14 @@ const EnvironmentList = ({
 
                 {filteredEnvironments.length === 0 && !isCreatingInline && (
                   <div className="no-env-file">
-                    <span>No environments</span>
+                    <span>{t('WORKSPACE_ENVIRONMENTS.NO_ENVIRONMENTS')}</span>
                   </div>
                 )}
               </div>
             </CollapsibleSection>
 
             <CollapsibleSection
-              title=".env Files"
+              title={t('WORKSPACE_ENVIRONMENTS.DOTENV_FILES')}
               testId="dotenv-files-section"
               expanded={dotEnvExpanded}
               onToggle={() => setDotEnvExpanded(!dotEnvExpanded)}
@@ -811,7 +813,7 @@ const EnvironmentList = ({
 
                 {dotEnvFiles.length === 0 && !isCreatingDotEnvInline && (
                   <div className="no-env-file">
-                    <span>No .env files</span>
+                    <span>{t('WORKSPACE_ENVIRONMENTS.NO_DOTENV_FILES')}</span>
                   </div>
                 )}
               </div>

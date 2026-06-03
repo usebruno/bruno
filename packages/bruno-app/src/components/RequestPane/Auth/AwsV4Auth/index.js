@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import get from 'lodash/get';
 import { useTheme } from 'providers/Theme';
 import { useDispatch } from 'react-redux';
@@ -12,6 +13,7 @@ import { useDetectSensitiveField } from 'hooks/useDetectSensitiveField';
 const AwsV4Auth = ({ item, collection, updateAuth, request, save }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
+  const { t } = useTranslation();
 
   const awsv4Auth = get(request, 'auth.awsv4', {});
   const { isSensitive } = useDetectSensitiveField(collection);
@@ -133,7 +135,7 @@ const AwsV4Auth = ({ item, collection, updateAuth, request, save }) => {
 
   return (
     <StyledWrapper className="mt-2 w-full">
-      <label className="block mb-1">Access Key ID</label>
+      <label className="block mb-1">{t('REQUEST_PANE.ACCESS_KEY_ID')}</label>
       <div className="single-line-editor-wrapper mb-3">
         <SingleLineEditor
           value={awsv4Auth.accessKeyId || ''}
@@ -178,7 +180,7 @@ const AwsV4Auth = ({ item, collection, updateAuth, request, save }) => {
         />
       </div>
 
-      <label className="block mb-1">Service</label>
+      <label className="block mb-1">{t('REQUEST_PANE.SERVICE')}</label>
       <div className="single-line-editor-wrapper mb-3">
         <SingleLineEditor
           value={awsv4Auth.service || ''}
@@ -206,7 +208,7 @@ const AwsV4Auth = ({ item, collection, updateAuth, request, save }) => {
         />
       </div>
 
-      <label className="block mb-1">Profile Name</label>
+      <label className="block mb-1">{t('REQUEST_PANE.PROFILE_NAME')}</label>
       <div className="single-line-editor-wrapper">
         <SingleLineEditor
           value={awsv4Auth.profileName || ''}

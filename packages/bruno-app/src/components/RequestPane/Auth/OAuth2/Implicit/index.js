@@ -1,4 +1,5 @@
 import React, { useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import get from 'lodash/get';
 import { useTheme } from 'providers/Theme';
 import { useDispatch, useSelector } from 'react-redux';
@@ -6,7 +7,7 @@ import { IconCaretDown, IconSettings, IconKey, IconHelp, IconAdjustmentsHorizont
 import MenuDropdown from 'ui/MenuDropdown';
 import SingleLineEditor from 'components/SingleLineEditor';
 import Wrapper from './StyledWrapper';
-import { inputsConfig } from './inputsConfig';
+import { getInputsConfig } from './inputsConfig';
 import Oauth2TokenViewer from '../Oauth2TokenViewer/index';
 import Oauth2ActionButtons from '../Oauth2ActionButtons/index';
 import AdditionalParams from '../AdditionalParams/index';
@@ -20,7 +21,9 @@ const OAuth2Implicit = ({ save, item = {}, request, handleRun, updateAuth, colle
   const preferences = useSelector((state) => state.app.preferences);
   const useSystemBrowser = get(preferences, 'request.oauth2.useSystemBrowser', false);
   const { storedTheme } = useTheme();
+  const { t } = useTranslation();
   const oAuth = get(request, 'auth.oauth2', {});
+  const inputsConfig = getInputsConfig(t);
   const {
     callbackUrl,
     authorizationUrl,
@@ -90,7 +93,7 @@ const OAuth2Implicit = ({ save, item = {}, request, handleRun, updateAuth, colle
       })
       .catch((err) => {
         console.error(err);
-        toast.error('Failed to update preference');
+        toast.error(t('REQUEST_PANE.FAILED_TO_UPDATE_PREFERENCE'));
       });
   };
 
@@ -170,7 +173,7 @@ const OAuth2Implicit = ({ save, item = {}, request, handleRun, updateAuth, colle
           <IconKey size={14} className="oauth2-icon" />
         </div>
         <span className="oauth2-section-label">
-          Token
+          {t('REQUEST_PANE.TOKEN')}
         </span>
       </div>
 
@@ -179,8 +182,8 @@ const OAuth2Implicit = ({ save, item = {}, request, handleRun, updateAuth, colle
         <div className="inline-flex items-center cursor-pointer token-placement-selector">
           <MenuDropdown
             items={[
-              { id: 'access_token', label: 'Access Token', onClick: () => handleChange('tokenSource', 'access_token') },
-              { id: 'id_token', label: 'ID Token', onClick: () => handleChange('tokenSource', 'id_token') }
+              { id: 'access_token', label: t('REQUEST_PANE.ACCESS_TOKEN'), onClick: () => handleChange('tokenSource', 'access_token') },
+              { id: 'id_token', label: t('REQUEST_PANE.ID_TOKEN'), onClick: () => handleChange('tokenSource', 'id_token') }
             ]}
             selectedItemId={tokenSource}
             placement="bottom-end"
@@ -214,14 +217,14 @@ const OAuth2Implicit = ({ save, item = {}, request, handleRun, updateAuth, colle
         <div className="inline-flex items-center cursor-pointer token-placement-selector">
           <MenuDropdown
             items={[
-              { id: 'header', label: 'Headers', onClick: () => handleChange('tokenPlacement', 'header') },
-              { id: 'url', label: 'URL', onClick: () => handleChange('tokenPlacement', 'url') }
+              { id: 'header', label: t('REQUEST_PANE.HEADER'), onClick: () => handleChange('tokenPlacement', 'header') },
+              { id: 'url', label: t('REQUEST_PANE.URL'), onClick: () => handleChange('tokenPlacement', 'url') }
             ]}
             selectedItemId={tokenPlacement}
             placement="bottom-end"
           >
             <div className="flex items-center justify-end token-placement-label select-none">
-              {tokenPlacement == 'url' ? 'URL' : 'Headers'}
+              {tokenPlacement == 'url' ? t('REQUEST_PANE.URL') : t('REQUEST_PANE.HEADER')}
               <IconCaretDown className="caret ml-1 mr-1" size={14} strokeWidth={2} />
             </div>
           </MenuDropdown>
@@ -246,7 +249,7 @@ const OAuth2Implicit = ({ save, item = {}, request, handleRun, updateAuth, colle
         </div>
       ) : (
         <div className="flex items-center gap-4 w-full" key="input-token-query-key">
-          <label className="block min-w-[140px]">URL Query Key</label>
+          <label className="block min-w-[140px]">{t('REQUEST_PANE.URL_QUERY_KEY')}</label>
           <div className="oauth2-input-wrapper flex-1">
             <SingleLineEditor
               value={oAuth.tokenQueryKey || 'access_token'}
@@ -278,7 +281,7 @@ const OAuth2Implicit = ({ save, item = {}, request, handleRun, updateAuth, colle
           onChange={handleAutoFetchTokenToggle}
           className="cursor-pointer ml-1"
         />
-        <label className="block min-w-[140px]">Auto fetch token</label>
+        <label className="block min-w-[140px]">{t('REQUEST_PANE.AUTO_FETCH_TOKEN')}</label>
         <div className="flex items-center gap-2">
           <div className="relative group cursor-pointer">
             <IconHelp size={16} className="text-gray-500" />

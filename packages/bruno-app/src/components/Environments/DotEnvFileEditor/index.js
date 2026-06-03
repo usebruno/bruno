@@ -5,6 +5,7 @@ import { useFormik } from 'formik';
 import { variableNameRegex } from 'utils/common/regex';
 import toast from 'react-hot-toast';
 import useDeferredLoading from 'hooks/useDeferredLoading';
+import { useTranslation } from 'react-i18next';
 
 import StyledWrapper from './StyledWrapper';
 import DotEnvTableView from './DotEnvTableView';
@@ -24,6 +25,7 @@ const DotEnvFileEditor = ({
   collection,
   item
 }) => {
+  const { t } = useTranslation();
   const { displayedTheme } = useTheme();
   const [tableHeight, setTableHeight] = useState(MIN_TABLE_HEIGHT);
   // Derive a single baseline raw value for consistent dirty-tracking
@@ -66,11 +68,11 @@ const DotEnvFileEditor = ({
 
         if (!variable.name || variable.name.trim() === '') {
           if (!errors[index]) errors[index] = {};
-          errors[index].name = 'Name cannot be empty';
+          errors[index].name = t('COMMON.NAME_CANNOT_BE_EMPTY');
         } else if (!variableNameRegex.test(variable.name)) {
           if (!errors[index]) errors[index] = {};
           errors[index].name
-            = 'Name contains invalid characters. Must only contain alphanumeric characters, "-", "_", "." and cannot start with a digit.';
+            = t('COMMON.INVALID_VARIABLE_NAME');
         }
       });
       return Object.keys(errors).length > 0 ? errors : {};
@@ -205,14 +207,14 @@ const DotEnvFileEditor = ({
     });
 
     if (hasValidationErrors) {
-      toast.error('Please fix validation errors before saving');
+      toast.error(t('SIDEBAR.FIX_VALIDATION_ERRORS'));
       return;
     }
 
     setIsSaving(true);
     onSave(variablesToSave)
       .then(() => {
-        toast.success('Changes saved successfully');
+        toast.success(t('SIDEBAR.CHANGES_SAVED'));
         const newValues = [
           ...variablesToSave,
           { uid: uuid(), name: '', value: '' }
@@ -223,7 +225,7 @@ const DotEnvFileEditor = ({
       })
       .catch((error) => {
         console.error(error);
-        toast.error('An error occurred while saving the changes');
+        toast.error(t('SIDEBAR.SAVE_ERROR'));
         window.dispatchEvent(new Event('dotenv-save-failed'));
       })
       .finally(() => {
@@ -235,20 +237,20 @@ const DotEnvFileEditor = ({
     if (isSaving) return;
 
     if (!onSaveRaw) {
-      toast.error('Raw save is not supported');
+      toast.error(t('SIDEBAR.RAW_SAVE_NOT_SUPPORTED'));
       return;
     }
 
     setIsSaving(true);
     onSaveRaw(rawValue)
       .then(() => {
-        toast.success('Changes saved successfully');
+        toast.success(t('SIDEBAR.CHANGES_SAVED'));
         setIsModified(false);
         window.dispatchEvent(new Event('dotenv-save-complete'));
       })
       .catch((error) => {
         console.error(error);
-        toast.error('An error occurred while saving the changes');
+        toast.error(t('SIDEBAR.SAVE_ERROR'));
         window.dispatchEvent(new Event('dotenv-save-failed'));
       })
       .finally(() => {

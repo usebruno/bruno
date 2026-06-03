@@ -1,4 +1,5 @@
 import React, { forwardRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { IconEye, IconCaretDown, IconBraces, IconCode, IconFileCode, IconBrandJavascript, IconFileText, IconHexagons, IconBinaryTree } from '@tabler/icons';
 import classnames from 'classnames';
 import MenuDropdown from 'ui/MenuDropdown';
@@ -49,6 +50,7 @@ const QueryResultTypeSelector = ({
   isActiveTab,
   onTabSelect
 }) => {
+  const { t } = useTranslation();
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
   // Handle dropdown state change - only allow opening when active tab
@@ -111,7 +113,7 @@ const QueryResultTypeSelector = ({
         }}
         size="2xs"
         data-testid="preview-response-tab"
-        title={selectedTab === 'preview' ? 'Turn off Preview Mode' : 'Turn on Preview Mode'}
+        title={selectedTab === 'preview' ? t('RESPONSE_PANE.TURN_OFF_PREVIEW_MODE') : t('RESPONSE_PANE.TURN_ON_PREVIEW_MODE')}
       />
     </div>
   );

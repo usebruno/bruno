@@ -14,16 +14,12 @@ import CreateGlobalEnvironment from 'components/WorkspaceHome/WorkspaceEnvironme
 import ToolHint from 'components/ToolHint';
 import StyledWrapper from './StyledWrapper';
 import { transparentize, toColorString, parseToRgb } from 'polished';
+import { useTranslation } from 'react-i18next';
 
 const TABS = [
-  { id: 'collection', label: 'Collection', icon: <IconDatabase size={16} strokeWidth={1.5} /> },
-  { id: 'global', label: 'Global', icon: <IconWorld size={16} strokeWidth={1.5} /> }
+  { id: 'collection', label_key: 'SIDEBAR.COLLECTION', icon: <IconDatabase size={16} strokeWidth={1.5} /> },
+  { id: 'global', label_key: 'SIDEBAR.GLOBAL', icon: <IconWorld size={16} strokeWidth={1.5} /> }
 ];
-
-const EMPTY_STATE_DESCRIPTIONS = {
-  collection: 'Create your first environment to begin working with your collection.',
-  global: 'Create your first global environment to begin working across collections.'
-};
 
 /**
  * Generates background color with transparency for environment badges
@@ -99,6 +95,7 @@ const EnvironmentBadge = ({ environment, icon: Icon }) => {
  * Dropdown trigger component showing active environments
  */
 const DropdownTrigger = forwardRef(({ collectionEnv, globalEnv }, ref) => {
+  const { t } = useTranslation();
   const hasAnyEnv = collectionEnv || globalEnv;
 
   // Empty state - no environments selected
@@ -109,7 +106,7 @@ const DropdownTrigger = forwardRef(({ collectionEnv, globalEnv }, ref) => {
         className="current-environment flex align-center justify-center cursor-pointer bg-transparent no-environments"
         data-testid="environment-selector-trigger"
       >
-        <span className="env-text-inactive max-w-36 truncate no-wrap">No Environment</span>
+        <span className="env-text-inactive max-w-36 truncate no-wrap">{t('SIDEBAR.NO_ENVIRONMENT')}</span>
         <IconCaretDown className="caret flex items-center justify-center" size={12} strokeWidth={2} />
       </div>
     );
@@ -175,6 +172,7 @@ const DropdownTrigger = forwardRef(({ collectionEnv, globalEnv }, ref) => {
 });
 
 const EnvironmentSelector = ({ collection }) => {
+  const { t } = useTranslation();
   const dispatch = useDispatch();
   const dropdownTippyRef = useRef();
   const [activeTab, setActiveTab] = useState('collection');
@@ -200,7 +198,9 @@ const EnvironmentSelector = ({ collection }) => {
     [environments, globalEnvironments]
   );
 
-  const description = EMPTY_STATE_DESCRIPTIONS[activeTab];
+  const description = activeTab === 'collection'
+    ? t('SIDEBAR.CREATE_FIRST_ENVIRONMENT_COLLECTION')
+    : t('SIDEBAR.CREATE_FIRST_ENVIRONMENT_GLOBAL');
 
   const hideDropdown = () => dropdownTippyRef.current?.hide();
 
@@ -212,11 +212,11 @@ const EnvironmentSelector = ({ collection }) => {
 
     dispatch(action)
       .then(() => {
-        toast.success(environment ? `Environment changed to ${environment.name}` : 'No Environments are active now');
+        toast.success(environment ? t('SIDEBAR.ENVIRONMENT_CHANGED_TO', { name: environment.name }) : t('SIDEBAR.NO_ENVIRONMENTS_ACTIVE'));
         hideDropdown();
       })
       .catch(() => {
-        toast.error('An error occurred while selecting the environment');
+        toast.error(t('SIDEBAR.ENVIRONMENT_SELECT_ERROR'));
       });
   };
 
@@ -281,7 +281,7 @@ const EnvironmentSelector = ({ collection }) => {
               >
                 <span className="tab-content-wrapper">
                   {tab.icon}
-                  {tab.label}
+                  {t(tab.label_key)}
                 </span>
               </button>
             ))}

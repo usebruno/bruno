@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import Modal from 'components/Modal/index';
 import { useMemo } from 'react';
 import CodeView from './CodeView';
@@ -23,6 +24,7 @@ const validateURLWithVars = (url) => {
 };
 
 const GenerateCodeItem = ({ collectionUid, item, onClose, isExample = false, exampleUid = null }) => {
+  const { t } = useTranslation();
   const languages = getLanguages();
   const collection = useSelector((state) => state.collections.collections?.find((c) => c.uid === collectionUid));
   const { globalEnvironments, activeGlobalEnvironmentUid } = useSelector((state) => state.globalEnvironments);
@@ -129,7 +131,7 @@ const GenerateCodeItem = ({ collectionUid, item, onClose, isExample = false, exa
   };
 
   // Update modal title based on mode
-  const modalTitle = isExample ? `Generate Code - ${get(item, 'draft.examples', []).find((e) => e.uid === exampleUid)?.name || 'Example'}` : 'Generate Code';
+  const modalTitle = isExample ? t('SIDEBAR.GENERATE_CODE_GRAPHQL', { name: get(item, 'draft.examples', []).find((e) => e.uid === exampleUid)?.name || 'Example' }) : t('SIDEBAR.GENERATE_CODE_TITLE');
 
   return (
     <Modal size="lg" title={modalTitle} handleCancel={onClose} hideFooter={true}>
@@ -145,8 +147,8 @@ const GenerateCodeItem = ({ collectionUid, item, onClose, isExample = false, exa
               />
             ) : (
               <div className="error-message">
-                <h1>Invalid URL: {finalUrl}</h1>
-                <p>Please check the URL and try again</p>
+                <h1>{t('SIDEBAR.INVALID_URL', { url: finalUrl })}</h1>
+                <p>{t('SIDEBAR.PLEASE_CHECK_URL')}</p>
               </div>
             )}
           </div>

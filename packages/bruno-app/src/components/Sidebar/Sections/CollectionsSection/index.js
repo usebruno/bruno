@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import toast from 'react-hot-toast';
 import get from 'lodash/get';
 import { useDispatch, useSelector } from 'react-redux';
@@ -41,6 +42,8 @@ import { openDevtoolsAndSwitchToTerminal } from 'utils/terminal';
 import useKeybinding from 'hooks/useKeybinding';
 
 const CollectionsSection = () => {
+  const { t } = useTranslation();
+  const untitled = t('COMMON.UNTITLED');
   const dispatch = useDispatch();
   const showSearch = useSelector((state) => state.app.showSidebarSearch);
 
@@ -84,7 +87,7 @@ const CollectionsSection = () => {
       }
     };
     dispatch(savePreferences(updatedPreferences)).catch(() => {
-      toast.error('Failed to save preferences');
+      toast.error(t('SIDEBAR.FAILED_SAVE_PREFERENCES'));
     });
   };
 
@@ -167,11 +170,11 @@ const CollectionsSection = () => {
   const getSortLabel = () => {
     switch (collectionSortOrder) {
       case 'alphabetical':
-        return 'Sort Z-A';
+        return t('COMMON.SORT_ZA');
       case 'reverseAlphabetical':
-        return 'Clear sort';
+        return t('COMMON.CLEAR_SORT');
       default:
-        return 'Sort A-Z';
+        return t('COMMON.SORT_AZ');
     }
   };
 
@@ -190,20 +193,20 @@ const CollectionsSection = () => {
     }
 
     dispatch(openCollection(options)).catch((err) => {
-      toast.error('An error occurred while opening the collection');
+      toast.error(t('SIDEBAR.ERROR_OPENING_COLLECTION'));
     });
   };
 
   const handleStartRequest = () => {
     const scratchCollectionUid = activeWorkspace?.scratchCollectionUid;
     if (!scratchCollectionUid) {
-      toast.error('Unable to create request');
+      toast.error(t('SIDEBAR.UNABLE_CREATE_REQUEST'));
       return;
     }
 
     const scratchCollection = collections.find((c) => c.uid === scratchCollectionUid);
     if (!scratchCollection) {
-      toast.error('Unable to create request');
+      toast.error(t('SIDEBAR.UNABLE_CREATE_REQUEST'));
       return;
     }
 
@@ -211,7 +214,7 @@ const CollectionsSection = () => {
     const transientRequests = filter(allItems, (item) => isItemTransientRequest(item));
     let maxNumber = 0;
     transientRequests.forEach((item) => {
-      const match = item.name?.match(/^Untitled (\d+)$/);
+      const match = item.name?.match(new RegExp(`^${untitled} (\\d+)$`));
       if (match) {
         const number = parseInt(match[1], 10);
         if (number > maxNumber) {
@@ -219,7 +222,7 @@ const CollectionsSection = () => {
         }
       }
     });
-    const requestName = `Untitled ${maxNumber + 1}`;
+    const requestName = `${untitled} ${maxNumber + 1}`;
     const filename = sanitizeName(requestName);
 
     dispatch(
@@ -234,7 +237,7 @@ const CollectionsSection = () => {
         isTransient: true
       })
     ).catch((err) => {
-      toast.error('An error occurred while creating the request');
+      toast.error(t('SIDEBAR.ERROR_CREATING_REQUEST'));
     });
   };
 
@@ -248,7 +251,7 @@ const CollectionsSection = () => {
     {
       id: 'create',
       leftSection: IconPlus,
-      label: 'Create collection',
+      label: t('SIDEBAR.CREATE_COLLECTION'),
       onClick: () => {
         dispatch(setIsCreatingCollection(true));
       }
@@ -256,7 +259,7 @@ const CollectionsSection = () => {
     {
       id: 'open',
       leftSection: IconFolder,
-      label: 'Open collection',
+      label: t('SIDEBAR.OPEN_COLLECTION'),
       onClick: () => {
         handleOpenCollection();
       }
@@ -264,7 +267,7 @@ const CollectionsSection = () => {
     {
       id: 'import',
       leftSection: IconDownload,
-      label: 'Import collection',
+      label: t('SIDEBAR.IMPORT_COLLECTION'),
       onClick: () => {
         setImportCollectionModalOpen(true);
       }
@@ -283,7 +286,7 @@ const CollectionsSection = () => {
     {
       id: 'close-all',
       leftSection: IconSquareX,
-      label: 'Close all',
+      label: t('COMMON.CLOSE_ALL'),
       onClick: () => {
         selectAllCollectionsToClose();
       }
@@ -291,7 +294,7 @@ const CollectionsSection = () => {
     {
       id: 'open-in-terminal',
       leftSection: IconTerminal2,
-      label: 'Open in Terminal',
+      label: t('SIDEBAR.OPEN_IN_TERMINAL'),
       onClick: () => {
         openDevtoolsAndSwitchToTerminal(dispatch, activeWorkspace?.pathname);
       }
@@ -302,7 +305,7 @@ const CollectionsSection = () => {
     <>
       <ActionIcon
         onClick={handleToggleSearch}
-        label="Search requests"
+        label={t('SIDEBAR.SEARCH_REQUESTS')}
       >
         <IconSearch size={14} stroke={1.5} aria-hidden="true" />
       </ActionIcon>
@@ -313,7 +316,7 @@ const CollectionsSection = () => {
         placement="bottom-end"
       >
         <ActionIcon
-          label="Add new collection"
+          label={t('SIDEBAR.ADD_NEW_COLLECTION')}
         >
           <IconPlus size={14} stroke={1.5} aria-hidden="true" />
         </ActionIcon>
@@ -325,7 +328,7 @@ const CollectionsSection = () => {
         placement="bottom-end"
       >
         <ActionIcon
-          label="More actions"
+          label={t('SIDEBAR.MORE_ACTIONS')}
         >
           <IconDotsVertical size={14} stroke={1.5} aria-hidden="true" />
         </ActionIcon>
@@ -410,7 +413,7 @@ const CollectionsSection = () => {
       )}
       <SidebarSection
         id="collections"
-        title="Collections"
+        title={t('COMMON.COLLECTIONS')}
         icon={IconBox}
         actions={sectionActions}
       >

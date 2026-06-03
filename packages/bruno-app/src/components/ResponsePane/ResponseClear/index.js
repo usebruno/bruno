@@ -1,4 +1,5 @@
 import React, { forwardRef, useImperativeHandle, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { IconEraser } from '@tabler/icons';
 import { useDispatch } from 'react-redux';
 import StyledWrapper from './StyledWrapper';
@@ -23,6 +24,7 @@ export const useResponseClear = (item, collection) => {
 };
 
 const ResponseClear = forwardRef(({ collection, item, children }, ref) => {
+  const { t } = useTranslation();
   const { clearResponse } = useResponseClear(item, collection);
   const elementRef = useRef(null);
 
@@ -32,7 +34,7 @@ const ResponseClear = forwardRef(({ collection, item, children }, ref) => {
   }), []);
 
   return (
-    <div ref={elementRef} onClick={clearResponse} title={!children ? 'Clear response' : null} data-testid="response-clear-btn">
+    <div ref={elementRef} onClick={clearResponse} title={!children ? t('RESPONSE_PANE.CLEAR_RESPONSE') : null} data-testid="response-clear-btn">
       {children ? children : (
         <StyledWrapper className="flex items-center">
           <ActionIcon className="p-1">

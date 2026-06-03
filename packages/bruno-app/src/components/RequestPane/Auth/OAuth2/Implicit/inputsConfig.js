@@ -1,20 +1,20 @@
-const inputsConfig = [
+const getInputsConfig = (t) => [
   {
     key: 'authorizationUrl',
-    label: 'Authorization URL'
+    label: t('REQUEST_PANE.AUTHORIZATION_URL')
   },
   {
     key: 'clientId',
-    label: 'Client ID'
+    label: t('REQUEST_PANE.CLIENT_ID')
   },
   {
     key: 'scope',
-    label: 'Scope'
+    label: t('REQUEST_PANE.SCOPE')
   },
   {
     key: 'state',
-    label: 'State'
+    label: t('REQUEST_PANE.STATE')
   }
 ];
 
-export { inputsConfig };
+export { getInputsConfig };

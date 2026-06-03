@@ -1,4 +1,5 @@
 import React, { useCallback, useState, useRef, Fragment, useMemo, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import get from 'lodash/get';
 import { makeTabPermanent, syncTabUid } from 'providers/ReduxStore/slices/tabs';
 import { saveRequest, saveCollectionRoot, saveFolderRoot, saveEnvironment, saveCollectionSettings, closeTabs } from 'providers/ReduxStore/slices/collections/actions';
@@ -28,6 +29,7 @@ import ExampleTab from '../ExampleTab';
 import toast from 'react-hot-toast';
 
 const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUid, hasOverflow, setHasOverflow, dropdownContainerRef }) => {
+  const { t } = useTranslation();
   const dispatch = useDispatch();
   const { theme } = useTheme();
   const tabNameRef = useRef(null);
@@ -392,7 +394,7 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
               } else if (draft?.environmentUid && draft?.variables) {
                 const invalidNames = getInvalidVariableNames(draft.variables);
                 if (invalidNames.length > 0) {
-                  toast.error(`Invalid variable name(s): ${invalidNames.join(', ')}`);
+                  toast.error(t('SIDEBAR.INVALID_VARIABLE_NAMES', { names: invalidNames.join(', ') }));
                   return;
                 }
                 dispatch(saveEnvironment(draft.variables, draft.environmentUid, collection.uid))
@@ -400,11 +402,11 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
                     dispatch(clearEnvironmentsDraft({ collectionUid: collection.uid }));
                     dispatch(closeTabs({ tabUids: [tab.uid] }));
                     setShowConfirmEnvironmentClose(false);
-                    toast.success('Environment saved');
+                    toast.success(t('SIDEBAR.ENVIRONMENT_SAVED'));
                   })
                   .catch((err) => {
                     console.log('err', err);
-                    toast.error('Failed to save environment');
+                    toast.error(t('SIDEBAR.FAILED_TO_SAVE_ENVIRONMENT'));
                   });
               }
             }}
@@ -443,7 +445,7 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
               } else if (draft?.environmentUid && draft?.variables) {
                 const invalidNames = getInvalidVariableNames(draft.variables);
                 if (invalidNames.length > 0) {
-                  toast.error(`Invalid variable name(s): ${invalidNames.join(', ')}`);
+                  toast.error(t('SIDEBAR.INVALID_VARIABLE_NAMES', { names: invalidNames.join(', ') }));
                   return;
                 }
                 dispatch(saveGlobalEnvironment({ variables: draft.variables, environmentUid: draft.environmentUid }))
@@ -451,11 +453,11 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
                     dispatch(clearGlobalEnvironmentDraft());
                     dispatch(closeTabs({ tabUids: [tab.uid] }));
                     setShowConfirmGlobalEnvironmentClose(false);
-                    toast.success('Global environment saved');
+                    toast.success(t('SIDEBAR.GLOBAL_ENVIRONMENT_SAVED'));
                   })
                   .catch((err) => {
                     console.log('err', err);
-                    toast.error('Failed to save global environment');
+                    toast.error(t('SIDEBAR.FAILED_TO_SAVE_GLOBAL_ENVIRONMENT'));
                   });
               }
             }}
@@ -608,6 +610,7 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
 };
 
 function RequestTabMenu({ menuDropdownRef, tabLabelRef, collectionRequestTabs, tabIndex, collection, dispatch, dropdownContainerRef }) {
+  const { t } = useTranslation();
   const [showCloneRequestModal, setShowCloneRequestModal] = useState(false);
   const [showAddNewRequestModal, setShowAddNewRequestModal] = useState(false);
 
@@ -713,54 +716,54 @@ function RequestTabMenu({ menuDropdownRef, tabLabelRef, collectionRequestTabs, t
   const menuItems = useMemo(() => [
     {
       id: 'new-request',
-      label: 'New Request',
+      label: t('SIDEBAR.NEW_REQUEST'),
       onClick: () => setShowAddNewRequestModal(true)
     },
     {
       id: 'clone-request',
-      label: 'Clone Request',
+      label: t('SIDEBAR.CLONE_REQUEST'),
       onClick: () => setShowCloneRequestModal(true)
     },
     {
       id: 'revert-changes',
-      label: 'Revert Changes',
+      label: t('SIDEBAR.REVERT_CHANGES'),
       onClick: handleRevertChanges,
       disabled: !currentTabItem?.draft
     },
     {
       id: 'close',
-      label: 'Close',
+      label: t('COMMON.CLOSE'),
       onClick: () => handleCloseTab(currentTabUid)
     },
     {
       id: 'close-others',
-      label: 'Close Others',
+      label: t('SIDEBAR.CLOSE_OTHERS'),
       onClick: handleCloseOtherTabs,
       disabled: !hasOtherTabs
     },
     {
       id: 'close-left',
-      label: 'Close to the Left',
+      label: t('SIDEBAR.CLOSE_TO_THE_LEFT'),
       onClick: handleCloseTabsToTheLeft,
       disabled: !hasLeftTabs
     },
     {
       id: 'close-right',
-      label: 'Close to the Right',
+      label: t('SIDEBAR.CLOSE_TO_THE_RIGHT'),
       onClick: handleCloseTabsToTheRight,
       disabled: !hasRightTabs
     },
     {
       id: 'close-saved',
-      label: 'Close Saved',
+      label: t('SIDEBAR.CLOSE_SAVED'),
       onClick: handleCloseSavedTabs
     },
     {
       id: 'close-all',
-      label: 'Close All',
+      label: t('SIDEBAR.CLOSE_ALL'),
       onClick: handleCloseAllTabs
     }
-  ], [currentTabUid, currentTabItem, hasOtherTabs, hasLeftTabs, hasRightTabs, collection, collectionRequestTabs, tabIndex, dispatch]);
+  ], [currentTabUid, currentTabItem, hasOtherTabs, hasLeftTabs, hasRightTabs, collection, collectionRequestTabs, tabIndex, dispatch, t]);
 
   const menuDropdown = (
     <MenuDropdown

@@ -1,6 +1,7 @@
 import React, { useEffect, useCallback, useRef } from 'react';
 import { useFormik } from 'formik';
 import { useSelector, useDispatch } from 'react-redux';
+import { useTranslation } from 'react-i18next';
 import {
   savePreferences,
   clearHttpHttpsAgentCache
@@ -18,6 +19,7 @@ const cacheSchema = Yup.object().shape({
 });
 
 const Cache = () => {
+  const { t } = useTranslation();
   const preferences = useSelector((state) => state.app.preferences);
   const dispatch = useDispatch();
 
@@ -28,7 +30,9 @@ const Cache = () => {
           ...preferences,
           cache: newCachePreferences
         })
-      ).catch(() => toast.error('Failed to update cache preferences'));
+      )
+        .then(() => {})
+        .catch(() => toast.error(t('PREFERENCES_PAGE.FAILED_TO_UPDATE_CACHE_PREFERENCES')));
     },
     [dispatch, preferences]
   );
@@ -82,8 +86,8 @@ const Cache = () => {
 
   const handleResetCache = () => {
     dispatch(clearHttpHttpsAgentCache())
-      .then(() => toast.success('ssl session cache cleared'))
-      .catch(() => toast.error('Failed to clear ssl session cache'));
+      .then(() => toast.success(t('PREFERENCES_PAGE.SSL_SESSION_CACHE_CLEARED')))
+      .catch(() => toast.error(t('PREFERENCES_PAGE.FAILED_TO_CLEAR_SSL_SESSION_CACHE')));
   };
 
   return (

@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useSelector, useDispatch } from 'react-redux';
 import find from 'lodash/find';
-import { IconSettings, IconCookie, IconTool, IconSearch, IconPalette, IconBrandGithub } from '@tabler/icons';
+import { IconSettings, IconCookie, IconTool, IconSearch, IconPalette, IconBrandGithub, IconLanguage } from '@tabler/icons';
 import Mousetrap from 'mousetrap';
 import { getKeyBindingsForActionAllOS } from 'providers/Hotkeys/keyMappings';
 import ToolHint from 'components/ToolHint';
@@ -9,12 +10,14 @@ import Cookies from 'components/Cookies';
 import Notifications from 'components/Notifications';
 import Portal from 'components/Portal';
 import ThemeDropdown from './ThemeDropdown';
+import LanguageDropdown from './LanguageDropdown';
 import { openConsole } from 'providers/ReduxStore/slices/logs';
 import { addTab } from 'providers/ReduxStore/slices/tabs';
 import { useApp } from 'providers/App';
 import StyledWrapper from './StyledWrapper';
 
 const StatusBar = () => {
+  const { t } = useTranslation();
   const dispatch = useDispatch();
   const activeWorkspaceUid = useSelector((state) => state.workspaces.activeWorkspaceUid);
   const workspaces = useSelector((state) => state.workspaces.workspaces);
@@ -75,13 +78,13 @@ const StatusBar = () => {
       <div className="status-bar">
         <div className="status-bar-section">
           <div className="status-bar-group">
-            <ToolHint text="Preferences" toolhintId="Preferences" place="top-start" offset={10}>
+            <ToolHint text={t('COMMON.PREFERENCES')} toolhintId="Preferences" place="top-start" offset={10}>
               <button
                 className="status-bar-button preferences-button"
                 data-trigger="preferences"
                 onClick={handlePreferencesClick}
                 tabIndex={0}
-                aria-label="Open Preferences"
+                aria-label={t('STATUS_BAR.OPEN_PREFERENCES')}
               >
                 <IconSettings size={16} strokeWidth={1.5} aria-hidden="true" />
               </button>
@@ -92,26 +95,37 @@ const StatusBar = () => {
                 className="status-bar-button"
                 data-trigger="theme"
                 tabIndex={0}
-                aria-label="Change Theme"
+                aria-label={t('STATUS_BAR.CHANGE_THEME')}
               >
                 <IconPalette size={16} strokeWidth={1.5} aria-hidden="true" />
               </button>
             </ThemeDropdown>
 
-            <ToolHint text="Notifications" toolhintId="Notifications" place="top" offset={10}>
+            <LanguageDropdown>
+              <button
+                className="status-bar-button"
+                data-trigger="language"
+                tabIndex={0}
+                aria-label={t('STATUS_BAR.LANGUAGE')}
+              >
+                <IconLanguage size={16} strokeWidth={1.5} aria-hidden="true" />
+              </button>
+            </LanguageDropdown>
+
+            <ToolHint text={t('COMMON.NOTIFICATIONS')} toolhintId="Notifications" place="top" offset={10}>
               <div className="status-bar-button">
                 <Notifications />
               </div>
             </ToolHint>
 
-            <ToolHint text="GitHub Repository" toolhintId="GitHub" place="top" offset={10}>
+            <ToolHint text={t('STATUS_BAR.GITHUB_REPOSITORY')} toolhintId="GitHub" place="top" offset={10}>
               <button
                 className="status-bar-button"
                 onClick={() => {
                   window?.ipcRenderer?.openExternal('https://github.com/usebruno/bruno');
                 }}
                 tabIndex={0}
-                aria-label="Open GitHub Repository"
+                aria-label={t('STATUS_BAR.OPEN_GITHUB_REPOSITORY')}
               >
                 <IconBrandGithub size={16} strokeWidth={1.5} aria-hidden="true" />
               </button>
@@ -126,11 +140,11 @@ const StatusBar = () => {
               data-trigger="search"
               onClick={openGlobalSearch}
               tabIndex={0}
-              aria-label="Global Search"
+              aria-label={t('STATUS_BAR.GLOBAL_SEARCH')}
             >
               <div className="console-button-content">
                 <IconSearch size={16} strokeWidth={1.5} aria-hidden="true" />
-                <span className="console-label">Search</span>
+                <span className="console-label">{t('COMMON.SEARCH')}</span>
               </div>
             </button>
 
@@ -139,11 +153,11 @@ const StatusBar = () => {
               data-trigger="cookies"
               onClick={() => setCookiesOpen(true)}
               tabIndex={0}
-              aria-label="Open Cookies"
+              aria-label={t('STATUS_BAR.OPEN_COOKIES')}
             >
               <div className="console-button-content">
                 <IconCookie size={16} strokeWidth={1.5} aria-hidden="true" />
-                <span className="console-label">Cookies</span>
+                <span className="console-label">{t('COMMON.COOKIES')}</span>
               </div>
             </button>
 
@@ -152,11 +166,11 @@ const StatusBar = () => {
               data-trigger="dev-tools"
               onClick={handleConsoleClick}
               tabIndex={0}
-              aria-label={`Open Dev Tools${errorCount > 0 ? ` (${errorCount} errors)` : ''}`}
+              aria-label={t('STATUS_BAR.OPEN_DEV_TOOLS', { count: errorCount > 0 ? ` (${errorCount} ${t('COMMON.ERRORS')})` : '' })}
             >
               <div className="console-button-content">
                 <IconTool size={16} strokeWidth={1.5} aria-hidden="true" />
-                <span className="console-label">Dev Tools</span>
+                <span className="console-label">{t('STATUS_BAR.DEV_TOOLS')}</span>
                 {errorCount > 0 && (
                   <span className="error-count-inline">{errorCount}</span>
                 )}

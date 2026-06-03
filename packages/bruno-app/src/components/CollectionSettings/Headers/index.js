@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useRef } from 'react';
 import get from 'lodash/get';
 import { useDispatch, useSelector } from 'react-redux';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from 'providers/Theme';
 import { setCollectionHeaders } from 'providers/ReduxStore/slices/collections';
 import { saveCollectionSettings } from 'providers/ReduxStore/slices/collections/actions';
@@ -19,6 +20,7 @@ import { useTrackScroll } from 'hooks/useTrackScroll';
 const headerAutoCompleteList = StandardHTTPHeaders.map((e) => e.header);
 
 const Headers = ({ collection }) => {
+  const { t } = useTranslation();
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
   const tabs = useSelector((state) => state.tabs.tabs);
@@ -53,13 +55,13 @@ const Headers = ({ collection }) => {
     if (key === 'name') {
       if (!row.name || row.name.trim() === '') return null;
       if (!headerNameRegex.test(row.name)) {
-        return 'Header name cannot contain spaces or newlines';
+        return t('COLLECTION_SETTINGS.HEADER_NAME_NO_SPACES');
       }
     }
     if (key === 'value') {
       if (!row.value) return null;
       if (!headerValueRegex.test(row.value)) {
-        return 'Header value cannot contain newlines';
+        return t('COLLECTION_SETTINGS.HEADER_VALUE_NO_NEWLINES');
       }
     }
     return null;
@@ -68,9 +70,9 @@ const Headers = ({ collection }) => {
   const columns = [
     {
       key: 'name',
-      name: 'Name',
+      name: t('COMMON.NAME'),
       isKeyField: true,
-      placeholder: 'Name',
+      placeholder: t('COMMON.NAME'),
       width: '30%',
       render: ({ value, onChange }) => (
         <SingleLineEditor
@@ -86,8 +88,8 @@ const Headers = ({ collection }) => {
     },
     {
       key: 'value',
-      name: 'Value',
-      placeholder: 'Value',
+      name: t('COMMON.VALUE'),
+      placeholder: t('COMMON.VALUE'),
       render: ({ value, onChange }) => (
         <SingleLineEditor
           value={value || ''}
@@ -112,7 +114,7 @@ const Headers = ({ collection }) => {
     return (
       <StyledWrapper className="h-full w-full">
         <div className="text-xs mb-4 text-muted">
-          Add request headers that will be sent with every request in this collection.
+          {t('COLLECTION_SETTINGS.HEADERS_DESCRIPTION')}
         </div>
         <BulkEditor
           params={headers}
@@ -127,7 +129,7 @@ const Headers = ({ collection }) => {
   return (
     <StyledWrapper className="h-full w-full" ref={wrapperRef}>
       <div className="text-xs mb-4 text-muted">
-        Add request headers that will be sent with every request in this collection.
+        {t('COLLECTION_SETTINGS.HEADERS_DESCRIPTION')}
       </div>
       <EditableTable
         tableId="collection-headers"
@@ -142,12 +144,12 @@ const Headers = ({ collection }) => {
       />
       <div className="flex justify-end mt-2">
         <button className="text-link select-none" data-testid="bulk-edit-toggle" onClick={toggleBulkEditMode}>
-          Bulk Edit
+          {t('COLLECTION_SETTINGS.BULK_EDIT')}
         </button>
       </div>
       <div className="mt-6">
         <Button type="submit" size="sm" onClick={handleSave}>
-          Save
+          {t('COMMON.SAVE')}
         </Button>
       </div>
     </StyledWrapper>

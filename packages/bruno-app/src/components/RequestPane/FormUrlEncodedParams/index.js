@@ -13,9 +13,11 @@ import EditableTable from 'components/EditableTable';
 import StyledWrapper from './StyledWrapper';
 import { usePersistedState } from 'hooks/usePersistedState';
 import { useTrackScroll } from 'hooks/useTrackScroll';
+import { useTranslation } from 'react-i18next';
 
 const FormUrlEncodedParams = ({ item, collection }) => {
   const dispatch = useDispatch();
+  const { t } = useTranslation();
   const { storedTheme } = useTheme();
   const wrapperRef = useRef(null);
   const [scroll, setScroll] = usePersistedState({ key: `request-body-formUrlEncoded-scroll-${item.uid}`, default: 0 });
@@ -56,13 +58,13 @@ const FormUrlEncodedParams = ({ item, collection }) => {
       key: 'name',
       name: 'Key',
       isKeyField: true,
-      placeholder: 'Key',
+      placeholder: t('COMMON.KEY'),
       width: '30%'
     },
     {
       key: 'value',
       name: 'Value',
-      placeholder: 'Value',
+      placeholder: t('COMMON.VALUE'),
       render: ({ value, onChange }) => (
         <MultiLineEditor
           value={value || ''}
@@ -73,7 +75,7 @@ const FormUrlEncodedParams = ({ item, collection }) => {
           onRun={handleRun}
           collection={collection}
           item={item}
-          placeholder={!value ? 'Value' : ''}
+          placeholder={!value ? t('COMMON.VALUE') : ''}
         />
       )
     }

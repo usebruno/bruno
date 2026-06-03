@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import CodeEditor from 'components/CodeEditor';
 import { get } from 'lodash';
 import { useSelector } from 'react-redux';
@@ -8,6 +9,7 @@ import GrpcError from '../GrpcError';
 import { IconChevronDown, IconChevronUp } from '@tabler/icons';
 
 const GrpcQueryResult = ({ item, collection }) => {
+  const { t } = useTranslation();
   const { displayedTheme } = useTheme();
   const preferences = useSelector((state) => state.app.preferences);
   const [showErrorMessage, setShowErrorMessage] = useState(true);
@@ -40,7 +42,7 @@ const GrpcQueryResult = ({ item, collection }) => {
   if (!hasResponses && !hasError) {
     return (
       <StyledWrapper className="w-full h-full relative flex flex-col">
-        <div className="empty-state">No messages received</div>
+        <div className="empty-state">{t('RESPONSE_PANE.NO_MESSAGES_RECEIVED')}</div>
       </StyledWrapper>
     );
   }
@@ -79,8 +81,8 @@ const GrpcQueryResult = ({ item, collection }) => {
                       onClick={() => setExpandedIndex(isExpanded ? -1 : index)}
                     >
                       <span className="message-label">
-                        Response {originalIndex + 1}
-                        {index === 0 && <span className="latest-badge">Latest</span>}
+                        {t('RESPONSE_PANE.RESPONSE_N', { n: originalIndex + 1 })}
+                        {index === 0 && <span className="latest-badge">{t('RESPONSE_PANE.LATEST')}</span>}
                       </span>
                       <button className="toggle-btn">
                         {isExpanded ? (
@@ -112,7 +114,7 @@ const GrpcQueryResult = ({ item, collection }) => {
       )}
       {hasError && !hasResponses && !showErrorMessage && (
         <div className="empty-state">
-          No messages received. A server error occurred but has been dismissed.
+          {t('RESPONSE_PANE.NO_MESSAGES_SERVER_ERROR_DISMISSED')}
         </div>
       )}
     </StyledWrapper>

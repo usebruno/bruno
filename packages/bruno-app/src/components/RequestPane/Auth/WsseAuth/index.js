@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import SensitiveFieldWarning from 'components/SensitiveFieldWarning';
 import { useDetectSensitiveField } from 'hooks/useDetectSensitiveField';
 import get from 'lodash/get';
@@ -12,6 +13,7 @@ import StyledWrapper from './StyledWrapper';
 const WsseAuth = ({ item, collection, updateAuth, request, save }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
+  const { t } = useTranslation();
 
   const wsseAuth = get(request, 'auth.wsse', {});
   const { isSensitive } = useDetectSensitiveField(collection);
@@ -67,7 +69,7 @@ const WsseAuth = ({ item, collection, updateAuth, request, save }) => {
         />
       </div>
 
-      <label className="block mb-1">Password</label>
+      <label className="block mb-1">{t('REQUEST_PANE.PASSWORD')}</label>
       <div className="single-line-editor-wrapper flex items-center">
         <SingleLineEditor
           value={wsseAuth.password || ''}

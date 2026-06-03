@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import get from 'lodash/get';
 import { useSelector, useDispatch } from 'react-redux';
+import { useTranslation } from 'react-i18next';
 import { savePreferences } from 'providers/ReduxStore/slices/app';
 import StyledWrapper from './StyledWrapper';
 import { IconReload } from '@tabler/icons';
@@ -26,6 +27,7 @@ const ZOOM_OPTIONS = [
 const DEFAULT_ZOOM = 100;
 
 const Zoom = () => {
+  const { t } = useTranslation();
   const dispatch = useDispatch();
   const preferences = useSelector((state) => state.app.preferences);
   const dropdownRef = useRef(null);
@@ -88,7 +90,7 @@ const Zoom = () => {
   return (
     <StyledWrapper>
       <div>
-        <label className="block">Interface Zoom</label>
+        <label className="block">{t('PREFERENCES_PAGE.INTERFACE_ZOOM')}</label>
       </div>
       <div className="flex flex-row gap-1 items-center mt-2">
         <div className="zoom-field" ref={dropdownRef}>

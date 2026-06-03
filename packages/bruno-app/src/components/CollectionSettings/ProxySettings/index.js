@@ -7,10 +7,12 @@ import { useDispatch } from 'react-redux';
 import { updateCollectionProxy } from 'providers/ReduxStore/slices/collections';
 import { saveCollectionSettings } from 'providers/ReduxStore/slices/collections/actions';
 import { get } from 'lodash';
+import { useTranslation } from 'react-i18next';
 import toast from 'react-hot-toast';
 import Button from 'ui/Button';
 
 const ProxySettings = ({ collection }) => {
+  const { t } = useTranslation();
   const dispatch = useDispatch();
   const initialProxyConfig = {
     inherit: true,
@@ -35,7 +37,7 @@ const ProxySettings = ({ collection }) => {
 
   const validateHostnameOnChange = (hostname) => {
     if (hostname && hostname.length > 1024) {
-      toast.error('Hostname must be less than 1024 characters');
+      toast.error(t('COLLECTION_SETTINGS.HOSTNAME_MAX_LENGTH'));
       return false;
     }
     return true;
@@ -47,7 +49,7 @@ const ProxySettings = ({ collection }) => {
     }
     const portNum = Number(port);
     if (isNaN(portNum)) {
-      toast.error('Port must be a valid number');
+      toast.error(t('COLLECTION_SETTINGS.PORT_VALID_NUMBER'));
       return false;
     }
     if (portNum < 1 || portNum > 65535) {
@@ -59,7 +61,7 @@ const ProxySettings = ({ collection }) => {
 
   const validateAuthUsernameOnChange = (username) => {
     if (username && username.length > 1024) {
-      toast.error('Username must be less than 1024 characters');
+      toast.error(t('COLLECTION_SETTINGS.USERNAME_MAX_LENGTH'));
       return false;
     }
     return true;
@@ -67,7 +69,7 @@ const ProxySettings = ({ collection }) => {
 
   const validateAuthPasswordOnChange = (password) => {
     if (password && password.length > 1024) {
-      toast.error('Password must be less than 1024 characters');
+      toast.error(t('COLLECTION_SETTINGS.PASSWORD_MAX_LENGTH'));
       return false;
     }
     return true;
@@ -198,7 +200,7 @@ const ProxySettings = ({ collection }) => {
 
   return (
     <StyledWrapper className="h-full w-full">
-      <div className="text-xs mb-4 text-muted">Configure proxy settings for this collection.</div>
+      <div className="text-xs mb-4 text-muted">{t('COLLECTION_SETTINGS.PROXY_DESCRIPTION')}</div>
       <div className="bruno-form">
         <div className="mb-3 flex items-center">
           <label className="settings-label flex items-center" htmlFor="enabled">
@@ -253,7 +255,7 @@ const ProxySettings = ({ collection }) => {
           <>
             <div className="mb-3 flex items-center">
               <label className="settings-label" htmlFor="protocol">
-                Protocol
+                {t('COLLECTION_SETTINGS.PROTOCOL')}
               </label>
               <div className="flex items-center">
                 <label className="flex items-center">
@@ -321,7 +323,7 @@ const ProxySettings = ({ collection }) => {
             </div>
             <div className="mb-3 flex items-center">
               <label className="settings-label" htmlFor="port">
-                Port
+                {t('COLLECTION_SETTINGS.PORT')}
               </label>
               <input
                 id="port"
@@ -338,7 +340,7 @@ const ProxySettings = ({ collection }) => {
             </div>
             <div className="mb-3 flex items-center">
               <label className="settings-label" htmlFor="auth.disabled">
-                Auth
+                {t('COLLECTION_SETTINGS.AUTH')}
               </label>
               <input
                 type="checkbox"
@@ -367,7 +369,7 @@ const ProxySettings = ({ collection }) => {
               </div>
               <div className="mb-3 flex items-center">
                 <label className="settings-label" htmlFor="auth.password">
-                  Password
+                  {t('COLLECTION_SETTINGS.PASSWORD')}
                 </label>
                 <div className="textbox flex flex-row items-center w-[13.2rem] h-[1.70rem] relative">
                   <input
@@ -413,7 +415,7 @@ const ProxySettings = ({ collection }) => {
         )}
         <div className="mt-6">
           <Button type="submit" size="sm" onClick={handleSave}>
-            Save
+            {t('COMMON.SAVE')}
           </Button>
         </div>
       </div>

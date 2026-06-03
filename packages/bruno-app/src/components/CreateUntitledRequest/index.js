@@ -1,5 +1,6 @@
 import React, { useMemo, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import { useTranslation } from 'react-i18next';
 import MenuDropdown from 'ui/MenuDropdown';
 import { newHttpRequest, newGrpcRequest, newWsRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { generateUniqueRequestName } from 'utils/collections';
@@ -10,11 +11,13 @@ import ActionIcon from 'ui/ActionIcon';
 
 const CreateUntitledRequest = ({ collectionUid, itemUid = null, onRequestCreated, placement = 'bottom' }) => {
   const dispatch = useDispatch();
+  const { t } = useTranslation();
   const collections = useSelector((state) => state.collections.collections);
   const collection = collections?.find((c) => c.uid === collectionUid);
+  const untitled = t('COMMON.UNTITLED');
 
   const handleCreateHttpRequest = useCallback(async () => {
-    const uniqueName = await generateUniqueRequestName(collection, 'Untitled', itemUid);
+    const uniqueName = await generateUniqueRequestName(collection, untitled, itemUid);
     const filename = sanitizeName(uniqueName);
 
     dispatch(
@@ -33,10 +36,10 @@ const CreateUntitledRequest = ({ collectionUid, itemUid = null, onRequestCreated
         onRequestCreated?.();
       })
       .catch((err) => toast.error(err ? err.message : 'An error occurred while adding the request'));
-  }, [dispatch, collection, itemUid, onRequestCreated]);
+  }, [dispatch, collection, itemUid, onRequestCreated, untitled]);
 
   const handleCreateGraphQLRequest = useCallback(async () => {
-    const uniqueName = await generateUniqueRequestName(collection, 'Untitled', itemUid);
+    const uniqueName = await generateUniqueRequestName(collection, untitled, itemUid);
     const filename = sanitizeName(uniqueName);
 
     dispatch(
@@ -62,10 +65,10 @@ const CreateUntitledRequest = ({ collectionUid, itemUid = null, onRequestCreated
         onRequestCreated?.();
       })
       .catch((err) => toast.error(err ? err.message : 'An error occurred while adding the request'));
-  }, [dispatch, collection, itemUid, onRequestCreated]);
+  }, [dispatch, collection, itemUid, onRequestCreated, untitled]);
 
   const handleCreateWebSocketRequest = useCallback(async () => {
-    const uniqueName = await generateUniqueRequestName(collection, 'Untitled', itemUid);
+    const uniqueName = await generateUniqueRequestName(collection, untitled, itemUid);
     const filename = sanitizeName(uniqueName);
 
     dispatch(
@@ -83,10 +86,10 @@ const CreateUntitledRequest = ({ collectionUid, itemUid = null, onRequestCreated
         onRequestCreated?.();
       })
       .catch((err) => toast.error(err ? err.message : 'An error occurred while adding the request'));
-  }, [dispatch, collection, itemUid, onRequestCreated]);
+  }, [dispatch, collection, itemUid, onRequestCreated, untitled]);
 
   const handleCreateGrpcRequest = useCallback(async () => {
-    const uniqueName = await generateUniqueRequestName(collection, 'Untitled', itemUid);
+    const uniqueName = await generateUniqueRequestName(collection, untitled, itemUid);
     const filename = sanitizeName(uniqueName);
 
     dispatch(
@@ -103,7 +106,7 @@ const CreateUntitledRequest = ({ collectionUid, itemUid = null, onRequestCreated
         onRequestCreated?.();
       })
       .catch((err) => toast.error(err ? err.message : 'An error occurred while adding the request'));
-  }, [dispatch, collection, itemUid, onRequestCreated]);
+  }, [dispatch, collection, itemUid, onRequestCreated, untitled]);
 
   const menuItems = useMemo(() => [
     {

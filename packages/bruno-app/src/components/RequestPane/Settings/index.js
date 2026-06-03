@@ -8,6 +8,7 @@ import InheritableSettingsInput from 'components/InheritableSettingsInput';
 import { updateItemSettings } from 'providers/ReduxStore/slices/collections';
 import { saveRequest, sendRequest } from 'providers/ReduxStore/slices/collections/actions';
 import Tags from './Tags/index';
+import { useTranslation } from 'react-i18next';
 
 // Default settings configuration
 const DEFAULT_SETTINGS = {
@@ -21,6 +22,7 @@ const Settings = ({ item, collection }) => {
   const dispatch = useDispatch();
 
   // Get current settings with defaults applied
+  const { t } = useTranslation();
   const getPropertyFromDraftOrRequest = (propertyKey) =>
     item.draft ? get(item, `draft.${propertyKey}`, {}) : get(item, propertyKey, {});
 
@@ -97,12 +99,12 @@ const Settings = ({ item, collection }) => {
 
   return (
     <div className="h-full w-full">
-      <div className="text-xs mb-4 text-muted">Configure request settings for this item.</div>
+      <div className="text-xs mb-4 text-muted">{t('REQUEST_PANE.CONFIGURE_REQUEST_SETTINGS')}</div>
       <div className="bruno-form">
         <div className="mb-6">
           <h3 className="text-xs font-medium text-gray-900 dark:text-gray-100 flex items-center gap-1 mb-4">
             <IconTag size={16} />
-            Tags
+            {t('REQUEST_PANE.TAGS')}
           </h3>
           <Tags item={item} collection={collection} />
         </div>
@@ -113,8 +115,8 @@ const Settings = ({ item, collection }) => {
             <ToggleSelector
               checked={encodeUrl}
               onChange={onToggleUrlEncoding}
-              label="URL Encoding"
-              description="Automatically encode query parameters in the URL"
+              label={t('REQUEST_PANE.URL_ENCODING')}
+              description={t('REQUEST_PANE.AUTOMATICALLY_ENCODE_QUERY_PARAMETERS')}
               size="medium"
               data-testid="encode-url-toggle"
             />
@@ -124,8 +126,8 @@ const Settings = ({ item, collection }) => {
             <ToggleSelector
               checked={followRedirects}
               onChange={onToggleFollowRedirects}
-              label="Automatically Follow Redirects"
-              description="Follow HTTP redirects automatically"
+              label={t('REQUEST_PANE.FOLLOW_REDIRECTS')}
+              description={t('REQUEST_PANE.FOLLOW_REDIRECTS_DESC')}
               size="medium"
               data-testid="follow-redirects-toggle"
             />
@@ -133,18 +135,18 @@ const Settings = ({ item, collection }) => {
 
           <SettingsInput
             id="maxRedirects"
-            label="Max Redirects"
+            label={t('REQUEST_PANE.MAX_REDIRECTS')}
             value={maxRedirects}
             onChange={onMaxRedirectsChange}
-            description="Set a limit for the number of redirects to follow"
+            description={t('REQUEST_PANE.MAX_REDIRECTS_DESC')}
             onKeyDown={handleKeyDown}
           />
 
           <InheritableSettingsInput
             id="timeout"
-            label="Timeout (ms)"
+            label={t('REQUEST_PANE.TIMEOUT_MS')}
             value={timeout}
-            description="Set maximum time to wait before aborting the request"
+            description={t('REQUEST_PANE.SET_MAXIMUM_TIME_TO_WAIT')}
             onKeyDown={handleKeyDown}
             isInherited={isTimeoutInherited}
             onDropdownSelect={handleTimeoutDropdownSelect}

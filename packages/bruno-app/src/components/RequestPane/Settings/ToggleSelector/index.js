@@ -33,41 +33,43 @@ const ToggleSelector = ({
   const currentSize = sizeClasses[size];
 
   return (
-    <div className="flex items-center justify-between">
-      <div className="flex flex-col">
-        <label className="text-xs font-medium text-gray-900 dark:text-gray-100">
+    <div className="flex items-center justify-between gap-4">
+      <div className="flex flex-col flex-1 min-w-0">
+        <label className="text-xs font-medium text-gray-900 dark:text-gray-100 truncate">
           {label}
         </label>
         {description && (
-          <p className="text-xs text-gray-700 dark:text-gray-400">
+          <p className="text-xs text-gray-700 dark:text-gray-400 truncate">
             {description}
           </p>
         )}
       </div>
-      <button
-        type="button"
-        onClick={onChange}
-        disabled={disabled}
-        data-testid={dataTestId}
-        style={{
-          backgroundColor: checked ? theme.primary.solid : theme.background.surface2
-        }}
-        className={`
+      <div className="flex-shrink-0">
+        <button
+          type="button"
+          onClick={onChange}
+          disabled={disabled}
+          data-testid={dataTestId}
+          style={{
+            backgroundColor: checked ? theme.primary.solid : theme.background.surface2
+          }}
+          className={`
           relative inline-flex ${currentSize.container} flex-shrink-0 items-center rounded-full transition-colors
           focus:outline-none focus:ring-1 focus:ring-offset-1
           ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
         `}
-        role="switch"
-        aria-checked={checked}
-        aria-disabled={disabled}
-      >
-        <span
-          className={`
+          role="switch"
+          aria-checked={checked}
+          aria-disabled={disabled}
+        >
+          <span
+            className={`
             inline-block ${currentSize.thumb} transform rounded-full bg-white transition-transform
             ${currentSize.translate}
           `}
-        />
-      </button>
+          />
+        </button>
+      </div>
     </div>
   );
 };

@@ -1,8 +1,10 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import ReactJson from 'react-json-view';
 import ErrorBanner from 'ui/ErrorBanner';
 
 const JsonPreview = ({ data, displayedTheme }) => {
+  const { t } = useTranslation();
   // Helper function to validate and parse JSON data
   const validateJsonData = (data) => {
     // If data is already an object or array, use it directly
@@ -29,16 +31,16 @@ const JsonPreview = ({ data, displayedTheme }) => {
 
   // Show error if parsing failed
   if (jsonData.error) {
-    return <ErrorBanner errors={[{ title: 'Cannot preview as JSON', message: jsonData.error }]} />;
+    return <ErrorBanner errors={[{ title: t('RESPONSE_PANE.CANNOT_PREVIEW_AS_JSON'), message: jsonData.error }]} />;
   }
 
   // Validate that data can be rendered as JSON tree
   if (jsonData.data === null || jsonData.data === undefined) {
-    return <ErrorBanner errors={[{ title: 'Cannot preview as JSON', message: 'Data is null or undefined. Expected a valid JSON object or array.' }]} />;
+    return <ErrorBanner errors={[{ title: t('RESPONSE_PANE.CANNOT_PREVIEW_AS_JSON'), message: t('RESPONSE_PANE.JSON_DATA_NULL') }]} />;
   }
 
   if (typeof jsonData.data !== 'object') {
-    return <ErrorBanner errors={[{ title: 'Cannot preview as JSON', message: 'Data cannot be rendered as a JSON tree. Expected a JSON object or array.' }]} />;
+    return <ErrorBanner errors={[{ title: t('RESPONSE_PANE.CANNOT_PREVIEW_AS_JSON'), message: t('RESPONSE_PANE.JSON_CANNOT_RENDER_AS_TREE') }]} />;
   }
 
   return (

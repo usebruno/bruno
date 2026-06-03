@@ -41,9 +41,9 @@ export const isLinuxOS = () => {
 };
 
 export const getRevealInFolderLabel = () => {
-  if (isMacOS()) return 'Reveal in Finder';
-  if (isWindowsOS()) return 'Reveal in File Explorer';
-  return 'Reveal in File Manager';
+  if (isMacOS()) return 'COMMON.REVEAL_IN_FINDER';
+  if (isWindowsOS()) return 'COMMON.REVEAL_IN_FILE_EXPLORER';
+  return 'COMMON.REVEAL_IN_FILE_MANAGER';
 };
 
 export const getAppInstallDate = () => {

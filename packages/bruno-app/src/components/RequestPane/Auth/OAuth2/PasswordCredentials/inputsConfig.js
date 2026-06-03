@@ -1,30 +1,30 @@
-const inputsConfig = [
+const getInputsConfig = (t) => [
   {
     key: 'accessTokenUrl',
-    label: 'Access Token URL'
+    label: t('REQUEST_PANE.ACCESS_TOKEN_URL')
   },
   {
     key: 'username',
-    label: 'Username'
+    label: t('REQUEST_PANE.USERNAME')
   },
   {
     key: 'password',
-    label: 'Password',
+    label: t('REQUEST_PANE.PASSWORD'),
     isSecret: true
   },
   {
     key: 'clientId',
-    label: 'Client ID'
+    label: t('REQUEST_PANE.CLIENT_ID')
   },
   {
     key: 'clientSecret',
-    label: 'Client Secret',
+    label: t('REQUEST_PANE.CLIENT_SECRET'),
     isSecret: true
   },
   {
     key: 'scope',
-    label: 'Scope'
+    label: t('REQUEST_PANE.SCOPE')
   }
 ];
 
-export { inputsConfig };
+export { getInputsConfig };

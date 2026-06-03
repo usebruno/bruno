@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import find from 'lodash/find';
 import toast from 'react-hot-toast';
 import { useSelector, useDispatch } from 'react-redux';
@@ -53,6 +54,7 @@ const COLLAPSE_EDGE_THRESHOLD = 80;
 const EXPAND_EDGE_THRESHOLD = 100;
 
 const RequestTabPanel = () => {
+  const { t } = useTranslation();
   const dispatch = useDispatch();
   const tabs = useSelector((state) => state.tabs.tabs);
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
@@ -303,7 +305,7 @@ const RequestTabPanel = () => {
     return (
       <div className="flex flex-col items-center justify-center h-full gap-3 text-muted">
         <IconLoader2 className="animate-spin" size={24} strokeWidth={1.5} />
-        <span>Loading...</span>
+        <span>{t('COMMON.LOADING')}</span>
       </div>
     );
   }
@@ -325,11 +327,11 @@ const RequestTabPanel = () => {
   }
 
   if (!focusedTab.uid || !focusedTab.collectionUid) {
-    return <div className="pb-4 px-4">An error occurred!</div>;
+    return <div className="pb-4 px-4">{t('COMMON.AN_ERROR_OCCURRED')}</div>;
   }
 
   if (!collection || !collection.uid) {
-    return <div className="pb-4 px-4">Collection not found!</div>;
+    return <div className="pb-4 px-4">{t('COMMON.COLLECTION_NOT_FOUND')}</div>;
   }
 
   if (focusedTab.type === 'response-example') {
@@ -438,17 +440,17 @@ const RequestTabPanel = () => {
     const request = item.draft ? item.draft.request : item.request;
 
     if (isGrpcRequest && !request.url) {
-      toast.error('Please enter a valid gRPC server URL');
+      toast.error(t('COMMON.PLEASE_ENTER_GRPC_URL'));
       return;
     }
 
     if (isGrpcRequest && !request.method) {
-      toast.error('Please select a gRPC method');
+      toast.error(t('COMMON.PLEASE_SELECT_GRPC_METHOD'));
       return;
     }
 
     if (isWsRequest && !request.url) {
-      toast.error('Please enter a valid WebSocket URL');
+      toast.error(t('COMMON.PLEASE_ENTER_WS_URL'));
       return;
     }
     if (item.requestState !== 'sending' && item.requestState !== 'queued') {

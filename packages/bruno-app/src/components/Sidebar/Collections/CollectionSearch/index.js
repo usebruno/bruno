@@ -1,7 +1,10 @@
+import { useTranslation } from 'react-i18next';
 import { IconSearch, IconX } from '@tabler/icons';
 import StyledWrapper from './StyledWrapper';
 
 const CollectionSearch = ({ searchText, setSearchText }) => {
+  const { t } = useTranslation();
+
   return (
     <StyledWrapper>
       <IconSearch size={14} strokeWidth={1.5} className="search-icon" />
@@ -9,7 +12,7 @@ const CollectionSearch = ({ searchText, setSearchText }) => {
         type="text"
         name="search"
         data-testid="sidebar-search-input"
-        placeholder="Search requests..."
+        placeholder={t('SIDEBAR.SEARCH_REQUESTS_PLACEHOLDER')}
         id="search"
         autoComplete="off"
         autoCorrect="off"

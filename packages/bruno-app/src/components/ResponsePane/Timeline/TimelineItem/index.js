@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useDispatch } from 'react-redux';
+import { useTranslation } from 'react-i18next';
 import { IconChevronDown, IconChevronRight } from '@tabler/icons';
 import Method from './Common/Method/index';
 import Status from './Common/Status/index';
@@ -37,6 +38,7 @@ const TimelineItem = ({
   scope,
   phase
 }) => {
+  const { t } = useTranslation();
   const dispatch = useDispatch();
   const [isExpanded, _toggleExpand] = usePersistedState({
     key: `timeline-${timestamp}`,
@@ -73,7 +75,7 @@ const TimelineItem = ({
       : null;
   const code = numericCode != null
     ? numericCode
-    : (statusText || (error ? 'Error' : undefined));
+    : (statusText || (error ? t('RESPONSE_PANE.ERROR') : undefined));
   const showNetworkLogs = response?.timeline && response.timeline.length > 0;
   const badge = getBadge({ source, isOauth2 });
 

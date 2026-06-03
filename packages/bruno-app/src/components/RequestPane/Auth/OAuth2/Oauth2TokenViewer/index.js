@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { find } from 'lodash';
 import StyledWrapper from './StyledWrapper';
 import { IconChevronDown, IconChevronRight, IconCopy, IconCheck } from '@tabler/icons';
@@ -7,6 +8,7 @@ import { interpolate } from '@usebruno/common';
 
 const TokenSection = ({ title, token }) => {
   if (!token) return null;
+  const { t } = useTranslation();
 
   const [isExpanded, setIsExpanded] = useState(false);
   const [decodedToken, setDecodedToken] = useState(null);
@@ -124,6 +126,7 @@ const ExpiryTimer = ({ expiresIn }) => {
 
 const Oauth2TokenViewer = ({ collection, item, url, credentialsId, handleRun }) => {
   const { uid: collectionUid } = collection;
+  const { t } = useTranslation();
 
   const interpolatedUrl = useMemo(() => {
     const variables = getAllVariables(collection, item);
@@ -137,7 +140,7 @@ const Oauth2TokenViewer = ({ collection, item, url, credentialsId, handleRun }) 
     <StyledWrapper className="relative w-auto h-fit mt-2">
       {Object.keys(creds)?.length ? (
         creds?.error ? (
-          <pre className="text-red-600 dark:text-red-400">Error fetching token. Check network logs for more details.</pre>
+          <pre className="text-red-600 dark:text-red-400">{t('REQUEST_PANE.ERROR_FETCHING_TOKEN_DETAILS')}</pre>
         ) : (
           <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 shadow-sm">
             <TokenSection title="Access Token" token={creds.access_token} />
@@ -154,7 +157,7 @@ const Oauth2TokenViewer = ({ collection, item, url, credentialsId, handleRun }) 
                   ) : null}
                   {creds?.scope ? (
                     <div className="flex items-center space-x-1 min-w-0">
-                      <span className="font-medium flex-shrink-0">Scope:</span>
+                      <span className="font-medium flex-shrink-0">{t('REQUEST_PANE.SCOPE')}:</span>
                       <span className="text-gray-600 dark:text-gray-300 truncate" title={creds.scope}>
                         {creds.scope}
                       </span>

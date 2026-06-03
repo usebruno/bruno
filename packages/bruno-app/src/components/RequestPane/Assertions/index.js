@@ -11,6 +11,7 @@ import EditableTable from 'components/EditableTable';
 import StyledWrapper from './StyledWrapper';
 import { usePersistedState } from 'hooks/usePersistedState';
 import { useTrackScroll } from 'hooks/useTrackScroll';
+import { useTranslation } from 'react-i18next';
 
 const unaryOperators = [
   'isEmpty',
@@ -56,6 +57,7 @@ const isUnaryOperator = (operator) => unaryOperators.includes(operator);
 
 const Assertions = ({ item, collection }) => {
   const dispatch = useDispatch();
+  const { t } = useTranslation();
   const { storedTheme } = useTheme();
   const wrapperRef = useRef(null);
   const [scroll, setScroll] = usePersistedState({ key: `request-assert-scroll-${item.uid}`, default: 0 });
@@ -94,14 +96,14 @@ const Assertions = ({ item, collection }) => {
   const columns = [
     {
       key: 'name',
-      name: 'Expr',
+      name: t('REQUEST_PANE.EXPR'),
       isKeyField: true,
-      placeholder: 'Expr',
+      placeholder: t('REQUEST_PANE.EXPR'),
       width: '30%'
     },
     {
       key: 'operator',
-      name: 'Operator',
+      name: t('REQUEST_PANE.OPERATOR'),
       width: '120px',
       getValue: (row) => parseAssertionOperator(row.value).operator,
       render: ({ row, rowIndex, isLastEmptyRow }) => {
@@ -139,7 +141,7 @@ const Assertions = ({ item, collection }) => {
     },
     {
       key: 'value',
-      name: 'Value',
+      name: t('REQUEST_PANE.VALUE'),
       width: '30%',
       render: ({ row, value, onChange }) => {
         const { operator, value: assertionValue } = parseAssertionOperator(value);
@@ -157,7 +159,7 @@ const Assertions = ({ item, collection }) => {
             onRun={handleRun}
             collection={collection}
             item={item}
-            placeholder={!value ? 'Value' : ''}
+            placeholder={!value ? t('REQUEST_PANE.VALUE') : ''}
           />
         );
       }

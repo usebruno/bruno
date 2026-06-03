@@ -80,7 +80,7 @@ const MethodDropdown = ({
         <span className="method-dropdown-trigger-text" data-testid="selected-grpc-method-name">
           {selectedGrpcMethod ? (selectedGrpcMethod.path.split('.').at(-1) || selectedGrpcMethod.path) : 'Select Method'}
         </span>
-        <IconChevronDown className="method-dropdown-caret" size={14} strokeWidth={2} />
+        <IconChevronDown className="method-dropdown-caret" size={14} strokeWidth={2} data-testid="grpc-method-dropdown-caret" />
       </div>
     );
   });

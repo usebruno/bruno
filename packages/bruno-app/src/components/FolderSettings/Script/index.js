@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import get from 'lodash/get';
 import find from 'lodash/find';
 import { useDispatch, useSelector } from 'react-redux';
+import { useTranslation } from 'react-i18next';
 import CodeEditor from 'components/CodeEditor';
 import { updateFolderRequestScript, updateFolderResponseScript } from 'providers/ReduxStore/slices/collections';
 import { saveFolderRoot } from 'providers/ReduxStore/slices/collections/actions';
@@ -15,6 +16,7 @@ import Button from 'ui/Button';
 import { usePersistedState } from 'hooks/usePersistedState';
 
 const Script = ({ collection, folder }) => {
+  const { t } = useTranslation();
   const dispatch = useDispatch();
   const preRequestEditorRef = useRef(null);
   const postResponseEditorRef = useRef(null);
@@ -91,19 +93,19 @@ const Script = ({ collection, folder }) => {
   return (
     <StyledWrapper className="w-full flex flex-col h-full">
       <div className="text-xs mb-4 text-muted">
-        Pre and post-request scripts that will run before and after any request inside this folder is sent.
+        {t('REQUEST_PANE.PRE_REQUEST')} 和 {t('REQUEST_PANE.POST_RESPONSE')} 脚本将在文件夹内的任何请求发送之前和之后运行。
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
           <TabsTrigger value="pre-request">
-            Pre Request
+            {t('REQUEST_PANE.PRE_REQUEST')}
             {requestScript && requestScript.trim().length > 0 && (
               <StatusDot type={hasPreRequestScriptError ? 'error' : 'default'} />
             )}
           </TabsTrigger>
           <TabsTrigger value="post-response">
-            Post Response
+            {t('REQUEST_PANE.POST_RESPONSE')}
             {responseScript && responseScript.trim().length > 0 && (
               <StatusDot type={hasPostResponseScriptError ? 'error' : 'default'} />
             )}

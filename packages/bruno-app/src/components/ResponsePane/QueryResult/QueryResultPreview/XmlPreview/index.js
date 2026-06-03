@@ -1,18 +1,20 @@
-import ErrorBanner from 'ui/ErrorBanner';
 import React, { useState, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
+import ErrorBanner from 'ui/ErrorBanner';
 import StyledWrapper from './StyledWrapper';
 
 // The expected "data" prop must be an XML string.
 export default function XmlPreview({ data, defaultExpanded = true }) {
+  const { t } = useTranslation();
   // Parse XML string
   const parsedData = useMemo(() => {
     if (typeof data !== 'string') {
-      return { error: 'Invalid input. Expected an XML string.' };
+      return { error: t('RESPONSE_PANE.INVALID_XML_INPUT') };
     }
 
     const parsed = parseXMLString(data);
     if (parsed === null) {
-      return { error: 'Failed to parse XML string. Invalid XML format.' };
+      return { error: t('RESPONSE_PANE.FAILED_PARSE_XML') };
     }
     return parsed;
   }, [data]);
@@ -55,7 +57,7 @@ export default function XmlPreview({ data, defaultExpanded = true }) {
       // Empty object with no children
       return (
         <div className="px-2">
-          <ErrorBanner errors={[{ title: 'Cannot preview as XML', message: 'Cannot render XML tree. Root object is empty.' }]} />
+          <ErrorBanner errors={[{ title: t('RESPONSE_PANE.CANNOT_PREVIEW_AS_XML'), message: t('RESPONSE_PANE.ROOT_OBJECT_EMPTY') }]} />
         </div>
       );
     }
@@ -125,6 +127,7 @@ const XmlNode = ({
   defaultExpanded = true,
   depth = 0
 }) => {
+  const { t } = useTranslation();
   const [expanded, setExpanded] = useState(defaultExpanded);
 
   let displayNodeName = nodeName;
@@ -219,7 +222,7 @@ const XmlNode = ({
 
   // If no display name at non-root level, use a fallback
   if (!displayNodeName) {
-    displayNodeName = '(unnamed)';
+    displayNodeName = t('RESPONSE_PANE.UNNAMED');
   }
 
   // Determine if this node's value is an array
@@ -257,7 +260,7 @@ const XmlNode = ({
 
             // Handle attributes
             if (isAttribute) {
-              const displayValue = value === '' ? 'value' : value;
+              const displayValue = value === '' ? t('RESPONSE_PANE.VALUE') : value;
 
               return (
                 <div key={key + idx} className="flex items-start mb-1" style={{ paddingLeft: `${(depth + 1) * 20}px` }}>

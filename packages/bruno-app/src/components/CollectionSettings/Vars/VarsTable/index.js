@@ -10,8 +10,10 @@ import StyledWrapper from './StyledWrapper';
 import toast from 'react-hot-toast';
 import { variableNameRegex } from 'utils/common/regex';
 import { setCollectionVars } from 'providers/ReduxStore/slices/collections/index';
+import { useTranslation } from 'react-i18next';
 
 const VarsTable = ({ collection, vars, varType, initialScroll = 0 }) => {
+  const { t } = useTranslation();
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
   const tabs = useSelector((state) => state.tabs.tabs);
@@ -35,7 +37,7 @@ const VarsTable = ({ collection, vars, varType, initialScroll = 0 }) => {
     if (key !== 'name') return null;
     if (!row.name || row.name.trim() === '') return null;
     if (!variableNameRegex.test(row.name)) {
-      return 'Variable contains invalid characters. Must only contain alphanumeric characters, "-", "_", "."';
+      return t('COLLECTION_SETTINGS.VARIABLE_INVALID_CHARACTERS');
     }
     return null;
   }, []);
@@ -50,9 +52,9 @@ const VarsTable = ({ collection, vars, varType, initialScroll = 0 }) => {
     },
     {
       key: 'value',
-      name: varType === 'request' ? 'Value' : (
+      name: varType === 'request' ? t('COMMON.VALUE') : (
         <div className="flex items-center">
-          <span>Expr</span>
+          <span>{t('COLLECTION_SETTINGS.EXPR')}</span>
           <InfoTip content="You can write any valid JS Template Literal here" infotipId={`collection-${varType}-var`} />
         </div>
       ),
@@ -64,7 +66,7 @@ const VarsTable = ({ collection, vars, varType, initialScroll = 0 }) => {
           onSave={onSave}
           onChange={onChange}
           collection={collection}
-          placeholder={!value ? (varType === 'request' ? 'Value' : 'Expr') : ''}
+          placeholder={!value ? (varType === 'request' ? t('COMMON.VALUE') : t('COLLECTION_SETTINGS.EXPR')) : ''}
         />
       )
     }

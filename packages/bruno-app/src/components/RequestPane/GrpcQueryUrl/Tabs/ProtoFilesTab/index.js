@@ -2,6 +2,7 @@ import React from 'react';
 import { IconFile, IconSettings, IconAlertCircle } from '@tabler/icons';
 import { getBasename } from 'utils/common/path';
 import StyledWrapper from './StyledWrapper';
+import { useTranslation } from 'react-i18next';
 
 const ProtoFilesTab = ({
   collectionProtoFiles,
@@ -12,6 +13,7 @@ const ProtoFilesTab = ({
   onOpenCollectionProtobufSettings,
   onSelectProtoFile
 }) => {
+  const { t } = useTranslation();
   return (
     <StyledWrapper>
       {collectionProtoFiles && collectionProtoFiles.length > 0 && (
@@ -30,13 +32,13 @@ const ProtoFilesTab = ({
             <div className="error-wrapper">
               <p className="error-text">
                 <IconAlertCircle size={16} strokeWidth={1.5} style={{ marginRight: '0.25rem' }} />
-                Some proto files could not be found.
+                {t('REQUEST_PANE.SOME_PROTO_FILES_COULD_NOT_BE_FOUND')}
                 {' '}
                 <button
                   onClick={onOpenCollectionProtobufSettings}
                   className="error-link"
                 >
-                  Manage proto files
+                  {t('REQUEST_PANE.MANAGE_PROTO_FILES')}
                 </button>
               </p>
             </div>
@@ -96,7 +98,7 @@ const ProtoFilesTab = ({
           onClick={onSelectProtoFile}
         >
           <IconFile size={16} strokeWidth={1.5} style={{ marginRight: '0.25rem' }} />
-          Browse for Proto File
+          {t('REQUEST_PANE.BROWSE_FOR_PROTO_FILE')}
         </button>
       </div>
     </StyledWrapper>

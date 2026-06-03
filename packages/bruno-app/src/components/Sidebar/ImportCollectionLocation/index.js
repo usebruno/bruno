@@ -1,5 +1,6 @@
-import React, { useRef, useEffect, useState, forwardRef } from 'react';
+import React, { useRef, useEffect, useState, forwardRef, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import { useTranslation } from 'react-i18next';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import get from 'lodash/get';
@@ -56,7 +57,7 @@ const getCollectionName = (format, rawData) => {
 
 // Convert raw data to Bruno collection format
 // Returns { collection, issues } where issues tracks items that were skipped or degraded
-const convertCollection = async (format, rawData, groupingType, collectionFormat) => {
+const convertCollection = async (format, rawData, groupingType, collectionFormat, t) => {
   try {
     let collection;
     let issues = [];
@@ -94,7 +95,7 @@ const convertCollection = async (format, rawData, groupingType, collectionFormat
     return { collection, issues };
   } catch (err) {
     console.error('Conversion error:', err);
-    toastError(err, 'Failed to convert collection');
+    toastError(err, t('SIDEBAR.FAILED_TO_CONVERT_COLLECTION'));
     throw err;
   }
 };
@@ -105,6 +106,7 @@ const groupingOptions = [
 ];
 
 const ImportCollectionLocation = ({ onClose, handleSubmit, rawData, format, sourceUrl, filePath, rawContent }) => {
+  const { t } = useTranslation();
   const inputRef = useRef();
   const dispatch = useDispatch();
   const [groupingType, setGroupingType] = useState('tags');
@@ -118,6 +120,11 @@ const ImportCollectionLocation = ({ onClose, handleSubmit, rawData, format, sour
   const isOpenApiFromFile = isOpenApi && !!filePath && !sourceUrl;
   const isSwagger2 = isOpenApi && rawData?.swagger && String(rawData.swagger).startsWith('2');
   const showCheckForSpecUpdatesOption = isOpenAPISyncEnabled && (isOpenApiFromUrl || isOpenApiFromFile);
+
+  const groupingOptions = useMemo(() => [
+    { value: 'tags', label: t('SIDEBAR.TAGS'), description: t('SIDEBAR.GROUP_BY_TAGS'), testId: 'grouping-option-tags' },
+    { value: 'path', label: t('SIDEBAR.PATHS'), description: t('SIDEBAR.GROUP_BY_PATHS'), testId: 'grouping-option-path' }
+  ], [t]);
 
   const { workspaces, activeWorkspaceUid } = useSelector((state) => state.workspaces);
   const preferences = useSelector((state) => state.app.preferences);
@@ -137,9 +144,9 @@ const ImportCollectionLocation = ({ onClose, handleSubmit, rawData, format, sour
     },
     validationSchema: Yup.object({
       collectionLocation: Yup.string()
-        .min(1, 'must be at least 1 character')
-        .max(500, 'must be 500 characters or less')
-        .required('Location is required')
+        .min(1, t('SIDEBAR.MUST_BE_AT_LEAST_1_CHAR'))
+        .max(500, t('SIDEBAR.MUST_BE_500_OR_LESS'))
+        .required(t('SIDEBAR.LOCATION_REQUIRED'))
     }),
     onSubmit: async (values) => {
       const { collection: convertedCollection, issues } = await convertCollection(format, rawData, groupingType, collectionFormat);
@@ -255,7 +262,7 @@ const ImportCollectionLocation = ({ onClose, handleSubmit, rawData, format, sour
         <form className="bruno-form" onSubmit={(e) => e.preventDefault()}>
           <div>
             <label htmlFor="collectionName" className="block font-medium">
-              Name
+              {t('COMMON.NAME')}
             </label>
             <div className="mt-2">{collectionName}</div>
 
@@ -293,7 +300,7 @@ const ImportCollectionLocation = ({ onClose, handleSubmit, rawData, format, sour
                 className="text-link cursor-pointer hover:underline"
                 onClick={browse}
               >
-                Browse
+                {t('COMMON.BROWSE')}
               </span>
             </div>
 
@@ -318,8 +325,8 @@ const ImportCollectionLocation = ({ onClose, handleSubmit, rawData, format, sour
                   value={collectionFormat}
                   onChange={(e) => setCollectionFormat(e.target.value)}
                 >
-                  <option value="yml">OpenCollection (YAML)</option>
-                  <option value="bru">BRU Format (.bru)</option>
+                  <option value="yml">{t('SIDEBAR.OPENCOLLECTION_FORMAT')}</option>
+                  <option value="bru">{t('SIDEBAR.BRU_FORMAT_OPTION')}</option>
                 </select>
               </div>
             )}
@@ -329,10 +336,10 @@ const ImportCollectionLocation = ({ onClose, handleSubmit, rawData, format, sour
             <div className="mt-4 flex gap-4 items-center justify-between">
               <div>
                 <label htmlFor="groupingType" className="block font-medium">
-                  Folder arrangement
+                  {t('SIDEBAR.FOLDER_ARRANGEMENT')}
                 </label>
                 <p className="text-muted text-xs mt-1 mb-2">
-                  Select whether to create folders according to the spec's paths or tags.
+                  {t('SIDEBAR.FOLDER_ARRANGEMENT_DESC')}
                 </p>
               </div>
               <div className="relative">
@@ -365,12 +372,12 @@ const ImportCollectionLocation = ({ onClose, handleSubmit, rawData, format, sour
                   disabled={isSwagger2}
                   className={`checkbox ${isSwagger2 ? '' : 'cursor-pointer'}`}
                 />
-                <span className="font-medium">Check for Spec Updates</span>
+                <span className="font-medium">{t('SIDEBAR.CHECK_FOR_SPEC_UPDATES')}</span>
               </label>
               <p className="text-muted text-xs mt-1">
                 {isSwagger2
-                  ? 'OpenAPI Sync is not supported for Swagger 2.0 specs.'
-                  : 'Stay notified of spec changes and sync your collection with the spec.'}
+                  ? t('SIDEBAR.OPENAPI_SYNC_NOT_SWAGGER2')
+                  : t('SIDEBAR.STAY_NOTIFIED_OF_SPEC')}
               </p>
             </div>
           )}

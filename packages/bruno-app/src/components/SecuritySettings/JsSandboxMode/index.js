@@ -90,6 +90,7 @@ const JsSandboxMode = ({ collection }) => {
                 name="sandbox-mode"
                 value={option.key}
                 checked={isActive}
+                readOnly
               />
             </div>
             <OptionIcon size={24} strokeWidth={1.5} />

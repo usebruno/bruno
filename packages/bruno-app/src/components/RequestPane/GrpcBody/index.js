@@ -5,6 +5,7 @@ import { useTheme } from 'providers/Theme';
 import { updateRequestBody } from 'providers/ReduxStore/slices/collections';
 import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { sendGrpcMessage, generateGrpcSampleMessage } from 'utils/network/index';
+import { useTranslation } from 'react-i18next';
 import useLocalStorage from 'hooks/useLocalStorage';
 
 import CodeEditor from 'components/CodeEditor/index';
@@ -28,9 +29,10 @@ const MessageToolbar = ({
   onDeleteMessage,
   showDelete
 }) => {
+  const { t } = useTranslation();
   return (
     <div className="message-toolbar">
-      <span className="message-label">Message {index + 1}</span>
+      <span className="message-label">{t('REQUEST_PANE.MESSAGE_N', { n: index + 1 })}</span>
       <div className="toolbar-actions mr-2">
         <ToolHint text="Format JSON" toolhintId={`prettify-msg-${index}`}>
           <button onClick={onPrettify} className="toolbar-btn">
@@ -70,6 +72,7 @@ const MessageToolbar = ({
 };
 
 const SingleGrpcMessage = ({ message, item, collection, index, methodType, handleRun, canClientSendMultipleMessages, isLast }) => {
+  const { t } = useTranslation();
   const dispatch = useDispatch();
   const editorRef = useRef(null);
   const { displayedTheme } = useTheme();
@@ -87,7 +90,7 @@ const SingleGrpcMessage = ({ message, item, collection, index, methodType, handl
   const onEdit = (value) => {
     const currentMessages = [...(body.grpc || [])];
     currentMessages[index] = {
-      name: name ? name : `message ${index + 1}`,
+      name: name ? name : t('REQUEST_PANE.MESSAGE_N', { n: index + 1 }),
       content: value
     };
     dispatch(updateRequestBody({
@@ -148,9 +151,9 @@ const SingleGrpcMessage = ({ message, item, collection, index, methodType, handl
           itemUid: item.uid,
           collectionUid: collection.uid
         }));
-        toast.success('Sample message generated');
+        toast.success(t('REQUEST_PANE.SAMPLE_MESSAGE_GENERATED'));
       } else {
-        toastError(new Error(result.error || 'Failed to generate sample message'));
+        toastError(new Error(result.error || t('REQUEST_PANE.FAILED_TO_GENERATE_SAMPLE_MESSAGE')));
       }
     } catch (error) {
       console.error('Error generating sample message:', error);

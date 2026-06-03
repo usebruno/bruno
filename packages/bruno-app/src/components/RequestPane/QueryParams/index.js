@@ -14,11 +14,13 @@ import MultiLineEditor from 'components/MultiLineEditor';
 import EditableTable from 'components/EditableTable';
 import StyledWrapper from './StyledWrapper';
 import BulkEditor from '../../BulkEditor';
+import { useTranslation } from 'react-i18next';
 import { usePersistedState } from 'hooks/usePersistedState';
 import { useTrackScroll } from 'hooks/useTrackScroll';
 
 const QueryParams = ({ item, collection }) => {
   const dispatch = useDispatch();
+  const { t } = useTranslation();
   const { storedTheme } = useTheme();
   const tabs = useSelector((state) => state.tabs.tabs);
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
@@ -78,15 +80,15 @@ const QueryParams = ({ item, collection }) => {
   const queryColumns = [
     {
       key: 'name',
-      name: 'Name',
+      name: t('REQUEST_PANE.NAME'),
       isKeyField: true,
-      placeholder: 'Name',
+      placeholder: t('REQUEST_PANE.NAME'),
       width: '30%'
     },
     {
       key: 'value',
-      name: 'Value',
-      placeholder: 'Value',
+      name: t('REQUEST_PANE.VALUE'),
+      placeholder: t('REQUEST_PANE.VALUE'),
       render: ({ value, onChange }) => (
         <MultiLineEditor
           value={value || ''}
@@ -97,7 +99,7 @@ const QueryParams = ({ item, collection }) => {
           collection={collection}
           item={item}
           variablesAutocomplete={true}
-          placeholder={!value ? 'Value' : ''}
+          placeholder={!value ? t('REQUEST_PANE.VALUE') : ''}
         />
       )
     }
@@ -106,15 +108,15 @@ const QueryParams = ({ item, collection }) => {
   const pathColumns = [
     {
       key: 'name',
-      name: 'Name',
+      name: t('REQUEST_PANE.NAME'),
       isKeyField: true,
       width: '30%',
       readOnly: true
     },
     {
       key: 'value',
-      name: 'Value',
-      placeholder: 'Value',
+      name: t('REQUEST_PANE.VALUE'),
+      placeholder: t('REQUEST_PANE.VALUE'),
       render: ({ row, value, onChange }) => (
         <MultiLineEditor
           value={value || ''}
@@ -153,7 +155,7 @@ const QueryParams = ({ item, collection }) => {
   return (
     <StyledWrapper className="w-full flex flex-col" ref={wrapperRef}>
       <div className="flex-1">
-        <div className="mb-3 title text-xs">Query</div>
+        <div className="mb-3 title text-xs">{t('REQUEST_PANE.QUERY')}</div>
         <EditableTable
           tableId="query-params"
           columns={queryColumns}
@@ -168,12 +170,12 @@ const QueryParams = ({ item, collection }) => {
         />
         <div className="bulk-edit-bar flex justify-end mt-2">
           <button className="btn-action text-link select-none" onClick={toggleBulkEditMode}>
-            Bulk Edit
+            {t('REQUEST_PANE.BULK_EDIT')}
           </button>
         </div>
 
         <div className="mb-3 title text-xs flex items-stretch">
-          <span>Path</span>
+          <span>{t('REQUEST_PANE.PATH')}</span>
           <InfoTip className="tooltip-mod" infotipId="path-param-InfoTip">
             <div>
               Path variables are automatically added whenever the

@@ -1,8 +1,10 @@
 import { IconFilter, IconX } from '@tabler/icons';
 import React, { useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Tooltip as ReactInfotip } from 'react-tooltip';
 
 const QueryResultFilter = ({ filter, filterExpanded, onChange, onExpandChange, mode }) => {
+  const { t } = useTranslation();
   const inputRef = useRef(null);
   const [isExpanded, setIsExpanded] = useState(filterExpanded || false);
 
@@ -29,15 +31,15 @@ const QueryResultFilter = ({ filter, filterExpanded, onChange, onExpandChange, m
 
   const infotipText = useMemo(() => {
     if (mode.includes('json')) {
-      return 'Filter with JSONPath';
+      return t('RESPONSE_PANE.FILTER_WITH_JSONPATH');
     }
 
     if (mode.includes('xml')) {
-      return 'Filter with XPath';
+      return t('RESPONSE_PANE.FILTER_WITH_XPATH');
     }
 
     return null;
-  }, [mode]);
+  }, [mode, t]);
 
   const placeholderText = useMemo(() => {
     if (mode.includes('json')) {

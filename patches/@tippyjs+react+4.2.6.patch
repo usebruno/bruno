@@ -1,0 +1,44 @@
+diff --git a/node_modules/@tippyjs/react/dist/tippy-react.esm.js b/node_modules/@tippyjs/react/dist/tippy-react.esm.js
+index 8fc6085..65701d4 100644
+--- a/node_modules/@tippyjs/react/dist/tippy-react.esm.js
++++ b/node_modules/@tippyjs/react/dist/tippy-react.esm.js
+@@ -357,7 +357,7 @@ function TippyGenerator(tippy) {
+     return /*#__PURE__*/React.createElement(React.Fragment, null, children ? /*#__PURE__*/cloneElement(children, {
+       ref: function ref(node) {
+         mutableBox.ref = node;
+-        preserveRef(children.ref, node);
++        preserveRef(children.props.ref, node);
+       }
+     }) : null, mounted && /*#__PURE__*/createPortal(render ? render(toDataAttributes(attrs), singletonContent, mutableBox.instance) : content, mutableBox.container));
+   }
+@@ -514,7 +514,7 @@ var forwardRef = (function (Tippy, defaultProps) {
+       React.createElement(Tippy, Object.assign({}, defaultProps, props), children ? /*#__PURE__*/cloneElement(children, {
+         ref: function ref(node) {
+           preserveRef(_ref2, node);
+-          preserveRef(children.ref, node);
++          preserveRef(children.props.ref, node);
+         }
+       }) : null)
+     );
+diff --git a/node_modules/@tippyjs/react/dist/tippy-react.umd.js b/node_modules/@tippyjs/react/dist/tippy-react.umd.js
+index 5788aec..1f24514 100644
+--- a/node_modules/@tippyjs/react/dist/tippy-react.umd.js
++++ b/node_modules/@tippyjs/react/dist/tippy-react.umd.js
+@@ -361,7 +361,7 @@
+       return /*#__PURE__*/React__default.createElement(React__default.Fragment, null, children ? /*#__PURE__*/React.cloneElement(children, {
+         ref: function ref(node) {
+           mutableBox.ref = node;
+-          preserveRef(children.ref, node);
++          preserveRef(children.props.ref, node);
+         }
+       }) : null, mounted && /*#__PURE__*/reactDom.createPortal(render ? render(toDataAttributes(attrs), singletonContent, mutableBox.instance) : content, mutableBox.container));
+     }
+@@ -518,7 +518,7 @@
+         React__default.createElement(Tippy, Object.assign({}, defaultProps, props), children ? /*#__PURE__*/React.cloneElement(children, {
+           ref: function ref(node) {
+             preserveRef(_ref2, node);
+-            preserveRef(children.ref, node);
++            preserveRef(children.props.ref, node);
+           }
+         }) : null)
+       );
