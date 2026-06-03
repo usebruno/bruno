@@ -15,7 +15,7 @@ const makeJUnitOutput = async (results, outputPath) => {
     const testCount = result.testResults ? result.testResults.length : 0;
     const postResponseTestCount = result.postResponseTestResults ? result.postResponseTestResults.length : 0;
     const totalTests = assertionTestCount + preRequestTestCount + testCount + postResponseTestCount;
-    const classname = result.name;
+    const classname = result.path;
 
     const suite = {
       '@name': result.name,
