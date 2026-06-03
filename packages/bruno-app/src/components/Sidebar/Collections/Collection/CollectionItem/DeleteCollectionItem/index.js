@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import Modal from 'components/Modal';
 import { isItemAFolder } from 'utils/tabs';
 import { useDispatch } from 'react-redux';
@@ -8,15 +9,13 @@ import StyledWrapper from './StyledWrapper';
 import toast from 'react-hot-toast';
 
 const DeleteCollectionItem = ({ onClose, item, collectionUid }) => {
+  const { t } = useTranslation();
   const dispatch = useDispatch();
   const isFolder = isItemAFolder(item);
   const onConfirm = () => {
     dispatch(deleteItem(item.uid, collectionUid)).then(() => {
       if (isFolder) {
-        // close all tabs that belong to the folder
-        // including the folder itself and its children
         const tabUids = [...recursivelyGetAllItemUids(item.items), item.uid];
-
         dispatch(
           closeTabs({
             tabUids: tabUids
@@ -31,7 +30,7 @@ const DeleteCollectionItem = ({ onClose, item, collectionUid }) => {
       }
     }).catch((error) => {
       console.error('Error deleting item', error);
-      toast.error(error?.message || 'Error deleting item');
+      toast.error(error?.message || t('SIDEBAR.ERROR_DELETING_ITEM'));
     });
     onClose();
   };
@@ -40,13 +39,13 @@ const DeleteCollectionItem = ({ onClose, item, collectionUid }) => {
     <StyledWrapper>
       <Modal
         size="md"
-        title={`Delete ${isFolder ? 'Folder' : 'Request'}`}
-        confirmText="Delete"
+        title={isFolder ? t('SIDEBAR.DELETE_FOLDER') : t('SIDEBAR.DELETE_REQUEST')}
+        confirmText={t('COMMON.DELETE')}
         confirmButtonColor="danger"
         handleConfirm={onConfirm}
         handleCancel={onClose}
       >
-        Are you sure you want to delete <span className="font-medium">{item.name}</span> ?
+        {t('SIDEBAR.DELETE_ITEM_CONFIRM', { name: item.name })}
       </Modal>
     </StyledWrapper>
   );

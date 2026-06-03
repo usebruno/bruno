@@ -1,4 +1,5 @@
 import React, { forwardRef, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import styled from 'styled-components';
 import { IconDots, IconDownload, IconEraser, IconBookmark, IconCopy, IconLayoutColumns, IconLayoutRows } from '@tabler/icons';
 import MenuDropdown from 'ui/MenuDropdown';
@@ -25,19 +26,23 @@ const StyledMenuIcon = styled.button`
   }
 `;
 
-const MenuIcon = forwardRef((props, ref) => (
-  <StyledMenuIcon
-    ref={ref}
-    title="More actions"
-    {...props}
-  >
-    <IconDots size={16} strokeWidth={1.5} />
-  </StyledMenuIcon>
-));
+const MenuIcon = forwardRef((props, ref) => {
+  const { t } = useTranslation();
+  return (
+    <StyledMenuIcon
+      ref={ref}
+      title={t('RESPONSE_PANE.MORE_ACTIONS')}
+      {...props}
+    >
+      <IconDots size={16} strokeWidth={1.5} />
+    </StyledMenuIcon>
+  );
+});
 
 MenuIcon.displayName = 'MenuIcon';
 
 const ResponsePaneActions = ({ item, collection, responseSize, selectedFormat, selectedTab, data, dataBuffer }) => {
+  const { t } = useTranslation();
   const { orientation } = useResponseLayoutToggle();
 
   // Refs to access child component imperative handles (click, isDisabled)
@@ -54,7 +59,7 @@ const ResponsePaneActions = ({ item, collection, responseSize, selectedFormat, s
   const gqlMenuItems = [
     {
       id: 'copy-response',
-      label: 'Copy response',
+      label: t('RESPONSE_PANE.COPY_RESPONSE'),
       leftSection: IconCopy,
       get disabled() {
         return copyButtonRef.current?.isDisabled ?? false;
@@ -63,7 +68,7 @@ const ResponsePaneActions = ({ item, collection, responseSize, selectedFormat, s
     },
     {
       id: 'download-response',
-      label: 'Download response',
+      label: t('RESPONSE_PANE.DOWNLOAD_RESPONSE'),
       leftSection: IconDownload,
       get disabled() {
         return downloadButtonRef.current?.isDisabled ?? false;
@@ -72,7 +77,7 @@ const ResponsePaneActions = ({ item, collection, responseSize, selectedFormat, s
     },
     {
       id: 'clear-response',
-      label: 'Clear response',
+      label: t('RESPONSE_PANE.CLEAR_RESPONSE'),
       leftSection: IconEraser,
       get disabled() {
         return clearButtonRef.current?.isDisabled ?? false;
@@ -81,7 +86,7 @@ const ResponsePaneActions = ({ item, collection, responseSize, selectedFormat, s
     },
     {
       id: 'change-layout',
-      label: 'Change layout',
+      label: t('RESPONSE_PANE.CHANGE_LAYOUT'),
       leftSection: orientation === 'vertical' ? IconLayoutColumns : IconLayoutRows,
       get disabled() {
         return layoutToggleButtonRef.current?.isDisabled ?? false;
@@ -102,7 +107,7 @@ const ResponsePaneActions = ({ item, collection, responseSize, selectedFormat, s
     },
     {
       id: 'save-response',
-      label: 'Save response',
+      label: t('RESPONSE_PANE.SAVE_RESPONSE'),
       leftSection: IconBookmark,
       get disabled() {
         return bookmarkButtonRef.current?.isDisabled ?? false;

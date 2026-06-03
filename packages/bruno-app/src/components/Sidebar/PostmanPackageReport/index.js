@@ -1,5 +1,6 @@
 import React, { Fragment, useEffect, useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import { useTranslation } from 'react-i18next';
 import toast from 'react-hot-toast';
 import {
   IconAlertTriangle,
@@ -30,43 +31,8 @@ const PackageList = ({ items }) => (
   </ul>
 );
 
-// Renders "`a` and `b`" / "`a`, `b` and `c`" / "`a`, `b` and 3 more" as inline
-// code spans for use inside a sentence.
-const renderPackageExamples = (names = []) => {
-  const shown = names.slice(0, 3);
-  const remainder = names.length - shown.length;
-  return shown.map((name, idx) => {
-    let separator = '';
-    if (idx > 0) {
-      separator = idx === shown.length - 1 && remainder === 0 ? ' and ' : ', ';
-    }
-    return (
-      <Fragment key={name}>
-        {separator}
-        <code>{name}</code>
-        {idx === shown.length - 1 && remainder > 0 ? ` and ${remainder} more` : ''}
-      </Fragment>
-    );
-  });
-};
-
-// Maps an install result's errorCode to a user-facing message. Falls back to a
-// generic exit-code message for plain non-zero exits.
-const getInstallFailureMessage = (result) => {
-  switch (result?.errorCode) {
-    case 'NPM_NOT_FOUND':
-      return 'npm was not found on your PATH. Install Node.js/npm, then retry or run the command manually.';
-    case 'TIMEOUT':
-      return 'npm install timed out. Try running the command manually in a terminal.';
-    case 'SPAWN_FAILED':
-    case 'SPAWN_ERROR':
-      return 'Could not start npm install. Try running the command manually.';
-    default:
-      return `npm install failed (exit code ${result?.exitCode}). Try the manual command above.`;
-  }
-};
-
 const PostmanPackageReport = ({ report, collectionPath, onClose }) => {
+  const { t } = useTranslation();
   const dispatch = useDispatch();
   const collections = useSelector((state) => state.collections.collections);
   const collection = useMemo(
@@ -103,11 +69,26 @@ const PostmanPackageReport = ({ report, collectionPath, onClose }) => {
 
   const installDone = installResult && installResult.success;
   const installFailed = installResult && !installResult.success;
+
+  const getInstallFailureMessage = (result) => {
+    switch (result?.errorCode) {
+      case 'NPM_NOT_FOUND':
+        return t('POSTMAN_PACKAGE.NPM_NOT_FOUND');
+      case 'TIMEOUT':
+        return t('POSTMAN_PACKAGE.TIMEOUT');
+      case 'SPAWN_FAILED':
+      case 'SPAWN_ERROR':
+        return t('POSTMAN_PACKAGE.SPAWN_FAILED');
+      default:
+        return t('POSTMAN_PACKAGE.INSTALL_FAILED', { exitCode: result?.exitCode });
+    }
+  };
+
   const installFailureMessage = installFailed ? getInstallFailureMessage(installResult) : '';
 
   const handleInstall = async () => {
     if (!collectionPath) {
-      toast.error('Cannot install: collection path not available.');
+      toast.error(t('POSTMAN_PACKAGE.NO_PATH'));
       return;
     }
     if (needsInstall.length === 0) return;
@@ -123,15 +104,15 @@ const PostmanPackageReport = ({ report, collectionPath, onClose }) => {
       setInstallResult(result);
       if (result.success) {
         toast.success(
-          `Installed ${needsInstall.length} package${needsInstall.length === 1 ? '' : 's'}`
+          t('POSTMAN_PACKAGE.INSTALLED_SUCCESS', { count: needsInstall.length })
         );
       } else {
-        toast.error('npm install failed. See details below.');
+        toast.error(t('POSTMAN_PACKAGE.INSTALL_FAILED_DETAIL'));
       }
     } catch (err) {
       console.error('Install failed:', err);
       setInstallResult({ success: false, stderr: err?.message || String(err), exitCode: -1 });
-      toast.error('Failed to start npm install');
+      toast.error(t('POSTMAN_PACKAGE.INSTALL_START_FAILED'));
     } finally {
       setInstalling(false);
     }
@@ -139,15 +120,15 @@ const PostmanPackageReport = ({ report, collectionPath, onClose }) => {
 
   const handleSwitchToDeveloperMode = () => {
     if (!collection?.uid) {
-      toast.error('Could not locate the imported collection to switch modes.');
+      toast.error(t('POSTMAN_PACKAGE.COLLECTION_NOT_FOUND'));
       return;
     }
     setSwitchingMode(true);
     dispatch(saveCollectionSecurityConfig(collection.uid, { jsSandboxMode: 'developer' }))
-      .then(() => toast.success('Developer Mode enabled'))
+      .then(() => toast.success(t('POSTMAN_PACKAGE.DEV_MODE_ENABLED')))
       .catch((err) => {
         console.error(err);
-        toast.error('Failed to switch sandbox mode');
+        toast.error(t('POSTMAN_PACKAGE.SWITCH_MODE_FAILED'));
       })
       .finally(() => setSwitchingMode(false));
   };
@@ -158,27 +139,45 @@ const PostmanPackageReport = ({ report, collectionPath, onClose }) => {
       setCopied(true);
       setTimeout(() => setCopied(false), 1500);
     } catch {
-      toast.error('Could not copy to clipboard');
+      toast.error(t('POSTMAN_PACKAGE.COPY_FAILED'));
     }
+  };
+
+  const renderPackageExamples = (names = []) => {
+    const shown = names.slice(0, 3);
+    const remainder = names.length - shown.length;
+    return shown.map((name, idx) => {
+      let separator = '';
+      if (idx > 0) {
+        separator = idx === shown.length - 1 && remainder === 0 ? ' and ' : ', ';
+      }
+      return (
+        <Fragment key={name}>
+          {separator}
+          <code>{name}</code>
+          {idx === shown.length - 1 && remainder > 0 ? t('POSTMAN_PACKAGE.AND_MORE', { count: remainder }) : ''}
+        </Fragment>
+      );
+    });
   };
 
   const isDismissAction = installDone || needsInstall.length === 0;
   const confirmText = installDone
-    ? 'Done'
+    ? t('COMMON.DONE')
     : installing
-      ? 'Installing…'
+      ? t('POSTMAN_PACKAGE.INSTALLING')
       : needsInstall.length > 0
-        ? `Install ${needsInstall.length} package${needsInstall.length === 1 ? '' : 's'}`
-        : 'Done';
+        ? t('POSTMAN_PACKAGE.INSTALL_PACKAGES_BTN', { count: needsInstall.length })
+        : t('COMMON.DONE');
   const handleConfirm = isDismissAction ? onClose : handleInstall;
 
   return (
     <StyledWrapper>
       <Modal
         size="md"
-        title="Install packages"
+        title={t('POSTMAN_PACKAGE.INSTALL_PACKAGES_TITLE')}
         confirmText={confirmText}
-        cancelText="Skip"
+        cancelText={t('COMMON.SKIP')}
         hideCancel={installDone || (needsInstall.length === 0 && !installFailed)}
         confirmDisabled={installing}
         confirmButtonColor={isDismissAction ? 'secondary' : 'primary'}
@@ -190,13 +189,12 @@ const PostmanPackageReport = ({ report, collectionPath, onClose }) => {
         {needsInstall.length > 0 && (
           <div className="pkg-section">
             <div className="pkg-section-head">
-              <span className="pkg-section-title">Packages used in scripts</span>
+              <span className="pkg-section-title">{t('POSTMAN_PACKAGE.PACKAGES_IN_SCRIPTS')}</span>
               <span className="pkg-section-count">{needsInstall.length}</span>
             </div>
             {!installing && !installDone && (
               <p className="pkg-section-help">
-                These npm packages are referenced by scripts in your imported collection but aren't
-                installed in this collection's folder.
+                {t('POSTMAN_PACKAGE.PACKAGES_HELP')}
               </p>
             )}
             <PackageList items={needsInstall} />
@@ -205,7 +203,7 @@ const PostmanPackageReport = ({ report, collectionPath, onClose }) => {
               <div className="pkg-cmd-block">
                 <div className="pkg-cmd-label">
                   <IconTerminal2 size={12} strokeWidth={1.75} />
-                  <span>Or install manually</span>
+                  <span>{t('POSTMAN_PACKAGE.INSTALL_MANUALLY')}</span>
                 </div>
                 <div className="pkg-cmd-row">
                   <code className="pkg-cmd-code">{installCommand}</code>
@@ -213,7 +211,7 @@ const PostmanPackageReport = ({ report, collectionPath, onClose }) => {
                     type="button"
                     className="pkg-cmd-copy"
                     onClick={handleCopyCommand}
-                    aria-label="Copy command"
+                    aria-label={t('POSTMAN_PACKAGE.COPY_COMMAND')}
                   >
                     {copied ? <IconCheck size={14} strokeWidth={1.75} /> : <IconCopy size={14} strokeWidth={1.5} />}
                   </button>
@@ -224,7 +222,7 @@ const PostmanPackageReport = ({ report, collectionPath, onClose }) => {
             {installing && (
               <div className="pkg-inline-status pkg-inline-info">
                 <IconLoader2 size={14} strokeWidth={1.75} className="pkg-spin" />
-                <span>Installing {needsInstall.length} package{needsInstall.length === 1 ? '' : 's'}…</span>
+                <span>{t('POSTMAN_PACKAGE.INSTALLING_COUNT', { count: needsInstall.length })}</span>
               </div>
             )}
 
@@ -232,8 +230,7 @@ const PostmanPackageReport = ({ report, collectionPath, onClose }) => {
               <div className="pkg-inline-status pkg-inline-success">
                 <IconCircleCheck size={14} strokeWidth={1.75} />
                 <span>
-                  Installed {(installResult.installed || needsInstall).length} package
-                  {(installResult.installed || needsInstall).length === 1 ? '' : 's'} into this collection.
+                  {t('POSTMAN_PACKAGE.INSTALLED_INTO_COLLECTION', { count: (installResult.installed || needsInstall).length })}
                 </span>
               </div>
             )}
@@ -244,16 +241,15 @@ const PostmanPackageReport = ({ report, collectionPath, onClose }) => {
           <div className="pkg-section pkg-devmode">
             <div className="pkg-devmode-head">
               <IconAlertTriangle size={18} strokeWidth={1.75} />
-              <span className="pkg-devmode-title">Scripts use libraries that need Developer Mode</span>
+              <span className="pkg-devmode-title">{t('POSTMAN_PACKAGE.NEEDS_DEV_MODE')}</span>
             </div>
             <p className="pkg-devmode-desc">
-              Your imported scripts call {renderPackageExamples(devMode)}
-              {', '}which need <strong>Developer Mode</strong> to run.
+              {t('POSTMAN_PACKAGE.NEEDS_DEV_MODE_DESC', { packages: renderPackageExamples(devMode) })}
             </p>
             <PackageList items={devMode} />
             <div className="pkg-devmode-trust">
               <IconShieldLock size={15} strokeWidth={1.75} />
-              <span>Only enable Developer Mode for collections you trust.</span>
+              <span>{t('POSTMAN_PACKAGE.TRUST_WARNING')}</span>
             </div>
             <Button
               color="primary"
@@ -263,7 +259,7 @@ const PostmanPackageReport = ({ report, collectionPath, onClose }) => {
               onClick={handleSwitchToDeveloperMode}
               data-testid="switch-to-developer-mode"
             >
-              Switch to Developer Mode
+              {t('POSTMAN_PACKAGE.SWITCH_TO_DEV_MODE')}
             </Button>
           </div>
         )}
@@ -272,12 +268,11 @@ const PostmanPackageReport = ({ report, collectionPath, onClose }) => {
           <div className="pkg-section pkg-section-danger">
             <div className="pkg-section-head">
               <IconBan size={14} strokeWidth={1.75} />
-              <span className="pkg-section-title">Not supported in Bruno</span>
+              <span className="pkg-section-title">{t('POSTMAN_PACKAGE.NOT_SUPPORTED')}</span>
               <span className="pkg-section-count">{unsupported.length}</span>
             </div>
             <p className="pkg-section-help">
-              Postman-specific packages without a Bruno equivalent. Scripts that call these will
-              fail at runtime.
+              {t('POSTMAN_PACKAGE.NOT_SUPPORTED_DESC')}
             </p>
             <PackageList items={unsupported} />
           </div>
@@ -287,24 +282,20 @@ const PostmanPackageReport = ({ report, collectionPath, onClose }) => {
           isDeveloperMode ? (
             <div className="pkg-status pkg-status-success">
               <IconCircleCheck size={14} strokeWidth={1.75} />
-              <span>
-                This collection runs in <strong>Developer Mode</strong> - your scripts can use these
-                packages right away.
-              </span>
+              <span>{t('POSTMAN_PACKAGE.RUNS_DEV_MODE')}</span>
             </div>
           ) : (
             <div className="pkg-section pkg-devmode">
               <div className="pkg-devmode-head">
                 <IconAlertTriangle size={18} strokeWidth={1.75} />
-                <span className="pkg-devmode-title">External modules require Developer Mode</span>
+                <span className="pkg-devmode-title">{t('POSTMAN_PACKAGE.EXTERNAL_MODULES_DEV_MODE')}</span>
               </div>
               <p className="pkg-devmode-desc">
-                Custom npm packages (such as {renderPackageExamples(installResult.installed || needsInstall)})
-                {' '}are installed, but this collection is currently running in <strong>Safe Mode</strong>.
+                {t('POSTMAN_PACKAGE.SAFE_MODE_WARNING', { packages: renderPackageExamples(installResult.installed || needsInstall) })}
               </p>
               <div className="pkg-devmode-trust">
                 <IconShieldLock size={15} strokeWidth={1.75} />
-                <span>Only enable Developer Mode for collections you trust.</span>
+                <span>{t('POSTMAN_PACKAGE.TRUST_WARNING')}</span>
               </div>
               <Button
                 color="primary"
@@ -314,7 +305,7 @@ const PostmanPackageReport = ({ report, collectionPath, onClose }) => {
                 onClick={handleSwitchToDeveloperMode}
                 data-testid="switch-to-developer-mode"
               >
-                Switch to Developer Mode
+                {t('POSTMAN_PACKAGE.SWITCH_TO_DEV_MODE')}
               </Button>
             </div>
           )

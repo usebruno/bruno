@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import toast from 'react-hot-toast';
 import { useDispatch, useSelector } from 'react-redux';
 import { filter, groupBy } from 'lodash';
@@ -47,6 +48,7 @@ const getDisplayItems = (items, maxWidth = MAX_COLLECTIONS_WIDTH) => {
 };
 
 const RemoveCollectionsModal = ({ collectionUids, onClose }) => {
+  const { t } = useTranslation();
   const dispatch = useDispatch();
   const allCollections = useSelector((state) => state.collections.collections || []);
   const [showAllCollections, setShowAllCollections] = useState(false);
@@ -115,11 +117,11 @@ const RemoveCollectionsModal = ({ collectionUids, onClose }) => {
 
     Promise.all(removalPromises)
       .then(() => {
-        toast.success('Closed all collections');
+        toast.success(t('SIDEBAR.CLOSED_ALL_COLLECTIONS'));
       })
       .catch((error) => {
         console.error('Error closing collections:', error);
-        toast.error('An error occurred while closing collections');
+        toast.error(t('SIDEBAR.ERROR_CLOSING_COLLECTIONS'));
       })
       .finally(() => {
         onClose();
@@ -157,7 +159,7 @@ const RemoveCollectionsModal = ({ collectionUids, onClose }) => {
       handleCloseAllCollections();
     } catch (error) {
       console.error('Error saving drafts:', error);
-      toast.error('An error occurred while saving changes');
+      toast.error(t('SIDEBAR.ERROR_SAVING_CHANGES'));
       handleCancel();
     }
   };
@@ -182,7 +184,7 @@ const RemoveCollectionsModal = ({ collectionUids, onClose }) => {
       onClick={() => setShowAllCollections(!showAllCollections)}
     >
       <span className="text-link">
-        {showAllCollections ? 'Show less' : `Show ${hiddenCollectionsCount} more`}
+        {showAllCollections ? t('SIDEBAR.SHOW_LESS') : t('SIDEBAR.SHOW_MORE', { count: hiddenCollectionsCount })}
       </span>
     </span>
   ) : null;
@@ -191,7 +193,7 @@ const RemoveCollectionsModal = ({ collectionUids, onClose }) => {
     <Portal>
       <Modal
         size="md"
-        title="Close all collections"
+        title={t('SIDEBAR.CLOSE_ALL_COLLECTIONS')}
         disableEscapeKey={hasUnsavedChanges}
         disableCloseOnOutsideClick={hasUnsavedChanges}
         handleCancel={handleCancel}
@@ -202,14 +204,13 @@ const RemoveCollectionsModal = ({ collectionUids, onClose }) => {
             <>
               <div className="flex items-center font-normal">
                 <IconAlertTriangle size={32} strokeWidth={1.5} className="text-yellow-600" />
-                <h1 className="ml-2 text-lg font-medium">Hold on..</h1>
+                <h1 className="ml-2 text-lg font-medium">{t('SIDEBAR.HOLD_ON')}</h1>
               </div>
               <div className="font-normal mt-4">
-                Do you want to save changes you made to the following{' '}
-                {collectionsWithUnsavedChanges.length === 1 ? 'collection' : 'collections'}?
+                {t('SIDEBAR.SAVE_CHANGES_CONFIRM')}
               </div>
               <div className="mt-2 text-xs text-gray-500">
-                Collections will be removed from the current workspace but will still be available in the file system and can be re-opened later.
+                {t('SIDEBAR.COLLECTIONS_WILL_BE_REMOVED')}
               </div>
 
               <div className="mt-4">
@@ -228,15 +229,15 @@ const RemoveCollectionsModal = ({ collectionUids, onClose }) => {
               <div className="flex justify-between mt-6">
                 <div>
                   <Button color="danger" onClick={handleDiscard}>
-                    Discard and Close
+                    {t('SIDEBAR.DISCARD_AND_CLOSE')}
                   </Button>
                 </div>
                 <div>
                   <Button className="mr-2" color="secondary" variant="ghost" onClick={handleCancel}>
-                    Cancel
+                    {t('COMMON.CANCEL')}
                   </Button>
                   <Button onClick={handleSave}>
-                    Save and Close
+                    {t('SIDEBAR.SAVE_AND_CLOSE')}
                   </Button>
                 </div>
               </div>
@@ -245,22 +246,22 @@ const RemoveCollectionsModal = ({ collectionUids, onClose }) => {
             <>
               <div className="mt-4">
                 {hasMultipleCollections ? (
-                  `Are you sure you want to close all ${collectionUids.length} collections in this workspace?`
+                  t('SIDEBAR.CLOSE_ALL_CONFIRM', { count: collectionUids.length })
                 ) : (
                   <>
-                    Are you sure you want to close the collection <strong>{singleCollectionName}</strong> from this workspace?
+                    {t('SIDEBAR.CLOSE_COLLECTION_CONFIRM', { name: singleCollectionName })}
                   </>
                 )}
               </div>
               <div className="mt-4 text-xs text-gray-500">
-                Collections will be removed from the current workspace but will still be available in the file system and can be re-opened later.
+                {t('SIDEBAR.COLLECTIONS_WILL_BE_REMOVED')}
               </div>
               <div className="flex justify-end mt-6">
                 <Button className="mr-2" color="secondary" variant="ghost" onClick={handleCancel} data-testid="modal-close-button">
-                  Cancel
+                  {t('COMMON.CANCEL')}
                 </Button>
                 <Button color="warning" onClick={handleCloseAllCollections}>
-                  {hasMultipleCollections ? 'Close All' : 'Close'}
+                  {hasMultipleCollections ? t('COMMON.CLOSE_ALL') : t('COMMON.CLOSE')}
                 </Button>
               </div>
             </>

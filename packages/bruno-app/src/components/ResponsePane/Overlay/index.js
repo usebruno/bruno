@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { IconRefresh } from '@tabler/icons';
 import { useDispatch, useSelector } from 'react-redux';
 import { cancelRequest } from 'providers/ReduxStore/slices/collections/actions';
@@ -7,6 +8,7 @@ import StyledWrapper from './StyledWrapper';
 import Button from 'ui/Button/index';
 
 const ResponseLoadingOverlay = ({ item, collection }) => {
+  const { t } = useTranslation();
   const dispatch = useDispatch();
   const preferences = useSelector((state) => state.app.preferences);
   const isVerticalLayout = preferences?.layout?.responsePaneOrientation === 'vertical';
@@ -30,7 +32,7 @@ const ResponseLoadingOverlay = ({ item, collection }) => {
           onClick={handleCancelRequest}
           className="mt-4"
         >
-          Cancel Request
+          {t('RESPONSE_PANE.CANCEL_REQUEST')}
         </Button>
       </div>
     </StyledWrapper>

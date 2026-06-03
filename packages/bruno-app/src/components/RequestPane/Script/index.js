@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import get from 'lodash/get';
 import find from 'lodash/find';
 import { useDispatch, useSelector } from 'react-redux';
@@ -13,6 +14,7 @@ import { usePersistedState } from 'hooks/usePersistedState';
 
 const Script = ({ item, collection }) => {
   const dispatch = useDispatch();
+  const { t } = useTranslation();
   const preRequestEditorRef = useRef(null);
   const postResponseEditorRef = useRef(null);
   const requestScript = item.draft ? get(item, 'draft.request.script.req') : get(item, 'request.script.req');
@@ -90,13 +92,13 @@ const Script = ({ item, collection }) => {
       <Tabs value={activeTab} onValueChange={onScriptTabChange}>
         <TabsList>
           <TabsTrigger value="pre-request">
-            Pre Request
+            {t('REQUEST_PANE.PRE_REQUEST')}
             {hasPreRequestScript && (
               <StatusDot type={item.preRequestScriptErrorMessage ? 'error' : 'default'} />
             )}
           </TabsTrigger>
           <TabsTrigger value="post-response">
-            Post Response
+            {t('REQUEST_PANE.POST_RESPONSE')}
             {hasPostResponseScript && (
               <StatusDot type={item.postResponseScriptErrorMessage ? 'error' : 'default'} />
             )}

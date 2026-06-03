@@ -1,4 +1,5 @@
 import React, { useRef, forwardRef, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useDispatch } from 'react-redux';
 import get from 'lodash/get';
 import { IconCaretDown } from '@tabler/icons';
@@ -12,6 +13,7 @@ import { humanizeRequestAPIKeyPlacement } from 'utils/collections';
 const ApiKeyAuth = ({ item, collection, updateAuth, request, save }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
+  const { t } = useTranslation();
   const dropdownTippyRef = useRef();
   const onDropdownCreate = (ref) => (dropdownTippyRef.current = ref);
 
@@ -98,7 +100,7 @@ const ApiKeyAuth = ({ item, collection, updateAuth, request, save }) => {
               handleAuthChange('placement', 'header');
             }}
           >
-            Header
+            {t('REQUEST_PANE.HEADER')}
           </div>
           <div
             className="dropdown-item"

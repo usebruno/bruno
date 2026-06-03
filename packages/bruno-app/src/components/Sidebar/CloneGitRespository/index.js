@@ -1,5 +1,6 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import { useTranslation } from 'react-i18next';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import {
@@ -25,6 +26,7 @@ import toast from 'react-hot-toast';
 import get from 'lodash/get';
 
 const CloneGitRepository = ({ onClose, onFinish, collectionRepositoryUrl = null }) => {
+  const { t } = useTranslation();
   const [collectionPaths, setCollectionPaths] = useState([]);
   const [skippedCollectionPaths, setSkippedCollectionPaths] = useState([]);
   const [selectedCollectionPaths, setSelectedCollectionPaths] = useState([]);
@@ -49,7 +51,7 @@ const CloneGitRepository = ({ onClose, onFinish, collectionRepositoryUrl = null 
       setSteps((prev) =>
         prev.map((step) =>
           step.step === 'clone' && !step?.completed
-            ? { ...step, title: 'Cloning repository', completed: false, info: progressData.progressData }
+            ? { ...step, title: t('SIDEBAR.CLONING_REPOSITORY'), completed: false, info: progressData.progressData }
             : step
         )
       );
@@ -67,18 +69,18 @@ const CloneGitRepository = ({ onClose, onFinish, collectionRepositoryUrl = null 
       ...prev,
       {
         step: 'clone',
-        title: 'Cloning repository',
+        title: t('SIDEBAR.CLONING_REPOSITORY'),
         completed: false
       }
     ]);
   };
 
   const cloneFinished = () => {
-    toast.success('Repository cloned successfully');
+    toast.success(t('SIDEBAR.REPOSITORY_CLONED_SUCCESS'));
     setSteps((prev) =>
       prev.map((step) =>
         step.step === 'clone'
-          ? { ...step, title: 'Cloning successful', completed: true, info: '' }
+          ? { ...step, title: t('SIDEBAR.CLONING_SUCCESSFUL'), completed: true, info: '' }
           : step
       )
     );
@@ -88,7 +90,7 @@ const CloneGitRepository = ({ onClose, onFinish, collectionRepositoryUrl = null 
     setSteps((prev) =>
       prev.map((step) =>
         step.step === 'clone'
-          ? { ...step, title: 'Cloning failed', completed: true, error: true }
+          ? { ...step, title: t('SIDEBAR.CLONING_FAILED'), completed: true, error: true }
           : step
       )
     );
@@ -99,17 +101,17 @@ const CloneGitRepository = ({ onClose, onFinish, collectionRepositoryUrl = null 
       ...prev,
       {
         step: 'scan',
-        title: 'Scanning for Bruno files',
+        title: t('SIDEBAR.SCANNING_FOR_BRUNO_FILES'),
         completed: false
       }
     ]);
   };
 
   const scanFinished = () => {
-    toast.success('Repository scanned successfully');
+    toast.success(t('SIDEBAR.REPOSITORY_SCANNED_SUCCESS'));
     setSteps((prev) =>
       prev.map((step) =>
-        step.step === 'scan' ? { ...step, title: 'Scan successful', completed: true, info: '' } : step
+        step.step === 'scan' ? { ...step, title: t('SIDEBAR.SCAN_SUCCESSFUL'), completed: true, info: '' } : step
       )
     );
   };
@@ -205,7 +207,7 @@ const CloneGitRepository = ({ onClose, onFinish, collectionRepositoryUrl = null 
           onClick={handleBackButtonClick}
           data-testid="clone-git-repository-modal-back-btn"
         >
-          Back
+          {t('COMMON.BACK')}
         </Button>
       );
     }
@@ -220,15 +222,15 @@ const CloneGitRepository = ({ onClose, onFinish, collectionRepositoryUrl = null 
   };
 
   const handleConfirm = () => {
-    const buttonText = getConfirmText();
-    switch (buttonText) {
-      case 'Clone':
+    const action = getConfirmAction();
+    switch (action) {
+      case 'clone':
         formik.handleSubmit();
         break;
-      case 'Close':
+      case 'close':
         onClose();
         break;
-      case 'Open':
+      case 'open':
         if (collectionPaths.length > 0 && selectedCollectionPaths.length > 0) {
           dispatch(openMultipleCollections(selectedCollectionPaths));
           onClose();
@@ -240,12 +242,14 @@ const CloneGitRepository = ({ onClose, onFinish, collectionRepositoryUrl = null 
     }
   };
 
-  const getConfirmText = () =>
+  const getConfirmAction = () =>
     !steps.length
-      ? 'Clone'
+      ? 'clone'
       : steps.some((step) => !step.completed || step.error || (isScanCompleted() && !collectionPaths?.length))
-        ? 'Close'
-        : 'Open';
+        ? 'close'
+        : 'open';
+
+  const getConfirmText = () => t(`COMMON.${getConfirmAction().toUpperCase()}`);
 
   if (!gitVersion) {
     return <GitNotFoundModal onClose={onClose} />;
@@ -255,7 +259,7 @@ const CloneGitRepository = ({ onClose, onFinish, collectionRepositoryUrl = null 
     <Portal id="clone-repository-portal">
       <Modal
         size="md"
-        title="Clone Git Repository"
+        title={t('SIDEBAR.CLONE_GIT_REPOSITORY')}
         confirmText={getConfirmText()}
         handleConfirm={handleConfirm}
         handleCancel={onClose}
@@ -306,7 +310,7 @@ const CloneGitRepository = ({ onClose, onFinish, collectionRepositoryUrl = null 
                   <div className="text-red-500">{formik.errors.repositoryUrl}</div>
                 )}
                 <label htmlFor="collection-location" className="block font-semibold mt-3">
-                  Location
+                  {t('COMMON.LOCATION')}
                 </label>
                 <input
                   id="collection-location"
@@ -326,7 +330,7 @@ const CloneGitRepository = ({ onClose, onFinish, collectionRepositoryUrl = null 
                 )}
                 <div className="mt-1">
                   <span className="text-link cursor-pointer hover:underline" onClick={browse}>
-                    Browse
+                    {t('COMMON.BROWSE')}
                   </span>
                 </div>
               </div>
@@ -359,7 +363,7 @@ const CloneGitRepository = ({ onClose, onFinish, collectionRepositoryUrl = null 
               )}
               {isScanCompleted() && (
                 <div className="w-full min-w-0 flex flex-col gap-3">
-                  <SkippedPathsWarning paths={skippedCollectionPaths} itemNoun="collections" />
+                  <SkippedPathsWarning paths={skippedCollectionPaths} itemNoun={t('COMMON.COLLECTIONS').toLowerCase()} />
                   {collectionPaths.length === 0 && (
                     <div className="scan-warning flex items-start gap-2">
                       <IconAlertCircle className="scan-warning-icon" size={18} strokeWidth={1.5} />

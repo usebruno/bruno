@@ -1,39 +1,9 @@
 import React from 'react';
-
-/**
- * Assertion operators
- *
- * eq          : equal to
- * neq         : not equal to
- * gt          : greater than
- * gte         : greater than or equal to
- * lt          : less than
- * lte         : less than or equal to
- * in          : in
- * notIn       : not in
- * contains    : contains
- * notContains : not contains
- * length      : length
- * matches     : matches
- * notMatches  : not matches
- * startsWith  : starts with
- * endsWith    : ends with
- * between     : between
- * isEmpty     : is empty
- * isNotEmpty  : is not empty
- * isNull      : is null
- * isUndefined : is undefined
- * isDefined   : is defined
- * isTruthy    : is truthy
- * isFalsy     : is falsy
- * isJson      : is json
- * isNumber    : is number
- * isString    : is string
- * isBoolean   : is boolean
- * isArray     : is array
- */
+import { useTranslation } from 'react-i18next';
 
 const AssertionOperator = ({ operator, onChange }) => {
+  const { t } = useTranslation();
+
   const operators = [
     'eq',
     'neq',
@@ -69,22 +39,19 @@ const AssertionOperator = ({ operator, onChange }) => {
     onChange(e.target.value);
   };
 
-  const getLabel = (operator) => {
-    switch (operator) {
-      case 'eq':
-        return 'equals';
-      case 'neq':
-        return 'notEquals';
-      default:
-        return operator;
-    }
+  const getLabel = (op) => {
+    // 将驼峰命名转换为下划线命名，然后转为大写
+    const snakeCase = op.replace(/([a-z])([A-Z])/g, '$1_$2').toUpperCase();
+    const translationKey = `REQUEST_PANE.ASSERTION_OP_${snakeCase}`;
+    const translated = t(translationKey);
+    return translated !== translationKey ? translated : op;
   };
 
   return (
     <select value={operator} onChange={handleChange} className="mousetrap" data-testid="assertion-operator-select">
-      {operators.map((operator) => (
-        <option key={operator} value={operator}>
-          {getLabel(operator)}
+      {operators.map((op) => (
+        <option key={op} value={op}>
+          {getLabel(op)}
         </option>
       ))}
     </select>

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../../../providers/Theme';
 import { useDispatch } from 'react-redux';
 import { openCollection } from 'providers/ReduxStore/slices/collections/actions';
@@ -11,6 +12,7 @@ const LinkStyle = styled.span`
 `;
 
 const CreateOrOpenCollection = ({ onCreateClick }) => {
+  const { t } = useTranslation();
   const { theme } = useTheme();
   const dispatch = useDispatch();
 
@@ -18,7 +20,7 @@ const CreateOrOpenCollection = ({ onCreateClick }) => {
     dispatch(openCollection()).catch(
       (err) => {
         console.log(err);
-        toast.error('An error occurred while opening the collection');
+        toast.error(t('SIDEBAR.ERROR_OPENING_COLLECTION'));
       }
     );
   };
@@ -28,19 +30,19 @@ const CreateOrOpenCollection = ({ onCreateClick }) => {
       theme={theme}
       onClick={onCreateClick}
     >
-      Create
+      {t('COMMON.CREATE')}
     </LinkStyle>
   );
   const OpenLink = () => (
     <LinkStyle className="underline text-link cursor-pointer" theme={theme} onClick={() => handleOpenCollection(true)}>
-      Open
+      {t('COMMON.OPEN')}
     </LinkStyle>
   );
 
   return (
     <StyledWrapper className="px-2 mt-4">
       <div className="text-xs text-center">
-        <div>No collections found.</div>
+        <div>{t('SIDEBAR.NO_COLLECTIONS_FOUND')}</div>
         <div className="mt-2">
           <CreateLink /> or <OpenLink /> Collection.
         </div>

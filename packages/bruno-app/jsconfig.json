@@ -13,7 +13,8 @@
       "api/*": ["src/api/*"],
       "pageComponents/*": ["src/pageComponents/*"],
       "providers/*": ["src/providers/*"],
-      "utils/*": ["src/utils/*"]
+      "utils/*": ["src/utils/*"],
+      "i18n": ["src/i18n"]
     }
   },
   "exclude": ["node_modules", "dist"]

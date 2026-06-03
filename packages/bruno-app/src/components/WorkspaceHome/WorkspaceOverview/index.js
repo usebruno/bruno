@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
+import { useTranslation } from 'react-i18next';
 import { IconPlus, IconFolder, IconDownload } from '@tabler/icons';
 import { importCollection, openCollection, importCollectionFromZip } from 'providers/ReduxStore/slices/collections/actions';
 import { setIsCreatingCollection, toggleSidebarCollapse } from 'providers/ReduxStore/slices/app';
@@ -16,6 +17,7 @@ import WorkspaceDocs from '../WorkspaceDocs';
 import StyledWrapper from './StyledWrapper';
 
 const WorkspaceOverview = ({ workspace }) => {
+  const { t } = useTranslation();
   const dispatch = useDispatch();
   const { globalEnvironments } = useSelector((state) => state.globalEnvironments);
   const { sidebarCollapsed, isCreatingCollection } = useSelector((state) => state.app);
@@ -144,16 +146,16 @@ const WorkspaceOverview = ({ workspace }) => {
           <div className="stats-row">
             <div className="stat-item">
               <span className="stat-value">{workspaceCollectionsCount}</span>
-              <span className="stat-label">Collections</span>
+              <span className="stat-label">{t('WORKSPACE.OVERVIEW.COLLECTIONS')}</span>
             </div>
             <div className="stat-item">
               <span className="stat-value">{workspaceEnvironmentsCount}</span>
-              <span className="stat-label">Environments</span>
+              <span className="stat-label">{t('WORKSPACE.OVERVIEW.ENVIRONMENTS')}</span>
             </div>
           </div>
 
           <div className="quick-actions-section">
-            <div className="section-title">Quick Actions</div>
+            <div className="section-title">{t('WORKSPACE.OVERVIEW.QUICK_ACTIONS')}</div>
             <div className="quick-actions-buttons">
               <Button
                 color="light"
@@ -162,7 +164,7 @@ const WorkspaceOverview = ({ workspace }) => {
                 onClick={handleCreateCollection}
                 disabled={isCreatingCollection}
               >
-                Create Collection
+                {t('WORKSPACE.OVERVIEW.CREATE_COLLECTION')}
               </Button>
               <Button
                 color="light"
@@ -170,7 +172,7 @@ const WorkspaceOverview = ({ workspace }) => {
                 icon={<IconFolder size={14} strokeWidth={1.5} />}
                 onClick={handleOpenCollection}
               >
-                Open Collection
+                {t('WORKSPACE.OVERVIEW.OPEN_COLLECTION')}
               </Button>
               <Button
                 color="light"
@@ -178,13 +180,13 @@ const WorkspaceOverview = ({ workspace }) => {
                 icon={<IconDownload size={14} strokeWidth={1.5} />}
                 onClick={handleImportCollection}
               >
-                Import Collection
+                {t('WORKSPACE.OVERVIEW.IMPORT_COLLECTION')}
               </Button>
             </div>
           </div>
 
           <div className="collections-section">
-            <div className="section-title">Collections</div>
+            <div className="section-title">{t('WORKSPACE.OVERVIEW.COLLECTIONS')}</div>
             <CollectionsList workspace={workspace} />
           </div>
         </div>

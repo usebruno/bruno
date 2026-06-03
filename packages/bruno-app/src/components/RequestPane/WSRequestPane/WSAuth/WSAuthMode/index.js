@@ -1,4 +1,5 @@
 import React, { useMemo, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import get from 'lodash/get';
 import { IconCaretDown } from '@tabler/icons';
 import MenuDropdown from 'ui/MenuDropdown';
@@ -8,6 +9,7 @@ import { humanizeRequestAuthMode } from 'utils/collections';
 import StyledWrapper from '../../../Auth/AuthMode/StyledWrapper';
 
 const WSAuthMode = ({ item, collection }) => {
+  const { t } = useTranslation();
   const dispatch = useDispatch();
   const authMode = item.draft ? get(item, 'draft.request.auth.mode') : get(item, 'request.auth.mode');
 
@@ -22,35 +24,35 @@ const WSAuthMode = ({ item, collection }) => {
   const menuItems = useMemo(() => [
     {
       id: 'basic',
-      label: 'Basic Auth',
+      label: t('REQUEST_PANE.BASIC_AUTH'),
       onClick: () => onModeChange('basic')
     },
     {
       id: 'bearer',
-      label: 'Bearer Token',
+      label: t('REQUEST_PANE.BEARER_TOKEN'),
       onClick: () => onModeChange('bearer')
     },
     {
       id: 'apikey',
-      label: 'API Key',
+      label: t('REQUEST_PANE.API_KEY'),
       onClick: () => onModeChange('apikey')
     },
     {
       id: 'oauth2',
-      label: 'OAuth 2.0',
+      label: t('REQUEST_PANE.OAUTH_2_0'),
       onClick: () => onModeChange('oauth2')
     },
     {
       id: 'inherit',
-      label: 'Inherit',
+      label: t('REQUEST_PANE.INHERIT'),
       onClick: () => onModeChange('inherit')
     },
     {
       id: 'none',
-      label: 'No Auth',
+      label: t('REQUEST_PANE.NO_AUTH'),
       onClick: () => onModeChange('none')
     }
-  ], [onModeChange]);
+  ], [onModeChange, t]);
 
   return (
     <StyledWrapper>

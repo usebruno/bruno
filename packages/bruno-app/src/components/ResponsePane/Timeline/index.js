@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import StyledWrapper from './StyledWrapper';
 import { findItemInCollection, findParentItemInCollection } from 'utils/collections/index';
 import { get } from 'lodash';
@@ -8,6 +9,14 @@ import { usePersistedState } from 'hooks/usePersistedState';
 import { useTrackScroll } from 'hooks/useTrackScroll';
 import { buildTimelineEntries, getEntryKind, countByKind } from './buildEntries';
 import { FILTER_CHIPS } from './entryMeta';
+
+const chipLabelMap = (t) => ({
+  all: t('RESPONSE_PANE.ALL'),
+  main: t('RESPONSE_PANE.MAIN'),
+  pre: t('RESPONSE_PANE.PRE_REQUEST'),
+  post: t('RESPONSE_PANE.POST_RESPONSE'),
+  oauth: t('RESPONSE_PANE.OAUTH')
+});
 
 const getEffectiveAuthSource = (collection, item) => {
   const authMode = item.draft ? get(item, 'draft.request.auth.mode') : get(item, 'request.auth.mode');
@@ -48,6 +57,7 @@ const getEffectiveAuthSource = (collection, item) => {
 };
 
 const Timeline = ({ collection, item }) => {
+  const { t } = useTranslation();
   const wrapperRef = useRef(null);
   const [scroll, setScroll] = usePersistedState({ key: `response-timeline-scroll-${item.uid}`, default: 0 });
   useTrackScroll({ ref: wrapperRef, selector: null, onChange: setScroll, initialValue: scroll });
@@ -86,7 +96,7 @@ const Timeline = ({ collection, item }) => {
               className={`timeline-chip ${activeFilter === chip.id ? 'is-active' : ''}`}
               onClick={() => setActiveFilter(chip.id)}
             >
-              {chip.label}
+              {chipLabelMap(t)[chip.id]}
               <span className="timeline-chip-count">{counts[chip.id] ?? 0}</span>
             </button>
           ))}

@@ -1,4 +1,5 @@
 import React, { useState, useRef, useMemo, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { IconCaretDown } from '@tabler/icons';
 import MenuDropdown from 'ui/MenuDropdown';
 import StyledWrapper from './StyledWrapper';
@@ -37,6 +38,7 @@ const HttpMethodSelector = ({ method = DEFAULT_METHOD, onMethodSelect, showCaret
   const methodSpanRef = useRef();
   const [previousMethodWidth, setPreviousMethodWidth] = useState(null);
 
+  const { t } = useTranslation();
   const { theme } = useTheme();
   const methodColor = useMemo(() => {
     const colorMap = {
@@ -119,13 +121,13 @@ const HttpMethodSelector = ({ method = DEFAULT_METHOD, onMethodSelect, showCaret
     // Add "Add Custom" item
     items.push({
       id: 'add-custom',
-      label: '+ Add Custom',
+      label: t('REQUEST_PANE.ADD_CUSTOM'),
       onClick: handleAddCustomMethod,
       className: 'font-normal mt-1 text-link'
     });
 
     return items;
-  }, [handleMethodSelect, handleAddCustomMethod]);
+  }, [handleMethodSelect, handleAddCustomMethod, t]);
 
   // Determine selected item ID (only if method is a standard method)
   const selectedItemId = useMemo(() => {

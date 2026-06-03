@@ -1,5 +1,6 @@
 import React, { useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from 'providers/Theme';
 import { saveFolderRoot } from 'providers/ReduxStore/slices/collections/actions';
 import { updateTableColumnWidths } from 'providers/ReduxStore/slices/tabs';
@@ -12,6 +13,7 @@ import { variableNameRegex } from 'utils/common/regex';
 import { setFolderVars } from 'providers/ReduxStore/slices/collections/index';
 
 const VarsTable = ({ folder, collection, vars, varType, initialScroll = 0 }) => {
+  const { t } = useTranslation();
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
   const tabs = useSelector((state) => state.tabs.tabs);
@@ -48,20 +50,20 @@ const VarsTable = ({ folder, collection, vars, varType, initialScroll = 0 }) => 
   const columns = [
     {
       key: 'name',
-      name: 'Name',
+      name: t('COMMON.NAME'),
       isKeyField: true,
-      placeholder: 'Name',
+      placeholder: t('COMMON.NAME'),
       width: '40%'
     },
     {
       key: 'value',
-      name: varType === 'request' ? 'Value' : (
+      name: varType === 'request' ? t('COMMON.VALUE') : (
         <div className="flex items-center">
-          <span>Expr</span>
-          <InfoTip content="You can write any valid JS expression here" infotipId={`folder-${varType}-var`} />
+          <span>{t('REQUEST_PANE.EXPR')}</span>
+          <InfoTip content={t('REQUEST_PANE.YOU_CAN_WRITE_ANY_VALID_JS_EXPRESSION_HERE')} infotipId={`folder-${varType}-var`} />
         </div>
       ),
-      placeholder: varType === 'request' ? 'Value' : 'Expr',
+      placeholder: varType === 'request' ? t('COMMON.VALUE') : t('REQUEST_PANE.EXPR'),
       render: ({ value, onChange }) => (
         <MultiLineEditor
           value={value || ''}
@@ -70,7 +72,7 @@ const VarsTable = ({ folder, collection, vars, varType, initialScroll = 0 }) => 
           onChange={onChange}
           collection={collection}
           item={folder}
-          placeholder={!value ? (varType === 'request' ? 'Value' : 'Expr') : ''}
+          placeholder={!value ? (varType === 'request' ? t('COMMON.VALUE') : t('REQUEST_PANE.EXPR')) : ''}
         />
       )
     }

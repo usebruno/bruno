@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Modal from 'components/Modal/index';
+import { useTranslation } from 'react-i18next';
 import { PostHog } from 'posthog-node';
 import { uuid } from 'utils/common';
 import { IconHeart, IconUser, IconUsers, IconPlus } from '@tabler/icons';
@@ -60,6 +61,7 @@ const CheckIcon = () => {
 };
 
 const GoldenEdition = ({ onClose }) => {
+  const { t } = useTranslation();
   const { displayedTheme } = useTheme();
 
   useEffect(() => {
@@ -86,25 +88,25 @@ const GoldenEdition = ({ onClose }) => {
     });
   };
 
-  const goldenEditionIndividuals = [
-    'Inbuilt Bru File Explorer',
-    'Visual Git (Like Gitlens for Vscode)',
-    'GRPC, Websocket, SocketIO, MQTT',
-    'Load Data from File for Collection Run',
-    'Developer Tools',
-    'OpenAPI Designer',
-    'Performance/Load Testing',
-    'Inbuilt Terminal',
-    'Custom Themes'
-  ];
+  const goldenEditionIndividuals = useMemo(() => [
+    t('SIDEBAR.GOLDEN_FEATURE_FILE_EXPLORER'),
+    t('SIDEBAR.GOLDEN_FEATURE_VISUAL_GIT'),
+    t('SIDEBAR.GOLDEN_FEATURE_GRPC_WS'),
+    t('SIDEBAR.GOLDEN_FEATURE_LOAD_DATA'),
+    t('SIDEBAR.GOLDEN_FEATURE_DEVTOOLS'),
+    t('SIDEBAR.GOLDEN_FEATURE_OPENAPI_DESIGNER'),
+    t('SIDEBAR.GOLDEN_FEATURE_PERFORMANCE'),
+    t('SIDEBAR.GOLDEN_FEATURE_TERMINAL'),
+    t('SIDEBAR.GOLDEN_FEATURE_CUSTOM_THEMES')
+  ], [t]);
 
-  const goldenEditionOrganizations = [
-    'Centralized License Management',
-    'Integration with Secret Managers',
-    'Private Collection Registry',
-    'Request Forms',
-    'Priority Support'
-  ];
+  const goldenEditionOrganizations = useMemo(() => [
+    t('SIDEBAR.GOLDEN_FEATURE_LICENSE_MGMT'),
+    t('SIDEBAR.GOLDEN_FEATURE_SECRET_MANAGERS'),
+    t('SIDEBAR.GOLDEN_FEATURE_PRIVATE_REGISTRY'),
+    t('SIDEBAR.GOLDEN_FEATURE_REQUEST_FORMS'),
+    t('SIDEBAR.GOLDEN_FEATURE_PRIORITY_SUPPORT')
+  ], [t]);
 
   const [pricingOption, setPricingOption] = useState('individuals');
 
@@ -119,10 +121,10 @@ const GoldenEdition = ({ onClose }) => {
 
   return (
     <StyledWrapper>
-      <Modal size="sm" title="Golden Edition" handleCancel={onClose} hideFooter={true}>
+      <Modal size="sm" title={t('SIDEBAR.GOLDEN_EDITION')} handleCancel={onClose} hideFooter={true}>
         <div className={`flex flex-col w-full ${themeBasedContainerClassNames}`}>
           <div className="flex items-center justify-between">
-            <h3 className="text-lg font-medium">Golden Edition</h3>
+            <h3 className="text-lg font-medium">{t('SIDEBAR.GOLDEN_EDITION')}</h3>
             <a
               onClick={() => {
                 goldenEditionBuyClick();
@@ -131,7 +133,7 @@ const GoldenEdition = ({ onClose }) => {
               target="_blank"
               className="flex text-white bg-yellow-600 hover:bg-yellow-700 font-medium rounded-lg px-4 py-2 text-center cursor-pointer"
             >
-              <IconHeart size={18} strokeWidth={1.5} /> <span className="ml-2">Buy</span>
+              <IconHeart size={18} strokeWidth={1.5} /> <span className="ml-2">{t('SIDEBAR.BUY')}</span>
             </a>
           </div>
           {pricingOption === 'individuals' ? (
@@ -139,17 +141,17 @@ const GoldenEdition = ({ onClose }) => {
               <div className="my-4">
                 <span className="text-3xl font-extrabold">$19</span>
               </div>
-              <p className="bg-yellow-200 text-black rounded-md px-2 py-1 mb-2 inline-flex">One Time Payment</p>
-              <p>perpetual license for 2 devices, with 2 years of updates</p>
+              <p className="bg-yellow-200 text-black rounded-md px-2 py-1 mb-2 inline-flex">{t('SIDEBAR.ONE_TIME_PAYMENT')}</p>
+              <p>{t('SIDEBAR.PERPETUAL_LICENSE_INDIVIDUAL')}</p>
             </div>
           ) : (
             <div>
               <div className="my-4">
                 <span className="text-3xl font-extrabold">$49</span>
-                <span className="ml-2">/&nbsp;user</span>
+                <span className="ml-2">{t('SIDEBAR.PER_USER')}</span>
               </div>
-              <p className="bg-yellow-200 text-black rounded-md px-2 py-1 mb-2 inline-flex">One Time Payment</p>
-              <p>perpetual license with 2 years of updates</p>
+              <p className="bg-yellow-200 text-black rounded-md px-2 py-1 mb-2 inline-flex">{t('SIDEBAR.ONE_TIME_PAYMENT')}</p>
+              <p>{t('SIDEBAR.PERPETUAL_LICENSE_ORG')}</p>
             </div>
           )}
           <div
@@ -162,7 +164,7 @@ const GoldenEdition = ({ onClose }) => {
               }`}
               onClick={() => handlePricingOptionChange('individuals')}
             >
-              <IconUser className="text-gray-500 mr-2 icon" size={16} strokeWidth={1.5} /> Individuals
+              <IconUser className="text-gray-500 mr-2 icon" size={16} strokeWidth={1.5} /> {t('SIDEBAR.INDIVIDUALS')}
             </div>
             <div
               className={`cursor-pointer w-1/2 h-8 flex items-center justify-center rounded-full ${
@@ -170,13 +172,13 @@ const GoldenEdition = ({ onClose }) => {
               }`}
               onClick={() => handlePricingOptionChange('organizations')}
             >
-              <IconUsers className="text-gray-500 mr-2 icon" size={16} strokeWidth={1.5} /> Organizations
+              <IconUsers className="text-gray-500 mr-2 icon" size={16} strokeWidth={1.5} /> {t('SIDEBAR.ORGANIZATIONS')}
             </div>
           </div>
           <ul role="list" className="space-y-3 text-left">
             <li className="flex items-center space-x-3">
               <HeartIcon />
-              <span>Support Bruno's Development</span>
+              <span>{t('SIDEBAR.SUPPORT_BRUNO_DEVELOPMENT')}</span>
             </li>
             {pricingOption === 'individuals' ? (
               <>
@@ -191,7 +193,7 @@ const GoldenEdition = ({ onClose }) => {
               <>
                 <li className="flex items-center space-x-3 pb-4">
                   <IconPlus size={16} strokeWidth={1.5} style={{ marginLeft: '2px' }} />
-                  <span>Everything in the Individual Plan</span>
+                  <span>{t('SIDEBAR.EVERYTHING_IN_INDIVIDUAL')}</span>
                 </li>
                 {goldenEditionOrganizations.map((item, index) => (
                   <li className="flex items-center space-x-3" key={index}>

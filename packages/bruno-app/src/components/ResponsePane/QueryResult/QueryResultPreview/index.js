@@ -1,4 +1,5 @@
 import React, { useState, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import CodeEditor from 'components/CodeEditor/index';
 import { get } from 'lodash';
 import { useDispatch, useSelector } from 'react-redux';
@@ -31,6 +32,7 @@ const QueryResultPreview = ({
   docKey
 }) => {
   const preferences = useSelector((state) => state.app.preferences);
+  const { t } = useTranslation();
   const dispatch = useDispatch();
   const editorRef = useRef(null);
   const [responseScroll, setResponseScroll] = usePersistedState({ key: `response-body-scroll-${item.uid}`, default: 0 });
@@ -113,10 +115,10 @@ const QueryResultPreview = ({
       return (
         <div className="p-4 flex flex-col items-center justify-center h-full text-center">
           <div className="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-2">
-            No Preview Available
+            {t('RESPONSE_PANE.NO_PREVIEW_AVAILABLE')}
           </div>
           <div className="text-sm text-gray-500 dark:text-gray-400">
-            Sorry, no preview is available for this content type.
+            {t('RESPONSE_PANE.NO_PREVIEW_AVAILABLE_DESC')}
           </div>
         </div>
       );

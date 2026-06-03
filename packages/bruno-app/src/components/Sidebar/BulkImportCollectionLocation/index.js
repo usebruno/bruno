@@ -1,5 +1,6 @@
 import React, { useRef, useEffect, useState, useMemo, forwardRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import { useTranslation } from 'react-i18next';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import path from 'utils/common/path';
@@ -33,11 +34,6 @@ const IMPORT_TYPE = {
   BULK: 'bulk',
   MULTIPLE: 'multiple'
 };
-
-const groupingOptions = [
-  { value: 'tags', label: 'Tags', description: 'Group requests by OpenAPI/Swagger tags', testId: 'grouping-option-tags' },
-  { value: 'path', label: 'Paths', description: 'Group requests by URL path structure', testId: 'grouping-option-path' }
-];
 
 // Extract collection name from raw data
 const getCollectionName = (format, rawData) => {
@@ -134,6 +130,7 @@ export const BulkImportCollectionLocation = ({
   handleSubmit,
   importData
 }) => {
+  const { t } = useTranslation();
   const dispatch = useDispatch();
   const dropdownTippyRef = useRef();
 
@@ -144,6 +141,11 @@ export const BulkImportCollectionLocation = ({
   const defaultLocation = isDefaultWorkspace
     ? get(preferences, 'general.defaultLocation', '')
     : (activeWorkspace?.pathname ? path.join(activeWorkspace.pathname, 'collections') : '');
+
+  const groupingOptions = useMemo(() => [
+    { value: 'tags', label: t('SIDEBAR.TAGS'), description: t('SIDEBAR.GROUP_BY_TAGS'), testId: 'grouping-option-tags' },
+    { value: 'path', label: t('SIDEBAR.PATHS'), description: t('SIDEBAR.GROUP_BY_PATHS'), testId: 'grouping-option-path' }
+  ], [t]);
 
   const [status, setStatus] = useState({});
   const [errorMessages, setErrorMessages] = useState({});
@@ -480,7 +482,7 @@ export const BulkImportCollectionLocation = ({
             console.error('Failed to import collections', err);
             filteredCollections.forEach((collection) => {
               setStatus((prev) => ({ ...prev, [collection.uid]: STATUS.ERROR }));
-              setErrorMessages((prev) => ({ ...prev, [collection.uid]: err.message || 'Failed to import collection' }));
+              setErrorMessages((prev) => ({ ...prev, [collection.uid]: err.message || t('SIDEBAR.FAILED_TO_IMPORT_COLLECTION') }));
             });
           });
       } else {
@@ -584,8 +586,8 @@ export const BulkImportCollectionLocation = ({
     <StyledWrapper>
       <Modal
         size="md"
-        title="Bulk Import"
-        confirmText={importStarted ? 'Close' : 'Import'}
+        title={t('SIDEBAR.BULK_IMPORT')}
+        confirmText={importStarted ? t('COMMON.CLOSE') : t('COMMON.IMPORT')}
         confirmDisabled={Boolean(!selectedCollections?.length)}
         handleConfirm={onSubmit}
         handleCancel={onClose}
@@ -600,20 +602,20 @@ export const BulkImportCollectionLocation = ({
               <>
                 <div className="mb-6">
                   <div className="flex items-center justify-between relative mb-5 w-full">
-                    <div className="font-semibold">Location</div>
+                    <div className="font-semibold">{t('COMMON.LOCATION')}</div>
                     <div className="text-sm border border-slate-600 rounded px-3 py-1.5 ml-4 flex-1">
                       {formik.values.collectionLocation
-                        || 'No location selected'}
+                        || t('SIDEBAR.NO_LOCATION_SELECTED')}
                     </div>
                   </div>
 
                   <div className="flex items-center justify-between mb-2">
                     <div className="font-semibold">
-                      Importing Collections ({importStatus.totalSelected})
+                      {t('SIDEBAR.IMPORTING_COLLECTIONS', { count: importStatus.totalSelected })}
                     </div>
                     {importStatus.failedCount > 0 && importStatus.totalSelected > 0 && (
                       <div className="text-sm text-red-500">
-                        ({importStatus.failedCount}/{importStatus.totalSelected} failed)
+                        {t('SIDEBAR.FAILED_COUNT', { count: importStatus.failedCount, total: importStatus.totalSelected })}
                       </div>
                     )}
                   </div>
@@ -662,13 +664,13 @@ export const BulkImportCollectionLocation = ({
                                 )}
                               className="text-red-500 text-sm hover:underline"
                             >
-                              See error
+                              {t('SIDEBAR.SEE_ERROR')}
                             </button>
                           )}
                           {status[collection.uid] === STATUS.SUCCESS && importIssues[collection.uid] && (
                             <div className="flex items-center gap-2">
                               <span className="text-yellow-600 text-xs">
-                                {importIssues[collection.uid].filter((i) => i.severity === 'error').length} item(s) skipped
+                                {t('SIDEBAR.ITEMS_SKIPPED', { count: importIssues[collection.uid].filter((i) => i.severity === 'error').length })}
                               </span>
                               <button
                                 onClick={async () => {
@@ -677,14 +679,14 @@ export const BulkImportCollectionLocation = ({
                                     .join('\n');
                                   try {
                                     await navigator.clipboard.writeText(text);
-                                    toast.success('Copied to clipboard', { duration: 2000 });
+                                    toast.success(t('SIDEBAR.COPIED_TO_CLIPBOARD_SHORT'), { duration: 2000 });
                                   } catch (err) {
-                                    toast.error('Failed to copy to clipboard', { duration: 3000 });
+                                    toast.error(t('SIDEBAR.FAILED_TO_COPY'), { duration: 3000 });
                                   }
                                 }}
                                 className="text-yellow-600 text-xs hover:underline"
                               >
-                                Copy
+                                {t('COMMON.COPY')}
                               </button>
                             </div>
                           )}
@@ -696,7 +698,7 @@ export const BulkImportCollectionLocation = ({
                 {selectedEnvironments.length > 0 && (
                   <div className="mb-6">
                     <div className="font-semibold mb-2">
-                      Importing Environments ({selectedEnvironments.length})
+                      {t('SIDEBAR.IMPORTING_ENVIRONMENTS', { count: selectedEnvironments.length })}
                     </div>
                     <div className="max-h-[180px] overflow-y-scroll border border-slate-600 rounded-md py-2 scrollbar-visible">
                       {sortedEnvironments
@@ -739,7 +741,7 @@ export const BulkImportCollectionLocation = ({
                                   )}
                                 className="text-red-500 text-sm hover:underline"
                               >
-                                See error
+                                {t('SIDEBAR.SEE_ERROR')}
                               </button>
                             )}
                           </div>
@@ -753,8 +755,8 @@ export const BulkImportCollectionLocation = ({
                 <div className="w-full mb-6">
                   <SelectionList
                     dataTestId="selection-section-collections"
-                    title="Collections"
-                    searchPlaceholder="Search Collections"
+                    title={t('COMMON.COLLECTIONS')}
+                    searchPlaceholder={t('SIDEBAR.SEARCH_COLLECTIONS')}
                     items={sortedCollections}
                     selectedItems={selectedCollections}
                     onSelectAll={handleSelectAllCollections}
@@ -775,8 +777,8 @@ export const BulkImportCollectionLocation = ({
                     <div className="w-full mb-6">
                       <SelectionList
                         dataTestId="selection-section-environments"
-                        title="Environments"
-                        searchPlaceholder="Search Environments"
+                        title={t('SIDEBAR.ENVIRONMENTS')}
+                        searchPlaceholder={t('SIDEBAR.SEARCH_ENVIRONMENTS')}
                         items={sortedEnvironments}
                         selectedItems={selectedEnvironments}
                         onSelectAll={handleSelectAllEnvironments}
@@ -786,14 +788,14 @@ export const BulkImportCollectionLocation = ({
                         visibleRows={4}
                         rowHeight={30}
                         rowGap={4}
-                        emptyMessage="No environments found"
+                        emptyMessage={t('SIDEBAR.NO_ENVIRONMENTS_FOUND')}
                         showSelectedCount={true}
                       />
                     </div>
 
                     <div className="mb-6">
                       <div className="font-semibold mb-2">
-                        Environment Assignment
+                        {t('SIDEBAR.ENVIRONMENT_ASSIGNMENT')}
                       </div>
                       <div className="flex gap-8 mt-2 ml-2">
                         <label className="flex items-center">
@@ -804,9 +806,9 @@ export const BulkImportCollectionLocation = ({
                             className="mr-2"
                           />
                           <span className="ml-2">
-                            Global Environment
+                            {t('SIDEBAR.GLOBAL_ENVIRONMENT')}
                             <InfoTip
-                              content="Environments will be imported and stored as global, accessible across collections."
+                              content={t('SIDEBAR.GLOBAL_ENV_HELP')}
                               infotipId="apply-to-global-infotip"
                             />
                           </span>
@@ -820,9 +822,9 @@ export const BulkImportCollectionLocation = ({
                             className="mr-2"
                           />
                           <span className="ml-2">
-                            Duplicate Across Collections
+                            {t('SIDEBAR.DUPLICATE_ACROSS_COLLECTIONS')}
                             <InfoTip
-                              content="Each imported collection will receive its own copy of the environments."
+                              content={t('SIDEBAR.DUPLICATE_ENV_HELP')}
                               infotipId="apply-to-each-infotip"
                             />
                           </span>
@@ -857,21 +859,21 @@ export const BulkImportCollectionLocation = ({
                   ) : null}
                   <div className="mt-1">
                     <span className="text-link cursor-pointer hover:underline" onClick={browse}>
-                      Browse
+                      {t('COMMON.BROWSE')}
                     </span>
                   </div>
                 </div>
 
                 <div className="mt-4">
                   <label htmlFor="format" className="flex items-center font-semibold">
-                    File Format
+                    {t('SIDEBAR.FILE_FORMAT')}
                     <Help width="300">
-                      <p>Choose the file format for storing requests in this collection.</p>
+                      <p>{t('SIDEBAR.CHOOSE_FILE_FORMAT')}</p>
                       <p className="mt-2">
-                        <strong>OpenCollection (YAML):</strong> Industry-standard YAML format (.yml files)
+                        <strong>{t('SIDEBAR.OPENCOLLECTION_YAML')}</strong>
                       </p>
                       <p className="mt-1">
-                        <strong>BRU:</strong> Bruno's native file format (.bru files)
+                        <strong>{t('SIDEBAR.BRU_FORMAT')}</strong>
                       </p>
                     </Help>
                   </label>
@@ -882,8 +884,8 @@ export const BulkImportCollectionLocation = ({
                     value={collectionFormat}
                     onChange={(e) => setCollectionFormat(e.target.value)}
                   >
-                    <option value="yml">OpenCollection (YAML)</option>
-                    <option value="bru">BRU Format (.bru)</option>
+                    <option value="yml">{t('SIDEBAR.OPENCOLLECTION_FORMAT')}</option>
+                    <option value="bru">{t('SIDEBAR.BRU_FORMAT_OPTION')}</option>
                   </select>
                 </div>
 
@@ -892,10 +894,10 @@ export const BulkImportCollectionLocation = ({
                     <div className="flex gap-4 items-center mt-4">
                       <div>
                         <label htmlFor="groupingType" className="block font-semibold">
-                          Folder arrangement
+                          {t('SIDEBAR.FOLDER_ARRANGEMENT')}
                         </label>
                         <p className="text-sm text-gray-600 dark:text-gray-400 mt-1 mb-2">
-                          Select whether to create folders according to the spec's paths or tags.
+                          {t('SIDEBAR.FOLDER_ARRANGEMENT_DESC')}
                         </p>
                       </div>
                       <div className="relative">

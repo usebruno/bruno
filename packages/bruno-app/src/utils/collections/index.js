@@ -1,4 +1,5 @@
 import { cloneDeep, isEqual, sortBy, filter, map, isString, findIndex, find, each, get } from 'lodash';
+import i18n from 'i18n';
 import { uuid } from 'utils/common';
 import { buildPersistedEnvVariables } from 'utils/environments';
 import { sortByNameThenSequence } from 'utils/common/index';
@@ -924,51 +925,41 @@ export const humanizeRequestBodyMode = (mode) => {
 };
 
 export const humanizeRequestAuthMode = (mode) => {
-  let label = 'No Auth';
   switch (mode) {
     case 'inherit': {
-      label = 'Inherit';
-      break;
+      return i18n.t('REQUEST_PANE.INHERIT');
     }
     case 'awsv4': {
-      label = 'AWS Sig V4';
-      break;
+      return i18n.t('REQUEST_PANE.AWS_SIG_V4');
     }
     case 'basic': {
-      label = 'Basic Auth';
-      break;
+      return i18n.t('REQUEST_PANE.BASIC_AUTH');
     }
     case 'bearer': {
-      label = 'Bearer Token';
-      break;
+      return i18n.t('REQUEST_PANE.BEARER_TOKEN');
     }
     case 'digest': {
-      label = 'Digest Auth';
-      break;
+      return i18n.t('REQUEST_PANE.DIGEST_AUTH');
     }
     case 'ntlm': {
-      label = 'NTLM';
-      break;
+      return i18n.t('REQUEST_PANE.NTLM_AUTH');
     }
     case 'oauth1': {
-      label = 'OAuth 1.0';
-      break;
+      return i18n.t('REQUEST_PANE.OAUTH_1');
     }
     case 'oauth2': {
-      label = 'OAuth 2.0';
-      break;
+      return i18n.t('REQUEST_PANE.OAUTH_2');
     }
     case 'wsse': {
-      label = 'WSSE Auth';
-      break;
+      return i18n.t('REQUEST_PANE.WSSE_AUTH');
     }
     case 'apikey': {
-      label = 'API Key';
-      break;
+      return i18n.t('REQUEST_PANE.API_KEY');
+    }
+    default: {
+      return i18n.t('REQUEST_PANE.NO_AUTH');
     }
   }
-
-  return label;
 };
 
 export const humanizeRequestAPIKeyPlacement = (placement) => {
@@ -1724,7 +1715,7 @@ export const isVariableSecret = (scopeInfo) => {
  * @param {string} itemUid - The parent item UID (null for root level, folder UID for folder level)
  * @returns {Promise<string>} - A unique request name (Untitled, Untitled1, Untitled2, etc.)
  */
-export const generateUniqueRequestName = async (collection, baseName = 'Untitled', itemUid = null) => {
+export const generateUniqueRequestName = async (collection, baseName = i18n.t('COMMON.UNTITLED'), itemUid = null) => {
   if (!collection) {
     return baseName;
   }

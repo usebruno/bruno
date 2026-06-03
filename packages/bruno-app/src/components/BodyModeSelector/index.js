@@ -4,7 +4,7 @@ import MenuDropdown from 'ui/MenuDropdown';
 import { humanizeRequestBodyMode } from 'utils/collections';
 import StyledWrapper from './StyledWrapper';
 
-const DEFAULT_MODES = [
+export const DEFAULT_MODES = [
   {
     name: 'Form',
     options: [

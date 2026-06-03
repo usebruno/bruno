@@ -11,10 +11,12 @@ import {
 import { getBasename } from 'utils/common/path';
 import { Tooltip } from 'react-tooltip';
 import useProtoFileManagement from '../../../hooks/useProtoFileManagement';
+import { useTranslation } from 'react-i18next';
 import { saveCollectionSettings } from 'providers/ReduxStore/slices/collections/actions';
 import Button from 'ui/Button';
 
 const ProtobufSettings = ({ collection }) => {
+  const { t } = useTranslation();
   const dispatch = useDispatch();
   const {
     protoFiles,
@@ -114,7 +116,7 @@ const ProtobufSettings = ({ collection }) => {
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center">
             <label className="flex items-center" htmlFor="protoFiles">
-              Proto Files (
+              {t('COLLECTION_SETTINGS.PROTO_FILES')} (
               {protoFiles.length}
               )
               <span id="proto-files-tooltip" className="ml-2">
@@ -141,13 +143,13 @@ const ProtobufSettings = ({ collection }) => {
             <thead>
               <tr>
                 <th>
-                  File
+                  {t('COLLECTION_SETTINGS.FILE')}
                 </th>
                 <th>
-                  Path
+                  {t('COLLECTION_SETTINGS.PATH')}
                 </th>
                 <th className="text-right">
-                  Actions
+                  {t('COLLECTION_SETTINGS.ACTIONS')}
                 </th>
               </tr>
             </thead>
@@ -157,7 +159,7 @@ const ProtobufSettings = ({ collection }) => {
                   <td colSpan="3" className="text-center">
                     <div className="empty-state flex flex-col items-center">
                       <IconFile size={24} className="empty-icon mb-2" />
-                      <span className="empty-text">No proto files added</span>
+                      <span className="empty-text">{t('COLLECTION_SETTINGS.NO_PROTO_FILES_ADDED')}</span>
                     </div>
                   </td>
                 </tr>
@@ -211,7 +213,7 @@ const ProtobufSettings = ({ collection }) => {
             </tbody>
           </table>
           <button type="button" className="btn-add-param text-link pr-2 py-3 mt-2 select-none" onClick={handleBrowseClick} data-testid="protobuf-add-file-button">
-            + Add Proto File
+            + {t('COLLECTION_SETTINGS.ADD_PROTO_FILE')}
           </button>
         </div>
       </div>
@@ -221,7 +223,7 @@ const ProtobufSettings = ({ collection }) => {
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center">
             <label className="flex items-center" htmlFor="importPaths">
-              Import Paths (
+              {t('COLLECTION_SETTINGS.IMPORT_PATHS')} (
               {importPaths.length}
               )
               <span id="import-paths-tooltip" className="ml-2">
@@ -250,13 +252,13 @@ const ProtobufSettings = ({ collection }) => {
                 <th>
                 </th>
                 <th>
-                  Directory
+                  {t('COLLECTION_SETTINGS.DIRECTORY')}
                 </th>
                 <th>
-                  Path
+                  {t('COLLECTION_SETTINGS.PATH')}
                 </th>
-                <th className="text-right">
-                  Actions
+                <th>
+                  {t('COLLECTION_SETTINGS.ACTIONS')}
                 </th>
               </tr>
             </thead>
@@ -266,7 +268,7 @@ const ProtobufSettings = ({ collection }) => {
                   <td colSpan="4" className="text-center">
                     <div className="empty-state flex flex-col items-center">
                       <IconFolder size={24} className="empty-icon mb-2" />
-                      <span className="empty-text">No import paths added</span>
+                      <span className="empty-text">{t('COLLECTION_SETTINGS.NO_IMPORT_PATHS_ADDED')}</span>
                     </div>
                   </td>
                 </tr>
@@ -330,14 +332,14 @@ const ProtobufSettings = ({ collection }) => {
             </tbody>
           </table>
           <button type="button" className="btn-add-param text-link pr-2 py-3 mt-2 select-none" onClick={handleBrowseImportPathClick} data-testid="protobuf-add-import-path-button">
-            + Add Import Path
+            + {t('COLLECTION_SETTINGS.ADD_IMPORT_PATH')}
           </button>
         </div>
       </div>
 
       <div className="mt-6">
         <Button type="button" size="sm" onClick={handleSave}>
-          Save
+          {t('COMMON.SAVE')}
         </Button>
       </div>
 

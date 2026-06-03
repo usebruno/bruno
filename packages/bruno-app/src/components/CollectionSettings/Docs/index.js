@@ -6,6 +6,7 @@ import { updateDocsEditing } from 'providers/ReduxStore/slices/tabs';
 import { useTheme } from 'providers/Theme';
 import { useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import { useTranslation } from 'react-i18next';
 import { saveCollectionSettings } from 'providers/ReduxStore/slices/collections/actions';
 import Markdown from 'components/MarkDown';
 import CodeEditor from 'components/CodeEditor';
@@ -17,6 +18,7 @@ import { usePersistedState } from 'hooks/usePersistedState';
 import { useTrackScroll } from 'hooks/useTrackScroll';
 
 const Docs = ({ collection }) => {
+  const { t } = useTranslation();
   const dispatch = useDispatch();
   const { displayedTheme } = useTheme();
   const tabs = useSelector((state) => state.tabs.tabs);
@@ -71,10 +73,10 @@ const Docs = ({ collection }) => {
           {isEditing ? (
             <>
               <Button type="button" color="secondary" onClick={handleDiscardChanges}>
-                Cancel
+                {t('COMMON.CANCEL')}
               </Button>
               <Button type="button" onClick={onSave}>
-                Save
+                {t('COMMON.SAVE')}
               </Button>
             </>
           ) : (
@@ -98,14 +100,12 @@ const Docs = ({ collection }) => {
           onScroll={setScroll}
         />
       ) : (
-        <div className="pl-1">
-          <div className="h-[1px] min-h-[500px]">
-            {
-              docs?.length > 0
-                ? <Markdown collectionPath={collection.pathname} onDoubleClick={toggleViewMode} content={docs} />
-                : <Markdown collectionPath={collection.pathname} onDoubleClick={toggleViewMode} content={documentationPlaceholder} />
-            }
-          </div>
+        <div className="pl-1 h-full">
+          {
+            docs?.length > 0
+              ? <Markdown collectionPath={collection.pathname} onDoubleClick={toggleViewMode} content={docs} />
+              : <Markdown collectionPath={collection.pathname} onDoubleClick={toggleViewMode} content={documentationPlaceholder} />
+          }
         </div>
       )}
     </StyledWrapper>
@@ -115,25 +115,25 @@ const Docs = ({ collection }) => {
 export default Docs;
 
 const documentationPlaceholder = `
-Welcome to your collection documentation! This space is designed to help you document your API collection effectively.
+欢迎来到您的集合文档！此空间旨在帮助您有效地记录 API 集合。
 
-## Overview
-Use this section to provide a high-level overview of your collection. You can describe:
-- The purpose of these API endpoints
-- Key features and functionalities
-- Target audience or users
+## 概述
+使用此部分提供集合的高级概述。您可以描述：
+- 这些 API 端点的用途
+- 主要特性和功能
+- 目标受众或用户
 
-## Best Practices
-- Keep documentation up to date
-- Include request/response examples
-- Document error scenarios
-- Add relevant links and references
+## 最佳实践
+- 保持文档最新
+- 包含请求/响应示例
+- 记录错误场景
+- 添加相关链接和参考资料
 
-## Markdown Support
-This documentation supports Markdown formatting! You can use:
-- **Bold** and *italic* text
-- \`code blocks\` and syntax highlighting
-- Tables and lists
-- [Links](https://usebruno.com)
-- And more!
+## Markdown 支持
+此文档支持 Markdown 格式！您可以使用：
+- **粗体** 和 *斜体* 文本
+- \`代码块\` 和语法高亮
+- 表格和列表
+- [链接](https://usebruno.com)
+- 以及更多！
 `;

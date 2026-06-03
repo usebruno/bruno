@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import CodeEditor from 'components/CodeEditor/index';
 import get from 'lodash/get';
 import { useTheme } from 'providers/Theme/index';
@@ -11,6 +12,7 @@ import { cloneDeep } from 'lodash';
 import { useMemo } from 'react';
 import { generateSnippet } from '../utils/snippet-generator';
 const CodeView = ({ language, item }) => {
+  const { t } = useTranslation();
   const { displayedTheme } = useTheme();
   const preferences = useSelector((state) => state.app.preferences);
   const { globalEnvironments, activeGlobalEnvironmentUid } = useSelector((state) => state.globalEnvironments);
@@ -45,7 +47,7 @@ const CodeView = ({ language, item }) => {
       <CopyToClipboard
         text={snippet}
         options={{ format: 'text/plain' }}
-        onCopy={() => toast.success('Copied to clipboard!')}
+        onCopy={() => toast.success(t('SIDEBAR.COPIED_TO_CLIPBOARD'))}
       >
         <button className="copy-to-clipboard">
           <IconCopy size={20} strokeWidth={1.5} />

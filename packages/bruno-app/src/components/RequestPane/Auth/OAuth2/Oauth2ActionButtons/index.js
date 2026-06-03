@@ -1,4 +1,5 @@
 import { useMemo, useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useDispatch, useSelector } from 'react-redux';
 import toast from 'react-hot-toast';
 import { cloneDeep, find, get } from 'lodash';
@@ -12,6 +13,7 @@ const Oauth2ActionButtons = ({ item, request, collection, url: accessTokenUrl, c
   const { uid: collectionUid } = collection;
 
   const dispatch = useDispatch();
+  const { t } = useTranslation();
   const preferences = useSelector((state) => state.app.preferences);
   const [fetchingToken, toggleFetchingToken] = useState(false);
   const [refreshingToken, toggleRefreshingToken] = useState(false);
@@ -56,13 +58,13 @@ const Oauth2ActionButtons = ({ item, request, collection, url: accessTokenUrl, c
 
       // Check if the result contains error or if access_token is missing
       if (!result || !result.access_token) {
-        const errorMessage = result?.error || 'No access token received from authorization server';
+        const errorMessage = result?.error || t('REQUEST_PANE.NO_ACCESS_TOKEN_RECEIVED');
         console.error(errorMessage);
         toast.error(errorMessage);
         return;
       }
 
-      toast.success('Token fetched successfully!');
+      toast.success(t('REQUEST_PANE.TOKEN_FETCHED_SUCCESSFULLY'));
     } catch (error) {
       console.error('could not fetch the token!');
       console.error(error);
@@ -94,24 +96,24 @@ const Oauth2ActionButtons = ({ item, request, collection, url: accessTokenUrl, c
 
       // Check if the result contains error or if access_token is missing
       if (!result || !result.access_token) {
-        const errorMessage = result?.error || 'No access token received from authorization server';
+        const errorMessage = result?.error || t('REQUEST_PANE.NO_ACCESS_TOKEN_RECEIVED');
         console.error(errorMessage);
         toast.error(errorMessage);
         return;
       }
 
-      toast.success('Token refreshed successfully!');
+      toast.success(t('REQUEST_PANE.TOKEN_REFRESHED_SUCCESSFULLY'));
     } catch (error) {
       console.error(error);
       toggleRefreshingToken(false);
-      toast.error(error?.message || 'An error occurred while refreshing token!');
+      toast.error(t('REQUEST_PANE.AN_ERROR_OCCURRED_WHILE_REFRESHING_TOKEN'));
     }
   };
 
   const handleClearCache = (e) => {
     dispatch(clearOauth2Cache({ collectionUid: collection?.uid, url: interpolatedAccessTokenUrl, credentialsId }))
       .then(() => {
-        toast.success('Cleared cache successfully');
+        toast.success(t('REQUEST_PANE.CLEARED_CACHE_SUCCESSFULLY'));
       })
       .catch((err) => {
         toast.error(err.message);
@@ -165,7 +167,7 @@ const Oauth2ActionButtons = ({ item, request, collection, url: accessTokenUrl, c
               icon={<IconX size={16} />}
               iconPosition="left"
             >
-              Cancel Authorization
+              {t('REQUEST_PANE.CANCEL_AUTHORIZATION')}
             </Button>
           ) : null}
       <Button
@@ -174,7 +176,7 @@ const Oauth2ActionButtons = ({ item, request, collection, url: accessTokenUrl, c
         variant="ghost"
         onClick={handleClearCache}
       >
-        Clear Cache
+        {t('REQUEST_PANE.CLEAR_CACHE')}
       </Button>
     </div>
   );

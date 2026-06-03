@@ -1,4 +1,5 @@
 import React, { forwardRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { IconFile, IconChevronDown } from '@tabler/icons';
 import { getBasename } from 'utils/common/path';
 import { useTheme } from 'providers/Theme';
@@ -23,6 +24,7 @@ const ProtoFileDropdown = ({
   onReflectionModeToggle,
   onProtoFileLoad
 }) => {
+  const { t } = useTranslation();
   const { theme } = useTheme();
   const dispatch = useDispatch();
   const [activeTab, setActiveTab] = useState('protofiles'); // 'protofiles' or 'importpaths'
@@ -95,12 +97,12 @@ const ProtoFileDropdown = ({
     const { success: addSuccess, error: addError } = await protoFileManagement.addImportPathFromRequest(directoryPath);
     if (!addSuccess) {
       if (addError) {
-        toast.error(`Failed to add import path: ${addError.message}`);
+        toast.error(t('REQUEST_PANE.FAILED_TO_ADD_IMPORT_PATH', { error: addError.message }));
       }
       return;
     }
 
-    toast.success('Added import path to collection');
+    toast.success(t('REQUEST_PANE.ADDED_IMPORT_PATH_TO_COLLECTION'));
   };
 
   const handleToggleImportPath = async (index) => {
@@ -112,7 +114,7 @@ const ProtoFileDropdown = ({
       return;
     }
 
-    toast.success(`Import path ${enabled ? 'enabled' : 'disabled'}`);
+    toast.success(t('REQUEST_PANE.IMPORT_PATH_STATUS', { status: enabled ? t('REQUEST_PANE.ENABLED') : t('REQUEST_PANE.DISABLED') }));
   };
 
   const handleOpenCollectionProtobufSettings = (e) => {
@@ -151,7 +153,7 @@ const ProtoFileDropdown = ({
                 <span>Mode</span>
                 <div className="proto-file-dropdown-mode-options">
                   <span className={`proto-file-dropdown-mode-option ${!isReflectionMode ? 'proto-file-dropdown-mode-option--active' : ''}`} style={{ color: !isReflectionMode ? theme.primary.text : undefined }}>
-                    Proto File
+                    {t('REQUEST_PANE.PROTO_FILE')}
                   </span>
                   <ToggleSwitch
                     isOn={isReflectionMode}
@@ -160,7 +162,7 @@ const ProtoFileDropdown = ({
                     activeColor={theme.primary.solid}
                   />
                   <span className={`proto-file-dropdown-mode-option ${isReflectionMode ? 'proto-file-dropdown-mode-option--active' : ''}`} style={{ color: isReflectionMode ? theme.primary.text : undefined }}>
-                    Reflection
+                    {t('REQUEST_PANE.REFLECTION')}
                   </span>
                 </div>
               </div>
@@ -204,7 +206,7 @@ const ProtoFileDropdown = ({
 
             {isReflectionMode && (
               <div className="proto-file-dropdown-reflection-message">
-                Using server reflection to discover gRPC methods.
+                {t('REQUEST_PANE.PROTO_FILE_DROPDOWN_REFLECTION_MESSAGE')}
               </div>
             )}
           </div>

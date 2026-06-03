@@ -2,6 +2,7 @@ import React from 'react';
 import { IconCheck, IconChevronDown, IconFolder, IconHome, IconPin, IconPinned, IconPlus, IconDownload, IconSettings, IconMinus, IconSquare, IconX, IconCopy } from '@tabler/icons';
 import { forwardRef, useCallback, useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
+import { useTranslation } from 'react-i18next';
 import { useDispatch, useSelector } from 'react-redux';
 
 import { savePreferences, showManageWorkspacePage, toggleSidebarCollapse } from 'providers/ReduxStore/slices/app';
@@ -39,6 +40,7 @@ export const getWorkspaceDisplayName = (name) => {
 };
 
 const AppTitleBar = () => {
+  const { t } = useTranslation();
   const dispatch = useDispatch();
   const [isFullScreen, setIsFullScreen] = useState(false);
   const [isMaximized, setIsMaximized] = useState(false);
@@ -147,17 +149,17 @@ const AppTitleBar = () => {
 
   const handleWorkspaceSwitch = (workspaceUid) => {
     dispatch(switchWorkspace(workspaceUid));
-    toast.success(`Switched to ${getWorkspaceDisplayName(workspaces.find((w) => w.uid === workspaceUid)?.name)}`);
+    toast.success(t('APP.SWITCHED_TO', { name: getWorkspaceDisplayName(workspaces.find((w) => w.uid === workspaceUid)?.name) }));
   };
 
   const handleOpenWorkspace = async () => {
     try {
       const result = await dispatch(openWorkspaceDialog());
       if (result) {
-        toast.success('Workspace opened successfully');
+        toast.success(t('APP.WORKSPACE_OPENED_SUCCESSFULLY'));
       }
     } catch (error) {
-      toast.error(error.message || 'Failed to open workspace');
+      toast.error(error.message || t('APP.FAILED_OPEN_WORKSPACE'));
     }
   };
 
@@ -171,7 +173,7 @@ const AppTitleBar = () => {
     try {
       await dispatch(createWorkspaceWithUniqueName(defaultLocation));
     } catch (error) {
-      toast.error(error?.message || 'Failed to create workspace');
+      toast.error(error?.message || t('APP.FAILED_CREATE_WORKSPACE'));
     }
   }, [preferences, dispatch]);
 
@@ -219,7 +221,7 @@ const AppTitleBar = () => {
               <ActionIcon
                 className={`pin-btn ${isPinned ? 'pinned' : ''}`}
                 onClick={(e) => handlePinWorkspace(workspace.uid, e)}
-                label={isPinned ? 'Unpin workspace' : 'Pin workspace'}
+                label={isPinned ? t('APP.UNPIN_WORKSPACE') : t('APP.PIN_WORKSPACE')}
                 size="sm"
               >
                 {isPinned ? <IconPinned size={14} stroke={1.5} /> : <IconPin size={14} stroke={1.5} />}
@@ -233,29 +235,29 @@ const AppTitleBar = () => {
 
     // Add label and action items
     items.push(
-      { type: 'label', label: 'Workspaces' },
+      { type: 'label', label: t('APP.WORKSPACES') },
       {
         id: 'create-workspace',
         leftSection: IconPlus,
-        label: 'Create workspace',
+        label: t('APP.CREATE_WORKSPACE'),
         onClick: handleCreateWorkspace
       },
       {
         id: 'open-workspace',
         leftSection: IconFolder,
-        label: 'Open workspace',
+        label: t('APP.OPEN_WORKSPACE'),
         onClick: handleOpenWorkspace
       },
       {
         id: 'import-workspace',
         leftSection: IconDownload,
-        label: 'Import workspace',
+        label: t('APP.IMPORT_WORKSPACE'),
         onClick: handleImportWorkspace
       },
       {
         id: 'manage-workspaces',
         leftSection: IconSettings,
-        label: 'Manage workspaces',
+        label: t('APP.MANAGE_WORKSPACES'),
         onClick: handleManageWorkspaces
       }
     );
@@ -276,7 +278,7 @@ const AppTitleBar = () => {
         <div className="titlebar-left">
           {showWindowControls && <AppMenu />}
 
-          <ActionIcon onClick={handleHomeClick} label="Home" size="lg" className="home-button">
+          <ActionIcon onClick={handleHomeClick} label={t('COMMON.HOME')} size="lg" className="home-button">
             <IconHome size={16} stroke={1.5} />
           </ActionIcon>
 
@@ -303,7 +305,7 @@ const AppTitleBar = () => {
             {/* Toggle sidebar */}
             <ActionIcon
               onClick={handleToggleSidebar}
-              label={sidebarCollapsed ? 'Show sidebar' : 'Hide sidebar'}
+              label={sidebarCollapsed ? t('APP.SHOW_SIDEBAR') : t('APP.HIDE_SIDEBAR')}
               size="lg"
               data-testid="toggle-sidebar-button"
             >
@@ -313,7 +315,7 @@ const AppTitleBar = () => {
             {/* Toggle devtools */}
             <ActionIcon
               onClick={handleToggleDevtools}
-              label={isConsoleOpen ? 'Hide devtools' : 'Show devtools'}
+              label={isConsoleOpen ? t('APP.HIDE_DEVTOOLS') : t('APP.SHOW_DEVTOOLS')}
               size="lg"
               data-testid="toggle-devtools-button"
             >
@@ -328,21 +330,21 @@ const AppTitleBar = () => {
               <button
                 className="window-control-btn minimize"
                 onClick={handleMinimize}
-                aria-label="Minimize"
+                aria-label={t('APP.MINIMIZE')}
               >
                 <IconMinus size={16} stroke={1} />
               </button>
               <button
                 className="window-control-btn maximize"
                 onClick={handleMaximize}
-                aria-label={isMaximized ? 'Restore' : 'Maximize'}
+                aria-label={isMaximized ? t('APP.RESTORE') : t('APP.MAXIMIZE')}
               >
                 {isMaximized ? <IconCopy size={14} stroke={1} /> : <IconSquare size={14} stroke={1} />}
               </button>
               <button
                 className="window-control-btn close"
                 onClick={handleClose}
-                aria-label="Close"
+                aria-label={t('APP.CLOSE')}
               >
                 <IconX size={16} stroke={1} />
               </button>

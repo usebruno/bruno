@@ -1,6 +1,7 @@
 import React from 'react';
 import { IconAlertTriangle } from '@tabler/icons';
 import { useDispatch, useSelector } from 'react-redux';
+import { withTranslation } from 'react-i18next';
 import find from 'lodash/find';
 import { closeTabs } from 'providers/ReduxStore/slices/collections/actions';
 import { NON_CLOSABLE_TAB_TYPES } from 'providers/ReduxStore/slices/tabs';
@@ -31,15 +32,14 @@ class TabPanelErrorBoundaryInner extends React.Component {
       return (
         <div className="h-full flex flex-col items-center justify-center gap-3 px-6 text-center">
           <IconAlertTriangle size={36} strokeWidth={1.5} style={{ color: theme?.status?.warning?.text }} />
-          <h2 className="text-lg font-medium">Something went wrong</h2>
+          <h2 className="text-lg font-medium">{this.props.t('ERROR.SOMETHING_WENT_WRONG')}</h2>
           {isClosable ? (
             <p className="text-sm opacity-70 max-w-md">
-              This tab encountered an unexpected error. Close it and try reopening the request. If the
-              error repeats, the request file may be corrupt.
+              {this.props.t('ERROR.TAB_ERROR_MESSAGE')}
             </p>
           ) : (
             <p className="text-sm opacity-70 max-w-md">
-              This panel encountered an unexpected error. Restart Bruno to recover.
+              {this.props.t('ERROR.PANEL_ERROR_MESSAGE')}
             </p>
           )}
           {errorMessage && (
@@ -47,7 +47,7 @@ class TabPanelErrorBoundaryInner extends React.Component {
           )}
           {isClosable && (
             <Button size="md" data-testid="tab-panel-error-boundary-close-tab" color="primary" onClick={onClose}>
-              Close Tab
+              {this.props.t('ERROR.CLOSE_TAB')}
             </Button>
           )}
         </div>
@@ -58,7 +58,7 @@ class TabPanelErrorBoundaryInner extends React.Component {
   }
 }
 
-const TabPanelErrorBoundary = ({ tabUid, children }) => {
+const TabPanelErrorBoundary = ({ tabUid, children, t }) => {
   const dispatch = useDispatch();
   const tabs = useSelector((state) => state.tabs.tabs);
   const focusedTab = find(tabs, (t) => t.uid === tabUid);
@@ -70,10 +70,10 @@ const TabPanelErrorBoundary = ({ tabUid, children }) => {
   };
 
   return (
-    <TabPanelErrorBoundaryInner isClosable={isClosable} onClose={handleClose} theme={theme}>
+    <TabPanelErrorBoundaryInner isClosable={isClosable} onClose={handleClose} theme={theme} t={t}>
       {children}
     </TabPanelErrorBoundaryInner>
   );
 };
 
-export default TabPanelErrorBoundary;
+export default withTranslation()(TabPanelErrorBoundary);

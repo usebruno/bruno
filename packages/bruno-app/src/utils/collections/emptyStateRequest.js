@@ -1,4 +1,5 @@
 import React from 'react';
+import i18n from 'i18n';
 import { IconApi, IconBrandGraphql, IconPlugConnected, IconCode } from '@tabler/icons';
 import { newHttpRequest, newWsRequest, newGrpcRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { generateUniqueRequestName } from 'utils/collections';
@@ -8,7 +9,8 @@ import toast from 'react-hot-toast';
 
 const createRequest = async ({ dispatch, collection, itemUid, requestType }) => {
   try {
-    const uniqueName = await generateUniqueRequestName(collection, 'Untitled', itemUid);
+    const untitled = i18n.t('COMMON.UNTITLED');
+    const uniqueName = await generateUniqueRequestName(collection, untitled, itemUid);
     const filename = sanitizeName(uniqueName);
 
     const baseParams = {

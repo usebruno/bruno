@@ -12,9 +12,11 @@ import StatusDot from 'components/StatusDot';
 import { flattenItems, isItemARequest } from 'utils/collections';
 import StyledWrapper from './StyledWrapper';
 import Button from 'ui/Button';
+import { useTranslation } from 'react-i18next';
 import { usePersistedState } from 'hooks/usePersistedState';
 
 const Script = ({ collection }) => {
+  const { t } = useTranslation();
   const dispatch = useDispatch();
   const preRequestEditorRef = useRef(null);
   const postResponseEditorRef = useRef(null);
@@ -88,19 +90,19 @@ const Script = ({ collection }) => {
   return (
     <StyledWrapper className="w-full flex flex-col h-full">
       <div className="text-xs mb-4 text-muted">
-        Write pre and post-request scripts that will run before and after any request in this collection is sent.
+        {t('COLLECTION_SETTINGS.SCRIPT_DESCRIPTION')}
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
           <TabsTrigger value="pre-request">
-            Pre Request
+            {t('COLLECTION_SETTINGS.PRE_REQUEST')}
             {requestScript && requestScript.trim().length > 0 && (
               <StatusDot type={hasPreRequestScriptError ? 'error' : 'default'} />
             )}
           </TabsTrigger>
           <TabsTrigger value="post-response">
-            Post Response
+            {t('COLLECTION_SETTINGS.POST_RESPONSE')}
             {responseScript && responseScript.trim().length > 0 && (
               <StatusDot type={hasPostResponseScriptError ? 'error' : 'default'} />
             )}
@@ -146,7 +148,7 @@ const Script = ({ collection }) => {
 
       <div className="mt-12">
         <Button type="submit" size="sm" onClick={handleSave}>
-          Save
+          {t('COMMON.SAVE')}
         </Button>
       </div>
     </StyledWrapper>

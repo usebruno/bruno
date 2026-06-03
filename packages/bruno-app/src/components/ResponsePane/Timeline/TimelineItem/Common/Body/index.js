@@ -1,8 +1,10 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { IconChevronDown, IconChevronRight } from '@tabler/icons';
 import QueryResponse from 'components/ResponsePane/QueryResponse/index';
 
 const BodyBlock = ({ collection, data, dataBuffer, headers, error, item, type }) => {
+  const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(true);
   const hasBody = !!(data || dataBuffer);
 
@@ -18,7 +20,7 @@ const BodyBlock = ({ collection, data, dataBuffer, headers, error, item, type })
         <span className="tl-block-chev">
           {isOpen ? <IconChevronDown size={12} strokeWidth={2} /> : <IconChevronRight size={12} strokeWidth={2} />}
         </span>
-        Body
+        {t('RESPONSE_PANE.BODY')}
       </button>
       {isOpen && (
         hasBody ? (
@@ -36,7 +38,7 @@ const BodyBlock = ({ collection, data, dataBuffer, headers, error, item, type })
             />
           </div>
         ) : (
-          <div className="tl-empty">No Body found</div>
+          <div className="tl-empty">{t('RESPONSE_PANE.NO_BODY_FOUND')}</div>
         )
       )}
     </div>

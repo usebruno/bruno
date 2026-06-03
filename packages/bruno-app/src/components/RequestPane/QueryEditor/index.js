@@ -1,5 +1,4 @@
-/**
- *  Copyright (c) 2021 GraphQL Contributors.
+/** export default withTranslation()(QueryEditor); *  Copyright (c) 2021 GraphQL Contributors.
  *
  *  This source code is licensed under the MIT license found in the
  *  LICENSE file in the root directory of this source tree.
@@ -17,6 +16,7 @@ import StyledWrapper from './StyledWrapper';
 import onHasCompletion from './onHasCompletion';
 import { setupLinkAware } from 'utils/codemirror/linkAware';
 import { setupCodeMirrorResizeRefresh } from 'utils/codemirror/resize';
+import { withTranslation } from 'react-i18next';
 
 const CodeMirror = require('codemirror');
 
@@ -227,9 +227,9 @@ export default class QueryEditor extends React.Component {
       prettyQuery = prettyQuery.replace(/\{\s*__empty:\s*true\s*\}/g, '{}');
 
       this.editor.setValue(prettyQuery);
-      toast.success('Query prettified');
+      toast.success(this.props.t('REQUEST_PANE.QUERY_PRETTIFIED'));
     } catch (e) {
-      toast.error('Error occurred while prettifying GraphQL query');
+      toast.error(this.props.t('REQUEST_PANE.ERROR_OCCURRED_WHILE_PRETTIFYING_GRAPHQL_QUERY'));
     }
   };
 
@@ -301,3 +301,5 @@ export default class QueryEditor extends React.Component {
     }
   }
 }
+
+export default withTranslation()(QueryEditor);

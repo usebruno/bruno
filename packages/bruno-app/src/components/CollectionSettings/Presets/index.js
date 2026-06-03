@@ -4,9 +4,11 @@ import StyledWrapper from './StyledWrapper';
 import { updateCollectionPresets } from 'providers/ReduxStore/slices/collections';
 import { saveCollectionSettings } from 'providers/ReduxStore/slices/collections/actions';
 import { get } from 'lodash';
+import { useTranslation } from 'react-i18next';
 import Button from 'ui/Button';
 
 const PresetsSettings = ({ collection }) => {
+  const { t } = useTranslation();
   const dispatch = useDispatch();
   const initialPresets = { requestType: 'http', requestUrl: '' };
 
@@ -37,7 +39,7 @@ const PresetsSettings = ({ collection }) => {
   return (
     <StyledWrapper className="h-full w-full">
       <div className="text-xs mb-4 text-muted">
-        These presets will be used as the default values for new requests in this collection.
+        {t('COLLECTION_SETTINGS.PRESETS_DESCRIPTION')}
       </div>
       <div className="bruno-form">
         <div className="mb-3 flex items-center">
@@ -108,7 +110,7 @@ const PresetsSettings = ({ collection }) => {
                 id="request-url"
                 type="text"
                 name="requestUrl"
-                placeholder="Request URL"
+                placeholder={t('COLLECTION_SETTINGS.REQUEST_URL')}
                 className="block textbox"
                 autoComplete="off"
                 autoCorrect="off"
@@ -124,7 +126,7 @@ const PresetsSettings = ({ collection }) => {
 
         <div className="mt-6">
           <Button type="button" size="sm" onClick={handleSave}>
-            Save
+            {t('COMMON.SAVE')}
           </Button>
         </div>
       </div>

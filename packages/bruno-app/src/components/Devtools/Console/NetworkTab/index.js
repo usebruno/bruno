@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
+import { useTranslation } from 'react-i18next';
 import {
   IconNetwork
 } from '@tabler/icons';
@@ -115,6 +116,7 @@ const RequestRow = ({ request, isSelected, onClick }) => {
 };
 
 const NetworkTab = () => {
+  const { t } = useTranslation();
   const dispatch = useDispatch();
   const { networkFilters, selectedRequest } = useSelector((state) => state.logs);
   const collections = useSelector((state) => state.collections.collections);
@@ -156,19 +158,19 @@ const NetworkTab = () => {
         {filteredRequests.length === 0 ? (
           <div className="network-empty">
             <IconNetwork size={48} strokeWidth={1} />
-            <p>No network requests</p>
-            <span>Requests will appear here as you make API calls</span>
+            <p>{t('DEVTOOLS.NO_NETWORK_REQUESTS')}</p>
+            <span>{t('DEVTOOLS.REQUESTS_WILL_APPEAR_HERE')}</span>
           </div>
         ) : (
           <div className="requests-container">
             <div className="requests-header">
-              <div>Method</div>
-              <div>Status</div>
-              <div>Domain</div>
-              <div>Path</div>
-              <div>Time</div>
-              <div className="text-right">Duration</div>
-              <div className="text-right">Size</div>
+              <div>{t('DEVTOOLS.METHOD')}</div>
+              <div>{t('DEVTOOLS.STATUS')}</div>
+              <div>{t('DEVTOOLS.DOMAIN')}</div>
+              <div>{t('DEVTOOLS.PATH')}</div>
+              <div>{t('DEVTOOLS.TIME')}</div>
+              <div className="text-right">{t('DEVTOOLS.DURATION')}</div>
+              <div className="text-right">{t('DEVTOOLS.SIZE')}</div>
             </div>
 
             <div className="requests-list">

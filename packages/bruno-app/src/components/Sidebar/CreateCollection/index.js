@@ -1,4 +1,5 @@
 import React, { useRef, useEffect, useState, forwardRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useDispatch, useSelector } from 'react-redux';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
@@ -20,6 +21,7 @@ import get from 'lodash/get';
 import Button from 'ui/Button';
 
 const CreateCollection = ({ onClose, defaultLocation: propDefaultLocation, initialCollectionName = '' }) => {
+  const { t } = useTranslation();
   const inputRef = useRef();
   const dispatch = useDispatch();
   const workspaces = useSelector((state) => state.workspaces?.workspaces || []);
@@ -46,19 +48,19 @@ const CreateCollection = ({ onClose, defaultLocation: propDefaultLocation, initi
     validationSchema: Yup.object({
       collectionName: Yup.string()
         .trim()
-        .min(1, 'Collection name can\'t be empty')
-        .max(255, 'Must be 255 characters or less')
-        .required('Collection name is required'),
+        .min(1, t('SIDEBAR.COLLECTION_NAME_CANT_BE_EMPTY'))
+        .max(255, t('SIDEBAR.MUST_BE_255_OR_LESS'))
+        .required(t('SIDEBAR.COLLECTION_NAME_REQUIRED')),
       collectionFolderName: Yup.string()
-        .min(1, 'Must be at least 1 character')
-        .max(255, 'Must be 255 characters or less')
+        .min(1, t('SIDEBAR.MUST_BE_AT_LEAST_1_CHAR'))
+        .max(255, t('SIDEBAR.MUST_BE_255_OR_LESS'))
         .test('is-valid-collection-name', function (value) {
           const isValid = validateName(value);
           return isValid ? true : this.createError({ message: validateNameError(value) });
         })
-        .required('Folder name is required'),
-      collectionLocation: Yup.string().min(1, 'Location is required').required('Location is required'),
-      format: Yup.string().oneOf(['bru', 'yml'], 'invalid format').required('Format is required')
+        .required(t('SIDEBAR.FOLDER_NAME_REQUIRED')),
+      collectionLocation: Yup.string().min(1, t('SIDEBAR.LOCATION_REQUIRED')).required(t('SIDEBAR.LOCATION_REQUIRED')),
+      format: Yup.string().oneOf(['bru', 'yml'], t('SIDEBAR.INVALID_FORMAT')).required(t('SIDEBAR.FORMAT_REQUIRED'))
     }),
     onSubmit: async (values) => {
       try {
@@ -67,10 +69,10 @@ const CreateCollection = ({ onClose, defaultLocation: propDefaultLocation, initi
           values.collectionLocation,
           { format: values.format }));
 
-        toast.success('Collection created!');
+        toast.success(t('SIDEBAR.COLLECTION_CREATED'));
         onClose();
       } catch (e) {
-        toast.error(multiLineMsg('An error occurred while creating the collection', formatIpcError(e)));
+        toast.error(multiLineMsg(t('SIDEBAR.ERROR_CREATING_COLLECTION'), formatIpcError(e)));
       }
     }
   });
@@ -104,7 +106,7 @@ const CreateCollection = ({ onClose, defaultLocation: propDefaultLocation, initi
           className="btn-advanced"
           type="button"
         >
-          Options
+          {t('COMMON.OPTIONS')}
         </button>
         <IconCaretDown className="caret ml-1" size={14} strokeWidth={2} />
       </div>
@@ -114,11 +116,11 @@ const CreateCollection = ({ onClose, defaultLocation: propDefaultLocation, initi
   return (
     <Portal>
       <StyledWrapper>
-        <Modal size="md" title="Create Collection" hideFooter={true} handleCancel={onClose}>
+        <Modal size="md" title={t('SIDEBAR.CREATE_COLLECTION_TITLE')} hideFooter={true} handleCancel={onClose}>
           <form className="bruno-form" onSubmit={formik.handleSubmit}>
             <div>
               <label htmlFor="collection-name" className="flex items-center font-medium">
-                Name
+                {t('COMMON.NAME')}
               </label>
               <input
                 id="collection-name"
@@ -150,13 +152,13 @@ const CreateCollection = ({ onClose, defaultLocation: propDefaultLocation, initi
               ) : null}
 
               <label htmlFor="collection-location" className="font-medium mt-3 flex items-center">
-                Location
+                {t('COMMON.LOCATION')}
                 <Help>
                   <p>
-                    Bruno stores your collections on your computer's filesystem.
+                    {t('SIDEBAR.BRUNO_STORES_ON_DISK')}
                   </p>
                   <p className="mt-2">
-                    Choose the location where you want to store this collection.
+                    {t('SIDEBAR.CHOOSE_LOCATION')}
                   </p>
                 </Help>
               </label>
@@ -191,13 +193,13 @@ const CreateCollection = ({ onClose, defaultLocation: propDefaultLocation, initi
                 <div className="mt-4">
                   <div className="flex items-center justify-between">
                     <label htmlFor="filename" className="flex items-center font-medium">
-                      Folder Name
+                      {t('SIDEBAR.FOLDER_NAME')}
                       <Help width="300">
                         <p>
-                          The name of the folder used to store the collection.
+                          {t('SIDEBAR.FOLDER_NAME_HELP')}
                         </p>
                         <p className="mt-2">
-                          You can choose a folder name different from your collection's name or one compatible with filesystem rules.
+                          {t('SIDEBAR.FOLDER_NAME_HELP2')}
                         </p>
                       </Help>
                     </label>
@@ -246,16 +248,16 @@ const CreateCollection = ({ onClose, defaultLocation: propDefaultLocation, initi
               {showFileFormat && (
                 <div className="mt-4">
                   <label htmlFor="format" className="flex items-center font-medium">
-                    File Format
+                    {t('SIDEBAR.FILE_FORMAT')}
                     <Help width="300">
                       <p>
-                        Choose the file format for storing requests in this collection.
+                        {t('SIDEBAR.CHOOSE_FILE_FORMAT')}
                       </p>
                       <p className="mt-2">
-                        <strong>OpenCollection (YAML):</strong> Industry-standard YAML format (.yml files)
+                        <strong>OpenCollection (YAML):</strong> {t('SIDEBAR.OPENCOLLECTION_YAML')}
                       </p>
                       <p className="mt-1">
-                        <strong>BRU:</strong> Bruno's native file format (.bru files)
+                        <strong>BRU:</strong> {t('SIDEBAR.BRU_FORMAT')}
                       </p>
                     </Help>
                   </label>
@@ -266,8 +268,8 @@ const CreateCollection = ({ onClose, defaultLocation: propDefaultLocation, initi
                     value={formik.values.format}
                     onChange={formik.handleChange}
                   >
-                    <option value="yml">OpenCollection (YAML)</option>
-                    <option value="bru">BRU Format (.bru)</option>
+                    <option value="yml">{t('SIDEBAR.OPENCOLLECTION_FORMAT')}</option>
+                    <option value="bru">{t('SIDEBAR.BRU_FORMAT_OPTION')}</option>
                   </select>
                   {formik.touched.format && formik.errors.format ? (
                     <div className="text-red-500">{formik.errors.format}</div>
@@ -286,16 +288,16 @@ const CreateCollection = ({ onClose, defaultLocation: propDefaultLocation, initi
                       setShowFileFormat(!showFileFormat);
                     }}
                   >
-                    {showFileFormat ? 'Hide File Format' : 'Show File Format'}
+                    {showFileFormat ? t('SIDEBAR.HIDE_FILE_FORMAT') : t('SIDEBAR.SHOW_FILE_FORMAT')}
                   </div>
                 </Dropdown>
               </div>
               <div className="flex justify-end">
                 <Button type="button" color="secondary" variant="ghost" onClick={onClose} className="mr-2">
-                  Cancel
+                  {t('COMMON.CANCEL')}
                 </Button>
                 <Button type="submit">
-                  Create
+                  {t('COMMON.CREATE')}
                 </Button>
               </div>
             </div>

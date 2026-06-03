@@ -17,18 +17,18 @@ const InheritableSettingsInput = ({
   const { theme } = useTheme();
 
   return (
-    <div className="flex items-center justify-between">
-      <div className="flex flex-col">
-        <label className="text-xs font-medium text-gray-900 dark:text-gray-100" htmlFor={id}>
+    <div className="flex items-center justify-between gap-4">
+      <div className="flex flex-col flex-1 min-w-0">
+        <label className="text-xs font-medium text-gray-900 dark:text-gray-100 truncate" htmlFor={id}>
           {label}
         </label>
         {description && (
-          <p className="text-xs text-gray-700 dark:text-gray-400">
+          <p className="text-xs text-gray-700 dark:text-gray-400 truncate">
             {description}
           </p>
         )}
       </div>
-      <div className="flex items-center justify-end">
+      <div className="flex items-center justify-end flex-shrink-0">
         {isInherited ? (
           <Dropdown
             icon={(

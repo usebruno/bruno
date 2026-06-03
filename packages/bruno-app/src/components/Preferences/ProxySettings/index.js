@@ -3,6 +3,7 @@ import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import debounce from 'lodash/debounce';
 import toast from 'react-hot-toast';
+import { useTranslation } from 'react-i18next';
 import { savePreferences } from 'providers/ReduxStore/slices/app';
 
 import StyledWrapper from './StyledWrapper';
@@ -12,6 +13,7 @@ import { useState } from 'react';
 import SystemProxy from './SystemProxy';
 
 const ProxySettings = ({ close }) => {
+  const { t } = useTranslation();
   const preferences = useSelector((state) => state.app.preferences);
   const dispatch = useDispatch();
 
@@ -21,7 +23,7 @@ const ProxySettings = ({ close }) => {
     pac: Yup.object({
       source: Yup.string()
         .optional()
-        .test('pac-url', 'Specify a valid PAC URL', (value) => {
+        .test('pac-url', t('PREFERENCES_PAGE.SPECIFY_A_VALID_PAC_URL'), (value) => {
           if (!value) return true;
           try {
             const u = new URL(value);
@@ -39,7 +41,7 @@ const ProxySettings = ({ close }) => {
       port: Yup.number()
         .min(1)
         .max(65535)
-        .typeError('Specify port between 1 and 65535')
+        .typeError(t('PREFERENCES_PAGE.SPECIFY_PORT_BETWEEN_1_AND_65535'))
         .nullable()
         .transform((_, val) => (val ? Number(val) : null)),
       auth: Yup.object({
@@ -86,7 +88,7 @@ const ProxySettings = ({ close }) => {
             proxy: validatedProxy
           })
         ).catch(() => {
-          toast.error('Failed to save preferences');
+          toast.error(t('PREFERENCES_PAGE.FAILED_TO_SAVE_PREFERENCES'));
         });
       })
       .catch((error) => {
@@ -127,11 +129,11 @@ const ProxySettings = ({ close }) => {
 
   return (
     <StyledWrapper>
-      <div className="section-header">Proxy Settings</div>
+      <div className="section-header">{t('PREFERENCES_PAGE.PROXY_SETTINGS')}</div>
       <form className="bruno-form" onSubmit={formik.handleSubmit}>
         <div className="mb-3 flex items-center mt-2">
           <label className="settings-label" htmlFor="protocol">
-            Mode
+            {t('PREFERENCES_PAGE.MODE')}
           </label>
           <div className="flex items-center">
             <label className="flex items-center cursor-pointer">
@@ -146,7 +148,7 @@ const ProxySettings = ({ close }) => {
                 }}
                 className="mr-1 cursor-pointer"
               />
-              Off
+              {t('PREFERENCES_PAGE.OFF')}
             </label>
             <label className="flex items-center ml-4 cursor-pointer">
               <input
@@ -161,7 +163,7 @@ const ProxySettings = ({ close }) => {
                 }}
                 className="mr-1 cursor-pointer"
               />
-              On
+              {t('PREFERENCES_PAGE.ON')}
             </label>
             <label className="flex items-center ml-4 cursor-pointer">
               <input
@@ -176,7 +178,7 @@ const ProxySettings = ({ close }) => {
                 }}
                 className="mr-1 cursor-pointer"
               />
-              System Proxy
+              {t('PREFERENCES_PAGE.SYSTEM_PROXY')}
             </label>
             <label className="flex items-center ml-4 cursor-pointer">
               <input
@@ -255,7 +257,7 @@ const ProxySettings = ({ close }) => {
             </div>
             <div className="mb-3 flex items-center">
               <label className="settings-label" htmlFor="config.hostname">
-                Hostname
+                {t('PREFERENCES_PAGE.HOSTNAME')}
               </label>
               <input
                 id="config.hostname"
@@ -275,7 +277,7 @@ const ProxySettings = ({ close }) => {
             </div>
             <div className="mb-3 flex items-center">
               <label className="settings-label" htmlFor="config.port">
-                Port
+                {t('PREFERENCES_PAGE.PORT')}
               </label>
               <input
                 id="config.port"
@@ -295,7 +297,7 @@ const ProxySettings = ({ close }) => {
             </div>
             <div className="mb-3 flex items-center">
               <label className="settings-label" htmlFor="config.auth.disabled">
-                Auth
+                {t('PREFERENCES_PAGE.AUTH')}
               </label>
               <input
                 id="config.auth.disabled"
@@ -311,7 +313,7 @@ const ProxySettings = ({ close }) => {
             <div>
               <div className="mb-3 flex items-center">
                 <label className="settings-label" htmlFor="config.auth.username">
-                  Username
+                  {t('PREFERENCES_PAGE.USERNAME')}
                 </label>
                 <input
                   id="config.auth.username"
@@ -361,7 +363,7 @@ const ProxySettings = ({ close }) => {
             </div>
             <div className="mb-3 flex items-center">
               <label className="settings-label" htmlFor="config.bypassProxy">
-                Proxy Bypass
+                {t('PREFERENCES_PAGE.PROXY_BYPASS')}
               </label>
               <input
                 id="config.bypassProxy"
@@ -395,7 +397,7 @@ const ProxySettings = ({ close }) => {
                       formik.setFieldValue('pac.source', '');
                     }}
                   >
-                    URL
+                    {t('PREFERENCES_PAGE.URL')}
                   </button>
                   <button
                     type="button"

@@ -14,6 +14,7 @@ import { prettifyJsonString } from 'utils/common/index';
 import xmlFormat from 'xml-formatter';
 import WSRequestBodyMode from '../BodyMode/index';
 import StyledWrapper from './StyledWrapper';
+import { useTranslation } from 'react-i18next';
 
 export const TYPE_BY_DECODER = {
   base64: 'binary',
@@ -34,6 +35,7 @@ export const SingleWSMessage = ({
   isLast
 }) => {
   const dispatch = useDispatch();
+  const { t } = useTranslation();
   const { displayedTheme } = useTheme();
   const preferences = useSelector((state) => state.app.preferences);
   const body = item.draft ? get(item, 'draft.request.body') : get(item, 'request.body');
@@ -62,7 +64,7 @@ export const SingleWSMessage = ({
     const currentMessages = [...(body.ws || [])];
 
     currentMessages[index] = {
-      name: name ? name : `message ${index + 1}`,
+      name: name ? name : t('REQUEST_PANE.MESSAGE_N', { n: index + 1 }),
       type: DECODER_BY_TYPE[messageFormat],
       content: value
     };
@@ -106,7 +108,7 @@ export const SingleWSMessage = ({
         const currentMessages = [...(body.ws || [])];
         currentMessages[index] = {
           ...currentMessages[index],
-          name: name ? name : `message ${index + 1}`,
+          name: name ? name : t('REQUEST_PANE.MESSAGE_N', { n: index + 1 }),
           content: prettyBodyJson
         };
         dispatch(updateRequestBody({
@@ -115,7 +117,7 @@ export const SingleWSMessage = ({
           collectionUid: collection.uid
         }));
       } catch (e) {
-        toastError(new Error('Unable to prettify. Invalid JSON format.'));
+        toastError(new Error(t('REQUEST_PANE.UNABLE_TO_PRETTIFY_INVALID_JSON_FORMAT')));
       }
     }
 
@@ -126,7 +128,7 @@ export const SingleWSMessage = ({
         const currentMessages = [...(body.ws || [])];
         currentMessages[index] = {
           ...currentMessages[index],
-          name: name ? name : `message ${index + 1}`,
+          name: name ? name : t('REQUEST_PANE.MESSAGE_N', { n: index + 1 }),
           content: prettyBodyXML
         };
 
@@ -146,18 +148,18 @@ export const SingleWSMessage = ({
   return (
     <StyledWrapper className={`message-container ${isSingleMessage ? 'single' : ''} ${isLast ? 'last' : ''}`}>
       <div className="message-toolbar">
-        <span className="message-label">Message {index + 1}</span>
+        <span className="message-label">{t('REQUEST_PANE.MESSAGE_N', { n: index + 1 })}</span>
         <div className="toolbar-actions">
           <WSRequestBodyMode mode={messageFormat} onModeChange={onUpdateMessageType} />
 
-          <ToolHint text="Format" toolhintId={`prettify-msg-${index}`}>
+          <ToolHint text={t('REQUEST_PANE.FORMAT')} toolhintId={`prettify-msg-${index}`}>
             <button onClick={onPrettify} className="toolbar-btn">
               <IconWand size={16} strokeWidth={1.5} />
             </button>
           </ToolHint>
 
           {index > 0 && (
-            <ToolHint text="Delete message" toolhintId={`delete-msg-${index}`}>
+            <ToolHint text={t('REQUEST_PANE.DELETE_MESSAGE')} toolhintId={`delete-msg-${index}`}>
               <button onClick={onDeleteMessage} className="toolbar-btn delete">
                 <IconTrash size={16} strokeWidth={1.5} />
               </button>

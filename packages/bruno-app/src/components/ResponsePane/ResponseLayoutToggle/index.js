@@ -1,4 +1,5 @@
 import React, { forwardRef, useImperativeHandle, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useDispatch, useSelector } from 'react-redux';
 import { savePreferences } from 'providers/ReduxStore/slices/app';
 import StyledWrapper from './StyledWrapper';
@@ -72,6 +73,7 @@ export const useResponseLayoutToggle = () => {
 };
 
 const ResponseLayoutToggle = forwardRef(({ children }, ref) => {
+  const { t } = useTranslation();
   const { orientation, toggleOrientation } = useResponseLayoutToggle();
   const elementRef = useRef(null);
 
@@ -80,7 +82,7 @@ const ResponseLayoutToggle = forwardRef(({ children }, ref) => {
     isDisabled: false
   }), []);
 
-  const title = !children ? (orientation === 'horizontal' ? 'Switch to vertical layout' : 'Switch to horizontal layout') : null;
+  const title = !children ? (orientation === 'horizontal' ? t('RESPONSE_PANE.SWITCH_TO_VERTICAL') : t('RESPONSE_PANE.SWITCH_TO_HORIZONTAL')) : null;
 
   return (
     <div

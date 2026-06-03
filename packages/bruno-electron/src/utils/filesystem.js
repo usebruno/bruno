@@ -536,6 +536,7 @@ module.exports = {
   safeWriteFileSync,
   copyPath,
   removePath,
+  removeDirectory: removePath,
   getPaths,
   isLargeFile,
   generateUniqueName,

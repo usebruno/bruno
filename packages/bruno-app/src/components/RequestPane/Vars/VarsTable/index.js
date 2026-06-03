@@ -1,5 +1,6 @@
 import React, { useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from 'providers/Theme';
 import { moveVar, setRequestVars } from 'providers/ReduxStore/slices/collections';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
@@ -13,6 +14,7 @@ import { variableNameRegex } from 'utils/common/regex';
 
 const VarsTable = ({ item, collection, vars, varType, initialScroll = 0 }) => {
   const dispatch = useDispatch();
+  const { t } = useTranslation();
   const { storedTheme } = useTheme();
   const tabs = useSelector((state) => state.tabs.tabs);
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
@@ -50,7 +52,7 @@ const VarsTable = ({ item, collection, vars, varType, initialScroll = 0 }) => {
     if (key !== 'name') return null;
     if (!row.name || row.name.trim() === '') return null;
     if (!variableNameRegex.test(row.name)) {
-      return 'Variable contains invalid characters. Must only contain alphanumeric characters, "-", "_", "."';
+      return t('REQUEST_PANE.VARIABLE_CONTAINS_INVALID_CHARACTERS');
     }
     return null;
   }, []);
@@ -58,20 +60,20 @@ const VarsTable = ({ item, collection, vars, varType, initialScroll = 0 }) => {
   const columns = [
     {
       key: 'name',
-      name: 'Name',
+      name: t('REQUEST_PANE.NAME'),
       isKeyField: true,
-      placeholder: 'Name',
+      placeholder: t('REQUEST_PANE.NAME'),
       width: '35%'
     },
     {
       key: 'value',
-      name: varType === 'request' ? 'Value' : (
+      name: varType === 'request' ? t('COMMON.VALUE') : (
         <div className="flex items-center">
-          <span>Expr</span>
-          <InfoTip className="tooltip-mod" content="You can write any valid JS expression here" infotipId={`request-${varType}-var`} />
+          <span>{t('REQUEST_PANE.EXPR')}</span>
+          <InfoTip className="tooltip-mod" content={t('REQUEST_PANE.YOU_CAN_WRITE_ANY_VALID_JS_EXPRESSION_HERE')} infotipId={`request-${varType}-var`} />
         </div>
       ),
-      placeholder: varType === 'request' ? 'Value' : 'Expr',
+      placeholder: varType === 'request' ? t('REQUEST_PANE.VALUE') : t('REQUEST_PANE.EXPR'),
       render: ({ value, onChange }) => (
         <MultiLineEditor
           value={value || ''}
@@ -81,7 +83,7 @@ const VarsTable = ({ item, collection, vars, varType, initialScroll = 0 }) => {
           onRun={handleRun}
           collection={collection}
           item={item}
-          placeholder={!value ? (varType === 'request' ? 'Value' : 'Expr') : ''}
+          placeholder={!value ? (varType === 'request' ? t('REQUEST_PANE.VALUE') : t('REQUEST_PANE.EXPR')) : ''}
         />
       )
     }

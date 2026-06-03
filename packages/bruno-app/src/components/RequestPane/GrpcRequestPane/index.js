@@ -1,4 +1,5 @@
 import React, { useMemo, useCallback, useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useSelector, useDispatch } from 'react-redux';
 import { updateRequestPaneTab } from 'providers/ReduxStore/slices/tabs';
 import RequestHeaders from 'components/RequestPane/RequestHeaders';
@@ -14,6 +15,7 @@ import ResponsiveTabs from 'ui/ResponsiveTabs';
 import StyledWrapper from './StyledWrapper';
 
 const GrpcRequestPane = ({ item, collection, handleRun }) => {
+  const { t } = useTranslation();
   const dispatch = useDispatch();
   const tabs = useSelector((state) => state.tabs.tabs);
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
@@ -45,7 +47,7 @@ const GrpcRequestPane = ({ item, collection, handleRun }) => {
         return <Documentation item={item} collection={collection} />;
       }
       default: {
-        return <div className="mt-4">404 | Not found</div>;
+        return <div className="mt-4">{t('REQUEST_PANE.NOT_FOUND')}</div>;
       }
     }
   }, [requestPaneTab, item, collection, handleRun]);
@@ -87,7 +89,7 @@ const GrpcRequestPane = ({ item, collection, handleRun }) => {
       },
       {
         key: 'auth',
-        label: 'Auth',
+        label: t('REQUEST_PANE.AUTH'),
         indicator: auth?.mode && auth.mode !== 'none' ? <StatusDot type="default" /> : null
       },
       {
@@ -107,7 +109,7 @@ const GrpcRequestPane = ({ item, collection, handleRun }) => {
 
   // Return error for truly missing active/focused tabs
   if (!activeTabUid || !focusedTab?.uid) {
-    return <div className="pb-4 px-4">An error occurred!</div>;
+    return <div className="pb-4 px-4">{t('REQUEST_PANE.AN_ERROR_OCCURRED')}</div>;
   }
 
   // Return null during initialization while requestPaneTab is being set by useEffect

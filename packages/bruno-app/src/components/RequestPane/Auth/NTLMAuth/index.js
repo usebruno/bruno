@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import SensitiveFieldWarning from 'components/SensitiveFieldWarning';
 import { useDetectSensitiveField } from 'hooks/useDetectSensitiveField';
 import get from 'lodash/get';
@@ -12,6 +13,7 @@ import StyledWrapper from './StyledWrapper';
 const NTLMAuth = ({ item, collection, request, save, updateAuth }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
+  const { t } = useTranslation();
 
   const ntlmAuth = get(request, 'auth.ntlm', {});
   const { isSensitive } = useDetectSensitiveField(collection);
@@ -70,7 +72,7 @@ const NTLMAuth = ({ item, collection, request, save, updateAuth }) => {
 
   return (
     <StyledWrapper className="mt-2 w-full">
-      <label className="block mb-1">Username</label>
+      <label className="block mb-1">{t('REQUEST_PANE.USERNAME')}</label>
       <div className="single-line-editor-wrapper mb-3">
         <SingleLineEditor
           value={ntlmAuth.username || ''}
@@ -100,7 +102,7 @@ const NTLMAuth = ({ item, collection, request, save, updateAuth }) => {
         {showWarning && <SensitiveFieldWarning fieldName="ntlm-password" warningMessage={warningMessage} />}
       </div>
 
-      <label className="block mb-1">Domain</label>
+      <label className="block mb-1">{t('REQUEST_PANE.DOMAIN')}</label>
       <div className="single-line-editor-wrapper">
         <SingleLineEditor
           value={ntlmAuth.domain || ''}

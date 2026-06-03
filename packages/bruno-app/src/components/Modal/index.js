@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import StyledWrapper from './StyledWrapper';
 import useFocusTrap from 'hooks/useFocusTrap';
 import Button from 'ui/Button';
@@ -32,8 +33,9 @@ const ModalFooter = ({
   confirmButtonColor = 'primary',
   dataTestId = 'modal'
 }) => {
-  confirmText = confirmText || 'Save';
-  cancelText = cancelText || 'Cancel';
+  const { t } = useTranslation();
+  confirmText = confirmText || t('COMMON.SAVE');
+  cancelText = cancelText || t('COMMON.CANCEL');
 
   if (hideFooter) {
     return null;

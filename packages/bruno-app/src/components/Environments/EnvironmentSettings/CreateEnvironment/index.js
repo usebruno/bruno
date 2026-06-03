@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import toast from 'react-hot-toast';
+import { useTranslation } from 'react-i18next';
 import { useFormik } from 'formik';
 import { addEnvironment } from 'providers/ReduxStore/slices/collections/actions';
 import * as Yup from 'yup';
@@ -9,6 +10,7 @@ import Modal from 'components/Modal';
 import { validateName, validateNameError } from 'utils/common/regex';
 
 const CreateEnvironment = ({ collection, onClose, onEnvironmentCreated }) => {
+  const { t } = useTranslation();
   const dispatch = useDispatch();
   const inputRef = useRef();
 
@@ -23,26 +25,25 @@ const CreateEnvironment = ({ collection, onClose, onEnvironmentCreated }) => {
     },
     validationSchema: Yup.object({
       name: Yup.string()
-        .min(1, 'Must be at least 1 character')
-        .max(255, 'Must be 255 characters or less')
+        .min(1, t('COMMON.MUST_BE_AT_LEAST_1_CHAR'))
+        .max(255, t('COMMON.MUST_BE_255_CHARS_OR_LESS'))
         .test('is-valid-filename', function (value) {
           const isValid = validateName(value);
           return isValid ? true : this.createError({ message: validateNameError(value) });
         })
-        .required('Name is required')
-        .test('duplicate-name', 'Environment already exists', validateEnvironmentName)
+        .required(t('COMMON.NAME_IS_REQUIRED'))
+        .test('duplicate-name', t('SIDEBAR.ENVIRONMENT_ALREADY_EXISTS'), validateEnvironmentName)
     }),
     onSubmit: (values) => {
       dispatch(addEnvironment(values.name, collection.uid))
         .then(() => {
-          toast.success('Environment created in collection');
+          toast.success(t('SIDEBAR.ENVIRONMENT_CREATED'));
           onClose();
-          // Call the callback if provided
           if (onEnvironmentCreated) {
             onEnvironmentCreated();
           }
         })
-        .catch(() => toast.error('An error occurred while creating the environment'));
+        .catch(() => toast.error(t('SIDEBAR.ENVIRONMENT_CREATE_ERROR')));
     }
   });
 
@@ -60,15 +61,15 @@ const CreateEnvironment = ({ collection, onClose, onEnvironmentCreated }) => {
     <Portal>
       <Modal
         size="md"
-        title="Create Environment"
-        confirmText="Create"
+        title={t('SIDEBAR.CREATE_ENVIRONMENT')}
+        confirmText={t('COMMON.CREATE')}
         handleConfirm={onSubmit}
         handleCancel={onClose}
       >
         <form className="bruno-form" onSubmit={(e) => e.preventDefault()}>
           <div>
             <label htmlFor="name" className="block font-medium">
-              Environment Name
+              {t('SIDEBAR.ENVIRONMENT_NAME')}
             </label>
             <div className="flex items-center mt-2">
               <input

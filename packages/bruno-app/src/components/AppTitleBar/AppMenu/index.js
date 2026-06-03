@@ -3,32 +3,34 @@ import { IconMenu2 } from '@tabler/icons';
 import MenuDropdown from 'ui/MenuDropdown';
 import ActionIcon from 'ui/ActionIcon';
 import StyledWrapper from './StyledWrapper';
+import { useTranslation } from 'react-i18next';
 
 const AppMenu = () => {
   const [isOpen, setIsOpen] = useState(false);
   const { ipcRenderer } = window;
+  const { t } = useTranslation();
 
   const menuItems = [
     {
       id: 'file',
-      label: 'File',
+      label: t('APP_MENU.FILE'),
       submenu: [
         {
           id: 'open-collection',
-          label: 'Open Collection',
+          label: t('APP_MENU.FILE_OPEN_COLLECTION'),
           onClick: () => ipcRenderer?.invoke('renderer:open-collection')
         },
         { type: 'divider', id: 'file-div-1' },
         {
           id: 'preferences',
-          label: 'Preferences',
+          label: t('APP_MENU.FILE_PREFERENCES'),
           rightSection: <span className="shortcut">Ctrl+,</span>,
           onClick: () => ipcRenderer?.invoke('renderer:open-preferences')
         },
         { type: 'divider', id: 'file-div-2' },
         {
           id: 'quit',
-          label: 'Quit',
+          label: t('APP_MENU.FILE_QUIT'),
           rightSection: <span className="shortcut">Alt+F4</span>,
           onClick: () => ipcRenderer?.send('renderer:window-close')
         }
@@ -36,43 +38,43 @@ const AppMenu = () => {
     },
     {
       id: 'edit',
-      label: 'Edit',
+      label: t('APP_MENU.EDIT'),
       submenu: [
         {
           id: 'undo',
-          label: 'Undo',
+          label: t('APP_MENU.EDIT_UNDO'),
           rightSection: <span className="shortcut">Ctrl+Z</span>,
           onClick: () => document.execCommand('undo')
         },
         {
           id: 'redo',
-          label: 'Redo',
+          label: t('APP_MENU.EDIT_REDO'),
           rightSection: <span className="shortcut">Ctrl+Y</span>,
           onClick: () => document.execCommand('redo')
         },
         { type: 'divider', id: 'edit-div-1' },
         {
           id: 'cut',
-          label: 'Cut',
+          label: t('APP_MENU.EDIT_CUT'),
           rightSection: <span className="shortcut">Ctrl+X</span>,
           onClick: () => document.execCommand('cut')
         },
         {
           id: 'copy',
-          label: 'Copy',
+          label: t('APP_MENU.EDIT_COPY'),
           rightSection: <span className="shortcut">Ctrl+C</span>,
           onClick: () => document.execCommand('copy')
         },
         {
           id: 'paste',
-          label: 'Paste',
+          label: t('APP_MENU.EDIT_PASTE'),
           rightSection: <span className="shortcut">Ctrl+V</span>,
           onClick: () => document.execCommand('paste')
         },
         { type: 'divider', id: 'edit-div-2' },
         {
           id: 'select-all',
-          label: 'Select All',
+          label: t('APP_MENU.EDIT_SELECT_ALL'),
           rightSection: <span className="shortcut">Ctrl+A</span>,
           onClick: () => document.execCommand('selectAll')
         }
@@ -80,37 +82,37 @@ const AppMenu = () => {
     },
     {
       id: 'view',
-      label: 'View',
+      label: t('APP_MENU.VIEW'),
       submenu: [
         {
           id: 'toggle-devtools',
-          label: 'Developer Tools',
+          label: t('APP_MENU.VIEW_DEVTOOLS'),
           rightSection: <span className="shortcut">Ctrl+Shift+I</span>,
           onClick: () => ipcRenderer?.invoke('renderer:toggle-devtools')
         },
         { type: 'divider', id: 'view-div-1' },
         {
           id: 'reset-zoom',
-          label: 'Reset Zoom',
+          label: t('APP_MENU.VIEW_RESET_ZOOM'),
           rightSection: <span className="shortcut">Ctrl+0</span>,
           onClick: () => ipcRenderer?.invoke('renderer:reset-zoom')
         },
         {
           id: 'zoom-in',
-          label: 'Zoom In',
+          label: t('APP_MENU.VIEW_ZOOM_IN'),
           rightSection: <span className="shortcut">Ctrl++</span>,
           onClick: () => ipcRenderer?.invoke('renderer:zoom-in')
         },
         {
           id: 'zoom-out',
-          label: 'Zoom Out',
+          label: t('APP_MENU.VIEW_ZOOM_OUT'),
           rightSection: <span className="shortcut">Ctrl+-</span>,
           onClick: () => ipcRenderer?.invoke('renderer:zoom-out')
         },
         { type: 'divider', id: 'view-div-2' },
         {
           id: 'toggle-fullscreen',
-          label: 'Full Screen',
+          label: t('APP_MENU.VIEW_FULLSCREEN'),
           rightSection: <span className="shortcut">F11</span>,
           onClick: () => ipcRenderer?.invoke('renderer:toggle-fullscreen')
         }
@@ -118,16 +120,16 @@ const AppMenu = () => {
     },
     {
       id: 'help',
-      label: 'Help',
+      label: t('APP_MENU.HELP'),
       submenu: [
         {
           id: 'about',
-          label: 'About Bruno',
+          label: t('APP_MENU.HELP_ABOUT'),
           onClick: () => ipcRenderer?.invoke('renderer:open-about')
         },
         {
           id: 'documentation',
-          label: 'Documentation',
+          label: t('APP_MENU.HELP_DOCS'),
           onClick: () => ipcRenderer?.invoke('renderer:open-docs')
         }
       ]

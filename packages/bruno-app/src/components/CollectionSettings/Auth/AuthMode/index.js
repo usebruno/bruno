@@ -5,9 +5,11 @@ import MenuDropdown from 'ui/MenuDropdown';
 import { useDispatch } from 'react-redux';
 import { updateCollectionAuthMode } from 'providers/ReduxStore/slices/collections';
 import { humanizeRequestAuthMode } from 'utils/collections';
+import { useTranslation } from 'react-i18next';
 import StyledWrapper from './StyledWrapper';
 
 const AuthMode = ({ collection }) => {
+  const { t } = useTranslation();
   const dispatch = useDispatch();
   const authMode = collection.draft?.root ? get(collection, 'draft.root.request.auth.mode') : get(collection, 'root.request.auth.mode');
 
@@ -38,12 +40,12 @@ const AuthMode = ({ collection }) => {
     },
     {
       id: 'bearer',
-      label: 'Bearer Token',
+      label: t('COLLECTION_SETTINGS.BEARER_TOKEN'),
       onClick: () => onModeChange('bearer')
     },
     {
       id: 'digest',
-      label: 'Digest Auth',
+      label: t('COLLECTION_SETTINGS.DIGEST_AUTH'),
       onClick: () => onModeChange('digest')
     },
     {
@@ -63,12 +65,12 @@ const AuthMode = ({ collection }) => {
     },
     {
       id: 'apikey',
-      label: 'API Key',
+      label: t('COLLECTION_SETTINGS.API_KEY'),
       onClick: () => onModeChange('apikey')
     },
     {
       id: 'none',
-      label: 'No Auth',
+      label: t('COLLECTION_SETTINGS.NO_AUTH'),
       onClick: () => onModeChange('none')
     }
   ], [onModeChange]);

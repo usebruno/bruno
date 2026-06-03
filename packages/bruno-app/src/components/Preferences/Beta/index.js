@@ -6,6 +6,7 @@ import StyledWrapper from './StyledWrapper';
 import * as Yup from 'yup';
 import debounce from 'lodash/debounce';
 import toast from 'react-hot-toast';
+import { useTranslation } from 'react-i18next';
 import { IconFlask } from '@tabler/icons';
 import get from 'lodash/get';
 import { BETA_FEATURES as BETA_FEATURE_IDS } from 'utils/beta-features';
@@ -23,6 +24,7 @@ const BETA_FEATURES = [
 ];
 
 const Beta = ({ close }) => {
+  const { t } = useTranslation();
   const preferences = useSelector((state) => state.app.preferences);
   const dispatch = useDispatch();
 
@@ -70,7 +72,7 @@ const Beta = ({ close }) => {
         }
       })
     )
-      .catch((err) => console.log(err) && toast.error('Failed to update beta preferences'));
+      .catch((err) => console.log(err) && toast.error(t('PREFERENCES_PAGE.FAILED_TO_UPDATE_BETA_PREFERENCES')));
   }, [dispatch, preferences]);
 
   const handleSaveRef = useRef(handleSave);
@@ -102,11 +104,11 @@ const Beta = ({ close }) => {
 
   return (
     <StyledWrapper>
-      <div className="section-header">Beta Features</div>
+      <div className="section-header">{t('PREFERENCES_PAGE.BETA_FEATURES')}</div>
       <form onSubmit={formik.handleSubmit}>
         <div className="mb-6">
           <p className="text-gray-500 dark:text-gray-400 mb-4 text-wrap">
-            Beta features are experimental previews that may change before full release. Try them and share feedback.
+            {t('PREFERENCES_PAGE.BETA_FEATURES_DESCRIPTION')}
           </p>
         </div>
 
@@ -135,7 +137,7 @@ const Beta = ({ close }) => {
 
         {!hasAnyBetaFeatures && (
           <div className="no-features-message">
-            <p>No beta features are currently available</p>
+            <p>{t('PREFERENCES_PAGE.NO_BETA_FEATURES_AVAILABLE')}</p>
           </div>
         )}
       </form>

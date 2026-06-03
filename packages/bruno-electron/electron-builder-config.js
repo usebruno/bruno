@@ -94,10 +94,11 @@ const config = {
   win: {
     artifactName: '${name}_${version}_${arch}_win.${ext}',
     icon: 'resources/icons/win/icon.ico',
+    signAndEditExecutable: false,
     target: [
       {
-        target: 'nsis',
-        arch: ['x64', 'arm64']
+        target: 'zip',
+        arch: ['x64']
       }
     ],
     sign: null,

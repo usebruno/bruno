@@ -1,4 +1,5 @@
 import React, { useState, useMemo, forwardRef, useImperativeHandle, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useDispatch } from 'react-redux';
 import { IconBookmark } from '@tabler/icons';
 import { addResponseExample } from 'providers/ReduxStore/slices/collections';
@@ -13,19 +14,20 @@ import classnames from 'classnames';
 import StyledWrapper from './StyledWrapper';
 import ActionIcon from 'ui/ActionIcon/index';
 
-const getTitleText = ({ isResponseTooLarge, isStreamingResponse }) => {
+const getTitleText = ({ isResponseTooLarge, isStreamingResponse, t }) => {
   if (isStreamingResponse) {
-    return 'Response Examples aren\'t supported in streaming responses yet.';
+    return t('RESPONSE_PANE.EXAMPLES_NOT_SUPPORTED_STREAMING');
   }
 
   if (isResponseTooLarge) {
-    return 'Response size exceeds 5MB limit. Cannot save as example.';
+    return t('RESPONSE_PANE.RESPONSE_SIZE_EXCEEDS_LIMIT');
   }
 
-  return 'Save current response as example';
+  return t('RESPONSE_PANE.SAVE_CURRENT_RESPONSE_AS_EXAMPLE');
 };
 
 const ResponseBookmark = forwardRef(({ item, collection, responseSize, children }, ref) => {
+  const { t } = useTranslation();
   const dispatch = useDispatch();
   const [showSaveResponseExampleModal, setShowSaveResponseExampleModal] = useState(false);
   const response = item.response || {};
@@ -124,12 +126,13 @@ const ResponseBookmark = forwardRef(({ item, collection, responseSize, children 
     }));
 
     setShowSaveResponseExampleModal(false);
-    toast.success(`Example "${name}" created successfully`);
+    toast.success(t('RESPONSE_PANE.EXAMPLE_CREATED', { name }));
   };
 
   const disabledMessage = getTitleText({
     isResponseTooLarge,
-    isStreamingResponse
+    isStreamingResponse,
+    t
   });
 
   return (
@@ -158,7 +161,7 @@ const ResponseBookmark = forwardRef(({ item, collection, responseSize, children 
         isOpen={showSaveResponseExampleModal}
         onClose={() => setShowSaveResponseExampleModal(false)}
         onSave={saveAsExample}
-        title="Save Response as Example"
+        title={t('RESPONSE_PANE.SAVE_RESPONSE_AS_EXAMPLE')}
         initialName={getInitialExampleName(item)}
       />
     </>

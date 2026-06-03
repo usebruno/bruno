@@ -2,11 +2,13 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import get from 'lodash/get';
 import debounce from 'lodash/debounce';
 import { useSelector, useDispatch } from 'react-redux';
+import { useTranslation } from 'react-i18next';
 import { savePreferences } from 'providers/ReduxStore/slices/app';
 import StyledWrapper from './StyledWrapper';
 import toast from 'react-hot-toast';
 
 const Font = () => {
+  const { t } = useTranslation();
   const dispatch = useDispatch();
   const preferences = useSelector((state) => state.app.preferences);
   const isInitialMount = useRef(true);
@@ -76,7 +78,7 @@ const Font = () => {
           />
         </div>
         <div className="w-1/5">
-          <label className="block">Font Size</label>
+          <label className="block">{t('PREFERENCES_PAGE.FONT_SIZE')}</label>
           <input
             type="number"
             className="block textbox mt-2 w-full"

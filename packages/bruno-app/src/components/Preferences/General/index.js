@@ -1,20 +1,50 @@
-import React, { useRef, useEffect, useCallback } from 'react';
+import React, { useRef, useEffect, useCallback, useState } from 'react';
 import get from 'lodash/get';
 import debounce from 'lodash/debounce';
 import { useFormik } from 'formik';
 import { useSelector, useDispatch } from 'react-redux';
+import { useTranslation } from 'react-i18next';
 import { savePreferences } from 'providers/ReduxStore/slices/app';
 import { browseDirectory } from 'providers/ReduxStore/slices/collections/actions';
 import StyledWrapper from './StyledWrapper';
 import * as Yup from 'yup';
 import toast from 'react-hot-toast';
 import path from 'utils/common/path';
-import { IconTrash } from '@tabler/icons';
+import { IconTrash, IconChevronDown } from '@tabler/icons';
+import i18n from '../../../i18n';
 
 const General = () => {
+  const { t } = useTranslation();
   const preferences = useSelector((state) => state.app.preferences);
   const dispatch = useDispatch();
   const inputFileCaCertificateRef = useRef();
+  const [languageDropdownOpen, setLanguageDropdownOpen] = useState(false);
+  const languageDropdownRef = useRef();
+
+  const currentLanguage = i18n.language || i18n.languages?.[0] || 'zh';
+
+  const LANGUAGES = [
+    { code: 'zh', label: t('PREFERENCES_PAGE.LANGUAGE_ZH') },
+    { code: 'en', label: t('PREFERENCES_PAGE.LANGUAGE_EN') }
+  ];
+
+  const handleLanguageSelect = (langCode) => {
+    i18n.changeLanguage(langCode);
+    try {
+      localStorage.setItem('bruno-language', langCode);
+    } catch (e) {}
+    setLanguageDropdownOpen(false);
+  };
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (languageDropdownRef.current && !languageDropdownRef.current.contains(event.target)) {
+        setLanguageDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const preferencesSchema = Yup.object().shape({
     sslVerification: Yup.boolean(),
@@ -32,10 +62,10 @@ const General = () => {
         return originalValue === '' ? undefined : value;
       })
       .nullable()
-      .test('isNumber', 'Request Timeout must be a number', (value) => {
+      .test('isNumber', t('PREFERENCES_PAGE.REQUEST_TIMEOUT_MUST_BE_A_NUMBER'), (value) => {
         return value === undefined || !isNaN(value);
       })
-      .test('isValidTimeout', 'Request Timeout must be equal or greater than 0', (value) => {
+      .test('isValidTimeout', t('PREFERENCES_PAGE.REQUEST_TIMEOUT_MUST_BE_EQUAL_OR_GREATER_THAN_0'), (value) => {
         return value === undefined || Number(value) >= 0;
       }),
     autoSave: Yup.object({
@@ -44,13 +74,13 @@ const General = () => {
         .transform((value, originalValue) => {
           return originalValue === '' ? undefined : value;
         })
-        .test('isNumber', 'Save Delay must be a number', (value) => {
+        .test('isNumber', t('PREFERENCES_PAGE.SAVE_DELAY_MUST_BE_A_NUMBER'), (value) => {
           return value === undefined || !isNaN(value);
         })
-        .test('isValidInterval', 'Save Delay must be at least 500ms', (value) => {
+        .test('isValidInterval', t('PREFERENCES_PAGE.SAVE_DELAY_MUST_BE_AT_LEAST_500MS'), (value) => {
           return value === undefined || Number(value) >= 500;
         })
-    }).test('intervalRequired', 'Save Delay is required when Auto Save is enabled', (value) => {
+    }).test('intervalRequired', t('PREFERENCES_PAGE.SAVE_DELAY_REQUIRED'), (value) => {
       // If autosave is enabled, interval must be provided
       if (value.enabled && (value.interval === undefined || value.interval === '')) {
         return false;
@@ -124,7 +154,7 @@ const General = () => {
           defaultLocation: newPreferences.defaultLocation
         }
       }))
-      .catch((err) => console.log(err) && toast.error('Failed to update preferences'));
+      .catch((err) => console.log(err) && toast.error(t('PREFERENCES_PAGE.FAILED_TO_UPDATE_PREFERENCES')));
   }, [dispatch, preferences]);
 
   const handleSaveRef = useRef(handleSave);
@@ -177,8 +207,42 @@ const General = () => {
 
   return (
     <StyledWrapper className="w-full">
-      <div className="section-header">General Settings</div>
+      <div className="section-header">{t('PREFERENCES_PAGE.GENERAL_SETTINGS')}</div>
       <form className="bruno-form" onSubmit={formik.handleSubmit}>
+        <div className="flex flex-col mt-0 mb-4" ref={languageDropdownRef}>
+          <label className="block select-none mb-1" htmlFor="language-selector">
+            {t('PREFERENCES_PAGE.LANGUAGE')}
+          </label>
+          <div className="language-selector">
+            <div
+              className="language-selector-trigger"
+              onClick={() => setLanguageDropdownOpen(!languageDropdownOpen)}
+            >
+              <span>{LANGUAGES.find((l) => l.code === currentLanguage)?.label || currentLanguage}</span>
+              <IconChevronDown
+                size={14}
+                strokeWidth={2}
+                style={{
+                  transform: languageDropdownOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+                  transition: 'transform 0.15s ease'
+                }}
+              />
+            </div>
+            {languageDropdownOpen && (
+              <div className="language-dropdown-menu">
+                {LANGUAGES.map((lang) => (
+                  <div
+                    key={lang.code}
+                    className={`language-option ${currentLanguage === lang.code ? 'selected' : ''}`}
+                    onClick={() => handleLanguageSelect(lang.code)}
+                  >
+                    {lang.label}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
         <div className="flex items-center mb-2">
           <input
             id="sslVerification"
@@ -189,7 +253,7 @@ const General = () => {
             className="mousetrap mr-0"
           />
           <label className="block ml-2 select-none" htmlFor="sslVerification">
-            SSL/TLS Certificate Verification
+            {t('PREFERENCES_PAGE.SSL_TLS_CERTIFICATE_VERIFICATION')}
           </label>
         </div>
         <div className="flex items-center mt-2">
@@ -202,7 +266,7 @@ const General = () => {
             className="mousetrap mr-0"
           />
           <label className="block ml-2 select-none" htmlFor="customCaCertificateEnabled">
-            Use Custom CA Certificate
+            {t('PREFERENCES_PAGE.USE_CUSTOM_CA_CERT')}
           </label>
         </div>
         {formik.values.customCaCertificate.filePath ? (
@@ -233,7 +297,7 @@ const General = () => {
               disabled={formik.values.customCaCertificate.enabled ? false : true}
               onClick={() => inputFileCaCertificateRef.current.click()}
             >
-              Select File
+              {t('PREFERENCES_PAGE.SELECT_FILE')}
               <input
                 id="caCertFilePath"
                 type="file"
@@ -260,7 +324,7 @@ const General = () => {
             className={`block ml-2 select-none ${formik.values.customCaCertificate.enabled && formik.values.customCaCertificate.filePath ? '' : 'opacity-25'}`}
             htmlFor="keepDefaultCaCertificatesEnabled"
           >
-            Keep Default CA Certificates
+            {t('PREFERENCES_PAGE.KEEP_DEFAULT_CA_CERTIFICATES')}
           </label>
         </div>
         <div className="flex items-center mt-2">
@@ -273,7 +337,7 @@ const General = () => {
             className="mousetrap mr-0"
           />
           <label className="block ml-2 select-none" htmlFor="storeCookies">
-            Store Cookies automatically
+            {t('PREFERENCES_PAGE.STORE_COOKIES_AUTOMATICALLY')}
           </label>
         </div>
         <div className="flex items-center mt-2">
@@ -286,7 +350,7 @@ const General = () => {
             className="mousetrap mr-0"
           />
           <label className="block ml-2 select-none" htmlFor="sendCookies">
-            Send Cookies automatically
+            {t('PREFERENCES_PAGE.SEND_COOKIES_AUTOMATICALLY')}
           </label>
         </div>
         <div className="flex items-center mt-2">
@@ -299,12 +363,12 @@ const General = () => {
             className="mousetrap mr-0"
           />
           <label className="block ml-2 select-none" htmlFor="oauth2.useSystemBrowser">
-            Use System Browser for OAuth2 Authorization
+            {t('PREFERENCES_PAGE.USE_SYSTEM_BROWSER_FOR_OAUTH2')}
           </label>
         </div>
         <div className="flex flex-col mt-6">
           <label className="block select-none" htmlFor="timeout">
-            Request Timeout (in ms)
+            {t('PREFERENCES_PAGE.REQUEST_TIMEOUT_IN_MS')}
           </label>
           <input
             type="text"
@@ -331,12 +395,12 @@ const General = () => {
             className="mousetrap mr-0"
           />
           <label className="block ml-2 select-none" htmlFor="autoSaveEnabled">
-            Enable Auto Save
+            {t('PREFERENCES_PAGE.ENABLE_AUTO_SAVE')}
           </label>
         </div>
         <div className={`flex flex-col mt-2 ${!formik.values.autoSave.enabled ? 'opacity-50' : ''}`}>
           <label className="block select-none" htmlFor="autoSaveInterval">
-            Save Delay (in ms)
+            {t('PREFERENCES_PAGE.SAVE_DELAY_IN_MS')}
           </label>
           <input
             type="text"
@@ -360,10 +424,10 @@ const General = () => {
         )}
         <div className="flex flex-col mt-6">
           <label className="block select-none default-location-label" htmlFor="defaultLocation">
-            Default Location
+            {t('PREFERENCES_PAGE.DEFAULT_LOCATION_LABEL')}
           </label>
           <p className="text-muted mt-1 text-xs">
-            Used as the default location for new workspaces and collections
+            {t('PREFERENCES_PAGE.DEFAULT_LOCATION_DESC_LABEL')}
           </p>
           <input
             type="text"
@@ -378,14 +442,14 @@ const General = () => {
             onChange={formik.handleChange}
             value={formik.values.defaultLocation || ''}
             onClick={browseDefaultLocation}
-            placeholder="Click to browse for default location"
+            placeholder={t('PREFERENCES_PAGE.BROWSE_DEFAULT_LOCATION_PLACEHOLDER')}
           />
           <div className="mt-1">
             <span
               className="text-link cursor-pointer hover:underline default-location-browse"
               onClick={browseDefaultLocation}
             >
-              Browse
+              {t('PREFERENCES_PAGE.BROWSE')}
             </span>
           </div>
         </div>
