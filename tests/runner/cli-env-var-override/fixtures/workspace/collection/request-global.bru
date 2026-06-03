@@ -1,0 +1,23 @@
+meta {
+  name: global-env-var-override
+  type: http
+}
+
+http {
+  method: POST
+  url: https://echo.usebruno.com
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "foo": "{{foo}}"
+  }
+}
+
+tests {
+  test("global env var foo is overridden via --env-var", function() {
+    expect(bru.getGlobalEnvVar("foo")).to.equal("barbar");
+  });
+}
