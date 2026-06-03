@@ -486,6 +486,7 @@ const handler = async function (argv) {
         console.error(chalk.red(`overridable environment variables not parsable: use name=value`));
         process.exit(constants.EXIT_STATUS.ERROR_MALFORMED_ENV_OVERRIDE);
       }
+
       if (processVars && Array.isArray(processVars)) {
         for (const value of processVars.values()) {
           // split the string at the first equals sign
@@ -498,6 +499,9 @@ const handler = async function (argv) {
             process.exit(constants.EXIT_STATUS.ERROR_INCORRECT_ENV_OVERRIDE);
           }
           envVars[match[1]] = match[2];
+          if (globalEnv) {
+            globalEnvVars[match[1]] = match[2];
+          }
         }
       }
     }
