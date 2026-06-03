@@ -1,6 +1,7 @@
 const os = require('os');
 const fs = require('fs');
 const xmlbuilder = require('xmlbuilder');
+const { stripExtension } = require('../utils/filesystem');
 
 const makeJUnitOutput = async (results, outputPath) => {
   const output = {
@@ -15,7 +16,7 @@ const makeJUnitOutput = async (results, outputPath) => {
     const testCount = result.testResults ? result.testResults.length : 0;
     const postResponseTestCount = result.postResponseTestResults ? result.postResponseTestResults.length : 0;
     const totalTests = assertionTestCount + preRequestTestCount + testCount + postResponseTestCount;
-    const classname = result.path;
+    const classname = stripExtension(result.path);
 
     const suite = {
       '@name': result.name,

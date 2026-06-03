@@ -103,12 +103,13 @@ describe('makeJUnitOutput', () => {
     expect(failcase.failure[0]['@type']).toBe('failure');
   });
 
-  it('should use the request name as the testcase classname instead of the request url', () => {
+  it('should use the request path as the testcase classname instead of the request url', () => {
     const results = [
       {
-        name: 'Get Users',
+        name: '1st API',
+        path: 'f1/1st API.bru',
         test: {
-          filename: 'Tests/Get Users.bru'
+          filename: 'f1/1st API.bru'
         },
         request: {
           method: 'GET',
@@ -129,7 +130,7 @@ describe('makeJUnitOutput', () => {
     const junit = xmlbuilder.create.mock.calls[0][0];
     const testcase = junit.testsuites.testsuite[0].testcase[0];
 
-    expect(testcase['@classname']).toBe('Get Users');
+    expect(testcase['@classname']).toBe('f1/1st API');
   });
 
   it('should handle request errors', () => {
