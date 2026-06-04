@@ -59,6 +59,8 @@ import {
   updateFolderVar,
   addCollectionVar,
   updateCollectionVar,
+  scriptUpdateCollectionVars,
+  setScriptCollVarBaseline,
   addTransientDirectory,
   addSaveTransientRequestModal,
   updatePathParam
@@ -83,12 +85,12 @@ import {
   mergeHeaders
 } from 'utils/collections/index';
 import { sanitizeName } from 'utils/common/regex';
-import { buildPersistedEnvVariables } from 'utils/environments';
+import { buildPersistedEnvVariables, applyScriptEnvVars } from 'utils/environments';
 import { safeParseJSON, safeStringifyJSON } from 'utils/common/index';
 import { resolveInheritedAuth } from 'utils/auth';
 import { addTab } from 'providers/ReduxStore/slices/tabs';
 import { updateSettingsSelectedTab } from './index';
-import { saveGlobalEnvironment } from 'providers/ReduxStore/slices/global-environments';
+import { saveGlobalEnvironment, _clearScriptGlobalEnvBaseline } from 'providers/ReduxStore/slices/global-environments';
 import { getTabToFocusForCurrentWorkspace } from 'providers/ReduxStore/slices/workspaces/getTabToFocusForCurrentWorkspace';
 import { clearPersistedScope } from 'hooks/usePersistedState/PersistedScopeProvider';
 import {
@@ -563,6 +565,11 @@ export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
       }
       return reject(error);
     }
+
+    // Clear previous request's global env baseline before starting a new request.
+    // Done here (not in responseReceived) so the guard remains active while async
+    // saves from the previous request are still in flight.
+    dispatch(_clearScriptGlobalEnvBaseline());
 
     await dispatch(
       initRunRequestEvent({
@@ -1950,7 +1957,7 @@ export const saveEnvironment = (variables, environmentUid, collectionUid) => (di
       return reject(new Error('Environment not found'));
     }
 
-    const persisted = buildPersistedEnvVariables(variables, { mode: 'save' });
+    const persisted = buildPersistedEnvVariables(variables);
     environment.variables = persisted;
 
     const { ipcRenderer } = window;
@@ -2254,81 +2261,101 @@ export const updateVariableInScope = (variableName, newValue, scopeInfo, collect
   });
 };
 
-export const mergeAndPersistEnvironment
-  = ({ persistentEnvVariables, collectionUid }) =>
-    (_dispatch, getState) => {
-      return new Promise((resolve, reject) => {
-        const state = getState();
-        const collection = findCollectionByUid(state.collections.collections, collectionUid);
+// Script-initiated saves use console.error (silent to user); user-initiated saves use
+// toast.error. This is intentional — script-triggered disk writes should not interrupt the user.
+export const persistActiveEnvironment = (collectionUid) => (dispatch, getState) => {
+  const state = getState();
+  const collection = findCollectionByUid(state.collections.collections, collectionUid);
+  if (!collection) return;
 
-        if (!collection) {
-          return reject(new Error('Collection not found'));
-        }
+  const environment = findEnvironmentInCollection(collection, collection.activeEnvironmentUid);
+  if (!environment) return;
 
-        const environmentUid = collection.activeEnvironmentUid;
-        if (!environmentUid) {
-          return reject(new Error('No active environment found'));
-        }
+  if (collection._scriptEnvBaseline) {
+    // A draft merge is in progress — the scriptEnvironmentUpdateEvent reducer already
+    // set the correct variables in Redux. Write to disk silently without dispatching
+    // _saveEnvironment, which would race with subsequent script events and file-watcher
+    // callbacks.
+    const collectionCopy = cloneDeep(collection);
+    const envCopy = findEnvironmentInCollection(collectionCopy, environment.uid);
+    if (!envCopy) return;
+    envCopy.variables = buildPersistedEnvVariables(environment.variables);
+    const { ipcRenderer } = window;
+    environmentSchema
+      .validate(envCopy)
+      .then(() => ipcRenderer.invoke('renderer:save-environment', collectionCopy.pathname, envCopy))
+      .catch((err) => console.error('Failed to persist environment during script execution:', err));
+    return;
+  }
 
-        const collectionCopy = cloneDeep(collection);
-        const environment = findEnvironmentInCollection(collectionCopy, environmentUid);
-        if (!environment) {
-          return reject(new Error('Environment not found'));
-        }
+  dispatch(saveEnvironment(environment.variables, environment.uid, collectionUid));
+};
 
-        // Only proceed if there are persistent variables to save
-        if (!persistentEnvVariables || Object.keys(persistentEnvVariables).length === 0) {
-          return resolve();
-        }
+export const collectionVariablesUpdateEvent = ({ collectionVariables, collectionUid }) => (dispatch, getState) => {
+  if (!collectionVariables || !collectionUid) return;
 
-        let existingVars = environment.variables || [];
+  const state = getState();
+  const collection = findCollectionByUid(state.collections.collections, collectionUid);
+  if (!collection) return;
 
-        let normalizedNewVars = Object.entries(persistentEnvVariables).map(([name, value]) => {
-          const inferred = getDataTypeFromValue(value);
-          return {
-            uid: uuid(),
-            name,
-            value,
-            type: 'text',
-            enabled: true,
-            secret: false,
-            ...(inferred !== 'string' ? { dataType: inferred } : {})
-          };
-        });
+  const savedVars = get(collection, 'root.request.vars.req', []);
+  const draftVars = collection.draft?.root
+    ? get(collection, 'draft.root.request.vars.req', null)
+    : null;
 
-        const merged = existingVars.map((v) => {
-          const found = normalizedNewVars.find((nv) => nv.name === v.name);
-          if (!found) return v;
-          const { dataType: _oldDataType, ...rest } = v;
-          return { ...rest, value: found.value, ...(found.dataType ? { dataType: found.dataType } : {}) };
-        });
-        normalizedNewVars.forEach((nv) => {
-          if (!merged.some((v) => v.name === nv.name)) {
-            merged.push(nv);
-          }
-        });
+  let baseline = collection._scriptCollVarBaseline || null;
 
-        // Save all non-ephemeral vars and all variables that were previously persisted
-        const persistedNames = new Set(Object.keys(persistentEnvVariables));
+  // When a draft exists and no baseline yet, snapshot the saved state so that
+  // applyScriptEnvVars only applies what the script actually changed — preserving
+  // user draft edits for variables the script didn't touch.
+  if (!baseline && draftVars) {
+    baseline = {};
+    savedVars.forEach((v) => {
+      if (v.enabled) baseline[v.name] = String(v.value);
+    });
+    dispatch(setScriptCollVarBaseline({ collectionUid, baseline }));
+  }
 
-        // Add all existing non-ephemeral variables to persistedNames so they are preserved
-        existingVars.forEach((v) => {
-          if (!v.ephemeral) {
-            persistedNames.add(v.name);
-          }
-        });
+  // Build working set from draft (if available) or saved vars
+  let vars = cloneDeep(draftVars || savedVars);
 
-        const environmentToSave = cloneDeep(environment);
-        environmentToSave.variables = buildPersistedEnvVariables(merged, { mode: 'merge', persistedNames });
+  // Pre-convert script values to strings (collection vars are always strings)
+  const stringifiedCollVars = {};
+  Object.entries(collectionVariables).forEach(([k, v]) => {
+    stringifiedCollVars[k] = String(v);
+  });
 
-        const { ipcRenderer } = window;
-        environmentSchema
-          .validate(environmentToSave)
-          .then(() => ipcRenderer.invoke('renderer:save-environment', collection.pathname, environmentToSave))
-          .then(resolve)
-          .catch(reject);
-      });
-    };
+  vars = applyScriptEnvVars(vars, stringifiedCollVars, baseline);
+
+  // Infer dataType from the original (pre-stringified) script value so number/boolean/object
+  // collection vars round-trip correctly through the script -> disk path.
+  Object.entries(collectionVariables).forEach(([name, value]) => {
+    const existing = vars.find((v) => v.name === name);
+    if (!existing) return;
+    const inferred = getDataTypeFromValue(value);
+    if (inferred === 'string') {
+      delete existing.dataType;
+    } else {
+      existing.dataType = inferred;
+    }
+  });
+
+  // Update root directly (and sync to draft if one exists) without creating a new draft.
+  dispatch(scriptUpdateCollectionVars({ collectionUid, vars }));
+
+  // Save only vars to disk — read from root so draft headers/auth/scripts are not persisted.
+  // Script-initiated saves use console.error (silent to user); user-initiated saves use
+  // toast.error. This is intentional — script-triggered disk writes should not interrupt the user.
+  const collectionCopy = cloneDeep(findCollectionByUid(getState().collections.collections, collectionUid));
+  if (collectionCopy) {
+    // Force save from root (not draft) to avoid persisting unrelated draft changes
+    collectionCopy.draft = null;
+    const collectionRootToSave = transformCollectionRootToSave(collectionCopy);
+    const { ipcRenderer } = window;
+    ipcRenderer.invoke('renderer:save-collection-root', collectionCopy.pathname, collectionRootToSave, collectionCopy.brunoConfig)
+      .catch((err) => console.error('Failed to persist collection variables:', err));
+  }
+};
 
 export const selectEnvironment = (environmentUid, collectionUid) => (dispatch, getState) => {
   return new Promise((resolve, reject) => {

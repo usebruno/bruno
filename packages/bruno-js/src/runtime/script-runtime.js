@@ -91,7 +91,7 @@ class ScriptRuntime {
       request,
       envVariables: cleanJson(envVariables),
       runtimeVariables: cleanJson(runtimeVariables),
-      persistentEnvVariables: bru.persistentEnvVariables,
+      collectionVariables: cleanJson(collectionVariables),
       globalEnvironmentVariables: cleanJson(globalEnvironmentVariables),
       oauth2CredentialsToReset: bru.oauth2CredentialsToReset,
       results: cleanJson(__brunoTestResults.getResults()),
@@ -226,8 +226,8 @@ class ScriptRuntime {
     const buildResponseScriptResult = () => ({
       response,
       envVariables: cleanJson(envVariables),
-      persistentEnvVariables: cleanJson(bru.persistentEnvVariables),
       runtimeVariables: cleanJson(runtimeVariables),
+      collectionVariables: cleanJson(collectionVariables),
       globalEnvironmentVariables: cleanJson(globalEnvironmentVariables),
       oauth2CredentialsToReset: bru.oauth2CredentialsToReset,
       results: cleanJson(__brunoTestResults.getResults()),
