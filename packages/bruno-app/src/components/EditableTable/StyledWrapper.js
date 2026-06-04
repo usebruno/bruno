@@ -119,10 +119,6 @@ const StyledWrapper = styled.div`
           align-items: center;
         }
 
-        > div:not(.drag-handle) > * {
-          min-height: 0;
-        }
-
         /* Handle CodeMirror editors overflow */
         .cm-editor {
           max-width: 100%;
