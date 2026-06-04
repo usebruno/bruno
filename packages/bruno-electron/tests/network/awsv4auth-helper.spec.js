@@ -57,7 +57,7 @@ describe('addAwsV4Interceptor', () => {
   it('adds payload hash signing for OpenSearch Serverless requests', async () => {
     const signedRequest = await signRequest(awsV4Config);
 
-    expect(getHeader(signedRequest.headers, 'x-amz-content-sha256')).toMatch(/^[a-f0-9]{64}$/);
+    expect(getHeader(signedRequest.headers, 'x-amz-content-sha256')).toBe(sha256(JSON.stringify({ title: 'Bruno' })));
     expect(getHeader(signedRequest.headers, 'authorization')).toContain('x-amz-content-sha256');
   });
 
