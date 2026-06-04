@@ -48,6 +48,13 @@ for (const { format, collectionName, tmpDirPrefix } of FORMATS) {
       await generateGrpcSampleMessage(page, 2);
 
       await saveRequest(page);
+
+      const messageContainers = page.getByTestId('grpc-messages-container').locator('.message-container');
+      await expect(messageContainers).toHaveCount(3);
+
+      // Re-check after a delay to catch async re-renders that could drop messages.
+      await page.waitForTimeout(2000);
+      await expect(messageContainers).toHaveCount(3);
     });
 
     test(`verifies all messages are saved in the request .${format} file`, async () => {
