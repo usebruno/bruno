@@ -15,6 +15,33 @@ const isHttpUrl = (value) => {
   }
 };
 
+const getTextValue = (value) => {
+  const trimmedValue = value?.trim();
+  if (!trimmedValue) {
+    return '';
+  }
+
+  if (trimmedValue.startsWith('"') && trimmedValue.endsWith('"')) {
+    try {
+      return JSON.parse(trimmedValue);
+    } catch (e) {
+      return trimmedValue.slice(1, -1);
+    }
+  }
+
+  return trimmedValue;
+};
+
+const getUrlFromJsonValueElement = (target) => {
+  const valueElement = target?.closest?.('.variable-value');
+  if (!valueElement) {
+    return null;
+  }
+
+  const value = getTextValue(valueElement.textContent);
+  return isHttpUrl(value) ? value.trim() : null;
+};
+
 const JsonPreview = ({ data, displayedTheme, onLinkClick }) => {
   // Helper function to validate and parse JSON data
   const validateJsonData = (data) => {
@@ -62,23 +89,40 @@ const JsonPreview = ({ data, displayedTheme, onLinkClick }) => {
     onLinkClick(selection.value.trim());
   };
 
+  const handleClickCapture = (event) => {
+    if (typeof onLinkClick !== 'function') {
+      return;
+    }
+
+    const url = getUrlFromJsonValueElement(event.target);
+    if (!url) {
+      return;
+    }
+
+    event.preventDefault();
+    event.stopPropagation();
+    onLinkClick(url);
+  };
+
   return (
-    <ReactJson
-      src={jsonData.data}
-      theme={displayedTheme === 'light' ? 'rjv-default' : 'monokai'}
-      collapsed={1}
-      displayDataTypes={false}
-      displayObjectSize={true}
-      enableClipboard={true}
-      onSelect={handleSelect}
-      name={false}
-      style={{
-        backgroundColor: 'transparent',
-        fontSize: '12px',
-        fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace',
-        padding: '16px'
-      }}
-    />
+    <div onClickCapture={handleClickCapture}>
+      <ReactJson
+        src={jsonData.data}
+        theme={displayedTheme === 'light' ? 'rjv-default' : 'monokai'}
+        collapsed={1}
+        displayDataTypes={false}
+        displayObjectSize={true}
+        enableClipboard={true}
+        onSelect={handleSelect}
+        name={false}
+        style={{
+          backgroundColor: 'transparent',
+          fontSize: '12px',
+          fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace',
+          padding: '16px'
+        }}
+      />
+    </div>
   );
 };
 
