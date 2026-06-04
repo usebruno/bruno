@@ -265,7 +265,6 @@ function setupLinkAware(editor, options = {}) {
 
   // Run after the first render/refresh
   editor.on('refresh', debouncedMarkUrls);
-  debouncedMarkUrls();
 
   // Set up event listeners
   editor.on('changes', debouncedMarkUrls);
@@ -284,7 +283,6 @@ function setupLinkAware(editor, options = {}) {
     editor.off('refresh', debouncedMarkUrls);
     editor.off('changes', debouncedMarkUrls);
     editor.off('scroll', debouncedMarkUrls);
-    debouncedMarkUrls.cancel?.();
     window.removeEventListener('keydown', boundUpdateCmdCtrlClass);
     window.removeEventListener('keyup', boundUpdateCmdCtrlClass);
     editorWrapper.removeEventListener('click', boundHandleClick);
