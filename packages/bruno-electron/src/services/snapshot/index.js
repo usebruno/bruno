@@ -3,7 +3,12 @@ const fs = require('fs');
 const path = require('path');
 const yup = require('yup');
 
-const SNAPSHOT_VERSION = '0.0.1';
+const SNAPSHOT_MODE = 'legacy';
+const SNAPSHOT_VERSION_BY_MODE = {
+  legacy: '0.0.0',
+  modern: '0.0.1'
+};
+const SNAPSHOT_VERSION = SNAPSHOT_VERSION_BY_MODE[SNAPSHOT_MODE] || SNAPSHOT_VERSION_BY_MODE.legacy;
 const ENV_FILE_EXTENSIONS = ['bru', 'yml', 'yaml'];
 
 const isObject = (value) => value && typeof value === 'object' && !Array.isArray(value);
@@ -96,17 +101,22 @@ const snapshotSchema = yup.object({
   collections: yup.array().of(collectionSchema).required()
 });
 
-const emptySnapshot = {
-  version: SNAPSHOT_VERSION,
-  activeWorkspacePath: null,
-  extras: {
-    devTools: {
-      open: false
+const emptySnapshot = SNAPSHOT_VERSION === SNAPSHOT_VERSION_BY_MODE.legacy
+  ? {
+      version: SNAPSHOT_VERSION_BY_MODE.legacy,
+      collections: []
     }
-  },
-  workspaces: [],
-  collections: []
-};
+  : {
+      version: SNAPSHOT_VERSION,
+      activeWorkspacePath: null,
+      extras: {
+        devTools: {
+          open: false
+        }
+      },
+      workspaces: [],
+      collections: []
+    };
 
 class SnapshotManager {
   constructor() {
@@ -121,7 +131,7 @@ class SnapshotManager {
   // --- Reads ---
 
   getSnapshot() {
-    return this._normalizeSnapshot(this.store.store);
+    return this._normalizeSnapshot(this.store.store, SNAPSHOT_VERSION);
   }
 
   getCollection(pathname) {
@@ -177,7 +187,9 @@ class SnapshotManager {
   saveSnapshot(data) {
     try {
       const normalizedSnapshot = this._normalizeSnapshot(data);
-      snapshotSchema.validateSync(normalizedSnapshot, { strict: false });
+      if (SNAPSHOT_MODE === 'modern') {
+        snapshotSchema.validateSync(normalizedSnapshot, { strict: false });
+      }
       this.store.store = normalizedSnapshot;
       this._lookupCache = null;
       return true;
@@ -212,6 +224,24 @@ class SnapshotManager {
 
     const snapshot = this._normalizeSnapshot(this.store.store);
     const existingCollection = snapshot.collections.find((collection) => normalizeLookupKey(collection.pathname) === normalizedPath);
+
+    if (SNAPSHOT_MODE === 'legacy') {
+      const normalizedCollection = this._normalizeCollectionEntryV0(pathname, {
+        ...(existingCollection || {}),
+        ...(isObject(data) ? data : {})
+      });
+      const collectionIndex = snapshot.collections.findIndex((collection) => normalizeLookupKey(collection.pathname) === normalizedPath);
+
+      if (collectionIndex === -1) {
+        snapshot.collections.push(normalizedCollection);
+      } else {
+        snapshot.collections[collectionIndex] = normalizedCollection;
+      }
+
+      this.store.store = snapshot;
+      this._lookupCache = null;
+      return;
+    }
 
     const mergedCollection = {
       ...(existingCollection || {}),
@@ -254,6 +284,18 @@ class SnapshotManager {
       return;
     }
 
+    if (SNAPSHOT_MODE === 'legacy') {
+      const existingCollection = this.getCollection(collectionPath) || {};
+      const normalizedSelectedEnvironment = typeof selectedEnvironment === 'string'
+        ? selectedEnvironment
+        : (typeof existingCollection.selectedEnvironment === 'string' ? existingCollection.selectedEnvironment : '');
+
+      this.setCollection(collectionPath, {
+        selectedEnvironment: normalizedSelectedEnvironment
+      });
+      return;
+    }
+
     const existingCollection = this.getCollection(collectionPath) || {};
     const existingEnvironment = isObject(existingCollection.environment) ? existingCollection.environment : {};
     const incomingEnvironmentRef = environmentPath === undefined ? selectedEnvironment : environmentPath;
@@ -272,15 +314,29 @@ class SnapshotManager {
     });
   }
 
-  _normalizeSnapshot(snapshot = {}) {
+  _normalizeSnapshot(snapshot = {}, version = SNAPSHOT_VERSION) {
+    switch (version) {
+      case '0.0.0':{
+        return this._normalizeForV0(snapshot);
+      }
+      default:{
+        return {
+          version: snapshot.version ?? SNAPSHOT_VERSION,
+          activeWorkspacePath: typeof snapshot.activeWorkspacePath === 'string' ? snapshot.activeWorkspacePath : null,
+          extras: {
+            devTools: this._normalizeDevTools(snapshot?.extras?.devTools)
+          },
+          workspaces: this._normalizeWorkspaceList(snapshot.workspaces),
+          collections: this._normalizeCollectionList(snapshot.collections, snapshot.tabs)
+        };
+      }
+    }
+  }
+
+  _normalizeForV0(snapshot) {
     return {
-      version: snapshot.version ?? SNAPSHOT_VERSION,
-      activeWorkspacePath: typeof snapshot.activeWorkspacePath === 'string' ? snapshot.activeWorkspacePath : null,
-      extras: {
-        devTools: this._normalizeDevTools(snapshot?.extras?.devTools)
-      },
-      workspaces: this._normalizeWorkspaceList(snapshot.workspaces),
-      collections: this._normalizeCollectionList(snapshot.collections, snapshot.tabs)
+      version: '0.0.0',
+      collections: this._normalizeCollectionListV0(snapshot.collections)
     };
   }
 
@@ -378,6 +434,47 @@ class SnapshotManager {
     return [...dedupedPaths.values()];
   }
 
+  _normalizeCollectionListV0(collections) {
+    if (Array.isArray(collections)) {
+      return collections
+        .filter((collection) => isObject(collection) && typeof collection.pathname === 'string')
+        .map((collection) => ({
+          pathname: collection.pathname,
+          selectedEnvironment: this._normalizeSelectedEnvironmentV0(collection)
+        }));
+    }
+
+    if (!isObject(collections)) {
+      return [];
+    }
+
+    return Object.entries(collections)
+      .filter(([pathname]) => typeof pathname === 'string' && pathname)
+      .map(([pathname, collection]) => ({
+        pathname,
+        selectedEnvironment: this._normalizeSelectedEnvironmentV0(collection)
+      }));
+  }
+
+  _normalizeCollectionEntryV0(pathname, collection = {}) {
+    return {
+      pathname,
+      selectedEnvironment: this._normalizeSelectedEnvironmentV0(collection)
+    };
+  }
+
+  _normalizeSelectedEnvironmentV0(collection = {}) {
+    if (typeof collection?.selectedEnvironment === 'string') {
+      return collection.selectedEnvironment;
+    }
+
+    if (typeof collection?.environment?.selectedEnvironment === 'string') {
+      return collection.environment.selectedEnvironment;
+    }
+
+    return '';
+  }
+
   _normalizeCollectionList(collections, tabs) {
     const collectionMap = new Map();
 
@@ -404,9 +501,12 @@ class SnapshotManager {
       return [...collectionMap.values()];
     }
 
-    const collectionEntries = collections ?? [];
-    const tabsEntries = tabs ?? [];
-    const collectionPathnames = new Set([...collectionEntries, ...tabsEntries]);
+    const collectionEntries = isObject(collections) ? collections : {};
+    const tabsEntries = isObject(tabs) ? tabs : {};
+    const collectionPathnames = new Set([
+      ...Object.keys(collectionEntries),
+      ...Object.keys(tabsEntries)
+    ]);
 
     collectionPathnames.forEach((collectionPathname) => {
       const normalizedCollection = this._normalizeCollectionEntry(
@@ -540,7 +640,7 @@ class SnapshotManager {
     const tabsByCollectionPath = {};
     const tabsByWorkspaceAndCollectionPath = {};
 
-    normalizedSnapshot.workspaces.forEach((workspace) => {
+    (normalizedSnapshot.workspaces ?? []).forEach((workspace) => {
       const normalizedPath = normalizeLookupKey(workspace.pathname);
       if (!normalizedPath) {
         return;
@@ -582,3 +682,4 @@ class SnapshotManager {
 }
 
 module.exports = new SnapshotManager();
+module.exports.SNAPSHOT_MODE = SNAPSHOT_MODE;
