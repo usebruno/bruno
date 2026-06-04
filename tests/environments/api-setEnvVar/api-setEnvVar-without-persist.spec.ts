@@ -31,7 +31,7 @@ test.describe.serial('bru.setEnvVar(name, value)', () => {
     await envTab.hover();
     await envTab.getByTestId('request-tab-close-icon').click({ force: true });
 
-    // we restart the app to confirm that the environment variable is not persisted
+    // we restart the app to confirm that the environment variable is persisted (default behavior in v4)
     const newApp = await restartApp();
     const newPage = await waitForReadyPage(newApp);
 
@@ -47,7 +47,7 @@ test.describe.serial('bru.setEnvVar(name, value)', () => {
     const newEnvTab = newPage.locator('.request-tab').filter({ hasText: 'Environments' });
     await expect(newEnvTab).toBeVisible();
 
-    await expect(newPage.locator('.table-container tbody')).not.toContainText('token');
+    await expect(newPage.getByRole('row', { name: 'token' }).getByRole('cell').nth(1)).toBeVisible();
 
     await newEnvTab.hover();
     await newEnvTab.getByTestId('request-tab-close-icon').click({ force: true });

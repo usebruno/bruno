@@ -561,18 +561,17 @@ const registerNetworkIpc = (mainWindow) => {
       mainWindow.webContents.send('main:script-environment-update', {
         envVariables: scriptResult.envVariables,
         runtimeVariables: scriptResult.runtimeVariables,
-        persistentEnvVariables: scriptResult.persistentEnvVariables,
         requestUid,
-        collectionUid
-      });
-
-      mainWindow.webContents.send('main:persistent-env-variables-update', {
-        persistentEnvVariables: scriptResult.persistentEnvVariables,
         collectionUid
       });
 
       mainWindow.webContents.send('main:global-environment-variables-update', {
         globalEnvironmentVariables: scriptResult.globalEnvironmentVariables
+      });
+
+      mainWindow.webContents.send('main:collection-variables-update', {
+        collectionVariables: scriptResult.collectionVariables,
+        collectionUid
       });
 
       collection.globalEnvironmentVariables = scriptResult.globalEnvironmentVariables;
@@ -671,18 +670,17 @@ const registerNetworkIpc = (mainWindow) => {
         mainWindow.webContents.send('main:script-environment-update', {
           envVariables: result.envVariables,
           runtimeVariables: result.runtimeVariables,
-          persistentEnvVariables: result.persistentEnvVariables,
           requestUid,
-          collectionUid
-        });
-
-        mainWindow.webContents.send('main:persistent-env-variables-update', {
-          persistentEnvVariables: result.persistentEnvVariables,
           collectionUid
         });
 
         mainWindow.webContents.send('main:global-environment-variables-update', {
           globalEnvironmentVariables: result.globalEnvironmentVariables
+        });
+
+        mainWindow.webContents.send('main:collection-variables-update', {
+          collectionVariables: result.collectionVariables,
+          collectionUid
         });
 
         collection.globalEnvironmentVariables = result.globalEnvironmentVariables;
@@ -716,18 +714,17 @@ const registerNetworkIpc = (mainWindow) => {
       mainWindow.webContents.send('main:script-environment-update', {
         envVariables: scriptResult.envVariables,
         runtimeVariables: scriptResult.runtimeVariables,
-        persistentEnvVariables: scriptResult.persistentEnvVariables,
         requestUid,
-        collectionUid
-      });
-
-      mainWindow.webContents.send('main:persistent-env-variables-update', {
-        persistentEnvVariables: scriptResult.persistentEnvVariables,
         collectionUid
       });
 
       mainWindow.webContents.send('main:global-environment-variables-update', {
         globalEnvironmentVariables: scriptResult.globalEnvironmentVariables
+      });
+
+      mainWindow.webContents.send('main:collection-variables-update', {
+        collectionVariables: scriptResult.collectionVariables,
+        collectionUid
       });
 
       collection.globalEnvironmentVariables = scriptResult.globalEnvironmentVariables;
@@ -1221,13 +1218,13 @@ const registerNetworkIpc = (mainWindow) => {
             collectionUid
           });
 
-          mainWindow.webContents.send('main:persistent-env-variables-update', {
-            persistentEnvVariables: testResults.persistentEnvVariables,
-            collectionUid
-          });
-
           mainWindow.webContents.send('main:global-environment-variables-update', {
             globalEnvironmentVariables: testResults.globalEnvironmentVariables
+          });
+
+          mainWindow.webContents.send('main:collection-variables-update', {
+            collectionVariables: testResults.collectionVariables,
+            collectionUid
           });
 
           collection.globalEnvironmentVariables = testResults.globalEnvironmentVariables;
@@ -2095,6 +2092,11 @@ const registerNetworkIpc = (mainWindow) => {
 
               mainWindow.webContents.send('main:global-environment-variables-update', {
                 globalEnvironmentVariables: testResults.globalEnvironmentVariables
+              });
+
+              mainWindow.webContents.send('main:collection-variables-update', {
+                collectionVariables: testResults.collectionVariables,
+                collectionUid
               });
 
               collection.globalEnvironmentVariables = testResults.globalEnvironmentVariables;

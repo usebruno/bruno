@@ -68,14 +68,24 @@ export const buildCommonLocators = (page: Page) => ({
     selector: () => page.getByTestId('environment-selector-trigger'),
     collectionTab: () => page.getByTestId('env-tab-collection'),
     globalTab: () => page.getByTestId('env-tab-global'),
+    configureButton: () => page.getByTestId('configure-env'),
     envOption: (name: string) => page.locator('.dropdown-item').getByText(name, { exact: true }),
     currentEnvironment: () => page.locator('.current-environment'),
     addVariableButton: () => page.locator('button[data-testid="add-variable"]'),
     variableNameInput: (index: number) => page.locator(`input[name="${index}.name"]`),
     variableSecretCheckbox: (index: number) => page.locator(`input[name="${index}.secret"]`),
     variableRow: (index: number) => page.locator('tr').filter({ has: page.locator(`input[name="${index}.name"]`) }),
+    variableRowByName: (name: string) => page.locator('tbody tr').filter({ has: page.locator(`input[value="${name}"]`) }),
+    variableValue: (name: string) => page.locator('tbody tr').filter({ has: page.locator(`input[value="${name}"]`) }).locator('.CodeMirror-line').first(),
     createEnvButton: () => page.locator('button[id="create-env"]'),
-    envNameInput: () => page.locator('input[name="name"]')
+    envNameInput: () => page.locator('input[name="name"]'),
+    collectionEnvTab: () => page.locator('.request-tab').filter({ hasText: /^Environments$/ }),
+    globalEnvTab: () => page.locator('.request-tab').filter({ hasText: /^Global Environments$/ }),
+    unsavedModal: {
+      closeWithoutSave: () => page.getByTestId('env-unsaved-close-without-save'),
+      cancel: () => page.getByTestId('env-unsaved-cancel'),
+      saveAndClose: () => page.getByTestId('env-unsaved-save-and-close')
+    }
   },
   codeMirror: {
     byTestId: (testId: string) => page.getByTestId(testId).locator('.CodeMirror').first()
