@@ -7,8 +7,7 @@ import {
   addPreRequestScript,
   saveRequest,
   sendRequest,
-  selectResponsePaneTab,
-  REQUEST_TYPE
+  selectResponsePaneTab
 } from '../../utils/page/actions';
 
 test.describe('Timeline — bru.runRequest skips unsupported item types', () => {
@@ -23,8 +22,8 @@ test.describe('Timeline — bru.runRequest skips unsupported item types', () => 
     await test.step('Create collection with HTTP driver + WS and gRPC targets', async () => {
       await createCollection(page, collectionName, await createTmpDir(collectionName));
       await createRequest(page, driver, collectionName, { url: 'http://localhost:8081/ping' });
-      await createRequest(page, 'ws-target', collectionName, { url: 'ws://localhost:8081/ws', requestType: REQUEST_TYPE.WEBSOCKET });
-      await createRequest(page, 'grpc-target', collectionName, { url: 'grpc://localhost:50051', requestType: REQUEST_TYPE.GRPC });
+      await createRequest(page, 'ws-target', collectionName, { url: 'ws://localhost:8081/ws', requestType: 'ws' });
+      await createRequest(page, 'grpc-target', collectionName, { url: 'grpc://localhost:50051', requestType: 'grpc' });
     });
 
     await test.step('Pre-request script calls bru.runRequest on both unsupported targets', async () => {

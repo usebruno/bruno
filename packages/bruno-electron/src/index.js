@@ -45,6 +45,7 @@ const registerWorkspaceIpc = require('./ipc/workspace');
 const registerApiSpecIpc = require('./ipc/apiSpec');
 const registerGitIpc = require('./ipc/git');
 const registerOpenAPISyncIpc = require('./ipc/openapi-sync');
+const registerAiIpc = require('./ipc/ai');
 const collectionWatcher = require('./app/collection-watcher');
 const WorkspaceWatcher = require('./app/workspace-watcher');
 const ApiSpecWatcher = require('./app/apiSpecsWatcher');
@@ -462,30 +463,31 @@ app.on('ready', async () => {
     });
   });
 
-  // register all ipc handlers
-  registerNetworkIpc(mainWindow);
-  registerGlobalEnvironmentsIpc(mainWindow, globalEnvironmentsManager);
-  registerCollectionsIpc(mainWindow, collectionWatcher);
-  registerPreferencesIpc(mainWindow, collectionWatcher);
-  registerSnapshotIpc();
-  registerWorkspaceIpc(mainWindow, workspaceWatcher);
-  registerApiSpecIpc(mainWindow, apiSpecWatcher);
-  registerNotificationsIpc(mainWindow, collectionWatcher);
-  registerFilesystemIpc(mainWindow);
-  registerSystemMonitorIpc(mainWindow, systemMonitor);
-  registerGitIpc(mainWindow);
-  registerOpenAPISyncIpc(mainWindow);
+// register all ipc handlers
+registerNetworkIpc(mainWindow);
+registerGlobalEnvironmentsIpc(mainWindow, globalEnvironmentsManager);
+registerCollectionsIpc(mainWindow, collectionWatcher);
+registerPreferencesIpc(mainWindow, collectionWatcher);
+registerSnapshotIpc();
+registerWorkspaceIpc(mainWindow, workspaceWatcher);
+registerApiSpecIpc(mainWindow, apiSpecWatcher);
+registerNotificationsIpc(mainWindow, collectionWatcher);
+registerFilesystemIpc(mainWindow);
+registerSystemMonitorIpc(mainWindow, systemMonitor);
+registerGitIpc(mainWindow);
+registerOpenAPISyncIpc(mainWindow);
+registerAiIpc(mainWindow);
 
-  // Internal delegator
-  ipcMain.handle('main:cache-clear', async () => {
-    ipcMain.emit('internal:snapshot:reset');
-  });
+// Internal delegator
+ipcMain.handle('main:cache-clear', async () => {
+  ipcMain.emit('internal:snapshot:reset');
+});
 });
 
 // Quit the app once all windows are closed.
 //
 // We defer the actual exit until async cleanup (chokidar fsevents handles)
-// finishes — otherwise the main process exits while native watcher cleanup
+// finishes, otherwise the main process exits while native watcher cleanup
 // is mid-flight, and Chromium helper processes can detect the broken IPC
 // channel and abort(), producing the macOS "quit unexpectedly" dialog.
 let quitInProgress = false;
@@ -493,6 +495,7 @@ app.on('before-quit', (event) => {
   if (quitInProgress) return;
   quitInProgress = true;
   event.preventDefault();
+
 
   (async () => {
     try {

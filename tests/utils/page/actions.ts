@@ -1066,17 +1066,6 @@ const selectPaneTab = async (page: Page, paneSelector: string, tabName: string) 
     await expect(pane).toBeVisible();
     await expect(pane.locator('.tabs')).toBeVisible();
 
-    // await expect
-    //   .poll(
-    //     async () => trySelectPaneTabOnce(page, paneSelector, tabName),
-    //     {
-    //       message: `Tab "${tabName}" not found in visible tabs or overflow dropdown`,
-    //       timeout: 8000,
-    //       intervals: [100, 150, 200, 250]
-    //     }
-    //   )
-    //   .toBe(true);
-
     const visibleTab = pane.locator('.tabs').getByRole('tab', { name: tabName });
     const overflowButton = pane.locator('.tabs .more-tabs');
 
@@ -1572,42 +1561,6 @@ const sendAndWaitForResponse = async (page: Page) => {
   });
 };
 
-/**
- * Click the gRPC "Add Message" button to append a new message to the request
- * @param page - The page object
- */
-const addGrpcMessage = async (page: Page) => {
-  await test.step('Add gRPC message', async () => {
-    await page.getByTestId('grpc-add-message-button').click();
-  });
-};
-
-/**
- * Click the "Generate sample" button on a gRPC message to populate it with a sample payload
- * @param page - The page object
- * @param index - The 0-based index of the message (default: 0)
- */
-const generateGrpcSampleMessage = async (page: Page, index: number = 0) => {
-  await test.step(`Generate sample for gRPC message #${index}`, async () => {
-    await page.getByTestId(`grpc-regenerate-message-${index}`).click();
-  });
-};
-
-/**
- * Open the gRPC method dropdown and select a method by name
- * @param page - The page object
- * @param methodName - The name of the gRPC method to select (e.g. "BidiHello")
- */
-const selectGrpcMethod = async (page: Page, methodName: string) => {
-  await test.step(`Select gRPC method "${methodName}"`, async () => {
-    await page.getByTestId('grpc-method-dropdown-trigger').click();
-    const dropdown = page.getByTestId('grpc-methods-dropdown');
-    await dropdown.waitFor({ state: 'visible', timeout: 5000 });
-    await dropdown.getByTestId('grpc-method-item').filter({ hasText: methodName }).first().click();
-    await expect(page.getByTestId('selected-grpc-method-name')).toContainText(methodName);
-  });
-};
-
 const fieldEditor = (page: Page, labelText: string) =>
   page
     .locator('label')
@@ -1800,10 +1753,6 @@ export {
   readField,
   createExampleFromSidebar,
   openExampleFromSidebar,
-  openWorkspaceFromDialog,
-  selectGrpcMethod,
-  addGrpcMessage,
-  generateGrpcSampleMessage
 };
 
 export type { SandboxMode, EnvironmentType, EnvironmentVariable, ImportCollectionOptions, CreateRequestOptions, CreateUntitledRequestOptions, CreateTransientRequestOptions, AssertionInput };
