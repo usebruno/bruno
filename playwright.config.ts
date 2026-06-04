@@ -40,7 +40,6 @@ export default defineConfig({
       // system-pac and pac specs share the same PAC/proxy/target ports.
       name: 'system-pac',
       testDir: './tests/proxy/system-pac',
-      dependencies: ['default']
     }
   ],
 
