@@ -6,6 +6,7 @@ import { updateRequestTests } from 'providers/ReduxStore/slices/collections';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { useTheme } from 'providers/Theme';
 import { usePersistedState } from 'hooks/usePersistedState';
+import { useFocusErrorLine } from 'hooks/useFocusErrorLine';
 
 const Tests = ({ item, collection }) => {
   const dispatch = useDispatch();
@@ -28,6 +29,12 @@ const Tests = ({ item, collection }) => {
 
   const onRun = () => dispatch(sendRequest(item, collection.uid));
   const onSave = () => dispatch(saveRequest(item.uid, collection.uid));
+
+  useFocusErrorLine({
+    uid: item.uid,
+    editorRef: testsEditorRef,
+    scriptPhase: 'test'
+  });
 
   return (
     <div data-testid="test-script-editor">
