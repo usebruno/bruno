@@ -1,12 +1,14 @@
 import { createSlice } from '@reduxjs/toolkit';
 import { uuid } from 'utils/common/index';
 import { environmentSchema } from '@usebruno/schema';
-import { cloneDeep, has } from 'lodash';
+import { cloneDeep } from 'lodash';
+import { applyScriptEnvVars } from 'utils/environments';
 
 const initialState = {
   globalEnvironments: [],
   activeGlobalEnvironmentUid: null,
-  globalEnvironmentDraft: null
+  globalEnvironmentDraft: null,
+  _scriptGlobalEnvBaseline: null
 };
 
 export const globalEnvironmentsSlice = createSlice({
@@ -83,6 +85,12 @@ export const globalEnvironmentsSlice = createSlice({
     clearGlobalEnvironmentDraft: (state) => {
       state.globalEnvironmentDraft = null;
     },
+    _setScriptGlobalEnvBaseline: (state, action) => {
+      state._scriptGlobalEnvBaseline = action.payload;
+    },
+    _clearScriptGlobalEnvBaseline: (state) => {
+      state._scriptGlobalEnvBaseline = null;
+    },
     _updateGlobalEnvironmentColor: (state, action) => {
       const { environmentUid, color } = action.payload;
       if (environmentUid) {
@@ -102,7 +110,9 @@ export const {
   _deleteGlobalEnvironment,
   _updateGlobalEnvironmentColor,
   setGlobalEnvironmentDraft,
-  clearGlobalEnvironmentDraft
+  clearGlobalEnvironmentDraft,
+  _setScriptGlobalEnvBaseline,
+  _clearScriptGlobalEnvBaseline
 } = globalEnvironmentsSlice.actions;
 
 const getWorkspaceContext = (state) => {
@@ -265,60 +275,55 @@ export const deleteGlobalEnvironment = ({ environmentUid }) => (dispatch, getSta
 };
 
 export const globalEnvironmentsUpdateEvent = ({ globalEnvironmentVariables }) => (dispatch, getState) => {
-  return new Promise((resolve, reject) => {
-    const { ipcRenderer } = window;
-    if (!globalEnvironmentVariables) resolve();
+  if (!globalEnvironmentVariables) return;
 
-    const state = getState();
-    const { workspaceUid, workspacePath } = getWorkspaceContext(state);
-    const globalEnvironments = state?.globalEnvironments?.globalEnvironments || [];
-    const environmentUid = state?.globalEnvironments?.activeGlobalEnvironmentUid;
-    const environment = globalEnvironments?.find((env) => env?.uid == environmentUid);
+  const state = getState();
+  const globalEnvironments = state?.globalEnvironments?.globalEnvironments || [];
+  const environmentUid = state?.globalEnvironments?.activeGlobalEnvironmentUid;
+  const environment = globalEnvironments?.find((env) => env?.uid == environmentUid);
 
-    if (!environment || !environmentUid) {
-      return resolve();
-    }
+  if (!environment || !environmentUid) return;
 
-    let variables = cloneDeep(environment?.variables);
-
-    // "globalEnvironmentVariables" will include only the enabled variables and newly added variables created using the script.
-    // Update the value of each variable if it's present in "globalEnvironmentVariables", otherwise keep the existing value.
-    variables = variables?.map?.((variable) => ({
-      ...variable,
-      value: has(globalEnvironmentVariables, variable?.name)
-        ? globalEnvironmentVariables[variable?.name]
-        : variable?.value
-    }));
-
-    Object.entries(globalEnvironmentVariables)?.forEach?.(([key, value]) => {
-      const isAnExistingVariable = variables?.find((v) => v?.name == key);
-      if (!isAnExistingVariable) {
-        variables.push({
-          uid: uuid(),
-          name: key,
-          value,
-          type: 'text',
-          secret: false,
-          enabled: true
-        });
-      }
+  // When a draft exists, the script ran against the saved state, not the draft.
+  // Flush the draft and remember the saved state as a baseline so this and all
+  // subsequent script events only apply what the script actually changed.
+  const draft = state?.globalEnvironments?.globalEnvironmentDraft;
+  if (draft && draft.environmentUid === environmentUid && draft.variables) {
+    const baseline = {};
+    environment.variables?.forEach((v) => {
+      if (v.enabled) baseline[v.name] = v.value;
     });
+    dispatch(_setScriptGlobalEnvBaseline(baseline));
 
-    const environmentToSave = { ...environment, variables };
+    // Replace the saved env with draft variables
+    dispatch(_saveGlobalEnvironment({ environmentUid, variables: cloneDeep(draft.variables) }));
+    dispatch(clearGlobalEnvironmentDraft());
+  }
 
-    environmentSchema
-      .validate(environmentToSave)
-      .then(() => ipcRenderer.invoke('renderer:save-global-environment', {
-        environmentUid,
-        variables,
-        color: environment.color,
-        workspaceUid,
-        workspacePath
-      }))
-      .then(() => dispatch(_saveGlobalEnvironment({ environmentUid, variables })))
-      .then(resolve)
-      .catch(reject);
-  });
+  // Re-read state after potential draft flush
+  const updatedState = getState();
+  const updatedEnv = updatedState?.globalEnvironments?.globalEnvironments?.find((env) => env?.uid == environmentUid);
+  const baseline = updatedState?.globalEnvironments?._scriptGlobalEnvBaseline;
+  let variables = cloneDeep(updatedEnv?.variables || []);
+
+  variables = applyScriptEnvVars(variables, globalEnvironmentVariables, baseline);
+
+  // Update Redux state
+  dispatch(_saveGlobalEnvironment({ environmentUid, variables }));
+
+  // Persist to disk using the already-computed variables directly (avoids re-reading state)
+  const { ipcRenderer } = window;
+  const { workspaceUid, workspacePath } = getWorkspaceContext(state);
+  environmentSchema
+    .validate({ ...environment, variables })
+    .then(() => ipcRenderer.invoke('renderer:save-global-environment', {
+      environmentUid,
+      variables,
+      color: environment.color,
+      workspaceUid,
+      workspacePath
+    }))
+    .catch((err) => console.error('Failed to persist global environment:', err));
 };
 
 export const updateGlobalEnvironmentColor = (environmentUid, color) => (dispatch, getState) => {
