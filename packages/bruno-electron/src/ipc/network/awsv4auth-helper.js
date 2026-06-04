@@ -10,15 +10,26 @@ function shouldAddContentSha(awsv4) {
   return String(awsv4.service || '').toLowerCase() === 'aoss';
 }
 
-function getTransformer(config) {
+function getTransformers(config) {
   const { transformRequest } = config;
   if (typeof transformRequest === 'function') {
-    return transformRequest;
+    return [transformRequest];
   }
 
-  if (Array.isArray(transformRequest) && transformRequest.length) {
-    return transformRequest[0];
+  if (Array.isArray(transformRequest)) {
+    return transformRequest.filter((transformer) => typeof transformer === 'function');
   }
+
+  return [];
+}
+
+function getHeader(headers, name) {
+  if (headers && typeof headers.get === 'function') {
+    return headers.get(name);
+  }
+
+  const key = Object.keys(headers || {}).find((headerName) => headerName.toLowerCase() === name.toLowerCase());
+  return key ? headers[key] : undefined;
 }
 
 function setHeader(headers, name, value) {
@@ -30,12 +41,43 @@ function setHeader(headers, name, value) {
   headers[name] = value;
 }
 
+function getHashPayload(data) {
+  if (data == null) {
+    return '';
+  }
+
+  if (typeof data === 'string' || Buffer.isBuffer(data)) {
+    return data;
+  }
+
+  if (data instanceof ArrayBuffer) {
+    return Buffer.from(data);
+  }
+
+  if (ArrayBuffer.isView(data)) {
+    return Buffer.from(data.buffer, data.byteOffset, data.byteLength);
+  }
+}
+
+function applyTransformers(config) {
+  return getTransformers(config).reduce((data, transformer) => {
+    return transformer.call(config, data, config.headers);
+  }, config.data);
+}
+
 function addContentShaHeader(config) {
   config.headers = config.headers || {};
 
-  const transformer = getTransformer(config);
-  const data = transformer ? transformer.call(config, config.data, config.headers) : config.data;
-  const hash = createHash('sha256').update(data ?? '', 'utf8').digest('hex');
+  if (getHeader(config.headers, 'X-Amz-Content-Sha256') != null) {
+    return;
+  }
+
+  const payload = getHashPayload(applyTransformers(config));
+  if (payload === undefined) {
+    return;
+  }
+
+  const hash = createHash('sha256').update(payload).digest('hex');
 
   setHeader(config.headers, 'X-Amz-Content-Sha256', hash);
 }
