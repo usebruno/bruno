@@ -25,7 +25,7 @@ import {
   streamDataReceived,
   setDotEnvVariables
 } from 'providers/ReduxStore/slices/collections';
-import { collectionAddEnvFileEvent, openCollectionEvent, hydrateCollectionWithUiStateSnapshot, mergeAndPersistEnvironment } from 'providers/ReduxStore/slices/collections/actions';
+import { collectionAddEnvFileEvent, openCollectionEvent, hydrateCollectionWithUiStateSnapshot, persistActiveEnvironment, collectionVariablesUpdateEvent } from 'providers/ReduxStore/slices/collections/actions';
 import {
   workspaceOpenedEvent,
   workspaceConfigUpdatedEvent,
@@ -201,16 +201,22 @@ const useIpcEvents = () => {
       }
     });
 
+    // TODO: These listeners write to disk unconditionally on every script execution, even if no
+    // variables changed. This is acceptable for now (env files are small, writes are async), but
+    // for high-frequency runner scenarios we should add a dirty flag to the Bru instance to skip unchanged writes.
     const removeScriptEnvUpdateListener = ipcRenderer.on('main:script-environment-update', (val) => {
       dispatch(scriptEnvironmentUpdateEvent(val));
-    });
-
-    const removePersistentEnvVariablesUpdateListener = ipcRenderer.on('main:persistent-env-variables-update', (val) => {
-      dispatch(mergeAndPersistEnvironment(val));
+      if (val.collectionUid) {
+        dispatch(persistActiveEnvironment(val.collectionUid));
+      }
     });
 
     const removeGlobalEnvironmentVariablesUpdateListener = ipcRenderer.on('main:global-environment-variables-update', (val) => {
       dispatch(globalEnvironmentsUpdateEvent(val));
+    });
+
+    const removeCollectionVariablesUpdateListener = ipcRenderer.on('main:collection-variables-update', (val) => {
+      dispatch(collectionVariablesUpdateEvent(val));
     });
 
     const removeCollectionRenamedListener = ipcRenderer.on('main:collection-renamed', (val) => {
@@ -393,7 +399,7 @@ const useIpcEvents = () => {
       removeHttpStreamNewDataListener();
       removeHttpStreamEndListener();
       removeCollectionLoadingStateListener();
-      removePersistentEnvVariablesUpdateListener();
+      removeCollectionVariablesUpdateListener();
       removeSystemResourcesListener();
       gitVersionListener();
       removeLoadNotificationsListener();

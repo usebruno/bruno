@@ -88,8 +88,8 @@ class VarsRuntime {
     return {
       envVariables,
       runtimeVariables,
+      collectionVariables: cleanJson(collectionVariables),
       globalEnvironmentVariables: cleanJson(globalEnvironmentVariables),
-      persistentEnvVariables: cleanJson(bru.persistentEnvVariables),
       error
     };
   }

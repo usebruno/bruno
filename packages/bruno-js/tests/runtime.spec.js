@@ -180,61 +180,55 @@ describe('runtime', () => {
     });
   });
 
-  describe('persistent environment variables validation', () => {
-    it('should persist non-string values without throwing', async () => {
+  describe('environment variables from scripts', () => {
+    it('should allow any value type', async () => {
       const script = `
-        bru.setEnvVar('number', 42, {persist: true});
-        bru.setEnvVar('isActive', true, {persist: true});
-        bru.setEnvVar('config', {port: 3000}, {persist: true});
-        bru.setEnvVar('items', ['item1', 'item2'], {persist: true});
+        bru.setEnvVar('str', 'hello');
+        bru.setEnvVar('number', 42);
+        bru.setEnvVar('boolean', true);
+        bru.setEnvVar('object', {key: 'value'});
+        bru.setEnvVar('array', [1, 2, 3]);
       `;
       const runtime = new ScriptRuntime({ runtime: 'nodevm' });
 
       const result = await runtime.runRequestScript(script, {}, {}, {}, '.', null, process.env);
 
-      expect(result.envVariables.number).toBe(42);
-      expect(result.persistentEnvVariables.number).toBe(42);
-      expect(result.envVariables.isActive).toBe(true);
-      expect(result.persistentEnvVariables.isActive).toBe(true);
-      expect(result.envVariables.config).toEqual({ port: 3000 });
-      expect(result.persistentEnvVariables.config).toEqual({ port: 3000 });
-      expect(result.envVariables.items).toEqual(['item1', 'item2']);
-      expect(result.persistentEnvVariables.items).toEqual(['item1', 'item2']);
-    });
-
-    it('should allow string values when persist is true', async () => {
-      const script = `bru.setEnvVar('api_key', 'abc123', {persist: true});`;
-      const runtime = new ScriptRuntime({ runtime: 'nodevm' });
-
-      const result = await runtime.runRequestScript(script, {}, {}, {}, '.', null, process.env);
-
-      expect(result.envVariables.api_key).toBe('abc123');
-    });
-
-    it('should allow non-string values when persist is false', async () => {
-      const script = `
-        bru.setEnvVar('number', 42, {persist: false});
-        bru.setEnvVar('boolean', true, {persist: false});
-        bru.setEnvVar('object', {key: 'value'}, {persist: false});
-        bru.setEnvVar('array', [1, 2, 3], {persist: false});
-      `;
-      const runtime = new ScriptRuntime({ runtime: 'nodevm' });
-
-      const result = await runtime.runRequestScript(script, {}, {}, {}, '.', null, process.env);
-
+      expect(result.envVariables.str).toBe('hello');
       expect(result.envVariables.number).toBe(42);
       expect(result.envVariables.boolean).toBe(true);
       expect(result.envVariables.object).toEqual({ key: 'value' });
       expect(result.envVariables.array).toEqual([1, 2, 3]);
     });
 
-    it('should allow non-string values when persist is not specified', async () => {
-      const script = `bru.setEnvVar('number', 42);`;
+    it('should not include persistentEnvVariables in result', async () => {
+      const script = `bru.setEnvVar('key', 'val');`;
       const runtime = new ScriptRuntime({ runtime: 'nodevm' });
 
       const result = await runtime.runRequestScript(script, {}, {}, {}, '.', null, process.env);
 
-      expect(result.envVariables.number).toBe(42);
+      expect(result).not.toHaveProperty('persistentEnvVariables');
+    });
+
+    it('should include collectionVariables in result', async () => {
+      const script = `bru.setCollectionVar('myVar', 'myValue');`;
+      const runtime = new ScriptRuntime({ runtime: 'nodevm' });
+
+      const result = await runtime.runRequestScript(script, {}, {}, {}, '.', null, process.env);
+
+      expect(result.collectionVariables).toBeDefined();
+      expect(result.collectionVariables.myVar).toBe('myValue');
+    });
+
+    it('should silently ignore old persist flag as extra argument', async () => {
+      const scriptTrue = `bru.setEnvVar('key1', 'val1', { persist: true });`;
+      const scriptFalse = `bru.setEnvVar('key2', 'val2', { persist: false });`;
+      const runtime = new ScriptRuntime({ runtime: 'nodevm' });
+
+      const result1 = await runtime.runRequestScript(scriptTrue, {}, {}, {}, '.', null, process.env);
+      expect(result1.envVariables.key1).toBe('val1');
+
+      const result2 = await runtime.runRequestScript(scriptFalse, {}, {}, {}, '.', null, process.env);
+      expect(result2.envVariables.key2).toBe('val2');
     });
   });
 
