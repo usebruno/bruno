@@ -1,8 +1,50 @@
+const { createHash } = require('node:crypto');
 const { fromIni } = require('@aws-sdk/credential-providers');
 const { aws4Interceptor } = require('aws4-axios');
 
 function isStrPresent(str) {
   return str && str !== '' && str !== 'undefined';
+}
+
+function shouldAddContentSha(awsv4) {
+  return String(awsv4.service || '').toLowerCase() === 'aoss';
+}
+
+function getTransformer(config) {
+  const { transformRequest } = config;
+  if (typeof transformRequest === 'function') {
+    return transformRequest;
+  }
+
+  if (Array.isArray(transformRequest) && transformRequest.length) {
+    return transformRequest[0];
+  }
+}
+
+function setHeader(headers, name, value) {
+  if (headers && typeof headers.set === 'function') {
+    headers.set(name, value);
+    return;
+  }
+
+  headers[name] = value;
+}
+
+function addContentShaHeader(config) {
+  config.headers = config.headers || {};
+
+  const transformer = getTransformer(config);
+  const data = transformer ? transformer.call(config, config.data, config.headers) : config.data;
+  const hash = createHash('sha256').update(data ?? '', 'utf8').digest('hex');
+
+  setHeader(config.headers, 'X-Amz-Content-Sha256', hash);
+}
+
+function withContentShaHeader(interceptor) {
+  return async (config) => {
+    addContentShaHeader(config);
+    return interceptor(config);
+  };
 }
 
 async function resolveAwsV4Credentials(request) {
@@ -48,7 +90,7 @@ function addAwsV4Interceptor(axiosInstance, request) {
     }
   });
 
-  axiosInstance.interceptors.request.use(interceptor);
+  axiosInstance.interceptors.request.use(shouldAddContentSha(awsv4) ? withContentShaHeader(interceptor) : interceptor);
 }
 
 module.exports = {
