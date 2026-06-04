@@ -3,6 +3,7 @@ import { getAuthHeaders } from 'utils/codegenerator/auth';
 import { getAllVariables, getTreePathFromCollectionToItem, mergeHeaders } from 'utils/collections/index';
 import { resolveInheritedAuth } from 'utils/auth';
 import { get } from 'lodash';
+import { interpolateUrl, interpolateUrlPathParams } from 'utils/url/index';
 import { interpolateAuth, interpolateHeaders, interpolateBody, interpolateParams } from './interpolation';
 import { encodeUrl as encodeUrlCommon, stripOrigin } from '@usebruno/common/utils';
 import { parse } from 'url';
@@ -67,9 +68,13 @@ const generateSnippet = ({ language, item, collection, shouldInterpolate = false
       request.params = interpolateParams(request.params, variables);
     }
 
-    // Build HAR request
+    const templateUrl = request.url;
+    const interpolatedUrl = interpolateUrl({ url: templateUrl, variables });
+    const harUrl = interpolateUrlPathParams(interpolatedUrl, request.params);
+
+    // Build HAR request with the interpolated URL without mutating the original request
     const harRequest = buildHarRequest({
-      request,
+      request: { ...request, url: harUrl },
       headers
     });
 
@@ -80,6 +85,9 @@ const generateSnippet = ({ language, item, collection, shouldInterpolate = false
     // For curl target, add special auth flags for digest/ntlm
     if (language.target === 'shell' && language.client === 'curl') {
       result = addCurlAuthFlags(result, effectiveAuth);
+    }
+    if (!shouldInterpolate) {
+      result = result.replaceAll(harUrl, templateUrl);
     }
 
     // Respect encodeUrl setting: when not explicitly true, replace HTTPSnippet's encoded path+query with the raw version.
