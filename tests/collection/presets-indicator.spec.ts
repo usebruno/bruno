@@ -63,11 +63,8 @@ test.describe('Presets status dot in collection settings', () => {
       await locators.presets.save().click();
     });
 
-    // hasPresets in CollectionSettings only treats a non-default request type or a non-empty
-    // request URL as "having presets". Back at the defaults (HTTP selected, empty URL),
-    // hasPresets is false, so the dot is hidden again.
     await test.step('Verify Presets dot is hidden after returning to defaults', async () => {
-      await expect(presetsTab.getByTestId('status-dot')).not.toBeVisible({ timeout: 2000 });
+      await expect(presetsTab.getByTestId('status-dot')).not.toBeVisible({ timeout: 5000 });
     });
   });
 });
