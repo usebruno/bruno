@@ -1,6 +1,5 @@
 import { test, expect } from '../../../playwright';
 import {
-  AUTH_MODE_LABELS,
   buildCommonLocators,
   closeAllCollections,
   createCollection,
@@ -14,6 +13,7 @@ import {
   sendRequest,
   typeIntoField
 } from '../../utils/page';
+import { AUTH_MODE_LABELS } from '../../../tests/utils/page/constants';
 
 test.afterEach(async ({ page }) => {
   await closeAllCollections(page);
