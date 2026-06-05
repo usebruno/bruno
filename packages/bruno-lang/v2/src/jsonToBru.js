@@ -1,6 +1,6 @@
 const _ = require('lodash');
 
-const { indentString, getValueString, getKeyString, getValueUrl, serializeAnnotations, buildAnnotationsFromVariable } = require('./utils');
+const { indentString, getValueString, getKeyString, getValueUrl, serializeAnnotations, serializeVar } = require('./utils');
 const jsonToExampleBru = require('./example/jsonToBru');
 
 const enabled = (items = [], key = 'enabled') => items.filter((item) => item[key]);
@@ -666,10 +666,6 @@ ${indentString(body.sparql)}
 
     bru += `vars:pre-request {`;
 
-    const serializeVar = (item, prefix = '') => {
-      return `${serializeAnnotations(buildAnnotationsFromVariable(item))}${prefix}${item.name}: ${getValueString(item.value)}`;
-    };
-
     if (varsEnabled.length) {
       bru += `\n${indentString(varsEnabled.map((item) => serializeVar(item)).join('\n'))}`;
     }
@@ -693,10 +689,6 @@ ${indentString(body.sparql)}
     const varsDisabled = _.filter(resvars, (v) => !v.enabled && !v.local);
     const varsLocalEnabled = _.filter(resvars, (v) => v.enabled && v.local);
     const varsLocalDisabled = _.filter(resvars, (v) => !v.enabled && v.local);
-
-    const serializeVar = (item, prefix = '') => {
-      return `${serializeAnnotations(buildAnnotationsFromVariable(item))}${prefix}${item.name}: ${getValueString(item.value)}`;
-    };
 
     bru += `vars:post-response {`;
 

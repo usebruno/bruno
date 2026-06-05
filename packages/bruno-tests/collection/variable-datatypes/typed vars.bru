@@ -111,12 +111,12 @@ tests {
     expect(bru.getRequestVar("req_obj_empty")).to.deep.equal({});
 
     // @number with non-numeric data falls through to the raw string — same
-    // signal the DatatypeSelector uses to surface its warning icon.
+    // signal the env editor uses to surface its warning icon.
     expect(typeof bru.getRequestVar("mismatched_num")).to.equal("string");
     expect(bru.getRequestVar("mismatched_num")).to.equal("not-a-number");
   });
 
-  test("typed object var preserves number precision through file → parse → coerce", () => {
+  test("typed object var preserves number precision through file → parse round-trip", () => {
     const v = bru.getRequestVar("req_obj_precision");
     expect(v.integer).to.equal(123);
     expect(v.negativeInteger).to.equal(-99);
@@ -153,7 +153,7 @@ tests {
     expect(bru.getEnvVar("inferred_env_obj")).to.deep.equal({ from: "script" });
   });
 
-  test("getDatatypeFromValue: bru.set* identifies type via typeof, not string content", () => {
+  test("bru.set* identifies type via the value's runtime type, not string content", () => {
     expect(typeof bru.getEnvVar("strict_num_str")).to.equal("string");
     expect(bru.getEnvVar("strict_num_str")).to.equal("42");
     expect(typeof bru.getEnvVar("strict_bool_str")).to.equal("string");

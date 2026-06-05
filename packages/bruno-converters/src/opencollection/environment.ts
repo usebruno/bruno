@@ -3,9 +3,9 @@ import {
   isTypedValue,
   hasTypedMetadata,
   toOpenCollectionTypedValue,
-  fromOpenCollectionTypedValue
+  fromOpenCollectionTypedValue,
+  serializeVariableValue
 } from './common/datatype';
-import { valueToString } from '@usebruno/common/utils';
 import type {
   Environment,
   Variable,
@@ -78,7 +78,7 @@ export const toOpenCollectionEnvironments = (environments: BrunoEnvironment[] | 
           ocVar.secret = true;
           // Secret variables don't include the value in export.
         } else {
-          const valueStr = valueToString(v.value);
+          const valueStr = serializeVariableValue(v.value);
           ocVar.value = hasTypedMetadata(v) ? toOpenCollectionTypedValue(v, valueStr) : valueStr;
         }
 

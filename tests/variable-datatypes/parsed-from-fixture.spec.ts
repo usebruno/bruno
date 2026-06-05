@@ -114,8 +114,10 @@ const openRequestInCollection = async (
 const tableRowByName = (table: ReturnType<ReturnType<typeof buildCommonLocators>['table']>, name: string) =>
   table.container().locator(`tbody tr[data-row-name="${name}"]`);
 
+const SLOW_RENDER_TIMEOUT_MS = 15_000;
+
 const expectTypeLabel = async (row: Locator, label: string) => {
-  await expect(row.locator('.type-label').first()).toHaveText(label);
+  await expect(row.locator('.type-label').first()).toHaveText(label, { timeout: SLOW_RENDER_TIMEOUT_MS });
 };
 
 /**
@@ -219,7 +221,7 @@ const EXPECTED_TEST_COUNT = 14;
  * has already activated the right environments (otherwise env-scoped tests
  * would fail).
  *
- * The fixture posts to httpbin.org, so this requires network. We key off the
+ * The fixture posts to the local testbench echo endpoint. We key off the
  * test summary line ("Tests (N), Passed: X, Failed: Y") since each datatype
  * check renders as a separate test row.
  */
@@ -270,7 +272,7 @@ const openEnvironmentSettings = async (page: Page, type: 'collection' | 'global'
 /** Assert the DatatypeSelector inside an env-var row reports the expected label. */
 const expectEnvVarTypeLabel = async (page: Page, name: string, label: string) => {
   const row = page.locator(`[data-testid="env-var-row-${name}"]`);
-  await expect(row.locator('.type-label').first()).toHaveText(label);
+  await expect(row.locator('.type-label').first()).toHaveText(label, { timeout: SLOW_RENDER_TIMEOUT_MS });
 };
 
 // Scroll the virtualized env table to its bottom so trailing rows mount.
@@ -290,10 +292,7 @@ const scrollEnvTableToBottom = async (page: Page) => {
 const mismatchIcon = (row: Locator) => row.locator('svg.text-yellow-600');
 
 // Popups are position:fixed and overlap the next token; the mouse-leave close
-// timer (500ms + fade) is too slow between hovers, so we tear them down first.
-// `.first()` on `.cm-variable-valid` disambiguates prefix overlaps;
-// exact-match on `.var-name` waits for the popup to rebind to the new token
-// instead of latching onto a stale one.
+// timer is too slow between hovers, so we tear them down first.
 const hoverVarInBody = async (page: Page, varName: string) => {
   // _hidePopup runs the popup's own cleanup (listeners, MaskedEditor.destroy,
   // inner CodeMirror teardown); raw .remove() leaks across the loop.
@@ -304,16 +303,20 @@ const hoverVarInBody = async (page: Page, varName: string) => {
     });
   });
   await page.mouse.move(0, 0);
+  await expect(page.locator('.CodeMirror-brunoVarInfo')).toHaveCount(0);
 
   const bodyEditor = buildCommonLocators(page).request.bodyEditor().locator('.CodeMirror');
   const varToken = bodyEditor.locator('.cm-variable-valid').filter({ hasText: varName }).first();
   await expect(varToken).toBeVisible();
-  await varToken.hover();
 
   const tooltip = page.locator('.CodeMirror-brunoVarInfo').filter({
     has: page.locator('.var-name').filter({ hasText: new RegExp(`^${varName}$`) })
   });
-  await expect(tooltip).toBeVisible();
+  await expect(async () => {
+    await page.mouse.move(0, 0);
+    await varToken.hover();
+    await expect(tooltip).toBeVisible({ timeout: 2_000 });
+  }).toPass({ timeout: SLOW_RENDER_TIMEOUT_MS });
   return tooltip;
 };
 
@@ -508,7 +511,7 @@ test.describe('Datatype selector — BRU collection fixture', () => {
     // form-urlencoded uses a separate code path from multipart:
     // buildFormUrlEncodedPayload in @usebruno/common coerces values via String().
     // Verifies typed (number/boolean/object) vars round-trip into the
-    // application/x-www-form-urlencoded body and httpbin echoes the wire form.
+    // application/x-www-form-urlencoded body and the echo endpoint echoes the wire form.
     await openRequestInCollection(page, BRU_COLLECTION, 'form_urlencoded');
     await sendRequestAndWaitForResponse(page, 200, { timeout: 30000 });
     await selectResponsePaneTab(page, 'Tests');
@@ -614,7 +617,7 @@ test.describe('Datatype selector — BRU collection fixture', () => {
     restartApp,
     workspaceFixturePath
   }, testInfo) => {
-    // restartApp boots a fresh electron (~10s) AND we send a real httpbin
+    // restartApp boots a fresh electron (~10s) AND we send a real network
     // request after save, which combined exceeds the default 30s test
     // timeout. Bump it for this heavier flow.
     testInfo.setTimeout(90_000);

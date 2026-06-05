@@ -2,6 +2,7 @@ import { test, expect } from '../../../playwright';
 import fs from 'fs';
 import path from 'path';
 import { sendRequest } from '../../utils/page';
+import { buildCommonLocators } from '../../utils/page/locators';
 
 // Regression guard: Save commits the script-set value of an ephemeral env var
 // (set via `bru.setEnvVar` without `{ persist: true }`) instead of rolling it
@@ -31,33 +32,35 @@ test.describe.serial('bru.setEnvVar(name, value) — Save commits ephemeral over
     pageWithUserData: page,
     collectionFixturePath
   }) => {
+    const locators = buildCommonLocators(page);
+    const envTab = page.locator('.request-tab').filter({ hasText: 'Environments' });
+
+    const openEnvEditor = async () => {
+      await locators.environment.selector().hover();
+      await locators.environment.selector().click();
+      await locators.environment.configureButton().hover();
+      await locators.environment.configureButton().click();
+      await expect(envTab).toBeVisible();
+    };
+
     await test.step('Select the EphemeralSave env and run the request', async () => {
       await page.locator('#sidebar-collection-name').click();
       await page.getByText('api-setEnvVar-ephemeral-save', { exact: true }).click();
 
-      await page.getByTestId('environment-selector-trigger').click();
-      await expect(page.locator('.environment-list .dropdown-item', { hasText: 'EphemeralSave' })).toBeVisible();
-      await page.locator('.environment-list .dropdown-item', { hasText: 'EphemeralSave' }).click();
-      await expect(page.locator('.current-environment', { hasText: 'EphemeralSave' })).toBeVisible();
+      await locators.environment.selector().click();
+      await expect(locators.environment.listOption('EphemeralSave')).toBeVisible();
+      await locators.environment.listOption('EphemeralSave').click();
+      await expect(locators.environment.currentEnvironment()).toContainText('EphemeralSave');
 
       await sendRequest(page, 200);
     });
 
     await test.step('Open the env editor and click Save', async () => {
-      await page.getByTestId('environment-selector-trigger').hover();
-      await page.getByTestId('environment-selector-trigger').click();
-      await page.locator('#configure-env').hover();
-      await page.locator('#configure-env').click();
+      await openEnvEditor();
 
-      const envTab = page.locator('.request-tab').filter({ hasText: 'Environments' });
-      await expect(envTab).toBeVisible();
+      await expect(locators.environment.varRowLine('plain_var')).toHaveText('scripted_plain');
 
-      const plainLine = page
-        .locator('[data-testid="env-var-row-plain_var"] .CodeMirror-line')
-        .first();
-      await expect(plainLine).toHaveText('scripted_plain');
-
-      await page.getByTestId('save-env').click();
+      await locators.environment.saveButton().click();
 
       const envFile = path.join(collectionFixturePath!, 'environments', 'EphemeralSave.bru');
       await expect
@@ -79,16 +82,9 @@ test.describe.serial('bru.setEnvVar(name, value) — Save commits ephemeral over
     await test.step('Re-open the env editor — plain var holds the script-set value', async () => {
       // Secret values live in the encrypted store, not the .bru file —
       // covered by buildPersistedEnvVariables in environments.spec.js.
-      await page.getByTestId('environment-selector-trigger').hover();
-      await page.getByTestId('environment-selector-trigger').click();
-      await page.locator('#configure-env').hover();
-      await page.locator('#configure-env').click();
-      const envTab = page.locator('.request-tab').filter({ hasText: 'Environments' });
-      await expect(envTab).toBeVisible();
+      await openEnvEditor();
 
-      await expect(
-        page.locator('[data-testid="env-var-row-plain_var"] .CodeMirror-line').first()
-      ).toHaveText('scripted_plain');
+      await expect(locators.environment.varRowLine('plain_var')).toHaveText('scripted_plain');
 
       await envTab.hover();
       await envTab.getByTestId('request-tab-close-icon').click({ force: true });

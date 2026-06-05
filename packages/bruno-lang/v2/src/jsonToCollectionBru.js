@@ -1,6 +1,6 @@
 const _ = require('lodash');
 
-const { indentString, getValueString, getKeyString, serializeAnnotations, buildAnnotationsFromVariable } = require('./utils');
+const { indentString, getValueString, getKeyString, serializeAnnotations, serializeVar } = require('./utils');
 
 const enabled = (items = []) => items.filter((item) => item.enabled);
 const disabled = (items = []) => items.filter((item) => !item.enabled);
@@ -376,10 +376,6 @@ ${indentString(
     const varsLocalEnabled = _.filter(reqvars, (v) => v.enabled && v.local);
     const varsLocalDisabled = _.filter(reqvars, (v) => !v.enabled && v.local);
 
-    const serializeVar = (item, prefix = '') => {
-      return `${serializeAnnotations(buildAnnotationsFromVariable(item))}${prefix}${item.name}: ${getValueString(item.value)}`;
-    };
-
     bru += `vars:pre-request {`;
 
     if (varsEnabled.length) {
@@ -405,10 +401,6 @@ ${indentString(
     const varsDisabled = _.filter(resvars, (v) => !v.enabled && !v.local);
     const varsLocalEnabled = _.filter(resvars, (v) => v.enabled && v.local);
     const varsLocalDisabled = _.filter(resvars, (v) => !v.enabled && v.local);
-
-    const serializeVar = (item, prefix = '') => {
-      return `${serializeAnnotations(buildAnnotationsFromVariable(item))}${prefix}${item.name}: ${getValueString(item.value)}`;
-    };
 
     bru += `vars:post-response {`;
 

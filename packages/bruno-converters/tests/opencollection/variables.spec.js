@@ -42,7 +42,7 @@ describe('toOpenCollectionVariables — typed values', () => {
     expect(out).toEqual([
       { name: 'count', value: { type: 'number', data: '42' } },
       { name: 'enabled', value: { type: 'boolean', data: 'true' } },
-      { name: 'config', value: { type: 'object', data: '{"a":1}' } },
+      { name: 'config', value: { type: 'object', data: '{\n  "a": 1\n}' } },
       { name: 'greeting', value: 'hi' },
       { name: 'plain', value: 'hello' }
     ]);
@@ -63,7 +63,7 @@ describe('OpenCollection variables round-trip', () => {
     const ocVars = [
       { name: 'count', value: { type: 'number', data: '42' } },
       { name: 'flag', value: { type: 'boolean', data: 'false' } },
-      { name: 'cfg', value: { type: 'object', data: '{"k":1}' } },
+      { name: 'cfg', value: { type: 'object', data: '{\n  "k": 1\n}' } },
       { name: 'plain', value: 'hello' }
     ];
 

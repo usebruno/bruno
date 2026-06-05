@@ -4,6 +4,8 @@ info:
 
 request:
   variables:
+    - name: localhost
+      value: http://localhost:8081
     - name: coll_str
       value: collection_string
     - name: coll_num

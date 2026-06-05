@@ -1,6 +1,6 @@
 module.exports = {
   transform: {
-    '^.+\\.[jt]sx?$': 'babel-jest'
+    '^.+\\.[jt]s$': 'babel-jest'
   },
   setupFiles: ['<rootDir>/jest.setup.js'],
   transformIgnorePatterns: [

@@ -33,10 +33,6 @@ describe('Bru.setEnvVar', () => {
     expect(bru.persistentEnvVariables.no_options).toBeUndefined();
   });
 
-  // The persist-type guard that threw "Persistent environment variables must be strings"
-  // was removed in the variable-datatype-support work — numeric/boolean/object values
-  // are now stored as-is, and datatype is inferred downstream. These tests pin that
-  // contract and document where it is unsafe (functions / symbols / circulars).
   describe('persist=true with non-string values', () => {
     test('stores numbers as-is without throwing', () => {
       const bru = makeBru();

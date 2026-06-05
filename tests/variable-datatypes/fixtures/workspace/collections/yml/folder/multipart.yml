@@ -5,7 +5,7 @@ info:
 
 http:
   method: POST
-  url: https://httpbin.org/anything
+  url: '{{localhost}}/api/echo/everything'
   body:
     type: multipart-form
     data:
@@ -42,17 +42,15 @@ runtime:
     - type: tests
       code: |-
         test("multipart text fields stringify typed values on the wire", () => {
-          const form = res.getBody().form;
-          // form-data only carries strings on the wire — `toFormValue` in
-          // bruno-electron/src/utils/form-data.js stringifies typed values before
-          // form.append. httpbin echoes the wire-form fields back as strings.
-          // For @object, interpolate JSON.stringifies the value when substituting
-          // into the string template (interpolate/index.ts:103-105), so the wire
-          // form carries the JSON string.
-          expect(form.mp_str).to.equal("form_string");
-          expect(form.mp_num).to.equal("42");
-          expect(form.mp_bool).to.equal("true");
-          expect(form.mp_obj).to.equal('{"key":"value"}');
+          const raw = res.getBody().body;
+          const fieldValue = (name) => {
+            const match = raw.match(new RegExp(`name="${name}"\\r?\\n\\r?\\n([\\s\\S]*?)\\r?\\n--`));
+            return match && match[1];
+          };
+          expect(fieldValue("mp_str")).to.equal("form_string");
+          expect(fieldValue("mp_num")).to.equal("42");
+          expect(fieldValue("mp_bool")).to.equal("true");
+          expect(fieldValue("mp_obj")).to.equal('{"key":"value"}');
         });
 
 settings:

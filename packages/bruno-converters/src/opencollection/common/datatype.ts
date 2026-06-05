@@ -2,10 +2,18 @@ import type { VariableTypedValue } from '@opencollection/types/common/variables'
 import {
   parseValueByDatatype,
   BrunoVariableDatatype,
-  isBrunoVariableDatatype
+  isBrunoVariableDatatype,
+  valueToString
 } from '@usebruno/common/utils';
 
 export { BrunoVariableDatatype, isBrunoVariableDatatype };
+
+export const serializeVariableValue = (value: unknown): string => {
+  if (value !== null && typeof value === 'object') {
+    return JSON.stringify(value, null, 2);
+  }
+  return valueToString(value);
+};
 
 export const isTypedValue = (value: unknown): value is VariableTypedValue => {
   return typeof value === 'object'

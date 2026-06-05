@@ -140,7 +140,7 @@ test.describe('Datatype selector — new collection created via UI', () => {
       await locators.dropdown.item('New Request').click();
       await page.getByPlaceholder('Request Name').fill('request');
       await page.locator('#new-request-url .CodeMirror').click();
-      await page.keyboard.type('https://httpbin.org/anything');
+      await page.keyboard.type('http://localhost:8081/api/echo/everything');
       await locators.modal.button('Create').click();
 
       // Expand the folder (clicking the collection would collapse it instead).
@@ -173,10 +173,10 @@ test.describe('Datatype selector — new collection created via UI', () => {
     await expectAllTypedVarsLabeled(page, 'collection-vars-req', 'coll');
 
     // --- Collection environment vars (different table component) --------
-    await buildCommonLocators(page).environment.selector().click();
-    await buildCommonLocators(page).environment.collectionTab().click();
-    await page.locator('button[id="create-env"]').click();
-    await page.locator('input[name="name"]').fill(ENV_NAME);
+    await locators.environment.selector().click();
+    await locators.environment.collectionTab().click();
+    await locators.environment.createEnvButton().click();
+    await locators.environment.envNameInput().fill(ENV_NAME);
     await page.getByRole('button', { name: 'Create', exact: true }).click();
     await expect(page.locator('.request-tab').filter({ hasText: 'Environments' })).toBeVisible();
 
@@ -208,7 +208,7 @@ test.describe('Datatype selector — new collection created via UI', () => {
       });
     }
 
-    await page.getByTestId('save-env').click();
+    await locators.environment.saveButton().click();
     await page.waitForTimeout(500);
 
     // Re-assert after save (post-formik-reset).

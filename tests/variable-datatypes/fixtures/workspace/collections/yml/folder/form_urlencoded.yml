@@ -5,7 +5,7 @@ info:
 
 http:
   method: POST
-  url: https://httpbin.org/anything
+  url: '{{localhost}}/api/echo/everything'
   body:
     type: form-urlencoded
     data:
@@ -38,16 +38,11 @@ runtime:
     - type: tests
       code: |-
         test("form-urlencoded values stringify typed vars on the wire", () => {
-          const form = res.getBody().form;
-          // form-urlencoded only carries strings on the wire — `buildFormUrlEncodedPayload`
-          // in @usebruno/common's form-data utility coerces every value via String(),
-          // and `interpolate` (interpolate/index.ts:103-105) JSON-stringifies object
-          // values when substituting into the string template. httpbin echoes the
-          // wire-form fields back as strings.
-          expect(form.fu_str).to.equal("form_string");
-          expect(form.fu_num).to.equal("42");
-          expect(form.fu_bool).to.equal("true");
-          expect(form.fu_obj).to.equal('{"key":"value"}');
+          const raw = res.getBody().body;
+          expect(raw).to.contain("fu_str=form_string");
+          expect(raw).to.contain("fu_num=42");
+          expect(raw).to.contain("fu_bool=true");
+          expect(raw).to.contain("fu_obj=%7B%22key%22%3A%22value%22%7D");
         });
 
 settings:

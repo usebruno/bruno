@@ -134,7 +134,15 @@ describe('buildPersistedEnvVariables — save mode', () => {
 
   it('strips ephemeral/persistedValue from non-ephemeral vars', () => {
     const variables = [
-      { name: 'plain', value: 'v', type: 'text', enabled: true, secret: false }
+      {
+        name: 'plain',
+        value: 'v',
+        type: 'text',
+        enabled: true,
+        secret: false,
+        ephemeral: false,
+        persistedValue: 'leftover'
+      }
     ];
 
     expect(buildPersistedEnvVariables(variables, { mode: 'save' })).toEqual([
