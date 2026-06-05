@@ -34,19 +34,15 @@ test.describe('Import Postman Collection with OAuth2.0 Implicit Grant Type', () 
     await test.step('Open import collection modal', async () => {
       await locators.plusMenu.button().click();
       await locators.plusMenu.importCollection().click();
-      const importModal = page.getByRole('dialog');
+      const importModal = locators.import.modal();
       await importModal.waitFor({ state: 'visible' });
       await expect(locators.modal.title('Import Collection')).toBeVisible();
       await locators.import.fileInput().setInputFiles(postmanFile);
-      await locators.import.locationModal().waitFor({ state: 'visible', timeout: 10000 });
-      const hasError = await locators.import.parsingError().isVisible().catch(() => false);
-      if (hasError) {
-        throw new Error('Collection import failed with parsing error');
-      }
+      await locators.import.locationModal().waitFor({ state: 'visible', timeout: 5000 });
       await expect(locators.modal.title('Import Collection')).toBeVisible();
       await expect(locators.import.locationModal().getByText('My Collection')).toBeVisible();
-      await locators.import.browseLink(locators.import.locationModal()).click();
       const locationModal = locators.import.locationModal();
+      await locators.import.browseLink(locationModal).click();
       await locators.import.importButton(locationModal).click();
       await locationModal.waitFor({ state: 'hidden' });
     });
