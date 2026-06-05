@@ -75,8 +75,7 @@ function parseQueryParams(query: string, { decode = false }: ExtractQueryParamsO
   }
 
   try {
-    const [queryString, ...hashParts] = query.split('#');
-    const pairs = queryString.split('&');
+    const pairs = query.split('&');
 
     const params = pairs.map((pair) => {
       const [name, ...valueParts] = pair.split('=');
@@ -108,8 +107,7 @@ const encodeUrl = (url: string): string => {
     return url;
   }
 
-  const [urlWithoutHash, ...hashFragments] = url.split('#');
-  const [basePath, ...queryString] = urlWithoutHash.split('?');
+  const [basePath, ...queryString] = url.split('?');
 
   // If no query parameters exist, return original URL
   if (!queryString || queryString.length === 0) {
@@ -121,7 +119,7 @@ const encodeUrl = (url: string): string => {
   const encodedQueryString = buildQueryString(queryParams, { encode: true });
 
   // Reconstruct URL with encoded query parameters
-  const encodedUrl = `${basePath}?${encodedQueryString}${hashFragments.length > 0 ? `#${hashFragments.join('#')}` : ''}`;
+  const encodedUrl = `${basePath}?${encodedQueryString}`;
 
   return encodedUrl;
 };

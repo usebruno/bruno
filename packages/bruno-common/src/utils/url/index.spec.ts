@@ -76,15 +76,27 @@ describe('encodeUrl', () => {
   });
 
   describe('hash fragment handling', () => {
-    it('should preserve hash fragments with encoded query parameters', () => {
-      const url = 'https://example.com/api?name=john doe#section1';
-      const expected = 'https://example.com/api?name=john%20doe#section1';
+    it('should encode hashes in query parameter values', () => {
+      const url = 'https://example.com/api?hashtagParam=test#abc';
+      const expected = 'https://example.com/api?hashtagParam=test%23abc';
       expect(encodeUrl(url)).toBe(expected);
     });
 
-    it('should preserve hash fragments with pipe operator in query', () => {
+    it('should keep encoding query parameters after a hash character', () => {
+      const url = 'https://example.com/api?test={"key":"|#value|"}&page=$1';
+      const expected = 'https://example.com/api?test=%7B%22key%22%3A%22%7C%23value%7C%22%7D&page=%241';
+      expect(encodeUrl(url)).toBe(expected);
+    });
+
+    it('should encode hash-like query suffixes with encoded query parameters', () => {
+      const url = 'https://example.com/api?name=john doe#section1';
+      const expected = 'https://example.com/api?name=john%20doe%23section1';
+      expect(encodeUrl(url)).toBe(expected);
+    });
+
+    it('should encode hash-like query suffixes with pipe operator in query', () => {
       const url = 'https://example.com/api?filter=status|active#results';
-      const expected = 'https://example.com/api?filter=status%7Cactive#results';
+      const expected = 'https://example.com/api?filter=status%7Cactive%23results';
       expect(encodeUrl(url)).toBe(expected);
     });
   });
@@ -105,7 +117,7 @@ describe('encodeUrl', () => {
 
     it('should handle complex query parameters with multiple special characters', () => {
       const url = 'https://example.com/api?search=hello world!@#$%^&*()&filter=active&sort=name asc';
-      const expected = 'https://example.com/api?search=hello%20world!%40#$%^&*()&filter=active&sort=name asc';
+      const expected = 'https://example.com/api?search=hello%20world!%40%23%24%25%5E&*()&filter=active&sort=name%20asc';
       expect(encodeUrl(url)).toBe(expected);
     });
 
