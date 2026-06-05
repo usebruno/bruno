@@ -1,5 +1,5 @@
 const path = require('path');
-const { marshallToVm } = require('../../utils');
+const { marshallToVm, evalCodeAndDispose } = require('../../utils');
 
 const fns = ['resolve'];
 
@@ -13,7 +13,7 @@ const addPathShimToContext = async (vm) => {
     fnHandle.dispose();
   });
 
-  vm.evalCode(
+  evalCodeAndDispose(vm,
     `
         globalThis.path = {};
         ${fns?.map((fn, idx) => `globalThis.path.${fn} = __bruno__path__${fn}`).join('\n')}

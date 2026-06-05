@@ -1,5 +1,5 @@
 const { nanoid } = require('nanoid');
-const { marshallToVm } = require('../../utils');
+const { marshallToVm, evalCodeAndDispose } = require('../../utils');
 
 const addNanoidShimToContext = async (vm) => {
   let _nanoid = vm.newFunction('nanoid', function () {
@@ -9,7 +9,7 @@ const addNanoidShimToContext = async (vm) => {
   vm.setProp(vm.global, '__bruno__nanoid', _nanoid);
   _nanoid.dispose();
 
-  vm.evalCode(
+  evalCodeAndDispose(vm,
     `
       globalThis.nanoid = {};
       globalThis.nanoid.nanoid = globalThis.__bruno__nanoid;

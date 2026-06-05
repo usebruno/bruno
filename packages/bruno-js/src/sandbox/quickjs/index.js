@@ -57,8 +57,9 @@ const executeQuickJsVm = ({ script: externalScript, context: externalContext, sc
     externalScript = removeQuotes(externalScript);
   }
 
+  let vm;
   try {
-    const vm = QuickJSModule.newContext();
+    vm = QuickJSModule.newContext();
     const { bru, req, res, ...variables } = externalContext;
 
     bru && addBruShimToContext(vm, bru);
@@ -66,7 +67,9 @@ const executeQuickJsVm = ({ script: externalScript, context: externalContext, sc
     res && addBrunoResponseShimToContext(vm, res);
 
     Object.entries(variables)?.forEach(([key, value]) => {
-      vm.setProp(vm.global, key, marshallToVm(value, vm));
+      const handle = marshallToVm(value, vm);
+      vm.setProp(vm.global, key, handle);
+      handle.dispose();
     });
 
     const templateLiteralText = `\`${externalScript}\``;
@@ -86,6 +89,10 @@ const executeQuickJsVm = ({ script: externalScript, context: externalContext, sc
     }
   } catch (error) {
     console.error('Error executing the script!', error);
+  } finally {
+    // QuickJS contexts hold WASM (native) memory that V8's GC cannot reclaim.
+    // The context must be disposed explicitly or RSS grows linearly per execution.
+    vm?.dispose();
   }
 };
 
@@ -95,21 +102,25 @@ const executeQuickJsVmAsync = async ({ script: externalScript, context: external
   }
   externalScript = externalScript?.trim();
 
+  let vm;
   try {
     const module = await loader();
-    const vm = module.newContext();
+    vm = module.newContext();
 
     // add crypto utilities required by the crypto-js library in bundledCode
     await addCryptoUtilsShimToContext(vm);
 
     const bundledCode = getBundledCode?.toString() || '';
 
-    vm.evalCode(
+    const setupResult = vm.evalCode(
       `
         (${bundledCode})()
         ${getRequireCode()}
       `
     );
+    // Dispose the setup eval result handle; leaving it alive keeps the context
+    // referenced and blocks vm.dispose() (memory leak root cause).
+    (setupResult.error || setupResult.value)?.dispose();
 
     const { bru, req, res, test, __brunoTestResults, console: consoleFn } = externalContext;
 
@@ -132,11 +143,14 @@ const executeQuickJsVmAsync = async ({ script: externalScript, context: external
     promiseHandle.dispose();
     const resolvedHandle = vm.unwrapResult(resolvedResult);
     resolvedHandle.dispose();
-    // vm.dispose();
     return;
   } catch (error) {
     error.__isQuickJS = true;
     throw error;
+  } finally {
+    // QuickJS contexts hold WASM (native) memory that V8's GC cannot reclaim.
+    // The context must be disposed explicitly or RSS grows linearly per execution.
+    vm?.dispose();
   }
 };
 

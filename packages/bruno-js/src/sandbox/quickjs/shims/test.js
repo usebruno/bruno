@@ -1,4 +1,4 @@
-const { marshallToVm } = require('../utils');
+const { marshallToVm, evalCodeAndDispose } = require('../utils');
 
 const addBruShimToContext = (vm, __brunoTestResults) => {
   let addResult = vm.newFunction('addResult', function (v) {
@@ -13,7 +13,7 @@ const addBruShimToContext = (vm, __brunoTestResults) => {
   vm.setProp(vm.global, '__bruno__getResults', getResults);
   getResults.dispose();
 
-  vm.evalCode(
+  evalCodeAndDispose(vm,
     `
       globalThis.expect = require('chai').expect;
       globalThis.assert = require('chai').assert;
@@ -62,7 +62,7 @@ const addBruShimToContext = (vm, __brunoTestResults) => {
   // Register custom chai assertion for isJson (expect(...).to.be.json)
   // The bundled chai only exposes { expect, assert } — no Assertion class.
   // Access the prototype through an expect() instance instead.
-  vm.evalCode(
+  evalCodeAndDispose(vm,
     `
       (function() {
         var proto = Object.getPrototypeOf(expect(null));
@@ -80,7 +80,7 @@ const addBruShimToContext = (vm, __brunoTestResults) => {
     `
   );
   // Register custom chai assertion for jsonSchema (expect(...).to.have.jsonSchema(schema, options))
-  vm.evalCode(
+  evalCodeAndDispose(vm,
     `
       (function() {
         var Ajv = require('ajv');
@@ -129,7 +129,7 @@ const addBruShimToContext = (vm, __brunoTestResults) => {
     `
   );
   // Register custom chai assertion for jsonBody (Postman parity)
-  vm.evalCode(
+  evalCodeAndDispose(vm,
     `
       (function() {
         var proto = Object.getPrototypeOf(expect(null));

@@ -1,5 +1,5 @@
 const jwt = require('jsonwebtoken');
-const { marshallToVm, invokeFunction } = require('../../utils');
+const { marshallToVm, invokeFunction, evalCodeAndDispose } = require('../../utils');
 
 const addJwtShimToContext = async (vm) => {
   // --- sign ---
@@ -166,7 +166,7 @@ const addJwtShimToContext = async (vm) => {
   vm.setProp(vm.global, '__bruno__jwt__decode', _jwtDecode);
   _jwtDecode.dispose();
 
-  vm.evalCode(`
+  evalCodeAndDispose(vm, `
     globalThis.jwt = {};
     globalThis.jwt.sign = globalThis.__bruno__jwt__sign;
     globalThis.jwt.verify = globalThis.__bruno__jwt__verify;

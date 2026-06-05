@@ -1,5 +1,5 @@
 const uuid = require('uuid');
-const { marshallToVm } = require('../../utils');
+const { marshallToVm, evalCodeAndDispose } = require('../../utils');
 
 const fns = ['version', 'parse', 'stringify', 'v1', 'v1ToV6', 'v3', 'v4', 'v5', 'v6', 'v6ToV1', 'v7', 'validate'];
 
@@ -13,7 +13,7 @@ const addUuidShimToContext = async (vm) => {
     fnHandle.dispose();
   });
 
-  vm.evalCode(
+  evalCodeAndDispose(vm,
     `
         globalThis.uuid = {};
         ${['version', 'parse', 'stringify', 'v1', 'v1ToV6', 'v3', 'v4', 'v5', 'v6', 'v6ToV1', 'v7', 'validate']

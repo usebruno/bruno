@@ -15,13 +15,22 @@ const marshallToVm = (value, vm) => {
     if (Array.isArray(value)) {
       const arr = vm.newArray();
       for (let i = 0; i < value.length; i++) {
-        vm.setProp(arr, i, marshallToVm(value[i], vm));
+        // Dispose each child handle after attaching it. setProp does not consume
+        // the handle, so leaving it alive keeps the underlying QuickJS object
+        // referenced and prevents the context from being disposed later (the
+        // root cause of the runner memory leak). Disposing static handles
+        // (undefined/null/true/false) is a safe no-op.
+        const child = marshallToVm(value[i], vm);
+        vm.setProp(arr, i, child);
+        child.dispose();
       }
       return arr;
     } else {
       const obj = vm.newObject();
       for (const key in value) {
-        vm.setProp(obj, key, marshallToVm(value[key], vm));
+        const child = marshallToVm(value[key], vm);
+        vm.setProp(obj, key, child);
+        child.dispose();
       }
       return obj;
     }
@@ -77,7 +86,25 @@ async function invokeFunction(vm, quickFn, args = []) {
     : Promise.resolve(value);
 }
 
+/**
+ * Evaluates setup/wiring code inside the VM and disposes the result handle.
+ *
+ * Shim and library setup code does not use the evaluation result, but the
+ * handle returned by `vm.evalCode` must still be disposed. Leaving it alive
+ * keeps the underlying QuickJS object referenced, which prevents the context
+ * from being disposed and leaks WASM memory on every script execution.
+ *
+ * @param {Object} vm - QuickJS VM/context instance
+ * @param {string} code - Code to evaluate
+ * @param {string} [filename] - Optional filename for stack traces
+ */
+const evalCodeAndDispose = (vm, code, filename) => {
+  const result = vm.evalCode(code, filename);
+  (result.error || result.value)?.dispose();
+};
+
 module.exports = {
   marshallToVm,
-  invokeFunction
+  invokeFunction,
+  evalCodeAndDispose
 };

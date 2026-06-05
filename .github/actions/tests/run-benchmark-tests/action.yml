@@ -20,6 +20,14 @@ runs:
       shell: bash
       run: npm run test:benchmark
 
+    # Runner memory benchmark — deterministic guard against the QuickJS sandbox
+    # leak (memory growing per request, see BRU memory regression). It drives the
+    # real bruno-js script/assertion paths and self-asserts hard thresholds on
+    # WASM memory growth. No web server required, runs on every OS.
+    - name: Run Runner Memory Benchmark
+      shell: bash
+      run: npm run test:benchmark:memory
+
     - name: Update Baseline
       if: inputs.update-baseline == 'true'
       shell: bash

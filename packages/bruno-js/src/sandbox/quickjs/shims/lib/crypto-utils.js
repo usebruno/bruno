@@ -1,5 +1,5 @@
 const crypto = require('node:crypto');
-const { marshallToVm } = require('../../utils');
+const { marshallToVm, evalCodeAndDispose } = require('../../utils');
 const { serializeTypedArray, deserializeTypedArray } = require('./utils');
 
 /**
@@ -75,7 +75,7 @@ const addCryptoUtilsShimToContext = async (vm) => {
   randomBytesHandle.dispose();
   getRandomValuesHandle.dispose();
 
-  vm.evalCode(`
+  evalCodeAndDispose(vm, `
     // Helper function for typed array serialization
     ${serializeTypedArray.toString()}
     

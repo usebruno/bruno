@@ -513,10 +513,11 @@ const addBruShimToContext = (vm, bru) => {
   bruCookiesObject.dispose();
 
   vm.setProp(bruObject, 'runner', bruRunnerObject);
+  bruRunnerObject.dispose();
   vm.setProp(vm.global, 'bru', bruObject);
   bruObject.dispose();
 
-  vm.evalCode(`
+  const bruEvalResult = vm.evalCode(`
     // sendRequest with callback: normalize error.status (axios uses error.response.status) so
     // tests like expect(error.status).to.eql(404) pass in safe sandbox; return response after
     // success callback for consistent promise resolution.
@@ -583,6 +584,7 @@ const addBruShimToContext = (vm, bru) => {
       };
     };
   `);
+  (bruEvalResult.error || bruEvalResult.value)?.dispose();
 };
 
 module.exports = addBruShimToContext;

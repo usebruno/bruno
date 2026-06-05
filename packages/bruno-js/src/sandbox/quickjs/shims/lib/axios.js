@@ -1,6 +1,6 @@
 const axios = require('axios');
 const { cleanJson } = require('../../../../utils');
-const { marshallToVm } = require('../../utils');
+const { marshallToVm, evalCodeAndDispose } = require('../../utils');
 
 const methods = ['get', 'post', 'put', 'patch', 'delete'];
 
@@ -63,7 +63,7 @@ const addAxiosShimToContext = async (vm) => {
   });
   axiosHandle.consume((handle) => vm.setProp(vm.global, `__bruno__axios`, handle));
 
-  vm.evalCode(
+  evalCodeAndDispose(vm,
     `
         globalThis.axios = __bruno__axios;
         ${methods
