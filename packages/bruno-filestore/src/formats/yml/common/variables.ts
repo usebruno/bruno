@@ -2,12 +2,12 @@ import { Variable, VariableTypedValue } from '@opencollection/types/common/varia
 import { FolderRequest as BrunoFolderRequest } from '@usebruno/schema-types/collection/folder';
 import { Variable as BrunoVariable, Variables as BrunoVariables } from '@usebruno/schema-types/common/variables';
 import { uuid, ensureString } from '../../../utils';
-import { valueToString } from '@usebruno/common/utils';
 import {
   isTypedValue,
   hasTypedMetadata,
   toOpenCollectionTypedValue,
-  fromOpenCollectionTypedValue
+  fromOpenCollectionTypedValue,
+  serializeVariableValue
 } from './datatype';
 
 export const isTypedValue = (value: unknown): value is VariableTypedValue => {
@@ -36,7 +36,7 @@ export const toOpenCollectionVariables = (variables: BrunoFolderRequest['vars'] 
   }
 
   const ocVariables: Variable[] = reqVarsArray.map((v: BrunoVariable): Variable => {
-    const valueStr = valueToString(v.value);
+    const valueStr = serializeVariableValue(v.value);
     const variable: Variable = {
       name: v.name || '',
       value: hasTypedMetadata(v) ? toOpenCollectionTypedValue(v, valueStr) : valueStr

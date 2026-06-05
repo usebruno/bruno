@@ -26,7 +26,7 @@ describe('toOpenCollectionVariables', () => {
     expect(out).toEqual([
       { name: 'port', value: { type: 'number', data: '3000' } },
       { name: 'flag', value: { type: 'boolean', data: 'true' } },
-      { name: 'config', value: { type: 'object', data: '{"a":1}' } }
+      { name: 'config', value: { type: 'object', data: '{\n  "a": 1\n}' } }
     ]);
   });
 
@@ -92,6 +92,21 @@ describe('toBrunoVariables', () => {
     expect(req![0]).toMatchObject({ name: 'port', value: 3000, datatype: 'number' });
     expect(req![1]).toMatchObject({ name: 'flag', value: true, datatype: 'boolean' });
     expect(req![2]).toMatchObject({ name: 'config', value: { a: 1 }, datatype: 'object' });
+  });
+
+  it('falls back to the raw string when typed data fails to coerce', () => {
+    const { req } = toBrunoVariables([
+      { name: 'port', value: { type: 'number', data: 'not-a-number' } } as any,
+      { name: 'flag', value: { type: 'boolean', data: 'not-a-boolean' } } as any,
+      { name: 'config', value: { type: 'object', data: 'not-a-object' } } as any
+    ]);
+
+    expect(req![0]).toMatchObject({ name: 'port', value: 'not-a-number', datatype: 'number' });
+    expect(typeof req![0].value).toBe('string');
+    expect(req![1]).toMatchObject({ name: 'flag', value: 'not-a-boolean', datatype: 'boolean' });
+    expect(typeof req![1].value).toBe('string');
+    expect(req![2]).toMatchObject({ name: 'config', value: 'not-a-object', datatype: 'object' });
+    expect(typeof req![2].value).toBe('string');
   });
 
   it('respects the disabled flag', () => {

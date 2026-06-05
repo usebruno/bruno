@@ -8,9 +8,9 @@ import {
   isTypedValue,
   hasTypedMetadata,
   toOpenCollectionTypedValue,
-  fromOpenCollectionTypedValue
+  fromOpenCollectionTypedValue,
+  serializeVariableValue
 } from './datatype';
-import { valueToString } from '@usebruno/common/utils';
 
 interface BrunoVars {
   req: BrunoVariables;
@@ -63,7 +63,7 @@ export const toOpenCollectionVariables = (vars: BrunoVars | { req?: BrunoVariabl
   }
 
   const ocVariables: Variable[] = reqVarsArray.map((v: BrunoVariable): Variable => {
-    const valueStr = valueToString(v.value);
+    const valueStr = serializeVariableValue(v.value);
     const variable: Variable = {
       name: v.name || '',
       value: hasTypedMetadata(v) ? toOpenCollectionTypedValue(v, valueStr) : valueStr

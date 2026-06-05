@@ -115,6 +115,10 @@ const extractTypedAnnotations = (rawAnnotations, result) => {
   result.value = parseValueByDatatype(result.value, result.datatype);
 };
 
+const serializeVar = (item, prefix = '') => {
+  return `${serializeAnnotations(buildAnnotationsFromVariable(item))}${prefix}${item.name}: ${getValueString(item.value)}`;
+};
+
 module.exports = {
   safeParseJson,
   indentString,
@@ -124,5 +128,6 @@ module.exports = {
   getValueUrl,
   serializeAnnotations,
   extractTypedAnnotations,
-  buildAnnotationsFromVariable
+  buildAnnotationsFromVariable,
+  serializeVar
 };

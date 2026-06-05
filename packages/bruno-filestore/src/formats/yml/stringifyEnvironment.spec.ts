@@ -24,7 +24,7 @@ describe('toOpenCollectionEnvironmentVariables', () => {
     expect(out).toEqual([
       { name: 'port', value: { type: 'number', data: '300' } },
       { name: 'flag', value: { type: 'boolean', data: 'true' } },
-      { name: 'config', value: { type: 'object', data: '{"a":1}' } }
+      { name: 'config', value: { type: 'object', data: '{\n  "a": 1\n}' } }
     ]);
   });
 
