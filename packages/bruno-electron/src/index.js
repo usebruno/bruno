@@ -463,25 +463,25 @@ app.on('ready', async () => {
     });
   });
 
-// register all ipc handlers
-registerNetworkIpc(mainWindow);
-registerGlobalEnvironmentsIpc(mainWindow, globalEnvironmentsManager);
-registerCollectionsIpc(mainWindow, collectionWatcher);
-registerPreferencesIpc(mainWindow, collectionWatcher);
-registerSnapshotIpc();
-registerWorkspaceIpc(mainWindow, workspaceWatcher);
-registerApiSpecIpc(mainWindow, apiSpecWatcher);
-registerNotificationsIpc(mainWindow, collectionWatcher);
-registerFilesystemIpc(mainWindow);
-registerSystemMonitorIpc(mainWindow, systemMonitor);
-registerGitIpc(mainWindow);
-registerOpenAPISyncIpc(mainWindow);
-registerAiIpc(mainWindow);
+  // register all ipc handlers
+  registerNetworkIpc(mainWindow);
+  registerGlobalEnvironmentsIpc(mainWindow, globalEnvironmentsManager);
+  registerCollectionsIpc(mainWindow, collectionWatcher);
+  registerPreferencesIpc(mainWindow, collectionWatcher);
+  registerSnapshotIpc();
+  registerWorkspaceIpc(mainWindow, workspaceWatcher);
+  registerApiSpecIpc(mainWindow, apiSpecWatcher);
+  registerNotificationsIpc(mainWindow, collectionWatcher);
+  registerFilesystemIpc(mainWindow);
+  registerSystemMonitorIpc(mainWindow, systemMonitor);
+  registerGitIpc(mainWindow);
+  registerOpenAPISyncIpc(mainWindow);
+  registerAiIpc(mainWindow);
 
-// Internal delegator
-ipcMain.handle('main:cache-clear', async () => {
-  ipcMain.emit('internal:snapshot:reset');
-});
+  // Internal delegator
+  ipcMain.handle('main:cache-clear', async () => {
+    ipcMain.emit('internal:snapshot:reset');
+  });
 });
 
 // Quit the app once all windows are closed.
@@ -495,7 +495,6 @@ app.on('before-quit', (event) => {
   if (quitInProgress) return;
   quitInProgress = true;
   event.preventDefault();
-
 
   (async () => {
     try {
