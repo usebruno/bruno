@@ -96,10 +96,11 @@ for (const dep of Object.keys(pkg.dependencies || {})) {
   }
 }
 
-pkg.overrides = {};
+const tarballOverrides = {};
 for (const [name, tarball] of Object.entries(tarballMap)) {
-  pkg.overrides[name] = `file:./tarballs/${tarball}`;
+  tarballOverrides[name] = `file:./tarballs/${tarball}`;
 }
+pkg.overrides = { ...(rootPkg.overrides || {}), ...(pkg.overrides || {}), ...tarballOverrides };
 
 pkg.bundledDependencies = Object.keys(pkg.dependencies || {});
 pkg.files = [...(pkg.files || []), 'tarballs', 'node_modules'];
