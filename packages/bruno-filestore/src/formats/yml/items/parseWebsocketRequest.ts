@@ -18,7 +18,7 @@ const parseWebsocketRequest = (ocRequest: WebSocketRequest): BrunoItem => {
     auth: toBrunoAuth(websocket?.auth),
     body: {
       mode: 'ws',
-      ws: []
+      ws: [{ name: 'message 1', type: 'text', content: '{}' }]
     },
     script: {
       req: null,
