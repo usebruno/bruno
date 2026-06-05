@@ -67,7 +67,7 @@ test.describe('Presets status dot in collection settings', () => {
     // request URL as "having presets". Back at the defaults (HTTP selected, empty URL),
     // hasPresets is false, so the dot is hidden again.
     await test.step('Verify Presets dot is hidden after returning to defaults', async () => {
-      await expect(presetsTab.getByTestId('status-dot')).toBeHidden();
+      await expect(presetsTab.getByTestId('status-dot')).not.toBeVisible({ timeout: 2000 });
     });
   });
 });
