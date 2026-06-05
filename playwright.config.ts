@@ -25,8 +25,17 @@ export default defineConfig({
         'ssl/**', // custom CA certificate tests require separate server setup and certificate generation
         'auth/**', // auth tests have their own project
         'benchmarks/**',
-        'proxy/system-pac/**' // shares ports with proxy/pac — runs in its own project after default
+        'proxy/system-pac/**', // shares ports with proxy/pac — runs in its own project after default
+        'variable-datatypes/**' // runs under the variable-datatypes project with full traces + screenshots
       ]
+    },
+    {
+      name: 'variable-datatypes',
+      testDir: './tests/variable-datatypes',
+      use: {
+        trace: 'on',
+        screenshot: 'only-on-failure'
+      }
     },
     {
       name: 'auth',
