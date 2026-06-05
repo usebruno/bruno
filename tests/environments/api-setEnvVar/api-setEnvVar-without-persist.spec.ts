@@ -26,8 +26,8 @@ test.describe.serial('bru.setEnvVar(name, value)', () => {
     const envTab = page.locator('.request-tab').filter({ hasText: 'Environments' });
     await expect(envTab).toBeVisible();
 
-    await expect(page.getByRole('row', { name: 'token' }).getByRole('cell').nth(1)).toBeVisible();
-    await expect(page.getByRole('row', { name: 'secret' }).getByRole('cell').nth(2)).toBeVisible();
+    await expect(page.getByTestId('env-var-row-token').getByRole('cell').nth(1)).toBeVisible();
+    await expect(page.getByTestId('env-var-row-secret').getByRole('cell').nth(2)).toBeVisible();
     await envTab.hover();
     await envTab.getByTestId('request-tab-close-icon').click({ force: true });
 

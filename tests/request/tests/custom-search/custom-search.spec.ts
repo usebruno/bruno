@@ -12,11 +12,11 @@ test.describe('Custom Search Functionality in Scripts Tab', () => {
     await selectRequestPaneTab(page, 'Script');
 
     // Pre Request tab should be active by default
-    await expect(page.getByRole('button', { name: 'Pre Request' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Post Response' })).toBeVisible();
+    await expect(page.getByTestId('request-pane').getByRole('button', { name: 'Pre Request' })).toBeVisible();
+    await expect(page.getByTestId('request-pane').getByRole('button', { name: 'Post Response' })).toBeVisible();
 
     // Click on Pre Request tab to ensure it's active
-    await page.getByRole('button', { name: 'Pre Request' }).click();
+    await page.getByTestId('request-pane').getByRole('button', { name: 'Pre Request' }).click();
 
     const preRequestEditor = page.getByTestId('pre-request-script-editor').locator('.CodeMirror').first();
     const preTextarea = preRequestEditor.locator('textarea[tabindex="0"]');
@@ -72,7 +72,7 @@ test.describe('Custom Search Functionality in Scripts Tab', () => {
     await selectRequestPaneTab(page, 'Script');
 
     // Test Pre Request tab
-    await page.getByRole('button', { name: 'Pre Request' }).click();
+    await page.getByTestId('request-pane').getByRole('button', { name: 'Pre Request' }).click();
 
     const preRequestEditor = page.getByTestId('pre-request-script-editor').locator('.CodeMirror').first();
     const preTextarea = preRequestEditor.locator('textarea[tabindex="0"]');
@@ -85,7 +85,7 @@ test.describe('Custom Search Functionality in Scripts Tab', () => {
     await page.keyboard.press('Escape');
 
     // Switch to Post Response tab
-    await page.getByRole('button', { name: 'Post Response' }).click();
+    await page.getByTestId('request-pane').getByRole('button', { name: 'Post Response' }).click();
 
     const postResponseEditor = page.getByTestId('post-response-script-editor').locator('.CodeMirror').first();
     const postTextarea = postResponseEditor.locator('textarea[tabindex="0"]');
@@ -106,7 +106,7 @@ test.describe('Custom Search Functionality in Scripts Tab', () => {
     await selectRequestPaneTab(page, 'Script');
 
     // Open search in Pre Request editor
-    await page.getByRole('button', { name: 'Pre Request' }).click();
+    await page.getByTestId('request-pane').getByRole('button', { name: 'Pre Request' }).click();
 
     const preRequestEditor = page.getByTestId('pre-request-script-editor').locator('.CodeMirror').first();
     const preTextarea = preRequestEditor.locator('textarea[tabindex="0"]');
@@ -118,7 +118,7 @@ test.describe('Custom Search Functionality in Scripts Tab', () => {
     await expect(page.getByTestId('pre-request-script-editor').locator('.searchbar-result-count')).toContainText('1 / 1');
 
     // Switch to Post Response tab while search is open
-    await page.getByRole('button', { name: 'Post Response' }).click();
+    await page.getByTestId('request-pane').getByRole('button', { name: 'Post Response' }).click();
 
     // Open search in Post Response editor
     const postResponseEditor = page.getByTestId('post-response-script-editor').locator('.CodeMirror').first();
@@ -131,7 +131,7 @@ test.describe('Custom Search Functionality in Scripts Tab', () => {
     await expect(page.getByTestId('post-response-script-editor').locator('.searchbar-result-count')).toContainText('1 / 1');
 
     // Switch back to Pre Request tab
-    await page.getByRole('button', { name: 'Pre Request' }).click();
+    await page.getByTestId('request-pane').getByRole('button', { name: 'Pre Request' }).click();
 
     // Search state should be maintained in Pre Request editor
     await expect(page.getByTestId('pre-request-script-editor').locator('.bruno-search-bar')).toBeVisible();

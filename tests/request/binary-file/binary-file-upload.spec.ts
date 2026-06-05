@@ -117,7 +117,7 @@ test.describe.serial('File / Binary body upload', () => {
     await page.locator('.dropdown-item').filter({ hasText: 'File / Binary' }).click();
 
     await test.step('Add file row and pick the file', async () => {
-      await page.getByRole('button', { name: /Add File/i }).click();
+      await page.getByTestId('multipart-file-upload').click();
       await page.locator('.file-picker-btn').first().click();
       await expect(page.locator('.file-picker-selected').first()).toBeVisible({ timeout: 5000 });
     });

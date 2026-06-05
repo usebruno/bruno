@@ -40,7 +40,7 @@ test.describe('Draft values are used in requests', () => {
     await collection.locator('.collection-actions .icon').click();
     await page.locator('.dropdown-item').filter({ hasText: 'New Folder' }).click();
     await page.locator('#folder-name').fill('Test Folder');
-    await page.getByRole('button', { name: 'Create', exact: true }).click();
+    await page.locator('.bruno-modal').getByRole('button', { name: 'Create', exact: true }).click();
     await page.locator('.collection-item-name').filter({ hasText: 'Test Folder' }).click();
 
     await expect(page.locator('.collection-item-name').filter({ hasText: 'Test Folder' })).toBeVisible();
@@ -67,7 +67,7 @@ test.describe('Draft values are used in requests', () => {
     await page.getByTestId('request-name').fill('Test Request');
     await page.getByTestId('new-request-url').locator('.CodeMirror').click();
     await page.keyboard.type('https://httpbin.org/headers');
-    await page.getByRole('button', { name: 'Create', exact: true }).click();
+    await page.locator('.bruno-modal').getByRole('button', { name: 'Create', exact: true }).click();
 
     // Send request and verify draft header is included
     // Wait for the request tab to be active
@@ -127,7 +127,7 @@ test.describe('Draft values are used in requests', () => {
     await page.getByTestId('request-name').fill('Test Request');
     await page.getByTestId('new-request-url').locator('.CodeMirror').click();
     await page.keyboard.type('https://testbench-sanity.usebruno.com/ping');
-    await page.getByRole('button', { name: 'Create', exact: true }).click();
+    await page.locator('.bruno-modal').getByRole('button', { name: 'Create', exact: true }).click();
 
     // Verify the request is created
     await expect(page.locator('.collection-item-name').filter({ hasText: 'Test Request' })).toBeVisible();

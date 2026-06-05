@@ -25,7 +25,7 @@ test.describe('Prompt Variables Interpolation', () => {
       // Send the request
       await page.getByTestId('send-arrow-icon').click();
 
-      promptVariablesModal = page.getByRole('dialog').filter({ has: page.locator('.bruno-modal-header-title').getByText('Input Required') });
+      promptVariablesModal = page.getByTestId('import-collection-modal').filter({ has: page.locator('.bruno-modal-header-title').getByText('Input Required') });
       await promptVariablesModal.waitFor({ state: 'visible' });
     });
 
@@ -96,7 +96,7 @@ test.describe('Prompt Variables Interpolation', () => {
       // Send the request
       await page.getByTestId('send-arrow-icon').click();
 
-      promptVariablesModal = page.getByRole('dialog').filter({ has: page.locator('.bruno-modal-header-title').getByText('Input Required') });
+      promptVariablesModal = page.getByTestId('import-collection-modal').filter({ has: page.locator('.bruno-modal-header-title').getByText('Input Required') });
       await promptVariablesModal.waitFor({ state: 'visible' });
     });
 

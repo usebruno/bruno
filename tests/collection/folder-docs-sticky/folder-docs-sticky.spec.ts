@@ -38,7 +38,7 @@ test.describe('Folder docs sticky edit/preview button', () => {
     await page.locator('.CodeMirror textarea').fill(longContent);
 
     // Save the docs
-    await page.getByRole('button', { name: 'Save' }).click();
+    await page.locator('[role="tabpanel"]').getByRole('button', { name: 'Save' }).click();
 
     // Switch to preview mode to see rendered markdown
     await editToggle.click();

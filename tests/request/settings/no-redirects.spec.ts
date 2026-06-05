@@ -11,7 +11,7 @@ test.describe('No Redirects Settings Tests', () => {
     await page.locator('#sidebar-collection-name').getByText('settings-test').click();
 
     // Navigate to the no-redirects request
-    await page.getByRole('complementary').getByText('no-redirects').click();
+    await page.locator('aside, [role="complementary"]').first().getByText('no-redirects').click();
 
     // Go to Settings tab
     await selectRequestPaneTab(page, 'Settings');

@@ -11,9 +11,10 @@ export const buildRunnerLocators = (page: Page) => ({
   passedButton: () => page.locator('button').filter({ hasText: /^Passed/ }),
   failedButton: () => page.locator('button').filter({ hasText: /^Failed/ }),
   skippedButton: () => page.locator('button').filter({ hasText: /^Skipped/ }),
-  resetButton: () => page.getByRole('button', { name: 'Reset' }),
+  resetButton: () => page.locator('.filter-bar').locator('..').getByRole('button', { name: 'Reset' })
+    .or(page.getByTestId('runner-config-panel').locator('..').getByRole('button', { name: 'Reset' })),
   runCollectionButton: () => page.getByTestId('runner-run-button'),
-  runAgainButton: () => page.getByRole('button', { name: 'Run Again' }),
+  runAgainButton: () => page.locator('.filter-bar').locator('..').getByRole('button', { name: 'Run Again' }),
   configPanel: () => page.getByTestId('runner-config-panel'),
   configCounter: () => page.getByTestId('runner-config-counter'),
   selectAllButton: () => page.getByTestId('runner-select-all'),
@@ -164,9 +165,8 @@ export const runFolder = async (page: Page, collectionName: string, folderPath: 
     await runMenuItem.click();
 
     // In the RunCollectionItem modal, click "Recursive Run"
-    const recursiveRunButton = page.getByRole('button', { name: 'Recursive Run' });
-    await recursiveRunButton.waitFor({ state: 'visible', timeout: 5000 });
-    await recursiveRunButton.click();
+    const runnerModal = page.locator('.bruno-modal').filter({ hasText: 'Collection Runner' });
+    await runnerModal.getByRole('button', { name: 'Recursive Run' }).click();
 
     // Wait for the run to complete
     const runnerLocators = buildRunnerLocators(page);

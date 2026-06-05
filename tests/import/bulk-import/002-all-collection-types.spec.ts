@@ -20,7 +20,7 @@ test.describe('All Collection Types Bulk Import', () => {
     await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Import collection' }).click();
 
     // Wait for import collection modal to be ready
-    const importModal = page.getByRole('dialog');
+    const importModal = page.getByTestId('import-collection-modal');
     await importModal.waitFor({ state: 'visible' });
     await expect(importModal.locator('.bruno-modal-header-title')).toContainText('Import Collection');
 
@@ -30,7 +30,7 @@ test.describe('All Collection Types Bulk Import', () => {
     await page.locator('#import-collection-loader').waitFor({ state: 'hidden' });
 
     // Verify that the Bulk Import modal is displayed (no separate settings modal anymore)
-    const bulkImportModal = page.getByRole('dialog');
+    const bulkImportModal = page.getByTestId('import-collection-modal');
     await expect(bulkImportModal.locator('.bruno-modal-header-title')).toContainText('Bulk Import');
 
     // Check that the Collections count shows 4 collections in the Bulk Import modal

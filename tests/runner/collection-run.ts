@@ -1,5 +1,5 @@
 import { test, expect } from '../../playwright';
-import { setSandboxMode, runCollection, validateRunnerResults } from '../utils/page/index';
+import { setSandboxMode, runCollection, validateRunnerResults, buildRunnerLocators } from '../utils/page/index';
 
 test.describe.parallel('Collection Run', () => {
   test('Run bruno-testbench in Developer Mode', async ({ pageWithUserData: page }) => {
@@ -34,8 +34,9 @@ test.describe.parallel('Collection Run', () => {
     await page.getByText('Run', { exact: true }).click();
     // Wait for the runner tab to open
     // If there are existing results, reset first, otherwise wait for Run Collection button
-    const resetButton = page.getByRole('button', { name: 'Reset' });
-    const runCollectionButton = page.getByTestId('runner-run-button');
+    const runnerLocators = buildRunnerLocators(page);
+    const resetButton = runnerLocators.resetButton();
+    const runCollectionButton = runnerLocators.runCollectionButton();
 
     // Check if Reset button is visible (means there are existing results)
     const resetVisible = await resetButton.isVisible().catch(() => false);
@@ -48,7 +49,7 @@ test.describe.parallel('Collection Run', () => {
     // Now wait for and click Run Collection button
     await runCollectionButton.waitFor({ state: 'visible', timeout: 10000 });
     await runCollectionButton.click();
-    await page.getByRole('button', { name: 'Run Again' }).waitFor({ timeout: 2 * 60 * 1000 });
+    await runnerLocators.runAgainButton().waitFor({ timeout: 2 * 60 * 1000 });
 
     // Parse and validate test results from filter buttons
     const allButton = page.locator('button').filter({ hasText: /^All/ });

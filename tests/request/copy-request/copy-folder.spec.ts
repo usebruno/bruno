@@ -15,7 +15,7 @@ test.describe('Copy and Paste Folders', () => {
     await collection.locator('.collection-actions .icon').click();
     await page.locator('.dropdown-item').filter({ hasText: 'New Folder' }).click();
     await page.locator('#folder-name').fill('folder-to-copy');
-    await page.getByRole('button', { name: 'Create' }).click();
+    await page.locator('.bruno-modal').getByRole('button', { name: 'Create', exact: true }).click();
 
     const folder = page.locator('.collection-item-name').filter({ hasText: 'folder-to-copy' });
     await expect(folder).toBeVisible();
@@ -27,7 +27,7 @@ test.describe('Copy and Paste Folders', () => {
     await page.getByPlaceholder('Request Name').fill('request-in-folder');
     await page.locator('#new-request-url .CodeMirror').click();
     await page.locator('textarea').fill('https://echo.usebruno.com/test');
-    await page.getByRole('button', { name: 'Create' }).click();
+    await page.locator('.bruno-modal').getByRole('button', { name: 'Create', exact: true }).click();
 
     await folder.click();
     await expect(page.locator('.collection-item-name').filter({ hasText: 'request-in-folder' })).toBeVisible();
@@ -69,7 +69,7 @@ test.describe('Copy and Paste Folders', () => {
     await collection.locator('.collection-actions .icon').click();
     await page.locator('.dropdown-item').filter({ hasText: 'New Folder' }).click();
     await page.locator('#folder-name').fill('target-folder');
-    await page.getByRole('button', { name: 'Create' }).click();
+    await page.locator('.bruno-modal').getByRole('button', { name: 'Create', exact: true }).click();
 
     const targetFolder = page.locator('.collection-item-name').filter({ hasText: 'target-folder' });
     await expect(targetFolder).toBeVisible();

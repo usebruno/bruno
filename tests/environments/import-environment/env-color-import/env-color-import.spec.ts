@@ -30,7 +30,7 @@ test.describe.serial('Environment Color Import Tests', () => {
       await expect(globalTab).toHaveClass(/active/);
 
       // Click Import button
-      await page.getByRole('button', { name: 'Import', exact: true }).click();
+      await page.locator('.bruno-modal').getByRole('button', { name: 'Import', exact: true }).click();
 
       // Verify import modal opens
       const importModal = page.getByTestId('import-global-environment-modal');

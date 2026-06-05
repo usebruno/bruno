@@ -17,7 +17,7 @@ test.describe('Copy and Paste with Keyboard Shortcuts', () => {
     await page.getByPlaceholder('Request Name').fill('test-request');
     await page.locator('#new-request-url .CodeMirror').click();
     await page.locator('textarea').fill('https://echo.usebruno.com');
-    await page.getByRole('button', { name: 'Create' }).click();
+    await page.locator('.bruno-modal').getByRole('button', { name: 'Create', exact: true }).click();
 
     const requestItem = page.locator('.collection-item-name').filter({ hasText: 'test-request' });
     await expect(requestItem).toBeVisible();
@@ -58,7 +58,7 @@ test.describe('Copy and Paste with Keyboard Shortcuts', () => {
     await collection.locator('.collection-actions .icon').click();
     await page.locator('.dropdown-item').filter({ hasText: 'New Folder' }).click();
     await page.locator('#folder-name').fill('test-folder');
-    await page.getByRole('button', { name: 'Create' }).click();
+    await page.locator('.bruno-modal').getByRole('button', { name: 'Create', exact: true }).click();
 
     const folder = page.locator('.collection-item-name').filter({ hasText: 'test-folder' });
     await expect(folder).toBeVisible();

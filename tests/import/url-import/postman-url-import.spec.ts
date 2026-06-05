@@ -31,7 +31,7 @@ test.describe('Postman URL Import', () => {
 
     // Select a location and import
     await page.locator('#collection-location').fill(await createTmpDir('postman-v21-collection'));
-    await locationModal.getByRole('button', { name: 'Import' }).click();
+    await locationModal.getByTestId('import-collection-location-modal-submit-btn').click();
     await locationModal.waitFor({ state: 'hidden' });
 
     // Verify the collection was imported successfully and configure it

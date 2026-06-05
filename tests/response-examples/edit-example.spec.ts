@@ -21,7 +21,7 @@ test.describe.serial('Edit Response Examples', () => {
       await page.getByTestId('create-example-name-input').clear();
       await page.getByTestId('create-example-name-input').fill('Test Example');
       await page.getByTestId('create-example-description-input').fill('This is a test example');
-      await page.getByRole('button', { name: 'Create Example' }).click();
+      await page.locator('.bruno-modal').filter({ hasText: 'Create Response Example' }).getByTestId('modal-submit-btn').click();
       // Wait for modal to close
       await page.waitForSelector('text=Save Response as Example', { state: 'detached' });
     });
@@ -56,7 +56,7 @@ test.describe.serial('Edit Response Examples', () => {
       await page.getByTestId('create-example-name-input').clear();
       await page.getByTestId('create-example-name-input').fill('Original Example Name');
       await page.getByTestId('create-example-description-input').fill('Original description');
-      await page.getByRole('button', { name: 'Create Example' }).click();
+      await page.locator('.bruno-modal').filter({ hasText: 'Create Response Example' }).getByTestId('modal-submit-btn').click();
       // Wait for modal to close
       await page.waitForSelector('text=Save Response as Example', { state: 'detached' });
       const exampleItem = page.locator('.collection-item-name').getByText('Original Example Name', { exact: true });
@@ -90,7 +90,7 @@ test.describe.serial('Edit Response Examples', () => {
       await page.getByTestId('create-example-name-input').clear();
       await page.getByTestId('create-example-name-input').fill('Description Test Example');
       await page.getByTestId('create-example-description-input').fill('Original description');
-      await page.getByRole('button', { name: 'Create Example' }).click();
+      await page.locator('.bruno-modal').filter({ hasText: 'Create Response Example' }).getByTestId('modal-submit-btn').click();
       // Wait for modal to close
       await page.waitForSelector('text=Save Response as Example', { state: 'detached' });
       const exampleItem = page.locator('.collection-item-name').getByText('Description Test Example', { exact: true });
@@ -124,7 +124,7 @@ test.describe.serial('Edit Response Examples', () => {
       await page.getByTestId('create-example-name-input').clear();
       await page.getByTestId('create-example-name-input').fill('Cancel Test Example');
       await page.getByTestId('create-example-description-input').fill('Original description for cancel test');
-      await page.getByRole('button', { name: 'Create Example' }).click();
+      await page.locator('.bruno-modal').filter({ hasText: 'Create Response Example' }).getByTestId('modal-submit-btn').click();
       // Wait for modal to close
       await page.waitForSelector('text=Save Response as Example', { state: 'detached' });
       const exampleItem = page.locator('.collection-item-name').getByText('Cancel Test Example', { exact: true });
@@ -159,7 +159,7 @@ test.describe.serial('Edit Response Examples', () => {
       await page.getByTestId('create-example-name-input').clear();
       await page.getByTestId('create-example-name-input').fill('Keyboard Shortcut Test Example');
       await page.getByTestId('create-example-description-input').fill('Original description for keyboard test');
-      await page.getByRole('button', { name: 'Create Example' }).click();
+      await page.locator('.bruno-modal').filter({ hasText: 'Create Response Example' }).getByTestId('modal-submit-btn').click();
       // Wait for modal to close
       await page.waitForSelector('text=Save Response as Example', { state: 'detached' });
       const exampleItem = page.locator('.collection-item-name').getByText('Keyboard Shortcut Test Example', { exact: true });

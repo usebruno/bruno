@@ -450,7 +450,7 @@ test.describe('Scroll Position Persistence', () => {
       await test.step('Switch to Body tab and back to Headers', async () => {
         await selectRequestPaneTab(page, 'Body');
         await selectRequestPaneTab(page, 'Headers');
-        const tableRow = page.getByRole('row', { name: 'Name Value' }).getByRole('cell').first();
+        const tableRow = page.getByTestId('request-pane').getByRole('row', { name: 'Name Value' }).getByRole('cell').first();
         await expect(tableRow).toBeVisible({ timeout: 2000 });
       });
 
@@ -1128,7 +1128,7 @@ test.describe('Scroll Position Persistence', () => {
       await test.step('Switch to script tab and back to headers', async () => {
         await locators.paneTabs.collectionSettingsTab('script').click({ timeout: 2000 });
         await locators.paneTabs.collectionSettingsTab('headers').click({ timeout: 2000 });
-        const tableRow = page.getByRole('row', { name: 'Name Value' }).getByRole('cell').first();
+        const tableRow = page.getByTestId('request-pane').getByRole('row', { name: 'Name Value' }).getByRole('cell').first();
         await expect(tableRow).toBeVisible({ timeout: 2000 });
       });
 

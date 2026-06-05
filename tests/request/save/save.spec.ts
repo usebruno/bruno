@@ -18,7 +18,7 @@ const setup = async (page: Page, createTmpDir: (tag?: string | undefined) => Pro
   await page.getByPlaceholder('Request Name').fill('test-request');
   await page.locator('#new-request-url .CodeMirror').click();
   await page.locator('textarea').fill('https://echo.usebruno.com');
-  await page.getByRole('button', { name: 'Create' }).click();
+  await page.locator('.bruno-modal').getByRole('button', { name: 'Create', exact: true }).click();
   await expect(page.locator('.collection-item-name').filter({ hasText: 'test-request' })).toBeVisible();
 };
 

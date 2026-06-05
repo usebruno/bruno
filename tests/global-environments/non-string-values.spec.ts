@@ -18,10 +18,10 @@ test.describe('Global Environment Variables - Non-string Values', () => {
       await page.getByTestId('env-tab-global').click();
 
       // Create a new global environment
-      await page.getByRole('button', { name: 'Create' }).click();
+      await page.locator('.bruno-modal').getByRole('button', { name: 'Create', exact: true }).click();
       await page.locator('#environment-name').click();
       await page.locator('#environment-name').fill('Test Env');
-      await page.getByRole('button', { name: 'Create', exact: true }).click();
+      await page.locator('.bruno-modal').getByRole('button', { name: 'Create', exact: true }).click();
 
       const envTab = page.locator('.request-tab').filter({ hasText: 'Global Environments' });
       await expect(envTab).toBeVisible();
@@ -48,7 +48,7 @@ test.describe('Global Environment Variables - Non-string Values', () => {
     await test.step('Re-open Global Environments to see the seeded variables', async () => {
       await page.getByTestId('environment-selector-trigger').click();
       await page.getByTestId('env-tab-global').click();
-      await page.getByRole('button', { name: 'Configure' }).click();
+      await page.locator('.bruno-modal').getByRole('button', { name: 'Configure' }).click();
 
       const envTab = page.locator('.request-tab').filter({ hasText: 'Global Environments' });
       await expect(envTab).toBeVisible();

@@ -27,7 +27,7 @@ test.describe.serial('Create and Delete Response Examples', () => {
       await page.getByTestId('create-example-name-input').clear();
       await page.getByTestId('create-example-name-input').fill('Test Example from Bookmark');
       await page.getByTestId('create-example-description-input').fill('This is a test example created from response bookmark');
-      await page.getByRole('button', { name: 'Create Example' }).click();
+      await page.locator('.bruno-modal').filter({ hasText: 'Create Response Example' }).getByTestId('modal-submit-btn').click();
       await expect(page.getByTestId('response-example-title')).toHaveText('create-example / Test Example from Bookmark');
     });
   });
@@ -42,18 +42,18 @@ test.describe.serial('Create and Delete Response Examples', () => {
       await page.getByTestId('send-arrow-icon').click();
       await clickResponseAction(page, 'response-bookmark-btn');
 
-      await expect(page.getByRole('button', { name: 'Create Example' })).toBeEnabled();
+      await expect(page.locator('.bruno-modal').filter({ hasText: 'Create Response Example' }).getByTestId('modal-submit-btn')).toBeEnabled();
 
       // Clear the pre-filled name to test validation
       await page.getByTestId('create-example-name-input').clear();
-      await page.getByRole('button', { name: 'Create Example' }).click();
+      await page.locator('.bruno-modal').filter({ hasText: 'Create Response Example' }).getByTestId('modal-submit-btn').click();
       await expect(page.getByTestId('name-error')).toBeVisible();
       await expect(page.getByTestId('name-error')).toHaveText('Example name is required');
 
       await page.getByTestId('create-example-name-input').clear();
       await page.getByTestId('create-example-name-input').fill('New Required Name');
-      await expect(page.getByRole('button', { name: 'Create Example' })).toBeEnabled();
-      await page.getByRole('button', { name: 'Create Example' }).click();
+      await expect(page.locator('.bruno-modal').filter({ hasText: 'Create Response Example' }).getByTestId('modal-submit-btn')).toBeEnabled();
+      await page.locator('.bruno-modal').filter({ hasText: 'Create Response Example' }).getByTestId('modal-submit-btn').click();
 
       // Modal should close and example should be created
       await expect(page.getByText('Save Response as Example')).not.toBeVisible();
@@ -65,7 +65,7 @@ test.describe.serial('Create and Delete Response Examples', () => {
       await page.locator('.collection-item-name').getByText('create-example').click();
       await page.getByTestId('send-arrow-icon').click();
       await clickResponseAction(page, 'response-bookmark-btn');
-      await page.getByRole('button', { name: 'Cancel' }).click();
+      await page.locator('.bruno-modal').getByRole('button', { name: 'Cancel', exact: true }).click();
       await expect(page.getByText('Save Response as Example')).not.toBeVisible();
     });
   });
@@ -82,14 +82,14 @@ test.describe.serial('Create and Delete Response Examples', () => {
 
       await page.getByTestId('create-example-name-input').fill('Test Name');
       await page.getByTestId('create-example-description-input').fill('Test Description');
-      await page.getByRole('button', { name: 'Cancel' }).click();
+      await page.locator('.bruno-modal').getByRole('button', { name: 'Cancel', exact: true }).click();
 
       await clickResponseAction(page, 'response-bookmark-btn');
       // The name field should have the pre-filled default value
       await expect(page.getByTestId('create-example-name-input')).toHaveValue('example');
       // Description should still be empty
       await expect(page.getByTestId('create-example-description-input')).toHaveValue('');
-      await page.getByRole('button', { name: 'Cancel' }).click();
+      await page.locator('.bruno-modal').getByRole('button', { name: 'Cancel', exact: true }).click();
     });
   });
 
@@ -106,7 +106,7 @@ test.describe.serial('Create and Delete Response Examples', () => {
       await page.getByTestId('create-example-name-input').clear();
       await page.getByTestId('create-example-name-input').fill('Sidebar Test Example');
       await page.getByTestId('create-example-description-input').fill('This example should appear in the sidebar');
-      await page.getByRole('button', { name: 'Create Example' }).click();
+      await page.locator('.bruno-modal').filter({ hasText: 'Create Response Example' }).getByTestId('modal-submit-btn').click();
       // Wait for modal to close
       await page.waitForSelector('text=Save Response as Example', { state: 'detached' });
     });

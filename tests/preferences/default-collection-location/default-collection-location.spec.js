@@ -13,7 +13,7 @@ test.describe('Default Location Feature', () => {
     await page.waitForTimeout(500);
 
     // navigate to General tab
-    await page.getByRole('tab', { name: 'General' }).click();
+    await page.locator('.tablist').getByRole('tab', { name: 'General', exact: true }).click();
 
     // verify the default location is pre-filled with the expected path suffix
     const defaultLocationInput = page.locator('.default-location-input');
@@ -28,7 +28,7 @@ test.describe('Default Location Feature', () => {
     await page.waitForTimeout(500);
 
     // navigate to General tab
-    await page.getByRole('tab', { name: 'General' }).click();
+    await page.locator('.tablist').getByRole('tab', { name: 'General', exact: true }).click();
 
     // get the current default location and compute a different valid path
     const defaultLocationInput = page.locator('.default-location-input');
@@ -54,7 +54,7 @@ test.describe('Default Location Feature', () => {
     // reopen preferences and verify persistence
     await page.locator('.preferences-button').click();
     await page.waitForTimeout(500);
-    await page.getByRole('tab', { name: 'General' }).click();
+    await page.locator('.tablist').getByRole('tab', { name: 'General', exact: true }).click();
 
     const savedValue = await page.locator('.default-location-input').inputValue();
     expect(savedValue).toBe(alternateExistingPath);
@@ -111,7 +111,7 @@ test.describe('Default Location Feature', () => {
     await page.waitForTimeout(500);
 
     // navigate to General tab
-    await page.getByRole('tab', { name: 'General' }).click();
+    await page.locator('.tablist').getByRole('tab', { name: 'General', exact: true }).click();
 
     // clear the default location field (readonly input, remove readonly then clear)
     const defaultLocationInput = page.locator('.default-location-input');

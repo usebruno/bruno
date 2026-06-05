@@ -14,7 +14,7 @@ test.describe('GitHub Repository URL Import', () => {
     await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Import collection' }).click();
 
     // Wait for import collection modal to be ready
-    const importModal = page.getByRole('dialog');
+    const importModal = page.getByTestId('import-collection-modal');
     await importModal.waitFor({ state: 'visible' });
     await expect(importModal.locator('.bruno-modal-header-title')).toContainText('Import Collection');
 
@@ -29,10 +29,10 @@ test.describe('GitHub Repository URL Import', () => {
     await page.locator('#import-collection-loader').waitFor({ state: 'hidden' });
 
     // Verify that the Clone Git Repository modal is displayed
-    const cloneModal = page.getByRole('dialog');
+    const cloneModal = page.getByTestId('import-collection-modal');
     await expect(cloneModal.locator('.bruno-modal-header-title')).toContainText('Clone Git Repository');
 
     // Cleanup: close any open modals using Cancel button (avoids form validation)
-    await page.getByRole('button', { name: 'Cancel' }).click();
+    await page.locator('.bruno-modal').getByRole('button', { name: 'Cancel', exact: true }).click();
   });
 });
