@@ -8,6 +8,22 @@ import { encodeUrl as encodeUrlCommon, stripOrigin } from '@usebruno/common/util
 import { parse } from 'url';
 import { stringify } from 'query-string';
 
+const HAR_UNSAFE_URL_CHARS = /[\[\]\\^`{|}]/g;
+const HAR_UNSAFE_URL_CHAR_ENCODING = {
+  '[': '%5B',
+  '\\': '%5C',
+  ']': '%5D',
+  '^': '%5E',
+  '`': '%60',
+  '{': '%7B',
+  '|': '%7C',
+  '}': '%7D'
+};
+
+const sanitizeUrlForHarValidation = (url) => {
+  return url?.replace(HAR_UNSAFE_URL_CHARS, (char) => HAR_UNSAFE_URL_CHAR_ENCODING[char]);
+};
+
 const addCurlAuthFlags = (curlCommand, auth) => {
   if (!auth || !curlCommand) return curlCommand;
 
@@ -68,8 +84,13 @@ const generateSnippet = ({ language, item, collection, shouldInterpolate = false
     }
 
     // Build HAR request
+    const requestForSnippet = {
+      ...request,
+      url: sanitizeUrlForHarValidation(request.url)
+    };
+
     const harRequest = buildHarRequest({
-      request,
+      request: requestForSnippet,
       headers
     });
 

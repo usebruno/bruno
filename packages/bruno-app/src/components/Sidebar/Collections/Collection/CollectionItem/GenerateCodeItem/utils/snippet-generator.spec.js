@@ -996,6 +996,55 @@ describe('generateSnippet – encodeUrl setting', () => {
     expect(result).toContain('time=10:30');
   });
 
+  it('should preserve raw pipe when encodeUrl is false while passing HAR-safe URL to httpsnippet', () => {
+    const rawUrl = 'https://example.com/Patient?identifier=urn:foo:bar|';
+    const item = makeItem(rawUrl, { encodeUrl: false });
+
+    const result = generateSnippet({ language, item, collection: baseCollection, shouldInterpolate: false });
+    const harUtils = require('utils/codegenerator/har');
+    const harCall = harUtils.buildHarRequest.mock.calls[0][0];
+
+    expect(harCall.request.url).toContain('identifier=urn:foo:bar%7C');
+    expect(result).toContain('identifier=urn:foo:bar|');
+    expect(result).not.toBe('Error generating code snippet');
+  });
+
+  it('should encode raw pipe when encodeUrl is true', () => {
+    const rawUrl = 'https://example.com/Patient?identifier=urn:foo:bar|';
+    const item = makeItem(rawUrl, { encodeUrl: true });
+
+    const result = generateSnippet({ language, item, collection: baseCollection, shouldInterpolate: false });
+
+    expect(result).toContain('identifier=urn%3Afoo%3Abar%7C');
+    expect(result).not.toContain('identifier=urn:foo:bar|');
+  });
+
+  it('should pass HAR-safe URLs for strict URI unsafe characters', () => {
+    const rawUrl = 'https://example.com/Patient?identifier=[]\\^`{|}';
+    const item = makeItem(rawUrl, { encodeUrl: false });
+
+    const result = generateSnippet({ language, item, collection: baseCollection, shouldInterpolate: false });
+    const harUtils = require('utils/codegenerator/har');
+    const harCall = harUtils.buildHarRequest.mock.calls[0][0];
+
+    expect(harCall.request.url).toContain('identifier=%5B%5D%5C%5E%60%7B%7C%7D');
+    expect(result).toContain('identifier=[]\\^`{|}');
+    expect(result).not.toBe('Error generating code snippet');
+  });
+
+  it('should not double-encode existing encoded pipe before HAR validation', () => {
+    const rawUrl = 'https://example.com/Patient?identifier=urn:foo:bar%7C';
+    const item = makeItem(rawUrl, { encodeUrl: false });
+
+    const result = generateSnippet({ language, item, collection: baseCollection, shouldInterpolate: false });
+    const harUtils = require('utils/codegenerator/har');
+    const harCall = harUtils.buildHarRequest.mock.calls[0][0];
+
+    expect(harCall.request.url).toContain('identifier=urn:foo:bar%7C');
+    expect(harCall.request.url).not.toContain('%257C');
+    expect(result).toContain('identifier=urn:foo:bar%7C');
+  });
+
   it('should encode URL when encodeUrl is true', () => {
     const rawUrl = 'https://example.com/api?token=abc123==&type=test';
     const item = makeItem(rawUrl, { encodeUrl: true });
