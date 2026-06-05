@@ -13,7 +13,10 @@ import ResponsiveTabs from 'ui/ResponsiveTabs';
 import { updateTabState } from 'providers/ReduxStore/slices/tabs';
 import StyledWrapper from './StyledWrapper';
 
-const TABS = [{ key: 'variables', label: 'Variables' }];
+const TABS = [
+  { key: 'variables', label: 'Variables' },
+  { key: 'secrets', label: 'Secrets' }
+];
 
 const EnvironmentDetails = ({ environment, setIsModified, collection, searchQuery, setSearchQuery, isSearchExpanded, setIsSearchExpanded, debouncedSearchQuery, searchInputRef }) => {
   const dispatch = useDispatch();
@@ -213,7 +216,7 @@ const EnvironmentDetails = ({ environment, setIsModified, collection, searchQuer
           tabs={TABS}
           activeTab={activeTab}
           onTabSelect={setActiveTab}
-          rightContent={activeTab === 'variables' ? (
+          rightContent={(
             <div ref={rightContentRef} className="env-search-container">
               {isSearchExpanded ? (
                 <div className="search-input-wrapper">
@@ -221,7 +224,7 @@ const EnvironmentDetails = ({ environment, setIsModified, collection, searchQuer
                   <input
                     ref={searchInputRef}
                     type="text"
-                    placeholder="Search variables..."
+                    placeholder={activeTab === 'secrets' ? 'Search secrets...' : 'Search variables...'}
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     onBlur={handleSearchBlur}
@@ -243,25 +246,24 @@ const EnvironmentDetails = ({ environment, setIsModified, collection, searchQuer
                   )}
                 </div>
               ) : (
-                <ActionIcon label="Search variables" onClick={handleSearchIconClick}>
+                <ActionIcon label="Search" onClick={handleSearchIconClick}>
                   <IconSearch size={15} strokeWidth={1.5} />
                 </ActionIcon>
               )}
             </div>
-          ) : null}
-          rightContentRef={activeTab === 'variables' ? rightContentRef : null}
+          )}
+          rightContentRef={rightContentRef}
         />
       </div>
 
       <div className="content">
-        {activeTab === 'variables' && (
-          <EnvironmentVariables
-            environment={environment}
-            setIsModified={setIsModified}
-            collection={collection}
-            searchQuery={debouncedSearchQuery}
-          />
-        )}
+        <EnvironmentVariables
+          environment={environment}
+          setIsModified={setIsModified}
+          collection={collection}
+          searchQuery={debouncedSearchQuery}
+          variableType={activeTab}
+        />
       </div>
     </StyledWrapper>
   );

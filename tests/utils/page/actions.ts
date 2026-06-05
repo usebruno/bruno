@@ -650,6 +650,64 @@ const addEnvironmentVariables = async (page: Page, variables: EnvironmentVariabl
 };
 
 /**
+ * Add a variable or secret to whichever environment tab (Variables / Secrets) is
+ * currently active. The active tab determines the row's type, so select the tab
+ * before calling.
+ * @param page - The page object
+ * @param name - The variable/secret name
+ * @param value - The variable/secret value
+ * @returns void
+ */
+const addRowToActiveTab = async (page: Page, name: string, value: string) => {
+  await test.step(`Add row "${name}" to the active environment tab`, async () => {
+    const nameInput = page.locator('input[placeholder="Name"]').last();
+    await nameInput.waitFor({ state: 'visible' });
+    await nameInput.fill(name);
+
+    const row = page.getByTestId(`env-var-row-${name}`);
+    await row.waitFor({ state: 'visible' });
+
+    const codeMirror = row.locator('.CodeMirror');
+    await codeMirror.scrollIntoViewIfNeeded();
+    await codeMirror.click();
+    await page.keyboard.type(value);
+  });
+};
+
+/**
+ * Delete every global environment in the workspace. Global environments persist at
+ * the workspace level (closeAllCollections does not remove them), so call this to keep
+ * tests isolated. Deletes the currently-selected environment first, since a tab with
+ * unsaved changes blocks switching to another env via the list.
+ * @param page - The page object
+ * @returns void
+ */
+const deleteAllGlobalEnvironments = async (page: Page) => {
+  await test.step('Delete all global environments', async () => {
+    await page.getByTestId('environment-selector-trigger').click();
+    await page.getByTestId('env-tab-global').click();
+    await page.getByTestId('configure-env').click();
+
+    const envItems = page.locator('.environment-item');
+    const deleteBtn = page.locator('button[title="Delete"]');
+    const modal = page.locator('.bruno-modal').filter({ hasText: 'Delete Environment' });
+
+    await page.locator('.environments-container').first().waitFor({ state: 'visible' }).catch(() => {});
+
+    while (true) {
+      if ((await deleteBtn.count()) === 0) {
+        if ((await envItems.count()) === 0) break;
+        await envItems.first().click();
+        await deleteBtn.waitFor({ state: 'visible' });
+      }
+      await deleteBtn.first().click();
+      await modal.getByRole('button', { name: 'Delete', exact: true }).click();
+      await modal.waitFor({ state: 'hidden' });
+    }
+  });
+};
+
+/**
  * Save the current environment settings
  * @param page - The page object
  * @returns void
@@ -1393,6 +1451,8 @@ export {
   createEnvironment,
   addEnvironmentVariable,
   addEnvironmentVariables,
+  addRowToActiveTab,
+  deleteAllGlobalEnvironments,
   saveEnvironment,
   closeEnvironmentPanel,
   selectEnvironment,
