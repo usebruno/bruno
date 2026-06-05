@@ -303,16 +303,14 @@ const darkTheme = {
   },
 
   notifications: {
-    bg: colors.GRAY_3,
+    bg: palette.background.BASE,
     list: {
-      bg: '3D3D3D',
-      borderRight: '#4f4f4f',
-      borderBottom: '#545454',
-      hoverBg: '#434343',
+      bg: palette.background.BASE,
+      borderBottom: palette.border.BORDER0,
+      hoverBg: colors.GRAY_3,
       active: {
-        border: '#569cd6',
-        bg: '#4f4f4f',
-        hoverBg: '#4f4f4f'
+        bg: palette.background.SURFACE0,
+        hoverBg: colors.GRAY_4
       }
     }
   },

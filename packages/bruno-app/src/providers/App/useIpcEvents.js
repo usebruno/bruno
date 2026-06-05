@@ -38,6 +38,7 @@ import { isElectron } from 'utils/common/platform';
 import { globalEnvironmentsUpdateEvent, updateGlobalEnvironments } from 'providers/ReduxStore/slices/global-environments';
 import { collectionAddOauth2CredentialsByUrl, collectionClearOauth2CredentialsByCredentialsId, updateCollectionLoadingState } from 'providers/ReduxStore/slices/collections/index';
 import { addLog } from 'providers/ReduxStore/slices/logs';
+import { loadNotifications } from 'providers/ReduxStore/slices/notifications';
 import { updateSystemResources } from 'providers/ReduxStore/slices/performance';
 import { apiSpecAddFileEvent, apiSpecChangeFileEvent } from 'providers/ReduxStore/slices/apiSpec';
 
@@ -343,6 +344,10 @@ const useIpcEvents = () => {
       dispatch(setGitVersion(val));
     });
 
+    const removeLoadNotificationsListener = ipcRenderer.on('main:load-notifications', (notifications) => {
+      dispatch(loadNotifications(notifications));
+    });
+
     return () => {
       removeCollectionTreeUpdateListener();
       removeApiSpecTreeUpdateListener();
@@ -376,6 +381,7 @@ const useIpcEvents = () => {
       removePersistentEnvVariablesUpdateListener();
       removeSystemResourcesListener();
       gitVersionListener();
+      removeLoadNotificationsListener();
     };
   }, [isElectron]);
 };
