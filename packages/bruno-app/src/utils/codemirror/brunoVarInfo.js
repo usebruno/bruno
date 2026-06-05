@@ -703,8 +703,10 @@ if (!SERVER_RENDERED) {
     }
 
     const box = target.getBoundingClientRect();
+    let point = { left: e.clientX, top: e.clientY };
 
-    const onMouseMove = function () {
+    const onMouseMove = function (moveEvent) {
+      point = { left: moveEvent.clientX, top: moveEvent.clientY };
       clearTimeout(state.hoverTimeout);
       state.hoverTimeout = setTimeout(onHover, hoverTime);
     };
@@ -720,7 +722,7 @@ if (!SERVER_RENDERED) {
       CodeMirror.off(document, 'mousemove', onMouseMove);
       CodeMirror.off(cm.getWrapperElement(), 'mouseout', onMouseOut);
       state.hoverTimeout = undefined;
-      onMouseHover(cm, box);
+      onMouseHover(cm, box, point);
     };
 
     const hoverTime = getHoverTime(cm);
@@ -730,8 +732,8 @@ if (!SERVER_RENDERED) {
     CodeMirror.on(cm.getWrapperElement(), 'mouseout', onMouseOut);
   }
 
-  function onMouseHover(cm, box) {
-    const pos = cm.coordsChar({
+  function onMouseHover(cm, box, point) {
+    const pos = cm.coordsChar(point || {
       left: (box.left + box.right) / 2,
       top: (box.top + box.bottom) / 2
     });
