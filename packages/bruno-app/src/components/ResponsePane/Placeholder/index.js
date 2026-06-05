@@ -7,7 +7,7 @@ import { isMacOS } from 'utils/common/platform';
 const Placeholder = () => {
   const isMac = isMacOS();
   const sendRequestShortcut = isMac ? 'Cmd + Enter' : 'Ctrl + Enter';
-  const newRequestShortcut = isMac ? 'Cmd + B' : 'Ctrl + B';
+  const newRequestShortcut = isMac ? 'Cmd + N' : 'Ctrl + N';
   const editEnvironmentShortcut = isMac ? 'Cmd + E' : 'Ctrl + E';
   const preferences = useSelector((state) => state.app.preferences);
   const isVerticalLayout = preferences?.layout?.responsePaneOrientation === 'vertical';
