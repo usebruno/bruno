@@ -615,3 +615,67 @@ export async function setupTestFixture(
     throw error;
   }
 }
+
+/**
+ * Result of setting up a static (committed) collection fixture
+ */
+export interface StaticTestFixture {
+  /** Path to the temp copy of the collection that is actually mounted */
+  collectionPath: string;
+  /** Path to user data directory with preferences */
+  userDataPath: string;
+  /** Cleanup function — removes the temp copy and user data dir; never touches the source */
+  cleanup: () => Promise<void>;
+}
+
+/**
+ * Set up a test fixture that preloads a static, committed collection from disk.
+ *
+ * Unlike setupTestFixture (which generates a throwaway collection), this uses an
+ * existing collection directory checked into the repo — for tests that need a
+ * fixed, hand-authored layout rather than generated data. The source is copied
+ * to a temp dir before mounting so the running app never mutates the committed
+ * fixture. cleanup() removes the temp copy and the user data dir.
+ */
+export async function setupStaticFixture(
+  sourceCollectionPath: string
+): Promise<StaticTestFixture> {
+  const userDataPath = await fs.promises.mkdtemp(
+    path.join(os.tmpdir(), 'bruno-test-userdata-')
+  );
+  const collectionPath = await fs.promises.mkdtemp(
+    path.join(os.tmpdir(), 'bruno-test-collection-')
+  );
+
+  const cleanup = async () => {
+    await Promise.all([
+      fs.promises.rm(userDataPath, { recursive: true, force: true }),
+      fs.promises.rm(collectionPath, { recursive: true, force: true })
+    ]);
+  };
+
+  try {
+    // Copy the committed collection into the temp dir so the app mounts the copy.
+    await fs.promises.cp(sourceCollectionPath, collectionPath, { recursive: true });
+
+    const preferences = {
+      lastOpenedCollections: [collectionPath],
+      preferences: {
+        onboarding: {
+          hasLaunchedBefore: true,
+          hasSeenWelcomeModal: true
+        }
+      }
+    };
+
+    await fs.promises.writeFile(
+      path.join(userDataPath, 'preferences.json'),
+      JSON.stringify(preferences, null, 2)
+    );
+
+    return { collectionPath, userDataPath, cleanup };
+  } catch (error) {
+    await cleanup();
+    throw error;
+  }
+}

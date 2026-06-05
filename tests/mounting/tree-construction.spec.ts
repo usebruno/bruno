@@ -1,5 +1,6 @@
+import * as path from 'path';
 import { test, expect, ElectronApplication, Page } from '../../playwright';
-import { setupTestFixture, TestFixture } from '../utils/fixtures';
+import { setupTestFixture, setupStaticFixture, TestFixture, StaticTestFixture } from '../utils/fixtures';
 import { getCollectionTreeStructure, CollectionTreeItem, closeAllCollections } from '../utils/page';
 
 const formats = ['bru', 'yml'] as const;
@@ -89,32 +90,6 @@ for (const format of formats) {
       expect(rootRequests.length > 0 || hasRequestsInFolders).toBe(true);
     });
 
-    test('should display correct request method indicators', async () => {
-      const tree = await getCollectionTreeStructure(page, 'Tree Test Collection');
-
-      // Collect all requests recursively
-      const collectRequests = (items: CollectionTreeItem[]): CollectionTreeItem[] => {
-        const requests: CollectionTreeItem[] = [];
-        for (const item of items) {
-          if (item.type === 'request') {
-            requests.push(item);
-          }
-          if (item.type === 'folder' && item.items) {
-            requests.push(...collectRequests(item.items));
-          }
-        }
-        return requests;
-      };
-
-      const requests = collectRequests(tree.items);
-
-      // mixedMethods=true cycles deterministically through [GET, POST, PUT, DELETE, PATCH]
-      // via globalIndex % HTTP_METHODS.length, so with >=5 requests every method appears.
-      // UI truncates methods > 5 chars to 3 chars (DELETE -> DEL).
-      const methods = requests.map((r) => r.method).filter(Boolean);
-      expect(new Set(methods)).toEqual(new Set(['GET', 'POST', 'PUT', 'DEL', 'PATCH']));
-    });
-
     test('should have correct parent-child relationships via naming convention', async () => {
       const tree = await getCollectionTreeStructure(page, 'Tree Test Collection');
 
@@ -148,6 +123,50 @@ for (const format of formats) {
       };
 
       verifyNaming(tree.items, '');
+    });
+  });
+}
+
+// Method indicators are verified against a static, hand-authored collection with
+// exactly one request per HTTP method, so the expected badge set is fixed rather
+// than dependent on the generator's method-cycling behaviour.
+for (const format of formats) {
+  test.describe(`[${format}] Request Method Indicators`, () => {
+    let fixture: StaticTestFixture;
+    let app: ElectronApplication;
+    let page: Page;
+
+    test.beforeAll(async ({ launchElectronApp }) => {
+      fixture = await setupStaticFixture(
+        path.join(__dirname, 'fixtures', 'method-indicators', format)
+      );
+
+      app = await launchElectronApp({ userDataPath: fixture.userDataPath });
+      page = await app.firstWindow();
+      await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
+    });
+
+    test.afterAll(async () => {
+      if (page) {
+        await closeAllCollections(page);
+      }
+      if (app) {
+        await app.context().close();
+        await app.close();
+      }
+      if (fixture) {
+        await fixture.cleanup();
+      }
+    });
+
+    test('should display correct request method indicators', async () => {
+      const tree = await getCollectionTreeStructure(page, 'Method Indicators');
+
+      const requests = tree.items.filter((item) => item.type === 'request');
+      const methods = requests.map((r) => r.method).filter(Boolean);
+
+      // One request per method. UI truncates methods > 5 chars to 3 chars (DELETE -> DEL).
+      expect(new Set(methods)).toEqual(new Set(['GET', 'POST', 'PUT', 'DEL', 'PATCH']));
     });
   });
 }

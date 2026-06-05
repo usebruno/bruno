@@ -315,55 +315,6 @@ async function extractItemsFromContainer(
 }
 
 /**
- * Expand a folder in the collection tree
- * @param page - The Playwright page object
- * @param folderName - The name of the folder to expand
- */
-export const expandFolder = async (page: Page, folderName: string, collectionName?: string): Promise<void> => {
-  const locators = buildCollectionTreeLocators(page);
-
-  await test.step(`Expand folder "${folderName}"`, async () => {
-    const isExpanded = await locators.folder.isExpanded(folderName, collectionName);
-
-    if (!isExpanded) {
-      await locators.folder.chevron(folderName, collectionName).click();
-      // Wait for expansion to complete
-      await expect.poll(() => locators.folder.isExpanded(folderName, collectionName)).toBe(true);
-    }
-  });
-};
-
-/**
- * Collapse a folder in the collection tree
- * @param page - The Playwright page object
- * @param folderName - The name of the folder to collapse
- */
-export const collapseFolder = async (page: Page, folderName: string, collectionName?: string): Promise<void> => {
-  const locators = buildCollectionTreeLocators(page);
-
-  await test.step(`Collapse folder "${folderName}"`, async () => {
-    const isExpanded = await locators.folder.isExpanded(folderName, collectionName);
-
-    if (isExpanded) {
-      await locators.folder.chevron(folderName, collectionName).click();
-      // Wait for collapse to complete
-      await expect.poll(() => locators.folder.isExpanded(folderName, collectionName)).toBe(false);
-    }
-  });
-};
-
-/**
- * Check if a folder is expanded
- * @param page - The Playwright page object
- * @param folderName - The name of the folder to check
- * @returns True if the folder is expanded, false otherwise
- */
-export const isFolderExpanded = async (page: Page, folderName: string, collectionName?: string): Promise<boolean> => {
-  const locators = buildCollectionTreeLocators(page);
-  return await locators.folder.isExpanded(folderName, collectionName);
-};
-
-/**
  * Get all environment names from the environment selector for a collection
  * @param page - The Playwright page object
  * @returns Array of environment names
