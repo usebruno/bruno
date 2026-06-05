@@ -1,9 +1,7 @@
 import React, { useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import find from 'lodash/find';
-import { IconSettings, IconCookie, IconTool, IconSearch, IconPalette, IconBrandGithub, IconServer } from '@tabler/icons';
-import { useBetaFeature, BETA_FEATURES } from 'utils/beta-features';
-import { uuid } from 'utils/common';
+import { IconSettings, IconCookie, IconTool, IconSearch, IconPalette, IconBrandGithub } from '@tabler/icons';
 import Mousetrap from 'mousetrap';
 import { getKeyBindingsForActionAllOS } from 'providers/Hotkeys/keyMappings';
 import ToolHint from 'components/ToolHint';
@@ -14,6 +12,7 @@ import ThemeDropdown from './ThemeDropdown';
 import { openConsole } from 'providers/ReduxStore/slices/logs';
 import { addTab } from 'providers/ReduxStore/slices/tabs';
 import { useApp } from 'providers/App';
+import MockServerStatus from './MockServerStatus';
 import StyledWrapper from './StyledWrapper';
 
 const StatusBar = () => {
@@ -29,28 +28,10 @@ const StatusBar = () => {
   const logs = useSelector((state) => state.logs.logs);
   const [cookiesOpen, setCookiesOpen] = useState(false);
   const { version } = useApp();
-  const isMockServerEnabled = useBetaFeature(BETA_FEATURES.MOCK_SERVER);
-  const mockServers = useSelector((state) => state.mockServer?.servers || {});
 
   const activeWorkspace = workspaces.find((w) => w.uid === activeWorkspaceUid);
 
   const errorCount = logs.filter((log) => log.type === 'error').length;
-
-  // Find first running mock server
-  const runningMockServer = Object.entries(mockServers).find(([_, s]) => s.status === 'running');
-
-  const handleMockServerClick = () => {
-    if (runningMockServer) {
-      const [collectionUid] = runningMockServer;
-      dispatch(
-        addTab({
-          uid: uuid(),
-          collectionUid,
-          type: 'mock-server-dashboard'
-        })
-      );
-    }
-  };
 
   const handleConsoleClick = () => {
     dispatch(openConsole());
@@ -137,22 +118,7 @@ const StatusBar = () => {
               </button>
             </ToolHint>
 
-            {isMockServerEnabled && runningMockServer && (
-              <ToolHint text={`Mock Server running on port ${runningMockServer[1].port}`} toolhintId="MockServer" place="top" offset={10}>
-                <button
-                  className="status-bar-button"
-                  onClick={handleMockServerClick}
-                  tabIndex={0}
-                  aria-label={`Mock Server on port ${runningMockServer[1].port}`}
-                  data-testid="mock-server-statusbar-btn"
-                >
-                  <div className="console-button-content">
-                    <span className="mock-server-status-dot" />
-                    <span className="console-label ml-1">Mock :{runningMockServer[1].port}</span>
-                  </div>
-                </button>
-              </ToolHint>
-            )}
+            <MockServerStatus />
           </div>
         </div>
 

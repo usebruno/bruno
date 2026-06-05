@@ -34,6 +34,15 @@ test.describe.serial('Mock Server', () => {
   // Phase 1: Dashboard UI
   // ==========================================
 
+  test('should open Mock Server dashboard from sidebar collection menu', async ({ pageWithUserData: page }) => {
+    const collection = page.getByTestId('sidebar-collection-row').filter({ hasText: COLLECTION_NAME });
+    await collection.locator('.collection-actions .icon').click();
+    await page.getByTestId('collection-actions-create-mock-server').click();
+
+    await expect(page.getByTestId('mock-server-dashboard')).toBeVisible();
+    await expect(page.getByTestId('mock-server-status-text')).toHaveText('Stopped');
+  });
+
   test('should open Mocker tab and show dashboard controls in stopped state', async ({ pageWithUserData: page }) => {
     await page.locator('#sidebar-collection-name').filter({ hasText: COLLECTION_NAME }).click();
     await openMockerTab(page);
@@ -69,6 +78,7 @@ test.describe.serial('Mock Server', () => {
     await expect(page.getByTestId('mock-server-refresh-btn')).toBeVisible();
     await expect(page.getByTestId('mock-server-copy-url')).toContainText(`http://localhost:${MOCK_PORT}`);
     await expect(page.getByTestId('mock-server-stats')).toBeVisible();
+    await expect(page.getByTestId(`mock-server-statusbar-btn-${MOCK_PORT}`)).toBeVisible();
     // Port input should be disabled while running
     await expect(page.getByTestId('mock-server-port-input')).toBeDisabled();
     // Start button should NOT be visible while running
@@ -586,6 +596,7 @@ test.describe.serial('Mock Server', () => {
     await expect(page.getByTestId('mock-server-stop-btn')).not.toBeVisible();
     await expect(page.getByTestId('mock-server-copy-url')).not.toBeVisible();
     await expect(page.getByTestId('mock-server-port-input')).toBeEnabled();
+    await expect(page.getByTestId(`mock-server-statusbar-btn-${MOCK_PORT}`)).not.toBeVisible();
   });
 
   // ==========================================
