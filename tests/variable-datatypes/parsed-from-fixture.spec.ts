@@ -116,7 +116,35 @@ const tableRowByName = (table: ReturnType<ReturnType<typeof buildCommonLocators>
 
 const SLOW_RENDER_TIMEOUT_MS = 15_000;
 
+// Vars/env tables are virtualized (react-virtuoso), so a row outside the scroll
+// viewport isn't in the DOM and toHaveText won't mount it. Reset every scroll
+// container to the top, then step them down until the target row mounts.
+const scrollRowIntoView = async (page: Page, row: Locator) => {
+  const step = (toTop: boolean) => page.evaluate((toTop) => {
+    let moved = false;
+    document.querySelectorAll('*').forEach((el) => {
+      const overflowY = getComputedStyle(el).overflowY;
+      if (overflowY !== 'auto' && overflowY !== 'scroll') return;
+      const before = el.scrollTop;
+      el.scrollTop = toTop ? 0 : el.scrollTop + el.clientHeight * 0.7 + 80;
+      if (el.scrollTop !== before) moved = true;
+    });
+    return moved;
+  }, toTop);
+
+  if (await row.count()) return;
+  await step(true);
+  await page.waitForTimeout(100);
+  for (let i = 0; i < 40; i++) {
+    if (await row.count()) break;
+    if (!(await step(false))) break;
+    await page.waitForTimeout(120);
+  }
+  await row.scrollIntoViewIfNeeded().catch(() => {});
+};
+
 const expectTypeLabel = async (row: Locator, label: string) => {
+  await scrollRowIntoView(row.page(), row);
   await expect(row.locator('.type-label').first()).toHaveText(label, { timeout: SLOW_RENDER_TIMEOUT_MS });
 };
 
@@ -272,15 +300,8 @@ const openEnvironmentSettings = async (page: Page, type: 'collection' | 'global'
 /** Assert the DatatypeSelector inside an env-var row reports the expected label. */
 const expectEnvVarTypeLabel = async (page: Page, name: string, label: string) => {
   const row = page.locator(`[data-testid="env-var-row-${name}"]`);
+  await scrollRowIntoView(page, row);
   await expect(row.locator('.type-label').first()).toHaveText(label, { timeout: SLOW_RENDER_TIMEOUT_MS });
-};
-
-// Scroll the virtualized env table to its bottom so trailing rows mount.
-const scrollEnvTableToBottom = async (page: Page) => {
-  await page.locator('.table-container').first().evaluate((el: HTMLElement) => {
-    el.scrollTop = el.scrollHeight;
-  });
-  await page.waitForTimeout(150);
 };
 
 /**
@@ -578,9 +599,6 @@ test.describe('Datatype selector — BRU collection fixture', () => {
     await expectEnvVarTypeLabel(page, 'inferred_env_num', 'number');
     await expectEnvVarTypeLabel(page, 'inferred_env_bool', 'boolean');
     await expectEnvVarTypeLabel(page, 'inferred_env_obj', 'object');
-    // strict_* rows sit past the virtualizer's initial render window — scroll
-    // the table to its bottom so they mount before the assertions.
-    await scrollEnvTableToBottom(page);
     // getDatatypeFromValue is strict — string content doesn't promote.
     await expectEnvVarTypeLabel(page, 'strict_num_str', 'string');
     await expectEnvVarTypeLabel(page, 'strict_bool_str', 'string');
