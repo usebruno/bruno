@@ -12,7 +12,7 @@ describe('fromOpenCollectionEnvironments — typed values', () => {
         variables: [
           { name: 'port', value: { type: 'number', data: '8080' } },
           { name: 'debug', value: { type: 'boolean', data: 'true' } },
-          { name: 'config', value: { type: 'object', data: '{"region":"us"}' } },
+          { name: 'config', value: { type: 'object', data: '{\n  "region": "us"\n}' } },
           { name: 'greeting', value: { type: 'string', data: 'hi' } },
           { name: 'plain', value: 'hello' },
           { name: 'apiKey', secret: true }
@@ -43,9 +43,11 @@ describe('toOpenCollectionEnvironments — typed values', () => {
         name: 'staging',
         variables: [
           { uid: 'v1', name: 'port', value: 8080, type: 'text', enabled: true, secret: false, datatype: 'number' },
-          { uid: 'v2', name: 'greeting', value: 'hi', type: 'text', enabled: true, secret: false, datatype: 'string' },
-          { uid: 'v3', name: 'plain', value: 'hello', type: 'text', enabled: true, secret: false },
-          { uid: 'v4', name: 'apiKey', value: '', type: 'text', enabled: true, secret: true, datatype: 'number' }
+          { uid: 'v2', name: 'debug', value: true, type: 'text', enabled: true, secret: false, datatype: 'boolean' },
+          { uid: 'v3', name: 'config', value: { region: 'us' }, type: 'text', enabled: true, secret: false, datatype: 'object' },
+          { uid: 'v4', name: 'greeting', value: 'hi', type: 'text', enabled: true, secret: false, datatype: 'string' },
+          { uid: 'v5', name: 'plain', value: 'hello', type: 'text', enabled: true, secret: false },
+          { uid: 'v6', name: 'apiKey', value: '', type: 'text', enabled: true, secret: true, datatype: 'number' }
         ],
         color: null
       }
@@ -59,6 +61,8 @@ describe('toOpenCollectionEnvironments — typed values', () => {
         color: undefined,
         variables: [
           { name: 'port', value: { type: 'number', data: '8080' } },
+          { name: 'debug', value: { type: 'boolean', data: 'true' } },
+          { name: 'config', value: { type: 'object', data: '{\n  "region": "us"\n}' } },
           { name: 'greeting', value: 'hi' },
           { name: 'plain', value: 'hello' },
           { name: 'apiKey', secret: true }
@@ -77,6 +81,7 @@ describe('OpenCollection environment round-trip', () => {
         variables: [
           { name: 'port', value: { type: 'number', data: '8080' } },
           { name: 'flag', value: { type: 'boolean', data: 'true' } },
+          { name: 'config', value: { type: 'object', data: '{\n  "region": "us"\n}' } },
           { name: 'plain', value: 'hello' },
           { name: 'apiKey', secret: true }
         ]

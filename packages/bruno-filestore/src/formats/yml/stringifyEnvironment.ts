@@ -1,9 +1,8 @@
 import type { Environment as BrunoEnvironment, EnvironmentVariable as BrunoEnvironmentVariable } from '@usebruno/schema-types/collection/environment';
 import type { Environment } from '@opencollection/types/config/environments';
 import type { Variable, SecretVariable } from '@opencollection/types/common/variables';
-import { valueToString } from '@usebruno/common/utils';
 import { stringifyYml } from './utils';
-import { hasTypedMetadata, toOpenCollectionTypedValue } from './common/datatype';
+import { hasTypedMetadata, toOpenCollectionTypedValue, serializeVariableValue } from './common/datatype';
 
 export const toOpenCollectionEnvironmentVariables = (variables: BrunoEnvironmentVariable[]): (Variable | SecretVariable)[] | undefined => {
   if (!variables?.length) {
@@ -23,7 +22,7 @@ export const toOpenCollectionEnvironmentVariables = (variables: BrunoEnvironment
         return secretVar;
       }
 
-      const valueStr = valueToString(v.value);
+      const valueStr = serializeVariableValue(v.value);
 
       const variable: Variable = {
         name: v.name || '',

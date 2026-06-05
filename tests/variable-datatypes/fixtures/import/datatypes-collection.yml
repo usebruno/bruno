@@ -48,7 +48,7 @@ items:
           name: request
           seq: 1
         http:
-          url: https://httpbin.org/anything
+          url: '{{localhost}}/api/echo/everything'
           method: GET
         runtime:
           variables:

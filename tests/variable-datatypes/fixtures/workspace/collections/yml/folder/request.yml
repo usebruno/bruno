@@ -5,7 +5,7 @@ info:
 
 http:
   method: POST
-  url: https://httpbin.org/anything?q=hi&p_str={{req_str}}&p_num={{req_num}}&p_bool={{req_bool}}&p_obj={{req_obj}}
+  url: '{{localhost}}/api/echo/everything?q=hi&p_str={{req_str}}&p_num={{req_num}}&p_bool={{req_bool}}&p_obj={{req_obj}}'
   headers:
     - name: x-test
       value: hello
@@ -118,8 +118,8 @@ runtime:
         bru.setVar("runtime_bool", true);
         bru.setVar("runtime_obj", { nested: "yes" });
 
-        // Seed env / global env vars so tests can verify that setEnvVar / setGlobalEnvVar
-        // infer the datatype and surface it on the env editor's DatatypeSelector.
+        // Seed env / global env vars so tests can verify that bru.setEnvVar / bru.setGlobalEnvVar
+        // infer the datatype and surface it in the env editor.
         bru.setEnvVar("inferred_env_num", 700);
         bru.setEnvVar("inferred_env_bool", true);
         bru.setEnvVar("inferred_env_obj", { from: "script" });
@@ -133,7 +133,7 @@ runtime:
         bru.setEnvVar("env_secret_str", "secret_env_string");
         bru.setGlobalEnvVar("glob_secret_str", "secret_global_string");
 
-        // getDatatypeFromValue: bru.set* identifies type from typeof, not string
+        // bru.set* identifies type from the value's runtime type, not string
         // content. Numeric / boolean / JSON-looking strings stay strings.
         bru.setEnvVar("strict_num_str", "42");
         bru.setEnvVar("strict_bool_str", "true");
@@ -177,20 +177,17 @@ runtime:
           expect(bru.getRequestVar("req_arr")).to.deep.equal([1, 2, "three", true]);
 
           // mismatched_num is declared as @number but its data is the literal
-          // string "not-a-number". coerceValueByDatatype falls through (Number()
-          // produces NaN) and returns the raw string, which is the same signal
-          // the DatatypeSelector uses to surface the warning icon.
+          // string "not-a-number". Coercion fails and the raw string is kept,
+          // which is the same signal the env editor uses to surface the warning icon.
           expect(typeof bru.getRequestVar("mismatched_num")).to.equal("string");
           expect(bru.getRequestVar("mismatched_num")).to.equal("not-a-number");
         });
 
-        test("typed object var preserves number precision through file → parse → coerce", () => {
-          // req_obj_precision is declared statically in the .yml file's
-          // runtime.variables list as { type: object, data: <JSON-string> }.
-          // The parser reads `data` raw, then coerceValueByDatatype runs
-          // JSON.parse to produce the JS object. Each numeric form is checked
-          // exactly so any precision drift between the on-disk JSON and the
-          // runtime value would surface here.
+        test("typed object var preserves number precision through file → parse round-trip", () => {
+          // req_obj_precision is declared as an @object var with a JSON-string
+          // value. It is read raw from disk and parsed back into a JS object at
+          // read time. Each numeric form is checked exactly so any precision
+          // drift between the on-disk JSON and the runtime value would surface here.
           const v = bru.getRequestVar("req_obj_precision");
           expect(v.integer).to.equal(123);
           expect(v.negativeInteger).to.equal(-99);
@@ -248,7 +245,7 @@ runtime:
           expect(bru.getGlobalEnvVar("inferred_glob_obj")).to.deep.equal({ from: "script" });
         });
 
-        test("getDatatypeFromValue: bru.set* identifies type via typeof, not string content", () => {
+        test("bru.set* identifies type via the value's runtime type, not string content", () => {
           // Numeric / boolean / JSON-looking strings stay strings.
           expect(typeof bru.getEnvVar("strict_num_str")).to.equal("string");
           expect(bru.getEnvVar("strict_num_str")).to.equal("42");
@@ -270,24 +267,25 @@ runtime:
 
         test("typed vars in query params stringify on the wire", () => {
           // Query params are strings on the wire; objects get JSON.stringified.
-          const args = res.getBody().args;
-          expect(args.p_str).to.equal("request_string");
-          expect(args.p_num).to.equal("42");
-          expect(args.p_bool).to.equal("true");
-          expect(args.p_obj).to.equal('{"key":"value"}');
+          const query = res.getBody().query;
+          expect(query.p_str).to.equal("request_string");
+          expect(query.p_num).to.equal("42");
+          expect(query.p_bool).to.equal("true");
+          expect(query.p_obj).to.equal('{"key":"value"}');
         });
 
         test("typed vars in request headers stringify on the wire", () => {
-          // httpbin upper-cases header names in the echo response.
+          // The echo endpoint reflects request headers; Node lower-cases their names.
           const headers = res.getBody().headers;
-          expect(headers["X-H-Str"]).to.equal("request_string");
-          expect(headers["X-H-Num"]).to.equal("42");
-          expect(headers["X-H-Bool"]).to.equal("true");
-          expect(headers["X-H-Obj"]).to.equal('{"key":"value"}');
+          expect(headers["x-h-str"]).to.equal("request_string");
+          expect(headers["x-h-num"]).to.equal("42");
+          expect(headers["x-h-bool"]).to.equal("true");
+          expect(headers["x-h-obj"]).to.equal('{"key":"value"}');
         });
 
         test("response body echoes typed values from every scope", () => {
-          const json = res.getBody().json;
+          // The echo endpoint returns the raw request body; parse it back to JSON.
+          const json = JSON.parse(res.getBody().body);
           expect(json.coll_num).to.equal(100);
           expect(json.coll_bool).to.equal(false);
           expect(json.coll_obj).to.deep.equal({ scope: "collection" });
@@ -297,9 +295,9 @@ runtime:
           expect(json.req_num).to.equal(42);
           expect(json.req_bool).to.equal(true);
           expect(json.req_obj).to.deep.equal({ key: "value" });
-          // Wire round-trip: typed object vars are JSON-stringified by the
-          // interpolate step, embedded into the request body, parsed again at
-          // httpbin, and echoed back in the JSON response. Each numeric form
+          // Wire round-trip: typed object vars are JSON-stringified during
+          // substitution, embedded into the request body, parsed again at the
+          // echo endpoint, and echoed back in the JSON response. Each numeric form
           // is checked exactly so any precision drift introduced anywhere in
           // the wire path would surface here.
           expect(json.req_obj_precision.integer).to.equal(123);

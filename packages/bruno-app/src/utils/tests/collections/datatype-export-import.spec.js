@@ -5,23 +5,8 @@ jest.mock('nanoid', () => ({
 }));
 
 import { transformCollectionToSaveToExportAsFile } from '../../collections/index';
-import { deleteUidsInItems, deleteUidsInEnvs, deleteSecretsInEnvs, transformItem } from '../../collections/export';
+import { prepareCollectionForExport, deleteSecretsInEnvs } from '../../collections/export';
 import { processBrunoCollection } from '../../importers/bruno-collection';
-
-// Mirrors exportCollection without invoking the browser save-as flow.
-const runExportPipeline = (collection) => {
-  const exported = transformCollectionToSaveToExportAsFile(collection);
-  delete exported.uid;
-  delete exported.processEnvVariables;
-  delete exported.workspaceProcessEnvVariables;
-  deleteUidsInItems(exported.items);
-  deleteUidsInEnvs(exported.environments);
-  deleteSecretsInEnvs(exported.environments);
-  transformItem(exported.items);
-  exported.exportedAt = new Date().toISOString();
-  exported.exportedUsing = 'Bruno';
-  return exported;
-};
 
 const UID = 'aaaaaaaaaaaaaaaaaaaa1';
 const typedVars = () => [
@@ -86,6 +71,7 @@ const buildCollection = () => ({
       variables: [
         { uid: UID, name: 'port', value: 8080, type: 'text', enabled: true, secret: false, datatype: 'number' },
         { uid: UID, name: 'debug', value: true, type: 'text', enabled: true, secret: false, datatype: 'boolean' },
+        { uid: UID, name: 'config', value: { region: 'us' }, type: 'text', enabled: true, secret: false, datatype: 'object' },
         { uid: UID, name: 'plain', value: 'hi', type: 'text', enabled: true, secret: false },
         { uid: UID, name: 'token', value: 'shh', type: 'text', enabled: true, secret: true, datatype: 'number' }
       ]
@@ -106,7 +92,7 @@ const assertTypedVars = (vars) => {
 describe('Bruno JSON export/import — datatype preservation', () => {
   it('preserves datatype on collection / folder / request variables and env variables through a full round-trip', async () => {
     const collection = buildCollection();
-    const exported = runExportPipeline(collection);
+    const exported = prepareCollectionForExport(transformCollectionToSaveToExportAsFile(collection));
     const json = JSON.parse(JSON.stringify(exported));
 
     const secretBeforeImport = json.environments[0].variables.find((v) => v.name === 'token');
@@ -124,6 +110,7 @@ describe('Bruno JSON export/import — datatype preservation', () => {
     const envVars = imported.environments[0].variables;
     expect(envVars.find((v) => v.name === 'port')).toMatchObject({ value: 8080, datatype: 'number', secret: false });
     expect(envVars.find((v) => v.name === 'debug')).toMatchObject({ value: true, datatype: 'boolean', secret: false });
+    expect(envVars.find((v) => v.name === 'config')).toMatchObject({ value: { region: 'us' }, datatype: 'object', secret: false });
     const plainEnv = envVars.find((v) => v.name === 'plain');
     expect(plainEnv).toMatchObject({ value: 'hi', secret: false });
     expect(plainEnv.datatype).toBeUndefined();

@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React from 'react';
 import { IconAlertCircle, IconCaretDown } from '@tabler/icons';
 import { Tooltip } from 'react-tooltip';
 import { BRUNO_VARIABLE_DATATYPES, parseValueByDatatype, validateDatatypeValue } from '@usebruno/common/utils';
@@ -14,14 +14,11 @@ const DatatypeSelector = ({ variable, onChange }) => {
     onChange({ datatype: type === 'string' ? undefined : type });
   };
 
-  const items = useMemo(
-    () => BRUNO_VARIABLE_DATATYPES.map((type) => ({
-      id: type,
-      label: type,
-      onClick: () => handleTypeChange(type)
-    })),
-    [onChange]
-  );
+  const items = BRUNO_VARIABLE_DATATYPES.map((type) => ({
+    id: type,
+    label: type,
+    onClick: () => handleTypeChange(type)
+  }));
 
   return (
     <StyledWrapper>
