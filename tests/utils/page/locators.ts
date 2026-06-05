@@ -94,6 +94,9 @@ export const buildCommonLocators = (page: Page) => ({
     apiKey: {
       placementSelector: () => page.getByTestId('auth-placement-selector'),
       placementLabel: () => page.getByTestId('auth-placement-label')
+    },
+    oauth2: {
+      grantTypeDropdown: () => page.getByTestId('grant-type-dropdown')
     }
   },
   tags: {
