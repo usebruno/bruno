@@ -129,7 +129,7 @@ const PresetsSettings = ({ collection }) => {
         </div>
 
         <div className="mt-6">
-          <Button type="button" size="sm" onClick={handleSave}>
+          <Button type="button" size="sm" data-testid="presets-save" onClick={handleSave}>
             Save
           </Button>
         </div>

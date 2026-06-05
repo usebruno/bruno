@@ -40,7 +40,7 @@ test.describe('Presets status dot in collection settings', () => {
 
     await test.step('Select gRPC request type and save', async () => {
       await locators.presets.requestType('grpc').check();
-      await page.getByRole('button', { name: 'Save' }).click();
+      await locators.presets.save().click();
     });
 
     await test.step('Verify Presets dot appears when a non-default request type is selected', async () => {
@@ -50,7 +50,7 @@ test.describe('Presets status dot in collection settings', () => {
     await test.step('Switch back to HTTP and set a request URL, then save', async () => {
       await locators.presets.requestType('http').check();
       await locators.presets.requestUrl().fill('https://example.com');
-      await page.getByRole('button', { name: 'Save' }).click();
+      await locators.presets.save().click();
     });
 
     await test.step('Verify Presets dot remains visible when request URL is set', async () => {
@@ -60,14 +60,14 @@ test.describe('Presets status dot in collection settings', () => {
     await test.step('Clear the request URL with HTTP selected, then save (returns to default values)', async () => {
       await locators.presets.requestUrl().fill('');
       await expect(locators.presets.requestType('http')).toBeChecked();
-      await page.getByRole('button', { name: 'Save' }).click();
+      await locators.presets.save().click();
     });
 
-    // Once any preset has been saved, brunoConfig.presets exists with requestType: 'http'.
-    // hasPresets in CollectionSettings is `Boolean(requestUrl) || Boolean(requestType)`, so
-    // requestType: 'http' is truthy and the dot persists even when state matches the defaults.
-    await test.step('Verify Presets dot stays visible after returning to defaults (presets have been touched)', async () => {
-      await expect(presetsTab.getByTestId('status-dot')).toBeVisible();
+    // hasPresets in CollectionSettings only treats a non-default request type or a non-empty
+    // request URL as "having presets". Back at the defaults (HTTP selected, empty URL),
+    // hasPresets is false, so the dot is hidden again.
+    await test.step('Verify Presets dot is hidden after returning to defaults', async () => {
+      await expect(presetsTab.getByTestId('status-dot')).toBeHidden();
     });
   });
 });
