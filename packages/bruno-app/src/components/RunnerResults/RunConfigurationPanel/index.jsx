@@ -14,7 +14,7 @@ import { isRequestTagsIncluded } from '@usebruno/common';
 
 const isRequestDisabled = (item, tags) => {
   // WS and gRPC are not supported by the collection runner
-  if (item.type === 'ws-request' || item.type === 'grpc-request') return true;
+  if (item.type === 'ws-request' || item.type === 'grpc-request' || item.type === 'amqp-request') return true;
 
   // Check tag filtering
   const requestTags = item.draft?.tags || item.tags || [];
@@ -35,6 +35,7 @@ const ItemTypes = {
 const getMethodInfo = (item) => {
   const isGrpc = item.type === 'grpc-request';
   const isWS = item.type === 'ws-request';
+  const isAMQP = item.type === 'amqp-request';
   const isGraphQL = item.type === 'graphql-request';
 
   let methodText;
@@ -46,6 +47,9 @@ const getMethodInfo = (item) => {
   } else if (isWS) {
     methodText = 'WS';
     methodClass = 'method-ws';
+  } else if (isAMQP) {
+    methodText = 'AMQP';
+    methodClass = 'method-amqp';
   } else if (isGraphQL) {
     methodText = 'GQL';
     methodClass = 'method-gql';

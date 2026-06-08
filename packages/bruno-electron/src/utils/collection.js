@@ -331,6 +331,11 @@ const mergeScripts = (collection, request, requestTreePath, scriptFlow) => {
     }
   }
 
+  // Ensure script object exists before merging into it
+  if (!request.script) {
+    request.script = {};
+  }
+
   // Capture original request script content before overwriting with combined code
   const originalPreReqScript = request?.script?.req || '';
   const originalPostResScript = request?.script?.res || '';
@@ -530,12 +535,13 @@ const parseYmlFileMeta = (data) => {
     const yaml = require('js-yaml');
     const parsed = yaml.load(data);
 
-    if (!parsed || !parsed.meta) {
-      console.log('No "meta" section found in YAML file.');
+    const metaBlock = parsed?.info || parsed?.meta;
+    if (!parsed || !metaBlock) {
+      console.log('No "info" or "meta" section found in YAML file.');
       return null;
     }
 
-    const metaJson = parsed.meta;
+    const metaJson = metaBlock;
 
     // Transform to the format expected by bruno-app
     let requestType = metaJson.type;
@@ -543,7 +549,8 @@ const parseYmlFileMeta = (data) => {
       http: 'http-request',
       graphql: 'graphql-request',
       grpc: 'grpc-request',
-      ws: 'ws-request'
+      ws: 'ws-request',
+      amqp: 'amqp-request'
     };
     requestType = typeMap[requestType] || 'http-request';
 
@@ -679,8 +686,29 @@ const transformRequestToSaveToFilesystem = (item) => {
     delete itemToSave.request.params;
   }
 
-  // Only process params for non-gRPC requests
-  if (_item.type !== 'grpc-request') {
+  if (_item.type === 'amqp-request') {
+    itemToSave.request.publish = {
+      exchange: _item.request.publish?.exchange || '',
+      exchangeType: _item.request.publish?.exchangeType || 'direct',
+      routingKey: _item.request.publish?.routingKey || ''
+    };
+    itemToSave.request.consume = {
+      exchange: _item.request.consume?.exchange || '',
+      exchangeType: _item.request.consume?.exchangeType || 'direct',
+      routingKey: _item.request.consume?.routingKey || '',
+      queue: _item.request.consume?.queue || ''
+    };
+    delete itemToSave.request.method;
+    delete itemToSave.request.params;
+  }
+
+  if (_item.type === 'ws-request') {
+    delete itemToSave.request.method;
+    delete itemToSave.request.params;
+  }
+
+  // Only process params for non-gRPC and non-AMQP/WS requests
+  if (!['grpc-request', 'amqp-request', 'ws-request'].includes(_item.type)) {
     each(_item.request.params, (param) => {
       itemToSave.request.params.push({
         uid: param.uid,

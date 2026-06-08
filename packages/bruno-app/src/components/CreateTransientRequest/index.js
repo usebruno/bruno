@@ -2,7 +2,7 @@ import React, { useState, useRef, useCallback, useMemo } from 'react';
 import { IconPlus, IconApi, IconBrandGraphql, IconPlugConnected, IconCode } from '@tabler/icons';
 import ActionIcon from 'ui/ActionIcon/index';
 import Dropdown from 'components/Dropdown';
-import { newHttpRequest, newGrpcRequest, newWsRequest } from 'providers/ReduxStore/slices/collections/actions';
+import { newHttpRequest, newGrpcRequest, newWsRequest, newAmqpRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { sanitizeName } from 'utils/common/regex';
 import toast from 'react-hot-toast';
 import { useDispatch, useSelector } from 'react-redux';
@@ -15,7 +15,8 @@ const REQUEST_TYPE = {
   HTTP: 'http',
   GRAPHQL: 'graphql',
   GRPC: 'grpc',
-  WEBSOCKET: 'websocket'
+  WEBSOCKET: 'websocket',
+  AMQP: 'amqp'
 };
 
 /**
@@ -153,6 +154,24 @@ const CreateTransientRequest = ({ collectionUid }) => {
     ).catch((err) => toast.error(formatIpcError(err) || 'An error occurred while adding the request'));
   }, [dispatch, collection, collectionPresets.requestUrl]);
 
+  const handleCreateAmqpRequest = useCallback(() => {
+    if (!collection) return;
+
+    const uniqueName = generateTransientRequestName(collection);
+    const filename = sanitizeName(uniqueName);
+
+    dispatch(
+      newAmqpRequest({
+        requestName: uniqueName,
+        filename: filename,
+        requestUrl: 'amqp://localhost:5672',
+        collectionUid: collection.uid,
+        itemUid: null,
+        isTransient: true
+      })
+    ).catch((err) => toast.error(formatIpcError(err) || 'An error occurred while adding the request'));
+  }, [dispatch, collection, collectionPresets.requestUrl]);
+
   const handleCreateGrpcRequest = useCallback(() => {
     if (!collection) return;
 
@@ -187,6 +206,9 @@ const CreateTransientRequest = ({ collectionUid }) => {
         break;
       case REQUEST_TYPE.WEBSOCKET:
         handleCreateWebSocketRequest();
+        break;
+      case REQUEST_TYPE.AMQP:
+        handleCreateAmqpRequest();
         break;
     }
   };
@@ -238,6 +260,12 @@ const CreateTransientRequest = ({ collectionUid }) => {
           <IconPlugConnected size={16} strokeWidth={2} />
         </div>
         <div className="dropdown-label">WebSocket</div>
+      </div>
+      <div className="dropdown-item" onClick={() => handleItemClick(REQUEST_TYPE.AMQP)}>
+        <div className="dropdown-icon">
+          <IconPlugConnected size={16} strokeWidth={2} />
+        </div>
+        <div className="dropdown-label">AMQP</div>
       </div>
     </Dropdown>
   );

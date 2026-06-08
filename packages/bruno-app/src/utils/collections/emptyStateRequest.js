@@ -1,6 +1,6 @@
 import React from 'react';
 import { IconApi, IconBrandGraphql, IconPlugConnected, IconCode } from '@tabler/icons';
-import { newHttpRequest, newWsRequest, newGrpcRequest } from 'providers/ReduxStore/slices/collections/actions';
+import { newHttpRequest, newWsRequest, newGrpcRequest, newAmqpRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { generateUniqueRequestName } from 'utils/collections';
 import { sanitizeName } from 'utils/common/regex';
 import { formatIpcError } from 'utils/common/error';
@@ -38,6 +38,9 @@ const createRequest = async ({ dispatch, collection, itemUid, requestType }) => 
         break;
       case 'grpc':
         await dispatch(newGrpcRequest(baseParams));
+        break;
+      case 'amqp':
+        await dispatch(newAmqpRequest({ ...baseParams, requestUrl: 'amqp://localhost:5672' }));
         break;
     }
   } catch (err) {
@@ -78,6 +81,12 @@ export const createEmptyStateMenuItems = ({ dispatch, collection, itemUid }) => 
       label: 'WebSocket',
       leftSection: <IconPlugConnected size={16} strokeWidth={2} />,
       onClick: handleCreate('websocket')
+    },
+    {
+      id: 'amqp',
+      label: 'AMQP',
+      leftSection: <IconPlugConnected size={16} strokeWidth={2} />,
+      onClick: handleCreate('amqp')
     }
   ];
 };

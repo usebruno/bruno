@@ -27,6 +27,7 @@ const { postmanToBruno } = brunoConverters;
 const { cookiesStore } = require('../store/cookies');
 const { parseLargeRequestWithRedaction } = require('../utils/parse');
 const { wsClient } = require('../ipc/network/ws-event-handlers');
+const { amqpClient } = require('../ipc/network/amqp-event-handlers');
 const { hasSubDirectories } = require('../utils/filesystem');
 const { transformProxyConfig } = require('@usebruno/requests');
 
@@ -1163,7 +1164,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
         }
 
         fs.rmSync(pathname, { recursive: true, force: true });
-      } else if (['http-request', 'graphql-request', 'grpc-request', 'ws-request'].includes(type)) {
+      } else if (['http-request', 'graphql-request', 'grpc-request', 'ws-request', 'amqp-request'].includes(type)) {
         if (!fs.existsSync(pathname)) {
           return Promise.reject(new Error('The file does not exist'));
         }
@@ -1268,6 +1269,10 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
       if (wsClient) {
         wsClient.closeForCollection(collectionUid);
       }
+
+      if (amqpClient) {
+        amqpClient.closeForCollection(collectionUid);
+      }
     }
 
     await require('./mount').unmount(collectionUid).catch(() => {});
@@ -1330,7 +1335,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
         // Recursive function to parse the collection items and create files/folders
         const parseCollectionItems = async (items = [], currentPath) => {
           await Promise.all(items.map(async (item) => {
-            if (['http-request', 'graphql-request', 'grpc-request', 'ws-request'].includes(item.type)) {
+            if (['http-request', 'graphql-request', 'grpc-request', 'ws-request', 'amqp-request'].includes(item.type)) {
               let sanitizedFilename = sanitizeName(getFilenameWithFormat(item, format));
               const content = await stringifyRequestViaWorker(item, { format });
               const filePath = path.join(currentPath, sanitizedFilename);
@@ -1492,7 +1497,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
       // Recursive function to parse the folder and create files/folders
       const parseCollectionItems = (items = [], currentPath) => {
         items.forEach(async (item) => {
-          if (['http-request', 'graphql-request', 'grpc-request'].includes(item.type)) {
+          if (['http-request', 'graphql-request', 'grpc-request', 'amqp-request'].includes(item.type)) {
             const content = await stringifyRequestViaWorker(item, { format });
 
             // Use the correct file extension based on target format

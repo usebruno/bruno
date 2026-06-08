@@ -1,7 +1,7 @@
 import React, { useMemo, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import MenuDropdown from 'ui/MenuDropdown';
-import { newHttpRequest, newGrpcRequest, newWsRequest } from 'providers/ReduxStore/slices/collections/actions';
+import { newHttpRequest, newGrpcRequest, newWsRequest, newAmqpRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { generateUniqueRequestName } from 'utils/collections';
 import { sanitizeName } from 'utils/common/regex';
 import toast from 'react-hot-toast';
@@ -85,6 +85,26 @@ const CreateUntitledRequest = ({ collectionUid, itemUid = null, onRequestCreated
       .catch((err) => toast.error(err ? err.message : 'An error occurred while adding the request'));
   }, [dispatch, collection, itemUid, onRequestCreated]);
 
+  const handleCreateAmqpRequest = useCallback(async () => {
+    const uniqueName = await generateUniqueRequestName(collection, 'Untitled', itemUid);
+    const filename = sanitizeName(uniqueName);
+
+    dispatch(
+      newAmqpRequest({
+        requestName: uniqueName,
+        filename: filename,
+        requestUrl: 'amqp://localhost:5672',
+        collectionUid: collection.uid,
+        itemUid: itemUid
+      })
+    )
+      .then(() => {
+        toast.success('New request created!');
+        onRequestCreated?.();
+      })
+      .catch((err) => toast.error(err ? err.message : 'An error occurred while adding the request'));
+  }, [dispatch, collection, itemUid, onRequestCreated]);
+
   const handleCreateGrpcRequest = useCallback(async () => {
     const uniqueName = await generateUniqueRequestName(collection, 'Untitled', itemUid);
     const filename = sanitizeName(uniqueName);
@@ -129,8 +149,14 @@ const CreateUntitledRequest = ({ collectionUid, itemUid = null, onRequestCreated
       label: 'gRPC',
       leftSection: <IconCode size={16} strokeWidth={2} />,
       onClick: handleCreateGrpcRequest
+    },
+    {
+      id: 'amqp',
+      label: 'AMQP',
+      leftSection: <IconPlugConnected size={16} strokeWidth={2} />,
+      onClick: handleCreateAmqpRequest
     }
-  ], [handleCreateHttpRequest, handleCreateGraphQLRequest, handleCreateWebSocketRequest, handleCreateGrpcRequest]);
+  ], [handleCreateHttpRequest, handleCreateGraphQLRequest, handleCreateWebSocketRequest, handleCreateGrpcRequest, handleCreateAmqpRequest]);
 
   if (!collection) {
     return null;

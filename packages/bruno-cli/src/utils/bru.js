@@ -66,6 +66,9 @@ const bruToJson = (bru) => {
       case 'ws':
         requestType = 'ws-request';
         break;
+      case 'amqp':
+        requestType = 'amqp-request';
+        break;
       default:
         requestType = 'http-request';
     }
@@ -80,7 +83,7 @@ const bruToJson = (bru) => {
       tags: Array.isArray(tags) ? tags : [],
       examples: _.get(json, 'examples', []),
       request: {
-        url: _.get(json, requestType === 'grpc-request' ? 'grpc.url' : 'http.url'),
+        url: _.get(json, requestType === 'grpc-request' ? 'grpc.url' : requestType === 'amqp-request' ? 'amqp.url' : 'http.url'),
         headers: requestType === 'grpc-request' ? _.get(json, 'metadata', []) : _.get(json, 'headers', []),
         // Preserving special characters in custom methods. Using _.upperCase strips special characters.
         method: String(_.get(json, 'http.method') ?? '').toUpperCase(),
@@ -114,6 +117,17 @@ const bruToJson = (bru) => {
       transformedJson.request.body = {
         mode: 'ws',
         ws: [bodyFromBru]
+      };
+    } else if (requestType === 'amqp-request') {
+      transformedJson.request.auth.mode = _.get(json, 'amqp.auth', 'none');
+      transformedJson.request.exchange = _.get(json, 'amqp.exchange', '');
+      transformedJson.request.exchangeType = _.get(json, 'amqp.exchangeType', 'direct');
+      transformedJson.request.routingKey = _.get(json, 'amqp.routingKey', '');
+      transformedJson.request.queue = _.get(json, 'amqp.queue', '');
+      const amqpBodyFromBru = _.get(json, 'body') || {};
+      transformedJson.request.body = {
+        mode: 'amqp',
+        amqp: [amqpBodyFromBru]
       };
     } else {
       transformedJson.request.method = _.upperCase(_.get(json, 'http.method'));

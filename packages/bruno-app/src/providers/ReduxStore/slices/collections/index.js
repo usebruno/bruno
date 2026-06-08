@@ -1839,6 +1839,78 @@ export const collectionsSlice = createSlice({
         }
       }
     },
+    updateAmqpPublishField: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+
+      if (collection) {
+        const item = findItemInCollection(collection, action.payload.itemUid);
+
+        if (item && isItemARequest(item)) {
+          if (!item.draft) {
+            item.draft = cloneDeep(item);
+          }
+          if (!item.draft.request.publish) {
+            item.draft.request.publish = {};
+          }
+          item.draft.request.publish[action.payload.field] = action.payload.value;
+        }
+      }
+    },
+    updateAmqpConsumeField: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+
+      if (collection) {
+        const item = findItemInCollection(collection, action.payload.itemUid);
+
+        if (item && isItemARequest(item)) {
+          if (!item.draft) {
+            item.draft = cloneDeep(item);
+          }
+          if (!item.draft.request.consume) {
+            item.draft.request.consume = {};
+          }
+          item.draft.request.consume[action.payload.field] = action.payload.value;
+        }
+      }
+    },
+    addAmqpSubscription: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+
+      if (collection) {
+        const item = findItemInCollection(collection, action.payload.itemUid);
+
+        if (item && isItemARequest(item)) {
+          if (!item.draft) {
+            item.draft = cloneDeep(item);
+          }
+          if (!item.draft.request.consume) {
+            item.draft.request.consume = {};
+          }
+          if (!Array.isArray(item.draft.request.consume.subscriptions)) {
+            item.draft.request.consume.subscriptions = [];
+          }
+          item.draft.request.consume.subscriptions.push(action.payload.subscription);
+        }
+      }
+    },
+    removeAmqpSubscription: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+
+      if (collection) {
+        const item = findItemInCollection(collection, action.payload.itemUid);
+
+        if (item && isItemARequest(item)) {
+          if (!item.draft) {
+            item.draft = cloneDeep(item);
+          }
+          if (Array.isArray(item.draft.request.consume?.subscriptions)) {
+            item.draft.request.consume.subscriptions = item.draft.request.consume.subscriptions.filter(
+              (sub) => sub.uid !== action.payload.subscriptionUid
+            );
+          }
+        }
+      }
+    },
     updateRequestGraphqlQuery: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
 
@@ -3947,6 +4019,10 @@ export const {
   updateRequestAuthMode,
   updateRequestBodyMode,
   updateRequestBody,
+  updateAmqpPublishField,
+  updateAmqpConsumeField,
+  addAmqpSubscription,
+  removeAmqpSubscription,
   updateRequestGraphqlQuery,
   updateRequestGraphqlVariables,
   updateRequestScript,

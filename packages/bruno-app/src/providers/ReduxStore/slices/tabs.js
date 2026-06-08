@@ -90,6 +90,8 @@ export const tabsSlice = createSlice({
       let defaultRequestPaneTab = 'params';
       if (type === 'grpc-request' || type === 'ws-request') {
         defaultRequestPaneTab = 'body';
+      } else if (type === 'amqp-request') {
+        defaultRequestPaneTab = 'publish';
       } else if (type === 'graphql-request') {
         defaultRequestPaneTab = 'query';
       }
