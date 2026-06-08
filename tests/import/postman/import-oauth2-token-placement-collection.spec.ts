@@ -55,6 +55,7 @@ test.describe('Import Postman Collection with OAuth2 token placement', () => {
       await selectRequestPaneTab(page, 'Auth');
 
       await expect(oauth2.tokenHeaderPrefixField()).toBeVisible();
+      await expect(oauth2.tokenHeaderPrefixField().locator('.CodeMirror-line')).toHaveText('Bearer');
       await expect(oauth2.tokenQueryParamKeyField()).not.toBeVisible({ timeout: 1000 });
     });
 
@@ -64,6 +65,7 @@ test.describe('Import Postman Collection with OAuth2 token placement', () => {
       await selectRequestPaneTab(page, 'Auth');
 
       await expect(oauth2.tokenQueryParamKeyField()).toBeVisible();
+      await expect(oauth2.tokenQueryParamKeyField().locator('.CodeMirror-line')).toHaveText('access_token');
       await expect(oauth2.tokenHeaderPrefixField()).not.toBeVisible({ timeout: 1000 });
     });
   });
