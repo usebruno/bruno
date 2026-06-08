@@ -273,6 +273,40 @@ describe('parseCurlCommand', () => {
       });
     });
 
+    // curl splits user:password on the FIRST colon only; the password may itself
+    // contain colons (e.g. tokens, base64). Bruno must preserve everything after
+    // the first colon. Verified against curl's documented behavior.
+    const colonPasswordCases = [
+      {
+        title: 'single embedded colon',
+        curl: `curl -u "admin:p:a:s:s" https://api.example.com`,
+        username: 'admin',
+        password: 'p:a:s:s'
+      },
+      {
+        title: '--user long-form alias',
+        curl: `curl --user "admin:a:b:c" https://api.example.com`,
+        username: 'admin',
+        password: 'a:b:c'
+      },
+      {
+        title: 'leading and trailing colons',
+        curl: `curl -u "admin::token::" https://api.example.com`,
+        username: 'admin',
+        password: ':token::'
+      }
+    ];
+
+    for (const { title, curl, username, password } of colonPasswordCases) {
+      it(`should preserve colons in the password (${title})`, () => {
+        const result = parseCurlCommand(curl);
+        expect(result.auth).toEqual({
+          mode: 'basic',
+          basic: { username, password }
+        });
+      });
+    }
+
     it('should parse digest authentication', () => {
       const result = parseCurlCommand(`
         curl --digest -u "myuser:mypass" https://api.example.com/digest
