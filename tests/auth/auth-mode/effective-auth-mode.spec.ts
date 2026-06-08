@@ -1,5 +1,6 @@
 import { test, expect } from '../../../playwright';
-import { AUTH_MODE_LABELS, buildCommonLocators, closeAllCollections, createCollection, createFolder, selectAuthMode } from '../../utils/page';
+import { buildCommonLocators, closeAllCollections, createCollection, createFolder, selectAuthMode } from '../../utils/page';
+import { AUTH_MODE_LABELS } from '../../utils/constants';
 
 test.describe('Effective auth mode resolution', () => {
   test.afterEach(async ({ page }) => {

@@ -1,6 +1,5 @@
 import { test, expect } from '../../../playwright';
 import {
-  AUTH_MODE_LABELS,
   buildCommonLocators,
   closeAllCollections,
   createCollection,
@@ -11,6 +10,7 @@ import {
   selectAuthMode,
   selectRequestPaneTab
 } from '../../utils/page';
+import { AUTH_MODE_LABELS } from '../../utils/constants';
 
 test.describe('Modified indicator for auth tab', () => {
   test.afterEach(async ({ page }) => {
