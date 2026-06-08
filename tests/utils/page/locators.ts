@@ -129,6 +129,12 @@ export const buildCommonLocators = (page: Page) => ({
     codeLine: () => page.locator('.response-pane .editor-container .CodeMirror-line'),
     jsonTreeLine: () => page.locator('.response-pane .object-content')
   },
+  timeline: {
+    items: () => page.locator('.timeline-item'),
+    lastItem: () => page.locator('.timeline-item').last(),
+    itemHeader: (item: Locator) => item.locator('.oauth-request-item-header'),
+    clearButton: () => page.getByRole('button', { name: 'Clear Timeline' })
+  },
   plusMenu: {
     button: () => page.getByTestId('collections-header-add-menu'),
     createCollection: () => page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Create collection' }),
