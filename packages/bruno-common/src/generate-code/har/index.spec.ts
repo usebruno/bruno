@@ -440,6 +440,31 @@ describe('buildHar — body / postData', () => {
     ]);
   });
 
+  it('formUrlEncoded with duplicate names → preserves both entries in text and params', () => {
+    // Regression canary: serializing to a plain object would collapse duplicates
+    // (`{tag: '1', tag: '2'}` → only the last survives). Real APIs use repeated
+    // field names for array-shaped form values; both occurrences must round-trip.
+    const { har } = buildHar({
+      request: baseRequest({
+        body: {
+          mode: 'formUrlEncoded',
+          formUrlEncoded: [
+            { name: 'tag', value: '1', enabled: true },
+            { name: 'tag', value: '2', enabled: true },
+            { name: 'tag', value: '3', enabled: true }
+          ]
+        }
+      }),
+      shouldInterpolate: false
+    });
+    expect(har.postData.text).toBe('tag=1&tag=2&tag=3');
+    expect(har.postData.params).toEqual([
+      { name: 'tag', value: '1' },
+      { name: 'tag', value: '2' },
+      { name: 'tag', value: '3' }
+    ]);
+  });
+
   it('json → mimeType + text (JSON string)', () => {
     const { har } = buildHar({
       request: baseRequest({ body: { mode: 'json', json: '{"hello":"world"}' } }),

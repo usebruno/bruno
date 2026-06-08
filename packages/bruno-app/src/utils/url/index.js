@@ -111,7 +111,10 @@ export const interpolateUrl = ({ url, variables }) => {
 };
 
 export const interpolateUrlPathParams = (url, params, variables = {}, options = {}) => {
-  const substituteValue = (value) => options.encodeUrl ? encodeURIComponent(value) : value;
+  const substituteValue = (value) => {
+    const v = value == null ? '' : String(value);
+    return options.encodeUrl ? encodeURIComponent(v) : v;
+  };
 
   const getInterpolatedBasePath = (pathname, params) => {
     let replacedPathname = pathname

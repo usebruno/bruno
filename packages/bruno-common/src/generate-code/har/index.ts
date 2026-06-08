@@ -27,9 +27,9 @@
  *     copy-shareable with templates intact.
  */
 
-import interpolate, { interpolateObject } from '../../interpolate';
-import { encodeUrl, stripOrigin, patternHasher, parseQueryParams } from '../../utils';
 import { cloneDeep, find, get } from 'lodash';
+import interpolate, { interpolateObject } from '../../interpolate';
+import { encodeUrl, parseQueryParams, patternHasher } from '../../utils';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -515,12 +515,13 @@ const buildPostData = (body: BrunoBody | undefined): any => {
     case 'formUrlEncoded': {
       const arr: any[] = Array.isArray(body.formUrlEncoded) ? body.formUrlEncoded : [];
       const enabled = arr.filter((p) => p?.enabled);
-      const reduced = enabled.reduce<Record<string, string>>((acc, p) => {
-        acc[p.name] = p.value; return acc;
-      }, {});
+      const searchParams = new URLSearchParams();
+      enabled.forEach((p) => {
+        searchParams.append(String(p.name), String(p.value ?? ''));
+      });
       return {
         mimeType,
-        text: new URLSearchParams(reduced).toString(),
+        text: searchParams.toString(),
         params: enabled.map((p) => ({ name: p.name, value: p.value }))
       };
     }
