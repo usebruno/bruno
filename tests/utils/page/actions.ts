@@ -101,9 +101,9 @@ const createCollection = async (
   page,
   collectionName: string,
   collectionLocation: string,
-  format?: 'bru' | 'yml'
+  format: 'bru' | 'yml' = 'yml'
 ) => {
-  await test.step(`Create collection "${collectionName}"`, async () => {
+  await test.step(`Create ${format} collection "${collectionName}"`, async () => {
     await page.getByTestId('collections-header-add-menu').click();
     await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Create collection' }).click();
 
@@ -1336,6 +1336,42 @@ const saveRequest = async (page: Page) => {
 };
 
 /**
+ * Click the gRPC "Add Message" button to append a new message to the request
+ * @param page - The page object
+ */
+const addGrpcMessage = async (page: Page) => {
+  await test.step('Add gRPC message', async () => {
+    await page.getByTestId('grpc-add-message-button').click();
+  });
+};
+
+/**
+ * Click the "Generate sample" button on a gRPC message to populate it with a sample payload
+ * @param page - The page object
+ * @param index - The 0-based index of the message (default: 0)
+ */
+const generateGrpcSampleMessage = async (page: Page, index: number = 0) => {
+  await test.step(`Generate sample for gRPC message #${index}`, async () => {
+    await page.getByTestId(`grpc-regenerate-message-${index}`).click();
+  });
+};
+
+/**
+ * Open the gRPC method dropdown and select a method by name
+ * @param page - The page object
+ * @param methodName - The name of the gRPC method to select (e.g. "BidiHello")
+ */
+const selectGrpcMethod = async (page: Page, methodName: string) => {
+  await test.step(`Select gRPC method "${methodName}"`, async () => {
+    await page.getByTestId('grpc-method-dropdown-trigger').click();
+    const dropdown = page.getByTestId('grpc-methods-dropdown');
+    await dropdown.waitFor({ state: 'visible', timeout: 5000 });
+    await dropdown.getByTestId('grpc-method-item').filter({ hasText: methodName }).first().click();
+    await expect(page.getByTestId('selected-grpc-method-name')).toContainText(methodName);
+  });
+};
+
+/**
  * Close all open request tabs using the right-click context menu
  * @param page - The page object
  * @returns void
@@ -1684,6 +1720,9 @@ export {
   editAssertion,
   deleteAssertion,
   saveRequest,
+  addGrpcMessage,
+  generateGrpcSampleMessage,
+  selectGrpcMethod,
   closeAllTabs,
   createWorkspace,
   switchWorkspace,
