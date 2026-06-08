@@ -18,6 +18,7 @@ import OAuth1 from 'components/RequestPane/Auth/OAuth1';
 import WsseAuth from 'components/RequestPane/Auth/WsseAuth';
 import ApiKeyAuth from 'components/RequestPane/Auth/ApiKeyAuth';
 import AwsV4Auth from 'components/RequestPane/Auth/AwsV4Auth';
+import EdgeGridAuth from 'components/RequestPane/Auth/EdgeGridAuth';
 import { humanizeRequestAuthMode, getTreePathFromCollectionToItem } from 'utils/collections/index';
 import Button from 'ui/Button';
 
@@ -209,6 +210,19 @@ const Auth = ({ collection, folder }) => {
               <div>Auth inherited from {source.name}: </div>
               <div className="inherit-mode-text">{humanizeRequestAuthMode(source.auth?.mode)}</div>
             </div>
+          </>
+        );
+      }
+      case 'edgegrid': {
+        return (
+          <>
+            <EdgeGridAuth
+              collection={collection}
+              item={folder}
+              updateAuth={updateFolderAuth}
+              request={request}
+              save={() => handleSave()}
+            />
           </>
         );
       }

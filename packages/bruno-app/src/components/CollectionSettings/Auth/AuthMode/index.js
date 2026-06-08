@@ -67,6 +67,11 @@ const AuthMode = ({ collection }) => {
       onClick: () => onModeChange('apikey')
     },
     {
+      id: 'edgegrid',
+      label: 'Akamai EdgeGrid',
+      onClick: () => onModeChange('edgegrid')
+    },
+    {
       id: 'none',
       label: 'No Auth',
       onClick: () => onModeChange('none')

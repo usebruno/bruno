@@ -68,6 +68,11 @@ const AuthMode = ({ collection, folder }) => {
       onClick: () => onModeChange('apikey')
     },
     {
+      id: 'edgegrid',
+      label: 'Akamai EdgeGrid',
+      onClick: () => onModeChange('edgegrid')
+    },
+    {
       id: 'inherit',
       label: 'Inherit',
       onClick: () => onModeChange('inherit')
