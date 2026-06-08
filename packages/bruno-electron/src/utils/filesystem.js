@@ -404,6 +404,37 @@ const removePath = async (source) => {
   }
 };
 
+/**
+ * Move a collection directory from source to destination.
+ * Uses fs-extra's move for cross-device compatibility.
+ */
+const moveCollectionDirectory = async (source, destination) => {
+  const needsWindowsSafeMove = isWindowsOS() && !isWSLPath(source) && hasSubDirectories(source);
+  if (!needsWindowsSafeMove) {
+    await fs.move(source, destination, { overwrite: false });
+    return;
+  }
+
+  const tempDir = path.join(os.tmpdir(), `temp-collection-${Date.now()}`);
+  try {
+    await fs.copy(source, tempDir);
+    await fs.remove(source);
+    await fs.move(tempDir, destination, { overwrite: false });
+    await fs.remove(tempDir);
+  } catch (error) {
+    // restore the source if the windows safe move left files in the temp dir
+    if (fs.pathExistsSync(tempDir) && !fs.pathExistsSync(source)) {
+      try {
+        await fs.copy(tempDir, source);
+        await fs.remove(tempDir);
+      } catch (err) {
+        console.error('Failed to restore collection directory to its original path:', err);
+      }
+    }
+    throw error;
+  }
+};
+
 // Recursively gets paths.
 const getPaths = async (source) => {
   let paths = [];
@@ -536,6 +567,7 @@ module.exports = {
   safeWriteFileSync,
   copyPath,
   removePath,
+  moveCollectionDirectory,
   getPaths,
   isLargeFile,
   generateUniqueName,

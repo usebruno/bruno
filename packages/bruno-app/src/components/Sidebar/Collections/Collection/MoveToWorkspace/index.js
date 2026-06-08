@@ -48,6 +48,10 @@ const MoveToWorkspace = ({ onClose, collectionUid }) => {
     return <div>Collection not found</div>;
   }
 
+  if (!activeWorkspace?.pathname) {
+    return null;
+  }
+
   // Save or discard unsaved drafts before moving
   if (drafts.length > 0) {
     return <ConfirmMoveDrafts onClose={onClose} collection={collection} collectionUid={collectionUid} />;
