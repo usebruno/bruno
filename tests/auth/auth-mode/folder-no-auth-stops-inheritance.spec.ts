@@ -13,7 +13,7 @@ import {
   sendRequest,
   typeIntoField
 } from '../../utils/page';
-import { AUTH_MODE_LABELS } from '../../../tests/utils/page/constants';
+import { AUTH_MODE_LABELS } from '../../utils/constants';
 
 test.afterEach(async ({ page }) => {
   await closeAllCollections(page);
