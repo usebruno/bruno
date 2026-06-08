@@ -94,6 +94,19 @@ const prepareRequest = async (item = {}, collection = {}) => {
       };
     }
 
+    if (collectionAuth.mode === 'edgegrid') {
+      axiosRequest.edgeGridConfig = {
+        accessToken: get(collectionAuth, 'edgegrid.accessToken'),
+        clientToken: get(collectionAuth, 'edgegrid.clientToken'),
+        clientSecret: get(collectionAuth, 'edgegrid.clientSecret'),
+        nonce: get(collectionAuth, 'edgegrid.nonce'),
+        timestamp: get(collectionAuth, 'edgegrid.timestamp'),
+        baseURL: get(collectionAuth, 'edgegrid.baseURL'),
+        headersToSign: get(collectionAuth, 'edgegrid.headersToSign'),
+        maxBodySize: get(collectionAuth, 'edgegrid.maxBodySize')
+      };
+    }
+
     if (collectionAuth.mode === 'oauth2') {
       const grantType = get(collectionAuth, 'oauth2.grantType');
 
@@ -328,6 +341,19 @@ const prepareRequest = async (item = {}, collection = {}) => {
           }
         }
       }
+    }
+
+    if (request.auth.mode === 'edgegrid') {
+      axiosRequest.edgeGridConfig = {
+        accessToken: get(request, 'auth.edgegrid.accessToken'),
+        clientToken: get(request, 'auth.edgegrid.clientToken'),
+        clientSecret: get(request, 'auth.edgegrid.clientSecret'),
+        nonce: get(request, 'auth.edgegrid.nonce'),
+        timestamp: get(request, 'auth.edgegrid.timestamp'),
+        baseURL: get(request, 'auth.edgegrid.baseURL'),
+        headersToSign: get(request, 'auth.edgegrid.headersToSign'),
+        maxBodySize: get(request, 'auth.edgegrid.maxBodySize')
+      };
     }
   }
 

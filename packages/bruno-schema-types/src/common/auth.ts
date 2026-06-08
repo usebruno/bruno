@@ -38,6 +38,17 @@ export interface AuthApiKey {
   placement?: 'header' | 'queryparams' | null;
 }
 
+export interface AuthEdgeGrid {
+  accessToken?: string | null;
+  clientToken?: string | null;
+  clientSecret?: string | null;
+  nonce?: string | null;
+  timestamp?: string | null;
+  baseURL?: string | null;
+  headersToSign?: string | null;
+  maxBodySize?: string | null;
+}
+
 export interface AuthOauth1 {
   consumerKey?: string | null;
   consumerSecret?: string | null;
@@ -110,7 +121,8 @@ export type AuthMode
     | 'oauth1'
     | 'oauth2'
     | 'wsse'
-    | 'apikey';
+    | 'apikey'
+    | 'edgegrid';
 
 export interface Auth {
   mode: AuthMode;
@@ -123,4 +135,5 @@ export interface Auth {
   oauth2?: OAuth2 | null;
   wsse?: AuthWsse | null;
   apikey?: AuthApiKey | null;
+  edgegrid?: AuthEdgeGrid | null;
 }

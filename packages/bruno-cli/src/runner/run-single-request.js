@@ -17,7 +17,7 @@ const { parseDataFromResponse } = require('../utils/common');
 const { getCookieStringForUrl, saveCookies } = require('../utils/cookies');
 const { createFormData } = require('../utils/form-data');
 const { NtlmClient } = require('axios-ntlm');
-const { addDigestInterceptor, getHttpHttpsAgents, makeAxiosInstance: makeAxiosInstanceForOauth2, applyOAuth1ToRequest } = require('@usebruno/requests');
+const { addDigestInterceptor, addEdgeGridInterceptor, getHttpHttpsAgents, makeAxiosInstance: makeAxiosInstanceForOauth2, applyOAuth1ToRequest } = require('@usebruno/requests');
 const { getCACertificates, transformProxyConfig } = require('@usebruno/requests');
 const { getOAuth2Token, getFormattedOauth2Credentials } = require('../utils/oauth2');
 const tokenStore = require('../store/tokenStore');
@@ -662,6 +662,11 @@ const runSingleRequest = async function (
       if (request.digestConfig) {
         addDigestInterceptor(axiosInstance, request);
         delete request.digestConfig;
+      }
+
+      if (request.edgeGridConfig) {
+        addEdgeGridInterceptor(axiosInstance, request);
+        delete request.edgeGridConfig;
       }
 
       /** @type {import('axios').AxiosResponse} */
