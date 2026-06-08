@@ -1,5 +1,5 @@
-import { test, expect } from '../../../playwright';
-import { openCollection, closeGenerateCodeDialog, getGeneratedSnippet, openRequestInFolder, setUrlEncoding } from '../../utils/page';
+import { expect, test } from '../../../playwright';
+import { closeGenerateCodeDialog, getGeneratedSnippet, openCollection, openRequestInFolder, setUrlEncoding } from '../../utils/page';
 
 const COLLECTION = 'generate-code-encoding';
 const FOLDER = 'requests';
@@ -12,7 +12,7 @@ test.describe('Generate Code – URL Encoding ON', () => {
       await setUrlEncoding(page, true);
 
       const snippet = await getGeneratedSnippet(page);
-      expect(snippet).toContain('http://localhost:8081/api/echo/path/api?name=John%20Doe&age=25');
+      expect(snippet).toContain('http://localhost:8081/api/echo/anything/api?name=John%20Doe&age=25');
 
       await closeGenerateCodeDialog(page);
     });
@@ -24,7 +24,7 @@ test.describe('Generate Code – URL Encoding ON', () => {
       await setUrlEncoding(page, true);
 
       const snippet = await getGeneratedSnippet(page);
-      expect(snippet).toContain('http://localhost:8081/api/echo/path/api?name=John%2520Doe&email=john%2540example.com');
+      expect(snippet).toContain('http://localhost:8081/api/echo/anything/api?name=John%2520Doe&email=john%2540example.com');
 
       await closeGenerateCodeDialog(page);
     });
@@ -35,7 +35,7 @@ test.describe('Generate Code – URL Encoding ON', () => {
       await setUrlEncoding(page, true);
 
       const snippet = await getGeneratedSnippet(page);
-      expect(snippet).toContain('http://localhost:8081/api/echo/path/api?path=%2Fusers%2F123&redirect=https%3A%2F%2Fother.com');
+      expect(snippet).toContain('http://localhost:8081/api/echo/anything/api?path=%2Fusers%2F123&redirect=https%3A%2F%2Fother.com');
 
       await closeGenerateCodeDialog(page);
     });
@@ -46,7 +46,7 @@ test.describe('Generate Code – URL Encoding ON', () => {
       await setUrlEncoding(page, true);
 
       const snippet = await getGeneratedSnippet(page);
-      expect(snippet).toContain('http://localhost:8081/api/echo/path/api?filter=status%7Cactive&sort=name%7Casc');
+      expect(snippet).toContain('http://localhost:8081/api/echo/anything/api?filter=status%7Cactive&sort=name%7Casc');
 
       await closeGenerateCodeDialog(page);
     });
@@ -57,7 +57,7 @@ test.describe('Generate Code – URL Encoding ON', () => {
       await setUrlEncoding(page, true);
 
       const snippet = await getGeneratedSnippet(page);
-      expect(snippet).toContain('http://localhost:8081/api/echo/path/api?name=Jos%C3%A9&city=M%C3%BCnchen');
+      expect(snippet).toContain('http://localhost:8081/api/echo/anything/api?name=Jos%C3%A9&city=M%C3%BCnchen');
 
       await closeGenerateCodeDialog(page);
     });
@@ -68,7 +68,7 @@ test.describe('Generate Code – URL Encoding ON', () => {
       await setUrlEncoding(page, true);
 
       const snippet = await getGeneratedSnippet(page);
-      expect(snippet).toContain('http://localhost:8081/api/echo/path/api?token=abc123%3D%3D&type=test');
+      expect(snippet).toContain('http://localhost:8081/api/echo/anything/api?token=abc123%3D%3D&type=test');
 
       await closeGenerateCodeDialog(page);
     });
@@ -79,7 +79,7 @@ test.describe('Generate Code – URL Encoding ON', () => {
       await setUrlEncoding(page, true);
 
       const snippet = await getGeneratedSnippet(page);
-      expect(snippet).toContain('http://localhost:8081/api/echo/path/invite?email=test%2Balias%40example.com');
+      expect(snippet).toContain('http://localhost:8081/api/echo/anything/invite?email=test%2Balias%40example.com');
 
       await closeGenerateCodeDialog(page);
     });
@@ -90,7 +90,7 @@ test.describe('Generate Code – URL Encoding ON', () => {
       await setUrlEncoding(page, true);
 
       const snippet = await getGeneratedSnippet(page);
-      expect(snippet).toContain('http://localhost:8081/api/echo/path/filter?tags=a%2Cb%2Cc&time=10%3A30');
+      expect(snippet).toContain('http://localhost:8081/api/echo/anything/filter?tags=a%2Cb%2Cc&time=10%3A30');
 
       await closeGenerateCodeDialog(page);
     });
@@ -108,7 +108,7 @@ test.describe('Generate Code – URL Encoding ON', () => {
 
       const snippet = await getGeneratedSnippet(page);
       expect(snippet).toContain(
-        'http://localhost:8081/api/echo/path/login?redirect=https%253A%252F%252Fother.com%252Fcb&token=abc%252520xyz'
+        'http://localhost:8081/api/echo/anything/login?redirect=https%253A%252F%252Fother.com%252Fcb&token=abc%252520xyz'
       );
 
       await closeGenerateCodeDialog(page);
@@ -124,7 +124,7 @@ test.describe('Generate Code – URL Encoding ON', () => {
       await setUrlEncoding(page, true);
 
       const snippet = await getGeneratedSnippet(page);
-      expect(snippet).toContain('http://localhost:8081/api/echo/path/api?query=aaa%23bbb');
+      expect(snippet).toContain('http://localhost:8081/api/echo/anything/api?query=aaa%23bbb');
 
       await closeGenerateCodeDialog(page);
     });
@@ -139,7 +139,7 @@ test.describe('Generate Code – URL Encoding ON', () => {
 
       const snippet = await getGeneratedSnippet(page);
       expect(snippet).toContain(
-        'http://localhost:8081/api/echo/path/api?empty=%5B%5D&nums=%5B1%2C%202%2C%203%5D&strs=%5B%22string%22%2C%20%22string%22%5D&nested=%5B%5B1%2C%202%2C%203%5D%2C%20%5B%22string%22%2C%20%22string%22%5D%5D'
+        'http://localhost:8081/api/echo/anything/api?empty=%5B%5D&nums=%5B1%2C%202%2C%203%5D&strs=%5B%22string%22%2C%20%22string%22%5D&nested=%5B%5B1%2C%202%2C%203%5D%2C%20%5B%22string%22%2C%20%22string%22%5D%5D'
       );
 
       await closeGenerateCodeDialog(page);
@@ -153,7 +153,7 @@ test.describe('Generate Code – URL Encoding ON', () => {
       await setUrlEncoding(page, true);
 
       const snippet = await getGeneratedSnippet(page);
-      expect(snippet).toContain('http://localhost:8081/api/echo/path/api/path%20with%20spaces/users');
+      expect(snippet).toContain('http://localhost:8081/api/echo/anything/api/path%20with%20spaces/users');
 
       await closeGenerateCodeDialog(page);
     });
@@ -164,7 +164,7 @@ test.describe('Generate Code – URL Encoding ON', () => {
       await setUrlEncoding(page, true);
 
       const snippet = await getGeneratedSnippet(page);
-      expect(snippet).toContain('http://localhost:8081/api/echo/path/list%5B123%5D');
+      expect(snippet).toContain('http://localhost:8081/api/echo/anything/list%5B123%5D');
 
       await closeGenerateCodeDialog(page);
     });
@@ -175,7 +175,7 @@ test.describe('Generate Code – URL Encoding ON', () => {
       await setUrlEncoding(page, true);
 
       const snippet = await getGeneratedSnippet(page);
-      expect(snippet).toContain('http://localhost:8081/api/echo/path/users/Jos%C3%A9/profile');
+      expect(snippet).toContain('http://localhost:8081/api/echo/anything/users/Jos%C3%A9/profile');
 
       await closeGenerateCodeDialog(page);
     });
@@ -190,7 +190,7 @@ test.describe('Generate Code – URL Encoding ON', () => {
       await setUrlEncoding(page, true);
 
       const snippet = await getGeneratedSnippet(page);
-      expect(snippet).toContain('http://localhost:8081/api/echo/path/api/path%20with%20spaces/users');
+      expect(snippet).toContain('http://localhost:8081/api/echo/anything/api/path%20with%20spaces/users');
 
       await closeGenerateCodeDialog(page);
     });
@@ -207,7 +207,7 @@ test.describe('Generate Code – URL Encoding ON', () => {
 
       const snippet = await getGeneratedSnippet(page);
       expect(snippet).toContain(
-        'http://localhost:8081/api/echo/path/odata/Products(123)/Categories(456)?%24expand=Items&%24filter=Price%20gt%2010'
+        'http://localhost:8081/api/echo/anything/odata/Products(123)/Categories(456)?%24expand=Items&%24filter=Price%20gt%2010'
       );
 
       await closeGenerateCodeDialog(page);
@@ -222,7 +222,7 @@ test.describe('Generate Code – URL Encoding ON', () => {
       await setUrlEncoding(page, true);
 
       const snippet = await getGeneratedSnippet(page);
-      expect(snippet).toContain('http://localhost:8081/api/echo/path/api?name=john%20doe%23section1');
+      expect(snippet).toContain('http://localhost:8081/api/echo/anything/api?name=john%20doe%23section1');
 
       await closeGenerateCodeDialog(page);
     });
@@ -238,7 +238,7 @@ test.describe('Generate Code – URL Encoding ON', () => {
       await setUrlEncoding(page, true);
 
       const snippet = await getGeneratedSnippet(page);
-      expect(snippet).toContain('http://localhost:8081/api/echo/path/hash%23tag');
+      expect(snippet).toContain('http://localhost:8081/api/echo/anything/hash%23tag');
 
       await closeGenerateCodeDialog(page);
     });
@@ -253,7 +253,7 @@ test.describe('Generate Code – URL Encoding ON', () => {
       await setUrlEncoding(page, true);
 
       const snippet = await getGeneratedSnippet(page);
-      expect(snippet).toContain('https://httpbin.org/anything/issues%231234');
+      expect(snippet).toContain('http://localhost:8081/api/echo/anything/issues%231234');
 
       await closeGenerateCodeDialog(page);
     });
@@ -267,7 +267,7 @@ test.describe('Generate Code – URL Encoding ON', () => {
       await setUrlEncoding(page, true);
 
       const snippet = await getGeneratedSnippet(page);
-      expect(snippet).toContain('https://httpbin.org/anything/spa%23/dashboard/settings');
+      expect(snippet).toContain('http://localhost:8081/api/echo/anything/spa%23/dashboard/settings');
 
       await closeGenerateCodeDialog(page);
     });
@@ -283,7 +283,7 @@ test.describe('Generate Code – URL Encoding ON', () => {
 
       const snippet = await getGeneratedSnippet(page);
       expect(snippet).toContain(
-        'https://httpbin.org/anything/callback%23access_token%3Dabc123%26token_type%3DBearer'
+        'http://localhost:8081/api/echo/anything/callback%23access_token%3Dabc123%26token_type%3DBearer'
       );
 
       await closeGenerateCodeDialog(page);
@@ -302,7 +302,7 @@ test.describe('Generate Code – URL Encoding ON', () => {
 
       const snippet = await getGeneratedSnippet(page);
       expect(snippet).toContain(
-        'http://localhost:8081/api/echo/path/odata/Category(\'category123\')/Item(item456)/foobar/Tags(%22tag%20test%22)'
+        'http://localhost:8081/api/echo/anything/odata/Category(\'category123\')/Item(item456)/foobar/Tags(%22tag%20test%22)'
       );
 
       await closeGenerateCodeDialog(page);
@@ -316,7 +316,7 @@ test.describe('Generate Code – URL Encoding ON', () => {
 
       const snippet = await getGeneratedSnippet(page);
       expect(snippet).not.toBe('Error generating code snippet');
-      expect(snippet).toContain('http://localhost:8081/api/echo/path/users/aaa%20bbb');
+      expect(snippet).toContain('http://localhost:8081/api/echo/anything/users/aaa%20bbb');
 
       await closeGenerateCodeDialog(page);
     });
@@ -332,7 +332,7 @@ test.describe('Generate Code – URL Encoding ON', () => {
       await setUrlEncoding(page, true);
 
       const snippet = await getGeneratedSnippet(page);
-      expect(snippet).toContain('http://localhost:8081/api/echo/path/users/john%23doe/profile');
+      expect(snippet).toContain('http://localhost:8081/api/echo/anything/users/john%23doe/profile');
 
       await closeGenerateCodeDialog(page);
     });
@@ -349,23 +349,23 @@ test.describe('Generate Code – URL Encoding ON', () => {
     // what the snippet *actually* contains today (a regression canary), not
     // what an ideal encoder would produce.
     const pathParamCases: Array<{ name: string; file: string; expected: string }> = [
-      { name: '/ in value (slash splits into two segments)', file: 'path-param-slash', expected: 'http://localhost:8081/api/echo/path/users/aaa/bbb' },
+      { name: '/ in value (slash splits into two segments)', file: 'path-param-slash', expected: 'http://localhost:8081/api/echo/anything/users/aaa/bbb' },
       // # in value: encodeUrl now treats `#` as data, so the snippet should
       // contain `%23bbb`. Path-only URL means the substitution lands in the
       // path-encoding stream (encodePathSegments) which encodes `#` to %23.
-      { name: '# in value (encoded as %23 — Option C)', file: 'path-param-hash', expected: 'http://localhost:8081/api/echo/path/users/aaa%23bbb' },
-      { name: 'space in value (John Doe → John%20Doe)', file: 'path-param-space', expected: 'http://localhost:8081/api/echo/path/users/John%20Doe' },
-      { name: '& in value (a&b → a%26b)', file: 'path-param-ampersand', expected: 'http://localhost:8081/api/echo/path/users/a%26b' },
-      { name: '= in value (a=b → a%3Db)', file: 'path-param-equals', expected: 'http://localhost:8081/api/echo/path/users/a%3Db' },
-      { name: '+ in value (a+b → a%2Bb)', file: 'path-param-plus', expected: 'http://localhost:8081/api/echo/path/users/a%2Bb' },
-      { name: '? in value (becomes query separator — literal lost)', file: 'path-param-question', expected: 'http://localhost:8081/api/echo/path/users/a?b' },
-      { name: '@ in value (user@host → user%40host)', file: 'path-param-at', expected: 'http://localhost:8081/api/echo/path/users/user%40host' },
-      { name: ': in value (ISO timestamp → 10%3A30%3A00)', file: 'path-param-colon', expected: 'http://localhost:8081/api/echo/path/users/2026-01-15T10%3A30%3A00' },
-      { name: ', in value (a,b,c → a%2Cb%2Cc)', file: 'path-param-comma', expected: 'http://localhost:8081/api/echo/path/users/a%2Cb%2Cc' },
-      { name: 'unicode in value (José → Jos%C3%A9)', file: 'path-param-unicode', expected: 'http://localhost:8081/api/echo/path/users/Jos%C3%A9' },
-      { name: '[ ] in value (list[1] → list%5B1%5D)', file: 'path-param-brackets', expected: 'http://localhost:8081/api/echo/path/users/list%5B1%5D' },
-      { name: '{ } in value ({x} → %7Bx%7D)', file: 'path-param-braces', expected: 'http://localhost:8081/api/echo/path/users/%7Bx%7D' },
-      { name: '| in value (a|b → a%7Cb)', file: 'path-param-pipe', expected: 'http://localhost:8081/api/echo/path/users/a%7Cb' }
+      { name: '# in value (encoded as %23 — Option C)', file: 'path-param-hash', expected: 'http://localhost:8081/api/echo/anything/users/aaa%23bbb' },
+      { name: 'space in value (John Doe → John%20Doe)', file: 'path-param-space', expected: 'http://localhost:8081/api/echo/anything/users/John%20Doe' },
+      { name: '& in value (a&b → a%26b)', file: 'path-param-ampersand', expected: 'http://localhost:8081/api/echo/anything/users/a%26b' },
+      { name: '= in value (a=b → a%3Db)', file: 'path-param-equals', expected: 'http://localhost:8081/api/echo/anything/users/a%3Db' },
+      { name: '+ in value (a+b → a%2Bb)', file: 'path-param-plus', expected: 'http://localhost:8081/api/echo/anything/users/a%2Bb' },
+      { name: '? in value (becomes query separator — literal lost)', file: 'path-param-question', expected: 'http://localhost:8081/api/echo/anything/users/a?b' },
+      { name: '@ in value (user@host → user%40host)', file: 'path-param-at', expected: 'http://localhost:8081/api/echo/anything/users/user%40host' },
+      { name: ': in value (ISO timestamp → 10%3A30%3A00)', file: 'path-param-colon', expected: 'http://localhost:8081/api/echo/anything/users/2026-01-15T10%3A30%3A00' },
+      { name: ', in value (a,b,c → a%2Cb%2Cc)', file: 'path-param-comma', expected: 'http://localhost:8081/api/echo/anything/users/a%2Cb%2Cc' },
+      { name: 'unicode in value (José → Jos%C3%A9)', file: 'path-param-unicode', expected: 'http://localhost:8081/api/echo/anything/users/Jos%C3%A9' },
+      { name: '[ ] in value (list[1] → list%5B1%5D)', file: 'path-param-brackets', expected: 'http://localhost:8081/api/echo/anything/users/list%5B1%5D' },
+      { name: '{ } in value ({x} → %7Bx%7D)', file: 'path-param-braces', expected: 'http://localhost:8081/api/echo/anything/users/%7Bx%7D' },
+      { name: '| in value (a|b → a%7Cb)', file: 'path-param-pipe', expected: 'http://localhost:8081/api/echo/anything/users/a%7Cb' }
     ];
 
     for (const c of pathParamCases) {
