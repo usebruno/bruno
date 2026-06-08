@@ -455,6 +455,7 @@ const Collection = ({ collection, searchText }) => {
             id: 'move-to-workspace',
             leftSection: IconFileArrowRight,
             label: 'Move into Workspace',
+            testId: 'move-collection-to-workspace',
             onClick: () => {
               setShowMoveToWorkspaceModal(true);
             }

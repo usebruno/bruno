@@ -5,6 +5,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { moveCollectionToWorkspace } from 'providers/ReduxStore/slices/collections/actions';
 import { findCollectionByUid, flattenItems, isItemARequest, hasRequestChanges } from 'utils/collections/index';
 import filter from 'lodash/filter';
+import brunoPath from 'utils/common/path';
 import ConfirmMoveDrafts from './ConfirmMoveDrafts';
 import StyledWrapper from './StyledWrapper';
 
@@ -57,7 +58,7 @@ const MoveToWorkspace = ({ onClose, collectionUid }) => {
     return <ConfirmMoveDrafts onClose={onClose} collection={collection} collectionUid={collectionUid} />;
   }
 
-  const targetLocation = `${activeWorkspace.pathname}/collections`;
+  const targetLocation = brunoPath.join(activeWorkspace.pathname, 'collections');
 
   return (
     <StyledWrapper>

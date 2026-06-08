@@ -171,6 +171,7 @@ const ConfirmMoveDrafts = ({ onClose, collection, collectionUid }) => {
                   >
                     <span className="text-sm transient-item-name truncate mr-3">{item.name}</span>
                     <Button
+                      data-testid="move-workspace-save-transient-draft"
                       color="primary"
                       variant="ghost"
                       size="sm"
@@ -189,15 +190,16 @@ const ConfirmMoveDrafts = ({ onClose, collection, collectionUid }) => {
 
         <div className="flex justify-between mt-6">
           <div>
-            <Button color="danger" onClick={handleDiscardAll} disabled={isMoving}>
+            <Button data-testid="move-workspace-discard-all" color="danger" onClick={handleDiscardAll} disabled={isMoving}>
               Discard All and Move
             </Button>
           </div>
           <div>
-            <Button className="mr-2" color="secondary" variant="ghost" onClick={onClose} disabled={isMoving}>
+            <Button data-testid="move-workspace-cancel" className="mr-2" color="secondary" variant="ghost" onClick={onClose} disabled={isMoving}>
               Cancel
             </Button>
             <Button
+              data-testid="move-workspace-save-and-move"
               onClick={handleSaveAll}
               disabled={currentTransientDrafts.length > 0 || isMoving}
               title={currentTransientDrafts.length > 0 ? 'Please save or discard transient requests first' : ''}
