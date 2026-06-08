@@ -36,6 +36,7 @@ const { isRequestTagsIncluded } = require('@usebruno/common');
 const { cookiesStore } = require('../../store/cookies');
 const registerGrpcEventHandlers = require('./grpc-event-handlers');
 const { registerWsEventHandlers } = require('./ws-event-handlers');
+const { registerAmqpEventHandlers } = require('./amqp-event-handlers');
 const { getCertsAndProxyConfig, buildCertsAndProxyConfig } = require('./cert-utils');
 const { easterEggResponse } = require('../../utils/woof');
 const { buildFormUrlEncodedPayload, isFormData, extractBoundaryFromContentType } = require('@usebruno/common').utils;
@@ -759,8 +760,9 @@ const registerNetworkIpc = (mainWindow) => {
         if (_item) {
           // WS/gRPC items live on separate IPC channels and can't be driven via
           // the HTTP runRequest. Record a Skipped row so the user sees feedback.
-          if (_item.type === 'ws-request' || _item.type === 'grpc-request') {
-            const protocolLabel = _item.type === 'ws-request' ? 'WebSocket' : 'gRPC';
+          if (_item.type === 'ws-request' || _item.type === 'grpc-request' || _item.type === 'amqp-request') {
+            const protocolLabels = { 'ws-request': 'WebSocket', 'grpc-request': 'gRPC', 'amqp-request': 'AMQP' };
+            const protocolLabel = protocolLabels[_item.type] || _item.type;
             const startedAt = Date.now();
             callerBru?._recordScriptedRequest?.({
               source: 'runRequest',
@@ -1458,8 +1460,9 @@ const registerNetworkIpc = (mainWindow) => {
           if (_item) {
             // WS/gRPC items live on separate IPC channels and can't be driven via
             // the HTTP runRequest. Record a Skipped row so the user sees feedback.
-            if (_item.type === 'ws-request' || _item.type === 'grpc-request') {
-              const protocolLabel = _item.type === 'ws-request' ? 'WebSocket' : 'gRPC';
+            if (_item.type === 'ws-request' || _item.type === 'grpc-request' || _item.type === 'amqp-request') {
+              const protocolLabels2 = { 'ws-request': 'WebSocket', 'grpc-request': 'gRPC', 'amqp-request': 'AMQP' };
+              const protocolLabel = protocolLabels2[_item.type] || _item.type;
               const startedAt = Date.now();
               callerBru?._recordScriptedRequest?.({
                 source: 'runRequest',
@@ -2273,6 +2276,7 @@ const registerAllNetworkIpc = (mainWindow) => {
   registerNetworkIpc(mainWindow);
   registerGrpcEventHandlers(mainWindow);
   registerWsEventHandlers(mainWindow);
+  registerAmqpEventHandlers(mainWindow);
 };
 
 module.exports = registerAllNetworkIpc;
