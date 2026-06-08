@@ -10,7 +10,8 @@ export type ItemType
     | 'js'
     | 'app'
     | 'grpc-request'
-    | 'ws-request';
+    | 'ws-request'
+    | 'amqp-request';
 
 export interface HttpItemSettings {
   encodeUrl?: boolean | null;
@@ -26,7 +27,16 @@ export interface WebSocketItemSettings {
   } | null;
 }
 
-export type ItemSettings = HttpItemSettings | WebSocketItemSettings | null;
+export interface AmqpItemSettings {
+  settings?: {
+    timeout?: number | null;
+    heartbeat?: number | null;
+    prefetch?: number | null;
+    vhost?: string | null;
+  } | null;
+}
+
+export type ItemSettings = HttpItemSettings | WebSocketItemSettings | AmqpItemSettings | null;
 
 export interface App {
   code?: string | null;

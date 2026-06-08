@@ -1,7 +1,7 @@
 import * as YAML from 'yaml';
 
 // Top-level keys that should have a blank line before them
-const BLOCK_KEYS = ['info', 'http', 'graphql', 'grpc', 'websocket', 'runtime', 'settings', 'examples', 'docs', 'items', 'request'];
+const BLOCK_KEYS = ['info', 'http', 'graphql', 'grpc', 'websocket', 'amqp', 'runtime', 'settings', 'examples', 'docs', 'items', 'request'];
 
 export const stringifyYml = (obj: any): string => {
   const yamlStr = YAML.stringify(obj, {
