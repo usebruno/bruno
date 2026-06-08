@@ -1,9 +1,9 @@
-import get from 'lodash/get';
-import { validateSchema, transformItemsInCollection, hydrateSeqInCollection, uuid } from '../common';
 import { transformExampleStatusInCollection } from '@usebruno/common';
 import each from 'lodash/each';
-import postmanTranslation from './postman-translations';
+import get from 'lodash/get';
+import { hydrateSeqInCollection, transformItemsInCollection, uuid, validateSchema } from '../common';
 import { invalidVariableCharacterRegex } from '../constants/index';
+import postmanTranslation from './postman-translations';
 
 const AUTH_TYPES = Object.freeze({
   BASIC: 'basic',
@@ -13,6 +13,7 @@ const AUTH_TYPES = Object.freeze({
   DIGEST: 'digest',
   OAUTH1: 'oauth1',
   OAUTH2: 'oauth2',
+  EDGEGRID: 'edgegrid',
   NOAUTH: 'noauth',
   NONE: 'none'
 });
@@ -274,6 +275,18 @@ export const processAuth = (auth, requestObject, isCollection = false) => {
       requestObject.auth.digest = {
         username: ensureString(authValues.username),
         password: ensureString(authValues.password)
+      };
+      break;
+    case AUTH_TYPES.EDGEGRID:
+      requestObject.auth.edgegrid = {
+        accessToken: ensureString(authValues.accessToken),
+        clientToken: ensureString(authValues.clientToken),
+        clientSecret: ensureString(authValues.clientSecret),
+        nonce: ensureString(authValues.nonce),
+        timestamp: ensureString(authValues.timestamp),
+        baseURL: ensureString(authValues.baseURL),
+        headersToSign: ensureString(authValues.headersToSign),
+        maxBodySize: ensureString(authValues.maxBodySize)
       };
       break;
     case AUTH_TYPES.OAUTH1:
