@@ -71,38 +71,39 @@ const runAndValidate = async (page, collectionName: string) => {
 };
 
 /**
- * After sending a request, switch to the Timeline tab, expand the latest timeline item,
- * and return locators for the request URL and headers section.
+ * After sending a request, switch to the Timeline tab, expand the latest timeline row,
+ * and return its locator. The expanded detail panel defaults to the Request tab,
+ * which shows the sent URL, headers and body (what OAuth1 placement assertions need).
  */
 const openTimelineRequest = async (page) => {
   await selectResponsePaneTab(page, 'Timeline');
 
-  // Click the first (latest) timeline item header to expand it
-  const timelineItem = page.locator('.timeline-item').first();
-  await timelineItem.locator('.oauth-request-item-header').click();
+  const row = page.locator('.timeline-container .tl-row-wrap').first();
+  await row.locator('.tl-row').click();
 
-  return timelineItem;
+  return row;
 };
 
 const verifyPlacement = async (page, collectionName: string, requestName: string, placement: 'header' | 'query' | 'body') => {
   await openRequest(page, collectionName, requestName);
   await sendRequestAndWaitForResponse(page, 200);
 
-  const timelineItem = await openTimelineRequest(page);
-  const content = timelineItem.locator('.timeline-item-content');
+  const row = await openTimelineRequest(page);
+  const detail = row.locator('.tl-detail');
 
   if (placement === 'header') {
-    await expect(content).toContainText('Authorization');
-    await expect(content).toContainText('OAuth');
+    const headers = detail.locator('.tl-headers-table');
+    await expect(headers).toContainText('Authorization');
+    await expect(headers).toContainText('OAuth');
   } else if (placement === 'query') {
-    const urlPre = content.locator('pre').first();
-    await expect(urlPre).toContainText('oauth_consumer_key');
+    await expect(detail.locator('.tl-header-url-text')).toContainText('oauth_consumer_key');
   } else {
     // Body: oauth params should be in the request body, not in URL or Authorization header
-    const urlPre = content.locator('pre').first();
-    await expect(urlPre).not.toContainText('oauth_consumer_key');
-    // Body section is expanded by default — verify oauth params are in the body
-    await expect(content.locator('.collapsible-section').filter({ hasText: 'Body' })).toContainText('oauth_consumer_key');
+    await expect(detail.locator('.tl-header-url-text')).not.toContainText('oauth_consumer_key');
+    const body = detail.locator('.tl-block').filter({
+      has: page.locator('.tl-block-h', { hasText: 'Body' })
+    });
+    await expect(body).toContainText('oauth_consumer_key');
   }
 };
 

@@ -3,11 +3,11 @@ import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import debounce from 'lodash/debounce';
 import toast from 'react-hot-toast';
-import { savePreferences } from 'providers/ReduxStore/slices/app';
+import { savePreferences, refreshPacCache } from 'providers/ReduxStore/slices/app';
 
 import StyledWrapper from './StyledWrapper';
 import { useDispatch, useSelector } from 'react-redux';
-import { IconEye, IconEyeOff } from '@tabler/icons';
+import { IconEye, IconEyeOff, IconRefresh } from '@tabler/icons';
 import { useState } from 'react';
 import SystemProxy from './SystemProxy';
 
@@ -102,6 +102,12 @@ const ProxySettings = ({ close }) => {
     }, 500),
     []
   );
+
+  const handleRefreshPac = () => {
+    dispatch(refreshPacCache())
+      .then(() => toast.success('PAC cache refreshed'))
+      .catch(() => toast.error('Failed to refresh PAC cache'));
+  };
 
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [proxyMode, setProxyMode] = useState(() => {
@@ -451,6 +457,15 @@ const ProxySettings = ({ close }) => {
                   ? 'Enter the URL to your PAC file'
                   : 'Supports .pac files for automatic proxy configuration'}
               </p>
+              {formik.values.pac.source ? (
+                <span
+                  className="text-link cursor-pointer hover:underline flex flex-row items-center w-fit mt-2"
+                  onClick={handleRefreshPac}
+                >
+                  <IconRefresh size={14} strokeWidth={1.5} className="mr-1" />
+                  Refetch
+                </span>
+              ) : null}
             </div>
           </>
         ) : null}

@@ -94,7 +94,20 @@ export const buildCommonLocators = (page: Page) => ({
     apiKey: {
       placementSelector: () => page.getByTestId('auth-placement-selector'),
       placementLabel: () => page.getByTestId('auth-placement-label')
-    }
+    },
+    oauth2: {
+      grantTypeDropdown: () => page.getByTestId('grant-type-dropdown')
+    },
+    modeSelector: () => page.getByTestId('auth-mode-selector'),
+    modeLabel: () => page.getByTestId('auth-mode-label'),
+    inheritedMode: () => page.getByTestId('inherited-auth-mode'),
+    dropdownItem: (id: string) => page.getByTestId(`auth-mode-dropdown-${id}`)
+  },
+  presets: {
+    requestType: (type: 'http' | 'graphql' | 'grpc' | 'ws') =>
+      page.getByTestId(`presets-request-type-${type}`),
+    requestUrl: () => page.getByTestId('presets-request-url'),
+    save: () => page.getByTestId('presets-save-btn')
   },
   tags: {
     input: () => page.getByTestId('tag-input').getByRole('textbox'),
@@ -115,6 +128,12 @@ export const buildCommonLocators = (page: Page) => ({
     previewContainerCodeMirror: () => page.getByTestId('response-preview-container').locator('.CodeMirror').first(),
     codeLine: () => page.locator('.response-pane .editor-container .CodeMirror-line'),
     jsonTreeLine: () => page.locator('.response-pane .object-content')
+  },
+  timeline: {
+    items: () => page.locator('.timeline-item'),
+    lastItem: () => page.locator('.timeline-item').last(),
+    itemHeader: (item: Locator) => item.locator('.oauth-request-item-header'),
+    clearButton: () => page.getByRole('button', { name: 'Clear Timeline' })
   },
   plusMenu: {
     button: () => page.getByTestId('collections-header-add-menu'),

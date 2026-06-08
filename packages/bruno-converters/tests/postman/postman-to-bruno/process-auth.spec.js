@@ -420,6 +420,40 @@ describe('processAuth', () => {
     });
   });
 
+  it('should handle oauth2 auth with implicit grant type', () => {
+    const auth = {
+      type: 'oauth2',
+      oauth2: {
+        grant_type: 'implicit',
+        authUrl: 'https://auth.example.com',
+        redirect_uri: 'https://callback.example.com',
+        accessTokenUrl: 'https://token.example.com',
+        refreshTokenUrl: 'https://refresh.example.com',
+        clientId: 'test-client-id',
+        clientSecret: 'test-client-secret',
+        scope: 'test-scope',
+        state: 'test-state',
+        addTokenTo: 'header',
+        client_authentication: 'body'
+      }
+    };
+    processAuth(auth, requestObject);
+    expect(requestObject.auth.mode).toBe('oauth2');
+    expect(requestObject.auth.oauth2).toEqual({
+      grantType: 'implicit',
+      authorizationUrl: 'https://auth.example.com',
+      callbackUrl: 'https://callback.example.com',
+      accessTokenUrl: 'https://token.example.com',
+      refreshTokenUrl: 'https://refresh.example.com',
+      clientId: 'test-client-id',
+      clientSecret: 'test-client-secret',
+      scope: 'test-scope',
+      state: 'test-state',
+      tokenPlacement: 'header',
+      credentialsPlacement: 'body'
+    });
+  });
+
   it('should handle auth object with undefined type', () => {
     const auth = {};
     processAuth(auth, requestObject);
