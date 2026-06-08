@@ -1,0 +1,13 @@
+opencollection: '1.0.0'
+
+info:
+  name: edgegrid-testbench-yml
+
+request:
+  auth:
+    type: edgegrid
+    accessToken: akab-access-token-bruno-test
+    clientToken: akab-client-token-bruno-test
+    clientSecret: dGVzdC1jbGllbnQtc2VjcmV0LWZvci1icnVuby1lZGdlZ3JpZA==
+
+bundled: false
