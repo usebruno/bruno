@@ -12,10 +12,7 @@ function normalizeJunitReport(xmlContent: string): string {
     // Replace execution times with fixed value
     .replace(/time="[^"]*"/g, 'time="0.100"')
     // Replace file paths with normalized path
-    .replace(/file="[^"]*[\\/][^"]*"/g, 'file="/mock/path/to/file.bru"')
-    // classname is the request's relative path within the collection (stable across
-    // environments); only normalize the path separator so snapshots match on all platforms
-    .replace(/classname="([^"]*)"/g, (_match, value) => `classname="${value.replace(/\\/g, '/')}"`);
+    .replace(/file="[^"]*[\\/][^"]*"/g, 'file="/mock/path/to/file.bru"');
 }
 
 test.describe('Collection Run Report Tests', () => {
