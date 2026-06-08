@@ -107,7 +107,7 @@ export const buildCommonLocators = (page: Page) => ({
     requestType: (type: 'http' | 'graphql' | 'grpc' | 'ws') =>
       page.getByTestId(`presets-request-type-${type}`),
     requestUrl: () => page.getByTestId('presets-request-url'),
-    save: () => page.getByTestId('presets-save')
+    save: () => page.getByTestId('presets-save-btn')
   },
   tags: {
     input: () => page.getByTestId('tag-input').getByRole('textbox'),
