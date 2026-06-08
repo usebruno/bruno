@@ -1,0 +1,31 @@
+meta {
+  name: Test Cross Origin Redirect Strips Auth
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{localhost}}/api/redirect/cross-origin
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer test-secret
+}
+
+assert {
+  res.status: 200
+}
+
+tests {
+  test("should strip authorization header on cross-origin redirect", function() {
+    const headers = res.getBody();
+    expect(headers).to.not.have.property('authorization');
+  });
+}
+
+settings {
+  followRedirects: true
+  maxRedirects: 5
+}

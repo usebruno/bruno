@@ -1,0 +1,32 @@
+meta {
+  name: Test Same Origin Redirect Preserves Auth
+  type: http
+  seq: 7
+}
+
+get {
+  url: {{localhost}}/redirect-to-headers
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer test-secret
+}
+
+assert {
+  res.status: 200
+}
+
+tests {
+  test("should preserve authorization header on same-origin redirect", function() {
+    const headers = res.getBody();
+    expect(headers).to.have.property('authorization');
+    expect(headers.authorization).to.equal('Bearer test-secret');
+  });
+}
+
+settings {
+  followRedirects: true
+  maxRedirects: 5
+}
