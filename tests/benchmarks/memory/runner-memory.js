@@ -41,12 +41,6 @@ const { loader } = require(path.join(BRUNO_JS, 'src/sandbox/quickjs'));
 
 const MB = 1024 * 1024;
 
-// Each scenario sends the SAME request `iterations` times through a real bruno-js
-// runtime. `maxExternalGrowthMB` is the hard regression threshold on WASM memory.
-// Post-fix external growth is ~0 MB; the pre-fix leak was +31 MB (assertions/300)
-// and +690 MB (scripts/300), so these thresholds catch a reintroduced leak with
-// wide margin while tolerating normal warmup/noise. The 500-run thresholds scale
-// from the 300-run limits (~25 MB at 300 -> 40 MB at 500).
 const SCENARIOS = [
   { key: 'quickjs-scripts-100', mode: 'script', iterations: 100, maxExternalGrowthMB: 15 },
   { key: 'quickjs-scripts-500', mode: 'script', iterations: 500, maxExternalGrowthMB: 40 },

@@ -23,9 +23,19 @@ const path = require('path');
 const MODE = process.env.MODE || 'assert';
 const ITERATIONS = Number(process.env.ITERATIONS || 300);
 const SAMPLE_EVERY = Number(process.env.SAMPLE_EVERY || 50);
+
+if (!Number.isInteger(SAMPLE_EVERY) || SAMPLE_EVERY <= 0) {
+  throw new Error('SAMPLE_EVERY must be a positive integer');
+}
+
+if (!Number.isInteger(ITERATIONS) || ITERATIONS <= 0) {
+  throw new Error('ITERATIONS must be a positive integer');
+}
+
 // WASM linear memory is capped at 2 GB; leave headroom so we stop cleanly.
 const WASM_MEMORY_LIMIT = Number(process.env.WASM_LIMIT_MB || 1900) * 1024 * 1024;
 
+const os = require('os');
 const MB = 1024 * 1024;
 const mb = (n) => (n / MB).toFixed(1);
 const kb = (n) => (n / 1024).toFixed(1);
@@ -77,7 +87,7 @@ async function runScript(i) {
   // A trivial post-response script. The leak is in the VM lifecycle, not the script body.
   await scriptRuntime.runResponseScript(
     `bru.setVar('i', ${i}); test('ok', () => { expect(res.status).to.equal(200); });`,
-    { method: 'GET', url: 'http://localhost/', headers: {}, pathname: '/tmp/req.bru' },
+    { method: 'GET', url: 'http://localhost/', headers: {}, pathname: path.join(os.tmpdir(), 'req.bru') },
     { status: 200, statusText: 'OK', data: { id: i }, headers: {} },
     {}, {}, process.cwd(), null, process.env, {}, null, 'profile'
   );
