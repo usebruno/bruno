@@ -1118,13 +1118,14 @@ const addMultipartFileToLastRow = async (page: Page, electronApp: ElectronApplic
     await mockBrowseFiles(electronApp, [filePath]);
 
     const table = buildCommonLocators(page).table('editable-table');
-    const lastRow = table.allRows().last();
+    const rowIndex = (await table.allRows().count()) - 1;
+    const targetRow = table.allRows().nth(rowIndex);
 
-    await expect(lastRow.locator('.upload-btn')).toBeVisible();
-    await lastRow.locator('.upload-btn').click();
-    await expect(lastRow.locator('.file-value-cell')).toBeVisible();
-    const inlineChip = lastRow.getByTestId('multipart-file-chip').filter({ hasText: path.basename(filePath) });
-    const summary = lastRow.getByTestId('multipart-file-summary');
+    await expect(targetRow.locator('.upload-btn')).toBeVisible();
+    await targetRow.locator('.upload-btn').click();
+    await expect(targetRow.locator('.file-value-cell')).toBeVisible();
+    const inlineChip = targetRow.getByTestId('multipart-file-chip').filter({ hasText: path.basename(filePath) });
+    const summary = targetRow.getByTestId('multipart-file-summary');
     await expect(inlineChip.or(summary)).toBeVisible();
   });
 };
