@@ -130,9 +130,9 @@ export const buildCommonLocators = (page: Page) => ({
     jsonTreeLine: () => page.locator('.response-pane .object-content')
   },
   timeline: {
-    items: () => page.locator('.timeline-item'),
-    lastItem: () => page.locator('.timeline-item').last(),
-    itemHeader: (item: Locator) => item.locator('.oauth-request-item-header'),
+    items: () => page.getByTestId('timeline-item'),
+    lastItem: () => page.getByTestId('timeline-item').last(),
+    itemHeader: (item: Locator) => item.getByTestId('timeline-item-header'),
     clearButton: () => page.getByRole('button', { name: 'Clear Timeline' })
   },
   plusMenu: {

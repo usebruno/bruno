@@ -62,7 +62,7 @@ test('Request inherits No Auth from the folder — collection Bearer Token is ov
   });
 
   await test.step('Verify the response status code is 401 Unauthorized', async () => {
-    await expect(locators.response.statusCode()).toContainText('401');
+    await expect(locators.response.statusCode()).toContainText('401 Unauthorized');
   });
 
   await test.step('Open the latest timeline entry and verify no Authorization header was sent', async () => {
