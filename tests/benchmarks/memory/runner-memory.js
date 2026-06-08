@@ -15,7 +15,7 @@
  * It drives the SAME bruno-js code paths the runner uses — the async response
  * script path (ScriptRuntime -> executeQuickJsVmAsync) and the sync assertion
  * path (AssertRuntime -> executeQuickJsVm) — sending the same request N times
- * (100 and 300), then reports memory growth with GC forced at start and end.
+ * (100 and 500), then reports memory growth with GC forced at start and end.
  *
  * The primary, low-noise signal is EXTERNAL (WASM) memory growth: with the leak
  * present it grows by tens to hundreds of MB; once fixed it stays flat. RSS is
@@ -45,12 +45,13 @@ const MB = 1024 * 1024;
 // runtime. `maxExternalGrowthMB` is the hard regression threshold on WASM memory.
 // Post-fix external growth is ~0 MB; the pre-fix leak was +31 MB (assertions/300)
 // and +690 MB (scripts/300), so these thresholds catch a reintroduced leak with
-// wide margin while tolerating normal warmup/noise.
+// wide margin while tolerating normal warmup/noise. The 500-run thresholds scale
+// from the 300-run limits (~25 MB at 300 -> 40 MB at 500).
 const SCENARIOS = [
   { key: 'quickjs-scripts-100', mode: 'script', iterations: 100, maxExternalGrowthMB: 15 },
-  { key: 'quickjs-scripts-300', mode: 'script', iterations: 300, maxExternalGrowthMB: 25 },
+  { key: 'quickjs-scripts-500', mode: 'script', iterations: 500, maxExternalGrowthMB: 40 },
   { key: 'quickjs-assertions-100', mode: 'assert', iterations: 100, maxExternalGrowthMB: 15 },
-  { key: 'quickjs-assertions-300', mode: 'assert', iterations: 300, maxExternalGrowthMB: 25 }
+  { key: 'quickjs-assertions-500', mode: 'assert', iterations: 500, maxExternalGrowthMB: 40 }
 ];
 
 const baseRequest = { method: 'GET', url: 'http://localhost/', headers: {}, pathname: '/tmp/req.bru' };
