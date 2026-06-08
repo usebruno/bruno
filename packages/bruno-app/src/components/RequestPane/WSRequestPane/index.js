@@ -20,6 +20,8 @@ import StyledWrapper from './StyledWrapper';
 import WSAuth from './WSAuth';
 import WSAuthMode from './WSAuth/WSAuthMode';
 import WSSettingsPane from '../WSSettingsPane/index';
+import { hasEffectiveAuth } from 'utils/auth';
+import { AUTH_MODES_WS } from 'utils/common/constants';
 
 const WSRequestPane = ({ item, collection, handleRun }) => {
   const dispatch = useDispatch();
@@ -102,8 +104,11 @@ const WSRequestPane = ({ item, collection, handleRun }) => {
 
   const headers = getPropertyFromDraftOrRequest(item, 'request.headers');
   const docs = getPropertyFromDraftOrRequest(item, 'request.docs');
-  const auth = getPropertyFromDraftOrRequest(item, 'request.auth');
-
+  const itemAuthMode = item.draft?.request?.auth?.mode ?? item.request?.auth?.mode ?? item.root?.request?.auth?.mode;
+  const hasAuth = useMemo(
+    () => hasEffectiveAuth(collection, item, AUTH_MODES_WS),
+    [item, itemAuthMode, collection]
+  );
   const activeHeadersLength = headers.filter((header) => header.enabled).length;
 
   const allTabs = useMemo(() => {
@@ -121,7 +126,7 @@ const WSRequestPane = ({ item, collection, handleRun }) => {
       {
         key: 'auth',
         label: 'Auth',
-        indicator: auth.mode !== 'none' ? <StatusDot type="default" /> : null
+        indicator: hasAuth ? <StatusDot type="default" dataTestId="auth" /> : null
       },
       {
         key: 'settings',
@@ -134,7 +139,7 @@ const WSRequestPane = ({ item, collection, handleRun }) => {
         indicator: docs && docs.length > 0 ? <StatusDot type="default" /> : null
       }
     ];
-  }, [activeHeadersLength, auth.mode, docs]);
+  }, [activeHeadersLength, hasAuth, docs]);
 
   const tabPanel = useMemo(() => {
     switch (requestPaneTab) {

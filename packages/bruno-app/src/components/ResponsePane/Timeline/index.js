@@ -53,7 +53,12 @@ const Timeline = ({ collection, item }) => {
   useTrackScroll({ ref: wrapperRef, selector: null, onChange: setScroll, initialValue: scroll });
   const [activeFilter, setActiveFilter] = useState('all');
 
-  const authSource = getEffectiveAuthSource(collection, item);
+  // Get the effective auth source if auth mode is inherit
+  const itemAuthMode = item.draft?.request?.auth?.mode ?? item.request?.auth?.mode ?? item.root?.request?.auth?.mode;
+  const authSource = useMemo(
+    () => getEffectiveAuthSource(collection, item),
+    [item, itemAuthMode, collection]
+  );
   const isGrpcRequest = item.type === 'grpc-request' || item.type === 'ws-request';
 
   const entries = useMemo(
