@@ -139,7 +139,7 @@ export const buildHarRequest = ({ request, headers }) => {
   }
 
   return {
-    method: request.method,
+    method: request.method.toUpperCase(),
     url: request.url,
     httpVersion: 'HTTP/1.1',
     cookies: [],
