@@ -1,9 +1,11 @@
 import { test, expect, Page, ElectronApplication, waitForReadyPage as waitForReadyPageImpl } from '../../../playwright';
 import process from 'node:process';
 import * as path from 'path';
-import { buildCommonLocators, buildScriptErrorLocators } from './locators';
+import { buildCommonLocators, buildScriptErrorLocators, buildGrpcCommonLocators } from './locators';
 
 type SandboxMode = 'safe' | 'developer';
+
+type CollectionFormat = 'bru' | 'yml';
 
 type WaitForAppReadyOptions = {
   timeout?: number;
@@ -101,7 +103,7 @@ const createCollection = async (
   page,
   collectionName: string,
   collectionLocation: string,
-  format: 'bru' | 'yml' = 'yml'
+  format: CollectionFormat = 'yml'
 ) => {
   await test.step(`Create ${format} collection "${collectionName}"`, async () => {
     await page.getByTestId('collections-header-add-menu').click();
@@ -1341,7 +1343,8 @@ const saveRequest = async (page: Page) => {
  */
 const addGrpcMessage = async (page: Page) => {
   await test.step('Add gRPC message', async () => {
-    await page.getByTestId('grpc-add-message-button').click();
+    const locators = buildGrpcCommonLocators(page);
+    await locators.request.addMessageButton().click();
   });
 };
 
@@ -1352,7 +1355,8 @@ const addGrpcMessage = async (page: Page) => {
  */
 const generateGrpcSampleMessage = async (page: Page, index: number = 0) => {
   await test.step(`Generate sample for gRPC message #${index}`, async () => {
-    await page.getByTestId(`grpc-regenerate-message-${index}`).click();
+    const locators = buildGrpcCommonLocators(page);
+    await locators.request.regenerateMessage(index).click();
   });
 };
 
@@ -1363,11 +1367,11 @@ const generateGrpcSampleMessage = async (page: Page, index: number = 0) => {
  */
 const selectGrpcMethod = async (page: Page, methodName: string) => {
   await test.step(`Select gRPC method "${methodName}"`, async () => {
-    await page.getByTestId('grpc-method-dropdown-trigger').click();
-    const dropdown = page.getByTestId('grpc-methods-dropdown');
-    await dropdown.waitFor({ state: 'visible', timeout: 5000 });
-    await dropdown.getByTestId('grpc-method-item').filter({ hasText: methodName }).first().click();
-    await expect(page.getByTestId('selected-grpc-method-name')).toContainText(methodName);
+    const locators = buildGrpcCommonLocators(page);
+    await locators.method.dropdownTrigger().click();
+    await locators.method.dropdown().waitFor({ state: 'visible', timeout: 5000 });
+    await locators.method.item(methodName).first().click();
+    await expect(locators.method.selectedName()).toContainText(methodName);
   });
 };
 
