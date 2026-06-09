@@ -10,14 +10,14 @@ import { sortByNameThenSequence } from 'utils/common/index';
 import path from 'utils/common/path';
 import { cloneDeep, get } from 'lodash';
 import Button from 'ui/Button/index';
-import { isRequestTagsIncluded } from '@usebruno/common';
+import { isRequestTagsIncluded, normalizeTags } from '@usebruno/common';
 
 const isRequestDisabled = (item, tags) => {
   // WS and gRPC are not supported by the collection runner
   if (item.type === 'ws-request' || item.type === 'grpc-request') return true;
 
   // Check tag filtering
-  const requestTags = item.draft?.tags || item.tags || [];
+  const requestTags = normalizeTags(item.draft?.tags || item.tags || []);
   const includeTags = tags?.include || [];
   const excludeTags = tags?.exclude || [];
 

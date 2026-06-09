@@ -1,4 +1,20 @@
 /**
+ * Normalize request tags into an array for downstream helpers.
+ */
+export const normalizeTags = (tags: string[] | string | unknown): string[] => {
+  if (Array.isArray(tags)) {
+    return tags;
+  }
+
+  if (typeof tags === 'string') {
+    const trimmed = tags.trim();
+    return trimmed ? [trimmed] : [];
+  }
+
+  return [];
+};
+
+/**
  * A request should be included if it has at least one tag that is included and no tags that are excluded
  * @param requestTags Tags of the request
  * @param includeTags Tags to include
