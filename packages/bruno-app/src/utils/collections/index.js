@@ -1,7 +1,7 @@
 import { cloneDeep, isEqual, sortBy, filter, map, isString, findIndex, find, each, get } from 'lodash';
 import { uuid } from 'utils/common';
 import { sortByNameThenSequence } from 'utils/common/index';
-import path from 'utils/common/path';
+import path, { normalizePath } from 'utils/common/path';
 import { isRequestTagsIncluded } from '@usebruno/common';
 
 const replaceTabsWithSpaces = (str, numSpaces = 2) => {
@@ -1607,6 +1607,20 @@ export const determineCollectionItemDrop = ({ item, hoverBoundingRect, clientOff
   };
 };
 
+/**
+ * Separator-aware ancestry check between two filesystem pathnames.
+ *
+ * Returns true when `childPathname` is the same as, or a descendant of, `ancestorPathname`.
+ * Uses path-segment boundaries so siblings like "/users-archive" are NOT treated as
+ * descendants of "/users". Normalizes separators and trailing slashes for cross-platform safety.
+ */
+export const isPathOrDescendant = (childPathname, ancestorPathname) => {
+  if (!childPathname || !ancestorPathname) return false;
+  const child = normalizePath(childPathname);
+  const ancestor = normalizePath(ancestorPathname);
+  return child === ancestor || child.startsWith(`${ancestor}/`);
+};
+
 export const canCollectionItemBeDropped = ({
   draggedItem,
   targetItem,
@@ -1626,7 +1640,7 @@ export const canCollectionItemBeDropped = ({
   const newPathname = calculateDraggedItemNewPathname({ draggedItem, targetItem, dropType, collectionPathname });
   if (!newPathname) return false;
 
-  if (targetItemPathname?.startsWith(draggedItemPathname)) return false;
+  if (isPathOrDescendant(targetItemPathname, draggedItemPathname)) return false;
 
   return true;
 };
