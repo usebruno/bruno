@@ -890,10 +890,13 @@ export const isItemAFolder = (item) => {
 
 /**
  * Orders a list of collection items exactly the way the Sidebar tree renders them:
- * folders first (via `sortByNameThenSequence`), then requests ordered by `seq`, then
- * code/data files (in their existing order). The same ordering is applied recursively to
- * every nested folder so an exported/serialized tree matches the sidebar at all depths.
+ * folders first (via `sortByNameThenSequence`), then requests ordered by `seq`. The
+ * same ordering is applied recursively to every nested folder so an exported/serialized
+ * tree matches the sidebar at all depths.
  *
+ * Items that are neither folders nor requests (e.g. `js` script files) are excluded,
+ * mirroring the sidebar, which only renders folders and requests. Transient items are
+ * excluded too.
  */
 export const sortItemsBySidebarOrder = (items = []) => {
   const folderItems = sortByNameThenSequence(filter(items, (i) => isItemAFolder(i) && !i.isTransient));

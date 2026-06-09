@@ -52,18 +52,11 @@ const parseGeneratedDocs = (html: string): NameTree[] => {
     throw new Error('Could not find the embedded collection data in the generated documentation');
   }
 
-  const literal = match[1];
-  let yamlContent: string;
-  try {
-    // For ASCII content the jsesc literal is also valid JSON, so this is the
-    // common path.
-    yamlContent = JSON.parse(literal) as string;
-  } catch {
-    // jsesc can emit JS-only escapes (e.g. `\x..`) that JSON rejects; fall back
-    // to evaluating the self-generated, trusted string literal.
-
-    yamlContent = new Function(`return ${literal};`)() as string;
-  }
+  // The literal is a double-quoted `jsesc` string of the YAML payload. For the
+  // ASCII content this fixture produces, jsesc only emits JSON-valid escapes
+  // (`\n`, `\"`, `\\`, `\/`), so the literal is also valid JSON and decodes back
+  // to the raw YAML with a plain JSON.parse.
+  const yamlContent = JSON.parse(match[1]) as string;
 
   const openCollection = jsyaml.load(yamlContent) as { items?: Array<Record<string, any>> };
   return openCollectionItemsToNameTree(openCollection.items);
