@@ -3,7 +3,8 @@ export {
   encodeUrl,
   parseQueryParams,
   buildQueryString,
-  stripOrigin
+  stripOrigin,
+  safeDecodeURIComponent
 } from './url';
 
 export {
