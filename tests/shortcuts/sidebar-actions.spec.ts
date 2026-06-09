@@ -1,14 +1,14 @@
-import { test, expect } from '../../playwright';
+import { expect, test } from '../../playwright';
 import { closeAllCollections, createFolder, openCollection } from '../utils/page';
 import {
-  modifier,
-  collectionName,
-  setupBoundActionsData,
-  openRequest,
-  openKeybindingsTab,
   closePreferencesTab,
+  collectionName,
+  modifier,
   openFolderSettingsTab,
-  remapKeybinding
+  openKeybindingsTab,
+  openRequest,
+  remapKeybinding,
+  setupBoundActionsData
 } from './helpers';
 
 // ─── Tests ────
@@ -98,7 +98,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await page.keyboard.up('KeyN');
         await page.keyboard.up('Alt');
 
-        await page.locator('.collection-name').filter({ hasText: 'kb-collection' }).click();
+        await page.getByTestId('sidebar-collection-row').filter({ has: page.getByText('kb-collection', { exact: true }) }).click();
 
         await page.keyboard.down('Alt');
         await page.keyboard.down('KeyN');
@@ -122,7 +122,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
           await page.keyboard.up('KeyY');
           await page.keyboard.up('Alt');
 
-          await page.locator('.collection-name').filter({ hasText: 'kb-collection' }).dblclick();
+          await page.getByTestId('sidebar-collection-row').filter({ has: page.getByText('kb-collection', { exact: true }) }).dblclick();
           await openRequest(page, 'kb-collection', 'req-1', { persist: true });
           await page.keyboard.press(`${modifier}+KeyR`);
 
@@ -175,7 +175,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
           await page.keyboard.up('KeyY');
           await page.keyboard.up('Alt');
 
-          await page.locator('.collection-name').filter({ hasText: 'kb-collection' }).click();
+          await page.getByTestId('sidebar-collection-row').filter({ has: page.getByText('kb-collection', { exact: true }) }).click();
           await page.keyboard.press(`${modifier}+KeyR`);
 
           // Verify rename modal opens
@@ -190,7 +190,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
           await page.locator('.submit').click();
 
           // Verify renamed request appears in sidebar
-          await expect(page.locator('.collection-name').filter({ hasText: 'kb-collection-renamed' })).toBeVisible({ timeout: 3000 });
+          await expect(page.getByTestId('sidebar-collection-row').filter({ has: page.getByText('kb-collection-renamed', { exact: true }) })).toBeVisible({ timeout: 3000 });
         });
       });
 
@@ -282,7 +282,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
             await page.keyboard.press('Alt+KeyX');
           });
 
-          await page.locator('.collection-name').filter({ hasText: collectionName }).click();
+          await page.getByTestId('sidebar-collection-row').filter({ has: page.getByText(collectionName, { exact: true }) }).click();
           await page.keyboard.down('Alt');
           await page.keyboard.down('KeyX');
           await page.keyboard.up('KeyX');
@@ -300,7 +300,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
           await page.locator('.submit').click();
 
           // Verify renamed request appears in sidebar
-          await expect(page.locator('.collection-name').filter({ hasText: 'kb-collection-renamed-altx' })).toBeVisible({ timeout: 2000 });
+          await expect(page.getByTestId('sidebar-collection-row').filter({ has: page.getByText('kb-collection-renamed-altx', { exact: true }) })).toBeVisible({ timeout: 2000 });
         });
       });
     });

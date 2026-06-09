@@ -29,7 +29,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
     test.describe('SHORTCUT: Close Tab', () => {
       test('Close active tab default (Cmd/Ctrl+W)', async ({ page, createTmpDir }) => {
         await openRequest(page, collectionName, 'req-1', { persist: true });
-        const reqTab = page.locator('.request-tab').filter({ hasText: 'req-1' });
+        const reqTab = page.locator('.request-tab').filter({ has: page.getByText('req-1', { exact: true }) });
         // Click the tab to guarantee it's the focused/active tab before firing the shortcut.
         await reqTab.click();
         await expect(reqTab).toHaveClass(/active/, { timeout: 2000 });
@@ -58,7 +58,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await closePreferencesTab(page);
 
         await openRequest(page, collectionName, 'req-1', { persist: true });
-        await expect(page.locator('.request-tab').filter({ hasText: 'req-1' })).toBeVisible({ timeout: 2000 });
+        await expect(page.locator('.request-tab').filter({ has: page.getByText('req-1', { exact: true }) })).toBeVisible({ timeout: 2000 });
 
         await page.keyboard.down('Shift');
         await page.keyboard.down('KeyX');
@@ -74,9 +74,9 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await openRequest(page, collectionName, 'req-2', { persist: true });
         await openRequest(page, collectionName, 'req-3', { persist: true });
         await page.getByTestId('runner').click();
-        await expect(page.locator('.request-tab').filter({ hasText: 'req-1' })).toBeVisible({ timeout: 2000 });
-        await expect(page.locator('.request-tab').filter({ hasText: 'req-2' })).toBeVisible({ timeout: 2000 });
-        await expect(page.locator('.request-tab').filter({ hasText: 'req-3' })).toBeVisible({ timeout: 2000 });
+        await expect(page.locator('.request-tab').filter({ has: page.getByText('req-1', { exact: true }) })).toBeVisible({ timeout: 2000 });
+        await expect(page.locator('.request-tab').filter({ has: page.getByText('req-2', { exact: true }) })).toBeVisible({ timeout: 2000 });
+        await expect(page.locator('.request-tab').filter({ has: page.getByText('req-3', { exact: true }) })).toBeVisible({ timeout: 2000 });
 
         await page.keyboard.down(modifier);
         await page.keyboard.down('Shift');
@@ -107,9 +107,9 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await openRequest(page, collectionName, 'req-1', { persist: true });
         await openRequest(page, collectionName, 'req-2', { persist: true });
         await openRequest(page, collectionName, 'req-3', { persist: true });
-        await expect(page.locator('.request-tab').filter({ hasText: 'req-1' })).toBeVisible({ timeout: 2000 });
-        await expect(page.locator('.request-tab').filter({ hasText: 'req-2' })).toBeVisible({ timeout: 2000 });
-        await expect(page.locator('.request-tab').filter({ hasText: 'req-3' })).toBeVisible({ timeout: 2000 });
+        await expect(page.locator('.request-tab').filter({ has: page.getByText('req-1', { exact: true }) })).toBeVisible({ timeout: 2000 });
+        await expect(page.locator('.request-tab').filter({ has: page.getByText('req-2', { exact: true }) })).toBeVisible({ timeout: 2000 });
+        await expect(page.locator('.request-tab').filter({ has: page.getByText('req-3', { exact: true }) })).toBeVisible({ timeout: 2000 });
 
         await page.keyboard.down('Alt');
         await page.keyboard.down('KeyY');
@@ -121,11 +121,11 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
 
     test.describe('SHORTCUT: Save', () => {
       test('Save tab customized (Cmd/Ctrl+S)', async ({ page, createTmpDir }) => {
-        await page.locator('.collection-name').filter({ hasText: 'kb-collection' }).dblclick();
-        await expect(page.locator('.request-tab').filter({ hasText: 'collection' })).toBeVisible({ timeout: 2000 });
+        await page.getByTestId('sidebar-collection-row').filter({ has: page.getByText('kb-collection', { exact: true }) }).dblclick();
+        await expect(page.locator('.request-tab').filter({ has: page.getByText('Collection', { exact: true }) })).toBeVisible({ timeout: 2000 });
 
         // Verify initially there is NO draft indicator (close icon is present)
-        const collectionTab = page.locator('.request-tab').filter({ has: page.locator('.tab-label', { hasText: 'Collection' }) });
+        const collectionTab = page.locator('.request-tab').filter({ has: page.getByText('Collection', { exact: true }) });
         await expect(collectionTab.locator('.close-icon')).toBeVisible();
         await expect(collectionTab.locator('.has-changes-icon')).not.toBeVisible();
 
@@ -174,11 +174,11 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
 
         await closePreferencesTab(page);
 
-        await page.locator('.collection-name').filter({ hasText: 'kb-collection' }).dblclick();
-        await expect(page.locator('.request-tab').filter({ hasText: 'collection' })).toBeVisible({ timeout: 2000 });
+        await page.getByTestId('sidebar-collection-row').filter({ has: page.getByText('kb-collection', { exact: true }) }).dblclick();
+        await expect(page.locator('.request-tab').filter({ has: page.getByText('Collection', { exact: true }) })).toBeVisible({ timeout: 2000 });
 
         // Verify initially there is NO draft indicator (close icon is present)
-        const collectionTab = page.locator('.request-tab').filter({ has: page.locator('.tab-label', { hasText: 'Collection' }) });
+        const collectionTab = page.locator('.request-tab').filter({ has: page.getByText('Collection', { exact: true }) });
         await expect(collectionTab.locator('.close-icon')).toBeVisible();
         await expect(collectionTab.locator('.has-changes-icon')).not.toBeVisible();
 
@@ -215,11 +215,11 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
 
     test.describe('SHORTCUT: Save All Tabs', () => {
       test('Save all tabs default (Cmd/Ctrl+Shift+S)', async ({ page }) => {
-        await page.locator('.collection-name').filter({ hasText: 'kb-collection' }).dblclick();
-        await expect(page.locator('.request-tab').filter({ hasText: 'collection' })).toBeVisible({ timeout: 2000 });
+        await page.getByTestId('sidebar-collection-row').filter({ has: page.getByText('kb-collection', { exact: true }) }).dblclick();
+        await expect(page.locator('.request-tab').filter({ has: page.getByText('Collection', { exact: true }) })).toBeVisible({ timeout: 2000 });
 
         // Verify initially there is NO draft indicator (close icon is present)
-        const collectionTab = page.locator('.request-tab').filter({ has: page.locator('.tab-label', { hasText: 'Collection' }) });
+        const collectionTab = page.locator('.request-tab').filter({ has: page.getByText('Collection', { exact: true }) });
         await expect(collectionTab.locator('.close-icon')).toBeVisible();
         await expect(collectionTab.locator('.has-changes-icon')).not.toBeVisible();
 
@@ -241,10 +241,10 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await expect(collectionTab.locator('.close-icon')).not.toBeVisible();
 
         // Open Folder-Settings tab (create folder + double-click)
-        await page.locator('.collection-item-name').filter({ hasText: 'kb-draft-folder' }).dblclick();
+        await page.locator('.collection-item-name').filter({ has: page.getByText('kb-draft-folder', { exact: true }) }).dblclick();
 
         // Verify folder settings tab is open
-        const folderTab = page.locator('.request-tab').filter({ has: page.locator('.tab-label', { hasText: 'kb-draft-folder' }) });
+        const folderTab = page.locator('.request-tab').filter({ has: page.getByText('kb-draft-folder', { exact: true }) });
         await expect(folderTab).toBeVisible();
 
         await expect(folderTab.locator('.close-icon')).toBeVisible();
@@ -301,11 +301,11 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
 
         await closePreferencesTab(page);
 
-        await page.locator('.collection-name').filter({ hasText: collectionName }).dblclick();
-        await expect(page.locator('.request-tab').filter({ hasText: 'collection' })).toBeVisible({ timeout: 2000 });
+        await page.getByTestId('sidebar-collection-row').filter({ has: page.getByText(collectionName, { exact: true }) }).dblclick();
+        await expect(page.locator('.request-tab').filter({ has: page.getByText('Collection', { exact: true }) })).toBeVisible({ timeout: 2000 });
 
         // Verify initially there is NO draft indicator (close icon is present)
-        const collectionTab = page.locator('.request-tab').filter({ has: page.locator('.tab-label', { hasText: 'Collection' }) });
+        const collectionTab = page.locator('.request-tab').filter({ has: page.getByText('Collection', { exact: true }) });
         await expect(collectionTab.locator('.close-icon')).toBeVisible();
         await expect(collectionTab.locator('.has-changes-icon')).not.toBeVisible();
 
@@ -327,10 +327,10 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await expect(collectionTab.locator('.close-icon')).not.toBeVisible();
 
         // Open Folder-Settings tab (create folder + double-click)
-        await page.locator('.collection-item-name').filter({ hasText: 'kb-draft-folder' }).dblclick();
+        await page.locator('.collection-item-name').filter({ has: page.getByText('kb-draft-folder', { exact: true }) }).dblclick();
 
         // Verify folder settings tab is open
-        const folderTab = page.locator('.request-tab').filter({ has: page.locator('.tab-label', { hasText: 'kb-draft-folder' }) });
+        const folderTab = page.locator('.request-tab').filter({ has: page.getByText('kb-draft-folder', { exact: true }) });
         await expect(folderTab).toBeVisible();
 
         await expect(folderTab.locator('.close-icon')).toBeVisible();
@@ -379,7 +379,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await openRequest(page, collectionName, 'req-4', { persist: true });
         await openRequest(page, collectionName, 'req-5', { persist: true });
         await openRequest(page, collectionName, 'req-6', { persist: true });
-        await expect(page.locator('.request-tab').filter({ hasText: 'req-6' })).toBeVisible({ timeout: 2000 });
+        await expect(page.locator('.request-tab').filter({ has: page.getByText('req-6', { exact: true }) })).toBeVisible({ timeout: 2000 });
 
         // req-6 is active (last opened) — press previous → req-5
         await page.keyboard.press(`${modifier}+Shift+BracketLeft`);
@@ -411,7 +411,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await openRequest(page, collectionName, 'req-4', { persist: true });
         await openRequest(page, collectionName, 'req-5', { persist: true });
         await openRequest(page, collectionName, 'req-6', { persist: true });
-        await expect(page.locator('.request-tab').filter({ hasText: 'req-6' })).toBeVisible({ timeout: 2000 });
+        await expect(page.locator('.request-tab').filter({ has: page.getByText('req-6', { exact: true }) })).toBeVisible({ timeout: 2000 });
 
         // req-6 is active — press Shift+P → req-5
         await page.keyboard.down('Shift');
@@ -589,7 +589,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await openRequest(page, collectionName, 'req-8', { persist: true });
         await openRequest(page, collectionName, 'req-9', { persist: true });
 
-        const req7Tab = page.locator('.request-tab').filter({ hasText: 'req-7' }).first();
+        const req7Tab = page.locator('.request-tab').filter({ has: page.getByText('req-7', { exact: true }) }).first();
         await req7Tab.click();
         await expect(req7Tab).toHaveClass(/active/);
 
@@ -668,7 +668,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
       test('Reopen Last Closed Tab default (Cmd/Ctrl+Shift+T)', async ({ page }) => {
         await openRequest(page, collectionName, 'req-2', { persist: true });
         await openRequest(page, collectionName, 'req-1', { persist: true });
-        const req1Tab = page.locator('.request-tab').filter({ hasText: 'req-1' }).first();
+        const req1Tab = page.locator('.request-tab').filter({ has: page.getByText('req-1', { exact: true }) }).first();
         await req1Tab.click();
         await expect(req1Tab).toHaveClass(/active/);
         await closeTabByName(page, 'req-1');
@@ -680,20 +680,20 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await openRequest(page, collectionName, 'req-2', { persist: true });
 
         // Open Collection-Settings tab (double-click collection name)
-        await page.locator('.collection-name').filter({ hasText: 'kb-collection' }).dblclick();
-        await expect(page.locator('.request-tab').filter({ hasText: 'collection' })).toBeVisible({ timeout: 2000 });
+        await page.getByTestId('sidebar-collection-row').filter({ has: page.getByText('kb-collection', { exact: true }) }).dblclick();
+        await expect(page.locator('.request-tab').filter({ has: page.getByText('Collection', { exact: true }) })).toBeVisible({ timeout: 2000 });
 
         // Open Runner tab
         await page.getByTestId('runner').click();
-        await expect(page.locator('.request-tab').filter({ hasText: 'Runner' })).toBeVisible({ timeout: 2000 });
+        await expect(page.locator('.request-tab').filter({ has: page.getByText('Runner', { exact: true }) })).toBeVisible({ timeout: 2000 });
 
         // Open Variables tab
         await page.getByTestId('more-actions').click();
         await page.getByTestId('more-actions-variables').click();
-        await expect(page.locator('.request-tab').filter({ hasText: 'Variables' })).toBeVisible({ timeout: 2000 });
+        await expect(page.locator('.request-tab').filter({ has: page.getByText('Variables', { exact: true }) })).toBeVisible({ timeout: 2000 });
 
         // Open Folder-Settings tab (create folder + double-click)
-        await page.locator('.collection-item-name').filter({ hasText: 'kb-folder' }).dblclick();
+        await page.locator('.collection-item-name').filter({ has: page.getByText('kb-folder', { exact: true }) }).dblclick();
 
         // Close in order: kb-folder (first closed) → Collection → Variables → Runner (last closed)
         await closeTabByName(page, 'kb-folder');
@@ -715,7 +715,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
 
         await openRequest(page, collectionName, 'req-2', { persist: true });
         await openRequest(page, collectionName, 'req-1', { persist: true });
-        const req1Tab = page.locator('.request-tab').filter({ hasText: 'req-1' }).first();
+        const req1Tab = page.locator('.request-tab').filter({ has: page.getByText('req-1', { exact: true }) }).first();
         await req1Tab.click();
         await expect(req1Tab).toHaveClass(/active/);
         await closeTabByName(page, 'req-1');

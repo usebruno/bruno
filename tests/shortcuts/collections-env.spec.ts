@@ -171,7 +171,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await page.keyboard.up('Alt');
 
         // Focus the collection so the keybinding is active
-        await page.locator('.collection-name').filter({ hasText: collectionName }).click();
+        await page.getByTestId('sidebar-collection-row').filter({ has: page.getByText(collectionName, { exact: true }) }).click();
 
         await page.keyboard.press(`${modifier}+KeyN`);
 
@@ -223,7 +223,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await page.keyboard.up('Alt');
 
         // Focus the collection so the keybinding is active
-        await page.locator('.collection-name').filter({ hasText: collectionName }).click();
+        await page.getByTestId('sidebar-collection-row').filter({ has: page.getByText(collectionName, { exact: true }) }).click();
 
         await page.keyboard.down('Alt');
         await page.keyboard.down('KeyN');

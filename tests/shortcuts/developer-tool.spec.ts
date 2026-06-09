@@ -22,7 +22,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
     test.describe('SHORTCUT: Open Terminal (Cmd/Ctrl+T)', () => {
       test('default Cmd/Ctrl+T opens terminal', async ({ page, createTmpDir }) => {
         // Open Collection-Settings tab (double-click collection name)
-        await page.locator('.collection-name').filter({ hasText: 'kb-collection' }).click();
+        await page.getByTestId('sidebar-collection-row').filter({ has: page.getByText('kb-collection', { exact: true }) }).click();
         await expect(page.locator('.request-tab').filter({ hasText: 'collection' })).toBeVisible({ timeout: 2000 });
 
         // Press Cmd/Ctrl+T to open terminal at workspace level
@@ -74,7 +74,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await page.keyboard.up('KeyT');
         await page.keyboard.up('Alt');
 
-        await page.locator('.collection-name').filter({ hasText: 'kb-collection' }).click();
+        await page.getByTestId('sidebar-collection-row').filter({ has: page.getByText('kb-collection', { exact: true }) }).click();
         await expect(page.locator('.request-tab').filter({ hasText: 'collection' })).toBeVisible({ timeout: 2000 });
 
         // Press Cmd/Ctrl+T to open terminal at workspace level
