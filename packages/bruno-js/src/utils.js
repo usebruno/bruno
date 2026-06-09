@@ -161,14 +161,18 @@ const cleanJson = (data) => {
   ].filter(Boolean);
   const binaryNames = typedArrays.map((d) => d.name);
 
-  const seen = new WeakSet();
+  const ancestors = [];
 
-  const replacer = (key, value) => {
+  const replacer = function (key, value) {
     if (typeof value === 'object' && value !== null) {
-      if (seen.has(value)) {
+      while (ancestors.length && ancestors[ancestors.length - 1] !== this) {
+        ancestors.pop();
+      }
+
+      if (ancestors.includes(value)) {
         return '[Circular Reference]';
       }
-      seen.add(value);
+      ancestors.push(value);
 
       // instanceof + [[Class]] cover same-realm; duck-type fallback for cross-realm/cross-context Error-like objects
       if (value instanceof Error || Object.prototype.toString.call(value) === '[object Error]' || (typeof value.message === 'string' && typeof value.stack === 'string')) {
@@ -217,20 +221,24 @@ const cleanJson = (data) => {
 const cleanCircularJson = (data) => {
   try {
     // Handle circular references by keeping track of seen objects
-    const seen = new WeakSet();
+    const ancestors = [];
 
-    const replacer = (key, value) => {
+    const replacer = function (key, value) {
       // Skip non-objects and null
       if (typeof value !== 'object' || value === null) {
         return value;
       }
 
       // Detect circular reference
-      if (seen.has(value)) {
+      while (ancestors.length && ancestors[ancestors.length - 1] !== this) {
+        ancestors.pop();
+      }
+
+      if (ancestors.includes(value)) {
         return '[Circular Reference]';
       }
 
-      seen.add(value);
+      ancestors.push(value);
       return value;
     };
 
