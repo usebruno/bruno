@@ -237,13 +237,18 @@ export const buildGrpcCommonLocators = (page: Page) => ({
   ...buildCommonLocators(page),
   method: {
     dropdownTrigger: () => page.getByTestId('grpc-method-dropdown-trigger'),
-    indicator: () => page.getByTestId('grpc-method-indicator')
+    indicator: () => page.getByTestId('grpc-method-indicator'),
+    dropdown: () => page.getByTestId('grpc-methods-dropdown'),
+    item: (methodName: string) =>
+      page.getByTestId('grpc-methods-dropdown').getByTestId('grpc-method-item').filter({ hasText: methodName }),
+    selectedName: () => page.getByTestId('selected-grpc-method-name')
   },
   request: {
     queryUrlContainer: () => page.getByTestId('grpc-query-url-container'),
     sendButton: () => page.getByTestId('grpc-send-request-button'),
     messagesContainer: () => page.getByTestId('grpc-messages-container'),
     addMessageButton: () => page.getByTestId('grpc-add-message-button'),
+    regenerateMessage: (index: number) => page.getByTestId(`grpc-regenerate-message-${index}`),
     sendMessage: (index: number) => page.getByTestId(`grpc-send-message-${index}`),
     endConnectionButton: () => page.getByTestId('grpc-end-connection-button'),
     cancelConnectionButton: () => page.getByTestId('grpc-cancel-connection-button')
