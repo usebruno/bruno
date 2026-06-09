@@ -350,6 +350,10 @@ const getAccessor = (tab) => {
 };
 
 const getDefaultRequestPaneTabForType = (type) => {
+  if (type === 'folder-settings') {
+    return 'headers';
+  }
+
   if (type === 'grpc-request' || type === 'ws-request') {
     return 'body';
   }
@@ -558,7 +562,7 @@ export const deserializeTab = (snapshotTab, collection) => {
 
   if (accessor === 'pathname' && pathname) {
     const item = findItemInCollectionByPathname(collection, pathname);
-    const resolvedType = item?.type || type;
+    const resolvedType = (item && isRequestTab(item.type)) ? item.type : type;
     tab.type = resolvedType;
     if (!restoredRequestPaneTab) {
       tab.requestPaneTab = getDefaultRequestPaneTabForType(resolvedType);

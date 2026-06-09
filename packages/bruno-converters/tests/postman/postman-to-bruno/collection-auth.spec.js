@@ -29,7 +29,7 @@ describe('Collection Authentication', () => {
       ]
     };
 
-    const result = await postmanToBruno(postmanCollection);
+    const { collection: result } = await postmanToBruno(postmanCollection);
     // console.log('result', JSON.stringify(result, null, 2));
 
     expect(result.root.request.auth).toEqual({
@@ -86,7 +86,7 @@ describe('Collection Authentication', () => {
       ]
     };
 
-    const result = await postmanToBruno(postmanCollection);
+    const { collection: result } = await postmanToBruno(postmanCollection);
     // console.log('result', JSON.stringify(result, null, 2));
 
     expect(result.root.request.auth).toEqual({
@@ -141,7 +141,7 @@ describe('Collection Authentication', () => {
       ]
     };
 
-    const result = await postmanToBruno(postmanCollection);
+    const { collection: result } = await postmanToBruno(postmanCollection);
     // console.log('result', JSON.stringify(result, null, 2));
 
     expect(result.root.request.auth).toEqual({
@@ -200,7 +200,7 @@ describe('Collection Authentication', () => {
       ]
     };
 
-    const result = await postmanToBruno(postmanCollection);
+    const { collection: result } = await postmanToBruno(postmanCollection);
 
     expect(result.root.request.auth).toEqual({
       mode: 'apikey',
@@ -265,7 +265,7 @@ describe('Collection Authentication', () => {
       ]
     };
 
-    const result = await postmanToBruno(postmanCollection);
+    const { collection: result } = await postmanToBruno(postmanCollection);
 
     expect(result.root.request.auth).toEqual({
       mode: 'digest',
@@ -312,7 +312,7 @@ describe('Collection Authentication', () => {
       ]
     };
 
-    const result = await postmanToBruno(postmanCollection);
+    const { collection: result } = await postmanToBruno(postmanCollection);
 
     expect(result.root.request.auth).toEqual({
       mode: 'basic',
@@ -360,7 +360,7 @@ describe('Collection Authentication', () => {
       ]
     };
 
-    const result = await postmanToBruno(postmanCollection);
+    const { collection: result } = await postmanToBruno(postmanCollection);
 
     expect(result.root.request.auth).toEqual({
       mode: 'bearer',

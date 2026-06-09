@@ -69,7 +69,19 @@ test.describe.serial('Multipart Form - File Select Without Key', () => {
     await test.step('Verify the file name appears in the row', async () => {
       const fileCell = table.allRows().locator('.file-value-cell').first();
       await expect(fileCell).toBeVisible();
-      await expect(fileCell).toContainText('test-file.txt');
+      const inlineChip = fileCell.getByTestId('multipart-file-chip');
+      const summary = fileCell.getByTestId('multipart-file-summary');
+
+      if (await inlineChip.count() > 0) {
+        await expect(inlineChip.first()).toContainText('test-file.txt');
+      } else {
+        await expect(summary).toBeVisible();
+        await summary.click();
+        const overflowRow = page.getByTestId('multipart-file-overflow-row').first();
+        await expect(overflowRow).toBeVisible();
+        await expect(overflowRow).toContainText('test-file.txt');
+        await summary.click();
+      }
     });
 
     // Save the request to clear draft state

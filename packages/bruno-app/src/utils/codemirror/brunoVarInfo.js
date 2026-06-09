@@ -912,6 +912,10 @@ if (!SERVER_RENDERED) {
     };
 
     const onDocumentClick = function (e) {
+      if (popup.contains(document.activeElement)) {
+        return;
+      }
+
       if (!popup.contains(e.target)) {
         isPinned = false;
         hidePopup();

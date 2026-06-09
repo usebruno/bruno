@@ -7,6 +7,7 @@ import { toBrunoVariables } from './common/variables';
 import { toBrunoPostResponseVariables } from './common/actions';
 import { toBrunoScripts } from './common/scripts';
 import { ensureString } from '../../utils';
+import type { BrunoPresetsExtension } from '../../types';
 
 interface ParsedCollection {
   collectionRoot: FolderRoot;
@@ -32,11 +33,11 @@ const parseCollection = (ymlString: string): ParsedCollection => {
 
     // presets
     if (brunoExtension?.presets) {
-      const presets = brunoExtension.presets as any;
+      const presets = brunoExtension.presets as BrunoPresetsExtension;
       if (presets.request) {
         brunoConfig.presets = {
-          requestType: presets.request.type || [],
-          requestUrl: presets.request.url || []
+          requestType: presets.request.type || '',
+          requestUrl: presets.request.url || ''
         };
       }
     }
