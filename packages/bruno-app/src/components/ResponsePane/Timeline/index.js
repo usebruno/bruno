@@ -53,7 +53,12 @@ const Timeline = ({ collection, item }) => {
   useTrackScroll({ ref: wrapperRef, selector: null, onChange: setScroll, initialValue: scroll });
   const [activeFilter, setActiveFilter] = useState('all');
 
-  const authSource = getEffectiveAuthSource(collection, item);
+  // Get the effective auth source if auth mode is inherit
+  const itemAuthMode = item.draft?.request?.auth?.mode ?? item.request?.auth?.mode ?? item.root?.request?.auth?.mode;
+  const authSource = useMemo(
+    () => getEffectiveAuthSource(collection, item),
+    [item, itemAuthMode, collection]
+  );
   const isGrpcRequest = item.type === 'grpc-request' || item.type === 'ws-request';
 
   const entries = useMemo(
@@ -104,7 +109,7 @@ const Timeline = ({ collection, item }) => {
 
             if (isGrpcRequest) {
               return (
-                <div key={index} className="timeline-event">
+                <div key={index} className="timeline-event" data-testid="timeline-item">
                   <GrpcTimelineItem
                     timestamp={eventTimestamp}
                     request={request}
@@ -119,7 +124,7 @@ const Timeline = ({ collection, item }) => {
             }
 
             return (
-              <div key={index} className="timeline-event">
+              <div key={index} className="timeline-event" data-testid="timeline-item">
                 <TimelineItem
                   timestamp={timestamp}
                   request={request}
@@ -134,7 +139,7 @@ const Timeline = ({ collection, item }) => {
 
           if (entry.type === 'oauth2' && entry._oauth2Child) {
             return (
-              <div key={index} className="timeline-event">
+              <div key={index} className="timeline-event" data-testid="timeline-item">
                 <TimelineItem
                   timestamp={entry.timestamp}
                   request={entry._oauth2Child.request}
@@ -150,7 +155,7 @@ const Timeline = ({ collection, item }) => {
 
           if (entry.type === 'scripted-request') {
             return (
-              <div key={index} className="timeline-event">
+              <div key={index} className="timeline-event" data-testid="timeline-item">
                 <TimelineItem
                   timestamp={entry.timestamp}
                   request={entry.data?.request}

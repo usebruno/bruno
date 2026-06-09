@@ -56,6 +56,8 @@ You can explore our [paid versions](https://www.usebruno.com/pricing) to see if 
 ## Table of Contents
 
 - [Installation](#installation)
+- [Bruno CLI](#bruno-cli)
+- [Run with Docker](#run-with-docker)
 - [Features](#features)
   - [Run across multiple platforms 🖥️](#run-across-multiple-platforms-%EF%B8%8F)
   - [Collaborate via Git 👩‍💻🧑‍💻](#collaborate-via-git-%E2%80%8D%E2%80%8D)
@@ -109,6 +111,46 @@ echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/bruno.gpg] http://debian.usebr
   | sudo tee /etc/apt/sources.list.d/bruno.list
 sudo apt update && sudo apt install bruno
 ```
+
+## Bruno CLI
+
+The **Bruno CLI** lets you run your API collections from the command line, which is ideal for automated testing and CI/CD pipelines. Install it from npm using the package manager of your choice:
+
+```sh
+npm install -g @usebruno/cli
+```
+
+Navigate to the directory containing your collection and run it:
+
+```sh
+# Run every request in the collection
+bru run
+
+# Run a single request
+bru run request.bru
+
+# Run a folder against a specific environment
+bru run folder --env Local
+```
+
+For the full command reference, see the [Bruno CLI documentation](https://docs.usebruno.com/bru-cli/overview).
+
+## Run with Docker
+
+Official Docker images for the **Bruno CLI** let you run API collections in CI/CD pipelines and locally without installing Node.js or npm on the host. Images are published to both [Docker Hub](https://hub.docker.com/r/usebruno/cli) and the [GitHub Container Registry](https://ghcr.io/usebruno/cli) on every CLI release, with `alpine` and `debian` variants for `linux/amd64` and `linux/arm64`.
+
+```sh
+# Pull from Docker Hub
+docker pull usebruno/cli:latest
+
+# Or pull from the GitHub Container Registry
+docker pull ghcr.io/usebruno/cli:latest
+
+# Run a collection by mounting the current directory
+docker run -v $(pwd):/bruno usebruno/cli run
+```
+
+For variants, tag matrix, environment files, and CI examples (GitHub Actions, GitLab CI, Jenkins), see the full [Bruno CLI Docker documentation](https://docs.usebruno.com/bru-cli/docker).
 
 ## Features
 

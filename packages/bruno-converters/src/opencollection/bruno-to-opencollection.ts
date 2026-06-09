@@ -2,7 +2,7 @@ import { toOpenCollectionAuth, toOpenCollectionHeaders, toOpenCollectionScripts,
 import { toOpenCollectionEnvironments } from "./environment";
 import { toOpenCollectionFolder } from "./folder";
 import { toOpenCollectionItems } from "./items";
-import { BrunoCollection, BrunoCollectionRoot, BrunoConfig, ClientCertificate, CollectionConfig, OpenCollection, PemCertificate, Pkcs12Certificate, Protobuf } from "./types";
+import { BrunoCollection, BrunoCollectionRoot, BrunoConfig, BrunoPresets, ClientCertificate, CollectionConfig, OpenCollection, PemCertificate, Pkcs12Certificate, Protobuf } from "./types";
 
 const toOpenCollectionConfig = (brunoConfig: BrunoConfig | undefined): CollectionConfig | undefined => {
   if (!brunoConfig) {
@@ -147,10 +147,7 @@ export const brunoToOpenCollection = (collection: BrunoCollection): OpenCollecti
 
   const brunoExtension: {
     ignore?: string[];
-    presets?: {
-      requestType?: string;
-      requestUrl?: string;
-    };
+    presets?: BrunoPresets;
   } = {};
 
   if ((collection.brunoConfig as BrunoConfig)?.ignore?.length) {
