@@ -38,7 +38,7 @@ test('Auto-appends an empty header row when either Name or Value is filled', asy
   });
 
   await test.step('Typing into the Name field appends a new empty row', async () => {
-    const nameEditor = rows.first().locator('[data-testid="column-name"] .CodeMirror');
+    const nameEditor = rows.first().getByTestId('column-name').locator('.CodeMirror');
     await nameEditor.click();
     await page.keyboard.type('Content-Type');
 
@@ -46,7 +46,7 @@ test('Auto-appends an empty header row when either Name or Value is filled', asy
   });
 
   await test.step('Typing only into the Value field (Name left empty) also appends a new empty row', async () => {
-    const valueEditor = rows.nth(1).locator('[data-testid="column-value"] .CodeMirror');
+    const valueEditor = rows.nth(1).getByTestId('column-value').locator('.CodeMirror');
     await valueEditor.click();
     await page.keyboard.type('application/json');
 
@@ -58,7 +58,7 @@ test('Auto-appends an empty header row when either Name or Value is filled', asy
   await test.step('Clearing the Name field empties that row and removes it', async () => {
     // Row 0 has only a Name ("Content-Type"); clearing it makes the row fully
     // empty, so it is dropped and the trailing empty row remains.
-    const nameEditor = rows.first().locator('[data-testid="column-name"] .CodeMirror');
+    const nameEditor = rows.first().getByTestId('column-name').locator('.CodeMirror');
     await nameEditor.click();
     await page.keyboard.press(selectAll);
     await page.keyboard.press('Backspace');
@@ -69,7 +69,7 @@ test('Auto-appends an empty header row when either Name or Value is filled', asy
   await test.step('Clearing the Value field empties that row, leaving only the empty add row', async () => {
     // The Value-only row is now first; clearing its Value makes it fully empty,
     // so it is dropped and only the single trailing empty row is left.
-    const valueEditor = rows.first().locator('[data-testid="column-value"] .CodeMirror');
+    const valueEditor = rows.first().getByTestId('column-value').locator('.CodeMirror');
     await valueEditor.click();
     await page.keyboard.press(selectAll);
     await page.keyboard.press('Backspace');

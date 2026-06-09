@@ -1118,6 +1118,9 @@ const addMultipartFileToLastRow = async (page: Page, electronApp: ElectronApplic
     await mockBrowseFiles(electronApp, [filePath]);
 
     const table = buildCommonLocators(page).table('editable-table');
+    // The last row is the empty "add" row. Capture its index now, because once
+    // we set a file the table appends a new empty row — so `.last()` would jump
+    // to that new row instead of staying on the one we just filled.
     const rowIndex = (await table.allRows().count()) - 1;
     const targetRow = table.allRows().nth(rowIndex);
 
