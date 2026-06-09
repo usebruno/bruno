@@ -1245,16 +1245,22 @@ const registerNetworkIpc = (mainWindow) => {
       };
       if (isResponseStream) {
         axiosDataStream.on('close', () => {
-          // Rebuild the full body from the chunks accumulated during streaming so that
-          // post-response scripts, assertions and tests can access res.getBody().
-          const dataBuffer = Buffer.concat(sseChunks);
-          const { data } = parseDataFromResponse(
-            { data: dataBuffer, headers: response.headers },
-            request.__brunoDisableParsingResponseJson
-          );
-          response.data = data;
-          response.dataBuffer = dataBuffer;
-          runPostScripts().then();
+          try {
+            // Rebuild the full body from the chunks accumulated during streaming so that
+            // post-response scripts, assertions and tests can access res.getBody().
+            const dataBuffer = Buffer.concat(sseChunks);
+            const { data } = parseDataFromResponse(
+              { data: dataBuffer, headers: response.headers },
+              request.__brunoDisableParsingResponseJson
+            );
+            response.data = data;
+            response.dataBuffer = dataBuffer;
+          } catch (error) {
+            console.error('Error rebuilding response body from SSE chunks:', error);
+          }
+          runPostScripts().catch((error) => {
+            console.error('Error running post-response scripts for SSE stream:', error);
+          });
         });
       } else {
         await runPostScripts();
