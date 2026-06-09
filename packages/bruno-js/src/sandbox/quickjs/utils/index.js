@@ -1,3 +1,84 @@
+/**
+ * Creates a QuickJS context with centralized lifecycle management:
+ * - vm.evalCode() auto-disposes result handles (for shim setup code)
+ * - vm.evalCodeRetained() returns the raw result (for user script execution)
+ * - all newObject/newFunction/newArray handles are tracked and disposed on teardown
+ */
+const createManagedQuickJsContext = (module) => {
+  const vm = module.newContext();
+  const disposeTracked = trackQuickJsContext(vm);
+  const evalCodeRetained = vm.evalCode.bind(vm);
+
+  vm.evalCode = (code, filename = 'eval.js') => {
+    const result = evalCodeRetained(code, filename);
+    if (result.error) {
+      const error = vm.dump(result.error);
+      result.error.dispose();
+      throw error;
+    }
+    result.value.dispose();
+  };
+
+  vm.evalCodeRetained = evalCodeRetained;
+
+  return {
+    vm,
+    dispose: () => disposeQuickJsContext(vm, disposeTracked)
+  };
+};
+
+/**
+ * Tracks handles created via newObject/newFunction/newArray so they can all be
+ * disposed before the context. quickjs-emscripten requires every heap handle to
+ * be disposed individually; shims attach then drop their ref via .dispose().
+ */
+const trackQuickJsContext = (vm) => {
+  const handles = [];
+
+  for (const method of ['newObject', 'newFunction', 'newArray']) {
+    const original = vm[method]?.bind(vm);
+    if (!original) {
+      continue;
+    }
+
+    vm[method] = (...args) => {
+      const handle = original(...args);
+      handles.push(handle);
+      return handle;
+    };
+  }
+
+  return () => {
+    for (let i = handles.length - 1; i >= 0; i--) {
+      if (handles[i]?.alive) {
+        handles[i].dispose();
+      }
+    }
+  };
+};
+
+/**
+ * Clears shim globals, drains pending QuickJS jobs, and disposes the context.
+ * Pass disposeTracked from trackQuickJsContext() to free shim handles first.
+ */
+const disposeQuickJsContext = (vm, disposeTracked) => {
+  if (!vm?.alive) {
+    return;
+  }
+
+  if (typeof disposeTracked === 'function') {
+    disposeTracked();
+  }
+
+  if (vm.runtime?.executePendingJobs) {
+    for (let i = 0; i < 10; i++) {
+      vm.runtime.executePendingJobs();
+    }
+  }
+
+  vm.dispose();
+};
+
 const marshallToVm = (value, vm) => {
   if (value === undefined) {
     return vm.undefined;
@@ -79,5 +160,8 @@ async function invokeFunction(vm, quickFn, args = []) {
 
 module.exports = {
   marshallToVm,
-  invokeFunction
+  invokeFunction,
+  createManagedQuickJsContext,
+  disposeQuickJsContext,
+  trackQuickJsContext
 };
