@@ -158,6 +158,14 @@ test.describe('Move collection into workspace', () => {
 
       expect(fs.existsSync(sourcePath)).toBe(false);
       expect(fs.existsSync(destinationPath)).toBe(true);
+
+      // The discarded draft change must not have been saved
+      const requestFiles = fs.readdirSync(destinationPath).filter((entry) => entry.startsWith('ping'));
+      expect(requestFiles.length).toBeGreaterThan(0);
+      const movedRequestContent = fs.readFileSync(path.join(destinationPath, requestFiles[0]), 'utf-8');
+      expect(movedRequestContent).toContain('https://echo.usebruno.com');
+      expect(movedRequestContent).not.toContain('https://echo.usebruno.com/changed');
+
       await expect(locators.sidebar.collection(collectionName)).toBeVisible({ timeout: 10000 });
     } finally {
       if (app) await closeElectronApp(app);
