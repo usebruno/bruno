@@ -1106,7 +1106,7 @@ export const moveItem
     };
 
 export const handleCollectionItemDrop
-  = ({ targetItem, draggedItem, dropType, collectionUid }) =>
+  = ({ targetItem, draggedItem, dropType, dropPosition = 'above', collectionUid }) =>
     (dispatch, getState) => {
       const state = getState();
       const collection = findCollectionByUid(state.collections.collections, collectionUid);
@@ -1181,7 +1181,8 @@ export const handleCollectionItemDrop
           const reorderedTargetItems = getReorderedItemsInTargetDirectory({
             items: [...targetItemDirectoryItems, draggedItemWithNewPathAndSequence],
             targetItemUid,
-            draggedItemUid
+            draggedItemUid,
+            dropPosition
           });
 
           if (reorderedTargetItems?.length) {
@@ -1190,7 +1191,7 @@ export const handleCollectionItemDrop
         }
       };
 
-      const handleReorderInSameLocation = async ({ draggedItem, targetItem, targetItemDirectoryItems }) => {
+      const handleReorderInSameLocation = async ({ draggedItem, targetItem, targetItemDirectoryItems, dropPosition }) => {
         const { uid: targetItemUid } = targetItem;
         const { uid: draggedItemUid } = draggedItem;
 
@@ -1198,7 +1199,8 @@ export const handleCollectionItemDrop
         const reorderedItems = getReorderedItemsInTargetDirectory({
           items: targetItemDirectoryItems,
           targetItemUid,
-          draggedItemUid
+          draggedItemUid,
+          dropPosition
         });
 
         if (reorderedItems?.length) {
@@ -1239,7 +1241,7 @@ export const handleCollectionItemDrop
               dropType
             });
           } else {
-            await handleReorderInSameLocation({ draggedItem, targetItemDirectoryItems, targetItem });
+            await handleReorderInSameLocation({ draggedItem, targetItemDirectoryItems, targetItem, dropPosition });
           }
 
           if (isCrossCollectionMove) {
