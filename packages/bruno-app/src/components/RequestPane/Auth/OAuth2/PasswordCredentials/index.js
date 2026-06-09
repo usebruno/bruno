@@ -176,7 +176,6 @@ const OAuth2PasswordCredentials = ({ save, item = {}, request, handleRun, update
               { id: 'header', label: 'Header', onClick: () => handleChange('tokenPlacement', 'header') },
               { id: 'url', label: 'URL', onClick: () => handleChange('tokenPlacement', 'url') }
             ]}
-            data-testid="grant-type-selector"
             selectedItemId={tokenPlacement}
             placement="bottom-end"
           >
