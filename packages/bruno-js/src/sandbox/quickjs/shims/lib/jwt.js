@@ -14,7 +14,7 @@ const addJwtShimToContext = async (vm) => {
       callbackHandle = options;
       nativeOptions = undefined;
     } else if (optionsType === 'object' && options !== null) {
-      nativeOptions = vm.dump(options);
+      nativeOptions = JSON.parse(JSON.stringify(vm.dump(options)));
     }
 
     // If a callback is provided
@@ -85,7 +85,7 @@ const addJwtShimToContext = async (vm) => {
       actualCallback = options;
       nativeOptions = undefined;
     } else if (optionsType === 'object' && options !== null) {
-      nativeOptions = vm.dump(options);
+      nativeOptions = JSON.parse(JSON.stringify(vm.dump(options)));
     }
 
     if (actualCallback && vm.typeof(actualCallback) === 'function') {
@@ -150,13 +150,21 @@ const addJwtShimToContext = async (vm) => {
     let nativeOptions;
     const optionsType = options === undefined ? 'undefined' : vm.typeof(options);
     if (optionsType === 'object' && options !== null) {
-      nativeOptions = vm.dump(options);
+      nativeOptions = JSON.parse(JSON.stringify(vm.dump(options)));
     }
 
     try {
-      const decoded = nativeOptions
-        ? jwt.decode(nativeToken, nativeOptions)
-        : jwt.decode(nativeToken);
+      const parts = String(nativeToken).split('.');
+      if (parts.length !== 3) throw new Error('jwt malformed');
+      const payload = JSON.parse(Buffer.from(parts[1], 'base64').toString('utf8'));
+      const complete = nativeOptions && nativeOptions.complete;
+      let decoded;
+      if (complete) {
+        const header = JSON.parse(Buffer.from(parts[0], 'base64').toString('utf8'));
+        decoded = { header, payload, signature: parts[2] };
+      } else {
+        decoded = payload;
+      }
       return marshallToVm(decoded, vm);
     } catch (err) {
       throw vm.newError(err.message || String(err));
