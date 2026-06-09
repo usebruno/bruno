@@ -1,9 +1,10 @@
-import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { useSelector } from 'react-redux';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
 import get from 'lodash/get';
 import CodeEditor from 'components/CodeEditor/index';
 import { useTheme } from 'providers/Theme';
 import styled from 'styled-components';
+import { clearAmqpMessages, clearAmqpActivity, setAmqpConnectionStatus } from 'providers/ReduxStore/slices/collections';
 import ResponseHeaders from '../ResponseHeaders';
 
 const DetailTabs = styled.div`
@@ -24,20 +25,6 @@ const DetailTabs = styled.div`
     }
   }
 `;
-
-const formatActivityDetails = (data = {}) => {
-  const { operation, timestamp, ...rest } = data;
-  const parts = [];
-  if (rest.brokerUrl) parts.push(rest.brokerUrl);
-  if (rest.queue) parts.push(`queue=${rest.queue}`);
-  if (rest.resolvedQueue) parts.push(`queue=${rest.resolvedQueue}`);
-  if (rest.exchange) parts.push(`exchange=${rest.exchange}`);
-  if (rest.routingKey) parts.push(`key=${rest.routingKey}`);
-  if (rest.consumerTag) parts.push(`tag=${rest.consumerTag}`);
-  if (rest.contentBytes != null) parts.push(`${rest.contentBytes}B`);
-  if (rest.message) parts.push(rest.message);
-  return parts.join('  ');
-};
 
 const formatMessageContent = (content) => {
   if (content == null) return { value: '', mode: 'text/plain' };
@@ -114,18 +101,18 @@ const buildMessageHeaders = (msg) => {
 };
 
 const AmqpResponsePane = ({ item, collection }) => {
-  const [messages, setMessages] = useState([]);
-  const [isConsuming, setIsConsuming] = useState(false);
-  const [connected, setConnected] = useState(false);
-  const [activity, setActivity] = useState([]);
+  const dispatch = useDispatch();
   const [detailTab, setDetailTab] = useState('response');
   const [selectedId, setSelectedId] = useState(null);
   const [messageFilter, setMessageFilter] = useState('all');
-  const messageIdRef = useRef(0);
-  const publishGroupRef = useRef(0);
-  const consumeGroupRef = useRef(0);
+  const autoSelectRef = useRef(-1);
   const { displayedTheme } = useTheme();
   const preferences = useSelector((state) => state.app.preferences);
+
+  // Message log + activity timeline now live on the item's response in Redux
+  // (populated by useAmqpEventListeners), so they survive tab switches/remounts.
+  const messages = item.response?.type === 'amqp' ? item.response.messages : [];
+  const activity = item.response?.type === 'amqp' ? item.response.activity : [];
 
   const filteredMessages = useMemo(() => {
     if (messageFilter === 'in') return messages.filter((m) => m.direction === 'in');
@@ -146,160 +133,46 @@ const AmqpResponsePane = ({ item, collection }) => {
     return activity.filter((e) => e.category === category && e.group != null && e.group === selectedMessage.group);
   }, [activity, selectedMessage]);
 
-  const pushActivity = useCallback((entry) => {
-    setActivity((prev) => [...prev.slice(-49), { ...entry, timestamp: entry.timestamp || Date.now() }]);
-  }, []);
+  // Auto-select the newest received message so the preview acts like a live
+  // response. Tracks the last seen incoming id so we only auto-select on arrival.
+  useEffect(() => {
+    let lastIn = null;
+    for (let i = messages.length - 1; i >= 0; i--) {
+      if (messages[i].direction === 'in') {
+        lastIn = messages[i];
+        break;
+      }
+    }
+    if (lastIn && lastIn.id !== autoSelectRef.current) {
+      autoSelectRef.current = lastIn.id;
+      setSelectedId(lastIn.id);
+    }
+  }, [messages]);
 
   // Reflect any existing connection (e.g. established from the request pane)
+  // into Redux so the connection flags persist with the rest of the response.
   useEffect(() => {
     let cancelled = false;
     const { ipcRenderer } = window;
     ipcRenderer
-      .invoke('renderer:amqp:connection-status', { requestUid: item.uid, collectionUid: collection.uid })
+      .invoke('renderer:amqp:connection-status', { itemUid: item.uid, collectionUid: collection.uid })
       .then((res) => {
         if (!cancelled && res?.success) {
-          setConnected(!!res.status?.connected);
-          setIsConsuming(!!res.status?.consuming);
+          dispatch(
+            setAmqpConnectionStatus({
+              itemUid: item.uid,
+              collectionUid: collection.uid,
+              connected: !!res.status?.connected,
+              consuming: !!res.status?.consuming
+            })
+          );
         }
       })
       .catch(() => {});
     return () => {
       cancelled = true;
     };
-  }, [item.uid, collection.uid]);
-
-  // Listen for incoming messages
-  useEffect(() => {
-    const { ipcRenderer } = window;
-    const handleMessageReceived = (requestUid, collectionUid, data) => {
-      if (requestUid === item.uid && collectionUid === collection.uid) {
-        const id = messageIdRef.current++;
-        // Each delivered message gets its own timeline group so the detail view
-        // shows that single message's lifecycle, not the shared consume session.
-        const group = `recv-${id}`;
-        const timestamp = data.timestamp || Date.now();
-        const queue = data.queue || '';
-        setMessages((prev) => [...prev, {
-          id,
-          direction: 'in',
-          content: data.content,
-          queue,
-          routingKey: data.fields?.routingKey || '',
-          exchange: data.fields?.exchange || '',
-          deliveryTag: data.fields?.deliveryTag,
-          fields: data.fields || {},
-          properties: data.properties || {},
-          contentBytes: data.contentBytes,
-          group,
-          timestamp
-        }]);
-        pushActivity({
-          level: 'success',
-          category: 'consume',
-          group,
-          timestamp,
-          text: `message-received  queue=${queue || '(unknown)'} exchange=${data.fields?.exchange || '(default)'} routingKey=${data.fields?.routingKey || ''} deliveryTag=${data.fields?.deliveryTag ?? ''} bytes=${data.contentBytes ?? ''}`.trim()
-        });
-        // Auto-select the newest received message so the preview acts like a live response
-        setSelectedId(id);
-      }
-    };
-
-    const handlePublished = (requestUid, collectionUid, data) => {
-      if (requestUid === item.uid && collectionUid === collection.uid) {
-        const id = messageIdRef.current++;
-        setMessages((prev) => [...prev, {
-          id,
-          direction: 'out',
-          content: data.content,
-          exchange: data.exchange || '(default)',
-          routingKey: data.routingKey || data.queue || '',
-          queue: data.queue || '',
-          confirmed: data.confirmed === true,
-          properties: data.options || {},
-          contentBytes: data.contentBytes,
-          group: publishGroupRef.current,
-          timestamp: data.timestamp || Date.now()
-        }]);
-      }
-    };
-
-    const handleConsumerStopped = (requestUid, collectionUid) => {
-      if (requestUid === item.uid && collectionUid === collection.uid) {
-        setIsConsuming(false);
-      }
-    };
-
-    const isThis = (requestUid, collectionUid) => requestUid === item.uid && collectionUid === collection.uid;
-
-    const handleConnected = (requestUid, collectionUid) => {
-      if (isThis(requestUid, collectionUid)) {
-        setConnected(true);
-        pushActivity({ level: 'success', text: 'Connected to broker' });
-      }
-    };
-
-    const handleDisconnected = (requestUid, collectionUid) => {
-      if (isThis(requestUid, collectionUid)) {
-        setConnected(false);
-        setIsConsuming(false);
-        pushActivity({ level: 'info', text: 'Disconnected' });
-      }
-    };
-
-    const categorize = (op = '') => {
-      if (op.startsWith('publish')) return 'publish';
-      if (op.startsWith('consume') || op.startsWith('consumer')) return 'consume';
-      return 'connection';
-    };
-
-    const groupFor = (op = '', category) => {
-      if (category === 'publish') {
-        if (op === 'publish-attempt') publishGroupRef.current++;
-        return publishGroupRef.current;
-      }
-      if (category === 'consume') {
-        if (op === 'consume-attempt') consumeGroupRef.current++;
-        return consumeGroupRef.current;
-      }
-      return null;
-    };
-
-    const handleError = (requestUid, collectionUid, data) => {
-      if (isThis(requestUid, collectionUid)) {
-        const category = categorize(data?.operation);
-        const group = category === 'publish' ? publishGroupRef.current : category === 'consume' ? consumeGroupRef.current : null;
-        pushActivity({ level: 'error', text: `${data?.operation ? `[${data.operation}] ` : ''}${data?.message || 'Error'}`, category, group });
-      }
-    };
-
-    const handleDebug = (requestUid, collectionUid, data) => {
-      if (isThis(requestUid, collectionUid)) {
-        if (data?.operation === 'connect-success') setConnected(true);
-        const category = categorize(data?.operation);
-        const group = groupFor(data?.operation, category);
-        pushActivity({ level: 'debug', text: `${data?.operation || 'debug'}  ${formatActivityDetails(data)}`.trim(), timestamp: data?.timestamp, category, group });
-      }
-    };
-
-    const removeMessageReceived = ipcRenderer.on('main:amqp:message-received', handleMessageReceived);
-    const removePublished = ipcRenderer.on('main:amqp:message-published', handlePublished);
-    const removeConsumerStopped = ipcRenderer.on('main:amqp:consumer-stopped', handleConsumerStopped);
-    const removeConnected = ipcRenderer.on('main:amqp:connected', handleConnected);
-    const removeDisconnected = ipcRenderer.on('main:amqp:disconnected', handleDisconnected);
-    const removeError = ipcRenderer.on('main:amqp:error', handleError);
-    const removeDebug = ipcRenderer.on('main:amqp:debug', handleDebug);
-
-    return () => {
-      removeMessageReceived();
-      removePublished();
-      removeConsumerStopped();
-      removeConnected();
-      removeDisconnected();
-      removeError();
-      removeDebug();
-    };
-  }, [item.uid, collection.uid, pushActivity]);
+  }, [item.uid, collection.uid, dispatch]);
 
   return (
     <div className="flex flex-col h-full px-4 py-2">
@@ -307,7 +180,9 @@ const AmqpResponsePane = ({ item, collection }) => {
         <button
           className="px-3 py-1 text-xs font-medium rounded border hover:bg-gray-100 dark:hover:bg-gray-700"
           onClick={() => {
-            setMessages([]); setSelectedId(null);
+            dispatch(clearAmqpMessages({ itemUid: item.uid, collectionUid: collection.uid }));
+            setSelectedId(null);
+            autoSelectRef.current = -1;
           }}
         >
           Clear
@@ -419,7 +294,12 @@ const AmqpResponsePane = ({ item, collection }) => {
                       ? `Calls for selected ${selectedMessage.direction === 'out' ? 'published' : 'consumed'} message`
                       : 'All calls'}
                   </span>
-                  <button className="hover:underline text-[10px]" onClick={() => setActivity([])}>clear</button>
+                  <button
+                    className="hover:underline text-[10px]"
+                    onClick={() => dispatch(clearAmqpActivity({ itemUid: item.uid, collectionUid: collection.uid }))}
+                  >
+                    clear
+                  </button>
                 </div>
                 {timelineEntries.length === 0 && (
                   <div className="opacity-40">{selectedMessage ? 'No calls related to this message.' : 'No calls yet.'}</div>

@@ -26,8 +26,8 @@ const brunoConverters = require('@usebruno/converters');
 const { postmanToBruno } = brunoConverters;
 const { cookiesStore } = require('../store/cookies');
 const { parseLargeRequestWithRedaction } = require('../utils/parse');
-const { wsClient } = require('../ipc/network/ws-event-handlers');
-const { amqpClient } = require('../ipc/network/amqp-event-handlers');
+const { getWsClient } = require('../ipc/network/ws-event-handlers');
+const { getAmqpClient } = require('../ipc/network/amqp-event-handlers');
 const { hasSubDirectories } = require('../utils/filesystem');
 const { transformProxyConfig } = require('@usebruno/requests');
 
@@ -1266,10 +1266,12 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
     if (watcher && mainWindow) {
       watcher.removeWatcher(collectionPath, mainWindow, collectionUid);
 
+      const wsClient = getWsClient();
       if (wsClient) {
         wsClient.closeForCollection(collectionUid);
       }
 
+      const amqpClient = getAmqpClient();
       if (amqpClient) {
         amqpClient.closeForCollection(collectionUid);
       }

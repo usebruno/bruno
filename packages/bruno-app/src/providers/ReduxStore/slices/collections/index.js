@@ -217,6 +217,36 @@ const initiatedWsResponse = {
   trailers: []
 };
 
+// Fresh AMQP response container. Unlike HTTP, an AMQP request accumulates a log
+// of published/received messages plus a connection activity timeline that must
+// survive tab switches, so it is persisted on the item (like ws/grpc responses)
+// rather than in component-local state.
+const createInitiatedAmqpResponse = () => ({
+  type: 'amqp',
+  messages: [],
+  activity: [],
+  connected: false,
+  consuming: false,
+  messageIdCounter: 0,
+  publishGroup: 0,
+  consumeGroup: 0
+});
+
+// Builds the human-readable detail suffix shown for an AMQP activity/debug entry.
+const formatAmqpActivityDetails = (data = {}) => {
+  const { operation, timestamp, ...rest } = data;
+  const parts = [];
+  if (rest.brokerUrl) parts.push(rest.brokerUrl);
+  if (rest.queue) parts.push(`queue=${rest.queue}`);
+  if (rest.resolvedQueue) parts.push(`queue=${rest.resolvedQueue}`);
+  if (rest.exchange) parts.push(`exchange=${rest.exchange}`);
+  if (rest.routingKey) parts.push(`key=${rest.routingKey}`);
+  if (rest.consumerTag) parts.push(`tag=${rest.consumerTag}`);
+  if (rest.contentBytes != null) parts.push(`${rest.contentBytes}B`);
+  if (rest.message) parts.push(rest.message);
+  return parts.join('  ');
+};
+
 export const collectionsSlice = createSlice({
   name: 'collections',
   initialState,
@@ -3731,6 +3761,159 @@ export const collectionsSlice = createSlice({
     updateActiveConnections: (state, action) => {
       state.activeConnections = [...action.payload.activeConnectionIds];
     },
+    // Central handler for AMQP main-process events. Keeps the message log,
+    // activity timeline and connection flags on the item's response so they
+    // persist across tab switches / component remounts (matching ws/grpc).
+    amqpResponseEvent: (state, action) => {
+      const { itemUid, collectionUid, eventType, eventData = {} } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+      if (!collection) return;
+
+      const item = findItemInCollection(collection, itemUid);
+      if (!item) return;
+
+      if (!item.response || item.response.type !== 'amqp') {
+        item.response = createInitiatedAmqpResponse();
+      }
+      const res = item.response;
+
+      const pushActivity = (entry) => {
+        res.activity = [...res.activity.slice(-49), { ...entry, timestamp: entry.timestamp || Date.now() }];
+      };
+
+      const categorize = (op = '') => {
+        if (op.startsWith('publish')) return 'publish';
+        if (op.startsWith('consume') || op.startsWith('consumer')) return 'consume';
+        return 'connection';
+      };
+
+      switch (eventType) {
+        case 'message-received': {
+          const id = res.messageIdCounter++;
+          // Each delivered message gets its own timeline group so the detail
+          // view shows that single message's lifecycle, not the consume session.
+          const group = `recv-${id}`;
+          const timestamp = eventData.timestamp || Date.now();
+          const queue = eventData.queue || '';
+          res.messages.push({
+            id,
+            direction: 'in',
+            content: eventData.content,
+            queue,
+            routingKey: eventData.fields?.routingKey || '',
+            exchange: eventData.fields?.exchange || '',
+            deliveryTag: eventData.fields?.deliveryTag,
+            fields: eventData.fields || {},
+            properties: eventData.properties || {},
+            contentBytes: eventData.contentBytes,
+            group,
+            timestamp
+          });
+          pushActivity({
+            level: 'success',
+            category: 'consume',
+            group,
+            timestamp,
+            text: `message-received  queue=${queue || '(unknown)'} exchange=${eventData.fields?.exchange || '(default)'} routingKey=${eventData.fields?.routingKey || ''} deliveryTag=${eventData.fields?.deliveryTag ?? ''} bytes=${eventData.contentBytes ?? ''}`.trim()
+          });
+          break;
+        }
+        case 'message-published': {
+          const id = res.messageIdCounter++;
+          res.messages.push({
+            id,
+            direction: 'out',
+            content: eventData.content,
+            exchange: eventData.exchange || '(default)',
+            routingKey: eventData.routingKey || eventData.queue || '',
+            queue: eventData.queue || '',
+            confirmed: eventData.confirmed === true,
+            properties: eventData.options || {},
+            contentBytes: eventData.contentBytes,
+            group: res.publishGroup,
+            timestamp: eventData.timestamp || Date.now()
+          });
+          break;
+        }
+        case 'consuming':
+          res.consuming = true;
+          break;
+        case 'consumer-stopped':
+          res.consuming = false;
+          break;
+        case 'connected':
+          res.connected = true;
+          pushActivity({ level: 'success', text: 'Connected to broker' });
+          break;
+        case 'disconnected':
+          res.connected = false;
+          res.consuming = false;
+          pushActivity({ level: 'info', text: 'Disconnected' });
+          break;
+        case 'error': {
+          const category = categorize(eventData?.operation);
+          const group = category === 'publish' ? res.publishGroup : category === 'consume' ? res.consumeGroup : null;
+          pushActivity({
+            level: 'error',
+            text: `${eventData?.operation ? `[${eventData.operation}] ` : ''}${eventData?.message || 'Error'}`,
+            category,
+            group
+          });
+          break;
+        }
+        case 'debug': {
+          const op = eventData?.operation;
+          if (op === 'connect-success') res.connected = true;
+          const category = categorize(op);
+          let group = null;
+          if (category === 'publish') {
+            if (op === 'publish-attempt') res.publishGroup++;
+            group = res.publishGroup;
+          } else if (category === 'consume') {
+            if (op === 'consume-attempt') res.consumeGroup++;
+            group = res.consumeGroup;
+          }
+          pushActivity({
+            level: 'debug',
+            text: `${op || 'debug'}  ${formatAmqpActivityDetails(eventData)}`.trim(),
+            timestamp: eventData?.timestamp,
+            category,
+            group
+          });
+          break;
+        }
+        default:
+          break;
+      }
+    },
+    setAmqpConnectionStatus: (state, action) => {
+      const { itemUid, collectionUid, connected, consuming } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+      if (!collection) return;
+      const item = findItemInCollection(collection, itemUid);
+      if (!item) return;
+      if (!item.response || item.response.type !== 'amqp') {
+        item.response = createInitiatedAmqpResponse();
+      }
+      if (connected !== undefined) item.response.connected = connected;
+      if (consuming !== undefined) item.response.consuming = consuming;
+    },
+    clearAmqpMessages: (state, action) => {
+      const { itemUid, collectionUid } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+      if (!collection) return;
+      const item = findItemInCollection(collection, itemUid);
+      if (!item || !item.response || item.response.type !== 'amqp') return;
+      item.response.messages = [];
+    },
+    clearAmqpActivity: (state, action) => {
+      const { itemUid, collectionUid } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+      if (!collection) return;
+      const item = findItemInCollection(collection, itemUid);
+      if (!item || !item.response || item.response.type !== 'amqp') return;
+      item.response.activity = [];
+    },
     runWsRequestEvent: (state, action) => {
       const { itemUid, collectionUid, eventType, eventData } = action.payload;
       const collection = findCollectionByUid(state.collections, collectionUid);
@@ -4099,6 +4282,10 @@ export const {
   deleteRequestTag,
   updateCollectionTagsList,
   updateActiveConnections,
+  amqpResponseEvent,
+  setAmqpConnectionStatus,
+  clearAmqpMessages,
+  clearAmqpActivity,
   runWsRequestEvent,
   wsResponseReceived,
   wsUpdateResponseSortOrder,

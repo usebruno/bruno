@@ -99,7 +99,7 @@ const AmqpConsumeConfig = ({ item, collection }) => {
     try {
       const { ipcRenderer } = window;
       await ipcRenderer.invoke('renderer:amqp:disconnect', {
-        requestUid: item.uid,
+        itemUid: item.uid,
         collectionUid: collection.uid
       });
       setConnected(false);
@@ -133,7 +133,7 @@ const AmqpConsumeConfig = ({ item, collection }) => {
     try {
       const { ipcRenderer } = window;
       await ipcRenderer.invoke('renderer:amqp:unsubscribe', {
-        requestUid: item.uid,
+        itemUid: item.uid,
         collectionUid: collection.uid,
         queue: resolvedQueue
       });
@@ -166,7 +166,7 @@ const AmqpConsumeConfig = ({ item, collection }) => {
     let cancelled = false;
     const { ipcRenderer } = window;
     ipcRenderer
-      .invoke('renderer:amqp:connection-status', { requestUid: item.uid, collectionUid: collection.uid })
+      .invoke('renderer:amqp:connection-status', { itemUid: item.uid, collectionUid: collection.uid })
       .then((res) => {
         if (cancelled || !res?.success) return;
         setConnected(!!res.status?.connected);

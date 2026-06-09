@@ -472,8 +472,13 @@ const registerWsEventHandlers = (window) => {
   });
 };
 
+// `wsClient` is assigned inside `registerWsEventHandlers`, so the value captured
+// by `module.exports` at load time would always be `undefined`. Expose a getter
+// so consumers (e.g. collection cleanup) read the live instance.
+const getWsClient = () => wsClient;
+
 module.exports = {
   registerWsEventHandlers,
-  wsClient,
+  getWsClient,
   prepareWsRequest
 };

@@ -769,6 +769,12 @@ export const transformRequestToSaveToFilesystem = (item) => {
       routingKey: _item.request.consume?.routingKey || '',
       queue: _item.request.consume?.queue || ''
     };
+    if (!itemToSave.request.auth || !itemToSave.request.auth.mode) {
+      itemToSave.request.auth = { ...(itemToSave.request.auth || {}), mode: 'none' };
+    }
+    if (!itemToSave.request.body || !itemToSave.request.body.mode) {
+      itemToSave.request.body = { ...(itemToSave.request.body || {}), mode: 'json', json: itemToSave.request.body?.json ?? '{}' };
+    }
     delete itemToSave.request.method;
     delete itemToSave.request.params;
   }

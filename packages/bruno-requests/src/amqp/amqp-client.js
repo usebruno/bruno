@@ -78,6 +78,7 @@ class AmqpClient {
         delete this.connections[key];
         delete this.channels[key];
         delete this.consumers[key];
+        this.emitConnectionsChanged('removed', requestUid);
       });
 
       // Map of queue name -> consumer info ({ consumerTag }) for this connection
@@ -111,6 +112,7 @@ class AmqpClient {
       this.sendEvent('main:amqp:connected', requestUid, collectionUid, {
         timestamp: Date.now()
       });
+      this.emitConnectionsChanged('added', requestUid);
 
       return { success: true };
     } catch (err) {
@@ -455,6 +457,7 @@ class AmqpClient {
     this.sendEvent('main:amqp:disconnected', requestUid, collectionUid, {
       timestamp: Date.now()
     });
+    this.emitConnectionsChanged('removed', requestUid);
   }
 
   async disconnectAll() {
@@ -475,6 +478,27 @@ class AmqpClient {
       const [requestUid, colUid] = key.split(':');
       this.disconnect(requestUid, colUid).catch(() => {});
     }
+  }
+
+  // Returns the unique request (item) uids that currently hold a live connection.
+  // Keys are stored as `${requestUid}:${collectionUid}`; the renderer tracks
+  // active connections by item uid (matching gRPC/WebSocket behaviour).
+  getActiveConnectionIds() {
+    const ids = new Set();
+    Object.keys(this.connections).forEach((key) => {
+      ids.add(key.split(':')[0]);
+    });
+    return Array.from(ids);
+  }
+
+  // Mirrors the WebSocket/gRPC clients: notify the renderer whenever the set of
+  // active connections changes so the UI can reflect active-connection state.
+  emitConnectionsChanged(type, requestUid) {
+    this.sendEvent('main:amqp:connections-changed', {
+      type,
+      requestId: requestUid,
+      activeConnectionIds: this.getActiveConnectionIds()
+    });
   }
 
   getStatus(requestUid, collectionUid) {

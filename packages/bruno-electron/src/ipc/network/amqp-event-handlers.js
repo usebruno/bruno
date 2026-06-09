@@ -1,7 +1,6 @@
 const { ipcMain } = require('electron');
 const { AmqpClient } = require('@usebruno/requests');
 const { cloneDeep, each, get } = require('lodash');
-const interpolateVars = require('./interpolate-vars');
 const {
   getEnvVars,
   getTreePathFromCollectionToItem,
@@ -502,15 +501,15 @@ const registerAmqpEventHandlers = (window) => {
   // Unsubscribe from a single queue (stops just that queue's consumer)
   ipcMain.handle(
     'renderer:amqp:unsubscribe',
-    async (event, { requestUid, collectionUid, queue }) => {
+    async (event, { itemUid, collectionUid, queue }) => {
       try {
-        emitAmqpDebug(requestUid, collectionUid, 'consume-stop-attempt', { queue });
-        await amqpClient.stopConsuming(requestUid, collectionUid, queue);
-        emitAmqpDebug(requestUid, collectionUid, 'consume-stop-success', { queue });
+        emitAmqpDebug(itemUid, collectionUid, 'consume-stop-attempt', { queue });
+        await amqpClient.stopConsuming(itemUid, collectionUid, queue);
+        emitAmqpDebug(itemUid, collectionUid, 'consume-stop-success', { queue });
         return { success: true };
       } catch (error) {
         console.error('Error unsubscribing from AMQP queue:', error);
-        sendEvent('main:amqp:error', requestUid, collectionUid, {
+        sendEvent('main:amqp:error', itemUid, collectionUid, {
           message: error.message,
           operation: 'unsubscribe',
           queue,
@@ -524,15 +523,15 @@ const registerAmqpEventHandlers = (window) => {
   // Stop consuming
   ipcMain.handle(
     'renderer:amqp:stop-consuming',
-    async (event, { requestUid, collectionUid, queue }) => {
+    async (event, { itemUid, collectionUid, queue }) => {
       try {
-        emitAmqpDebug(requestUid, collectionUid, 'consume-stop-attempt', { queue });
-        await amqpClient.stopConsuming(requestUid, collectionUid, queue);
-        emitAmqpDebug(requestUid, collectionUid, 'consume-stop-success', { queue });
+        emitAmqpDebug(itemUid, collectionUid, 'consume-stop-attempt', { queue });
+        await amqpClient.stopConsuming(itemUid, collectionUid, queue);
+        emitAmqpDebug(itemUid, collectionUid, 'consume-stop-success', { queue });
         return { success: true };
       } catch (error) {
         console.error('Error stopping AMQP consumer:', error);
-        sendEvent('main:amqp:error', requestUid, collectionUid, {
+        sendEvent('main:amqp:error', itemUid, collectionUid, {
           message: error.message,
           operation: 'stop-consuming',
           timestamp: Date.now()
@@ -545,23 +544,23 @@ const registerAmqpEventHandlers = (window) => {
   // Disconnect
   ipcMain.handle(
     'renderer:amqp:disconnect',
-    async (event, { requestUid, collectionUid }) => {
+    async (event, { itemUid, collectionUid }) => {
       try {
-        const statusBefore = amqpClient.getStatus(requestUid, collectionUid);
-        emitAmqpDebug(requestUid, collectionUid, 'disconnect-attempt', {
+        const statusBefore = amqpClient.getStatus(itemUid, collectionUid);
+        emitAmqpDebug(itemUid, collectionUid, 'disconnect-attempt', {
           statusBefore
         });
 
-        await amqpClient.disconnect(requestUid, collectionUid);
+        await amqpClient.disconnect(itemUid, collectionUid);
 
-        emitAmqpDebug(requestUid, collectionUid, 'disconnect-success', {
-          statusAfter: amqpClient.getStatus(requestUid, collectionUid)
+        emitAmqpDebug(itemUid, collectionUid, 'disconnect-success', {
+          statusAfter: amqpClient.getStatus(itemUid, collectionUid)
         });
 
         return { success: true };
       } catch (error) {
         console.error('Error disconnecting AMQP:', error);
-        sendEvent('main:amqp:error', requestUid, collectionUid, {
+        sendEvent('main:amqp:error', itemUid, collectionUid, {
           message: error.message,
           operation: 'disconnect',
           timestamp: Date.now()
@@ -571,12 +570,23 @@ const registerAmqpEventHandlers = (window) => {
     }
   );
 
+  // Get all active connection (item) ids — mirrors gRPC/WebSocket handlers
+  ipcMain.handle('renderer:amqp:get-active-connections', () => {
+    try {
+      const activeConnectionIds = amqpClient.getActiveConnectionIds();
+      return { success: true, activeConnectionIds };
+    } catch (error) {
+      console.error('Error getting AMQP active connections:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
   // Get connection status
   ipcMain.handle(
     'renderer:amqp:connection-status',
-    (event, { requestUid, collectionUid }) => {
+    (event, { itemUid, collectionUid }) => {
       try {
-        const status = amqpClient.getStatus(requestUid, collectionUid);
+        const status = amqpClient.getStatus(itemUid, collectionUid);
         return { success: true, status };
       } catch (error) {
         console.error('Error getting AMQP connection status:', error);
@@ -586,8 +596,13 @@ const registerAmqpEventHandlers = (window) => {
   );
 };
 
+// `amqpClient` is assigned inside `registerAmqpEventHandlers`, so the value
+// captured by `module.exports` at load time would always be `undefined`.
+// Expose a getter so consumers (e.g. collection cleanup) read the live instance.
+const getAmqpClient = () => amqpClient;
+
 module.exports = {
   registerAmqpEventHandlers,
-  amqpClient,
+  getAmqpClient,
   prepareAmqpRequest
 };
