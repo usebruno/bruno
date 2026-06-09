@@ -161,11 +161,12 @@ const EnvironmentVariablesTable = ({
   const _collection = useMemo(() => {
     const c = collection ? cloneDeep(collection) : {};
     c.globalEnvironmentVariables = globalEnvironmentVariables;
+    c.activeEnvironmentUid = environment.uid;
     if (!collection && workspaceProcessEnvVariables) {
       c.workspaceProcessEnvVariables = workspaceProcessEnvVariables;
     }
     return c;
-  }, [collection, globalEnvironmentVariables, workspaceProcessEnvVariables]);
+  }, [collection, globalEnvironmentVariables, workspaceProcessEnvVariables, environment.uid]);
 
   const initialValues = useMemo(() => {
     const vars = environment.variables || [];

@@ -344,7 +344,8 @@ export const tabsSlice = createSlice({
           if (siblingTabs && siblingTabs.length) {
             state.activeTabUid = last(siblingTabs).uid;
           } else {
-            state.activeTabUid = last(state.tabs).uid;
+            const overviewTab = find(state.tabs, (t) => t.type === 'workspaceOverview');
+            state.activeTabUid = overviewTab ? overviewTab.uid : last(state.tabs).uid;
           }
         }
       }
@@ -360,7 +361,12 @@ export const tabsSlice = createSlice({
 
       const activeTabStillExists = state.tabs.some((t) => t.uid === prevActiveTabUid);
       if (!activeTabStillExists) {
-        state.activeTabUid = state.tabs.length > 0 ? last(state.tabs).uid : null;
+        if (state.tabs.length === 0) {
+          state.activeTabUid = null;
+        } else {
+          const overviewTab = find(state.tabs, (t) => t.type === 'workspaceOverview');
+          state.activeTabUid = overviewTab ? overviewTab.uid : last(state.tabs).uid;
+        }
       }
     },
     makeTabPermanent: (state, action) => {
@@ -472,6 +478,13 @@ export const tabsSlice = createSlice({
         state.activeTabUid = state.tabs.find((t) => t.collectionUid === collectionUid)?.uid || null;
       }
     },
+    updateTabState: (state, action) => {
+      const { uid, tabState } = action.payload;
+      const tab = find(state.tabs, (t) => t.uid === uid);
+      if (tab) {
+        tab.tabState = { ...tab.tabState, ...tabState };
+      }
+    },
     reopenLastClosedTab: (state, action) => {
       const collectionUid = action.payload?.collectionUid;
       // Find the last closed tab for this collection (LIFO). If no collectionUid is
@@ -520,6 +533,7 @@ export const {
   reorderTabs,
   syncTabUid,
   restoreTabs,
+  updateTabState,
   reopenLastClosedTab,
   updateQueryBuilderOpen,
   updateQueryBuilderWidth,

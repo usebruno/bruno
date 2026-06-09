@@ -4,7 +4,7 @@ import { invalidVariableCharacterRegex } from '../../../src/constants';
 
 describe('postman-collection', () => {
   it('should correctly import a valid Postman collection file', async () => {
-    const brunoCollection = await postmanToBruno(postmanCollection);
+    const { collection: brunoCollection } = await postmanToBruno(postmanCollection);
     expect(brunoCollection).toMatchObject(expectedOutput);
   });
 
@@ -55,7 +55,7 @@ describe('postman-collection', () => {
       item: []
     };
 
-    const brunoCollection = await postmanToBruno(collectionWithFalsyVars);
+    const { collection: brunoCollection } = await postmanToBruno(collectionWithFalsyVars);
 
     expect(brunoCollection.root.request.vars.req).toEqual([
       {
@@ -125,7 +125,7 @@ describe('postman-collection', () => {
       ]
     };
 
-    const brunoCollection = await postmanToBruno(collectionWithFalsyVars);
+    const { collection: brunoCollection } = await postmanToBruno(collectionWithFalsyVars);
 
     expect(brunoCollection.items.map((item) => item.request.url)).toEqual([
       'https://httpbin.org/api/v1/resource'
@@ -178,7 +178,7 @@ describe('postman-collection', () => {
       ]
     };
 
-    const brunoCollection = await postmanToBruno(collectionWithFalsyVars);
+    const { collection: brunoCollection } = await postmanToBruno(collectionWithFalsyVars);
 
     expect(brunoCollection.items.map((item) => item.request.url)).toEqual([
       'https://httpbin.org/api/v1/resource/'
@@ -231,7 +231,7 @@ describe('postman-collection', () => {
       ]
     };
 
-    const brunoCollection = await postmanToBruno(collectionWithFalsyVars);
+    const { collection: brunoCollection } = await postmanToBruno(collectionWithFalsyVars);
 
     expect(brunoCollection.items.map((item) => item.request.url)).toEqual([
       'https://httpbin.org/api//resource'
@@ -266,7 +266,7 @@ describe('postman-collection', () => {
       ]
     };
 
-    const brunoCollection = await postmanToBruno(collectionWithNonStringVars);
+    const { collection: brunoCollection } = await postmanToBruno(collectionWithNonStringVars);
     const vars = brunoCollection.root.request.vars.req;
 
     expect(vars).toHaveLength(3);
@@ -286,7 +286,7 @@ describe('postman-collection', () => {
       item: []
     };
 
-    const brunoCollection = await postmanToBruno(collectionWithEmptyVars);
+    const { collection: brunoCollection } = await postmanToBruno(collectionWithEmptyVars);
     expect(brunoCollection.root.request.vars.req).toEqual([]);
   });
 
@@ -348,7 +348,7 @@ describe('postman-collection', () => {
       ]
     };
 
-    const brunoCollection = await postmanToBruno(collectionWithSettings);
+    const { collection: brunoCollection } = await postmanToBruno(collectionWithSettings);
 
     // Test request with all settings
     const requestWithAllSettings = brunoCollection.items[0];
@@ -402,7 +402,7 @@ describe('postman-collection', () => {
       ]
     };
 
-    const brunoCollection = await postmanToBruno(collectionWithUndefinedAuthType);
+    const { collection: brunoCollection } = await postmanToBruno(collectionWithUndefinedAuthType);
 
     // Collection level auth should default to 'none'
     expect(brunoCollection.root.request.auth).toEqual({
@@ -459,7 +459,7 @@ describe('postman-collection', () => {
       ]
     };
 
-    const brunoCollection = await postmanToBruno(collectionWithNullAuthType);
+    const { collection: brunoCollection } = await postmanToBruno(collectionWithNullAuthType);
 
     // Collection level auth should default to 'none'
     expect(brunoCollection.root.request.auth).toEqual({
@@ -505,7 +505,7 @@ describe('postman-collection', () => {
       ]
     };
 
-    const brunoCollection = await postmanToBruno(collectionWithUnexpectedAuthType);
+    const { collection: brunoCollection } = await postmanToBruno(collectionWithUnexpectedAuthType);
 
     // Collection level auth should default to 'none'
     expect(brunoCollection.root.request.auth).toEqual({
@@ -562,7 +562,7 @@ describe('postman-collection', () => {
       ]
     };
 
-    const brunoCollection = await postmanToBruno(collectionWithRequestUndefinedAuthType);
+    const { collection: brunoCollection } = await postmanToBruno(collectionWithRequestUndefinedAuthType);
 
     // Collection level auth should default to 'none'
     expect(brunoCollection.root.request.auth).toEqual({
@@ -624,7 +624,7 @@ describe('postman-collection', () => {
       ]
     };
 
-    const brunoCollection = await postmanToBruno(collectionWithFolderUnexpectedAuthType);
+    const { collection: brunoCollection } = await postmanToBruno(collectionWithFolderUnexpectedAuthType);
 
     // Folder auth should default to 'none'
     expect(brunoCollection.items[0].root.request.auth).toEqual({
@@ -675,7 +675,7 @@ describe('postman-collection', () => {
       ]
     };
 
-    const brunoCollection = await postmanToBruno(collectionWithNullHeaders);
+    const { collection: brunoCollection } = await postmanToBruno(collectionWithNullHeaders);
     const headers = brunoCollection.items[0].request.headers;
 
     expect(headers).toHaveLength(3);
@@ -715,7 +715,7 @@ describe('postman-collection', () => {
       ]
     };
 
-    const brunoCollection = await postmanToBruno(collectionWithNullUrlencoded);
+    const { collection: brunoCollection } = await postmanToBruno(collectionWithNullUrlencoded);
     const formUrlEncoded = brunoCollection.items[0].request.body.formUrlEncoded;
 
     expect(formUrlEncoded).toHaveLength(3);
@@ -754,7 +754,7 @@ describe('postman-collection', () => {
       ]
     };
 
-    const brunoCollection = await postmanToBruno(collectionWithNullFormdata);
+    const { collection: brunoCollection } = await postmanToBruno(collectionWithNullFormdata);
     const multipartForm = brunoCollection.items[0].request.body.multipartForm;
 
     expect(multipartForm).toHaveLength(2);
@@ -794,7 +794,7 @@ describe('postman-collection', () => {
       ]
     };
 
-    const brunoCollection = await postmanToBruno(collectionWithNullQueryParams);
+    const { collection: brunoCollection } = await postmanToBruno(collectionWithNullQueryParams);
     const params = brunoCollection.items[0].request.params;
 
     // Fully-null entry should be skipped
@@ -871,7 +871,7 @@ describe('postman-collection', () => {
       ]
     };
 
-    const brunoCollection = await postmanToBruno(collectionWithNumericValues);
+    const { collection: brunoCollection } = await postmanToBruno(collectionWithNumericValues);
     const item = brunoCollection.items[0];
 
     // Headers should have string values
@@ -950,7 +950,7 @@ describe('postman-collection', () => {
       ]
     };
 
-    const brunoCollection = await postmanToBruno(collectionWithNumericExamples);
+    const { collection: brunoCollection } = await postmanToBruno(collectionWithNumericExamples);
     const example = brunoCollection.items[0].examples[0];
 
     // Example request headers
@@ -1011,7 +1011,7 @@ describe('postman-collection', () => {
       ]
     };
 
-    const brunoCollection = await postmanToBruno(collectionWithNumericAuth);
+    const { collection: brunoCollection } = await postmanToBruno(collectionWithNumericAuth);
 
     // Bearer token should be stringified
     expect(brunoCollection.items[0].request.auth.mode).toBe('bearer');
@@ -1049,7 +1049,7 @@ describe('postman-collection', () => {
       ]
     };
 
-    const brunoCollection = await postmanToBruno(collectionWithObjectAuth);
+    const { collection: brunoCollection } = await postmanToBruno(collectionWithObjectAuth);
 
     expect(brunoCollection.items[0].request.auth.mode).toBe('basic');
     expect(brunoCollection.items[0].request.auth.basic.username).toBe('12345');
@@ -1079,7 +1079,7 @@ describe('postman-collection', () => {
       ]
     };
 
-    const brunoCollection = await postmanToBruno(collectionWithStringHeaders);
+    const { collection: brunoCollection } = await postmanToBruno(collectionWithStringHeaders);
     const headers = brunoCollection.items[0].request.headers;
 
     expect(headers).toHaveLength(3);
@@ -1110,7 +1110,7 @@ describe('postman-collection', () => {
       ]
     };
 
-    const brunoCollection = await postmanToBruno(collectionWithConcatenatedHeaders);
+    const { collection: brunoCollection } = await postmanToBruno(collectionWithConcatenatedHeaders);
     const headers = brunoCollection.items[0].request.headers;
 
     expect(headers).toHaveLength(2);
@@ -1118,6 +1118,15 @@ describe('postman-collection', () => {
     expect(headers[0].value).toBe('application/json');
     expect(headers[1].name).toBe('Host');
     expect(headers[1].value).toBe('example.com');
+  });
+
+  it('should unwrap and import a Postman collection with { collection: { ... } } envelope', async () => {
+    const wrappedCollection = {
+      collection: { ...postmanCollection }
+    };
+
+    const { collection: brunoCollection } = await postmanToBruno(wrappedCollection);
+    expect(brunoCollection).toMatchObject(expectedOutput);
   });
 
   it('should handle string headers with no value', async () => {
@@ -1139,7 +1148,7 @@ describe('postman-collection', () => {
       ]
     };
 
-    const brunoCollection = await postmanToBruno(collectionWithNoValueHeader);
+    const { collection: brunoCollection } = await postmanToBruno(collectionWithNoValueHeader);
     const headers = brunoCollection.items[0].request.headers;
 
     expect(headers).toHaveLength(1);
@@ -1238,7 +1247,7 @@ describe('postman-collection formdata import', () => {
       ]
     };
 
-    const brunoCollection = await postmanToBruno(collectionWithFileFormdata);
+    const { collection: brunoCollection } = await postmanToBruno(collectionWithFileFormdata);
     const multipartForm = brunoCollection.items[0].request.body.multipartForm;
 
     expect(multipartForm).toHaveLength(1);
@@ -1278,7 +1287,7 @@ describe('postman-collection formdata import', () => {
       ]
     };
 
-    const brunoCollection = await postmanToBruno(collectionWithDefaultTypeAndSrc);
+    const { collection: brunoCollection } = await postmanToBruno(collectionWithDefaultTypeAndSrc);
     const multipartForm = brunoCollection.items[0].request.body.multipartForm;
 
     expect(multipartForm).toHaveLength(1);
@@ -1318,7 +1327,7 @@ describe('postman-collection formdata import', () => {
       ]
     };
 
-    const brunoCollection = await postmanToBruno(collectionWithDefaultTypeAndValueArray);
+    const { collection: brunoCollection } = await postmanToBruno(collectionWithDefaultTypeAndValueArray);
     const multipartForm = brunoCollection.items[0].request.body.multipartForm;
 
     expect(multipartForm).toHaveLength(1);
@@ -1359,7 +1368,7 @@ describe('postman-collection formdata import', () => {
       ]
     };
 
-    const brunoCollection = await postmanToBruno(collectionWithContentType);
+    const { collection: brunoCollection } = await postmanToBruno(collectionWithContentType);
     const multipartForm = brunoCollection.items[0].request.body.multipartForm;
 
     expect(multipartForm).toHaveLength(1);
@@ -1403,7 +1412,7 @@ describe('postman-collection formdata import', () => {
       ]
     };
 
-    const brunoCollection = await postmanToBruno(collectionWithMixedFormdata);
+    const { collection: brunoCollection } = await postmanToBruno(collectionWithMixedFormdata);
     const multipartForm = brunoCollection.items[0].request.body.multipartForm;
 
     expect(multipartForm).toHaveLength(2);

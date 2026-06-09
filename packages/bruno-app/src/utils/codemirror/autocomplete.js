@@ -136,6 +136,7 @@ const STATIC_API_HINTS = {
     'bru.getCollectionName()',
     'bru.isSafeMode()',
     'bru.getOauth2CredentialVar(key)',
+    'bru.hasGlobalEnvVar(key)',
     'bru.getGlobalEnvVar(key)',
     'bru.setGlobalEnvVar(key, value)',
     // 'bru.deleteGlobalEnvVar(key)',

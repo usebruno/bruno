@@ -2,6 +2,7 @@ const https = require('https');
 const axios = require('axios');
 const path = require('path');
 const { applyOAuth1ToRequest } = require('@usebruno/requests');
+const { buildScriptedEntry } = require('@usebruno/requests').scripting;
 const qs = require('qs');
 const decomment = require('decomment');
 const contentDispositionParser = require('content-disposition');
@@ -10,7 +11,7 @@ const { ipcMain } = require('electron');
 const { each, get, extend, cloneDeep, merge } = require('lodash');
 const { NtlmClient } = require('axios-ntlm');
 const { VarsRuntime, AssertRuntime, ScriptRuntime, TestRuntime, formatErrorWithContextV2 } = require('@usebruno/js');
-const { encodeUrl } = require('@usebruno/common').utils;
+const { encodeUrl, hasExplicitScheme } = require('@usebruno/common').utils;
 const { extractPromptVariables } = require('@usebruno/common').utils;
 const { interpolateString } = require('./interpolate-string');
 const { resolveAwsV4Credentials, addAwsV4Interceptor } = require('./awsv4auth-helper');
@@ -108,9 +109,8 @@ const configureRequest = async (
   collectionPath,
   globalEnvironmentVariables
 ) => {
-  const protocolRegex = /^([-+\w]{1,25})(:?\/\/|:)/;
   const hasVariables = request.url.startsWith('{{');
-  if (!hasVariables && !protocolRegex.test(request.url)) {
+  if (!hasVariables && !hasExplicitScheme(request.url)) {
     request.url = `http://${request.url}`;
   }
 
@@ -608,7 +608,7 @@ const registerNetworkIpc = (mainWindow) => {
 
     const contentType = contentTypeHeader ? request.headers[contentTypeHeader] : '';
     if (typeof contentType === 'string' && contentType.startsWith('multipart/')) {
-      if (!isFormData(request.data)) {
+      if (typeof request.data !== 'string' && !isFormData(request.data)) {
         request._originalMultipartData = request.data;
         request.collectionPath = collectionPath;
         let form = createFormData(request.data, collectionPath);
@@ -734,14 +734,14 @@ const registerNetworkIpc = (mainWindow) => {
     return scriptResult;
   };
 
-  const runRequest = async ({ item, collection, envVars, processEnvVars, runtimeVariables, runInBackground = false }) => {
+  const runRequest = async ({ item, collection, envVars, processEnvVars, runtimeVariables, runInBackground = false, callerBru = null, parentExecutionMode = null, parentRunnerEventData = null }) => {
     const collectionUid = collection.uid;
     const collectionPath = collection.pathname;
     const cancelTokenUid = uuid();
-    // requestUid is passed when a request is triggered; defaults to uuid() if not provided (e.g., bru.runRequest())
+    // Nested bru.runRequest() invocations have no item.requestUid; mint one.
     const requestUid = item.requestUid || uuid();
 
-    const runRequestByItemPathname = async (relativeItemPathname) => {
+    const runRequestByItemPathname = async (relativeItemPathname, callerBru) => {
       return new Promise(async (resolve, reject) => {
         const format = getCollectionFormat(collection.pathname);
         let itemPathname = path.join(collection.pathname, relativeItemPathname);
@@ -750,10 +750,110 @@ const registerNetworkIpc = (mainWindow) => {
         }
         const _item = cloneDeep(findItemInCollectionByPathname(collection, itemPathname));
         if (_item) {
-          const res = await runRequest({ item: _item, collection, envVars, processEnvVars, runtimeVariables, runInBackground: true });
+          // WS/gRPC items live on separate IPC channels and can't be driven via
+          // the HTTP runRequest. Record a Skipped row so the user sees feedback.
+          if (_item.type === 'ws-request' || _item.type === 'grpc-request') {
+            const protocolLabel = _item.type === 'ws-request' ? 'WebSocket' : 'gRPC';
+            const startedAt = Date.now();
+            callerBru?._recordScriptedRequest?.({
+              source: 'runRequest',
+              request: {
+                method: (_item.request?.method || 'GET').toString().toUpperCase(),
+                url: _item.request?.url,
+                headers: {},
+                data: null
+              },
+              response: {
+                statusCode: null,
+                statusText: 'Skipped',
+                headers: {},
+                data: null,
+                dataBuffer: '',
+                size: 0,
+                duration: 0
+              },
+              error: null,
+              startedAt,
+              completedAt: startedAt
+            });
+            resolve({
+              status: 'skipped',
+              statusText: `bru.runRequest does not support ${protocolLabel} requests`,
+              headers: {},
+              data: null,
+              duration: 0,
+              size: 0
+            });
+            return;
+          }
+
+          const startedAt = Date.now();
+          let res, err;
+          try {
+            res = await runRequest({ item: _item, collection, envVars, processEnvVars, runtimeVariables, runInBackground: true, callerBru, parentExecutionMode, parentRunnerEventData });
+          } catch (e) {
+            err = e;
+          }
+          const completedAt = Date.now();
+          const sent = res?.requestSent || {};
+          // Cancel/network-error early-returns don't include requestSent; fall back
+          const fallbackRequest = _item.request || {};
+          callerBru?._recordScriptedRequest?.({
+            source: 'runRequest',
+            ...buildScriptedEntry({
+              request: {
+                method: sent.method || fallbackRequest.method,
+                url: sent.url || res?.url || fallbackRequest.url,
+                headers: sent.headers,
+                data: sent.data
+              },
+              response: res
+                ? {
+                    status: res.status,
+                    statusText: res.statusText,
+                    headers: res.headers,
+                    data: res.data,
+                    dataBuffer: res.dataBuffer,
+                    size: res.size,
+                    duration: res.duration
+                  }
+                : null,
+              error: err || (res?.error ? { message: res.error } : null),
+              startedAt,
+              completedAt
+            })
+          });
+          if (err) {
+            reject(err);
+            return;
+          }
           resolve(res);
+          return;
         }
         reject(`bru.runRequest: invalid request path - ${itemPathname}`);
+      });
+    };
+
+    const emitScriptedRequestEvents = (phase, scriptResult) => {
+      const entries = scriptResult?.scriptedRequestEntries || [];
+      if (runInBackground) {
+        if (callerBru) {
+          entries.forEach((entry) => callerBru._recordScriptedRequest?.(entry));
+        }
+        return;
+      }
+      entries.forEach((entry) => {
+        mainWindow.webContents.send('main:run-request-event', {
+          type: 'scripted-request',
+          collectionUid,
+          itemUid: item.uid,
+          requestUid,
+          phase,
+          source: entry.source,
+          scope: entry.scope || null,
+          timestamp: entry.startedAt,
+          data: { request: entry.request, response: entry.response, error: entry.error }
+        });
       });
     };
 
@@ -817,6 +917,8 @@ const registerNetworkIpc = (mainWindow) => {
       if (preRequestError?.partialResults) {
         preRequestScriptResult = preRequestError.partialResults;
       }
+
+      emitScriptedRequestEvents('pre-request', preRequestScriptResult);
 
       preRequestScriptResult = appendScriptErrorResult('pre-request', preRequestScriptResult, preRequestError);
 
@@ -888,8 +990,21 @@ const registerNetworkIpc = (mainWindow) => {
           collectionUid,
           credentialsId: request?.oauth2Credentials?.credentialsId,
           ...(request?.oauth2Credentials?.folderUid ? { folderUid: request.oauth2Credentials.folderUid } : { itemUid: item.uid }),
-          debugInfo: request?.oauth2Credentials?.debugInfo
+          debugInfo: request?.oauth2Credentials?.debugInfo,
+          // When invoked via bru.runRequest from inside the Runner, route the oauth2 timeline
+          // entry onto the outer runner item instead of leaking into collection.timeline.
+          ...(parentExecutionMode === 'runner' ? { executionMode: 'runner' } : {})
         });
+
+        if (parentExecutionMode === 'runner' && parentRunnerEventData && request.oauth2Credentials.debugInfo) {
+          mainWindow.webContents.send('main:run-folder-event', {
+            type: 'oauth2-debug',
+            ...parentRunnerEventData,
+            url: request.oauth2Credentials.url,
+            credentialsId: request.oauth2Credentials.credentialsId,
+            debugInfo: request.oauth2Credentials.debugInfo
+          });
+        }
 
         const { credentialsId, credentials } = request.oauth2Credentials;
         request.oauth2CredentialVariables = request.oauth2CredentialVariables || {};
@@ -1000,6 +1115,8 @@ const registerNetworkIpc = (mainWindow) => {
           postResponseScriptResult = postResponseError.partialResults;
         }
 
+        emitScriptedRequestEvents('post-response', postResponseScriptResult);
+
         postResponseScriptResult = appendScriptErrorResult('post-response', postResponseScriptResult, postResponseError);
 
         if (postResponseScriptResult?.results) {
@@ -1077,6 +1194,8 @@ const registerNetworkIpc = (mainWindow) => {
               };
             }
           }
+
+          emitScriptedRequestEvents('tests', testResults);
 
           testResults = appendScriptErrorResult('test', testResults, testError);
 
@@ -1283,6 +1402,9 @@ const registerNetworkIpc = (mainWindow) => {
       const processEnvVars = getProcessEnvVars(collectionUid);
       let stopRunnerExecution = false;
       let currentAbortController;
+      // Tracks the outer runner item currently executing so a nested bru.runRequest
+      // can route its oauth2 timeline entry back to this item.
+      let currentRunnerEventData = null;
 
       const abortController = new AbortController();
       saveCancelToken(cancelTokenUid, abortController);
@@ -1293,7 +1415,7 @@ const registerNetworkIpc = (mainWindow) => {
         }
       });
 
-      const runRequestByItemPathname = async (relativeItemPathname) => {
+      const runRequestByItemPathname = async (relativeItemPathname, callerBru) => {
         return new Promise(async (resolve, reject) => {
           const format = getCollectionFormat(collection.pathname);
           let itemPathname = path.join(collection.pathname, relativeItemPathname);
@@ -1302,8 +1424,92 @@ const registerNetworkIpc = (mainWindow) => {
           }
           const _item = cloneDeep(findItemInCollectionByPathname(collection, itemPathname));
           if (_item) {
-            const res = await runRequest({ item: _item, collection, envVars, processEnvVars, runtimeVariables, runInBackground: true });
+            // WS/gRPC items live on separate IPC channels and can't be driven via
+            // the HTTP runRequest. Record a Skipped row so the user sees feedback.
+            if (_item.type === 'ws-request' || _item.type === 'grpc-request') {
+              const protocolLabel = _item.type === 'ws-request' ? 'WebSocket' : 'gRPC';
+              const startedAt = Date.now();
+              callerBru?._recordScriptedRequest?.({
+                source: 'runRequest',
+                request: {
+                  method: (_item.request?.method || 'GET').toString().toUpperCase(),
+                  url: _item.request?.url,
+                  headers: {},
+                  data: null
+                },
+                response: {
+                  statusCode: null,
+                  statusText: 'Skipped',
+                  headers: {},
+                  data: null,
+                  dataBuffer: '',
+                  size: 0,
+                  duration: 0
+                },
+                error: null,
+                startedAt,
+                completedAt: startedAt
+              });
+              resolve({
+                status: 'skipped',
+                statusText: `bru.runRequest does not support ${protocolLabel} requests`,
+                headers: {},
+                data: null,
+                duration: 0,
+                size: 0
+              });
+              return;
+            }
+
+            const startedAt = Date.now();
+            let res, err;
+            try {
+              res = await runRequest({
+                item: _item,
+                collection,
+                envVars,
+                processEnvVars,
+                runtimeVariables,
+                runInBackground: true,
+                parentExecutionMode: 'runner',
+                parentRunnerEventData: currentRunnerEventData
+              });
+            } catch (e) {
+              err = e;
+            }
+            const completedAt = Date.now();
+            const sent = res?.requestSent || {};
+            callerBru?._recordScriptedRequest?.({
+              source: 'runRequest',
+              ...buildScriptedEntry({
+                request: {
+                  method: sent.method,
+                  url: sent.url || res?.url,
+                  headers: sent.headers,
+                  data: sent.data
+                },
+                response: res
+                  ? {
+                      status: res.status,
+                      statusText: res.statusText,
+                      headers: res.headers,
+                      data: res.data,
+                      dataBuffer: res.dataBuffer,
+                      size: res.size,
+                      duration: res.duration
+                    }
+                  : null,
+                error: err || (res?.error ? { message: res.error } : null),
+                startedAt,
+                completedAt
+              })
+            });
+            if (err) {
+              reject(err);
+              return;
+            }
             resolve(res);
+            return;
           }
           reject(`bru.runRequest: invalid request path - ${itemPathname}`);
         });
@@ -1384,6 +1590,22 @@ const registerNetworkIpc = (mainWindow) => {
             collectionUid,
             folderUid,
             itemUid
+          };
+          currentRunnerEventData = eventData;
+
+          const emitRunnerScriptedRequestEvents = (phase, scriptResult) => {
+            const entries = scriptResult?.scriptedRequestEntries || [];
+            entries.forEach((entry) => {
+              mainWindow.webContents.send('main:run-folder-event', {
+                type: 'scripted-request',
+                ...eventData,
+                phase,
+                source: entry.source,
+                scope: entry.scope || null,
+                timestamp: entry.startedAt,
+                data: { request: entry.request, response: entry.response, error: entry.error }
+              });
+            });
           };
 
           let timeStart;
@@ -1478,6 +1700,7 @@ const registerNetworkIpc = (mainWindow) => {
             }
 
             preRequestScriptResult = appendScriptErrorResult('pre-request', preRequestScriptResult, preRequestError);
+            emitRunnerScriptedRequestEvents('pre-request', preRequestScriptResult);
 
             if (preRequestScriptResult?.results) {
               mainWindow.webContents.send('main:run-folder-event', {
@@ -1578,8 +1801,21 @@ const registerNetworkIpc = (mainWindow) => {
                 collectionUid,
                 credentialsId: request?.oauth2Credentials?.credentialsId,
                 ...(request?.oauth2Credentials?.folderUid ? { folderUid: request.oauth2Credentials.folderUid } : { itemUid: item.uid }),
-                debugInfo: request?.oauth2Credentials?.debugInfo
+                debugInfo: request?.oauth2Credentials?.debugInfo,
+                // Reducer updates the cache but skips the timeline push for 'runner'.
+                executionMode: 'runner'
               });
+
+              // RunnerTimeline reads oauth from the runner item, not collection.timeline.
+              if (request.oauth2Credentials.debugInfo) {
+                mainWindow.webContents.send('main:run-folder-event', {
+                  type: 'oauth2-debug',
+                  ...eventData,
+                  url: request.oauth2Credentials.url,
+                  credentialsId: request.oauth2Credentials.credentialsId,
+                  debugInfo: request.oauth2Credentials.debugInfo
+                });
+              }
 
               const { credentialsId, credentials } = request.oauth2Credentials;
               request.oauth2CredentialVariables = request.oauth2CredentialVariables || {};
@@ -1722,6 +1958,7 @@ const registerNetworkIpc = (mainWindow) => {
             }
 
             postResponseScriptResult = appendScriptErrorResult('post-response', postResponseScriptResult, postResponseError);
+            emitRunnerScriptedRequestEvents('post-response', postResponseScriptResult);
 
             notifyScriptExecution({
               channel: 'main:run-folder-event',
@@ -1813,6 +2050,7 @@ const registerNetworkIpc = (mainWindow) => {
               }
 
               testResults = appendScriptErrorResult('test', testResults, testError);
+              emitRunnerScriptedRequestEvents('tests', testResults);
 
               if (testResults?.nextRequestName !== undefined) {
                 nextRequestName = testResults.nextRequestName;

@@ -148,7 +148,7 @@ const getCertsAndProxyConfig = async ({
       } else if (globalProxySource === 'inherit') {
         proxyMode = 'system';
         const systemProxyConfig = await getCachedSystemProxy();
-        proxyConfig = systemProxyConfig || { http_proxy: null, https_proxy: null, no_proxy: null, source: 'cache-miss' };
+        proxyConfig = systemProxyConfig || { http_proxy: null, https_proxy: null, no_proxy: null, pac_url: null, source: 'cache-miss' };
       } else {
         // source === 'manual'
         proxyConfig = globalProxyConfigData;

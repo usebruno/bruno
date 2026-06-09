@@ -1,5 +1,5 @@
 import { OpenCollection } from "@opencollection/types";
-import { BrunoCollection, BrunoCollectionRoot, BrunoConfig, PemCertificate, Pkcs12Certificate } from "./types";
+import { BrunoCollection, BrunoCollectionRoot, BrunoConfig, BrunoPresets, PemCertificate, Pkcs12Certificate } from "./types";
 import { fromOpenCollectionAuth, fromOpenCollectionHeaders, fromOpenCollectionScripts, fromOpenCollectionVariables } from "./common";
 import { uuid } from "../common";
 import { fromOpenCollectionItems } from "./items";
@@ -9,10 +9,7 @@ import { fromOpenCollectionEnvironments } from "./environment";
 const fromOpenCollectionConfig = (oc: OpenCollection): BrunoConfig => {
   const brunoExtension = oc.extensions?.bruno as {
     ignore?: string[];
-    presets?: {
-      requestType?: string;
-      requestUrl?: string;
-    };
+    presets?: BrunoPresets;
   } | undefined;
 
   const ignoreList = brunoExtension && Array.isArray(brunoExtension.ignore)

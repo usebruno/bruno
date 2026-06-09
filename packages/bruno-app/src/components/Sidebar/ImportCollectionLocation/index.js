@@ -13,11 +13,13 @@ import { processBrunoCollection } from 'utils/importers/bruno-collection';
 import { processOpenCollection } from 'utils/importers/opencollection';
 import { wsdlToBruno } from '@usebruno/converters';
 import { toastError } from 'utils/common/error';
+import { addLog } from 'providers/ReduxStore/slices/logs';
 import { useBetaFeature, BETA_FEATURES } from 'utils/beta-features';
 import Modal from 'components/Modal';
 import Help from 'components/Help';
 import Dropdown from 'components/Dropdown';
 import StyledWrapper from './StyledWrapper';
+import { showImportIssuesToast } from 'components/Toast/ImportIssuesToast';
 import { DEFAULT_COLLECTION_FORMAT } from 'utils/common/constants';
 
 // Extract collection name from raw data
@@ -53,9 +55,11 @@ const getCollectionName = (format, rawData) => {
 };
 
 // Convert raw data to Bruno collection format
+// Returns { collection, issues } where issues tracks items that were skipped or degraded
 const convertCollection = async (format, rawData, groupingType, collectionFormat) => {
   try {
     let collection;
+    let issues = [];
 
     switch (format) {
       case 'openapi':
@@ -64,9 +68,12 @@ const convertCollection = async (format, rawData, groupingType, collectionFormat
       case 'wsdl':
         collection = await wsdlToBruno(rawData);
         break;
-      case 'postman':
-        collection = await postmanToBruno(rawData);
+      case 'postman': {
+        const result = await postmanToBruno(rawData);
+        collection = result.collection;
+        issues = result.issues || [];
         break;
+      }
       case 'insomnia':
         collection = convertInsomniaToBruno(rawData);
         break;
@@ -84,7 +91,7 @@ const convertCollection = async (format, rawData, groupingType, collectionFormat
         throw new Error('Unknown collection format');
     }
 
-    return collection;
+    return { collection, issues };
   } catch (err) {
     console.error('Conversion error:', err);
     toastError(err, 'Failed to convert collection');
@@ -135,7 +142,7 @@ const ImportCollectionLocation = ({ onClose, handleSubmit, rawData, format, sour
         .required('Location is required')
     }),
     onSubmit: async (values) => {
-      const convertedCollection = await convertCollection(format, rawData, groupingType, collectionFormat);
+      const { collection: convertedCollection, issues } = await convertCollection(format, rawData, groupingType, collectionFormat);
       const options = { format: collectionFormat };
 
       if (showCheckForSpecUpdatesOption && enableCheckForSpecUpdates) {
@@ -164,6 +171,26 @@ const ImportCollectionLocation = ({ onClose, handleSubmit, rawData, format, sour
       }
 
       handleSubmit(convertedCollection, values.collectionLocation, options);
+
+      if (issues && issues.length > 0) {
+        // Show toast with copy/report actions
+        showImportIssuesToast(issues);
+
+        // Log each issue to Bruno's internal console
+        const skipped = issues.filter((i) => i.severity === 'error').length;
+        const warnings = issues.filter((i) => i.severity === 'warning').length;
+        const parts = [];
+        if (skipped > 0) parts.push(`skipped ${skipped} item(s)`);
+        if (warnings > 0) parts.push(`${warnings} warning(s)`);
+        const timestamp = new Date().toISOString();
+        dispatch(addLog({ type: 'warn', args: [`Import: ${collectionName} — ${parts.join(', ')}`], timestamp }));
+        issues.forEach((issue) => {
+          const logType = issue.severity === 'error' ? 'error' : 'warn';
+          const logArgs = [`[${issue.path}] ${issue.message}`];
+          if (issue.sourceItem) logArgs.push(issue.sourceItem);
+          dispatch(addLog({ type: logType, args: logArgs, timestamp }));
+        });
+      }
     }
   });
 

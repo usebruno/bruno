@@ -5,7 +5,7 @@ jest.mock('platform', () => ({
   }
 }));
 
-import { getRelativePath, getBasename, getAbsoluteFilePath } from './path';
+import { getRelativePath, getBasename, getAbsoluteFilePath, getRelativePathWithinBasePath } from './path';
 
 describe('Path Utilities - Windows Platform', () => {
   describe('getRelativePath', () => {
@@ -23,6 +23,14 @@ describe('Path Utilities - Windows Platform', () => {
 
     it('should return nested subdirectory path', () => {
       expect(getRelativePath('C:\\Users\\John\\Projects', 'C:\\Users\\John\\Projects\\src\\components', false)).toBe('src\\components');
+    });
+
+    it('should return ".." for direct parent directory', () => {
+      expect(getRelativePath('C:\\Users\\John\\Projects', 'C:\\Users\\John', false)).toBe('..');
+    });
+
+    it('should return an absolute path for cross-drive targets', () => {
+      expect(getRelativePath('C:\\Users\\John\\Projects', 'D:\\payload.txt', false)).toBe('D:\\payload.txt');
     });
 
     describe('with posixify enabled', () => {
@@ -177,6 +185,113 @@ describe('Path Utilities - Windows Platform', () => {
       it('should handle paths with multiple backslashes with posixify', () => {
         const result = getAbsoluteFilePath('C:\\Users\\John\\Projects', 'src\\\\components\\button.jsx', true);
         expect(result).toBe('C:/Users/John/Projects/src/components/button.jsx');
+      });
+    });
+  });
+
+  describe('getRelativePathWithinBasePath', () => {
+    it('should store in-collection files as Windows relative paths with mixed separators', () => {
+      const result = getRelativePathWithinBasePath('C:/Users/John/Collections/Api', 'C:\\Users\\John\\Collections\\Api\\files\\payload.txt');
+      expect(result).toBe('files\\payload.txt');
+    });
+
+    it('should store nested in-collection files as Windows relative paths', () => {
+      const result = getRelativePathWithinBasePath('C:\\Users\\John\\Collections\\Api', 'C:\\Users\\John\\Collections\\Api\\folder\\payload.txt');
+      expect(result).toBe('folder\\payload.txt');
+    });
+
+    it('should handle collection paths with trailing separators', () => {
+      const result = getRelativePathWithinBasePath('C:\\Users\\John\\Collections\\Api\\', 'C:\\Users\\John\\Collections\\Api\\folder\\payload.txt');
+      expect(result).toBe('folder\\payload.txt');
+    });
+
+    it('should handle case differences in Windows drive paths', () => {
+      const result = getRelativePathWithinBasePath('c:\\users\\john\\collections\\api', 'C:\\Users\\John\\Collections\\Api\\folder\\payload.txt');
+      expect(result).toBe('folder\\payload.txt');
+    });
+
+    it('should resolve dot segments before deciding whether a file is inside the collection', () => {
+      const result = getRelativePathWithinBasePath('C:\\Users\\John\\Collections\\Api', 'C:\\Users\\John\\Collections\\Api\\folder\\..\\payload.txt');
+      expect(result).toBe('payload.txt');
+    });
+
+    it('should keep paths that resolve outside the collection absolute', () => {
+      const filePath = 'C:\\Users\\John\\Collections\\Api\\..\\payload.txt';
+      const result = getRelativePathWithinBasePath('C:\\Users\\John\\Collections\\Api', filePath);
+      expect(result).toBe(filePath);
+    });
+
+    it('should keep sibling prefix paths absolute', () => {
+      const filePath = 'C:\\Users\\John\\Collections\\ApiOther\\payload.txt';
+      const result = getRelativePathWithinBasePath('C:\\Users\\John\\Collections\\Api', filePath);
+      expect(result).toBe(filePath);
+    });
+
+    it('should keep outside collection paths absolute', () => {
+      const filePath = 'C:\\Users\\John\\Downloads\\payload.txt';
+      const result = getRelativePathWithinBasePath('C:\\Users\\John\\Collections\\Api', filePath);
+      expect(result).toBe(filePath);
+    });
+
+    it('should keep cross-drive paths absolute', () => {
+      const filePath = 'D:\\payload.txt';
+      const result = getRelativePathWithinBasePath('C:\\Users\\John\\Collections\\Api', filePath);
+      expect(result).toBe(filePath);
+    });
+
+    it('should keep same-path values unchanged', () => {
+      const filePath = 'C:\\Users\\John\\Collections\\Api';
+      const result = getRelativePathWithinBasePath('C:\\Users\\John\\Collections\\Api', filePath);
+      expect(result).toBe(filePath);
+    });
+
+    it('should keep the original file path when inputs are missing', () => {
+      expect(getRelativePathWithinBasePath('', 'C:\\Users\\John\\Downloads\\payload.txt')).toBe('C:\\Users\\John\\Downloads\\payload.txt');
+      expect(getRelativePathWithinBasePath('C:\\Users\\John\\Collections\\Api', '')).toBe('');
+    });
+
+    describe('mixed separators (posix base / win file)', () => {
+      it('inside → relative path with native separators (default)', () => {
+        const r = getRelativePathWithinBasePath('C:/Users/John/Collections/Api', 'C:\\Users\\John\\Collections\\Api\\files\\payload.txt');
+        expect(r).toBe('files\\payload.txt');
+      });
+
+      it('outside → returns original filePath unchanged (default)', () => {
+        const r = getRelativePathWithinBasePath('C:/Users/John/Collections/Api', 'C:\\Users\\John\\Downloads\\payload.txt');
+        expect(r).toBe('C:\\Users\\John\\Downloads\\payload.txt');
+      });
+
+      it('outside → posixified absolute fallback when posixify=true', () => {
+        const r = getRelativePathWithinBasePath('C:/Users/John/Collections/Api', 'C:\\Users\\John\\Downloads\\payload.txt', true);
+        expect(r).toBe('C:/Users/John/Downloads/payload.txt');
+      });
+
+      it('inside → posixified relative path when posixify=true', () => {
+        const r = getRelativePathWithinBasePath('C:/Users/John/Collections/Api', 'C:\\Users\\John\\Collections\\Api\\files\\payload.txt', true);
+        expect(r).toBe('files/payload.txt');
+      });
+    });
+
+    describe('mixed separators (win base / posix file)', () => {
+      it('inside → relative path with native separators (default)', () => {
+        const r = getRelativePathWithinBasePath('C:\\Users\\John\\Collections\\Api', 'C:/Users/John/Collections/Api/files/payload.txt');
+        expect(r).toBe('files\\payload.txt');
+      });
+
+      it('outside → returns original filePath as-is (default)', () => {
+        const r = getRelativePathWithinBasePath('C:\\Users\\John\\Collections\\Api', 'C:/Users/John/Downloads/payload.txt');
+        // filePath uses '/', returned as-is since shouldPosixify=false
+        expect(r).toBe('C:/Users/John/Downloads/payload.txt');
+      });
+
+      it('outside → posixified fallback when posixify=true', () => {
+        const r = getRelativePathWithinBasePath('C:\\Users\\John\\Collections\\Api', 'C:/Users/John/Downloads/payload.txt', true);
+        expect(r).toBe('C:/Users/John/Downloads/payload.txt');
+      });
+
+      it('inside → posixified relative path when posixify=true', () => {
+        const r = getRelativePathWithinBasePath('C:\\Users\\John\\Collections\\Api', 'C:/Users/John/Collections/Api/files/payload.txt', true);
+        expect(r).toBe('files/payload.txt');
       });
     });
   });
