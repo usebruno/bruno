@@ -1529,7 +1529,7 @@ export const calculateNewSequence = (isDraggedItem, targetSequence, draggedSeque
   return targetSequence > draggedSequence ? targetSequence - 1 : targetSequence;
 };
 
-export const getReorderedItemsInTargetDirectory = ({ items, targetItemUid, draggedItemUid, dropPosition = 'above' }) => {
+export const getReorderedItemsInTargetDirectory = ({ items, targetItemUid, draggedItemUid, dropType = 'above' }) => {
   const itemsWithFixedSequences = resetSequencesInFolder(cloneDeep(items));
   const sortedItems = [...itemsWithFixedSequences].sort((a, b) => a.seq - b.seq);
 
@@ -1538,10 +1538,7 @@ export const getReorderedItemsInTargetDirectory = ({ items, targetItemUid, dragg
 
   if (targetIndex === -1 || draggedIndex === -1) return [];
 
-  let newIndex = targetIndex;
-  if (dropPosition === 'below') {
-    newIndex = targetIndex + 1;
-  }
+  let newIndex = dropType === 'below' ? targetIndex + 1 : targetIndex;
   if (draggedIndex < newIndex) {
     newIndex -= 1;
   }
@@ -1574,37 +1571,28 @@ export const calculateDraggedItemNewPathname = ({ draggedItem, targetItem, dropT
 
   if (dropType === 'inside' && (isTargetItemAFolder || isTargetTheCollection)) {
     return path.join(targetItemPathname, draggedItemFilename);
-  } else if (dropType === 'adjacent') {
+  } else if (dropType === 'above' || dropType === 'below') {
     return path.join(targetItemDirname, draggedItemFilename);
   }
   return null;
 };
 
-/**
- * Resolves drop intent from hover position.
- * - dropType: semantic target — drop beside (adjacent) or into (inside) the item
- * - dropPosition: edge for adjacent drops only — above or below the target row
- */
 export const determineCollectionItemDrop = ({ item, hoverBoundingRect, clientOffset }) => {
   if (!hoverBoundingRect || !clientOffset) return null;
 
   const clientY = clientOffset.y - hoverBoundingRect.top;
-  const midpoint = hoverBoundingRect.height * 0.5;
 
   if (isItemAFolder(item)) {
-    const folderUpperThreshold = hoverBoundingRect.height * 0.35;
+    const folderUpperThreshold = hoverBoundingRect.height * 0.3;
+    const folderLowerThreshold = hoverBoundingRect.height * 0.7;
 
-    if (clientY < folderUpperThreshold) {
-      return { dropType: 'adjacent', dropPosition: 'above' };
-    }
-
-    return { dropType: 'inside', dropPosition: null };
+    if (clientY < folderUpperThreshold) return 'above';
+    if (clientY > folderLowerThreshold) return 'below';
+    return 'inside';
   }
 
-  return {
-    dropType: 'adjacent',
-    dropPosition: clientY < midpoint ? 'above' : 'below'
-  };
+  const midpoint = hoverBoundingRect.height * 0.5;
+  return clientY < midpoint ? 'above' : 'below';
 };
 
 /**

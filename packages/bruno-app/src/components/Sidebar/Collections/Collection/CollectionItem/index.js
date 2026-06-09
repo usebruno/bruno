@@ -135,14 +135,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
     return false;
   }, { enabled: isKeyboardFocused, deps: [isKeyboardFocused] });
 
-  useKeybinding('newRequest', () => {
-    if (!isFolder) return false;
-    setNewRequestModalOpen(true);
-    return false;
-  }, { enabled: isKeyboardFocused && isFolder, deps: [isKeyboardFocused, isFolder] });
-
-  const [dropType, setDropType] = useState(null); // 'adjacent' or 'inside'
-  const [dropPosition, setDropPosition] = useState(null); // 'above' or 'below' when adjacent
+  const [dropType, setDropType] = useState(null); // 'above', 'inside' or 'below'
 
   const [{ isDragging }, drag, dragPreview] = useDrag({
     type: 'collection-item',
@@ -196,17 +189,15 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
 
       if (draggedItemUid === targetItemUid) return;
 
-      const drop = resolveDropFromMonitor(monitor);
-      if (!drop) {
+      const dropType = resolveDropFromMonitor(monitor);
+      if (!dropType) {
         setDropType(null);
-        setDropPosition(null);
         return;
       }
 
-      const _canItemBeDropped = canItemBeDropped({ draggedItem, targetItem: item, dropType: drop.dropType });
+      const _canItemBeDropped = canItemBeDropped({ draggedItem, targetItem: item, dropType });
 
-      setDropType(_canItemBeDropped ? drop.dropType : null);
-      setDropPosition(_canItemBeDropped ? drop.dropPosition : null);
+      setDropType(_canItemBeDropped ? dropType : null);
     },
     drop: async (draggedItem, monitor) => {
       const { uid: targetItemUid } = item;
@@ -214,28 +205,26 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
 
       if (draggedItemUid === targetItemUid) return;
 
-      const drop = resolveDropFromMonitor(monitor);
-      if (!drop) return;
+      const dropType = resolveDropFromMonitor(monitor);
+      if (!dropType) return;
 
-      if (!canItemBeDropped({ draggedItem, targetItem: item, dropType: drop.dropType })) return;
+      if (!canItemBeDropped({ draggedItem, targetItem: item, dropType })) return;
 
       await dispatch(handleCollectionItemDrop({
         targetItem: item,
         draggedItem,
-        dropType: drop.dropType,
-        dropPosition: drop.dropPosition,
+        dropType,
         collectionUid
       }));
       setDropType(null);
-      setDropPosition(null);
     },
     canDrop: (draggedItem, monitor) => {
       if (draggedItem.uid === item.uid) return false;
 
-      const drop = resolveDropFromMonitor(monitor);
-      if (!drop) return false;
+      const dropType = resolveDropFromMonitor(monitor);
+      if (!dropType) return false;
 
-      return canItemBeDropped({ draggedItem, targetItem: item, dropType: drop.dropType });
+      return canItemBeDropped({ draggedItem, targetItem: item, dropType });
     },
     collect: (monitor) => ({
       isOver: monitor.isOver(),
@@ -246,7 +235,6 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
   useEffect(() => {
     if (!isOver) {
       setDropType(null);
-      setDropPosition(null);
     }
   }, [isOver]);
 
@@ -262,8 +250,8 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
     'item-focused-in-tab': isTabForItemActive,
     'item-hovered': isOver && canDrop,
     'drop-target': isOver && canDrop && dropType === 'inside',
-    'drop-target-above': isOver && canDrop && dropType === 'adjacent' && dropPosition === 'above',
-    'drop-target-below': isOver && canDrop && dropType === 'adjacent' && dropPosition === 'below',
+    'drop-target-above': isOver && canDrop && dropType === 'above',
+    'drop-target-below': isOver && canDrop && dropType === 'below',
     'item-keyboard-focused': isKeyboardFocused
   });
 
