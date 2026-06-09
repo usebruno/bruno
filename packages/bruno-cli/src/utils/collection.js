@@ -103,9 +103,9 @@ const mergeHeaders = (collection, request, requestTreePath, options = {}) => {
   let collectionHeaders = get(collectionRoot, 'request.headers', []);
   collectionHeaders.forEach((header) => {
     if (header.enabled) {
-      headers.set(header.name, header.value);
+      headers.set(header.name.toLowerCase(), header.value);
     } else if (header.name?.length > 0) {
-      disabledHeaders.set(header.name, header.value);
+      disabledHeaders.set(header.name.toLowerCase(), header.value);
     }
   });
 
@@ -115,18 +115,18 @@ const mergeHeaders = (collection, request, requestTreePath, options = {}) => {
       let _headers = get(folderRoot, 'request.headers', []);
       _headers.forEach((header) => {
         if (header.enabled) {
-          headers.set(header.name, header.value);
+          headers.set(header.name.toLowerCase(), header.value);
         } else if (header.name?.length > 0) {
-          disabledHeaders.set(header.name, header.value);
+          disabledHeaders.set(header.name.toLowerCase(), header.value);
         }
       });
     } else {
       const _headers = i?.draft ? get(i, 'draft.request.headers', []) : get(i, 'request.headers', []);
       _headers.forEach((header) => {
         if (header.enabled) {
-          headers.set(header.name, header.value);
+          headers.set(header.name.toLowerCase(), header.value);
         } else if (header.name?.length > 0) {
-          disabledHeaders.set(header.name, header.value);
+          disabledHeaders.set(header.name.toLowerCase(), header.value);
         }
       });
     }

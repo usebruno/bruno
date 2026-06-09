@@ -140,7 +140,12 @@ class BrunoRequest {
   }
 
   getHeader(name) {
-    return this.req.headers[name];
+    if (!this.req?.headers || typeof name !== 'string') {
+      return null;
+    }
+    const headers = this.req.headers;
+    const lowerCaseName = name.toLowerCase();
+    return headers[lowerCaseName] ?? null;
   }
 
   setHeader(name, value) {

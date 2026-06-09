@@ -12,8 +12,10 @@ get {
 
 headers {
   bruno: is-awesome
+  Content-Type: application/json
+  AUTH-TOKEN: Token/1
+  auth-token: Token/2
 }
-
 
 assert {
   res.status: eq 200
@@ -24,5 +26,18 @@ tests {
   test("req.getHeader(name)", function() {
     const h = req.getHeader('bruno');
     expect(h).to.equal("is-awesome");
+  });
+  
+  test("req.getHeader(name): is case-insensitive when header key uses mixed case", function() {
+    expect(req.getHeader('Content-Type')).to.equal('application/json');
+    expect(req.getHeader('content-type')).to.equal('application/json');
+    expect(req.getHeader('CONTENT-TYPE')).to.equal('application/json');
+    expect(req.getHeader('AUTH-TOKEN')).to.equal('Token/2');
+    expect(req.getHeader('auth-token')).to.equal('Token/2');
+    expect(req.getHeader('auth-token')).to.not.equal('Token/1');
+  });
+  
+  test("req.getHeader() returns null for missing headers", function() {
+    expect(req.getHeader('x-does-not-exist')).to.be.null;
   });
 }
