@@ -1107,7 +1107,7 @@ export const moveItem
     };
 
 export const handleCollectionItemDrop
-  = ({ targetItem, draggedItem, dropType, dropPosition = 'above', collectionUid }) =>
+  = ({ targetItem, draggedItem, dropType, collectionUid }) =>
     (dispatch, getState) => {
       const state = getState();
       const collection = findCollectionByUid(state.collections.collections, collectionUid);
@@ -1169,7 +1169,7 @@ export const handleCollectionItemDrop
         }
 
         // Update sequences in the target directory (if dropping adjacent)
-        if (dropType === 'adjacent') {
+        if (dropType === 'above' || dropType === 'below') {
           const targetItemSequence = targetItemDirectoryItems.find((i) => i.uid === targetItemUid)?.seq;
 
           const draggedItemWithNewPathAndSequence = {
@@ -1183,7 +1183,7 @@ export const handleCollectionItemDrop
             items: [...targetItemDirectoryItems, draggedItemWithNewPathAndSequence],
             targetItemUid,
             draggedItemUid,
-            dropPosition
+            dropType
           });
 
           if (reorderedTargetItems?.length) {
@@ -1192,7 +1192,7 @@ export const handleCollectionItemDrop
         }
       };
 
-      const handleReorderInSameLocation = async ({ draggedItem, targetItem, targetItemDirectoryItems, dropPosition }) => {
+      const handleReorderInSameLocation = async ({ draggedItem, targetItem, targetItemDirectoryItems, dropType }) => {
         const { uid: targetItemUid } = targetItem;
         const { uid: draggedItemUid } = draggedItem;
 
@@ -1201,7 +1201,7 @@ export const handleCollectionItemDrop
           items: targetItemDirectoryItems,
           targetItemUid,
           draggedItemUid,
-          dropPosition
+          dropType
         });
 
         if (reorderedItems?.length) {
@@ -1242,7 +1242,7 @@ export const handleCollectionItemDrop
               dropType
             });
           } else {
-            await handleReorderInSameLocation({ draggedItem, targetItemDirectoryItems, targetItem, dropPosition });
+            await handleReorderInSameLocation({ draggedItem, targetItemDirectoryItems, targetItem, dropType });
           }
 
           if (isCrossCollectionMove) {

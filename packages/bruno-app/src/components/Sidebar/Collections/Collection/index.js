@@ -255,7 +255,7 @@ const Collection = ({ collection, searchText }) => {
         setDropType('inside');
       } else {
         // For collections, show line indicator (adjacent drop)
-        setDropType('adjacent');
+        setDropType('above');
       }
     },
     drop: (draggedItem, monitor) => {
@@ -311,7 +311,7 @@ const Collection = ({ collection, searchText }) => {
   }
 
   const collectionRowClassName = classnames('flex py-1 collection-name items-center', {
-    'item-hovered': isOver && dropType === 'adjacent', // For collection-to-collection moves (show line)
+    'item-hovered': isOver && dropType === 'above', // For collection-to-collection moves (show line)
     'drop-target': isOver && dropType === 'inside', // For collection-item drops (highlight full area)
     'collection-focused-in-tab': isCollectionFocused && !isKeyboardFocused,
     'collection-keyboard-focused': isKeyboardFocused
