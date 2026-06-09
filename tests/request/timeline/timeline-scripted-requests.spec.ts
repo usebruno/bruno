@@ -54,55 +54,53 @@ test.describe('Timeline — scripted requests (sendRequest / runRequest)', () =>
 
     await test.step('Open Timeline and assert four rows', async () => {
       await selectResponsePaneTab(page, 'Timeline');
-      const rows = page.locator('.timeline-container .tl-row-wrap');
+      const rows = page.getByTestId('timeline-container').getByTestId('timeline-entry');
       await expect(rows).toHaveCount(4);
     });
 
-    await test.step('Filter chips appear with correct counts (only Main + Pre-Request show)', async () => {
-      const chips = page.locator('.timeline-filter-bar .timeline-chip');
-      await expect(chips).toHaveCount(3); // All, Main, Pre-Request
+    await test.step('Filter chips appear with correct counts (only Request + Pre-Request show)', async () => {
+      const filterBar = page.getByTestId('timeline-filter-bar');
+      await expect(filterBar.getByRole('button')).toHaveCount(3); // All, Request, Pre-Request
 
-      const countFor = (label: string) =>
-        chips.filter({ hasText: label }).locator('.timeline-chip-count').first();
+      const countFor = (id: string) =>
+        page.getByTestId(`timeline-chip-${id}`).getByTestId('timeline-chip-count');
 
-      await expect(countFor('All')).toHaveText('4');
-      await expect(countFor('Main')).toHaveText('1');
-      await expect(countFor('Pre-Request')).toHaveText('3');
+      await expect(countFor('all')).toHaveText('4');
+      await expect(countFor('main')).toHaveText('1');
+      await expect(countFor('pre')).toHaveText('3');
     });
 
     await test.step('Rows are sorted newest-first; the collection-script row sits last', async () => {
-      const rows = page.locator('.timeline-container .tl-row-wrap');
+      const rows = page.getByTestId('timeline-container').getByTestId('timeline-entry');
 
       // Execution order: collection → folder → request → main.
       // Newest-first: main → request-script → folder-script → collection-script.
-      await expect(rows.nth(0).locator('.tl-badge--main')).toHaveCount(1);
+      await expect(rows.nth(0).getByTestId('timeline-badge-main')).toHaveCount(1);
 
       const requestScriptRow = rows.nth(1);
-      await expect(requestScriptRow.locator('.tl-badge--scripted')).toHaveCount(1);
-      await expect(requestScriptRow.locator('.tl-col-url')).toContainText('/query');
+      await expect(requestScriptRow.getByTestId('timeline-badge-pre')).toHaveCount(1);
+      await expect(requestScriptRow.getByTestId('timeline-url')).toContainText('/query');
 
       const folderScriptRow = rows.nth(2);
-      await expect(folderScriptRow.locator('.tl-badge--scripted')).toHaveCount(1);
-      await expect(folderScriptRow.locator('.tl-col-url')).toContainText('/headers');
+      await expect(folderScriptRow.getByTestId('timeline-badge-pre')).toHaveCount(1);
+      await expect(folderScriptRow.getByTestId('timeline-url')).toContainText('/headers');
 
       const collectionScriptRow = rows.nth(3);
-      await expect(collectionScriptRow.locator('.tl-badge--scripted')).toHaveCount(1);
-      await expect(collectionScriptRow.locator('.tl-col-url')).toContainText('/echo/path');
+      await expect(collectionScriptRow.getByTestId('timeline-badge-pre')).toHaveCount(1);
+      await expect(collectionScriptRow.getByTestId('timeline-url')).toContainText('/echo/path');
     });
 
     await test.step('Clicking the Pre-Request chip narrows to the three sendRequest rows', async () => {
-      const chips = page.locator('.timeline-filter-bar .timeline-chip');
-      await chips.filter({ hasText: 'Pre-Request' }).click();
+      await page.getByTestId('timeline-chip-pre').click();
 
-      const visibleRows = page.locator('.timeline-container .tl-row-wrap');
+      const visibleRows = page.getByTestId('timeline-container').getByTestId('timeline-entry');
       await expect(visibleRows).toHaveCount(3);
-      await expect(visibleRows.locator('.tl-badge--scripted')).toHaveCount(3);
+      await expect(visibleRows.getByTestId('timeline-badge-pre')).toHaveCount(3);
     });
 
     await test.step('Clicking All restores every row', async () => {
-      const chips = page.locator('.timeline-filter-bar .timeline-chip');
-      await chips.filter({ hasText: 'All' }).click();
-      await expect(page.locator('.timeline-container .tl-row-wrap')).toHaveCount(4);
+      await page.getByTestId('timeline-chip-all').click();
+      await expect(page.getByTestId('timeline-container').getByTestId('timeline-entry')).toHaveCount(4);
     });
   });
 
@@ -139,15 +137,15 @@ test.describe('Timeline — scripted requests (sendRequest / runRequest)', () =>
     });
 
     await test.step('Runner timeline shows main + sendRequest + runRequest rows', async () => {
-      const rows = page.locator('.tl-row-wrap');
+      const rows = page.getByTestId('timeline-entry');
       await expect(rows).toHaveCount(3, { timeout: 10000 });
 
-      await expect(rows.locator('.tl-badge--main')).toHaveCount(1);
-      await expect(rows.locator('.tl-badge--scripted')).toHaveCount(1);
-      await expect(rows.locator('.tl-badge--run-request')).toHaveCount(1);
+      await expect(rows.getByTestId('timeline-badge-main')).toHaveCount(1);
+      await expect(rows.getByTestId('timeline-badge-pre')).toHaveCount(1);
+      await expect(rows.getByTestId('timeline-badge-post')).toHaveCount(1);
 
       // The runner view never shows the filter chip bar (no chip-bar UI here).
-      await expect(page.locator('.timeline-filter-bar')).toHaveCount(0);
+      await expect(page.getByTestId('timeline-filter-bar')).toHaveCount(0);
     });
   });
 });
