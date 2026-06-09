@@ -543,18 +543,79 @@ const EnvironmentVariablesTable = ({
     setIsModified(otherDirty);
   }, [environment.variables, formik.values, isSecretTab, onDraftChange, onDraftClear, setIsModified]);
 
+  const handleSaveAll = useCallback(() => {
+    const namedValues = formik.values.filter((variable) => variable.name && variable.name.trim() !== '');
+    const savedValues = environment.variables || [];
+
+    const persistedVariables = orderVarsBySecret(namedValues);
+
+    const hasChanges
+      = JSON.stringify(persistedVariables.map(stripEnvVarUid)) !== JSON.stringify(savedValues.map(stripEnvVarUid));
+    if (!hasChanges) {
+      toast.error('No changes to save');
+      return;
+    }
+
+    const hasValidationErrors = namedValues.some((variable) => {
+      if (!variable.name || variable.name.trim() === '') {
+        return true;
+      }
+      if (!variableNameRegex.test(variable.name)) {
+        return true;
+      }
+      return false;
+    });
+
+    if (hasValidationErrors) {
+      toast.error('Please fix validation errors before saving');
+      return;
+    }
+
+    onSave(cloneDeep(persistedVariables))
+      .then(() => {
+        toast.success('Changes saved successfully');
+        onDraftClear();
+
+        formik.resetForm({
+          values: [
+            ...persistedVariables,
+            {
+              uid: uuid(),
+              name: '',
+              value: '',
+              type: 'text',
+              secret: isSecretTab,
+              enabled: true
+            }
+          ]
+        });
+        setIsModified(false);
+      })
+      .catch((error) => {
+        console.error(error);
+        toast.error('An error occurred while saving the changes');
+      });
+  }, [formik.values, environment.variables, onSave, onDraftClear, setIsModified, isSecretTab]);
+
   const handleSaveRef = useRef(handleSave);
   handleSaveRef.current = handleSave;
+  const handleSaveAllRef = useRef(handleSaveAll);
+  handleSaveAllRef.current = handleSaveAll;
 
   useEffect(() => {
     const handleSaveEvent = () => {
       handleSaveRef.current();
     };
+    const handleSaveAllEvent = () => {
+      handleSaveAllRef.current();
+    };
 
     window.addEventListener('environment-save', handleSaveEvent);
+    window.addEventListener('environment-save-all', handleSaveAllEvent);
 
     return () => {
       window.removeEventListener('environment-save', handleSaveEvent);
+      window.removeEventListener('environment-save-all', handleSaveAllEvent);
     };
   }, []);
 

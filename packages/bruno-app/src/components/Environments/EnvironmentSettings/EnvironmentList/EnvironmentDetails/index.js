@@ -1,4 +1,4 @@
-import { IconCopy, IconEdit, IconTrash, IconCheck, IconX, IconSearch } from '@tabler/icons';
+import { IconCopy, IconEdit, IconTrash, IconCheck, IconX, IconSearch, IconDeviceFloppy } from '@tabler/icons';
 import { useState, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { renameEnvironment, updateEnvironmentColor } from 'providers/ReduxStore/slices/collections/actions';
@@ -145,6 +145,10 @@ const EnvironmentDetails = ({ environment, setIsModified, collection, searchQuer
     dispatch(updateEnvironmentColor(environment.uid, color, collection.uid));
   };
 
+  const handleSaveAll = () => {
+    window.dispatchEvent(new Event('environment-save-all'));
+  };
+
   return (
     <StyledWrapper>
       {openDeleteModal && (
@@ -218,6 +222,9 @@ const EnvironmentDetails = ({ environment, setIsModified, collection, searchQuer
           onTabSelect={setActiveTab}
           rightContent={(
             <div ref={rightContentRef} className="env-search-container">
+              <ActionIcon label="Save" onClick={handleSaveAll}>
+                <IconDeviceFloppy size={15} strokeWidth={1.5} />
+              </ActionIcon>
               {isSearchExpanded ? (
                 <div className="search-input-wrapper">
                   <IconSearch size={14} strokeWidth={1.5} className="search-icon" />

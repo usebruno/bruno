@@ -106,6 +106,7 @@ const StyledWrapper = styled.div`
     .env-search-container {
       display: flex;
       align-items: center;
+      gap: 2px;
 
       .search-input-wrapper {
         position: relative;
