@@ -1530,24 +1530,30 @@ export const calculateNewSequence = (isDraggedItem, targetSequence, draggedSeque
   return targetSequence > draggedSequence ? targetSequence - 1 : targetSequence;
 };
 
-export const getReorderedItemsInTargetDirectory = ({ items, targetItemUid, draggedItemUid }) => {
+export const getReorderedItemsInTargetDirectory = ({ items, targetItemUid, draggedItemUid, dropPosition = 'above' }) => {
   const itemsWithFixedSequences = resetSequencesInFolder(cloneDeep(items));
-  const targetItem = findItem(itemsWithFixedSequences, targetItemUid);
-  const draggedItem = findItem(itemsWithFixedSequences, draggedItemUid);
-  const targetSequence = targetItem?.seq;
-  const draggedSequence = draggedItem?.seq;
-  itemsWithFixedSequences?.forEach((item) => {
-    const isDraggedItem = item?.uid === draggedItemUid;
-    const isBetween = isItemBetweenSequences(item?.seq, draggedSequence, targetSequence);
-    if (isBetween) {
-      item.seq += targetSequence > draggedSequence ? -1 : 1;
-    }
-    const newSequence = calculateNewSequence(isDraggedItem, targetSequence, draggedSequence);
-    if (newSequence !== null) {
-      item.seq = newSequence;
-    }
+  const sortedItems = [...itemsWithFixedSequences].sort((a, b) => a.seq - b.seq);
+
+  const targetIndex = sortedItems.findIndex((i) => i.uid === targetItemUid);
+  const draggedIndex = sortedItems.findIndex((i) => i.uid === draggedItemUid);
+
+  if (targetIndex === -1 || draggedIndex === -1) return [];
+
+  let newIndex = targetIndex;
+  if (dropPosition === 'below') {
+    newIndex = targetIndex + 1;
+  }
+  if (draggedIndex < newIndex) {
+    newIndex -= 1;
+  }
+
+  const [draggedItem] = sortedItems.splice(draggedIndex, 1);
+  sortedItems.splice(newIndex, 0, draggedItem);
+
+  sortedItems.forEach((item, index) => {
+    item.seq = index + 1;
   });
-  // only return items that have been reordered
+
   return itemsWithFixedSequences.filter((item) =>
     items?.find((originalItem) => originalItem?.uid === item?.uid)?.seq !== item?.seq
   );
@@ -1573,6 +1579,57 @@ export const calculateDraggedItemNewPathname = ({ draggedItem, targetItem, dropT
     return path.join(targetItemDirname, draggedItemFilename);
   }
   return null;
+};
+
+/**
+ * Resolves drop intent from hover position.
+ * - dropType: semantic target — drop beside (adjacent) or into (inside) the item
+ * - dropPosition: edge for adjacent drops only — above or below the target row
+ */
+export const determineCollectionItemDrop = ({ item, hoverBoundingRect, clientOffset }) => {
+  if (!hoverBoundingRect || !clientOffset) return null;
+
+  const clientY = clientOffset.y - hoverBoundingRect.top;
+  const midpoint = hoverBoundingRect.height * 0.5;
+
+  if (isItemAFolder(item)) {
+    const folderUpperThreshold = hoverBoundingRect.height * 0.35;
+
+    if (clientY < folderUpperThreshold) {
+      return { dropType: 'adjacent', dropPosition: 'above' };
+    }
+
+    return { dropType: 'inside', dropPosition: null };
+  }
+
+  return {
+    dropType: 'adjacent',
+    dropPosition: clientY < midpoint ? 'above' : 'below'
+  };
+};
+
+export const canCollectionItemBeDropped = ({
+  draggedItem,
+  targetItem,
+  dropType,
+  collectionUid,
+  collectionPathname
+}) => {
+  const { uid: targetItemUid, pathname: targetItemPathname } = targetItem;
+  const { uid: draggedItemUid, pathname: draggedItemPathname, sourceCollectionUid } = draggedItem;
+
+  if (draggedItemUid === targetItemUid) return false;
+
+  if (sourceCollectionUid !== collectionUid) {
+    return true;
+  }
+
+  const newPathname = calculateDraggedItemNewPathname({ draggedItem, targetItem, dropType, collectionPathname });
+  if (!newPathname) return false;
+
+  if (targetItemPathname?.startsWith(draggedItemPathname)) return false;
+
+  return true;
 };
 
 // item sequence utils - END
