@@ -86,7 +86,8 @@ import {
   calculateDraggedItemNewPathname,
   transformFolderRootToSave,
   getTreePathFromCollectionToItem,
-  mergeHeaders
+  mergeHeaders,
+  isPathOrDescendant
 } from 'utils/collections/index';
 import { sanitizeName } from 'utils/common/regex';
 import { applyScriptEnvVars, getScriptModifiedKeys } from 'utils/environments';
@@ -1316,7 +1317,7 @@ export const handleCollectionItemDrop
             collectionPathname: collection.pathname
           });
           if (!newPathname) return;
-          if (targetItemPathname?.startsWith(draggedItemPathname)) return;
+          if (isPathOrDescendant(targetItemPathname, draggedItemPathname)) return;
 
           if (isCrossFormatMove && isItemAFolder(draggedItem)) {
             toast.error('Moving folders between collections with different formats is not supported');

@@ -4,10 +4,11 @@ import {
   determineCollectionItemDrop,
   getReorderedItemsInTargetDirectory
 } from 'utils/collections/index';
+import path from 'utils/common/path';
 
-const collectionPathname = '/collections/my-collection';
-const folderPathname = '/collections/my-collection/users';
-const requestPathname = '/collections/my-collection/users/get-users.bru';
+const collectionPathname = path.join(path.sep, 'collections', 'my-collection');
+const folderPathname = path.join(collectionPathname, 'users');
+const requestPathname = path.join(folderPathname, 'get-users.bru');
 
 const folderItem = {
   uid: 'folder-1',
@@ -30,7 +31,7 @@ const draggedRequest = {
   type: 'http-request',
   name: 'create-user',
   filename: 'create-user.bru',
-  pathname: '/collections/my-collection/create-user.bru',
+  pathname: path.join(collectionPathname, 'create-user.bru'),
   request: { method: 'POST', url: 'https://example.com' },
   sourceCollectionUid: 'collection-1'
 };
@@ -112,7 +113,7 @@ describe('calculateDraggedItemNewPathname', () => {
       collectionPathname
     });
 
-    expect(result).toBe('/collections/my-collection/users/create-user.bru');
+    expect(result).toBe(path.join(folderPathname, 'create-user.bru'));
   });
 
   it('returns a sibling path for adjacent drops', () => {
@@ -123,7 +124,7 @@ describe('calculateDraggedItemNewPathname', () => {
       collectionPathname
     });
 
-    expect(result).toBe('/collections/my-collection/users/create-user.bru');
+    expect(result).toBe(path.join(folderPathname, 'create-user.bru'));
   });
 
   it('returns null when dropping inside a request', () => {
@@ -174,6 +175,31 @@ describe('canCollectionItemBeDropped', () => {
     });
 
     expect(result).toBe(false);
+  });
+
+  it('allows dropping a folder next to a sibling whose name shares its prefix', () => {
+    const usersFolder = {
+      uid: 'users-folder',
+      type: 'folder',
+      pathname: '/collections/my-collection/users',
+      filename: 'users'
+    };
+    const usersArchiveFolder = {
+      uid: 'users-archive-folder',
+      type: 'folder',
+      pathname: '/collections/my-collection/users-archive',
+      filename: 'users-archive'
+    };
+
+    const result = canCollectionItemBeDropped({
+      draggedItem: { ...usersFolder, sourceCollectionUid: 'collection-1' },
+      targetItem: usersArchiveFolder,
+      dropType: 'inside',
+      collectionUid: 'collection-1',
+      collectionPathname
+    });
+
+    expect(result).toBe(true);
   });
 
   it('returns true for valid same-collection adjacent drops regardless of position', () => {
