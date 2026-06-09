@@ -4,19 +4,8 @@ import { closeAllCollections, openCollection, selectRequestPaneTab } from '../..
 import { buildCommonLocators } from '../../utils/page/locators';
 
 test.describe('Import Postman Collection with OAuth2 token placement', () => {
-  let originalShowOpenDialog;
-
-  test.beforeAll(async ({ electronApp }) => {
-    await electronApp.evaluate(({ dialog }) => {
-      originalShowOpenDialog = dialog.showOpenDialog;
-    });
-  });
-
-  test.afterAll(async ({ electronApp, page }) => {
+  test.afterAll(async ({ page }) => {
     await closeAllCollections(page);
-    await electronApp.evaluate(({ dialog }) => {
-      dialog.showOpenDialog = originalShowOpenDialog;
-    });
   });
 
   test('token placement drives which field is displayed after import', async ({ page, electronApp, createTmpDir }) => {
@@ -27,10 +16,14 @@ test.describe('Import Postman Collection with OAuth2 token placement', () => {
     const importDir = await createTmpDir('imported-collection');
 
     await electronApp.evaluate(({ dialog }, { importDir }) => {
-      dialog.showOpenDialog = async () => ({
-        canceled: false,
-        filePaths: [importDir]
-      });
+      const originalShowOpenDialog = dialog.showOpenDialog;
+      dialog.showOpenDialog = async () => {
+        dialog.showOpenDialog = originalShowOpenDialog;
+        return {
+          canceled: false,
+          filePaths: [importDir]
+        };
+      };
     }, { importDir });
 
     await test.step('Import collection', async () => {
@@ -56,7 +49,7 @@ test.describe('Import Postman Collection with OAuth2 token placement', () => {
 
       await expect(oauth2.tokenHeaderPrefixField()).toBeVisible();
       await expect(oauth2.tokenHeaderPrefixField().locator('.CodeMirror-line')).toHaveText('Bearer');
-      await expect(oauth2.tokenQueryParamKeyField()).not.toBeVisible({ timeout: 1000 });
+      await expect(oauth2.tokenQueryParamKeyField()).toHaveCount(0);
     });
 
     await test.step('URL placement shows the Query Param Key field, hides the Header Prefix field', async () => {
@@ -66,7 +59,7 @@ test.describe('Import Postman Collection with OAuth2 token placement', () => {
 
       await expect(oauth2.tokenQueryParamKeyField()).toBeVisible();
       await expect(oauth2.tokenQueryParamKeyField().locator('.CodeMirror-line')).toHaveText('access_token');
-      await expect(oauth2.tokenHeaderPrefixField()).not.toBeVisible({ timeout: 1000 });
+      await expect(oauth2.tokenHeaderPrefixField()).toHaveCount(0);
     });
   });
 });
