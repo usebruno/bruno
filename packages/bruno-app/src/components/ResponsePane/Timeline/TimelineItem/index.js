@@ -145,6 +145,7 @@ const TimelineItem = ({
           aria-expanded={isExpanded}
           onClick={toggleExpand}
           onKeyDown={handleRowKeyDown}
+          data-testid="timeline-item-header"
         >
           <div className="tl-col-chev">
             {isExpanded ? <IconChevronDown size={14} strokeWidth={2} /> : <IconChevronRight size={14} strokeWidth={2} />}

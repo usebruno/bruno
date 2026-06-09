@@ -109,7 +109,7 @@ const Timeline = ({ collection, item }) => {
 
             if (isGrpcRequest) {
               return (
-                <div key={index} className="timeline-event">
+                <div key={index} className="timeline-event" data-testid="timeline-item">
                   <GrpcTimelineItem
                     timestamp={eventTimestamp}
                     request={request}
@@ -124,7 +124,7 @@ const Timeline = ({ collection, item }) => {
             }
 
             return (
-              <div key={index} className="timeline-event">
+              <div key={index} className="timeline-event" data-testid="timeline-item">
                 <TimelineItem
                   timestamp={timestamp}
                   request={request}
@@ -139,7 +139,7 @@ const Timeline = ({ collection, item }) => {
 
           if (entry.type === 'oauth2' && entry._oauth2Child) {
             return (
-              <div key={index} className="timeline-event">
+              <div key={index} className="timeline-event" data-testid="timeline-item">
                 <TimelineItem
                   timestamp={entry.timestamp}
                   request={entry._oauth2Child.request}
@@ -155,7 +155,7 @@ const Timeline = ({ collection, item }) => {
 
           if (entry.type === 'scripted-request') {
             return (
-              <div key={index} className="timeline-event">
+              <div key={index} className="timeline-event" data-testid="timeline-item">
                 <TimelineItem
                   timestamp={entry.timestamp}
                   request={entry.data?.request}
