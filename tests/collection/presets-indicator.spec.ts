@@ -40,7 +40,7 @@ test.describe('Presets status dot in collection settings', () => {
 
     await test.step('Select gRPC request type and save', async () => {
       await locators.presets.requestType('grpc').check();
-      await locators.presets.save().click();
+      await locators.presets.saveBtn().click();
     });
 
     await test.step('Verify Presets dot appears when a non-default request type is selected', async () => {
@@ -50,7 +50,7 @@ test.describe('Presets status dot in collection settings', () => {
     await test.step('Switch back to HTTP and set a request URL, then save', async () => {
       await locators.presets.requestType('http').check();
       await locators.presets.requestUrl().fill('https://example.com');
-      await locators.presets.save().click();
+      await locators.presets.saveBtn().click();
     });
 
     await test.step('Verify Presets dot remains visible when request URL is set', async () => {
@@ -60,7 +60,7 @@ test.describe('Presets status dot in collection settings', () => {
     await test.step('Clear the request URL with HTTP selected, then save (returns to default values)', async () => {
       await locators.presets.requestUrl().fill('');
       await expect(locators.presets.requestType('http')).toBeChecked();
-      await locators.presets.save().click();
+      await locators.presets.saveBtn().click();
     });
 
     await test.step('Verify Presets dot is hidden after returning to defaults', async () => {
