@@ -4,6 +4,7 @@ import {
   determineCollectionItemDrop,
   getReorderedItemsInTargetDirectory
 } from 'utils/collections/index';
+import { sortByNameThenSequence } from 'utils/common/index';
 import path from 'utils/common/path';
 
 const collectionPathname = path.join(path.sep, 'collections', 'my-collection');
@@ -55,7 +56,7 @@ describe('determineCollectionItemDrop', () => {
     ).toBeNull();
   });
 
-  it('returns adjacent+above for the top half of a request row', () => {
+  it('returns above for the top half of a request row', () => {
     const rect = createBoundingRect(100, 32);
 
     expect(
@@ -64,10 +65,10 @@ describe('determineCollectionItemDrop', () => {
         hoverBoundingRect: rect,
         clientOffset: { x: 0, y: 110 }
       })
-    ).toEqual({ dropType: 'adjacent', dropPosition: 'above' });
+    ).toBe('above');
   });
 
-  it('returns adjacent+below for the bottom half of a request row', () => {
+  it('returns below for the bottom half of a request row', () => {
     const rect = createBoundingRect(100, 32);
 
     expect(
@@ -76,31 +77,43 @@ describe('determineCollectionItemDrop', () => {
         hoverBoundingRect: rect,
         clientOffset: { x: 0, y: 122 }
       })
-    ).toEqual({ dropType: 'adjacent', dropPosition: 'below' });
+    ).toBe('below');
   });
 
-  it('returns adjacent+above for the top 35% of a folder row', () => {
+  it('returns above for the top 30% of a folder row', () => {
     const rect = createBoundingRect(100, 40);
 
     expect(
       determineCollectionItemDrop({
         item: folderItem,
         hoverBoundingRect: rect,
-        clientOffset: { x: 0, y: 112 }
+        clientOffset: { x: 0, y: 108 }
       })
-    ).toEqual({ dropType: 'adjacent', dropPosition: 'above' });
+    ).toBe('above');
   });
 
-  it('returns inside for the bottom 65% of a folder row', () => {
+  it('returns inside for the middle of a folder row', () => {
     const rect = createBoundingRect(100, 40);
 
     expect(
       determineCollectionItemDrop({
         item: folderItem,
         hoverBoundingRect: rect,
-        clientOffset: { x: 0, y: 128 }
+        clientOffset: { x: 0, y: 120 }
       })
-    ).toEqual({ dropType: 'inside', dropPosition: null });
+    ).toBe('inside');
+  });
+
+  it('returns below for the bottom 30% of a folder row (BRU-1112: move folder to end)', () => {
+    const rect = createBoundingRect(100, 40);
+
+    expect(
+      determineCollectionItemDrop({
+        item: folderItem,
+        hoverBoundingRect: rect,
+        clientOffset: { x: 0, y: 134 }
+      })
+    ).toBe('below');
   });
 });
 
@@ -116,11 +129,11 @@ describe('calculateDraggedItemNewPathname', () => {
     expect(result).toBe(path.join(folderPathname, 'create-user.bru'));
   });
 
-  it('returns a sibling path for adjacent drops', () => {
+  it('returns a sibling path for above/below drops', () => {
     const result = calculateDraggedItemNewPathname({
       draggedItem: draggedRequest,
       targetItem: requestItem,
-      dropType: 'adjacent',
+      dropType: 'above',
       collectionPathname
     });
 
@@ -144,7 +157,7 @@ describe('canCollectionItemBeDropped', () => {
     const result = canCollectionItemBeDropped({
       draggedItem: { ...requestItem, sourceCollectionUid: 'collection-1' },
       targetItem: requestItem,
-      dropType: 'adjacent',
+      dropType: 'above',
       collectionUid: 'collection-1',
       collectionPathname
     });
@@ -202,11 +215,11 @@ describe('canCollectionItemBeDropped', () => {
     expect(result).toBe(true);
   });
 
-  it('returns true for valid same-collection adjacent drops regardless of position', () => {
+  it('returns true for valid same-collection sibling drops regardless of position', () => {
     const result = canCollectionItemBeDropped({
       draggedItem: { ...draggedRequest, sourceCollectionUid: 'collection-1' },
       targetItem: requestItem,
-      dropType: 'adjacent',
+      dropType: 'above',
       collectionUid: 'collection-1',
       collectionPathname
     });
@@ -243,7 +256,7 @@ describe('getReorderedItemsInTargetDirectory', () => {
       items: folderItems,
       targetItemUid: 'b',
       draggedItemUid: 'd',
-      dropPosition: 'above'
+      dropType: 'above'
     });
 
     expect(getSeqMap(reorderedItems)).toEqual({
@@ -258,7 +271,7 @@ describe('getReorderedItemsInTargetDirectory', () => {
       items: folderItems,
       targetItemUid: 'b',
       draggedItemUid: 'a',
-      dropPosition: 'below'
+      dropType: 'below'
     });
 
     // a moves from seq 1 to 2; b shifts up from 2 to 1
@@ -273,7 +286,7 @@ describe('getReorderedItemsInTargetDirectory', () => {
       items: folderItems,
       targetItemUid: 'b',
       draggedItemUid: 'd',
-      dropPosition: 'below'
+      dropType: 'below'
     });
 
     // d moves from seq 4 to 3; c shifts down from 3 to 4
@@ -309,5 +322,53 @@ describe('getReorderedItemsInTargetDirectory', () => {
     });
 
     expect(reorderedItems).toEqual([]);
+  });
+});
+
+describe('reordering a folder in a directory that also contains files', () => {
+  const items = [
+    { uid: 'fa', name: 'A', type: 'folder', seq: 1 },
+    { uid: 'fb', name: 'B', type: 'folder', seq: 2 },
+    { uid: 'fc', name: 'C', type: 'folder', seq: 3 },
+    { uid: 'rx', name: 'X', type: 'http-request', seq: 4 }
+  ];
+
+  const applyReorder = (original, changed) =>
+    original.map((item) => changed.find((c) => c.uid === item.uid) || item);
+
+  const isFolder = (item) => item.type === 'folder';
+
+  const renderOrder = (allItems) => ({
+    folders: sortByNameThenSequence(allItems.filter(isFolder)).map((i) => i.name),
+    files: allItems
+      .filter((i) => !isFolder(i))
+      .sort((a, b) => a.seq - b.seq)
+      .map((i) => i.name)
+  });
+
+  it('moves the first folder to the end of the folder group (drop below the last folder)', () => {
+    const reordered = getReorderedItemsInTargetDirectory({
+      items,
+      targetItemUid: 'fc',
+      draggedItemUid: 'fa',
+      dropType: 'below'
+    });
+
+    const final = applyReorder(items, reordered);
+
+    expect(renderOrder(final)).toEqual({ folders: ['B', 'C', 'A'], files: ['X'] });
+  });
+
+  it('moves the first folder to the end of the folder group (drop above the first file)', () => {
+    const reordered = getReorderedItemsInTargetDirectory({
+      items,
+      targetItemUid: 'rx',
+      draggedItemUid: 'fa',
+      dropType: 'above'
+    });
+
+    const final = applyReorder(items, reordered);
+
+    expect(renderOrder(final)).toEqual({ folders: ['B', 'C', 'A'], files: ['X'] });
   });
 });
