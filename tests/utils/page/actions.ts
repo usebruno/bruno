@@ -1752,6 +1752,86 @@ const openWorkspaceFromDialog = async (app: any, page: any, targetPath: string) 
   await page.locator('.dropdown-item').filter({ hasText: 'Open workspace' }).click();
 };
 
+/**
+ * Trigger "Generate Docs" from a collection's sidebar context menu and capture
+ * the generated HTML documentation.
+ *
+ * The GenerateDocumentation modal hands the file to `FileSaver.saveAs`, which
+ * builds an in-memory Blob and saves it via an `<a download>` click rather than
+ * an Electron IPC write. Electron doesn't surface that as a Playwright
+ * `download` event, so instead we intercept it in the renderer: `URL.createObjectURL`
+ * gives us the Blob's content, and overriding the anchor click captures the
+ * suggested file name while suppressing the real save (no file leaks to disk).
+ *
+ * @param page - The page object
+ * @param collectionName - The name of the collection to generate docs for
+ * @returns The generated HTML content and the download's suggested file name
+ */
+const generateCollectionDocs = async (
+  page: Page,
+  collectionName: string
+): Promise<{ content: string; fileName: string }> => {
+  return await test.step(`Generate docs for collection "${collectionName}"`, async () => {
+    const locators = buildCommonLocators(page);
+
+    // Open the collection's context menu and click "Generate Docs"
+    await locators.sidebar.collection(collectionName).hover();
+    const collectionAction = locators.actions.collectionActions(collectionName);
+    await expect(collectionAction).toBeVisible({ timeout: 2000 });
+    await collectionAction.click();
+    await locators.dropdown.item('Generate Docs').click();
+
+    // Wait for the Generate Documentation modal to reach its ready (non-loading)
+    // state — the confirm button reads "Loading..." while the collection's items
+    // are still mounting and only becomes "Generate" once they are ready.
+    const modal = locators.modal.byTitle('Generate Documentation');
+    await expect(modal).toBeVisible({ timeout: 5000 });
+    const generateButton = modal.getByRole('button', { name: 'Generate', exact: true });
+    await expect(generateButton).toBeEnabled({ timeout: 10000 });
+
+    // Arm the renderer-side interception before the save fires. `file-saver`
+    // (v2) reads the Blob through `URL.createObjectURL` and then triggers the
+    // save by dispatching a synthetic click on a detached `<a download>` (via
+    // `setTimeout(…, 0)`), so both points are intercepted. Each is exposed as a
+    // promise to absorb that deferred dispatch without a race.
+    await page.evaluate(() => {
+      const w = window as any;
+      const originalCreate = URL.createObjectURL.bind(URL);
+      const originalDispatch = HTMLAnchorElement.prototype.dispatchEvent;
+
+      w.__docsContent = new Promise<string>((resolve) => {
+        URL.createObjectURL = function (obj: Blob | MediaSource) {
+          if (obj instanceof Blob) {
+            obj.text().then(resolve);
+          }
+          return originalCreate(obj as Blob);
+        };
+      });
+
+      w.__docsFileName = new Promise<string>((resolve) => {
+        HTMLAnchorElement.prototype.dispatchEvent = function (this: HTMLAnchorElement, event: Event) {
+          if (this.download && event && event.type === 'click') {
+            resolve(this.download);
+            // Suppress the actual save — the Blob content is already captured.
+            return true;
+          }
+          return originalDispatch.call(this, event);
+        };
+      });
+    });
+
+    await generateButton.click();
+
+    const content = await page.evaluate(() => (window as any).__docsContent as Promise<string>);
+    const fileName = await page.evaluate(() => (window as any).__docsFileName as Promise<string>);
+
+    // The modal closes itself on the success path.
+    await expect(modal).toBeHidden({ timeout: 5000 });
+
+    return { content, fileName };
+  });
+};
+
 export {
   waitForReadyPage,
   dismissImportIssuesToasts,
@@ -1821,7 +1901,8 @@ export {
   getGeneratedSnippet,
   closeGenerateCodeDialog,
   openRequestInFolder,
-  setUrlEncoding
+  setUrlEncoding,
+  generateCollectionDocs
 };
 
 export type { SandboxMode, EnvironmentType, EnvironmentVariable, ImportCollectionOptions, CreateRequestOptions, CreateUntitledRequestOptions, CreateTransientRequestOptions, AssertionInput };

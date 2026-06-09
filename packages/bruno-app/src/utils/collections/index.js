@@ -888,6 +888,22 @@ export const isItemAFolder = (item) => {
   return !item.hasOwnProperty('request') && item.type === 'folder';
 };
 
+/**
+ * Orders a list of collection items exactly the way the Sidebar tree renders them:
+ * folders first (via `sortByNameThenSequence`), then requests ordered by `seq`, then
+ * code/data files (in their existing order). The same ordering is applied recursively to
+ * every nested folder so an exported/serialized tree matches the sidebar at all depths.
+ *
+ */
+export const sortItemsBySidebarOrder = (items = []) => {
+  const folderItems = sortByNameThenSequence(filter(items, (i) => isItemAFolder(i) && !i.isTransient));
+  const requestItems = filter(items, (i) => isItemARequest(i) && !i.isTransient).sort((a, b) => a.seq - b.seq);
+
+  return [...folderItems, ...requestItems].map((item) =>
+    Array.isArray(item.items) ? { ...item, items: sortItemsBySidebarOrder(item.items) } : item
+  );
+};
+
 export const humanizeRequestBodyMode = (mode) => {
   let label = 'No Body';
   switch (mode) {
