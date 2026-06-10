@@ -34,13 +34,10 @@ import RequestDetailsPanel from './RequestDetailsPanel';
 import ErrorDetailsPanel from './ErrorDetailsPanel';
 import Performance from '../Performance';
 import StyledWrapper from './StyledWrapper';
+import { useResizablePanel } from 'hooks/useResizablePanel';
 
 const MIN_DETAILS_PANEL_WIDTH = 280;
 const MAX_DETAILS_PANEL_WIDTH = 800;
-const DEFAULT_DETAILS_PANEL_WIDTH = 400;
-
-const clampDetailsPanelWidth = (width) =>
-  Math.min(MAX_DETAILS_PANEL_WIDTH, Math.max(MIN_DETAILS_PANEL_WIDTH, width));
 
 const LogIcon = ({ type }) => {
   const iconProps = { size: 16, strokeWidth: 1.5 };
@@ -99,7 +96,10 @@ const transformBrunoTypes = (obj, seen = new WeakSet()) => {
         // Transform Set to display values at top level with numeric indices
         if (Array.isArray(obj.__brunoValue)) {
           return Object.fromEntries(
-            obj.__brunoValue.map((value, index) => [index, transformBrunoTypes(value, seen)])
+            obj.__brunoValue.map((value, index) => [
+              index,
+              transformBrunoTypes(value, seen)
+            ])
           );
         }
         return {};
@@ -111,14 +111,19 @@ const transformBrunoTypes = (obj, seen = new WeakSet()) => {
             // Defensive check: ensure entry is a valid [key, value] pair
             if (Array.isArray(entry) && entry.length >= 2) {
               const [key, value] = entry;
-              mapEntries[`${String(key)} =>`] = transformBrunoTypes(value, seen);
+              mapEntries[`${String(key)} =>`] = transformBrunoTypes(
+                value,
+                seen
+              );
             }
           }
           return mapEntries;
         }
         return {};
       case 'Function':
-        return `[Function: ${obj.__brunoValue?.split?.('\n')?.[0]?.substring(0, 50) ?? 'anonymous'}...]`;
+        return `[Function: ${
+          obj.__brunoValue?.split?.('\n')?.[0]?.substring(0, 50) ?? 'anonymous'
+        }...]`;
       case 'undefined':
         return 'undefined';
       default:
@@ -189,7 +194,8 @@ const LogMessage = ({ message, args }) => {
                 style={{
                   backgroundColor: 'transparent',
                   fontSize: '${(props) => props.theme.font.size.sm}',
-                  fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace'
+                  fontFamily:
+                    'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace'
                 }}
               />
             </div>
@@ -205,19 +211,28 @@ const LogMessage = ({ message, args }) => {
 
   return (
     <span className="log-message">
-      {Array.isArray(formattedMessage) ? formattedMessage.map((item, index) => (
-        <span key={index}>{item} </span>
-      )) : formattedMessage}
+      {Array.isArray(formattedMessage)
+        ? formattedMessage.map((item, index) => (
+            <span key={index}>{item} </span>
+          ))
+        : formattedMessage}
     </span>
   );
 };
 
-const FilterDropdown = ({ filters, logCounts, onFilterToggle, onToggleAll }) => {
+const FilterDropdown = ({
+  filters,
+  logCounts,
+  onFilterToggle,
+  onToggleAll
+}) => {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
 
   const allFiltersEnabled = Object.values(filters).every((f) => f);
-  const activeFilters = Object.entries(filters).filter(([_, enabled]) => enabled);
+  const activeFilters = Object.entries(filters).filter(
+    ([_, enabled]) => enabled
+  );
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -239,7 +254,9 @@ const FilterDropdown = ({ filters, logCounts, onFilterToggle, onToggleAll }) => 
       >
         <IconFilter size={16} strokeWidth={1.5} />
         <span className="filter-summary">
-          {activeFilters.length === Object.keys(filters).length ? 'All' : `${activeFilters.length}/${Object.keys(filters).length}`}
+          {activeFilters.length === Object.keys(filters).length
+            ? 'All'
+            : `${activeFilters.length}/${Object.keys(filters).length}`}
         </span>
         <IconChevronDown size={14} strokeWidth={1.5} />
       </button>
@@ -267,7 +284,9 @@ const FilterDropdown = ({ filters, logCounts, onFilterToggle, onToggleAll }) => 
                 <div className="filter-option-content">
                   <LogIcon type={filterType} />
                   <span className="filter-option-label">{filterType}</span>
-                  <span className="filter-option-count">({logCounts[filterType] || 0})</span>
+                  <span className="filter-option-count">
+                    ({logCounts[filterType] || 0})
+                  </span>
                 </div>
               </label>
             ))}
@@ -278,12 +297,19 @@ const FilterDropdown = ({ filters, logCounts, onFilterToggle, onToggleAll }) => 
   );
 };
 
-const NetworkFilterDropdown = ({ filters, requestCounts, onFilterToggle, onToggleAll }) => {
+const NetworkFilterDropdown = ({
+  filters,
+  requestCounts,
+  onFilterToggle,
+  onToggleAll
+}) => {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
 
   const allFiltersEnabled = Object.values(filters).every((f) => f);
-  const activeFilters = Object.entries(filters).filter(([_, enabled]) => enabled);
+  const activeFilters = Object.entries(filters).filter(
+    ([_, enabled]) => enabled
+  );
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -305,7 +331,9 @@ const NetworkFilterDropdown = ({ filters, requestCounts, onFilterToggle, onToggl
       >
         <IconFilter size={16} strokeWidth={1.5} />
         <span className="filter-summary">
-          {activeFilters.length === Object.keys(filters).length ? 'All' : `${activeFilters.length}/${Object.keys(filters).length}`}
+          {activeFilters.length === Object.keys(filters).length
+            ? 'All'
+            : `${activeFilters.length}/${Object.keys(filters).length}`}
         </span>
         <IconChevronDown size={14} strokeWidth={1.5} />
       </button>
@@ -332,7 +360,9 @@ const NetworkFilterDropdown = ({ filters, requestCounts, onFilterToggle, onToggl
                 />
                 <div className="filter-option-content">
                   <span className="filter-option-label">{method}</span>
-                  <span className="filter-option-count">({requestCounts[method] || 0})</span>
+                  <span className="filter-option-count">
+                    ({requestCounts[method] || 0})
+                  </span>
                 </div>
               </label>
             ))}
@@ -343,7 +373,14 @@ const NetworkFilterDropdown = ({ filters, requestCounts, onFilterToggle, onToggl
   );
 };
 
-const ConsoleTab = ({ logs, filters, logCounts, onFilterToggle, onToggleAll, onClearLogs }) => {
+const ConsoleTab = ({
+  logs,
+  filters,
+  logCounts,
+  onFilterToggle,
+  onToggleAll,
+  onClearLogs
+}) => {
   const logsEndRef = useRef(null);
   const prevLogsCountRef = useRef(0);
 
@@ -387,47 +424,34 @@ const ConsoleTab = ({ logs, filters, logCounts, onFilterToggle, onToggleAll, onC
 
 const Console = () => {
   const dispatch = useDispatch();
-  const { logs, filters, activeTab, selectedRequest, selectedError, networkFilters, debugErrors } = useSelector((state) => state.logs);
+  const {
+    logs,
+    filters,
+    activeTab,
+    selectedRequest,
+    selectedError,
+    networkFilters,
+    debugErrors
+  } = useSelector((state) => state.logs);
   const collections = useSelector((state) => state.collections.collections);
-  const savedDetailsPanelWidth = useSelector((state) => state.logs.requestDetailsPanelWidth);
+  const savedDetailsPanelWidth = useSelector(
+    (state) => state.logs.requestDetailsPanelWidth
+  );
   const consoleRef = useRef(null);
 
-  const [detailsPanelWidth, setDetailsPanelWidth] = useState(savedDetailsPanelWidth);
-  const isDraggingDetailsPanel = useRef(false);
-  const dragStartX = useRef(0);
-  const dragStartWidth = useRef(0);
-  const currentWidthRef = useRef(savedDetailsPanelWidth);
-
-  const handleDetailsPanelDragStart = (e) => {
-    isDraggingDetailsPanel.current = true;
-    dragStartX.current = e.clientX;
-    dragStartWidth.current = currentWidthRef.current;
-    e.preventDefault();
-  };
-
-  const handleMouseMove = (e) => {
-    if (!isDraggingDetailsPanel.current) return;
-    const delta = dragStartX.current - e.clientX;
-    const newWidth = clampDetailsPanelWidth(dragStartWidth.current + delta);
-    currentWidthRef.current = newWidth;
-    setDetailsPanelWidth(newWidth);
-  };
-
-  const handleMouseUp = () => {
-    if (isDraggingDetailsPanel.current) {
-      dispatch(updateRequestDetailsPanelWidth({ requestDetailsPanelWidth: currentWidthRef.current }));
-    }
-    isDraggingDetailsPanel.current = false;
-  };
-
-  useEffect(() => {
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
-    return () => {
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
-    };
-  }, []);
+  const {
+    width: detailsPanelWidth,
+    handleDragStart: handleDetailsPanelDragStart
+  } = useResizablePanel({
+    initialWidth: savedDetailsPanelWidth,
+    minWidth: MIN_DETAILS_PANEL_WIDTH,
+    maxWidth: MAX_DETAILS_PANEL_WIDTH,
+    direction: 'right',
+    onResizeEnd: (newWidth) =>
+      dispatch(
+        updateRequestDetailsPanelWidth({ requestDetailsPanelWidth: newWidth })
+      )
+  });
 
   const logCounts = logs.reduce((counts, log) => {
     counts[log.type] = (counts[log.type] || 0) + 1;
@@ -595,9 +619,7 @@ const Console = () => {
 
   return (
     <StyledWrapper ref={consoleRef}>
-      <div
-        className="console-resize-handle"
-      />
+      <div className="console-resize-handle" />
 
       <div className="console-header">
         <div className="console-tabs">
@@ -618,7 +640,9 @@ const Console = () => {
           </button>
 
           <button
-            className={`console-tab ${activeTab === 'performance' ? 'active' : ''}`}
+            className={`console-tab ${
+              activeTab === 'performance' ? 'active' : ''
+            }`}
             onClick={() => handleTabChange('performance')}
           >
             <IconDashboard size={16} strokeWidth={1.5} />
@@ -626,7 +650,9 @@ const Console = () => {
           </button>
 
           <button
-            className={`console-tab ${activeTab === 'terminal' ? 'active' : ''}`}
+            className={`console-tab ${
+              activeTab === 'terminal' ? 'active' : ''
+            }`}
             onClick={() => handleTabChange('terminal')}
           >
             <IconTerminal2 size={16} strokeWidth={1.5} />
@@ -657,11 +683,15 @@ const Console = () => {
       <div className="console-content">
         {activeTab === 'network' && selectedRequest ? (
           <div className="network-with-details">
-            <div className="network-main">
-              {renderTabContent()}
-            </div>
-            <div className="details-panel-wrapper" style={{ width: detailsPanelWidth }}>
-              <div className="details-drag-handle" onMouseDown={handleDetailsPanelDragStart}>
+            <div className="network-main">{renderTabContent()}</div>
+            <div
+              className="details-panel-wrapper"
+              style={{ width: detailsPanelWidth }}
+            >
+              <div
+                className="details-drag-handle"
+                onMouseDown={handleDetailsPanelDragStart}
+              >
                 <div className="drag-request-border" />
               </div>
               <RequestDetailsPanel />
@@ -669,9 +699,7 @@ const Console = () => {
           </div>
         ) : activeTab === 'debug' && selectedError ? (
           <div className="debug-with-details">
-            <div className="debug-main">
-              {renderTabContent()}
-            </div>
+            <div className="debug-main">{renderTabContent()}</div>
             <ErrorDetailsPanel />
           </div>
         ) : (
