@@ -1,12 +1,13 @@
 import { test, expect } from '../../../playwright';
 import path from 'path';
 import { Page } from '@playwright/test';
-import { importCollection, createEnvironment, closeAllCollections, addRowToActiveTab, deleteAllGlobalEnvironments } from '../../utils/page';
+import { importCollection, createEnvironment, closeAllCollections, addRowToActiveTab, saveEnvironment, deleteAllGlobalEnvironments } from '../../utils/page';
+import { buildCommonLocators } from '../../utils/page/locators';
 
-const variablesTab = (page: Page) => page.getByTestId('responsive-tab-variables');
-const secretsTab = (page: Page) => page.getByTestId('responsive-tab-secrets');
-const varRow = (page: Page, name: string) => page.getByTestId(`env-var-row-${name}`);
-const saveAll = (page: Page) => page.getByTestId('save-all-env');
+const variablesTab = (page: Page) => buildCommonLocators(page).environment.variablesTab();
+const secretsTab = (page: Page) => buildCommonLocators(page).environment.secretsTab();
+const varRow = (page: Page, name: string) => buildCommonLocators(page).environment.varRow(name);
+const saveTab = (page: Page) => buildCommonLocators(page).environment.saveTab();
 const tabDraftIcon = (page: Page) => page.locator('.request-tab.active').getByTestId('tab-draft-icon');
 
 const searchEnv = async (page: Page, query: string) => {
@@ -69,7 +70,7 @@ test.describe('Environment Variables / Secrets tab separation', () => {
 
     await test.step('Add and save a variable on the Variables tab', async () => {
       await addRowToActiveTab(page, 'host', 'https://echo.usebruno.com');
-      await page.getByTestId('save-env').click();
+      await saveTab(page).click();
       // newest toast: the two back-to-back saves can briefly show two identical toasts
       await expect(page.getByText('Changes saved successfully').last()).toBeVisible();
     });
@@ -77,7 +78,7 @@ test.describe('Environment Variables / Secrets tab separation', () => {
     await test.step('Add and save a secret on the Secrets tab', async () => {
       await secretsTab(page).click();
       await addRowToActiveTab(page, 'apiToken', 'super-secret-token-12345');
-      await page.getByTestId('save-env').click();
+      await saveTab(page).click();
       await expect(page.getByText('Changes saved successfully').last()).toBeVisible();
     });
 
@@ -113,7 +114,7 @@ test.describe('Environment Variables / Secrets tab separation', () => {
     });
 
     await test.step('The common save icon saves both tabs in a single click', async () => {
-      await saveAll(page).click();
+      await saveEnvironment(page);
       await expect(page.getByText('Changes saved successfully').last()).toBeVisible();
     });
 
@@ -132,7 +133,7 @@ test.describe('Environment Variables / Secrets tab separation', () => {
     });
 
     await test.step('A second save reports nothing to save, proving both were committed', async () => {
-      await saveAll(page).click();
+      await saveEnvironment(page);
       await expect(page.getByText('No changes to save')).toBeVisible();
     });
   });
@@ -145,12 +146,12 @@ test.describe('Environment Variables / Secrets tab separation', () => {
     await createEnvironment(page, 'Search Scope Env', 'collection');
 
     await addRowToActiveTab(page, 'host', 'https://echo.usebruno.com');
-    await page.getByTestId('save-env').click();
+    await saveTab(page).click();
     await expect(page.getByText('Changes saved successfully').last()).toBeVisible();
 
     await secretsTab(page).click();
     await addRowToActiveTab(page, 'apiToken', 'super-secret-token-12345');
-    await page.getByTestId('save-env').click();
+    await saveTab(page).click();
     await expect(page.getByText('Changes saved successfully').last()).toBeVisible();
 
     await test.step('Searching the Variables tab never surfaces the secret', async () => {
@@ -187,17 +188,17 @@ test.describe('Environment Variables / Secrets tab separation', () => {
     await createEnvironment(page, 'Delete Scope Env', 'collection');
 
     await addRowToActiveTab(page, 'host', 'https://echo.usebruno.com');
-    await page.getByTestId('save-env').click();
+    await saveTab(page).click();
     await expect(page.getByText('Changes saved successfully').last()).toBeVisible();
 
     await secretsTab(page).click();
     await addRowToActiveTab(page, 'apiToken', 'super-secret-token-12345');
-    await page.getByTestId('save-env').click();
+    await saveTab(page).click();
     await expect(page.getByText('Changes saved successfully').last()).toBeVisible();
 
     await test.step('Delete the secret on the Secrets tab', async () => {
       await deleteRow(page, 'apiToken');
-      await page.getByTestId('save-env').click();
+      await saveTab(page).click();
       await expect(page.getByText('Changes saved successfully').last()).toBeVisible();
       await expect(varRow(page, 'apiToken')).toHaveCount(0);
     });
@@ -255,7 +256,7 @@ test.describe('Global Environment Variables / Secrets tab separation', () => {
 
     await test.step('Add and save a variable on the Variables tab', async () => {
       await addRowToActiveTab(page, 'host', 'https://echo.usebruno.com');
-      await page.getByTestId('save-env').click();
+      await saveTab(page).click();
       // newest toast: the two back-to-back saves can briefly show two identical toasts
       await expect(page.getByText('Changes saved successfully').last()).toBeVisible();
     });
@@ -263,7 +264,7 @@ test.describe('Global Environment Variables / Secrets tab separation', () => {
     await test.step('Add and save a secret on the Secrets tab', async () => {
       await secretsTab(page).click();
       await addRowToActiveTab(page, 'apiToken', 'super-secret-token-12345');
-      await page.getByTestId('save-env').click();
+      await saveTab(page).click();
       await expect(page.getByText('Changes saved successfully').last()).toBeVisible();
     });
 
@@ -299,7 +300,7 @@ test.describe('Global Environment Variables / Secrets tab separation', () => {
     });
 
     await test.step('The common save icon saves both tabs in a single click', async () => {
-      await saveAll(page).click();
+      await saveEnvironment(page);
       await expect(page.getByText('Changes saved successfully').last()).toBeVisible();
     });
 
@@ -318,7 +319,7 @@ test.describe('Global Environment Variables / Secrets tab separation', () => {
     });
 
     await test.step('A second save reports nothing to save, proving both were committed', async () => {
-      await saveAll(page).click();
+      await saveEnvironment(page);
       await expect(page.getByText('No changes to save')).toBeVisible();
     });
   });
@@ -331,12 +332,12 @@ test.describe('Global Environment Variables / Secrets tab separation', () => {
     await createEnvironment(page, 'Global Search Scope Env', 'global');
 
     await addRowToActiveTab(page, 'host', 'https://echo.usebruno.com');
-    await page.getByTestId('save-env').click();
+    await saveTab(page).click();
     await expect(page.getByText('Changes saved successfully').last()).toBeVisible();
 
     await secretsTab(page).click();
     await addRowToActiveTab(page, 'apiToken', 'super-secret-token-12345');
-    await page.getByTestId('save-env').click();
+    await saveTab(page).click();
     await expect(page.getByText('Changes saved successfully').last()).toBeVisible();
 
     await test.step('Searching the Variables tab never surfaces the secret', async () => {
@@ -373,17 +374,17 @@ test.describe('Global Environment Variables / Secrets tab separation', () => {
     await createEnvironment(page, 'Global Delete Scope Env', 'global');
 
     await addRowToActiveTab(page, 'host', 'https://echo.usebruno.com');
-    await page.getByTestId('save-env').click();
+    await saveTab(page).click();
     await expect(page.getByText('Changes saved successfully').last()).toBeVisible();
 
     await secretsTab(page).click();
     await addRowToActiveTab(page, 'apiToken', 'super-secret-token-12345');
-    await page.getByTestId('save-env').click();
+    await saveTab(page).click();
     await expect(page.getByText('Changes saved successfully').last()).toBeVisible();
 
     await test.step('Delete the secret on the Secrets tab', async () => {
       await deleteRow(page, 'apiToken');
-      await page.getByTestId('save-env').click();
+      await saveTab(page).click();
       await expect(page.getByText('Changes saved successfully').last()).toBeVisible();
       await expect(varRow(page, 'apiToken')).toHaveCount(0);
     });
