@@ -2437,6 +2437,7 @@ export const removeCollection = (collectionUid) => (dispatch, getState) => {
       }
     }
 
+    ipcRenderer.invoke('renderer:unmount-collection-v2', { collectionUid }).catch(() => {});
     ipcRenderer
       .invoke('renderer:remove-collection', collection.pathname, collectionUid, workspaceId)
       .then(() => {
@@ -3121,8 +3122,10 @@ export const mountCollection
   = ({ collectionUid, collectionPathname, brunoConfig, skipTabRestore = false, workspacePathname = null }) =>
     (dispatch, getState) => {
       dispatch(updateCollectionMountStatus({ collectionUid, mountStatus: 'mounting' }));
+      const fileCacheEnabled = getState().app?.preferences?.cache?.file?.enabled;
+      const channel = fileCacheEnabled ? 'renderer:mount-collection-v2' : 'renderer:mount-collection';
       return new Promise(async (resolve, reject) => {
-        callIpc('renderer:mount-collection', { collectionUid, collectionPathname, brunoConfig })
+        callIpc(channel, { collectionUid, collectionPathname, brunoConfig })
           .then(async (transientDirPath) => {
             dispatch(updateCollectionMountStatus({ collectionUid, mountStatus: 'mounted' }));
             dispatch(addTransientDirectory({ collectionUid, pathname: transientDirPath }));

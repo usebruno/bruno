@@ -36,7 +36,7 @@ import toast from 'react-hot-toast';
 import { useDispatch, useStore } from 'react-redux';
 import { isElectron } from 'utils/common/platform';
 import { globalEnvironmentsUpdateEvent, updateGlobalEnvironments } from 'providers/ReduxStore/slices/global-environments';
-import { collectionAddOauth2CredentialsByUrl, collectionClearOauth2CredentialsByCredentialsId, updateCollectionLoadingState } from 'providers/ReduxStore/slices/collections/index';
+import { collectionAddOauth2CredentialsByUrl, collectionClearOauth2CredentialsByCredentialsId, updateCollectionLoadingState, collectionLoadedFromTree } from 'providers/ReduxStore/slices/collections/index';
 import { addLog } from 'providers/ReduxStore/slices/logs';
 import { loadNotifications } from 'providers/ReduxStore/slices/notifications';
 import { updateSystemResources } from 'providers/ReduxStore/slices/performance';
@@ -348,7 +348,27 @@ const useIpcEvents = () => {
       dispatch(loadNotifications(notifications));
     });
 
+    const removeCollectionTreeLoadedListener = ipcRenderer.on('main:collection-tree-loaded', ({ collectionUid, tree }) => {
+      dispatch(collectionLoadedFromTree({ collectionUid, tree }));
+    });
+
+    const removeCollectionLoadingStateV2Listener = ipcRenderer.on('main:collection-loading-state-updated-v2', (val) => {
+      dispatch(updateCollectionLoadingState(val));
+    });
+
+    const removeBrunoConfigUpdateV2Listener = ipcRenderer.on('main:bruno-config-update-v2', (val) => {
+      dispatch(brunoConfigUpdateEvent(val));
+    });
+
+    const removeSnapshotHydrationV2Listener = ipcRenderer.on('main:hydrate-app-with-ui-state-snapshot-v2', (val) => {
+      dispatch(hydrateCollectionWithUiStateSnapshot(val));
+    });
+
     return () => {
+      removeCollectionTreeLoadedListener();
+      removeCollectionLoadingStateV2Listener();
+      removeBrunoConfigUpdateV2Listener();
+      removeSnapshotHydrationV2Listener();
       removeCollectionTreeUpdateListener();
       removeApiSpecTreeUpdateListener();
       removeOpenCollectionListener();
