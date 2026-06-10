@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
 import { useSelector } from 'react-redux';
 import get from 'lodash/get';
 import { IconStars, IconX, IconArrowBackUp } from '@tabler/icons';
@@ -38,7 +38,6 @@ const AIAssist = ({ scriptType, currentScript, requestContext, onApply }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const [generated, setGenerated] = useState(null);
-  const popupRef = useRef(null);
   const buttonRef = useRef(null);
 
   const focusOnMount = useCallback((el) => {
@@ -56,13 +55,10 @@ const AIAssist = ({ scriptType, currentScript, requestContext, onApply }) => {
     setError(null);
   }, []);
 
-  useEffect(() => {
-    if (!isOpen) return undefined;
+  const attachPopup = useCallback((el) => {
+    if (!el) return undefined;
     const onDocMouseDown = (e) => {
-      if (
-        popupRef.current && !popupRef.current.contains(e.target)
-        && buttonRef.current && !buttonRef.current.contains(e.target)
-      ) {
+      if (!el.contains(e.target) && !buttonRef.current?.contains(e.target)) {
         close();
       }
     };
@@ -75,7 +71,7 @@ const AIAssist = ({ scriptType, currentScript, requestContext, onApply }) => {
       document.removeEventListener('mousedown', onDocMouseDown);
       document.removeEventListener('keydown', onKey);
     };
-  }, [isOpen, close]);
+  }, [close]);
 
   const handleGenerate = useCallback(
     async (overridePrompt) => {
@@ -138,7 +134,7 @@ const AIAssist = ({ scriptType, currentScript, requestContext, onApply }) => {
       </button>
 
       {isOpen && (
-        <div ref={popupRef} className="ai-assist-popup" role="dialog" aria-label={title}>
+        <div ref={attachPopup} className="ai-assist-popup" role="dialog" aria-label={title}>
           <div className="popup-header">
             <span className="popup-title">
               <IconStars size={12} strokeWidth={1.75} />
