@@ -1,0 +1,111 @@
+# omnipackage configuration for Bruno. Docs: https://docs.omnipackage.org
+#
+# install.sh runs Bruno's real build in the container and stages
+# electron-builder's `--linux dir` output — not electron-builder's deb/rpm targets.
+
+# Root package.json has no version; the electron package's does.
+version_extractors:
+  - name: package_json
+    provider: "file"
+    file:
+      file: "packages/bruno-electron/package.json"
+      regex: '"version": "(.+)"'
+
+common: &common
+  package_name: "bruno"
+  maintainer: "Oleg Antonyan <oleg.b.antonyan@gmail.com>"
+  homepage: https://usebruno.com
+  description: Opensource API Client for Exploring and Testing APIs
+
+# node_modules excluded so the container rebuilds it for its own arch/ABI.
+ignore_source_files:
+  - .git
+  - .env
+  - .DS_Store
+  - "*.log"
+  - node_modules
+  - out
+  - dist
+
+repositories:
+  - name: Local test
+    gpg_private_key_base64: "${GPG_PRIVATE_KEY_BASE64}"
+    provider: localfs
+    <<: *common
+    localfs:
+      path: "${HOME}/bruno-repositories"
+
+  - name: R2 test repo
+    provider: s3
+    gpg_private_key_base64: "${GPG_PRIVATE_KEY_BASE64}"
+    <<: *common
+    s3:
+      bucket: repositories-test
+      path_in_bucket: "bruno"
+      bucket_public_url: "https://repositories-test.omnipackage.org"
+      endpoint: "${CLOUDFLARE_R2_ENDPOINT}"
+      access_key_id: "${CLOUDFLARE_R2_ACCESS_KEY_ID}"
+      secret_access_key: "${CLOUDFLARE_R2_SECRET_ACCESS_KEY}"
+      region: auto
+      force_path_style: true
+      cloudflare_zone_id: "${CLOUDFLARE_ZONE_ID}"
+      cloudflare_api_token: "${CLOUDFLARE_API_TOKEN}"
+
+
+# No -devel headers needed: Bruno's only native module (@lydell/node-pty) ships
+# prebuilt N-API binaries. gcc/make are just insurance for electron-builder's
+# native-dependency rebuild step.
+rpm: &rpm
+  <<: *common
+  before_build_script: ".omnipackage/prepare.sh"
+  build_dependencies:
+    ["gcc", "gcc-c++", "make", "python3", "python3-setuptools",
+     "wget", "git", "tar", "xz", "findutils", "which"]
+  runtime_dependencies: ["xdg-utils"]
+  rpm:
+    spec_template: ".omnipackage/specfile.spec.liquid"
+
+# Same as rpm minus wget: installing wget/curl on Tumbleweed upgrades libcurl to
+# an HTTP/3 build skewed against libngtcp2, breaking zypper. prepare.sh uses the
+# base image's curl for nvm instead.
+opensuse: &opensuse
+  <<: *rpm
+  build_dependencies:
+    ["gcc", "gcc-c++", "make", "python3", "python3-setuptools",
+     "git", "tar", "xz", "findutils", "which"]
+
+deb: &deb
+  <<: *common
+  before_build_script: ".omnipackage/prepare.sh"
+  build_dependencies:
+    ["build-essential", "python3", "python3-setuptools",
+     "git", "wget", "curl", "ca-certificates", "xz-utils"]
+  # dpkg-shlibdeps is disabled (deb/rules.liquid) since electron-builder bundles
+  # its own libs, so system deps are listed explicitly. t64 alternations cover
+  # Ubuntu 24.04+/Debian 13.
+  runtime_dependencies:
+    ["libgtk-3-0t64 | libgtk-3-0", "libnotify4", "libnss3", "libxss1",
+     "libxtst6", "xdg-utils", "libatspi2.0-0t64 | libatspi2.0-0", "libuuid1",
+     "libsecret-1-0", "libasound2t64 | libasound2"]
+  deb:
+    debian_templates: ".omnipackage/deb"
+
+builds:
+  - { distro: "fedora_42",           <<: *rpm }
+  - { distro: "fedora_43",           <<: *rpm }
+  - { distro: "fedora_44",           <<: *rpm }
+  - { distro: "fedora_rawhide",      <<: *rpm }
+  - { distro: "opensuse_15.6",       <<: *opensuse }
+  - { distro: "opensuse_16.0",       <<: *opensuse }
+  - { distro: "opensuse_tumbleweed", <<: *opensuse }
+  - { distro: "almalinux_9",         <<: *rpm }
+  - { distro: "almalinux_10",        <<: *rpm }
+  - { distro: "rockylinux_9",        <<: *rpm }
+  - { distro: "rockylinux_10",       <<: *rpm }
+  - { distro: "mageia_9",            <<: *rpm }
+  - { distro: "debian_12",           <<: *deb }
+  - { distro: "debian_13",           <<: *deb }
+  - { distro: "debian_testing",      <<: *deb }
+  - { distro: "ubuntu_22.04",        <<: *deb }
+  - { distro: "ubuntu_24.04",        <<: *deb }
+  - { distro: "ubuntu_25.04",        <<: *deb }
