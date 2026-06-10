@@ -1,6 +1,6 @@
 import { parseQueryParams, buildQueryString as stringifyQueryParams } from '@usebruno/common/utils';
 import { uuid } from 'utils/common';
-import { find, map, forOwn, concat, filter, each, cloneDeep, get, set, findIndex } from 'lodash';
+import { find, map, forOwn, concat, filter, each, cloneDeep, get, set, findIndex, pick } from 'lodash';
 import { createSlice } from '@reduxjs/toolkit';
 import { hexy as hexdump } from 'hexy';
 import {
@@ -25,6 +25,69 @@ import path from 'utils/common/path';
 import { getUniqueTagsFromItems } from 'utils/collections/index';
 import { getCollectionEnvironmentPath } from 'utils/snapshot';
 import * as exampleReducers from './exampleReducers';
+
+const FILE_DERIVED_REQUEST_FIELDS = [
+  'name',
+  'type',
+  'seq',
+  'tags',
+  'request',
+  'settings',
+  'examples',
+  'filename',
+  'pathname',
+  'partial',
+  'loading',
+  'size',
+  'error',
+  'isTransient'
+];
+
+const FILE_DERIVED_FOLDER_FIELDS = [
+  'name',
+  'filename',
+  'pathname',
+  'seq',
+  'type',
+  'root'
+];
+
+const mergeTreeItems = (existingItems, newItems) => {
+  if (!Array.isArray(existingItems) || existingItems.length === 0) return newItems;
+  const existingByUid = new Map();
+  for (const item of existingItems) {
+    if (item && item.uid) existingByUid.set(item.uid, item);
+  }
+
+  return newItems.map((newItem) => {
+    const existing = existingByUid.get(newItem.uid);
+    if (!existing) return newItem;
+
+    if (newItem.type === 'folder') {
+      const merged = { ...existing, ...pick(newItem, FILE_DERIVED_FOLDER_FIELDS) };
+      merged.items = mergeTreeItems(existing.items, newItem.items || []);
+      return merged;
+    }
+
+    // seq-only change (reorder) — keep everything else, including the draft
+    if (areItemsTheSameExceptSeqUpdate(existing, newItem)) {
+      const merged = { ...existing, seq: newItem.seq };
+      if (merged.draft) {
+        merged.draft = { ...merged.draft, seq: newItem.seq };
+        if (areItemsTheSameExceptSeqUpdate(merged.draft, newItem)) {
+          merged.draft = null;
+        }
+      }
+      return merged;
+    }
+
+    const merged = { ...existing, ...pick(newItem, FILE_DERIVED_REQUEST_FIELDS) };
+    // only drop the draft if it matches what's on disk — user may still be typing
+    const draftMatchesFile = existing.draft && areItemsTheSameExceptSeqUpdate(existing.draft, newItem);
+    merged.draft = draftMatchesFile ? null : (existing.draft || null);
+    return merged;
+  });
+};
 
 // gRPC status code meanings
 const grpcStatusCodes = {
@@ -3287,6 +3350,34 @@ export const collectionsSlice = createSlice({
         }
       }
     },
+    collectionLoadedFromTree: (state, action) => {
+      const { collectionUid, tree } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+      if (!collection) return;
+
+      collection.items = mergeTreeItems(collection.items, tree?.items || []);
+      collection.environments = tree?.environments || [];
+      if (tree?.root !== undefined) {
+        collection.root = tree.root;
+      }
+      if (tree?.brunoConfig) {
+        collection.brunoConfig = tree.brunoConfig;
+      }
+      const tempDirectory = state.tempDirectories?.[collectionUid];
+      if (tempDirectory) {
+        const annotateTransient = (items) => {
+          for (const item of items) {
+            if (item.type === 'folder') {
+              if (Array.isArray(item.items)) annotateTransient(item.items);
+            } else if (item.pathname && item.pathname.startsWith(tempDirectory)) {
+              item.isTransient = true;
+            }
+          }
+        };
+        annotateTransient(collection.items);
+      }
+      addDepth(collection.items);
+    },
     collectionAddOauth2CredentialsByUrl: (state, action) => {
       const { collectionUid, folderUid, itemUid, url, credentials, credentialsId, debugInfo, executionMode } = action.payload;
       const collection = findCollectionByUid(state.collections, collectionUid);
@@ -3680,6 +3771,7 @@ export const {
   createCollection,
   updateCollectionMountStatus,
   updateCollectionLoadingState,
+  collectionLoadedFromTree,
   setCollectionSecurityConfig,
   brunoConfigUpdateEvent,
   renameCollection,
