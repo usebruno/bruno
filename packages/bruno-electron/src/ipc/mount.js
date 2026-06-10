@@ -1,0 +1,39 @@
+const { ipcMain, BrowserWindow } = require('electron');
+const { MountManager } = require('../services/mount');
+
+const manager = new MountManager();
+
+const registerMountIpc = () => {
+  ipcMain.handle('renderer:get-file-cache-size', () => manager.getCacheSize());
+
+  ipcMain.handle('renderer:clear-file-cache', () => {
+    manager.clearCache();
+    return manager.getCacheSize();
+  });
+
+  ipcMain.handle(
+    'renderer:mount-collection-v2',
+    async (event, { collectionUid, collectionPathname, brunoConfig }) => {
+      const win = BrowserWindow.fromWebContents(event.sender);
+      const send = (channel, payload) => {
+        if (!win || win.isDestroyed?.()) return;
+        win.webContents.send(channel, payload);
+      };
+      const emit = {
+        tree: (tree) => send('main:collection-tree-loaded', { collectionUid, tree }),
+        loading: (isLoading) => send('main:collection-loading-state-updated-v2', { collectionUid, isLoading }),
+        config: (brunoConfig) => send('main:bruno-config-update-v2', { collectionUid, brunoConfig }),
+        uiState: (payload) => send('main:hydrate-app-with-ui-state-snapshot-v2', payload)
+      };
+      return manager.mount({ win, collectionPath: collectionPathname, collectionUid, brunoConfig, emit });
+    }
+  );
+
+  ipcMain.handle('renderer:unmount-collection-v2', async (event, { collectionUid }) => {
+    await manager.unmount(collectionUid);
+  });
+};
+
+const shutdown = () => manager.shutdown();
+
+module.exports = { registerMountIpc, shutdown };
