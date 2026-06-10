@@ -594,6 +594,8 @@ const hydrateRequestWithUuid = (request, pathname) => {
   bodyFormUrlEncoded.forEach((param) => (param.uid = uuid()));
   bodyMultipartForm.forEach((param) => (param.uid = uuid()));
   file.forEach((param) => (param.uid = uuid()));
+  const wsMessages = get(request, 'request.body.ws', []);
+  wsMessages.forEach((msg) => (msg.uid = uuid()));
   examples.forEach((example, eIndex) => {
     example.uid = getExampleUid(pathname, eIndex);
     example.itemUid = request.uid;
@@ -807,7 +809,7 @@ const mergeAuth = (collection, request, requestTreePath) => {
       const folderRoot = i?.draft || i?.root;
       const folderAuth = get(folderRoot, 'request.auth');
       // Only consider folders that have a valid auth mode
-      if (folderAuth && folderAuth.mode && folderAuth.mode !== 'none' && folderAuth.mode !== 'inherit') {
+      if (folderAuth && folderAuth.mode && folderAuth.mode !== 'inherit') {
         effectiveAuth = folderAuth;
         lastFolderWithAuth = i;
       }

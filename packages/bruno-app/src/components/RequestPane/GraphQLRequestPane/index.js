@@ -24,10 +24,12 @@ import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collection
 import Documentation from 'components/Documentation/index';
 import useGraphqlSchema from '../GraphQLSchemaActions/useGraphqlSchema';
 import { findEnvironmentInCollection } from 'utils/collections';
+import { hasEffectiveAuth } from 'utils/auth';
 import HeightBoundContainer from 'ui/HeightBoundContainer';
 import Settings from 'components/RequestPane/Settings';
 import ResponsiveTabs from 'ui/ResponsiveTabs';
 import AuthMode from '../Auth/AuthMode/index';
+import StatusDot from 'components/StatusDot';
 
 const TAB_CONFIG = [
   { key: 'query', label: 'Query' },
@@ -172,7 +174,20 @@ const GraphQLRequestPane = ({ item, collection, onSchemaLoad, toggleDocs, handle
     [dispatch, item.uid]
   );
 
-  const allTabs = useMemo(() => TAB_CONFIG.map(({ key, label }) => ({ key, label })), []);
+  const itemAuthMode = item.draft?.request?.auth?.mode ?? item.request?.auth?.mode ?? item.root?.request?.auth?.mode;
+  const hasAuth = useMemo(
+    () => hasEffectiveAuth(collection, item),
+    [item, itemAuthMode, collection]
+  );
+
+  const allTabs = useMemo(
+    () => TAB_CONFIG.map(({ key, label }) => ({
+      key,
+      label,
+      indicator: key === 'auth' && hasAuth ? <StatusDot dataTestId="auth" /> : null
+    })),
+    [hasAuth]
+  );
 
   const handlePrettify = useCallback(() => {
     if (queryEditorRef.current?.beautifyRequestBody) {

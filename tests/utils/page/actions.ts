@@ -1,9 +1,11 @@
 import { test, expect, Page, ElectronApplication, waitForReadyPage as waitForReadyPageImpl } from '../../../playwright';
 import process from 'node:process';
 import * as path from 'path';
-import { buildCommonLocators, buildScriptErrorLocators } from './locators';
+import { buildCommonLocators, buildScriptErrorLocators, buildGrpcCommonLocators } from './locators';
 
 type SandboxMode = 'safe' | 'developer';
+
+type CollectionFormat = 'bru' | 'yml';
 
 type WaitForAppReadyOptions = {
   timeout?: number;
@@ -101,9 +103,9 @@ const createCollection = async (
   page,
   collectionName: string,
   collectionLocation: string,
-  format?: 'bru' | 'yml'
+  format: CollectionFormat = 'yml'
 ) => {
-  await test.step(`Create collection "${collectionName}"`, async () => {
+  await test.step(`Create ${format} collection "${collectionName}"`, async () => {
     await page.getByTestId('collections-header-add-menu').click();
     await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Create collection' }).click();
 
@@ -1118,13 +1120,17 @@ const addMultipartFileToLastRow = async (page: Page, electronApp: ElectronApplic
     await mockBrowseFiles(electronApp, [filePath]);
 
     const table = buildCommonLocators(page).table('editable-table');
-    const lastRow = table.allRows().last();
+    // The last row is the empty "add" row. Capture its index now, because once
+    // we set a file the table appends a new empty row — so `.last()` would jump
+    // to that new row instead of staying on the one we just filled.
+    const rowIndex = (await table.allRows().count()) - 1;
+    const targetRow = table.allRows().nth(rowIndex);
 
-    await expect(lastRow.locator('.upload-btn')).toBeVisible();
-    await lastRow.locator('.upload-btn').click();
-    await expect(lastRow.locator('.file-value-cell')).toBeVisible();
-    const inlineChip = lastRow.getByTestId('multipart-file-chip').filter({ hasText: path.basename(filePath) });
-    const summary = lastRow.getByTestId('multipart-file-summary');
+    await expect(targetRow.locator('.upload-btn')).toBeVisible();
+    await targetRow.locator('.upload-btn').click();
+    await expect(targetRow.locator('.file-value-cell')).toBeVisible();
+    const inlineChip = targetRow.getByTestId('multipart-file-chip').filter({ hasText: path.basename(filePath) });
+    const summary = targetRow.getByTestId('multipart-file-summary');
     await expect(inlineChip.or(summary)).toBeVisible();
   });
 };
@@ -1332,6 +1338,44 @@ const saveRequest = async (page: Page) => {
     await page.keyboard.press(saveShortcut);
     await expect(page.getByText('Request saved successfully').last()).toBeVisible({ timeout: 3000 });
     await page.waitForTimeout(200);
+  });
+};
+
+/**
+ * Click the gRPC "Add Message" button to append a new message to the request
+ * @param page - The page object
+ */
+const addGrpcMessage = async (page: Page) => {
+  await test.step('Add gRPC message', async () => {
+    const locators = buildGrpcCommonLocators(page);
+    await locators.request.addMessageButton().click();
+  });
+};
+
+/**
+ * Click the "Generate sample" button on a gRPC message to populate it with a sample payload
+ * @param page - The page object
+ * @param index - The 0-based index of the message (default: 0)
+ */
+const generateGrpcSampleMessage = async (page: Page, index: number = 0) => {
+  await test.step(`Generate sample for gRPC message #${index}`, async () => {
+    const locators = buildGrpcCommonLocators(page);
+    await locators.request.regenerateMessage(index).click();
+  });
+};
+
+/**
+ * Open the gRPC method dropdown and select a method by name
+ * @param page - The page object
+ * @param methodName - The name of the gRPC method to select (e.g. "BidiHello")
+ */
+const selectGrpcMethod = async (page: Page, methodName: string) => {
+  await test.step(`Select gRPC method "${methodName}"`, async () => {
+    const locators = buildGrpcCommonLocators(page);
+    await locators.method.dropdownTrigger().click();
+    await locators.method.dropdown().waitFor({ state: 'visible', timeout: 5000 });
+    await locators.method.item(methodName).first().click();
+    await expect(locators.method.selectedName()).toContainText(methodName);
   });
 };
 
@@ -1623,6 +1667,78 @@ const openExampleFromSidebar = async (page: Page, requestName: string, exampleNa
   await exampleRow.click();
 };
 
+/**
+ * Open the Generate Code dialog and return the visible snippet text.
+ * @param page - The page object
+ * @returns The text content of the generated code snippet
+ */
+const getGeneratedSnippet = async (page: Page): Promise<string> => {
+  return await test.step('Open Generate Code dialog and read snippet', async () => {
+    const { request } = buildCommonLocators(page);
+
+    await request.generateCodeButton().click();
+    await expect(page.getByRole('dialog')).toBeVisible();
+
+    const codeEditor = page.locator('.editor-content .CodeMirror').first();
+    await expect(codeEditor).toBeVisible();
+
+    return (await codeEditor.textContent()) ?? '';
+  });
+};
+
+/**
+ * Close the Generate Code dialog and wait for it to disappear.
+ * @param page - The page object
+ * @returns void
+ */
+const closeGenerateCodeDialog = async (page: Page) => {
+  await test.step('Close Generate Code dialog', async () => {
+    const { modal } = buildCommonLocators(page);
+    await modal.closeButton().click();
+    await modal.closeButton().waitFor({ state: 'hidden' });
+  });
+};
+
+/**
+ * Open a request inside a folder by exact request name.
+ * @param page - The page object
+ * @param folderName - The name of the folder containing the request
+ * @param requestName - The exact name of the request to open
+ * @returns void
+ */
+const openRequestInFolder = async (page: Page, folderName: string, requestName: string) => {
+  await test.step(`Open request "${requestName}" in folder "${folderName}"`, async () => {
+    const { sidebar } = buildCommonLocators(page);
+    await sidebar.folder(folderName).click();
+
+    const folderWrapper = page.locator('.collection-item-name').filter({ hasText: folderName }).locator('..');
+    const escapedName = requestName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const requestRow = folderWrapper.locator('.collection-item-name').filter({
+      has: page.locator('.item-name').filter({ hasText: new RegExp(`^${escapedName}$`) })
+    });
+    await requestRow.click();
+  });
+};
+
+/**
+ * Toggle the URL encoding setting on the current request idempotently.
+ * @param page - The page object
+ * @param enabled - Whether URL encoding should be enabled
+ * @returns void
+ */
+const setUrlEncoding = async (page: Page, enabled: boolean) => {
+  await test.step(`Set URL encoding ${enabled ? 'ON' : 'OFF'}`, async () => {
+    await selectRequestPaneTab(page, 'Settings');
+    const toggle = page.getByTestId('encode-url-toggle');
+    await expect(toggle).toBeVisible();
+    const current = (await toggle.getAttribute('aria-checked')) === 'true';
+    if (current !== enabled) {
+      await toggle.click();
+      await expect(toggle).toHaveAttribute('aria-checked', String(enabled));
+    }
+  });
+};
+
 type DialogOptions = {
   showOpenDialog: () => Promise<{ canceled: boolean; filePaths: string[] }>;
 };
@@ -1684,6 +1800,9 @@ export {
   editAssertion,
   deleteAssertion,
   saveRequest,
+  addGrpcMessage,
+  generateGrpcSampleMessage,
+  selectGrpcMethod,
   closeAllTabs,
   createWorkspace,
   switchWorkspace,
@@ -1702,7 +1821,11 @@ export {
   readField,
   createExampleFromSidebar,
   openExampleFromSidebar,
-  openWorkspaceFromDialog
+  openWorkspaceFromDialog,
+  getGeneratedSnippet,
+  closeGenerateCodeDialog,
+  openRequestInFolder,
+  setUrlEncoding
 };
 
 export type { SandboxMode, EnvironmentType, EnvironmentVariable, ImportCollectionOptions, CreateRequestOptions, CreateUntitledRequestOptions, CreateTransientRequestOptions, AssertionInput };
