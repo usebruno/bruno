@@ -2,6 +2,7 @@ import { test, expect, Page, ElectronApplication, waitForReadyPage as waitForRea
 import process from 'node:process';
 import * as path from 'path';
 import { buildCommonLocators, buildScriptErrorLocators, buildGrpcCommonLocators } from './locators';
+import { waitForCollectionMount } from './mounting';
 
 type SandboxMode = 'safe' | 'developer';
 
@@ -1774,19 +1775,24 @@ const generateCollectionDocs = async (
   return await test.step(`Generate docs for collection "${collectionName}"`, async () => {
     const locators = buildCommonLocators(page);
 
+    // Make sure the collection has finished mounting before interacting — on a
+    // cold start the row (and its hover-revealed actions icon) isn't ready yet,
+    // so this keeps the helper self-sufficient for any caller.
+    await waitForCollectionMount(page, collectionName);
+
     // Open the collection's context menu and click "Generate Docs"
     await locators.sidebar.collection(collectionName).hover();
     const collectionAction = locators.actions.collectionActions(collectionName);
     await expect(collectionAction).toBeVisible({ timeout: 2000 });
     await collectionAction.click();
-    await locators.dropdown.item('Generate Docs').click();
+    await locators.generateDocs.menuItem().click();
 
     // Wait for the Generate Documentation modal to reach its ready (non-loading)
     // state — the confirm button reads "Loading..." while the collection's items
     // are still mounting and only becomes "Generate" once they are ready.
-    const modal = locators.modal.byTitle('Generate Documentation');
+    const modal = locators.generateDocs.modal();
     await expect(modal).toBeVisible({ timeout: 5000 });
-    const generateButton = modal.getByRole('button', { name: 'Generate', exact: true });
+    const generateButton = locators.generateDocs.generateButton();
     await expect(generateButton).toBeEnabled({ timeout: 10000 });
 
     // Arm the renderer-side interception before the save fires. `file-saver`

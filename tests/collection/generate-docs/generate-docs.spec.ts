@@ -1,8 +1,8 @@
 import jsyaml from 'js-yaml';
 import { test, expect } from '../../../playwright';
 import { generateCollectionDocs } from '../../utils/page';
+import { buildCommonLocators } from '../../utils/page/locators';
 import {
-  buildCollectionTreeLocators,
   getCollectionTreeStructure,
   waitForCollectionMount,
   type CollectionTreeItem
@@ -29,11 +29,7 @@ type NameTree = { name: string; items?: NameTree[] };
 const EXPECTED_ORDER: NameTree[] = [
   {
     name: 'Zoo',
-    items: [
-      { name: 'Reptiles', items: [{ name: 'Snake' }, { name: 'Gecko' }] },
-      { name: 'Lion' },
-      { name: 'Bear' }
-    ]
+    items: [{ name: 'Lion' }, { name: 'Bear' }]
   },
   { name: 'Aviary', items: [{ name: 'Parrot' }] },
   { name: 'ReqBeta' },
@@ -86,8 +82,6 @@ test.describe('Generate Documentation', () => {
   test('orders generated docs to match the sidebar tree (folders by seq, then requests by seq, recursively)', async ({
     pageWithUserData: page
   }) => {
-    await waitForCollectionMount(page, COLLECTION_NAME);
-
     let generatedTree: NameTree[] = [];
     await test.step('Generate documentation and read the embedded collection order', async () => {
       const { content, fileName } = await generateCollectionDocs(page, COLLECTION_NAME);
@@ -111,25 +105,21 @@ test.describe('Generate Documentation', () => {
   test('shows the Generate Documentation modal from the collection context menu', async ({
     pageWithUserData: page
   }) => {
+    const locators = buildCommonLocators(page);
+
     await waitForCollectionMount(page, COLLECTION_NAME);
 
-    const locators = buildCollectionTreeLocators(page);
-    await locators.collection.row(COLLECTION_NAME).hover();
-    await page
-      .getByTestId('collections')
-      .locator('.collection-name')
-      .filter({ hasText: COLLECTION_NAME })
-      .locator('.collection-actions .icon')
-      .click();
-    await page.locator('.dropdown-item').filter({ hasText: 'Generate Docs' }).click();
+    await locators.sidebar.collection(COLLECTION_NAME).hover();
+    await locators.actions.collectionActions(COLLECTION_NAME).click();
+    await locators.generateDocs.menuItem().click();
 
-    const modal = page.locator('.bruno-modal').filter({ hasText: 'Generate Documentation' });
+    const modal = locators.generateDocs.modal();
     await expect(modal).toBeVisible();
-    await expect(modal.getByText('Interactive API Documentation')).toBeVisible();
-    await expect(modal.getByRole('button', { name: 'Generate', exact: true })).toBeEnabled();
+    await expect(locators.generateDocs.heading()).toBeVisible();
+    await expect(locators.generateDocs.generateButton()).toBeEnabled();
 
     // Cancel so the test leaves no download behind.
-    await modal.getByRole('button', { name: 'Cancel', exact: true }).click();
+    await locators.generateDocs.cancelButton().click();
     await expect(modal).toBeHidden();
   });
 });

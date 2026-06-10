@@ -113,6 +113,15 @@ export const buildCommonLocators = (page: Page) => ({
     input: () => page.getByTestId('tag-input').getByRole('textbox'),
     item: (tagName: string) => page.locator('.tag-item', { hasText: tagName })
   },
+  generateDocs: {
+    menuItem: () => page.locator('.dropdown-item').filter({ hasText: 'Generate Docs' }),
+    modal: () => page.locator('.bruno-modal').filter({
+      has: page.locator('.bruno-modal-header-title').filter({ hasText: 'Generate Documentation' })
+    }),
+    heading: () => page.locator('.bruno-modal').getByText('Interactive API Documentation'),
+    generateButton: () => page.locator('.bruno-modal').getByRole('button', { name: 'Generate', exact: true }),
+    cancelButton: () => page.locator('.bruno-modal').getByRole('button', { name: 'Cancel', exact: true })
+  },
   runnerResults: {
     itemPath: (name: string) => page.getByTestId('runner-result-item').filter({ hasText: name })
   },
