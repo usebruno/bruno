@@ -203,13 +203,13 @@ const EnvironmentDetails = ({ environment, setIsModified, collection, searchQuer
         </div>
         {nameError && isRenaming && <div className="title-error">{nameError}</div>}
         <div className="actions">
-          <ActionIcon label="Rename" onClick={handleRenameClick}>
+          <ActionIcon label="Rename" onClick={handleRenameClick} data-testid="env-rename-action">
             <IconEdit size={15} strokeWidth={1.5} />
           </ActionIcon>
-          <ActionIcon label="Copy" onClick={() => setOpenCopyModal(true)}>
+          <ActionIcon label="Copy" onClick={() => setOpenCopyModal(true)} data-testid="env-copy-action">
             <IconCopy size={15} strokeWidth={1.5} />
           </ActionIcon>
-          <ActionIcon label="Delete" onClick={() => setOpenDeleteModal(true)} colorOnHover="danger">
+          <ActionIcon label="Delete" onClick={() => setOpenDeleteModal(true)} colorOnHover="danger" data-testid="env-delete-action">
             <IconTrash size={15} strokeWidth={1.5} />
           </ActionIcon>
         </div>
@@ -236,6 +236,7 @@ const EnvironmentDetails = ({ environment, setIsModified, collection, searchQuer
                     onChange={(e) => setSearchQuery(e.target.value)}
                     onBlur={handleSearchBlur}
                     className="search-input"
+                    data-testid="env-search-input"
                     autoComplete="off"
                     autoCorrect="off"
                     autoCapitalize="off"
@@ -247,13 +248,14 @@ const EnvironmentDetails = ({ environment, setIsModified, collection, searchQuer
                       onClick={handleClearSearch}
                       onMouseDown={(e) => e.preventDefault()}
                       title="Clear search"
+                      data-testid="env-clear-search"
                     >
                       <IconX size={14} strokeWidth={1.5} />
                     </button>
                   )}
                 </div>
               ) : (
-                <ActionIcon label="Search" onClick={handleSearchIconClick}>
+                <ActionIcon label="Search" onClick={handleSearchIconClick} data-testid="env-search-action">
                   <IconSearch size={15} strokeWidth={1.5} />
                 </ActionIcon>
               )}
