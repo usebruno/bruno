@@ -695,8 +695,11 @@ export const switchWorkspace = (workspaceUid) => {
       if (!completed && pendingCollectionPathnames.length > 0) {
         scheduleSnapshotHydrationTimeout(dispatch, getState, workspaceUid);
       }
+
+      return true;
     } catch (error) {
       console.error('Failed to switch workspace:', error);
+      return false;
     } finally {
       const state = getState();
       const hasHydrationSession = Boolean(state.app.snapshotHydration?.workspaceUid);
@@ -704,8 +707,6 @@ export const switchWorkspace = (workspaceUid) => {
         dispatch(setSnapshotReady(true));
       }
     }
-
-    return true;
   };
 };
 
