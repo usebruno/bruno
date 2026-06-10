@@ -574,11 +574,16 @@ export const switchWorkspace = (workspaceUid) => {
     dispatch(clearSnapshotHydrationSession());
 
     try {
+      const currentActiveWorkspaceUid = getState().workspaces.activeWorkspaceUid;
+      if (currentActiveWorkspaceUid === workspaceUid) {
+        return false;
+      }
+
       dispatch(setActiveWorkspace(workspaceUid));
 
       const workspace = getState().workspaces.workspaces.find((w) => w.uid === workspaceUid);
       if (!workspace) {
-        return;
+        return false;
       }
 
       const fullSnapshot = await ipcRenderer.invoke('renderer:snapshot:get').catch(() => null);
@@ -699,6 +704,8 @@ export const switchWorkspace = (workspaceUid) => {
         dispatch(setSnapshotReady(true));
       }
     }
+
+    return true;
   };
 };
 
