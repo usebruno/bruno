@@ -35,6 +35,6 @@ test.describe('Large Response Crash/High Memory Usage Prevention', () => {
     await expect(page.getByText('could degrade performance')).toBeVisible();
 
     // Verify action button
-    await expect(page.getByRole('button', { name: 'View', exact: true })).toBeVisible();
+    await expect(page.locator('.bruno-modal').getByRole('button', { name: 'View', exact: true })).toBeVisible();
   });
 });

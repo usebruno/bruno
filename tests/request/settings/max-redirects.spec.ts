@@ -11,7 +11,7 @@ test.describe('Max Redirects Settings Tests', () => {
     await page.locator('#sidebar-collection-name').getByText('settings-test').click();
 
     // Navigate to the max-redirects request
-    await page.getByRole('complementary').getByText('max-redirects').click();
+    await page.locator('aside, [role="complementary"]').first().getByText('max-redirects').click();
 
     // Go to Settings tab
     await selectRequestPaneTab(page, 'Settings');

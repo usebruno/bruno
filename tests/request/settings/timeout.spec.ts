@@ -10,7 +10,7 @@ test.describe('Timeout Settings Tests', () => {
 
     await page.locator('#sidebar-collection-name').getByText('settings-test').click();
     // Navigate to thetimeout request
-    await page.getByRole('complementary').getByText('timeout-test').click();
+    await page.locator('aside, [role="complementary"]').first().getByText('timeout-test').click();
 
     // Go to Settings tab
     await selectRequestPaneTab(page, 'Settings');

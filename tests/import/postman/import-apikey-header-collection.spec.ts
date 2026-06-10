@@ -38,7 +38,7 @@ test.describe('Import Postman Collection with API Key in Header', () => {
     });
 
     await test.step('Wait for import modal and verify title', async () => {
-      const importModal = page.getByRole('dialog');
+      const importModal = page.getByTestId('import-collection-modal');
       await importModal.waitFor({ state: 'visible' });
       await expect(locators.modal.title('Import Collection')).toBeVisible();
     });

@@ -33,7 +33,7 @@ test.describe('Response Example - multipart files preserved when creating exampl
     await test.step('Fill the modal and submit', async () => {
       await page.getByTestId('create-example-name-input').clear();
       await page.getByTestId('create-example-name-input').fill('Created From Request');
-      await page.getByRole('button', { name: 'Create Example' }).click();
+      await page.locator('.bruno-modal').filter({ hasText: 'Create Response Example' }).getByTestId('modal-submit-btn').click();
     });
 
     await test.step('Example tab opens with the right title', async () => {

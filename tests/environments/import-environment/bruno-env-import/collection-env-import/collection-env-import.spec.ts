@@ -43,8 +43,8 @@ test.describe.serial('Collection Environment Import Tests', () => {
       const envTab = page.locator('.request-tab').filter({ hasText: 'Environments' });
       await expect(envTab).toBeVisible();
 
-      await expect(page.getByRole('row', { name: 'host' }).getByRole('cell').nth(1)).toBeVisible();
-      await expect(page.getByRole('row', { name: 'secretToken' }).getByRole('cell').nth(1)).toBeVisible();
+      await expect(page.getByTestId('env-var-row-host').getByRole('cell').nth(1)).toBeVisible();
+      await expect(page.getByTestId('env-var-row-secretToken').getByRole('cell').nth(1)).toBeVisible();
 
       await envTab.hover();
       await envTab.getByTestId('request-tab-close-icon').click({ force: true });
@@ -124,8 +124,8 @@ test.describe.serial('Collection Environment Import Tests', () => {
       await expect(envTab).toBeVisible();
 
       // Verify prod environment variables
-      await expect(page.getByRole('row', { name: 'host' }).getByRole('cell').nth(1)).toBeVisible();
-      await expect(page.getByRole('row', { name: 'secretToken' }).getByRole('cell').nth(1)).toBeVisible();
+      await expect(page.getByTestId('env-var-row-host').getByRole('cell').nth(1)).toBeVisible();
+      await expect(page.getByTestId('env-var-row-secretToken').getByRole('cell').nth(1)).toBeVisible();
 
       await envTab.hover();
       await envTab.getByTestId('request-tab-close-icon').click({ force: true });

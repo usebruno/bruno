@@ -40,7 +40,7 @@ test.describe('Import OpenAPI Collection with Examples', () => {
     });
 
     await test.step('Wait for import modal and verify title', async () => {
-      const importModal = page.getByRole('dialog');
+      const importModal = page.getByTestId('import-collection-modal');
       await importModal.waitFor({ state: 'visible' });
       await expect(importModal.locator('.bruno-modal-header-title')).toContainText('Import Collection');
     });
@@ -74,7 +74,7 @@ test.describe('Import OpenAPI Collection with Examples', () => {
 
     await test.step('Complete import by clicking import button', async () => {
       const locationModal = page.locator('[data-testid="import-collection-location-modal"]');
-      await locationModal.getByRole('button', { name: 'Import' }).click();
+      await locationModal.getByTestId('import-collection-location-modal-submit-btn').click();
       await locationModal.waitFor({ state: 'hidden' });
     });
 
@@ -158,7 +158,7 @@ test.describe('Import OpenAPI Collection with Examples', () => {
     });
 
     await test.step('Wait for import modal and verify title', async () => {
-      const importModal = page.getByRole('dialog');
+      const importModal = page.getByTestId('import-collection-modal');
       await importModal.waitFor({ state: 'visible' });
       await expect(importModal.locator('.bruno-modal-header-title')).toContainText('Import Collection');
     });
@@ -203,7 +203,7 @@ test.describe('Import OpenAPI Collection with Examples', () => {
 
     await test.step('Complete import by clicking import button', async () => {
       const locationModal = page.locator('[data-testid="import-collection-location-modal"]');
-      await locationModal.getByRole('button', { name: 'Import' }).click();
+      await locationModal.getByTestId('import-collection-location-modal-submit-btn').click();
       await locationModal.waitFor({ state: 'hidden' });
     });
 

@@ -43,8 +43,8 @@ const openRequest = async (...args: Parameters<typeof openRequestBase>) => {
 };
 
 const openKeybindingsTab = async (page: Page) => {
-  await page.getByRole('button', { name: 'Open Preferences' }).click();
-  await page.getByRole('tab', { name: 'Keybindings' }).click();
+  await page.locator('[data-trigger="preferences"]').click();
+  await page.locator('.tablist').getByRole('tab', { name: 'Keybindings', exact: true }).click();
   await expect(page.locator('.section-header').filter({ hasText: 'Keybindings' })).toBeVisible();
 };
 

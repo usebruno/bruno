@@ -39,7 +39,7 @@ test.describe('Draft indicator in collection and folder settings', () => {
     await expect(collectionTab.locator('.close-icon')).not.toBeVisible();
 
     // Save the changes
-    await page.getByRole('button', { name: 'Save' }).click();
+    await page.locator('[role="tabpanel"]').getByRole('button', { name: 'Save' }).click();
 
     // Verify draft indicator is gone after saving
     await expect(collectionTab.locator('.close-icon')).toBeVisible();
@@ -67,7 +67,7 @@ test.describe('Draft indicator in collection and folder settings', () => {
     await expect(collectionTab.locator('.close-icon')).not.toBeVisible();
 
     // Save the changes
-    await page.getByRole('button', { name: 'Save' }).click();
+    await page.locator('[role="tabpanel"]').getByRole('button', { name: 'Save' }).click();
 
     // Verify draft indicator is gone after saving
     await expect(collectionTab.locator('.close-icon')).toBeVisible();
@@ -101,7 +101,7 @@ test.describe('Draft indicator in collection and folder settings', () => {
     await expect(collectionTab.locator('.close-icon')).not.toBeVisible();
 
     // Save the changes
-    await page.getByRole('button', { name: 'Save' }).click();
+    await page.locator('[role="tabpanel"]').getByRole('button', { name: 'Save' }).click();
 
     // Verify draft indicator is gone after saving
     await expect(collectionTab.locator('.close-icon')).toBeVisible();
@@ -142,7 +142,7 @@ test.describe('Draft indicator in collection and folder settings', () => {
     await expect(collectionTab.locator('.close-icon')).not.toBeVisible();
 
     // Save the changes
-    await page.getByRole('button', { name: 'Save' }).click();
+    await page.locator('[role="tabpanel"]').getByRole('button', { name: 'Save' }).click();
 
     // Verify draft indicator is gone after saving
     await expect(collectionTab.locator('.close-icon')).toBeVisible();
@@ -172,7 +172,7 @@ test.describe('Draft indicator in collection and folder settings', () => {
     await expect(collectionTab.locator('.close-icon')).not.toBeVisible();
 
     // Save the changes
-    await page.getByRole('button', { name: 'Save' }).click();
+    await page.locator('[role="tabpanel"]').getByRole('button', { name: 'Save' }).click();
 
     // Verify draft indicator is gone after saving
     await expect(collectionTab.locator('.close-icon')).toBeVisible();
@@ -203,7 +203,7 @@ test.describe('Draft indicator in collection and folder settings', () => {
     await expect(collectionTab.locator('.close-icon')).not.toBeVisible();
 
     // Save the changes
-    await page.getByRole('button', { name: 'Save' }).click();
+    await page.locator('[role="tabpanel"]').getByRole('button', { name: 'Save' }).click();
 
     // Verify draft indicator is gone after saving
     await expect(collectionTab.locator('.close-icon')).toBeVisible();
@@ -222,7 +222,7 @@ test.describe('Draft indicator in collection and folder settings', () => {
     // Fill folder name
     await expect(page.locator('#folder-name')).toBeVisible();
     await page.locator('#folder-name').fill('test-folder');
-    await page.getByRole('button', { name: 'Create' }).click();
+    await page.locator('.bruno-modal').getByRole('button', { name: 'Create', exact: true }).click();
 
     await expect(page.locator('.collection-item-name').filter({ hasText: 'test-folder' })).toBeVisible();
 
@@ -252,7 +252,7 @@ test.describe('Draft indicator in collection and folder settings', () => {
     await expect(folderTab.locator('.close-icon')).not.toBeVisible();
 
     // Save the changes
-    await page.getByRole('button', { name: 'Save' }).click();
+    await page.locator('[role="tabpanel"]').getByRole('button', { name: 'Save' }).click();
 
     // Verify draft indicator is gone after saving
     await expect(folderTab.locator('.close-icon')).toBeVisible();
@@ -282,7 +282,7 @@ test.describe('Draft indicator in collection and folder settings', () => {
     await expect(folderTab.locator('.close-icon')).not.toBeVisible();
 
     // Save the changes
-    await page.getByRole('button', { name: 'Save' }).click();
+    await page.locator('[role="tabpanel"]').getByRole('button', { name: 'Save' }).click();
 
     // Verify draft indicator is gone
     await expect(folderTab.locator('.close-icon')).toBeVisible();
@@ -317,7 +317,7 @@ test.describe('Draft indicator in collection and folder settings', () => {
     await expect(folderTab.locator('.close-icon')).not.toBeVisible();
 
     // Save the changes
-    await page.getByRole('button', { name: 'Save' }).click();
+    await page.locator('[role="tabpanel"]').getByRole('button', { name: 'Save' }).click();
 
     // Verify draft indicator is gone
     await expect(folderTab.locator('.close-icon')).toBeVisible();

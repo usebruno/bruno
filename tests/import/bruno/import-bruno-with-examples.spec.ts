@@ -16,7 +16,7 @@ test.describe('Import Bruno Collection with Examples', () => {
     });
 
     await test.step('Wait for import modal and verify title', async () => {
-      const importModal = page.getByRole('dialog');
+      const importModal = page.getByTestId('import-collection-modal');
       await importModal.waitFor({ state: 'visible' });
       await expect(importModal.locator('.bruno-modal-header-title')).toContainText('Import Collection');
     });

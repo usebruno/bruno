@@ -4,10 +4,10 @@ test.describe('Preferences Tab Switch Persistence', () => {
   test('should persist General tab SSL setting when immediately switching tabs', async ({ page }) => {
     // Open preferences
     await page.locator('.preferences-button').click();
-    await page.getByRole('tab', { name: 'General' }).waitFor({ state: 'visible' });
+    await page.locator('.tablist').getByRole('tab', { name: 'General', exact: true }).waitFor({ state: 'visible' });
 
     // Navigate to General tab
-    await page.getByRole('tab', { name: 'General' }).click();
+    await page.locator('.tablist').getByRole('tab', { name: 'General', exact: true }).click();
     await page.waitForTimeout(300);
 
     // Get the initial state of SSL verification checkbox
@@ -19,11 +19,11 @@ test.describe('Preferences Tab Switch Persistence', () => {
     await sslCheckbox.click();
 
     // Immediately switch to another tab (don't wait for debounce)
-    await page.getByRole('tab', { name: 'Themes' }).click();
+    await page.locator('.tablist').getByRole('tab', { name: 'Themes', exact: true }).click();
     await page.waitForTimeout(100);
 
     // Switch back to General tab
-    await page.getByRole('tab', { name: 'General' }).click();
+    await page.locator('.tablist').getByRole('tab', { name: 'General', exact: true }).click();
     await sslCheckbox.waitFor({ state: 'visible' });
 
     // Verify the setting was persisted (should be opposite of initial state)
@@ -38,10 +38,10 @@ test.describe('Preferences Tab Switch Persistence', () => {
   test('should persist Store Cookies setting when immediately switching tabs', async ({ page }) => {
     // Open preferences
     await page.locator('.preferences-button').click();
-    await page.getByRole('tab', { name: 'General' }).waitFor({ state: 'visible' });
+    await page.locator('.tablist').getByRole('tab', { name: 'General', exact: true }).waitFor({ state: 'visible' });
 
     // Navigate to General tab
-    await page.getByRole('tab', { name: 'General' }).click();
+    await page.locator('.tablist').getByRole('tab', { name: 'General', exact: true }).click();
     await page.waitForTimeout(300);
 
     // Get the initial state of Store Cookies checkbox
@@ -53,11 +53,11 @@ test.describe('Preferences Tab Switch Persistence', () => {
     await storeCookiesCheckbox.click();
 
     // Immediately switch to Themes tab (lighter than Proxy)
-    await page.getByRole('tab', { name: 'Themes' }).click();
+    await page.locator('.tablist').getByRole('tab', { name: 'Themes', exact: true }).click();
     await page.waitForTimeout(100);
 
     // Switch back to General tab
-    await page.getByRole('tab', { name: 'General' }).click();
+    await page.locator('.tablist').getByRole('tab', { name: 'General', exact: true }).click();
     await storeCookiesCheckbox.waitFor({ state: 'visible' });
 
     // Verify the setting was persisted
@@ -72,10 +72,10 @@ test.describe('Preferences Tab Switch Persistence', () => {
   test('should persist Cache settings when immediately switching tabs', async ({ page }) => {
     // Open preferences
     await page.locator('.preferences-button').click();
-    await page.getByRole('tab', { name: 'Cache' }).waitFor({ state: 'visible' });
+    await page.locator('.tablist').getByRole('tab', { name: 'Cache', exact: true }).waitFor({ state: 'visible' });
 
     // Navigate to Cache tab
-    await page.getByRole('tab', { name: 'Cache' }).click();
+    await page.locator('.tablist').getByRole('tab', { name: 'Cache', exact: true }).click();
     await page.waitForTimeout(300);
 
     // Get the initial state of SSL session caching checkbox
@@ -87,11 +87,11 @@ test.describe('Preferences Tab Switch Persistence', () => {
     await sslSessionCheckbox.click();
 
     // Immediately switch to another tab
-    await page.getByRole('tab', { name: 'Themes' }).click();
+    await page.locator('.tablist').getByRole('tab', { name: 'Themes', exact: true }).click();
     await page.waitForTimeout(100);
 
     // Switch back to Cache tab
-    await page.getByRole('tab', { name: 'Cache' }).click();
+    await page.locator('.tablist').getByRole('tab', { name: 'Cache', exact: true }).click();
     await sslSessionCheckbox.waitFor({ state: 'visible' });
 
     // Verify the setting was persisted
@@ -106,10 +106,10 @@ test.describe('Preferences Tab Switch Persistence', () => {
   test('should persist settings after closing and reopening preferences tab', async ({ page }) => {
     // Open preferences
     await page.locator('.preferences-button').click();
-    await page.getByRole('tab', { name: 'General' }).waitFor({ state: 'visible' });
+    await page.locator('.tablist').getByRole('tab', { name: 'General', exact: true }).waitFor({ state: 'visible' });
 
     // Navigate to General tab
-    await page.getByRole('tab', { name: 'General' }).click();
+    await page.locator('.tablist').getByRole('tab', { name: 'General', exact: true }).click();
     await page.waitForTimeout(300);
 
     // Get the initial state of SSL verification checkbox
@@ -130,10 +130,10 @@ test.describe('Preferences Tab Switch Persistence', () => {
 
     // Reopen preferences
     await page.locator('.preferences-button').click();
-    await page.getByRole('tab', { name: 'General' }).waitFor({ state: 'visible' });
+    await page.locator('.tablist').getByRole('tab', { name: 'General', exact: true }).waitFor({ state: 'visible' });
 
     // Navigate to General tab
-    await page.getByRole('tab', { name: 'General' }).click();
+    await page.locator('.tablist').getByRole('tab', { name: 'General', exact: true }).click();
     await sslCheckbox.waitFor({ state: 'visible' });
 
     // Verify the setting was persisted
@@ -148,10 +148,10 @@ test.describe('Preferences Tab Switch Persistence', () => {
   test('should persist Cache settings after closing and reopening preferences', async ({ page }) => {
     // Open preferences
     await page.locator('.preferences-button').click();
-    await page.getByRole('tab', { name: 'Cache' }).waitFor({ state: 'visible' });
+    await page.locator('.tablist').getByRole('tab', { name: 'Cache', exact: true }).waitFor({ state: 'visible' });
 
     // Navigate to Cache tab
-    await page.getByRole('tab', { name: 'Cache' }).click();
+    await page.locator('.tablist').getByRole('tab', { name: 'Cache', exact: true }).click();
     await page.waitForTimeout(300);
 
     // Get the initial state of SSL session caching checkbox
@@ -173,10 +173,10 @@ test.describe('Preferences Tab Switch Persistence', () => {
 
     // Reopen preferences
     await page.locator('.preferences-button').click();
-    await page.getByRole('tab', { name: 'Cache' }).waitFor({ state: 'visible' });
+    await page.locator('.tablist').getByRole('tab', { name: 'Cache', exact: true }).waitFor({ state: 'visible' });
 
     // Navigate to Cache tab
-    await page.getByRole('tab', { name: 'Cache' }).click();
+    await page.locator('.tablist').getByRole('tab', { name: 'Cache', exact: true }).click();
     await page.waitForTimeout(300);
     await sslSessionCheckbox.waitFor({ state: 'visible' });
 

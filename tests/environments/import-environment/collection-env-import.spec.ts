@@ -26,7 +26,7 @@ test.describe('Collection Environment Import Tests', () => {
 
     // Select a location and import
     await page.locator('#collection-location').fill(await createTmpDir('collection-env-import-test'));
-    await locationModal.getByRole('button', { name: 'Import' }).click();
+    await locationModal.getByTestId('import-collection-location-modal-submit-btn').click();
     await locationModal.waitFor({ state: 'hidden' });
 
     await expect(

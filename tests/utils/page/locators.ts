@@ -5,7 +5,7 @@ export const buildCommonLocators = (page: Page) => ({
   saveButton: () => page
     .locator('.infotip')
     .filter({ hasText: /^Save/ }),
-  openPreferences: () => page.getByRole('button', { name: 'Open Preferences' }),
+  openPreferences: () => page.locator('[data-trigger="preferences"]'),
   sidebar: {
     collectionsContainer: () => page.getByTestId('collections'),
     collection: (name: string) => page.locator('#sidebar-collection-name').filter({ hasText: name }),
@@ -47,6 +47,9 @@ export const buildCommonLocators = (page: Page) => ({
     collectionSettingsTab: (key: string) => page.getByTestId(`collection-settings-tab-${key}`),
     folderSettingsTab: (key: string) => page.getByTestId(`folder-settings-tab-${key}`),
     tabTrigger: (key: string) => page.getByTestId(`tab-trigger-${key}`)
+  },
+  settings: {
+    saveButton: () => page.locator('[role="tabpanel"]').getByRole('button', { name: 'Save' })
   },
   folder: {
     chevron: (folderName: string) => page.locator('.collection-item-name').filter({ hasText: folderName }).getByTestId('folder-chevron')
@@ -110,7 +113,7 @@ export const buildCommonLocators = (page: Page) => ({
     saveBtn: () => page.getByTestId('presets-save-btn')
   },
   tags: {
-    input: () => page.getByTestId('tag-input').getByRole('textbox'),
+    input: () => page.getByTestId('tag-input').locator('input, textarea').first(),
     item: (tagName: string) => page.locator('.tag-item', { hasText: tagName })
   },
   runnerResults: {
@@ -198,7 +201,7 @@ export const buildCommonLocators = (page: Page) => ({
       rowExprInput: (rowIndex: number) => {
         const cell = baseTable.rowCell('name', rowIndex);
         // Wait for the cell to be visible, then find the textbox
-        return cell.getByRole('textbox').or(cell.locator('input[type="text"]'));
+        return cell.locator('input[type="text"]');
       },
       rowOperatorSelect: (rowIndex: number) => {
         const cell = baseTable.rowCell('operator', rowIndex);
@@ -225,8 +228,8 @@ export const buildWebsocketCommonLocators = (page: Page) => ({
   },
   messages: () => page.locator('.ws-message'),
   toolbar: {
-    latestFirst: () => page.getByRole('button', { name: 'Latest First' }),
-    latestLast: () => page.getByRole('button', { name: 'Latest Last' }),
+    latestFirst: () => page.locator('.response-pane').getByRole('button', { name: 'Latest First' }),
+    latestLast: () => page.locator('.response-pane').getByRole('button', { name: 'Latest Last' }),
     clearResponse: () => page.getByTestId('response-clear-btn')
   }
 });
@@ -262,7 +265,7 @@ export const buildGrpcCommonLocators = (page: Page) => ({
     list: () => page.getByTestId('grpc-responses-list'),
     responseItem: (index: number) => page.getByTestId(`grpc-response-item-${index}`),
     responseItems: () => page.locator('[data-testid^="grpc-response-item-"]'),
-    tabCount: () => page.getByRole('tab', { name: 'Response' }).getByTestId('grpc-tab-response-count')
+    tabCount: () => page.getByTestId('grpc-tab-response-count')
   }
 });
 
@@ -311,5 +314,5 @@ export const buildSandboxLocators = (page: Page) => ({
   safeModeRadio: () => page.getByTestId('sandbox-mode-safe'),
   developerModeRadio: () => page.getByTestId('sandbox-mode-developer'),
   jsSandboxHeading: () => page.getByText('JavaScript Sandbox'),
-  saveButton: () => page.getByRole('button', { name: 'Save' })
+  saveButton: () => page.locator('[data-testid="request-pane"], [data-testid="collection-settings-tab-script"]').first().getByRole('button', { name: 'Save' })
 });

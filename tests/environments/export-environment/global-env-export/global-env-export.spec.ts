@@ -65,7 +65,7 @@ test.describe.serial('Global Environment Export Tests', () => {
 
       await test.step('Execute export and close modal', async () => {
         // Export the environment
-        await page.getByRole('button', { name: 'Export 1 Environment' }).click();
+        await page.locator('.bruno-modal').filter({ hasText: 'Export' }).getByRole('button', { name: 'Export 1 Environment' }).click();
       });
 
       await test.step('Verify exported file and content', async () => {
@@ -106,8 +106,8 @@ test.describe.serial('Global Environment Export Tests', () => {
         await page.locator('button[title="Export environment"]').click();
 
         // Verify all environments are selected by default
-        await expect(page.getByRole('checkbox', { name: 'Local' })).toBeChecked();
-        await expect(page.getByRole('checkbox', { name: 'Prod' })).toBeChecked();
+        await expect(page.locator('.bruno-modal').filter({ hasText: 'Export' }).getByRole('checkbox', { name: 'Local' })).toBeChecked();
+        await expect(page.locator('.bruno-modal').filter({ hasText: 'Export' }).getByRole('checkbox', { name: 'Prod' })).toBeChecked();
 
         // Select folder export format (default might be single JSON file)
         await page.getByText('Separate files in folder').click();
@@ -118,7 +118,7 @@ test.describe.serial('Global Environment Export Tests', () => {
 
       await test.step('Execute export and close modal', async () => {
         // Export all environments
-        await page.getByRole('button', { name: /Export \d+ Environments?/ }).click();
+        await page.locator('.bruno-modal').filter({ hasText: 'Export' }).getByRole('button', { name: /Export \d+ Environments?/ }).click();
       });
 
       await test.step('Verify exported files and content', async () => {
@@ -182,7 +182,7 @@ test.describe.serial('Global Environment Export Tests', () => {
 
       await test.step('Execute export and close modal', async () => {
         // Export should succeed with unique names
-        await page.getByRole('button', { name: 'Export 2 Environment' }).click();
+        await page.locator('.bruno-modal').filter({ hasText: 'Export' }).getByRole('button', { name: 'Export 2 Environment' }).click();
       });
 
       await test.step('Verify unique naming and file content', async () => {
@@ -247,7 +247,7 @@ test.describe.serial('Global Environment Export Tests', () => {
 
       await test.step('Execute export and verify success', async () => {
         // Export the environment
-        await page.getByRole('button', { name: 'Export 1 Environment' }).click();
+        await page.locator('.bruno-modal').filter({ hasText: 'Export' }).getByRole('button', { name: 'Export 1 Environment' }).click();
 
         // Verify success message
         await expect(page.getByText('Environment(s) exported successfully', { exact: false }).first()).toBeVisible();
@@ -296,7 +296,7 @@ test.describe.serial('Global Environment Export Tests', () => {
 
       await test.step('Execute export and verify success', async () => {
         // Export the environments
-        await page.getByRole('button', { name: 'Export 2 Environments' }).click();
+        await page.locator('.bruno-modal').filter({ hasText: 'Export' }).getByRole('button', { name: 'Export 2 Environments' }).click();
         await page.waitForTimeout(200);
         // Verify success message
         await expect(page.getByText('Environment(s) exported successfully', { exact: false }).first()).toBeVisible();
@@ -359,7 +359,7 @@ test.describe.serial('Global Environment Export Tests', () => {
 
       await test.step('Execute export and close modal', async () => {
         // Export should succeed with unique names
-        await page.getByRole('button', { name: 'Export 1 Environment' }).click();
+        await page.locator('.bruno-modal').filter({ hasText: 'Export' }).getByRole('button', { name: 'Export 1 Environment' }).click();
       });
 
       await test.step('Verify unique naming and file content', async () => {
@@ -400,13 +400,13 @@ test.describe.serial('Global Environment Export Tests', () => {
     });
 
     await test.step('Open export modal and deselect all environments', async () => {
-      await page.getByRole('button', { name: 'Export Environment' }).click();
+      await page.locator('button[title=\"Export environment\"]').click();
 
       await page.getByText('Deselect All').click();
     });
 
     await test.step('Verify export button is disabled when no environments selected', async () => {
-      await expect(page.getByRole('button', { name: 'Export Environments' })).toBeDisabled();
+      await expect(page.locator('.bruno-modal').filter({ hasText: 'Export' }).getByRole('button', { name: 'Export Environments' })).toBeDisabled();
     });
   });
 });

@@ -66,7 +66,7 @@ test.describe('Auth mode switch preserves saved data', () => {
     await test.step('Save Bearer at the collection level', async () => {
       await selectAuthMode(page, 'Bearer Token');
       await typeIntoField(page, 'Token', 'collection-bearer-token');
-      await page.getByRole('button', { name: 'Save' }).click();
+      await page.locator('[role="tabpanel"]').getByRole('button', { name: 'Save' }).click();
     });
 
     await test.step('Bearer → Basic → Bearer restores the saved collection token', async () => {
@@ -88,7 +88,7 @@ test.describe('Auth mode switch preserves saved data', () => {
     await test.step('Save Bearer at the folder level', async () => {
       await selectAuthMode(page, 'Bearer Token');
       await typeIntoField(page, 'Token', 'folder-bearer-token');
-      await page.getByRole('button', { name: 'Save' }).click();
+      await page.locator('[role="tabpanel"]').getByRole('button', { name: 'Save' }).click();
     });
 
     await test.step('Bearer → Basic → Bearer restores the saved folder token', async () => {

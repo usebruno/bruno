@@ -38,7 +38,7 @@ test.describe('Snapshot: Deleted Workspace Restoration', () => {
         method: 'GET'
       });
       await openRequest(page, 'Default Workspace Col', 'Default Workspace Req', { persist: true });
-      await expect(page.getByRole('tab', { name: 'Default Workspace Req' })).toBeVisible({ timeout: 10000 });
+      await expect(page.locator('.request-tab .tab-label').filter({ hasText: 'Default Workspace Req' })).toBeVisible({ timeout: 10000 });
     });
 
     await test.step('Open Demo Workspace and switch to it', async () => {
@@ -58,7 +58,7 @@ test.describe('Snapshot: Deleted Workspace Restoration', () => {
       await expect(page2.getByTestId('workspace-name')).toHaveText('My Workspace', { timeout: 10000 });
       await expect(page2.getByTestId('sidebar-collection-row').filter({ hasText: 'Default Workspace Col' })).toBeVisible({ timeout: 10000 });
       await openRequest(page2, 'Default Workspace Col', 'Default Workspace Req');
-      await expect(page2.getByRole('tab', { name: 'Default Workspace Req' })).toBeVisible({ timeout: 10000 });
+      await expect(page2.locator('.request-tab .tab-label').filter({ hasText: 'Default Workspace Req' })).toBeVisible({ timeout: 10000 });
 
       await page2.getByTestId('workspace-menu').click();
       await expect(page2.locator('.workspace-item.active')).toContainText('My Workspace');
@@ -84,7 +84,7 @@ test.describe('Snapshot: Deleted Workspace Restoration', () => {
         method: 'GET'
       });
       await openRequest(page, 'Default Workspace Col', 'Default Workspace Req', { persist: true });
-      await expect(page.getByRole('tab', { name: 'Default Workspace Req' })).toBeVisible({ timeout: 10000 });
+      await expect(page.locator('.request-tab .tab-label').filter({ hasText: 'Default Workspace Req' })).toBeVisible({ timeout: 10000 });
     });
 
     await test.step('Switch to demo workspace and restart', async () => {
@@ -147,7 +147,7 @@ test.describe('Snapshot: Deleted Workspace Restoration', () => {
 
       await expect(page2.getByTestId('workspace-name')).toHaveText('My Workspace', { timeout: 10000 });
       await openRequest(page2, 'Default Workspace Col', 'Default Workspace Req');
-      await expect(page2.getByRole('tab', { name: 'Default Workspace Req' })).toBeVisible({ timeout: 10000 });
+      await expect(page2.locator('.request-tab .tab-label').filter({ hasText: 'Default Workspace Req' })).toBeVisible({ timeout: 10000 });
 
       await page2.getByTestId('workspace-menu').click();
       await expect(page2.locator('.workspace-item').filter({ hasText: 'Demo Workspace' })).toHaveCount(0);
@@ -186,7 +186,7 @@ test.describe('Snapshot: Deleted Workspace Restoration', () => {
         method: 'GET'
       });
       await openRequest(page, 'Deleted Workspace Col', 'Deleted Workspace Req', { persist: true });
-      await expect(page.getByRole('tab', { name: 'Deleted Workspace Req' })).toBeVisible({ timeout: 10000 });
+      await expect(page.locator('.request-tab .tab-label').filter({ hasText: 'Deleted Workspace Req' })).toBeVisible({ timeout: 10000 });
     });
 
     await test.step('Close app, delete active workspace, and verify stale tab is not restored', async () => {
@@ -199,10 +199,10 @@ test.describe('Snapshot: Deleted Workspace Restoration', () => {
       const page2 = await waitForReadyPage(app2);
 
       await expect(page2.getByTestId('workspace-name')).toHaveText('My Workspace', { timeout: 10000 });
-      await expect(page2.getByRole('tab', { name: 'Deleted Workspace Req' })).toHaveCount(0);
+      await expect(page2.locator('.request-tab .tab-label').filter({ hasText: 'Deleted Workspace Req' })).toHaveCount(0);
 
       await openRequest(page2, 'Default Workspace Col', 'Default Workspace Req');
-      await expect(page2.getByRole('tab', { name: 'Default Workspace Req' })).toBeVisible({ timeout: 10000 });
+      await expect(page2.locator('.request-tab .tab-label').filter({ hasText: 'Default Workspace Req' })).toBeVisible({ timeout: 10000 });
 
       await closeElectronApp(app2);
     });
@@ -238,7 +238,7 @@ test.describe('Snapshot: Deleted Workspace Restoration', () => {
         method: 'GET'
       });
       await openRequest(page, 'Malformed Workspace Col', 'Malformed Workspace Req', { persist: true });
-      await expect(page.getByRole('tab', { name: 'Malformed Workspace Req' })).toBeVisible({ timeout: 10000 });
+      await expect(page.locator('.request-tab .tab-label').filter({ hasText: 'Malformed Workspace Req' })).toBeVisible({ timeout: 10000 });
 
       await page.waitForTimeout(2000);
       await closeElectronApp(app);
@@ -251,7 +251,7 @@ test.describe('Snapshot: Deleted Workspace Restoration', () => {
       const page2 = await waitForReadyPage(app2);
 
       await expect(page2.getByTestId('workspace-name')).toHaveText('My Workspace', { timeout: 10000 });
-      await expect(page2.getByRole('tab', { name: 'Malformed Workspace Req' })).toHaveCount(0);
+      await expect(page2.locator('.request-tab .tab-label').filter({ hasText: 'Malformed Workspace Req' })).toHaveCount(0);
 
       await page2.getByTestId('workspace-menu').click();
       await expect(page2.locator('.workspace-item.active')).toContainText('My Workspace');
@@ -259,7 +259,7 @@ test.describe('Snapshot: Deleted Workspace Restoration', () => {
       await page2.keyboard.press('Escape');
 
       await openRequest(page2, 'Default Workspace Col', 'Default Workspace Req');
-      await expect(page2.getByRole('tab', { name: 'Default Workspace Req' })).toBeVisible({ timeout: 10000 });
+      await expect(page2.locator('.request-tab .tab-label').filter({ hasText: 'Default Workspace Req' })).toBeVisible({ timeout: 10000 });
 
       await closeElectronApp(app2);
     });

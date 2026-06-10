@@ -33,7 +33,7 @@ test.describe('OpenAPI Path-Based Grouping', () => {
 
     // Select a location and import
     await page.locator('#collection-location').fill(await createTmpDir('path-grouping-test'));
-    await locationModal.getByRole('button', { name: 'Import' }).click();
+    await locationModal.getByTestId('import-collection-location-modal-submit-btn').click();
     await locationModal.waitFor({ state: 'hidden' });
 
     // Verify the collection was imported successfully

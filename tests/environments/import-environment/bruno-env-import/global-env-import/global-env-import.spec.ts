@@ -24,7 +24,7 @@ test.describe.serial('Global Environment Import Tests', () => {
         // Delete all existing environments
         for (let i = 0; i < count; i++) {
           await page.locator('button[title="Delete"]').first().click();
-          const confirmButton = page.getByRole('button', { name: 'Delete' });
+          const confirmButton = page.locator('.bruno-modal').getByRole('button', { name: 'Delete', exact: true });
           if (await confirmButton.isVisible()) {
             await confirmButton.click();
           }
@@ -38,7 +38,7 @@ test.describe.serial('Global Environment Import Tests', () => {
 
     await test.step('Navigate to global environment import', async () => {
       await expect(page.getByTestId('env-tab-global')).toHaveClass(/active/);
-      await page.getByRole('button', { name: 'Import', exact: true }).click();
+      await page.locator('.bruno-modal').getByRole('button', { name: 'Import', exact: true }).click();
 
       // Verify import modal opens
       const importModal = page.locator('[data-testid="import-global-environment-modal"]');
@@ -58,8 +58,8 @@ test.describe.serial('Global Environment Import Tests', () => {
       await expect(envTab).toBeVisible();
 
       // Verify imported variables
-      await expect(page.getByRole('row', { name: 'host' }).getByRole('cell').nth(1)).toBeVisible();
-      await expect(page.getByRole('row', { name: 'secretToken' }).getByRole('cell').nth(1)).toBeVisible();
+      await expect(page.getByTestId('env-var-row-host').getByRole('cell').nth(1)).toBeVisible();
+      await expect(page.getByTestId('env-var-row-secretToken').getByRole('cell').nth(1)).toBeVisible();
 
       await envTab.hover();
       await envTab.getByTestId('request-tab-close-icon').click({ force: true });
@@ -141,8 +141,8 @@ test.describe.serial('Global Environment Import Tests', () => {
       await expect(envTab).toBeVisible();
 
       // Verify imported variables
-      await expect(page.getByRole('row', { name: 'host' }).getByRole('cell').nth(1)).toBeVisible();
-      await expect(page.getByRole('row', { name: 'secretToken' }).getByRole('cell').nth(1)).toBeVisible();
+      await expect(page.getByTestId('env-var-row-host').getByRole('cell').nth(1)).toBeVisible();
+      await expect(page.getByTestId('env-var-row-secretToken').getByRole('cell').nth(1)).toBeVisible();
 
       await envTab.hover();
       await envTab.getByTestId('request-tab-close-icon').click({ force: true });

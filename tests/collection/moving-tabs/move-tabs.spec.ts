@@ -22,7 +22,7 @@ test.describe('Move tabs', () => {
     // Fill folder name in the modal
     await expect(page.locator('#folder-name')).toBeVisible();
     await page.locator('#folder-name').fill('test-folder');
-    await page.getByRole('button', { name: 'Create' }).click();
+    await page.locator('.bruno-modal').getByRole('button', { name: 'Create', exact: true }).click();
 
     // Wait for the folder to be created and appear in the sidebar
     await page.waitForTimeout(2000);
@@ -40,7 +40,7 @@ test.describe('Move tabs', () => {
     await page.getByPlaceholder('Request Name').fill('test-request');
     await page.locator('#new-request-url .CodeMirror').click();
     await page.locator('#new-request-url textarea').fill('https://echo.usebruno.com');
-    await page.getByRole('button', { name: 'Create' }).click();
+    await page.locator('.bruno-modal').getByRole('button', { name: 'Create', exact: true }).click();
 
     // Wait for the request to be created
     await page.waitForTimeout(1000);
@@ -100,7 +100,7 @@ test.describe('Move tabs', () => {
     // Fill folder name in the modal
     await expect(page.locator('#folder-name')).toBeVisible();
     await page.locator('#folder-name').fill('test-folder');
-    await page.getByRole('button', { name: 'Create' }).click();
+    await page.locator('.bruno-modal').getByRole('button', { name: 'Create', exact: true }).click();
 
     // Wait for the folder to be created and appear in the sidebar
     await page.waitForTimeout(2000);
@@ -118,7 +118,7 @@ test.describe('Move tabs', () => {
     await page.getByPlaceholder('Request Name').fill('test-request');
     await page.locator('#new-request-url .CodeMirror').click();
     await page.locator('#new-request-url textarea').fill('https://echo.usebruno.com');
-    await page.getByRole('button', { name: 'Create' }).click();
+    await page.locator('.bruno-modal').getByRole('button', { name: 'Create', exact: true }).click();
 
     // Wait for the request to be created
     await page.waitForTimeout(1000);

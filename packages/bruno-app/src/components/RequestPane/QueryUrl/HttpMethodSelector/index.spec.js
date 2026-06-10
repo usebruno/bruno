@@ -17,6 +17,10 @@ const renderWithTheme = (component) => {
   );
 };
 
+const openMethodSelector = () => {
+  fireEvent.click(screen.getByTestId('method-selector'));
+};
+
 describe('HttpMethodSelector', () => {
   const mockOnMethodSelect = jest.fn();
 
@@ -55,13 +59,11 @@ describe('HttpMethodSelector', () => {
     it('should display all standard HTTP methods in dropdown when clicked', async () => {
       renderWithTheme(<HttpMethodSelector onMethodSelect={mockOnMethodSelect} />);
 
-      const button = screen.getByRole('button');
-      fireEvent.click(button);
+      openMethodSelector();
 
       await waitFor(() => {
         const standardMethods = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS', 'HEAD', 'TRACE', 'CONNECT'];
-        const dropdownItems = screen.getAllByRole('menuitem');
-        const renderedMethods = dropdownItems.map((item) => item.textContent.trim());
+        const renderedMethods = standardMethods.map((method) => screen.getByTestId(`method-selector-${method.toLowerCase()}`).textContent.trim());
 
         standardMethods.forEach((method, index) => {
           // GET should have a checkmark (✓) since it's the default selected method
@@ -74,52 +76,47 @@ describe('HttpMethodSelector', () => {
     it('should display "Add Custom" option in dropdown', async () => {
       renderWithTheme(<HttpMethodSelector onMethodSelect={mockOnMethodSelect} />);
 
-      const button = screen.getByRole('button');
-      fireEvent.click(button);
+      openMethodSelector();
 
       await waitFor(() => {
-        const addCustomSpan = screen.getByText('+ Add Custom');
-        expect(addCustomSpan).toBeInTheDocument();
-        // The className is applied to the parent dropdown-item div, not the label span
-        expect(addCustomSpan.closest('.dropdown-item')).toHaveClass('text-link');
+        const addCustom = screen.getByTestId('method-selector-add-custom');
+        expect(addCustom).toBeInTheDocument();
+        expect(addCustom).toHaveTextContent('+ Add Custom');
       });
     });
 
     it('should call onMethodSelect when a standard method is clicked', async () => {
       renderWithTheme(<HttpMethodSelector onMethodSelect={mockOnMethodSelect} />);
 
-      const button = screen.getByRole('button');
-      fireEvent.click(button);
+      openMethodSelector();
 
       await waitFor(() => {
-        const postMethod = screen.getByRole('menuitem', { name: /^POST/ });
-        expect(postMethod).toBeInTheDocument();
+        expect(screen.getByTestId('method-selector-post')).toBeInTheDocument();
       });
 
-      const postMethod = screen.getByRole('menuitem', { name: /^POST/ });
-      fireEvent.click(postMethod);
+      fireEvent.click(screen.getByTestId('method-selector-post'));
 
       expect(mockOnMethodSelect).toHaveBeenCalledWith('POST');
     });
   });
 
   describe('Custom Method Mode', () => {
+    const getCustomMethodInput = () => document.querySelector('.method-selector.custom-input-mode input');
+
     it('should enter custom mode when "Add Custom" is clicked', async () => {
       renderWithTheme(<HttpMethodSelector onMethodSelect={mockOnMethodSelect} />);
 
-      const button = screen.getByRole('button');
-      fireEvent.click(button);
+      openMethodSelector();
 
       await waitFor(() => {
-        const addCustom = screen.getByText('+ Add Custom');
-        fireEvent.click(addCustom);
+        fireEvent.click(screen.getByTestId('method-selector-add-custom'));
       });
 
       expect(mockOnMethodSelect).toHaveBeenCalledWith('');
 
       // Should show input field
       await waitFor(() => {
-        const input = screen.getByRole('textbox');
+        const input = getCustomMethodInput();
         expect(input).toBeInTheDocument();
         expect(input).toHaveFocus();
       });
@@ -147,15 +144,13 @@ describe('HttpMethodSelector', () => {
 
       renderWithTheme(<TestWrapper />);
 
-      const button = screen.getByRole('button');
-      fireEvent.click(button);
+      openMethodSelector();
 
       await waitFor(() => {
-        const addCustom = screen.getByText('+ Add Custom');
-        fireEvent.click(addCustom);
+        fireEvent.click(screen.getByTestId('method-selector-add-custom'));
       });
 
-      const input = await screen.findByRole('textbox');
+      const input = getCustomMethodInput();
       await user.type(input, 'custom');
 
       expect(mockOnMethodSelect).toHaveBeenCalledWith('');
@@ -171,15 +166,13 @@ describe('HttpMethodSelector', () => {
     it('should exit custom mode and set method on Enter key', async () => {
       renderWithTheme(<HttpMethodSelector onMethodSelect={mockOnMethodSelect} />);
 
-      const button = screen.getByRole('button');
-      fireEvent.click(button);
+      openMethodSelector();
 
       await waitFor(() => {
-        const addCustom = screen.getByText('+ Add Custom');
-        fireEvent.click(addCustom);
+        fireEvent.click(screen.getByTestId('method-selector-add-custom'));
       });
 
-      const input = await screen.findByRole('textbox');
+      const input = getCustomMethodInput();
       fireEvent.change(input, { target: { value: 'CUSTOM' } });
       fireEvent.keyDown(input, { key: 'Enter' });
 
@@ -187,22 +180,20 @@ describe('HttpMethodSelector', () => {
 
       // Should exit custom mode
       await waitFor(() => {
-        expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
+        expect(getCustomMethodInput()).not.toBeInTheDocument();
       });
     });
 
     it('should set default method on Enter key with empty input', async () => {
       renderWithTheme(<HttpMethodSelector onMethodSelect={mockOnMethodSelect} />);
 
-      const button = screen.getByRole('button');
-      fireEvent.click(button);
+      openMethodSelector();
 
       await waitFor(() => {
-        const addCustom = screen.getByText('+ Add Custom');
-        fireEvent.click(addCustom);
+        fireEvent.click(screen.getByTestId('method-selector-add-custom'));
       });
 
-      const input = await screen.findByRole('textbox');
+      const input = getCustomMethodInput();
       fireEvent.keyDown(input, { key: 'Enter' });
 
       expect(mockOnMethodSelect).toHaveBeenCalledWith('GET');
@@ -211,21 +202,19 @@ describe('HttpMethodSelector', () => {
     it('should exit custom mode on Escape key and keep the custom method', async () => {
       renderWithTheme(<HttpMethodSelector method="POST" onMethodSelect={mockOnMethodSelect} />);
 
-      const button = screen.getByRole('button');
-      fireEvent.click(button);
+      openMethodSelector();
 
       await waitFor(() => {
-        const addCustom = screen.getByText('+ Add Custom');
-        fireEvent.click(addCustom);
+        fireEvent.click(screen.getByTestId('method-selector-add-custom'));
       });
 
-      const input = await screen.findByRole('textbox');
+      const input = getCustomMethodInput();
       fireEvent.change(input, { target: { value: 'CUSTOM' } });
       fireEvent.keyDown(input, { key: 'Escape' });
 
       // Should exit custom mode and onMethodSelect should be called with custom method
       await waitFor(() => {
-        expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
+        expect(getCustomMethodInput()).not.toBeInTheDocument();
         expect(mockOnMethodSelect).toHaveBeenCalledWith('CUSTOM');
       });
     });
@@ -233,21 +222,19 @@ describe('HttpMethodSelector', () => {
     it('should exit custom mode on blur and keep the custom method', async () => {
       renderWithTheme(<HttpMethodSelector onMethodSelect={mockOnMethodSelect} />);
 
-      const button = screen.getByRole('button');
-      fireEvent.click(button);
+      openMethodSelector();
 
       await waitFor(() => {
-        const addCustom = screen.getByText('+ Add Custom');
-        fireEvent.click(addCustom);
+        fireEvent.click(screen.getByTestId('method-selector-add-custom'));
       });
 
-      const input = await screen.findByRole('textbox');
+      const input = getCustomMethodInput();
       fireEvent.change(input, { target: { value: 'CUSTOM' } });
       fireEvent.blur(input);
 
       // Should exit custom mode and onMethodSelect should be called with custom method
       await waitFor(() => {
-        expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
+        expect(getCustomMethodInput()).not.toBeInTheDocument();
         expect(mockOnMethodSelect).toHaveBeenCalledWith('CUSTOM');
       });
     });
