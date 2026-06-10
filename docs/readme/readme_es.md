@@ -1,7 +1,7 @@
 <br />
 <img src="../../assets/images/logo-transparent.png" width="80"/>
 
-### Bruno - IDE de código abierto para explorar y probar APIs.
+### Bruno - IDE de Código Abierto para explorar y probar APIs.
 
 [![Versión en Github](https://badge.fury.io/gh/usebruno%2Fbruno.svg)](https://badge.fury.io/gh/usebruno%2Fbruno)
 [![CI](https://github.com/usebruno/bruno/actions/workflows/tests.yml/badge.svg?branch=main)](https://github.com/usebruno/bruno/actions/workflows/tests.yml)
@@ -28,6 +28,8 @@
 | [العربية](./readme_ar.md)
 | [日本語](./readme_ja.md)
 | [ქართული](./readme_ka.md)
+| [Nederlands](./readme_nl.md)
+| [فارسی](./readme_fa.md)
 
 Bruno es un cliente de APIs nuevo e innovador, creado con el objetivo de revolucionar el panorama actual representado por Postman y otras herramientas similares.
 
@@ -41,13 +43,37 @@ Bruno funciona sin conexión a internet. No tenemos intenciones de añadir sincr
 
 📢 Mira nuestra charla en la conferencia India FOSS 3.0 [aquí](https://www.youtube.com/watch?v=7bSMFpbcPiY).
 
-![bruno](/assets/images/landing-2.png) <br /><br />
+![bruno](/assets/images/landing-2-dark.png#gh-light-mode-only)
+![bruno](/assets/images/landing-2-dark.png#gh-dark-mode-only) <br /><br />
 
-### Instalación
+## Commercial Versions ✨
+
+La mayoría de nuestras funciones son gratuitas y de código abierto.
+Nos esforzamos para lograr un equilibrio armonioso entre los [principios de código abierto y la sostenibilidad](https://github.com/usebruno/bruno/discussions/269)
+
+Puedes revisar nuestras [versiones de pago](https://www.usebruno.com/pricing) para que puedas ver si hay funciones adicionales que tú o tu equipo puedan encontrar útiles! <br/>
+
+## Tabla de Contenido
+
+- [Instalación](#instalación)
+- [Características](#características)
+  - [Ejecútalo en múltiples plataformas 🖥️](#ejecútalo-en-múltiples-plataformas-️)
+  - [Colabora vía Git 👩‍💻🧑‍💻](#colabora-vía-git-)
+- [Enlaces importantes 📌](#enlaces-importantes-)
+- [Destacados 🎥](#destacados-)
+- [Comparte tus testimonios 📣](#comparte-tus-testimonios-)
+- [Publicar en nuevos gestores de paquetes](#publicar-en-nuevos-gestores-de-paquetes)
+- [Mantente en Contacto 🌐](#mantente-en-contacto-)
+- [Marca](#marca)
+- [Contribuye 👩‍💻🧑‍💻](#contribuye-)
+- [Autores](#autores)
+- [Licencia 📄](#licencia-)
+
+## Instalación
 
 Bruno está disponible para su descarga [en nuestro sitio web](https://www.usebruno.com/downloads) para Mac, Windows y Linux.
 
-También puedes instalar Bruno mediante package managers como Homebrew, Chocolatey, Scoop, Flatpak y Apt.
+También puedes instalar Bruno mediante package managers como Homebrew, Chocolatey, Scoop, Snap, Flatpak y Apt.
 
 ```sh
 # En Mac con Homebrew
@@ -60,11 +86,17 @@ choco install bruno
 scoop bucket add extras
 scoop install bruno
 
+# En Windows con winget
+winget install Bruno.Bruno
+
 # En Linux con Snap
 snap install bruno
 
 # En Linux con Flatpak
 flatpak install com.usebruno.Bruno
+
+# En Arch Linux con AUR
+yay -S bruno
 
 # En Linux con Apt
 sudo mkdir -p /etc/apt/keyrings
@@ -77,6 +109,8 @@ echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/bruno.gpg] http://debian.usebr
   | sudo tee /etc/apt/sources.list.d/bruno.list
 sudo apt update && sudo apt install bruno
 ```
+
+## Características
 
 ### Ejecútalo en múltiples plataformas 🖥️
 
@@ -93,19 +127,16 @@ O cualquier otro sistema de control de versiones que prefieras
 - [Nuestra Visión a Largo Plazo](https://github.com/usebruno/bruno/discussions/269)
 - [Hoja de Ruta](https://github.com/usebruno/bruno/discussions/384)
 - [Documentación](https://docs.usebruno.com)
+- [Stack Overflow](https://stackoverflow.com/questions/tagged/bruno)
 - [Sitio Web](https://www.usebruno.com)
 - [Precios](https://www.usebruno.com/pricing)
 - [Descargas](https://www.usebruno.com/downloads)
 
-### Casos de uso 🎥
+### Destacados 🎥
 
 - [Testimonios](https://github.com/usebruno/bruno/discussions/343)
 - [Centro de Conocimiento](https://github.com/usebruno/bruno/discussions/386)
 - [Scripts de la Comunidad](https://github.com/usebruno/bruno/discussions/385)
-
-### Apoya el proyecto ❤️
-
-¡Guau! Si te gusta el proyecto, ¡dale al botón de ⭐!
 
 ### Comparte tus testimonios 📣
 
@@ -114,20 +145,6 @@ Si Bruno te ha ayudado en tu trabajo y con tus equipos, por favor, no olvides co
 ### Publicar en nuevos gestores de paquetes
 
 Por favor, consulta [aquí](../../publishing.md) para más información.
-
-### Contribuye 👩‍💻🧑‍💻
-
-Estamos encantados de que quieras ayudar a mejorar Bruno. Por favor, consulta la [guía de contribución](../contributing/contributing_es.md) para más información.
-
-Incluso si no puedes contribuir con código, no dudes en reportar errores y solicitar nuevas funcionalidades que necesites para resolver tu caso de uso.
-
-### Colaboradores
-
-<div align="center">
-    <a href="https://github.com/usebruno/bruno/graphs/contributors">
-        <img src="https://contrib.rocks/image?repo=usebruno/bruno" />
-    </a>
-</div>
 
 ### Mantente en contacto 🌐
 
@@ -145,6 +162,20 @@ Incluso si no puedes contribuir con código, no dudes en reportar errores y soli
 **Logo**
 
 El logo fue obtenido de [OpenMoji](https://openmoji.org/library/emoji-1F436/). Licencia: CC [BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/)
+
+### Contribuye 👩‍💻🧑‍💻
+
+Estamos encantados de que quieras ayudar a mejorar Bruno. Por favor, consulta la [guía de contribución](../contributing/contributing_es.md) para más información.
+
+Incluso si no puedes contribuir con código, no dudes en reportar errores y solicitar nuevas funcionalidades que necesites para resolver tu caso de uso.
+
+### Autores
+
+<div align="center">
+    <a href="https://github.com/usebruno/bruno/graphs/contributors">
+        <img src="https://contrib.rocks/image?repo=usebruno/bruno" />
+    </a>
+</div>
 
 ### Licencia 📄
 
