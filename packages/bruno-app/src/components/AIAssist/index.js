@@ -38,9 +38,12 @@ const AIAssist = ({ scriptType, currentScript, requestContext, onApply }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const [generated, setGenerated] = useState(null);
-  const inputRef = useRef(null);
   const popupRef = useRef(null);
   const buttonRef = useRef(null);
+
+  const focusOnMount = useCallback((el) => {
+    el?.focus();
+  }, []);
 
   const preferences = useSelector((state) => state.app.preferences);
   const isAiEnabled = get(preferences, 'ai.enabled', false);
@@ -73,14 +76,6 @@ const AIAssist = ({ scriptType, currentScript, requestContext, onApply }) => {
       document.removeEventListener('keydown', onKey);
     };
   }, [isOpen, close]);
-
-  useEffect(() => {
-    if (isOpen && !generated) {
-      const t = setTimeout(() => inputRef.current?.focus(), 30);
-      return () => clearTimeout(t);
-    }
-    return undefined;
-  }, [isOpen, generated]);
 
   const handleGenerate = useCallback(
     async (overridePrompt) => {
@@ -158,7 +153,7 @@ const AIAssist = ({ scriptType, currentScript, requestContext, onApply }) => {
             <>
               <div className="popup-body">
                 <textarea
-                  ref={inputRef}
+                  ref={focusOnMount}
                   className="popup-input"
                   value={prompt}
                   onChange={(e) => setPrompt(e.target.value)}
