@@ -23,7 +23,8 @@ import {
   setActiveTab,
   clearDebugErrors,
   updateNetworkFilter,
-  toggleAllNetworkFilters
+  toggleAllNetworkFilters,
+  updateRequestDetailsPanelWidth
 } from 'providers/ReduxStore/slices/logs';
 
 import NetworkTab from './NetworkTab';
@@ -33,6 +34,13 @@ import RequestDetailsPanel from './RequestDetailsPanel';
 import ErrorDetailsPanel from './ErrorDetailsPanel';
 import Performance from '../Performance';
 import StyledWrapper from './StyledWrapper';
+
+const MIN_DETAILS_PANEL_WIDTH = 280;
+const MAX_DETAILS_PANEL_WIDTH = 800;
+const DEFAULT_DETAILS_PANEL_WIDTH = 400;
+
+const clampDetailsPanelWidth = (width) =>
+  Math.min(MAX_DETAILS_PANEL_WIDTH, Math.max(MIN_DETAILS_PANEL_WIDTH, width));
 
 const LogIcon = ({ type }) => {
   const iconProps = { size: 16, strokeWidth: 1.5 };
@@ -381,7 +389,45 @@ const Console = () => {
   const dispatch = useDispatch();
   const { logs, filters, activeTab, selectedRequest, selectedError, networkFilters, debugErrors } = useSelector((state) => state.logs);
   const collections = useSelector((state) => state.collections.collections);
+  const savedDetailsPanelWidth = useSelector((state) => state.logs.requestDetailsPanelWidth);
   const consoleRef = useRef(null);
+
+  const [detailsPanelWidth, setDetailsPanelWidth] = useState(savedDetailsPanelWidth);
+  const isDraggingDetailsPanel = useRef(false);
+  const dragStartX = useRef(0);
+  const dragStartWidth = useRef(0);
+  const currentWidthRef = useRef(savedDetailsPanelWidth);
+
+  const handleDetailsPanelDragStart = (e) => {
+    isDraggingDetailsPanel.current = true;
+    dragStartX.current = e.clientX;
+    dragStartWidth.current = currentWidthRef.current;
+    e.preventDefault();
+  };
+
+  const handleMouseMove = (e) => {
+    if (!isDraggingDetailsPanel.current) return;
+    const delta = dragStartX.current - e.clientX;
+    const newWidth = clampDetailsPanelWidth(dragStartWidth.current + delta);
+    currentWidthRef.current = newWidth;
+    setDetailsPanelWidth(newWidth);
+  };
+
+  const handleMouseUp = () => {
+    if (isDraggingDetailsPanel.current) {
+      dispatch(updateRequestDetailsPanelWidth({ requestDetailsPanelWidth: currentWidthRef.current }));
+    }
+    isDraggingDetailsPanel.current = false;
+  };
+
+  useEffect(() => {
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, []);
 
   const logCounts = logs.reduce((counts, log) => {
     counts[log.type] = (counts[log.type] || 0) + 1;
@@ -614,7 +660,12 @@ const Console = () => {
             <div className="network-main">
               {renderTabContent()}
             </div>
-            <RequestDetailsPanel />
+            <div className="details-panel-wrapper" style={{ width: detailsPanelWidth }}>
+              <div className="details-drag-handle" onMouseDown={handleDetailsPanelDragStart}>
+                <div className="drag-request-border" />
+              </div>
+              <RequestDetailsPanel />
+            </div>
           </div>
         ) : activeTab === 'debug' && selectedError ? (
           <div className="debug-with-details">
