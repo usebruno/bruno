@@ -95,12 +95,7 @@ const transformBrunoTypes = (obj, seen = new WeakSet()) => {
       case 'Set':
         // Transform Set to display values at top level with numeric indices
         if (Array.isArray(obj.__brunoValue)) {
-          return Object.fromEntries(
-            obj.__brunoValue.map((value, index) => [
-              index,
-              transformBrunoTypes(value, seen)
-            ])
-          );
+          return Object.fromEntries(obj.__brunoValue.map((value, index) => [index, transformBrunoTypes(value, seen)]));
         }
         return {};
       case 'Map':
@@ -111,19 +106,14 @@ const transformBrunoTypes = (obj, seen = new WeakSet()) => {
             // Defensive check: ensure entry is a valid [key, value] pair
             if (Array.isArray(entry) && entry.length >= 2) {
               const [key, value] = entry;
-              mapEntries[`${String(key)} =>`] = transformBrunoTypes(
-                value,
-                seen
-              );
+              mapEntries[`${String(key)} =>`] = transformBrunoTypes(value, seen);
             }
           }
           return mapEntries;
         }
         return {};
       case 'Function':
-        return `[Function: ${
-          obj.__brunoValue?.split?.('\n')?.[0]?.substring(0, 50) ?? 'anonymous'
-        }...]`;
+        return `[Function: ${obj.__brunoValue?.split?.('\n')?.[0]?.substring(0, 50) ?? 'anonymous'}...]`;
       case 'undefined':
         return 'undefined';
       default:
@@ -194,8 +184,7 @@ const LogMessage = ({ message, args }) => {
                 style={{
                   backgroundColor: 'transparent',
                   fontSize: '${(props) => props.theme.font.size.sm}',
-                  fontFamily:
-                    'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace'
+                  fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace'
                 }}
               />
             </div>
@@ -212,27 +201,18 @@ const LogMessage = ({ message, args }) => {
   return (
     <span className="log-message">
       {Array.isArray(formattedMessage)
-        ? formattedMessage.map((item, index) => (
-            <span key={index}>{item} </span>
-          ))
+        ? formattedMessage.map((item, index) => <span key={index}>{item} </span>)
         : formattedMessage}
     </span>
   );
 };
 
-const FilterDropdown = ({
-  filters,
-  logCounts,
-  onFilterToggle,
-  onToggleAll
-}) => {
+const FilterDropdown = ({ filters, logCounts, onFilterToggle, onToggleAll }) => {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
 
   const allFiltersEnabled = Object.values(filters).every((f) => f);
-  const activeFilters = Object.entries(filters).filter(
-    ([_, enabled]) => enabled
-  );
+  const activeFilters = Object.entries(filters).filter(([_, enabled]) => enabled);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -247,11 +227,7 @@ const FilterDropdown = ({
 
   return (
     <div className="filter-dropdown" ref={dropdownRef}>
-      <button
-        className="filter-dropdown-trigger"
-        onClick={() => setIsOpen(!isOpen)}
-        title="Filter logs by type"
-      >
+      <button className="filter-dropdown-trigger" onClick={() => setIsOpen(!isOpen)} title="Filter logs by type">
         <IconFilter size={16} strokeWidth={1.5} />
         <span className="filter-summary">
           {activeFilters.length === Object.keys(filters).length
@@ -265,10 +241,7 @@ const FilterDropdown = ({
         <div className="filter-dropdown-menu right">
           <div className="filter-dropdown-header">
             <span>Filter by Type</span>
-            <button
-              className="filter-toggle-all"
-              onClick={() => onToggleAll(!allFiltersEnabled)}
-            >
+            <button className="filter-toggle-all" onClick={() => onToggleAll(!allFiltersEnabled)}>
               {allFiltersEnabled ? 'Hide All' : 'Show All'}
             </button>
           </div>
@@ -284,9 +257,7 @@ const FilterDropdown = ({
                 <div className="filter-option-content">
                   <LogIcon type={filterType} />
                   <span className="filter-option-label">{filterType}</span>
-                  <span className="filter-option-count">
-                    ({logCounts[filterType] || 0})
-                  </span>
+                  <span className="filter-option-count">({logCounts[filterType] || 0})</span>
                 </div>
               </label>
             ))}
@@ -297,19 +268,12 @@ const FilterDropdown = ({
   );
 };
 
-const NetworkFilterDropdown = ({
-  filters,
-  requestCounts,
-  onFilterToggle,
-  onToggleAll
-}) => {
+const NetworkFilterDropdown = ({ filters, requestCounts, onFilterToggle, onToggleAll }) => {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
 
   const allFiltersEnabled = Object.values(filters).every((f) => f);
-  const activeFilters = Object.entries(filters).filter(
-    ([_, enabled]) => enabled
-  );
+  const activeFilters = Object.entries(filters).filter(([_, enabled]) => enabled);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -324,11 +288,7 @@ const NetworkFilterDropdown = ({
 
   return (
     <div className="filter-dropdown" ref={dropdownRef}>
-      <button
-        className="filter-dropdown-trigger"
-        onClick={() => setIsOpen(!isOpen)}
-        title="Filter requests by method"
-      >
+      <button className="filter-dropdown-trigger" onClick={() => setIsOpen(!isOpen)} title="Filter requests by method">
         <IconFilter size={16} strokeWidth={1.5} />
         <span className="filter-summary">
           {activeFilters.length === Object.keys(filters).length
@@ -342,10 +302,7 @@ const NetworkFilterDropdown = ({
         <div className="filter-dropdown-menu right">
           <div className="filter-dropdown-header">
             <span>Filter by Method</span>
-            <button
-              className="filter-toggle-all"
-              onClick={() => onToggleAll(!allFiltersEnabled)}
-            >
+            <button className="filter-toggle-all" onClick={() => onToggleAll(!allFiltersEnabled)}>
               {allFiltersEnabled ? 'Hide All' : 'Show All'}
             </button>
           </div>
@@ -353,16 +310,10 @@ const NetworkFilterDropdown = ({
           <div className="filter-dropdown-options">
             {Object.entries(filters).map(([method, enabled]) => (
               <label key={method} className="filter-option">
-                <input
-                  type="checkbox"
-                  checked={enabled}
-                  onChange={(e) => onFilterToggle(method, e.target.checked)}
-                />
+                <input type="checkbox" checked={enabled} onChange={(e) => onFilterToggle(method, e.target.checked)} />
                 <div className="filter-option-content">
                   <span className="filter-option-label">{method}</span>
-                  <span className="filter-option-count">
-                    ({requestCounts[method] || 0})
-                  </span>
+                  <span className="filter-option-count">({requestCounts[method] || 0})</span>
                 </div>
               </label>
             ))}
@@ -373,14 +324,7 @@ const NetworkFilterDropdown = ({
   );
 };
 
-const ConsoleTab = ({
-  logs,
-  filters,
-  logCounts,
-  onFilterToggle,
-  onToggleAll,
-  onClearLogs
-}) => {
+const ConsoleTab = ({ logs, filters, logCounts, onFilterToggle, onToggleAll, onClearLogs }) => {
   const logsEndRef = useRef(null);
   const prevLogsCountRef = useRef(0);
 
@@ -424,33 +368,19 @@ const ConsoleTab = ({
 
 const Console = () => {
   const dispatch = useDispatch();
-  const {
-    logs,
-    filters,
-    activeTab,
-    selectedRequest,
-    selectedError,
-    networkFilters,
-    debugErrors
-  } = useSelector((state) => state.logs);
-  const collections = useSelector((state) => state.collections.collections);
-  const savedDetailsPanelWidth = useSelector(
-    (state) => state.logs.requestDetailsPanelWidth
+  const { logs, filters, activeTab, selectedRequest, selectedError, networkFilters, debugErrors } = useSelector(
+    (state) => state.logs
   );
+  const collections = useSelector((state) => state.collections.collections);
+  const savedDetailsPanelWidth = useSelector((state) => state.logs.requestDetailsPanelWidth);
   const consoleRef = useRef(null);
 
-  const {
-    width: detailsPanelWidth,
-    handleDragStart: handleDetailsPanelDragStart
-  } = useResizablePanel({
+  const { width: detailsPanelWidth, handleDragStart: handleDetailsPanelDragStart } = useResizablePanel({
     initialWidth: savedDetailsPanelWidth,
     minWidth: MIN_DETAILS_PANEL_WIDTH,
     maxWidth: MAX_DETAILS_PANEL_WIDTH,
     direction: 'right',
-    onResizeEnd: (newWidth) =>
-      dispatch(
-        updateRequestDetailsPanelWidth({ requestDetailsPanelWidth: newWidth })
-      )
+    onResizeEnd: (newWidth) => dispatch(updateRequestDetailsPanelWidth({ requestDetailsPanelWidth: newWidth }))
   });
 
   const logCounts = logs.reduce((counts, log) => {
@@ -571,11 +501,7 @@ const Console = () => {
               />
             </div>
             <div className="action-controls">
-              <button
-                className="control-button"
-                onClick={handleClearLogs}
-                title="Clear all logs"
-              >
+              <button className="control-button" onClick={handleClearLogs} title="Clear all logs">
                 <IconTrash size={16} strokeWidth={1.5} />
               </button>
             </div>
@@ -640,9 +566,7 @@ const Console = () => {
           </button>
 
           <button
-            className={`console-tab ${
-              activeTab === 'performance' ? 'active' : ''
-            }`}
+            className={`console-tab ${activeTab === 'performance' ? 'active' : ''}`}
             onClick={() => handleTabChange('performance')}
           >
             <IconDashboard size={16} strokeWidth={1.5} />
@@ -650,9 +574,7 @@ const Console = () => {
           </button>
 
           <button
-            className={`console-tab ${
-              activeTab === 'terminal' ? 'active' : ''
-            }`}
+            className={`console-tab ${activeTab === 'terminal' ? 'active' : ''}`}
             onClick={() => handleTabChange('terminal')}
           >
             <IconTerminal2 size={16} strokeWidth={1.5} />
@@ -670,11 +592,7 @@ const Console = () => {
 
         <div className="console-controls">
           {renderTabControls()}
-          <button
-            className="control-button close-button"
-            onClick={handlecloseConsole}
-            title="Close console"
-          >
+          <button className="control-button close-button" onClick={handlecloseConsole} title="Close console">
             <IconX size={16} strokeWidth={1.5} />
           </button>
         </div>
@@ -684,14 +602,8 @@ const Console = () => {
         {activeTab === 'network' && selectedRequest ? (
           <div className="network-with-details">
             <div className="network-main">{renderTabContent()}</div>
-            <div
-              className="details-panel-wrapper"
-              style={{ width: detailsPanelWidth }}
-            >
-              <div
-                className="details-drag-handle"
-                onMouseDown={handleDetailsPanelDragStart}
-              >
+            <div className="details-panel-wrapper" style={{ width: detailsPanelWidth }}>
+              <div className="details-drag-handle" onMouseDown={handleDetailsPanelDragStart}>
                 <div className="drag-request-border" />
               </div>
               <RequestDetailsPanel />
