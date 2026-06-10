@@ -278,8 +278,8 @@ describe('processAuth', () => {
       state: 'test-state',
       pkce: false,
       tokenPlacement: 'header',
-      tokenHeaderPrefix: 'Bearer',
-      tokenQueryKey: '',
+      tokenHeaderPrefix: '',
+      tokenQueryKey: 'access_token',
       credentialsPlacement: 'body'
     });
   });
@@ -314,8 +314,8 @@ describe('processAuth', () => {
       scope: 'test-scope',
       state: 'test-state',
       tokenPlacement: 'header',
-      tokenHeaderPrefix: 'Bearer',
-      tokenQueryKey: '',
+      tokenHeaderPrefix: '',
+      tokenQueryKey: 'access_token',
       credentialsPlacement: 'body'
     });
   });
@@ -346,8 +346,8 @@ describe('processAuth', () => {
       scope: 'test-scope',
       state: 'test-state',
       tokenPlacement: 'header',
-      tokenHeaderPrefix: 'Bearer',
-      tokenQueryKey: '',
+      tokenHeaderPrefix: '',
+      tokenQueryKey: 'access_token',
       credentialsPlacement: 'body'
     });
   });
@@ -426,8 +426,8 @@ describe('processAuth', () => {
       state: 'test-state',
       pkce: true,
       tokenPlacement: 'header',
-      tokenHeaderPrefix: 'Bearer',
-      tokenQueryKey: '',
+      tokenHeaderPrefix: '',
+      tokenQueryKey: 'access_token',
       credentialsPlacement: 'body'
     });
   });
@@ -464,8 +464,8 @@ describe('processAuth', () => {
       scope: 'test-scope',
       state: 'test-state',
       tokenPlacement: 'header',
-      tokenHeaderPrefix: 'Bearer',
-      tokenQueryKey: '',
+      tokenHeaderPrefix: '',
+      tokenQueryKey: 'access_token',
       credentialsPlacement: 'body'
     });
   });
