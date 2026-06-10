@@ -73,6 +73,12 @@ const hasStreamHeaders = (headers) => {
   return headerSplit.indexOf('text/event-stream') > -1;
 };
 
+const buildResponseBodyFromStreamChunks = (sseChunks, headers, disableParsingResponseJson) => {
+  const dataBuffer = Buffer.concat(sseChunks);
+  const { data } = parseDataFromResponse({ data: dataBuffer, headers }, disableParsingResponseJson);
+  return { data, dataBuffer };
+};
+
 const promisifyStream = async (stream, abortController, closeOnFirst) => {
   const chunks = [];
 
@@ -1246,11 +1252,9 @@ const registerNetworkIpc = (mainWindow) => {
       if (isResponseStream) {
         axiosDataStream.on('close', () => {
           try {
-            // Rebuild the full body from the chunks accumulated during streaming so that
-            // post-response scripts, assertions and tests can access res.getBody().
-            const dataBuffer = Buffer.concat(sseChunks);
-            const { data } = parseDataFromResponse(
-              { data: dataBuffer, headers: response.headers },
+            const { data, dataBuffer } = buildResponseBodyFromStreamChunks(
+              sseChunks,
+              response.headers,
               request.__brunoDisableParsingResponseJson
             );
             response.data = data;
@@ -2269,3 +2273,4 @@ module.exports.configureRequest = configureRequest;
 module.exports.getCertsAndProxyConfig = getCertsAndProxyConfig;
 module.exports.fetchGqlSchemaHandler = fetchGqlSchemaHandler;
 module.exports.executeRequestOnFailHandler = executeRequestOnFailHandler;
+module.exports.buildResponseBodyFromStreamChunks = buildResponseBodyFromStreamChunks;
