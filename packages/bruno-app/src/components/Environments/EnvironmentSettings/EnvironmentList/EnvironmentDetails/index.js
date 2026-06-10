@@ -222,7 +222,7 @@ const EnvironmentDetails = ({ environment, setIsModified, collection, searchQuer
           onTabSelect={setActiveTab}
           rightContent={(
             <div ref={rightContentRef} className="env-search-container">
-              <ActionIcon label="Save" onClick={handleSaveAll}>
+              <ActionIcon label="Save" onClick={handleSaveAll} data-testid="save-all-env">
                 <IconDeviceFloppy size={15} strokeWidth={1.5} />
               </ActionIcon>
               {isSearchExpanded ? (
