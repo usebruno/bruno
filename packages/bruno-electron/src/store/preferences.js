@@ -67,6 +67,9 @@ const defaultPreferences = {
   cache: {
     sslSession: {
       enabled: false
+    },
+    file: {
+      enabled: false
     }
   },
   ai: {
@@ -142,6 +145,9 @@ const preferencesSchema = Yup.object().shape({
   }),
   cache: Yup.object({
     sslSession: Yup.object({
+      enabled: Yup.boolean()
+    }),
+    file: Yup.object({
       enabled: Yup.boolean()
     })
   }).optional(),
@@ -349,6 +355,9 @@ const preferencesUtil = {
   },
   isSslSessionCachingEnabled: () => {
     return get(getPreferences(), 'cache.sslSession.enabled', false);
+  },
+  isFileCacheEnabled: () => {
+    return get(getPreferences(), 'cache.file.enabled', false);
   },
   hasLaunchedBefore: () => {
     return get(getPreferences(), 'onboarding.hasLaunchedBefore', false);
