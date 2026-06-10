@@ -55,7 +55,7 @@ router.post('/reset', (req, res) => {
   res.json({ message: 'Reset complete', activeConnections: 0 });
 });
 
-// GET /api/sse/finite?messages=Hello,from,SSE - Sends one event per message then closes.
+// GET /api/sse/finite - Sends one event per message then closes.
 router.get('/finite', (req, res) => {
   const messages = ['Hello', 'from', 'SSE'];
 
