@@ -1,35 +1,18 @@
-import path from 'path';
-import fs from 'fs';
 import { test, expect, closeElectronApp } from '../../playwright';
 import {
   createCollection,
   createFolder,
   createWorkspace,
+  focusFolderSettingsTab,
   openfolder,
+  readSnapshot,
+  findSnapshotFolderTab,
   selectfolderPaneTab,
   selectFolderScriptPaneTab,
   switchWorkspace,
-  waitForReadyPage
+  waitForReadyPage,
+  waitForSnapshotFile
 } from '../utils/page';
-import { buildCommonLocators } from '../utils/page/locators';
-
-const readSnapshot = (userDataPath: string) => {
-  const snapshotPath = path.join(userDataPath, 'ui-state-snapshot.json');
-  if (!fs.existsSync(snapshotPath)) return null;
-  return JSON.parse(fs.readFileSync(snapshotPath, 'utf-8'));
-};
-
-const findSnapshotFolderTab = (snapshot: any, folderName: string) => {
-  if (!snapshot || !Array.isArray(snapshot.collections)) return null;
-  for (const collection of snapshot.collections) {
-    if (!Array.isArray(collection?.tabs)) continue;
-    const tab = collection.tabs.find(
-      (t: any) => t?.type === 'folder-settings' && typeof t?.pathname === 'string' && t.pathname.includes(folderName)
-    );
-    if (tab) return tab;
-  }
-  return null;
-};
 
 test.describe('Snapshot: folder Pane Interactivity', () => {
   test('folder pane tab interactivity is preserved after workspace switch', async ({ launchElectronApp, createTmpDir }) => {
@@ -56,10 +39,7 @@ test.describe('Snapshot: folder Pane Interactivity', () => {
       await switchWorkspace(page, 'My Workspace');
       await openfolder(page, 'TestCol', 'TestFolder', { persist: true });
 
-      const locators = buildCommonLocators(page);
-
-      await expect(locators.tabs.folderTab('TestFolder')).toBeVisible({ timeout: 10000 });
-      await locators.tabs.folderTab('TestFolder').click({ force: true });
+      await focusFolderSettingsTab(page, 'TestFolder');
 
       await selectfolderPaneTab(page, 'auth');
       await selectfolderPaneTab(page, 'headers');
@@ -89,8 +69,7 @@ test.describe('Snapshot: folder Pane Interactivity', () => {
       await page.waitForTimeout(2000);
       await closeElectronApp(app);
 
-      const snapshotPath = path.join(userDataPath, 'ui-state-snapshot.json');
-      await expect.poll(() => fs.existsSync(snapshotPath)).toBe(true);
+      await waitForSnapshotFile(userDataPath);
 
       const snapshot = readSnapshot(userDataPath);
       const tab = findSnapshotFolderTab(snapshot, 'TestFolder');
@@ -103,9 +82,7 @@ test.describe('Snapshot: folder Pane Interactivity', () => {
       const app2 = await launchElectronApp({ userDataPath });
       const page2 = await waitForReadyPage(app2);
 
-      const locators = buildCommonLocators(page2);
-      await expect(locators.tabs.folderTab('TestFolder')).toBeVisible({ timeout: 15000 });
-      await locators.tabs.folderTab('TestFolder').click({ force: true });
+      await focusFolderSettingsTab(page2, 'TestFolder', { timeout: 15000 });
 
       await selectfolderPaneTab(page2, 'auth');
       await selectfolderPaneTab(page2, 'headers');
@@ -135,8 +112,7 @@ test.describe('Snapshot: folder Pane Interactivity', () => {
       await page.waitForTimeout(2000);
       await closeElectronApp(app);
 
-      const snapshotPath = path.join(userDataPath, 'ui-state-snapshot.json');
-      await expect.poll(() => fs.existsSync(snapshotPath)).toBe(true);
+      await waitForSnapshotFile(userDataPath);
 
       const snapshot = readSnapshot(userDataPath);
       const tab = findSnapshotFolderTab(snapshot, 'TestFolder');
@@ -149,9 +125,7 @@ test.describe('Snapshot: folder Pane Interactivity', () => {
       const app2 = await launchElectronApp({ userDataPath });
       const page2 = await waitForReadyPage(app2);
 
-      const locators = buildCommonLocators(page2);
-      await expect(locators.tabs.folderTab('TestFolder')).toBeVisible({ timeout: 15000 });
-      await locators.tabs.folderTab('TestFolder').click({ force: true });
+      await focusFolderSettingsTab(page2, 'TestFolder', { timeout: 15000 });
 
       await selectfolderPaneTab(page2, 'script');
 

@@ -38,6 +38,8 @@ export const buildCommonLocators = (page: Page) => ({
   tabs: {
     requestTab: (requestName: string) => page.locator('.request-tab .tab-label').filter({ hasText: requestName }),
     folderTab: (folderName: string) => page.locator('.request-tab .tab-label').filter({ hasText: folderName }),
+    collectionSettingsTab: () =>
+      page.locator('.request-tab').filter({ has: page.locator('.tab-label', { hasText: 'Collection' }) }),
     activeRequestTab: () => page.locator('.request-tab.active'),
     closeTab: (requestName: string) => page.locator('.request-tab').filter({ hasText: requestName }).getByTestId('request-tab-close-icon'),
     draftIndicator: () => page.locator('.request-tab.active .has-changes-icon')
