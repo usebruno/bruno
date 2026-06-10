@@ -1,7 +1,9 @@
-import React, { useRef } from 'react';
+import React, { useMemo, useRef } from 'react';
 import get from 'lodash/get';
 import { useDispatch, useSelector } from 'react-redux';
 import CodeEditor from 'components/CodeEditor';
+import AIAssist from 'components/AIAssist';
+import { buildRequestContextFromItem } from 'utils/ai';
 import { updateRequestTests } from 'providers/ReduxStore/slices/collections';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { useTheme } from 'providers/Theme';
@@ -29,8 +31,10 @@ const Tests = ({ item, collection }) => {
   const onRun = () => dispatch(sendRequest(item, collection.uid));
   const onSave = () => dispatch(saveRequest(item.uid, collection.uid));
 
+  const requestContext = useMemo(() => buildRequestContextFromItem(item), [item]);
+
   return (
-    <div data-testid="test-script-editor">
+    <div data-testid="test-script-editor" className="relative h-full">
       <CodeEditor
         ref={testsEditorRef}
         collection={collection}
@@ -47,6 +51,7 @@ const Tests = ({ item, collection }) => {
         initialScroll={testsScroll}
         onScroll={setTestsScroll}
       />
+      <AIAssist scriptType="tests" currentScript={tests || ''} requestContext={requestContext} onApply={onEdit} />
     </div>
   );
 };
