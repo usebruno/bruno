@@ -446,6 +446,9 @@ export const tabsSlice = createSlice({
       const tab = find(state.tabs, (t) => t.uid === oldUid);
       if (tab) {
         tab.uid = newUid;
+        if (tab.type === 'folder-settings') {
+          tab.folderUid = newUid;
+        }
         if (state.activeTabUid === oldUid) {
           state.activeTabUid = newUid;
         }

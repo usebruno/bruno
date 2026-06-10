@@ -46,6 +46,7 @@ export const buildCommonLocators = (page: Page) => ({
     responsiveTab: (key: string) => page.getByTestId(`responsive-tab-${key}`),
     collectionSettingsTab: (key: string) => page.getByTestId(`collection-settings-tab-${key}`),
     folderSettingsTab: (key: string) => page.getByTestId(`folder-settings-tab-${key}`),
+    folderScriptTab: (key: 'pre-request' | 'post-response') => page.getByTestId(`tab-trigger-${key}`),
     tabTrigger: (key: string) => page.getByTestId(`tab-trigger-${key}`)
   },
   folder: {

@@ -7,6 +7,7 @@ import {
   createWorkspace,
   openfolder,
   selectfolderPaneTab,
+  selectFolderScriptPaneTab,
   switchWorkspace,
   waitForReadyPage
 } from '../utils/page';
@@ -111,6 +112,51 @@ test.describe('Snapshot: folder Pane Interactivity', () => {
       await selectfolderPaneTab(page2, 'docs');
       await selectfolderPaneTab(page2, 'script');
       await selectfolderPaneTab(page2, 'vars');
+
+      await closeElectronApp(app2);
+    });
+  });
+
+  test('folder script\'s tabs need to be interactive after app restart', async ({ launchElectronApp, createTmpDir }) => {
+    const userDataPath = await createTmpDir('snap-folder-restart');
+    const colPath = await createTmpDir('col');
+
+    const app = await launchElectronApp({ userDataPath });
+    const page = await waitForReadyPage(app);
+
+    await test.step('Create collection and folder, open folder settings on auth tab', async () => {
+      await createCollection(page, 'TestCol', colPath);
+      await createFolder(page, 'TestFolder', 'TestCol');
+      await openfolder(page, 'TestCol', 'TestFolder', { persist: true });
+      await selectfolderPaneTab(page, 'script');
+    });
+
+    await test.step('Close app and verify snapshot stores folder-settings tab', async () => {
+      await page.waitForTimeout(2000);
+      await closeElectronApp(app);
+
+      const snapshotPath = path.join(userDataPath, 'ui-state-snapshot.json');
+      await expect.poll(() => fs.existsSync(snapshotPath)).toBe(true);
+
+      const snapshot = readSnapshot(userDataPath);
+      const tab = findSnapshotFolderTab(snapshot, 'TestFolder');
+      expect(tab).toBeTruthy();
+      expect(tab.type).toBe('folder-settings');
+      expect(tab.permanent).toBe(true);
+    });
+
+    await test.step('Restart app and verify folder script pane is interactive', async () => {
+      const app2 = await launchElectronApp({ userDataPath });
+      const page2 = await waitForReadyPage(app2);
+
+      const locators = buildCommonLocators(page2);
+      await expect(locators.tabs.folderTab('TestFolder')).toBeVisible({ timeout: 15000 });
+      await locators.tabs.folderTab('TestFolder').click({ force: true });
+
+      await selectfolderPaneTab(page2, 'script');
+
+      await selectFolderScriptPaneTab(page2, 'pre-request');
+      await selectFolderScriptPaneTab(page2, 'post-response');
 
       await closeElectronApp(app2);
     });

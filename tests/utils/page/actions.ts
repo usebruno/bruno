@@ -860,6 +860,21 @@ const selectfolderPaneTab = async (page: Page, tabName: string) => {
 };
 
 /**
+ * Select a sub-tab in the folder script pane (Pre Request or Post Response)
+ * @param page - The page object
+ * @param tabName - 'pre-request' or 'post-response'
+ * @returns void
+ */
+const selectFolderScriptPaneTab = async (page: Page, tabName: 'pre-request' | 'post-response') => {
+  await test.step(`Select folder script pane tab "${tabName}"`, async () => {
+    const locators = buildCommonLocators(page);
+    const tab = locators.paneTabs.folderScriptTab(tabName);
+    await tab.click();
+    await expect(tab).toContainClass('active');
+  });
+};
+
+/**
  * Open a request within a folder
  * @param page - The page object
  * @param folderName - The name of the folder
@@ -1783,6 +1798,7 @@ export {
   openfolder,
   openFolderRequest,
   selectfolderPaneTab,
+  selectFolderScriptPaneTab,
   getResponseBody,
   expectResponseContains,
   selectRequestPaneTab,
