@@ -55,7 +55,7 @@ describe('runNpmInstall', () => {
     expect(result.installed).toEqual(['dayjs']);
   });
 
-  test('passes the correct npm args, cwd, and runs without a shell', async () => {
+  test('passes the correct npm args, cwd, and runs without a shell on Unix', async () => {
     const child = makeFakeChild();
     const spawnFn = jest.fn(() => child);
 
@@ -63,7 +63,8 @@ describe('runNpmInstall', () => {
       collectionPath: '/my/coll',
       packages: ['dayjs', 'dayjs', 'zod'],
       spawnFn,
-      npmCommand: 'npm'
+      npmCommand: 'npm',
+      platform: 'darwin'
     });
     child.emit('close', 0);
     await promise;
@@ -72,6 +73,48 @@ describe('runNpmInstall', () => {
       'npm',
       ['install', '--save', 'dayjs', 'zod'],
       expect.objectContaining({ cwd: '/my/coll', shell: false })
+    );
+  });
+
+  test('uses shell on Windows when npm command is a .cmd file', async () => {
+    const child = makeFakeChild();
+    const spawnFn = jest.fn(() => child);
+
+    const promise = runNpmInstall({
+      collectionPath: 'C:\\coll',
+      packages: ['dayjs'],
+      spawnFn,
+      npmCommand: 'npm.cmd',
+      platform: 'win32'
+    });
+    child.emit('close', 0);
+    await promise;
+
+    expect(spawnFn).toHaveBeenCalledWith(
+      'npm.cmd',
+      ['install', '--save', 'dayjs'],
+      expect.objectContaining({ cwd: 'C:\\coll', shell: true })
+    );
+  });
+
+  test('does not use shell on Windows for bare npm command', async () => {
+    const child = makeFakeChild();
+    const spawnFn = jest.fn(() => child);
+
+    const promise = runNpmInstall({
+      collectionPath: 'C:\\coll',
+      packages: ['dayjs'],
+      spawnFn,
+      npmCommand: 'npm',
+      platform: 'win32'
+    });
+    child.emit('close', 0);
+    await promise;
+
+    expect(spawnFn).toHaveBeenCalledWith(
+      'npm',
+      ['install', '--save', 'dayjs'],
+      expect.objectContaining({ cwd: 'C:\\coll', shell: false })
     );
   });
 

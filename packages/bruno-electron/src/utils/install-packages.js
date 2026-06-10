@@ -1,8 +1,12 @@
 const { spawn } = require('child_process');
 
-// npm package name grammar (scoped + unscoped). Conservative enough to prevent
-// shell-metachar smuggling even though spawn() runs without a shell.
+// npm package name grammar (scoped + unscoped). On Windows, .cmd/.bat spawn uses
+// a shell (CVE-2024-27980); names must not contain shell metacharacters.
 const NPM_NAME_REGEX = /^(?:@[a-z0-9][\w.-]*\/)?[a-z0-9][\w.-]*$/i;
+
+const shouldUseShellForNpmSpawn = (npmCommand, platform = process.platform) => {
+  return platform === 'win32' && /\.(cmd|bat)$/i.test(npmCommand);
+};
 
 const DEFAULT_TIMEOUT_MS = 5 * 60 * 1000; // npm installs can legitimately take minutes
 const DEFAULT_MAX_OUTPUT_BYTES = 1024 * 1024; // bound captured stdout/stderr
@@ -33,7 +37,8 @@ const runNpmInstall = ({
   spawnFn = spawn,
   timeoutMs = DEFAULT_TIMEOUT_MS,
   maxOutputBytes = DEFAULT_MAX_OUTPUT_BYTES,
-  npmCommand = process.platform === 'win32' ? 'npm.cmd' : 'npm'
+  npmCommand = process.platform === 'win32' ? 'npm.cmd' : 'npm',
+  platform = process.platform
 }) => {
   const installed = Array.from(new Set(packages));
   const args = ['install', '--save', ...installed];
@@ -53,7 +58,11 @@ const runNpmInstall = ({
 
     let child;
     try {
-      child = spawnFn(npmCommand, args, { cwd: collectionPath, env: process.env, shell: false });
+      child = spawnFn(npmCommand, args, {
+        cwd: collectionPath,
+        env: process.env,
+        shell: shouldUseShellForNpmSpawn(npmCommand, platform)
+      });
     } catch (err) {
       finish({ success: false, exitCode: -1, stderr: err.message, errorCode: 'SPAWN_FAILED' });
       return;
@@ -100,6 +109,7 @@ const runNpmInstall = ({
 
 module.exports = {
   isValidNpmPackageName,
+  shouldUseShellForNpmSpawn,
   runNpmInstall,
   NPM_NAME_REGEX,
   DEFAULT_TIMEOUT_MS,
