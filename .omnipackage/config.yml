@@ -109,3 +109,4 @@ builds:
   - { distro: "ubuntu_22.04",        <<: *deb }
   - { distro: "ubuntu_24.04",        <<: *deb }
   - { distro: "ubuntu_25.04",        <<: *deb }
+  - { distro: "ubuntu_26.04",        <<: *deb }
