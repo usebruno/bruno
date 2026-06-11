@@ -178,8 +178,8 @@ const RequestRow = ({ request, isSelected, onClick, gridTemplateColumns }) => {
 const NetworkTab = () => {
   const dispatch = useDispatch();
   const [sortConfig, setSortConfig] = useState({ key: null, direction: null });
-  const gridTemplateColumns = getGridTemplate(COLUMNS);
-  const separatorPositions = getSeparatorPositions(COLUMNS);
+  const gridTemplateColumns = useMemo(() => getGridTemplate(COLUMNS), []);
+  const separatorPositions = useMemo(() => getSeparatorPositions(COLUMNS), []);
   const { networkFilters, selectedRequest } = useSelector((state) => state.logs);
   const collections = useSelector((state) => state.collections.collections);
 
