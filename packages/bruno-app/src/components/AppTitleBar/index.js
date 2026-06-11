@@ -146,10 +146,10 @@ const AppTitleBar = () => {
   };
 
   const handleWorkspaceSwitch = async (workspaceUid) => {
-    const result = await dispatch(switchWorkspace(workspaceUid));
-    if (result) {
-      toast.success(`Switched to ${getWorkspaceDisplayName(workspaces.find((w) => w.uid === workspaceUid)?.name)}`);
-    }
+    if (workspaceUid === activeWorkspaceUid) return;
+
+    dispatch(switchWorkspace(workspaceUid));
+    toast.success(`Switched to ${getWorkspaceDisplayName(workspaces.find((w) => w.uid === workspaceUid)?.name)}`);
   };
 
   const handleOpenWorkspace = async () => {
