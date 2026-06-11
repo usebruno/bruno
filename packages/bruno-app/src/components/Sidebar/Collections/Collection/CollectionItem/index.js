@@ -744,6 +744,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
               ))}
               <div style={{ paddingLeft: 8 }}>
                 <MenuDropdown
+                  data-testid="add-request-cta-folder"
                   items={emptyFolderMenuItems}
                   placement="bottom-start"
                   appendTo={dropdownContainerRef?.current || document.body}

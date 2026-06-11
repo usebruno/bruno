@@ -1,8 +1,41 @@
-import { test, expect, Page } from '../../../playwright';
+import { test, expect, Page, ElectronApplication, waitForReadyPage as waitForReadyPageImpl } from '../../../playwright';
 import process from 'node:process';
-import { buildCommonLocators, buildScriptErrorLocators } from './locators';
+import * as path from 'path';
+import { buildCommonLocators, buildScriptErrorLocators, buildGrpcCommonLocators } from './locators';
+import { waitForCollectionMount } from './mounting';
 
 type SandboxMode = 'safe' | 'developer';
+
+type CollectionFormat = 'bru' | 'yml';
+
+type WaitForAppReadyOptions = {
+  timeout?: number;
+};
+
+/**
+ * Wait for the Electron app to have a ready, loaded window.
+ * Handles cases where the first window is slow to appear.
+ */
+const waitForReadyPage = (
+  app: ElectronApplication,
+  options: WaitForAppReadyOptions = {}
+) => waitForReadyPageImpl(app, options);
+
+/**
+ * Dismiss all import issues toasts (they use infinite duration and persist across tests).
+ * @param page - The page object
+ * @returns void
+ */
+const dismissImportIssuesToasts = async (page: Page) => {
+  await test.step('Dismiss import issues toasts', async () => {
+    const toasts = page.getByTestId('import-issues-toast');
+    while (await toasts.count() > 0) {
+      const toast = toasts.first();
+      await toast.getByTestId('import-issues-toast-close').click();
+      await expect(toast).not.toBeVisible({ timeout: 5000 });
+    }
+  });
+};
 
 /**
  * Close all collections
@@ -27,8 +60,11 @@ const closeAllCollections = async (page) => {
       const hasDiscardButton = await page.getByRole('button', { name: 'Discard All and Remove' }).isVisible().catch(() => false);
 
       if (hasDiscardButton) {
-        // Drafts modal - click "Discard All and Remove"
-        await page.getByRole('button', { name: 'Discard All and Remove' }).click();
+        // Drafts modal - the modal animates in and the footer can shift mid-frame,
+        // causing Playwright's "element is stable" actionability check to fail
+        // intermittently on slower machines. Use force to skip the stability check;
+        // visibility is already verified above via waitFor.
+        await page.getByRole('button', { name: 'Discard All and Remove' }).click({ force: true });
       } else {
         // Regular modal - click the submit button
         await page.locator('.bruno-modal-footer .submit').click();
@@ -64,8 +100,13 @@ const openCollection = async (page, collectionName: string) => {
  *
  * @returns void
  */
-const createCollection = async (page, collectionName: string, collectionLocation: string) => {
-  await test.step(`Create collection "${collectionName}"`, async () => {
+const createCollection = async (
+  page,
+  collectionName: string,
+  collectionLocation: string,
+  format: CollectionFormat = 'yml'
+) => {
+  await test.step(`Create ${format} collection "${collectionName}"`, async () => {
     await page.getByTestId('collections-header-add-menu').click();
     await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Create collection' }).click();
 
@@ -79,23 +120,50 @@ const createCollection = async (page, collectionName: string, collectionLocation
 
     // Fill location FIRST — some modals auto-derive the name from the path,
     // so filling name after location ensures it isn't overwritten.
+    //
+    // The location input is `readOnly={true}` as a React prop and is a
+    // controlled input via formik. Two implications:
+    //   1. Removing `readonly` via DOM attribute is racy — the next React
+    //      render restores the prop. The modal's mount-effect focuses the
+    //      name field at +50ms, which can trigger that re-render between
+    //      our DOM tweak and the `fill()`, leaving the input read-only and
+    //      the fill silently no-ops.
+    //   2. Even if writable, controlled inputs require firing an `input`
+    //      event so the onChange handler runs and updates formik state.
+    // Use the native value setter (the React-controlled-input pattern) to
+    // bypass both. Then verify the value stuck so we fail loudly here
+    // instead of opaquely at the modal-hidden wait when Yup validation
+    // silently rejects an empty location.
     const locationInput = createCollectionModal.getByLabel('Location');
     if (await locationInput.isVisible()) {
-      await locationInput.evaluate((el) => {
-        const input = el as HTMLInputElement;
-        input.removeAttribute('readonly');
-        input.readOnly = false;
-      });
-      await locationInput.fill(collectionLocation);
+      await locationInput.evaluate((el, value) => {
+        const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')?.set;
+        setter?.call(el, value);
+        el.dispatchEvent(new Event('input', { bubbles: true }));
+      }, collectionLocation);
+      await expect(locationInput).toHaveValue(collectionLocation);
     }
     const nameInput = createCollectionModal.getByLabel('Name');
     await nameInput.clear();
     await nameInput.fill(collectionName);
     // Verify the name is correct before creating
     await expect(nameInput).toHaveValue(collectionName, { timeout: 2000 });
+
+    if (format) {
+      await createCollectionModal.locator('.advanced-options .btn-advanced').click();
+      await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Show File Format' }).click();
+      const formatSelect = createCollectionModal.locator('#format');
+      await formatSelect.waitFor({ state: 'visible', timeout: 5000 });
+      await formatSelect.selectOption(format);
+    }
+
     await createCollectionModal.getByRole('button', { name: 'Create', exact: true }).click();
 
-    await createCollectionModal.waitFor({ state: 'detached', timeout: 15000 });
+    // The modal closes via `onClose()` in the form's `onSubmit` success path,
+    // which only runs after Yup validation passes — so this waitFor is the
+    // signal that the form actually submitted
+    await createCollectionModal.waitFor({ state: 'hidden', timeout: 5000 });
+    await expect(page.locator('.bruno-modal-backdrop')).toHaveCount(0);
     // Wait for the collection name to appear in the sidebar before proceeding
     await page.locator('#sidebar-collection-name').filter({ hasText: collectionName }).waitFor({ state: 'visible', timeout: 5000 });
     await openCollection(page, collectionName);
@@ -108,6 +176,7 @@ type CreateRequestOptions = {
   url?: string;
   method?: string;
   inFolder?: boolean;
+  requestType?: 'http' | 'graphql' | 'ws' | 'grpc';
 };
 
 type CreateUntitledRequestOptions = {
@@ -258,10 +327,11 @@ const createRequest = async (
   parentName: string,
   options: CreateRequestOptions = {}
 ) => {
-  const { url, method, inFolder = false } = options;
+  const { url, method, inFolder = false, requestType = 'http' } = options;
   const parentType = inFolder ? 'folder' : 'collection';
+  const hasMethodSelector = requestType === 'http' || requestType === 'graphql';
 
-  await test.step(`Create request "${requestName}" in ${parentType} "${parentName}"`, async () => {
+  await test.step(`Create ${requestType.toUpperCase()} request "${requestName}" in ${parentType} "${parentName}"`, async () => {
     const locators = buildCommonLocators(page);
 
     if (inFolder) {
@@ -275,9 +345,15 @@ const createRequest = async (
     }
 
     await locators.dropdown.item('New Request').click();
+
+    // The modal defaults to HTTP; switch the radio for the other three types.
+    if (requestType !== 'http') {
+      await page.getByTestId(`${requestType}-request`).click();
+    }
+
     await page.getByPlaceholder('Request Name').fill(requestName);
 
-    if (method) {
+    if (method && hasMethodSelector) {
       await page.locator('.bruno-modal .method-selector').click();
       const isStandardMethod = STANDARD_HTTP_METHODS.includes(method.toUpperCase());
       if (isStandardMethod) {
@@ -379,6 +455,7 @@ const deleteCollectionFromOverview = async (page: Page, collectionName: string) 
  */
 type ImportCollectionOptions = {
   expectedCollectionName?: string;
+  expectIssues?: boolean;
 };
 
 const importCollection = async (
@@ -420,6 +497,11 @@ const importCollection = async (
       await expect(
         page.locator('#sidebar-collection-name').filter({ hasText: options.expectedCollectionName })
       ).toBeVisible();
+    }
+
+    // Wait for import issues toast if expected
+    if (options.expectIssues) {
+      await expect(locators.import.issuesToast()).toBeVisible({ timeout: 10000 });
     }
 
     if (options.expectedCollectionName) {
@@ -499,6 +581,20 @@ const createFolder = async (
     await page.getByTestId('new-folder-input').fill(folderName);
     await locators.modal.button('Create').click();
     await expect(locators.sidebar.folder(folderName)).toBeVisible();
+  });
+};
+
+/**
+ * Expand a folder in the sidebar so its child requests/subfolders become visible.
+ * No-op if the folder is already expanded.
+ */
+const expandFolder = async (page: Page, folderName: string) => {
+  await test.step(`Expand folder "${folderName}"`, async () => {
+    const locators = buildCommonLocators(page);
+    const chevron = locators.folder.chevron(folderName);
+    await chevron.waitFor({ state: 'visible', timeout: 5000 });
+    const isExpanded = await chevron.evaluate((el: HTMLElement) => el.classList.contains('rotate-90'));
+    if (!isExpanded) await chevron.click();
   });
 };
 
@@ -728,6 +824,43 @@ const openRequest = async (page: Page, collectionName: string, requestName: stri
   });
 };
 /**
+ * Open a folder's settings tab by clicking on it in the sidebar
+ * @param page - The page object
+ * @param collectionName - The name of the collection
+ * @param folderName - The name of the folder
+ * @param options - Optional settings (persist: double-click to make tab permanent)
+ * @returns void
+ */
+const openfolder = async (page: Page, collectionName: string, folderName: string, { persist = false } = {}) => {
+  await test.step(`Open folder "${folderName}" in collection "${collectionName}"`, async () => {
+    const collectionContainer = page.getByTestId('sidebar-collection-row').filter({ hasText: collectionName });
+    await collectionContainer.click();
+    const collectionWrapper = collectionContainer.locator('..');
+    const folder = collectionWrapper.getByTestId('sidebar-collection-item-row').filter({ hasText: folderName });
+    if (!persist) {
+      await folder.click();
+    } else {
+      await folder.dblclick();
+    }
+  });
+};
+
+/**
+ * Select a tab in the folder settings pane
+ * @param page - The page object
+ * @param tabName - The tab name key (e.g. 'auth', 'headers', 'docs', 'script', 'vars', 'test')
+ * @returns void
+ */
+const selectfolderPaneTab = async (page: Page, tabName: string) => {
+  await test.step(`Select folder pane tab "${tabName}"`, async () => {
+    const locators = buildCommonLocators(page);
+    const tab = locators.paneTabs.folderSettingsTab(tabName.toLowerCase());
+    await tab.click();
+    await expect(tab).toContainClass('active');
+  });
+};
+
+/**
  * Open a request within a folder
  * @param page - The page object
  * @param folderName - The name of the folder
@@ -769,37 +902,78 @@ const sendRequestAndWaitForResponse = async (page: Page,
 const switchResponseFormat = async (page: Page, format: string) => {
   await test.step(`Switch response format to ${format}`, async () => {
     const responseFormatTab = page.getByTestId('format-response-tab');
+    await responseFormatTab.waitFor({ state: 'visible', timeout: 15000 });
     await responseFormatTab.click();
     // Wait for dropdown to be visible before clicking the format option
     const dropdown = page.getByTestId('format-response-tab-dropdown');
-    await dropdown.waitFor({ state: 'visible' });
+    try {
+      await dropdown.waitFor({ state: 'visible', timeout: 15000 });
+    } catch {
+      // If the dropdown didn't appear, try clicking the tab again before failing
+      await responseFormatTab.click();
+      await dropdown.waitFor({ state: 'visible', timeout: 15000 });
+    }
     await dropdown.getByText(format).click();
   });
 };
 
 /**
- * Switch to the preview tab
- * @param page - The page object
+ * Set the response pane's preview/editor mode idempotently.
+ *
+ * The underlying `preview-response-tab` element is a `<ToggleSwitch>` that
+ * flips between editor and preview on click — it has no "set to X" semantics.
+ * It also lives inside the dropdown that `format-response-tab` opens, so it's
+ * not interactable until that dropdown is visible. Naively clicking it twice
+ * (once per call) loses state if any click misses the toggle window, leaving
+ * downstream asserts looking at the wrong mode (e.g. expecting CodeMirror
+ * lines while preview is showing).
+ *
+ * Strategy: open the dropdown, read the toggle's current state from its
+ * `title` attribute (which reflects `selectedTab` in the source), and click
+ * only when the current state differs from the desired one.
+ */
+const setResponsePreviewMode = async (page: Page, mode: 'editor' | 'preview') => {
+  const responseFormatTab = page.getByTestId('format-response-tab');
+  await responseFormatTab.click();
+  const dropdown = page.getByTestId('format-response-tab-dropdown');
+  await dropdown.waitFor({ state: 'visible', timeout: 5000 });
+  const toggle = page.getByTestId('preview-response-tab');
+  // The toggle's `title` reflects current state (`Turn off|on Preview Mode`).
+  // Wait until it's actually one of those values — `getAttribute` returns
+  // `null` if read before React flushes props to DOM, which would mislead
+  // the state check below into thinking we're already in editor mode and
+  // skip the toggle click, leaving us stuck in preview.
+  await expect(toggle).toHaveAttribute('title', /^Turn (off|on) Preview Mode$/);
+  const isPreview = (await toggle.getAttribute('title')) === 'Turn off Preview Mode';
+  const wantPreview = mode === 'preview';
+  if (isPreview !== wantPreview) {
+    await toggle.click();
+  } else {
+    // Already in the desired mode — close the dropdown so subsequent
+    // interactions (format selection, asserts) aren't shadowed by it.
+    await responseFormatTab.click();
+  }
+  // Confirm the dropdown actually closed before returning. Otherwise a
+  // subsequent format-selector click can land in a half-open state and
+  // miss the next interaction.
+  await dropdown.waitFor({ state: 'hidden', timeout: 5000 });
+};
+
+/**
+ * Switch the response pane into preview mode (idempotent).
  */
 const switchToPreviewTab = async (page: Page) => {
   await test.step('Switch to preview tab', async () => {
-    const responseFormatTab = page.getByTestId('format-response-tab');
-    await responseFormatTab.click();
-    const previewTab = page.getByTestId('preview-response-tab');
-    await previewTab.click();
+    await setResponsePreviewMode(page, 'preview');
   });
 };
 
 /**
- * Switch to the editor tab
- * @param page - The page object
+ * Switch the response pane into editor mode (idempotent).
  */
 const switchToEditorTab = async (page: Page) => {
   await test.step('Switch to editor tab', async () => {
-    const responseFormatTab = page.getByTestId('format-response-tab');
-    await responseFormatTab.click();
-    const previewTab = page.getByTestId('preview-response-tab');
-    await previewTab.click();
+    await setResponsePreviewMode(page, 'editor');
   });
 };
 
@@ -812,37 +986,103 @@ const getResponseBody = async (page: Page): Promise<string> => {
   return await page.locator('.response-pane').innerText();
 };
 
+const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+const trySelectPaneTabOnce = async (page: Page, paneSelector: string, tabName: string) => {
+  const pane = page.locator(paneSelector);
+  const visibleTab = pane.locator('.tabs').getByRole('tab', { name: tabName });
+
+  if (await visibleTab.isVisible().catch(() => false)) {
+    try {
+      await visibleTab.click({ timeout: 2000 });
+      await expect(visibleTab).toContainClass('active', { timeout: 500 });
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  const overflowButton = pane.locator('.tabs .more-tabs');
+  if (!(await overflowButton.isVisible().catch(() => false))) {
+    return false;
+  }
+
+  try {
+    await overflowButton.click({ force: true, timeout: 1000 });
+  } catch {
+    return false;
+  }
+
+  const dropdownItem = page
+    .getByRole('menuitem', { name: new RegExp(escapeRegExp(tabName), 'i') })
+    .first();
+
+  if (await dropdownItem.isVisible({ timeout: 1500 }).catch(() => false)) {
+    try {
+      await dropdownItem.click({ force: true, timeout: 2000 });
+      await expect(visibleTab).toContainClass('active', { timeout: 500 });
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  const fallbackDropdownItem = page.locator('.tippy-box .dropdown-item').filter({ hasText: tabName }).first();
+  if (await fallbackDropdownItem.isVisible({ timeout: 1500 }).catch(() => false)) {
+    try {
+      await fallbackDropdownItem.click({ force: true, timeout: 2000 });
+      await expect(visibleTab).toContainClass('active', { timeout: 500 });
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  return false;
+};
+
 const selectPaneTab = async (page: Page, paneSelector: string, tabName: string) => {
   await test.step(`Select tab "${tabName}" in ${paneSelector}`, async () => {
     const pane = page.locator(paneSelector);
     await expect(pane).toBeVisible();
     await expect(pane.locator('.tabs')).toBeVisible();
 
+    // await expect
+    //   .poll(
+    //     async () => trySelectPaneTabOnce(page, paneSelector, tabName),
+    //     {
+    //       message: `Tab "${tabName}" not found in visible tabs or overflow dropdown`,
+    //       timeout: 8000,
+    //       intervals: [100, 150, 200, 250]
+    //     }
+    //   )
+    //   .toBe(true);
+
     const visibleTab = pane.locator('.tabs').getByRole('tab', { name: tabName });
-
-    // Check if tab is directly visible
-    if (await visibleTab.isVisible()) {
-      await visibleTab.click();
-      await expect(visibleTab).toContainClass('active');
-      return;
-    }
-
     const overflowButton = pane.locator('.tabs .more-tabs');
-    // Check if there's an overflow dropdown
-    if (await overflowButton.isVisible()) {
-      await overflowButton.click();
 
-      // Wait for dropdown to appear and click the menu item
-      const dropdownItem = page.locator('.tippy-box .dropdown-item').filter({ hasText: tabName });
-      await dropdownItem.waitFor({ state: 'visible' });
+    // ResponsiveTabs recalculates layout via ResizeObserver/rAF, so the tab or
+    // the overflow trigger can detach mid-click. Retry the whole sequence so a
+    // mid-action remount doesn't fail the test.
+    await expect(async () => {
+      if (await visibleTab.isVisible()) {
+        await visibleTab.click({ timeout: 2000 });
+        await expect(visibleTab).toContainClass('active', { timeout: 2000 });
+        return;
+      }
 
-      await page.waitForTimeout(50);
-      await dropdownItem.click({ force: true });
-      await expect(visibleTab).toContainClass('active');
-      return;
-    }
+      if (await overflowButton.isVisible()) {
+        await overflowButton.click({ timeout: 2000 });
 
-    throw new Error(`Tab "${tabName}" not found in visible tabs or overflow dropdown`);
+        const dropdownItem = page.locator('.tippy-box .dropdown-item').filter({ hasText: tabName });
+        await dropdownItem.waitFor({ state: 'visible', timeout: 2000 });
+        await dropdownItem.click({ force: true, timeout: 2000 });
+        await expect(visibleTab).toContainClass('active', { timeout: 2000 });
+        return;
+      }
+
+      throw new Error(`Tab "${tabName}" not found in visible tabs or overflow dropdown`);
+    }).toPass({ timeout: 15000 });
   });
 };
 
@@ -852,6 +1092,71 @@ const selectResponsePaneTab = async (page: Page, tabName: string) => {
 
 const selectRequestPaneTab = async (page: Page, tabName: string) => {
   await selectPaneTab(page, '[data-testid="request-pane"] > .px-4', tabName);
+};
+
+const selectRequestBodyMode = async (page: Page, mode: string) => {
+  await test.step(`Select request body mode "${mode}"`, async () => {
+    await selectRequestPaneTab(page, 'Body');
+    const locators = buildCommonLocators(page);
+    await locators.request.bodyModeSelector().click();
+    await locators.dropdown.item(mode).click();
+  });
+};
+
+const mockBrowseFiles = async (electronApp: ElectronApplication, filePaths: string[]) => {
+  await electronApp.evaluate(({ dialog }, selectedPaths: string[]) => {
+    const originalShowOpenDialog = dialog.showOpenDialog;
+    dialog.showOpenDialog = async (...args) => {
+      dialog.showOpenDialog = originalShowOpenDialog;
+      return {
+        canceled: false,
+        filePaths: selectedPaths
+      };
+    };
+  }, filePaths);
+};
+
+const addMultipartFileToLastRow = async (page: Page, electronApp: ElectronApplication, filePath: string) => {
+  await test.step(`Add multipart file "${path.basename(filePath)}"`, async () => {
+    await mockBrowseFiles(electronApp, [filePath]);
+
+    const table = buildCommonLocators(page).table('editable-table');
+    // The last row is the empty "add" row. Capture its index now, because once
+    // we set a file the table appends a new empty row — so `.last()` would jump
+    // to that new row instead of staying on the one we just filled.
+    const rowIndex = (await table.allRows().count()) - 1;
+    const targetRow = table.allRows().nth(rowIndex);
+
+    await expect(targetRow.locator('.upload-btn')).toBeVisible();
+    await targetRow.locator('.upload-btn').click();
+    await expect(targetRow.locator('.file-value-cell')).toBeVisible();
+    const inlineChip = targetRow.getByTestId('multipart-file-chip').filter({ hasText: path.basename(filePath) });
+    const summary = targetRow.getByTestId('multipart-file-summary');
+    await expect(inlineChip.or(summary)).toBeVisible();
+  });
+};
+
+const removeFirstMultipartFile = async (page: Page) => {
+  await test.step('Remove first multipart file', async () => {
+    const table = buildCommonLocators(page).table('editable-table');
+    const firstRow = table.allRows().first();
+    await expect(firstRow.locator('.file-value-cell')).toBeVisible();
+
+    const inlineRemove = firstRow.getByTestId('multipart-file-chip-remove').first();
+    const summary = firstRow.getByTestId('multipart-file-summary');
+
+    if (await inlineRemove.count() > 0) {
+      await inlineRemove.click();
+    } else {
+      await expect(summary).toBeVisible();
+      await summary.click();
+      const overflowRemove = page.getByTestId('multipart-file-overflow-remove').first();
+      await expect(overflowRemove).toBeVisible();
+      await overflowRemove.click();
+    }
+    await expect(firstRow.locator('.file-value-cell')).toHaveCount(0);
+    await expect(firstRow.locator('.value-cell')).toBeVisible();
+  });
 };
 
 /**
@@ -884,8 +1189,9 @@ const clickResponseAction = async (page: Page, actionTestId: string) => {
   if (await actionButton.isVisible()) {
     await actionButton.click();
   } else {
-    // Open the menu dropdown
+    // Open the menu dropdown (wait for response pane to fully render)
     const menu = page.getByTestId('response-actions-menu');
+    await menu.waitFor({ state: 'visible', timeout: 15000 });
     await menu.click();
 
     // Click the corresponding menu item
@@ -1037,6 +1343,44 @@ const saveRequest = async (page: Page) => {
 };
 
 /**
+ * Click the gRPC "Add Message" button to append a new message to the request
+ * @param page - The page object
+ */
+const addGrpcMessage = async (page: Page) => {
+  await test.step('Add gRPC message', async () => {
+    const locators = buildGrpcCommonLocators(page);
+    await locators.request.addMessageButton().click();
+  });
+};
+
+/**
+ * Click the "Generate sample" button on a gRPC message to populate it with a sample payload
+ * @param page - The page object
+ * @param index - The 0-based index of the message (default: 0)
+ */
+const generateGrpcSampleMessage = async (page: Page, index: number = 0) => {
+  await test.step(`Generate sample for gRPC message #${index}`, async () => {
+    const locators = buildGrpcCommonLocators(page);
+    await locators.request.regenerateMessage(index).click();
+  });
+};
+
+/**
+ * Open the gRPC method dropdown and select a method by name
+ * @param page - The page object
+ * @param methodName - The name of the gRPC method to select (e.g. "BidiHello")
+ */
+const selectGrpcMethod = async (page: Page, methodName: string) => {
+  await test.step(`Select gRPC method "${methodName}"`, async () => {
+    const locators = buildGrpcCommonLocators(page);
+    await locators.method.dropdownTrigger().click();
+    await locators.method.dropdown().waitFor({ state: 'visible', timeout: 5000 });
+    await locators.method.item(methodName).first().click();
+    await expect(locators.method.selectedName()).toContainText(methodName);
+  });
+};
+
+/**
  * Close all open request tabs using the right-click context menu
  * @param page - The page object
  * @returns void
@@ -1173,6 +1517,58 @@ const addTestScript = async (page: Page, content: string) => {
 };
 
 /**
+ * Add a script to a folder's Settings → Script tab.
+ * @param page - The page object
+ * @param folderName - The folder to target (must be visible in the sidebar)
+ * @param phase - Which phase to write: 'pre-request' or 'post-response'
+ * @param content - The script content to add
+ */
+const addFolderScript = async (
+  page: Page,
+  folderName: string,
+  phase: 'pre-request' | 'post-response',
+  content: string
+) => {
+  await test.step(`Add ${phase} script on folder "${folderName}"`, async () => {
+    const locators = buildCommonLocators(page);
+    await locators.sidebar.folder(folderName).first().dblclick();
+    await locators.paneTabs.folderSettingsTab('script').click();
+    await locators.paneTabs.tabTrigger(phase).click();
+    await editCodeMirrorEditor(page, `folder-${phase}-script-editor`, content);
+    const saveShortcut = process.platform === 'darwin' ? 'Meta+s' : 'Control+s';
+    await page.keyboard.press(saveShortcut);
+    await page.waitForTimeout(400);
+  });
+};
+
+/**
+ * Add a script to a collection's Settings → Script tab.
+ * @param page - The page object
+ * @param collectionName - The collection to target
+ * @param phase - Which phase to write: 'pre-request' or 'post-response'
+ * @param content - The script content to add
+ */
+const addCollectionScript = async (
+  page: Page,
+  collectionName: string,
+  phase: 'pre-request' | 'post-response',
+  content: string
+) => {
+  await test.step(`Add ${phase} script on collection "${collectionName}"`, async () => {
+    const locators = buildCommonLocators(page);
+    await locators.sidebar.collection(collectionName).hover();
+    await locators.actions.collectionActions(collectionName).click();
+    await locators.dropdown.item('Settings').click();
+    await locators.paneTabs.collectionSettingsTab('script').click();
+    await locators.paneTabs.tabTrigger(phase).click();
+    await editCodeMirrorEditor(page, `collection-${phase}-script-editor`, content);
+    const saveShortcut = process.platform === 'darwin' ? 'Meta+s' : 'Control+s';
+    await page.keyboard.press(saveShortcut);
+    await page.waitForTimeout(400);
+  });
+};
+
+/**
  * Click send and wait for at least one error card to appear.
  * @param page - The page object
  */
@@ -1198,7 +1594,257 @@ const sendAndWaitForResponse = async (page: Page) => {
   });
 };
 
+const fieldEditor = (page: Page, labelText: string) =>
+  page
+    .locator('label')
+    .filter({ hasText: new RegExp(`^${escapeRegExp(labelText)}$`) })
+    .locator('..')
+    .locator('.single-line-editor-wrapper .CodeMirror');
+
+/**
+ * Open the auth mode dropdown and pick a mode by its visible label.
+ * @param page - The page object
+ * @param modeLabel - Dropdown item text (e.g. 'Bearer Token', 'Basic Auth')
+ */
+const selectAuthMode = async (page: Page, modeLabel: string) => {
+  await page.locator('.auth-mode-label').click();
+  await page.locator('.dropdown-item').filter({ hasText: modeLabel }).click();
+};
+
+/**
+ * Type into a single-line CodeMirror editor identified by its sibling label.
+ * @param page - The page object
+ * @param labelText - Exact label text next to the editor
+ * @param value - The text to type
+ */
+const typeIntoField = async (page: Page, labelText: string, value: string) => {
+  await fieldEditor(page, labelText).click();
+  await page.keyboard.type(value);
+};
+
+/**
+ * Read the current value of a single-line CodeMirror editor identified by its sibling label.
+ * @param page - The page object
+ * @param labelText - Exact label text next to the editor
+ */
+const readField = async (page: Page, labelText: string): Promise<string> => {
+  const editor = fieldEditor(page, labelText).first();
+  await editor.waitFor({ state: 'visible' });
+  return editor.evaluate((el: any) => (el as any).CodeMirror?.getValue() ?? '');
+};
+
+const createExampleFromSidebar = async (page: Page, requestName: string, exampleName: string, description: string = '') => {
+  const requestRow = page.locator('.collection-item-name').filter({ hasText: requestName }).first();
+
+  await requestRow.hover();
+  await requestRow.locator('..').locator('.menu-icon').click({ force: true });
+  await page.locator('.dropdown-item').filter({ hasText: 'Create Example' }).click();
+
+  const exampleInput = page.getByTestId('create-example-name-input');
+  await expect(exampleInput).toBeVisible();
+  await exampleInput.clear();
+  await exampleInput.fill(exampleName);
+  const descriptionInput = page.getByTestId('create-example-description-input');
+  await descriptionInput.clear();
+  await descriptionInput.fill(description);
+  await page.getByRole('button', { name: 'Create Example' }).click();
+  await expect(page.locator('text=Create Response Example')).not.toBeAttached();
+};
+
+const openExampleFromSidebar = async (page: Page, requestName: string, exampleName: string, index: number = 0) => {
+  const requestRow = page.locator('.collection-item-name').filter({ hasText: requestName }).first();
+  const requestBranch = requestRow.locator('..');
+  const exampleRow = requestBranch
+    .locator('.collection-item-name')
+    .filter({ has: page.locator('.example-icon') })
+    .getByText(exampleName, { exact: true })
+    .nth(index);
+
+  if (!(await exampleRow.isVisible())) {
+    await requestRow.getByTestId('request-item-chevron').click();
+  }
+
+  await expect(exampleRow).toBeVisible();
+  await exampleRow.click();
+};
+
+/**
+ * Open the Generate Code dialog and return the visible snippet text.
+ * @param page - The page object
+ * @returns The text content of the generated code snippet
+ */
+const getGeneratedSnippet = async (page: Page): Promise<string> => {
+  return await test.step('Open Generate Code dialog and read snippet', async () => {
+    const { request } = buildCommonLocators(page);
+
+    await request.generateCodeButton().click();
+    await expect(page.getByRole('dialog')).toBeVisible();
+
+    const codeEditor = page.locator('.editor-content .CodeMirror').first();
+    await expect(codeEditor).toBeVisible();
+
+    return (await codeEditor.textContent()) ?? '';
+  });
+};
+
+/**
+ * Close the Generate Code dialog and wait for it to disappear.
+ * @param page - The page object
+ * @returns void
+ */
+const closeGenerateCodeDialog = async (page: Page) => {
+  await test.step('Close Generate Code dialog', async () => {
+    const { modal } = buildCommonLocators(page);
+    await modal.closeButton().click();
+    await modal.closeButton().waitFor({ state: 'hidden' });
+  });
+};
+
+/**
+ * Open a request inside a folder by exact request name.
+ * @param page - The page object
+ * @param folderName - The name of the folder containing the request
+ * @param requestName - The exact name of the request to open
+ * @returns void
+ */
+const openRequestInFolder = async (page: Page, folderName: string, requestName: string) => {
+  await test.step(`Open request "${requestName}" in folder "${folderName}"`, async () => {
+    const { sidebar } = buildCommonLocators(page);
+    await sidebar.folder(folderName).click();
+
+    const folderWrapper = page.locator('.collection-item-name').filter({ hasText: folderName }).locator('..');
+    const escapedName = requestName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const requestRow = folderWrapper.locator('.collection-item-name').filter({
+      has: page.locator('.item-name').filter({ hasText: new RegExp(`^${escapedName}$`) })
+    });
+    await requestRow.click();
+  });
+};
+
+/**
+ * Toggle the URL encoding setting on the current request idempotently.
+ * @param page - The page object
+ * @param enabled - Whether URL encoding should be enabled
+ * @returns void
+ */
+const setUrlEncoding = async (page: Page, enabled: boolean) => {
+  await test.step(`Set URL encoding ${enabled ? 'ON' : 'OFF'}`, async () => {
+    await selectRequestPaneTab(page, 'Settings');
+    const toggle = page.getByTestId('encode-url-toggle');
+    await expect(toggle).toBeVisible();
+    const current = (await toggle.getAttribute('aria-checked')) === 'true';
+    if (current !== enabled) {
+      await toggle.click();
+      await expect(toggle).toHaveAttribute('aria-checked', String(enabled));
+    }
+  });
+};
+
+type DialogOptions = {
+  showOpenDialog: () => Promise<{ canceled: boolean; filePaths: string[] }>;
+};
+
+const openWorkspaceFromDialog = async (app: any, page: any, targetPath: string) => {
+  await app.evaluate(
+    ({ dialog }: { dialog: DialogOptions }, workspacePath: string) => {
+      dialog.showOpenDialog = () =>
+        Promise.resolve({ canceled: false, filePaths: [workspacePath] });
+    },
+    targetPath
+  );
+
+  await page.getByTestId('workspace-menu').click();
+  await page.locator('.dropdown-item').filter({ hasText: 'Open workspace' }).click();
+};
+
+/**
+ * Trigger "Generate Docs" from a collection's sidebar context menu and capture
+ * the generated HTML documentation.
+ *
+ * The GenerateDocumentation modal hands the file to `FileSaver.saveAs`, which
+ * builds an in-memory Blob and saves it via an `<a download>` click rather than
+ * an Electron IPC write. Electron doesn't surface that as a Playwright
+ * `download` event, so instead we intercept it in the renderer: `URL.createObjectURL`
+ * gives us the Blob's content, and overriding the anchor click captures the
+ * suggested file name while suppressing the real save (no file leaks to disk).
+ *
+ * @param page - The page object
+ * @param collectionName - The name of the collection to generate docs for
+ * @returns The generated HTML content and the download's suggested file name
+ */
+const generateCollectionDocs = async (
+  page: Page,
+  collectionName: string
+): Promise<{ content: string; fileName: string }> => {
+  return await test.step(`Generate docs for collection "${collectionName}"`, async () => {
+    const locators = buildCommonLocators(page);
+
+    // Make sure the collection has finished mounting before interacting — on a
+    // cold start the row (and its hover-revealed actions icon) isn't ready yet,
+    // so this keeps the helper self-sufficient for any caller.
+    await waitForCollectionMount(page, collectionName);
+
+    // Open the collection's context menu and click "Generate Docs"
+    await locators.sidebar.collection(collectionName).hover();
+    const collectionAction = locators.actions.collectionActions(collectionName);
+    await expect(collectionAction).toBeVisible({ timeout: 2000 });
+    await collectionAction.click();
+    await locators.generateDocs.menuItem().click();
+
+    // Wait for the Generate Documentation modal to reach its ready (non-loading)
+    // state — the confirm button reads "Loading..." while the collection's items
+    // are still mounting and only becomes "Generate" once they are ready.
+    const modal = locators.generateDocs.modal();
+    await expect(modal).toBeVisible({ timeout: 5000 });
+    const generateButton = locators.generateDocs.generateButton();
+    await expect(generateButton).toBeEnabled({ timeout: 10000 });
+
+    // Arm the renderer-side interception before the save fires. `file-saver`
+    // (v2) reads the Blob through `URL.createObjectURL` and then triggers the
+    // save by dispatching a synthetic click on a detached `<a download>` (via
+    // `setTimeout(…, 0)`), so both points are intercepted. Each is exposed as a
+    // promise to absorb that deferred dispatch without a race.
+    await page.evaluate(() => {
+      const w = window as any;
+      const originalCreate = URL.createObjectURL.bind(URL);
+      const originalDispatch = HTMLAnchorElement.prototype.dispatchEvent;
+
+      w.__docsContent = new Promise<string>((resolve) => {
+        URL.createObjectURL = function (obj: Blob | MediaSource) {
+          if (obj instanceof Blob) {
+            obj.text().then(resolve);
+          }
+          return originalCreate(obj as Blob);
+        };
+      });
+
+      w.__docsFileName = new Promise<string>((resolve) => {
+        HTMLAnchorElement.prototype.dispatchEvent = function (this: HTMLAnchorElement, event: Event) {
+          if (this.download && event && event.type === 'click') {
+            resolve(this.download);
+            // Suppress the actual save — the Blob content is already captured.
+            return true;
+          }
+          return originalDispatch.call(this, event);
+        };
+      });
+    });
+
+    await generateButton.click();
+
+    const content = await page.evaluate(() => (window as any).__docsContent as Promise<string>);
+    const fileName = await page.evaluate(() => (window as any).__docsFileName as Promise<string>);
+
+    // The modal closes itself on the success path.
+    await expect(modal).toBeHidden({ timeout: 5000 });
+
+    return { content, fileName };
+  });
+};
+
 export {
+  waitForReadyPage,
+  dismissImportIssuesToasts,
   closeAllCollections,
   openCollection,
   createCollection,
@@ -1220,11 +1866,17 @@ export {
   selectEnvironment,
   sendRequest,
   openRequest,
+  openfolder,
   openFolderRequest,
+  selectfolderPaneTab,
   getResponseBody,
   expectResponseContains,
   selectRequestPaneTab,
+  selectRequestBodyMode,
   selectResponsePaneTab,
+  mockBrowseFiles,
+  addMultipartFileToLastRow,
+  removeFirstMultipartFile,
   sendRequestAndWaitForResponse,
   switchResponseFormat,
   switchToPreviewTab,
@@ -1234,6 +1886,9 @@ export {
   editAssertion,
   deleteAssertion,
   saveRequest,
+  addGrpcMessage,
+  generateGrpcSampleMessage,
+  selectGrpcMethod,
   closeAllTabs,
   createWorkspace,
   switchWorkspace,
@@ -1242,8 +1897,22 @@ export {
   addPreRequestScript,
   addPostResponseScript,
   addTestScript,
+  addFolderScript,
+  addCollectionScript,
+  expandFolder,
   sendAndWaitForErrorCard,
-  sendAndWaitForResponse
+  sendAndWaitForResponse,
+  selectAuthMode,
+  typeIntoField,
+  readField,
+  createExampleFromSidebar,
+  openExampleFromSidebar,
+  openWorkspaceFromDialog,
+  getGeneratedSnippet,
+  closeGenerateCodeDialog,
+  openRequestInFolder,
+  setUrlEncoding,
+  generateCollectionDocs
 };
 
 export type { SandboxMode, EnvironmentType, EnvironmentVariable, ImportCollectionOptions, CreateRequestOptions, CreateUntitledRequestOptions, CreateTransientRequestOptions, AssertionInput };

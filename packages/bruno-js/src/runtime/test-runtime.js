@@ -8,6 +8,7 @@ const { runScriptInNodeVm } = require('../sandbox/node-vm');
 const jsonwebtoken = require('jsonwebtoken');
 const { executeQuickJsVmAsync } = require('../sandbox/quickjs');
 const { SANDBOX } = require('../utils/sandbox');
+const { bindRunRequest, createScopeSetter } = require('./scripted-entries');
 
 class TestRuntime {
   constructor(props) {
@@ -77,7 +78,8 @@ class TestRuntime {
       expect: chai.expect,
       assert: chai.assert,
       __brunoTestResults: __brunoTestResults,
-      jwt: jsonwebtoken
+      jwt: jsonwebtoken,
+      __bruSetScope: createScopeSetter(bru)
     };
 
     if (onConsoleLog && typeof onConsoleLog === 'function') {
@@ -95,9 +97,7 @@ class TestRuntime {
       };
     }
 
-    if (runRequestByItemPathname) {
-      context.bru.runRequest = runRequestByItemPathname;
-    }
+    bindRunRequest(bru, runRequestByItemPathname);
 
     let scriptError = null;
 
@@ -131,7 +131,8 @@ class TestRuntime {
       persistentEnvVariables: cleanJson(bru.persistentEnvVariables),
       oauth2CredentialsToReset: bru.oauth2CredentialsToReset,
       results: cleanJson(__brunoTestResults.getResults()),
-      nextRequestName: bru.nextRequest
+      nextRequestName: bru.nextRequest,
+      scriptedRequestEntries: cleanJson(bru.scriptedRequestEntries || [])
     };
 
     if (scriptError) {

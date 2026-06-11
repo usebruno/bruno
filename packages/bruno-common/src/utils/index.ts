@@ -1,8 +1,10 @@
 export {
+  hasExplicitScheme,
   encodeUrl,
   parseQueryParams,
   buildQueryString,
-  stripOrigin
+  stripOrigin,
+  safeDecodeURIComponent
 } from './url';
 
 export {

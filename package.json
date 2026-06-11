@@ -32,6 +32,7 @@
     "@storybook/react-webpack5": "^10.1.10",
     "@stylistic/eslint-plugin": "^5.3.1",
     "@types/jest": "^29.5.11",
+    "@types/js-yaml": "^4.0.9",
     "@types/lodash-es": "^4.17.12",
     "@types/node": "^22.14.1",
     "@typescript-eslint/parser": "^8.39.0",
@@ -80,9 +81,10 @@
     "watch:common": "npm run watch --workspace=packages/bruno-common",
     "watch:requests": "npm run watch --workspace=packages/bruno-requests",
     "test:codegen": "node playwright/codegen.ts",
-    "test:e2e": "playwright test --project=default",
+    "test:e2e": "playwright test --project=default --project=system-pac",
     "test:e2e:ssl": "playwright test --project=ssl",
     "test:e2e:auth": "playwright test --project=auth",
+    "test:benchmark": "playwright test --config=playwright.benchmark.config.ts",
     "lint": "cross-env NODE_OPTIONS=\"--max_old_space_size=4096\" npx eslint",
     "lint:fix": "cross-env NODE_OPTIONS=\"--max_old_space_size=4096\" npx eslint --fix",
     "prepare": "husky"
@@ -93,9 +95,9 @@
     ]
   },
   "overrides": {
-    "axios":"1.13.6",
+    "axios": "1.13.6",
     "rollup": "3.30.0",
-    "pbkdf2":"3.1.5",
+    "pbkdf2": "3.1.5",
     "electron-store": {
       "conf": {
         "json-schema-typed": "8.0.1"

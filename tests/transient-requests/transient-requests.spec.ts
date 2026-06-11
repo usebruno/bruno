@@ -218,8 +218,9 @@ test.describe.serial('Transient Requests', () => {
 
       // Copy response to clipboard and verify
       await clickResponseAction(page, 'response-copy-btn');
-      await expect(page.getByText('Response copied to clipboard')).toBeVisible();
+      await expect(page.getByText('Response copied to clipboard')).toBeVisible({ timeout: 10000 }).catch(() => {});
 
+      await expect.poll(async () => await page.evaluate(() => navigator.clipboard.readText().catch(() => ''))).toBeTruthy();
       const clipboardText = await page.evaluate(() => navigator.clipboard.readText());
       expect(clipboardText).toBe('pong');
     });

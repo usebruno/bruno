@@ -45,7 +45,8 @@ export const fromOpenCollectionWebsocketItem = (item: WebSocketRequest): BrunoIt
         wsMessages.push({
           name: m.title || `message ${index + 1}`,
           type: m.message?.type || 'json',
-          content: m.message?.data || ''
+          content: m.message?.data || '',
+          selected: m.selected || false
         });
       });
     }
@@ -125,6 +126,7 @@ export const toOpenCollectionWebsocketItem = (item: BrunoItem): WebSocketRequest
     } else {
       websocket.message = messages.map((msg): WebSocketMessageVariant => ({
         title: msg.name || 'Untitled',
+        ...(msg.selected ? { selected: true } : {}),
         message: {
           type: (msg.type as WebSocketMessage['type']) || 'json',
           data: msg.content || ''

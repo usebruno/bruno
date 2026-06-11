@@ -143,13 +143,16 @@ class ApiSpecWatcher {
   }
 
   closeAllWatchers() {
+    const pending = [];
     for (const [watchPath, watcher] of Object.entries(this.watchers)) {
       try {
-        watcher?.close();
+        const result = watcher?.close();
+        if (result && typeof result.then === 'function') pending.push(result);
       } catch (err) {}
     }
     this.watchers = {};
     this.watcherWorkspaces = {};
+    return Promise.allSettled(pending);
   }
 }
 

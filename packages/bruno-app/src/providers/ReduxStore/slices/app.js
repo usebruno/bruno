@@ -59,6 +59,15 @@ const initialState = {
       sslSession: {
         enabled: false
       }
+    },
+    ai: {
+      enabled: false,
+      providers: {
+        openai: { enabled: false },
+        anthropic: { enabled: false }
+      },
+      models: {},
+      defaultModel: ''
     }
   },
   generateCode: {
@@ -375,6 +384,13 @@ export const clearHttpHttpsAgentCache = () => () => {
   return new Promise((resolve, reject) => {
     const { ipcRenderer } = window;
     ipcRenderer.invoke('renderer:clear-http-https-agent-cache').then(resolve).catch(reject);
+  });
+};
+
+export const refreshPacCache = () => () => {
+  return new Promise((resolve, reject) => {
+    const { ipcRenderer } = window;
+    ipcRenderer.invoke('renderer:refresh-pac-cache').then(resolve).catch(reject);
   });
 };
 

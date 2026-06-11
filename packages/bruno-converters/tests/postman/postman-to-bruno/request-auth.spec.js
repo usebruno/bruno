@@ -26,7 +26,7 @@ describe('Request Authentication', () => {
       ]
     };
 
-    const result = await postmanToBruno(postmanCollection);
+    const { collection: result } = await postmanToBruno(postmanCollection);
 
     expect(result.items[0].request.auth).toEqual({
       mode: 'basic',
@@ -69,7 +69,7 @@ describe('Request Authentication', () => {
       ]
     };
 
-    const result = await postmanToBruno(postmanCollection);
+    const { collection: result } = await postmanToBruno(postmanCollection);
 
     expect(result.items[0].items[0].request.auth).toEqual({
       mode: 'inherit',
@@ -110,7 +110,7 @@ describe('Request Authentication', () => {
       ]
     };
 
-    const result = await postmanToBruno(postmanCollection);
+    const { collection: result } = await postmanToBruno(postmanCollection);
 
     expect(result.items[0].items[0].request.auth).toEqual({
       mode: 'inherit',
@@ -156,7 +156,7 @@ describe('Request Authentication', () => {
       ]
     };
 
-    const result = await postmanToBruno(postmanCollection);
+    const { collection: result } = await postmanToBruno(postmanCollection);
 
     // Check folder first
     expect(result.items[0].root.request.auth).toEqual({
@@ -199,7 +199,7 @@ describe('Request Authentication', () => {
       ]
     };
 
-    const result = await postmanToBruno(postmanCollection);
+    const { collection: result } = await postmanToBruno(postmanCollection);
 
     expect(result.items[0].items[0].request.auth).toEqual({
       mode: 'none', // <<<< KEY CHECK
@@ -250,7 +250,7 @@ describe('Request Authentication', () => {
       ]
     };
 
-    const result = await postmanToBruno(postmanCollection);
+    const { collection: result } = await postmanToBruno(postmanCollection);
 
     // Check Folder Level 1
     expect(result.items[0].root.request.auth).toEqual({
@@ -311,7 +311,7 @@ describe('Request Authentication', () => {
       ]
     };
 
-    const result = await postmanToBruno(postmanCollection);
+    const { collection: result } = await postmanToBruno(postmanCollection);
 
     // Check Folder Level 1
     expect(result.items[0].root.request.auth).toEqual({
@@ -366,7 +366,7 @@ describe('Request Authentication', () => {
       ]
     };
 
-    const result = await postmanToBruno(postmanCollection);
+    const { collection: result } = await postmanToBruno(postmanCollection);
 
     expect(result.items[0].request.auth).toEqual({
       mode: 'oauth1',
@@ -428,7 +428,7 @@ describe('Request Authentication', () => {
       ]
     };
 
-    const result = await postmanToBruno(postmanCollection);
+    const { collection: result } = await postmanToBruno(postmanCollection);
 
     expect(result.items[0].request.auth.mode).toBe('oauth1');
     expect(result.items[0].request.auth.oauth1.placement).toBe('header');
@@ -471,7 +471,7 @@ describe('Request Authentication', () => {
       ]
     };
 
-    const result = await postmanToBruno(postmanCollection);
+    const { collection: result } = await postmanToBruno(postmanCollection);
 
     expect(result.items[0].request.auth.mode).toBe('oauth1');
     expect(result.items[0].request.auth.oauth1.signatureMethod).toBe('RSA-SHA1');
@@ -508,7 +508,7 @@ describe('Request Authentication', () => {
       ]
     };
 
-    const result = await postmanToBruno(postmanCollection);
+    const { collection: result } = await postmanToBruno(postmanCollection);
 
     // Collection root should have oauth1
     expect(result.root.request.auth.mode).toBe('oauth1');
@@ -560,7 +560,7 @@ describe('Request Authentication', () => {
       ]
     };
 
-    const result = await postmanToBruno(postmanCollection);
+    const { collection: result } = await postmanToBruno(postmanCollection);
 
     // Check Folder Level 1
     expect(result.items[0].root.request.auth).toEqual({
@@ -578,6 +578,69 @@ describe('Request Authentication', () => {
     expect(result.items[0].items[0].items[0].request.auth).toEqual({
       mode: 'inherit', // Inherits from Folder 1
       basic: null, bearer: null, awsv4: null, apikey: null, oauth2: null, digest: null, oauth1: null
+    });
+  });
+
+  describe('API Key Auth placement', () => {
+    const buildApiKeyCollection = (apikey) => ({
+      info: {
+        name: 'API Key Collection',
+        schema: 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json'
+      },
+      item: [
+        {
+          name: 'API Key Request',
+          request: {
+            method: 'GET',
+            url: 'https://api.example.com/test',
+            auth: { type: 'apikey', apikey }
+          }
+        }
+      ]
+    });
+
+    it('should map Postman in=query to Bruno placement=queryparams', async () => {
+      const postmanCollection = buildApiKeyCollection([
+        { key: 'key', value: 'X-API-Key' },
+        { key: 'value', value: 'secret-token' },
+        { key: 'in', value: 'query' }
+      ]);
+
+      const { collection: result } = await postmanToBruno(postmanCollection);
+
+      expect(result.items[0].request.auth.mode).toBe('apikey');
+      expect(result.items[0].request.auth.apikey).toEqual({
+        key: 'X-API-Key',
+        value: 'secret-token',
+        placement: 'queryparams'
+      });
+    });
+
+    it('should map Postman in=header to Bruno placement=header', async () => {
+      const postmanCollection = buildApiKeyCollection([
+        { key: 'key', value: 'X-API-Key' },
+        { key: 'value', value: 'secret-token' },
+        { key: 'in', value: 'header' }
+      ]);
+
+      const { collection: result } = await postmanToBruno(postmanCollection);
+
+      expect(result.items[0].request.auth.apikey).toEqual({
+        key: 'X-API-Key',
+        value: 'secret-token',
+        placement: 'header'
+      });
+    });
+
+    it('should default placement to header when Postman in is absent', async () => {
+      const postmanCollection = buildApiKeyCollection([
+        { key: 'key', value: 'X-API-Key' },
+        { key: 'value', value: 'secret-token' }
+      ]);
+
+      const { collection: result } = await postmanToBruno(postmanCollection);
+
+      expect(result.items[0].request.auth.apikey.placement).toBe('header');
     });
   });
 });

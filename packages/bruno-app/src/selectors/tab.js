@@ -12,7 +12,11 @@ export const getTabUidForItem = ({ itemUid, itemPathname, collectionUid }) => cr
     return null;
   }
 
-  const tabByPathname = tabs.find((tab) => tab.pathname === itemPathname && (!collectionUid || tab.collectionUid === collectionUid));
+  const tabByPathname = tabs.find((tab) => (
+    tab.type !== 'response-example'
+    && tab.pathname === itemPathname
+    && (!collectionUid || tab.collectionUid === collectionUid)
+  ));
   return tabByPathname?.uid || null;
 });
 
@@ -41,7 +45,7 @@ export const isTabForItemActive = ({ itemUid, itemPathname, collectionUid }) => 
     return false;
   }
 
-  return activeTab.pathname === itemPathname;
+  return activeTab.type !== 'response-example' && activeTab.pathname === itemPathname;
 });
 
 export const isTabForItemPresent = ({ itemUid, itemPathname, collectionUid }) => createSelector([
@@ -51,5 +55,5 @@ export const isTabForItemPresent = ({ itemUid, itemPathname, collectionUid }) =>
     return false;
   }
 
-  return tab.uid === itemUid || (itemPathname && tab.pathname === itemPathname);
+  return tab.uid === itemUid || (itemPathname && tab.type !== 'response-example' && tab.pathname === itemPathname);
 }));

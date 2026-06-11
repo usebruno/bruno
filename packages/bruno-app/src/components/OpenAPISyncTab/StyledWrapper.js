@@ -687,7 +687,7 @@ const StyledWrapper = styled.div`
       background: ${(props) => props.theme.colors.text.muted};
 
       &.active {
-        background: ${(props) => props.theme.colors.text.green};
+        background: ${(props) => props.theme.button2.color.primary.bg};
       }
 
       .toggle-knob {
@@ -724,9 +724,9 @@ const StyledWrapper = styled.div`
         transition: all 0.15s;
 
         &.active {
-          border-color: ${(props) => props.theme.button2.color.primary.border};
-          background: ${(props) => props.theme.button2.color.primary.bg};
-          color: ${(props) => props.theme.button2.color.primary.text};
+          border-color: ${(props) => props.theme.accents.primary};
+          background: ${(props) => rgba(props.theme.accents.primary, 0.07)};
+          color: ${(props) => props.theme.accents.primary};
         }
       }
     }

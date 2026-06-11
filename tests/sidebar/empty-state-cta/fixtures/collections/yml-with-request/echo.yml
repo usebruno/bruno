@@ -1,0 +1,8 @@
+info:
+  name: yml-echo
+  type: http
+  seq: 1
+
+http:
+  method: GET
+  url: https://echo.usebruno.com

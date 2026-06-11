@@ -45,6 +45,7 @@ const registerWorkspaceIpc = require('./ipc/workspace');
 const registerApiSpecIpc = require('./ipc/apiSpec');
 const registerGitIpc = require('./ipc/git');
 const registerOpenAPISyncIpc = require('./ipc/openapi-sync');
+const registerAiIpc = require('./ipc/ai');
 const collectionWatcher = require('./app/collection-watcher');
 const WorkspaceWatcher = require('./app/workspace-watcher');
 const ApiSpecWatcher = require('./app/apiSpecsWatcher');
@@ -123,11 +124,11 @@ const focusMainWindow = () => {
   }
 };
 
-const closeAllWatchers = () => {
-  collectionWatcher.closeAllWatchers();
-  workspaceWatcher.closeAllWatchers();
-  apiSpecWatcher.closeAllWatchers();
-};
+const closeAllWatchers = () => Promise.allSettled([
+  collectionWatcher.closeAllWatchers(),
+  workspaceWatcher.closeAllWatchers(),
+  apiSpecWatcher.closeAllWatchers()
+]);
 
 // Parse protocol URL from command line arguments (if any)
 appProtocolUrl = getAppProtocolUrlFromArgv(process.argv);
@@ -273,6 +274,10 @@ app.on('ready', async () => {
   ipcMain.handle('renderer:window-is-maximized', () => {
     if (!isWindows && !isLinux) return false;
     return mainWindow.isMaximized();
+  });
+
+  ipcMain.handle('renderer:window-is-fullscreen', () => {
+    return mainWindow.isFullScreen();
   });
 
   ipcMain.handle('renderer:open-preferences', () => {
@@ -471,30 +476,55 @@ app.on('ready', async () => {
   registerSystemMonitorIpc(mainWindow, systemMonitor);
   registerGitIpc(mainWindow);
   registerOpenAPISyncIpc(mainWindow);
+  registerAiIpc(mainWindow);
+
+  // Internal delegator
+  ipcMain.handle('main:cache-clear', async () => {
+    ipcMain.emit('internal:snapshot:reset');
+  });
 });
 
-// Quit the app once all windows are closed
-app.on('before-quit', () => {
-  closeAllWatchers();
-  // Release single instance lock to allow other instances to take over
-  if (useSingleInstance && gotTheLock) {
-    app.releaseSingleInstanceLock();
-  }
+// Quit the app once all windows are closed.
+//
+// We defer the actual exit until async cleanup (chokidar fsevents handles)
+// finishes, otherwise the main process exits while native watcher cleanup
+// is mid-flight, and Chromium helper processes can detect the broken IPC
+// channel and abort(), producing the macOS "quit unexpectedly" dialog.
+let quitInProgress = false;
+app.on('before-quit', (event) => {
+  if (quitInProgress) return;
+  quitInProgress = true;
+  event.preventDefault();
 
-  try {
-    cookiesStore.saveCookieJar(true);
-  } catch (err) {
-    console.warn('Failed to flush cookies on quit', err);
-  }
+  (async () => {
+    try {
+      await Promise.race([
+        closeAllWatchers(),
+        // Cap the wait so a stuck watcher can't block exit indefinitely.
+        new Promise((resolve) => setTimeout(resolve, 2000))
+      ]);
+    } catch {}
 
-  // Stop system monitoring
-  systemMonitor.stop();
+    if (useSingleInstance && gotTheLock) {
+      try { app.releaseSingleInstanceLock(); } catch {}
+    }
 
-  try {
-    terminalManager.killAll();
-  } catch (err) {
-    console.error('Failed to kill all terminals on quit', err);
-  }
+    try {
+      cookiesStore.saveCookieJar(true);
+    } catch (err) {
+      console.warn('Failed to flush cookies on quit', err);
+    }
+
+    systemMonitor.stop();
+
+    try {
+      terminalManager.killAll();
+    } catch (err) {
+      console.error('Failed to kill all terminals on quit', err);
+    }
+
+    app.exit(0);
+  })();
 });
 
 app.on('window-all-closed', app.quit);

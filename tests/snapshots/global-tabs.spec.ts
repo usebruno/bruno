@@ -3,7 +3,8 @@ import {
   createCollection,
   createRequest,
   openRequest,
-  createEnvironment
+  createEnvironment,
+  waitForReadyPage
 } from '../utils/page';
 import { buildCommonLocators } from '../utils/page/locators';
 
@@ -13,9 +14,8 @@ test.describe('Snapshot: Global Tab Restoration', () => {
     const colPath = await createTmpDir('col');
 
     const app = await launchElectronApp({ userDataPath });
-    const page = await app.firstWindow();
+    const page = await waitForReadyPage(app);
     const locators = buildCommonLocators(page);
-    await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
 
     await test.step('Create collection and open singleton tabs', async () => {
       await createCollection(page, 'TestCol', colPath);
@@ -36,8 +36,7 @@ test.describe('Snapshot: Global Tab Restoration', () => {
 
     await test.step('Verify restored singleton tabs can be focused without duplication', async () => {
       const app2 = await launchElectronApp({ userDataPath });
-      const page2 = await app2.firstWindow();
-      await page2.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
+      const page2 = await waitForReadyPage(app2);
 
       const locators2 = buildCommonLocators(page2);
 
