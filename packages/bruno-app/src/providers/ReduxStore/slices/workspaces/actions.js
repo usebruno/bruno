@@ -574,16 +574,11 @@ export const switchWorkspace = (workspaceUid) => {
     dispatch(clearSnapshotHydrationSession());
 
     try {
-      const currentActiveWorkspaceUid = getState().workspaces.activeWorkspaceUid;
-      if (currentActiveWorkspaceUid === workspaceUid) {
-        return false;
-      }
-
       dispatch(setActiveWorkspace(workspaceUid));
 
       const workspace = getState().workspaces.workspaces.find((w) => w.uid === workspaceUid);
       if (!workspace) {
-        return false;
+        return;
       }
 
       const fullSnapshot = await ipcRenderer.invoke('renderer:snapshot:get').catch(() => null);
@@ -695,11 +690,8 @@ export const switchWorkspace = (workspaceUid) => {
       if (!completed && pendingCollectionPathnames.length > 0) {
         scheduleSnapshotHydrationTimeout(dispatch, getState, workspaceUid);
       }
-
-      return true;
     } catch (error) {
       console.error('Failed to switch workspace:', error);
-      return false;
     } finally {
       const state = getState();
       const hasHydrationSession = Boolean(state.app.snapshotHydration?.workspaceUid);
