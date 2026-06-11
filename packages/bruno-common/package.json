@@ -20,6 +20,11 @@
       "require": "./dist/utils/cjs/index.js",
       "import": "./dist/utils/esm/index.js",
       "types": "./dist/utils/index.d.ts"
+    },
+    "./sync": {
+      "require": "./dist/sync/cjs/index.js",
+      "import": "./dist/sync/esm/index.js",
+      "types": "./dist/sync/index.d.ts"
     }
   },
   "files": [
