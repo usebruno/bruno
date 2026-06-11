@@ -278,7 +278,7 @@ describe('processAuth', () => {
       state: 'test-state',
       pkce: false,
       tokenPlacement: 'header',
-      credentialsPlacement: 'body'
+      tokenEndpointAuthMethod: 'client_secret_post'
     });
   });
 
@@ -312,7 +312,7 @@ describe('processAuth', () => {
       scope: 'test-scope',
       state: 'test-state',
       tokenPlacement: 'header',
-      credentialsPlacement: 'body'
+      tokenEndpointAuthMethod: 'client_secret_post'
     });
   });
 
@@ -342,7 +342,7 @@ describe('processAuth', () => {
       scope: 'test-scope',
       state: 'test-state',
       tokenPlacement: 'header',
-      credentialsPlacement: 'body'
+      tokenEndpointAuthMethod: 'client_secret_post'
     });
   });
 
@@ -362,7 +362,7 @@ describe('processAuth', () => {
       scope: '',
       state: '',
       tokenPlacement: 'url',
-      credentialsPlacement: 'basic_auth_header'
+      tokenEndpointAuthMethod: 'client_secret_basic'
     });
   });
 
@@ -381,7 +381,7 @@ describe('processAuth', () => {
       scope: '',
       state: '',
       tokenPlacement: 'url',
-      credentialsPlacement: 'basic_auth_header'
+      tokenEndpointAuthMethod: 'client_secret_basic'
     });
   });
 
@@ -416,7 +416,7 @@ describe('processAuth', () => {
       state: 'test-state',
       pkce: true,
       tokenPlacement: 'header',
-      credentialsPlacement: 'body'
+      tokenEndpointAuthMethod: 'client_secret_post'
     });
   });
 

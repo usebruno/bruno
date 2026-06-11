@@ -11,6 +11,7 @@ import { inputsConfig } from './inputsConfig';
 import Oauth2TokenViewer from '../Oauth2TokenViewer/index';
 import Oauth2ActionButtons from '../Oauth2ActionButtons/index';
 import AdditionalParams from '../AdditionalParams/index';
+import ClientAuthMethod from '../ClientAuthMethod/index';
 import SensitiveFieldWarning from 'components/SensitiveFieldWarning';
 import { savePreferences } from 'providers/ReduxStore/slices/app';
 import toast from 'react-hot-toast';
@@ -24,23 +25,14 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
   const oAuth = get(request, 'auth.oauth2', {});
   const {
     callbackUrl,
-    authorizationUrl,
     accessTokenUrl,
-    clientId,
-    clientSecret,
-    scope,
-    credentialsPlacement,
-    state,
     pkce,
     credentialsId,
     tokenPlacement,
-    tokenHeaderPrefix,
-    tokenQueryKey,
+    tokenSource,
     refreshTokenUrl,
     autoRefreshToken,
-    autoFetchToken,
-    tokenSource,
-    additionalParameters
+    autoFetchToken
   } = oAuth;
 
   const refreshTokenUrlAvailable = refreshTokenUrl?.trim() !== '';
@@ -48,65 +40,25 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
 
   const handleSave = () => { save(); };
 
-  const handleChange = (key, value) => {
+  const patchOAuth = (patch) => {
     dispatch(
       updateAuth({
         mode: 'oauth2',
         collectionUid: collection.uid,
         itemUid: item.uid,
         content: {
+          ...oAuth,
           grantType: 'authorization_code',
-          callbackUrl,
-          authorizationUrl,
-          accessTokenUrl,
-          clientId,
-          clientSecret,
-          state,
-          scope,
-          pkce,
-          credentialsPlacement,
-          credentialsId,
-          tokenPlacement,
-          tokenHeaderPrefix,
-          tokenQueryKey,
-          refreshTokenUrl,
-          autoRefreshToken,
-          autoFetchToken,
-          tokenSource,
-          additionalParameters,
-          [key]: value
+          ...patch
         }
       })
     );
   };
 
-  const handlePKCEToggle = (e) => {
-    dispatch(
-      updateAuth({
-        mode: 'oauth2',
-        collectionUid: collection.uid,
-        itemUid: item.uid,
-        content: {
-          grantType: 'authorization_code',
-          callbackUrl,
-          authorizationUrl,
-          accessTokenUrl,
-          clientId,
-          clientSecret,
-          state,
-          scope,
-          credentialsPlacement,
-          credentialsId,
-          tokenPlacement,
-          tokenHeaderPrefix,
-          tokenQueryKey,
-          autoFetchToken,
-          tokenSource,
-          additionalParameters,
-          pkce: !Boolean(oAuth?.['pkce'])
-        }
-      })
-    );
+  const handleChange = (key, value) => patchOAuth({ [key]: value });
+
+  const handlePKCEToggle = () => {
+    handleChange('pkce', !Boolean(oAuth?.pkce));
   };
 
   const handleUseSystemBrowserToggle = (e) => {
@@ -181,49 +133,42 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
           </label>
         </div>
       </div>
-      {inputsConfig.map((input) => {
-        const { key, label, isSecret } = input;
-        const value = oAuth[key] || '';
-        const { showWarning, warningMessage } = isSensitive(value);
+      {inputsConfig
+        .filter((input) => input.key !== 'clientSecret')
+        .map((input) => {
+          const { key, label, isSecret } = input;
+          const value = oAuth[key] || '';
+          const { showWarning, warningMessage } = isSensitive(value);
 
-        return (
-          <div className="flex items-center gap-4 w-full" key={`input-${key}`}>
-            <label className="block min-w-[140px]">{label}</label>
-            <div className="single-line-editor-wrapper flex-1 flex items-center">
-              <SingleLineEditor
-                value={value}
-                theme={storedTheme}
-                onSave={handleSave}
-                onChange={(val) => handleChange(key, val)}
-                onRun={handleRun}
-                collection={collection}
-                item={item}
-                isSecret={isSecret}
-                isCompact
-              />
-              {isSecret && showWarning && <SensitiveFieldWarning fieldName={key} warningMessage={warningMessage} />}
+          return (
+            <div className="flex items-center gap-4 w-full" key={`input-${key}`}>
+              <label className="block min-w-[140px]">{label}</label>
+              <div className="single-line-editor-wrapper flex-1 flex items-center">
+                <SingleLineEditor
+                  value={value}
+                  theme={storedTheme}
+                  onSave={handleSave}
+                  onChange={(val) => handleChange(key, val)}
+                  onRun={handleRun}
+                  collection={collection}
+                  item={item}
+                  isSecret={isSecret}
+                  isCompact
+                />
+                {isSecret && showWarning && <SensitiveFieldWarning fieldName={key} warningMessage={warningMessage} />}
+              </div>
             </div>
-          </div>
-        );
-      })}
-      <div className="flex items-center gap-4 w-full" key="input-credentials-placement">
-        <label className="block min-w-[140px]">Add Credentials to</label>
-        <div className="inline-flex items-center cursor-pointer token-placement-selector">
-          <MenuDropdown
-            items={[
-              { id: 'body', label: 'Request Body', onClick: () => handleChange('credentialsPlacement', 'body') },
-              { id: 'basic_auth_header', label: 'Basic Auth Header', onClick: () => handleChange('credentialsPlacement', 'basic_auth_header') }
-            ]}
-            selectedItemId={credentialsPlacement}
-            placement="bottom-end"
-          >
-            <div className="flex items-center justify-end token-placement-label select-none">
-              {credentialsPlacement == 'body' ? 'Request Body' : 'Basic Auth Header'}
-              <IconCaretDown className="caret ml-1 mr-1" size={14} strokeWidth={2} />
-            </div>
-          </MenuDropdown>
-        </div>
-      </div>
+          );
+        })}
+      <ClientAuthMethod
+        oAuth={oAuth}
+        handleChange={handleChange}
+        patchOAuth={patchOAuth}
+        handleRun={handleRun}
+        handleSave={handleSave}
+        collection={collection}
+        item={item}
+      />
       <div className="flex flex-row w-full gap-4" key="pkce">
         <label className="block">Use PKCE</label>
         <input

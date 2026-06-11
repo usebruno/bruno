@@ -448,6 +448,36 @@ const sem = grammar.createSemantics().addAttribute('ast', {
     const autoFetchTokenKey = _.find(auth, { name: 'auto_fetch_token' });
     const autoRefreshTokenKey = _.find(auth, { name: 'auto_refresh_token' });
     const tokenSourceKey = _.find(auth, { name: 'token_source' });
+    const tokenEndpointAuthMethodKey = _.find(auth, { name: 'token_endpoint_auth_method' });
+    const tokenEndpointAuthSigningAlgKey = _.find(auth, { name: 'token_endpoint_auth_signing_alg' });
+    const privateKeyKey = _.find(auth, { name: 'private_key' });
+    const privateKeyFormatKey = _.find(auth, { name: 'private_key_format' });
+    const keyIdKey = _.find(auth, { name: 'key_id' });
+    const audienceKey = _.find(auth, { name: 'audience' });
+    const assertionLifetimeKey = _.find(auth, { name: 'assertion_lifetime' });
+
+    const tokenEndpointAuthMethod = tokenEndpointAuthMethodKey?.value
+      ? tokenEndpointAuthMethodKey.value
+      : credentialsPlacementKey?.value === 'basic_auth_header'
+        ? 'client_secret_basic'
+        : 'client_secret_post';
+
+    const rawPrivateKey = privateKeyKey?.value || '';
+    const privateKeyIsFile = rawPrivateKey.startsWith('@file(') && rawPrivateKey.endsWith(')');
+    const privateKey = privateKeyIsFile ? rawPrivateKey.slice(6, -1) : rawPrivateKey;
+    const privateKeyType = rawPrivateKey ? (privateKeyIsFile ? 'file' : 'text') : '';
+
+    const jwtClientAuthFields = {
+      tokenEndpointAuthMethod,
+      tokenEndpointAuthSigningAlg: tokenEndpointAuthSigningAlgKey?.value || '',
+      privateKey,
+      privateKeyType,
+      privateKeyFormat: privateKeyFormatKey?.value || '',
+      keyId: keyIdKey?.value || '',
+      audience: audienceKey?.value || '',
+      assertionLifetime: assertionLifetimeKey?.value ? safeParseJson(assertionLifetimeKey.value) : null
+    };
+
     return {
       auth: {
         oauth2:
@@ -461,7 +491,7 @@ const sem = grammar.createSemantics().addAttribute('ast', {
                 clientId: clientIdKey ? clientIdKey.value : '',
                 clientSecret: clientSecretKey ? clientSecretKey.value : '',
                 scope: scopeKey ? scopeKey.value : '',
-                credentialsPlacement: credentialsPlacementKey?.value ? credentialsPlacementKey.value : 'body',
+                ...jwtClientAuthFields,
                 credentialsId: credentialsIdKey?.value ? credentialsIdKey.value : 'credentials',
                 tokenSource: tokenSourceKey?.value ? tokenSourceKey.value : 'access_token',
                 tokenPlacement: tokenPlacementKey?.value ? tokenPlacementKey.value : 'header',
@@ -482,7 +512,7 @@ const sem = grammar.createSemantics().addAttribute('ast', {
                   scope: scopeKey ? scopeKey.value : '',
                   state: stateKey ? stateKey.value : '',
                   pkce: pkceKey ? safeParseJson(pkceKey?.value) ?? false : false,
-                  credentialsPlacement: credentialsPlacementKey?.value ? credentialsPlacementKey.value : 'body',
+                  ...jwtClientAuthFields,
                   credentialsId: credentialsIdKey?.value ? credentialsIdKey.value : 'credentials',
                   tokenSource: tokenSourceKey?.value ? tokenSourceKey.value : 'access_token',
                   tokenPlacement: tokenPlacementKey?.value ? tokenPlacementKey.value : 'header',
@@ -514,7 +544,7 @@ const sem = grammar.createSemantics().addAttribute('ast', {
                       clientId: clientIdKey ? clientIdKey.value : '',
                       clientSecret: clientSecretKey ? clientSecretKey.value : '',
                       scope: scopeKey ? scopeKey.value : '',
-                      credentialsPlacement: credentialsPlacementKey?.value ? credentialsPlacementKey.value : 'body',
+                      ...jwtClientAuthFields,
                       credentialsId: credentialsIdKey?.value ? credentialsIdKey.value : 'credentials',
                       tokenSource: tokenSourceKey?.value ? tokenSourceKey.value : 'access_token',
                       tokenPlacement: tokenPlacementKey?.value ? tokenPlacementKey.value : 'header',
