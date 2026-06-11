@@ -49,7 +49,7 @@ Vous pouvez aussi installer Bruno via un gestionnaire de paquets, comme Homebrew
 
 ```sh
 # Mac via Homebrew
-brew install bruno
+brew install --cask bruno
 
 # Windows via Chocolatey
 choco install bruno
