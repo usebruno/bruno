@@ -43,6 +43,7 @@ import GlobalEnvironmentSettings from 'components/Environments/GlobalEnvironment
 import OpenAPISyncTab from 'components/OpenAPISyncTab';
 import OpenAPISpecTab from 'components/OpenAPISpecTab';
 import CollapsedPanelIndicator from './CollapsedPanelIndicator';
+import { clampRequestHeightForResponse } from './paneSize';
 import { IconLoader2 } from '@tabler/icons';
 
 const MIN_LEFT_PANE_WIDTH = 300;
@@ -267,10 +268,15 @@ const RequestTabPanel = () => {
   const handleResponseIndicatorClickExpand = useCallback(() => {
     expandResponse();
     if (!isVerticalLayoutRef.current || !mainSectionRef.current) return;
-    const mainRect = mainSectionRef.current.getBoundingClientRect();
-    const maxRequestHeight = mainRect.height - RESPONSE_EXPAND_MIN_HEIGHT;
-    if (topPaneHeight > maxRequestHeight) {
-      setTopPaneHeight(Math.max(MIN_TOP_PANE_HEIGHT, maxRequestHeight));
+    const { height: containerHeight } = mainSectionRef.current.getBoundingClientRect();
+    const clampedHeight = clampRequestHeightForResponse(
+      topPaneHeight,
+      containerHeight,
+      RESPONSE_EXPAND_MIN_HEIGHT,
+      MIN_TOP_PANE_HEIGHT
+    );
+    if (clampedHeight != null) {
+      setTopPaneHeight(clampedHeight);
     }
   }, [expandResponse, topPaneHeight, setTopPaneHeight]);
 
