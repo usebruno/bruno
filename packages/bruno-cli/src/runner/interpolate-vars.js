@@ -98,6 +98,7 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
       if (request.data && Array.isArray(request.data)) {
         request.data = request.data.map((d) => ({
           ...d,
+          name: _interpolate(d?.name),
           value: _interpolate(d?.value)
         }));
       }
