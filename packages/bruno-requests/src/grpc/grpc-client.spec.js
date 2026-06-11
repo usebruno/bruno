@@ -8,13 +8,17 @@ let capturedHost = null;
 
 // Mock GrpcReflection to capture options
 const mockListServices = jest.fn().mockResolvedValue(['test.Service']);
-const mockListMethods = jest.fn().mockResolvedValue([
+const mockGetDescriptorBySymbol = jest.fn().mockResolvedValue({
+  getPackageObject: jest.fn().mockReturnValue({})
+});
+const mockGetServiceMethods = jest.fn().mockReturnValue([
   {
-    path: '/test.Service/TestMethod',
+    name: 'TestMethod',
     definition: {
       requestStream: false,
       responseStream: false
-    }
+    },
+    path: '/test.Service/TestMethod'
   }
 ]);
 
@@ -24,7 +28,8 @@ jest.mock('grpc-js-reflection-client', () => ({
     capturedHost = host;
     return {
       listServices: mockListServices,
-      listMethods: mockListMethods
+      getDescriptorBySymbol: mockGetDescriptorBySymbol,
+      getServiceMethods: mockGetServiceMethods
     };
   })
 }));
