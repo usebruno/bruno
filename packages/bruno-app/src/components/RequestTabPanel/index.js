@@ -51,6 +51,8 @@ const MIN_TOP_PANE_HEIGHT = 150;
 const MIN_BOTTOM_PANE_HEIGHT = 150;
 const COLLAPSE_EDGE_THRESHOLD = 80;
 const EXPAND_EDGE_THRESHOLD = 100;
+// Minimum response pane height to show placeholder content on click-expand
+const RESPONSE_EXPAND_MIN_HEIGHT = 300;
 
 const RequestTabPanel = () => {
   const dispatch = useDispatch();
@@ -261,6 +263,16 @@ const RequestTabPanel = () => {
     applyPointerResize(e);
     startDragging(e);
   }, [expandResponse, applyPointerResize, startDragging]);
+
+  const handleResponseIndicatorClickExpand = useCallback(() => {
+    expandResponse();
+    if (!isVerticalLayoutRef.current || !mainSectionRef.current) return;
+    const mainRect = mainSectionRef.current.getBoundingClientRect();
+    const maxRequestHeight = mainRect.height - RESPONSE_EXPAND_MIN_HEIGHT;
+    if (topPaneHeight > maxRequestHeight) {
+      setTopPaneHeight(Math.max(MIN_TOP_PANE_HEIGHT, maxRequestHeight));
+    }
+  }, [expandResponse, topPaneHeight, setTopPaneHeight]);
 
   useEffect(() => {
     document.addEventListener('mouseup', handleMouseUp);
@@ -563,7 +575,7 @@ const RequestTabPanel = () => {
             <CollapsedPanelIndicator
               panelType="response"
               isVertical={isVerticalLayout}
-              onExpand={expandResponse}
+              onExpand={handleResponseIndicatorClickExpand}
               onDragStart={handleResponseIndicatorDragStart}
               dragThresholdPx={isVerticalLayout ? MIN_BOTTOM_PANE_HEIGHT / 2 : MIN_RIGHT_PANE_WIDTH / 2}
             />
