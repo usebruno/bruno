@@ -98,6 +98,7 @@
     "axios": "1.13.6",
     "rollup": "3.30.0",
     "pbkdf2": "3.1.5",
+    "protobufjs": "^8.0.0",
     "electron-store": {
       "conf": {
         "json-schema-typed": "8.0.1"
