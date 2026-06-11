@@ -217,6 +217,14 @@ const authBearerSchema = Yup.object({
   .noUnknown(true)
   .strict();
 
+const authJwtBearerSchema = Yup.object({
+  algorithm: Yup.string().oneOf(['HS256', 'HS384', 'HS512']).nullable(),
+  secret: Yup.string().nullable(),
+  payload: Yup.string().nullable()
+})
+  .noUnknown(true)
+  .strict();
+
 const authDigestSchema = Yup.object({
   username: Yup.string().nullable(),
   password: Yup.string().nullable()
@@ -401,11 +409,12 @@ const oauth2Schema = Yup.object({
 
 const authSchema = Yup.object({
   mode: Yup.string()
-    .oneOf(['inherit', 'none', 'awsv4', 'basic', 'bearer', 'digest', 'ntlm', 'oauth1', 'oauth2', 'wsse', 'apikey'])
+    .oneOf(['inherit', 'none', 'awsv4', 'basic', 'bearer', 'jwtBearer', 'digest', 'ntlm', 'oauth1', 'oauth2', 'wsse', 'apikey'])
     .required('mode is required'),
   awsv4: authAwsV4Schema.nullable(),
   basic: authBasicSchema.nullable(),
   bearer: authBearerSchema.nullable(),
+  jwtBearer: authJwtBearerSchema.nullable(),
   ntlm: authNTLMSchema.nullable(),
   digest: authDigestSchema.nullable(),
   oauth1: authOAuth1Schema.nullable(),

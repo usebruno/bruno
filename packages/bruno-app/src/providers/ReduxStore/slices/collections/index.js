@@ -26,6 +26,12 @@ import { getUniqueTagsFromItems } from 'utils/collections/index';
 import { getCollectionEnvironmentPath } from 'utils/snapshot';
 import * as exampleReducers from './exampleReducers';
 
+const DEFAULT_JWT_PAYLOAD = `{
+  "iss": "",
+  "aud": "",
+  "exp": 0
+}`;
+
 // gRPC status code meanings
 const grpcStatusCodes = {
   0: 'OK',
@@ -1021,6 +1027,10 @@ export const collectionsSlice = createSlice({
               item.draft.request.auth.mode = 'bearer';
               item.draft.request.auth.bearer = action.payload.content;
               break;
+            case 'jwtBearer':
+              item.draft.request.auth.mode = 'jwtBearer';
+              item.draft.request.auth.jwtBearer = action.payload.content;
+              break;
             case 'basic':
               item.draft.request.auth.mode = 'basic';
               item.draft.request.auth.basic = action.payload.content;
@@ -1691,6 +1701,13 @@ export const collectionsSlice = createSlice({
             item.draft.request.auth = cloneDeep(savedAuth);
           } else {
             item.draft.request.auth = { mode: newMode };
+            if (newMode === 'jwtBearer') {
+              item.draft.request.auth.jwtBearer = {
+                algorithm: 'HS256',
+                secret: '',
+                payload: DEFAULT_JWT_PAYLOAD
+              };
+            }
           }
         }
       }
@@ -2126,7 +2143,15 @@ export const collectionsSlice = createSlice({
         if (newMode === savedMode) {
           set(collection, 'draft.root.request.auth', cloneDeep(savedAuth));
         } else {
-          set(collection, 'draft.root.request.auth', { mode: newMode });
+          const nextAuth = { mode: newMode };
+          if (newMode === 'jwtBearer') {
+            nextAuth.jwtBearer = {
+              algorithm: 'HS256',
+              secret: '',
+              payload: DEFAULT_JWT_PAYLOAD
+            };
+          }
+          set(collection, 'draft.root.request.auth', nextAuth);
         }
       }
     },
@@ -2147,6 +2172,9 @@ export const collectionsSlice = createSlice({
             break;
           case 'bearer':
             set(collection, 'draft.root.request.auth.bearer', action.payload.content);
+            break;
+          case 'jwtBearer':
+            set(collection, 'draft.root.request.auth.jwtBearer', action.payload.content);
             break;
           case 'basic':
             set(collection, 'draft.root.request.auth.basic', action.payload.content);
@@ -2486,6 +2514,9 @@ export const collectionsSlice = createSlice({
             break;
           case 'bearer':
             set(folder, 'draft.request.auth.bearer', action.payload.content);
+            break;
+          case 'jwtBearer':
+            set(folder, 'draft.request.auth.jwtBearer', action.payload.content);
             break;
           case 'digest':
             set(folder, 'draft.request.auth.digest', action.payload.content);
@@ -3390,7 +3421,15 @@ export const collectionsSlice = createSlice({
         if (newMode === savedMode) {
           set(folder, 'draft.request.auth', cloneDeep(savedAuth));
         } else {
-          set(folder, 'draft.request.auth', { mode: newMode });
+          const nextAuth = { mode: newMode };
+          if (newMode === 'jwtBearer') {
+            nextAuth.jwtBearer = {
+              algorithm: 'HS256',
+              secret: '',
+              payload: DEFAULT_JWT_PAYLOAD
+            };
+          }
+          set(folder, 'draft.request.auth', nextAuth);
         }
       }
     },

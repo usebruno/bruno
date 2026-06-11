@@ -137,6 +137,7 @@ export type {
   AuthAwsV4 as BrunoAuthAwsV4,
   AuthBasic as BrunoAuthBasic,
   AuthBearer as BrunoAuthBearer,
+  AuthJwtBearer as BrunoAuthJwtBearer,
   AuthDigest as BrunoAuthDigest,
   AuthNTLM as BrunoAuthNTLM,
   AuthWsse as BrunoAuthWsse,

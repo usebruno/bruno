@@ -114,6 +114,16 @@ ${indentString(`token: ${auth.bearer.token}`)}
 `;
   }
 
+  if (auth && auth.jwtBearer) {
+    bru += `auth:jwtbearer {
+${indentString(`algorithm: ${auth?.jwtBearer?.algorithm || 'HS256'}`)}
+${indentString(`secret: ${auth?.jwtBearer?.secret || ''}`)}
+${indentString(`payload: ${getValueString(auth?.jwtBearer?.payload || '')}`)}
+}
+
+`;
+  }
+
   if (auth && auth.digest) {
     bru += `auth:digest {
 ${indentString(`username: ${auth.digest.username}`)}

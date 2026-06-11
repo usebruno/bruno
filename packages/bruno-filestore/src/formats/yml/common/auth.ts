@@ -173,6 +173,9 @@ export const toOpenCollectionAuth = (auth?: BrunoAuth | null): Auth | undefined 
       return buildOAuth1Auth(auth.oauth1);
     case 'oauth2':
       return toOpenCollectionOAuth2(auth.oauth2);
+    case 'jwtBearer':
+      // jwtBearer is Bruno-only; OpenCollection has no equivalent type
+      return undefined;
     default:
       console.warn(`toOpenCollectionAuth failed: Unsupported auth mode "${auth.mode}".`);
       return undefined;
@@ -185,6 +188,7 @@ export const toBrunoAuth = (auth: Auth | null | undefined): BrunoAuth | null => 
     awsv4: null,
     basic: null,
     bearer: null,
+    jwtBearer: null,
     digest: null,
     ntlm: null,
     oauth2: null,
