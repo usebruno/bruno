@@ -24,6 +24,23 @@ export const testAiProvider = ({ providerId }) =>
 export const aiGenerateText = (params) =>
   callIpc('renderer:ai-generate-text', params);
 
+export const aiGenerateScript = (params) =>
+  callIpc('renderer:ai-generate-script', params);
+
+export const buildRequestContextFromItem = (item) => {
+  if (!item) return null;
+  const req = item.draft ? item.draft.request : item.request;
+  if (!req) return null;
+
+  return {
+    url: req.url || '',
+    method: req.method || 'GET',
+    headers: Array.isArray(req.headers) ? req.headers : [],
+    params: Array.isArray(req.params) ? req.params : [],
+    body: req.body || null
+  };
+};
+
 /**
  * Start a streaming generation. Subscribes to the corresponding `main:ai-stream-*`
  * channels filtered by streamId. Returns a handle with `.stop()` and a promise

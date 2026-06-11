@@ -11,6 +11,7 @@ const {
   getAvailableModels,
   clearSdkCache
 } = require('./providers');
+const { SCRIPT_PROMPTS, SCRIPT_TYPES, buildScriptUserPrompt, stripCodeFences } = require('./script-prompts');
 
 const activeStreams = new Map();
 
@@ -47,6 +48,16 @@ const resolveModel = (modelId) => {
     aiPreferences: getAiPrefs(),
     getApiKey: (providerId) => aiKeyStore.getKey(providerId)
   });
+};
+
+const pickDefaultModelId = () => {
+  const aiPreferences = getAiPrefs();
+  const hasApiKey = (providerId) => aiKeyStore.hasKey(providerId);
+  const available = getAvailableModels({ aiPreferences, hasApiKey });
+  if (available.length === 0) return null;
+  const preferred = aiPreferences.defaultModel;
+  if (preferred && available.some((m) => m.id === preferred)) return preferred;
+  return available[0].id;
 };
 
 const registerAiIpc = (mainWindow) => {
@@ -130,6 +141,42 @@ const registerAiIpc = (mainWindow) => {
     } catch (err) {
       console.error('AI generate-text error:', err);
       return { error: err.message || 'Failed to generate text' };
+    }
+  });
+
+  ipcMain.handle('renderer:ai-generate-script', async (_event, params) => {
+    const { scriptType, prompt, currentScript, requestContext, model: requestedModel } = params || {};
+
+    if (!SCRIPT_TYPES.includes(scriptType)) {
+      return { error: `Unknown scriptType: ${scriptType}` };
+    }
+    if (!prompt || !prompt.trim()) {
+      return { error: 'Prompt is required' };
+    }
+
+    const modelId = requestedModel || pickDefaultModelId();
+    if (!modelId) {
+      return { error: 'No AI model available. Configure a provider in Preferences > AI.' };
+    }
+
+    let model;
+    try {
+      model = resolveModel(modelId);
+    } catch (err) {
+      return { error: err.message };
+    }
+
+    try {
+      const { text } = await generateText({
+        model,
+        system: SCRIPT_PROMPTS[scriptType],
+        prompt: buildScriptUserPrompt({ userPrompt: prompt, currentScript, requestContext }),
+        maxOutputTokens: 2048
+      });
+      return { content: stripCodeFences(text), modelId };
+    } catch (err) {
+      console.error('AI generate-script error:', err);
+      return { error: err.message || 'Failed to generate script' };
     }
   });
 
