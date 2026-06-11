@@ -96,6 +96,16 @@ const StyledWrapper = styled.div`
       display: flex;
       align-items: center;
       gap: 2px;
+    }
+  }
+
+  .tabs-container {
+    padding: 0 20px;
+    flex-shrink: 0;
+
+    .env-search-container {
+      display: flex;
+      align-items: center;
 
       .search-input-wrapper {
         position: relative;
@@ -150,30 +160,6 @@ const StyledWrapper = styled.div`
           }
         }
       }
-
-      button {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        width: 28px;
-        height: 28px;
-        padding: 0;
-        color: ${(props) => props.theme.colors.text.muted};
-        background: transparent;
-        border: none;
-        border-radius: 5px;
-        cursor: pointer;
-        transition: all 0.15s ease;
-
-        &:hover {
-          background: ${(props) => props.theme.sidebar.collection.item.hoverBg};
-          color: ${(props) => props.theme.text};
-        }
-
-        &:last-child:hover {
-          color: ${(props) => props.theme.colors.text.danger};
-        }
-      }
     }
   }
 
@@ -183,6 +169,7 @@ const StyledWrapper = styled.div`
     display: flex;
     flex-direction: column;
     padding: 0 20px 20px 20px;
+    margin-top: 16px;
   }
 `;
 
