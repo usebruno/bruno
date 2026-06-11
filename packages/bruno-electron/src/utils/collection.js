@@ -274,8 +274,10 @@ const mergeScripts = (collection, request, requestTreePath, scriptFlow) => {
     displayPath: config.collectionFile
   };
 
-  const requestSegmentSource = request?.pathname && collection?.pathname
-    ? { displayPath: posixifyPath(path.relative(collection.pathname, request.pathname)) }
+  const requestItem = requestTreePath?.[requestTreePath.length - 1];
+  const requestPathname = request?.pathname || requestItem?.pathname;
+  const requestSegmentSource = requestPathname && collection?.pathname
+    ? { displayPath: posixifyPath(path.relative(collection.pathname, requestPathname)) }
     : null;
 
   const withContent = (source, script) =>
