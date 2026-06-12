@@ -49,8 +49,6 @@ import { getRevealInFolderLabel } from 'utils/common/platform';
 import { openDevtoolsAndSwitchToTerminal } from 'utils/terminal';
 import ActionIcon from 'ui/ActionIcon';
 import MenuDropdown from 'ui/MenuDropdown';
-import StatusBadge from 'ui/StatusBadge';
-import { useBetaFeature, BETA_FEATURES } from 'utils/beta-features';
 import { useSidebarAccordion } from 'components/Sidebar/SidebarAccordionContext';
 import { createEmptyStateMenuItems } from 'utils/collections/emptyStateRequest';
 import useKeybinding from 'hooks/useKeybinding';
@@ -60,7 +58,6 @@ import useKeybinding from 'hooks/useKeybinding';
 const EMPTY_STATE_DELAY_MS = 300;
 
 const Collection = ({ collection, searchText }) => {
-  const isOpenAPISyncEnabled = useBetaFeature(BETA_FEATURES.OPENAPI_SYNC);
   const { dropdownContainerRef } = useSidebarAccordion();
   const [showNewFolderModal, setShowNewFolderModal] = useState(false);
   const [showNewRequestModal, setShowNewRequestModal] = useState(false);
@@ -365,13 +362,12 @@ const Collection = ({ collection, searchText }) => {
         setShowCloneCollectionModalOpen(true);
       }
     },
-    ...(isOpenAPISyncEnabled ? [{
+    {
       id: 'sync-openapi',
       leftSection: OpenAPISyncIcon,
       label: 'OpenAPI',
-      rightSection: <StatusBadge status="info" size="xs">Beta</StatusBadge>,
       onClick: openOpenAPISyncTab
-    }] : []),
+    },
     ...(hasCopiedItems
       ? [
           {

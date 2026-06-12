@@ -14,7 +14,6 @@ import { processOpenCollection } from 'utils/importers/opencollection';
 import { wsdlToBruno } from '@usebruno/converters';
 import { toastError } from 'utils/common/error';
 import { addLog } from 'providers/ReduxStore/slices/logs';
-import { useBetaFeature, BETA_FEATURES } from 'utils/beta-features';
 import Modal from 'components/Modal';
 import Help from 'components/Help';
 import Dropdown from 'components/Dropdown';
@@ -109,15 +108,14 @@ const ImportCollectionLocation = ({ onClose, handleSubmit, rawData, format, sour
   const dispatch = useDispatch();
   const [groupingType, setGroupingType] = useState('tags');
   const [collectionFormat, setCollectionFormat] = useState(DEFAULT_COLLECTION_FORMAT);
-  const isOpenAPISyncEnabled = useBetaFeature(BETA_FEATURES.OPENAPI_SYNC);
-  const [enableCheckForSpecUpdates, setEnableCheckForSpecUpdates] = useState(isOpenAPISyncEnabled);
+  const [enableCheckForSpecUpdates, setEnableCheckForSpecUpdates] = useState(false);
   const dropdownTippyRef = useRef();
   const isOpenApi = format === 'openapi';
   const isZipImport = format === 'bruno-zip';
   const isOpenApiFromUrl = isOpenApi && !!sourceUrl && !filePath;
   const isOpenApiFromFile = isOpenApi && !!filePath && !sourceUrl;
   const isSwagger2 = isOpenApi && rawData?.swagger && String(rawData.swagger).startsWith('2');
-  const showCheckForSpecUpdatesOption = isOpenAPISyncEnabled && (isOpenApiFromUrl || isOpenApiFromFile);
+  const showCheckForSpecUpdatesOption = isOpenApiFromUrl || isOpenApiFromFile;
 
   const { workspaces, activeWorkspaceUid } = useSelector((state) => state.workspaces);
   const preferences = useSelector((state) => state.app.preferences);
@@ -355,25 +353,23 @@ const ImportCollectionLocation = ({ onClose, handleSubmit, rawData, format, sour
             </div>
           )}
 
-          {showCheckForSpecUpdatesOption && (
-            <div className={`mt-4 ${isSwagger2 ? 'opacity-50 pointer-events-none' : ''}`}>
-              <label className={`flex items-center gap-2 ${isSwagger2 ? '' : 'cursor-pointer'}`}>
-                <input
-                  type="checkbox"
-                  checked={isSwagger2 ? false : enableCheckForSpecUpdates}
-                  onChange={(e) => setEnableCheckForSpecUpdates(e.target.checked)}
-                  disabled={isSwagger2}
-                  className={`checkbox ${isSwagger2 ? '' : 'cursor-pointer'}`}
-                />
-                <span className="font-medium">Check for Spec Updates</span>
-              </label>
-              <p className="text-muted text-xs mt-1">
-                {isSwagger2
-                  ? 'OpenAPI Sync is not supported for Swagger 2.0 specs.'
-                  : 'Stay notified of spec changes and sync your collection with the spec.'}
-              </p>
-            </div>
-          )}
+          <div className={`mt-4 ${isSwagger2 ? 'opacity-50 pointer-events-none' : ''}`}>
+            <label className={`flex items-center gap-2 ${isSwagger2 ? '' : 'cursor-pointer'}`}>
+              <input
+                type="checkbox"
+                checked={isSwagger2 ? false : enableCheckForSpecUpdates}
+                onChange={(e) => setEnableCheckForSpecUpdates(e.target.checked)}
+                disabled={isSwagger2}
+                className={`checkbox ${isSwagger2 ? '' : 'cursor-pointer'}`}
+              />
+              <span className="font-medium">Check for Spec Updates</span>
+            </label>
+            <p className="text-muted text-xs mt-1">
+              {isSwagger2
+                ? 'OpenAPI Sync is not supported for Swagger 2.0 specs.'
+                : 'Stay notified of spec changes and sync your collection with the spec.'}
+            </p>
+          </div>
         </form>
       </Modal>
     </StyledWrapper>
