@@ -22,7 +22,7 @@ const IpcErrorModal = ({ error }) => {
               disableCloseOnOutsideClick={true}
               disableEscapeKey={true}
             >
-              <pre className="w-full flex flex-wrap whitespace-pre-wrap">{error}</pre>
+              <pre className="w-full whitespace-pre-wrap break-words">{error}</pre>
             </Modal>
           </Portal>
         </StyledWrapper>
