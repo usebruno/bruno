@@ -5,12 +5,10 @@ import { useTheme } from 'providers/Theme';
 import {
   IconX,
   IconTrash,
-  IconFilter,
   IconAlertTriangle,
   IconAlertCircle,
   IconBug,
   IconCode,
-  IconChevronDown,
   IconTerminal2,
   IconNetwork,
   IconDashboard
@@ -27,6 +25,7 @@ import {
   updateRequestDetailsPanelWidth
 } from 'providers/ReduxStore/slices/logs';
 
+import { FilterDropdown, NetworkFilterDropdown } from './FilterDropdown';
 import NetworkTab from './NetworkTab';
 import TerminalTab from './TerminalTab';
 import RequestDetailsPanel from './RequestDetailsPanel';
@@ -206,137 +205,6 @@ const LogMessage = ({ message, args }) => {
         <span key={index}>{item} </span>
       )) : formattedMessage}
     </span>
-  );
-};
-
-const FilterDropdown = ({ filters, logCounts, onFilterToggle, onToggleAll }) => {
-  const [isOpen, setIsOpen] = useState(false);
-  const dropdownRef = useRef(null);
-
-  const allFiltersEnabled = Object.values(filters).every((f) => f);
-  const activeFilters = Object.entries(filters).filter(([_, enabled]) => enabled);
-
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-        setIsOpen(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  return (
-    <div className="filter-dropdown" ref={dropdownRef}>
-      <button
-        className="filter-dropdown-trigger"
-        onClick={() => setIsOpen(!isOpen)}
-        title="Filter logs by type"
-      >
-        <IconFilter size={16} strokeWidth={1.5} />
-        <span className="filter-summary">
-          {activeFilters.length === Object.keys(filters).length ? 'All' : `${activeFilters.length}/${Object.keys(filters).length}`}
-        </span>
-        <IconChevronDown size={14} strokeWidth={1.5} />
-      </button>
-
-      {isOpen && (
-        <div className="filter-dropdown-menu right">
-          <div className="filter-dropdown-header">
-            <span>Filter by Type</span>
-            <button
-              className="filter-toggle-all"
-              onClick={() => onToggleAll(!allFiltersEnabled)}
-            >
-              {allFiltersEnabled ? 'Hide All' : 'Show All'}
-            </button>
-          </div>
-
-          <div className="filter-dropdown-options">
-            {Object.entries(filters).map(([filterType, enabled]) => (
-              <label key={filterType} className="filter-option">
-                <input
-                  type="checkbox"
-                  checked={enabled}
-                  onChange={(e) => onFilterToggle(filterType, e.target.checked)}
-                />
-                <div className="filter-option-content">
-                  <LogIcon type={filterType} />
-                  <span className="filter-option-label">{filterType}</span>
-                  <span className="filter-option-count">({logCounts[filterType] || 0})</span>
-                </div>
-              </label>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-};
-
-const NetworkFilterDropdown = ({ filters, requestCounts, onFilterToggle, onToggleAll }) => {
-  const [isOpen, setIsOpen] = useState(false);
-  const dropdownRef = useRef(null);
-
-  const allFiltersEnabled = Object.values(filters).every((f) => f);
-  const activeFilters = Object.entries(filters).filter(([_, enabled]) => enabled);
-
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-        setIsOpen(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  return (
-    <div className="filter-dropdown" ref={dropdownRef}>
-      <button
-        className="filter-dropdown-trigger"
-        onClick={() => setIsOpen(!isOpen)}
-        title="Filter requests by method"
-      >
-        <IconFilter size={16} strokeWidth={1.5} />
-        <span className="filter-summary">
-          {activeFilters.length === Object.keys(filters).length ? 'All' : `${activeFilters.length}/${Object.keys(filters).length}`}
-        </span>
-        <IconChevronDown size={14} strokeWidth={1.5} />
-      </button>
-
-      {isOpen && (
-        <div className="filter-dropdown-menu right">
-          <div className="filter-dropdown-header">
-            <span>Filter by Method</span>
-            <button
-              className="filter-toggle-all"
-              onClick={() => onToggleAll(!allFiltersEnabled)}
-            >
-              {allFiltersEnabled ? 'Hide All' : 'Show All'}
-            </button>
-          </div>
-
-          <div className="filter-dropdown-options">
-            {Object.entries(filters).map(([method, enabled]) => (
-              <label key={method} className="filter-option">
-                <input
-                  type="checkbox"
-                  checked={enabled}
-                  onChange={(e) => onFilterToggle(method, e.target.checked)}
-                />
-                <div className="filter-option-content">
-                  <span className="filter-option-label">{method}</span>
-                  <span className="filter-option-count">({requestCounts[method] || 0})</span>
-                </div>
-              </label>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
   );
 };
 
