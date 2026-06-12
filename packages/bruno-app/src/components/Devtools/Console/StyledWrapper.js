@@ -430,7 +430,22 @@ const StyledWrapper = styled.div`
     white-space: pre-wrap;
     word-break: break-word;
     flex: 1;
-    
+
+    .log-link {
+      color: ${(props) => props.theme.colors?.text?.link || '#3b8eea'};
+      text-decoration: underline;
+      cursor: pointer;
+
+      &:hover {
+        color: ${(props) => props.theme.colors?.text?.linkHover || '#5ca0f0'};
+        text-decoration: underline;
+      }
+
+      &:visited {
+        color: ${(props) => props.theme.colors?.text?.linkVisited || '#9b59b6'};
+      }
+    }
+
     .log-object {
       margin: 4px 0;
       padding: 8px;
