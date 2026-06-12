@@ -3,6 +3,7 @@ import get from 'lodash/get';
 import find from 'lodash/find';
 import { useDispatch, useSelector } from 'react-redux';
 import CodeEditor from 'components/CodeEditor';
+import AIAssist from 'components/AIAssist';
 import { updateFolderRequestScript, updateFolderResponseScript } from 'providers/ReduxStore/slices/collections';
 import { saveFolderRoot } from 'providers/ReduxStore/slices/collections/actions';
 import { updateScriptPaneTab } from 'providers/ReduxStore/slices/tabs';
@@ -111,39 +112,53 @@ const Script = ({ collection, folder }) => {
         </TabsList>
 
         <TabsContent value="pre-request" className="mt-2" dataTestId="folder-pre-request-script-editor">
-          <CodeEditor
-            ref={preRequestEditorRef}
-            collection={collection}
-            docKey="folder-script:pre-request"
-            value={requestScript || ''}
-            theme={displayedTheme}
-            onEdit={onRequestScriptEdit}
-            mode="javascript"
-            onSave={handleSave}
-            font={get(preferences, 'font.codeFont', 'default')}
-            fontSize={get(preferences, 'font.codeFontSize')}
-            showHintsFor={['req', 'bru']}
-            initialScroll={preReqScroll}
-            onScroll={setPreReqScroll}
-          />
+          <div className="relative h-full">
+            <CodeEditor
+              ref={preRequestEditorRef}
+              collection={collection}
+              docKey="folder-script:pre-request"
+              value={requestScript || ''}
+              theme={displayedTheme}
+              onEdit={onRequestScriptEdit}
+              mode="javascript"
+              onSave={handleSave}
+              font={get(preferences, 'font.codeFont', 'default')}
+              fontSize={get(preferences, 'font.codeFontSize')}
+              showHintsFor={['req', 'bru']}
+              initialScroll={preReqScroll}
+              onScroll={setPreReqScroll}
+            />
+            <AIAssist
+              scriptType="pre-request"
+              currentScript={requestScript || ''}
+              onApply={onRequestScriptEdit}
+            />
+          </div>
         </TabsContent>
 
         <TabsContent value="post-response" className="mt-2" dataTestId="folder-post-response-script-editor">
-          <CodeEditor
-            ref={postResponseEditorRef}
-            collection={collection}
-            docKey="folder-script:post-response"
-            value={responseScript || ''}
-            theme={displayedTheme}
-            onEdit={onResponseScriptEdit}
-            mode="javascript"
-            onSave={handleSave}
-            font={get(preferences, 'font.codeFont', 'default')}
-            fontSize={get(preferences, 'font.codeFontSize')}
-            showHintsFor={['req', 'res', 'bru']}
-            initialScroll={postResScroll}
-            onScroll={setPostResScroll}
-          />
+          <div className="relative h-full">
+            <CodeEditor
+              ref={postResponseEditorRef}
+              collection={collection}
+              docKey="folder-script:post-response"
+              value={responseScript || ''}
+              theme={displayedTheme}
+              onEdit={onResponseScriptEdit}
+              mode="javascript"
+              onSave={handleSave}
+              font={get(preferences, 'font.codeFont', 'default')}
+              fontSize={get(preferences, 'font.codeFontSize')}
+              showHintsFor={['req', 'res', 'bru']}
+              initialScroll={postResScroll}
+              onScroll={setPostResScroll}
+            />
+            <AIAssist
+              scriptType="post-response"
+              currentScript={responseScript || ''}
+              onApply={onResponseScriptEdit}
+            />
+          </div>
         </TabsContent>
       </Tabs>
 

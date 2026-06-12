@@ -7,7 +7,7 @@ import find from 'lodash/find';
 import get from 'lodash/get';
 import set from 'lodash/set';
 import trim from 'lodash/trim';
-import path, { normalizePath } from 'utils/common/path';
+import path, { normalizePath, isPathExternalToBasePath } from 'utils/common/path';
 import { insertTaskIntoQueue, toggleSidebarCollapse } from 'providers/ReduxStore/slices/app';
 import toast from 'react-hot-toast';
 import IpcErrorModal from 'components/Errors/IpcErrorModal/index';
@@ -2419,6 +2419,60 @@ export const removeCollection = (collectionUid) => (dispatch, getState) => {
         } else {
           // Collection still exists in other workspaces
         }
+      })
+      .then(resolve)
+      .catch(reject);
+  });
+};
+
+// Move an external collection into the workspace's collections directory
+export const moveCollectionToWorkspace = (collectionUid) => (dispatch, getState) => {
+  return new Promise((resolve, reject) => {
+    const state = getState();
+    const collection = findCollectionByUid(state.collections.collections, collectionUid);
+    if (!collection) {
+      return reject(new Error('Collection not found'));
+    }
+
+    const { workspaces } = state;
+    const activeWorkspace = workspaces.workspaces.find((w) => w.uid === workspaces.activeWorkspaceUid);
+
+    if (!activeWorkspace || !activeWorkspace.pathname) {
+      return reject(new Error('No active workspace found'));
+    }
+
+    if (!isPathExternalToBasePath(activeWorkspace.pathname, collection.pathname)) {
+      return reject(new Error('Collection is already inside the workspace'));
+    }
+
+    const { ipcRenderer } = window;
+
+    ipcRenderer
+      .invoke('renderer:move-collection-to-workspace', {
+        workspacePath: activeWorkspace.pathname,
+        collectionPath: collection.pathname,
+        collectionUid,
+        collectionName: collection.name
+      })
+      .then(async (result) => {
+        dispatch(closeAllCollectionTabs({ collectionUid }));
+        dispatch(removeCollectionFromWorkspace({
+          workspaceUid: activeWorkspace.uid,
+          collectionLocation: collection.pathname
+        }));
+        await waitForNextTick();
+        dispatch(_removeCollection({ collectionUid }));
+
+        if (result?.newPath) {
+          const openResult = await dispatch(openMultipleCollections([result.newPath], { workspacePath: activeWorkspace.pathname }));
+          const reopened = (openResult?.opened || []).some(
+            (openedPath) => normalizePath(openedPath) === normalizePath(result.newPath)
+          );
+          if (!reopened) {
+            throw new Error('Collection was moved into the workspace but could not be re-opened. Reload the workspace to access it.');
+          }
+        }
+        dispatch(ensureActiveTabInCurrentWorkspace());
       })
       .then(resolve)
       .catch(reject);

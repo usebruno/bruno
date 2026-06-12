@@ -23,7 +23,8 @@ import {
   setActiveTab,
   clearDebugErrors,
   updateNetworkFilter,
-  toggleAllNetworkFilters
+  toggleAllNetworkFilters,
+  updateRequestDetailsPanelWidth
 } from 'providers/ReduxStore/slices/logs';
 
 import NetworkTab from './NetworkTab';
@@ -33,6 +34,10 @@ import RequestDetailsPanel from './RequestDetailsPanel';
 import ErrorDetailsPanel from './ErrorDetailsPanel';
 import Performance from '../Performance';
 import StyledWrapper from './StyledWrapper';
+import { useResizablePanel } from 'hooks/useResizablePanel';
+
+const MIN_DETAILS_PANEL_WIDTH = 280;
+const MAX_DETAILS_PANEL_WIDTH = 800;
 
 const LogIcon = ({ type }) => {
   const iconProps = { size: 16, strokeWidth: 1.5 };
@@ -381,7 +386,16 @@ const Console = () => {
   const dispatch = useDispatch();
   const { logs, filters, activeTab, selectedRequest, selectedError, networkFilters, debugErrors } = useSelector((state) => state.logs);
   const collections = useSelector((state) => state.collections.collections);
+  const savedDetailsPanelWidth = useSelector((state) => state.logs.requestDetailsPanelWidth);
   const consoleRef = useRef(null);
+
+  const { width: detailsPanelWidth, handleDragStart: handleDetailsPanelDragStart } = useResizablePanel({
+    initialWidth: savedDetailsPanelWidth,
+    minWidth: MIN_DETAILS_PANEL_WIDTH,
+    maxWidth: MAX_DETAILS_PANEL_WIDTH,
+    direction: 'right',
+    onResizeEnd: (newWidth) => dispatch(updateRequestDetailsPanelWidth({ requestDetailsPanelWidth: newWidth }))
+  });
 
   const logCounts = logs.reduce((counts, log) => {
     counts[log.type] = (counts[log.type] || 0) + 1;
@@ -614,7 +628,16 @@ const Console = () => {
             <div className="network-main">
               {renderTabContent()}
             </div>
-            <RequestDetailsPanel />
+            <div className="details-panel-wrapper" style={{ width: detailsPanelWidth }}>
+              <div
+                className="details-drag-handle"
+                onMouseDown={handleDetailsPanelDragStart}
+                data-testid="details-panel-drag-handle"
+              >
+                <div className="drag-request-border" />
+              </div>
+              <RequestDetailsPanel />
+            </div>
           </div>
         ) : activeTab === 'debug' && selectedError ? (
           <div className="debug-with-details">
