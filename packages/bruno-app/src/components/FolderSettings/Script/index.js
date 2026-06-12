@@ -23,7 +23,9 @@ const Script = ({ collection, folder }) => {
   const responseScript = folder.draft ? get(folder, 'draft.request.script.res', '') : get(folder, 'root.request.script.res', '');
 
   const tabs = useSelector((state) => state.tabs.tabs);
-  const focusedTab = find(tabs, (t) => t.uid === folder.uid);
+  const focusedTab = find(tabs, (tab) => tab.type === 'folder-settings' && (tab.uid === folder.uid || tab.folderUid === folder.uid))
+    || find(tabs, (tab) => tab.type === 'folder-settings' && tab.pathname === folder.pathname);
+  const tabUid = focusedTab?.uid || folder.uid;
   const scriptPaneTab = focusedTab?.scriptPaneTab;
 
   // Default to post-response if pre-request script is empty (only when scriptPaneTab is null/undefined)
@@ -35,7 +37,7 @@ const Script = ({ collection, folder }) => {
   const activeTab = scriptPaneTab || getDefaultTab();
 
   const setActiveTab = (tab) => {
-    dispatch(updateScriptPaneTab({ uid: folder.uid, scriptPaneTab: tab }));
+    dispatch(updateScriptPaneTab({ uid: tabUid, scriptPaneTab: tab }));
   };
 
   const { displayedTheme } = useTheme();

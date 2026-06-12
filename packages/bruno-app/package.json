@@ -86,7 +86,7 @@
     "react-virtuoso": "^4.18.1",
     "sass": "^1.46.0",
     "semver": "^7.7.1",
-    "shell-quote": "^1.8.3",
+    "shell-quote": "^1.8.4",
     "strip-json-comments": "^5.0.1",
     "styled-components": "^5.3.3",
     "swagger-ui-react": "^5.31.0",

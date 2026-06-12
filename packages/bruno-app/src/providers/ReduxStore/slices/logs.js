@@ -33,7 +33,8 @@ const initialState = {
   selectedRequest: null,
   selectedError: null,
   maxLogs: 1000,
-  maxDebugErrors: 500
+  maxDebugErrors: 500,
+  requestDetailsPanelWidth: 400
 };
 
 export const logsSlice = createSlice({
@@ -127,6 +128,9 @@ export const logsSlice = createSlice({
     },
     clearSelectedError: (state) => {
       state.selectedError = null;
+    },
+    updateRequestDetailsPanelWidth: (state, action) => {
+      state.requestDetailsPanelWidth = action.payload.requestDetailsPanelWidth;
     }
   }
 });
@@ -146,7 +150,8 @@ export const {
   setSelectedRequest,
   clearSelectedRequest,
   setSelectedError,
-  clearSelectedError
+  clearSelectedError,
+  updateRequestDetailsPanelWidth
 } = logsSlice.actions;
 
 export default logsSlice.reducer;

@@ -861,6 +861,101 @@ const selectfolderPaneTab = async (page: Page, tabName: string) => {
 };
 
 /**
+ * Select a sub-tab in the folder script pane (Pre Request or Post Response)
+ * @param page - The page object
+ * @param tabName - 'pre-request' or 'post-response'
+ * @returns void
+ */
+const selectFolderScriptPaneTab = async (page: Page, tabName: 'pre-request' | 'post-response') => {
+  await test.step(`Select folder script pane tab "${tabName}"`, async () => {
+    const locators = buildCommonLocators(page);
+    const tab = locators.paneTabs.folderScriptTab(tabName);
+    await tab.click();
+    await expect(tab).toContainClass('active');
+  });
+};
+
+/**
+ * Open a collection's settings tab by clicking on it in the sidebar
+ * @param page - The page object
+ * @param collectionName - The name of the collection
+ * @param options - Optional settings (persist: double-click to make tab permanent)
+ * @returns void
+ */
+const openCollectionSettings = async (page: Page, collectionName: string, { persist = false } = {}) => {
+  await test.step(`Open collection settings for "${collectionName}"`, async () => {
+    const locators = buildCommonLocators(page);
+    const collection = locators.sidebar.collection(collectionName);
+    if (!persist) {
+      await collection.click();
+    } else {
+      await collection.dblclick();
+    }
+  });
+};
+
+/**
+ * Select a tab in the collection settings pane
+ * @param page - The page object
+ * @param tabName - The tab name key (e.g. 'auth', 'headers', 'overview', 'script', 'vars')
+ * @returns void
+ */
+const selectCollectionPaneTab = async (page: Page, tabName: string) => {
+  await test.step(`Select collection pane tab "${tabName}"`, async () => {
+    const locators = buildCommonLocators(page);
+    const tab = locators.paneTabs.collectionSettingsTab(tabName.toLowerCase());
+    await tab.click();
+    await expect(tab).toContainClass('active');
+  });
+};
+
+/**
+ * Select a sub-tab in the collection script pane (Pre Request or Post Response)
+ * @param page - The page object
+ * @param tabName - 'pre-request' or 'post-response'
+ * @returns void
+ */
+const selectCollectionScriptPaneTab = async (page: Page, tabName: 'pre-request' | 'post-response') => {
+  await test.step(`Select collection script pane tab "${tabName}"`, async () => {
+    const locators = buildCommonLocators(page);
+    const tab = locators.paneTabs.tabTrigger(tabName);
+    await tab.click();
+    await expect(tab).toContainClass('active');
+  });
+};
+
+/**
+ * Focus the folder settings tab in the tab bar after restore
+ * @param page - The page object
+ * @param folderName - The name of the folder
+ * @param options - Optional timeout in milliseconds
+ * @returns void
+ */
+const focusFolderSettingsTab = async (page: Page, folderName: string, { timeout = 10000 } = {}) => {
+  await test.step(`Focus folder settings tab "${folderName}"`, async () => {
+    const locators = buildCommonLocators(page);
+    const tab = locators.tabs.folderTab(folderName);
+    await expect(tab).toBeVisible({ timeout });
+    await tab.click({ force: true });
+  });
+};
+
+/**
+ * Focus the collection settings tab in the tab bar after restore
+ * @param page - The page object
+ * @param options - Optional timeout in milliseconds
+ * @returns void
+ */
+const focusCollectionSettingsTab = async (page: Page, { timeout = 10000 } = {}) => {
+  await test.step('Focus collection settings tab', async () => {
+    const locators = buildCommonLocators(page);
+    const tab = locators.tabs.collectionSettingsTab();
+    await expect(tab).toBeVisible({ timeout });
+    await tab.click({ force: true });
+  });
+};
+
+/**
  * Open a request within a folder
  * @param page - The page object
  * @param folderName - The name of the folder
@@ -1869,6 +1964,12 @@ export {
   openfolder,
   openFolderRequest,
   selectfolderPaneTab,
+  selectFolderScriptPaneTab,
+  openCollectionSettings,
+  selectCollectionPaneTab,
+  selectCollectionScriptPaneTab,
+  focusFolderSettingsTab,
+  focusCollectionSettingsTab,
   getResponseBody,
   expectResponseContains,
   selectRequestPaneTab,
