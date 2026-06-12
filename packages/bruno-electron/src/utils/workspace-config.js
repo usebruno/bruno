@@ -200,12 +200,17 @@ const createWorkspaceConfig = (workspaceName) => ({
 });
 
 const normalizeWorkspaceConfig = (config) => {
+  // Coerce `specs` to an array once. A malformed workspace.yml (e.g. `specs`
+  // authored as a map) would otherwise flow through as a non-array and crash
+  // both the renderer sidebar (.map) and the write paths (.findIndex/.filter).
+  const specs = Array.isArray(config.specs) ? config.specs : [];
   return {
     ...config,
     name: config.info?.name,
     type: config.info?.type,
     collections: config.collections || [],
-    apiSpecs: Array.isArray(config.specs) ? config.specs : []
+    specs,
+    apiSpecs: specs
   };
 };
 

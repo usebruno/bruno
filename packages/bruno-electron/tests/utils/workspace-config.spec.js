@@ -269,10 +269,15 @@ describe('Git remote on workspace collections', () => {
   });
 });
 
-describe('readWorkspaceConfig apiSpecs normalization (BRU-3556)', () => {
-  const { readWorkspaceConfig } = require('../../src/utils/workspace-config');
+describe('workspace specs normalization (BRU-3556)', () => {
+  const {
+    readWorkspaceConfig,
+    addApiSpecToWorkspace,
+    removeApiSpecFromWorkspace
+  } = require('../../src/utils/workspace-config');
   let workspacePath;
 
+  // Writes workspace.yml with a verbatim `specs:` block so we control its YAML shape.
   const writeWorkspaceYml = (specsYaml) => {
     const content = [
       'opencollection: 1.0.0',
@@ -294,25 +299,65 @@ describe('readWorkspaceConfig apiSpecs normalization (BRU-3556)', () => {
     fs.rmSync(workspacePath, { recursive: true, force: true });
   });
 
-  test('normalizes a valid specs list to apiSpecs array', () => {
-    writeWorkspaceYml(['specs:', '  - name: foo', '    path: foo.yaml'].join('\n'));
-    const config = readWorkspaceConfig(workspacePath);
-    expect(Array.isArray(config.apiSpecs)).toBe(true);
-    expect(config.apiSpecs).toEqual([{ name: 'foo', path: 'foo.yaml' }]);
+  // --- Regression guard: the `|| []` -> `Array.isArray(...) ? ... : []` swap must
+  //     preserve behavior for every VALID shape, and only change non-array inputs. ---
+  describe('readWorkspaceConfig coerces specs to an array', () => {
+    const cases = [
+      {
+        name: 'valid populated list is preserved unchanged',
+        yaml: ['specs:', '  - name: foo', '    path: foo.yaml', '  - name: bar', '    path: bar.yaml'].join('\n'),
+        expected: [
+          { name: 'foo', path: 'foo.yaml' },
+          { name: 'bar', path: 'bar.yaml' }
+        ]
+      },
+      { name: 'empty list stays empty', yaml: 'specs: []', expected: [] },
+      { name: 'missing specs key -> []', yaml: '# no specs key', expected: [] },
+      { name: 'null specs -> []', yaml: 'specs: null', expected: [] },
+      { name: 'map (object) specs -> [] (the crash repro)', yaml: ['specs:', '  brokenEntry: not a list'].join('\n'), expected: [] },
+      { name: 'string specs -> []', yaml: 'specs: "oops a string"', expected: [] },
+      { name: 'number specs -> []', yaml: 'specs: 42', expected: [] }
+    ];
+
+    test.each(cases)('$name', ({ yaml, expected }) => {
+      writeWorkspaceYml(yaml);
+      const config = readWorkspaceConfig(workspacePath);
+      // Both the legacy `specs` field and the renderer-facing `apiSpecs` must be arrays.
+      expect(Array.isArray(config.specs)).toBe(true);
+      expect(Array.isArray(config.apiSpecs)).toBe(true);
+      expect(config.specs).toEqual(expected);
+      expect(config.apiSpecs).toEqual(expected);
+      // apiSpecs mirrors specs (same reference) so consumers can use either.
+      expect(config.apiSpecs).toBe(config.specs);
+    });
   });
 
-  test('coerces a malformed (map) specs value to an empty array', () => {
-    // Reproducer for the `.map is not a function` crash: specs authored as a map, not a list.
-    writeWorkspaceYml(['specs:', '  brokenEntry: not a list'].join('\n'));
-    const config = readWorkspaceConfig(workspacePath);
-    expect(Array.isArray(config.apiSpecs)).toBe(true);
-    expect(config.apiSpecs).toEqual([]);
-  });
+  // --- Write paths must not throw on an already-malformed workspace.yml and must self-heal. ---
+  describe('write paths survive a malformed (non-array) specs', () => {
+    const malformedYaml = ['specs:', '  brokenEntry: not a list'].join('\n');
+    const specsInYml = () => {
+      const raw = fs.readFileSync(path.join(workspacePath, 'workspace.yml'), 'utf8');
+      return yaml.load(raw).specs;
+    };
 
-  test('coerces a missing specs value to an empty array', () => {
-    writeWorkspaceYml('# no specs key');
-    const config = readWorkspaceConfig(workspacePath);
-    expect(Array.isArray(config.apiSpecs)).toBe(true);
-    expect(config.apiSpecs).toEqual([]);
+    test('addApiSpecToWorkspace does not throw and writes a valid list', async () => {
+      writeWorkspaceYml(malformedYaml);
+      const specPath = path.join(workspacePath, 'api.yaml');
+      await expect(
+        addApiSpecToWorkspace(workspacePath, { name: 'api', path: specPath })
+      ).resolves.toBeDefined();
+
+      const stored = specsInYml();
+      expect(Array.isArray(stored)).toBe(true);
+      expect(stored).toEqual([{ name: 'api', path: 'api.yaml' }]);
+    });
+
+    test('removeApiSpecFromWorkspace does not throw on malformed specs', async () => {
+      writeWorkspaceYml(malformedYaml);
+      const result = await removeApiSpecFromWorkspace(workspacePath, path.join(workspacePath, 'whatever.yaml'));
+      expect(result.removedApiSpec).toBeNull();
+      // Round-trip through readWorkspaceConfig (which coerces) must yield a safe array.
+      expect(Array.isArray(readWorkspaceConfig(workspacePath).specs)).toBe(true);
+    });
   });
 });
