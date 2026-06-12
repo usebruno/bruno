@@ -168,6 +168,17 @@ const EditableTable = ({
     };
   }, [defaultRow, checkboxKey]);
 
+  const hasAnyValue = useCallback((row) => {
+    for (const col of columns) {
+      const val = col.getValue ? col.getValue(row) : row[col.key];
+      const defaultVal = defaultRow[col.key];
+      if (val && val !== defaultVal && (typeof val !== 'string' || val.trim() !== '')) {
+        return true;
+      }
+    }
+    return false;
+  }, [columns, defaultRow]);
+
   const rowsWithEmpty = useMemo(() => {
     if (!showAddRow) {
       return rows;
@@ -177,16 +188,11 @@ const EditableTable = ({
       return [createEmptyRow()];
     }
 
-    const lastRow = rows[rows.length - 1];
-    const keyColumn = columns.find((col) => col.isKeyField);
-
-    if (keyColumn) {
-      const lastRowKeyValue = keyColumn.getValue ? keyColumn.getValue(lastRow) : lastRow[keyColumn.key];
-      const isLastRowEmpty = !lastRowKeyValue || (typeof lastRowKeyValue === 'string' && lastRowKeyValue.trim() === '');
-
-      if (isLastRowEmpty) {
-        return rows;
-      }
+    // If the last row is already empty (e.g. a stray empty row loaded from a
+    // pre-existing file), don't append another one — otherwise the table would
+    // render two empty rows at the bottom on the initial render.
+    if (!hasAnyValue(rows[rows.length - 1])) {
+      return rows;
     }
 
     if (!emptyRowUidRef.current || rows.some((r) => r.uid === emptyRowUidRef.current)) {
@@ -198,15 +204,11 @@ const EditableTable = ({
       [checkboxKey]: true,
       ...defaultRow
     }];
-  }, [rows, columns, defaultRow, checkboxKey, createEmptyRow, showAddRow]);
+  }, [rows, columns, defaultRow, checkboxKey, createEmptyRow, hasAnyValue, showAddRow]);
 
-  const isEmptyRow = useCallback((row) => {
-    const keyColumn = columns.find((col) => col.isKeyField);
-    if (!keyColumn) return false;
-
-    const value = keyColumn.getValue ? keyColumn.getValue(row) : row[keyColumn.key];
-    return !value || (typeof value === 'string' && value.trim() === '');
-  }, [columns]);
+  // A row is empty when none of its columns hold a value — the single source of
+  // truth used everywhere (memo guard, persistence filter, last-row rendering).
+  const isEmptyRow = useCallback((row) => !hasAnyValue(row), [hasAnyValue]);
 
   const isLastEmptyRow = useCallback((row, index) => {
     if (!showAddRow) return false;
@@ -227,50 +229,20 @@ const EditableTable = ({
     const rowIndex = rowsWithEmpty.findIndex((r) => r.uid === rowUid);
     if (rowIndex === -1) return;
 
-    const currentRow = rowsWithEmpty[rowIndex];
-    const isLast = rowIndex === rowsWithEmpty.length - 1;
-    const wasEmpty = isEmptyRow(currentRow);
-
-    const keyColumn = columns.find((col) => col.isKeyField);
-    const isKeyFieldChange = keyColumn && keyColumn.key === key;
-
-    let updatedRows = rowsWithEmpty.map((row) => {
+    const updatedRows = rowsWithEmpty.map((row) => {
       if (row.uid === rowUid) {
         return { ...row, [key]: value };
       }
       return row;
     });
 
-    // Only add a new empty row when the key field is filled
-    if (showAddRow && isLast && wasEmpty && isKeyFieldChange && value && value.trim() !== '') {
-      emptyRowUidRef.current = uuid();
-      updatedRows.push({
-        uid: emptyRowUidRef.current,
-        [checkboxKey]: true,
-        ...defaultRow
-      });
-    }
-
-    const hasAnyValue = (row) => {
-      for (const col of columns) {
-        const val = col.getValue ? col.getValue(row) : row[col.key];
-        const defaultVal = defaultRow[col.key];
-        if (val && val !== defaultVal && (typeof val !== 'string' || val.trim() !== '')) {
-          return true;
-        }
-      }
-      return false;
-    };
-
-    const result = updatedRows.filter((row, i) => {
-      if (showAddRow && i === updatedRows.length - 1) {
-        return hasAnyValue(row);
-      }
-      return true;
-    });
+    // Remove any fully-empty rows from the persisted data. The trailing empty
+    // "add row" is re-added by the rowsWithEmpty memo, so there's always
+    // exactly one empty row at the bottom and never a stray empty row above it.
+    const result = showAddRow ? updatedRows.filter(hasAnyValue) : updatedRows;
 
     onChange(result);
-  }, [rowsWithEmpty, columns, onChange, checkboxKey, defaultRow, isEmptyRow, showAddRow]);
+  }, [rowsWithEmpty, hasAnyValue, onChange, showAddRow]);
 
   const handleCheckboxChange = useCallback((rowUid, checked) => {
     handleValueChange(rowUid, checkboxKey, checked);

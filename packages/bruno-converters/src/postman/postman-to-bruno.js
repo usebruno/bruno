@@ -3,6 +3,11 @@ import { validateSchema, transformItemsInCollection, hydrateSeqInCollection, uui
 import { transformExampleStatusInCollection } from '@usebruno/common';
 import each from 'lodash/each';
 import postmanTranslation from './postman-translations';
+import {
+  extractPackagesFromScript,
+  buildPackageReport,
+  TRANSLATOR_INJECTED_GLOBALS
+} from './postman-package-detector';
 import { invalidVariableCharacterRegex } from '../constants/index';
 
 const AUTH_TYPES = Object.freeze({
@@ -303,7 +308,8 @@ export const processAuth = (auth, requestObject, isCollection = false) => {
         authorization_code_with_pkce: 'authorization_code',
         authorization_code: 'authorization_code',
         client_credentials: 'client_credentials',
-        password_credentials: 'password'
+        password_credentials: 'password',
+        implicit: 'implicit'
       };
 
       const postmanGrantType = findValueUsingKey('grant_type');
@@ -348,6 +354,13 @@ export const processAuth = (auth, requestObject, isCollection = false) => {
           break;
         case 'client_credentials':
           requestObject.auth.oauth2 = baseOAuth2Config;
+          break;
+        case 'implicit':
+          requestObject.auth.oauth2 = {
+            ...baseOAuth2Config,
+            authorizationUrl: findValueUsingKey('authUrl'),
+            callbackUrl: findValueUsingKey('redirect_uri')
+          };
           break;
         default:
           console.warn('Unexpected OAuth2 grant type after mapping:', targetGrantType);
@@ -853,6 +866,83 @@ const getBodyTypeFromContentTypeHeader = (headers) => {
   return 'text';
 };
 
+const collectPackagesFromPostmanCollection = (postmanCollection) => {
+  const allPackages = new Set();
+
+  const collectFromEvents = (events) => {
+    if (!Array.isArray(events)) return;
+    events.forEach((event) => {
+      const exec = event?.script?.exec;
+      if (!exec) return;
+      const { packages } = extractPackagesFromScript(exec);
+      packages.forEach((pkg) => allPackages.add(pkg));
+    });
+  };
+
+  const visitItems = (items) => {
+    if (!Array.isArray(items)) return;
+    items.forEach((item) => {
+      collectFromEvents(item?.event);
+      if (item.item && item.item.length) {
+        visitItems(item.item);
+      }
+    });
+  };
+
+  collectFromEvents(postmanCollection?.event);
+  visitItems(postmanCollection?.item);
+
+  return Array.from(allPackages);
+};
+
+const rewriteRequiresInBrunoCollection = (brunoCollection) => {
+  const injected = new Set();
+
+  const processScriptString = (source) => {
+    const { translatedSource, packages } = extractPackagesFromScript(source);
+    for (const pkg of packages) {
+      if (TRANSLATOR_INJECTED_GLOBALS.has(pkg)) injected.add(pkg);
+    }
+    return translatedSource;
+  };
+
+  const processScriptField = (scriptObj, key) => {
+    if (!scriptObj || typeof scriptObj[key] !== 'string' || !scriptObj[key]) return;
+    const next = processScriptString(scriptObj[key]);
+    if (next !== scriptObj[key]) scriptObj[key] = next;
+  };
+
+  const visitRequest = (request) => {
+    if (!request) return;
+    if (request.script) {
+      processScriptField(request.script, 'req');
+      processScriptField(request.script, 'res');
+    }
+    if (typeof request.tests === 'string' && request.tests) {
+      const next = processScriptString(request.tests);
+      if (next !== request.tests) request.tests = next;
+    }
+  };
+
+  visitRequest(brunoCollection?.root?.request);
+
+  const visitItems = (items) => {
+    if (!Array.isArray(items)) return;
+    items.forEach((item) => {
+      if (item.type === 'folder') {
+        visitRequest(item?.root?.request);
+        visitItems(item.items);
+      } else {
+        visitRequest(item.request);
+      }
+    });
+  };
+
+  visitItems(brunoCollection.items);
+
+  return Array.from(injected);
+};
+
 const importPostmanV2Collection = async (collection, { useWorkers = false }) => {
   const brunoCollection = {
     name: collection.info.name || 'Untitled Collection',
@@ -997,12 +1087,29 @@ const parsePostmanCollection = async (collection, { useWorkers = false }) => {
 
 const postmanToBruno = async (postmanCollection, { useWorkers = false } = {}) => {
   try {
+    // Resolve the actual collection envelope (Postman wraps newer exports
+    // in a `{ collection: {...} }` shell) so the raw scan sees real events.
+    const rawCollectionForScan = postmanCollection?.collection?.info
+      ? postmanCollection.collection
+      : postmanCollection;
+    const rawPackages = collectPackagesFromPostmanCollection(rawCollectionForScan);
+
     const { collection: parsedCollection, issues } = await parsePostmanCollection(postmanCollection, { useWorkers });
     const transformedCollection = transformItemsInCollection(parsedCollection);
     const hydratedCollection = hydrateSeqInCollection(transformedCollection);
     // Apply backward compatibility transformation for string status to number
     const statusTransformedCollection = transformExampleStatusInCollection(hydratedCollection);
     const validatedCollection = validateSchema(statusTransformedCollection);
+
+    // Rewrite any pm.require() calls that survived the Bruno-side translator
+    // so the imported scripts use plain require(). The post-scan also picks
+    // up translator-injected globals (cheerio, tv4, ...) - packages Postman
+    // exposed as sandbox globals that the raw pre-scan can't see. The
+    // schema is strict + noUnknown so we attach the report by mutating
+    // the already-validated collection.
+    const injectedPackages = rewriteRequiresInBrunoCollection(validatedCollection);
+    validatedCollection.packageReport = buildPackageReport([...rawPackages, ...injectedPackages]);
+
     return { collection: validatedCollection, issues };
   } catch (err) {
     console.log(err);

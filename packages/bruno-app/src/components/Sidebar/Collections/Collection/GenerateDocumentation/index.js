@@ -11,7 +11,7 @@ import Modal from 'components/Modal';
 import StyledWrapper from './StyledWrapper';
 import demoImage from './demo.png';
 import { useApp } from 'providers/App';
-import { transformCollectionToSaveToExportAsFile, findCollectionByUid, areItemsLoading } from 'utils/collections/index';
+import { transformCollectionToSaveToExportAsFile, findCollectionByUid, areItemsLoading, sortItemsBySidebarOrder } from 'utils/collections/index';
 import { brunoToOpenCollection } from '@usebruno/converters';
 import { sanitizeName } from 'utils/common/regex';
 import { escapeHtml } from 'utils/response';
@@ -75,6 +75,11 @@ const GenerateDocumentation = ({ onClose, collectionUid }) => {
   const handleGenerate = useCallback(() => {
     try {
       const collectionCopy = cloneDeep(collection);
+
+      // Order items exactly like the Sidebar tree (folders by seq, then requests by seq
+      // ) at every depth, so the generated docs match the collection shown in the sidebar.
+      collectionCopy.items = sortItemsBySidebarOrder(collectionCopy.items);
+
       const transformedCollection = transformCollectionToSaveToExportAsFile(collectionCopy);
       const openCollection = brunoToOpenCollection(transformedCollection);
 

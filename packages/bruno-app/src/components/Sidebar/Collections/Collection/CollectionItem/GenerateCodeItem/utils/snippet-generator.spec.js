@@ -1,11 +1,22 @@
-import { getAuthHeaders } from 'utils/codegenerator/auth';
+// Helper: reconstruct the URL HTTPSnippet would render from buildHar's HAR.
+// buildHar strips the URL's query (the bracket-key phantom-duplicate fix), so
+// the visible URL is `har.url` + `har.queryString` re-encoded by encodeURIComponent.
+const reconstructUrlForMock = (harRequest) => {
+  const baseUrl = harRequest?.url || 'http://example.com';
+  const queryString = harRequest?.queryString || [];
+  if (!queryString.length) return baseUrl;
+  const search = queryString
+    .map((p) => `${encodeURIComponent(p.name)}=${encodeURIComponent(p.value ?? '')}`)
+    .join('&');
+  return `${baseUrl}?${search}`;
+};
 
 jest.mock('httpsnippet', () => {
   return {
     HTTPSnippet: jest.fn().mockImplementation((harRequest) => ({
       convert: jest.fn(() => {
         const method = harRequest?.method || 'GET';
-        const url = harRequest?.url || 'http://example.com';
+        const url = reconstructUrlForMock(harRequest);
         const hasBody = harRequest?.postData?.text;
 
         if (method === 'POST' && hasBody) {
@@ -16,36 +27,6 @@ jest.mock('httpsnippet', () => {
     }))
   };
 });
-
-jest.mock('utils/codegenerator/har', () => ({
-  buildHarRequest: jest.fn((data) => {
-    const request = data.request || {};
-    const method = request.method || 'GET';
-    const url = request.url || 'http://example.com';
-    const body = request.body || {};
-
-    const harRequest = {
-      method: method,
-      url: url,
-      headers: data.headers || [],
-      httpVersion: 'HTTP/1.1'
-    };
-
-    // Add body data for POST requests
-    if (method === 'POST' && body.mode === 'json' && body.json) {
-      harRequest.postData = {
-        mimeType: 'application/json',
-        text: body.json
-      };
-    }
-
-    return harRequest;
-  })
-}));
-
-jest.mock('utils/codegenerator/auth', () => ({
-  getAuthHeaders: jest.fn(() => [])
-}));
 
 jest.mock('utils/collections/index', () => {
   const actual = jest.requireActual('utils/collections/index');
@@ -120,7 +101,7 @@ describe('Snippet Generator - Simple Tests', () => {
     require('httpsnippet').HTTPSnippet = jest.fn().mockImplementation((harRequest) => ({
       convert: jest.fn(() => {
         const method = harRequest?.method || 'GET';
-        const url = harRequest?.url || 'http://example.com';
+        const url = reconstructUrlForMock(harRequest);
         const hasBody = harRequest?.postData?.text;
 
         if (method === 'POST' && hasBody) {
@@ -456,10 +437,10 @@ describe('Snippet Generator - Simple Tests', () => {
       }
     };
 
+    // buildHar handles `{{user}}` / `{{pass}}` interpolation via its
+    // internal interpolateRequest pipeline and emits the Basic auth header
+    // through authToHeaders. No mock override needed.
     const { HTTPSnippet: mockedHTTPSnippet } = require('httpsnippet');
-    const { getAuthHeaders: actualGetAuthHeaders } = jest.requireActual('utils/codegenerator/auth');
-    getAuthHeaders.mockImplementation(actualGetAuthHeaders);
-
     const language = { target: 'shell', client: 'curl' };
 
     generateSnippet({
@@ -471,7 +452,7 @@ describe('Snippet Generator - Simple Tests', () => {
 
     const harRequest = mockedHTTPSnippet.mock.calls[0][0];
 
-    // "admin:secret123" encoded is "YWRtaW46c2VjcmV0MTIz"
+    // "admin:secret123" encoded is "YWRtaW46c2VjcmV0MTIz". HAR headers are
     expect(harRequest.headers).toContainEqual(
       expect.objectContaining({
         name: 'Authorization',
@@ -534,6 +515,7 @@ describe('generateSnippet – header inclusion in output', () => {
     // Restore original mock
     require('httpsnippet').HTTPSnippet = originalHTTPSnippet;
 
+    // buildHar's finalizeHeaders lowercases header names per HAR convention.
     expect(result).toContain('X-Collection');
     expect(result).toContain('X-Folder');
   });
@@ -614,59 +596,21 @@ describe('generateSnippet with OAuth2 authentication', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    // Mock getAuthHeaders to return OAuth2 headers based on the auth config
-    const authUtils = require('utils/codegenerator/auth');
-    authUtils.getAuthHeaders.mockImplementation((requestAuth, collection = null, item = null) => {
-      if (requestAuth?.mode === 'oauth2') {
-        const oauth2Config = requestAuth.oauth2 || {};
-        const tokenPlacement = oauth2Config.tokenPlacement || 'header';
-        // Use the actual value from config, defaulting to 'Bearer' only if undefined
-        // Empty string should be preserved to test no-prefix scenarios
-        const tokenHeaderPrefix = oauth2Config.tokenHeaderPrefix !== undefined
-          ? oauth2Config.tokenHeaderPrefix
-          : 'Bearer';
-        let accessToken = oauth2Config.accessToken || '<access_token>';
-
-        // If collection and item are provided, try to look up stored credentials
-        if (collection && item && collection.oauth2Credentials) {
-          const grantType = oauth2Config.grantType || '';
-          const urlToLookup = grantType === 'implicit'
-            ? oauth2Config.authorizationUrl || ''
-            : oauth2Config.accessTokenUrl || '';
-          const credentialsId = oauth2Config.credentialsId || 'credentials';
-          const collectionUid = collection.uid;
-
-          if (urlToLookup && collectionUid) {
-            // Look up stored credentials (simplified - assumes URL is already interpolated in test data)
-            const credentialsData = collection.oauth2Credentials.find(
-              (creds) =>
-                creds?.url === urlToLookup
-                && creds?.collectionUid === collectionUid
-                && creds?.credentialsId === credentialsId
-            );
-
-            if (credentialsData?.credentials?.access_token) {
-              accessToken = credentialsData.credentials.access_token;
-            }
-          }
-        }
-
-        if (tokenPlacement === 'header') {
-          // Always trim the final result for consistent formatting
-          const headerValue = tokenHeaderPrefix
-            ? `${tokenHeaderPrefix} ${accessToken}`.trim()
-            : accessToken.trim();
-          return [
-            {
-              enabled: true,
-              name: 'Authorization',
-              value: headerValue
-            }
-          ];
-        }
-      }
-      return [];
-    });
+    // Restore default `getTreePathFromCollectionToItem` impl so previous
+    // tests' folder-headers overrides don't leak into the OAuth2 tests
+    // (which use baseCollection with no folders).
+    const utilsCollections = require('utils/collections/index');
+    utilsCollections.getTreePathFromCollectionToItem.mockImplementation(() => []);
+    // OAuth2 → headers translation is now handled inside buildHar's
+    // authToHeaders (matches the per-test bruno-common coverage), so this
+    // describe no longer needs to mock `getAuthHeaders`.
+    require('httpsnippet').HTTPSnippet = jest.fn().mockImplementation((harRequest) => ({
+      convert: jest.fn(() => {
+        const method = harRequest?.method || 'GET';
+        const url = reconstructUrlForMock(harRequest);
+        return `curl -X ${method} ${url}`;
+      })
+    }));
   });
 
   it('should include OAuth2 Bearer token in Authorization header when tokenPlacement is header', () => {
@@ -690,8 +634,8 @@ describe('generateSnippet with OAuth2 authentication', () => {
 
     generateSnippet({ language, item, collection: baseCollection, shouldInterpolate: false });
 
-    const harUtils = require('utils/codegenerator/har');
-    const harCall = harUtils.buildHarRequest.mock.calls[0][0];
+    const { HTTPSnippet: mockedHTTPSnippet } = require('httpsnippet');
+    const harCall = mockedHTTPSnippet.mock.calls[0][0];
     expect(harCall.headers).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
@@ -723,8 +667,8 @@ describe('generateSnippet with OAuth2 authentication', () => {
 
     generateSnippet({ language, item, collection: baseCollection, shouldInterpolate: false });
 
-    const harUtils = require('utils/codegenerator/har');
-    const harCall = harUtils.buildHarRequest.mock.calls[0][0];
+    const { HTTPSnippet: mockedHTTPSnippet } = require('httpsnippet');
+    const harCall = mockedHTTPSnippet.mock.calls[0][0];
     expect(harCall.headers).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
@@ -756,8 +700,8 @@ describe('generateSnippet with OAuth2 authentication', () => {
 
     generateSnippet({ language, item, collection: baseCollection, shouldInterpolate: false });
 
-    const harUtils = require('utils/codegenerator/har');
-    const harCall = harUtils.buildHarRequest.mock.calls[0][0];
+    const { HTTPSnippet: mockedHTTPSnippet } = require('httpsnippet');
+    const harCall = mockedHTTPSnippet.mock.calls[0][0];
     const authHeader = harCall.headers.find((h) => h.name === 'Authorization');
     expect(authHeader).toBeUndefined();
   });
@@ -782,8 +726,8 @@ describe('generateSnippet with OAuth2 authentication', () => {
 
     generateSnippet({ language, item, collection: baseCollection, shouldInterpolate: false });
 
-    const harUtils = require('utils/codegenerator/har');
-    const harCall = harUtils.buildHarRequest.mock.calls[0][0];
+    const { HTTPSnippet: mockedHTTPSnippet } = require('httpsnippet');
+    const harCall = mockedHTTPSnippet.mock.calls[0][0];
     expect(harCall.headers).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
@@ -815,8 +759,8 @@ describe('generateSnippet with OAuth2 authentication', () => {
 
     generateSnippet({ language, item, collection: baseCollection, shouldInterpolate: false });
 
-    const harUtils = require('utils/codegenerator/har');
-    const harCall = harUtils.buildHarRequest.mock.calls[0][0];
+    const { HTTPSnippet: mockedHTTPSnippet } = require('httpsnippet');
+    const harCall = mockedHTTPSnippet.mock.calls[0][0];
     expect(harCall.headers).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
@@ -938,19 +882,21 @@ describe('generateSnippet – encodeUrl setting', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    // Mock HTTPSnippet to simulate encoding (same pipeline as the real library)
+    // Mock HTTPSnippet to simulate the real library's URL rendering. buildHar
+    // strips the URL's query (bracket-key fix), so the visible URL is
+    // `harRequest.url` + `harRequest.queryString` reassembled with
+    // encodeURIComponent on each name/value pair — same shape the real
+    // HTTPSnippet produces.
     require('httpsnippet').HTTPSnippet = jest.fn().mockImplementation((harRequest) => ({
       convert: jest.fn((target) => {
         const method = harRequest?.method || 'GET';
-        const url = harRequest?.url || 'http://example.com';
+        const renderedUrl = reconstructUrlForMock(harRequest);
         const { parse } = require('url');
-        const parsed = parse(url, false, true);
-        const encodedPath = getEncodedPath(url);
-        // Simulate targets that use only the path (e.g., python http.client, raw HTTP)
+        const parsed = parse(renderedUrl, false, true);
+        const encodedPath = getEncodedPath(renderedUrl);
         if (target === 'python') {
           return `conn.request("${method}", "${encodedPath}", headers=headers)`;
         }
-        // Full URL targets: reconstruct with encoded path
         const fullEncodedUrl = `${parsed.protocol}//${parsed.host}${encodedPath}`;
         return `curl -X ${method} '${fullEncodedUrl}'`;
       })
@@ -1162,13 +1108,9 @@ describe('generateSnippet – encodeUrl setting', () => {
   });
 
   it('should preserve URL fragment (#) in snippet when encodeUrl is false', () => {
-    // Intentional asymmetry: when encodeUrl is false (raw mode), generateSnippet preserves the
-    // user-supplied URL as-is, including any fragment. This contrasts with encodeUrl: true,
-    // which strips fragments per RFC 3986 §3.5. The rawUrl is preserved through the makeItem
-    // call with { encodeUrl: false } and passed to generateSnippet, which intentionally treats
-    // it as a user-specified string not subject to RFC-compliant stripping. This is a designed
-    // behavior to honor user intent in raw mode, not a bug. This behavior can be revisited in
-    // the future if requirements or RFC interpretations change.
+    // OFF preserves the user's URL byte-for-byte, including the literal `#`.
+    // This is the only mode that retains fragment semantics — toggle OFF when
+    // you want `#section` to survive as a fragment.
     const rawUrl = 'https://example.com/api?token=abc==#section';
     const item = makeItem(rawUrl, { encodeUrl: false });
 
@@ -1178,17 +1120,16 @@ describe('generateSnippet – encodeUrl setting', () => {
     expect(result).not.toContain('%3D');
   });
 
-  it('should not include URL fragment (#) in snippet when encodeUrl is true', () => {
+  it('should encode URL fragment (#) as %23 data when encodeUrl is true', () => {
     const rawUrl = 'https://example.com/api?token=abc==#section';
     const item = makeItem(rawUrl, { encodeUrl: true });
 
     const result = generateSnippet({ language, item, collection: baseCollection, shouldInterpolate: false });
-    // Fragment is stripped — correct per RFC 3986 §3.5: user agents MUST NOT include the fragment
-    // in the HTTP request target sent to the origin server (though fragments can still appear in
-    // user-facing URLs, SPA routing, and are inherited across redirects per RFC 9110 §10.2.2).
-    // https://datatracker.ietf.org/doc/html/rfc3986#section-3.5
-    // https://datatracker.ietf.org/doc/html/rfc9110#section-10.2.2
+    // Option C: `#` is treated as data, encoded to %23. No literal `#` should
+    // remain — fragment semantics are lost in ON mode by design (predictable
+    // "URL Encoding ON encodes everything special" behavior).
     expect(result).not.toContain('#section');
+    expect(result).toContain('%23section');
     expect(result).toContain('%3D%3D');
   });
 
@@ -1221,14 +1162,14 @@ describe('generateSnippet – encodeUrl setting', () => {
     expect(result).toContain('%2F');
   });
 
-  it('should strip fragment and apply encodeUrl when both are present and encodeUrl is true', () => {
+  it('should encode fragment as data and apply encodeUrl when both are present and encodeUrl is true', () => {
     const rawUrl = 'https://example.com/api?redirect=https://other.com/cb#section';
     const item = makeItem(rawUrl, { encodeUrl: true });
 
     const result = generateSnippet({ language, item, collection: baseCollection, shouldInterpolate: false });
-    // Fragment stripped per RFC 3986
+    // `#` encoded to %23 as part of the query value (Option C).
     expect(result).not.toContain('#section');
-    // Query value should be encoded
+    expect(result).toContain('%23section');
     expect(result).toContain('%3A');
     expect(result).toContain('%2F');
   });
@@ -1263,5 +1204,57 @@ describe('generateSnippet – encodeUrl setting', () => {
 
     const result = generateSnippet({ language, item, collection: baseCollection, shouldInterpolate: false });
     expect(result).toBe(`curl -X GET '${rawUrl}'`);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Regression: HTTPSnippet HAR-validator rejects chars URL.canParse accepts.
+// snippet-generator pre-encodes the URL before HAR build so the validator
+// accepts; the toggle-driven replaceAll then swaps the encoded form back to
+// the user's raw form when toggle is OFF.
+// ---------------------------------------------------------------------------
+describe('generateSnippet – pre-encode URL before HAR (HTTPSnippet validator regression)', () => {
+  const language = { target: 'shell', client: 'curl' };
+  const baseCollection = { root: { request: { auth: { mode: 'none' }, headers: [] } } };
+
+  const makeItem = (url, settings) => ({
+    uid: 'pre-enc-req',
+    request: {
+      method: 'GET',
+      url,
+      headers: [],
+      body: { mode: 'none' },
+      auth: { mode: 'none' }
+    },
+    ...(settings !== undefined && { settings })
+  });
+
+  it('does not throw for path-param value with literal space (user-reported `aaa bbb`)', () => {
+    // Repro: URL `https://example.com/users/:id` with `id = aaa bbb`.
+    // After interpolateUrlPathParams (raw mode) the URL has a literal space:
+    // `https://example.com/users/aaa bbb`. HTTPSnippet's HAR validator
+    // rejects it → "Error generating code snippet". Pre-encoding turns the
+    // space into %20 so the validator accepts.
+    const item = makeItem('https://example.com/users/aaa bbb', { encodeUrl: false });
+    const result = generateSnippet({ language, item, collection: baseCollection, shouldInterpolate: false });
+    expect(result).not.toBe('Error generating code snippet');
+  });
+
+  it('does not throw for literal [ and ] in URL path', () => {
+    const item = makeItem('https://example.com/api/list[1]', { encodeUrl: false });
+    const result = generateSnippet({ language, item, collection: baseCollection, shouldInterpolate: false });
+    expect(result).not.toBe('Error generating code snippet');
+  });
+
+  it('does not throw for < and > in URL path', () => {
+    const item = makeItem('https://example.com/api/<token>', { encodeUrl: false });
+    const result = generateSnippet({ language, item, collection: baseCollection, shouldInterpolate: false });
+    expect(result).not.toBe('Error generating code snippet');
+  });
+
+  it('does not throw for raw unicode in URL path', () => {
+    const item = makeItem('https://example.com/users/José', { encodeUrl: false });
+    const result = generateSnippet({ language, item, collection: baseCollection, shouldInterpolate: false });
+    expect(result).not.toBe('Error generating code snippet');
   });
 });
