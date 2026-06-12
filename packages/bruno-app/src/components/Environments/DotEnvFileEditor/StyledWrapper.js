@@ -4,7 +4,18 @@ const StyledWrapper = styled.div`
   display: flex;
   flex-direction: column;
   flex: 1;
+  min-height: 0;
   overflow: hidden;
+
+  .table-scroll-area {
+    flex: 1 1 0%;
+    min-height: 0;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    overflow: hidden;
+  }
 
   .raw-editor-container {
     flex: 1;
@@ -18,16 +29,49 @@ const StyledWrapper = styled.div`
   }
 
   .table-container {
-    overflow-y: auto;
+    height: auto !important;
+    flex: 0 1 auto !important;
+    min-height: 0 !important;
+    max-height: 100% !important;
+    overflow-y: auto !important;
+    position: relative !important;
+
+    min-width: 0;
+    width: 100%;
     border-radius: 8px;
     border: solid 1px ${(props) => props.theme.border.border0};
   }
 
+  .table-container [data-viewport-type='element'] {
+    height: auto !important;
+    position: relative !important;
+    top: auto !important;
+    width: 100% !important;
+
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
+    min-height: 0;
+    box-sizing: border-box;
+  }
+
+  .table-container [data-viewport-type='element'] > table {
+    flex: 0 0 auto;
+    width: 100%;
+    align-self: stretch;
+  }
+
   table {
     width: 100%;
+    height: max-content;
     border-collapse: collapse;
     table-layout: fixed;
     font-size: 12px;
+
+    tbody tr:not([aria-hidden='true']) td {
+      height: 1px;
+    }
 
     td {
       vertical-align: middle;
@@ -70,11 +114,17 @@ const StyledWrapper = styled.div`
         }
 
         td {
+          vertical-align: top;
           border-bottom: solid 1px ${(props) => props.theme.border.border0};
           border-right: solid 1px ${(props) => props.theme.border.border0};
 
+          &:first-child {
+            vertical-align: middle;
+          }
+
           &:last-child {
             border-right: none;
+            vertical-align: middle;
           }
         }
       }

@@ -1,9 +1,22 @@
 import styled from 'styled-components';
 
+/** Outer row for editor + secret toggle; flex min sizes avoid scroll jitter in env tables (#7229). */
+export const EditorRoot = styled.div`
+  display: flex;
+  flex-flow: row nowrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  width: 100%;
+  min-height: 0;
+  min-width: 0;
+  overflow-x: auto;
+`;
+
 const StyledWrapper = styled.div`
   width: 100%;
   height: fit-content;
   max-height: 200px;
+  align-self: flex-start;
   overflow: auto;
 
   &.read-only {
@@ -20,14 +33,27 @@ const StyledWrapper = styled.div`
     }
   }
 
+  /* codemirror.css sets .CodeMirror { height: 300px } and .CodeMirror-scroll { height: 100% }.
+     The percentage chain lets the editor absorb a tall table cell; force content-sized height. */
   .CodeMirror {
     background: transparent;
-    height: fit-content;
+    height: auto !important;
     font-size: ${(props) => props.theme.font.size.base};
     line-height: 30px;
     display: flex;
     flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
+    flex-wrap: nowrap;
     max-height: 200px;
+
+    .CodeMirror-scroll {
+      flex: 0 0 auto;
+      align-self: stretch;
+      min-height: 0;
+      height: auto !important;
+      max-height: 200px;
+    }
 
     pre.CodeMirror-placeholder {
       color: ${(props) => props.theme.text};
