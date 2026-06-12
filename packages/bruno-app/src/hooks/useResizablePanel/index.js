@@ -55,6 +55,8 @@ export function useResizablePanel({
   };
 
   useEffect(() => {
+    // Note: tying the events to the document instead of the parent to avoid fast movement 
+    // from breaking the flow state of dragging 
     document.addEventListener('mousemove', handleMouseMove);
     document.addEventListener('mouseup', handleMouseUp);
     return () => {
