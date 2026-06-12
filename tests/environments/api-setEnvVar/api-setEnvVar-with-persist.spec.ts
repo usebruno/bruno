@@ -1,8 +1,8 @@
 import { test, expect, closeElectronApp } from '../../../playwright';
 import { sendRequest, waitForReadyPage } from '../../utils/page';
 
-test.describe.serial('bru.setEnvVar(name, value, { persist: true })', () => {
-  test('set env var with persist using script', async ({ pageWithUserData: page, restartApp }) => {
+test.describe.serial('bru.setEnvVar(name, value) - persistence', () => {
+  test('set env var using script persists across restart', async ({ pageWithUserData: page, restartApp }) => {
     // Select the collection and request
     await page.locator('#sidebar-collection-name').click();
     await page.getByText('api-setEnvVar-with-persist', { exact: true }).click();
