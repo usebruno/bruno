@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, useCallback } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import ReactDOM from 'react-dom';
 import { IconFilter, IconChevronDown } from '@tabler/icons';
 import { PortalDropdownMenu } from '../StyledWrapper';
@@ -26,7 +26,7 @@ export const FilterDropdown = ({ filters, logCounts, onFilterToggle, onToggleAll
   const allFiltersEnabled = Object.values(filters).every((f) => f);
   const activeFilters = Object.entries(filters).filter(([_, enabled]) => enabled);
 
-  useClickOutside([dropdownRef, menuRef], useCallback(() => setIsOpen(false), []));
+  useClickOutside([dropdownRef, menuRef], () => setIsOpen(false));
 
   useEffect(() => {
     const handleResize = () => { if (isOpen) computeMenuStyle(dropdownRef.current, setMenuStyle); };
@@ -89,7 +89,7 @@ export const NetworkFilterDropdown = ({ filters, requestCounts, onFilterToggle, 
   const allFiltersEnabled = Object.values(filters).every((f) => f);
   const activeFilters = Object.entries(filters).filter(([_, enabled]) => enabled);
 
-  useClickOutside([dropdownRef, menuRef], useCallback(() => setIsOpen(false), []));
+  useClickOutside([dropdownRef, menuRef], () => setIsOpen(false));
 
   useEffect(() => {
     const handleResize = () => {
