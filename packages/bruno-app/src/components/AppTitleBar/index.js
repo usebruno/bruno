@@ -145,7 +145,7 @@ const AppTitleBar = () => {
     }
   };
 
-  const handleWorkspaceSwitch = async (workspaceUid) => {
+  const handleWorkspaceSwitch = (workspaceUid) => {
     if (workspaceUid === activeWorkspaceUid) return;
 
     dispatch(switchWorkspace(workspaceUid));
