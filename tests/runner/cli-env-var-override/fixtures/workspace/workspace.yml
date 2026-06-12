@@ -1,0 +1,12 @@
+opencollection: 1.0.0
+info:
+  name: cli-env-var-override-workspace
+  type: workspace
+
+collections:
+  - name: cli-env-var-override
+    path: collection
+
+specs:
+
+docs: ''
