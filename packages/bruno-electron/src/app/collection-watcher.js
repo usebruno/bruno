@@ -319,6 +319,7 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
         file.partial = false;
         file.loading = false;
         file.size = sizeInMB(fileStats?.size);
+        file.data.raw = content;
         hydrateRequestWithUuid(file.data, pathname);
         win.webContents.send('main:collection-tree-updated', 'addFile', file);
       } catch (error) {
@@ -360,6 +361,7 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
         });
         file.partial = false;
         file.loading = false;
+        file.data.raw = content;
         hydrateRequestWithUuid(file.data, pathname);
         win.webContents.send('main:collection-tree-updated', 'addFile', file);
       }
@@ -374,6 +376,7 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
       file.partial = true;
       file.loading = false;
       file.size = sizeInMB(fileStats?.size);
+      file.data.raw = content;
       hydrateRequestWithUuid(file.data, pathname);
       win.webContents.send('main:collection-tree-updated', 'addFile', file);
     } finally {
@@ -542,6 +545,7 @@ const change = async (win, pathname, collectionUid, collectionPath) => {
         file.data = await parseRequest(content, { format });
       }
 
+      file.data.raw = content;
       file.size = sizeInMB(fileStats?.size);
       hydrateRequestWithUuid(file.data, pathname);
       win.webContents.send('main:collection-tree-updated', 'change', file);

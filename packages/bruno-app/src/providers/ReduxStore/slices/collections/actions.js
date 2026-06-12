@@ -11,6 +11,7 @@ import path, { normalizePath, isPathExternalToBasePath } from 'utils/common/path
 import { insertTaskIntoQueue, toggleSidebarCollapse } from 'providers/ReduxStore/slices/app';
 import toast from 'react-hot-toast';
 import IpcErrorModal from 'components/Errors/IpcErrorModal/index';
+import SaveFileErrorModal from 'components/Errors/SaveFileErrorModal/index';
 import {
   findCollectionByUid,
   findEnvironmentInCollection,
@@ -188,6 +189,62 @@ export const saveRequest = (itemUid, collectionUid, silent = false) => (dispatch
       .then(resolve)
       .catch((err) => {
         toast.error(err.message || 'Failed to save request!');
+        reject(err);
+      });
+  });
+};
+
+export const saveFile = (content, itemUid, collectionUid, silent = false) => (dispatch, getState) => {
+  const state = getState();
+  const collection = findCollectionByUid(state.collections.collections, collectionUid);
+  const tempDirectory = state.collections.tempDirectories?.[collectionUid];
+
+  return new Promise(async (resolve, reject) => {
+    if (!collection) {
+      return reject(new Error('Collection not found'));
+    }
+
+    const collectionCopy = cloneDeep(collection);
+    const item = findItemInCollection(collectionCopy, itemUid);
+
+    // Item is not used to save the bru file
+    // This is to validate if the bru content is associated with a valid item
+    if (!item) {
+      return reject(new Error('Not able to locate item'));
+    }
+
+    const isTransient = tempDirectory && item.pathname.startsWith(tempDirectory);
+    if (isTransient) {
+      dispatch(addSaveTransientRequestModal({ item, collection }));
+      return reject();
+    }
+
+    const { ipcRenderer } = window;
+    try {
+      if (['http-request', 'graphql-request'].includes(item?.type)) {
+        let json = await ipcRenderer.invoke('renderer:convert-to-json', item, content, collection.format);
+        delete json.isTransient;
+        await itemSchema.validate(json);
+      }
+    } catch (err) {
+      if (!silent) {
+        toast.custom(<SaveFileErrorModal error={err.message} />);
+      }
+      return reject(err);
+    }
+
+    ipcRenderer
+      .invoke('renderer:save-file', item.pathname, content)
+      .then(() => {
+        if (!silent) {
+          toast.success('File saved successfully!');
+        }
+      })
+      .then(resolve)
+      .catch((err) => {
+        if (!silent) {
+          toast.error('Failed to save file!');
+        }
         reject(err);
       });
   });
