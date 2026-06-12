@@ -1,11 +1,11 @@
 const { marshallToVm } = require('../utils');
+const { createPropertyListBridge } = require('../utils/property-list-bridge');
 
 const addBrunoRequestShimToContext = (vm, req) => {
   const reqObject = vm.newObject();
 
   const url = marshallToVm(req.getUrl(), vm);
   const method = marshallToVm(req.getMethod(), vm);
-  const headers = marshallToVm(req.getHeaders(), vm);
   const body = marshallToVm(req.getBody(), vm);
   const timeout = marshallToVm(req.getTimeout(), vm);
   const name = marshallToVm(req.getName(), vm);
@@ -14,7 +14,6 @@ const addBrunoRequestShimToContext = (vm, req) => {
 
   vm.setProp(reqObject, 'url', url);
   vm.setProp(reqObject, 'method', method);
-  vm.setProp(reqObject, 'headers', headers);
   vm.setProp(reqObject, 'body', body);
   vm.setProp(reqObject, 'timeout', timeout);
   vm.setProp(reqObject, 'name', name);
@@ -23,12 +22,28 @@ const addBrunoRequestShimToContext = (vm, req) => {
 
   url.dispose();
   method.dispose();
-  headers.dispose();
   body.dispose();
   timeout.dispose();
   name.dispose();
   pathParams.dispose();
   tags.dispose();
+
+  // req.headers — plain headers object for backward-compatible bracket access
+  const headersVal = marshallToVm(req.getHeaders(), vm);
+  vm.setProp(reqObject, 'headers', headersVal);
+  headersVal.dispose();
+
+  // req.headerList — PropertyList bridge for structured header operations
+  const headerListObj = vm.newObject();
+  const { evalCode: headersEvalCode } = createPropertyListBridge(vm, req.headerList, headerListObj, {
+    globalPath: 'globalThis.req.headerList',
+    syncReadMethods: ['get', 'has', 'count', 'indexOf', 'toObject', 'toString'],
+    syncReadObjectMethods: ['one', 'all', 'toJSON'],
+    syncWriteMethods: ['add', 'upsert', 'remove', 'clear', 'populate', 'repopulate', 'assimilate'],
+    withIterators: true
+  });
+  vm.setProp(reqObject, 'headerList', headerListObj);
+  headerListObj.dispose();
 
   let getUrl = vm.newFunction('getUrl', function () {
     return marshallToVm(req.getUrl(), vm);
@@ -177,6 +192,12 @@ const addBrunoRequestShimToContext = (vm, req) => {
 
   vm.setProp(vm.global, 'req', reqObject);
   reqObject.dispose();
+
+  // Evaluate iterator code after req is on global (iterators reference globalThis.req.headerList)
+  // Wrapped in a block to avoid const redeclaration conflicts with other evalCode blocks
+  if (headersEvalCode) {
+    vm.evalCode(`{ ${headersEvalCode} }`);
+  }
 };
 
 module.exports = addBrunoRequestShimToContext;

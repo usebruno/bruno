@@ -1,5 +1,4 @@
-
-import * as React from "react"
+import * as React from 'react';
 import { ReactNode } from 'react';
 import { createContext, useContext } from 'react';
 
@@ -14,7 +13,7 @@ export function ScopedPersistenceProvider({ scope, children }: { scope: string; 
 }
 
 export function clearPersistedScope(scope: string) {
-  const prefix = `persisted::${scope}::`;
+  const prefix = scope ? `persisted::${scope}::` : 'persisted::';
   Object.keys(localStorage)
     .filter((k) => k.startsWith(prefix))
     .forEach((k) => localStorage.removeItem(k));

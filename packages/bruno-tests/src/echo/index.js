@@ -14,6 +14,58 @@ router.all('/headers', (req, res) => {
   });
 });
 
+// httpbin.org/anything-style echo — returns the full request shape so e2e
+// tests can verify exactly what reached the server. Used by the # encoding
+// scenarios in tests/request/generate-code/send-vs-snippet.spec.ts so the
+// suite doesn't depend on the public httpbin.org service (which 503s under
+// load). Mimics httpbin's URL-decode-for-display so assertions can still
+// match against the human-readable `#authentication` form even when the
+// wire URL had `%23authentication`.
+router.all('/anything/*', (req, res) => {
+  let bodyData = '';
+  let formData = {};
+  let jsonData = null;
+
+  if (req.body !== undefined && req.body !== null) {
+    if (Buffer.isBuffer(req.body)) {
+      bodyData = req.body.toString();
+    } else if (typeof req.body === 'string') {
+      bodyData = req.body;
+    } else if (typeof req.body === 'object') {
+      const ct = (req.headers['content-type'] || '').toLowerCase();
+      if (ct.includes('application/json')) {
+        jsonData = req.body;
+      } else if (ct.includes('x-www-form-urlencoded') || ct.includes('multipart/form-data')) {
+        formData = req.body;
+      } else {
+        try { bodyData = JSON.stringify(req.body); } catch { bodyData = ''; }
+      }
+    }
+  }
+
+  // URL-decode `req.originalUrl` for the `url` field so callers can assert
+  // against the decoded form (e.g. `#authentication`) — same shape httpbin
+  // returns. Falls back to the raw URL if decoding fails (malformed %XX).
+  let displayUrl = req.originalUrl;
+  try {
+    displayUrl = decodeURIComponent(req.originalUrl);
+  } catch {
+    // keep raw
+  }
+
+  return res.json({
+    args: req.query || {},
+    data: bodyData,
+    files: {},
+    form: formData,
+    headers: req.headers,
+    json: jsonData,
+    method: req.method,
+    origin: req.ip || '127.0.0.1',
+    url: `${req.protocol}://${req.get('host')}${displayUrl}`
+  });
+});
+
 router.post('/json', (req, res) => {
   return res.json(req.body);
 });

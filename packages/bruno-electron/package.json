@@ -21,7 +21,8 @@
     "dist:rpm": "electron-builder --linux rpm --config electron-builder-config.js",
     "dist:snap": "electron-builder --linux snap --config electron-builder-config.js",
     "pack": "electron-builder --dir",
-    "test": "node --experimental-vm-modules $(npx which jest)"
+    "test": "node --experimental-vm-modules $(npx which jest)",
+    "test:ci": "node --experimental-vm-modules ../../node_modules/jest/bin/jest.js"
   },
   "jest": {
     "modulePaths": [
@@ -29,6 +30,8 @@
     ]
   },
   "dependencies": {
+    "@ai-sdk/anthropic": "3.0.15",
+    "@ai-sdk/openai": "3.0.12",
     "@aws-sdk/credential-providers": "3.1019.0",
     "@grpc/grpc-js": "^1.13.2",
     "@grpc/proto-loader": "^0.7.13",
@@ -43,6 +46,7 @@
     "@usebruno/schema": "0.7.0",
     "about-window": "^1.15.2",
     "adm-zip": "^0.5.16",
+    "ai": "6.0.39",
     "archiver": "^7.0.1",
     "aws4-axios": "^3.3.15",
     "axios": "1.13.6",
@@ -75,7 +79,8 @@
     "socks-proxy-agent": "^8.0.2",
     "tough-cookie": "^6.0.0",
     "uuid": "^10.0.0",
-    "yup": "^0.32.11"
+    "yup": "^0.32.11",
+    "zod": "^4.1.8"
   },
   "optionalDependencies": {
     "dmg-license": "^1.0.11"

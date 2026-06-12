@@ -12,7 +12,7 @@ http:
     consumerSecret: consumer_secret_1
     accessToken: access_token_1
     accessTokenSecret: token_secret_1
-    signatureEncoding: HMAC-SHA1
+    signatureMethod: HMAC-SHA1
     version: "1.0"
     placement: query
     includeBodyHash: false

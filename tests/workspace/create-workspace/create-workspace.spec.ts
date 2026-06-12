@@ -2,6 +2,7 @@ import path from 'path';
 import fs from 'fs';
 import yaml from 'js-yaml';
 import { test, expect, closeElectronApp } from '../../../playwright';
+import { waitForReadyPage } from '../../utils/page';
 
 type WorkspaceConfig = {
   opencollection?: string;
@@ -28,8 +29,7 @@ test.describe('Create Workspace', () => {
       const wsLocation = await createTmpDir('ws-location-enter');
 
       const app = await launchElectronApp({ initUserDataPath, templateVars: { wsLocation } });
-      const page = await app.firstWindow();
-      await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
+      const page = await waitForReadyPage(app);
 
       await test.step('Click "Create workspace" from title bar dropdown', async () => {
         await page.locator('.workspace-name-container').click();
@@ -75,8 +75,7 @@ test.describe('Create Workspace', () => {
       const wsLocation = await createTmpDir('ws-location-check');
 
       const app = await launchElectronApp({ initUserDataPath, templateVars: { wsLocation } });
-      const page = await app.firstWindow();
-      await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
+      const page = await waitForReadyPage(app);
 
       await test.step('Click "Create workspace" and fill name', async () => {
         await page.locator('.workspace-name-container').click();
@@ -109,8 +108,7 @@ test.describe('Create Workspace', () => {
       const wsLocation = await createTmpDir('ws-location-outside');
 
       const app = await launchElectronApp({ initUserDataPath, templateVars: { wsLocation } });
-      const page = await app.firstWindow();
-      await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
+      const page = await waitForReadyPage(app);
 
       await test.step('Create workspace and fill name', async () => {
         await page.locator('.workspace-name-container').click();
@@ -139,8 +137,7 @@ test.describe('Create Workspace', () => {
       const wsLocation = await createTmpDir('ws-location-escape');
 
       const app = await launchElectronApp({ initUserDataPath, templateVars: { wsLocation } });
-      const page = await app.firstWindow();
-      await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
+      const page = await waitForReadyPage(app);
 
       await test.step('Start workspace creation', async () => {
         await page.locator('.workspace-name-container').click();
@@ -168,8 +165,7 @@ test.describe('Create Workspace', () => {
       const wsLocation = await createTmpDir('ws-location-x');
 
       const app = await launchElectronApp({ initUserDataPath, templateVars: { wsLocation } });
-      const page = await app.firstWindow();
-      await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
+      const page = await waitForReadyPage(app);
 
       await test.step('Start workspace creation', async () => {
         await page.locator('.workspace-name-container').click();
@@ -192,8 +188,7 @@ test.describe('Create Workspace', () => {
       const wsLocation = await createTmpDir('ws-location-outside-empty');
 
       const app = await launchElectronApp({ initUserDataPath, templateVars: { wsLocation } });
-      const page = await app.firstWindow();
-      await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
+      const page = await waitForReadyPage(app);
 
       await test.step('Start workspace creation and clear the name', async () => {
         await page.locator('.workspace-name-container').click();
@@ -221,8 +216,7 @@ test.describe('Create Workspace', () => {
       const customLocation = await createTmpDir('custom-ws-location');
 
       const app = await launchElectronApp({ initUserDataPath, templateVars: { wsLocation } });
-      const page = await app.firstWindow();
-      await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
+      const page = await waitForReadyPage(app);
 
       await test.step('Start inline creation and click settings icon to open advanced modal', async () => {
         await page.locator('.workspace-name-container').click();
@@ -296,8 +290,7 @@ test.describe('Create Workspace', () => {
       const wsLocation = await createTmpDir('ws-location-modal-default');
 
       const app = await launchElectronApp({ initUserDataPath, templateVars: { wsLocation } });
-      const page = await app.firstWindow();
-      await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
+      const page = await waitForReadyPage(app);
 
       await test.step('Start inline creation and open advanced modal', async () => {
         await page.locator('.workspace-name-container').click();
@@ -338,8 +331,7 @@ test.describe('Create Workspace', () => {
       const wsLocation = await createTmpDir('ws-location-modal-cancel');
 
       const app = await launchElectronApp({ initUserDataPath, templateVars: { wsLocation } });
-      const page = await app.firstWindow();
-      await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
+      const page = await waitForReadyPage(app);
 
       await test.step('Start inline creation and open advanced modal', async () => {
         await page.locator('.workspace-name-container').click();
@@ -362,8 +354,42 @@ test.describe('Create Workspace', () => {
       await closeElectronApp(app);
     });
 
-    test('should show validation error for empty name in modal', async ({ launchElectronApp, createTmpDir }) => {
+    test('should show validation error for empty name in modal and keep modal open', async ({ launchElectronApp, createTmpDir }) => {
       const wsLocation = await createTmpDir('ws-location-modal-empty');
+
+      const app = await launchElectronApp({ initUserDataPath, templateVars: { wsLocation } });
+      const page = await waitForReadyPage(app);
+
+      await test.step('Start inline creation and open advanced modal', async () => {
+        await page.locator('.workspace-name-container').click();
+        await page.locator('.dropdown-item').filter({ hasText: 'Create workspace' }).click();
+        await expect(page.locator('.workspace-name-input')).toBeVisible({ timeout: 5000 });
+        await page.locator('.cog-btn').click();
+      });
+
+      await test.step('Clear name and submit', async () => {
+        const modal = page.locator('.bruno-modal-card').filter({ hasText: 'Create Workspace' });
+        await modal.waitFor({ state: 'visible', timeout: 5000 });
+        const submitButton = modal.getByRole('button', { name: 'Create Workspace' });
+
+        await modal.locator('#workspace-name').fill('');
+        await expect(submitButton).toBeEnabled();
+        await submitButton.click();
+      });
+
+      await test.step('Verify validation error appears and modal stays open', async () => {
+        const modal = page.locator('.bruno-modal-card').filter({ hasText: 'Create Workspace' });
+        const submitButton = modal.getByRole('button', { name: 'Create Workspace' });
+        await expect(modal).toBeVisible();
+        await expect(submitButton).toBeEnabled();
+        await expect(modal.getByText('Workspace name is required')).toBeVisible({ timeout: 2000 });
+      });
+
+      await closeElectronApp(app);
+    });
+
+    test('should show validation error for whitespace-only name in modal and keep modal open', async ({ launchElectronApp, createTmpDir }) => {
+      const wsLocation = await createTmpDir('ws-location-modal-whitespace');
 
       const app = await launchElectronApp({ initUserDataPath, templateVars: { wsLocation } });
       const page = await app.firstWindow();
@@ -376,20 +402,22 @@ test.describe('Create Workspace', () => {
         await page.locator('.cog-btn').click();
       });
 
-      await test.step('Clear name and try to submit', async () => {
+      await test.step('Enter whitespace-only name and submit', async () => {
         const modal = page.locator('.bruno-modal-card').filter({ hasText: 'Create Workspace' });
         await modal.waitFor({ state: 'visible', timeout: 5000 });
+        const submitButton = modal.getByRole('button', { name: 'Create Workspace' });
 
-        // Ensure name field is empty
-        await modal.locator('#workspace-name').fill('');
-        await modal.getByRole('button', { name: 'Create Workspace' }).click();
+        await modal.locator('#workspace-name').fill('   ');
+        await expect(submitButton).toBeEnabled();
+        await submitButton.click();
       });
 
       await test.step('Verify validation error appears and modal stays open', async () => {
         const modal = page.locator('.bruno-modal-card').filter({ hasText: 'Create Workspace' });
+        const submitButton = modal.getByRole('button', { name: 'Create Workspace' });
         await expect(modal).toBeVisible();
-        const error = modal.locator('.text-red-500');
-        await expect(error.first()).toBeVisible({ timeout: 2000 });
+        await expect(submitButton).toBeEnabled();
+        await expect(modal.getByText('Workspace name can\'t be empty')).toBeVisible({ timeout: 2000 });
       });
 
       await closeElectronApp(app);
@@ -401,8 +429,7 @@ test.describe('Create Workspace', () => {
       const wsLocation = await createTmpDir('ws-location-display');
 
       const app = await launchElectronApp({ initUserDataPath, templateVars: { wsLocation } });
-      const page = await app.firstWindow();
-      await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
+      const page = await waitForReadyPage(app);
 
       await test.step('Create a workspace with specific name', async () => {
         await page.locator('.workspace-name-container').click();
@@ -433,8 +460,7 @@ test.describe('Create Workspace', () => {
 
       // First launch: create workspace
       const app1 = await launchElectronApp({ userDataPath, initUserDataPath, templateVars: { wsLocation } });
-      const page1 = await app1.firstWindow();
-      await page1.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
+      const page1 = await waitForReadyPage(app1);
 
       await test.step('Create workspace', async () => {
         await page1.locator('.workspace-name-container').click();
@@ -450,8 +476,7 @@ test.describe('Create Workspace', () => {
 
       // Second launch: verify name persists (reuse same userDataPath)
       const app2 = await launchElectronApp({ userDataPath });
-      const page2 = await app2.firstWindow();
-      await page2.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
+      const page2 = await waitForReadyPage(app2);
 
       await test.step('Verify workspace name persisted', async () => {
         await page2.locator('.workspace-name-container').click();
@@ -468,8 +493,7 @@ test.describe('Create Workspace', () => {
       const wsLocation = await createTmpDir('ws-location-multiple');
 
       const app = await launchElectronApp({ initUserDataPath, templateVars: { wsLocation } });
-      const page = await app.firstWindow();
-      await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
+      const page = await waitForReadyPage(app);
 
       await test.step('Create first workspace', async () => {
         await page.locator('.workspace-name-container').click();
@@ -478,7 +502,9 @@ test.describe('Create Workspace', () => {
         await expect(renameInput).toBeVisible({ timeout: 5000 });
         await renameInput.fill('Workspace One');
         await renameInput.press('Enter');
-        await expect(page.getByText('Workspace created!')).toBeVisible({ timeout: 10000 });
+        await expect(page.getByText('Workspace created!')).toBeVisible({ timeout: 5000 });
+        // Wait for the first toast to dismiss
+        await expect(page.getByText('Workspace created!')).toBeHidden();
         await expect(page.getByTestId('workspace-name')).toHaveText('Workspace One', { timeout: 5000 });
       });
 
@@ -489,7 +515,9 @@ test.describe('Create Workspace', () => {
         await expect(renameInput).toBeVisible({ timeout: 5000 });
         await renameInput.fill('Workspace Two');
         await renameInput.press('Enter');
-        await expect(page.getByText('Workspace created!')).toBeVisible({ timeout: 10000 });
+        await expect(page.getByText('Workspace created!')).toBeVisible({ timeout: 5000 });
+        // Wait for the first toast to dismiss
+        await expect(page.getByText('Workspace created!')).toBeHidden();
         await expect(page.getByTestId('workspace-name')).toHaveText('Workspace Two', { timeout: 5000 });
       });
 
@@ -513,8 +541,7 @@ test.describe('Create Workspace', () => {
       const wsLocation = await createTmpDir('ws-location-cancel-retry');
 
       const app = await launchElectronApp({ initUserDataPath, templateVars: { wsLocation } });
-      const page = await app.firstWindow();
-      await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
+      const page = await waitForReadyPage(app);
 
       await test.step('Start creation and cancel with Escape', async () => {
         await page.locator('.workspace-name-container').click();
@@ -542,8 +569,7 @@ test.describe('Create Workspace', () => {
       const wsLocation = await createTmpDir('ws-location-special');
 
       const app = await launchElectronApp({ initUserDataPath, templateVars: { wsLocation } });
-      const page = await app.firstWindow();
-      await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
+      const page = await waitForReadyPage(app);
 
       await test.step('Create workspace with special characters in name', async () => {
         await page.locator('.workspace-name-container').click();
@@ -573,8 +599,7 @@ test.describe('Create Workspace', () => {
       const wsLocation = await createTmpDir('ws-location-empty');
 
       const app = await launchElectronApp({ initUserDataPath, templateVars: { wsLocation } });
-      const page = await app.firstWindow();
-      await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
+      const page = await waitForReadyPage(app);
 
       await test.step('Create workspace and clear name', async () => {
         await page.locator('.workspace-name-container').click();
@@ -602,8 +627,7 @@ test.describe('Create Workspace', () => {
       const wsLocation = await createTmpDir('ws-location-no-cog');
 
       const app = await launchElectronApp({ initUserDataPath, templateVars: { wsLocation } });
-      const page = await app.firstWindow();
-      await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
+      const page = await waitForReadyPage(app);
 
       await test.step('Create a workspace first', async () => {
         await page.locator('.workspace-name-container').click();
@@ -641,8 +665,7 @@ test.describe('Create Workspace', () => {
       const wsLocation = await createTmpDir('ws-location-switch');
 
       const app = await launchElectronApp({ initUserDataPath, templateVars: { wsLocation } });
-      const page = await app.firstWindow();
-      await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
+      const page = await waitForReadyPage(app);
 
       await test.step('Create a new workspace', async () => {
         await page.locator('.workspace-name-container').click();
@@ -678,8 +701,7 @@ test.describe('Create Workspace', () => {
       const wsLocation = await createTmpDir('ws-location-no-temp');
 
       const app = await launchElectronApp({ initUserDataPath, templateVars: { wsLocation } });
-      const page = await app.firstWindow();
-      await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
+      const page = await waitForReadyPage(app);
 
       await test.step('Start creation but do not confirm', async () => {
         await page.locator('.workspace-name-container').click();

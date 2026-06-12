@@ -1,0 +1,14 @@
+{
+  "maximized": false,
+  "lastOpenedCollections": ["{{projectRoot}}/tests/proxy/system-pac/fixtures/collection"],
+  "preferences": {
+    "onboarding": {
+      "hasLaunchedBefore": true,
+      "hasSeenWelcomeModal": true
+    },
+    "proxy": {
+      "source": "inherit",
+      "config": {}
+    }
+  }
+}

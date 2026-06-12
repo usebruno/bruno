@@ -1,3 +1,4 @@
+import { Annotation } from './annotation';
 import type { UID } from './uid';
 
 /**
@@ -10,6 +11,7 @@ export interface Variable {
   description?: string | null;
   enabled?: boolean;
   local?: boolean;
+  annotations?: Annotation[] | null;
 }
 
 export type Variables = Variable[] | null;

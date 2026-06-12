@@ -1,4 +1,4 @@
-import type { UID } from '../common';
+import type { UID, Annotation } from '../common';
 
 export interface EnvironmentVariable {
   uid: UID;
@@ -7,6 +7,7 @@ export interface EnvironmentVariable {
   type: 'text';
   enabled?: boolean;
   secret?: boolean;
+  annotations?: Annotation[] | null;
 }
 
 export interface Environment {

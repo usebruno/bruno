@@ -28,6 +28,7 @@ const { cookiesStore } = require('../store/cookies');
 const { parseLargeRequestWithRedaction } = require('../utils/parse');
 const { wsClient } = require('../ipc/network/ws-event-handlers');
 const { hasSubDirectories } = require('../utils/filesystem');
+const { transformProxyConfig } = require('@usebruno/requests');
 
 const {
   DEFAULT_GITIGNORE,
@@ -57,13 +58,14 @@ const {
   isCollectionRootBruFile,
   scanForBrunoFiles
 } = require('../utils/filesystem');
-const { openCollectionDialog, openCollectionsByPathname, registerScratchCollectionPath } = require('../app/collections');
+const { getCollectionConfigFile, openCollectionDialog, openCollectionsByPathname, registerScratchCollectionPath } = require('../app/collections');
 const { generateUidBasedOnHash, stringifyJson, safeStringifyJSON, safeParseJSON } = require('../utils/common');
+const { isValidNpmPackageName, runNpmInstall } = require('../utils/install-packages');
 const { moveRequestUid, deleteRequestUid, syncExampleUidsCache } = require('../cache/requestUids');
 const { deleteCookiesForDomain, getDomainsWithCookies, addCookieForDomain, modifyCookieForDomain, parseCookieString, createCookieString, deleteCookie } = require('../utils/cookies');
 const EnvironmentSecretsStore = require('../store/env-secrets');
 const CollectionSecurityStore = require('../store/collection-security');
-const UiStateSnapshotStore = require('../store/ui-state-snapshot');
+const snapshotManager = require('../services/snapshot');
 const interpolateVars = require('./network/interpolate-vars');
 const { interpolateString } = require('./network/interpolate-string');
 const { getEnvVars, getTreePathFromCollectionToItem, mergeVars, parseBruFileMeta, hydrateRequestWithUuid, transformRequestToSaveToFilesystem } = require('../utils/collection');
@@ -79,7 +81,6 @@ const { saveSpecAndUpdateMetadata, cleanupSpecFilesForCollection } = require('./
 
 const environmentSecretsStore = new EnvironmentSecretsStore();
 const collectionSecurityStore = new CollectionSecurityStore();
-const uiStateSnapshotStore = new UiStateSnapshotStore();
 
 // size and file count limits to determine whether the bru files in the collection should be loaded asynchronously or not.
 const MAX_COLLECTION_SIZE_IN_MB = 20;
@@ -1076,16 +1077,24 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
 
   ipcMain.handle('renderer:open-multiple-collections', async (e, collectionPaths, options = {}) => {
     if (watcher && mainWindow) {
-      await openCollectionsByPathname(mainWindow, watcher, collectionPaths);
+      const result = await openCollectionsByPathname(mainWindow, watcher, collectionPaths, options);
       if (options.workspacePath) {
         const { setCollectionWorkspace } = require('../store/process-env');
         const { generateUidBasedOnHash } = require('../utils/common');
-        for (const collectionPath of collectionPaths) {
+        for (const collectionPath of result?.opened || []) {
           const collectionUid = generateUidBasedOnHash(collectionPath);
           setCollectionWorkspace(collectionUid, options.workspacePath);
         }
       }
+
+      return result;
     }
+
+    return {
+      opened: [],
+      failed: [],
+      invalid: []
+    };
   });
 
   ipcMain.handle('renderer:set-collection-workspace', (event, collectionUid, workspacePath) => {
@@ -1219,7 +1228,9 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
               ignore: ['node_modules', '.git']
             };
           }
-
+          if (brunoConfig.proxy) {
+            brunoConfig.proxy = transformProxyConfig(brunoConfig.proxy);
+          }
           return brunoConfig;
         };
 
@@ -1630,9 +1641,9 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
     }
   });
 
-  ipcMain.handle('renderer:update-ui-state-snapshot', (event, { type, data }) => {
+  ipcMain.handle('renderer:update-ui-state-snapshot', async (event, { type, data }) => {
     try {
-      uiStateSnapshotStore.update({ type, data });
+      await snapshotManager.update({ type, data });
     } catch (error) {
       throw new Error(error.message);
     }
@@ -2120,13 +2131,33 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
   ipcMain.handle('renderer:convert-postman-to-bruno', async (event, postmanCollection) => {
     try {
       // Convert Postman collection to Bruno format
-      const brunoCollection = await postmanToBruno(postmanCollection, { useWorkers: true });
+      // Returns { collection, issues } where issues tracks items that were skipped or degraded
+      const result = await postmanToBruno(postmanCollection, { useWorkers: true });
 
-      return brunoCollection;
+      return result;
     } catch (error) {
       console.error('Error converting Postman to Bruno:', error);
       return Promise.reject(error);
     }
+  });
+
+  ipcMain.handle('renderer:install-postman-packages', async (_event, collectionPathname, packages) => {
+    if (typeof collectionPathname !== 'string' || !collectionPathname) {
+      throw new Error('collectionPathname is required');
+    }
+    if (!Array.isArray(packages) || packages.length === 0) {
+      throw new Error('packages must be a non-empty array');
+    }
+    if (!fs.existsSync(collectionPathname) || !fs.statSync(collectionPathname).isDirectory()) {
+      throw new Error(`Collection path does not exist: ${collectionPathname}`);
+    }
+
+    const invalid = packages.filter((p) => !isValidNpmPackageName(p));
+    if (invalid.length > 0) {
+      throw new Error(`Invalid package name(s): ${invalid.join(', ')}`);
+    }
+
+    return runNpmInstall({ collectionPath: collectionPathname, packages });
   });
 
   ipcMain.handle('renderer:get-collection-json', async (event, collectionPath) => {
@@ -2414,7 +2445,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
 
         await fsExtra.move(collectionDir, finalCollectionPath);
         if (tempDir !== collectionDir) {
-          await fsExtra.remove(tempDir).catch(() => {});
+          await fsExtra.remove(tempDir).catch(() => { });
         }
 
         const uid = generateUidBasedOnHash(finalCollectionPath);
@@ -2427,7 +2458,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
 
         return finalCollectionPath;
       } catch (error) {
-        await fsExtra.remove(tempDir).catch(() => {});
+        await fsExtra.remove(tempDir).catch(() => { });
         throw error;
       }
     } catch (error) {
@@ -2452,9 +2483,30 @@ const registerMainEventHandlers = (mainWindow, watcher) => {
     app.addRecentDocument(pathname);
   });
 
-  ipcMain.handle('renderer:scan-for-bruno-files', (event, dir) => {
+  ipcMain.handle('renderer:scan-for-bruno-files', async (event, dir) => {
     try {
-      return scanForBrunoFiles(dir);
+      const collectionPaths = await scanForBrunoFiles(dir);
+
+      const scanResults = await Promise.all(
+        collectionPaths.map(async (pathname) => {
+          try {
+            const brunoConfig = await getCollectionConfigFile(pathname);
+
+            return {
+              pathname,
+              name: brunoConfig.name
+            };
+          } catch (error) {
+            console.warn(`Skipping invalid Bruno collection at ${pathname}: ${error.message}`);
+            return { pathname, skipped: true };
+          }
+        })
+      );
+
+      return {
+        items: scanResults.filter((result) => !result.skipped),
+        skippedItems: scanResults.filter((result) => result.skipped).map(({ pathname }) => pathname)
+      };
     } catch (error) {
       throw new Error(error.message);
     }

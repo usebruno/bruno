@@ -7,6 +7,28 @@ describe('insomnia-collection', () => {
 
     expect(brunoCollection).toMatchObject(expectedOutput);
   });
+
+  it('should import empty mimeType bodies as Bruno text bodies', async () => {
+    const brunoCollection = insomniaToBruno(insomniaCollectionWithEmptyMimeTypeBody);
+
+    expect(brunoCollection.items[0].request.body).toMatchObject({
+      mode: 'text',
+      text: 'line1\nline2\n{{base_url}}',
+      json: null,
+      xml: null
+    });
+  });
+
+  it('should ignore empty raw bodies when mimeType is blank', async () => {
+    const brunoCollection = insomniaToBruno(insomniaCollectionWithEmptyMimeTypeAndEmptyTextBody);
+
+    expect(brunoCollection.items[0].request.body).toMatchObject({
+      mode: 'none',
+      text: null,
+      json: null,
+      xml: null
+    });
+  });
 });
 
 const insomniaCollection = {
@@ -221,4 +243,54 @@ const expectedOutput = {
   name: 'Hello World Workspace Insomnia',
   uid: 'mockeduuidvalue123456',
   version: '1'
+};
+
+const insomniaCollectionWithEmptyMimeTypeBody = {
+  _type: 'export',
+  __export_format: 4,
+  resources: [
+    {
+      _id: 'req_text_1',
+      _type: 'request',
+      parentId: 'wrk_text_1',
+      name: 'Raw Text Body',
+      method: 'POST',
+      url: 'https://example.com/raw',
+      parameters: [],
+      body: {
+        mimeType: '',
+        text: 'line1\nline2\n{{ base_url }}'
+      }
+    },
+    {
+      _id: 'wrk_text_1',
+      _type: 'workspace',
+      name: 'Text Body Workspace'
+    }
+  ]
+};
+
+const insomniaCollectionWithEmptyMimeTypeAndEmptyTextBody = {
+  _type: 'export',
+  __export_format: 4,
+  resources: [
+    {
+      _id: 'req_text_2',
+      _type: 'request',
+      parentId: 'wrk_text_2',
+      name: 'Empty Raw Text Body',
+      method: 'POST',
+      url: 'https://example.com/raw-empty',
+      parameters: [],
+      body: {
+        mimeType: '',
+        text: ''
+      }
+    },
+    {
+      _id: 'wrk_text_2',
+      _type: 'workspace',
+      name: 'Empty Text Body Workspace'
+    }
+  ]
 };

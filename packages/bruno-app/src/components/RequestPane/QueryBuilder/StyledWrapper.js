@@ -211,7 +211,12 @@ const StyledWrapper = styled.div`
     padding: 3px 8px;
     font-size: 13px;
     min-width: 0;
-    cursor: default;
+    cursor: pointer;
+
+    &:hover,
+    &:focus-visible {
+      background: ${(props) => props.theme.background.surface0};
+    }
 
     .input-object-chevron {
       width: 14px;

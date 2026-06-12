@@ -11,7 +11,7 @@ import StyledWrapper from './StyledWrapper';
 import toast from 'react-hot-toast';
 import { variableNameRegex } from 'utils/common/regex';
 
-const VarsTable = ({ item, collection, vars, varType }) => {
+const VarsTable = ({ item, collection, vars, varType, initialScroll = 0 }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
   const tabs = useSelector((state) => state.tabs.tabs);
@@ -106,6 +106,7 @@ const VarsTable = ({ item, collection, vars, varType }) => {
         onReorder={handleVarDrag}
         columnWidths={varsWidths}
         onColumnWidthsChange={(widths) => handleColumnWidthsChange('request-vars', widths)}
+        initialScroll={initialScroll}
       />
     </StyledWrapper>
   );

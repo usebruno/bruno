@@ -226,21 +226,24 @@ class WorkspaceWatcher {
   }
 
   closeAllWatchers() {
-    for (const [watchPath, watcher] of Object.entries(this.watchers)) {
+    const pending = [];
+    const collect = (watcher) => {
       try {
-        watcher?.close();
+        const result = watcher?.close();
+        if (result && typeof result.then === 'function') pending.push(result);
       } catch (err) {}
-    }
+    };
+
+    for (const [watchPath, watcher] of Object.entries(this.watchers)) collect(watcher);
     this.watchers = {};
 
-    for (const [watchPath, watcher] of Object.entries(this.environmentWatchers)) {
-      try {
-        watcher?.close();
-      } catch (err) {}
-    }
+    for (const [watchPath, watcher] of Object.entries(this.environmentWatchers)) collect(watcher);
     this.environmentWatchers = {};
 
-    dotEnvWatcher.closeAll();
+    const dotEnvResult = dotEnvWatcher.closeAll();
+    if (dotEnvResult && typeof dotEnvResult.then === 'function') pending.push(dotEnvResult);
+
+    return Promise.allSettled(pending);
   }
 }
 

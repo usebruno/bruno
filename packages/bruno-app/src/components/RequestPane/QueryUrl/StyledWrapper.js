@@ -2,9 +2,13 @@ import styled from 'styled-components';
 
 const Wrapper = styled.div`
   height: 2.1rem;
-  border: ${(props) => props.theme.requestTabPanel.url.border};
-  border-radius: ${(props) => props.theme.border.radius.base};
 
+  .url-input-group {
+    border: ${(props) => props.theme.requestTabPanel.url.border};
+    border-radius: ${(props) => props.theme.border.radius.base};
+    flex: 1;
+    min-width: 0;
+  }
 
   .infotip {
     position: relative;
@@ -49,6 +53,7 @@ const Wrapper = styled.div`
   .shortcut {
     font-size: 0.625rem;
   }
+
 `;
 
 export default Wrapper;
