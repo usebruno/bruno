@@ -83,22 +83,23 @@ const Timeline = ({ collection, item }) => {
       ref={wrapperRef}
     >
       {showFilterBar && (
-        <div className="timeline-filter-bar">
+        <div className="timeline-filter-bar" data-testid="timeline-filter-bar">
           {visibleChips.map((chip) => (
             <button
               key={chip.id}
               type="button"
               className={`timeline-chip ${activeFilter === chip.id ? 'is-active' : ''}`}
               onClick={() => setActiveFilter(chip.id)}
+              data-testid={`timeline-chip-${chip.id}`}
             >
               {chip.label}
-              <span className="timeline-chip-count">{counts[chip.id] ?? 0}</span>
+              <span className="timeline-chip-count" data-testid="timeline-chip-count">{counts[chip.id] ?? 0}</span>
             </button>
           ))}
         </div>
       )}
 
-      <div className="timeline-container">
+      <div className="timeline-container" data-testid="timeline-container">
         {entries.map((entry, index) => {
           const kind = getEntryKind(entry);
           if (activeFilter !== 'all' && activeFilter !== kind) return null;
