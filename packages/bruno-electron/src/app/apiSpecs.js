@@ -17,7 +17,7 @@ const normalizeWorkspaceConfig = (config) => {
     name: config.info?.name,
     type: config.info?.type,
     collections: config.collections || [],
-    apiSpecs: config.specs || []
+    apiSpecs: Array.isArray(config.specs) ? config.specs : []
   };
 };
 

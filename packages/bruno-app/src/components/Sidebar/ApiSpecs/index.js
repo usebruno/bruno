@@ -22,7 +22,7 @@ const ApiSpecs = () => {
   const apiSpecs = React.useMemo(() => {
     if (!activeWorkspace) return [];
 
-    const workspaceApiSpecs = activeWorkspace.apiSpecs || [];
+    const workspaceApiSpecs = Array.isArray(activeWorkspace.apiSpecs) ? activeWorkspace.apiSpecs : [];
 
     // Map workspace API specs to loaded API specs from Redux store
     return workspaceApiSpecs.map((ws) => {

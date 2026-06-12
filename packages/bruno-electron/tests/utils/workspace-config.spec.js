@@ -268,3 +268,51 @@ describe('Git remote on workspace collections', () => {
     }
   });
 });
+
+describe('readWorkspaceConfig apiSpecs normalization (BRU-3556)', () => {
+  const { readWorkspaceConfig } = require('../../src/utils/workspace-config');
+  let workspacePath;
+
+  const writeWorkspaceYml = (specsYaml) => {
+    const content = [
+      'opencollection: 1.0.0',
+      'info:',
+      '  name: Test',
+      '  type: workspace',
+      'collections: []',
+      specsYaml,
+      'docs: \'\''
+    ].join('\n');
+    fs.writeFileSync(path.join(workspacePath, 'workspace.yml'), content);
+  };
+
+  beforeEach(() => {
+    workspacePath = fs.mkdtempSync(path.join(os.tmpdir(), 'bruno-ws-'));
+  });
+
+  afterEach(() => {
+    fs.rmSync(workspacePath, { recursive: true, force: true });
+  });
+
+  test('normalizes a valid specs list to apiSpecs array', () => {
+    writeWorkspaceYml(['specs:', '  - name: foo', '    path: foo.yaml'].join('\n'));
+    const config = readWorkspaceConfig(workspacePath);
+    expect(Array.isArray(config.apiSpecs)).toBe(true);
+    expect(config.apiSpecs).toEqual([{ name: 'foo', path: 'foo.yaml' }]);
+  });
+
+  test('coerces a malformed (map) specs value to an empty array', () => {
+    // Reproducer for the `.map is not a function` crash: specs authored as a map, not a list.
+    writeWorkspaceYml(['specs:', '  brokenEntry: not a list'].join('\n'));
+    const config = readWorkspaceConfig(workspacePath);
+    expect(Array.isArray(config.apiSpecs)).toBe(true);
+    expect(config.apiSpecs).toEqual([]);
+  });
+
+  test('coerces a missing specs value to an empty array', () => {
+    writeWorkspaceYml('# no specs key');
+    const config = readWorkspaceConfig(workspacePath);
+    expect(Array.isArray(config.apiSpecs)).toBe(true);
+    expect(config.apiSpecs).toEqual([]);
+  });
+});
