@@ -1,0 +1,68 @@
+import { test, expect } from '../../../playwright';
+import * as path from 'path';
+import { closeAllCollections, openCollection, selectRequestPaneTab } from '../../utils/page';
+import { buildCommonLocators } from '../../utils/page/locators';
+
+test.describe('Import Postman Collection with binary body mode', () => {
+  test.beforeAll(async ({ electronApp }) => {
+    await electronApp.evaluate(({ dialog }) => {
+      (global as any)._originalShowOpenDialog = dialog.showOpenDialog;
+    });
+  });
+
+  test.afterAll(async ({ electronApp, page }) => {
+    await closeAllCollections(page);
+    await electronApp.evaluate(({ dialog }) => {
+      dialog.showOpenDialog = (global as any)._originalShowOpenDialog;
+      delete (global as any)._originalShowOpenDialog;
+    });
+  });
+
+  test('should import Postman collection with binary body mode successfully', async ({ page, electronApp, createTmpDir }) => {
+    const postmanFile = path.resolve(__dirname, 'fixtures', 'postman-import-binary-body-mode.json');
+    const locators = buildCommonLocators(page);
+
+    const importDir = await createTmpDir('imported-collection');
+
+    await electronApp.evaluate(({ dialog }, { importDir }) => {
+      dialog.showOpenDialog = async () => ({
+        canceled: false,
+        filePaths: [importDir]
+      });
+    }, { importDir });
+
+    await test.step('Open import collection modal', async () => {
+      await locators.plusMenu.button().click();
+      await locators.plusMenu.importCollection().click();
+      const importModal = page.getByRole('dialog');
+      await importModal.waitFor({ state: 'visible' });
+      await expect(locators.modal.title('Import Collection')).toBeVisible();
+      await locators.import.fileInput().setInputFiles(postmanFile);
+      await locators.import.locationModal().waitFor({ state: 'visible', timeout: 10000 });
+      const hasError = await locators.import.parsingError().isVisible().catch(() => false);
+      if (hasError) {
+        throw new Error('Collection import failed with parsing error');
+      }
+      await expect(locators.modal.title('Import Collection')).toBeVisible();
+      await expect(locators.import.locationModal().getByText('My Collection')).toBeVisible();
+      await locators.import.browseLink(locators.import.locationModal()).click();
+      const locationModal = locators.import.locationModal();
+      await locators.import.importButton(locationModal).click();
+      await locationModal.waitFor({ state: 'hidden' });
+    });
+
+    await test.step('Open collection and verify request is displayed', async () => {
+      await openCollection(page, 'My Collection');
+      await expect(locators.sidebar.collection('My Collection')).toBeVisible();
+      await expect(locators.sidebar.request('Binary body mode')).toBeVisible();
+      await locators.sidebar.request('Binary body mode').click();
+      await expect(locators.request.pane()).toBeVisible();
+    });
+
+    await test.step('Verify body mode is File / Binary and imported file path is preserved', async () => {
+      await selectRequestPaneTab(page, 'Body');
+      await expect(locators.request.bodyModeSelector()).toContainText('File / Binary');
+      await expect(locators.request.pane().getByText('binary-payload.bin')).toBeVisible();
+    });
+  });
+});
