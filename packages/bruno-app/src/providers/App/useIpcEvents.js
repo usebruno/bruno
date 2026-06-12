@@ -11,6 +11,7 @@ import {
   brunoConfigUpdateEvent,
   collectionAddDirectoryEvent,
   collectionAddFileEvent,
+  collectionBatchAddEvents,
   collectionChangeFileEvent,
   collectionRenamedEvent,
   collectionUnlinkDirectoryEvent,
@@ -25,6 +26,7 @@ import {
   streamDataReceived,
   setDotEnvVariables
 } from 'providers/ReduxStore/slices/collections';
+import { BETA_FEATURES } from 'utils/beta-features';
 import { collectionAddEnvFileEvent, openCollectionEvent, hydrateCollectionWithUiStateSnapshot, mergeAndPersistEnvironment } from 'providers/ReduxStore/slices/collections/actions';
 import {
   workspaceOpenedEvent,
@@ -52,25 +54,75 @@ const useIpcEvents = () => {
 
     const { ipcRenderer } = window;
 
+    // Two-phase batching:
+    // Phase 1: Quick first flush after 300ms to show tree skeleton (dirs + partial metadata)
+    // Phase 2: Hold everything, flush once when loading completes (full data in single render)
+    let eventBuffer = [];
+    let flushTimer = null;
+
+    let _flushCount = 0;
+    let _totalEventsDispatched = 0;
+    let _totalDispatchMs = 0;
+    let _rendererStart = 0;
+
+    const flushEventBuffer = () => {
+      if (eventBuffer.length > 0) {
+        const events = eventBuffer;
+        eventBuffer = [];
+        _flushCount++;
+        _totalEventsDispatched += events.length;
+        if (!_rendererStart) _rendererStart = performance.now();
+        const t0 = performance.now();
+        dispatch(collectionBatchAddEvents({ events }));
+        const dispatchMs = performance.now() - t0;
+        _totalDispatchMs += dispatchMs;
+
+        console.log(`[RENDERER-BATCH #${_flushCount}] phase=${_flushCount === 1 ? 'SKELETON' : 'FINAL'}  events=${events.length}  dispatchMs=${dispatchMs.toFixed(1)}  totalEvents=${_totalEventsDispatched}  wallClock=${(performance.now() - _rendererStart).toFixed(1)}ms`);
+      }
+      flushTimer = null;
+    };
+
+    const bufferAddEvent = (type, val) => {
+      eventBuffer.push({ type, val });
+
+      // Phase 1: schedule a quick first flush to show tree skeleton
+      // Phase 2: hold everything — final flush triggered by isLoading=false
+      if (_flushCount === 0 && !flushTimer) {
+        flushTimer = setTimeout(flushEventBuffer, 300);
+      }
+    };
+
     const _collectionTreeUpdated = (type, val) => {
       if (window.__IS_DEV__) {
         console.log(type);
         console.log(val);
       }
-      if (type === 'addDir') {
-        dispatch(
-          collectionAddDirectoryEvent({
-            dir: val
-          })
-        );
+
+      // Check if sidebar optimizations are enabled (read at event time so toggling takes effect immediately)
+      const isSidebarOptimized = store.getState().app.preferences?.beta?.[BETA_FEATURES.SIDEBAR_OPTIMIZATIONS] || false;
+
+      if (type === 'addDir' || type === 'addFile') {
+        // Only batch during initial collection mount (isLoading=true).
+        // For active use (creating requests/folders), dispatch immediately for instant feedback.
+        const collectionUid = val?.meta?.collectionUid;
+        const collections = store.getState().collections?.collections || [];
+        const collection = collections.find((c) => c.uid === collectionUid);
+        const isCollectionLoading = collection?.isLoading;
+
+        if (isSidebarOptimized && isCollectionLoading) {
+          // Mount path: batch events, flush in two phases (skeleton + final)
+          bufferAddEvent(type, val);
+        } else {
+          // Active use path: dispatch individually for instant UI feedback
+          if (type === 'addDir') {
+            dispatch(collectionAddDirectoryEvent({ dir: val }));
+          } else {
+            dispatch(collectionAddFileEvent({ file: val }));
+          }
+        }
+        return;
       }
-      if (type === 'addFile') {
-        dispatch(
-          collectionAddFileEvent({
-            file: val
-          })
-        );
-      }
+      // All other events dispatch immediately (they're infrequent and need instant UI feedback)
       if (type === 'change') {
         dispatch(
           collectionChangeFileEvent({
@@ -337,6 +389,26 @@ const useIpcEvents = () => {
 
     const removeCollectionLoadingStateListener = ipcRenderer.on('main:collection-loading-state-updated', (val) => {
       dispatch(updateCollectionLoadingState(val));
+      // Flush all accumulated events when mount completes — single dispatch, single re-render
+      if (val.isLoading === false && eventBuffer.length > 0) {
+        flushEventBuffer();
+      }
+      if (val.isLoading === false && _rendererStart > 0) {
+        const wallClock = performance.now() - _rendererStart;
+        console.log('\n══════════════════════════════════════════════════════');
+        console.log('  RENDERER TIMING SUMMARY');
+        console.log('══════════════════════════════════════════════════════');
+        console.log(`  Total batch flushes:    ${_flushCount}`);
+        console.log(`  Total events received:  ${_totalEventsDispatched}`);
+        console.log(`  Sum of dispatch():      ${_totalDispatchMs.toFixed(1)}ms  (avg ${(_totalDispatchMs / (_flushCount || 1)).toFixed(1)}ms per batch)`);
+        console.log(`  Wall-clock (renderer):  ${wallClock.toFixed(1)}ms`);
+        console.log(`  Non-dispatch time:      ${(wallClock - _totalDispatchMs).toFixed(1)}ms (IPC wait + event loop)`);
+        console.log('══════════════════════════════════════════════════════\n');
+        _flushCount = 0;
+        _totalEventsDispatched = 0;
+        _totalDispatchMs = 0;
+        _rendererStart = 0;
+      }
     });
 
     const gitVersionListener = ipcRenderer.on('main:git-version', (val) => {
@@ -376,6 +448,9 @@ const useIpcEvents = () => {
       removePersistentEnvVariablesUpdateListener();
       removeSystemResourcesListener();
       gitVersionListener();
+      // Flush any remaining buffered events on cleanup
+      if (flushTimer) clearTimeout(flushTimer);
+      flushEventBuffer();
     };
   }, [isElectron]);
 };

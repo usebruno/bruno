@@ -6,7 +6,10 @@ import { useSelector } from 'react-redux';
  */
 export const BETA_FEATURES = Object.freeze({
   NODE_VM: 'nodevm',
-  OPENAPI_SYNC: 'openapi-sync'
+  OPENAPI_SYNC: 'openapi-sync',
+  SIDEBAR_OPTIMIZATIONS: 'sidebar-optimizations',
+  SKIP_LOADING_BADGE_EVENT: 'skip-loading-badge-event',
+  PARALLEL_WORKERS: 'parallel-workers'
 });
 
 /**
