@@ -115,8 +115,8 @@ const Wrapper = styled.div`
       background: #ccc3;
     }
 
-    &.item-seperator {
-      .seperator {
+    &.item-separator {
+      .separator {
         bottom: 0px;
         position: absolute;
         height: 3px;
