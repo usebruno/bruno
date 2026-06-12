@@ -1,16 +1,16 @@
-import { test, expect } from '../../playwright';
+import { expect, test } from '../../playwright';
 import { closeAllCollections } from '../utils/page';
 import {
-  modifier,
-  collectionName,
-  setupBoundActionsData,
-  openRequest,
-  openKeybindingsTab,
   closePreferencesTab,
   closeTabByName,
-  reopenClosedTab,
+  collectionName,
+  getTabIndex,
+  modifier,
+  openKeybindingsTab,
+  openRequest,
   remapKeybinding,
-  getTabIndex
+  reopenClosedTab,
+  setupBoundActionsData
 } from './helpers';
 
 // ─── Tests ────
@@ -38,7 +38,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await expect(page.locator('.request-tab')).toHaveCount(2, { timeout: 3000 });
       });
 
-      test('Close active tab customized (Cmd/Ctrl+Shift+X)', async ({ page, createTmpDir }) => {
+      test('Close active tab customized (Shift+X)', async ({ page, createTmpDir }) => {
         // Remap closeTab to Cmd/Ctrl+Shift+X
         await openKeybindingsTab(page);
         const row = page.getByTestId(`keybinding-row-closeTab`);
@@ -65,6 +65,147 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await page.keyboard.up('KeyX');
         await page.keyboard.up('Shift');
         await expect(page.locator('.request-tab')).toHaveCount(2, { timeout: 3000 });
+      });
+    });
+
+    // Closing a tab that has unsaved changes must surface the entity-specific
+    // "Unsaved changes" confirmation modal (request / folder / collection).
+    test.describe('SHORTCUT: Close Tab (Unsaved changes modal)', () => {
+      test('Close active tab customized (Shift+X) shows unsaved changes modal for request', async ({ page }) => {
+        // Open a request and make an unsaved change (edit the URL → draft)
+        await openRequest(page, collectionName, 'req-1', { persist: true });
+        const requestTab = page.locator('.request-tab').filter({ has: page.getByText('req-1', { exact: true }) });
+        await expect(requestTab).toBeVisible({ timeout: 2000 });
+
+        await page.locator('#request-url .CodeMirror').click();
+        await page.keyboard.type('/users');
+        await expect(requestTab.locator('.has-changes-icon')).toBeVisible();
+
+        await page.keyboard.down('Shift');
+        await page.keyboard.down('KeyX');
+        await page.keyboard.up('KeyX');
+        await page.keyboard.up('Shift');
+
+        // The request "Unsaved changes" modal should appear
+        const modal = page.locator('.bruno-modal-card').filter({ hasText: 'Unsaved changes' });
+        await expect(modal).toBeVisible({ timeout: 3000 });
+        await expect(modal).toContainText('You have unsaved changes in request');
+        await expect(modal).toContainText('req-1');
+        await expect(modal.getByRole('button', { name: 'Don\'t Save' })).toBeVisible();
+        await expect(modal.getByRole('button', { name: 'Cancel' })).toBeVisible();
+        await expect(modal.getByRole('button', { name: 'Save', exact: true })).toBeVisible();
+
+        // Cancel keeps the tab open with its draft intact
+        await modal.getByRole('button', { name: 'Cancel' }).click();
+        await expect(modal).not.toBeVisible();
+        await expect(requestTab.locator('.has-changes-icon')).toBeVisible();
+
+        // Trigger again and discard → the tab closes
+        await page.keyboard.down('Escape');
+        await page.keyboard.up('Escape');
+
+        // await closeActiveTab();
+        await page.keyboard.down('Shift');
+        await page.keyboard.down('KeyX');
+        await page.keyboard.up('KeyX');
+        await page.keyboard.up('Shift');
+
+        await expect(modal).toBeVisible({ timeout: 3000 });
+        await modal.getByRole('button', { name: 'Don\'t Save' }).click();
+        await expect(requestTab).not.toBeVisible({ timeout: 3000 });
+      });
+
+      test('Close active tab customized (Shift+X) shows unsaved changes modal for folder', async ({ page }) => {
+        // Open folder settings and make an unsaved change (add a header → draft)
+        await page.locator('.collection-item-name').filter({ has: page.getByText('kb-draft-folder', { exact: true }) }).dblclick();
+        const folderTab = page.locator('.request-tab').filter({ has: page.getByText('kb-draft-folder', { exact: true }) });
+        await expect(folderTab).toBeVisible({ timeout: 3000 });
+
+        const headerRow = page.locator('table').first().locator('tbody tr').first();
+        await headerRow.locator('.CodeMirror').first().click();
+        await page.keyboard.type('X-Folder-Header');
+        await headerRow.locator('.CodeMirror').nth(1).click();
+        await page.keyboard.type('folder-value');
+        await expect(folderTab.locator('.has-changes-icon')).toBeVisible();
+
+        await page.keyboard.down('Shift');
+        await page.keyboard.down('KeyX');
+        await page.keyboard.up('KeyX');
+        await page.keyboard.up('Shift');
+
+        // The folder "Unsaved changes" modal should appear
+        const modal = page.locator('.bruno-modal-card').filter({ hasText: 'Unsaved changes' });
+        await expect(modal).toBeVisible({ timeout: 3000 });
+        await expect(modal).toContainText('folder settings');
+        await expect(modal).toContainText('kb-draft-folder');
+        await expect(modal.getByRole('button', { name: 'Don\'t Save' })).toBeVisible();
+        await expect(modal.getByRole('button', { name: 'Cancel' })).toBeVisible();
+        await expect(modal.getByRole('button', { name: 'Save', exact: true })).toBeVisible();
+
+        // Cancel keeps the tab open with its draft intact
+        await modal.getByRole('button', { name: 'Cancel' }).click();
+        await expect(modal).not.toBeVisible();
+        await expect(folderTab.locator('.has-changes-icon')).toBeVisible();
+
+        // Trigger again and discard → the tab closes
+        await page.keyboard.down('Escape');
+        await page.keyboard.up('Escape');
+
+        await page.keyboard.down('Shift');
+        await page.keyboard.down('KeyX');
+        await page.keyboard.up('KeyX');
+        await page.keyboard.up('Shift');
+
+        await expect(modal).toBeVisible({ timeout: 3000 });
+        await modal.getByRole('button', { name: 'Don\'t Save' }).click();
+        await expect(folderTab).not.toBeVisible({ timeout: 3000 });
+      });
+
+      test('Close active tab customized (Shift+X) shows unsaved changes modal for collection', async ({ page }) => {
+        // Open collection settings and make an unsaved change (add a header → draft)
+        await page.getByTestId('sidebar-collection-row').filter({ has: page.getByText('kb-collection', { exact: true }) }).dblclick();
+        const collectionTab = page.locator('.request-tab').filter({ has: page.getByText('Collection', { exact: true }) });
+        await expect(collectionTab).toBeVisible({ timeout: 3000 });
+
+        await page.locator('.tab.headers').click();
+        const headerRow = page.locator('table').first().locator('tbody tr').first();
+        await headerRow.locator('.CodeMirror').first().click();
+        await page.keyboard.type('X-Custom-Header');
+        await headerRow.locator('.CodeMirror').nth(1).click();
+        await page.keyboard.type('custom-value');
+        await expect(collectionTab.locator('.has-changes-icon')).toBeVisible();
+
+        await page.keyboard.down('Shift');
+        await page.keyboard.down('KeyX');
+        await page.keyboard.up('KeyX');
+        await page.keyboard.up('Shift');
+
+        // The collection "Unsaved changes" modal should appear
+        const modal = page.locator('.bruno-modal-card').filter({ hasText: 'Unsaved changes' });
+        await expect(modal).toBeVisible({ timeout: 3000 });
+        await expect(modal).toContainText('collection settings');
+        await expect(modal).toContainText(collectionName);
+        await expect(modal.getByRole('button', { name: 'Don\'t Save' })).toBeVisible();
+        await expect(modal.getByRole('button', { name: 'Cancel' })).toBeVisible();
+        await expect(modal.getByRole('button', { name: 'Save', exact: true })).toBeVisible();
+
+        // Cancel keeps the tab open with its draft intact
+        await modal.getByRole('button', { name: 'Cancel' }).click();
+        await expect(modal).not.toBeVisible();
+        await expect(collectionTab.locator('.has-changes-icon')).toBeVisible();
+
+        // Trigger again and discard → the tab closes
+        await page.keyboard.down('Escape');
+        await page.keyboard.up('Escape');
+
+        await page.keyboard.down('Shift');
+        await page.keyboard.down('KeyX');
+        await page.keyboard.up('KeyX');
+        await page.keyboard.up('Shift');
+
+        await expect(modal).toBeVisible({ timeout: 3000 });
+        await modal.getByRole('button', { name: 'Don\'t Save' }).click();
+        await expect(collectionTab).not.toBeVisible({ timeout: 3000 });
       });
     });
 
