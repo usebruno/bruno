@@ -27,7 +27,7 @@ export const getSeparatorPositions = (columns) => {
 export const getSortValue = (request, key) => {
   const { request: req, response: res, timestamp } = request.data;
   switch (key) {
-    case 'method': return req?.method || '';
+    case 'method': return req?.method?.toUpperCase() ?? '';
     case 'status': return res?.statusCode || res?.status || 0;
     case 'domain': {
       try { return new URL(req?.url || '').hostname; } catch { return req?.url || ''; }

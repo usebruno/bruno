@@ -4,29 +4,6 @@ import { Provider } from 'react-redux';
 import { configureStore } from '@reduxjs/toolkit';
 import { ThemeProvider } from 'providers/Theme';
 import NetworkTab from './index';
-import { getSortValue } from './utils';
-
-// ─── Mocks ───────────────────────────────────────────────────────────────────
-
-// ResizeObserver is not available in jsdom
-global.ResizeObserver = class ResizeObserver {
-  observe() {}
-  unobserve() {}
-  disconnect() {}
-};
-
-// matchMedia is not available in jsdom
-beforeAll(() => {
-  Object.defineProperty(window, 'matchMedia', {
-    writable: true,
-    value: jest.fn().mockImplementation((query) => ({
-      matches: false,
-      media: query,
-      addEventListener: jest.fn(),
-      removeEventListener: jest.fn()
-    }))
-  });
-});
 
 const makeRequest = (overrides = {}) => ({
   type: 'request',
@@ -172,6 +149,18 @@ describe('sort results', () => {
     const rows = screen.getAllByTestId('network-request-row');
     const statuses = rows.map((r) => r.querySelector('.status-badge')?.textContent);
     expect(statuses).toEqual(['200', '404', '500']);
+  });
+
+  it('sorts mixed-case methods case-insensitively', () => {
+    const requests = [
+      makeRequest({ itemUid: '1', method: 'post' }),
+      makeRequest({ itemUid: '2', method: 'GET' }),
+      makeRequest({ itemUid: '3', method: 'delete' })
+    ];
+    renderNetworkTab(requests);
+    fireEvent.click(screen.getByTestId('network-header-method'));
+    // MethodBadge always renders uppercase; sort order should treat 'post' == 'POST'
+    expect(getRowMethods()).toEqual(['DELETE', 'GET', 'POST']);
   });
 
   it('preserves insertion order when sort is cleared', () => {
