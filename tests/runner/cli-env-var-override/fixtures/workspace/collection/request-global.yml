@@ -1,0 +1,29 @@
+info:
+  name: global-env-var-override
+  type: http
+  seq: 1
+
+http:
+  method: POST
+  url: https://echo.usebruno.com
+  body:
+    type: json
+    data: |-
+      {
+        "foo": "{{foo}}",
+        "globalFoo": "{{globalFoo}}"
+      }
+
+runtime:
+  scripts:
+    - type: before-request
+      code: |-
+        // Capture the actual global-scoped value so the report can distinguish
+        // the global environment from the collection environment.
+        bru.setVar("globalFoo", bru.getGlobalEnvVar("foo"));
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

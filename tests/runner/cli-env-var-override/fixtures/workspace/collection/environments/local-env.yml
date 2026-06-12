@@ -1,0 +1,3 @@
+variables:
+  - name: wibble
+    value: wobble

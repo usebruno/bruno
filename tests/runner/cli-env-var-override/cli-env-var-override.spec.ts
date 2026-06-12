@@ -3,12 +3,13 @@ import { execSync } from 'child_process';
 import fs from 'fs';
 import path from 'path';
 
-test.describe('CLI --env-var overrides', () => {
+test.describe('CLI environment variable overrides (--env-var / --global-env-var)', () => {
   const fixturesRoot = path.resolve(__dirname, 'fixtures/workspace');
   const collectionPath = path.join(fixturesRoot, 'collection');
   const bruCli = path.resolve(__dirname, '../../../packages/bruno-cli/bin/bru.js');
   const BRU = `node "${bruCli}"`;
 
+  // Run the CLI and return the exit code (0 on success).
   const runFrom = (cwd: string, args: string): number => {
     try {
       execSync(`cd "${cwd}" && ${BRU} ${args}`, { stdio: 'pipe' });
@@ -18,6 +19,7 @@ test.describe('CLI --env-var overrides', () => {
     }
   };
 
+  // Run the CLI, read the JSON report it writes, then clean it up.
   const runAndReadReport = (args: string, outputName: string) => {
     const outputPath = path.join(collectionPath, outputName);
     runFrom(collectionPath, `${args} --reporter-json "${outputPath}"`);
@@ -29,40 +31,63 @@ test.describe('CLI --env-var overrides', () => {
     return report.results[0];
   };
 
-  test('CLI: --global-env with --env-var overrides global environment variable', async () => {
+  test('--global-env-var overrides a global environment variable', async () => {
     const result = runAndReadReport(
-      'run request-global.bru --global-env global-env --env-var foo=barbar',
+      'run request-global.yml --global-env global-env --global-env-var foo=barbar',
       'global-env-var-out.json'
     );
 
-    const body = JSON.parse(result.request.data);
-    expect(body.foo).toBe('barbar');
-
-    expect(result.testResults.every((t: { status: string }) => t.status === 'pass')).toBe(true);
+    expect(JSON.parse(result.request.data).globalFoo).toBe('barbar');
   });
 
-  test('CLI: --env with --env-var overrides collection environment variable', async () => {
+  test('--env-var overrides a collection environment variable', async () => {
     const result = runAndReadReport(
-      'run request-local.bru --env local-env --env-var wibble=wobblewobble',
+      'run request-local.yml --env local-env --env-var wibble=wobblewobble',
       'local-env-var-out.json'
     );
 
-    const body = JSON.parse(result.request.data);
-    expect(body.wibble).toBe('wobblewobble');
-
-    expect(result.testResults.every((t: { status: string }) => t.status === 'pass')).toBe(true);
+    expect(JSON.parse(result.request.data).wibble).toBe('wobblewobble');
   });
 
-  test('CLI: without --env-var, environment files keep original values', async () => {
-    const globalResult = runAndReadReport(
-      'run request-global.bru --global-env global-env',
-      'global-env-original-out.json'
+  test('--env-var does NOT leak into the global environment', async () => {
+    // Regression guard: previously --env-var also overrode the global env var
+    // of the same name. It must only affect the collection environment now.
+    const result = runAndReadReport(
+      'run request-global.yml --global-env global-env --env-var foo=barbar',
+      'no-leak-out.json'
     );
-    expect(JSON.parse(globalResult.request.data).foo).toBe('bar');
+
+    expect(JSON.parse(result.request.data).globalFoo).toBe('bar');
+  });
+
+  test('--global-env-var without --global-env exits with an error', async () => {
+    const exitCode = runFrom(
+      collectionPath,
+      'run request-global.yml --global-env-var foo=barbar'
+    );
+
+    expect(exitCode).not.toBe(0);
+  });
+
+  test('malformed --global-env-var (missing "=") exits with an error', async () => {
+    const exitCode = runFrom(
+      collectionPath,
+      'run request-global.yml --global-env global-env --global-env-var foobar'
+    );
+
+    expect(exitCode).not.toBe(0);
+  });
+
+  test('without overrides, environment values are preserved', async () => {
+    const globalResult = runAndReadReport(
+      'run request-global.yml --global-env global-env',
+      'global-original-out.json'
+    );
+    expect(JSON.parse(globalResult.request.data).globalFoo).toBe('bar');
 
     const localResult = runAndReadReport(
-      'run request-local.bru --env local-env',
-      'local-env-original-out.json'
+      'run request-local.yml --env local-env',
+      'local-original-out.json'
     );
     expect(JSON.parse(localResult.request.data).wibble).toBe('wobble');
   });

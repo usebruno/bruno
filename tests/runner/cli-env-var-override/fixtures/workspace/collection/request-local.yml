@@ -1,0 +1,20 @@
+info:
+  name: local-env-var-override
+  type: http
+  seq: 1
+
+http:
+  method: POST
+  url: https://echo.usebruno.com
+  body:
+    type: json
+    data: |-
+      {
+        "wibble": "{{wibble}}"
+      }
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
