@@ -67,12 +67,18 @@ const disposeQuickJsContext = (vm, disposeTracked) => {
     disposeTracked();
   }
 
-  if (vm.runtime?.executePendingJobs) {
-    for (let i = 0; i < 10; i++) {
-      vm.runtime.executePendingJobs();
+  // Drain the runtime's pending job queue (resolved/rejected promise callbacks)
+  // before disposing. Executing a job can schedule more jobs (chained `.then()`s),
+  // so we keep going until `hasPendingJob()` reports the queue is empty or a job
+  // throws.
+  while (vm.runtime?.hasPendingJob?.()) {
+    const result = vm.runtime.executePendingJobs();
+    // On error, dispose the error handle and stop draining.
+    if (result.error) {
+      result.error.dispose();
+      break;
     }
   }
-
   vm.dispose();
 };
 
