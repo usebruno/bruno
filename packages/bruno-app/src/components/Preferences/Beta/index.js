@@ -1,14 +1,13 @@
-import React, { useEffect, useCallback, useRef } from 'react';
 import { useFormik } from 'formik';
-import { useSelector, useDispatch } from 'react-redux';
-import { savePreferences } from 'providers/ReduxStore/slices/app';
-import StyledWrapper from './StyledWrapper';
-import * as Yup from 'yup';
 import debounce from 'lodash/debounce';
-import toast from 'react-hot-toast';
-import { IconFlask } from '@tabler/icons';
 import get from 'lodash/get';
+import { savePreferences } from 'providers/ReduxStore/slices/app';
+import React, { useCallback, useEffect, useRef } from 'react';
+import toast from 'react-hot-toast';
+import { useDispatch, useSelector } from 'react-redux';
 import { BETA_FEATURES as BETA_FEATURE_IDS } from 'utils/beta-features';
+import * as Yup from 'yup';
+import StyledWrapper from './StyledWrapper';
 
 /**
  * UI metadata for beta features rendered in Preferences.
