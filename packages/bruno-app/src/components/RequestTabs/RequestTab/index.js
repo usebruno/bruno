@@ -1,31 +1,30 @@
-import React, { useCallback, useState, useRef, Fragment, useMemo, useEffect } from 'react';
-import get from 'lodash/get';
-import { makeTabPermanent, syncTabUid } from 'providers/ReduxStore/slices/tabs';
-import { saveRequest, saveCollectionRoot, saveFolderRoot, saveEnvironment, saveCollectionSettings, closeTabs } from 'providers/ReduxStore/slices/collections/actions';
-import useKeybinding from 'hooks/useKeybinding';
-import { deleteRequestDraft, deleteCollectionDraft, deleteFolderDraft, clearEnvironmentsDraft } from 'providers/ReduxStore/slices/collections';
-import { clearGlobalEnvironmentDraft } from 'providers/ReduxStore/slices/global-environments';
-import { saveGlobalEnvironment } from 'providers/ReduxStore/slices/global-environments';
-import { useTheme } from 'providers/Theme';
-import { useDispatch, useSelector } from 'react-redux';
-import { findItemInCollection, findItemInCollectionByPathname, hasRequestChanges, areItemsLoading } from 'utils/collections';
-import ConfirmRequestClose from './ConfirmRequestClose';
-import ConfirmCollectionClose from './ConfirmCollectionClose';
-import ConfirmFolderClose from './ConfirmFolderClose';
 import ConfirmCloseEnvironment from 'components/Environments/ConfirmCloseEnvironment';
-import RequestTabNotFound from './RequestTabNotFound';
-import RequestTabLoading from './RequestTabLoading';
-import SpecialTab from './SpecialTab';
-import StyledWrapper from './StyledWrapper';
-import MenuDropdown from 'ui/MenuDropdown';
 import CloneCollectionItem from 'components/Sidebar/Collections/Collection/CollectionItem/CloneCollectionItem/index';
 import NewRequest from 'components/Sidebar/NewRequest/index';
-import GradientCloseButton from './GradientCloseButton';
-import { flattenItems } from 'utils/collections/index';
-import { closeWsConnection } from 'utils/network/index';
-import { getInvalidVariableNames } from 'utils/common/variables';
-import ExampleTab from '../ExampleTab';
+import useKeybinding from 'hooks/useKeybinding';
+import get from 'lodash/get';
+import { clearEnvironmentsDraft, deleteCollectionDraft, deleteFolderDraft, deleteRequestDraft } from 'providers/ReduxStore/slices/collections';
+import { closeTabs, saveCollectionRoot, saveCollectionSettings, saveEnvironment, saveFolderRoot, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
+import { clearGlobalEnvironmentDraft, saveGlobalEnvironment } from 'providers/ReduxStore/slices/global-environments';
+import { makeTabPermanent, syncTabUid } from 'providers/ReduxStore/slices/tabs';
+import { useTheme } from 'providers/Theme';
+import React, { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
+import { useDispatch, useSelector } from 'react-redux';
+import MenuDropdown from 'ui/MenuDropdown';
+import { areItemsLoading, findItemInCollection, findItemInCollectionByPathname, hasRequestChanges } from 'utils/collections';
+import { flattenItems } from 'utils/collections/index';
+import { getInvalidVariableNames } from 'utils/common/variables';
+import { closeWsConnection } from 'utils/network/index';
+import ExampleTab from '../ExampleTab';
+import ConfirmCollectionClose from './ConfirmCollectionClose';
+import ConfirmFolderClose from './ConfirmFolderClose';
+import ConfirmRequestClose from './ConfirmRequestClose';
+import GradientCloseButton from './GradientCloseButton';
+import RequestTabLoading from './RequestTabLoading';
+import RequestTabNotFound from './RequestTabNotFound';
+import SpecialTab from './SpecialTab';
+import StyledWrapper from './StyledWrapper';
 
 const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUid, hasOverflow, setHasOverflow, dropdownContainerRef }) => {
   const dispatch = useDispatch();
@@ -206,7 +205,7 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
 
   // Close tab shortcut — draft-aware, only active for the focused tab
   useKeybinding('closeTab', () => {
-    if (tab.type === 'request' || tab.type === 'grpc-request' || tab.type === 'ws-request' || tab.type === 'graphql-request') {
+    if (tab.type === 'request' || tab.type === 'http-request' || tab.type === 'grpc-request' || tab.type === 'ws-request' || tab.type === 'graphql-request') {
       if (hasChanges) {
         setShowConfirmClose(true);
       } else {
