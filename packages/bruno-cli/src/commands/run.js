@@ -129,6 +129,10 @@ const builder = async (yargs) => {
       describe: 'Overwrite a single environment variable, multiple usages possible',
       type: 'string'
     })
+    .option('global-env-var', {
+      describe: 'Overwrite a single global environment variable (requires --global-env), multiple usages possible',
+      type: 'string'
+    })
     .option('sandbox', {
       describe: 'Javascript sandbox to use; available sandboxes are "safe" (default) or "developer"',
       default: 'safe',
@@ -296,6 +300,7 @@ const handler = async function (argv) {
       globalEnv,
       workspacePath,
       envVar,
+      globalEnvVar,
       insecure,
       r: recursive,
       output: outputPath,
@@ -499,9 +504,38 @@ const handler = async function (argv) {
             process.exit(constants.EXIT_STATUS.ERROR_INCORRECT_ENV_OVERRIDE);
           }
           envVars[match[1]] = match[2];
-          if (globalEnv) {
-            globalEnvVars[match[1]] = match[2];
+        }
+      }
+    }
+
+    if (globalEnvVar) {
+      if (!globalEnv) {
+        console.error(chalk.red(`--global-env-var requires --global-env to be set`));
+        process.exit(constants.EXIT_STATUS.ERROR_MALFORMED_ENV_OVERRIDE);
+      }
+
+      let processGlobalVars;
+      if (typeof globalEnvVar === 'string') {
+        processGlobalVars = [globalEnvVar];
+      } else if (typeof globalEnvVar === 'object' && Array.isArray(globalEnvVar)) {
+        processGlobalVars = globalEnvVar;
+      } else {
+        console.error(chalk.red(`overridable global environment variables not parsable: use name=value`));
+        process.exit(constants.EXIT_STATUS.ERROR_MALFORMED_ENV_OVERRIDE);
+      }
+
+      if (processGlobalVars && Array.isArray(processGlobalVars)) {
+        for (const value of processGlobalVars.values()) {
+          // split the string at the first equals sign
+          const match = value.match(/^([^=]+)=(.*)$/);
+          if (!match) {
+            console.error(
+              chalk.red(`Overridable global environment variable not correct: use name=value - presented: `)
+              + chalk.dim(`${value}`)
+            );
+            process.exit(constants.EXIT_STATUS.ERROR_INCORRECT_ENV_OVERRIDE);
           }
+          globalEnvVars[match[1]] = match[2];
         }
       }
     }
