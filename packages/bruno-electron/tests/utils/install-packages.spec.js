@@ -18,6 +18,7 @@ const fixturePath = (...segments) => path.join('fixtures', 'install-packages', .
 
 const NODE_BIN = fixturePath('node', 'bin');
 const NODE_EXECUTABLE = path.join(NODE_BIN, nodeExecutableName());
+const NPM_BIN = path.join(NODE_BIN, 'npm');
 const NPM_CLI_LIB_LAYOUT = path.join(NODE_BIN, '..', 'lib', 'node_modules', 'npm', 'bin', 'npm-cli.js');
 const NODE_DIR_BESIDE = fixturePath('nodejs');
 const NODE_EXECUTABLE_BESIDE = path.join(NODE_DIR_BESIDE, nodeExecutableName());
@@ -116,7 +117,13 @@ describe('resolveNpmCli', () => {
     existsSyncSpy.mockRestore();
   });
 
-  test('finds npm-cli via lib layout', () => {
+  test('prefers bin/npm when present', () => {
+    existsSyncSpy.mockImplementation((candidate) => candidate === NPM_BIN);
+
+    expect(resolveNpmCli(NODE_EXECUTABLE)).toBe(NPM_BIN);
+  });
+
+  test('finds npm-cli via lib layout when bin/npm is absent', () => {
     existsSyncSpy.mockImplementation((candidate) => candidate === NPM_CLI_LIB_LAYOUT);
 
     expect(resolveNpmCli(NODE_EXECUTABLE)).toBe(NPM_CLI_LIB_LAYOUT);
@@ -249,45 +256,31 @@ describe('runNpmInstall', () => {
     );
   });
 
-  test('uses shell on Windows when npm command is a .cmd file', async () => {
+  test('spawns node with bin/npm when that entry is resolved', async () => {
     const child = makeFakeChild();
     const spawnFn = jest.fn(() => child);
+    const systemPath = fixturePath('system', 'path');
+    process.env.PATH = systemPath;
 
     const promise = runNpmInstall({
-      collectionPath: 'C:\\coll',
+      collectionPath: COLLECTION_DIR,
       packages: ['dayjs'],
       spawnFn,
-      npmCommand: 'npm.cmd',
-      platform: 'win32'
+      resolveNpmInvocationFn: () => ({ nodePath: NODE_EXECUTABLE, npmCliPath: NPM_BIN })
     });
     child.emit('close', 0);
     await promise;
 
     expect(spawnFn).toHaveBeenCalledWith(
-      'npm.cmd',
-      ['install', '--save', 'dayjs'],
-      expect.objectContaining({ cwd: 'C:\\coll', shell: true })
-    );
-  });
-
-  test('does not use shell on Windows for bare npm command', async () => {
-    const child = makeFakeChild();
-    const spawnFn = jest.fn(() => child);
-
-    const promise = runNpmInstall({
-      collectionPath: 'C:\\coll',
-      packages: ['dayjs'],
-      spawnFn,
-      npmCommand: 'npm',
-      platform: 'win32'
-    });
-    child.emit('close', 0);
-    await promise;
-
-    expect(spawnFn).toHaveBeenCalledWith(
-      'npm',
-      ['install', '--save', 'dayjs'],
-      expect.objectContaining({ cwd: 'C:\\coll', shell: false })
+      NODE_EXECUTABLE,
+      [NPM_BIN, 'install', '--save', 'dayjs'],
+      expect.objectContaining({
+        cwd: COLLECTION_DIR,
+        shell: false,
+        env: expect.objectContaining({
+          PATH: [NODE_BIN, systemPath].join(path.delimiter)
+        })
+      })
     );
   });
 
