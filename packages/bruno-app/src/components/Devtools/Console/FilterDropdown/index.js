@@ -1,8 +1,9 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import ReactDOM from 'react-dom';
 import { IconFilter, IconChevronDown } from '@tabler/icons';
 import { PortalDropdownMenu } from '../StyledWrapper';
 import { LogIcon } from '../index';
+import useClickOutside from 'hooks/useClickOutside';
 
 const computeMenuStyle = (el, setMenuStyle) => {
   if (!el) return;
@@ -25,22 +26,12 @@ export const FilterDropdown = ({ filters, logCounts, onFilterToggle, onToggleAll
   const allFiltersEnabled = Object.values(filters).every((f) => f);
   const activeFilters = Object.entries(filters).filter(([_, enabled]) => enabled);
 
+  useClickOutside([dropdownRef, menuRef], useCallback(() => setIsOpen(false), []));
+
   useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (
-        dropdownRef.current && !dropdownRef.current.contains(event.target)
-        && menuRef.current && !menuRef.current.contains(event.target)
-      ) {
-        setIsOpen(false);
-      }
-    };
     const handleResize = () => { if (isOpen) computeMenuStyle(dropdownRef.current, setMenuStyle); };
-    document.addEventListener('mousedown', handleClickOutside);
     window.addEventListener('resize', handleResize);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-      window.removeEventListener('resize', handleResize);
-    };
+    return () => window.removeEventListener('resize', handleResize);
   }, [isOpen]);
 
   const handleToggle = () => {
@@ -98,26 +89,23 @@ export const NetworkFilterDropdown = ({ filters, requestCounts, onFilterToggle, 
   const allFiltersEnabled = Object.values(filters).every((f) => f);
   const activeFilters = Object.entries(filters).filter(([_, enabled]) => enabled);
 
+  useClickOutside([dropdownRef, menuRef], useCallback(() => setIsOpen(false), []));
+
   useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (
-        dropdownRef.current && !dropdownRef.current.contains(event.target)
-        && menuRef.current && !menuRef.current.contains(event.target)
-      ) {
-        setIsOpen(false);
+    const handleResize = () => {
+      if (isOpen) {
+        computeMenuStyle(dropdownRef.current, setMenuStyle);
       }
     };
-    const handleResize = () => { if (isOpen) computeMenuStyle(dropdownRef.current, setMenuStyle); };
-    document.addEventListener('mousedown', handleClickOutside);
+
     window.addEventListener('resize', handleResize);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-      window.removeEventListener('resize', handleResize);
-    };
+    return () => window.removeEventListener('resize', handleResize);
   }, [isOpen]);
 
   const handleToggle = () => {
-    if (!isOpen) computeMenuStyle(dropdownRef.current, setMenuStyle);
+    if (!isOpen) {
+      computeMenuStyle(dropdownRef.current, setMenuStyle);
+    }
     setIsOpen(!isOpen);
   };
 
