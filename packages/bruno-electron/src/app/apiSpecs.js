@@ -6,8 +6,7 @@ const { generateUidBasedOnHash } = require('../utils/common');
 const {
   addApiSpecToWorkspace,
   readWorkspaceConfig,
-  getWorkspaceUid,
-  normalizeWorkspaceConfig
+  getWorkspaceUid
 } = require('../utils/workspace-config');
 
 const DEFAULT_WORKSPACE_NAME = 'My Workspace';
@@ -47,7 +46,7 @@ const openApiSpec = async (win, watcher, apiSpecPath, options = {}) => {
 
       if (fs.existsSync(workspaceFilePath)) {
         const workspaceConfig = readWorkspaceConfig(options.workspacePath);
-        const specs = workspaceConfig.specs || [];
+        const specs = workspaceConfig.specs;
 
         const specName = path.basename(apiSpecPath, path.extname(apiSpecPath));
 
@@ -66,10 +65,9 @@ const openApiSpec = async (win, watcher, apiSpecPath, options = {}) => {
           });
 
           const updatedConfig = readWorkspaceConfig(options.workspacePath);
-          const normalizedConfig = normalizeWorkspaceConfig(updatedConfig);
           const workspaceUid = getWorkspaceUid(options.workspacePath);
           const isDefault = workspaceUid === 'default';
-          const configForClient = prepareWorkspaceConfigForClient(normalizedConfig, isDefault);
+          const configForClient = prepareWorkspaceConfigForClient(updatedConfig, isDefault);
           win.webContents.send('main:workspace-config-updated', options.workspacePath, workspaceUid, configForClient);
         }
       }
