@@ -1,21 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import ReactDOM from 'react-dom';
-import { IconFilter, IconChevronDown, IconAlertTriangle, IconAlertCircle, IconCode } from '@tabler/icons';
+import { IconFilter, IconChevronDown } from '@tabler/icons';
 import { PortalDropdownMenu } from '../StyledWrapper';
-
-const LogIcon = ({ type }) => {
-  const iconProps = { size: 16, strokeWidth: 1.5 };
-  switch (type) {
-    case 'error':
-      return <IconAlertCircle className="log-icon error" {...iconProps} />;
-    case 'warn':
-      return <IconAlertTriangle className="log-icon warn" {...iconProps} />;
-    case 'info':
-      return <IconAlertTriangle className="log-icon info" {...iconProps} />;
-    default:
-      return <IconCode className="log-icon log" {...iconProps} />;
-  }
-};
+import { LogIcon } from '../index';
 
 const computeMenuStyle = (el, setMenuStyle) => {
   if (!el) return;
