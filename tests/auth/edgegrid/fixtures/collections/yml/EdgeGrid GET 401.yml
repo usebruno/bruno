@@ -1,0 +1,25 @@
+info:
+  name: EdgeGrid GET 401
+  type: http
+  seq: 2
+
+http:
+  method: GET
+  url: "{{localhost}}/api/auth/edgegrid/resource"
+  auth:
+    type: edgegrid
+    accessToken: akab-access-token-bruno-test
+    clientToken: akab-client-token-bruno-test
+    clientSecret: this-is-the-wrong-secret=
+
+runtime:
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "401"
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

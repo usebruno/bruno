@@ -91,6 +91,18 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
           axiosRequest.apiKeyAuthValueForQueryParams = apiKeyAuth;
         }
         break;
+      case 'edgegrid':
+        axiosRequest.edgeGridConfig = {
+          accessToken: get(collectionAuth, 'edgegrid.accessToken'),
+          clientToken: get(collectionAuth, 'edgegrid.clientToken'),
+          clientSecret: get(collectionAuth, 'edgegrid.clientSecret'),
+          nonce: get(collectionAuth, 'edgegrid.nonce'),
+          timestamp: get(collectionAuth, 'edgegrid.timestamp'),
+          baseURL: get(collectionAuth, 'edgegrid.baseURL'),
+          headersToSign: get(collectionAuth, 'edgegrid.headersToSign'),
+          maxBodySize: get(collectionAuth, 'edgegrid.maxBodySize')
+        };
+        break;
       case 'oauth2':
         const grantType = get(collectionAuth, 'oauth2.grantType');
         switch (grantType) {
@@ -344,6 +356,18 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
           // If the API key authentication is set and its placement is 'queryparams', add it to the axios request object. This will be used in the configureRequest function to append the API key to the query parameters of the request URL.
           axiosRequest.apiKeyAuthValueForQueryParams = apiKeyAuth;
         }
+        break;
+      case 'edgegrid':
+        axiosRequest.edgeGridConfig = {
+          accessToken: get(request, 'auth.edgegrid.accessToken'),
+          clientToken: get(request, 'auth.edgegrid.clientToken'),
+          clientSecret: get(request, 'auth.edgegrid.clientSecret'),
+          nonce: get(request, 'auth.edgegrid.nonce'),
+          timestamp: get(request, 'auth.edgegrid.timestamp'),
+          baseURL: get(request, 'auth.edgegrid.baseURL'),
+          headersToSign: get(request, 'auth.edgegrid.headersToSign'),
+          maxBodySize: get(request, 'auth.edgegrid.maxBodySize')
+        };
         break;
     }
   }

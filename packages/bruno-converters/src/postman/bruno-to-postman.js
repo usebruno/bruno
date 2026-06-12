@@ -420,6 +420,21 @@ export const brunoToPostman = (collection) => {
           ]
         };
       }
+      case 'edgegrid': {
+        return {
+          type: 'edgegrid',
+          edgegrid: [
+            { key: 'accessToken', value: itemAuth.edgegrid?.accessToken || '', type: 'string' },
+            { key: 'clientToken', value: itemAuth.edgegrid?.clientToken || '', type: 'string' },
+            { key: 'clientSecret', value: itemAuth.edgegrid?.clientSecret || '', type: 'string' },
+            { key: 'baseURL', value: itemAuth.edgegrid?.baseURL || '', type: 'string' },
+            { key: 'nonce', value: itemAuth.edgegrid?.nonce || '', type: 'string' },
+            { key: 'timestamp', value: itemAuth.edgegrid?.timestamp || '', type: 'string' },
+            { key: 'headersToSign', value: itemAuth.edgegrid?.headersToSign || '', type: 'string' },
+            { key: 'maxBodySize', value: itemAuth.edgegrid?.maxBodySize || '', type: 'string' }
+          ]
+        };
+      }
       default: {
         return {
           type: 'noauth'

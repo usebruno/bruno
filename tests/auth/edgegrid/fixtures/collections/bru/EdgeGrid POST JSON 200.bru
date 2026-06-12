@@ -1,0 +1,31 @@
+meta {
+  name: EdgeGrid POST JSON 200
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{localhost}}/api/auth/edgegrid/resource
+  body: json
+  auth: edgegrid
+}
+
+auth:edgegrid {
+  accessToken: akab-access-token-bruno-test
+  clientToken: akab-client-token-bruno-test
+  clientSecret: dGVzdC1jbGllbnQtc2VjcmV0LWZvci1icnVuby1lZGdlZ3JpZA==
+  nonce:
+  timestamp:
+  baseURL:
+  headersToSign:
+  maxBodySize:
+}
+
+body:json {
+  {"name":"bruno","kind":"compact"}
+}
+
+assert {
+  res.status: eq 200
+  res.body.authenticated: eq true
+}

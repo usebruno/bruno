@@ -1,26 +1,27 @@
-import React, { useMemo } from 'react';
-import get from 'lodash/get';
-import StyledWrapper from './StyledWrapper';
-import { saveFolderRoot } from 'providers/ReduxStore/slices/collections/actions';
-import OAuth2AuthorizationCode from 'components/RequestPane/Auth/OAuth2/AuthorizationCode/index';
-import { updateFolderAuth as _updateFolderAuth } from 'providers/ReduxStore/slices/collections';
-import { useDispatch } from 'react-redux';
-import OAuth2PasswordCredentials from 'components/RequestPane/Auth/OAuth2/PasswordCredentials/index';
-import OAuth2ClientCredentials from 'components/RequestPane/Auth/OAuth2/ClientCredentials/index';
-import OAuth2Implicit from 'components/RequestPane/Auth/OAuth2/Implicit/index';
-import GrantTypeSelector from 'components/RequestPane/Auth/OAuth2/GrantTypeSelector/index';
-import AuthMode from '../AuthMode';
+import ApiKeyAuth from 'components/RequestPane/Auth/ApiKeyAuth';
+import AwsV4Auth from 'components/RequestPane/Auth/AwsV4Auth';
 import BasicAuth from 'components/RequestPane/Auth/BasicAuth';
 import BearerAuth from 'components/RequestPane/Auth/BearerAuth';
 import DigestAuth from 'components/RequestPane/Auth/DigestAuth';
+import EdgeGridAuth from 'components/RequestPane/Auth/EdgeGridAuth';
 import NTLMAuth from 'components/RequestPane/Auth/NTLMAuth';
 import OAuth1 from 'components/RequestPane/Auth/OAuth1';
+import OAuth2AuthorizationCode from 'components/RequestPane/Auth/OAuth2/AuthorizationCode/index';
+import OAuth2ClientCredentials from 'components/RequestPane/Auth/OAuth2/ClientCredentials/index';
+import GrantTypeSelector from 'components/RequestPane/Auth/OAuth2/GrantTypeSelector/index';
+import OAuth2Implicit from 'components/RequestPane/Auth/OAuth2/Implicit/index';
+import OAuth2PasswordCredentials from 'components/RequestPane/Auth/OAuth2/PasswordCredentials/index';
 import WsseAuth from 'components/RequestPane/Auth/WsseAuth';
-import ApiKeyAuth from 'components/RequestPane/Auth/ApiKeyAuth';
-import AwsV4Auth from 'components/RequestPane/Auth/AwsV4Auth';
-import { humanizeRequestAuthMode } from 'utils/collections/index';
+import get from 'lodash/get';
+import { updateFolderAuth as _updateFolderAuth } from 'providers/ReduxStore/slices/collections';
+import { saveFolderRoot } from 'providers/ReduxStore/slices/collections/actions';
+import React, { useMemo } from 'react';
+import { useDispatch } from 'react-redux';
 import Button from 'ui/Button';
 import { getEffectiveAuthSource } from 'utils/auth';
+import { humanizeRequestAuthMode } from 'utils/collections/index';
+import AuthMode from '../AuthMode';
+import StyledWrapper from './StyledWrapper';
 
 const GrantTypeComponentMap = ({ collection, folder, updateFolderAuth }) => {
   const dispatch = useDispatch();
@@ -179,6 +180,19 @@ const Auth = ({ collection, folder }) => {
               <div>Auth inherited from {inheritedSource.name}: </div>
               <div className="inherit-mode-text" data-testid="inherited-auth-mode">{humanizeRequestAuthMode(inheritedSource.auth?.mode)}</div>
             </div>
+          </>
+        );
+      }
+      case 'edgegrid': {
+        return (
+          <>
+            <EdgeGridAuth
+              collection={collection}
+              item={folder}
+              updateAuth={updateFolderAuth}
+              request={request}
+              save={() => handleSave()}
+            />
           </>
         );
       }

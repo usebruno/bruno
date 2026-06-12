@@ -1,0 +1,26 @@
+meta {
+  name: EdgeGrid GET 401
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{localhost}}/api/auth/edgegrid/resource
+  body: none
+  auth: edgegrid
+}
+
+auth:edgegrid {
+  accessToken: akab-access-token-bruno-test
+  clientToken: akab-client-token-bruno-test
+  clientSecret: this-is-the-wrong-secret=
+  nonce:
+  timestamp:
+  baseURL:
+  headersToSign:
+  maxBodySize:
+}
+
+assert {
+  res.status: eq 401
+}

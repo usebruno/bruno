@@ -15,7 +15,7 @@ const { encodeUrl, hasExplicitScheme } = require('@usebruno/common').utils;
 const { extractPromptVariables } = require('@usebruno/common').utils;
 const { interpolateString } = require('./interpolate-string');
 const { resolveAwsV4Credentials, addAwsV4Interceptor } = require('./awsv4auth-helper');
-const { addDigestInterceptor } = require('@usebruno/requests');
+const { addDigestInterceptor, addEdgeGridInterceptor } = require('@usebruno/requests');
 const prepareGqlIntrospectionRequest = require('./prepare-gql-introspection-request');
 const { prepareRequest } = require('./prepare-request');
 const interpolateVars = require('./interpolate-vars');
@@ -312,6 +312,11 @@ const configureRequest = async (
 
   if (request.digestConfig) {
     addDigestInterceptor(axiosInstance, request);
+  }
+
+  if (request.edgeGridConfig) {
+    addEdgeGridInterceptor(axiosInstance, request);
+    delete request.edgeGridConfig;
   }
 
   // Get timeout from request settings, fallback to global preference

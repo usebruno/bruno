@@ -498,6 +498,18 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
               password: get(si.request, 'auth.wsse.password', '')
             };
             break;
+          case 'edgegrid':
+            di.request.auth.edgegrid = {
+              accessToken: get(si.request, 'auth.edgegrid.accessToken', ''),
+              clientToken: get(si.request, 'auth.edgegrid.clientToken', ''),
+              clientSecret: get(si.request, 'auth.edgegrid.clientSecret', ''),
+              nonce: get(si.request, 'auth.edgegrid.nonce', ''),
+              timestamp: get(si.request, 'auth.edgegrid.timestamp', ''),
+              baseURL: get(si.request, 'auth.edgegrid.baseURL', ''),
+              headersToSign: get(si.request, 'auth.edgegrid.headersToSign', ''),
+              maxBodySize: get(si.request, 'auth.edgegrid.maxBodySize', '')
+            };
+            break;
           default:
             break;
         }
@@ -984,6 +996,10 @@ export const humanizeRequestAuthMode = (mode) => {
     }
     case 'apikey': {
       label = 'API Key';
+      break;
+    }
+    case 'edgegrid': {
+      label = 'Akamai EdgeGrid';
       break;
     }
   }
