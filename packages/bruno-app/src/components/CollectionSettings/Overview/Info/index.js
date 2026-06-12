@@ -1,12 +1,11 @@
-import React from 'react';
-import { getTotalRequestCountInCollection } from 'utils/collections/';
-import { IconFolder, IconWorld, IconApi, IconShare, IconBook, IconClock } from '@tabler/icons';
-import { areItemsLoading, getItemsLoadStats } from 'utils/collections/index';
-import { useState, useEffect, useRef } from 'react';
-import { useSelector, useDispatch } from 'react-redux';
+import { IconApi, IconBook, IconClock, IconFolder, IconShare, IconWorld } from '@tabler/icons';
 import ShareCollection from 'components/ShareCollection/index';
 import GenerateDocumentation from 'components/Sidebar/Collections/Collection/GenerateDocumentation';
 import { addTab } from 'providers/ReduxStore/slices/tabs';
+import React, { useEffect, useRef, useState } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { getTotalRequestCountInCollection } from 'utils/collections/';
+import { areItemsLoading, getItemsLoadStats } from 'utils/collections/index';
 import StyledWrapper from './StyledWrapper';
 
 // Persists load times across collection switches and re-renders.
