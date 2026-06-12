@@ -1,7 +1,8 @@
 import React, { useCallback, useMemo, useRef, useState } from 'react';
 import { useSelector } from 'react-redux';
 import get from 'lodash/get';
-import { IconStars, IconX, IconArrowBackUp } from '@tabler/icons';
+import { IconX, IconArrowBackUp } from '@tabler/icons';
+import IconSparkleHighlight from 'components/Icons/IconSparkleHighlight';
 import { aiGenerateScript } from 'utils/ai';
 import StyledWrapper from './StyledWrapper';
 
@@ -130,14 +131,14 @@ const AIAssist = ({ scriptType, currentScript, requestContext, onApply }) => {
         type="button"
         aria-label={title}
       >
-        <IconStars size={14} strokeWidth={1.75} />
+        <IconSparkleHighlight size={14} strokeWidth={1.75} />
       </button>
 
       {isOpen && (
         <div ref={attachPopup} className="ai-assist-popup" role="dialog" aria-label={title}>
           <div className="popup-header">
             <span className="popup-title">
-              <IconStars size={12} strokeWidth={1.75} />
+              <IconSparkleHighlight size={12} strokeWidth={1.75} />
               {title}
             </span>
             <button className="popup-close" onClick={close} type="button" aria-label="Close">

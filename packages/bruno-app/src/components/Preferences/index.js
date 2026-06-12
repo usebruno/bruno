@@ -10,10 +10,10 @@ import {
   IconKeyboard,
   IconZoomQuestion,
   IconSquareLetterB,
-  IconDatabase,
-  IconStars
+  IconDatabase
 } from '@tabler/icons';
 
+import IconSparkleHighlight from 'components/Icons/IconSparkleHighlight';
 import Support from './Support';
 import General from './General';
 import Themes from './Themes';
@@ -105,7 +105,7 @@ const Preferences = () => {
             Keybindings
           </div>
           <div className={getTabClassname('ai')} role="tab" onClick={() => setTab('ai')}>
-            <IconStars size={16} strokeWidth={1.5} />
+            <IconSparkleHighlight size={16} strokeWidth={1.5} />
             AI
           </div>
           <div className={getTabClassname('cache')} role="tab" onClick={() => setTab('cache')}>
