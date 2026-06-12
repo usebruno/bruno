@@ -1,0 +1,20 @@
+vars {
+  env_str: env_string
+  @number
+  env_num: 300
+  @boolean
+  env_bool: true
+  @object
+  env_obj: '''
+    {"scope":"env"}
+  '''
+  @number
+  mismatched_num: not-a-number
+  @boolean
+  mismatched_bool: maybe
+  @object
+  mismatched_obj: not-json
+}
+vars:secret [
+  env_secret_str
+]

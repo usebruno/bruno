@@ -3,12 +3,13 @@ import type { Environment } from '@opencollection/types/config/environments';
 import type { Variable, SecretVariable } from '@opencollection/types/common/variables';
 import { parseYml } from './utils';
 import { uuid, ensureString } from '../../utils';
+import { isTypedValue, fromOpenCollectionTypedValue } from './common/datatype';
 
 const isSecretVariable = (v: Variable | SecretVariable): v is SecretVariable => {
   return 'secret' in v && v.secret === true;
 };
 
-const toBrunoEnvironmentVariables = (variables: (Variable | SecretVariable)[] | null | undefined): BrunoEnvironmentVariable[] => {
+export const toBrunoEnvironmentVariables = (variables: (Variable | SecretVariable)[] | null | undefined): BrunoEnvironmentVariable[] => {
   if (!variables?.length) {
     return [];
   }
@@ -24,14 +25,22 @@ const toBrunoEnvironmentVariables = (variables: (Variable | SecretVariable)[] | 
         secret: true
       };
     }
+
     const variable: BrunoEnvironmentVariable = {
       uid: uuid(),
       name: ensureString(v.name),
-      value: ensureString(v.value),
+      value: '',
       type: 'text',
       enabled: v.disabled !== true,
       secret: false
     };
+
+    if (isTypedValue(v.value)) {
+      Object.assign(variable, fromOpenCollectionTypedValue(v.value));
+    } else {
+      variable.value = ensureString(v.value);
+    }
+
     return variable;
   });
 };

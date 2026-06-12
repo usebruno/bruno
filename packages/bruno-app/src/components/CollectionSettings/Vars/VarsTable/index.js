@@ -5,6 +5,7 @@ import { saveCollectionSettings } from 'providers/ReduxStore/slices/collections/
 import { updateTableColumnWidths } from 'providers/ReduxStore/slices/tabs';
 import MultiLineEditor from 'components/MultiLineEditor';
 import InfoTip from 'components/InfoTip';
+import DatatypeSelector from 'components/DatatypeSelector';
 import EditableTable from 'components/EditableTable';
 import StyledWrapper from './StyledWrapper';
 import toast from 'react-hot-toast';
@@ -57,15 +58,31 @@ const VarsTable = ({ collection, vars, varType, initialScroll = 0 }) => {
         </div>
       ),
       placeholder: varType === 'request' ? 'Value' : 'Expr',
-      render: ({ value, onChange }) => (
-        <MultiLineEditor
-          value={value || ''}
-          theme={storedTheme}
-          onSave={onSave}
-          onChange={onChange}
-          collection={collection}
-          placeholder={!value ? (varType === 'request' ? 'Value' : 'Expr') : ''}
-        />
+      render: ({ row, value, onChange, isLastEmptyRow }) => (
+        <div className="flex items-center w-full gap-2">
+          <div className="flex-1 min-w-0">
+            <MultiLineEditor
+              value={typeof value === 'string' ? value : value == null ? '' : JSON.stringify(value, null, 2)}
+              theme={storedTheme}
+              onSave={onSave}
+              onChange={onChange}
+              collection={collection}
+              placeholder={value == null || (typeof value === 'string' && value.trim() === '') ? (varType === 'request' ? 'Value' : 'Expr') : ''}
+            />
+          </div>
+          {/* Datatypes apply to literal values, not to the JS expression that produces a post-response value. */}
+          {!isLastEmptyRow && varType === 'request' && (
+            <DatatypeSelector
+              variable={row}
+              theme={storedTheme}
+              collection={collection}
+              onChange={(fields) => {
+                const updated = (vars || []).map((v) => v.uid === row.uid ? { ...v, ...fields } : v);
+                handleVarsChange(updated);
+              }}
+            />
+          )}
+        </div>
       )
     }
   ];
@@ -80,6 +97,7 @@ const VarsTable = ({ collection, vars, varType, initialScroll = 0 }) => {
     <StyledWrapper className="w-full">
       <EditableTable
         tableId="collection-vars"
+        testId={`collection-vars-${varType === 'response' ? 'res' : 'req'}`}
         columns={columns}
         rows={vars}
         onChange={handleVarsChange}

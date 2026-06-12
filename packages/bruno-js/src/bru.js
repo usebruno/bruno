@@ -203,11 +203,6 @@ class Bru {
       );
     }
 
-    // When persist is true, only string values are allowed
-    if (options?.persist && typeof value !== 'string') {
-      throw new Error(`Persistent environment variables must be strings. Received ${typeof value} for key "${key}".`);
-    }
-
     this.envVariables[key] = value;
 
     if (options?.persist) {

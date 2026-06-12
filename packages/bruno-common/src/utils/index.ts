@@ -28,3 +28,13 @@ export {
   jsonToDotenv,
   DotenvVariable
 } from './jsonToDotenv';
+
+export {
+  parseValueByDatatype,
+  getDatatypeFromValue,
+  validateDatatypeValue,
+  valueToString,
+  BrunoVariableDatatype,
+  BRUNO_VARIABLE_DATATYPES,
+  isBrunoVariableDatatype
+} from './datatype';

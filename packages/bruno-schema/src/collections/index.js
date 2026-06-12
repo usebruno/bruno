@@ -1,4 +1,5 @@
 const Yup = require('yup');
+const { BRUNO_VARIABLE_DATATYPES } = require('@usebruno/common/utils');
 const { uidSchema } = require('../common');
 
 const annotationSchema = Yup.object({
@@ -19,7 +20,8 @@ const environmentVariablesSchema = Yup.object({
     .nullable(),
   type: Yup.string().oneOf(['text']).required('type is required'),
   enabled: Yup.boolean().defined(),
-  secret: Yup.boolean()
+  secret: Yup.boolean(),
+  datatype: Yup.string().oneOf(BRUNO_VARIABLE_DATATYPES).nullable()
 })
   .noUnknown(true)
   .strict();
@@ -94,7 +96,8 @@ const assertionSchema = keyValueSchema.shape({
 const varsSchema = Yup.object({
   uid: uidSchema,
   name: Yup.string().nullable(),
-  value: Yup.string().nullable(),
+  // Allow mixed types (string, number, boolean, object) to support coerced datatype values.
+  value: Yup.mixed().nullable(),
   description: Yup.string().nullable(),
   // Optional annotations on variables
   annotations: Yup.array()
@@ -103,6 +106,7 @@ const varsSchema = Yup.object({
     )
     .nullable(),
   enabled: Yup.boolean(),
+  datatype: Yup.string().oneOf(BRUNO_VARIABLE_DATATYPES).nullable(),
 
   // todo
   // anoop(4 feb 2023) - nobody uses this, and it needs to be removed

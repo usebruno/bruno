@@ -24,6 +24,7 @@ import mime from 'mime-types';
 import path from 'utils/common/path';
 import { getUniqueTagsFromItems } from 'utils/collections/index';
 import { getCollectionEnvironmentPath } from 'utils/snapshot';
+import { getDatatypeFromValue } from '@usebruno/common/utils';
 import * as exampleReducers from './exampleReducers';
 
 // gRPC status code meanings
@@ -416,11 +417,19 @@ export const collectionsSlice = createSlice({
                 if (variable.persistedValue === undefined) {
                   variable.persistedValue = previousValue;
                 }
+
+                if (!variable.secret) {
+                  const inferred = getDatatypeFromValue(value);
+                  variable.datatype = inferred === 'string' ? undefined : inferred;
+                } else {
+                  variable.datatype = undefined;
+                }
               }
             } else {
               // __name__ is a private variable used to store the name of the environment
               // this is not a user defined variable and hence should not be updated
               if (key !== '__name__') {
+                const inferred = getDatatypeFromValue(value);
                 activeEnvironment.variables.push({
                   name: key,
                   value,
@@ -428,7 +437,8 @@ export const collectionsSlice = createSlice({
                   enabled: true,
                   type: 'text',
                   uid: uuid(),
-                  ephemeral: !isPersistent
+                  ephemeral: !isPersistent,
+                  ...(inferred !== 'string' ? { datatype: inferred } : {})
                 });
               }
             }
@@ -2067,12 +2077,13 @@ export const collectionsSlice = createSlice({
         item.draft = cloneDeep(item);
       }
       item.draft.request.vars = item.draft.request.vars || {};
-      const mappedVars = map(vars, ({ uid, name = '', value = '', enabled = true, local = false }) => ({
+      const mappedVars = map(vars, ({ uid, name = '', value = '', enabled = true, local = false, datatype }) => ({
         uid: uid || uuid(),
         name,
         value,
         enabled,
-        ...(type === 'response' ? { local } : {})
+        ...(type === 'response' ? { local } : {}),
+        ...(datatype && datatype !== 'string' ? { datatype } : {})
       }));
       if (type === 'request') {
         item.draft.request.vars.req = mappedVars;
@@ -2421,12 +2432,13 @@ export const collectionsSlice = createSlice({
       if (!folder.draft) {
         folder.draft = cloneDeep(folder.root);
       }
-      const mappedVars = map(vars, ({ uid, name = '', value = '', enabled = true, local = false }) => ({
+      const mappedVars = map(vars, ({ uid, name = '', value = '', enabled = true, local = false, datatype }) => ({
         uid: uid || uuid(),
         name,
         value,
         enabled,
-        ...(type === 'response' ? { local } : {})
+        ...(type === 'response' ? { local } : {}),
+        ...(datatype && datatype !== 'string' ? { datatype } : {})
       }));
       if (type === 'request') {
         set(folder, 'draft.request.vars.req', mappedVars);
@@ -2659,12 +2671,13 @@ export const collectionsSlice = createSlice({
           root: cloneDeep(collection.root)
         };
       }
-      const mappedVars = map(vars, ({ uid, name = '', value = '', enabled = true, local = false }) => ({
+      const mappedVars = map(vars, ({ uid, name = '', value = '', enabled = true, local = false, datatype }) => ({
         uid: uid || uuid(),
         name,
         value,
         enabled,
-        ...(type === 'response' ? { local } : {})
+        ...(type === 'response' ? { local } : {}),
+        ...(datatype && datatype !== 'string' ? { datatype } : {})
       }));
       if (type === 'request') {
         set(collection, 'draft.root.request.vars.req', mappedVars);
