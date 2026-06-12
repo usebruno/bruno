@@ -9,6 +9,7 @@ import {
   setSelectedRequest
 } from 'providers/ReduxStore/slices/logs';
 import StyledWrapper from './StyledWrapper';
+import { getGridTemplate, getSeparatorPositions, sortRequests } from './utils';
 
 // TODO: Columns will be resizable in the future, so width can be null (for auto) or a number (for fixed width)
 const COLUMNS = [
@@ -20,53 +21,6 @@ const COLUMNS = [
   { key: 'duration', label: 'Duration', width: 120, align: 'right' },
   { key: 'size', label: 'Size', width: 80, align: 'right' }
 ];
-
-const getSortValue = (request, key) => {
-  const { request: req, response: res, timestamp } = request.data;
-  switch (key) {
-    case 'method': return req?.method || '';
-    case 'status': return res?.statusCode || res?.status || 0;
-    case 'domain': {
-      try { return new URL(req?.url || '').hostname; } catch { return req?.url || ''; }
-    }
-    case 'path': {
-      try {
-        const u = new URL(req?.url || '');
-        return u.pathname + u.search;
-      } catch { return req?.url || ''; }
-    }
-    case 'time': return timestamp || 0;
-    case 'duration': return res?.duration || 0;
-    case 'size': return res?.size || 0;
-    default: return '';
-  }
-};
-
-const getGridTemplate = (columns) =>
-  columns.map((c) => (c.width ? `${c.width}px` : '1fr')).join(' ');
-
-const getSeparatorPositions = (columns) => {
-  const n = columns.length;
-  const positions = new Array(n - 1).fill(null);
-
-  let leftOffset = 0;
-  for (let i = 0; i < n - 1; i++) {
-    if (columns[i].width === null) break;
-    leftOffset += columns[i].width;
-    positions[i] = { left: leftOffset };
-  }
-
-  let rightOffset = 0;
-  for (let i = n - 1; i > 0; i--) {
-    if (columns[i].width === null) break;
-    rightOffset += columns[i].width;
-    if (positions[i - 1] === null) {
-      positions[i - 1] = { right: rightOffset };
-    }
-  }
-
-  return positions;
-};
 
 const MethodBadge = ({ method }) => {
   const methodLower = method?.toLowerCase() || 'get';
@@ -226,16 +180,10 @@ const NetworkTab = () => {
     });
   };
 
-  const sortedRequests = useMemo(() => {
-    if (!sortConfig.key) return filteredRequests;
-    return [...filteredRequests].sort((a, b) => {
-      const valueA = getSortValue(a, sortConfig.key);
-      const valueB = getSortValue(b, sortConfig.key);
-      if (valueA < valueB) return sortConfig.direction === 'asc' ? -1 : 1;
-      if (valueA > valueB) return sortConfig.direction === 'asc' ? 1 : -1;
-      return 0;
-    });
-  }, [filteredRequests, sortConfig]);
+  const sortedRequests = useMemo(
+    () => sortRequests(filteredRequests, sortConfig.key, sortConfig.direction),
+    [filteredRequests, sortConfig]
+  );
 
   return (
     <StyledWrapper>
@@ -259,8 +207,8 @@ const NetworkTab = () => {
                   <span title={col.label}>{col.label}</span>
                   {sortConfig.key === col.key && (
                     sortConfig.direction === 'asc'
-                      ? <IconArrowUp size={14} strokeWidth={2} />
-                      : <IconArrowDown size={14} strokeWidth={2} />
+                      ? <IconArrowUp size={14} strokeWidth={2} data-testid="sort-icon-asc" />
+                      : <IconArrowDown size={14} strokeWidth={2} data-testid="sort-icon-desc" />
                   )}
                 </div>
               ))}
