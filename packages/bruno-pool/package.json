@@ -1,0 +1,31 @@
+{
+  "name": "@usebruno/pool",
+  "version": "0.1.0",
+  "description": "Lazy worker_threads job pool for Bruno — typed script-based jobs, a shared singleton, no native dependencies",
+  "author": "Bruno Software Inc.",
+  "license": "MIT",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "src",
+    "package.json"
+  ],
+  "scripts": {
+    "build": "rollup -c && tsc --emitDeclarationOnly",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@usebruno/filestore": "0.1.0",
+    "workerpool": "10.0.2"
+  },
+  "devDependencies": {
+    "@rollup/plugin-commonjs": "23.0.2",
+    "@rollup/plugin-node-resolve": "15.0.1",
+    "@rollup/plugin-typescript": "12.1.2",
+    "@types/node": "^24.1.0",
+    "rollup": "3.30.0",
+    "tslib": "2.8.1",
+    "typescript": "5.4.5"
+  }
+}
