@@ -31,7 +31,7 @@ const Headers = ({ headers }) => {
       </button>
       {isOpen && (
         count === 0
-          ? <div className="tl-empty">No Headers found</div>
+          ? <div className="tl-empty">No Headers</div>
           : (
               <table className="tl-headers-table">
                 <tbody>

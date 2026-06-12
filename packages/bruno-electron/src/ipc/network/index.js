@@ -73,6 +73,12 @@ const hasStreamHeaders = (headers) => {
   return headerSplit.indexOf('text/event-stream') > -1;
 };
 
+const buildResponseBodyFromStreamChunks = (sseChunks, headers, disableParsingResponseJson) => {
+  const dataBuffer = Buffer.concat(sseChunks);
+  const { data } = parseDataFromResponse({ data: dataBuffer, headers }, disableParsingResponseJson);
+  return { data, dataBuffer };
+};
+
 const promisifyStream = async (stream, abortController, closeOnFirst) => {
   const chunks = [];
 
@@ -1014,6 +1020,7 @@ const registerNetworkIpc = (mainWindow) => {
       }
 
       let response, responseTime, axiosDataStream;
+      const sseChunks = [];
       try {
         /** @type {import('axios').AxiosResponse} */
         response = await axiosInstance(request);
@@ -1243,7 +1250,22 @@ const registerNetworkIpc = (mainWindow) => {
         }
       };
       if (isResponseStream) {
-        axiosDataStream.on('close', () => runPostScripts().then());
+        axiosDataStream.on('close', () => {
+          try {
+            const { data, dataBuffer } = buildResponseBodyFromStreamChunks(
+              sseChunks,
+              response.headers,
+              request.__brunoDisableParsingResponseJson
+            );
+            response.data = data;
+            response.dataBuffer = dataBuffer;
+          } catch (error) {
+            console.error('Error rebuilding response body from SSE chunks:', error);
+          }
+          runPostScripts().catch((error) => {
+            console.error('Error running post-response scripts for SSE stream:', error);
+          });
+        });
       } else {
         await runPostScripts();
       }
@@ -1254,6 +1276,7 @@ const registerNetworkIpc = (mainWindow) => {
         headers: response.headers,
         data: response.data,
         stream: isResponseStream ? axiosDataStream : null,
+        sseChunks: isResponseStream ? sseChunks : null,
         cancelTokenUid: cancelTokenUid,
         dataBuffer: response.dataBuffer.toString('base64'),
         size: Buffer.byteLength(response.dataBuffer),
@@ -1332,6 +1355,8 @@ const registerNetworkIpc = (mainWindow) => {
       response.stream = { running: response.status >= 200 && response.status < 300 };
 
       stream.on('data', (newData) => {
+        // Collect the raw chunk so runRequest can rebuild the full body on stream close.
+        response.sseChunks?.push(newData);
         seq += 1;
 
         const parsed = parseDataFromResponse({ data: newData, headers: {} });
@@ -2248,3 +2273,4 @@ module.exports.configureRequest = configureRequest;
 module.exports.getCertsAndProxyConfig = getCertsAndProxyConfig;
 module.exports.fetchGqlSchemaHandler = fetchGqlSchemaHandler;
 module.exports.executeRequestOnFailHandler = executeRequestOnFailHandler;
+module.exports.buildResponseBodyFromStreamChunks = buildResponseBodyFromStreamChunks;
