@@ -880,13 +880,82 @@ describe('env pair annotations', () => {
     expect(output.variables[0]).toEqual({ name: 'API_KEY', value: 'abc123', enabled: true, secret: false });
   });
 
-  it('secret vars are unaffected by annotation support', () => {
+  it('multiple annotations on a secret var', () => {
     const input = `vars:secret [
-  SECRET_KEY
+  @string
+  @description('api token')
+  API_TOKEN
 ]
 `;
     const output = envParser(input);
-    expect(output.variables).toEqual([{ name: 'SECRET_KEY', value: '', enabled: true, secret: true }]);
+    expect(output.variables[0].annotations).toEqual([{ name: 'string' }, { name: 'description', value: 'api token' }]);
+  });
+
+  it('annotations on multiple secret vars', () => {
+    const input = `vars:secret [
+  env_secret_str,
+  @number
+  env_secret_num,
+  @object
+  env_secret_obj,
+  @boolean
+  env_secret_boolean,
+  env_secret_new
+]
+`;
+    const output = envParser(input);
+    expect(output.variables).toEqual([
+      { name: 'env_secret_str', value: '', enabled: true, secret: true },
+      { name: 'env_secret_num', value: '', enabled: true, secret: true, annotations: [{ name: 'number' }] },
+      { name: 'env_secret_obj', value: '', enabled: true, secret: true, annotations: [{ name: 'object' }] },
+      { name: 'env_secret_boolean', value: '', enabled: true, secret: true, annotations: [{ name: 'boolean' }] },
+      { name: 'env_secret_new', value: '', enabled: true, secret: true }
+    ]);
+  });
+
+  it('parseAndSerialise - bru sourced roundtrip check - multiple secret vars with annotations', () => {
+    const input = `vars:secret [
+  env_secret_str,
+  @number
+  env_secret_num,
+  @object
+  env_secret_obj,
+  @boolean
+  env_secret_boolean,
+  env_secret_new
+]
+`;
+    const parsed = envParser(input);
+    expect(jsonToEnv(parsed)).toEqual(input);
+  });
+
+  it('disabled secret var with annotation', () => {
+    const input = `vars:secret [
+  @deprecated
+  ~OLD_SECRET
+]
+`;
+    const output = envParser(input);
+    expect(output.variables).toEqual([
+      { name: 'OLD_SECRET', value: '', enabled: false, secret: true, annotations: [{ name: 'deprecated' }] }
+    ]);
+  });
+
+  it('serializeAnnotations in jsonToEnv — disabled secret var with annotation', () => {
+    const json = {
+      variables: [{ name: 'OLD_SECRET', value: '', enabled: false, secret: true, annotations: [{ name: 'deprecated' }] }]
+    };
+    const bru = jsonToEnv(json);
+    expect(bru).toContain('@deprecated\n  ~OLD_SECRET');
+  });
+
+  it('parseAndSerialise - json sourced roundtrip check - secret env vars', () => {
+    const input = {
+      variables: [{ name: 'SECRET_KEY', value: '', enabled: true, secret: true, annotations: [{ name: 'description', value: 'my secret key' }] }]
+    };
+    const bru = jsonToEnv(input);
+    const output = envParser(bru);
+    expect(output).toEqual(input);
   });
 
   it('serializeAnnotations in jsonToEnv — annotation without value', () => {
@@ -939,6 +1008,44 @@ describe('env pair annotations', () => {
 }
 `;
     expect(() => envParser(input)).toThrow();
+  });
+});
+
+describe('env external secrets', () => {
+  it('parses an external secrets block into { type, variables }', () => {
+    const input = `vars:externalsecrets:my-vault {
+  secret: secret/data/secret
+  password: secret/data/password
+}
+`;
+    const output = envParser(input);
+    expect(output.externalSecrets).toEqual({
+      type: 'my-vault',
+      variables: [
+        { name: 'secret', value: 'secret/data/secret' },
+        { name: 'password', value: 'secret/data/password' }
+      ]
+    });
+  });
+
+  it('parses an external secrets block with no variables', () => {
+    const input = `vars:externalsecrets:my-vault {
+}
+`;
+    const output = envParser(input);
+    expect(output.externalSecrets).toEqual({ type: 'my-vault', variables: [] });
+  });
+
+  it('parseAndSerialise - bru sourced roundtrip check - external secrets', () => {
+    const input = `vars {
+}
+vars:externalsecrets:my-vault {
+  secret: secret/data/secret
+  password: secret/data/password
+}
+`;
+    const parsed = envParser(input);
+    expect(jsonToEnv(parsed)).toEqual(input);
   });
 });
 

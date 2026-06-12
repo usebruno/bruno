@@ -18,8 +18,22 @@ const environmentVariablesSchema = Yup.object({
     )
     .nullable(),
   type: Yup.string().oneOf(['text']).required('type is required'),
+  datatype: Yup.string().oneOf(['string', 'number', 'boolean', 'object']).nullable(),
   enabled: Yup.boolean().defined(),
   secret: Yup.boolean()
+})
+  .noUnknown(true)
+  .strict();
+
+// External secret variables carry `name` plus a provider-specific reference key
+// (path / vaultName / secretName / ...), so unknown keys are allowed through.
+const externalSecretVariableSchema = Yup.object({
+  name: Yup.string().nullable()
+}).strict();
+
+const externalSecretsSchema = Yup.object({
+  type: Yup.string().nullable(),
+  variables: Yup.array().of(externalSecretVariableSchema)
 })
   .noUnknown(true)
   .strict();
@@ -28,6 +42,7 @@ const environmentSchema = Yup.object({
   uid: uidSchema,
   name: Yup.string().min(1).required('name is required'),
   variables: Yup.array().of(environmentVariablesSchema).required('variables are required'),
+  externalSecrets: externalSecretsSchema.nullable().optional(),
   color: Yup.string().nullable().optional(),
   pathname: Yup.string().nullable()
 })
@@ -96,6 +111,7 @@ const varsSchema = Yup.object({
   name: Yup.string().nullable(),
   value: Yup.string().nullable(),
   description: Yup.string().nullable(),
+  datatype: Yup.string().oneOf(['string', 'number', 'boolean', 'object']).nullable(),
   // Optional annotations on variables
   annotations: Yup.array()
     .of(
