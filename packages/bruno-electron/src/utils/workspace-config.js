@@ -691,6 +691,7 @@ module.exports = {
   validateWorkspacePath,
   validateWorkspaceDirectory,
   createWorkspaceConfig,
+  normalizeWorkspaceConfig,
   readWorkspaceConfig,
   writeWorkspaceConfig,
   validateWorkspaceConfig,

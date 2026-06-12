@@ -6,20 +6,11 @@ const { generateUidBasedOnHash } = require('../utils/common');
 const {
   addApiSpecToWorkspace,
   readWorkspaceConfig,
-  getWorkspaceUid
+  getWorkspaceUid,
+  normalizeWorkspaceConfig
 } = require('../utils/workspace-config');
 
 const DEFAULT_WORKSPACE_NAME = 'My Workspace';
-
-const normalizeWorkspaceConfig = (config) => {
-  return {
-    ...config,
-    name: config.info?.name,
-    type: config.info?.type,
-    collections: config.collections || [],
-    apiSpecs: Array.isArray(config.specs) ? config.specs : []
-  };
-};
 
 const prepareWorkspaceConfigForClient = (workspaceConfig, isDefault) => {
   if (isDefault) {

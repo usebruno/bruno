@@ -269,7 +269,7 @@ describe('Git remote on workspace collections', () => {
   });
 });
 
-describe('workspace specs normalization (BRU-3556)', () => {
+describe('workspace specs normalization', () => {
   const {
     readWorkspaceConfig,
     addApiSpecToWorkspace,
