@@ -550,10 +550,12 @@ export const loadWorkspaceApiSpecs = (workspaceUid) => {
       }));
 
       const allApiSpecs = getState().apiSpec.apiSpecs;
-      const alreadyOpenApiSpecs = allApiSpecs.map((a) => a.pathname);
+      // Compare by normalized path so a spec already loaded under a native (Windows)
+      // path isn't treated as "not open" and needlessly re-opened.
+      const alreadyOpenApiSpecs = allApiSpecs.map((a) => normalizePath(a.pathname));
 
       for (const apiSpec of apiSpecs) {
-        if (apiSpec.path && !alreadyOpenApiSpecs.includes(apiSpec.path)) {
+        if (apiSpec.path && !alreadyOpenApiSpecs.includes(normalizePath(apiSpec.path))) {
           try {
             await ipcRenderer.invoke('renderer:open-api-spec-file', apiSpec.path, workspace.pathname);
           } catch (error) {
