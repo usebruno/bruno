@@ -314,9 +314,17 @@ describe('workspace specs normalization', () => {
       { name: 'empty list stays empty', yaml: 'specs: []', expected: [] },
       { name: 'missing specs key -> []', yaml: '# no specs key', expected: [] },
       { name: 'null specs -> []', yaml: 'specs: null', expected: [] },
-      { name: 'map (object) specs -> [] (the crash repro)', yaml: ['specs:', '  brokenEntry: not a list'].join('\n'), expected: [] },
+      { name: 'map (object) specs -> []', yaml: ['specs:', '  brokenEntry: not a list'].join('\n'), expected: [] },
       { name: 'string specs -> []', yaml: 'specs: "oops a string"', expected: [] },
-      { name: 'number specs -> []', yaml: 'specs: 42', expected: [] }
+      { name: 'number specs -> []', yaml: 'specs: 42', expected: [] },
+      { name: 'boolean specs -> []', yaml: 'specs: true', expected: [] },
+      {
+        // An array of junk is still an array: coercion preserves it (no crash on .map);
+        // invalid entries are dropped later by sanitizeSpecs on write, not here.
+        name: 'array with non-object elements is preserved as-is',
+        yaml: 'specs: [1, "two", null]',
+        expected: [1, 'two', null]
+      }
     ];
 
     test.each(cases)('$name', ({ yaml, expected }) => {
