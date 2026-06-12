@@ -206,8 +206,12 @@ const StyledWrapper = styled.div`
     text-align: right;
   }
 
+  .text-right {
+    text-align: right;
+  }
+
   .request-size {
-    padding: 2px 8px 2px 8px;
+    padding: 2px 8px;
     color: ${(props) => props.theme.console.messageColor};
     font-family: ui-monospace, 'SF Mono', 'Monaco', 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
     font-size: ${(props) => props.theme.font.size.xs};

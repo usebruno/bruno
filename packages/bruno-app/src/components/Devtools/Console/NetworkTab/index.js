@@ -143,6 +143,8 @@ const RequestRow = ({ request, isSelected, onClick, gridTemplateColumns }) => {
       className={`request-row ${isSelected ? 'selected' : ''}`}
       onClick={onClick}
       style={{ gridTemplateColumns }}
+      data-testid="network-request-row"
+
     >
       <div className="request-method">
         <MethodBadge method={req?.method} />
@@ -252,6 +254,7 @@ const NetworkTab = () => {
                   key={col.key}
                   className={`header-cell${col.align === 'right' ? ' text-right' : ''}`}
                   onClick={() => handleHeaderClick(col.key)}
+                  data-testid={`network-header-${col.key}`}
                 >
                   <span title={col.label}>{col.label}</span>
                   {sortConfig.key === col.key && (
