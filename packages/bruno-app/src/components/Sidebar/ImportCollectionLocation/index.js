@@ -352,24 +352,25 @@ const ImportCollectionLocation = ({ onClose, handleSubmit, rawData, format, sour
               </div>
             </div>
           )}
-
-          <div className={`mt-4 ${isSwagger2 ? 'opacity-50 pointer-events-none' : ''}`}>
-            <label className={`flex items-center gap-2 ${isSwagger2 ? '' : 'cursor-pointer'}`}>
-              <input
-                type="checkbox"
-                checked={isSwagger2 ? false : enableCheckForSpecUpdates}
-                onChange={(e) => setEnableCheckForSpecUpdates(e.target.checked)}
-                disabled={isSwagger2}
-                className={`checkbox ${isSwagger2 ? '' : 'cursor-pointer'}`}
-              />
-              <span className="font-medium">Check for Spec Updates</span>
-            </label>
-            <p className="text-muted text-xs mt-1">
-              {isSwagger2
-                ? 'OpenAPI Sync is not supported for Swagger 2.0 specs.'
-                : 'Stay notified of spec changes and sync your collection with the spec.'}
-            </p>
-          </div>
+          {showCheckForSpecUpdatesOption && (
+            <div className={`mt-4 ${isSwagger2 ? 'opacity-50 pointer-events-none' : ''}`}>
+              <label className={`flex items-center gap-2 ${isSwagger2 ? '' : 'cursor-pointer'}`}>
+                <input
+                  type="checkbox"
+                  checked={isSwagger2 ? false : enableCheckForSpecUpdates}
+                  onChange={(e) => setEnableCheckForSpecUpdates(e.target.checked)}
+                  disabled={isSwagger2}
+                  className={`checkbox ${isSwagger2 ? '' : 'cursor-pointer'}`}
+                />
+                <span className="font-medium">Check for Spec Updates</span>
+              </label>
+              <p className="text-muted text-xs mt-1">
+                {isSwagger2
+                  ? 'OpenAPI Sync is not supported for Swagger 2.0 specs.'
+                  : 'Stay notified of spec changes and sync your collection with the spec.'}
+              </p>
+            </div>
+          )}
         </form>
       </Modal>
     </StyledWrapper>
