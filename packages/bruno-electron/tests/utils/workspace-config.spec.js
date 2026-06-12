@@ -335,8 +335,9 @@ describe('workspace specs normalization', () => {
       expect(Array.isArray(config.apiSpecs)).toBe(true);
       expect(config.specs).toEqual(expected);
       expect(config.apiSpecs).toEqual(expected);
-      // apiSpecs mirrors specs (same reference) so consumers can use either.
-      expect(config.apiSpecs).toBe(config.specs);
+      // apiSpecs mirrors specs by value but is a distinct array, so an in-place
+      // mutation of one field can't silently change the other.
+      expect(config.apiSpecs).not.toBe(config.specs);
     });
   });
 

@@ -210,7 +210,9 @@ const normalizeWorkspaceConfig = (config) => {
     type: config.info?.type,
     collections: config.collections || [],
     specs,
-    apiSpecs: specs
+    // Distinct array (not an alias of `specs`) so a later in-place mutation of
+    // one field can't silently change the other.
+    apiSpecs: [...specs]
   };
 };
 
