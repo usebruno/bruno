@@ -62,6 +62,7 @@ const {
 const { getCollectionConfigFile, openCollection, openCollectionDialog, openCollectionsByPathname, registerScratchCollectionPath } = require('../app/collections');
 const { generateUidBasedOnHash, stringifyJson, safeStringifyJSON, safeParseJSON } = require('../utils/common');
 const { isValidNpmPackageName, runNpmInstall } = require('../utils/install-packages');
+const { waitForShellEnv } = require('../store/shell-env-state');
 const { moveRequestUid, deleteRequestUid, syncExampleUidsCache } = require('../cache/requestUids');
 const { deleteCookiesForDomain, getDomainsWithCookies, addCookieForDomain, modifyCookieForDomain, parseCookieString, createCookieString, deleteCookie } = require('../utils/cookies');
 const EnvironmentSecretsStore = require('../store/env-secrets');
@@ -2289,6 +2290,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
       throw new Error(`Invalid package name(s): ${invalid.join(', ')}`);
     }
 
+    await waitForShellEnv();
     return runNpmInstall({ collectionPath: collectionPathname, packages });
   });
 
