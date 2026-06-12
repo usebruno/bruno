@@ -2,6 +2,7 @@ import type { Environment as BrunoEnvironment, EnvironmentVariable as BrunoEnvir
 import type { Environment } from '@opencollection/types/config/environments';
 import type { Variable, SecretVariable } from '@opencollection/types/common/variables';
 import { stringifyYml } from './utils';
+import { ensureString } from '../../utils';
 
 const toOpenCollectionEnvironmentVariables = (variables: BrunoEnvironmentVariable[]): (Variable | SecretVariable)[] | undefined => {
   if (!variables?.length) {
@@ -20,6 +21,9 @@ const toOpenCollectionEnvironmentVariables = (variables: BrunoEnvironmentVariabl
           secret: true,
           name: v.name || ''
         };
+        if (v.datatype && v.datatype !== 'string') {
+          secretVar.type = v.datatype;
+        }
         if (v.enabled === false) {
           secretVar.disabled = true;
         }
@@ -28,7 +32,10 @@ const toOpenCollectionEnvironmentVariables = (variables: BrunoEnvironmentVariabl
 
       const variable: Variable = {
         name: v.name || '',
-        value: v.value as string
+        value:
+          v.datatype && v.datatype !== 'string'
+            ? { type: v.datatype, data: ensureString(v.value) }
+            : ensureString(v.value)
       };
 
       if (v.enabled === false) {
@@ -56,6 +63,13 @@ const stringifyEnvironment = (environment: BrunoEnvironment): string => {
       if (ocVariables) {
         ocEnvironment.variables = ocVariables;
       }
+    }
+
+    if (environment.externalSecrets) {
+      (ocEnvironment as any).externalSecrets = {
+        type: environment.externalSecrets.type,
+        variables: (environment.externalSecrets.variables || []).map((variable) => ({ ...variable }))
+      };
     }
 
     return stringifyYml(ocEnvironment);
