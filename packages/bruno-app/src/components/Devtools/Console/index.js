@@ -38,7 +38,7 @@ import { useResizablePanel } from 'hooks/useResizablePanel';
 const MIN_DETAILS_PANEL_WIDTH = 280;
 const DETAILS_PANEL_MAX_RATIO = 0.7;
 
-const LogIcon = ({ type }) => {
+export const LogIcon = ({ type }) => {
   const iconProps = { size: 16, strokeWidth: 1.5 };
 
   switch (type) {
