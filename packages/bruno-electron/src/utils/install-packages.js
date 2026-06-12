@@ -2,8 +2,6 @@ const { spawn } = require('child_process');
 const path = require('path');
 const fs = require('fs');
 
-// npm package name grammar (scoped + unscoped). On Windows, .cmd/.bat spawn uses
-// a shell (CVE-2024-27980); names must not contain shell metacharacters.
 const NPM_NAME_REGEX = /^(?:@[a-z0-9][\w.-]*\/)?[a-z0-9][\w.-]*$/i;
 
 const shouldUseShellForNpmSpawn = (npmCommand, platform = process.platform) => {
@@ -15,7 +13,6 @@ const DEFAULT_MAX_OUTPUT_BYTES = 1024 * 1024; // bound captured stdout/stderr
 const NODE_SHIM_ENV_KEYS = ['NVM_BIN', 'FNM_MULTISHELL_PATH'];
 const NPM_NOT_FOUND_MESSAGE = 'npm was not found on your PATH. Install Node.js/npm, then try again or run the command manually.';
 
-/** @type {{ nodePath: string, npmCliPath: string } | null} */
 let cachedNpmInvocation = null;
 
 const isValidNpmPackageName = (name) => typeof name === 'string' && NPM_NAME_REGEX.test(name);
