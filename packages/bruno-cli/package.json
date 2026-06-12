@@ -55,7 +55,7 @@
     "@usebruno/lang": "0.12.0",
     "@usebruno/requests": "^0.1.0",
     "aws4-axios": "^3.3.15",
-    "axios": "1.13.6",
+    "axios": "1.16.0",
     "axios-ntlm": "^1.4.2",
     "chai": "^4.3.7",
     "chalk": "^3.0.0",
