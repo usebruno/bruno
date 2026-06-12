@@ -56,14 +56,14 @@ const getCollectionName = (format, rawData) => {
 
 // Convert raw data to Bruno collection format
 // Returns { collection, issues } where issues tracks items that were skipped or degraded
-const convertCollection = async (format, rawData, groupingType, collectionFormat) => {
+const convertCollection = async (format, rawData, groupingType) => {
   try {
     let collection;
     let issues = [];
 
     switch (format) {
       case 'openapi':
-        collection = convertOpenapiToBruno(rawData, { groupBy: groupingType, collectionFormat });
+        collection = convertOpenapiToBruno(rawData, { groupBy: groupingType, collectionFormat: DEFAULT_COLLECTION_FORMAT });
         break;
       case 'wsdl':
         collection = await wsdlToBruno(rawData);
@@ -108,7 +108,6 @@ const ImportCollectionLocation = ({ onClose, handleSubmit, rawData, format, sour
   const inputRef = useRef();
   const dispatch = useDispatch();
   const [groupingType, setGroupingType] = useState('tags');
-  const [collectionFormat, setCollectionFormat] = useState(DEFAULT_COLLECTION_FORMAT);
   const isOpenAPISyncEnabled = useBetaFeature(BETA_FEATURES.OPENAPI_SYNC);
   const [enableCheckForSpecUpdates, setEnableCheckForSpecUpdates] = useState(isOpenAPISyncEnabled);
   const dropdownTippyRef = useRef();
@@ -142,8 +141,8 @@ const ImportCollectionLocation = ({ onClose, handleSubmit, rawData, format, sour
         .required('Location is required')
     }),
     onSubmit: async (values) => {
-      const { collection: convertedCollection, issues } = await convertCollection(format, rawData, groupingType, collectionFormat);
-      const options = { format: collectionFormat };
+      const { collection: convertedCollection, issues } = await convertCollection(format, rawData, groupingType);
+      const options = { format: DEFAULT_COLLECTION_FORMAT };
 
       if (showCheckForSpecUpdatesOption && enableCheckForSpecUpdates) {
         const syncSourceUrl = sourceUrl || filePath; // URL or absolute path (backend converts to relative)
@@ -236,7 +235,7 @@ const ImportCollectionLocation = ({ onClose, handleSubmit, rawData, format, sour
         return;
       }
       const collectionLocation = formik.values.collectionLocation;
-      handleSubmit(rawData, collectionLocation, { format: collectionFormat, isZipImport: true });
+      handleSubmit(rawData, collectionLocation, { format: DEFAULT_COLLECTION_FORMAT, isZipImport: true });
     } else {
       formik.handleSubmit();
     }
@@ -297,32 +296,6 @@ const ImportCollectionLocation = ({ onClose, handleSubmit, rawData, format, sour
               </span>
             </div>
 
-            {!isZipImport && (
-              <div className="mt-4">
-                <label htmlFor="format" className="flex items-center font-medium">
-                  File Format
-                  <Help width="300">
-                    <p>Choose the file format for storing requests in this collection.</p>
-                    <p className="mt-2">
-                      <strong>OpenCollection (YAML):</strong> Industry-standard YAML format (.yml files)
-                    </p>
-                    <p className="mt-1">
-                      <strong>BRU:</strong> Bruno's native file format (.bru files)
-                    </p>
-                  </Help>
-                </label>
-                <select
-                  id="format"
-                  name="format"
-                  className="block textbox mt-2 w-full"
-                  value={collectionFormat}
-                  onChange={(e) => setCollectionFormat(e.target.value)}
-                >
-                  <option value="yml">OpenCollection (YAML)</option>
-                  <option value="bru">BRU Format (.bru)</option>
-                </select>
-              </div>
-            )}
           </div>
 
           {isOpenApi && (
