@@ -231,6 +231,11 @@ const Collection = ({ collection, searchText }) => {
     return false;
   }, { enabled: isKeyboardFocused, deps: [isKeyboardFocused] });
 
+  useKeybinding('newRequest', () => {
+    setShowNewRequestModal(true);
+    return false;
+  }, { enabled: isKeyboardFocused, deps: [isKeyboardFocused] });
+
   const handleFocus = () => {
     setIsKeyboardFocused(true);
     dispatch(setFocusedSidebarPath(collection.pathname));
