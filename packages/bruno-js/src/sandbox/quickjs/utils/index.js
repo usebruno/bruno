@@ -1,3 +1,87 @@
+/**
+ * Creates a QuickJS context with centralized lifecycle management:
+ * - vm.evalCode() auto-disposes result handles (for shim setup code)
+ * - vm.evalCodeRetained() returns the raw result (for user script execution)
+ * - all newObject/newFunction/newArray handles are tracked and disposed on teardown
+ */
+const createManagedQuickJsContext = (module) => {
+  const vm = module.newContext();
+  const disposeTracked = trackQuickJsContext(vm);
+  const evalCodeRetained = vm.evalCode.bind(vm);
+
+  vm.evalCode = (code, filename = 'eval.js') => {
+    const result = evalCodeRetained(code, filename);
+    if (result.error) {
+      const error = vm.dump(result.error);
+      result.error.dispose();
+      throw error;
+    }
+    result.value.dispose();
+  };
+
+  vm.evalCodeRetained = evalCodeRetained;
+
+  return {
+    vm,
+    dispose: () => disposeQuickJsContext(vm, disposeTracked)
+  };
+};
+
+/**
+ * Tracks handles created via newObject/newFunction/newArray so they can all be
+ * disposed before the context. quickjs-emscripten requires every heap handle to
+ * be disposed individually; shims attach then drop their ref via .dispose().
+ */
+const trackQuickJsContext = (vm) => {
+  const handles = [];
+
+  const track = (handle) => (handles.push(handle), handle);
+
+  // Replace an allocator with a wrapper that records every handle it returns,
+  // so teardown can dispose them all. Behaviour is otherwise identical.
+  const trackAllocations = (method) => {
+    const original = vm[method]?.bind(vm);
+    if (!original) {
+      return;
+    }
+
+    vm[method] = (...args) => track(original(...args));
+  };
+
+  ['newObject', 'newFunction', 'newArray'].forEach(trackAllocations);
+
+  // Dispose newest-first: later handles may reference earlier ones.
+  return () => handles.reverse().forEach((handle) => handle?.alive && handle.dispose());
+};
+
+/**
+ * Clears shim globals, drains pending QuickJS jobs, and disposes the context.
+ * Pass disposeTracked from trackQuickJsContext() to free shim handles first.
+ */
+const disposeQuickJsContext = (vm, disposeTracked) => {
+  if (!vm?.alive) {
+    return;
+  }
+
+  if (typeof disposeTracked === 'function') {
+    disposeTracked();
+  }
+
+  // Drain the runtime's pending job queue (resolved/rejected promise callbacks)
+  // before disposing. Executing a job can schedule more jobs (chained `.then()`s),
+  // so we keep going until `hasPendingJob()` reports the queue is empty or a job
+  // throws.
+  while (vm.runtime?.hasPendingJob?.()) {
+    const result = vm.runtime.executePendingJobs();
+    // On error, dispose the error handle and stop draining.
+    if (result.error) {
+      result.error.dispose();
+      break;
+    }
+  }
+  vm.dispose();
+};
+
 const marshallToVm = (value, vm) => {
   if (value === undefined) {
     return vm.undefined;
@@ -79,5 +163,8 @@ async function invokeFunction(vm, quickFn, args = []) {
 
 module.exports = {
   marshallToVm,
-  invokeFunction
+  invokeFunction,
+  createManagedQuickJsContext,
+  disposeQuickJsContext,
+  trackQuickJsContext
 };
