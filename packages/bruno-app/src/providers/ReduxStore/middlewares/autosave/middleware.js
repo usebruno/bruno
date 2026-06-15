@@ -134,8 +134,12 @@ const saveExistingDrafts = (dispatch, getState, interval) => {
     const allItems = flattenItems(collection.items);
     allItems.forEach((item) => {
       if (item.draft) {
-        // File mode (requests with draft.raw)
-        if (collection.fileMode && item.draft.raw) {
+        // File mode (requests with raw draft content, including empty content)
+        if (collection.fileMode && typeof item.draft.raw === 'string') {
+          // Skip auto-save for transient requests
+          if (isItemTransientRequest(item)) {
+            return;
+          }
           const key = `file-${item.uid}`;
           scheduleAutoSave(key, () => dispatch(saveFile(item.draft.raw, item.uid, collection.uid, true)), interval);
         } else if (isItemARequest(item)) {

@@ -219,4 +219,43 @@ describe('collectionChangeFileEvent — raw content', () => {
     expect(item.draft).not.toBeNull();
     expect(item.draft.raw).toBe('unsaved edit');
   });
+
+  test('does not clear a genuine draft when raw is undefined on both the draft and the file event', () => {
+    // Simulate a structured-edit draft on an item that has no raw content,
+    // and a file change whose data also carries no raw. The undefined === undefined
+    // match must not wipe the user's unsaved edits.
+    let state = makeInitialState({ item: { raw: undefined } });
+
+    state.collections[0].items[0].draft = {
+      uid: ITEM_UID,
+      name: 'user_info',
+      type: 'http-request',
+      seq: 1,
+      request: makeRequest({ url: 'https://example.com/locally-edited' })
+    };
+
+    state = reducer(
+      state,
+      collectionChangeFileEvent({
+        file: {
+          meta: {
+            collectionUid: COLLECTION_UID,
+            pathname: '/coll/user_info.bru',
+            name: 'user_info.bru'
+          },
+          data: {
+            uid: ITEM_UID,
+            name: 'user_info',
+            type: 'http-request',
+            seq: 1,
+            request: makeRequest({ url: 'https://example.com/disk-change' })
+          }
+        }
+      })
+    );
+
+    const item = state.collections[0].items[0];
+    expect(item.draft).not.toBeNull();
+    expect(item.draft.request.url).toBe('https://example.com/locally-edited');
+  });
 });

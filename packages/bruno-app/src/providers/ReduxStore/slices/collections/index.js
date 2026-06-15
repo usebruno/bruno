@@ -2871,7 +2871,10 @@ export const collectionsSlice = createSlice({
 
             // Only clear draft if it matches the file content
             // This preserves characters typed during autosave
-            if (item.draft && (areItemsTheSameExceptSeqUpdate(item.draft, file.data) || item.draft.raw === file.data.raw)) {
+            // The raw comparison is guarded so an undefined === undefined match
+            // (when neither side has raw content) does not wipe a genuine draft
+            const draftRawMatchesFile = item.draft?.raw !== undefined && item.draft.raw === file.data.raw;
+            if (item.draft && (areItemsTheSameExceptSeqUpdate(item.draft, file.data) || draftRawMatchesFile)) {
               item.draft = null;
             }
           }

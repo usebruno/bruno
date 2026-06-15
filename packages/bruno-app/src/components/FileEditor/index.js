@@ -33,7 +33,7 @@ const FileEditor = ({ item, collection }) => {
     dispatch(toggleCollectionFileMode({ collectionUid: collection.uid }));
   };
 
-  const hasChanges = item.draft !== null;
+  const hasChanges = item.draft != null;
 
   const editorMode = item?.type == 'js' ? 'javascript' : item?.type == 'json' ? 'javascript' : 'application/text';
 
@@ -52,12 +52,12 @@ const FileEditor = ({ item, collection }) => {
         onScroll={setScroll}
       />
       <IconDeviceFloppy
-        onClick={onSave}
+        onClick={hasChanges ? onSave : undefined}
         color={hasChanges ? theme.draftColor : theme.requestTabs.icon.color}
         strokeWidth={1.5}
         size={22}
         className={`absolute right-0 top-0 m-4 ${
-          hasChanges ? 'cursor-pointer oapcity-100' : 'cursor-default opacity-50'
+          hasChanges ? 'cursor-pointer opacity-100' : 'cursor-default opacity-50'
         }`}
       />
     </div>

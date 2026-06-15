@@ -625,6 +625,8 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
 
   ipcMain.handle('renderer:save-file', async (event, pathname, content) => {
     try {
+      validatePathIsInsideCollection(pathname);
+
       if (!fs.existsSync(pathname)) {
         throw new Error(`path: ${pathname} does not exist`);
       }
@@ -1731,10 +1733,10 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
     }
   });
 
-  ipcMain.handle('renderer:convert-to-json', (event, item, content, format = 'bru') => {
+  ipcMain.handle('renderer:convert-to-json', async (event, item, content, format = 'bru') => {
     try {
-      let jsonContent = parseRequest(content, { format });
-      let json = hydrateRequestWithUuid(jsonContent, item?.pathname);
+      const jsonContent = await parseRequestViaWorker(content, { format });
+      const json = hydrateRequestWithUuid(jsonContent, item?.pathname);
       return json;
     } catch (error) {
       return Promise.reject(error);

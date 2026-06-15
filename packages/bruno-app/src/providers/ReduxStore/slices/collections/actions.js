@@ -194,60 +194,57 @@ export const saveRequest = (itemUid, collectionUid, silent = false) => (dispatch
   });
 };
 
-export const saveFile = (content, itemUid, collectionUid, silent = false) => (dispatch, getState) => {
+export const saveFile = (content, itemUid, collectionUid, silent = false) => async (dispatch, getState) => {
   const state = getState();
   const collection = findCollectionByUid(state.collections.collections, collectionUid);
   const tempDirectory = state.collections.tempDirectories?.[collectionUid];
 
-  return new Promise(async (resolve, reject) => {
-    if (!collection) {
-      return reject(new Error('Collection not found'));
-    }
+  if (!collection) {
+    throw new Error('Collection not found');
+  }
 
-    const collectionCopy = cloneDeep(collection);
-    const item = findItemInCollection(collectionCopy, itemUid);
+  const collectionCopy = cloneDeep(collection);
+  const item = findItemInCollection(collectionCopy, itemUid);
 
-    // Item is not used to save the bru file
-    // This is to validate if the bru content is associated with a valid item
-    if (!item) {
-      return reject(new Error('Not able to locate item'));
-    }
+  // Item is not used to save the bru file
+  // This is to validate if the bru content is associated with a valid item
+  if (!item) {
+    throw new Error('Not able to locate item');
+  }
 
-    const isTransient = tempDirectory && item.pathname.startsWith(tempDirectory);
-    if (isTransient) {
+  const isTransient = tempDirectory && item.pathname.startsWith(tempDirectory);
+  if (isTransient) {
+    if (!silent) {
       dispatch(addSaveTransientRequestModal({ item, collection }));
-      return reject();
     }
+    throw new Error('Cannot save transient request');
+  }
 
-    const { ipcRenderer } = window;
-    try {
-      if (['http-request', 'graphql-request'].includes(item?.type)) {
-        let json = await ipcRenderer.invoke('renderer:convert-to-json', item, content, collection.format);
-        delete json.isTransient;
-        await itemSchema.validate(json);
-      }
-    } catch (err) {
-      if (!silent) {
-        toast.custom(<SaveFileErrorModal error={err.message} />);
-      }
-      return reject(err);
+  const { ipcRenderer } = window;
+  try {
+    if (['http-request', 'graphql-request'].includes(item?.type)) {
+      let json = await ipcRenderer.invoke('renderer:convert-to-json', item, content, collection.format);
+      delete json.isTransient;
+      await itemSchema.validate(json);
     }
+  } catch (err) {
+    if (!silent) {
+      toast.custom(<SaveFileErrorModal error={err.message} />);
+    }
+    throw err;
+  }
 
-    ipcRenderer
-      .invoke('renderer:save-file', item.pathname, content)
-      .then(() => {
-        if (!silent) {
-          toast.success('File saved successfully!');
-        }
-      })
-      .then(resolve)
-      .catch((err) => {
-        if (!silent) {
-          toast.error('Failed to save file!');
-        }
-        reject(err);
-      });
-  });
+  try {
+    await ipcRenderer.invoke('renderer:save-file', item.pathname, content);
+    if (!silent) {
+      toast.success('File saved successfully!');
+    }
+  } catch (err) {
+    if (!silent) {
+      toast.error('Failed to save file!');
+    }
+    throw err;
+  }
 };
 
 export const saveMultipleRequests = (items) => (dispatch, getState) => {
