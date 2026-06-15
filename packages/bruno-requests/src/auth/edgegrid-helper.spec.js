@@ -158,3 +158,40 @@ describe('signEdgeGridRequest — config behaviour', () => {
     expect(sig(direct)).not.toBe(sig(viaBase));
   });
 });
+
+/**
+ * Equivalents of httpie-edgegrid's test_localhost / test_http_to_https_conversion: the EFFECTIVE
+ * signed URL is the baseURL host + the request's path/query, so the literal request host (e.g.
+ * "localhost") is replaced. We prove this by asserting the signature equals signing the fully resolved absolute URL directly.
+ * Reference : https://github.com/akamai/httpie-edgegrid/blob/master/test/test_httpie_edgegrid.py
+ */
+describe('signEdgeGridRequest — baseURL host/scheme override (httpie test_localhost equivalents)', () => {
+  const REAL_HOST = 'https://realhost-xxxxxxxx.luna.akamaiapis.net';
+
+  test('localhost is replaced by the baseURL host (test_localhost)', () => {
+    const viaBase = signEdgeGridRequest(
+      { ...CREDS, baseURL: REAL_HOST },
+      { method: 'GET', url: 'https://localhost/identity-management/v3/user-profile?q=1' }
+    );
+    const direct = signEdgeGridRequest(CREDS, {
+      method: 'GET',
+      url: `${REAL_HOST}/identity-management/v3/user-profile?q=1`
+    });
+    expect(sig(viaBase)).toBe(sig(direct));
+  });
+
+  test('an http request is signed against the https baseURL (test_http_to_https_conversion)', () => {
+    const viaBase = signEdgeGridRequest({ ...CREDS, baseURL: REAL_HOST }, { method: 'GET', url: 'http://localhost/path' });
+    const direct = signEdgeGridRequest(CREDS, { method: 'GET', url: `${REAL_HOST}/path` });
+    expect(sig(viaBase)).toBe(sig(direct));
+  });
+
+  test('scheme-less baseURL ("host:port") borrows the request scheme', () => {
+    const viaBase = signEdgeGridRequest(
+      { ...CREDS, baseURL: 'localhost:6000' },
+      { method: 'GET', url: 'http://localhost:9999/path' }
+    );
+    const direct = signEdgeGridRequest(CREDS, { method: 'GET', url: 'http://localhost:6000/path' });
+    expect(sig(viaBase)).toBe(sig(direct));
+  });
+});
