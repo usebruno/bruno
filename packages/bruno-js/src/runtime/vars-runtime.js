@@ -86,10 +86,10 @@ class VarsRuntime {
     }
 
     return {
-      envVariables,
+      envVariables: bru._envDirty ? cleanJson(envVariables) : null,
       runtimeVariables,
-      collectionVariables: cleanJson(collectionVariables),
-      globalEnvironmentVariables: cleanJson(globalEnvironmentVariables),
+      collectionVariables: bru._collVarsDirty ? cleanJson(collectionVariables) : null,
+      globalEnvironmentVariables: bru._globalEnvDirty ? cleanJson(globalEnvironmentVariables) : null,
       error
     };
   }

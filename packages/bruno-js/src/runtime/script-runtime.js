@@ -89,10 +89,10 @@ class ScriptRuntime {
     // Extracted to avoid duplication across runtime branches
     const buildRequestScriptResult = () => ({
       request,
-      envVariables: cleanJson(envVariables),
+      envVariables: bru._envDirty ? cleanJson(envVariables) : null,
       runtimeVariables: cleanJson(runtimeVariables),
-      collectionVariables: cleanJson(collectionVariables),
-      globalEnvironmentVariables: cleanJson(globalEnvironmentVariables),
+      collectionVariables: bru._collVarsDirty ? cleanJson(collectionVariables) : null,
+      globalEnvironmentVariables: bru._globalEnvDirty ? cleanJson(globalEnvironmentVariables) : null,
       oauth2CredentialsToReset: bru.oauth2CredentialsToReset,
       results: cleanJson(__brunoTestResults.getResults()),
       nextRequestName: bru.nextRequest,
@@ -225,10 +225,10 @@ class ScriptRuntime {
     // Extracted to avoid duplication across runtime branches
     const buildResponseScriptResult = () => ({
       response,
-      envVariables: cleanJson(envVariables),
+      envVariables: bru._envDirty ? cleanJson(envVariables) : null,
       runtimeVariables: cleanJson(runtimeVariables),
-      collectionVariables: cleanJson(collectionVariables),
-      globalEnvironmentVariables: cleanJson(globalEnvironmentVariables),
+      collectionVariables: bru._collVarsDirty ? cleanJson(collectionVariables) : null,
+      globalEnvironmentVariables: bru._globalEnvDirty ? cleanJson(globalEnvironmentVariables) : null,
       oauth2CredentialsToReset: bru.oauth2CredentialsToReset,
       results: cleanJson(__brunoTestResults.getResults()),
       nextRequestName: bru.nextRequest,

@@ -506,7 +506,10 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
       const filename = format === 'yml' ? 'opencollection.yml' : 'collection.bru';
       const content = await stringifyCollection(collectionRoot, brunoConfig, { format });
 
-      await writeFile(path.join(collectionPathname, filename), content);
+      const filePath = path.join(collectionPathname, filename);
+      const existing = fs.existsSync(filePath) ? fs.readFileSync(filePath, 'utf8') : null;
+      if (content === existing) return; // skip write if content unchanged
+      await writeFile(filePath, content);
     } catch (error) {
       console.error('Error in save-collection-root:', error);
       return Promise.reject(error);
@@ -766,6 +769,8 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
       }
 
       const content = await stringifyEnvironment(environment, { format });
+      const existing = fs.readFileSync(envFilePath, 'utf8');
+      if (content === existing) return; // skip write if content unchanged
       await writeFile(envFilePath, content);
     } catch (error) {
       return Promise.reject(error);

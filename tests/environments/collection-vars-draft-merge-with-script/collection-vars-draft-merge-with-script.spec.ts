@@ -18,9 +18,7 @@ test.describe('Collection variables draft merge with script-set variables', () =
 
     await test.step('Open collection settings and edit existingCollVar (create draft)', async () => {
       await locators.sidebar.collection('collection-vars-draft-merge-test').click();
-
       await locators.paneTabs.collectionSettingsTab('vars').click();
-
       await expect(locators.environment.variableRowByName('existingCollVar')).toBeVisible();
       await locators.environment.variableValue('existingCollVar').click();
       await page.keyboard.press('Meta+a');
@@ -41,6 +39,17 @@ test.describe('Collection variables draft merge with script-set variables', () =
 
       await expect(locators.tabs.requestTab('set-collection-var')).toBeVisible();
       await sendRequest(page, 200);
+    });
+
+    await test.step('Verify draft edit and script var in collection settings UI', async () => {
+      await locators.sidebar.collection('collection-vars-draft-merge-test').click();
+      await locators.paneTabs.collectionSettingsTab('vars').click();
+
+      await expect(locators.environment.variableRowByName('existingCollVar')).toBeVisible();
+      await expect(locators.environment.variableValue('existingCollVar')).toContainText('draft-edited-coll-value');
+
+      await expect(locators.environment.variableRowByName('scriptCollVar')).toBeVisible();
+      await expect(locators.environment.variableValue('scriptCollVar')).toContainText('from-script-789');
     });
 
     await test.step('Verify script var persisted to collection.bru', async () => {

@@ -383,10 +383,7 @@ describe('collectionVariablesUpdateEvent — draft isolation', () => {
       expect(savedVars.find((v) => v.name === 'DISABLED_VAR').enabled).toBe(false);
     });
 
-    test('var disabled in draft (but enabled in root) is NOT removed on request execution', () => {
-      // This is the exact scenario: user disables a var in the UI (creates draft),
-      // but hasn't saved. Then runs a request. The script doesn't see the disabled var.
-      // The var should be preserved, not removed.
+    test('preserves var that user disabled in draft even when script does not return it', () => {
       const draftRoot = {
         request: {
           headers: [],

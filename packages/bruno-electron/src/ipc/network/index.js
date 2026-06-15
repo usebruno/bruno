@@ -508,6 +508,35 @@ const registerNetworkIpc = (mainWindow) => {
     };
   };
 
+  const sendVariableUpdates = (result, { collectionUid, requestUid, collection }) => {
+    mainWindow.webContents.send('main:runtime-variables-update', {
+      runtimeVariables: result.runtimeVariables,
+      collectionUid
+    });
+
+    if (result.envVariables) {
+      mainWindow.webContents.send('main:script-environment-update', {
+        envVariables: result.envVariables,
+        requestUid,
+        collectionUid
+      });
+    }
+
+    if (result.globalEnvironmentVariables) {
+      mainWindow.webContents.send('main:global-environment-variables-update', {
+        globalEnvironmentVariables: result.globalEnvironmentVariables
+      });
+      collection.globalEnvironmentVariables = result.globalEnvironmentVariables;
+    }
+
+    if (result.collectionVariables) {
+      mainWindow.webContents.send('main:collection-variables-update', {
+        collectionVariables: result.collectionVariables,
+        collectionUid
+      });
+    }
+  };
+
   const resetOauth2Credentials = ({ oauth2CredentialsToReset, request, collectionUid }) => {
     if (!oauth2CredentialsToReset?.length) return;
     for (const credentialId of oauth2CredentialsToReset) {
@@ -559,24 +588,7 @@ const registerNetworkIpc = (mainWindow) => {
         collectionName
       );
 
-      mainWindow.webContents.send('main:script-environment-update', {
-        envVariables: scriptResult.envVariables,
-        runtimeVariables: scriptResult.runtimeVariables,
-        requestUid,
-        collectionUid
-      });
-
-      mainWindow.webContents.send('main:global-environment-variables-update', {
-        globalEnvironmentVariables: scriptResult.globalEnvironmentVariables
-      });
-
-      mainWindow.webContents.send('main:collection-variables-update', {
-        collectionVariables: scriptResult.collectionVariables,
-        collectionUid
-      });
-
-      collection.globalEnvironmentVariables = scriptResult.globalEnvironmentVariables;
-
+      sendVariableUpdates(scriptResult, { collectionUid, requestUid, collection });
       resetOauth2Credentials({ oauth2CredentialsToReset: scriptResult.oauth2CredentialsToReset, request, collectionUid });
 
       const domainsWithCookies = await getDomainsWithCookies();
@@ -668,23 +680,7 @@ const registerNetworkIpc = (mainWindow) => {
       );
 
       if (result) {
-        mainWindow.webContents.send('main:script-environment-update', {
-          envVariables: result.envVariables,
-          runtimeVariables: result.runtimeVariables,
-          requestUid,
-          collectionUid
-        });
-
-        mainWindow.webContents.send('main:global-environment-variables-update', {
-          globalEnvironmentVariables: result.globalEnvironmentVariables
-        });
-
-        mainWindow.webContents.send('main:collection-variables-update', {
-          collectionVariables: result.collectionVariables,
-          collectionUid
-        });
-
-        collection.globalEnvironmentVariables = result.globalEnvironmentVariables;
+        sendVariableUpdates(result, { collectionUid, requestUid, collection });
       }
 
       if (result?.error) {
@@ -712,24 +708,7 @@ const registerNetworkIpc = (mainWindow) => {
         collectionName
       );
 
-      mainWindow.webContents.send('main:script-environment-update', {
-        envVariables: scriptResult.envVariables,
-        runtimeVariables: scriptResult.runtimeVariables,
-        requestUid,
-        collectionUid
-      });
-
-      mainWindow.webContents.send('main:global-environment-variables-update', {
-        globalEnvironmentVariables: scriptResult.globalEnvironmentVariables
-      });
-
-      mainWindow.webContents.send('main:collection-variables-update', {
-        collectionVariables: scriptResult.collectionVariables,
-        collectionUid
-      });
-
-      collection.globalEnvironmentVariables = scriptResult.globalEnvironmentVariables;
-
+      sendVariableUpdates(scriptResult, { collectionUid, requestUid, collection });
       resetOauth2Credentials({ oauth2CredentialsToReset: scriptResult.oauth2CredentialsToReset, request, collectionUid });
 
       const domainsWithCookiesPost = await getDomainsWithCookies();
@@ -1218,24 +1197,7 @@ const registerNetworkIpc = (mainWindow) => {
             collectionUid
           });
 
-          mainWindow.webContents.send('main:script-environment-update', {
-            envVariables: testResults.envVariables,
-            runtimeVariables: testResults.runtimeVariables,
-            requestUid,
-            collectionUid
-          });
-
-          mainWindow.webContents.send('main:global-environment-variables-update', {
-            globalEnvironmentVariables: testResults.globalEnvironmentVariables
-          });
-
-          mainWindow.webContents.send('main:collection-variables-update', {
-            collectionVariables: testResults.collectionVariables,
-            collectionUid
-          });
-
-          collection.globalEnvironmentVariables = testResults.globalEnvironmentVariables;
-
+          sendVariableUpdates(testResults, { collectionUid, requestUid, collection });
           resetOauth2Credentials({ oauth2CredentialsToReset: testResults.oauth2CredentialsToReset, request, collectionUid });
 
           !runInBackground && notifyScriptExecution({
@@ -2091,23 +2053,7 @@ const registerNetworkIpc = (mainWindow) => {
                 ...eventData
               });
 
-              mainWindow.webContents.send('main:script-environment-update', {
-                envVariables: testResults.envVariables,
-                runtimeVariables: testResults.runtimeVariables,
-                collectionUid
-              });
-
-              mainWindow.webContents.send('main:global-environment-variables-update', {
-                globalEnvironmentVariables: testResults.globalEnvironmentVariables
-              });
-
-              mainWindow.webContents.send('main:collection-variables-update', {
-                collectionVariables: testResults.collectionVariables,
-                collectionUid
-              });
-
-              collection.globalEnvironmentVariables = testResults.globalEnvironmentVariables;
-
+              sendVariableUpdates(testResults, { collectionUid, requestUid, collection });
               resetOauth2Credentials({ oauth2CredentialsToReset: testResults.oauth2CredentialsToReset, request, collectionUid });
 
               notifyScriptExecution({

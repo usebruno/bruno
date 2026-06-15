@@ -22,6 +22,7 @@ import {
   runFolderEvent,
   runRequestEvent,
   scriptEnvironmentUpdateEvent,
+  runtimeVariablesUpdateEvent,
   streamDataReceived,
   setDotEnvVariables
 } from 'providers/ReduxStore/slices/collections';
@@ -35,7 +36,7 @@ import { workspaceDotEnvUpdateEvent, setWorkspaceDotEnvVariables } from 'provide
 import toast from 'react-hot-toast';
 import { useDispatch, useStore } from 'react-redux';
 import { isElectron } from 'utils/common/platform';
-import { globalEnvironmentsUpdateEvent, updateGlobalEnvironments } from 'providers/ReduxStore/slices/global-environments';
+import { globalEnvironmentsUpdateEvent, updateGlobalEnvironments, _clearScriptGlobalEnvBaseline } from 'providers/ReduxStore/slices/global-environments';
 import { collectionAddOauth2CredentialsByUrl, collectionClearOauth2CredentialsByCredentialsId, updateCollectionLoadingState, collectionLoadedFromTree } from 'providers/ReduxStore/slices/collections/index';
 import { addLog } from 'providers/ReduxStore/slices/logs';
 import { loadNotifications } from 'providers/ReduxStore/slices/notifications';
@@ -201,9 +202,10 @@ const useIpcEvents = () => {
       }
     });
 
-    // TODO: These listeners write to disk unconditionally on every script execution, even if no
-    // variables changed. This is acceptable for now (env files are small, writes are async), but
-    // for high-frequency runner scenarios we should add a dirty flag to the Bru instance to skip unchanged writes.
+    const removeRuntimeVariablesUpdateListener = ipcRenderer.on('main:runtime-variables-update', (val) => {
+      dispatch(runtimeVariablesUpdateEvent(val));
+    });
+
     const removeScriptEnvUpdateListener = ipcRenderer.on('main:script-environment-update', (val) => {
       dispatch(scriptEnvironmentUpdateEvent(val));
       if (val.collectionUid) {
@@ -224,6 +226,9 @@ const useIpcEvents = () => {
     });
 
     const removeRunFolderEventListener = ipcRenderer.on('main:run-folder-event', (val) => {
+      if (val.type === 'testrun-started') {
+        dispatch(_clearScriptGlobalEnvBaseline());
+      }
       dispatch(runFolderEvent(val));
     });
 
@@ -400,6 +405,7 @@ const useIpcEvents = () => {
       removeHttpStreamEndListener();
       removeCollectionLoadingStateListener();
       removeCollectionVariablesUpdateListener();
+      removeRuntimeVariablesUpdateListener();
       removeSystemResourcesListener();
       gitVersionListener();
       removeLoadNotificationsListener();
