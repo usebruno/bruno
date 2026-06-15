@@ -85,6 +85,7 @@ const Cache = () => {
             <span className="beta-badge">Beta</span>
           </div>
           <ToggleSwitch
+            data-testid="cache.file.enabled"
             isOn={fileCacheEnabled}
             handleToggle={handleToggleFileCache}
             size="2xs"
@@ -118,6 +119,7 @@ const Cache = () => {
             <span className="cache-item-title">SSL session cache</span>
           </div>
           <ToggleSwitch
+            data-testid="sslSession.enabled"
             isOn={sslSessionEnabled}
             handleToggle={handleToggleSslSession}
             size="2xs"
