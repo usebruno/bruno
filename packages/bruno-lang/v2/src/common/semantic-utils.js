@@ -34,10 +34,6 @@ const mapPairListToKeyValPairs = (pairList = [], parseEnabled = true) => {
       enabled
     };
 
-    if (pair.__desc !== undefined) {
-      result.description = pair.__desc;
-    }
-
     return result;
   });
 };
@@ -68,10 +64,6 @@ const mapRequestParams = (pairList = [], type) => {
       enabled,
       type
     };
-
-    if (pair.__desc !== undefined) {
-      result.description = pair.__desc;
-    }
 
     return result;
   });
@@ -120,7 +112,6 @@ const mapPairListToKeyValPairsMultipart = (pairList = [], parseEnabled = true) =
 
   return pairs.map((pair) => {
     pair.type = 'text';
-    // Description is already handled inside mapPairListToKeyValPairs
     multipartExtractContentType(pair);
 
     if (_.isString(pair.value) && pair.value.startsWith('@file(') && pair.value.endsWith(')')) {
