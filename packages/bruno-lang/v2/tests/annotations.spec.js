@@ -17,7 +17,13 @@ assert {
 `;
     const output = parser(input);
     expect(output.assertions).toEqual([
-      { name: 'res.status', value: 'eq 200', enabled: true, annotations: [{ name: 'description', value: 'hello' }] }
+      {
+        name: 'res.status',
+        value: 'eq 200',
+        enabled: true,
+        annotations: [{ name: 'description', value: 'hello' }],
+        description: 'hello'
+      }
     ]);
   });
 
@@ -30,7 +36,13 @@ headers {
 `;
     const output = parser(input);
     expect(output.headers).toEqual([
-      { name: 'key', value: 'value', enabled: true, annotations: [{ name: 'description', value: 'hello' }] }
+      {
+        name: 'key',
+        value: 'value',
+        enabled: true,
+        annotations: [{ name: 'description', value: 'hello' }],
+        description: 'hello'
+      }
     ]);
   });
 
@@ -61,7 +73,8 @@ headers {
         name: 'key',
         value: 'value',
         enabled: true,
-        annotations: [{ name: 'string' }, { name: 'description', value: 'x' }]
+        annotations: [{ name: 'string' }, { name: 'description', value: 'x' }],
+        description: 'x'
       }
     ]);
   });
@@ -80,7 +93,8 @@ headers {
         name: 'key',
         value: 'value',
         enabled: true,
-        annotations: [{ name: 'string' }, { name: 'description', value: 'hello' }]
+        annotations: [{ name: 'string' }, { name: 'description', value: 'hello' }],
+        description: 'hello'
       }
     ]);
   });
@@ -371,7 +385,14 @@ params:path {
 `;
     const output = parser(input);
     expect(output.params).toEqual([
-      { name: 'userId', value: '123', enabled: true, type: 'path', annotations: [{ name: 'description', value: 'user id' }] }
+      {
+        name: 'userId',
+        value: '123',
+        enabled: true,
+        type: 'path',
+        annotations: [{ name: 'description', value: 'user id' }],
+        description: 'user id'
+      }
     ]);
   });
 
@@ -384,7 +405,13 @@ metadata {
 `;
     const output = parser(input);
     expect(output.metadata).toEqual([
-      { name: 'trace-id', value: 'abc123', enabled: true, annotations: [{ name: 'description', value: 'trace id' }] }
+      {
+        name: 'trace-id',
+        value: 'abc123',
+        enabled: true,
+        annotations: [{ name: 'description', value: 'trace id' }],
+        description: 'trace id'
+      }
     ]);
   });
 
@@ -397,7 +424,13 @@ body:form-urlencoded {
 `;
     const output = parser(input);
     expect(output.body.formUrlEncoded).toEqual([
-      { name: 'username', value: 'alice', enabled: true, annotations: [{ name: 'description', value: 'username field' }] }
+      {
+        name: 'username',
+        value: 'alice',
+        enabled: true,
+        annotations: [{ name: 'description', value: 'username field' }],
+        description: 'username field'
+      }
     ]);
   });
 
@@ -415,7 +448,8 @@ vars:pre-request {
         value: 'http://localhost',
         enabled: true,
         local: false,
-        annotations: [{ name: 'description', value: 'base url' }]
+        annotations: [{ name: 'description', value: 'base url' }],
+        description: 'base url'
       }
     ]);
   });
@@ -434,7 +468,8 @@ vars:post-response {
         value: 'abc123',
         enabled: true,
         local: false,
-        annotations: [{ name: 'description', value: 'auth token' }]
+        annotations: [{ name: 'description', value: 'auth token' }],
+        description: 'auth token'
       }
     ]);
   });
@@ -453,7 +488,8 @@ vars:pre-request {
         value: 'http://localhost',
         enabled: true,
         local: true,
-        annotations: [{ name: 'description', value: 'local base url' }]
+        annotations: [{ name: 'description', value: 'local base url' }],
+        description: 'local base url'
       }
     ]);
   });
@@ -472,7 +508,8 @@ vars:post-response {
         value: 'abc123',
         enabled: true,
         local: true,
-        annotations: [{ name: 'description', value: 'local token' }]
+        annotations: [{ name: 'description', value: 'local token' }],
+        description: 'local token'
       }
     ]);
   });
@@ -492,7 +529,8 @@ body:multipart-form {
         enabled: true,
         type: 'text',
         contentType: 'text/plain',
-        annotations: [{ name: 'description', value: 'plain field' }]
+        annotations: [{ name: 'description', value: 'plain field' }],
+        description: 'plain field'
       }
     ]);
   });
@@ -512,7 +550,8 @@ body:multipart-form {
         enabled: true,
         type: 'file',
         contentType: 'image/png',
-        annotations: [{ name: 'description', value: 'upload image' }]
+        annotations: [{ name: 'description', value: 'upload image' }],
+        description: 'upload image'
       }
     ]);
   });
@@ -530,7 +569,8 @@ body:file {
         filePath: '/tmp/readme.pdf',
         selected: true,
         contentType: 'application/pdf',
-        annotations: [{ name: 'description', value: 'upload doc' }]
+        annotations: [{ name: 'description', value: 'upload doc' }],
+        description: 'upload doc'
       }
     ]);
   });
@@ -545,7 +585,8 @@ body:file {
             enabled: true,
             type: 'text',
             contentType: 'text/plain',
-            annotations: [{ name: 'description', value: 'plain field' }]
+            annotations: [{ name: 'description', value: 'plain field' }],
+            description: 'plain field'
           }
         ]
       }
@@ -609,7 +650,15 @@ body:file {
   it('serializeAnnotations — body:file with annotations', () => {
     const json = {
       body: {
-        file: [{ filePath: '/tmp/readme.pdf', selected: true, contentType: 'application/pdf', annotations: [{ name: 'description', value: 'upload doc' }] }]
+        file: [
+          {
+            filePath: '/tmp/readme.pdf',
+            selected: true,
+            contentType: 'application/pdf',
+            annotations: [{ name: 'description', value: 'upload doc' }],
+            description: 'upload doc'
+          }
+        ]
       }
     };
     const bru = jsonToBru(json);
@@ -629,7 +678,8 @@ body:file {
             enabled: true,
             type: 'file',
             contentType: 'image/png',
-            annotations: [{ name: 'description', value: 'upload image' }]
+            annotations: [{ name: 'description', value: 'upload image' }],
+            description: 'upload image'
           }
         ]
       }
@@ -723,7 +773,15 @@ headers {
 
   it('parseAndSerialise - json sourced roundtrip check - headers', () => {
     const input = {
-      headers: [{ name: 'x-key', value: 'val', enabled: true, annotations: [{ name: 'description', value: 'say "hello"' }] }]
+      headers: [
+        {
+          name: 'x-key',
+          value: 'val',
+          enabled: true,
+          annotations: [{ name: 'description', value: 'say "hello"' }],
+          description: 'say "hello"'
+        }
+      ]
     };
     const stringified = jsonToBru(input);
     const output = parser(stringified);
@@ -749,7 +807,11 @@ headers {
       assertions: [
         {
           annotations: [{ name: 'description', value: 'hello' }],
-          name: 'res.status', value: 'eq 200', enabled: true }
+          name: 'res.status',
+          value: 'eq 200',
+          enabled: true,
+          description: 'hello'
+        }
       ]
     };
 
@@ -821,7 +883,14 @@ describe('env pair annotations', () => {
 `;
     const output = envParser(input);
     expect(output.variables).toEqual([
-      { name: 'API_KEY', value: 'abc123', enabled: true, secret: false, annotations: [{ name: 'description', value: 'my api key' }] }
+      {
+        name: 'API_KEY',
+        value: 'abc123',
+        enabled: true,
+        secret: false,
+        annotations: [{ name: 'description', value: 'my api key' }],
+        description: 'my api key'
+      }
     ]);
   });
 
@@ -951,7 +1020,16 @@ describe('env pair annotations', () => {
 
   it('parseAndSerialise - json sourced roundtrip check - secret env vars', () => {
     const input = {
-      variables: [{ name: 'SECRET_KEY', value: '', enabled: true, secret: true, annotations: [{ name: 'description', value: 'my secret key' }] }]
+      variables: [
+        {
+          name: 'SECRET_KEY',
+          value: '',
+          enabled: true,
+          secret: true,
+          annotations: [{ name: 'description', value: 'my secret key' }],
+          description: 'my secret key'
+        }
+      ]
     };
     const bru = jsonToEnv(input);
     const output = envParser(bru);
@@ -995,7 +1073,16 @@ describe('env pair annotations', () => {
 
   it('parseAndSerialise - json sourced roundtrip check - env vars', () => {
     const input = {
-      variables: [{ name: 'API_KEY', value: 'abc123', enabled: true, secret: false, annotations: [{ name: 'description', value: 'api key' }] }]
+      variables: [
+        {
+          name: 'API_KEY',
+          value: 'abc123',
+          enabled: true,
+          secret: false,
+          annotations: [{ name: 'description', value: 'api key' }],
+          description: 'api key'
+        }
+      ]
     };
     const bru = jsonToEnv(input);
     const output = envParser(bru);
@@ -1058,7 +1145,13 @@ describe('collection pair annotations', () => {
 `;
     const output = collectionParser(input);
     expect(output.headers).toEqual([
-      { name: 'content-type', value: 'application/json', enabled: true, annotations: [{ name: 'description', value: 'content type' }] }
+      {
+        name: 'content-type',
+        value: 'application/json',
+        enabled: true,
+        annotations: [{ name: 'description', value: 'content type' }],
+        description: 'content type'
+      }
     ]);
   });
 
@@ -1106,7 +1199,14 @@ describe('collection pair annotations', () => {
 `;
     const output = collectionParser(input);
     expect(output.vars.req).toEqual([
-      { name: 'BASE_URL', value: 'http://localhost', enabled: true, local: false, annotations: [{ name: 'description', value: 'base url' }] }
+      {
+        name: 'BASE_URL',
+        value: 'http://localhost',
+        enabled: true,
+        local: false,
+        annotations: [{ name: 'description', value: 'base url' }],
+        description: 'base url'
+      }
     ]);
   });
 
@@ -1232,7 +1332,15 @@ describe('collection pair annotations', () => {
 
   it('parseAndSerialise - json sourced roundtrip check - collection headers', () => {
     const input = {
-      headers: [{ name: 'content-type', value: 'application/json', enabled: true, annotations: [{ name: 'description', value: 'content type' }] }]
+      headers: [
+        {
+          name: 'content-type',
+          value: 'application/json',
+          enabled: true,
+          annotations: [{ name: 'description', value: 'content type' }],
+          description: 'content type'
+        }
+      ]
     };
     const bru = jsonToCollectionBru(input);
     const output = collectionParser(bru);

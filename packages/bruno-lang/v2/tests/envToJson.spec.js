@@ -52,6 +52,12 @@ vars {
           value: 'http://localhost:3000',
           enabled: true,
           secret: false,
+          annotations: [
+            {
+              name: 'description',
+              value: 'Base API URL.'
+            }
+          ],
           description: 'Base API URL.'
         },
         {
@@ -59,6 +65,12 @@ vars {
           value: '3000',
           enabled: true,
           secret: false,
+          annotations: [
+            {
+              name: 'description',
+              value: 'Server port'
+            }
+          ],
           description: 'Server port'
         }
       ]
@@ -82,6 +94,12 @@ vars {
           value: 'http://localhost:3000',
           enabled: false,
           secret: false,
+          annotations: [
+            {
+              name: 'description',
+              value: 'Disabled base URL'
+            }
+          ],
           description: 'Disabled base URL'
         }
       ]
@@ -463,6 +481,12 @@ vars {
           value: 'secret',
           enabled: true,
           secret: false,
+          annotations: [
+            {
+              name: 'description',
+              value: 'API key 🔐 required'
+            }
+          ],
           description: 'API key 🔐 required'
         },
         {
@@ -470,6 +494,12 @@ vars {
           value: 'us-east',
           enabled: true,
           secret: false,
+          annotations: [
+            {
+              name: 'description',
+              value: 'Region 🌍 selector'
+            }
+          ],
           description: 'Region 🌍 selector'
         }
       ]
@@ -489,6 +519,12 @@ vars {
     expect(output.variables[0]).toMatchObject({
       name: 'note',
       value: 'val',
+      annotations: [
+        {
+          name: 'description',
+          value: 'First\nSecond\nThird'
+        }
+      ],
       description: 'First\nSecond\nThird'
     });
   });
@@ -504,6 +540,12 @@ vars {
     expect(output.variables[0]).toMatchObject({
       name: 'note',
       value: 'val',
+      annotations: [
+        {
+          name: 'description',
+          value: 'Line one\r\nLine two'
+        }
+      ],
       description: 'Line one\r\nLine two'
     });
   });
@@ -522,6 +564,12 @@ vars {
     expect(output.variables[0]).toMatchObject({
       name: 'note',
       value: 'val',
+      annotations: [
+        {
+          name: 'description',
+          value: 'Line one\nLine two'
+        }
+      ],
       description: 'Line one\nLine two'
     });
   });
@@ -561,7 +609,7 @@ vars {
     expect(output).toEqual(expected);
   });
 
-  it('consecutive @description prefixes: first orphaned becomes empty row, last applies to key', () => {
+  it('consecutive @description prefixes are preserved as annotations on the following row', () => {
     const input = `
 vars {
   @description('''Single-line desc''')
@@ -578,7 +626,7 @@ vars {
 }`;
 
     const output = parser(input);
-    expect(output.variables).toHaveLength(5);
+    expect(output.variables).toHaveLength(4);
 
     // host — single-line description
     expect(output.variables[0]).toMatchObject({
@@ -586,42 +634,55 @@ vars {
       value: 'http://localhost:3000',
       enabled: true,
       secret: false,
+      annotations: [
+        {
+          name: 'description',
+          value: 'Single-line desc'
+        }
+      ],
       description: 'Single-line desc'
     });
 
-    // orphaned @description('''empty description''') — becomes an empty-key row with that description
+    // token — accumulates both consecutive descriptions
     expect(output.variables[1]).toMatchObject({
-      name: '',
-      value: '',
-      enabled: true,
-      secret: false,
-      description: 'empty description'
-    });
-
-    // token — gets the LAST (multiline) description; the first was consumed by the orphaned row above
-    expect(output.variables[2]).toMatchObject({
       name: 'token',
       value: 'abc123',
       enabled: true,
       secret: false,
-      description: 'Line one\nLine two'
+      annotations: [
+        {
+          name: 'description',
+          value: 'empty description'
+        },
+        {
+          name: 'description',
+          value: 'Line one\nLine two'
+        }
+      ],
+      description: 'empty description'
     });
 
     // plain — no description
-    expect(output.variables[3]).toMatchObject({
+    expect(output.variables[2]).toMatchObject({
       name: 'plain',
       value: 'no-description',
       enabled: true,
       secret: false
     });
-    expect(output.variables[3].description).toBeUndefined();
+    expect(output.variables[2].description).toBeUndefined();
 
     // tricky — description containing ''' stored as double-quoted form
-    expect(output.variables[4]).toMatchObject({
+    expect(output.variables[3]).toMatchObject({
       name: 'tricky',
       value: 'value',
       enabled: true,
       secret: false,
+      annotations: [
+        {
+          name: 'description',
+          value: 'has \'\'\' triple quotes inside'
+        }
+      ],
       description: 'has \'\'\' triple quotes inside'
     });
   });

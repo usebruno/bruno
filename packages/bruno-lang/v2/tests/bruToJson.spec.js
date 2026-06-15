@@ -369,12 +369,24 @@ headers {
         name: 'Authorization',
         value: 'Bearer xxx',
         enabled: true,
+        annotations: [
+          {
+            name: 'description',
+            value: 'API key for auth.'
+          }
+        ],
         description: 'API key for auth.'
       });
       expect(output.headers[1]).toMatchObject({
         name: 'X-Custom',
         value: 'val',
         enabled: true,
+        annotations: [
+          {
+            name: 'description',
+            value: 'Single-line desc'
+          }
+        ],
         description: 'Single-line desc'
       });
     });
@@ -396,6 +408,12 @@ body:form-urlencoded {
         name: 'q',
         value: 'search',
         type: 'query',
+        annotations: [
+          {
+            name: 'description',
+            value: 'Search term.'
+          }
+        ],
         description: 'Search term.'
       });
       expect(output.body.formUrlEncoded).toHaveLength(1);
@@ -403,6 +421,12 @@ body:form-urlencoded {
         name: 'field',
         value: 'value',
         enabled: true,
+        annotations: [
+          {
+            name: 'description',
+            value: 'Field description'
+          }
+        ],
         description: 'Field description'
       });
     });
@@ -426,6 +450,12 @@ vars:post-response {
         value: 'secret',
         enabled: true,
         local: false,
+        annotations: [
+          {
+            name: 'description',
+            value: 'Pre-request auth token'
+          }
+        ],
         description: 'Pre-request auth token'
       });
       expect(output.vars.res).toHaveLength(1);
@@ -434,6 +464,12 @@ vars:post-response {
         value: 'res.body.id',
         enabled: true,
         local: false,
+        annotations: [
+          {
+            name: 'description',
+            value: 'Saved ID from response'
+          }
+        ],
         description: 'Saved ID from response'
       });
     });
@@ -453,12 +489,24 @@ assert {
         name: 'res.body.status',
         value: 'eq 200',
         enabled: true,
+        annotations: [
+          {
+            name: 'description',
+            value: 'Expect success status'
+          }
+        ],
         description: 'Expect success status'
       });
       expect(output.assertions[1]).toMatchObject({
         name: 'res.body.data',
         value: 'isDefined',
         enabled: true,
+        annotations: [
+          {
+            name: 'description',
+            value: 'Response must have data'
+          }
+        ],
         description: 'Response must have data'
       });
     });
@@ -476,6 +524,12 @@ headers {
         name: 'X-Note',
         value: 'v',
         enabled: true,
+        annotations: [
+          {
+            name: 'description',
+            value: 'Line one\nLine two'
+          }
+        ],
         description: 'Line one\nLine two'
       });
     });
@@ -496,6 +550,12 @@ headers {
         name: 'X-Note',
         value: 'v',
         enabled: true,
+        annotations: [
+          {
+            name: 'description',
+            value: 'Line one\nLine two'
+          }
+        ],
         description: 'Line one\nLine two'
       });
     });
@@ -525,30 +585,60 @@ body:form-urlencoded {
         name: 'X-Quote',
         value: 'val',
         enabled: true,
+        annotations: [
+          {
+            name: 'description',
+            value: 'Say "hello"'
+          }
+        ],
         description: 'Say "hello"'
       });
       expect(output.headers[1]).toMatchObject({
         name: 'X-Backslash',
         value: 'val',
         enabled: true,
+        annotations: [
+          {
+            name: 'description',
+            value: 'Path: \\usr\\bin'
+          }
+        ],
         description: 'Path: \\usr\\bin'
       });
       expect(output.headers[2]).toMatchObject({
         name: 'X-Newline',
         value: 'val',
         enabled: true,
+        annotations: [
+          {
+            name: 'description',
+            value: 'Line1\nLine2'
+          }
+        ],
         description: 'Line1\nLine2'
       });
       expect(output.params[0]).toMatchObject({
         name: 'q',
         value: 'x',
         type: 'query',
+        annotations: [
+          {
+            name: 'description',
+            value: 'Escaped " quote'
+          }
+        ],
         description: 'Escaped " quote'
       });
       expect(output.body.formUrlEncoded[0]).toMatchObject({
         name: 'f',
         value: 'v',
         enabled: true,
+        annotations: [
+          {
+            name: 'description',
+            value: '\\ and " and \\n'
+          }
+        ],
         description: '\\ and " and \\n'
       });
     });
@@ -566,11 +656,23 @@ headers {
       expect(output.headers[0]).toMatchObject({
         name: 'Authorization',
         value: 'Bearer xxx',
+        annotations: [
+          {
+            name: 'description',
+            value: 'Auth token 🔑'
+          }
+        ],
         description: 'Auth token 🔑'
       });
       expect(output.headers[1]).toMatchObject({
         name: 'X-Region',
         value: 'us-east',
+        annotations: [
+          {
+            name: 'description',
+            value: 'Region 🌍 selector'
+          }
+        ],
         description: 'Region 🌍 selector'
       });
     });
@@ -590,11 +692,23 @@ assert {
       expect(output.vars.req[0]).toMatchObject({
         name: 'token',
         value: 'secret',
+        annotations: [
+          {
+            name: 'description',
+            value: 'API key 🔐 required'
+          }
+        ],
         description: 'API key 🔐 required'
       });
       expect(output.assertions[0]).toMatchObject({
         name: 'res.status',
         value: 'eq 200',
+        annotations: [
+          {
+            name: 'description',
+            value: 'Status check ✅'
+          }
+        ],
         description: 'Status check ✅'
       });
     });
@@ -613,6 +727,12 @@ headers {
       expect(output.headers[0]).toMatchObject({
         name: 'X-Launch',
         value: 'val',
+        annotations: [
+          {
+            name: 'description',
+            value: 'Launch 🚀\nSecond line'
+          }
+        ],
         description: 'Launch 🚀\nSecond line'
       });
     });
@@ -628,6 +748,12 @@ headers {
       expect(output.headers[0]).toMatchObject({
         name: 'X-Note',
         value: 'v',
+        annotations: [
+          {
+            name: 'description',
+            value: 'Line one\r\nLine two'
+          }
+        ],
         description: 'Line one\r\nLine two'
       });
     });
@@ -643,6 +769,12 @@ headers {
       expect(output.headers[0]).toMatchObject({
         name: 'X-Note',
         value: 'v',
+        annotations: [
+          {
+            name: 'description',
+            value: 'First\nSecond\nThird'
+          }
+        ],
         description: 'First\nSecond\nThird'
       });
     });
@@ -655,6 +787,12 @@ headers {
       expect(output.headers[0]).toMatchObject({
         name: 'X-Note',
         value: 'val',
+        annotations: [
+          {
+            name: 'description',
+            value: 'Line one'
+          }
+        ],
         description: 'Line one'
       });
     });
@@ -666,6 +804,12 @@ headers {
       expect(output.headers[0]).toMatchObject({
         name: 'X-Note',
         value: 'val',
+        annotations: [
+          {
+            name: 'description',
+            value: 'Line one\r\nLine two'
+          }
+        ],
         description: 'Line one\r\nLine two'
       });
     });
@@ -677,11 +821,17 @@ headers {
       expect(output.headers[0]).toMatchObject({
         name: 'X-Note',
         value: 'val',
+        annotations: [
+          {
+            name: 'description',
+            value: 'Line one\r\nLine two\r\nLine three'
+          }
+        ],
         description: 'Line one\r\nLine two\r\nLine three'
       });
     });
 
-    it('multiple consecutive @description prefixes: orphaned annotation becomes empty row, last one applies to the key', () => {
+    it('multiple consecutive @description prefixes stack as annotations on the next row', () => {
       const input = `
 headers {
   @description('''hello''')
@@ -690,18 +840,22 @@ headers {
 }`;
 
       const output = parser(input);
-      expect(output.headers).toHaveLength(2);
+      expect(output.headers).toHaveLength(1);
       expect(output.headers[0]).toMatchObject({
-        name: '',
-        value: '',
-        enabled: true,
-        description: 'hello'
-      });
-      expect(output.headers[1]).toMatchObject({
         name: 'a',
         value: 'b',
         enabled: true,
-        description: 'hi'
+        annotations: [
+          {
+            name: 'description',
+            value: 'hello'
+          },
+          {
+            name: 'description',
+            value: 'hi'
+          }
+        ],
+        description: 'hello'
       });
     });
   });
