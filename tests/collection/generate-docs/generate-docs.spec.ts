@@ -78,6 +78,29 @@ const sidebarItemsToNameTree = (items: CollectionTreeItem[] = []): NameTree[] =>
     return node;
   });
 
+/**
+ * Environments defined in the fixture collection (one `.bru` file each under
+ * `environments/`). All of them should be selected by default in the modal.
+ */
+const EXPECTED_ENVIRONMENTS = ['Production', 'Development', 'Staging'];
+
+/** Extract the full embedded OpenCollection payload from the generated docs HTML. */
+const parseGeneratedOpenCollection = (html: string): Record<string, any> => {
+  const match = html.match(/const collectionData = ("(?:\\.|[^"\\])*");/);
+  if (!match) {
+    throw new Error('Could not find the embedded collection data in the generated documentation');
+  }
+  const yamlContent = JSON.parse(match[1]) as string;
+  return jsyaml.load(yamlContent) as Record<string, any>;
+};
+
+/** Names of the environments embedded in the generated docs (under config.environments). */
+const generatedEnvironmentNames = (html: string): string[] => {
+  const oc = parseGeneratedOpenCollection(html);
+  const environments = (oc?.config?.environments ?? []) as Array<Record<string, any>>;
+  return environments.map((env) => env?.name);
+};
+
 test.describe('Generate Documentation', () => {
   test('orders generated docs to match the sidebar tree (folders by seq, then requests by seq, recursively)', async ({
     pageWithUserData: page
@@ -121,5 +144,91 @@ test.describe('Generate Documentation', () => {
     // Cancel so the test leaves no download behind.
     await locators.generateDocs.cancelButton().click();
     await expect(modal).toBeHidden();
+  });
+
+  test('shows the current collection version formatted as a v-prefixed semver', async ({
+    pageWithUserData: page
+  }) => {
+    const locators = buildCommonLocators(page);
+
+    await waitForCollectionMount(page, COLLECTION_NAME);
+    await locators.sidebar.collection(COLLECTION_NAME).hover();
+    await locators.actions.collectionActions(COLLECTION_NAME).click();
+    await locators.generateDocs.menuItem().click();
+
+    const modal = locators.generateDocs.modal();
+    await expect(modal).toBeVisible();
+
+    // The fixture's bruno.json version ("1") is normalised for display to "v1.0.0".
+    await expect(locators.generateDocs.versionInfo()).toContainText('Collection Version:');
+    await expect(locators.generateDocs.versionValue()).toHaveText('v1.0.0');
+
+    // The fixture has 2 folders (Zoo, Aviary) and 5 requests (Lion, Bear, Parrot,
+    // ReqAlpha, ReqBeta), counted recursively across the whole tree.
+    await expect(locators.generateDocs.versionCounts()).toHaveText('2 Folders • 5 requests');
+
+    await locators.generateDocs.cancelButton().click();
+    await expect(modal).toBeHidden();
+  });
+
+  test('lists every environment under "Environments to include", all selected by default', async ({
+    pageWithUserData: page
+  }) => {
+    const locators = buildCommonLocators(page);
+
+    await waitForCollectionMount(page, COLLECTION_NAME);
+    await locators.sidebar.collection(COLLECTION_NAME).hover();
+    await locators.actions.collectionActions(COLLECTION_NAME).click();
+    await locators.generateDocs.menuItem().click();
+
+    const modal = locators.generateDocs.modal();
+    await expect(modal).toBeVisible();
+    await expect(locators.generateDocs.environmentsTitle()).toBeVisible();
+
+    for (const name of EXPECTED_ENVIRONMENTS) {
+      await expect(locators.generateDocs.environmentRow(name)).toBeVisible();
+      await expect(locators.generateDocs.environmentCheckbox(name)).toBeChecked();
+    }
+
+    // Exactly the fixture's environments are listed — nothing more.
+    await expect(locators.generateDocs.environmentRows()).toHaveCount(EXPECTED_ENVIRONMENTS.length);
+
+    await locators.generateDocs.cancelButton().click();
+    await expect(modal).toBeHidden();
+  });
+
+  test('includes every environment in the generated docs by default', async ({
+    pageWithUserData: page
+  }) => {
+    const locators = buildCommonLocators(page);
+
+    // Ensure all environments have loaded (and stay checked) before generating.
+    const { content } = await generateCollectionDocs(page, COLLECTION_NAME, async () => {
+      for (const name of EXPECTED_ENVIRONMENTS) {
+        await expect(locators.generateDocs.environmentCheckbox(name)).toBeChecked();
+      }
+    });
+
+    expect(generatedEnvironmentNames(content).sort()).toEqual([...EXPECTED_ENVIRONMENTS].sort());
+  });
+
+  test('excludes a deselected environment from the generated docs', async ({
+    pageWithUserData: page
+  }) => {
+    const locators = buildCommonLocators(page);
+
+    const { content } = await generateCollectionDocs(page, COLLECTION_NAME, async () => {
+      // Wait for all environments to load, then deselect a single one.
+      for (const name of EXPECTED_ENVIRONMENTS) {
+        await expect(locators.generateDocs.environmentCheckbox(name)).toBeChecked();
+      }
+      await locators.generateDocs.environmentCheckbox('Development').uncheck();
+      await expect(locators.generateDocs.environmentCheckbox('Development')).not.toBeChecked();
+    });
+
+    const envNames = generatedEnvironmentNames(content);
+    expect(envNames).toContain('Production');
+    expect(envNames).toContain('Staging');
+    expect(envNames).not.toContain('Development');
   });
 });

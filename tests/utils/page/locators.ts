@@ -120,7 +120,21 @@ export const buildCommonLocators = (page: Page) => ({
     }),
     heading: () => page.locator('.bruno-modal').getByText('Interactive API Documentation'),
     generateButton: () => page.locator('.bruno-modal').getByRole('button', { name: 'Generate', exact: true }),
-    cancelButton: () => page.locator('.bruno-modal').getByRole('button', { name: 'Cancel', exact: true })
+    cancelButton: () => page.locator('.bruno-modal').getByRole('button', { name: 'Cancel', exact: true }),
+    // Collection version (read-only) display
+    versionInfo: () => page.locator('.bruno-modal .version-info'),
+    versionValue: () => page.locator('.bruno-modal .version-value'),
+    versionCounts: () => page.locator('.bruno-modal .version-summary'),
+    // Environment selection list
+    environmentsTitle: () => page.locator('.bruno-modal .env-section-title'),
+    environmentRows: () => page.locator('.bruno-modal .env-row'),
+    environmentRow: (name: string) =>
+      page.locator('.bruno-modal .env-row').filter({ has: page.getByText(name, { exact: true }) }),
+    environmentCheckbox: (name: string) =>
+      page
+        .locator('.bruno-modal .env-row')
+        .filter({ has: page.getByText(name, { exact: true }) })
+        .locator('input[type="checkbox"]')
   },
   runnerResults: {
     itemPath: (name: string) => page.getByTestId('runner-result-item').filter({ hasText: name })

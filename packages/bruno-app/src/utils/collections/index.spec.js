@@ -1,5 +1,5 @@
 const { describe, it, expect } = require('@jest/globals');
-import { mergeHeaders, transformRequestToSaveToFilesystem } from './index';
+import { mergeHeaders, transformRequestToSaveToFilesystem, formatCollectionVersion, DEFAULT_COLLECTION_VERSION, getCollectionItemCounts } from './index';
 
 describe('mergeHeaders', () => {
   it('should include headers from collection, folder and request (with correct precedence)', () => {
@@ -84,5 +84,87 @@ describe('transformRequestToSaveToFilesystem', () => {
 
     expect(transformed.request.params[0].annotations).toEqual([{ name: 'param-note', value: 'keep me' }]);
     expect(transformed.request.headers[0].annotations).toEqual([{ name: 'header-note', value: 'keep me' }]);
+  });
+});
+
+describe('formatCollectionVersion', () => {
+  it('pads numeric versions to a full major.minor.patch with a "v" prefix', () => {
+    expect(formatCollectionVersion('1')).toBe('v1.0.0');
+    expect(formatCollectionVersion('2.1')).toBe('v2.1.0');
+    expect(formatCollectionVersion('1.0.0')).toBe('v1.0.0');
+    expect(formatCollectionVersion('3.4.5')).toBe('v3.4.5');
+  });
+
+  it('does not double-prefix an existing "v"/"V"', () => {
+    expect(formatCollectionVersion('v2.1')).toBe('v2.1.0');
+    expect(formatCollectionVersion('V3')).toBe('v3.0.0');
+    expect(formatCollectionVersion('v1.0.0')).toBe('v1.0.0');
+  });
+
+  it('coerces numbers to a normalised version', () => {
+    expect(formatCollectionVersion(1)).toBe('v1.0.0');
+    expect(formatCollectionVersion(2)).toBe('v2.0.0');
+  });
+
+  it('keeps extra numeric segments without truncating', () => {
+    expect(formatCollectionVersion('1.2.3.4')).toBe('v1.2.3.4');
+  });
+
+  it('shows non-numeric / pre-release versions as-is (only prefixed)', () => {
+    expect(formatCollectionVersion('1.0.0-beta')).toBe('v1.0.0-beta');
+    expect(formatCollectionVersion('2.0.0-rc.1')).toBe('v2.0.0-rc.1');
+  });
+
+  it('falls back to the default when no version is set', () => {
+    expect(formatCollectionVersion(undefined)).toBe(DEFAULT_COLLECTION_VERSION);
+    expect(formatCollectionVersion(null)).toBe(DEFAULT_COLLECTION_VERSION);
+    expect(formatCollectionVersion('')).toBe(DEFAULT_COLLECTION_VERSION);
+    expect(formatCollectionVersion('   ')).toBe(DEFAULT_COLLECTION_VERSION);
+  });
+});
+
+describe('getCollectionItemCounts', () => {
+  it('counts folders and requests recursively at every depth', () => {
+    const items = [
+      {
+        type: 'folder',
+        name: 'Zoo',
+        items: [
+          { type: 'http-request', name: 'Lion', request: {} },
+          { type: 'graphql-request', name: 'Bear', request: {} }
+        ]
+      },
+      {
+        type: 'folder',
+        name: 'Aviary',
+        items: [
+          {
+            type: 'folder',
+            name: 'Nest',
+            items: [{ type: 'http-request', name: 'Egg', request: {} }]
+          }
+        ]
+      },
+      { type: 'http-request', name: 'RootReq', request: {} }
+    ];
+
+    // Folders: Zoo, Aviary, Nest -> 3. Requests: Lion, Bear, Egg, RootReq -> 4.
+    expect(getCollectionItemCounts(items)).toEqual({ folderCount: 3, requestCount: 4 });
+  });
+
+  it('counts every request transport type', () => {
+    const items = [
+      { type: 'http-request', request: {} },
+      { type: 'graphql-request', request: {} },
+      { type: 'grpc-request', request: {} },
+      { type: 'ws-request', request: {} }
+    ];
+
+    expect(getCollectionItemCounts(items)).toEqual({ folderCount: 0, requestCount: 4 });
+  });
+
+  it('returns zero counts for empty or missing items', () => {
+    expect(getCollectionItemCounts([])).toEqual({ folderCount: 0, requestCount: 0 });
+    expect(getCollectionItemCounts(undefined)).toEqual({ folderCount: 0, requestCount: 0 });
   });
 });

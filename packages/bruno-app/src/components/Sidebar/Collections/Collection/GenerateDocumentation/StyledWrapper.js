@@ -13,27 +13,80 @@ const StyledWrapper = styled.div`
       line-height: 1.6;
     }
 
-    .preview-container {
+    .config-card {
+      border: 1px solid ${(props) => props.theme.border.border1};
       border-radius: ${(props) => props.theme.border.radius.md};
       overflow: hidden;
-      border: 1px solid ${(props) => props.theme.border.border1};
 
-      .preview-label {
-        top: 0.5rem;
-        right: 0.5rem;
-        padding: 0.125rem 0.5rem;
-        font-size: ${(props) => props.theme.font.size.xs};
-        font-weight: 500;
-        color: #3b82f6;
-        background-color: rgba(59, 130, 246, 0.1);
-        border: 1px dashed rgba(59, 130, 246, 0.4);
-        border-radius: ${(props) => props.theme.border.radius.sm};
+      .version-info {
+        padding: 0.75rem 1rem;
+        background-color: ${(props) => props.theme.background.mantle};
+
+        .version-line {
+          font-size: ${(props) => props.theme.font.size.sm};
+          color: ${(props) => props.theme.text};
+        }
+
+        .version-label {
+          font-weight: 500;
+        }
+
+        .version-summary {
+          margin: 0.25rem 0 0;
+          font-size: ${(props) => props.theme.font.size.xs};
+          color: ${(props) => props.theme.colors.text.muted};
+        }
       }
 
-      .preview-image {
-        width: 100%;
-        height: auto;
-        display: block;
+      .card-divider {
+        height: 1px;
+        background-color: ${(props) => props.theme.border.border1};
+      }
+
+      .env-section {
+        padding: 1rem;
+
+        .env-section-title {
+          margin: 0 0 0.75rem;
+          font-size: ${(props) => props.theme.font.size.xs};
+          font-weight: 600;
+          letter-spacing: 0.05em;
+          text-transform: uppercase;
+          color: ${(props) => props.theme.colors.text.muted};
+        }
+
+        .env-list {
+          display: flex;
+          flex-direction: column;
+          gap: 0.625rem;
+        }
+
+        .env-row {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          cursor: pointer;
+          margin: 0;
+
+          .env-checkbox {
+            width: 1rem;
+            height: 1rem;
+            margin: 0;
+            flex-shrink: 0;
+            cursor: pointer;
+          }
+
+          .env-name {
+            font-size: ${(props) => props.theme.font.size.sm};
+            color: ${(props) => props.theme.text};
+            min-width: 0;
+          }
+        }
+
+        .env-empty {
+          font-size: ${(props) => props.theme.font.size.sm};
+          color: ${(props) => props.theme.colors.text.muted};
+        }
       }
     }
 
