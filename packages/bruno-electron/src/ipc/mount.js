@@ -27,12 +27,9 @@ const registerMountIpc = () => {
       return manager.mount({ win, collectionPath: collectionPathname, collectionUid, brunoConfig, emit });
     }
   );
-
-  ipcMain.handle('renderer:unmount-collection-v2', async (event, { collectionUid }) => {
-    await manager.unmount(collectionUid);
-  });
 };
 
+const unmount = (collectionUid) => manager.unmount(collectionUid);
 const shutdown = () => manager.shutdown();
 
-module.exports = { registerMountIpc, shutdown };
+module.exports = { registerMountIpc, unmount, shutdown };

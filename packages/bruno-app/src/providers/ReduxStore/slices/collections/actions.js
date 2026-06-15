@@ -2437,7 +2437,6 @@ export const removeCollection = (collectionUid) => (dispatch, getState) => {
       }
     }
 
-    ipcRenderer.invoke('renderer:unmount-collection-v2', { collectionUid }).catch(() => {});
     ipcRenderer
       .invoke('renderer:remove-collection', collection.pathname, collectionUid, workspaceId)
       .then(() => {
