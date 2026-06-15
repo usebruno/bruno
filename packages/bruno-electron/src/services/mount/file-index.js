@@ -26,10 +26,14 @@ const MIGRATIONS = [
       ) WITHOUT ROWID;
       CREATE INDEX IF NOT EXISTS idx_collection_path ON snapshot_entries(collection_path);
     `
+  },
+  {
+    version: 2,
+    up: `ALTER TABLE snapshot_entries RENAME TO file_index_entries;`
   }
 ];
 
-class GitLite {
+class FileIndex {
   #db;
   #dbPath;
 
@@ -81,7 +85,7 @@ class GitLite {
   }
 
   clear() {
-    this.#db.exec('DELETE FROM snapshot_entries');
+    this.#db.exec('DELETE FROM file_index_entries');
     // VACUUM so the file actually shrinks after the DELETE
     this.#db.exec('VACUUM');
   }
@@ -93,7 +97,7 @@ class GitLite {
   entries(collectionPath) {
     const root = normalize(collectionPath);
     const rows = this.#db.all(
-      'SELECT relative_path AS relativePath, data FROM snapshot_entries WHERE collection_path = ?',
+      'SELECT relative_path AS relativePath, data FROM file_index_entries WHERE collection_path = ?',
       root
     );
     const map = new Map();
@@ -109,7 +113,7 @@ class GitLite {
 
     if (op === 'remove') {
       this.#db.run(
-        'DELETE FROM snapshot_entries WHERE collection_path = ? AND relative_path = ?',
+        'DELETE FROM file_index_entries WHERE collection_path = ? AND relative_path = ?',
         root,
         relativePath
       );
@@ -120,7 +124,7 @@ class GitLite {
     const id = idForAbsolutePath(path.join(root, relativePath));
     this.#db.run(
       `
-      INSERT INTO snapshot_entries (collection_path, relative_path, id, mtime, hash, data)
+      INSERT INTO file_index_entries (collection_path, relative_path, id, mtime, hash, data)
       VALUES (?, ?, ?, ?, ?, ?)
       ON CONFLICT(collection_path, relative_path) DO UPDATE SET
         mtime = excluded.mtime,
@@ -163,7 +167,7 @@ class GitLite {
 
   #loadStored(collectionPath) {
     const rows = this.#db.all(
-      'SELECT relative_path AS relativePath, id, mtime, hash FROM snapshot_entries WHERE collection_path = ?',
+      'SELECT relative_path AS relativePath, id, mtime, hash FROM file_index_entries WHERE collection_path = ?',
       collectionPath
     );
     const map = new Map();
@@ -175,5 +179,5 @@ class GitLite {
 }
 
 module.exports = {
-  GitLite
+  FileIndex
 };

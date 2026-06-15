@@ -1,7 +1,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const { JobType, getPool, destroyPool } = require('../pool');
-const { GitLite } = require('./gitlite');
+const { FileIndex } = require('./file-index');
 const { buildTree } = require('./tree-builder');
 const { defaultClassify, uidForSeed } = require('../../utils/mount');
 
@@ -125,7 +125,7 @@ class MountManager {
       const collectionWatcher = require('../../app/collection-watcher');
       collectionWatcher.addWatcher(entry.win, collectionPath, collectionUid, brunoConfig, false, false, {
         ignoreInitial: true,
-        snapshotIndex: this.#getIndex()
+        fileIndex: this.#getIndex()
       });
       collectionWatcher.addTempDirectoryWatcher(entry.win, tempDirectoryPath, collectionUid, collectionPath);
 
@@ -235,7 +235,7 @@ class MountManager {
   }
 
   #getIndex() {
-    if (!this.#index) this.#index = new GitLite({});
+    if (!this.#index) this.#index = new FileIndex({});
     return this.#index;
   }
 }

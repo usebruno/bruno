@@ -34,9 +34,9 @@ const MAX_FILE_SIZE = 2.5 * 1024 * 1024;
 const environmentSecretsStore = new EnvironmentSecretsStore();
 
 // registered collections stage parsed data into the git-lite snapshot (no-op otherwise)
-const snapshotIndexByCollection = new Map();
+const fileIndexByCollection = new Map();
 const stageToCache = (collectionPath, pathname, data) => {
-  const index = snapshotIndexByCollection.get(collectionPath);
+  const index = fileIndexByCollection.get(collectionPath);
   if (!index) return;
   try {
     index.stageParsed(collectionPath, pathname, data);
@@ -45,7 +45,7 @@ const stageToCache = (collectionPath, pathname, data) => {
   }
 };
 const unstageFromCache = (collectionPath, pathname) => {
-  const index = snapshotIndexByCollection.get(collectionPath);
+  const index = fileIndexByCollection.get(collectionPath);
   if (!index) return;
   try {
     index.unstagePath(collectionPath, pathname);
@@ -772,9 +772,9 @@ class CollectionWatcher {
     }
 
     // v2 already loaded the tree from cache; skip startup scan and stage live edits
-    const { ignoreInitial = false, snapshotIndex = null } = options;
-    if (snapshotIndex) {
-      snapshotIndexByCollection.set(watchPath, snapshotIndex);
+    const { ignoreInitial = false, fileIndex = null } = options;
+    if (fileIndex) {
+      fileIndexByCollection.set(watchPath, fileIndex);
     }
 
     this.initializeLoadingState(collectionUid);
@@ -867,7 +867,7 @@ class CollectionWatcher {
       this.watchers[watchPath] = null;
     }
 
-    snapshotIndexByCollection.delete(watchPath);
+    fileIndexByCollection.delete(watchPath);
 
     dotEnvWatcher.removeCollectionWatcher(watchPath);
 
