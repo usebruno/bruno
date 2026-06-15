@@ -2,6 +2,7 @@ import React, { useMemo, useCallback } from 'react';
 import get from 'lodash/get';
 import { IconCaretDown } from '@tabler/icons';
 import MenuDropdown from 'ui/MenuDropdown';
+import StatusBadge from 'ui/StatusBadge/index';
 import { useDispatch } from 'react-redux';
 import { updateRequestAuthMode } from 'providers/ReduxStore/slices/collections';
 import { humanizeRequestAuthMode } from 'utils/collections';
@@ -69,7 +70,13 @@ const AuthMode = ({ item, collection }) => {
     },
     {
       id: 'edgegrid',
-      label: 'Akamai EdgeGrid',
+      label: (
+        <span className="flex items-center gap-2">
+          Akamai EdgeGrid
+          <StatusBadge status="info" size="xs">Beta</StatusBadge>
+        </span>
+      ),
+      ariaLabel: 'Akamai EdgeGrid (Beta)',
       onClick: () => onModeChange('edgegrid')
     },
     {
