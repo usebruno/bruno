@@ -9,6 +9,7 @@ import { useTheme } from 'providers/Theme';
 import StyledWrapper from './StyledWrapper';
 import Button from 'ui/Button';
 import { usePersistedState } from 'hooks/usePersistedState';
+import { useFocusErrorLine } from 'hooks/useFocusErrorLine';
 
 const Tests = ({ collection }) => {
   const dispatch = useDispatch();
@@ -29,6 +30,12 @@ const Tests = ({ collection }) => {
   };
 
   const handleSave = () => dispatch(saveCollectionSettings(collection.uid));
+
+  useFocusErrorLine({
+    uid: collection.uid,
+    editorRef: testsEditorRef,
+    scriptPhase: 'test'
+  });
 
   return (
     <StyledWrapper className="w-full flex flex-col h-full">
