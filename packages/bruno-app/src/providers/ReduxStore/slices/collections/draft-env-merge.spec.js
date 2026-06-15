@@ -54,8 +54,7 @@ const makeInitialState = (envVars = [], opts = {}) => ({
 const scriptEvent = (envVariables) =>
   scriptEnvironmentUpdateEvent({
     collectionUid: COLLECTION_UID,
-    envVariables,
-    runtimeVariables: {}
+    envVariables
   });
 
 const getEnv = (state) => state.collections[0].environments[0];

@@ -76,6 +76,10 @@ class Bru {
       createCookieJar,
       getCookiesForUrl
     });
+    // Dirty flags — set by mutators so runtimes can skip IPC/disk writes for unchanged scopes
+    this._envDirty = false;
+    this._globalEnvDirty = false;
+    this._collVarsDirty = false;
     // Holds credential IDs to be reset after script execution
     this.oauth2CredentialsToReset = [];
     this.runner = {
@@ -202,10 +206,12 @@ class Bru {
     }
 
     this.envVariables[key] = value;
+    this._envDirty = true;
   }
 
   deleteEnvVar(key) {
     delete this.envVariables[key];
+    this._envDirty = true;
   }
 
   getAllEnvVars() {
@@ -224,6 +230,7 @@ class Bru {
     if (envName !== undefined) {
       this.envVariables.__name__ = envName;
     }
+    this._envDirty = true;
   }
 
   hasGlobalEnvVar(key) {
@@ -240,10 +247,12 @@ class Bru {
     }
 
     this.globalEnvironmentVariables[key] = value;
+    this._globalEnvDirty = true;
   }
 
   deleteGlobalEnvVar(key) {
     delete this.globalEnvironmentVariables[key];
+    this._globalEnvDirty = true;
   }
 
   getAllGlobalEnvVars() {
@@ -256,6 +265,7 @@ class Bru {
         delete this.globalEnvironmentVariables[key];
       }
     }
+    this._globalEnvDirty = true;
   }
 
   getOauth2CredentialVar(key) {
@@ -343,6 +353,7 @@ class Bru {
     }
 
     this.collectionVariables[key] = value;
+    this._collVarsDirty = true;
   }
 
   hasCollectionVar(key) {
@@ -351,6 +362,7 @@ class Bru {
 
   deleteCollectionVar(key) {
     delete this.collectionVariables[key];
+    this._collVarsDirty = true;
   }
 
   deleteAllCollectionVars() {
@@ -359,6 +371,7 @@ class Bru {
         delete this.collectionVariables[key];
       }
     }
+    this._collVarsDirty = true;
   }
 
   getAllCollectionVars() {
