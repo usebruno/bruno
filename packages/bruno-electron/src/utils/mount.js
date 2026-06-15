@@ -1,6 +1,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const crypto = require('node:crypto');
+const { posixifyPath } = require('./filesystem');
 
 const DENY_DIRS = new Set(['node_modules', '.git', '.svn', '.hg', '.bruno']);
 const DEFAULT_DENYLIST = ['**/.DS_Store', '**/Thumbs.db'];
@@ -8,8 +9,7 @@ const DEFAULT_DENYLIST = ['**/.DS_Store', '**/Thumbs.db'];
 const sha256 = (input) => crypto.createHash('sha256').update(input).digest('hex');
 const hashFile = (absPath) => sha256(fs.readFileSync(absPath));
 const normalize = (p) => path.resolve(p);
-const toPosix = (p) => (path.sep === '/' ? p : p.split(path.sep).join('/'));
-const idForAbsolutePath = (absolutePath) => sha256(toPosix(absolutePath)).slice(0, 21);
+const idForAbsolutePath = (absolutePath) => sha256(posixifyPath(absolutePath)).slice(0, 21);
 const uidForSeed = (seed) => sha256(seed).slice(0, 21);
 
 const resolveDenylist = (patterns) => [...DEFAULT_DENYLIST, ...(patterns || [])];
@@ -32,7 +32,7 @@ const walk = (root, denylist) => {
         if (DENY_DIRS.has(entry.name)) continue;
         visit(childAbs, childRel);
       } else if (entry.isFile()) {
-        if (isDenied(toPosix(childRel), denylist)) continue;
+        if (isDenied(posixifyPath(childRel), denylist)) continue;
         out.push({ relativePath: childRel, absolutePath: childAbs });
       }
     }
@@ -80,7 +80,7 @@ module.exports = {
   ENVIRONMENTS_DIR,
   hashFile,
   normalize,
-  toPosix,
+  posixifyPath,
   idForAbsolutePath,
   uidForSeed,
   resolveDenylist,

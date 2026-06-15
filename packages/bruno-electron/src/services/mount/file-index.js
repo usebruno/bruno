@@ -4,7 +4,7 @@ const { Database } = require('../storage');
 const {
   hashFile,
   normalize,
-  toPosix,
+  posixifyPath,
   idForAbsolutePath,
   resolveDenylist,
   isDenied,
@@ -77,7 +77,7 @@ class FileIndex {
 
     for (const [relativePath, row] of stored) {
       if (seen.has(relativePath)) continue;
-      if (isDenied(toPosix(relativePath), denylist)) continue;
+      if (isDenied(posixifyPath(relativePath), denylist)) continue;
       removed.push({ relativePath, id: row.id, hash: row.hash });
     }
 

@@ -8,14 +8,7 @@ import { useTheme } from 'providers/Theme';
 import ToggleSwitch from 'components/ToggleSwitch';
 import ActionIcon from 'ui/ActionIcon';
 import StyledWrapper from './StyledWrapper';
-
-const humanSize = (bytes) => {
-  if (bytes === null || bytes === undefined) return '—';
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(2)} KB`;
-  if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
-  return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`;
-};
+import { formatSize } from 'utils/common';
 
 const Cache = () => {
   const preferences = useSelector((state) => state.app.preferences);
@@ -105,7 +98,7 @@ const Cache = () => {
               changes. Clearing it won't affect your original files.
             </p>
             <p className="cache-item-size">
-              Cache size <strong>{humanSize(fileCacheSize)}</strong>
+              Cache size <strong>{fileCacheSize == null ? '—' : formatSize(fileCacheSize)}</strong>
             </p>
           </div>
           <ActionIcon

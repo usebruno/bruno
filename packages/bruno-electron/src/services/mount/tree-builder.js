@@ -1,6 +1,6 @@
 const path = require('node:path');
 const {
-  toPosix,
+  posixifyPath,
   idForAbsolutePath,
   uidForSeed,
   defaultClassify
@@ -46,7 +46,7 @@ const hydrateListAt = (root, dotPath, seed, section) => {
 
 const hydrateRequestUuids = (data, parentUid, absolutePath) => {
   if (!data || typeof data !== 'object') return;
-  const seed = toPosix(absolutePath);
+  const seed = posixifyPath(absolutePath);
   for (const [p, sec] of REQUEST_UID_PATHS) hydrateListAt(data, p, seed, sec);
   if (!Array.isArray(data.examples)) return;
   data.examples.forEach((example, i) => {
