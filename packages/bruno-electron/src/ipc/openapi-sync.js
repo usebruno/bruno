@@ -18,6 +18,17 @@ const { getProcessEnvVars } = require('../store/process-env');
 const { getCertsAndProxyConfig } = require('./network/cert-utils');
 const { makeAxiosInstance } = require('./network/axios-instance');
 const jsyaml = require('js-yaml');
+const {
+  normalizeUrlPath,
+  isPathInsideCollection,
+  buildSpecItemsMap,
+  extractJsonKeys,
+  compareRequestFields,
+  mergeWithUserValues,
+  mergeSpecIntoRequest,
+  isValidOpenApiSpec,
+  generateSpecHash
+} = require('@usebruno/common/sync');
 
 /**
  * Detect if a string content is YAML (not JSON).
@@ -52,23 +63,7 @@ const prettyPrintSpec = (content) => {
   }
 };
 
-/**
- * Generate an MD5 hash of a parsed OpenAPI spec for quick change detection.
- */
-const generateSpecHash = (spec) => {
-  if (!spec) return null;
-  return crypto.createHash('md5').update(JSON.stringify(spec)).digest('hex');
-};
-
-/**
- * Validate that a target path is inside the collection directory.
- * Prevents path traversal attacks via ../../ in user-supplied paths.
- */
-const isPathInsideCollection = (targetPath, collectionPath) => {
-  const resolvedTarget = path.resolve(targetPath);
-  const resolvedCollection = path.resolve(collectionPath);
-  return resolvedTarget.startsWith(resolvedCollection + path.sep) || resolvedTarget === resolvedCollection;
-};
+// generateSpecHash, isPathInsideCollection — imported from @usebruno/common/sync
 
 /**
  * Validate that a URL uses http or https scheme only.
@@ -147,18 +142,7 @@ const parseSpec = (content) => {
   }
 };
 
-/**
- * Validate that a parsed spec object is a valid OpenAPI 3.x document.
- * Swagger 2.0 is not supported — the converter only handles OpenAPI 3.x.
- */
-const isValidOpenApiSpec = (spec) => {
-  if (!spec || typeof spec !== 'object') return false;
-  if (spec.swagger) return false;
-  if (spec.openapi && typeof spec.openapi === 'string' && spec.openapi.startsWith('3.')) {
-    return spec.paths && typeof spec.paths === 'object';
-  }
-  return false;
-};
+// isValidOpenApiSpec — imported from @usebruno/common/sync
 
 /**
  * Fetch OpenAPI spec content from a remote URL or local file path.
@@ -223,21 +207,7 @@ const fetchSpecFromSource = async ({ collectionUid, collectionPath, sourceUrl, e
   return { content, spec };
 };
 
-/**
- * Normalize a Bruno request URL down to a comparable path.
- * Strips template variables ({{baseUrl}}), protocol/host, query params,
- * converts {param} to :param, collapses slashes, removes trailing slash.
- */
-const normalizeUrlPath = (urlStr) => {
-  if (!urlStr) return '';
-  return urlStr
-    .replace(/\{\{[^}]+\}\}/g, '')
-    .replace(/^https?:\/\/[^/]+/, '')
-    .replace(/\?.*$/, '')
-    .replace(/{([^}]+)}/g, ':$1')
-    .replace(/\/+/g, '/')
-    .replace(/\/$/, '');
-};
+// normalizeUrlPath — imported from @usebruno/common/sync
 
 /**
  * Load bruno config from disk. Returns { format, brunoConfig, collectionRoot }.
@@ -433,59 +403,9 @@ const cleanupSpecFilesForCollection = (collectionPath) => {
   }
 };
 
-/**
- * Merge spec params/headers with existing user values.
- * Matches by name + value to correctly handle enum-expanded params (multiple entries with same name).
- * Only preserves the user's enabled state; values come from the spec.
- */
-const mergeWithUserValues = (specItems, existingItems) => {
-  return (specItems || []).map((specItem) => {
-    const existing = (existingItems || []).find(
-      (e) => e.name === specItem.name && e.value === specItem.value
-    );
-    return existing ? { ...specItem, enabled: existing.enabled } : specItem;
-  });
-};
+// mergeWithUserValues — imported from @usebruno/common/sync
 
-/**
- * Merge a spec item into an existing request, preserving collection-specific data
- * (tests, scripts, assertions) and user values for matching params/headers.
- *
- * fullReset: true = spec replaces entire request section (reset mode)
- *            false = only override url/body/auth from spec (sync mode)
- */
-const mergeSpecIntoRequest = (existingRequest, specItem, { fullReset = false } = {}) => {
-  const mergedParams = mergeWithUserValues(specItem.request.params, existingRequest.request?.params);
-  const mergedHeaders = mergeWithUserValues(specItem.request.headers, existingRequest.request?.headers);
-
-  if (fullReset) {
-    return {
-      ...existingRequest,
-      request: {
-        ...existingRequest.request,
-        url: specItem.request.url,
-        method: specItem.request.method,
-        body: specItem.request.body,
-        auth: specItem.request.auth,
-        docs: specItem.request.docs,
-        params: mergedParams || [],
-        headers: mergedHeaders || []
-      }
-    };
-  }
-
-  return {
-    ...existingRequest,
-    request: {
-      ...existingRequest.request,
-      url: specItem.request.url,
-      body: specItem.request.body,
-      auth: specItem.request.auth,
-      params: mergedParams || existingRequest.request?.params || [],
-      headers: mergedHeaders || existingRequest.request?.headers || []
-    }
-  };
-};
+// mergeSpecIntoRequest — imported from @usebruno/common/sync
 
 /**
  * Ensure a tag-based folder exists in the collection directory.
@@ -514,160 +434,9 @@ const ensureTagFolder = async (collectionPath, folderName, format) => {
   return targetFolder;
 };
 
-/**
- * Flatten a Bruno collection's items into a Map keyed by endpoint ID (METHOD:normalizedPath).
- * Each value includes the original item plus the parent folderName.
- */
-const buildSpecItemsMap = (collectionItems) => {
-  const map = new Map();
-  const flatten = (items, parentFolder = null) => {
-    for (const item of items) {
-      if (item.type === 'folder' && item.items) {
-        flatten(item.items, item.name);
-      } else if (item.request) {
-        const method = item.request.method?.toUpperCase() || 'GET';
-        const urlPath = normalizeUrlPath(item.request.url);
-        const id = `${method}:${urlPath}`;
-        map.set(id, { ...item, folderName: parentFolder });
-      }
-    }
-  };
-  flatten(collectionItems);
-  return map;
-};
+// buildSpecItemsMap — imported from @usebruno/common/sync
 
-/**
- * Recursively extracts all key paths from a parsed JSON value (dot-notation).
- * Used to compare JSON body structure/schema without comparing values.
- */
-const extractJsonKeys = (obj, prefix = '') => {
-  const keys = [];
-  if (obj && typeof obj === 'object' && !Array.isArray(obj)) {
-    for (const key of Object.keys(obj)) {
-      const fullKey = prefix ? `${prefix}.${key}` : key;
-      keys.push(fullKey);
-      keys.push(...extractJsonKeys(obj[key], fullKey));
-    }
-  } else if (Array.isArray(obj) && obj.length > 0) {
-    // Only inspect first element (spec arrays always have one template item)
-    keys.push(...extractJsonKeys(obj[0], `${prefix}[]`));
-  }
-  return keys;
-};
-
-/**
- * Compare two Bruno-format requests field-by-field.
- * Returns { hasDiff, changes } where changes is an array of human-readable strings.
- */
-const compareRequestFields = (specRequest, actualRequest) => {
-  // Compare parameters by name:type pairs (catches query<->path type changes)
-  const specParamKeys = (specRequest.params || []).map((p) => `${p.name}:${p.type || 'query'}`).sort();
-  const actualParamKeys = (actualRequest.params || []).map((p) => `${p.name}:${p.type || 'query'}`).sort();
-
-  // Compare headers (by name)
-  const specHeaderNames = (specRequest.headers || []).map((h) => h.name).sort();
-  const actualHeaderNames = (actualRequest.headers || []).map((h) => h.name).sort();
-
-  // Check for differences
-  const paramsDiff = JSON.stringify(specParamKeys) !== JSON.stringify(actualParamKeys);
-  const headersDiff = JSON.stringify(specHeaderNames) !== JSON.stringify(actualHeaderNames);
-
-  // Check body mode difference
-  const specBodyMode = specRequest.body?.mode || 'none';
-  const actualBodyMode = actualRequest.body?.mode || 'none';
-  const bodyDiff = specBodyMode !== actualBodyMode;
-
-  // Check auth mode difference
-  const specAuthMode = specRequest.auth?.mode || 'none';
-  const actualAuthMode = actualRequest.auth?.mode || 'none';
-  const authDiff = specAuthMode !== actualAuthMode;
-
-  // Check auth config differences when auth modes match
-  let authConfigDiff = false;
-  if (!authDiff && specAuthMode !== 'none' && specAuthMode !== 'inherit') {
-    if (specAuthMode === 'apikey') {
-      const specApikey = specRequest.auth?.apikey || {};
-      const actualApikey = actualRequest.auth?.apikey || {};
-      authConfigDiff = specApikey.key !== actualApikey.key || specApikey.placement !== actualApikey.placement;
-    } else if (specAuthMode === 'oauth2') {
-      const specOauth2 = specRequest.auth?.oauth2 || {};
-      const actualOauth2 = actualRequest.auth?.oauth2 || {};
-      const grantType = specOauth2.grantType || actualOauth2.grantType;
-      const commonFields = ['grantType', 'scope'];
-      const grantTypeFields = {
-        authorization_code: [...commonFields, 'authorizationUrl', 'accessTokenUrl'],
-        implicit: [...commonFields, 'authorizationUrl'],
-        password: [...commonFields, 'accessTokenUrl'],
-        client_credentials: [...commonFields, 'accessTokenUrl']
-      };
-      const fields = grantTypeFields[grantType] || commonFields;
-      authConfigDiff = fields.some((field) => specOauth2[field] !== actualOauth2[field]);
-    }
-  }
-
-  // Check form field names when body modes match and mode is form-based
-  let formFieldsDiff = false;
-  let specFormFieldNames = [];
-  let actualFormFieldNames = [];
-  if (!bodyDiff && (specBodyMode === 'formUrlEncoded' || specBodyMode === 'multipartForm')) {
-    if (specBodyMode === 'multipartForm') {
-      specFormFieldNames = (specRequest.body?.multipartForm || []).map((f) => `${f.name}:${f.type || 'text'}`).sort();
-      actualFormFieldNames = (actualRequest.body?.multipartForm || []).map((f) => `${f.name}:${f.type || 'text'}`).sort();
-    } else {
-      specFormFieldNames = (specRequest.body?.formUrlEncoded || []).map((f) => f.name).sort();
-      actualFormFieldNames = (actualRequest.body?.formUrlEncoded || []).map((f) => f.name).sort();
-    }
-    formFieldsDiff = JSON.stringify(specFormFieldNames) !== JSON.stringify(actualFormFieldNames);
-  }
-
-  // Check JSON body structure when both sides use json mode
-  let jsonBodyDiff = false;
-  if (!bodyDiff && specBodyMode === 'json') {
-    try {
-      const specJson = specRequest.body?.json ? JSON.parse(specRequest.body.json) : null;
-      const actualJson = actualRequest.body?.json ? JSON.parse(actualRequest.body.json) : null;
-      if (specJson !== null && actualJson !== null) {
-        const specKeys = extractJsonKeys(specJson).sort();
-        const actualKeys = extractJsonKeys(actualJson).sort();
-        jsonBodyDiff = JSON.stringify(specKeys) !== JSON.stringify(actualKeys);
-      } else if ((specJson === null) !== (actualJson === null)) {
-        jsonBodyDiff = true;
-      }
-    } catch (e) {
-      // Malformed JSON — skip structural comparison
-    }
-  }
-
-  const hasDiff = paramsDiff || headersDiff || bodyDiff || authDiff || authConfigDiff || formFieldsDiff || jsonBodyDiff;
-
-  const changes = [];
-  if (hasDiff) {
-    if (paramsDiff) {
-      const addedParams = actualParamKeys.filter((p) => !specParamKeys.includes(p));
-      const removedParams = specParamKeys.filter((p) => !actualParamKeys.includes(p));
-      if (addedParams.length) changes.push(`+${addedParams.length} params`);
-      if (removedParams.length) changes.push(`-${removedParams.length} params`);
-    }
-    if (headersDiff) {
-      const addedHeaders = actualHeaderNames.filter((h) => !specHeaderNames.includes(h));
-      const removedHeaders = specHeaderNames.filter((h) => !actualHeaderNames.includes(h));
-      if (addedHeaders.length) changes.push(`+${addedHeaders.length} headers`);
-      if (removedHeaders.length) changes.push(`-${removedHeaders.length} headers`);
-    }
-    if (bodyDiff) changes.push(`body: ${actualBodyMode}`);
-    if (authDiff) changes.push(`auth: ${actualAuthMode}`);
-    if (authConfigDiff) changes.push('auth config');
-    if (formFieldsDiff) {
-      const addedFields = actualFormFieldNames.filter((f) => !specFormFieldNames.includes(f));
-      const removedFields = specFormFieldNames.filter((f) => !actualFormFieldNames.includes(f));
-      if (addedFields.length) changes.push(`+${addedFields.length} form fields`);
-      if (removedFields.length) changes.push(`-${removedFields.length} form fields`);
-    }
-    if (jsonBodyDiff) changes.push('body schema');
-  }
-
-  return { hasDiff, changes };
-};
+// extractJsonKeys, compareRequestFields — imported from @usebruno/common/sync
 
 /**
  * Load the stored spec for a collection and convert it to Bruno collection format.
