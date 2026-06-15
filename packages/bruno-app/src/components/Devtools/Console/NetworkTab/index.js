@@ -239,6 +239,7 @@ const NetworkTab = () => {
                 className={`col-separator${resizingIdx === i ? ' resizing' : ''}`}
                 style={{ left }}
                 onMouseDown={(e) => handleResizeStart(e, i)}
+                data-testid={`network-col-separator-${i}`}
               />
             ))}
           </div>

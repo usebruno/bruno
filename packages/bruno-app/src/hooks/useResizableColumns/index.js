@@ -1,4 +1,4 @@
-import { useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 
 /**
  * Drag-to-resize behavior for a multi-column grid.
@@ -34,6 +34,14 @@ const getSeparatorPositions = (widths) => {
 };
 
 const scaleWidthsToTotal = (widths, targetTotal, minColWidth) => {
+  // When the container is too narrow to satisfy minColWidth for every column,
+  // fall back to equal distribution so the total stays exact (columns clip instead of overflow).
+  if (targetTotal < minColWidth * widths.length) {
+    const each = Math.floor(targetTotal / widths.length);
+    const last = targetTotal - each * (widths.length - 1);
+    return [...Array(widths.length - 1).fill(each), last];
+  }
+
   const currentTotal = widths.reduce((s, w) => s + w, 0);
   const factor = targetTotal / currentTotal;
   const next = widths.slice(0, -1).map((w) => Math.max(minColWidth, Math.round(w * factor)));
@@ -45,6 +53,11 @@ export function useResizableColumns({ defaultWidths, minColWidth = 60 }) {
   const containerRef = useRef(null);
   const [colWidths, setColWidths] = useState(null);
   const [resizingIdx, setResizingIdx] = useState(null);
+  const dragCleanupRef = useRef(null);
+
+  useEffect(() => {
+    return () => { dragCleanupRef.current?.(); };
+  }, []);
 
   const gridTemplateColumns = useMemo(
     () => colWidths ? getGridTemplate(colWidths) : `repeat(${defaultWidths.length}, 1fr)`,
@@ -108,14 +121,20 @@ export function useResizableColumns({ defaultWidths, minColWidth = 60 }) {
       setColWidths(next);
     };
 
-    const onMouseUp = () => {
-      setResizingIdx(null);
+    const cleanup = () => {
       document.removeEventListener('mousemove', onMouseMove);
       document.removeEventListener('mouseup', onMouseUp);
+      dragCleanupRef.current = null;
+    };
+
+    const onMouseUp = () => {
+      setResizingIdx(null);
+      cleanup();
     };
 
     document.addEventListener('mousemove', onMouseMove);
     document.addEventListener('mouseup', onMouseUp);
+    dragCleanupRef.current = cleanup;
   }, [colWidths, minColWidth]);
 
   return {

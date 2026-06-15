@@ -76,6 +76,14 @@ describe('useResizableColumns', () => {
       expect(total).toBe(CONTAINER_WIDTH);
     });
 
+    it('falls back to equal distribution when container is narrower than minColWidth * columns', () => {
+      // 5 columns × 60px min = 300px minimum; container at 200px is unsatisfiable
+      setup();
+      act(() => { triggerResize(200); });
+      const total = hookValue.colWidths.reduce((s, w) => s + w, 0);
+      expect(total).toBe(200);
+    });
+
     it('ignores a zero-width measurement', () => {
       global.ResizeObserver = class {
         constructor(cb) {
