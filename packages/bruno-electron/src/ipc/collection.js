@@ -481,6 +481,8 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
     try {
       const { name: folderName, root: folderRoot = {}, folderPathname, collectionPathname } = folder;
 
+      validatePathIsInsideCollection(folderPathname);
+
       const format = getCollectionFormat(collectionPathname);
       const folderFilePath = path.join(folderPathname, `folder.${format}`);
 
@@ -500,6 +502,8 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
   // save collection root
   ipcMain.handle('renderer:save-collection-root', async (event, collectionPathname, collectionRoot, brunoConfig) => {
     try {
+      validatePathIsInsideCollection(collectionPathname);
+
       const format = getCollectionFormat(collectionPathname);
       const filename = format === 'yml' ? 'opencollection.yml' : 'collection.bru';
       const content = await stringifyCollection(collectionRoot, brunoConfig, { format });
@@ -544,6 +548,8 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
       if (!fs.existsSync(pathname)) {
         throw new Error(`path: ${pathname} does not exist`);
       }
+
+      validatePathIsInsideCollection(pathname);
 
       // Sync example UIDs cache to maintain consistency when examples are added/deleted/reordered
       syncExampleUidsCache(pathname, request.examples);
