@@ -55,16 +55,13 @@ const StyledWrapper = styled.div`
           color: ${(props) => props.theme.colors.text.muted};
         }
 
-        .env-list {
-          display: flex;
-          flex-direction: column;
-          gap: 0.625rem;
-        }
-
         .env-row {
           display: flex;
           align-items: center;
           gap: 0.5rem;
+          /* Fixed row height — MUST match ENV_ROW_HEIGHT (Virtuoso fixedItemHeight)
+             in EnvironmentSelectionList. The inter-row spacing is baked in here. */
+          height: 34px;
           cursor: pointer;
           margin: 0;
 
@@ -81,11 +78,6 @@ const StyledWrapper = styled.div`
             color: ${(props) => props.theme.text};
             min-width: 0;
           }
-        }
-
-        .env-empty {
-          font-size: ${(props) => props.theme.font.size.sm};
-          color: ${(props) => props.theme.colors.text.muted};
         }
       }
     }
