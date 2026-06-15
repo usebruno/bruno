@@ -11,7 +11,8 @@ test.describe.serial('bru.setEnvVar multiple persistent variables', () => {
         await page.locator('#sidebar-collection-name').click();
         await page.getByTestId('environment-selector-trigger').click();
         await page.waitForTimeout(200);
-        await page.locator('#configure-env').click();
+        await page.locator('#configure-env').waitFor({ state: 'visible' });
+        await page.locator('#configure-env').dispatchEvent('click');
         await page.waitForTimeout(200);
 
         const envTab = page.locator('.request-tab').filter({ hasText: 'Environments' });
@@ -74,7 +75,8 @@ test.describe.serial('bru.setEnvVar multiple persistent variables', () => {
 
       await page.getByTestId('environment-selector-trigger').click();
       await page.waitForTimeout(200);
-      await page.locator('#configure-env').click();
+      await page.locator('#configure-env').waitFor({ state: 'visible' });
+      await page.locator('#configure-env').dispatchEvent('click');
       await page.waitForTimeout(200);
 
       const envTab = page.locator('.request-tab').filter({ hasText: 'Environments' });

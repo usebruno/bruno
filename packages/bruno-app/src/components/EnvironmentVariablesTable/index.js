@@ -3,7 +3,8 @@ import { TableVirtuoso } from 'react-virtuoso';
 import cloneDeep from 'lodash/cloneDeep';
 import { IconTrash, IconAlertCircle, IconInfoCircle } from '@tabler/icons';
 import { useTheme } from 'providers/Theme';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
+import { updateTableColumnWidths } from 'providers/ReduxStore/slices/tabs';
 import MultiLineEditor from 'components/MultiLineEditor/index';
 import StyledWrapper from './StyledWrapper';
 import { uuid } from 'utils/common';
@@ -14,13 +15,16 @@ import toast from 'react-hot-toast';
 import { Tooltip } from 'react-tooltip';
 import { getGlobalEnvironmentVariables } from 'utils/collections';
 import { stripEnvVarUid } from 'utils/environments';
+import { usePersistedState } from 'hooks/usePersistedState';
+import { useTrackScroll } from 'hooks/useTrackScroll';
 
 const MIN_H = 35 * 2;
 const MIN_COLUMN_WIDTH = 80;
+const MIN_ROW_HEIGHT = 35;
 
 const TableRow = React.memo(
-  ({ children, item }) => (
-    <tr key={item.uid} data-testid={`env-var-row-${item.name}`}>
+  ({ children, item, style, ...rest }) => (
+    <tr key={item.uid} style={style} {...rest} data-testid={`env-var-row-${item?.name}`}>
       {children}
     </tr>
   ),
@@ -46,13 +50,53 @@ const EnvironmentVariablesTable = ({
 }) => {
   const { storedTheme } = useTheme();
   const { globalEnvironments, activeGlobalEnvironmentUid } = useSelector((state) => state.globalEnvironments);
+  const activeWorkspace = useSelector((state) => {
+    const uid = state.workspaces?.activeWorkspaceUid;
+    return state.workspaces?.workspaces?.find((w) => w.uid === uid);
+  });
+
+  const dispatch = useDispatch();
+  const tabs = useSelector((state) => state.tabs.tabs);
+  const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
 
   const hasDraftForThisEnv = draft?.environmentUid === environment.uid;
 
-  const [tableHeight, setTableHeight] = useState(MIN_H);
-  const [columnWidths, setColumnWidths] = useState({ name: '30%', value: 'auto', description: '25%' });
+  const rowCount = (environment.variables?.length || 0) + 1;
+  const [tableHeight, setTableHeight] = useState(rowCount * MIN_ROW_HEIGHT);
+
+  // We need to add <EditableTable/> component for env table
+  const [scroll, setScroll] = usePersistedState({
+    key: `persisted::${activeTabUid}::collection-envs-scroll-${environment.uid}`,
+    default: 0
+  });
+  const scrollerRef = useRef(null);
+  const [scrollerEl, setScrollerEl] = useState(null);
+  scrollerRef.current = scrollerEl;
+  const initialTopMostItemIndex = useRef(Math.max(0, Math.floor(scroll / MIN_ROW_HEIGHT))).current;
+  useTrackScroll({ ref: scrollerRef, onChange: setScroll, initialValue: scroll, enabled: !!scrollerEl });
+
+  // Use environment UID as part of tableId so each environment has its own column widths
+  const tableId = `env-vars-table-${environment.uid}`;
+
+  // Get column widths from Redux - derived value (not state)
+  const focusedTab = tabs?.find((t) => t.uid === activeTabUid);
+  const storedColumnWidths = focusedTab?.tableColumnWidths?.[tableId];
+
+  // Local state initialized from Redux (computed once on mount/environment change via key)
+  const [columnWidths, setColumnWidths] = useState(() => {
+    return storedColumnWidths || { name: '30%', value: 'auto', description: '25%' };
+  });
+
   const [resizing, setResizing] = useState(null);
   const [pinnedData, setPinnedData] = useState({ query: '', uids: new Set() });
+
+  const handleColumnWidthsChange = (id, widths) => {
+    dispatch(updateTableColumnWidths({ uid: activeTabUid, tableId: id, widths }));
+  };
+
+  // Store column widths in ref for access in event handlers
+  const columnWidthsRef = useRef(columnWidths);
+  columnWidthsRef.current = columnWidths;
 
   const handleResizeStart = useCallback((e, columnKey) => {
     e.preventDefault();
@@ -80,26 +124,24 @@ const EnvironmentVariablesTable = ({
       const maxShrink = startWidth - MIN_COLUMN_WIDTH;
       const clampedDiff = Math.max(-maxShrink, Math.min(maxGrow, diff));
 
-      setColumnWidths((prev) => {
-        const next = {
-          ...prev,
-          [columnKey]: `${startWidth + clampedDiff}px`,
-          [nextColumnKey]: `${nextColumnStartWidth - clampedDiff}px`
-        };
-        console.log({ next });
-        return next;
-      });
+      const newWidths = {
+        [columnKey]: `${startWidth + clampedDiff}px`,
+        [nextColumnKey]: `${nextColumnStartWidth - clampedDiff}px`
+      };
+      setColumnWidths(newWidths);
     };
 
     const handleMouseUp = () => {
       setResizing(null);
+      // Save to Redux after resize ends using ref for latest values
+      handleColumnWidthsChange(tableId, columnWidthsRef.current);
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
     };
 
     document.addEventListener('mousemove', handleMouseMove);
     document.addEventListener('mouseup', handleMouseUp);
-  }, []);
+  }, [handleColumnWidthsChange]);
 
   const handleTotalHeightChanged = useCallback((h) => {
     setTableHeight(h);
@@ -115,11 +157,21 @@ const EnvironmentVariablesTable = ({
   const prevEnvUidRef = useRef(null);
   const mountedRef = useRef(false);
 
-  let _collection = collection ? cloneDeep(collection) : {};
   const globalEnvironmentVariables = getGlobalEnvironmentVariables({ globalEnvironments, activeGlobalEnvironmentUid });
-  if (_collection) {
-    _collection.globalEnvironmentVariables = globalEnvironmentVariables;
-  }
+  const workspaceProcessEnvVariables = activeWorkspace?.processEnvVariables;
+  // `_collection` flows into every row's MultiLineEditor as the variable-resolution
+  // context. Without memoization, `cloneDeep(collection)` runs on every render —
+  // and Formik triggers a re-render on every keystroke, so a single env edit
+  // session can deep-clone the entire collection 100+ times. That's the
+  // dominant cost behind the test-budget flake.
+  const _collection = useMemo(() => {
+    const c = collection ? cloneDeep(collection) : {};
+    c.globalEnvironmentVariables = globalEnvironmentVariables;
+    if (!collection && workspaceProcessEnvVariables) {
+      c.workspaceProcessEnvVariables = workspaceProcessEnvVariables;
+    }
+    return c;
+  }, [collection, globalEnvironmentVariables, workspaceProcessEnvVariables]);
 
   const initialValues = useMemo(() => {
     const vars = environment.variables || [];
@@ -466,6 +518,9 @@ const EnvironmentVariablesTable = ({
         <TableVirtuoso
           className="table-container"
           style={{ height: tableHeight }}
+          scrollerRef={setScrollerEl}
+          initialTopMostItemIndex={initialTopMostItemIndex}
+          overscan={Math.min(30, filteredVariables.length)}
           components={{ TableRow }}
           data={filteredVariables}
           totalListHeightChanged={handleTotalHeightChanged}
@@ -526,7 +581,7 @@ const EnvironmentVariablesTable = ({
                         id={`${actualIndex}.name`}
                         name={`${actualIndex}.name`}
                         value={variable.name}
-                        placeholder={!variable.value || (typeof variable.value === 'string' && variable.value.trim() === '') ? 'Name' : ''}
+                        placeholder={!variable.name || (typeof variable.name === 'string' && variable.name.trim() === '') ? 'Name' : ''}
                         onChange={(e) => handleNameChange(actualIndex, e)}
                         onFocus={() => handleRowFocus(variable.uid)}
                         onBlur={() => {
@@ -541,27 +596,41 @@ const EnvironmentVariablesTable = ({
                 <td
                   style={{ width: columnWidths.value }}
                 >
-                  <div className="flex flex-row flex-nowrap items-start w-full" onFocus={() => handleRowFocus(variable.uid)}>
-                    <div className="overflow-hidden grow w-full relative">
-                      <MultiLineEditor
-                        theme={storedTheme}
-                        collection={_collection}
-                        name={`${actualIndex}.value`}
-                        value={variable.value}
-                        placeholder={isLastEmptyRow ? 'Value' : ''}
-                        isSecret={variable.secret}
-                        readOnly={typeof variable.value !== 'string'}
-                        onChange={(newValue) => {
-                          formik.setFieldValue(`${actualIndex}.value`, newValue, true);
-                          // Clear ephemeral metadata when user manually edits the value
-                          if (variable.ephemeral) {
-                            formik.setFieldValue(`${actualIndex}.ephemeral`, undefined, false);
-                            formik.setFieldValue(`${actualIndex}.persistedValue`, undefined, false);
-                          }
-                        }}
-                        onSave={handleSave}
-                      />
-                    </div>
+                  <div
+                    className="overflow-hidden grow w-full relative"
+                    onFocus={() => handleRowFocus(variable.uid)}
+                  >
+                    <MultiLineEditor
+                      theme={storedTheme}
+                      collection={_collection}
+                      name={`${actualIndex}.value`}
+                      value={variable.value}
+                      placeholder={variable.value == null || (typeof variable.value === 'string' && variable.value.trim() === '') ? 'Value' : ''}
+                      isSecret={variable.secret}
+                      readOnly={typeof variable.value !== 'string'}
+                      onChange={(newValue) => {
+                        formik.setFieldValue(`${actualIndex}.value`, newValue, true);
+                        // Clear ephemeral metadata when user manually edits the value
+                        if (variable.ephemeral) {
+                          formik.setFieldValue(`${actualIndex}.ephemeral`, undefined, false);
+                          formik.setFieldValue(`${actualIndex}.persistedValue`, undefined, false);
+                        }
+                        // Append a new empty row when editing value on the last row
+                        if (isLastRow) {
+                          setTimeout(() => {
+                            formik.setFieldValue(formik.values.length, {
+                              uid: uuid(),
+                              name: '',
+                              value: '',
+                              type: 'text',
+                              secret: false,
+                              enabled: true
+                            }, false);
+                          }, 0);
+                        }
+                      }}
+                      onSave={handleSave}
+                    />
                     {typeof variable.value !== 'string' && (
                       <span className="ml-2 flex items-center flex-shrink-0">
                         <IconInfoCircle id={`${variable.uid}-disabled-info-icon`} className="text-muted" size={16} />
@@ -611,6 +680,8 @@ const EnvironmentVariablesTable = ({
         />
       )}
 
+      {/* We should re-think of these buttons placement in component as we use TableVirtuoso which because of
+      these buttons renders at some transition: height 0.1s ease` */}
       <div className="button-container">
         <div className="flex items-center">
           <button type="button" className="submit" onClick={handleSave} data-testid="save-env">

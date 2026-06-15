@@ -21,6 +21,10 @@ const config = {
     category: 'public.app-category.developer-tools',
     target: [
       {
+        target: 'pkg',
+        arch: ['x64', 'arm64']
+      },
+      {
         target: 'dmg',
         arch: ['x64', 'arm64']
       },
@@ -100,6 +104,7 @@ const config = {
     publisherName: 'Bruno Software Inc'
   },
   nsis: {
+    include: 'resources/installer.nsh',
     oneClick: false,
     allowToChangeInstallationDirectory: true,
     allowElevation: true,

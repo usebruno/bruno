@@ -2,6 +2,8 @@ import { test, expect } from '../../../playwright';
 import { closeAllCollections, createCollection, createRequest, openCollection, openRequest, saveRequest, selectRequestPaneTab } from '../../utils/page';
 import { getTableCell } from '../../utils/page/locators';
 
+const saveShortcut = process.platform === 'darwin' ? 'Meta+s' : 'Control+s';
+
 test.describe.serial('Header Validation', () => {
   test.afterAll(async ({ page }) => {
     await closeAllCollections(page);
@@ -89,7 +91,7 @@ test.describe.serial('Header Validation', () => {
       await expect(tooltip).toContainText('Header value cannot contain newlines');
 
       // Save the request
-      await page.keyboard.press('Control+s');
+      await page.keyboard.press(saveShortcut);
     });
   });
 });

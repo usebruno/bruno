@@ -10,7 +10,9 @@ import { IconX, IconLoader2, IconCheck, IconCaretDown } from '@tabler/icons';
 import InfoTip from 'components/InfoTip/index';
 import Help from 'components/Help';
 import { addGlobalEnvironment } from 'providers/ReduxStore/slices/global-environments';
+import { addLog } from 'providers/ReduxStore/slices/logs';
 import Dropdown from 'components/Dropdown';
+import SelectionList from 'components/SelectionList';
 import { postmanToBruno } from 'utils/importers/postman-collection';
 import { convertInsomniaToBruno } from 'utils/importers/insomnia-collection';
 import { convertOpenapiToBruno } from 'utils/importers/openapi-collection';
@@ -18,6 +20,7 @@ import { processBrunoCollection } from 'utils/importers/bruno-collection';
 import { wsdlToBruno } from '@usebruno/converters';
 import StyledWrapper from './StyledWrapper';
 import toast from 'react-hot-toast';
+import { showImportIssuesToast } from 'components/Toast/ImportIssuesToast';
 import get from 'lodash/get';
 
 const STATUS = {
@@ -32,7 +35,7 @@ const IMPORT_TYPE = {
 };
 
 const groupingOptions = [
-  { value: 'tags', label: 'Tags', description: 'Group requests by OpenAPI tags', testId: 'grouping-option-tags' },
+  { value: 'tags', label: 'Tags', description: 'Group requests by OpenAPI/Swagger tags', testId: 'grouping-option-tags' },
   { value: 'path', label: 'Paths', description: 'Group requests by URL path structure', testId: 'grouping-option-path' }
 ];
 
@@ -65,8 +68,10 @@ const getCollectionName = (format, rawData) => {
 };
 
 // Convert raw data to Bruno collection format
+// Returns { collection, issues } where issues tracks items that were skipped or degraded
 const convertCollection = async (format, rawData, groupingType) => {
   let collection;
+  let issues = [];
 
   switch (format) {
     case 'openapi':
@@ -75,9 +80,12 @@ const convertCollection = async (format, rawData, groupingType) => {
     case 'wsdl':
       collection = await wsdlToBruno(rawData);
       break;
-    case 'postman':
-      collection = await postmanToBruno(rawData);
+    case 'postman': {
+      const result = await postmanToBruno(rawData);
+      collection = result.collection;
+      issues = result.issues || [];
       break;
+    }
     case 'insomnia':
       collection = convertInsomniaToBruno(rawData);
       break;
@@ -88,7 +96,7 @@ const convertCollection = async (format, rawData, groupingType) => {
       throw new Error('Unknown collection format');
   }
 
-  return collection;
+  return { collection, issues };
 };
 
 export function normalizeName(name) {
@@ -149,6 +157,7 @@ export const BulkImportCollectionLocation = ({
   const [collectionFormat, setCollectionFormat] = useState('bru');
   const [renamedCollectionNames, setRenamedCollectionNames] = useState({});
   const [renamedEnvironmentNames, setRenamedEnvironmentNames] = useState({});
+  const [importIssues, setImportIssues] = useState({});
 
   // Extract data based on import type
   const importType = importData?.type;
@@ -158,6 +167,21 @@ export const BulkImportCollectionLocation = ({
   // For bulk import (ZIP files)
   const importedCollectionFromBulk = isBulkImport ? importData.collection : [];
   const importedEnvironmentFromBulk = isBulkImport ? (importData.environment || []) : [];
+
+  // Extract per-collection issues from bulk import data
+  useEffect(() => {
+    if (isBulkImport && importData.issues) {
+      const issuesMap = {};
+      importData.issues.forEach((entry, index) => {
+        if (entry.issues && entry.issues.length > 0 && importedCollectionFromBulk[index]) {
+          issuesMap[importedCollectionFromBulk[index].uid] = entry.issues;
+        }
+      });
+      setImportIssues(issuesMap);
+    } else {
+      setImportIssues({});
+    }
+  }, [isBulkImport, importData]);
 
   // For multiple files import
   const filesData = isMultipleImport ? importData.filesData : [];
@@ -180,9 +204,6 @@ export const BulkImportCollectionLocation = ({
   // Initialize selected items based on import type
   const [selectedCollections, setSelectedCollections] = useState(importedCollection.map((col) => col.uid));
   const [selectedEnvironments, setSelectedEnvironments] = useState(isBulkImport ? importedEnvironmentFromBulk.map((env) => env.uid) : []);
-
-  const allCollectionsSelected = selectedCollections.length === importedCollection.length;
-  const allEnvironmentsSelected = selectedEnvironments.length === importedEnvironment.length;
 
   // Sort collections to show selected items first, then unselected items
   // This helps users see their selections at the top of the list
@@ -235,13 +256,19 @@ export const BulkImportCollectionLocation = ({
       prev.includes(uid) ? prev.filter((id) => id !== uid) : [...prev, uid]
     );
   };
-  const handleSelectAllCollections = (e) => {
-    setSelectedCollections(e.target.checked ? importedCollection.map((col) => col.uid) : []);
+  const handleSelectAllCollections = (e, filteredCollectionUids) => {
+    setSelectedCollections((prevSelected) => (
+      e.target.checked
+        ? Array.from(new Set([...prevSelected, ...filteredCollectionUids]))
+        : prevSelected.filter((uid) => !filteredCollectionUids.includes(uid))
+    ));
   };
-  const handleSelectAllEnvironments = (e) => {
-    setSelectedEnvironments(
-      e.target.checked ? importedEnvironment.map((env) => env.uid) : []
-    );
+  const handleSelectAllEnvironments = (e, filteredEnvironmentUids) => {
+    setSelectedEnvironments((prevSelected) => (
+      e.target.checked
+        ? Array.from(new Set([...prevSelected, ...filteredEnvironmentUids]))
+        : prevSelected.filter((uid) => !filteredEnvironmentUids.includes(uid))
+    ));
   };
 
   const onDropdownCreate = (ref) => {
@@ -277,18 +304,52 @@ export const BulkImportCollectionLocation = ({
 
       if (isMultipleImport) {
         // Convert selected files to collections at submit time
+        const collectedIssues = {};
         for (const item of selectedItems) {
           try {
-            const collection = await convertCollection(item._fileData.type, item._fileData.data, groupingType);
+            const { collection, issues } = await convertCollection(item._fileData.type, item._fileData.data, groupingType);
             if (collection) {
               // Preserve the synthetic UID so status tracking, rename tracking,
               // and UI rendering all use the same key
               collection.uid = item.uid;
               filteredCollections.push(collection);
+              if (issues && issues.length > 0) {
+                collectedIssues[item.uid] = issues;
+              }
             }
           } catch (err) {
             console.warn(`Failed to convert file ${item._fileData.file.name}:`, err);
           }
+        }
+        if (Object.keys(collectedIssues).length > 0) {
+          setImportIssues(collectedIssues);
+
+          const allIssues = [];
+          const timestamp = new Date().toISOString();
+          Object.entries(collectedIssues).forEach(([uid, issues]) => {
+            const item = selectedItems.find((s) => s.uid === uid);
+            const name = item?.name || uid;
+            const skipped = issues.filter((i) => i.severity === 'error').length;
+            const warnings = issues.filter((i) => i.severity === 'warning').length;
+            const parts = [];
+            if (skipped > 0) parts.push(`skipped ${skipped} item(s)`);
+            if (warnings > 0) parts.push(`${warnings} warning(s)`);
+
+            // Per-collection summary header
+            dispatch(addLog({ type: 'warn', args: [`Import: ${name} — ${parts.join(', ')}`], timestamp }));
+
+            // Individual issues for this collection
+            issues.forEach((issue) => {
+              allIssues.push({ ...issue, path: `${name} > ${issue.path}` });
+              const logType = issue.severity === 'error' ? 'error' : 'warn';
+              const logArgs = [`[${issue.path}] ${issue.message}`];
+              if (issue.sourceItem) logArgs.push(issue.sourceItem);
+              dispatch(addLog({ type: logType, args: logArgs, timestamp }));
+            });
+          });
+
+          // Single toast for all collections
+          showImportIssuesToast(allIssues);
         }
       } else if (isBulkImport) {
         // For bulk import, use selected collections directly
@@ -443,7 +504,7 @@ export const BulkImportCollectionLocation = ({
 
   useEffect(() => {
     if (!isElectron()) {
-      return () => {};
+      return () => { };
     }
 
     const { ipcRenderer } = window;
@@ -604,6 +665,29 @@ export const BulkImportCollectionLocation = ({
                               See error
                             </button>
                           )}
+                          {status[collection.uid] === STATUS.SUCCESS && importIssues[collection.uid] && (
+                            <div className="flex items-center gap-2">
+                              <span className="text-yellow-600 text-xs">
+                                {importIssues[collection.uid].filter((i) => i.severity === 'error').length} item(s) skipped
+                              </span>
+                              <button
+                                onClick={async () => {
+                                  const text = importIssues[collection.uid]
+                                    .map((i) => `[${i.severity.toUpperCase()}] ${i.path} — ${i.message}`)
+                                    .join('\n');
+                                  try {
+                                    await navigator.clipboard.writeText(text);
+                                    toast.success('Copied to clipboard', { duration: 2000 });
+                                  } catch (err) {
+                                    toast.error('Failed to copy to clipboard', { duration: 3000 });
+                                  }
+                                }}
+                                className="text-yellow-600 text-xs hover:underline"
+                              >
+                                Copy
+                              </button>
+                            </div>
+                          )}
                         </div>
                       ))}
                   </div>
@@ -666,80 +750,45 @@ export const BulkImportCollectionLocation = ({
               </>
             ) : (
               <>
-                <div className="mb-6">
-                  <div className="font-semibold mb-2 flex justify-between items-center">
-                    <span>Collections ({importedCollection.length})</span>
-                    <label className="flex items-center text-sm font-normal select-none cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={allCollectionsSelected}
-                        onChange={handleSelectAllCollections}
-                        className="mr-2"
-                      />
-                      Select All
-                    </label>
-                  </div>
-                  <div className="max-h-[180px] overflow-y-scroll border border-slate-600 rounded-md py-2">
-                    {importedCollection.length === 0 && (
-                      <div className="px-4 py-2 text-gray-400 italic">
-                        No collections found
-                      </div>
-                    )}
-                    {sortedCollections.map((collection) => (
-                      <label
-                        key={collection.uid}
-                        className="flex items-center px-4 py-1.5 text-sm font-normal select-none cursor-pointer justify-between"
-                      >
-                        <div className="flex items-center flex-1">
-                          <input
-                            type="checkbox"
-                            checked={selectedCollections.includes(collection.uid)}
-                            onChange={() => handleCollectionToggle(collection.uid)}
-                            className="mr-3"
-                          />
-                          <span>{collection.name}</span>
-                        </div>
-                      </label>
-                    ))}
-                  </div>
+                <div className="w-full mb-6">
+                  <SelectionList
+                    dataTestId="selection-section-collections"
+                    title="Collections"
+                    searchPlaceholder="Search Collections"
+                    items={sortedCollections}
+                    selectedItems={selectedCollections}
+                    onSelectAll={handleSelectAllCollections}
+                    onItemToggle={handleCollectionToggle}
+                    getItemId={(collection) => collection.uid}
+                    renderItemTitle={(collection) => collection.name}
+                    renderItemDescription={(collection) => collection._fileData?.file?.name}
+                    visibleRows={5}
+                    rowHeight={isMultipleImport ? 60 : 30}
+                    rowGap={4}
+                    emptyMessage="No collections found"
+                    showSelectedCount={true}
+                  />
                 </div>
 
                 {importType === 'bulk' && (
                   <>
-                    <div className="mb-4">
-                      <div className="font-semibold mb-2 flex justify-between items-center">
-                        <span>Environments ({importedEnvironment.length})</span>
-                        <label className="flex items-center text-sm font-normal select-none cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={allEnvironmentsSelected}
-                            onChange={handleSelectAllEnvironments}
-                            className="mr-2"
-                          />
-                          Select All
-                        </label>
-                      </div>
-                      <div className="max-h-[180px] overflow-y-scroll border border-slate-600 rounded-md py-2 scrollbar-visible">
-                        {importedEnvironment.length === 0 && (
-                          <div className="px-4 py-2 text-gray-400 italic">
-                            No environments found
-                          </div>
-                        )}
-                        {sortedEnvironments.map((env) => (
-                          <label
-                            key={env.uid}
-                            className="flex items-center px-4 py-1.5 text-sm font-normal select-none cursor-pointer"
-                          >
-                            <input
-                              type="checkbox"
-                              checked={selectedEnvironments.includes(env.uid)}
-                              onChange={() => handleEnvironmentToggle(env.uid)}
-                              className="mr-3"
-                            />
-                            <span>{env.name}</span>
-                          </label>
-                        ))}
-                      </div>
+                    <div className="w-full mb-6">
+                      <SelectionList
+                        dataTestId="selection-section-environments"
+                        title="Environments"
+                        searchPlaceholder="Search Environments"
+                        items={sortedEnvironments}
+                        selectedItems={selectedEnvironments}
+                        onSelectAll={handleSelectAllEnvironments}
+                        onItemToggle={handleEnvironmentToggle}
+                        getItemId={(env) => env.uid}
+                        renderItemTitle={(env) => env.name}
+                        visibleRows={4}
+                        rowHeight={30}
+                        rowGap={4}
+                        emptyMessage="No environments found"
+                        showSelectedCount={true}
+                      />
                     </div>
 
                     <div className="mb-6">

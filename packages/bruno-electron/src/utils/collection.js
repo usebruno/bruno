@@ -13,8 +13,10 @@ const FORMAT_CONFIG = {
   bru: { ext: '.bru', collectionFile: 'collection.bru', folderFile: 'folder.bru' }
 };
 
-const mergeHeaders = (collection, request, requestTreePath) => {
+const mergeHeaders = (collection, request, requestTreePath, options = {}) => {
+  const { includeDisabledHeaders = false } = options;
   let headers = new Map();
+  let disabledHeaders = new Map();
 
   let collectionHeaders = collection?.draft?.root ? get(collection, 'draft.root.request.headers', []) : get(collection, 'root.request.headers', []);
   collectionHeaders.forEach((header) => {
@@ -24,6 +26,8 @@ const mergeHeaders = (collection, request, requestTreePath) => {
       } else {
         headers.set(header.name, header.value);
       }
+    } else if (header.name?.length > 0) {
+      disabledHeaders.set(header.name, header.value);
     }
   });
 
@@ -38,6 +42,8 @@ const mergeHeaders = (collection, request, requestTreePath) => {
           } else {
             headers.set(header.name, header.value);
           }
+        } else if (header.name?.length > 0) {
+          disabledHeaders.set(header.name, header.value);
         }
       });
     } else {
@@ -49,12 +55,17 @@ const mergeHeaders = (collection, request, requestTreePath) => {
           } else {
             headers.set(header.name, header.value);
           }
+        } else if (header.name?.length > 0) {
+          disabledHeaders.set(header.name, header.value);
         }
       });
     }
   }
 
-  request.headers = Array.from(headers, ([name, value]) => ({ name, value, enabled: true }));
+  request.headers = [
+    ...Array.from(headers, ([name, value]) => ({ name, value, enabled: true })),
+    ...(includeDisabledHeaders ? Array.from(disabledHeaders, ([name, value]) => ({ name, value, enabled: false })) : [])
+  ];
 };
 
 const mergeVars = (collection, request, requestTreePath = []) => {
@@ -140,12 +151,9 @@ const mergeVars = (collection, request, requestTreePath = []) => {
   }
 };
 
-/**
- * Wraps a script in an IIFE closure to isolate its scope
- * @param {string} script - The script code to wrap
- * @returns {string} The wrapped script
- */
-const wrapScriptInClosure = (script) => {
+// __bruSetScope must stay on the IIFE opener line so wrapAndJoinScripts' line
+// counts (and stack-trace mapping) are unaffected.
+const wrapScriptInClosure = (script, scopeInfo = null) => {
   if (!script || script.trim() === '') {
     return '';
   }
@@ -153,7 +161,10 @@ const wrapScriptInClosure = (script) => {
   // Wrap script in async IIFE to create isolated scope
   // This prevents variable re-declaration errors and allows early returns
   // to only affect the current script segment
-  return `await (async () => {
+  const scopeSetter = scopeInfo
+    ? ` __bruSetScope(${JSON.stringify(scopeInfo)});`
+    : '';
+  return `await (async () => {${scopeSetter}
 ${script}
 })();`;
 };
@@ -201,8 +212,17 @@ ${script}
  *   }
  * }
  */
-const wrapAndJoinScripts = (scripts, requestIndex, segmentSources = null) => {
-  const wrapped = scripts.map((s) => wrapScriptInClosure(s));
+const wrapAndJoinScripts = (scripts, requestIndex, segmentSources = null, requestSegmentSource = null) => {
+  const buildScopeInfo = (i) => {
+    if (i === requestIndex && requestSegmentSource?.displayPath) {
+      return { type: 'request', sourceFile: requestSegmentSource.displayPath };
+    }
+    const seg = segmentSources?.[i];
+    if (!seg?.type || !seg?.displayPath) return null;
+    return { type: seg.type, sourceFile: seg.displayPath };
+  };
+
+  const wrapped = scripts.map((s, i) => wrapScriptInClosure(s, buildScopeInfo(i)));
   const code = wrapped.filter(Boolean).join('\n\n');
 
   let offset = 0;
@@ -249,9 +269,19 @@ const mergeScripts = (collection, request, requestTreePath, scriptFlow) => {
   const format = collection.format || 'bru';
   const config = FORMAT_CONFIG[format];
   const collectionSource = {
+    type: 'collection',
     filePath: path.join(collection.pathname, config.collectionFile),
     displayPath: config.collectionFile
   };
+
+  const requestItem = requestTreePath?.[requestTreePath.length - 1];
+  const requestPathname = request?.pathname || requestItem?.pathname;
+  const requestSegmentSource = requestPathname && collection?.pathname
+    ? { displayPath: posixifyPath(path.relative(collection.pathname, requestPathname)) }
+    : null;
+
+  const withContent = (source, script) =>
+    script?.trim() ? { ...source, scriptContent: script } : source;
 
   let combinedPreReqScript = [];
   let combinedPreReqSources = [];
@@ -264,6 +294,7 @@ const mergeScripts = (collection, request, requestTreePath, scriptFlow) => {
     if (i.type === 'folder') {
       const folderRoot = i?.draft || i?.root;
       const folderSource = {
+        type: 'folder',
         filePath: path.join(i.pathname, config.folderFile),
         displayPath: posixifyPath(path.relative(collection.pathname, path.join(i.pathname, config.folderFile)))
       };
@@ -271,81 +302,99 @@ const mergeScripts = (collection, request, requestTreePath, scriptFlow) => {
       let preReqScript = get(folderRoot, 'request.script.req', '');
       if (preReqScript && preReqScript.trim() !== '') {
         combinedPreReqScript.push(preReqScript);
-        combinedPreReqSources.push(folderSource);
+        combinedPreReqSources.push(withContent(folderSource, preReqScript));
       }
 
       let postResScript = get(folderRoot, 'request.script.res', '');
       if (postResScript && postResScript.trim() !== '') {
         combinedPostResScript.push(postResScript);
-        combinedPostResSources.push(folderSource);
+        combinedPostResSources.push(withContent(folderSource, postResScript));
       }
 
       let tests = get(folderRoot, 'request.tests', '');
       if (tests && tests?.trim?.() !== '') {
         combinedTests.push(tests);
-        combinedTestsSources.push(folderSource);
+        combinedTestsSources.push(withContent(folderSource, tests));
       }
     }
   }
+
+  // Capture original request script content before overwriting with combined code
+  const originalPreReqScript = request?.script?.req || '';
+  const originalPostResScript = request?.script?.res || '';
+  const originalTests = request?.tests || '';
+
+  // Wrap scripts, join them, and annotate metadata with the original request script content.
+  // Returns { code, metadata } where metadata.requestScriptContent is set.
+  const buildCombinedScript = (scripts, requestIndex, sources, originalScript) => {
+    const result = wrapAndJoinScripts(scripts, requestIndex, sources, requestSegmentSource);
+    if (result.metadata) {
+      result.metadata.requestScriptContent = originalScript;
+    }
+    return result;
+  };
 
   // Wrap each script segment in its own closure and join them
   // This allows each script to run separately with its own scope,
   // preventing variable re-declaration errors and allowing early returns
   // to only affect that specific script segment
+  const collectionPreReqSource = withContent(collectionSource, collectionPreReqScript);
   const preReqScripts = [
     collectionPreReqScript,
     ...combinedPreReqScript,
-    request?.script?.req || ''
+    originalPreReqScript
   ];
-  const preReqSources = [collectionSource, ...combinedPreReqSources, null];
-  const preReq = wrapAndJoinScripts(preReqScripts, preReqScripts.length - 1, preReqSources);
+  const preReqSources = [collectionPreReqSource, ...combinedPreReqSources, null];
+  const preReq = buildCombinedScript(preReqScripts, preReqScripts.length - 1, preReqSources, originalPreReqScript);
   request.script.req = preReq.code;
   request.script.reqMetadata = preReq.metadata;
 
   // Handle post-response scripts based on scriptFlow
+  const collectionPostResSource = withContent(collectionSource, collectionPostResScript);
   if (scriptFlow === 'sequential') {
     const postResScripts = [
       collectionPostResScript,
       ...combinedPostResScript,
-      request?.script?.res || ''
+      originalPostResScript
     ];
-    const postResSources = [collectionSource, ...combinedPostResSources, null];
-    const postRes = wrapAndJoinScripts(postResScripts, postResScripts.length - 1, postResSources);
+    const postResSources = [collectionPostResSource, ...combinedPostResSources, null];
+    const postRes = buildCombinedScript(postResScripts, postResScripts.length - 1, postResSources, originalPostResScript);
     request.script.res = postRes.code;
     request.script.resMetadata = postRes.metadata;
   } else {
     // Reverse order for non-sequential flow
     const postResScripts = [
-      request?.script?.res || '',
+      originalPostResScript,
       ...[...combinedPostResScript].reverse(),
       collectionPostResScript
     ];
-    const postResSources = [null, ...[...combinedPostResSources].reverse(), collectionSource];
-    const postRes = wrapAndJoinScripts(postResScripts, 0, postResSources);
+    const postResSources = [null, ...[...combinedPostResSources].reverse(), collectionPostResSource];
+    const postRes = buildCombinedScript(postResScripts, 0, postResSources, originalPostResScript);
     request.script.res = postRes.code;
     request.script.resMetadata = postRes.metadata;
   }
 
   // Handle tests based on scriptFlow
+  const collectionTestsSource = withContent(collectionSource, collectionTests);
   if (scriptFlow === 'sequential') {
     const testScripts = [
       collectionTests,
       ...combinedTests,
-      request?.tests || ''
+      originalTests
     ];
-    const testSources = [collectionSource, ...combinedTestsSources, null];
-    const tests = wrapAndJoinScripts(testScripts, testScripts.length - 1, testSources);
+    const testSources = [collectionTestsSource, ...combinedTestsSources, null];
+    const tests = buildCombinedScript(testScripts, testScripts.length - 1, testSources, originalTests);
     request.tests = tests.code;
     request.testsMetadata = tests.metadata;
   } else {
     // Reverse order for non-sequential flow
     const testScripts = [
-      request?.tests || '',
+      originalTests,
       ...[...combinedTests].reverse(),
       collectionTests
     ];
-    const testSources = [null, ...[...combinedTestsSources].reverse(), collectionSource];
-    const tests = wrapAndJoinScripts(testScripts, 0, testSources);
+    const testSources = [null, ...[...combinedTestsSources].reverse(), collectionTestsSource];
+    const tests = buildCombinedScript(testScripts, 0, testSources, originalTests);
     request.tests = tests.code;
     request.testsMetadata = tests.metadata;
   }
@@ -547,6 +596,8 @@ const hydrateRequestWithUuid = (request, pathname) => {
   bodyFormUrlEncoded.forEach((param) => (param.uid = uuid()));
   bodyMultipartForm.forEach((param) => (param.uid = uuid()));
   file.forEach((param) => (param.uid = uuid()));
+  const wsMessages = get(request, 'request.body.ws', []);
+  wsMessages.forEach((msg) => (msg.uid = uuid()));
   examples.forEach((example, eIndex) => {
     example.uid = getExampleUid(pathname, eIndex);
     example.itemUid = request.uid;
@@ -624,6 +675,7 @@ const transformRequestToSaveToFilesystem = (item) => {
         name: param.name,
         value: param.value,
         description: param.description,
+        annotations: param.annotations,
         type: param.type,
         enabled: param.enabled
       });
@@ -636,6 +688,7 @@ const transformRequestToSaveToFilesystem = (item) => {
       name: header.name,
       value: header.value,
       description: header.description,
+      annotations: header.annotations,
       enabled: header.enabled
     });
   });
@@ -758,7 +811,7 @@ const mergeAuth = (collection, request, requestTreePath) => {
       const folderRoot = i?.draft || i?.root;
       const folderAuth = get(folderRoot, 'request.auth');
       // Only consider folders that have a valid auth mode
-      if (folderAuth && folderAuth.mode && folderAuth.mode !== 'none' && folderAuth.mode !== 'inherit') {
+      if (folderAuth && folderAuth.mode && folderAuth.mode !== 'inherit') {
         effectiveAuth = folderAuth;
         lastFolderWithAuth = i;
       }

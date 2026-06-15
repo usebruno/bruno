@@ -2,9 +2,13 @@ const ohm = require('ohm-js');
 const _ = require('lodash');
 const { safeParseJson, outdentString } = require('./utils');
 
+// this is done to avoid breaking existing pairlist mapping so
+// the key is hidden and not added into the json automatically
+const ANNOTATIONS_KEY = Symbol('annotations');
+
 const grammar = ohm.grammar(`Bru {
   BruFile = (meta | query | headers | auth | auths | vars | script | tests | docs)*
-  auths = authawsv4 | authbasic | authbearer | authdigest | authNTLM |authOAuth2 | authwsse | authapikey | authOauth2Configs
+  auths = authawsv4 | authbasic | authbearer | authdigest | authNTLM | authOAuth1 | authOAuth2 | authwsse | authapikey | authOauth2Configs
 
   // Oauth2 additional parameters
   authOauth2Configs = oauth2AuthReqConfig | oauth2AccessTokenReqConfig | oauth2RefreshTokenReqConfig
@@ -24,11 +28,27 @@ const grammar = ohm.grammar(`Bru {
   multilinetextblockdelimiter = "'''"
   multilinetextblock = multilinetextblockdelimiter (~multilinetextblockdelimiter any)* multilinetextblockdelimiter
 
+  // Annotation support (decorators on pairs)
+  annotationname = annotationchar+
+  annotationchar = ~("(" | ")" | " " | "\\t" | "\\r" | "\\n" | ":") any
+  annotationsinglequotedargchar = ~"'" any
+  annotationsinglequotedarg = "'" annotationsinglequotedargchar* "'"
+  annotationdoublequotedargchar = ~"\\"" any
+  annotationdoublequotedarg = "\\"" annotationdoublequotedargchar* "\\""
+  annotationunquotedargchar = ~")" any
+  annotationunquotedarg = annotationunquotedargchar*
+  annotationargvalue = annotationsinglequotedarg | annotationdoublequotedarg | annotationunquotedarg
+  annotationmultilinetextblock = multilinetextblockdelimiter (~multilinetextblockdelimiter any)* multilinetextblockdelimiter
+  annotationargscontents = annotationmultilinetextblock | annotationargvalue
+  annotationargs = "(" annotationargscontents ")"
+  annotation = "@" annotationname annotationargs?
+  annotationentry = st* annotation ~":" st* nl
+  pairannotations = annotationentry*
+
   // Dictionary Blocks
   dictionary = st* "{" pairlist? tagend
   pairlist = optionalnl* pair (~tagend stnl* pair)* (~tagend space)*
-  pair = descriptionprefix? st* (quoted_key | key) st* ":" st* value st*  -- kv
-       | descriptionprefix                                                  -- orphandesc
+  pair = st* pairannotations st* (quoted_key | key) st* ":" st* value st*
   disable_char = "~"
   quote_char = "\\""
   esc_char = "\\\\"
@@ -81,6 +101,7 @@ const grammar = ohm.grammar(`Bru {
   authbearer = "auth:bearer" dictionary
   authdigest = "auth:digest" dictionary
   authNTLM = "auth:ntlm" dictionary
+  authOAuth1 = "auth:oauth1" dictionary
   authOAuth2 = "auth:oauth2" dictionary
   authwsse = "auth:wsse" dictionary
   authapikey = "auth:apikey" dictionary
@@ -100,12 +121,12 @@ const mapPairListToKeyValPairs = (pairList = [], parseEnabled = true) => {
     // Skip the internal __desc marker when resolving the real key name
     let name = _.keys(pair).find((k) => k !== '__desc');
     let value = pair[name];
+    const rawAnnotations = pair[ANNOTATIONS_KEY];
 
     if (!parseEnabled) {
-      return {
-        name,
-        value
-      };
+      const result = { name, value };
+      if (rawAnnotations && rawAnnotations.length) result.annotations = rawAnnotations;
+      return result;
     }
 
     let enabled = true;
@@ -114,16 +135,11 @@ const mapPairListToKeyValPairs = (pairList = [], parseEnabled = true) => {
       enabled = false;
     }
 
-    const result = {
-      name,
-      value,
-      enabled
-    };
-
-    if (pair.__desc !== undefined) {
-      result.description = pair.__desc;
+    const result = { name, value, enabled };
+    if (rawAnnotations && rawAnnotations.length) {
+      result.annotations = rawAnnotations;
+      // TODO(reaper): need to also set result.description here
     }
-
     return result;
   });
 };
@@ -162,32 +178,56 @@ const sem = grammar.createSemantics().addAttribute('ast', {
   pairlist(_1, pair, _2, rest, _3) {
     return [pair.ast, ...rest.ast];
   },
-  descriptionprefix(alt) {
+  pairannotations(entries) {
+    return entries.ast;
+  },
+  annotationentry(_1, annotation, _2, _3) {
+    return annotation.ast;
+  },
+  annotation(_at, name, argsIter) {
+    const annotObj = { name: name.ast };
+    const argsArr = argsIter.ast;
+    if (argsArr.length > 0) {
+      annotObj.value = argsArr[0];
+    }
+    return annotObj;
+  },
+  annotationname(chars) {
+    return chars.sourceString;
+  },
+  annotationsinglequotedarg(_open, chars, _close) {
+    return chars.sourceString;
+  },
+  annotationdoublequotedarg(_open, chars, _close) {
+    return chars.sourceString;
+  },
+  annotationunquotedarg(chars) {
+    return chars.sourceString;
+  },
+  annotationargvalue(alt) {
     return alt.ast;
   },
-  descriptionprefix_triple(_st, _at, _desc, _lp, _open, descContent, _close, _rp, _st2, _nl) {
-    const raw = descContent.sourceString;
-    if (raw.includes('\n')) {
-      return raw.split('\n').map((line) => (line.startsWith('    ') ? line.slice(4) : line)).join('\n').trim();
-    }
-    return raw.trim();
+  annotationmultilinetextblock(_1, content, _2) {
+    const lines = content.sourceString.split('\n');
+    let minIndent = 4;
+    const dedented = lines.map((line) => (line.trim() === '' ? '' : line.substring(minIndent)));
+    if (dedented.length > 0 && dedented[0] === '') dedented.shift();
+    if (dedented.length > 0 && dedented[dedented.length - 1] === '') dedented.pop();
+    return dedented.join('\n');
   },
-  descriptionprefix_double(_st, _at, _desc, _lp, _dqOpen, descChars, _dqClose, _rp, _st2, _nl) {
-    return descChars.sourceString.replace(/\\(\\|"|n|r|t)/g, (_, c) => {
-      if (c === '\\') return '\\';
-      if (c === '"') return '"';
-      if (c === 'n') return '\n';
-      if (c === 'r') return '\r';
-      if (c === 't') return '\t';
-      return c;
-    });
+  annotationargscontents(alt) {
+    return alt.ast;
   },
-  pair_kv(descPrefix, _1, key, _2, _3, _4, value, _5) {
+  annotationargs(_open, value, _close) {
+    return value.ast;
+  },
+  pair(_1, annotations, _2, key, _3, _4, _5, value, _6) {
     let res = {};
-    const valueAst = value.ast;
-    const prefixDesc = descPrefix.children.length > 0 ? descPrefix.children[0].ast : undefined;
-    res[key.ast] = valueAst ? valueAst.trim() : '';
-    if (prefixDesc !== undefined) res.__desc = prefixDesc;
+    res[key.ast] = value.ast ? value.ast.trim() : '';
+    const annotationList = annotations.ast;
+    if (annotationList && annotationList.length > 0) {
+      res[ANNOTATIONS_KEY] = annotationList;
+    }
     return res;
   },
   pair_orphandesc(descPrefix) {
@@ -355,6 +395,40 @@ const sem = grammar.createSemantics().addAttribute('ast', {
           username,
           password,
           domain
+        }
+      }
+    };
+  },
+  authOAuth1(_1, dictionary) {
+    const auth = mapPairListToKeyValPairs(dictionary.ast, false);
+    const findValue = (name) => {
+      const item = _.find(auth, { name });
+      return item ? item.value : '';
+    };
+    return {
+      auth: {
+        oauth1: {
+          consumerKey: findValue('consumer_key'),
+          consumerSecret: findValue('consumer_secret'),
+          accessToken: findValue('access_token'),
+          accessTokenSecret: findValue('token_secret'),
+          callbackUrl: findValue('callback_url'),
+          verifier: findValue('verifier'),
+          signatureMethod: findValue('signature_method'),
+          privateKey: (() => {
+            const val = findValue('private_key');
+            return val && val.startsWith('@file(') && val.endsWith(')') ? val.slice(6, -1) : val;
+          })(),
+          privateKeyType: (() => {
+            const val = findValue('private_key');
+            return val && val.startsWith('@file(') && val.endsWith(')') ? 'file' : 'text';
+          })(),
+          timestamp: findValue('timestamp'),
+          nonce: findValue('nonce'),
+          version: findValue('version'),
+          realm: findValue('realm'),
+          placement: findValue('placement'),
+          includeBodyHash: findValue('include_body_hash') === 'true'
         }
       }
     };

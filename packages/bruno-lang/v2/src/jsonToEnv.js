@@ -1,5 +1,5 @@
 const _ = require('lodash');
-const { getValueString, indentString } = require('./utils');
+const { getValueString, indentString, serializeAnnotations } = require('./utils');
 
 const escapeDescriptionDouble = (s) =>
   String(s)
@@ -30,23 +30,24 @@ const getDescriptionPrefix = (variable) => {
 
 const envToJson = (json) => {
   const variables = _.get(json, 'variables', []);
+  const externalSecrets = _.get(json, 'externalSecrets', null);
   const color = _.get(json, 'color', null);
 
   const vars = variables
     .filter((variable) => !variable.secret)
     .map((variable) => {
-      const { name, value, enabled } = variable;
+      const { name, value, enabled, annotations } = variable;
       const prefix = enabled ? '' : '~';
 
-      return indentString(`${getDescriptionPrefix(variable)}${prefix}${name}: ${getValueString(value)}`);
+      return indentString(`${serializeAnnotations(annotations)}${prefix}${name}: ${getValueString(value)}`);
     });
 
   const secretVars = variables
     .filter((variable) => variable.secret)
     .map((variable) => {
-      const { name, enabled } = variable;
+      const { name, enabled, annotations } = variable;
       const prefix = enabled ? '' : '~';
-      return indentString(`${prefix}${name}`);
+      return indentString(`${serializeAnnotations(annotations)}${prefix}${name}`);
     });
 
   let output = '';
@@ -70,6 +71,18 @@ ${secretVars.join(',\n')}
 ]
 `;
   }
+
+  if (externalSecrets && externalSecrets.type) {
+    const serializedVariables = (externalSecrets.variables || []).map(({ name, value }) =>
+      indentString(`${name}: ${getValueString(value)}`)
+    );
+
+    output += `vars:externalsecrets:${externalSecrets.type} {
+${serializedVariables.join('\n')}
+}
+`;
+  }
+
   if (color) {
     output += `color: ${color}
 `;

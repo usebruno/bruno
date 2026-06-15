@@ -2,16 +2,48 @@ import { createSlice } from '@reduxjs/toolkit';
 import filter from 'lodash/filter';
 import find from 'lodash/find';
 import last from 'lodash/last';
+import { isActiveTab as checkIsActiveTab, deserializeTab } from 'utils/snapshot';
 
 // todo: errors should be tracked in each slice and displayed as toasts
 
+const MAX_RECENTLY_CLOSED_TABS = 50;
+
+export const NON_CLOSABLE_TAB_TYPES = ['workspaceOverview', 'workspaceEnvironments'];
+
 const initialState = {
   tabs: [],
-  activeTabUid: null
+  activeTabUid: null,
+  recentlyClosedTabs: [] // LIFO stack of closed tabs, grouped by collection
 };
 
 const tabTypeAlreadyExists = (tabs, collectionUid, type) => {
   return find(tabs, (tab) => tab.collectionUid === collectionUid && tab.type === type);
+};
+
+const findTabByPathname = (tabs, { collectionUid, pathname, type, exampleName, exampleIndex }) => {
+  if (!pathname || !collectionUid || !type) {
+    return null;
+  }
+
+  return find(tabs, (tab) => {
+    if (tab.collectionUid !== collectionUid) {
+      return false;
+    }
+
+    if (tab.pathname !== pathname || tab.type !== type) {
+      return false;
+    }
+
+    if (type === 'response-example') {
+      if (typeof exampleIndex === 'number' && exampleIndex >= 0 && typeof tab.exampleIndex === 'number' && tab.exampleIndex >= 0) {
+        return tab.exampleIndex === exampleIndex;
+      }
+
+      return tab.exampleName === exampleName;
+    }
+
+    return true;
+  });
 };
 
 export const tabsSlice = createSlice({
@@ -19,7 +51,7 @@ export const tabsSlice = createSlice({
   initialState,
   reducers: {
     addTab: (state, action) => {
-      const { uid, collectionUid, type, requestPaneTab, preview, exampleUid, itemUid } = action.payload;
+      const { uid, collectionUid, type, requestPaneTab, preview, exampleUid, itemUid, pathname, exampleName, exampleIndex, isTransient } = action.payload;
 
       const nonReplaceableTabTypes = [
         'variables',
@@ -36,6 +68,12 @@ export const tabsSlice = createSlice({
       const existingTab = find(state.tabs, (tab) => tab.uid === uid);
       if (existingTab) {
         state.activeTabUid = existingTab.uid;
+        return;
+      }
+
+      const existingPathnameTab = findTabByPathname(state.tabs, { collectionUid, pathname, type, exampleName, exampleIndex });
+      if (existingPathnameTab) {
+        state.activeTabUid = existingPathnameTab.uid;
         return;
       }
 
@@ -56,23 +94,32 @@ export const tabsSlice = createSlice({
       }
 
       const lastTab = state.tabs[state.tabs.length - 1];
-      if (state.tabs.length > 0 && lastTab.preview) {
+      if (state.tabs.length > 0 && lastTab.preview && lastTab.collectionUid === collectionUid) {
         state.tabs[state.tabs.length - 1] = {
           uid,
           collectionUid,
+          type: type || 'request',
+          pathname: pathname || null,
           requestPaneWidth: null,
+          requestPaneHeight: null,
+          requestPaneCollapsed: false,
+          responsePaneCollapsed: false,
+          requestPaneWidthBeforeCollapse: null,
+          requestPaneHeightBeforeCollapse: null,
           requestPaneTab: requestPaneTab || defaultRequestPaneTab,
           responsePaneTab: 'response',
           responseFormat: null,
           responseViewTab: null,
           scriptPaneTab: null,
-          type: type || 'request',
           preview: preview !== undefined
             ? preview
             : !nonReplaceableTabTypes.includes(type),
           ...(uid ? { folderUid: uid } : {}),
           ...(exampleUid ? { exampleUid } : {}),
-          ...(itemUid ? { itemUid } : {})
+          ...(itemUid ? { itemUid } : {}),
+          ...(exampleName ? { exampleName } : {}),
+          ...(typeof exampleIndex === 'number' ? { exampleIndex } : {}),
+          ...(isTransient ? { isTransient: true } : {})
         };
 
         state.activeTabUid = uid;
@@ -82,20 +129,33 @@ export const tabsSlice = createSlice({
       state.tabs.push({
         uid,
         collectionUid,
+        type: type || 'request',
+        pathname: pathname || null,
         requestPaneWidth: null,
+        requestPaneHeight: null,
+        requestPaneCollapsed: false,
+        responsePaneCollapsed: false,
+        requestPaneWidthBeforeCollapse: null,
+        requestPaneHeightBeforeCollapse: null,
         requestPaneTab: requestPaneTab || defaultRequestPaneTab,
         responsePaneTab: 'response',
-        responsePaneScrollPosition: null,
         responseFormat: null,
         responseViewTab: null,
+        responseFilter: null,
+        responseFilterExpanded: false,
+        gqlDocsOpen: false,
+        tableColumnWidths: {},
         scriptPaneTab: null,
-        type: type || 'request',
+        docsEditing: false,
         ...(uid ? { folderUid: uid } : {}),
         preview: preview !== undefined
           ? preview
           : !nonReplaceableTabTypes.includes(type),
         ...(exampleUid ? { exampleUid } : {}),
-        ...(itemUid ? { itemUid } : {})
+        ...(itemUid ? { itemUid } : {}),
+        ...(exampleName ? { exampleName } : {}),
+        ...(typeof exampleIndex === 'number' ? { exampleIndex } : {}),
+        ...(isTransient ? { isTransient: true } : {})
       });
       state.activeTabUid = uid;
     },
@@ -140,6 +200,13 @@ export const tabsSlice = createSlice({
         tab.requestPaneHeight = action.payload.requestPaneHeight;
       }
     },
+    updateApiSpecTabLeftPaneWidth: (state, action) => {
+      const tab = find(state.tabs, (t) => t.uid === action.payload.uid);
+
+      if (tab) {
+        tab.apiSpecLeftPaneWidth = action.payload.apiSpecLeftPaneWidth;
+      }
+    },
     updateRequestPaneTab: (state, action) => {
       const tab = find(state.tabs, (t) => t.uid === action.payload.uid);
 
@@ -152,20 +219,6 @@ export const tabsSlice = createSlice({
 
       if (tab) {
         tab.responsePaneTab = action.payload.responsePaneTab;
-      }
-    },
-    updateResponsePaneScrollPosition: (state, action) => {
-      const tab = find(state.tabs, (t) => t.uid === action.payload.uid);
-
-      if (tab) {
-        tab.responsePaneScrollPosition = action.payload.scrollY;
-      }
-    },
-    updateRequestBodyScrollPosition: (state, action) => {
-      const tab = find(state.tabs, (t) => t.uid === action.payload.uid);
-
-      if (tab) {
-        tab.requestBodyScrollPosition = action.payload.scrollY;
       }
     },
     updateResponseFormat: (state, action) => {
@@ -182,6 +235,44 @@ export const tabsSlice = createSlice({
         tab.responseViewTab = action.payload.responseViewTab;
       }
     },
+    updateResponseFilter: (state, action) => {
+      const tab = find(state.tabs, (t) => t.uid === action.payload.uid);
+
+      if (tab) {
+        tab.responseFilter = action.payload.responseFilter;
+      }
+    },
+    updateResponseFilterExpanded: (state, action) => {
+      const tab = find(state.tabs, (t) => t.uid === action.payload.uid);
+
+      if (tab) {
+        tab.responseFilterExpanded = action.payload.responseFilterExpanded;
+      }
+    },
+    updateDocsEditing: (state, action) => {
+      const tab = find(state.tabs, (t) => t.uid === action.payload.uid);
+
+      if (tab) {
+        tab.docsEditing = action.payload.docsEditing;
+      }
+    },
+    updateGqlDocsOpen: (state, action) => {
+      const tab = find(state.tabs, (t) => t.uid === action.payload.uid);
+
+      if (tab) {
+        tab.gqlDocsOpen = action.payload.gqlDocsOpen;
+      }
+    },
+    updateTableColumnWidths: (state, action) => {
+      const tab = find(state.tabs, (t) => t.uid === action.payload.uid);
+
+      if (tab) {
+        if (!tab.tableColumnWidths) {
+          tab.tableColumnWidths = {};
+        }
+        tab.tableColumnWidths[action.payload.tableId] = action.payload.widths;
+      }
+    },
     updateScriptPaneTab: (state, action) => {
       const tab = find(state.tabs, (t) => t.uid === action.payload.uid);
 
@@ -189,13 +280,71 @@ export const tabsSlice = createSlice({
         tab.scriptPaneTab = action.payload.scriptPaneTab;
       }
     },
+    setFocusErrorLine: (state, action) => {
+      const tab = find(state.tabs, (t) => t.uid === action.payload.uid);
+
+      if (tab) {
+        tab.focusErrorLine = {
+          scriptPhase: action.payload.scriptPhase,
+          line: action.payload.line,
+          requestedAt: action.payload.requestedAt
+        };
+      }
+    },
+    clearFocusErrorLine: (state, action) => {
+      const tab = find(state.tabs, (t) => t.uid === action.payload.uid);
+
+      if (tab) {
+        tab.focusErrorLine = null;
+      }
+    },
+    updateQueryBuilderOpen: (state, action) => {
+      const tab = find(state.tabs, (t) => t.uid === action.payload.uid);
+
+      if (tab) {
+        tab.queryBuilderOpen = action.payload.queryBuilderOpen;
+      }
+    },
+    updateQueryBuilderWidth: (state, action) => {
+      const tab = find(state.tabs, (t) => t.uid === action.payload.uid);
+
+      if (tab) {
+        tab.queryBuilderWidth = action.payload.queryBuilderWidth;
+      }
+    },
+    updateVariablesPaneOpen: (state, action) => {
+      const tab = find(state.tabs, (t) => t.uid === action.payload.uid);
+
+      if (tab) {
+        tab.variablesPaneOpen = action.payload.variablesPaneOpen;
+      }
+    },
+    updateVariablesPaneHeight: (state, action) => {
+      const tab = find(state.tabs, (t) => t.uid === action.payload.uid);
+
+      if (tab) {
+        tab.variablesPaneHeight = action.payload.variablesPaneHeight;
+      }
+    },
     closeTabs: (state, action) => {
       const activeTab = find(state.tabs, (t) => t.uid === state.activeTabUid);
       const tabUids = action.payload.tabUids || [];
 
-      const nonClosableTypes = ['workspaceOverview', 'workspaceEnvironments'];
+      // Push closed tabs onto the recently closed stack (LIFO)
+      // Exclude transient requests — they have no persisted file and can't be reopened
+      const closedTabs = state.tabs.filter((t) =>
+        tabUids.includes(t.uid) && !NON_CLOSABLE_TAB_TYPES.includes(t.type) && !t.isTransient
+      );
+      if (closedTabs.length > 0) {
+        state.recentlyClosedTabs.push(...closedTabs);
+        // Trim to max size
+        if (state.recentlyClosedTabs.length > MAX_RECENTLY_CLOSED_TABS) {
+          state.recentlyClosedTabs = state.recentlyClosedTabs.slice(-MAX_RECENTLY_CLOSED_TABS);
+        }
+      }
+
       state.tabs = filter(state.tabs, (t) =>
-        !tabUids.includes(t.uid) || nonClosableTypes.includes(t.type)
+        !tabUids.includes(t.uid) || NON_CLOSABLE_TAB_TYPES.includes(t.type)
       );
 
       if (activeTab && state.tabs.length) {
@@ -213,7 +362,8 @@ export const tabsSlice = createSlice({
           if (siblingTabs && siblingTabs.length) {
             state.activeTabUid = last(siblingTabs).uid;
           } else {
-            state.activeTabUid = last(state.tabs).uid;
+            const overviewTab = find(state.tabs, (t) => t.type === 'workspaceOverview');
+            state.activeTabUid = overviewTab ? overviewTab.uid : last(state.tabs).uid;
           }
         }
       }
@@ -229,7 +379,12 @@ export const tabsSlice = createSlice({
 
       const activeTabStillExists = state.tabs.some((t) => t.uid === prevActiveTabUid);
       if (!activeTabStillExists) {
-        state.activeTabUid = state.tabs.length > 0 ? last(state.tabs).uid : null;
+        if (state.tabs.length === 0) {
+          state.activeTabUid = null;
+        } else {
+          const overviewTab = find(state.tabs, (t) => t.type === 'workspaceOverview');
+          state.activeTabUid = overviewTab ? overviewTab.uid : last(state.tabs).uid;
+        }
       }
     },
     makeTabPermanent: (state, action) => {
@@ -239,6 +394,42 @@ export const tabsSlice = createSlice({
         tab.preview = false;
       } else {
         console.error('Tab not found!');
+      }
+    },
+    collapseRequestPane: (state, action) => {
+      const tab = find(state.tabs, (t) => t.uid === action.payload.uid);
+      if (tab) {
+        tab.requestPaneCollapsed = true;
+        tab.responsePaneCollapsed = false;
+        tab.requestPaneWidthBeforeCollapse = tab.requestPaneWidth;
+        tab.requestPaneHeightBeforeCollapse = tab.requestPaneHeight;
+      }
+    },
+    collapseResponsePane: (state, action) => {
+      const tab = find(state.tabs, (t) => t.uid === action.payload.uid);
+      if (tab) {
+        tab.responsePaneCollapsed = true;
+        tab.requestPaneCollapsed = false;
+      }
+    },
+    expandRequestPane: (state, action) => {
+      const tab = find(state.tabs, (t) => t.uid === action.payload.uid);
+      if (tab) {
+        tab.requestPaneCollapsed = false;
+        if (tab.requestPaneWidthBeforeCollapse != null) {
+          tab.requestPaneWidth = tab.requestPaneWidthBeforeCollapse;
+        }
+        if (tab.requestPaneHeightBeforeCollapse != null) {
+          tab.requestPaneHeight = tab.requestPaneHeightBeforeCollapse;
+        }
+        tab.requestPaneWidthBeforeCollapse = null;
+        tab.requestPaneHeightBeforeCollapse = null;
+      }
+    },
+    expandResponsePane: (state, action) => {
+      const tab = find(state.tabs, (t) => t.uid === action.payload.uid);
+      if (tab) {
+        tab.responsePaneCollapsed = false;
       }
     },
     reorderTabs: (state, action) => {
@@ -267,6 +458,64 @@ export const tabsSlice = createSlice({
       tabs.splice(targetIdx, 0, moved);
 
       state.tabs = tabs;
+    },
+    syncTabUid: (state, action) => {
+      const { oldUid, newUid } = action.payload;
+      const tab = find(state.tabs, (t) => t.uid === oldUid);
+      if (tab) {
+        tab.uid = newUid;
+        if (tab.type === 'folder-settings') {
+          tab.folderUid = newUid;
+        }
+        if (state.activeTabUid === oldUid) {
+          state.activeTabUid = newUid;
+        }
+      }
+    },
+    restoreTabs: (state, action) => {
+      const { collection, tabs: snapshotTabs, activeTab } = action.payload;
+      const collectionUid = collection.uid;
+
+      const activeTabWasInCollection = state.tabs.some(
+        (t) => t.uid === state.activeTabUid && t.collectionUid === collectionUid
+      );
+
+      state.tabs = state.tabs.filter((t) => t.collectionUid !== collectionUid);
+
+      if (activeTabWasInCollection) {
+        state.activeTabUid = null;
+      }
+
+      (snapshotTabs || []).forEach((snapshotTab) => {
+        const tab = deserializeTab(snapshotTab, collection);
+        state.tabs.push(tab);
+
+        if (checkIsActiveTab(tab, activeTab, collection)) {
+          state.activeTabUid = tab.uid;
+        }
+      });
+
+      if (!state.activeTabUid) {
+        state.activeTabUid = state.tabs.find((t) => t.collectionUid === collectionUid)?.uid || null;
+      }
+    },
+    reopenLastClosedTab: (state, action) => {
+      const collectionUid = action.payload?.collectionUid;
+      // Find the last closed tab for this collection (LIFO). If no collectionUid is
+      // available, reopen the latest closed tab globally.
+      const index = collectionUid
+        ? state.recentlyClosedTabs.findLastIndex((t) => t.collectionUid === collectionUid)
+        : state.recentlyClosedTabs.length - 1;
+      if (index === -1) return;
+
+      const [tab] = state.recentlyClosedTabs.splice(index, 1);
+
+      // Don't reopen if a tab with this uid already exists
+      const alreadyOpen = state.tabs.some((t) => t.uid === tab.uid);
+      if (alreadyOpen) return;
+
+      state.tabs.push(tab);
+      state.activeTabUid = tab.uid;
     }
   }
 });
@@ -277,17 +526,34 @@ export const {
   switchTab,
   updateRequestPaneTabWidth,
   updateRequestPaneTabHeight,
+  updateApiSpecTabLeftPaneWidth,
   updateRequestPaneTab,
   updateResponsePaneTab,
-  updateResponsePaneScrollPosition,
-  updateRequestBodyScrollPosition,
   updateResponseFormat,
   updateResponseViewTab,
+  updateResponseFilter,
+  updateResponseFilterExpanded,
+  updateDocsEditing,
+  updateGqlDocsOpen,
+  updateTableColumnWidths,
   updateScriptPaneTab,
+  setFocusErrorLine,
+  clearFocusErrorLine,
   closeTabs,
   closeAllCollectionTabs,
   makeTabPermanent,
-  reorderTabs
+  collapseRequestPane,
+  collapseResponsePane,
+  expandRequestPane,
+  expandResponsePane,
+  reorderTabs,
+  syncTabUid,
+  restoreTabs,
+  reopenLastClosedTab,
+  updateQueryBuilderOpen,
+  updateQueryBuilderWidth,
+  updateVariablesPaneOpen,
+  updateVariablesPaneHeight
 } = tabsSlice.actions;
 
 export default tabsSlice.reducer;

@@ -1,0 +1,46 @@
+meta {
+  name: read-methods
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{host}}/api/echo/json
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "hello": "bruno"
+  }
+}
+
+assert {
+  res.status: eq 200
+}
+
+tests {
+  test("res.headerList.get(name)", function() {
+    expect(res.headerList.get('x-powered-by')).to.equal('Express');
+    expect(res.headerList.get('nonexistent')).to.be.undefined;
+  });
+
+  test("res.headerList.one(name)", function() {
+    const header = res.headerList.one('x-powered-by');
+    expect(header).to.eql({ key: 'x-powered-by', value: 'Express' });
+    expect(res.headerList.one('nonexistent')).to.be.undefined;
+  });
+
+  test("res.headerList.all()", function() {
+    const all = res.headerList.all();
+    expect(all).to.be.an('array');
+    expect(all.length).to.be.at.least(1);
+    const keys = all.map(h => h.key);
+    expect(keys).to.include('x-powered-by');
+  });
+
+  test("res.headerList.count()", function() {
+    expect(res.headerList.count()).to.be.at.least(1);
+  });
+}

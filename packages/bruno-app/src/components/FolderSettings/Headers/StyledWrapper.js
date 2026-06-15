@@ -1,6 +1,6 @@
 import styled from 'styled-components';
 
-const Wrapper = styled.div`
+const StyledWrapper = styled.div`
   table {
     width: 100%;
     border-collapse: collapse;
@@ -53,4 +53,4 @@ const Wrapper = styled.div`
   }
 `;
 
-export default Wrapper;
+export default StyledWrapper;

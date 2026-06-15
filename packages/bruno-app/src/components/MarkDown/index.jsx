@@ -3,6 +3,8 @@ import * as MarkdownItReplaceLink from 'markdown-it-replace-link';
 import StyledWrapper from './StyledWrapper';
 import React from 'react';
 import { isValidUrl } from 'utils/url/index';
+import DOMPurify from 'dompurify';
+import { useMemo } from 'react';
 
 const Markdown = ({ collectionPath, onDoubleClick, content }) => {
   const markdownItOptions = {
@@ -33,14 +35,14 @@ const Markdown = ({ collectionPath, onDoubleClick, content }) => {
   };
 
   const md = new MarkdownIt(markdownItOptions).use(MarkdownItReplaceLink);
-
-  const htmlFromMarkdown = md.render(content || '');
+  const htmlFromMarkdown = useMemo(() => md.render(content || ''), [content, collectionPath]);
+  const cleanHTML = useMemo(() => DOMPurify.sanitize(htmlFromMarkdown), [htmlFromMarkdown]);
 
   return (
     <StyledWrapper>
       <div
         className="markdown-body"
-        dangerouslySetInnerHTML={{ __html: htmlFromMarkdown }}
+        dangerouslySetInnerHTML={{ __html: cleanHTML }}
         onClick={handleOnClick}
         onDoubleClick={handleOnDoubleClick}
       />

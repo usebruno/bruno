@@ -1,0 +1,33 @@
+meta {
+  name: OAuth1 HMAC-SHA256 Body 200
+  type: http
+  seq: 19
+}
+
+post {
+  url: {{localhost}}/api/auth/oauth1/resource
+  body: formUrlEncoded
+  auth: oauth1
+}
+
+auth:oauth1 {
+  consumer_key: consumer_key_1
+  consumer_secret: consumer_secret_1
+  access_token: access_token_1
+  token_secret: token_secret_1
+  callback_url: 
+  verifier: 
+  signature_method: HMAC-SHA256
+  private_key: 
+  timestamp: 
+  nonce: 
+  version: 1.0
+  realm: 
+  placement: body
+  include_body_hash: false
+}
+
+assert {
+  res.status: eq 200
+  res.body.resource.name: eq oauth1-test-resource
+}

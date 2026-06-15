@@ -20,18 +20,22 @@ import {
   IconSettings,
   IconTerminal2,
   IconFolder,
-  IconBook
+  IconBook,
+  IconFileArrowRight
 } from '@tabler/icons';
 import OpenAPISyncIcon from 'components/Icons/OpenAPISync';
 import { toggleCollection, collapseFullCollection } from 'providers/ReduxStore/slices/collections';
 import { mountCollection, moveCollectionAndPersist, handleCollectionItemDrop, pasteItem, showInFolder, saveCollectionSecurityConfig } from 'providers/ReduxStore/slices/collections/actions';
 import { useDispatch, useSelector } from 'react-redux';
 import { addTab, makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
+import { setFocusedSidebarPath } from 'providers/ReduxStore/slices/app';
 import toast from 'react-hot-toast';
 import NewRequest from 'components/Sidebar/NewRequest';
 import NewFolder from 'components/Sidebar/NewFolder';
 import CollectionItem from './CollectionItem';
 import RemoveCollection from './RemoveCollection';
+import MoveToWorkspace from './MoveToWorkspace';
+import { isPathExternalToBasePath } from 'utils/common/path';
 import { doesCollectionHaveItemsMatchingSearchText } from 'utils/collections/search';
 import { isItemAFolder, isItemARequest, areItemsLoading } from 'utils/collections';
 import { isTabForItemActive } from 'src/selectors/tab';
@@ -52,6 +56,7 @@ import StatusBadge from 'ui/StatusBadge';
 import { useBetaFeature, BETA_FEATURES } from 'utils/beta-features';
 import { useSidebarAccordion } from 'components/Sidebar/SidebarAccordionContext';
 import { createEmptyStateMenuItems } from 'utils/collections/emptyStateRequest';
+import useKeybinding from 'hooks/useKeybinding';
 
 // Delay before showing empty collection state (ms)
 // This prevents flicker from race condition between loading state and item batch updates
@@ -67,18 +72,26 @@ const Collection = ({ collection, searchText }) => {
   const [showShareCollectionModal, setShowShareCollectionModal] = useState(false);
   const [showGenerateDocumentationModal, setShowGenerateDocumentationModal] = useState(false);
   const [showRemoveCollectionModal, setShowRemoveCollectionModal] = useState(false);
+  const [showMoveToWorkspaceModal, setShowMoveToWorkspaceModal] = useState(false);
   const [dropType, setDropType] = useState(null);
   const [isKeyboardFocused, setIsKeyboardFocused] = useState(false);
   const [showEmptyState, setShowEmptyState] = useState(false);
   const dispatch = useDispatch();
   const isLoading = collection.isLoading;
   const collectionRef = useRef(null);
-  // Only count persisted items; transients don't affect empty state
-  const itemCount = collection.items?.filter((i) => !i.isTransient).length || 0;
+  // Only count persisted requests and folders; transients and file items
+  // (bruno.json, .js scripts) don't affect empty state
+  const itemCount = collection.items?.filter((i) => !i.isTransient && (isItemARequest(i) || isItemAFolder(i))).length || 0;
 
   const isCollectionFocused = useSelector(isTabForItemActive({ itemUid: collection.uid }));
   const { hasCopiedItems } = useSelector((state) => state.app.clipboard);
   const menuDropdownRef = useRef(null);
+
+  // 'Move into Workspace' is available for collections opened from outside the current workspace.
+  const activeWorkspace = useSelector((state) =>
+    state.workspaces.workspaces.find((w) => w.uid === state.workspaces.activeWorkspaceUid)
+  );
+  const isMoveToWorkspaceVisible = isPathExternalToBasePath(activeWorkspace?.pathname, collection.pathname);
 
   // Open the OpenAPI Sync tab
   const openOpenAPISyncTab = () => {
@@ -202,25 +215,30 @@ const Collection = ({ collection, searchText }) => {
       });
   };
 
-  // Keyboard shortcuts handler for collection
-  const handleKeyDown = (e) => {
-    // Detect Mac by checking both metaKey and platform
-    const isMac = navigator.userAgent?.includes('Mac') || navigator.platform?.startsWith('Mac');
-    const isModifierPressed = isMac ? e.metaKey : e.ctrlKey;
+  // Sidebar shortcuts — only active when this collection has keyboard focus
+  useKeybinding('cloneItem', () => {
+    setShowCloneCollectionModalOpen(true);
+    return false;
+  }, { enabled: isKeyboardFocused, deps: [isKeyboardFocused] });
 
-    if (isModifierPressed && e.key.toLowerCase() === 'v') {
-      e.preventDefault();
-      e.stopPropagation();
-      handlePasteItem();
-    }
-  };
+  useKeybinding('renameItem', () => {
+    setShowRenameCollectionModal(true);
+    return false;
+  }, { enabled: isKeyboardFocused, deps: [isKeyboardFocused] });
+
+  useKeybinding('pasteItem', () => {
+    handlePasteItem();
+    return false;
+  }, { enabled: isKeyboardFocused, deps: [isKeyboardFocused] });
 
   const handleFocus = () => {
     setIsKeyboardFocused(true);
+    dispatch(setFocusedSidebarPath(collection.pathname));
   };
 
   const handleBlur = () => {
     setIsKeyboardFocused(false);
+    dispatch(setFocusedSidebarPath(null));
   };
 
   const isCollectionItem = (itemType) => {
@@ -431,6 +449,19 @@ const Collection = ({ collection, searchText }) => {
         await openDevtoolsAndSwitchToTerminal(dispatch, collectionCwd);
       }
     },
+    ...(isMoveToWorkspaceVisible
+      ? [
+          {
+            id: 'move-to-workspace',
+            leftSection: IconFileArrowRight,
+            label: 'Move into Workspace',
+            testId: 'move-collection-to-workspace',
+            onClick: () => {
+              setShowMoveToWorkspaceModal(true);
+            }
+          }
+        ]
+      : []),
     {
       id: 'remove',
       leftSection: IconX,
@@ -451,6 +482,9 @@ const Collection = ({ collection, searchText }) => {
       {showRemoveCollectionModal && (
         <RemoveCollection collectionUid={collection.uid} onClose={() => setShowRemoveCollectionModal(false)} />
       )}
+      {showMoveToWorkspaceModal && (
+        <MoveToWorkspace collectionUid={collection.uid} onClose={() => setShowMoveToWorkspaceModal(false)} />
+      )}
       {showShareCollectionModal && (
         <ShareCollection collectionUid={collection.uid} onClose={() => setShowShareCollectionModal(false)} />
       )}
@@ -468,7 +502,6 @@ const Collection = ({ collection, searchText }) => {
           drag(drop(node));
         }}
         tabIndex={0}
-        onKeyDown={handleKeyDown}
         onFocus={handleFocus}
         onBlur={handleBlur}
         data-testid="sidebar-collection-row"
@@ -527,6 +560,7 @@ const Collection = ({ collection, searchText }) => {
                 </div>
                 <div style={{ paddingLeft: 8 }}>
                   <MenuDropdown
+                    data-testid="add-request-cta"
                     items={emptyStateMenuItems}
                     placement="bottom-start"
                     appendTo={dropdownContainerRef?.current || document.body}

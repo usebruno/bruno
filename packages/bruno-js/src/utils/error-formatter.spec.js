@@ -8,7 +8,10 @@ const {
   findYmlScriptBlockEndLine,
   adjustLineNumber,
   parseStackTrace,
-  parseErrorLocation
+  parseErrorLocation,
+  getSourceContextFromContent,
+  adjustStackTrace,
+  buildStackFromCallSites
 } = require('./error-formatter');
 const fs = require('fs');
 const path = require('path');
@@ -817,6 +820,251 @@ get {
         expect(result).toBeNull();
         expect(consoleSpy).toHaveBeenCalled();
       });
+    });
+
+    describe('in-memory script content (draft state)', () => {
+      it('should use requestScriptContent for request-level errors instead of disk', () => {
+        // The .bru file on disk has different content than the draft
+        const draftContent = 'const draft = true;\ndraft.missing.prop;\nconsole.log("draft");';
+        const metadata = {
+          requestStartLine: 1,
+          requestEndLine: 3,
+          requestScriptContent: draftContent
+        };
+
+        // NodeVM: line 4 - offset 2 = scriptRelativeLine 2, within request range [1,3]
+        // lineInScript = 2 - 1 = 1, which maps to first line of draft content
+        const error = makeCallSiteError(bruFilePath, 4, 'draft.missing is not defined', 'ReferenceError');
+        const result = formatErrorWithContextV2(error, 'pre-request', metadata, testDir);
+
+        expect(result).not.toBeNull();
+        expect(result.errorLine).toBe(1);
+        expect(result.lines[0].content).toBe('const draft = true;');
+        expect(result.lines[0].isError).toBe(true);
+      });
+
+      it('should show correct error line from draft content', () => {
+        const draftContent = 'const a = 1;\nconst b = undefined;\nb.foo();';
+        const metadata = {
+          requestStartLine: 1,
+          requestEndLine: 3,
+          requestScriptContent: draftContent
+        };
+
+        // NodeVM: line 5 - offset 2 = scriptRelativeLine 3, within request range [1,3]
+        // lineInScript = 3 - 1 = 2, which maps to second line of draft content
+        const error = makeCallSiteError(bruFilePath, 5, 'b is undefined', 'TypeError');
+        const result = formatErrorWithContextV2(error, 'pre-request', metadata, testDir);
+
+        expect(result).not.toBeNull();
+        expect(result.errorLine).toBe(2);
+        const errorLine = result.lines.find((l) => l.isError);
+        expect(errorLine.content).toBe('const b = undefined;');
+      });
+
+      it('should use scriptContent from segments for collection/folder errors', () => {
+        const draftCollectionScript = 'const draftCol = true;\ndraftCol.missing.prop;';
+        const metadata = {
+          requestStartLine: 0,
+          requestEndLine: 0,
+          segments: [{
+            startLine: 1,
+            endLine: 4,
+            filePath: collectionYmlPath,
+            displayPath: 'opencollection.yml',
+            scriptContent: draftCollectionScript
+          }]
+        };
+
+        // NodeVM: line 4 - offset 2 = scriptRelativeLine 2, falls in segment [1,4]
+        // lineInScript = 2 - 1 = 1, maps to first line of draft collection script
+        const error = makeCallSiteError(bruFilePath, 4, 'draftCol.missing is not defined', 'ReferenceError');
+        const result = formatErrorWithContextV2(error, 'pre-request', metadata, testDir);
+
+        expect(result).not.toBeNull();
+        expect(result.filePath).toBe('opencollection.yml');
+        expect(result.errorLine).toBe(1);
+        expect(result.lines[0].content).toBe('const draftCol = true;');
+        expect(result.lines[0].isError).toBe(true);
+      });
+
+      it('should fall back to disk when requestScriptContent is not provided', () => {
+        const metadata = {
+          requestStartLine: 1,
+          requestEndLine: 3
+          // no requestScriptContent
+        };
+
+        const error = makeCallSiteError(bruFilePath, 3, 'token is not defined', 'ReferenceError');
+        const result = formatErrorWithContextV2(error, 'pre-request', metadata, testDir);
+
+        expect(result).not.toBeNull();
+        // Should still work via disk-based fallback
+        expect(result.filePath).toBe('test.bru');
+      });
+
+      it('should fall back to disk when segment scriptContent is not provided', () => {
+        const metadata = {
+          requestStartLine: 0,
+          requestEndLine: 0,
+          segments: [{
+            startLine: 1,
+            endLine: 4,
+            filePath: collectionYmlPath,
+            displayPath: 'opencollection.yml'
+            // no scriptContent
+          }]
+        };
+
+        const error = makeCallSiteError(bruFilePath, 4, 'error', 'ReferenceError');
+        const result = formatErrorWithContextV2(error, 'pre-request', metadata, testDir);
+
+        expect(result).not.toBeNull();
+        expect(result.filePath).toBe('opencollection.yml');
+      });
+
+      it('should use scriptContent from segments when folder .bru has no script block on disk', () => {
+        // Create a folder.bru with NO script block (simulates a draft where the user added a new script)
+        const folderBruPath = path.join(testDir, 'folder.bru');
+        fs.writeFileSync(folderBruPath, 'meta {\n  name: My Folder\n}\n');
+
+        const draftFolderScript = 'const x = undefined;\nx.boom();';
+        const metadata = {
+          requestStartLine: 0,
+          requestEndLine: 0,
+          segments: [{
+            startLine: 1,
+            endLine: 4,
+            filePath: folderBruPath,
+            displayPath: 'folder/folder.bru',
+            scriptContent: draftFolderScript
+          }]
+        };
+
+        // NodeVM: line 4 - offset 2 = scriptRelativeLine 2, falls in segment [1,4]
+        // lineInScript = 2 - 1 = 1
+        const error = makeCallSiteError(bruFilePath, 4, 'x is undefined', 'TypeError');
+        const result = formatErrorWithContextV2(error, 'pre-request', metadata, testDir);
+
+        expect(result).not.toBeNull();
+        expect(result.filePath).toBe('folder.bru');
+        expect(result.errorLine).toBe(1);
+        expect(result.lines[0].content).toBe('const x = undefined;');
+        expect(result.lines[0].isError).toBe(true);
+      });
+
+      it('should use QuickJS offset correctly with requestScriptContent', () => {
+        const draftContent = 'const x = 1;\nundefined.boom();';
+        const metadata = {
+          requestStartLine: 1,
+          requestEndLine: 3,
+          requestScriptContent: draftContent
+        };
+
+        // QuickJS: line 11 - offset 9 = scriptRelativeLine 2, within request range [1,3]
+        // lineInScript = 2 - 1 = 1
+        const error = makeQuickJSError(bruFilePath, 11, 'not defined', 'ReferenceError');
+        const result = formatErrorWithContextV2(error, 'pre-request', metadata, testDir);
+
+        expect(result).not.toBeNull();
+        expect(result.errorLine).toBe(1);
+        expect(result.lines[0].content).toBe('const x = 1;');
+      });
+    });
+  });
+
+  describe('stack trace with null-line segment resolution', () => {
+    it('buildStackFromCallSites should not interpolate null into stack frames', () => {
+      // Segment with no on-disk script block → resolveSegmentError returns line: null
+      const folderBruPath = path.join(testDir, 'folder.bru');
+      fs.writeFileSync(folderBruPath, 'meta {\n  name: My Folder\n}\n');
+
+      const metadata = {
+        requestStartLine: 0,
+        requestEndLine: 0,
+        segments: [{
+          startLine: 1,
+          endLine: 4,
+          filePath: folderBruPath,
+          displayPath: 'folder/folder.bru',
+          scriptContent: 'const x = 1;\nx.boom();'
+        }]
+      };
+
+      // NodeVM callSite: line 4 - offset 2 = scriptRelativeLine 2, falls in segment [1,4]
+      const callSites = [{ filePath: bruFilePath, line: 4, column: 5, functionName: null }];
+      const result = buildStackFromCallSites(callSites, 'pre-request', null, metadata);
+
+      expect(result).not.toContain('null');
+      // Should fall back to original file/line since resolved.line is null
+      expect(result).toContain(bruFilePath);
+    });
+
+    it('adjustStackTrace should not interpolate null into stack frames', () => {
+      const folderBruPath = path.join(testDir, 'folder.bru');
+      fs.writeFileSync(folderBruPath, 'meta {\n  name: My Folder\n}\n');
+
+      const metadata = {
+        requestStartLine: 0,
+        requestEndLine: 0,
+        segments: [{
+          startLine: 1,
+          endLine: 4,
+          filePath: folderBruPath,
+          displayPath: 'folder/folder.bru',
+          scriptContent: 'const x = 1;\nx.boom();'
+        }]
+      };
+
+      const stack = `TypeError: x.boom is not a function\n    at ${bruFilePath}:4:5`;
+      const result = adjustStackTrace(stack, 'pre-request', null, metadata, false);
+
+      expect(result).not.toContain('null');
+      // Original frame should be preserved since resolved.line is null
+      expect(result).toContain(`${bruFilePath}:4:5`);
+    });
+  });
+
+  describe('getSourceContextFromContent', () => {
+    it('should return context lines around the error line', () => {
+      const content = 'line1\nline2\nline3\nline4\nline5';
+      const result = getSourceContextFromContent(content, 3, 1);
+
+      expect(result).not.toBeNull();
+      expect(result.errorLine).toBe(3);
+      expect(result.lines).toHaveLength(3);
+      expect(result.lines[0]).toEqual({ lineNumber: 2, content: 'line2', isError: false });
+      expect(result.lines[1]).toEqual({ lineNumber: 3, content: 'line3', isError: true });
+      expect(result.lines[2]).toEqual({ lineNumber: 4, content: 'line4', isError: false });
+    });
+
+    it('should return null for null/empty content', () => {
+      expect(getSourceContextFromContent(null, 1)).toBeNull();
+      expect(getSourceContextFromContent('', 1)).toBeNull();
+    });
+
+    it('should return null for out-of-bounds error line', () => {
+      const content = 'line1\nline2';
+      expect(getSourceContextFromContent(content, 0)).toBeNull();
+      expect(getSourceContextFromContent(content, 3)).toBeNull();
+    });
+
+    it('should handle single-line content', () => {
+      const content = 'only line';
+      const result = getSourceContextFromContent(content, 1, 3);
+
+      expect(result).not.toBeNull();
+      expect(result.lines).toHaveLength(1);
+      expect(result.lines[0]).toEqual({ lineNumber: 1, content: 'only line', isError: true });
+    });
+
+    it('should clamp context at file boundaries', () => {
+      const content = 'line1\nline2\nline3';
+      const result = getSourceContextFromContent(content, 1, 5);
+
+      expect(result).not.toBeNull();
+      expect(result.lines).toHaveLength(3);
+      expect(result.startLine).toBe(1);
     });
   });
 });

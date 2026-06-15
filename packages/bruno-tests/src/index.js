@@ -10,11 +10,18 @@ const redirectRouter = require('./redirect');
 const mixRouter = require('./mix');
 const wsRouter = require('./ws');
 const setupGraphQL = require('./graphql');
+const sseRouter = require('./sse');
+const fileBinaryRouter = require('./file-binary');
 
 const app = new express();
 const port = process.env.PORT || 8081;
 
 app.use(cors());
+
+// Mount before the global body parsers so file/binary uploads (including ones
+// declared as application/json) arrive as raw bytes instead of being parsed —
+// this is what lets us hash the body and verify the wire payload byte-exact.
+app.use('/api/file-binary', fileBinaryRouter);
 
 const saveRawBody = (req, res, buf) => {
   req.rawBuffer = Buffer.from(buf);
@@ -49,6 +56,7 @@ app.use('/api/echo', echoRouter);
 app.use('/api/multipart', multipartRouter);
 app.use('/api/redirect', redirectRouter);
 app.use('/api/mix', mixRouter);
+app.use('/api/sse', sseRouter);
 
 app.get('/ping', function (req, res) {
   return res.send('pong');

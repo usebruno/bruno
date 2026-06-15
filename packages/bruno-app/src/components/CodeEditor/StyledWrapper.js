@@ -151,12 +151,44 @@ const StyledWrapper = styled.div`
   
   //matching bracket fix
   .CodeMirror-matchingbracket {
-    background: #5cc0b48c !important;
-    text-decoration:unset;
+    background: ${(props) => props.theme.status.success.background} !important;
+    text-decoration: unset;
+  }
+
+  .CodeMirror-nonmatchingbracket {
+    color: ${(props) => props.theme.colors.text.danger} !important;
+    background: ${(props) => props.theme.status.danger.background} !important;
+    text-decoration: unset;
   }
 
   .cm-search-line-highlight {
     background: ${(props) => props.theme.codemirror.searchLineHighlightCurrent};
+  }
+
+  @keyframes cm-error-line-flash {
+    0%, 60% {
+      background-color: ${(props) => props.theme.status.danger.background};
+    }
+    100% {
+      background-color: transparent;
+    }
+  }
+
+  .CodeMirror .cm-error-line-flash {
+    background-color: transparent;
+    animation: cm-error-line-flash 3s ease-in-out;
+  }
+
+  .CodeMirror .cm-error-line-flash-gutter {
+    color: ${(props) => props.theme.colors.text.danger} !important;
+    font-weight: 600;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .CodeMirror .cm-error-line-flash {
+      animation: none;
+      background-color: ${(props) => props.theme.status.danger.background};
+    }
   }
 
   .cm-search-match {

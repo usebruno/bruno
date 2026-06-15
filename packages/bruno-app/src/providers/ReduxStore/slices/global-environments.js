@@ -226,6 +226,7 @@ export const saveGlobalEnvironment = ({ variables, environmentUid }) => (dispatc
       .then(() => ipcRenderer.invoke('renderer:save-global-environment', {
         environmentUid,
         variables,
+        color: environment.color,
         workspaceUid,
         workspacePath
       }))
@@ -310,6 +311,7 @@ export const globalEnvironmentsUpdateEvent = ({ globalEnvironmentVariables }) =>
       .then(() => ipcRenderer.invoke('renderer:save-global-environment', {
         environmentUid,
         variables,
+        color: environment.color,
         workspaceUid,
         workspacePath
       }))

@@ -1,6 +1,10 @@
 const ohm = require('ohm-js');
 const _ = require('lodash');
 
+// this is done to avoid breaking existing pairlist mapping so
+// the key is hidden and not added into the json automatically
+const ANNOTATIONS_KEY = Symbol('annotations');
+
 // Env files use 4-space indentation for multiline content
 // vars {
 //   API_KEY: '''
@@ -12,7 +16,7 @@ const _ = require('lodash');
 // }
 const indentLevel = 4;
 const grammar = ohm.grammar(`Bru {
-  BruEnvFile = (vars | secretvars | color)*
+  BruEnvFile = (vars | secretvars | externalsecrets | color)*
 
   nl = "\\r"? "\\n"
   st = " " | "\\t"
@@ -28,11 +32,27 @@ const grammar = ohm.grammar(`Bru {
   multilinetextblock = multilinetextblockstart multilinetextblockcontent multilinetextblockend
   multilinetextblockcontent = (~multilinetextblockend any)*
 
+  // Annotation support (decorators on pairs)
+  annotationname = annotationchar+
+  annotationchar = ~("(" | ")" | " " | "\\t" | "\\r" | "\\n" | ":") any
+  annotationsinglequotedargchar = ~"'" any
+  annotationsinglequotedarg = "'" annotationsinglequotedargchar* "'"
+  annotationdoublequotedargchar = ~"\\"" any
+  annotationdoublequotedarg = "\\"" annotationdoublequotedargchar* "\\""
+  annotationunquotedargchar = ~")" any
+  annotationunquotedarg = annotationunquotedargchar*
+  annotationargvalue = annotationsinglequotedarg | annotationdoublequotedarg | annotationunquotedarg
+  annotationmultilinetextblock = multilinetextblockdelimiter (~multilinetextblockdelimiter any)* multilinetextblockdelimiter
+  annotationargscontents = annotationmultilinetextblock | annotationargvalue
+  annotationargs = "(" annotationargscontents ")"
+  annotation = "@" annotationname annotationargs?
+  annotationentry = st* annotation ~":" st* nl
+  pairannotations = annotationentry*
+
   // Dictionary Blocks
   dictionary = st* "{" pairlist? tagend
   pairlist = optionalnl* pair (~tagend stnl* pair)* (~tagend space)*
-  pair = descriptionprefix? st* key st* ":" st* value st*  -- kv
-       | descriptionprefix                                  -- orphandesc
+  pair = st* pairannotations st* key st* ":" st* value st*
   key = keychar*
   value = multilinetextblock | singlelinevalue
   singlelinevalue = valuechar*
@@ -51,10 +71,13 @@ const grammar = ohm.grammar(`Bru {
   // Array Blocks
   array = st* "[" stnl* valuelist stnl* "]"
   valuelist = stnl* arrayvalue stnl* ("," stnl* arrayvalue)*
-  arrayvalue = arrayvaluechar*
+  arrayvalue = pairannotations st* arrayvaluechar*
   arrayvaluechar = ~(nl | st | "[" | "]" | ",") any
 
   secretvars = "vars:secret" array
+  externalsecrets = "vars:externalsecrets:" externalsecretsname dictionary
+  externalsecretsname = externalsecretsnamechar+
+  externalsecretsnamechar = ~(st | nl | "{") any
   vars = "vars" dictionary
   color = "color:" any*
 }`);
@@ -68,20 +91,20 @@ const mapPairListToKeyValPairs = (pairList = []) => {
     // Skip the internal __desc marker when resolving the real key name
     let name = _.keys(pair).find((k) => k !== '__desc');
     let value = pair[name];
+    const rawAnnotations = pair[ANNOTATIONS_KEY];
     let enabled = true;
     if (name && name.length && name.charAt(0) === '~') {
       name = name.slice(1);
       enabled = false;
     }
 
-    const result = {
-      name,
-      value,
-      enabled
-    };
-
-    if (pair.__desc !== undefined) {
-      result.description = pair.__desc;
+    const result = { name, value, enabled };
+    if (rawAnnotations && rawAnnotations.length) {
+      result.annotations = rawAnnotations;
+      // TODO(reaper): recheck this
+      const descriptionAnnotation = rawAnnotations.find((d) => d.name === 'description');
+      console.log({ descriptionAnnotation });
+      result.description = '';
     }
 
     return result;
@@ -89,25 +112,25 @@ const mapPairListToKeyValPairs = (pairList = []) => {
 };
 
 const mapArrayListToKeyValPairs = (arrayList = []) => {
-  arrayList = arrayList.filter((v) => v && v.length);
+  arrayList = arrayList.filter((item) => item && item.name && item.name.length);
 
   if (!arrayList.length) {
     return [];
   }
 
-  return _.map(arrayList, (value) => {
-    let name = value;
+  return _.map(arrayList, (item) => {
+    let name = item.name;
     let enabled = true;
     if (name && name.length && name.charAt(0) === '~') {
       name = name.slice(1);
       enabled = false;
     }
 
-    return {
-      name,
-      value: '',
-      enabled
-    };
+    const result = { name, value: '', enabled };
+    if (item.annotations && item.annotations.length) {
+      result.annotations = item.annotations;
+    }
+    return result;
   });
 };
 
@@ -136,8 +159,13 @@ const sem = grammar.createSemantics().addAttribute('ast', {
   array(_1, _2, _3, valuelist, _4, _5) {
     return valuelist.ast;
   },
-  arrayvalue(chars) {
-    return chars.sourceString ? chars.sourceString.trim() : '';
+  arrayvalue(annotations, _st, chars) {
+    const result = { name: chars.sourceString ? chars.sourceString.trim() : '' };
+    const annotationList = annotations.ast;
+    if (annotationList && annotationList.length > 0) {
+      result.annotations = annotationList;
+    }
+    return result;
   },
   valuelist(_1, value, _2, _3, _4, rest) {
     return [value.ast, ...rest.ast];
@@ -148,32 +176,56 @@ const sem = grammar.createSemantics().addAttribute('ast', {
   pairlist(_1, pair, _2, rest, _3) {
     return [pair.ast, ...rest.ast];
   },
-  descriptionprefix(alt) {
+  pairannotations(entries) {
+    return entries.ast;
+  },
+  annotationentry(_1, annotation, _2, _3) {
+    return annotation.ast;
+  },
+  annotation(_at, name, argsIter) {
+    const annotObj = { name: name.ast };
+    const argsArr = argsIter.ast;
+    if (argsArr.length > 0) {
+      annotObj.value = argsArr[0];
+    }
+    return annotObj;
+  },
+  annotationname(chars) {
+    return chars.sourceString;
+  },
+  annotationsinglequotedarg(_open, chars, _close) {
+    return chars.sourceString;
+  },
+  annotationdoublequotedarg(_open, chars, _close) {
+    return chars.sourceString;
+  },
+  annotationunquotedarg(chars) {
+    return chars.sourceString;
+  },
+  annotationargvalue(alt) {
     return alt.ast;
   },
-  descriptionprefix_triple(_st, _at, _desc, _lp, _open, descContent, _close, _rp, _st2, _nl) {
-    const raw = descContent.sourceString;
-    if (raw.includes('\n')) {
-      return raw.split('\n').map((line) => (line.startsWith('    ') ? line.slice(4) : line)).join('\n').trim();
-    }
-    return raw.trim();
+  annotationmultilinetextblock(_1, content, _2) {
+    const lines = content.sourceString.split('\n');
+    let minIndent = 4;
+    const dedented = lines.map((line) => (line.trim() === '' ? '' : line.substring(minIndent)));
+    if (dedented.length > 0 && dedented[0] === '') dedented.shift();
+    if (dedented.length > 0 && dedented[dedented.length - 1] === '') dedented.pop();
+    return dedented.join('\n');
   },
-  descriptionprefix_double(_st, _at, _desc, _lp, _dqOpen, descChars, _dqClose, _rp, _st2, _nl) {
-    return descChars.sourceString.replace(/\\(\\|"|n|r|t)/g, (_, c) => {
-      if (c === '\\') return '\\';
-      if (c === '"') return '"';
-      if (c === 'n') return '\n';
-      if (c === 'r') return '\r';
-      if (c === 't') return '\t';
-      return c;
-    });
+  annotationargscontents(alt) {
+    return alt.ast;
   },
-  pair_kv(descPrefix, _1, key, _2, _3, _4, value, _5) {
+  annotationargs(_open, value, _close) {
+    return value.ast;
+  },
+  pair(_1, annotations, _2, key, _3, _4, _5, value, _6) {
     let res = {};
-    const valueAst = value.ast;
-    const prefixDesc = descPrefix.children.length > 0 ? descPrefix.children[0].ast : undefined;
-    res[key.ast] = valueAst ? valueAst.trim() : '';
-    if (prefixDesc !== undefined) res.__desc = prefixDesc;
+    res[key.ast] = value.ast ? value.ast.trim() : '';
+    const annotationList = annotations.ast;
+    if (annotationList && annotationList.length > 0) {
+      res[ANNOTATIONS_KEY] = annotationList;
+    }
     return res;
   },
   pair_orphandesc(descPrefix) {
@@ -236,6 +288,21 @@ const sem = grammar.createSemantics().addAttribute('ast', {
     return {
       variables: vars
     };
+  },
+  externalsecrets(_1, name, dictionary) {
+    const variables = mapPairListToKeyValPairs(dictionary.ast).map((pair) => ({
+      name: pair.name,
+      value: pair.value
+    }));
+    return {
+      externalSecrets: {
+        type: name.ast,
+        variables
+      }
+    };
+  },
+  externalsecretsname(chars) {
+    return chars.sourceString;
   },
   color: (_1, anystring) => {
     return {

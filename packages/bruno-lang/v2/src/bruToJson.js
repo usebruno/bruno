@@ -3,6 +3,10 @@ const _ = require('lodash');
 const { safeParseJson, outdentString } = require('./utils');
 const parseExample = require('./example/bruToJson');
 
+// this is done to avoid breaking existing pairlist mapping so
+// the key is hidden and not added into the json automatically
+const ANNOTATIONS_KEY = Symbol('annotations');
+
 /**
  * A Bru file is made up of blocks.
  * There are three types of blocks
@@ -31,7 +35,7 @@ const parseExample = require('./example/bruToJson');
  */
 const grammar = ohm.grammar(`Bru {
   BruFile = (meta | http | grpc | ws | query | params | headers | metadata | auths | bodies | varsandassert | script | tests | settings | docs | example)*
-  auths = authawsv4 | authbasic | authbearer | authdigest | authNTLM | authOAuth2 | authwsse | authapikey | authOauth2Configs
+  auths = authawsv4 | authbasic | authbearer | authdigest | authNTLM | authOAuth1 | authOAuth2 | authwsse | authapikey | authOauth2Configs
   bodies = bodyjson | bodytext | bodyxml | bodysparql | bodygraphql | bodygraphqlvars | bodyforms | body | bodygrpc | bodyws
   bodyforms = bodyformurlencoded | bodymultipart | bodyfile
   params = paramspath | paramsquery
@@ -55,11 +59,27 @@ const grammar = ohm.grammar(`Bru {
   multilinetextblock = multilinetextblockdelimiter (~multilinetextblockdelimiter any)* multilinetextblockdelimiter st* contenttypeannotation?
   contenttypeannotation = "@contentType(" (~")" any)* ")"
 
+  // Annotation support (decorators on pairs)
+  annotationname = annotationchar+
+  annotationchar = ~("(" | ")" | " " | "\\t" | "\\r" | "\\n" | ":") any
+  annotationsinglequotedargchar = ~"'" any
+  annotationsinglequotedarg = "'" annotationsinglequotedargchar* "'"
+  annotationdoublequotedargchar = ~"\\"" any
+  annotationdoublequotedarg = "\\"" annotationdoublequotedargchar* "\\""
+  annotationunquotedargchar = ~")" any
+  annotationunquotedarg = annotationunquotedargchar*
+  annotationargvalue = annotationsinglequotedarg | annotationdoublequotedarg | annotationunquotedarg
+  annotationmultilinetextblock = multilinetextblockdelimiter (~multilinetextblockdelimiter any)* multilinetextblockdelimiter
+  annotationargscontents = annotationmultilinetextblock | annotationargvalue
+  annotationargs = "(" annotationargscontents ")"
+  annotation = "@" annotationname annotationargs?
+  annotationentry = st* annotation ~":" st* nl
+  pairannotations = annotationentry*
+
   // Dictionary Blocks
-  dictionary = st* "{" pairlist? tagend
+  dictionary = st* "{" st* pairlist? tagend
   pairlist = optionalnl* pair (~tagend stnl* pair)* (~tagend space)*
-  pair = descriptionprefix? st* (quoted_key | key) st* ":" st* value st*  -- kv
-       | descriptionprefix  -- orphandesc
+  pair = st* pairannotations st* (quoted_key | key) st* ":" st* value st*
   disable_char = "~"
   quote_char = "\\""
   esc_char = "\\\\"
@@ -84,8 +104,7 @@ const grammar = ohm.grammar(`Bru {
   // Dictionary for Assert Block
   assertdictionary = st* "{" assertpairlist? tagend
   assertpairlist = optionalnl* assertpair (~tagend stnl* assertpair)* (~tagend space)*
-  assertpair = descriptionprefix? st* assertkey st* ":" st* value st*  -- kv
-            | descriptionprefix                                          -- orphandesc
+  assertpair = st* pairannotations st* assertkey st* ":" st* value st*
   assertkey = ~tagend assertkeychar*
   assertkeychar = ~(tagend | nl | ":") any
 
@@ -134,6 +153,7 @@ const grammar = ohm.grammar(`Bru {
   authbearer = "auth:bearer" dictionary
   authdigest = "auth:digest" dictionary
   authNTLM = "auth:ntlm" dictionary
+  authOAuth1 = "auth:oauth1" dictionary
   authOAuth2 = "auth:oauth2" dictionary
   authwsse = "auth:wsse" dictionary
   authapikey = "auth:apikey" dictionary
@@ -181,12 +201,12 @@ const mapPairListToKeyValPairs = (pairList = [], parseEnabled = true) => {
     // Skip the internal __desc marker when resolving the real key name
     let name = _.keys(pair).find((k) => k !== '__desc');
     let value = pair[name];
+    const rawAnnotations = pair[ANNOTATIONS_KEY];
 
     if (!parseEnabled) {
-      return {
-        name,
-        value
-      };
+      const result = { name, value };
+      if (rawAnnotations && rawAnnotations.length) result.annotations = rawAnnotations;
+      return result;
     }
 
     let enabled = true;
@@ -195,16 +215,11 @@ const mapPairListToKeyValPairs = (pairList = [], parseEnabled = true) => {
       enabled = false;
     }
 
-    const result = {
-      name,
-      value,
-      enabled
-    };
-
-    if (pair.__desc !== undefined) {
-      result.description = pair.__desc;
+    const result = { name, value, enabled };
+    if (rawAnnotations && rawAnnotations.length) {
+      result.annotations = rawAnnotations;
+      // TODO (reaper): add result description here
     }
-
     return result;
   });
 };
@@ -217,23 +232,18 @@ const mapRequestParams = (pairList = [], type) => {
     // Skip the internal __desc marker when resolving the real key name
     let name = _.keys(pair).find((k) => k !== '__desc');
     let value = pair[name];
+    const rawAnnotations = pair[ANNOTATIONS_KEY];
     let enabled = true;
     if (name && name.length && name.charAt(0) === '~') {
       name = name.slice(1);
       enabled = false;
     }
 
-    const result = {
-      name,
-      value,
-      enabled,
-      type
-    };
-
-    if (pair.__desc !== undefined) {
-      result.description = pair.__desc;
+    const result = { name, value, enabled, type };
+    if (rawAnnotations && rawAnnotations.length) {
+      // TODO(reaper): need to set description value here
+      result.annotations = rawAnnotations;
     }
-
     return result;
   });
 };
@@ -373,52 +383,67 @@ const sem = grammar.createSemantics().addAttribute('ast', {
       {}
     );
   },
-  dictionary(_1, _2, pairlist, _3) {
+  dictionary(_1, _2, _3, pairlist, _4) {
     return pairlist.ast;
   },
   pairlist(_1, pair, _2, rest, _3) {
     return [pair.ast, ...rest.ast];
   },
-  descriptionprefix(alt) {
+  pairannotations(entries) {
+    return entries.ast;
+  },
+  annotationentry(_1, annotation, _2, _3) {
+    return annotation.ast;
+  },
+  annotation(_at, name, argsIter) {
+    const annotObj = { name: name.ast };
+    const argsArr = argsIter.ast;
+    if (argsArr.length > 0) {
+      annotObj.value = argsArr[0];
+    }
+    return annotObj;
+  },
+  annotationname(chars) {
+    return chars.sourceString;
+  },
+  annotationsinglequotedarg(_open, chars, _close) {
+    return chars.sourceString;
+  },
+  annotationdoublequotedarg(_open, chars, _close) {
+    return chars.sourceString;
+  },
+  annotationunquotedarg(chars) {
+    return chars.sourceString;
+  },
+  annotationargvalue(alt) {
     return alt.ast;
   },
-  descriptionprefix_triple(_st, _at, _desc, _lp, _open, descContent, _close, _rp, _st2, _nl) {
-    const raw = descContent.sourceString;
-    if (raw.includes('\n')) {
-      return raw.split('\n').map((line) => (line.startsWith('    ') ? line.slice(4) : line)).join('\n').trim();
-    }
-    return raw.trim();
+  annotationmultilinetextblock(_1, content, _2) {
+    const lines = content.sourceString.split('\n');
+    // NOTE: the number 4 is taken from the `multilinetextblock` implementation
+    let minIndent = 4;
+    const dedented = lines.map((line) => (line.trim() === '' ? '' : line.substring(minIndent)));
+    if (dedented.length > 0 && dedented[0] === '') dedented.shift();
+    if (dedented.length > 0 && dedented[dedented.length - 1] === '') dedented.pop();
+    return dedented.join('\n');
   },
-  descriptionprefix_double(_st, _at, _desc, _lp, _dqOpen, descChars, _dqClose, _rp, _st2, _nl) {
-    return descChars.sourceString.replace(/\\(\\|"|n|r|t)/g, (_, c) => {
-      if (c === '\\') return '\\';
-      if (c === '"') return '"';
-      if (c === 'n') return '\n';
-      if (c === 'r') return '\r';
-      if (c === 't') return '\t';
-      return c;
-    });
+  annotationargscontents(alt) {
+    return alt.ast;
   },
-  pair_kv(descPrefix, _1, key, _2, _3, _4, value, _5) {
+  annotationargs(_open, value, _close) {
+    return value.ast;
+  },
+  pair(_1, annotations, _keyindent, key, _2, _3, _4, value, _5) {
     let res = {};
-    const valueAst = value.ast;
-    const prefixDesc = descPrefix.children.length > 0 ? descPrefix.children[0].ast : undefined;
-
-    if (Array.isArray(valueAst)) {
-      res[key.ast] = valueAst;
-      if (prefixDesc !== undefined) res.__desc = prefixDesc;
-      return res;
+    if (Array.isArray(value.ast)) {
+      res[key.ast] = value.ast;
+    } else {
+      res[key.ast] = value.ast ? value.ast.trim() : '';
     }
-
-    if (valueAst && typeof valueAst === 'object' && '__value' in valueAst) {
-      res[key.ast] = valueAst.__value;
-      // Prefix description takes precedence over suffix description
-      res.__desc = prefixDesc !== undefined ? prefixDesc : valueAst.__desc;
-      return res;
+    const annotationList = annotations.ast;
+    if (annotationList && annotationList.length > 0) {
+      res[ANNOTATIONS_KEY] = annotationList;
     }
-
-    res[key.ast] = valueAst ? valueAst.trim() : '';
-    if (prefixDesc !== undefined) res.__desc = prefixDesc;
     return res;
   },
   pair_orphandesc(descPrefix) {
@@ -441,12 +466,13 @@ const sem = grammar.createSemantics().addAttribute('ast', {
   assertpairlist(_1, pair, _2, rest, _3) {
     return [pair.ast, ...rest.ast];
   },
-  assertpair_kv(descPrefix, _1, key, _2, _3, _4, value, _5) {
+  assertpair(_1, annotations, _2, key, _3, _4, _5, value, _6) {
     let res = {};
-    const valueAst = value.ast;
-    const prefixDesc = descPrefix.children.length > 0 ? descPrefix.children[0].ast : undefined;
-    res[key.ast] = valueAst ? valueAst.trim() : '';
-    if (prefixDesc !== undefined) res.__desc = prefixDesc;
+    res[key.ast] = value.ast ? value.ast.trim() : '';
+    const annotationList = annotations.ast;
+    if (annotationList && annotationList.length > 0) {
+      res[ANNOTATIONS_KEY] = annotationList;
+    }
     return res;
   },
   assertpair_orphandesc(descPrefix) {
@@ -776,6 +802,40 @@ const sem = grammar.createSemantics().addAttribute('ast', {
           username,
           password,
           domain
+        }
+      }
+    };
+  },
+  authOAuth1(_1, dictionary) {
+    const auth = mapPairListToKeyValPairs(dictionary.ast, false);
+    const findValue = (name) => {
+      const item = _.find(auth, { name });
+      return item ? item.value : '';
+    };
+    return {
+      auth: {
+        oauth1: {
+          consumerKey: findValue('consumer_key'),
+          consumerSecret: findValue('consumer_secret'),
+          accessToken: findValue('access_token'),
+          accessTokenSecret: findValue('token_secret'),
+          callbackUrl: findValue('callback_url'),
+          verifier: findValue('verifier'),
+          signatureMethod: findValue('signature_method'),
+          privateKey: (() => {
+            const val = findValue('private_key');
+            return val && val.startsWith('@file(') && val.endsWith(')') ? val.slice(6, -1) : val;
+          })(),
+          privateKeyType: (() => {
+            const val = findValue('private_key');
+            return val && val.startsWith('@file(') && val.endsWith(')') ? 'file' : 'text';
+          })(),
+          timestamp: findValue('timestamp'),
+          nonce: findValue('nonce'),
+          version: findValue('version'),
+          realm: findValue('realm'),
+          placement: findValue('placement'),
+          includeBodyHash: findValue('include_body_hash') === 'true'
         }
       }
     };
@@ -1125,10 +1185,12 @@ const sem = grammar.createSemantics().addAttribute('ast', {
     const namePair = _.find(pairs, { name: 'name' });
     const contentPair = _.find(pairs, { name: 'content' });
     const typePair = _.find(pairs, { name: 'type' });
+    const selectedPair = _.find(pairs, { name: 'selected' });
 
     const messageName = namePair ? namePair.value : '';
     const messageContent = contentPair ? contentPair.value : '';
     const messageTypeContent = typePair ? typePair.value : '';
+    const messageSelected = selectedPair ? selectedPair.value === 'true' : false;
 
     return {
       body: {
@@ -1137,7 +1199,8 @@ const sem = grammar.createSemantics().addAttribute('ast', {
           {
             name: messageName,
             type: messageTypeContent,
-            content: messageContent
+            content: messageContent,
+            selected: messageSelected
           }
         ]
       }

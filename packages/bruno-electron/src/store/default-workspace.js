@@ -66,7 +66,7 @@ class DefaultWorkspaceManager {
    * Recovers collections and environments from an existing workspace directory
    */
   recoverDataFromWorkspace(workspacePath) {
-    const recovered = { collections: [], environments: [], activeEnvironmentUid: null };
+    const recovered = { collections: [], environments: [] };
 
     try {
       // Try to read workspace config for collections
@@ -77,9 +77,6 @@ class DefaultWorkspaceManager {
           const collectionPath = path.isAbsolute(c.path) ? c.path : path.resolve(workspacePath, c.path);
           return isValidCollectionDirectory(collectionPath);
         });
-      }
-      if (config.activeEnvironmentUid) {
-        recovered.activeEnvironmentUid = config.activeEnvironmentUid;
       }
     } catch (error) {
       console.error('Failed to read workspace config during recovery:', error);
@@ -273,9 +270,6 @@ class DefaultWorkspaceManager {
           console.error('Failed to copy environment:', env.name, error);
         }
       }
-      if (recoveredData.activeEnvironmentUid) {
-        workspaceConfig.activeEnvironmentUid = recoveredData.activeEnvironmentUid;
-      }
     }
 
     // Apply recovered collections first (lower priority)
@@ -374,8 +368,12 @@ class DefaultWorkspaceManager {
           const content = stringifyEnvironment(environment, { format: 'yml' });
           await writeFile(envFilePath, content);
 
-          if (env.uid === activeGlobalEnvironmentUid && !workspaceConfig.activeEnvironmentUid) {
-            workspaceConfig.activeEnvironmentUid = generateUidBasedOnHash(envFilePath);
+          // Map the legacy active env uid to the new file-based uid in the per-workspace store
+          if (env.uid === activeGlobalEnvironmentUid) {
+            globalEnvironmentsStore.setActiveGlobalEnvironmentUidForWorkspace(
+              workspacePath,
+              generateUidBasedOnHash(envFilePath)
+            );
           }
         }
       }

@@ -23,6 +23,7 @@ const StyledWrapper = styled.div`
     position: relative;
     overflow: hidden;
     white-space: nowrap;
+    text-overflow: ellipsis;
     font-size: 0.8125rem;
 
     // so that the name does not cutoff when italicized
