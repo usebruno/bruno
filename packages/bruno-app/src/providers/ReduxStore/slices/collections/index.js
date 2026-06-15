@@ -3421,10 +3421,11 @@ export const collectionsSlice = createSlice({
       if (tempDirectory) {
         const annotateTransient = (items) => {
           for (const item of items) {
-            if (item.type === 'folder') {
-              if (Array.isArray(item.items)) annotateTransient(item.items);
-            } else if (item.pathname && item.pathname.startsWith(tempDirectory)) {
+            if (item.pathname && item.pathname.startsWith(tempDirectory)) {
               item.isTransient = true;
+            }
+            if (item.type === 'folder' && Array.isArray(item.items)) {
+              annotateTransient(item.items);
             }
           }
         };
