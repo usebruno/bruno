@@ -25,31 +25,23 @@ taskMiddleware.startListening({
 
     const openRequestTasks = filter(state.app.taskQueue, { type: taskTypes.OPEN_REQUEST });
     each(openRequestTasks, (task) => {
-      if (collectionUid === task.collectionUid) {
-        const collection = findCollectionByUid(state.collections.collections, collectionUid);
-        if (collection && collection.mountStatus === 'mounted' && !collection.isLoading) {
-          const item = findItemInCollectionByPathname(collection, task.itemPathname);
-          if (item) {
-            listenerApi.dispatch(
-              addTab({
-                uid: item.uid,
-                collectionUid: collection.uid,
-                type: item.type,
-                pathname: item.pathname,
-                requestPaneTab: getDefaultRequestPaneTab(item),
-                preview: task?.preview ?? true,
-                ...(item.isTransient ? { isTransient: true } : {})
-              })
-            );
-          }
-        }
-
-        listenerApi.dispatch(
-          removeTaskFromQueue({
-            taskUid: task.uid
-          })
-        );
-      }
+      if (collectionUid !== task.collectionUid) return;
+      const collection = findCollectionByUid(state.collections.collections, collectionUid);
+      if (!collection || collection.mountStatus !== 'mounted' || collection.isLoading) return;
+      const item = findItemInCollectionByPathname(collection, task.itemPathname);
+      if (!item) return;
+      listenerApi.dispatch(
+        addTab({
+          uid: item.uid,
+          collectionUid: collection.uid,
+          type: item.type,
+          pathname: item.pathname,
+          requestPaneTab: getDefaultRequestPaneTab(item),
+          preview: task?.preview ?? true,
+          ...(item.isTransient ? { isTransient: true } : {})
+        })
+      );
+      listenerApi.dispatch(removeTaskFromQueue({ taskUid: task.uid }));
     });
   }
 });
@@ -63,31 +55,23 @@ taskMiddleware.startListening({
 
     const openRequestTasks = filter(state.app.taskQueue, { type: taskTypes.OPEN_REQUEST });
     each(openRequestTasks, (task) => {
-      if (collectionUid === task.collectionUid) {
-        const collection = findCollectionByUid(state.collections.collections, collectionUid);
-        if (collection && collection.mountStatus === 'mounted' && !collection.isLoading) {
-          const item = findItemInCollectionByPathname(collection, task.itemPathname);
-          if (item) {
-            listenerApi.dispatch(
-              addTab({
-                uid: item.uid,
-                collectionUid: collection.uid,
-                type: item.type,
-                pathname: item.pathname,
-                requestPaneTab: getDefaultRequestPaneTab(item),
-                preview: task?.preview ?? true,
-                ...(item.isTransient ? { isTransient: true } : {})
-              })
-            );
-          }
-        }
-
-        listenerApi.dispatch(
-          removeTaskFromQueue({
-            taskUid: task.uid
-          })
-        );
-      }
+      if (collectionUid !== task.collectionUid) return;
+      const collection = findCollectionByUid(state.collections.collections, collectionUid);
+      if (!collection || collection.mountStatus !== 'mounted' || collection.isLoading) return;
+      const item = findItemInCollectionByPathname(collection, task.itemPathname);
+      if (!item) return;
+      listenerApi.dispatch(
+        addTab({
+          uid: item.uid,
+          collectionUid: collection.uid,
+          type: item.type,
+          pathname: item.pathname,
+          requestPaneTab: getDefaultRequestPaneTab(item),
+          preview: task?.preview ?? true,
+          ...(item.isTransient ? { isTransient: true } : {})
+        })
+      );
+      listenerApi.dispatch(removeTaskFromQueue({ taskUid: task.uid }));
     });
   }
 });
