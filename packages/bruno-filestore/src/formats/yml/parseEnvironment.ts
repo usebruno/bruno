@@ -29,6 +29,10 @@ const toBrunoEnvironmentVariables = (variables: (Variable | SecretVariable)[] | 
         variable.datatype = v.type;
       }
 
+      if (v.description) {
+        variable.description = typeof v.description === 'string' ? v.description : (v.description as any)?.content || '';
+      }
+
       return variable;
     }
     const variable: BrunoEnvironmentVariable = {
@@ -47,6 +51,10 @@ const toBrunoEnvironmentVariables = (variables: (Variable | SecretVariable)[] | 
       }
     } else {
       variable.value = ensureString(v.value);
+    }
+
+    if (v.description) {
+      variable.description = typeof v.description === 'string' ? v.description : (v.description as any)?.content || '';
     }
 
     return variable;

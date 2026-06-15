@@ -1,32 +1,5 @@
 const _ = require('lodash');
-const { getValueString, indentString, serializeAnnotations } = require('./utils');
-
-const escapeDescriptionDouble = (s) =>
-  String(s)
-    .replace(/\\/g, '\\\\')
-    .replace(/"/g, '\\"')
-    .replace(/\n/g, '\\n')
-    .replace(/\r/g, '\\r')
-    .replace(/\t/g, '\\t');
-
-/**
- * Emit @description as a prefix line before a key:value pair.
- * Using a prefix (instead of suffix) lets the value be multiline without conflict.
- */
-const getDescriptionPrefix = (variable) => {
-  const desc = variable && variable.description && String(variable.description).trim();
-  if (!desc) return '';
-  if (desc.includes('\'\'\'')) {
-    return '@description("' + escapeDescriptionDouble(desc) + '")\n';
-  }
-
-  const descHasNewline = desc.includes('\r\n') || desc.includes('\r') || desc.includes('\n');
-  if (descHasNewline) {
-    const indented = desc.split(/\r\n|\r|\n/g).map((line) => '  ' + line).join('\n');
-    return '@description(\'\'\'\n' + indented + '\n\'\'\')\n';
-  }
-  return '@description(\'\'\'' + desc.replace(/\\/g, '\\\\') + '\'\'\')\n';
-};
+const { getValueString, indentString, serializeAnnotationsForItem } = require('./utils');
 
 const envToJson = (json) => {
   const variables = _.get(json, 'variables', []);
@@ -36,18 +9,18 @@ const envToJson = (json) => {
   const vars = variables
     .filter((variable) => !variable.secret)
     .map((variable) => {
-      const { name, value, enabled, annotations } = variable;
+      const { name, value, enabled } = variable;
       const prefix = enabled ? '' : '~';
 
-      return indentString(`${serializeAnnotations(annotations)}${prefix}${name}: ${getValueString(value)}`);
+      return indentString(`${serializeAnnotationsForItem(variable)}${prefix}${name}: ${getValueString(value)}`);
     });
 
   const secretVars = variables
     .filter((variable) => variable.secret)
     .map((variable) => {
-      const { name, enabled, annotations } = variable;
+      const { name, enabled } = variable;
       const prefix = enabled ? '' : '~';
-      return indentString(`${serializeAnnotations(annotations)}${prefix}${name}`);
+      return indentString(`${serializeAnnotationsForItem(variable)}${prefix}${name}`);
     });
 
   let output = '';

@@ -1,36 +1,9 @@
 const _ = require('lodash');
 
-const { indentString, getValueString, getKeyString, serializeAnnotations } = require('./utils');
+const { indentString, getValueString, getKeyString, serializeAnnotationsForItem } = require('./utils');
 
 const enabled = (items = []) => items.filter((item) => item.enabled);
 const disabled = (items = []) => items.filter((item) => !item.enabled);
-
-/** JSON-style escape for use inside double-quoted @description("..."). */
-const escapeDescriptionDouble = (s) =>
-  String(s)
-    .replace(/\\/g, '\\\\')
-    .replace(/"/g, '\\"')
-    .replace(/\n/g, '\\n')
-    .replace(/\r/g, '\\r')
-    .replace(/\t/g, '\\t');
-
-/**
- * Emit @description as a prefix line before a key:value pair.
- * Using a prefix (instead of suffix) correctly handles multiline values and multiline descriptions.
- */
-const getDescriptionPrefix = (item) => {
-  const desc = item && item.description && String(item.description).trim();
-  if (!desc) return '';
-  if (desc.includes('\'\'\'')) {
-    return '@description("' + escapeDescriptionDouble(desc) + '")\n';
-  }
-  const descHasNewline = desc.includes('\n') || desc.includes('\r');
-  if (descHasNewline) {
-    const indented = desc.split('\n').map((line) => '  ' + line).join('\n');
-    return '@description(\'\'\'\n' + indented + '\n\'\'\')\n';
-  }
-  return '@description(\'\'\'' + desc.replace(/\\/g, '\\\\') + '\'\'\')\n';
-};
 
 // remove the last line if two new lines are found
 const stripLastLine = (text) => {
@@ -57,7 +30,7 @@ const jsonToCollectionBru = (json) => {
     if (enabled(query).length) {
       bru += `\n${indentString(
         enabled(query)
-          .map((item) => `${serializeAnnotations(item.annotations)}${getKeyString(item.name)}: ${getValueString(item.value)}`)
+          .map((item) => `${serializeAnnotationsForItem(item)}${getKeyString(item.name)}: ${getValueString(item.value)}`)
           .join('\n')
       )}`;
     }
@@ -65,7 +38,7 @@ const jsonToCollectionBru = (json) => {
     if (disabled(query).length) {
       bru += `\n${indentString(
         disabled(query)
-          .map((item) => `${serializeAnnotations(item.annotations)}~${getKeyString(item.name)}: ${getValueString(item.value)}`)
+          .map((item) => `${serializeAnnotationsForItem(item)}~${getKeyString(item.name)}: ${getValueString(item.value)}`)
           .join('\n')
       )}`;
     }
@@ -78,7 +51,7 @@ const jsonToCollectionBru = (json) => {
     if (enabled(headers).length) {
       bru += `\n${indentString(
         enabled(headers)
-          .map((item) => `${serializeAnnotations(item.annotations)}${getKeyString(item.name)}: ${getValueString(item.value)}`)
+          .map((item) => `${serializeAnnotationsForItem(item)}${getKeyString(item.name)}: ${getValueString(item.value)}`)
           .join('\n')
       )}`;
     }
@@ -86,7 +59,7 @@ const jsonToCollectionBru = (json) => {
     if (disabled(headers).length) {
       bru += `\n${indentString(
         disabled(headers)
-          .map((item) => `${serializeAnnotations(item.annotations)}~${getKeyString(item.name)}: ${getValueString(item.value)}`)
+          .map((item) => `${serializeAnnotationsForItem(item)}~${getKeyString(item.name)}: ${getValueString(item.value)}`)
           .join('\n')
       )}`;
     }
@@ -295,7 +268,7 @@ ${indentString(`auto_refresh_token: ${(auth?.oauth2?.autoRefreshToken ?? false).
 ${indentString(
   authorizationHeaders
     .filter((item) => item?.name?.length)
-    .map((item) => `${item.enabled ? '' : '~'}${getKeyString(item.name)}: ${getValueString(item.value)}`)
+    .map((item) => `${serializeAnnotationsForItem(item)}${item.enabled ? '' : '~'}${getKeyString(item.name)}: ${getValueString(item.value)}`)
     .join('\n')
 )}
 }
@@ -308,7 +281,7 @@ ${indentString(
 ${indentString(
   authorizationQueryParams
     .filter((item) => item?.name?.length)
-    .map((item) => `${item.enabled ? '' : '~'}${getKeyString(item.name)}: ${getValueString(item.value)}`)
+    .map((item) => `${serializeAnnotationsForItem(item)}${item.enabled ? '' : '~'}${getKeyString(item.name)}: ${getValueString(item.value)}`)
     .join('\n')
 )}
 }
@@ -321,7 +294,7 @@ ${indentString(
 ${indentString(
   tokenHeaders
     .filter((item) => item?.name?.length)
-    .map((item) => `${item.enabled ? '' : '~'}${getKeyString(item.name)}: ${getValueString(item.value)}`)
+    .map((item) => `${serializeAnnotationsForItem(item)}${item.enabled ? '' : '~'}${getKeyString(item.name)}: ${getValueString(item.value)}`)
     .join('\n')
 )}
 }
@@ -334,7 +307,7 @@ ${indentString(
 ${indentString(
   tokenQueryParams
     .filter((item) => item?.name?.length)
-    .map((item) => `${item.enabled ? '' : '~'}${getKeyString(item.name)}: ${getValueString(item.value)}`)
+    .map((item) => `${serializeAnnotationsForItem(item)}${item.enabled ? '' : '~'}${getKeyString(item.name)}: ${getValueString(item.value)}`)
     .join('\n'))}
 }
 
@@ -346,7 +319,7 @@ ${indentString(
 ${indentString(
   tokenBodyValues
     .filter((item) => item?.name?.length)
-    .map((item) => `${item.enabled ? '' : '~'}${getKeyString(item.name)}: ${getValueString(item.value)}`)
+    .map((item) => `${serializeAnnotationsForItem(item)}${item.enabled ? '' : '~'}${getKeyString(item.name)}: ${getValueString(item.value)}`)
     .join('\n')
 )}
 }
@@ -359,7 +332,7 @@ ${indentString(
 ${indentString(
   refreshHeaders
     .filter((item) => item?.name?.length)
-    .map((item) => `${item.enabled ? '' : '~'}${getKeyString(item.name)}: ${getValueString(item.value)}`)
+    .map((item) => `${serializeAnnotationsForItem(item)}${item.enabled ? '' : '~'}${getKeyString(item.name)}: ${getValueString(item.value)}`)
     .join('\n')
 )}
 }
@@ -372,7 +345,7 @@ ${indentString(
 ${indentString(
   refreshQueryParams
     .filter((item) => item?.name?.length)
-    .map((item) => `${item.enabled ? '' : '~'}${getKeyString(item.name)}: ${getValueString(item.value)}`)
+    .map((item) => `${serializeAnnotationsForItem(item)}${item.enabled ? '' : '~'}${getKeyString(item.name)}: ${getValueString(item.value)}`)
     .join('\n')
 )}
 }
@@ -385,7 +358,7 @@ ${indentString(
 ${indentString(
   refreshBodyValues
     .filter((item) => item?.name?.length)
-    .map((item) => `${item.enabled ? '' : '~'}${getKeyString(item.name)}: ${getValueString(item.value)}`)
+    .map((item) => `${serializeAnnotationsForItem(item)}${item.enabled ? '' : '~'}${getKeyString(item.name)}: ${getValueString(item.value)}`)
     .join('\n')
 )}
 }
@@ -406,19 +379,19 @@ ${indentString(
     bru += `vars:pre-request {`;
 
     if (varsEnabled.length) {
-      bru += `\n${indentString(varsEnabled.map((item) => `${serializeAnnotations(item.annotations)}${item.name}: ${getValueString(item.value)}`).join('\n'))}`;
+      bru += `\n${indentString(varsEnabled.map((item) => `${serializeAnnotationsForItem(item)}${item.name}: ${getValueString(item.value)}`).join('\n'))}`;
     }
 
     if (varsLocalEnabled.length) {
-      bru += `\n${indentString(varsLocalEnabled.map((item) => `${serializeAnnotations(item.annotations)}@${item.name}: ${getValueString(item.value)}`).join('\n'))}`;
+      bru += `\n${indentString(varsLocalEnabled.map((item) => `${serializeAnnotationsForItem(item)}@${item.name}: ${getValueString(item.value)}`).join('\n'))}`;
     }
 
     if (varsDisabled.length) {
-      bru += `\n${indentString(varsDisabled.map((item) => `${serializeAnnotations(item.annotations)}~${item.name}: ${getValueString(item.value)}`).join('\n'))}`;
+      bru += `\n${indentString(varsDisabled.map((item) => `${serializeAnnotationsForItem(item)}~${item.name}: ${getValueString(item.value)}`).join('\n'))}`;
     }
 
     if (varsLocalDisabled.length) {
-      bru += `\n${indentString(varsLocalDisabled.map((item) => `${serializeAnnotations(item.annotations)}~@${item.name}: ${getValueString(item.value)}`).join('\n'))}`;
+      bru += `\n${indentString(varsLocalDisabled.map((item) => `${serializeAnnotationsForItem(item)}~@${item.name}: ${getValueString(item.value)}`).join('\n'))}`;
     }
 
     bru += '\n}\n\n';
@@ -432,19 +405,19 @@ ${indentString(
     bru += `vars:post-response {`;
 
     if (varsEnabled.length) {
-      bru += `\n${indentString(varsEnabled.map((item) => `${serializeAnnotations(item.annotations)}${item.name}: ${getValueString(item.value)}`).join('\n'))}`;
+      bru += `\n${indentString(varsEnabled.map((item) => `${serializeAnnotationsForItem(item)}${item.name}: ${getValueString(item.value)}`).join('\n'))}`;
     }
 
     if (varsLocalEnabled.length) {
-      bru += `\n${indentString(varsLocalEnabled.map((item) => `${serializeAnnotations(item.annotations)}@${item.name}: ${getValueString(item.value)}`).join('\n'))}`;
+      bru += `\n${indentString(varsLocalEnabled.map((item) => `${serializeAnnotationsForItem(item)}@${item.name}: ${getValueString(item.value)}`).join('\n'))}`;
     }
 
     if (varsDisabled.length) {
-      bru += `\n${indentString(varsDisabled.map((item) => `${serializeAnnotations(item.annotations)}~${item.name}: ${getValueString(item.value)}`).join('\n'))}`;
+      bru += `\n${indentString(varsDisabled.map((item) => `${serializeAnnotationsForItem(item)}~${item.name}: ${getValueString(item.value)}`).join('\n'))}`;
     }
 
     if (varsLocalDisabled.length) {
-      bru += `\n${indentString(varsLocalDisabled.map((item) => `${serializeAnnotations(item.annotations)}~@${item.name}: ${getValueString(item.value)}`).join('\n'))}`;
+      bru += `\n${indentString(varsLocalDisabled.map((item) => `${serializeAnnotationsForItem(item)}~@${item.name}: ${getValueString(item.value)}`).join('\n'))}`;
     }
 
     bru += '\n}\n\n';

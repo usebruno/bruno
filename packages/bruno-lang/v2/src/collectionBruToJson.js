@@ -1,6 +1,12 @@
 const ohm = require('ohm-js');
 const _ = require('lodash');
-const { safeParseJson, outdentString } = require('./utils');
+const {
+  safeParseJson,
+  outdentString,
+  parseAnnotationMultilineTextBlock,
+  unescapeAnnotationDoubleQuotedArg,
+  applyDescriptionFromAnnotations
+} = require('./utils');
 
 // this is done to avoid breaking existing pairlist mapping so
 // the key is hidden and not added into the json automatically
@@ -33,7 +39,9 @@ const grammar = ohm.grammar(`Bru {
   annotationchar = ~("(" | ")" | " " | "\\t" | "\\r" | "\\n" | ":") any
   annotationsinglequotedargchar = ~"'" any
   annotationsinglequotedarg = "'" annotationsinglequotedargchar* "'"
-  annotationdoublequotedargchar = ~"\\"" any
+  annotationdoublequotedargchar = annotationdoublequotedargesc | annotationdoublequotedargnorm
+  annotationdoublequotedargesc = "\\\\" any
+  annotationdoublequotedargnorm = ~"\\"" any
   annotationdoublequotedarg = "\\"" annotationdoublequotedargchar* "\\""
   annotationunquotedargchar = ~")" any
   annotationunquotedarg = annotationunquotedargchar*
@@ -58,17 +66,6 @@ const grammar = ohm.grammar(`Bru {
   key = keychar*
   value = multilinetextblock | singlelinevalue
   singlelinevalue = valuechar*
-  descriptionTripleContent = (~"'''" any)*
-
-  // Prefix description annotation: @description('''...''') on its own line before a key:value pair.
-  // Supports multiline values (unlike the suffix form).
-  // Double-quoted form is used when the description itself contains ''' (cannot embed inside triple-quoted).
-  descriptionprefix = descriptionprefix_triple | descriptionprefix_double
-  descriptionprefix_triple = st* "@" "description" "(" "'''" descriptionTripleContent "'''" ")" st* nl
-  descriptionprefix_double = st* "@" "description" "(" "\\"" descriptionDoubleChar* "\\"" ")" st* nl
-  descriptionDoubleChar = descriptionDoubleEsc | descriptionDoubleNorm
-  descriptionDoubleEsc = "\\\\" any
-  descriptionDoubleNorm = ~"\\"" ~nl any
 
   // Text Blocks
   textblock = textline (~tagend nl textline)*
@@ -138,7 +135,7 @@ const mapPairListToKeyValPairs = (pairList = [], parseEnabled = true) => {
     const result = { name, value, enabled };
     if (rawAnnotations && rawAnnotations.length) {
       result.annotations = rawAnnotations;
-      // TODO(reaper): need to also set result.description here
+      applyDescriptionFromAnnotations(result, rawAnnotations);
     }
     return result;
   });
@@ -199,7 +196,7 @@ const sem = grammar.createSemantics().addAttribute('ast', {
     return chars.sourceString;
   },
   annotationdoublequotedarg(_open, chars, _close) {
-    return chars.sourceString;
+    return unescapeAnnotationDoubleQuotedArg(chars.sourceString);
   },
   annotationunquotedarg(chars) {
     return chars.sourceString;
@@ -208,12 +205,7 @@ const sem = grammar.createSemantics().addAttribute('ast', {
     return alt.ast;
   },
   annotationmultilinetextblock(_1, content, _2) {
-    const lines = content.sourceString.split('\n');
-    let minIndent = 4;
-    const dedented = lines.map((line) => (line.trim() === '' ? '' : line.substring(minIndent)));
-    if (dedented.length > 0 && dedented[0] === '') dedented.shift();
-    if (dedented.length > 0 && dedented[dedented.length - 1] === '') dedented.pop();
-    return dedented.join('\n');
+    return parseAnnotationMultilineTextBlock(content.sourceString);
   },
   annotationargscontents(alt) {
     return alt.ast;
@@ -229,9 +221,6 @@ const sem = grammar.createSemantics().addAttribute('ast', {
       res[ANNOTATIONS_KEY] = annotationList;
     }
     return res;
-  },
-  pair_orphandesc(descPrefix) {
-    return { '': '', '__desc': descPrefix.ast };
   },
   quoted_key(disabled, _1, chars, _2) {
     // unquote and handle disabled prefix

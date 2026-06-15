@@ -19,48 +19,6 @@ const indentString = (str, levels = 1) => {
     .join('\n');
 };
 
-/**
- * Like indentString but adds one extra indent level to lines inside @description('''...''') content
- * so multiline description content is indented relative to its key line, matching env multiline value behaviour.
- * When reading back, parsers strip those 4 spaces (2 block + 2 extra) to recover the original description.
- */
-const indentWithDescription = (str, levels = 1) => {
-  if (!str || !str.length) {
-    return str || '';
-  }
-
-  const indent = '  '.repeat(levels);
-  // split the string into lines
-  const lines = str.split(/\r\n|\r|\n/);
-
-  // tracks whether we're inside a multiline @description('''...''') block
-  let inDescContent = false;
-  const result = [];
-
-  for (const line of lines) {
-    const trimmed = line.trimEnd();
-    if (inDescContent) {
-      if (/^\s*'''\s*\)?\s*$/.test(trimmed)) {
-        // closing ''' or ''') — exit description content and apply normal indent
-        inDescContent = false;
-        result.push(indent + line);
-      } else {
-        // description content line — add one extra indent level so it's visually nested
-        result.push(indent + '  ' + line);
-      }
-    } else {
-      // detect start of a multiline @description(''' — it ends with ''' but NOT with ''')
-      // (single-line @description('''text''') ends with ''' ) so we skip those)
-      if (trimmed.includes('@description(\'\'\'') && trimmed.endsWith('\'\'\'') && !trimmed.endsWith('\'\'\')')) {
-        inDescContent = true;
-      }
-      result.push(indent + line);
-    }
-  }
-
-  return result.join('\n');
-};
-
 const outdentString = (str, spaces = 2) => {
   if (!str || !str.length) {
     return str || '';
@@ -72,6 +30,49 @@ const outdentString = (str, spaces = 2) => {
     .map((line) => line.replace(spacesRegex, ''))
     .join('\n');
 };
+
+const parseAnnotationMultilineTextBlock = (content) => {
+  if (!content || !content.length) {
+    return '';
+  }
+
+  if (!content.includes('\n') && !content.includes('\r')) {
+    return content;
+  }
+
+  const lineEnding = content.includes('\r\n') ? '\r\n' : content.includes('\r') ? '\r' : '\n';
+  const lines = content.split(/\r\n|\r|\n/);
+
+  if (lines.length > 0 && lines[0] === '') lines.shift();
+  if (lines.length > 0 && lines[lines.length - 1].trim() === '') lines.pop();
+
+  const nonEmptyLines = lines.filter((line) => line.trim() !== '');
+  const minIndent = nonEmptyLines.length
+    ? Math.min(...nonEmptyLines.map((line) => line.match(/^[ \t]*/)[0].length))
+    : 0;
+
+  return lines
+    .map((line) => (line.trim() === '' ? '' : line.substring(minIndent)))
+    .join(lineEnding);
+};
+
+const unescapeAnnotationDoubleQuotedArg = (value) =>
+  value.replace(/\\(r|n|t|"|\\)/g, (_, char) => {
+    switch (char) {
+      case 'r':
+        return '\r';
+      case 'n':
+        return '\n';
+      case 't':
+        return '\t';
+      case '"':
+        return '"';
+      case '\\':
+        return '\\';
+      default:
+        return char;
+    }
+  });
 
 const getValueString = (value) => {
   // Handle null, undefined, and empty strings
@@ -116,7 +117,10 @@ function serializeAnnotations(annotations) {
     annotations
       .map((a) => {
         if (a.value === undefined) return `@${a.name}`;
-        if (a.value.includes('\n')) {
+        if (a.bru === 'triple' && !a.value.includes('\n') && !a.value.includes('\r') && !a.value.includes('\'\'\'')) {
+          return `@${a.name}('''${a.value}''')`;
+        }
+        if (a.value.includes('\n') || a.value.includes('\r')) {
           return `@${a.name}('''\n${indentString(a.value)}\n''')`;
         }
         const quote = a.value.includes('\'') ? '"' : '\'';
@@ -126,13 +130,38 @@ function serializeAnnotations(annotations) {
   );
 };
 
+function applyDescriptionFromAnnotations(result, annotations) {
+  const descriptionAnnotation = annotations?.find((annotation) => annotation.name === 'description');
+  if (descriptionAnnotation) {
+    result.description = descriptionAnnotation.value || '';
+  }
+  return result;
+}
+
+function getAnnotationsWithDescription(item) {
+  const annotations = item?.annotations || [];
+  if (!item || item.description == null || annotations.some((annotation) => annotation.name === 'description')) {
+    return annotations;
+  }
+  const description = typeof item.description === 'string' ? item.description : item.description?.content || '';
+  return [{ name: 'description', value: description, bru: 'triple' }, ...annotations];
+}
+
+function serializeAnnotationsForItem(item) {
+  return serializeAnnotations(getAnnotationsWithDescription(item));
+}
+
 module.exports = {
   safeParseJson,
   indentString,
-  indentWithDescription,
   outdentString,
+  unescapeAnnotationDoubleQuotedArg,
+  parseAnnotationMultilineTextBlock,
   getValueString,
   getKeyString,
   getValueUrl,
-  serializeAnnotations
+  serializeAnnotations,
+  applyDescriptionFromAnnotations,
+  getAnnotationsWithDescription,
+  serializeAnnotationsForItem
 };
