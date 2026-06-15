@@ -8,6 +8,7 @@ const DEFAULT_DENYLIST = ['**/.DS_Store', '**/Thumbs.db'];
 
 const sha256 = (input) => crypto.createHash('sha256').update(input).digest('hex');
 const hashFile = (absPath) => sha256(fs.readFileSync(absPath));
+const hashFileAsync = async (absPath) => sha256(await fs.promises.readFile(absPath));
 const normalize = (p) => path.resolve(p);
 const idForAbsolutePath = (absolutePath) => sha256(posixifyPath(absolutePath)).slice(0, 21);
 const uidForSeed = (seed) => sha256(seed).slice(0, 21);
@@ -79,6 +80,7 @@ module.exports = {
   BRUNO_CONFIG_BASENAME,
   ENVIRONMENTS_DIR,
   hashFile,
+  hashFileAsync,
   normalize,
   posixifyPath,
   idForAbsolutePath,

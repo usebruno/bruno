@@ -3,6 +3,7 @@ const path = require('node:path');
 const { Database } = require('../storage');
 const {
   hashFile,
+  hashFileAsync,
   normalize,
   posixifyPath,
   idForAbsolutePath,
@@ -46,7 +47,7 @@ class FileIndex {
     this.#db.close();
   }
 
-  status(collectionPath, options = {}) {
+  async status(collectionPath, options = {}) {
     const root = normalize(collectionPath);
     const stored = this.#loadStored(root);
     const denylist = resolveDenylist(options.denylist);
@@ -55,24 +56,32 @@ class FileIndex {
     const removed = [];
     const seen = new Set();
 
-    for (const { relativePath, absolutePath } of walk(root, denylist)) {
-      seen.add(relativePath);
-      const stat = fs.statSync(absolutePath, { bigint: true });
+    const files = walk(root, denylist);
+    const results = await Promise.all(files.map(async ({ relativePath, absolutePath }) => {
+      const stat = await fs.promises.stat(absolutePath, { bigint: true });
       const mtime = stat.mtimeNs;
       const prior = stored.get(relativePath);
 
       if (!prior) {
-        const hash = hashFile(absolutePath);
-        added.push({ relativePath, absolutePath, mtime, hash });
-        continue;
+        const hash = await hashFileAsync(absolutePath);
+        return { kind: 'added', entry: { relativePath, absolutePath, mtime, hash } };
       }
+      if (prior.mtime === mtime) return { kind: 'unchanged', relativePath };
+      const hash = await hashFileAsync(absolutePath);
+      if (hash === prior.hash) return { kind: 'unchanged', relativePath };
+      return { kind: 'updated', entry: { relativePath, absolutePath, mtime, hash, prevHash: prior.hash } };
+    }));
 
-      if (prior.mtime === mtime) continue;
-
-      const hash = hashFile(absolutePath);
-      if (hash === prior.hash) continue;
-
-      updated.push({ relativePath, absolutePath, mtime, hash, prevHash: prior.hash });
+    for (const r of results) {
+      if (r.kind === 'added') {
+        added.push(r.entry);
+        seen.add(r.entry.relativePath);
+      } else if (r.kind === 'updated') {
+        updated.push(r.entry);
+        seen.add(r.entry.relativePath);
+      } else {
+        seen.add(r.relativePath);
+      }
     }
 
     for (const [relativePath, row] of stored) {

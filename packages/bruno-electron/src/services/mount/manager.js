@@ -152,7 +152,7 @@ class MountManager {
 
   async #reconcile(entry) {
     const denylist = entry.brunoConfig?.ignore || [];
-    const { added, updated, removed } = this.#getIndex().status(entry.collectionPath, { denylist });
+    const { added, updated, removed } = await this.#getIndex().status(entry.collectionPath, { denylist });
 
     const toParse = [];
     for (const e of [...added, ...updated]) {
