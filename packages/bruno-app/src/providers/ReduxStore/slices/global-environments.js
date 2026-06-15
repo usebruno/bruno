@@ -284,9 +284,6 @@ export const globalEnvironmentsUpdateEvent = ({ globalEnvironmentVariables }) =>
 
   if (!environment || !environmentUid) return;
 
-  // When a draft exists, the script ran against the saved state, not the draft.
-  // Flush the draft and remember the saved state as a baseline so this and all
-  // subsequent script events only apply what the script actually changed.
   const draft = state?.globalEnvironments?.globalEnvironmentDraft;
   if (draft && draft.environmentUid === environmentUid && draft.variables) {
     const baseline = {};
@@ -295,12 +292,10 @@ export const globalEnvironmentsUpdateEvent = ({ globalEnvironmentVariables }) =>
     });
     dispatch(_setScriptGlobalEnvBaseline(baseline));
 
-    // Replace the saved env with draft variables
     dispatch(_saveGlobalEnvironment({ environmentUid, variables: cloneDeep(draft.variables) }));
     dispatch(clearGlobalEnvironmentDraft());
   }
 
-  // Re-read state after potential draft flush
   const updatedState = getState();
   const updatedEnv = updatedState?.globalEnvironments?.globalEnvironments?.find((env) => env?.uid == environmentUid);
   const baseline = updatedState?.globalEnvironments?._scriptGlobalEnvBaseline;
@@ -308,10 +303,8 @@ export const globalEnvironmentsUpdateEvent = ({ globalEnvironmentVariables }) =>
 
   variables = applyScriptEnvVars(variables, globalEnvironmentVariables, baseline);
 
-  // Update Redux state
   dispatch(_saveGlobalEnvironment({ environmentUid, variables }));
 
-  // Persist to disk using the already-computed variables directly (avoids re-reading state)
   const { ipcRenderer } = window;
   const { workspaceUid, workspacePath } = getWorkspaceContext(state);
   environmentSchema

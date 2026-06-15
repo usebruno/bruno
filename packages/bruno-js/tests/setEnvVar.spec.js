@@ -1,16 +1,16 @@
 const Bru = require('../src/bru');
 
-describe('Bru.setEnvVar', () => {
-  const makeBru = () =>
-    new Bru({
-      runtime: 'quickjs',
-      envVariables: {},
-      runtimeVariables: {},
-      processEnvVars: {},
-      collectionPath: '/',
-      collectionName: 'Test'
-    });
+const makeBru = () =>
+  new Bru({
+    runtime: 'quickjs',
+    envVariables: {},
+    runtimeVariables: {},
+    processEnvVars: {},
+    collectionPath: '/',
+    collectionName: 'Test'
+  });
 
+describe('bru.setEnvVar', () => {
   test('sets envVariables[key] to value', () => {
     const bru = makeBru();
     bru.setEnvVar('token', 'abc123');
@@ -41,15 +41,22 @@ describe('Bru.setEnvVar', () => {
     expect(() => bru.setEnvVar('', 'v')).toThrow(/without specifying a name/);
   });
 
-  test('validates key name - invalid characters are rejected', () => {
+  test('rejects key with invalid characters', () => {
     const bru = makeBru();
     expect(() => bru.setEnvVar('invalid key', 'v')).toThrow(/contains invalid characters/);
   });
+});
 
-  test('deleteEnvVar removes the variable', () => {
+describe('bru.deleteEnvVar', () => {
+  test('removes an existing variable', () => {
     const bru = makeBru();
     bru.setEnvVar('token', 'abc');
     bru.deleteEnvVar('token');
     expect(bru.envVariables.token).toBeUndefined();
+  });
+
+  test('deleting a non-existent key is a silent no-op', () => {
+    const bru = makeBru();
+    expect(() => bru.deleteEnvVar('missing')).not.toThrow();
   });
 });

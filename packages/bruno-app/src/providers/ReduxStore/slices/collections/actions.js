@@ -407,6 +407,8 @@ export const sendCollectionOauth2Request = (collectionUid, itemUid) => (dispatch
 
     const environment = findEnvironmentInCollection(collectionCopy, collection.activeEnvironmentUid);
 
+    dispatch(_clearScriptGlobalEnvBaseline());
+
     _sendCollectionOauth2Request(collectionCopy, environment, collectionCopy.runtimeVariables)
       .then((response) => {
         if (response?.data?.error) {
@@ -447,6 +449,8 @@ export const wsConnectOnly = (item, collectionUid) => (dispatch, getState) => {
     collectionCopy.globalEnvironmentVariables = globalEnvironmentVariables;
 
     const environment = findEnvironmentInCollection(collectionCopy, collectionCopy.activeEnvironmentUid);
+
+    dispatch(_clearScriptGlobalEnvBaseline());
 
     connectWS(itemCopy, collectionCopy, environment, collectionCopy.runtimeVariables, { connectOnly: true })
       .then(resolve)
@@ -566,9 +570,6 @@ export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
       return reject(error);
     }
 
-    // Clear previous request's global env baseline before starting a new request.
-    // Done here (not in responseReceived) so the guard remains active while async
-    // saves from the previous request are still in flight.
     dispatch(_clearScriptGlobalEnvBaseline());
 
     await dispatch(
@@ -1957,13 +1958,6 @@ export const saveEnvironment = (variables, environmentUid, collectionUid) => (di
       return reject(new Error('Environment not found'));
     }
 
-    /*
-     Modal Save writes what the user sees:
-     - Non-ephemeral vars are saved as-is (without metadata)
-     - Ephemeral vars:
-       - if persistedValue exists, save that (explicit persisted case)
-       - otherwise save the current UI value (treat as user-authored)
-     */
     const persisted = buildPersistedEnvVariables(variables);
     environment.variables = persisted;
 
@@ -1974,8 +1968,6 @@ export const saveEnvironment = (variables, environmentUid, collectionUid) => (di
       .validate(environment)
       .then(() => ipcRenderer.invoke('renderer:save-environment', collection.pathname, envForValidation))
       .then(() => {
-        // Immediately sync Redux to the saved (persisted) set so old ephemerals
-        // aren’t around when the watcher event arrives.
         dispatch(_saveEnvironment({ variables: persisted, environmentUid, collectionUid }));
       })
       .then(resolve)
@@ -2270,8 +2262,6 @@ export const updateVariableInScope = (variableName, newValue, scopeInfo, collect
   });
 };
 
-// Script-initiated saves use console.error (silent to user); user-initiated saves use
-// toast.error. This is intentional — script-triggered disk writes should not interrupt the user.
 export const persistActiveEnvironment = (collectionUid) => (dispatch, getState) => {
   const state = getState();
   const collection = findCollectionByUid(state.collections.collections, collectionUid);
@@ -2281,10 +2271,9 @@ export const persistActiveEnvironment = (collectionUid) => (dispatch, getState) 
   if (!environment) return;
 
   if (collection._scriptEnvBaseline) {
-    // A draft merge is in progress — the scriptEnvironmentUpdateEvent reducer already
-    // set the correct variables in Redux. Write to disk silently without dispatching
-    // _saveEnvironment, which would race with subsequent script events and file-watcher
-    // callbacks.
+    // Baseline exists — a draft was flushed earlier in this request cycle.
+    // Write to disk silently (without dispatching _saveEnvironment) to avoid
+    // racing with file-watcher callbacks.
     const collectionCopy = cloneDeep(collection);
     const envCopy = findEnvironmentInCollection(collectionCopy, environment.uid);
     if (!envCopy) return;
@@ -2297,7 +2286,8 @@ export const persistActiveEnvironment = (collectionUid) => (dispatch, getState) 
     return;
   }
 
-  dispatch(saveEnvironment(environment.variables, environment.uid, collectionUid));
+  dispatch(saveEnvironment(environment.variables, environment.uid, collectionUid))
+    .catch((err) => console.error('Failed to persist environment during script execution:', err));
 };
 
 export const collectionVariablesUpdateEvent = ({ collectionVariables, collectionUid }) => (dispatch, getState) => {
@@ -2314,9 +2304,6 @@ export const collectionVariablesUpdateEvent = ({ collectionVariables, collection
 
   let baseline = collection._scriptCollVarBaseline || null;
 
-  // When a draft exists and no baseline yet, snapshot the saved state so that
-  // applyScriptEnvVars only applies what the script actually changed — preserving
-  // user draft edits for variables the script didn't touch.
   if (!baseline && draftVars) {
     baseline = {};
     savedVars.forEach((v) => {
@@ -2325,10 +2312,8 @@ export const collectionVariablesUpdateEvent = ({ collectionVariables, collection
     dispatch(setScriptCollVarBaseline({ collectionUid, baseline }));
   }
 
-  // Build working set from draft (if available) or saved vars
   let vars = cloneDeep(draftVars || savedVars);
 
-  // Pre-convert script values to strings (collection vars are always strings)
   const stringifiedCollVars = {};
   Object.entries(collectionVariables).forEach(([k, v]) => {
     stringifiedCollVars[k] = String(v);
@@ -2336,15 +2321,11 @@ export const collectionVariablesUpdateEvent = ({ collectionVariables, collection
 
   vars = applyScriptEnvVars(vars, stringifiedCollVars, baseline);
 
-  // Update root directly (and sync to draft if one exists) without creating a new draft.
   dispatch(scriptUpdateCollectionVars({ collectionUid, vars }));
 
-  // Save only vars to disk — read from root so draft headers/auth/scripts are not persisted.
-  // Script-initiated saves use console.error (silent to user); user-initiated saves use
-  // toast.error. This is intentional — script-triggered disk writes should not interrupt the user.
+  // Save from root (not draft) so draft headers/auth/scripts are not persisted to disk.
   const collectionCopy = cloneDeep(findCollectionByUid(getState().collections.collections, collectionUid));
   if (collectionCopy) {
-    // Force save from root (not draft) to avoid persisting unrelated draft changes
     collectionCopy.draft = null;
     const collectionRootToSave = transformCollectionRootToSave(collectionCopy);
     const { ipcRenderer } = window;
