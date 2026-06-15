@@ -100,17 +100,37 @@ class CodeEditor extends React.Component {
       theme: this.props.theme === 'dark' ? 'monokai' : 'default',
       extraKeys: {
         'Cmd-F': (cm) => {
+          const selected = cm.getSelection();
           this.setState({ searchBarVisible: true }, () => {
-            this.searchBarRef.current?.focus();
+            if (selected) {
+              this.searchBarRef.current?.setSearch(selected);
+            } else {
+              this.searchBarRef.current?.focus();
+            }
           });
         },
         'Ctrl-F': (cm) => {
+          const selected = cm.getSelection();
           this.setState({ searchBarVisible: true }, () => {
-            this.searchBarRef.current?.focus();
+            if (selected) {
+              this.searchBarRef.current?.setSearch(selected);
+            } else {
+              this.searchBarRef.current?.focus();
+            }
           });
         },
-        'Cmd-H': this.props.readOnly ? false : 'replace',
-        'Ctrl-H': this.props.readOnly ? false : 'replace',
+        'Cmd-H': this.props.readOnly ? false : (cm) => {
+          this.setState({ searchBarVisible: true }, () => {
+            this.searchBarRef.current?.focus();
+            this.searchBarRef.current?.openReplace();
+          });
+        },
+        'Ctrl-H': this.props.readOnly ? false : (cm) => {
+          this.setState({ searchBarVisible: true }, () => {
+            this.searchBarRef.current?.focus();
+            this.searchBarRef.current?.openReplace();
+          });
+        },
         'Cmd-Enter': runShortcut,
         'Ctrl-Enter': runShortcut,
         'Tab': function (cm) {
@@ -145,7 +165,7 @@ class CodeEditor extends React.Component {
         },
         'Esc': () => {
           if (this.state.searchBarVisible) {
-            this.setState({ searchBarVisible: false });
+            this.searchBarRef.current?.close();
           }
         }
       },

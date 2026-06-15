@@ -1,11 +1,11 @@
-import React, { useState, useEffect, useRef, useCallback, useMemo, forwardRef, useImperativeHandle } from 'react';
-import { IconRegex, IconArrowUp, IconArrowDown, IconX, IconLetterCase, IconLetterW } from '@tabler/icons';
+import React, { useState, useEffect, useRef, useCallback, forwardRef, useImperativeHandle } from 'react';
+import { IconRegex, IconArrowUp, IconArrowDown, IconX, IconLetterCase, IconLetterW, IconChevronRight, IconReplace, IconArrowsExchange2 } from '@tabler/icons';
 import ToolHint from 'components/ToolHint';
 import StyledWrapper from './StyledWrapper';
 import useDebounce from 'hooks/useDebounce';
 
 function escapeRegExp(string) {
-  return string.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&');
+  return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
 const MAX_MATCHES = 99_999;
@@ -48,6 +48,8 @@ function createCacheKey(editor, searchText, regex, caseSensitive, wholeWord) {
 
 const CodeMirrorSearch = forwardRef(({ visible, editor, onClose }, ref) => {
   const [searchText, setSearchText] = useState('');
+  const [replaceText, setReplaceText] = useState('');
+  const [replaceVisible, setReplaceVisible] = useState(false);
   const [regex, setRegex] = useState(false);
   const [caseSensitive, setCaseSensitive] = useState(false);
   const [wholeWord, setWholeWord] = useState(false);
@@ -59,8 +61,11 @@ const CodeMirrorSearch = forwardRef(({ visible, editor, onClose }, ref) => {
   const searchMatches = useRef([]);
   const searchCacheKey = useRef('');
   const inputRef = useRef(null);
+  const replaceInputRef = useRef(null);
+  const containerRef = useRef(null);
 
   const debouncedSearchText = useDebounce(searchText, 250);
+
   const doSearch = useCallback((newIndex = 0) => {
     if (!editor || !visible) {
       return;
@@ -159,18 +164,6 @@ const CodeMirrorSearch = forwardRef(({ visible, editor, onClose }, ref) => {
     }
   }, [debouncedSearchText, regex, caseSensitive, wholeWord, editor, visible]);
 
-  useImperativeHandle(ref, () => ({
-    focus: () => {
-      if (inputRef.current) {
-        inputRef.current.focus();
-      }
-    }
-  }));
-
-  useEffect(() => {
-    doSearch(0);
-  }, [debouncedSearchText, doSearch]);
-
   const handleSearchBarClose = useCallback(() => {
     searchMarks.current.forEach((mark) => mark.clear());
     searchMarks.current = [];
@@ -180,12 +173,56 @@ const CodeMirrorSearch = forwardRef(({ visible, editor, onClose }, ref) => {
     }
     searchMatches.current = [];
     searchCacheKey.current = '';
+    setReplaceVisible(false);
     if (onClose) onClose();
     // Focus the editor after closing the search bar
     if (editor) {
       setTimeout(() => editor.focus(), 0);
     }
   }, [editor, onClose]);
+
+  useImperativeHandle(ref, () => ({
+    focus: () => {
+      if (inputRef.current) {
+        inputRef.current.focus();
+      }
+    },
+    setSearch: (text) => {
+      setSearchText(text);
+      setMatchIndex(0);
+      setTimeout(() => {
+        if (inputRef.current) {
+          inputRef.current.focus();
+          inputRef.current.select();
+        }
+      }, 0);
+    },
+    openReplace: () => {
+      setReplaceVisible(true);
+      setTimeout(() => replaceInputRef.current?.focus(), 0);
+    },
+    close: () => {
+      handleSearchBarClose();
+    }
+  }));
+
+  useEffect(() => {
+    doSearch(0);
+  }, [debouncedSearchText, doSearch]);
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container || !visible) return;
+
+    const onKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        handleSearchBarClose();
+      }
+    };
+
+    container.addEventListener('keydown', onKeyDown, true);
+    return () => container.removeEventListener('keydown', onKeyDown, true);
+  }, [visible, handleSearchBarClose]);
 
   const handleSearchTextChange = (text) => {
     setSearchText(text);
@@ -219,38 +256,92 @@ const CodeMirrorSearch = forwardRef(({ visible, editor, onClose }, ref) => {
     doSearch(prev);
   };
 
+  const handleReplace = useCallback(() => {
+    if (!editor || !searchMatches.current.length) return;
+    const match = searchMatches.current[matchIndex];
+    if (!match) return;
+    editor.replaceRange(replaceText, match.from, match.to);
+    searchCacheKey.current = '';
+    doSearch(matchIndex);
+  }, [editor, matchIndex, replaceText, doSearch]);
+
+  const handleReplaceAll = useCallback(() => {
+    if (!editor || !searchMatches.current.length) return;
+    const matches = [...searchMatches.current].reverse();
+    editor.operation(() => {
+      matches.forEach((match) => editor.replaceRange(replaceText, match.from, match.to));
+    });
+    searchCacheKey.current = '';
+    doSearch(0);
+  }, [editor, replaceText, doSearch]);
+
   if (!visible) return null;
 
   return (
-    <StyledWrapper>
-      <div className="bruno-search-bar">
-        <input
-          ref={inputRef}
-          autoFocus
-          type="text"
-          value={searchText}
-          onChange={(e) => handleSearchTextChange(e.target.value)}
-          placeholder="Search..."
-          spellCheck={false}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' && !e.shiftKey) handleNext();
-            if (e.key === 'Enter' && e.shiftKey) handlePrev();
-            if (e.key === 'Escape') handleSearchBarClose();
-          }}
-        />
-        <span className="searchbar-result-count">{matchCount > 0 ? `${matchIndex + 1} / ${matchCount}` : '0 results'}</span>
-        <ToolHint text="Regex search" toolhintId="searchbar-regex-toolhint" place="top">
-          <button className={`searchbar-icon-btn ${regex ? 'active' : ''}`} onClick={handleToggleRegex}><IconRegex size={16} /></button>
-        </ToolHint>
-        <ToolHint text="Case sensitive" toolhintId="searchbar-case-toolhint" place="top">
-          <button className={`searchbar-icon-btn ${caseSensitive ? 'active' : ''}`} onClick={handleToggleCase}><IconLetterCase size={14} /></button>
-        </ToolHint>
-        <ToolHint text="Whole word" toolhintId="searchbar-wholeword-toolhint" place="top">
-          <button className={`searchbar-icon-btn ${wholeWord ? 'active' : ''}`} onClick={handleToggleWholeWord}><IconLetterW size={14} /></button>
-        </ToolHint>
-        <button className="searchbar-icon-btn" title="Previous" onClick={handlePrev}><IconArrowUp size={14} /></button>
-        <button className="searchbar-icon-btn" title="Next" onClick={handleNext}><IconArrowDown size={14} /></button>
-        <button className="searchbar-icon-btn" title="Close" onClick={handleSearchBarClose}><IconX size={14} /></button>
+    <StyledWrapper $replaceVisible={replaceVisible}>
+      <div className="bruno-search-bar" ref={containerRef}>
+        <button
+          type="button"
+          className="toggle-replace-btn"
+          title={replaceVisible ? 'Hide replace' : 'Show replace'}
+          onClick={() => setReplaceVisible((prev) => !prev)}
+        >
+          <IconChevronRight
+            size={12}
+            style={{ transform: replaceVisible ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform 0.15s' }}
+          />
+        </button>
+        <div className="search-replace-rows">
+          <div className="search-row">
+            <input
+              ref={inputRef}
+              autoFocus
+              type="text"
+              value={searchText}
+              onChange={(e) => handleSearchTextChange(e.target.value)}
+              placeholder="Search..."
+              spellCheck={false}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) handleNext();
+                if (e.key === 'Enter' && e.shiftKey) handlePrev();
+              }}
+            />
+            <span className="searchbar-result-count">{matchCount > 0 ? `${matchIndex + 1} / ${matchCount}` : '0 results'}</span>
+            <ToolHint text="Regex search" toolhintId="searchbar-regex-toolhint" place="top">
+              <button type="button" className={`searchbar-icon-btn ${regex ? 'active' : ''}`} onClick={handleToggleRegex}><IconRegex size={16} /></button>
+            </ToolHint>
+            <ToolHint text="Case sensitive" toolhintId="searchbar-case-toolhint" place="top">
+              <button type="button" className={`searchbar-icon-btn ${caseSensitive ? 'active' : ''}`} onClick={handleToggleCase}><IconLetterCase size={14} /></button>
+            </ToolHint>
+            <ToolHint text="Whole word" toolhintId="searchbar-wholeword-toolhint" place="top">
+              <button type="button" className={`searchbar-icon-btn ${wholeWord ? 'active' : ''}`} onClick={handleToggleWholeWord}><IconLetterW size={14} /></button>
+            </ToolHint>
+            <button type="button" className="searchbar-icon-btn" title="Previous (Shift+Enter)" onClick={handlePrev}><IconArrowUp size={14} /></button>
+            <button type="button" className="searchbar-icon-btn" title="Next (Enter)" onClick={handleNext}><IconArrowDown size={14} /></button>
+            <button type="button" className="searchbar-icon-btn" title="Close" onClick={handleSearchBarClose}><IconX size={14} /></button>
+          </div>
+          {replaceVisible && (
+            <div className="replace-row">
+              <input
+                ref={replaceInputRef}
+                type="text"
+                value={replaceText}
+                onChange={(e) => setReplaceText(e.target.value)}
+                placeholder="Replace..."
+                spellCheck={false}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleReplace();
+                }}
+              />
+              <ToolHint text="Replace (Enter)" toolhintId="searchbar-replace-toolhint" place="top">
+                <button type="button" className="searchbar-icon-btn" onClick={handleReplace}><IconReplace size={15} /></button>
+              </ToolHint>
+              <ToolHint text="Replace all" toolhintId="searchbar-replaceall-toolhint" place="top">
+                <button type="button" className="searchbar-icon-btn" onClick={handleReplaceAll}><IconArrowsExchange2 size={15} /></button>
+              </ToolHint>
+            </div>
+          )}
+        </div>
       </div>
     </StyledWrapper>
   );
