@@ -820,7 +820,7 @@ const importPostmanV2CollectionItem = (brunoParent, item, { useWorkers = false }
                 example.request.body.file.push({
                   uid: uuid(),
                   selected: true,
-                  filePath: ensureString(originalRequest.request.body.file?.src),
+                  filePath: ensureString(originalRequest.body.file?.src),
                   contentType: 'application/octet-stream'
                 });
               }

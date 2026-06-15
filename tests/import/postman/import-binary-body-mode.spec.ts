@@ -4,18 +4,8 @@ import { closeAllCollections, openCollection, selectRequestPaneTab } from '../..
 import { buildCommonLocators } from '../../utils/page/locators';
 
 test.describe('Import Postman Collection with binary body mode', () => {
-  test.beforeAll(async ({ electronApp }) => {
-    await electronApp.evaluate(({ dialog }) => {
-      (global as any)._originalShowOpenDialog = dialog.showOpenDialog;
-    });
-  });
-
-  test.afterAll(async ({ electronApp, page }) => {
+  test.afterAll(async ({ page }) => {
     await closeAllCollections(page);
-    await electronApp.evaluate(({ dialog }) => {
-      dialog.showOpenDialog = (global as any)._originalShowOpenDialog;
-      delete (global as any)._originalShowOpenDialog;
-    });
   });
 
   test('should import Postman collection with binary body mode successfully', async ({ page, electronApp, createTmpDir }) => {
@@ -25,44 +15,51 @@ test.describe('Import Postman Collection with binary body mode', () => {
     const importDir = await createTmpDir('imported-collection');
 
     await electronApp.evaluate(({ dialog }, { importDir }) => {
-      dialog.showOpenDialog = async () => ({
-        canceled: false,
-        filePaths: [importDir]
-      });
+      const originalShowOpenDialog = dialog.showOpenDialog;
+      dialog.showOpenDialog = async () => {
+        dialog.showOpenDialog = originalShowOpenDialog;
+        return {
+          canceled: false,
+          filePaths: [importDir]
+        };
+      };
     }, { importDir });
 
-    await test.step('Open import collection modal', async () => {
+    await test.step('Import collection', async () => {
       await locators.plusMenu.button().click();
       await locators.plusMenu.importCollection().click();
-      const importModal = page.getByRole('dialog');
+      const importModal = locators.import.modal();
       await importModal.waitFor({ state: 'visible' });
-      await expect(locators.modal.title('Import Collection')).toBeVisible();
       await locators.import.fileInput().setInputFiles(postmanFile);
-      await locators.import.locationModal().waitFor({ state: 'visible', timeout: 10000 });
-      const hasError = await locators.import.parsingError().isVisible().catch(() => false);
-      if (hasError) {
-        throw new Error('Collection import failed with parsing error');
-      }
-      await expect(locators.modal.title('Import Collection')).toBeVisible();
-      await expect(locators.import.locationModal().getByText('My Collection')).toBeVisible();
-      await locators.import.browseLink(locators.import.locationModal()).click();
+      await locators.import.locationModal().waitFor({ state: 'visible', timeout: 5000 });
       const locationModal = locators.import.locationModal();
+      await expect(locationModal.getByText('Binary body type')).toBeVisible();
+      await locators.import.browseLink(locationModal).click();
       await locators.import.importButton(locationModal).click();
       await locationModal.waitFor({ state: 'hidden' });
-    });
-
-    await test.step('Open collection and verify request is displayed', async () => {
-      await openCollection(page, 'My Collection');
-      await expect(locators.sidebar.collection('My Collection')).toBeVisible();
-      await expect(locators.sidebar.request('Binary body mode')).toBeVisible();
-      await locators.sidebar.request('Binary body mode').click();
-      await expect(locators.request.pane()).toBeVisible();
+      await openCollection(page, 'Binary body type');
+      await expect(locators.sidebar.collection('Binary body type')).toBeVisible();
     });
 
     await test.step('Verify body mode is File / Binary and imported file path is preserved', async () => {
+      await locators.sidebar.request('Binary body mode').click();
+      await expect(locators.request.pane()).toBeVisible();
       await selectRequestPaneTab(page, 'Body');
       await expect(locators.request.bodyModeSelector()).toContainText('File / Binary');
       await expect(locators.request.pane().getByText('binary-payload.bin')).toBeVisible();
+    });
+
+    await test.step('Verify example is imported and preserves the binary body mode', async () => {
+      const chevronIcon = page.getByTestId('request-item-chevron');
+      await expect(chevronIcon).toBeVisible();
+      await chevronIcon.click();
+      const example = locators.sidebar.request('Binary upload example');
+      await expect(example).toBeVisible();
+      await example.click();
+      const examplePane = locators.request.pane();
+      await expect(examplePane).toBeVisible();
+      await expect(examplePane.locator('.selected-body-mode')).toContainText('File / Binary');
+      await expect(examplePane.getByText('binary-payload.bin')).toBeVisible();
     });
   });
 });
