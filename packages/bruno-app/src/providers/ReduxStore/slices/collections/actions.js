@@ -407,6 +407,8 @@ export const sendCollectionOauth2Request = (collectionUid, itemUid) => (dispatch
 
     const environment = findEnvironmentInCollection(collectionCopy, collection.activeEnvironmentUid);
 
+    dispatch(_clearScriptGlobalEnvBaseline());
+
     _sendCollectionOauth2Request(collectionCopy, environment, collectionCopy.runtimeVariables)
       .then((response) => {
         if (response?.data?.error) {
@@ -447,6 +449,8 @@ export const wsConnectOnly = (item, collectionUid) => (dispatch, getState) => {
     collectionCopy.globalEnvironmentVariables = globalEnvironmentVariables;
 
     const environment = findEnvironmentInCollection(collectionCopy, collectionCopy.activeEnvironmentUid);
+
+    dispatch(_clearScriptGlobalEnvBaseline());
 
     connectWS(itemCopy, collectionCopy, environment, collectionCopy.runtimeVariables, { connectOnly: true })
       .then(resolve)
@@ -566,9 +570,6 @@ export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
       return reject(error);
     }
 
-    // Clear previous request's global env baseline before starting a new request.
-    // Done here (not in responseReceived) so the guard remains active while async
-    // saves from the previous request are still in flight.
     dispatch(_clearScriptGlobalEnvBaseline());
 
     await dispatch(
@@ -2261,8 +2262,6 @@ export const updateVariableInScope = (variableName, newValue, scopeInfo, collect
   });
 };
 
-// Script-initiated saves use console.error (silent to user); user-initiated saves use
-// toast.error. This is intentional — script-triggered disk writes should not interrupt the user.
 export const persistActiveEnvironment = (collectionUid) => (dispatch, getState) => {
   const state = getState();
   const collection = findCollectionByUid(state.collections.collections, collectionUid);
@@ -2272,10 +2271,9 @@ export const persistActiveEnvironment = (collectionUid) => (dispatch, getState) 
   if (!environment) return;
 
   if (collection._scriptEnvBaseline) {
-    // A draft merge is in progress — the scriptEnvironmentUpdateEvent reducer already
-    // set the correct variables in Redux. Write to disk silently without dispatching
-    // _saveEnvironment, which would race with subsequent script events and file-watcher
-    // callbacks.
+    // Baseline exists — a draft was flushed earlier in this request cycle.
+    // Write to disk silently (without dispatching _saveEnvironment) to avoid
+    // racing with file-watcher callbacks.
     const collectionCopy = cloneDeep(collection);
     const envCopy = findEnvironmentInCollection(collectionCopy, environment.uid);
     if (!envCopy) return;
@@ -2288,7 +2286,8 @@ export const persistActiveEnvironment = (collectionUid) => (dispatch, getState) 
     return;
   }
 
-  dispatch(saveEnvironment(environment.variables, environment.uid, collectionUid));
+  dispatch(saveEnvironment(environment.variables, environment.uid, collectionUid))
+    .catch((err) => console.error('Failed to persist environment during script execution:', err));
 };
 
 export const collectionVariablesUpdateEvent = ({ collectionVariables, collectionUid }) => (dispatch, getState) => {
@@ -2305,9 +2304,6 @@ export const collectionVariablesUpdateEvent = ({ collectionVariables, collection
 
   let baseline = collection._scriptCollVarBaseline || null;
 
-  // When a draft exists and no baseline yet, snapshot the saved state so that
-  // applyScriptEnvVars only applies what the script actually changed — preserving
-  // user draft edits for variables the script didn't touch.
   if (!baseline && draftVars) {
     baseline = {};
     savedVars.forEach((v) => {
@@ -2316,10 +2312,8 @@ export const collectionVariablesUpdateEvent = ({ collectionVariables, collection
     dispatch(setScriptCollVarBaseline({ collectionUid, baseline }));
   }
 
-  // Build working set from draft (if available) or saved vars
   let vars = cloneDeep(draftVars || savedVars);
 
-  // Pre-convert script values to strings (collection vars are always strings)
   const stringifiedCollVars = {};
   Object.entries(collectionVariables).forEach(([k, v]) => {
     stringifiedCollVars[k] = String(v);
@@ -2340,15 +2334,24 @@ export const collectionVariablesUpdateEvent = ({ collectionVariables, collection
     }
   });
 
-  // Update root directly (and sync to draft if one exists) without creating a new draft.
+  // Infer dataType from the original (pre-stringified) script value so number/boolean/object
+  // collection vars round-trip correctly through the script -> disk path.
+  Object.entries(collectionVariables).forEach(([name, value]) => {
+    const existing = vars.find((v) => v.name === name);
+    if (!existing) return;
+    const inferred = getDataTypeFromValue(value);
+    if (inferred === 'string') {
+      delete existing.dataType;
+    } else {
+      existing.dataType = inferred;
+    }
+  });
+
   dispatch(scriptUpdateCollectionVars({ collectionUid, vars }));
 
-  // Save only vars to disk — read from root so draft headers/auth/scripts are not persisted.
-  // Script-initiated saves use console.error (silent to user); user-initiated saves use
-  // toast.error. This is intentional — script-triggered disk writes should not interrupt the user.
+  // Save from root (not draft) so draft headers/auth/scripts are not persisted to disk.
   const collectionCopy = cloneDeep(findCollectionByUid(getState().collections.collections, collectionUid));
   if (collectionCopy) {
-    // Force save from root (not draft) to avoid persisting unrelated draft changes
     collectionCopy.draft = null;
     const collectionRootToSave = transformCollectionRootToSave(collectionCopy);
     const { ipcRenderer } = window;

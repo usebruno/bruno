@@ -1,11 +1,11 @@
 import { test, expect, closeElectronApp } from '../../../playwright';
 import { sendRequest, waitForReadyPage } from '../../utils/page';
 
-test.describe.serial('bru.setEnvVar(name, value)', () => {
-  test('set env var using script', async ({ pageWithUserData: page, restartApp }) => {
+test.describe.serial('bru.setEnvVar(name, value) - default persistence', () => {
+  test('set env var using script persists by default across restart', async ({ pageWithUserData: page, restartApp }) => {
     // Select the collection and request
     await page.locator('#sidebar-collection-name').click();
-    await page.getByText('api-setEnvVar-without-persist', { exact: true }).click();
+    await page.getByText('api-setEnvVar-default-persistence', { exact: true }).click();
 
     // open environment dropdown
     await page.getByTestId('environment-selector-trigger').click();
@@ -38,7 +38,7 @@ test.describe.serial('bru.setEnvVar(name, value)', () => {
 
     // select the collection and request
     await newPage.locator('#sidebar-collection-name').click();
-    await newPage.getByText('api-setEnvVar-without-persist', { exact: true }).click();
+    await newPage.getByText('api-setEnvVar-default-persistence', { exact: true }).click();
 
     // open environment dropdown
     await newPage.getByTestId('environment-selector-trigger').hover();

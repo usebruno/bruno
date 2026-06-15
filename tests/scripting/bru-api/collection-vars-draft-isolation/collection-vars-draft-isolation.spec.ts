@@ -25,13 +25,12 @@ test.describe('Collection vars script persistence does not leak draft headers', 
       await locators.sidebar.collection('draft-isolation-test').click();
       await locators.paneTabs.collectionSettingsTab('headers').click();
 
-      // Find the header value cell and edit it
       const headerRow = page.locator('tbody tr').filter({
-        has: page.locator('input[value="X-Custom-Header"]')
+        hasText: 'X-Custom-Header'
       });
       await expect(headerRow).toBeVisible();
 
-      const valueCellEditor = headerRow.locator('.CodeMirror-line').first();
+      const valueCellEditor = headerRow.locator('.CodeMirror').nth(1);
       await valueCellEditor.click();
       await page.keyboard.press('Meta+a');
       await page.keyboard.type('draft-edited-value');
