@@ -1,0 +1,51 @@
+meta {
+  name: search-methods
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{host}}/api/echo/json
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "hello": "bruno"
+  }
+}
+
+assert {
+  res.status: eq 200
+}
+
+tests {
+  test("res.headerList.has(name)", function() {
+    expect(res.headerList.has('x-powered-by')).to.be.true;
+    expect(res.headerList.has('nonexistent')).to.be.false;
+  });
+
+  test("res.headerList.has(name, value)", function() {
+    expect(res.headerList.has('x-powered-by', 'Express')).to.be.true;
+    expect(res.headerList.has('x-powered-by', 'wrong')).to.be.false;
+  });
+
+  test("res.headerList.find(predicate)", function() {
+    const found = res.headerList.find(h => h.key === 'x-powered-by');
+    expect(found).to.eql({ key: 'x-powered-by', value: 'Express' });
+    expect(res.headerList.find(h => h.key === 'nonexistent')).to.be.undefined;
+  });
+
+  test("res.headerList.filter(predicate)", function() {
+    const filtered = res.headerList.filter(h => h.key.startsWith('x-'));
+    expect(filtered).to.be.an('array');
+    expect(filtered.length).to.be.at.least(1);
+  });
+
+  test("res.headerList.indexOf(item)", function() {
+    const idx = res.headerList.indexOf({ key: 'x-powered-by', value: 'Express' });
+    expect(idx).to.be.at.least(0);
+    expect(res.headerList.indexOf({ key: 'nonexistent', value: 'nope' })).to.equal(-1);
+  });
+}

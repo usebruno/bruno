@@ -643,19 +643,38 @@ describe('Response Translation', () => {
   it('should translate pm.response.to.have.jsonBody with path', () => {
     const code = 'pm.response.to.have.jsonBody("user.id");';
     const translatedCode = translateCode(code);
-    expect(translatedCode).toContain('expect(res.getBody()).to.have.nested.property("user.id")');
+    expect(translatedCode).toContain('expect(res.getBody()).to.have.jsonBody("user.id")');
   });
 
   it('should translate pm.response.to.have.jsonBody with path and value', () => {
     const code = 'pm.response.to.have.jsonBody("status", "success");';
     const translatedCode = translateCode(code);
-    expect(translatedCode).toContain('expect(res.getBody()).to.have.nested.property("status", "success")');
+    expect(translatedCode).toContain('expect(res.getBody()).to.have.jsonBody("status", "success")');
   });
 
   it('should translate pm.response.to.have.jsonBody without arguments', () => {
     const code = 'pm.response.to.have.jsonBody();';
     const translatedCode = translateCode(code);
-    expect(translatedCode).toContain('expect(res.getBody()).to.exist');
+    expect(translatedCode).toContain('expect(res.getBody()).to.have.jsonBody()');
+  });
+
+  it('should translate pm.response.to.have.jsonBody with object argument', () => {
+    const code = 'pm.response.to.have.jsonBody({ success: true, data: { id: 1 } });';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toContain('expect(res.getBody()).to.have.jsonBody');
+    expect(translatedCode).toContain('success: true');
+  });
+
+  it('should translate pm.response.to.have.jsonBody with path and numeric value', () => {
+    const code = 'pm.response.to.have.jsonBody("data.count", 42);';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toContain('expect(res.getBody()).to.have.jsonBody("data.count", 42)');
+  });
+
+  it('should translate pm.response.to.have.jsonBody with array argument as nested property', () => {
+    const code = 'pm.response.to.have.jsonBody(["a", "b"]);';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toContain('expect(res.getBody()).to.have.jsonBody(["a", "b"])');
   });
 
   it('should handle pm.response.to.have.jsonBody inside test blocks', () => {
@@ -667,19 +686,519 @@ describe('Response Translation', () => {
         `;
     const translatedCode = translateCode(code);
     expect(translatedCode).toContain('test("Response validation", function() {');
-    expect(translatedCode).toContain('expect(res.getBody()).to.have.nested.property("data")');
-    expect(translatedCode).toContain('expect(res.getBody()).to.have.nested.property("data.id", 123)');
+    expect(translatedCode).toContain('expect(res.getBody()).to.have.jsonBody("data")');
+    expect(translatedCode).toContain('expect(res.getBody()).to.have.jsonBody("data.id", 123)');
   });
 
   it('should translate pm.response.to.have.jsonBody with nested path', () => {
     const code = 'pm.response.to.have.jsonBody("response.data.items[0].name");';
     const translatedCode = translateCode(code);
-    expect(translatedCode).toContain('expect(res.getBody()).to.have.nested.property("response.data.items[0].name")');
+    expect(translatedCode).toContain('expect(res.getBody()).to.have.jsonBody("response.data.items[0].name")');
   });
 
   it('should translate pm.response.to.have.jsonBody with variable path', () => {
     const code = 'const path = "user.id"; pm.response.to.have.jsonBody(path);';
     const translatedCode = translateCode(code);
-    expect(translatedCode).toContain('expect(res.getBody()).to.have.nested.property(path)');
+    expect(translatedCode).toContain('expect(res.getBody()).to.have.jsonBody(path)');
+  });
+
+  it('should translate pm.response.to.not.have.jsonBody without arguments', () => {
+    const code = 'pm.response.to.not.have.jsonBody();';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toContain('expect(res.getBody()).to.not.have.jsonBody()');
+  });
+
+  it('should translate pm.response.to.not.have.jsonBody with path', () => {
+    const code = 'pm.response.to.not.have.jsonBody("error");';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toContain('expect(res.getBody()).to.not.have.jsonBody("error")');
+  });
+
+  it('should translate pm.response.to.not.have.jsonBody with path and value', () => {
+    const code = 'pm.response.to.not.have.jsonBody("status", "error");';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toContain('expect(res.getBody()).to.not.have.jsonBody("status", "error")');
+  });
+
+  it('should translate pm.response.to.not.have.jsonBody with object argument', () => {
+    const code = 'pm.response.to.not.have.jsonBody({ error: true });';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toContain('expect(res.getBody()).to.not.have.jsonBody');
+    expect(translatedCode).toContain('error: true');
+  });
+
+  // --- JSON Schema assertions ---------------------------
+
+  it('should translate pm.response.to.have.jsonSchema with variable reference', () => {
+    const code = 'pm.response.to.have.jsonSchema(schema);';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toBe('expect(res.getBody()).to.have.jsonSchema(schema);');
+  });
+
+  it('should translate pm.response.to.have.jsonSchema with two arguments', () => {
+    const code = 'pm.response.to.have.jsonSchema(schema, options);';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toBe('expect(res.getBody()).to.have.jsonSchema(schema, options);');
+  });
+
+  it('should translate pm.response.to.have.jsonSchema with inline object', () => {
+    const code = 'pm.response.to.have.jsonSchema({type: "object"});';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toContain('expect(res.getBody()).to.have.jsonSchema({type: "object"})');
+  });
+
+  it('should translate pm.response.to.have.jsonSchema inside a test block', () => {
+    const code = `
+        pm.test("Schema is valid", function() {
+            pm.response.to.have.jsonSchema(schema);
+        });
+        `;
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toContain('test("Schema is valid", function() {');
+    expect(translatedCode).toContain('expect(res.getBody()).to.have.jsonSchema(schema)');
+  });
+
+  it('should translate pm.response.to.have.jsonSchema with response alias', () => {
+    const code = `
+        const resp = pm.response;
+        resp.to.have.jsonSchema(schema);
+        `;
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toBe(`
+        expect(res.getBody()).to.have.jsonSchema(schema);
+        `);
+  });
+
+  // --- Negated JSON Schema assertions --------------------
+
+  it('should translate pm.response.to.not.have.jsonSchema', () => {
+    const code = 'pm.response.to.not.have.jsonSchema(schema);';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toBe('expect(res.getBody()).to.not.have.jsonSchema(schema);');
+  });
+
+  it('should translate pm.response.not.to.have.jsonSchema', () => {
+    const code = 'pm.response.not.to.have.jsonSchema(schema);';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toBe('expect(res.getBody()).not.to.have.jsonSchema(schema);');
+  });
+
+  it('should translate pm.response.to.have.not.jsonSchema', () => {
+    const code = 'pm.response.to.have.not.jsonSchema(schema);';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toBe('expect(res.getBody()).to.have.not.jsonSchema(schema);');
+  });
+
+  it('should translate pm.response.to.not.have.jsonSchema with two arguments', () => {
+    const code = 'pm.response.to.not.have.jsonSchema(schema, options);';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toBe('expect(res.getBody()).to.not.have.jsonSchema(schema, options);');
+  });
+
+  it('should translate pm.response.to.not.have.jsonSchema inside a test block', () => {
+    const code = `
+        pm.test("Schema should not match", function() {
+            pm.response.to.not.have.jsonSchema(schema);
+        });
+        `;
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toContain('test("Schema should not match", function() {');
+    expect(translatedCode).toContain('expect(res.getBody()).to.not.have.jsonSchema(schema)');
+  });
+
+  it('should translate pm.response.to.not.have.jsonSchema with response alias', () => {
+    const code = `
+        const resp = pm.response;
+        resp.to.not.have.jsonSchema(schema);
+        `;
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toBe(`
+        expect(res.getBody()).to.not.have.jsonSchema(schema);
+        `);
+  });
+
+  // --- not.to.have.jsonBody ---
+
+  it('should translate pm.response.not.to.have.jsonBody without arguments', () => {
+    const code = 'pm.response.not.to.have.jsonBody();';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toContain('expect(res.getBody()).not.to.have.jsonBody()');
+  });
+
+  it('should translate pm.response.not.to.have.jsonBody with path', () => {
+    const code = 'pm.response.not.to.have.jsonBody("error");';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toContain('expect(res.getBody()).not.to.have.jsonBody("error")');
+  });
+
+  it('should translate pm.response.not.to.have.jsonBody with path and value', () => {
+    const code = 'pm.response.not.to.have.jsonBody("status", "error");';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toContain('expect(res.getBody()).not.to.have.jsonBody("status", "error")');
+  });
+
+  // --- to.have.not.jsonBody ---
+
+  it('should translate pm.response.to.have.not.jsonBody without arguments', () => {
+    const code = 'pm.response.to.have.not.jsonBody();';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toContain('expect(res.getBody()).to.have.not.jsonBody()');
+  });
+
+  it('should translate pm.response.to.have.not.jsonBody with path', () => {
+    const code = 'pm.response.to.have.not.jsonBody("error");';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toContain('expect(res.getBody()).to.have.not.jsonBody("error")');
+  });
+
+  it('should translate pm.response.to.have.not.jsonBody with path and value', () => {
+    const code = 'pm.response.to.have.not.jsonBody("status", "error");';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toContain('expect(res.getBody()).to.have.not.jsonBody("status", "error")');
+  });
+
+  // --- pm.response.headers PropertyList methods → res.headerList.* ------
+
+  it('should translate pm.response.headers.has to res.headerList.has', () => {
+    const code = 'const hasCt = pm.response.headers.has("Content-Type");';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toBe('const hasCt = res.headerList.has("Content-Type");');
+  });
+
+  it('should translate pm.response.headers.all to res.headerList.all', () => {
+    const code = 'const allHeaders = pm.response.headers.all();';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toBe('const allHeaders = res.headerList.all();');
+  });
+
+  it('should translate pm.response.headers.each to res.headerList.each', () => {
+    const code = 'pm.response.headers.each(h => console.log(h.key));';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toBe('res.headerList.each(h => console.log(h.key));');
+  });
+
+  it('should translate pm.response.headers.filter to res.headerList.filter', () => {
+    const code = 'const custom = pm.response.headers.filter(h => h.key.startsWith("x-"));';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toBe('const custom = res.headerList.filter(h => h.key.startsWith("x-"));');
+  });
+
+  it('should translate pm.response.headers.count to res.headerList.count', () => {
+    const code = 'const n = pm.response.headers.count();';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toBe('const n = res.headerList.count();');
+  });
+
+  it('should translate pm.response.headers.toObject to res.headerList.toObject', () => {
+    const code = 'const obj = pm.response.headers.toObject();';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toBe('const obj = res.headerList.toObject();');
+  });
+
+  it('should translate pm.response.headers.toString to res.headerList.toString', () => {
+    const code = 'const str = pm.response.headers.toString();';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toBe('const str = res.headerList.toString();');
+  });
+
+  it('should translate pm.response.headers.toJSON to res.headerList.toJSON', () => {
+    const code = 'const json = pm.response.headers.toJSON();';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toBe('const json = res.headerList.toJSON();');
+  });
+
+  // --- New status assertions ---
+
+  it('should translate pm.response.to.be.info', () => {
+    const code = 'pm.response.to.be.info;';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toContain('expect(res.getStatus()).to.be.within(100, 199)');
+  });
+
+  it('should translate pm.response.to.be.accepted', () => {
+    const code = 'pm.response.to.be.accepted;';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toContain('expect(res.getStatus()).to.equal(202)');
+  });
+
+  it('should translate pm.response.to.be.badRequest', () => {
+    const code = 'pm.response.to.be.badRequest;';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toContain('expect(res.getStatus()).to.equal(400)');
+  });
+
+  it('should translate pm.response.to.be.unauthorized', () => {
+    const code = 'pm.response.to.be.unauthorized;';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toContain('expect(res.getStatus()).to.equal(401)');
+  });
+
+  it('should translate pm.response.to.be.forbidden', () => {
+    const code = 'pm.response.to.be.forbidden;';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toContain('expect(res.getStatus()).to.equal(403)');
+  });
+
+  it('should translate pm.response.to.be.notFound', () => {
+    const code = 'pm.response.to.be.notFound;';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toContain('expect(res.getStatus()).to.equal(404)');
+  });
+
+  it('should translate pm.response.to.be.rateLimited', () => {
+    const code = 'pm.response.to.be.rateLimited;';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toContain('expect(res.getStatus()).to.equal(429)');
+  });
+
+  it('should translate pm.response.to.be.withBody', () => {
+    const code = 'pm.response.to.be.withBody;';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toBe('expect(res.getBody()).to.not.equal(undefined);');
+  });
+
+  it('should translate withBody using undefined check (not truthiness) so falsy bodies work', () => {
+    const code = 'pm.response.to.be.withBody;';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toContain('to.not.equal(undefined)');
+  });
+
+  it('should handle new status assertions inside test blocks', () => {
+    const code = `
+        pm.test("Status checks", function() {
+            pm.response.to.be.info;
+            pm.response.to.be.accepted;
+            pm.response.to.be.badRequest;
+            pm.response.to.be.unauthorized;
+            pm.response.to.be.forbidden;
+            pm.response.to.be.notFound;
+            pm.response.to.be.rateLimited;
+        });
+        `;
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toContain('test("Status checks", function() {');
+    expect(translatedCode).toContain('expect(res.getStatus()).to.be.within(100, 199)');
+    expect(translatedCode).toContain('expect(res.getStatus()).to.equal(202)');
+    expect(translatedCode).toContain('expect(res.getStatus()).to.equal(400)');
+    expect(translatedCode).toContain('expect(res.getStatus()).to.equal(401)');
+    expect(translatedCode).toContain('expect(res.getStatus()).to.equal(403)');
+    expect(translatedCode).toContain('expect(res.getStatus()).to.equal(404)');
+    expect(translatedCode).toContain('expect(res.getStatus()).to.equal(429)');
+  });
+
+  // --- .not negation for to.be.* assertions ---
+
+  it('should translate pm.response.to.not.be.ok', () => {
+    const code = 'pm.response.to.not.be.ok;';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toContain('expect(res.getStatus()).to.not.be.within(200, 299)');
+  });
+
+  it('should translate pm.response.to.be.not.ok (alternate position)', () => {
+    const code = 'pm.response.to.be.not.ok;';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toContain('expect(res.getStatus()).to.not.be.within(200, 299)');
+  });
+
+  it('should translate pm.response.to.be.not.forbidden (alternate position)', () => {
+    const code = 'pm.response.to.be.not.forbidden;';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toContain('expect(res.getStatus()).to.not.equal(403)');
+  });
+
+  it('should translate pm.response.to.be.not.serverError (alternate position)', () => {
+    const code = 'pm.response.to.be.not.serverError;';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toContain('expect(res.getStatus()).to.not.be.within(500, 599)');
+  });
+
+  it('should translate pm.response.to.be.not.withBody (alternate position)', () => {
+    const code = 'pm.response.to.be.not.withBody;';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toBe('expect(res.getBody()).to.equal(undefined);');
+  });
+
+  it('should translate pm.response.to.not.be.success', () => {
+    const code = 'pm.response.to.not.be.success;';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toContain('expect(res.getStatus()).to.not.be.within(200, 299)');
+  });
+
+  it('should translate pm.response.to.not.be.serverError', () => {
+    const code = 'pm.response.to.not.be.serverError;';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toContain('expect(res.getStatus()).to.not.be.within(500, 599)');
+  });
+
+  it('should translate pm.response.to.not.be.clientError', () => {
+    const code = 'pm.response.to.not.be.clientError;';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toContain('expect(res.getStatus()).to.not.be.within(400, 499)');
+  });
+
+  it('should translate pm.response.to.not.be.redirection', () => {
+    const code = 'pm.response.to.not.be.redirection;';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toContain('expect(res.getStatus()).to.not.be.within(300, 399)');
+  });
+
+  it('should translate pm.response.to.not.be.error', () => {
+    const code = 'pm.response.to.not.be.error;';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toContain('expect(res.getStatus()).to.not.be.at.least(400)');
+  });
+
+  it('should translate pm.response.to.not.be.info', () => {
+    const code = 'pm.response.to.not.be.info;';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toContain('expect(res.getStatus()).to.not.be.within(100, 199)');
+  });
+
+  it('should translate pm.response.to.not.be.accepted', () => {
+    const code = 'pm.response.to.not.be.accepted;';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toContain('expect(res.getStatus()).to.not.equal(202)');
+  });
+
+  it('should translate pm.response.to.not.be.badRequest', () => {
+    const code = 'pm.response.to.not.be.badRequest;';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toContain('expect(res.getStatus()).to.not.equal(400)');
+  });
+
+  it('should translate pm.response.to.not.be.unauthorized', () => {
+    const code = 'pm.response.to.not.be.unauthorized;';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toContain('expect(res.getStatus()).to.not.equal(401)');
+  });
+
+  it('should translate pm.response.to.not.be.forbidden', () => {
+    const code = 'pm.response.to.not.be.forbidden;';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toContain('expect(res.getStatus()).to.not.equal(403)');
+  });
+
+  it('should translate pm.response.to.not.be.notFound', () => {
+    const code = 'pm.response.to.not.be.notFound;';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toContain('expect(res.getStatus()).to.not.equal(404)');
+  });
+
+  it('should translate pm.response.to.not.be.rateLimited', () => {
+    const code = 'pm.response.to.not.be.rateLimited;';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toContain('expect(res.getStatus()).to.not.equal(429)');
+  });
+
+  it('should translate pm.response.to.not.be.withBody', () => {
+    const code = 'pm.response.to.not.be.withBody;';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toBe('expect(res.getBody()).to.equal(undefined);');
+  });
+
+  it('should handle negated assertions inside test blocks', () => {
+    const code = `
+        pm.test("Response is not a server error", function() {
+            pm.response.to.not.be.serverError;
+            pm.response.to.not.be.clientError;
+        });
+        `;
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toContain('test("Response is not a server error", function() {');
+    expect(translatedCode).toContain('expect(res.getStatus()).to.not.be.within(500, 599)');
+    expect(translatedCode).toContain('expect(res.getStatus()).to.not.be.within(400, 499)');
+  });
+
+  it('should handle mixed positive and negated assertions', () => {
+    const code = `
+        pm.test("Mixed assertions", function() {
+            pm.response.to.be.success;
+            pm.response.to.not.be.serverError;
+        });
+        `;
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toContain('expect(res.getStatus()).to.be.within(200, 299)');
+    expect(translatedCode).toContain('expect(res.getStatus()).to.not.be.within(500, 599)');
+  });
+
+  it('should handle negated assertions with aliases', () => {
+    const code = `
+        const resp = pm.response;
+        resp.to.not.be.serverError;
+        `;
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toContain('expect(res.getStatus()).to.not.be.within(500, 599)');
+  });
+
+  // --- .not negation for to.have.* assertions ---
+
+  it('should translate pm.response.to.not.have.status', () => {
+    const code = 'pm.response.to.not.have.status(404);';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toBe('expect(res.getStatus()).to.not.equal(404);');
+  });
+
+  it('should translate pm.response.to.not.have.header', () => {
+    const code = 'pm.response.to.not.have.header("X-Error");';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toBe('expect(res.getHeaders()).to.not.have.property("X-Error".toLowerCase());');
+  });
+
+  it('should translate pm.response.to.not.have.header with value', () => {
+    const code = 'pm.response.to.not.have.header("Content-Type", "text/plain");';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toBe('expect(res.getHeaders()).to.not.have.property("Content-Type".toLowerCase(), "text/plain");');
+  });
+
+  it('should translate pm.response.to.not.have.body', () => {
+    const code = 'pm.response.to.not.have.body("error");';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toBe('expect(res.getBody()).to.not.equal("error");');
+  });
+
+  // --- to.have.not.* (alternate .not position) ---
+
+  it('should translate pm.response.to.have.not.status (alternate position)', () => {
+    const code = 'pm.response.to.have.not.status(404);';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toBe('expect(res.getStatus()).to.not.equal(404);');
+  });
+
+  it('should translate pm.response.to.have.not.header (alternate position)', () => {
+    const code = 'pm.response.to.have.not.header("X-Error");';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toBe('expect(res.getHeaders()).to.not.have.property("X-Error".toLowerCase());');
+  });
+
+  it('should translate pm.response.to.have.not.body (alternate position)', () => {
+    const code = 'pm.response.to.have.not.body("error");';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toBe('expect(res.getBody()).to.not.equal("error");');
+  });
+
+  it('should handle negated to.have.* assertions inside test blocks', () => {
+    const code = `
+        pm.test("Negative assertions", function() {
+            pm.response.to.not.have.status(500);
+            pm.response.to.not.have.header("X-Error");
+            pm.response.to.not.have.body("error");
+        });
+        `;
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toContain('test("Negative assertions", function() {');
+    expect(translatedCode).toContain('expect(res.getStatus()).to.not.equal(500)');
+    expect(translatedCode).toContain('expect(res.getHeaders()).to.not.have.property("X-Error".toLowerCase())');
+    expect(translatedCode).toContain('expect(res.getBody()).to.not.equal("error")');
+  });
+
+  it('should handle negated to.have.status with alias', () => {
+    const code = `
+        const resp = pm.response;
+        resp.to.not.have.status(404);
+        `;
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toBe(`
+        expect(res.getStatus()).to.not.equal(404);
+        `);
   });
 });

@@ -38,6 +38,12 @@ const QueryUrl = ({ item, collection, handleRun }) => {
   const [generateCodeItemModalOpen, setGenerateCodeItemModalOpen] = useState(false);
   const hasChanges = useMemo(() => hasRequestChanges(item), [item]);
 
+  useEffect(() => {
+    if (item.isTransient && !url && editorRef.current?.editor) {
+      setTimeout(() => editorRef.current?.editor?.focus(), 0);
+    }
+  }, [item.uid]);
+
   const onSave = () => {
     dispatch(saveRequest(item.uid, collection.uid));
   };

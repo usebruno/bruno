@@ -7,7 +7,7 @@ import find from 'lodash/find';
 import get from 'lodash/get';
 import set from 'lodash/set';
 import trim from 'lodash/trim';
-import path, { normalizePath } from 'utils/common/path';
+import path, { normalizePath, isPathExternalToBasePath } from 'utils/common/path';
 import { insertTaskIntoQueue, toggleSidebarCollapse } from 'providers/ReduxStore/slices/app';
 import toast from 'react-hot-toast';
 import IpcErrorModal from 'components/Errors/IpcErrorModal/index';
@@ -65,7 +65,8 @@ import {
 } from './index';
 
 import { each } from 'lodash';
-import { closeAllCollectionTabs, closeTabs as _closeTabs, focusTab, updateResponsePaneScrollPosition, reopenLastClosedTab } from 'providers/ReduxStore/slices/tabs';
+import { closeAllCollectionTabs, closeTabs as _closeTabs, focusTab, restoreTabs, reopenLastClosedTab } from 'providers/ReduxStore/slices/tabs';
+import { clearOpenApiSyncTabState } from 'providers/ReduxStore/slices/openapi-sync';
 import { removeCollectionFromWorkspace } from 'providers/ReduxStore/slices/workspaces';
 import { resolveRequestFilename } from 'utils/common/platform';
 import { interpolateUrl, parsePathParams, splitOnFirst } from 'utils/url/index';
@@ -73,7 +74,6 @@ import { sendCollectionOauth2Request as _sendCollectionOauth2Request } from 'uti
 import {
   getGlobalEnvironmentVariables,
   findCollectionByPathname,
-  findEnvironmentInCollectionByName,
   getReorderedItemsInTargetDirectory,
   resetSequencesInFolder,
   getReorderedItemsInSourceDirectory,
@@ -91,6 +91,12 @@ import { updateSettingsSelectedTab } from './index';
 import { saveGlobalEnvironment } from 'providers/ReduxStore/slices/global-environments';
 import { getTabToFocusForCurrentWorkspace } from 'providers/ReduxStore/slices/workspaces/getTabToFocusForCurrentWorkspace';
 import { clearPersistedScope } from 'hooks/usePersistedState/PersistedScopeProvider';
+import {
+  getCollectionEnvironmentPath,
+  findCollectionEnvironmentFromSnapshot,
+  hydrateCollectionTabs,
+  hydrateSnapshotLookups
+} from 'utils/snapshot';
 
 // generate a unique names
 const generateUniqueName = (originalName, existingItems, isFolder) => {
@@ -559,13 +565,6 @@ export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
     }
 
     await dispatch(
-      updateResponsePaneScrollPosition({
-        uid: state.tabs.activeTabUid,
-        scrollY: 0
-      })
-    );
-
-    await dispatch(
       initRunRequestEvent({
         requestUid,
         itemUid,
@@ -583,7 +582,9 @@ export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
           toast.error(err.message);
         });
     } else if (isWsRequest) {
-      sendWsRequest(itemCopy, collectionCopy, environment, collectionCopy.runtimeVariables)
+      const wsMessages = itemCopy.draft?.request?.body?.ws || itemCopy.request?.body?.ws || [];
+      const wsSelectedMessageIndex = Math.max(0, wsMessages.findIndex((msg) => msg.selected));
+      sendWsRequest(itemCopy, collectionCopy, environment, collectionCopy.runtimeVariables, wsSelectedMessageIndex)
         .then(resolve)
         .catch((err) => {
           toast.error(err.message);
@@ -1610,6 +1611,7 @@ export const newWsRequest = (params) => (dispatch, getState) => {
           mode: 'ws',
           ws: [
             {
+              uid: uuid(),
               name: 'message 1',
               type: 'json',
               content: '{}'
@@ -2344,16 +2346,20 @@ export const selectEnvironment = (environmentUid, collectionUid) => (dispatch, g
 
     const collectionCopy = cloneDeep(collection);
 
-    const environmentName = environmentUid ? findEnvironmentInCollection(collectionCopy, environmentUid)?.name : null;
+    const environment = environmentUid ? findEnvironmentInCollection(collectionCopy, environmentUid) : null;
 
-    if (environmentUid && !environmentName) {
+    if (environmentUid && !environment) {
       return reject(new Error('Environment not found'));
     }
 
     const { ipcRenderer } = window;
     ipcRenderer.invoke('renderer:update-ui-state-snapshot', {
       type: 'COLLECTION_ENVIRONMENT',
-      data: { collectionPath: collection?.pathname, environmentName }
+      data: {
+        collectionPath: collection?.pathname,
+        environmentPath: getCollectionEnvironmentPath(collection, environment),
+        selectedEnvironment: environment?.name || ''
+      }
     });
 
     dispatch(_selectEnvironment({ environmentUid, collectionUid }));
@@ -2413,6 +2419,60 @@ export const removeCollection = (collectionUid) => (dispatch, getState) => {
         } else {
           // Collection still exists in other workspaces
         }
+      })
+      .then(resolve)
+      .catch(reject);
+  });
+};
+
+// Move an external collection into the workspace's collections directory
+export const moveCollectionToWorkspace = (collectionUid) => (dispatch, getState) => {
+  return new Promise((resolve, reject) => {
+    const state = getState();
+    const collection = findCollectionByUid(state.collections.collections, collectionUid);
+    if (!collection) {
+      return reject(new Error('Collection not found'));
+    }
+
+    const { workspaces } = state;
+    const activeWorkspace = workspaces.workspaces.find((w) => w.uid === workspaces.activeWorkspaceUid);
+
+    if (!activeWorkspace || !activeWorkspace.pathname) {
+      return reject(new Error('No active workspace found'));
+    }
+
+    if (!isPathExternalToBasePath(activeWorkspace.pathname, collection.pathname)) {
+      return reject(new Error('Collection is already inside the workspace'));
+    }
+
+    const { ipcRenderer } = window;
+
+    ipcRenderer
+      .invoke('renderer:move-collection-to-workspace', {
+        workspacePath: activeWorkspace.pathname,
+        collectionPath: collection.pathname,
+        collectionUid,
+        collectionName: collection.name
+      })
+      .then(async (result) => {
+        dispatch(closeAllCollectionTabs({ collectionUid }));
+        dispatch(removeCollectionFromWorkspace({
+          workspaceUid: activeWorkspace.uid,
+          collectionLocation: collection.pathname
+        }));
+        await waitForNextTick();
+        dispatch(_removeCollection({ collectionUid }));
+
+        if (result?.newPath) {
+          const openResult = await dispatch(openMultipleCollections([result.newPath], { workspacePath: activeWorkspace.pathname }));
+          const reopened = (openResult?.opened || []).some(
+            (openedPath) => normalizePath(openedPath) === normalizePath(result.newPath)
+          );
+          if (!reopened) {
+            throw new Error('Collection was moved into the workspace but could not be re-opened. Reload the workspace to access it.');
+          }
+        }
+        dispatch(ensureActiveTabInCurrentWorkspace());
       })
       .then(resolve)
       .catch(reject);
@@ -2587,7 +2647,20 @@ export const openCollectionEvent = (uid, pathname, brunoConfig) => (dispatch, ge
 
       dispatch(workspaceEnvUpdateEvent({ processEnvVariables: workspaceProcessEnvVariables }));
 
-      resolve();
+      const workspacePathname = activeWorkspace?.pathname || null;
+
+      ipcRenderer.invoke('renderer:snapshot:get')
+        .then((snapshot) => hydrateSnapshotLookups(snapshot || {}))
+        .then((snapshotLookups) => hydrateCollectionTabs(
+          existingCollection,
+          dispatch,
+          restoreTabs,
+          snapshotLookups,
+          workspacePathname,
+          true
+        ))
+        .catch(() => null)
+        .finally(resolve);
       return;
     }
 
@@ -2720,10 +2793,18 @@ export const collectionAddEnvFileEvent = (payload) => (dispatch, getState) => {
 
     environmentSchema
       .validate(environment)
-      .then(() =>
+      .then(() => {
+        const environmentWithPath = {
+          ...environment,
+          pathname: meta?.pathname || environment?.pathname
+        };
+
+        return environmentWithPath;
+      })
+      .then((environmentWithPath) =>
         dispatch(
           _collectionAddEnvFileEvent({
-            environment,
+            environment: environmentWithPath,
             collectionUid: meta.collectionUid
           })
         )
@@ -2847,17 +2928,16 @@ export const hydrateCollectionWithUiStateSnapshot = (payload) => (dispatch, getS
         resolve();
         return;
       }
-      const { pathname, selectedEnvironment } = collectionSnapshotData;
+      const { pathname } = collectionSnapshotData;
       const collection = findCollectionByPathname(state.collections.collections, pathname);
       const collectionCopy = cloneDeep(collection);
       const collectionUid = collectionCopy?.uid;
 
       // update selected environment
-      if (selectedEnvironment) {
-        const environment = findEnvironmentInCollectionByName(collectionCopy, selectedEnvironment);
-        if (environment) {
-          dispatch(_selectEnvironment({ environmentUid: environment?.uid, collectionUid }));
-        }
+      const environment = findCollectionEnvironmentFromSnapshot(collectionCopy, collectionSnapshotData);
+
+      if (environment) {
+        dispatch(_selectEnvironment({ environmentUid: environment?.uid, collectionUid }));
       }
 
       // todo: add any other redux state that you want to save
@@ -2990,14 +3070,19 @@ export const loadLargeRequest
     };
 
 export const mountCollection
-  = ({ collectionUid, collectionPathname, brunoConfig }) =>
+  = ({ collectionUid, collectionPathname, brunoConfig, skipTabRestore = false, workspacePathname = null }) =>
     (dispatch, getState) => {
       dispatch(updateCollectionMountStatus({ collectionUid, mountStatus: 'mounting' }));
       return new Promise(async (resolve, reject) => {
         callIpc('renderer:mount-collection', { collectionUid, collectionPathname, brunoConfig })
-          .then((transientDirPath) => {
+          .then(async (transientDirPath) => {
             dispatch(updateCollectionMountStatus({ collectionUid, mountStatus: 'mounted' }));
             dispatch(addTransientDirectory({ collectionUid, pathname: transientDirPath }));
+
+            const collection = getState().collections.collections.find((c) => c.uid === collectionUid);
+            if (!skipTabRestore && collection?.pathname) {
+              await hydrateCollectionTabs(collection, dispatch, restoreTabs, null, workspacePathname);
+            }
           })
           .then(resolve)
           .catch(() => {
@@ -3174,6 +3259,9 @@ export const ensureActiveTabInCurrentWorkspace = () => (dispatch, getState) => {
 /**
  * Close tabs and delete any transient request files from the filesystem.
  * This thunk wraps the closeTabs reducer to handle transient file cleanup automatically.
+ * Also drops openapi-sync redux state (drift, storedSpec, tabUiState) for any
+ * openapi-sync tab that's about to close — collected BEFORE the close so we can
+ * still read the closing tabs' collectionUids from state.
  */
 export const closeTabs = ({ tabUids }) => async (dispatch, getState) => {
   const { ipcRenderer } = window;
@@ -3184,7 +3272,6 @@ export const closeTabs = ({ tabUids }) => async (dispatch, getState) => {
   // Find transient items and group by temp directory before closing tabs
   const transientByTempDir = {};
   each(tabUids, (tabUid) => {
-    clearPersistedScope(tabUid);
     for (const collection of collections) {
       const item = findItemInCollection(collection, tabUid);
       if (item?.isTransient && item.pathname) {
@@ -3200,12 +3287,25 @@ export const closeTabs = ({ tabUids }) => async (dispatch, getState) => {
     }
   });
 
+  const closingOpenApiSyncCollectionUids = (state.tabs?.tabs || [])
+    .filter((t) => tabUids.includes(t.uid) && t.type === 'openapi-sync' && t.collectionUid)
+    .map((t) => t.collectionUid);
+
   // Close the tabs first
   await dispatch(_closeTabs({ tabUids }));
+
+  // Clear persisted scope AFTER unmount — otherwise useTrackScroll's cleanup flush
+  // would rewrite scroll position to localStorage right after we cleared it.
+  each(tabUids, (tabUid) => clearPersistedScope(tabUid));
 
   // After close, the reducer may have set active tab to one from another workspace. Ensure it belongs to this workspace: prefer any open in-workspace tab, then workspace overview if none.
   // Dispatch is synchronous; state is already updated by _closeTabs above.
   await dispatch(ensureActiveTabInCurrentWorkspace());
+
+  // Drop openapi-sync per-collection state (drift, storedSpec, tabUiState) for any closed openapi-sync tabs.
+  for (const collectionUid of closingOpenApiSyncCollectionUids) {
+    dispatch(clearOpenApiSyncTabState({ collectionUid }));
+  }
 
   // Delete transient files after tabs are closed
   for (const [tempDir, filePaths] of Object.entries(transientByTempDir)) {

@@ -25,7 +25,7 @@ const StyledWrapper = styled.div`
     }
 
     .switcher-name {
-      max-width: 300px;
+      max-width: 124px;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
@@ -150,6 +150,14 @@ const StyledWrapper = styled.div`
     font-size: 12px;
     color: ${(props) => props.theme.colors.text.danger};
     margin-left: 8px;
+  }
+  .display-icon{
+    padding: 4px;
+    box-sizing: content-box;
+    &:hover {
+      background: ${(props) => props.theme.sidebar.collection.item.hoverBg};
+      border-radius: ${(props) => props.theme.border.radius.sm}
+    }
   }
 `;
 

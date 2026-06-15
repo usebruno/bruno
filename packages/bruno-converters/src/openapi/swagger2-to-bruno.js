@@ -322,6 +322,18 @@ const transformSwaggerRequestItem = (request, usedNames = new Set(), options = {
           requestBodySchema,
           requestBodyContentType
         }));
+      } else if (response.description) {
+        // description only (e.g., 204 No Content) — create example without body
+        examples.push(createBrunoExample({
+          brunoRequestItem,
+          exampleValue: '',
+          exampleName: `${statusCode} Response`,
+          exampleDescription: response.description,
+          statusCode,
+          contentType: null,
+          requestBodySchema,
+          requestBodyContentType
+        }));
       }
     });
 

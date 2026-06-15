@@ -94,14 +94,18 @@ const createCollectionJsonFromPathname = (collectionPath) => {
   };
 };
 
-const mergeHeaders = (collection, request, requestTreePath) => {
+const mergeHeaders = (collection, request, requestTreePath, options = {}) => {
+  const { includeDisabledHeaders = false } = options;
   let headers = new Map();
+  let disabledHeaders = new Map();
 
   const collectionRoot = collection?.draft?.root || collection?.root || {};
   let collectionHeaders = get(collectionRoot, 'request.headers', []);
   collectionHeaders.forEach((header) => {
     if (header.enabled) {
       headers.set(header.name, header.value);
+    } else if (header.name?.length > 0) {
+      disabledHeaders.set(header.name, header.value);
     }
   });
 
@@ -112,6 +116,8 @@ const mergeHeaders = (collection, request, requestTreePath) => {
       _headers.forEach((header) => {
         if (header.enabled) {
           headers.set(header.name, header.value);
+        } else if (header.name?.length > 0) {
+          disabledHeaders.set(header.name, header.value);
         }
       });
     } else {
@@ -119,12 +125,17 @@ const mergeHeaders = (collection, request, requestTreePath) => {
       _headers.forEach((header) => {
         if (header.enabled) {
           headers.set(header.name, header.value);
+        } else if (header.name?.length > 0) {
+          disabledHeaders.set(header.name, header.value);
         }
       });
     }
   }
 
-  request.headers = Array.from(headers, ([name, value]) => ({ name, value, enabled: true }));
+  request.headers = [
+    ...Array.from(headers, ([name, value]) => ({ name, value, enabled: true })),
+    ...(includeDisabledHeaders ? Array.from(disabledHeaders, ([name, value]) => ({ name, value, enabled: false })) : [])
+  ];
 };
 
 const mergeVars = (collection, request, requestTreePath) => {

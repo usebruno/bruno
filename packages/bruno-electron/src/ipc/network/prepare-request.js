@@ -85,6 +85,7 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
         if (apiKeyAuth.key.length === 0) break;
         if (apiKeyAuth.placement === 'header') {
           axiosRequest.headers[apiKeyAuth.key] = apiKeyAuth.value;
+          axiosRequest.apiKeyHeaderName = apiKeyAuth.key;
         } else if (apiKeyAuth.placement === 'queryparams') {
           // If the API key authentication is set and its placement is 'queryparams', add it to the axios request object. This will be used in the configureRequest function to append the API key to the query parameters of the request URL.
           axiosRequest.apiKeyAuthValueForQueryParams = apiKeyAuth;
@@ -338,6 +339,7 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
         if (apiKeyAuth.key.length === 0) break;
         if (apiKeyAuth.placement === 'header') {
           axiosRequest.headers[apiKeyAuth.key] = apiKeyAuth.value;
+          axiosRequest.apiKeyHeaderName = apiKeyAuth.key;
         } else if (apiKeyAuth.placement === 'queryparams') {
           // If the API key authentication is set and its placement is 'queryparams', add it to the axios request object. This will be used in the configureRequest function to append the API key to the query parameters of the request URL.
           axiosRequest.apiKeyAuthValueForQueryParams = apiKeyAuth;
@@ -368,7 +370,7 @@ const prepareRequest = async (item, collection = {}, abortController) => {
   const scriptFlow = collection?.brunoConfig?.scripts?.flow ?? 'sandwich';
   const requestTreePath = getTreePathFromCollectionToItem(collection, item);
   if (requestTreePath && requestTreePath.length > 0) {
-    mergeHeaders(collection, request, requestTreePath);
+    mergeHeaders(collection, request, requestTreePath, { includeDisabledHeaders: true });
     mergeScripts(collection, request, requestTreePath, scriptFlow);
     mergeVars(collection, request, requestTreePath);
     mergeAuth(collection, request, requestTreePath);
@@ -377,12 +379,15 @@ const prepareRequest = async (item, collection = {}, abortController) => {
     request.promptVariables = collection?.promptVariables || {};
   }
 
+  const disabledHeaders = [];
   each(get(request, 'headers', []), (h) => {
-    if (h.enabled && h.name.length > 0) {
+    if (h.enabled && h.name?.length > 0) {
       headers[h.name] = h.value;
       if (h.name.toLowerCase() === 'content-type') {
         contentTypeDefined = true;
       }
+    } else if (!h.enabled && h.name?.length > 0) {
+      disabledHeaders.push({ name: h.name, value: h.value });
     }
   });
 
@@ -391,6 +396,7 @@ const prepareRequest = async (item, collection = {}, abortController) => {
     method: request.method,
     url,
     headers,
+    disabledHeaders,
     name: item.name,
     pathname: item.pathname,
     tags: item.tags || [],

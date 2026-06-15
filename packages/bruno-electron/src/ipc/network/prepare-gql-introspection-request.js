@@ -1,6 +1,7 @@
 const { get, each } = require('lodash');
 const { interpolate } = require('@usebruno/common');
 const { getIntrospectionQuery } = require('graphql');
+const interpolateVars = require('./interpolate-vars');
 const { setAuthHeaders } = require('./prepare-request');
 
 const prepareGqlIntrospectionRequest = (endpoint, resolvedVars, request, collectionRoot) => {
@@ -23,7 +24,9 @@ const prepareGqlIntrospectionRequest = (endpoint, resolvedVars, request, collect
     data: JSON.stringify(queryParams)
   };
 
-  return setAuthHeaders(axiosRequest, request, collectionRoot);
+  axiosRequest = setAuthHeaders(axiosRequest, request, collectionRoot);
+
+  return interpolateVars(axiosRequest, resolvedVars);
 };
 
 const mapHeaders = (requestHeaders, collectionHeaders, resolvedVars) => {

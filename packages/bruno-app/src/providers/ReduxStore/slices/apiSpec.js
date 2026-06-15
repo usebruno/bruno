@@ -59,6 +59,13 @@ export const apiSpecSlice = createSlice({
     setActiveApiSpecUid: (state, action) => {
       state.activeApiSpecUid = action.payload.uid;
     },
+    updateApiSpecPanelLeftPaneWidth: (state, action) => {
+      const { uid, leftPaneWidth } = action.payload;
+      const apiSpec = findApiSpecByUid(state.apiSpecs, uid);
+      if (apiSpec) {
+        apiSpec.leftPaneWidth = leftPaneWidth;
+      }
+    },
     removeApiSpec: (state, action) => {
       const { uid } = action.payload;
       let apiSpecIndex = state.apiSpecs.findIndex((c) => c.uid == uid);
@@ -70,7 +77,7 @@ export const apiSpecSlice = createSlice({
   }
 });
 
-export const { apiSpecAddFileEvent, apiSpecChangeFileEvent, saveApiSpec, removeApiSpec, setActiveApiSpecUid } = apiSpecSlice.actions;
+export const { apiSpecAddFileEvent, apiSpecChangeFileEvent, saveApiSpec, removeApiSpec, setActiveApiSpecUid, updateApiSpecPanelLeftPaneWidth } = apiSpecSlice.actions;
 
 export default apiSpecSlice.reducer;
 

@@ -21,7 +21,8 @@ import {
   IconTerminal2,
   IconFolder,
   IconBook,
-  IconServer
+  IconServer,
+  IconFileArrowRight
 } from '@tabler/icons';
 import OpenAPISyncIcon from 'components/Icons/OpenAPISync';
 import { toggleCollection, collapseFullCollection } from 'providers/ReduxStore/slices/collections';
@@ -34,6 +35,8 @@ import NewRequest from 'components/Sidebar/NewRequest';
 import NewFolder from 'components/Sidebar/NewFolder';
 import CollectionItem from './CollectionItem';
 import RemoveCollection from './RemoveCollection';
+import MoveToWorkspace from './MoveToWorkspace';
+import { isPathExternalToBasePath } from 'utils/common/path';
 import { doesCollectionHaveItemsMatchingSearchText } from 'utils/collections/search';
 import { isItemAFolder, isItemARequest, areItemsLoading } from 'utils/collections';
 import { isTabForItemActive } from 'src/selectors/tab';
@@ -71,18 +74,26 @@ const Collection = ({ collection, searchText }) => {
   const [showShareCollectionModal, setShowShareCollectionModal] = useState(false);
   const [showGenerateDocumentationModal, setShowGenerateDocumentationModal] = useState(false);
   const [showRemoveCollectionModal, setShowRemoveCollectionModal] = useState(false);
+  const [showMoveToWorkspaceModal, setShowMoveToWorkspaceModal] = useState(false);
   const [dropType, setDropType] = useState(null);
   const [isKeyboardFocused, setIsKeyboardFocused] = useState(false);
   const [showEmptyState, setShowEmptyState] = useState(false);
   const dispatch = useDispatch();
   const isLoading = collection.isLoading;
   const collectionRef = useRef(null);
-  // Only count persisted items; transients don't affect empty state
-  const itemCount = collection.items?.filter((i) => !i.isTransient).length || 0;
+  // Only count persisted requests and folders; transients and file items
+  // (bruno.json, .js scripts) don't affect empty state
+  const itemCount = collection.items?.filter((i) => !i.isTransient && (isItemARequest(i) || isItemAFolder(i))).length || 0;
 
   const isCollectionFocused = useSelector(isTabForItemActive({ itemUid: collection.uid }));
   const { hasCopiedItems } = useSelector((state) => state.app.clipboard);
   const menuDropdownRef = useRef(null);
+
+  // 'Move into Workspace' is available for collections opened from outside the current workspace.
+  const activeWorkspace = useSelector((state) =>
+    state.workspaces.workspaces.find((w) => w.uid === state.workspaces.activeWorkspaceUid)
+  );
+  const isMoveToWorkspaceVisible = isPathExternalToBasePath(activeWorkspace?.pathname, collection.pathname);
 
   // Open the OpenAPI Sync tab
   const openOpenAPISyncTab = () => {
@@ -459,6 +470,19 @@ const Collection = ({ collection, searchText }) => {
         await openDevtoolsAndSwitchToTerminal(dispatch, collectionCwd);
       }
     },
+    ...(isMoveToWorkspaceVisible
+      ? [
+          {
+            id: 'move-to-workspace',
+            leftSection: IconFileArrowRight,
+            label: 'Move into Workspace',
+            testId: 'move-collection-to-workspace',
+            onClick: () => {
+              setShowMoveToWorkspaceModal(true);
+            }
+          }
+        ]
+      : []),
     {
       id: 'remove',
       leftSection: IconX,
@@ -478,6 +502,9 @@ const Collection = ({ collection, searchText }) => {
       )}
       {showRemoveCollectionModal && (
         <RemoveCollection collectionUid={collection.uid} onClose={() => setShowRemoveCollectionModal(false)} />
+      )}
+      {showMoveToWorkspaceModal && (
+        <MoveToWorkspace collectionUid={collection.uid} onClose={() => setShowMoveToWorkspaceModal(false)} />
       )}
       {showShareCollectionModal && (
         <ShareCollection collectionUid={collection.uid} onClose={() => setShowShareCollectionModal(false)} />
@@ -554,6 +581,7 @@ const Collection = ({ collection, searchText }) => {
                 </div>
                 <div style={{ paddingLeft: 8 }}>
                   <MenuDropdown
+                    data-testid="add-request-cta"
                     items={emptyStateMenuItems}
                     placement="bottom-start"
                     appendTo={dropdownContainerRef?.current || document.body}

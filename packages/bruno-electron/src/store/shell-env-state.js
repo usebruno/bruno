@@ -6,6 +6,11 @@ const TIMEOUT_MS = 60_000;
 let _promise = null;
 
 const _initWithTimeout = () => {
+  // @TODO: Temp skip during Playwright tests - otherwise it can hang on macOS CI
+  if (process.env.PLAYWRIGHT) {
+    return Promise.resolve();
+  }
+
   let timer;
   const timeout = new Promise((_, reject) => {
     timer = setTimeout(() => {

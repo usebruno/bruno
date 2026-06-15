@@ -1,5 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useSelector } from 'react-redux';
+import { IconCopy, IconCheck } from '@tabler/icons';
+import toast from 'react-hot-toast';
 import EditableTable from 'components/EditableTable';
 import FilterDropdown from 'components/FilterDropdown';
 import StyledWrapper from './StyledWrapper';
@@ -9,6 +11,11 @@ const RouteTable = ({ collection }) => {
   const requestLogs = useSelector((state) => state.mockServer.requestLogs[collection.uid]) || [];
   const [searchQuery, setSearchQuery] = useState('');
   const [methodFilter, setMethodFilter] = useState(null);
+  const [copiedRouteUid, setCopiedRouteUid] = useState(null);
+
+  const serverState = useSelector((state) => state.mockServer.servers[collection.uid]) || {};
+  const isRunning = serverState.status === 'running';
+  const baseUrl = isRunning ? `http://localhost:${serverState.port}` : null;
 
   const hitCounts = useMemo(() => {
     const counts = {};
@@ -41,6 +48,20 @@ const RouteTable = ({ collection }) => {
     return Array.from(unique).sort().map((m) => ({ value: m, label: m }));
   }, [routes]);
 
+  const handleCopyRouteUrl = async (routeUid, path) => {
+    if (!baseUrl) return;
+
+    const routePath = path.startsWith('/') ? path : `/${path}`;
+
+    try {
+      await navigator.clipboard.writeText(`${baseUrl}${routePath}`);
+      setCopiedRouteUid(routeUid);
+      setTimeout(() => setCopiedRouteUid(null), 1500);
+    } catch {
+      toast.error('Failed to copy URL');
+    }
+  };
+
   const columns = [
     {
       key: 'method',
@@ -53,8 +74,25 @@ const RouteTable = ({ collection }) => {
     {
       key: 'path',
       name: 'Path',
-      render: ({ value }) => (
-        <span className="route-path">{value}</span>
+      render: ({ value, row }) => (
+        <div className="path-cell">
+          <span className="route-path">{value}</span>
+          {baseUrl && (
+            <button
+              type="button"
+              className="copy-path-btn"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleCopyRouteUrl(row.uid, value);
+              }}
+              title="Copy route URL"
+            >
+              {copiedRouteUid === row.uid
+                ? <IconCheck size={13} strokeWidth={2} />
+                : <IconCopy size={13} strokeWidth={1.5} />}
+            </button>
+          )}
+        </div>
       )
     },
     {

@@ -5,6 +5,7 @@ export const buildCommonLocators = (page: Page) => ({
   saveButton: () => page
     .locator('.infotip')
     .filter({ hasText: /^Save/ }),
+  openPreferences: () => page.getByRole('button', { name: 'Open Preferences' }),
   sidebar: {
     collectionsContainer: () => page.getByTestId('collections'),
     collection: (name: string) => page.locator('#sidebar-collection-name').filter({ hasText: name }),
@@ -36,6 +37,9 @@ export const buildCommonLocators = (page: Page) => ({
   },
   tabs: {
     requestTab: (requestName: string) => page.locator('.request-tab .tab-label').filter({ hasText: requestName }),
+    folderTab: (folderName: string) => page.locator('.request-tab .tab-label').filter({ hasText: folderName }),
+    collectionSettingsTab: () =>
+      page.locator('.request-tab').filter({ has: page.locator('.tab-label', { hasText: 'Collection' }) }),
     activeRequestTab: () => page.locator('.request-tab.active'),
     closeTab: (requestName: string) => page.locator('.request-tab').filter({ hasText: requestName }).getByTestId('request-tab-close-icon'),
     draftIndicator: () => page.locator('.request-tab.active .has-changes-icon')
@@ -44,6 +48,7 @@ export const buildCommonLocators = (page: Page) => ({
     responsiveTab: (key: string) => page.getByTestId(`responsive-tab-${key}`),
     collectionSettingsTab: (key: string) => page.getByTestId(`collection-settings-tab-${key}`),
     folderSettingsTab: (key: string) => page.getByTestId(`folder-settings-tab-${key}`),
+    folderScriptTab: (key: 'pre-request' | 'post-response') => page.getByTestId(`tab-trigger-${key}`),
     tabTrigger: (key: string) => page.getByTestId(`tab-trigger-${key}`)
   },
   folder: {
@@ -85,11 +90,40 @@ export const buildCommonLocators = (page: Page) => ({
     requestTestId: () => page.getByTestId('request-name'),
     generateCodeButton: () => page.locator('#request-actions .infotip').first(),
     bodyModeSelector: () => page.getByTestId('request-body-mode-selector'),
-    bodyEditor: () => page.getByTestId('request-body-editor')
+    bodyEditor: () => page.getByTestId('request-body-editor'),
+    pane: () => page.getByTestId('request-pane')
+  },
+  auth: {
+    apiKey: {
+      placementSelector: () => page.getByTestId('auth-placement-selector'),
+      placementLabel: () => page.getByTestId('auth-placement-label')
+    },
+    oauth2: {
+      grantTypeDropdown: () => page.getByTestId('grant-type-dropdown')
+    },
+    modeSelector: () => page.getByTestId('auth-mode-selector'),
+    modeLabel: () => page.getByTestId('auth-mode-label'),
+    inheritedMode: () => page.getByTestId('inherited-auth-mode'),
+    dropdownItem: (id: string) => page.getByTestId(`auth-mode-dropdown-${id}`)
+  },
+  presets: {
+    requestType: (type: 'http' | 'graphql' | 'grpc' | 'ws') =>
+      page.getByTestId(`presets-request-type-${type}`),
+    requestUrl: () => page.getByTestId('presets-request-url'),
+    saveBtn: () => page.getByTestId('presets-save-btn')
   },
   tags: {
     input: () => page.getByTestId('tag-input').getByRole('textbox'),
     item: (tagName: string) => page.locator('.tag-item', { hasText: tagName })
+  },
+  generateDocs: {
+    menuItem: () => page.locator('.dropdown-item').filter({ hasText: 'Generate Docs' }),
+    modal: () => page.locator('.bruno-modal').filter({
+      has: page.locator('.bruno-modal-header-title').filter({ hasText: 'Generate Documentation' })
+    }),
+    heading: () => page.locator('.bruno-modal').getByText('Interactive API Documentation'),
+    generateButton: () => page.locator('.bruno-modal').getByRole('button', { name: 'Generate', exact: true }),
+    cancelButton: () => page.locator('.bruno-modal').getByRole('button', { name: 'Cancel', exact: true })
   },
   runnerResults: {
     itemPath: (name: string) => page.getByTestId('runner-result-item').filter({ hasText: name })
@@ -107,6 +141,12 @@ export const buildCommonLocators = (page: Page) => ({
     codeLine: () => page.locator('.response-pane .editor-container .CodeMirror-line'),
     jsonTreeLine: () => page.locator('.response-pane .object-content')
   },
+  timeline: {
+    items: () => page.getByTestId('timeline-item'),
+    lastItem: () => page.getByTestId('timeline-item').last(),
+    itemHeader: (item: Locator) => item.getByTestId('timeline-item-header'),
+    clearButton: () => page.getByRole('button', { name: 'Clear Timeline' })
+  },
   plusMenu: {
     button: () => page.getByTestId('collections-header-add-menu'),
     createCollection: () => page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Create collection' }),
@@ -117,7 +157,22 @@ export const buildCommonLocators = (page: Page) => ({
     locationModal: () => page.locator('[data-testid="import-collection-location-modal"]'),
     locationInput: () => page.locator('#collection-location'),
     fileInput: () => page.locator('input[type="file"]'),
-    envOption: (name: string) => page.locator('.dropdown-item').getByText(name, { exact: true })
+    envOption: (name: string) => page.locator('.dropdown-item').getByText(name, { exact: true }),
+    parsingError: () => page.getByTestId('import-error-message'),
+    browseLink: (root?: Locator) => (root ?? page).getByTestId('import-collection-browse-link'),
+    importButton: (root?: Locator) => (root ?? page).getByTestId('import-collection-location-modal-submit-btn'),
+    ...(() => {
+      const issuesToast = () => page.getByTestId('import-issues-toast').last();
+      return {
+        issuesToast,
+        issuesToastTitle: () => issuesToast().getByTestId('import-issues-toast-title'),
+        issuesToastCopyBtn: () => issuesToast().getByTestId('import-issues-copy-btn'),
+        issuesToastReportBtn: () => issuesToast().getByTestId('import-issues-report-btn'),
+        issuesToastIncludeItemsCheckbox: () => issuesToast().getByTestId('import-issues-include-items-checkbox'),
+        issuesToastCloseBtn: () => issuesToast().getByTestId('import-issues-toast-close'),
+        issuesToastUrlTooLongWarning: () => issuesToast().getByTestId('import-issues-url-too-long-warning')
+      };
+    })()
   },
   /**
    * Build generic table locators for any table with a testId
@@ -194,13 +249,18 @@ export const buildGrpcCommonLocators = (page: Page) => ({
   ...buildCommonLocators(page),
   method: {
     dropdownTrigger: () => page.getByTestId('grpc-method-dropdown-trigger'),
-    indicator: () => page.getByTestId('grpc-method-indicator')
+    indicator: () => page.getByTestId('grpc-method-indicator'),
+    dropdown: () => page.getByTestId('grpc-methods-dropdown'),
+    item: (methodName: string) =>
+      page.getByTestId('grpc-methods-dropdown').getByTestId('grpc-method-item').filter({ hasText: methodName }),
+    selectedName: () => page.getByTestId('selected-grpc-method-name')
   },
   request: {
     queryUrlContainer: () => page.getByTestId('grpc-query-url-container'),
     sendButton: () => page.getByTestId('grpc-send-request-button'),
     messagesContainer: () => page.getByTestId('grpc-messages-container'),
     addMessageButton: () => page.getByTestId('grpc-add-message-button'),
+    regenerateMessage: (index: number) => page.getByTestId(`grpc-regenerate-message-${index}`),
     sendMessage: (index: number) => page.getByTestId(`grpc-send-message-${index}`),
     endConnectionButton: () => page.getByTestId('grpc-end-connection-button'),
     cancelConnectionButton: () => page.getByTestId('grpc-cancel-connection-button')
