@@ -37,7 +37,7 @@ const Tests = ({ item, collection }) => {
     editorRef: testsEditorRef,
     scriptPhase: 'test'
   });
-  
+
   const requestContext = useMemo(() => buildRequestContextFromItem(item), [item]);
 
   return (
