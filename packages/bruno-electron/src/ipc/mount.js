@@ -22,8 +22,7 @@ const registerMountIpc = () => {
       const emit = {
         tree: (tree) => send('main:collection-tree-loaded', { collectionUid, tree }),
         loading: (isLoading) => send('main:collection-loading-state-updated-v2', { collectionUid, isLoading }),
-        config: (brunoConfig) => send('main:bruno-config-update-v2', { collectionUid, brunoConfig }),
-        uiState: (payload) => send('main:hydrate-app-with-ui-state-snapshot-v2', payload)
+        config: (brunoConfig) => send('main:bruno-config-update-v2', { collectionUid, brunoConfig })
       };
       return manager.mount({ win, collectionPath: collectionPathname, collectionUid, brunoConfig, emit });
     }

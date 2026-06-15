@@ -360,15 +360,10 @@ const useIpcEvents = () => {
       dispatch(brunoConfigUpdateEvent(val));
     });
 
-    const removeSnapshotHydrationV2Listener = ipcRenderer.on('main:hydrate-app-with-ui-state-snapshot-v2', (val) => {
-      dispatch(hydrateCollectionWithUiStateSnapshot(val));
-    });
-
     return () => {
       removeCollectionTreeLoadedListener();
       removeCollectionLoadingStateV2Listener();
       removeBrunoConfigUpdateV2Listener();
-      removeSnapshotHydrationV2Listener();
       removeCollectionTreeUpdateListener();
       removeApiSpecTreeUpdateListener();
       removeOpenCollectionListener();

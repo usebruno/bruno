@@ -43,23 +43,6 @@ const hydrateEnvironments = (collectionPath, environments) => {
   }
 };
 
-const computeUiStateSnapshot = (collectionPath) => {
-  try {
-    const snapshotManager = require('../snapshot');
-    const snapshotState = snapshotManager.getCollection(collectionPath);
-    if (snapshotState) {
-      return {
-        pathname: collectionPath,
-        environmentPath: snapshotState?.environment?.collection || '',
-        selectedEnvironment: snapshotState?.selectedEnvironment || ''
-      };
-    }
-  } catch (err) {
-    console.error('[mount] snapshot lookup failed', err);
-  }
-  return null;
-};
-
 const sendTree = async (collectionUid, collectionPath, tree, emit) => {
   if (tree.brunoConfig) {
     try {
@@ -98,7 +81,6 @@ class MountManager {
       existing.brunoConfig = brunoConfig || existing.brunoConfig;
       existing.state = this.#getIndex().entries(existing.collectionPath);
       await this.#emitTree(collectionUid, existing);
-      existing.emit.uiState(computeUiStateSnapshot(existing.collectionPath));
       return existing.tempDirectoryPath;
     }
 
@@ -128,8 +110,6 @@ class MountManager {
         fileIndex: this.#getIndex()
       });
       collectionWatcher.addTempDirectoryWatcher(entry.win, tempDirectoryPath, collectionUid, collectionPath);
-
-      entry.emit.uiState(computeUiStateSnapshot(collectionPath));
     } finally {
       entry.emit.loading(false);
     }
