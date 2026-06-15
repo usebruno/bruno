@@ -1,6 +1,6 @@
 const fs = require('node:fs');
 const path = require('node:path');
-const { JobType, getPool, destroyPool } = require('@usebruno/pool');
+const { JobType, getPool, destroyPool } = require('../pool');
 const { GitLite } = require('./gitlite');
 const { buildTree } = require('./tree-builder');
 const { defaultClassify, uidForSeed } = require('../../utils/mount');

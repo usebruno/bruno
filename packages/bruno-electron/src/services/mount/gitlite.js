@@ -1,6 +1,6 @@
 const fs = require('node:fs');
 const path = require('node:path');
-const { Database } = require('@usebruno/storage');
+const { Database } = require('../storage');
 const {
   hashFile,
   normalize,
