@@ -4,7 +4,7 @@ const path = require('path');
 const chokidar = require('chokidar');
 const yaml = require('js-yaml');
 const { generateUidBasedOnHash, uuid } = require('../utils/common');
-const { getWorkspaceUid } = require('../utils/workspace-config');
+const { getWorkspaceUid, normalizeWorkspaceConfig } = require('../utils/workspace-config');
 const { parseEnvironment } = require('@usebruno/filestore');
 const EnvironmentSecretsStore = require('../store/env-secrets');
 const { decryptStringSafe } = require('../utils/encryption');
@@ -17,16 +17,6 @@ const DEFAULT_WORKSPACE_NAME = 'My Workspace';
 const envHasSecrets = (environment) => {
   const secrets = _.filter(environment.variables, (v) => v.secret === true);
   return secrets && secrets.length > 0;
-};
-
-const normalizeWorkspaceConfig = (config) => {
-  return {
-    ...config,
-    name: config.info?.name,
-    type: config.info?.type,
-    collections: config.collections || [],
-    apiSpecs: config.specs || []
-  };
 };
 
 const handleWorkspaceFileChange = (win, workspacePath) => {

@@ -53,7 +53,12 @@ const Timeline = ({ collection, item }) => {
   useTrackScroll({ ref: wrapperRef, selector: null, onChange: setScroll, initialValue: scroll });
   const [activeFilter, setActiveFilter] = useState('all');
 
-  const authSource = getEffectiveAuthSource(collection, item);
+  // Get the effective auth source if auth mode is inherit
+  const itemAuthMode = item.draft?.request?.auth?.mode ?? item.request?.auth?.mode ?? item.root?.request?.auth?.mode;
+  const authSource = useMemo(
+    () => getEffectiveAuthSource(collection, item),
+    [item, itemAuthMode, collection]
+  );
   const isGrpcRequest = item.type === 'grpc-request' || item.type === 'ws-request';
 
   const entries = useMemo(
@@ -78,22 +83,23 @@ const Timeline = ({ collection, item }) => {
       ref={wrapperRef}
     >
       {showFilterBar && (
-        <div className="timeline-filter-bar">
+        <div className="timeline-filter-bar" data-testid="timeline-filter-bar">
           {visibleChips.map((chip) => (
             <button
               key={chip.id}
               type="button"
               className={`timeline-chip ${activeFilter === chip.id ? 'is-active' : ''}`}
               onClick={() => setActiveFilter(chip.id)}
+              data-testid={`timeline-chip-${chip.id}`}
             >
               {chip.label}
-              <span className="timeline-chip-count">{counts[chip.id] ?? 0}</span>
+              <span className="timeline-chip-count" data-testid="timeline-chip-count">{counts[chip.id] ?? 0}</span>
             </button>
           ))}
         </div>
       )}
 
-      <div className="timeline-container">
+      <div className="timeline-container" data-testid="timeline-container">
         {entries.map((entry, index) => {
           const kind = getEntryKind(entry);
           if (activeFilter !== 'all' && activeFilter !== kind) return null;
@@ -104,7 +110,7 @@ const Timeline = ({ collection, item }) => {
 
             if (isGrpcRequest) {
               return (
-                <div key={index} className="timeline-event">
+                <div key={index} className="timeline-event" data-testid="timeline-item">
                   <GrpcTimelineItem
                     timestamp={eventTimestamp}
                     request={request}
@@ -119,7 +125,7 @@ const Timeline = ({ collection, item }) => {
             }
 
             return (
-              <div key={index} className="timeline-event">
+              <div key={index} className="timeline-event" data-testid="timeline-item">
                 <TimelineItem
                   timestamp={timestamp}
                   request={request}
@@ -134,7 +140,7 @@ const Timeline = ({ collection, item }) => {
 
           if (entry.type === 'oauth2' && entry._oauth2Child) {
             return (
-              <div key={index} className="timeline-event">
+              <div key={index} className="timeline-event" data-testid="timeline-item">
                 <TimelineItem
                   timestamp={entry.timestamp}
                   request={entry._oauth2Child.request}
@@ -150,7 +156,7 @@ const Timeline = ({ collection, item }) => {
 
           if (entry.type === 'scripted-request') {
             return (
-              <div key={index} className="timeline-event">
+              <div key={index} className="timeline-event" data-testid="timeline-item">
                 <TimelineItem
                   timestamp={entry.timestamp}
                   request={entry.data?.request}

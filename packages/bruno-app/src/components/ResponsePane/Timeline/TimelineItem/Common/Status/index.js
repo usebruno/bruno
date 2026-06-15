@@ -21,6 +21,7 @@ const Status = ({ statusCode }) => {
   return (
     <span
       className="timeline-status"
+      data-testid="timeline-status"
       style={{
         color,
         background,

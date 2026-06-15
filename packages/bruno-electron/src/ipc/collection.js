@@ -49,6 +49,7 @@ const {
   safeWriteFileSync,
   copyPath,
   removePath,
+  moveCollectionDirectory,
   getPaths,
   generateUniqueName,
   isDotEnvFile,
@@ -58,9 +59,10 @@ const {
   isCollectionRootBruFile,
   scanForBrunoFiles
 } = require('../utils/filesystem');
-const { getCollectionConfigFile, openCollectionDialog, openCollectionsByPathname, registerScratchCollectionPath } = require('../app/collections');
+const { getCollectionConfigFile, openCollection, openCollectionDialog, openCollectionsByPathname, registerScratchCollectionPath } = require('../app/collections');
 const { generateUidBasedOnHash, stringifyJson, safeStringifyJSON, safeParseJSON } = require('../utils/common');
 const { isValidNpmPackageName, runNpmInstall } = require('../utils/install-packages');
+const { waitForShellEnv } = require('../store/shell-env-state');
 const { moveRequestUid, deleteRequestUid, syncExampleUidsCache } = require('../cache/requestUids');
 const { deleteCookiesForDomain, getDomainsWithCookies, addCookieForDomain, modifyCookieForDomain, parseCookieString, createCookieString, deleteCookie } = require('../utils/cookies');
 const EnvironmentSecretsStore = require('../store/env-secrets');
@@ -78,6 +80,12 @@ const { REQUEST_TYPES } = require('../utils/constants');
 const { cancelOAuth2AuthorizationRequest, isOauth2AuthorizationRequestInProgress } = require('../utils/oauth2-protocol-handler');
 const { findUniqueFolderName } = require('../utils/collection-import');
 const { saveSpecAndUpdateMetadata, cleanupSpecFilesForCollection } = require('./openapi-sync');
+const {
+  validateWorkspacePath,
+  normalizeCollectionEntry,
+  addCollectionToWorkspace,
+  removeCollectionFromWorkspace
+} = require('../utils/workspace-config');
 
 const environmentSecretsStore = new EnvironmentSecretsStore();
 const collectionSecurityStore = new CollectionSecurityStore();
@@ -306,6 +314,132 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
       ipcMain.emit('main:collection-opened', mainWindow, dirPath, uid);
     }
   );
+
+  // move an external collection into the workspace's directory
+  ipcMain.handle(
+    'renderer:move-collection-to-workspace',
+    async (event, { workspacePath, collectionPath, collectionUid, collectionName }) => {
+      validateWorkspacePath(workspacePath);
+
+      if (!collectionPath || !isDirectory(collectionPath)) {
+        throw new Error(`Collection: ${collectionPath} does not exist`);
+      }
+
+      // resolve a collision-free target folder inside `<workspace>/collections`
+      const collectionsDir = path.join(workspacePath, 'collections');
+      if (!fs.existsSync(collectionsDir)) {
+        await createDirectory(collectionsDir);
+      }
+
+      let folderName = sanitizeName(path.basename(collectionPath));
+      if (fs.existsSync(path.join(collectionsDir, folderName))) {
+        const uniqueName = await findUniqueFolderName(folderName, collectionsDir);
+        folderName = sanitizeName(uniqueName);
+      }
+      const newPath = path.join(collectionsDir, folderName);
+
+      if (path.normalize(collectionPath) === path.normalize(newPath)) {
+        throw new Error('Collection is already inside the workspace');
+      }
+
+      // tear down the old watcher before moving the collection directory
+      if (watcher && mainWindow) {
+        watcher.removeWatcher(collectionPath, mainWindow, collectionUid);
+        if (wsClient) {
+          wsClient.closeForCollection(collectionUid);
+        }
+      }
+
+      // move the collection directory into the workspace
+      try {
+        await moveCollectionDirectory(collectionPath, newPath);
+      } catch (error) {
+        // reopen the collection at the original path
+        if (watcher && mainWindow && fs.existsSync(collectionPath)) {
+          try {
+            await openCollection(mainWindow, watcher, collectionPath);
+          } catch (err) {
+            console.error('Failed to restore collection after move failure:', err);
+          }
+        }
+        throw error;
+      }
+
+      // remap request uids so request identity survives the move
+      try {
+        const movedRequestFiles = searchForRequestFiles(newPath);
+        for (const newFilePath of movedRequestFiles) {
+          const oldFilePath = newFilePath.replace(newPath, collectionPath);
+          moveRequestUid(oldFilePath, newFilePath);
+        }
+      } catch (error) {
+        console.error('Error remapping request uids after move:', error);
+      }
+
+      // Register the collection at its new path in workspace.yml
+      try {
+        await addCollectionToWorkspace(
+          workspacePath,
+          normalizeCollectionEntry(workspacePath, {
+            name: collectionName,
+            path: newPath
+          })
+        );
+      } catch (error) {
+        console.error('Failed to register collection in workspace.yml:', error);
+        try {
+          await moveCollectionDirectory(newPath, collectionPath);
+          const restoredRequestFiles = searchForRequestFiles(collectionPath);
+          for (const restoredFilePath of restoredRequestFiles) {
+            const movedFilePath = restoredFilePath.replace(collectionPath, newPath);
+            moveRequestUid(movedFilePath, restoredFilePath);
+          }
+        } catch (rollbackError) {
+          console.error('Failed to roll back collection move:', rollbackError);
+        }
+        if (watcher && mainWindow && fs.existsSync(collectionPath)) {
+          try {
+            await openCollection(mainWindow, watcher, collectionPath);
+          } catch (err) {
+            console.error('Failed to restore collection after rollback:', err);
+          }
+        }
+        throw error;
+      }
+
+      // remove the stale workspace.yml entry
+      try {
+        await removeCollectionFromWorkspace(workspacePath, collectionPath);
+      } catch (error) {
+        console.error('Error cleaning up old workspace.yml entry after move:', error);
+      }
+
+      // update the recently opened collections store to point at the new location
+      try {
+        const LastOpenedCollections = require('../store/last-opened-collections');
+        const lastOpenedCollections = new LastOpenedCollections();
+        lastOpenedCollections.remove(collectionPath);
+        lastOpenedCollections.add(newPath);
+      } catch (error) {
+        console.error('Error updating last opened collections after move:', error);
+      }
+
+      // process env cleanup for the old uid
+      try {
+        const { clearCollectionWorkspace } = require('../store/process-env');
+        clearCollectionWorkspace(collectionUid);
+      } catch (error) {
+        console.error('Error clearing collection workspace mapping after move:', error);
+      }
+
+      return {
+        newPath,
+        newUid: generateUidBasedOnHash(newPath),
+        folderName
+      };
+    }
+  );
+
   // rename collection
   ipcMain.handle('renderer:rename-collection', async (event, newName, collectionPathname) => {
     try {
@@ -1119,7 +1253,6 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
 
     if (workspacePath && workspacePath !== 'default') {
       try {
-        const { removeCollectionFromWorkspace } = require('../utils/workspace-config');
         await removeCollectionFromWorkspace(workspacePath, collectionPath);
       } catch (error) {
         console.error('Error removing collection from workspace.yml:', error);
@@ -2157,6 +2290,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
       throw new Error(`Invalid package name(s): ${invalid.join(', ')}`);
     }
 
+    await waitForShellEnv();
     return runNpmInstall({ collectionPath: collectionPathname, packages });
   });
 
