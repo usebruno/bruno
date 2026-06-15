@@ -1,10 +1,10 @@
-import { test, expect } from '../../playwright';
-import { createRequest, closeAllCollections, selectRequestPaneTab } from '../utils/page';
+import { expect, test } from '../../playwright';
+import { closeAllCollections, createRequest, selectRequestPaneTab } from '../utils/page';
 import {
   modifier,
-  setupBoundActionsData,
+  openKeybindingsTab,
   openRequest,
-  openKeybindingsTab
+  setupBoundActionsData
 } from './helpers';
 
 // ─── Tests ────
@@ -22,12 +22,6 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
   test.describe('REQUESTS', () => {
     test.describe('SHORTCUT: Send Request (Cmd/Ctrl+Enter)', () => {
       test('sends request when cursor is in JSON body editor', async ({ page }) => {
-        // Close existing tabs
-        await page.keyboard.down('Alt');
-        await page.keyboard.down('KeyY');
-        await page.keyboard.up('KeyY');
-        await page.keyboard.up('Alt');
-
         // Create a POST request in the shared collection pointing to the echo server
         await createRequest(page, 'cmd-enter-req-body', 'kb-collection', {
           url: 'https://echo.usebruno.com',
@@ -54,12 +48,6 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
       });
 
       test('sends request when cursor is in response body editor', async ({ page }) => {
-        // Close existing tabs
-        await page.keyboard.down('Alt');
-        await page.keyboard.down('KeyY');
-        await page.keyboard.up('KeyY');
-        await page.keyboard.up('Alt');
-
         await createRequest(page, 'cmd-enter-req-resp', 'kb-collection', {
           url: 'https://echo.usebruno.com',
           method: 'POST'
@@ -92,12 +80,6 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
       });
 
       test('sends request when cursor is in pre-request Vars value editor', async ({ page }) => {
-        // Close existing tabs
-        await page.keyboard.down('Alt');
-        await page.keyboard.down('KeyY');
-        await page.keyboard.up('KeyY');
-        await page.keyboard.up('Alt');
-
         await createRequest(page, 'cmd-enter-req-vars', 'kb-collection', {
           url: 'https://echo.usebruno.com',
           method: 'POST'
@@ -132,12 +114,6 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
 
     test.describe('SHORTCUT: Send Request (customized Shift+Enter)', () => {
       test('sends request when cursor is in JSON body editor', async ({ page }) => {
-        // Close existing tabs
-        await page.keyboard.down('Alt');
-        await page.keyboard.down('KeyY');
-        await page.keyboard.up('KeyY');
-        await page.keyboard.up('Alt');
-
         // Remap sendRequest to Shift+Enter
         await openKeybindingsTab(page);
         const row = page.getByTestId('keybinding-row-sendRequest');
@@ -152,7 +128,6 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await page.keyboard.up('Enter');
         await page.keyboard.up('Shift');
 
-        // await closePreferencesTab(page);
         // Create a POST request in the shared collection pointing to the echo server
         await createRequest(page, 'shift-enter-req-body', 'kb-collection', {
           url: 'https://echo.usebruno.com',
@@ -181,12 +156,6 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
       });
 
       test('sends request when cursor is in response body editor', async ({ page }) => {
-        // Close existing tabs
-        await page.keyboard.down('Alt');
-        await page.keyboard.down('KeyY');
-        await page.keyboard.up('KeyY');
-        await page.keyboard.up('Alt');
-
         // Remap sendRequest to Shift+Enter
         await openKeybindingsTab(page);
         const row = page.getByTestId('keybinding-row-sendRequest');
@@ -201,7 +170,6 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await page.keyboard.up('Enter');
         await page.keyboard.up('Shift');
 
-        // await closePreferencesTab(page);
         await createRequest(page, 'shift-enter-req-resp', 'kb-collection', {
           url: 'https://echo.usebruno.com',
           method: 'POST'
@@ -237,12 +205,6 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
       });
 
       test('sends request when cursor is in pre-request Vars value editor', async ({ page }) => {
-        // Close existing tabs
-        await page.keyboard.down('Alt');
-        await page.keyboard.down('KeyY');
-        await page.keyboard.up('KeyY');
-        await page.keyboard.up('Alt');
-
         // Remap sendRequest to Shift+Enter
         await openKeybindingsTab(page);
         const row = page.getByTestId('keybinding-row-sendRequest');
@@ -257,7 +219,6 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await page.keyboard.up('Enter');
         await page.keyboard.up('Shift');
 
-        // await closePreferencesTab(page);
         await createRequest(page, 'shift-enter-req-vars', 'kb-collection', {
           url: 'https://echo.usebruno.com',
           method: 'POST'
@@ -318,12 +279,6 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
 
     test.describe('SHORTCUT: Change Orientation (customized Alt+Shift+Y)', () => {
       test('customized Alt+Shift+Y change layout orientation', async ({ page, createTmpDir }) => {
-        await page.keyboard.down('Alt');
-        await page.keyboard.down('KeyY');
-        await page.keyboard.up('KeyY');
-        await page.keyboard.up('Alt');
-
-        // Remap changeLayout to Alt+D
         await openKeybindingsTab(page);
         const row = page.getByTestId('keybinding-row-changeLayout');
         await row.hover();

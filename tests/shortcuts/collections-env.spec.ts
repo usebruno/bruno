@@ -1,11 +1,11 @@
-import { test, expect } from '../../playwright';
+import { expect, test } from '../../playwright';
 import { closeAllCollections } from '../utils/page';
 import {
-  modifier,
   collectionName,
-  setupBoundActionsData,
+  modifier,
+  openKeybindingsTab,
   openRequest,
-  openKeybindingsTab
+  setupBoundActionsData
 } from './helpers';
 
 // ─── Tests ────
@@ -38,10 +38,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
       });
 
       test('customized Alt+O open import collection modal', async ({ page }) => {
-        await page.keyboard.down('Alt');
-        await page.keyboard.down('KeyY');
-        await page.keyboard.up('KeyY');
-        await page.keyboard.up('Alt');
+        await page.keyboard.press(`${modifier}+KeyW`);
 
         // Remap importCollection to Alt+O
         await openKeybindingsTab(page);
@@ -56,6 +53,8 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await page.keyboard.down('KeyO');
         await page.keyboard.up('KeyO');
         await page.keyboard.up('Alt');
+
+        await page.keyboard.press(`${modifier}+KeyW`);
 
         // Trigger the remapped shortcut
         await page.keyboard.down('Alt');
@@ -77,11 +76,6 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
 
     test.describe('SHORTCUT: Edit Environment (Cmd/Ctrl+E)', () => {
       test('open environment tab of collection Cmd/Ctrl+E', async ({ page, createTmpDir }) => {
-        await page.keyboard.down('Alt');
-        await page.keyboard.down('KeyY');
-        await page.keyboard.up('KeyY');
-        await page.keyboard.up('Alt');
-
         await openRequest(page, 'kb-collection', 'req-7', { persist: true });
 
         await page.keyboard.down(modifier);
@@ -89,15 +83,10 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await page.keyboard.up('KeyE');
         await page.keyboard.up(modifier);
 
-        await expect(page.locator('.request-tab').filter({ hasText: 'Environments' })).toBeVisible({ timeout: 2000 });
+        await expect(page.locator('.request-tab').filter({ has: page.getByText('Environments', { exact: true }) })).toBeVisible({ timeout: 2000 });
       });
 
       test('open environment tab of collection customized Alt+E', async ({ page, createTmpDir }) => {
-        await page.keyboard.down('Alt');
-        await page.keyboard.down('KeyY');
-        await page.keyboard.up('KeyY');
-        await page.keyboard.up('Alt');
-
         // Remap editEnvironment to Alt+E
         await openKeybindingsTab(page);
         const row = page.getByTestId('keybinding-row-editEnvironment');
@@ -119,7 +108,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await page.keyboard.up('KeyE');
         await page.keyboard.up('Alt');
 
-        await expect(page.locator('.request-tab').filter({ hasText: 'Environments' })).toBeVisible({ timeout: 2000 });
+        await expect(page.locator('.request-tab').filter({ has: page.getByText('Environments', { exact: true }) })).toBeVisible({ timeout: 2000 });
 
         // Rest Default - just in case to not fail shortcuts in other places
         await openKeybindingsTab(page);
@@ -129,11 +118,6 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
 
     test.describe('SHORTCUT: Edit Environment (customized Alt+E)', () => {
       test('open environment tab of collection customized Alt+E', async ({ page, createTmpDir }) => {
-        await page.keyboard.down('Alt');
-        await page.keyboard.down('KeyY');
-        await page.keyboard.up('KeyY');
-        await page.keyboard.up('Alt');
-
         // Remap editEnvironment to Alt+E
         await openKeybindingsTab(page);
         const row = page.getByTestId('keybinding-row-editEnvironment');
@@ -155,7 +139,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await page.keyboard.up('KeyE');
         await page.keyboard.up('Alt');
 
-        await expect(page.locator('.request-tab').filter({ hasText: 'Environments' })).toBeVisible({ timeout: 2000 });
+        await expect(page.locator('.request-tab').filter({ has: page.getByText('Environments', { exact: true }) })).toBeVisible({ timeout: 2000 });
 
         // Rest Default - just in case to not fail shortcuts in other places
         await openKeybindingsTab(page);
@@ -165,11 +149,6 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
 
     test.describe('SHORTCUT: New Request', () => {
       test('default Cmd/Ctrl+N opens new request modal for collection', async ({ page }) => {
-        await page.keyboard.down('Alt');
-        await page.keyboard.down('KeyY');
-        await page.keyboard.up('KeyY');
-        await page.keyboard.up('Alt');
-
         // Focus the collection so the keybinding is active
         await page.getByTestId('sidebar-collection-row').filter({ has: page.getByText(collectionName, { exact: true }) }).click();
 
@@ -180,17 +159,12 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await page.keyboard.type('https://echo.usebruno.com');
         await page.getByTestId('create-new-request-button').click();
 
-        await expect(page.locator('.request-tab').filter({ hasText: 'nr-collection-cenv' })).toBeVisible({ timeout: 2000 });
+        await expect(page.locator('.request-tab').filter({ has: page.getByText('nr-collection-cenv', { exact: true }) })).toBeVisible({ timeout: 2000 });
       });
 
       test('default Cmd/Ctrl+N opens new request modal for folder', async ({ page }) => {
-        await page.keyboard.down('Alt');
-        await page.keyboard.down('KeyY');
-        await page.keyboard.up('KeyY');
-        await page.keyboard.up('Alt');
-
         // Focus the folder so the keybinding is active
-        await page.locator('.collection-item-name').filter({ hasText: 'kb-folder' }).click();
+        await page.locator('.collection-item-name').filter({ has: page.getByText('kb-folder', { exact: true }) }).click();
 
         await page.keyboard.press(`${modifier}+KeyN`);
 
@@ -199,15 +173,10 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await page.keyboard.type('https://echo.usebruno.com');
         await page.getByTestId('create-new-request-button').click();
 
-        await expect(page.locator('.request-tab').filter({ hasText: 'nr-folder-cenv' })).toBeVisible({ timeout: 2000 });
+        await expect(page.locator('.request-tab').filter({ has: page.getByText('nr-folder-cenv', { exact: true }) })).toBeVisible({ timeout: 2000 });
       });
 
       test('customized Alt+N opens new request modal for collection', async ({ page }) => {
-        await page.keyboard.down('Alt');
-        await page.keyboard.down('KeyY');
-        await page.keyboard.up('KeyY');
-        await page.keyboard.up('Alt');
-
         // Remap newRequest to Alt+N
         await openKeybindingsTab(page);
         const row = page.getByTestId('keybinding-row-newRequest');
@@ -235,7 +204,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await page.keyboard.type('https://echo.usebruno.com');
         await page.getByTestId('create-new-request-button').click();
 
-        await expect(page.locator('.request-tab').filter({ hasText: 'nr-collection-cenv-altn' })).toBeVisible({ timeout: 2000 });
+        await expect(page.locator('.request-tab').filter({ has: page.getByText('nr-collection-cenv-altn', { exact: true }) })).toBeVisible({ timeout: 2000 });
 
         // Reset Default - just in case to not fail shortcuts in other places
         await openKeybindingsTab(page);
@@ -243,11 +212,6 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
       });
 
       test('customized Alt+N opens new request modal for folder', async ({ page }) => {
-        await page.keyboard.down('Alt');
-        await page.keyboard.down('KeyY');
-        await page.keyboard.up('KeyY');
-        await page.keyboard.up('Alt');
-
         // Remap newRequest to Alt+N
         await openKeybindingsTab(page);
         const row = page.getByTestId('keybinding-row-newRequest');
@@ -263,7 +227,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await page.keyboard.up('Alt');
 
         // Focus the folder so the keybinding is active
-        await page.locator('.collection-item-name').filter({ hasText: 'kb-folder' }).click();
+        await page.locator('.collection-item-name').filter({ has: page.getByText('kb-folder', { exact: true }) }).click();
 
         await page.keyboard.down('Alt');
         await page.keyboard.down('KeyN');
@@ -275,7 +239,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await page.keyboard.type('https://echo.usebruno.com');
         await page.getByTestId('create-new-request-button').click();
 
-        await expect(page.locator('.request-tab').filter({ hasText: 'nr-folder-cenv-altn' })).toBeVisible({ timeout: 2000 });
+        await expect(page.locator('.request-tab').filter({ has: page.getByText('nr-folder-cenv-altn', { exact: true }) })).toBeVisible({ timeout: 2000 });
 
         // Reset Default - just in case to not fail shortcuts in other places
         await openKeybindingsTab(page);

@@ -26,11 +26,6 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
   test.describe('SIDEBAR', () => {
     test.describe('SHORTCUT: Sidebar search (Cmd/Ctrl+F)', () => {
       test('Sidebar search default (Cmd/Ctrl+F)', async ({ page }) => {
-        await page.keyboard.down('Alt');
-        await page.keyboard.down('KeyY');
-        await page.keyboard.up('KeyY');
-        await page.keyboard.up('Alt');
-
         await page.keyboard.press(`${modifier}+KeyF`);
 
         // await expect(page.getByPlaceholder('Search requests...')).toBeVisible({ timeout: 3000 });
@@ -66,12 +61,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
 
     test.describe('SHORTCUT: New request (Cmd/Ctrl+N)', () => {
       test('New request default (Cmd/Ctrl+N)', async ({ page, createTmpDir }) => {
-        await page.keyboard.down('Alt');
-        await page.keyboard.down('KeyY');
-        await page.keyboard.up('KeyY');
-        await page.keyboard.up('Alt');
-
-        await page.locator('.collection-item-name').filter({ hasText: 'kb-folder' }).click();
+        await page.locator('.collection-item-name').filter({ has: page.getByText('kb-folder', { exact: true }) }).click();
 
         await page.keyboard.press(`${modifier}+KeyN`);
 
@@ -80,7 +70,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await page.keyboard.type('https://echo.usebruno.com');
         await page.getByTestId('create-new-request-button').click();
 
-        await expect(page.locator('.request-tab').filter({ hasText: 'nr-folder' })).toBeVisible({ timeout: 2000 });
+        await expect(page.locator('.request-tab').filter({ has: page.getByText('nr-folder', { exact: true }) })).toBeVisible({ timeout: 2000 });
       });
 
       test('New request customized (Alt+N)', async ({ page, createTmpDir }) => {
@@ -110,18 +100,13 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await page.keyboard.type('https://echo.usebruno.com');
         await page.getByTestId('create-new-request-button').click();
 
-        await expect(page.locator('.request-tab').filter({ hasText: 'nr-collection' })).toBeVisible({ timeout: 2000 });
+        await expect(page.locator('.request-tab').filter({ has: page.getByText('nr-collection', { exact: true }) })).toBeVisible({ timeout: 2000 });
       });
     });
 
     test.describe('SHORTCUT: Rename Item', () => {
       test.describe('SHORTCUT: Rename Item for request (Cmd/Ctrl+R)', () => {
         test('default Cmd/Ctrl+R open rename item modal for request', async ({ page, createTmpDir }) => {
-          await page.keyboard.down('Alt');
-          await page.keyboard.down('KeyY');
-          await page.keyboard.up('KeyY');
-          await page.keyboard.up('Alt');
-
           await page.getByTestId('sidebar-collection-row').filter({ has: page.getByText('kb-collection', { exact: true }) }).dblclick();
           await openRequest(page, 'kb-collection', 'req-1', { persist: true });
           await page.keyboard.press(`${modifier}+KeyR`);
@@ -138,18 +123,13 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
           await page.getByTestId('rename-item-button').click();
 
           // Verify renamed request appears in sidebar
-          await expect(page.locator('.collection-item-name').filter({ hasText: 'req-1-renamed' })).toBeVisible({ timeout: 2000 });
+          await expect(page.locator('.collection-item-name').filter({ has: page.getByText('req-1-renamed', { exact: true }) })).toBeVisible({ timeout: 2000 });
         });
       });
 
       test.describe('SHORTCUT: Rename Item for folder (Cmd/Ctrl+R)', () => {
         test('default Cmd/Ctrl+R open rename item modal for folder', async ({ page, createTmpDir }) => {
-          await page.keyboard.down('Alt');
-          await page.keyboard.down('KeyY');
-          await page.keyboard.up('KeyY');
-          await page.keyboard.up('Alt');
-
-          await page.locator('.collection-item-name').filter({ hasText: 'kb-folder' }).dblclick();
+          await page.locator('.collection-item-name').filter({ has: page.getByText('kb-folder', { exact: true }) }).dblclick();
           await page.keyboard.press(`${modifier}+KeyR`);
 
           // Verify rename modal opens
@@ -164,17 +144,12 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
           await page.getByTestId('rename-item-button').click();
 
           // Verify renamed request appears in sidebar
-          await expect(page.locator('.collection-item-name').filter({ hasText: 'kb-folder-renamed' })).toBeVisible({ timeout: 2000 });
+          await expect(page.locator('.collection-item-name').filter({ has: page.getByText('kb-folder-renamed', { exact: true }) })).toBeVisible({ timeout: 2000 });
         });
       });
 
       test.describe('SHORTCUT: Rename Item for collection (Cmd/Ctrl+R)', () => {
         test('default Cmd/Ctrl+R open rename item modal for collection', async ({ page, createTmpDir }) => {
-          await page.keyboard.down('Alt');
-          await page.keyboard.down('KeyY');
-          await page.keyboard.up('KeyY');
-          await page.keyboard.up('Alt');
-
           await page.getByTestId('sidebar-collection-row').filter({ has: page.getByText('kb-collection', { exact: true }) }).click();
           await page.keyboard.press(`${modifier}+KeyR`);
 
@@ -196,11 +171,6 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
 
       test.describe('SHORTCUT: Rename Item for request (customized Alt+X)', () => {
         test('customized Alt+X open rename item modal for request', async ({ page, createTmpDir }) => {
-          await page.keyboard.down('Alt');
-          await page.keyboard.down('KeyY');
-          await page.keyboard.up('KeyY');
-          await page.keyboard.up('Alt');
-
           // Remap renameItem to Alt+R
           await openKeybindingsTab(page);
           const row = page.getByTestId('keybinding-row-renameItem');
@@ -233,17 +203,12 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
           await page.getByTestId('rename-item-button').click();
 
           // Verify renamed request appears in sidebar
-          await expect(page.locator('.collection-item-name').filter({ hasText: 'req-1-renamed-altx' })).toBeVisible({ timeout: 2000 });
+          await expect(page.locator('.collection-item-name').filter({ has: page.getByText('req-1-renamed-altx', { exact: true }) })).toBeVisible({ timeout: 2000 });
         });
       });
 
       test.describe('SHORTCUT: Rename Item for folder (customized Alt+X)', () => {
         test('customized Alt+R open rename item modal for folder', async ({ page, createTmpDir }) => {
-          await page.keyboard.down('Alt');
-          await page.keyboard.down('KeyY');
-          await page.keyboard.up('KeyY');
-          await page.keyboard.up('Alt');
-
           await remapKeybinding(page, 'renameItem', async () => {
             await page.keyboard.press('Alt+KeyX');
           });
@@ -267,17 +232,12 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
           await page.getByTestId('rename-item-button').click();
 
           // Verify renamed request appears in sidebar
-          await expect(page.locator('.collection-item-name').filter({ hasText: 'kb-folder-renamed-altx-src' })).toBeVisible({ timeout: 2000 });
+          await expect(page.locator('.collection-item-name').filter({ has: page.getByText('kb-folder-renamed-altx-src', { exact: true }) })).toBeVisible({ timeout: 2000 });
         });
       });
 
       test.describe('SHORTCUT: Rename Item for collection (customized Alt+X)', () => {
         test('customized Alt+R open rename item modal for collection', async ({ page, createTmpDir }) => {
-          await page.keyboard.down('Alt');
-          await page.keyboard.down('KeyY');
-          await page.keyboard.up('KeyY');
-          await page.keyboard.up('Alt');
-
           await remapKeybinding(page, 'renameItem', async () => {
             await page.keyboard.press('Alt+KeyX');
           });
@@ -308,11 +268,6 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
     test.describe('SHORTCUT: Clone Item', () => {
       test.describe('SHORTCUT: Clone Item for request (Cmd/Ctrl+D)', () => {
         test('default Cmd/Ctrl+D open clone item modal for request', async ({ page, createTmpDir }) => {
-          await page.keyboard.down('Alt');
-          await page.keyboard.down('KeyY');
-          await page.keyboard.up('KeyY');
-          await page.keyboard.up('Alt');
-
           await openRequest(page, 'kb-collection', 'req-1', { persist: true });
           await page.keyboard.press(`${modifier}+KeyD`);
 
@@ -328,18 +283,13 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
           await page.getByTestId('clone-item-button').click();
 
           // Verify cloned request appears in sidebar
-          await expect(page.locator('.collection-item-name').filter({ hasText: 'req-1 clone 1' })).toBeVisible({ timeout: 2000 });
+          await expect(page.locator('.collection-item-name').filter({ has: page.getByText('req-1 clone 1', { exact: true }) })).toBeVisible({ timeout: 2000 });
         });
       });
 
       test.describe('SHORTCUT: Clone Item for folder (Cmd/Ctrl+D)', () => {
         test('default Cmd/Ctrl+D open clone item modal for folder', async ({ page, createTmpDir }) => {
-          await page.keyboard.down('Alt');
-          await page.keyboard.down('KeyY');
-          await page.keyboard.up('KeyY');
-          await page.keyboard.up('Alt');
-
-          await page.locator('.collection-item-name').filter({ hasText: 'kb-folder' }).dblclick();
+          await page.locator('.collection-item-name').filter({ has: page.getByText('kb-folder', { exact: true }) }).dblclick();
           await page.keyboard.press(`${modifier}+KeyD`);
 
           // Verify clone modal opens
@@ -354,17 +304,12 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
           await page.getByTestId('clone-item-button').click();
 
           // Verify cloned request appears in sidebar
-          await expect(page.locator('.collection-item-name').filter({ hasText: 'kb-folder clone 1' })).toBeVisible({ timeout: 2000 });
+          await expect(page.locator('.collection-item-name').filter({ has: page.getByText('kb-folder clone 1', { exact: true }) })).toBeVisible({ timeout: 2000 });
         });
       });
 
       test.describe('SHORTCUT: Clone Item for request (customized Alt+D)', () => {
         test('customized Alt+D open clone item modal for request', async ({ page, createTmpDir }) => {
-          await page.keyboard.down('Alt');
-          await page.keyboard.down('KeyY');
-          await page.keyboard.up('KeyY');
-          await page.keyboard.up('Alt');
-
           // Remap cloneItem to Alt+D
           await openKeybindingsTab(page);
           const row = page.getByTestId('keybinding-row-cloneItem');
@@ -398,20 +343,15 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
           await page.getByTestId('clone-item-button').click();
 
           // Verify renamed request appears in sidebar
-          await expect(page.locator('.collection-item-name').filter({ hasText: 'req-2 clone 1' })).toBeVisible({ timeout: 2000 });
+          await expect(page.locator('.collection-item-name').filter({ has: page.getByText('req-2 clone 1', { exact: true }) })).toBeVisible({ timeout: 2000 });
         });
       });
 
       test.describe('SHORTCUT: Clone Item for folder (customized Alt+D)', () => {
         test('customized Alt+D open clone item modal for folder', async ({ page, createTmpDir }) => {
-          await page.keyboard.down('Alt');
-          await page.keyboard.down('KeyY');
-          await page.keyboard.up('KeyY');
-          await page.keyboard.up('Alt');
-
           await createFolder(page, 'kb-folder-clone-src', collectionName, true);
           await openCollection(page, collectionName);
-          await page.locator('.collection-item-name').filter({ hasText: 'kb-folder-clone-src' }).first().click();
+          await page.locator('.collection-item-name').filter({ has: page.getByText('kb-folder-clone-src', { exact: true }) }).first().click();
           await page.keyboard.down('Alt');
           await page.keyboard.down('KeyD');
           await page.keyboard.up('KeyD');
@@ -429,7 +369,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
           await page.getByTestId('clone-item-button').click();
 
           // Verify renamed request appears in sidebar
-          await expect(page.locator('.collection-item-name').filter({ hasText: 'kb-folder-clone-src copy 1' })).toBeVisible({ timeout: 2000 });
+          await expect(page.locator('.collection-item-name').filter({ has: page.getByText('kb-folder-clone-src copy 1', { exact: true }) })).toBeVisible({ timeout: 2000 });
         });
       });
     });
@@ -437,43 +377,28 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
     test.describe('SHORTCUT: Copy Paste Item', () => {
       test.describe('SHORTCUT: Copy Paste Item for request (Cmd/Ctrl+C/V)', () => {
         test('default Cmd/Ctrl+C/V copy paste item for request', async ({ page, createTmpDir }) => {
-          await page.keyboard.down('Alt');
-          await page.keyboard.down('KeyY');
-          await page.keyboard.up('KeyY');
-          await page.keyboard.up('Alt');
-
           await openRequest(page, 'kb-collection', 'req-3', { persist: true });
           await page.keyboard.press(`${modifier}+KeyC`);
           await page.keyboard.press(`${modifier}+KeyV`);
 
           // Verify cloned request appears in sidebar
-          await expect(page.locator('.collection-item-name').filter({ hasText: 'req-3 (1)' })).toBeVisible({ timeout: 2000 });
+          await expect(page.locator('.collection-item-name').filter({ has: page.getByText('req-3 (1)', { exact: true }) })).toBeVisible({ timeout: 2000 });
         });
       });
 
       test.describe('SHORTCUT: Copy Paste Item for folder (Cmd/Ctrl+C/V)', () => {
         test('default Cmd/Ctrl+C/V copy paste item for folder', async ({ page }) => {
-          await page.keyboard.down('Alt');
-          await page.keyboard.down('KeyY');
-          await page.keyboard.up('KeyY');
-          await page.keyboard.up('Alt');
-
           await openRequest(page, collectionName, 'kb-folder', { persist: true });
           await page.keyboard.press(`${modifier}+KeyC`);
           await page.keyboard.press(`${modifier}+KeyV`);
 
           // Verify copied item appears in sidebar as child of folder
-          await expect(page.locator('.collection-item-name').filter({ hasText: 'kb-folder' })).toHaveCount(2);
+          await expect(page.locator('.collection-item-name').filter({ has: page.getByText('kb-folder', { exact: true }) })).toHaveCount(2);
         });
       });
 
       test.describe('SHORTCUT: Copy Paste Item for request (customized Alt+C/V)', () => {
         test('customized Alt+C/V copy paste item for request', async ({ page, createTmpDir }) => {
-          await page.keyboard.down('Alt');
-          await page.keyboard.down('KeyY');
-          await page.keyboard.up('KeyY');
-          await page.keyboard.up('Alt');
-
           // Remap copyItem to Alt+D
           await openKeybindingsTab(page);
           const row = page.getByTestId('keybinding-row-copyItem');
@@ -514,17 +439,12 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
           await page.keyboard.up('Alt');
 
           // Verify cloned request appears in sidebar
-          await expect(page.locator('.collection-item-name').filter({ hasText: 'req-4 (1)' })).toBeVisible({ timeout: 2000 });
+          await expect(page.locator('.collection-item-name').filter({ has: page.getByText('req-4 (1)', { exact: true }) })).toBeVisible({ timeout: 2000 });
         });
       });
 
       test.describe('SHORTCUT: Copy Paste Item for folder (Cmd/Ctrl+C/V)', () => {
         test('customized Alt+C/V copy paste item for folder', async ({ page, createTmpDir }) => {
-          await page.keyboard.down('Alt');
-          await page.keyboard.down('KeyY');
-          await page.keyboard.up('KeyY');
-          await page.keyboard.up('Alt');
-
           await remapKeybinding(page, 'copyItem', async () => {
             await page.keyboard.press('Alt+KeyC');
           });
@@ -545,7 +465,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
           await page.keyboard.up('Alt');
 
           // Verify copied item appears in sidebar as child of folder
-          await expect(page.locator('.collection-item-name').filter({ hasText: 'kb-folder-copy-src' })).toHaveCount(2);
+          await expect(page.locator('.collection-item-name').filter({ has: page.getByText('kb-folder-copy-src', { exact: true }) })).toHaveCount(2);
         });
       });
     });

@@ -87,7 +87,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await page.keyboard.up('Shift');
 
         // The request "Unsaved changes" modal should appear
-        const modal = page.locator('.bruno-modal-card').filter({ hasText: 'Unsaved changes' });
+        const modal = page.locator('.bruno-modal-card').filter({ has: page.getByText('Unsaved changes', { exact: true }) });
         await expect(modal).toBeVisible({ timeout: 3000 });
         await expect(modal).toContainText('You have unsaved changes in request');
         await expect(modal).toContainText('req-1');
@@ -134,7 +134,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await page.keyboard.up('Shift');
 
         // The folder "Unsaved changes" modal should appear
-        const modal = page.locator('.bruno-modal-card').filter({ hasText: 'Unsaved changes' });
+        const modal = page.locator('.bruno-modal-card').filter({ has: page.getByText('Unsaved changes', { exact: true }) });
         await expect(modal).toBeVisible({ timeout: 3000 });
         await expect(modal).toContainText('folder settings');
         await expect(modal).toContainText('kb-draft-folder');
@@ -181,7 +181,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await page.keyboard.up('Shift');
 
         // The collection "Unsaved changes" modal should appear
-        const modal = page.locator('.bruno-modal-card').filter({ hasText: 'Unsaved changes' });
+        const modal = page.locator('.bruno-modal-card').filter({ has: page.getByText('Unsaved changes', { exact: true }) });
         await expect(modal).toBeVisible({ timeout: 3000 });
         await expect(modal).toContainText('collection settings');
         await expect(modal).toContainText(collectionName);
@@ -507,11 +507,6 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         // Verify draft indicator is gone after saving
         await expect(collectionTab.locator('.close-icon')).toBeVisible();
         await expect(collectionTab.locator('.has-changes-icon')).not.toBeVisible();
-
-        await page.keyboard.down('Alt');
-        await page.keyboard.down('KeyY');
-        await page.keyboard.up('KeyY');
-        await page.keyboard.up('Alt');
       });
     });
 
@@ -761,12 +756,6 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
 
         const indexAfterThreeMoves = await getTabIndex(page, 'req-7');
         expect(indexAfterThreeMoves).toBeGreaterThanOrEqual(indexAfterTwoMoves);
-
-        // Close all tabs
-        await page.keyboard.down('Alt');
-        await page.keyboard.down('KeyY');
-        await page.keyboard.up('KeyY');
-        await page.keyboard.up('Alt');
       });
     });
 

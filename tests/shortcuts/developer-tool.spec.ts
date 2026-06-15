@@ -1,9 +1,9 @@
-import { test, expect } from '../../playwright';
+import { expect, test } from '../../playwright';
 import { closeAllCollections } from '../utils/page';
 import {
   modifier,
-  setupBoundActionsData,
-  openKeybindingsTab
+  openKeybindingsTab,
+  setupBoundActionsData
 } from './helpers';
 
 // ─── Tests ────
@@ -23,7 +23,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
       test('default Cmd/Ctrl+T opens terminal', async ({ page, createTmpDir }) => {
         // Open Collection-Settings tab (double-click collection name)
         await page.getByTestId('sidebar-collection-row').filter({ has: page.getByText('kb-collection', { exact: true }) }).click();
-        await expect(page.locator('.request-tab').filter({ hasText: 'collection' })).toBeVisible({ timeout: 2000 });
+        await expect(page.locator('.request-tab').filter({ has: page.getByText('Collection', { exact: true }) })).toBeVisible({ timeout: 2000 });
 
         // Press Cmd/Ctrl+T to open terminal at workspace level
         await page.keyboard.press(`${modifier}+KeyT`);
@@ -38,8 +38,8 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
 
         // Open Folder-Settings tab (create folder + double-click)
         // Open folder settings
-        await page.locator('.collection-item-name').filter({ hasText: 'kb-terminal-folder' }).dblclick();
-        await expect(page.locator('.request-tab').filter({ hasText: 'kb-terminal-folder' })).toBeVisible({ timeout: 2000 });
+        await page.locator('.collection-item-name').filter({ has: page.getByText('kb-terminal-folder', { exact: true }) }).dblclick();
+        await expect(page.locator('.request-tab').filter({ has: page.getByText('kb-terminal-folder', { exact: true }) })).toBeVisible({ timeout: 2000 });
 
         await page.keyboard.press(`${modifier}+KeyT`);
         const folderTerminalSession = page.getByTestId('session-list-1');
@@ -75,7 +75,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await page.keyboard.up('Alt');
 
         await page.getByTestId('sidebar-collection-row').filter({ has: page.getByText('kb-collection', { exact: true }) }).click();
-        await expect(page.locator('.request-tab').filter({ hasText: 'collection' })).toBeVisible({ timeout: 2000 });
+        await expect(page.locator('.request-tab').filter({ has: page.getByText('Collection', { exact: true }) })).toBeVisible({ timeout: 2000 });
 
         // Press Cmd/Ctrl+T to open terminal at workspace level
         await page.keyboard.down('Alt');
@@ -92,7 +92,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await expect(collectionSession).toContainText('kb-collection');
 
         // Open folder settings
-        await page.locator('.collection-item-name').filter({ hasText: 'kb-terminal-folder' }).dblclick();
+        await page.locator('.collection-item-name').filter({ has: page.getByText('kb-terminal-folder', { exact: true }) }).dblclick();
 
         await page.keyboard.down('Alt');
         await page.keyboard.down('KeyT');

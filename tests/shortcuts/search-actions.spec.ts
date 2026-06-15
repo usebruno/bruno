@@ -1,9 +1,9 @@
-import { test, expect } from '../../playwright';
+import { expect, test } from '../../playwright';
 import { closeAllCollections } from '../utils/page';
 import {
   modifier,
-  setupBoundActionsData,
-  openKeybindingsTab
+  openKeybindingsTab,
+  setupBoundActionsData
 } from './helpers';
 
 // ─── Tests ────

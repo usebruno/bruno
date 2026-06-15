@@ -1,11 +1,11 @@
 import { expect, Page } from '../../playwright';
 import {
-  createCollection,
-  createRequest,
-  openRequest as openRequestBase,
   closeAllCollections,
+  createCollection,
   createFolder,
-  openCollection
+  createRequest,
+  openCollection,
+  openRequest as openRequestBase
 } from '../utils/page';
 
 export const modifier = process.platform === 'darwin' ? 'Meta' : 'Control';
@@ -24,7 +24,7 @@ export const setupBoundActionsData = async (page: Page, createTmpDir: (prefix: s
 
 const checkIfRequestExists = async (page: Page, requestName: string) => {
   await openCollection(page, collectionName);
-  const request = page.getByTestId('collections').locator('.collection-item-name').filter({ hasText: requestName }).first();
+  const request = page.getByTestId('collections').locator('.collection-item-name').filter({ has: page.getByText(requestName, { exact: true }) });
   return (await request.count()) > 0;
 };
 
@@ -44,7 +44,7 @@ export const openRequest = async (...args: Parameters<typeof openRequestBase>) =
 export const openKeybindingsTab = async (page: Page) => {
   await page.getByRole('button', { name: 'Open Preferences' }).click();
   await page.getByRole('tab', { name: 'Keybindings' }).click();
-  await expect(page.locator('.section-header').filter({ hasText: 'Keybindings' })).toBeVisible();
+  await expect(page.locator('.section-header').filter({ has: page.getByText('Keybindings', { exact: true }) })).toBeVisible();
 };
 
 /**
@@ -53,15 +53,18 @@ export const openKeybindingsTab = async (page: Page) => {
  * have just been reconfigured.
  */
 export const closePreferencesTab = async (page: Page) => {
-  const prefTab = page.locator('.request-tab').filter({ hasText: 'Preferences' });
-  await prefTab.hover();
+  const prefTab = page.locator('.request-tab').filter({ has: page.getByText('Preferences', { exact: true }) });
+  await prefTab.dblclick();
+  // await prefTab.hover();
   await prefTab.getByTestId('request-tab-close-icon').click({ force: true });
+
   await expect(prefTab).not.toBeVisible({ timeout: 8000 });
+  // await page.pause();
 };
 
 export const closeTabByName = async (page: any, name: string | RegExp) => {
-  const tab = page.locator('.request-tab').filter({ hasText: name });
-  await tab.click();
+  const tab = page.locator('.request-tab').filter({ has: page.getByText(name, { exact: true }) });
+  await tab.dblclick();
   await tab.hover();
   await tab.getByTestId('request-tab-close-icon').click({ force: true });
   await expect(tab).not.toBeVisible({ timeout: 2000 });
@@ -69,18 +72,18 @@ export const closeTabByName = async (page: any, name: string | RegExp) => {
 
 export const openFolderSettingsTab = async (page: Page, folderName: string) => {
   await openCollection(page, collectionName);
-  const folderRow = page.locator('.collection-item-name').filter({ hasText: folderName }).first();
+  const folderRow = page.locator('.collection-item-name').filter({ has: page.getByText(folderName, { exact: true }) });
   await expect(folderRow).toBeVisible({ timeout: 5000 });
   await folderRow.dblclick();
-  await expect(page.locator('.request-tab').filter({ hasText: folderName })).toBeVisible({ timeout: 3000 });
+  await expect(page.locator('.request-tab').filter({ has: page.getByText(folderName, { exact: true }) })).toBeVisible({ timeout: 3000 });
 };
 
 export const reopenClosedTab = async (page: Page, shortcut: () => Promise<void>, expectedTabName: string | RegExp) => {
   for (let attempt = 0; attempt < 3; attempt++) {
-    await page.locator('.request-tab').first().click();
+    await page.locator('.request-tab').click();
     await page.waitForTimeout(150);
     await shortcut();
-    const reopenedTab = page.locator('.request-tab').filter({ hasText: expectedTabName });
+    const reopenedTab = page.locator('.request-tab').filter({ has: page.getByText(expectedTabName, { exact: true }) });
     if ((await reopenedTab.count()) > 0) {
       await expect(reopenedTab).toBeVisible({ timeout: 3000 });
       return;
@@ -88,7 +91,7 @@ export const reopenClosedTab = async (page: Page, shortcut: () => Promise<void>,
     await page.waitForTimeout(200);
   }
 
-  await expect(page.locator('.request-tab').filter({ hasText: expectedTabName })).toBeVisible({ timeout: 5000 });
+  await expect(page.locator('.request-tab').filter({ has: page.getByText(expectedTabName, { exact: true }) })).toBeVisible({ timeout: 5000 });
 };
 
 export const remapKeybinding = async (
@@ -117,7 +120,7 @@ export const remapKeybinding = async (
 
   await page.keyboard.press('Backspace');
   await pressShortcut();
-  await closePreferencesTab(page);
+  // await closePreferencesTab(page);
 };
 
 export const getTabIndex = async (page: Page, name: string) => {

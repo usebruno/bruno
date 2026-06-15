@@ -1,9 +1,9 @@
-import { test, expect } from '../../playwright';
+import { expect, test } from '../../playwright';
 import { closeAllCollections } from '../utils/page';
 import {
   modifier,
-  setupBoundActionsData,
-  openKeybindingsTab
+  openKeybindingsTab,
+  setupBoundActionsData
 } from './helpers';
 
 // ─── Tests ────
@@ -21,17 +21,12 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
   test.describe('OTHERS', () => {
     test.describe('SHORTCUT: Open Preferences', () => {
       test('default Cmd/Ctrl+, open preferences', async ({ page }) => {
-        await page.keyboard.down('Alt');
-        await page.keyboard.down('KeyY');
-        await page.keyboard.up('KeyY');
-        await page.keyboard.up('Alt');
-
         await page.keyboard.down(modifier);
         await page.keyboard.down('Comma');
         await page.keyboard.up('Comma');
         await page.keyboard.up(modifier);
 
-        await expect(page.locator('.request-tab').filter({ hasText: 'Preferences' })).toBeVisible({ timeout: 3000 });
+        await expect(page.locator('.request-tab').filter({ has: page.getByText('Preferences', { exact: true }) })).toBeVisible({ timeout: 3000 });
       });
     });
 
@@ -51,7 +46,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await page.keyboard.up('KeyP');
         await page.keyboard.up(modifier);
 
-        await expect(page.locator('.request-tab').filter({ hasText: 'Preferences' })).toBeVisible({ timeout: 3000 });
+        await expect(page.locator('.request-tab').filter({ has: page.getByText('Preferences', { exact: true }) })).toBeVisible({ timeout: 3000 });
       });
     });
   });
