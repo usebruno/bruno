@@ -76,6 +76,26 @@ const StyledWrapper = styled.div`
       margin-right: 4px;
     }
 
+    &.has-warning {
+      background-color: #BB931B1A;
+      font-weight: 500;
+      border-radius: 4px;
+      padding: 4px;
+    }
+
+    .warning-icon {
+      color: #BB931B;
+      margin-right: 4px;
+    }
+
+    .warning-tooltip {
+      background-color: #BB931B1A;
+      color: #856404; 
+      margin: 2px;
+      border-radius: 6px;
+      padding: 4px;
+    }
+
     .file-name {
       flex: 1;
       font-size: 12px;
