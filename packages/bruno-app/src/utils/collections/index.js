@@ -14,10 +14,10 @@ const replaceTabsWithSpaces = (str, numSpaces = 2) => {
 };
 
 export const addDepth = (items = []) => {
+  const start = performance.now();
   const depth = (itms, initialDepth) => {
     each(itms, (i) => {
       i.depth = initialDepth;
-
       if (i.items && i.items.length) {
         depth(i.items, initialDepth + 1);
       }
@@ -25,6 +25,9 @@ export const addDepth = (items = []) => {
   };
 
   depth(items, 1);
+  const end = performance.now();
+  const diff = end - start;
+  console.log('[addDepth]: consumed: ', diff, 'ms');
 };
 
 export const collapseAllItemsInCollection = (collection) => {

@@ -29,30 +29,36 @@ const LANES: Lane[] = [{
   maxSize: 100
 }];
 
-interface WorkerQueueWithSize {
+interface WorkerQueueGroup {
   maxSize: number;
-  workerQueue: WorkerQueue;
-
+  workerQueues: WorkerQueue[];
+  nextIndex: number;
 }
 
 class BruParserWorker {
-  private workerQueues: WorkerQueueWithSize[];
+  private queueGroups: WorkerQueueGroup[];
 
-  constructor() {
-    this.workerQueues = LANES?.map((lane) => ({
-      maxSize: lane?.maxSize,
-      workerQueue: new WorkerQueue()
+  constructor(concurrency: number = 1) {
+    const workerCount = Math.max(1, Math.floor(concurrency));
+    this.queueGroups = LANES.map((lane, index) => ({
+      maxSize: lane.maxSize,
+      // Apply concurrency to Lanes 0-2 (< 5KB, < 100KB, < 1MB) where bulk request files go.
+      // Larger lanes (10MB+, 100MB+) handle few files and don't benefit from parallelism.
+      workerQueues: Array.from({ length: index <= 2 ? workerCount : 1 }, () => new WorkerQueue()),
+      nextIndex: 0
     }));
   }
 
   private getWorkerQueue(size: number): WorkerQueue {
-    // Find the first queue that can handle the given size
-    // or fallback to the last queue for largest files
-    const queueForSize = this.workerQueues.find((queue) =>
-      queue.maxSize >= size
-    );
+    // Find the first queue group that can handle the given size
+    // or fallback to the last group for largest files
+    const group = this.queueGroups.find((g) => g.maxSize >= size)
+      ?? this.queueGroups[this.queueGroups.length - 1];
 
-    return queueForSize?.workerQueue ?? this.workerQueues[this.workerQueues.length - 1].workerQueue;
+    // Round-robin across worker queues in the group
+    const queue = group.workerQueues[group.nextIndex];
+    group.nextIndex = (group.nextIndex + 1) % group.workerQueues.length;
+    return queue;
   }
 
   private async enqueueTask({ data, taskType, format = DEFAULT_COLLECTION_FORMAT }: { data: any; taskType: 'parse' | 'stringify'; format?: CollectionFormat }): Promise<any> {
@@ -77,8 +83,8 @@ class BruParserWorker {
   }
 
   async cleanup(): Promise<void> {
-    const cleanupPromises = this.workerQueues.map(({ workerQueue }) =>
-      workerQueue.cleanup()
+    const cleanupPromises = this.queueGroups.flatMap(({ workerQueues }) =>
+      workerQueues.map((wq) => wq.cleanup())
     );
     await Promise.allSettled(cleanupPromises);
   }

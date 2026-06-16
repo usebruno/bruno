@@ -1,14 +1,13 @@
-import React, { useEffect, useCallback, useRef } from 'react';
 import { useFormik } from 'formik';
-import { useSelector, useDispatch } from 'react-redux';
-import { savePreferences } from 'providers/ReduxStore/slices/app';
-import StyledWrapper from './StyledWrapper';
-import * as Yup from 'yup';
 import debounce from 'lodash/debounce';
-import toast from 'react-hot-toast';
-import { IconFlask } from '@tabler/icons';
 import get from 'lodash/get';
+import { savePreferences } from 'providers/ReduxStore/slices/app';
+import React, { useCallback, useEffect, useRef } from 'react';
+import toast from 'react-hot-toast';
+import { useDispatch, useSelector } from 'react-redux';
 import { BETA_FEATURES as BETA_FEATURE_IDS } from 'utils/beta-features';
+import * as Yup from 'yup';
+import StyledWrapper from './StyledWrapper';
 
 /**
  * UI metadata for beta features rendered in Preferences.
@@ -19,6 +18,21 @@ const BETA_FEATURES = [
     id: BETA_FEATURE_IDS.OPENAPI_SYNC,
     label: 'OpenAPI Sync',
     description: 'Synchronize your Bruno collection with an OpenAPI specification. Detect drift, review changes, and sync with a single click.'
+  },
+  {
+    id: BETA_FEATURE_IDS.SIDEBAR_OPTIMIZATIONS,
+    label: 'Sidebar Optimizations',
+    description: 'Batches sidebar rendering updates for large collections. Reduces Redux dispatches from thousands to ~30, significantly improving load times for collections with 1000+ items.'
+  },
+  {
+    id: BETA_FEATURE_IDS.SKIP_LOADING_BADGE_EVENT,
+    label: 'Skip Loading Badge Event',
+    description: 'Eliminates the redundant per-file loading indicator IPC event during BRU collection loading. Reduces IPC events from 3 to 2 per file in the worker thread path.'
+  },
+  {
+    id: BETA_FEATURE_IDS.PARALLEL_WORKERS,
+    label: 'Parallel Workers',
+    description: 'Uses 4 parallel worker threads per lane instead of 1 for BRU file parsing. Distributes parsing work across multiple CPU cores for faster collection loading.'
   }
 ];
 
