@@ -386,10 +386,10 @@ const CodeMirrorSearch = forwardRef(({ visible, editor, onClose }, ref) => {
                 }}
               />
               <ToolHint text="Replace (Enter)" toolhintId="searchbar-replace-toolhint" place="top">
-                <button type="button" className="searchbar-icon-btn" disabled={isDebouncing} onClick={handleReplace}><IconReplace size={15} /></button>
+                <button type="button" aria-label="Replace" className="searchbar-icon-btn" disabled={isDebouncing} onClick={handleReplace}><IconReplace size={15} /></button>
               </ToolHint>
               <ToolHint text="Replace all" toolhintId="searchbar-replaceall-toolhint" place="top">
-                <button type="button" className="searchbar-icon-btn" disabled={isDebouncing} onClick={handleReplaceAll}><IconArrowsExchange2 size={15} /></button>
+                <button type="button" aria-label="Replace all" className="searchbar-icon-btn" disabled={isDebouncing} onClick={handleReplaceAll}><IconArrowsExchange2 size={15} /></button>
               </ToolHint>
             </div>
           )}
