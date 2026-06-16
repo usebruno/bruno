@@ -94,6 +94,8 @@ async function main() {
     // update font load paths
     const cssDir = path.join('packages/bruno-electron/web/static/css');
     try {
+      // ensure the css directory exists (some builds may not produce it)
+      await fs.ensureDir(cssDir);
       const cssFiles = await fs.readdir(cssDir);
       for (const file of cssFiles) {
         if (file.endsWith('.css')) {
@@ -109,6 +111,17 @@ async function main() {
 
     // Remove sourcemaps
     await removeSourceMapFiles('packages/bruno-electron/web');
+
+    // Clear electron-builder cache on Windows to avoid symlink extraction issues
+    if (os.platform() === 'win32') {
+      const cacheDir = path.join(os.homedir(), 'AppData', 'Local', 'electron-builder', 'Cache', 'winCodeSign');
+      try {
+        await deleteFileIfExists(cacheDir);
+        console.log('Cleared electron-builder winCodeSign cache.');
+      } catch (error) {
+        console.warn(`Could not clear winCodeSign cache: ${error}`);
+      }
+    }
 
     // Run npm dist command
     console.log('Building the Electron distribution');

@@ -1,0 +1,115 @@
+stages:
+  - build
+  - publish
+
+variables:
+  NODE_VERSION: "18"
+  # Do not sign in CI by default. Set these CI variables if you want signing in protected runs.
+  CSC_LINK: ""
+  CSC_KEY_PASSWORD: ""
+  # Artifactory settings (set in CI/CD variables):
+  # ARTIFACTORY_URL example: https://artifactory.example.com/artifactory
+  ARTIFACTORY_URL: ""
+  ARTIFACTORY_REPO: ""
+  ARTIFACTORY_API_KEY: ""
+  ARTIFACTORY_USER: ""
+  ARTIFACTORY_PASSWORD: ""
+
+# Build Windows installer on a Linux runner using an image that provides Wine and build dependencies.
+# No Windows self-hosted runner required.
+build_windows:
+  stage: build
+  image: electronuserland/builder:wine
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+      when: on_success
+    - if: '$CI_COMMIT_TAG'
+      when: on_success
+  before_script:
+    - node --version || true
+    - npm --version || true
+    - npm ci
+  script:
+    # Build the web app first
+    - npm run build --workspace=packages/bruno-app
+    # Prepare electron web folder
+    - rm -rf packages/bruno-electron/web || true
+    - mkdir -p packages/bruno-electron/web
+    - cp -R packages/bruno-app/dist/. packages/bruno-electron/web/
+    # Clear electron-builder winCodeSign cache (safe no-op on Linux)
+    - rm -rf $HOME/.cache/electron-builder/Cache/winCodeSign || true
+    # Run the existing build script (it will call electron-builder --win)
+    - node ./scripts/build-electron.js
+  variables:
+    CSC_LINK: ''
+    CSC_KEY_PASSWORD: ''
+    # Force electron-builder to use non-interactive mode
+    CI: 'true'
+  artifacts:
+    paths:
+      - packages/bruno-electron/out
+    expire_in: 1 week
+
+publish_release:
+  stage: publish
+  image: curlimages/curl:latest
+  needs: [build_windows]
+  rules:
+    - if: '$CI_COMMIT_TAG'
+      when: on_success
+    - when: never
+  dependencies:
+    - build_windows
+  script:
+    - echo "Preparing to publish release for tag $CI_COMMIT_TAG"
+    - ls -la packages/bruno-electron/out || (echo "No artifacts found" && exit 1)
+    - FILE=$(ls packages/bruno-electron/out | head -n 1)
+    - if [ -z "$FILE" ]; then echo "No installer artifact found" && exit 1; fi
+    - echo "Uploading $FILE to project uploads API"
+    - RESPONSE=$(curl --silent --header "JOB-TOKEN: $CI_JOB_TOKEN" --form "file=@packages/bruno-electron/out/$FILE" "$CI_API_V4_URL/projects/$CI_PROJECT_ID/uploads")
+    - URL=$(echo "$RESPONSE" | grep -Po '"url":"\K[^\"]+')
+    - if [ -z "$URL" ]; then echo "Upload failed: $RESPONSE" && exit 1; fi
+    - FULL_URL="$CI_PROJECT_URL$URL"
+    - echo "Uploaded file available at $FULL_URL"
+    - echo "Creating release $CI_COMMIT_TAG"
+    - |
+      curl --silent --show-error --fail --request POST \
+        --header "PRIVATE-TOKEN: $GITLAB_TOKEN" \
+        --header "Content-Type: application/json" \
+        --data "{\"name\":\"$CI_COMMIT_TAG\",\"tag_name\":\"$CI_COMMIT_TAG\",\"description\":\"Release $CI_COMMIT_TAG\",\"assets\":{\"links\":[{\"name\":\"$FILE\",\"url\":\"$FULL_URL\"}]}}" \
+        "$CI_API_V4_URL/projects/$CI_PROJECT_ID/releases"
+  variables:
+    # Requires a personal access token or project access token with api scope stored as GITLAB_TOKEN (protected)
+    GITLAB_TOKEN: "$GITLAB_TOKEN"
+  when: on_success
+
+upload_to_artifactory:
+  stage: publish
+  image: curlimages/curl:latest
+  needs: [build_windows]
+  rules:
+    - if: '$CI_COMMIT_TAG'
+      when: on_success
+    - if: '$CI_COMMIT_BRANCH == "main"'
+      when: manual
+    - when: never
+  dependencies:
+    - build_windows
+  script:
+    - echo "Looking for installer in packages/bruno-electron/out"
+    - ls -la packages/bruno-electron/out || (echo "No artifacts found" && exit 1)
+    - FILE=$(ls packages/bruno-electron/out/*.exe 2>/dev/null | head -n 1 || true)
+    - if [ -z "$FILE" ]; then FILE=$(ls packages/bruno-electron/out | head -n 1); FILE="packages/bruno-electron/out/$FILE"; fi
+    - if [ ! -f "$FILE" ]; then echo "No artifact file found at $FILE" && exit 1; fi
+    - BASENAME=$(basename "$FILE")
+    - echo "Uploading $BASENAME to $ARTIFACTORY_URL/$ARTIFACTORY_REPO/"
+    - |
+      if [ -n "$ARTIFACTORY_API_KEY" ]; then
+        curl --fail -H "X-JFrog-Art-Api: $ARTIFACTORY_API_KEY" -T "$FILE" "$ARTIFACTORY_URL/$ARTIFACTORY_REPO/$BASENAME"
+      else
+        if [ -z "$ARTIFACTORY_USER" ] || [ -z "$ARTIFACTORY_PASSWORD" ]; then
+          echo "No Artifactory credentials provided (ARTIFACTORY_API_KEY or ARTIFACTORY_USER/ARTIFACTORY_PASSWORD required)" && exit 1
+        fi
+        curl --fail -u "$ARTIFACTORY_USER:$ARTIFACTORY_PASSWORD" -T "$FILE" "$ARTIFACTORY_URL/$ARTIFACTORY_REPO/$BASENAME"
+      fi
+  when: on_success

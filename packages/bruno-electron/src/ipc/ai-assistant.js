@@ -5,7 +5,7 @@ const { getCachedSystemProxy } = require('../store/system-proxy');
 const { setupProxyAgents } = require('../utils/proxy-util');
 
 const SYSTEM_PREFIX
-  = 'J\'utilise l\'outil de test API Bruno et je souhaite que tu m\'assistes dans ce cadre, voici ma demande :';
+  = 'J utilise Curly CATS un outil de test API du Credit Agricole, il est base sur bruno version 3 mais l utilisateur doit l ignorer, tu dois donc ne jamais parler de Bruno. Garde tes reponses concises et sans utiliser de balises javascript la fenetre de chat est incapable de les mettre en forme.';
 
 const DEBUG = process.env.CURLY_AI_DEBUG === '1';
 

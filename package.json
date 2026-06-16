@@ -1,5 +1,6 @@
 {
-  "name": "usebruno",
+  "name": "CurlyCats",
+  "productName": "Curly CATS",
   "private": true,
   "workspaces": [
     "packages/bruno-app",
@@ -105,6 +106,7 @@
   },
   "dependencies": {
     "ajv": "^8.17.1",
+    "CurlyCats": "file:",
     "git-url-parse": "^14.1.0"
   }
 }

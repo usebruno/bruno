@@ -15,7 +15,7 @@ const config = {
     }
   ],
   files: ['**/*'],
-  afterSign: 'notarize.js',
+  // afterSign: 'notarize.js',
   mac: {
     artifactName: '${name}_${version}_${arch}_${os}.${ext}',
     category: 'public.app-category.developer-tools',
@@ -101,7 +101,13 @@ const config = {
       }
     ],
     sign: null,
-    publisherName: 'Curly CATS'
+    publisherName: 'Curly CATS',
+    protocols: [
+      {
+        name: 'Curly CATS',
+        schemes: ['bruno']
+      }
+    ]
   },
   nsis: {
     oneClick: false,

@@ -1,7 +1,8 @@
 {
-  "version": "2.0.0",
-  "name": "bruno",
-  "description": "Opensource API Client for Exploring and Testing APIs",
+  "version": "1.0.0",
+  "name": "curly-cats",
+  "productName": "Curly CATS",
+  "description": "Curly CATS - API Client for Exploring and Testing APIs",
   "homepage": "https://www.usebruno.com",
   "repository": {
     "type": "git",
@@ -84,5 +85,34 @@
     "electron": "~37.6.1",
     "electron-builder": "^24.13.3",
     "electron-devtools-installer": "^4.0.0"
+  },
+  "build": {
+    "appId": "com.creditagricole.curlycats",
+    "productName": "Curly CATS",
+    "directories": {
+      "buildResources": "resources"
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        },
+        {
+          "target": "portable",
+          "arch": ["x64"]
+        }
+      ],
+      "certificateFile": null,
+      "certificatePassword": null,
+      "signingHashAlgorithms": ["sha256"]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Curly CATS"
+    }
   }
 }
