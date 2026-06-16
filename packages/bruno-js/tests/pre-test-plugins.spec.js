@@ -107,6 +107,49 @@ describe('pre-test plugins', () => {
       expect(result.results[0].status).toBe('pass');
     });
 
+    // Regression for issue #8260 (chai.Assertion.addChainableMethod).
+    // Chainable methods are added via Object.defineProperty getter (not a
+    // plain prototype write), so we verify cleanup tracks them too AND that
+    // they actually function as assertions when enabled.
+    it('supports addChainableMethod and removes it when toggled off', async () => {
+      const chainablePlugin = `
+        chai.use(function (chai) {
+          chai.Assertion.addChainableMethod('hasKeysCount', function (expected) {
+            const actual = Object.keys(this._obj).length;
+            this.assert(
+              actual === expected,
+              'expected #{this} to have ' + expected + ' keys, got ' + actual,
+              'expected #{this} not to have ' + expected + ' keys'
+            );
+          });
+        });
+      `;
+
+      // Run 1: enabled — chainable method is registered AND usable as an assertion
+      const r1 = await runWithPlugins(
+        'nodevm',
+        `test('chainable works', () => { expect({ a: 1, b: 2 }).to.hasKeysCount(2); });`,
+        [{ name: 'has-keys-count', enabled: true, code: chainablePlugin }]
+      );
+      expect(r1.results[0].status).toBe('pass');
+
+      // Run 2: disabled — chainable method is gone from the prototype
+      const r2 = await runWithPlugins(
+        'nodevm',
+        `test('chainable removed', () => { expect(chai.Assertion.prototype.hasOwnProperty('hasKeysCount')).to.equal(false); });`,
+        [{ name: 'has-keys-count', enabled: false, code: chainablePlugin }]
+      );
+      expect(r2.results[0].status).toBe('pass');
+
+      // Run 3: re-enabled — chainable method is back and usable
+      const r3 = await runWithPlugins(
+        'nodevm',
+        `test('chainable re-enabled', () => { expect({ x: 1 }).to.hasKeysCount(1); });`,
+        [{ name: 'has-keys-count', enabled: true, code: chainablePlugin }]
+      );
+      expect(r3.results[0].status).toBe('pass');
+    });
+
     // Regression: chai is a Node module-level singleton. Once a plugin
     // registered `.beFlippableThing` on the Assertion prototype, that method
     // used to persist across runs even after the user toggled the plugin off.
