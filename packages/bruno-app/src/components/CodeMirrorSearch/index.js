@@ -64,11 +64,13 @@ const CodeMirrorSearch = forwardRef(({ visible, editor, onClose }, ref) => {
   const replaceInputRef = useRef(null);
   const containerRef = useRef(null);
   const initialIndexRef = useRef(null);
+  const visibleRef = useRef(visible);
+  useEffect(() => { visibleRef.current = visible; }, [visible]);
 
   const debouncedSearchText = useDebounce(searchText, 250);
 
   const doSearch = useCallback((newIndex = 0) => {
-    if (!editor || !visible) {
+    if (!editor || !visibleRef.current) {
       return;
     }
 
@@ -163,7 +165,7 @@ const CodeMirrorSearch = forwardRef(({ visible, editor, onClose }, ref) => {
       searchMatches.current = [];
       searchCacheKey.current = '';
     }
-  }, [debouncedSearchText, regex, caseSensitive, wholeWord, editor, visible]);
+  }, [debouncedSearchText, regex, caseSensitive, wholeWord, editor]);
 
   const handleSearchBarClose = useCallback(() => {
     searchMarks.current.forEach((mark) => mark.clear());
@@ -239,7 +241,7 @@ const CodeMirrorSearch = forwardRef(({ visible, editor, onClose }, ref) => {
     } else {
       doSearch(0);
     }
-  }, [debouncedSearchText]);
+  }, [debouncedSearchText, doSearch]);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -323,6 +325,8 @@ const CodeMirrorSearch = forwardRef(({ visible, editor, onClose }, ref) => {
     doSearch(0);
   }, [editor, replaceText, doSearch]);
 
+  const isDebouncing = searchText !== debouncedSearchText;
+
   if (!visible) return null;
 
   return (
@@ -378,14 +382,14 @@ const CodeMirrorSearch = forwardRef(({ visible, editor, onClose }, ref) => {
                 placeholder="Replace..."
                 spellCheck={false}
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter') handleReplace();
+                  if (e.key === 'Enter' && !isDebouncing) handleReplace();
                 }}
               />
               <ToolHint text="Replace (Enter)" toolhintId="searchbar-replace-toolhint" place="top">
-                <button type="button" className="searchbar-icon-btn" onClick={handleReplace}><IconReplace size={15} /></button>
+                <button type="button" className="searchbar-icon-btn" disabled={isDebouncing} onClick={handleReplace}><IconReplace size={15} /></button>
               </ToolHint>
               <ToolHint text="Replace all" toolhintId="searchbar-replaceall-toolhint" place="top">
-                <button type="button" className="searchbar-icon-btn" onClick={handleReplaceAll}><IconArrowsExchange2 size={15} /></button>
+                <button type="button" className="searchbar-icon-btn" disabled={isDebouncing} onClick={handleReplaceAll}><IconArrowsExchange2 size={15} /></button>
               </ToolHint>
             </div>
           )}

@@ -98,7 +98,7 @@ const StyledWrapper = styled.div`
     white-space: nowrap;
     flex-shrink: 0;
     width: 68px;
-    text-align: center;
+    margin-left: 4px;
   }
 
   .searchbar-icon-btn:focus,
