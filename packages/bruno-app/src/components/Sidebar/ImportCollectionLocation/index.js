@@ -278,7 +278,7 @@ const ImportCollectionLocation = ({ onClose, handleSubmit, rawData, format, sour
                     className="dropdown-item"
                     data-testid="show-file-format-toggle"
                     onClick={() => {
-                      optionsDropdownTippyRef.current.hide();
+                      optionsDropdownTippyRef?.current?.hide();
                       setShowFileFormat(!showFileFormat);
                     }}
                   >
