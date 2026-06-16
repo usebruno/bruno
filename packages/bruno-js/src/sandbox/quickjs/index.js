@@ -142,9 +142,16 @@ const executeQuickJsVmAsync = async ({ script: externalScript, context: external
     error.__isQuickJS = true;
     throw error;
   } finally {
-    // Let native axios/sendRequest .then() callbacks run before tearing down the VM.
-    await new Promise((resolve) => setImmediate(resolve));
-    managedQuickJsContext?.dispose();
+    // Wait for any in-flight async work (sendRequest, axios, cookie jar, timers,
+    // un-awaited promises) to settle before tearing down the VM. Disposing while
+    // a deferred is still pending lets its later host callback touch a freed
+    // context, throwing `QuickJSUseAfterFree`.
+    try {
+      await managedQuickJsContext?.waitForPendingDeferreds?.();
+      managedQuickJsContext?.dispose();
+    } catch (teardownError) {
+      throw teardownError;
+    }
   }
 };
 

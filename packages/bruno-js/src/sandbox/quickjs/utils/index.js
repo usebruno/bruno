@@ -8,6 +8,7 @@ const createManagedQuickJsContext = (module) => {
   const vm = module.newContext();
   const disposeTracked = trackQuickJsContext(vm);
   const evalCodeRetained = vm.evalCode.bind(vm);
+  const waitForPendingDeferreds = trackPendingDeferreds(vm);
 
   vm.evalCode = (code, filename = 'eval.js') => {
     const result = evalCodeRetained(code, filename);
@@ -23,7 +24,40 @@ const createManagedQuickJsContext = (module) => {
 
   return {
     vm,
+    waitForPendingDeferreds,
     dispose: () => disposeQuickJsContext(vm, disposeTracked)
+  };
+};
+
+/**
+ * Track every deferred created by the async shims (sendRequest, axios, cookie
+ * jar, sleep, ...) so teardown can wait for them to settle. A user script that
+ * fires-and-forgets async work (e.g. an un-awaited setTimeout) resolves the
+ * wrapping closure immediately; without this, the VM is disposed before the
+ * deferred's host callback runs, and touching the freed context throws
+ * `QuickJSUseAfterFree`. Each `.settled` resolves once the deferred is
+ * resolved/rejected, so awaiting them keeps the context alive long enough.
+ *
+ * The hook is installed now (at context creation) so it captures promises as
+ * the script runs. Returns a function that drains the captured deferreds at
+ * teardown; new deferreds can be created while we wait (a chained timer), so it
+ * drains in place until none remain.
+ */
+
+const trackPendingDeferreds = (vm) => {
+  const pendingDeferreds = [];
+  const originalNewPromise = vm.newPromise.bind(vm);
+  vm.newPromise = (...args) => {
+    const deferred = originalNewPromise(...args);
+    pendingDeferreds.push(deferred.settled.catch(() => { }));
+    return deferred;
+  };
+
+  return async () => {
+    while (pendingDeferreds.length) {
+      const batch = pendingDeferreds.splice(0);
+      await Promise.all(batch);
+    }
   };
 };
 
