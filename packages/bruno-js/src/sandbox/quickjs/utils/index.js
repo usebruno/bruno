@@ -35,7 +35,10 @@ const createManagedQuickJsContext = (module) => {
 const trackQuickJsContext = (vm) => {
   const handles = [];
 
-  const track = (handle) => (handles.push(handle), handle);
+  const track = (handle) => {
+    handles.push(handle);
+    return handle;
+  };
 
   // Replace an allocator with a wrapper that records every handle it returns,
   // so teardown can dispose them all. Behaviour is otherwise identical.
@@ -51,7 +54,13 @@ const trackQuickJsContext = (vm) => {
   ['newObject', 'newFunction', 'newArray'].forEach(trackAllocations);
 
   // Dispose newest-first: later handles may reference earlier ones.
-  return () => handles.reverse().forEach((handle) => handle?.alive && handle.dispose());
+  return () => {
+    for (const handle of handles.reverse()) {
+      if (handle?.alive) {
+        handle.dispose();
+      }
+    }
+  };
 };
 
 /**
