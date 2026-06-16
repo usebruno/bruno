@@ -39,9 +39,8 @@ export const buildEnvVariable = ({ envVariable: obj, withUuid = false }) => {
     secret: isSecret
   };
 
-  // 'string' is the implicit default; secrets never carry a datatype.
-  if (!isSecret && obj.datatype && obj.datatype !== 'string') {
-    envVariable.datatype = obj.datatype;
+  if (obj.dataType && obj.dataType !== 'string') {
+    envVariable.dataType = obj.dataType;
   }
 
   if (!withUuid) {
@@ -55,10 +54,10 @@ export const buildEnvVariable = ({ envVariable: obj, withUuid = false }) => {
 };
 
 export const stripEnvVarUid = (variable) => {
-  const { name, value, type, enabled, secret, datatype } = variable;
+  const { name, value, type, enabled, secret, dataType } = variable;
   const result = { name, value, type, enabled, secret };
-  if (!secret && datatype && datatype !== 'string') {
-    result.datatype = datatype;
+  if (dataType && dataType !== 'string') {
+    result.dataType = dataType;
   }
   return result;
 };

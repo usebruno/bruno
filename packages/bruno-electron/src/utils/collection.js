@@ -7,15 +7,15 @@ const os = require('os');
 const { preferencesUtil } = require('../store/preferences');
 const path = require('path');
 const { DEFAULT_COLLECTION_FORMAT } = require('@usebruno/filestore');
-const { parseValueByDatatype } = require('@usebruno/common/utils');
+const { parseValueByDataType } = require('@usebruno/common/utils');
 
 /**
  * Returns the variable's runtime value with datatype-driven coercion applied.
- * The shared `parseValueByDatatype` from `@usebruno/common/utils` honors
- * draft datatype changes — e.g. a user picking `@number` on a "42" string
+ * The shared `parseValueByDataType` from `@usebruno/common/utils` honors
+ * draft dataType changes — e.g. a user picking `@number` on a "42" string
  * via the UI takes effect at request-execution time without requiring a save.
  */
-const resolveTypedValue = (v) => parseValueByDatatype(v.value, v.datatype);
+const resolveTypedValue = (v) => parseValueByDataType(v.value, v.dataType);
 
 const FORMAT_CONFIG = {
   yml: { ext: '.yml', collectionFile: 'opencollection.yml', folderFile: 'folder.yml' },

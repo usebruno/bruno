@@ -1,6 +1,6 @@
 const _ = require('lodash');
 const Store = require('electron-store');
-const { parseValueByDatatype } = require('@usebruno/common/utils');
+const { parseValueByDataType, valueToString } = require('@usebruno/common/utils');
 const { encryptStringSafe, decryptStringSafe } = require('../utils/encryption');
 const { environmentSchema } = require('@usebruno/schema');
 const { posixifyPath } = require('../utils/filesystem');
@@ -39,7 +39,7 @@ class GlobalEnvironmentsStore {
     return globalEnvironments?.map((env) => {
       const variables = env.variables?.map((v) => ({
         ...v,
-        value: v?.secret ? encryptStringSafe(v.value).value : v?.value
+        value: v?.secret ? encryptStringSafe(valueToString(v.value)).value : v?.value
       })) || [];
 
       return {
@@ -53,7 +53,7 @@ class GlobalEnvironmentsStore {
     return globalEnvironments?.map((env) => {
       const variables = env.variables?.map((v) => ({
         ...v,
-        value: v?.secret ? decryptStringSafe(v.value).value : v?.value
+        value: v?.secret ? parseValueByDataType(decryptStringSafe(v.value).value, v.dataType) : v?.value
       })) || [];
 
       return {
@@ -74,8 +74,8 @@ class GlobalEnvironmentsStore {
         if (!v.type) {
           v.type = 'text';
         }
-        if (v.datatype && v.datatype !== 'string' && !v.secret) {
-          v.value = parseValueByDatatype(v.value, v.datatype);
+        if (v.dataType && v.dataType !== 'string' && !v.secret) {
+          v.value = parseValueByDataType(v.value, v.dataType);
         }
       });
     });

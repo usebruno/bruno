@@ -26,7 +26,7 @@ export const toBrunoEnvironmentVariables = (variables: (Variable | SecretVariabl
       };
 
       if (v.type && v.type !== 'string' && v.type !== 'null') {
-        variable.datatype = v.type;
+        variable.dataType = v.type;
       }
 
       return variable;

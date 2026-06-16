@@ -245,10 +245,10 @@ vars:secret [
   });
 
   describe('typed environment variables', () => {
-    it('should serialize @number datatype as a decorator', () => {
+    it('should serialize @number dataType as a decorator', () => {
       const input = {
         variables: [
-          { name: 'port', value: 3000, enabled: true, datatype: 'number' }
+          { name: 'port', value: 3000, enabled: true, dataType: 'number' }
         ]
       };
 
@@ -260,10 +260,10 @@ vars:secret [
 `);
     });
 
-    it('should serialize @boolean datatype as a decorator', () => {
+    it('should serialize @boolean dataType as a decorator', () => {
       const input = {
         variables: [
-          { name: 'isEnabled', value: true, enabled: true, datatype: 'boolean' }
+          { name: 'isEnabled', value: true, enabled: true, dataType: 'boolean' }
         ]
       };
 
@@ -275,10 +275,10 @@ vars:secret [
 `);
     });
 
-    it('should serialize @object datatype with JSON-stringified multiline value', () => {
+    it('should serialize @object dataType with JSON-stringified multiline value', () => {
       const input = {
         variables: [
-          { name: 'config', value: { a: 1, b: 'x' }, enabled: true, datatype: 'object' }
+          { name: 'config', value: { a: 1, b: 'x' }, enabled: true, dataType: 'object' }
         ]
       };
 
@@ -288,10 +288,10 @@ vars:secret [
       expect(output).toContain('"b": "x"');
     });
 
-    it('should not emit a decorator for string datatype', () => {
+    it('should not emit a decorator for string dataType', () => {
       const input = {
         variables: [
-          { name: 'apiKey', value: 'abc123', enabled: true, datatype: 'string' }
+          { name: 'apiKey', value: 'abc123', enabled: true, dataType: 'string' }
         ]
       };
 
@@ -302,7 +302,7 @@ vars:secret [
 `);
     });
 
-    it('should drop datatype annotations from existing list and rebuild from datatype field', () => {
+    it('should drop dataType annotations from existing list and rebuild from dataType field', () => {
       const input = {
         variables: [
           {
@@ -310,38 +310,39 @@ vars:secret [
             value: 3000,
             enabled: true,
             annotations: [{ name: 'string' }, { name: 'description', value: 'service port' }],
-            datatype: 'number'
+            dataType: 'number'
           }
         ]
       };
 
       const output = parser(input);
-      // @string from old annotations should be dropped, @number should be set from datatype
+      // @string from old annotations should be dropped, @number should be set from dataType
       expect(output).toContain('@number');
       expect(output).not.toContain('@string');
       expect(output).toContain('@description(\'service port\')');
     });
 
-    it('should not emit datatype for secret vars', () => {
+    it('should emit dataType but not the value for secret vars', () => {
       const input = {
         variables: [
-          { name: 'api_key', value: 'redacted', enabled: true, secret: true, datatype: 'number' }
+          { name: 'api_key', value: 'redacted', enabled: true, secret: true, dataType: 'number' }
         ]
       };
 
       const output = parser(input);
-      // secret vars use the vars:secret block, no value or datatype emitted
+      // secret vars use the vars:secret block: the dataType is emitted as a
+      // decorator, but the value is never written to disk.
       expect(output).toContain('vars:secret');
       expect(output).toContain('api_key');
-      expect(output).not.toContain('@number');
+      expect(output).toContain('@number');
       expect(output).not.toContain('redacted');
     });
 
     it('should round-trip non-string values through getValueString', () => {
       const input = {
         variables: [
-          { name: 'port', value: 8080, enabled: true, datatype: 'number' },
-          { name: 'flag', value: false, enabled: true, datatype: 'boolean' }
+          { name: 'port', value: 8080, enabled: true, dataType: 'number' },
+          { name: 'flag', value: false, enabled: true, dataType: 'boolean' }
         ]
       };
 

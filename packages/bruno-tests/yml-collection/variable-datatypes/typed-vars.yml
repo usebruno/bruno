@@ -151,7 +151,7 @@ runtime:
           expect(bru.getVar("runtime_obj")).to.deep.equal({ nested: "yes" });
         });
 
-        test("setEnvVar infers datatype from the JS value", () => {
+        test("setEnvVar infers dataType from the JS value", () => {
           expect(typeof bru.getEnvVar("inferred_env_num")).to.equal("number");
           expect(bru.getEnvVar("inferred_env_num")).to.equal(700);
           expect(typeof bru.getEnvVar("inferred_env_bool")).to.equal("boolean");

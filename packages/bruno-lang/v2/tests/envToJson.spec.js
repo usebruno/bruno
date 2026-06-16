@@ -444,7 +444,7 @@ vars {
             enabled: true,
             secret: false,
             annotations: [{ name: 'number' }],
-            datatype: 'number'
+            dataType: 'number'
           }
         ]
       });
@@ -465,7 +465,7 @@ vars {
         enabled: true,
         secret: false,
         annotations: [{ name: 'boolean' }],
-        datatype: 'boolean'
+        dataType: 'boolean'
       });
     });
 
@@ -486,11 +486,11 @@ vars {
         enabled: true,
         secret: false,
         annotations: [{ name: 'object' }],
-        datatype: 'object'
+        dataType: 'object'
       });
     });
 
-    it('should leave plain vars without datatype', () => {
+    it('should leave plain vars without dataType', () => {
       const input = `
 vars {
   apiKey: abc123
@@ -504,10 +504,23 @@ vars {
         enabled: true,
         secret: false
       });
-      expect(output.variables[0].datatype).toBeUndefined();
+      expect(output.variables[0].dataType).toBeUndefined();
     });
 
-    it('should not extract datatype from secret vars', () => {
+    it('extracts the dataType from a secret var decorator', () => {
+      const input = `
+vars:secret [
+  @number
+  api_key
+]
+`;
+
+      const output = parser(input);
+      expect(output.variables[0].secret).toBe(true);
+      expect(output.variables[0].dataType).toBe('number');
+    });
+
+    it('leaves a bare secret var without a dataType', () => {
       const input = `
 vars:secret [
   api_key
@@ -516,12 +529,12 @@ vars:secret [
 
       const output = parser(input);
       expect(output.variables[0].secret).toBe(true);
-      expect(output.variables[0].datatype).toBeUndefined();
+      expect(output.variables[0].dataType).toBeUndefined();
     });
 
-    it('should preserve the declared datatype and the raw value when coercion is impossible', () => {
-      // The UI's DatatypeSelector surfaces a warning icon for these rows; the
-      // declared datatype is retained so the user sees their intent.
+    it('should preserve the declared dataType and the raw value when coercion is impossible', () => {
+      // The UI's DataTypeSelector surfaces a warning icon for these rows; the
+      // declared dataType is retained so the user sees their intent.
       const input = `
 vars {
   @number
@@ -541,7 +554,7 @@ vars {
           enabled: true,
           secret: false,
           annotations: [{ name: 'number' }],
-          datatype: 'number'
+          dataType: 'number'
         },
         {
           name: 'flag',
@@ -549,7 +562,7 @@ vars {
           enabled: true,
           secret: false,
           annotations: [{ name: 'boolean' }],
-          datatype: 'boolean'
+          dataType: 'boolean'
         },
         {
           name: 'config',
@@ -557,12 +570,12 @@ vars {
           enabled: true,
           secret: false,
           annotations: [{ name: 'object' }],
-          datatype: 'object'
+          dataType: 'object'
         }
       ]);
     });
 
-    it('should keep only the last datatype when multiple are stacked', () => {
+    it('should keep only the last dataType when multiple are stacked', () => {
       const input = `
 vars {
   @object
@@ -572,7 +585,7 @@ vars {
 `;
 
       const output = parser(input);
-      expect(output.variables[0].datatype).toBe('number');
+      expect(output.variables[0].dataType).toBe('number');
       expect(output.variables[0].value).toBe(3000);
     });
   });

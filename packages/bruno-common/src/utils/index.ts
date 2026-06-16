@@ -30,11 +30,11 @@ export {
 } from './jsonToDotenv';
 
 export {
-  parseValueByDatatype,
-  getDatatypeFromValue,
-  validateDatatypeValue,
+  parseValueByDataType,
+  getDataTypeFromValue,
+  validateDataTypeValue,
   valueToString,
-  BrunoVariableDatatype,
+  BrunoVariableDataType,
   BRUNO_VARIABLE_DATATYPES,
-  isBrunoVariableDatatype
+  isBrunoVariableDataType
 } from './datatype';

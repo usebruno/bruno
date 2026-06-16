@@ -16,8 +16,8 @@ export const toOpenCollectionEnvironmentVariables = (variables: BrunoEnvironment
           secret: true,
           name: v.name || ''
         };
-        if (v.datatype && v.datatype !== 'string') {
-          secretVar.type = v.datatype;
+        if (hasTypedMetadata(v)) {
+          secretVar.type = v.dataType;
         }
         if (v.enabled === false) {
           secretVar.disabled = true;

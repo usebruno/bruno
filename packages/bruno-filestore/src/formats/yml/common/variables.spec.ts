@@ -18,9 +18,9 @@ describe('toOpenCollectionVariables', () => {
 
   it('serializes typed variables as a {type, data} struct', () => {
     const out = toOpenCollectionVariables([
-      { uid: 'u1', name: 'port', value: 3000, enabled: true, datatype: 'number' } as any,
-      { uid: 'u2', name: 'flag', value: true, enabled: true, datatype: 'boolean' } as any,
-      { uid: 'u3', name: 'config', value: { a: 1 }, enabled: true, datatype: 'object' } as any
+      { uid: 'u1', name: 'port', value: 3000, enabled: true, dataType: 'number' } as any,
+      { uid: 'u2', name: 'flag', value: true, enabled: true, dataType: 'boolean' } as any,
+      { uid: 'u3', name: 'config', value: { a: 1 }, enabled: true, dataType: 'object' } as any
     ]);
 
     expect(out).toEqual([
@@ -30,9 +30,9 @@ describe('toOpenCollectionVariables', () => {
     ]);
   });
 
-  it('does not emit a typed struct for the string default datatype', () => {
+  it('does not emit a typed struct for the string default dataType', () => {
     const out = toOpenCollectionVariables([
-      { uid: 'u1', name: 'apiKey', value: 'abc', enabled: true, datatype: 'string' } as any
+      { uid: 'u1', name: 'apiKey', value: 'abc', enabled: true, dataType: 'string' } as any
     ]);
 
     expect(out).toEqual([{ name: 'apiKey', value: 'abc' }]);
@@ -79,7 +79,7 @@ describe('toBrunoVariables', () => {
       local: false
     });
     expect(v.uid).toEqual(expect.any(String));
-    expect(v.datatype).toBeUndefined();
+    expect(v.dataType).toBeUndefined();
   });
 
   it('parses typed-value variables into typed Bruno variables', () => {
@@ -89,9 +89,9 @@ describe('toBrunoVariables', () => {
       { name: 'config', value: { type: 'object', data: '{"a":1}' } } as any
     ]);
 
-    expect(req![0]).toMatchObject({ name: 'port', value: 3000, datatype: 'number' });
-    expect(req![1]).toMatchObject({ name: 'flag', value: true, datatype: 'boolean' });
-    expect(req![2]).toMatchObject({ name: 'config', value: { a: 1 }, datatype: 'object' });
+    expect(req![0]).toMatchObject({ name: 'port', value: 3000, dataType: 'number' });
+    expect(req![1]).toMatchObject({ name: 'flag', value: true, dataType: 'boolean' });
+    expect(req![2]).toMatchObject({ name: 'config', value: { a: 1 }, dataType: 'object' });
   });
 
   it('falls back to the raw string when typed data fails to coerce', () => {
@@ -101,11 +101,11 @@ describe('toBrunoVariables', () => {
       { name: 'config', value: { type: 'object', data: 'not-a-object' } } as any
     ]);
 
-    expect(req![0]).toMatchObject({ name: 'port', value: 'not-a-number', datatype: 'number' });
+    expect(req![0]).toMatchObject({ name: 'port', value: 'not-a-number', dataType: 'number' });
     expect(typeof req![0].value).toBe('string');
-    expect(req![1]).toMatchObject({ name: 'flag', value: 'not-a-boolean', datatype: 'boolean' });
+    expect(req![1]).toMatchObject({ name: 'flag', value: 'not-a-boolean', dataType: 'boolean' });
     expect(typeof req![1].value).toBe('string');
-    expect(req![2]).toMatchObject({ name: 'config', value: 'not-a-object', datatype: 'object' });
+    expect(req![2]).toMatchObject({ name: 'config', value: 'not-a-object', dataType: 'object' });
     expect(typeof req![2].value).toBe('string');
   });
 

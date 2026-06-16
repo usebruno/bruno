@@ -137,19 +137,19 @@ describe('jsonToBru stringify', () => {
     });
   });
 
-  describe('vars:pre-request datatype decorators', () => {
+  describe('vars:pre-request dataType decorators', () => {
     const baseMeta = { name: 'test', type: 'http', seq: 1 };
     const baseHttp = { method: 'get', url: 'http://localhost' };
 
-    it('emits datatype decorators for typed variables', () => {
+    it('emits dataType decorators for typed variables', () => {
       const output = stringify({
         meta: baseMeta,
         http: baseHttp,
         vars: {
           req: [
             { name: 'apiKey', value: 'abc', enabled: true, local: false },
-            { name: 'port', value: 3000, enabled: true, local: false, datatype: 'number' },
-            { name: 'flag', value: true, enabled: true, local: false, datatype: 'boolean' }
+            { name: 'port', value: 3000, enabled: true, local: false, dataType: 'number' },
+            { name: 'flag', value: true, enabled: true, local: false, dataType: 'boolean' }
           ]
         }
       });
@@ -165,7 +165,7 @@ describe('jsonToBru stringify', () => {
         http: baseHttp,
         vars: {
           req: [
-            { name: 'config', value: { a: 1, b: 'x' }, enabled: true, local: false, datatype: 'object' }
+            { name: 'config', value: { a: 1, b: 'x' }, enabled: true, local: false, dataType: 'object' }
           ]
         }
       });
@@ -175,15 +175,15 @@ describe('jsonToBru stringify', () => {
       expect(output).toContain('"b": "x"');
     });
 
-    it('preserves local, disabled and disabled+local prefixes alongside datatype', () => {
+    it('preserves local, disabled and disabled+local prefixes alongside dataType', () => {
       const output = stringify({
         meta: baseMeta,
         http: baseHttp,
         vars: {
           req: [
-            { name: 'a', value: 1, enabled: true, local: true, datatype: 'number' },
-            { name: 'b', value: 2, enabled: false, local: false, datatype: 'number' },
-            { name: 'c', value: 3, enabled: false, local: true, datatype: 'number' }
+            { name: 'a', value: 1, enabled: true, local: true, dataType: 'number' },
+            { name: 'b', value: 2, enabled: false, local: false, dataType: 'number' },
+            { name: 'c', value: 3, enabled: false, local: true, dataType: 'number' }
           ]
         }
       });
@@ -193,13 +193,13 @@ describe('jsonToBru stringify', () => {
       expect(output).toContain('@number\n  ~@c: 3');
     });
 
-    it('does not emit a datatype decorator for the string default', () => {
+    it('does not emit a dataType decorator for the string default', () => {
       const output = stringify({
         meta: baseMeta,
         http: baseHttp,
         vars: {
           req: [
-            { name: 'apiKey', value: 'abc', enabled: true, local: false, datatype: 'string' }
+            { name: 'apiKey', value: 'abc', enabled: true, local: false, dataType: 'string' }
           ]
         }
       });
@@ -208,7 +208,7 @@ describe('jsonToBru stringify', () => {
       expect(output).toContain('apiKey: abc');
     });
 
-    it('drops a stale datatype annotation in favour of the datatype field', () => {
+    it('drops a stale dataType annotation in favour of the dataType field', () => {
       const output = stringify({
         meta: baseMeta,
         http: baseHttp,
@@ -220,7 +220,7 @@ describe('jsonToBru stringify', () => {
               enabled: true,
               local: false,
               annotations: [{ name: 'string' }, { name: 'description', value: 'service port' }],
-              datatype: 'number'
+              dataType: 'number'
             }
           ]
         }

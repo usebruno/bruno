@@ -1,4 +1,4 @@
-const { parseValueByDatatype, BRUNO_VARIABLE_DATATYPES } = require('@usebruno/common/utils');
+const { parseValueByDataType, BRUNO_VARIABLE_DATATYPES } = require('@usebruno/common/utils');
 
 // safely parse json
 const safeParseJson = (json) => {
@@ -93,12 +93,12 @@ function serializeAnnotations(annotations) {
 };
 
 const buildAnnotationsFromVariable = (variable) => {
-  const { annotations = [], datatype } = variable;
-  // Drop any datatype annotations from the existing list; they'll be rebuilt from the datatype field
+  const { annotations = [], dataType } = variable;
+  // Drop any dataType annotations from the existing list; they'll be rebuilt from the dataType field
   const other = annotations.filter((a) => !BRUNO_VARIABLE_DATATYPES.includes(a.name));
 
-  if (datatype && datatype !== 'string') {
-    return [{ name: datatype }, ...other];
+  if (dataType && dataType !== 'string') {
+    return [{ name: dataType }, ...other];
   }
 
   return other;
@@ -108,11 +108,11 @@ const extractTypedAnnotations = (rawAnnotations, result) => {
   if (!rawAnnotations?.length) return;
 
   const annotation = rawAnnotations.findLast((a) => BRUNO_VARIABLE_DATATYPES.includes(a.name));
-  // 'string' is the implicit default — don't materialize it as an explicit datatype field
+  // 'string' is the implicit default — don't materialize it as an explicit dataType field
   if (!annotation || annotation.name === 'string') return;
 
-  result.datatype = annotation.name;
-  result.value = parseValueByDatatype(result.value, result.datatype);
+  result.dataType = annotation.name;
+  result.value = parseValueByDataType(result.value, result.dataType);
 };
 
 const serializeVar = (item, prefix = '') => {

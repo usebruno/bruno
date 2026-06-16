@@ -19,9 +19,10 @@ const envToJson = (json) => {
   const secretVars = variables
     .filter((variable) => variable.secret)
     .map((variable) => {
-      const { name, enabled, annotations } = variable;
+      const { name, enabled } = variable;
       const prefix = enabled ? '' : '~';
-      return indentString(`${serializeAnnotations(annotations)}${prefix}${name}`);
+      const annotationPrefix = serializeAnnotations(buildAnnotationsFromVariable(variable));
+      return indentString(`${annotationPrefix}${prefix}${name}`);
     });
 
   let output = '';

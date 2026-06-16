@@ -18,6 +18,7 @@ const {
 } = require('@usebruno/filestore');
 
 const { uuid } = require('../utils/common');
+const { parseValueByDataType } = require('@usebruno/common/utils');
 const { getRequestUid } = require('../cache/requestUids');
 const { decryptStringSafe } = require('../utils/encryption');
 const { setBrunoConfig } = require('../store/bruno-config');
@@ -121,7 +122,7 @@ const addEnvironmentFile = async (win, pathname, collectionUid, collectionPath) 
         const variable = _.find(file.data.variables, (v) => v.name === secret.name);
         if (variable && secret.value) {
           const decryptionResult = decryptStringSafe(secret.value);
-          variable.value = decryptionResult.value;
+          variable.value = parseValueByDataType(decryptionResult.value, variable.dataType);
         }
       });
     }
@@ -161,7 +162,7 @@ const changeEnvironmentFile = async (win, pathname, collectionUid, collectionPat
         const variable = _.find(file.data.variables, (v) => v.name === secret.name);
         if (variable && secret.value) {
           const decryptionResult = decryptStringSafe(secret.value);
-          variable.value = decryptionResult.value;
+          variable.value = parseValueByDataType(decryptionResult.value, variable.dataType);
         }
       });
     }

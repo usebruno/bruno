@@ -1,23 +1,23 @@
 import {
-  parseValueByDatatype,
-  getDatatypeFromValue,
-  validateDatatypeValue,
+  parseValueByDataType,
+  getDataTypeFromValue,
+  validateDataTypeValue,
   valueToString,
   BRUNO_VARIABLE_DATATYPES,
-  isBrunoVariableDatatype
+  isBrunoVariableDataType
 } from './datatype';
 
 /*
  * Canonical coercion test matrix. `@usebruno/lang` and `@usebruno/filestore`
- * both delegate to `parseValueByDatatype` from this package, so this is the
+ * both delegate to `parseValueByDataType` from this package, so this is the
  * only place the contract is exercised in detail.
  */
 
-const parse = (value: any, datatype: any) => parseValueByDatatype(value, datatype);
+const parse = (value: any, dataType: any) => parseValueByDataType(value, dataType);
 
-describe('parseValueByDatatype — shared matrix', () => {
+describe('parseValueByDataType — shared matrix', () => {
   describe('passthrough cases', () => {
-    it('returns the raw value when datatype is missing or "string"', () => {
+    it('returns the raw value when dataType is missing or "string"', () => {
       expect(parse('hi', undefined)).toBe('hi');
       expect(parse('hi', 'string')).toBe('hi');
       expect(parse(42, 'string')).toBe(42);
@@ -84,7 +84,7 @@ describe('parseValueByDatatype — shared matrix', () => {
 
     it('falls back when JSON parses to a primitive', () => {
       // Scalars (string/number/null/bool) must not be returned as "object",
-      // or validateDatatypeValue can't flag the mismatch.
+      // or validateDataTypeValue can't flag the mismatch.
       expect(parse('"hello"', 'object')).toBe('"hello"');
       expect(parse('42', 'object')).toBe('42');
       expect(parse('null', 'object')).toBe('null');
@@ -106,12 +106,12 @@ describe('parseValueByDatatype — shared matrix', () => {
     });
   });
 
-  describe('datatype param contract', () => {
-    // The `datatype` param is typed as `BrunoVariableDatatype | undefined`.
+  describe('dataType param contract', () => {
+    // The `dataType` param is typed as `BrunoVariableDataType | undefined`.
     // Anything outside the union is a type error at compile time. At runtime we
     // pin down the passthrough behavior so a stray uppercase / unknown string
     // never silently mis-coerces.
-    it('passes through unchanged when datatype is outside the union (runtime guard)', () => {
+    it('passes through unchanged when dataType is outside the union (runtime guard)', () => {
       expect(parse('42', 'NUMBER' as any)).toBe('42');
       expect(parse('42', 'Number' as any)).toBe('42');
       expect(parse('true', 'bool' as any)).toBe('true');
@@ -121,84 +121,84 @@ describe('parseValueByDatatype — shared matrix', () => {
   });
 });
 
-describe('BRUNO_VARIABLE_DATATYPES / isBrunoVariableDatatype', () => {
+describe('BRUNO_VARIABLE_DATATYPES / isBrunoVariableDataType', () => {
   it('exposes exactly the four bruno variable datatypes in canonical order', () => {
     expect(BRUNO_VARIABLE_DATATYPES).toEqual(['string', 'number', 'boolean', 'object']);
   });
 
   it('recognizes every member of the canonical list', () => {
     for (const t of BRUNO_VARIABLE_DATATYPES) {
-      expect(isBrunoVariableDatatype(t)).toBe(true);
+      expect(isBrunoVariableDataType(t)).toBe(true);
     }
   });
 
   it('rejects anything outside the canonical list', () => {
-    expect(isBrunoVariableDatatype('null')).toBe(false);
-    expect(isBrunoVariableDatatype('NUMBER')).toBe(false);
-    expect(isBrunoVariableDatatype('')).toBe(false);
-    expect(isBrunoVariableDatatype(undefined)).toBe(false);
-    expect(isBrunoVariableDatatype(null)).toBe(false);
-    expect(isBrunoVariableDatatype(42)).toBe(false);
+    expect(isBrunoVariableDataType('null')).toBe(false);
+    expect(isBrunoVariableDataType('NUMBER')).toBe(false);
+    expect(isBrunoVariableDataType('')).toBe(false);
+    expect(isBrunoVariableDataType(undefined)).toBe(false);
+    expect(isBrunoVariableDataType(null)).toBe(false);
+    expect(isBrunoVariableDataType(42)).toBe(false);
   });
 });
 
-describe('getDatatypeFromValue', () => {
+describe('getDataTypeFromValue', () => {
   it('returns "string" for null/undefined/empty', () => {
-    expect(getDatatypeFromValue(undefined)).toBe('string');
-    expect(getDatatypeFromValue(null)).toBe('string');
-    expect(getDatatypeFromValue('')).toBe('string');
+    expect(getDataTypeFromValue(undefined)).toBe('string');
+    expect(getDataTypeFromValue(null)).toBe('string');
+    expect(getDataTypeFromValue('')).toBe('string');
   });
 
   it('maps native JS types to bruno datatypes', () => {
-    expect(getDatatypeFromValue(42)).toBe('number');
-    expect(getDatatypeFromValue(0)).toBe('number');
-    expect(getDatatypeFromValue(true)).toBe('boolean');
-    expect(getDatatypeFromValue(false)).toBe('boolean');
-    expect(getDatatypeFromValue({ a: 1 })).toBe('object');
-    expect(getDatatypeFromValue([1, 2])).toBe('object');
+    expect(getDataTypeFromValue(42)).toBe('number');
+    expect(getDataTypeFromValue(0)).toBe('number');
+    expect(getDataTypeFromValue(true)).toBe('boolean');
+    expect(getDataTypeFromValue(false)).toBe('boolean');
+    expect(getDataTypeFromValue({ a: 1 })).toBe('object');
+    expect(getDataTypeFromValue([1, 2])).toBe('object');
   });
 
   it('keeps strings as "string" regardless of content', () => {
-    expect(getDatatypeFromValue('42')).toBe('string');
-    expect(getDatatypeFromValue('true')).toBe('string');
-    expect(getDatatypeFromValue('{"a":1}')).toBe('string');
-    expect(getDatatypeFromValue(JSON.stringify({ x: 1 }))).toBe('string');
-    expect(getDatatypeFromValue('plain text')).toBe('string');
+    expect(getDataTypeFromValue('42')).toBe('string');
+    expect(getDataTypeFromValue('true')).toBe('string');
+    expect(getDataTypeFromValue('{"a":1}')).toBe('string');
+    expect(getDataTypeFromValue(JSON.stringify({ x: 1 }))).toBe('string');
+    expect(getDataTypeFromValue('plain text')).toBe('string');
   });
 });
 
-describe('validateDatatypeValue', () => {
-  it('returns null when datatype is missing or "string"', () => {
-    expect(validateDatatypeValue('anything', undefined)).toBeNull();
-    expect(validateDatatypeValue('anything', 'string')).toBeNull();
+describe('validateDataTypeValue', () => {
+  it('returns null when dataType is missing or "string"', () => {
+    expect(validateDataTypeValue('anything', undefined)).toBeNull();
+    expect(validateDataTypeValue('anything', 'string')).toBeNull();
   });
 
-  it('returns null for null/undefined values regardless of datatype', () => {
-    expect(validateDatatypeValue(null, 'number')).toBeNull();
-    expect(validateDatatypeValue(undefined, 'object')).toBeNull();
+  it('returns null for null/undefined values regardless of dataType', () => {
+    expect(validateDataTypeValue(null, 'number')).toBeNull();
+    expect(validateDataTypeValue(undefined, 'object')).toBeNull();
   });
 
   it('validates numbers', () => {
-    expect(validateDatatypeValue(42, 'number')).toBeNull();
-    expect(validateDatatypeValue('42', 'number')).toBe('Value is not a valid number');
-    expect(validateDatatypeValue('abc', 'number')).toBe('Value is not a valid number');
+    expect(validateDataTypeValue(42, 'number')).toBeNull();
+    expect(validateDataTypeValue('42', 'number')).toBe('Value is not a valid number');
+    expect(validateDataTypeValue('abc', 'number')).toBe('Value is not a valid number');
   });
 
   it('validates booleans', () => {
-    expect(validateDatatypeValue(true, 'boolean')).toBeNull();
-    expect(validateDatatypeValue('true', 'boolean')).toBe('Value is not a valid boolean');
-    expect(validateDatatypeValue(1, 'boolean')).toBe('Value is not a valid boolean');
+    expect(validateDataTypeValue(true, 'boolean')).toBeNull();
+    expect(validateDataTypeValue('true', 'boolean')).toBe('Value is not a valid boolean');
+    expect(validateDataTypeValue(1, 'boolean')).toBe('Value is not a valid boolean');
   });
 
   it('validates objects', () => {
-    expect(validateDatatypeValue({ a: 1 }, 'object')).toBeNull();
-    expect(validateDatatypeValue([1, 2], 'object')).toBeNull();
-    expect(validateDatatypeValue('{"a":1}', 'object')).toBe('Value is not a valid object');
-    expect(validateDatatypeValue('not json', 'object')).toBe('Value is not a valid object');
+    expect(validateDataTypeValue({ a: 1 }, 'object')).toBeNull();
+    expect(validateDataTypeValue([1, 2], 'object')).toBeNull();
+    expect(validateDataTypeValue('{"a":1}', 'object')).toBe('Value is not a valid object');
+    expect(validateDataTypeValue('not json', 'object')).toBe('Value is not a valid object');
   });
 });
 
-describe('valueToString — round-trip with parseValueByDatatype', () => {
+describe('valueToString — round-trip with parseValueByDataType', () => {
   it('stringifies typed values', () => {
     expect(valueToString('hi')).toBe('hi');
     expect(valueToString(42)).toBe('42');
@@ -212,11 +212,11 @@ describe('valueToString — round-trip with parseValueByDatatype', () => {
     expect(valueToString(undefined)).toBe('');
   });
 
-  it('round-trips through parseValueByDatatype for every supported datatype', () => {
-    expect(parseValueByDatatype(valueToString(42), 'number')).toBe(42);
-    expect(parseValueByDatatype(valueToString(true), 'boolean')).toBe(true);
-    expect(parseValueByDatatype(valueToString({ a: 1 }), 'object')).toEqual({ a: 1 });
-    expect(parseValueByDatatype(valueToString([1, 2]), 'object')).toEqual([1, 2]);
+  it('round-trips through parseValueByDataType for every supported dataType', () => {
+    expect(parseValueByDataType(valueToString(42), 'number')).toBe(42);
+    expect(parseValueByDataType(valueToString(true), 'boolean')).toBe(true);
+    expect(parseValueByDataType(valueToString({ a: 1 }), 'object')).toEqual({ a: 1 });
+    expect(parseValueByDataType(valueToString([1, 2]), 'object')).toEqual([1, 2]);
   });
 
   it('returns empty string for functions and symbols', () => {

@@ -4,9 +4,9 @@ import fs from 'fs';
 
 // Env JSON export → import round-trip for both BRU and YML collections.
 // The export writes typed datatypes (number/boolean/object) and strips the
-// implicit-string default + secret datatypes. Re-importing into the same
-// collection auto-renames to `typed_env copy`, and the env editor should
-// render every datatype correctly.
+// implicit-string default. A secret's value is cleared on export but its
+// dataType is preserved. Re-importing into the same collection auto-renames to
+// `typed_env copy`, and the env editor should render every dataType correctly.
 
 type FormatConfig = {
   format: 'bru' | 'yml';
@@ -14,8 +14,8 @@ type FormatConfig = {
 };
 
 const FORMATS: FormatConfig[] = [
-  { format: 'bru', collectionName: 'Datatype Env BRU' },
-  { format: 'yml', collectionName: 'Datatype Env YML' }
+  { format: 'bru', collectionName: 'DataType Env BRU' },
+  { format: 'yml', collectionName: 'DataType Env YML' }
 ];
 
 const ENV_NAME = 'typed_env';
@@ -23,7 +23,7 @@ const ENV_NAME = 'typed_env';
 const IMPORTED_ENV_NAME = 'typed_env copy';
 
 for (const { format, collectionName } of FORMATS) {
-  test.describe.serial(`Environment export/import — datatype preservation (${format})`, () => {
+  test.describe.serial(`Environment export/import — dataType preservation (${format})`, () => {
     // Shared between the export and import steps within the same worker run.
     let exportedFile: string;
 
@@ -41,7 +41,7 @@ for (const { format, collectionName } of FORMATS) {
       }
     });
 
-    test(`(${format}) exports typed env vars with their datatypes (and strips \`string\` + secret datatype)`, async ({
+    test(`(${format}) exports typed env vars with their datatypes (strips \`string\`; clears secret value but keeps its dataType)`, async ({
       pageWithUserData: page,
       createTmpDir
     }) => {
@@ -79,22 +79,26 @@ for (const { format, collectionName } of FORMATS) {
         const byName = Object.fromEntries(content.variables.map((v: any) => [v.name, v]));
 
         // Typed datatypes survive the export.
-        expect(byName.env_num).toMatchObject({ value: 300, datatype: 'number', secret: false });
-        expect(byName.env_bool).toMatchObject({ value: true, datatype: 'boolean', secret: false });
-        expect(byName.env_obj).toMatchObject({ value: { scope: 'env' }, datatype: 'object', secret: false });
+        expect(byName.env_num).toMatchObject({ value: 300, dataType: 'number', secret: false });
+        expect(byName.env_bool).toMatchObject({ value: true, dataType: 'boolean', secret: false });
+        expect(byName.env_obj).toMatchObject({ value: { scope: 'env' }, dataType: 'object', secret: false });
 
-        // Plain string has no datatype field.
+        // Plain string has no dataType field.
         expect(byName.env_str).toMatchObject({ value: 'env_string', secret: false });
-        expect(byName.env_str.datatype).toBeUndefined();
+        expect(byName.env_str.dataType).toBeUndefined();
 
-        // Secret: value cleared, no datatype.
+        // Secret: value cleared. A bare string secret has no dataType; a typed
+        // secret keeps its dataType.
         expect(byName.env_secret_str).toMatchObject({ value: '', secret: true });
-        expect(byName.env_secret_str.datatype).toBeUndefined();
+        expect(byName.env_secret_str.dataType).toBeUndefined();
+        expect(byName.env_secret_num).toMatchObject({ value: '', secret: true, dataType: 'number' });
+        expect(byName.env_secret_bool).toMatchObject({ value: '', secret: true, dataType: 'boolean' });
+        expect(byName.env_secret_obj).toMatchObject({ value: '', secret: true, dataType: 'object' });
 
-        // Mismatched rows: declared datatype + raw uncoerced value preserved.
-        expect(byName.mismatched_num).toMatchObject({ value: 'not-a-number', datatype: 'number', secret: false });
-        expect(byName.mismatched_bool).toMatchObject({ value: 'maybe', datatype: 'boolean', secret: false });
-        expect(byName.mismatched_obj).toMatchObject({ value: 'not-json', datatype: 'object', secret: false });
+        // Mismatched rows: declared dataType + raw uncoerced value preserved.
+        expect(byName.mismatched_num).toMatchObject({ value: 'not-a-number', dataType: 'number', secret: false });
+        expect(byName.mismatched_bool).toMatchObject({ value: 'maybe', dataType: 'boolean', secret: false });
+        expect(byName.mismatched_obj).toMatchObject({ value: 'not-json', dataType: 'object', secret: false });
 
         // Close the env settings tab so the import step starts clean.
         const envTab = page.locator('.request-tab').filter({ hasText: 'Environments' });
@@ -147,12 +151,22 @@ for (const { format, collectionName } of FORMATS) {
         await expect(
           page.locator('[data-testid="env-var-row-env_str"] .type-label').first()
         ).toHaveText('string');
-        // Secret rows don't render a DatatypeSelector.
+        // Secret rows render the DataTypeSelector too: a bare string secret
+        // shows the implicit 'string' label, a typed secret its dataType.
         await expect(
-          page.locator('[data-testid="env-var-row-env_secret_str"] .type-label')
-        ).toHaveCount(0);
+          page.locator('[data-testid="env-var-row-env_secret_str"] .type-label').first()
+        ).toHaveText('string');
+        await expect(
+          page.locator('[data-testid="env-var-row-env_secret_num"] .type-label').first()
+        ).toHaveText('number');
+        await expect(
+          page.locator('[data-testid="env-var-row-env_secret_bool"] .type-label').first()
+        ).toHaveText('boolean');
+        await expect(
+          page.locator('[data-testid="env-var-row-env_secret_obj"] .type-label').first()
+        ).toHaveText('object');
 
-        // Mismatched rows: declared datatype label + warning icon.
+        // Mismatched rows: declared dataType label + warning icon.
         await expect(
           page.locator('[data-testid="env-var-row-mismatched_num"] .type-label').first()
         ).toHaveText('number');

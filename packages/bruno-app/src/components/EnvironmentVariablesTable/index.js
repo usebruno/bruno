@@ -6,7 +6,7 @@ import { useTheme } from 'providers/Theme';
 import { useSelector, useDispatch } from 'react-redux';
 import { updateTableColumnWidths } from 'providers/ReduxStore/slices/tabs';
 import MultiLineEditor from 'components/MultiLineEditor/index';
-import DatatypeSelector from 'components/DatatypeSelector';
+import DataTypeSelector from 'components/DataTypeSelector';
 import StyledWrapper from './StyledWrapper';
 import { uuid } from 'utils/common';
 import { useFormik } from 'formik';
@@ -209,7 +209,7 @@ const EnvironmentVariablesTable = ({
         type: Yup.string(),
         uid: Yup.string(),
         value: Yup.mixed().nullable(),
-        datatype: Yup.string().oneOf(BRUNO_VARIABLE_DATATYPES).nullable(),
+        dataType: Yup.string().oneOf(BRUNO_VARIABLE_DATATYPES).nullable(),
         annotations: Yup.array().nullable()
       })
     ),
@@ -623,9 +623,9 @@ const EnvironmentVariablesTable = ({
                       onSave={handleSave}
                     />
                   </div>
-                  {!isLastEmptyRow && !variable.secret && (
+                  {!isLastEmptyRow && (
                     <span>
-                      <DatatypeSelector
+                      <DataTypeSelector
                         variable={variable}
                         theme={storedTheme}
                         collection={_collection}

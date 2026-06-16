@@ -116,6 +116,9 @@ const mapArrayListToKeyValPairs = (arrayList = []) => {
     if (item.annotations && item.annotations.length) {
       result.annotations = item.annotations;
     }
+
+    extractTypedAnnotations(item.annotations, result);
+
     return result;
   });
 };

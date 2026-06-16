@@ -1,6 +1,6 @@
 opencollection: 1.0.0
 info:
-  name: "Datatypes Workspace"
+  name: "DataTypes Workspace"
   type: workspace
 
 collections:

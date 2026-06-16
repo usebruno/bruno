@@ -2,6 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import { test, expect, Page, Locator } from '../../playwright';
 import {
+  saveRequest,
   selectEnvironment,
   selectRequestPaneTab,
   selectResponsePaneTab,
@@ -10,16 +11,16 @@ import {
 import { buildCommonLocators } from '../utils/page/locators';
 
 /**
- * These tests cover the DatatypeSelector on the surfaces where it remains
+ * These tests cover the DataTypeSelector on the surfaces where it remains
  * after scoping the feature down: request vars, collection environment
  * vars, and global environment vars. Query params, path params, headers,
- * and form-data fields no longer expose datatype, so they are not asserted
+ * and form-data fields no longer expose dataType, so they are not asserted
  * here.
  *
  * Fixtures under `fixtures/workspace/collections/{bru,yml}` declare a single
- * request whose vars block carries one row per supported datatype (string,
+ * request whose vars block carries one row per supported dataType (string,
  * number, boolean, object). Each describe block ends with a save test that
- * mutates one row's datatype via the selector and asserts the change
+ * mutates one row's dataType via the selector and asserts the change
  * round-trips through the serializer to the on-disk file.
  */
 
@@ -29,8 +30,8 @@ const YML_COLLECTION = 'datatypes-yml';
 type VarScope = 'request' | 'folder' | 'collection';
 
 /**
- * Datatype expectations for each variable scope. Every scope declares one
- * row per supported datatype (string, number, boolean, object). The test
+ * DataType expectations for each variable scope. Every scope declares one
+ * row per supported dataType (string, number, boolean, object). The test
  * navigates to each scope's Vars page and asserts the type label.
  */
 const VAR_TYPE_TABLE: Array<{ scope: VarScope; tableId: string; rows: Array<[string, string]> }> = [
@@ -66,11 +67,6 @@ const VAR_TYPE_TABLE: Array<{ scope: VarScope; tableId: string; rows: Array<[str
   }
 ];
 
-const clickSaveRequest = async (page: Page) => {
-  await page.locator('#request-actions').getByTitle('Save Request').click();
-  await expect(page.getByText('Request saved successfully').last()).toBeVisible({ timeout: 5000 });
-};
-
 /**
  * Open a request that lives at `collections/{bru|yml}/folder/<name>.{bru|yml}`.
  * Defaults to the JSON-body `request` fixture; pass `multipart` to open the
@@ -87,8 +83,7 @@ const openRequestInCollection = async (
   const collection = locators.sidebar.collection(collectionName);
   await expect(collection).toBeVisible();
 
-  const collectionSlug = collectionName.replace(/\s+/g, '-').toLowerCase();
-  const collectionScope = page.locator(`#collection-${collectionSlug}`);
+  const collectionScope = locators.sidebar.collectionScope(collectionName);
 
   const folderRow = collectionScope.locator('.collection-item-name').filter({ hasText: 'folder' });
   if (!(await folderRow.isVisible().catch(() => false))) {
@@ -112,7 +107,7 @@ const openRequestInCollection = async (
  * whether the name cell renders a plain `<input>` or a CodeMirror editor.
  */
 const tableRowByName = (table: ReturnType<ReturnType<typeof buildCommonLocators>['table']>, name: string) =>
-  table.container().locator(`tbody tr[data-row-name="${name}"]`);
+  table.rowByName(name);
 
 const SLOW_RENDER_TIMEOUT_MS = 15_000;
 
@@ -145,19 +140,21 @@ const scrollRowIntoView = async (page: Page, row: Locator) => {
 
 const expectTypeLabel = async (row: Locator, label: string) => {
   await scrollRowIntoView(row.page(), row);
-  await expect(row.locator('.type-label').first()).toHaveText(label, { timeout: SLOW_RENDER_TIMEOUT_MS });
+  const { dataTypeSelector } = buildCommonLocators(row.page());
+  await expect(dataTypeSelector.typeLabel(row)).toHaveText(label, { timeout: SLOW_RENDER_TIMEOUT_MS });
 };
 
 /**
- * Open the DatatypeSelector for a row and pick a new type. The picker is a
+ * Open the DataTypeSelector for a row and pick a new type. The picker is a
  * MenuDropdown rendered via Tippy at the page scope, so the menu items
  * surface outside the row.
  */
-const changeRowDatatype = async (page: Page, row: Locator, newType: string) => {
-  const trigger = row.locator('.type-label').first();
+const changeRowDataType = async (page: Page, row: Locator, newType: string) => {
+  const { dataTypeSelector } = buildCommonLocators(page);
+  const trigger = dataTypeSelector.typeLabel(row);
   await trigger.click();
 
-  const menuItem = page.locator('[role="menu"]').last().getByText(newType, { exact: true });
+  const menuItem = dataTypeSelector.menuItem(newType);
   await expect(menuItem).toBeVisible();
   await menuItem.click();
 
@@ -185,8 +182,7 @@ const openVarsPageForScope = async (page: Page, collectionName: string, scope: V
     return;
   }
 
-  const collectionSlug = collectionName.replace(/\s+/g, '-').toLowerCase();
-  const collectionScope = page.locator(`#collection-${collectionSlug}`);
+  const collectionScope = locators.sidebar.collectionScope(collectionName);
   const collectionRow = locators.sidebar.collection(collectionName);
   await expect(collectionRow).toBeVisible();
 
@@ -209,7 +205,7 @@ const openVarsPageForScope = async (page: Page, collectionName: string, scope: V
 
 /**
  * Walk every scope declared in VAR_TYPE_TABLE, navigate to its Vars page, and
- * verify each row's `.type-label` matches the declared datatype.
+ * verify each row's `.type-label` matches the declared dataType.
  */
 const expectAllVarLabels = async (page: Page, collectionName: string) => {
   for (const { scope, tableId, rows } of VAR_TYPE_TABLE) {
@@ -250,18 +246,18 @@ const EXPECTED_TEST_COUNT = 14;
  * would fail).
  *
  * The fixture posts to the local testbench echo endpoint. We key off the
- * test summary line ("Tests (N), Passed: X, Failed: Y") since each datatype
+ * test summary line ("Tests (N), Passed: X, Failed: Y") since each dataType
  * check renders as a separate test row.
  */
 const sendAndAssertAllTestsPass = async (page: Page) => {
   await sendRequestAndWaitForResponse(page, 200, { timeout: 30000 });
   await selectResponsePaneTab(page, 'Tests');
 
-  const summary = page.locator('.test-summary').filter({ hasText: 'Tests' });
-  await expect(summary).toContainText(`Tests (${EXPECTED_TEST_COUNT}), Passed: ${EXPECTED_TEST_COUNT}, Failed: 0`);
+  const { response } = buildCommonLocators(page);
+  await expect(response.testSummary()).toContainText(`Tests (${EXPECTED_TEST_COUNT}), Passed: ${EXPECTED_TEST_COUNT}, Failed: 0`);
 
   // Catch any individual failure even if the summary text changes.
-  await expect(page.locator('.test-result-item .test-failure')).toHaveCount(0);
+  await expect(response.testFailures()).toHaveCount(0);
 };
 
 /**
@@ -269,8 +265,8 @@ const sendAndAssertAllTestsPass = async (page: Page) => {
  * verify all tests pass. Used by tests that own the env-selection step.
  */
 const runAndAssertTestsPass = async (page: Page) => {
-  await selectEnvironment(page, 'test_env', 'collection');
-  await selectEnvironment(page, 'typed_global', 'global');
+  await selectEnvironment(page, 'variables', 'collection');
+  await selectEnvironment(page, 'variables', 'global');
   await sendAndAssertAllTestsPass(page);
 };
 
@@ -292,25 +288,49 @@ const openEnvironmentSettings = async (page: Page, type: 'collection' | 'global'
   } else {
     await locators.environment.collectionTab().click();
   }
-  await page.getByTestId('configure-env').click();
+  await locators.environment.configureButton().click();
   const tabTitle = type === 'collection' ? 'Environments' : 'Global Environments';
   await expect(locators.tabs.activeRequestTab()).toContainText(tabTitle);
 };
 
-/** Assert the DatatypeSelector inside an env-var row reports the expected label. */
+/** Assert the DataTypeSelector inside an env-var row reports the expected label. */
 const expectEnvVarTypeLabel = async (page: Page, name: string, label: string) => {
-  const row = page.locator(`[data-testid="env-var-row-${name}"]`);
+  const { environment, dataTypeSelector } = buildCommonLocators(page);
+  const row = environment.varRow(name);
   await scrollRowIntoView(page, row);
-  await expect(row.locator('.type-label').first()).toHaveText(label, { timeout: SLOW_RENDER_TIMEOUT_MS });
+  await expect(dataTypeSelector.typeLabel(row)).toHaveText(label, { timeout: SLOW_RENDER_TIMEOUT_MS });
 };
 
 /**
- * The DatatypeSelector renders a yellow `IconAlertCircle` whenever the
- * variable's value can't be coerced to the declared datatype (e.g.
- * datatype=number with value="not-a-number"). The icon's distinguishing
+ * Secret env vars carry a dataType too: the value is never written to disk but
+ * the dataType is, so the editor renders the declared type label. Asserted
+ * before any request runs so the file-declared dataType isn't overwritten by a
+ * runtime setEnvVar mutation. Covers the collection env (per fixture format)
+ * and the shared global env.
+ */
+const runSecretDataTypeLabelAssertions = async (page: Page, collectionName: string) => {
+  await openRequestInCollection(page, collectionName);
+  await selectEnvironment(page, 'variables', 'collection');
+  await selectEnvironment(page, 'variables', 'global');
+
+  await openEnvironmentSettings(page, 'collection');
+  await expectEnvVarTypeLabel(page, 'env_secret_num', 'number');
+  await expectEnvVarTypeLabel(page, 'env_secret_bool', 'boolean');
+  await expectEnvVarTypeLabel(page, 'env_secret_obj', 'object');
+
+  await openEnvironmentSettings(page, 'global');
+  await expectEnvVarTypeLabel(page, 'glob_secret_num', 'number');
+  await expectEnvVarTypeLabel(page, 'glob_secret_bool', 'boolean');
+  await expectEnvVarTypeLabel(page, 'glob_secret_obj', 'object');
+};
+
+/**
+ * The DataTypeSelector renders a yellow `IconAlertCircle` whenever the
+ * variable's value can't be coerced to the declared dataType (e.g.
+ * dataType=number with value="not-a-number"). The icon's distinguishing
  * class is `text-yellow-600`, applied to the SVG itself.
  */
-const mismatchIcon = (row: Locator) => row.locator('svg.text-yellow-600');
+const mismatchIcon = (row: Locator) => buildCommonLocators(row.page()).dataTypeSelector.mismatchIcon(row);
 
 // Popups are position:fixed and overlap the next token; the mouse-leave close
 // timer is too slow between hovers, so we tear them down first.
@@ -323,16 +343,14 @@ const hoverVarInBody = async (page: Page, varName: string) => {
       else el.remove();
     });
   });
+  const { request, varInfoPopup } = buildCommonLocators(page);
   await page.mouse.move(0, 0);
-  await expect(page.locator('.CodeMirror-brunoVarInfo')).toHaveCount(0);
+  await expect(varInfoPopup.all()).toHaveCount(0);
 
-  const bodyEditor = buildCommonLocators(page).request.bodyEditor().locator('.CodeMirror');
-  const varToken = bodyEditor.locator('.cm-variable-valid').filter({ hasText: varName }).first();
+  const varToken = request.bodyVariableToken(varName).first();
   await expect(varToken).toBeVisible();
 
-  const tooltip = page.locator('.CodeMirror-brunoVarInfo').filter({
-    has: page.locator('.var-name').filter({ hasText: new RegExp(`^${varName}$`) })
-  });
+  const tooltip = varInfoPopup.byName(varName);
   await expect(async () => {
     await page.mouse.move(0, 0);
     await varToken.hover();
@@ -344,7 +362,7 @@ const hoverVarInBody = async (page: Page, varName: string) => {
 // Objects render as pretty-printed JSON in the popup — parse back and
 // deep-compare so the assertion isn't coupled to whitespace.
 const expectPopupParsedValue = async (tooltip: Locator, expected: string | number | boolean | object) => {
-  const display = tooltip.locator('.var-value-editable-display, .var-value-display').first();
+  const display = buildCommonLocators(tooltip.page()).varInfoPopup.valueDisplay(tooltip);
   await expect(display).toBeVisible();
 
   if (typeof expected === 'object' && expected !== null) {
@@ -369,20 +387,22 @@ const executeAndOpenBody = async (page: Page) => {
 };
 
 const expectPopupMaskedValue = async (page: Page, varName: string, actualValue: string) => {
+  const { varInfoPopup } = buildCommonLocators(page);
   const tooltip = await hoverVarInBody(page, varName);
-  const display = tooltip.locator('.var-value-editable-display').first();
+  const display = varInfoPopup.editableValue(tooltip);
   await expect(display).toBeVisible();
   await expect(display).toHaveText('*'.repeat(actualValue.length));
   await expect(display).not.toContainText(actualValue);
-  await expect(tooltip.locator('.secret-toggle-button')).toBeVisible();
+  await expect(varInfoPopup.secretToggle(tooltip)).toBeVisible();
 };
 
 // Guards the editor seeding path: objects must not be dispatched as
 // `[object Object]`, and confirms primitives still seed correctly under
 // the JSON.stringify branch.
 const expectPopupEditorOpensWith = async (tooltip: Locator, expected: string | object) => {
-  await tooltip.locator('.var-value-editable-display').click();
-  const editor = tooltip.locator('.var-value-editor .CodeMirror');
+  const { varInfoPopup } = buildCommonLocators(tooltip.page());
+  await varInfoPopup.editableValue(tooltip).click();
+  const editor = varInfoPopup.editor(tooltip);
   await expect(editor).toBeVisible();
   const code = editor.locator('.CodeMirror-code');
 
@@ -463,8 +483,8 @@ const BODY_SECRET_VAR_VALUES: Array<[string, string]> = [
 
 const setupBodyHover = async (page: Page, collectionName: string) => {
   await openRequestInCollection(page, collectionName);
-  await selectEnvironment(page, 'test_env', 'collection');
-  await selectEnvironment(page, 'typed_global', 'global');
+  await selectEnvironment(page, 'variables', 'collection');
+  await selectEnvironment(page, 'variables', 'global');
   await executeAndOpenBody(page);
 };
 
@@ -492,12 +512,12 @@ test.afterEach(async ({ pageWithUserData: page }) => {
   await closeAllTabs(page);
 });
 
-test.describe('Datatype selector — BRU collection fixture', () => {
+test.describe('DataType selector — BRU collection fixture', () => {
   test('vars: all datatypes render correctly across collection / folder / request scopes', async ({ pageWithUserData: page }) => {
     await expectAllVarLabels(page, BRU_COLLECTION);
   });
 
-  test('request vars: query params and headers do NOT expose the datatype selector', async ({ pageWithUserData: page }) => {
+  test('request vars: query params and headers do NOT expose the dataType selector', async ({ pageWithUserData: page }) => {
     await openRequestInCollection(page, BRU_COLLECTION);
     await selectRequestPaneTab(page, 'Params');
     const queryTable = buildCommonLocators(page).table('query-params');
@@ -522,10 +542,9 @@ test.describe('Datatype selector — BRU collection fixture', () => {
     await openRequestInCollection(page, BRU_COLLECTION, 'multipart');
     await sendRequestAndWaitForResponse(page, 200, { timeout: 30000 });
     await selectResponsePaneTab(page, 'Tests');
-    await expect(
-      page.locator('.test-summary').filter({ hasText: 'Tests' })
-    ).toContainText('Tests (1), Passed: 1, Failed: 0');
-    await expect(page.locator('.test-result-item .test-failure')).toHaveCount(0);
+    const multipartResponse = buildCommonLocators(page).response;
+    await expect(multipartResponse.testSummary()).toContainText('Tests (1), Passed: 1, Failed: 0');
+    await expect(multipartResponse.testFailures()).toHaveCount(0);
   });
 
   test('form-urlencoded: typed pre-request vars stringify on the wire', async ({ pageWithUserData: page }) => {
@@ -536,13 +555,12 @@ test.describe('Datatype selector — BRU collection fixture', () => {
     await openRequestInCollection(page, BRU_COLLECTION, 'form_urlencoded');
     await sendRequestAndWaitForResponse(page, 200, { timeout: 30000 });
     await selectResponsePaneTab(page, 'Tests');
-    await expect(
-      page.locator('.test-summary').filter({ hasText: 'Tests' })
-    ).toContainText('Tests (1), Passed: 1, Failed: 0');
-    await expect(page.locator('.test-result-item .test-failure')).toHaveCount(0);
+    const formUrlEncodedResponse = buildCommonLocators(page).response;
+    await expect(formUrlEncodedResponse.testSummary()).toContainText('Tests (1), Passed: 1, Failed: 0');
+    await expect(formUrlEncodedResponse.testFailures()).toHaveCount(0);
   });
 
-  test('vars: warning icon shows when value does not match the declared datatype', async ({ pageWithUserData: page }) => {
+  test('vars: warning icon shows when value does not match the declared dataType', async ({ pageWithUserData: page }) => {
     await openRequestInCollection(page, BRU_COLLECTION);
     await selectRequestPaneTab(page, 'Vars');
 
@@ -559,13 +577,13 @@ test.describe('Datatype selector — BRU collection fixture', () => {
     await expectTypeLabel(matchingRow, 'number');
     await expect(mismatchIcon(matchingRow)).toHaveCount(0);
 
-    // Sanity check: a row whose datatype defaults to string (req_str) — no warning.
+    // Sanity check: a row whose dataType defaults to string (req_str) — no warning.
     const stringRow = tableRowByName(table, 'req_str');
     await expectTypeLabel(stringRow, 'string');
     await expect(mismatchIcon(stringRow)).toHaveCount(0);
   });
 
-  test('script setEnvVar / setGlobalEnvVar: inferred datatype renders in the env editor', async ({
+  test('script setEnvVar / setGlobalEnvVar: inferred dataType renders in the env editor', async ({
     restartApp,
     workspaceFixturePath
   }) => {
@@ -578,12 +596,12 @@ test.describe('Datatype selector — BRU collection fixture', () => {
     await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
 
     await openRequestInCollection(page, BRU_COLLECTION);
-    await selectEnvironment(page, 'test_env', 'collection');
-    await selectEnvironment(page, 'typed_global', 'global');
+    await selectEnvironment(page, 'variables', 'collection');
+    await selectEnvironment(page, 'variables', 'global');
 
     // Pre-request script seeds inferred_env_* and inferred_glob_* via
     // bru.setEnvVar / bru.setGlobalEnvVar. After send, the env stores those
-    // vars with the inferred datatype attached.
+    // vars with the inferred dataType attached.
     await sendRequestAndWaitForResponse(page, 200, { timeout: 30000 });
 
     // The 200 status arrives before post-response IPC ('main:script-environment-update'
@@ -592,14 +610,14 @@ test.describe('Datatype selector — BRU collection fixture', () => {
     // finished post-response work and the env state is in sync.
     await selectResponsePaneTab(page, 'Tests');
     await expect(
-      page.locator('.test-summary').filter({ hasText: 'Tests' })
+      buildCommonLocators(page).response.testSummary()
     ).toContainText(`Tests (${EXPECTED_TEST_COUNT}), Passed: ${EXPECTED_TEST_COUNT}`);
 
     await openEnvironmentSettings(page, 'collection');
     await expectEnvVarTypeLabel(page, 'inferred_env_num', 'number');
     await expectEnvVarTypeLabel(page, 'inferred_env_bool', 'boolean');
     await expectEnvVarTypeLabel(page, 'inferred_env_obj', 'object');
-    // getDatatypeFromValue is strict — string content doesn't promote.
+    // getDataTypeFromValue is strict — string content doesn't promote.
     await expectEnvVarTypeLabel(page, 'strict_num_str', 'string');
     await expectEnvVarTypeLabel(page, 'strict_bool_str', 'string');
     await expectEnvVarTypeLabel(page, 'strict_obj_str', 'string');
@@ -611,9 +629,9 @@ test.describe('Datatype selector — BRU collection fixture', () => {
     await expectEnvVarTypeLabel(page, 'strict_glob_num_str', 'string');
   });
 
-  test('env editor: typed falsy values (0, false) display their datatype label', async ({ pageWithUserData: page }) => {
+  test('env editor: typed falsy values (0, false) display their dataType label', async ({ pageWithUserData: page }) => {
     await openRequestInCollection(page, BRU_COLLECTION);
-    await selectEnvironment(page, 'test_env', 'collection');
+    await selectEnvironment(page, 'variables', 'collection');
     await openEnvironmentSettings(page, 'collection');
 
     await expectEnvVarTypeLabel(page, 'falsy_num', 'number');
@@ -623,15 +641,19 @@ test.describe('Datatype selector — BRU collection fixture', () => {
     await expectEnvVarTypeLabel(page, 'env_bool', 'boolean');
   });
 
-  test('hover popup: body variables show parsed values for each datatype after execution', async ({ pageWithUserData: page }) => {
+  test('env editor: secret variables display their declared dataType label', async ({ pageWithUserData: page }) => {
+    await runSecretDataTypeLabelAssertions(page, BRU_COLLECTION);
+  });
+
+  test('hover popup: body variables show parsed values for each dataType after execution', async ({ pageWithUserData: page }) => {
     await runBodyHoverPopupAssertions(page, BRU_COLLECTION);
   });
 
-  test('hover popup: clicking to edit seeds the editor with the right text for every datatype', async ({ pageWithUserData: page }) => {
+  test('hover popup: clicking to edit seeds the editor with the right text for every dataType', async ({ pageWithUserData: page }) => {
     await runBodyEditorSeedAssertions(page, BRU_COLLECTION);
   });
 
-  test('save: datatype change round-trips to request.bru, then execution honors the new datatype', async ({
+  test('save: dataType change round-trips to request.bru, then execution honors the new dataType', async ({
     restartApp,
     workspaceFixturePath
   }, testInfo) => {
@@ -651,19 +673,19 @@ test.describe('Datatype selector — BRU collection fixture', () => {
     await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
 
     await openRequestInCollection(page, BRU_COLLECTION);
-    await selectEnvironment(page, 'test_env', 'collection');
-    await selectEnvironment(page, 'typed_global', 'global');
+    await selectEnvironment(page, 'variables', 'collection');
+    await selectEnvironment(page, 'variables', 'global');
     await selectRequestPaneTab(page, 'Vars');
 
-    // Step 1: update the datatype in the UI (puts request in draft state).
+    // Step 1: update the dataType in the UI (puts request in draft state).
     const row = tableRowByName(buildCommonLocators(page).table('request-vars-req'), 'req_str');
     await expectTypeLabel(row, 'string');
-    await changeRowDatatype(page, row, 'number');
-    await expect(page.locator('.request-tab.active .has-changes-icon')).toBeVisible();
+    await changeRowDataType(page, row, 'number');
+    await expect(buildCommonLocators(page).tabs.draftIndicator()).toBeVisible();
 
     // Step 2: save — round-trips a bare `@number` annotation to disk.
-    await clickSaveRequest(page);
-    await expect(page.locator('.request-tab.active .has-changes-icon')).not.toBeVisible();
+    await saveRequest(page);
+    await expect(buildCommonLocators(page).tabs.draftIndicator()).not.toBeVisible();
     await expectTypeLabel(row, 'number');
     await expect.poll(
       async () => fs.promises.readFile(requestFile, 'utf8'),
@@ -678,7 +700,7 @@ test.describe('Datatype selector — BRU collection fixture', () => {
   });
 });
 
-test.describe('Datatype selector — YML collection fixture', () => {
+test.describe('DataType selector — YML collection fixture', () => {
   test('vars: all datatypes render correctly across collection / folder / request scopes', async ({ pageWithUserData: page }) => {
     await expectAllVarLabels(page, YML_COLLECTION);
   });
@@ -688,7 +710,7 @@ test.describe('Datatype selector — YML collection fixture', () => {
     await runAndAssertTestsPass(page);
   });
 
-  test('vars: warning icon shows when value does not match the declared datatype', async ({ pageWithUserData: page }) => {
+  test('vars: warning icon shows when value does not match the declared dataType', async ({ pageWithUserData: page }) => {
     await openRequestInCollection(page, YML_COLLECTION);
     await selectRequestPaneTab(page, 'Vars');
 
@@ -709,24 +731,28 @@ test.describe('Datatype selector — YML collection fixture', () => {
     await expect(mismatchIcon(stringRow)).toHaveCount(0);
   });
 
-  test('env editor: typed falsy values (0, false) display their datatype label', async ({ pageWithUserData: page }) => {
+  test('env editor: typed falsy values (0, false) display their dataType label', async ({ pageWithUserData: page }) => {
     await openRequestInCollection(page, YML_COLLECTION);
-    await selectEnvironment(page, 'test_env', 'collection');
+    await selectEnvironment(page, 'variables', 'collection');
     await openEnvironmentSettings(page, 'collection');
 
     await expectEnvVarTypeLabel(page, 'falsy_num', 'number');
     await expectEnvVarTypeLabel(page, 'falsy_bool', 'boolean');
   });
 
-  test('hover popup: body variables show parsed values for each datatype after execution', async ({ pageWithUserData: page }) => {
+  test('env editor: secret variables display their declared dataType label', async ({ pageWithUserData: page }) => {
+    await runSecretDataTypeLabelAssertions(page, YML_COLLECTION);
+  });
+
+  test('hover popup: body variables show parsed values for each dataType after execution', async ({ pageWithUserData: page }) => {
     await runBodyHoverPopupAssertions(page, YML_COLLECTION);
   });
 
-  test('hover popup: clicking to edit seeds the editor with the right text for every datatype', async ({ pageWithUserData: page }) => {
+  test('hover popup: clicking to edit seeds the editor with the right text for every dataType', async ({ pageWithUserData: page }) => {
     await runBodyEditorSeedAssertions(page, YML_COLLECTION);
   });
 
-  test('save: datatype change round-trips to request.yml, then execution honors the new datatype', async ({
+  test('save: dataType change round-trips to request.yml, then execution honors the new dataType', async ({
     restartApp,
     workspaceFixturePath
   }, testInfo) => {
@@ -740,19 +766,19 @@ test.describe('Datatype selector — YML collection fixture', () => {
     await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
 
     await openRequestInCollection(page, YML_COLLECTION);
-    await selectEnvironment(page, 'test_env', 'collection');
-    await selectEnvironment(page, 'typed_global', 'global');
+    await selectEnvironment(page, 'variables', 'collection');
+    await selectEnvironment(page, 'variables', 'global');
     await selectRequestPaneTab(page, 'Vars');
 
-    // Step 1: update the datatype in the UI (puts request in draft state).
+    // Step 1: update the dataType in the UI (puts request in draft state).
     const row = tableRowByName(buildCommonLocators(page).table('request-vars-req'), 'req_str');
     await expectTypeLabel(row, 'string');
-    await changeRowDatatype(page, row, 'number');
-    await expect(page.locator('.request-tab.active .has-changes-icon')).toBeVisible();
+    await changeRowDataType(page, row, 'number');
+    await expect(buildCommonLocators(page).tabs.draftIndicator()).toBeVisible();
 
     // Step 2: save — value becomes an object with type/data on disk.
-    await clickSaveRequest(page);
-    await expect(page.locator('.request-tab.active .has-changes-icon')).not.toBeVisible();
+    await saveRequest(page);
+    await expect(buildCommonLocators(page).tabs.draftIndicator()).not.toBeVisible();
     await expectTypeLabel(row, 'number');
     await expect.poll(
       async () => fs.promises.readFile(requestFile, 'utf8'),

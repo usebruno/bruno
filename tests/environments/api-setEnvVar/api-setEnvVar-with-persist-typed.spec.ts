@@ -24,7 +24,7 @@ test.describe.serial('bru.setEnvVar(name, value, { persist: true }) — typed va
     }
   });
 
-  test('persists number/boolean/object/string values with the correct datatype annotation', async ({
+  test('persists number/boolean/object/string values with the correct dataType annotation', async ({
     pageWithUserData: page,
     collectionFixturePath,
     restartApp
@@ -41,7 +41,7 @@ test.describe.serial('bru.setEnvVar(name, value, { persist: true }) — typed va
       await sendRequest(page, 200);
     });
 
-    await test.step('Verify the env file on disk carries the right datatype annotations', async () => {
+    await test.step('Verify the env file on disk carries the right dataType annotations', async () => {
       const envFile = path.join(collectionFixturePath!, 'environments', 'Typed.bru');
       const content = await fs.promises.readFile(envFile, 'utf8');
 
