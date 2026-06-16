@@ -2295,6 +2295,33 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
     }
   });
 
+  // Returns a map of { [pkg]: boolean } indicating which packages are already
+  // installed in <collectionPathname>/node_modules. Used by the chai-plugin
+  // catalog to render an accurate "Installed" state after restarts.
+  ipcMain.handle('renderer:check-installed-packages', async (_event, collectionPathname, packages) => {
+    if (typeof collectionPathname !== 'string' || !collectionPathname) {
+      throw new Error('collectionPathname is required');
+    }
+    if (!Array.isArray(packages)) {
+      throw new Error('packages must be an array');
+    }
+    const result = {};
+    for (const pkg of packages) {
+      if (typeof pkg !== 'string' || !pkg) {
+        result[pkg] = false;
+        continue;
+      }
+      // Resolve <collectionPathname>/node_modules/<pkg>, including scoped names.
+      const pkgPath = path.join(collectionPathname, 'node_modules', ...pkg.split('/'));
+      try {
+        result[pkg] = fs.existsSync(pkgPath) && fs.statSync(pkgPath).isDirectory();
+      } catch (_) {
+        result[pkg] = false;
+      }
+    }
+    return result;
+  });
+
   ipcMain.handle('renderer:install-postman-packages', async (_event, collectionPathname, packages) => {
     if (typeof collectionPathname !== 'string' || !collectionPathname) {
       throw new Error('collectionPathname is required');

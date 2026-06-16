@@ -168,7 +168,12 @@ const Plugins = ({ collection }) => {
       )}
 
       {modal === 'catalog' && (
-        <CatalogModal onAdd={addFromCatalog} onClose={() => setModal(null)} />
+        <CatalogModal
+          collection={collection}
+          currentPlugins={plugins}
+          onAdd={addFromCatalog}
+          onClose={() => setModal(null)}
+        />
       )}
       {modal === 'templates' && (
         <TemplatePickerModal onInsert={addFromTemplate} onClose={() => setModal(null)} />

@@ -529,11 +529,63 @@ const StyledWrapper = styled.div`
     flex: 1;
   }
 
+  .card-state-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    min-height: 1.2rem;
+  }
+
+  .card-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 1px 7px 1px 5px;
+    font-size: 0.7rem;
+    border-radius: 999px;
+    border: 1px solid transparent;
+    line-height: 1.4;
+
+    &.ok {
+      color: #16a34a;
+      background: rgba(34, 197, 94, 0.1);
+      border-color: rgba(34, 197, 94, 0.25);
+    }
+    &.installing {
+      color: ${(p) => p.theme.text};
+      opacity: 0.75;
+      background: ${(p) => p.theme.input.bg};
+      border-color: ${(p) => p.theme.input.border};
+    }
+    &.err {
+      color: #dc2626;
+      background: rgba(220, 38, 38, 0.08);
+      border-color: rgba(220, 38, 38, 0.25);
+    }
+    &.warn {
+      color: #b45309;
+      background: rgba(245, 158, 11, 0.1);
+      border-color: rgba(245, 158, 11, 0.3);
+    }
+
+    .spin {
+      animation: bruno-plugins-spin 0.9s linear infinite;
+    }
+  }
+
   .card-actions {
     display: flex;
     align-items: center;
     justify-content: space-between;
+    gap: 0.5rem;
     margin-top: 0.25rem;
+  }
+
+  .card-actions-buttons {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    min-height: 28px;
   }
 
   .card-docs {
@@ -555,12 +607,8 @@ const StyledWrapper = styled.div`
     }
   }
 
-  .catalog-footnote {
-    margin-top: 1rem;
-    padding-top: 0.75rem;
-    border-top: 1px solid ${(p) => p.theme.input.border};
-    font-size: 0.74rem;
-    opacity: 0.7;
+  @keyframes bruno-plugins-spin {
+    to { transform: rotate(360deg); }
   }
 
   .plugins-templates {

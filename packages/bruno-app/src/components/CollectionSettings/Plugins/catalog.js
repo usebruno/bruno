@@ -12,6 +12,7 @@ export const CATALOG = [
     name: 'chai-subset',
     description: 'Adds .containSubset() for partial-object matching.',
     compat: 'node-only',
+    npmPackage: 'chai-subset',
     docsUrl: 'https://www.chaijs.com/plugins/chai-subset/',
     snippet: `// Asserts a partial object match. Works only in Developer mode.
 chai.use(require('chai-subset'));
@@ -21,6 +22,7 @@ chai.use(require('chai-subset'));
     name: 'chai-as-promised',
     description: 'Adds .eventually, .rejectedWith, etc. for promise assertions.',
     compat: 'node-only',
+    npmPackage: 'chai-as-promised',
     docsUrl: 'https://www.chaijs.com/plugins/chai-as-promised/',
     snippet: `// Promise-aware assertions. Works only in Developer mode.
 chai.use(require('chai-as-promised'));
@@ -30,6 +32,7 @@ chai.use(require('chai-as-promised'));
     name: 'chai-json-schema',
     description: 'Adds .jsonSchema for validating bodies against JSON Schema.',
     compat: 'node-only',
+    npmPackage: 'chai-json-schema',
     docsUrl: 'https://www.chaijs.com/plugins/chai-json-schema/',
     snippet: `// JSON Schema (Draft-04) validation. Works only in Developer mode.
 chai.use(require('chai-json-schema'));
@@ -39,6 +42,7 @@ chai.use(require('chai-json-schema'));
     name: 'chai-http',
     description: 'HTTP integration helpers (.request, .have.status, etc.).',
     compat: 'node-only',
+    npmPackage: 'chai-http',
     docsUrl: 'https://www.chaijs.com/plugins/chai-http/',
     snippet: `// HTTP request helpers. Works only in Developer mode.
 chai.use(require('chai-http'));
@@ -82,6 +86,7 @@ chai.use(function (chai, utils) {
     name: 'chai-datetime',
     description: 'Date comparison assertions (.beforeDate, .afterDate, etc.).',
     compat: 'node-only',
+    npmPackage: 'chai-datetime',
     docsUrl: 'https://www.chaijs.com/plugins/chai-datetime/',
     snippet: `// Date assertions. Works only in Developer mode.
 chai.use(require('chai-datetime'));
