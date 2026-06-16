@@ -63,6 +63,7 @@ const CodeMirrorSearch = forwardRef(({ visible, editor, onClose }, ref) => {
   const inputRef = useRef(null);
   const replaceInputRef = useRef(null);
   const containerRef = useRef(null);
+  const initialIndexRef = useRef(null);
 
   const debouncedSearchText = useDebounce(searchText, 250);
 
@@ -187,9 +188,33 @@ const CodeMirrorSearch = forwardRef(({ visible, editor, onClose }, ref) => {
         inputRef.current.focus();
       }
     },
-    setSearch: (text) => {
+    setSearch: (text, cursorPos) => {
       setSearchText(text);
-      setMatchIndex(0);
+      if (cursorPos && editor && text) {
+        const matches = findSearchMatches(editor, text, regex, caseSensitive, wholeWord);
+        const startsAtOrAfterCursor = (match) =>
+          match.from.line > cursorPos.line
+          || (match.from.line === cursorPos.line && match.from.ch >= cursorPos.ch);
+
+        const matchAtCursorIdx = matches.findIndex(startsAtOrAfterCursor);
+        const targetIdx = matchAtCursorIdx >= 0 ? matchAtCursorIdx : 0;
+        // Pre-populate cache so doSearch hits it regardless of path
+        searchMatches.current = matches;
+        searchCacheKey.current = createCacheKey(editor, text, regex, caseSensitive, wholeWord);
+        // Set both count and index immediately to avoid "1 / N" flash before debounce fires
+        setMatchCount(matches.length);
+        setMatchIndex(targetIdx);
+        if (text === searchText) {
+          // Same text — debouncedSearchText won't change, effect won't fire. Call directly.
+          setTimeout(() => doSearch(targetIdx), 0);
+        } else {
+          // Text changed — effect will fire after debounce. Store text+index together
+          // so the effect only consumes it when debouncedSearchText has caught up.
+          initialIndexRef.current = { idx: targetIdx, forText: text };
+        }
+      } else {
+        setMatchIndex(0);
+      }
       setTimeout(() => {
         if (inputRef.current) {
           inputRef.current.focus();
@@ -207,8 +232,14 @@ const CodeMirrorSearch = forwardRef(({ visible, editor, onClose }, ref) => {
   }));
 
   useEffect(() => {
-    doSearch(0);
-  }, [debouncedSearchText, doSearch]);
+    if (initialIndexRef.current && initialIndexRef.current.forText === debouncedSearchText) {
+      const idx = initialIndexRef.current.idx;
+      initialIndexRef.current = null;
+      doSearch(idx);
+    } else {
+      doSearch(0);
+    }
+  }, [debouncedSearchText]);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -226,7 +257,7 @@ const CodeMirrorSearch = forwardRef(({ visible, editor, onClose }, ref) => {
 
   const handleSearchTextChange = (text) => {
     setSearchText(text);
-    setMatchIndex(0);
+    // setMatchIndex(0);
   };
 
   const handleToggleRegex = () => {
@@ -261,9 +292,26 @@ const CodeMirrorSearch = forwardRef(({ visible, editor, onClose }, ref) => {
     const match = searchMatches.current[matchIndex];
     if (!match) return;
     editor.replaceRange(replaceText, match.from, match.to);
-    searchCacheKey.current = '';
-    doSearch(matchIndex);
-  }, [editor, matchIndex, replaceText, doSearch]);
+
+    const replaceLines = replaceText.split('\n');
+    const endLine = match.from.line + replaceLines.length - 1;
+    const endCh = replaceLines.length === 1
+      ? match.from.ch + replaceText.length
+      : replaceLines[replaceLines.length - 1].length;
+
+    // Re-search and pre-populate the cache so doSearch uses these results directly
+    const newMatches = findSearchMatches(editor, debouncedSearchText, regex, caseSensitive, wholeWord);
+    searchMatches.current = newMatches;
+    searchCacheKey.current = createCacheKey(editor, debouncedSearchText, regex, caseSensitive, wholeWord);
+    setMatchCount(newMatches.length);
+
+    // Find the first match that starts after the replacement end
+    const nextIdx = newMatches.findIndex(
+      (m) => m.from.line > endLine || (m.from.line === endLine && m.from.ch >= endCh)
+    );
+
+    doSearch(nextIdx >= 0 ? nextIdx : 0);
+  }, [editor, matchIndex, replaceText, debouncedSearchText, regex, caseSensitive, wholeWord, doSearch]);
 
   const handleReplaceAll = useCallback(() => {
     if (!editor || !searchMatches.current.length) return;

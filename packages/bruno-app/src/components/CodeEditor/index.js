@@ -103,7 +103,7 @@ class CodeEditor extends React.Component {
           const selected = cm.getSelection();
           this.setState({ searchBarVisible: true }, () => {
             if (selected) {
-              this.searchBarRef.current?.setSearch(selected);
+              this.searchBarRef.current?.setSearch(selected, cm.getCursor('from'));
             } else {
               this.searchBarRef.current?.focus();
             }
@@ -113,7 +113,7 @@ class CodeEditor extends React.Component {
           const selected = cm.getSelection();
           this.setState({ searchBarVisible: true }, () => {
             if (selected) {
-              this.searchBarRef.current?.setSearch(selected);
+              this.searchBarRef.current?.setSearch(selected, cm.getCursor('from'));
             } else {
               this.searchBarRef.current?.focus();
             }
