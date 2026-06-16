@@ -12,10 +12,6 @@ const StyledWrapper = styled.div`
   /* ───────────────────────── header ───────────────────────── */
 
   .panel-head {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 1rem;
     margin-bottom: 1rem;
   }
 
@@ -38,18 +34,6 @@ const StyledWrapper = styled.div`
     border-radius: 3px;
     padding: 0 4px;
     font-size: 0.75rem;
-  }
-
-  .panel-head-meta {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    flex-shrink: 0;
-  }
-
-  .meta-label {
-    font-size: 0.75rem;
-    opacity: 0.6;
   }
 
   /* ───────────────────────── body ───────────────────────── */

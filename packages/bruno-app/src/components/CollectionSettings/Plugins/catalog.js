@@ -2,10 +2,10 @@
 // Each entry seeds a `scripts.plugins.chai` row in bruno.json.
 //
 // compat values:
-//   'pure-js'   — pure-JS plugin body, no require(). Works in both QuickJS and Node VM.
-//   'node-only' — uses require(), needs Node VM runtime enabled.
+//   'pure-js'   — pure-JS plugin body, no require(). Works in both Safe mode and Developer mode.
+//   'node-only' — uses require(), needs Developer mode enabled.
 //   'bundled'   — reserved for future (chai-subset / chai-as-promised / chai-json-schema)
-//                 when pre-bundled into the QuickJS sandbox.
+//                 when pre-bundled into the Safe-mode sandbox.
 
 export const CATALOG = [
   {
@@ -13,7 +13,7 @@ export const CATALOG = [
     description: 'Adds .containSubset() for partial-object matching.',
     compat: 'node-only',
     docsUrl: 'https://www.chaijs.com/plugins/chai-subset/',
-    snippet: `// Asserts a partial object match. Works only with the Node VM runtime.
+    snippet: `// Asserts a partial object match. Works only in Developer mode.
 chai.use(require('chai-subset'));
 `
   },
@@ -22,7 +22,7 @@ chai.use(require('chai-subset'));
     description: 'Adds .eventually, .rejectedWith, etc. for promise assertions.',
     compat: 'node-only',
     docsUrl: 'https://www.chaijs.com/plugins/chai-as-promised/',
-    snippet: `// Promise-aware assertions. Works only with the Node VM runtime.
+    snippet: `// Promise-aware assertions. Works only in Developer mode.
 chai.use(require('chai-as-promised'));
 `
   },
@@ -31,7 +31,7 @@ chai.use(require('chai-as-promised'));
     description: 'Adds .jsonSchema for validating bodies against JSON Schema.',
     compat: 'node-only',
     docsUrl: 'https://www.chaijs.com/plugins/chai-json-schema/',
-    snippet: `// JSON Schema (Draft-04) validation. Works only with the Node VM runtime.
+    snippet: `// JSON Schema (Draft-04) validation. Works only in Developer mode.
 chai.use(require('chai-json-schema'));
 `
   },
@@ -40,7 +40,7 @@ chai.use(require('chai-json-schema'));
     description: 'HTTP integration helpers (.request, .have.status, etc.).',
     compat: 'node-only',
     docsUrl: 'https://www.chaijs.com/plugins/chai-http/',
-    snippet: `// HTTP request helpers. Works only with the Node VM runtime.
+    snippet: `// HTTP request helpers. Works only in Developer mode.
 chai.use(require('chai-http'));
 `
   },
@@ -49,7 +49,7 @@ chai.use(require('chai-http'));
     description: 'Adds .like() for deep partial matching without an npm install.',
     compat: 'pure-js',
     docsUrl: 'https://www.chaijs.com/plugins/chai-like/',
-    snippet: `// Pure-JS partial match. Works in QuickJS and Node VM.
+    snippet: `// Pure-JS partial match. Works in Safe mode and Developer mode.
 chai.use(function (chai, utils) {
   function isPlainObject(v) {
     return v !== null && typeof v === 'object' && !Array.isArray(v);
@@ -83,7 +83,7 @@ chai.use(function (chai, utils) {
     description: 'Date comparison assertions (.beforeDate, .afterDate, etc.).',
     compat: 'node-only',
     docsUrl: 'https://www.chaijs.com/plugins/chai-datetime/',
-    snippet: `// Date assertions. Works only with the Node VM runtime.
+    snippet: `// Date assertions. Works only in Developer mode.
 chai.use(require('chai-datetime'));
 `
   }
@@ -91,14 +91,14 @@ chai.use(require('chai-datetime'));
 
 export const COMPAT_META = {
   'pure-js': {
-    label: 'Pure JS · Both runtimes',
+    label: 'Pure JS · Both modes',
     status: 'info',
-    description: 'Works in QuickJS (default) and Node VM.'
+    description: 'Works in Safe mode (default) and Developer mode.'
   },
   'node-only': {
-    label: 'Node VM only',
+    label: 'Developer mode only',
     status: 'warning',
-    description: 'Requires the Node VM runtime (Preferences → Beta → JavaScript sandbox).'
+    description: 'Requires Developer mode (Preferences → Beta → JavaScript sandbox).'
   },
   'bundled': {
     label: 'Bundled · Works everywhere',

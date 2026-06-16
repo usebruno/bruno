@@ -1,5 +1,5 @@
 // Code templates for building a custom chai plugin from scratch.
-// Each template is pure-JS — works in both QuickJS and Node VM.
+// Each template is pure-JS — works in both Safe mode and Developer mode.
 
 export const TEMPLATES = [
   {

@@ -59,8 +59,8 @@ const CatalogModal = ({ onAdd, onClose }) => {
           })}
         </div>
         <div className="catalog-footnote">
-          Pure-JS plugins work in any sandbox. <strong>Node VM only</strong> plugins need the
-          Node VM runtime enabled (Preferences → Beta → JavaScript sandbox).
+          Pure-JS plugins work in any sandbox. <strong>Developer mode only</strong> plugins need
+          developer mode enabled (Preferences → Beta → JavaScript sandbox).
         </div>
       </div>
     </Modal>

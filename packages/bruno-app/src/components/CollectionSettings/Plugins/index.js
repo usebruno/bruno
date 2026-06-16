@@ -1,10 +1,8 @@
 import React, { useMemo, useState } from 'react';
 import { useDispatch } from 'react-redux';
 import get from 'lodash/get';
-import StatusBadge from 'ui/StatusBadge';
 import { updateCollectionChaiPlugins } from 'providers/ReduxStore/slices/collections';
 import { saveCollectionSettings } from 'providers/ReduxStore/slices/collections/actions';
-import { useBetaFeature, BETA_FEATURES } from 'utils/beta-features';
 import { uuid } from 'utils/common';
 import StyledWrapper from './StyledWrapper';
 import PluginsSidebar from './PluginsSidebar';
@@ -23,7 +21,6 @@ chai.use(function (chai, utils) {
 
 const Plugins = ({ collection }) => {
   const dispatch = useDispatch();
-  const nodeVmEnabled = useBetaFeature(BETA_FEATURES.NODE_VM);
 
   const plugins = collection.draft?.brunoConfig
     ? get(collection, 'draft.brunoConfig.scripts.plugins.chai', [])
@@ -127,9 +124,6 @@ const Plugins = ({ collection }) => {
 
   const handleSave = () => dispatch(saveCollectionSettings(collection.uid));
 
-  const runtimeLabel = nodeVmEnabled ? 'Node VM' : 'QuickJS';
-  const runtimeStatus = nodeVmEnabled ? 'success' : 'info';
-
   return (
     <StyledWrapper className="plugins-panel">
       <header className="panel-head">
@@ -139,12 +133,6 @@ const Plugins = ({ collection }) => {
             Extend the <code>chai</code> assertion library. Code runs once before every
             pre-request, post-response, and test script in this collection.
           </p>
-        </div>
-        <div className="panel-head-meta">
-          <span className="meta-label">Active runtime</span>
-          <StatusBadge status={runtimeStatus} variant="light" size="sm">
-            {runtimeLabel}
-          </StatusBadge>
         </div>
       </header>
 

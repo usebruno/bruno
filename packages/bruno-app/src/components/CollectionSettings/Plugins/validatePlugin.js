@@ -33,7 +33,7 @@ export const validatePlugin = async (code) => {
 };
 
 // Heuristic: does the snippet use require('chai-*') / require('...')? Used to
-// flag plugins that won't run in QuickJS.
+// flag plugins that won't run in Safe mode.
 export const usesRequire = (code) => {
   if (typeof code !== 'string') return false;
   return /\brequire\s*\(\s*['"][^'"]+['"]\s*\)/.test(code);
