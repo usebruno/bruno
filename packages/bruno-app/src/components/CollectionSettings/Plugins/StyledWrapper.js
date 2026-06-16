@@ -5,15 +5,21 @@ const StyledWrapper = styled.div`
   flex-direction: column;
   height: 100%;
   min-height: 0;
-  max-width: 1200px;
+  max-width: 960px;
   font-size: 0.875rem;
   color: ${(p) => p.theme.text};
 
-  /* ───────────────────────── header ───────────────────────── */
+  /* ─────── header ─────── */
 
   .panel-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
     margin-bottom: 1rem;
   }
+
+  .panel-head-text { flex: 1; min-width: 0; }
 
   .panel-title {
     font-size: 1rem;
@@ -26,81 +32,81 @@ const StyledWrapper = styled.div`
     font-size: 0.8rem;
     opacity: 0.75;
     max-width: 640px;
+
+    code {
+      background-color: ${(p) => p.theme.input.bg};
+      border: 1px solid ${(p) => p.theme.input.border};
+      border-radius: 3px;
+      padding: 0 4px;
+      font-size: 0.75rem;
+    }
   }
 
-  .panel-blurb code {
-    background-color: ${(p) => p.theme.input.bg};
-    border: 1px solid ${(p) => p.theme.input.border};
-    border-radius: 3px;
-    padding: 0 4px;
-    font-size: 0.75rem;
-  }
-
-  /* ───────────────────────── body ───────────────────────── */
-
-  .panel-body {
-    flex: 1;
+  .panel-head-actions {
     display: flex;
-    min-height: 0;
-    gap: 0;
-    border: 1px solid ${(p) => p.theme.input.border};
-    border-radius: 6px;
-    overflow: hidden;
-    background: ${(p) => p.theme.bg};
+    align-items: center;
+    gap: 0.5rem;
+    flex-shrink: 0;
   }
 
-  /* ───────────────────────── sidebar ───────────────────────── */
+  .panel-summary {
+    font-size: 0.74rem;
+    opacity: 0.65;
+    margin-right: 0.25rem;
+  }
 
-  .plugins-sidebar {
-    width: 280px;
-    flex-shrink: 0;
+  .add-plugin-btn,
+  .save-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.35rem 0.7rem;
+    background: ${(p) => p.theme.input.bg};
+    color: ${(p) => p.theme.text};
+    border: 1px solid ${(p) => p.theme.input.border};
+    border-radius: 4px;
+    font-size: 0.8rem;
+    cursor: pointer;
+
+    &:hover {
+      border-color: ${(p) => p.theme.input.focusBorder};
+    }
+  }
+
+  .save-btn {
+    background: ${(p) => p.theme.input.focusBorder};
+    color: white;
+    border-color: ${(p) => p.theme.input.focusBorder};
+
+    &:hover { opacity: 0.92; }
+  }
+
+  /* ─────── catalog panel (rendered inside Modal) ─────── */
+
+  .catalog-panel {
     display: flex;
     flex-direction: column;
-    border-right: 1px solid ${(p) => p.theme.input.border};
-    background: ${(p) => p.theme.bg};
+    gap: 0.75rem;
+    min-height: 0;
   }
 
-  .sidebar-head {
+  .catalog-tabs {
     display: flex;
+    gap: 0.25rem;
+    flex-shrink: 0;
+  }
+
+  .catalog-tab {
+    display: inline-flex;
     align-items: center;
-    gap: 0.4rem;
-    padding: 0.75rem 0.85rem;
-    border-bottom: 1px solid ${(p) => p.theme.input.border};
-  }
-
-  .sidebar-title {
-    font-size: 0.75rem;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    opacity: 0.6;
-  }
-
-  .sidebar-count {
-    font-size: 0.7rem;
-    background: ${(p) => p.theme.input.bg};
-    border: 1px solid ${(p) => p.theme.input.border};
-    border-radius: 10px;
-    padding: 0 6px;
-    line-height: 1.4;
-    opacity: 0.8;
-  }
-
-  .plugins-list {
-    flex: 1;
-    overflow-y: auto;
-    list-style: none;
-    margin: 0;
-    padding: 0.25rem 0;
-  }
-
-  .plugin-row {
-    display: flex;
-    align-items: center;
-    gap: 0.4rem;
-    padding: 0.45rem 0.85rem;
+    gap: 0.3rem;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    padding: 0.3rem 0.6rem;
+    font-size: 0.78rem;
+    color: ${(p) => p.theme.text};
     cursor: pointer;
-    border-left: 2px solid transparent;
-    transition: background-color 0.1s ease;
 
     &:hover {
       background: ${(p) => p.theme.input.bg};
@@ -108,310 +114,554 @@ const StyledWrapper = styled.div`
 
     &.active {
       background: ${(p) => p.theme.input.bg};
-      border-left-color: ${(p) => p.theme.input.focusBorder};
+      border-color: ${(p) => p.theme.input.border};
+      font-weight: 500;
     }
-
-    &.dragging { opacity: 0.4; }
-    &.drop-target { background: ${(p) => p.theme.input.bg}; }
   }
 
-  .plugin-grip {
-    cursor: grab;
-    opacity: 0.4;
-    display: flex;
-    align-items: center;
-
-    &:hover { opacity: 0.8; }
-    &:active { cursor: grabbing; }
+  .catalog-body {
+    max-height: 60vh;
+    overflow-y: auto;
+    margin: 0 -0.25rem;
+    padding: 0 0.25rem;
   }
 
-  .plugin-status-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    flex-shrink: 0;
-
-    &.dot-green { background: #22c55e; }
-    &.dot-red { background: #ef4444; }
-    &.dot-gray { background: ${(p) => p.theme.input.border}; }
-    &.dot-muted { background: ${(p) => p.theme.input.border}; opacity: 0.5; }
+  .catalog-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.6rem;
+    padding: 0.25rem 0;
   }
 
-  .plugin-row-body {
+  .catalog-card {
     display: flex;
     flex-direction: column;
-    min-width: 0;
-    flex: 1;
+    gap: 0.4rem;
+    padding: 0.7rem;
+    border: 1px solid ${(p) => p.theme.input.border};
+    border-radius: 5px;
+    background: ${(p) => p.theme.input.bg};
+
+    .card-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+    }
+
+    .card-name {
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-weight: 600;
+      font-size: 0.84rem;
+    }
+
+    .card-desc {
+      margin: 0;
+      font-size: 0.76rem;
+      opacity: 0.72;
+    }
   }
 
-  .plugin-row-name {
-    font-size: 0.8rem;
-    font-weight: 500;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+  .catalog-card-state {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+    min-height: 0.85rem;
   }
 
-  .plugin-row-sublabel {
-    font-size: 0.7rem;
-    opacity: 0.55;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  .sidebar-foot {
-    padding: 0.6rem 0.7rem;
-    border-top: 1px solid ${(p) => p.theme.input.border};
-  }
-
-  /* ───────────────────────── add menu ───────────────────────── */
-
-  .add-menu { position: relative; }
-
-  .add-menu-trigger {
-    width: 100%;
+  .card-actions {
     display: flex;
     align-items: center;
-    justify-content: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    margin-top: 0.15rem;
+  }
+
+  .card-actions-buttons {
+    display: flex;
+    align-items: center;
     gap: 0.4rem;
-    padding: 0.45rem 0.6rem;
-    background: ${(p) => p.theme.input.bg};
-    border: 1px solid ${(p) => p.theme.input.border};
+    min-height: 26px;
+  }
+
+  .catalog-action {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.3rem 0.6rem;
+    font-size: 0.76rem;
     border-radius: 4px;
-    color: ${(p) => p.theme.text};
-    font-size: 0.8rem;
     cursor: pointer;
+    border: 1px solid transparent;
+
+    &:disabled { opacity: 0.55; cursor: default; }
+
+    &.primary {
+      background: ${(p) => p.theme.input.focusBorder};
+      color: white;
+      &:hover:not(:disabled) { opacity: 0.92; }
+    }
+
+    &.outline {
+      background: transparent;
+      color: ${(p) => p.theme.text};
+      border-color: ${(p) => p.theme.input.border};
+      &:hover:not(:disabled) { border-color: ${(p) => p.theme.input.focusBorder}; }
+    }
+  }
+
+  .card-docs {
+    background: transparent;
+    border: none;
+    color: ${(p) => p.theme.text};
+    opacity: 0.6;
+    font-size: 0.72rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.2rem;
+    cursor: pointer;
+    padding: 3px 5px;
+    border-radius: 3px;
 
     &:hover {
-      border-color: ${(p) => p.theme.input.focusBorder};
+      opacity: 1;
+      background: ${(p) => p.theme.bg};
     }
   }
 
-  .add-menu-pop {
-    position: absolute;
-    bottom: calc(100% + 6px);
-    left: 0;
-    right: 0;
-    background: ${(p) => p.theme.bg};
-    border: 1px solid ${(p) => p.theme.input.border};
-    border-radius: 6px;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
-    padding: 0.25rem;
-    z-index: 30;
-
-    button {
-      width: 100%;
-      display: flex;
-      align-items: flex-start;
-      gap: 0.6rem;
-      padding: 0.5rem 0.6rem;
-      background: transparent;
-      border: none;
-      text-align: left;
-      cursor: pointer;
-      color: ${(p) => p.theme.text};
-      border-radius: 4px;
-      transition: background-color 0.08s ease;
-
-      &:hover { background: ${(p) => p.theme.input.bg}; }
-
-      > span:last-child {
-        display: flex;
-        flex-direction: column;
-        line-height: 1.2;
-      }
-    }
-
-    .menu-item-title { font-size: 0.8rem; font-weight: 500; }
-    .menu-item-sub { font-size: 0.7rem; opacity: 0.6; }
+  .templates-split {
+    display: grid;
+    grid-template-columns: minmax(220px, 260px) minmax(0, 1fr);
+    gap: 0.75rem;
+    align-items: stretch;
   }
 
-  /* ───────────────────────── detail pane ───────────────────────── */
-
-  .plugin-detail {
-    flex: 1;
-    min-width: 0;
+  .templates-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
     display: flex;
     flex-direction: column;
-    background: ${(p) => p.theme.bg};
+    gap: 0.25rem;
+    border-right: 1px solid ${(p) => p.theme.input.border};
+    padding-right: 0.75rem;
   }
 
-  .detail-head {
+  .templates-list-item {
     display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.7rem 0.9rem;
-    border-bottom: 1px solid ${(p) => p.theme.input.border};
-  }
-
-  .detail-name {
-    flex: 1;
-    font-size: 0.95rem;
-    font-weight: 500;
+    flex-direction: column;
+    align-items: flex-start;
+    width: 100%;
+    text-align: left;
+    gap: 0.15rem;
+    padding: 0.5rem 0.6rem;
     background: transparent;
     border: 1px solid transparent;
-    border-radius: 4px;
-    padding: 0.25rem 0.5rem;
+    border-radius: 5px;
+    cursor: pointer;
     color: ${(p) => p.theme.text};
-    outline: none;
+    transition: background-color 0.1s ease, border-color 0.1s ease;
+
+    .template-name {
+      font-size: 0.83rem;
+      font-weight: 500;
+      margin: 0;
+    }
+
+    .template-desc {
+      font-size: 0.72rem;
+      opacity: 0.6;
+      line-height: 1.35;
+    }
 
     &:hover {
       background: ${(p) => p.theme.input.bg};
     }
 
+    &.active {
+      background: ${(p) => p.theme.input.bg};
+      border-color: ${(p) => p.theme.input.focusBorder};
+
+      .template-name { font-weight: 600; }
+      .template-desc { opacity: 0.78; }
+    }
+  }
+
+  .template-detail {
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+    min-width: 0;
+  }
+
+  .template-detail-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.75rem;
+  }
+
+  .template-detail-name {
+    font-size: 0.95rem;
+    font-weight: 600;
+    margin-bottom: 0.15rem;
+  }
+
+  .template-detail-desc {
+    font-size: 0.76rem;
+    opacity: 0.72;
+    max-width: 540px;
+  }
+
+  .template-meta,
+  .template-usage {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    font-size: 0.74rem;
+  }
+
+  .template-meta-label {
+    text-transform: uppercase;
+    font-size: 0.64rem;
+    letter-spacing: 0.05em;
+    opacity: 0.55;
+    font-weight: 600;
+  }
+
+  .template-snippet-label {
+    margin-top: 0.15rem;
+  }
+
+  .template-usage-code {
+    background: ${(p) => p.theme.bg};
+    border: 1px solid ${(p) => p.theme.input.border};
+    border-radius: 3px;
+    padding: 1px 6px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.72rem;
+    opacity: 0.9;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+  }
+
+  .template-snippet {
+    margin: 0;
+    padding: 0.65rem 0.8rem;
+    background: ${(p) => p.theme.bg};
+    border: 1px solid ${(p) => p.theme.input.border};
+    border-radius: 4px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.72rem;
+    line-height: 1.5;
+    color: ${(p) => p.theme.text};
+    opacity: 0.88;
+    width: 100%;
+    max-width: 100%;
+    max-height: 280px;
+    overflow: auto;
+    white-space: pre;
+  }
+
+  /* ─────── plugin list ─────── */
+
+  .plugin-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    overflow-y: auto;
+    min-height: 0;
+  }
+
+  .plugin-card {
+    border: 1px solid ${(p) => p.theme.input.border};
+    border-radius: 6px;
+    background: ${(p) => p.theme.bg};
+    transition: opacity 0.12s ease, border-color 0.12s ease;
+
+    &.off { opacity: 0.6; }
+    &.dragging { opacity: 0.35; }
+    &.drop-target { border-color: ${(p) => p.theme.input.focusBorder}; }
+  }
+
+  .card-head {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.45rem 0.6rem 0.45rem 0.35rem;
+  }
+
+  .card-grip {
+    cursor: grab;
+    opacity: 0.45;
+    display: inline-flex;
+    align-items: center;
+    padding: 0.2rem;
+    border-radius: 3px;
+
+    &:hover { opacity: 0.85; background: ${(p) => p.theme.input.bg}; }
+    &:active { cursor: grabbing; }
+  }
+
+  .card-collapse {
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 3px;
+    padding: 0.2rem;
+    cursor: pointer;
+    color: ${(p) => p.theme.text};
+    opacity: 0.65;
+    display: inline-flex;
+
+    &:hover {
+      opacity: 1;
+      background: ${(p) => p.theme.input.bg};
+    }
+  }
+
+  .plugin-card .card-name {
+    flex: 1;
+    min-width: 0;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    padding: 0.25rem 0.45rem;
+    color: ${(p) => p.theme.text};
+    outline: none;
+    font-size: 0.88rem;
+    font-weight: 500;
+    font-family: inherit;
+
+    &:hover { background: ${(p) => p.theme.input.bg}; }
     &:focus {
       background: ${(p) => p.theme.input.bg};
       border-color: ${(p) => p.theme.input.focusBorder};
     }
   }
 
-  .detail-head-actions {
-    display: flex;
+  .card-pill {
+    display: inline-flex;
     align-items: center;
-    gap: 0.4rem;
+    gap: 0.22rem;
+    padding: 1px 7px 1px 5px;
+    font-size: 0.7rem;
+    line-height: 1.4;
+    border-radius: 999px;
+    border: 1px solid transparent;
+    flex-shrink: 0;
+
+    &.ok {
+      color: #16a34a;
+      background: rgba(34, 197, 94, 0.1);
+      border-color: rgba(34, 197, 94, 0.25);
+    }
+    &.warn {
+      color: #b45309;
+      background: rgba(245, 158, 11, 0.1);
+      border-color: rgba(245, 158, 11, 0.3);
+    }
+    &.err {
+      color: #dc2626;
+      background: rgba(220, 38, 38, 0.08);
+      border-color: rgba(220, 38, 38, 0.25);
+    }
+    &.muted {
+      color: ${(p) => p.theme.text};
+      opacity: 0.55;
+      background: ${(p) => p.theme.input.bg};
+      border-color: ${(p) => p.theme.input.border};
+    }
+    &.idle {
+      color: ${(p) => p.theme.text};
+      opacity: 0.7;
+      background: ${(p) => p.theme.input.bg};
+      border-color: ${(p) => p.theme.input.border};
+    }
+    &.installing {
+      color: ${(p) => p.theme.text};
+      opacity: 0.8;
+      background: ${(p) => p.theme.input.bg};
+      border-color: ${(p) => p.theme.input.border};
+    }
+
+    .spin { animation: bruno-plugins-spin 0.9s linear infinite; }
   }
 
-  .detail-delete {
+  /* mini-toggle (replaces the broken ToggleSwitch in the card head) */
+  .mini-toggle {
+    background: transparent;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .mini-toggle-track {
+    position: relative;
+    display: inline-block;
+    width: 28px;
+    height: 14px;
+    border-radius: 7px;
+    background: ${(p) => p.theme.input.border};
+    transition: background-color 0.15s ease;
+  }
+
+  .mini-toggle-thumb {
+    position: absolute;
+    top: 1.5px;
+    left: 1.5px;
+    width: 11px;
+    height: 11px;
+    background: #fafafa;
+    border-radius: 50%;
+    transition: transform 0.15s ease;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.18);
+  }
+
+  .mini-toggle.on .mini-toggle-track { background: #22c55e; }
+  .mini-toggle.on .mini-toggle-thumb { transform: translateX(14px); }
+
+  .card-icon-btn {
     background: transparent;
     border: 1px solid transparent;
     border-radius: 4px;
-    padding: 0.3rem 0.4rem;
+    padding: 0.25rem 0.35rem;
     cursor: pointer;
     color: ${(p) => p.theme.text};
     opacity: 0.55;
+    display: inline-flex;
+    align-items: center;
 
     &:hover {
       opacity: 1;
       background: ${(p) => p.theme.input.bg};
       border-color: ${(p) => p.theme.input.border};
     }
-  }
 
-  .detail-meta {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    padding: 0.5rem 0.9rem;
-    border-bottom: 1px solid ${(p) => p.theme.input.border};
-    background: ${(p) => p.theme.input.bg};
-  }
-
-  .meta-toggle-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    background: transparent;
-    border: none;
-    padding: 0;
-    cursor: pointer;
-    font-size: 0.75rem;
-    color: ${(p) => p.theme.text};
-    user-select: none;
-
-    &:focus-visible {
-      outline: 2px solid ${(p) => p.theme.input.focusBorder};
-      outline-offset: 2px;
-      border-radius: 4px;
+    &.danger:hover {
+      color: #dc2626;
+      border-color: rgba(220, 38, 38, 0.3);
     }
   }
 
-  .meta-toggle-track {
-    position: relative;
-    display: inline-block;
-    width: 32px;
-    height: 16px;
-    border-radius: 8px;
-    background: ${(p) => p.theme.input.border};
-    transition: background-color 0.15s ease;
-    flex-shrink: 0;
+  .card-adds {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0 0.85rem 0.5rem 1.8rem;
+    font-size: 0.74rem;
   }
 
-  .meta-toggle-thumb {
-    position: absolute;
-    top: 2px;
-    left: 2px;
-    width: 12px;
-    height: 12px;
-    background: #fafafa;
-    border-radius: 50%;
-    transition: transform 0.15s ease;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  .adds-label { opacity: 0.6; }
+
+  .adds-chip {
+    background: ${(p) => p.theme.input.bg};
+    border: 1px solid ${(p) => p.theme.input.border};
+    border-radius: 3px;
+    padding: 1px 5px;
+    font-size: 0.72rem;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   }
 
-  .meta-toggle-btn.on .meta-toggle-track {
-    background: #22c55e;
-  }
-
-  .meta-toggle-btn.on .meta-toggle-thumb {
-    transform: translateX(16px);
-  }
-
-  .meta-toggle-label {
-    opacity: 0.85;
-  }
-
-  .detail-editor-wrap {
-    position: relative;
-    flex: 1;
-    min-height: 220px;
-    overflow: hidden;
-  }
-
-  .detail-editor-wrap .CodeMirror,
-  .detail-editor-wrap .editor-container {
-    height: 100% !important;
-  }
-
-  .detail-foot {
+  .card-warn-row {
     display: flex;
     align-items: center;
-    gap: 0.4rem;
-    padding: 0.45rem 0.9rem;
-    border-top: 1px solid ${(p) => p.theme.input.border};
-    font-size: 0.75rem;
-    background: ${(p) => p.theme.input.bg};
+    gap: 0.35rem;
+    margin: 0 0.6rem 0.5rem 1.75rem;
+    padding: 0.35rem 0.55rem;
+    background: rgba(245, 158, 11, 0.08);
+    border: 1px solid rgba(245, 158, 11, 0.3);
+    border-radius: 4px;
+    font-size: 0.74rem;
+    color: #b45309;
 
-    kbd {
-      background: ${(p) => p.theme.bg};
-      border: 1px solid ${(p) => p.theme.input.border};
+    code {
+      background: rgba(245, 158, 11, 0.15);
       border-radius: 3px;
       padding: 0 4px;
-      font-size: 0.7rem;
-      font-family: inherit;
-    }
-
-    &.ok { color: #16a34a; }
-    &.err { color: #dc2626; }
-    &.idle { opacity: 0.7; }
-
-    .err-msg {
-      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
       font-size: 0.72rem;
     }
   }
 
-  /* ───────────────────────── empty state ───────────────────────── */
+  .card-link-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    background: transparent;
+    border: 1px solid ${(p) => p.theme.input.border};
+    border-radius: 4px;
+    padding: 0.25rem 0.55rem;
+    cursor: pointer;
+    color: ${(p) => p.theme.text};
+    font-size: 0.74rem;
+
+    &:disabled { opacity: 0.6; cursor: default; }
+    &:hover:not(:disabled) { border-color: ${(p) => p.theme.input.focusBorder}; }
+
+    &.primary {
+      background: ${(p) => p.theme.input.focusBorder};
+      color: white;
+      border-color: ${(p) => p.theme.input.focusBorder};
+      &:hover:not(:disabled) { opacity: 0.92; }
+    }
+  }
+
+  .card-body {
+    border-top: 1px solid ${(p) => p.theme.input.border};
+  }
+
+  .card-editor-wrap {
+    position: relative;
+    height: 220px;
+    overflow: hidden;
+  }
+
+  .card-editor-wrap .CodeMirror,
+  .card-editor-wrap .editor-container {
+    height: 100% !important;
+  }
+
+  .card-foot {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.35rem 0.7rem;
+    border-top: 1px solid ${(p) => p.theme.input.border};
+    background: ${(p) => p.theme.input.bg};
+    font-size: 0.74rem;
+
+    .foot-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+
+      &.ok { color: #16a34a; }
+      &.err { color: #dc2626; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.72rem; }
+      &.hint { opacity: 0.6; }
+    }
+  }
+
+  /* ─────── empty state ─────── */
 
   .plugins-empty {
     flex: 1;
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: flex-start;
     padding: 2rem 1rem;
   }
 
-  .empty-hero {
-    text-align: center;
-    max-width: 560px;
-  }
+  .empty-hero { text-align: center; max-width: 560px; }
 
-  .empty-title {
-    font-size: 1.25rem;
-    font-weight: 600;
-    margin: 0 0 0.5rem 0;
-  }
+  .empty-title { font-size: 1.25rem; font-weight: 600; margin: 0 0 0.5rem 0; }
 
   .empty-blurb {
     margin: 0 0 1.25rem 0;
@@ -426,11 +676,7 @@ const StyledWrapper = styled.div`
     }
   }
 
-  .empty-ctas {
-    display: flex;
-    gap: 0.75rem;
-    justify-content: center;
-  }
+  .empty-ctas { display: flex; gap: 0.75rem; justify-content: center; }
 
   .empty-divider {
     width: 100%;
@@ -487,199 +733,8 @@ const StyledWrapper = styled.div`
     word-break: break-word;
   }
 
-  /* ───────────────────────── modals ───────────────────────── */
-
-  .plugins-catalog {
-    min-width: 640px;
-  }
-
-  .catalog-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 0.75rem;
-  }
-
-  .catalog-card {
-    border: 1px solid ${(p) => p.theme.input.border};
-    border-radius: 6px;
-    padding: 0.75rem;
-    background: ${(p) => p.theme.input.bg};
-    display: flex;
-    flex-direction: column;
-    gap: 0.4rem;
-  }
-
-  .card-head {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 0.5rem;
-  }
-
-  .card-name {
-    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-    font-weight: 600;
-    font-size: 0.85rem;
-  }
-
-  .card-desc {
-    margin: 0;
-    font-size: 0.78rem;
-    opacity: 0.75;
-    flex: 1;
-  }
-
-  .card-state-row {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.35rem;
-    min-height: 1.2rem;
-  }
-
-  .card-pill {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.25rem;
-    padding: 1px 7px 1px 5px;
-    font-size: 0.7rem;
-    border-radius: 999px;
-    border: 1px solid transparent;
-    line-height: 1.4;
-
-    &.ok {
-      color: #16a34a;
-      background: rgba(34, 197, 94, 0.1);
-      border-color: rgba(34, 197, 94, 0.25);
-    }
-    &.installing {
-      color: ${(p) => p.theme.text};
-      opacity: 0.75;
-      background: ${(p) => p.theme.input.bg};
-      border-color: ${(p) => p.theme.input.border};
-    }
-    &.err {
-      color: #dc2626;
-      background: rgba(220, 38, 38, 0.08);
-      border-color: rgba(220, 38, 38, 0.25);
-    }
-    &.warn {
-      color: #b45309;
-      background: rgba(245, 158, 11, 0.1);
-      border-color: rgba(245, 158, 11, 0.3);
-    }
-
-    .spin {
-      animation: bruno-plugins-spin 0.9s linear infinite;
-    }
-  }
-
-  .card-actions {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 0.5rem;
-    margin-top: 0.25rem;
-  }
-
-  .card-actions-buttons {
-    display: flex;
-    align-items: center;
-    gap: 0.4rem;
-    min-height: 28px;
-  }
-
-  .card-docs {
-    background: transparent;
-    border: none;
-    color: ${(p) => p.theme.text};
-    opacity: 0.65;
-    font-size: 0.74rem;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.25rem;
-    cursor: pointer;
-    padding: 4px 6px;
-    border-radius: 3px;
-
-    &:hover {
-      opacity: 1;
-      background: ${(p) => p.theme.bg};
-    }
-  }
-
   @keyframes bruno-plugins-spin {
     to { transform: rotate(360deg); }
-  }
-
-  .plugins-templates {
-    display: grid;
-    grid-template-columns: 220px 1fr;
-    gap: 0.75rem;
-    min-width: 720px;
-    min-height: 360px;
-  }
-
-  .templates-list {
-    display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
-  }
-
-  .template-item {
-    text-align: left;
-    background: transparent;
-    border: 1px solid transparent;
-    border-radius: 5px;
-    padding: 0.55rem 0.65rem;
-    cursor: pointer;
-    color: ${(p) => p.theme.text};
-
-    &:hover {
-      background: ${(p) => p.theme.input.bg};
-    }
-
-    &.active {
-      background: ${(p) => p.theme.input.bg};
-      border-color: ${(p) => p.theme.input.focusBorder};
-    }
-  }
-
-  .template-name {
-    font-size: 0.82rem;
-    font-weight: 500;
-    margin-bottom: 0.15rem;
-  }
-
-  .template-desc {
-    font-size: 0.7rem;
-    opacity: 0.65;
-  }
-
-  .templates-preview {
-    display: flex;
-    flex-direction: column;
-    border: 1px solid ${(p) => p.theme.input.border};
-    border-radius: 6px;
-    overflow: hidden;
-    background: ${(p) => p.theme.input.bg};
-  }
-
-  .template-snippet {
-    flex: 1;
-    margin: 0;
-    padding: 0.75rem;
-    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-    font-size: 0.75rem;
-    overflow: auto;
-    white-space: pre;
-  }
-
-  .template-actions {
-    display: flex;
-    justify-content: flex-end;
-    padding: 0.5rem 0.75rem;
-    border-top: 1px solid ${(p) => p.theme.input.border};
-    background: ${(p) => p.theme.bg};
   }
 `;
 

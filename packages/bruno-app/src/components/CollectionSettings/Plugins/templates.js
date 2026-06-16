@@ -5,6 +5,8 @@ export const TEMPLATES = [
   {
     name: 'Custom matcher',
     description: 'Add a method that asserts a custom condition.',
+    adds: ['.beEven()'],
+    usage: 'expect(42).to.beEven();',
     snippet: `chai.use(function (chai, utils) {
   chai.Assertion.addMethod('beEven', function () {
     const value = this._obj;
@@ -20,6 +22,8 @@ export const TEMPLATES = [
   {
     name: 'Custom property',
     description: 'Add a chainable property that asserts without parentheses.',
+    adds: ['.positive'],
+    usage: 'expect(42).to.be.positive;',
     snippet: `chai.use(function (chai, utils) {
   chai.Assertion.addProperty('positive', function () {
     const value = this._obj;
@@ -30,28 +34,26 @@ export const TEMPLATES = [
     );
   });
 });
-
-// Usage in a test:
-//   expect(42).to.be.positive;
 `
   },
   {
     name: 'Async assertion',
     description: 'Promise-based matcher that awaits a value resolution.',
+    adds: ['.eventuallyEqual()'],
+    usage: 'await expect(fetchUser()).to.eventuallyEqual({ id: 1 });',
     snippet: `chai.use(function (chai, utils) {
   chai.Assertion.addMethod('eventuallyEqual', async function (expected) {
     const resolved = await Promise.resolve(this._obj);
     new chai.Assertion(resolved).to.equal(expected);
   });
 });
-
-// Usage in a test:
-//   await expect(fetchUser()).to.eventuallyEqual({ id: 1 });
 `
   },
   {
     name: 'Deep partial match',
     description: 'Subset-match without depending on chai-subset.',
+    adds: ['.partialMatch()'],
+    usage: 'expect(response).to.partialMatch({ status: 200, body: { ok: true } });',
     snippet: `chai.use(function (chai, utils) {
   function matchesSubset(actual, expected) {
     if (expected === null || typeof expected !== 'object') return actual === expected;
@@ -71,9 +73,6 @@ export const TEMPLATES = [
     );
   });
 });
-
-// Usage in a test:
-//   expect(response).to.partialMatch({ status: 200, body: { ok: true } });
 `
   }
 ];
