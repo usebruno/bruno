@@ -4,7 +4,6 @@ import { generateCollectionDocs } from '../../utils/page';
 import { buildCommonLocators } from '../../utils/page/locators';
 import {
   getCollectionTreeStructure,
-  waitForCollectionMount,
   type CollectionTreeItem
 } from '../../utils/page/mounting';
 
@@ -130,8 +129,6 @@ test.describe('Generate Documentation', () => {
   }) => {
     const locators = buildCommonLocators(page);
 
-    await waitForCollectionMount(page, COLLECTION_NAME);
-
     await locators.sidebar.collection(COLLECTION_NAME).hover();
     await locators.actions.collectionActions(COLLECTION_NAME).click();
     await locators.generateDocs.menuItem().click();
@@ -151,7 +148,6 @@ test.describe('Generate Documentation', () => {
   }) => {
     const locators = buildCommonLocators(page);
 
-    await waitForCollectionMount(page, COLLECTION_NAME);
     await locators.sidebar.collection(COLLECTION_NAME).hover();
     await locators.actions.collectionActions(COLLECTION_NAME).click();
     await locators.generateDocs.menuItem().click();
@@ -176,7 +172,6 @@ test.describe('Generate Documentation', () => {
   }) => {
     const locators = buildCommonLocators(page);
 
-    await waitForCollectionMount(page, COLLECTION_NAME);
     await locators.sidebar.collection(COLLECTION_NAME).hover();
     await locators.actions.collectionActions(COLLECTION_NAME).click();
     await locators.generateDocs.menuItem().click();
