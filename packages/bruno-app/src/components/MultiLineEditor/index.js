@@ -233,8 +233,9 @@ class MultiLineEditor extends Component {
 
   render() {
     const wrapperClass = `multi-line-editor grow ${this.props.readOnly ? 'read-only' : ''}`;
+    const testId = this.props.testId ?? (this.props.name ? `test-multiline-editor-${this.props.name}` : undefined);
     return (
-      <div data-testid={`test-multiline-editor-${this.props.name}`} className={`flex flex-row justify-between w-full overflow-x-auto ${this.props.className}`}>
+      <div data-testid={testId} className={`flex flex-row justify-between w-full overflow-x-auto ${this.props.className}`}>
         <StyledWrapper ref={this.editorRef} className={wrapperClass} />
         {this.secretEye(this.props.isSecret)}
       </div>

@@ -101,6 +101,7 @@ const VarsTable = ({ collection, vars, varType, initialScroll = 0 }) => {
     <StyledWrapper className="w-full">
       <EditableTable
         tableId="collection-vars"
+        testId={`collection-${varType}-vars`}
         columns={columns}
         rows={vars}
         onChange={handleVarsChange}

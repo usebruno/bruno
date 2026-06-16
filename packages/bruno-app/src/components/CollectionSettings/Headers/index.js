@@ -71,8 +71,9 @@ const Headers = ({ collection }) => {
     name: 'Description',
     placeholder: 'Description',
     width: '25%',
-    render: ({ value, onChange }) => (
+    render: ({ value, onChange, rowIndex }) => (
       <MultiLineEditor
+        name={`${rowIndex}.description`}
         value={value || ''}
         theme={storedTheme}
         onSave={handleSave}
@@ -150,6 +151,7 @@ const Headers = ({ collection }) => {
       </div>
       <EditableTable
         tableId="collection-headers"
+        testId="collection-headers"
         columns={columns}
         rows={headers}
         onChange={handleHeadersChange}

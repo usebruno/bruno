@@ -97,8 +97,9 @@ const Assertions = ({ item, collection }) => {
     name: 'Description',
     placeholder: 'Description',
     width: '25%',
-    render: ({ value, onChange }) => (
+    render: ({ value, onChange, rowIndex }) => (
       <MultiLineEditor
+        name={`${rowIndex}.description`}
         value={value || ''}
         theme={storedTheme}
         onSave={onSave}

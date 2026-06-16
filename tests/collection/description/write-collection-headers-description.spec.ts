@@ -7,8 +7,6 @@ test.describe('Collection Settings Descriptions - Write (Headers)', () => {
     pageWithUserData: page,
     collectionFixturePath
   }) => {
-    test.setTimeout(30_000);
-
     // Open collection settings by clicking the collection name in the sidebar
     await page
       .locator('#sidebar-collection-name')
@@ -19,25 +17,26 @@ test.describe('Collection Settings Descriptions - Write (Headers)', () => {
 
     await page.locator('.tab.headers').click();
 
-    // Target the X-Plain row (row index 2) and its description editor (CodeMirror index 2)
-    const headerRows = page.locator('table').first().locator('tbody tr');
-    const targetRow = headerRows.nth(2);
+    // Find the X-Plain row by its header name, not by position
+    const headersTable = page.getByTestId('collection-headers');
+    const xPlainRow = headersTable.locator('tbody tr').filter({
+      has: page.locator('[data-testid="column-name"] .CodeMirror-line', { hasText: 'X-Plain' })
+    });
+    const descCell = xPlainRow.getByTestId('column-description');
 
-    // Use CodeMirror's JS API directly so the `change` event fires synchronously and
-    // the EditableTable onChange chain updates Redux state before we click Save.
-    await page.evaluate(() => {
-      const rows = document.querySelectorAll('table:first-of-type tbody tr');
-      const row = rows[2];
-      if (!row) throw new Error('Row 2 not found');
-      const cms = row.querySelectorAll('.CodeMirror');
-      const cm = (cms[2] as any)?.CodeMirror; // description is the 3rd CodeMirror (index 2)
+    // Use CodeMirror's JS API via locator.evaluate() so the `change` event fires synchronously
+    // and the EditableTable onChange chain updates Redux state before we click Save.
+    await descCell.evaluate((el) => {
+      const cmEl = el.querySelector('.CodeMirror');
+      if (!cmEl) throw new Error('No CodeMirror in X-Plain description cell');
+      const cm = (cmEl as any).CodeMirror;
       if (!cm) throw new Error('CodeMirror instance not found');
       cm.setValue('First line\nSecond line');
     });
 
-    // Wait for CodeMirror DOM to reflect the value
-    await expect(targetRow.locator('.CodeMirror').nth(2).locator('.CodeMirror-line').nth(0)).toHaveText('First line');
-    await page.waitForTimeout(200);
+    // Wait for CodeMirror DOM to reflect both lines before saving
+    await expect(descCell.locator('.CodeMirror-line').nth(0)).toHaveText('First line');
+    await expect(descCell.locator('.CodeMirror-line').nth(1)).toHaveText('Second line');
 
     // Save and confirm
     await page.getByRole('button', { name: 'Save' }).click();

@@ -7,8 +7,6 @@ test.describe('Collection Settings Descriptions - Write (Vars)', () => {
     pageWithUserData: page,
     collectionFixturePath
   }) => {
-    test.setTimeout(30_000);
-
     // Open collection settings
     await page
       .locator('#sidebar-collection-name')
@@ -19,25 +17,38 @@ test.describe('Collection Settings Descriptions - Write (Vars)', () => {
 
     await page.locator('.tab.vars').click();
 
-    // Target the 'plain' row (row index 2) in the Pre Request VarsTable (first <table>).
-    // Var rows have two CodeMirrors: value (nth 0) and description (nth 1).
-    const varRows = page.locator('table').first().locator('tbody tr');
-    const targetRow = varRows.nth(2);
+    // Wait for the pre-request vars table to render its rows
+    await expect(page.locator('table:first-of-type tbody tr').first()).toBeVisible();
 
+    // Find the 'plain' row by checking name input values, not by position.
+    // Use CodeMirror's JS API so the `change` event fires synchronously and
+    // the EditableTable onChange chain updates Redux state before we click Save.
     await page.evaluate(() => {
-      // The vars tab renders two tables (pre-request, post-response).
-      // The first table's row 2 is the 'plain' pre-request var.
-      const tables = document.querySelectorAll('table');
-      const rows = tables[0].querySelectorAll('tbody tr');
-      const row = rows[2];
-      if (!row) throw new Error('Row 2 not found in first table');
-      const cms = row.querySelectorAll('.CodeMirror');
-      const cm = (cms[1] as any)?.CodeMirror; // description is the 2nd CodeMirror (index 1)
-      if (!cm) throw new Error('CodeMirror instance not found');
+      const rows = document.querySelectorAll('table:first-of-type tbody tr');
+      const targetRow = Array.from(rows).find((row) => {
+        const input = row.querySelector('[data-testid="column-name"] input') as HTMLInputElement;
+        return input?.value === 'plain';
+      });
+      if (!targetRow) throw new Error('\'plain\' var row not found in pre-request vars table');
+
+      // Var rows have two CodeMirrors: value (index 0) and description (index 1)
+      const cms = targetRow.querySelectorAll('.CodeMirror');
+      const cm = (cms[1] as any)?.CodeMirror;
+      if (!cm) throw new Error('Description CodeMirror not found in plain row');
+
       cm.setValue('First line\nSecond line');
     });
 
-    await expect(targetRow.locator('.CodeMirror').nth(1).locator('.CodeMirror-line').nth(0)).toHaveText('First line', { timeout: 2000 });
+    // Find the 'plain' row in Playwright to assert both CM lines are reflected
+    const varsTable = page.getByTestId('collection-request-vars');
+    const plainRowIndex = await varsTable.locator('[data-testid="column-name"] input').evaluateAll(
+      (inputs) => inputs.findIndex((el) => (el as HTMLInputElement).value === 'plain')
+    );
+    if (plainRowIndex === -1) throw new Error('\'plain\' var not found for assertion');
+
+    const descCell = varsTable.locator('tbody tr').nth(plainRowIndex).getByTestId('column-description');
+    await expect(descCell.locator('.CodeMirror-line').nth(0)).toHaveText('First line');
+    await expect(descCell.locator('.CodeMirror-line').nth(1)).toHaveText('Second line');
 
     // The vars section has a single "Save" button shared by pre and post tables
     await page.getByRole('button', { name: 'Save' }).click();
