@@ -18,13 +18,83 @@ Or run without installing:
 npx -y @usebruno/mcp
 ```
 
-During the POC, point your MCP client at the binary inside this repo:
+During the POC, point your MCP client at the binary inside this repo.
 
-```
-/path/to/bruno/packages/bruno-mcp/bin/bruno-mcp.js
+## POC setup (running from source)
+
+The package isn't on npm yet, so the snippets below point your MCP client at the
+binary checked out in this repo instead of `npx @usebruno/mcp`.
+
+**1. Install dependencies** (from the repo root — this is an npm workspaces monorepo):
+
+```bash
+npm install
 ```
 
-## Quick start
+**2. Note the absolute path to the binary.** From the repo root:
+
+```bash
+echo "$(pwd)/packages/bruno-mcp/bin/bruno-mcp.js"
+```
+
+Use that path (referred to below as `/abs/path/to/bruno/packages/bruno-mcp/bin/bruno-mcp.js`)
+wherever a config asks for the server command.
+
+### Claude Code
+
+Register the server with the absolute path to the binary:
+
+```bash
+claude mcp add bruno -- node /abs/path/to/bruno/packages/bruno-mcp/bin/bruno-mcp.js
+```
+
+To expose a specific collection or workspace regardless of where you launch `claude`,
+append the flags after the binary path:
+
+```bash
+claude mcp add bruno -- node /abs/path/to/bruno/packages/bruno-mcp/bin/bruno-mcp.js --collection /path/to/my-collection
+```
+
+Verify it registered with `claude mcp list`, then open a new `claude` session. Otherwise,
+launching `claude` from inside a Bruno collection / workspace directory auto-discovers it
+(see [Collection discovery](#collection-discovery)).
+
+### Cursor
+
+Edit `~/.cursor/mcp.json` (or `.cursor/mcp.json` in a project for a project-scoped server):
+
+```json
+{
+  "mcpServers": {
+    "bruno": {
+      "command": "node",
+      "args": ["/abs/path/to/bruno/packages/bruno-mcp/bin/bruno-mcp.js"]
+    }
+  }
+}
+```
+
+To pin a collection, add it to `args`:
+
+```json
+{
+  "mcpServers": {
+    "bruno": {
+      "command": "node",
+      "args": [
+        "/abs/path/to/bruno/packages/bruno-mcp/bin/bruno-mcp.js",
+        "--collection",
+        "/path/to/my-collection"
+      ]
+    }
+  }
+}
+```
+
+Reload Cursor (or toggle the server off/on in **Settings → MCP**). The Bruno tools should
+appear in the MCP panel.
+
+## Quick start (once published)
 
 ### Claude Desktop
 
