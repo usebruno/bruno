@@ -128,6 +128,58 @@ const Wrapper = styled.div`
     padding-bottom: 2.625rem;
   }
 
+    .env-list-search {
+    position: relative;
+    display: flex;
+    align-items: center;
+    margin: 0 4px 6px 4px;
+
+    .env-list-search-icon {
+      position: absolute;
+      left: 8px;
+      color: ${(props) => props.theme.colors.text.muted};
+      pointer-events: none;
+    }
+
+    .env-list-search-input {
+      width: 100%;
+      padding: 5px 24px 5px 26px;
+      font-size: 12px;
+      background: transparent;
+      border: 1px solid ${(props) => props.theme.border.border1};
+      border-radius: 6px;
+      color: ${(props) => props.theme.text};
+      transition: border-color 0.15s ease;
+
+      &::placeholder {
+        color: ${(props) => props.theme.colors.text.muted};
+      }
+      
+      &:focus {
+        outline: none;
+        border-color: ${(props) => props.theme.colors.accent};
+      }
+    }
+
+    .env-list-search-clear {
+      position: absolute;
+      right: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2px;
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      color: ${(props) => props.theme.colors.text.muted};
+      border-radius: 3px;
+
+      &:hover {
+        color: ${(props) => props.theme.text};
+      }
+    }
+  }
+
   .dropdown-item-list {
     max-height: 75vh;
     overflow-y: scroll;
