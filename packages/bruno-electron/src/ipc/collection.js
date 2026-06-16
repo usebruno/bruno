@@ -1676,6 +1676,27 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
     mainWindow.webContents.openDevTools();
   });
 
+  // Parse-only validation of a chai plugin snippet.
+  // Runs in main where there's no renderer CSP blocking `new Function(...)`.
+  // We don't execute the plugin (no chai instance here); we only confirm the
+  // snippet is syntactically valid JavaScript.
+  ipcMain.handle('renderer:validate-plugin-syntax', async (event, code) => {
+    if (typeof code !== 'string' || !code.trim()) {
+      return { ok: false, message: 'Plugin code is empty.' };
+    }
+    try {
+      new Function('chai', 'utils', code);
+      return { ok: true, message: 'Parse OK' };
+    } catch (error) {
+      return {
+        ok: false,
+        message: error?.message || String(error),
+        line: typeof error?.lineNumber === 'number' ? error.lineNumber : undefined,
+        column: typeof error?.columnNumber === 'number' ? error.columnNumber : undefined
+      };
+    }
+  });
+
   ipcMain.handle('renderer:load-gql-schema-file', async () => {
     try {
       const { filePaths } = await dialog.showOpenDialog(mainWindow, {

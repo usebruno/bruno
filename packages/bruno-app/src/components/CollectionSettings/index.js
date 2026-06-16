@@ -11,6 +11,7 @@ import Script from './Script';
 import Test from './Tests';
 import Presets from './Presets';
 import Protobuf from './Protobuf';
+import Plugins from './Plugins';
 import StyledWrapper from './StyledWrapper';
 import Vars from './Vars/index';
 import StatusDot from 'components/StatusDot';
@@ -33,6 +34,10 @@ const CollectionSettings = ({ collection }) => {
   const hasScripts = root?.request?.script?.res || root?.request?.script?.req;
   const hasTests = root?.request?.tests;
   const hasDocs = root?.docs;
+  const chaiPlugins = collection.draft?.brunoConfig
+    ? get(collection, 'draft.brunoConfig.scripts.plugins.chai', [])
+    : get(collection, 'brunoConfig.scripts.plugins.chai', []);
+  const hasPlugins = Array.isArray(chaiPlugins) && chaiPlugins.length > 0;
 
   const headers = collection.draft?.root
     ? get(collection, 'draft.root.request.headers', [])
@@ -95,6 +100,9 @@ const CollectionSettings = ({ collection }) => {
       case 'protobuf': {
         return <Protobuf collection={collection} />;
       }
+      case 'plugins': {
+        return <Plugins collection={collection} />;
+      }
     }
   };
 
@@ -145,6 +153,10 @@ const CollectionSettings = ({ collection }) => {
         <div className={getTabClassname('protobuf')} role="tab" data-testid="collection-settings-tab-protobuf" onClick={() => setTab('protobuf')}>
           Protobuf
           {protobufConfig.protoFiles && protobufConfig.protoFiles.length > 0 && <StatusDot />}
+        </div>
+        <div className={getTabClassname('plugins')} role="tab" data-testid="collection-settings-tab-plugins" onClick={() => setTab('plugins')}>
+          Plugins
+          {hasPlugins && <StatusDot />}
         </div>
       </div>
       <section className="collection-settings-content mt-4 h-full overflow-auto">{getTabPanel(tab)}</section>

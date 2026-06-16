@@ -13,3 +13,9 @@ get {
 script:pre-request {
   bru.runner.stopExecution();
 }
+
+tests {
+  test("chai plugins",() => {
+   expect(3).to.beEven()
+  })
+}

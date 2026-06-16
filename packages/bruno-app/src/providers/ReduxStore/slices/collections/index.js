@@ -2286,6 +2286,28 @@ export const collectionsSlice = createSlice({
         set(collection, 'draft.brunoConfig.protobuf', action.payload.protobuf);
       }
     },
+    updateCollectionChaiPlugins: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+
+      if (collection) {
+        if (!collection.draft) {
+          collection.draft = {
+            root: cloneDeep(collection.root),
+            brunoConfig: cloneDeep(collection.brunoConfig)
+          };
+        }
+        if (!collection.draft.brunoConfig) {
+          collection.draft.brunoConfig = cloneDeep(collection.brunoConfig);
+        }
+        if (!collection.draft.brunoConfig.scripts) {
+          collection.draft.brunoConfig.scripts = {};
+        }
+        if (!collection.draft.brunoConfig.scripts.plugins) {
+          collection.draft.brunoConfig.scripts.plugins = {};
+        }
+        set(collection, 'draft.brunoConfig.scripts.plugins.chai', action.payload.chaiPlugins);
+      }
+    },
     addFolderHeader: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
       const folder = collection ? findItemInCollection(collection, action.payload.folderUid) : null;
@@ -3803,6 +3825,7 @@ export const {
   updateCollectionClientCertificates,
   updateCollectionPresets,
   updateCollectionProtobuf,
+  updateCollectionChaiPlugins,
   collectionAddFileEvent,
   collectionAddDirectoryEvent,
   collectionChangeFileEvent,
