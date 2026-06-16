@@ -29,7 +29,7 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
         };
         break;
       case 'bearer':
-        axiosRequest.headers['Authorization'] = `Bearer ${get(collectionAuth, 'bearer.token', '')}`;
+        axiosRequest.headers['authorization'] = `Bearer ${get(collectionAuth, 'bearer.token', '')}`;
         break;
       case 'digest':
         axiosRequest.digestConfig = {
@@ -77,14 +77,14 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
 
         // Construct the WSSE header
         axiosRequest.headers[
-          'X-WSSE'
+          'x-wsse'
         ] = `UsernameToken Username="${username}", PasswordDigest="${digest}", Nonce="${nonce}", Created="${ts}"`;
         break;
       case 'apikey':
         const apiKeyAuth = get(collectionAuth, 'apikey');
         if (apiKeyAuth.key.length === 0) break;
         if (apiKeyAuth.placement === 'header') {
-          axiosRequest.headers[apiKeyAuth.key] = apiKeyAuth.value;
+          axiosRequest.headers[apiKeyAuth.key?.toLowerCase()] = apiKeyAuth.value;
           axiosRequest.apiKeyHeaderName = apiKeyAuth.key;
         } else if (apiKeyAuth.placement === 'queryparams') {
           // If the API key authentication is set and its placement is 'queryparams', add it to the axios request object. This will be used in the configureRequest function to append the API key to the query parameters of the request URL.
@@ -198,7 +198,7 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
         };
         break;
       case 'bearer':
-        axiosRequest.headers['Authorization'] = `Bearer ${get(request, 'auth.bearer.token', '')}`;
+        axiosRequest.headers['authorization'] = `Bearer ${get(request, 'auth.bearer.token', '')}`;
         break;
       case 'digest':
         axiosRequest.digestConfig = {
@@ -331,14 +331,14 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
 
         // Construct the WSSE header
         axiosRequest.headers[
-          'X-WSSE'
+          'x-wsse'
         ] = `UsernameToken Username="${username}", PasswordDigest="${digest}", Nonce="${nonce}", Created="${ts}"`;
         break;
       case 'apikey':
         const apiKeyAuth = get(request, 'auth.apikey');
         if (apiKeyAuth.key.length === 0) break;
         if (apiKeyAuth.placement === 'header') {
-          axiosRequest.headers[apiKeyAuth.key] = apiKeyAuth.value;
+          axiosRequest.headers[apiKeyAuth.key?.toLowerCase()] = apiKeyAuth.value;
           axiosRequest.apiKeyHeaderName = apiKeyAuth.key;
         } else if (apiKeyAuth.placement === 'queryparams') {
           // If the API key authentication is set and its placement is 'queryparams', add it to the axios request object. This will be used in the configureRequest function to append the API key to the query parameters of the request URL.
@@ -382,12 +382,12 @@ const prepareRequest = async (item, collection = {}, abortController) => {
   const disabledHeaders = [];
   each(get(request, 'headers', []), (h) => {
     if (h.enabled && h.name?.length > 0) {
-      headers[h.name] = h.value;
+      headers[h.name.toLowerCase()] = h.value;
       if (h.name.toLowerCase() === 'content-type') {
         contentTypeDefined = true;
       }
     } else if (!h.enabled && h.name?.length > 0) {
-      disabledHeaders.push({ name: h.name, value: h.value });
+      disabledHeaders.push({ name: h.name.toLowerCase(), value: h.value });
     }
   });
 

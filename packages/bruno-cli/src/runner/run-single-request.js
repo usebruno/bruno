@@ -467,7 +467,7 @@ const runSingleRequest = async function (
           .map(([name, value]) => `${name}=${value}`)
           .join('; ');
 
-        request.headers[existingCookieHeaderName || 'Cookie'] = combinedCookieString;
+        request.headers[(existingCookieHeaderName || 'Cookie').toLowerCase()] = combinedCookieString;
       }
     }
 
@@ -587,7 +587,7 @@ const runSingleRequest = async function (
           const { tokenPlacement = 'header', tokenHeaderPrefix = '', tokenQueryKey = 'access_token' } = request.oauth2;
 
           if (tokenPlacement === 'header' && token) {
-            request.headers['Authorization'] = `${tokenHeaderPrefix} ${token}`.trim();
+            request.headers['authorization'] = `${tokenHeaderPrefix} ${token}`.trim();
           } else if (tokenPlacement === 'url') {
             try {
               const url = new URL(request.url);

@@ -98,24 +98,24 @@ class BrunoRequest {
   }
 
   getAuthMode() {
-    const headers = this.req.headers;
+    const authorization = this.getHeader('Authorization');
     if (this.req?.oauth2) {
       return 'oauth2';
     } else if (this.req?.oauth1config) {
       return 'oauth1';
-    } else if (headers?.['Authorization']?.startsWith('Bearer')) {
+    } else if (authorization?.startsWith('Bearer')) {
       return 'bearer';
-    } else if (headers?.['Authorization']?.startsWith('Basic') || this.req?.auth?.username) {
+    } else if (authorization?.startsWith('Basic') || this.req?.auth?.username) {
       return 'basic';
     } else if (this.req?.apiKeyAuthValueForQueryParams) {
       return 'apikey';
-    } else if (this.req?.apiKeyHeaderName && this.headers?.[this.req.apiKeyHeaderName] !== undefined) {
+    } else if (this.req?.apiKeyHeaderName && this.getHeader(this.req.apiKeyHeaderName) !== null) {
       return 'apikey';
     } else if (this.req?.awsv4) {
       return 'awsv4';
     } else if (this.req?.digestConfig) {
       return 'digest';
-    } else if (headers?.['X-WSSE'] || this.req?.auth?.username) {
+    } else if (this.getHeader('X-WSSE') !== null || this.req?.auth?.username) {
       return 'wsse';
     } else {
       return 'none';
@@ -132,33 +132,64 @@ class BrunoRequest {
   }
 
   setHeaders(headers) {
-    this.req.headers = headers;
+    // Normalize all keys to lowercase so header lookups stay case-insensitive internally
+    const normalized = {};
+    Object.entries(headers || {}).forEach(([name, value]) => {
+      if (typeof name === 'string') {
+        normalized[name.toLowerCase()] = value;
+      }
+    });
+    this.req.headers = normalized;
   }
 
   deleteHeaders(headers) {
     headers.forEach((name) => this.deleteHeader(name));
   }
 
-  getHeader(name) {
+  /**
+   * Find the actual key present in req.headers that matches `name`
+   * case-insensitively. HTTP header names are case-insensitive, so lookups must
+   * resolve regardless of the casing the header was stored with.
+   * @param {string} name
+   * @returns {string|undefined} the matching key as stored, or undefined
+   */
+  #findHeaderKey(name) {
     if (!this.req?.headers || typeof name !== 'string') {
-      return null;
+      return undefined;
     }
-    const headers = this.req.headers;
     const lowerCaseName = name.toLowerCase();
-    return headers[lowerCaseName] ?? null;
+    return Object.keys(this.req.headers).find((key) => key.toLowerCase() === lowerCaseName);
+  }
+
+  getHeader(name) {
+    const key = this.#findHeaderKey(name);
+    return key !== undefined ? this.req.headers[key] : null;
   }
 
   setHeader(name, value) {
-    this.req.headers[name] = value;
+    if (!this.req?.headers || typeof name !== 'string') {
+      return;
+    }
+    // Reuse the existing key if the header already exists in a different casing,
+    // otherwise store the new header lowercased (Bruno's internal convention).
+    const existingKey = this.#findHeaderKey(name);
+    this.req.headers[existingKey ?? name.toLowerCase()] = value;
   }
 
   deleteHeader(name) {
-    delete this.req.headers[name];
+    if (typeof name !== 'string') {
+      return;
+    }
+    const existingKey = this.#findHeaderKey(name);
+    if (existingKey !== undefined) {
+      delete this.req.headers[existingKey];
+    }
 
     /**
       Store header name to be applied in the axios request interceptor.
       Default headers (user-agent, accept, accept-encoding, etc.) are added after
       the pre-request script runs, so we track them here and delete them later.
+      The interceptor matches case-insensitively, so the tracked casing is irrelevant.
     */
     if (!this.req.__headersToDelete) {
       this.req.__headersToDelete = [];
@@ -169,7 +200,11 @@ class BrunoRequest {
   }
 
   hasJSONContentType(headers) {
-    const contentType = headers?.['Content-Type'] || headers?.['content-type'] || '';
+    if (!headers) {
+      return false;
+    }
+    const contentTypeKey = Object.keys(headers).find((key) => key.toLowerCase() === 'content-type');
+    const contentType = (contentTypeKey ? headers[contentTypeKey] : '') || '';
     return contentType.includes('json');
   }
 

@@ -65,7 +65,8 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
 
   forOwn(request.headers, (value, key) => {
     delete request.headers[key];
-    request.headers[_interpolate(key)] = _interpolate(value);
+    // keep header keys lowercased internally so script/getHeader lookups stay case-insensitive
+    request.headers[_interpolate(key)?.toLowerCase()] = _interpolate(value);
   });
   if (request.apiKeyHeaderName) {
     request.apiKeyHeaderName = _interpolate(request.apiKeyHeaderName);
@@ -198,7 +199,7 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
     const password = _interpolate(request.basicAuth.password) || '';
 
     // use auth header based approach and delete the request.auth object
-    request.headers['Authorization'] = `Basic ${Buffer.from(`${username}:${password}`).toString('base64')}`;
+    request.headers['authorization'] = `Basic ${Buffer.from(`${username}:${password}`).toString('base64')}`;
     delete request.basicAuth;
   }
 

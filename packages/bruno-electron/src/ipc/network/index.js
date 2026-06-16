@@ -240,7 +240,7 @@ const configureRequest = async (
         {
           const tokenValue = tokenSource === 'id_token' ? credentials?.id_token : credentials?.access_token;
           if (tokenPlacement == 'header' && tokenValue) {
-            request.headers['Authorization'] = `${tokenHeaderPrefix} ${tokenValue}`.trim();
+            request.headers['authorization'] = `${tokenHeaderPrefix} ${tokenValue}`.trim();
           } else if (tokenValue) {
             try {
               const url = new URL(request.url);
@@ -257,7 +257,7 @@ const configureRequest = async (
         {
           const tokenValue = tokenSource === 'id_token' ? credentials?.id_token : credentials?.access_token;
           if (tokenPlacement == 'header' && tokenValue) {
-            request.headers['Authorization'] = `${tokenHeaderPrefix} ${tokenValue}`.trim();
+            request.headers['authorization'] = `${tokenHeaderPrefix} ${tokenValue}`.trim();
           } else if (tokenValue) {
             try {
               const url = new URL(request.url);
@@ -274,7 +274,7 @@ const configureRequest = async (
         {
           const tokenValue = tokenSource === 'id_token' ? credentials?.id_token : credentials?.access_token;
           if (tokenPlacement == 'header' && tokenValue) {
-            request.headers['Authorization'] = `${tokenHeaderPrefix} ${tokenValue}`.trim();
+            request.headers['authorization'] = `${tokenHeaderPrefix} ${tokenValue}`.trim();
           } else if (tokenValue) {
             try {
               const url = new URL(request.url);
@@ -291,7 +291,7 @@ const configureRequest = async (
         {
           const tokenValue = tokenSource === 'id_token' ? credentials?.id_token : credentials?.access_token;
           if (tokenPlacement == 'header' && tokenValue) {
-            request.headers['Authorization'] = `${tokenHeaderPrefix} ${tokenValue}`.trim();
+            request.headers['authorization'] = `${tokenHeaderPrefix} ${tokenValue}`.trim();
           } else if (tokenValue) {
             try {
               const url = new URL(request.url);
@@ -345,7 +345,7 @@ const configureRequest = async (
         .map(([name, value]) => `${name}=${value}`)
         .join('; ');
 
-      request.headers[existingCookieHeaderName || 'Cookie'] = combinedCookieString;
+      request.headers[(existingCookieHeaderName || 'Cookie').toLowerCase()] = combinedCookieString;
     }
   }
 

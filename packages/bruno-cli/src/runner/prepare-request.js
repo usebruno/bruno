@@ -31,12 +31,12 @@ const prepareRequest = async (item = {}, collection = {}) => {
   const disabledHeaders = [];
   each(get(request, 'headers', []), (h) => {
     if (h.enabled && h.name?.length > 0) {
-      headers[h.name] = h.value;
+      headers[h.name.toLowerCase()] = h.value;
       if (h.name.toLowerCase() === 'content-type') {
         contentTypeDefined = true;
       }
     } else if (!h.enabled && h.name?.length > 0) {
-      disabledHeaders.push({ name: h.name, value: h.value });
+      disabledHeaders.push({ name: h.name.toLowerCase(), value: h.value });
     }
   });
 
@@ -65,12 +65,12 @@ const prepareRequest = async (item = {}, collection = {}) => {
     }
 
     if (collectionAuth.mode === 'bearer') {
-      axiosRequest.headers['Authorization'] = `Bearer ${get(collectionAuth, 'bearer.token', '')}`;
+      axiosRequest.headers['authorization'] = `Bearer ${get(collectionAuth, 'bearer.token', '')}`;
     }
 
     if (collectionAuth.mode === 'apikey') {
       if (collectionAuth.apikey?.placement === 'header') {
-        axiosRequest.headers[collectionAuth.apikey?.key] = collectionAuth.apikey?.value;
+        axiosRequest.headers[collectionAuth.apikey?.key?.toLowerCase()] = collectionAuth.apikey?.value;
         axiosRequest.apiKeyHeaderName = collectionAuth.apikey?.key;
       }
 
@@ -188,7 +188,7 @@ const prepareRequest = async (item = {}, collection = {}) => {
 
       // Construct the WSSE header
       axiosRequest.headers[
-        'X-WSSE'
+        'x-wsse'
       ] = `UsernameToken Username="${username}", PasswordDigest="${digest}", Nonce="${nonce}", Created="${ts}"`;
     }
   }
@@ -241,7 +241,7 @@ const prepareRequest = async (item = {}, collection = {}) => {
     }
 
     if (request.auth.mode === 'bearer') {
-      axiosRequest.headers['Authorization'] = `Bearer ${get(request, 'auth.bearer.token', '')}`;
+      axiosRequest.headers['authorization'] = `Bearer ${get(request, 'auth.bearer.token', '')}`;
     }
 
     if (request.auth.mode === 'wsse') {
@@ -258,7 +258,7 @@ const prepareRequest = async (item = {}, collection = {}) => {
 
       // Construct the WSSE header
       axiosRequest.headers[
-        'X-WSSE'
+        'x-wsse'
       ] = `UsernameToken Username="${username}", PasswordDigest="${digest}", Nonce="${nonce}", Created="${ts}"`;
     }
 
@@ -313,7 +313,7 @@ const prepareRequest = async (item = {}, collection = {}) => {
 
     if (request.auth.mode === 'apikey') {
       if (request.auth.apikey?.placement === 'header') {
-        axiosRequest.headers[request.auth.apikey?.key] = request.auth.apikey?.value;
+        axiosRequest.headers[request.auth.apikey?.key?.toLowerCase()] = request.auth.apikey?.value;
         axiosRequest.apiKeyHeaderName = request.auth.apikey?.key;
       }
 
