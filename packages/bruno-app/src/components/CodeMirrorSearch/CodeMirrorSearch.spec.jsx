@@ -44,6 +44,8 @@ function makeMockEditor(matchResults = []) {
     focus: jest.fn(),
     getValue: jest.fn(() => 'test content'),
     changeGeneration: jest.fn(() => 1),
+    on: jest.fn(),
+    off: jest.fn(),
     _marks: marks
   };
 }
@@ -262,6 +264,37 @@ describe('CodeMirrorSearch', () => {
 
       expect(screen.getByRole('button', { name: 'Replace' })).not.toBeDisabled();
       expect(screen.getByRole('button', { name: 'Replace all' })).not.toBeDisabled();
+    });
+  });
+
+  describe('document change (undo/redo/edit)', () => {
+    it('re-runs search and updates count when document changes', () => {
+      let changeHandler;
+      const matches = [
+        { from: { line: 0, ch: 0 }, to: { line: 0, ch: 7 } },
+        { from: { line: 1, ch: 0 }, to: { line: 1, ch: 7 } }
+      ];
+      const editor = makeMockEditor(matches);
+      // Capture the change handler registered by the component
+      editor.on = jest.fn((event, handler) => { if (event === 'change') changeHandler = handler; });
+      editor.off = jest.fn();
+
+      renderSearch({ editor });
+      typeSearch('console');
+      expect(screen.getByText('1 / 2')).toBeInTheDocument();
+
+      // Simulate undo — document reverts, now no matches
+      editor.getSearchCursor.mockImplementation(() => {
+        let i = -1;
+        return { findNext: () => false, from: () => undefined, to: () => undefined };
+      });
+
+      act(() => {
+        changeHandler();
+        jest.advanceTimersByTime(100);
+      });
+
+      expect(screen.getByText('0 results')).toBeInTheDocument();
     });
   });
 

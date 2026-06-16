@@ -257,6 +257,26 @@ const CodeMirrorSearch = forwardRef(({ visible, editor, onClose }, ref) => {
     return () => container.removeEventListener('keydown', onKeyDown, true);
   }, [visible, handleSearchBarClose]);
 
+  // Re-run search when the document changes (undo, redo, edits)
+  useEffect(() => {
+    if (!editor || !visible) return;
+
+    let timeoutId;
+    const handleChange = () => {
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => {
+        searchCacheKey.current = '';
+        doSearch(0);
+      }, 100);
+    };
+
+    editor.on('change', handleChange);
+    return () => {
+      editor.off('change', handleChange);
+      clearTimeout(timeoutId);
+    };
+  }, [editor, visible, doSearch]);
+
   const handleSearchTextChange = (text) => {
     setSearchText(text);
     // setMatchIndex(0);
