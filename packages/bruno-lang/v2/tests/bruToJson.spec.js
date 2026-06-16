@@ -242,7 +242,7 @@ body:grpc {
   });
 
   describe('vars:pre-request decorators', () => {
-    it('should parse all datatype decorators', () => {
+    it('should parse all dataType decorators', () => {
       const input = `
 vars:pre-request {
   apiKey: abc123
@@ -263,9 +263,9 @@ vars:pre-request {
       const output = parser(input);
       expect(output.vars.req).toEqual([
         { name: 'apiKey', value: 'abc123', enabled: true, local: false },
-        { name: 'port', value: 3000, enabled: true, local: false, annotations: [{ name: 'number' }], datatype: 'number' },
-        { name: 'isEnabled', value: true, enabled: true, local: false, annotations: [{ name: 'boolean' }], datatype: 'boolean' },
-        { name: 'config', value: { name: 'John Doe', age: 30 }, enabled: true, local: false, annotations: [{ name: 'object' }], datatype: 'object' }
+        { name: 'port', value: 3000, enabled: true, local: false, annotations: [{ name: 'number' }], dataType: 'number' },
+        { name: 'isEnabled', value: true, enabled: true, local: false, annotations: [{ name: 'boolean' }], dataType: 'boolean' },
+        { name: 'config', value: { name: 'John Doe', age: 30 }, enabled: true, local: false, annotations: [{ name: 'object' }], dataType: 'object' }
       ]);
     });
 
@@ -321,7 +321,7 @@ vars:pre-request {
             { name: 'object' },
             { name: 'description', value: 'This is a certificate\nUse this when making request' }
           ],
-          datatype: 'object'
+          dataType: 'object'
         },
         {
           name: 'port',
@@ -332,12 +332,12 @@ vars:pre-request {
             { name: 'number' },
             { name: 'description', value: 'server port' }
           ],
-          datatype: 'number'
+          dataType: 'number'
         }
       ]);
     });
 
-    it('should keep only the last datatype decorator when multiple are present', () => {
+    it('should keep only the last dataType decorator when multiple are present', () => {
       const input = `
 vars:pre-request {
   @object
@@ -348,13 +348,13 @@ vars:pre-request {
 
       const output = parser(input);
       expect(output.vars.req).toEqual([
-        { name: 'port', value: 3000, enabled: true, local: false, annotations: [{ name: 'object' }, { name: 'number' }], datatype: 'number' }
+        { name: 'port', value: 3000, enabled: true, local: false, annotations: [{ name: 'object' }, { name: 'number' }], dataType: 'number' }
       ]);
     });
 
-    it('should preserve the declared datatype and the raw value when coercion is impossible', () => {
-      // The UI's DatatypeSelector surfaces a warning icon for these rows; the
-      // declared datatype is retained so the user sees their intent.
+    it('should preserve the declared dataType and the raw value when coercion is impossible', () => {
+      // The UI's DataTypeSelector surfaces a warning icon for these rows; the
+      // declared dataType is retained so the user sees their intent.
       const input = `
 vars:pre-request {
   @number
@@ -368,9 +368,9 @@ vars:pre-request {
 
       const output = parser(input);
       expect(output.vars.req).toEqual([
-        { name: 'port', value: 'not-a-number', enabled: true, local: false, annotations: [{ name: 'number' }], datatype: 'number' },
-        { name: 'flag', value: 'maybe', enabled: true, local: false, annotations: [{ name: 'boolean' }], datatype: 'boolean' },
-        { name: 'config', value: 'plain', enabled: true, local: false, annotations: [{ name: 'object' }], datatype: 'object' }
+        { name: 'port', value: 'not-a-number', enabled: true, local: false, annotations: [{ name: 'number' }], dataType: 'number' },
+        { name: 'flag', value: 'maybe', enabled: true, local: false, annotations: [{ name: 'boolean' }], dataType: 'boolean' },
+        { name: 'config', value: 'plain', enabled: true, local: false, annotations: [{ name: 'object' }], dataType: 'object' }
       ]);
     });
   });

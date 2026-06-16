@@ -1,12 +1,12 @@
 import { createSlice } from '@reduxjs/toolkit';
 import { uuid } from 'utils/common/index';
 import { environmentSchema } from '@usebruno/schema';
-import { getDatatypeFromValue, valueToString } from '@usebruno/common/utils';
+import { getDataTypeFromValue, valueToString } from '@usebruno/common/utils';
 import { cloneDeep, has } from 'lodash';
 
 const typedFieldsFor = (value) => {
-  const inferred = getDatatypeFromValue(value);
-  return inferred === 'string' ? { datatype: undefined } : { datatype: inferred };
+  const inferred = getDataTypeFromValue(value);
+  return inferred === 'string' ? { dataType: undefined } : { dataType: inferred };
 };
 
 const initialState = {
@@ -290,9 +290,7 @@ export const globalEnvironmentsUpdateEvent = ({ globalEnvironmentVariables }) =>
     variables = variables?.map?.((variable) => {
       if (!has(globalEnvironmentVariables, variable?.name)) return variable;
       const newValue = globalEnvironmentVariables[variable?.name];
-      if (variable?.secret) {
-        return { ...variable, value: newValue, datatype: undefined };
-      }
+
       return {
         ...variable,
         value: newValue,

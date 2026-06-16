@@ -42,7 +42,7 @@ export const fromOpenCollectionEnvironments = (environments: Environment[] | und
       };
 
       if (isSecret) {
-        // Secret values are not present in the source; never carry a datatype.
+        // Secret values are not present in the source; never carry a dataType.
         return result;
       }
 

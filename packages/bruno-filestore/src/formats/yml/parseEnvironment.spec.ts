@@ -18,22 +18,22 @@ describe('toBrunoEnvironmentVariables', () => {
       secret: false
     });
     expect(variable.uid).toEqual(expect.any(String));
-    expect(variable.datatype).toBeUndefined();
+    expect(variable.dataType).toBeUndefined();
   });
 
-  it('parses typed values and attaches the datatype field', () => {
+  it('parses typed values and attaches the dataType field', () => {
     const vars = toBrunoEnvironmentVariables([
       { name: 'port', value: { type: 'number', data: '300' } } as any,
       { name: 'flag', value: { type: 'boolean', data: 'true' } } as any,
       { name: 'config', value: { type: 'object', data: '{"a":1}' } } as any
     ]);
 
-    expect(vars[0]).toMatchObject({ name: 'port', value: 300, datatype: 'number', secret: false });
-    expect(vars[1]).toMatchObject({ name: 'flag', value: true, datatype: 'boolean', secret: false });
-    expect(vars[2]).toMatchObject({ name: 'config', value: { a: 1 }, datatype: 'object', secret: false });
+    expect(vars[0]).toMatchObject({ name: 'port', value: 300, dataType: 'number', secret: false });
+    expect(vars[1]).toMatchObject({ name: 'flag', value: true, dataType: 'boolean', secret: false });
+    expect(vars[2]).toMatchObject({ name: 'config', value: { a: 1 }, dataType: 'object', secret: false });
   });
 
-  it('parses secret variables with secret=true and never attaches a datatype', () => {
+  it('parses secret variables with secret=true and attaches the dataType from `type`', () => {
     const vars = toBrunoEnvironmentVariables([
       { secret: true, name: 'apiKey' } as any,
       { secret: true, name: 'port', type: 'number' } as any,
@@ -41,11 +41,10 @@ describe('toBrunoEnvironmentVariables', () => {
     ]);
 
     expect(vars[0]).toMatchObject({ name: 'apiKey', secret: true, enabled: true, value: '' });
-    expect(vars[0].datatype).toBeUndefined();
-    expect(vars[1]).toMatchObject({ name: 'port', secret: true, enabled: true });
-    expect(vars[1].datatype).toBeUndefined();
-    expect(vars[2]).toMatchObject({ name: 'flag', secret: true, enabled: false });
-    expect(vars[2].datatype).toBeUndefined();
+    // A bare secret has no `type`, so no dataType materializes.
+    expect(vars[0].dataType).toBeUndefined();
+    expect(vars[1]).toMatchObject({ name: 'port', secret: true, enabled: true, dataType: 'number' });
+    expect(vars[2]).toMatchObject({ name: 'flag', secret: true, enabled: false, dataType: 'boolean' });
   });
 
   it('honors the disabled flag on non-secret variables', () => {
@@ -85,11 +84,11 @@ variables:
     expect(env.variables).toHaveLength(5);
 
     expect(env.variables[0]).toMatchObject({ name: 'env_str', value: 'hello', secret: false });
-    expect(env.variables[1]).toMatchObject({ name: 'env_num', value: 300, datatype: 'number', secret: false });
-    expect(env.variables[2]).toMatchObject({ name: 'env_bool', value: true, datatype: 'boolean', secret: false });
-    expect(env.variables[3]).toMatchObject({ name: 'env_obj', value: { scope: 'env' }, datatype: 'object', secret: false });
+    expect(env.variables[1]).toMatchObject({ name: 'env_num', value: 300, dataType: 'number', secret: false });
+    expect(env.variables[2]).toMatchObject({ name: 'env_bool', value: true, dataType: 'boolean', secret: false });
+    expect(env.variables[3]).toMatchObject({ name: 'env_obj', value: { scope: 'env' }, dataType: 'object', secret: false });
     expect(env.variables[4]).toMatchObject({ name: 'env_secret', secret: true, value: '' });
-    expect(env.variables[4].datatype).toBeUndefined();
+    expect(env.variables[4].dataType).toBeUndefined();
   });
 
   it('defaults environment name when missing', () => {

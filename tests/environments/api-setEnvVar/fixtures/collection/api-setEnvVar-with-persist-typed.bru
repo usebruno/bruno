@@ -11,12 +11,12 @@ get {
 }
 
 script:pre-request {
-  // Typed values persist with their datatype annotation.
+  // Typed values persist with their dataType annotation.
   bru.setEnvVar("typed_num", 42, { persist: true });
   bru.setEnvVar("typed_bool", true, { persist: true });
   bru.setEnvVar("typed_obj", { k: 1 }, { persist: true });
-  // Plain string — no datatype materialized.
+  // Plain string — no dataType materialized.
   bru.setEnvVar("typed_str", "hello", { persist: true });
-  // Secret overwrite: value gets stringified, no datatype.
+  // Secret overwrite: value gets stringified, no dataType.
   bru.setEnvVar("existing_secret", 99, { persist: true });
 }

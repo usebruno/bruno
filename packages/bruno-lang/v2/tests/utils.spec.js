@@ -45,53 +45,53 @@ describe('getValueString', () => {
 });
 
 describe('extractTypedAnnotations', () => {
-  it('sets datatype and coerces value when a datatype annotation is present', () => {
+  it('sets dataType and coerces value when a dataType annotation is present', () => {
     const result = { value: '42' };
     extractTypedAnnotations([{ name: 'number' }], result);
-    expect(result.datatype).toBe('number');
+    expect(result.dataType).toBe('number');
     expect(result.value).toBe(42);
   });
 
-  it('does nothing when no datatype annotation is present', () => {
+  it('does nothing when no dataType annotation is present', () => {
     const result = { value: 'abc' };
     extractTypedAnnotations([{ name: 'description', value: 'doc' }], result);
-    expect(result.datatype).toBeUndefined();
+    expect(result.dataType).toBeUndefined();
     expect(result.value).toBe('abc');
   });
 
-  it('does not materialize @string as an explicit datatype', () => {
+  it('does not materialize @string as an explicit dataType', () => {
     const result = { value: 'abc' };
     extractTypedAnnotations([{ name: 'string' }], result);
-    expect(result.datatype).toBeUndefined();
+    expect(result.dataType).toBeUndefined();
   });
 
-  it('picks the last datatype annotation when multiple are stacked', () => {
+  it('picks the last dataType annotation when multiple are stacked', () => {
     const result = { value: '99' };
     extractTypedAnnotations([{ name: 'object' }, { name: 'number' }], result);
-    expect(result.datatype).toBe('number');
+    expect(result.dataType).toBe('number');
     expect(result.value).toBe(99);
   });
 
-  it('preserves the declared datatype and leaves the raw value when coercion is impossible', () => {
-    // The DatatypeSelector relies on this: when datatype is preserved but the
+  it('preserves the declared dataType and leaves the raw value when coercion is impossible', () => {
+    // The DataTypeSelector relies on this: when dataType is preserved but the
     // coerced value's type doesn't match, the UI surfaces a warning icon.
     const result = { value: 'not-a-number' };
     extractTypedAnnotations([{ name: 'number' }], result);
-    expect(result.datatype).toBe('number');
+    expect(result.dataType).toBe('number');
     expect(result.value).toBe('not-a-number');
   });
 
   it('preserves @boolean even when the literal is not a boolean string', () => {
     const result = { value: 'maybe' };
     extractTypedAnnotations([{ name: 'boolean' }], result);
-    expect(result.datatype).toBe('boolean');
+    expect(result.dataType).toBe('boolean');
     expect(result.value).toBe('maybe');
   });
 
   it('preserves @object even when the value is not parseable JSON', () => {
     const result = { value: 'plain text' };
     extractTypedAnnotations([{ name: 'object' }], result);
-    expect(result.datatype).toBe('object');
+    expect(result.dataType).toBe('object');
     expect(result.value).toBe('plain text');
   });
 
@@ -99,32 +99,32 @@ describe('extractTypedAnnotations', () => {
     const result = { value: 'abc' };
     extractTypedAnnotations(null, result);
     extractTypedAnnotations([], result);
-    expect(result.datatype).toBeUndefined();
+    expect(result.dataType).toBeUndefined();
   });
 });
 
 describe('buildAnnotationsFromVariable', () => {
-  it('returns an empty array when no datatype and no annotations', () => {
+  it('returns an empty array when no dataType and no annotations', () => {
     expect(buildAnnotationsFromVariable({})).toEqual([]);
   });
 
-  it('prepends a datatype annotation from the datatype field', () => {
-    expect(buildAnnotationsFromVariable({ datatype: 'number' })).toEqual([{ name: 'number' }]);
+  it('prepends a dataType annotation from the dataType field', () => {
+    expect(buildAnnotationsFromVariable({ dataType: 'number' })).toEqual([{ name: 'number' }]);
   });
 
-  it('drops any existing datatype annotation and rebuilds from the datatype field', () => {
+  it('drops any existing dataType annotation and rebuilds from the dataType field', () => {
     const out = buildAnnotationsFromVariable({
-      datatype: 'number',
+      dataType: 'number',
       annotations: [{ name: 'string' }, { name: 'description', value: 'doc' }]
     });
     expect(out).toEqual([{ name: 'number' }, { name: 'description', value: 'doc' }]);
   });
 
-  it('does not emit a datatype annotation for the string default', () => {
-    expect(buildAnnotationsFromVariable({ datatype: 'string' })).toEqual([]);
+  it('does not emit a dataType annotation for the string default', () => {
+    expect(buildAnnotationsFromVariable({ dataType: 'string' })).toEqual([]);
   });
 
-  it('preserves non-datatype annotations when datatype is absent', () => {
+  it('preserves non-dataType annotations when dataType is absent', () => {
     expect(buildAnnotationsFromVariable({
       annotations: [{ name: 'description', value: 'doc' }]
     })).toEqual([{ name: 'description', value: 'doc' }]);

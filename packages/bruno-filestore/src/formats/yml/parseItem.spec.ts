@@ -1,6 +1,6 @@
 import parseItem from './parseItem';
 
-// Typed `runtime.variables` propagate through parseItem with their datatype
+// Typed `runtime.variables` propagate through parseItem with their dataType
 // + coerced value. Helper-level coverage lives in the variables/datatype specs.
 
 describe('parseItem — typed runtime.variables', () => {
@@ -40,19 +40,19 @@ runtime:
 `;
 
     const item = parseItem(yml);
-    const reqVars = item.request!.vars.req;
+    const reqVars = item.request!.vars!.req!;
 
     expect(reqVars).toHaveLength(6);
-    expect(reqVars[0]).toMatchObject({ name: 'count', value: 42, datatype: 'number' });
-    expect(reqVars[1]).toMatchObject({ name: 'enabled', value: true, datatype: 'boolean' });
-    expect(reqVars[2]).toMatchObject({ name: 'config', value: { a: 1 }, datatype: 'object' });
-    // Explicit `type: string` is the implicit default — no datatype materialized.
+    expect(reqVars[0]).toMatchObject({ name: 'count', value: 42, dataType: 'number' });
+    expect(reqVars[1]).toMatchObject({ name: 'enabled', value: true, dataType: 'boolean' });
+    expect(reqVars[2]).toMatchObject({ name: 'config', value: { a: 1 }, dataType: 'object' });
+    // Explicit `type: string` is the implicit default — no dataType materialized.
     expect(reqVars[3]).toMatchObject({ name: 'greeting', value: 'hi' });
-    expect(reqVars[3].datatype).toBeUndefined();
+    expect(reqVars[3].dataType).toBeUndefined();
     expect(reqVars[4]).toMatchObject({ name: 'plain', value: 'hello' });
-    expect(reqVars[4].datatype).toBeUndefined();
+    expect(reqVars[4].dataType).toBeUndefined();
     // Un-coercible: raw value preserved for the UI mismatch warning.
-    expect(reqVars[5]).toMatchObject({ name: 'bad', value: 'not-a-number', datatype: 'number' });
+    expect(reqVars[5]).toMatchObject({ name: 'bad', value: 'not-a-number', dataType: 'number' });
   });
 
   it('normalizes raw YAML scalars in `data` to a string before coercing', () => {
@@ -83,15 +83,15 @@ runtime:
 `;
 
     const item = parseItem(yml);
-    const reqVars = item.request!.vars.req;
+    const reqVars = item.request!.vars!.req!;
 
-    // type=string: raw YAML number → string; no datatype field.
+    // type=string: raw YAML number → string; no dataType field.
     expect(reqVars[0]).toMatchObject({ name: 'stringy', value: '42' });
-    expect(reqVars[0].datatype).toBeUndefined();
+    expect(reqVars[0].dataType).toBeUndefined();
     // type=number: '42' → 42.
-    expect(reqVars[1]).toMatchObject({ name: 'numeric', value: 42, datatype: 'number' });
+    expect(reqVars[1]).toMatchObject({ name: 'numeric', value: 42, dataType: 'number' });
     // data: null → '' (the `?? ''` arm); coerce bails on empty → raw ''.
-    expect(reqVars[2]).toMatchObject({ name: 'nullish', value: '', datatype: 'number' });
+    expect(reqVars[2]).toMatchObject({ name: 'nullish', value: '', dataType: 'number' });
   });
 
   it('propagates typed variables for graphql/grpc/websocket requests too', () => {
@@ -108,8 +108,8 @@ runtime:
     - name: count
       value: { type: number, data: '7' }
 `;
-    expect(parseItem(graphqlYml).request!.vars.req[0]).toMatchObject({
-      name: 'count', value: 7, datatype: 'number'
+    expect(parseItem(graphqlYml).request!.vars!.req![0]).toMatchObject({
+      name: 'count', value: 7, dataType: 'number'
     });
 
     const grpcYml = `info:
@@ -124,8 +124,8 @@ runtime:
     - name: flag
       value: { type: boolean, data: 'false' }
 `;
-    expect(parseItem(grpcYml).request!.vars.req[0]).toMatchObject({
-      name: 'flag', value: false, datatype: 'boolean'
+    expect(parseItem(grpcYml).request!.vars!.req![0]).toMatchObject({
+      name: 'flag', value: false, dataType: 'boolean'
     });
 
     const wsYml = `info:
@@ -140,8 +140,8 @@ runtime:
     - name: payload
       value: { type: object, data: '{"k":1}' }
 `;
-    expect(parseItem(wsYml).request!.vars.req[0]).toMatchObject({
-      name: 'payload', value: { k: 1 }, datatype: 'object'
+    expect(parseItem(wsYml).request!.vars!.req![0]).toMatchObject({
+      name: 'payload', value: { k: 1 }, dataType: 'object'
     });
   });
 });

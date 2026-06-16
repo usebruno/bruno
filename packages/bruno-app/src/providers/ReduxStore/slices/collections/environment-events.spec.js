@@ -17,9 +17,9 @@ const makeEnvironment = (overrides = {}) => ({
   pathname: '/coll/environments/test_env.bru',
   variables: [
     { uid: 'var-1', name: 'env_str', value: 'env_string', type: 'text', enabled: true, secret: false },
-    { uid: 'var-2', name: 'env_num', value: '300', type: 'text', datatype: 'number', enabled: true, secret: false },
-    { uid: 'var-3', name: 'env_bool', value: 'true', type: 'text', datatype: 'boolean', enabled: true, secret: false },
-    { uid: 'var-4', name: 'env_obj', value: '{"scope":"env"}', type: 'text', datatype: 'object', enabled: true, secret: false }
+    { uid: 'var-2', name: 'env_num', value: '300', type: 'text', dataType: 'number', enabled: true, secret: false },
+    { uid: 'var-3', name: 'env_bool', value: 'true', type: 'text', dataType: 'boolean', enabled: true, secret: false },
+    { uid: 'var-4', name: 'env_obj', value: '{"scope":"env"}', type: 'text', dataType: 'object', enabled: true, secret: false }
   ],
   color: null,
   ...overrides
@@ -61,7 +61,7 @@ describe('collectionAddEnvFileEvent', () => {
     expect(nextState.collections[0].environments[0].externalSecrets).toEqual(externalSecrets);
   });
 
-  it('keeps variable datatype when a new environment is added', () => {
+  it('keeps variable dataType when a new environment is added', () => {
     const state = makeInitialState();
 
     const nextState = reducer(
@@ -70,13 +70,13 @@ describe('collectionAddEnvFileEvent', () => {
     );
 
     const variables = nextState.collections[0].environments[0].variables;
-    expect(variables.find((v) => v.name === 'env_num')).toMatchObject({ value: '300', datatype: 'number' });
-    expect(variables.find((v) => v.name === 'env_bool')).toMatchObject({ value: 'true', datatype: 'boolean' });
-    expect(variables.find((v) => v.name === 'env_obj')).toMatchObject({ value: '{"scope":"env"}', datatype: 'object' });
-    expect(variables.find((v) => v.name === 'env_str')).not.toHaveProperty('datatype');
+    expect(variables.find((v) => v.name === 'env_num')).toMatchObject({ value: '300', dataType: 'number' });
+    expect(variables.find((v) => v.name === 'env_bool')).toMatchObject({ value: 'true', dataType: 'boolean' });
+    expect(variables.find((v) => v.name === 'env_obj')).toMatchObject({ value: '{"scope":"env"}', dataType: 'object' });
+    expect(variables.find((v) => v.name === 'env_str')).not.toHaveProperty('dataType');
   });
 
-  it('keeps variable datatype when an existing environment changes', () => {
+  it('keeps variable dataType when an existing environment changes', () => {
     const state = makeInitialState([makeEnvironment({ variables: [] })]);
 
     const nextState = reducer(
@@ -85,8 +85,8 @@ describe('collectionAddEnvFileEvent', () => {
     );
 
     const variables = nextState.collections[0].environments[0].variables;
-    expect(variables.find((v) => v.name === 'env_num')).toMatchObject({ value: '300', datatype: 'number' });
-    expect(variables.find((v) => v.name === 'env_str')).not.toHaveProperty('datatype');
+    expect(variables.find((v) => v.name === 'env_num')).toMatchObject({ value: '300', dataType: 'number' });
+    expect(variables.find((v) => v.name === 'env_str')).not.toHaveProperty('dataType');
   });
 
   it('clears externalSecrets when the block is removed from the file', () => {

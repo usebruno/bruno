@@ -10,16 +10,6 @@ import {
   serializeVariableValue
 } from './datatype';
 
-export const isTypedValue = (value: unknown): value is VariableTypedValue => {
-  return (
-    typeof value === 'object'
-    && value !== null
-    && !Array.isArray(value)
-    && 'type' in value
-    && 'data' in value
-  );
-};
-
 /**
  * Convert Bruno pre-request variables to OpenCollection variables format.
  * Note: Post-response variables are now converted to actions (see actions.ts).

@@ -1093,8 +1093,8 @@ const sem = grammar.createSemantics().addAttribute('ast', {
   },
   varsres(_1, dictionary) {
     // Post-response vars carry a JSON-query expression in `value`, not a literal,
-    // so datatype annotations have no runtime meaning — extract them as raw
-    // annotations only (preserved on round-trip) without populating `datatype`.
+    // so dataType annotations have no runtime meaning — extract them as raw
+    // annotations only (preserved on round-trip) without populating `dataType`.
     const vars = mapPairListToKeyValPairs(dictionary.ast, true, false);
     _.each(vars, (v) => {
       let name = v.name;

@@ -1,7 +1,7 @@
 import parseCollection from './parseCollection';
 
 // Typed `request.variables` propagate through parseCollection into the
-// collectionRoot's vars.req with their datatype + coerced value.
+// collectionRoot's vars.req with their dataType + coerced value.
 
 describe('parseCollection — typed request.variables', () => {
   it('coerces typed values, preserves raw value on un-coercible input, and treats explicit string as the implicit default', () => {
@@ -39,15 +39,15 @@ request:
     const reqVars = collectionRoot.request!.vars!.req!;
 
     expect(reqVars).toHaveLength(6);
-    expect(reqVars[0]).toMatchObject({ name: 'count', value: 42, datatype: 'number' });
-    expect(reqVars[1]).toMatchObject({ name: 'enabled', value: true, datatype: 'boolean' });
-    expect(reqVars[2]).toMatchObject({ name: 'config', value: { a: 1 }, datatype: 'object' });
-    // Explicit `type: string` is the implicit default — no datatype materialized.
+    expect(reqVars[0]).toMatchObject({ name: 'count', value: 42, dataType: 'number' });
+    expect(reqVars[1]).toMatchObject({ name: 'enabled', value: true, dataType: 'boolean' });
+    expect(reqVars[2]).toMatchObject({ name: 'config', value: { a: 1 }, dataType: 'object' });
+    // Explicit `type: string` is the implicit default — no dataType materialized.
     expect(reqVars[3]).toMatchObject({ name: 'greeting', value: 'hi' });
-    expect(reqVars[3].datatype).toBeUndefined();
+    expect(reqVars[3].dataType).toBeUndefined();
     expect(reqVars[4]).toMatchObject({ name: 'plain', value: 'hello' });
-    expect(reqVars[4].datatype).toBeUndefined();
+    expect(reqVars[4].dataType).toBeUndefined();
     // Un-coercible: raw value preserved for the UI mismatch warning.
-    expect(reqVars[5]).toMatchObject({ name: 'cfg', value: 'not-json', datatype: 'object' });
+    expect(reqVars[5]).toMatchObject({ name: 'cfg', value: 'not-json', dataType: 'object' });
   });
 });

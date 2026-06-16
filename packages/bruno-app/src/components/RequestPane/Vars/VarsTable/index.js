@@ -6,7 +6,7 @@ import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collection
 import { updateTableColumnWidths } from 'providers/ReduxStore/slices/tabs';
 import MultiLineEditor from 'components/MultiLineEditor';
 import InfoTip from 'components/InfoTip';
-import DatatypeSelector from 'components/DatatypeSelector';
+import DataTypeSelector from 'components/DataTypeSelector';
 import EditableTable from 'components/EditableTable';
 import StyledWrapper from './StyledWrapper';
 import toast from 'react-hot-toast';
@@ -87,9 +87,9 @@ const VarsTable = ({ item, collection, vars, varType, initialScroll = 0 }) => {
               placeholder={value == null || (typeof value === 'string' && value.trim() === '') ? (varType === 'request' ? 'Value' : 'Expr') : ''}
             />
           </div>
-          {/* Datatypes apply to literal values, not to the JS expression that produces a post-response value. */}
+          {/* DataTypes apply to literal values, not to the JS expression that produces a post-response value. */}
           {!isLastEmptyRow && varType === 'request' && (
-            <DatatypeSelector
+            <DataTypeSelector
               variable={row}
               theme={storedTheme}
               collection={collection}

@@ -8,7 +8,7 @@ import {
 import { buildCommonLocators } from '../utils/page/locators';
 
 // OpenCollection (.yml) import: typed `{type, data}` structs at every scope
-// land in the env editor with the right DatatypeSelector label.
+// land in the env editor with the right DataTypeSelector label.
 
 const IMPORTED_COLLECTION = 'datatypes-imported';
 
@@ -50,19 +50,18 @@ const ENV_ROWS: Array<[string, string]> = [
 ];
 
 const tableRowByName = (table: ReturnType<ReturnType<typeof buildCommonLocators>['table']>, name: string) =>
-  table.container().locator(`tbody tr[data-row-name="${name}"]`);
+  table.rowByName(name);
 
 const expectTypeLabel = async (row: Locator, label: string) => {
-  await expect(row.locator('.type-label').first()).toHaveText(label);
+  await expect(buildCommonLocators(row.page()).dataTypeSelector.typeLabel(row)).toHaveText(label);
 };
 
 const openImportedRequest = async (page: Page) => {
   const collection = buildCommonLocators(page).sidebar.collection(IMPORTED_COLLECTION);
   await expect(collection).toBeVisible();
 
-  // Scope to the imported collection's slug to avoid sibling-collection matches.
-  const collectionSlug = IMPORTED_COLLECTION.replace(/\s+/g, '-').toLowerCase();
-  const collectionScope = page.locator(`#collection-${collectionSlug}`);
+  // Scope to the imported collection to avoid sibling-collection matches.
+  const collectionScope = buildCommonLocators(page).sidebar.collectionScope(IMPORTED_COLLECTION);
 
   const folderRow = collectionScope.locator('.collection-item-name').filter({ hasText: 'folder' });
   if (!(await folderRow.isVisible().catch(() => false))) {
@@ -91,8 +90,7 @@ const openVarsForTable = async (page: Page, tableId: string) => {
 
   const collectionRow = locators.sidebar.collection(IMPORTED_COLLECTION);
   await expect(collectionRow).toBeVisible();
-  const collectionSlug = IMPORTED_COLLECTION.replace(/\s+/g, '-').toLowerCase();
-  const collectionScope = page.locator(`#collection-${collectionSlug}`);
+  const collectionScope = locators.sidebar.collectionScope(IMPORTED_COLLECTION);
 
   if (tableId === 'folder-vars-req') {
     const folderRow = collectionScope.locator('.collection-item-name').filter({ hasText: 'folder' });
@@ -110,12 +108,12 @@ const openVarsForTable = async (page: Page, tableId: string) => {
   await locators.paneTabs.collectionSettingsTab('vars').click();
 };
 
-test.describe('Datatype selector — imported OpenCollection (.yml) collection', () => {
+test.describe('DataType selector — imported OpenCollection (.yml) collection', () => {
   test.afterEach(async ({ page }) => {
     await closeAllCollections(page);
   });
 
-  test('imported typed variables retain their datatype across all scopes', async ({
+  test('imported typed variables retain their dataType across all scopes', async ({
     page,
     createTmpDir
   }, testInfo) => {
@@ -128,7 +126,7 @@ test.describe('Datatype selector — imported OpenCollection (.yml) collection',
       expectedCollectionName: IMPORTED_COLLECTION
     });
 
-    // Each var-table row's .type-label matches the declared datatype.
+    // Each var-table row's .type-label matches the declared dataType.
     for (const { tableId, rows } of VAR_TYPE_TABLE) {
       await openVarsForTable(page, tableId);
       const table = buildCommonLocators(page).table(tableId);
@@ -138,14 +136,14 @@ test.describe('Datatype selector — imported OpenCollection (.yml) collection',
     }
 
     // Env vars use a different component — open the env editor.
-    await buildCommonLocators(page).environment.selector().click();
-    await buildCommonLocators(page).environment.collectionTab().click();
-    await page.getByTestId('configure-env').click();
-    await expect(buildCommonLocators(page).tabs.activeRequestTab()).toContainText('Environments');
+    const locators = buildCommonLocators(page);
+    await locators.environment.selector().click();
+    await locators.environment.collectionTab().click();
+    await locators.environment.configureButton().click();
+    await expect(locators.tabs.activeRequestTab()).toContainText('Environments');
 
     for (const [name, label] of ENV_ROWS) {
-      const row = page.locator(`[data-testid="env-var-row-${name}"]`);
-      await expect(row.locator('.type-label').first()).toHaveText(label);
+      await expect(locators.dataTypeSelector.typeLabel(locators.environment.varRow(name))).toHaveText(label);
     }
   });
 });

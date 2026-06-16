@@ -1,5 +1,5 @@
 import { collectionSchema, environmentSchema, itemSchema } from '@usebruno/schema';
-import { parseQueryParams, extractPromptVariables, valueToString, getDatatypeFromValue } from '@usebruno/common/utils';
+import { parseQueryParams, extractPromptVariables, getDataTypeFromValue } from '@usebruno/common/utils';
 import { REQUEST_TYPES, DEFAULT_COLLECTION_FORMAT } from 'utils/common/constants';
 import cloneDeep from 'lodash/cloneDeep';
 import filter from 'lodash/filter';
@@ -2338,7 +2338,7 @@ export const mergeAndPersistEnvironment
         let existingVars = environment.variables || [];
 
         let normalizedNewVars = Object.entries(persistentEnvVariables).map(([name, value]) => {
-          const inferred = getDatatypeFromValue(value);
+          const inferred = getDataTypeFromValue(value);
           return {
             uid: uuid(),
             name,
@@ -2346,26 +2346,15 @@ export const mergeAndPersistEnvironment
             type: 'text',
             enabled: true,
             secret: false,
-            ...(inferred !== 'string' ? { datatype: inferred } : {})
+            ...(inferred !== 'string' ? { dataType: inferred } : {})
           };
         });
 
         const merged = existingVars.map((v) => {
           const found = normalizedNewVars.find((nv) => nv.name === v.name);
-          if (found) {
-            if (v.secret) {
-              const { datatype: _oldDatatype, ...rest } = v;
-              return { ...rest, value: valueToString(found.value) };
-            }
-            const { datatype: newDatatype } = found;
-            const { datatype: _oldDatatype, ...rest } = v;
-            return {
-              ...rest,
-              value: found.value,
-              ...(newDatatype ? { datatype: newDatatype } : {})
-            };
-          }
-          return v;
+          if (!found) return v;
+          const { dataType: _oldDataType, ...rest } = v;
+          return { ...rest, value: found.value, ...(found.dataType ? { dataType: found.dataType } : {}) };
         });
         normalizedNewVars.forEach((nv) => {
           if (!merged.some((v) => v.name === nv.name)) {

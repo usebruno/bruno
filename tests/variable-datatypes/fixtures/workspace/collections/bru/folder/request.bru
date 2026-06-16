@@ -65,7 +65,13 @@ body:json {
     "inferred_glob_bool": {{inferred_glob_bool}},
     "inferred_glob_obj": {{inferred_glob_obj}},
     "env_secret_str": "{{env_secret_str}}",
-    "glob_secret_str": "{{glob_secret_str}}"
+    "glob_secret_str": "{{glob_secret_str}}",
+    "env_secret_num": {{env_secret_num}},
+    "glob_secret_num": {{glob_secret_num}},
+    "env_secret_bool": {{env_secret_bool}},
+    "glob_secret_bool": {{glob_secret_bool}},
+    "env_secret_obj": {{env_secret_obj}},
+    "glob_secret_obj": {{glob_secret_obj}}
   }
 }
 
@@ -96,14 +102,14 @@ vars:pre-request {
 }
 
 script:pre-request {
-  // Seed runtime variables so tests can exercise bru.getVar() with each datatype.
+  // Seed runtime variables so tests can exercise bru.getVar() with each dataType.
   bru.setVar("runtime_str", "runtime_string");
   bru.setVar("runtime_num", 999);
   bru.setVar("runtime_bool", true);
   bru.setVar("runtime_obj", { nested: "yes" });
 
   // Seed env / global env vars so tests can verify that bru.setEnvVar / bru.setGlobalEnvVar
-  // infer the datatype and surface it in the env editor.
+  // infer the dataType and surface it in the env editor.
   bru.setEnvVar("inferred_env_num", 700);
   bru.setEnvVar("inferred_env_bool", true);
   bru.setEnvVar("inferred_env_obj", { from: "script" });
@@ -111,11 +117,17 @@ script:pre-request {
   bru.setGlobalEnvVar("inferred_glob_bool", false);
   bru.setGlobalEnvVar("inferred_glob_obj", { from: "script" });
 
-  // Seed secret env vars. Secret values are always strings — datatype
-  // metadata is not supported on secrets and any non-string value passed
-  // to setEnvVar / setGlobalEnvVar for a secret gets stringified.
+  // Seed secret env vars. A secret's value is never written to disk; its
+  // dataType is. setEnvVar keeps the value's JS type at runtime (the electron
+  // store stringifies it before encryption only when persisting).
   bru.setEnvVar("env_secret_str", "secret_env_string");
   bru.setGlobalEnvVar("glob_secret_str", "secret_global_string");
+  bru.setEnvVar("env_secret_num", 50);
+  bru.setGlobalEnvVar("glob_secret_num", 60);
+  bru.setEnvVar("env_secret_bool", true);
+  bru.setGlobalEnvVar("glob_secret_bool", false);
+  bru.setEnvVar("env_secret_obj", { scope: "env_secret" });
+  bru.setGlobalEnvVar("glob_secret_obj", { scope: "global_secret" });
 
   // bru.set* identifies type from the value's runtime type, not string
   // content. Numeric / boolean / JSON-looking strings stay strings.
@@ -211,7 +223,7 @@ tests {
     expect(bru.getVar("runtime_obj")).to.deep.equal({ nested: "yes" });
   });
 
-  test("setEnvVar infers datatype on the new env variable", () => {
+  test("setEnvVar infers dataType on the new env variable", () => {
     expect(typeof bru.getEnvVar("inferred_env_num")).to.equal("number");
     expect(bru.getEnvVar("inferred_env_num")).to.equal(700);
     expect(typeof bru.getEnvVar("inferred_env_bool")).to.equal("boolean");
@@ -219,7 +231,7 @@ tests {
     expect(bru.getEnvVar("inferred_env_obj")).to.deep.equal({ from: "script" });
   });
 
-  test("setGlobalEnvVar infers datatype on the new global env variable", () => {
+  test("setGlobalEnvVar infers dataType on the new global env variable", () => {
     expect(typeof bru.getGlobalEnvVar("inferred_glob_num")).to.equal("number");
     expect(bru.getGlobalEnvVar("inferred_glob_num")).to.equal(800);
     expect(typeof bru.getGlobalEnvVar("inferred_glob_bool")).to.equal("boolean");
@@ -240,11 +252,23 @@ tests {
     expect(typeof bru.getVar("strict_runtime_num_str")).to.equal("string");
   });
 
-  test("secret env vars: setEnvVar / getEnvVar / setGlobalEnvVar round-trip as strings", () => {
+  test("secret env vars round-trip with their declared dataType", () => {
+    // String secrets stay strings.
     expect(typeof bru.getEnvVar("env_secret_str")).to.equal("string");
     expect(bru.getEnvVar("env_secret_str")).to.equal("secret_env_string");
     expect(typeof bru.getGlobalEnvVar("glob_secret_str")).to.equal("string");
     expect(bru.getGlobalEnvVar("glob_secret_str")).to.equal("secret_global_string");
+    // Typed secrets keep their JS type at runtime.
+    expect(typeof bru.getEnvVar("env_secret_num")).to.equal("number");
+    expect(bru.getEnvVar("env_secret_num")).to.equal(50);
+    expect(typeof bru.getGlobalEnvVar("glob_secret_num")).to.equal("number");
+    expect(bru.getGlobalEnvVar("glob_secret_num")).to.equal(60);
+    expect(typeof bru.getEnvVar("env_secret_bool")).to.equal("boolean");
+    expect(bru.getEnvVar("env_secret_bool")).to.equal(true);
+    expect(typeof bru.getGlobalEnvVar("glob_secret_bool")).to.equal("boolean");
+    expect(bru.getGlobalEnvVar("glob_secret_bool")).to.equal(false);
+    expect(bru.getEnvVar("env_secret_obj")).to.deep.equal({ scope: "env_secret" });
+    expect(bru.getGlobalEnvVar("glob_secret_obj")).to.deep.equal({ scope: "global_secret" });
   });
 
   test("typed vars in query params stringify on the wire", () => {
@@ -309,5 +333,11 @@ tests {
     expect(json.inferred_glob_obj).to.deep.equal({ from: "script" });
     expect(json.env_secret_str).to.equal("secret_env_string");
     expect(json.glob_secret_str).to.equal("secret_global_string");
+    expect(json.env_secret_num).to.equal(50);
+    expect(json.glob_secret_num).to.equal(60);
+    expect(json.env_secret_bool).to.equal(true);
+    expect(json.glob_secret_bool).to.equal(false);
+    expect(json.env_secret_obj).to.deep.equal({ scope: "env_secret" });
+    expect(json.glob_secret_obj).to.deep.equal({ scope: "global_secret" });
   });
 }

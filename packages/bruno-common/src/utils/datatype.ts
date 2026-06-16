@@ -1,25 +1,25 @@
-export type BrunoVariableDatatype = 'string' | 'number' | 'boolean' | 'object';
+export type BrunoVariableDataType = 'string' | 'number' | 'boolean' | 'object';
 
-export const BRUNO_VARIABLE_DATATYPES: readonly BrunoVariableDatatype[] = ['string', 'number', 'boolean', 'object'];
+export const BRUNO_VARIABLE_DATATYPES: readonly BrunoVariableDataType[] = ['string', 'number', 'boolean', 'object'];
 
-export const isBrunoVariableDatatype = (t: unknown): t is BrunoVariableDatatype =>
+export const isBrunoVariableDataType = (t: unknown): t is BrunoVariableDataType =>
   typeof t === 'string' && (BRUNO_VARIABLE_DATATYPES as readonly string[]).includes(t);
 
 // string-form → typed JS value, or raw on failure.
-export const parseValueByDatatype = (value: any, datatype?: BrunoVariableDatatype): any => {
-  if (!datatype || datatype === 'string') return value;
+export const parseValueByDataType = (value: any, dataType?: BrunoVariableDataType): any => {
+  if (!dataType || dataType === 'string') return value;
   try {
-    if (datatype === 'number') {
+    if (dataType === 'number') {
       if (typeof value === 'number') return value;
       const trimmed = typeof value === 'string' ? value.trim() : value;
       if (trimmed === '' || trimmed == null) return value;
       const num = Number(trimmed);
       if (!Number.isNaN(num)) return num;
-    } else if (datatype === 'boolean') {
+    } else if (dataType === 'boolean') {
       if (typeof value === 'boolean') return value;
       if (value === 'true') return true;
       if (value === 'false') return false;
-    } else if (datatype === 'object') {
+    } else if (dataType === 'object') {
       if (typeof value === 'object' && value !== null) return value;
       const trimmed = typeof value === 'string' ? value.trim() : value;
       if (trimmed === '' || trimmed == null) return value;
@@ -37,7 +37,7 @@ export const parseValueByDatatype = (value: any, datatype?: BrunoVariableDatatyp
 };
 
 // Strict typeof — used by bru.set* so JSON / numeric / boolean strings stay strings.
-export const getDatatypeFromValue = (value: unknown): BrunoVariableDatatype => {
+export const getDataTypeFromValue = (value: unknown): BrunoVariableDataType => {
   if (value === null || value === undefined) return 'string';
   if (typeof value === 'number') return 'number';
   if (typeof value === 'boolean') return 'boolean';
@@ -45,7 +45,7 @@ export const getDatatypeFromValue = (value: unknown): BrunoVariableDatatype => {
   return 'string';
 };
 
-// Round-trip pair with parseValueByDatatype.
+// Round-trip pair with parseValueByDataType.
 export const valueToString = (value: unknown): string => {
   if (value === null || value === undefined) return '';
   if (typeof value === 'string') return value;
@@ -60,14 +60,14 @@ export const valueToString = (value: unknown): string => {
   return String(value);
 };
 
-// Returns an error message when post-coerce value's JS type doesn't match datatype.
-export const validateDatatypeValue = (value: any, datatype?: BrunoVariableDatatype): string | null => {
-  if (!datatype || datatype === 'string') return null;
+// Returns an error message when post-coerce value's JS type doesn't match dataType.
+export const validateDataTypeValue = (value: any, dataType?: BrunoVariableDataType): string | null => {
+  if (!dataType || dataType === 'string') return null;
   if (value === undefined || value === null) return null;
 
-  if (datatype === 'number' && typeof value !== 'number') return `Value is not a valid ${datatype}`;
-  if (datatype === 'boolean' && typeof value !== 'boolean') return `Value is not a valid ${datatype}`;
-  if (datatype === 'object' && typeof value !== 'object') return `Value is not a valid ${datatype}`;
+  if (dataType === 'number' && typeof value !== 'number') return `Value is not a valid ${dataType}`;
+  if (dataType === 'boolean' && typeof value !== 'boolean') return `Value is not a valid ${dataType}`;
+  if (dataType === 'object' && typeof value !== 'object') return `Value is not a valid ${dataType}`;
 
   return null;
 };

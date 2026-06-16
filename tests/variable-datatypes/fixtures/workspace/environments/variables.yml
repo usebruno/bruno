@@ -1,4 +1,4 @@
-name: typed_global
+name: variables
 
 variables:
   - name: glob_str
@@ -17,3 +17,12 @@ variables:
       data: '{"scope":"global"}'
   - secret: true
     name: glob_secret_str
+  - secret: true
+    name: glob_secret_num
+    type: number
+  - secret: true
+    name: glob_secret_bool
+    type: boolean
+  - secret: true
+    name: glob_secret_obj
+    type: object

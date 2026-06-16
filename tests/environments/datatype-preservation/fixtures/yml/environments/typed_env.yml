@@ -29,3 +29,12 @@ variables:
       data: "not-json"
   - secret: true
     name: env_secret_str
+  - secret: true
+    name: env_secret_num
+    type: number
+  - secret: true
+    name: env_secret_bool
+    type: boolean
+  - secret: true
+    name: env_secret_obj
+    type: object

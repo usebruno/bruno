@@ -1,12 +1,12 @@
 import type { VariableTypedValue } from '@opencollection/types/common/variables';
 import {
-  parseValueByDatatype,
-  BrunoVariableDatatype,
-  isBrunoVariableDatatype,
+  parseValueByDataType,
+  BrunoVariableDataType,
+  isBrunoVariableDataType,
   valueToString
 } from '@usebruno/common/utils';
 
-export { BrunoVariableDatatype, isBrunoVariableDatatype };
+export { BrunoVariableDataType, isBrunoVariableDataType };
 
 export const serializeVariableValue = (value: unknown): string => {
   if (value !== null && typeof value === 'object') {
@@ -24,11 +24,11 @@ export const isTypedValue = (value: unknown): value is VariableTypedValue => {
 };
 
 export interface TypedVariableFields {
-  datatype?: BrunoVariableDatatype;
+  dataType?: BrunoVariableDataType;
 }
 
 export const hasTypedMetadata = (v: TypedVariableFields): boolean => {
-  return !!v.datatype && v.datatype !== 'string';
+  return !!v.dataType && v.dataType !== 'string';
 };
 
 export const toOpenCollectionTypedValue = (
@@ -36,7 +36,7 @@ export const toOpenCollectionTypedValue = (
   dataStr: string
 ): VariableTypedValue => {
   return {
-    type: (v.datatype || 'string') as VariableTypedValue['type'],
+    type: (v.dataType || 'string') as VariableTypedValue['type'],
     data: dataStr
   };
 };
@@ -46,12 +46,12 @@ export const fromOpenCollectionTypedValue = (
   typed: VariableTypedValue
 ): { value: any } & TypedVariableFields => {
   const dataStr = typeof typed.data === 'string' ? typed.data : String(typed.data ?? '');
-  const datatype: BrunoVariableDatatype = isBrunoVariableDatatype(typed.type) ? typed.type : 'string';
+  const dataType: BrunoVariableDataType = isBrunoVariableDataType(typed.type) ? typed.type : 'string';
   const result: { value: any } & TypedVariableFields = {
-    value: parseValueByDatatype(dataStr, datatype)
+    value: parseValueByDataType(dataStr, dataType)
   };
-  if (datatype !== 'string') {
-    result.datatype = datatype;
+  if (dataType !== 'string') {
+    result.dataType = dataType;
   }
   return result;
 };

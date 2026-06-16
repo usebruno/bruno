@@ -54,12 +54,12 @@ describe('global environment variable type backward compatibility', () => {
   });
 });
 
-describe('global environment variable read-time datatype parsing', () => {
+describe('global environment variable read-time dataType parsing', () => {
   beforeEach(() => {
     globalEnvironmentsStore.store.clear();
   });
 
-  const storedAs = (datatype, value) => ({
+  const storedAs = (dataType, value) => ({
     uid: 'yDlwWe3qgimPG20G7AbF7',
     name: 'Test Environment',
     variables: [
@@ -67,7 +67,7 @@ describe('global environment variable read-time datatype parsing', () => {
         uid: 'b6BIHGaCrm4m97YA2dIdx',
         name: 'v',
         value,
-        datatype,
+        dataType,
         type: 'text',
         enabled: true,
         secret: false
@@ -102,8 +102,8 @@ describe('global environment variable read-time datatype parsing', () => {
     expect(readVar().value).toBe(42);
   });
 
-  it('skips parsing on secret variables — value stays a string even if datatype is number', () => {
-    // Encrypt so the decryption round-trip yields '42' on read.
+  it('parses secret variables by their dataType after decryption', () => {
+    // Encrypt so the decryption round-trip yields '42', which is then coerced.
     const encrypted = encryptStringSafe('42').value;
     const env = {
       uid: 'yDlwWe3qgimPG20G7AbF7',
@@ -113,7 +113,7 @@ describe('global environment variable read-time datatype parsing', () => {
           uid: 'b6BIHGaCrm4m97YA2dIdx',
           name: 'sec',
           value: encrypted,
-          datatype: 'number',
+          dataType: 'number',
           type: 'text',
           enabled: true,
           secret: true
@@ -121,6 +121,6 @@ describe('global environment variable read-time datatype parsing', () => {
       ]
     };
     globalEnvironmentsStore.store.set('environments', [env]);
-    expect(readVar().value).toBe('42');
+    expect(readVar().value).toBe(42);
   });
 });
