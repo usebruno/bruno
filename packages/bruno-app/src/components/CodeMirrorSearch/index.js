@@ -64,13 +64,11 @@ const CodeMirrorSearch = forwardRef(({ visible, editor, onClose }, ref) => {
   const replaceInputRef = useRef(null);
   const containerRef = useRef(null);
   const initialIndexRef = useRef(null);
-  const visibleRef = useRef(visible);
-  useEffect(() => { visibleRef.current = visible; }, [visible]);
 
   const debouncedSearchText = useDebounce(searchText, 250);
 
-  const doSearch = useCallback((newIndex = 0) => {
-    if (!editor || !visibleRef.current) {
+  const doSearch = useCallback((text, newIndex = 0) => {
+    if (!editor || !visible) {
       return;
     }
 
@@ -79,7 +77,7 @@ const CodeMirrorSearch = forwardRef(({ visible, editor, onClose }, ref) => {
       searchLineHighlight.current = null;
     }
 
-    if (!debouncedSearchText) {
+    if (!text) {
       setMatchCount(0);
       setMatchIndex(0);
       searchMatches.current = [];
@@ -89,12 +87,12 @@ const CodeMirrorSearch = forwardRef(({ visible, editor, onClose }, ref) => {
     }
 
     try {
-      const newCacheKey = createCacheKey(editor, debouncedSearchText, regex, caseSensitive, wholeWord);
+      const newCacheKey = createCacheKey(editor, text, regex, caseSensitive, wholeWord);
       const isCacheHit = newCacheKey === searchCacheKey.current;
 
       let matches = searchMatches.current;
       if (!isCacheHit) {
-        matches = findSearchMatches(editor, debouncedSearchText, regex, caseSensitive, wholeWord);
+        matches = findSearchMatches(editor, text, regex, caseSensitive, wholeWord);
         searchMatches.current = matches;
         searchCacheKey.current = newCacheKey;
         setMatchCount(matches.length);
@@ -165,7 +163,7 @@ const CodeMirrorSearch = forwardRef(({ visible, editor, onClose }, ref) => {
       searchMatches.current = [];
       searchCacheKey.current = '';
     }
-  }, [debouncedSearchText, regex, caseSensitive, wholeWord, editor]);
+  }, [regex, caseSensitive, wholeWord, editor, visible]);
 
   const handleSearchBarClose = useCallback(() => {
     searchMarks.current.forEach((mark) => mark.clear());
@@ -206,12 +204,10 @@ const CodeMirrorSearch = forwardRef(({ visible, editor, onClose }, ref) => {
         // Set both count and index immediately to avoid "1 / N" flash before debounce fires
         setMatchCount(matches.length);
         setMatchIndex(targetIdx);
-        if (text === searchText) {
-          // Same text — debouncedSearchText won't change, effect won't fire. Call directly.
-          setTimeout(() => doSearch(targetIdx), 0);
-        } else {
-          // Text changed — effect will fire after debounce. Store text+index together
-          // so the effect only consumes it when debouncedSearchText has caught up.
+        // Call immediately — text is passed directly, no debounce dependency
+        doSearch(text, targetIdx);
+        // Store so the debounce-fired effect uses the right index instead of 0
+        if (text !== searchText) {
           initialIndexRef.current = { idx: targetIdx, forText: text };
         }
       } else {
@@ -234,12 +230,15 @@ const CodeMirrorSearch = forwardRef(({ visible, editor, onClose }, ref) => {
   }));
 
   useEffect(() => {
-    if (initialIndexRef.current && initialIndexRef.current.forText === debouncedSearchText) {
-      const idx = initialIndexRef.current.idx;
-      initialIndexRef.current = null;
-      doSearch(idx);
+    if (initialIndexRef.current) {
+      // setSearch has pre-computed a result — wait for debouncedSearchText to catch up
+      if (initialIndexRef.current.forText === debouncedSearchText) {
+        const idx = initialIndexRef.current.idx;
+        initialIndexRef.current = null;
+        doSearch(debouncedSearchText, idx);
+      }
     } else {
-      doSearch(0);
+      doSearch(debouncedSearchText, 0);
     }
   }, [debouncedSearchText, doSearch]);
 
@@ -266,7 +265,7 @@ const CodeMirrorSearch = forwardRef(({ visible, editor, onClose }, ref) => {
       clearTimeout(timeoutId);
       timeoutId = setTimeout(() => {
         searchCacheKey.current = '';
-        doSearch(0);
+        doSearch(debouncedSearchText, 0);
       }, 100);
     };
 
@@ -275,7 +274,7 @@ const CodeMirrorSearch = forwardRef(({ visible, editor, onClose }, ref) => {
       editor.off('change', handleChange);
       clearTimeout(timeoutId);
     };
-  }, [editor, visible, doSearch]);
+  }, [editor, visible, doSearch, debouncedSearchText]);
 
   const handleSearchTextChange = (text) => {
     setSearchText(text);
@@ -300,13 +299,13 @@ const CodeMirrorSearch = forwardRef(({ visible, editor, onClose }, ref) => {
   const handleNext = () => {
     if (!searchMatches.current || !searchMatches.current.length) return;
     const next = (matchIndex + 1) % searchMatches.current.length;
-    doSearch(next);
+    doSearch(debouncedSearchText, next);
   };
 
   const handlePrev = () => {
     if (!searchMatches.current || !searchMatches.current.length) return;
     const prev = (matchIndex - 1 + searchMatches.current.length) % searchMatches.current.length;
-    doSearch(prev);
+    doSearch(debouncedSearchText, prev);
   };
 
   const handleReplace = useCallback(() => {
@@ -332,7 +331,7 @@ const CodeMirrorSearch = forwardRef(({ visible, editor, onClose }, ref) => {
       (m) => m.from.line > endLine || (m.from.line === endLine && m.from.ch >= endCh)
     );
 
-    doSearch(nextIdx >= 0 ? nextIdx : 0);
+    doSearch(debouncedSearchText, nextIdx >= 0 ? nextIdx : 0);
   }, [editor, matchIndex, replaceText, debouncedSearchText, regex, caseSensitive, wholeWord, doSearch]);
 
   const handleReplaceAll = useCallback(() => {
@@ -342,8 +341,8 @@ const CodeMirrorSearch = forwardRef(({ visible, editor, onClose }, ref) => {
       matches.forEach((match) => editor.replaceRange(replaceText, match.from, match.to));
     });
     searchCacheKey.current = '';
-    doSearch(0);
-  }, [editor, replaceText, doSearch]);
+    doSearch(debouncedSearchText, 0);
+  }, [editor, replaceText, debouncedSearchText, doSearch]);
 
   const isDebouncing = searchText !== debouncedSearchText;
 
