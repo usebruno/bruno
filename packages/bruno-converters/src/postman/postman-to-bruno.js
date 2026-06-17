@@ -671,22 +671,22 @@ const importPostmanV2CollectionItem = (brunoParent, item, { useWorkers = false }
               brunoRequestItem.request.body.text = i.request.body.raw;
             }
           }
+
+          if (bodyMode === 'file') {
+            brunoRequestItem.request.body.mode = 'file';
+            brunoRequestItem.request.body.file.push({
+              uid: uuid(),
+              selected: true,
+              filePath: ensureString(i.request.body.file?.src),
+              contentType: 'application/octet-stream'
+            });
+          }
         }
 
         if (bodyMode === 'graphql') {
           brunoRequestItem.type = 'graphql-request';
           brunoRequestItem.request.body.mode = 'graphql';
           brunoRequestItem.request.body.graphql = parseGraphQLRequest(i.request.body.graphql);
-        }
-
-        if (bodyMode === 'file') {
-          brunoRequestItem.request.body.mode = 'file';
-          brunoRequestItem.request.body.file.push({
-            uid: uuid(),
-            selected: true,
-            filePath: ensureString(i.request.body.file?.src),
-            contentType: 'application/octet-stream'
-          });
         }
 
         each(normalizeHeaders(i.request.header), (header) => {
