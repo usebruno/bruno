@@ -1,7 +1,6 @@
 import { expect, test } from '../../playwright';
 import { closeAllCollections, createFolder, openCollection } from '../utils/page';
 import {
-  closePreferencesTab,
   collectionName,
   modifier,
   openFolderSettingsTab,
@@ -10,8 +9,6 @@ import {
   remapKeybinding,
   setupBoundActionsData
 } from './helpers';
-
-// ─── Tests ────
 
 test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
   test.beforeEach(async ({ page, createTmpDir }) => {
@@ -508,8 +505,6 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await page.keyboard.down('KeyG');
         await page.keyboard.up('KeyG');
         await page.keyboard.up('Shift');
-
-        await closePreferencesTab(page);
 
         // Trigger the remapped shortcut to collapse sidebar
         await page.keyboard.down('Shift');

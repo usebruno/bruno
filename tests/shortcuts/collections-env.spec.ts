@@ -8,8 +8,6 @@ import {
   setupBoundActionsData
 } from './helpers';
 
-// ─── Tests ────
-
 test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
   test.beforeEach(async ({ page, createTmpDir }) => {
     await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 5000 });

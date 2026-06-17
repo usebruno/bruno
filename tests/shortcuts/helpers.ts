@@ -55,11 +55,9 @@ export const openKeybindingsTab = async (page: Page) => {
 export const closePreferencesTab = async (page: Page) => {
   const prefTab = page.locator('.request-tab').filter({ has: page.getByText('Preferences', { exact: true }) });
   await prefTab.dblclick();
-  // await prefTab.hover();
   await prefTab.getByTestId('request-tab-close-icon').click({ force: true });
 
   await expect(prefTab).not.toBeVisible({ timeout: 8000 });
-  // await page.pause();
 };
 
 export const closeTabByName = async (page: any, name: string | RegExp) => {
@@ -120,7 +118,6 @@ export const remapKeybinding = async (
 
   await page.keyboard.press('Backspace');
   await pressShortcut();
-  // await closePreferencesTab(page);
 };
 
 export const getTabIndex = async (page: Page, name: string) => {
