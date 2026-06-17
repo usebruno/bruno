@@ -15,6 +15,12 @@ variables:
     value:
       type: object
       data: '{"scope":"global"}'
+  - name: glob_untyped_num
+    value: "42"
+  - name: glob_untyped_bool
+    value: "true"
+  - name: glob_untyped_obj
+    value: '{"a":1}'
   - secret: true
     name: glob_secret_str
   - secret: true
@@ -26,3 +32,5 @@ variables:
   - secret: true
     name: glob_secret_obj
     type: object
+  - secret: true
+    name: glob_secret_untyped

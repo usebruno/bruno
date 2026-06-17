@@ -54,7 +54,9 @@ test.describe.serial('bru.setEnvVar(name, value, { persist: true }) — typed va
       expect(content).toMatch(/typed_str:\s*hello/);
 
       expect(content).toMatch(/vars:secret\s*\[\s*[\s\S]*existing_secret/);
-      expect(content).not.toMatch(/@number\s+existing_secret/);
+      // existing_secret is set to the number 99 via bru.setEnvVar, so its value's
+      // type is inferred and persisted as @number — same as any non-secret var.
+      expect(content).toMatch(/@number\s+existing_secret/);
     });
 
     await test.step('Restart and verify the env editor reflects the persisted datatypes', async () => {
@@ -87,9 +89,10 @@ test.describe.serial('bru.setEnvVar(name, value, { persist: true }) — typed va
       await expect(
         newPage.locator('[data-testid="env-var-row-existing_secret"]')
       ).toBeVisible();
+      // Reloaded with the inferred @number type — the selector shows 'number'.
       await expect(
         newPage.locator('[data-testid="env-var-row-existing_secret"] .type-label')
-      ).toHaveCount(0);
+      ).toHaveText('number');
 
       await envTab.hover();
       await envTab.getByTestId('request-tab-close-icon').click({ force: true });

@@ -17,6 +17,7 @@ script:pre-request {
   bru.setEnvVar("typed_obj", { k: 1 }, { persist: true });
   // Plain string — no dataType materialized.
   bru.setEnvVar("typed_str", "hello", { persist: true });
-  // Secret overwrite: value gets stringified, no dataType.
+  // Secret overwrite: value is stringified for encryption; the number dataType is
+  // inferred and persisted (@number), same as any non-secret setEnvVar.
   bru.setEnvVar("existing_secret", 99, { persist: true });
 }

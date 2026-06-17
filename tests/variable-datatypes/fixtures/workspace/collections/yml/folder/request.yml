@@ -223,6 +223,15 @@ runtime:
           expect(bru.getEnvVar("falsy_num")).to.equal(0);
           expect(typeof bru.getEnvVar("falsy_bool")).to.equal("boolean");
           expect(bru.getEnvVar("falsy_bool")).to.equal(false);
+
+          // A value with no declared dataType stays a string — a dataType is never
+          // inferred from a parseable number/boolean/object value.
+          expect(typeof bru.getEnvVar("env_untyped_num")).to.equal("string");
+          expect(bru.getEnvVar("env_untyped_num")).to.equal("42");
+          expect(typeof bru.getEnvVar("env_untyped_bool")).to.equal("string");
+          expect(bru.getEnvVar("env_untyped_bool")).to.equal("true");
+          expect(typeof bru.getEnvVar("env_untyped_obj")).to.equal("string");
+          expect(bru.getEnvVar("env_untyped_obj")).to.equal('{"a":1}');
         });
 
         test("global environment vars carry their declared types", () => {
@@ -231,6 +240,14 @@ runtime:
           expect(bru.getGlobalEnvVar("glob_num")).to.equal(400);
           expect(typeof bru.getGlobalEnvVar("glob_bool")).to.equal("boolean");
           expect(bru.getGlobalEnvVar("glob_obj")).to.deep.equal({ scope: "global" });
+
+          // No declared dataType — parseable values stay strings, never inferred.
+          expect(typeof bru.getGlobalEnvVar("glob_untyped_num")).to.equal("string");
+          expect(bru.getGlobalEnvVar("glob_untyped_num")).to.equal("42");
+          expect(typeof bru.getGlobalEnvVar("glob_untyped_bool")).to.equal("string");
+          expect(bru.getGlobalEnvVar("glob_untyped_bool")).to.equal("true");
+          expect(typeof bru.getGlobalEnvVar("glob_untyped_obj")).to.equal("string");
+          expect(bru.getGlobalEnvVar("glob_untyped_obj")).to.equal('{"a":1}');
         });
 
         test("runtime vars set via bru.setVar preserve types", () => {

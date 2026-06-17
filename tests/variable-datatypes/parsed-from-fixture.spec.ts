@@ -512,13 +512,19 @@ test.afterEach(async ({ pageWithUserData: page }) => {
   await closeAllTabs(page);
 });
 
-test.describe('DataType selector — BRU collection fixture', () => {
+// Both collection formats (.bru annotations and .yml { type, data }) must surface
+// identical dataType behaviour, so the suite is defined once and run per fixture.
+// Only the save round-trip differs (the on-disk shape), so it's passed in.
+const runDataTypeSelectorTests = (
+  collectionName: string,
+  { savedRequestFile, savedDataTypeMatcher }: { savedRequestFile: string[]; savedDataTypeMatcher: RegExp }
+) => {
   test('vars: all datatypes render correctly across collection / folder / request scopes', async ({ pageWithUserData: page }) => {
-    await expectAllVarLabels(page, BRU_COLLECTION);
+    await expectAllVarLabels(page, collectionName);
   });
 
   test('request vars: query params and headers do NOT expose the dataType selector', async ({ pageWithUserData: page }) => {
-    await openRequestInCollection(page, BRU_COLLECTION);
+    await openRequestInCollection(page, collectionName);
     await selectRequestPaneTab(page, 'Params');
     const queryTable = buildCommonLocators(page).table('query-params');
     await expect(queryTable.container().locator('.type-label')).toHaveCount(0);
@@ -529,17 +535,15 @@ test.describe('DataType selector — BRU collection fixture', () => {
   });
 
   test('test script: every typed var across scopes asserts true', async ({ pageWithUserData: page }) => {
-    await openRequestInCollection(page, BRU_COLLECTION);
+    await openRequestInCollection(page, collectionName);
     await runAndAssertTestsPass(page);
   });
 
   test('multipart form: typed pre-request vars stringify on the wire', async ({ pageWithUserData: page }) => {
-    // The form-data path runs in bruno-electron regardless of source format,
-    // so we exercise it once via the BRU multipart fixture. Asserts the
-    // toFormValue stringifier in packages/bruno-electron/src/utils/form-data.js
-    // is converting typed (number/boolean/object) values to strings before
-    // form.append.
-    await openRequestInCollection(page, BRU_COLLECTION, 'multipart');
+    // Asserts the toFormValue stringifier in
+    // packages/bruno-electron/src/utils/form-data.js converts typed
+    // (number/boolean/object) values to strings before form.append.
+    await openRequestInCollection(page, collectionName, 'multipart');
     await sendRequestAndWaitForResponse(page, 200, { timeout: 30000 });
     await selectResponsePaneTab(page, 'Tests');
     const multipartResponse = buildCommonLocators(page).response;
@@ -552,7 +556,7 @@ test.describe('DataType selector — BRU collection fixture', () => {
     // buildFormUrlEncodedPayload in @usebruno/common coerces values via String().
     // Verifies typed (number/boolean/object) vars round-trip into the
     // application/x-www-form-urlencoded body and the echo endpoint echoes the wire form.
-    await openRequestInCollection(page, BRU_COLLECTION, 'form_urlencoded');
+    await openRequestInCollection(page, collectionName, 'form_urlencoded');
     await sendRequestAndWaitForResponse(page, 200, { timeout: 30000 });
     await selectResponsePaneTab(page, 'Tests');
     const formUrlEncodedResponse = buildCommonLocators(page).response;
@@ -561,23 +565,23 @@ test.describe('DataType selector — BRU collection fixture', () => {
   });
 
   test('vars: warning icon shows when value does not match the declared dataType', async ({ pageWithUserData: page }) => {
-    await openRequestInCollection(page, BRU_COLLECTION);
+    await openRequestInCollection(page, collectionName);
     await selectRequestPaneTab(page, 'Vars');
 
     const table = buildCommonLocators(page).table('request-vars-req');
 
-    // mismatched_num declares @number but the value is "not-a-number" — coercion
-    // fails, value falls back to the raw string, the row should warn.
+    // mismatched_num declares the number dataType but its value is "not-a-number" —
+    // coercion fails, the value falls back to the raw string, so the row warns.
     const mismatchedRow = tableRowByName(table, 'mismatched_num');
     await expectTypeLabel(mismatchedRow, 'number');
     await expect(mismatchIcon(mismatchedRow)).toBeVisible();
 
-    // Sanity check: req_num declares @number with value 42 — no warning.
+    // req_num declares number with value 42 — no warning.
     const matchingRow = tableRowByName(table, 'req_num');
     await expectTypeLabel(matchingRow, 'number');
     await expect(mismatchIcon(matchingRow)).toHaveCount(0);
 
-    // Sanity check: a row whose dataType defaults to string (req_str) — no warning.
+    // req_str defaults to the string dataType — no warning.
     const stringRow = tableRowByName(table, 'req_str');
     await expectTypeLabel(stringRow, 'string');
     await expect(mismatchIcon(stringRow)).toHaveCount(0);
@@ -595,7 +599,7 @@ test.describe('DataType selector — BRU collection fixture', () => {
     const page = await app.firstWindow();
     await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
 
-    await openRequestInCollection(page, BRU_COLLECTION);
+    await openRequestInCollection(page, collectionName);
     await selectEnvironment(page, 'variables', 'collection');
     await selectEnvironment(page, 'variables', 'global');
 
@@ -604,10 +608,9 @@ test.describe('DataType selector — BRU collection fixture', () => {
     // vars with the inferred dataType attached.
     await sendRequestAndWaitForResponse(page, 200, { timeout: 30000 });
 
-    // The 200 status arrives before post-response IPC ('main:script-environment-update'
-    // and 'main:global-environment-variables-update') has propagated to redux.
-    // Wait for the Tests panel to populate — that guarantees the runner has
-    // finished post-response work and the env state is in sync.
+    // The 200 status arrives before post-response IPC has propagated to redux.
+    // Wait for the Tests panel to populate — that guarantees the runner finished
+    // post-response work and the env state is in sync.
     await selectResponsePaneTab(page, 'Tests');
     await expect(
       buildCommonLocators(page).response.testSummary()
@@ -630,7 +633,7 @@ test.describe('DataType selector — BRU collection fixture', () => {
   });
 
   test('env editor: typed falsy values (0, false) display their dataType label', async ({ pageWithUserData: page }) => {
-    await openRequestInCollection(page, BRU_COLLECTION);
+    await openRequestInCollection(page, collectionName);
     await selectEnvironment(page, 'variables', 'collection');
     await openEnvironmentSettings(page, 'collection');
 
@@ -641,152 +644,94 @@ test.describe('DataType selector — BRU collection fixture', () => {
     await expectEnvVarTypeLabel(page, 'env_bool', 'boolean');
   });
 
+  test('env editor: vars without a declared dataType show the default string label', async ({ pageWithUserData: page }) => {
+    await openRequestInCollection(page, collectionName);
+    await selectEnvironment(page, 'variables', 'collection');
+    await selectEnvironment(page, 'variables', 'global');
+
+    // Numeric / boolean / object-looking values with no declared dataType are
+    // never inferred as typed — the selector shows the default 'string'. An
+    // untyped secret likewise never gains an inferred dataType.
+    await openEnvironmentSettings(page, 'collection');
+    await expectEnvVarTypeLabel(page, 'env_untyped_num', 'string');
+    await expectEnvVarTypeLabel(page, 'env_untyped_bool', 'string');
+    await expectEnvVarTypeLabel(page, 'env_untyped_obj', 'string');
+    await expectEnvVarTypeLabel(page, 'env_secret_untyped', 'string');
+
+    await openEnvironmentSettings(page, 'global');
+    await expectEnvVarTypeLabel(page, 'glob_untyped_num', 'string');
+    await expectEnvVarTypeLabel(page, 'glob_untyped_bool', 'string');
+    await expectEnvVarTypeLabel(page, 'glob_untyped_obj', 'string');
+    await expectEnvVarTypeLabel(page, 'glob_secret_untyped', 'string');
+  });
+
   test('env editor: secret variables display their declared dataType label', async ({ pageWithUserData: page }) => {
-    await runSecretDataTypeLabelAssertions(page, BRU_COLLECTION);
+    await runSecretDataTypeLabelAssertions(page, collectionName);
   });
 
   test('hover popup: body variables show parsed values for each dataType after execution', async ({ pageWithUserData: page }) => {
-    await runBodyHoverPopupAssertions(page, BRU_COLLECTION);
+    await runBodyHoverPopupAssertions(page, collectionName);
   });
 
   test('hover popup: clicking to edit seeds the editor with the right text for every dataType', async ({ pageWithUserData: page }) => {
-    await runBodyEditorSeedAssertions(page, BRU_COLLECTION);
+    await runBodyEditorSeedAssertions(page, collectionName);
   });
 
-  test('save: dataType change round-trips to request.bru, then execution honors the new dataType', async ({
+  test('save: dataType change round-trips to disk, then execution honors the new dataType', async ({
     restartApp,
     workspaceFixturePath
   }, testInfo) => {
-    // restartApp boots a fresh electron (~10s) AND we send a real network
-    // request after save, which combined exceeds the default 30s test
-    // timeout. Bump it for this heavier flow.
+    // restartApp boots a fresh electron (~10s) AND we send a real network request
+    // after save, which combined exceeds the default 30s timeout.
     testInfo.setTimeout(90_000);
 
-    // Use `restartApp` so this test gets an isolated electron app pointed at
-    // its own `workspaceFixturePath`. Without this, the app reused across
-    // tests binds to the FIRST test's tmp workspace.
+    // restartApp gives this test an isolated electron app pointed at its own
+    // workspaceFixturePath (the shared app binds to the first test's tmp workspace).
     expect(workspaceFixturePath).not.toBeNull();
-    const requestFile = path.join(workspaceFixturePath!, 'collections', 'bru', 'folder', 'request.bru');
+    const requestFile = path.join(workspaceFixturePath!, ...savedRequestFile);
 
     const app = await restartApp({});
     const page = await app.firstWindow();
     await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
 
-    await openRequestInCollection(page, BRU_COLLECTION);
+    await openRequestInCollection(page, collectionName);
     await selectEnvironment(page, 'variables', 'collection');
     await selectEnvironment(page, 'variables', 'global');
     await selectRequestPaneTab(page, 'Vars');
 
-    // Step 1: update the dataType in the UI (puts request in draft state).
+    // Step 1: change req_str's dataType in the UI (puts the request in draft state).
     const row = tableRowByName(buildCommonLocators(page).table('request-vars-req'), 'req_str');
     await expectTypeLabel(row, 'string');
     await changeRowDataType(page, row, 'number');
     await expect(buildCommonLocators(page).tabs.draftIndicator()).toBeVisible();
 
-    // Step 2: save — round-trips a bare `@number` annotation to disk.
+    // Step 2: save — the number dataType round-trips to disk in the fixture's format.
     await saveRequest(page);
     await expect(buildCommonLocators(page).tabs.draftIndicator()).not.toBeVisible();
     await expectTypeLabel(row, 'number');
     await expect.poll(
       async () => fs.promises.readFile(requestFile, 'utf8'),
       { timeout: 5000 }
-    ).toMatch(/@number\n {2}req_str: request_string/);
+    ).toMatch(savedDataTypeMatcher);
 
-    // Step 3: execute. The runner reads the saved fixture, sees @number on
-    // req_str, and applies datatype-driven coercion when building
-    // requestVariables. Envs are already activated above, so we skip the
-    // re-selection inside runAndAssertTestsPass and just send + verify.
+    // Step 3: execute. The runner reads the saved fixture, sees req_str is now a
+    // number, and applies datatype-driven coercion. Envs are already activated.
     await sendAndAssertAllTestsPass(page);
+  });
+};
+
+test.describe('DataType selector — BRU collection fixture', () => {
+  runDataTypeSelectorTests(BRU_COLLECTION, {
+    savedRequestFile: ['collections', 'bru', 'folder', 'request.bru'],
+    // bare `@number` annotation above the var
+    savedDataTypeMatcher: /@number\n {2}req_str: request_string/
   });
 });
 
 test.describe('DataType selector — YML collection fixture', () => {
-  test('vars: all datatypes render correctly across collection / folder / request scopes', async ({ pageWithUserData: page }) => {
-    await expectAllVarLabels(page, YML_COLLECTION);
-  });
-
-  test('test script: every typed var across scopes asserts true', async ({ pageWithUserData: page }) => {
-    await openRequestInCollection(page, YML_COLLECTION);
-    await runAndAssertTestsPass(page);
-  });
-
-  test('vars: warning icon shows when value does not match the declared dataType', async ({ pageWithUserData: page }) => {
-    await openRequestInCollection(page, YML_COLLECTION);
-    await selectRequestPaneTab(page, 'Vars');
-
-    const table = buildCommonLocators(page).table('request-vars-req');
-
-    // mismatched_num: { type: number, data: "not-a-number" } — falls back to the raw
-    // string after fromOpenCollectionTypedValue() can't coerce to a number.
-    const mismatchedRow = tableRowByName(table, 'mismatched_num');
-    await expectTypeLabel(mismatchedRow, 'number');
-    await expect(mismatchIcon(mismatchedRow)).toBeVisible();
-
-    const matchingRow = tableRowByName(table, 'req_num');
-    await expectTypeLabel(matchingRow, 'number');
-    await expect(mismatchIcon(matchingRow)).toHaveCount(0);
-
-    const stringRow = tableRowByName(table, 'req_str');
-    await expectTypeLabel(stringRow, 'string');
-    await expect(mismatchIcon(stringRow)).toHaveCount(0);
-  });
-
-  test('env editor: typed falsy values (0, false) display their dataType label', async ({ pageWithUserData: page }) => {
-    await openRequestInCollection(page, YML_COLLECTION);
-    await selectEnvironment(page, 'variables', 'collection');
-    await openEnvironmentSettings(page, 'collection');
-
-    await expectEnvVarTypeLabel(page, 'falsy_num', 'number');
-    await expectEnvVarTypeLabel(page, 'falsy_bool', 'boolean');
-  });
-
-  test('env editor: secret variables display their declared dataType label', async ({ pageWithUserData: page }) => {
-    await runSecretDataTypeLabelAssertions(page, YML_COLLECTION);
-  });
-
-  test('hover popup: body variables show parsed values for each dataType after execution', async ({ pageWithUserData: page }) => {
-    await runBodyHoverPopupAssertions(page, YML_COLLECTION);
-  });
-
-  test('hover popup: clicking to edit seeds the editor with the right text for every dataType', async ({ pageWithUserData: page }) => {
-    await runBodyEditorSeedAssertions(page, YML_COLLECTION);
-  });
-
-  test('save: dataType change round-trips to request.yml, then execution honors the new dataType', async ({
-    restartApp,
-    workspaceFixturePath
-  }, testInfo) => {
-    testInfo.setTimeout(90_000);
-
-    expect(workspaceFixturePath).not.toBeNull();
-    const requestFile = path.join(workspaceFixturePath!, 'collections', 'yml', 'folder', 'request.yml');
-
-    const app = await restartApp({});
-    const page = await app.firstWindow();
-    await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
-
-    await openRequestInCollection(page, YML_COLLECTION);
-    await selectEnvironment(page, 'variables', 'collection');
-    await selectEnvironment(page, 'variables', 'global');
-    await selectRequestPaneTab(page, 'Vars');
-
-    // Step 1: update the dataType in the UI (puts request in draft state).
-    const row = tableRowByName(buildCommonLocators(page).table('request-vars-req'), 'req_str');
-    await expectTypeLabel(row, 'string');
-    await changeRowDataType(page, row, 'number');
-    await expect(buildCommonLocators(page).tabs.draftIndicator()).toBeVisible();
-
-    // Step 2: save — value becomes an object with type/data on disk.
-    await saveRequest(page);
-    await expect(buildCommonLocators(page).tabs.draftIndicator()).not.toBeVisible();
-    await expectTypeLabel(row, 'number');
-    await expect.poll(
-      async () => fs.promises.readFile(requestFile, 'utf8'),
-      { timeout: 5000 }
-    ).toMatch(/- name: req_str\n\s+value:\n\s+type: number\n\s+data: ['"]?request_string['"]?/);
-
-    // Step 3: execute. Envs are already activated above; skip re-selection
-    // and just send + verify the test summary in the response pane.
-    await sendAndAssertAllTestsPass(page);
+  runDataTypeSelectorTests(YML_COLLECTION, {
+    savedRequestFile: ['collections', 'yml', 'folder', 'request.yml'],
+    // value becomes a { type, data } object
+    savedDataTypeMatcher: /- name: req_str\n\s+value:\n\s+type: number\n\s+data: ['"]?request_string['"]?/
   });
 });
