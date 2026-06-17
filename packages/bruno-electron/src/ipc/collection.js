@@ -624,6 +624,20 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
     }
   });
 
+  ipcMain.handle('renderer:save-file', async (event, pathname, content) => {
+    try {
+      validatePathIsInsideCollection(pathname);
+
+      if (!fs.existsSync(pathname)) {
+        throw new Error(`path: ${pathname} does not exist`);
+      }
+
+      await writeFile(pathname, content);
+    } catch (error) {
+      return Promise.reject(error);
+    }
+  });
+
   // Helper: Parse file content based on scope type
   const parseFileByType = async (fileContent, scopeType, format) => {
     switch (scopeType) {
@@ -1715,6 +1729,16 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
     try {
       await deleteCookie(domain, path, cookieKey);
       await updateCookiesAndNotify();
+    } catch (error) {
+      return Promise.reject(error);
+    }
+  });
+
+  ipcMain.handle('renderer:convert-to-json', async (event, item, content, format = 'bru') => {
+    try {
+      const jsonContent = await parseRequestViaWorker(content, { format });
+      const json = hydrateRequestWithUuid(jsonContent, item?.pathname);
+      return json;
     } catch (error) {
       return Promise.reject(error);
     }

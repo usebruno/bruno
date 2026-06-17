@@ -19,6 +19,7 @@ import VariablesEditor from 'components/VariablesEditor';
 import CollectionSettings from 'components/CollectionSettings';
 import { DocExplorer } from '@usebruno/graphql-docs';
 
+import FileEditor from 'components/FileEditor';
 import StyledWrapper from './StyledWrapper';
 import FolderSettings from 'components/FolderSettings';
 import { getGlobalEnvironmentVariables, getGlobalEnvironmentVariablesMasked } from 'utils/collections/index';
@@ -476,6 +477,17 @@ const RequestTabPanel = () => {
         }));
     }
   };
+
+  if (collection.fileMode) {
+    return (
+      <ScopedPersistenceProvider scope={focusedTab.uid}>
+        <StyledWrapper className="flex flex-col flex-grow relative p-4 file-mode overflow-hidden">
+          <FileEditor item={item} collection={collection} />
+        </StyledWrapper>
+      </ScopedPersistenceProvider>
+    );
+  }
+
   const renderQueryUrl = () => {
     if (isGrpcRequest) {
       return <GrpcQueryUrl item={item} collection={collection} handleRun={handleRun} />;
