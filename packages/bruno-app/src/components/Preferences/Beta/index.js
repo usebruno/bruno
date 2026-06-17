@@ -47,7 +47,7 @@ const Beta = ({ close }) => {
   // Generate validation schema dynamically from beta features
   const generateValidationSchema = () => {
     const schemaShape = {};
-    (BETA_FEATURES ?? []).forEach((feature) => {
+    BETA_FEATURES?.forEach((feature) => {
       schemaShape[feature.id] = Yup.boolean();
     });
     return Yup.object().shape(schemaShape);
@@ -56,7 +56,7 @@ const Beta = ({ close }) => {
   // Generate initial values dynamically from beta features
   const generateInitialValues = () => {
     const initialValues = {};
-    (BETA_FEATURES ?? []).forEach((feature) => {
+    BETA_FEATURES?.forEach((feature) => {
       initialValues[feature.id] = get(preferences, `beta.${feature.id}`, false);
     });
     return initialValues;
