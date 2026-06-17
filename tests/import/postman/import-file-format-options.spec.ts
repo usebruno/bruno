@@ -35,6 +35,11 @@ test.describe('Import Collection File Format Options toggle', () => {
 
       const formatSelect = locationModal.locator('#format');
       await expect(formatSelect).toBeVisible();
+    });
+
+    await test.step('OpenCollection (YAML) is pre-selected and BRU is available', async () => {
+      const formatSelect = locationModal.locator('#format');
+      await expect(formatSelect.locator('option')).toHaveText(['OpenCollection (YAML)', 'BRU Format (.bru)']);
       await expect(formatSelect).toHaveValue('yml');
     });
 
