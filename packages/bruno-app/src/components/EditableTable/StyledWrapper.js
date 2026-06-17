@@ -13,12 +13,7 @@ const StyledWrapper = styled.div`
   .table-container {
     border-radius: ${(props) => props.theme.border.radius.base};
     border: solid 1px ${(props) => props.theme.border.border0};
-    overflow-y: auto;
-    transition: height 75ms cubic-bezier(0, 1.12, 0.84, 0.64);
-    /* The virtuoso scroller is sized to its exact content height; keep the 1px
-       border outside that box so it doesn't shrink the content area and trigger
-       a spurious scrollbar (global box-sizing is border-box). */
-    box-sizing: content-box;
+    overflow: clip;
   }
 
   table {
