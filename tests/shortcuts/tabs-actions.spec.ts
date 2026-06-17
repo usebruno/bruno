@@ -515,7 +515,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await openRequest(page, collectionName, 'req-6', { persist: true });
         await expect(page.locator('.request-tab').filter({ has: page.getByText('req-6', { exact: true }) })).toBeVisible({ timeout: 2000 });
 
-        // req-6 is active (last opened) — press previous → req-5
+        // req-6 is active (last opened) - press previous → req-5
         await page.keyboard.press(`${modifier}+Shift+BracketLeft`);
         await expect(page.locator('li.request-tab.active')).toHaveText(/req-5/, { timeout: 3000 });
 
@@ -547,7 +547,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await openRequest(page, collectionName, 'req-6', { persist: true });
         await expect(page.locator('.request-tab').filter({ has: page.getByText('req-6', { exact: true }) })).toBeVisible({ timeout: 2000 });
 
-        // req-6 is active — press Shift+P → req-5
+        // req-6 is active - press Shift+P → req-5
         await page.keyboard.down('Shift');
         await page.keyboard.down('KeyP');
         await page.keyboard.up('KeyP');
@@ -566,7 +566,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await openRequest(page, 'kb-collection', 'req-4', { persist: true });
         await expect(page.locator('li.request-tab.active')).toHaveText(/req-4/);
 
-        // req-4 is active — press next → req-5
+        // req-4 is active - press next → req-5
         await page.keyboard.press(`${modifier}+Shift+BracketRight`);
         await expect(page.locator('li.request-tab.active')).toHaveText(/req-5/, { timeout: 3000 });
 
@@ -600,7 +600,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await openRequest(page, 'kb-collection', 'req-4', { persist: true });
         await expect(page.locator('li.request-tab.active')).toHaveText(/req-4/);
 
-        // req-4 is active — press Shift+N → req-5
+        // req-4 is active - press Shift+N → req-5
         await page.keyboard.down('Shift');
         await page.keyboard.down('KeyN');
         await page.keyboard.up('KeyN');

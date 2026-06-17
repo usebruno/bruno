@@ -79,7 +79,7 @@ export const openFolderSettingsTab = async (page: Page, folderName: string) => {
 export const reopenClosedTab = async (page: Page, shortcut: () => Promise<void>, expectedTabName: string | RegExp) => {
   for (let attempt = 0; attempt < 3; attempt++) {
     await page.locator('.request-tab').first().click();
-    await page.waitForTimeout(150);
+    await page.waitForTimeout(500);
     await shortcut();
     const reopenedTab = page.locator('.request-tab').filter({ has: page.getByText(expectedTabName, { exact: true }) });
     if ((await reopenedTab.count()) > 0) {

@@ -38,7 +38,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await page.keyboard.type('{"name": "Bruno", "version": 2, "tags": ["api", "client", "http"], "active": true, "meta": {"author": "user", "created": "2025-01-01", "updated": "2025-06-01"}, "counts": {"requests": 42, "collections": 7}}');
         await expect(page.getByTestId('request-body-editor')).toContainText('"name": "Bruno"', { timeout: 5000 });
 
-        // Cursor is still in the body CodeMirror — press Cmd/Ctrl+Enter to send
+        // Cursor is still in the body CodeMirror - press Cmd/Ctrl+Enter to send
         await page.keyboard.press(`${modifier}+Enter`);
 
         // Verify a 200 response came back
@@ -70,7 +70,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await responseEditor.waitFor({ state: 'visible', timeout: 5000 });
         await responseEditor.click();
 
-        // Press Cmd/Ctrl+Enter again — should re-send the request
+        // Press Cmd/Ctrl+Enter again - should re-send the request
         await page.keyboard.press(`${modifier}+Enter`);
 
         // Verify a 200 response came back (no error, status stays/refreshes to 200)
@@ -84,7 +84,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         });
         await openRequest(page, 'kb-collection', 'cmd-enter-req-vars', { persist: true });
 
-        // Open Vars tab — request Vars has a Pre Request section as the first table
+        // Open Vars tab - request Vars has a Pre Request section as the first table
         await selectRequestPaneTab(page, 'Vars');
 
         // Fill the first var row: name=var-1
@@ -101,7 +101,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await page.keyboard.press('Enter'); // insert newline in value editor
         await page.keyboard.type('val-2');
 
-        // Cursor is still in the value CodeMirror — press Cmd/Ctrl+Enter to send
+        // Cursor is still in the value CodeMirror - press Cmd/Ctrl+Enter to send
         // (should NOT insert a newline; should fire sendRequest)
         await page.keyboard.press(`${modifier}+Enter`);
 
@@ -143,7 +143,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await page.keyboard.type('{"name": "Bruno", "version": 2, "tags": ["api", "client", "http"], "active": true, "meta": {"author": "user", "created": "2025-01-01", "updated": "2025-06-01"}, "counts": {"requests": 42, "collections": 7}}');
         await expect(page.getByTestId('request-body-editor')).toContainText('"name": "Bruno"', { timeout: 5000 });
 
-        // Cursor is still in the body CodeMirror — press Shift+Enter (customized) to send
+        // Cursor is still in the body CodeMirror - press Shift+Enter (customized) to send
         await page.keyboard.press('Shift+Enter');
 
         await expect(page.getByTestId('response-status-code')).toContainText('200', { timeout: 15000 });
@@ -192,7 +192,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await responseEditor.waitFor({ state: 'visible', timeout: 5000 });
         await responseEditor.click();
 
-        // Press Shift+Enter again — should re-send the request
+        // Press Shift+Enter again - should re-send the request
         await page.keyboard.press('Shift+Enter');
 
         await expect(page.getByTestId('response-status-code')).toContainText('200', { timeout: 15000 });
@@ -237,7 +237,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await page.keyboard.press('Enter'); // insert newline in value editor
         await page.keyboard.type('val-2');
 
-        // Cursor is still in the value CodeMirror — press Shift+Enter (customized) to send
+        // Cursor is still in the value CodeMirror - press Shift+Enter (customized) to send
         await page.keyboard.press('Shift+Enter');
 
         await expect(page.getByTestId('response-status-code')).toContainText('200', { timeout: 15000 });
