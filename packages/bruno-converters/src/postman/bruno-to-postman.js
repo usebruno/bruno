@@ -70,6 +70,9 @@ export const transformUrl = (url, params) => {
 
   const postmanUrl = { raw: url };
 
+  // FIX: Explicitly strip out any query parameters from the url before parsing paths
+  const [urlWithoutQuery] = url.split(urlRegexPatterns.queryStringSeparator);
+
   /**
    * Splits a URL into its protocol, host and path.
    *
@@ -81,8 +84,7 @@ export const transformUrl = (url, params) => {
     if (urlParts.length === 1) {
       return { protocol: '', rawHostAndPath: urlParts[0] };
     } else if (urlParts.length === 2) {
-      const [hostAndPath, _] = urlParts[1].split(urlRegexPatterns.queryStringSeparator);
-      return { protocol: urlParts[0], rawHostAndPath: hostAndPath };
+      return { protocol: urlParts[0], rawHostAndPath: urlParts[1] };
     } else {
       throw new Error(`Invalid URL format: ${url}`);
     }
@@ -100,7 +102,8 @@ export const transformUrl = (url, params) => {
   };
 
   try {
-    const { protocol, rawHostAndPath } = splitUrl(url);
+    // Pass the sanitized URL without query string into the splitting logic
+    const { protocol, rawHostAndPath } = splitUrl(urlWithoutQuery);
     postmanUrl.protocol = protocol;
 
     const { host, path } = splitHostAndPath(rawHostAndPath);
