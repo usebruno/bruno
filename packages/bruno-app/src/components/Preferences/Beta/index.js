@@ -7,6 +7,9 @@ import * as Yup from 'yup';
 import debounce from 'lodash/debounce';
 import toast from 'react-hot-toast';
 import get from 'lodash/get';
+// Commented out while there are no active beta features. Re-enable this import when
+// adding a beta feature its keys are then referenced as BETA_FEATURE_IDS.MY_FEATURE in the BETA_FEATURES array.
+// import { BETA_FEATURES as BETA_FEATURE_IDS } from 'utils/beta-features';
 
 /**
  * UI metadata for the Beta Features section in Preferences — one entry per toggle.
@@ -126,7 +129,7 @@ const Beta = ({ close }) => {
         </div>
 
         <div className="space-y-4">
-          {(BETA_FEATURES ?? []).map((feature) => (
+          {BETA_FEATURES?.map((feature) => (
             <div key={feature.id} className="beta-feature-item">
               <div className="flex items-center">
                 <input
