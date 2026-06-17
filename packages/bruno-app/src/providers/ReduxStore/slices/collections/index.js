@@ -162,6 +162,7 @@ export const collectionsSlice = createSlice({
       const collection = action.payload;
 
       collection.settingsSelectedTab = 'overview';
+      collection.fileMode = false;
       collection.folderLevelSettingsSelectedTab = {};
       collection.allTags = []; // Initialize collection-level tags
 
@@ -2067,11 +2068,13 @@ export const collectionsSlice = createSlice({
         item.draft = cloneDeep(item);
       }
       item.draft.request.vars = item.draft.request.vars || {};
-      const mappedVars = map(vars, ({ uid, name = '', value = '', enabled = true, local = false }) => ({
+      const mappedVars = map(vars, ({ uid, name = '', value = '', enabled = true, local = false, datatype, annotations }) => ({
         uid: uid || uuid(),
         name,
         value,
         enabled,
+        ...(datatype ? { datatype } : {}),
+        ...(annotations?.length ? { annotations } : {}),
         ...(type === 'response' ? { local } : {})
       }));
       if (type === 'request') {
@@ -2421,11 +2424,13 @@ export const collectionsSlice = createSlice({
       if (!folder.draft) {
         folder.draft = cloneDeep(folder.root);
       }
-      const mappedVars = map(vars, ({ uid, name = '', value = '', enabled = true, local = false }) => ({
+      const mappedVars = map(vars, ({ uid, name = '', value = '', enabled = true, local = false, datatype, annotations }) => ({
         uid: uid || uuid(),
         name,
         value,
         enabled,
+        ...(datatype ? { datatype } : {}),
+        ...(annotations?.length ? { annotations } : {}),
         ...(type === 'response' ? { local } : {})
       }));
       if (type === 'request') {
@@ -2659,11 +2664,13 @@ export const collectionsSlice = createSlice({
           root: cloneDeep(collection.root)
         };
       }
-      const mappedVars = map(vars, ({ uid, name = '', value = '', enabled = true, local = false }) => ({
+      const mappedVars = map(vars, ({ uid, name = '', value = '', enabled = true, local = false, datatype, annotations }) => ({
         uid: uid || uuid(),
         name,
         value,
         enabled,
+        ...(datatype ? { datatype } : {}),
+        ...(annotations?.length ? { annotations } : {}),
         ...(type === 'response' ? { local } : {})
       }));
       if (type === 'request') {
@@ -2742,6 +2749,7 @@ export const collectionsSlice = createSlice({
             currentItem.request = mergeRequestWithPreservedUids(currentItem.request, file.data.request);
             currentItem.filename = file.meta.name;
             currentItem.pathname = file.meta.pathname;
+            currentItem.raw = file.data.raw;
             currentItem.settings = file.data.settings;
             currentItem.examples = file.data.examples;
             currentItem.draft = null;
@@ -2762,6 +2770,7 @@ export const collectionsSlice = createSlice({
               examples: file.data.examples,
               filename: file.meta.name,
               pathname: file.meta.pathname,
+              raw: file.data.raw,
               draft: null,
               partial: file.partial,
               loading: file.loading,
@@ -2847,6 +2856,7 @@ export const collectionsSlice = createSlice({
           // we don't want to lose the draft in this case
           if (areItemsTheSameExceptSeqUpdate(item, file.data)) {
             item.seq = file.data.seq;
+            item.raw = file.data.raw;
             if (item?.draft) {
               item.draft.seq = file.data.seq;
             }
@@ -2863,10 +2873,14 @@ export const collectionsSlice = createSlice({
             item.examples = file.data.examples;
             item.filename = file.meta.name;
             item.pathname = file.meta.pathname;
+            item.raw = file.data.raw;
 
             // Only clear draft if it matches the file content
             // This preserves characters typed during autosave
-            if (item.draft && areItemsTheSameExceptSeqUpdate(item.draft, file.data)) {
+            // The raw comparison is guarded so an undefined === undefined match
+            // (when neither side has raw content) does not wipe a genuine draft
+            const draftRawMatchesFile = item.draft?.raw !== undefined && item.draft.raw === file.data.raw;
+            if (item.draft && (areItemsTheSameExceptSeqUpdate(item.draft, file.data) || draftRawMatchesFile)) {
               item.draft = null;
             }
           }
@@ -2912,6 +2926,7 @@ export const collectionsSlice = createSlice({
           existingEnv.pathname = environment.pathname;
           existingEnv.variables = environment.variables;
           existingEnv.color = environment.color;
+          existingEnv.externalSecrets = environment.externalSecrets;
           /*
            Apply temporary (ephemeral) values only to variables that actually exist in the file. This prevents deleted temporaries from “popping back” after a save. If a variable is present in the file, we temporarily override the UI value while also remembering the on-disk value in persistedValue for future saves.
           */
@@ -3284,6 +3299,27 @@ export const collectionsSlice = createSlice({
             folder.draft = cloneDeep(folder.root);
           }
           set(folder, 'draft.docs', action.payload.docs);
+        }
+      }
+    },
+    toggleCollectionFileMode: (state, action) => {
+      const { collectionUid } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+      if (collection) {
+        collection.fileMode = !collection.fileMode;
+      }
+    },
+    updateFileContent: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+
+      if (collection) {
+        const item = findItemInCollection(collection, action.payload.itemUid);
+
+        if (item) {
+          if (!item.draft) {
+            item.draft = cloneDeep(item);
+          }
+          item.draft.raw = action.payload.content;
         }
       }
     },
@@ -3812,6 +3848,8 @@ export const {
   updateRunnerConfiguration,
   updateRequestDocs,
   updateFolderDocs,
+  toggleCollectionFileMode,
+  updateFileContent,
   moveCollection,
   streamDataReceived,
   collectionAddOauth2CredentialsByUrl,

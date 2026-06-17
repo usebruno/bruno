@@ -12,12 +12,15 @@ import {
   IconX,
   IconCheck,
   IconFolder,
-  IconUpload
+  IconUpload,
+  IconFileCode,
+  IconFileOff
 } from '@tabler/icons';
 import OpenAPISyncIcon from 'components/Icons/OpenAPISync';
 import { switchWorkspace, renameWorkspaceAction, exportWorkspaceAction, confirmWorkspaceCreation, cancelWorkspaceCreation } from 'providers/ReduxStore/slices/workspaces/actions';
 import { updateWorkspace } from 'providers/ReduxStore/slices/workspaces';
 import { showInFolder } from 'providers/ReduxStore/slices/collections/actions';
+import { toggleCollectionFileMode } from 'providers/ReduxStore/slices/collections';
 import { addTab, focusTab } from 'providers/ReduxStore/slices/tabs';
 import { uuid } from 'utils/common';
 import toast from 'react-hot-toast';
@@ -220,9 +223,18 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
     }));
   };
 
+  const handleFileModeClick = () => {
+    dispatch(
+      toggleCollectionFileMode({
+        collectionUid: collection.uid
+      })
+    );
+  };
+
   // Build overflow menu items for the "..." dropdown
   const overflowMenuItems = [
     { id: 'variables', label: 'Variables', leftSection: IconEye, onClick: viewVariables },
+    { id: 'file-mode', label: collection.fileMode ? 'Switch to Code Mode' : 'Switch to File Mode', leftSection: collection.fileMode ? IconFileOff : IconFileCode, onClick: handleFileModeClick },
     ...(isOpenAPISyncEnabled && !hasOpenApiSyncConfigured
       ? [{ id: 'openapi-sync', label: 'OpenAPI', leftSection: OpenAPISyncIcon, rightSection: <StatusBadge status="info" size="xs">Beta</StatusBadge>, onClick: viewOpenApiSync }]
       : []),

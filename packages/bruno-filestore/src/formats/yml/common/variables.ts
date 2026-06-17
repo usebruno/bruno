@@ -1,7 +1,17 @@
-import { Variable } from '@opencollection/types/common/variables';
+import { Variable, VariableTypedValue } from '@opencollection/types/common/variables';
 import { FolderRequest as BrunoFolderRequest } from '@usebruno/schema-types/collection/folder';
 import { Variable as BrunoVariable, Variables as BrunoVariables } from '@usebruno/schema-types/common/variables';
 import { uuid, ensureString } from '../../../utils';
+
+export const isTypedValue = (value: unknown): value is VariableTypedValue => {
+  return (
+    typeof value === 'object'
+    && value !== null
+    && !Array.isArray(value)
+    && 'type' in value
+    && 'data' in value
+  );
+};
 
 /**
  * Convert Bruno pre-request variables to OpenCollection variables format.
@@ -21,7 +31,10 @@ export const toOpenCollectionVariables = (variables: BrunoFolderRequest['vars'] 
   const ocVariables: Variable[] = reqVarsArray.map((v: BrunoVariable): Variable => {
     const variable: Variable = {
       name: v.name || '',
-      value: v.value || ''
+      value:
+        v.datatype && v.datatype !== 'string'
+          ? { type: v.datatype, data: ensureString(v.value) }
+          : v.value || ''
     };
 
     if (v?.description?.trim().length) {
@@ -52,10 +65,19 @@ export const toBrunoVariables = (variables: Variable[] | null | undefined): { re
     const variable: BrunoVariable = {
       uid: uuid(),
       name: ensureString(v.name),
-      value: ensureString(v.value),
+      value: '',
       enabled: v.disabled !== true,
       local: false
     };
+
+    if (isTypedValue(v.value)) {
+      variable.value = ensureString(v.value.data);
+      if (v.value.type !== 'string' && v.value.type !== 'null') {
+        variable.datatype = v.value.type;
+      }
+    } else {
+      variable.value = ensureString(v.value);
+    }
 
     if (v.description) {
       variable.description = typeof v.description === 'string' ? v.description : (v.description as any)?.content || '';

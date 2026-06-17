@@ -434,6 +434,215 @@ const cleanupSpecFilesForCollection = (collectionPath) => {
 };
 
 /**
+ * Replace {{var}} tokens in a JSON string with placeholder strings so the
+ * result can be passed to JSON.parse without syntax errors.
+ *
+ * A token is emitted with a position-tagged sentinel so unmasking is
+ * unambiguous and never disturbs surrounding JSON syntax:
+ *   - inside a string value -> bare   `<prefix>_S_<idx>` (stays in the string)
+ *   - as a bare JSON value   -> quoted `"<prefix>_V_<idx>"` (valid JSON value)
+ * The S/V tag lets unmask strip exactly the quotes it added for V tokens while
+ * leaving the surrounding string delimiters of S tokens intact. The sentinel is
+ * wrapped in a Unicode private-use delimiter (U+E000) that cannot realistically
+ * appear in a request body, so it never collides with real text and survives
+ * JSON.parse/stringify unescaped. Sentinels are transient — they only exist
+ * between mask and unmask, never on disk.
+ *
+ * Returns { masked, vars } where vars is the ordered list of original tokens.
+ */
+// U+E000 (private use area) delimiter — effectively un-typeable in a real body.
+const SENTINEL = String.fromCharCode(0xe000);
+const maskJsonInterpolations = (str, prefix = 'BRUNO_VAR') => {
+  const vars = [];
+  let out = '';
+  let inString = false;
+  let i = 0;
+  while (i < str.length) {
+    const ch = str[i];
+    if (ch === '"') {
+      // Count preceding backslashes: an even count means this quote is not
+      // escaped (handles string values ending in a literal backslash, e.g. "C:\\").
+      let backslashes = 0;
+      let j = i - 1;
+      while (j >= 0 && str[j] === '\\') {
+        backslashes++; j--;
+      }
+      if (backslashes % 2 === 0) inString = !inString;
+      out += ch;
+      i++;
+      continue;
+    }
+    if (ch === '{' && str[i + 1] === '{') {
+      const end = str.indexOf('}}', i + 2);
+      if (end !== -1) {
+        const token = str.slice(i, end + 2);
+        const idx = vars.length;
+        vars.push(token);
+        out += inString
+          ? `${SENTINEL}${prefix}_S_${idx}${SENTINEL}`
+          : `"${SENTINEL}${prefix}_V_${idx}${SENTINEL}"`;
+        i = end + 2;
+        continue;
+      }
+    }
+    out += ch;
+    i++;
+  }
+  return { masked: out, vars };
+};
+
+/**
+ * Replace placeholders injected by maskJsonInterpolations back with the
+ * original {{var}} tokens.
+ *
+ * Value-position (V) sentinels are matched WITH the quotes mask added and
+ * restored to a bare {{var}}. In-string (S) sentinels are matched bare so the
+ * string's own delimiters are left untouched. The S/V tag prevents the unmask
+ * from ever consuming a real JSON string quote.
+ */
+const unmaskJsonInterpolations = (str, vars, prefix = 'BRUNO_VAR') => {
+  const restore = (n, m) => (vars[Number(n)] !== undefined ? vars[Number(n)] : m);
+  return str
+    .replace(new RegExp(`"${SENTINEL}${prefix}_V_(\\d+)${SENTINEL}"`, 'g'), (m, n) => restore(n, m))
+    .replace(new RegExp(`${SENTINEL}${prefix}_S_(\\d+)${SENTINEL}`, 'g'), (m, n) => restore(n, m));
+};
+
+// ---------------------------------------------------------------------------
+// JSON value merge helpers
+// ---------------------------------------------------------------------------
+
+/** Returns true if v is a plain (non-null, non-array) object. */
+const isPlainObject = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
+
+/**
+ * Recursively merge a user JSON value with a spec JSON value.
+ *
+ * Rules (when preserveValues=true):
+ *   - Object: walk spec keys; keep user value when present, use spec default otherwise.
+ *             Keys present in user but absent in spec are dropped.
+ *   - Array:  if user array is empty, return spec template.
+ *             Otherwise re-shape each user element against the first spec element as template.
+ *   - Scalar: keep user value unless it is undefined.
+ *
+ * When preserveValues=false the spec value is returned as-is.
+ */
+const mergeJsonValues = (userVal, specVal, preserveValues = true) => {
+  if (!preserveValues) return specVal;
+  if (isPlainObject(specVal) && isPlainObject(userVal)) {
+    const out = {};
+    for (const key of Object.keys(specVal)) {
+      out[key] = key in userVal
+        ? mergeJsonValues(userVal[key], specVal[key], preserveValues)
+        : specVal[key];
+    }
+    return out;
+  }
+  if (Array.isArray(specVal) && Array.isArray(userVal)) {
+    if (userVal.length === 0) return specVal;
+    const template = specVal.length > 0 ? specVal[0] : undefined;
+    if (template === undefined) return userVal;
+    return userVal.map((el) => mergeJsonValues(el, template, preserveValues));
+  }
+  return userVal === undefined ? specVal : userVal;
+};
+
+/**
+ * Merge a user request body (mode=json) with a spec request body.
+ *
+ * Uses disjoint mask prefixes (BRU_U / BRU_S) so user and spec {{var}}
+ * tokens never collide.  Falls back to the verbatim user body when the user
+ * JSON is unparseable (e.g. contains a work-in-progress template).
+ */
+const mergeJsonBody = (userBody, specBody, preserveValues = true) => {
+  if (!preserveValues) return specBody;
+  if (!userBody?.json || !specBody?.json) return specBody;
+  try {
+    const u = maskJsonInterpolations(userBody.json, 'BRU_U');
+    const s = maskJsonInterpolations(specBody.json, 'BRU_S');
+    const merged = mergeJsonValues(JSON.parse(u.masked), JSON.parse(s.masked), preserveValues);
+    let json = JSON.stringify(merged, null, 2);
+    json = unmaskJsonInterpolations(json, u.vars, 'BRU_U');
+    json = unmaskJsonInterpolations(json, s.vars, 'BRU_S');
+    return { ...specBody, mode: 'json', json };
+  } catch (e) {
+    console.warn('[openapi-sync] mergeJsonBody fallback to verbatim user body:', e.message);
+    return { ...userBody };
+  }
+};
+
+/**
+ * Merge a spec-defined list of {name,value,enabled,...} entries with the user's
+ * entries. Spec defines membership (add new, drop removed). For matched names
+ * the user's `value` and `enabled` win. Duplicate names pair positionally.
+ */
+const mergeFieldListPreserving = (specItems, existingItems, preserveValues = true) => {
+  const spec = specItems || [];
+  if (!preserveValues) return spec;
+  const existing = existingItems || [];
+  const cursorByName = {};
+  return spec.map((specEntry) => {
+    const matches = existing.filter((e) => e.name === specEntry.name);
+    const cursor = cursorByName[specEntry.name] || 0;
+    const picked = matches[cursor];
+    if (!picked) return specEntry;
+    cursorByName[specEntry.name] = cursor + 1;
+    return { ...specEntry, value: picked.value, enabled: picked.enabled ?? specEntry.enabled };
+  });
+};
+
+/**
+ * Merge auth field-by-field for the active mode, mirroring the JSON-body merge:
+ *   - same mode -> additive merge: take the spec's field set as the base, then
+ *     let the user's values win on shared fields AND keep the user's own fields
+ *     (so spec-introduced auth fields appear, user values + credentials survive).
+ *   - different mode -> spec wins (the mode change is surfaced by detection).
+ *   - none/inherit -> nothing to preserve, keep spec.
+ *
+ * Deliberate deviation from the body merge: we do NOT delete user fields that the
+ * spec lacks. The OpenAPI securityScheme is sparse and does not express user
+ * credentials (clientId/secret/token/username/password/PKCE/etc.), so removing
+ * "spec-dropped" auth fields would wipe real user data. Field removals therefore
+ * only take effect when preserve is OFF (full spec overwrite).
+ */
+const mergeAuth = (userAuth, specAuth, preserveValues = true) => {
+  if (!preserveValues) return specAuth;
+  const userMode = userAuth?.mode || 'none';
+  const specMode = specAuth?.mode || 'none';
+  if (userMode !== specMode) return specAuth;
+  if (specMode === 'none' || specMode === 'inherit') return specAuth;
+  const userSub = userAuth?.[specMode];
+  if (userSub == null) return specAuth; // null or undefined -> nothing to preserve, keep spec
+  const specSub = specAuth?.[specMode] || {};
+  // spec fields as base + user fields/values on top (user wins on overlap).
+  // New object so the merged result never aliases the caller's stored request.
+  return { ...specAuth, [specMode]: { ...specSub, ...userSub } };
+};
+
+/**
+ * Merge a request body: same mode -> field-level merge per mode; different mode
+ * -> spec wins. Raw text modes keep the user's body verbatim.
+ */
+const mergeBody = (userBody, specBody, preserveValues = true) => {
+  if (!preserveValues || !userBody || !specBody) return specBody;
+  const specMode = specBody.mode || 'none';
+  const userMode = userBody.mode || 'none';
+  if (specMode !== userMode) return specBody;
+  if (specMode === 'json') return mergeJsonBody(userBody, specBody, preserveValues);
+  if (specMode === 'formUrlEncoded') {
+    return { ...specBody, formUrlEncoded: mergeFieldListPreserving(specBody.formUrlEncoded, userBody.formUrlEncoded, preserveValues) };
+  }
+  if (specMode === 'multipartForm') {
+    return { ...specBody, multipartForm: mergeFieldListPreserving(specBody.multipartForm, userBody.multipartForm, preserveValues) };
+  }
+  // graphql stores a nested { query, variables } object — keep the user's, but
+  // fall back to the spec's when the user body has none, and clone so the merged
+  // result never aliases the caller's stored request.
+  if (specMode === 'graphql') return { ...userBody, graphql: { ...(userBody.graphql || specBody.graphql) } };
+  // other raw modes (xml / text / sparql) hold a string payload — shallow copy is safe
+  return { ...userBody };
+};
+
+/**
  * Merge spec params/headers with existing user values.
  * Matches by name + value to correctly handle enum-expanded params (multiple entries with same name).
  * Only preserves the user's enabled state; values come from the spec.
@@ -454,11 +663,10 @@ const mergeWithUserValues = (specItems, existingItems) => {
  * fullReset: true = spec replaces entire request section (reset mode)
  *            false = only override url/body/auth from spec (sync mode)
  */
-const mergeSpecIntoRequest = (existingRequest, specItem, { fullReset = false } = {}) => {
-  const mergedParams = mergeWithUserValues(specItem.request.params, existingRequest.request?.params);
-  const mergedHeaders = mergeWithUserValues(specItem.request.headers, existingRequest.request?.headers);
-
+const mergeSpecIntoRequest = (existingRequest, specItem, { fullReset = false, preserveValues = true } = {}) => {
   if (fullReset) {
+    const mergedParams = mergeWithUserValues(specItem.request.params, existingRequest.request?.params);
+    const mergedHeaders = mergeWithUserValues(specItem.request.headers, existingRequest.request?.headers);
     return {
       ...existingRequest,
       request: {
@@ -474,15 +682,16 @@ const mergeSpecIntoRequest = (existingRequest, specItem, { fullReset = false } =
     };
   }
 
+  // Sync mode: reconcile structure to the spec while preserving the user's values.
   return {
     ...existingRequest,
     request: {
       ...existingRequest.request,
-      url: specItem.request.url,
-      body: specItem.request.body,
-      auth: specItem.request.auth,
-      params: mergedParams || existingRequest.request?.params || [],
-      headers: mergedHeaders || existingRequest.request?.headers || []
+      url: specItem.request.url, // Option A: URL always follows the spec
+      body: mergeBody(existingRequest.request?.body, specItem.request.body, preserveValues),
+      auth: mergeAuth(existingRequest.request?.auth, specItem.request.auth, preserveValues),
+      params: mergeFieldListPreserving(specItem.request.params, existingRequest.request?.params, preserveValues),
+      headers: mergeFieldListPreserving(specItem.request.headers, existingRequest.request?.headers, preserveValues)
     }
   };
 };
@@ -582,29 +791,6 @@ const compareRequestFields = (specRequest, actualRequest) => {
   const actualAuthMode = actualRequest.auth?.mode || 'none';
   const authDiff = specAuthMode !== actualAuthMode;
 
-  // Check auth config differences when auth modes match
-  let authConfigDiff = false;
-  if (!authDiff && specAuthMode !== 'none' && specAuthMode !== 'inherit') {
-    if (specAuthMode === 'apikey') {
-      const specApikey = specRequest.auth?.apikey || {};
-      const actualApikey = actualRequest.auth?.apikey || {};
-      authConfigDiff = specApikey.key !== actualApikey.key || specApikey.placement !== actualApikey.placement;
-    } else if (specAuthMode === 'oauth2') {
-      const specOauth2 = specRequest.auth?.oauth2 || {};
-      const actualOauth2 = actualRequest.auth?.oauth2 || {};
-      const grantType = specOauth2.grantType || actualOauth2.grantType;
-      const commonFields = ['grantType', 'scope'];
-      const grantTypeFields = {
-        authorization_code: [...commonFields, 'authorizationUrl', 'accessTokenUrl'],
-        implicit: [...commonFields, 'authorizationUrl'],
-        password: [...commonFields, 'accessTokenUrl'],
-        client_credentials: [...commonFields, 'accessTokenUrl']
-      };
-      const fields = grantTypeFields[grantType] || commonFields;
-      authConfigDiff = fields.some((field) => specOauth2[field] !== actualOauth2[field]);
-    }
-  }
-
   // Check form field names when body modes match and mode is form-based
   let formFieldsDiff = false;
   let specFormFieldNames = [];
@@ -638,7 +824,7 @@ const compareRequestFields = (specRequest, actualRequest) => {
     }
   }
 
-  const hasDiff = paramsDiff || headersDiff || bodyDiff || authDiff || authConfigDiff || formFieldsDiff || jsonBodyDiff;
+  const hasDiff = paramsDiff || headersDiff || bodyDiff || authDiff || formFieldsDiff || jsonBodyDiff;
 
   const changes = [];
   if (hasDiff) {
@@ -656,7 +842,6 @@ const compareRequestFields = (specRequest, actualRequest) => {
     }
     if (bodyDiff) changes.push(`body: ${actualBodyMode}`);
     if (authDiff) changes.push(`auth: ${actualAuthMode}`);
-    if (authConfigDiff) changes.push('auth config');
     if (formFieldsDiff) {
       const addedFields = actualFormFieldNames.filter((f) => !specFormFieldNames.includes(f));
       const removedFields = specFormFieldNames.filter((f) => !actualFormFieldNames.includes(f));
@@ -1062,7 +1247,7 @@ const registerOpenAPISyncIpc = (mainWindow) => {
   });
 
   // Get endpoint diff data for visual comparison (spec vs collection)
-  ipcMain.handle('renderer:get-endpoint-diff-data', async (event, { collectionPath, endpointId, newSpec }) => {
+  ipcMain.handle('renderer:get-endpoint-diff-data', async (event, { collectionPath, endpointId, newSpec, preserveValues = true }) => {
     try {
       let brunoConfig;
       try {
@@ -1144,11 +1329,23 @@ const registerOpenAPISyncIpc = (mainWindow) => {
         };
       };
 
+      // EXPECTED column = what sync will actually produce. For an endpoint that
+      // already exists in the collection, that's the merged result (user values +
+      // structural changes), not the raw spec. New endpoints (no actualRequest)
+      // have nothing to preserve, so show the spec as-is.
+      // NOTE: actualRequest is the full parsed item (has a .request property),
+      // matching the shape that mergeSpecIntoRequest expects as its first argument.
+      let specItemForDisplay = specItem;
+      if (specItem && actualRequest) {
+        const merged = mergeSpecIntoRequest(actualRequest, specItem, { preserveValues });
+        specItemForDisplay = { ...specItem, request: merged.request };
+      }
+
       return {
         error: null,
-        // oldData = current collection state, newData = expected from spec
+        // oldData = current collection state, newData = expected from sync
         oldData: transformToVisualFormat(actualRequest),
-        newData: transformToVisualFormat(specItem)
+        newData: transformToVisualFormat(specItemForDisplay)
       };
     } catch (error) {
       console.error('Error getting endpoint diff data:', error);
@@ -1157,7 +1354,7 @@ const registerOpenAPISyncIpc = (mainWindow) => {
   });
 
   // Sync modes: 'spec-only' | 'reset' | 'sync' (default)
-  ipcMain.handle('renderer:apply-openapi-sync', async (event, { collectionPath, addNewRequests, removeDeletedRequests, diff, localOnlyToRemove = [], driftedToReset = [], mode = 'sync', endpointDecisions = {} }) => {
+  ipcMain.handle('renderer:apply-openapi-sync', async (event, { collectionPath, addNewRequests, removeDeletedRequests, diff, localOnlyToRemove = [], driftedToReset = [], mode = 'sync', endpointDecisions = {}, preserveValues = true }) => {
     try {
       const { format, brunoConfig, collectionRoot } = loadBrunoConfig(collectionPath);
       const sourceUrl = brunoConfig?.openapi?.[0]?.sourceUrl;
@@ -1361,7 +1558,7 @@ const registerOpenAPISyncIpc = (mainWindow) => {
             const existingFile = findRequestFileOnDisk(collectionPath, endpoint.method.toUpperCase(), normalizedPath);
 
             if (existingFile) {
-              const mergedRequest = mergeSpecIntoRequest(existingFile.request, newItem);
+              const mergedRequest = mergeSpecIntoRequest(existingFile.request, newItem, { preserveValues });
               const content = await stringifyRequestViaWorker(mergedRequest, { format: existingFile.fileFormat });
               await writeFile(existingFile.filePath, content);
             } else {
@@ -1398,7 +1595,7 @@ const registerOpenAPISyncIpc = (mainWindow) => {
           const existingFile = findRequestFileOnDisk(collectionPath, endpoint.method.toUpperCase(), normalizedPath);
 
           if (newItem && existingFile) {
-            const mergedRequest = mergeSpecIntoRequest(existingFile.request, newItem);
+            const mergedRequest = mergeSpecIntoRequest(existingFile.request, newItem, { preserveValues });
             const content = await stringifyRequestViaWorker(mergedRequest, { format: existingFile.fileFormat });
             await writeFile(existingFile.filePath, content);
           }
@@ -1696,3 +1893,18 @@ const registerOpenAPISyncIpc = (mainWindow) => {
 module.exports = registerOpenAPISyncIpc;
 module.exports.saveSpecAndUpdateMetadata = saveSpecAndUpdateMetadata;
 module.exports.cleanupSpecFilesForCollection = cleanupSpecFilesForCollection;
+
+/* istanbul ignore next */
+if (process.env.NODE_ENV === 'test') {
+  module.exports._test = {
+    maskJsonInterpolations,
+    unmaskJsonInterpolations,
+    mergeJsonValues,
+    mergeJsonBody,
+    mergeFieldListPreserving,
+    mergeAuth,
+    mergeBody,
+    mergeSpecIntoRequest,
+    compareRequestFields
+  };
+}
