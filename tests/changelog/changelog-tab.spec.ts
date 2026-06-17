@@ -22,7 +22,7 @@ test.describe('Changelog ("What\'s New") Tab', () => {
       const locators = buildCommonLocators(page);
 
       // New users see the welcome modal — that's the established flow.
-      await expect(page.getByTestId('quick-actions-modal')).toBeVisible();
+      await expect(page.getByTestId('welcome-modal')).toBeVisible();
 
       // The changelog tab must not appear alongside it.
       await expect(locators.tabs.requestTab('What\'s New')).toHaveCount(0);
@@ -46,7 +46,7 @@ test.describe('Changelog ("What\'s New") Tab', () => {
       await expect(locators.tabs.activeRequestTab()).toContainText('What\'s New');
 
       // Welcome modal must NOT show — this user already onboarded.
-      await expect(page.getByTestId('quick-actions-modal')).not.toBeVisible();
+      await expect(page.getByTestId('welcome-modal')).not.toBeVisible();
 
       // Content sanity: header + a piece of the bundled markdown.
       await expect(page.getByText('What\'s New in Bruno')).toBeVisible();
