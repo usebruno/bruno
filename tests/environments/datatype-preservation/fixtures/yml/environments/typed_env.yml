@@ -15,6 +15,12 @@ variables:
     value:
       type: object
       data: '{"scope":"env"}'
+  - name: env_untyped_num
+    value: "42"
+  - name: env_untyped_bool
+    value: "true"
+  - name: env_untyped_obj
+    value: '{"a":1}'
   - name: mismatched_num
     value:
       type: number
@@ -38,3 +44,5 @@ variables:
   - secret: true
     name: env_secret_obj
     type: object
+  - secret: true
+    name: env_secret_untyped
