@@ -99,7 +99,9 @@ export const buildCommonLocators = (page: Page) => ({
       placementLabel: () => page.getByTestId('auth-placement-label')
     },
     oauth2: {
-      grantTypeDropdown: () => page.getByTestId('grant-type-dropdown')
+      grantTypeDropdown: () => page.getByTestId('grant-type-dropdown'),
+      tokenHeaderPrefixField: () => page.getByTestId('token-header-prefix'),
+      tokenQueryParamKeyField: () => page.getByTestId('token-query-param-key')
     },
     modeSelector: () => page.getByTestId('auth-mode-selector'),
     modeLabel: () => page.getByTestId('auth-mode-label'),
