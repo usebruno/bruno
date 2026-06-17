@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { IconFileCode, IconTransform } from '@tabler/icons';
+import toast from 'react-hot-toast';
 import { migrateCollectionToYml } from 'providers/ReduxStore/slices/collections/actions';
 import Modal from 'components/Modal';
 import Button from 'ui/Button';
@@ -10,6 +11,7 @@ const Migration = ({ collection }) => {
   const dispatch = useDispatch();
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [isMigrating, setIsMigrating] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
 
   // Only show for bru format collections
   if (collection.format !== 'bru') {
@@ -22,6 +24,22 @@ const Migration = ({ collection }) => {
     dispatch(migrateCollectionToYml(collection.uid))
       .catch(() => { })
       .finally(() => setIsMigrating(false));
+  };
+
+  const handleExportBackup = async () => {
+    if (isExporting) return;
+    setIsExporting(true);
+    try {
+      const { ipcRenderer } = window;
+      const result = await ipcRenderer.invoke('renderer:export-collection-zip', collection.pathname, collection.name);
+      if (result?.success) {
+        toast.success('Collection backup exported');
+      }
+    } catch (error) {
+      toast.error('Failed to export backup: ' + error.message);
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   return (
@@ -86,9 +104,26 @@ const Migration = ({ collection }) => {
                 <li>The collection will be reloaded after migration</li>
               </ul>
             </div>
-            <p className="mt-4 text-sm">
-              It is recommended to commit your changes to version control before migrating.
-            </p>
+            <div className="backup-section mt-4">
+              <div className="backup-section-head">
+                <span className="backup-section-title">Backup</span>
+              </div>
+              <p className="backup-section-help">
+                Export this collection as a ZIP archive before migrating, in case you want to restore it later.
+              </p>
+              <div className="backup-section-action">
+                <Button
+                  data-testid="export-collection-backup-button"
+                  size="sm"
+                  color="secondary"
+                  variant="outline"
+                  onClick={handleExportBackup}
+                  disabled={isExporting}
+                >
+                  {isExporting ? 'Exporting…' : 'Export Collection'}
+                </Button>
+              </div>
+            </div>
           </div>
         </Modal>
       )}

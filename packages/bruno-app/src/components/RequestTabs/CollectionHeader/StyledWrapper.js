@@ -151,6 +151,45 @@ const StyledWrapper = styled.div`
     color: ${(props) => props.theme.colors.text.danger};
     margin-left: 8px;
   }
+
+  .migrate-yml-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 2px 4px 2px 8px;
+    border: 1px solid ${(props) => props.theme.input.border};
+    border-radius: 999px;
+    background: transparent;
+    color: ${(props) => props.theme.text};
+    font-size: 12px;
+    line-height: 1;
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+
+    &:hover {
+      background: ${(props) => props.theme.sidebar.collection.item.hoverBg};
+    }
+
+    .pill-label {
+      font-weight: 500;
+    }
+
+    .pill-dismiss {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      opacity: 0.6;
+      transition: opacity 0.15s ease, background-color 0.15s ease;
+
+      &:hover {
+        opacity: 1;
+        background: ${(props) => props.theme.sidebar.collection.item.hoverBg};
+      }
+    }
+  }
 `;
 
 export default StyledWrapper;
