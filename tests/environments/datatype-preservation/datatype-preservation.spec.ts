@@ -1,11 +1,14 @@
-import { test, expect } from '../../../playwright';
+import { test, expect, Page } from '../../../playwright';
 import path from 'path';
 import fs from 'fs';
+import { buildCommonLocators } from '../../utils/page/locators';
+import { scrollVirtuosoRowIntoView } from '../../utils/page';
 
 // Env JSON export → import round-trip for both BRU and YML collections.
 // The export writes typed datatypes (number/boolean/object) and strips the
 // implicit-string default. A secret's value is cleared on export but its
-// dataType is preserved. Re-importing into the same collection auto-renames to
+// dataType is preserved. Untyped vars whose values merely look typed stay
+// plain strings. Re-importing into the same collection auto-renames to
 // `typed_env copy`, and the env editor should render every dataType correctly.
 
 type FormatConfig = {
@@ -21,6 +24,74 @@ const FORMATS: FormatConfig[] = [
 const ENV_NAME = 'typed_env';
 // `generateUniqueName` suffixes `" copy"` on collision (filesystem.js:227).
 const IMPORTED_ENV_NAME = 'typed_env copy';
+
+// The env editor table is virtualized, so the slowest rows can take a moment.
+const SLOW_RENDER_TIMEOUT_MS = 15_000;
+
+// Typed rows render their dataType label; the typed secrets keep theirs even
+// though the value is cleared.
+const TYPED_LABEL_ROWS: Array<[string, string]> = [
+  ['env_num', 'number'],
+  ['env_bool', 'boolean'],
+  ['env_obj', 'object'],
+  ['env_secret_num', 'number'],
+  ['env_secret_bool', 'boolean'],
+  ['env_secret_obj', 'object']
+];
+
+// Plain string, untyped look-alikes, and the bare-string secret all fall back
+// to the implicit 'string' label.
+const STRING_LABEL_ROWS = [
+  'env_str',
+  'env_secret_str',
+  'env_untyped_num',
+  'env_untyped_bool',
+  'env_untyped_obj',
+  'env_secret_untyped'
+];
+
+// Declared dataType but an uncoercible value: keep the label, show a warning.
+const MISMATCHED_LABEL_ROWS: Array<[string, string]> = [
+  ['mismatched_num', 'number'],
+  ['mismatched_bool', 'boolean'],
+  ['mismatched_obj', 'object']
+];
+
+const expectTypeLabel = async (page: Page, name: string, label: string) => {
+  const locators = buildCommonLocators(page);
+  const row = locators.environment.varRow(name);
+  await scrollVirtuosoRowIntoView(page, row);
+  await expect(locators.dataTypeSelector.typeLabel(row)).toHaveText(label, { timeout: SLOW_RENDER_TIMEOUT_MS });
+};
+
+const expectMismatchVisible = async (page: Page, name: string) => {
+  const locators = buildCommonLocators(page);
+  const row = locators.environment.varRow(name);
+  await scrollVirtuosoRowIntoView(page, row);
+  await expect(locators.dataTypeSelector.mismatchIcon(row)).toBeVisible();
+};
+
+const expectNoMismatch = async (page: Page, name: string) => {
+  const locators = buildCommonLocators(page);
+  const row = locators.environment.varRow(name);
+  await scrollVirtuosoRowIntoView(page, row);
+  await expect(locators.dataTypeSelector.mismatchIcon(row)).toHaveCount(0);
+};
+
+const openCollectionEnvEditor = async (page: Page, collectionName: string) => {
+  const locators = buildCommonLocators(page);
+  await locators.sidebar.collection(collectionName).click();
+  await locators.environment.selector().click();
+  await locators.environment.collectionTab().click();
+  await locators.environment.configureButton().click();
+  await expect(locators.tabs.activeRequestTab()).toContainText('Environments');
+};
+
+const closeEnvEditor = async (page: Page) => {
+  const envTab = page.locator('.request-tab').filter({ hasText: 'Environments' });
+  await envTab.hover();
+  await envTab.getByTestId('request-tab-close-icon').click({ force: true });
+};
 
 for (const { format, collectionName } of FORMATS) {
   test.describe.serial(`Environment export/import — dataType preservation (${format})`, () => {
@@ -45,20 +116,16 @@ for (const { format, collectionName } of FORMATS) {
       pageWithUserData: page,
       createTmpDir
     }) => {
+      const locators = buildCommonLocators(page);
       const exportDir = await createTmpDir(`env-datatype-export-${format}`);
 
       await test.step(`Open the ${format} collection and the env settings tab`, async () => {
-        await page.locator('#sidebar-collection-name').filter({ hasText: collectionName }).click();
-        await page.getByTestId('environment-selector-trigger').click();
-        await page.getByTestId('env-tab-collection').click();
-        await page.getByText('Configure', { exact: true }).click();
-        await expect(page.locator('.request-tab').filter({ hasText: 'Environments' })).toBeVisible();
+        await openCollectionEnvEditor(page, collectionName);
       });
 
       await test.step('Export only the typed_env into a tmp dir', async () => {
         await page.locator('button[title="Export environment"]').click();
-        const exportModal = page.locator('.bruno-modal').filter({ hasText: 'Export Environments' });
-        await expect(exportModal).toBeVisible();
+        await expect(locators.modal.byTitle('Export Environments')).toBeVisible();
 
         await page.getByText('Deselect All').click();
         await page
@@ -87,6 +154,15 @@ for (const { format, collectionName } of FORMATS) {
         expect(byName.env_str).toMatchObject({ value: 'env_string', secret: false });
         expect(byName.env_str.dataType).toBeUndefined();
 
+        // Untyped look-alikes: values that resemble a typed value but carry no
+        // dataType stay raw strings with no dataType field.
+        expect(byName.env_untyped_num).toMatchObject({ value: '42', secret: false });
+        expect(byName.env_untyped_num.dataType).toBeUndefined();
+        expect(byName.env_untyped_bool).toMatchObject({ value: 'true', secret: false });
+        expect(byName.env_untyped_bool.dataType).toBeUndefined();
+        expect(byName.env_untyped_obj).toMatchObject({ value: '{"a":1}', secret: false });
+        expect(byName.env_untyped_obj.dataType).toBeUndefined();
+
         // Secret: value cleared. A bare string secret has no dataType; a typed
         // secret keeps its dataType.
         expect(byName.env_secret_str).toMatchObject({ value: '', secret: true });
@@ -94,6 +170,8 @@ for (const { format, collectionName } of FORMATS) {
         expect(byName.env_secret_num).toMatchObject({ value: '', secret: true, dataType: 'number' });
         expect(byName.env_secret_bool).toMatchObject({ value: '', secret: true, dataType: 'boolean' });
         expect(byName.env_secret_obj).toMatchObject({ value: '', secret: true, dataType: 'object' });
+        expect(byName.env_secret_untyped).toMatchObject({ value: '', secret: true });
+        expect(byName.env_secret_untyped.dataType).toBeUndefined();
 
         // Mismatched rows: declared dataType + raw uncoerced value preserved.
         expect(byName.mismatched_num).toMatchObject({ value: 'not-a-number', dataType: 'number', secret: false });
@@ -101,26 +179,19 @@ for (const { format, collectionName } of FORMATS) {
         expect(byName.mismatched_obj).toMatchObject({ value: 'not-json', dataType: 'object', secret: false });
 
         // Close the env settings tab so the import step starts clean.
-        const envTab = page.locator('.request-tab').filter({ hasText: 'Environments' });
-        await envTab.hover();
-        await envTab.getByTestId('request-tab-close-icon').click({ force: true });
+        await closeEnvEditor(page);
       });
     });
 
     test(`(${format}) imports the exported JSON back into the same collection and renders the right type labels`, async ({
       pageWithUserData: page
     }) => {
+      const locators = buildCommonLocators(page);
       expect(exportedFile).toBeTruthy();
       expect(fs.existsSync(exportedFile)).toBe(true);
 
       await test.step(`Open the ${format} env editor and trigger import`, async () => {
-        // The env selector's Import button only renders for empty collections,
-        // so go through the env editor's toolbar import icon instead.
-        await page.locator('#sidebar-collection-name').filter({ hasText: collectionName }).click();
-        await page.getByTestId('environment-selector-trigger').click();
-        await page.getByTestId('env-tab-collection').click();
-        await page.getByText('Configure', { exact: true }).click();
-        await expect(page.locator('.request-tab').filter({ hasText: 'Environments' })).toBeVisible();
+        await openCollectionEnvEditor(page, collectionName);
 
         await page.locator('button[title="Import environment"]').click();
         await expect(page.locator('[data-testid="import-environment-modal"]')).toBeVisible();
@@ -134,65 +205,23 @@ for (const { format, collectionName } of FORMATS) {
       });
 
       await test.step('Verify the imported env editor shows datatypes correctly', async () => {
-        const envTab = page.locator('.request-tab').filter({ hasText: 'Environments' });
-        await expect(envTab).toBeVisible();
+        await expect(locators.tabs.activeRequestTab()).toContainText('Environments');
 
-        // Typed rows.
-        await expect(
-          page.locator('[data-testid="env-var-row-env_num"] .type-label').first()
-        ).toHaveText('number', { timeout: 5000 });
-        await expect(
-          page.locator('[data-testid="env-var-row-env_bool"] .type-label').first()
-        ).toHaveText('boolean');
-        await expect(
-          page.locator('[data-testid="env-var-row-env_obj"] .type-label').first()
-        ).toHaveText('object');
-        // Plain string falls back to the implicit 'string' label.
-        await expect(
-          page.locator('[data-testid="env-var-row-env_str"] .type-label').first()
-        ).toHaveText('string');
-        // Secret rows render the DataTypeSelector too: a bare string secret
-        // shows the implicit 'string' label, a typed secret its dataType.
-        await expect(
-          page.locator('[data-testid="env-var-row-env_secret_str"] .type-label').first()
-        ).toHaveText('string');
-        await expect(
-          page.locator('[data-testid="env-var-row-env_secret_num"] .type-label').first()
-        ).toHaveText('number');
-        await expect(
-          page.locator('[data-testid="env-var-row-env_secret_bool"] .type-label').first()
-        ).toHaveText('boolean');
-        await expect(
-          page.locator('[data-testid="env-var-row-env_secret_obj"] .type-label').first()
-        ).toHaveText('object');
+        for (const [name, label] of [...TYPED_LABEL_ROWS, ...MISMATCHED_LABEL_ROWS]) {
+          await expectTypeLabel(page, name, label);
+        }
+        for (const name of STRING_LABEL_ROWS) {
+          await expectTypeLabel(page, name, 'string');
+        }
 
-        // Mismatched rows: declared dataType label + warning icon.
-        await expect(
-          page.locator('[data-testid="env-var-row-mismatched_num"] .type-label').first()
-        ).toHaveText('number');
-        await expect(
-          page.locator('[data-testid="env-var-row-mismatched_num"] svg.text-yellow-600')
-        ).toBeVisible();
-        await expect(
-          page.locator('[data-testid="env-var-row-mismatched_bool"] .type-label').first()
-        ).toHaveText('boolean');
-        await expect(
-          page.locator('[data-testid="env-var-row-mismatched_bool"] svg.text-yellow-600')
-        ).toBeVisible();
-        await expect(
-          page.locator('[data-testid="env-var-row-mismatched_obj"] .type-label').first()
-        ).toHaveText('object');
-        await expect(
-          page.locator('[data-testid="env-var-row-mismatched_obj"] svg.text-yellow-600')
-        ).toBeVisible();
+        // Mismatched rows surface the warning icon; well-typed and untyped rows do not.
+        for (const [name] of MISMATCHED_LABEL_ROWS) {
+          await expectMismatchVisible(page, name);
+        }
+        await expectNoMismatch(page, 'env_num');
+        await expectNoMismatch(page, 'env_untyped_obj');
 
-        // No warning icon on well-typed rows.
-        await expect(
-          page.locator('[data-testid="env-var-row-env_num"] svg.text-yellow-600')
-        ).toHaveCount(0);
-
-        await envTab.hover();
-        await envTab.getByTestId('request-tab-close-icon').click({ force: true });
+        await closeEnvEditor(page);
       });
     });
   });

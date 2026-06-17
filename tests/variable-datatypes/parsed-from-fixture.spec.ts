@@ -3,6 +3,7 @@ import path from 'path';
 import { test, expect, Page, Locator } from '../../playwright';
 import {
   saveRequest,
+  scrollVirtuosoRowIntoView,
   selectEnvironment,
   selectRequestPaneTab,
   selectResponsePaneTab,
@@ -111,35 +112,8 @@ const tableRowByName = (table: ReturnType<ReturnType<typeof buildCommonLocators>
 
 const SLOW_RENDER_TIMEOUT_MS = 15_000;
 
-// Vars/env tables are virtualized (react-virtuoso), so a row outside the scroll
-// viewport isn't in the DOM and toHaveText won't mount it. Reset every scroll
-// container to the top, then step them down until the target row mounts.
-const scrollRowIntoView = async (page: Page, row: Locator) => {
-  const step = (toTop: boolean) => page.evaluate((toTop) => {
-    let moved = false;
-    document.querySelectorAll('*').forEach((el) => {
-      const overflowY = getComputedStyle(el).overflowY;
-      if (overflowY !== 'auto' && overflowY !== 'scroll') return;
-      const before = el.scrollTop;
-      el.scrollTop = toTop ? 0 : el.scrollTop + el.clientHeight * 0.7 + 80;
-      if (el.scrollTop !== before) moved = true;
-    });
-    return moved;
-  }, toTop);
-
-  if (await row.count()) return;
-  await step(true);
-  await page.waitForTimeout(100);
-  for (let i = 0; i < 40; i++) {
-    if (await row.count()) break;
-    if (!(await step(false))) break;
-    await page.waitForTimeout(120);
-  }
-  await row.scrollIntoViewIfNeeded().catch(() => {});
-};
-
 const expectTypeLabel = async (row: Locator, label: string) => {
-  await scrollRowIntoView(row.page(), row);
+  await scrollVirtuosoRowIntoView(row.page(), row);
   const { dataTypeSelector } = buildCommonLocators(row.page());
   await expect(dataTypeSelector.typeLabel(row)).toHaveText(label, { timeout: SLOW_RENDER_TIMEOUT_MS });
 };
@@ -297,7 +271,7 @@ const openEnvironmentSettings = async (page: Page, type: 'collection' | 'global'
 const expectEnvVarTypeLabel = async (page: Page, name: string, label: string) => {
   const { environment, dataTypeSelector } = buildCommonLocators(page);
   const row = environment.varRow(name);
-  await scrollRowIntoView(page, row);
+  await scrollVirtuosoRowIntoView(page, row);
   await expect(dataTypeSelector.typeLabel(row)).toHaveText(label, { timeout: SLOW_RENDER_TIMEOUT_MS });
 };
 

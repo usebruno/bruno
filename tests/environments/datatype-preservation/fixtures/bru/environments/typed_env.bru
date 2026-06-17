@@ -8,6 +8,9 @@ vars {
   env_obj: '''
     {"scope":"env"}
   '''
+  env_untyped_num: 42
+  env_untyped_bool: true
+  env_untyped_obj: {"a":1}
   @number
   mismatched_num: not-a-number
   @boolean
@@ -22,5 +25,6 @@ vars:secret [
   @boolean
   env_secret_bool,
   @object
-  env_secret_obj
+  env_secret_obj,
+  env_secret_untyped
 ]
