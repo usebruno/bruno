@@ -129,14 +129,18 @@ const Wrapper = styled.div`
   }
 
     .env-list-search {
-    position: relative;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background-color: ${(props) => props.theme.dropdown.bg};
     display: flex;
     align-items: center;
-    margin: 0 4px 6px 4px;
+    padding: 0 4px 6px 4px;
+    margin: 0;
 
     .env-list-search-icon {
       position: absolute;
-      left: 8px;
+      left: 12px;
       color: ${(props) => props.theme.colors.text.muted};
       pointer-events: none;
     }
@@ -163,7 +167,7 @@ const Wrapper = styled.div`
 
     .env-list-search-clear {
       position: absolute;
-      right: 4px;
+      right: 8px;
       display: flex;
       align-items: center;
       justify-content: center;
