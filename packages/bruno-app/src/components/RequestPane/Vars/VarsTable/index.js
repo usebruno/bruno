@@ -78,7 +78,7 @@ const VarsTable = ({ item, collection, vars, varType, initialScroll = 0 }) => {
         <div className="flex items-center w-full gap-2">
           <div className="flex-1 min-w-0">
             <MultiLineEditor
-              value={valueToString(value, 2)}
+              value={valueToString(value)}
               theme={storedTheme}
               onSave={onSave}
               onChange={onChange}
