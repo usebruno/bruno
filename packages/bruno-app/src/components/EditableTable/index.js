@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { TableVirtuoso } from 'react-virtuoso';
 import { IconTrash, IconAlertCircle, IconGripVertical, IconMinusVertical } from '@tabler/icons';
 import { Tooltip } from 'react-tooltip';
@@ -7,16 +7,6 @@ import StyledWrapper from './StyledWrapper';
 
 const MIN_COLUMN_WIDTH = 80;
 const ROW_HEIGHT = 35;
-
-const findScrollParent = (element) => {
-  let parent = element?.parentElement;
-  while (parent) {
-    const { overflowY } = getComputedStyle(parent);
-    if (overflowY === 'auto' || overflowY === 'scroll') return parent;
-    parent = parent.parentElement;
-  }
-  return null;
-};
 
 const TableRow = React.memo(
   ({ children, item, context, ...rest }) => {
@@ -72,14 +62,10 @@ const EditableTable = ({
   const emptyRowUidRef = useRef(null);
   const prevRowCountRef = useRef(0);
   const [resizing, setResizing] = useState(null);
-  const [tableHeight, setTableHeight] = useState(0);
-  const [scrollParent, setScrollParent] = useState(null);
+
+  const [tableHeight, setTableHeight] = useState(() => ((Array.isArray(rows) ? rows.length : 0) + 1) * ROW_HEIGHT);
   const [dragOverRow, setDragOverRow] = useState(null);
   const widths = columnWidths || {};
-
-  useLayoutEffect(() => {
-    setScrollParent(findScrollParent(wrapperRef.current));
-  }, []);
 
   const handleTotalHeightChanged = useCallback((h) => {
     setTableHeight(h);
@@ -449,22 +435,20 @@ const EditableTable = ({
       data-testid={testId}
       className={`${showCheckbox ? 'has-checkbox' : 'no-checkbox'} ${resizing ? 'is-resizing' : ''}`}
     >
-      {scrollParent && (
-        <TableVirtuoso
-          ref={virtuosoRef}
-          className="table-container"
-          customScrollParent={scrollParent}
-          data={rowsWithEmpty}
-          components={{ TableRow }}
-          context={virtuosoContext}
-          defaultItemHeight={ROW_HEIGHT}
-          initialTopMostItemIndex={initialTopMostItemIndex}
-          totalListHeightChanged={handleTotalHeightChanged}
-          computeItemKey={(_, item) => item.uid}
-          fixedHeaderContent={fixedHeaderContent}
-          itemContent={itemContent}
-        />
-      )}
+      <TableVirtuoso
+        ref={virtuosoRef}
+        className="table-container"
+        style={{ height: tableHeight }}
+        data={rowsWithEmpty}
+        components={{ TableRow }}
+        context={virtuosoContext}
+        defaultItemHeight={ROW_HEIGHT}
+        initialTopMostItemIndex={initialTopMostItemIndex}
+        totalListHeightChanged={handleTotalHeightChanged}
+        computeItemKey={(_, item) => item.uid}
+        fixedHeaderContent={fixedHeaderContent}
+        itemContent={itemContent}
+      />
     </StyledWrapper>
   );
 };

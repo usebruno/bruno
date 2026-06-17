@@ -7,6 +7,7 @@ import { updateTableColumnWidths } from 'providers/ReduxStore/slices/tabs';
 import MultiLineEditor from 'components/MultiLineEditor';
 import InfoTip from 'components/InfoTip';
 import DataTypeSelector from 'components/DataTypeSelector';
+import { valueToString } from '@usebruno/common/utils';
 import EditableTable from 'components/EditableTable';
 import StyledWrapper from './StyledWrapper';
 import toast from 'react-hot-toast';
@@ -77,7 +78,7 @@ const VarsTable = ({ item, collection, vars, varType, initialScroll = 0 }) => {
         <div className="flex items-center w-full gap-2">
           <div className="flex-1 min-w-0">
             <MultiLineEditor
-              value={typeof value === 'string' ? value : value == null ? '' : JSON.stringify(value, null, 2)}
+              value={valueToString(value, 2)}
               theme={storedTheme}
               onSave={onSave}
               onChange={onChange}

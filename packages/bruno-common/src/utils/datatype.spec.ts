@@ -212,6 +212,16 @@ describe('valueToString — round-trip with parseValueByDataType', () => {
     expect(valueToString(undefined)).toBe('');
   });
 
+  it('pretty-prints object/array values when given an indent', () => {
+    expect(valueToString({ a: 1 }, 2)).toBe('{\n  "a": 1\n}');
+    expect(valueToString([1, 2], 2)).toBe('[\n  1,\n  2\n]');
+    // Primitives ignore the indent.
+    expect(valueToString(42, 2)).toBe('42');
+    expect(valueToString('hi', 2)).toBe('hi');
+    // Still round-trips when indented.
+    expect(parseValueByDataType(valueToString({ a: 1 }, 2), 'object')).toEqual({ a: 1 });
+  });
+
   it('round-trips through parseValueByDataType for every supported dataType', () => {
     expect(parseValueByDataType(valueToString(42), 'number')).toBe(42);
     expect(parseValueByDataType(valueToString(true), 'boolean')).toBe(true);

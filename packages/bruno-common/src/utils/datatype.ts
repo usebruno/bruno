@@ -46,13 +46,13 @@ export const getDataTypeFromValue = (value: unknown): BrunoVariableDataType => {
 };
 
 // Round-trip pair with parseValueByDataType.
-export const valueToString = (value: unknown): string => {
+export const valueToString = (value: unknown, indent?: number): string => {
   if (value === null || value === undefined) return '';
   if (typeof value === 'string') return value;
   if (typeof value === 'function' || typeof value === 'symbol') return '';
   if (typeof value === 'object') {
     try {
-      return JSON.stringify(value) ?? '';
+      return JSON.stringify(value, null, indent) ?? '';
     } catch (_) {
       return '';
     }

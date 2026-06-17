@@ -11,7 +11,7 @@ import StyledWrapper from './StyledWrapper';
 import { uuid } from 'utils/common';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
-import { BRUNO_VARIABLE_DATATYPES } from '@usebruno/common/utils';
+import { BRUNO_VARIABLE_DATATYPES, valueToString } from '@usebruno/common/utils';
 import { variableNameRegex } from 'utils/common/regex';
 import toast from 'react-hot-toast';
 import { Tooltip } from 'react-tooltip';
@@ -596,7 +596,7 @@ const EnvironmentVariablesTable = ({
                       theme={storedTheme}
                       collection={_collection}
                       name={`${actualIndex}.value`}
-                      value={typeof variable.value === 'string' ? variable.value : JSON.stringify(variable.value, null, 2)}
+                      value={valueToString(variable.value, 2)}
                       placeholder={variable.value == null || (typeof variable.value === 'string' && variable.value.trim() === '') ? 'Value' : ''}
                       isSecret={variable.secret}
                       onChange={(newValue) => {

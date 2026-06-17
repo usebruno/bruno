@@ -16,6 +16,10 @@ const Wrapper = styled.div`
     border-radius: 8px;
     border: solid 1px ${(props) => props.theme.border.border0};
     transition: height 75ms cubic-bezier(0,1.12,.84,.64);
+    /* Scroller is sized to its exact content height; keep the 1px border outside
+       that box (global box-sizing is border-box) so it doesn't shrink the content
+       area and trigger a spurious scrollbar. */
+    box-sizing: content-box;
   }
 
   table {
