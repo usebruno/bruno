@@ -30,7 +30,8 @@ const defaultPreferences = {
     codeFontSize: 13
   },
   proxy: {
-    inherit: true,
+    source: 'inherit',
+    pac: { source: '' },
     config: {
       protocol: 'http',
       hostname: '',
@@ -67,6 +68,15 @@ const defaultPreferences = {
     sslSession: {
       enabled: false
     }
+  },
+  ai: {
+    enabled: false,
+    providers: {
+      openai: { enabled: false },
+      anthropic: { enabled: false }
+    },
+    models: {},
+    defaultModel: ''
   }
 };
 
@@ -93,7 +103,10 @@ const preferencesSchema = Yup.object().shape({
   }),
   proxy: Yup.object({
     disabled: Yup.boolean().optional(),
-    inherit: Yup.boolean().required(),
+    source: Yup.string().oneOf(['manual', 'pac', 'inherit']).required(),
+    pac: Yup.object({
+      source: Yup.string().optional().max(2048).nullable()
+    }).optional(),
     config: Yup.object({
       protocol: Yup.string().oneOf(['http', 'https', 'socks4', 'socks5']),
       hostname: Yup.string().max(1024),
@@ -131,6 +144,12 @@ const preferencesSchema = Yup.object().shape({
     sslSession: Yup.object({
       enabled: Yup.boolean()
     })
+  }).optional(),
+  ai: Yup.object({
+    enabled: Yup.boolean(),
+    providers: Yup.object().optional(),
+    models: Yup.object().optional(),
+    defaultModel: Yup.string().max(200).nullable()
   }).optional()
 });
 
@@ -150,7 +169,7 @@ class PreferencesStore {
     // New users (empty preferences) will get defaultPreferences.proxy via merge
     if (Object.keys(preferences).length > 0 && !preferences.proxy) {
       preferences.proxy = {
-        inherit: false,
+        source: 'manual',
         disabled: true,
         config: {
           protocol: 'http',
@@ -173,7 +192,8 @@ class PreferencesStore {
 
       if (hasOldFormat) {
         let newProxy = {
-          inherit: true,
+          source: 'inherit',
+          pac: { source: '' },
           config: {
             protocol: proxy.protocol || 'http',
             hostname: proxy.hostname || '',
@@ -188,19 +208,17 @@ class PreferencesStore {
 
         // Handle old format 1: enabled (boolean)
         if (proxy.hasOwnProperty('enabled') && typeof proxy.enabled === 'boolean') {
+          newProxy.source = 'manual';
           newProxy.disabled = !proxy.enabled;
-          newProxy.inherit = false;
         } else if (proxy.hasOwnProperty('mode')) {
           // Handle old format 2: mode ('off' | 'on' | 'system')
           if (proxy.mode === 'off') {
+            newProxy.source = 'manual';
             newProxy.disabled = true;
-            newProxy.inherit = false;
           } else if (proxy.mode === 'on') {
-            newProxy.disabled = false;
-            newProxy.inherit = false;
+            newProxy.source = 'manual';
           } else if (proxy.mode === 'system') {
-            newProxy.disabled = false;
-            newProxy.inherit = true;
+            newProxy.source = 'inherit';
           }
         }
 
@@ -208,7 +226,6 @@ class PreferencesStore {
         if (get(proxy, 'auth.enabled') === false) {
           newProxy.config.auth.disabled = true;
         }
-        // If auth.enabled is true or undefined, omit disabled (defaults to false)
 
         // Omit disabled: false at top level (optional field)
         if (newProxy.disabled === false) {
@@ -220,6 +237,18 @@ class PreferencesStore {
         }
 
         preferences.proxy = newProxy;
+        this.store.set('preferences', preferences);
+      }
+
+      // Migrate intermediate format: inherit boolean → source string
+      if (!hasOldFormat && proxy.hasOwnProperty('inherit')) {
+        if (proxy.inherit === true) {
+          preferences.proxy.source = 'inherit';
+        } else if (!proxy.source) {
+          preferences.proxy.source = 'manual';
+        }
+        delete preferences.proxy.inherit;
+        this.store.set('preferences', preferences);
       }
     }
 

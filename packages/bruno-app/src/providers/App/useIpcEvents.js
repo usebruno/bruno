@@ -28,7 +28,8 @@ import {
 import { collectionAddEnvFileEvent, openCollectionEvent, hydrateCollectionWithUiStateSnapshot, mergeAndPersistEnvironment } from 'providers/ReduxStore/slices/collections/actions';
 import {
   workspaceOpenedEvent,
-  workspaceConfigUpdatedEvent
+  workspaceConfigUpdatedEvent,
+  hydrateSnapshotForOpenedCollection
 } from 'providers/ReduxStore/slices/workspaces/actions';
 import { workspaceDotEnvUpdateEvent, setWorkspaceDotEnvVariables } from 'providers/ReduxStore/slices/workspaces';
 import toast from 'react-hot-toast';
@@ -120,8 +121,12 @@ const useIpcEvents = () => {
 
     const removeApiSpecTreeUpdateListener = ipcRenderer.on('main:apispec-tree-updated', _apiSpecTreeUpdated);
 
-    const removeOpenCollectionListener = ipcRenderer.on('main:collection-opened', (pathname, uid, brunoConfig) => {
-      dispatch(openCollectionEvent(uid, pathname, brunoConfig));
+    const removeOpenCollectionListener = ipcRenderer.on('main:collection-opened', async (pathname, uid, brunoConfig) => {
+      try {
+        await dispatch(openCollectionEvent(uid, pathname, brunoConfig));
+      } finally {
+        dispatch(hydrateSnapshotForOpenedCollection(pathname));
+      }
     });
 
     const removeOpenWorkspaceListener = ipcRenderer.on('main:workspace-opened', (workspacePath, workspaceUid, workspaceConfig) => {

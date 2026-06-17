@@ -31,7 +31,7 @@ const BulkEditor = ({ params, onChange, onToggle, onSave, onRun }) => {
         />
       </div>
       <div className="flex btn-action justify-between items-center mt-3">
-        <button className="text-link select-none ml-auto" onClick={onToggle}>
+        <button className="text-link select-none ml-auto" data-testid="key-value-edit-toggle" onClick={onToggle}>
           Key/Value Edit
         </button>
       </div>

@@ -7,9 +7,9 @@ const { resolveDefaultLocation } = require('../utils/default-location');
 
 let pendingSampleCollection = null;
 
-// When renderer is ready, send any pending collection-opened event
-// This ensures the sample collection appears in the sidebar after onboarding
-ipcMain.on('main:renderer-ready', (mainWindow) => {
+// When workspaces are ready, send any pending collection-opened event
+// This ensures the sample collection appears in the sidebar after the workspace exists
+ipcMain.on('main:workspaces-ready', (mainWindow) => {
   if (pendingSampleCollection) {
     const { mainWindow: win, collectionPath, uid, brunoConfig } = pendingSampleCollection;
     win.webContents.send('main:collection-opened', collectionPath, uid, brunoConfig);

@@ -585,10 +585,11 @@ ${indentString(body.sparql)}
             const selected = item.selected ? '' : '~';
             const contentType
               = item.contentType && item.contentType !== '' ? ' @contentType(' + item.contentType + ')' : '';
+            const annotPrefix = serializeAnnotations(item.annotations);
             const filePath = item.filePath || '';
             const value = `@file(${filePath})`;
             const itemName = 'file';
-            return `${selected}${itemName}: ${value}${contentType}`;
+            return `${annotPrefix}${selected}${itemName}: ${value}${contentType}`;
           })
           .join('\n')
       )}`;
@@ -633,13 +634,16 @@ ${indentString(body.sparql)}
     // Convert each ws message to a separate body:ws block
     if (Array.isArray(body.ws)) {
       body.ws.forEach((message) => {
-        const { name, content, type = '' } = message;
+        const { name, content, type = '', selected } = message;
 
         bru += `body:ws {\n`;
 
         bru += `${indentString(`name: ${getValueString(name)}`)}\n`;
         if (type.length) {
           bru += `${indentString(`type: ${getValueString(type)}`)}\n`;
+        }
+        if (selected) {
+          bru += `${indentString(`selected: true`)}\n`;
         }
 
         // Convert content to JSON string if it's an object

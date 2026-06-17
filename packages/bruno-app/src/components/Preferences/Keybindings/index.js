@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState, useEffect } from 'react';
+import React, { useMemo, useRef, useState, useEffect, Fragment } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useTheme } from 'providers/Theme';
 
@@ -10,6 +10,7 @@ import { savePreferences } from 'providers/ReduxStore/slices/app';
 import { KEY_BINDING_SECTIONS } from 'providers/Hotkeys/keyMappings.js';
 import { Tooltip } from 'react-tooltip';
 import ToggleSwitch from 'components/ToggleSwitch/index';
+import toast from 'react-hot-toast';
 
 const SEP = '+bind+';
 const getOS = () => (isMacOS() ? 'mac' : 'windows');
@@ -82,10 +83,10 @@ const renderDisplayValue = (displayValue, os) => {
   return (
     <span className="shortcut-pills">
       {parsed.map((keysArr, index) => (
-        <React.Fragment key={index}>
+        <Fragment key={index}>
           {index > 0 && <span className="shortcut-separator"> - </span>}
           {renderKeycaps(keysArr, os)}
-        </React.Fragment>
+        </Fragment>
       ))}
     </span>
   );
@@ -218,23 +219,21 @@ const RESERVED_BY_OS = {
     comboSignature(['f12']) // Dashboard (older macOS)
   ]),
   windows: new Set([
+    // System-level shortcuts (intercepted by Windows before reaching the app)
     comboSignature(['alt', 'tab']),
+    comboSignature(['alt', 'shift', 'tab']),
     comboSignature(['alt', 'f4']),
-    comboSignature(['f1']), // Windows Help
+    comboSignature(['alt', 'esc']),
+    comboSignature(['alt', 'space']),
     comboSignature(['ctrl', 'alt', 'delete']),
-    comboSignature(['command', 'l']),
-    comboSignature(['command', 'd']),
-    comboSignature(['command', 'e']),
-    comboSignature(['command', 'r']),
-    comboSignature(['command', 'i']),
-    comboSignature(['command', 's']),
-    comboSignature(['command', 'a']),
-    comboSignature(['command', 'x']),
-    comboSignature(['command', 'm']),
-    comboSignature(['command', 'tab']),
     comboSignature(['ctrl', 'shift', 'esc']),
+    // Function keys
+    comboSignature(['f1']), // Windows Help
+    comboSignature(['f11']), // Fullscreen toggle
+    comboSignature(['f12']), // DevTools
     // Undo/Redo - standard text editing shortcuts that browsers handle natively
     comboSignature(['ctrl', 'z']),
+    comboSignature(['ctrl', 'y']),
     comboSignature(['ctrl', 'shift', 'z']),
     // Toggle Developer Tools
     comboSignature(['ctrl', 'shift', 'i'])
@@ -493,7 +492,7 @@ const Keybindings = () => {
     if (buildUsedSignatures(action).has(sig)) {
       return {
         code: ERROR.DUPLICATE,
-        message: 'That shortcut is already in use.'
+        message: 'This shortcut is already in use.'
       };
     }
 
@@ -562,8 +561,23 @@ const Keybindings = () => {
       return next;
     });
 
-    persistToPreferences(action, def);
+    // Remove the entry from user preferences entirely so falls back to default.
+    // This also keeps `hasCustomizedKeybindings` accurate.
+    const nextKeyBindings = { ...(preferences?.keyBindings || {}) };
+    delete nextKeyBindings[action];
+
+    const updatedPreferences = {
+      ...preferences,
+      keyBindings: nextKeyBindings
+    };
+
+    dispatch(savePreferences(updatedPreferences));
   };
+
+  const hasCustomizedKeybindings = useMemo(() => {
+    const userKeyBindings = preferences?.keyBindings || {};
+    return Object.keys(userKeyBindings).length > 0;
+  }, [preferences?.keyBindings]);
 
   const resetAllKeybindings = () => {
     const updatedPreferences = {
@@ -572,6 +586,7 @@ const Keybindings = () => {
     };
 
     dispatch(savePreferences(updatedPreferences));
+    toast.success('All shortcuts have been reset to default');
   };
 
   const startEditing = (action) => {
@@ -799,6 +814,7 @@ const Keybindings = () => {
             onClick={resetAllKeybindings}
             className="reset-btn"
             data-testid="reset-all-keybindings-btn"
+            disabled={!hasCustomizedKeybindings}
           >
             Reset Default
           </button>
@@ -817,7 +833,7 @@ const Keybindings = () => {
               </thead>
               <tbody>
                 {groupedKeyMappings.map((section, sectionIndex) => (
-                  <React.Fragment key={section.heading}>
+                  <Fragment key={section.heading}>
                     <tr className="section-heading-row">
                       <td colSpan={2}>{section.heading}</td>
                     </tr>
@@ -946,7 +962,12 @@ const Keybindings = () => {
                         </tr>
                       );
                     })}
-                  </React.Fragment>
+                    {sectionIndex < groupedKeyMappings.length - 1 && (
+                      <tr className="section-spacer-row" aria-hidden="true">
+                        <td colSpan={2}>&nbsp;</td>
+                      </tr>
+                    )}
+                  </Fragment>
                 ))}
               </tbody>
             </table>

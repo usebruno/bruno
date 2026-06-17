@@ -179,6 +179,17 @@ const Wrapper = styled.div`
     }
   }
 
+  .breadcrumb-collapsed-dropdown {
+    max-width: 250px;
+  }
+
+  .breadcrumb-collapsed-item {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
   .dropdown-separator {
     height: 1px;
     background-color: ${(props) => props.theme.dropdown.separator};

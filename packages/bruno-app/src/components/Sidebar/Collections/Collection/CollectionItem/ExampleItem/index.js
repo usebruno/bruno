@@ -24,7 +24,6 @@ import { useSidebarAccordion } from 'components/Sidebar/SidebarAccordionContext'
 const ExampleItem = ({ example, item, collection }) => {
   const { dropdownContainerRef } = useSidebarAccordion();
   const dispatch = useDispatch();
-  // Check if this example is the active tab
   const activeTabUid = useSelector((state) => state.tabs?.activeTabUid);
   const isExampleActive = activeTabUid === example.uid;
   const [editName, setEditName] = useState(example.name || '');
@@ -38,12 +37,16 @@ const ExampleItem = ({ example, item, collection }) => {
   const indents = range((item.depth || 0) + 1);
 
   const handleExampleClick = () => {
+    const exampleIndex = item?.examples?.findIndex((ex) => ex.uid === example.uid);
+
     dispatch(addTab({
-      uid: example.uid, // Use example.uid as the tab uid
-      exampleUid: example.uid,
+      uid: example.uid,
       collectionUid: collection.uid,
       type: 'response-example',
-      itemUid: item.uid
+      itemUid: item.uid,
+      pathname: item.pathname,
+      exampleName: example.name,
+      exampleIndex: typeof exampleIndex === 'number' && exampleIndex >= 0 ? exampleIndex : undefined
     }));
   };
 

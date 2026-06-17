@@ -22,7 +22,7 @@ const { getRequestUid } = require('../cache/requestUids');
 const { decryptStringSafe } = require('../utils/encryption');
 const { setBrunoConfig } = require('../store/bruno-config');
 const EnvironmentSecretsStore = require('../store/env-secrets');
-const UiStateSnapshot = require('../store/ui-state-snapshot');
+const snapshotManager = require('../services/snapshot');
 const { parseFileMeta, hydrateRequestWithUuid } = require('../utils/collection');
 const { parseLargeRequestWithRedaction } = require('../utils/parse');
 const { transformBrunoConfigAfterRead } = require('../utils/transformBrunoConfig');
@@ -319,6 +319,7 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
         file.partial = false;
         file.loading = false;
         file.size = sizeInMB(fileStats?.size);
+        file.data.raw = content;
         hydrateRequestWithUuid(file.data, pathname);
         win.webContents.send('main:collection-tree-updated', 'addFile', file);
       } catch (error) {
@@ -360,6 +361,7 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
         });
         file.partial = false;
         file.loading = false;
+        file.data.raw = content;
         hydrateRequestWithUuid(file.data, pathname);
         win.webContents.send('main:collection-tree-updated', 'addFile', file);
       }
@@ -374,6 +376,7 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
       file.partial = true;
       file.loading = false;
       file.size = sizeInMB(fileStats?.size);
+      file.data.raw = content;
       hydrateRequestWithUuid(file.data, pathname);
       win.webContents.send('main:collection-tree-updated', 'addFile', file);
     } finally {
@@ -542,6 +545,7 @@ const change = async (win, pathname, collectionUid, collectionPath) => {
         file.data = await parseRequest(content, { format });
       }
 
+      file.data.raw = content;
       file.size = sizeInMB(fileStats?.size);
       hydrateRequestWithUuid(file.data, pathname);
       win.webContents.send('main:collection-tree-updated', 'change', file);
@@ -636,10 +640,17 @@ const onWatcherSetupComplete = (win, watchPath, collectionUid, watcher) => {
   // Mark discovery as complete
   watcher.completeCollectionDiscovery(win, collectionUid);
 
-  const UiStateSnapshotStore = new UiStateSnapshot();
-  const collectionsSnapshotState = UiStateSnapshotStore.getCollections();
-  const collectionSnapshotState = collectionsSnapshotState?.find((c) => c?.pathname && path.normalize(c.pathname) === path.normalize(watchPath));
-  win.webContents.send('main:hydrate-app-with-ui-state-snapshot', collectionSnapshotState);
+  const collectionSnapshotState = snapshotManager.getCollection(watchPath);
+
+  const hydratePayload = collectionSnapshotState
+    ? {
+        pathname: watchPath,
+        environmentPath: collectionSnapshotState?.environment?.collection || '',
+        selectedEnvironment: collectionSnapshotState?.selectedEnvironment || ''
+      }
+    : null;
+
+  win.webContents.send('main:hydrate-app-with-ui-state-snapshot', hydratePayload);
 };
 
 class CollectionWatcher {
@@ -960,12 +971,15 @@ class CollectionWatcher {
   }
 
   closeAllWatchers() {
+    const pending = [];
     for (const [watchPath, watcher] of Object.entries(this.watchers)) {
       try {
-        watcher?.close();
+        const result = watcher?.close();
+        if (result && typeof result.then === 'function') pending.push(result);
       } catch (err) {}
     }
     this.watchers = {};
+    return Promise.allSettled(pending);
   }
 }
 

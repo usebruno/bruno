@@ -209,7 +209,7 @@ describe('swagger2-to-bruno response examples', () => {
     expect(req.examples[0].response.status).toBe(200);
   });
 
-  it('should not generate examples when responses have no schema or examples', () => {
+  it('should generate examples from description only responses', () => {
     const spec = {
       swagger: '2.0',
       info: { title: 'No Schema API', version: '1.0' },
@@ -229,8 +229,20 @@ describe('swagger2-to-bruno response examples', () => {
     const collection = swagger2ToBruno(spec);
     const req = collection.items.find((i) => i.name === 'Delete data');
 
-    // No schema or examples → no examples array
-    expect(req.examples).toBeUndefined();
+    expect(req.examples).toBeDefined();
+    expect(req.examples.length).toBe(2);
+
+    const noContentExample = req.examples.find((e) => e.response.status === 204);
+    expect(noContentExample).toBeDefined();
+    expect(noContentExample.name).toBe('204 Response');
+    expect(noContentExample.description).toBe('No Content');
+    expect(noContentExample.response.body.content).toBe('');
+    expect(noContentExample.response.headers).toEqual([]);
+
+    const notFoundExample = req.examples.find((e) => e.response.status === 404);
+    expect(notFoundExample).toBeDefined();
+    expect(notFoundExample.name).toBe('404 Response');
+    expect(notFoundExample.description).toBe('Not Found');
   });
 
   it('should set correct statusText in response examples', () => {

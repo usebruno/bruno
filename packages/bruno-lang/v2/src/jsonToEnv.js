@@ -3,6 +3,7 @@ const { getValueString, indentString, serializeAnnotations } = require('./utils'
 
 const envToJson = (json) => {
   const variables = _.get(json, 'variables', []);
+  const externalSecrets = _.get(json, 'externalSecrets', null);
   const color = _.get(json, 'color', null);
 
   const vars = variables
@@ -17,9 +18,9 @@ const envToJson = (json) => {
   const secretVars = variables
     .filter((variable) => variable.secret)
     .map((variable) => {
-      const { name, enabled } = variable;
+      const { name, enabled, annotations } = variable;
       const prefix = enabled ? '' : '~';
-      return indentString(`${prefix}${name}`);
+      return indentString(`${serializeAnnotations(annotations)}${prefix}${name}`);
     });
 
   let output = '';
@@ -43,6 +44,18 @@ ${secretVars.join(',\n')}
 ]
 `;
   }
+
+  if (externalSecrets && externalSecrets.type) {
+    const serializedVariables = (externalSecrets.variables || []).map(({ name, value }) =>
+      indentString(`${name}: ${getValueString(value)}`)
+    );
+
+    output += `vars:externalsecrets:${externalSecrets.type} {
+${serializedVariables.join('\n')}
+}
+`;
+  }
+
   if (color) {
     output += `color: ${color}
 `;

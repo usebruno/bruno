@@ -137,7 +137,7 @@ const prepareGrpcRequest = async (item, collection, environment, runtimeVariable
   }
 
   each(get(request, 'headers', []), (h) => {
-    if (h.enabled && h.name.length > 0) {
+    if (h.enabled && h.name?.length > 0) {
       headers[h.name] = h.value;
     }
   });

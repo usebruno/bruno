@@ -3,6 +3,9 @@ const { openApiSpecDialog, openApiSpec } = require('../app/apiSpecs');
 const { writeFile } = require('../utils/filesystem');
 const { removeApiSpecUid } = require('../cache/apiSpecUids');
 const { removeApiSpecFromWorkspace } = require('../utils/workspace-config');
+const { getCertsAndProxyConfig } = require('./network/cert-utils');
+const { makeAxiosInstance } = require('./network/axios-instance');
+const { proxySwaggerFetch } = require('./swagger-fetch');
 const path = require('path');
 const fs = require('fs');
 
@@ -62,11 +65,32 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedApiSpecs) 
 
   ipcMain.handle('renderer:fetch-api-spec', async (event, url) => {
     try {
-      const data = await fetch(url).then((res) => res.text());
-      return data;
+      // Use a proxy-aware axios instance so that the user's configured proxy
+      const { proxyMode, proxyConfig, httpsAgentRequestFields, interpolationOptions }
+        = await getCertsAndProxyConfig({
+          collectionUid: null,
+          collection: { promptVariables: {} },
+          request: {},
+          envVars: {},
+          runtimeVariables: {},
+          processEnvVars: {},
+          collectionPath: '',
+          globalEnvironmentVariables: {}
+        });
+
+      const axiosInstance = makeAxiosInstance({ proxyMode, proxyConfig, httpsAgentRequestFields, interpolationOptions });
+      const response = await axiosInstance.get(url, {
+        timeout: 30000,
+        transformResponse: [(data) => data]
+      });
+      return response.data;
     } catch (error) {
       return Promise.reject(error);
     }
+  });
+
+  ipcMain.handle('renderer:swagger-fetch', async (event, req) => {
+    return proxySwaggerFetch(req);
   });
 
   ipcMain.handle('renderer:ensure-apispec-folder', async (event, workspacePath) => {

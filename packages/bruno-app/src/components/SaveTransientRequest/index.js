@@ -358,10 +358,12 @@ const SaveTransientRequest = ({ item: itemProp, collection: collectionProp, isOp
     return null;
   }
 
+  const showNewFolderFooterButton = !showNewFolderInput && !isSelectingCollection && (filteredFolders.length > 0 && !searchText.trim());
+
   return (
     <StyledWrapper>
       <Modal
-        size="md"
+        size="sm"
         title={isSelectingCollection ? 'Select Collection' : 'Save Request'}
         handleCancel={handleCancel}
         handleConfirm={handleConfirm}
@@ -539,7 +541,7 @@ const SaveTransientRequest = ({ item: itemProp, collection: collectionProp, isOp
                             size="sm"
                             onClick={handleCreateNewCollection}
                           >
-                            Save
+                            Create
                           </Button>
                         </div>
                       </li>
@@ -547,8 +549,18 @@ const SaveTransientRequest = ({ item: itemProp, collection: collectionProp, isOp
                   </ul>
                 ) : (
                   <div className="collection-empty-state">
-                    <p>No collections Yet</p>
+                    <p>No Collections Yet</p>
                     <p className="collection-empty-state-subtitle">Collections help you organize your requests. Create your first one to save this request.</p>
+                    <Button
+                      type="button"
+                      color="primary"
+                      variant="outline"
+                      icon={<IconFolder size={16} strokeWidth={1.5} />}
+                      onClick={handleShowNewCollection}
+                      className="mt-4"
+                    >
+                      New collection
+                    </Button>
                   </div>
                 )}
               </div>
@@ -726,7 +738,20 @@ const SaveTransientRequest = ({ item: itemProp, collection: collectionProp, isOp
                     </ul>
                   ) : (
                     <div className="folder-empty-state">
-                      {searchText.trim() ? 'No folders found' : 'No folders available'}
+                      <div className="flex flex-col items-center">
+                        <span>
+                          {searchText.trim() ? 'No folders found' : 'No folders available' }
+                        </span>
+                        <Button
+                          type="button"
+                          color="primary"
+                          variant="ghost"
+                          icon={<IconFolder size={16} strokeWidth={1.5} />}
+                          onClick={handleShowNewFolder}
+                        >
+                          New Folder
+                        </Button>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -737,7 +762,7 @@ const SaveTransientRequest = ({ item: itemProp, collection: collectionProp, isOp
 
         <div className="custom-modal-footer">
           <div className="footer-left">
-            {!showNewFolderInput && !isSelectingCollection && (
+            {showNewFolderFooterButton && (
               <Button
                 type="button"
                 color="primary"
@@ -748,7 +773,7 @@ const SaveTransientRequest = ({ item: itemProp, collection: collectionProp, isOp
                 New Folder
               </Button>
             )}
-            {isSelectingCollection && !newCollection.show && (
+            {isSelectingCollection && !newCollection.show && availableCollections.length > 0 && (
               <Button
                 type="button"
                 color="primary"

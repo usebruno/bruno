@@ -31,6 +31,28 @@ function isTracingEnabled(testInfo: TestInfo): boolean {
   return !!(testInfo as any)._tracing.traceOptions();
 }
 
+// Wait for the Electron app to have a ready, loaded window.
+// Handles cases where the first window is slow to appear (e.g. on Windows).
+export async function waitForReadyPage(app: ElectronApplication, options: { timeout?: number } = {}): Promise<Page> {
+  const { timeout = 45000 } = options;
+
+  let page: Page | null = null;
+  try {
+    page = await app.firstWindow();
+  } catch {
+    page = null;
+  }
+
+  if (!page) {
+    page = await app.waitForEvent('window', { timeout });
+  }
+
+  await page.locator('[data-app-state="loaded"]').waitFor({ timeout });
+  await page.waitForTimeout(200);
+
+  return page;
+}
+
 async function usePageWithTracing(
   context: BrowserContext,
   page: Page,
@@ -65,32 +87,57 @@ async function usePageWithTracing(
   try { await testInfo.attach('trace', { path: tracePath }); } catch { }
 }
 
+// Sentinel returned by `withTimeout` when the deadline fires before the wrapped
+// promise resolves. Using a unique symbol lets callers distinguish a real
+// timeout from a promise that legitimately resolved with `undefined`
+// (e.g. `Promise<void>` from `app.close()`).
+const WITH_TIMEOUT = Symbol('withTimeout/timeout');
+
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T | typeof WITH_TIMEOUT> {
+  return new Promise((resolve) => {
+    const timer = setTimeout(() => resolve(WITH_TIMEOUT), ms);
+    promise.then(
+      (v) => {
+        clearTimeout(timer); resolve(v);
+      },
+      () => {
+        clearTimeout(timer); resolve(undefined as T);
+      }
+    );
+  });
+}
+
 /**
- * Gracefully close an Electron app by telling it to exit with code 0.
- * This avoids the macOS "quit unexpectedly" crash dialog that appears when
- * app.context().close() kills subprocesses (renderer/GPU) abruptly before
- * the main process can shut down cleanly.
+ * Close an Electron app gracefully so macOS Crash Reporter doesn't fire.
  *
- * Emits 'before-quit' first so cleanup handlers run (e.g., saving cookies to disk),
- * since app.exit() bypasses all lifecycle events.
+ * Strategy: close all BrowserWindows from inside the main process. The
+ * default `window-all-closed` handler then triggers `app.quit()` →
+ * `before-quit` → `will-quit` → clean exit. Helper processes (renderer/GPU)
+ * shut down via the normal IPC handshake instead of detecting a broken
+ * channel and aborting — that abort is what produced the "Electron quit
+ * unexpectedly" dialog under the previous `app.exit(0)` approach.
+ *
+ * Each step is bounded so a wedged process can't burn the worker teardown
+ * budget. SIGKILL is only sent if the process is genuinely still alive
+ * after the graceful path has timed out.
  */
 export async function closeElectronApp(app: ElectronApplication) {
-  try {
-    await app.evaluate(async ({ app }) => {
-      app.emit('before-quit');
+  await withTimeout(
+    app.evaluate(({ BrowserWindow }) => {
+      for (const win of BrowserWindow.getAllWindows()) {
+        if (!win.isDestroyed()) win.close();
+      }
+    }).catch(() => { /* CDP may have closed already */ }),
+    3000
+  );
 
-      // Add a delay to ensure the app is fully closed
-      await new Promise((resolve) => setTimeout(resolve, 250));
-      app.exit(0);
-    });
-  } catch {
-    // Expected: process exited before the CDP response was sent
-  }
+  const closed = await withTimeout(
+    app.close().catch(() => { /* already exited */ }),
+    5000
+  );
 
-  try {
-    await app.close();
-  } catch {
-    // Process already exited
+  if (closed === WITH_TIMEOUT) {
+    try { app.process()?.kill('SIGKILL'); } catch { /* already dead */ }
   }
 }
 
@@ -136,7 +183,10 @@ export const test = baseTest.extend<
     if (srcPath) {
       const tmpDir = await createTmpDir(path.basename(srcPath));
       await fs.promises.cp(srcPath, tmpDir, { recursive: true });
-      await use(tmpDir);
+      // Normalize to forward slashes so the path is valid JSON when substituted
+      // into template files (e.g. preferences.json). Windows paths with backslashes
+      // produce invalid JSON escape sequences such as \U, \A, \T, etc.
+      await use(tmpDir.replace(/\\/g, '/'));
     } else {
       await use(null);
     }
@@ -155,7 +205,7 @@ export const test = baseTest.extend<
 
         if (initUserDataPath) {
           const replacements: Record<string, string> = {
-            projectRoot: path.posix.join(__dirname, '..'),
+            projectRoot: path.join(__dirname, '..').replace(/\\/g, '/'),
             ...templateVars
           };
 
@@ -163,7 +213,7 @@ export const test = baseTest.extend<
             let content = await fs.promises.readFile(path.join(initUserDataPath, file), 'utf-8');
             content = content.replace(/{{(\w+)}}/g, (_, key) => {
               if (replacements[key]) {
-                return replacements[key];
+                return replacements[key].replace(/\\/g, '/');
               } else {
                 throw new Error(`\tNo replacement for {{${key}}} in ${path.join(initUserDataPath, file)}`);
               }
@@ -221,9 +271,9 @@ export const test = baseTest.extend<
         apps.push(app);
         return app;
       });
-      for (const app of apps) {
-        await closeElectronApp(app);
-      }
+      // Close every still-tracked app in parallel.
+      // `closeElectronApp` is internally bounded, so this can't hang.
+      await Promise.allSettled(apps.map((app) => closeElectronApp(app)));
     },
     { scope: 'worker' }
   ],
@@ -247,14 +297,14 @@ export const test = baseTest.extend<
   },
 
   page: async ({ electronApp, context }, use, testInfo) => {
-    const page = await electronApp.firstWindow();
+    const page = await waitForReadyPage(electronApp);
     await usePageWithTracing(context, page, testInfo, use);
   },
 
   newPage: async ({ launchElectronApp }, use, testInfo) => {
     const app = await launchElectronApp();
     const context = await app.context();
-    const page = await app.firstWindow();
+    const page = await waitForReadyPage(app);
     await usePageWithTracing(context, page, testInfo, use, { initTracing: true, useChunks: false });
   },
 
@@ -344,10 +394,8 @@ export const test = baseTest.extend<
     const app = await reuseOrLaunchElectronApp({ initUserDataPath: tmpAppDataDir, testFile: testInfo.file, templateVars });
 
     const context = await app.context();
-    const page = await app.firstWindow();
+    const page = await waitForReadyPage(app);
 
-    // Wait for app to be ready
-    await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
     await usePageWithTracing(context, page, testInfo, use, { initTracing: true });
   }
 });

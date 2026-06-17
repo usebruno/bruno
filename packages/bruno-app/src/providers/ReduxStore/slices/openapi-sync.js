@@ -2,7 +2,9 @@ import { createSlice } from '@reduxjs/toolkit';
 import { normalizePath } from 'utils/common/path';
 
 const initialState = {
-  // Map of collectionUid -> { hasUpdates, diff, lastChecked, error }
+  // Map of collectionUid -> { hasUpdates, lastChecked, error }
+  // Lightweight indicator state for the toolbar status badge — fed by
+  // background polling. Full drift data lives in `drift` (this slice).
   collectionUpdates: {},
   // Whether App level OpenAPI polling is enabled
   pollingEnabled: true,
@@ -10,8 +12,12 @@ const initialState = {
   lastPollTime: null,
   // Map of collectionUid -> { activeTab, expandedSections, expandedRows }
   tabUiState: {},
-  // Map of collectionUid -> { title, version, endpointCount } (persists across tab navigations)
-  storedSpecMeta: {}
+  // Map of collectionUid -> { title, version, endpointCount }
+  storedSpecMeta: {},
+  // Map of collectionUid -> full parsed OpenAPI spec object
+  storedSpec: {},
+  // Map of collectionUid -> { specDrift, collectionDrift, remoteDrift, fetching, lastChecked }
+  drift: {}
 };
 
 export const openapiSyncSlice = createSlice({
@@ -19,10 +25,9 @@ export const openapiSyncSlice = createSlice({
   initialState,
   reducers: {
     setCollectionUpdate: (state, action) => {
-      const { collectionUid, hasUpdates, diff, error } = action.payload;
+      const { collectionUid, hasUpdates, error } = action.payload;
       state.collectionUpdates[collectionUid] = {
         hasUpdates,
-        diff,
         error,
         lastChecked: Date.now()
       };
@@ -36,6 +41,30 @@ export const openapiSyncSlice = createSlice({
       delete state.collectionUpdates[collectionUid];
       delete state.tabUiState[collectionUid];
       delete state.storedSpecMeta[collectionUid];
+      delete state.storedSpec[collectionUid];
+      delete state.drift[collectionUid];
+    },
+    setDrift: (state, action) => {
+      const { collectionUid, patch } = action.payload;
+      state.drift[collectionUid] = { ...state.drift[collectionUid], ...patch };
+    },
+    clearDrift: (state, action) => {
+      const { collectionUid } = action.payload;
+      delete state.drift[collectionUid];
+    },
+    clearOpenApiSyncTabState: (state, action) => {
+      const { collectionUid } = action.payload;
+      delete state.drift[collectionUid];
+      delete state.storedSpec[collectionUid];
+      delete state.tabUiState[collectionUid];
+    },
+    setStoredSpec: (state, action) => {
+      const { collectionUid, spec } = action.payload;
+      if (spec === null || spec === undefined) {
+        delete state.storedSpec[collectionUid];
+      } else {
+        state.storedSpec[collectionUid] = spec;
+      }
     },
     setStoredSpecMeta: (state, action) => {
       const { collectionUid, title, version, endpointCount } = action.payload;
@@ -124,7 +153,11 @@ export const {
   setLastPollTime,
   setReviewDecision,
   setReviewDecisions,
-  setStoredSpecMeta
+  setStoredSpec,
+  setStoredSpecMeta,
+  setDrift,
+  clearDrift,
+  clearOpenApiSyncTabState
 } = openapiSyncSlice.actions;
 
 // Lightweight thunk for polling — only checks hash, no deep comparison
@@ -152,7 +185,6 @@ export const checkCollectionForUpdates = (collection) => async (dispatch) => {
     dispatch(setCollectionUpdate({
       collectionUid: collection.uid,
       hasUpdates: result.hasUpdates || false,
-      diff: null,
       error: result.error || null
     }));
 
@@ -162,7 +194,6 @@ export const checkCollectionForUpdates = (collection) => async (dispatch) => {
     dispatch(setCollectionUpdate({
       collectionUid: collection.uid,
       hasUpdates: false,
-      diff: null,
       error: error.message
     }));
     return null;
@@ -200,16 +231,6 @@ export const checkActiveWorkspaceCollectionsForUpdates = () => async (dispatch, 
   }
 
   dispatch(setLastPollTime(Date.now()));
-};
-
-// Selector to get UI state for a specific collection's sync tab
-export const selectTabUiState = (collectionUid) => (state) => {
-  return state.openapiSync?.tabUiState?.[collectionUid] || {};
-};
-
-// Selector for stored spec metadata (title, version, endpointCount)
-export const selectStoredSpecMeta = (collectionUid) => (state) => {
-  return state.openapiSync?.storedSpecMeta?.[collectionUid] || null;
 };
 
 export default openapiSyncSlice.reducer;

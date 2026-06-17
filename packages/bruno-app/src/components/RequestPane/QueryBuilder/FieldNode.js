@@ -94,6 +94,7 @@ const ArgValueInput = ({ value, onChange, field }) => {
       onChange={(e) => onChange(e.target.value)}
       onClick={(e) => e.stopPropagation()}
       placeholder="Enter value"
+      className="mousetrap"
     />
   );
 };
@@ -139,7 +140,7 @@ const InputObjectFields = ({ namedType, parentKey, fieldPath, indent, argValues,
           )}
           <input
             type="checkbox"
-            className="field-checkbox"
+            className="field-checkbox mousetrap"
             checked={isEnabled}
             onChange={(e) => {
               e.stopPropagation();
@@ -230,12 +231,6 @@ const FieldNode = ({
         role="treeitem"
         aria-expanded={isExpanded}
         onClick={handleExpand}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault();
-            handleExpand(e);
-          }
-        }}
         tabIndex={0}
       >
         <span className="field-indent" style={{ width: indent }} />
@@ -248,7 +243,7 @@ const FieldNode = ({
         </span>
         <input
           type="checkbox"
-          className="field-checkbox"
+          className="field-checkbox mousetrap"
           checked={isChecked}
           onChange={handleCheck}
           onClick={(e) => e.stopPropagation()}
@@ -268,12 +263,6 @@ const FieldNode = ({
         role="treeitem"
         aria-expanded={canExpand ? isExpanded : undefined}
         onClick={handleExpand}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault();
-            handleExpand(e);
-          }
-        }}
         tabIndex={0}
       >
         <span className="field-indent" style={{ width: indent }} />
@@ -288,7 +277,7 @@ const FieldNode = ({
         </span>
         <input
           type="checkbox"
-          className="field-checkbox"
+          className="field-checkbox mousetrap"
           checked={isChecked}
           onChange={handleCheck}
           onClick={(e) => e.stopPropagation()}
@@ -315,7 +304,7 @@ const FieldNode = ({
                   <span className="input-object-chevron-spacer" />
                   <input
                     type="checkbox"
-                    className="field-checkbox"
+                    className="field-checkbox mousetrap"
                     checked={isArgEnabled}
                     onChange={() => onToggleArg && onToggleArg(field.path, arg.name)}
                     onClick={(e) => e.stopPropagation()}
@@ -369,7 +358,7 @@ const FieldNode = ({
                 <span className="input-object-chevron-spacer" />
                 <input
                   type="checkbox"
-                  className="field-checkbox"
+                  className="field-checkbox mousetrap"
                   checked={isArgEnabled}
                   onChange={() => onToggleArg && onToggleArg(field.path, arg.name)}
                   onClick={(e) => e.stopPropagation()}
@@ -419,12 +408,6 @@ const InputObjectArgRow = ({ arg, argKey, fieldPath, isArgEnabled, sectionIndent
         className="arg-row"
         style={{ paddingLeft: sectionIndent + 8 }}
         onClick={toggleExpand}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault();
-            toggleExpand(e);
-          }
-        }}
         tabIndex={0}
         role="button"
         aria-expanded={isExpanded}
@@ -438,7 +421,7 @@ const InputObjectArgRow = ({ arg, argKey, fieldPath, isArgEnabled, sectionIndent
         </span>
         <input
           type="checkbox"
-          className="field-checkbox"
+          className="field-checkbox mousetrap"
           checked={isArgEnabled}
           onChange={handleCheck}
           onClick={(e) => e.stopPropagation()}
@@ -486,12 +469,6 @@ const ListArgRow = ({ arg, fieldPath, isArgEnabled, argValue, sectionIndent, onT
         className="arg-row"
         style={{ paddingLeft: sectionIndent + 8 }}
         onClick={toggleExpand}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault();
-            toggleExpand(e);
-          }
-        }}
         tabIndex={0}
         role="button"
         aria-expanded={isExpanded}
@@ -505,7 +482,7 @@ const ListArgRow = ({ arg, fieldPath, isArgEnabled, argValue, sectionIndent, onT
         </span>
         <input
           type="checkbox"
-          className="field-checkbox"
+          className="field-checkbox mousetrap"
           checked={isArgEnabled}
           onChange={handleCheck}
           onClick={(e) => e.stopPropagation()}

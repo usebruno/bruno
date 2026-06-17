@@ -1,0 +1,88 @@
+name: Benchmarks
+on:
+  workflow_dispatch:
+    inputs:
+      update-baseline:
+        description: 'Update baseline with current results instead of comparing'
+        type: boolean
+        default: false
+  pull_request:
+    branches: [main, 'release/v*']
+
+jobs:
+  benchmark:
+    name: Performance Benchmarks (${{ matrix.os }})
+    timeout-minutes: 60
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, macos-latest, windows-latest]
+        include:
+          - os: ubuntu-24.04
+            os-name: ubuntu
+          - os: macos-latest
+            os-name: macos
+          - os: windows-latest
+            os-name: windows
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install System Dependencies (Ubuntu)
+        if: matrix.os-name == 'ubuntu'
+        run: |
+          sudo apt-get update
+          sudo apt-get --no-install-recommends install -y \
+            libglib2.0-0 libnss3 libdbus-1-3 libatk1.0-0 libatk-bridge2.0-0 libcups2 libgtk-3-0 libasound2t64 \
+            xvfb
+
+      - name: Setup Node Dependencies
+        uses: ./.github/actions/common/setup-node-deps
+
+      - name: Configure Chrome Sandbox
+        if: matrix.os-name == 'ubuntu'
+        run: |
+          sudo chown root node_modules/electron/dist/chrome-sandbox
+          sudo chmod 4755 node_modules/electron/dist/chrome-sandbox
+
+      - name: Run Benchmark Tests
+        uses: ./.github/actions/tests/run-benchmark-tests
+        with:
+          os: ${{ matrix.os-name }}
+          update-baseline: ${{ github.event.inputs.update-baseline || 'false' }}
+
+      - name: Upload Benchmark Results
+        uses: actions/upload-artifact@v6
+        if: ${{ !cancelled() }}
+        with:
+          name: benchmark-results-${{ matrix.os-name }}
+          path: |
+            tests/benchmarks/results/
+            benchmark-report/
+          retention-days: 30
+
+      - name: Commit Updated Baseline
+        if: github.event.inputs.update-baseline == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add tests/benchmarks/mounting/baseline.${{ matrix.os-name }}.json
+          git diff --staged --quiet || git commit -m "chore: update ${{ matrix.os-name }} benchmark baseline" && git push
+
+      - name: Comment Benchmark Results on PR
+        if: github.event_name == 'pull_request' && !cancelled()
+        continue-on-error: true
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const run = require('./tests/benchmarks/utils/pr-comment.js');
+            await run({
+              github,
+              context,
+              resultsPath: 'tests/benchmarks/results/mounting.json',
+              baselinePath: 'tests/benchmarks/mounting/baseline.${{ matrix.os-name }}.json',
+              title: 'Benchmark Results — Collection Mount (${{ matrix.os-name }})'
+            });

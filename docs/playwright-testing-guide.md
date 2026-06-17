@@ -324,7 +324,7 @@ test('should create and execute HTTP request', async ({ page, createTmpDir }) =>
   await page.getByRole('button', { name: 'Create' }).click();
 
   // Execute request
-  await page.locator('#send-request').getByRole('img').nth(2).click();
+  await page.getByTestId('send-arrow-icon').click();
 
   // Verify response
   await expect(page.getByRole('main')).toContainText('200 OK');

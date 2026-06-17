@@ -1,20 +1,41 @@
 name: 'Run CLI Tests'
 description: 'Setup dependencies, start local testbench and run CLI tests'
+inputs:
+  shell:
+    description: 'Shell to use (bash, pwsh)'
+    required: false
+    default: 'bash'
 runs:
   using: 'composite'
   steps:
-    - name: Run Local Testbench
-      shell: bash
+    - name: Install Test Collection Dependencies
+      shell: ${{ inputs.shell }}
+      run: npm ci --prefix packages/bruno-tests/collection
+
+    - name: Run Local Testbench and CLI Tests
+      if: inputs.shell != 'pwsh'
+      shell: ${{ inputs.shell }}
       run: |
         npm start --workspace=packages/bruno-tests &
         sleep 5
+        cd packages/bruno-tests/collection
+        node ../../bruno-cli/bin/bru.js run --env Prod --output junit.xml --format junit --sandbox developer
 
-    - name: Install Test Collection Dependencies
-      shell: bash
-      run: npm ci --prefix packages/bruno-tests/collection
-
-    - name: Run CLI Tests
-      shell: bash
+    - name: Run Local Testbench and CLI Tests - Windows
+      if: inputs.shell == 'pwsh'
+      shell: pwsh
       run: |
+        $process = Start-Process "npm.cmd" `
+          -ArgumentList "start","--workspace=packages/bruno-tests" `
+          -NoNewWindow `
+          -PassThru
+
+        Start-Sleep -Seconds 5
+
+        if ($process.HasExited) {
+          Write-Error "Server exited early"
+          exit 1
+        }
+
         cd packages/bruno-tests/collection
         node ../../bruno-cli/bin/bru.js run --env Prod --output junit.xml --format junit --sandbox developer

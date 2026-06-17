@@ -12,6 +12,7 @@ import { isEmpty, get, isUndefined, isNull } from 'lodash';
 import { getCACertificates } from './ca-cert';
 import { transformProxyConfig } from './proxy-util';
 import { getOrCreateHttpsAgent, getOrCreateHttpAgent } from './agent-cache';
+import { getPacResolver } from './pac-resolver';
 import type { TimelineEntry } from './timeline-agent';
 
 const DEFAULT_PORTS: Record<string, number> = {
@@ -23,7 +24,7 @@ const DEFAULT_PORTS: Record<string, number> = {
   wss: 443
 };
 
-type ProxyMode = 'on' | 'off' | 'system';
+type ProxyMode = 'on' | 'off' | 'system' | 'pac';
 
 type ProxyAuth = {
   enabled: boolean;
@@ -39,12 +40,16 @@ type ProxyConfig = {
   auth?: ProxyAuth;
   bypassProxy?: string;
   mode?: ProxyMode;
+  pac?: {
+    source: string;
+  };
 };
 
 type SystemProxyConfig = {
   http_proxy?: string;
   https_proxy?: string;
   no_proxy?: string;
+  pac_url?: string | null;
 };
 
 type ClientCertificate = {
@@ -211,7 +216,7 @@ const TARGET_TLS_OPTIONS = ['cert', 'key', 'pfx', 'passphrase', 'rejectUnauthori
  * `ca` to a secureContext (via addCACert) before construction, so custom CAs
  * are added on top of the OpenSSL defaults rather than replacing them.
  */
-class PatchedHttpsProxyAgent extends HttpsProxyAgent<any> {
+export class PatchedHttpsProxyAgent extends HttpsProxyAgent<any> {
   private constructorOpts: any;
 
   constructor(proxy: string, opts: any) {
@@ -309,7 +314,7 @@ const getCertsAndProxyConfig = ({
   /**
    * Proxy configuration
    *
-   * Preferences proxyMode has three possible values: on, off, system
+   * Preferences proxyMode has four possible values: on, off, system, pac
    * Collection proxyMode has three possible values: true, false, global
    *
    * When collection proxyMode is true, it overrides the app-level proxy settings
@@ -337,25 +342,29 @@ const getCertsAndProxyConfig = ({
     // Inherit from app-level proxy settings
     if (appLevelProxyConfig) {
       const globalDisabled = get(appLevelProxyConfig, 'disabled', false);
-      const globalInherit = get(appLevelProxyConfig, 'inherit', false);
-      const globalProxyConfigData = get(appLevelProxyConfig, 'config', appLevelProxyConfig);
+      const globalProxySource = get(appLevelProxyConfig, 'source', 'inherit');
+      const globalProxyConfigData = get(appLevelProxyConfig, 'config', {});
 
-      if (!globalDisabled && !globalInherit) {
-        // Use app-level custom proxy
-        proxyConfig = globalProxyConfigData;
-        proxyMode = 'on';
-      } else if (!globalDisabled && globalInherit) {
-        // App-level also inherits, fall through to system proxy
-        const { http_proxy, https_proxy } = systemProxyConfig || {};
-        if (http_proxy?.length || https_proxy?.length) {
-          proxyMode = 'system';
+      if (!globalDisabled) {
+        if (globalProxySource === 'pac') {
+          proxyConfig = { pac: get(appLevelProxyConfig, 'pac.source') };
+          proxyMode = 'pac';
+        } else if (globalProxySource === 'inherit') {
+          const { http_proxy, https_proxy, pac_url } = systemProxyConfig || {};
+          if (http_proxy?.length || https_proxy?.length || pac_url?.length) {
+            proxyMode = 'system';
+          }
+        } else {
+          // source === 'manual'
+          proxyConfig = globalProxyConfigData;
+          proxyMode = 'on';
         }
       }
       // else: app-level proxy is disabled, proxyMode stays 'off'
     } else {
       // No app-level proxy config (e.g. CLI), fall through to system proxy
-      const { http_proxy, https_proxy } = systemProxyConfig || {};
-      if (http_proxy?.length || https_proxy?.length) {
+      const { http_proxy, https_proxy, pac_url } = systemProxyConfig || {};
+      if (http_proxy?.length || https_proxy?.length || pac_url?.length) {
         proxyMode = 'system';
       }
     }
@@ -374,7 +383,80 @@ function extractHostname(url: string | undefined): string | null {
   }
 }
 
-function createAgents({
+type ResolveAgentsFromPacParams = {
+  pacSource: string;
+  requestUrl: string;
+  tlsOptions: TlsOptions;
+  httpsAgentRequestFields?: HttpsAgentRequestFields;
+  requestProtocol?: 'http' | 'https' | 'both';
+  timeline?: TimelineEntry[] | null;
+  disableCache: boolean;
+  hostname: string | null;
+};
+
+type ResolveAgentsFromPacResult = {
+  directives: string[] | null;
+  httpAgent?: HttpAgent;
+  httpsAgent?: HttpsAgent | HttpsProxyAgent<any> | SocksProxyAgent;
+};
+
+/**
+ * Resolves a PAC URL and creates proxy agents from the first directive.
+ * `requestProtocol` controls which agent(s) get created:
+ *   - 'http' or 'https': create only the matching agent (optimization for known request type)
+ *   - 'both' (default): create both, caller picks
+ */
+export async function resolveAgentsFromPac({
+  pacSource,
+  requestUrl,
+  tlsOptions,
+  httpsAgentRequestFields,
+  requestProtocol = 'both',
+  timeline,
+  disableCache,
+  hostname
+}: ResolveAgentsFromPacParams): Promise<ResolveAgentsFromPacResult> {
+  const pacResolverFields = httpsAgentRequestFields || {
+    ca: tlsOptions.ca,
+    rejectUnauthorized: tlsOptions.rejectUnauthorized,
+    minVersion: tlsOptions.minVersion
+  };
+  const resolver = await getPacResolver({ pacSource, httpsAgentRequestFields: pacResolverFields });
+  const directives = await resolver.resolve(requestUrl);
+
+  if (!directives || !directives.length) {
+    return { directives: null };
+  }
+
+  const wantHttp = requestProtocol === 'http' || requestProtocol === 'both';
+  const wantHttps = requestProtocol === 'https' || requestProtocol === 'both';
+  const first = directives[0];
+
+  if (/^(PROXY|HTTPS?)\s+/i.test(first)) {
+    const parts = first.split(/\s+/);
+    const keyword = parts[0].toUpperCase();
+    const hostPort = parts[1];
+    const scheme = keyword === 'HTTPS' ? 'https' : 'http';
+    const proxyUri = `${scheme}://${hostPort}`;
+    const result: ResolveAgentsFromPacResult = { directives };
+    if (wantHttp) result.httpAgent = getOrCreateHttpAgent({ AgentClass: HttpProxyAgent, options: { keepAlive: true }, proxyUri, timeline: timeline || null, disableCache, hostname });
+    if (wantHttps) result.httpsAgent = getOrCreateHttpsAgent({ AgentClass: PatchedHttpsProxyAgent, options: tlsOptions as any, proxyUri, timeline: timeline || null, disableCache, hostname }) as HttpsAgent;
+    return result;
+  }
+  if (/^SOCKS/i.test(first)) {
+    const hostPort = first.split(/\s+/)[1];
+    const proto = /^SOCKS4\s/i.test(first) ? 'socks4' : 'socks5';
+    const proxyUri = `${proto}://${hostPort}`;
+    const result: ResolveAgentsFromPacResult = { directives };
+    if (wantHttp) result.httpAgent = getOrCreateHttpAgent({ AgentClass: SocksProxyAgent, options: { keepAlive: true }, proxyUri, timeline: timeline || null, disableCache, hostname });
+    if (wantHttps) result.httpsAgent = getOrCreateHttpsAgent({ AgentClass: SocksProxyAgent, options: tlsOptions as any, proxyUri, timeline: timeline || null, disableCache, hostname }) as HttpsAgent;
+    return result;
+  }
+
+  return { directives };
+}
+
+async function createAgents({
   requestUrl,
   proxyMode,
   proxyConfig,
@@ -383,7 +465,7 @@ function createAgents({
   httpsAgentRequestFields,
   timeline,
   disableCache = true
-}: CreateAgentsParams): AgentResult {
+}: CreateAgentsParams): Promise<AgentResult> {
   // Ensure TLS options are properly set
   const tlsOptions: TlsOptions = {
     ...httpsAgentRequestFields,
@@ -447,29 +529,52 @@ function createAgents({
         }
       }
     }
+  } else if (proxyMode === 'pac') {
+    const pacSource = get(proxyConfig, 'pac.source');
+    if (pacSource && requestUrl) {
+      try {
+        const result = await resolveAgentsFromPac({ pacSource, requestUrl, requestProtocol: isHttpsRequest ? 'https' : 'http', tlsOptions, timeline, disableCache, hostname });
+        if (result.httpAgent) httpAgent = result.httpAgent;
+        if (result.httpsAgent) httpsAgent = result.httpsAgent;
+      } catch {
+        // PAC resolution failed — fall through to direct connection
+      }
+    }
   } else if (proxyMode === 'system') {
     const http_proxy = get(systemProxyConfig, 'http_proxy');
     const https_proxy = get(systemProxyConfig, 'https_proxy');
     const no_proxy = get(systemProxyConfig, 'no_proxy');
-    const shouldUseSystemProxy = shouldUseProxy(requestUrl, no_proxy || '');
-    if (shouldUseSystemProxy) {
+    const pac_url = get(systemProxyConfig, 'pac_url');
+
+    // If the OS is configured with a PAC URL, resolve it using the existing PAC infrastructure
+    if (pac_url && requestUrl) {
       try {
-        if (http_proxy?.length && !isHttpsRequest) {
-          const parsedHttpProxy = new URL(http_proxy);
-          const isHttpsSystemProxy = parsedHttpProxy.protocol === 'https:';
-          const systemHttpProxyAgentOptions = isHttpsSystemProxy ? { keepAlive: true, ...tlsOptions } : { keepAlive: true };
-          httpAgent = getOrCreateHttpAgent({ AgentClass: HttpProxyAgent, options: systemHttpProxyAgentOptions as any, proxyUri: http_proxy, timeline: timeline || null, disableCache, hostname });
-        }
-      } catch (error) {
-        throw new Error('Invalid system http_proxy');
+        const result = await resolveAgentsFromPac({ pacSource: pac_url, requestUrl, requestProtocol: isHttpsRequest ? 'https' : 'http', tlsOptions, timeline, disableCache, hostname });
+        if (result.httpAgent) httpAgent = result.httpAgent;
+        if (result.httpsAgent) httpsAgent = result.httpsAgent;
+      } catch {
       }
-      try {
-        if (https_proxy?.length && isHttpsRequest) {
-          new URL(https_proxy);
-          httpsAgent = getOrCreateHttpsAgent({ AgentClass: PatchedHttpsProxyAgent, options: tlsOptions as any, proxyUri: https_proxy, timeline: timeline || null, disableCache, hostname }) as HttpsAgent;
+    } else {
+      const shouldUseSystemProxy = shouldUseProxy(requestUrl, no_proxy || '');
+      if (shouldUseSystemProxy) {
+        try {
+          if (http_proxy?.length && !isHttpsRequest) {
+            const parsedHttpProxy = new URL(http_proxy);
+            const isHttpsSystemProxy = parsedHttpProxy.protocol === 'https:';
+            const systemHttpProxyAgentOptions = isHttpsSystemProxy ? { keepAlive: true, ...tlsOptions } : { keepAlive: true };
+            httpAgent = getOrCreateHttpAgent({ AgentClass: HttpProxyAgent, options: systemHttpProxyAgentOptions as any, proxyUri: http_proxy, timeline: timeline || null, disableCache, hostname });
+          }
+        } catch (error) {
+          throw new Error('Invalid system http_proxy');
         }
-      } catch (error) {
-        throw new Error('Invalid system https_proxy');
+        try {
+          if (https_proxy?.length && isHttpsRequest) {
+            new URL(https_proxy);
+            httpsAgent = getOrCreateHttpsAgent({ AgentClass: PatchedHttpsProxyAgent, options: tlsOptions as any, proxyUri: https_proxy, timeline: timeline || null, disableCache, hostname }) as HttpsAgent;
+          }
+        } catch (error) {
+          throw new Error('Invalid system https_proxy');
+        }
       }
     }
   }
@@ -514,7 +619,7 @@ const getHttpHttpsAgents = async ({
     httpsAgentRequestFields.rejectUnauthorized = false;
   }
 
-  const { httpAgent, httpsAgent } = createAgents({
+  const { httpAgent, httpsAgent } = await createAgents({
     requestUrl,
     proxyMode,
     proxyConfig,
@@ -530,4 +635,4 @@ const getHttpHttpsAgents = async ({
 
 export { getHttpHttpsAgents };
 
-export type { GetHttpHttpsAgentsParams };
+export type { GetHttpHttpsAgentsParams, ResolveAgentsFromPacParams, ResolveAgentsFromPacResult };

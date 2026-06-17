@@ -188,6 +188,7 @@ function createVaultClient(config: VaultConfig = {}): VaultClient {
       method: method as any,
       url: uri,
       headers,
+      proxy: false,
       validateStatus: () => true // Don't throw on non-2xx status
     };
 
