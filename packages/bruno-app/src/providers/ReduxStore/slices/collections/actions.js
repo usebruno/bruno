@@ -7,10 +7,11 @@ import find from 'lodash/find';
 import get from 'lodash/get';
 import set from 'lodash/set';
 import trim from 'lodash/trim';
-import path, { normalizePath } from 'utils/common/path';
+import path, { normalizePath, isPathExternalToBasePath } from 'utils/common/path';
 import { insertTaskIntoQueue, toggleSidebarCollapse } from 'providers/ReduxStore/slices/app';
 import toast from 'react-hot-toast';
 import IpcErrorModal from 'components/Errors/IpcErrorModal/index';
+import SaveFileErrorModal from 'components/Errors/SaveFileErrorModal/index';
 import {
   findCollectionByUid,
   findEnvironmentInCollection,
@@ -191,6 +192,59 @@ export const saveRequest = (itemUid, collectionUid, silent = false) => (dispatch
         reject(err);
       });
   });
+};
+
+export const saveFile = (content, itemUid, collectionUid, silent = false) => async (dispatch, getState) => {
+  const state = getState();
+  const collection = findCollectionByUid(state.collections.collections, collectionUid);
+  const tempDirectory = state.collections.tempDirectories?.[collectionUid];
+
+  if (!collection) {
+    throw new Error('Collection not found');
+  }
+
+  const collectionCopy = cloneDeep(collection);
+  const item = findItemInCollection(collectionCopy, itemUid);
+
+  // Item is not used to save the bru file
+  // This is to validate if the bru content is associated with a valid item
+  if (!item) {
+    throw new Error('Not able to locate item');
+  }
+
+  const isTransient = tempDirectory && item.pathname.startsWith(tempDirectory);
+  if (isTransient) {
+    if (!silent) {
+      dispatch(addSaveTransientRequestModal({ item, collection }));
+    }
+    throw new Error('Cannot save transient request');
+  }
+
+  const { ipcRenderer } = window;
+  try {
+    if (['http-request', 'graphql-request'].includes(item?.type)) {
+      let json = await ipcRenderer.invoke('renderer:convert-to-json', item, content, collection.format);
+      delete json.isTransient;
+      await itemSchema.validate(json);
+    }
+  } catch (err) {
+    if (!silent) {
+      toast.custom(<SaveFileErrorModal error={err.message} />);
+    }
+    throw err;
+  }
+
+  try {
+    await ipcRenderer.invoke('renderer:save-file', item.pathname, content);
+    if (!silent) {
+      toast.success('File saved successfully!');
+    }
+  } catch (err) {
+    if (!silent) {
+      toast.error('Failed to save file!');
+    }
+    throw err;
+  }
 };
 
 export const saveMultipleRequests = (items) => (dispatch, getState) => {
@@ -2419,6 +2473,60 @@ export const removeCollection = (collectionUid) => (dispatch, getState) => {
         } else {
           // Collection still exists in other workspaces
         }
+      })
+      .then(resolve)
+      .catch(reject);
+  });
+};
+
+// Move an external collection into the workspace's collections directory
+export const moveCollectionToWorkspace = (collectionUid) => (dispatch, getState) => {
+  return new Promise((resolve, reject) => {
+    const state = getState();
+    const collection = findCollectionByUid(state.collections.collections, collectionUid);
+    if (!collection) {
+      return reject(new Error('Collection not found'));
+    }
+
+    const { workspaces } = state;
+    const activeWorkspace = workspaces.workspaces.find((w) => w.uid === workspaces.activeWorkspaceUid);
+
+    if (!activeWorkspace || !activeWorkspace.pathname) {
+      return reject(new Error('No active workspace found'));
+    }
+
+    if (!isPathExternalToBasePath(activeWorkspace.pathname, collection.pathname)) {
+      return reject(new Error('Collection is already inside the workspace'));
+    }
+
+    const { ipcRenderer } = window;
+
+    ipcRenderer
+      .invoke('renderer:move-collection-to-workspace', {
+        workspacePath: activeWorkspace.pathname,
+        collectionPath: collection.pathname,
+        collectionUid,
+        collectionName: collection.name
+      })
+      .then(async (result) => {
+        dispatch(closeAllCollectionTabs({ collectionUid }));
+        dispatch(removeCollectionFromWorkspace({
+          workspaceUid: activeWorkspace.uid,
+          collectionLocation: collection.pathname
+        }));
+        await waitForNextTick();
+        dispatch(_removeCollection({ collectionUid }));
+
+        if (result?.newPath) {
+          const openResult = await dispatch(openMultipleCollections([result.newPath], { workspacePath: activeWorkspace.pathname }));
+          const reopened = (openResult?.opened || []).some(
+            (openedPath) => normalizePath(openedPath) === normalizePath(result.newPath)
+          );
+          if (!reopened) {
+            throw new Error('Collection was moved into the workspace but could not be re-opened. Reload the workspace to access it.');
+          }
+        }
+        dispatch(ensureActiveTabInCurrentWorkspace());
       })
       .then(resolve)
       .catch(reject);

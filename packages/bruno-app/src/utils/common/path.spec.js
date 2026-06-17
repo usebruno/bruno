@@ -6,7 +6,7 @@ jest.mock('platform', () => ({
 }));
 
 import path from 'path';
-import { getRelativePath, getBasename, getAbsoluteFilePath, getRelativePathWithinBasePath } from './path';
+import { getRelativePath, getBasename, getAbsoluteFilePath, getRelativePathWithinBasePath, isPathExternalToBasePath } from './path';
 
 describe('Path Utilities - Unix Platform', () => {
   describe('getRelativePath', () => {
@@ -187,6 +187,42 @@ describe('Path Utilities - Unix Platform', () => {
       const filePath = 'collections/api/files/payload.txt';
       const result = getRelativePathWithinBasePath(collectionPath, filePath);
       expect(result).toBe('files/payload.txt');
+    });
+  });
+
+  describe('isPathExternalToBasePath', () => {
+    it('should return false for a collection directly inside the base path', () => {
+      expect(isPathExternalToBasePath('/users/john/workspace', '/users/john/workspace/collections/api')).toBe(false);
+    });
+
+    it('should return false for a deeply nested collection', () => {
+      expect(isPathExternalToBasePath('/users/john/workspace', '/users/john/workspace/a/b/c')).toBe(false);
+    });
+
+    it('should return true for a collection outside the base path', () => {
+      expect(isPathExternalToBasePath('/users/john/workspace', '/users/john/downloads/api')).toBe(true);
+    });
+
+    it('should return true for a sibling whose name is a prefix of the base path', () => {
+      // /workspace-other must not be treated as inside /workspace
+      expect(isPathExternalToBasePath('/users/john/workspace', '/users/john/workspace-other/api')).toBe(true);
+    });
+
+    it('should resolve dot segments before deciding', () => {
+      // resolves to /users/john/workspace/b — inside
+      expect(isPathExternalToBasePath('/users/john/workspace', '/users/john/workspace/a/../b')).toBe(false);
+      // resolves to /users/john/b — outside
+      expect(isPathExternalToBasePath('/users/john/workspace/a', '/users/john/workspace/a/../../b')).toBe(true);
+    });
+
+    it('should ignore a trailing separator on the base path', () => {
+      expect(isPathExternalToBasePath('/users/john/workspace/', '/users/john/workspace/collections/api')).toBe(false);
+    });
+
+    it('should return false when either input is missing', () => {
+      expect(isPathExternalToBasePath('', '/users/john/workspace/api')).toBe(false);
+      expect(isPathExternalToBasePath('/users/john/workspace', '')).toBe(false);
+      expect(isPathExternalToBasePath(undefined, undefined)).toBe(false);
     });
   });
 

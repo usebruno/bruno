@@ -38,6 +38,8 @@ export const buildCommonLocators = (page: Page) => ({
   tabs: {
     requestTab: (requestName: string) => page.locator('.request-tab .tab-label').filter({ hasText: requestName }),
     folderTab: (folderName: string) => page.locator('.request-tab .tab-label').filter({ hasText: folderName }),
+    collectionSettingsTab: () =>
+      page.locator('.request-tab').filter({ has: page.locator('.tab-label', { hasText: 'Collection' }) }),
     activeRequestTab: () => page.locator('.request-tab.active'),
     closeTab: (requestName: string) => page.locator('.request-tab').filter({ hasText: requestName }).getByTestId('request-tab-close-icon'),
     draftIndicator: () => page.locator('.request-tab.active .has-changes-icon')
@@ -46,6 +48,7 @@ export const buildCommonLocators = (page: Page) => ({
     responsiveTab: (key: string) => page.getByTestId(`responsive-tab-${key}`),
     collectionSettingsTab: (key: string) => page.getByTestId(`collection-settings-tab-${key}`),
     folderSettingsTab: (key: string) => page.getByTestId(`folder-settings-tab-${key}`),
+    folderScriptTab: (key: 'pre-request' | 'post-response') => page.getByTestId(`tab-trigger-${key}`),
     tabTrigger: (key: string) => page.getByTestId(`tab-trigger-${key}`)
   },
   folder: {
@@ -96,7 +99,9 @@ export const buildCommonLocators = (page: Page) => ({
       placementLabel: () => page.getByTestId('auth-placement-label')
     },
     oauth2: {
-      grantTypeDropdown: () => page.getByTestId('grant-type-dropdown')
+      grantTypeDropdown: () => page.getByTestId('grant-type-dropdown'),
+      tokenHeaderPrefixField: () => page.getByTestId('token-header-prefix'),
+      tokenQueryParamKeyField: () => page.getByTestId('token-query-param-key')
     },
     modeSelector: () => page.getByTestId('auth-mode-selector'),
     modeLabel: () => page.getByTestId('auth-mode-label'),
@@ -112,6 +117,15 @@ export const buildCommonLocators = (page: Page) => ({
   tags: {
     input: () => page.getByTestId('tag-input').getByRole('textbox'),
     item: (tagName: string) => page.locator('.tag-item', { hasText: tagName })
+  },
+  generateDocs: {
+    menuItem: () => page.locator('.dropdown-item').filter({ hasText: 'Generate Docs' }),
+    modal: () => page.locator('.bruno-modal').filter({
+      has: page.locator('.bruno-modal-header-title').filter({ hasText: 'Generate Documentation' })
+    }),
+    heading: () => page.locator('.bruno-modal').getByText('Interactive API Documentation'),
+    generateButton: () => page.locator('.bruno-modal').getByRole('button', { name: 'Generate', exact: true }),
+    cancelButton: () => page.locator('.bruno-modal').getByRole('button', { name: 'Cancel', exact: true })
   },
   runnerResults: {
     itemPath: (name: string) => page.getByTestId('runner-result-item').filter({ hasText: name })

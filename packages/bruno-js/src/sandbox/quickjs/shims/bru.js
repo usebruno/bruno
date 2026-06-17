@@ -354,6 +354,10 @@ const addBruShimToContext = (vm, bru) => {
     const t = vm.getString(timer);
     const promise = vm.newPromise();
     setTimeout(() => {
+      // The VM may have been disposed while this native timer was pending
+      // (e.g. a setTimeout/sleep whose promise the script never awaited).
+      // Touching the VM after teardown throws QuickJSUseAfterFree, so bail out.
+      if (!vm.alive) return;
       promise.resolve(vm.newString('slept'));
     }, t);
     promise.settled.then(vm.runtime.executePendingJobs);
