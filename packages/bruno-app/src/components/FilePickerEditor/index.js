@@ -36,10 +36,7 @@ const FilePickerEditor = ({
   const [hasMissingFiles, setHasMissingFiles] = useState(false);
 
   const filePaths = (isSingleFilePicker ? [value] : value || []).filter((v) => v != null && v != '');
-  const filenames = filePaths.map((v) => {
-    const separator = isWindowsOS() ? '\\' : '/';
-    return v.split(separator).pop();
-  });
+  const filenames = filePaths.map((v) => v.split(/[\\/]/).pop());
 
   // title is shown when hovering over the button
   const title = filenames.map((v) => `- ${v}`).join('\n');
