@@ -77,20 +77,20 @@ const StyledWrapper = styled.div`
     }
 
     &.has-warning {
-      background-color: #BB931B1A;
+      background-color: ${(props) => props.theme.status.warning.background};
       font-weight: 500;
       border-radius: 4px;
       padding: 4px;
     }
 
     .warning-icon {
-      color: #BB931B;
+      color: ${(props) => props.theme.status.warning.text};
       margin-right: 4px;
     }
 
     .warning-tooltip {
-      background-color: #BB931B1A;
-      color: #856404; 
+      background-color: ${(props) => props.theme.status.warning.background};
+      color: ${(props) => props.theme.status.warning.text};
       margin: 2px;
       border-radius: 6px;
       padding: 4px;
