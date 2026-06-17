@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import semver from 'semver';
 import { addTab } from 'providers/ReduxStore/slices/tabs';
 import { savePreferences } from 'providers/ReduxStore/slices/app';
 import { version as currentVersion } from '../../../package.json';
@@ -38,7 +39,8 @@ const useChangelogOnUpdate = () => {
     hasRunRef.current = true;
 
     const onboarding = preferences.onboarding || {};
-    if (onboarding.lastSeenVersion === currentVersion) return;
+    const { lastSeenVersion } = onboarding;
+    if (lastSeenVersion && semver.valid(lastSeenVersion) && semver.gte(lastSeenVersion, currentVersion)) return;
 
     dispatch(addTab({
       type: 'changelog',
