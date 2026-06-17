@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import find from 'lodash/find';
+import get from 'lodash/get';
 import toast from 'react-hot-toast';
 import { useSelector, useDispatch } from 'react-redux';
 import GraphQLRequestPane from 'components/RequestPane/GraphQLRequestPane';
@@ -20,6 +21,7 @@ import CollectionSettings from 'components/CollectionSettings';
 import { DocExplorer } from '@usebruno/graphql-docs';
 
 import FileEditor from 'components/FileEditor';
+import AppView from 'components/AppView';
 import StyledWrapper from './StyledWrapper';
 import FolderSettings from 'components/FolderSettings';
 import { getGlobalEnvironmentVariables, getGlobalEnvironmentVariablesMasked } from 'utils/collections/index';
@@ -483,6 +485,18 @@ const RequestTabPanel = () => {
       <ScopedPersistenceProvider scope={focusedTab.uid}>
         <StyledWrapper className="flex flex-col flex-grow relative p-4 file-mode overflow-hidden">
           <FileEditor item={item} collection={collection} />
+        </StyledWrapper>
+      </ScopedPersistenceProvider>
+    );
+  }
+
+  const appEnabled = item.draft ? get(item, 'draft.app.enabled', false) : get(item, 'app.enabled', false);
+  if (appEnabled) {
+    const appCode = item.draft ? get(item, 'draft.app.code', '') : get(item, 'app.code', '');
+    return (
+      <ScopedPersistenceProvider scope={focusedTab.uid}>
+        <StyledWrapper className="flex flex-col flex-grow relative overflow-hidden">
+          <AppView item={item} collection={collection} code={appCode} />
         </StyledWrapper>
       </ScopedPersistenceProvider>
     );
