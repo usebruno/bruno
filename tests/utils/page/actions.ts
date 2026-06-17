@@ -1,7 +1,7 @@
+import { test, expect, Page, ElectronApplication, waitForReadyPage as waitForReadyPageImpl } from '../../../playwright';
 import process from 'node:process';
 import * as path from 'path';
-import { ElectronApplication, expect, Page, test, waitForReadyPage as waitForReadyPageImpl } from '../../../playwright';
-import { buildCommonLocators, buildGrpcCommonLocators, buildScriptErrorLocators } from './locators';
+import { buildCommonLocators, buildScriptErrorLocators, buildGrpcCommonLocators } from './locators';
 import { waitForCollectionMount } from './mounting';
 
 type SandboxMode = 'safe' | 'developer';
@@ -1946,10 +1946,82 @@ const generateCollectionDocs = async (
 };
 
 export {
-  addAssertion, addCollectionScript, addEnvironmentVariable,
-  addEnvironmentVariables, addFolderScript, addGrpcMessage, addMultipartFileToLastRow, addPostResponseScript, addPreRequestScript, addTestScript, clickResponseAction, closeAllCollections, closeAllTabs, closeEnvironmentPanel, closeGenerateCodeDialog, createCollection, createEnvironment, createExampleFromSidebar, createFolder, createRequest, createTransientRequest, createUntitledRequest, createWorkspace, deleteAssertion, deleteCollectionFromOverview, deleteRequest, dismissImportIssuesToasts, editAssertion, editCodeMirrorEditor, expandFolder, expectResponseContains, fillRequestUrl, generateCollectionDocs, generateGrpcSampleMessage, getGeneratedSnippet, getResponseBody, importCollection, mockBrowseFiles, openCollection, openEnvironmentSelector, openExampleFromSidebar, openfolder,
-  openFolderRequest, openRequest, openRequestInFolder, openWorkspaceFromDialog, readField, removeCollection, removeFirstMultipartFile, saveEnvironment, saveRequest, selectAuthMode, selectEnvironment, selectfolderPaneTab, selectGrpcMethod, selectRequestBodyMode, selectRequestPaneTab, selectResponsePaneTab, selectScriptSubTab, sendAndWaitForErrorCard,
-  sendAndWaitForResponse, sendRequest, sendRequestAndWaitForResponse, setUrlEncoding, switchResponseFormat, switchToEditorTab, switchToPreviewTab, switchWorkspace, typeIntoField, waitForReadyPage
+  waitForReadyPage,
+  dismissImportIssuesToasts,
+  closeAllCollections,
+  openCollection,
+  createCollection,
+  createRequest,
+  createUntitledRequest,
+  createTransientRequest,
+  fillRequestUrl,
+  deleteRequest,
+  deleteCollectionFromOverview,
+  importCollection,
+  removeCollection,
+  createFolder,
+  openEnvironmentSelector,
+  createEnvironment,
+  addEnvironmentVariable,
+  addEnvironmentVariables,
+  saveEnvironment,
+  closeEnvironmentPanel,
+  selectEnvironment,
+  sendRequest,
+  openRequest,
+  openfolder,
+  openFolderRequest,
+  selectfolderPaneTab,
+  selectFolderScriptPaneTab,
+  openCollectionSettings,
+  selectCollectionPaneTab,
+  selectCollectionScriptPaneTab,
+  focusFolderSettingsTab,
+  focusCollectionSettingsTab,
+  getResponseBody,
+  expectResponseContains,
+  selectRequestPaneTab,
+  selectRequestBodyMode,
+  selectResponsePaneTab,
+  mockBrowseFiles,
+  addMultipartFileToLastRow,
+  removeFirstMultipartFile,
+  sendRequestAndWaitForResponse,
+  switchResponseFormat,
+  switchToPreviewTab,
+  switchToEditorTab,
+  clickResponseAction,
+  addAssertion,
+  editAssertion,
+  deleteAssertion,
+  saveRequest,
+  addGrpcMessage,
+  generateGrpcSampleMessage,
+  selectGrpcMethod,
+  closeAllTabs,
+  createWorkspace,
+  switchWorkspace,
+  selectScriptSubTab,
+  editCodeMirrorEditor,
+  addPreRequestScript,
+  addPostResponseScript,
+  addTestScript,
+  addFolderScript,
+  addCollectionScript,
+  expandFolder,
+  sendAndWaitForErrorCard,
+  sendAndWaitForResponse,
+  selectAuthMode,
+  typeIntoField,
+  readField,
+  createExampleFromSidebar,
+  openExampleFromSidebar,
+  openWorkspaceFromDialog,
+  getGeneratedSnippet,
+  closeGenerateCodeDialog,
+  openRequestInFolder,
+  setUrlEncoding,
+  generateCollectionDocs
 };
 
-export type { AssertionInput, CreateRequestOptions, CreateTransientRequestOptions, CreateUntitledRequestOptions, EnvironmentType, EnvironmentVariable, ImportCollectionOptions, SandboxMode };
+export type { SandboxMode, EnvironmentType, EnvironmentVariable, ImportCollectionOptions, CreateRequestOptions, CreateUntitledRequestOptions, CreateTransientRequestOptions, AssertionInput };
