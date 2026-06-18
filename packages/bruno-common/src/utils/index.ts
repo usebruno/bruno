@@ -28,3 +28,12 @@ export {
   jsonToDotenv,
   DotenvVariable
 } from './jsonToDotenv';
+
+export {
+  sanitizeName,
+  validateName,
+  validateNameError,
+  nextSuffixedName,
+  resolveUniqueName,
+  ResolveUniqueNameOptions
+} from './naming';
