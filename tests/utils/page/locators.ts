@@ -238,6 +238,11 @@ export const buildWebsocketCommonLocators = (page: Page) => ({
         .filter({ hasText: /^Close Connection$/ })
   },
   messages: () => page.locator('.ws-message'),
+  message: {
+    label: (index: number) => page.getByTestId(`ws-message-label-${index}`),
+    nameInput: (index: number) => page.getByTestId(`ws-message-name-input-${index}`),
+    nameTooltip: () => page.getByTestId('ws-message-name-tooltip')
+  },
   toolbar: {
     latestFirst: () => page.getByRole('button', { name: 'Latest First' }),
     latestLast: () => page.getByRole('button', { name: 'Latest Last' }),
