@@ -33,6 +33,8 @@ const { transformProxyConfig } = require('@usebruno/requests');
 const {
   DEFAULT_GITIGNORE,
   writeFile,
+  writeFileUnique,
+  mkdirUnique,
   hasBruExtension,
   isDirectory,
   createDirectory,
@@ -246,17 +248,14 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
     'renderer:clone-collection',
     async (event, collectionName, collectionFolderName, collectionLocation, previousPath) => {
       collectionFolderName = sanitizeName(collectionFolderName);
-      const dirPath = path.join(collectionLocation, collectionFolderName);
-      if (fs.existsSync(dirPath)) {
-        throw new Error(`collection: ${dirPath} already exists`);
+
+      if (!validateName(collectionFolderName)) {
+        throw new Error(`collection: invalid pathname - ${path.join(collectionLocation, collectionFolderName)}`);
       }
 
-      if (!validateName(path.basename(dirPath))) {
-        throw new Error(`collection: invalid pathname - ${dirPath}`);
-      }
-
-      // create dir
-      await createDirectory(dirPath);
+      // create dir — resolve name collisions silently with a numeric suffix
+      // instead of erroring when the target already exists
+      const { pathname: dirPath } = await mkdirUnique(collectionLocation, collectionFolderName);
       const uid = generateUidBasedOnHash(dirPath);
       const format = getCollectionFormat(previousPath);
       let brunoConfig;
@@ -312,6 +311,8 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
 
       mainWindow.webContents.send('main:collection-opened', dirPath, uid, brunoConfig);
       ipcMain.emit('main:collection-opened', mainWindow, dirPath, uid);
+
+      return { pathname: dirPath, name: path.basename(dirPath) };
     }
   );
 
@@ -514,10 +515,6 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
   // new request
   ipcMain.handle('renderer:new-request', async (event, pathname, request) => {
     try {
-      if (fs.existsSync(pathname)) {
-        throw new Error(`path: ${pathname} already exists`);
-      }
-
       const collectionPath = findCollectionPathByItemPath(pathname);
       if (!collectionPath) {
         throw new Error('Collection not found for the given pathname');
@@ -532,7 +529,15 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
       validatePathIsInsideCollection(pathname);
 
       const content = await stringifyRequestViaWorker(request, { format });
-      await writeFile(pathname, content);
+      // Resolve filename collisions silently and atomically (race-safe).
+      // Returns the path actually created so the renderer can target the right tab.
+      const { pathname: createdPathname, filename } = await writeFileUnique(
+        path.dirname(pathname),
+        baseFilename,
+        format,
+        content
+      );
+      return { pathname: createdPathname, filename };
     } catch (error) {
       return Promise.reject(error);
     }
@@ -1458,15 +1463,13 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
 
   ipcMain.handle('renderer:clone-folder', async (event, itemFolder, collectionPath, collectionPathname) => {
     try {
-      if (fs.existsSync(collectionPath)) {
-        throw new Error(`folder: ${collectionPath} already exists`);
-      }
-
       const format = getCollectionFormat(collectionPathname);
 
-      // Recursive function to parse the folder and create files/folders
-      const parseCollectionItems = (items = [], currentPath) => {
-        items.forEach(async (item) => {
+      // Recursive function to parse the folder and create files/folders.
+      // Uses for...of so nested async writes are actually awaited (a plain
+      // forEach(async) would resolve the handler before children were written).
+      const parseCollectionItems = async (items = [], currentPath) => {
+        for (const item of items) {
           if (['http-request', 'graphql-request', 'grpc-request'].includes(item.type)) {
             const content = await stringifyRequestViaWorker(item, { format });
 
@@ -1492,25 +1495,29 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
             }
 
             if (item.items && item.items.length) {
-              parseCollectionItems(item.items, folderPath);
+              await parseCollectionItems(item.items, folderPath);
             }
           }
-        });
+        }
       };
 
-      await createDirectory(collectionPath);
+      // Resolve the top-level folder name atomically; collisions get a numeric
+      // suffix instead of throwing. Children go into the freshly-created dir.
+      const { pathname: resolvedPath } = await mkdirUnique(path.dirname(collectionPath), path.basename(collectionPath));
 
       // If initial folder has a root element, then I should write its folder file
       if (itemFolder.root) {
         const folderContent = await stringifyFolder(itemFolder.root, { format });
         if (folderContent) {
-          const folderFilePath = path.join(collectionPath, `folder.${format}`);
+          const folderFilePath = path.join(resolvedPath, `folder.${format}`);
           safeWriteFileSync(folderFilePath, folderContent);
         }
       }
 
       // create folder and files based on another folder
-      await parseCollectionItems(itemFolder.items, collectionPath);
+      await parseCollectionItems(itemFolder.items, resolvedPath);
+
+      return { pathname: resolvedPath, filename: path.basename(resolvedPath) };
     } catch (error) {
       return Promise.reject(error);
     }
