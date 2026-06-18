@@ -64,4 +64,50 @@ describe('prepare-request: prepareRequest', () => {
       expect(result.data.variables).toBe('{"apiPermissions": {{permissionsJSON}}}');
     });
   });
+
+  describe('Multipart form body', () => {
+    it.each(['multipartForm', 'multipart-form'])(
+      'sets multipart/form-data content-type and data for mode "%s"',
+      async (mode) => {
+        const request = {
+          method: 'POST',
+          url: 'test-domain',
+          body: {
+            mode,
+            multipartForm: [
+              { name: 'file', value: ['/path/to/test-image.png'], type: 'file', enabled: true },
+              { name: 'field', value: 'hello', type: 'text', enabled: true },
+              { name: 'ignored', value: 'nope', type: 'text', enabled: false }
+            ]
+          },
+          auth: { mode: 'none' }
+        };
+
+        const result = await prepareRequest({ request, collection: { pathname: '' } });
+
+        expect(result.headers['content-type']).toEqual('multipart/form-data');
+        expect(result.data).toEqual([
+          { name: 'file', value: ['/path/to/test-image.png'], type: 'file', enabled: true },
+          { name: 'field', value: 'hello', type: 'text', enabled: true }
+        ]);
+      }
+    );
+
+    it('does not override an explicitly set content-type', async () => {
+      const request = {
+        method: 'POST',
+        url: 'test-domain',
+        headers: [{ name: 'content-type', value: 'multipart/form-data; boundary=custom', enabled: true }],
+        body: {
+          mode: 'multipart-form',
+          multipartForm: [{ name: 'field', value: 'hello', type: 'text', enabled: true }]
+        },
+        auth: { mode: 'none' }
+      };
+
+      const result = await prepareRequest({ request, collection: { pathname: '' } });
+
+      expect(result.headers['content-type']).toEqual('multipart/form-data; boundary=custom');
+    });
+  });
 });

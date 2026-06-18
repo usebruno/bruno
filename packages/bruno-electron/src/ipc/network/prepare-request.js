@@ -478,7 +478,7 @@ const prepareRequest = async (item, collection = {}, abortController) => {
     axiosRequest.data = enabledParams;
   }
 
-  if (request.body.mode === 'multipartForm') {
+  if (request.body.mode === 'multipartForm' || request.body.mode === 'multipart-form') {
     if (!contentTypeDefined) {
       axiosRequest.headers['content-type'] = 'multipart/form-data';
     }
