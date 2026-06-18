@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
 import classnames from 'classnames';
 import { useDragResize } from 'hooks/useDragResize';
+import { usePersistedState } from 'hooks/usePersistedState';
 import Modal from 'components/Modal/index';
 import Portal from 'components/Portal';
 import StyledWrapper from './StyledWrapper';
@@ -27,7 +28,10 @@ const NotificationsModal = ({ notifications, onClose }) => {
   } = notifications;
 
   const containerRef = useRef(null);
-  const [sidebarWidth, setSidebarWidth] = useState(DEFAULT_SIDEBAR_WIDTH);
+  const [sidebarWidth, setSidebarWidth] = usePersistedState({
+      key: 'notification-sidebar',
+      default: DEFAULT_SIDEBAR_WIDTH
+  });
   const { dragging, dragWidth, dragbarProps } = useDragResize({
     containerRef,
     width: sidebarWidth,
