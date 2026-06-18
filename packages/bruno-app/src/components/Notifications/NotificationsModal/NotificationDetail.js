@@ -1,14 +1,18 @@
 import DOMPurify from 'dompurify';
-import { rgba } from 'polished';
+import { parseToRgb, rgba } from 'polished';
 import { useTheme } from 'providers/Theme';
 import { humanizeDate } from 'utils/common';
 
-const isHexColor = (value) => /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(value);
-
-// color is a hex string: solid text on a 15% tinted bg.
-// Falls back to the theme's purple when the supplied color isn't a valid hex.
-const getBadgeStyle = (color, theme) => {
-  const badgeColor = isHexColor(color) ? color : theme.colors.text.purple;
+// color may be any CSS color (hex, rgb, hsl): solid text on a 15% tinted bg.
+// Falls back to the theme's purple when the supplied color can't be parsed.
+export const getBadgeStyle = (color, theme) => {
+  let badgeColor = theme.colors.text.purple;
+  try {
+    parseToRgb(color);
+    badgeColor = color;
+  } catch {
+    // invalid color; keep the fallback
+  }
   return {
     backgroundColor: rgba(badgeColor, 0.15),
     color: badgeColor

@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useRef } from 'react';
 import classnames from 'classnames';
 import { useDragResize } from 'hooks/useDragResize';
 import { usePersistedState } from 'hooks/usePersistedState';
@@ -29,8 +29,8 @@ const NotificationsModal = ({ notifications, onClose }) => {
 
   const containerRef = useRef(null);
   const [sidebarWidth, setSidebarWidth] = usePersistedState({
-      key: 'notification-sidebar',
-      default: DEFAULT_SIDEBAR_WIDTH
+    key: 'notification-sidebar',
+    default: DEFAULT_SIDEBAR_WIDTH
   });
   const { dragging, dragWidth, dragbarProps } = useDragResize({
     containerRef,
