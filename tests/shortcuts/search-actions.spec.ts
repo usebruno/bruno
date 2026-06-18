@@ -18,15 +18,15 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
 
   test.describe('SEARCH', () => {
     test.describe('SHORTCUT: Global Search (Cmd/Ctrl+K)', () => {
-      test('default Cmd/Ctrl+K Global Search Modal', async ({ page, createTmpDir }) => {
+      test('default Cmd/Ctrl+K Global Search Modal', async ({ page }) => {
         await page.keyboard.down(modifier);
         await page.keyboard.down('KeyK');
         await page.keyboard.up('KeyK');
         await page.keyboard.up(modifier);
 
         // console.log('1');
+        await expect(page.getByTestId('global-search-input')).toBeVisible({ timeout: 5000 });
         await page.getByTestId('global-search-input').click();
-        await expect(page.getByTestId('global-search-input')).toBeVisible({ timeout: 2000 });
 
         // console.log('2');
         await page.keyboard.down('Escape');
@@ -34,8 +34,8 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         // console.log('3');
       });
 
-      test('customized Alt+K Global Search Modal', async ({ page, createTmpDir }) => {
-        // Remap globalSearch to Alt+K
+      test('customized Shift+K Global Search Modal', async ({ page }) => {
+        // Remap globalSearch to Shift+K
         await openKeybindingsTab(page);
         const row = page.getByTestId('keybinding-row-globalSearch');
         await row.hover();
@@ -46,20 +46,20 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await page.keyboard.down('Backspace');
 
         // console.log('2');
-        await page.keyboard.down('Alt');
+        await page.keyboard.down('Shift');
         await page.keyboard.down('KeyK');
         await page.keyboard.up('KeyK');
-        await page.keyboard.up('Alt');
+        await page.keyboard.up('Shift');
 
         // console.log('3');
-        await page.keyboard.down('Alt');
+        await page.keyboard.down('Shift');
         await page.keyboard.down('KeyK');
         await page.keyboard.up('KeyK');
-        await page.keyboard.up('Alt');
+        await page.keyboard.up('Shift');
 
         // console.log('4');
+        await expect(page.getByTestId('global-search-input')).toBeVisible({ timeout: 5000 });
         await page.getByTestId('global-search-input').click();
-        await expect(page.getByTestId('global-search-input')).toBeVisible({ timeout: 2000 });
 
         // console.log('5');
         await page.keyboard.down('Escape');

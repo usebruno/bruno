@@ -112,7 +112,8 @@ export const reopenClosedTab = async (page: Page, shortcut: () => Promise<void>,
     // console.log('helpers-reopenClosedTab-2');
     await page.locator('.request-tab').first().click();
     // console.log('helpers-reopenClosedTab-3');
-    await page.waitForTimeout(500);
+    // Wait for a tab to become active (focus settled) before firing the shortcut.
+    await expect(page.locator('.request-tab.active')).toBeVisible({ timeout: 2000 });
     // console.log('helpers-reopenClosedTab-4');
     await shortcut();
     // console.log('helpers-reopenClosedTab-5');
@@ -125,7 +126,8 @@ export const reopenClosedTab = async (page: Page, shortcut: () => Promise<void>,
       return;
     }
     // console.log('helpers-reopenClosedTab-9');
-    await page.waitForTimeout(200);
+    // Event-driven backoff: give the reopened tab a chance to appear before retrying.
+    await reopenedTab.waitFor({ state: 'visible', timeout: 1000 }).catch(() => {});
   }
 
   // console.log('helpers-reopenClosedTab-10');
