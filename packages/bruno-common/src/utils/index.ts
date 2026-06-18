@@ -43,7 +43,5 @@ export {
   sanitizeName,
   validateName,
   validateNameError,
-  nextSuffixedName,
-  resolveUniqueName,
-  ResolveUniqueNameOptions
+  nextSuffixedName
 } from './naming';

@@ -3,8 +3,7 @@ import {
   sanitizeName,
   validateName,
   validateNameError,
-  nextSuffixedName,
-  resolveUniqueName
+  nextSuffixedName
 } from './naming';
 
 describe('naming utils', () => {
@@ -81,39 +80,6 @@ describe('naming utils', () => {
     it('handles folders (no extension)', () => {
       expect(nextSuffixedName('My Folder', '', 0)).toBe('My Folder');
       expect(nextSuffixedName('My Folder', '', 1)).toBe('My Folder1');
-    });
-  });
-
-  describe('resolveUniqueName', () => {
-    it('returns the base name when there is no collision', () => {
-      expect(resolveUniqueName('login', 'bru', [])).toBe('login.bru');
-      expect(resolveUniqueName('login', 'bru', ['other.bru'])).toBe('login.bru');
-    });
-
-    it('suffixes on a single collision', () => {
-      expect(resolveUniqueName('login', 'bru', ['login.bru'])).toBe('login1.bru');
-    });
-
-    it('fills the next free counter (gap-filling)', () => {
-      expect(resolveUniqueName('login', 'bru', ['login.bru', 'login1.bru'])).toBe('login2.bru');
-      // gap at login1 -> takes it
-      expect(resolveUniqueName('login', 'bru', ['login.bru', 'login2.bru'])).toBe('login1.bru');
-    });
-
-    it('resolves folder names with no extension', () => {
-      expect(resolveUniqueName('My Folder', '', ['My Folder'])).toBe('My Folder1');
-    });
-
-    it('is case-insensitive by default (macOS/Windows-safe)', () => {
-      expect(resolveUniqueName('Login', 'bru', ['login.bru'])).toBe('Login1.bru');
-    });
-
-    it('can be made case-sensitive', () => {
-      expect(resolveUniqueName('Login', 'bru', ['login.bru'], { caseInsensitive: false })).toBe('Login.bru');
-    });
-
-    it('preserves spaces in the resolved copy name', () => {
-      expect(resolveUniqueName('source copy', 'bru', ['source copy.bru'])).toBe('source copy1.bru');
     });
   });
 });

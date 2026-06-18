@@ -80,46 +80,12 @@ export const validateNameError = (name: string): string => {
  *   nextSuffixedName('login', 'bru', 2) -> 'login2.bru'
  *   nextSuffixedName('My Folder', '', 1) -> 'My Folder1'
  *
- * This is the single definition of the suffix scheme; the Electron
- * `writeFileUnique` (filesystem authority) uses the same shape so the in-memory
- * resolver and the filesystem resolver can never diverge.
+ * This is the single definition of the collision suffix scheme. The Electron
+ * `writeFileUnique` / `mkdirUnique` (filesystem authority) use it to generate
+ * candidate names while resolving collisions atomically against the real
+ * filesystem.
  */
 export const nextSuffixedName = (base: string, ext: string, n: number): string => {
   const suffix = n === 0 ? '' : String(n);
   return ext ? `${base}${suffix}.${ext}` : `${base}${suffix}`;
-};
-
-export interface ResolveUniqueNameOptions {
-  /** Treat names that differ only by case as colliding (default: true). */
-  caseInsensitive?: boolean;
-}
-
-/**
- * Return the first collision-free filename for `baseName`/`ext`, given the set
- * of names that already exist in the destination, using the `name`, `name1`,
- * `name2`, … scheme.
- *
- * `existingNames` and the returned value are full filenames (including `ext`).
- * For folders pass `ext = ''`.
- *
- * NOTE: this is the pure, in-memory resolver. It is correct against a snapshot
- * but is not race-safe on its own — the Electron path uses an atomic
- * exclusive-create (`writeFileUnique`) as the authority. Keep both in sync via
- * `nextSuffixedName`.
- */
-export const resolveUniqueName = (
-  baseName: string,
-  ext: string,
-  existingNames: string[] = [],
-  { caseInsensitive = true }: ResolveUniqueNameOptions = {}
-): string => {
-  const normalize = (s: string): string => (caseInsensitive ? s.toLowerCase() : s);
-  const taken = new Set(existingNames.map(normalize));
-
-  for (let n = 0; ; n++) {
-    const candidate = nextSuffixedName(baseName, ext, n);
-    if (!taken.has(normalize(candidate))) {
-      return candidate;
-    }
-  }
 };
