@@ -125,6 +125,43 @@ class EnvironmentSecretsStore {
     _.remove(collection.environments, (e) => e.name === environmentName);
     this.store.set('collections', collections);
   }
+
+  storeCertPassphrases(collectionPathname, certs) {
+    const normalizedPathname = posixifyPath(collectionPathname);
+    const certPassphrases = (certs || [])
+      .filter((cert) => cert.passphrase)
+      .map((cert) => ({
+        domain: cert.domain,
+        type: cert.type,
+        passphrase: encryptStringSafe(cert.passphrase).value
+      }));
+
+    const collections = this.store.get('collections') || [];
+    const collection = _.find(collections, (c) => posixifyPath(c.path) === normalizedPathname);
+
+    if (!collection) {
+      if (certPassphrases.length > 0) {
+        collections.push({
+          path: normalizedPathname,
+          environments: [],
+          certPassphrases
+        });
+        this.store.set('collections', collections);
+      }
+      return;
+    }
+
+    collection.certPassphrases = certPassphrases;
+    this.store.set('collections', collections);
+  }
+
+  getCertPassphrases(collectionPathname) {
+    const normalizedPathname = posixifyPath(collectionPathname);
+    const collections = this.store.get('collections') || [];
+    const collection = _.find(collections, (c) => posixifyPath(c.path) === normalizedPathname);
+    if (!collection) return [];
+    return collection.certPassphrases || [];
+  }
 }
 
 module.exports = EnvironmentSecretsStore;
