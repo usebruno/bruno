@@ -91,6 +91,29 @@ const hydrateCollectionRootWithUuid = (collectionRoot) => {
   return collectionRoot;
 };
 
+/**
+ * Hydrate client certificate passphrases from the secrets store.
+ * Passphrases are not written to disk, so they are restored from the encrypted
+ * secrets store and decrypted onto the matching certs after reading bruno.json.
+ *
+ * @param {object} brunoConfig - The parsed bruno config (mutated in place).
+ * @param {string} collectionPath - The collection path used to look up secrets.
+ * @returns {object} The bruno config with cert passphrases hydrated.
+ */
+const hydrateCertPassphrases = (brunoConfig, collectionPath) => {
+  const certPassphrases = environmentSecretsStore.getCertPassphrases(collectionPath);
+  if (certPassphrases.length && brunoConfig?.clientCertificates?.certs) {
+    brunoConfig.clientCertificates.certs = brunoConfig.clientCertificates.certs.map((cert) => {
+      const stored = certPassphrases.find((cp) => cp.domain === cert.domain && cp.type === cert.type);
+      if (stored && stored.passphrase) {
+        return { ...cert, passphrase: decryptStringSafe(stored.passphrase).value };
+      }
+      return cert;
+    });
+  }
+  return brunoConfig;
+};
+
 const addEnvironmentFile = async (win, pathname, collectionUid, collectionPath) => {
   try {
     const basename = path.basename(pathname);
@@ -207,16 +230,7 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
       brunoConfig = await transformBrunoConfigAfterRead(brunoConfig, collectionPath);
 
       // Hydrate cert passphrases from the secrets store (they are not written to disk)
-      const certPassphrases = environmentSecretsStore.getCertPassphrases(collectionPath);
-      if (certPassphrases.length && brunoConfig?.clientCertificates?.certs) {
-        brunoConfig.clientCertificates.certs = brunoConfig.clientCertificates.certs.map((cert) => {
-          const stored = certPassphrases.find((cp) => cp.domain === cert.domain && cp.type === cert.type);
-          if (stored && stored.passphrase) {
-            return { ...cert, passphrase: decryptStringSafe(stored.passphrase).value };
-          }
-          return cert;
-        });
-      }
+      brunoConfig = hydrateCertPassphrases(brunoConfig, collectionPath);
 
       setBrunoConfig(collectionUid, brunoConfig);
 
@@ -270,16 +284,7 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
         brunoConfig = await transformBrunoConfigAfterRead(brunoConfig, collectionPath);
 
         // Hydrate cert passphrases from the secrets store (they are not written to disk)
-        const certPassphrases = environmentSecretsStore.getCertPassphrases(collectionPath);
-        if (certPassphrases.length && brunoConfig?.clientCertificates?.certs) {
-          brunoConfig.clientCertificates.certs = brunoConfig.clientCertificates.certs.map((cert) => {
-            const stored = certPassphrases.find((cp) => cp.domain === cert.domain && cp.type === cert.type);
-            if (stored && stored.passphrase) {
-              return { ...cert, passphrase: decryptStringSafe(stored.passphrase).value };
-            }
-            return cert;
-          });
-        }
+        brunoConfig = hydrateCertPassphrases(brunoConfig, collectionPath);
 
         setBrunoConfig(collectionUid, brunoConfig);
 
@@ -457,16 +462,7 @@ const change = async (win, pathname, collectionUid, collectionPath) => {
       brunoConfig = await transformBrunoConfigAfterRead(brunoConfig, collectionPath);
 
       // Hydrate cert passphrases from the secrets store (they are not written to disk)
-      const certPassphrases = environmentSecretsStore.getCertPassphrases(collectionPath);
-      if (certPassphrases.length && brunoConfig?.clientCertificates?.certs) {
-        brunoConfig.clientCertificates.certs = brunoConfig.clientCertificates.certs.map((cert) => {
-          const stored = certPassphrases.find((cp) => cp.domain === cert.domain && cp.type === cert.type);
-          if (stored && stored.passphrase) {
-            return { ...cert, passphrase: decryptStringSafe(stored.passphrase).value };
-          }
-          return cert;
-        });
-      }
+      brunoConfig = hydrateCertPassphrases(brunoConfig, collectionPath);
 
       setBrunoConfig(collectionUid, brunoConfig);
 
@@ -522,16 +518,7 @@ const change = async (win, pathname, collectionUid, collectionPath) => {
         brunoConfig = await transformBrunoConfigAfterRead(brunoConfig, collectionPath);
 
         // Hydrate cert passphrases from the secrets store (they are not written to disk)
-        const certPassphrases = environmentSecretsStore.getCertPassphrases(collectionPath);
-        if (certPassphrases.length && brunoConfig?.clientCertificates?.certs) {
-          brunoConfig.clientCertificates.certs = brunoConfig.clientCertificates.certs.map((cert) => {
-            const stored = certPassphrases.find((cp) => cp.domain === cert.domain && cp.type === cert.type);
-            if (stored && stored.passphrase) {
-              return { ...cert, passphrase: decryptStringSafe(stored.passphrase).value };
-            }
-            return cert;
-          });
-        }
+        brunoConfig = hydrateCertPassphrases(brunoConfig, collectionPath);
 
         setBrunoConfig(collectionUid, brunoConfig);
 
