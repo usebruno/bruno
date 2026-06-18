@@ -873,6 +873,45 @@ const registerNetworkIpc = (mainWindow) => {
 
     const abortController = new AbortController();
     const request = await prepareRequest(item, collection, abortController);
+
+    // Every good boy deserves a response.
+    if (request.method && request.method.toUpperCase() === 'WOOF') {
+      const woofStart = Date.now();
+      const body = [
+        'Woof! Woof!',
+        '',
+        '       __',
+        '   (___()\'`;',
+        '   /,    /`',
+        '   \\\\"--\\\\',
+        '',
+        'Bruno fetched your request. Good human.'
+      ].join('\n');
+      const buffer = Buffer.from(body, 'utf-8');
+      return {
+        status: 200,
+        statusText: 'Woof!',
+        headers: {
+          'content-type': 'text/plain; charset=utf-8',
+          'x-good-boy': 'true',
+          'x-fetched-by': 'bruno'
+        },
+        data: body,
+        dataBuffer: buffer.toString('base64'),
+        size: buffer.byteLength,
+        duration: Date.now() - woofStart,
+        url: request.url,
+        timeline: [],
+        requestSent: {
+          url: request.url,
+          method: 'WOOF',
+          headers: request.headers,
+          data: null,
+          timestamp: woofStart
+        }
+      };
+    }
+
     request.__bruno__executionMode = 'standalone';
     request.responseType = 'stream';
     // flag to see if the stream needs to be handled as an actual stream or
