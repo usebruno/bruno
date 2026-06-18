@@ -40,7 +40,7 @@ const AmqpRequestPane = ({ item, collection, handleRun }) => {
   const docs = getPropertyFromDraftOrRequest(item, 'request.docs');
   const auth = getPropertyFromDraftOrRequest(item, 'request.auth');
 
-  const activeHeadersLength = headers.filter((header) => header.enabled).length;
+  const activeHeadersLength = (headers || []).filter((header) => header.enabled).length;
 
   const allTabs = useMemo(() => {
     return [

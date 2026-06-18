@@ -37,7 +37,7 @@ const AmqpQueryUrl = ({ item, collection, handleRun }) => {
         collection,
         environment: findEnvironmentInCollection(collection, collection.activeEnvironmentUid),
         runtimeVariables: collection.runtimeVariables || {},
-        settings: item.settings?.settings || {}
+        settings: item.draft?.settings?.settings ?? item.settings?.settings ?? {}
       });
       if (result.success) {
         setConnectionStatus(CONNECTION_STATUS.CONNECTED);
@@ -78,7 +78,7 @@ const AmqpQueryUrl = ({ item, collection, handleRun }) => {
         collection,
         environment: findEnvironmentInCollection(collection, collection.activeEnvironmentUid),
         runtimeVariables: collection.runtimeVariables || {},
-        settings: item.settings?.settings || {},
+        settings: item.draft?.settings?.settings ?? item.settings?.settings ?? {},
         options: {}
       });
 

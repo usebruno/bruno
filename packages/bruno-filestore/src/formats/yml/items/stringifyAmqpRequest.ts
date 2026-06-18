@@ -3,6 +3,8 @@ import { stringifyYml } from '../utils';
 import { isNonEmptyString } from '../../../utils';
 import { toOpenCollectionAuth } from '../common/auth';
 import { toOpenCollectionHttpHeaders } from '../common/headers';
+import { toOpenCollectionVariables } from '../common/variables';
+import { toOpenCollectionScripts } from '../common/scripts';
 
 const stringifyAmqpRequest = (item: BrunoItem): string => {
   try {
@@ -111,19 +113,36 @@ const stringifyAmqpRequest = (item: BrunoItem): string => {
 
     ocRequest.amqp = amqp;
 
+    // runtime block (scripts, variables)
+    const runtime: any = {};
+    let hasRuntime = false;
+
+    const variables = toOpenCollectionVariables(brunoRequest?.vars);
+    if (variables) {
+      runtime.variables = variables;
+      hasRuntime = true;
+    }
+
+    const scripts = toOpenCollectionScripts(brunoRequest);
+    if (scripts) {
+      runtime.scripts = scripts;
+      hasRuntime = true;
+    }
+
+    if (hasRuntime) {
+      ocRequest.runtime = runtime;
+    }
+
     // settings
     const amqpSettings = (item.settings as any)?.settings;
     if (amqpSettings) {
       ocRequest.settings = {};
-      if (amqpSettings.timeout != null) {
-        ocRequest.settings.timeout = Number(amqpSettings.timeout) || 0;
-      }
-      if (amqpSettings.heartbeat != null) {
-        ocRequest.settings.heartbeat = Number(amqpSettings.heartbeat) || 0;
-      }
-      if (amqpSettings.prefetch != null) {
-        ocRequest.settings.prefetch = Number(amqpSettings.prefetch) || 0;
-      }
+      const timeout = Number(amqpSettings.timeout);
+      ocRequest.settings.timeout = Number.isFinite(timeout) ? timeout : 5000;
+      const heartbeat = Number(amqpSettings.heartbeat);
+      ocRequest.settings.heartbeat = Number.isFinite(heartbeat) ? heartbeat : 0;
+      const prefetch = Number(amqpSettings.prefetch);
+      ocRequest.settings.prefetch = Number.isFinite(prefetch) ? prefetch : 0;
       if (isNonEmptyString(amqpSettings.vhost)) {
         ocRequest.settings.vhost = amqpSettings.vhost;
       }

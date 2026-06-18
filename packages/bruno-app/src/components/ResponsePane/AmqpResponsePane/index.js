@@ -149,6 +149,12 @@ const AmqpResponsePane = ({ item, collection }) => {
     }
   }, [messages]);
 
+  // Reset selection state when switching between items
+  useEffect(() => {
+    setSelectedId(null);
+    autoSelectRef.current = -1;
+  }, [item.uid]);
+
   // Reflect any existing connection (e.g. established from the request pane)
   // into Redux so the connection flags persist with the rest of the response.
   useEffect(() => {

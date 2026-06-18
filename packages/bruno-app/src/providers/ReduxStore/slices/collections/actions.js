@@ -1880,9 +1880,9 @@ export const newAmqpRequest = (params) => (dispatch, getState) => {
       filename,
       type: 'amqp-request',
       isTransient: isTransient,
-      headers: [],
       request: {
         url: requestUrl,
+        headers: [],
         publish: {
           exchange: '',
           exchangeType: 'direct',
@@ -1892,7 +1892,8 @@ export const newAmqpRequest = (params) => (dispatch, getState) => {
           exchange: '',
           exchangeType: 'direct',
           routingKey: '',
-          queue: ''
+          queue: '',
+          subscriptions: []
         },
         body: {
           mode: 'json',

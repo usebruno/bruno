@@ -13,7 +13,7 @@ import Button from 'ui/Button/index';
 import { isRequestTagsIncluded } from '@usebruno/common';
 
 const isRequestDisabled = (item, tags) => {
-  // WS and gRPC are not supported by the collection runner
+  // WS, gRPC and AMQP are not supported by the collection runner
   if (item.type === 'ws-request' || item.type === 'grpc-request' || item.type === 'amqp-request') return true;
 
   // Check tag filtering

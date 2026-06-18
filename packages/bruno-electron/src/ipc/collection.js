@@ -1499,7 +1499,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
       // Recursive function to parse the folder and create files/folders
       const parseCollectionItems = (items = [], currentPath) => {
         items.forEach(async (item) => {
-          if (['http-request', 'graphql-request', 'grpc-request', 'amqp-request'].includes(item.type)) {
+          if (['http-request', 'graphql-request', 'grpc-request', 'ws-request', 'amqp-request'].includes(item.type)) {
             const content = await stringifyRequestViaWorker(item, { format });
 
             // Use the correct file extension based on target format

@@ -132,6 +132,11 @@ export const parseBruRequest = (data: string | any, parsed: boolean = false): an
       transformedJson.request.body = rawBody.mode === 'amqp'
         ? { mode: 'json', json: _.get(rawBody, 'amqp[0].content', '{}') }
         : rawBody;
+      // Normalize settings to { settings: { ... } } structure
+      const rawSettings = transformedJson.settings || {};
+      if (!rawSettings.settings) {
+        transformedJson.settings = { settings: rawSettings };
+      }
     } else {
       // For HTTP and GraphQL
       (transformedJson.request as any).params = _.get(json, 'params', []);

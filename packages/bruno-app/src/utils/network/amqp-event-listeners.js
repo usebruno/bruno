@@ -36,6 +36,7 @@ const useAmqpEventListeners = () => {
     const removeDisconnected = ipcRenderer.on('main:amqp:disconnected', forward('disconnected'));
     const removeError = ipcRenderer.on('main:amqp:error', forward('error'));
     const removeDebug = ipcRenderer.on('main:amqp:debug', forward('debug'));
+    const removeConsumerCancelled = ipcRenderer.on('main:amqp:consumer-cancelled', forward('consumer-cancelled'));
 
     const removeConnectionsChanged = ipcRenderer.on('main:amqp:connections-changed', (data) => {
       dispatch(updateActiveConnectionsInStore(data));
@@ -50,6 +51,7 @@ const useAmqpEventListeners = () => {
       removeDisconnected();
       removeError();
       removeDebug();
+      removeConsumerCancelled();
       removeConnectionsChanged();
     };
   }, [isElectron]);

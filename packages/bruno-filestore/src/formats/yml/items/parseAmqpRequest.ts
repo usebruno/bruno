@@ -1,11 +1,14 @@
 import type { Item as BrunoItem } from '@usebruno/schema-types/collection/item';
 import { toBrunoAuth } from '../common/auth';
 import { toBrunoHttpHeaders } from '../common/headers';
+import { toBrunoScripts } from '../common/scripts';
+import { toBrunoVariables } from '../common/variables';
 import { uuid, ensureString } from '../../../utils';
 
 const parseAmqpRequest = (ocRequest: any): BrunoItem => {
   const info = ocRequest.info;
   const amqp = ocRequest.amqp;
+  const runtime = ocRequest.runtime;
 
   const brunoRequest: any = {
     url: ensureString(amqp?.url),
@@ -32,6 +35,16 @@ const parseAmqpRequest = (ocRequest: any): BrunoItem => {
     headers: toBrunoHttpHeaders(amqp?.headers) || [],
     auth: toBrunoAuth(amqp?.auth),
     body: { mode: 'json', json: '{}' },
+    script: {
+      req: null,
+      res: null
+    },
+    vars: {
+      req: [],
+      res: []
+    },
+    assertions: [],
+    tests: null,
     docs: null
   };
 
@@ -42,6 +55,24 @@ const parseAmqpRequest = (ocRequest: any): BrunoItem => {
     brunoRequest.body = { mode: messageType, [messageType]: messageData };
   }
 
+  // scripts
+  const scripts = toBrunoScripts(runtime?.scripts);
+  if (scripts?.script && brunoRequest.script) {
+    if (scripts.script.req) {
+      brunoRequest.script.req = scripts.script.req;
+    }
+    if (scripts.script.res) {
+      brunoRequest.script.res = scripts.script.res;
+    }
+  }
+  if (scripts?.tests) {
+    brunoRequest.tests = scripts.tests;
+  }
+
+  // variables
+  const variables = toBrunoVariables(runtime?.variables);
+  brunoRequest.vars = variables;
+
   // docs
   if (ocRequest.docs) {
     brunoRequest.docs = ocRequest.docs;
@@ -49,7 +80,7 @@ const parseAmqpRequest = (ocRequest: any): BrunoItem => {
 
   // settings
   const amqpSettings: Record<string, number | string> = {
-    timeout: 0,
+    timeout: 5000,
     heartbeat: 0,
     prefetch: 0,
     vhost: '/'

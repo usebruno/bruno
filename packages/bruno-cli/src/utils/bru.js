@@ -120,15 +120,21 @@ const bruToJson = (bru) => {
       };
     } else if (requestType === 'amqp-request') {
       transformedJson.request.auth.mode = _.get(json, 'amqp.auth', 'none');
-      transformedJson.request.exchange = _.get(json, 'amqp.exchange', '');
-      transformedJson.request.exchangeType = _.get(json, 'amqp.exchangeType', 'direct');
-      transformedJson.request.routingKey = _.get(json, 'amqp.routingKey', '');
-      transformedJson.request.queue = _.get(json, 'amqp.queue', '');
-      const amqpBodyFromBru = _.get(json, 'body') || {};
-      transformedJson.request.body = {
-        mode: 'amqp',
-        amqp: [amqpBodyFromBru]
+      transformedJson.request.publish = {
+        exchange: _.get(json, 'amqp.publishExchange', ''),
+        exchangeType: _.get(json, 'amqp.publishExchangeType', 'direct'),
+        routingKey: _.get(json, 'amqp.publishRoutingKey', '')
       };
+      transformedJson.request.consume = {
+        exchange: _.get(json, 'amqp.consumeExchange', ''),
+        exchangeType: _.get(json, 'amqp.consumeExchangeType', 'direct'),
+        routingKey: _.get(json, 'amqp.consumeRoutingKey', ''),
+        queue: _.get(json, 'amqp.consumeQueue', '')
+      };
+      const rawBody = _.get(json, 'body', { mode: 'json', json: '{}' });
+      transformedJson.request.body = rawBody.mode === 'amqp'
+        ? { mode: 'json', json: _.get(rawBody, 'amqp[0].content', '{}') }
+        : rawBody;
     } else {
       transformedJson.request.method = _.upperCase(_.get(json, 'http.method'));
       transformedJson.request.auth.mode = _.get(json, 'http.auth', 'none');

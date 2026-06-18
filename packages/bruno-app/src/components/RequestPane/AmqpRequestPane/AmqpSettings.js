@@ -1,25 +1,29 @@
 import React from 'react';
-import get from 'lodash/get';
 import { useDispatch } from 'react-redux';
+import { updateItemSettings } from 'providers/ReduxStore/slices/collections';
 
 const AmqpSettings = ({ item, collection }) => {
   const dispatch = useDispatch();
-  const settings = item.draft?.settings?.settings || item.settings?.settings || {};
-  const timeout = settings.timeout || 5000;
-  const heartbeat = settings.heartbeat || 0;
-  const prefetch = settings.prefetch || 0;
-  const vhost = settings.vhost || '/';
+  const settings = item.draft?.settings?.settings ?? item.settings?.settings ?? {};
+  const timeout = settings.timeout ?? 5000;
+  const heartbeat = settings.heartbeat ?? 0;
+  const prefetch = settings.prefetch ?? 0;
+  const vhost = settings.vhost ?? '/';
 
   const handleSettingChange = (field, value) => {
-    dispatch({
-      type: 'collections/updateAmqpSettings',
-      payload: {
+    const current = item.draft?.settings?.settings ?? item.settings?.settings ?? {};
+    dispatch(
+      updateItemSettings({
         itemUid: item.uid,
         collectionUid: collection.uid,
-        field,
-        value
-      }
-    });
+        settings: {
+          settings: {
+            ...current,
+            [field]: value
+          }
+        }
+      })
+    );
   };
 
   return (
@@ -29,9 +33,10 @@ const AmqpSettings = ({ item, collection }) => {
           <label className="block text-xs font-medium mb-1 opacity-70">Timeout (ms)</label>
           <input
             type="number"
+            data-testid="amqp-settings-timeout-input"
             className="w-full px-2 py-1 text-sm border rounded"
             value={timeout}
-            onChange={(e) => handleSettingChange('timeout', parseInt(e.target.value) || 5000)}
+            onChange={(e) => handleSettingChange('timeout', parseInt(e.target.value) || 0)}
             placeholder="5000"
           />
         </div>
@@ -39,6 +44,7 @@ const AmqpSettings = ({ item, collection }) => {
           <label className="block text-xs font-medium mb-1 opacity-70">Heartbeat (seconds)</label>
           <input
             type="number"
+            data-testid="amqp-settings-heartbeat-input"
             className="w-full px-2 py-1 text-sm border rounded"
             value={heartbeat}
             onChange={(e) => handleSettingChange('heartbeat', parseInt(e.target.value) || 0)}
@@ -49,6 +55,7 @@ const AmqpSettings = ({ item, collection }) => {
           <label className="block text-xs font-medium mb-1 opacity-70">Prefetch Count</label>
           <input
             type="number"
+            data-testid="amqp-settings-prefetch-input"
             className="w-full px-2 py-1 text-sm border rounded"
             value={prefetch}
             onChange={(e) => handleSettingChange('prefetch', parseInt(e.target.value) || 0)}
@@ -59,6 +66,7 @@ const AmqpSettings = ({ item, collection }) => {
           <label className="block text-xs font-medium mb-1 opacity-70">Virtual Host</label>
           <input
             type="text"
+            data-testid="amqp-settings-vhost-input"
             className="w-full px-2 py-1 text-sm border rounded"
             value={vhost}
             onChange={(e) => handleSettingChange('vhost', e.target.value || '/')}

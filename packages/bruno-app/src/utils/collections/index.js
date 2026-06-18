@@ -346,6 +346,24 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
           delete di.request.params;
         }
 
+        if (si.type === 'amqp-request') {
+          di.request.publish = si.request.publish || { exchange: '', exchangeType: 'direct', routingKey: '' };
+          di.request.consume = {
+            ...(si.request.consume || { exchange: '', exchangeType: 'direct', routingKey: '', queue: '' }),
+            subscriptions: Array.isArray(si.request.consume?.subscriptions)
+              ? si.request.consume.subscriptions.map((sub) => ({
+                  uid: sub.uid,
+                  queue: sub.queue || '',
+                  exchange: sub.exchange || '',
+                  exchangeType: sub.exchangeType || 'direct',
+                  routingKey: sub.routingKey || ''
+                }))
+              : []
+          };
+          delete di.request.method;
+          delete di.request.params;
+        }
+
         // Handle auth object dynamically
         di.request.auth = {
           mode: get(si.request, 'auth.mode', 'none')
@@ -767,7 +785,16 @@ export const transformRequestToSaveToFilesystem = (item) => {
       exchange: _item.request.consume?.exchange || '',
       exchangeType: _item.request.consume?.exchangeType || 'direct',
       routingKey: _item.request.consume?.routingKey || '',
-      queue: _item.request.consume?.queue || ''
+      queue: _item.request.consume?.queue || '',
+      subscriptions: Array.isArray(_item.request.consume?.subscriptions)
+        ? _item.request.consume.subscriptions.map((sub) => ({
+            uid: sub.uid,
+            queue: sub.queue || '',
+            exchange: sub.exchange || '',
+            exchangeType: sub.exchangeType || 'direct',
+            routingKey: sub.routingKey || ''
+          }))
+        : []
     };
     if (!itemToSave.request.auth || !itemToSave.request.auth.mode) {
       itemToSave.request.auth = { ...(itemToSave.request.auth || {}), mode: 'none' };

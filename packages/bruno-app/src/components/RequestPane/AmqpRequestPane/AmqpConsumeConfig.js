@@ -29,7 +29,7 @@ const AmqpConsumeConfig = ({ item, collection }) => {
       collection,
       environment: findEnvironmentInCollection(collection, collection.activeEnvironmentUid),
       runtimeVariables: collection.runtimeVariables || {},
-      settings: item.settings?.settings || {},
+      settings: item.draft?.settings?.settings ?? item.settings?.settings ?? {},
       options: {},
       ...extra
     }),
@@ -74,6 +74,9 @@ const AmqpConsumeConfig = ({ item, collection }) => {
       setConnecting(true);
       const { ipcRenderer } = window;
       const result = await ipcRenderer.invoke('renderer:amqp:subscribe', buildRequestPayload());
+      if (!result?.success) {
+        throw new Error(result?.error || 'Failed to connect');
+      }
       setConnected(true);
       if (result?.subscribed?.length) {
         const next = {};
@@ -98,10 +101,13 @@ const AmqpConsumeConfig = ({ item, collection }) => {
   const handleDisconnect = async () => {
     try {
       const { ipcRenderer } = window;
-      await ipcRenderer.invoke('renderer:amqp:disconnect', {
+      const result = await ipcRenderer.invoke('renderer:amqp:disconnect', {
         itemUid: item.uid,
         collectionUid: collection.uid
       });
+      if (!result?.success) {
+        throw new Error(result?.error || 'Failed to disconnect');
+      }
       setConnected(false);
       setActiveSubs({});
       toast.success('AMQP disconnected');
@@ -132,11 +138,14 @@ const AmqpConsumeConfig = ({ item, collection }) => {
     if (!resolvedQueue) return;
     try {
       const { ipcRenderer } = window;
-      await ipcRenderer.invoke('renderer:amqp:unsubscribe', {
+      const result = await ipcRenderer.invoke('renderer:amqp:unsubscribe', {
         itemUid: item.uid,
         collectionUid: collection.uid,
         queue: resolvedQueue
       });
+      if (!result?.success) {
+        throw new Error(result?.error || 'Failed to unsubscribe');
+      }
       setActiveSubs((prev) => {
         const next = { ...prev };
         delete next[sub.uid];
@@ -240,6 +249,7 @@ const AmqpConsumeConfig = ({ item, collection }) => {
           <label className="block text-xs font-medium mb-1 opacity-70">Queue</label>
           <input
             type="text"
+            data-testid="amqp-consume-queue-input"
             className="w-full px-2 py-1 text-sm border rounded"
             value={queue}
             onChange={(e) => handleFieldChange('queue', e.target.value)}
@@ -250,6 +260,7 @@ const AmqpConsumeConfig = ({ item, collection }) => {
           <label className="block text-xs font-medium mb-1 opacity-70">Exchange</label>
           <input
             type="text"
+            data-testid="amqp-consume-exchange-input"
             className="w-full px-2 py-1 text-sm border rounded"
             value={exchange}
             onChange={(e) => handleFieldChange('exchange', e.target.value)}
@@ -259,6 +270,7 @@ const AmqpConsumeConfig = ({ item, collection }) => {
         <div>
           <label className="block text-xs font-medium mb-1 opacity-70">Exchange Type</label>
           <select
+            data-testid="amqp-consume-exchange-type-select"
             className="w-full px-2 py-1 text-sm border rounded"
             value={exchangeType}
             onChange={(e) => handleFieldChange('exchangeType', e.target.value)}
@@ -273,6 +285,7 @@ const AmqpConsumeConfig = ({ item, collection }) => {
           <label className="block text-xs font-medium mb-1 opacity-70">Routing Key</label>
           <input
             type="text"
+            data-testid="amqp-consume-routing-key-input"
             className="w-full px-2 py-1 text-sm border rounded"
             value={routingKey}
             onChange={(e) => handleFieldChange('routingKey', e.target.value)}
@@ -283,6 +296,7 @@ const AmqpConsumeConfig = ({ item, collection }) => {
 
       <div className="mb-4">
         <button
+          data-testid="amqp-consume-add-subscription-button"
           className="px-3 py-1 text-xs font-medium rounded border hover:bg-gray-100 dark:hover:bg-gray-700"
           onClick={handleAddSubscription}
         >

@@ -162,8 +162,8 @@ const prepareAmqpRequest = async (item, collection, environment, runtimeVariable
     const password = interpolateString(auth.basic?.password || '', interpolationOptions);
     try {
       const parsed = new URL(amqpRequest.url);
-      parsed.username = encodeURIComponent(username);
-      parsed.password = encodeURIComponent(password);
+      parsed.username = username;
+      parsed.password = password;
       amqpRequest.url = parsed.toString();
     } catch (_) {
       // URL is invalid or not yet filled in — skip injection

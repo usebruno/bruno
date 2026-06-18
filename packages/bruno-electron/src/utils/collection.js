@@ -696,7 +696,16 @@ const transformRequestToSaveToFilesystem = (item) => {
       exchange: _item.request.consume?.exchange || '',
       exchangeType: _item.request.consume?.exchangeType || 'direct',
       routingKey: _item.request.consume?.routingKey || '',
-      queue: _item.request.consume?.queue || ''
+      queue: _item.request.consume?.queue || '',
+      subscriptions: Array.isArray(_item.request.consume?.subscriptions)
+        ? _item.request.consume.subscriptions.map((sub) => ({
+            uid: sub.uid,
+            queue: sub.queue || '',
+            exchange: sub.exchange || '',
+            exchangeType: sub.exchangeType || 'direct',
+            routingKey: sub.routingKey || ''
+          }))
+        : []
     };
     delete itemToSave.request.method;
     delete itemToSave.request.params;

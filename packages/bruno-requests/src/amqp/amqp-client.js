@@ -1,7 +1,11 @@
 import amqplib from 'amqplib';
 
 const safeParseJSON = (jsonString) => {
-  return JSON.parse(jsonString);
+  try {
+    return JSON.parse(jsonString);
+  } catch (_) {
+    return null;
+  }
 };
 
 const safeStringifyJSON = (obj) => {
@@ -55,7 +59,19 @@ class AmqpClient {
         connectOptions.heartbeat = options.heartbeat;
       }
 
-      const connection = await amqplib.connect(url, connectOptions);
+      // Apply vhost by overriding the URL path when provided
+      let connectUrl = url;
+      if (options.vhost && options.vhost !== '/') {
+        try {
+          const parsed = new URL(url);
+          parsed.pathname = '/' + encodeURIComponent(options.vhost);
+          connectUrl = parsed.toString();
+        } catch (_) {
+          // URL is invalid — fall through with the original
+        }
+      }
+
+      const connection = await amqplib.connect(connectUrl, connectOptions);
       this.connections[key] = connection;
 
       connection.on('error', (err) => {
@@ -327,12 +343,10 @@ class AmqpClient {
         const contentString = msg.content.toString('utf-8');
         let parsedContent = contentString;
         let parsedAsJson = false;
-        try {
-          parsedContent = safeParseJSON(contentString, 'AMQP message');
-          parsedContent = safeStringifyJSON(parsedContent);
+        const parsed = safeParseJSON(contentString);
+        if (parsed !== null) {
+          parsedContent = safeStringifyJSON(parsed);
           parsedAsJson = true;
-        } catch (_) {
-          // keep as string if not valid JSON
         }
 
         this.sendEvent('main:amqp:message-received', requestUid, collectionUid, {

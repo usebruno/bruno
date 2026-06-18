@@ -30,6 +30,7 @@ const AmqpPublishConfig = ({ item, collection }) => {
           <label className="block text-xs font-medium mb-1 opacity-70">Exchange</label>
           <input
             type="text"
+            data-testid="amqp-publish-exchange-input"
             className="w-full px-2 py-1 text-sm border rounded"
             value={exchange}
             onChange={(e) => handleFieldChange('exchange', e.target.value)}
@@ -39,6 +40,7 @@ const AmqpPublishConfig = ({ item, collection }) => {
         <div>
           <label className="block text-xs font-medium mb-1 opacity-70">Exchange Type</label>
           <select
+            data-testid="amqp-publish-exchange-type-select"
             className="w-full px-2 py-1 text-sm border rounded"
             value={exchangeType}
             onChange={(e) => handleFieldChange('exchangeType', e.target.value)}
@@ -53,6 +55,7 @@ const AmqpPublishConfig = ({ item, collection }) => {
           <label className="block text-xs font-medium mb-1 opacity-70">Routing Key</label>
           <input
             type="text"
+            data-testid="amqp-publish-routing-key-input"
             className="w-full px-2 py-1 text-sm border rounded"
             value={routingKey}
             onChange={(e) => handleFieldChange('routingKey', e.target.value)}
