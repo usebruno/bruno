@@ -34,7 +34,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
 
         // console.log('1');
         await page.keyboard.press(`${modifier}+KeyW`);
-        await expect(page.locator('.request-tab')).toHaveCount(2, { timeout: 3000 });
+        await expect(reqTab).not.toBeVisible({ timeout: 3000 });
         // console.log('2');
       });
 
@@ -69,7 +69,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await page.keyboard.down('KeyX');
         await page.keyboard.up('KeyX');
         await page.keyboard.up('Shift');
-        await expect(page.locator('.request-tab')).toHaveCount(2, { timeout: 3000 });
+        await expect(page.locator('.request-tab').filter({ has: page.getByText('req-1', { exact: true }) })).not.toBeVisible({ timeout: 3000 });
         // console.log('6');
       });
     });
@@ -256,7 +256,9 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await page.keyboard.up('KeyW');
         await page.keyboard.up('Shift');
         await page.keyboard.up(modifier);
-        await expect(page.locator('.request-tab')).toHaveCount(2, { timeout: 3000 });
+        await expect(page.locator('.request-tab').filter({ has: page.getByText('req-1', { exact: true }) })).not.toBeVisible({ timeout: 3000 });
+        await expect(page.locator('.request-tab').filter({ has: page.getByText('req-2', { exact: true }) })).not.toBeVisible({ timeout: 3000 });
+        await expect(page.locator('.request-tab').filter({ has: page.getByText('req-3', { exact: true }) })).not.toBeVisible({ timeout: 3000 });
         // console.log('2');
       });
 
@@ -293,7 +295,9 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await page.keyboard.down('KeyY');
         await page.keyboard.up('KeyY');
         await page.keyboard.up('Alt');
-        await expect(page.locator('.request-tab')).toHaveCount(2, { timeout: 3000 });
+        await expect(page.locator('.request-tab').filter({ has: page.getByText('req-1', { exact: true }) })).not.toBeVisible({ timeout: 3000 });
+        await expect(page.locator('.request-tab').filter({ has: page.getByText('req-2', { exact: true }) })).not.toBeVisible({ timeout: 3000 });
+        await expect(page.locator('.request-tab').filter({ has: page.getByText('req-3', { exact: true }) })).not.toBeVisible({ timeout: 3000 });
         // console.log('6');
       });
     });
@@ -922,7 +926,15 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await openRequest(page, 'kb-collection', 'req-9', { persist: true });
 
         // console.log('1');
-        await expect(page.locator('.request-tab')).toHaveCount(9, { timeout: 2000 });
+        await expect(page.locator('.request-tab').filter({ has: page.getByText('req-1', { exact: true }) })).toBeVisible({ timeout: 2000 });
+        await expect(page.locator('.request-tab').filter({ has: page.getByText('req-2', { exact: true }) })).toBeVisible({ timeout: 2000 });
+        await expect(page.locator('.request-tab').filter({ has: page.getByText('req-3', { exact: true }) })).toBeVisible({ timeout: 2000 });
+        await expect(page.locator('.request-tab').filter({ has: page.getByText('req-4', { exact: true }) })).toBeVisible({ timeout: 2000 });
+        await expect(page.locator('.request-tab').filter({ has: page.getByText('req-5', { exact: true }) })).toBeVisible({ timeout: 2000 });
+        await expect(page.locator('.request-tab').filter({ has: page.getByText('req-6', { exact: true }) })).toBeVisible({ timeout: 2000 });
+        await expect(page.locator('.request-tab').filter({ has: page.getByText('req-7', { exact: true }) })).toBeVisible({ timeout: 2000 });
+        await expect(page.locator('.request-tab').filter({ has: page.getByText('req-8', { exact: true }) })).toBeVisible({ timeout: 2000 });
+        await expect(page.locator('.request-tab').filter({ has: page.getByText('req-9', { exact: true }) })).toBeVisible({ timeout: 2000 });
         const tabs = page.locator('.request-tab');
 
         // console.log('2');
