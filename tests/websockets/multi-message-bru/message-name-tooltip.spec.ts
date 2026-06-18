@@ -13,7 +13,7 @@ test.describe('websocket message name tooltip', () => {
     await closeAllCollections(page);
   });
 
-  test('shows the full name on hover only when the label is truncated', async ({
+  test('shows the full name in a tooltip on hover', async ({
     pageWithUserData: page
   }) => {
     const ws = buildWebsocketCommonLocators(page);
@@ -22,26 +22,22 @@ test.describe('websocket message name tooltip', () => {
     const messageLabel = ws.message.label(0);
     const tooltip = ws.message.nameTooltip();
 
-    await test.step('short name that fits → no tooltip on hover', async () => {
+    await test.step('short name → tooltip shows the name on hover', async () => {
       await renameWsMessage(page, 0, 'hi');
       await expect(messageLabel).toHaveText('hi');
 
-      // a short name fits, so it isn't truncated — the "only when truncated" gate stays off
-      await expect
-        .poll(() => messageLabel.evaluate((el) => el.scrollWidth > el.clientWidth))
-        .toBe(false);
-
       await messageLabel.hover();
-      await expect(tooltip).toHaveCount(0);
+      await expect(tooltip).toBeVisible({ timeout: 15000 });
+      await expect(tooltip).toContainText('hi');
     });
 
-    await test.step('long, truncated name → tooltip reveals the full name', async () => {
+    await test.step('long name → label is truncated and tooltip reveals the full name', async () => {
       await renameWsMessage(page, 0, LONG_NAME);
       await expect(messageLabel).toHaveText(LONG_NAME);
       // the label itself is clipped with an ellipsis...
       await expect(messageLabel).toHaveCSS('text-overflow', 'ellipsis');
 
-      // ...but hovering surfaces the full name in the tooltip
+      // ...and hovering surfaces the full name in the tooltip
       await messageLabel.hover();
       await expect(tooltip).toBeVisible({ timeout: 15000 });
       await expect(tooltip).toContainText(LONG_NAME);

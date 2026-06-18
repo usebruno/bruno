@@ -5,7 +5,7 @@ import { get } from 'lodash';
 import { updateRequestBody } from 'providers/ReduxStore/slices/collections';
 import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { useTheme } from 'providers/Theme';
-import React, { useMemo, useState, useEffect, useRef, useCallback } from 'react';
+import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { queueWsMessage, isWsConnectionActive, connectWS } from 'utils/network/index';
 import { findCollectionByUid, findEnvironmentInCollection } from 'utils/collections/index';
@@ -54,14 +54,6 @@ export const SingleWSMessage = ({
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(displayName);
   const labelTooltipId = `ws-msg-label-${message.uid ?? index}`;
-  const labelRef = useRef(null);
-  const [isLabelTruncated, setIsLabelTruncated] = useState(false);
-  const handleLabelMouseEnter = () => {
-    const el = labelRef.current;
-    if (el) {
-      setIsLabelTruncated(el.scrollWidth > el.clientWidth);
-    }
-  };
 
   // Auto-focus the name input when this is a newly created message
   useEffect(() => {
@@ -175,52 +167,56 @@ export const SingleWSMessage = ({
   }, [collections]);
 
   return (
-    <>
-      <StyledWrapper
-        className={!isSelected ? 'disabled' : ''}
-        onMouseDownCapture={() => {
-          if (!isSelected) setTimeout(onSelect, 0);
+    <StyledWrapper
+      className={!isSelected ? 'disabled' : ''}
+      onMouseDownCapture={() => {
+        if (!isSelected) setTimeout(onSelect, 0);
+      }}
+    >
+      <div
+        className="accordion-header"
+        data-testid={`ws-message-header-${index}`}
+        role="button"
+        tabIndex={0}
+        onClick={onToggle}
+        onKeyDown={(e) => {
+          if (e.target !== e.currentTarget) return;
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            onToggle();
+          }
         }}
       >
-        <div
-          className="accordion-header"
-          data-testid={`ws-message-header-${index}`}
-          role="button"
-          tabIndex={0}
-          onClick={onToggle}
-          onKeyDown={(e) => {
-            if (e.target !== e.currentTarget) return;
-            if (e.key === 'Enter' || e.key === ' ') {
-              e.preventDefault();
-              onToggle();
-            }
-          }}
-        >
-          <div className="accordion-left">
-            {isExpanded ? (
-              <IconChevronDown size={14} strokeWidth={2} />
-            ) : (
-              <IconChevronRight size={14} strokeWidth={2} />
-            )}
-            {isEditing ? (
-              <input
-                ref={(node) => node?.focus()}
-                className="name-input"
-                data-testid={`ws-message-name-input-${index}`}
-                value={editValue}
-                onChange={(e) => setEditValue(e.target.value)}
-                onKeyDown={handleNameKeyDown}
-                onBlur={handleNameBlur}
-                onClick={(e) => e.stopPropagation()}
-              />
-            ) : (
+        <div className="accordion-left">
+          {isExpanded ? (
+            <IconChevronDown size={14} strokeWidth={2} />
+          ) : (
+            <IconChevronRight size={14} strokeWidth={2} />
+          )}
+          {isEditing ? (
+            <input
+              ref={(node) => node?.focus()}
+              className="name-input"
+              data-testid={`ws-message-name-input-${index}`}
+              value={editValue}
+              onChange={(e) => setEditValue(e.target.value)}
+              onKeyDown={handleNameKeyDown}
+              onBlur={handleNameBlur}
+              onClick={(e) => e.stopPropagation()}
+            />
+          ) : (
+            <ToolHint
+              text={displayName}
+              toolhintId={labelTooltipId}
+              className="message-label-anchor"
+              place="bottom-start"
+              positionStrategy="fixed"
+              tooltipTestId="ws-message-name-tooltip"
+              tooltipStyle={{ maxWidth: '320px', whiteSpace: 'normal', wordBreak: 'break-word' }}
+            >
               <span
-                ref={labelRef}
                 className="message-label"
                 data-testid={`ws-message-label-${index}`}
-                data-tooltip-id={labelTooltipId}
-                data-tooltip-content={displayName}
-                onMouseEnter={handleLabelMouseEnter}
                 onClick={(e) => {
                   e.preventDefault();
                   onToggle();
@@ -229,52 +225,43 @@ export const SingleWSMessage = ({
               >
                 {displayName}
               </span>
-            )}
-          </div>
-          <div className="accordion-actions" onClick={(e) => e.stopPropagation()}>
-            <div className="hover-actions">
-              <ToolHint text="Send" toolhintId={`send-msg-${index}`}>
-                <button onClick={onSendMessage} className="hover-action-btn" data-testid={`ws-send-msg-${index}`}>
-                  <IconSend size={14} strokeWidth={1.5} />
+            </ToolHint>
+          )}
+        </div>
+        <div className="accordion-actions" onClick={(e) => e.stopPropagation()}>
+          <div className="hover-actions">
+            <ToolHint text="Send" toolhintId={`send-msg-${index}`}>
+              <button onClick={onSendMessage} className="hover-action-btn" data-testid={`ws-send-msg-${index}`}>
+                <IconSend size={14} strokeWidth={1.5} />
+              </button>
+            </ToolHint>
+            {(body.ws || []).length > 1 && (
+              <ToolHint text="Delete" toolhintId={`delete-msg-${index}`}>
+                <button onClick={onDeleteMessage} className="hover-action-btn delete" data-testid={`ws-delete-msg-${index}`}>
+                  <IconTrash size={14} strokeWidth={1.5} />
                 </button>
               </ToolHint>
-              {(body.ws || []).length > 1 && (
-                <ToolHint text="Delete" toolhintId={`delete-msg-${index}`}>
-                  <button onClick={onDeleteMessage} className="hover-action-btn delete" data-testid={`ws-delete-msg-${index}`}>
-                    <IconTrash size={14} strokeWidth={1.5} />
-                  </button>
-                </ToolHint>
-              )}
-            </div>
-            <WSRequestBodyMode mode={displayMode} onModeChange={onUpdateMessageType} />
+            )}
           </div>
+          <WSRequestBodyMode mode={displayMode} onModeChange={onUpdateMessageType} />
         </div>
-        {isExpanded && (
-          <div className="accordion-body" data-testid={`ws-message-body-${index}`} style={{ height: editorHeight }}>
-            <CodeEditor
-              collection={collection}
-              theme={displayedTheme}
-              font={get(preferences, 'font.codeFont', 'default')}
-              fontSize={get(preferences, 'font.codeFontSize')}
-              value={content}
-              onEdit={onEdit}
-              onRun={handleRun}
-              onSave={onSave}
-              mode={codemirrorMode[displayMode] ?? 'text/plain'}
-              enableVariableHighlighting={true}
-            />
-          </div>
-        )}
-      </StyledWrapper>
-      <ToolHint
-        text={displayName}
-        tooltipId={labelTooltipId}
-        place="bottom-start"
-        hidden={!isLabelTruncated}
-        positionStrategy="fixed"
-        tooltipTestId="ws-message-name-tooltip"
-        tooltipStyle={{ maxWidth: '320px', whiteSpace: 'normal', wordBreak: 'break-word' }}
-      />
-    </>
+      </div>
+      {isExpanded && (
+        <div className="accordion-body" data-testid={`ws-message-body-${index}`} style={{ height: editorHeight }}>
+          <CodeEditor
+            collection={collection}
+            theme={displayedTheme}
+            font={get(preferences, 'font.codeFont', 'default')}
+            fontSize={get(preferences, 'font.codeFontSize')}
+            value={content}
+            onEdit={onEdit}
+            onRun={handleRun}
+            onSave={onSave}
+            mode={codemirrorMode[displayMode] ?? 'text/plain'}
+            enableVariableHighlighting={true}
+          />
+        </div>
+      )}
+    </StyledWrapper>
   );
 };
