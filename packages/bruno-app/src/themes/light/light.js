@@ -295,13 +295,11 @@ const lightTheme = {
   notifications: {
     bg: palette.background.BASE,
     list: {
-      bg: palette.background.SURFACE0,
-      borderRight: 'transparent',
-      borderBottom: palette.border.BORDER2,
+      bg: palette.background.BASE,
+      borderBottom: palette.border.BORDER0,
       hoverBg: palette.background.SURFACE1,
       active: {
-        border: palette.hues.BLUE,
-        bg: palette.background.SURFACE1,
+        bg: palette.background.SURFACE0,
         hoverBg: palette.background.SURFACE2
       }
     }
