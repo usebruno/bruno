@@ -10,7 +10,7 @@ import StyledWrapper from './StyledWrapper';
 import DotEnvTableView from './DotEnvTableView';
 import DotEnvRawView from './DotEnvRawView';
 import DotEnvEmptyState from './DotEnvEmptyState';
-import { variablesToRaw, rawToVariables, MIN_TABLE_HEIGHT } from './utils';
+import { variablesToRaw, rawToVariables } from './utils';
 
 const DotEnvFileEditor = ({
   variables,
@@ -25,7 +25,6 @@ const DotEnvFileEditor = ({
   item
 }) => {
   const { displayedTheme } = useTheme();
-  const [tableHeight, setTableHeight] = useState(MIN_TABLE_HEIGHT);
   // Derive a single baseline raw value for consistent dirty-tracking
   const baselineRaw = rawContent ?? variablesToRaw(variables || []);
   const initialRawValue = baselineRaw;
@@ -329,8 +328,6 @@ const DotEnvFileEditor = ({
         formik={formik}
         theme={displayedTheme}
         showValueColumn={!showEmptyState}
-        tableHeight={showEmptyState ? MIN_TABLE_HEIGHT : tableHeight}
-        onHeightChange={setTableHeight}
         onNameChange={handleNameChange}
         onNameBlur={handleNameBlur}
         onNameKeyDown={handleNameKeyDown}

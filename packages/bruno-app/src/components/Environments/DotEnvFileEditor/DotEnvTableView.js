@@ -1,24 +1,22 @@
-import React, { useCallback, useRef } from 'react';
+import React, { useRef, useMemo } from 'react';
 import { TableVirtuoso } from 'react-virtuoso';
 import { IconTrash } from '@tabler/icons';
 import MultiLineEditor from 'components/MultiLineEditor/index';
 import DotEnvErrorMessage from './DotEnvErrorMessage';
-import { MIN_TABLE_HEIGHT } from './utils';
 
-const TableRow = React.memo(({ children, item }) => (
-  <tr key={item.uid} data-testid={`dotenv-var-row-${item.name}`}>{children}</tr>
-), (prevProps, nextProps) => {
-  const prevUid = prevProps?.item?.uid;
-  const nextUid = nextProps?.item?.uid;
-  return prevUid === nextUid && prevProps.children === nextProps.children;
-});
+const TableRowInner = React.forwardRef(({ children, item, ...rest }, ref) => (
+  <tr ref={ref} {...rest} data-testid={`dotenv-var-row-${item.variable.name}`}>
+    {children}
+  </tr>
+));
+TableRowInner.displayName = 'DotEnvTableRowInner';
+
+const TableRow = React.memo(TableRowInner);
 
 const DotEnvTableView = ({
   formik,
   theme,
   showValueColumn,
-  tableHeight,
-  onHeightChange,
   onNameChange,
   onNameBlur,
   onNameKeyDown,
@@ -27,13 +25,31 @@ const DotEnvTableView = ({
   onReset,
   isSaving
 }) => {
-  const handleTotalHeightChanged = useCallback((h) => {
-    onHeightChange(h);
-  }, [onHeightChange]);
-
   // Use refs for stable access to formik values in callbacks
   const formikRef = useRef(formik);
   formikRef.current = formik;
+
+  const fillerColSpan = showValueColumn ? 3 : 2;
+  const tableComponents = useMemo(
+    () => ({
+      TableRow,
+      FillerRow: ({ height }) => (
+        <tr aria-hidden="true">
+          <td
+            colSpan={fillerColSpan}
+            style={{
+              height,
+              padding: 0,
+              border: 0,
+              verticalAlign: 'top',
+              lineHeight: 0
+            }}
+          />
+        </tr>
+      )
+    }),
+    [fillerColSpan]
+  );
 
   // Don't memoize itemContent - TableVirtuoso handles this internally
   // and we need fresh access to formik values
@@ -66,16 +82,18 @@ const DotEnvTableView = ({
           </div>
         </td>
         {showValueColumn && (
-          <td className="flex flex-row flex-nowrap items-center">
-            <div className="overflow-hidden grow w-full relative">
-              <MultiLineEditor
-                theme={theme}
-                name={`${index}.value`}
-                value={variable.value}
-                placeholder={isLastEmptyRow ? 'Value' : ''}
-                onChange={(newValue) => currentFormik.setFieldValue(`${index}.value`, newValue, true)}
-                onSave={onSave}
-              />
+          <td>
+            <div className="flex flex-row flex-nowrap items-start gap-1 min-w-0 w-full">
+              <div className="overflow-hidden min-w-0 min-h-0 flex-1 self-start relative w-full">
+                <MultiLineEditor
+                  theme={theme}
+                  name={`${index}.value`}
+                  value={variable.value}
+                  placeholder={isLastEmptyRow ? 'Value' : ''}
+                  onChange={(newValue) => currentFormik.setFieldValue(`${index}.value`, newValue, true)}
+                  onSave={onSave}
+                />
+              </div>
             </div>
           </td>
         )}
@@ -96,23 +114,24 @@ const DotEnvTableView = ({
 
   return (
     <>
-      <TableVirtuoso
-        className="table-container"
-        style={{ height: tableHeight || MIN_TABLE_HEIGHT }}
-        components={{ TableRow }}
-        data={formik.values}
-        totalListHeightChanged={handleTotalHeightChanged}
-        fixedHeaderContent={() => (
-          <tr>
-            <td>Name</td>
-            {showValueColumn && <td>Value</td>}
-            <td className="delete-col"></td>
-          </tr>
-        )}
-        fixedItemHeight={35}
-        computeItemKey={(index, variable) => variable.uid}
-        itemContent={itemContent}
-      />
+      <div className="table-scroll-area">
+        <TableVirtuoso
+          className="table-container"
+          components={tableComponents}
+          data={formik.values}
+          increaseViewportBy={200}
+          fixedHeaderContent={() => (
+            <tr>
+              <td>Name</td>
+              {showValueColumn && <td>Value</td>}
+              <td className="delete-col"></td>
+            </tr>
+          )}
+          defaultItemHeight={35}
+          computeItemKey={(index, variable) => variable.uid}
+          itemContent={itemContent}
+        />
+      </div>
       <div className="button-container">
         <div className="flex items-center">
           <button type="button" className="submit" onClick={onSave} disabled={isSaving} data-testid="save-dotenv">
