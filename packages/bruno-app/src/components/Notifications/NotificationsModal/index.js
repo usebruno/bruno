@@ -55,7 +55,7 @@ const NotificationsModal = ({ notifications, onClose }) => {
         disableEscapeKey={true}
         noPadding={true}
       >
-        <StyledWrapper className="notifications-modal" ref={containerRef}>
+        <StyledWrapper className={classnames('notifications-modal', { dragging })} ref={containerRef}>
           <div className="notif-sidebar" style={{ width: effectiveWidth, flexBasis: effectiveWidth }}>
             <NotificationTabs
               activeTab={activeTab}

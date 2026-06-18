@@ -11,6 +11,12 @@ const StyledWrapper = styled.div`
   overflow: hidden;
   background-color: ${(props) => props.theme.notifications.bg};
 
+  /* While dragging, stop the detail iframe from swallowing mousemove events,
+     which would otherwise freeze the resize until the cursor re-enters the handle. */
+  &.dragging .notif-detail-body {
+    pointer-events: none;
+  }
+
   .notif-sidebar {
     flex: 0 0 auto;
     display: flex;
