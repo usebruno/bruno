@@ -63,9 +63,8 @@ const useNotifications = () => {
 
   const onMarkAllRead = () => {
     dispatch(markAllNotificationsAsRead());
-    // Bulk action: clear the pinned set so read items drop out of Unread now.
     if (activeTab === TABS.UNREAD) {
-      setPinnedUnreadIds(new Set());
+      setPinnedUnreadIds(null);
     }
   };
   const onClearAll = () => dispatch(clearAllNotifications());
