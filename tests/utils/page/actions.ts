@@ -553,6 +553,20 @@ const removeCollection = async (page: Page, collectionName: string) => {
 };
 
 /**
+ * Expand a folder in the sidebar so its child requests/subfolders become visible.
+ * No-op if the folder is already expanded.
+ */
+const expandFolder = async (page: Page, folderName: string) => {
+  await test.step(`Expand folder "${folderName}"`, async () => {
+    const locators = buildCommonLocators(page);
+    const chevron = locators.folder.chevron(folderName);
+    await chevron.waitFor({ state: 'visible', timeout: 5000 });
+    const isExpanded = await chevron.evaluate((el: HTMLElement) => el.classList.contains('rotate-90'));
+    if (!isExpanded) await chevron.click();
+  });
+};
+
+/**
  * Create a folder inside a collection or another folder
  * @param page - The page object
  * @param folderName - The name of the folder to create
@@ -573,6 +587,7 @@ const createFolder = async (
       await locators.sidebar.collection(parentName).hover();
       await locators.actions.collectionActions(parentName).click();
     } else {
+      await expandFolder(page, parentName);
       await locators.sidebar.folder(parentName).hover();
       await locators.actions.collectionItemActions(parentName).click();
     }
@@ -581,20 +596,6 @@ const createFolder = async (
     await page.getByTestId('new-folder-input').fill(folderName);
     await locators.modal.button('Create').click();
     await expect(locators.sidebar.folder(folderName)).toBeVisible();
-  });
-};
-
-/**
- * Expand a folder in the sidebar so its child requests/subfolders become visible.
- * No-op if the folder is already expanded.
- */
-const expandFolder = async (page: Page, folderName: string) => {
-  await test.step(`Expand folder "${folderName}"`, async () => {
-    const locators = buildCommonLocators(page);
-    const chevron = locators.folder.chevron(folderName);
-    await chevron.waitFor({ state: 'visible', timeout: 5000 });
-    const isExpanded = await chevron.evaluate((el: HTMLElement) => el.classList.contains('rotate-90'));
-    if (!isExpanded) await chevron.click();
   });
 };
 
