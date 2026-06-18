@@ -54,10 +54,17 @@ export const openKeybindingsTab = async (page: Page) => {
  */
 export const closePreferencesTab = async (page: Page) => {
   const prefTab = page.locator('.request-tab').filter({ has: page.getByText('Preferences', { exact: true }) });
-  await prefTab.dblclick();
-  await prefTab.getByTestId('request-tab-close-icon').click({ force: true });
+  // Nothing to do if it's already closed.
+  if (!(await prefTab.isVisible().catch(() => false))) return;
 
-  await expect(prefTab).not.toBeVisible({ timeout: 8000 });
+  // Closing can race with the just-edited keybinding UI: the close icon may not
+  // be revealed yet, or a click can be swallowed during a re-render. Retry the
+  // hover -> close until the tab is actually gone.
+  await expect(async () => {
+    await prefTab.hover();
+    await prefTab.getByTestId('request-tab-close-icon').click({ force: true });
+    await expect(prefTab).not.toBeVisible({ timeout: 2000 });
+  }).toPass({ timeout: 10000 });
 };
 
 export const closeTabByName = async (page: any, name: string | RegExp) => {

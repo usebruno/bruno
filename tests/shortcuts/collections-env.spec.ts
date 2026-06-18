@@ -9,18 +9,18 @@ import {
 } from './helpers';
 
 test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
-  test.beforeEach(async ({ page, createTmpDir }) => {
+  test.beforeEach(async ({ pageWithUserData: page, createTmpDir }) => {
     await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 5000 });
     await setupBoundActionsData(page, createTmpDir);
   });
 
-  test.afterAll(async ({ page }) => {
+  test.afterAll(async ({ pageWithUserData: page }) => {
     await closeAllCollections(page);
   });
 
   test.describe('COLLECTIONS & ENVIRONMENTS', () => {
     test.describe('SHORTCUT: Import Collection', () => {
-      test('default Cmd/Ctrl+O open import collection modal', async ({ page }) => {
+      test('default Cmd/Ctrl+O open import collection modal', async ({ pageWithUserData: page }) => {
         await page.keyboard.down('Alt');
         await page.keyboard.down('KeyY');
         await page.keyboard.up('KeyY');
@@ -35,7 +35,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await expect(page.getByTestId('import-collection-modal')).not.toBeVisible({ timeout: 3000 });
       });
 
-      test('customized Alt+O open import collection modal', async ({ page }) => {
+      test('customized Alt+O open import collection modal', async ({ pageWithUserData: page }) => {
         await page.keyboard.press(`${modifier}+KeyW`);
 
         // Remap importCollection to Alt+O
@@ -73,7 +73,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
     });
 
     test.describe('SHORTCUT: Edit Environment (Cmd/Ctrl+E)', () => {
-      test('open environment tab of collection Cmd/Ctrl+E', async ({ page, createTmpDir }) => {
+      test('open environment tab of collection Cmd/Ctrl+E', async ({ pageWithUserData: page, createTmpDir }) => {
         await openRequest(page, 'kb-collection', 'req-7', { persist: true });
 
         await page.keyboard.down(modifier);
@@ -84,7 +84,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await expect(page.locator('.request-tab').filter({ has: page.getByText('Environments', { exact: true }) })).toBeVisible({ timeout: 2000 });
       });
 
-      test('open environment tab of collection customized Alt+E', async ({ page, createTmpDir }) => {
+      test('open environment tab of collection customized Alt+E', async ({ pageWithUserData: page, createTmpDir }) => {
         // Remap editEnvironment to Alt+E
         await openKeybindingsTab(page);
         const row = page.getByTestId('keybinding-row-editEnvironment');
@@ -115,7 +115,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
     });
 
     test.describe('SHORTCUT: Edit Environment (customized Alt+E)', () => {
-      test('open environment tab of collection customized Alt+E', async ({ page, createTmpDir }) => {
+      test('open environment tab of collection customized Alt+E', async ({ pageWithUserData: page, createTmpDir }) => {
         // Remap editEnvironment to Alt+E
         await openKeybindingsTab(page);
         const row = page.getByTestId('keybinding-row-editEnvironment');
@@ -146,7 +146,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
     });
 
     test.describe('SHORTCUT: New Request', () => {
-      test('default Cmd/Ctrl+N opens new request modal for collection', async ({ page }) => {
+      test('default Cmd/Ctrl+N opens new request modal for collection', async ({ pageWithUserData: page }) => {
         // Focus the collection so the keybinding is active
         await page.getByTestId('sidebar-collection-row').filter({ has: page.getByText(collectionName, { exact: true }) }).click();
 
@@ -160,7 +160,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await expect(page.locator('.request-tab').filter({ has: page.getByText('nr-collection-cenv', { exact: true }) })).toBeVisible({ timeout: 2000 });
       });
 
-      test('default Cmd/Ctrl+N opens new request modal for folder', async ({ page }) => {
+      test('default Cmd/Ctrl+N opens new request modal for folder', async ({ pageWithUserData: page }) => {
         // Focus the folder so the keybinding is active
         await page.locator('.collection-item-name').filter({ has: page.getByText('kb-folder', { exact: true }) }).click();
 
@@ -174,7 +174,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await expect(page.locator('.request-tab').filter({ has: page.getByText('nr-folder-cenv', { exact: true }) })).toBeVisible({ timeout: 2000 });
       });
 
-      test('customized Alt+N opens new request modal for collection', async ({ page }) => {
+      test('customized Alt+N opens new request modal for collection', async ({ pageWithUserData: page }) => {
         // Remap newRequest to Alt+N
         await openKeybindingsTab(page);
         const row = page.getByTestId('keybinding-row-newRequest');
@@ -209,7 +209,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await page.getByTestId('reset-all-keybindings-btn').click({ timeout: 2000 });
       });
 
-      test('customized Alt+N opens new request modal for folder', async ({ page }) => {
+      test('customized Alt+N opens new request modal for folder', async ({ pageWithUserData: page }) => {
         // Remap newRequest to Alt+N
         await openKeybindingsTab(page);
         const row = page.getByTestId('keybinding-row-newRequest');

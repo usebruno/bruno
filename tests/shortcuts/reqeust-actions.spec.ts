@@ -8,18 +8,18 @@ import {
 } from './helpers';
 
 test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
-  test.beforeEach(async ({ page, createTmpDir }) => {
+  test.beforeEach(async ({ pageWithUserData: page, createTmpDir }) => {
     await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 5000 });
     await setupBoundActionsData(page, createTmpDir);
   });
 
-  test.afterAll(async ({ page }) => {
+  test.afterAll(async ({ pageWithUserData: page }) => {
     await closeAllCollections(page);
   });
 
   test.describe('REQUESTS', () => {
     test.describe('SHORTCUT: Send Request (Cmd/Ctrl+Enter)', () => {
-      test('sends request when cursor is in JSON body editor', async ({ page }) => {
+      test('sends request when cursor is in JSON body editor', async ({ pageWithUserData: page }) => {
         // Create a POST request in the shared collection pointing to the echo server
         await createRequest(page, 'cmd-enter-req-body', 'kb-collection', {
           url: 'https://echo.usebruno.com',
@@ -45,7 +45,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await expect(page.getByTestId('response-status-code')).toContainText('200', { timeout: 15000 });
       });
 
-      test('sends request when cursor is in response body editor', async ({ page }) => {
+      test('sends request when cursor is in response body editor', async ({ pageWithUserData: page }) => {
         await createRequest(page, 'cmd-enter-req-resp', 'kb-collection', {
           url: 'https://echo.usebruno.com',
           method: 'POST'
@@ -77,7 +77,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await expect(page.getByTestId('response-status-code')).toContainText('200', { timeout: 15000 });
       });
 
-      test('sends request when cursor is in pre-request Vars value editor', async ({ page }) => {
+      test('sends request when cursor is in pre-request Vars value editor', async ({ pageWithUserData: page }) => {
         await createRequest(page, 'cmd-enter-req-vars', 'kb-collection', {
           url: 'https://echo.usebruno.com',
           method: 'POST'
@@ -111,7 +111,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
     });
 
     test.describe('SHORTCUT: Send Request (customized Shift+Enter)', () => {
-      test('sends request when cursor is in JSON body editor', async ({ page }) => {
+      test('sends request when cursor is in JSON body editor', async ({ pageWithUserData: page }) => {
         // Remap sendRequest to Shift+Enter
         await openKeybindingsTab(page);
         const row = page.getByTestId('keybinding-row-sendRequest');
@@ -153,7 +153,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await page.getByTestId('reset-all-keybindings-btn').click({ timeout: 2000 });
       });
 
-      test('sends request when cursor is in response body editor', async ({ page }) => {
+      test('sends request when cursor is in response body editor', async ({ pageWithUserData: page }) => {
         // Remap sendRequest to Shift+Enter
         await openKeybindingsTab(page);
         const row = page.getByTestId('keybinding-row-sendRequest');
@@ -202,7 +202,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await page.getByTestId('reset-all-keybindings-btn').click({ timeout: 2000 });
       });
 
-      test('sends request when cursor is in pre-request Vars value editor', async ({ page }) => {
+      test('sends request when cursor is in pre-request Vars value editor', async ({ pageWithUserData: page }) => {
         // Remap sendRequest to Shift+Enter
         await openKeybindingsTab(page);
         const row = page.getByTestId('keybinding-row-sendRequest');
@@ -249,7 +249,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
     });
 
     test.describe('SHORTCUT: Change Orientation (Cmd/Ctrl+J)', () => {
-      test('default Cmd/Ctrl+J change layout orientation', async ({ page, createTmpDir }) => {
+      test('default Cmd/Ctrl+J change layout orientation', async ({ pageWithUserData: page, createTmpDir }) => {
         await openRequest(page, 'kb-collection', 'req-5', { persist: true });
 
         // Press Cmd/Ctrl+J to change layout
@@ -276,7 +276,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
     });
 
     test.describe('SHORTCUT: Change Orientation (customized Alt+Shift+Y)', () => {
-      test('customized Alt+Shift+Y change layout orientation', async ({ page, createTmpDir }) => {
+      test('customized Alt+Shift+Y change layout orientation', async ({ pageWithUserData: page, createTmpDir }) => {
         await openKeybindingsTab(page);
         const row = page.getByTestId('keybinding-row-changeLayout');
         await row.hover();

@@ -7,18 +7,18 @@ import {
 } from './helpers';
 
 test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
-  test.beforeEach(async ({ page, createTmpDir }) => {
+  test.beforeEach(async ({ pageWithUserData: page, createTmpDir }) => {
     await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 5000 });
     await setupBoundActionsData(page, createTmpDir);
   });
 
-  test.afterAll(async ({ page }) => {
+  test.afterAll(async ({ pageWithUserData: page }) => {
     await closeAllCollections(page);
   });
 
   test.describe('DEVELOPER TOOLS', () => {
     test.describe('SHORTCUT: Open Terminal (Cmd/Ctrl+T)', () => {
-      test('default Cmd/Ctrl+T opens terminal', async ({ page, createTmpDir }) => {
+      test('default Cmd/Ctrl+T opens terminal', async ({ pageWithUserData: page, createTmpDir }) => {
         // Open Collection-Settings tab (double-click collection name)
         await page.getByTestId('sidebar-collection-row').filter({ has: page.getByText('kb-collection', { exact: true }) }).click();
         await expect(page.locator('.request-tab').filter({ has: page.getByText('Collection', { exact: true }) })).toBeVisible({ timeout: 2000 });
@@ -57,7 +57,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
     });
 
     test.describe('SHORTCUT: Open Terminal (customized Alt+T)', () => {
-      test('customized Alt+T opens terminal', async ({ page, createTmpDir }) => {
+      test('customized Alt+T opens terminal', async ({ pageWithUserData: page, createTmpDir }) => {
         // Remap openTerminal to Alt+T
         await openKeybindingsTab(page);
         const row = page.getByTestId('keybinding-row-openTerminal');
