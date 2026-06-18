@@ -23,7 +23,8 @@ import {
 } from '@tabler/icons';
 import { useSelector, useDispatch } from 'react-redux';
 import { addTab, focusTab, makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
-import { handleCollectionItemDrop, sendRequest, showInFolder, pasteItem, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
+import { handleCollectionItemDrop, sendRequest, showInFolder, pasteItem, saveRequest, cloneItem } from 'providers/ReduxStore/slices/collections/actions';
+import { sanitizeName } from 'utils/common/regex';
 import { toggleCollectionItem, addResponseExample } from 'providers/ReduxStore/slices/collections';
 import { insertTaskIntoQueue } from 'providers/ReduxStore/slices/app';
 import { uuid } from 'utils/common';
@@ -111,7 +112,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
 
   // Sidebar shortcuts — only active when this sidebar item has keyboard focus
   useKeybinding('cloneItem', () => {
-    setCloneItemModalOpen(true);
+    handleCloneItem();
     return false;
   }, { enabled: isKeyboardFocused, deps: [isKeyboardFocused] });
 
@@ -375,7 +376,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
         id: 'clone',
         leftSection: IconCopy,
         label: 'Clone',
-        onClick: () => setCloneItemModalOpen(true)
+        onClick: handleCloneItem
       },
       {
         id: 'copy',
@@ -597,6 +598,14 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
     dispatch(copyRequest(item));
     const itemType = isFolder ? 'Folder' : 'Request';
     toast.success(`${itemType} copied`);
+  };
+
+  // One-click clone: display name becomes "<source> copy"; the filesystem name
+  // uniqueness is resolved silently by electron (no name prompt / modal).
+  const handleCloneItem = () => {
+    dispatch(cloneItem(`${item.name} copy`, `${sanitizeName(item.name)} copy`, item.uid, collectionUid))
+      .then(() => toast.success(`${isFolder ? 'Folder' : 'Request'} cloned!`))
+      .catch((err) => toast.error(err?.message || `An error occurred while cloning the ${isFolder ? 'folder' : 'request'}`));
   };
 
   const handlePasteItem = () => {
