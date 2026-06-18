@@ -74,10 +74,10 @@ const parseAmqpRequest = (ocRequest: any): BrunoItem => {
   brunoRequest.vars = variables;
 
   // docs
-  if (ocRequest.docs) {
-     if (ocRequest.docs != null {
-    brunoRequest.docs =    ensureString(ocRequest.docs);
-   }
+  if (ocRequest.docs != null) {
+    brunoRequest.docs = ensureString(ocRequest.docs);
+  }
+
   // settings
   const amqpSettings: Record<string, number | string> = {
     timeout: 5000,
