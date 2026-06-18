@@ -102,7 +102,6 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await page.keyboard.down('Escape');
         await page.keyboard.up('Escape');
 
-        // await closeActiveTab();
         await page.keyboard.down('Shift');
         await page.keyboard.down('KeyX');
         await page.keyboard.up('KeyX');
