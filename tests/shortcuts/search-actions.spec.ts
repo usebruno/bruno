@@ -24,14 +24,11 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await page.keyboard.up('KeyK');
         await page.keyboard.up(modifier);
 
-        // console.log('1');
         await expect(page.getByTestId('global-search-input')).toBeVisible({ timeout: 5000 });
         await page.getByTestId('global-search-input').click();
 
-        // console.log('2');
         await page.keyboard.down('Escape');
         await page.keyboard.up('Escape');
-        // console.log('3');
       });
 
       test('customized Shift+K Global Search Modal', async ({ page }) => {
@@ -42,29 +39,23 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await page.getByTestId('keybinding-edit-globalSearch').click();
         await expect(page.getByTestId('keybinding-input-globalSearch')).toBeVisible({ timeout: 2000 });
 
-        // console.log('1');
         await page.keyboard.down('Backspace');
 
-        // console.log('2');
         await page.keyboard.down('Shift');
         await page.keyboard.down('KeyK');
         await page.keyboard.up('KeyK');
         await page.keyboard.up('Shift');
 
-        // console.log('3');
         await page.keyboard.down('Shift');
         await page.keyboard.down('KeyK');
         await page.keyboard.up('KeyK');
         await page.keyboard.up('Shift');
 
-        // console.log('4');
         await expect(page.getByTestId('global-search-input')).toBeVisible({ timeout: 5000 });
         await page.getByTestId('global-search-input').click();
 
-        // console.log('5');
         await page.keyboard.down('Escape');
         await page.keyboard.up('Escape');
-        // console.log('6');
       });
     });
   });

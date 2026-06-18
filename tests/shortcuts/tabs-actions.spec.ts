@@ -32,10 +32,10 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await reqTab.click();
         await expect(reqTab).toHaveClass(/active/, { timeout: 2000 });
 
-        // console.log('1');
+        // ;
         await page.keyboard.press(`${modifier}+KeyW`);
         await expect(reqTab).not.toBeVisible({ timeout: 3000 });
-        // console.log('2');
+        // ;
       });
 
       test('Close active tab customized (Shift+X)', async ({ page, createTmpDir }) => {
@@ -47,30 +47,30 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         // Wait for input to enter recording mode
         await expect(page.getByTestId(`keybinding-input-closeTab`)).toBeVisible({ timeout: 2000 });
 
-        // console.log('1');
+        // ;
         // Remove the old keybindings
         await page.keyboard.down('Backspace');
 
-        // console.log('2');
+        // ;
         await page.keyboard.down('Shift');
         await page.keyboard.down('KeyX');
         await page.keyboard.up('KeyX');
         await page.keyboard.up('Shift');
 
-        // console.log('3');
+        // ;
         await closePreferencesTab(page);
 
-        // console.log('4');
+        // ;
         await openRequest(page, collectionName, 'req-1', { persist: true });
         await expect(page.locator('.request-tab').filter({ has: page.getByText('req-1', { exact: true }) })).toBeVisible({ timeout: 2000 });
 
-        // console.log('5');
+        // ;
         await page.keyboard.down('Shift');
         await page.keyboard.down('KeyX');
         await page.keyboard.up('KeyX');
         await page.keyboard.up('Shift');
         await expect(page.locator('.request-tab').filter({ has: page.getByText('req-1', { exact: true }) })).not.toBeVisible({ timeout: 3000 });
-        // console.log('6');
+        // ;
       });
     });
 
@@ -83,18 +83,18 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         const requestTab = page.locator('.request-tab').filter({ has: page.getByText('req-1', { exact: true }) });
         await expect(requestTab).toBeVisible({ timeout: 2000 });
 
-        // console.log('1');
+        // ;
         await page.locator('#request-url .CodeMirror').click();
         await page.keyboard.type('/users');
         await expect(requestTab.locator('.has-changes-icon')).toBeVisible();
 
-        // console.log('2');
+        // ;
         await page.keyboard.down('Shift');
         await page.keyboard.down('KeyX');
         await page.keyboard.up('KeyX');
         await page.keyboard.up('Shift');
 
-        // console.log('3');
+        // ;
         // The request "Unsaved changes" modal should appear
         const modal = page.locator('.bruno-modal-card').filter({ has: page.getByText('Unsaved changes', { exact: true }) });
         await expect(modal).toBeVisible({ timeout: 3000 });
@@ -104,29 +104,29 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await expect(modal.getByRole('button', { name: 'Cancel' })).toBeVisible();
         await expect(modal.getByRole('button', { name: 'Save', exact: true })).toBeVisible();
 
-        // console.log('4');
+        // ;
         // Cancel keeps the tab open with its draft intact
         await modal.getByRole('button', { name: 'Cancel' }).click();
         await expect(modal).not.toBeVisible();
         await expect(requestTab.locator('.has-changes-icon')).toBeVisible();
 
-        // console.log('5');
+        // ;
         // Trigger again and discard → the tab closes
         await page.keyboard.down('Escape');
         await page.keyboard.up('Escape');
 
-        // console.log('6');
+        // ;
         // await closeActiveTab();
         await page.keyboard.down('Shift');
         await page.keyboard.down('KeyX');
         await page.keyboard.up('KeyX');
         await page.keyboard.up('Shift');
 
-        // console.log('7');
+        // ;
         await expect(modal).toBeVisible({ timeout: 3000 });
         await modal.getByRole('button', { name: 'Don\'t Save' }).click();
         await expect(requestTab).not.toBeVisible({ timeout: 3000 });
-        // console.log('8');
+        // ;
       });
 
       test('Close active tab customized (Shift+X) shows unsaved changes modal for folder', async ({ page }) => {
@@ -135,7 +135,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         const folderTab = page.locator('.request-tab').filter({ has: page.getByText('kb-draft-folder', { exact: true }) });
         await expect(folderTab).toBeVisible({ timeout: 3000 });
 
-        // console.log('1');
+        // ;
         const headerRow = page.locator('table').first().locator('tbody tr').first();
         await headerRow.locator('.CodeMirror').first().click();
         await page.keyboard.type('X-Folder-Header');
@@ -143,13 +143,13 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await page.keyboard.type('folder-value');
         await expect(folderTab.locator('.has-changes-icon')).toBeVisible();
 
-        // console.log('2');
+        // ;
         await page.keyboard.down('Shift');
         await page.keyboard.down('KeyX');
         await page.keyboard.up('KeyX');
         await page.keyboard.up('Shift');
 
-        // console.log('3');
+        // ;
         // The folder "Unsaved changes" modal should appear
         const modal = page.locator('.bruno-modal-card').filter({ has: page.getByText('Unsaved changes', { exact: true }) });
         await expect(modal).toBeVisible({ timeout: 3000 });
@@ -159,28 +159,28 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await expect(modal.getByRole('button', { name: 'Cancel' })).toBeVisible();
         await expect(modal.getByRole('button', { name: 'Save', exact: true })).toBeVisible();
 
-        // console.log('4');
+        // ;
         // Cancel keeps the tab open with its draft intact
         await modal.getByRole('button', { name: 'Cancel' }).click();
         await expect(modal).not.toBeVisible();
         await expect(folderTab.locator('.has-changes-icon')).toBeVisible();
 
-        // console.log('5');
+        // ;
         // Trigger again and discard → the tab closes
         await page.keyboard.down('Escape');
         await page.keyboard.up('Escape');
 
-        // console.log('6');
+        // ;
         await page.keyboard.down('Shift');
         await page.keyboard.down('KeyX');
         await page.keyboard.up('KeyX');
         await page.keyboard.up('Shift');
 
-        // console.log('7');
+        // ;
         await expect(modal).toBeVisible({ timeout: 3000 });
         await modal.getByRole('button', { name: 'Don\'t Save' }).click();
         await expect(folderTab).not.toBeVisible({ timeout: 3000 });
-        // console.log('8');
+        // ;
       });
 
       test('Close active tab customized (Shift+X) shows unsaved changes modal for collection', async ({ page }) => {
@@ -189,7 +189,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         const collectionTab = page.locator('.request-tab').filter({ has: page.getByText('Collection', { exact: true }) });
         await expect(collectionTab).toBeVisible({ timeout: 3000 });
 
-        // console.log('1');
+        // ;
         await page.locator('.tab.headers').click();
         const headerRow = page.locator('table').first().locator('tbody tr').first();
         await headerRow.locator('.CodeMirror').first().click();
@@ -198,13 +198,13 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await page.keyboard.type('custom-value');
         await expect(collectionTab.locator('.has-changes-icon')).toBeVisible();
 
-        // console.log('2');
+        // ;
         await page.keyboard.down('Shift');
         await page.keyboard.down('KeyX');
         await page.keyboard.up('KeyX');
         await page.keyboard.up('Shift');
 
-        // console.log('3');
+        // ;
         // The collection "Unsaved changes" modal should appear
         const modal = page.locator('.bruno-modal-card').filter({ has: page.getByText('Unsaved changes', { exact: true }) });
         await expect(modal).toBeVisible({ timeout: 3000 });
@@ -214,28 +214,28 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await expect(modal.getByRole('button', { name: 'Cancel' })).toBeVisible();
         await expect(modal.getByRole('button', { name: 'Save', exact: true })).toBeVisible();
 
-        // console.log('4');
+        // ;
         // Cancel keeps the tab open with its draft intact
         await modal.getByRole('button', { name: 'Cancel' }).click();
         await expect(modal).not.toBeVisible();
         await expect(collectionTab.locator('.has-changes-icon')).toBeVisible();
 
-        // console.log('5');
+        // ;
         // Trigger again and discard → the tab closes
         await page.keyboard.down('Escape');
         await page.keyboard.up('Escape');
 
-        // console.log('6');
+        // ;
         await page.keyboard.down('Shift');
         await page.keyboard.down('KeyX');
         await page.keyboard.up('KeyX');
         await page.keyboard.up('Shift');
 
-        // console.log('7');
+        // ;
         await expect(modal).toBeVisible({ timeout: 3000 });
         await modal.getByRole('button', { name: 'Don\'t Save' }).click();
         await expect(collectionTab).not.toBeVisible({ timeout: 3000 });
-        // console.log('8');
+        // ;
       });
     });
 
@@ -249,7 +249,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await expect(page.locator('.request-tab').filter({ has: page.getByText('req-2', { exact: true }) })).toBeVisible({ timeout: 2000 });
         await expect(page.locator('.request-tab').filter({ has: page.getByText('req-3', { exact: true }) })).toBeVisible({ timeout: 2000 });
 
-        // console.log('1');
+        // ;
         await page.keyboard.down(modifier);
         await page.keyboard.down('Shift');
         await page.keyboard.down('KeyW');
@@ -259,7 +259,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await expect(page.locator('.request-tab').filter({ has: page.getByText('req-1', { exact: true }) })).not.toBeVisible({ timeout: 3000 });
         await expect(page.locator('.request-tab').filter({ has: page.getByText('req-2', { exact: true }) })).not.toBeVisible({ timeout: 3000 });
         await expect(page.locator('.request-tab').filter({ has: page.getByText('req-3', { exact: true }) })).not.toBeVisible({ timeout: 3000 });
-        // console.log('2');
+        // ;
       });
 
       test('Close all tabs customized (Alt+Y)', async ({ page }) => {
@@ -270,19 +270,19 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await page.getByTestId('keybinding-row-closeAllTabs').click();
         await expect(page.getByTestId('keybinding-input-closeAllTabs')).toBeVisible({ timeout: 2000 });
 
-        // console.log('1');
+        // ;
         await page.keyboard.down('Backspace');
 
-        // console.log('2');
+        // ;
         await page.keyboard.down('Alt');
         await page.keyboard.down('KeyY');
         await page.keyboard.up('KeyY');
         await page.keyboard.up('Alt');
 
-        // console.log('3');
+        // ;
         await closePreferencesTab(page);
 
-        // console.log('4');
+        // ;
         await openRequest(page, collectionName, 'req-1', { persist: true });
         await openRequest(page, collectionName, 'req-2', { persist: true });
         await openRequest(page, collectionName, 'req-3', { persist: true });
@@ -290,7 +290,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await expect(page.locator('.request-tab').filter({ has: page.getByText('req-2', { exact: true }) })).toBeVisible({ timeout: 2000 });
         await expect(page.locator('.request-tab').filter({ has: page.getByText('req-3', { exact: true }) })).toBeVisible({ timeout: 2000 });
 
-        // console.log('5');
+        // ;
         await page.keyboard.down('Alt');
         await page.keyboard.down('KeyY');
         await page.keyboard.up('KeyY');
@@ -298,7 +298,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await expect(page.locator('.request-tab').filter({ has: page.getByText('req-1', { exact: true }) })).not.toBeVisible({ timeout: 3000 });
         await expect(page.locator('.request-tab').filter({ has: page.getByText('req-2', { exact: true }) })).not.toBeVisible({ timeout: 3000 });
         await expect(page.locator('.request-tab').filter({ has: page.getByText('req-3', { exact: true }) })).not.toBeVisible({ timeout: 3000 });
-        // console.log('6');
+        // ;
       });
     });
 
@@ -307,46 +307,46 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await page.getByTestId('sidebar-collection-row').filter({ has: page.getByText('kb-collection', { exact: true }) }).dblclick();
         await expect(page.locator('.request-tab').filter({ has: page.getByText('Collection', { exact: true }) })).toBeVisible({ timeout: 2000 });
 
-        // console.log('1');
+        // ;
         // Verify initially there is NO draft indicator (close icon is present)
         const collectionTab = page.locator('.request-tab').filter({ has: page.getByText('Collection', { exact: true }) });
         await expect(collectionTab.locator('.close-icon')).toBeVisible();
         await expect(collectionTab.locator('.has-changes-icon')).not.toBeVisible();
 
-        // console.log('2');
+        // ;
         await page.locator('.tab.headers').click();
 
-        // console.log('3');
+        // ;
         const headerTable = page.locator('table').first();
         const headerRow = headerTable.locator('tbody tr').first();
 
-        // console.log('4');
+        // ;
         const nameEditor = headerRow.locator('.CodeMirror').first();
         await nameEditor.click();
         await page.keyboard.type('X-Custom-Header');
 
-        // console.log('5');
+        // ;
         const valueEditor = headerRow.locator('.CodeMirror').nth(1);
         await valueEditor.click();
         await page.keyboard.type('custom-value');
 
-        // console.log('6');
+        // ;
         // Verify draft indicator appears in the tab
         await expect(collectionTab.locator('.has-changes-icon')).toBeVisible();
         await expect(collectionTab.locator('.close-icon')).not.toBeVisible();
 
-        // console.log('7');
+        // ;
         // Save the changes
         await page.keyboard.down(modifier);
         await page.keyboard.down('KeyS');
         await page.keyboard.up('KeyS');
         await page.keyboard.up(modifier);
 
-        // console.log('8');
+        // ;
         // Verify draft indicator is gone after saving
         await expect(collectionTab.locator('.close-icon')).toBeVisible();
         await expect(collectionTab.locator('.has-changes-icon')).not.toBeVisible();
-        // console.log('9');
+        // ;
       });
 
       test('Save tab customized (Alt+S)', async ({ page, createTmpDir }) => {
@@ -357,65 +357,65 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await page.getByTestId('keybinding-edit-save').click();
         await expect(page.getByTestId('keybinding-input-save')).toBeVisible({ timeout: 2000 });
 
-        // console.log('1');
+        // ;
         await page.keyboard.down('Backspace');
 
-        // console.log('2');
+        // ;
         await page.keyboard.down('Alt');
         await page.keyboard.down('KeyS');
         await page.keyboard.up('KeyS');
         await page.keyboard.up('Alt');
 
-        // console.log('3');
+        // ;
         await closePreferencesTab(page);
 
-        // console.log('4');
+        // ;
         await page.getByTestId('sidebar-collection-row').filter({ has: page.getByText('kb-collection', { exact: true }) }).dblclick();
         await expect(page.locator('.request-tab').filter({ has: page.getByText('Collection', { exact: true }) })).toBeVisible({ timeout: 2000 });
 
-        // console.log('5');
+        // ;
         // Verify initially there is NO draft indicator (close icon is present)
         const collectionTab = page.locator('.request-tab').filter({ has: page.getByText('Collection', { exact: true }) });
         await expect(collectionTab.locator('.close-icon')).toBeVisible();
         await expect(collectionTab.locator('.has-changes-icon')).not.toBeVisible();
 
-        // console.log('6');
+        // ;
         await page.locator('.tab.headers').click();
 
-        // console.log('7');
+        // ;
         const headerTable = page.locator('table').first();
         const headerRow = headerTable.locator('tbody tr').first();
 
-        // console.log('8');
+        // ;
         const nameEditor = headerRow.locator('.CodeMirror').first();
         await nameEditor.click();
         await page.keyboard.type('X-Custom-Header');
 
-        // console.log('9');
+        // ;
         const valueEditor = headerRow.locator('.CodeMirror').nth(1);
         await valueEditor.click();
         await page.keyboard.type('custom-value');
 
-        // console.log('10');
+        // ;
         // Verify draft indicator appears in the tab
         await expect(collectionTab.locator('.has-changes-icon')).toBeVisible();
         await expect(collectionTab.locator('.close-icon')).not.toBeVisible();
 
-        // console.log('11');
+        // ;
         await page.locator('body').click({ position: { x: 1, y: 1 } });
 
-        // console.log('12');
+        // ;
         // Save the changes
         await page.keyboard.down('Alt');
         await page.keyboard.down('KeyS');
         await page.keyboard.up('KeyS');
         await page.keyboard.up('Alt');
 
-        // console.log('13');
+        // ;
         // Verify draft indicator is gone after saving
         await expect(collectionTab.locator('.close-icon')).toBeVisible();
         await expect(collectionTab.locator('.has-changes-icon')).not.toBeVisible();
-        // console.log('14');
+        // ;
       });
     });
 
@@ -424,67 +424,67 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await page.getByTestId('sidebar-collection-row').filter({ has: page.getByText('kb-collection', { exact: true }) }).dblclick();
         await expect(page.locator('.request-tab').filter({ has: page.getByText('Collection', { exact: true }) })).toBeVisible({ timeout: 2000 });
 
-        // console.log('1');
+        // ;
         // Verify initially there is NO draft indicator (close icon is present)
         const collectionTab = page.locator('.request-tab').filter({ has: page.getByText('Collection', { exact: true }) });
         await expect(collectionTab.locator('.close-icon')).toBeVisible();
         await expect(collectionTab.locator('.has-changes-icon')).not.toBeVisible();
 
-        // console.log('2');
+        // ;
         await page.locator('.tab.headers').click();
 
-        // console.log('3');
+        // ;
         const headerTable = page.locator('table').first();
         const headerRow = headerTable.locator('tbody tr').first();
 
-        // console.log('4');
+        // ;
         const nameEditor = headerRow.locator('.CodeMirror').first();
         await nameEditor.click();
         await page.keyboard.type('X-Custom-Header');
 
-        // console.log('5');
+        // ;
         const valueEditor = headerRow.locator('.CodeMirror').nth(1);
         await valueEditor.click();
         await page.keyboard.type('custom-value');
 
-        // console.log('6');
+        // ;
         // Verify draft indicator appears in the tab
         await expect(collectionTab.locator('.has-changes-icon')).toBeVisible();
         await expect(collectionTab.locator('.close-icon')).not.toBeVisible();
 
-        // console.log('7');
+        // ;
         // Open Folder-Settings tab (create folder + double-click)
         await page.locator('.collection-item-name').filter({ has: page.getByText('kb-draft-folder', { exact: true }) }).dblclick();
 
-        // console.log('8');
+        // ;
         // Verify folder settings tab is open
         const folderTab = page.locator('.request-tab').filter({ has: page.getByText('kb-draft-folder', { exact: true }) });
         await expect(folderTab).toBeVisible();
 
-        // console.log('9');
+        // ;
         await expect(folderTab.locator('.close-icon')).toBeVisible();
         await expect(folderTab.locator('.has-changes-icon')).not.toBeVisible();
 
-        // console.log('10');
+        // ;
         const folderHeaderTable = page.locator('table').first();
         const folderHeaderRow = folderHeaderTable.locator('tbody tr').first();
 
-        // console.log('11');
+        // ;
         const folderNameEditor = folderHeaderRow.locator('.CodeMirror').first();
         await folderNameEditor.click();
         await page.keyboard.type('X-Folder-Header');
 
-        // console.log('12');
+        // ;
         const folderValueEditor = folderHeaderRow.locator('.CodeMirror').nth(1);
         await folderValueEditor.click();
         await page.keyboard.type('folder-value');
 
-        // console.log('13');
+        // ;
         // Verify draft indicator appears in the folder tab
         await expect(folderTab.locator('.has-changes-icon')).toBeVisible();
         await expect(folderTab.locator('.close-icon')).not.toBeVisible();
 
-        // console.log('14');
+        // ;
         // Save the changes
         await page.keyboard.down(modifier);
         await page.keyboard.down('Shift');
@@ -493,16 +493,16 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await page.keyboard.up('Shift');
         await page.keyboard.up(modifier);
 
-        // console.log('15');
+        // ;
         // Verify draft indicator is gone after saving
         await expect(folderTab.locator('.close-icon')).toBeVisible();
         await expect(folderTab.locator('.has-changes-icon')).not.toBeVisible();
 
-        // console.log('16');
+        // ;
         // Verify draft indicator is gone after saving
         await expect(collectionTab.locator('.close-icon')).toBeVisible();
         await expect(collectionTab.locator('.has-changes-icon')).not.toBeVisible();
-        // console.log('17');
+        // ;
       });
 
       test('Save all tabs customized (Alt+Shift+S)', async ({ page }) => {
@@ -513,10 +513,10 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await page.getByTestId('keybinding-edit-saveAllTabs').click();
         await expect(page.getByTestId('keybinding-input-saveAllTabs')).toBeVisible({ timeout: 2000 });
 
-        // console.log('1');
+        // ;
         await page.keyboard.down('Backspace');
 
-        // console.log('2');
+        // ;
         await page.keyboard.down('Alt');
         await page.keyboard.down('Shift');
         await page.keyboard.down('KeyS');
@@ -524,74 +524,74 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await page.keyboard.up('Shift');
         await page.keyboard.up('Alt');
 
-        // console.log('3');
+        // ;
         await closePreferencesTab(page);
 
-        // console.log('4');
+        // ;
         await page.getByTestId('sidebar-collection-row').filter({ has: page.getByText(collectionName, { exact: true }) }).dblclick();
         await expect(page.locator('.request-tab').filter({ has: page.getByText('Collection', { exact: true }) })).toBeVisible({ timeout: 2000 });
 
-        // console.log('5');
+        // ;
         // Verify initially there is NO draft indicator (close icon is present)
         const collectionTab = page.locator('.request-tab').filter({ has: page.getByText('Collection', { exact: true }) });
         await expect(collectionTab.locator('.close-icon')).toBeVisible();
         await expect(collectionTab.locator('.has-changes-icon')).not.toBeVisible();
 
-        // console.log('6');
+        // ;
         await page.locator('.tab.headers').click();
 
-        // console.log('7');
+        // ;
         const headerTable = page.locator('table').first();
         const headerRow = headerTable.locator('tbody tr').first();
 
-        // console.log('8');
+        // ;
         const nameEditor = headerRow.locator('.CodeMirror').first();
         await nameEditor.click();
         await page.keyboard.type('X-Custom-Header');
 
-        // console.log('9');
+        // ;
         const valueEditor = headerRow.locator('.CodeMirror').nth(1);
         await valueEditor.click();
         await page.keyboard.type('custom-value');
 
-        // console.log('10');
+        // ;
         // Verify draft indicator appears in the tab
         await expect(collectionTab.locator('.has-changes-icon')).toBeVisible();
         await expect(collectionTab.locator('.close-icon')).not.toBeVisible();
 
-        // console.log('11');
+        // ;
         // Open Folder-Settings tab (create folder + double-click)
         await page.locator('.collection-item-name').filter({ has: page.getByText('kb-draft-folder', { exact: true }) }).dblclick();
 
-        // console.log('12');
+        // ;
         // Verify folder settings tab is open
         const folderTab = page.locator('.request-tab').filter({ has: page.getByText('kb-draft-folder', { exact: true }) });
         await expect(folderTab).toBeVisible();
 
-        // console.log('13');
+        // ;
         await expect(folderTab.locator('.close-icon')).toBeVisible();
         await expect(folderTab.locator('.has-changes-icon')).not.toBeVisible();
 
-        // console.log('14');
+        // ;
         const folderHeaderTable = page.locator('table').first();
         const folderHeaderRow = folderHeaderTable.locator('tbody tr').first();
 
-        // console.log('15');
+        // ;
         const folderNameEditor = folderHeaderRow.locator('.CodeMirror').first();
         await folderNameEditor.click();
         await page.keyboard.type('X-Folder-Header');
 
-        // console.log('16');
+        // ;
         const folderValueEditor = folderHeaderRow.locator('.CodeMirror').nth(1);
         await folderValueEditor.click();
         await page.keyboard.type('folder-value');
 
-        // console.log('17');
+        // ;
         // Verify draft indicator appears in the folder tab
         await expect(folderTab.locator('.has-changes-icon')).toBeVisible();
         await expect(folderTab.locator('.close-icon')).not.toBeVisible();
 
-        // console.log('18');
+        // ;
         // Save the changes
         await page.keyboard.down('Alt');
         await page.keyboard.down('Shift');
@@ -600,16 +600,16 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await page.keyboard.up('Shift');
         await page.keyboard.up('Alt');
 
-        // console.log('19');
+        // ;
         // Verify draft indicator is gone after saving
         await expect(folderTab.locator('.close-icon')).toBeVisible();
         await expect(folderTab.locator('.has-changes-icon')).not.toBeVisible();
 
-        // console.log('20');
+        // ;
         // Verify draft indicator is gone after saving
         await expect(collectionTab.locator('.close-icon')).toBeVisible();
         await expect(collectionTab.locator('.has-changes-icon')).not.toBeVisible();
-        // console.log('21');
+        // ;
       });
     });
 
@@ -620,16 +620,16 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await openRequest(page, collectionName, 'req-6', { persist: true });
         await expect(page.locator('.request-tab').filter({ has: page.getByText('req-6', { exact: true }) })).toBeVisible({ timeout: 2000 });
 
-        // console.log('1');
+        // ;
         // req-6 is active (last opened) - press previous → req-5
         await page.keyboard.press(`${modifier}+Shift+BracketLeft`);
         await expect(page.locator('li.request-tab.active')).toHaveText(/req-5/, { timeout: 3000 });
 
-        // console.log('2');
+        // ;
         // Press again → req-4
         await page.keyboard.press(`${modifier}+Shift+BracketLeft`);
         await expect(page.locator('li.request-tab.active')).toHaveText(/req-4/, { timeout: 3000 });
-        // console.log('3');
+        // ;
       });
 
       test('Switch to Previous Tab customized (Shift+P)', async ({ page }) => {
@@ -640,33 +640,33 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await page.getByTestId('keybinding-edit-switchToPreviousTab').click();
         await expect(page.getByTestId('keybinding-input-switchToPreviousTab')).toBeVisible({ timeout: 2000 });
 
-        // console.log('1');
+        // ;
         await page.keyboard.down('Backspace');
 
-        // console.log('2');
+        // ;
         await page.keyboard.down('Shift');
         await page.keyboard.down('KeyP');
         await page.keyboard.up('KeyP');
         await page.keyboard.up('Shift');
 
-        // console.log('3');
+        // ;
         await closePreferencesTab(page);
 
-        // console.log('4');
+        // ;
         // Reuse the same requests opened in the default test
         await openRequest(page, collectionName, 'req-4', { persist: true });
         await openRequest(page, collectionName, 'req-5', { persist: true });
         await openRequest(page, collectionName, 'req-6', { persist: true });
         await expect(page.locator('.request-tab').filter({ has: page.getByText('req-6', { exact: true }) })).toBeVisible({ timeout: 2000 });
 
-        // console.log('5');
+        // ;
         // req-6 is active - press Shift+P → req-5
         await page.keyboard.down('Shift');
         await page.keyboard.down('KeyP');
         await page.keyboard.up('KeyP');
         await page.keyboard.up('Shift');
         await expect(page.locator('li.request-tab.active')).toHaveText(/req-5/, { timeout: 3000 });
-        // console.log('6');
+        // ;
       });
     });
 
@@ -676,21 +676,21 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await openRequest(page, collectionName, 'req-5', { persist: true });
         await openRequest(page, collectionName, 'req-6', { persist: true });
 
-        // console.log('1');
+        // ;
         // Go back to req-4 to start from the left
         await openRequest(page, 'kb-collection', 'req-4', { persist: true });
         await expect(page.locator('li.request-tab.active')).toHaveText(/req-4/);
 
-        // console.log('2');
+        // ;
         // req-4 is active - press next → req-5
         await page.keyboard.press(`${modifier}+Shift+BracketRight`);
         await expect(page.locator('li.request-tab.active')).toHaveText(/req-5/, { timeout: 3000 });
 
-        // console.log('3');
+        // ;
         // Press again → req-6
         await page.keyboard.press(`${modifier}+Shift+BracketRight`);
         await expect(page.locator('li.request-tab.active')).toHaveText(/req-6/, { timeout: 3000 });
-        // console.log('4');
+        // ;
       });
 
       test('Switch to Next Tab customized (Shift+N)', async ({ page }) => {
@@ -701,36 +701,36 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await page.getByTestId('keybinding-edit-switchToNextTab').click();
         await expect(page.getByTestId('keybinding-input-switchToNextTab')).toBeVisible({ timeout: 2000 });
 
-        // console.log('1');
+        // ;
         await page.keyboard.down('Backspace');
 
-        // console.log('2');
+        // ;
         await page.keyboard.down('Shift');
         await page.keyboard.down('KeyN');
         await page.keyboard.up('KeyN');
         await page.keyboard.up('Shift');
 
-        // console.log('3');
+        // ;
         await closePreferencesTab(page);
 
-        // console.log('4');
+        // ;
         await openRequest(page, collectionName, 'req-4', { persist: true });
         await openRequest(page, collectionName, 'req-5', { persist: true });
         await openRequest(page, collectionName, 'req-6', { persist: true });
 
-        // console.log('5');
+        // ;
         // Go back to req-4
         await openRequest(page, 'kb-collection', 'req-4', { persist: true });
         await expect(page.locator('li.request-tab.active')).toHaveText(/req-4/);
 
-        // console.log('6');
+        // ;
         // req-4 is active - press Shift+N → req-5
         await page.keyboard.down('Shift');
         await page.keyboard.down('KeyN');
         await page.keyboard.up('KeyN');
         await page.keyboard.up('Shift');
         await expect(page.locator('li.request-tab.active')).toHaveText(/req-5/, { timeout: 3000 });
-        // console.log('7');
+        // ;
       });
     });
 
@@ -740,23 +740,23 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await openRequest(page, collectionName, 'req-8', { persist: true });
         await openRequest(page, collectionName, 'req-9', { persist: true });
 
-        // console.log('1');
+        // ;
         // req-9 is active and last
         const tabs = page.locator('.request-tab');
         const totalTabs = await tabs.count();
         await expect(tabs.nth(totalTabs - 1)).toHaveText(/req-9/);
 
-        // console.log('2');
+        // ;
         // Press Cmd/Ctrl+[ → req-9 moves left, req-8 becomes last
         await page.keyboard.press(`${modifier}+BracketLeft`);
         await expect(tabs.nth(totalTabs - 1)).toHaveText(/req-8/, { timeout: 3000 });
         await expect(tabs.nth(totalTabs - 2)).toHaveText(/req-9/);
 
-        // console.log('3');
+        // ;
         // Press again → req-9 moves one more position left
         await page.keyboard.press(`${modifier}+BracketLeft`);
         await expect(tabs.nth(totalTabs - 3)).toHaveText(/req-9/, { timeout: 3000 });
-        // console.log('4');
+        // ;
       });
 
       test('Move Tab Left customized (Alt+L)', async ({ page }) => {
@@ -767,47 +767,47 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await page.getByTestId('keybinding-edit-moveTabLeft').click();
         await expect(page.getByTestId('keybinding-input-moveTabLeft')).toBeVisible({ timeout: 2000 });
 
-        // console.log('1');
+        // ;
         await page.keyboard.down('Backspace');
 
-        // console.log('2');
+        // ;
         await page.keyboard.down('Alt');
         await page.keyboard.down('KeyL');
         await page.keyboard.up('KeyL');
         await page.keyboard.up('Alt');
 
-        // console.log('3');
+        // ;
         await closePreferencesTab(page);
 
-        // console.log('4');
+        // ;
         await openRequest(page, 'kb-collection', 'req-7', { persist: true });
         await openRequest(page, 'kb-collection', 'req-8', { persist: true });
         await openRequest(page, 'kb-collection', 'req-9', { persist: true });
 
-        // console.log('5');
+        // ;
         // req-9 is active
         const tabs = page.locator('.request-tab');
 
-        // console.log('6');
+        // ;
         // Press Alt+L → req-9 moves left, req-8 becomes last
         await page.keyboard.down('Alt');
         await page.keyboard.down('KeyL');
         await page.keyboard.up('KeyL');
         await page.keyboard.up('Alt');
 
-        // console.log('7');
+        // ;
         await page.keyboard.down('Alt');
         await page.keyboard.down('KeyL');
         await page.keyboard.up('KeyL');
         await page.keyboard.up('Alt');
 
-        // console.log('8');
+        // ;
         await page.keyboard.down('Alt');
         await page.keyboard.down('KeyL');
         await page.keyboard.up('KeyL');
         await page.keyboard.up('Alt');
         await expect(tabs.nth(0)).toHaveText(/req-9/);
-        // console.log('9');
+        // ;
       });
     });
 
@@ -818,7 +818,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await openRequest(page, collectionName, 'req-8', { persist: true });
         await openRequest(page, collectionName, 'req-9', { persist: true });
 
-        // console.log('1');
+        // ;
         // Move req-9 to first position first
         await page.keyboard.press(`${modifier}+BracketLeft`);
         await page.keyboard.press(`${modifier}+BracketLeft`);
@@ -827,21 +827,21 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         const startIndex = await getTabIndex(page, 'req-9');
         expect(startIndex).toBeGreaterThanOrEqual(0);
 
-        // console.log('2');
+        // ;
         await page.keyboard.press(`${modifier}+BracketRight`);
         const indexAfterOneMove = await getTabIndex(page, 'req-9');
         expect(indexAfterOneMove).toBeGreaterThanOrEqual(startIndex);
 
-        // console.log('3');
+        // ;
         await page.keyboard.press(`${modifier}+BracketRight`);
         const indexAfterTwoMoves = await getTabIndex(page, 'req-9');
         expect(indexAfterTwoMoves).toBeGreaterThanOrEqual(indexAfterOneMove);
 
-        // console.log('4');
+        // ;
         await page.keyboard.press(`${modifier}+BracketRight`);
         const indexAfterThreeMoves = await getTabIndex(page, 'req-9');
         expect(indexAfterThreeMoves).toBeGreaterThanOrEqual(indexAfterTwoMoves);
-        // console.log('5');
+        // ;
       });
 
       test('Move Tab Right customized (Alt+R)', async ({ page }) => {
@@ -852,64 +852,64 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await page.getByTestId('keybinding-edit-moveTabRight').click();
         await expect(page.getByTestId('keybinding-input-moveTabRight')).toBeVisible({ timeout: 2000 });
 
-        // console.log('1');
+        // ;
         await page.keyboard.down('Backspace');
 
-        // console.log('2');
+        // ;
         await page.keyboard.down('Alt');
         await page.keyboard.down('KeyR');
         await page.keyboard.up('KeyR');
         await page.keyboard.up('Alt');
 
-        // console.log('3');
+        // ;
         await closePreferencesTab(page);
 
-        // console.log('4');
+        // ;
         await openRequest(page, collectionName, 'req-6', { persist: true });
         await openRequest(page, collectionName, 'req-7', { persist: true });
         await openRequest(page, collectionName, 'req-8', { persist: true });
         await openRequest(page, collectionName, 'req-9', { persist: true });
 
-        // console.log('5');
+        // ;
         const req7Tab = page.locator('.request-tab').filter({ has: page.getByText('req-7', { exact: true }) }).first();
         await req7Tab.click();
         await expect(req7Tab).toHaveClass(/active/);
 
-        // console.log('6');
+        // ;
         const startIndex = await getTabIndex(page, 'req-7');
         expect(startIndex).toBeGreaterThanOrEqual(0);
 
-        // console.log('7');
+        // ;
         // Press Alt+L → req-9 moves right, req-8 becomes last
         await page.keyboard.down('Alt');
         await page.keyboard.down('KeyR');
         await page.keyboard.up('KeyR');
         await page.keyboard.up('Alt');
 
-        // console.log('8');
+        // ;
         const indexAfterOneMove = await getTabIndex(page, 'req-7');
         expect(indexAfterOneMove).toBeGreaterThan(startIndex);
 
-        // console.log('9');
+        // ;
         await page.keyboard.down('Alt');
         await page.keyboard.down('KeyR');
         await page.keyboard.up('KeyR');
         await page.keyboard.up('Alt');
 
-        // console.log('10');
+        // ;
         const indexAfterTwoMoves = await getTabIndex(page, 'req-7');
         expect(indexAfterTwoMoves).toBeGreaterThanOrEqual(indexAfterOneMove);
 
-        // console.log('11');
+        // ;
         await page.keyboard.down('Alt');
         await page.keyboard.down('KeyR');
         await page.keyboard.up('KeyR');
         await page.keyboard.up('Alt');
 
-        // console.log('12');
+        // ;
         const indexAfterThreeMoves = await getTabIndex(page, 'req-7');
         expect(indexAfterThreeMoves).toBeGreaterThanOrEqual(indexAfterTwoMoves);
-        // console.log('13');
+        // ;
       });
     });
 
@@ -925,7 +925,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await openRequest(page, 'kb-collection', 'req-8', { persist: true });
         await openRequest(page, 'kb-collection', 'req-9', { persist: true });
 
-        // console.log('1');
+        // ;
         await expect(page.locator('.request-tab').filter({ has: page.getByText('req-1', { exact: true }) })).toBeVisible({ timeout: 2000 });
         await expect(page.locator('.request-tab').filter({ has: page.getByText('req-2', { exact: true }) })).toBeVisible({ timeout: 2000 });
         await expect(page.locator('.request-tab').filter({ has: page.getByText('req-3', { exact: true }) })).toBeVisible({ timeout: 2000 });
@@ -937,7 +937,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await expect(page.locator('.request-tab').filter({ has: page.getByText('req-9', { exact: true }) })).toBeVisible({ timeout: 2000 });
         const tabs = page.locator('.request-tab');
 
-        // console.log('2');
+        // ;
         await expect(tabs.nth(0)).toHaveText(/req-1/, { timeout: 2000 });
         await page.keyboard.press(`${modifier}+1`);
         await expect(page.locator('li.request-tab.active')).toHaveText(/req-1/, { timeout: 3000 });
@@ -955,7 +955,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await expect(page.locator('li.request-tab.active')).toHaveText(/req-7/, { timeout: 3000 });
         await page.keyboard.press(`${modifier}+8`);
         await expect(page.locator('li.request-tab.active')).toHaveText(/req-8/, { timeout: 3000 });
-        // console.log('3');
+        // ;
       });
     });
 
@@ -968,48 +968,48 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await expect(req1Tab).toHaveClass(/active/);
         await closeTabByName(page, 'req-1');
 
-        // console.log('1');
+        // ;
         await reopenClosedTab(page, async () => page.keyboard.press(`${modifier}+Shift+t`), 'req-1');
-        // console.log('2');
+        // ;
       });
 
       test('Reopen Last Closed Tab customized (Cmd/Ctrl+Shift+T)', async ({ page }) => {
         await openRequest(page, collectionName, 'req-2', { persist: true });
 
-        // console.log('1');
+        // ;
         // Open Collection-Settings tab (double-click collection name)
         await page.getByTestId('sidebar-collection-row').filter({ has: page.getByText('kb-collection', { exact: true }) }).dblclick();
         await expect(page.locator('.request-tab').filter({ has: page.getByText('Collection', { exact: true }) })).toBeVisible({ timeout: 2000 });
 
-        // console.log('2');
+        // ;
         // Open Runner tab
         await page.getByTestId('runner').click();
         await expect(page.locator('.request-tab').filter({ has: page.getByText('Runner', { exact: true }) })).toBeVisible({ timeout: 2000 });
 
-        // console.log('3');
+        // ;
         // Open Variables tab
         await page.getByTestId('more-actions').click();
         await page.getByTestId('more-actions-variables').click();
         await expect(page.locator('.request-tab').filter({ has: page.getByText('Variables', { exact: true }) })).toBeVisible({ timeout: 2000 });
 
-        // console.log('4');
+        // ;
         // Open Folder-Settings tab (create folder + double-click)
         await page.locator('.collection-item-name').filter({ has: page.getByText('kb-folder', { exact: true }) }).dblclick();
 
-        // console.log('5');
+        // ;
         // Close in order: kb-folder (first closed) → Collection → Variables → Runner (last closed)
         await closeTabByName(page, 'kb-folder');
         await closeTabByName(page, 'Collection');
         await closeTabByName(page, 'Variables');
         await closeTabByName(page, 'Runner');
 
-        // console.log('6');
+        // ;
         // Reopen LIFO: Runner was closed last → reopens first
         await reopenClosedTab(page, async () => page.keyboard.press(`${modifier}+Shift+t`), 'Runner');
         await reopenClosedTab(page, async () => page.keyboard.press(`${modifier}+Shift+t`), /variables/i);
         await reopenClosedTab(page, async () => page.keyboard.press(`${modifier}+Shift+t`), 'Collection');
         await reopenClosedTab(page, async () => page.keyboard.press(`${modifier}+Shift+t`), 'kb-folder');
-        // console.log('7');
+        // ;
       });
 
       test('Reopen Last Closed Tab customized (Alt+Z)', async ({ page }) => {
@@ -1017,7 +1017,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
           await page.keyboard.press('Alt+z');
         });
 
-        // console.log('1');
+        // ;
         await openRequest(page, collectionName, 'req-2', { persist: true });
         await openRequest(page, collectionName, 'req-1', { persist: true });
         const req1Tab = page.locator('.request-tab').filter({ has: page.getByText('req-1', { exact: true }) }).first();
@@ -1025,11 +1025,11 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await expect(req1Tab).toHaveClass(/active/);
         await closeTabByName(page, 'req-1');
 
-        // console.log('2');
+        // ;
         await reopenClosedTab(page, async () => {
           await page.keyboard.press('Alt+z');
         }, 'req-1');
-        // console.log('3');
+        // ;
       });
     });
   });

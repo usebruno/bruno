@@ -24,9 +24,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await page.keyboard.up('Comma');
         await page.keyboard.up(modifier);
 
-        // console.log('1');
         await expect(page.locator('.request-tab').filter({ has: page.getByText('Preferences', { exact: true }) })).toBeVisible({ timeout: 3000 });
-        // console.log('2');
       });
     });
 
@@ -39,18 +37,14 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await page.getByTestId('keybinding-edit-openPreferences').click();
         await expect(page.getByTestId('keybinding-input-openPreferences')).toBeVisible({ timeout: 2000 });
 
-        // console.log('1');
         await page.keyboard.down('Backspace');
 
-        // console.log('2');
         await page.keyboard.down(modifier);
         await page.keyboard.down('KeyP');
         await page.keyboard.up('KeyP');
         await page.keyboard.up(modifier);
 
-        // console.log('3');
         await expect(page.locator('.request-tab').filter({ has: page.getByText('Preferences', { exact: true }) })).toBeVisible({ timeout: 3000 });
-        // console.log('4');
       });
     });
   });
