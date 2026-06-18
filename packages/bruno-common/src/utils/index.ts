@@ -42,3 +42,12 @@ export {
 export {
   toDisplayString
 } from './string';
+
+export {
+  sanitizeName,
+  validateName,
+  validateNameError,
+  nextSuffixedName,
+  resolveUniqueName,
+  ResolveUniqueNameOptions
+} from './naming';
