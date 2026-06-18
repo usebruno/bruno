@@ -96,7 +96,7 @@ test.describe('Changelog ("What\'s New") Tab', () => {
       await expect.poll(
         () => {
           try {
-            const prefs = JSON.parse(fs.readFileSync(path.join(userDataPath, 'preferences.json'), 'utf8'));
+            const prefs = JSON.parse(await fs.promises.readFile(path.join(userDataPath, 'preferences.json'), 'utf8'));
             return prefs.preferences?.onboarding?.lastSeenVersion;
           } catch {
             return null;
