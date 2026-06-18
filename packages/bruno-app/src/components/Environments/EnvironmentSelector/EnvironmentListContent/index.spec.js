@@ -72,7 +72,7 @@ describe('EnvironmentListContent', () => {
       const user = userEvent.setup();
 
       const searchInput = screen.getByTestId('env-search-input');
-      await user.type(searchInput, 'stage');
+      await user.type(searchInput, 'staging');
 
       const envItems = screen.getAllByTestId('env-list-item');
       expect(envItems).toHaveLength(1);
@@ -140,6 +140,7 @@ describe('EnvironmentListContent', () => {
       await user.click(envItems[1]); // Click Staging
 
       expect(mockOnEnvironmentSelect).toHaveBeenCalledWith(mockEnvironments[1]);
+      expect(mockOnEnvironmentSelect).toHaveBeenCalledTimes(1);
     });
 
     it('should call onEnvironmentSelect with null when No Environment is clicked', async () => {
@@ -150,6 +151,7 @@ describe('EnvironmentListContent', () => {
       await user.click(noEnvItem);
 
       expect(mockOnEnvironmentSelect).toHaveBeenCalledWith(null);
+      expect(mockOnEnvironmentSelect).toHaveBeenCalledTimes(1);
     });
 
     it('should call onSettingsClick when Configure is clicked', async () => {
