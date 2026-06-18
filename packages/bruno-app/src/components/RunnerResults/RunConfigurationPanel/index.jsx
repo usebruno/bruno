@@ -6,7 +6,7 @@ import { useDispatch } from 'react-redux';
 import { updateRunnerConfiguration } from 'providers/ReduxStore/slices/collections/actions';
 import StyledWrapper from './StyledWrapper';
 import { isItemARequest, isItemAFolder } from 'utils/collections';
-import { sortByNameThenSequence } from 'utils/common/index';
+import { sortByNameThenSequence } from 'utils/common';
 import path from 'utils/common/path';
 import { cloneDeep, get } from 'lodash';
 import Button from 'ui/Button/index';
@@ -172,7 +172,7 @@ const RequestItem = ({ item, index, moveItem, isSelected, onSelect, onDrop, isDi
   );
 };
 
-const RunConfigurationPanel = ({ collection, selectedItems, setSelectedItems, tags }) => {
+const RunConfigurationPanel = ({ collection, selectedItems, setSelectedItems, tags, persistConfiguration = true }) => {
   const dispatch = useDispatch();
   const [flattenedRequests, setFlattenedRequests] = useState([]);
   const [originalRequests, setOriginalRequests] = useState([]);
@@ -181,6 +181,14 @@ const RunConfigurationPanel = ({ collection, selectedItems, setSelectedItems, ta
   const isInitialMountRef = useRef(true);
   // Track items that were auto-deselected due to tag filters, so we can re-select them when tags change back
   const pendingReselectRef = useRef(new Set());
+
+  const persistRunnerConfiguration = useCallback((selectedRequestUids, requestItemsOrder) => {
+    if (!persistConfiguration) {
+      return;
+    }
+
+    dispatch(updateRunnerConfiguration(collection.uid, selectedRequestUids, requestItemsOrder));
+  }, [collection.uid, dispatch, persistConfiguration]);
 
   const flattenRequests = useCallback((collection) => {
     const result = [];
@@ -292,9 +300,9 @@ const RunConfigurationPanel = ({ collection, selectedItems, setSelectedItems, ta
         .map((r) => r.uid);
       setSelectedItems(ordered);
       const allRequestUidsOrder = flattenedRequests.map((item) => item.uid);
-      dispatch(updateRunnerConfiguration(collection.uid, ordered, allRequestUidsOrder));
+      persistRunnerConfiguration(ordered, allRequestUidsOrder);
     }
-  }, [tags, flattenedRequests]);
+  }, [tags, flattenedRequests, selectedItems, setSelectedItems, persistRunnerConfiguration]);
 
   const enabledRequests = flattenedRequests.filter((item) => !isRequestDisabled(item, tags));
   const enabledCount = enabledRequests.length;
@@ -326,11 +334,11 @@ const RunConfigurationPanel = ({ collection, selectedItems, setSelectedItems, ta
       const allRequestUidsOrder = currentRequests.map((item) => item.uid);
 
       setSelectedItems(newOrderedSelectedUids);
-      dispatch(updateRunnerConfiguration(collection.uid, newOrderedSelectedUids, allRequestUidsOrder));
+      persistRunnerConfiguration(newOrderedSelectedUids, allRequestUidsOrder);
 
       return currentRequests;
     });
-  }, [selectedItems, collection.uid, dispatch, setSelectedItems]);
+  }, [selectedItems, setSelectedItems, persistRunnerConfiguration]);
 
   const handleRequestSelect = useCallback((item) => {
     if (isRequestDisabled(item, tags)) return;
@@ -341,7 +349,7 @@ const RunConfigurationPanel = ({ collection, selectedItems, setSelectedItems, ta
         setSelectedItems(newSelectedUids);
 
         const allRequestUidsOrder = flattenedRequests.map((item) => item.uid);
-        dispatch(updateRunnerConfiguration(collection.uid, newSelectedUids, allRequestUidsOrder));
+        persistRunnerConfiguration(newSelectedUids, allRequestUidsOrder);
       } else {
         const newSelectedUids = [...selectedItems, item.uid];
 
@@ -352,12 +360,12 @@ const RunConfigurationPanel = ({ collection, selectedItems, setSelectedItems, ta
         setSelectedItems(orderedSelectedUids);
 
         const allRequestUidsOrder = flattenedRequests.map((item) => item.uid);
-        dispatch(updateRunnerConfiguration(collection.uid, orderedSelectedUids, allRequestUidsOrder));
+        persistRunnerConfiguration(orderedSelectedUids, allRequestUidsOrder);
       }
     } catch (error) {
       console.error('Error selecting item:', error);
     }
-  }, [selectedItems, setSelectedItems, flattenedRequests, dispatch, collection.uid, tags]);
+  }, [selectedItems, setSelectedItems, flattenedRequests, persistRunnerConfiguration, tags]);
 
   const handleSelectAll = useCallback(() => {
     try {
@@ -367,15 +375,15 @@ const RunConfigurationPanel = ({ collection, selectedItems, setSelectedItems, ta
       if (selectedItems.length === enabledCount) {
         pendingReselectRef.current.clear();
         setSelectedItems([]);
-        dispatch(updateRunnerConfiguration(collection.uid, [], allRequestUidsOrder));
+        persistRunnerConfiguration([], allRequestUidsOrder);
       } else {
         setSelectedItems(enabledUids);
-        dispatch(updateRunnerConfiguration(collection.uid, enabledUids, allRequestUidsOrder));
+        persistRunnerConfiguration(enabledUids, allRequestUidsOrder);
       }
     } catch (error) {
       console.error('Error selecting/deselecting all items:', error);
     }
-  }, [flattenedRequests, enabledRequests, enabledCount, selectedItems, setSelectedItems, dispatch, collection.uid]);
+  }, [flattenedRequests, enabledRequests, enabledCount, selectedItems, setSelectedItems, persistRunnerConfiguration]);
 
   const handleReset = useCallback(() => {
     try {
@@ -387,11 +395,11 @@ const RunConfigurationPanel = ({ collection, selectedItems, setSelectedItems, ta
         .map((item) => item.uid);
       setSelectedItems(enabledUids);
       const allUidsOrder = resetRequests.map((item) => item.uid);
-      dispatch(updateRunnerConfiguration(collection.uid, enabledUids, allUidsOrder));
+      persistRunnerConfiguration(enabledUids, allUidsOrder);
     } catch (error) {
       console.error('Error resetting configuration:', error);
     }
-  }, [originalRequests, setSelectedItems, collection.uid, dispatch, tags]);
+  }, [originalRequests, setSelectedItems, tags, persistRunnerConfiguration]);
 
   return (
     <StyledWrapper data-testid="runner-config-panel">

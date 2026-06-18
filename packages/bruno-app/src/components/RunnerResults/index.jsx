@@ -24,6 +24,14 @@ const getTestStatus = (results) => {
   return failed.length ? 'fail' : 'pass';
 };
 
+export const getSelectedRequestItemsForRunAgain = ({ runnerInfo, items, savedConfiguration }) => {
+  if (runnerInfo?.folderUid) {
+    return items.map((item) => item.uid);
+  }
+
+  return savedConfiguration?.selectedRequestItems || [];
+};
+
 const allTestsPassed = (item) => {
   return item.status !== 'error'
     && item.testStatus === 'pass'
@@ -193,10 +201,15 @@ export default function RunnerResults({ collection }) {
   const runAgain = () => {
     ensureCollectionIsMounted();
     isReRunningRef.current = true;
-    // Get the saved configuration to determine what to run
+
     const savedConfiguration = get(collection, 'runnerConfiguration', null);
-    const savedSelectedItems = savedConfiguration?.selectedRequestItems || [];
     const savedDelay = savedConfiguration?.delay !== undefined ? savedConfiguration.delay : delay;
+    const selectedItemsForRunAgain = getSelectedRequestItemsForRunAgain({
+      runnerInfo,
+      items,
+      savedConfiguration
+    });
+
     dispatch(
       runCollectionFolder(
         collection.uid,
@@ -204,7 +217,7 @@ export default function RunnerResults({ collection }) {
         true,
         Number(savedDelay),
         tags,
-        savedSelectedItems
+        selectedItemsForRunAgain
       )
     );
   };
