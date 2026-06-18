@@ -94,7 +94,7 @@ test.describe('Changelog ("What\'s New") Tab', () => {
       // until the write lands — electron-store writes synchronously, but the
       // dispatch chain is async.
       await expect.poll(
-        () => {
+        async () => {
           try {
             const prefs = JSON.parse(await fs.promises.readFile(path.join(userDataPath, 'preferences.json'), 'utf8'));
             return prefs.preferences?.onboarding?.lastSeenVersion;
