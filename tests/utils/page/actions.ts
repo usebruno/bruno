@@ -1975,6 +1975,9 @@ const scrollVirtuosoRowIntoView = async (page: Page, target: Locator) => {
     await page.waitForTimeout(120);
   }
   await target.scrollIntoViewIfNeeded().catch(() => {});
+};
+
+/**
  * Rename a websocket message by double-clicking its label and typing a new name.
  * @param page - The page object
  * @param index - The zero-based index of the message in the list
