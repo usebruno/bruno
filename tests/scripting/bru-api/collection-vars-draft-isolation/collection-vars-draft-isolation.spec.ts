@@ -5,6 +5,7 @@ import { openCollection, selectEnvironment, sendRequest } from '../../../utils/p
 import { buildCommonLocators } from '../../../utils/page/locators';
 
 const PERSISTENCE_TIMEOUT = 10000;
+const selectAllShortcut = process.platform === 'darwin' ? 'Meta+a' : 'Control+a';
 
 test.describe('Collection vars script persistence does not leak draft headers', () => {
   test('draft header edits are not persisted when script sets a collection variable', async ({
@@ -32,11 +33,11 @@ test.describe('Collection vars script persistence does not leak draft headers', 
 
       const valueCellEditor = headerRow.locator('.CodeMirror').nth(1);
       await valueCellEditor.click();
-      await page.keyboard.press('Meta+a');
+      await page.keyboard.press(selectAllShortcut);
       await page.keyboard.type('draft-edited-value');
 
-      // Wait for draft debounce
-      await page.waitForTimeout(500);
+      await expect(locators.tabs.collectionSettingsTab().locator('.close-gradient'))
+        .toHaveClass(/has-changes/);
     });
 
     await test.step('Open request and send it (script sets a collection var)', async () => {

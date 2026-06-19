@@ -222,10 +222,10 @@ class Bru {
 
   deleteAllEnvVars() {
     const envName = this.envVariables.__name__;
-    for (let key in this.envVariables) {
-      if (this.envVariables.hasOwnProperty(key)) {
-        delete this.envVariables[key];
-      }
+    // Iterate via Object.keys (own enumerable) so a user-set `hasOwnProperty` var
+    // can't shadow Object.prototype.hasOwnProperty and crash the loop.
+    for (const key of Object.keys(this.envVariables)) {
+      delete this.envVariables[key];
     }
     if (envName !== undefined) {
       this.envVariables.__name__ = envName;
@@ -260,10 +260,8 @@ class Bru {
   }
 
   deleteAllGlobalEnvVars() {
-    for (let key in this.globalEnvironmentVariables) {
-      if (this.globalEnvironmentVariables.hasOwnProperty(key)) {
-        delete this.globalEnvironmentVariables[key];
-      }
+    for (const key of Object.keys(this.globalEnvironmentVariables)) {
+      delete this.globalEnvironmentVariables[key];
     }
     this._globalEnvDirty = true;
   }
@@ -325,10 +323,8 @@ class Bru {
   }
 
   deleteAllVars() {
-    for (let key in this.runtimeVariables) {
-      if (this.runtimeVariables.hasOwnProperty(key)) {
-        delete this.runtimeVariables[key];
-      }
+    for (const key of Object.keys(this.runtimeVariables)) {
+      delete this.runtimeVariables[key];
     }
   }
 
@@ -366,10 +362,8 @@ class Bru {
   }
 
   deleteAllCollectionVars() {
-    for (let key in this.collectionVariables) {
-      if (this.collectionVariables.hasOwnProperty(key)) {
-        delete this.collectionVariables[key];
-      }
+    for (const key of Object.keys(this.collectionVariables)) {
+      delete this.collectionVariables[key];
     }
     this._collVarsDirty = true;
   }

@@ -4,6 +4,8 @@ import path from 'path';
 import { openCollection, sendRequest, selectEnvironment } from '../../utils/page';
 import { buildCommonLocators } from '../../utils/page/locators';
 
+const selectAllShortcut = process.platform === 'darwin' ? 'Meta+a' : 'Control+a';
+
 const PERSISTENCE_TIMEOUT = 10000;
 
 test.describe('Collection variables draft merge with script-set variables', () => {
@@ -21,7 +23,7 @@ test.describe('Collection variables draft merge with script-set variables', () =
       await locators.paneTabs.collectionSettingsTab('vars').click();
       await expect(locators.environment.variableRowByName('existingCollVar')).toBeVisible();
       await locators.environment.variableValue('existingCollVar').click();
-      await page.keyboard.press('Meta+a');
+      await page.keyboard.press(selectAllShortcut);
       await page.keyboard.type('draft-edited-coll-value');
 
       // Wait for draft debounce

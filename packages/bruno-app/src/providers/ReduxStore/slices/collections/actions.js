@@ -2371,21 +2371,8 @@ export const collectionVariablesUpdateEvent = ({ collectionVariables, collection
 
   vars = applyScriptEnvVars(vars, collectionVariables, baseline);
 
-  // Infer dataType from the original (pre-stringified) script value so number/boolean/object
-  // collection vars round-trip correctly through the script -> disk path.
-  Object.entries(collectionVariables).forEach(([name, value]) => {
-    const existing = vars.find((v) => v.name === name);
-    if (!existing) return;
-    const inferred = getDataTypeFromValue(value);
-    if (inferred === 'string') {
-      delete existing.dataType;
-    } else {
-      existing.dataType = inferred;
-    }
-  });
-
-  // Infer dataType from the original (pre-stringified) script value so number/boolean/object
-  // collection vars round-trip correctly through the script -> disk path.
+  // Infer dataType from the script value so number/boolean/object collection vars
+  // round-trip correctly through the script -> disk path.
   Object.entries(collectionVariables).forEach(([name, value]) => {
     const existing = vars.find((v) => v.name === name);
     if (!existing) return;

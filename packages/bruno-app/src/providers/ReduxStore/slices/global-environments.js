@@ -334,17 +334,6 @@ export const globalEnvironmentsUpdateEvent = ({ globalEnvironmentVariables }) =>
     }
   });
 
-  // Infer dataType for variables the script touched so typed values survive the script -> disk round-trip.
-  variables.forEach((v) => {
-    if (!(v.name in globalEnvironmentVariables)) return;
-    const inferred = getDataTypeFromValue(globalEnvironmentVariables[v.name]);
-    if (inferred === 'string') {
-      delete v.dataType;
-    } else {
-      v.dataType = inferred;
-    }
-  });
-
   dispatch(_saveGlobalEnvironment({ environmentUid, variables }));
 
   const { ipcRenderer } = window;
