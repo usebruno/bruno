@@ -50,7 +50,7 @@ const EnvironmentSelectionList = ({
 
   const renderEnvironment = useCallback(
     (_index, env) => (
-      <label className="env-row">
+      <label className="env-row" data-testid="env-row">
         <input
           type="checkbox"
           className="env-checkbox"
@@ -77,7 +77,7 @@ const EnvironmentSelectionList = ({
     <>
       <div className="env-section-header">
         <div className="env-section-heading">
-          <h4 className="env-section-title">{title}</h4>
+          <h4 className="env-section-title" data-testid="env-section-title">{title}</h4>
           <span className="env-section-count" data-testid="env-selected-count">
             ({selectedCount}/{environments.length} selected)
           </span>
@@ -92,7 +92,7 @@ const EnvironmentSelectionList = ({
             onChange={handleToggleAll}
             data-testid="env-select-all"
           />
-          <span className="env-select-all-label">Select All</span>
+          <span className="env-select-all-label" data-testid="env-select-all-label">Select All</span>
         </label>
       </div>
       <Virtuoso
