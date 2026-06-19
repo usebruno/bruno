@@ -69,7 +69,7 @@ test.describe('Script-driven typed variable persistence to disk (developer mode)
       await expect(locators.dataTypeSelector.typeLabel(objRow)).toHaveText('object');
 
       await locators.environment.collectionEnvTab().hover();
-      await locators.environment.collectionEnvTab().getByTestId('request-tab-close-icon').click({ force: true });
+      await locators.environment.collectionEnvTab().getByTestId('request-tab-close-icon').click();
     });
   });
 });
