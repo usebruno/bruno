@@ -3,7 +3,7 @@ import * as path from 'path';
 import * as fs from 'fs';
 import { closeAllCollections, importCollection } from '../../utils/page';
 
-test.describe('Import Insomnia Collection - date types preserved', () => {
+test.describe.serial('Import Insomnia Collection - date types preserved', () => {
   test.afterEach(async ({ page }) => {
     await closeAllCollections(page);
   });
