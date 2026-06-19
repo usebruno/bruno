@@ -200,6 +200,44 @@ describe('runtime', () => {
       expect(result.envVariables.array).toEqual([1, 2, 3]);
     });
 
+    it('should preserve typed values through the QuickJS shim', async () => {
+      await quickJsLoader();
+      const script = `
+        bru.setEnvVar('num', 42);
+        bru.setEnvVar('bool', true);
+        bru.setEnvVar('obj', { key: 'value' });
+        bru.setCollectionVar('collNum', 7);
+        bru.setGlobalEnvVar('globalBool', false);
+      `;
+      const runtime = new ScriptRuntime({ runtime: 'quickjs' });
+      const onConsoleLog = () => {};
+
+      const result = await runtime.runRequestScript(script, {}, {}, {}, '.', onConsoleLog, process.env);
+
+      expect(typeof result.envVariables.num).toBe('number');
+      expect(result.envVariables.num).toBe(42);
+      expect(typeof result.envVariables.bool).toBe('boolean');
+      expect(result.envVariables.bool).toBe(true);
+      expect(typeof result.envVariables.obj).toBe('object');
+      expect(result.envVariables.obj).toEqual({ key: 'value' });
+      expect(typeof result.collectionVariables.collNum).toBe('number');
+      expect(result.collectionVariables.collNum).toBe(7);
+      expect(typeof result.globalEnvironmentVariables.globalBool).toBe('boolean');
+      expect(result.globalEnvironmentVariables.globalBool).toBe(false);
+    });
+
+    it('should return null for scopes the script did not touch (dirty-flag gating)', async () => {
+      const script = `bru.setEnvVar('only_env', 'val');`;
+      const runtime = new ScriptRuntime({ runtime: 'nodevm' });
+
+      const result = await runtime.runRequestScript(script, {}, {}, {}, '.', null, process.env);
+
+      expect(result.envVariables).not.toBeNull();
+      expect(result.envVariables.only_env).toBe('val');
+      expect(result.collectionVariables).toBeNull();
+      expect(result.globalEnvironmentVariables).toBeNull();
+    });
+
     it('should not include persistentEnvVariables in result', async () => {
       const script = `bru.setEnvVar('key', 'val');`;
       const runtime = new ScriptRuntime({ runtime: 'nodevm' });

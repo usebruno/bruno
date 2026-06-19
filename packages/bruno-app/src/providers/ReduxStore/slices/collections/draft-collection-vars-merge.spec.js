@@ -155,7 +155,7 @@ describe('collectionVariablesUpdateEvent — draft-aware merge', () => {
       expect(vars[0].name).toBe('DISABLED');
     });
 
-    test('converts values to strings', () => {
+    test('preserves typed values without stringifying', () => {
       const store = createStore([]);
 
       store.dispatch(collectionVariablesUpdateEvent({
@@ -164,8 +164,12 @@ describe('collectionVariablesUpdateEvent — draft-aware merge', () => {
       }));
 
       const vars = getReqVars(store);
-      expect(vars.find((v) => v.name === 'count').value).toBe('42');
-      expect(vars.find((v) => v.name === 'flag').value).toBe('true');
+      const countVar = vars.find((v) => v.name === 'count');
+      const flagVar = vars.find((v) => v.name === 'flag');
+      expect(countVar.value).toBe(42);
+      expect(countVar.dataType).toBe('number');
+      expect(flagVar.value).toBe(true);
+      expect(flagVar.dataType).toBe('boolean');
     });
   });
 
@@ -444,6 +448,84 @@ describe('collectionVariablesUpdateEvent — draft-aware merge', () => {
       expect(vars.find((v) => v.name === 'DRAFT_NEW').value).toBe('from-user');
       // SCRIPT_NEW: new from script → added
       expect(vars.find((v) => v.name === 'SCRIPT_NEW').value).toBe('from-script');
+    });
+  });
+
+  describe('typed values — dataType inference', () => {
+    test('infers number dataType when script sets a numeric value', () => {
+      const store = createStore([makeVar('COUNT', '0')]);
+
+      store.dispatch(collectionVariablesUpdateEvent({
+        collectionVariables: { COUNT: 42 },
+        collectionUid: COLLECTION_UID
+      }));
+
+      const v = getReqVars(store).find((v) => v.name === 'COUNT');
+      expect(v.dataType).toBe('number');
+    });
+
+    test('infers boolean dataType when script sets a boolean value', () => {
+      const store = createStore([makeVar('FLAG', 'false')]);
+
+      store.dispatch(collectionVariablesUpdateEvent({
+        collectionVariables: { FLAG: true },
+        collectionUid: COLLECTION_UID
+      }));
+
+      const v = getReqVars(store).find((v) => v.name === 'FLAG');
+      expect(v.dataType).toBe('boolean');
+    });
+
+    test('infers object dataType when script sets an object value', () => {
+      const store = createStore([makeVar('CONFIG', '')]);
+
+      store.dispatch(collectionVariablesUpdateEvent({
+        collectionVariables: { CONFIG: { port: 3000 } },
+        collectionUid: COLLECTION_UID
+      }));
+
+      const v = getReqVars(store).find((v) => v.name === 'CONFIG');
+      expect(v.dataType).toBe('object');
+    });
+
+    test('keeps existing dataType on a typed var the script did not touch', () => {
+      const typedVar = { ...makeVar('COUNT', 42), dataType: 'number' };
+      const store = createStore([typedVar, makeVar('HOST', 'https://example.com')]);
+
+      // Script touched HOST only; the runtime payload still carries COUNT (unchanged).
+      store.dispatch(collectionVariablesUpdateEvent({
+        collectionVariables: { COUNT: 42, HOST: 'https://new.com' },
+        collectionUid: COLLECTION_UID
+      }));
+
+      const v = getReqVars(store).find((v) => v.name === 'COUNT');
+      expect(v.dataType).toBe('number');
+    });
+
+    test('drops dataType when script replaces a typed value with a string', () => {
+      const typedVar = { ...makeVar('COUNT', 42), dataType: 'number' };
+      const store = createStore([typedVar]);
+
+      store.dispatch(collectionVariablesUpdateEvent({
+        collectionVariables: { COUNT: 'not-a-number' },
+        collectionUid: COLLECTION_UID
+      }));
+
+      const v = getReqVars(store).find((v) => v.name === 'COUNT');
+      expect(v.dataType).toBeUndefined();
+    });
+
+    test('updates dataType when script changes the value type', () => {
+      const typedVar = { ...makeVar('VAL', 42), dataType: 'number' };
+      const store = createStore([typedVar]);
+
+      store.dispatch(collectionVariablesUpdateEvent({
+        collectionVariables: { VAL: true },
+        collectionUid: COLLECTION_UID
+      }));
+
+      const v = getReqVars(store).find((v) => v.name === 'VAL');
+      expect(v.dataType).toBe('boolean');
     });
   });
 

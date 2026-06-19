@@ -2362,19 +2362,14 @@ export const collectionVariablesUpdateEvent = ({ collectionVariables, collection
   if (!baseline && draftVars) {
     baseline = {};
     savedVars.forEach((v) => {
-      if (v.enabled) baseline[v.name] = String(v.value);
+      if (v.enabled) baseline[v.name] = v.value;
     });
     dispatch(setScriptCollVarBaseline({ collectionUid, baseline }));
   }
 
   let vars = cloneDeep(draftVars || savedVars);
 
-  const stringifiedCollVars = {};
-  Object.entries(collectionVariables).forEach(([k, v]) => {
-    stringifiedCollVars[k] = String(v);
-  });
-
-  vars = applyScriptEnvVars(vars, stringifiedCollVars, baseline);
+  vars = applyScriptEnvVars(vars, collectionVariables, baseline);
 
   // Infer dataType from the original (pre-stringified) script value so number/boolean/object
   // collection vars round-trip correctly through the script -> disk path.

@@ -6,7 +6,8 @@
   "preferences": {
     "onboarding": {
       "hasLaunchedBefore": true,
-      "hasSeenWelcomeModal": true
+      "hasSeenWelcomeModal": true,
+      "lastSeenVersion": "999.0.0"
     }
   }
 }

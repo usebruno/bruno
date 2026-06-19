@@ -47,6 +47,27 @@ describe('Global Environment Variable APIs', () => {
     });
   });
 
+  describe('bru.setGlobalEnvVar — dirty flag for typed values', () => {
+    test('setting a number trips the global-env dirty flag', () => {
+      const bru = makeBru();
+      expect(bru._globalEnvDirty).toBe(false);
+      bru.setGlobalEnvVar('count', 42);
+      expect(bru._globalEnvDirty).toBe(true);
+    });
+
+    test('setting a boolean trips the global-env dirty flag', () => {
+      const bru = makeBru();
+      bru.setGlobalEnvVar('active', true);
+      expect(bru._globalEnvDirty).toBe(true);
+    });
+
+    test('setting an object trips the global-env dirty flag', () => {
+      const bru = makeBru();
+      bru.setGlobalEnvVar('config', { port: 3000 });
+      expect(bru._globalEnvDirty).toBe(true);
+    });
+  });
+
   describe('bru.getGlobalEnvVar', () => {
     test('returns value of an existing variable', () => {
       const bru = makeBru({ token: 'abc' });

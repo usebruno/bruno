@@ -366,6 +366,70 @@ describe('globalEnvironmentsUpdateEvent — draft-aware merge', () => {
     });
   });
 
+  describe('typed values — dataType inference', () => {
+    test('infers number dataType when script sets a numeric value', () => {
+      const store = createStore([makeVar('COUNT', '0')]);
+
+      store.dispatch(globalEnvironmentsUpdateEvent({ globalEnvironmentVariables: { COUNT: 42 } }));
+
+      const v = getEnv(store).variables.find((v) => v.name === 'COUNT');
+      expect(v.value).toBe(42);
+      expect(v.dataType).toBe('number');
+    });
+
+    test('infers boolean dataType when script sets a boolean value', () => {
+      const store = createStore([makeVar('FLAG', 'false')]);
+
+      store.dispatch(globalEnvironmentsUpdateEvent({ globalEnvironmentVariables: { FLAG: true } }));
+
+      const v = getEnv(store).variables.find((v) => v.name === 'FLAG');
+      expect(v.value).toBe(true);
+      expect(v.dataType).toBe('boolean');
+    });
+
+    test('infers object dataType when script sets an object value', () => {
+      const store = createStore([makeVar('CONFIG', '')]);
+
+      store.dispatch(globalEnvironmentsUpdateEvent({ globalEnvironmentVariables: { CONFIG: { port: 3000 } } }));
+
+      const v = getEnv(store).variables.find((v) => v.name === 'CONFIG');
+      expect(v.value).toEqual({ port: 3000 });
+      expect(v.dataType).toBe('object');
+    });
+
+    test('keeps existing dataType on a typed var the script did not touch', () => {
+      const typedVar = { ...makeVar('COUNT', 42), dataType: 'number' };
+      const store = createStore([typedVar, makeVar('HOST', 'https://example.com')]);
+
+      // Script touched HOST only; the runtime payload still carries COUNT (unchanged).
+      store.dispatch(globalEnvironmentsUpdateEvent({ globalEnvironmentVariables: { COUNT: 42, HOST: 'https://new.com' } }));
+
+      const v = getEnv(store).variables.find((v) => v.name === 'COUNT');
+      expect(v.dataType).toBe('number');
+    });
+
+    test('drops dataType when script replaces a typed value with a string', () => {
+      const typedVar = { ...makeVar('COUNT', 42), dataType: 'number' };
+      const store = createStore([typedVar]);
+
+      store.dispatch(globalEnvironmentsUpdateEvent({ globalEnvironmentVariables: { COUNT: 'not-a-number' } }));
+
+      const v = getEnv(store).variables.find((v) => v.name === 'COUNT');
+      expect(v.dataType).toBeUndefined();
+    });
+
+    test('updates dataType when script changes the value type', () => {
+      const typedVar = { ...makeVar('VAL', 42), dataType: 'number' };
+      const store = createStore([typedVar]);
+
+      store.dispatch(globalEnvironmentsUpdateEvent({ globalEnvironmentVariables: { VAL: true } }));
+
+      const v = getEnv(store).variables.find((v) => v.name === 'VAL');
+      expect(v.value).toBe(true);
+      expect(v.dataType).toBe('boolean');
+    });
+  });
+
   describe('baseline cleanup', () => {
     test('_clearScriptGlobalEnvBaseline clears the baseline', () => {
       const store = createStore([makeVar('HOST', 'https://saved.com')], {
