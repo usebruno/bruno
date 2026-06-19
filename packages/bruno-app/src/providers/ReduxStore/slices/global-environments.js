@@ -17,8 +17,27 @@ export const globalEnvironmentsSlice = createSlice({
   initialState,
   reducers: {
     updateGlobalEnvironments: (state, action) => {
-      state.globalEnvironments = action.payload?.globalEnvironments;
-      state.activeGlobalEnvironmentUid = action.payload?.activeGlobalEnvironmentUid;
+      const newEnvs = action.payload?.globalEnvironments || [];
+      const incomingActiveUid = action.payload?.activeGlobalEnvironmentUid ?? null;
+
+      // The YAML parser generates a fresh uid on every parse, so the active uid
+      // from the per-workspace electron store can go stale after a disk reload.
+      // If the incoming uid no longer matches any env, fall back to matching by
+      // name against the previously-active env so the editor doesn't lose its
+      // selection between script-driven writes and the chokidar-driven reload.
+      let resolvedActiveUid = null;
+      if (incomingActiveUid && newEnvs.some((e) => e?.uid === incomingActiveUid)) {
+        resolvedActiveUid = incomingActiveUid;
+      } else if (state.activeGlobalEnvironmentUid) {
+        const prevActive = state.globalEnvironments?.find((e) => e?.uid === state.activeGlobalEnvironmentUid);
+        if (prevActive?.name) {
+          const remapped = newEnvs.find((e) => e?.name === prevActive.name);
+          if (remapped?.uid) resolvedActiveUid = remapped.uid;
+        }
+      }
+
+      state.globalEnvironments = newEnvs;
+      state.activeGlobalEnvironmentUid = resolvedActiveUid;
     },
     _addGlobalEnvironment: (state, action) => {
       const { name, uid, variables = [], color } = action.payload;

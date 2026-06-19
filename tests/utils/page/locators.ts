@@ -71,7 +71,6 @@ export const buildCommonLocators = (page: Page) => ({
     selector: () => page.getByTestId('environment-selector-trigger'),
     collectionTab: () => page.getByTestId('env-tab-collection'),
     globalTab: () => page.getByTestId('env-tab-global'),
-    configureButton: () => page.getByTestId('configure-env'),
     envOption: (name: string) => page.locator('.dropdown-item').getByText(name, { exact: true }),
     listOption: (name: string) => page.locator('.environment-list .dropdown-item', { hasText: name }),
     currentEnvironment: () => page.locator('.current-environment'),

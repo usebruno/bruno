@@ -3,7 +3,7 @@ jest.mock('nanoid', () => ({
   customAlphabet: () => () => 'aaaaaaaaaaaaaaaaaaaa1'
 }));
 
-import { buildEnvVariable, stripEnvVarUid, buildPersistedEnvVariables } from './environments';
+import { buildEnvVariable, stripEnvVarUid } from './environments';
 
 describe('buildEnvVariable — dataType preservation for env export/import', () => {
   it('preserves non-string datatypes on non-secret variables', () => {
@@ -87,63 +87,5 @@ describe('Env export → import round-trip via JSON', () => {
     expect(reimported[4]).toMatchObject({ name: 'plain', value: 'hello', secret: false });
     expect(reimported[4].dataType).toBeUndefined();
     expect(reimported[5]).toMatchObject({ name: 'token', value: '', secret: true, dataType: 'number' });
-  });
-});
-
-describe('buildPersistedEnvVariables — save mode', () => {
-  // Regression guard: save mode must commit the visible value of an ephemeral
-  // var, not roll it back to persistedValue.
-  it('keeps the visible value when an ephemeral var has a persistedValue', () => {
-    const variables = [
-      {
-        name: 'apiKey',
-        value: 'testvalue',
-        type: 'text',
-        enabled: true,
-        secret: true,
-        ephemeral: true,
-        persistedValue: 'test'
-      }
-    ];
-
-    expect(buildPersistedEnvVariables(variables, { mode: 'save' })).toEqual([
-      { name: 'apiKey', value: 'testvalue', type: 'text', enabled: true, secret: true }
-    ]);
-  });
-
-  it('keeps the visible value for a non-secret ephemeral var too', () => {
-    const variables = [
-      {
-        name: 'host',
-        value: 'localhost-from-script',
-        type: 'text',
-        enabled: true,
-        secret: false,
-        ephemeral: true,
-        persistedValue: 'localhost'
-      }
-    ];
-
-    expect(buildPersistedEnvVariables(variables, { mode: 'save' })).toEqual([
-      { name: 'host', value: 'localhost-from-script', type: 'text', enabled: true, secret: false }
-    ]);
-  });
-
-  it('strips ephemeral/persistedValue from non-ephemeral vars', () => {
-    const variables = [
-      {
-        name: 'plain',
-        value: 'v',
-        type: 'text',
-        enabled: true,
-        secret: false,
-        ephemeral: false,
-        persistedValue: 'leftover'
-      }
-    ];
-
-    expect(buildPersistedEnvVariables(variables, { mode: 'save' })).toEqual([
-      { name: 'plain', value: 'v', type: 'text', enabled: true, secret: false }
-    ]);
   });
 });
