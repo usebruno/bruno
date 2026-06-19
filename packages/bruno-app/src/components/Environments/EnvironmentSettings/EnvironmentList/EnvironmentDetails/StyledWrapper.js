@@ -20,6 +20,9 @@ const StyledWrapper = styled.div`
       font-weight: 500;
       color: ${(props) => props.theme.text};
       margin: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
     .title-container {
@@ -27,6 +30,11 @@ const StyledWrapper = styled.div`
       align-items: center;
       gap: 8px;
       flex: 1;
+      min-width: 0;
+
+      > .flex {
+        min-width: 0;
+      }
 
       &.renaming {
         .title-input {
@@ -96,6 +104,7 @@ const StyledWrapper = styled.div`
       display: flex;
       align-items: center;
       gap: 2px;
+      flex-shrink: 0;
 
       .search-input-wrapper {
         position: relative;

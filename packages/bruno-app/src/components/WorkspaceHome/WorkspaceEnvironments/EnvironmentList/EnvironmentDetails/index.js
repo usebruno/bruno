@@ -181,7 +181,7 @@ const EnvironmentDetails = ({ environment, setIsModified, collection, searchQuer
               </div>
             </>
           ) : (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 mr-6">
               <h2 className="title">{environment.name}</h2>
               <ColorPicker color={environment.color} onChange={handleColorChange} />
             </div>
