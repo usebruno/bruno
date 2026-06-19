@@ -1,7 +1,7 @@
 import { test, expect } from '../../../../playwright';
 import fs from 'fs';
 import path from 'path';
-import { openCollection, selectEnvironment, openEnvironmentSelector } from '../../../utils/page';
+import { openCollection, selectEnvironment, openEnvironmentSelector, closeEnvironmentPanel } from '../../../utils/page';
 import { buildCommonLocators } from '../../../utils/page/locators';
 import { runCollection, validateRunnerResults } from '../../../utils/page/runner';
 
@@ -68,8 +68,8 @@ test.describe('Script-driven typed variable persistence to disk (safe mode / Qui
       await expect(locators.dataTypeSelector.typeLabel(boolRow)).toHaveText('boolean');
       await expect(locators.dataTypeSelector.typeLabel(objRow)).toHaveText('object');
 
-      await locators.environment.collectionEnvTab().hover();
-      await locators.environment.collectionEnvTab().getByTestId('request-tab-close-icon').click({ force: true });
+      await closeEnvironmentPanel(page, 'collection');
+      await expect(locators.environment.collectionEnvTab()).not.toBeVisible();
     });
   });
 });

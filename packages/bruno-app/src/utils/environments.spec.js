@@ -170,7 +170,7 @@ describe('applyScriptEnvVars', () => {
     });
 
     it('removes variables that were in baseline but missing from scriptVars (script deleted)', () => {
-      const draftVars = [v('host', 'h'), v('was-saved', 'value')];
+      const draftVars = [v('host', 'h'), v('wasSaved', 'value')];
       const baseline = { host: 'h', wasSaved: 'value' };
       const scriptVars = { host: 'h' };
 
