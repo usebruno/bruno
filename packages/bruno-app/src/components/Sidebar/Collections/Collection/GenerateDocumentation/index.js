@@ -8,6 +8,7 @@ import toast from 'react-hot-toast';
 import { IconBook, IconCheck, IconAlertTriangle, IconLoader2 } from '@tabler/icons';
 
 import Modal from 'components/Modal';
+import Portal from 'components/Portal';
 import StyledWrapper from './StyledWrapper';
 import CollectionVersionInfo from './CollectionVersionInfo';
 import EnvironmentSelectionList from './EnvironmentSelectionList';
@@ -52,14 +53,16 @@ const buildHtmlDocument = (collectionName, escapedYamlContent) => `<!DOCTYPE htm
 </html>`;
 
 const CollectionNotFound = ({ onClose }) => (
-  <Modal size="md" title="Generate Documentation" confirmText="Close" handleConfirm={onClose} hideCancel>
-    <StyledWrapper className="w-[500px]">
-      <div className="flex items-center gap-2 text-warning">
-        <IconAlertTriangle size={16} className="shrink-0" />
-        <span>Collection not found. It may have been deleted or is no longer available.</span>
-      </div>
-    </StyledWrapper>
-  </Modal>
+  <Portal>
+    <Modal size="md" title="Generate Documentation" confirmText="Close" handleConfirm={onClose} hideCancel>
+      <StyledWrapper className="w-[500px]">
+        <div className="flex items-center gap-2 text-warning">
+          <IconAlertTriangle size={16} className="shrink-0" />
+          <span>Collection not found. It may have been deleted or is no longer available.</span>
+        </div>
+      </StyledWrapper>
+    </Modal>
+  </Portal>
 );
 
 const GenerateDocumentation = ({ onClose, collectionUid }) => {
@@ -176,65 +179,67 @@ const GenerateDocumentation = ({ onClose, collectionUid }) => {
   }
 
   return (
-    <Modal
-      size="md"
-      title="Generate Documentation"
-      confirmText={isLoading ? 'Loading...' : 'Generate'}
-      cancelText="Cancel"
-      handleConfirm={isLoading ? undefined : handleGenerate}
-      handleCancel={onClose}
-      confirmDisabled={isLoading}
-    >
-      <StyledWrapper className="w-[500px]">
-        {isLoading ? (
-          <div className="flex items-center justify-center gap-3 py-8">
-            <IconLoader2 size={20} className="animate-spin" />
-            <span>Loading collection...</span>
-          </div>
-        ) : (
-          <div className="content">
-            <h3 className="title flex items-center gap-2 mt-2 font-medium">
-              <IconBook size={18} />
-              <span>Interactive API Documentation</span>
-            </h3>
-            <p className="description mb-4">
-              Generate a standalone HTML file that can be hosted anywhere or shared with your team.
-            </p>
-
-            <ul className="features flex flex-col list-none gap-2 p-0 mb-4">
-              {FEATURES.map((feature) => (
-                <li key={feature} className="flex items-center gap-2.5">
-                  <IconCheck size={16} className="check-icon flex-shrink-0" />
-                  <span>{feature}</span>
-                </li>
-              ))}
-            </ul>
-
-            <div className="config-card mb-4">
-              <CollectionVersionInfo version={currentVersion} folderCount={folderCount} requestCount={requestCount} />
-              {environments.length > 0 && (
-                <Fragment>
-                  <div className="card-divider" />
-                  <div className="env-section">
-                    <EnvironmentSelectionList
-                      title="Environments to include"
-                      environments={environments}
-                      selectedUids={selectedEnvUids}
-                      onToggle={toggleEnv}
-                      onToggleAll={toggleAllEnvs}
-                    />
-                  </div>
-                </Fragment>
-              )}
+    <Portal>
+      <Modal
+        size="md"
+        title="Generate Documentation"
+        confirmText={isLoading ? 'Loading...' : 'Generate'}
+        cancelText="Cancel"
+        handleConfirm={isLoading ? undefined : handleGenerate}
+        handleCancel={onClose}
+        confirmDisabled={isLoading}
+      >
+        <StyledWrapper className="w-[500px]">
+          {isLoading ? (
+            <div className="flex items-center justify-center gap-3 py-8">
+              <IconLoader2 size={20} className="animate-spin" />
+              <span>Loading collection...</span>
             </div>
+          ) : (
+            <div className="content">
+              <h3 className="title flex items-center gap-2 mt-2 font-medium">
+                <IconBook size={18} />
+                <span>Interactive API Documentation</span>
+              </h3>
+              <p className="description mb-4">
+                Generate a standalone HTML file that can be hosted anywhere or shared with your team.
+              </p>
 
-            <p className="note m-0">
-              The generated file loads OpenCollection's JavaScript and CSS files from a CDN, which requires an internet connection.
-            </p>
-          </div>
-        )}
-      </StyledWrapper>
-    </Modal>
+              <ul className="features flex flex-col list-none gap-2 p-0 mb-4">
+                {FEATURES.map((feature) => (
+                  <li key={feature} className="flex items-center gap-2.5">
+                    <IconCheck size={16} className="check-icon flex-shrink-0" />
+                    <span>{feature}</span>
+                  </li>
+                ))}
+              </ul>
+
+              <div className="config-card mb-4">
+                <CollectionVersionInfo version={currentVersion} folderCount={folderCount} requestCount={requestCount} />
+                {environments.length > 0 && (
+                  <Fragment>
+                    <div className="card-divider" />
+                    <div className="env-section">
+                      <EnvironmentSelectionList
+                        title="Environments to include"
+                        environments={environments}
+                        selectedUids={selectedEnvUids}
+                        onToggle={toggleEnv}
+                        onToggleAll={toggleAllEnvs}
+                      />
+                    </div>
+                  </Fragment>
+                )}
+              </div>
+
+              <p className="note m-0">
+                The generated file loads OpenCollection's JavaScript and CSS files from a CDN, which requires an internet connection.
+              </p>
+            </div>
+          )}
+        </StyledWrapper>
+      </Modal>
+    </Portal>
   );
 };
 
