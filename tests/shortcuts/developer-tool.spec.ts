@@ -3,6 +3,8 @@ import { closeAllCollections } from '../utils/page';
 import {
   modifier,
   openKeybindingsTab,
+  pressShortcut,
+  resetKeybindings,
   setupBoundActionsData
 } from './helpers';
 
@@ -12,22 +14,23 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
     await setupBoundActionsData(page, createTmpDir);
   });
 
+  test.afterEach(async ({ pageWithUserData: page }) => {
+    await resetKeybindings(page);
+  });
+
   test.afterAll(async ({ pageWithUserData: page }) => {
     await closeAllCollections(page);
   });
 
   test.describe('DEVELOPER TOOLS', () => {
     test.describe('SHORTCUT: Open Terminal (Cmd/Ctrl+T)', () => {
-      test('default Cmd/Ctrl+T opens terminal', async ({ pageWithUserData: page, createTmpDir }) => {
+      test('default Cmd/Ctrl+T opens terminal', async ({ pageWithUserData: page }) => {
         // Open Collection-Settings tab (double-click collection name)
         await page.getByTestId('sidebar-collection-row').filter({ has: page.getByText('kb-collection', { exact: true }) }).click();
         await expect(page.locator('.request-tab').filter({ has: page.getByText('Collection', { exact: true }) })).toBeVisible({ timeout: 2000 });
 
         // Press Cmd/Ctrl+T to open terminal at workspace level
-        await page.keyboard.down(modifier);
-        await page.keyboard.down('KeyT');
-        await page.keyboard.up('KeyT');
-        await page.keyboard.up(modifier);
+        await pressShortcut(page, modifier, 'KeyT');
 
         // Verify terminal session is visible using data-testid
         const collectionTerminalSession = page.getByTestId('session-list-0');
@@ -42,10 +45,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await page.locator('.collection-item-name').filter({ has: page.getByText('kb-terminal-folder', { exact: true }) }).dblclick();
         await expect(page.locator('.request-tab').filter({ has: page.getByText('kb-terminal-folder', { exact: true }) })).toBeVisible({ timeout: 2000 });
 
-        await page.keyboard.down(modifier);
-        await page.keyboard.down('KeyT');
-        await page.keyboard.up('KeyT');
-        await page.keyboard.up(modifier);
+        await pressShortcut(page, modifier, 'KeyT');
         const folderTerminalSession = page.getByTestId('session-list-1');
         await expect(folderTerminalSession).toBeVisible({ timeout: 2000 });
 
@@ -63,7 +63,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
     });
 
     test.describe('SHORTCUT: Open Terminal (customized Alt+T)', () => {
-      test('customized Alt+T opens terminal', async ({ pageWithUserData: page, createTmpDir }) => {
+      test('customized Alt+T opens terminal', async ({ pageWithUserData: page }) => {
         // Remap openTerminal to Alt+T
         await openKeybindingsTab(page);
         const row = page.getByTestId('keybinding-row-openTerminal');
@@ -71,21 +71,15 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await page.getByTestId('keybinding-edit-openTerminal').click();
         await expect(page.getByTestId('keybinding-input-openTerminal')).toBeVisible({ timeout: 2000 });
 
-        await page.keyboard.down('Backspace');
+        await page.keyboard.press('Backspace');
 
-        await page.keyboard.down('Alt');
-        await page.keyboard.down('KeyT');
-        await page.keyboard.up('KeyT');
-        await page.keyboard.up('Alt');
+        await pressShortcut(page, 'Alt', 'KeyT');
 
         await page.getByTestId('sidebar-collection-row').filter({ has: page.getByText('kb-collection', { exact: true }) }).click();
         await expect(page.locator('.request-tab').filter({ has: page.getByText('Collection', { exact: true }) })).toBeVisible({ timeout: 2000 });
 
         // Press Cmd/Ctrl+T to open terminal at workspace level
-        await page.keyboard.down('Alt');
-        await page.keyboard.down('KeyT');
-        await page.keyboard.up('KeyT');
-        await page.keyboard.up('Alt');
+        await pressShortcut(page, 'Alt', 'KeyT');
         await page.waitForTimeout(500);
 
         // Verify terminal session is visible using data-testid
@@ -98,10 +92,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         // Open folder settings
         await page.locator('.collection-item-name').filter({ has: page.getByText('kb-terminal-folder', { exact: true }) }).dblclick();
 
-        await page.keyboard.down('Alt');
-        await page.keyboard.down('KeyT');
-        await page.keyboard.up('KeyT');
-        await page.keyboard.up('Alt');
+        await pressShortcut(page, 'Alt', 'KeyT');
         const folderTerminalSession = page.getByTestId('session-list-1');
         await expect(folderTerminalSession).toBeVisible({ timeout: 2000 });
 

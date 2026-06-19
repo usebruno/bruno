@@ -12,6 +12,15 @@ export const modifier = process.platform === 'darwin' ? 'Meta' : 'Control';
 export const collectionName = 'kb-collection';
 export const baseRequests = ['req-1', 'req-2', 'req-3', 'req-4', 'req-5', 'req-6', 'req-7', 'req-8', 'req-9'];
 
+export const pressShortcut = async (page: Page, ...keys: string[]) => {
+  for (const key of keys) {
+    await page.keyboard.down(key);
+  }
+  for (const key of [...keys].reverse()) {
+    await page.keyboard.up(key);
+  }
+};
+
 export const setupBoundActionsData = async (page: Page, createTmpDir: (prefix: string) => Promise<string>) => {
   await closeAllCollections(page);
   const path = await createTmpDir('kb-collection-path');
@@ -47,24 +56,26 @@ export const openKeybindingsTab = async (page: Page) => {
   await expect(page.locator('.section-header').filter({ has: page.getByText('Keybindings', { exact: true }) })).toBeVisible();
 };
 
-/**
- * Close the Preferences tab by clicking its close button.
- * Using the close button avoids depending on any keyboard shortcut that may
- * have just been reconfigured.
- */
 export const closePreferencesTab = async (page: Page) => {
   const prefTab = page.locator('.request-tab').filter({ has: page.getByText('Preferences', { exact: true }) });
   // Nothing to do if it's already closed.
   if (!(await prefTab.isVisible().catch(() => false))) return;
 
-  // Closing can race with the just-edited keybinding UI: the close icon may not
-  // be revealed yet, or a click can be swallowed during a re-render. Retry the
-  // hover -> close until the tab is actually gone.
   await expect(async () => {
     await prefTab.hover();
     await prefTab.getByTestId('request-tab-close-icon').click({ force: true });
     await expect(prefTab).not.toBeVisible({ timeout: 2000 });
   }).toPass({ timeout: 10000 });
+};
+
+export const resetKeybindings = async (page: Page) => {
+  await openKeybindingsTab(page);
+  const resetBtn = page.getByTestId('reset-all-keybindings-btn');
+
+  if (await resetBtn.isEnabled().catch(() => false)) {
+    await resetBtn.click({ timeout: 2000 });
+  }
+  await closePreferencesTab(page);
 };
 
 export const closeTabByName = async (page: any, name: string | RegExp) => {
@@ -125,8 +136,7 @@ export const remapKeybinding = async (
 
   await expect(keybindingInput).toBeVisible({ timeout: 5000 });
 
-  await page.keyboard.down('Backspace');
-  await page.keyboard.up('Backspace');
+  await page.keyboard.press('Backspace');
   await pressShortcut();
 };
 

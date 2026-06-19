@@ -4,6 +4,8 @@ import {
   modifier,
   openKeybindingsTab,
   openRequest,
+  pressShortcut,
+  resetKeybindings,
   setupBoundActionsData
 } from './helpers';
 
@@ -11,6 +13,10 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
   test.beforeEach(async ({ pageWithUserData: page, createTmpDir }) => {
     await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 5000 });
     await setupBoundActionsData(page, createTmpDir);
+  });
+
+  test.afterEach(async ({ pageWithUserData: page }) => {
+    await resetKeybindings(page);
   });
 
   test.afterAll(async ({ pageWithUserData: page }) => {
@@ -39,10 +45,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await expect(page.getByTestId('request-body-editor')).toContainText('"name": "Bruno"', { timeout: 5000 });
 
         // Cursor is still in the body CodeMirror - press Cmd/Ctrl+Enter to send
-        await page.keyboard.down(modifier);
-        await page.keyboard.down('Enter');
-        await page.keyboard.up('Enter');
-        await page.keyboard.up(modifier);
+        await pressShortcut(page, modifier, 'Enter');
 
         // Verify a 200 response came back
         await expect(page.getByTestId('response-status-code')).toContainText('200', { timeout: 15000 });
@@ -65,10 +68,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await expect(page.getByTestId('request-body-editor')).toContainText('"name": "Bruno"', { timeout: 5000 });
 
         // First send to populate response
-        await page.keyboard.down(modifier);
-        await page.keyboard.down('Enter');
-        await page.keyboard.up('Enter');
-        await page.keyboard.up(modifier);
+        await pressShortcut(page, modifier, 'Enter');
         await expect(page.getByTestId('response-status-code')).toContainText('200', { timeout: 15000 });
 
         // Focus cursor inside the response body CodeMirror
@@ -77,10 +77,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await responseEditor.click();
 
         // Press Cmd/Ctrl+Enter again - should re-send the request
-        await page.keyboard.down(modifier);
-        await page.keyboard.down('Enter');
-        await page.keyboard.up('Enter');
-        await page.keyboard.up(modifier);
+        await pressShortcut(page, modifier, 'Enter');
 
         // Verify a 200 response came back (no error, status stays/refreshes to 200)
         await expect(page.getByTestId('response-status-code')).toContainText('200', { timeout: 15000 });
@@ -112,10 +109,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
 
         // Cursor is still in the value CodeMirror - press Cmd/Ctrl+Enter to send
         // (should NOT insert a newline; should fire sendRequest)
-        await page.keyboard.down(modifier);
-        await page.keyboard.down('Enter');
-        await page.keyboard.up('Enter');
-        await page.keyboard.up(modifier);
+        await pressShortcut(page, modifier, 'Enter');
 
         // Verify a 200 response came back
         await expect(page.getByTestId('response-status-code')).toContainText('200', { timeout: 15000 });
@@ -131,12 +125,9 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await page.getByTestId('keybinding-edit-sendRequest').click();
         await expect(page.getByTestId('keybinding-input-sendRequest')).toBeVisible({ timeout: 2000 });
 
-        await page.keyboard.down('Backspace');
+        await page.keyboard.press('Backspace');
 
-        await page.keyboard.down('Shift');
-        await page.keyboard.down('Enter');
-        await page.keyboard.up('Enter');
-        await page.keyboard.up('Shift');
+        await pressShortcut(page, 'Shift', 'Enter');
 
         // Create a POST request in the shared collection pointing to the echo server
         await createRequest(page, 'shift-enter-req-body', 'kb-collection', {
@@ -156,16 +147,9 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await expect(page.getByTestId('request-body-editor')).toContainText('"name": "Bruno"', { timeout: 5000 });
 
         // Cursor is still in the body CodeMirror - press Shift+Enter (customized) to send
-        await page.keyboard.down('Shift');
-        await page.keyboard.down('Enter');
-        await page.keyboard.up('Enter');
-        await page.keyboard.up('Shift');
+        await pressShortcut(page, 'Shift', 'Enter');
 
         await expect(page.getByTestId('response-status-code')).toContainText('200', { timeout: 15000 });
-
-        // Reset Default
-        await openKeybindingsTab(page);
-        await page.getByTestId('reset-all-keybindings-btn').click({ timeout: 2000 });
       });
 
       test('sends request when cursor is in response body editor', async ({ pageWithUserData: page }) => {
@@ -176,12 +160,9 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await page.getByTestId('keybinding-edit-sendRequest').click();
         await expect(page.getByTestId('keybinding-input-sendRequest')).toBeVisible({ timeout: 2000 });
 
-        await page.keyboard.down('Backspace');
+        await page.keyboard.press('Backspace');
 
-        await page.keyboard.down('Shift');
-        await page.keyboard.down('Enter');
-        await page.keyboard.up('Enter');
-        await page.keyboard.up('Shift');
+        await pressShortcut(page, 'Shift', 'Enter');
 
         await createRequest(page, 'shift-enter-req-resp', 'kb-collection', {
           url: 'https://echo.usebruno.com',
@@ -199,10 +180,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await expect(page.getByTestId('request-body-editor')).toContainText('"name": "Bruno"', { timeout: 5000 });
 
         // First send with Shift+Enter to populate response
-        await page.keyboard.down('Shift');
-        await page.keyboard.down('Enter');
-        await page.keyboard.up('Enter');
-        await page.keyboard.up('Shift');
+        await pressShortcut(page, 'Shift', 'Enter');
         await expect(page.getByTestId('response-status-code')).toContainText('200', { timeout: 15000 });
 
         // Focus cursor inside the response body CodeMirror
@@ -211,16 +189,9 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await responseEditor.click();
 
         // Press Shift+Enter again - should re-send the request
-        await page.keyboard.down('Shift');
-        await page.keyboard.down('Enter');
-        await page.keyboard.up('Enter');
-        await page.keyboard.up('Shift');
+        await pressShortcut(page, 'Shift', 'Enter');
 
         await expect(page.getByTestId('response-status-code')).toContainText('200', { timeout: 15000 });
-
-        // Reset Default
-        await openKeybindingsTab(page);
-        await page.getByTestId('reset-all-keybindings-btn').click({ timeout: 2000 });
       });
 
       test('sends request when cursor is in pre-request Vars value editor', async ({ pageWithUserData: page }) => {
@@ -231,12 +202,9 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await page.getByTestId('keybinding-edit-sendRequest').click();
         await expect(page.getByTestId('keybinding-input-sendRequest')).toBeVisible({ timeout: 2000 });
 
-        await page.keyboard.down('Backspace');
+        await page.keyboard.press('Backspace');
 
-        await page.keyboard.down('Shift');
-        await page.keyboard.down('Enter');
-        await page.keyboard.up('Enter');
-        await page.keyboard.up('Shift');
+        await pressShortcut(page, 'Shift', 'Enter');
 
         await createRequest(page, 'shift-enter-req-vars', 'kb-collection', {
           url: 'https://echo.usebruno.com',
@@ -259,48 +227,32 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await page.keyboard.type('val-2');
 
         // Cursor is still in the value CodeMirror - press Shift+Enter (customized) to send
-        await page.keyboard.down('Shift');
-        await page.keyboard.down('Enter');
-        await page.keyboard.up('Enter');
-        await page.keyboard.up('Shift');
+        await pressShortcut(page, 'Shift', 'Enter');
 
         await expect(page.getByTestId('response-status-code')).toContainText('200', { timeout: 15000 });
-
-        // Reset Default
-        await openKeybindingsTab(page);
-        await page.getByTestId('reset-all-keybindings-btn').click({ timeout: 2000 });
       });
     });
 
     test.describe('SHORTCUT: Change Orientation (Cmd/Ctrl+J)', () => {
-      test('default Cmd/Ctrl+J change layout orientation', async ({ pageWithUserData: page, createTmpDir }) => {
+      test('default Cmd/Ctrl+J change layout orientation', async ({ pageWithUserData: page }) => {
         await openRequest(page, 'kb-collection', 'req-5', { persist: true });
 
         // Press Cmd/Ctrl+J to change layout
-        await page.keyboard.down(modifier);
-        await page.keyboard.down('KeyJ');
-        await page.keyboard.up('KeyJ');
-        await page.keyboard.up(modifier);
+        await pressShortcut(page, modifier, 'KeyJ');
 
         await expect(
           page.getByTestId('response-layout-toggle-btn')
         ).toHaveAttribute('title', 'Switch to horizontal layout', { timeout: 2000 });
 
         // Press Cmd/Ctrl+J to change layout
-        await page.keyboard.down(modifier);
-        await page.keyboard.down('KeyJ');
-        await page.keyboard.up('KeyJ');
-        await page.keyboard.up(modifier);
+        await pressShortcut(page, modifier, 'KeyJ');
 
         await expect(
           page.getByTestId('response-layout-toggle-btn')
         ).toHaveAttribute('title', 'Switch to vertical layout', { timeout: 2000 });
 
         // Press Cmd/Ctrl+J to change layout
-        await page.keyboard.down(modifier);
-        await page.keyboard.down('KeyJ');
-        await page.keyboard.up('KeyJ');
-        await page.keyboard.up(modifier);
+        await pressShortcut(page, modifier, 'KeyJ');
 
         await expect(
           page.getByTestId('response-layout-toggle-btn')
@@ -309,54 +261,34 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
     });
 
     test.describe('SHORTCUT: Change Orientation (customized Alt+Shift+Y)', () => {
-      test('customized Alt+Shift+Y change layout orientation', async ({ pageWithUserData: page, createTmpDir }) => {
+      test('customized Alt+Shift+Y change layout orientation', async ({ pageWithUserData: page }) => {
         await openKeybindingsTab(page);
         const row = page.getByTestId('keybinding-row-changeLayout');
         await row.hover();
         await page.getByTestId('keybinding-edit-changeLayout').click();
         await expect(page.getByTestId('keybinding-input-changeLayout')).toBeVisible({ timeout: 2000 });
 
-        await page.keyboard.down('Backspace');
+        await page.keyboard.press('Backspace');
 
-        await page.keyboard.down('Alt');
-        await page.keyboard.down('Shift');
-        await page.keyboard.down('KeyY');
-        await page.keyboard.up('KeyY');
-        await page.keyboard.up('Shift');
-        await page.keyboard.up('Alt');
+        await pressShortcut(page, 'Alt', 'Shift', 'KeyY');
 
         await openRequest(page, 'kb-collection', 'req-5', { persist: true });
 
-        await page.keyboard.down('Alt');
-        await page.keyboard.down('Shift');
-        await page.keyboard.down('KeyY');
-        await page.keyboard.up('KeyY');
-        await page.keyboard.up('Shift');
-        await page.keyboard.up('Alt');
+        await pressShortcut(page, 'Alt', 'Shift', 'KeyY');
 
         await expect(
           page.getByTestId('response-layout-toggle-btn')
         ).toHaveAttribute('title', 'Switch to vertical layout', { timeout: 2000 });
 
         // Press Cmd/Ctrl+J to change layout
-        await page.keyboard.down('Alt');
-        await page.keyboard.down('Shift');
-        await page.keyboard.down('KeyY');
-        await page.keyboard.up('KeyY');
-        await page.keyboard.up('Shift');
-        await page.keyboard.up('Alt');
+        await pressShortcut(page, 'Alt', 'Shift', 'KeyY');
 
         await expect(
           page.getByTestId('response-layout-toggle-btn')
         ).toHaveAttribute('title', 'Switch to horizontal layout', { timeout: 2000 });
 
         // Press Cmd/Ctrl+J to change layout
-        await page.keyboard.down('Alt');
-        await page.keyboard.down('Shift');
-        await page.keyboard.down('KeyY');
-        await page.keyboard.up('KeyY');
-        await page.keyboard.up('Shift');
-        await page.keyboard.up('Alt');
+        await pressShortcut(page, 'Alt', 'Shift', 'KeyY');
 
         await expect(
           page.getByTestId('response-layout-toggle-btn')

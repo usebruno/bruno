@@ -4,6 +4,8 @@ import {
   closePreferencesTab,
   modifier,
   openKeybindingsTab,
+  pressShortcut,
+  resetKeybindings,
   setupBoundActionsData
 } from './helpers';
 
@@ -13,6 +15,10 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
     await setupBoundActionsData(page, createTmpDir);
   });
 
+  test.afterEach(async ({ pageWithUserData: page }) => {
+    await resetKeybindings(page);
+  });
+
   test.afterAll(async ({ pageWithUserData: page }) => {
     await closeAllCollections(page);
   });
@@ -20,16 +26,12 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
   test.describe('SEARCH', () => {
     test.describe('SHORTCUT: Global Search (Cmd/Ctrl+K)', () => {
       test('default Cmd/Ctrl+K Global Search Modal', async ({ pageWithUserData: page }) => {
-        await page.keyboard.down(modifier);
-        await page.keyboard.down('KeyK');
-        await page.keyboard.up('KeyK');
-        await page.keyboard.up(modifier);
+        await pressShortcut(page, modifier, 'KeyK');
 
         await expect(page.getByTestId('global-search-input')).toBeVisible({ timeout: 5000 });
         await page.getByTestId('global-search-input').click();
 
-        await page.keyboard.down('Escape');
-        await page.keyboard.up('Escape');
+        await pressShortcut(page, 'Escape');
       });
 
       test('customized Shift+K Global Search Modal', async ({ pageWithUserData: page }) => {
@@ -40,25 +42,18 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await page.getByTestId('keybinding-edit-globalSearch').click();
         await expect(page.getByTestId('keybinding-input-globalSearch')).toBeVisible({ timeout: 2000 });
 
-        await page.keyboard.down('Backspace');
+        await page.keyboard.press('Backspace');
 
-        await page.keyboard.down('Shift');
-        await page.keyboard.down('KeyK');
-        await page.keyboard.up('KeyK');
-        await page.keyboard.up('Shift');
+        await pressShortcut(page, 'Shift', 'KeyK');
 
         await closePreferencesTab(page);
 
-        await page.keyboard.down('Shift');
-        await page.keyboard.down('KeyK');
-        await page.keyboard.up('KeyK');
-        await page.keyboard.up('Shift');
+        await pressShortcut(page, 'Shift', 'KeyK');
 
         await expect(page.getByTestId('global-search-input')).toBeVisible({ timeout: 5000 });
         await page.getByTestId('global-search-input').click();
 
-        await page.keyboard.down('Escape');
-        await page.keyboard.up('Escape');
+        await pressShortcut(page, 'Escape');
       });
     });
   });

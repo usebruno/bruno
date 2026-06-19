@@ -3,6 +3,8 @@ import { closeAllCollections } from '../utils/page';
 import {
   modifier,
   openKeybindingsTab,
+  pressShortcut,
+  resetKeybindings,
   setupBoundActionsData
 } from './helpers';
 
@@ -12,6 +14,10 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
     await setupBoundActionsData(page, createTmpDir);
   });
 
+  test.afterEach(async ({ pageWithUserData: page }) => {
+    await resetKeybindings(page);
+  });
+
   test.afterAll(async ({ pageWithUserData: page }) => {
     await closeAllCollections(page);
   });
@@ -19,10 +25,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
   test.describe('OTHERS', () => {
     test.describe('SHORTCUT: Open Preferences', () => {
       test('default Cmd/Ctrl+, open preferences', async ({ pageWithUserData: page }) => {
-        await page.keyboard.down(modifier);
-        await page.keyboard.down('Comma');
-        await page.keyboard.up('Comma');
-        await page.keyboard.up(modifier);
+        await pressShortcut(page, modifier, 'Comma');
 
         await expect(page.locator('.request-tab').filter({ has: page.getByText('Preferences', { exact: true }) })).toBeVisible({ timeout: 3000 });
       });
@@ -37,12 +40,9 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await page.getByTestId('keybinding-edit-openPreferences').click();
         await expect(page.getByTestId('keybinding-input-openPreferences')).toBeVisible({ timeout: 2000 });
 
-        await page.keyboard.down('Backspace');
+        await page.keyboard.press('Backspace');
 
-        await page.keyboard.down(modifier);
-        await page.keyboard.down('KeyP');
-        await page.keyboard.up('KeyP');
-        await page.keyboard.up(modifier);
+        await pressShortcut(page, modifier, 'KeyP');
 
         await expect(page.locator('.request-tab').filter({ has: page.getByText('Preferences', { exact: true }) })).toBeVisible({ timeout: 3000 });
       });
