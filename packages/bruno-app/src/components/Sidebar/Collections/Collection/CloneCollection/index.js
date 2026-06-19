@@ -147,10 +147,6 @@ const CloneCollection = ({ onClose, collectionUid }) => {
             </span>
           </div>
 
-          {/* Folder Name field hidden — the on-disk folder name is now resolved
-              silently by electron (sanitizeName(collectionName) + numeric suffix on
-              collision). Kept here (commented) rather than deleted. The
-              collectionFolderName value still auto-syncs from the Name field above.
           <div className="mt-4">
             <div className="flex items-center justify-between">
               <label htmlFor="filename" className="flex items-center font-medium">
@@ -205,7 +201,6 @@ const CloneCollection = ({ onClose, collectionUid }) => {
               <div className="text-red-500">{formik.errors.collectionFolderName}</div>
             ) : null}
           </div>
-          */}
         </div>
       </form>
     </Modal>

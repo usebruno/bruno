@@ -35,6 +35,7 @@ const {
   writeFile,
   writeFileUnique,
   mkdirUnique,
+  getUniqueRenamePath,
   hasBruExtension,
   isDirectory,
   createDirectory,
@@ -185,22 +186,14 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
       try {
         const format = options.format || DEFAULT_COLLECTION_FORMAT;
         collectionFolderName = sanitizeName(collectionFolderName);
-        const dirPath = path.join(collectionLocation, collectionFolderName);
-        if (fs.existsSync(dirPath)) {
-          const files = fs.readdirSync(dirPath);
 
-          if (files.length > 0) {
-            throw new Error(`collection: ${dirPath} already exists and is not empty`);
-          }
+        if (!validateName(collectionFolderName)) {
+          throw new Error(`collection: invalid pathname - ${path.join(collectionLocation, collectionFolderName)}`);
         }
 
-        if (!validateName(path.basename(dirPath))) {
-          throw new Error(`collection: invalid pathname - ${dirPath}`);
-        }
-
-        if (!fs.existsSync(dirPath)) {
-          await createDirectory(dirPath);
-        }
+        // Resolve directory-name collisions silently with a numeric suffix
+        // instead of erroring or reusing an existing empty directory.
+        const { pathname: dirPath } = await mkdirUnique(collectionLocation, collectionFolderName);
 
         const uid = generateUidBasedOnHash(dirPath);
         let brunoConfig = {
@@ -585,12 +578,6 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
 
       const filename = targetFilename || path.basename(sourcePathname);
       const filenameWithoutExt = filename.replace(/\.(bru|yml)$/, '');
-      const finalFilename = `${filenameWithoutExt}.${targetFormat}`;
-      const targetPathname = path.join(targetDirname, finalFilename);
-
-      if (fs.existsSync(targetPathname)) {
-        throw new Error(`A file with the name "${finalFilename}" already exists in the target location`);
-      }
 
       const actualSourceFormat = sourceFormat || 'yml';
       const needsConversion = actualSourceFormat !== targetFormat;
@@ -608,7 +595,8 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
         finalContent = await stringifyRequestViaWorker(request, { format: targetFormat });
       }
 
-      await writeFile(targetPathname, finalContent);
+      // Resolve collisions silently with a numeric suffix instead of erroring.
+      const { pathname: targetPathname } = await writeFileUnique(targetDirname, filenameWithoutExt, targetFormat, finalContent);
       return { newPathname: targetPathname };
     } catch (error) {
       return Promise.reject(error);
@@ -1051,9 +1039,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
         throw new Error(`path: ${oldPath} does not exist`);
       }
 
-      if (!safeToRename(oldPath, newPath)) {
-        throw new Error(`path: ${newPath} already exists`);
-      }
+      newPath = getUniqueRenamePath(oldPath, newPath);
 
       const format = getCollectionFormat(collectionPathname);
 
@@ -1143,16 +1129,12 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
   // new folder
   ipcMain.handle('renderer:new-folder', async (event, { pathname, folderData, format }) => {
     const resolvedFolderName = sanitizeName(path.basename(pathname));
-    pathname = path.join(path.dirname(pathname), resolvedFolderName);
     try {
-      if (!fs.existsSync(pathname)) {
-        fs.mkdirSync(pathname);
-        const folderFilePath = path.join(pathname, `folder.${format}`);
-        const content = await stringifyFolder(folderData, { format });
-        await writeFile(folderFilePath, content);
-      } else {
-        return Promise.reject(new Error('The directory already exists'));
-      }
+      const { pathname: createdPath } = await mkdirUnique(path.dirname(pathname), resolvedFolderName);
+      const folderFilePath = path.join(createdPath, `folder.${format}`);
+      const content = await stringifyFolder(folderData, { format });
+      await writeFile(folderFilePath, content);
+      return { pathname: createdPath, name: path.basename(createdPath) };
     } catch (error) {
       return Promise.reject(error);
     }
@@ -2273,16 +2255,10 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
 
       const filename = targetFilename || path.basename(sourcePathname);
       const filenameWithoutExt = filename.replace(/\.(bru|yml)$/, '');
-      const finalFilename = `${filenameWithoutExt}.${format}`;
-      const targetPathname = path.join(targetDirname, finalFilename);
-
-      if (fs.existsSync(targetPathname)) {
-        throw new Error(`A file with the name "${finalFilename}" already exists in the target location`);
-      }
 
       const content = await stringifyRequestViaWorker(request, { format });
 
-      await writeFile(targetPathname, content);
+      const { pathname: targetPathname } = await writeFileUnique(targetDirname, filenameWithoutExt, format, content);
 
       if (request.examples) {
         syncExampleUidsCache(collectionPath, request.examples);

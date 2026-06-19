@@ -315,6 +315,22 @@ const safeToRename = (oldPath, newPath) => {
   }
 };
 
+const getUniqueRenamePath = (oldPath, desiredNewPath) => {
+  if (safeToRename(oldPath, desiredNewPath)) {
+    return desiredNewPath;
+  }
+  const dir = path.dirname(desiredNewPath);
+  const ext = path.extname(desiredNewPath); // '' for directories, '.bru' etc. for files
+  const base = path.basename(desiredNewPath, ext);
+  const extNoDot = ext.startsWith('.') ? ext.slice(1) : ext;
+  for (let counter = 1; ; counter++) {
+    const candidate = path.join(dir, nextSuffixedName(base, extNoDot, counter));
+    if (safeToRename(oldPath, candidate)) {
+      return candidate;
+    }
+  }
+};
+
 const getCollectionStats = async (directoryPath) => {
   let size = 0;
   let filesCount = 0;
@@ -576,6 +592,7 @@ module.exports = {
   writeFile,
   writeFileUnique,
   mkdirUnique,
+  getUniqueRenamePath,
   hasJsonExtension,
   hasBruExtension,
   hasRequestExtension,
