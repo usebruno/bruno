@@ -46,13 +46,57 @@ const StyledWrapper = styled.div`
       .env-section {
         padding: 1rem;
 
+        .env-checkbox {
+          width: 1rem;
+          height: 1rem;
+          margin: 0;
+          flex-shrink: 0;
+          cursor: pointer;
+        }
+
+        .env-section-header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 0.5rem;
+          margin-bottom: 0.75rem;
+        }
+
+        .env-section-heading {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          min-width: 0;
+        }
+
+        .env-section-count {
+          font-size: ${(props) => props.theme.font.size.xs};
+          color: ${(props) => props.theme.colors.text.muted};
+          white-space: nowrap;
+        }
+
         .env-section-title {
-          margin: 0 0 0.75rem;
+          margin: 0;
           font-size: ${(props) => props.theme.font.size.xs};
           font-weight: 600;
           letter-spacing: 0.05em;
           text-transform: uppercase;
           color: ${(props) => props.theme.colors.text.muted};
+        }
+
+        .env-select-all {
+          display: flex;
+          align-items: center;
+          gap: 0.375rem;
+          margin: 0;
+          cursor: pointer;
+          user-select: none;
+
+          .env-select-all-label {
+            font-size: ${(props) => props.theme.font.size.sm};
+            color: ${(props) => props.theme.colors.text.muted};
+            white-space: nowrap;
+          }
         }
 
         .env-row {
@@ -64,14 +108,6 @@ const StyledWrapper = styled.div`
           height: 34px;
           cursor: pointer;
           margin: 0;
-
-          .env-checkbox {
-            width: 1rem;
-            height: 1rem;
-            margin: 0;
-            flex-shrink: 0;
-            cursor: pointer;
-          }
 
           .env-name {
             font-size: ${(props) => props.theme.font.size.sm};

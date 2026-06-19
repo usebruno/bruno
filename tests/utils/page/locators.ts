@@ -127,6 +127,10 @@ export const buildCommonLocators = (page: Page) => ({
     versionCounts: () => page.locator('.bruno-modal .version-summary'),
     // Environment selection list
     environmentsTitle: () => page.locator('.bruno-modal .env-section-title'),
+    // Header controls: tri-state "select all" checkbox + "X/Y selected" count
+    selectAllCheckbox: () => page.locator('.bruno-modal').getByTestId('env-select-all'),
+    selectAllLabel: () => page.locator('.bruno-modal .env-select-all'),
+    selectedCount: () => page.locator('.bruno-modal').getByTestId('env-selected-count'),
     environmentRows: () => page.locator('.bruno-modal .env-row'),
     environmentRow: (name: string) =>
       page.locator('.bruno-modal .env-row').filter({ has: page.getByText(name, { exact: true }) }),

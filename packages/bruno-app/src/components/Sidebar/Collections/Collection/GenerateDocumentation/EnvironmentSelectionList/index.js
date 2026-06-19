@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, memo } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, memo } from 'react';
 import { Virtuoso } from 'react-virtuoso';
 import ColorBadge from 'components/ColorBadge';
 
@@ -12,13 +12,39 @@ const MAX_VISIBLE_ROWS = 5;
 const ENV_ROW_HEIGHT = 34;
 
 /**
- * A selectable, virtualised list of collection environments (checkbox + color dot + name).
- * Selection is controlled by the parent via `selectedUids`. Presentational and
+ * A selectable, virtualised list of collection environments (checkbox + color dot + name)
+ * with a header that carries the title and a tri-state "select all" checkbox.
+ *
+ * Selection is controlled by the parent via `selectedUids`; `onToggleAll(nextSelectAll)`
+ * fires with the desired state when the header checkbox is clicked. Presentational and
  * prop-driven so it can be reused wherever an environment multi-select is needed.
  */
-const EnvironmentSelectionList = ({ environments = [], selectedUids = [], onToggle, disabled = false }) => {
+const EnvironmentSelectionList = ({
+  environments = [],
+  selectedUids = [],
+  onToggle,
+  onToggleAll,
+  title = 'Environments',
+  disabled = false
+}) => {
   // O(1) membership checks regardless of how many environments are rendered.
   const selectedSet = useMemo(() => new Set(selectedUids), [selectedUids]);
+
+  const selectedCount = useMemo(
+    () => environments.reduce((count, env) => (selectedSet.has(env?.uid) ? count + 1 : count), 0),
+    [environments, selectedSet]
+  );
+  const allSelected = environments.length > 0 && selectedCount === environments.length;
+  const someSelected = selectedCount > 0 && !allSelected;
+
+  const selectAllRef = useRef(null);
+  useEffect(() => {
+    if (selectAllRef.current) {
+      selectAllRef.current.indeterminate = someSelected;
+    }
+  }, [someSelected]);
+
+  const handleToggleAll = useCallback((event) => onToggleAll?.(event.target.checked), [onToggleAll]);
 
   const computeItemKey = useCallback((_index, env) => env?.uid, []);
 
@@ -48,17 +74,39 @@ const EnvironmentSelectionList = ({ environments = [], selectedUids = [], onTogg
   const visibleRows = Math.min(environments.length, MAX_VISIBLE_ROWS);
 
   return (
-    <Virtuoso
-      className="env-list"
-      role="group"
-      aria-label="Environments to include"
-      style={{ height: visibleRows * ENV_ROW_HEIGHT }}
-      data={environments}
-      computeItemKey={computeItemKey}
-      itemContent={renderEnvironment}
-      fixedItemHeight={ENV_ROW_HEIGHT}
-      increaseViewportBy={ENV_ROW_HEIGHT * 3}
-    />
+    <>
+      <div className="env-section-header">
+        <div className="env-section-heading">
+          <h4 className="env-section-title">{title}</h4>
+          <span className="env-section-count" data-testid="env-selected-count">
+            ({selectedCount}/{environments.length} selected)
+          </span>
+        </div>
+        <label className="env-select-all">
+          <input
+            ref={selectAllRef}
+            type="checkbox"
+            className="env-checkbox"
+            checked={allSelected}
+            disabled={disabled}
+            onChange={handleToggleAll}
+            data-testid="env-select-all"
+          />
+          <span className="env-select-all-label">Select All</span>
+        </label>
+      </div>
+      <Virtuoso
+        className="env-list"
+        role="group"
+        aria-label={title}
+        style={{ height: visibleRows * ENV_ROW_HEIGHT }}
+        data={environments}
+        computeItemKey={computeItemKey}
+        itemContent={renderEnvironment}
+        fixedItemHeight={ENV_ROW_HEIGHT}
+        increaseViewportBy={ENV_ROW_HEIGHT * 3}
+      />
+    </>
   );
 };
 

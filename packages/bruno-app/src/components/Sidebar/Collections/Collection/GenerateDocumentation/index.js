@@ -104,6 +104,12 @@ const GenerateDocumentation = ({ onClose, collectionUid }) => {
     });
   }, []);
 
+  // Select all -> nothing deselected; deselect all -> every environment deselected.
+  const toggleAllEnvs = useCallback(
+    (selectAll) => setDeselectedEnvUids(selectAll ? new Set() : new Set(environments.map((env) => env.uid))),
+    [environments]
+  );
+
   const handleGenerate = useCallback(() => {
     try {
       const collectionCopy = cloneDeep(collection);
@@ -210,11 +216,12 @@ const GenerateDocumentation = ({ onClose, collectionUid }) => {
                 <Fragment>
                   <div className="card-divider" />
                   <div className="env-section">
-                    <h4 className="env-section-title">Environments to include</h4>
                     <EnvironmentSelectionList
+                      title="Environments to include"
                       environments={environments}
                       selectedUids={selectedEnvUids}
                       onToggle={toggleEnv}
+                      onToggleAll={toggleAllEnvs}
                     />
                   </div>
                 </Fragment>
