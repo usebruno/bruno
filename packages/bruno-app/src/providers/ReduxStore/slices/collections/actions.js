@@ -3414,8 +3414,18 @@ export const migrateCollectionToYml = (collectionUid) => (dispatch, getState) =>
             brunoConfig: updatedBrunoConfig
           }));
         } catch (reopenError) {
-          // Files on disk are already yml, so restore with updatedBrunoConfig (not old bru config)
-          await dispatch(openCollectionEvent(uid, collectionPathname, updatedBrunoConfig));
+          // Files on disk are already yml; best-effort recovery so the
+          // collection doesn't disappear from the UI. openCollectionEvent is
+          // a no-op if it already succeeded, and mountCollection is what we
+          // retry when it was the failing step.
+          try {
+            await dispatch(openCollectionEvent(uid, collectionPathname, updatedBrunoConfig));
+            await dispatch(mountCollection({
+              collectionUid: uid,
+              collectionPathname: collectionPathname,
+              brunoConfig: updatedBrunoConfig
+            }));
+          } catch (_) {}
           throw reopenError;
         }
 

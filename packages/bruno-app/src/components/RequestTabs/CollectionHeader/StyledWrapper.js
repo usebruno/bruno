@@ -163,11 +163,22 @@ const StyledWrapper = styled.div`
     color: ${(props) => props.theme.text};
     font-size: 12px;
     line-height: 1;
-    cursor: pointer;
     transition: background-color 0.15s ease;
 
     &:hover {
       background: ${(props) => props.theme.sidebar.collection.item.hoverBg};
+    }
+
+    .pill-main {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 0;
+      border: none;
+      background: transparent;
+      color: inherit;
+      font: inherit;
+      cursor: pointer;
     }
 
     .pill-label {
@@ -180,7 +191,12 @@ const StyledWrapper = styled.div`
       justify-content: center;
       width: 16px;
       height: 16px;
+      padding: 0;
+      border: none;
       border-radius: 50%;
+      background: transparent;
+      color: inherit;
+      cursor: pointer;
       opacity: 0.6;
       transition: opacity 0.15s ease, background-color 0.15s ease;
 

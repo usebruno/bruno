@@ -21,7 +21,7 @@ import OpenAPISyncIcon from 'components/Icons/OpenAPISync';
 import { switchWorkspace, renameWorkspaceAction, exportWorkspaceAction, confirmWorkspaceCreation, cancelWorkspaceCreation } from 'providers/ReduxStore/slices/workspaces/actions';
 import { updateWorkspace } from 'providers/ReduxStore/slices/workspaces';
 import { showInFolder } from 'providers/ReduxStore/slices/collections/actions';
-import { toggleCollectionFileMode } from 'providers/ReduxStore/slices/collections';
+import { toggleCollectionFileMode, updateSettingsSelectedTab } from 'providers/ReduxStore/slices/collections';
 import { addTab, focusTab } from 'providers/ReduxStore/slices/tabs';
 import { uuid } from 'utils/common';
 import toast from 'react-hot-toast';
@@ -248,6 +248,17 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
         type: 'collection-settings'
       })
     );
+  };
+
+  const viewMigrationSettings = () => {
+    dispatch(
+      addTab({
+        uid: collection.uid,
+        collectionUid: collection.uid,
+        type: 'collection-settings'
+      })
+    );
+    dispatch(updateSettingsSelectedTab({ collectionUid: collection.uid, tab: 'overview' }));
   };
 
   const viewOpenApiSync = () => {
@@ -623,25 +634,29 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
         {!isScratchCollection && (
           <div className="flex flex-grow gap-1.5 items-center justify-end">
             {collection.format === 'bru' && !migratePillDismissed && (
-              <button
-                type="button"
+              <div
                 className="migrate-yml-pill"
-                onClick={viewCollectionSettings}
                 data-testid="migrate-yml-pill"
                 title="Migrate this collection to YML"
               >
-                <IconTransform size={13} strokeWidth={1.5} />
-                <span className="pill-label">Migrate to YML</span>
-                <span
+                <button
+                  type="button"
+                  className="pill-main"
+                  onClick={viewMigrationSettings}
+                >
+                  <IconTransform size={13} strokeWidth={1.5} />
+                  <span className="pill-label">Migrate to YML</span>
+                </button>
+                <button
+                  type="button"
                   className="pill-dismiss"
                   onClick={dismissMigratePill}
-                  role="button"
                   aria-label="Dismiss"
                   data-testid="migrate-yml-pill-dismiss"
                 >
                   <IconX size={12} strokeWidth={2} />
-                </span>
-              </button>
+                </button>
+              </div>
             )}
             {/* OpenAPI Sync - standalone only when configured and beta enabled */}
             {isOpenAPISyncEnabled && hasOpenApiSyncConfigured && (

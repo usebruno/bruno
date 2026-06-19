@@ -88,6 +88,7 @@ const Migration = ({ collection }) => {
           size="md"
           title="Migrate to YML format"
           confirmText="Migrate"
+          confirmDisabled={isExporting}
           handleConfirm={handleMigrate}
           handleCancel={() => setShowConfirmModal(false)}
         >
