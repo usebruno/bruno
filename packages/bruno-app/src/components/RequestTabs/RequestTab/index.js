@@ -480,6 +480,8 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
           <SpecialTab handleCloseClick={null} type={tab.type} />
         ) : tab.type === 'workspaceEnvironments' ? (
           <SpecialTab handleCloseClick={null} type={tab.type} />
+        ) : tab.type === 'mock-server-dashboard' ? (
+          <SpecialTab handleCloseClick={handleCloseClick} handleDoubleClick={() => dispatch(makeTabPermanent({ uid: tab.uid }))} type={tab.type} tabName={tab.tabName} />
         ) : (
           <SpecialTab handleCloseClick={handleCloseClick} handleDoubleClick={() => dispatch(makeTabPermanent({ uid: tab.uid }))} type={tab.type} />
         )}

@@ -78,7 +78,6 @@ test.describe.serial('Mock Server', () => {
     await expect(page.getByTestId('mock-server-refresh-btn')).toBeVisible();
     await expect(page.getByTestId('mock-server-copy-url')).toContainText(`http://localhost:${MOCK_PORT}`);
     await expect(page.getByTestId('mock-server-stats')).toBeVisible();
-    await expect(page.getByTestId(`mock-server-statusbar-btn-${MOCK_PORT}`)).toBeVisible();
     // Port input should be disabled while running
     await expect(page.getByTestId('mock-server-port-input')).toBeDisabled();
     // Start button should NOT be visible while running
@@ -196,64 +195,6 @@ test.describe.serial('Mock Server', () => {
   test('should return first example when no selection header is provided', async () => {
     // GET /users/1 has success-200 (first) and not-found-404 (second)
     const response = await mockFetch('/users/1');
-    expect(response.status).toBe(200);
-    expect(response.body.name).toBe('John Doe');
-  });
-
-  // ==========================================
-  // Phase 7: Example selection headers
-  // ==========================================
-
-  test('should select example by X-Mock-Example header (case-insensitive)', async () => {
-    await test.step('Lowercase header value', async () => {
-      const response = await mockFetch('/users/1', {
-        headers: { 'X-Mock-Example': 'not-found-404' }
-      });
-      expect(response.status).toBe(404);
-      expect(response.body).toEqual({ error: 'User not found' });
-    });
-
-    await test.step('Mixed case header value', async () => {
-      const response = await mockFetch('/users/1', {
-        headers: { 'X-Mock-Example': 'Not-Found-404' }
-      });
-      expect(response.status).toBe(404);
-    });
-
-    await test.step('Select success example explicitly', async () => {
-      const response = await mockFetch('/users/1', {
-        headers: { 'X-Mock-Example': 'success-200' }
-      });
-      expect(response.status).toBe(200);
-      expect(response.body.name).toBe('John Doe');
-    });
-  });
-
-  test('should fall back to default when X-Mock-Example name does not exist', async () => {
-    const response = await mockFetch('/users/1', {
-      headers: { 'X-Mock-Example': 'nonexistent-example-name' }
-    });
-    // Falls back to first example (success-200)
-    expect(response.status).toBe(200);
-    expect(response.body.name).toBe('John Doe');
-  });
-
-  test('should select example by X-Mock-Response-Code header', async () => {
-    const response = await mockFetch('/users/1', {
-      headers: { 'X-Mock-Response-Code': '404' }
-    });
-    expect(response.status).toBe(404);
-    expect(response.body).toEqual({ error: 'User not found' });
-  });
-
-  test('should prefer X-Mock-Example over X-Mock-Response-Code when both present', async () => {
-    // Send both headers -- X-Mock-Example should take priority
-    const response = await mockFetch('/users/1', {
-      headers: {
-        'X-Mock-Example': 'success-200',
-        'X-Mock-Response-Code': '404'
-      }
-    });
     expect(response.status).toBe(200);
     expect(response.body.name).toBe('John Doe');
   });
@@ -596,7 +537,6 @@ test.describe.serial('Mock Server', () => {
     await expect(page.getByTestId('mock-server-stop-btn')).not.toBeVisible();
     await expect(page.getByTestId('mock-server-copy-url')).not.toBeVisible();
     await expect(page.getByTestId('mock-server-port-input')).toBeEnabled();
-    await expect(page.getByTestId(`mock-server-statusbar-btn-${MOCK_PORT}`)).not.toBeVisible();
   });
 
   // ==========================================

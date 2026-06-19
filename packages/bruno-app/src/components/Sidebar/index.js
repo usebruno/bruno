@@ -2,28 +2,41 @@ import { SidebarAccordionProvider } from './SidebarAccordionContext';
 import SidebarContent from './SidebarContent';
 import StyledWrapper from './StyledWrapper';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { updateLeftSidebarWidth, updateIsDragging, toggleSidebarSearch } from 'providers/ReduxStore/slices/app';
 import CollectionsSection from './Sections/CollectionsSection/index';
 import ApiSpecsSection from './Sections/ApiSpecsSection/index';
+import MockServersSection from './Sections/MockServersSection/index';
 import useKeybinding from 'hooks/useKeybinding';
+import { useBetaFeature, BETA_FEATURES } from 'utils/beta-features';
 
 const MIN_LEFT_SIDEBAR_WIDTH = 220;
 const MAX_LEFT_SIDEBAR_WIDTH = 600;
 
-const SIDEBAR_SECTIONS = [
-  {
-    id: 'collections',
-    component: CollectionsSection
-  },
-  {
-    id: 'api-specs',
-    component: ApiSpecsSection
-  }
-];
-
 const Sidebar = () => {
+  const isMockServerEnabled = useBetaFeature(BETA_FEATURES.MOCK_SERVER);
+  const sidebarSections = useMemo(() => {
+    const sections = [
+      {
+        id: 'collections',
+        component: CollectionsSection
+      },
+      {
+        id: 'api-specs',
+        component: ApiSpecsSection
+      }
+    ];
+
+    if (isMockServerEnabled) {
+      sections.push({
+        id: 'mock-servers',
+        component: MockServersSection
+      });
+    }
+
+    return sections;
+  }, [isMockServerEnabled]);
   const leftSidebarWidth = useSelector((state) => state.app.leftSidebarWidth);
   const sidebarCollapsed = useSelector((state) => state.app.sidebarCollapsed);
   const [asideWidth, setAsideWidth] = useState(leftSidebarWidth);
@@ -106,7 +119,7 @@ const Sidebar = () => {
               <div className="flex flex-col flex-grow sidebar-sections-container" style={{ minHeight: 0, overflow: 'hidden' }}>
                 <div className="sidebar-sections flex flex-col flex-1">
                   <SidebarContent
-                    sections={SIDEBAR_SECTIONS}
+                    sections={sidebarSections}
                   />
                 </div>
               </div>

@@ -38,8 +38,9 @@ import { normalizePath } from 'utils/common/path';
 import classNames from 'classnames';
 import StyledWrapper from './StyledWrapper';
 import { useTheme } from 'providers/Theme';
-import { useBetaFeature } from 'utils/beta-features';
-import { BETA_FEATURES } from 'utils/beta-features';
+import { useBetaFeature, BETA_FEATURES } from 'utils/beta-features';
+import CreateMockServerModal from 'components/MockServer/CreateMockServerModal';
+import { getMockServerInstances, openMockServerDashboard } from 'utils/mock-server-instances';
 
 const CollectionHeader = ({ collection, isScratchCollection }) => {
   const dispatch = useDispatch();
@@ -59,6 +60,8 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
   const [workspaceNameError, setWorkspaceNameError] = useState('');
   const [closeWorkspaceModalOpen, setCloseWorkspaceModalOpen] = useState(false);
   const [createWorkspaceModalOpen, setCreateWorkspaceModalOpen] = useState(false);
+  const [showCreateMockServerModal, setShowCreateMockServerModal] = useState(false);
+  const preferences = useSelector((state) => state.app.preferences);
 
   const switcherRef = useRef();
   const workspaceActionsRef = useRef();
@@ -225,11 +228,17 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
   };
 
   const viewMockServer = () => {
-    dispatch(addTab({
-      uid: uuid(),
-      collectionUid: collection.uid,
-      type: 'mock-server-dashboard'
-    }));
+    const instances = getMockServerInstances(preferences, activeWorkspaceUid);
+    const existingInstance = instances.find((instance) => (
+      instance.sourceType === 'collection' && instance.collectionUid === collection.uid
+    ));
+
+    if (existingInstance) {
+      dispatch(openMockServerDashboard(existingInstance, collection.uid));
+      return;
+    }
+
+    setShowCreateMockServerModal(true);
   };
 
   const handleFileModeClick = () => {
@@ -437,6 +446,13 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
         <CreateWorkspace onClose={handleAdvancedCreateClose} />
       )}
 
+      {showCreateMockServerModal && (
+        <CreateMockServerModal
+          defaultCollectionUid={collection.uid}
+          onClose={() => setShowCreateMockServerModal(false)}
+        />
+      )}
+
       <div className="flex items-center justify-between gap-2 py-2 px-4">
         {/* Left side: Switcher dropdown or rename input */}
         <div className="collection-switcher">
@@ -618,13 +634,13 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
               </ActionIcon>
             </ToolHint>
             {/* Mocker - visible when beta enabled */}
-            {isMockServerEnabled && (
+            {/* {isMockServerEnabled && (
               <ToolHint text="Mocker" toolhintId="MockerToolhintId" place="bottom">
                 <ActionIcon onClick={viewMockServer} aria-label="Mocker" size="sm" data-testid="mocker">
                   <IconServer2 size={16} strokeWidth={1.5} />
                 </ActionIcon>
               </ToolHint>
-            )}
+            )} */}
             {/* JS Sandbox Mode - always visible */}
             <JsSandboxMode collection={collection} />
             {/* Overflow menu */}

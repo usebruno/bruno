@@ -7,7 +7,8 @@ import {
 import {
   updateServerStatus,
   addRequestLogEntry,
-  setRouteTable
+  setRouteTable,
+  syncRunningMockServers
 } from 'providers/ReduxStore/slices/mock-server';
 import {
   addTab
@@ -365,6 +366,7 @@ const useIpcEvents = () => {
     const removeLoadNotificationsListener = ipcRenderer.on('main:load-notifications', (notifications) => {
       dispatch(loadNotifications(notifications));
     });
+    dispatch(syncRunningMockServers());
 
     return () => {
       removeCollectionTreeUpdateListener();

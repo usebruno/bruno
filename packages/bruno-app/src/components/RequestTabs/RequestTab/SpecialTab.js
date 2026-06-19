@@ -107,7 +107,7 @@ const SpecialTab = ({ handleCloseClick, type, tabName, handleDoubleClick, hasDra
         return (
           <>
             <IconServer2 size={14} strokeWidth={1.5} className="special-tab-icon flex-shrink-0" />
-            <span className="ml-1 tab-name mr-1">Mocker</span>
+            <span className="ml-1 tab-name mr-1">{tabName || 'Mocker'}</span>
             <StatusBadge status="info" size="xs">Beta</StatusBadge>
           </>
         );

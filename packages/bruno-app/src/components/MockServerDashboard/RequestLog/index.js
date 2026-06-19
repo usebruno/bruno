@@ -36,9 +36,9 @@ const STATUS_FILTER_OPTIONS = [
   { value: '5xx', label: '5xx Server Error' }
 ];
 
-const RequestLog = ({ collection }) => {
+const RequestLog = ({ mockServerUid }) => {
   const dispatch = useDispatch();
-  const logs = useSelector((state) => state.mockServer.requestLogs[collection.uid]) || [];
+  const logs = useSelector((state) => state.mockServer.requestLogs[mockServerUid]) || [];
   const [matchFilter, setMatchFilter] = useState(null);
   const [statusFilter, setStatusFilter] = useState(null);
   const tableContainerRef = useRef(null);
@@ -68,7 +68,7 @@ const RequestLog = ({ collection }) => {
   }, [filteredLogs.length]);
 
   const handleClear = () => {
-    dispatch(clearMockLog({ collectionUid: collection.uid }));
+    dispatch(clearMockLog({ mockServerUid }));
   };
 
   const columns = [

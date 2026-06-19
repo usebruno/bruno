@@ -70,26 +70,6 @@ const StyledWrapper = styled.div`
     align-items: center;
     padding: 2px 6px;
   }
-
-  .mock-server-status-group {
-    display: flex;
-    align-items: center;
-    gap: 0;
-  }
-
-  .mock-server-overflow-btn {
-    padding-left: 2px;
-    opacity: 0.75;
-  }
-
-  .mock-server-status-dot {
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: #22c55e;
-    display: inline-block;
-    flex-shrink: 0;
-  }
 `;
 
 export default StyledWrapper;

@@ -12,7 +12,6 @@ import ThemeDropdown from './ThemeDropdown';
 import { openConsole } from 'providers/ReduxStore/slices/logs';
 import { addTab } from 'providers/ReduxStore/slices/tabs';
 import { useApp } from 'providers/App';
-import MockServerStatus from './MockServerStatus';
 import StyledWrapper from './StyledWrapper';
 
 const StatusBar = () => {
@@ -117,8 +116,6 @@ const StatusBar = () => {
                 <IconBrandGithub size={16} strokeWidth={1.5} aria-hidden="true" />
               </button>
             </ToolHint>
-
-            <MockServerStatus />
           </div>
         </div>
 

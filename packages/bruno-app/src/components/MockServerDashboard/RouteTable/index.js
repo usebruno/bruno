@@ -6,16 +6,16 @@ import EditableTable from 'components/EditableTable';
 import FilterDropdown from 'components/FilterDropdown';
 import StyledWrapper from './StyledWrapper';
 
-const RouteTable = ({ collection }) => {
-  const routes = useSelector((state) => state.mockServer.routes[collection.uid]) || [];
-  const requestLogs = useSelector((state) => state.mockServer.requestLogs[collection.uid]) || [];
+const RouteTable = ({ mockServerUid }) => {
+  const routes = useSelector((state) => state.mockServer.routes[mockServerUid]) || [];
+  const requestLogs = useSelector((state) => state.mockServer.requestLogs[mockServerUid]) || [];
   const [searchQuery, setSearchQuery] = useState('');
   const [methodFilter, setMethodFilter] = useState(null);
   const [copiedRouteUid, setCopiedRouteUid] = useState(null);
 
-  const serverState = useSelector((state) => state.mockServer.servers[collection.uid]) || {};
+  const serverState = useSelector((state) => state.mockServer.servers[mockServerUid]) || {};
   const isRunning = serverState.status === 'running';
-  const baseUrl = isRunning ? `http://localhost:${serverState.port}` : null;
+  const baseUrl = isRunning ? serverState.baseUrl : null;
 
   const hitCounts = useMemo(() => {
     const counts = {};

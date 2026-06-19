@@ -59,7 +59,21 @@ export const tabsSlice = createSlice({
   initialState,
   reducers: {
     addTab: (state, action) => {
-      const { uid, collectionUid, type, requestPaneTab, preview, exampleUid, itemUid, pathname, exampleName, exampleIndex, isTransient } = action.payload;
+      const {
+        uid,
+        collectionUid,
+        type,
+        requestPaneTab,
+        preview,
+        exampleUid,
+        itemUid,
+        pathname,
+        exampleName,
+        exampleIndex,
+        isTransient,
+        mockServerUid,
+        tabName
+      } = action.payload;
 
       const nonReplaceableTabTypes = [
         'variables',
@@ -88,7 +102,14 @@ export const tabsSlice = createSlice({
       }
 
       if (nonReplaceableTabTypes.includes(type)) {
-        const existingTab = tabTypeAlreadyExists(state.tabs, collectionUid, type);
+        let existingTab = null;
+
+        if (type === 'mock-server-dashboard' && mockServerUid) {
+          existingTab = find(state.tabs, (tab) => tab.type === type && tab.mockServerUid === mockServerUid);
+        } else {
+          existingTab = tabTypeAlreadyExists(state.tabs, collectionUid, type);
+        }
+
         if (existingTab) {
           state.activeTabUid = ensureTabUid(existingTab);
           return;
@@ -129,7 +150,9 @@ export const tabsSlice = createSlice({
           ...(itemUid ? { itemUid } : {}),
           ...(exampleName ? { exampleName } : {}),
           ...(typeof exampleIndex === 'number' ? { exampleIndex } : {}),
-          ...(isTransient ? { isTransient: true } : {})
+          ...(isTransient ? { isTransient: true } : {}),
+          ...(mockServerUid ? { mockServerUid } : {}),
+          ...(tabName ? { tabName } : {})
         };
 
         state.activeTabUid = uid;
@@ -165,7 +188,9 @@ export const tabsSlice = createSlice({
         ...(itemUid ? { itemUid } : {}),
         ...(exampleName ? { exampleName } : {}),
         ...(typeof exampleIndex === 'number' ? { exampleIndex } : {}),
-        ...(isTransient ? { isTransient: true } : {})
+        ...(isTransient ? { isTransient: true } : {}),
+        ...(mockServerUid ? { mockServerUid } : {}),
+        ...(tabName ? { tabName } : {})
       });
       state.activeTabUid = uid;
     },

@@ -45,6 +45,7 @@ import OpenAPISyncTab from 'components/OpenAPISyncTab';
 import OpenAPISpecTab from 'components/OpenAPISpecTab';
 import MockServerDashboard from 'components/MockServerDashboard';
 import ChangelogTab from 'components/ChangelogTab';
+import { resolveMockServerInstance } from 'utils/mock-server-instances';
 import CollapsedPanelIndicator from './CollapsedPanelIndicator';
 import { clampRequestHeightForResponse } from './paneSize';
 import { IconLoader2 } from '@tabler/icons';
@@ -349,6 +350,26 @@ const RequestTabPanel = () => {
     return <GlobalEnvironmentSettings />;
   }
 
+  if (focusedTab.type === 'mock-server-dashboard') {
+    const instance = resolveMockServerInstance(preferences, focusedTab);
+    if (!instance) {
+      return (
+        <div className="pb-4 px-4">
+          <div className="font-medium">Mock server not found</div>
+          <div className="text-sm mt-2 opacity-70">
+            This mock server may have been removed. Create a new one from the Mock Servers sidebar.
+          </div>
+        </div>
+      );
+    }
+
+    const instanceCollection = instance.sourceType === 'collection'
+      ? find(collections, (c) => c.uid === instance.collectionUid)
+      : (focusedTab.collectionUid ? find(collections, (c) => c.uid === focusedTab.collectionUid) : null);
+
+    return <MockServerDashboard instance={instance} collection={instanceCollection} />;
+  }
+
   if (!focusedTab.uid || !focusedTab.collectionUid) {
     return <div className="pb-4 px-4">An error occurred!</div>;
   }
@@ -442,10 +463,6 @@ const RequestTabPanel = () => {
 
   if (focusedTab.type === 'openapi-spec') {
     return <OpenAPISpecTab collection={collection} tabUid={focusedTab.uid} />;
-  }
-
-  if (focusedTab.type === 'mock-server-dashboard') {
-    return <MockServerDashboard collection={collection} />;
   }
 
   if (!item || !item.uid) {

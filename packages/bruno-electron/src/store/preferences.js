@@ -46,6 +46,10 @@ const defaultPreferences = {
   layout: {
     responsePaneOrientation: 'horizontal'
   },
+  mockServer: {
+    mode: 'isolated',
+    instances: []
+  },
   beta: {
     'openapi-sync': false,
     'mock-server': true
@@ -123,6 +127,21 @@ const preferencesSchema = Yup.object().shape({
   }),
   layout: Yup.object({
     responsePaneOrientation: Yup.string().oneOf(['horizontal', 'vertical'])
+  }),
+  mockServer: Yup.object({
+    mode: Yup.string().oneOf(['isolated', 'shared']),
+    instances: Yup.array().of(Yup.object({
+      uid: Yup.string().required(),
+      name: Yup.string().required(),
+      sourceType: Yup.string().oneOf(['collection', 'spec']).required(),
+      collectionUid: Yup.string().nullable(),
+      specUid: Yup.string().nullable(),
+      specPath: Yup.string().nullable(),
+      specName: Yup.string().nullable(),
+      port: Yup.number().min(1).max(65535).required(),
+      globalDelay: Yup.number().min(0).required(),
+      workspaceUid: Yup.string().required()
+    })).optional()
   }),
   beta: Yup.object({
     'openapi-sync': Yup.boolean(),

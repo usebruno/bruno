@@ -59,6 +59,7 @@ import useKeybinding from 'hooks/useKeybinding';
 import { useBetaFeature } from 'utils/beta-features';
 import { BETA_FEATURES } from 'utils/beta-features';
 import StatusBadge from 'ui/StatusBadge';
+import CreateMockServerModal from 'components/MockServer/CreateMockServerModal';
 
 // Delay before showing empty collection state (ms)
 // This prevents flicker from race condition between loading state and item batch updates
@@ -75,6 +76,7 @@ const Collection = ({ collection, searchText }) => {
   const [showGenerateDocumentationModal, setShowGenerateDocumentationModal] = useState(false);
   const [showRemoveCollectionModal, setShowRemoveCollectionModal] = useState(false);
   const [showMoveToWorkspaceModal, setShowMoveToWorkspaceModal] = useState(false);
+  const [showCreateMockServerModal, setShowCreateMockServerModal] = useState(false);
   const [dropType, setDropType] = useState(null);
   const [isKeyboardFocused, setIsKeyboardFocused] = useState(false);
   const [showEmptyState, setShowEmptyState] = useState(false);
@@ -107,16 +109,8 @@ const Collection = ({ collection, searchText }) => {
     );
   };
 
-  // Open the Mock Server Dashboard tab
   const openMockServerDashboard = () => {
-    ensureCollectionIsMounted();
-    dispatch(
-      addTab({
-        uid: uuid(),
-        collectionUid: collection.uid,
-        type: 'mock-server-dashboard'
-      })
-    );
+    setShowCreateMockServerModal(true);
   };
 
   const handleRun = () => {
@@ -513,6 +507,12 @@ const Collection = ({ collection, searchText }) => {
       )}
       {showCloneCollectionModalOpen && (
         <CloneCollection collectionUid={collection.uid} onClose={() => setShowCloneCollectionModalOpen(false)} />
+      )}
+      {showCreateMockServerModal && (
+        <CreateMockServerModal
+          defaultCollectionUid={collection.uid}
+          onClose={() => setShowCreateMockServerModal(false)}
+        />
       )}
       <CollectionItemDragPreview />
       <div
