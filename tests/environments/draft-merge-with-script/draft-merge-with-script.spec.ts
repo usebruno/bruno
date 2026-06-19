@@ -5,6 +5,7 @@ import { openCollection, selectEnvironment, openEnvironmentSelector, sendRequest
 import { buildCommonLocators } from '../../utils/page/locators';
 
 const PERSISTENCE_TIMEOUT = 10000;
+const selectAllShortcut = process.platform === 'darwin' ? 'Meta+a' : 'Control+a';
 
 test.describe('Draft environment merge with script-set variables', () => {
   test('preserves unsaved draft edits when script sets a new variable', async ({ pageWithUserData: page, collectionFixturePath }) => {
@@ -20,11 +21,11 @@ test.describe('Draft environment merge with script-set variables', () => {
 
       await expect(locators.environment.variableRowByName('existingVar')).toBeVisible();
       await locators.environment.variableValue('existingVar').click();
-      await page.keyboard.press('Meta+a');
+      await page.keyboard.press(selectAllShortcut);
       await page.keyboard.type('draft-edited-value');
 
-      // Wait for draft debounce (300ms in the component)
-      await page.waitForTimeout(500);
+      await expect(locators.environment.collectionEnvTab().locator('.close-gradient'))
+        .toHaveClass(/has-changes/);
     });
 
     await test.step('Open request and send it', async () => {

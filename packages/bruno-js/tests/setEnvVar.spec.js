@@ -81,3 +81,40 @@ describe('bru.deleteEnvVar', () => {
     expect(() => bru.deleteEnvVar('missing')).not.toThrow();
   });
 });
+
+describe('bru.deleteAll* methods — resilient to user-shadowed Object.prototype methods', () => {
+  // Use Object.hasOwn (not the property accessor) to check deletion, since after
+  // delete the prototype's hasOwnProperty becomes visible again on a plain object.
+  test('deleteAllEnvVars works when a var named "hasOwnProperty" was set', () => {
+    const bru = makeBru();
+    bru.setEnvVar('hasOwnProperty', 'shadow');
+    bru.setEnvVar('other', 'value');
+    expect(() => bru.deleteAllEnvVars()).not.toThrow();
+    expect(Object.hasOwn(bru.envVariables, 'hasOwnProperty')).toBe(false);
+    expect(Object.hasOwn(bru.envVariables, 'other')).toBe(false);
+  });
+
+  test('deleteAllGlobalEnvVars works when a var named "hasOwnProperty" was set', () => {
+    const bru = makeBru();
+    bru.setGlobalEnvVar('hasOwnProperty', 'shadow');
+    bru.setGlobalEnvVar('other', 'value');
+    expect(() => bru.deleteAllGlobalEnvVars()).not.toThrow();
+    expect(Object.hasOwn(bru.globalEnvironmentVariables, 'hasOwnProperty')).toBe(false);
+  });
+
+  test('deleteAllCollectionVars works when a var named "hasOwnProperty" was set', () => {
+    const bru = makeBru();
+    bru.setCollectionVar('hasOwnProperty', 'shadow');
+    bru.setCollectionVar('other', 'value');
+    expect(() => bru.deleteAllCollectionVars()).not.toThrow();
+    expect(Object.hasOwn(bru.collectionVariables, 'hasOwnProperty')).toBe(false);
+  });
+
+  test('deleteAllVars works when a runtime var named "hasOwnProperty" was set', () => {
+    const bru = makeBru();
+    bru.setVar('hasOwnProperty', 'shadow');
+    bru.setVar('other', 'value');
+    expect(() => bru.deleteAllVars()).not.toThrow();
+    expect(Object.hasOwn(bru.runtimeVariables, 'hasOwnProperty')).toBe(false);
+  });
+});
