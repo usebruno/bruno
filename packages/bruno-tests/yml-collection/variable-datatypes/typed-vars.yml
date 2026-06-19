@@ -1,0 +1,217 @@
+info:
+  name: typed vars
+  type: http
+  seq: 1
+
+http:
+  method: POST
+  url: '{{echo-host}}'
+  headers:
+    - name: x-h-str
+      value: '{{req_str}}'
+    - name: x-h-num
+      value: '{{req_num}}'
+    - name: x-h-bool
+      value: '{{req_bool}}'
+    - name: x-h-obj
+      value: '{{req_obj}}'
+  body:
+    type: json
+    data: |-
+      {
+        "coll_num": {{coll_num}},
+        "coll_bool": {{coll_bool}},
+        "coll_obj": {{coll_obj}},
+        "fold_num": {{fold_num}},
+        "fold_bool": {{fold_bool}},
+        "fold_obj": {{fold_obj}},
+        "req_num": {{req_num}},
+        "req_bool": {{req_bool}},
+        "req_obj": {{req_obj}},
+        "req_obj_precision": {{req_obj_precision}},
+        "req_obj_empty": {{req_obj_empty}},
+        "typed_env_num": {{typed_env_num}},
+        "typed_env_bool": {{typed_env_bool}},
+        "typed_env_obj": {{typed_env_obj}},
+        "runtime_num": {{runtime_num}},
+        "runtime_bool": {{runtime_bool}},
+        "runtime_obj": {{runtime_obj}},
+        "inferred_env_num": {{inferred_env_num}},
+        "inferred_env_bool": {{inferred_env_bool}},
+        "inferred_env_obj": {{inferred_env_obj}}
+      }
+
+runtime:
+  variables:
+    - name: req_str
+      value: request_string
+    - name: req_num
+      value:
+        type: number
+        data: "42"
+    - name: req_bool
+      value:
+        type: boolean
+        data: "true"
+    - name: req_obj
+      value:
+        type: object
+        data: '{"key":"value"}'
+    - name: req_obj_precision
+      value:
+        type: object
+        data: '{"integer":123,"negativeInteger":-99,"zero":0,"float":2.718,"negativeFloat":-1.618,"largeDouble":12345.678901234567,"smallDouble":9.876e-12,"booleanTrue":true,"booleanFalse":false}'
+    - name: req_obj_empty
+      value:
+        type: object
+        data: '{}'
+    - name: mismatched_num
+      value:
+        type: number
+        data: not-a-number
+  scripts:
+    - type: before-request
+      code: |-
+        bru.setVar("runtime_str", "runtime_string");
+        bru.setVar("runtime_num", 999);
+        bru.setVar("runtime_bool", true);
+        bru.setVar("runtime_obj", { nested: "yes" });
+
+        bru.setEnvVar("inferred_env_num", 700);
+        bru.setEnvVar("inferred_env_bool", true);
+        bru.setEnvVar("inferred_env_obj", { from: "script" });
+
+        bru.setEnvVar("strict_num_str", "42");
+        bru.setEnvVar("strict_bool_str", "true");
+        bru.setEnvVar("strict_obj_str", JSON.stringify({ k: 1 }));
+        bru.setVar("strict_runtime_num_str", "42");
+    - type: tests
+      code: |-
+        test("collection vars carry their declared types", () => {
+          expect(typeof bru.getCollectionVar("coll_str")).to.equal("string");
+          expect(typeof bru.getCollectionVar("coll_num")).to.equal("number");
+          expect(bru.getCollectionVar("coll_num")).to.equal(100);
+          expect(typeof bru.getCollectionVar("coll_bool")).to.equal("boolean");
+          expect(bru.getCollectionVar("coll_bool")).to.equal(false);
+          expect(bru.getCollectionVar("coll_obj")).to.deep.equal({ scope: "collection" });
+        });
+
+        test("folder vars carry their declared types", () => {
+          expect(typeof bru.getFolderVar("fold_str")).to.equal("string");
+          expect(typeof bru.getFolderVar("fold_num")).to.equal("number");
+          expect(bru.getFolderVar("fold_num")).to.equal(200);
+          expect(typeof bru.getFolderVar("fold_bool")).to.equal("boolean");
+          expect(bru.getFolderVar("fold_bool")).to.equal(true);
+          expect(bru.getFolderVar("fold_obj")).to.deep.equal({ scope: "folder" });
+        });
+
+        test("request vars carry their declared types", () => {
+          expect(typeof bru.getRequestVar("req_str")).to.equal("string");
+          expect(typeof bru.getRequestVar("req_num")).to.equal("number");
+          expect(bru.getRequestVar("req_num")).to.equal(42);
+          expect(typeof bru.getRequestVar("req_bool")).to.equal("boolean");
+          expect(bru.getRequestVar("req_bool")).to.equal(true);
+          expect(bru.getRequestVar("req_obj")).to.deep.equal({ key: "value" });
+
+          expect(typeof bru.getRequestVar("req_obj_empty")).to.equal("object");
+          expect(bru.getRequestVar("req_obj_empty")).to.deep.equal({});
+
+          // @number with non-numeric data falls through to the raw string —
+          // same signal the env editor uses to surface its warning icon.
+          expect(typeof bru.getRequestVar("mismatched_num")).to.equal("string");
+          expect(bru.getRequestVar("mismatched_num")).to.equal("not-a-number");
+        });
+
+        test("typed object var preserves number precision through file → parse round-trip", () => {
+          const v = bru.getRequestVar("req_obj_precision");
+          expect(v.integer).to.equal(123);
+          expect(v.negativeInteger).to.equal(-99);
+          expect(v.zero).to.equal(0);
+          expect(v.float).to.equal(2.718);
+          expect(v.negativeFloat).to.equal(-1.618);
+          expect(v.largeDouble).to.equal(12345.678901234567);
+          expect(v.smallDouble).to.equal(9.876e-12);
+          expect(v.booleanTrue).to.equal(true);
+          expect(v.booleanFalse).to.equal(false);
+        });
+
+        test("collection environment vars carry their declared types", () => {
+          expect(typeof bru.getEnvVar("typed_env_num")).to.equal("number");
+          expect(bru.getEnvVar("typed_env_num")).to.equal(300);
+          expect(typeof bru.getEnvVar("typed_env_bool")).to.equal("boolean");
+          expect(bru.getEnvVar("typed_env_bool")).to.equal(true);
+          expect(bru.getEnvVar("typed_env_obj")).to.deep.equal({ scope: "env" });
+        });
+
+        test("runtime vars set via bru.setVar preserve types", () => {
+          expect(typeof bru.getVar("runtime_str")).to.equal("string");
+          expect(typeof bru.getVar("runtime_num")).to.equal("number");
+          expect(bru.getVar("runtime_num")).to.equal(999);
+          expect(typeof bru.getVar("runtime_bool")).to.equal("boolean");
+          expect(bru.getVar("runtime_obj")).to.deep.equal({ nested: "yes" });
+        });
+
+        test("setEnvVar infers dataType from the JS value", () => {
+          expect(typeof bru.getEnvVar("inferred_env_num")).to.equal("number");
+          expect(bru.getEnvVar("inferred_env_num")).to.equal(700);
+          expect(typeof bru.getEnvVar("inferred_env_bool")).to.equal("boolean");
+          expect(bru.getEnvVar("inferred_env_bool")).to.equal(true);
+          expect(bru.getEnvVar("inferred_env_obj")).to.deep.equal({ from: "script" });
+        });
+
+        test("bru.set* identifies type via the value's runtime type, not string content", () => {
+          expect(typeof bru.getEnvVar("strict_num_str")).to.equal("string");
+          expect(bru.getEnvVar("strict_num_str")).to.equal("42");
+          expect(typeof bru.getEnvVar("strict_bool_str")).to.equal("string");
+          expect(bru.getEnvVar("strict_bool_str")).to.equal("true");
+          expect(typeof bru.getEnvVar("strict_obj_str")).to.equal("string");
+          expect(bru.getEnvVar("strict_obj_str")).to.equal('{"k":1}');
+          expect(typeof bru.getVar("strict_runtime_num_str")).to.equal("string");
+        });
+
+        test("response body echoes typed values from every scope", () => {
+          const json = res.getBody();
+          expect(json.coll_num).to.equal(100);
+          expect(json.coll_bool).to.equal(false);
+          expect(json.coll_obj).to.deep.equal({ scope: "collection" });
+          expect(json.fold_num).to.equal(200);
+          expect(json.fold_bool).to.equal(true);
+          expect(json.fold_obj).to.deep.equal({ scope: "folder" });
+          expect(json.req_num).to.equal(42);
+          expect(json.req_bool).to.equal(true);
+          expect(json.req_obj).to.deep.equal({ key: "value" });
+
+          expect(json.req_obj_precision.integer).to.equal(123);
+          expect(json.req_obj_precision.negativeInteger).to.equal(-99);
+          expect(json.req_obj_precision.zero).to.equal(0);
+          expect(json.req_obj_precision.float).to.equal(2.718);
+          expect(json.req_obj_precision.negativeFloat).to.equal(-1.618);
+          expect(json.req_obj_precision.largeDouble).to.equal(12345.678901234567);
+          expect(json.req_obj_precision.smallDouble).to.equal(9.876e-12);
+          expect(json.req_obj_precision.booleanTrue).to.equal(true);
+          expect(json.req_obj_precision.booleanFalse).to.equal(false);
+          expect(json.req_obj_empty).to.deep.equal({});
+
+          expect(json.typed_env_num).to.equal(300);
+          expect(json.typed_env_bool).to.equal(true);
+          expect(json.typed_env_obj).to.deep.equal({ scope: "env" });
+          expect(json.runtime_num).to.equal(999);
+          expect(json.runtime_bool).to.equal(true);
+          expect(json.runtime_obj).to.deep.equal({ nested: "yes" });
+          expect(json.inferred_env_num).to.equal(700);
+          expect(json.inferred_env_bool).to.equal(true);
+          expect(json.inferred_env_obj).to.deep.equal({ from: "script" });
+        });
+
+        test("typed vars in request headers stringify on the wire", () => {
+          // echo-host reflects request headers as response headers (lowercased).
+          const headers = res.getHeaders();
+          expect(headers["x-h-str"]).to.equal("request_string");
+          expect(headers["x-h-num"]).to.equal("42");
+          expect(headers["x-h-bool"]).to.equal("true");
+          expect(headers["x-h-obj"]).to.equal('{"key":"value"}');
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0

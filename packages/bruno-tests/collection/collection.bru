@@ -16,6 +16,15 @@ vars:pre-request {
   collection_pre_var: collection_pre_var_value
   collection_pre_var_token: {{request_pre_var_token}}
   collection-var: collection-var-value
+  coll_str: collection_string
+  @number
+  coll_num: 100
+  @boolean
+  coll_bool: false
+  @object
+  coll_obj: '''
+    {"scope":"collection"}
+  '''
 }
 
 script:pre-request {
