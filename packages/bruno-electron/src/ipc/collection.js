@@ -112,8 +112,9 @@ const getTransientScratchPrefix = () => {
 
 // Check if a path is within the transient directory
 const isTransientPath = (filePath) => {
+  const normalizedFilePath = path.normalize(filePath);
   const transientBase = getTransientDirectoryBase();
-  return filePath.startsWith(transientBase + path.sep) || filePath.startsWith(transientBase);
+  return normalizedFilePath.startsWith(transientBase + path.sep) || normalizedFilePath === transientBase;
 };
 
 const envHasSecrets = (environment = {}) => {
@@ -123,11 +124,14 @@ const envHasSecrets = (environment = {}) => {
 };
 
 const findCollectionPathByItemPath = (filePath) => {
-  const parts = filePath.split(path.sep);
-  const index = parts.findIndex((part) => part.startsWith('bruno-'));
+  const normalizedFilePath = path.normalize(filePath);
 
-  if (isTransientPath(filePath) && index !== -1) {
-    const transientDirPath = parts.slice(0, index + 1).join(path.sep);
+  if (isTransientPath(normalizedFilePath)) {
+    const transientBase = getTransientDirectoryBase();
+    const transientDirName = path.relative(transientBase, normalizedFilePath).split(path.sep)[0];
+    if (!transientDirName) return null;
+
+    const transientDirPath = path.join(transientBase, transientDirName);
     const metadataPath = path.join(transientDirPath, 'metadata.json');
     try {
       const metadataContent = fs.readFileSync(metadataPath, 'utf8');
@@ -151,9 +155,6 @@ const findCollectionPathByItemPath = (filePath) => {
   // Find the collection path that contains this file
   // Sort by length descending to find the most specific (deepest) match first
   const sortedPaths = allCollectionPaths.sort((a, b) => b.length - a.length);
-
-  // Normalize the file path for comparison
-  const normalizedFilePath = path.normalize(filePath);
 
   for (const collectionPath of sortedPaths) {
     const normalizedCollectionPath = path.normalize(collectionPath);
@@ -619,6 +620,20 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
         const content = await stringifyRequestViaWorker(request, { format: r.format });
         await writeFile(pathname, content);
       }
+    } catch (error) {
+      return Promise.reject(error);
+    }
+  });
+
+  ipcMain.handle('renderer:save-file', async (event, pathname, content) => {
+    try {
+      validatePathIsInsideCollection(pathname);
+
+      if (!fs.existsSync(pathname)) {
+        throw new Error(`path: ${pathname} does not exist`);
+      }
+
+      await writeFile(pathname, content);
     } catch (error) {
       return Promise.reject(error);
     }
@@ -1715,6 +1730,16 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
     try {
       await deleteCookie(domain, path, cookieKey);
       await updateCookiesAndNotify();
+    } catch (error) {
+      return Promise.reject(error);
+    }
+  });
+
+  ipcMain.handle('renderer:convert-to-json', async (event, item, content, format = 'bru') => {
+    try {
+      const jsonContent = await parseRequestViaWorker(content, { format });
+      const json = hydrateRequestWithUuid(jsonContent, item?.pathname);
+      return json;
     } catch (error) {
       return Promise.reject(error);
     }

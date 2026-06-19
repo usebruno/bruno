@@ -71,6 +71,7 @@ export const tabsSlice = createSlice({
         'workspaceEnvironments',
         'openapi-sync',
         'openapi-spec',
+        'changelog',
         'mock-server-dashboard'
       ];
 

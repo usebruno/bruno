@@ -18,8 +18,9 @@ const fixturePath = (...segments) => path.join('fixtures', 'install-packages', .
 
 const NODE_BIN = fixturePath('node', 'bin');
 const NODE_EXECUTABLE = path.join(NODE_BIN, nodeExecutableName());
-const NPM_BIN = path.join(NODE_BIN, 'npm');
+const NPM_SHIM = path.join(NODE_BIN, 'npm');
 const NPM_CLI_LIB_LAYOUT = path.join(NODE_BIN, '..', 'lib', 'node_modules', 'npm', 'bin', 'npm-cli.js');
+const NPM_CLI_BESIDE_NODE = path.join(NODE_BIN, 'node_modules', 'npm', 'bin', 'npm-cli.js');
 const NODE_DIR_BESIDE = fixturePath('nodejs');
 const NODE_EXECUTABLE_BESIDE = path.join(NODE_DIR_BESIDE, nodeExecutableName());
 const NPM_CLI_BESIDE_LAYOUT = path.join(NODE_DIR_BESIDE, 'node_modules', 'npm', 'bin', 'npm-cli.js');
@@ -117,13 +118,15 @@ describe('resolveNpmCli', () => {
     existsSyncSpy.mockRestore();
   });
 
-  test('prefers bin/npm when present', () => {
-    existsSyncSpy.mockImplementation((candidate) => candidate === NPM_BIN);
+  test('skips bin/npm shim when npm-cli.js is present (nvm-windows)', () => {
+    existsSyncSpy.mockImplementation(
+      (candidate) => candidate === NPM_SHIM || candidate === NPM_CLI_BESIDE_NODE
+    );
 
-    expect(resolveNpmCli(NODE_EXECUTABLE)).toBe(NPM_BIN);
+    expect(resolveNpmCli(NODE_EXECUTABLE)).toBe(NPM_CLI_BESIDE_NODE);
   });
 
-  test('finds npm-cli via lib layout when bin/npm is absent', () => {
+  test('finds npm-cli via lib layout', () => {
     existsSyncSpy.mockImplementation((candidate) => candidate === NPM_CLI_LIB_LAYOUT);
 
     expect(resolveNpmCli(NODE_EXECUTABLE)).toBe(NPM_CLI_LIB_LAYOUT);
@@ -249,34 +252,6 @@ describe('runNpmInstall', () => {
         cwd: COLLECTION_DIR,
         shell: false,
         windowsHide: true,
-        env: expect.objectContaining({
-          PATH: [NODE_BIN, systemPath].join(path.delimiter)
-        })
-      })
-    );
-  });
-
-  test('spawns node with bin/npm when that entry is resolved', async () => {
-    const child = makeFakeChild();
-    const spawnFn = jest.fn(() => child);
-    const systemPath = fixturePath('system', 'path');
-    process.env.PATH = systemPath;
-
-    const promise = runNpmInstall({
-      collectionPath: COLLECTION_DIR,
-      packages: ['dayjs'],
-      spawnFn,
-      resolveNpmInvocationFn: () => ({ nodePath: NODE_EXECUTABLE, npmCliPath: NPM_BIN })
-    });
-    child.emit('close', 0);
-    await promise;
-
-    expect(spawnFn).toHaveBeenCalledWith(
-      NODE_EXECUTABLE,
-      [NPM_BIN, 'install', '--save', 'dayjs'],
-      expect.objectContaining({
-        cwd: COLLECTION_DIR,
-        shell: false,
         env: expect.objectContaining({
           PATH: [NODE_BIN, systemPath].join(path.delimiter)
         })

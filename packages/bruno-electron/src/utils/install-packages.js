@@ -45,7 +45,6 @@ const resolveNodeExecutable = () => {
 const resolveNpmCli = (nodePath) => {
   const nodeDir = path.dirname(nodePath);
   const candidates = [
-    path.join(nodeDir, 'npm'),
     path.join(nodeDir, 'node_modules', 'npm', 'bin', 'npm-cli.js'),
     path.join(nodeDir, '..', 'lib', 'node_modules', 'npm', 'bin', 'npm-cli.js')
   ];

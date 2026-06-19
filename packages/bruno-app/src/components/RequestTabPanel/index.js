@@ -19,6 +19,7 @@ import VariablesEditor from 'components/VariablesEditor';
 import CollectionSettings from 'components/CollectionSettings';
 import { DocExplorer } from '@usebruno/graphql-docs';
 
+import FileEditor from 'components/FileEditor';
 import StyledWrapper from './StyledWrapper';
 import FolderSettings from 'components/FolderSettings';
 import { getGlobalEnvironmentVariables, getGlobalEnvironmentVariablesMasked } from 'utils/collections/index';
@@ -43,6 +44,7 @@ import GlobalEnvironmentSettings from 'components/Environments/GlobalEnvironment
 import OpenAPISyncTab from 'components/OpenAPISyncTab';
 import OpenAPISpecTab from 'components/OpenAPISpecTab';
 import MockServerDashboard from 'components/MockServerDashboard';
+import ChangelogTab from 'components/ChangelogTab';
 import CollapsedPanelIndicator from './CollapsedPanelIndicator';
 import { clampRequestHeightForResponse } from './paneSize';
 import { IconLoader2 } from '@tabler/icons';
@@ -335,6 +337,10 @@ const RequestTabPanel = () => {
     return <Preferences />;
   }
 
+  if (focusedTab.type === 'changelog') {
+    return <ChangelogTab />;
+  }
+
   if (focusedTab.type === 'workspaceOverview') {
     return activeWorkspace ? <WorkspaceOverview workspace={activeWorkspace} /> : null;
   }
@@ -481,6 +487,17 @@ const RequestTabPanel = () => {
         }));
     }
   };
+
+  if (collection.fileMode) {
+    return (
+      <ScopedPersistenceProvider scope={focusedTab.uid}>
+        <StyledWrapper className="flex flex-col flex-grow relative p-4 file-mode overflow-hidden">
+          <FileEditor item={item} collection={collection} />
+        </StyledWrapper>
+      </ScopedPersistenceProvider>
+    );
+  }
+
   const renderQueryUrl = () => {
     if (isGrpcRequest) {
       return <GrpcQueryUrl item={item} collection={collection} handleRun={handleRun} />;

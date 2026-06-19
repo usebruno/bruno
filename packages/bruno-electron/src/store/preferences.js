@@ -52,7 +52,8 @@ const defaultPreferences = {
   },
   onboarding: {
     hasLaunchedBefore: false,
-    hasSeenWelcomeModal: true
+    hasSeenWelcomeModal: true,
+    lastSeenVersion: null
   },
   general: {
     defaultLocation: '',
@@ -129,7 +130,8 @@ const preferencesSchema = Yup.object().shape({
   }),
   onboarding: Yup.object({
     hasLaunchedBefore: Yup.boolean(),
-    hasSeenWelcomeModal: Yup.boolean()
+    hasSeenWelcomeModal: Yup.boolean(),
+    lastSeenVersion: Yup.string().nullable()
   }),
   general: Yup.object({
     defaultLocation: Yup.string().max(1024).nullable(),
