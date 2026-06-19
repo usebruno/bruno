@@ -157,7 +157,27 @@ export const buildCommonLocators = (page: Page) => ({
     }),
     heading: () => page.locator('.bruno-modal').getByText('Interactive API Documentation'),
     generateButton: () => page.locator('.bruno-modal').getByRole('button', { name: 'Generate', exact: true }),
-    cancelButton: () => page.locator('.bruno-modal').getByRole('button', { name: 'Cancel', exact: true })
+    cancelButton: () => page.locator('.bruno-modal').getByRole('button', { name: 'Cancel', exact: true }),
+    // Collection version (read-only) display
+    versionInfo: () => page.locator('.bruno-modal').getByTestId('version-info'),
+    versionValue: () => page.locator('.bruno-modal').getByTestId('version-value'),
+    versionCounts: () => page.locator('.bruno-modal').getByTestId('version-summary'),
+    // Environment selection list
+    environmentsTitle: () => page.locator('.bruno-modal').getByTestId('env-section-title'),
+    // Header controls: tri-state "select all" checkbox + "X/Y selected" count
+    selectAllCheckbox: () => page.locator('.bruno-modal').getByTestId('env-select-all'),
+    selectAllLabel: () => page.locator('.bruno-modal').getByTestId('env-select-all-label'),
+    selectedCount: () => page.locator('.bruno-modal').getByTestId('env-selected-count'),
+    environmentRows: () => page.locator('.bruno-modal').getByTestId('env-row'),
+    environmentRow: (name: string) =>
+      page.locator('.bruno-modal').getByTestId('env-row').filter({ has: page.getByText(name, { exact: true }) }),
+    // A row has exactly one checkbox; its data-testid is uid-keyed, so select it by role within the named row.
+    environmentCheckbox: (name: string) =>
+      page
+        .locator('.bruno-modal')
+        .getByTestId('env-row')
+        .filter({ has: page.getByText(name, { exact: true }) })
+        .getByRole('checkbox')
   },
   runnerResults: {
     itemPath: (name: string) => page.getByTestId('runner-result-item').filter({ hasText: name })

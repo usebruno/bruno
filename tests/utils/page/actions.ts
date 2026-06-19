@@ -1869,7 +1869,8 @@ const openWorkspaceFromDialog = async (app: any, page: any, targetPath: string) 
  */
 const generateCollectionDocs = async (
   page: Page,
-  collectionName: string
+  collectionName: string,
+  beforeGenerate?: () => Promise<void>
 ): Promise<{ content: string; fileName: string }> => {
   return await test.step(`Generate docs for collection "${collectionName}"`, async () => {
     const locators = buildCommonLocators(page);
@@ -1893,6 +1894,12 @@ const generateCollectionDocs = async (
     await expect(modal).toBeVisible({ timeout: 5000 });
     const generateButton = locators.generateDocs.generateButton();
     await expect(generateButton).toBeEnabled({ timeout: 10000 });
+
+    // Let the caller interact with the modal (e.g. toggle environment selection)
+    // after it is ready and before the docs are generated.
+    if (beforeGenerate) {
+      await beforeGenerate();
+    }
 
     // Arm the renderer-side interception before the save fires. `file-saver`
     // (v2) reads the Blob through `URL.createObjectURL` and then triggers the

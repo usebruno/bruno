@@ -889,6 +889,21 @@ export const isItemAFolder = (item) => {
 };
 
 /**
+ * Counts the folders and requests in a collection's item tree, recursively at every
+ * depth. Used to summarise a collection (e.g. in the Generate Documentation modal).
+ *
+ * @param {Array} items - The collection's `items` tree.
+ * @returns {{ folderCount: number, requestCount: number }}
+ */
+export const getCollectionItemCounts = (items = []) => {
+  const flattened = flattenItems(items);
+  return {
+    folderCount: flattened.filter(isItemAFolder).length,
+    requestCount: flattened.filter(isItemARequest).length
+  };
+};
+
+/**
  * Orders a list of collection items exactly the way the Sidebar tree renders them:
  * folders first (via `sortByNameThenSequence`), then requests ordered by `seq`. The
  * same ordering is applied recursively to every nested folder so an exported/serialized
