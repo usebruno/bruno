@@ -211,6 +211,30 @@ describe('setupLinkAware', () => {
   });
 
   describe('click handling', () => {
+    it('should call custom link handler when clicking a link', () => {
+      const onLinkClick = jest.fn();
+      setupLinkAware(mockEditor, { onLinkClick });
+
+      const clickHandler = mockWrapperElement.addEventListener.mock.calls.find((call) => call[0] === 'click')[1];
+      const mockEvent = {
+        metaKey: false,
+        ctrlKey: false,
+        target: {
+          classList: { contains: (className) => className === 'CodeMirror-link' },
+          getAttribute: () => 'https://example.com'
+        },
+        preventDefault: jest.fn(),
+        stopPropagation: jest.fn()
+      };
+
+      clickHandler(mockEvent);
+
+      expect(mockEvent.preventDefault).toHaveBeenCalled();
+      expect(mockEvent.stopPropagation).toHaveBeenCalled();
+      expect(onLinkClick).toHaveBeenCalledWith('https://example.com');
+      expect(global.window.ipcRenderer.openExternal).not.toHaveBeenCalled();
+    });
+
     it('should open external URL when Cmd+clicking on a link', () => {
       isMacOS.mockReturnValue(true);
       setupLinkAware(mockEditor);
