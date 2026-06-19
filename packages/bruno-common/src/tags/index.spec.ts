@@ -1,4 +1,15 @@
-import isRequestTagsIncluded from './index';
+import isRequestTagsIncluded, { normalizeTags } from './index';
+
+describe('normalizeTags', () => {
+  it('should wrap a scalar string tag in an array', () => {
+    expect(normalizeTags(' smoke ')).toEqual(['smoke']);
+  });
+
+  it('should fall back to an empty array for unsupported tag values', () => {
+    expect(normalizeTags(42 as never)).toEqual([]);
+    expect(normalizeTags(null as never)).toEqual([]);
+  });
+});
 
 describe('isRequestTagsIncluded', () => {
   it('should include request when it has an included tag', () => {
