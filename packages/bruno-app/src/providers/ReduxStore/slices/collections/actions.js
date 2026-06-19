@@ -62,6 +62,7 @@ import {
   updateCollectionVar,
   scriptUpdateCollectionVars,
   setScriptCollVarBaseline,
+  _clearScriptCollectionBaselines,
   addTransientDirectory,
   addSaveTransientRequestModal,
   updatePathParam,
@@ -462,7 +463,7 @@ export const sendCollectionOauth2Request = (collectionUid, itemUid) => (dispatch
 
     const environment = findEnvironmentInCollection(collectionCopy, collection.activeEnvironmentUid);
 
-    dispatch(_clearScriptGlobalEnvBaseline());
+    dispatch(clearScriptVariableBaselines(collectionUid));
 
     _sendCollectionOauth2Request(collectionCopy, environment, collectionCopy.runtimeVariables)
       .then((response) => {
@@ -505,7 +506,7 @@ export const wsConnectOnly = (item, collectionUid) => (dispatch, getState) => {
 
     const environment = findEnvironmentInCollection(collectionCopy, collectionCopy.activeEnvironmentUid);
 
-    dispatch(_clearScriptGlobalEnvBaseline());
+    dispatch(clearScriptVariableBaselines(collectionUid));
 
     connectWS(itemCopy, collectionCopy, environment, collectionCopy.runtimeVariables, { connectOnly: true })
       .then(resolve)
@@ -2315,6 +2316,15 @@ export const updateVariableInScope = (variableName, newValue, scopeInfo, collect
       reject(error);
     }
   });
+};
+
+// Clears all three script-driven baselines for a given collection:
+//   collection-scope env baseline, collection-scope coll-vars baseline, and the
+//   workspace-scope global-env baseline. Call at the start of any request kickoff
+//   path so a stale baseline from a previous send can't leak into draft merging.
+export const clearScriptVariableBaselines = (collectionUid) => (dispatch) => {
+  dispatch(_clearScriptCollectionBaselines({ collectionUid }));
+  dispatch(_clearScriptGlobalEnvBaseline());
 };
 
 export const persistActiveEnvironment = (collectionUid) => (dispatch, getState) => {

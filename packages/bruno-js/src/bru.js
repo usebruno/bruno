@@ -80,6 +80,7 @@ class Bru {
     this._envDirty = false;
     this._globalEnvDirty = false;
     this._collVarsDirty = false;
+    this._runtimeVarsDirty = false;
     // Holds credential IDs to be reset after script execution
     this.oauth2CredentialsToReset = [];
     this.runner = {
@@ -305,6 +306,7 @@ class Bru {
     }
 
     this.runtimeVariables[key] = value;
+    this._runtimeVarsDirty = true;
   }
 
   getVar(key) {
@@ -320,12 +322,14 @@ class Bru {
 
   deleteVar(key) {
     delete this.runtimeVariables[key];
+    this._runtimeVarsDirty = true;
   }
 
   deleteAllVars() {
     for (const key of Object.keys(this.runtimeVariables)) {
       delete this.runtimeVariables[key];
     }
+    this._runtimeVarsDirty = true;
   }
 
   getAllVars() {

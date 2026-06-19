@@ -63,7 +63,7 @@ class TestRuntime {
       return {
         request,
         envVariables: null,
-        runtimeVariables: cleanJson(runtimeVariables),
+        runtimeVariables: null,
         collectionVariables: null,
         globalEnvironmentVariables: null,
         results: __brunoTestResults.getResults(),
@@ -127,7 +127,7 @@ class TestRuntime {
     const result = {
       request,
       envVariables: bru._envDirty ? cleanJson(envVariables) : null,
-      runtimeVariables: cleanJson(runtimeVariables),
+      runtimeVariables: bru._runtimeVarsDirty ? cleanJson(runtimeVariables) : null,
       collectionVariables: bru._collVarsDirty ? cleanJson(collectionVariables) : null,
       globalEnvironmentVariables: bru._globalEnvDirty ? cleanJson(globalEnvironmentVariables) : null,
       oauth2CredentialsToReset: bru.oauth2CredentialsToReset,

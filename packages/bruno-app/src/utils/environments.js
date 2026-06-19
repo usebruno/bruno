@@ -43,10 +43,13 @@ export const buildEnvVariable = ({ envVariable: obj, withUuid = false }) => {
  * With baseline: only applies values the script changed relative to the snapshot (preserves draft edits).
  * Without baseline: direct apply — overwrites all values from script output.
  * Disabled variables are always preserved.
+ *
+ * Pure: does not mutate the input array or its entries. Returns a new array of new objects.
  */
 export const applyScriptEnvVars = (variables, scriptVars, baseline, { skipKeys = [] } = {}) => {
   const scriptVarNames = new Set(Object.keys(scriptVars));
   const skip = new Set(skipKeys);
+  const next = (variables || []).map((v) => ({ ...v }));
 
   if (baseline) {
     Object.entries(scriptVars).forEach(([key, value]) => {
@@ -55,16 +58,16 @@ export const applyScriptEnvVars = (variables, scriptVars, baseline, { skipKeys =
       const isModified = !isNew && baseline[key] !== value;
 
       if (isNew || isModified) {
-        const existing = variables.find((v) => v.name === key);
+        const existing = next.find((v) => v.name === key);
         if (existing) {
           existing.value = value;
         } else {
-          variables.push({ uid: uuid(), name: key, value, type: 'text', secret: false, enabled: true });
+          next.push({ uid: uuid(), name: key, value, type: 'text', secret: false, enabled: true });
         }
       }
     });
 
-    return variables.filter((v) => {
+    return next.filter((v) => {
       if (!v.enabled) return true;
       if (v.name in baseline && !scriptVarNames.has(v.name)) return false;
       return true;
@@ -73,15 +76,15 @@ export const applyScriptEnvVars = (variables, scriptVars, baseline, { skipKeys =
 
   Object.entries(scriptVars).forEach(([key, value]) => {
     if (skip.has(key)) return;
-    const existing = variables.find((v) => v.name === key);
+    const existing = next.find((v) => v.name === key);
     if (existing) {
       existing.value = value;
     } else {
-      variables.push({ uid: uuid(), name: key, value, type: 'text', secret: false, enabled: true });
+      next.push({ uid: uuid(), name: key, value, type: 'text', secret: false, enabled: true });
     }
   });
 
-  return variables.filter((v) => !v.enabled || scriptVarNames.has(v.name));
+  return next.filter((v) => !v.enabled || scriptVarNames.has(v.name));
 };
 
 /**

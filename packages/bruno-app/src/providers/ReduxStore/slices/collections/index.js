@@ -2754,6 +2754,13 @@ export const collectionsSlice = createSlice({
       if (!collection) return;
       delete collection._scriptCollVarBaseline;
     },
+    _clearScriptCollectionBaselines: (state, action) => {
+      const { collectionUid } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+      if (!collection) return;
+      delete collection._scriptEnvBaseline;
+      delete collection._scriptCollVarBaseline;
+    },
     collectionAddFileEvent: (state, action) => {
       const file = action.payload.file;
       const isCollectionRoot = file.meta.collectionRoot ? true : false;
@@ -3944,6 +3951,7 @@ export const {
   scriptUpdateCollectionVars,
   setScriptCollVarBaseline,
   clearScriptCollVarBaseline,
+  _clearScriptCollectionBaselines,
   updateCollectionAuthMode,
   updateCollectionAuth,
   updateCollectionRequestScript,
