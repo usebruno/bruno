@@ -683,7 +683,6 @@ const StyledWrapper = styled.div`
 
       .copy-to-clipboard {
         button {
-          background-color: ${(props) => props.theme.background.muted} ;
           border-radius: 3px;
         }
       }
