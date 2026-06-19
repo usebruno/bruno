@@ -2736,11 +2736,12 @@ export const collectionsSlice = createSlice({
       const collection = findCollectionByUid(state.collections, collectionUid);
       if (!collection) return;
 
-      const mappedVars = map(vars, ({ uid, name = '', value = '', enabled = true }) => ({
+      const mappedVars = map(vars, ({ uid, name = '', value = '', enabled = true, dataType }) => ({
         uid: uid || uuid(),
         name,
         value,
-        enabled
+        enabled,
+        ...(dataType && dataType !== 'string' ? { dataType } : {})
       }));
 
       set(collection, 'root.request.vars.req', mappedVars);

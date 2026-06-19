@@ -47,6 +47,27 @@ describe('bru.setEnvVar', () => {
   });
 });
 
+describe('bru.setEnvVar — dirty flag for typed values', () => {
+  test('setting a number trips the env dirty flag', () => {
+    const bru = makeBru();
+    expect(bru._envDirty).toBe(false);
+    bru.setEnvVar('count', 42);
+    expect(bru._envDirty).toBe(true);
+  });
+
+  test('setting a boolean trips the env dirty flag', () => {
+    const bru = makeBru();
+    bru.setEnvVar('active', true);
+    expect(bru._envDirty).toBe(true);
+  });
+
+  test('setting an object trips the env dirty flag', () => {
+    const bru = makeBru();
+    bru.setEnvVar('config', { port: 3000 });
+    expect(bru._envDirty).toBe(true);
+  });
+});
+
 describe('bru.deleteEnvVar', () => {
   test('removes an existing variable', () => {
     const bru = makeBru();

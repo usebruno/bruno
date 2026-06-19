@@ -87,7 +87,11 @@ export const buildCommonLocators = (page: Page) => ({
     variableSecretCheckbox: (index: number) => page.locator(`input[name="${index}.secret"]`),
     variableRow: (index: number) => page.locator('tr').filter({ has: page.locator(`input[name="${index}.name"]`) }),
     variableRowByName: (name: string) => page.locator('tbody tr').filter({ has: page.locator(`input[value="${name}"]`) }),
-    variableValue: (name: string) => page.locator('tbody tr').filter({ has: page.locator(`input[value="${name}"]`) }).locator('.CodeMirror-line').first(),
+    // Targets the `.CodeMirror` wrapper (not `.CodeMirror-line`) so single-line and
+    // multi-line values (e.g. formatted JSON for @object vars) are both covered —
+    // CodeMirror renders each visual line as a separate `.CodeMirror-line`, so
+    // matching on the wrapper is the only way to get the full concatenated text.
+    variableValue: (name: string) => page.locator('tbody tr').filter({ has: page.locator(`input[value="${name}"]`) }).locator('.CodeMirror').first(),
     createEnvButton: () => page.locator('button[id="create-env"]'),
     envNameInput: () => page.locator('input[name="name"]'),
     // Variables and secrets each live on their own tab in the environment editor.

@@ -476,4 +476,71 @@ describe('scriptEnvironmentUpdateEvent — draft-aware merge', () => {
       expect(getCollection(state)._scriptEnvBaseline).toBeUndefined();
     });
   });
+
+  describe('typed values — dataType inference', () => {
+    test('infers number dataType when script sets a numeric value', () => {
+      let state = makeInitialState([makeVar('COUNT', '0')]);
+
+      state = reducer(state, scriptEvent({ COUNT: 42, __name__: 'Test' }));
+
+      const v = getEnv(state).variables.find((v) => v.name === 'COUNT');
+      expect(v.value).toBe(42);
+      expect(v.dataType).toBe('number');
+    });
+
+    test('infers boolean dataType when script sets a boolean value', () => {
+      let state = makeInitialState([makeVar('FLAG', 'false')]);
+
+      state = reducer(state, scriptEvent({ FLAG: true, __name__: 'Test' }));
+
+      const v = getEnv(state).variables.find((v) => v.name === 'FLAG');
+      expect(v.value).toBe(true);
+      expect(v.dataType).toBe('boolean');
+    });
+
+    test('infers object dataType when script sets an object value', () => {
+      let state = makeInitialState([makeVar('CONFIG', '')]);
+
+      state = reducer(state, scriptEvent({ CONFIG: { port: 3000 }, __name__: 'Test' }));
+
+      const v = getEnv(state).variables.find((v) => v.name === 'CONFIG');
+      expect(v.value).toEqual({ port: 3000 });
+      expect(v.dataType).toBe('object');
+    });
+
+    test('keeps existing dataType on a typed var the script did not touch', () => {
+      const typedVar = { ...makeVar('COUNT', 42), dataType: 'number' };
+      let state = makeInitialState([
+        typedVar,
+        makeVar('HOST', 'https://example.com')
+      ]);
+
+      // Script touched HOST only; the runtime payload still carries COUNT (unchanged).
+      state = reducer(state, scriptEvent({ COUNT: 42, HOST: 'https://new.com', __name__: 'Test' }));
+
+      const v = getEnv(state).variables.find((v) => v.name === 'COUNT');
+      expect(v.dataType).toBe('number');
+    });
+
+    test('drops dataType when script replaces a typed value with a string', () => {
+      const typedVar = { ...makeVar('COUNT', 42), dataType: 'number' };
+      let state = makeInitialState([typedVar]);
+
+      state = reducer(state, scriptEvent({ COUNT: 'not-a-number', __name__: 'Test' }));
+
+      const v = getEnv(state).variables.find((v) => v.name === 'COUNT');
+      expect(v.dataType).toBeUndefined();
+    });
+
+    test('updates dataType when script changes the value type', () => {
+      const typedVar = { ...makeVar('VAL', 42), dataType: 'number' };
+      let state = makeInitialState([typedVar]);
+
+      state = reducer(state, scriptEvent({ VAL: true, __name__: 'Test' }));
+
+      const v = getEnv(state).variables.find((v) => v.name === 'VAL');
+      expect(v.value).toBe(true);
+      expect(v.dataType).toBe('boolean');
+    });
+  });
 });

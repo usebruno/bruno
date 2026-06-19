@@ -1,7 +1,7 @@
 {
   "maximized": false,
   "lastOpenedCollections": [
-    "{{collectionPath}}/variable-persistence-safe-test"
+    "{{collectionPath}}/global-env-var-persistence-typed-test"
   ],
   "preferences": {
     "onboarding": {

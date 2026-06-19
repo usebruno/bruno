@@ -55,6 +55,27 @@ describe('Collection Variable APIs', () => {
     });
   });
 
+  describe('bru.setCollectionVar — dirty flag for typed values', () => {
+    test('setting a number trips the collection-vars dirty flag', () => {
+      const bru = makeBru();
+      expect(bru._collVarsDirty).toBe(false);
+      bru.setCollectionVar('count', 42);
+      expect(bru._collVarsDirty).toBe(true);
+    });
+
+    test('setting a boolean trips the collection-vars dirty flag', () => {
+      const bru = makeBru();
+      bru.setCollectionVar('active', true);
+      expect(bru._collVarsDirty).toBe(true);
+    });
+
+    test('setting an object trips the collection-vars dirty flag', () => {
+      const bru = makeBru();
+      bru.setCollectionVar('config', { port: 3000 });
+      expect(bru._collVarsDirty).toBe(true);
+    });
+  });
+
   describe('bru.getCollectionVar', () => {
     test('returns the value of an existing variable', () => {
       const bru = makeBru({ token: 'abc123' });
