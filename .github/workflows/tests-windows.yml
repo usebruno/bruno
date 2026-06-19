@@ -58,7 +58,7 @@ jobs:
 
   e2e-test:
     name: Playwright E2E Tests (Windows)
-    timeout-minutes: 120
+    timeout-minutes: 180
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v6

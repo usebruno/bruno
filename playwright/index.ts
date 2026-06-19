@@ -2,6 +2,7 @@ import { test as baseTest, BrowserContext, ElectronApplication, Page, TestInfo }
 import * as path from 'path';
 import * as os from 'os';
 import * as fs from 'fs';
+import { version } from '../packages/bruno-app/package.json';
 
 const electronAppPath = path.join(__dirname, '../packages/bruno-electron');
 
@@ -246,7 +247,8 @@ export const test = baseTest.extend<
               preferences: {
                 onboarding: {
                   hasLaunchedBefore: true,
-                  hasSeenWelcomeModal: true
+                  hasSeenWelcomeModal: true,
+                  lastSeenVersion: version
                 }
               }
             };

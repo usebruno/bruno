@@ -147,7 +147,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
   });
 
   test.describe('TABS', () => {
-    test.describe('SHORTCUT: Close Tab', () => {
+    test.describe.serial('SHORTCUT: Close Tab', () => {
       test('default Cmd/Ctrl+W closes the active tab', async ({ page, createTmpDir }) => {
         await openRequest(page, collectionName, 'req-1', { persist: true });
         const reqTab = page.locator('.request-tab').filter({ hasText: 'req-1' });
@@ -189,7 +189,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
       });
     });
 
-    test.describe('SHORTCUT: Close All Tabs', () => {
+    test.describe.serial('SHORTCUT: Close All Tabs', () => {
       test('default Cmd/Ctrl+Shift+W closes all tabs', async ({ page }) => {
         await openRequest(page, collectionName, 'req-1', { persist: true });
         await openRequest(page, collectionName, 'req-2', { persist: true });
@@ -240,7 +240,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
       });
     });
 
-    test.describe('SHORTCUT: Save', () => {
+    test.describe.serial('SHORTCUT: Save', () => {
       test('default Cmd/Ctrl+S save tab', async ({ page, createTmpDir }) => {
         await page.getByTestId('collections').locator('.collection-name').filter({ hasText: 'kb-collection' }).dblclick();
         await expect(page.locator('.request-tab').filter({ hasText: 'collection' })).toBeVisible({ timeout: 2000 });
@@ -334,7 +334,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
       });
     });
 
-    test.describe('SHORTCUT: Save All Tabs', () => {
+    test.describe.serial('SHORTCUT: Save All Tabs', () => {
       test('default Cmd/Ctrl+Shift+S save all tabs', async ({ page }) => {
         await page.getByTestId('collections').locator('.collection-name').filter({ hasText: 'kb-collection' }).dblclick();
         await expect(page.locator('.request-tab').filter({ hasText: 'collection' })).toBeVisible({ timeout: 2000 });
@@ -495,7 +495,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
       });
     });
 
-    test.describe('SHORTCUT: Switch to Previous Tab', () => {
+    test.describe.serial('SHORTCUT: Switch to Previous Tab', () => {
       test('default Cmd/Ctrl+Shift+[ switches to previous tab', async ({ page }) => {
         await openRequest(page, collectionName, 'req-4', { persist: true });
         await openRequest(page, collectionName, 'req-5', { persist: true });
@@ -543,7 +543,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
       });
     });
 
-    test.describe('SHORTCUT: Switch to Next Tab', () => {
+    test.describe.serial('SHORTCUT: Switch to Next Tab', () => {
       test('default Cmd/Ctrl+Shift+] switches to next tab', async ({ page }) => {
         await openRequest(page, collectionName, 'req-4', { persist: true });
         await openRequest(page, collectionName, 'req-5', { persist: true });
@@ -596,7 +596,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
       });
     });
 
-    test.describe('SHORTCUT: Move Tab Left', () => {
+    test.describe.serial('SHORTCUT: Move Tab Left', () => {
       test('default Cmd/Ctrl+[ moves active tab left', async ({ page }) => {
         await openRequest(page, collectionName, 'req-7', { persist: true });
         await openRequest(page, collectionName, 'req-8', { persist: true });
@@ -660,7 +660,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
       });
     });
 
-    test.describe('SHORTCUT: Move Tab Right', () => {
+    test.describe.serial('SHORTCUT: Move Tab Right', () => {
       test('default Cmd/Ctrl+] moves active tab right', async ({ page }) => {
         await openRequest(page, collectionName, 'req-6', { persist: true });
         await openRequest(page, collectionName, 'req-7', { persist: true });
@@ -785,7 +785,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
       });
     });
 
-    test.describe('SHORTCUT: Reopen Last Closed Tab', () => {
+    test.describe.serial('SHORTCUT: Reopen Last Closed Tab', () => {
       test('default Cmd/Ctrl+Shift+T reopens last closed request tab', async ({ page }) => {
         await openRequest(page, collectionName, 'req-2', { persist: true });
         await openRequest(page, collectionName, 'req-1', { persist: true });
@@ -849,7 +849,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
   });
 
   test.describe('SIDEBAR', () => {
-    test.describe('SHORTCUT: Sidebar search', () => {
+    test.describe.serial('SHORTCUT: Sidebar search', () => {
       test('default Cmd/Ctrl+F open sidebar search', async ({ page, createTmpDir }) => {
         await page.keyboard.down('Alt');
         await page.keyboard.down('KeyY');
@@ -889,7 +889,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
       });
     });
 
-    test.describe('SHORTCUT: New request', () => {
+    test.describe.serial('SHORTCUT: New request', () => {
       test('default Cmd/Ctrl+N open new request modal', async ({ page, createTmpDir }) => {
         await page.keyboard.down('Alt');
         await page.keyboard.down('KeyY');
@@ -939,7 +939,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
       });
     });
 
-    test.describe('SHORTCUT: Rename Item', () => {
+    test.describe.serial('SHORTCUT: Rename Item', () => {
       test('default Cmd/Ctrl+R open rename item modal for request', async ({ page, createTmpDir }) => {
         await page.keyboard.down('Alt');
         await page.keyboard.down('KeyY');
@@ -1119,7 +1119,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
       });
     });
 
-    test.describe('SHORTCUT: Clone Item', () => {
+    test.describe.serial('SHORTCUT: Clone Item', () => {
       test('default Cmd/Ctrl+D open clone item modal for request', async ({ page, createTmpDir }) => {
         await page.keyboard.down('Alt');
         await page.keyboard.down('KeyY');
@@ -1240,7 +1240,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
       });
     });
 
-    test.describe('SHORTCUT: Copy Paste Item', () => {
+    test.describe.serial('SHORTCUT: Copy Paste Item', () => {
       test('default Cmd/Ctrl+C/V copy paste item for request', async ({ page, createTmpDir }) => {
         await page.keyboard.down('Alt');
         await page.keyboard.down('KeyY');
@@ -1348,7 +1348,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
       });
     });
 
-    test.describe('SHORTCUT: Collapse Sidebar', () => {
+    test.describe.serial('SHORTCUT: Collapse Sidebar', () => {
       test('default collapse sidebar using default Cmd/Ctrl+\\', async ({ page, createTmpDir }) => {
         await expect(page.getByTestId('collections')).toBeVisible();
         await page.locator('body').click({ position: { x: 1, y: 1 } });
@@ -1414,7 +1414,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
   });
 
   test.describe('DEVELOPER TOOLS', () => {
-    test.describe('SHORTCUT: Open Terminal', () => {
+    test.describe.serial('SHORTCUT: Open Terminal', () => {
       test('default Cmd/Ctrl+T opens terminal', async ({ page, createTmpDir }) => {
         // Open Collection-Settings tab (double-click collection name)
         await page.getByTestId('collections').locator('.collection-name').filter({ hasText: 'kb-collection' }).click();
@@ -1509,7 +1509,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
   });
 
   test.describe('LAYOUT', () => {
-    test.describe('SHORTCUT: Change Layout', () => {
+    test.describe.serial('SHORTCUT: Change Layout', () => {
       test('default Cmd/Ctrl+J change layout orientation', async ({ page, createTmpDir }) => {
         await openRequest(page, 'kb-collection', 'req-5', { persist: true });
 
@@ -1596,7 +1596,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
       });
     });
 
-    test.describe('SHORTCUT: Open Preferences', () => {
+    test.describe.serial('SHORTCUT: Open Preferences', () => {
       test('default Cmd/Ctrl+, open preferences', async ({ page }) => {
         await page.keyboard.down('Alt');
         await page.keyboard.down('KeyY');
@@ -1644,7 +1644,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
   });
 
   test.describe('SEARCH', () => {
-    test.describe('SHORTCUT: Global Search', () => {
+    test.describe.serial('SHORTCUT: Global Search', () => {
       test('default Cmd/Ctrl+K Global Search Modal', async ({ page, createTmpDir }) => {
         // Press Cmd/Ctrl+K to global search modal
         await page.keyboard.press(`${modifier}+KeyK`);
@@ -1691,7 +1691,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
     });
   });
 
-  test.describe('SHORTCUT: Edit Environment', () => {
+  test.describe.serial('SHORTCUT: Edit Environment', () => {
     test('open environment tab of collection Cmd/Ctrl+E', async ({ page, createTmpDir }) => {
       await page.keyboard.down('Alt');
       await page.keyboard.down('KeyY');
@@ -1744,7 +1744,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
   });
 
   test.describe('REQUESTS', () => {
-    test.describe('SHORTCUT: Send Request from CodeEditor (Cmd/Ctrl+Enter)', () => {
+    test.describe.serial('SHORTCUT: Send Request from CodeEditor (Cmd/Ctrl+Enter)', () => {
       test('sends request when cursor is in JSON body editor', async ({ page }) => {
         // Close existing tabs
         await page.keyboard.down('Alt');
@@ -1854,7 +1854,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
       });
     });
 
-    test.describe('SHORTCUT: Send Request from CodeEditor (customized Shift+Enter)', () => {
+    test.describe.serial('SHORTCUT: Send Request from CodeEditor (customized Shift+Enter)', () => {
       test('customized Shift+Enter sends request when cursor is in JSON body editor', async ({ page }) => {
         // Close existing tabs
         await page.keyboard.down('Alt');

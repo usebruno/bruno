@@ -11,7 +11,7 @@ const MULTI_MSG_BRU_PATH = join(__dirname, 'fixtures/collection/ws-multi-msg.bru
 const SINGLE_MSG_BRU_PATH = join(__dirname, 'fixtures/collection/ws-single-msg.bru');
 const MAX_CONNECTION_TIME = 3000;
 
-test.describe('websocket multi-message (bru format)', () => {
+test.describe.serial('websocket multi-message (bru format)', () => {
   let originalMultiMsgData = '';
   let originalSingleMsgData = '';
 
