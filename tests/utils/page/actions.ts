@@ -1,7 +1,7 @@
 import { test, expect, Page, ElectronApplication, waitForReadyPage as waitForReadyPageImpl } from '../../../playwright';
 import process from 'node:process';
 import * as path from 'path';
-import { buildCommonLocators, buildScriptErrorLocators, buildGrpcCommonLocators } from './locators';
+import { buildCommonLocators, buildScriptErrorLocators, buildGrpcCommonLocators, buildWebsocketCommonLocators } from './locators';
 import { waitForCollectionMount } from './mounting';
 
 type SandboxMode = 'safe' | 'developer';
@@ -2006,6 +2006,24 @@ const getAppWebviewHtml = async (page: Page): Promise<string> => {
   return decodeURIComponent(src.slice(comma + 1));
 };
 
+/**
+ * Rename a websocket message by double-clicking its label and typing a new name.
+ * @param page - The page object
+ * @param index - The zero-based index of the message in the list
+ * @param name - The new message name
+ */
+const renameWsMessage = async (page: Page, index: number, name: string) => {
+  await test.step(`Rename websocket message ${index} to "${name}"`, async () => {
+    const ws = buildWebsocketCommonLocators(page);
+    await ws.message.label(index).dblclick();
+    const nameInput = ws.message.nameInput(index);
+    await expect(nameInput).toBeVisible();
+    await nameInput.selectText();
+    await page.keyboard.type(name);
+    await nameInput.press('Enter');
+  });
+};
+
 export {
   waitForReadyPage,
   dismissImportIssuesToasts,
@@ -2087,7 +2105,8 @@ export {
   enableApp,
   exitApp,
   selectViewMode,
-  getAppWebviewHtml
+  getAppWebviewHtml,
+  renameWsMessage
 };
 
 export type { SandboxMode, EnvironmentType, EnvironmentVariable, ImportCollectionOptions, CreateRequestOptions, CreateUntitledRequestOptions, CreateTransientRequestOptions, AssertionInput };
