@@ -103,6 +103,11 @@ router.get('/anything', function (req, res) {
   });
 });
 
+router.get('/cross-origin', function (req, res) {
+  // Redirect to a different port = different origin
+  res.status(302).set('Location', 'http://localhost:8082/headers').send();
+});
+
 router.get('/:count', function (req, res) {
   const count = parseInt(req.params.count, 10);
 
