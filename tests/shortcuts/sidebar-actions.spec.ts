@@ -7,8 +7,8 @@ import {
   openFolderSettingsTab,
   openKeybindingsTab,
   openRequest,
-  remapKeybinding,
   pressShortcut,
+  remapKeybinding,
   resetKeybindings,
   setupBoundActionsData
 } from './helpers';

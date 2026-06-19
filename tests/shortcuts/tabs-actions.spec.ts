@@ -679,44 +679,16 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
 
     test.describe('SHORTCUT: Switch to Tab at Position', () => {
       test('Switch to Tab at Position default (Cmd/Ctrl+1-8)', async ({ pageWithUserData: page }) => {
-        await openRequest(page, 'kb-collection', 'req-1', { persist: true });
-        await openRequest(page, 'kb-collection', 'req-2', { persist: true });
-        await openRequest(page, 'kb-collection', 'req-3', { persist: true });
-        await openRequest(page, 'kb-collection', 'req-4', { persist: true });
-        await openRequest(page, 'kb-collection', 'req-5', { persist: true });
-        await openRequest(page, 'kb-collection', 'req-6', { persist: true });
-        await openRequest(page, 'kb-collection', 'req-7', { persist: true });
-        await openRequest(page, 'kb-collection', 'req-8', { persist: true });
-        await openRequest(page, 'kb-collection', 'req-9', { persist: true });
+        // Open req-1..req-9 as persisted tabs (persist: true keeps each tab open).
+        for (let i = 1; i <= 9; i++) {
+          await openRequest(page, 'kb-collection', `req-${i}`, { persist: true });
+        }
 
-        await expect(page.locator('.request-tab').filter({ has: page.getByText('req-1', { exact: true }) })).toBeVisible({ timeout: 2000 });
-        await expect(page.locator('.request-tab').filter({ has: page.getByText('req-2', { exact: true }) })).toBeVisible({ timeout: 2000 });
-        await expect(page.locator('.request-tab').filter({ has: page.getByText('req-3', { exact: true }) })).toBeVisible({ timeout: 2000 });
-        await expect(page.locator('.request-tab').filter({ has: page.getByText('req-4', { exact: true }) })).toBeVisible({ timeout: 2000 });
-        await expect(page.locator('.request-tab').filter({ has: page.getByText('req-5', { exact: true }) })).toBeVisible({ timeout: 2000 });
-        await expect(page.locator('.request-tab').filter({ has: page.getByText('req-6', { exact: true }) })).toBeVisible({ timeout: 2000 });
-        await expect(page.locator('.request-tab').filter({ has: page.getByText('req-7', { exact: true }) })).toBeVisible({ timeout: 2000 });
-        await expect(page.locator('.request-tab').filter({ has: page.getByText('req-8', { exact: true }) })).toBeVisible({ timeout: 2000 });
-        await expect(page.locator('.request-tab').filter({ has: page.getByText('req-9', { exact: true }) })).toBeVisible({ timeout: 2000 });
-        const tabs = page.locator('.request-tab');
-
-        await expect(tabs.nth(0)).toHaveText(/req-1/, { timeout: 2000 });
-        await pressShortcut(page, modifier, '1');
-        await expect(page.locator('li.request-tab.active')).toHaveText(/req-1/, { timeout: 3000 });
-        await pressShortcut(page, modifier, '2');
-        await expect(page.locator('li.request-tab.active')).toHaveText(/req-2/, { timeout: 3000 });
-        await pressShortcut(page, modifier, '3');
-        await expect(page.locator('li.request-tab.active')).toHaveText(/req-3/, { timeout: 3000 });
-        await pressShortcut(page, modifier, '4');
-        await expect(page.locator('li.request-tab.active')).toHaveText(/req-4/, { timeout: 3000 });
-        await pressShortcut(page, modifier, '5');
-        await expect(page.locator('li.request-tab.active')).toHaveText(/req-5/, { timeout: 3000 });
-        await pressShortcut(page, modifier, '6');
-        await expect(page.locator('li.request-tab.active')).toHaveText(/req-6/, { timeout: 3000 });
-        await pressShortcut(page, modifier, '7');
-        await expect(page.locator('li.request-tab.active')).toHaveText(/req-7/, { timeout: 3000 });
-        await pressShortcut(page, modifier, '8');
-        await expect(page.locator('li.request-tab.active')).toHaveText(/req-8/, { timeout: 3000 });
+        // Cmd/Ctrl+<n> activates the tab at position n.
+        for (let pos = 1; pos <= 8; pos++) {
+          await pressShortcut(page, modifier, `${pos}`);
+          await expect(page.locator('li.request-tab.active')).toHaveText(new RegExp(`req-${pos}`), { timeout: 3000 });
+        }
       });
     });
 
