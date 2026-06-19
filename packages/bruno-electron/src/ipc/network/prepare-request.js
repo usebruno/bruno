@@ -31,6 +31,13 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
       case 'bearer':
         axiosRequest.headers['Authorization'] = `Bearer ${get(collectionAuth, 'bearer.token', '')}`;
         break;
+      case 'jwtBearer':
+        axiosRequest.jwtBearerConfig = {
+          algorithm: get(collectionAuth, 'jwtBearer.algorithm') || 'HS256',
+          secret: get(collectionAuth, 'jwtBearer.secret') || '',
+          payload: get(collectionAuth, 'jwtBearer.payload') || ''
+        };
+        break;
       case 'digest':
         axiosRequest.digestConfig = {
           username: get(collectionAuth, 'digest.username'),
@@ -199,6 +206,13 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
         break;
       case 'bearer':
         axiosRequest.headers['Authorization'] = `Bearer ${get(request, 'auth.bearer.token', '')}`;
+        break;
+      case 'jwtBearer':
+        axiosRequest.jwtBearerConfig = {
+          algorithm: get(request, 'auth.jwtBearer.algorithm') || 'HS256',
+          secret: get(request, 'auth.jwtBearer.secret') || '',
+          payload: get(request, 'auth.jwtBearer.payload') || ''
+        };
         break;
       case 'digest':
         axiosRequest.digestConfig = {
