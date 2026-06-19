@@ -48,7 +48,7 @@ test.describe('Welcome Modal', () => {
       await expect(welcomeModal).toBeVisible();
 
       // Dismiss the modal by clicking Skip
-      await page.getByRole('button', { name: 'Skip' }).click();
+      await page.locator('.bruno-modal').getByRole('button', { name: 'Skip' }).click();
       await expect(welcomeModal).not.toBeVisible();
 
       // Close the app

@@ -17,7 +17,7 @@ test.describe('Import WSDL Collection', () => {
       await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Import collection' }).click();
 
       // Wait for import collection modal to be ready
-      const importModal = page.getByRole('dialog');
+      const importModal = page.getByTestId('import-collection-modal');
       await importModal.waitFor({ state: 'visible' });
     });
 
@@ -36,7 +36,7 @@ test.describe('Import WSDL Collection', () => {
 
       // select a location
       await page.locator('#collection-location').fill(await createTmpDir('wsdl-xml-test'));
-      await locationModal.getByRole('button', { name: 'Import' }).click();
+      await locationModal.getByTestId('import-collection-location-modal-submit-btn').click();
       await locationModal.waitFor({ state: 'hidden' });
       await expect(page.locator('#sidebar-collection-name').getByText('TestWSDLServiceXML')).toBeVisible();
     });
@@ -76,7 +76,7 @@ test.describe('Import WSDL Collection', () => {
       await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Import collection' }).click();
 
       // Wait for import collection modal to be ready
-      const importModal = page.getByRole('dialog');
+      const importModal = page.getByTestId('import-collection-modal');
       await importModal.waitFor({ state: 'visible' });
     });
 
@@ -98,7 +98,7 @@ test.describe('Import WSDL Collection', () => {
 
       // select a location
       await page.locator('#collection-location').fill(await createTmpDir('wsdl-json-test'));
-      await locationModal.getByRole('button', { name: 'Import' }).click();
+      await locationModal.getByTestId('import-collection-location-modal-submit-btn').click();
       await locationModal.waitFor({ state: 'hidden' });
     });
 

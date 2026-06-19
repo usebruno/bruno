@@ -18,7 +18,7 @@ test.describe('Multiple Files Upload', () => {
     await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Import collection' }).click();
 
     // Wait for import collection modal to be ready
-    const importModal = page.getByRole('dialog');
+    const importModal = page.getByTestId('import-collection-modal');
     await importModal.waitFor({ state: 'visible' });
     await expect(importModal.locator('.bruno-modal-header-title')).toContainText('Import Collection');
 
@@ -28,7 +28,7 @@ test.describe('Multiple Files Upload', () => {
     await page.locator('#import-collection-loader').waitFor({ state: 'hidden' });
 
     // Verify that the Bulk Import modal is now displayed
-    const bulkImportModal = page.getByRole('dialog');
+    const bulkImportModal = page.getByTestId('import-collection-modal');
     await expect(bulkImportModal.locator('.bruno-modal-header-title')).toContainText('Bulk Import');
 
     // Check that the Collections count shows 2 collections in the Bulk Import modal

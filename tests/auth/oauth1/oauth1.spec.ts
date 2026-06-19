@@ -154,7 +154,7 @@ test.describe('OAuth 1.0 Authentication', () => {
 
     await test.step('Fill and save', async () => {
       await typeInField(page, 'Consumer Key', 'collection-consumer-key');
-      await page.getByRole('button', { name: 'Save' }).click();
+      await page.locator('[role="tabpanel"]').getByRole('button', { name: 'Save' }).click();
     });
   });
 });

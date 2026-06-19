@@ -37,7 +37,7 @@ test.describe('Import Insomnia v5 Collection - Environment Import', () => {
       await locationModal.waitFor({ state: 'visible', timeout: 10000 });
 
       await page.locator('#collection-location').fill(await createTmpDir('insomnia-v5-env-test'));
-      await locationModal.getByRole('button', { name: 'Import' }).click();
+      await locationModal.getByTestId('import-collection-location-modal-submit-btn').click();
       await locationModal.waitFor({ state: 'hidden' });
 
       await openCollection(page, 'Test API Collection v5 with Environments');
@@ -46,7 +46,7 @@ test.describe('Import Insomnia v5 Collection - Environment Import', () => {
     await test.step('Open collection environments panel', async () => {
       await page.getByTestId('environment-selector-trigger').click();
       await page.getByTestId('env-tab-collection').click();
-      await page.getByRole('button', { name: 'Configure' }).click();
+      await page.locator('.bruno-modal').getByRole('button', { name: 'Configure' }).click();
     });
 
     await test.step('Verify all environments are present', async () => {

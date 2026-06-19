@@ -21,7 +21,7 @@ test.describe('Global Environment Import Tests', () => {
     await expect(locationModal.getByText('Environment Test Collection')).toBeVisible();
 
     await page.locator('#collection-location').fill(await createTmpDir('global-env-import-test'));
-    await locationModal.getByRole('button', { name: 'Import' }).click();
+    await locationModal.getByTestId('import-collection-location-modal-submit-btn').click();
 
     await expect(
       page.locator('#sidebar-collection-name').filter({ hasText: 'Environment Test Collection' })).toBeVisible({ timeout: 10000 });

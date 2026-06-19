@@ -42,7 +42,7 @@ test.describe('Autosave', () => {
       await page.waitForTimeout(500);
 
       // Navigate to General tab (should be default, but ensure it)
-      await page.getByRole('tab', { name: 'General' }).click();
+      await page.locator('.tablist').getByRole('tab', { name: 'General', exact: true }).click();
 
       // Enable autosave checkbox
       const autoSaveCheckbox = page.locator('#autoSaveEnabled');
@@ -98,7 +98,7 @@ test.describe('Autosave', () => {
       await page.waitForTimeout(500);
 
       // Navigate to General tab
-      await page.getByRole('tab', { name: 'General' }).click();
+      await page.locator('.tablist').getByRole('tab', { name: 'General', exact: true }).click();
 
       // Disable autosave checkbox
       const autoSaveCheckbox = page.locator('#autoSaveEnabled');
@@ -182,7 +182,7 @@ test.describe('Autosave', () => {
       await page.waitForTimeout(500);
 
       // Navigate to General tab
-      await page.getByRole('tab', { name: 'General' }).click();
+      await page.locator('.tablist').getByRole('tab', { name: 'General', exact: true }).click();
 
       // Enable autosave checkbox
       const autoSaveCheckbox = page.locator('#autoSaveEnabled');

@@ -26,7 +26,7 @@ test.describe.serial('Scratch Requests', () => {
   const createScratchRequest = async (page: Page, requestType: 'HTTP' | 'GraphQL' | 'gRPC' | 'WebSocket' = 'HTTP') => {
     await test.step(`Create scratch ${requestType} request`, async () => {
       // Click the + button to create a new request (this is on the workspace overview)
-      const createButton = page.getByRole('button', { name: 'New Transient Request' });
+      const createButton = page.locator('[aria-label="New Transient Request"]');
       await createButton.waitFor({ state: 'visible', timeout: 5000 });
 
       // Right-click to open the dropdown menu

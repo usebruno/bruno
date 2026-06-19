@@ -39,14 +39,14 @@ test.describe('Bulk Import - Select all', () => {
     await page.getByTestId('collections-header-add-menu').click();
     await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Import collection' }).click();
 
-    const importModal = page.getByRole('dialog');
+    const importModal = page.getByTestId('import-collection-modal');
     await importModal.waitFor({ state: 'visible' });
     await expect(importModal.locator('.bruno-modal-header-title')).toContainText('Import Collection');
 
     await page.setInputFiles('input[type="file"]', importFiles);
     await page.locator('#import-collection-loader').waitFor({ state: 'hidden' });
 
-    const bulkImportModal = page.getByRole('dialog');
+    const bulkImportModal = page.getByTestId('import-collection-modal');
     await expect(bulkImportModal.locator('.bruno-modal-header-title')).toContainText('Bulk Import');
 
     const collectionsSection = bulkImportModal.getByTestId('selection-section-collections');

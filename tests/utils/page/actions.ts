@@ -57,14 +57,14 @@ const closeAllCollections = async (page) => {
       await removeModal.waitFor({ state: 'visible', timeout: 5000 });
 
       // Check if it's the drafts confirmation modal (has "Discard All and Remove" button)
-      const hasDiscardButton = await page.getByRole('button', { name: 'Discard All and Remove' }).isVisible().catch(() => false);
+      const hasDiscardButton = await removeModal.getByRole('button', { name: 'Discard All and Remove' }).isVisible().catch(() => false);
 
       if (hasDiscardButton) {
         // Drafts modal - the modal animates in and the footer can shift mid-frame,
         // causing Playwright's "element is stable" actionability check to fail
         // intermittently on slower machines. Use force to skip the stability check;
         // visibility is already verified above via waitFor.
-        await page.getByRole('button', { name: 'Discard All and Remove' }).click({ force: true });
+        await removeModal.getByRole('button', { name: 'Discard All and Remove' }).click({ force: true });
       } else {
         // Regular modal - click the submit button
         await page.locator('.bruno-modal-footer .submit').click();
@@ -224,7 +224,7 @@ const createUntitledRequest = async (
     if (tag) {
       await selectRequestPaneTab(page, 'Settings');
       await page.waitForTimeout(200);
-      const tagInput = await page.getByTestId('tag-input').getByRole('textbox');
+      const tagInput = page.getByTestId('tag-input').locator('input, textarea').first();
       await tagInput.fill(tag);
       await tagInput.press('Enter');
       await page.waitForTimeout(200);
@@ -261,7 +261,7 @@ const createTransientRequest = async (
 
   await test.step(`Create transient ${requestType} request`, async () => {
     // Find the + icon button (ActionIcon with aria-label="New Transient Request")
-    const createButton = page.getByRole('button', { name: 'New Transient Request' });
+    const createButton = page.locator('[aria-label="New Transient Request"]');
     await createButton.waitFor({ state: 'visible', timeout: 5000 });
 
     // Click the + icon to open the dropdown
@@ -471,7 +471,7 @@ const importCollection = async (
     await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Import collection' }).click();
 
     // Wait for import modal
-    const importModal = page.getByRole('dialog');
+    const importModal = locators.import.modal();
     await importModal.waitFor({ state: 'visible' });
     await expect(importModal.locator('.bruno-modal-header-title')).toContainText('Import Collection');
 
@@ -490,7 +490,7 @@ const importCollection = async (
 
     // Set location and import
     await page.locator('#collection-location').fill(collectionLocation);
-    await locationModal.getByRole('button', { name: 'Import' }).click();
+    await locators.import.importButton(locationModal).click();
 
     // Wait for collection to appear in sidebar
     if (options.expectedCollectionName) {
@@ -532,11 +532,11 @@ const removeCollection = async (page: Page, collectionName: string) => {
     await removeModal.waitFor({ state: 'visible', timeout: 5000 });
 
     // Check if it's the drafts confirmation modal (has "Discard All and Remove" button)
-    const hasDiscardButton = await page.getByRole('button', { name: 'Discard All and Remove' }).isVisible().catch(() => false);
+    const hasDiscardButton = await removeModal.getByRole('button', { name: 'Discard All and Remove' }).isVisible().catch(() => false);
 
     if (hasDiscardButton) {
       // Drafts modal - click "Discard All and Remove"
-      await page.getByRole('button', { name: 'Discard All and Remove' }).click();
+      await removeModal.getByRole('button', { name: 'Discard All and Remove' }).click();
     } else {
       // Regular modal - click Remove button
       await locators.modal.button('Remove').click();
@@ -643,7 +643,8 @@ const createEnvironment = async (
       : page.locator('#environment-name');
     await expect(nameInput).toBeVisible();
     await nameInput.fill(environmentName);
-    await page.getByRole('button', { name: 'Create' }).click();
+    const createEnvModal = page.locator('.bruno-modal').filter({ hasText: 'Create Environment' });
+    await createEnvModal.getByRole('button', { name: 'Create', exact: true }).click();
 
     const tabLabel = type === 'collection' ? 'Environments' : 'Global Environments';
     await expect(page.locator('.request-tab').filter({ hasText: tabLabel })).toBeVisible();
@@ -718,7 +719,7 @@ const addEnvironmentVariables = async (page: Page, variables: EnvironmentVariabl
  */
 const saveEnvironment = async (page: Page) => {
   await test.step('Save environment', async () => {
-    await page.getByRole('button', { name: 'Save' }).click();
+    await page.getByTestId('save-env').click();
   });
 };
 
@@ -1083,6 +1084,23 @@ const getResponseBody = async (page: Page): Promise<string> => {
 
 const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
+const PANE_TAB_LABEL_TO_KEY: Record<string, string> = {
+  Params: 'params',
+  Body: 'body',
+  Headers: 'headers',
+  Auth: 'auth',
+  Vars: 'vars',
+  Script: 'script',
+  Assert: 'assert',
+  Tests: 'tests',
+  Docs: 'docs',
+  Settings: 'settings',
+  Query: 'query',
+  Timeline: 'timeline',
+  Preview: 'preview',
+  Response: 'response'
+};
+
 const trySelectPaneTabOnce = async (page: Page, paneSelector: string, tabName: string) => {
   const pane = page.locator(paneSelector);
   const visibleTab = pane.locator('.tabs').getByRole('tab', { name: tabName });
@@ -1153,7 +1171,10 @@ const selectPaneTab = async (page: Page, paneSelector: string, tabName: string) 
     //   )
     //   .toBe(true);
 
-    const visibleTab = pane.locator('.tabs').getByRole('tab', { name: tabName });
+    const tabKey = PANE_TAB_LABEL_TO_KEY[tabName];
+    const visibleTab = tabKey
+      ? pane.getByTestId(`responsive-tab-${tabKey}`)
+      : pane.locator('.tabs').getByRole('tab', { name: tabName });
     const overflowButton = pane.locator('.tabs .more-tabs');
 
     // ResponsiveTabs recalculates layout via ResizeObserver/rAF, so the tab or
@@ -1499,7 +1520,8 @@ const closeAllTabs = async (page: Page) => {
     await dropdown.locator('[role="menuitem"][data-item-id="close-all"]').click();
 
     // Handle "Unsaved Transient Requests" modal if it appears
-    const discardAllButton = page.getByRole('button', { name: 'Discard All' });
+    const unsavedTransientModal = page.locator('.bruno-modal').filter({ hasText: /unsaved transient/i });
+    const discardAllButton = unsavedTransientModal.getByRole('button', { name: 'Discard All' });
     if (await discardAllButton.isVisible({ timeout: 1000 }).catch(() => false)) {
       await discardAllButton.click();
     }
@@ -1742,7 +1764,8 @@ const createExampleFromSidebar = async (page: Page, requestName: string, example
   const descriptionInput = page.getByTestId('create-example-description-input');
   await descriptionInput.clear();
   await descriptionInput.fill(description);
-  await page.getByRole('button', { name: 'Create Example' }).click();
+  const createExampleModal = page.locator('.bruno-modal').filter({ hasText: 'Create Response Example' });
+  await createExampleModal.getByTestId('modal-submit-btn').click();
   await expect(page.locator('text=Create Response Example')).not.toBeAttached();
 };
 

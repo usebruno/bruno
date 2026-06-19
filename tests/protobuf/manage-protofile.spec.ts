@@ -9,7 +9,7 @@ test.describe('manage protofile', () => {
   test('protofiles, import paths from bruno.json are visible in the protobuf settings', async ({ pageWithUserData: page }) => {
     await page.locator('#sidebar-collection-name').filter({ hasText: 'Grpcbin' }).click();
 
-    await page.getByRole('tab', { name: 'Protobuf' }).click();
+    await page.getByTestId('collection-settings-tab-protobuf').click();
 
     // Wait for protobuf settings to load
     const protobufProtoFilesSection = page.getByTestId('protobuf-proto-files-section');
@@ -20,10 +20,10 @@ test.describe('manage protofile', () => {
     await expect(protoFilesTable).toBeVisible();
 
     // Wait for table data to load by checking for a known cell
-    const file = page.getByRole('cell', { name: 'product.proto', exact: true });
+    const file = protoFilesTable.getByTestId('protobuf-proto-file-name').filter({ hasText: 'product.proto' });
     await expect(file).toBeVisible();
 
-    const filePath = page.getByRole('cell', { name: './protos/services/product.proto' });
+    const filePath = protoFilesTable.getByRole('cell', { name: './protos/services/product.proto' });
     await expect(filePath).toBeVisible();
 
     // Check import paths table
@@ -31,18 +31,18 @@ test.describe('manage protofile', () => {
     await expect(importPathsTable).toBeVisible();
 
     // Wait for import paths table data to load
-    const importPath = page.getByRole('cell', { name: './protos/types', exact: true });
+    const importPath = importPathsTable.getByRole('cell', { name: './protos/types', exact: true });
     await expect(importPath).toBeVisible();
 
     // Wait for invalid file path cell to appear
-    const invalidFilePath = page.getByRole('cell', { name: 'invalid-file-path.proto', exact: true });
+    const invalidFilePath = protoFilesTable.getByRole('cell', { name: 'invalid-file-path.proto', exact: true });
     await expect(invalidFilePath).toBeVisible();
 
-    const invalidImportPath = page.getByRole('cell', { name: './protos/invalid-import-path', exact: true });
+    const invalidImportPath = importPathsTable.getByRole('cell', { name: './protos/invalid-import-path', exact: true });
     await expect(invalidImportPath).toBeVisible();
 
-    const collectionPathAsImportPath = page.getByRole('cell', { name: '.', exact: true });
-    const collectionPathName = page.getByRole('cell', { name: /^pw-collection-/ });
+    const collectionPathAsImportPath = importPathsTable.getByRole('cell', { name: '.', exact: true });
+    const collectionPathName = importPathsTable.getByRole('cell', { name: /^pw-collection-/ });
 
     // Invalid messages using test IDs
     const invalidProtoFilesMessage = page.getByTestId('protobuf-invalid-files-message');
@@ -55,18 +55,18 @@ test.describe('manage protofile', () => {
     await expect(collectionPathAsImportPath).toBeVisible();
     await expect(collectionPathName).toBeVisible();
 
-    await page.getByRole('row', { name: 'invalid-file-path.proto' }).getByTestId('protobuf-remove-file-button').click();
+    await protoFilesTable.getByRole('row', { name: 'invalid-file-path.proto' }).getByTestId('protobuf-remove-file-button').click();
 
-    await expect(page.getByRole('cell', { name: 'invalid-file-path.proto', exact: true })).not.toBeVisible();
+    await expect(protoFilesTable.getByRole('cell', { name: 'invalid-file-path.proto', exact: true })).not.toBeVisible();
     await expect(invalidProtoFilesMessage).not.toBeVisible();
 
-    await page.getByRole('row', { name: './protos/invalid-import-path' }).getByTestId('protobuf-remove-import-path-button').click();
+    await importPathsTable.getByRole('row', { name: './protos/invalid-import-path' }).getByTestId('protobuf-remove-import-path-button').click();
 
-    await expect(page.getByRole('cell', { name: './protos/invalid-import-path', exact: true })).not.toBeVisible();
+    await expect(importPathsTable.getByRole('cell', { name: './protos/invalid-import-path', exact: true })).not.toBeVisible();
     await expect(invalidImportPathsMessage).not.toBeVisible();
 
     // Save the changes to persist them to bruno.json
-    await page.getByRole('button', { name: 'Save' }).click();
+    await page.locator('[role="tabpanel"]').getByRole('button', { name: 'Save' }).click();
   });
 
   test('order.proto loads methods successfully when selected', async ({ pageWithUserData: page }) => {
@@ -90,10 +90,11 @@ test.describe('manage protofile', () => {
     const method = page.getByTestId('grpc-method-item').filter({ hasText: /^CreateOrderunary$/ }).first();
     await expect(method).toBeVisible();
     await method.click();
-    const requestTab = page.getByRole('tab', { name: 'gRPC sayHello' });
+    const requestTab = page.locator('.request-tab').filter({ hasText: 'sayHello' });
     await requestTab.hover();
     await requestTab.getByTestId('request-tab-close-icon').click({ force: true });
-    const dontSaveBtn = page.getByRole('button', { name: 'Don\'t Save' });
+    const unsavedModal = page.locator('.bruno-modal').filter({ hasText: /unsaved/i });
+    const dontSaveBtn = unsavedModal.getByRole('button', { name: 'Don\'t Save' });
     // Wait for actionability
     await expect(dontSaveBtn).toBeVisible();
     await dontSaveBtn.click();
@@ -121,10 +122,11 @@ test.describe('manage protofile', () => {
     const methodsDropdown = page.getByTestId('grpc-methods-dropdown');
     await expect(methodsDropdown).not.toBeVisible();
 
-    const requestTab = page.getByRole('tab', { name: 'gRPC sayHello' });
+    const requestTab = page.locator('.request-tab').filter({ hasText: 'sayHello' });
     await requestTab.hover();
     await requestTab.getByTestId('request-tab-close-icon').click();
-    const dontSaveBtn = page.getByRole('button', { name: 'Don\'t Save' });
+    const unsavedModal = page.locator('.bruno-modal').filter({ hasText: /unsaved/i });
+    const dontSaveBtn = unsavedModal.getByRole('button', { name: 'Don\'t Save' });
     await expect(dontSaveBtn).toBeVisible();
     await dontSaveBtn.click();
   });
@@ -132,7 +134,7 @@ test.describe('manage protofile', () => {
   test('product.proto successfully loads methods once import path is provided', async ({ pageWithUserData: page }) => {
     await page.locator('#sidebar-collection-name').filter({ hasText: 'Grpcbin' }).click();
     // add import path within collection setting, protobuf tab
-    await page.getByRole('tab', { name: 'Protobuf' }).click();
+    await page.getByTestId('collection-settings-tab-protobuf').click();
 
     // Wait for protobuf settings to load
     const protobufImportPathsSection = page.getByTestId('protobuf-import-paths-section');
@@ -141,11 +143,11 @@ test.describe('manage protofile', () => {
     await expect(importPathTable).toBeVisible();
 
     // Use test ID for checkbox
-    const checkbox = page.getByRole('row', { name: 'Enable this import path types' }).getByTestId('protobuf-import-path-checkbox');
+    const checkbox = importPathTable.getByTestId('protobuf-import-path-checkbox');
     await checkbox.click();
 
     // Save the changes to persist them to bruno.json
-    await page.getByRole('button', { name: 'Save' }).click();
+    await page.locator('[role="tabpanel"]').getByRole('button', { name: 'Save' }).click();
 
     // Now test that product.proto can load methods successfully
     await page.getByText('HelloService').click();
@@ -167,9 +169,10 @@ test.describe('manage protofile', () => {
     await method.click();
 
     // Clean up
-    const requestTab = page.getByRole('tab', { name: 'gRPC sayHello' });
+    const requestTab = page.locator('.request-tab').filter({ hasText: 'sayHello' });
     await requestTab.hover();
     await requestTab.getByTestId('request-tab-close-icon').click({ force: true });
-    await page.getByRole('button', { name: 'Don\'t Save' }).click();
+    const unsavedModal = page.locator('.bruno-modal').filter({ hasText: /unsaved/i });
+    await unsavedModal.getByRole('button', { name: 'Don\'t Save' }).click();
   });
 });

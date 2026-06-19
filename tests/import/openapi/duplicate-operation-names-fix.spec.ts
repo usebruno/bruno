@@ -30,7 +30,7 @@ test.describe('OpenAPI Duplicate Names Handling', () => {
 
     // select a location
     await page.locator('#collection-location').fill(await createTmpDir('duplicate-test'));
-    await locationModal.getByRole('button', { name: 'Import' }).click();
+    await locationModal.getByTestId('import-collection-location-modal-submit-btn').click();
     await locationModal.waitFor({ state: 'hidden' });
 
     // verify the collection was imported successfully

@@ -14,7 +14,7 @@ test.describe.serial('JSON Response Formatting', () => {
       await page.locator('#sidebar-collection-name').getByText('collection').click();
 
       // Navigate to the request
-      await page.getByRole('complementary').getByText('request').click();
+      await page.locator('aside, [role="complementary"]').first().getByText('request').click();
     });
 
     await test.step('Send request and verify response', async () => {

@@ -17,7 +17,7 @@ test.describe('Copy and Paste Requests', () => {
     await page.getByPlaceholder('Request Name').fill('original-request');
     await page.locator('#new-request-url .CodeMirror').click();
     await page.locator('textarea').fill('https://echo.usebruno.com');
-    await page.getByRole('button', { name: 'Create' }).click();
+    await page.locator('.bruno-modal').getByRole('button', { name: 'Create', exact: true }).click();
 
     await expect(page.locator('.collection-item-name').filter({ hasText: 'original-request' })).toBeVisible();
 
@@ -42,7 +42,7 @@ test.describe('Copy and Paste Requests', () => {
     await collection.locator('.collection-actions .icon').click();
     await page.locator('.dropdown-item').filter({ hasText: 'New Folder' }).click();
     await page.locator('#folder-name').fill('test-folder');
-    await page.getByRole('button', { name: 'Create' }).click();
+    await page.locator('.bruno-modal').getByRole('button', { name: 'Create', exact: true }).click();
 
     // Paste into the folder
     const folder = page.locator('.collection-item-name').filter({ hasText: 'test-folder' });

@@ -13,7 +13,7 @@ async function dismissWelcomeModalIfVisible(page: any) {
   const welcomeModal = page.getByTestId('welcome-modal');
   const isVisible = await welcomeModal.isVisible().catch(() => false);
   if (isVisible) {
-    await page.getByRole('button', { name: 'Skip' }).click();
+    await page.locator('.bruno-modal').getByRole('button', { name: 'Skip' }).click();
     await expect(welcomeModal).not.toBeVisible();
   }
 }
@@ -111,11 +111,12 @@ test.describe('Onboarding', () => {
     await removeModal.waitFor({ state: 'visible', timeout: 5000 });
 
     // Check if it's the drafts confirmation modal (has "Discard All and Remove" button)
-    const hasDiscardButton = await page.getByRole('button', { name: 'Discard All and Remove' }).isVisible().catch(() => false);
+    const removeModal = page.locator('.bruno-modal').filter({ hasText: 'Remove Collection' });
+    const hasDiscardButton = await removeModal.getByRole('button', { name: 'Discard All and Remove' }).isVisible().catch(() => false);
 
     if (hasDiscardButton) {
       // Drafts modal - click "Discard All and Remove"
-      await page.getByRole('button', { name: 'Discard All and Remove' }).click();
+      await removeModal.getByRole('button', { name: 'Discard All and Remove' }).click();
     } else {
       // Regular modal - click the submit button
       await page.locator('.bruno-modal-footer .submit').click();
