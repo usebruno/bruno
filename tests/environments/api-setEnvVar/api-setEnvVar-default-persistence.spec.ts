@@ -1,55 +1,69 @@
 import { test, expect, closeElectronApp } from '../../../playwright';
 import { sendRequest, waitForReadyPage } from '../../utils/page';
+import { buildCommonLocators } from '../../utils/page/locators';
 
 test.describe.serial('bru.setEnvVar(name, value) - default persistence', () => {
   test('set env var using script persists by default across restart', async ({ pageWithUserData: page, restartApp }) => {
+    const locators = buildCommonLocators(page);
+    const envTab = page.locator('.request-tab').filter({ hasText: 'Environments' });
+
+    const selectStage = async () => {
+      await locators.environment.selector().click();
+      await expect(locators.environment.listOption('Stage')).toBeVisible();
+      await locators.environment.listOption('Stage').click();
+      await expect(locators.environment.currentEnvironment()).toContainText('Stage');
+    };
+
+    const openEnvEditor = async () => {
+      await locators.environment.selector().hover();
+      await locators.environment.selector().click();
+      await locators.environment.configureButton().waitFor({ state: 'visible' });
+      await locators.environment.configureButton().dispatchEvent('click');
+      await expect(envTab).toBeVisible();
+    };
+
     // Select the collection and request
     await page.locator('#sidebar-collection-name').click();
     await page.getByText('api-setEnvVar-default-persistence', { exact: true }).click();
 
-    // open environment dropdown
-    await page.getByTestId('environment-selector-trigger').click();
-
-    // select stage environment
-    await expect(page.locator('.environment-list .dropdown-item', { hasText: 'Stage' })).toBeVisible();
-    await page.locator('.environment-list .dropdown-item', { hasText: 'Stage' }).click();
-    await expect(page.locator('.current-environment', { hasText: 'Stage' })).toBeVisible();
-
-    // Send the request
+    await selectStage();
     await sendRequest(page, 200);
 
-    // confirm that the environment variable is set
-    await page.getByTestId('environment-selector-trigger').hover();
-    await page.getByTestId('environment-selector-trigger').click();
-    await page.locator('#configure-env').waitFor({ state: 'visible' });
-    await page.locator('#configure-env').dispatchEvent('click');
+    // Verify the script-set var is visible in the env editor before restart.
+    await openEnvEditor();
+    const tokenRow = locators.environment.varRow('token');
+    await tokenRow.scrollIntoViewIfNeeded();
+    await expect(tokenRow).toBeVisible();
+    await expect(locators.environment.varRowLine('token')).toHaveText('secret');
 
-    const envTab = page.locator('.request-tab').filter({ has: page.locator('.tab-label', { hasText: 'Environments' }) });
-    await expect(envTab).toBeVisible();
-
-    await expect(page.getByRole('row', { name: 'token' }).getByRole('cell').nth(1)).toBeVisible();
-    await expect(page.getByRole('row', { name: 'secret' }).getByRole('cell').nth(2)).toBeVisible();
     await envTab.hover();
     await envTab.getByTestId('request-tab-close-icon').click({ force: true });
 
-    // we restart the app to confirm that the environment variable is persisted (default behavior in v4)
+    // Restart to confirm the var was persisted to disk (default behavior in v4).
     const newApp = await restartApp();
     const newPage = await waitForReadyPage(newApp);
+    const newLocators = buildCommonLocators(newPage);
+    const newEnvTab = newPage.locator('.request-tab').filter({ hasText: 'Environments' });
 
-    // select the collection and request
     await newPage.locator('#sidebar-collection-name').click();
     await newPage.getByText('api-setEnvVar-default-persistence', { exact: true }).click();
 
-    // open environment dropdown
-    await newPage.getByTestId('environment-selector-trigger').hover();
-    await newPage.getByTestId('environment-selector-trigger').click();
-    await newPage.locator('#configure-env').waitFor({ state: 'visible' });
-    await newPage.locator('#configure-env').dispatchEvent('click');
+    // Re-select Stage — active env isn't guaranteed to persist across restart.
+    await newLocators.environment.selector().click();
+    await expect(newLocators.environment.listOption('Stage')).toBeVisible();
+    await newLocators.environment.listOption('Stage').click();
+    await expect(newLocators.environment.currentEnvironment()).toContainText('Stage');
 
-    const newEnvTab = newPage.locator('.request-tab').filter({ has: newPage.locator('.tab-label', { hasText: 'Environments' }) });
+    await newLocators.environment.selector().hover();
+    await newLocators.environment.selector().click();
+    await newLocators.environment.configureButton().waitFor({ state: 'visible' });
+    await newLocators.environment.configureButton().dispatchEvent('click');
     await expect(newEnvTab).toBeVisible();
 
-    await expect(newPage.getByRole('row', { name: 'token' }).getByRole('cell').nth(1)).toBeVisible();
+    const newTokenRow = newLocators.environment.varRow('token');
+    await newTokenRow.scrollIntoViewIfNeeded();
+    await expect(newTokenRow).toBeVisible();
+    await expect(newLocators.environment.varRowLine('token')).toHaveText('secret');
 
     await newEnvTab.hover();
     await newEnvTab.getByTestId('request-tab-close-icon').click({ force: true });

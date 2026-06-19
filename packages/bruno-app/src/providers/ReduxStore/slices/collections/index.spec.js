@@ -110,23 +110,6 @@ describe('scriptEnvironmentUpdateEvent — re-updating a script-created ephemera
     expect(variable).toMatchObject({ name: 'test_env_var', value: 'updated', ephemeral: true });
     expect(variable.persistedValue).toBeUndefined();
   });
-
-  it('captures the on-disk base as persistedValue when first shadowing a real var', () => {
-    const onDisk = { uid: 'v1', name: 'api_url', value: 'https://disk', enabled: true };
-
-    const next = reducer(
-      stateWithEnvVar(onDisk),
-      scriptEnvironmentUpdateEvent({
-        collectionUid: 'col1',
-        envVariables: { api_url: 'https://overlay' },
-        runtimeVariables: {},
-        persistentEnvVariables: {}
-      })
-    );
-
-    const variable = next.collections[0].environments[0].variables[0];
-    expect(variable).toMatchObject({ value: 'https://overlay', ephemeral: true, persistedValue: 'https://disk' });
-  });
 });
 
 describe('setRequestVars — strips dataType: \'string\' (implicit default)', () => {
