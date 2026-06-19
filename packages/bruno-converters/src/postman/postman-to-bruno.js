@@ -325,6 +325,8 @@ export const processAuth = (auth, requestObject, isCollection = false) => {
         scope: findValueUsingKey('scope'),
         state: findValueUsingKey('state'),
         tokenPlacement: findValueUsingKey('addTokenTo') === 'header' ? 'header' : 'url',
+        tokenHeaderPrefix: findValueUsingKey('headerPrefix'),
+        tokenQueryKey: 'access_token',
         credentialsPlacement: findValueUsingKey('client_authentication') === 'body' ? 'body' : 'basic_auth_header'
       };
 

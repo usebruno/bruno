@@ -166,6 +166,7 @@ export const collectionsSlice = createSlice({
       const collection = action.payload;
 
       collection.settingsSelectedTab = 'overview';
+      collection.fileMode = false;
       collection.folderLevelSettingsSelectedTab = {};
       collection.allTags = []; // Initialize collection-level tags
 
@@ -2759,6 +2760,7 @@ export const collectionsSlice = createSlice({
             currentItem.request = mergeRequestWithPreservedUids(currentItem.request, file.data.request);
             currentItem.filename = file.meta.name;
             currentItem.pathname = file.meta.pathname;
+            currentItem.raw = file.data.raw;
             currentItem.settings = file.data.settings;
             currentItem.examples = file.data.examples;
             currentItem.draft = null;
@@ -2779,6 +2781,7 @@ export const collectionsSlice = createSlice({
               examples: file.data.examples,
               filename: file.meta.name,
               pathname: file.meta.pathname,
+              raw: file.data.raw,
               draft: null,
               partial: file.partial,
               loading: file.loading,
@@ -2864,6 +2867,7 @@ export const collectionsSlice = createSlice({
           // we don't want to lose the draft in this case
           if (areItemsTheSameExceptSeqUpdate(item, file.data)) {
             item.seq = file.data.seq;
+            item.raw = file.data.raw;
             if (item?.draft) {
               item.draft.seq = file.data.seq;
             }
@@ -2880,10 +2884,14 @@ export const collectionsSlice = createSlice({
             item.examples = file.data.examples;
             item.filename = file.meta.name;
             item.pathname = file.meta.pathname;
+            item.raw = file.data.raw;
 
             // Only clear draft if it matches the file content
             // This preserves characters typed during autosave
-            if (item.draft && areItemsTheSameExceptSeqUpdate(item.draft, file.data)) {
+            // The raw comparison is guarded so an undefined === undefined match
+            // (when neither side has raw content) does not wipe a genuine draft
+            const draftRawMatchesFile = item.draft?.raw !== undefined && item.draft.raw === file.data.raw;
+            if (item.draft && (areItemsTheSameExceptSeqUpdate(item.draft, file.data) || draftRawMatchesFile)) {
               item.draft = null;
             }
           }
@@ -3315,6 +3323,27 @@ export const collectionsSlice = createSlice({
             folder.draft = cloneDeep(folder.root);
           }
           set(folder, 'draft.docs', action.payload.docs);
+        }
+      }
+    },
+    toggleCollectionFileMode: (state, action) => {
+      const { collectionUid } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+      if (collection) {
+        collection.fileMode = !collection.fileMode;
+      }
+    },
+    updateFileContent: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+
+      if (collection) {
+        const item = findItemInCollection(collection, action.payload.itemUid);
+
+        if (item) {
+          if (!item.draft) {
+            item.draft = cloneDeep(item);
+          }
+          item.draft.raw = action.payload.content;
         }
       }
     },
@@ -3847,6 +3876,8 @@ export const {
   updateRunnerConfiguration,
   updateRequestDocs,
   updateFolderDocs,
+  toggleCollectionFileMode,
+  updateFileContent,
   moveCollection,
   streamDataReceived,
   collectionAddOauth2CredentialsByUrl,

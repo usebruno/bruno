@@ -5,6 +5,7 @@ import { useTheme } from 'providers/Theme';
 const ToolHint = ({
   text,
   toolhintId,
+  tooltipId,
   anchorSelect,
   children,
   tooltipStyle = {},
@@ -15,7 +16,8 @@ const ToolHint = ({
   theme = null,
   className = '',
   delayShow = 200,
-  dataTestId
+  dataTestId,
+  tooltipTestId
 }) => {
   const { theme: contextTheme } = useTheme();
   const appliedTheme = theme || contextTheme;
@@ -32,17 +34,21 @@ const ToolHint = ({
     color: toolhintTextColor
   };
 
-  const toolhintProps_final = anchorSelect
-    ? { anchorSelect }
-    : { anchorId: toolhintId };
+  const usesExternalAnchor = Boolean(tooltipId || anchorSelect);
+  const toolhintProps_final = tooltipId
+    ? { id: tooltipId }
+    : anchorSelect
+      ? { anchorSelect }
+      : { anchorId: toolhintId };
 
   return (
     <>
-      {!anchorSelect && <span id={toolhintId} className={className} data-testid={dataTestId}>{children}</span>}
-      {anchorSelect && children}
+      {!usesExternalAnchor && <span id={toolhintId} className={className} data-testid={dataTestId}>{children}</span>}
+      {usesExternalAnchor && children}
       <ReactToolHint
         {...toolhintProps_final}
-        content={anchorSelect ? undefined : text}
+        content={usesExternalAnchor ? undefined : text}
+        render={tooltipTestId ? ({ content }) => <span data-testid={tooltipTestId}>{content}</span> : undefined}
         className="toolhint"
         offset={offset}
         place={place}

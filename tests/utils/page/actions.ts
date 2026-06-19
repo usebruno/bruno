@@ -1,7 +1,7 @@
 import { test, expect, Page, Locator, ElectronApplication, waitForReadyPage as waitForReadyPageImpl } from '../../../playwright';
 import process from 'node:process';
 import * as path from 'path';
-import { buildCommonLocators, buildScriptErrorLocators, buildGrpcCommonLocators } from './locators';
+import { buildCommonLocators, buildScriptErrorLocators, buildGrpcCommonLocators, buildWebsocketCommonLocators } from './locators';
 import { waitForCollectionMount } from './mounting';
 
 type SandboxMode = 'safe' | 'developer';
@@ -1975,6 +1975,21 @@ const scrollVirtuosoRowIntoView = async (page: Page, target: Locator) => {
     await page.waitForTimeout(120);
   }
   await target.scrollIntoViewIfNeeded().catch(() => {});
+ * Rename a websocket message by double-clicking its label and typing a new name.
+ * @param page - The page object
+ * @param index - The zero-based index of the message in the list
+ * @param name - The new message name
+ */
+const renameWsMessage = async (page: Page, index: number, name: string) => {
+  await test.step(`Rename websocket message ${index} to "${name}"`, async () => {
+    const ws = buildWebsocketCommonLocators(page);
+    await ws.message.label(index).dblclick();
+    const nameInput = ws.message.nameInput(index);
+    await expect(nameInput).toBeVisible();
+    await nameInput.selectText();
+    await page.keyboard.type(name);
+    await nameInput.press('Enter');
+  });
 };
 
 export {
@@ -2054,7 +2069,8 @@ export {
   closeGenerateCodeDialog,
   openRequestInFolder,
   setUrlEncoding,
-  generateCollectionDocs
+  generateCollectionDocs,
+  renameWsMessage
 };
 
 export type { SandboxMode, EnvironmentType, EnvironmentVariable, ImportCollectionOptions, CreateRequestOptions, CreateUntitledRequestOptions, CreateTransientRequestOptions, AssertionInput };
