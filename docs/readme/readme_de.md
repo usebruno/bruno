@@ -51,7 +51,7 @@ Du kannst Bruno auch über Paketmanager wie Homebrew, Chocolatey, Scoop, Snap, F
 
 ```sh
 # Auf Mac via Homebrew
-brew install bruno
+brew install --cask bruno
 
 # Auf Windows via Chocolatey
 choco install bruno
