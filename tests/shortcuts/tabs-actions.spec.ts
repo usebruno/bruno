@@ -32,7 +32,10 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await reqTab.click();
         await expect(reqTab).toHaveClass(/active/, { timeout: 2000 });
 
-        await page.keyboard.press(`${modifier}+KeyW`);
+        await page.keyboard.down(modifier);
+        await page.keyboard.down('KeyW');
+        await page.keyboard.up('KeyW');
+        await page.keyboard.up(modifier);
         await expect(reqTab).not.toBeVisible({ timeout: 3000 });
       });
 
@@ -519,11 +522,21 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await expect(page.locator('.request-tab').filter({ has: page.getByText('req-6', { exact: true }) })).toBeVisible({ timeout: 2000 });
 
         // req-6 is active (last opened) - press previous → req-5
-        await page.keyboard.press(`${modifier}+Shift+BracketLeft`);
+        await page.keyboard.down(modifier);
+        await page.keyboard.down('Shift');
+        await page.keyboard.down('BracketLeft');
+        await page.keyboard.up('BracketLeft');
+        await page.keyboard.up('Shift');
+        await page.keyboard.up(modifier);
         await expect(page.locator('li.request-tab.active')).toHaveText(/req-5/, { timeout: 3000 });
 
         // Press again → req-4
-        await page.keyboard.press(`${modifier}+Shift+BracketLeft`);
+        await page.keyboard.down(modifier);
+        await page.keyboard.down('Shift');
+        await page.keyboard.down('BracketLeft');
+        await page.keyboard.up('BracketLeft');
+        await page.keyboard.up('Shift');
+        await page.keyboard.up(modifier);
         await expect(page.locator('li.request-tab.active')).toHaveText(/req-4/, { timeout: 3000 });
       });
 
@@ -570,11 +583,21 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await expect(page.locator('li.request-tab.active')).toHaveText(/req-4/);
 
         // req-4 is active - press next → req-5
-        await page.keyboard.press(`${modifier}+Shift+BracketRight`);
+        await page.keyboard.down(modifier);
+        await page.keyboard.down('Shift');
+        await page.keyboard.down('BracketRight');
+        await page.keyboard.up('BracketRight');
+        await page.keyboard.up('Shift');
+        await page.keyboard.up(modifier);
         await expect(page.locator('li.request-tab.active')).toHaveText(/req-5/, { timeout: 3000 });
 
         // Press again → req-6
-        await page.keyboard.press(`${modifier}+Shift+BracketRight`);
+        await page.keyboard.down(modifier);
+        await page.keyboard.down('Shift');
+        await page.keyboard.down('BracketRight');
+        await page.keyboard.up('BracketRight');
+        await page.keyboard.up('Shift');
+        await page.keyboard.up(modifier);
         await expect(page.locator('li.request-tab.active')).toHaveText(/req-6/, { timeout: 3000 });
       });
 
@@ -624,12 +647,18 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await expect(tabs.nth(totalTabs - 1)).toHaveText(/req-9/);
 
         // Press Cmd/Ctrl+[ → req-9 moves left, req-8 becomes last
-        await page.keyboard.press(`${modifier}+BracketLeft`);
+        await page.keyboard.down(modifier);
+        await page.keyboard.down('BracketLeft');
+        await page.keyboard.up('BracketLeft');
+        await page.keyboard.up(modifier);
         await expect(tabs.nth(totalTabs - 1)).toHaveText(/req-8/, { timeout: 3000 });
         await expect(tabs.nth(totalTabs - 2)).toHaveText(/req-9/);
 
         // Press again → req-9 moves one more position left
-        await page.keyboard.press(`${modifier}+BracketLeft`);
+        await page.keyboard.down(modifier);
+        await page.keyboard.down('BracketLeft');
+        await page.keyboard.up('BracketLeft');
+        await page.keyboard.up(modifier);
         await expect(tabs.nth(totalTabs - 3)).toHaveText(/req-9/, { timeout: 3000 });
       });
 
@@ -684,22 +713,40 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await openRequest(page, collectionName, 'req-9', { persist: true });
 
         // Move req-9 to first position first
-        await page.keyboard.press(`${modifier}+BracketLeft`);
-        await page.keyboard.press(`${modifier}+BracketLeft`);
-        await page.keyboard.press(`${modifier}+BracketLeft`);
+        await page.keyboard.down(modifier);
+        await page.keyboard.down('BracketLeft');
+        await page.keyboard.up('BracketLeft');
+        await page.keyboard.up(modifier);
+        await page.keyboard.down(modifier);
+        await page.keyboard.down('BracketLeft');
+        await page.keyboard.up('BracketLeft');
+        await page.keyboard.up(modifier);
+        await page.keyboard.down(modifier);
+        await page.keyboard.down('BracketLeft');
+        await page.keyboard.up('BracketLeft');
+        await page.keyboard.up(modifier);
         await expect(page.locator('li.request-tab.active')).toHaveText(/req-9/);
         const startIndex = await getTabIndex(page, 'req-9');
         expect(startIndex).toBeGreaterThanOrEqual(0);
 
-        await page.keyboard.press(`${modifier}+BracketRight`);
+        await page.keyboard.down(modifier);
+        await page.keyboard.down('BracketRight');
+        await page.keyboard.up('BracketRight');
+        await page.keyboard.up(modifier);
         const indexAfterOneMove = await getTabIndex(page, 'req-9');
         expect(indexAfterOneMove).toBeGreaterThanOrEqual(startIndex);
 
-        await page.keyboard.press(`${modifier}+BracketRight`);
+        await page.keyboard.down(modifier);
+        await page.keyboard.down('BracketRight');
+        await page.keyboard.up('BracketRight');
+        await page.keyboard.up(modifier);
         const indexAfterTwoMoves = await getTabIndex(page, 'req-9');
         expect(indexAfterTwoMoves).toBeGreaterThanOrEqual(indexAfterOneMove);
 
-        await page.keyboard.press(`${modifier}+BracketRight`);
+        await page.keyboard.down(modifier);
+        await page.keyboard.down('BracketRight');
+        await page.keyboard.up('BracketRight');
+        await page.keyboard.up(modifier);
         const indexAfterThreeMoves = await getTabIndex(page, 'req-9');
         expect(indexAfterThreeMoves).toBeGreaterThanOrEqual(indexAfterTwoMoves);
       });
@@ -784,21 +831,45 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         const tabs = page.locator('.request-tab');
 
         await expect(tabs.nth(0)).toHaveText(/req-1/, { timeout: 2000 });
-        await page.keyboard.press(`${modifier}+1`);
+        await page.keyboard.down(modifier);
+        await page.keyboard.down('1');
+        await page.keyboard.up('1');
+        await page.keyboard.up(modifier);
         await expect(page.locator('li.request-tab.active')).toHaveText(/req-1/, { timeout: 3000 });
-        await page.keyboard.press(`${modifier}+2`);
+        await page.keyboard.down(modifier);
+        await page.keyboard.down('2');
+        await page.keyboard.up('2');
+        await page.keyboard.up(modifier);
         await expect(page.locator('li.request-tab.active')).toHaveText(/req-2/, { timeout: 3000 });
-        await page.keyboard.press(`${modifier}+3`);
+        await page.keyboard.down(modifier);
+        await page.keyboard.down('3');
+        await page.keyboard.up('3');
+        await page.keyboard.up(modifier);
         await expect(page.locator('li.request-tab.active')).toHaveText(/req-3/, { timeout: 3000 });
-        await page.keyboard.press(`${modifier}+4`);
+        await page.keyboard.down(modifier);
+        await page.keyboard.down('4');
+        await page.keyboard.up('4');
+        await page.keyboard.up(modifier);
         await expect(page.locator('li.request-tab.active')).toHaveText(/req-4/, { timeout: 3000 });
-        await page.keyboard.press(`${modifier}+5`);
+        await page.keyboard.down(modifier);
+        await page.keyboard.down('5');
+        await page.keyboard.up('5');
+        await page.keyboard.up(modifier);
         await expect(page.locator('li.request-tab.active')).toHaveText(/req-5/, { timeout: 3000 });
-        await page.keyboard.press(`${modifier}+6`);
+        await page.keyboard.down(modifier);
+        await page.keyboard.down('6');
+        await page.keyboard.up('6');
+        await page.keyboard.up(modifier);
         await expect(page.locator('li.request-tab.active')).toHaveText(/req-6/, { timeout: 3000 });
-        await page.keyboard.press(`${modifier}+7`);
+        await page.keyboard.down(modifier);
+        await page.keyboard.down('7');
+        await page.keyboard.up('7');
+        await page.keyboard.up(modifier);
         await expect(page.locator('li.request-tab.active')).toHaveText(/req-7/, { timeout: 3000 });
-        await page.keyboard.press(`${modifier}+8`);
+        await page.keyboard.down(modifier);
+        await page.keyboard.down('8');
+        await page.keyboard.up('8');
+        await page.keyboard.up(modifier);
         await expect(page.locator('li.request-tab.active')).toHaveText(/req-8/, { timeout: 3000 });
       });
     });
@@ -812,7 +883,9 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await expect(req1Tab).toHaveClass(/active/);
         await closeTabByName(page, 'req-1');
 
-        await reopenClosedTab(page, async () => page.keyboard.press(`${modifier}+Shift+t`), 'req-1');
+        await reopenClosedTab(page, async () => {
+          await page.keyboard.down(modifier); await page.keyboard.down('Shift'); await page.keyboard.down('t'); await page.keyboard.up('t'); await page.keyboard.up('Shift'); await page.keyboard.up(modifier);
+        }, 'req-1');
       });
 
       test('Reopen Last Closed Tab customized (Cmd/Ctrl+Shift+T)', async ({ pageWithUserData: page }) => {
@@ -841,15 +914,26 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await closeTabByName(page, 'Runner');
 
         // Reopen LIFO: Runner was closed last → reopens first
-        await reopenClosedTab(page, async () => page.keyboard.press(`${modifier}+Shift+t`), 'Runner');
-        await reopenClosedTab(page, async () => page.keyboard.press(`${modifier}+Shift+t`), /variables/i);
-        await reopenClosedTab(page, async () => page.keyboard.press(`${modifier}+Shift+t`), 'Collection');
-        await reopenClosedTab(page, async () => page.keyboard.press(`${modifier}+Shift+t`), 'kb-folder');
+        await reopenClosedTab(page, async () => {
+          await page.keyboard.down(modifier); await page.keyboard.down('Shift'); await page.keyboard.down('t'); await page.keyboard.up('t'); await page.keyboard.up('Shift'); await page.keyboard.up(modifier);
+        }, 'Runner');
+        await reopenClosedTab(page, async () => {
+          await page.keyboard.down(modifier); await page.keyboard.down('Shift'); await page.keyboard.down('t'); await page.keyboard.up('t'); await page.keyboard.up('Shift'); await page.keyboard.up(modifier);
+        }, /variables/i);
+        await reopenClosedTab(page, async () => {
+          await page.keyboard.down(modifier); await page.keyboard.down('Shift'); await page.keyboard.down('t'); await page.keyboard.up('t'); await page.keyboard.up('Shift'); await page.keyboard.up(modifier);
+        }, 'Collection');
+        await reopenClosedTab(page, async () => {
+          await page.keyboard.down(modifier); await page.keyboard.down('Shift'); await page.keyboard.down('t'); await page.keyboard.up('t'); await page.keyboard.up('Shift'); await page.keyboard.up(modifier);
+        }, 'kb-folder');
       });
 
       test('Reopen Last Closed Tab customized (Alt+Z)', async ({ pageWithUserData: page }) => {
         await remapKeybinding(page, 'reopenLastClosedTab', async () => {
-          await page.keyboard.press('Alt+z');
+          await page.keyboard.down('Alt');
+          await page.keyboard.down('z');
+          await page.keyboard.up('z');
+          await page.keyboard.up('Alt');
         });
 
         await openRequest(page, collectionName, 'req-2', { persist: true });
@@ -860,7 +944,10 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await closeTabByName(page, 'req-1');
 
         await reopenClosedTab(page, async () => {
-          await page.keyboard.press('Alt+z');
+          await page.keyboard.down('Alt');
+          await page.keyboard.down('z');
+          await page.keyboard.up('z');
+          await page.keyboard.up('Alt');
         }, 'req-1');
       });
     });

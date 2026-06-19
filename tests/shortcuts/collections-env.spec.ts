@@ -26,7 +26,10 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await page.keyboard.up('KeyY');
         await page.keyboard.up('Alt');
 
-        await page.keyboard.press(`${modifier}+KeyO`);
+        await page.keyboard.down(modifier);
+        await page.keyboard.down('KeyO');
+        await page.keyboard.up('KeyO');
+        await page.keyboard.up(modifier);
 
         await expect(page.getByTestId('import-collection-modal')).toBeVisible({ timeout: 3000 });
 
@@ -36,7 +39,10 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
       });
 
       test('customized Alt+O open import collection modal', async ({ pageWithUserData: page }) => {
-        await page.keyboard.press(`${modifier}+KeyW`);
+        await page.keyboard.down(modifier);
+        await page.keyboard.down('KeyW');
+        await page.keyboard.up('KeyW');
+        await page.keyboard.up(modifier);
 
         // Remap importCollection to Alt+O
         await openKeybindingsTab(page);
@@ -52,7 +58,10 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await page.keyboard.up('KeyO');
         await page.keyboard.up('Alt');
 
-        await page.keyboard.press(`${modifier}+KeyW`);
+        await page.keyboard.down(modifier);
+        await page.keyboard.down('KeyW');
+        await page.keyboard.up('KeyW');
+        await page.keyboard.up(modifier);
 
         // Trigger the remapped shortcut
         await page.keyboard.down('Alt');
@@ -150,7 +159,10 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         // Focus the collection so the keybinding is active
         await page.getByTestId('sidebar-collection-row').filter({ has: page.getByText(collectionName, { exact: true }) }).click();
 
-        await page.keyboard.press(`${modifier}+KeyN`);
+        await page.keyboard.down(modifier);
+        await page.keyboard.down('KeyN');
+        await page.keyboard.up('KeyN');
+        await page.keyboard.up(modifier);
 
         await page.getByTestId('request-name').fill('nr-collection-cenv');
         await page.getByTestId('new-request-url').locator('.CodeMirror').click();
@@ -164,7 +176,10 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         // Focus the folder so the keybinding is active
         await page.locator('.collection-item-name').filter({ has: page.getByText('kb-folder', { exact: true }) }).click();
 
-        await page.keyboard.press(`${modifier}+KeyN`);
+        await page.keyboard.down(modifier);
+        await page.keyboard.down('KeyN');
+        await page.keyboard.up('KeyN');
+        await page.keyboard.up(modifier);
 
         await page.getByTestId('request-name').fill('nr-folder-cenv');
         await page.getByTestId('new-request-url').locator('.CodeMirror').click();

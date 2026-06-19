@@ -23,7 +23,10 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
   test.describe('SIDEBAR', () => {
     test.describe('SHORTCUT: Sidebar search (Cmd/Ctrl+F)', () => {
       test('Sidebar search default (Cmd/Ctrl+F)', async ({ pageWithUserData: page }) => {
-        await page.keyboard.press(`${modifier}+KeyF`);
+        await page.keyboard.down(modifier);
+        await page.keyboard.down('KeyF');
+        await page.keyboard.up('KeyF');
+        await page.keyboard.up(modifier);
 
         // await expect(page.getByPlaceholder('Search requests...')).toBeVisible({ timeout: 3000 });
         await expect(page.getByTestId('sidebar-search-input')).toBeVisible({ timeout: 3000 });
@@ -59,7 +62,10 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
       test('New request default (Cmd/Ctrl+N)', async ({ pageWithUserData: page, createTmpDir }) => {
         await page.locator('.collection-item-name').filter({ has: page.getByText('kb-folder', { exact: true }) }).click();
 
-        await page.keyboard.press(`${modifier}+KeyN`);
+        await page.keyboard.down(modifier);
+        await page.keyboard.down('KeyN');
+        await page.keyboard.up('KeyN');
+        await page.keyboard.up(modifier);
 
         await page.getByTestId('request-name').fill('nr-folder');
         await page.getByTestId('new-request-url').locator('.CodeMirror').click();
@@ -105,7 +111,10 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         test('default Cmd/Ctrl+R open rename item modal for request', async ({ pageWithUserData: page, createTmpDir }) => {
           await page.getByTestId('sidebar-collection-row').filter({ has: page.getByText('kb-collection', { exact: true }) }).dblclick();
           await openRequest(page, 'kb-collection', 'req-1', { persist: true });
-          await page.keyboard.press(`${modifier}+KeyR`);
+          await page.keyboard.down(modifier);
+          await page.keyboard.down('KeyR');
+          await page.keyboard.up('KeyR');
+          await page.keyboard.up(modifier);
 
           // Verify rename modal opens
           const renameModal = page.locator('.bruno-modal-card').filter({ hasText: /rename request/i });
@@ -126,7 +135,10 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
       test.describe('SHORTCUT: Rename Item for folder (Cmd/Ctrl+R)', () => {
         test('default Cmd/Ctrl+R open rename item modal for folder', async ({ pageWithUserData: page, createTmpDir }) => {
           await page.locator('.collection-item-name').filter({ has: page.getByText('kb-folder', { exact: true }) }).dblclick();
-          await page.keyboard.press(`${modifier}+KeyR`);
+          await page.keyboard.down(modifier);
+          await page.keyboard.down('KeyR');
+          await page.keyboard.up('KeyR');
+          await page.keyboard.up(modifier);
 
           // Verify rename modal opens
           const renameModal = page.locator('.bruno-modal-card').filter({ hasText: /rename folder/i });
@@ -147,7 +159,10 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
       test.describe('SHORTCUT: Rename Item for collection (Cmd/Ctrl+R)', () => {
         test('default Cmd/Ctrl+R open rename item modal for collection', async ({ pageWithUserData: page, createTmpDir }) => {
           await page.getByTestId('sidebar-collection-row').filter({ has: page.getByText('kb-collection', { exact: true }) }).click();
-          await page.keyboard.press(`${modifier}+KeyR`);
+          await page.keyboard.down(modifier);
+          await page.keyboard.down('KeyR');
+          await page.keyboard.up('KeyR');
+          await page.keyboard.up(modifier);
 
           // Verify rename modal opens
           const renameModal = page.locator('.bruno-modal-card').filter({ hasText: /rename collection/i });
@@ -206,7 +221,10 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
       test.describe('SHORTCUT: Rename Item for folder (customized Alt+X)', () => {
         test('customized Alt+R open rename item modal for folder', async ({ pageWithUserData: page, createTmpDir }) => {
           await remapKeybinding(page, 'renameItem', async () => {
-            await page.keyboard.press('Alt+KeyX');
+            await page.keyboard.down('Alt');
+            await page.keyboard.down('KeyX');
+            await page.keyboard.up('KeyX');
+            await page.keyboard.up('Alt');
           });
 
           await createFolder(page, 'kb-folder-rename-src', collectionName, true);
@@ -235,7 +253,10 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
       test.describe('SHORTCUT: Rename Item for collection (customized Alt+X)', () => {
         test('customized Alt+R open rename item modal for collection', async ({ pageWithUserData: page, createTmpDir }) => {
           await remapKeybinding(page, 'renameItem', async () => {
-            await page.keyboard.press('Alt+KeyX');
+            await page.keyboard.down('Alt');
+            await page.keyboard.down('KeyX');
+            await page.keyboard.up('KeyX');
+            await page.keyboard.up('Alt');
           });
 
           await page.getByTestId('sidebar-collection-row').filter({ has: page.getByText(collectionName, { exact: true }) }).click();
@@ -265,7 +286,10 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
       test.describe('SHORTCUT: Clone Item for request (Cmd/Ctrl+D)', () => {
         test('default Cmd/Ctrl+D open clone item modal for request', async ({ pageWithUserData: page, createTmpDir }) => {
           await openRequest(page, 'kb-collection', 'req-1', { persist: true });
-          await page.keyboard.press(`${modifier}+KeyD`);
+          await page.keyboard.down(modifier);
+          await page.keyboard.down('KeyD');
+          await page.keyboard.up('KeyD');
+          await page.keyboard.up(modifier);
 
           // Verify clone modal opens
           const cloneModal = page.locator('.bruno-modal-card').filter({ hasText: /clone request/i });
@@ -286,7 +310,10 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
       test.describe('SHORTCUT: Clone Item for folder (Cmd/Ctrl+D)', () => {
         test('default Cmd/Ctrl+D open clone item modal for folder', async ({ pageWithUserData: page, createTmpDir }) => {
           await page.locator('.collection-item-name').filter({ has: page.getByText('kb-folder', { exact: true }) }).dblclick();
-          await page.keyboard.press(`${modifier}+KeyD`);
+          await page.keyboard.down(modifier);
+          await page.keyboard.down('KeyD');
+          await page.keyboard.up('KeyD');
+          await page.keyboard.up(modifier);
 
           // Verify clone modal opens
           const cloneModal = page.locator('.bruno-modal-card').filter({ hasText: /clone folder/i });
@@ -374,8 +401,14 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
       test.describe('SHORTCUT: Copy Paste Item for request (Cmd/Ctrl+C/V)', () => {
         test('default Cmd/Ctrl+C/V copy paste item for request', async ({ pageWithUserData: page, createTmpDir }) => {
           await openRequest(page, 'kb-collection', 'req-3', { persist: true });
-          await page.keyboard.press(`${modifier}+KeyC`);
-          await page.keyboard.press(`${modifier}+KeyV`);
+          await page.keyboard.down(modifier);
+          await page.keyboard.down('KeyC');
+          await page.keyboard.up('KeyC');
+          await page.keyboard.up(modifier);
+          await page.keyboard.down(modifier);
+          await page.keyboard.down('KeyV');
+          await page.keyboard.up('KeyV');
+          await page.keyboard.up(modifier);
 
           // Verify cloned request appears in sidebar
           await expect(page.locator('.collection-item-name').filter({ has: page.getByText('req-3 (1)', { exact: true }) })).toBeVisible({ timeout: 2000 });
@@ -385,8 +418,14 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
       test.describe('SHORTCUT: Copy Paste Item for folder (Cmd/Ctrl+C/V)', () => {
         test('default Cmd/Ctrl+C/V copy paste item for folder', async ({ pageWithUserData: page }) => {
           await openRequest(page, collectionName, 'kb-folder', { persist: true });
-          await page.keyboard.press(`${modifier}+KeyC`);
-          await page.keyboard.press(`${modifier}+KeyV`);
+          await page.keyboard.down(modifier);
+          await page.keyboard.down('KeyC');
+          await page.keyboard.up('KeyC');
+          await page.keyboard.up(modifier);
+          await page.keyboard.down(modifier);
+          await page.keyboard.down('KeyV');
+          await page.keyboard.up('KeyV');
+          await page.keyboard.up(modifier);
 
           // Verify copied item appears in sidebar as child of folder
           await expect(page.locator('.collection-item-name').filter({ has: page.getByText('kb-folder', { exact: true }) })).toHaveCount(2);
@@ -442,10 +481,16 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
       test.describe('SHORTCUT: Copy Paste Item for folder (Cmd/Ctrl+C/V)', () => {
         test('customized Alt+C/V copy paste item for folder', async ({ pageWithUserData: page, createTmpDir }) => {
           await remapKeybinding(page, 'copyItem', async () => {
-            await page.keyboard.press('Alt+KeyC');
+            await page.keyboard.down('Alt');
+            await page.keyboard.down('KeyC');
+            await page.keyboard.up('KeyC');
+            await page.keyboard.up('Alt');
           });
           await remapKeybinding(page, 'pasteItem', async () => {
-            await page.keyboard.press('Alt+KeyV');
+            await page.keyboard.down('Alt');
+            await page.keyboard.down('KeyV');
+            await page.keyboard.up('KeyV');
+            await page.keyboard.up('Alt');
           });
 
           await createFolder(page, 'kb-folder-copy-src', collectionName, true);
@@ -472,7 +517,10 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await page.locator('body').click({ position: { x: 1, y: 1 } });
 
         // Press Cmd/Ctrl+\ to collapse sidebar
-        await page.keyboard.press(`${modifier}+Backslash`);
+        await page.keyboard.down(modifier);
+        await page.keyboard.down('Backslash');
+        await page.keyboard.up('Backslash');
+        await page.keyboard.up(modifier);
 
         // Verify sidebar collapsed to 0px
         await expect.poll(
@@ -481,7 +529,10 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         ).toBe('0px');
 
         // Press Cmd/Ctrl+\ to expand sidebar
-        await page.keyboard.press(`${modifier}+Backslash`);
+        await page.keyboard.down(modifier);
+        await page.keyboard.down('Backslash');
+        await page.keyboard.up('Backslash');
+        await page.keyboard.up(modifier);
 
         // Verify sidebar expanded to 250px
         await expect.poll(

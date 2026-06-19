@@ -24,7 +24,10 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await expect(page.locator('.request-tab').filter({ has: page.getByText('Collection', { exact: true }) })).toBeVisible({ timeout: 2000 });
 
         // Press Cmd/Ctrl+T to open terminal at workspace level
-        await page.keyboard.press(`${modifier}+KeyT`);
+        await page.keyboard.down(modifier);
+        await page.keyboard.down('KeyT');
+        await page.keyboard.up('KeyT');
+        await page.keyboard.up(modifier);
 
         // Verify terminal session is visible using data-testid
         const collectionTerminalSession = page.getByTestId('session-list-0');
@@ -39,7 +42,10 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await page.locator('.collection-item-name').filter({ has: page.getByText('kb-terminal-folder', { exact: true }) }).dblclick();
         await expect(page.locator('.request-tab').filter({ has: page.getByText('kb-terminal-folder', { exact: true }) })).toBeVisible({ timeout: 2000 });
 
-        await page.keyboard.press(`${modifier}+KeyT`);
+        await page.keyboard.down(modifier);
+        await page.keyboard.down('KeyT');
+        await page.keyboard.up('KeyT');
+        await page.keyboard.up(modifier);
         const folderTerminalSession = page.getByTestId('session-list-1');
         await expect(folderTerminalSession).toBeVisible({ timeout: 2000 });
 

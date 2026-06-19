@@ -125,7 +125,8 @@ export const remapKeybinding = async (
 
   await expect(keybindingInput).toBeVisible({ timeout: 5000 });
 
-  await page.keyboard.press('Backspace');
+  await page.keyboard.down('Backspace');
+  await page.keyboard.up('Backspace');
   await pressShortcut();
 };
 

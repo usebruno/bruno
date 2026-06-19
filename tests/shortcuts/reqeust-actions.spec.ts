@@ -39,7 +39,10 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await expect(page.getByTestId('request-body-editor')).toContainText('"name": "Bruno"', { timeout: 5000 });
 
         // Cursor is still in the body CodeMirror - press Cmd/Ctrl+Enter to send
-        await page.keyboard.press(`${modifier}+Enter`);
+        await page.keyboard.down(modifier);
+        await page.keyboard.down('Enter');
+        await page.keyboard.up('Enter');
+        await page.keyboard.up(modifier);
 
         // Verify a 200 response came back
         await expect(page.getByTestId('response-status-code')).toContainText('200', { timeout: 15000 });
@@ -62,7 +65,10 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await expect(page.getByTestId('request-body-editor')).toContainText('"name": "Bruno"', { timeout: 5000 });
 
         // First send to populate response
-        await page.keyboard.press(`${modifier}+Enter`);
+        await page.keyboard.down(modifier);
+        await page.keyboard.down('Enter');
+        await page.keyboard.up('Enter');
+        await page.keyboard.up(modifier);
         await expect(page.getByTestId('response-status-code')).toContainText('200', { timeout: 15000 });
 
         // Focus cursor inside the response body CodeMirror
@@ -71,7 +77,10 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await responseEditor.click();
 
         // Press Cmd/Ctrl+Enter again - should re-send the request
-        await page.keyboard.press(`${modifier}+Enter`);
+        await page.keyboard.down(modifier);
+        await page.keyboard.down('Enter');
+        await page.keyboard.up('Enter');
+        await page.keyboard.up(modifier);
 
         // Verify a 200 response came back (no error, status stays/refreshes to 200)
         await expect(page.getByTestId('response-status-code')).toContainText('200', { timeout: 15000 });
@@ -103,7 +112,10 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
 
         // Cursor is still in the value CodeMirror - press Cmd/Ctrl+Enter to send
         // (should NOT insert a newline; should fire sendRequest)
-        await page.keyboard.press(`${modifier}+Enter`);
+        await page.keyboard.down(modifier);
+        await page.keyboard.down('Enter');
+        await page.keyboard.up('Enter');
+        await page.keyboard.up(modifier);
 
         // Verify a 200 response came back
         await expect(page.getByTestId('response-status-code')).toContainText('200', { timeout: 15000 });
@@ -144,7 +156,10 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await expect(page.getByTestId('request-body-editor')).toContainText('"name": "Bruno"', { timeout: 5000 });
 
         // Cursor is still in the body CodeMirror - press Shift+Enter (customized) to send
-        await page.keyboard.press('Shift+Enter');
+        await page.keyboard.down('Shift');
+        await page.keyboard.down('Enter');
+        await page.keyboard.up('Enter');
+        await page.keyboard.up('Shift');
 
         await expect(page.getByTestId('response-status-code')).toContainText('200', { timeout: 15000 });
 
@@ -184,7 +199,10 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await expect(page.getByTestId('request-body-editor')).toContainText('"name": "Bruno"', { timeout: 5000 });
 
         // First send with Shift+Enter to populate response
-        await page.keyboard.press('Shift+Enter');
+        await page.keyboard.down('Shift');
+        await page.keyboard.down('Enter');
+        await page.keyboard.up('Enter');
+        await page.keyboard.up('Shift');
         await expect(page.getByTestId('response-status-code')).toContainText('200', { timeout: 15000 });
 
         // Focus cursor inside the response body CodeMirror
@@ -193,7 +211,10 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await responseEditor.click();
 
         // Press Shift+Enter again - should re-send the request
-        await page.keyboard.press('Shift+Enter');
+        await page.keyboard.down('Shift');
+        await page.keyboard.down('Enter');
+        await page.keyboard.up('Enter');
+        await page.keyboard.up('Shift');
 
         await expect(page.getByTestId('response-status-code')).toContainText('200', { timeout: 15000 });
 
@@ -238,7 +259,10 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await page.keyboard.type('val-2');
 
         // Cursor is still in the value CodeMirror - press Shift+Enter (customized) to send
-        await page.keyboard.press('Shift+Enter');
+        await page.keyboard.down('Shift');
+        await page.keyboard.down('Enter');
+        await page.keyboard.up('Enter');
+        await page.keyboard.up('Shift');
 
         await expect(page.getByTestId('response-status-code')).toContainText('200', { timeout: 15000 });
 
@@ -253,21 +277,30 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await openRequest(page, 'kb-collection', 'req-5', { persist: true });
 
         // Press Cmd/Ctrl+J to change layout
-        await page.keyboard.press(`${modifier}+KeyJ`);
+        await page.keyboard.down(modifier);
+        await page.keyboard.down('KeyJ');
+        await page.keyboard.up('KeyJ');
+        await page.keyboard.up(modifier);
 
         await expect(
           page.getByTestId('response-layout-toggle-btn')
         ).toHaveAttribute('title', 'Switch to horizontal layout', { timeout: 2000 });
 
         // Press Cmd/Ctrl+J to change layout
-        await page.keyboard.press(`${modifier}+KeyJ`);
+        await page.keyboard.down(modifier);
+        await page.keyboard.down('KeyJ');
+        await page.keyboard.up('KeyJ');
+        await page.keyboard.up(modifier);
 
         await expect(
           page.getByTestId('response-layout-toggle-btn')
         ).toHaveAttribute('title', 'Switch to vertical layout', { timeout: 2000 });
 
         // Press Cmd/Ctrl+J to change layout
-        await page.keyboard.press(`${modifier}+KeyJ`);
+        await page.keyboard.down(modifier);
+        await page.keyboard.down('KeyJ');
+        await page.keyboard.up('KeyJ');
+        await page.keyboard.up(modifier);
 
         await expect(
           page.getByTestId('response-layout-toggle-btn')
