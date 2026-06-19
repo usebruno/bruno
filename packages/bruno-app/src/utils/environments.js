@@ -1,20 +1,54 @@
 import { uuid } from './common/index';
 
+/**
+ * Whitelist of allowed environment variable properties based on schema.
+ * Any properties not in this list will be stripped before validation/save.
+ * Values are converted to strings to ensure compatibility with the file format.
+ */
+const sanitizeEnvVariable = (v) => {
+  if (!v) return v;
+  const { uid, name, value, type, enabled, secret } = v;
+
+  // Convert non-string values to strings for file persistence
+  // (scripts can set numbers, booleans, objects, etc. but the file format expects strings)
+  // Also convert null/undefined to empty strings to match expected defaults
+  let stringValue = '';
+  if (value !== null && value !== undefined) {
+    stringValue = typeof value === 'string' ? value : (typeof value === 'object' ? JSON.stringify(value) : String(value));
+  }
+
+  return {
+    uid,
+    name,
+    value: stringValue,
+    type,
+    enabled,
+    secret
+  };
+};
+
 const isPersistableEnvVarForMerge = (persistedNames) => (v) => {
   return !v?.ephemeral || v?.persistedValue !== undefined || (v?.name && persistedNames.has(v.name));
 };
 
 const toPersistedEnvVarForMerge = (persistedNames) => (v) => {
-  const { ephemeral, persistedValue, ...rest } = v || {};
-  if (v?.ephemeral && persistedValue !== undefined && !(v?.name && persistedNames.has(v.name))) {
-    return { ...rest, value: persistedValue };
-  }
-  return rest;
+  if (!v) return v;
+  // Determine the value to use
+  const valueToUse
+    = v?.ephemeral && v?.persistedValue !== undefined && !(v?.name && persistedNames.has(v.name))
+      ? v.persistedValue
+      : v.value;
+  // Return only whitelisted properties
+  return sanitizeEnvVariable({ ...v, value: valueToUse });
 };
 
 const toPersistedEnvVarForSave = (v) => {
-  const { ephemeral, persistedValue, ...rest } = v || {};
-  return v?.ephemeral ? (persistedValue !== undefined ? { ...rest, value: persistedValue } : rest) : rest;
+  if (!v) return v;
+
+  const valueToUse = v.value;
+
+  // Return only whitelisted properties with string conversion
+  return sanitizeEnvVariable({ ...v, value: valueToUse });
 };
 
 /*
