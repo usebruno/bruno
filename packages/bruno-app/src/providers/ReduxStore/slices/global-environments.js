@@ -12,6 +12,8 @@ const initialState = {
   _scriptGlobalEnvBaseline: null
 };
 
+// Properties prefixed with `_` (e.g. `_scriptGlobalEnvBaseline`) are transient runtime state —
+// never persisted to disk or included in exports.
 export const globalEnvironmentsSlice = createSlice({
   name: 'global-environments',
   initialState,

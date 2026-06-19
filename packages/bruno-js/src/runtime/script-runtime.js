@@ -90,7 +90,7 @@ class ScriptRuntime {
     const buildRequestScriptResult = () => ({
       request,
       envVariables: bru._envDirty ? cleanJson(envVariables) : null,
-      runtimeVariables: cleanJson(runtimeVariables),
+      runtimeVariables: bru._runtimeVarsDirty ? cleanJson(runtimeVariables) : null,
       collectionVariables: bru._collVarsDirty ? cleanJson(collectionVariables) : null,
       globalEnvironmentVariables: bru._globalEnvDirty ? cleanJson(globalEnvironmentVariables) : null,
       oauth2CredentialsToReset: bru.oauth2CredentialsToReset,
@@ -226,7 +226,7 @@ class ScriptRuntime {
     const buildResponseScriptResult = () => ({
       response,
       envVariables: bru._envDirty ? cleanJson(envVariables) : null,
-      runtimeVariables: cleanJson(runtimeVariables),
+      runtimeVariables: bru._runtimeVarsDirty ? cleanJson(runtimeVariables) : null,
       collectionVariables: bru._collVarsDirty ? cleanJson(collectionVariables) : null,
       globalEnvironmentVariables: bru._globalEnvDirty ? cleanJson(globalEnvironmentVariables) : null,
       oauth2CredentialsToReset: bru.oauth2CredentialsToReset,

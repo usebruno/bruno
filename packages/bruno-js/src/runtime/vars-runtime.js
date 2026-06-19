@@ -87,7 +87,7 @@ class VarsRuntime {
 
     return {
       envVariables: bru._envDirty ? cleanJson(envVariables) : null,
-      runtimeVariables,
+      runtimeVariables: bru._runtimeVarsDirty ? cleanJson(runtimeVariables) : null,
       collectionVariables: bru._collVarsDirty ? cleanJson(collectionVariables) : null,
       globalEnvironmentVariables: bru._globalEnvDirty ? cleanJson(globalEnvironmentVariables) : null,
       error
