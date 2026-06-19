@@ -182,7 +182,7 @@ const EnvironmentDetails = ({ environment, setIsModified, collection, searchQuer
             </>
           ) : (
             <div className="flex items-center gap-2 mr-6">
-              <h2 className="title">{environment.name}</h2>
+              <h2 className="title" data-testid="environment-title">{environment.name}</h2>
               <ColorPicker color={environment.color} onChange={handleColorChange} />
             </div>
           )}
@@ -217,17 +217,17 @@ const EnvironmentDetails = ({ environment, setIsModified, collection, searchQuer
               )}
             </div>
           ) : (
-            <button onClick={handleSearchIconClick} title="Search variables">
+            <button onClick={handleSearchIconClick} title="Search variables" data-testid="environment-action-search">
               <IconSearch size={15} strokeWidth={1.5} />
             </button>
           )}
-          <button onClick={handleRenameClick} title="Rename">
+          <button onClick={handleRenameClick} title="Rename" data-testid="environment-action-rename">
             <IconEdit size={15} strokeWidth={1.5} />
           </button>
-          <button onClick={() => setOpenCopyModal(true)} title="Copy">
+          <button onClick={() => setOpenCopyModal(true)} title="Copy" data-testid="environment-action-copy">
             <IconCopy size={15} strokeWidth={1.5} />
           </button>
-          <button onClick={() => setOpenDeleteModal(true)} title="Delete">
+          <button onClick={() => setOpenDeleteModal(true)} title="Delete" data-testid="environment-action-delete">
             <IconTrash size={15} strokeWidth={1.5} />
           </button>
         </div>
