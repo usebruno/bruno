@@ -49,6 +49,8 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
 
         await pressShortcut(page, 'Alt', 'KeyF');
 
+        await closePreferencesTab(page);
+
         await pressShortcut(page, 'Alt', 'KeyF');
 
         await expect(page.getByTestId('sidebar-search-input')).toBeVisible({ timeout: 2000 });
@@ -194,9 +196,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
 
       test.describe('SHORTCUT: Rename Item for folder (customized Alt+X)', () => {
         test('customized Alt+R open rename item modal for folder', async ({ pageWithUserData: page }) => {
-          await remapKeybinding(page, 'renameItem', async () => {
-            await pressShortcut(page, 'Alt', 'KeyX');
-          });
+          await remapKeybinding(page, 'renameItem', 'Alt', 'KeyX');
 
           await createFolder(page, 'kb-folder-rename-src', collectionName, true);
           await openFolderSettingsTab(page, 'kb-folder-rename-src');
@@ -220,9 +220,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
 
       test.describe('SHORTCUT: Rename Item for collection (customized Alt+X)', () => {
         test('customized Alt+R open rename item modal for collection', async ({ pageWithUserData: page }) => {
-          await remapKeybinding(page, 'renameItem', async () => {
-            await pressShortcut(page, 'Alt', 'KeyX');
-          });
+          await remapKeybinding(page, 'renameItem', 'Alt', 'KeyX');
 
           await page.getByTestId('sidebar-collection-row').filter({ has: page.getByText(collectionName, { exact: true }) }).click();
           await pressShortcut(page, 'Alt', 'KeyX');
@@ -323,9 +321,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
       test.describe('SHORTCUT: Clone Item for folder (customized Alt+D)', () => {
         test('customized Alt+D open clone item modal for folder', async ({ pageWithUserData: page }) => {
           // Remap cloneItem to Alt+D (keybindings are reset after each test, so re-bind here).
-          await remapKeybinding(page, 'cloneItem', async () => {
-            await pressShortcut(page, 'Alt', 'KeyD');
-          });
+          await remapKeybinding(page, 'cloneItem', 'Alt', 'KeyD');
           await closePreferencesTab(page);
 
           await createFolder(page, 'kb-folder-clone-src', collectionName, true);
@@ -409,12 +405,8 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
 
       test.describe('SHORTCUT: Copy Paste Item for folder (Cmd/Ctrl+C/V)', () => {
         test('customized Alt+C/V copy paste item for folder', async ({ pageWithUserData: page }) => {
-          await remapKeybinding(page, 'copyItem', async () => {
-            await pressShortcut(page, 'Alt', 'KeyC');
-          });
-          await remapKeybinding(page, 'pasteItem', async () => {
-            await pressShortcut(page, 'Alt', 'KeyV');
-          });
+          await remapKeybinding(page, 'copyItem', 'Alt', 'KeyC');
+          await remapKeybinding(page, 'pasteItem', 'Alt', 'KeyV');
 
           await createFolder(page, 'kb-folder-copy-src', collectionName, true);
           await openFolderSettingsTab(page, 'kb-folder-copy-src');
@@ -463,6 +455,8 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await page.keyboard.press('Backspace');
 
         await pressShortcut(page, 'Shift', 'KeyG');
+
+        await closePreferencesTab(page);
 
         // Trigger the remapped shortcut to collapse sidebar
         await pressShortcut(page, 'Shift', 'KeyG');

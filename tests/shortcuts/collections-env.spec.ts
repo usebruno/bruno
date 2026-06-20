@@ -1,6 +1,7 @@
 import { expect, test } from '../../playwright';
 import { closeAllCollections } from '../utils/page';
 import {
+  closePreferencesTab,
   collectionName,
   modifier,
   openKeybindingsTab,
@@ -50,7 +51,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
 
         await pressShortcut(page, 'Alt', 'KeyO');
 
-        await pressShortcut(page, modifier, 'KeyW');
+        await closePreferencesTab(page);
 
         // Trigger the remapped shortcut
         await pressShortcut(page, 'Alt', 'KeyO');

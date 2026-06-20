@@ -72,9 +72,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
       // These tests trigger close with the customized Shift+X binding; set it up
       // once for the group. The top-level afterEach resets it after each test.
       test.beforeEach(async ({ pageWithUserData: page }) => {
-        await remapKeybinding(page, 'closeTab', async () => {
-          await pressShortcut(page, 'Shift', 'KeyX');
-        });
+        await remapKeybinding(page, 'closeTab', 'Shift', 'KeyX');
         await closePreferencesTab(page);
       });
 
@@ -747,9 +745,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
       });
 
       test('Reopen Last Closed Tab customized (Alt+Z)', async ({ pageWithUserData: page }) => {
-        await remapKeybinding(page, 'reopenLastClosedTab', async () => {
-          await pressShortcut(page, 'Alt', 'KeyZ');
-        });
+        await remapKeybinding(page, 'reopenLastClosedTab', 'Alt', 'KeyZ');
 
         await openRequest(page, collectionName, 'req-2', { persist: true });
         await openRequest(page, collectionName, 'req-1', { persist: true });

@@ -115,7 +115,7 @@ export const reopenClosedTab = async (page: Page, shortcut: () => Promise<void>,
 export const remapKeybinding = async (
   page: Page,
   action: string,
-  pressShortcut: () => Promise<void>
+  ...keys: string[]
 ) => {
   await openKeybindingsTab(page);
   const row = page.getByTestId(`keybinding-row-${action}`);
@@ -137,7 +137,8 @@ export const remapKeybinding = async (
   await expect(keybindingInput).toBeVisible({ timeout: 5000 });
 
   await page.keyboard.press('Backspace');
-  await pressShortcut();
+  await pressShortcut(page, ...keys);
+  await closePreferencesTab(page);
 };
 
 export const getTabIndex = async (page: Page, name: string) => {
