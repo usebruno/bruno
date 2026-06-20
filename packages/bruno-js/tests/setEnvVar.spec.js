@@ -1,4 +1,5 @@
 const Bru = require('../src/bru');
+const { valueToString } = require('@usebruno/common/utils');
 
 describe('Bru.setEnvVar', () => {
   const makeBru = () =>
@@ -32,11 +33,56 @@ describe('Bru.setEnvVar', () => {
     expect(bru.persistentEnvVariables.no_options).toBeUndefined();
   });
 
-  test('throws when persist=true but value is not a string', () => {
-    const bru = makeBru();
-    expect(() => bru.setEnvVar('persist_me', 123, { persist: true })).toThrow(
-      /Persistent environment variables must be strings/
-    );
+  describe('persist=true with non-string values', () => {
+    test('stores numbers as-is without throwing', () => {
+      const bru = makeBru();
+      expect(() => bru.setEnvVar('n', 123, { persist: true })).not.toThrow();
+      expect(bru.envVariables.n).toBe(123);
+      expect(bru.persistentEnvVariables.n).toBe(123);
+    });
+
+    test('stores booleans as-is without throwing', () => {
+      const bru = makeBru();
+      expect(() => bru.setEnvVar('b', true, { persist: true })).not.toThrow();
+      expect(bru.persistentEnvVariables.b).toBe(true);
+    });
+
+    test('stores plain objects and arrays by reference without throwing', () => {
+      const bru = makeBru();
+      const obj = { a: 1 };
+      const arr = [1, 2, 3];
+      bru.setEnvVar('o', obj, { persist: true });
+      bru.setEnvVar('a', arr, { persist: true });
+      expect(bru.persistentEnvVariables.o).toBe(obj);
+      expect(bru.persistentEnvVariables.a).toBe(arr);
+    });
+
+    test('stores functions and symbols without throwing — but they round-trip to "" via valueToString', () => {
+      const bru = makeBru();
+      const fn = () => 42;
+      const sym = Symbol('s');
+      bru.setEnvVar('fn', fn, { persist: true });
+      bru.setEnvVar('sym', sym, { persist: true });
+
+      // Raw values land in persistentEnvVariables...
+      expect(bru.persistentEnvVariables.fn).toBe(fn);
+      expect(bru.persistentEnvVariables.sym).toBe(sym);
+      // ...but the serializer used by mergeAndPersistEnvironment produces ''
+      // for both, so the value is silently lost on the next save round-trip.
+      expect(valueToString(fn)).toBe('');
+      expect(valueToString(sym)).toBe('');
+    });
+
+    test('stores circular objects without throwing — but they round-trip to "" via valueToString', () => {
+      const bru = makeBru();
+      const circular = { a: 1 };
+      circular.self = circular;
+      bru.setEnvVar('c', circular, { persist: true });
+
+      expect(bru.persistentEnvVariables.c).toBe(circular);
+      // JSON.stringify throws on circulars; valueToString swallows that and returns ''.
+      expect(valueToString(circular)).toBe('');
+    });
   });
 
   test('changing existing key to non-persistent removes prior persisted entry', () => {

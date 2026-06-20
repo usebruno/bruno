@@ -14,7 +14,6 @@ import { processOpenCollection } from 'utils/importers/opencollection';
 import { wsdlToBruno } from '@usebruno/converters';
 import { toastError } from 'utils/common/error';
 import { addLog } from 'providers/ReduxStore/slices/logs';
-import { useBetaFeature, BETA_FEATURES } from 'utils/beta-features';
 import Portal from 'components/Portal';
 import Modal from 'components/Modal';
 import Help from 'components/Help';
@@ -111,8 +110,7 @@ const ImportCollectionLocation = ({ onClose, handleSubmit, rawData, format, sour
   const [groupingType, setGroupingType] = useState('tags');
   const [collectionFormat, setCollectionFormat] = useState(DEFAULT_COLLECTION_FORMAT);
   const [showFileFormat, setShowFileFormat] = useState(false);
-  const isOpenAPISyncEnabled = useBetaFeature(BETA_FEATURES.OPENAPI_SYNC);
-  const [enableCheckForSpecUpdates, setEnableCheckForSpecUpdates] = useState(isOpenAPISyncEnabled);
+  const [enableCheckForSpecUpdates, setEnableCheckForSpecUpdates] = useState(false);
   const dropdownTippyRef = useRef();
   const optionsDropdownTippyRef = useRef();
   const isOpenApi = format === 'openapi';
@@ -120,7 +118,7 @@ const ImportCollectionLocation = ({ onClose, handleSubmit, rawData, format, sour
   const isOpenApiFromUrl = isOpenApi && !!sourceUrl && !filePath;
   const isOpenApiFromFile = isOpenApi && !!filePath && !sourceUrl;
   const isSwagger2 = isOpenApi && rawData?.swagger && String(rawData.swagger).startsWith('2');
-  const showCheckForSpecUpdatesOption = isOpenAPISyncEnabled && (isOpenApiFromUrl || isOpenApiFromFile);
+  const showCheckForSpecUpdatesOption = isOpenApiFromUrl || isOpenApiFromFile;
 
   const { workspaces, activeWorkspaceUid } = useSelector((state) => state.workspaces);
   const preferences = useSelector((state) => state.app.preferences);
@@ -391,7 +389,6 @@ const ImportCollectionLocation = ({ onClose, handleSubmit, rawData, format, sour
                 </div>
               </div>
             )}
-
             {showCheckForSpecUpdatesOption && (
               <div className={`mt-4 ${isSwagger2 ? 'opacity-50 pointer-events-none' : ''}`}>
                 <label className={`flex items-center gap-2 ${isSwagger2 ? '' : 'cursor-pointer'}`}>

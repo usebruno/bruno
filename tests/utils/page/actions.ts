@@ -1,7 +1,7 @@
-import { test, expect, Page, ElectronApplication, waitForReadyPage as waitForReadyPageImpl } from '../../../playwright';
+import { test, expect, Page, Locator, ElectronApplication, waitForReadyPage as waitForReadyPageImpl } from '../../../playwright';
 import process from 'node:process';
 import * as path from 'path';
-import { buildCommonLocators, buildScriptErrorLocators, buildGrpcCommonLocators } from './locators';
+import { buildCommonLocators, buildScriptErrorLocators, buildGrpcCommonLocators, buildWebsocketCommonLocators } from './locators';
 import { waitForCollectionMount } from './mounting';
 
 type SandboxMode = 'safe' | 'developer';
@@ -1883,7 +1883,8 @@ const openWorkspaceFromDialog = async (app: any, page: any, targetPath: string) 
  */
 const generateCollectionDocs = async (
   page: Page,
-  collectionName: string
+  collectionName: string,
+  beforeGenerate?: () => Promise<void>
 ): Promise<{ content: string; fileName: string }> => {
   return await test.step(`Generate docs for collection "${collectionName}"`, async () => {
     const locators = buildCommonLocators(page);
@@ -1907,6 +1908,12 @@ const generateCollectionDocs = async (
     await expect(modal).toBeVisible({ timeout: 5000 });
     const generateButton = locators.generateDocs.generateButton();
     await expect(generateButton).toBeEnabled({ timeout: 10000 });
+
+    // Let the caller interact with the modal (e.g. toggle environment selection)
+    // after it is ready and before the docs are generated.
+    if (beforeGenerate) {
+      await beforeGenerate();
+    }
 
     // Arm the renderer-side interception before the save fires. `file-saver`
     // (v2) reads the Blob through `URL.createObjectURL` and then triggers the
@@ -1951,8 +1958,67 @@ const generateCollectionDocs = async (
   });
 };
 
+/**
+ * Rename a websocket message by double-clicking its label and typing a new name.
+ * @param page - The page object
+ * @param index - The zero-based index of the message in the list
+ * @param name - The new message name
+ */
+const renameWsMessage = async (page: Page, index: number, name: string) => {
+  await test.step(`Rename websocket message ${index} to "${name}"`, async () => {
+    const ws = buildWebsocketCommonLocators(page);
+    await ws.message.label(index).dblclick();
+    const nameInput = ws.message.nameInput(index);
+    await expect(nameInput).toBeVisible();
+    await nameInput.selectText();
+    await page.keyboard.type(name);
+    await nameInput.press('Enter');
+  });
+};
+
+/**
+ * Scroll a row inside a react-virtuoso table (request/folder/collection vars or
+ * env vars — both rendered with the `table-container` className) into view so it
+ * mounts in the DOM. Virtuoso only keeps rows near the viewport mounted and can
+ * restore a persisted scroll position, so reset to the top first — retried, to
+ * beat that restore — then walk down until `target` mounts.
+ */
+const scrollVirtuosoRowIntoView = async (page: Page, target: Locator) => {
+  if (await target.count()) {
+    await target.scrollIntoViewIfNeeded().catch(() => {});
+    return;
+  }
+
+  const scroll = (toTop: boolean) => page.evaluate((toTop) => {
+    let moved = false;
+    document.querySelectorAll('.table-container').forEach((el) => {
+      const before = el.scrollTop;
+      el.scrollTop = toTop ? 0 : el.scrollTop + el.clientHeight * 0.7 + 80;
+      if (el.scrollTop !== before) moved = true;
+    });
+    return moved;
+  }, toTop);
+
+  for (let i = 0; i < 5; i++) {
+    await scroll(true);
+    await page.waitForTimeout(120);
+    if (await target.count()) {
+      await target.scrollIntoViewIfNeeded().catch(() => {});
+      return;
+    }
+  }
+
+  for (let i = 0; i < 40; i++) {
+    if (await target.count()) break;
+    if (!(await scroll(false))) break;
+    await page.waitForTimeout(120);
+  }
+  await target.scrollIntoViewIfNeeded().catch(() => {});
+};
+
 export {
   waitForReadyPage,
+  scrollVirtuosoRowIntoView,
   dismissImportIssuesToasts,
   closeAllCollections,
   openCollection,
@@ -2027,7 +2093,8 @@ export {
   closeGenerateCodeDialog,
   openRequestInFolder,
   setUrlEncoding,
-  generateCollectionDocs
+  generateCollectionDocs,
+  renameWsMessage
 };
 
 export type { SandboxMode, EnvironmentType, EnvironmentVariable, ImportCollectionOptions, CreateRequestOptions, CreateUntitledRequestOptions, CreateTransientRequestOptions, AssertionInput };

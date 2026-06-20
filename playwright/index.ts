@@ -2,6 +2,7 @@ import { test as baseTest, BrowserContext, ElectronApplication, Page, TestInfo }
 import * as path from 'path';
 import * as os from 'os';
 import * as fs from 'fs';
+import { version } from '../packages/bruno-app/package.json';
 
 const electronAppPath = path.join(__dirname, '../packages/bruno-electron');
 
@@ -148,6 +149,7 @@ export const test = baseTest.extend<
     newPage: Page;
     pageWithUserData: Page;
     collectionFixturePath: string | null;
+    workspaceFixturePath: string | null;
     restartApp: (options?: { initUserDataPath?: string }) => Promise<ElectronApplication>;
   },
   {
@@ -192,6 +194,20 @@ export const test = baseTest.extend<
     }
   },
 
+  workspaceFixturePath: async ({ createTmpDir }, use, testInfo) => {
+    const testDir = path.dirname(testInfo.file);
+    // fixtures/workspace — a workspace.yml + environments/*.yml (+ optional collections/)
+    // Copied to a tmp dir so tests can mutate it without affecting the source.
+    const srcPath = path.join(testDir, 'fixtures', 'workspace');
+    if (fs.existsSync(srcPath)) {
+      const tmpDir = await createTmpDir('workspace');
+      await fs.promises.cp(srcPath, tmpDir, { recursive: true });
+      await use(tmpDir);
+    } else {
+      await use(null);
+    }
+  },
+
   launchElectronApp: [
     async ({ playwright, createTmpDir }, use, workerInfo) => {
       const apps: ElectronApplication[] = [];
@@ -231,7 +247,8 @@ export const test = baseTest.extend<
               preferences: {
                 onboarding: {
                   hasLaunchedBefore: true,
-                  hasSeenWelcomeModal: true
+                  hasSeenWelcomeModal: true,
+                  lastSeenVersion: version
                 }
               }
             };
@@ -340,7 +357,7 @@ export const test = baseTest.extend<
     { scope: 'worker' }
   ],
 
-  restartApp: async ({ reuseOrLaunchElectronApp, createTmpDir, collectionFixturePath }, use, testInfo) => {
+  restartApp: async ({ reuseOrLaunchElectronApp, createTmpDir, collectionFixturePath, workspaceFixturePath }, use, testInfo) => {
     await use(async ({ initUserDataPath } = {}) => {
       const testDir = path.dirname(testInfo.file);
       const defaultInitUserDataPath = path.join(testDir, 'init-user-data');
@@ -361,6 +378,9 @@ export const test = baseTest.extend<
       if (collectionFixturePath) {
         templateVars.collectionPath = collectionFixturePath.split(path.sep).join('/');
       }
+      if (workspaceFixturePath) {
+        templateVars.workspacePath = workspaceFixturePath.split(path.sep).join('/');
+      }
 
       // Close the previous app (from pageWithUserData) before launching a new one
       return await reuseOrLaunchElectronApp({
@@ -372,7 +392,7 @@ export const test = baseTest.extend<
     });
   },
 
-  pageWithUserData: async ({ reuseOrLaunchElectronApp, createTmpDir, collectionFixturePath }, use, testInfo) => {
+  pageWithUserData: async ({ reuseOrLaunchElectronApp, createTmpDir, collectionFixturePath, workspaceFixturePath }, use, testInfo) => {
     const testDir = path.dirname(testInfo.file);
     const initUserDataPath = path.join(testDir, 'init-user-data');
 
@@ -389,6 +409,9 @@ export const test = baseTest.extend<
     const templateVars: Record<string, string> = {};
     if (collectionFixturePath) {
       templateVars.collectionPath = collectionFixturePath.split(path.sep).join('/');
+    }
+    if (workspaceFixturePath) {
+      templateVars.workspacePath = workspaceFixturePath.split(path.sep).join('/');
     }
 
     const app = await reuseOrLaunchElectronApp({ initUserDataPath: tmpAppDataDir, testFile: testInfo.file, templateVars });
