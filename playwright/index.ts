@@ -163,7 +163,11 @@ export const test = baseTest.extend<
     async ({ }, use) => {
       const dirs: string[] = [];
       await use(async (tag?: string) => {
-        const dir = await fs.promises.mkdtemp(path.join(os.tmpdir(), `pw-${tag || ''}-`));
+        // Strip characters that are illegal in Windows filenames (<>:"/\|?*) and
+        // whitespace, so a descriptive tag (e.g. one derived from a test title
+        // containing quotes) can't produce a path mkdtemp refuses to create.
+        const safeTag = (tag || '').replace(/[<>:"/\\|?*\s]+/g, '-');
+        const dir = await fs.promises.mkdtemp(path.join(os.tmpdir(), `pw-${safeTag}-`));
         dirs.push(dir);
         return dir;
       });
