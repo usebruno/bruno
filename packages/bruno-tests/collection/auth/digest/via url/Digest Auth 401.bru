@@ -1,0 +1,20 @@
+meta {
+  name: Digest Auth 401
+  type: http
+  seq: 2
+}
+
+get {
+  url: https://user:password@www.httpfaker.org/api/auth/digest/auth/admin/password
+  body: none
+  auth: inherit
+}
+
+assert {
+  res.status: eq 401
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
