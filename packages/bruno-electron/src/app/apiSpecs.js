@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const yaml = require('js-yaml');
 const { dialog, ipcMain } = require('electron');
 const { normalizeAndResolvePath } = require('../utils/filesystem');
 const { generateUidBasedOnHash } = require('../utils/common');
@@ -10,6 +11,33 @@ const {
 } = require('../utils/workspace-config');
 
 const DEFAULT_WORKSPACE_NAME = 'My Workspace';
+
+const VALID_API_SPEC_EXTENSIONS = ['.yaml', '.yml', '.json'];
+
+const validateApiSpec = (filePath) => {
+  const ext = path.extname(filePath).toLowerCase();
+  if (!VALID_API_SPEC_EXTENSIONS.includes(ext)) {
+    throw new Error('Invalid file format. Please select a valid OpenAPI spec in YAML or JSON format.');
+  }
+
+  const content = fs.readFileSync(filePath, 'utf8');
+
+  let parsed;
+  try {
+    parsed = ext === '.json' ? JSON.parse(content) : yaml.load(content);
+  } catch {
+    throw new Error('Invalid file format. Please select a valid OpenAPI spec in YAML or JSON format.');
+  }
+
+  if (!parsed || typeof parsed !== 'object') {
+    throw new Error('Invalid file format. Please select a valid OpenAPI spec in YAML or JSON format.');
+  }
+
+  const hasSpecVersion = typeof parsed.openapi === 'string' || typeof parsed.swagger === 'string';
+  if (!hasSpecVersion || typeof parsed.info !== 'object' || parsed.info === null) {
+    throw new Error('Invalid OpenAPI spec. The file must contain a valid OpenAPI (3.x) or Swagger (2.0) specification.');
+  }
+};
 
 const prepareWorkspaceConfigForClient = (workspaceConfig, isDefault) => {
   if (isDefault) {
@@ -24,7 +52,8 @@ const prepareWorkspaceConfigForClient = (workspaceConfig, isDefault) => {
 
 const openApiSpecDialog = async (win, watcher, options = {}) => {
   const { filePaths } = await dialog.showOpenDialog(win, {
-    properties: ['openFile', 'createFile']
+    properties: ['openFile', 'createFile'],
+    filters: [{ name: 'OpenAPI Spec', extensions: ['yaml', 'yml', 'json'] }]
   });
 
   if (filePaths && filePaths[0]) {
@@ -39,6 +68,8 @@ const openApiSpecDialog = async (win, watcher, options = {}) => {
 
 const openApiSpec = async (win, watcher, apiSpecPath, options = {}) => {
   try {
+    validateApiSpec(apiSpecPath);
+
     const uid = generateUidBasedOnHash(apiSpecPath);
 
     if (options.workspacePath) {
@@ -97,7 +128,7 @@ const openApiSpec = async (win, watcher, apiSpecPath, options = {}) => {
   } catch (err) {
     if (!options.dontSendDisplayErrors) {
       win.webContents.send('main:display-error', {
-        error: err.message || 'An error occurred while opening the apiSpec'
+        message: err.message || 'An error occurred while opening the apiSpec'
       });
     }
   }
