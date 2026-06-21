@@ -136,6 +136,8 @@ const parseCollection = (ymlString: string): ParsedCollection => {
             return {
               domain: cert.domain,
               type: 'cert',
+              name: cert.name || '',
+              enabled: cert.enabled !== false,
               certFilePath: cert.certificateFilePath,
               keyFilePath: cert.privateKeyFilePath,
               passphrase: cert.passphrase || ''
@@ -144,6 +146,8 @@ const parseCollection = (ymlString: string): ParsedCollection => {
             return {
               domain: cert.domain,
               type: 'pfx',
+              name: cert.name || '',
+              enabled: cert.enabled !== false,
               pfxFilePath: cert.pkcs12FilePath,
               passphrase: cert.passphrase || ''
             };
