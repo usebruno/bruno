@@ -609,6 +609,514 @@ paths:
   });
 });
 
+describe('array param serialization — OAS defaults per location', () => {
+  describe('path — simple style, explode:false (comma-join)', () => {
+    it('param.example array', () => {
+      const spec = {
+        openapi: '3.0.0',
+        info: { title: 'API', version: '1.0.0' },
+        servers: [{ url: 'https://api.example.com' }],
+        paths: {
+          '/users/{ids}': {
+            get: {
+              summary: 'Get users',
+              operationId: 'getUsers',
+              parameters: [
+                {
+                  name: 'ids',
+                  in: 'path',
+                  required: true,
+                  example: [3, 4, 5],
+                  schema: { type: 'array', items: { type: 'integer' } }
+                }
+              ],
+              responses: { 200: { description: 'OK' } }
+            }
+          }
+        }
+      };
+      const result = openApiToBruno(spec);
+      const idsParams = result.items.find((i) => i.name === 'Get users').request.params.filter((p) => p.name === 'ids');
+      expect(idsParams).toHaveLength(1);
+      expect(idsParams[0].value).toBe('3,4,5');
+      expect(idsParams[0].enabled).toBe(true);
+    });
+
+    it('param.examples[0].value array', () => {
+      const spec = {
+        openapi: '3.0.0',
+        info: { title: 'API', version: '1.0.0' },
+        servers: [{ url: 'https://api.example.com' }],
+        paths: {
+          '/users/{ids}': {
+            get: {
+              summary: 'Get users',
+              operationId: 'getUsers',
+              parameters: [
+                {
+                  name: 'ids',
+                  in: 'path',
+                  required: true,
+                  examples: { sample: { value: [10, 20, 30] } },
+                  schema: { type: 'array', items: { type: 'integer' } }
+                }
+              ],
+              responses: { 200: { description: 'OK' } }
+            }
+          }
+        }
+      };
+      const result = openApiToBruno(spec);
+      const idsParams = result.items.find((i) => i.name === 'Get users').request.params.filter((p) => p.name === 'ids');
+      expect(idsParams).toHaveLength(1);
+      expect(idsParams[0].value).toBe('10,20,30');
+      expect(idsParams[0].enabled).toBe(true);
+    });
+
+    it('schema.default array', () => {
+      const spec = {
+        openapi: '3.0.0',
+        info: { title: 'API', version: '1.0.0' },
+        servers: [{ url: 'https://api.example.com' }],
+        paths: {
+          '/users/{roles}': {
+            get: {
+              summary: 'Get by roles',
+              operationId: 'getByRoles',
+              parameters: [
+                {
+                  name: 'roles',
+                  in: 'path',
+                  required: true,
+                  schema: { type: 'array', items: { type: 'string' }, default: ['admin', 'user'] }
+                }
+              ],
+              responses: { 200: { description: 'OK' } }
+            }
+          }
+        }
+      };
+      const result = openApiToBruno(spec);
+      const rolesParam = result.items.find((i) => i.name === 'Get by roles').request.params.find((p) => p.name === 'roles');
+      expect(rolesParam.value).toBe('admin,user');
+      expect(rolesParam.enabled).toBe(true);
+    });
+
+    it('items.enum default array', () => {
+      const spec = {
+        openapi: '3.0.0',
+        info: { title: 'API', version: '1.0.0' },
+        servers: [{ url: 'https://api.example.com' }],
+        paths: {
+          '/items/{types}': {
+            get: {
+              summary: 'Get by types',
+              operationId: 'getByTypes',
+              parameters: [
+                {
+                  name: 'types',
+                  in: 'path',
+                  required: true,
+                  schema: { type: 'array', items: { type: 'string', enum: ['a', 'b', 'c'] }, default: ['a', 'b'] }
+                }
+              ],
+              responses: { 200: { description: 'OK' } }
+            }
+          }
+        }
+      };
+      const result = openApiToBruno(spec);
+      const typesParam = result.items.find((i) => i.name === 'Get by types').request.params.find((p) => p.name === 'types');
+      expect(typesParam.value).toBe('a,b');
+      expect(typesParam.enabled).toBe(true);
+    });
+
+    it('schema.example array', () => {
+      const spec = {
+        openapi: '3.0.0',
+        info: { title: 'API', version: '1.0.0' },
+        servers: [{ url: 'https://api.example.com' }],
+        paths: {
+          '/users/{ids}': {
+            get: {
+              summary: 'Get users',
+              operationId: 'getUsers',
+              parameters: [
+                {
+                  name: 'ids',
+                  in: 'path',
+                  required: true,
+                  schema: { type: 'array', items: { type: 'integer' }, example: [7, 8, 9] }
+                }
+              ],
+              responses: { 200: { description: 'OK' } }
+            }
+          }
+        }
+      };
+      const result = openApiToBruno(spec);
+      const params = result.items.find((i) => i.name === 'Get users').request.params.filter((p) => p.name === 'ids');
+      expect(params).toHaveLength(1);
+      expect(params[0].value).toBe('7,8,9');
+      expect(params[0].enabled).toBe(true);
+    });
+
+    it('schema.examples[0] array', () => {
+      const spec = {
+        openapi: '3.1.0',
+        info: { title: 'API', version: '1.0.0' },
+        servers: [{ url: 'https://api.example.com' }],
+        paths: {
+          '/users/{ids}': {
+            get: {
+              summary: 'Get users',
+              operationId: 'getUsers',
+              parameters: [
+                {
+                  name: 'ids',
+                  in: 'path',
+                  required: true,
+                  schema: { type: 'array', items: { type: 'integer' }, examples: [[1, 2, 3]] }
+                }
+              ],
+              responses: { 200: { description: 'OK' } }
+            }
+          }
+        }
+      };
+      const result = openApiToBruno(spec);
+      const params = result.items.find((i) => i.name === 'Get users').request.params.filter((p) => p.name === 'ids');
+      expect(params).toHaveLength(1);
+      expect(params[0].value).toBe('1,2,3');
+      expect(params[0].enabled).toBe(true);
+    });
+  });
+
+  describe('header — simple style, explode:false (comma-join)', () => {
+    it('param.example array', () => {
+      const spec = {
+        openapi: '3.0.0',
+        info: { title: 'API', version: '1.0.0' },
+        servers: [{ url: 'https://api.example.com' }],
+        paths: {
+          '/items': {
+            get: {
+              summary: 'List items',
+              operationId: 'listItems',
+              parameters: [
+                {
+                  name: 'X-Ids',
+                  in: 'header',
+                  example: [1, 2, 3],
+                  schema: { type: 'array', items: { type: 'integer' } }
+                }
+              ],
+              responses: { 200: { description: 'OK' } }
+            }
+          }
+        }
+      };
+      const result = openApiToBruno(spec);
+      const header = result.items.find((i) => i.name === 'List items').request.headers.find((h) => h.name === 'X-Ids');
+      expect(header.value).toBe('1,2,3');
+      expect(header.enabled).toBe(true);
+    });
+
+    it('param.examples[0].value array', () => {
+      const spec = {
+        openapi: '3.0.0',
+        info: { title: 'API', version: '1.0.0' },
+        servers: [{ url: 'https://api.example.com' }],
+        paths: {
+          '/items': {
+            get: {
+              summary: 'List items',
+              operationId: 'listItems',
+              parameters: [
+                {
+                  name: 'X-Ids',
+                  in: 'header',
+                  examples: { sample: { value: ['a', 'b', 'c'] } },
+                  schema: { type: 'array', items: { type: 'string' } }
+                }
+              ],
+              responses: { 200: { description: 'OK' } }
+            }
+          }
+        }
+      };
+      const result = openApiToBruno(spec);
+      const header = result.items.find((i) => i.name === 'List items').request.headers.find((h) => h.name === 'X-Ids');
+      expect(header.value).toBe('a,b,c');
+      expect(header.enabled).toBe(true);
+    });
+
+    it('schema.default array', () => {
+      const spec = {
+        openapi: '3.0.0',
+        info: { title: 'API', version: '1.0.0' },
+        servers: [{ url: 'https://api.example.com' }],
+        paths: {
+          '/items': {
+            get: {
+              summary: 'List items',
+              operationId: 'listItems',
+              parameters: [
+                {
+                  name: 'X-Roles',
+                  in: 'header',
+                  schema: { type: 'array', items: { type: 'string' }, default: ['read', 'write'] }
+                }
+              ],
+              responses: { 200: { description: 'OK' } }
+            }
+          }
+        }
+      };
+      const result = openApiToBruno(spec);
+      const header = result.items.find((i) => i.name === 'List items').request.headers.find((h) => h.name === 'X-Roles');
+      expect(header.value).toBe('read,write');
+      expect(header.enabled).toBe(true);
+    });
+
+    it('schema.example array', () => {
+      const spec = {
+        openapi: '3.0.0',
+        info: { title: 'API', version: '1.0.0' },
+        servers: [{ url: 'https://api.example.com' }],
+        paths: {
+          '/items': {
+            get: {
+              summary: 'List items',
+              operationId: 'listItems',
+              parameters: [
+                {
+                  name: 'X-Ids',
+                  in: 'header',
+                  schema: { type: 'array', items: { type: 'integer' }, example: [4, 5, 6] }
+                }
+              ],
+              responses: { 200: { description: 'OK' } }
+            }
+          }
+        }
+      };
+      const result = openApiToBruno(spec);
+      const header = result.items.find((i) => i.name === 'List items').request.headers.find((h) => h.name === 'X-Ids');
+      expect(header.value).toBe('4,5,6');
+      expect(header.enabled).toBe(true);
+    });
+
+    it('schema.examples[0] array', () => {
+      const spec = {
+        openapi: '3.1.0',
+        info: { title: 'API', version: '1.0.0' },
+        servers: [{ url: 'https://api.example.com' }],
+        paths: {
+          '/items': {
+            get: {
+              summary: 'List items',
+              operationId: 'listItems',
+              parameters: [
+                {
+                  name: 'X-Tags',
+                  in: 'header',
+                  schema: { type: 'array', items: { type: 'string' }, examples: [['x', 'y', 'z']] }
+                }
+              ],
+              responses: { 200: { description: 'OK' } }
+            }
+          }
+        }
+      };
+      const result = openApiToBruno(spec);
+      const header = result.items.find((i) => i.name === 'List items').request.headers.find((h) => h.name === 'X-Tags');
+      expect(header.value).toBe('x,y,z');
+      expect(header.enabled).toBe(true);
+    });
+  });
+
+  describe('query — form style, explode:true (one entry per item)', () => {
+    it('param.example array', () => {
+      const spec = {
+        openapi: '3.0.0',
+        info: { title: 'API', version: '1.0.0' },
+        servers: [{ url: 'https://api.example.com' }],
+        paths: {
+          '/items': {
+            get: {
+              summary: 'List items',
+              operationId: 'listItems',
+              parameters: [
+                {
+                  name: 'ids',
+                  in: 'query',
+                  example: [3, 4, 5],
+                  schema: { type: 'array', items: { type: 'integer' } }
+                }
+              ],
+              responses: { 200: { description: 'OK' } }
+            }
+          }
+        }
+      };
+      const result = openApiToBruno(spec);
+      const params = result.items.find((i) => i.name === 'List items').request.params.filter((p) => p.name === 'ids');
+      expect(params).toHaveLength(3);
+      expect(params.map((p) => p.value)).toEqual(['3', '4', '5']);
+      params.forEach((p) => expect(p.enabled).toBe(true));
+    });
+
+    it('param.examples[0].value array', () => {
+      const spec = {
+        openapi: '3.0.0',
+        info: { title: 'API', version: '1.0.0' },
+        servers: [{ url: 'https://api.example.com' }],
+        paths: {
+          '/items': {
+            get: {
+              summary: 'List items',
+              operationId: 'listItems',
+              parameters: [
+                {
+                  name: 'tags',
+                  in: 'query',
+                  examples: { sample: { value: ['foo', 'bar', 'baz'] } },
+                  schema: { type: 'array', items: { type: 'string' } }
+                }
+              ],
+              responses: { 200: { description: 'OK' } }
+            }
+          }
+        }
+      };
+      const result = openApiToBruno(spec);
+      const params = result.items.find((i) => i.name === 'List items').request.params.filter((p) => p.name === 'tags');
+      expect(params).toHaveLength(3);
+      expect(params.map((p) => p.value)).toEqual(['foo', 'bar', 'baz']);
+      params.forEach((p) => expect(p.enabled).toBe(true));
+    });
+
+    it('schema.default array', () => {
+      const spec = {
+        openapi: '3.0.0',
+        info: { title: 'API', version: '1.0.0' },
+        servers: [{ url: 'https://api.example.com' }],
+        paths: {
+          '/items': {
+            get: {
+              summary: 'List items',
+              operationId: 'listItems',
+              parameters: [
+                {
+                  name: 'status',
+                  in: 'query',
+                  schema: { type: 'array', items: { type: 'string' }, default: ['active', 'pending'] }
+                }
+              ],
+              responses: { 200: { description: 'OK' } }
+            }
+          }
+        }
+      };
+      const result = openApiToBruno(spec);
+      const params = result.items.find((i) => i.name === 'List items').request.params.filter((p) => p.name === 'status');
+      expect(params).toHaveLength(2);
+      expect(params.map((p) => p.value)).toEqual(['active', 'pending']);
+      params.forEach((p) => expect(p.enabled).toBe(true));
+    });
+
+    it('schema.example array', () => {
+      const spec = {
+        openapi: '3.0.0',
+        info: { title: 'API', version: '1.0.0' },
+        servers: [{ url: 'https://api.example.com' }],
+        paths: {
+          '/items': {
+            get: {
+              summary: 'List items',
+              operationId: 'listItems',
+              parameters: [
+                {
+                  name: 'colors',
+                  in: 'query',
+                  schema: { type: 'array', items: { type: 'string' }, example: ['red', 'green', 'blue'] }
+                }
+              ],
+              responses: { 200: { description: 'OK' } }
+            }
+          }
+        }
+      };
+      const result = openApiToBruno(spec);
+      const params = result.items.find((i) => i.name === 'List items').request.params.filter((p) => p.name === 'colors');
+      expect(params).toHaveLength(3);
+      expect(params.map((p) => p.value)).toEqual(['red', 'green', 'blue']);
+      params.forEach((p) => expect(p.enabled).toBe(true));
+    });
+
+    it('schema.examples[0] array', () => {
+      const spec = {
+        openapi: '3.1.0',
+        info: { title: 'API', version: '1.0.0' },
+        servers: [{ url: 'https://api.example.com' }],
+        paths: {
+          '/items': {
+            get: {
+              summary: 'List items',
+              operationId: 'listItems',
+              parameters: [
+                {
+                  name: 'tags',
+                  in: 'query',
+                  schema: { type: 'array', items: { type: 'string' }, examples: [['foo', 'bar', 'baz']] }
+                }
+              ],
+              responses: { 200: { description: 'OK' } }
+            }
+          }
+        }
+      };
+      const result = openApiToBruno(spec);
+      const params = result.items.find((i) => i.name === 'List items').request.params.filter((p) => p.name === 'tags');
+      expect(params).toHaveLength(3);
+      expect(params.map((p) => p.value)).toEqual(['foo', 'bar', 'baz']);
+      params.forEach((p) => expect(p.enabled).toBe(true));
+    });
+  });
+
+  describe('cookie — not mapped (Bruno has no cookie param type)', () => {
+    it('cookie params are not added to request.params or request.headers', () => {
+      const spec = {
+        openapi: '3.0.0',
+        info: { title: 'API', version: '1.0.0' },
+        servers: [{ url: 'https://api.example.com' }],
+        paths: {
+          '/items': {
+            get: {
+              summary: 'List items',
+              operationId: 'listItems',
+              parameters: [
+                {
+                  name: 'session',
+                  in: 'cookie',
+                  example: ['x', 'y'],
+                  schema: { type: 'array', items: { type: 'string' } }
+                }
+              ],
+              responses: { 200: { description: 'OK' } }
+            }
+          }
+        }
+      };
+      const result = openApiToBruno(spec);
+      const req = result.items.find((i) => i.name === 'List items').request;
+      expect(req.params.filter((p) => p.name === 'session')).toHaveLength(0);
+      expect(req.headers.filter((h) => h.name === 'session')).toHaveLength(0);
+    });
+  });
+});
+
 // Tests backward-compat handling of non-standard in: 'querystring' (some importers emit this instead of 'query')
 describe('openapi querystring parameter location', () => {
   it('should map in: "querystring" to query type', () => {
