@@ -254,6 +254,7 @@ const catppuccinMochaTheme = {
     },
     responseStatus: colors.TEXT,
     responseOk: colors.GREEN,
+    responseWarning: colors.PEACH,
     responseError: colors.RED,
     responsePending: colors.BLUE,
     responseOverlayBg: 'rgba(30, 30, 46, 0.6)',
