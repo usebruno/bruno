@@ -3,7 +3,7 @@ import { uuid } from 'utils/common/index';
 import { environmentSchema } from '@usebruno/schema';
 import { getDataTypeFromValue } from '@usebruno/common/utils';
 import { cloneDeep } from 'lodash';
-import { applyScriptEnvVars } from 'utils/environments';
+import { applyScriptEnvVars, buildPersistedEnvVariables } from 'utils/environments';
 
 const initialState = {
   globalEnvironments: [],
@@ -296,10 +296,19 @@ export const deleteGlobalEnvironment = ({ environmentUid }) => (dispatch, getSta
   });
 };
 
-export const globalEnvironmentsUpdateEvent = ({ globalEnvironmentVariables }) => (dispatch, getState) => {
+export const globalEnvironmentsUpdateEvent = ({ globalEnvironmentVariables, collectionUid, requestUid }) => (dispatch, getState) => {
   if (!globalEnvironmentVariables) return;
 
   const state = getState();
+
+  // Ignore stale updates from superseded requests on the originating collection.
+  if (collectionUid && requestUid) {
+    const sourceCollection = state?.collections?.collections?.find((c) => c.uid === collectionUid);
+    if (sourceCollection?._scriptRequestUid && requestUid !== sourceCollection._scriptRequestUid) {
+      return;
+    }
+  }
+
   const globalEnvironments = state?.globalEnvironments?.globalEnvironments || [];
   const environmentUid = state?.globalEnvironments?.activeGlobalEnvironmentUid;
   const environment = globalEnvironments?.find((env) => env?.uid == environmentUid);
@@ -314,7 +323,7 @@ export const globalEnvironmentsUpdateEvent = ({ globalEnvironmentVariables }) =>
     });
     dispatch(_setScriptGlobalEnvBaseline(baseline));
 
-    dispatch(_saveGlobalEnvironment({ environmentUid, variables: cloneDeep(draft.variables) }));
+    dispatch(_saveGlobalEnvironment({ environmentUid, variables: buildPersistedEnvVariables(draft.variables) }));
     dispatch(clearGlobalEnvironmentDraft());
   }
 
@@ -323,7 +332,7 @@ export const globalEnvironmentsUpdateEvent = ({ globalEnvironmentVariables }) =>
   const baseline = updatedState?.globalEnvironments?._scriptGlobalEnvBaseline;
   let variables = cloneDeep(updatedEnv?.variables || []);
 
-  variables = applyScriptEnvVars(variables, globalEnvironmentVariables, baseline);
+  variables = applyScriptEnvVars(variables, globalEnvironmentVariables, baseline, { skipKeys: ['__name__'] });
 
   // Infer dataType for variables the script touched so typed values survive the script -> disk round-trip.
   variables.forEach((v) => {
@@ -336,15 +345,16 @@ export const globalEnvironmentsUpdateEvent = ({ globalEnvironmentVariables }) =>
     }
   });
 
-  dispatch(_saveGlobalEnvironment({ environmentUid, variables }));
+  const persisted = buildPersistedEnvVariables(variables);
+  dispatch(_saveGlobalEnvironment({ environmentUid, variables: persisted }));
 
   const { ipcRenderer } = window;
   const { workspaceUid, workspacePath } = getWorkspaceContext(state);
   environmentSchema
-    .validate({ ...environment, variables })
+    .validate({ ...environment, variables: persisted })
     .then(() => ipcRenderer.invoke('renderer:save-global-environment', {
       environmentUid,
-      variables,
+      variables: persisted,
       color: environment.color,
       workspaceUid,
       workspacePath

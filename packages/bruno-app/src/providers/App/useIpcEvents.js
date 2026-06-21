@@ -226,7 +226,10 @@ const useIpcEvents = () => {
     });
 
     const removeRunFolderEventListener = ipcRenderer.on('main:run-folder-event', (val) => {
-      if (val.type === 'testrun-started') {
+      // Folder runs reuse the workspace baseline across N requests; clear it
+      // per request so request N's global-env update doesn't diff against
+      // request N-1's pre-flush snapshot.
+      if (val.type === 'testrun-started' || val.type === 'request-queued') {
         dispatch(_clearScriptGlobalEnvBaseline());
       }
       dispatch(runFolderEvent(val));
