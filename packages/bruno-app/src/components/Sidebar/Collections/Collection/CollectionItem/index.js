@@ -484,6 +484,38 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
     dispatch(makeTabPermanent({ uid: tabUidForItem || item.uid }));
   };
 
+  const handleMiddleMouseDown = (e) => {
+    if (e.button === 1) e.preventDefault();
+  };
+  const handleMiddleMouseUp = (e) => {
+    if (e.button !== 1) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const uid = tabUidForItem || item.uid;
+    if (isTabForItemPresent) {
+      dispatch(makeTabPermanent({ uid }));
+      return;
+    }
+    if (isItemARequest(item)) {
+      dispatch(addTab({
+        uid: item.uid,
+        collectionUid,
+        requestPaneTab: getDefaultRequestPaneTab(item),
+        type: item.type,
+        pathname: item.pathname,
+        preview: false
+      }));
+    } else {
+      dispatch(addTab({
+        uid: item.uid,
+        collectionUid,
+        type: 'folder-settings',
+        pathname: item.pathname,
+        preview: false
+      }));
+    }
+  };
+
   // Sort items by their "seq" property.
   const sortItemsBySequence = (items = []) => {
     return items.sort((a, b) => a.seq - b.seq);
@@ -659,6 +691,8 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
                 <div
                   onClick={handleClick}
                   onDoubleClick={handleDoubleClick}
+                  onMouseDown={handleMiddleMouseDown}
+                  onMouseUp={handleMiddleMouseUp}
                   className="indent-block"
                   key={i}
                   style={{ width: 16, minWidth: 16, height: '100%' }}
@@ -672,6 +706,8 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
             style={{ paddingLeft: 8 }}
             onClick={handleClick}
             onDoubleClick={handleDoubleClick}
+            onMouseDown={handleMiddleMouseDown}
+            onMouseUp={handleMiddleMouseUp}
           >
 
             {isFolder ? (
