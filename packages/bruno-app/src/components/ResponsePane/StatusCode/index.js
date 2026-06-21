@@ -6,8 +6,10 @@ import StyledWrapper from './StyledWrapper';
 const StatusCode = ({ status, statusText, isStreaming }) => {
   const getTabClassname = (status) => {
     return classnames({
-      'text-ok': status >= 100 && status < 300,
-      'text-error': status >= 300 && status < 600
+      'text-ok': status >= 200 && status < 300,
+      'text-redirect': status >= 300 && status < 400,
+      'text-client-error': status >= 400 && status < 500,
+      'text-error': status >= 500 && status < 600
     });
   };
 
