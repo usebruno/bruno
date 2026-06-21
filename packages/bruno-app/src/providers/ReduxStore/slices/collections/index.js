@@ -455,10 +455,16 @@ export const collectionsSlice = createSlice({
       }
     },
     scriptEnvironmentUpdateEvent: (state, action) => {
-      const { collectionUid, envVariables } = action.payload;
+      const { collectionUid, envVariables, requestUid } = action.payload;
       const collection = findCollectionByUid(state.collections, collectionUid);
 
       if (collection) {
+        // Ignore stale updates from superseded requests so an in-flight pre/post
+        // from request N-1 can't clobber state for request N.
+        if (requestUid && collection._scriptRequestUid && requestUid !== collection._scriptRequestUid) {
+          return;
+        }
+
         const activeEnvironment = findEnvironmentInCollection(collection, collection.activeEnvironmentUid);
 
         if (activeEnvironment) {
@@ -497,9 +503,12 @@ export const collectionsSlice = createSlice({
       }
     },
     runtimeVariablesUpdateEvent: (state, action) => {
-      const { collectionUid, runtimeVariables } = action.payload;
+      const { collectionUid, runtimeVariables, requestUid } = action.payload;
       const collection = findCollectionByUid(state.collections, collectionUid);
       if (collection) {
+        if (requestUid && collection._scriptRequestUid && requestUid !== collection._scriptRequestUid) {
+          return;
+        }
         collection.runtimeVariables = runtimeVariables;
       }
     },
@@ -2756,18 +2765,15 @@ export const collectionsSlice = createSlice({
       if (!collection) return;
       collection._scriptCollVarBaseline = baseline;
     },
-    clearScriptCollVarBaseline: (state, action) => {
-      const { collectionUid } = action.payload;
-      const collection = findCollectionByUid(state.collections, collectionUid);
-      if (!collection) return;
-      delete collection._scriptCollVarBaseline;
-    },
     _clearScriptCollectionBaselines: (state, action) => {
       const { collectionUid } = action.payload;
       const collection = findCollectionByUid(state.collections, collectionUid);
       if (!collection) return;
       delete collection._scriptEnvBaseline;
       delete collection._scriptCollVarBaseline;
+      // Also drop the inflight request UID so updates from WS/OAuth2 paths (which
+      // don't dispatch initRunRequestEvent) aren't gated out by a stale HTTP UID.
+      delete collection._scriptRequestUid;
     },
     collectionAddFileEvent: (state, action) => {
       const file = action.payload.file;
@@ -3103,6 +3109,7 @@ export const collectionsSlice = createSlice({
 
       delete collection._scriptEnvBaseline;
       delete collection._scriptCollVarBaseline;
+      collection._scriptRequestUid = requestUid;
 
       const item = findItemInCollection(collection, itemUid);
       if (!item) return;
@@ -3256,6 +3263,13 @@ export const collectionsSlice = createSlice({
         }
 
         if (type === 'request-queued') {
+          // Folder runs reuse the same collection across N requests; clear baselines
+          // per request so request N's script-update doesn't diff against request N-1's
+          // pre-flush snapshot.
+          delete collection._scriptEnvBaseline;
+          delete collection._scriptCollVarBaseline;
+          collection._scriptRequestUid = action.payload.requestUid || null;
+
           collection.runnerResult.items.push({
             uid: request.uid,
             status: 'queued'
@@ -4003,7 +4017,6 @@ export const {
   setCollectionVars,
   scriptUpdateCollectionVars,
   setScriptCollVarBaseline,
-  clearScriptCollVarBaseline,
   _clearScriptCollectionBaselines,
   updateCollectionAuthMode,
   updateCollectionAuth,

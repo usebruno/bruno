@@ -2450,12 +2450,17 @@ export const persistActiveEnvironment = (collectionUid) => (dispatch, getState) 
     .catch((err) => console.error('Failed to persist environment during script execution:', err));
 };
 
-export const collectionVariablesUpdateEvent = ({ collectionVariables, collectionUid }) => (dispatch, getState) => {
+export const collectionVariablesUpdateEvent = ({ collectionVariables, collectionUid, requestUid }) => (dispatch, getState) => {
   if (!collectionVariables || !collectionUid) return;
 
   const state = getState();
   const collection = findCollectionByUid(state.collections.collections, collectionUid);
   if (!collection) return;
+
+  // Ignore stale updates from superseded requests.
+  if (requestUid && collection._scriptRequestUid && requestUid !== collection._scriptRequestUid) {
+    return;
+  }
 
   const savedVars = get(collection, 'root.request.vars.req', []);
   const draftVars = collection.draft?.root

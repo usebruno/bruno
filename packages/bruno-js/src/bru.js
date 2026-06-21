@@ -206,13 +206,17 @@ class Bru {
       );
     }
 
-    this.envVariables[key] = value;
-    this._envDirty = true;
+    if (!Object.hasOwn(this.envVariables, key) || this.envVariables[key] !== value) {
+      this.envVariables[key] = value;
+      this._envDirty = true;
+    }
   }
 
   deleteEnvVar(key) {
-    delete this.envVariables[key];
-    this._envDirty = true;
+    if (Object.hasOwn(this.envVariables, key)) {
+      delete this.envVariables[key];
+      this._envDirty = true;
+    }
   }
 
   getAllEnvVars() {
@@ -225,13 +229,16 @@ class Bru {
     const envName = this.envVariables.__name__;
     // Iterate via Object.keys (own enumerable) so a user-set `hasOwnProperty` var
     // can't shadow Object.prototype.hasOwnProperty and crash the loop.
+    let removed = false;
     for (const key of Object.keys(this.envVariables)) {
+      if (key === '__name__') continue;
       delete this.envVariables[key];
+      removed = true;
     }
-    if (envName !== undefined) {
+    if (envName !== undefined && !Object.hasOwn(this.envVariables, '__name__')) {
       this.envVariables.__name__ = envName;
     }
-    this._envDirty = true;
+    if (removed) this._envDirty = true;
   }
 
   hasGlobalEnvVar(key) {
@@ -247,13 +254,17 @@ class Bru {
       throw new Error('Creating a env variable without specifying a name is not allowed.');
     }
 
-    this.globalEnvironmentVariables[key] = value;
-    this._globalEnvDirty = true;
+    if (!Object.hasOwn(this.globalEnvironmentVariables, key) || this.globalEnvironmentVariables[key] !== value) {
+      this.globalEnvironmentVariables[key] = value;
+      this._globalEnvDirty = true;
+    }
   }
 
   deleteGlobalEnvVar(key) {
-    delete this.globalEnvironmentVariables[key];
-    this._globalEnvDirty = true;
+    if (Object.hasOwn(this.globalEnvironmentVariables, key)) {
+      delete this.globalEnvironmentVariables[key];
+      this._globalEnvDirty = true;
+    }
   }
 
   getAllGlobalEnvVars() {
@@ -261,7 +272,9 @@ class Bru {
   }
 
   deleteAllGlobalEnvVars() {
-    for (const key of Object.keys(this.globalEnvironmentVariables)) {
+    const keys = Object.keys(this.globalEnvironmentVariables);
+    if (!keys.length) return;
+    for (const key of keys) {
       delete this.globalEnvironmentVariables[key];
     }
     this._globalEnvDirty = true;
@@ -305,8 +318,10 @@ class Bru {
       );
     }
 
-    this.runtimeVariables[key] = value;
-    this._runtimeVarsDirty = true;
+    if (!Object.hasOwn(this.runtimeVariables, key) || this.runtimeVariables[key] !== value) {
+      this.runtimeVariables[key] = value;
+      this._runtimeVarsDirty = true;
+    }
   }
 
   getVar(key) {
@@ -321,12 +336,16 @@ class Bru {
   }
 
   deleteVar(key) {
-    delete this.runtimeVariables[key];
-    this._runtimeVarsDirty = true;
+    if (Object.hasOwn(this.runtimeVariables, key)) {
+      delete this.runtimeVariables[key];
+      this._runtimeVarsDirty = true;
+    }
   }
 
   deleteAllVars() {
-    for (const key of Object.keys(this.runtimeVariables)) {
+    const keys = Object.keys(this.runtimeVariables);
+    if (!keys.length) return;
+    for (const key of keys) {
       delete this.runtimeVariables[key];
     }
     this._runtimeVarsDirty = true;
@@ -352,8 +371,10 @@ class Bru {
       );
     }
 
-    this.collectionVariables[key] = value;
-    this._collVarsDirty = true;
+    if (!Object.hasOwn(this.collectionVariables, key) || this.collectionVariables[key] !== value) {
+      this.collectionVariables[key] = value;
+      this._collVarsDirty = true;
+    }
   }
 
   hasCollectionVar(key) {
@@ -361,12 +382,16 @@ class Bru {
   }
 
   deleteCollectionVar(key) {
-    delete this.collectionVariables[key];
-    this._collVarsDirty = true;
+    if (Object.hasOwn(this.collectionVariables, key)) {
+      delete this.collectionVariables[key];
+      this._collVarsDirty = true;
+    }
   }
 
   deleteAllCollectionVars() {
-    for (const key of Object.keys(this.collectionVariables)) {
+    const keys = Object.keys(this.collectionVariables);
+    if (!keys.length) return;
+    for (const key of keys) {
       delete this.collectionVariables[key];
     }
     this._collVarsDirty = true;
