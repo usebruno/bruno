@@ -7,20 +7,20 @@ import ActionIcon from 'ui/ActionIcon/index';
 import { formatResponse } from 'utils/common';
 
 // Helper function to get text to copy
-const getTextToCopy = (selectedTab, selectedFormat, data, dataBuffer) => {
+const getTextToCopy = (selectedTab, selectedFormat, data, dataBuffer, filter) => {
   // If preview is on, copy raw data (what's shown in TextPreview)
   if (selectedTab === 'preview') {
     return typeof data === 'string' ? data : JSON.stringify(data, null, 2);
   }
   // If editor is on, copy formatted data based on selected format
   if (selectedFormat && data && dataBuffer) {
-    return formatResponse(data, dataBuffer, selectedFormat, null);
+    return formatResponse(data, dataBuffer, selectedFormat, filter);
   }
   return typeof data === 'string' ? data : JSON.stringify(data, null, 2);
 };
 
 // Hook to get copy response function
-export const useResponseCopy = (item, selectedFormat, selectedTab, data, dataBuffer) => {
+export const useResponseCopy = (item, selectedFormat, selectedTab, data, dataBuffer, filter) => {
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
@@ -34,20 +34,20 @@ export const useResponseCopy = (item, selectedFormat, selectedTab, data, dataBuf
 
   const copyResponse = useCallback(async () => {
     try {
-      const textToCopy = getTextToCopy(selectedTab, selectedFormat, data, dataBuffer);
+      const textToCopy = getTextToCopy(selectedTab, selectedFormat, data, dataBuffer, filter);
       await navigator.clipboard.writeText(textToCopy);
       toast.success('Response copied to clipboard');
       setCopied(true);
     } catch (error) {
       toast.error('Failed to copy response');
     }
-  }, [selectedTab, selectedFormat, data, dataBuffer]);
+  }, [selectedTab, selectedFormat, data, dataBuffer, filter]);
 
   return { copyResponse, copied, hasData: !!data };
 };
 
-const ResponseCopy = forwardRef(({ item, children, selectedFormat, selectedTab, data, dataBuffer }, ref) => {
-  const { copyResponse, copied, hasData } = useResponseCopy(item, selectedFormat, selectedTab, data, dataBuffer);
+const ResponseCopy = forwardRef(({ item, children, selectedFormat, selectedTab, data, dataBuffer, filter }, ref) => {
+  const { copyResponse, copied, hasData } = useResponseCopy(item, selectedFormat, selectedTab, data, dataBuffer, filter);
   const elementRef = useRef(null);
 
   const isDisabled = !hasData ? true : false;
