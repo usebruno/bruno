@@ -55,4 +55,51 @@ describe('Digest Auth with query params', () => {
     // Expected to include both pathname and query
     expect(uri).toBe('/resource?foo=bar&baz=qux');
   });
+
+  test('parses quoted digest header values containing commas', async () => {
+    const axiosInstance = axios.create();
+
+    let callCount = 0;
+    let capturedAuthorization;
+
+    axiosInstance.defaults.adapter = async (config) => {
+      callCount += 1;
+      if (callCount === 1) {
+        const error = new Error('Unauthorized');
+        error.config = config;
+        error.response = {
+          status: 401,
+          headers: {
+            'www-authenticate': 'Digest realm="api, v1", nonce="abc", qop="auth,auth-int", opaque="token,123"'
+          }
+        };
+        throw error;
+      }
+
+      capturedAuthorization = config.headers && (config.headers.Authorization || config.headers.authorization);
+      return {
+        status: 200,
+        statusText: 'OK',
+        headers: {},
+        config,
+        data: { ok: true }
+      };
+    };
+
+    const request = {
+      method: 'GET',
+      url: 'http://example.com/resource',
+      headers: {},
+      digestConfig: { username: 'user', password: 'pass' }
+    };
+
+    addDigestInterceptor(axiosInstance, request);
+
+    const res = await axiosInstance(request);
+    expect(res.status).toEqual(200);
+
+    expect(capturedAuthorization).toContain('realm="api, v1"');
+    expect(capturedAuthorization).toContain('qop="auth"');
+    expect(capturedAuthorization).toContain('opaque="token,123"');
+  });
 });
