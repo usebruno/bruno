@@ -58,7 +58,9 @@ test.describe('Snapshot: Collection Environment Persistence', () => {
       expect(Array.isArray(snapshot?.collections)).toBe(true);
 
       const migratedCollectionEntry = snapshot?.collections?.find(
-        (collection: any) => collection?.pathname === migrationCollectionPath
+        (collection: any) =>
+          typeof collection?.pathname === 'string'
+          && path.normalize(collection.pathname) === path.normalize(migrationCollectionPath)
       );
       expect(migratedCollectionEntry).toBeTruthy();
       console.log(JSON.stringify(migratedCollectionEntry));
@@ -128,6 +130,10 @@ test.describe('Snapshot: Collection Environment Persistence', () => {
   });
 
   test('keeps selected environments for three collections across delayed switches and snapshot updates', async ({ launchElectronApp, createTmpDir }) => {
+    // Heavy test: 3 collections, several 2s settle waits, plus a full restart. The default
+    // budget collapses to 30s when the runner doesn't set CI=true, which isn't enough on
+    // slower machines (e.g. Windows) and times out mid-restart. Give it room.
+    test.setTimeout(60000);
     const userDataPath = await createTmpDir('snap-env-persistence-three');
     const firstCollectionPath = await createTmpDir('snap-col-a-three');
     const secondCollectionPath = await createTmpDir('snap-col-b-three');
