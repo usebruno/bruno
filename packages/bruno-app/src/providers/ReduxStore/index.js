@@ -11,6 +11,7 @@ import performanceReducer from './slices/performance';
 import workspacesReducer from './slices/workspaces';
 import apiSpecReducer from './slices/apiSpec';
 import openapiSyncReducer from './slices/openapi-sync';
+import streamMessagesReducer from './slices/streamMessages';
 import { draftDetectMiddleware } from './middlewares/draft/middleware';
 import { autosaveMiddleware } from './middlewares/autosave/middleware';
 import { snapshotMiddleware } from './middlewares/snapshot/middleware';
@@ -35,7 +36,8 @@ export const store = configureStore({
     performance: performanceReducer,
     workspaces: workspacesReducer,
     apiSpec: apiSpecReducer,
-    openapiSync: openapiSyncReducer
+    openapiSync: openapiSyncReducer,
+    streamMessages: streamMessagesReducer
   },
   middleware: (getDefaultMiddleware) => getDefaultMiddleware().concat(middleware)
 });
