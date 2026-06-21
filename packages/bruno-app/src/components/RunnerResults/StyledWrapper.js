@@ -181,6 +181,11 @@ const Wrapper = styled.div`
     }
   }
 
+  .loading-icon {
+    transform: scaleY(-1);
+    animation: rotateCounterClockwise 1s linear infinite;
+  }
+
   .filter-button {
     display: inline-flex;
     align-items: center;
