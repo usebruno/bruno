@@ -14,7 +14,8 @@ import toast from 'react-hot-toast';
 const EXPORT_FORMATS = {
   ZIP: 'zip',
   YAML: 'yaml',
-  POSTMAN: 'postman'
+  POSTMAN_V2_0: 'postman-v2-0',
+  POSTMAN_V2_1: 'postman-v2-1'
 };
 
 const ShareCollection = ({ onClose, collectionUid }) => {
@@ -62,9 +63,9 @@ const ShareCollection = ({ onClose, collectionUid }) => {
     exportOpenCollection(transformCollectionToSaveToExportAsFile(collectionCopy));
   };
 
-  const handleExportPostman = () => {
+  const handleExportPostman = (version) => {
     const collectionCopy = cloneDeep(collection);
-    exportPostmanCollection(collectionCopy);
+    exportPostmanCollection(collectionCopy, version);
   };
 
   const handleProceed = async () => {
@@ -79,8 +80,11 @@ const ShareCollection = ({ onClose, collectionUid }) => {
         case EXPORT_FORMATS.YAML:
           handleExportYaml();
           break;
-        case EXPORT_FORMATS.POSTMAN:
-          handleExportPostman();
+        case EXPORT_FORMATS.POSTMAN_V2_0:
+          handleExportPostman('2.0');
+          break;
+        case EXPORT_FORMATS.POSTMAN_V2_1:
+          handleExportPostman('2.1');
           break;
       }
       onClose();
@@ -165,20 +169,32 @@ const ShareCollection = ({ onClose, collectionUid }) => {
         <div className="section-title">Other Format</div>
         <div className="other-format-grid">
           <div
-            className={`other-format-card ${selectedFormat === EXPORT_FORMATS.POSTMAN ? 'selected' : ''} ${isDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
-            onClick={() => !isDisabled && setSelectedFormat(EXPORT_FORMATS.POSTMAN)}
+            className={`other-format-card ${selectedFormat === EXPORT_FORMATS.POSTMAN_V2_0 ? 'selected' : ''} ${isDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+            onClick={() => !isDisabled && setSelectedFormat(EXPORT_FORMATS.POSTMAN_V2_0)}
           >
             <div className="format-icon">
               <IconFileExport size={28} strokeWidth={1.5} />
             </div>
             <div className="format-info">
-              <div className="format-name">Postman</div>
-              <div className="format-description">Export for Postman</div>
+              <div className="format-name">Postman v2.0</div>
+              <div className="format-description">Export for Postman Collection v2.0</div>
+            </div>
+          </div>
+          <div
+            className={`other-format-card ${selectedFormat === EXPORT_FORMATS.POSTMAN_V2_1 ? 'selected' : ''} ${isDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+            onClick={() => !isDisabled && setSelectedFormat(EXPORT_FORMATS.POSTMAN_V2_1)}
+          >
+            <div className="format-icon">
+              <IconFileExport size={28} strokeWidth={1.5} />
+            </div>
+            <div className="format-info">
+              <div className="format-name">Postman v2.1</div>
+              <div className="format-description">Export for Postman Collection v2.1</div>
             </div>
           </div>
         </div>
 
-        {selectedFormat === EXPORT_FORMATS.POSTMAN && hasNonExportableRequestTypes.has && (
+        {(selectedFormat === EXPORT_FORMATS.POSTMAN_V2_0 || selectedFormat === EXPORT_FORMATS.POSTMAN_V2_1) && hasNonExportableRequestTypes.has && (
           <div className="flex items-center mt-4 p-3 rounded" style={{ backgroundColor: 'rgba(251, 191, 36, 0.1)' }}>
             <IconAlertTriangle size={16} className="mr-2 flex-shrink-0" style={{ color: '#f59e0b' }} />
             <span className="text-sm" style={{ color: '#f59e0b' }}>
