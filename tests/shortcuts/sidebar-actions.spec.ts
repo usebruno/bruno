@@ -15,7 +15,7 @@ import {
 
 test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
   test.beforeEach(async ({ pageWithUserData: page, createTmpDir }) => {
-    await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 5000 });
+    await page.locator('[data-app-state="loaded"]').waitFor();
     await setupBoundActionsData(page, createTmpDir);
   });
 
@@ -32,8 +32,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
       test('Sidebar search default (Cmd/Ctrl+F)', async ({ pageWithUserData: page }) => {
         await pressShortcut(page, modifier, 'KeyF');
 
-        // await expect(page.getByPlaceholder('Search requests...')).toBeVisible({ timeout: 3000 });
-        await expect(page.getByTestId('sidebar-search-input')).toBeVisible({ timeout: 3000 });
+        await expect(page.getByTestId('sidebar-search-input')).toBeVisible();
         await page.getByTitle('Search requests').click();
       });
 
@@ -43,7 +42,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         const row = page.getByTestId('keybinding-row-sidebarSearch');
         await row.hover();
         await page.getByTestId('keybinding-edit-sidebarSearch').click();
-        await expect(page.getByTestId('keybinding-input-sidebarSearch')).toBeVisible({ timeout: 2000 });
+        await expect(page.getByTestId('keybinding-input-sidebarSearch')).toBeVisible();
 
         await page.keyboard.press('Backspace');
 
@@ -53,7 +52,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
 
         await pressShortcut(page, 'Alt', 'KeyF');
 
-        await expect(page.getByTestId('sidebar-search-input')).toBeVisible({ timeout: 2000 });
+        await expect(page.getByTestId('sidebar-search-input')).toBeVisible();
         await page.getByTitle('Search requests').click();
       });
     });
@@ -69,7 +68,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await page.keyboard.type('https://echo.usebruno.com');
         await page.getByTestId('create-new-request-button').click();
 
-        await expect(page.locator('.request-tab').filter({ has: page.getByText('nr-folder', { exact: true }) })).toBeVisible({ timeout: 2000 });
+        await expect(page.locator('.request-tab').filter({ has: page.getByText('nr-folder', { exact: true }) })).toBeVisible();
       });
 
       test('New request customized (Alt+N)', async ({ pageWithUserData: page }) => {
@@ -78,7 +77,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         const row = page.getByTestId('keybinding-row-newRequest');
         await row.hover();
         await page.getByTestId('keybinding-edit-newRequest').click();
-        await expect(page.getByTestId('keybinding-input-newRequest')).toBeVisible({ timeout: 2000 });
+        await expect(page.getByTestId('keybinding-input-newRequest')).toBeVisible();
 
         await page.keyboard.press('Backspace');
 
@@ -93,7 +92,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await page.keyboard.type('https://echo.usebruno.com');
         await page.getByTestId('create-new-request-button').click();
 
-        await expect(page.locator('.request-tab').filter({ has: page.getByText('nr-collection', { exact: true }) })).toBeVisible({ timeout: 2000 });
+        await expect(page.locator('.request-tab').filter({ has: page.getByText('nr-collection', { exact: true }) })).toBeVisible();
       });
     });
 
@@ -106,7 +105,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
 
           // Verify rename modal opens
           const renameModal = page.locator('.bruno-modal-card').filter({ hasText: /rename request/i });
-          await expect(renameModal).toBeVisible({ timeout: 3000 });
+          await expect(renameModal).toBeVisible();
 
           // Fill in the rename req name
           const requestNameInput = page.locator('#collection-item-name');
@@ -116,7 +115,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
           await page.getByTestId('rename-item-button').click();
 
           // Verify renamed request appears in sidebar
-          await expect(page.locator('.collection-item-name').filter({ has: page.getByText('req-1-renamed', { exact: true }) })).toBeVisible({ timeout: 2000 });
+          await expect(page.locator('.collection-item-name').filter({ has: page.getByText('req-1-renamed', { exact: true }) })).toBeVisible();
         });
       });
 
@@ -127,7 +126,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
 
           // Verify rename modal opens
           const renameModal = page.locator('.bruno-modal-card').filter({ hasText: /rename folder/i });
-          await expect(renameModal).toBeVisible({ timeout: 3000 });
+          await expect(renameModal).toBeVisible();
 
           // Fill in the rename req name
           const folderNameInput = page.locator('#collection-item-name');
@@ -137,7 +136,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
           await page.getByTestId('rename-item-button').click();
 
           // Verify renamed request appears in sidebar
-          await expect(page.locator('.collection-item-name').filter({ has: page.getByText('kb-folder-renamed', { exact: true }) })).toBeVisible({ timeout: 2000 });
+          await expect(page.locator('.collection-item-name').filter({ has: page.getByText('kb-folder-renamed', { exact: true }) })).toBeVisible();
         });
       });
 
@@ -148,7 +147,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
 
           // Verify rename modal opens
           const renameModal = page.locator('.bruno-modal-card').filter({ hasText: /rename collection/i });
-          await expect(renameModal).toBeVisible({ timeout: 3000 });
+          await expect(renameModal).toBeVisible();
 
           // Fill in the rename req name
           const collectionInput = page.locator('#collection-name');
@@ -158,7 +157,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
           await page.locator('.submit').click();
 
           // Verify renamed request appears in sidebar
-          await expect(page.getByTestId('sidebar-collection-row').filter({ has: page.getByText('kb-collection-renamed', { exact: true }) })).toBeVisible({ timeout: 3000 });
+          await expect(page.getByTestId('sidebar-collection-row').filter({ has: page.getByText('kb-collection-renamed', { exact: true }) })).toBeVisible();
         });
       });
 
@@ -169,7 +168,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
           const row = page.getByTestId('keybinding-row-renameItem');
           await row.hover();
           await page.getByTestId('keybinding-edit-renameItem').click();
-          await expect(page.getByTestId('keybinding-input-renameItem')).toBeVisible({ timeout: 2000 });
+          await expect(page.getByTestId('keybinding-input-renameItem')).toBeVisible();
 
           await page.keyboard.press('Backspace');
 
@@ -180,7 +179,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
 
           // Verify rename modal opens
           const renameModal = page.locator('.bruno-modal-card').filter({ hasText: /rename request/i });
-          await expect(renameModal).toBeVisible({ timeout: 3000 });
+          await expect(renameModal).toBeVisible();
 
           // Fill in the rename req name
           const requestNameInput = page.locator('#collection-item-name');
@@ -190,7 +189,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
           await page.getByTestId('rename-item-button').click();
 
           // Verify renamed request appears in sidebar
-          await expect(page.locator('.collection-item-name').filter({ has: page.getByText('req-1-renamed-altx', { exact: true }) })).toBeVisible({ timeout: 2000 });
+          await expect(page.locator('.collection-item-name').filter({ has: page.getByText('req-1-renamed-altx', { exact: true }) })).toBeVisible();
         });
       });
 
@@ -204,7 +203,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
 
           // Verify rename modal opens
           const renameModal = page.locator('.bruno-modal-card').filter({ hasText: /rename folder/i });
-          await expect(renameModal).toBeVisible({ timeout: 3000 });
+          await expect(renameModal).toBeVisible();
 
           // Fill in the rename req name
           const folderNameInput = page.locator('#collection-item-name');
@@ -214,7 +213,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
           await page.getByTestId('rename-item-button').click();
 
           // Verify renamed request appears in sidebar
-          await expect(page.locator('.collection-item-name').filter({ has: page.getByText('kb-folder-renamed-altx-src', { exact: true }) })).toBeVisible({ timeout: 2000 });
+          await expect(page.locator('.collection-item-name').filter({ has: page.getByText('kb-folder-renamed-altx-src', { exact: true }) })).toBeVisible();
         });
       });
 
@@ -227,7 +226,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
 
           // Verify rename modal opens
           const renameModal = page.locator('.bruno-modal-card').filter({ hasText: /rename collection/i });
-          await expect(renameModal).toBeVisible({ timeout: 3000 });
+          await expect(renameModal).toBeVisible();
 
           // Fill in the rename req name
           const collectionInput = page.locator('#collection-name');
@@ -237,7 +236,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
           await page.locator('.submit').click();
 
           // Verify renamed request appears in sidebar
-          await expect(page.getByTestId('sidebar-collection-row').filter({ has: page.getByText('kb-collection-renamed-altx', { exact: true }) })).toBeVisible({ timeout: 2000 });
+          await expect(page.getByTestId('sidebar-collection-row').filter({ has: page.getByText('kb-collection-renamed-altx', { exact: true }) })).toBeVisible();
         });
       });
     });
@@ -250,7 +249,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
 
           // Verify clone modal opens
           const cloneModal = page.locator('.bruno-modal-card').filter({ hasText: /clone request/i });
-          await expect(cloneModal).toBeVisible({ timeout: 3000 });
+          await expect(cloneModal).toBeVisible();
 
           // Fill in the clone req name
           const requestNameInput = page.locator('#collection-item-name');
@@ -260,7 +259,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
           await page.getByTestId('clone-item-button').click();
 
           // Verify cloned request appears in sidebar
-          await expect(page.locator('.collection-item-name').filter({ has: page.getByText('req-1 clone 1', { exact: true }) })).toBeVisible({ timeout: 2000 });
+          await expect(page.locator('.collection-item-name').filter({ has: page.getByText('req-1 clone 1', { exact: true }) })).toBeVisible();
         });
       });
 
@@ -271,7 +270,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
 
           // Verify clone modal opens
           const cloneModal = page.locator('.bruno-modal-card').filter({ hasText: /clone folder/i });
-          await expect(cloneModal).toBeVisible({ timeout: 3000 });
+          await expect(cloneModal).toBeVisible();
 
           // Fill in the clone kb-folder name
           const folderNameInput = page.locator('#collection-item-name');
@@ -281,7 +280,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
           await page.getByTestId('clone-item-button').click();
 
           // Verify cloned request appears in sidebar
-          await expect(page.locator('.collection-item-name').filter({ has: page.getByText('kb-folder clone 1', { exact: true }) })).toBeVisible({ timeout: 2000 });
+          await expect(page.locator('.collection-item-name').filter({ has: page.getByText('kb-folder clone 1', { exact: true }) })).toBeVisible();
         });
       });
 
@@ -292,7 +291,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
           const row = page.getByTestId('keybinding-row-cloneItem');
           await row.hover();
           await page.getByTestId('keybinding-edit-cloneItem').click();
-          await expect(page.getByTestId('keybinding-input-cloneItem')).toBeVisible({ timeout: 2000 });
+          await expect(page.getByTestId('keybinding-input-cloneItem')).toBeVisible();
 
           await page.keyboard.press('Backspace');
 
@@ -304,7 +303,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
 
           // Verify clone modal opens
           const cloneModal = page.locator('.bruno-modal-card').filter({ hasText: /clone request/i });
-          await expect(cloneModal).toBeVisible({ timeout: 3000 });
+          await expect(cloneModal).toBeVisible();
 
           // Fill in the clone req name
           const requestNameInput = page.locator('#collection-item-name');
@@ -314,7 +313,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
           await page.getByTestId('clone-item-button').click();
 
           // Verify renamed request appears in sidebar
-          await expect(page.locator('.collection-item-name').filter({ has: page.getByText('req-2 clone 1', { exact: true }) })).toBeVisible({ timeout: 2000 });
+          await expect(page.locator('.collection-item-name').filter({ has: page.getByText('req-2 clone 1', { exact: true }) })).toBeVisible();
         });
       });
 
@@ -331,7 +330,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
 
           // Verify clone modal opens
           const cloneModal = page.locator('.bruno-modal-card').filter({ hasText: /clone folder/i });
-          await expect(cloneModal).toBeVisible({ timeout: 3000 });
+          await expect(cloneModal).toBeVisible();
 
           // Fill in the clone req name
           const folderNameInput = page.locator('#collection-item-name');
@@ -341,7 +340,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
           await page.getByTestId('clone-item-button').click();
 
           // Verify renamed request appears in sidebar
-          await expect(page.locator('.collection-item-name').filter({ has: page.getByText('kb-folder-clone-src copy 1', { exact: true }) })).toBeVisible({ timeout: 2000 });
+          await expect(page.locator('.collection-item-name').filter({ has: page.getByText('kb-folder-clone-src copy 1', { exact: true }) })).toBeVisible();
         });
       });
     });
@@ -354,7 +353,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
           await pressShortcut(page, modifier, 'KeyV');
 
           // Verify cloned request appears in sidebar
-          await expect(page.locator('.collection-item-name').filter({ has: page.getByText('req-3 (1)', { exact: true }) })).toBeVisible({ timeout: 2000 });
+          await expect(page.locator('.collection-item-name').filter({ has: page.getByText('req-3 (1)', { exact: true }) })).toBeVisible();
         });
       });
 
@@ -376,7 +375,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
           const row = page.getByTestId('keybinding-row-copyItem');
           await row.hover();
           await page.getByTestId('keybinding-edit-copyItem').click();
-          await expect(page.getByTestId('keybinding-input-copyItem')).toBeVisible({ timeout: 2000 });
+          await expect(page.getByTestId('keybinding-input-copyItem')).toBeVisible();
 
           await page.keyboard.press('Backspace');
 
@@ -387,7 +386,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
           const row2 = page.getByTestId('keybinding-row-pasteItem');
           await row2.hover();
           await page.getByTestId('keybinding-edit-pasteItem').click();
-          await expect(page.getByTestId('keybinding-input-pasteItem')).toBeVisible({ timeout: 2000 });
+          await expect(page.getByTestId('keybinding-input-pasteItem')).toBeVisible();
 
           await page.keyboard.press('Backspace');
 
@@ -399,7 +398,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
           await pressShortcut(page, 'Alt', 'KeyV');
 
           // Verify cloned request appears in sidebar
-          await expect(page.locator('.collection-item-name').filter({ has: page.getByText('req-4 (1)', { exact: true }) })).toBeVisible({ timeout: 2000 });
+          await expect(page.locator('.collection-item-name').filter({ has: page.getByText('req-4 (1)', { exact: true }) })).toBeVisible();
         });
       });
 
@@ -430,8 +429,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
 
         // Verify sidebar collapsed to 0px
         await expect.poll(
-          () => page.locator('aside.sidebar').evaluate((el) => getComputedStyle(el).width),
-          { timeout: 5000 }
+          () => page.locator('aside.sidebar').evaluate((el) => getComputedStyle(el).width)
         ).toBe('0px');
 
         // Press Cmd/Ctrl+\ to expand sidebar
@@ -439,8 +437,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
 
         // Verify sidebar expanded to 250px
         await expect.poll(
-          () => page.locator('aside.sidebar').evaluate((el) => getComputedStyle(el).width),
-          { timeout: 5000 }
+          () => page.locator('aside.sidebar').evaluate((el) => getComputedStyle(el).width)
         ).toBe('250px');
       });
 
@@ -450,7 +447,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         const row = page.getByTestId('keybinding-row-collapseSidebar');
         await row.hover();
         await page.getByTestId('keybinding-edit-collapseSidebar').click();
-        await expect(page.getByTestId('keybinding-input-collapseSidebar')).toBeVisible({ timeout: 2000 });
+        await expect(page.getByTestId('keybinding-input-collapseSidebar')).toBeVisible();
 
         await page.keyboard.press('Backspace');
 
@@ -463,8 +460,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
 
         // Verify sidebar collapsed to 0px
         await expect.poll(
-          () => page.locator('aside.sidebar').evaluate((el) => getComputedStyle(el).width),
-          { timeout: 5000 }
+          () => page.locator('aside.sidebar').evaluate((el) => getComputedStyle(el).width)
         ).toBe('0px');
 
         // Trigger the remapped shortcut to expand sidebar
@@ -472,8 +468,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
 
         // Verify sidebar expanded to 250px
         await expect.poll(
-          () => page.locator('aside.sidebar').evaluate((el) => getComputedStyle(el).width),
-          { timeout: 5000 }
+          () => page.locator('aside.sidebar').evaluate((el) => getComputedStyle(el).width)
         ).toBe('250px');
       });
     });

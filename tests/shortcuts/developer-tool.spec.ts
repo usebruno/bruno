@@ -27,14 +27,14 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
       test('default Cmd/Ctrl+T opens terminal', async ({ pageWithUserData: page }) => {
         // Open Collection-Settings tab (double-click collection name)
         await page.getByTestId('sidebar-collection-row').filter({ has: page.getByText('kb-collection', { exact: true }) }).click();
-        await expect(page.locator('.request-tab').filter({ has: page.getByText('Collection', { exact: true }) })).toBeVisible({ timeout: 2000 });
+        await expect(page.locator('.request-tab').filter({ has: page.getByText('Collection', { exact: true }) })).toBeVisible();
 
         // Press Cmd/Ctrl+T to open terminal at workspace level
         await pressShortcut(page, modifier, 'KeyT');
 
         // Verify terminal session is visible using data-testid
         const collectionTerminalSession = page.getByTestId('session-list-0');
-        await expect(collectionTerminalSession).toBeVisible({ timeout: 2000 });
+        await expect(collectionTerminalSession).toBeVisible();
 
         const collectionSession = collectionTerminalSession;
         await expect(collectionSession).toContainText('kb-collection');
@@ -43,11 +43,11 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         // Open Folder-Settings tab (create folder + double-click)
         // Open folder settings
         await page.locator('.collection-item-name').filter({ has: page.getByText('kb-terminal-folder', { exact: true }) }).dblclick();
-        await expect(page.locator('.request-tab').filter({ has: page.getByText('kb-terminal-folder', { exact: true }) })).toBeVisible({ timeout: 2000 });
+        await expect(page.locator('.request-tab').filter({ has: page.getByText('kb-terminal-folder', { exact: true }) })).toBeVisible();
 
         await pressShortcut(page, modifier, 'KeyT');
         const folderTerminalSession = page.getByTestId('session-list-1');
-        await expect(folderTerminalSession).toBeVisible({ timeout: 2000 });
+        await expect(folderTerminalSession).toBeVisible();
 
         // Verify the terminal session name is the workspace name (default_workspace)
         const folderSessionName = folderTerminalSession;
@@ -57,7 +57,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await page.getByTestId('session-close-1').click();
         await page.waitForTimeout(1000);
         await page.getByTestId('session-close-0').click();
-        await expect(page.getByTestId('session-close-0')).not.toBeVisible({ timeout: 3000 });
+        await expect(page.getByTestId('session-close-0')).not.toBeVisible();
         await page.getByTitle('Close console').click();
       });
     });
@@ -69,14 +69,14 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         const row = page.getByTestId('keybinding-row-openTerminal');
         await row.hover();
         await page.getByTestId('keybinding-edit-openTerminal').click();
-        await expect(page.getByTestId('keybinding-input-openTerminal')).toBeVisible({ timeout: 2000 });
+        await expect(page.getByTestId('keybinding-input-openTerminal')).toBeVisible();
 
         await page.keyboard.press('Backspace');
 
         await pressShortcut(page, 'Alt', 'KeyT');
 
         await page.getByTestId('sidebar-collection-row').filter({ has: page.getByText('kb-collection', { exact: true }) }).click();
-        await expect(page.locator('.request-tab').filter({ has: page.getByText('Collection', { exact: true }) })).toBeVisible({ timeout: 2000 });
+        await expect(page.locator('.request-tab').filter({ has: page.getByText('Collection', { exact: true }) })).toBeVisible();
 
         // Press Cmd/Ctrl+T to open terminal at workspace level
         await pressShortcut(page, 'Alt', 'KeyT');
@@ -84,7 +84,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
 
         // Verify terminal session is visible using data-testid
         const collectionTerminalSession = page.getByTestId('session-list-0');
-        await expect(collectionTerminalSession).toBeVisible({ timeout: 2000 });
+        await expect(collectionTerminalSession).toBeVisible();
 
         const collectionSession = collectionTerminalSession;
         await expect(collectionSession).toContainText('kb-collection');
@@ -94,7 +94,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
 
         await pressShortcut(page, 'Alt', 'KeyT');
         const folderTerminalSession = page.getByTestId('session-list-1');
-        await expect(folderTerminalSession).toBeVisible({ timeout: 2000 });
+        await expect(folderTerminalSession).toBeVisible();
 
         // Verify the terminal session name is the workspace name (default_workspace)
         const folderSessionName = folderTerminalSession;
@@ -104,7 +104,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await page.getByTestId('session-close-1').click();
         await page.waitForTimeout(1000);
         await page.getByTestId('session-close-0').click();
-        await expect(page.getByTestId('session-close-0')).not.toBeVisible({ timeout: 3000 });
+        await expect(page.getByTestId('session-close-0')).not.toBeVisible();
         await page.getByTitle('Close console').click();
       });
     });

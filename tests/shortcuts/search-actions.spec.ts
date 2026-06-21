@@ -28,7 +28,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
       test('default Cmd/Ctrl+K Global Search Modal', async ({ pageWithUserData: page }) => {
         await pressShortcut(page, modifier, 'KeyK');
 
-        await expect(page.getByTestId('global-search-input')).toBeVisible({ timeout: 5000 });
+        await expect(page.getByTestId('global-search-input')).toBeVisible();
         await page.getByTestId('global-search-input').click();
 
         await pressShortcut(page, 'Escape');
@@ -40,7 +40,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         const row = page.getByTestId('keybinding-row-globalSearch');
         await row.hover();
         await page.getByTestId('keybinding-edit-globalSearch').click();
-        await expect(page.getByTestId('keybinding-input-globalSearch')).toBeVisible({ timeout: 2000 });
+        await expect(page.getByTestId('keybinding-input-globalSearch')).toBeVisible();
 
         await page.keyboard.press('Backspace');
 
@@ -50,7 +50,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
 
         await pressShortcut(page, 'Shift', 'KeyK');
 
-        await expect(page.getByTestId('global-search-input')).toBeVisible({ timeout: 5000 });
+        await expect(page.getByTestId('global-search-input')).toBeVisible();
         await page.getByTestId('global-search-input').click();
 
         await pressShortcut(page, 'Escape');

@@ -42,7 +42,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         const bodyEditor = page.getByTestId('request-body-editor').locator('.CodeMirror');
         await bodyEditor.click();
         await page.keyboard.type('{"name": "Bruno", "version": 2, "tags": ["api", "client", "http"], "active": true, "meta": {"author": "user", "created": "2025-01-01", "updated": "2025-06-01"}, "counts": {"requests": 42, "collections": 7}}');
-        await expect(page.getByTestId('request-body-editor')).toContainText('"name": "Bruno"', { timeout: 5000 });
+        await expect(page.getByTestId('request-body-editor')).toContainText('"name": "Bruno"');
 
         // Cursor is still in the body CodeMirror - press Cmd/Ctrl+Enter to send
         await pressShortcut(page, modifier, 'Enter');
@@ -65,7 +65,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         const bodyEditor = page.getByTestId('request-body-editor').locator('.CodeMirror');
         await bodyEditor.click();
         await page.keyboard.type('{"name": "Bruno", "version": 2, "tags": ["api", "client", "http"], "active": true, "meta": {"author": "user", "created": "2025-01-01", "updated": "2025-06-01"}, "counts": {"requests": 42, "collections": 7}}');
-        await expect(page.getByTestId('request-body-editor')).toContainText('"name": "Bruno"', { timeout: 5000 });
+        await expect(page.getByTestId('request-body-editor')).toContainText('"name": "Bruno"');
 
         // First send to populate response
         await pressShortcut(page, modifier, 'Enter');
@@ -123,7 +123,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         const row = page.getByTestId('keybinding-row-sendRequest');
         await row.hover();
         await page.getByTestId('keybinding-edit-sendRequest').click();
-        await expect(page.getByTestId('keybinding-input-sendRequest')).toBeVisible({ timeout: 2000 });
+        await expect(page.getByTestId('keybinding-input-sendRequest')).toBeVisible();
 
         await page.keyboard.press('Backspace');
 
@@ -144,7 +144,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         const bodyEditor = page.getByTestId('request-body-editor').locator('.CodeMirror');
         await bodyEditor.click();
         await page.keyboard.type('{"name": "Bruno", "version": 2, "tags": ["api", "client", "http"], "active": true, "meta": {"author": "user", "created": "2025-01-01", "updated": "2025-06-01"}, "counts": {"requests": 42, "collections": 7}}');
-        await expect(page.getByTestId('request-body-editor')).toContainText('"name": "Bruno"', { timeout: 5000 });
+        await expect(page.getByTestId('request-body-editor')).toContainText('"name": "Bruno"');
 
         // Cursor is still in the body CodeMirror - press Shift+Enter (customized) to send
         await pressShortcut(page, 'Shift', 'Enter');
@@ -158,7 +158,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         const row = page.getByTestId('keybinding-row-sendRequest');
         await row.hover();
         await page.getByTestId('keybinding-edit-sendRequest').click();
-        await expect(page.getByTestId('keybinding-input-sendRequest')).toBeVisible({ timeout: 2000 });
+        await expect(page.getByTestId('keybinding-input-sendRequest')).toBeVisible();
 
         await page.keyboard.press('Backspace');
 
@@ -177,7 +177,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         const bodyEditor = page.getByTestId('request-body-editor').locator('.CodeMirror');
         await bodyEditor.click();
         await page.keyboard.type('{"name": "Bruno", "version": 2, "tags": ["api", "client", "http"], "active": true, "meta": {"author": "user", "created": "2025-01-01", "updated": "2025-06-01"}, "counts": {"requests": 42, "collections": 7}}');
-        await expect(page.getByTestId('request-body-editor')).toContainText('"name": "Bruno"', { timeout: 5000 });
+        await expect(page.getByTestId('request-body-editor')).toContainText('"name": "Bruno"');
 
         // First send with Shift+Enter to populate response
         await pressShortcut(page, 'Shift', 'Enter');
@@ -200,7 +200,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         const row = page.getByTestId('keybinding-row-sendRequest');
         await row.hover();
         await page.getByTestId('keybinding-edit-sendRequest').click();
-        await expect(page.getByTestId('keybinding-input-sendRequest')).toBeVisible({ timeout: 2000 });
+        await expect(page.getByTestId('keybinding-input-sendRequest')).toBeVisible();
 
         await page.keyboard.press('Backspace');
 
@@ -242,21 +242,21 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
 
         await expect(
           page.getByTestId('response-layout-toggle-btn')
-        ).toHaveAttribute('title', 'Switch to horizontal layout', { timeout: 2000 });
+        ).toHaveAttribute('title', 'Switch to horizontal layout');
 
         // Press Cmd/Ctrl+J to change layout
         await pressShortcut(page, modifier, 'KeyJ');
 
         await expect(
           page.getByTestId('response-layout-toggle-btn')
-        ).toHaveAttribute('title', 'Switch to vertical layout', { timeout: 2000 });
+        ).toHaveAttribute('title', 'Switch to vertical layout');
 
         // Press Cmd/Ctrl+J to change layout
         await pressShortcut(page, modifier, 'KeyJ');
 
         await expect(
           page.getByTestId('response-layout-toggle-btn')
-        ).toHaveAttribute('title', 'Switch to horizontal layout', { timeout: 2000 });
+        ).toHaveAttribute('title', 'Switch to horizontal layout');
       });
     });
 
@@ -266,7 +266,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         const row = page.getByTestId('keybinding-row-changeLayout');
         await row.hover();
         await page.getByTestId('keybinding-edit-changeLayout').click();
-        await expect(page.getByTestId('keybinding-input-changeLayout')).toBeVisible({ timeout: 2000 });
+        await expect(page.getByTestId('keybinding-input-changeLayout')).toBeVisible();
 
         await page.keyboard.press('Backspace');
 
@@ -278,21 +278,21 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
 
         await expect(
           page.getByTestId('response-layout-toggle-btn')
-        ).toHaveAttribute('title', 'Switch to vertical layout', { timeout: 2000 });
+        ).toHaveAttribute('title', 'Switch to vertical layout');
 
         // Press Cmd/Ctrl+J to change layout
         await pressShortcut(page, 'Alt', 'Shift', 'KeyY');
 
         await expect(
           page.getByTestId('response-layout-toggle-btn')
-        ).toHaveAttribute('title', 'Switch to horizontal layout', { timeout: 2000 });
+        ).toHaveAttribute('title', 'Switch to horizontal layout');
 
         // Press Cmd/Ctrl+J to change layout
         await pressShortcut(page, 'Alt', 'Shift', 'KeyY');
 
         await expect(
           page.getByTestId('response-layout-toggle-btn')
-        ).toHaveAttribute('title', 'Switch to vertical layout', { timeout: 2000 });
+        ).toHaveAttribute('title', 'Switch to vertical layout');
       });
     });
   });

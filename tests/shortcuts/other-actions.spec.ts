@@ -27,7 +27,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
       test('default Cmd/Ctrl+, open preferences', async ({ pageWithUserData: page }) => {
         await pressShortcut(page, modifier, 'Comma');
 
-        await expect(page.locator('.request-tab').filter({ has: page.getByText('Preferences', { exact: true }) })).toBeVisible({ timeout: 3000 });
+        await expect(page.locator('.request-tab').filter({ has: page.getByText('Preferences', { exact: true }) })).toBeVisible();
       });
     });
 
@@ -38,13 +38,13 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         const row = page.getByTestId('keybinding-row-openPreferences');
         await row.hover();
         await page.getByTestId('keybinding-edit-openPreferences').click();
-        await expect(page.getByTestId('keybinding-input-openPreferences')).toBeVisible({ timeout: 2000 });
+        await expect(page.getByTestId('keybinding-input-openPreferences')).toBeVisible();
 
         await page.keyboard.press('Backspace');
 
         await pressShortcut(page, modifier, 'KeyP');
 
-        await expect(page.locator('.request-tab').filter({ has: page.getByText('Preferences', { exact: true }) })).toBeVisible({ timeout: 3000 });
+        await expect(page.locator('.request-tab').filter({ has: page.getByText('Preferences', { exact: true }) })).toBeVisible();
       });
     });
   });

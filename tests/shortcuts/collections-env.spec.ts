@@ -30,11 +30,11 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
       test('default Cmd/Ctrl+O open import collection modal', async ({ pageWithUserData: page }) => {
         await pressShortcut(page, modifier, 'KeyO');
 
-        await expect(page.getByTestId('import-collection-modal')).toBeVisible({ timeout: 3000 });
+        await expect(page.getByTestId('import-collection-modal')).toBeVisible();
 
         // Close the modal to leave a clean state for subsequent tests
         await page.getByTestId('modal-close-button').click();
-        await expect(page.getByTestId('import-collection-modal')).not.toBeVisible({ timeout: 3000 });
+        await expect(page.getByTestId('import-collection-modal')).not.toBeVisible();
       });
 
       test('customized Alt+O open import collection modal', async ({ pageWithUserData: page }) => {
@@ -45,7 +45,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         const row = page.getByTestId('keybinding-row-importCollection');
         await row.hover();
         await page.getByTestId('keybinding-edit-importCollection').click();
-        await expect(page.getByTestId('keybinding-input-importCollection')).toBeVisible({ timeout: 2000 });
+        await expect(page.getByTestId('keybinding-input-importCollection')).toBeVisible();
 
         await page.keyboard.press('Backspace');
 
@@ -56,11 +56,11 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         // Trigger the remapped shortcut
         await pressShortcut(page, 'Alt', 'KeyO');
 
-        await expect(page.getByTestId('import-collection-modal')).toBeVisible({ timeout: 3000 });
+        await expect(page.getByTestId('import-collection-modal')).toBeVisible();
 
         // Close the modal to leave a clean state for subsequent tests
         await page.getByTestId('modal-close-button').click();
-        await expect(page.getByTestId('import-collection-modal')).not.toBeVisible({ timeout: 3000 });
+        await expect(page.getByTestId('import-collection-modal')).not.toBeVisible();
       });
     });
 
@@ -70,7 +70,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
 
         await pressShortcut(page, modifier, 'KeyE');
 
-        await expect(page.locator('.request-tab').filter({ has: page.getByText('Environments', { exact: true }) })).toBeVisible({ timeout: 2000 });
+        await expect(page.locator('.request-tab').filter({ has: page.getByText('Environments', { exact: true }) })).toBeVisible();
       });
 
       test('open environment tab of collection customized Alt+E', async ({ pageWithUserData: page }) => {
@@ -79,7 +79,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         const row = page.getByTestId('keybinding-row-editEnvironment');
         await row.hover();
         await page.getByTestId('keybinding-edit-editEnvironment').click();
-        await expect(page.getByTestId('keybinding-input-editEnvironment')).toBeVisible({ timeout: 2000 });
+        await expect(page.getByTestId('keybinding-input-editEnvironment')).toBeVisible();
 
         await page.keyboard.press('Backspace');
 
@@ -89,7 +89,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
 
         await pressShortcut(page, 'Alt', 'KeyE');
 
-        await expect(page.locator('.request-tab').filter({ has: page.getByText('Environments', { exact: true }) })).toBeVisible({ timeout: 2000 });
+        await expect(page.locator('.request-tab').filter({ has: page.getByText('Environments', { exact: true }) })).toBeVisible();
       });
     });
 
@@ -105,7 +105,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await page.keyboard.type('https://echo.usebruno.com');
         await page.getByTestId('create-new-request-button').click();
 
-        await expect(page.locator('.request-tab').filter({ has: page.getByText('nr-collection-cenv', { exact: true }) })).toBeVisible({ timeout: 2000 });
+        await expect(page.locator('.request-tab').filter({ has: page.getByText('nr-collection-cenv', { exact: true }) })).toBeVisible();
       });
 
       test('default Cmd/Ctrl+N opens new request modal for folder', async ({ pageWithUserData: page }) => {
@@ -119,7 +119,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await page.keyboard.type('https://echo.usebruno.com');
         await page.getByTestId('create-new-request-button').click();
 
-        await expect(page.locator('.request-tab').filter({ has: page.getByText('nr-folder-cenv', { exact: true }) })).toBeVisible({ timeout: 2000 });
+        await expect(page.locator('.request-tab').filter({ has: page.getByText('nr-folder-cenv', { exact: true }) })).toBeVisible();
       });
 
       test('customized Alt+N opens new request modal for collection', async ({ pageWithUserData: page }) => {
@@ -128,7 +128,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         const row = page.getByTestId('keybinding-row-newRequest');
         await row.hover();
         await page.getByTestId('keybinding-edit-newRequest').click();
-        await expect(page.getByTestId('keybinding-input-newRequest')).toBeVisible({ timeout: 2000 });
+        await expect(page.getByTestId('keybinding-input-newRequest')).toBeVisible();
 
         await page.keyboard.press('Backspace');
 
@@ -144,7 +144,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await page.keyboard.type('https://echo.usebruno.com');
         await page.getByTestId('create-new-request-button').click();
 
-        await expect(page.locator('.request-tab').filter({ has: page.getByText('nr-collection-cenv-altn', { exact: true }) })).toBeVisible({ timeout: 2000 });
+        await expect(page.locator('.request-tab').filter({ has: page.getByText('nr-collection-cenv-altn', { exact: true }) })).toBeVisible();
       });
 
       test('customized Alt+N opens new request modal for folder', async ({ pageWithUserData: page }) => {
@@ -153,7 +153,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         const row = page.getByTestId('keybinding-row-newRequest');
         await row.hover();
         await page.getByTestId('keybinding-edit-newRequest').click();
-        await expect(page.getByTestId('keybinding-input-newRequest')).toBeVisible({ timeout: 2000 });
+        await expect(page.getByTestId('keybinding-input-newRequest')).toBeVisible();
 
         await page.keyboard.press('Backspace');
 
@@ -169,7 +169,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await page.keyboard.type('https://echo.usebruno.com');
         await page.getByTestId('create-new-request-button').click();
 
-        await expect(page.locator('.request-tab').filter({ has: page.getByText('nr-folder-cenv-altn', { exact: true }) })).toBeVisible({ timeout: 2000 });
+        await expect(page.locator('.request-tab').filter({ has: page.getByText('nr-folder-cenv-altn', { exact: true }) })).toBeVisible();
       });
     });
   });
