@@ -626,7 +626,7 @@ export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
       return reject(error);
     }
 
-    dispatch(_clearScriptGlobalEnvBaseline());
+    dispatch(clearScriptVariableBaselines(collectionUid));
 
     await dispatch(
       initRunRequestEvent({
