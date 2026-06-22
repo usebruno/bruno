@@ -161,6 +161,7 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
     <StyledWrapper className="w-full" ref={wrapperRef}>
       <EditableTable
         tableId="request-headers"
+        testId="request-headers-table"
         columns={columns}
         rows={headers || []}
         onChange={handleHeadersChange}

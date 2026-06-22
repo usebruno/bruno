@@ -262,6 +262,7 @@ const MultipartFormParams = ({ item, collection }) => {
     <StyledWrapper className="w-full" ref={wrapperRef}>
       <EditableTable
         tableId="multipart-form"
+        testId="multipart-form-table"
         columns={columns}
         rows={params || []}
         onChange={handleParamsChange}

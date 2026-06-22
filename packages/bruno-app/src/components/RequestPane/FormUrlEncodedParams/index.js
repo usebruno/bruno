@@ -109,6 +109,7 @@ const FormUrlEncodedParams = ({ item, collection }) => {
     <StyledWrapper className="w-full" ref={wrapperRef}>
       <EditableTable
         tableId="form-url-encoded"
+        testId="form-urlencoded-table"
         columns={columns}
         rows={params || []}
         onChange={handleParamsChange}

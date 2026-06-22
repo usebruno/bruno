@@ -1,0 +1,39 @@
+info:
+  name: request-with-descriptions
+  type: http
+  seq: 1
+
+http:
+  method: GET
+  url: https://example.com/api
+  headers:
+    - name: X-Version
+      value: "2.0"
+      description: Single-line header desc
+    - name: X-Multi
+      value: value
+      description: |-
+        Header line one
+        Header line two
+    - name: X-Plain
+      value: plain-value
+  params:
+    - name: q
+      value: search
+      type: query
+      description: Single-line query desc
+    - name: page
+      value: "1"
+      type: query
+      description: |-
+        Multi-line query desc line one
+        Multi-line query desc line two
+    - name: plain-query
+      value: value
+      type: query
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

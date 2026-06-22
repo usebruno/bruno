@@ -864,6 +864,217 @@ headers {
     expect(parsed.headers[0].annotations).toEqual([{ name: 'description', value: 'Token (JWT)' }]);
   });
 
+  it('parseAndSerialise - bru sourced roundtrip check - params:query', () => {
+    const input = `params:query {
+  @description('search term')
+  q: hello
+}
+`;
+    const parsed = parser(input);
+    const output = jsonToBru(parsed);
+    expect(output).toEqual(input);
+  });
+
+  it('parseAndSerialise - json sourced roundtrip check - params:query', () => {
+    const input = {
+      params: [
+        {
+          name: 'q',
+          value: 'hello',
+          enabled: true,
+          type: 'query',
+          annotations: [{ name: 'description', value: 'search term' }],
+          description: 'search term'
+        }
+      ]
+    };
+    const bru = jsonToBru(input);
+    const output = parser(bru);
+    expect(output).toEqual(input);
+  });
+
+  it('parseAndSerialise - bru sourced roundtrip check - params:path', () => {
+    const input = `params:path {
+  @description('user id')
+  userId: 123
+}
+`;
+    const parsed = parser(input);
+    const output = jsonToBru(parsed);
+    expect(output).toEqual(input);
+  });
+
+  it('parseAndSerialise - json sourced roundtrip check - params:path', () => {
+    const input = {
+      params: [
+        {
+          name: 'userId',
+          value: '123',
+          enabled: true,
+          type: 'path',
+          annotations: [{ name: 'description', value: 'user id' }],
+          description: 'user id'
+        }
+      ]
+    };
+    const bru = jsonToBru(input);
+    const output = parser(bru);
+    expect(output).toEqual(input);
+  });
+
+  it('parseAndSerialise - bru sourced roundtrip check - metadata', () => {
+    const input = `metadata {
+  @description('trace id')
+  trace-id: abc123
+}
+`;
+    const parsed = parser(input);
+    const output = jsonToBru(parsed);
+    expect(output).toEqual(input);
+  });
+
+  it('parseAndSerialise - json sourced roundtrip check - metadata', () => {
+    const input = {
+      metadata: [
+        {
+          name: 'trace-id',
+          value: 'abc123',
+          enabled: true,
+          annotations: [{ name: 'description', value: 'trace id' }],
+          description: 'trace id'
+        }
+      ]
+    };
+    const bru = jsonToBru(input);
+    const output = parser(bru);
+    expect(output).toEqual(input);
+  });
+
+  it('parseAndSerialise - bru sourced roundtrip check - body:form-urlencoded', () => {
+    const input = `body:form-urlencoded {
+  @description('username field')
+  username: alice
+}
+`;
+    const parsed = parser(input);
+    const output = jsonToBru(parsed);
+    expect(output).toEqual(input);
+  });
+
+  it('parseAndSerialise - json sourced roundtrip check - body:form-urlencoded', () => {
+    const input = {
+      body: {
+        formUrlEncoded: [
+          {
+            name: 'username',
+            value: 'alice',
+            enabled: true,
+            annotations: [{ name: 'description', value: 'username field' }],
+            description: 'username field'
+          }
+        ]
+      }
+    };
+    const bru = jsonToBru(input);
+    const output = parser(bru);
+    expect(output).toEqual(input);
+  });
+
+  it('parseAndSerialise - bru sourced roundtrip check - body:multipart-form text field', () => {
+    const input = `body:multipart-form {
+  @description('plain field')
+  field: value @contentType(text/plain)
+}
+`;
+    const parsed = parser(input);
+    const output = jsonToBru(parsed);
+    expect(output).toEqual(input);
+  });
+
+  it('parseAndSerialise - bru sourced roundtrip check - body:multipart-form file field', () => {
+    const input = `body:multipart-form {
+  @description('upload image')
+  upload: @file(/tmp/a.png|/tmp/b.png) @contentType(image/png)
+}
+`;
+    const parsed = parser(input);
+    const output = jsonToBru(parsed);
+    expect(output).toEqual(input);
+  });
+
+  it('parseAndSerialise - bru sourced roundtrip check - body:file', () => {
+    const input = `body:file {
+  @description('upload doc')
+  file: @file(/tmp/readme.pdf) @contentType(application/pdf)
+}
+`;
+    const parsed = parser(input);
+    const output = jsonToBru(parsed);
+    expect(output).toEqual(input);
+  });
+
+  it('parseAndSerialise - bru sourced roundtrip check - vars:pre-request', () => {
+    const input = `vars:pre-request {
+  @description('base url')
+  BASE_URL: http://localhost
+}
+`;
+    const parsed = parser(input);
+    const output = jsonToBru(parsed);
+    expect(output).toEqual(input);
+  });
+
+  it('parseAndSerialise - json sourced roundtrip check - vars:pre-request', () => {
+    const input = {
+      vars: {
+        req: [
+          {
+            name: 'BASE_URL',
+            value: 'http://localhost',
+            enabled: true,
+            local: false,
+            annotations: [{ name: 'description', value: 'base url' }],
+            description: 'base url'
+          }
+        ]
+      }
+    };
+    const bru = jsonToBru(input);
+    const output = parser(bru);
+    expect(output).toEqual(input);
+  });
+
+  it('parseAndSerialise - bru sourced roundtrip check - vars:post-response', () => {
+    const input = `vars:post-response {
+  @description('auth token')
+  token: abc123
+}
+`;
+    const parsed = parser(input);
+    const output = jsonToBru(parsed);
+    expect(output).toEqual(input);
+  });
+
+  it('parseAndSerialise - json sourced roundtrip check - vars:post-response', () => {
+    const input = {
+      vars: {
+        res: [
+          {
+            name: 'token',
+            value: 'abc123',
+            enabled: true,
+            local: false,
+            annotations: [{ name: 'description', value: 'auth token' }],
+            description: 'auth token'
+          }
+        ]
+      }
+    };
+    const bru = jsonToBru(input);
+    const output = parser(bru);
+    expect(output).toEqual(input);
+  });
+
   it('inline annotation on a header is rejected', () => {
     const input = `
 headers {

@@ -34,6 +34,9 @@ const stringifyHttpRequest = (item: BrunoItem): string => {
     if (item.tags?.length) {
       info.tags = item.tags;
     }
+    if (isNonEmptyString(item.description)) {
+      info.description = item.description;
+    }
     ocRequest.info = info;
 
     // http block

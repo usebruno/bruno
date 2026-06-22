@@ -203,6 +203,7 @@ const QueryParams = ({ item, collection }) => {
         </div>
         <EditableTable
           tableId="query-params"
+          testId="query-params-table"
           columns={queryColumns}
           rows={queryParams || []}
           onChange={handleQueryParamsChange}
@@ -235,6 +236,7 @@ const QueryParams = ({ item, collection }) => {
         {pathParams && pathParams.length > 0 ? (
           <EditableTable
             tableId="path-params"
+            testId="path-params-table"
             columns={pathColumns}
             rows={pathParams}
             onChange={() => {}}

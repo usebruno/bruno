@@ -1,0 +1,33 @@
+meta {
+  name: request-with-descriptions
+  type: http
+  seq: 1
+}
+
+get {
+  url: https://example.com/api
+  body: none
+  auth: none
+}
+
+params:query {
+  @description('''Single-line query desc''')
+  q: search
+  @description('''
+    Multi-line query desc line one
+    Multi-line query desc line two
+  ''')
+  page: 1
+  plain-query: value
+}
+
+headers {
+  @description('''Single-line header desc''')
+  X-Version: 2.0
+  @description('''
+    Header line one
+    Header line two
+  ''')
+  X-Multi: value
+  X-Plain: plain-value
+}
