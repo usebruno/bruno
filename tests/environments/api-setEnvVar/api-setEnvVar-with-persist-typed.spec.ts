@@ -86,6 +86,8 @@ test.describe.serial('bru.setEnvVar(name, value, { persist: true }) — typed va
         newPage.locator('[data-testid="env-var-row-typed_str"] .type-label').first()
       ).toHaveText('string');
 
+      await newPage.getByTestId('responsive-tab-secrets').click();
+
       await expect(
         newPage.locator('[data-testid="env-var-row-existing_secret"]')
       ).toBeVisible();

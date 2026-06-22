@@ -445,9 +445,6 @@ const EnvironmentVariablesTable = ({
     const otherCurrent = namedValues.filter((variable) => !belongsToActiveTab(variable));
     const otherSaved = savedValues.filter((variable) => !belongsToActiveTab(variable));
 
-    // Compare without UIDs; only the active tab's subset decides if there's anything to save.
-    const hasChanges
-      = JSON.stringify(activeCurrent.map(stripEnvVarUid)) !== JSON.stringify(activeSaved.map(stripEnvVarUid));
     // Compare against what's on disk: for an ephemeral overlay, that's
     // `persistedValue`, not the scripted value Redux is holding.
     const baselineForCompare = (v) => {
@@ -457,7 +454,9 @@ const EnvironmentVariablesTable = ({
       }
       return stripped;
     };
-    const hasChanges = JSON.stringify(variablesToSave.map(stripEnvVarUid)) !== JSON.stringify(savedValues.map(baselineForCompare));
+    // Compare without UIDs; only the active tab's subset decides if there's anything to save.
+    const hasChanges
+      = JSON.stringify(activeCurrent.map(stripEnvVarUid)) !== JSON.stringify(activeSaved.map(baselineForCompare));
     if (!hasChanges) {
       toast.error('No changes to save');
       return;

@@ -91,7 +91,6 @@ export const buildCommonLocators = (page: Page) => ({
     // Variables and secrets each live on their own tab in the environment editor.
     variablesTab: () => page.getByTestId('responsive-tab-variables'),
     secretsTab: () => page.getByTestId('responsive-tab-secrets'),
-    varRow: (name: string) => page.getByTestId(`env-var-row-${name}`),
     saveTab: () => page.getByTestId('save-env'),
     saveAll: () => page.getByTestId('save-all-env')
   },
