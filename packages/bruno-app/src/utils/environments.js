@@ -14,35 +14,33 @@ const toPersistedEnvVarForMerge = (persistedNames) => (v) => {
 
 const toPersistedEnvVarForSave = (v) => {
   const { ephemeral, persistedValue, ...rest } = v || {};
-  return v?.ephemeral ? (persistedValue !== undefined ? { ...rest, value: persistedValue } : rest) : rest;
+  return rest;
 };
 
-/*
- High-level builder for persisted variables
- - mode 'save': write what the user sees
- - mode 'merge': write only allowed vars (non-ephemeral, ephemerals with persistedValue, or explicitly persisted this run)
-*/
+// mode 'save': commit the visible value (Save button).
+// mode 'merge': commit only allowed vars — non-ephemeral, ephemerals with
+//   persistedValue, or names explicitly persisted this run.
 export const buildPersistedEnvVariables = (variables, { mode, persistedNames } = {}) => {
   const src = Array.isArray(variables) ? variables : [];
   if (mode === 'merge') {
     const names = persistedNames instanceof Set ? persistedNames : new Set();
     return src.filter(isPersistableEnvVarForMerge(names)).map(toPersistedEnvVarForMerge(names));
   }
-  // default to save mode
   return src.map(toPersistedEnvVarForSave);
 };
 
 export const buildEnvVariable = ({ envVariable: obj, withUuid = false }) => {
+  const isSecret = !!obj.secret;
   let envVariable = {
     name: obj.name ?? '',
-    value: !!obj.secret ? '' : (obj.value ?? ''),
+    value: isSecret ? '' : (obj.value ?? ''),
     type: 'text',
     enabled: obj.enabled !== false,
-    secret: !!obj.secret
+    secret: isSecret
   };
 
-  if (obj.description) {
-    envVariable.description = obj.description;
+  if (obj.dataType && obj.dataType !== 'string') {
+    envVariable.dataType = obj.dataType;
   }
 
   if (!withUuid) {
@@ -55,13 +53,12 @@ export const buildEnvVariable = ({ envVariable: obj, withUuid = false }) => {
   };
 };
 
-/**
- * Strips the UID from an environment variable for comparison purposes.
- * This is useful when comparing variables where UIDs may differ but the actual data is the same.
- */
 export const stripEnvVarUid = (variable) => {
-  const { name, value, type, enabled, secret, description } = variable;
+  const { name, value, type, enabled, secret, description, dataType } = variable;
   const result = { name, value, type, enabled, secret };
   if (description !== undefined && description !== '') result.description = description;
+  if (dataType && dataType !== 'string') {
+    result.dataType = dataType;
+  }
   return result;
 };

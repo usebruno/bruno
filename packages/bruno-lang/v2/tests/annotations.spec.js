@@ -1186,9 +1186,9 @@ describe('env pair annotations', () => {
     const output = envParser(input);
     expect(output.variables).toEqual([
       { name: 'env_secret_str', value: '', enabled: true, secret: true },
-      { name: 'env_secret_num', value: '', enabled: true, secret: true, annotations: [{ name: 'number' }] },
-      { name: 'env_secret_obj', value: '', enabled: true, secret: true, annotations: [{ name: 'object' }] },
-      { name: 'env_secret_boolean', value: '', enabled: true, secret: true, annotations: [{ name: 'boolean' }] },
+      { name: 'env_secret_num', value: '', enabled: true, secret: true, annotations: [{ name: 'number' }], dataType: 'number' },
+      { name: 'env_secret_obj', value: '', enabled: true, secret: true, annotations: [{ name: 'object' }], dataType: 'object' },
+      { name: 'env_secret_boolean', value: '', enabled: true, secret: true, annotations: [{ name: 'boolean' }], dataType: 'boolean' },
       { name: 'env_secret_new', value: '', enabled: true, secret: true }
     ]);
   });

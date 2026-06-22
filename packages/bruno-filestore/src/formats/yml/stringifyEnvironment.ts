@@ -2,27 +2,22 @@ import type { Environment as BrunoEnvironment, EnvironmentVariable as BrunoEnvir
 import type { Environment } from '@opencollection/types/config/environments';
 import type { Variable, SecretVariable } from '@opencollection/types/common/variables';
 import { stringifyYml } from './utils';
-import { ensureString } from '../../utils';
+import { hasTypedMetadata, toOpenCollectionTypedValue, serializeVariableValue } from './common/datatype';
 
-const toOpenCollectionEnvironmentVariables = (variables: BrunoEnvironmentVariable[]): (Variable | SecretVariable)[] | undefined => {
+export const toOpenCollectionEnvironmentVariables = (variables: BrunoEnvironmentVariable[]): (Variable | SecretVariable)[] | undefined => {
   if (!variables?.length) {
     return undefined;
   }
 
   const ocVariables: (Variable | SecretVariable)[] = variables
-    .filter((v: BrunoEnvironmentVariable) => {
-      // todo: currently neither bru lang nor bruno app supports non-string values
-      // update this when bruno app supports non-string values
-      return typeof v.value === 'string';
-    })
     .map((v: BrunoEnvironmentVariable): Variable | SecretVariable => {
       if (v.secret === true) {
         const secretVar: SecretVariable = {
           secret: true,
           name: v.name || ''
         };
-        if (v.datatype && v.datatype !== 'string') {
-          secretVar.type = v.datatype;
+        if (hasTypedMetadata(v)) {
+          secretVar.type = v.dataType;
         }
         if (v.enabled === false) {
           secretVar.disabled = true;
@@ -33,12 +28,11 @@ const toOpenCollectionEnvironmentVariables = (variables: BrunoEnvironmentVariabl
         return secretVar;
       }
 
+      const valueStr = serializeVariableValue(v.value);
+
       const variable: Variable = {
         name: v.name || '',
-        value:
-          v.datatype && v.datatype !== 'string'
-            ? { type: v.datatype, data: ensureString(v.value) }
-            : ensureString(v.value)
+        value: hasTypedMetadata(v) ? toOpenCollectionTypedValue(v, valueStr) : valueStr
       };
 
       if (v.enabled === false) {

@@ -258,16 +258,14 @@ const darkMonochromeTheme = {
   },
 
   notifications: {
-    bg: colors.GRAY_3,
+    bg: colors.BG,
     list: {
-      bg: '3D3D3D',
-      borderRight: '#4f4f4f',
+      bg: colors.BG,
       borderBottom: '#545454',
-      hoverBg: '#434343',
+      hoverBg: colors.GRAY_3,
       active: {
-        border: '#a3a3a3',
-        bg: '#4f4f4f',
-        hoverBg: '#4f4f4f'
+        bg: colors.GRAY_2,
+        hoverBg: colors.GRAY_4
       }
     }
   },

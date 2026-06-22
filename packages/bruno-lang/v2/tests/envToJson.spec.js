@@ -609,81 +609,167 @@ vars {
     expect(output).toEqual(expected);
   });
 
-  it('consecutive @description prefixes are preserved as annotations on the following row', () => {
-    const input = `
+  describe('typed environment variables', () => {
+    it('should parse @number decorator and coerce value to number', () => {
+      const input = `
 vars {
-  @description('''Single-line desc''')
-  host: http://localhost:3000
-  @description('''empty description''')
-  @description('''
-    Line one
-    Line two
-  ''')
-  token: abc123
-  plain: no-description
-  @description("has ''' triple quotes inside")
-  tricky: value
-}`;
+  @number
+  port: 3000
+}
+`;
 
-    const output = parser(input);
-    expect(output.variables).toHaveLength(4);
-
-    // host — single-line description
-    expect(output.variables[0]).toMatchObject({
-      name: 'host',
-      value: 'http://localhost:3000',
-      enabled: true,
-      secret: false,
-      annotations: [
-        {
-          name: 'description',
-          value: 'Single-line desc'
-        }
-      ],
-      description: 'Single-line desc'
+      const output = parser(input);
+      expect(output).toEqual({
+        variables: [
+          {
+            name: 'port',
+            value: 3000,
+            enabled: true,
+            secret: false,
+            annotations: [{ name: 'number' }],
+            dataType: 'number'
+          }
+        ]
+      });
     });
 
-    // token — accumulates both consecutive descriptions
-    expect(output.variables[1]).toMatchObject({
-      name: 'token',
-      value: 'abc123',
-      enabled: true,
-      secret: false,
-      annotations: [
+    it('should parse @boolean decorator and coerce value to boolean', () => {
+      const input = `
+vars {
+  @boolean
+  isEnabled: true
+}
+`;
+
+      const output = parser(input);
+      expect(output.variables[0]).toEqual({
+        name: 'isEnabled',
+        value: true,
+        enabled: true,
+        secret: false,
+        annotations: [{ name: 'boolean' }],
+        dataType: 'boolean'
+      });
+    });
+
+    it('should parse @object decorator and coerce multiline JSON value', () => {
+      const input = `
+vars {
+  @object
+  config: '''
+    {"a": 1, "b": "x"}
+  '''
+}
+`;
+
+      const output = parser(input);
+      expect(output.variables[0]).toEqual({
+        name: 'config',
+        value: { a: 1, b: 'x' },
+        enabled: true,
+        secret: false,
+        annotations: [{ name: 'object' }],
+        dataType: 'object'
+      });
+    });
+
+    it('should leave plain vars without dataType', () => {
+      const input = `
+vars {
+  apiKey: abc123
+}
+`;
+
+      const output = parser(input);
+      expect(output.variables[0]).toEqual({
+        name: 'apiKey',
+        value: 'abc123',
+        enabled: true,
+        secret: false
+      });
+      expect(output.variables[0].dataType).toBeUndefined();
+    });
+
+    it('extracts the dataType from a secret var decorator', () => {
+      const input = `
+vars:secret [
+  @number
+  api_key
+]
+`;
+
+      const output = parser(input);
+      expect(output.variables[0].secret).toBe(true);
+      expect(output.variables[0].dataType).toBe('number');
+    });
+
+    it('leaves a bare secret var without a dataType', () => {
+      const input = `
+vars:secret [
+  api_key
+]
+`;
+
+      const output = parser(input);
+      expect(output.variables[0].secret).toBe(true);
+      expect(output.variables[0].dataType).toBeUndefined();
+    });
+
+    it('should preserve the declared dataType and the raw value when coercion is impossible', () => {
+      // The UI's DataTypeSelector surfaces a warning icon for these rows; the
+      // declared dataType is retained so the user sees their intent.
+      const input = `
+vars {
+  @number
+  port: not-a-number
+  @boolean
+  flag: maybe
+  @object
+  config: plain
+}
+`;
+
+      const output = parser(input);
+      expect(output.variables).toEqual([
         {
-          name: 'description',
-          value: 'empty description'
+          name: 'port',
+          value: 'not-a-number',
+          enabled: true,
+          secret: false,
+          annotations: [{ name: 'number' }],
+          dataType: 'number'
         },
         {
-          name: 'description',
-          value: 'Line one\nLine two'
-        }
-      ],
-      description: 'empty description'
-    });
-
-    // plain — no description
-    expect(output.variables[2]).toMatchObject({
-      name: 'plain',
-      value: 'no-description',
-      enabled: true,
-      secret: false
-    });
-    expect(output.variables[2].description).toBeUndefined();
-
-    // tricky — description containing ''' stored as double-quoted form
-    expect(output.variables[3]).toMatchObject({
-      name: 'tricky',
-      value: 'value',
-      enabled: true,
-      secret: false,
-      annotations: [
+          name: 'flag',
+          value: 'maybe',
+          enabled: true,
+          secret: false,
+          annotations: [{ name: 'boolean' }],
+          dataType: 'boolean'
+        },
         {
-          name: 'description',
-          value: 'has \'\'\' triple quotes inside'
+          name: 'config',
+          value: 'plain',
+          enabled: true,
+          secret: false,
+          annotations: [{ name: 'object' }],
+          dataType: 'object'
         }
-      ],
-      description: 'has \'\'\' triple quotes inside'
+      ]);
+    });
+
+    it('should keep only the last dataType when multiple are stacked', () => {
+      const input = `
+vars {
+  @object
+  @number
+  port: 3000
+}
+`;
+
+      const output = parser(input);
+      expect(output.variables[0].dataType).toBe('number');
+      expect(output.variables[0].value).toBe(3000);
     });
   });
 });

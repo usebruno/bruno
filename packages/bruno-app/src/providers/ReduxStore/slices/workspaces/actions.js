@@ -1344,11 +1344,20 @@ export const mountScratchCollection = (workspaceUid) => {
         ignore: ['node_modules', '.git']
       };
 
-      await ipcRenderer.invoke('renderer:add-collection-watcher', {
-        collectionPath: tempDirectoryPath,
-        collectionUid: scratchCollectionUid,
-        brunoConfig
-      });
+      const fileCacheEnabled = state.app?.preferences?.cache?.file?.enabled;
+      if (fileCacheEnabled) {
+        await ipcRenderer.invoke('renderer:mount-collection-v2', {
+          collectionUid: scratchCollectionUid,
+          collectionPathname: tempDirectoryPath,
+          brunoConfig
+        });
+      } else {
+        await ipcRenderer.invoke('renderer:add-collection-watcher', {
+          collectionPath: tempDirectoryPath,
+          collectionUid: scratchCollectionUid,
+          brunoConfig
+        });
+      }
 
       // Map scratch collection to workspace so getProcessEnvVars can resolve workspace .env values
       if (workspace.pathname) {

@@ -51,7 +51,8 @@ const defaultPreferences = {
   },
   onboarding: {
     hasLaunchedBefore: false,
-    hasSeenWelcomeModal: true
+    hasSeenWelcomeModal: true,
+    lastSeenVersion: null
   },
   general: {
     defaultLocation: '',
@@ -66,6 +67,9 @@ const defaultPreferences = {
   },
   cache: {
     sslSession: {
+      enabled: false
+    },
+    file: {
       enabled: false
     }
   },
@@ -127,7 +131,8 @@ const preferencesSchema = Yup.object().shape({
   }),
   onboarding: Yup.object({
     hasLaunchedBefore: Yup.boolean(),
-    hasSeenWelcomeModal: Yup.boolean()
+    hasSeenWelcomeModal: Yup.boolean(),
+    lastSeenVersion: Yup.string().nullable()
   }),
   general: Yup.object({
     defaultLocation: Yup.string().max(1024).nullable(),
@@ -142,6 +147,9 @@ const preferencesSchema = Yup.object().shape({
   }),
   cache: Yup.object({
     sslSession: Yup.object({
+      enabled: Yup.boolean()
+    }),
+    file: Yup.object({
       enabled: Yup.boolean()
     })
   }).optional(),
@@ -349,6 +357,9 @@ const preferencesUtil = {
   },
   isSslSessionCachingEnabled: () => {
     return get(getPreferences(), 'cache.sslSession.enabled', false);
+  },
+  isFileCacheEnabled: () => {
+    return get(getPreferences(), 'cache.file.enabled', false);
   },
   hasLaunchedBefore: () => {
     return get(getPreferences(), 'onboarding.hasLaunchedBefore', false);

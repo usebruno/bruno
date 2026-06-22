@@ -3,7 +3,8 @@ const _ = require('lodash');
 const {
   parseAnnotationMultilineTextBlock,
   unescapeAnnotationDoubleQuotedArg,
-  applyDescriptionFromAnnotations
+  applyDescriptionFromAnnotations,
+  extractTypedAnnotations
 } = require('./utils');
 
 // this is done to avoid breaking existing pairlist mapping so
@@ -100,6 +101,8 @@ const mapPairListToKeyValPairs = (pairList = []) => {
       applyDescriptionFromAnnotations(result, rawAnnotations);
     }
 
+    extractTypedAnnotations(rawAnnotations, result);
+
     return result;
   });
 };
@@ -124,6 +127,9 @@ const mapArrayListToKeyValPairs = (arrayList = []) => {
       result.annotations = item.annotations;
       applyDescriptionFromAnnotations(result, item.annotations);
     }
+
+    extractTypedAnnotations(item.annotations, result);
+
     return result;
   });
 };

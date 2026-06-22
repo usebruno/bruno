@@ -7,6 +7,7 @@ const {
   unescapeAnnotationDoubleQuotedArg,
   applyDescriptionFromAnnotations
 } = require('./utils');
+const { extractTypedAnnotations } = require('./utils');
 
 // this is done to avoid breaking existing pairlist mapping so
 // the key is hidden and not added into the json automatically
@@ -110,7 +111,7 @@ const grammar = ohm.grammar(`Bru {
   docs = "docs" st* "{" nl* textblock tagend
 }`);
 
-const mapPairListToKeyValPairs = (pairList = [], parseEnabled = true) => {
+const mapPairListToKeyValPairs = (pairList = [], parseEnabled = true, extractTypes = false) => {
   if (!pairList.length) {
     return [];
   }
@@ -123,6 +124,7 @@ const mapPairListToKeyValPairs = (pairList = [], parseEnabled = true) => {
     if (!parseEnabled) {
       const result = { name, value };
       if (rawAnnotations && rawAnnotations.length) result.annotations = rawAnnotations;
+      if (extractTypes) extractTypedAnnotations(rawAnnotations, result);
       return result;
     }
 
@@ -137,6 +139,7 @@ const mapPairListToKeyValPairs = (pairList = [], parseEnabled = true) => {
       result.annotations = rawAnnotations;
       applyDescriptionFromAnnotations(result, rawAnnotations);
     }
+    if (extractTypes) extractTypedAnnotations(rawAnnotations, result);
     return result;
   });
 };
@@ -601,7 +604,7 @@ const sem = grammar.createSemantics().addAttribute('ast', {
     };
   },
   varsreq(_1, dictionary) {
-    const vars = mapPairListToKeyValPairs(dictionary.ast);
+    const vars = mapPairListToKeyValPairs(dictionary.ast, true, true);
     _.each(vars, (v) => {
       let name = v.name;
       if (name && name.length && name.charAt(0) === '@') {
@@ -619,7 +622,10 @@ const sem = grammar.createSemantics().addAttribute('ast', {
     };
   },
   varsres(_1, dictionary) {
-    const vars = mapPairListToKeyValPairs(dictionary.ast);
+    // Post-response vars carry a JSON-query expression in `value`, not a literal,
+    // so dataType annotations have no runtime meaning — extract them as raw
+    // annotations only (preserved on round-trip) without populating `dataType`.
+    const vars = mapPairListToKeyValPairs(dictionary.ast, true, false);
     _.each(vars, (v) => {
       let name = v.name;
       if (name && name.length && name.charAt(0) === '@') {

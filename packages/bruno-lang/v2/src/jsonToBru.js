@@ -1,6 +1,5 @@
 const _ = require('lodash');
-
-const { indentString, getValueString, getKeyString, getValueUrl, serializeAnnotationsForItem } = require('./utils');
+const { indentString, getValueString, getKeyString, getValueUrl, serializeVar } = require('./utils');
 const jsonToExampleBru = require('./example/jsonToBru');
 
 const enabled = (items = [], key = 'enabled') => items.filter((item) => item[key]);
@@ -128,7 +127,7 @@ const jsonToBru = (json) => {
       if (enabled(queryParams).length) {
         bru += `\n${indentString(
           enabled(queryParams)
-            .map((item) => `${serializeAnnotationsForItem(item)}${getKeyString(item.name)}: ${getValueString(item.value)}`)
+            .map((item) => `${serializeVar(item)}${getKeyString(item.name)}: ${getValueString(item.value)}`)
             .join('\n')
         )}`;
       }
@@ -136,7 +135,7 @@ const jsonToBru = (json) => {
       if (disabled(queryParams).length) {
         bru += `\n${indentString(
           disabled(queryParams)
-            .map((item) => `${serializeAnnotationsForItem(item)}~${getKeyString(item.name)}: ${getValueString(item.value)}`)
+            .map((item) => `${serializeVar(item)}~${getKeyString(item.name)}: ${getValueString(item.value)}`)
             .join('\n')
         )}`;
       }
@@ -147,7 +146,7 @@ const jsonToBru = (json) => {
     if (pathParams.length) {
       bru += 'params:path {';
 
-      bru += `\n${indentString(pathParams.map((item) => `${serializeAnnotationsForItem(item)}${item.name}: ${getValueString(item.value)}`).join('\n'))}`;
+      bru += `\n${indentString(pathParams.map((item) => `${serializeVar(item)}${item.name}: ${getValueString(item.value)}`).join('\n'))}`;
 
       bru += '\n}\n\n';
     }
@@ -158,7 +157,7 @@ const jsonToBru = (json) => {
     if (enabled(headers).length) {
       bru += `\n${indentString(
         enabled(headers)
-          .map((item) => `${serializeAnnotationsForItem(item)}${getKeyString(item.name)}: ${getValueString(item.value)}`)
+          .map((item) => `${serializeVar(item)}${getKeyString(item.name)}: ${getValueString(item.value)}`)
           .join('\n')
       )}`;
     }
@@ -166,7 +165,7 @@ const jsonToBru = (json) => {
     if (disabled(headers).length) {
       bru += `\n${indentString(
         disabled(headers)
-          .map((item) => `${serializeAnnotationsForItem(item)}~${getKeyString(item.name)}: ${getValueString(item.value)}`)
+          .map((item) => `${serializeVar(item)}~${getKeyString(item.name)}: ${getValueString(item.value)}`)
           .join('\n')
       )}`;
     }
@@ -179,7 +178,7 @@ const jsonToBru = (json) => {
     if (enabled(metadata).length) {
       bru += `\n${indentString(
         enabled(metadata)
-          .map((item) => `${serializeAnnotationsForItem(item)}${item.name}: ${getValueString(item.value)}`)
+          .map((item) => `${serializeVar(item)}${item.name}: ${getValueString(item.value)}`)
           .join('\n')
       )}`;
     }
@@ -187,7 +186,7 @@ const jsonToBru = (json) => {
     if (disabled(metadata).length) {
       bru += `\n${indentString(
         disabled(metadata)
-          .map((item) => `${serializeAnnotationsForItem(item)}~${item.name}: ${getValueString(item.value)}`)
+          .map((item) => `${serializeVar(item)}~${item.name}: ${getValueString(item.value)}`)
           .join('\n')
       )}`;
     }
@@ -379,7 +378,7 @@ ${indentString(`auto_fetch_token: ${(auth?.oauth2?.autoFetchToken ?? true).toStr
 ${indentString(
   authorizationHeaders
     .filter((item) => item?.name?.length)
-    .map((item) => `${serializeAnnotationsForItem(item)}${item.enabled ? '' : '~'}${getKeyString(item.name)}: ${getValueString(item.value)}`)
+    .map((item) => `${serializeVar(item)}${item.enabled ? '' : '~'}${getKeyString(item.name)}: ${getValueString(item.value)}`)
     .join('\n')
 )}
 }
@@ -392,7 +391,7 @@ ${indentString(
 ${indentString(
   authorizationQueryParams
     .filter((item) => item?.name?.length)
-    .map((item) => `${serializeAnnotationsForItem(item)}${item.enabled ? '' : '~'}${getKeyString(item.name)}: ${getValueString(item.value)}`)
+    .map((item) => `${serializeVar(item)}${item.enabled ? '' : '~'}${getKeyString(item.name)}: ${getValueString(item.value)}`)
     .join('\n')
 )}
 }
@@ -405,7 +404,7 @@ ${indentString(
 ${indentString(
   tokenHeaders
     .filter((item) => item?.name?.length)
-    .map((item) => `${serializeAnnotationsForItem(item)}${item.enabled ? '' : '~'}${getKeyString(item.name)}: ${getValueString(item.value)}`)
+    .map((item) => `${serializeVar(item)}${item.enabled ? '' : '~'}${getKeyString(item.name)}: ${getValueString(item.value)}`)
     .join('\n')
 )}
 }
@@ -418,7 +417,7 @@ ${indentString(
 ${indentString(
   tokenQueryParams
     .filter((item) => item?.name?.length)
-    .map((item) => `${serializeAnnotationsForItem(item)}${item.enabled ? '' : '~'}${getKeyString(item.name)}: ${getValueString(item.value)}`)
+    .map((item) => `${serializeVar(item)}${item.enabled ? '' : '~'}${getKeyString(item.name)}: ${getValueString(item.value)}`)
     .join('\n')
 )}
 }
@@ -431,7 +430,7 @@ ${indentString(
 ${indentString(
   tokenBodyValues
     .filter((item) => item?.name?.length)
-    .map((item) => `${serializeAnnotationsForItem(item)}${item.enabled ? '' : '~'}${getKeyString(item.name)}: ${getValueString(item.value)}`)
+    .map((item) => `${serializeVar(item)}${item.enabled ? '' : '~'}${getKeyString(item.name)}: ${getValueString(item.value)}`)
     .join('\n')
 )}
 }
@@ -444,7 +443,7 @@ ${indentString(
 ${indentString(
   refreshHeaders
     .filter((item) => item?.name?.length)
-    .map((item) => `${serializeAnnotationsForItem(item)}${item.enabled ? '' : '~'}${getKeyString(item.name)}: ${getValueString(item.value)}`)
+    .map((item) => `${serializeVar(item)}${item.enabled ? '' : '~'}${getKeyString(item.name)}: ${getValueString(item.value)}`)
     .join('\n')
 )}
 }
@@ -457,7 +456,7 @@ ${indentString(
 ${indentString(
   refreshQueryParams
     .filter((item) => item?.name?.length)
-    .map((item) => `${serializeAnnotationsForItem(item)}${item.enabled ? '' : '~'}${getKeyString(item.name)}: ${getValueString(item.value)}`)
+    .map((item) => `${serializeVar(item)}${item.enabled ? '' : '~'}${getKeyString(item.name)}: ${getValueString(item.value)}`)
     .join('\n')
 )}
 }
@@ -470,7 +469,7 @@ ${indentString(
 ${indentString(
   refreshBodyValues
     .filter((item) => item?.name?.length)
-    .map((item) => `${serializeAnnotationsForItem(item)}${item.enabled ? '' : '~'}${getKeyString(item.name)}: ${getValueString(item.value)}`)
+    .map((item) => `${serializeVar(item)}${item.enabled ? '' : '~'}${getKeyString(item.name)}: ${getValueString(item.value)}`)
     .join('\n')
 )}
 }
@@ -527,14 +526,14 @@ ${indentString(body.sparql)}
 
     if (enabled(body.formUrlEncoded).length) {
       const enabledValues = enabled(body.formUrlEncoded)
-        .map((item) => `${serializeAnnotationsForItem(item)}${getKeyString(item.name)}: ${getValueString(item.value)}`)
+        .map((item) => `${serializeVar(item)}${getKeyString(item.name)}: ${getValueString(item.value)}`)
         .join('\n');
       bru += `${indentString(enabledValues)}\n`;
     }
 
     if (disabled(body.formUrlEncoded).length) {
       const disabledValues = disabled(body.formUrlEncoded)
-        .map((item) => `${serializeAnnotationsForItem(item)}~${getKeyString(item.name)}: ${getValueString(item.value)}`)
+        .map((item) => `${serializeVar(item)}~${getKeyString(item.name)}: ${getValueString(item.value)}`)
         .join('\n');
       bru += `${indentString(disabledValues)}\n`;
     }
@@ -553,7 +552,7 @@ ${indentString(body.sparql)}
             const enabledPrefix = item.enabled ? '' : '~';
             const contentType
               = item.contentType && item.contentType !== '' ? ' @contentType(' + item.contentType + ')' : '';
-            const annotPrefix = serializeAnnotationsForItem(item);
+            const annotPrefix = serializeVar(item);
             if (item.type === 'text') {
               return `${annotPrefix}${enabledPrefix}${getKeyString(item.name)}: ${getValueString(item.value)}${contentType}`;
             }
@@ -584,7 +583,7 @@ ${indentString(body.sparql)}
             const selected = item.selected ? '' : '~';
             const contentType
               = item.contentType && item.contentType !== '' ? ' @contentType(' + item.contentType + ')' : '';
-            const annotPrefix = serializeAnnotationsForItem(item);
+            const annotPrefix = serializeVar(item);
             const filePath = item.filePath || '';
             const value = `@file(${filePath})`;
             const itemName = 'file';
@@ -666,19 +665,19 @@ ${indentString(body.sparql)}
     bru += `vars:pre-request {`;
 
     if (varsEnabled.length) {
-      bru += `\n${indentString(varsEnabled.map((item) => `${serializeAnnotationsForItem(item)}${item.name}: ${getValueString(item.value)}`).join('\n'))}`;
+      bru += `\n${indentString(varsEnabled.map((item) => serializeVar(item)).join('\n'))}`;
     }
 
     if (varsLocalEnabled.length) {
-      bru += `\n${indentString(varsLocalEnabled.map((item) => `${serializeAnnotationsForItem(item)}@${item.name}: ${getValueString(item.value)}`).join('\n'))}`;
+      bru += `\n${indentString(varsLocalEnabled.map((item) => serializeVar(item, '@')).join('\n'))}`;
     }
 
     if (varsDisabled.length) {
-      bru += `\n${indentString(varsDisabled.map((item) => `${serializeAnnotationsForItem(item)}~${item.name}: ${getValueString(item.value)}`).join('\n'))}`;
+      bru += `\n${indentString(varsDisabled.map((item) => serializeVar(item, '~')).join('\n'))}`;
     }
 
     if (varsLocalDisabled.length) {
-      bru += `\n${indentString(varsLocalDisabled.map((item) => `${serializeAnnotationsForItem(item)}~@${item.name}: ${getValueString(item.value)}`).join('\n'))}`;
+      bru += `\n${indentString(varsLocalDisabled.map((item) => serializeVar(item, '~@')).join('\n'))}`;
     }
 
     bru += '\n}\n\n';
@@ -692,19 +691,19 @@ ${indentString(body.sparql)}
     bru += `vars:post-response {`;
 
     if (varsEnabled.length) {
-      bru += `\n${indentString(varsEnabled.map((item) => `${serializeAnnotationsForItem(item)}${item.name}: ${getValueString(item.value)}`).join('\n'))}`;
+      bru += `\n${indentString(varsEnabled.map((item) => serializeVar(item)).join('\n'))}`;
     }
 
     if (varsLocalEnabled.length) {
-      bru += `\n${indentString(varsLocalEnabled.map((item) => `${serializeAnnotationsForItem(item)}@${item.name}: ${getValueString(item.value)}`).join('\n'))}`;
+      bru += `\n${indentString(varsLocalEnabled.map((item) => serializeVar(item, '@')).join('\n'))}`;
     }
 
     if (varsDisabled.length) {
-      bru += `\n${indentString(varsDisabled.map((item) => `${serializeAnnotationsForItem(item)}~${item.name}: ${getValueString(item.value)}`).join('\n'))}`;
+      bru += `\n${indentString(varsDisabled.map((item) => serializeVar(item, '~')).join('\n'))}`;
     }
 
     if (varsLocalDisabled.length) {
-      bru += `\n${indentString(varsLocalDisabled.map((item) => `${serializeAnnotationsForItem(item)}~@${item.name}: ${getValueString(item.value)}`).join('\n'))}`;
+      bru += `\n${indentString(varsLocalDisabled.map((item) => serializeVar(item, '~@')).join('\n'))}`;
     }
 
     bru += '\n}\n\n';
@@ -716,7 +715,7 @@ ${indentString(body.sparql)}
     if (enabled(assertions).length) {
       bru += `\n${indentString(
         enabled(assertions)
-          .map((item) => `${serializeAnnotationsForItem(item)}${item.name}: ${getValueString(item.value)}`)
+          .map((item) => `${serializeVar(item)}${item.name}: ${getValueString(item.value)}`)
           .join('\n')
       )}`;
     }
@@ -724,7 +723,7 @@ ${indentString(body.sparql)}
     if (disabled(assertions).length) {
       bru += `\n${indentString(
         disabled(assertions)
-          .map((item) => `${serializeAnnotationsForItem(item)}~${getKeyString(item.name)}: ${getValueString(item.value)}`)
+          .map((item) => `${serializeVar(item)}~${getKeyString(item.name)}: ${getValueString(item.value)}`)
           .join('\n')
       )}`;
     }

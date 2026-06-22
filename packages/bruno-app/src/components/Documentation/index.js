@@ -4,11 +4,13 @@ import find from 'lodash/find';
 import { updateRequestDocs } from 'providers/ReduxStore/slices/collections';
 import { updateDocsEditing } from 'providers/ReduxStore/slices/tabs';
 import { useTheme } from 'providers/Theme';
-import { useRef } from 'react';
+import { useMemo, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import Markdown from 'components/MarkDown';
 import CodeEditor from 'components/CodeEditor';
+import AIAssist from 'components/AIAssist';
+import { buildRequestContextFromItem } from 'utils/ai';
 import StyledWrapper from './StyledWrapper';
 import { usePersistedState } from 'hooks/usePersistedState';
 import { useTrackScroll } from 'hooks/useTrackScroll';
@@ -42,6 +44,7 @@ const Documentation = ({ item, collection }) => {
   };
 
   const onSave = () => dispatch(saveRequest(item.uid, collection.uid));
+  const requestContext = useMemo(() => buildRequestContextFromItem(item), [item]);
 
   if (!item) {
     return null;
@@ -54,18 +57,26 @@ const Documentation = ({ item, collection }) => {
       </div>
 
       {isEditing ? (
-        <CodeEditor
-          collection={collection}
-          theme={displayedTheme}
-          font={get(preferences, 'font.codeFont', 'default')}
-          fontSize={get(preferences, 'font.codeFontSize')}
-          value={docs || ''}
-          onEdit={onEdit}
-          onSave={onSave}
-          mode="application/text"
-          initialScroll={scroll}
-          onScroll={setScroll}
-        />
+        <div className="relative flex-1 min-h-0">
+          <CodeEditor
+            collection={collection}
+            theme={displayedTheme}
+            font={get(preferences, 'font.codeFont', 'default')}
+            fontSize={get(preferences, 'font.codeFontSize')}
+            value={docs || ''}
+            onEdit={onEdit}
+            onSave={onSave}
+            mode="application/text"
+            initialScroll={scroll}
+            onScroll={setScroll}
+          />
+          <AIAssist
+            scriptType="docs"
+            currentScript={docs || ''}
+            requestContext={requestContext}
+            onApply={onEdit}
+          />
+        </div>
       ) : (
         <Markdown collectionPath={collection.pathname} onDoubleClick={toggleViewMode} content={docs} />
       )}
