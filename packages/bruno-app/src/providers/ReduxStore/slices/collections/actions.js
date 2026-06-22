@@ -463,8 +463,6 @@ export const sendCollectionOauth2Request = (collectionUid, itemUid) => (dispatch
 
     const environment = findEnvironmentInCollection(collectionCopy, collection.activeEnvironmentUid);
 
-    dispatch(clearScriptVariableBaselines(collectionUid));
-
     _sendCollectionOauth2Request(collectionCopy, environment, collectionCopy.runtimeVariables)
       .then((response) => {
         if (response?.data?.error) {
@@ -506,7 +504,9 @@ export const wsConnectOnly = (item, collectionUid) => (dispatch, getState) => {
 
     const environment = findEnvironmentInCollection(collectionCopy, collectionCopy.activeEnvironmentUid);
 
-    dispatch(clearScriptVariableBaselines(collectionUid));
+    // WS connect does not run user scripts — no baseline to clear.
+    // Wiping baselines here would also wipe collection._scriptRequestUid, opening
+    // a window where a late HTTP post-response could pass the stale-update gate.
 
     connectWS(itemCopy, collectionCopy, environment, collectionCopy.runtimeVariables, { connectOnly: true })
       .then(resolve)

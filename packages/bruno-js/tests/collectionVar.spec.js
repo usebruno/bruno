@@ -76,6 +76,60 @@ describe('Collection Variable APIs', () => {
     });
   });
 
+  describe('bru.setCollectionVar — dirty flag for reference-mutation idiom', () => {
+    test('the getCollectionVar → mutate → setCollectionVar idiom trips the dirty flag', () => {
+      const bru = makeBru({ config: { port: 3000 } });
+      expect(bru._collVarsDirty).toBe(false);
+      // Real-script idiom: getCollectionVar deep-copies through interpolate's JSON roundtrip,
+      // so mutating the result leaves the store untouched and the deep-equal guard fires.
+      const config = bru.getCollectionVar('config');
+      config.port = 4000;
+      bru.setCollectionVar('config', config);
+      expect(bru._collVarsDirty).toBe(true);
+      expect(bru.collectionVariables.config).toEqual({ port: 4000 });
+    });
+
+    test('re-setting a structurally-equal object value does NOT trip the dirty flag', () => {
+      const bru = makeBru({ config: { port: 3000 } });
+      bru.setCollectionVar('config', { port: 3000 });
+      expect(bru._collVarsDirty).toBe(false);
+    });
+
+    test('re-setting a structurally-equal primitive value does NOT trip the dirty flag', () => {
+      const bru = makeBru({ token: 'abc' });
+      bru.setCollectionVar('token', 'abc');
+      expect(bru._collVarsDirty).toBe(false);
+    });
+  });
+
+  describe('bru.deleteCollectionVar — dirty flag contract', () => {
+    test('deleting an existing key trips the collection-vars dirty flag', () => {
+      const bru = makeBru({ token: 'abc' });
+      bru.deleteCollectionVar('token');
+      expect(bru._collVarsDirty).toBe(true);
+    });
+
+    test('deleting a non-existent key leaves the dirty flag clean', () => {
+      const bru = makeBru();
+      bru.deleteCollectionVar('missing');
+      expect(bru._collVarsDirty).toBe(false);
+    });
+  });
+
+  describe('bru.deleteAllCollectionVars — dirty flag contract', () => {
+    test('deleting populated scope trips the dirty flag', () => {
+      const bru = makeBru({ a: '1', b: '2' });
+      bru.deleteAllCollectionVars();
+      expect(bru._collVarsDirty).toBe(true);
+    });
+
+    test('calling on empty scope leaves the dirty flag clean', () => {
+      const bru = makeBru();
+      bru.deleteAllCollectionVars();
+      expect(bru._collVarsDirty).toBe(false);
+    });
+  });
+
   describe('bru.getCollectionVar', () => {
     test('returns the value of an existing variable', () => {
       const bru = makeBru({ token: 'abc123' });

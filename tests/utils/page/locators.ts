@@ -78,6 +78,11 @@ export const buildCommonLocators = (page: Page) => ({
     saveButton: () => page.getByTestId('save-env'),
     varRow: (name: string) => page.locator(`[data-testid="env-var-row-${name}"]`),
     varRows: () => page.locator('tbody tr[data-testid^="env-var-row-"]'),
+    // Rows for `name` whose CodeMirror value matches `value`. Useful when two rows
+    // share a name (e.g. enabled + disabled twins after a script write).
+    varRowsByValue: (name: string, value: string | RegExp) =>
+      page.locator(`[data-testid="env-var-row-${name}"]`)
+        .filter({ has: page.locator('.CodeMirror-line', { hasText: value }) }),
     // Each env-var row has an `enabled` and a `secret` checkbox; target the latter
     // by its `<index>.secret` name (the formik index is dynamic).
     varRowSecretCheckbox: (name: string) => page.locator(`[data-testid="env-var-row-${name}"]`).locator('input[name$=".secret"]'),

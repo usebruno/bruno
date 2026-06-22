@@ -238,6 +238,20 @@ describe('runtime', () => {
       expect(result.globalEnvironmentVariables).toBeNull();
     });
 
+    it('should return null for scopes the script did not touch — QuickJS parity', async () => {
+      await quickJsLoader();
+      const script = `bru.setEnvVar('only_env', 'val');`;
+      const runtime = new ScriptRuntime({ runtime: 'quickjs' });
+      const onConsoleLog = () => {};
+
+      const result = await runtime.runRequestScript(script, {}, {}, {}, '.', onConsoleLog, process.env);
+
+      expect(result.envVariables).not.toBeNull();
+      expect(result.envVariables.only_env).toBe('val');
+      expect(result.collectionVariables).toBeNull();
+      expect(result.globalEnvironmentVariables).toBeNull();
+    });
+
     it('should not include persistentEnvVariables in result', async () => {
       const script = `bru.setEnvVar('key', 'val');`;
       const runtime = new ScriptRuntime({ runtime: 'nodevm' });

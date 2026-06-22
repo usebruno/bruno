@@ -10,7 +10,7 @@ import { configureStore } from '@reduxjs/toolkit';
 import globalEnvironmentsReducer, {
   globalEnvironmentsUpdateEvent,
   _clearScriptGlobalEnvBaseline,
-  setGlobalEnvironmentDraft
+  updateGlobalEnvironments
 } from 'providers/ReduxStore/slices/global-environments';
 
 const ENV_UID = 'genv-1';
@@ -442,5 +442,90 @@ describe('globalEnvironmentsUpdateEvent — draft-aware merge', () => {
 
       expect(getGlobalState(store)._scriptGlobalEnvBaseline).toBeNull();
     });
+  });
+
+  describe('object/array typed-var no-op writes preserve draft (deep-equal compare)', () => {
+    test('script re-writing a structurally-equal object value does NOT clobber draft edit', () => {
+      const savedVar = { ...makeVar('CFG', { port: 3000 }), dataType: 'object' };
+      const draftVar = { ...makeVar('CFG', { port: 4000 }), dataType: 'object' };
+      const store = createStore([savedVar], {
+        draft: { environmentUid: ENV_UID, variables: [draftVar] }
+      });
+
+      store.dispatch(globalEnvironmentsUpdateEvent({ globalEnvironmentVariables: { CFG: { port: 3000 } } }));
+
+      const v = getEnv(store).variables.find((v) => v.name === 'CFG');
+      expect(v.value).toEqual({ port: 4000 });
+    });
+  });
+
+  describe('disabled-var name collision — script targets enabled slot only', () => {
+    test('script setting X writes to the enabled X, leaves the disabled X untouched', () => {
+      const disabledX = makeVar('X', 'archived', false);
+      const enabledX = makeVar('X', 'current');
+      const store = createStore([disabledX, enabledX]);
+
+      store.dispatch(globalEnvironmentsUpdateEvent({ globalEnvironmentVariables: { X: 'updated' } }));
+
+      const xVars = getEnv(store).variables.filter((v) => v.name === 'X');
+      expect(xVars).toHaveLength(2);
+      expect(xVars.find((v) => v.enabled === false).value).toBe('archived');
+      expect(xVars.find((v) => v.enabled === true).value).toBe('updated');
+    });
+  });
+});
+
+describe('updateGlobalEnvironments — activeGlobalEnvironmentUid resolution', () => {
+  // The reducer trusts the caller-supplied active uid (every consumer derives it from the
+  // per-workspace electron store) and only validates it against the new env list, dropping
+  // to null if the uid doesn't match any env.
+  const setup = (preEnvs, preActiveUid, payloadEnvs, payloadActiveUid) => {
+    const preloadedState = {
+      globalEnvironments: {
+        globalEnvironments: preEnvs,
+        activeGlobalEnvironmentUid: preActiveUid,
+        globalEnvironmentDraft: null,
+        _scriptGlobalEnvBaseline: null
+      }
+    };
+    const store = configureStore({
+      reducer: { globalEnvironments: globalEnvironmentsReducer },
+      preloadedState
+    });
+    store.dispatch(updateGlobalEnvironments({
+      globalEnvironments: payloadEnvs,
+      activeGlobalEnvironmentUid: payloadActiveUid
+    }));
+    return store.getState().globalEnvironments.activeGlobalEnvironmentUid;
+  };
+
+  test('incoming uid present in new envs → resolved to incoming uid', () => {
+    const result = setup(
+      [{ uid: 'old-1', name: 'Stage' }],
+      'old-1',
+      [{ uid: 'new-1', name: 'Stage' }, { uid: 'new-2', name: 'Prod' }],
+      'new-2'
+    );
+    expect(result).toBe('new-2');
+  });
+
+  test('incoming uid not in new envs → null (stale uid is dropped)', () => {
+    const result = setup(
+      [{ uid: 'gone', name: 'DeletedEnv' }],
+      'gone',
+      [{ uid: 'other', name: 'Different' }],
+      'gone'
+    );
+    expect(result).toBeNull();
+  });
+
+  test('no incoming uid + no prior state → null', () => {
+    const result = setup(
+      [],
+      null,
+      [{ uid: 'env-A', name: 'Stage' }],
+      null
+    );
+    expect(result).toBeNull();
   });
 });

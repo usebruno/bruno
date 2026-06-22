@@ -22,26 +22,9 @@ export const globalEnvironmentsSlice = createSlice({
       const newEnvs = action.payload?.globalEnvironments || [];
       const incomingActiveUid = action.payload?.activeGlobalEnvironmentUid ?? null;
 
-      // The YAML parser generates a fresh uid on every parse, so the active uid
-      // from the per-workspace electron store can go stale after a disk reload.
-      // Resolution order:
-      //   1. incoming uid (if it exists in the new env list)
-      //   2. previous active uid (if it still exists — survives transient file-watcher reloads
-      //      that don't pass an incoming uid)
-      //   3. name-remap from the previously-active env (handles the YAML fresh-uid case)
-      //   4. null (genuinely deleted)
-      let resolvedActiveUid = null;
-      if (incomingActiveUid && newEnvs.some((e) => e?.uid === incomingActiveUid)) {
-        resolvedActiveUid = incomingActiveUid;
-      } else if (state.activeGlobalEnvironmentUid && newEnvs.some((e) => e?.uid === state.activeGlobalEnvironmentUid)) {
-        resolvedActiveUid = state.activeGlobalEnvironmentUid;
-      } else if (state.activeGlobalEnvironmentUid) {
-        const prevActive = state.globalEnvironments?.find((e) => e?.uid === state.activeGlobalEnvironmentUid);
-        if (prevActive?.name) {
-          const remapped = newEnvs.find((e) => e?.name === prevActive.name);
-          if (remapped?.uid) resolvedActiveUid = remapped.uid;
-        }
-      }
+      const resolvedActiveUid = incomingActiveUid && newEnvs.some((e) => e?.uid === incomingActiveUid)
+        ? incomingActiveUid
+        : null;
 
       state.globalEnvironments = newEnvs;
       state.activeGlobalEnvironmentUid = resolvedActiveUid;

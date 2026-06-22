@@ -82,6 +82,92 @@ describe('bru.deleteEnvVar', () => {
   });
 });
 
+describe('bru.setEnvVar — dirty flag for reference-mutation idiom', () => {
+  test('the getEnvVar → mutate → setEnvVar idiom trips the dirty flag', () => {
+    const bru = new Bru({
+      runtime: 'quickjs',
+      envVariables: { config: { port: 3000 } },
+      runtimeVariables: {},
+      processEnvVars: {},
+      collectionPath: '/',
+      collectionName: 'Test'
+    });
+    expect(bru._envDirty).toBe(false);
+    // Real-script idiom: `const c = bru.getEnvVar('config'); c.port = 4000; bru.setEnvVar('config', c);`
+    // `getEnvVar` deep-copies through interpolate's JSON roundtrip, so mutating the result
+    // leaves envVariables.config untouched; the deep-equal guard then sees a real change.
+    // Pre-fix the strict-`!==` guard missed cases where the script structurally rebuilt the value.
+    const config = bru.getEnvVar('config');
+    config.port = 4000;
+    bru.setEnvVar('config', config);
+    expect(bru._envDirty).toBe(true);
+    expect(bru.envVariables.config).toEqual({ port: 4000 });
+  });
+
+  test('re-setting a structurally-equal object value does NOT trip the dirty flag', () => {
+    const bru = new Bru({
+      runtime: 'quickjs',
+      envVariables: { config: { port: 3000 } },
+      runtimeVariables: {},
+      processEnvVars: {},
+      collectionPath: '/',
+      collectionName: 'Test'
+    });
+    bru.setEnvVar('config', { port: 3000 });
+    expect(bru._envDirty).toBe(false);
+  });
+
+  test('re-setting a structurally-equal primitive value does NOT trip the dirty flag', () => {
+    const bru = new Bru({
+      runtime: 'quickjs',
+      envVariables: { token: 'abc' },
+      runtimeVariables: {},
+      processEnvVars: {},
+      collectionPath: '/',
+      collectionName: 'Test'
+    });
+    bru.setEnvVar('token', 'abc');
+    expect(bru._envDirty).toBe(false);
+  });
+});
+
+describe('bru.deleteEnvVar — dirty flag contract', () => {
+  test('deleting an existing key trips the env dirty flag', () => {
+    const bru = makeBru();
+    bru.setEnvVar('token', 'abc');
+    bru._envDirty = false; // reset post-set
+    bru.deleteEnvVar('token');
+    expect(bru._envDirty).toBe(true);
+  });
+
+  test('deleting a non-existent key leaves the dirty flag clean', () => {
+    const bru = makeBru();
+    bru.deleteEnvVar('missing');
+    expect(bru._envDirty).toBe(false);
+  });
+});
+
+describe('bru.deleteAllEnvVars — dirty flag contract', () => {
+  test('deleting populated env trips the dirty flag', () => {
+    const bru = new Bru({
+      runtime: 'quickjs',
+      envVariables: { a: '1', b: '2' },
+      runtimeVariables: {},
+      processEnvVars: {},
+      collectionPath: '/',
+      collectionName: 'Test'
+    });
+    bru.deleteAllEnvVars();
+    expect(bru._envDirty).toBe(true);
+  });
+
+  test('calling on empty env leaves the dirty flag clean', () => {
+    const bru = makeBru();
+    bru.deleteAllEnvVars();
+    expect(bru._envDirty).toBe(false);
+  });
+});
+
 describe('bru.deleteAll* methods — resilient to user-shadowed Object.prototype methods', () => {
   // Use Object.hasOwn (not the property accessor) to check deletion, since after
   // delete the prototype's hasOwnProperty becomes visible again on a plain object.
