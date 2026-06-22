@@ -9,6 +9,7 @@ const initialState = {
   isDragging: false,
   idbConnectionReady: false,
   snapshotReady: false,
+  isHydrated: false,
   snapshotHydration: {
     workspaceUid: null,
     pendingCollectionPathnames: [],
@@ -100,6 +101,19 @@ export const appSlice = createSlice({
     },
     setSnapshotReady: (state, action) => {
       state.snapshotReady = action.payload;
+    },
+    setHydratedState: (state, action) => {
+      const snapshot = action.payload;
+      if (snapshot && snapshot.extras && snapshot.extras.sidebar) {
+        const sidebar = snapshot.extras.sidebar;
+        if (sidebar.width !== undefined) {
+          state.leftSidebarWidth = sidebar.width;
+        }
+        if (sidebar.collapsed !== undefined) {
+          state.sidebarCollapsed = sidebar.collapsed;
+        }
+      }
+      state.isHydrated = true;
     },
     startSnapshotHydrationSession: (state, action) => {
       const {
@@ -254,6 +268,7 @@ export const appSlice = createSlice({
 export const {
   idbConnectionReady,
   setSnapshotReady,
+  setHydratedState,
   startSnapshotHydrationSession,
   markSnapshotCollectionHydrated,
   clearSnapshotHydrationSession,
@@ -285,6 +300,21 @@ export const {
   setEnvVarSearchExpanded,
   setIsCreatingCollection
 } = appSlice.actions;
+
+export const hydrateApp = () => async (dispatch) => {
+  if (!window.ipcRenderer) {
+    dispatch(setHydratedState(null));
+    return;
+  }
+
+  try {
+    const snapshot = await window.ipcRenderer.invoke('renderer:snapshot:get');
+    dispatch(setHydratedState(snapshot));
+  } catch (error) {
+    console.error('Failed to hydrate snapshot:', error);
+    dispatch(setHydratedState(null));
+  }
+};
 
 export const savePreferences = (preferences) => (dispatch, getState) => {
   return new Promise((resolve, reject) => {

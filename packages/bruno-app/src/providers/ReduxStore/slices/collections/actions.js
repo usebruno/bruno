@@ -2673,10 +2673,6 @@ export const openCollectionEvent = (uid, pathname, brunoConfig) => (dispatch, ge
     }
 
     if (existingCollection) {
-      if (state.app.sidebarCollapsed) {
-        dispatch(toggleSidebarCollapse());
-      }
-
       if (activeWorkspace) {
         const workspaceCollection = {
           name: brunoConfig.name,
@@ -2730,9 +2726,6 @@ export const openCollectionEvent = (uid, pathname, brunoConfig) => (dispatch, ge
         .then(() => dispatch(_createCollection({ ...collection, securityConfig })))
         .then(() => {
           const currentState = getState();
-          if (currentState.app.sidebarCollapsed) {
-            dispatch(toggleSidebarCollapse());
-          }
 
           const currentWorkspace = currentState.workspaces.workspaces.find(
             (w) => w.uid === currentState.workspaces.activeWorkspaceUid

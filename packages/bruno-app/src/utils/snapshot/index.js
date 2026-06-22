@@ -28,6 +28,8 @@ const NON_REPLACEABLE_SINGLETON_TAB_TYPES = new Set([
 
 export const SAVE_TRIGGERS = new Map([
   ['app/setSnapshotReady', null],
+  ['app/toggleSidebarCollapse', null],
+  ['app/updateLeftSidebarWidth', null],
   ['tabs/addTab', null],
   ['tabs/closeTabs', null],
   ['tabs/focusTab', null],

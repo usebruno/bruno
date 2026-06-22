@@ -6,6 +6,9 @@ const yup = require('yup');
 const SNAPSHOT_VERSION = '0.0.1';
 const ENV_FILE_EXTENSIONS = ['bru', 'yml', 'yaml'];
 
+const DEFAULT_SIDEBAR_COLLAPSED = false;
+const DEFAULT_SIDEBAR_WIDTH = 250;
+
 const isObject = (value) => value && typeof value === 'object' && !Array.isArray(value);
 
 const normalizeLookupKey = (pathname) => {
@@ -86,11 +89,17 @@ const devToolsSchema = yup.object({
   })
 });
 
+const sidebarSchema = yup.object({
+  collapsed: yup.boolean().optional(),
+  width: yup.number().optional()
+});
+
 const snapshotSchema = yup.object({
   version: yup.string().defined(),
   activeWorkspacePath: yup.string().nullable(),
   extras: yup.object({
-    devTools: devToolsSchema.required()
+    devTools: devToolsSchema.required(),
+    sidebar: sidebarSchema.optional()
   }).required(),
   workspaces: yup.array().of(workspaceSchema).required(),
   collections: yup.array().of(collectionSchema).required()
@@ -102,6 +111,10 @@ const emptySnapshot = {
   extras: {
     devTools: {
       open: false
+    },
+    sidebar: {
+      collapsed: DEFAULT_SIDEBAR_COLLAPSED,
+      width: DEFAULT_SIDEBAR_WIDTH
     }
   },
   workspaces: [],
@@ -277,10 +290,18 @@ class SnapshotManager {
       version: snapshot.version ?? SNAPSHOT_VERSION,
       activeWorkspacePath: typeof snapshot.activeWorkspacePath === 'string' ? snapshot.activeWorkspacePath : null,
       extras: {
-        devTools: this._normalizeDevTools(snapshot?.extras?.devTools)
+        devTools: this._normalizeDevTools(snapshot?.extras?.devTools),
+        sidebar: this._normalizeSidebar(snapshot?.extras?.sidebar)
       },
       workspaces: this._normalizeWorkspaceList(snapshot.workspaces),
       collections: this._normalizeCollectionList(snapshot.collections, snapshot.tabs)
+    };
+  }
+
+  _normalizeSidebar(sidebar = {}) {
+    return {
+      collapsed: typeof sidebar?.collapsed === 'boolean' ? sidebar.collapsed : DEFAULT_SIDEBAR_COLLAPSED,
+      width: typeof sidebar?.width === 'number' ? sidebar.width : DEFAULT_SIDEBAR_WIDTH
     };
   }
 
