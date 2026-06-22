@@ -23,7 +23,6 @@ test.describe('Custom Search Functionality in Scripts Tab', () => {
     await preTextarea.focus();
 
     const preContent = await preRequestEditor.textContent();
-    console.log('Pre Request content loaded:', preContent?.substring(0, 100));
 
     await page.keyboard.press(findShortcut);
 
