@@ -77,7 +77,12 @@ const defaultPreferences = {
       anthropic: { enabled: false }
     },
     models: {},
-    defaultModel: ''
+    defaultModel: '',
+    autocomplete: {
+      enabled: true,
+      model: '',
+      triggerMode: 'debounced'
+    }
   }
 };
 
@@ -151,7 +156,12 @@ const preferencesSchema = Yup.object().shape({
     enabled: Yup.boolean(),
     providers: Yup.object().optional(),
     models: Yup.object().optional(),
-    defaultModel: Yup.string().max(200).nullable()
+    defaultModel: Yup.string().max(200).nullable(),
+    autocomplete: Yup.object({
+      enabled: Yup.boolean(),
+      model: Yup.string().max(200).nullable(),
+      triggerMode: Yup.string().oneOf(['aggressive', 'debounced', 'manual']).nullable()
+    }).optional()
   }).optional()
 });
 

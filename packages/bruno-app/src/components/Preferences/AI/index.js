@@ -5,18 +5,24 @@ import { useFormik } from 'formik';
 import { useDispatch, useSelector } from 'react-redux';
 import * as Yup from 'yup';
 import toast from 'react-hot-toast';
-import { IconStars } from '@tabler/icons';
+import { IconSettings, IconTerminal2 } from '@tabler/icons';
 import { savePreferences } from 'providers/ReduxStore/slices/app';
 import ToggleSwitch from 'components/ToggleSwitch';
 import { getAiStatus } from 'utils/ai';
 import ProviderCard from './ProviderCard';
+import AutocompletePane from './AutocompletePane';
 import StyledWrapper from './StyledWrapper';
 
 const aiPreferencesSchema = Yup.object().shape({
   enabled: Yup.boolean(),
   providers: Yup.object(),
   models: Yup.object(),
-  defaultModel: Yup.string().max(200).nullable()
+  defaultModel: Yup.string().max(200).nullable(),
+  autocomplete: Yup.object().shape({
+    enabled: Yup.boolean(),
+    model: Yup.string().max(200).nullable(),
+    triggerMode: Yup.string().oneOf(['aggressive', 'debounced', 'manual']).nullable()
+  })
 });
 
 const AI = () => {
@@ -24,6 +30,7 @@ const AI = () => {
   const preferences = useSelector((state) => state.app.preferences);
   const [status, setStatus] = useState(null);
   const [statusError, setStatusError] = useState(null);
+  const [activeTab, setActiveTab] = useState('config');
 
   const refreshStatus = useCallback(async () => {
     try {
@@ -50,7 +57,12 @@ const AI = () => {
         return acc;
       }, {}),
       models: get(preferences, 'ai.models', {}),
-      defaultModel: get(preferences, 'ai.defaultModel', '')
+      defaultModel: get(preferences, 'ai.defaultModel', ''),
+      autocomplete: {
+        enabled: get(preferences, 'ai.autocomplete.enabled', true),
+        model: get(preferences, 'ai.autocomplete.model', ''),
+        triggerMode: get(preferences, 'ai.autocomplete.triggerMode', 'debounced')
+      }
     },
     validationSchema: aiPreferencesSchema,
     onSubmit: () => {}
@@ -65,7 +77,12 @@ const AI = () => {
             enabled: values.enabled,
             providers: values.providers,
             models: values.models,
-            defaultModel: values.defaultModel || ''
+            defaultModel: values.defaultModel || '',
+            autocomplete: {
+              enabled: values.autocomplete?.enabled !== false,
+              model: values.autocomplete?.model || '',
+              triggerMode: values.autocomplete?.triggerMode || 'debounced'
+            }
           }
         })
       ).catch((err) => {
@@ -112,40 +129,42 @@ const AI = () => {
     formik.setFieldValue(`models.${modelId}.enabled`, next);
   };
 
-  const summary = useMemo(() => {
-    if (!status || !formik.values.enabled) return 'Turn on to configure providers and models';
-    const usableProviders = Object.values(status.providers).filter(
-      (p) => p.configured && formik.values.providers?.[p.id]?.enabled
-    );
-    if (usableProviders.length === 0) return 'Add a provider to get started';
-    // Count models live from formik + current key status, not the electron-side
-    // snapshot which lags behind toggle changes during the save debounce window.
-    const totalEnabledModels = (status.models || []).filter((m) => {
+  const usableModels = useMemo(() => {
+    if (!status) return [];
+    return (status.models || []).filter((m) => {
       if (!formik.values.providers?.[m.provider]?.enabled) return false;
       if (!status.providers?.[m.provider]?.configured) return false;
       return isModelEnabled(m.id);
-    }).length;
-    const plural = (n, s) => `${n} ${s}${n === 1 ? '' : 's'}`;
-    return `${plural(usableProviders.length, 'provider')} · ${plural(totalEnabledModels, 'model')} ready`;
-  }, [status, formik.values.enabled, formik.values.providers, formik.values.models]);
+    });
+  }, [status, formik.values.providers, formik.values.models]);
 
   return (
     <StyledWrapper className="w-full flex flex-col text-xs min-h-0 max-h-[calc(100%-30px)]">
       <div className="section-header">AI</div>
 
-      <div className="ai-master flex items-center justify-between gap-4 px-3.5 py-3 mb-4">
-        <div className="flex flex-col gap-0.5 min-w-0">
-          <div className="flex items-center gap-2 text-[13px] font-semibold">
-            <IconStars size={15} strokeWidth={1.75} className="ai-master-icon" />
-            <span>AI Features</span>
-          </div>
-          <span className="ai-master-summary text-[11px]">{summary}</span>
-        </div>
-        <ToggleSwitch
-          size="m"
-          isOn={formik.values.enabled}
-          handleToggle={() => formik.setFieldValue('enabled', !formik.values.enabled)}
-        />
+      <div className="ai-tabs flex items-center gap-1" role="tablist" aria-label="AI preferences">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={activeTab === 'config'}
+          className={`ai-tab ${activeTab === 'config' ? 'active' : ''}`}
+          onClick={() => setActiveTab('config')}
+          data-testid="ai-tab-config"
+        >
+          <IconSettings size={14} strokeWidth={1.5} />
+          Configuration
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={activeTab === 'autocomplete'}
+          className={`ai-tab ${activeTab === 'autocomplete' ? 'active' : ''}`}
+          onClick={() => setActiveTab('autocomplete')}
+          data-testid="ai-tab-autocomplete"
+        >
+          <IconTerminal2 size={14} strokeWidth={1.5} />
+          Autocomplete
+        </button>
       </div>
 
       {statusError && (
@@ -154,46 +173,84 @@ const AI = () => {
         </div>
       )}
 
-      {!formik.values.enabled && !statusError && (
-        <div className="ai-empty-notice px-3.5 py-3 text-xs">
-          Bring your own API key. Bruno talks to providers directly, your keys never leave your machine.
+      {activeTab === 'config' && (
+        <div className="ai-tab-panel" role="tabpanel">
+          <div className="ai-master flex items-center justify-between gap-4 px-3.5 py-3 mb-4">
+            <div className="flex flex-col gap-0.5 min-w-0">
+              <span className="text-[13px] font-semibold">AI Features</span>
+              <span className="ai-master-summary text-[11px]">
+                Turn on to configure providers and models. Your keys stay local.
+              </span>
+            </div>
+            <ToggleSwitch
+              size="m"
+              isOn={formik.values.enabled}
+              handleToggle={() => formik.setFieldValue('enabled', !formik.values.enabled)}
+            />
+          </div>
+
+          {!formik.values.enabled && !statusError && (
+            <div className="ai-empty-notice px-3.5 py-3 text-xs">
+              Bring your own API key. Bruno talks to providers directly, your keys never leave your machine.
+            </div>
+          )}
+
+          {formik.values.enabled && status && (
+            <>
+              <div className="ai-section-header text-[11px] font-medium uppercase tracking-wider mb-2">
+                Providers
+              </div>
+              <div className="flex flex-col gap-1.5">
+                {providerIds.map((id) => {
+                  const provider = status.providers[id];
+                  const providerEnabled = get(formik.values, `providers.${id}.enabled`, false);
+
+                  const providerToggle = (
+                    <ToggleSwitch
+                      size="s"
+                      isOn={providerEnabled}
+                      handleToggle={() =>
+                        formik.setFieldValue(`providers.${id}.enabled`, !providerEnabled)}
+                    />
+                  );
+
+                  return (
+                    <ProviderCard
+                      key={id}
+                      provider={provider}
+                      providerEnabled={providerEnabled}
+                      providerToggle={providerToggle}
+                      models={modelsByProvider[id] || []}
+                      isModelEnabled={isModelEnabled}
+                      onToggleModel={handleToggleModel}
+                      onStatusChange={(next) => setStatus(next)}
+                    />
+                  );
+                })}
+              </div>
+            </>
+          )}
         </div>
       )}
 
-      {formik.values.enabled && status && (
-        <>
-          <div className="ai-section-header text-[11px] font-medium uppercase tracking-wider mt-[18px] mb-2">
-            Providers
-          </div>
-          <div className="flex flex-col gap-1.5">
-            {providerIds.map((id) => {
-              const provider = status.providers[id];
-              const providerEnabled = get(formik.values, `providers.${id}.enabled`, false);
-
-              const providerToggle = (
-                <ToggleSwitch
-                  size="s"
-                  isOn={providerEnabled}
-                  handleToggle={() =>
-                    formik.setFieldValue(`providers.${id}.enabled`, !providerEnabled)}
-                />
-              );
-
-              return (
-                <ProviderCard
-                  key={id}
-                  provider={provider}
-                  providerEnabled={providerEnabled}
-                  providerToggle={providerToggle}
-                  models={modelsByProvider[id] || []}
-                  isModelEnabled={isModelEnabled}
-                  onToggleModel={handleToggleModel}
-                  onStatusChange={(next) => setStatus(next)}
-                />
-              );
-            })}
-          </div>
-        </>
+      {activeTab === 'autocomplete' && (
+        <div className="ai-tab-panel" role="tabpanel">
+          <AutocompletePane
+            aiEnabled={formik.values.enabled}
+            enabled={formik.values.autocomplete?.enabled !== false}
+            model={formik.values.autocomplete?.model || ''}
+            triggerMode={formik.values.autocomplete?.triggerMode || 'debounced'}
+            availableModels={usableModels}
+            hasConfiguredProvider={Boolean(
+              status && Object.entries(status.providers || {}).some(
+                ([providerId, p]) => p?.configured && formik.values.providers?.[providerId]?.enabled
+              )
+            )}
+            onToggleEnabled={(next) => formik.setFieldValue('autocomplete.enabled', next)}
+            onChangeModel={(next) => formik.setFieldValue('autocomplete.model', next)}
+            onChangeTriggerMode={(next) => formik.setFieldValue('autocomplete.triggerMode', next)}
+          />
+        </div>
       )}
     </StyledWrapper>
   );
