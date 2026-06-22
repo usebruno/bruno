@@ -74,6 +74,32 @@ app.get('/redirect-to-ping', function (req, res) {
   return res.redirect('/ping');
 });
 
+// Echoes the request back in one flat shape
+app.all('/api/echo/everything', (req, res) => {
+  return res.json({
+    method: req.method,
+    url: req.originalUrl,
+    query: req.query,
+    headers: req.headers,
+    body: req.rawBody
+  });
+});
+
+// The global JSON parser rejects malformed bodies before the route above runs.
+// Recover that case by echoing the raw bytes instead of surfacing a 400.
+app.use((err, req, res, next) => {
+  if (req.path === '/api/echo/everything') {
+    return res.json({
+      method: req.method,
+      url: req.originalUrl,
+      query: req.query,
+      headers: req.headers,
+      body: req.rawBody
+    });
+  }
+  return next(err);
+});
+
 const server = require('http').createServer(app);
 
 server.on('upgrade', wsRouter);

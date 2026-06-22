@@ -24,6 +24,7 @@ import mime from 'mime-types';
 import path from 'utils/common/path';
 import { getUniqueTagsFromItems } from 'utils/collections/index';
 import { getCollectionEnvironmentPath } from 'utils/snapshot';
+import { getDataTypeFromValue } from '@usebruno/common/utils';
 import * as exampleReducers from './exampleReducers';
 
 // gRPC status code meanings
@@ -412,16 +413,25 @@ export const collectionsSlice = createSlice({
                  save/persist uses that base unless the key is explicitly persisted.
                 */
                 const previousValue = variable.value;
+                const wasEphemeral = !!variable.ephemeral;
                 variable.value = value;
                 variable.ephemeral = !isPersistent;
-                if (variable.persistedValue === undefined) {
+                // Capture the on-disk base only when shadowing a real (non-ephemeral) var for
+                // the first time. A script-created ephemeral has no on-disk value to restore,
+                // so giving it a persistedValue would leak its overlay value into the file.
+                if (variable.persistedValue === undefined && !wasEphemeral) {
                   variable.persistedValue = previousValue;
                 }
+
+                // Secrets carry a dataType too; infer it from the value like any other var.
+                const inferred = getDataTypeFromValue(value);
+                variable.dataType = inferred === 'string' ? undefined : inferred;
               }
             } else {
               // __name__ is a private variable used to store the name of the environment
               // this is not a user defined variable and hence should not be updated
               if (key !== '__name__') {
+                const inferred = getDataTypeFromValue(value);
                 activeEnvironment.variables.push({
                   name: key,
                   value,
@@ -429,7 +439,8 @@ export const collectionsSlice = createSlice({
                   enabled: true,
                   type: 'text',
                   uid: uuid(),
-                  ephemeral: !isPersistent
+                  ephemeral: !isPersistent,
+                  ...(inferred !== 'string' ? { dataType: inferred } : {})
                 });
               }
             }
@@ -2068,12 +2079,12 @@ export const collectionsSlice = createSlice({
         item.draft = cloneDeep(item);
       }
       item.draft.request.vars = item.draft.request.vars || {};
-      const mappedVars = map(vars, ({ uid, name = '', value = '', enabled = true, local = false, datatype, annotations }) => ({
+      const mappedVars = map(vars, ({ uid, name = '', value = '', enabled = true, local = false, dataType, annotations }) => ({
         uid: uid || uuid(),
         name,
         value,
         enabled,
-        ...(datatype ? { datatype } : {}),
+        ...(dataType && dataType !== 'string' ? { dataType } : {}),
         ...(annotations?.length ? { annotations } : {}),
         ...(type === 'response' ? { local } : {})
       }));
@@ -2424,12 +2435,12 @@ export const collectionsSlice = createSlice({
       if (!folder.draft) {
         folder.draft = cloneDeep(folder.root);
       }
-      const mappedVars = map(vars, ({ uid, name = '', value = '', enabled = true, local = false, datatype, annotations }) => ({
+      const mappedVars = map(vars, ({ uid, name = '', value = '', enabled = true, local = false, dataType, annotations }) => ({
         uid: uid || uuid(),
         name,
         value,
         enabled,
-        ...(datatype ? { datatype } : {}),
+        ...(dataType && dataType !== 'string' ? { dataType } : {}),
         ...(annotations?.length ? { annotations } : {}),
         ...(type === 'response' ? { local } : {})
       }));
@@ -2664,12 +2675,12 @@ export const collectionsSlice = createSlice({
           root: cloneDeep(collection.root)
         };
       }
-      const mappedVars = map(vars, ({ uid, name = '', value = '', enabled = true, local = false, datatype, annotations }) => ({
+      const mappedVars = map(vars, ({ uid, name = '', value = '', enabled = true, local = false, dataType, annotations }) => ({
         uid: uid || uuid(),
         name,
         value,
         enabled,
-        ...(datatype ? { datatype } : {}),
+        ...(dataType && dataType !== 'string' ? { dataType } : {}),
         ...(annotations?.length ? { annotations } : {}),
         ...(type === 'response' ? { local } : {})
       }));
@@ -2938,6 +2949,13 @@ export const collectionsSlice = createSlice({
                 target.value = ev.value;
               }
               target.ephemeral = true;
+            } else if (ev.persistedValue === undefined) {
+              /*
+               No counterpart in the file. A script-created overlay (persistedValue undefined) never
+               existed on disk, so a sibling persist:true save must not erase it — keep it visible.
+               An ephemeral with persistedValue shadowed a now-absent disk var (deleted), so it drops.
+              */
+              existingEnv.variables.push(ev);
             }
           });
         } else {

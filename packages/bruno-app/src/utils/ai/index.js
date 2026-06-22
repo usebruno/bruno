@@ -1,4 +1,5 @@
 import { callIpc } from 'utils/common/ipc';
+import { isItemAFolder, isItemARequest, sortItemsBySidebarOrder } from 'utils/collections';
 
 /**
  * Renderer-side wrapper around the AI IPC channels.
@@ -38,6 +39,66 @@ export const buildRequestContextFromItem = (item) => {
     headers: Array.isArray(req.headers) ? req.headers : [],
     params: Array.isArray(req.params) ? req.params : [],
     body: req.body || null
+  };
+};
+
+const summarizeDocsItems = (items = []) => {
+  const folders = [];
+  const requests = [];
+
+  for (const item of sortItemsBySidebarOrder(items)) {
+    if (item.isTransient) continue;
+
+    if (isItemAFolder(item)) {
+      const nestedItems = item.items || [];
+      const nestedRequests = nestedItems.filter((i) => isItemARequest(i) && !i.isTransient);
+      const nestedFolders = nestedItems.filter((i) => isItemAFolder(i) && !i.isTransient);
+      folders.push({
+        name: item.name,
+        requestCount: nestedRequests.length,
+        subfolderCount: nestedFolders.length
+      });
+      continue;
+    }
+
+    if (isItemARequest(item)) {
+      const req = item.draft?.request || item.request;
+      requests.push({
+        name: item.name,
+        method: req?.method || 'GET',
+        url: req?.url || '',
+        type: item.type
+      });
+    }
+  }
+
+  return { folders, requests };
+};
+
+export const buildDocsContextFromCollection = (collection) => {
+  if (!collection) return null;
+
+  const { folders, requests } = summarizeDocsItems(collection.items || []);
+
+  return {
+    scope: 'collection',
+    name: collection.name || '',
+    folders,
+    requests
+  };
+};
+
+export const buildDocsContextFromFolder = (collection, folder) => {
+  if (!folder) return null;
+
+  const { folders, requests } = summarizeDocsItems(folder.items || []);
+
+  return {
+    scope: 'folder',
+    name: folder.name || '',
+    collectionName: collection?.name || '',
+    folders,
+    requests
   };
 };
 

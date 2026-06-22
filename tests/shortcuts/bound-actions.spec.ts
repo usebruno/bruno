@@ -71,9 +71,9 @@ const closeTabByName = async (page: any, name: string | RegExp) => {
 const openFolderSettingsTab = async (page: Page, folderName: string) => {
   await openCollection(page, collectionName);
   const folderRow = page.locator('.collection-item-name').filter({ hasText: folderName }).first();
-  await expect(folderRow).toBeVisible({ timeout: 5000 });
+  await expect(folderRow).toBeVisible();
   await folderRow.dblclick();
-  await expect(page.locator('.request-tab').filter({ hasText: folderName })).toBeVisible({ timeout: 3000 });
+  await expect(page.locator('.request-tab').filter({ hasText: folderName })).toBeVisible();
 };
 
 const reopenClosedTab = async (page: Page, shortcut: () => Promise<void>, expectedTabName: string | RegExp) => {
@@ -83,13 +83,13 @@ const reopenClosedTab = async (page: Page, shortcut: () => Promise<void>, expect
     await shortcut();
     const reopenedTab = page.locator('.request-tab').filter({ hasText: expectedTabName });
     if ((await reopenedTab.count()) > 0) {
-      await expect(reopenedTab).toBeVisible({ timeout: 3000 });
+      await expect(reopenedTab).toBeVisible();
       return;
     }
     await page.waitForTimeout(200);
   }
 
-  await expect(page.locator('.request-tab').filter({ hasText: expectedTabName })).toBeVisible({ timeout: 5000 });
+  await expect(page.locator('.request-tab').filter({ hasText: expectedTabName })).toBeVisible();
 };
 
 const remapKeybinding = async (
@@ -99,7 +99,7 @@ const remapKeybinding = async (
 ) => {
   await openKeybindingsTab(page);
   const row = page.getByTestId(`keybinding-row-${action}`);
-  await expect(row).toBeVisible({ timeout: 5000 });
+  await expect(row).toBeVisible();
   await row.scrollIntoViewIfNeeded();
   await row.hover();
   const editButton = row.getByTestId(`keybinding-edit-${action}`);
@@ -114,7 +114,7 @@ const remapKeybinding = async (
     }
   }
 
-  await expect(keybindingInput).toBeVisible({ timeout: 5000 });
+  await expect(keybindingInput).toBeVisible();
 
   await page.keyboard.press('Backspace');
   await pressShortcut();
@@ -147,16 +147,16 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
   });
 
   test.describe('TABS', () => {
-    test.describe('SHORTCUT: Close Tab', () => {
+    test.describe.serial('SHORTCUT: Close Tab', () => {
       test('default Cmd/Ctrl+W closes the active tab', async ({ page, createTmpDir }) => {
         await openRequest(page, collectionName, 'req-1', { persist: true });
         const reqTab = page.locator('.request-tab').filter({ hasText: 'req-1' });
         // Click the tab to guarantee it's the focused/active tab before firing the shortcut.
         await reqTab.click();
-        await expect(reqTab).toHaveClass(/active/, { timeout: 2000 });
+        await expect(reqTab).toHaveClass(/active/);
 
         await page.keyboard.press(`${modifier}+KeyW`);
-        await expect(page.locator('.request-tab')).toHaveCount(2, { timeout: 3000 });
+        await expect(page.locator('.request-tab')).toHaveCount(2);
       });
 
       test('customized Cmd/Ctrl+Shift+X closes the active tab', async ({ page, createTmpDir }) => {
@@ -166,7 +166,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await row.hover();
         await page.getByTestId(`keybinding-edit-closeTab`).click();
         // Wait for input to enter recording mode
-        await expect(page.getByTestId(`keybinding-input-closeTab`)).toBeVisible({ timeout: 2000 });
+        await expect(page.getByTestId(`keybinding-input-closeTab`)).toBeVisible();
 
         // Remove the old keybindings
         await page.keyboard.down('Backspace');
@@ -179,25 +179,25 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await closePreferencesTab(page);
 
         await openRequest(page, collectionName, 'req-1', { persist: true });
-        await expect(page.locator('.request-tab').filter({ hasText: 'req-1' })).toBeVisible({ timeout: 2000 });
+        await expect(page.locator('.request-tab').filter({ hasText: 'req-1' })).toBeVisible();
 
         await page.keyboard.down('Shift');
         await page.keyboard.down('KeyX');
         await page.keyboard.up('KeyX');
         await page.keyboard.up('Shift');
-        await expect(page.locator('.request-tab')).toHaveCount(2, { timeout: 3000 });
+        await expect(page.locator('.request-tab')).toHaveCount(2);
       });
     });
 
-    test.describe('SHORTCUT: Close All Tabs', () => {
+    test.describe.serial('SHORTCUT: Close All Tabs', () => {
       test('default Cmd/Ctrl+Shift+W closes all tabs', async ({ page }) => {
         await openRequest(page, collectionName, 'req-1', { persist: true });
         await openRequest(page, collectionName, 'req-2', { persist: true });
         await openRequest(page, collectionName, 'req-3', { persist: true });
         await page.getByTestId('runner').click();
-        await expect(page.locator('.request-tab').filter({ hasText: 'req-1' })).toBeVisible({ timeout: 2000 });
-        await expect(page.locator('.request-tab').filter({ hasText: 'req-2' })).toBeVisible({ timeout: 2000 });
-        await expect(page.locator('.request-tab').filter({ hasText: 'req-3' })).toBeVisible({ timeout: 2000 });
+        await expect(page.locator('.request-tab').filter({ hasText: 'req-1' })).toBeVisible();
+        await expect(page.locator('.request-tab').filter({ hasText: 'req-2' })).toBeVisible();
+        await expect(page.locator('.request-tab').filter({ hasText: 'req-3' })).toBeVisible();
 
         await page.keyboard.down(modifier);
         await page.keyboard.down('Shift');
@@ -205,7 +205,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await page.keyboard.up('KeyW');
         await page.keyboard.up('Shift');
         await page.keyboard.up(modifier);
-        await expect(page.locator('.request-tab')).toHaveCount(2, { timeout: 3000 });
+        await expect(page.locator('.request-tab')).toHaveCount(2);
       });
 
       test('customized Alt+Y closes all tabs', async ({ page }) => {
@@ -214,7 +214,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         const row = page.getByTestId('keybinding-row-closeAllTabs');
         await row.hover();
         await page.getByTestId('keybinding-row-closeAllTabs').click();
-        await expect(page.getByTestId('keybinding-input-closeAllTabs')).toBeVisible({ timeout: 2000 });
+        await expect(page.getByTestId('keybinding-input-closeAllTabs')).toBeVisible();
 
         await page.keyboard.down('Backspace');
 
@@ -228,22 +228,22 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await openRequest(page, collectionName, 'req-1', { persist: true });
         await openRequest(page, collectionName, 'req-2', { persist: true });
         await openRequest(page, collectionName, 'req-3', { persist: true });
-        await expect(page.locator('.request-tab').filter({ hasText: 'req-1' })).toBeVisible({ timeout: 2000 });
-        await expect(page.locator('.request-tab').filter({ hasText: 'req-2' })).toBeVisible({ timeout: 2000 });
-        await expect(page.locator('.request-tab').filter({ hasText: 'req-3' })).toBeVisible({ timeout: 2000 });
+        await expect(page.locator('.request-tab').filter({ hasText: 'req-1' })).toBeVisible();
+        await expect(page.locator('.request-tab').filter({ hasText: 'req-2' })).toBeVisible();
+        await expect(page.locator('.request-tab').filter({ hasText: 'req-3' })).toBeVisible();
 
         await page.keyboard.down('Alt');
         await page.keyboard.down('KeyY');
         await page.keyboard.up('KeyY');
         await page.keyboard.up('Alt');
-        await expect(page.locator('.request-tab')).toHaveCount(2, { timeout: 3000 });
+        await expect(page.locator('.request-tab')).toHaveCount(2);
       });
     });
 
-    test.describe('SHORTCUT: Save', () => {
+    test.describe.serial('SHORTCUT: Save', () => {
       test('default Cmd/Ctrl+S save tab', async ({ page, createTmpDir }) => {
         await page.getByTestId('collections').locator('.collection-name').filter({ hasText: 'kb-collection' }).dblclick();
-        await expect(page.locator('.request-tab').filter({ hasText: 'collection' })).toBeVisible({ timeout: 2000 });
+        await expect(page.locator('.request-tab').filter({ hasText: 'collection' })).toBeVisible();
 
         // Verify initially there is NO draft indicator (close icon is present)
         const collectionTab = page.locator('.request-tab').filter({ has: page.locator('.tab-label', { hasText: 'Collection' }) });
@@ -284,7 +284,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         const row = page.getByTestId('keybinding-row-save');
         await row.hover();
         await page.getByTestId('keybinding-edit-save').click();
-        await expect(page.getByTestId('keybinding-input-save')).toBeVisible({ timeout: 2000 });
+        await expect(page.getByTestId('keybinding-input-save')).toBeVisible();
 
         await page.keyboard.down('Backspace');
 
@@ -296,7 +296,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await closePreferencesTab(page);
 
         await page.getByTestId('collections').locator('.collection-name').filter({ hasText: 'kb-collection' }).dblclick();
-        await expect(page.locator('.request-tab').filter({ hasText: 'collection' })).toBeVisible({ timeout: 2000 });
+        await expect(page.locator('.request-tab').filter({ hasText: 'collection' })).toBeVisible();
 
         // Verify initially there is NO draft indicator (close icon is present)
         const collectionTab = page.locator('.request-tab').filter({ has: page.locator('.tab-label', { hasText: 'Collection' }) });
@@ -334,10 +334,10 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
       });
     });
 
-    test.describe('SHORTCUT: Save All Tabs', () => {
+    test.describe.serial('SHORTCUT: Save All Tabs', () => {
       test('default Cmd/Ctrl+Shift+S save all tabs', async ({ page }) => {
         await page.getByTestId('collections').locator('.collection-name').filter({ hasText: 'kb-collection' }).dblclick();
-        await expect(page.locator('.request-tab').filter({ hasText: 'collection' })).toBeVisible({ timeout: 2000 });
+        await expect(page.locator('.request-tab').filter({ hasText: 'collection' })).toBeVisible();
 
         // Verify initially there is NO draft indicator (close icon is present)
         const collectionTab = page.locator('.request-tab').filter({ has: page.locator('.tab-label', { hasText: 'Collection' }) });
@@ -409,7 +409,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         const row = page.getByTestId('keybinding-row-saveAllTabs');
         await row.hover();
         await page.getByTestId('keybinding-edit-saveAllTabs').click();
-        await expect(page.getByTestId('keybinding-input-saveAllTabs')).toBeVisible({ timeout: 2000 });
+        await expect(page.getByTestId('keybinding-input-saveAllTabs')).toBeVisible();
 
         await page.keyboard.down('Backspace');
 
@@ -423,7 +423,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await closePreferencesTab(page);
 
         await page.getByTestId('collections').locator('.collection-name').filter({ hasText: collectionName }).dblclick();
-        await expect(page.locator('.request-tab').filter({ hasText: 'collection' })).toBeVisible({ timeout: 2000 });
+        await expect(page.locator('.request-tab').filter({ hasText: 'collection' })).toBeVisible();
 
         // Verify initially there is NO draft indicator (close icon is present)
         const collectionTab = page.locator('.request-tab').filter({ has: page.locator('.tab-label', { hasText: 'Collection' }) });
@@ -495,20 +495,20 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
       });
     });
 
-    test.describe('SHORTCUT: Switch to Previous Tab', () => {
+    test.describe.serial('SHORTCUT: Switch to Previous Tab', () => {
       test('default Cmd/Ctrl+Shift+[ switches to previous tab', async ({ page }) => {
         await openRequest(page, collectionName, 'req-4', { persist: true });
         await openRequest(page, collectionName, 'req-5', { persist: true });
         await openRequest(page, collectionName, 'req-6', { persist: true });
-        await expect(page.locator('.request-tab').filter({ hasText: 'req-6' })).toBeVisible({ timeout: 2000 });
+        await expect(page.locator('.request-tab').filter({ hasText: 'req-6' })).toBeVisible();
 
         // req-6 is active (last opened) — press previous → req-5
         await page.keyboard.press(`${modifier}+Shift+BracketLeft`);
-        await expect(page.locator('li.request-tab.active')).toHaveText(/req-5/, { timeout: 3000 });
+        await expect(page.locator('li.request-tab.active')).toHaveText(/req-5/);
 
         // Press again → req-4
         await page.keyboard.press(`${modifier}+Shift+BracketLeft`);
-        await expect(page.locator('li.request-tab.active')).toHaveText(/req-4/, { timeout: 3000 });
+        await expect(page.locator('li.request-tab.active')).toHaveText(/req-4/);
       });
 
       test('customized Shift+P switches to previous tab', async ({ page }) => {
@@ -517,7 +517,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         const row = page.getByTestId('keybinding-row-switchToPreviousTab');
         await row.hover();
         await page.getByTestId('keybinding-edit-switchToPreviousTab').click();
-        await expect(page.getByTestId('keybinding-input-switchToPreviousTab')).toBeVisible({ timeout: 2000 });
+        await expect(page.getByTestId('keybinding-input-switchToPreviousTab')).toBeVisible();
 
         await page.keyboard.down('Backspace');
 
@@ -532,18 +532,18 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await openRequest(page, collectionName, 'req-4', { persist: true });
         await openRequest(page, collectionName, 'req-5', { persist: true });
         await openRequest(page, collectionName, 'req-6', { persist: true });
-        await expect(page.locator('.request-tab').filter({ hasText: 'req-6' })).toBeVisible({ timeout: 2000 });
+        await expect(page.locator('.request-tab').filter({ hasText: 'req-6' })).toBeVisible();
 
         // req-6 is active — press Shift+P → req-5
         await page.keyboard.down('Shift');
         await page.keyboard.down('KeyP');
         await page.keyboard.up('KeyP');
         await page.keyboard.up('Shift');
-        await expect(page.locator('li.request-tab.active')).toHaveText(/req-5/, { timeout: 3000 });
+        await expect(page.locator('li.request-tab.active')).toHaveText(/req-5/);
       });
     });
 
-    test.describe('SHORTCUT: Switch to Next Tab', () => {
+    test.describe.serial('SHORTCUT: Switch to Next Tab', () => {
       test('default Cmd/Ctrl+Shift+] switches to next tab', async ({ page }) => {
         await openRequest(page, collectionName, 'req-4', { persist: true });
         await openRequest(page, collectionName, 'req-5', { persist: true });
@@ -555,11 +555,11 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
 
         // req-4 is active — press next → req-5
         await page.keyboard.press(`${modifier}+Shift+BracketRight`);
-        await expect(page.locator('li.request-tab.active')).toHaveText(/req-5/, { timeout: 3000 });
+        await expect(page.locator('li.request-tab.active')).toHaveText(/req-5/);
 
         // Press again → req-6
         await page.keyboard.press(`${modifier}+Shift+BracketRight`);
-        await expect(page.locator('li.request-tab.active')).toHaveText(/req-6/, { timeout: 3000 });
+        await expect(page.locator('li.request-tab.active')).toHaveText(/req-6/);
       });
 
       test('customized Shift+N switches to next tab', async ({ page }) => {
@@ -568,7 +568,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         const row = page.getByTestId('keybinding-row-switchToNextTab');
         await row.hover();
         await page.getByTestId('keybinding-edit-switchToNextTab').click();
-        await expect(page.getByTestId('keybinding-input-switchToNextTab')).toBeVisible({ timeout: 2000 });
+        await expect(page.getByTestId('keybinding-input-switchToNextTab')).toBeVisible();
 
         await page.keyboard.down('Backspace');
 
@@ -592,11 +592,11 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await page.keyboard.down('KeyN');
         await page.keyboard.up('KeyN');
         await page.keyboard.up('Shift');
-        await expect(page.locator('li.request-tab.active')).toHaveText(/req-5/, { timeout: 3000 });
+        await expect(page.locator('li.request-tab.active')).toHaveText(/req-5/);
       });
     });
 
-    test.describe('SHORTCUT: Move Tab Left', () => {
+    test.describe.serial('SHORTCUT: Move Tab Left', () => {
       test('default Cmd/Ctrl+[ moves active tab left', async ({ page }) => {
         await openRequest(page, collectionName, 'req-7', { persist: true });
         await openRequest(page, collectionName, 'req-8', { persist: true });
@@ -609,12 +609,12 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
 
         // Press Cmd/Ctrl+[ → req-9 moves left, req-8 becomes last
         await page.keyboard.press(`${modifier}+BracketLeft`);
-        await expect(tabs.nth(totalTabs - 1)).toHaveText(/req-8/, { timeout: 3000 });
+        await expect(tabs.nth(totalTabs - 1)).toHaveText(/req-8/);
         await expect(tabs.nth(totalTabs - 2)).toHaveText(/req-9/);
 
         // Press again → req-9 moves one more position left
         await page.keyboard.press(`${modifier}+BracketLeft`);
-        await expect(tabs.nth(totalTabs - 3)).toHaveText(/req-9/, { timeout: 3000 });
+        await expect(tabs.nth(totalTabs - 3)).toHaveText(/req-9/);
       });
 
       test('customized Alt+L moves active tab left', async ({ page }) => {
@@ -623,7 +623,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         const row = page.getByTestId('keybinding-row-moveTabLeft');
         await row.hover();
         await page.getByTestId('keybinding-edit-moveTabLeft').click();
-        await expect(page.getByTestId('keybinding-input-moveTabLeft')).toBeVisible({ timeout: 2000 });
+        await expect(page.getByTestId('keybinding-input-moveTabLeft')).toBeVisible();
 
         await page.keyboard.down('Backspace');
 
@@ -660,7 +660,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
       });
     });
 
-    test.describe('SHORTCUT: Move Tab Right', () => {
+    test.describe.serial('SHORTCUT: Move Tab Right', () => {
       test('default Cmd/Ctrl+] moves active tab right', async ({ page }) => {
         await openRequest(page, collectionName, 'req-6', { persist: true });
         await openRequest(page, collectionName, 'req-7', { persist: true });
@@ -694,7 +694,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         const row = page.getByTestId('keybinding-row-moveTabRight');
         await row.hover();
         await page.getByTestId('keybinding-edit-moveTabRight').click();
-        await expect(page.getByTestId('keybinding-input-moveTabRight')).toBeVisible({ timeout: 2000 });
+        await expect(page.getByTestId('keybinding-input-moveTabRight')).toBeVisible();
 
         await page.keyboard.down('Backspace');
 
@@ -762,30 +762,30 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await openRequest(page, 'kb-collection', 'req-8', { persist: true });
         await openRequest(page, 'kb-collection', 'req-9', { persist: true });
 
-        await expect(page.locator('.request-tab')).toHaveCount(9, { timeout: 2000 });
+        await expect(page.locator('.request-tab')).toHaveCount(9);
         const tabs = page.locator('.request-tab');
 
-        await expect(tabs.nth(0)).toHaveText(/req-1/, { timeout: 2000 });
+        await expect(tabs.nth(0)).toHaveText(/req-1/);
         await page.keyboard.press(`${modifier}+1`);
-        await expect(page.locator('li.request-tab.active')).toHaveText(/req-1/, { timeout: 3000 });
+        await expect(page.locator('li.request-tab.active')).toHaveText(/req-1/);
         await page.keyboard.press(`${modifier}+2`);
-        await expect(page.locator('li.request-tab.active')).toHaveText(/req-2/, { timeout: 3000 });
+        await expect(page.locator('li.request-tab.active')).toHaveText(/req-2/);
         await page.keyboard.press(`${modifier}+3`);
-        await expect(page.locator('li.request-tab.active')).toHaveText(/req-3/, { timeout: 3000 });
+        await expect(page.locator('li.request-tab.active')).toHaveText(/req-3/);
         await page.keyboard.press(`${modifier}+4`);
-        await expect(page.locator('li.request-tab.active')).toHaveText(/req-4/, { timeout: 3000 });
+        await expect(page.locator('li.request-tab.active')).toHaveText(/req-4/);
         await page.keyboard.press(`${modifier}+5`);
-        await expect(page.locator('li.request-tab.active')).toHaveText(/req-5/, { timeout: 3000 });
+        await expect(page.locator('li.request-tab.active')).toHaveText(/req-5/);
         await page.keyboard.press(`${modifier}+6`);
-        await expect(page.locator('li.request-tab.active')).toHaveText(/req-6/, { timeout: 3000 });
+        await expect(page.locator('li.request-tab.active')).toHaveText(/req-6/);
         await page.keyboard.press(`${modifier}+7`);
-        await expect(page.locator('li.request-tab.active')).toHaveText(/req-7/, { timeout: 3000 });
+        await expect(page.locator('li.request-tab.active')).toHaveText(/req-7/);
         await page.keyboard.press(`${modifier}+8`);
-        await expect(page.locator('li.request-tab.active')).toHaveText(/req-8/, { timeout: 3000 });
+        await expect(page.locator('li.request-tab.active')).toHaveText(/req-8/);
       });
     });
 
-    test.describe('SHORTCUT: Reopen Last Closed Tab', () => {
+    test.describe.serial('SHORTCUT: Reopen Last Closed Tab', () => {
       test('default Cmd/Ctrl+Shift+T reopens last closed request tab', async ({ page }) => {
         await openRequest(page, collectionName, 'req-2', { persist: true });
         await openRequest(page, collectionName, 'req-1', { persist: true });
@@ -802,16 +802,16 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
 
         // Open Collection-Settings tab (double-click collection name)
         await page.getByTestId('collections').locator('.collection-name').filter({ hasText: 'kb-collection' }).dblclick();
-        await expect(page.locator('.request-tab').filter({ hasText: 'collection' })).toBeVisible({ timeout: 2000 });
+        await expect(page.locator('.request-tab').filter({ hasText: 'collection' })).toBeVisible();
 
         // Open Runner tab
         await page.getByTestId('runner').click();
-        await expect(page.locator('.request-tab').filter({ hasText: 'Runner' })).toBeVisible({ timeout: 2000 });
+        await expect(page.locator('.request-tab').filter({ hasText: 'Runner' })).toBeVisible();
 
         // Open Variables tab
         await page.getByTestId('more-actions').click();
         await page.getByTestId('more-actions-variables').click();
-        await expect(page.locator('.request-tab').filter({ hasText: 'Variables' })).toBeVisible({ timeout: 2000 });
+        await expect(page.locator('.request-tab').filter({ hasText: 'Variables' })).toBeVisible();
 
         // Open Folder-Settings tab (create folder + double-click)
         await page.locator('.collection-item-name').filter({ hasText: 'kb-folder' }).dblclick();
@@ -849,7 +849,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
   });
 
   test.describe('SIDEBAR', () => {
-    test.describe('SHORTCUT: Sidebar search', () => {
+    test.describe.serial('SHORTCUT: Sidebar search', () => {
       test('default Cmd/Ctrl+F open sidebar search', async ({ page, createTmpDir }) => {
         await page.keyboard.down('Alt');
         await page.keyboard.down('KeyY');
@@ -858,8 +858,8 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
 
         await page.keyboard.press(`${modifier}+KeyF`);
 
-        // await expect(page.getByPlaceholder('Search requests...')).toBeVisible({ timeout: 3000 });
-        await expect(page.getByTestId('sidebar-search-input')).toBeVisible({ timeout: 3000 });
+        // await expect(page.getByPlaceholder('Search requests...')).toBeVisible();
+        await expect(page.getByTestId('sidebar-search-input')).toBeVisible();
         await page.getByTitle('Search requests').click();
       });
 
@@ -869,7 +869,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         const row = page.getByTestId('keybinding-row-sidebarSearch');
         await row.hover();
         await page.getByTestId('keybinding-edit-sidebarSearch').click();
-        await expect(page.getByTestId('keybinding-input-sidebarSearch')).toBeVisible({ timeout: 2000 });
+        await expect(page.getByTestId('keybinding-input-sidebarSearch')).toBeVisible();
 
         await page.keyboard.down('Backspace');
 
@@ -884,12 +884,12 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await page.keyboard.up('KeyF');
         await page.keyboard.up('Alt');
 
-        await expect(page.getByTestId('sidebar-search-input')).toBeVisible({ timeout: 2000 });
+        await expect(page.getByTestId('sidebar-search-input')).toBeVisible();
         await page.getByTitle('Search requests').click();
       });
     });
 
-    test.describe('SHORTCUT: New request', () => {
+    test.describe.serial('SHORTCUT: New request', () => {
       test('default Cmd/Ctrl+N open new request modal', async ({ page, createTmpDir }) => {
         await page.keyboard.down('Alt');
         await page.keyboard.down('KeyY');
@@ -905,7 +905,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await page.keyboard.type('https://echo.usebruno.com');
         await page.getByTestId('create-new-request-button').click();
 
-        await expect(page.locator('.request-tab').filter({ hasText: 'nr-folder' })).toBeVisible({ timeout: 2000 });
+        await expect(page.locator('.request-tab').filter({ hasText: 'nr-folder' })).toBeVisible();
       });
 
       test('customized Alt+N open new request modal', async ({ page, createTmpDir }) => {
@@ -914,7 +914,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         const row = page.getByTestId('keybinding-row-newRequest');
         await row.hover();
         await page.getByTestId('keybinding-edit-newRequest').click();
-        await expect(page.getByTestId('keybinding-input-newRequest')).toBeVisible({ timeout: 2000 });
+        await expect(page.getByTestId('keybinding-input-newRequest')).toBeVisible();
 
         await page.keyboard.down('Backspace');
 
@@ -935,11 +935,11 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await page.keyboard.type('https://echo.usebruno.com');
         await page.getByTestId('create-new-request-button').click();
 
-        await expect(page.locator('.request-tab').filter({ hasText: 'nr-collection' })).toBeVisible({ timeout: 2000 });
+        await expect(page.locator('.request-tab').filter({ hasText: 'nr-collection' })).toBeVisible();
       });
     });
 
-    test.describe('SHORTCUT: Rename Item', () => {
+    test.describe.serial('SHORTCUT: Rename Item', () => {
       test('default Cmd/Ctrl+R open rename item modal for request', async ({ page, createTmpDir }) => {
         await page.keyboard.down('Alt');
         await page.keyboard.down('KeyY');
@@ -952,7 +952,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
 
         // Verify rename modal opens
         const renameModal = page.locator('.bruno-modal-card').filter({ hasText: /rename request/i });
-        await expect(renameModal).toBeVisible({ timeout: 3000 });
+        await expect(renameModal).toBeVisible();
 
         // Fill in the rename req name
         const requestNameInput = page.locator('#collection-item-name');
@@ -962,8 +962,8 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await page.getByTestId('rename-item-button').click();
 
         // Verify renamed request appears in sidebar
-        // await expect(page.locator('.collection-item-name').filter({ hasText: 'req-1' })).toBeVisible({ timeout: 2000 });
-        await expect(page.locator('.collection-item-name').filter({ hasText: 'req-1-rename' })).toBeVisible({ timeout: 2000 });
+        // await expect(page.locator('.collection-item-name').filter({ hasText: 'req-1' })).toBeVisible();
+        await expect(page.locator('.collection-item-name').filter({ hasText: 'req-1-rename' })).toBeVisible();
       });
 
       test('default Cmd/Ctrl+R open rename item modal for folder', async ({ page, createTmpDir }) => {
@@ -977,7 +977,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
 
         // Verify rename modal opens
         const renameModal = page.locator('.bruno-modal-card').filter({ hasText: /rename folder/i });
-        await expect(renameModal).toBeVisible({ timeout: 3000 });
+        await expect(renameModal).toBeVisible();
 
         // Fill in the rename req name
         const folderNameInput = page.locator('#collection-item-name');
@@ -987,7 +987,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await page.getByTestId('rename-item-button').click();
 
         // Verify renamed request appears in sidebar
-        await expect(page.locator('.collection-item-name').filter({ hasText: 'kb-folder-renamed' })).toBeVisible({ timeout: 2000 });
+        await expect(page.locator('.collection-item-name').filter({ hasText: 'kb-folder-renamed' })).toBeVisible();
       });
 
       test('default Cmd/Ctrl+R open rename item modal for collection', async ({ page, createTmpDir }) => {
@@ -1001,7 +1001,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
 
         // Verify rename modal opens
         const renameModal = page.locator('.bruno-modal-card').filter({ hasText: /rename collection/i });
-        await expect(renameModal).toBeVisible({ timeout: 3000 });
+        await expect(renameModal).toBeVisible();
 
         // Fill in the rename req name
         const collectionInput = page.locator('#collection-name');
@@ -1011,7 +1011,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await page.locator('.submit').click();
 
         // Verify renamed request appears in sidebar
-        await expect(page.getByTestId('collections').locator('.collection-name').filter({ hasText: 'kb-collection-renamed' })).toBeVisible({ timeout: 3000 });
+        await expect(page.getByTestId('collections').locator('.collection-name').filter({ hasText: 'kb-collection-renamed' })).toBeVisible();
       });
 
       test('customized Alt+X open rename item modal for request', async ({ page, createTmpDir }) => {
@@ -1025,7 +1025,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         const row = page.getByTestId('keybinding-row-renameItem');
         await row.hover();
         await page.getByTestId('keybinding-edit-renameItem').click();
-        await expect(page.getByTestId('keybinding-input-renameItem')).toBeVisible({ timeout: 2000 });
+        await expect(page.getByTestId('keybinding-input-renameItem')).toBeVisible();
 
         await page.keyboard.down('Backspace');
 
@@ -1042,7 +1042,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
 
         // Verify rename modal opens
         const renameModal = page.locator('.bruno-modal-card').filter({ hasText: /rename request/i });
-        await expect(renameModal).toBeVisible({ timeout: 3000 });
+        await expect(renameModal).toBeVisible();
 
         // Fill in the rename req name
         const requestNameInput = page.locator('#collection-item-name');
@@ -1052,7 +1052,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await page.getByTestId('rename-item-button').click();
 
         // Verify renamed request appears in sidebar
-        await expect(page.locator('.collection-item-name').filter({ hasText: 'req-1-renamed-altx' })).toBeVisible({ timeout: 2000 });
+        await expect(page.locator('.collection-item-name').filter({ hasText: 'req-1-renamed-altx' })).toBeVisible();
       });
 
       test('customized Alt+R open rename item modal for folder', async ({ page, createTmpDir }) => {
@@ -1074,7 +1074,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
 
         // Verify rename modal opens
         const renameModal = page.locator('.bruno-modal-card').filter({ hasText: /rename folder/i });
-        await expect(renameModal).toBeVisible({ timeout: 3000 });
+        await expect(renameModal).toBeVisible();
 
         // Fill in the rename req name
         const folderNameInput = page.locator('#collection-item-name');
@@ -1084,7 +1084,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await page.getByTestId('rename-item-button').click();
 
         // Verify renamed request appears in sidebar
-        await expect(page.locator('.collection-item-name').filter({ hasText: 'kb-folder-renamed-altx-src' })).toBeVisible({ timeout: 2000 });
+        await expect(page.locator('.collection-item-name').filter({ hasText: 'kb-folder-renamed-altx-src' })).toBeVisible();
       });
 
       test('customized Alt+R open rename item modal for collection', async ({ page, createTmpDir }) => {
@@ -1105,7 +1105,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
 
         // Verify rename modal opens
         const renameModal = page.locator('.bruno-modal-card').filter({ hasText: /rename collection/i });
-        await expect(renameModal).toBeVisible({ timeout: 3000 });
+        await expect(renameModal).toBeVisible();
 
         // Fill in the rename req name
         const collectionInput = page.locator('#collection-name');
@@ -1115,11 +1115,11 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await page.locator('.submit').click();
 
         // Verify renamed request appears in sidebar
-        await expect(page.getByTestId('collections').locator('.collection-name').filter({ hasText: 'kb-collection-renamed-altx' })).toBeVisible({ timeout: 2000 });
+        await expect(page.getByTestId('collections').locator('.collection-name').filter({ hasText: 'kb-collection-renamed-altx' })).toBeVisible();
       });
     });
 
-    test.describe('SHORTCUT: Clone Item', () => {
+    test.describe.serial('SHORTCUT: Clone Item', () => {
       test('default Cmd/Ctrl+D open clone item modal for request', async ({ page, createTmpDir }) => {
         await page.keyboard.down('Alt');
         await page.keyboard.down('KeyY');
@@ -1131,7 +1131,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
 
         // Verify clone modal opens
         const cloneModal = page.locator('.bruno-modal-card').filter({ hasText: /clone request/i });
-        await expect(cloneModal).toBeVisible({ timeout: 3000 });
+        await expect(cloneModal).toBeVisible();
 
         // Fill in the clone req name
         const requestNameInput = page.locator('#collection-item-name');
@@ -1141,7 +1141,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await page.getByTestId('clone-item-button').click();
 
         // Verify cloned request appears in sidebar
-        await expect(page.locator('.collection-item-name').filter({ hasText: 'req-1 clone 1' })).toBeVisible({ timeout: 2000 });
+        await expect(page.locator('.collection-item-name').filter({ hasText: 'req-1 clone 1' })).toBeVisible();
       });
 
       test('default Cmd/Ctrl+D open clone item modal for folder', async ({ page, createTmpDir }) => {
@@ -1155,7 +1155,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
 
         // Verify clone modal opens
         const cloneModal = page.locator('.bruno-modal-card').filter({ hasText: /clone folder/i });
-        await expect(cloneModal).toBeVisible({ timeout: 3000 });
+        await expect(cloneModal).toBeVisible();
 
         // Fill in the clone kb-folder name
         const folderNameInput = page.locator('#collection-item-name');
@@ -1165,7 +1165,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await page.getByTestId('clone-item-button').click();
 
         // Verify cloned request appears in sidebar
-        await expect(page.locator('.collection-item-name').filter({ hasText: 'kb-folder clone 1' })).toBeVisible({ timeout: 2000 });
+        await expect(page.locator('.collection-item-name').filter({ hasText: 'kb-folder clone 1' })).toBeVisible();
       });
 
       test('customized Alt+D open clone item modal for request', async ({ page, createTmpDir }) => {
@@ -1179,7 +1179,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         const row = page.getByTestId('keybinding-row-cloneItem');
         await row.hover();
         await page.getByTestId('keybinding-edit-cloneItem').click();
-        await expect(page.getByTestId('keybinding-input-cloneItem')).toBeVisible({ timeout: 2000 });
+        await expect(page.getByTestId('keybinding-input-cloneItem')).toBeVisible();
 
         await page.keyboard.down('Backspace');
 
@@ -1197,7 +1197,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
 
         // Verify clone modal opens
         const cloneModal = page.locator('.bruno-modal-card').filter({ hasText: /clone request/i });
-        await expect(cloneModal).toBeVisible({ timeout: 3000 });
+        await expect(cloneModal).toBeVisible();
 
         // Fill in the clone req name
         const requestNameInput = page.locator('#collection-item-name');
@@ -1207,7 +1207,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await page.getByTestId('clone-item-button').click();
 
         // Verify renamed request appears in sidebar
-        await expect(page.locator('.collection-item-name').filter({ hasText: 'req-2 clone 1' })).toBeVisible({ timeout: 2000 });
+        await expect(page.locator('.collection-item-name').filter({ hasText: 'req-2 clone 1' })).toBeVisible();
       });
 
       test('customized Alt+D open clone item modal for folder', async ({ page, createTmpDir }) => {
@@ -1226,7 +1226,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
 
         // Verify clone modal opens
         const cloneModal = page.locator('.bruno-modal-card').filter({ hasText: /clone folder/i });
-        await expect(cloneModal).toBeVisible({ timeout: 3000 });
+        await expect(cloneModal).toBeVisible();
 
         // Fill in the clone req name
         const folderNameInput = page.locator('#collection-item-name');
@@ -1236,11 +1236,11 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await page.getByTestId('clone-item-button').click();
 
         // Verify renamed request appears in sidebar
-        await expect(page.locator('.collection-item-name').filter({ hasText: 'kb-folder-clone-src copy 1' })).toBeVisible({ timeout: 2000 });
+        await expect(page.locator('.collection-item-name').filter({ hasText: 'kb-folder-clone-src copy 1' })).toBeVisible();
       });
     });
 
-    test.describe('SHORTCUT: Copy Paste Item', () => {
+    test.describe.serial('SHORTCUT: Copy Paste Item', () => {
       test('default Cmd/Ctrl+C/V copy paste item for request', async ({ page, createTmpDir }) => {
         await page.keyboard.down('Alt');
         await page.keyboard.down('KeyY');
@@ -1252,7 +1252,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await page.keyboard.press(`${modifier}+KeyV`);
 
         // Verify cloned request appears in sidebar
-        await expect(page.locator('.collection-item-name').filter({ hasText: 'req-3 (1)' })).toBeVisible({ timeout: 2000 });
+        await expect(page.locator('.collection-item-name').filter({ hasText: 'req-3 (1)' })).toBeVisible();
       });
 
       test('default Cmd/Ctrl+C/V copy paste item for folder', async ({ page }) => {
@@ -1280,7 +1280,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         const row = page.getByTestId('keybinding-row-copyItem');
         await row.hover();
         await page.getByTestId('keybinding-edit-copyItem').click();
-        await expect(page.getByTestId('keybinding-input-copyItem')).toBeVisible({ timeout: 2000 });
+        await expect(page.getByTestId('keybinding-input-copyItem')).toBeVisible();
 
         await page.keyboard.down('Backspace');
 
@@ -1294,7 +1294,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         const row2 = page.getByTestId('keybinding-row-pasteItem');
         await row2.hover();
         await page.getByTestId('keybinding-edit-pasteItem').click();
-        await expect(page.getByTestId('keybinding-input-pasteItem')).toBeVisible({ timeout: 2000 });
+        await expect(page.getByTestId('keybinding-input-pasteItem')).toBeVisible();
 
         await page.keyboard.down('Backspace');
 
@@ -1315,7 +1315,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await page.keyboard.up('Alt');
 
         // Verify cloned request appears in sidebar
-        await expect(page.locator('.collection-item-name').filter({ hasText: 'req-4 (1)' })).toBeVisible({ timeout: 2000 });
+        await expect(page.locator('.collection-item-name').filter({ hasText: 'req-4 (1)' })).toBeVisible();
       });
 
       test('customized Alt+C/V copy paste item for folder', async ({ page, createTmpDir }) => {
@@ -1348,7 +1348,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
       });
     });
 
-    test.describe('SHORTCUT: Collapse Sidebar', () => {
+    test.describe.serial('SHORTCUT: Collapse Sidebar', () => {
       test('default collapse sidebar using default Cmd/Ctrl+\\', async ({ page, createTmpDir }) => {
         await expect(page.getByTestId('collections')).toBeVisible();
         await page.locator('body').click({ position: { x: 1, y: 1 } });
@@ -1357,16 +1357,14 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await page.keyboard.press(`${modifier}+Backslash`);
 
         await expect.poll(
-          () => page.locator('aside.sidebar').evaluate((el) => parseFloat(getComputedStyle(el).width)),
-          { timeout: 5000 }
+          () => page.locator('aside.sidebar').evaluate((el) => parseFloat(getComputedStyle(el).width))
         ).toBeLessThan(5);
 
         // Press Cmd/Ctrl+\ to collapse expanded sidebar
         await page.keyboard.press(`${modifier}+Backslash`);
 
         await expect.poll(
-          () => page.locator('aside.sidebar').evaluate((el) => parseFloat(getComputedStyle(el).width)),
-          { timeout: 5000 }
+          () => page.locator('aside.sidebar').evaluate((el) => parseFloat(getComputedStyle(el).width))
         ).toBeGreaterThan(200);
       });
 
@@ -1376,7 +1374,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         const row = page.getByTestId('keybinding-row-collapseSidebar');
         await row.hover();
         await page.getByTestId('keybinding-edit-collapseSidebar').click();
-        await expect(page.getByTestId('keybinding-input-collapseSidebar')).toBeVisible({ timeout: 2000 });
+        await expect(page.getByTestId('keybinding-input-collapseSidebar')).toBeVisible();
 
         await page.keyboard.down('Backspace');
 
@@ -1395,8 +1393,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
 
         // Verify sidebar collapsed to 0px
         await expect.poll(
-          () => page.locator('aside.sidebar').evaluate((el) => getComputedStyle(el).width),
-          { timeout: 5000 }
+          () => page.locator('aside.sidebar').evaluate((el) => getComputedStyle(el).width)
         ).toBe('0px');
 
         // Trigger the remapped shortcut to expand sidebar
@@ -1406,26 +1403,25 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await page.keyboard.up('Shift');
 
         await expect.poll(
-          () => page.locator('aside.sidebar').evaluate((el) => getComputedStyle(el).width),
-          { timeout: 5000 }
+          () => page.locator('aside.sidebar').evaluate((el) => getComputedStyle(el).width)
         ).toBe('250px');
       });
     });
   });
 
   test.describe('DEVELOPER TOOLS', () => {
-    test.describe('SHORTCUT: Open Terminal', () => {
+    test.describe.serial('SHORTCUT: Open Terminal', () => {
       test('default Cmd/Ctrl+T opens terminal', async ({ page, createTmpDir }) => {
         // Open Collection-Settings tab (double-click collection name)
         await page.getByTestId('collections').locator('.collection-name').filter({ hasText: 'kb-collection' }).click();
-        await expect(page.locator('.request-tab').filter({ hasText: 'collection' })).toBeVisible({ timeout: 2000 });
+        await expect(page.locator('.request-tab').filter({ hasText: 'collection' })).toBeVisible();
 
         // Press Cmd/Ctrl+T to open terminal at workspace level
         await page.keyboard.press(`${modifier}+KeyT`);
 
         // Verify terminal session is visible using data-testid
         const collectionTerminalSession = page.getByTestId('session-list-0');
-        await expect(collectionTerminalSession).toBeVisible({ timeout: 2000 });
+        await expect(collectionTerminalSession).toBeVisible();
 
         const collectionSession = collectionTerminalSession;
         await expect(collectionSession).toContainText('kb-collection');
@@ -1434,11 +1430,11 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         // Open Folder-Settings tab (create folder + double-click)
         // Open folder settings
         await page.locator('.collection-item-name').filter({ hasText: 'kb-terminal-folder' }).dblclick();
-        await expect(page.locator('.request-tab').filter({ hasText: 'kb-terminal-folder' })).toBeVisible({ timeout: 2000 });
+        await expect(page.locator('.request-tab').filter({ hasText: 'kb-terminal-folder' })).toBeVisible();
 
         await page.keyboard.press(`${modifier}+KeyT`);
         const folderTerminalSession = page.getByTestId('session-list-1');
-        await expect(folderTerminalSession).toBeVisible({ timeout: 2000 });
+        await expect(folderTerminalSession).toBeVisible();
 
         // Verify the terminal session name is the workspace name (default_workspace)
         const folderSessionName = folderTerminalSession;
@@ -1458,7 +1454,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         const row = page.getByTestId('keybinding-row-openTerminal');
         await row.hover();
         await page.getByTestId('keybinding-edit-openTerminal').click();
-        await expect(page.getByTestId('keybinding-input-openTerminal')).toBeVisible({ timeout: 2000 });
+        await expect(page.getByTestId('keybinding-input-openTerminal')).toBeVisible();
 
         await page.keyboard.down('Backspace');
 
@@ -1468,7 +1464,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await page.keyboard.up('Alt');
 
         await page.getByTestId('collections').locator('.collection-name').filter({ hasText: 'kb-collection' }).click();
-        await expect(page.locator('.request-tab').filter({ hasText: 'collection' })).toBeVisible({ timeout: 2000 });
+        await expect(page.locator('.request-tab').filter({ hasText: 'collection' })).toBeVisible();
 
         // Press Cmd/Ctrl+T to open terminal at workspace level
         await page.keyboard.down('Alt');
@@ -1479,7 +1475,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
 
         // Verify terminal session is visible using data-testid
         const collectionTerminalSession = page.getByTestId('session-list-0');
-        await expect(collectionTerminalSession).toBeVisible({ timeout: 2000 });
+        await expect(collectionTerminalSession).toBeVisible();
 
         const collectionSession = collectionTerminalSession;
         await expect(collectionSession).toContainText('kb-collection');
@@ -1492,7 +1488,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await page.keyboard.up('KeyT');
         await page.keyboard.up('Alt');
         const folderTerminalSession = page.getByTestId('session-list-1');
-        await expect(folderTerminalSession).toBeVisible({ timeout: 2000 });
+        await expect(folderTerminalSession).toBeVisible();
 
         // Verify the terminal session name is the workspace name (default_workspace)
         const folderSessionName = folderTerminalSession;
@@ -1509,7 +1505,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
   });
 
   test.describe('LAYOUT', () => {
-    test.describe('SHORTCUT: Change Layout', () => {
+    test.describe.serial('SHORTCUT: Change Layout', () => {
       test('default Cmd/Ctrl+J change layout orientation', async ({ page, createTmpDir }) => {
         await openRequest(page, 'kb-collection', 'req-5', { persist: true });
 
@@ -1518,21 +1514,21 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
 
         await expect(
           page.getByTestId('response-layout-toggle-btn')
-        ).toHaveAttribute('title', 'Switch to horizontal layout', { timeout: 2000 });
+        ).toHaveAttribute('title', 'Switch to horizontal layout');
 
         // Press Cmd/Ctrl+J to change layout
         await page.keyboard.press(`${modifier}+KeyJ`);
 
         await expect(
           page.getByTestId('response-layout-toggle-btn')
-        ).toHaveAttribute('title', 'Switch to vertical layout', { timeout: 2000 });
+        ).toHaveAttribute('title', 'Switch to vertical layout');
 
         // Press Cmd/Ctrl+J to change layout
         await page.keyboard.press(`${modifier}+KeyJ`);
 
         await expect(
           page.getByTestId('response-layout-toggle-btn')
-        ).toHaveAttribute('title', 'Switch to horizontal layout', { timeout: 2000 });
+        ).toHaveAttribute('title', 'Switch to horizontal layout');
       });
 
       test('customized Alt+Shift+Y change layout orientation', async ({ page, createTmpDir }) => {
@@ -1546,7 +1542,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         const row = page.getByTestId('keybinding-row-changeLayout');
         await row.hover();
         await page.getByTestId('keybinding-edit-changeLayout').click();
-        await expect(page.getByTestId('keybinding-input-changeLayout')).toBeVisible({ timeout: 2000 });
+        await expect(page.getByTestId('keybinding-input-changeLayout')).toBeVisible();
 
         await page.keyboard.down('Backspace');
 
@@ -1568,7 +1564,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
 
         await expect(
           page.getByTestId('response-layout-toggle-btn')
-        ).toHaveAttribute('title', 'Switch to vertical layout', { timeout: 2000 });
+        ).toHaveAttribute('title', 'Switch to vertical layout');
 
         // Press Cmd/Ctrl+J to change layout
         await page.keyboard.down('Alt');
@@ -1580,7 +1576,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
 
         await expect(
           page.getByTestId('response-layout-toggle-btn')
-        ).toHaveAttribute('title', 'Switch to horizontal layout', { timeout: 2000 });
+        ).toHaveAttribute('title', 'Switch to horizontal layout');
 
         // Press Cmd/Ctrl+J to change layout
         await page.keyboard.down('Alt');
@@ -1592,11 +1588,11 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
 
         await expect(
           page.getByTestId('response-layout-toggle-btn')
-        ).toHaveAttribute('title', 'Switch to vertical layout', { timeout: 2000 });
+        ).toHaveAttribute('title', 'Switch to vertical layout');
       });
     });
 
-    test.describe('SHORTCUT: Open Preferences', () => {
+    test.describe.serial('SHORTCUT: Open Preferences', () => {
       test('default Cmd/Ctrl+, open preferences', async ({ page }) => {
         await page.keyboard.down('Alt');
         await page.keyboard.down('KeyY');
@@ -1609,7 +1605,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await page.keyboard.up('Comma');
         await page.keyboard.up(modifier);
 
-        await expect(page.locator('.request-tab').filter({ hasText: 'Preferences' })).toBeVisible({ timeout: 3000 });
+        await expect(page.locator('.request-tab').filter({ hasText: 'Preferences' })).toBeVisible();
       });
 
       test('customized Cmd/Ctrl+P open preferences', async ({ page }) => {
@@ -1618,7 +1614,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         const row = page.getByTestId('keybinding-row-openPreferences');
         await row.hover();
         await page.getByTestId('keybinding-edit-openPreferences').click();
-        await expect(page.getByTestId('keybinding-input-openPreferences')).toBeVisible({ timeout: 2000 });
+        await expect(page.getByTestId('keybinding-input-openPreferences')).toBeVisible();
 
         await page.keyboard.down('Backspace');
 
@@ -1638,13 +1634,13 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await page.keyboard.up('KeyP');
         await page.keyboard.up(modifier);
 
-        await expect(page.locator('.request-tab').filter({ hasText: 'Preferences' })).toBeVisible({ timeout: 3000 });
+        await expect(page.locator('.request-tab').filter({ hasText: 'Preferences' })).toBeVisible();
       });
     });
   });
 
   test.describe('SEARCH', () => {
-    test.describe('SHORTCUT: Global Search', () => {
+    test.describe.serial('SHORTCUT: Global Search', () => {
       test('default Cmd/Ctrl+K Global Search Modal', async ({ page, createTmpDir }) => {
         // Press Cmd/Ctrl+K to global search modal
         await page.keyboard.press(`${modifier}+KeyK`);
@@ -1655,7 +1651,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await page.keyboard.up(modifier);
 
         await page.getByTestId('global-search-input').click();
-        await expect(page.getByTestId('global-search-input')).toBeVisible({ timeout: 2000 });
+        await expect(page.getByTestId('global-search-input')).toBeVisible();
 
         // await page.waitForTimeout(500);
         await page.keyboard.down('Escape');
@@ -1668,7 +1664,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         const row = page.getByTestId('keybinding-row-globalSearch');
         await row.hover();
         await page.getByTestId('keybinding-edit-globalSearch').click();
-        await expect(page.getByTestId('keybinding-input-globalSearch')).toBeVisible({ timeout: 2000 });
+        await expect(page.getByTestId('keybinding-input-globalSearch')).toBeVisible();
 
         await page.keyboard.down('Backspace');
 
@@ -1683,7 +1679,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await page.keyboard.up('Alt');
 
         await page.getByTestId('global-search-input').click();
-        await expect(page.getByTestId('global-search-input')).toBeVisible({ timeout: 2000 });
+        await expect(page.getByTestId('global-search-input')).toBeVisible();
 
         await page.keyboard.down('Escape');
         await page.keyboard.up('Escape');
@@ -1691,7 +1687,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
     });
   });
 
-  test.describe('SHORTCUT: Edit Environment', () => {
+  test.describe.serial('SHORTCUT: Edit Environment', () => {
     test('open environment tab of collection Cmd/Ctrl+E', async ({ page, createTmpDir }) => {
       await page.keyboard.down('Alt');
       await page.keyboard.down('KeyY');
@@ -1705,7 +1701,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
       await page.keyboard.up('KeyE');
       await page.keyboard.up(modifier);
 
-      await expect(page.locator('.request-tab').filter({ hasText: 'Environments' })).toBeVisible({ timeout: 2000 });
+      await expect(page.locator('.request-tab').filter({ hasText: 'Environments' })).toBeVisible();
     });
 
     test('open environment tab of collection customized Alt+E', async ({ page, createTmpDir }) => {
@@ -1719,7 +1715,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
       const row = page.getByTestId('keybinding-row-editEnvironment');
       await row.hover();
       await page.getByTestId('keybinding-edit-editEnvironment').click();
-      await expect(page.getByTestId('keybinding-input-editEnvironment')).toBeVisible({ timeout: 2000 });
+      await expect(page.getByTestId('keybinding-input-editEnvironment')).toBeVisible();
 
       await page.keyboard.down('Backspace');
 
@@ -1735,7 +1731,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
       await page.keyboard.up('KeyE');
       await page.keyboard.up('Alt');
 
-      await expect(page.locator('.request-tab').filter({ hasText: 'Environments' })).toBeVisible({ timeout: 2000 });
+      await expect(page.locator('.request-tab').filter({ hasText: 'Environments' })).toBeVisible();
 
       // Rest Default - just in case to not fail shortcuts in other places
       await openKeybindingsTab(page);
@@ -1744,7 +1740,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
   });
 
   test.describe('REQUESTS', () => {
-    test.describe('SHORTCUT: Send Request from CodeEditor (Cmd/Ctrl+Enter)', () => {
+    test.describe.serial('SHORTCUT: Send Request from CodeEditor (Cmd/Ctrl+Enter)', () => {
       test('sends request when cursor is in JSON body editor', async ({ page }) => {
         // Close existing tabs
         await page.keyboard.down('Alt');
@@ -1768,7 +1764,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         const bodyEditor = page.getByTestId('request-body-editor').locator('.CodeMirror');
         await bodyEditor.click();
         await page.keyboard.type('{"name": "Bruno", "version": 2, "tags": ["api", "client", "http"], "active": true, "meta": {"author": "user", "created": "2025-01-01", "updated": "2025-06-01"}, "counts": {"requests": 42, "collections": 7}}');
-        await expect(page.getByTestId('request-body-editor')).toContainText('"name": "Bruno"', { timeout: 5000 });
+        await expect(page.getByTestId('request-body-editor')).toContainText('"name": "Bruno"');
 
         // Cursor is still in the body CodeMirror — press Cmd/Ctrl+Enter to send
         await page.keyboard.press(`${modifier}+Enter`);
@@ -1797,7 +1793,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         const bodyEditor = page.getByTestId('request-body-editor').locator('.CodeMirror');
         await bodyEditor.click();
         await page.keyboard.type('{"name": "Bruno", "version": 2, "tags": ["api", "client", "http"], "active": true, "meta": {"author": "user", "created": "2025-01-01", "updated": "2025-06-01"}, "counts": {"requests": 42, "collections": 7}}');
-        await expect(page.getByTestId('request-body-editor')).toContainText('"name": "Bruno"', { timeout: 5000 });
+        await expect(page.getByTestId('request-body-editor')).toContainText('"name": "Bruno"');
 
         // First send to populate response
         await page.keyboard.press(`${modifier}+Enter`);
@@ -1854,7 +1850,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
       });
     });
 
-    test.describe('SHORTCUT: Send Request from CodeEditor (customized Shift+Enter)', () => {
+    test.describe.serial('SHORTCUT: Send Request from CodeEditor (customized Shift+Enter)', () => {
       test('customized Shift+Enter sends request when cursor is in JSON body editor', async ({ page }) => {
         // Close existing tabs
         await page.keyboard.down('Alt');
@@ -1867,7 +1863,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         const row = page.getByTestId('keybinding-row-sendRequest');
         await row.hover();
         await page.getByTestId('keybinding-edit-sendRequest').click();
-        await expect(page.getByTestId('keybinding-input-sendRequest')).toBeVisible({ timeout: 2000 });
+        await expect(page.getByTestId('keybinding-input-sendRequest')).toBeVisible();
 
         await page.keyboard.down('Backspace');
 
@@ -1892,7 +1888,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         const bodyEditor = page.getByTestId('request-body-editor').locator('.CodeMirror');
         await bodyEditor.click();
         await page.keyboard.type('{"name": "Bruno", "version": 2, "tags": ["api", "client", "http"], "active": true, "meta": {"author": "user", "created": "2025-01-01", "updated": "2025-06-01"}, "counts": {"requests": 42, "collections": 7}}');
-        await expect(page.getByTestId('request-body-editor')).toContainText('"name": "Bruno"', { timeout: 5000 });
+        await expect(page.getByTestId('request-body-editor')).toContainText('"name": "Bruno"');
 
         // Cursor is still in the body CodeMirror — press Shift+Enter (customized) to send
         await page.keyboard.press('Shift+Enter');
@@ -1916,7 +1912,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         const row = page.getByTestId('keybinding-row-sendRequest');
         await row.hover();
         await page.getByTestId('keybinding-edit-sendRequest').click();
-        await expect(page.getByTestId('keybinding-input-sendRequest')).toBeVisible({ timeout: 2000 });
+        await expect(page.getByTestId('keybinding-input-sendRequest')).toBeVisible();
 
         await page.keyboard.down('Backspace');
 
@@ -1939,7 +1935,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         const bodyEditor = page.getByTestId('request-body-editor').locator('.CodeMirror');
         await bodyEditor.click();
         await page.keyboard.type('{"name": "Bruno", "version": 2, "tags": ["api", "client", "http"], "active": true, "meta": {"author": "user", "created": "2025-01-01", "updated": "2025-06-01"}, "counts": {"requests": 42, "collections": 7}}');
-        await expect(page.getByTestId('request-body-editor')).toContainText('"name": "Bruno"', { timeout: 5000 });
+        await expect(page.getByTestId('request-body-editor')).toContainText('"name": "Bruno"');
 
         // First send with Shift+Enter to populate response
         await page.keyboard.press('Shift+Enter');
@@ -1972,7 +1968,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         const row = page.getByTestId('keybinding-row-sendRequest');
         await row.hover();
         await page.getByTestId('keybinding-edit-sendRequest').click();
-        await expect(page.getByTestId('keybinding-input-sendRequest')).toBeVisible({ timeout: 2000 });
+        await expect(page.getByTestId('keybinding-input-sendRequest')).toBeVisible();
 
         await page.keyboard.down('Backspace');
 
