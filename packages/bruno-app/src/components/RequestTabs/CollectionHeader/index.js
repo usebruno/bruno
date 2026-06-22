@@ -12,12 +12,15 @@ import {
   IconX,
   IconCheck,
   IconFolder,
-  IconUpload
+  IconUpload,
+  IconFileCode,
+  IconFileOff
 } from '@tabler/icons';
 import OpenAPISyncIcon from 'components/Icons/OpenAPISync';
 import { switchWorkspace, renameWorkspaceAction, exportWorkspaceAction, confirmWorkspaceCreation, cancelWorkspaceCreation } from 'providers/ReduxStore/slices/workspaces/actions';
 import { updateWorkspace } from 'providers/ReduxStore/slices/workspaces';
 import { showInFolder } from 'providers/ReduxStore/slices/collections/actions';
+import { toggleCollectionFileMode } from 'providers/ReduxStore/slices/collections';
 import { addTab, focusTab } from 'providers/ReduxStore/slices/tabs';
 import { uuid } from 'utils/common';
 import toast from 'react-hot-toast';
@@ -34,8 +37,6 @@ import { normalizePath } from 'utils/common/path';
 import classNames from 'classnames';
 import StyledWrapper from './StyledWrapper';
 import { useTheme } from 'providers/Theme';
-import { useBetaFeature, BETA_FEATURES } from 'utils/beta-features';
-import StatusBadge from 'ui/StatusBadge/index';
 
 const CollectionHeader = ({ collection, isScratchCollection }) => {
   const dispatch = useDispatch();
@@ -47,7 +48,6 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
   // Get the current active workspace
   const currentWorkspace = workspaces.find((w) => w.uid === activeWorkspaceUid);
   const gitRootPath = collection?.git?.gitRootPath;
-  const isOpenAPISyncEnabled = useBetaFeature(BETA_FEATURES.OPENAPI_SYNC);
 
   // Workspace rename state
   const [isRenamingWorkspace, setIsRenamingWorkspace] = useState(false);
@@ -220,11 +220,20 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
     }));
   };
 
+  const handleFileModeClick = () => {
+    dispatch(
+      toggleCollectionFileMode({
+        collectionUid: collection.uid
+      })
+    );
+  };
+
   // Build overflow menu items for the "..." dropdown
   const overflowMenuItems = [
     { id: 'variables', label: 'Variables', leftSection: IconEye, onClick: viewVariables },
-    ...(isOpenAPISyncEnabled && !hasOpenApiSyncConfigured
-      ? [{ id: 'openapi-sync', label: 'OpenAPI', leftSection: OpenAPISyncIcon, rightSection: <StatusBadge status="info" size="xs">Beta</StatusBadge>, onClick: viewOpenApiSync }]
+    { id: 'file-mode', label: collection.fileMode ? 'Switch to Code Mode' : 'Switch to File Mode', leftSection: collection.fileMode ? IconFileOff : IconFileCode, onClick: handleFileModeClick },
+    ...(!hasOpenApiSyncConfigured
+      ? [{ id: 'openapi-sync', label: 'OpenAPI', leftSection: OpenAPISyncIcon, onClick: viewOpenApiSync }]
       : []),
     { id: 'collection-settings', label: 'Collection Settings', leftSection: IconSettings, onClick: viewCollectionSettings }
   ];
@@ -576,7 +585,7 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
         {!isScratchCollection && (
           <div className="flex flex-grow gap-1.5 items-center justify-end">
             {/* OpenAPI Sync - standalone only when configured and beta enabled */}
-            {isOpenAPISyncEnabled && hasOpenApiSyncConfigured && (
+            {hasOpenApiSyncConfigured && (
               <ToolHint
                 text={hasOpenApiError ? 'OpenAPI Error' : hasOpenApiUpdates ? 'OpenAPI Updates Available' : 'OpenAPI'}
                 toolhintId="OpenApiSyncToolhintId"

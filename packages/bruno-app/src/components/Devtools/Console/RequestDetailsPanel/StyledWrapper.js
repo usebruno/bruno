@@ -4,11 +4,8 @@ const StyledWrapper = styled.div`
   display: flex;
   flex-direction: column;
   height: 100%;
+  width: 100%;
   background: ${(props) => props.theme.console.contentBg};
-  border-left: 1px solid ${(props) => props.theme.console.border};
-  min-width: 400px;
-  max-width: 600px;
-  width: 40%;
   overflow: hidden;
 
   .panel-header {

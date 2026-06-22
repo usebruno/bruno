@@ -785,10 +785,11 @@ export const transformRequestToSaveToFilesystem = (item) => {
   if (itemToSave.request.body.mode === 'ws') {
     itemToSave.request.body = {
       ...itemToSave.request.body,
-      ws: itemToSave.request.body.ws.map(({ name, content, type }, index) => ({
+      ws: itemToSave.request.body.ws.map(({ name, content, type, selected }, index) => ({
         name: name ? name : `message ${index + 1}`,
         type,
-        content: replaceTabsWithSpaces(content)
+        content: replaceTabsWithSpaces(content),
+        selected: selected || false
       }))
     };
   }
@@ -885,6 +886,40 @@ export const isItemARequest = (item) => {
 
 export const isItemAFolder = (item) => {
   return !item.hasOwnProperty('request') && item.type === 'folder';
+};
+
+/**
+ * Counts the folders and requests in a collection's item tree, recursively at every
+ * depth. Used to summarise a collection (e.g. in the Generate Documentation modal).
+ *
+ * @param {Array} items - The collection's `items` tree.
+ * @returns {{ folderCount: number, requestCount: number }}
+ */
+export const getCollectionItemCounts = (items = []) => {
+  const flattened = flattenItems(items);
+  return {
+    folderCount: flattened.filter(isItemAFolder).length,
+    requestCount: flattened.filter(isItemARequest).length
+  };
+};
+
+/**
+ * Orders a list of collection items exactly the way the Sidebar tree renders them:
+ * folders first (via `sortByNameThenSequence`), then requests ordered by `seq`. The
+ * same ordering is applied recursively to every nested folder so an exported/serialized
+ * tree matches the sidebar at all depths.
+ *
+ * Items that are neither folders nor requests (e.g. `js` script files) are excluded,
+ * mirroring the sidebar, which only renders folders and requests. Transient items are
+ * excluded too.
+ */
+export const sortItemsBySidebarOrder = (items = []) => {
+  const folderItems = sortByNameThenSequence(filter(items, (i) => isItemAFolder(i) && !i.isTransient));
+  const requestItems = filter(items, (i) => isItemARequest(i) && !i.isTransient).sort((a, b) => a.seq - b.seq);
+
+  return [...folderItems, ...requestItems].map((item) =>
+    Array.isArray(item.items) ? { ...item, items: sortItemsBySidebarOrder(item.items) } : item
+  );
 };
 
 export const humanizeRequestBodyMode = (mode) => {
@@ -1014,6 +1049,7 @@ export const refreshUidsInItem = (item) => {
   each(get(item, 'request.body.multipartForm'), (param) => (param.uid = uuid()));
   each(get(item, 'request.body.formUrlEncoded'), (param) => (param.uid = uuid()));
   each(get(item, 'request.body.file'), (param) => (param.uid = uuid()));
+  each(get(item, 'request.body.ws'), (msg) => (msg.uid = uuid()));
   each(get(item, 'request.assertions'), (assertion) => (assertion.uid = uuid()));
 
   return item;
@@ -1167,7 +1203,7 @@ export const getEnvironmentVariables = (collection) => {
     const environment = findEnvironmentInCollection(collection, collection.activeEnvironmentUid);
     if (environment) {
       each(environment.variables, (variable) => {
-        if (variable.name && variable.value && variable.enabled) {
+        if (variable.name && variable.enabled) {
           variables[variable.name] = variable.value;
         }
       });
@@ -1675,7 +1711,7 @@ export const getVariableScope = (variableName, collection, item) => {
 
   // 5. Check Global Environment Variables
   const { globalEnvironmentVariables = {} } = collection;
-  if (globalEnvironmentVariables && globalEnvironmentVariables[variableName]) {
+  if (variableName in globalEnvironmentVariables) {
     return {
       type: 'global',
       value: globalEnvironmentVariables[variableName],
@@ -1685,7 +1721,7 @@ export const getVariableScope = (variableName, collection, item) => {
 
   // 6. Check Runtime Variables (set during request execution via scripts)
   const { runtimeVariables = {} } = collection;
-  if (runtimeVariables && runtimeVariables[variableName]) {
+  if (variableName in runtimeVariables) {
     return {
       type: 'runtime',
       value: runtimeVariables[variableName],

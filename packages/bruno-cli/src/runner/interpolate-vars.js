@@ -2,6 +2,26 @@ const { interpolate } = require('@usebruno/common');
 const { each, forOwn, cloneDeep, find } = require('lodash');
 const { isFormData } = require('@usebruno/common').utils;
 
+const hasResolvablePathParamValue = (pathParam) => {
+  if (!pathParam || pathParam.enabled === false) {
+    return false;
+  }
+
+  const { value } = pathParam;
+
+  if (value === null || value === undefined) {
+    return false;
+  }
+
+  if (typeof value === 'string' && value.trim() === '') {
+    return false;
+  }
+
+  return true;
+};
+
+const isBinaryRequestBody = (data) => Buffer.isBuffer(data) || typeof data?.pipe === 'function';
+
 const getContentType = (headers = {}) => {
   let contentType = '';
   forOwn(headers, (value, key) => {
@@ -80,7 +100,7 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
 
   // Skip body interpolation for GraphQL requests.
   if (!isGraphqlRequest) {
-    if (contentType.includes('json') && !Buffer.isBuffer(request.data)) {
+    if (contentType.includes('json') && !isBinaryRequestBody(request.data)) {
       if (typeof request.data === 'string') {
         if (request?.data?.length) {
           request.data = _interpolate(request.data, { escapeJSONStrings: true });
@@ -100,7 +120,9 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
         }));
       }
     } else if (contentType.startsWith('multipart/')) {
-      if (Array.isArray(request?.data) && !isFormData(request.data)) {
+      if (request?.data && typeof request.data === 'string') {
+        request.data = _interpolate(request.data);
+      } else if (Array.isArray(request?.data) && !isFormData(request.data)) {
         try {
           request.data = request?.data?.map((d) => ({
             ...d,
@@ -138,7 +160,7 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
         if (path.startsWith(':')) {
           const paramName = path.slice(1);
           const existingPathParam = request.pathParams.find((param) => param.name === paramName);
-          if (!existingPathParam) {
+          if (!hasResolvablePathParamValue(existingPathParam)) {
             return '/' + path;
           }
           return '/' + existingPathParam.value;
@@ -159,7 +181,7 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
               name = name.replace(/^[('"`]+/, '');
               if (name) {
                 const existingPathParam = request.pathParams.find((param) => param.name === name);
-                if (existingPathParam) {
+                if (hasResolvablePathParamValue(existingPathParam)) {
                   result = result.replace(':' + match[1], existingPathParam.value);
                 }
               }

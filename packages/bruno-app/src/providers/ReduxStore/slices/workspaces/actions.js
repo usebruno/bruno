@@ -250,6 +250,8 @@ export const openWorkspaceDialog = () => {
         await dispatch(switchWorkspace(workspaceUid));
 
         return result;
+      } else {
+        return null;
       }
     } catch (error) {
       throw error;
@@ -548,10 +550,12 @@ export const loadWorkspaceApiSpecs = (workspaceUid) => {
       }));
 
       const allApiSpecs = getState().apiSpec.apiSpecs;
-      const alreadyOpenApiSpecs = allApiSpecs.map((a) => a.pathname);
+      // Compare by normalized path so a spec already loaded under a native (Windows)
+      // path isn't treated as "not open" and needlessly re-opened.
+      const alreadyOpenApiSpecs = allApiSpecs.map((a) => normalizePath(a.pathname));
 
       for (const apiSpec of apiSpecs) {
-        if (apiSpec.path && !alreadyOpenApiSpecs.includes(apiSpec.path)) {
+        if (apiSpec.path && !alreadyOpenApiSpecs.includes(normalizePath(apiSpec.path))) {
           try {
             await ipcRenderer.invoke('renderer:open-api-spec-file', apiSpec.path, workspace.pathname);
           } catch (error) {
@@ -808,6 +812,7 @@ export const workspaceOpenedEvent = (workspacePath, workspaceUid, workspaceConfi
     try {
       const snapshot = await ipcRenderer.invoke('renderer:snapshot:get');
       const activeWorkspacePath = snapshot?.activeWorkspacePath;
+      const normalizedWorkspacePath = normalizePath(workspacePath || '');
 
       const currentState = getState();
       if (!currentState.app.snapshotReady && snapshot?.extras?.devTools) {
@@ -822,7 +827,23 @@ export const workspaceOpenedEvent = (workspacePath, workspaceUid, workspaceConfi
       }
 
       if (activeWorkspacePath) {
-        shouldSwitch = workspacePath === activeWorkspacePath;
+        const normalizedActiveWorkspacePath = normalizePath(activeWorkspacePath);
+        shouldSwitch = normalizedWorkspacePath === normalizedActiveWorkspacePath;
+
+        // If the snapshot points to a workspace that no longer exists on disk,
+        // fall back to the default workspace instead of leaving stale active state.
+        if (!shouldSwitch && workspaceConfig.type === 'default') {
+          const lastOpenedWorkspacePaths = await ipcRenderer.invoke('renderer:get-last-opened-workspaces').catch(() => []);
+          const normalizedLastOpenedWorkspacePaths = new Set(
+            (Array.isArray(lastOpenedWorkspacePaths) ? lastOpenedWorkspacePaths : [])
+              .map((pathname) => normalizePath(pathname))
+          );
+          const hasActiveWorkspacePath = normalizedLastOpenedWorkspacePaths.has(normalizedActiveWorkspacePath);
+
+          if (!hasActiveWorkspacePath) {
+            shouldSwitch = true;
+          }
+        }
       } else {
         shouldSwitch = !activeWorkspaceUid || workspaceConfig.type === 'default';
       }

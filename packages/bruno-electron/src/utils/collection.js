@@ -7,6 +7,15 @@ const os = require('os');
 const { preferencesUtil } = require('../store/preferences');
 const path = require('path');
 const { DEFAULT_COLLECTION_FORMAT } = require('@usebruno/filestore');
+const { parseValueByDataType } = require('@usebruno/common/utils');
+
+/**
+ * Returns the variable's runtime value with datatype-driven coercion applied.
+ * The shared `parseValueByDataType` from `@usebruno/common/utils` honors
+ * draft dataType changes — e.g. a user picking `@number` on a "42" string
+ * via the UI takes effect at request-execution time without requiring a save.
+ */
+const resolveTypedValue = (v) => parseValueByDataType(v.value, v.dataType);
 
 const FORMAT_CONFIG = {
   yml: { ext: '.yml', collectionFile: 'opencollection.yml', folderFile: 'folder.yml' },
@@ -75,8 +84,9 @@ const mergeVars = (collection, request, requestTreePath = []) => {
   let collectionVariables = {};
   collectionRequestVars.forEach((_var) => {
     if (_var.enabled) {
-      reqVars.set(_var.name, _var.value);
-      collectionVariables[_var.name] = _var.value;
+      const typed = resolveTypedValue(_var);
+      reqVars.set(_var.name, typed);
+      collectionVariables[_var.name] = typed;
     }
   });
   let folderVariables = {};
@@ -87,16 +97,18 @@ const mergeVars = (collection, request, requestTreePath = []) => {
       let vars = get(folderRoot, 'request.vars.req', []);
       vars.forEach((_var) => {
         if (_var.enabled) {
-          reqVars.set(_var.name, _var.value);
-          folderVariables[_var.name] = _var.value;
+          const typed = resolveTypedValue(_var);
+          reqVars.set(_var.name, typed);
+          folderVariables[_var.name] = typed;
         }
       });
     } else {
       const vars = i?.draft ? get(i, 'draft.request.vars.req', []) : get(i, 'request.vars.req', []);
       vars.forEach((_var) => {
         if (_var.enabled) {
-          reqVars.set(_var.name, _var.value);
-          requestVariables[_var.name] = _var.value;
+          const typed = resolveTypedValue(_var);
+          reqVars.set(_var.name, typed);
+          requestVariables[_var.name] = typed;
         }
       });
     }
@@ -119,7 +131,7 @@ const mergeVars = (collection, request, requestTreePath = []) => {
   let collectionResponseVars = get(collectionRoot, 'request.vars.res', []);
   collectionResponseVars.forEach((_var) => {
     if (_var.enabled) {
-      resVars.set(_var.name, _var.value);
+      resVars.set(_var.name, resolveTypedValue(_var));
     }
   });
   for (let i of requestTreePath) {
@@ -128,14 +140,14 @@ const mergeVars = (collection, request, requestTreePath = []) => {
       let vars = get(folderRoot, 'request.vars.res', []);
       vars.forEach((_var) => {
         if (_var.enabled) {
-          resVars.set(_var.name, _var.value);
+          resVars.set(_var.name, resolveTypedValue(_var));
         }
       });
     } else {
       const vars = i?.draft ? get(i, 'draft.request.vars.res', []) : get(i, 'request.vars.res', []);
       vars.forEach((_var) => {
         if (_var.enabled) {
-          resVars.set(_var.name, _var.value);
+          resVars.set(_var.name, resolveTypedValue(_var));
         }
       });
     }
@@ -151,12 +163,9 @@ const mergeVars = (collection, request, requestTreePath = []) => {
   }
 };
 
-/**
- * Wraps a script in an IIFE closure to isolate its scope
- * @param {string} script - The script code to wrap
- * @returns {string} The wrapped script
- */
-const wrapScriptInClosure = (script) => {
+// __bruSetScope must stay on the IIFE opener line so wrapAndJoinScripts' line
+// counts (and stack-trace mapping) are unaffected.
+const wrapScriptInClosure = (script, scopeInfo = null) => {
   if (!script || script.trim() === '') {
     return '';
   }
@@ -164,7 +173,10 @@ const wrapScriptInClosure = (script) => {
   // Wrap script in async IIFE to create isolated scope
   // This prevents variable re-declaration errors and allows early returns
   // to only affect the current script segment
-  return `await (async () => {
+  const scopeSetter = scopeInfo
+    ? ` __bruSetScope(${JSON.stringify(scopeInfo)});`
+    : '';
+  return `await (async () => {${scopeSetter}
 ${script}
 })();`;
 };
@@ -212,8 +224,17 @@ ${script}
  *   }
  * }
  */
-const wrapAndJoinScripts = (scripts, requestIndex, segmentSources = null) => {
-  const wrapped = scripts.map((s) => wrapScriptInClosure(s));
+const wrapAndJoinScripts = (scripts, requestIndex, segmentSources = null, requestSegmentSource = null) => {
+  const buildScopeInfo = (i) => {
+    if (i === requestIndex && requestSegmentSource?.displayPath) {
+      return { type: 'request', sourceFile: requestSegmentSource.displayPath };
+    }
+    const seg = segmentSources?.[i];
+    if (!seg?.type || !seg?.displayPath) return null;
+    return { type: seg.type, sourceFile: seg.displayPath };
+  };
+
+  const wrapped = scripts.map((s, i) => wrapScriptInClosure(s, buildScopeInfo(i)));
   const code = wrapped.filter(Boolean).join('\n\n');
 
   let offset = 0;
@@ -260,9 +281,16 @@ const mergeScripts = (collection, request, requestTreePath, scriptFlow) => {
   const format = collection.format || 'bru';
   const config = FORMAT_CONFIG[format];
   const collectionSource = {
+    type: 'collection',
     filePath: path.join(collection.pathname, config.collectionFile),
     displayPath: config.collectionFile
   };
+
+  const requestItem = requestTreePath?.[requestTreePath.length - 1];
+  const requestPathname = request?.pathname || requestItem?.pathname;
+  const requestSegmentSource = requestPathname && collection?.pathname
+    ? { displayPath: posixifyPath(path.relative(collection.pathname, requestPathname)) }
+    : null;
 
   const withContent = (source, script) =>
     script?.trim() ? { ...source, scriptContent: script } : source;
@@ -278,6 +306,7 @@ const mergeScripts = (collection, request, requestTreePath, scriptFlow) => {
     if (i.type === 'folder') {
       const folderRoot = i?.draft || i?.root;
       const folderSource = {
+        type: 'folder',
         filePath: path.join(i.pathname, config.folderFile),
         displayPath: posixifyPath(path.relative(collection.pathname, path.join(i.pathname, config.folderFile)))
       };
@@ -310,7 +339,7 @@ const mergeScripts = (collection, request, requestTreePath, scriptFlow) => {
   // Wrap scripts, join them, and annotate metadata with the original request script content.
   // Returns { code, metadata } where metadata.requestScriptContent is set.
   const buildCombinedScript = (scripts, requestIndex, sources, originalScript) => {
-    const result = wrapAndJoinScripts(scripts, requestIndex, sources);
+    const result = wrapAndJoinScripts(scripts, requestIndex, sources, requestSegmentSource);
     if (result.metadata) {
       result.metadata.requestScriptContent = originalScript;
     }
@@ -579,6 +608,8 @@ const hydrateRequestWithUuid = (request, pathname) => {
   bodyFormUrlEncoded.forEach((param) => (param.uid = uuid()));
   bodyMultipartForm.forEach((param) => (param.uid = uuid()));
   file.forEach((param) => (param.uid = uuid()));
+  const wsMessages = get(request, 'request.body.ws', []);
+  wsMessages.forEach((msg) => (msg.uid = uuid()));
   examples.forEach((example, eIndex) => {
     example.uid = getExampleUid(pathname, eIndex);
     example.itemUid = request.uid;
@@ -757,7 +788,7 @@ const getEnvVars = (environment = {}) => {
   const envVars = {};
   each(variables, (variable) => {
     if (variable.enabled) {
-      envVars[variable.name] = variable.value;
+      envVars[variable.name] = resolveTypedValue(variable);
     }
   });
 
@@ -792,7 +823,7 @@ const mergeAuth = (collection, request, requestTreePath) => {
       const folderRoot = i?.draft || i?.root;
       const folderAuth = get(folderRoot, 'request.auth');
       // Only consider folders that have a valid auth mode
-      if (folderAuth && folderAuth.mode && folderAuth.mode !== 'none' && folderAuth.mode !== 'inherit') {
+      if (folderAuth && folderAuth.mode && folderAuth.mode !== 'inherit') {
         effectiveAuth = folderAuth;
         lastFolderWithAuth = i;
       }

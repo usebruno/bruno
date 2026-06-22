@@ -4,8 +4,9 @@ const path = require('path');
 const chokidar = require('chokidar');
 const yaml = require('js-yaml');
 const { generateUidBasedOnHash, uuid } = require('../utils/common');
-const { getWorkspaceUid } = require('../utils/workspace-config');
+const { getWorkspaceUid, normalizeWorkspaceConfig } = require('../utils/workspace-config');
 const { parseEnvironment } = require('@usebruno/filestore');
+const { parseValueByDataType } = require('@usebruno/common/utils');
 const EnvironmentSecretsStore = require('../store/env-secrets');
 const { decryptStringSafe } = require('../utils/encryption');
 const dotEnvWatcher = require('./dotenv-watcher');
@@ -17,16 +18,6 @@ const DEFAULT_WORKSPACE_NAME = 'My Workspace';
 const envHasSecrets = (environment) => {
   const secrets = _.filter(environment.variables, (v) => v.secret === true);
   return secrets && secrets.length > 0;
-};
-
-const normalizeWorkspaceConfig = (config) => {
-  return {
-    ...config,
-    name: config.info?.name,
-    type: config.info?.type,
-    collections: config.collections || [],
-    apiSpecs: config.specs || []
-  };
 };
 
 const handleWorkspaceFileChange = (win, workspacePath) => {
@@ -88,7 +79,7 @@ const parseGlobalEnvironmentFile = async (pathname, workspacePath, workspaceUid)
       const variable = _.find(file.data.variables, (v) => v.name === secret.name);
       if (variable && secret.value) {
         const decryptionResult = decryptStringSafe(secret.value);
-        variable.value = decryptionResult.value;
+        variable.value = parseValueByDataType(decryptionResult.value, variable.dataType);
       }
     });
   }

@@ -136,6 +136,7 @@ const STATIC_API_HINTS = {
     'bru.getCollectionName()',
     'bru.isSafeMode()',
     'bru.getOauth2CredentialVar(key)',
+    'bru.hasGlobalEnvVar(key)',
     'bru.getGlobalEnvVar(key)',
     'bru.setGlobalEnvVar(key, value)',
     // 'bru.deleteGlobalEnvVar(key)',
@@ -187,8 +188,10 @@ const STATIC_API_HINTS = {
 // Mock data functions - prefixed with $
 const MOCK_DATA_HINTS = Object.keys(mockDataFunctions).map((key) => `$${key}`);
 
-// Constants for word pattern matching
-const WORD_PATTERN = /[\w.$-/]/;
+// Constants for word pattern matching.
+// `-` is placed last so it is a literal hyphen, not a range operator — `$-/`
+// would otherwise match `( ) % & ' * + ,`
+const WORD_PATTERN = /[\w.$/-]/;
 const VARIABLE_PATTERN = /\{\{([\w$.-]*)$/;
 const NON_CHARACTER_KEYS = /^(?!Shift|Tab|Enter|Escape|ArrowUp|ArrowDown|ArrowLeft|ArrowRight|Meta|Alt|Home|End\s)\w*/;
 
@@ -802,7 +805,7 @@ export const setupAutoComplete = (editor, options = {}) => {
 };
 
 // Exported for testing
-export { extractNextSegmentSuggestions };
+export { extractNextSegmentSuggestions, WORD_PATTERN };
 
 // Initialize autocomplete command if not already present
 if (!CodeMirror.commands.autocomplete) {

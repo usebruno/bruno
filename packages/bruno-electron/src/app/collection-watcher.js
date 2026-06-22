@@ -18,6 +18,7 @@ const {
 } = require('@usebruno/filestore');
 
 const { uuid } = require('../utils/common');
+const { parseValueByDataType } = require('@usebruno/common/utils');
 const { getRequestUid } = require('../cache/requestUids');
 const { decryptStringSafe } = require('../utils/encryption');
 const { setBrunoConfig } = require('../store/bruno-config');
@@ -121,7 +122,7 @@ const addEnvironmentFile = async (win, pathname, collectionUid, collectionPath) 
         const variable = _.find(file.data.variables, (v) => v.name === secret.name);
         if (variable && secret.value) {
           const decryptionResult = decryptStringSafe(secret.value);
-          variable.value = decryptionResult.value;
+          variable.value = parseValueByDataType(decryptionResult.value, variable.dataType);
         }
       });
     }
@@ -161,7 +162,7 @@ const changeEnvironmentFile = async (win, pathname, collectionUid, collectionPat
         const variable = _.find(file.data.variables, (v) => v.name === secret.name);
         if (variable && secret.value) {
           const decryptionResult = decryptStringSafe(secret.value);
-          variable.value = decryptionResult.value;
+          variable.value = parseValueByDataType(decryptionResult.value, variable.dataType);
         }
       });
     }
@@ -319,6 +320,7 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
         file.partial = false;
         file.loading = false;
         file.size = sizeInMB(fileStats?.size);
+        file.data.raw = content;
         hydrateRequestWithUuid(file.data, pathname);
         win.webContents.send('main:collection-tree-updated', 'addFile', file);
       } catch (error) {
@@ -360,6 +362,7 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
         });
         file.partial = false;
         file.loading = false;
+        file.data.raw = content;
         hydrateRequestWithUuid(file.data, pathname);
         win.webContents.send('main:collection-tree-updated', 'addFile', file);
       }
@@ -374,6 +377,7 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
       file.partial = true;
       file.loading = false;
       file.size = sizeInMB(fileStats?.size);
+      file.data.raw = content;
       hydrateRequestWithUuid(file.data, pathname);
       win.webContents.send('main:collection-tree-updated', 'addFile', file);
     } finally {
@@ -542,6 +546,7 @@ const change = async (win, pathname, collectionUid, collectionPath) => {
         file.data = await parseRequest(content, { format });
       }
 
+      file.data.raw = content;
       file.size = sizeInMB(fileStats?.size);
       hydrateRequestWithUuid(file.data, pathname);
       win.webContents.send('main:collection-tree-updated', 'change', file);

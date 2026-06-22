@@ -157,6 +157,9 @@ const serializeSnapshot = async (state) => {
 
     const workspacePathname = activeWorkspace?.pathname || '';
     const collectionSnapshotKey = getWorkspaceCollectionSnapshotKey(workspacePathname, collection.pathname);
+    const existingCollection = (collectionSnapshotKey && existingSnapshotLookups.collectionsByWorkspaceAndPath?.[collectionSnapshotKey])
+      || existingSnapshotLookups.collectionsByPath?.[normalizedPath]
+      || null;
     if (collectionSnapshotKey) {
       serializedCollectionKeys.add(collectionSnapshotKey);
     }
@@ -174,7 +177,17 @@ const serializeSnapshot = async (state) => {
     );
 
     const selectedEnvironment = (collection.environments || []).find((env) => env.uid === collection.activeEnvironmentUid);
-    const environmentPath = getCollectionEnvironmentPath(collection, selectedEnvironment, '');
+    const environmentPathFromRedux = getCollectionEnvironmentPath(collection, selectedEnvironment, '');
+    const selectedEnvironmentFromRedux = selectedEnvironment?.name || '';
+    const existingEnvironmentPath = existingCollection?.environment?.collection || existingCollection?.environmentPath || '';
+    const existingSelectedEnvironment = existingCollection?.selectedEnvironment || '';
+    const shouldPreserveExistingEnvironment = collection.mountStatus !== 'mounted'
+      && !environmentPathFromRedux
+      && !selectedEnvironmentFromRedux;
+    const environmentPath = shouldPreserveExistingEnvironment ? existingEnvironmentPath : environmentPathFromRedux;
+    const selectedEnvironmentName = shouldPreserveExistingEnvironment
+      ? existingSelectedEnvironment
+      : selectedEnvironmentFromRedux;
 
     snapshot.collections.push({
       pathname: collection.pathname,
@@ -184,7 +197,7 @@ const serializeSnapshot = async (state) => {
         global: globalEnvironments.activeGlobalEnvironmentUid || ''
       },
       environmentPath,
-      selectedEnvironment: selectedEnvironment?.name || '',
+      selectedEnvironment: selectedEnvironmentName,
       isOpen: !collection.collapsed,
       isMounted: collection.mountStatus === 'mounted',
       activeTab: serializeActiveTab(activeTabInCollection, collection),

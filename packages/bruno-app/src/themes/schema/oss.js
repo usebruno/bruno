@@ -394,21 +394,19 @@ export const ossSchema = {
           type: 'object',
           properties: {
             bg: { type: 'string' },
-            borderRight: { type: 'string' },
             borderBottom: { type: 'string' },
             hoverBg: { type: 'string' },
             active: {
               type: 'object',
               properties: {
-                border: { type: 'string' },
                 bg: { type: 'string' },
                 hoverBg: { type: 'string' }
               },
-              required: ['border', 'bg', 'hoverBg'],
+              required: ['bg', 'hoverBg'],
               additionalProperties: false
             }
           },
-          required: ['bg', 'borderRight', 'borderBottom', 'hoverBg', 'active'],
+          required: ['bg', 'borderBottom', 'hoverBg', 'active'],
           additionalProperties: false
         }
       },

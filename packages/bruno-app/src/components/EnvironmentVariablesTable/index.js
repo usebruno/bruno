@@ -7,10 +7,12 @@ import { useTheme } from 'providers/Theme';
 import { useSelector, useDispatch } from 'react-redux';
 import { updateTableColumnWidths } from 'providers/ReduxStore/slices/tabs';
 import MultiLineEditor from 'components/MultiLineEditor/index';
+import DataTypeSelector from 'components/DataTypeSelector';
 import StyledWrapper from './StyledWrapper';
 import { uuid } from 'utils/common';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
+import { BRUNO_VARIABLE_DATATYPES, valueToString } from '@usebruno/common/utils';
 import { variableNameRegex } from 'utils/common/regex';
 import toast from 'react-hot-toast';
 import { Tooltip } from 'react-tooltip';
@@ -34,7 +36,7 @@ const orderVarsBySecret = (vars) => {
 
 const TableRow = React.memo(
   ({ children, item, style, ...rest }) => {
-    const variable = item?.variable;
+    const variable = item?.variable ?? item;
     return (
       <tr key={variable?.uid} style={style} {...rest} data-testid={`env-var-row-${variable?.name}`}>
         {children}
@@ -42,8 +44,8 @@ const TableRow = React.memo(
     );
   },
   (prevProps, nextProps) => {
-    const prevUid = prevProps?.item?.variable?.uid;
-    const nextUid = nextProps?.item?.variable?.uid;
+    const prevUid = prevProps?.item?.variable?.uid ?? prevProps?.item?.uid;
+    const nextUid = nextProps?.item?.variable?.uid ?? nextProps?.item?.uid;
     return prevUid === nextUid && prevProps.children === nextProps.children;
   }
 );
@@ -227,7 +229,9 @@ const EnvironmentVariablesTable = ({
         secret: Yup.boolean(),
         type: Yup.string(),
         uid: Yup.string(),
-        value: Yup.mixed().nullable()
+        value: Yup.mixed().nullable(),
+        dataType: Yup.string().oneOf(BRUNO_VARIABLE_DATATYPES).nullable(),
+        annotations: Yup.array().nullable()
       })
     ),
     validate: (values) => {
@@ -444,6 +448,16 @@ const EnvironmentVariablesTable = ({
     // Compare without UIDs; only the active tab's subset decides if there's anything to save.
     const hasChanges
       = JSON.stringify(activeCurrent.map(stripEnvVarUid)) !== JSON.stringify(activeSaved.map(stripEnvVarUid));
+    // Compare against what's on disk: for an ephemeral overlay, that's
+    // `persistedValue`, not the scripted value Redux is holding.
+    const baselineForCompare = (v) => {
+      const stripped = stripEnvVarUid(v);
+      if (v?.ephemeral && v?.persistedValue !== undefined) {
+        stripped.value = v.persistedValue;
+      }
+      return stripped;
+    };
+    const hasChanges = JSON.stringify(variablesToSave.map(stripEnvVarUid)) !== JSON.stringify(savedValues.map(baselineForCompare));
     if (!hasChanges) {
       toast.error('No changes to save');
       return;
@@ -684,6 +698,7 @@ const EnvironmentVariablesTable = ({
               <td></td>
             </tr>
           )}
+          defaultItemHeight={35}
           computeItemKey={(virtualIndex, item) => `${environment.uid}-${item.index}`}
           itemContent={(virtualIndex, { variable, index: actualIndex }) => {
             const isLastRow = actualIndex === formik.values.length - 1;
@@ -729,21 +744,20 @@ const EnvironmentVariablesTable = ({
                   </div>
                 </td>
                 <td
-                  className="flex flex-row flex-nowrap items-center"
+                  className="flex flex-row flex-nowrap items-center gap-2"
                   style={{ width: columnWidths.value }}
                 >
                   <div
-                    className="overflow-hidden grow w-full relative"
+                    className="flex-1 min-w-0 relative"
                     onFocus={() => handleRowFocus(variable.uid)}
                   >
                     <MultiLineEditor
                       theme={storedTheme}
                       collection={_collection}
                       name={`${actualIndex}.value`}
-                      value={variable.value}
+                      value={valueToString(variable.value, 2)}
                       placeholder={variable.value == null || (typeof variable.value === 'string' && variable.value.trim() === '') ? 'Value' : ''}
                       isSecret={variable.secret}
-                      readOnly={typeof variable.value !== 'string'}
                       onChange={(newValue) => {
                         formik.setFieldValue(`${actualIndex}.value`, newValue, true);
                         // Clear ephemeral metadata when user manually edits the value
@@ -768,13 +782,17 @@ const EnvironmentVariablesTable = ({
                       onSave={handleSave}
                     />
                   </div>
-                  {typeof variable.value !== 'string' && (
-                    <span className="ml-2 flex items-center">
-                      <IconInfoCircle id={`${variable.uid}-disabled-info-icon`} className="text-muted" size={16} />
-                      <Tooltip
-                        anchorId={`${variable.uid}-disabled-info-icon`}
-                        content="Non-string values set via scripts are read-only and can only be updated through scripts."
-                        place="top"
+                  {!isLastEmptyRow && (
+                    <span>
+                      <DataTypeSelector
+                        variable={variable}
+                        theme={storedTheme}
+                        collection={_collection}
+                        onChange={(fields) => {
+                          Object.entries(fields).forEach(([key, val]) => {
+                            formik.setFieldValue(`${actualIndex}.${key}`, val, true);
+                          });
+                        }}
                       />
                     </span>
                   )}
