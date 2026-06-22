@@ -227,4 +227,131 @@ describe('persistVariableUpdates — collection vars', () => {
       { collection, collectionRootPath: undefined }
     )).not.toThrow();
   });
+
+  it('writes collection vars back to opencollection.yml for yml-format collections', () => {
+    const collectionRootPath = writeFile('opencollection.yml',
+      'opencollection: 1.0.0\ninfo:\n  name: yml-collection\nrequest:\n  vars:\n    - name: k1\n      value: old\n'
+    );
+    const collection = {
+      format: 'yml',
+      brunoConfig: { name: 'yml-collection' },
+      root: {
+        meta: null,
+        request: {
+          headers: [],
+          auth: { mode: 'none' },
+          script: { req: null, res: null },
+          tests: null,
+          vars: { req: [{ uid: 'v1', name: 'k1', value: 'old', enabled: true, type: 'request' }], res: [] }
+        }
+      }
+    };
+    persistVariableUpdates(
+      { collectionVariables: { k1: 'new', k2: 'fresh' } },
+      { collection, collectionRootPath }
+    );
+    const written = fs.readFileSync(collectionRootPath, 'utf8');
+    expect(written).toMatch(/name:\s*k1/);
+    expect(written).toMatch(/value:\s*new/);
+    expect(written).toMatch(/name:\s*k2/);
+    expect(written).toMatch(/value:\s*fresh/);
+  });
+});
+
+describe('persistVariableUpdates — .bru env format', () => {
+  it('round-trips a .bru env file', () => {
+    const filePath = writeFile('dev.bru',
+      'vars {\n  host: old\n  token: keep\n}\n'
+    );
+    persistVariableUpdates(
+      { envVariables: { host: 'new', extra: 'added', __name__: 'dev' } },
+      { envFile: { path: filePath, format: 'bru' } }
+    );
+    const written = fs.readFileSync(filePath, 'utf8');
+    expect(written).toMatch(/host:\s*new/);
+    expect(written).toMatch(/extra:\s*added/);
+    expect(written).not.toMatch(/token:\s*keep/);
+    expect(written).not.toMatch(/__name__/);
+  });
+});
+
+describe('persistVariableUpdates — global env file', () => {
+  it('routes globalEnvironmentVariables result to the globalEnvFile descriptor', () => {
+    const envPath = writeFile('dev.yml',
+      'name: dev\nvariables:\n  - name: host\n    value: stale\n'
+    );
+    const globalPath = writeFile('global.yml',
+      'name: global\nvariables:\n  - name: region\n    value: us\n'
+    );
+    persistVariableUpdates(
+      { globalEnvironmentVariables: { region: 'eu', extra: 'new' } },
+      {
+        envFile: { path: envPath, format: 'yml' },
+        globalEnvFile: { path: globalPath, format: 'yml' }
+      }
+    );
+    // global file got the script's payload
+    expect(fs.readFileSync(globalPath, 'utf8')).toMatch(/value:\s*eu/);
+    // env file untouched — no envVariables in result
+    expect(fs.readFileSync(envPath, 'utf8')).toMatch(/stale/);
+  });
+});
+
+describe('typed-value inference', () => {
+  it('infers number / boolean / object dataType for newly-added env vars', () => {
+    const filePath = writeFile('typed.yml', 'name: typed\nvariables: []\n');
+    persistVariableUpdates(
+      { envVariables: { count: 42, flag: true, cfg: { port: 3000 } } },
+      { envFile: { path: filePath, format: 'yml' } }
+    );
+    const { parseEnvironment } = require('@usebruno/filestore');
+    const reparsed = parseEnvironment(fs.readFileSync(filePath, 'utf8'), { format: 'yml' });
+    const byName = Object.fromEntries(reparsed.variables.map((v) => [v.name, v]));
+    expect(byName.count).toMatchObject({ value: 42, dataType: 'number' });
+    expect(byName.flag).toMatchObject({ value: true, dataType: 'boolean' });
+    expect(byName.cfg).toMatchObject({ value: { port: 3000 }, dataType: 'object' });
+  });
+
+  it('preserves existing dataType when script writes the same typed value', () => {
+    const filePath = writeFile('typed.yml',
+      'name: typed\nvariables:\n  - name: count\n    value:\n      type: number\n      data: "1"\n'
+    );
+    persistVariableUpdates(
+      { envVariables: { count: 5 } },
+      { envFile: { path: filePath, format: 'yml' } }
+    );
+    const { parseEnvironment } = require('@usebruno/filestore');
+    const reparsed = parseEnvironment(fs.readFileSync(filePath, 'utf8'), { format: 'yml' });
+    expect(reparsed.variables[0]).toMatchObject({ name: 'count', value: 5, dataType: 'number' });
+  });
+
+  it('drops dataType when a previously typed key is set back to a string', () => {
+    const filePath = writeFile('typed.yml',
+      'name: typed\nvariables:\n  - name: val\n    value:\n      type: number\n      data: 1\n'
+    );
+    persistVariableUpdates(
+      { envVariables: { val: 'now-a-string' } },
+      { envFile: { path: filePath, format: 'yml' } }
+    );
+    const written = fs.readFileSync(filePath, 'utf8');
+    expect(written).not.toMatch(/type:\s*number/);
+    expect(written).toMatch(/value:\s*now-a-string/);
+  });
+
+  it('infers dataType for newly-added collection vars', () => {
+    const collectionRootPath = writeFile('collection.bru', 'meta {\n  name: t\n  seq: 1\n}\n');
+    const collection = {
+      format: 'bru',
+      brunoConfig: { name: 't' },
+      root: { meta: { name: 't', seq: 1 }, request: { vars: { req: [] } } }
+    };
+    persistVariableUpdates(
+      { collectionVariables: { count: 7, flag: false } },
+      { collection, collectionRootPath }
+    );
+    const countVar = collection.root.request.vars.req.find((v) => v.name === 'count');
+    const flagVar = collection.root.request.vars.req.find((v) => v.name === 'flag');
+    expect(countVar.dataType).toBe('number');
+    expect(flagVar.dataType).toBe('boolean');
+  });
 });
