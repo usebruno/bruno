@@ -272,11 +272,6 @@ const expectEnvVarTypeLabel = async (page: Page, name: string, label: string) =>
   const { environment, dataTypeSelector } = buildCommonLocators(page);
   const row = environment.varRow(name);
   await scrollVirtuosoRowIntoView(page, row);
-  // Surface "row never rendered" (state sync issue) separately from "wrong label"
-  // (inference issue) so a regression points at the right layer.
-  await expect(row, `env-var row "${name}" did not render in the editor`).toBeAttached({
-    timeout: SLOW_RENDER_TIMEOUT_MS
-  });
   await expect(dataTypeSelector.typeLabel(row)).toHaveText(label, { timeout: SLOW_RENDER_TIMEOUT_MS });
 };
 
