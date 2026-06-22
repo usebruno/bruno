@@ -128,7 +128,7 @@ const Wrapper = styled.div`
     padding-bottom: 2.625rem;
   }
 
-    .env-list-search {
+  .env-list-search {
     position: sticky;
     top: 0;
     z-index: 10;
