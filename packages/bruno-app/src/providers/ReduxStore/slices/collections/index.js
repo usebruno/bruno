@@ -18,7 +18,7 @@ import {
   isItemARequest
 } from 'utils/collections';
 import { parsePathParams, splitOnFirst } from 'utils/url';
-import { applyScriptEnvVars } from 'utils/environments';
+import { applyScriptEnvVars, getScriptModifiedKeys } from 'utils/environments';
 import { getSubdirectoriesFromRoot } from 'utils/common/platform';
 import toast from 'react-hot-toast';
 import mime from 'mime-types';
@@ -487,11 +487,11 @@ export const collectionsSlice = createSlice({
             { skipKeys: ['__name__'] }
           );
 
-          // Infer dataType for variables the script touched so typed values (number/boolean/object)
-          // survive the script -> disk round-trip. Secrets carry dataType too.
+          // Re-infer dataType only for vars the script actually modified — otherwise a no-op
+          // script re-write would clobber a user's in-progress draft type change.
+          const modifiedKeys = getScriptModifiedKeys(envVariables, collection._scriptEnvBaseline, { skipKeys: ['__name__'] });
           activeEnvironment.variables.forEach((v) => {
-            if (v.name === '__name__') return;
-            if (!(v.name in envVariables)) return;
+            if (!modifiedKeys.has(v.name)) return;
             const inferred = getDataTypeFromValue(envVariables[v.name]);
             if (inferred === 'string') {
               delete v.dataType;
@@ -2737,13 +2737,14 @@ export const collectionsSlice = createSlice({
       const collection = findCollectionByUid(state.collections, collectionUid);
       if (!collection) return;
 
-      const mappedVars = map(vars, ({ uid, name = '', value = '', enabled = true, dataType }) => ({
-        uid: uid || uuid(),
-        name,
-        value,
-        enabled,
-        ...(dataType && dataType !== 'string' ? { dataType } : {})
-      }));
+      // Preserve description/annotations/secret/type and any other per-var metadata via `...rest`
+      // — earlier this reducer cherry-picked only {uid, name, value, enabled, dataType} which
+      // wiped those fields whenever a script touched any collection var.
+      const mappedVars = map(vars, ({ uid, name = '', value = '', enabled = true, dataType, ...rest }) => {
+        const out = { ...rest, uid: uid || uuid(), name, value, enabled };
+        if (dataType && dataType !== 'string') out.dataType = dataType;
+        return out;
+      });
 
       set(collection, 'root.request.vars.req', mappedVars);
 

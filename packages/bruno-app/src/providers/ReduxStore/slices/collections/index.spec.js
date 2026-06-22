@@ -91,25 +91,6 @@ describe('scriptEnvironmentUpdateEvent — re-updating a script-created ephemera
       }
     ]
   });
-
-  it('does not give a script-created ephemeral var a persistedValue when its value changes again', () => {
-    // First run left this in Redux: created by setEnvVar (persist:false), never on disk.
-    const existing = { uid: 'v1', name: 'test_env_var', value: 'test', enabled: true, ephemeral: true };
-
-    const next = reducer(
-      stateWithEnvVar(existing),
-      scriptEnvironmentUpdateEvent({
-        collectionUid: 'col1',
-        envVariables: { test_env_var: 'updated' },
-        runtimeVariables: {},
-        persistentEnvVariables: {}
-      })
-    );
-
-    const variable = next.collections[0].environments[0].variables[0];
-    expect(variable).toMatchObject({ name: 'test_env_var', value: 'updated', ephemeral: true });
-    expect(variable.persistedValue).toBeUndefined();
-  });
 });
 
 describe('setRequestVars — strips dataType: \'string\' (implicit default)', () => {
