@@ -62,7 +62,8 @@ import {
   updateCollectionVar,
   addTransientDirectory,
   addSaveTransientRequestModal,
-  updatePathParam
+  updatePathParam,
+  toggleCollection
 } from './index';
 
 import { each } from 'lodash';
@@ -3121,8 +3122,10 @@ export const mountCollection
   = ({ collectionUid, collectionPathname, brunoConfig, skipTabRestore = false, workspacePathname = null }) =>
     (dispatch, getState) => {
       dispatch(updateCollectionMountStatus({ collectionUid, mountStatus: 'mounting' }));
+      const fileCacheEnabled = getState().app?.preferences?.cache?.file?.enabled;
+      const channel = fileCacheEnabled ? 'renderer:mount-collection-v2' : 'renderer:mount-collection';
       return new Promise(async (resolve, reject) => {
-        callIpc('renderer:mount-collection', { collectionUid, collectionPathname, brunoConfig })
+        callIpc(channel, { collectionUid, collectionPathname, brunoConfig })
           .then(async (transientDirPath) => {
             dispatch(updateCollectionMountStatus({ collectionUid, mountStatus: 'mounted' }));
             dispatch(addTransientDirectory({ collectionUid, pathname: transientDirPath }));
@@ -3374,4 +3377,74 @@ export const closeTabs = ({ tabUids }) => async (dispatch, getState) => {
 export const reopenClosedTab = ({ collectionUid } = {}) => async (dispatch) => {
   dispatch(reopenLastClosedTab({ collectionUid }));
   await dispatch(ensureActiveTabInCurrentWorkspace());
+};
+
+export const migrateCollectionToYml = (collectionUid) => (dispatch, getState) => {
+  const { ipcRenderer } = window;
+
+  return new Promise((resolve, reject) => {
+    const state = getState();
+    const collection = findCollectionByUid(state.collections.collections, collectionUid);
+    if (!collection) {
+      return reject(new Error('Collection not found'));
+    }
+
+    const collectionPathname = collection.pathname;
+    const uid = collection.uid;
+    ipcRenderer
+      .invoke('renderer:migrate-collection-to-yml', collectionPathname, collectionUid)
+      .then(async (updatedBrunoConfig) => {
+        // Remove old collection state so we can recreate it with the new yml config.
+        // openCollectionEvent requires no existing collection with the same pathname.
+        dispatch(_removeCollection({ collectionUid }));
+        dispatch(closeAllCollectionTabs({ collectionUid }));
+
+        try {
+          // Reopen the collection with updated config (now yml format)
+          await dispatch(openCollectionEvent(uid, collectionPathname, updatedBrunoConfig));
+
+          // Mount the collection (starts the watcher and loads items)
+          await dispatch(mountCollection({
+            collectionUid: uid,
+            collectionPathname: collectionPathname,
+            brunoConfig: updatedBrunoConfig
+          }));
+        } catch (reopenError) {
+          // Files on disk are already yml; best-effort recovery so the
+          // collection doesn't disappear from the UI. openCollectionEvent is
+          // a no-op if it already succeeded, and mountCollection is what we
+          // retry when it was the failing step.
+          try {
+            await dispatch(openCollectionEvent(uid, collectionPathname, updatedBrunoConfig));
+            await dispatch(mountCollection({
+              collectionUid: uid,
+              collectionPathname: collectionPathname,
+              brunoConfig: updatedBrunoConfig
+            }));
+          } catch (_) {}
+          throw reopenError;
+        }
+
+        // Expand the collection in the sidebar (only if collapsed)
+        const reopenedCollection = findCollectionByUid(getState().collections.collections, uid);
+        if (reopenedCollection?.collapsed) {
+          dispatch(toggleCollection(uid));
+        }
+
+        // Reopen collection settings on the overview tab
+        dispatch(addTab({
+          uid: uid,
+          collectionUid: uid,
+          type: 'collection-settings'
+        }));
+        dispatch(updateSettingsSelectedTab({ collectionUid: uid, tab: 'overview' }));
+
+        toast.success('Collection migrated to YML format successfully');
+        resolve();
+      })
+      .catch((err) => {
+        toast.error(`Migration failed: ${err.message || 'Unknown error'}`);
+        reject(err);
+      });
+  });
 };

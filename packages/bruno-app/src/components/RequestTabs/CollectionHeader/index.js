@@ -14,13 +14,14 @@ import {
   IconFolder,
   IconUpload,
   IconFileCode,
-  IconFileOff
+  IconFileOff,
+  IconTransform
 } from '@tabler/icons';
 import OpenAPISyncIcon from 'components/Icons/OpenAPISync';
 import { switchWorkspace, renameWorkspaceAction, exportWorkspaceAction, confirmWorkspaceCreation, cancelWorkspaceCreation } from 'providers/ReduxStore/slices/workspaces/actions';
 import { updateWorkspace } from 'providers/ReduxStore/slices/workspaces';
 import { showInFolder } from 'providers/ReduxStore/slices/collections/actions';
-import { toggleCollectionFileMode } from 'providers/ReduxStore/slices/collections';
+import { toggleCollectionFileMode, updateSettingsSelectedTab } from 'providers/ReduxStore/slices/collections';
 import { addTab, focusTab } from 'providers/ReduxStore/slices/tabs';
 import { uuid } from 'utils/common';
 import toast from 'react-hot-toast';
@@ -37,6 +38,19 @@ import { normalizePath } from 'utils/common/path';
 import classNames from 'classnames';
 import StyledWrapper from './StyledWrapper';
 import { useTheme } from 'providers/Theme';
+
+const MIGRATE_PILL_DISMISSED_KEY = 'bruno.migrateToYmlPill.dismissed';
+
+const readDismissedCollections = () => {
+  try {
+    const raw = localStorage.getItem(MIGRATE_PILL_DISMISSED_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+};
 
 const CollectionHeader = ({ collection, isScratchCollection }) => {
   const dispatch = useDispatch();
@@ -55,6 +69,27 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
   const [workspaceNameError, setWorkspaceNameError] = useState('');
   const [closeWorkspaceModalOpen, setCloseWorkspaceModalOpen] = useState(false);
   const [createWorkspaceModalOpen, setCreateWorkspaceModalOpen] = useState(false);
+
+  // Migrate-to-YML pill dismissal state (persisted by collection pathname)
+  const [migratePillDismissed, setMigratePillDismissed] = useState(true);
+  useEffect(() => {
+    if (!collection?.pathname) return;
+    const dismissed = readDismissedCollections();
+    setMigratePillDismissed(dismissed.includes(collection.pathname));
+  }, [collection?.pathname]);
+
+  const dismissMigratePill = (e) => {
+    e?.stopPropagation();
+    if (!collection?.pathname) return;
+    const dismissed = readDismissedCollections();
+    if (!dismissed.includes(collection.pathname)) {
+      dismissed.push(collection.pathname);
+      try {
+        localStorage.setItem(MIGRATE_PILL_DISMISSED_KEY, JSON.stringify(dismissed));
+      } catch { }
+    }
+    setMigratePillDismissed(true);
+  };
 
   const switcherRef = useRef();
   const workspaceActionsRef = useRef();
@@ -210,6 +245,17 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
         type: 'collection-settings'
       })
     );
+  };
+
+  const viewMigrationSettings = () => {
+    dispatch(
+      addTab({
+        uid: collection.uid,
+        collectionUid: collection.uid,
+        type: 'collection-settings'
+      })
+    );
+    dispatch(updateSettingsSelectedTab({ collectionUid: collection.uid, tab: 'overview' }));
   };
 
   const viewOpenApiSync = () => {
@@ -584,6 +630,31 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
         {/* Right side: Actions (only for regular collections) */}
         {!isScratchCollection && (
           <div className="flex flex-grow gap-1.5 items-center justify-end">
+            {collection.format === 'bru' && !migratePillDismissed && (
+              <div
+                className="migrate-yml-pill"
+                data-testid="migrate-yml-pill"
+                title="Migrate this collection to YML"
+              >
+                <button
+                  type="button"
+                  className="pill-main"
+                  onClick={viewMigrationSettings}
+                >
+                  <IconTransform size={13} strokeWidth={1.5} />
+                  <span className="pill-label">Migrate to YML</span>
+                </button>
+                <button
+                  type="button"
+                  className="pill-dismiss"
+                  onClick={dismissMigratePill}
+                  aria-label="Dismiss"
+                  data-testid="migrate-yml-pill-dismiss"
+                >
+                  <IconX size={12} strokeWidth={2} />
+                </button>
+              </div>
+            )}
             {/* OpenAPI Sync - standalone only when configured and beta enabled */}
             {hasOpenApiSyncConfigured && (
               <ToolHint
