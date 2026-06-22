@@ -76,8 +76,7 @@ test.describe('DevTools Performance Tab', () => {
     const uptimeValue = uptimeCard.locator('.resource-value');
     const initialUptime = await uptimeValue.textContent();
 
-    // Wait for metrics to update (monitoring interval is 2000ms)
-    await page.waitForTimeout(3000);
+    await expect(uptimeValue).not.toHaveText(initialUptime!, { timeout: 5000 });
 
     // Get updated uptime value
     const updatedUptime = await uptimeValue.textContent();

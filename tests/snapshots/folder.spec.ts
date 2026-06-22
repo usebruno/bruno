@@ -14,6 +14,22 @@ import {
   waitForSnapshotFile
 } from '../utils/page';
 
+type Snapshot = Record<string, unknown>;
+
+/** Poll until ui-state-snapshot.json reflects expected state (1s debounce in app). */
+const waitForSnapshotPersisted = async (
+  userDataPath: string,
+  predicate: (snapshot: Snapshot) => boolean
+) => {
+  await expect.poll(() => {
+    const snapshot = readSnapshot(userDataPath);
+    return Boolean(snapshot && predicate(snapshot));
+  }, { timeout: 10000 }).toBe(true);
+};
+
+const snapshotHasFolderSettingsTab = (snapshot: Snapshot, folderName: string) =>
+  Boolean(findSnapshotFolderTab(snapshot, folderName));
+
 test.describe('Snapshot: folder Pane Interactivity', () => {
   test('folder pane tab interactivity is preserved after workspace switch', async ({ launchElectronApp, createTmpDir }) => {
     const userDataPath = await createTmpDir('snap-folder-workspace-switch');
@@ -30,7 +46,6 @@ test.describe('Snapshot: folder Pane Interactivity', () => {
     });
 
     await test.step('Switch to a new workspace', async () => {
-      await page.waitForTimeout(1000);
       await createWorkspace(page, 'SecondWorkspace');
       await expect(page.getByTestId('workspace-name')).toHaveText('SecondWorkspace', { timeout: 5000 });
     });
@@ -66,7 +81,9 @@ test.describe('Snapshot: folder Pane Interactivity', () => {
     });
 
     await test.step('Close app and verify snapshot stores folder-settings tab', async () => {
-      await page.waitForTimeout(2000);
+      await waitForSnapshotPersisted(userDataPath, (snapshot) =>
+        snapshotHasFolderSettingsTab(snapshot, 'TestFolder')
+      );
       await closeElectronApp(app);
 
       await waitForSnapshotFile(userDataPath);
@@ -109,7 +126,9 @@ test.describe('Snapshot: folder Pane Interactivity', () => {
     });
 
     await test.step('Close app and verify snapshot stores folder-settings tab', async () => {
-      await page.waitForTimeout(2000);
+      await waitForSnapshotPersisted(userDataPath, (snapshot) =>
+        snapshotHasFolderSettingsTab(snapshot, 'TestFolder')
+      );
       await closeElectronApp(app);
 
       await waitForSnapshotFile(userDataPath);

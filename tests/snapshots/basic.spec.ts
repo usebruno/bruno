@@ -58,6 +58,47 @@ const expectSnapshotWorkspaceSortings = async (userDataPath: string, expectedSor
   }).toEqual([...expectedSortings].sort());
 };
 
+type Snapshot = Record<string, any>;
+
+const normalizeSnapshotPath = (value: string | null | undefined) =>
+  (value ?? '').replace(/\\/g, '/');
+
+/** Poll until ui-state-snapshot.json reflects expected state (1s debounce in app). */
+const waitForSnapshotPersisted = async (
+  userDataPath: string,
+  predicate: (snapshot: Snapshot) => boolean
+) => {
+  await expect.poll(() => {
+    const snapshot = readSnapshot(userDataPath);
+    return Boolean(snapshot && predicate(snapshot));
+  }, { timeout: 10000 }).toBe(true);
+};
+
+const snapshotTabNames = (snapshot: Snapshot) =>
+  (snapshot.collections ?? []).flatMap((collection: Snapshot) =>
+    (collection.tabs ?? [])
+      .map((tab: Snapshot) => tab.name as string | undefined)
+      .filter(Boolean)
+  );
+
+const snapshotHasTab = (snapshot: Snapshot, tabName: string) =>
+  snapshotTabNames(snapshot).some((name) => name === tabName || name?.includes(tabName));
+
+const snapshotLacksTab = (snapshot: Snapshot, tabName: string) =>
+  !snapshotHasTab(snapshot, tabName);
+
+const snapshotRequestPaneTabFor = (snapshot: Snapshot, requestName: string) => {
+  for (const collection of snapshot.collections ?? []) {
+    const match = (collection.tabs ?? []).find(
+      (tab: Snapshot) => tab.name === requestName || String(tab.name).includes(requestName)
+    );
+    if (match?.request?.tab) {
+      return match.request.tab as string;
+    }
+  }
+  return null;
+};
+
 // ─── Tab Persistence ────────────────────────────────────────────────────────
 
 test.describe('Snapshot: Tab Persistence', () => {
@@ -77,8 +118,9 @@ test.describe('Snapshot: Tab Persistence', () => {
     });
 
     await test.step('Close and restart app', async () => {
-      // Wait for debounced snapshot save to flush
-      await page.waitForTimeout(2000);
+      await waitForSnapshotPersisted(userDataPath, (snapshot) =>
+        snapshotHasTab(snapshot, 'ReqAlpha') && snapshotHasTab(snapshot, 'ReqBeta')
+      );
       await closeElectronApp(app);
     });
 
@@ -122,7 +164,7 @@ test.describe('Snapshot: Tab Persistence', () => {
     });
 
     await test.step('Close and restart app', async () => {
-      await page.waitForTimeout(2000);
+      await waitForSnapshotPersisted(userDataPath, (snapshot) => snapshotHasTab(snapshot, 'ReqAlpha'));
       await closeElectronApp(app);
     });
 
@@ -157,7 +199,10 @@ test.describe('Snapshot: Tab Persistence', () => {
     });
 
     await test.step('Close and restart app', async () => {
-      await page.waitForTimeout(2000);
+      await waitForSnapshotPersisted(
+        userDataPath,
+        (snapshot) => snapshotHasTab(snapshot, 'ReqKeep') && snapshotLacksTab(snapshot, 'ReqClose')
+      );
       await closeElectronApp(app);
     });
 
@@ -189,7 +234,10 @@ test.describe('Snapshot: Tab Persistence', () => {
     });
 
     await test.step('Close and restart app', async () => {
-      await page.waitForTimeout(2000);
+      await waitForSnapshotPersisted(
+        userDataPath,
+        (snapshot) => snapshotRequestPaneTabFor(snapshot, 'Req1') === 'headers'
+      );
       await closeElectronApp(app);
     });
 
@@ -249,8 +297,10 @@ test.describe('Snapshot: Workspace State', () => {
     });
 
     await test.step('Close and restart app', async () => {
-      // Wait for debounced snapshot save to flush
-      await page.waitForTimeout(2000);
+      await waitForSnapshotPersisted(
+        userDataPath,
+        (snapshot) => normalizeSnapshotPath(snapshot.activeWorkspacePath) === normalizeSnapshotPath(workspaceBPath)
+      );
       await closeElectronApp(app);
     });
 
@@ -340,7 +390,7 @@ test.describe('Snapshot: Workspace State', () => {
     });
 
     await test.step('Restart app and verify per-workspace sort still persists', async () => {
-      await page.waitForTimeout(2000);
+      await expectSnapshotWorkspaceSortings(userDataPath, ['alphabetical', 'reverseAlphabetical']);
       await closeElectronApp(app);
 
       const app2 = await launchElectronApp({ userDataPath });
@@ -403,8 +453,7 @@ test.describe('Snapshot: Workspace State', () => {
     });
 
     await test.step('Switch back to default workspace and verify ColA tabs restored', async () => {
-      // Wait for snapshot to save before switching
-      await page.waitForTimeout(2000);
+      await waitForSnapshotPersisted(userDataPath, (snapshot) => snapshotHasTab(snapshot, 'ReqB'));
       await switchWorkspace(page, 'My Workspace');
       // Wait for collections to load, then click collection to mount and restore tabs
       const locators = buildCommonLocators(page);
@@ -414,7 +463,7 @@ test.describe('Snapshot: Workspace State', () => {
     });
 
     await test.step('Switch to WorkspaceB and verify ColB tabs restored', async () => {
-      await page.waitForTimeout(2000);
+      await waitForSnapshotPersisted(userDataPath, (snapshot) => snapshotHasTab(snapshot, 'ReqA'));
       await switchWorkspace(page, 'WorkspaceB');
       const locators = buildCommonLocators(page);
       await expect(locators.sidebar.collection('ColB')).toBeVisible({ timeout: 10000 });
@@ -447,7 +496,7 @@ test.describe('Snapshot: Collection State', () => {
     });
 
     await test.step('Close and restart app', async () => {
-      await page.waitForTimeout(2000);
+      await waitForSnapshotPersisted(userDataPath, (snapshot) => snapshotHasTab(snapshot, 'Req1'));
       await closeElectronApp(app);
     });
 
@@ -512,8 +561,7 @@ test.describe('Snapshot: Multi-Workspace Tab Isolation', () => {
     });
 
     await test.step('Close and restart app', async () => {
-      // Wait for debounced snapshot save to flush
-      await page.waitForTimeout(2000);
+      await waitForSnapshotPersisted(userDataPath, (snapshot) => snapshotHasTab(snapshot, 'ReqB'));
       await closeElectronApp(app);
     });
 
@@ -606,8 +654,7 @@ test.describe('Snapshot: Multi-Workspace Tab Isolation', () => {
     });
 
     await test.step('Close and restart app', async () => {
-      // snapshot saving is done in the background at 1000ms debounce
-      await page.waitForTimeout(2000);
+      await waitForSnapshotPersisted(userDataPath, (snapshot) => snapshotHasTab(snapshot, 'ReqB'));
       await closeElectronApp(app);
     });
 
@@ -654,8 +701,12 @@ test.describe('Snapshot: DevTools State', () => {
     });
 
     await test.step('Close and restart app', async () => {
-      // Wait for debounced snapshot save to flush
-      await page.waitForTimeout(2000);
+      await waitForSnapshotPersisted(
+        userDataPath,
+        (snapshot) =>
+          snapshot.extras?.devTools?.open === true
+          && snapshot.extras?.devTools?.activeTab === 'performance'
+      );
       await closeElectronApp(app);
     });
 
@@ -796,7 +847,10 @@ test.describe('Snapshot: Basic Request Movement', () => {
     });
 
     await test.step('Close app and inspect snapshot file', async () => {
-      await page.waitForTimeout(2000);
+      await waitForSnapshotPersisted(
+        userDataPath,
+        (snapshot) => snapshotRequestPaneTabFor(snapshot, 'Req1') === 'headers'
+      );
       await closeElectronApp(app);
     });
 
@@ -844,7 +898,10 @@ test.describe('Snapshot: Basic Request Movement', () => {
     });
 
     await test.step('Close and restart app', async () => {
-      await page.waitForTimeout(2000);
+      await waitForSnapshotPersisted(
+        userDataPath,
+        (snapshot) => snapshotRequestPaneTabFor(snapshot, 'ReqGraph') === 'headers'
+      );
       await closeElectronApp(app);
     });
 

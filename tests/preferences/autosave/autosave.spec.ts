@@ -1,7 +1,31 @@
-import { test, expect } from '../../../playwright';
+import { test, expect, Page } from '../../../playwright';
 import { createCollection, closeAllCollections, createRequest } from '../../utils/page';
 
 const saveShortcut = process.platform === 'darwin' ? 'Meta+s' : 'Control+s';
+
+async function openPreferencesGeneralTab(page: Page) {
+  await page.locator('.status-bar button[data-trigger="preferences"]').click();
+  const generalTab = page.getByRole('tab', { name: 'General' });
+  await expect(generalTab).toBeVisible();
+  await generalTab.click();
+}
+
+async function persistPreferencesChange(page: Page) {
+  const autoSaveCheckbox = page.locator('#autoSaveEnabled');
+  const themesTab = page.getByRole('tab', { name: 'Themes' });
+  const generalTab = page.getByRole('tab', { name: 'General' });
+  await themesTab.click();
+  await expect(autoSaveCheckbox).toBeHidden();
+  await generalTab.click();
+  await expect(autoSaveCheckbox).toBeVisible();
+}
+
+async function closePreferencesTab(page: Page) {
+  const preferencesTab = page.locator('.request-tab').filter({ hasText: 'Preferences' });
+  await preferencesTab.hover();
+  await preferencesTab.locator('.close-icon').click({ force: true });
+  await expect(preferencesTab).toBeHidden();
+}
 
 test.describe('Autosave', () => {
   test.setTimeout(60000);
@@ -35,28 +59,15 @@ test.describe('Autosave', () => {
     });
 
     await test.step('Enable autosave in preferences', async () => {
-      // Open preferences tab
-      await page.locator('.status-bar button[data-trigger="preferences"]').click();
+      await openPreferencesGeneralTab(page);
 
-      // Wait for preferences tab to be visible
-      await page.waitForTimeout(500);
-
-      // Navigate to General tab (should be default, but ensure it)
-      await page.getByRole('tab', { name: 'General' }).click();
-
-      // Enable autosave checkbox
       const autoSaveCheckbox = page.locator('#autoSaveEnabled');
       await autoSaveCheckbox.check();
+      await expect(autoSaveCheckbox).toBeChecked();
+      await persistPreferencesChange(page);
+      await expect(autoSaveCheckbox).toBeChecked();
 
-      // Wait for auto-save to complete (debounce is 500ms)
-      await page.waitForTimeout(1000);
-
-      // Close preferences tab using the close icon
-      const preferencesTab = page.locator('.request-tab').filter({ hasText: 'Preferences' });
-      await preferencesTab.hover();
-      await preferencesTab.locator('.close-icon').click({ force: true });
-
-      // Click on the request to make it active again
+      await closePreferencesTab(page);
       await page.locator('.collection-item-name').filter({ hasText: 'Test Request' }).click();
     });
 
@@ -91,28 +102,15 @@ test.describe('Autosave', () => {
     });
 
     await test.step('Disable autosave in preferences', async () => {
-      // Open preferences tab
-      await page.locator('.status-bar button[data-trigger="preferences"]').click();
+      await openPreferencesGeneralTab(page);
 
-      // Wait for preferences tab to be visible
-      await page.waitForTimeout(500);
-
-      // Navigate to General tab
-      await page.getByRole('tab', { name: 'General' }).click();
-
-      // Disable autosave checkbox
       const autoSaveCheckbox = page.locator('#autoSaveEnabled');
       await autoSaveCheckbox.uncheck();
+      await expect(autoSaveCheckbox).not.toBeChecked();
+      await persistPreferencesChange(page);
+      await expect(autoSaveCheckbox).not.toBeChecked();
 
-      // Wait for auto-save to complete (debounce is 500ms)
-      await page.waitForTimeout(1000);
-
-      // Close preferences tab using the close icon
-      const preferencesTab = page.locator('.request-tab').filter({ hasText: 'Preferences' });
-      await preferencesTab.hover();
-      await preferencesTab.locator('.close-icon').click({ force: true });
-
-      // Click on the request to make it active again
+      await closePreferencesTab(page);
       await page.locator('.collection-item-name').filter({ hasText: 'Test Request' }).click();
     });
 
@@ -175,31 +173,16 @@ test.describe('Autosave', () => {
     });
 
     await test.step('Enable autosave and verify existing draft is saved', async () => {
-      // Open preferences tab
-      await page.locator('.status-bar button[data-trigger="preferences"]').click();
+      await openPreferencesGeneralTab(page);
 
-      // Wait for preferences tab to be visible
-      await page.waitForTimeout(500);
-
-      // Navigate to General tab
-      await page.getByRole('tab', { name: 'General' }).click();
-
-      // Enable autosave checkbox
       const autoSaveCheckbox = page.locator('#autoSaveEnabled');
       await autoSaveCheckbox.check();
+      await expect(autoSaveCheckbox).toBeChecked();
+      await persistPreferencesChange(page);
+      await expect(autoSaveCheckbox).toBeChecked();
 
-      // Wait for auto-save to complete (debounce is 500ms)
-      await page.waitForTimeout(1000);
-
-      // Close preferences tab using the close icon
-      const preferencesTab = page.locator('.request-tab').filter({ hasText: 'Preferences' });
-      await preferencesTab.hover();
-      await preferencesTab.locator('.close-icon').click({ force: true });
-
-      // Click on the request to make it active again
+      await closePreferencesTab(page);
       await page.locator('.collection-item-name').filter({ hasText: 'Draft Request' }).click();
-
-      await page.waitForTimeout(1000);
 
       const requestTab = page.locator('.request-tab').filter({ has: page.locator('.tab-label', { hasText: 'Draft Request' }) });
       await expect(requestTab.locator('.has-changes-icon')).not.toBeVisible({ timeout: 10000 });

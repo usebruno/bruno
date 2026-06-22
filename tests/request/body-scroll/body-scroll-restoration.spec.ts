@@ -69,7 +69,6 @@ const setScrollPosition = async (page: Page, scrollTop: number) => {
 const selectBodyMode = async (page: Page, mode: string) => {
   await page.locator('.body-mode-selector').click();
   await page.locator('.dropdown-item').filter({ hasText: mode }).click();
-  await page.waitForTimeout(100);
 };
 
 test.describe('Request Body Scroll Position Restoration', () => {
@@ -98,20 +97,16 @@ test.describe('Request Body Scroll Position Restoration', () => {
 
     await test.step('Scroll down in the body editor', async () => {
       await setScrollPosition(page, 500);
-      await page.waitForTimeout(200);
       initialScrollTop = await getScrollPosition(page);
       expect(initialScrollTop).toBeGreaterThan(0);
     });
 
     await test.step('Switch to Headers tab', async () => {
       await selectRequestPaneTab(page, 'Headers');
-      await page.waitForTimeout(200);
     });
 
     await test.step('Switch back to Body tab and verify scroll position', async () => {
       await selectRequestPaneTab(page, 'Body');
-      await page.waitForTimeout(300);
-
       const restoredScrollTop = await getScrollPosition(page);
 
       // The restored scroll position should be approximately the same
@@ -144,22 +139,17 @@ test.describe('Request Body Scroll Position Restoration', () => {
       await setBodyContent(page, largeJsonBody);
 
       await setScrollPosition(page, 400);
-      await page.waitForTimeout(200);
-
       scrollPosition = await getScrollPosition(page);
       expect(scrollPosition).toBeGreaterThan(0);
     });
 
     await test.step('Switch to second request', async () => {
       await openRequest(page, collectionName, 'request-2');
-      await page.waitForTimeout(200);
     });
 
     await test.step('Switch back to first request and verify scroll position', async () => {
       await openRequest(page, collectionName, 'request-1');
       await selectRequestPaneTab(page, 'Body');
-      await page.waitForTimeout(300);
-
       const restoredScrollTop = await getScrollPosition(page);
 
       // Verify scroll position is restored
@@ -201,19 +191,13 @@ ${Array.from({ length: 50 }, (_, i) => `  <item id="${i + 1}">
 
     await test.step('Scroll in XML body and verify restoration', async () => {
       await setScrollPosition(page, 350);
-      await page.waitForTimeout(200);
-
       xmlScrollPosition = await getScrollPosition(page);
       expect(xmlScrollPosition).toBeGreaterThan(0);
 
       // Switch tabs
       await selectRequestPaneTab(page, 'Params');
-      await page.waitForTimeout(200);
-
       // Switch back
       await selectRequestPaneTab(page, 'Body');
-      await page.waitForTimeout(300);
-
       const restoredScrollTop = await getScrollPosition(page);
 
       expect(restoredScrollTop).toBeGreaterThan(0);

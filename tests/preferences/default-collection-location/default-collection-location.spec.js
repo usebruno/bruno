@@ -8,10 +8,6 @@ test.describe('Default Location Feature', () => {
   test('Should hydrate the default location from preferences', async ({ pageWithUserData: page }) => {
     // open preferences tab
     await page.locator('.preferences-button').click();
-
-    // wait for preferences tab to be visible
-    await page.waitForTimeout(500);
-
     // navigate to General tab
     await page.getByRole('tab', { name: 'General' }).click();
 
@@ -23,10 +19,6 @@ test.describe('Default Location Feature', () => {
   test('Should save a valid default location', async ({ pageWithUserData: page }) => {
     // open preferences tab
     await page.locator('.preferences-button').click();
-
-    // wait for preferences tab to be visible
-    await page.waitForTimeout(500);
-
     // navigate to General tab
     await page.getByRole('tab', { name: 'General' }).click();
 
@@ -44,20 +36,15 @@ test.describe('Default Location Feature', () => {
     });
     await defaultLocationInput.fill(alternateExistingPath);
 
-    // wait for auto-save to complete (debounce is 500ms)
-    await page.waitForTimeout(1000);
-
-    // close preferences tab
-    await page.locator('.preferences-button').click();
-    await page.waitForTimeout(300);
+    const preferencesTab = page.locator('.request-tab').filter({ hasText: 'Preferences' });
+    await preferencesTab.hover();
+    await preferencesTab.locator('.close-icon').click({ force: true });
+    await expect(preferencesTab).toBeHidden();
 
     // reopen preferences and verify persistence
     await page.locator('.preferences-button').click();
-    await page.waitForTimeout(500);
     await page.getByRole('tab', { name: 'General' }).click();
-
-    const savedValue = await page.locator('.default-location-input').inputValue();
-    expect(savedValue).toBe(alternateExistingPath);
+    await expect(defaultLocationInput).toHaveValue(alternateExistingPath, { timeout: 10000 });
   });
 
   test('Should use default location in Create Collection modal', async ({ pageWithUserData: page }) => {
@@ -106,10 +93,6 @@ test.describe('Default Location Feature', () => {
   test('Should save empty default location', async ({ pageWithUserData: page }) => {
     // open preferences tab
     await page.locator('.preferences-button').click();
-
-    // wait for preferences tab to be visible
-    await page.waitForTimeout(500);
-
     // navigate to General tab
     await page.getByRole('tab', { name: 'General' }).click();
 
@@ -121,8 +104,13 @@ test.describe('Default Location Feature', () => {
       input.readOnly = false;
     });
     await defaultLocationInput.clear();
+    const preferencesTab = page.locator('.request-tab').filter({ hasText: 'Preferences' });
+    await preferencesTab.hover();
+    await preferencesTab.locator('.close-icon').click({ force: true });
+    await expect(preferencesTab).toBeHidden();
 
-    // wait for auto-save to complete (debounce is 500ms)
-    await page.waitForTimeout(1000);
+    await page.locator('.preferences-button').click();
+    await page.getByRole('tab', { name: 'General' }).click();
+    await expect(defaultLocationInput).toHaveValue('', { timeout: 10000 });
   });
 });

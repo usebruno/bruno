@@ -236,8 +236,8 @@ test.describe('Create Workspace', () => {
         // Fill workspace name
         await modal.locator('#workspace-name').fill('Advanced Workspace');
 
-        // Wait for folder name section to appear
-        await page.waitForTimeout(300);
+        // Folder name is derived from workspace name once Formik updates
+        await expect(modal.locator('.path-display .name-container')).toHaveText('Advanced Workspace');
 
         // The location input is read-only and Formik-controlled — .fill() won't update
         // Formik state. Stub the dialog so the browse() callback sets the custom location.
@@ -303,7 +303,7 @@ test.describe('Create Workspace', () => {
         const modal = page.locator('.bruno-modal-card').filter({ hasText: 'Create Workspace' });
         await modal.waitFor({ state: 'visible', timeout: 5000 });
         await modal.locator('#workspace-name').fill('Default Loc Workspace');
-        await page.waitForTimeout(300);
+        await expect(modal.locator('.path-display .name-container')).toHaveText('Default Loc Workspace');
       });
 
       await test.step('Submit the form', async () => {
@@ -718,14 +718,8 @@ test.describe('Create Workspace', () => {
         // Fill the same name as temp workspace — should NOT show "already exists" error
         // since isCreating workspaces are excluded from validation
         await modal.locator('#workspace-name').fill('Untitled Workspace');
-        await page.waitForTimeout(500);
-
-        const errorText = modal.locator('.text-red-500');
-        const hasError = await errorText.isVisible().catch(() => false);
-        if (hasError) {
-          const errorContent = await errorText.textContent();
-          expect(errorContent).not.toContain('already exists');
-        }
+        await expect(modal.locator('.path-display .name-container')).toHaveText('Untitled Workspace');
+        await expect(modal.locator('.text-red-500')).not.toContainText('already exists');
       });
 
       await closeElectronApp(app);

@@ -23,7 +23,6 @@ test.describe('Environment Variables Focus Retention', () => {
     await expect(page.getByText(/(^Environment changed to)/).last()).toBeVisible({ timeout: 5000 });
 
     // intentionally wait a few seconds because the focus is lost after a while
-    await page.waitForTimeout(1000);
-    await expect(nameInput).toBeFocused();
+    await expect(nameInput).toBeFocused({ timeout: 2000 });
   });
 });

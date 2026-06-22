@@ -51,22 +51,23 @@ const setEditorScroll = async (page: Page, selector: string, scrollTop: number) 
     const steps = Math.ceil(scrollTop / scrollStep);
     for (let i = 0; i < steps; i++) {
       await page.mouse.wheel(0, scrollStep);
-      await page.waitForTimeout(50);
     }
   }
-  await page.waitForTimeout(300);
 
   // In Playwright's Electron environment, CM5's internal 'scroll' event may not
   // fire reliably from mouse.wheel. Emit it manually so the persistence hook's
-  // onScroll handler fires and updates scrollPosRef + debounced localStorage save.
+  // onScroll handler fires and updates scrollPosRef + localStorage save.
   await editor.evaluate((el) => {
     const cm = (el as any).CodeMirror;
     if (cm && cm.constructor?.signal) {
       cm.constructor.signal(cm, 'scroll', cm);
     }
   });
-  // Wait for debounced save (200ms) to complete
-  await page.waitForTimeout(400);
+
+  const minExpectedScroll = Math.max(50, scrollTop - Math.max(50, scrollTop * 0.1));
+  await expect.poll(async () => getEditorScroll(page, selector), {
+    timeout: 5000
+  }).toBeGreaterThan(minExpectedScroll);
 };
 
 const setEditorContent = async (page: Page, selector: string, content: string) => {
@@ -77,8 +78,6 @@ const setEditorContent = async (page: Page, selector: string, content: string) =
     cm.setValue(value);
     cm.refresh();
   }, content);
-  // Wait for CodeMirror to calculate scroll height for new content
-  await page.waitForTimeout(200);
 };
 
 // ---------------------------------------------------------------------------
@@ -87,8 +86,9 @@ const setEditorContent = async (page: Page, selector: string, content: string) =
 
 const selectBodyMode = async (page: Page, mode: string) => {
   await page.locator('.body-mode-selector').click();
-  await page.locator('.dropdown-item').filter({ hasText: mode }).click();
-  await page.waitForTimeout(100);
+  const menuItem = page.locator('.dropdown-item').filter({ hasText: mode });
+  await expect(menuItem).toBeVisible();
+  await menuItem.click();
 };
 
 // ---------------------------------------------------------------------------

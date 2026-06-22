@@ -22,7 +22,6 @@ test.describe.serial('Assertions - BRU Collection', () => {
       await selectEnvironment(page, 'Local', 'collection');
       await openRequest(page, 'test-assertions-bru', 'ping');
       await selectRequestPaneTab(page, 'Assert');
-      await page.waitForTimeout(1000);
     });
   });
 

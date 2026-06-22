@@ -94,10 +94,6 @@ test.describe('Open Multiple Collections', () => {
 
     await page.getByTestId('collections-header-add-menu').click();
     await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Open collection' }).click();
-
-    // Wait for error toasts to appear
-    await page.waitForTimeout(1000);
-
     // Verify no collections were opened
     await expect(page.locator('#sidebar-collection-name')).toHaveCount(collectionCountBefore);
 
