@@ -50,6 +50,8 @@ test.describe.serial('bru.setEnvVar(name, value, { persist: true })', () => {
     const newEnvTab = newPage.locator('.request-tab').filter({ hasText: 'Environments' });
     await expect(newEnvTab).toBeVisible();
 
+    await newPage.locator('.environment-item', { hasText: 'Stage' }).click();
+
     await expect(newPage.getByRole('row', { name: 'token' }).getByRole('cell').nth(1)).toBeVisible();
     await expect(newPage.getByRole('row', { name: 'secret' }).getByRole('cell').nth(2)).toBeVisible();
 

@@ -1,7 +1,8 @@
 {
   "maximized": false,
   "lastOpenedCollections": [
-    "{{projectRoot}}/tests/global-environments/collection"
+    "{{projectRoot}}/tests/environments/datatype-preservation/fixtures/bru",
+    "{{projectRoot}}/tests/environments/datatype-preservation/fixtures/yml"
   ],
   "preferences": {
     "onboarding": {
