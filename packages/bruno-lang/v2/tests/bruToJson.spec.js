@@ -283,7 +283,7 @@ vars:pre-request {
 
       const output = parser(input);
       expect(output.vars.req).toEqual([
-        { name: 'certificate', value: 'some-value', enabled: true, local: false, annotations: [{ name: 'description', value: 'This is a certificate\nUse this when making request' }] },
+        { name: 'certificate', value: 'some-value', enabled: true, local: false, annotations: [{ name: 'description', value: 'This is a certificate\nUse this when making request' }], description: 'This is a certificate\nUse this when making request' },
         { name: 'url', value: 'https://example.com', enabled: true, local: false }
       ]);
     });
@@ -321,7 +321,8 @@ vars:pre-request {
             { name: 'object' },
             { name: 'description', value: 'This is a certificate\nUse this when making request' }
           ],
-          dataType: 'object'
+          dataType: 'object',
+          description: 'This is a certificate\nUse this when making request'
         },
         {
           name: 'port',
@@ -332,7 +333,8 @@ vars:pre-request {
             { name: 'number' },
             { name: 'description', value: 'server port' }
           ],
-          dataType: 'number'
+          dataType: 'number',
+          description: 'server port'
         }
       ]);
     });

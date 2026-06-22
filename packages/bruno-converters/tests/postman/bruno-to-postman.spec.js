@@ -120,8 +120,8 @@ describe('brunoToPostman null checks and fallbacks', () => {
 
     const result = brunoToPostman(simpleCollection);
     expect(result.item[0].request.header).toEqual([
-      { key: '', value: 'test-value', disabled: false, type: 'default' },
-      { key: 'Content-Type', value: '', disabled: false, type: 'default' }
+      { key: '', value: 'test-value', description: '', disabled: false, type: 'default' },
+      { key: 'Content-Type', value: '', description: '', disabled: false, type: 'default' }
     ]);
   });
 

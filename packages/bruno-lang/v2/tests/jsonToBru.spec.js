@@ -368,7 +368,7 @@ describe('jsonToBru stringify', () => {
 
       expect(output).toContain('@number');
       expect(output).not.toContain('@string');
-      expect(output).toContain('@description(\'service port\')');
+      expect(output).toContain('@description(\'\'\'service port\'\'\')');
     });
   });
 });

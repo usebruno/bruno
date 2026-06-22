@@ -313,14 +313,14 @@ headers {
     expect(parsed.headers[0].annotations).toEqual([{ name: 'description', value: '' }]);
   });
 
-  it('serializeAnnotations — URL with special chars uses single-quote delimiters', () => {
+  it('serializeAnnotations — URL with special chars uses triple-quote delimiters', () => {
     const json = {
       meta: { name: 'test', type: 'http', seq: 1 },
       http: { method: 'get', url: 'https://example.com' },
       headers: [{ name: 'x-key', value: 'val', enabled: true, annotations: [{ name: 'description', value: 'https://example.com?q=1&r=2' }] }]
     };
     const bru = jsonToBru(json);
-    expect(bru).toContain('@description(\'https://example.com?q=1&r=2\')\n  x-key: val');
+    expect(bru).toContain('@description(\'\'\'https://example.com?q=1&r=2\'\'\')\n  x-key: val');
   });
 
   it('serializeAnnotations — template variable in value roundtrips correctly', () => {
@@ -340,7 +340,7 @@ headers {
     };
     const bru = jsonToBru(json);
     expect(bru).toContain('params:path {');
-    expect(bru).toContain('@description(\'user id\')\n  userId: 123');
+    expect(bru).toContain('@description(\'\'\'user id\'\'\')\n  userId: 123');
   });
 
   it('serializeAnnotations — annotation on metadata', () => {
@@ -349,7 +349,7 @@ headers {
     };
     const bru = jsonToBru(json);
     expect(bru).toContain('metadata {');
-    expect(bru).toContain('@description(\'trace id\')\n  trace-id: abc123');
+    expect(bru).toContain('@description(\'\'\'trace id\'\'\')\n  trace-id: abc123');
   });
 
   it('serializeAnnotations — annotation on body:form-urlencoded', () => {
@@ -360,7 +360,7 @@ headers {
     };
     const bru = jsonToBru(json);
     expect(bru).toContain('body:form-urlencoded {');
-    expect(bru).toContain('@description(\'username field\')\n  username: alice');
+    expect(bru).toContain('@description(\'\'\'username field\'\'\')\n  username: alice');
   });
 
   it('annotation on params:query block', () => {
@@ -592,7 +592,7 @@ body:file {
       }
     };
     const bru = jsonToBru(json);
-    expect(bru).toContain('@description(\'plain field\')\n  field: value @contentType(text/plain)');
+    expect(bru).toContain('@description(\'\'\'plain field\'\'\')\n  field: value @contentType(text/plain)');
   });
 
   it('serializeAnnotations — multipart file field with contentType', () => {
@@ -611,7 +611,7 @@ body:file {
       }
     };
     const bru = jsonToBru(json);
-    expect(bru).toContain('@description(\'upload image\')\n  upload: @file(/tmp/a.png|/tmp/b.png) @contentType(image/png)');
+    expect(bru).toContain('@description(\'\'\'upload image\'\'\')\n  upload: @file(/tmp/a.png|/tmp/b.png) @contentType(image/png)');
   });
 
   it('serializeAnnotations — annotation on vars:post-response', () => {
@@ -622,7 +622,7 @@ body:file {
     };
     const bru = jsonToBru(json);
     expect(bru).toContain('vars:post-response {');
-    expect(bru).toContain('@description(\'auth token\')\n  token: abc123');
+    expect(bru).toContain('@description(\'\'\'auth token\'\'\')\n  token: abc123');
   });
 
   it('serializeAnnotations — annotation on local vars:pre-request', () => {
@@ -633,7 +633,7 @@ body:file {
     };
     const bru = jsonToBru(json);
     expect(bru).toContain('vars:pre-request {');
-    expect(bru).toContain('@description(\'local base url\')\n  @BASE_URL: http://localhost');
+    expect(bru).toContain('@description(\'\'\'local base url\'\'\')\n  @BASE_URL: http://localhost');
   });
 
   it('serializeAnnotations — annotation on disabled local vars:post-response', () => {
@@ -644,7 +644,7 @@ body:file {
     };
     const bru = jsonToBru(json);
     expect(bru).toContain('vars:post-response {');
-    expect(bru).toContain('@description(\'local token\')\n  ~@token: abc123');
+    expect(bru).toContain('@description(\'\'\'local token\'\'\')\n  ~@token: abc123');
   });
 
   it('serializeAnnotations — body:file with annotations', () => {
@@ -663,7 +663,7 @@ body:file {
     };
     const bru = jsonToBru(json);
     expect(bru).toContain('body:file {');
-    expect(bru).toContain('@description(\'upload doc\')\n  file: @file(/tmp/readme.pdf) @contentType(application/pdf)');
+    expect(bru).toContain('@description(\'\'\'upload doc\'\'\')\n  file: @file(/tmp/readme.pdf) @contentType(application/pdf)');
     const parsed = parser(bru);
     expect(parsed.body.file).toEqual(json.body.file);
   });
@@ -726,7 +726,7 @@ headers {
       ]
     };
     const bru = jsonToBru(json);
-    expect(bru).toContain('@description(\'my header\')\n  x-key: val');
+    expect(bru).toContain('@description(\'\'\'my header\'\'\')\n  x-key: val');
   });
 
   it('serializeAnnotations — disabled pair with annotation', () => {
@@ -739,29 +739,29 @@ headers {
     expect(bru).toContain('@string\n  ~x-key: val');
   });
 
-  it('serializeAnnotations — value with single quote uses double-quote delimiters (e.g. O\'Reilly)', () => {
+  it('serializeAnnotations — value with single quote uses triple-quote delimiters (e.g. O\'Reilly)', () => {
     const json = {
       meta: { name: 'test', type: 'http', seq: 1 },
       http: { method: 'get', url: 'https://example.com' },
       headers: [{ name: 'x-key', value: 'val', enabled: true, annotations: [{ name: 'description', value: 'O\'Reilly' }] }]
     };
     const bru = jsonToBru(json);
-    expect(bru).toContain('@description("O\'Reilly")\n  x-key: val');
+    expect(bru).toContain('@description(\'\'\'O\'Reilly\'\'\')\n  x-key: val');
   });
 
-  it('serializeAnnotations — value with double quote uses single-quote delimiters (e.g. say "hello")', () => {
+  it('serializeAnnotations — value with double quote uses triple-quote delimiters (e.g. say "hello")', () => {
     const json = {
       meta: { name: 'test', type: 'http', seq: 1 },
       http: { method: 'get', url: 'https://example.com' },
       headers: [{ name: 'x-key', value: 'val', enabled: true, annotations: [{ name: 'description', value: 'say "hello"' }] }]
     };
     const bru = jsonToBru(json);
-    expect(bru).toContain('@description(\'say "hello"\')\n  x-key: val');
+    expect(bru).toContain('@description(\'\'\'say "hello"\'\'\')\n  x-key: val');
   });
 
   it('parseAndSerialise - bru sourced roundtrip check - headers', () => {
     const input = `headers {
-  @description('hello')
+  @description('''hello''')
   key: value
 }
 `;
@@ -791,7 +791,7 @@ headers {
 
   it('parseAndSerialise - bru sourced roundtrip check - asserts', () => {
     const input = `assert {
-  @description('make it rain')
+  @description('''make it rain''')
   res.status: eq 200
 }
 `;
@@ -866,7 +866,7 @@ headers {
 
   it('parseAndSerialise - bru sourced roundtrip check - params:query', () => {
     const input = `params:query {
-  @description('search term')
+  @description('''search term''')
   q: hello
 }
 `;
@@ -895,7 +895,7 @@ headers {
 
   it('parseAndSerialise - bru sourced roundtrip check - params:path', () => {
     const input = `params:path {
-  @description('user id')
+  @description('''user id''')
   userId: 123
 }
 `;
@@ -924,7 +924,7 @@ headers {
 
   it('parseAndSerialise - bru sourced roundtrip check - metadata', () => {
     const input = `metadata {
-  @description('trace id')
+  @description('''trace id''')
   trace-id: abc123
 }
 `;
@@ -952,7 +952,7 @@ headers {
 
   it('parseAndSerialise - bru sourced roundtrip check - body:form-urlencoded', () => {
     const input = `body:form-urlencoded {
-  @description('username field')
+  @description('''username field''')
   username: alice
 }
 `;
@@ -982,7 +982,7 @@ headers {
 
   it('parseAndSerialise - bru sourced roundtrip check - body:multipart-form text field', () => {
     const input = `body:multipart-form {
-  @description('plain field')
+  @description('''plain field''')
   field: value @contentType(text/plain)
 }
 `;
@@ -993,7 +993,7 @@ headers {
 
   it('parseAndSerialise - bru sourced roundtrip check - body:multipart-form file field', () => {
     const input = `body:multipart-form {
-  @description('upload image')
+  @description('''upload image''')
   upload: @file(/tmp/a.png|/tmp/b.png) @contentType(image/png)
 }
 `;
@@ -1004,7 +1004,7 @@ headers {
 
   it('parseAndSerialise - bru sourced roundtrip check - body:file', () => {
     const input = `body:file {
-  @description('upload doc')
+  @description('''upload doc''')
   file: @file(/tmp/readme.pdf) @contentType(application/pdf)
 }
 `;
@@ -1015,7 +1015,7 @@ headers {
 
   it('parseAndSerialise - bru sourced roundtrip check - vars:pre-request', () => {
     const input = `vars:pre-request {
-  @description('base url')
+  @description('''base url''')
   BASE_URL: http://localhost
 }
 `;
@@ -1046,7 +1046,7 @@ headers {
 
   it('parseAndSerialise - bru sourced roundtrip check - vars:post-response', () => {
     const input = `vars:post-response {
-  @description('auth token')
+  @description('''auth token''')
   token: abc123
 }
 `;
@@ -1260,7 +1260,7 @@ describe('env pair annotations', () => {
       variables: [{ name: 'BASE_URL', value: 'http://localhost', enabled: true, secret: false, annotations: [{ name: 'description', value: 'base url' }] }]
     };
     const bru = jsonToEnv(json);
-    expect(bru).toContain('@description(\'base url\')\n  BASE_URL: http://localhost');
+    expect(bru).toContain('@description(\'\'\'base url\'\'\')\n  BASE_URL: http://localhost');
   });
 
   it('serializeAnnotations in jsonToEnv — disabled var with annotation', () => {
@@ -1273,7 +1273,7 @@ describe('env pair annotations', () => {
 
   it('parseAndSerialise - bru sourced roundtrip check - env vars', () => {
     const input = `vars {
-  @description('api key')
+  @description('''api key''')
   API_KEY: abc123
 }
 `;
@@ -1468,7 +1468,7 @@ describe('collection pair annotations', () => {
       headers: [{ name: 'content-type', value: 'application/json', enabled: true, annotations: [{ name: 'description', value: 'content type' }] }]
     };
     const bru = jsonToCollectionBru(json);
-    expect(bru).toContain('@description(\'content type\')\n  content-type: application/json');
+    expect(bru).toContain('@description(\'\'\'content type\'\'\')\n  content-type: application/json');
   });
 
   it('serializeAnnotations in jsonToCollectionBru — disabled header with annotation', () => {
@@ -1494,7 +1494,7 @@ describe('collection pair annotations', () => {
       }
     };
     const bru = jsonToCollectionBru(json);
-    expect(bru).toContain('@description(\'base url\')\n  BASE_URL: http://localhost');
+    expect(bru).toContain('@description(\'\'\'base url\'\'\')\n  BASE_URL: http://localhost');
   });
 
   it('serializeAnnotations in jsonToCollectionBru — vars:post-response with annotation', () => {
@@ -1505,7 +1505,7 @@ describe('collection pair annotations', () => {
     };
     const bru = jsonToCollectionBru(json);
     expect(bru).toContain('vars:post-response {');
-    expect(bru).toContain('@description(\'auth token\')\n  token: abc123');
+    expect(bru).toContain('@description(\'\'\'auth token\'\'\')\n  token: abc123');
   });
 
   it('serializeAnnotations in jsonToCollectionBru — local vars:pre-request with annotation', () => {
@@ -1516,7 +1516,7 @@ describe('collection pair annotations', () => {
     };
     const bru = jsonToCollectionBru(json);
     expect(bru).toContain('vars:pre-request {');
-    expect(bru).toContain('@description(\'local base url\')\n  @BASE_URL: http://localhost');
+    expect(bru).toContain('@description(\'\'\'local base url\'\'\')\n  @BASE_URL: http://localhost');
   });
 
   it('serializeAnnotations in jsonToCollectionBru — disabled local vars:post-response with annotation', () => {
@@ -1527,12 +1527,12 @@ describe('collection pair annotations', () => {
     };
     const bru = jsonToCollectionBru(json);
     expect(bru).toContain('vars:post-response {');
-    expect(bru).toContain('@description(\'local token\')\n  ~@token: abc123');
+    expect(bru).toContain('@description(\'\'\'local token\'\'\')\n  ~@token: abc123');
   });
 
   it('parseAndSerialise - bru sourced roundtrip check - collection headers', () => {
     const input = `headers {
-  @description('content type')
+  @description('''content type''')
   content-type: application/json
 }
 `;
@@ -1560,7 +1560,7 @@ describe('collection pair annotations', () => {
 
   it('parseAndSerialise - bru sourced roundtrip check - collection vars:pre-request', () => {
     const input = `vars:pre-request {
-  @description('base url')
+  @description('''base url''')
   BASE_URL: http://localhost
 }
 `;

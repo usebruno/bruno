@@ -128,6 +128,14 @@ function serializeAnnotations(annotations) {
         if (strValue.includes('\n')) {
           return `@${a.name}('''\n${indentString(strValue)}\n''')`;
         }
+        if (a.name === 'description' && strValue.length > 0) {
+          // non-empty descriptions always use triple-quote format for consistency
+          if (strValue.includes('\'\'\'')) {
+            // fall back to double-quoted when value itself contains '''
+            return `@description("${strValue}")`;
+          }
+          return `@description('''${strValue}''')`;
+        }
         const quote = strValue.includes('\'') ? '"' : '\'';
         return `@${a.name}(${quote}${strValue}${quote})`;
       })
@@ -136,15 +144,26 @@ function serializeAnnotations(annotations) {
 };
 
 const buildAnnotationsFromVariable = (variable) => {
-  const { annotations = [], dataType } = variable;
-  // Drop any dataType annotations from the existing list; they'll be rebuilt from the dataType field
-  const other = annotations.filter((a) => !BRUNO_VARIABLE_DATATYPES.includes(a.name));
+  const { annotations = [], dataType, description } = variable;
+  // Drop dataType annotations; they'll be rebuilt from the dataType field
+  const dataTypeFiltered = annotations.filter((a) => !BRUNO_VARIABLE_DATATYPES.includes(a.name));
 
-  if (dataType && dataType !== 'string') {
-    return [{ name: dataType }, ...other];
+  // Build description annotation (description field takes priority; fall back to annotations)
+  let descAnnotation;
+  if (description !== undefined && description !== null) {
+    descAnnotation = description !== '' ? { name: 'description', value: description } : null;
+  } else {
+    descAnnotation = dataTypeFiltered.find((a) => a.name === 'description') || null;
   }
 
-  return other;
+  const other = dataTypeFiltered.filter((a) => a.name !== 'description');
+  const descArr = descAnnotation ? [descAnnotation] : [];
+
+  if (dataType && dataType !== 'string') {
+    return [{ name: dataType }, ...descArr, ...other];
+  }
+
+  return [...descArr, ...other];
 };
 
 const extractTypedAnnotations = (rawAnnotations, result) => {
@@ -162,6 +181,32 @@ const serializeVar = (item, prefix = '') => {
   return `${serializeAnnotations(buildAnnotationsFromVariable(item))}${prefix}${item.name}: ${getValueString(item.value)}`;
 };
 
+const applyDescriptionFromAnnotations = (result, annotations) => {
+  if (!annotations?.length) return;
+  const descAnnotation = annotations.find((a) => a.name === 'description');
+  if (descAnnotation !== undefined) {
+    result.description = descAnnotation.value ?? '';
+  }
+};
+
+const buildAnnotationsFromKVItem = (item) => {
+  const { annotations = [], description } = item;
+  const other = (annotations || []).filter((a) => a.name !== 'description');
+  if (description !== undefined && description !== null) {
+    // description explicitly set (UI edits): use it, but only if non-empty
+    if (description !== '') {
+      return [{ name: 'description', value: description }, ...other];
+    }
+    return other;
+  }
+  // No description field: use raw annotations as-is (round-trips empty @description too)
+  const descAnnotation = (annotations || []).find((a) => a.name === 'description');
+  if (descAnnotation !== undefined) {
+    return [descAnnotation, ...other];
+  }
+  return other;
+};
+
 module.exports = {
   safeParseJson,
   indentString,
@@ -174,5 +219,7 @@ module.exports = {
   serializeAnnotations,
   extractTypedAnnotations,
   buildAnnotationsFromVariable,
-  serializeVar
+  serializeVar,
+  applyDescriptionFromAnnotations,
+  buildAnnotationsFromKVItem
 };

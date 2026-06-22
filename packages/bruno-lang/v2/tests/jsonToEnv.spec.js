@@ -445,7 +445,7 @@ vars:secret [
       // @string from old annotations should be dropped, @number should be set from dataType
       expect(output).toContain('@number');
       expect(output).not.toContain('@string');
-      expect(output).toContain('@description(\'service port\')');
+      expect(output).toContain('@description(\'\'\'service port\'\'\')');
     });
 
     it('should emit dataType but not the value for secret vars', () => {

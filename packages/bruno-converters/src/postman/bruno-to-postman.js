@@ -281,6 +281,7 @@ export const brunoToPostman = (collection) => {
       return {
         key: item.name || '',
         value: item.value || '',
+        description: item.description || '',
         disabled: !item.enabled,
         type: 'default'
       };
