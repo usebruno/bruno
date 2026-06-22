@@ -14,7 +14,7 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Setup Node Dependencies
         uses: ./.github/actions/common/setup-node-deps
@@ -30,7 +30,7 @@ jobs:
       pull-requests: write
       contents: read
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Setup Node Dependencies
         uses: ./.github/actions/common/setup-node-deps
@@ -52,7 +52,7 @@ jobs:
     timeout-minutes: 240
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Install System Dependencies (Ubuntu)
         run: |
@@ -92,7 +92,7 @@ jobs:
       pull-requests: write
       contents: read
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Setup Node Dependencies
         uses: ./.github/actions/common/setup-node-deps
@@ -121,7 +121,7 @@ jobs:
       pull-requests: write
       contents: read
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Setup Node Dependencies
         uses: ./.github/actions/common/setup-node-deps
