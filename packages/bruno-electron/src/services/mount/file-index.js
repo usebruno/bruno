@@ -16,7 +16,7 @@ const MIGRATIONS = [
   {
     version: 1,
     up: `
-      CREATE TABLE IF NOT EXISTS snapshot_entries (
+      CREATE TABLE IF NOT EXISTS file_index_entries (
         collection_path TEXT NOT NULL,
         relative_path TEXT NOT NULL,
         id TEXT NOT NULL,
@@ -25,12 +25,8 @@ const MIGRATIONS = [
         data TEXT NOT NULL,
         PRIMARY KEY (collection_path, relative_path)
       ) WITHOUT ROWID;
-      CREATE INDEX IF NOT EXISTS idx_collection_path ON snapshot_entries(collection_path);
+      CREATE INDEX IF NOT EXISTS idx_collection_path ON file_index_entries(collection_path);
     `
-  },
-  {
-    version: 2,
-    up: `ALTER TABLE snapshot_entries RENAME TO file_index_entries;`
   }
 ];
 
