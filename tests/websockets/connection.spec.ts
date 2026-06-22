@@ -8,7 +8,7 @@ test.describe.serial('websockets', () => {
   test('websocket requests are visible', async ({ pageWithUserData: page, restartApp }) => {
     await page.locator('#sidebar-collection-name').click();
 
-    expect(page.locator('span.item-name').filter({ hasText: BRU_REQ_NAME })).toBeVisible();
+    await expect(page.locator('span.item-name').filter({ hasText: BRU_REQ_NAME })).toBeVisible();
   });
 
   test('websocket connects', async ({ pageWithUserData: page, restartApp }) => {
