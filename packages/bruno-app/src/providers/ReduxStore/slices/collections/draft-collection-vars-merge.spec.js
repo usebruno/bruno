@@ -559,4 +559,80 @@ describe('collectionVariablesUpdateEvent — draft-aware merge', () => {
       expect(getCollection(store)._scriptCollVarBaseline).toBeUndefined();
     });
   });
+
+  describe('description / annotations preservation across script-driven updates', () => {
+    const annotations = [
+      { name: 'number' },
+      { name: 'description', value: 'server port' }
+    ];
+
+    test('script touching a sibling var must NOT erase annotations on untouched vars', () => {
+      const annotated = { ...makeVar('PORT', 8080), dataType: 'number', annotations: annotations };
+      const sibling = makeVar('TOKEN', 'abc');
+
+      const store = createStore([annotated, sibling]);
+
+      store.dispatch(collectionVariablesUpdateEvent({
+        collectionVariables: { PORT: 8080, TOKEN: 'new-token' },
+        collectionUid: COLLECTION_UID
+      }));
+
+      const port = getReqVars(store).find((v) => v.name === 'PORT');
+      expect(port.annotations).toEqual(annotations);
+      expect(port.dataType).toBe('number');
+    });
+
+    test('script overwriting a var\'s value preserves its annotations', () => {
+      const annotated = { ...makeVar('PORT', 8080), dataType: 'number', annotations: annotations };
+
+      const store = createStore([annotated]);
+
+      store.dispatch(collectionVariablesUpdateEvent({
+        collectionVariables: { PORT: 9090 },
+        collectionUid: COLLECTION_UID
+      }));
+
+      const port = getReqVars(store).find((v) => v.name === 'PORT');
+      expect(port.value).toBe(9090);
+      expect(port.annotations).toEqual(annotations);
+      expect(port.dataType).toBe('number');
+    });
+  });
+
+  describe('object/array typed-var no-op writes preserve draft (deep-equal compare)', () => {
+    test('script re-writing a structurally-equal object value does NOT clobber draft edit', () => {
+      const savedVar = { ...makeVar('CFG', { port: 3000 }), dataType: 'object' };
+      const draftVar = { ...makeVar('CFG', { port: 4000 }), dataType: 'object' };
+
+      const draftRoot = { request: { vars: { req: [draftVar] } } };
+      const store = createStore([savedVar], { draft: { root: draftRoot } });
+
+      store.dispatch(collectionVariablesUpdateEvent({
+        collectionVariables: { CFG: { port: 3000 } },
+        collectionUid: COLLECTION_UID
+      }));
+
+      const cfg = getReqVars(store).find((v) => v.name === 'CFG');
+      expect(cfg.value).toEqual({ port: 4000 });
+    });
+  });
+
+  describe('disabled-var name collision — script targets enabled slot only', () => {
+    test('script setting X writes to the enabled X, leaves the disabled X untouched', () => {
+      const disabledX = makeVar('X', 'archived', false);
+      const enabledX = makeVar('X', 'current');
+
+      const store = createStore([disabledX, enabledX]);
+
+      store.dispatch(collectionVariablesUpdateEvent({
+        collectionVariables: { X: 'updated' },
+        collectionUid: COLLECTION_UID
+      }));
+
+      const xVars = getReqVars(store).filter((v) => v.name === 'X');
+      expect(xVars).toHaveLength(2);
+      expect(xVars.find((v) => v.enabled === false).value).toBe('archived');
+      expect(xVars.find((v) => v.enabled === true).value).toBe('updated');
+    });
+  });
 });

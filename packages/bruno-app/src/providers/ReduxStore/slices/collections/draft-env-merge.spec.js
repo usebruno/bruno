@@ -543,4 +543,85 @@ describe('scriptEnvironmentUpdateEvent — draft-aware merge', () => {
       expect(v.dataType).toBe('boolean');
     });
   });
+
+  describe('object/array typed-var no-op writes preserve draft (deep-equal compare)', () => {
+    test('script re-writing a structurally-equal object value does NOT clobber draft edit', () => {
+      const savedVar = { ...makeVar('CFG', { port: 3000 }), dataType: 'object' };
+      const draftVar = { ...makeVar('CFG', { port: 4000 }), dataType: 'object' };
+
+      let state = makeInitialState([savedVar], {
+        draft: { environmentUid: ENV_UID, variables: [draftVar] }
+      });
+
+      // Script reads CFG (={port:3000}), passes it back unchanged. Pre-fix the strict-!==
+      // compare in applyScriptEnvVars saw two different references and clobbered the draft.
+      state = reducer(state, scriptEvent({ CFG: { port: 3000 }, __name__: 'Test' }));
+
+      const v = getEnv(state).variables.find((v) => v.name === 'CFG');
+      expect(v.value).toEqual({ port: 4000 });
+    });
+
+    test('script re-writing a structurally-equal array value does NOT clobber draft edit', () => {
+      const savedVar = { ...makeVar('TAGS', [1, 2]), dataType: 'array' };
+      const draftVar = { ...makeVar('TAGS', [1, 2, 3]), dataType: 'array' };
+
+      let state = makeInitialState([savedVar], {
+        draft: { environmentUid: ENV_UID, variables: [draftVar] }
+      });
+
+      state = reducer(state, scriptEvent({ TAGS: [1, 2], __name__: 'Test' }));
+
+      const v = getEnv(state).variables.find((v) => v.name === 'TAGS');
+      expect(v.value).toEqual([1, 2, 3]);
+    });
+
+    test('dataType inference is NOT applied when the merge skipped the var (no-op write)', () => {
+      // User is mid-edit converting `42` (number) → `'forty-two'` (string) in their draft.
+      const savedVar = { ...makeVar('COUNT', 42), dataType: 'number' };
+      const draftVar = { ...makeVar('COUNT', 'forty-two') };
+
+      let state = makeInitialState([savedVar], {
+        draft: { environmentUid: ENV_UID, variables: [draftVar] }
+      });
+
+      // Script does a no-op write of the saved value. With the modifiedKeys-scoped inference,
+      // we must NOT reset the dataType back to 'number' — the draft's string-typed edit is preserved.
+      state = reducer(state, scriptEvent({ COUNT: 42, __name__: 'Test' }));
+
+      const v = getEnv(state).variables.find((v) => v.name === 'COUNT');
+      expect(v.value).toBe('forty-two');
+      expect(v.dataType).toBeUndefined();
+    });
+  });
+
+  describe('disabled-var name collision — script targets enabled slot only', () => {
+    test('script setting X writes to the enabled X, leaves the disabled X untouched', () => {
+      const disabledX = makeVar('X', 'archived', false);
+      const enabledX = makeVar('X', 'current');
+
+      let state = makeInitialState([disabledX, enabledX]);
+
+      state = reducer(state, scriptEvent({ X: 'updated', __name__: 'Test' }));
+
+      const xVars = getEnv(state).variables.filter((v) => v.name === 'X');
+      expect(xVars).toHaveLength(2);
+      const stillDisabled = xVars.find((v) => v.enabled === false);
+      const nowEnabled = xVars.find((v) => v.enabled === true);
+      expect(stillDisabled.value).toBe('archived');
+      expect(nowEnabled.value).toBe('updated');
+    });
+
+    test('when only a disabled X exists, the script write creates a NEW enabled slot', () => {
+      const disabledOnly = makeVar('X', 'archived', false);
+
+      let state = makeInitialState([disabledOnly]);
+
+      state = reducer(state, scriptEvent({ X: 'created', __name__: 'Test' }));
+
+      const xVars = getEnv(state).variables.filter((v) => v.name === 'X');
+      expect(xVars).toHaveLength(2);
+      expect(xVars.find((v) => v.enabled === false).value).toBe('archived');
+      expect(xVars.find((v) => v.enabled === true).value).toBe('created');
+    });
+  });
 });

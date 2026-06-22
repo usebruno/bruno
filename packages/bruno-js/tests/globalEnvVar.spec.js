@@ -68,6 +68,60 @@ describe('Global Environment Variable APIs', () => {
     });
   });
 
+  describe('bru.setGlobalEnvVar — dirty flag for reference-mutation idiom', () => {
+    test('the getGlobalEnvVar → mutate → setGlobalEnvVar idiom trips the dirty flag', () => {
+      const bru = makeBru({ config: { port: 3000 } });
+      expect(bru._globalEnvDirty).toBe(false);
+      // Real-script idiom: getGlobalEnvVar deep-copies through interpolate's JSON roundtrip,
+      // so mutating the result leaves the store untouched and the deep-equal guard fires.
+      const config = bru.getGlobalEnvVar('config');
+      config.port = 4000;
+      bru.setGlobalEnvVar('config', config);
+      expect(bru._globalEnvDirty).toBe(true);
+      expect(bru.globalEnvironmentVariables.config).toEqual({ port: 4000 });
+    });
+
+    test('re-setting a structurally-equal object value does NOT trip the dirty flag', () => {
+      const bru = makeBru({ config: { port: 3000 } });
+      bru.setGlobalEnvVar('config', { port: 3000 });
+      expect(bru._globalEnvDirty).toBe(false);
+    });
+
+    test('re-setting a structurally-equal primitive value does NOT trip the dirty flag', () => {
+      const bru = makeBru({ token: 'abc' });
+      bru.setGlobalEnvVar('token', 'abc');
+      expect(bru._globalEnvDirty).toBe(false);
+    });
+  });
+
+  describe('bru.deleteGlobalEnvVar — dirty flag contract', () => {
+    test('deleting an existing key trips the global-env dirty flag', () => {
+      const bru = makeBru({ token: 'abc' });
+      bru.deleteGlobalEnvVar('token');
+      expect(bru._globalEnvDirty).toBe(true);
+    });
+
+    test('deleting a non-existent key leaves the dirty flag clean', () => {
+      const bru = makeBru();
+      bru.deleteGlobalEnvVar('missing');
+      expect(bru._globalEnvDirty).toBe(false);
+    });
+  });
+
+  describe('bru.deleteAllGlobalEnvVars — dirty flag contract', () => {
+    test('deleting populated scope trips the dirty flag', () => {
+      const bru = makeBru({ a: '1', b: '2' });
+      bru.deleteAllGlobalEnvVars();
+      expect(bru._globalEnvDirty).toBe(true);
+    });
+
+    test('calling on empty scope leaves the dirty flag clean', () => {
+      const bru = makeBru();
+      bru.deleteAllGlobalEnvVars();
+      expect(bru._globalEnvDirty).toBe(false);
+    });
+  });
+
   describe('bru.getGlobalEnvVar', () => {
     test('returns value of an existing variable', () => {
       const bru = makeBru({ token: 'abc' });

@@ -30,13 +30,6 @@ test.describe('Draft environment merge with script-set variables', () => {
 
     await test.step('Open request and send it', async () => {
       await locators.sidebar.request('set-env-var').click();
-
-      // Handle unsaved changes modal if it appears
-      if (await locators.environment.unsavedModal.cancel().isVisible({ timeout: 2000 }).catch(() => false)) {
-        await locators.environment.unsavedModal.cancel().click();
-        await locators.sidebar.request('set-env-var').dblclick();
-      }
-
       await expect(locators.tabs.requestTab('set-env-var')).toBeVisible();
       await sendRequest(page, 200);
     });

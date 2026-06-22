@@ -42,12 +42,6 @@ test.describe('Collection vars script persistence does not leak draft headers', 
 
     await test.step('Open request and send it (script sets a collection var)', async () => {
       await locators.sidebar.request('set-collection-var').click();
-
-      // Handle unsaved changes modal if it appears
-      if (await locators.environment.unsavedModal.closeWithoutSave().isVisible({ timeout: 2000 }).catch(() => false)) {
-        await locators.environment.unsavedModal.closeWithoutSave().click();
-      }
-
       await expect(locators.tabs.requestTab('set-collection-var')).toBeVisible();
       await sendRequest(page, 200);
     });
