@@ -21,9 +21,6 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
 
   test.afterEach(async ({ pageWithUserData: page }) => {
     await resetKeybindings(page);
-  });
-
-  test.afterAll(async ({ pageWithUserData: page }) => {
     await closeAllCollections(page);
   });
 

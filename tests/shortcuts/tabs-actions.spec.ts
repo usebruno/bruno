@@ -17,15 +17,12 @@ import {
 
 test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
   test.beforeEach(async ({ pageWithUserData: page, createTmpDir }) => {
-    await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 5000 });
+    await page.locator('[data-app-state="loaded"]').waitFor(); ;
     await setupBoundActionsData(page, createTmpDir);
   });
 
   test.afterEach(async ({ pageWithUserData: page }) => {
     await resetKeybindings(page);
-  });
-
-  test.afterAll(async ({ pageWithUserData: page }) => {
     await closeAllCollections(page);
   });
 

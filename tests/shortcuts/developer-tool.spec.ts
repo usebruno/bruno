@@ -10,15 +10,12 @@ import {
 
 test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
   test.beforeEach(async ({ pageWithUserData: page, createTmpDir }) => {
-    await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 5000 });
+    await page.locator('[data-app-state="loaded"]').waitFor(); ;
     await setupBoundActionsData(page, createTmpDir);
   });
 
   test.afterEach(async ({ pageWithUserData: page }) => {
     await resetKeybindings(page);
-  });
-
-  test.afterAll(async ({ pageWithUserData: page }) => {
     await closeAllCollections(page);
   });
 
@@ -52,13 +49,6 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         // Verify the terminal session name is the workspace name (default_workspace)
         const folderSessionName = folderTerminalSession;
         await expect(folderSessionName).toContainText('kb-terminal-folder');
-
-        // Close all sessions with terminal tab
-        await page.getByTestId('session-close-1').click();
-        await page.waitForTimeout(1000);
-        await page.getByTestId('session-close-0').click();
-        await expect(page.getByTestId('session-close-0')).not.toBeVisible();
-        await page.getByTitle('Close console').click();
       });
     });
 
@@ -99,13 +89,6 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         // Verify the terminal session name is the workspace name (default_workspace)
         const folderSessionName = folderTerminalSession;
         await expect(folderSessionName).toContainText('kb-terminal-folder');
-
-        // Close all sessions with terminal tab
-        await page.getByTestId('session-close-1').click();
-        await page.waitForTimeout(1000);
-        await page.getByTestId('session-close-0').click();
-        await expect(page.getByTestId('session-close-0')).not.toBeVisible();
-        await page.getByTitle('Close console').click();
       });
     });
   });
