@@ -5,7 +5,7 @@ import { get } from 'lodash';
 import { updateRequestBody } from 'providers/ReduxStore/slices/collections';
 import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { useTheme } from 'providers/Theme';
-import React, { useMemo, useState, useEffect, useRef, useCallback } from 'react';
+import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { queueWsMessage, isWsConnectionActive, connectWS } from 'utils/network/index';
 import { findCollectionByUid, findEnvironmentInCollection } from 'utils/collections/index';
@@ -53,6 +53,7 @@ export const SingleWSMessage = ({
 
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(displayName);
+  const labelTooltipId = `ws-msg-label-${message.uid ?? index}`;
 
   // Auto-focus the name input when this is a newly created message
   useEffect(() => {
@@ -204,17 +205,27 @@ export const SingleWSMessage = ({
               onClick={(e) => e.stopPropagation()}
             />
           ) : (
-            <span
-              className="message-label"
-              data-testid={`ws-message-label-${index}`}
-              onClick={(e) => {
-                e.preventDefault();
-                onToggle();
-              }}
-              onDoubleClick={handleNameClick}
+            <ToolHint
+              text={displayName}
+              toolhintId={labelTooltipId}
+              className="message-label-anchor"
+              place="bottom-start"
+              positionStrategy="fixed"
+              tooltipTestId="ws-message-name-tooltip"
+              tooltipStyle={{ maxWidth: '320px', whiteSpace: 'normal', wordBreak: 'break-word' }}
             >
-              {displayName}
-            </span>
+              <span
+                className="message-label"
+                data-testid={`ws-message-label-${index}`}
+                onClick={(e) => {
+                  e.preventDefault();
+                  onToggle();
+                }}
+                onDoubleClick={handleNameClick}
+              >
+                {displayName}
+              </span>
+            </ToolHint>
           )}
         </div>
         <div className="accordion-actions" onClick={(e) => e.stopPropagation()}>

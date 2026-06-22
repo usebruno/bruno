@@ -43,6 +43,7 @@ import EnvironmentSettings from 'components/Environments/EnvironmentSettings';
 import GlobalEnvironmentSettings from 'components/Environments/GlobalEnvironmentSettings';
 import OpenAPISyncTab from 'components/OpenAPISyncTab';
 import OpenAPISpecTab from 'components/OpenAPISpecTab';
+import ChangelogTab from 'components/ChangelogTab';
 import CollapsedPanelIndicator from './CollapsedPanelIndicator';
 import { clampRequestHeightForResponse } from './paneSize';
 import { IconLoader2 } from '@tabler/icons';
@@ -333,6 +334,10 @@ const RequestTabPanel = () => {
 
   if (focusedTab.type === 'preferences') {
     return <Preferences />;
+  }
+
+  if (focusedTab.type === 'changelog') {
+    return <ChangelogTab />;
   }
 
   if (focusedTab.type === 'workspaceOverview') {
