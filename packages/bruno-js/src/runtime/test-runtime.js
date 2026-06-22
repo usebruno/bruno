@@ -66,7 +66,8 @@ class TestRuntime {
         runtimeVariables,
         globalEnvironmentVariables,
         results: __brunoTestResults.getResults(),
-        nextRequestName: bru.nextRequest
+        nextRequestName: bru.nextRequest,
+        stopExecution: bru.stopExecution
       };
     }
 
@@ -132,6 +133,7 @@ class TestRuntime {
       oauth2CredentialsToReset: bru.oauth2CredentialsToReset,
       results: cleanJson(__brunoTestResults.getResults()),
       nextRequestName: bru.nextRequest,
+      stopExecution: bru.stopExecution,
       scriptedRequestEntries: cleanJson(bru.scriptedRequestEntries || [])
     };
 
