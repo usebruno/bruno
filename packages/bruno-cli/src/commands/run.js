@@ -360,6 +360,15 @@ const handler = async function (argv) {
 
     const runtimeVariables = {};
     let envVars = {};
+    let envFileDescriptor = null;
+    let globalEnvFileDescriptor = null;
+
+    const resolveEnvFileFormat = (filePath) => {
+      const ext = path.extname(filePath).toLowerCase();
+      if (ext === '.json') return 'json';
+      if (ext === '.yml' || ext === '.yaml') return 'yml';
+      return 'bru';
+    };
 
     // Helper to load environment variables from a file
     const loadEnvFromFile = (filePath, nameOverride) => {
@@ -398,6 +407,7 @@ const handler = async function (argv) {
       }
       try {
         envVars = loadEnvFromFile(envFilePath);
+        envFileDescriptor = { path: envFilePath, format: resolveEnvFileFormat(envFilePath) };
       } catch (err) {
         console.error(chalk.red(`Failed to parse environment file: ${err.message}`));
         process.exit(constants.EXIT_STATUS.ERROR_INVALID_FILE);
@@ -415,6 +425,7 @@ const handler = async function (argv) {
       try {
         const collectionEnvVars = loadEnvFromFile(collectionEnvFilePath, env);
         envVars = { ...envVars, ...collectionEnvVars };
+        envFileDescriptor = { path: collectionEnvFilePath, format: collection.format };
       } catch (err) {
         console.error(chalk.red(`Failed to parse Environment file: ${err.message}`));
         process.exit(constants.EXIT_STATUS.ERROR_INVALID_FILE);
@@ -470,6 +481,7 @@ const handler = async function (argv) {
         const globalEnvJson = parseEnvironment(globalEnvContent, { format: 'yml' });
         globalEnvVars = getEnvVars(globalEnvJson);
         globalEnvVars.__name__ = globalEnv;
+        globalEnvFileDescriptor = { path: globalEnvFilePath, format: 'yml' };
       } catch (err) {
         console.error(chalk.red(`Failed to parse global environment: ${err.message}`));
         process.exit(constants.EXIT_STATUS.ERROR_INVALID_FILE);
@@ -618,6 +630,14 @@ const handler = async function (argv) {
 
     const runtime = getJsSandboxRuntime(sandbox);
 
+    const collectionRootFile = collection.format === 'yml' ? 'opencollection.yml' : 'collection.bru';
+    const collectionRootPath = path.join(collectionPath, collectionRootFile);
+    const persistPaths = {
+      envFile: envFileDescriptor,
+      globalEnvFile: globalEnvFileDescriptor,
+      collectionRootPath
+    };
+
     // Fetch system proxy once for all requests (skip if --noproxy flag is set)
     if (!noproxy) {
       try {
@@ -647,7 +667,8 @@ const handler = async function (argv) {
             runtime,
             collection,
             runSingleRequestByPathname,
-            globalEnvVars
+            globalEnvVars,
+            persistPaths
           );
           resolve(res?.response);
         }
@@ -674,7 +695,8 @@ const handler = async function (argv) {
         runtime,
         collection,
         runSingleRequestByPathname,
-        globalEnvVars
+        globalEnvVars,
+        persistPaths
       );
 
       const isLastRun = currentRequestIndex === requestItems.length - 1;

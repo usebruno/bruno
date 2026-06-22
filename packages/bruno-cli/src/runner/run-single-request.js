@@ -9,6 +9,7 @@ const { interpolateString, interpolateObject } = require('./interpolate-string')
 const { ScriptRuntime, TestRuntime, VarsRuntime, AssertRuntime, formatErrorWithContext, SCRIPT_TYPES } = require('@usebruno/js');
 const { stripExtension } = require('../utils/filesystem');
 const { getOptions } = require('../utils/bru');
+const { applyVariableUpdates, persistVariableUpdates } = require('../utils/persist-variables');
 const { makeAxiosInstance } = require('../utils/axios-instance');
 const { addAwsV4Interceptor, resolveAwsV4Credentials } = require('./awsv4auth-helper');
 const { setupProxyAgents } = require('../utils/proxy-util');
@@ -93,8 +94,24 @@ const runSingleRequest = async function (
   runtime,
   collection,
   runSingleRequestByPathname,
-  globalEnvVars = {}
+  globalEnvVars = {},
+  persistPaths = {}
 ) {
+  const syncVariableUpdates = (result, currentRequest) => {
+    if (!result) return;
+    applyVariableUpdates(result, {
+      envVariables,
+      runtimeVariables,
+      globalEnvVars,
+      request: currentRequest
+    });
+    persistVariableUpdates(result, {
+      envFile: persistPaths.envFile,
+      globalEnvFile: persistPaths.globalEnvFile,
+      collection,
+      collectionRootPath: persistPaths.collectionRootPath
+    });
+  };
   const { pathname: itemPathname } = item;
   const relativeItemPathname = path.relative(collectionPath, itemPathname);
 
@@ -228,6 +245,7 @@ const runSingleRequest = async function (
           scriptingConfig,
           runSingleRequestByPathname,
           collectionName);
+        syncVariableUpdates(result, request);
         if (result?.nextRequestName !== undefined) {
           nextRequestName = result.nextRequestName;
         }
@@ -280,6 +298,9 @@ const runSingleRequest = async function (
 
         // Extract partial results from the error (tests that passed before the error)
         preRequestTestResults = error?.partialResults?.results || [];
+
+        // Persist any variable changes the script made before erroring
+        syncVariableUpdates(error?.partialResults, request);
 
         // Preserve nextRequestName if it was set before the error
         if (error?.partialResults?.nextRequestName !== undefined) {
@@ -742,7 +763,7 @@ const runSingleRequest = async function (
     const postResponseVars = get(item, 'request.vars.res');
     if (postResponseVars?.length) {
       const varsRuntime = new VarsRuntime({ runtime: scriptingConfig?.runtime });
-      varsRuntime.runPostResponseVars(
+      const varsResult = varsRuntime.runPostResponseVars(
         postResponseVars,
         request,
         response,
@@ -751,6 +772,7 @@ const runSingleRequest = async function (
         collectionPath,
         processEnvVars
       );
+      syncVariableUpdates(varsResult, request);
     }
 
     // run post response script
@@ -771,6 +793,7 @@ const runSingleRequest = async function (
           runSingleRequestByPathname,
           collectionName
         );
+        syncVariableUpdates(result, request);
         if (result?.nextRequestName !== undefined) {
           nextRequestName = result.nextRequestName;
         }
@@ -801,6 +824,8 @@ const runSingleRequest = async function (
             isScriptError: true
           }
         ];
+
+        syncVariableUpdates(error?.partialResults, request);
 
         if (error?.partialResults?.nextRequestName !== undefined) {
           nextRequestName = error.partialResults.nextRequestName;
@@ -847,6 +872,7 @@ const runSingleRequest = async function (
           runSingleRequestByPathname,
           collectionName
         );
+        syncVariableUpdates(result, request);
         testResults = get(result, 'results', []);
 
         if (result?.nextRequestName !== undefined) {
@@ -878,6 +904,8 @@ const runSingleRequest = async function (
             isScriptError: true
           }
         ];
+
+        syncVariableUpdates(error?.partialResults, request);
 
         if (error?.partialResults?.nextRequestName !== undefined) {
           nextRequestName = error.partialResults.nextRequestName;
