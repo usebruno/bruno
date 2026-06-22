@@ -84,7 +84,7 @@ const mapPairListToKeyValPairs = (pairList = []) => {
     return [];
   }
 
-  return _.map(pairList[0], (pair) => {
+  return _.flatMap(pairList[0], (pair) => {
     // Skip the internal __desc marker when resolving the real key name
     let name = _.keys(pair).find((k) => k !== '__desc');
     let value = pair[name];
@@ -103,8 +103,37 @@ const mapPairListToKeyValPairs = (pairList = []) => {
 
     extractTypedAnnotations(rawAnnotations, result);
 
-    return result;
+    return expandDescriptionOrphanRows(result);
   });
+};
+
+// When multiple @description annotations stack on one var, all but the last
+// render as description-only rows in the environment editor.
+const expandDescriptionOrphanRows = (variable) => {
+  const annotations = variable.annotations || [];
+  const descriptionAnnotations = annotations.filter((a) => a.name === 'description');
+  const otherAnnotations = annotations.filter((a) => a.name !== 'description');
+
+  if (descriptionAnnotations.length <= 1) {
+    return [variable];
+  }
+
+  const orphanRows = descriptionAnnotations.slice(0, -1).map((descAnnotation) => ({
+    name: '',
+    value: '',
+    enabled: variable.enabled,
+    annotations: [descAnnotation],
+    description: descAnnotation.value ?? ''
+  }));
+
+  const lastDescription = descriptionAnnotations[descriptionAnnotations.length - 1];
+  const mainRow = {
+    ...variable,
+    annotations: [...otherAnnotations, lastDescription],
+    description: lastDescription.value ?? ''
+  };
+
+  return [...orphanRows, mainRow];
 };
 
 const mapArrayListToKeyValPairs = (arrayList = []) => {

@@ -1215,15 +1215,15 @@ const addMultipartFileToLastRow = async (page: Page, electronApp: ElectronApplic
   await test.step(`Add multipart file "${path.basename(filePath)}"`, async () => {
     await mockBrowseFiles(electronApp, [filePath]);
 
-    const table = buildCommonLocators(page).table('editable-table');
+    const table = buildCommonLocators(page).table('multipart-form-table');
     // The last row is the empty "add" row. Capture its index now, because once
     // we set a file the table appends a new empty row — so `.last()` would jump
     // to that new row instead of staying on the one we just filled.
     const rowIndex = (await table.allRows().count()) - 1;
     const targetRow = table.allRows().nth(rowIndex);
 
-    await expect(targetRow.locator('.upload-btn')).toBeVisible();
-    await targetRow.locator('.upload-btn').click();
+    await expect(targetRow.getByTestId('multipart-file-upload')).toBeVisible();
+    await targetRow.getByTestId('multipart-file-upload').click();
     await expect(targetRow.locator('.file-value-cell')).toBeVisible();
     const inlineChip = targetRow.getByTestId('multipart-file-chip').filter({ hasText: path.basename(filePath) });
     const summary = targetRow.getByTestId('multipart-file-summary');
@@ -1233,7 +1233,7 @@ const addMultipartFileToLastRow = async (page: Page, electronApp: ElectronApplic
 
 const removeFirstMultipartFile = async (page: Page) => {
   await test.step('Remove first multipart file', async () => {
-    const table = buildCommonLocators(page).table('editable-table');
+    const table = buildCommonLocators(page).table('multipart-form-table');
     const firstRow = table.allRows().first();
     await expect(firstRow.locator('.file-value-cell')).toBeVisible();
 

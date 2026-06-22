@@ -674,6 +674,20 @@ const EnvironmentVariablesTable = ({
                   )}
                   {renderExtraValueContent && renderExtraValueContent(variable)}
                 </td>
+                <td style={{ width: columnWidths.description }}>
+                  <MultiLineEditor
+                    theme={storedTheme}
+                    collection={_collection}
+                    name={`${actualIndex}.description`}
+                    value={variable.description ?? ''}
+                    placeholder={!variable.description || (typeof variable.description === 'string' && variable.description.trim() === '') ? 'Description' : ''}
+                    onChange={(newValue) => {
+                      formik.setFieldValue(`${actualIndex}.description`, newValue, true);
+                    }}
+                    onSave={handleSave}
+                    allowNewlines={true}
+                  />
+                </td>
                 <td className="text-center">
                   {!isLastEmptyRow && (
                     <input

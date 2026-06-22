@@ -40,7 +40,7 @@ test.describe('Collection Settings Descriptions - Write (Vars)', () => {
     });
 
     // Find the 'plain' row in Playwright to assert both CM lines are reflected
-    const varsTable = page.getByTestId('collection-request-vars');
+    const varsTable = page.getByTestId('collection-vars-req');
     const plainRowIndex = await varsTable.locator('[data-testid="column-name"] input').evaluateAll(
       (inputs) => inputs.findIndex((el) => (el as HTMLInputElement).value === 'plain')
     );

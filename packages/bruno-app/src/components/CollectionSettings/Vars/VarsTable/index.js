@@ -77,11 +77,12 @@ const VarsTable = ({ collection, vars, varType, initialScroll = 0 }) => {
         </div>
       ),
       placeholder: varType === 'request' ? 'Value' : 'Expr',
-      render: ({ row, value, onChange, isLastEmptyRow }) => (
+      render: ({ row, value, onChange, isLastEmptyRow, rowIndex }) => (
         <div className="flex items-center w-full gap-2">
           <div className="flex-1 min-w-0">
             <MultiLineEditor
               value={valueToString(value)}
+              name={`${rowIndex}.value`}
               theme={storedTheme}
               onSave={onSave}
               onChange={onChange}
