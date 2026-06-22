@@ -106,7 +106,7 @@ export const reopenClosedTab = async (page: Page, shortcut: () => Promise<void>,
       return;
     }
     // Event-driven backoff: give the reopened tab a chance to appear before retrying.
-    await reopenedTab.waitFor({ state: 'visible', timeout: 1000 }).catch(() => {});
+    await reopenedTab.waitFor({ state: 'visible', timeout: 1000 }).catch(() => { });
   }
 
   await expect(page.locator('.request-tab').filter({ has: page.getByText(expectedTabName, { exact: true }) })).toBeVisible();
