@@ -6,9 +6,23 @@ test.describe('Environment Selector Search', () => {
     await closeAllCollections(page);
   });
 
+  const ensureDropdownOpen = async (page) => {
+    const trigger = page.getByTestId('environment-selector-trigger');
+    if (!(await trigger.isVisible())) {
+      await page.locator('#sidebar-collection-name').click();
+    }
+
+    const searchInput = page.getByTestId('env-search-input');
+    if (!(await searchInput.isVisible())) {
+      await trigger.click();
+    } else {
+      await searchInput.fill(''); // Reset state if already open
+      await searchInput.blur(); // Remove focus to ensure tests start clean
+    }
+  };
+
   test('should focus search input when Backspace is pressed', async ({ pageWithUserData: page }) => {
-    await page.locator('#sidebar-collection-name').click();
-    await page.getByTestId('environment-selector-trigger').click();
+    await ensureDropdownOpen(page);
 
     const searchInput = page.getByTestId('env-search-input');
     await expect(searchInput).toBeVisible();
@@ -19,8 +33,7 @@ test.describe('Environment Selector Search', () => {
   });
 
   test('should focus search input when a printable key is pressed', async ({ pageWithUserData: page }) => {
-    await page.locator('#sidebar-collection-name').click();
-    await page.getByTestId('environment-selector-trigger').click();
+    await ensureDropdownOpen(page);
 
     const searchInput = page.getByTestId('env-search-input');
     await expect(searchInput).toBeVisible();
@@ -28,11 +41,14 @@ test.describe('Environment Selector Search', () => {
 
     await page.keyboard.press('a');
     await expect(searchInput).toBeFocused();
+    await expect(searchInput).toHaveValue('a');
   });
 
   test('should display all environments initially', async ({ pageWithUserData: page }) => {
-    await page.locator('#sidebar-collection-name').click();
-    await page.getByTestId('environment-selector-trigger').click();
+    await ensureDropdownOpen(page);
+
+    const searchInput = page.getByTestId('env-search-input');
+    await searchInput.fill(''); // Clear any left-over search text from previous tests
 
     await expect(page.getByTestId('env-list-item').filter({ hasText: 'Development' })).toBeVisible();
     await expect(page.getByTestId('env-list-item').filter({ hasText: 'Production' })).toBeVisible();
@@ -41,8 +57,7 @@ test.describe('Environment Selector Search', () => {
   });
 
   test('should filter environments by search text', async ({ pageWithUserData: page }) => {
-    await page.locator('#sidebar-collection-name').click();
-    await page.getByTestId('environment-selector-trigger').click();
+    await ensureDropdownOpen(page);
 
     const searchInput = page.getByTestId('env-search-input');
     await searchInput.fill('staging');
@@ -54,8 +69,7 @@ test.describe('Environment Selector Search', () => {
   });
 
   test('should clear search on Escape key', async ({ pageWithUserData: page }) => {
-    await page.locator('#sidebar-collection-name').click();
-    await page.getByTestId('environment-selector-trigger').click();
+    await ensureDropdownOpen(page);
 
     const searchInput = page.getByTestId('env-search-input');
     await searchInput.fill('prod');
@@ -68,8 +82,7 @@ test.describe('Environment Selector Search', () => {
   });
 
   test('should show "No results found" for non-matching search', async ({ pageWithUserData: page }) => {
-    await page.locator('#sidebar-collection-name').click();
-    await page.getByTestId('environment-selector-trigger').click();
+    await ensureDropdownOpen(page);
 
     const searchInput = page.getByTestId('env-search-input');
     await searchInput.fill('nonexistentenv');
@@ -80,8 +93,7 @@ test.describe('Environment Selector Search', () => {
   });
 
   test('should clear search via clear button', async ({ pageWithUserData: page }) => {
-    await page.locator('#sidebar-collection-name').click();
-    await page.getByTestId('environment-selector-trigger').click();
+    await ensureDropdownOpen(page);
 
     const searchInput = page.getByTestId('env-search-input');
     await searchInput.fill('prod');
