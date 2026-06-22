@@ -1203,6 +1203,68 @@ const selectRequestPaneTab = async (page: Page, tabName: string) => {
   await selectPaneTab(page, '[data-testid="request-pane"] > .px-4', tabName);
 };
 
+const openDevToolsConsoleTab = async (page: Page, tabName: string) => {
+  await test.step(`Open DevTools "${tabName}" tab`, async () => {
+    const { devTools } = buildCommonLocators(page);
+    if (!(await devTools.header().isVisible())) {
+      await devTools.trigger().click();
+    }
+    await expect(devTools.header()).toBeVisible();
+
+    const tab = devTools.tab(tabName);
+    await expect(tab).toBeVisible();
+    await tab.click();
+    await expect(tab).toHaveClass(/active/);
+  });
+};
+
+const selectFirstDevToolsNetworkRequest = async (page: Page) => {
+  await test.step('Select first DevTools network request', async () => {
+    const { devTools } = buildCommonLocators(page);
+    const detailsPanel = devTools.requestDetailsPanel();
+    const requestRows = devTools.networkRequestRows();
+    await expect
+      .poll(() => requestRows.count(), {
+        message: 'Waiting for network requests to appear in DevTools',
+        timeout: 15000
+      })
+      .toBeGreaterThan(0);
+
+    const requestRow = requestRows.first();
+    await expect(requestRow).toBeVisible();
+    await requestRow.click();
+    await expect(detailsPanel.root()).toBeVisible();
+    await expect(detailsPanel.root()).toContainText('Request Details');
+  });
+};
+
+const selectRequestDetailsPanelTab = async (page: Page, tabName: string) => {
+  await test.step(`Select request details "${tabName}" tab`, async () => {
+    const tab = buildCommonLocators(page).devTools.requestDetailsPanel().tab(tabName);
+    await expect(tab).toBeVisible();
+    await tab.click();
+    await expect(tab).toHaveClass(/active/);
+  });
+};
+
+const isLocatorVisibleInScroller = async (scroller: Locator, target: Locator) => {
+  const targetHandle = await target.elementHandle();
+  if (!targetHandle) {
+    return false;
+  }
+
+  return scroller.evaluate((container, targetEl) => {
+    const containerRect = container.getBoundingClientRect();
+    const targetRect = targetEl.getBoundingClientRect();
+
+    return (
+      targetRect.height > 0
+      && targetRect.top >= containerRect.top - 1
+      && targetRect.bottom <= containerRect.bottom + 1
+    );
+  }, targetHandle);
+};
+
 const selectRequestBodyMode = async (page: Page, mode: string) => {
   await test.step(`Select request body mode "${mode}"`, async () => {
     await selectRequestPaneTab(page, 'Body');
@@ -2122,6 +2184,10 @@ export {
   getResponseBody,
   expectResponseContains,
   selectRequestPaneTab,
+  openDevToolsConsoleTab,
+  selectFirstDevToolsNetworkRequest,
+  selectRequestDetailsPanelTab,
+  isLocatorVisibleInScroller,
   selectRequestBodyMode,
   selectResponsePaneTab,
   mockBrowseFiles,

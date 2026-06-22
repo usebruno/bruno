@@ -1,30 +1,21 @@
-import { test, expect, type Locator } from '../../../playwright';
-import { openCollection, openRequest, sendRequest } from '../../utils/page';
+import { test, expect } from '../../../playwright';
+import {
+  buildCommonLocators,
+  isLocatorVisibleInScroller,
+  openCollection,
+  openDevToolsConsoleTab,
+  openRequest,
+  selectFirstDevToolsNetworkRequest,
+  selectRequestDetailsPanelTab,
+  sendRequest
+} from '../../utils/page';
 
 const COLLECTION_NAME = 'network-log-scroll';
 const REQUEST_NAME = 'network-log-scroll';
 
-const isEntryVisibleInScroller = async (scroller: Locator, entry: Locator) => {
-  const entryHandle = await entry.elementHandle();
-  if (!entryHandle) {
-    return false;
-  }
-
-  return scroller.evaluate((container, entryEl) => {
-    const containerRect = container.getBoundingClientRect();
-    const entryRect = entryEl.getBoundingClientRect();
-
-    return (
-      entryRect.height > 0
-      && entryRect.top >= containerRect.top - 1
-      && entryRect.bottom <= containerRect.bottom + 1
-    );
-  }, entryHandle);
-};
-
 test.describe('DevTools Network Log Details Scroll', () => {
   test('last network log lines are visible and scrollable in request details panel', async ({ pageWithUserData: page }) => {
-    await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
+    const { devTools } = buildCommonLocators(page);
 
     await test.step('Open fixture request and send it', async () => {
       await openCollection(page, COLLECTION_NAME);
@@ -32,31 +23,16 @@ test.describe('DevTools Network Log Details Scroll', () => {
       await sendRequest(page, 200);
     });
 
-    await test.step('Open DevTools Network tab and select the request', async () => {
-      await page.locator('button[data-trigger="dev-tools"]').click();
-      await expect(page.locator('.console-header')).toBeVisible();
+    await openDevToolsConsoleTab(page, 'Network');
+    await selectFirstDevToolsNetworkRequest(page);
 
-      const networkTab = page.locator('.console-tab').filter({ hasText: 'Network' });
-      await expect(networkTab).toBeVisible();
-      await networkTab.click();
-      await expect(networkTab).toHaveClass(/active/);
-
-      const requestRow = page.getByTestId('network-request-row').first();
-      await expect(requestRow).toBeVisible();
-      await requestRow.click();
-    });
-
-    const panel = page.locator('.details-panel-wrapper');
-    const outerScroller = panel.locator('.panel-content');
-    const innerScroller = panel.locator('.network-logs-wrapper .network-logs-container');
-    const lastEntry = innerScroller.locator('.network-logs-entry').last();
+    const detailsPanel = devTools.requestDetailsPanel();
+    const outerScroller = detailsPanel.content();
+    const innerScroller = detailsPanel.networkLogsContainer();
+    const lastEntry = detailsPanel.networkLogEntries().last();
 
     await test.step('Open Network sub-tab in request details panel', async () => {
-      await expect(panel.getByText('Request Details')).toBeVisible();
-      const networkSubTab = panel.locator('.tab-button').filter({ hasText: 'Network' });
-      await expect(networkSubTab).toBeVisible();
-      await networkSubTab.click();
-      await expect(networkSubTab).toHaveClass(/active/);
+      await selectRequestDetailsPanelTab(page, 'Network');
       await expect(innerScroller).toBeVisible();
     });
 
@@ -67,14 +43,16 @@ test.describe('DevTools Network Log Details Scroll', () => {
     });
 
     await test.step('Outer panel scroll alone does not reveal the last log line', async () => {
-      const initialOuterScrollTop = await outerScroller.evaluate((el) => el.scrollTop);
-      expect(initialOuterScrollTop).toBe(0);
+      expect(await outerScroller.evaluate((el) => el.scrollTop)).toBe(0);
 
       await outerScroller.evaluate((el) => {
         el.scrollTop = el.scrollHeight;
       });
 
-      await expect.poll(() => isEntryVisibleInScroller(innerScroller, lastEntry)).toBe(false);
+      await expect.poll(
+        () => isLocatorVisibleInScroller(innerScroller, lastEntry),
+        { message: 'Last network log entry should remain hidden until the nested scroller moves' }
+      ).toBe(false);
 
       await outerScroller.evaluate((el) => {
         el.scrollTop = 0;
@@ -83,19 +61,17 @@ test.describe('DevTools Network Log Details Scroll', () => {
 
     await test.step('Scroll nested inner container and verify last log line is visible in viewport', async () => {
       await expect(async () => {
-        await innerScroller.evaluate((el) => {
+        const scrollTop = await innerScroller.evaluate((el) => {
           el.scrollTop = el.scrollHeight;
+          return el.scrollTop;
         });
-
-        const scrollTop = await innerScroller.evaluate((el) => el.scrollTop);
         expect(scrollTop).toBeGreaterThan(0);
 
         await expect(lastEntry).toBeVisible({ timeout: 1000 });
-        expect(await isEntryVisibleInScroller(innerScroller, lastEntry)).toBe(true);
+        expect(await isLocatorVisibleInScroller(innerScroller, lastEntry)).toBe(true);
       }).toPass({ timeout: 10000 });
 
-      const outerScrollTop = await outerScroller.evaluate((el) => el.scrollTop);
-      expect(outerScrollTop).toBe(0);
+      expect(await outerScroller.evaluate((el) => el.scrollTop)).toBe(0);
     });
   });
 });
