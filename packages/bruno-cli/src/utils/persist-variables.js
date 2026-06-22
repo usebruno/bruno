@@ -1,8 +1,19 @@
 const fs = require('fs');
 const { stringifyEnvironment, stringifyCollection, parseEnvironment } = require('@usebruno/filestore');
+const { getDataTypeFromValue } = require('@usebruno/common').utils;
 const { parseEnvironmentJson } = require('./environment');
 
 const INTERNAL_KEYS = new Set(['__name__']);
+
+const applyInferredDataType = (variable, value) => {
+  const inferred = getDataTypeFromValue(value);
+  if (inferred === 'string') {
+    delete variable.dataType;
+  } else {
+    variable.dataType = inferred;
+  }
+  return variable;
+};
 
 const stripInternal = (vars) => {
   const out = {};
@@ -48,12 +59,16 @@ const mergeScriptVarsIntoEnvList = (variables, scriptVarsRaw) => {
   const scriptKeys = new Set(Object.keys(scriptVars));
   const next = (variables || [])
     .filter((v) => (v.enabled === false ? true : scriptKeys.has(v.name)))
-    .map((v) => (v.enabled !== false && scriptKeys.has(v.name) ? { ...v, value: scriptVars[v.name] } : v));
+    .map((v) => {
+      if (v.enabled === false || !scriptKeys.has(v.name)) return v;
+      return applyInferredDataType({ ...v, value: scriptVars[v.name] }, scriptVars[v.name]);
+    });
 
   const presentEnabled = new Set(next.filter((v) => v.enabled !== false).map((v) => v.name));
   for (const key of scriptKeys) {
     if (presentEnabled.has(key)) continue;
-    next.push({ name: key, value: scriptVars[key], type: 'text', enabled: true, secret: false });
+    const entry = { name: key, value: scriptVars[key], type: 'text', enabled: true, secret: false };
+    next.push(applyInferredDataType(entry, scriptVars[key]));
   }
   return next;
 };
@@ -62,12 +77,16 @@ const mergeScriptVarsIntoCollectionVarsList = (variables, scriptVars) => {
   const scriptKeys = new Set(Object.keys(scriptVars || {}));
   const next = (variables || [])
     .filter((v) => (v.enabled === false ? true : scriptKeys.has(v.name)))
-    .map((v) => (v.enabled !== false && scriptKeys.has(v.name) ? { ...v, value: scriptVars[v.name] } : v));
+    .map((v) => {
+      if (v.enabled === false || !scriptKeys.has(v.name)) return v;
+      return applyInferredDataType({ ...v, value: scriptVars[v.name] }, scriptVars[v.name]);
+    });
 
   const presentEnabled = new Set(next.filter((v) => v.enabled !== false).map((v) => v.name));
   for (const key of scriptKeys) {
     if (presentEnabled.has(key)) continue;
-    next.push({ name: key, value: scriptVars[key], type: 'request', enabled: true });
+    const entry = { name: key, value: scriptVars[key], type: 'request', enabled: true };
+    next.push(applyInferredDataType(entry, scriptVars[key]));
   }
   return next;
 };

@@ -366,7 +366,7 @@ const handler = async function (argv) {
     const resolveEnvFileFormat = (filePath) => {
       const ext = path.extname(filePath).toLowerCase();
       if (ext === '.json') return 'json';
-      if (ext === '.yml' || ext === '.yaml') return 'yml';
+      if (ext === '.yml') return 'yml';
       return 'bru';
     };
 
@@ -383,11 +383,11 @@ const handler = async function (argv) {
         const rawName = normalizedEnv?.name;
         const trimmedName = typeof rawName === 'string' ? rawName.trim() : '';
         result.__name__ = trimmedName || path.basename(filePath, '.json');
-      } else if (fileExt === '.yml' || fileExt === '.yaml') {
+      } else if (fileExt === '.yml') {
         const content = fs.readFileSync(filePath, 'utf8');
         const envJson = parseEnvironment(content, { format: 'yml' });
         result = getEnvVars(envJson);
-        result.__name__ = nameOverride || path.basename(filePath, fileExt);
+        result.__name__ = nameOverride || path.basename(filePath, '.yml');
       } else {
         const content = fs.readFileSync(filePath, 'utf8').replace(/\r\n/g, '\n');
         const envJson = parseEnvironment(content, { format: 'bru' });
