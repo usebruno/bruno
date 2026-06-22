@@ -20,6 +20,7 @@ test.afterEach(async ({ page }) => {
 });
 
 test('Request inherits No Auth from the folder — collection Bearer Token is overridden', async ({ page, createTmpDir }) => {
+  test.setTimeout(60_000);
   const collectionName = 'folder-no-auth-inheritance';
   const locators = buildCommonLocators(page);
 

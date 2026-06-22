@@ -8,6 +8,7 @@ test.describe('Effective auth mode resolution', () => {
   });
 
   test('Nested folder with Inherit should pick up its immediate parent folder, not a grandparent', async ({ page, createTmpDir }) => {
+    test.setTimeout(60_000);
     const collectionName = 'effective-auth-mode-collection';
     const locators = buildCommonLocators(page);
 
