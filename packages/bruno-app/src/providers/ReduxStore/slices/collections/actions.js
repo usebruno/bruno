@@ -88,7 +88,7 @@ import {
   mergeHeaders
 } from 'utils/collections/index';
 import { sanitizeName } from 'utils/common/regex';
-import { buildPersistedEnvVariables, applyScriptEnvVars } from 'utils/environments';
+import { buildPersistedEnvVariables, applyScriptEnvVars, getScriptModifiedKeys } from 'utils/environments';
 import { safeParseJSON, safeStringifyJSON } from 'utils/common/index';
 import { resolveInheritedAuth } from 'utils/auth';
 import { addTab } from 'providers/ReduxStore/slices/tabs';
@@ -2481,12 +2481,13 @@ export const collectionVariablesUpdateEvent = ({ collectionVariables, collection
 
   vars = applyScriptEnvVars(vars, collectionVariables, baseline);
 
-  // Infer dataType from the script value so number/boolean/object collection vars
-  // round-trip correctly through the script -> disk path.
-  Object.entries(collectionVariables).forEach(([name, value]) => {
+  // Re-infer dataType only for vars the script actually modified; baseline-mode no-op writes
+  // must NOT overwrite a user's in-progress draft type change.
+  const modifiedKeys = getScriptModifiedKeys(collectionVariables, baseline);
+  modifiedKeys.forEach((name) => {
     const existing = vars.find((v) => v.name === name);
     if (!existing) return;
-    const inferred = getDataTypeFromValue(value);
+    const inferred = getDataTypeFromValue(collectionVariables[name]);
     if (inferred === 'string') {
       delete existing.dataType;
     } else {
@@ -2532,6 +2533,8 @@ export const selectEnvironment = (environmentUid, collectionUid) => (dispatch, g
         selectedEnvironment: environment?.name || ''
       }
     });
+
+    dispatch(clearScriptVariableBaselines(collectionUid));
 
     dispatch(_selectEnvironment({ environmentUid, collectionUid }));
     resolve();

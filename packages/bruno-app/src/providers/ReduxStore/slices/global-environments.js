@@ -3,7 +3,7 @@ import { uuid } from 'utils/common/index';
 import { environmentSchema } from '@usebruno/schema';
 import { getDataTypeFromValue } from '@usebruno/common/utils';
 import { cloneDeep } from 'lodash';
-import { applyScriptEnvVars, buildPersistedEnvVariables } from 'utils/environments';
+import { applyScriptEnvVars, buildPersistedEnvVariables, getScriptModifiedKeys } from 'utils/environments';
 
 const initialState = {
   globalEnvironments: [],
@@ -24,12 +24,17 @@ export const globalEnvironmentsSlice = createSlice({
 
       // The YAML parser generates a fresh uid on every parse, so the active uid
       // from the per-workspace electron store can go stale after a disk reload.
-      // If the incoming uid no longer matches any env, fall back to matching by
-      // name against the previously-active env so the editor doesn't lose its
-      // selection between script-driven writes and the chokidar-driven reload.
+      // Resolution order:
+      //   1. incoming uid (if it exists in the new env list)
+      //   2. previous active uid (if it still exists — survives transient file-watcher reloads
+      //      that don't pass an incoming uid)
+      //   3. name-remap from the previously-active env (handles the YAML fresh-uid case)
+      //   4. null (genuinely deleted)
       let resolvedActiveUid = null;
       if (incomingActiveUid && newEnvs.some((e) => e?.uid === incomingActiveUid)) {
         resolvedActiveUid = incomingActiveUid;
+      } else if (state.activeGlobalEnvironmentUid && newEnvs.some((e) => e?.uid === state.activeGlobalEnvironmentUid)) {
+        resolvedActiveUid = state.activeGlobalEnvironmentUid;
       } else if (state.activeGlobalEnvironmentUid) {
         const prevActive = state.globalEnvironments?.find((e) => e?.uid === state.activeGlobalEnvironmentUid);
         if (prevActive?.name) {
@@ -334,9 +339,11 @@ export const globalEnvironmentsUpdateEvent = ({ globalEnvironmentVariables, coll
 
   variables = applyScriptEnvVars(variables, globalEnvironmentVariables, baseline, { skipKeys: ['__name__'] });
 
-  // Infer dataType for variables the script touched so typed values survive the script -> disk round-trip.
+  // Re-infer dataType only for vars the script actually modified — preserves draft-only type edits
+  // when a script does a structurally-equal no-op write.
+  const modifiedKeys = getScriptModifiedKeys(globalEnvironmentVariables, baseline, { skipKeys: ['__name__'] });
   variables.forEach((v) => {
-    if (!(v.name in globalEnvironmentVariables)) return;
+    if (!modifiedKeys.has(v.name)) return;
     const inferred = getDataTypeFromValue(globalEnvironmentVariables[v.name]);
     if (inferred === 'string') {
       delete v.dataType;

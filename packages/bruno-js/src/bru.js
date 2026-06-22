@@ -1,4 +1,4 @@
-const { cloneDeep } = require('lodash');
+const { cloneDeep, isEqual } = require('lodash');
 const xmlFormat = require('xml-formatter');
 const { interpolate: _interpolate } = require('@usebruno/common');
 const { createSendRequest } = require('@usebruno/requests').scripting;
@@ -206,7 +206,10 @@ class Bru {
       );
     }
 
-    if (!Object.hasOwn(this.envVariables, key) || this.envVariables[key] !== value) {
+    // Deep-equal compare so object/array writes that mutate in place
+    // (e.g. `const c = bru.getEnvVar('cfg'); c.port = 4000; bru.setEnvVar('cfg', c);`)
+    // still flip the dirty flag — strict `!==` returned false for same-reference writes.
+    if (!Object.hasOwn(this.envVariables, key) || !isEqual(this.envVariables[key], value)) {
       this.envVariables[key] = value;
       this._envDirty = true;
     }
@@ -254,7 +257,7 @@ class Bru {
       throw new Error('Creating a env variable without specifying a name is not allowed.');
     }
 
-    if (!Object.hasOwn(this.globalEnvironmentVariables, key) || this.globalEnvironmentVariables[key] !== value) {
+    if (!Object.hasOwn(this.globalEnvironmentVariables, key) || !isEqual(this.globalEnvironmentVariables[key], value)) {
       this.globalEnvironmentVariables[key] = value;
       this._globalEnvDirty = true;
     }
@@ -318,7 +321,7 @@ class Bru {
       );
     }
 
-    if (!Object.hasOwn(this.runtimeVariables, key) || this.runtimeVariables[key] !== value) {
+    if (!Object.hasOwn(this.runtimeVariables, key) || !isEqual(this.runtimeVariables[key], value)) {
       this.runtimeVariables[key] = value;
       this._runtimeVarsDirty = true;
     }
@@ -371,7 +374,7 @@ class Bru {
       );
     }
 
-    if (!Object.hasOwn(this.collectionVariables, key) || this.collectionVariables[key] !== value) {
+    if (!Object.hasOwn(this.collectionVariables, key) || !isEqual(this.collectionVariables[key], value)) {
       this.collectionVariables[key] = value;
       this._collVarsDirty = true;
     }
