@@ -48,9 +48,15 @@ const closeAllCollections = async (page) => {
 
     for (let i = 0; i < numberOfCollections; i++) {
       const firstCollection = page.locator('[data-testid="collections"] .collection-name').first();
-      await firstCollection.hover();
-      await firstCollection.locator('.collection-actions .icon').click();
-      await page.locator('.dropdown-item').getByText('Remove').click();
+      await firstCollection.scrollIntoViewIfNeeded();
+
+      const removeMenuItem = page.locator('.dropdown-item').getByText('Remove');
+      await expect(async () => {
+        await firstCollection.hover();
+        await firstCollection.locator('.collection-actions .icon').click({ force: true });
+        await expect(removeMenuItem).toBeVisible({ timeout: 2000 });
+      }).toPass({ timeout: 15000 });
+      await removeMenuItem.click();
 
       // Wait for modal to appear - could be either regular remove or drafts confirmation
       const removeModal = page.locator('.bruno-modal').filter({ hasText: 'Remove Collection' });
@@ -150,10 +156,18 @@ const createCollection = async (
     await expect(nameInput).toHaveValue(collectionName, { timeout: 2000 });
 
     if (format) {
-      await createCollectionModal.locator('.advanced-options .btn-advanced').click();
-      await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Show File Format' }).click();
+      const advancedBtn = createCollectionModal.locator('.advanced-options .btn-advanced');
+      const showFileFormatToggle = page.getByTestId('show-file-format-toggle');
       const formatSelect = createCollectionModal.locator('#format');
-      await formatSelect.waitFor({ state: 'visible', timeout: 5000 });
+
+      await expect(async () => {
+        if (!(await formatSelect.isVisible())) {
+          await advancedBtn.click();
+          await showFileFormatToggle.click({ timeout: 2000 });
+        }
+        await expect(formatSelect).toBeVisible({ timeout: 2000 });
+      }).toPass({ timeout: 15000 });
+
       await formatSelect.selectOption(format);
     }
 
