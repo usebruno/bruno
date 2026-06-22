@@ -1255,6 +1255,17 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
   });
 
   ipcMain.handle('renderer:remove-collection', async (event, collectionPath, collectionUid, workspacePath, options = {}) => {
+    // Move the folder to the OS trash first. If this fails (e.g. permission denied),
+    // abort before any workspace state is mutated so the UI and on-disk state stay in sync.
+    if (options && options.deleteFolder && collectionPath) {
+      try {
+        await shell.trashItem(collectionPath);
+      } catch (error) {
+        console.error('Error moving collection folder to trash:', error);
+        throw new Error(`Failed to delete collection folder: ${error?.message || error}`);
+      }
+    }
+
     if (watcher && mainWindow) {
       watcher.removeWatcher(collectionPath, mainWindow, collectionUid);
 
@@ -1282,16 +1293,6 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
       cleanupSpecFilesForCollection(collectionPath);
     } catch (error) {
       console.error('Error cleaning up spec files for removed collection:', error);
-    }
-
-    // Optionally delete the collection folder from disk (moved to OS trash).
-    if (options && options.deleteFolder && collectionPath) {
-      try {
-        await shell.trashItem(collectionPath);
-      } catch (error) {
-        console.error('Error moving collection folder to trash:', error);
-        throw new Error(`Failed to delete collection folder: ${error?.message || error}`);
-      }
     }
   });
 

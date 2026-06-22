@@ -72,6 +72,7 @@ const RemoveCollection = ({ onClose, collectionUid }) => {
         <label className="mt-4 flex items-start gap-2 cursor-pointer text-sm select-none">
           <input
             type="checkbox"
+            data-testid="remove-collection-delete-folder-checkbox"
             checked={deleteFolder}
             onChange={(e) => setDeleteFolder(e.target.checked)}
             className="mt-1"

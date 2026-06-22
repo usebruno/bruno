@@ -200,6 +200,7 @@ const ConfirmCollectionCloseDrafts = ({ onClose, collection, collectionUid }) =>
         <label className="mt-6 flex items-start gap-2 cursor-pointer text-sm select-none">
           <input
             type="checkbox"
+            data-testid="confirm-close-drafts-delete-folder-checkbox"
             checked={deleteFolder}
             onChange={(e) => setDeleteFolder(e.target.checked)}
             className="mt-1"

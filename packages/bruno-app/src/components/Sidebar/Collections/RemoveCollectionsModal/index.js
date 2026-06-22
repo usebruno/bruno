@@ -114,13 +114,28 @@ const RemoveCollectionsModal = ({ collectionUids, onClose }) => {
   const handleCloseAllCollections = () => {
     const removalPromises = collectionUids.map((uid) => dispatch(removeCollection(uid, { deleteFolder })));
 
-    Promise.all(removalPromises)
-      .then(() => {
-        toast.success(deleteFolder ? 'Closed all collections and moved folders to trash' : 'Closed all collections');
-      })
-      .catch((error) => {
-        console.error('Error closing collections:', error);
-        toast.error(error?.message || 'An error occurred while closing collections');
+    Promise.allSettled(removalPromises)
+      .then((results) => {
+        const succeeded = results.filter((r) => r.status === 'fulfilled').length;
+        const failures = results.filter((r) => r.status === 'rejected');
+
+        if (failures.length === 0) {
+          toast.success(deleteFolder ? 'Closed all collections and moved folders to trash' : 'Closed all collections');
+          return;
+        }
+
+        failures.forEach(({ reason }) => {
+          console.error('Error closing collection:', reason);
+          toast.error(reason?.message || 'An error occurred while closing a collection');
+        });
+
+        if (succeeded > 0) {
+          toast.success(
+            deleteFolder
+              ? `Closed ${succeeded} of ${results.length} collections and moved folders to trash`
+              : `Closed ${succeeded} of ${results.length} collections`
+          );
+        }
       })
       .finally(() => {
         onClose();
@@ -229,6 +244,7 @@ const RemoveCollectionsModal = ({ collectionUids, onClose }) => {
               <label className="mt-6 flex items-start gap-2 cursor-pointer text-sm select-none">
                 <input
                   type="checkbox"
+                  data-testid="remove-collections-drafts-delete-folder-checkbox"
                   checked={deleteFolder}
                   onChange={(e) => setDeleteFolder(e.target.checked)}
                   className="mt-1"
@@ -272,6 +288,7 @@ const RemoveCollectionsModal = ({ collectionUids, onClose }) => {
               <label className="mt-4 flex items-start gap-2 cursor-pointer text-sm select-none">
                 <input
                   type="checkbox"
+                  data-testid="remove-collections-delete-folder-checkbox"
                   checked={deleteFolder}
                   onChange={(e) => setDeleteFolder(e.target.checked)}
                   className="mt-1"
