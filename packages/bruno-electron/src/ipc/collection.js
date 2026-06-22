@@ -1263,6 +1263,8 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
       }
     }
 
+    await require('./mount').unmount(collectionUid).catch(() => {});
+
     // Clean up
     const { clearCollectionWorkspace } = require('../store/process-env');
     clearCollectionWorkspace(collectionUid);
