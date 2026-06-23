@@ -308,6 +308,7 @@ const ProxySettings = ({ collection }) => {
                     checked={(currentProxyConfig.config?.protocol || 'http') === 'socks5h'}
                     onChange={handleProtocolChange}
                     className="mr-1"
+                    data-testid="use-proxy-socks5h"
                   />
                   SOCKS5h
                 </label>
