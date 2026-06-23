@@ -7,9 +7,11 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
  * Dragging a separator adjusts only the two adjacent columns (zero-sum).
  * Either column hitting minColWidth causes a hard stop.
  *
- * @param {object}   options
- * @param {number[]} options.defaultWidths  - Default px width for each column (used as proportions)
- * @param {number}   [options.minColWidth]  - Minimum column width in px (default: 60)
+ * @param {object}        options
+ * @param {number[]}      options.defaultWidths  - Default px width for each column (used as proportions)
+ * @param {number[]|null} [options.initialWidths] - Persisted widths to restore; falls back to defaultWidths
+ * @param {number}        [options.minColWidth]   - Minimum column width in px (default: 60)
+ * @param {function}      [options.onResizeEnd]   - Called with final colWidths array after a drag ends
  *
  * @returns {{
  *   containerRef: React.RefObject,
@@ -49,7 +51,7 @@ const scaleWidthsToTotal = (widths, targetTotal, minColWidth) => {
   return [...next, last];
 };
 
-export function useResizableColumns({ defaultWidths, minColWidth = 60 }) {
+export function useResizableColumns({ defaultWidths, initialWidths = null, minColWidth = 60, onResizeEnd = null }) {
   const containerRef = useRef(null);
   const [colWidths, setColWidths] = useState(null);
   const [resizingIdx, setResizingIdx] = useState(null);
@@ -81,7 +83,7 @@ export function useResizableColumns({ defaultWidths, minColWidth = 60 }) {
 
       setColWidths((prev) => {
         if (!prev) {
-          return scaleWidthsToTotal(defaultWidths, newWidth, minColWidth);
+          return scaleWidthsToTotal(initialWidths ?? defaultWidths, newWidth, minColWidth);
         }
         const oldTotal = prev.reduce((s, w) => s + w, 0);
         if (Math.abs(oldTotal - newWidth) <= 1) return prev;
@@ -130,6 +132,13 @@ export function useResizableColumns({ defaultWidths, minColWidth = 60 }) {
     const onMouseUp = () => {
       setResizingIdx(null);
       cleanup();
+      // Capture final widths for persistence — read directly from state via functional update
+      if (onResizeEnd) {
+        setColWidths((current) => {
+          onResizeEnd(current);
+          return current;
+        });
+      }
     };
 
     document.addEventListener('mousemove', onMouseMove);

@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import {
   IconNetwork,
@@ -9,6 +9,7 @@ import {
   setSelectedRequest
 } from 'providers/ReduxStore/slices/logs';
 import { useResizableColumns } from 'hooks/useResizableColumns';
+import { usePersistedState } from 'hooks/usePersistedState';
 import StyledWrapper from './StyledWrapper';
 import { sortRequests } from './utils';
 
@@ -133,7 +134,8 @@ const RequestRow = ({ request, isSelected, onClick, gridTemplateColumns }) => {
 
 const NetworkTab = () => {
   const dispatch = useDispatch();
-  const [sortConfig, setSortConfig] = useState({ key: null, direction: null });
+  const [sortConfig, setSortConfig] = usePersistedState({ key: 'devtools-network-sort', default: { key: null, direction: null } });
+  const [savedColWidths, setSavedColWidths] = usePersistedState({ key: 'devtools-network-col-widths', default: null });
 
   const {
     containerRef,
@@ -143,7 +145,9 @@ const NetworkTab = () => {
     handleResizeStart
   } = useResizableColumns({
     defaultWidths: COLUMNS.map((c) => c.width),
-    minColWidth: 60
+    initialWidths: savedColWidths,
+    minColWidth: 60,
+    onResizeEnd: setSavedColWidths
   });
 
   const { networkFilters, selectedRequest } = useSelector((state) => state.logs);
