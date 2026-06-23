@@ -178,10 +178,13 @@ const AI = () => {
         <div className="ai-tab-panel" role="tabpanel">
           <div className="ai-master flex items-center justify-between gap-4 px-3.5 py-3 mb-4">
             <div className="flex flex-col gap-0.5 min-w-0">
-              <span className="text-[13px] font-semibold">AI Features</span>
-              <span className="ai-master-summary text-[11px]">
-                Turn on to configure providers and models. Your keys stay local.
-              </span>
+              <div className="flex items-center gap-2 text-[13px] font-semibold">
+                <IconSparkles size={15} strokeWidth={1.75} className="ai-master-icon" />
+                <span className="text-[13px] font-semibold">AI Features</span>
+                <span className="ai-master-summary text-[11px]">
+                  Turn on to configure providers and models. Your keys stay local.
+                </span>
+              </div>
             </div>
             <ToggleSwitch
               size="m"
