@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 /**
  * Drag-to-resize behavior for a multi-column grid.
@@ -52,13 +52,16 @@ const scaleWidthsToTotal = (widths, targetTotal, minColWidth) => {
 };
 
 export function useResizableColumns({ defaultWidths, initialWidths = null, minColWidth = 60, onResizeEnd = null }) {
-  const containerRef = useRef(null);
   const [colWidths, setColWidths] = useState(null);
   const [resizingIdx, setResizingIdx] = useState(null);
   const dragCleanupRef = useRef(null);
+  const observerRef = useRef(null);
 
   useEffect(() => {
-    return () => { dragCleanupRef.current?.(); };
+    return () => {
+      dragCleanupRef.current?.();
+      observerRef.current?.disconnect();
+    };
   }, []);
 
   const gridTemplateColumns = useMemo(
@@ -71,11 +74,13 @@ export function useResizableColumns({ defaultWidths, initialWidths = null, minCo
     [colWidths]
   );
 
-  // Measure container on mount and on every resize.
-  // All columns scale proportionally so they always fill the container exactly.
-  useLayoutEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
+  // Callback ref: attaches the ResizeObserver whenever the element mounts,
+  // even if it renders conditionally after the initial mount.
+  const containerRef = useCallback((node) => {
+    observerRef.current?.disconnect();
+    observerRef.current = null;
+
+    if (!node) return;
 
     const observer = new ResizeObserver((entries) => {
       const newWidth = Math.floor(entries[0].contentRect.width);
@@ -91,8 +96,8 @@ export function useResizableColumns({ defaultWidths, initialWidths = null, minCo
       });
     });
 
-    observer.observe(container);
-    return () => observer.disconnect();
+    observer.observe(node);
+    observerRef.current = observer;
   }, []);
 
   const handleResizeStart = useCallback((e, separatorIdx) => {

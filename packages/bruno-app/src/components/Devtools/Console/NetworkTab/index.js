@@ -1,4 +1,5 @@
 import React, { useMemo } from 'react';
+import { usePersistedState } from 'hooks/usePersistedState';
 import { useSelector, useDispatch } from 'react-redux';
 import {
   IconNetwork,
@@ -9,7 +10,6 @@ import {
   setSelectedRequest
 } from 'providers/ReduxStore/slices/logs';
 import { useResizableColumns } from 'hooks/useResizableColumns';
-import { usePersistedState } from 'hooks/usePersistedState';
 import StyledWrapper from './StyledWrapper';
 import { sortRequests } from './utils';
 
@@ -195,7 +195,7 @@ const NetworkTab = () => {
 
   return (
     <StyledWrapper>
-      <div ref={containerRef} className="network-content">
+      <div className="network-content">
         {filteredRequests.length === 0 ? (
           <div className="network-empty">
             <IconNetwork size={48} strokeWidth={1} />
@@ -222,7 +222,7 @@ const NetworkTab = () => {
               ))}
             </div>
 
-            <div className="requests-list">
+            <div ref={containerRef} className="requests-list">
               {sortedRequests.map((request, index) => (
                 <RequestRow
                   key={`${request.collectionUid}-${request.itemUid}-${request.timestamp}-${index}`}
