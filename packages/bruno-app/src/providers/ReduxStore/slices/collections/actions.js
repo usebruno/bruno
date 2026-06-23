@@ -1183,10 +1183,15 @@ export const handleCollectionItemDrop
           });
           newPathname = result.newPathname;
         } else {
-          await dispatch(moveItem({
+          const result = await dispatch(moveItem({
             targetDirname: newDirname,
             sourcePathname: draggedItemPathname
           }));
+          // Reconcile to the path electron actually used (it may have suffixed
+          // the name to resolve a collision), so the optimistic node is correct.
+          if (result?.newPathname) {
+            newPathname = result.newPathname;
+          }
         }
 
         // Update sequences in the source directory

@@ -36,6 +36,9 @@ const {
   writeFileUnique,
   mkdirUnique,
   getUniqueRenamePath,
+  getUniqueTargetPath,
+  copyPathTo,
+  withDirLock,
   hasBruExtension,
   isDirectory,
   createDirectory,
@@ -51,7 +54,6 @@ const {
   getCollectionStats,
   sizeInMB,
   safeWriteFileSync,
-  copyPath,
   removePath,
   moveCollectionDirectory,
   getPaths,
@@ -1608,55 +1610,71 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
   });
 
   ipcMain.handle('renderer:move-item', async (event, { targetDirname, sourcePathname }) => {
-    try {
-      if (fs.existsSync(targetDirname)) {
-        const sourceDirname = path.dirname(sourcePathname);
+    // Serialize per destination dir: move is copy-then-delete (multi-step).
+    return withDirLock(targetDirname, async () => {
+      try {
+        if (!fs.existsSync(targetDirname)) {
+          return;
+        }
+        // No-op if the item is already in the destination directory (e.g. a
+        // same-folder drop) — don't create a spurious suffixed copy.
+        if (path.dirname(sourcePathname) === targetDirname) {
+          return { newPathname: sourcePathname };
+        }
+
+        // Resolve a collision-free target; silently suffix instead of throwing.
+        const targetPathname = getUniqueTargetPath(sourcePathname, targetDirname);
+
         const pathnamesBefore = await getPaths(sourcePathname);
-        const pathnamesAfter = pathnamesBefore?.map((p) => p?.replace(sourceDirname, targetDirname));
-        await copyPath(sourcePathname, targetDirname);
+        // Remap by the source→target prefix so the (possibly suffixed) basename
+        // is reflected in every nested path.
+        const pathnamesAfter = pathnamesBefore?.map((p) => p?.replace(sourcePathname, targetPathname));
+
+        await copyPathTo(sourcePathname, targetPathname);
         await removePath(sourcePathname);
+
         // move the request uids of the previous file/folders to the new file/folder items
         pathnamesAfter?.forEach((_, index) => {
           moveRequestUid(pathnamesBefore[index], pathnamesAfter[index]);
         });
+
+        return { newPathname: targetPathname };
+      } catch (error) {
+        return Promise.reject(error);
       }
-    } catch (error) {
-      return Promise.reject(error);
-    }
+    });
   });
 
   ipcMain.handle('renderer:move-item-cross-format', async (event, { targetDirname, sourcePathname, sourceFormat, targetFormat }) => {
-    try {
-      if (!fs.existsSync(sourcePathname)) {
-        throw new Error(`Source path: ${sourcePathname} does not exist`);
+    // Serialize per destination dir: this is a write-then-delete (multi-step).
+    return withDirLock(targetDirname, async () => {
+      try {
+        if (!fs.existsSync(sourcePathname)) {
+          throw new Error(`Source path: ${sourcePathname} does not exist`);
+        }
+        if (!fs.existsSync(targetDirname)) {
+          throw new Error(`Target directory: ${targetDirname} does not exist`);
+        }
+
+        const sourceBasename = path.basename(sourcePathname);
+        const filenameWithoutExt = sourceBasename.replace(/\.(bru|yml|yaml)$/, '');
+        const targetExt = targetFormat === 'yml' ? 'yml' : 'bru';
+
+        const sourceContent = await fs.promises.readFile(sourcePathname, 'utf8');
+        const parsedRequest = parseRequest(sourceContent, { format: sourceFormat });
+        const finalContent = stringifyRequest(parsedRequest, { format: targetFormat });
+
+        // Resolve collisions silently with a numeric suffix instead of erroring.
+        const { pathname: targetPathname } = await writeFileUnique(targetDirname, filenameWithoutExt, targetExt, finalContent);
+        await removePath(sourcePathname);
+
+        moveRequestUid(sourcePathname, targetPathname);
+
+        return { newPathname: targetPathname };
+      } catch (error) {
+        return Promise.reject(error);
       }
-      if (!fs.existsSync(targetDirname)) {
-        throw new Error(`Target directory: ${targetDirname} does not exist`);
-      }
-
-      const sourceBasename = path.basename(sourcePathname);
-      const filenameWithoutExt = sourceBasename.replace(/\.(bru|yml|yaml)$/, '');
-      const targetExt = targetFormat === 'yml' ? 'yml' : 'bru';
-      const targetFilename = `${filenameWithoutExt}.${targetExt}`;
-      const targetPathname = path.join(targetDirname, targetFilename);
-
-      if (fs.existsSync(targetPathname)) {
-        throw new Error(`A file with the name "${targetFilename}" already exists in the target location`);
-      }
-
-      const sourceContent = await fs.promises.readFile(sourcePathname, 'utf8');
-      const parsedRequest = parseRequest(sourceContent, { format: sourceFormat });
-      const finalContent = stringifyRequest(parsedRequest, { format: targetFormat });
-
-      await writeFile(targetPathname, finalContent);
-      await removePath(sourcePathname);
-
-      moveRequestUid(sourcePathname, targetPathname);
-
-      return { newPathname: targetPathname };
-    } catch (error) {
-      return Promise.reject(error);
-    }
+    });
   });
 
   ipcMain.handle('renderer:move-folder-item', async (event, folderPath, destinationPath) => {
