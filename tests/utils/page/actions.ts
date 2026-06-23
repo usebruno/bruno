@@ -2002,9 +2002,28 @@ const scrollVirtuosoRowIntoView = async (page: Page, target: Locator) => {
   await target.scrollIntoViewIfNeeded().catch(() => {});
 };
 
+/**
+ * Assert a single flattened environment variable row in the environment
+ * variables table.
+ *
+ * The table is virtualized (react-virtuoso), so only the rows within the
+ * scroll viewport are mounted in the DOM. On a small window (e.g. CI) the
+ * bottom rows are culled until scrolled into view. This reveals the target row
+ * first so the assertion doesn't depend on the window being tall enough to
+ * mount every row at once.
+ */
+const expectEnvVar = async (page: Page, name: string, value: string) => {
+  const input = page.locator(`input[value="${name}"]`);
+  await scrollVirtuosoRowIntoView(page, input);
+  await expect(input).toBeVisible();
+  const row = page.locator('tbody tr').filter({ has: input });
+  await expect(row.locator('.CodeMirror-line').first()).toHaveText(value);
+};
+
 export {
   waitForReadyPage,
   scrollVirtuosoRowIntoView,
+  expectEnvVar,
   dismissImportIssuesToasts,
   closeAllCollections,
   openCollection,
