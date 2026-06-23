@@ -4,6 +4,7 @@ import {
   createRequest,
   createApp,
   selectAppView,
+  selectRequestBodyMode,
   saveRequest
 } from '../utils/page';
 
@@ -27,16 +28,25 @@ const guestEval = (
         }
       });
       if (!params.expectedCollectionName) {
-        const g = guests[0];
-        return g ? await g.executeJavaScript(params.code, true) : undefined;
+        for (const guest of guests) {
+          try {
+            return await guest.executeJavaScript(params.code, true);
+          } catch {
+            /* try the next one */
+          }
+        }
+        return undefined;
       }
       for (const guest of guests) {
-        const name = await guest.executeJavaScript(
-          'window.ctx && window.ctx.collection && window.ctx.collection.name',
-          true
-        );
-        if (name === params.expectedCollectionName) {
-          return await guest.executeJavaScript(params.code, true);
+        try {
+          const name = await guest.executeJavaScript(
+            'window.ctx && window.ctx.collection && window.ctx.collection.name',
+            true
+          );
+          if (name === params.expectedCollectionName) {
+            return await guest.executeJavaScript(params.code, true);
+          }
+        } catch {
         }
       }
       return undefined;
@@ -138,7 +148,6 @@ test.describe('Collection apps', () => {
 
     // Body referencing {{q}} so the override turns into the response payload.
     await page.locator('.collection-item-name').filter({ hasText: 'echo' }).click();
-    const { selectRequestBodyMode } = await import('../utils/page');
     await selectRequestBodyMode(page, 'JSON');
     const bodyEditor = page.getByTestId('request-body-editor').locator('.CodeMirror').first();
     await bodyEditor.waitFor({ state: 'visible' });
