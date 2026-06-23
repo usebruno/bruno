@@ -384,12 +384,6 @@ const MockServerDashboard = ({ instance, collection }) => {
           </div>
         )}
 
-        {isRunning && !isSharedMode && baseUrl && (
-          <div className="text-xs opacity-70 mt-1" data-testid="mock-server-isolated-url-hint">
-            Use the base URL shown above, e.g. {baseUrl}/products
-          </div>
-        )}
-
         <div className="server-controls">
           <div className="control-group">
             <label htmlFor="mock-server-delay-input">Delay (ms)</label>

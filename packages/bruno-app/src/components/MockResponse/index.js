@@ -3,12 +3,12 @@ import { useDispatch, useSelector } from 'react-redux';
 import toast from 'react-hot-toast';
 import { updateRequestPaneTabWidth } from 'providers/ReduxStore/slices/tabs';
 import {
-  cancelResponseExampleEdit,
   initMockResponseEditor,
   removeMockResponseEditor,
   syncMockResponseEditorSaved,
   updateMockResponseRules
-} from 'providers/ReduxStore/slices/collections';
+} from 'providers/ReduxStore/slices/collections/mockResponseEditorActions';
+import { cancelResponseExampleEdit } from 'providers/ReduxStore/slices/collections';
 import { saveMockResponse, deleteMockResponse, loadMockResponses } from 'providers/ReduxStore/slices/mock-server';
 import { closeTabs, updateTabMeta } from 'providers/ReduxStore/slices/tabs';
 import { resolveMockResponseLocation, resolveMockResponseCollection, resolveMockResponseEditorCollection } from 'utils/mock-responses';

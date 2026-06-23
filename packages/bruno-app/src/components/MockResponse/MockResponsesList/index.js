@@ -9,7 +9,7 @@ import {
   saveMockResponse
 } from 'providers/ReduxStore/slices/mock-server';
 import { addTab, closeTabs } from 'providers/ReduxStore/slices/tabs';
-import { removeMockResponseEditor } from 'providers/ReduxStore/slices/collections';
+import { removeMockResponseEditor } from 'providers/ReduxStore/slices/collections/mockResponseEditorActions';
 import {
   copyExampleToMockResponse,
   resolveMockResponseLocation
