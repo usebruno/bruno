@@ -20,10 +20,10 @@ const getPreviewParseError = (content) => {
       parsed = jsyaml.load(content);
     }
   } catch {
-    return 'Unable to render preview: content is not valid YAML or JSON.';
+    return 'Unable to render preview: content is not a valid YAML or JSON.';
   }
   if (!parsed || typeof parsed !== 'object') {
-    return 'Unable to render preview: content is not valid YAML or JSON.';
+    return 'Unable to render preview: content is not a valid OpenAPI specification.';
   }
   return null;
 };
@@ -78,6 +78,11 @@ const SpecViewer = ({ content, readOnly, onSave, leftPaneWidth, onLeftPaneWidthC
   useEffect(() => {
     setSwaggerReady(false);
     clearTimeout(previewTimeoutRef.current);
+
+    if (!content || !content.trim()) {
+      setPreviewError('Unable to render preview: No API definition provided.');
+      return;
+    }
 
     const parseErr = getPreviewParseError(content);
     if (parseErr) {
