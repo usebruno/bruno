@@ -2339,14 +2339,11 @@ export const persistActiveEnvironment = (collectionUid) => (dispatch, getState) 
     // Baseline exists — a draft was flushed earlier in this request cycle.
     // Write to disk silently (without dispatching _saveEnvironment) to avoid
     // racing with file-watcher callbacks.
-    const collectionCopy = cloneDeep(collection);
-    const envCopy = findEnvironmentInCollection(collectionCopy, environment.uid);
-    if (!envCopy) return;
-    envCopy.variables = buildPersistedEnvVariables(environment.variables);
+    const envCopy = { ...environment, variables: buildPersistedEnvVariables(environment.variables) };
     const { ipcRenderer } = window;
     environmentSchema
       .validate(envCopy)
-      .then(() => ipcRenderer.invoke('renderer:save-environment', collectionCopy.pathname, envCopy))
+      .then(() => ipcRenderer.invoke('renderer:save-environment', collection.pathname, envCopy))
       .catch((err) => console.error('Failed to persist environment during script execution:', err));
     return;
   }
@@ -2403,12 +2400,11 @@ export const collectionVariablesUpdateEvent = ({ collectionVariables, collection
   dispatch(scriptUpdateCollectionVars({ collectionUid, vars }));
 
   // Save from root (not draft) so draft headers/auth/scripts are not persisted to disk.
-  const collectionCopy = cloneDeep(findCollectionByUid(getState().collections.collections, collectionUid));
-  if (collectionCopy) {
-    collectionCopy.draft = null;
-    const collectionRootToSave = transformCollectionRootToSave(collectionCopy);
+  const fresh = findCollectionByUid(getState().collections.collections, collectionUid);
+  if (fresh) {
+    const collectionRootToSave = transformCollectionRootToSave({ root: fresh.root });
     const { ipcRenderer } = window;
-    ipcRenderer.invoke('renderer:save-collection-root', collectionCopy.pathname, collectionRootToSave, collectionCopy.brunoConfig)
+    ipcRenderer.invoke('renderer:save-collection-root', fresh.pathname, collectionRootToSave, fresh.brunoConfig)
       .catch((err) => console.error('Failed to persist collection variables:', err));
   }
 };
