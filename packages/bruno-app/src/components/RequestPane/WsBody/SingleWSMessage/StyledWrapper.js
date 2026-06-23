@@ -2,10 +2,20 @@ import styled from 'styled-components';
 
 const StyledWrapper = styled.div`
   border-bottom: 1px solid ${(props) => props.theme.border.border0};
-  transition: opacity 0.15s ease;
+
+  /* Dim the row content when disabled, but not the tooltip */
+  .accordion-left > :not(.toolhint),
+  .accordion-actions,
+  .accordion-body {
+    transition: opacity 0.15s ease;
+  }
 
   &.disabled {
-    opacity: 0.45;
+    .accordion-left > :not(.toolhint),
+    .accordion-actions,
+    .accordion-body {
+      opacity: 0.45;
+    }
   }
 
   .accordion-header {
@@ -23,6 +33,12 @@ const StyledWrapper = styled.div`
       flex: 1;
       min-width: 0;
       color: ${(props) => props.theme.text};
+
+      .message-label-anchor {
+        display: flex;
+        min-width: 0;
+        overflow: hidden;
+      }
 
       .message-label {
         font-size: ${(props) => props.theme.font.size.sm};

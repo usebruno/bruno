@@ -13,10 +13,13 @@ const Wrapper = styled.div`
   .current-group:hover {
     background-color: ${(props) => darken(0.03, props.theme.background.surface1)};
     border-color: ${(props) => darken(0.03, props.theme.background.surface2)};
+  }
 
-  /* Fix dropdown positioning */
-  [data-tippy-root] {
-    left: 0 !important;
+  .advanced-options {
+    .caret {
+      color: ${(props) => props.theme.textLink};
+      fill: ${(props) => props.theme.textLink};
+    }
   }
 `;
 

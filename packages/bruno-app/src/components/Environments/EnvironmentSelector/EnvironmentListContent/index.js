@@ -110,7 +110,7 @@ const EnvironmentListContent = ({
               <span>No Environment</span>
             </div>
             <ToolHint
-              anchorSelect="[data-tooltip-content]"
+              tooltipId="environment-name-tooltip"
               place="right"
               positionStrategy="fixed"
               tooltipStyle={{
@@ -130,6 +130,7 @@ const EnvironmentListContent = ({
                       key={env.uid}
                       className={`dropdown-item ${env.uid === activeEnvironmentUid ? 'dropdown-item-active' : ''}`}
                       onClick={() => onEnvironmentSelect(env)}
+                      data-tooltip-id="environment-name-tooltip"
                       data-tooltip-content={env.name}
                       data-tooltip-hidden={env.name?.length < 90}
                       data-testid="env-list-item"

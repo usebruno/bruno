@@ -412,6 +412,23 @@ describe('Url Utils - interpolateUrl, interpolateUrlPathParams', () => {
 
     expect(result).toEqual(expectedUrl);
   });
+
+  it('should keep colon path segments when the path param has no value', () => {
+    const url = 'https://httpbin.org/anything/:test-segment';
+    const params = [{ name: 'test-segment', type: 'path', enabled: true, value: '' }];
+
+    const result = interpolateUrlPathParams(url, params);
+
+    expect(result).toEqual('https://httpbin.org/anything/:test-segment');
+  });
+
+  it('should keep colon path segments when no path param is defined', () => {
+    const url = 'https://httpbin.org/anything/:analyze-text';
+
+    const result = interpolateUrlPathParams(url, []);
+
+    expect(result).toEqual('https://httpbin.org/anything/:analyze-text');
+  });
 });
 
 describe('Url Utils - interpolateUrlPathParams with { raw: true }', () => {

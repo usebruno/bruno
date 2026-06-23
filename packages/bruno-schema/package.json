@@ -11,6 +11,7 @@
     "test": "jest"
   },
   "dependencies": {
+    "@usebruno/common": "0.1.0",
     "nanoid": "3.3.8",
     "yup": "^0.32.11"
   }

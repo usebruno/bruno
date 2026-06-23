@@ -6,6 +6,7 @@ const yaml = require('js-yaml');
 const { generateUidBasedOnHash, uuid } = require('../utils/common');
 const { getWorkspaceUid, normalizeWorkspaceConfig } = require('../utils/workspace-config');
 const { parseEnvironment } = require('@usebruno/filestore');
+const { parseValueByDataType } = require('@usebruno/common/utils');
 const EnvironmentSecretsStore = require('../store/env-secrets');
 const { decryptStringSafe } = require('../utils/encryption');
 const dotEnvWatcher = require('./dotenv-watcher');
@@ -78,7 +79,7 @@ const parseGlobalEnvironmentFile = async (pathname, workspacePath, workspaceUid)
       const variable = _.find(file.data.variables, (v) => v.name === secret.name);
       if (variable && secret.value) {
         const decryptionResult = decryptStringSafe(secret.value);
-        variable.value = decryptionResult.value;
+        variable.value = parseValueByDataType(decryptionResult.value, variable.dataType);
       }
     });
   }

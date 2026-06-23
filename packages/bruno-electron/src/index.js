@@ -46,6 +46,7 @@ const registerApiSpecIpc = require('./ipc/apiSpec');
 const registerGitIpc = require('./ipc/git');
 const registerOpenAPISyncIpc = require('./ipc/openapi-sync');
 const registerAiIpc = require('./ipc/ai');
+const { registerMountIpc } = require('./ipc/mount');
 const collectionWatcher = require('./app/collection-watcher');
 const WorkspaceWatcher = require('./app/workspace-watcher');
 const ApiSpecWatcher = require('./app/apiSpecsWatcher');
@@ -477,6 +478,7 @@ app.on('ready', async () => {
   registerGitIpc(mainWindow);
   registerOpenAPISyncIpc(mainWindow);
   registerAiIpc(mainWindow);
+  registerMountIpc();
 
   // Internal delegator
   ipcMain.handle('main:cache-clear', async () => {
@@ -504,6 +506,8 @@ app.on('before-quit', (event) => {
         new Promise((resolve) => setTimeout(resolve, 2000))
       ]);
     } catch {}
+
+    try { await require('./ipc/mount').shutdown(); } catch {}
 
     if (useSingleInstance && gotTheLock) {
       try { app.releaseSingleInstanceLock(); } catch {}

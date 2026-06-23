@@ -4,11 +4,13 @@ import find from 'lodash/find';
 import { updateFolderDocs } from 'providers/ReduxStore/slices/collections';
 import { updateDocsEditing } from 'providers/ReduxStore/slices/tabs';
 import { useTheme } from 'providers/Theme';
-import { useRef } from 'react';
+import { useMemo, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { saveFolderRoot } from 'providers/ReduxStore/slices/collections/actions';
 import Markdown from 'components/MarkDown';
 import CodeEditor from 'components/CodeEditor';
+import AIAssist from 'components/AIAssist';
+import { buildDocsContextFromFolder } from 'utils/ai';
 import Button from 'ui/Button';
 import StyledWrapper from './StyledWrapper';
 import { usePersistedState } from 'hooks/usePersistedState';
@@ -43,6 +45,7 @@ const Documentation = ({ collection, folder }) => {
   };
 
   const onSave = () => dispatch(saveFolderRoot(collection.uid, folder.uid));
+  const docsContext = useMemo(() => buildDocsContextFromFolder(collection, folder), [collection, folder]);
 
   if (!folder) {
     return null;
@@ -56,7 +59,7 @@ const Documentation = ({ collection, folder }) => {
 
       {isEditing ? (
         <div className="flex flex-col flex-1 min-h-0">
-          <div className="mt-2 flex-1 overflow-auto min-h-0">
+          <div className="mt-2 flex-1 overflow-auto min-h-0 relative">
             <CodeEditor
               collection={collection}
               theme={displayedTheme}
@@ -69,6 +72,7 @@ const Documentation = ({ collection, folder }) => {
               initialScroll={scroll}
               onScroll={setScroll}
             />
+            <AIAssist scriptType="docs" currentScript={docs || ''} docsContext={docsContext} onApply={onEdit} />
           </div>
           <div className="mt-6 flex-shrink-0">
             <Button type="submit" size="sm" onClick={onSave}>
