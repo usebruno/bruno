@@ -1,6 +1,6 @@
 const ohm = require('ohm-js');
 const _ = require('lodash');
-const { safeParseJson, outdentString } = require('./utils');
+const { safeParseJson, outdentString, extractTypedAnnotations } = require('./utils');
 const parseExample = require('./example/bruToJson');
 
 // this is done to avoid breaking existing pairlist mapping so
@@ -34,7 +34,7 @@ const ANNOTATIONS_KEY = Symbol('annotations');
  *
  */
 const grammar = ohm.grammar(`Bru {
-  BruFile = (meta | http | grpc | ws | query | params | headers | metadata | auths | bodies | varsandassert | script | tests | settings | docs | example)*
+  BruFile = (meta | http | grpc | ws | query | params | headers | metadata | auths | bodies | varsandassert | script | tests | app | settings | docs | example)*
   auths = authawsv4 | authbasic | authbearer | authdigest | authNTLM | authOAuth1 | authOAuth2 | authwsse | authapikey | authOauth2Configs
   bodies = bodyjson | bodytext | bodyxml | bodysparql | bodygraphql | bodygraphqlvars | bodyforms | body | bodygrpc | bodyws
   bodyforms = bodyformurlencoded | bodymultipart | bodyfile
@@ -108,6 +108,7 @@ const grammar = ohm.grammar(`Bru {
   listitem = st+ (alnum | "_" | "-")+ st*
 
   meta = "meta" dictionary
+  app = "app" dictionary
   settings = "settings" dictionary
 
   http = get | post | put | delete | patch | options | head | connect | trace | httpcustom
@@ -182,7 +183,7 @@ const grammar = ohm.grammar(`Bru {
   docs = "docs" st* "{" nl* textblock tagend
 }`);
 
-const mapPairListToKeyValPairs = (pairList = [], parseEnabled = true) => {
+const mapPairListToKeyValPairs = (pairList = [], parseEnabled = true, extractTypes = false) => {
   if (!pairList.length) {
     return [];
   }
@@ -194,6 +195,7 @@ const mapPairListToKeyValPairs = (pairList = [], parseEnabled = true) => {
     if (!parseEnabled) {
       const result = { name, value };
       if (rawAnnotations && rawAnnotations.length) result.annotations = rawAnnotations;
+      if (extractTypes) extractTypedAnnotations(rawAnnotations, result);
       return result;
     }
 
@@ -205,6 +207,7 @@ const mapPairListToKeyValPairs = (pairList = [], parseEnabled = true) => {
 
     const result = { name, value, enabled };
     if (rawAnnotations && rawAnnotations.length) result.annotations = rawAnnotations;
+    if (extractTypes) extractTypedAnnotations(rawAnnotations, result);
     return result;
   });
 };
@@ -518,6 +521,14 @@ const sem = grammar.createSemantics().addAttribute('ast', {
 
     return {
       meta
+    };
+  },
+  app(_1, dictionary) {
+    const appData = mapPairListToKeyValPair(dictionary.ast);
+    return {
+      app: {
+        code: appData.code || null
+      }
     };
   },
   settings(_1, dictionary) {
@@ -1072,7 +1083,7 @@ const sem = grammar.createSemantics().addAttribute('ast', {
     };
   },
   varsreq(_1, dictionary) {
-    const vars = mapPairListToKeyValPairs(dictionary.ast);
+    const vars = mapPairListToKeyValPairs(dictionary.ast, true, true);
     _.each(vars, (v) => {
       let name = v.name;
       if (name && name.length && name.charAt(0) === '@') {
@@ -1090,7 +1101,10 @@ const sem = grammar.createSemantics().addAttribute('ast', {
     };
   },
   varsres(_1, dictionary) {
-    const vars = mapPairListToKeyValPairs(dictionary.ast);
+    // Post-response vars carry a JSON-query expression in `value`, not a literal,
+    // so dataType annotations have no runtime meaning — extract them as raw
+    // annotations only (preserved on round-trip) without populating `dataType`.
+    const vars = mapPairListToKeyValPairs(dictionary.ast, true, false);
     _.each(vars, (v) => {
       let name = v.name;
       if (name && name.length && name.charAt(0) === '@') {

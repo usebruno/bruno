@@ -38,11 +38,16 @@ export const parseBruRequest = (data: string | any, parsed: boolean = false): an
       'ws-request': 'ws.url',
       'default': 'http.url'
     };
+
+    const appData = _.get(json, 'app');
+    const app = appData ? { code: _.get(appData, 'code', null) } : null;
+
     const transformedJson = {
       type: requestType,
       name: _.get(json, 'meta.name'),
       seq: !_.isNaN(sequence) ? Number(sequence) : 1,
       settings: _.get(json, 'settings', {}),
+      app,
       tags: Array.isArray(tags) ? tags : [],
       request: {
         // Preserving special characters in custom methods. Using _.upperCase strips special characters.
@@ -220,6 +225,11 @@ export const stringifyBruRequest = (json: any): string => {
     bruJson.settings = _.get(json, 'settings', {});
     bruJson.docs = _.get(json, 'request.docs', '');
     bruJson.examples = _.get(json, 'examples', []).map((e: any) => jsonExampleToBru(e));
+
+    const app = _.get(json, 'app');
+    if (app && app.code && app.code.length) {
+      bruJson.app = { code: app.code };
+    }
 
     const bru = jsonToBruV2(bruJson);
     return bru;

@@ -22,18 +22,29 @@ const SUGGESTIONS = {
     { label: 'Save token', prompt: 'Extract a token from the response body and save it to an environment variable' },
     { label: 'Save id', prompt: 'Extract the primary id from the response body and save it to a variable' },
     { label: 'Log response', prompt: 'Log the response status and a short summary of the body' }
+  ],
+  'docs': [
+    { label: 'Overview', prompt: 'Write an overview section describing the purpose and key features' },
+    { label: 'Request', prompt: 'Document the request method, URL, headers, parameters, and body' },
+    { label: 'Examples', prompt: 'Add request and response examples with sample JSON' },
+    { label: 'Errors', prompt: 'Document common error responses and status codes' }
   ]
 };
 
 const TITLES = {
   'tests': 'Generate Tests',
   'pre-request': 'Generate Pre-Request Script',
-  'post-response': 'Generate Post-Response Script'
+  'post-response': 'Generate Post-Response Script',
+  'docs': 'Generate Documentation'
+};
+
+const PREVIEW_LABELS = {
+  docs: 'Preview · replaces current documentation'
 };
 
 const isValidType = (t) => SUGGESTIONS[t] !== undefined;
 
-const AIAssist = ({ scriptType, currentScript, requestContext, onApply }) => {
+const AIAssist = ({ scriptType, currentScript, requestContext, docsContext, onApply }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [prompt, setPrompt] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -50,6 +61,7 @@ const AIAssist = ({ scriptType, currentScript, requestContext, onApply }) => {
 
   const suggestions = useMemo(() => SUGGESTIONS[scriptType] || [], [scriptType]);
   const title = TITLES[scriptType] || 'Generate with AI';
+  const previewLabel = PREVIEW_LABELS[scriptType] || 'Preview · replaces current script';
 
   const close = useCallback(() => {
     setIsOpen(false);
@@ -86,7 +98,8 @@ const AIAssist = ({ scriptType, currentScript, requestContext, onApply }) => {
           scriptType,
           prompt: text,
           currentScript: currentScript || '',
-          requestContext
+          requestContext,
+          docsContext
         });
         if (result?.error) {
           setError(result.error);
@@ -103,7 +116,7 @@ const AIAssist = ({ scriptType, currentScript, requestContext, onApply }) => {
         setIsLoading(false);
       }
     },
-    [prompt, isLoading, scriptType, currentScript, requestContext]
+    [prompt, isLoading, scriptType, currentScript, requestContext, docsContext]
   );
 
   const handleApply = useCallback(() => {
@@ -207,7 +220,7 @@ const AIAssist = ({ scriptType, currentScript, requestContext, onApply }) => {
             <>
               <div className="popup-body">
                 <div className="preview-section">
-                  <span className="preview-label">Preview · replaces current script</span>
+                  <span className="preview-label">{previewLabel}</span>
                   <pre className="preview-code">{generated}</pre>
                 </div>
               </div>

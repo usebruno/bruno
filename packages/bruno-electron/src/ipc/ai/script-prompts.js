@@ -140,10 +140,77 @@ Common use cases:
 
 Do NOT use \`test()\` or \`expect()\` — those belong in the Tests tab.
 
-${COMMON_OUTPUT_RULES}`
+${COMMON_OUTPUT_RULES}`,
+
+  'docs': `You are an AI assistant that writes API documentation in Markdown for the Bruno API client.
+
+## Documentation Context
+
+Documentation is stored as Markdown and rendered in Bruno's Docs tab. It supports standard Markdown: headings, lists, tables, code blocks, links, and emphasis.
+
+Write clear, practical API documentation. Common sections include:
+- Overview and purpose
+- Authentication requirements
+- Request details (method, URL, headers, parameters, body)
+- Response format and status codes
+- Example requests and responses
+- Error handling
+
+Use fenced code blocks with language tags for HTTP, JSON, curl, or other examples.
+
+When Documentation Context is provided:
+- For a collection, write documentation for the whole collection using its top-level folders and requests.
+- For a folder, write documentation scoped to that folder using its direct subfolders and requests.
+- Reference the listed requests and subfolders by name. Do not invent endpoints that are not in the context.
+
+## Output Rules
+
+Return ONLY raw Markdown that can be saved directly. No wrapping commentary, no preamble like "Here is the documentation". Begin with the first line of Markdown.
+
+If existing documentation was provided, return the COMPLETE updated document (your output replaces the entire file). Preserve any existing content the user did not ask you to remove.`
 };
 
 const SCRIPT_TYPES = Object.keys(SCRIPT_PROMPTS);
+
+const formatChildCount = (count, singular, plural) => {
+  if (!count) return '';
+  return `${count} ${count === 1 ? singular : plural}`;
+};
+
+const formatDocsContext = (ctx) => {
+  if (!ctx) return '';
+  const parts = [];
+
+  if (ctx.scope === 'collection') {
+    parts.push(`Collection: ${ctx.name || 'Untitled'}`);
+  } else if (ctx.scope === 'folder') {
+    if (ctx.collectionName) parts.push(`Collection: ${ctx.collectionName}`);
+    parts.push(`Folder: ${ctx.name || 'Untitled'}`);
+  }
+
+  const folders = ctx.folders || [];
+  if (folders.length) {
+    parts.push(`Subfolders:\n${folders.map((folder) => {
+      const details = [
+        formatChildCount(folder.requestCount, 'request', 'requests'),
+        formatChildCount(folder.subfolderCount, 'subfolder', 'subfolders')
+      ].filter(Boolean).join(', ');
+      const suffix = details ? ` (${details})` : '';
+      return `  - ${folder.name}${suffix}`;
+    }).join('\n')}`);
+  }
+
+  const requests = ctx.requests || [];
+  if (requests.length) {
+    parts.push(`Requests:\n${requests.map((request) => {
+      const method = request.method || 'GET';
+      const url = request.url || '';
+      return `  - ${request.name}: ${method}${url ? ` ${url}` : ''}`;
+    }).join('\n')}`);
+  }
+
+  return parts.join('\n\n');
+};
 
 const formatRequestContext = (ctx) => {
   if (!ctx) return '';
@@ -176,12 +243,16 @@ const formatRequestContext = (ctx) => {
   return parts.join('\n\n');
 };
 
-const buildScriptUserPrompt = ({ userPrompt, currentScript, requestContext }) => {
+const buildScriptUserPrompt = ({ userPrompt, currentScript, requestContext, docsContext, scriptType }) => {
   const sections = [];
+  const docsContextStr = formatDocsContext(docsContext);
+  if (docsContextStr) sections.push(`Documentation Context\n${docsContextStr}`);
   const contextStr = formatRequestContext(requestContext);
   if (contextStr) sections.push(`HTTP Request Context\n${contextStr}`);
   if (currentScript && currentScript.trim()) {
-    sections.push(`Existing Code\n\`\`\`js\n${currentScript}\n\`\`\``);
+    const existingLabel = scriptType === 'docs' ? 'Existing Documentation' : 'Existing Code';
+    const fenceLang = scriptType === 'docs' ? 'markdown' : 'js';
+    sections.push(`${existingLabel}\n\`\`\`${fenceLang}\n${currentScript}\n\`\`\``);
   }
   sections.push(`User Request\n${userPrompt}`);
   return sections.join('\n\n');
@@ -203,5 +274,6 @@ module.exports = {
   SCRIPT_PROMPTS,
   SCRIPT_TYPES,
   buildScriptUserPrompt,
+  formatDocsContext,
   stripCodeFences
 };

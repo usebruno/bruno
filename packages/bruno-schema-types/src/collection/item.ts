@@ -27,6 +27,11 @@ export interface WebSocketItemSettings {
 
 export type ItemSettings = HttpItemSettings | WebSocketItemSettings | null;
 
+export interface App {
+  code?: string | null;
+  enabled?: boolean | null;
+}
+
 export interface Item {
   uid: UID;
   type: ItemType;
@@ -35,6 +40,7 @@ export interface Item {
   tags?: string[] | null;
   request?: Request | null;
   settings?: ItemSettings;
+  app?: App | null;
   fileContent?: string | null;
   root?: FolderRoot | null;
   items?: Item[] | null;

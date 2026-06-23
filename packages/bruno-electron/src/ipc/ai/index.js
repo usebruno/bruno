@@ -145,7 +145,7 @@ const registerAiIpc = (mainWindow) => {
   });
 
   ipcMain.handle('renderer:ai-generate-script', async (_event, params) => {
-    const { scriptType, prompt, currentScript, requestContext, model: requestedModel } = params || {};
+    const { scriptType, prompt, currentScript, requestContext, docsContext, model: requestedModel } = params || {};
 
     if (!SCRIPT_TYPES.includes(scriptType)) {
       return { error: `Unknown scriptType: ${scriptType}` };
@@ -170,7 +170,7 @@ const registerAiIpc = (mainWindow) => {
       const { text } = await generateText({
         model,
         system: SCRIPT_PROMPTS[scriptType],
-        prompt: buildScriptUserPrompt({ userPrompt: prompt, currentScript, requestContext }),
+        prompt: buildScriptUserPrompt({ userPrompt: prompt, currentScript, requestContext, docsContext, scriptType }),
         maxOutputTokens: 2048
       });
       return { content: stripCodeFences(text), modelId };
