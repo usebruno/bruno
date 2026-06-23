@@ -2028,6 +2028,53 @@ const getAppWebviewHtml = async (page: Page): Promise<string> => {
 };
 
 /**
+ * Create a standalone (collection-level or folder-level) app via the sidebar
+ * context menu. Opens the new tab once created.
+ * @param page - The page object
+ * @param appName - Name to give the new app
+ * @param parent - Either `{ collectionName }` for a collection-level app,
+ *                 or `{ collectionName, folderName }` for a folder-level app.
+ */
+const createApp = async (
+  page: Page,
+  appName: string,
+  parent: { collectionName: string; folderName?: string }
+) => {
+  await test.step(`Create app "${appName}" in ${parent.folderName ? `folder "${parent.folderName}"` : `collection "${parent.collectionName}"`}`, async () => {
+    const locators = buildCommonLocators(page);
+
+    if (parent.folderName) {
+      await locators.sidebar.folder(parent.folderName).hover();
+      await locators.actions.collectionItemActions(parent.folderName).click();
+    } else {
+      await locators.sidebar.collection(parent.collectionName).hover();
+      const collectionAction = locators.actions.collectionActions(parent.collectionName);
+      await expect(collectionAction).toBeVisible({ timeout: 2000 });
+      await collectionAction.click();
+    }
+
+    await locators.dropdown.item('New App').click();
+
+    const modal = page.locator('.bruno-modal').filter({ hasText: 'New App' });
+    await expect(modal).toBeVisible({ timeout: 5000 });
+    await modal.locator('input[name="appName"]').fill(appName);
+    await modal.getByRole('button', { name: 'Create', exact: true }).click();
+    await expect(modal).toBeHidden({ timeout: 5000 });
+  });
+};
+
+/**
+ * Switch the CollectionApp tab between Code and Preview views.
+ * @param page - The page object
+ * @param view - 'code' | 'preview'
+ */
+const selectAppView = async (page: Page, view: 'code' | 'preview') => {
+  await test.step(`Switch collection app to "${view}"`, async () => {
+    await page.getByTestId(`collection-app-view-${view}`).click();
+  });
+};
+
+/**
  * Rename a websocket message by double-clicking its label and typing a new name.
  * @param page - The page object
  * @param index - The zero-based index of the message in the list
@@ -2168,6 +2215,8 @@ export {
   exitApp,
   selectViewMode,
   getAppWebviewHtml,
+  createApp,
+  selectAppView,
   renameWsMessage
 };
 

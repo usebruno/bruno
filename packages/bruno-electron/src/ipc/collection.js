@@ -1171,8 +1171,15 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
         deleteRequestUid(pathname);
 
         fs.unlinkSync(pathname);
+      } else if (type === 'app') {
+        // Standalone app items are single files with no per-line uid mapping.
+        if (!fs.existsSync(pathname)) {
+          return Promise.reject(new Error('The file does not exist'));
+        }
+
+        fs.unlinkSync(pathname);
       } else {
-        return Promise.reject();
+        return Promise.reject(new Error(`Unsupported item type for delete: ${type}`));
       }
     } catch (error) {
       return Promise.reject(error);

@@ -13,6 +13,20 @@ export const parseBruRequest = (data: string | any, parsed: boolean = false): an
   try {
     const json = parsed ? data : bruToJsonV2(data);
 
+    if (_.get(json, 'meta.type') === 'app') {
+      const seq = _.get(json, 'meta.seq');
+      const tags = _.get(json, 'meta.tags', []);
+      return {
+        type: 'app',
+        name: _.get(json, 'meta.name'),
+        seq: !_.isNaN(seq) ? Number(seq) : 1,
+        tags: Array.isArray(tags) ? tags : [],
+        settings: _.get(json, 'settings', {}),
+        app: { code: _.get(json, 'app.code', null) },
+        request: null
+      };
+    }
+
     let requestType = _.get(json, 'meta.type');
     switch (requestType) {
       case 'http':
@@ -122,6 +136,21 @@ export const parseBruRequest = (data: string | any, parsed: boolean = false): an
 
 export const stringifyBruRequest = (json: any): string => {
   try {
+    // Standalone app item — emit only meta + the app code block.
+    if (_.get(json, 'type') === 'app') {
+      const seq = _.get(json, 'seq');
+      const bruJson: any = {
+        meta: {
+          name: _.get(json, 'name'),
+          type: 'app',
+          seq: !_.isNaN(seq) ? Number(seq) : 1,
+          tags: _.get(json, 'tags', [])
+        },
+        app: { code: _.get(json, 'app.code', '') }
+      };
+      return jsonToBruV2(bruJson);
+    }
+
     let type = _.get(json, 'type');
     switch (type) {
       case 'http-request':
