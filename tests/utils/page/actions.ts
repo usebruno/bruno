@@ -2044,8 +2044,10 @@ const createApp = async (
     const locators = buildCommonLocators(page);
 
     if (parent.folderName) {
-      await locators.sidebar.folder(parent.folderName).hover();
-      await locators.actions.collectionItemActions(parent.folderName).click();
+      const collectionScope = locators.sidebar.collectionScope(parent.collectionName);
+      const folderRow = collectionScope.locator('.collection-item-name').filter({ hasText: parent.folderName });
+      await folderRow.hover();
+      await folderRow.locator('.menu-icon').click();
     } else {
       await locators.sidebar.collection(parent.collectionName).hover();
       const collectionAction = locators.actions.collectionActions(parent.collectionName);
@@ -2053,7 +2055,7 @@ const createApp = async (
       await collectionAction.click();
     }
 
-    await locators.dropdown.item('New App').click();
+    await page.locator('.tippy-box:visible .dropdown-item').filter({ hasText: 'New App' }).click();
 
     const modal = page.locator('.bruno-modal').filter({ hasText: 'New App' });
     await expect(modal).toBeVisible({ timeout: 5000 });

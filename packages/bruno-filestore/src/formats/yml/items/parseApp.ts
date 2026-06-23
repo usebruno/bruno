@@ -1,7 +1,7 @@
 import type { Item as BrunoItem } from '@usebruno/schema-types/collection/item';
 import { uuid } from '../../../utils';
 
-interface AppFile {
+export interface AppFile {
   info: {
     name?: string;
     type: 'app';

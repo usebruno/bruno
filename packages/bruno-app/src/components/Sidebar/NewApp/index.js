@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React from 'react';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import toast from 'react-hot-toast';
@@ -9,7 +9,6 @@ import { sanitizeName, validateName, validateNameError } from 'utils/common/rege
 
 const NewApp = ({ collectionUid, item, onClose }) => {
   const dispatch = useDispatch();
-  const inputRef = useRef();
 
   const collection = useSelector((state) =>
     state.collections.collections?.find((c) => c.uid === collectionUid)
@@ -44,10 +43,6 @@ const NewApp = ({ collectionUid, item, onClose }) => {
     }
   });
 
-  useEffect(() => {
-    setTimeout(() => inputRef.current?.focus(), 50);
-  }, []);
-
   const onSubmit = () => formik.handleSubmit();
 
   return (
@@ -60,7 +55,7 @@ const NewApp = ({ collectionUid, item, onClose }) => {
       disableEscapeKey={false}
       disableCloseOnOutsideClick={false}
     >
-      <form className="bruno-form" onSubmit={formik.handleSubmit}>
+      <form className="bruno-form" onSubmit={formik.handleSubmit} data-testid="new-app-form">
         <label htmlFor="appName" className="block font-semibold">
           Name
         </label>
@@ -68,7 +63,8 @@ const NewApp = ({ collectionUid, item, onClose }) => {
           id="appName"
           type="text"
           name="appName"
-          ref={inputRef}
+          data-testid="new-app-name-input"
+          autoFocus
           autoComplete="off"
           spellCheck="false"
           className="block textbox mt-2 w-full"

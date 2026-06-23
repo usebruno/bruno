@@ -146,6 +146,7 @@ export const stringifyBruRequest = (json: any): string => {
           seq: !_.isNaN(seq) ? Number(seq) : 1,
           tags: _.get(json, 'tags', [])
         },
+        settings: _.get(json, 'settings', {}),
         app: { code: _.get(json, 'app.code', '') }
       };
       return jsonToBruV2(bruJson);

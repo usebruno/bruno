@@ -12,22 +12,41 @@ import {
  * so we evaluate in the Electron main process, locate the app webview, and
  * execute JS inside it (mirrors apps-ctx-api.spec.ts).
  */
-const guestEval = (electronApp: ElectronApplication, code: string) =>
-  electronApp.evaluate(async ({ webContents }, c) => {
-    const guest = webContents.getAllWebContents().find((wc) => {
-      try {
-        return wc.getType() === 'webview' && (wc.getURL() || '').startsWith('data:text/html');
-      } catch {
-        return false;
+const guestEval = (
+  electronApp: ElectronApplication,
+  code: string,
+  expectedCollectionName?: string
+) =>
+  electronApp.evaluate(
+    async ({ webContents }, params) => {
+      const guests = webContents.getAllWebContents().filter((wc) => {
+        try {
+          return wc.getType() === 'webview' && (wc.getURL() || '').startsWith('data:text/html');
+        } catch {
+          return false;
+        }
+      });
+      if (!params.expectedCollectionName) {
+        const g = guests[0];
+        return g ? await g.executeJavaScript(params.code, true) : undefined;
       }
-    });
-    if (!guest) return undefined;
-    return await guest.executeJavaScript(c, true);
-  }, code);
+      for (const guest of guests) {
+        const name = await guest.executeJavaScript(
+          'window.ctx && window.ctx.collection && window.ctx.collection.name',
+          true
+        );
+        if (name === params.expectedCollectionName) {
+          return await guest.executeJavaScript(params.code, true);
+        }
+      }
+      return undefined;
+    },
+    { code, expectedCollectionName }
+  );
 
-const waitForGuestReady = async (electronApp: ElectronApplication) => {
+const waitForGuestReady = async (electronApp: ElectronApplication, collectionName?: string) => {
   await expect
-    .poll(async () => guestEval(electronApp, 'typeof window.ctx'), { timeout: 15000 })
+    .poll(async () => guestEval(electronApp, 'typeof window.ctx', collectionName), { timeout: 15000 })
     .toBe('object');
 };
 
@@ -69,9 +88,6 @@ const CTX_APP = `
   };
 </script>`;
 
-const guestResult = (electronApp: ElectronApplication) =>
-  guestEval(electronApp, `document.getElementById('out') && document.getElementById('out').getAttribute('data-result')`);
-
 const ECHO_JSON_URL = 'http://localhost:8081/api/echo/json';
 
 test.describe('Collection apps', () => {
@@ -107,10 +123,12 @@ test.describe('Collection apps', () => {
     await saveRequest(page);
 
     await selectAppView(page, 'preview');
-    await waitForGuestReady(electronApp);
+    await waitForGuestReady(electronApp, 'col-apps-list');
 
-    await guestEval(electronApp, 'void window.__listRequests()');
-    await expect.poll(() => guestResult(electronApp), { timeout: 15000 }).toBe(JSON.stringify(['alpha', 'beta']));
+    await guestEval(electronApp, 'void window.__listRequests()', 'col-apps-list');
+    await expect
+      .poll(() => guestEval(electronApp, `document.getElementById('out') && document.getElementById('out').getAttribute('data-result')`, 'col-apps-list'), { timeout: 15000 })
+      .toBe(JSON.stringify(['alpha', 'beta']));
   });
 
   test('ctx.runRequest executes a request by pathname and reflects the response', async ({ page, electronApp, createTmpDir }) => {
@@ -135,7 +153,7 @@ test.describe('Collection apps', () => {
     await saveRequest(page);
 
     await selectAppView(page, 'preview');
-    await waitForGuestReady(electronApp);
+    await waitForGuestReady(electronApp, 'col-apps-run');
 
     // Resolve the pathname of the 'echo' request via ctx.listRequests, then run it.
     await guestEval(
@@ -144,11 +162,12 @@ test.describe('Collection apps', () => {
         const requests = await ctx.listRequests();
         const echo = requests.find(r => r.name === 'echo');
         await window.__runEcho(echo.pathname);
-      })()`
+      })()`,
+      'col-apps-run'
     );
 
     await expect
-      .poll(() => guestResult(electronApp), { timeout: 20000 })
+      .poll(() => guestEval(electronApp, `document.getElementById('out') && document.getElementById('out').getAttribute('data-result')`, 'col-apps-run'), { timeout: 20000 })
       .toBe(JSON.stringify({ status: 200, q: 'echoed' }));
   });
 
@@ -161,11 +180,11 @@ test.describe('Collection apps', () => {
     await saveRequest(page);
 
     await selectAppView(page, 'preview');
-    await waitForGuestReady(electronApp);
+    await waitForGuestReady(electronApp, 'col-apps-vars');
 
-    await guestEval(electronApp, `ctx.setRuntimeVariable('hello', 'world')`);
+    await guestEval(electronApp, `ctx.setRuntimeVariable('hello', 'world')`, 'col-apps-vars');
     await expect
-      .poll(() => guestEval(electronApp, `ctx.variables && ctx.variables.hello`), { timeout: 15000 })
+      .poll(() => guestEval(electronApp, `ctx.variables && ctx.variables.hello`, 'col-apps-vars'), { timeout: 15000 })
       .toBe('world');
   });
 
@@ -178,9 +197,11 @@ test.describe('Collection apps', () => {
     await saveRequest(page);
 
     await selectAppView(page, 'preview');
-    await waitForGuestReady(electronApp);
+    await waitForGuestReady(electronApp, 'col-apps-meta');
 
-    await guestEval(electronApp, 'void window.__readCollectionName()');
-    await expect.poll(() => guestResult(electronApp), { timeout: 15000 }).toBe('col-apps-meta');
+    await guestEval(electronApp, 'void window.__readCollectionName()', 'col-apps-meta');
+    await expect
+      .poll(() => guestEval(electronApp, `document.getElementById('out') && document.getElementById('out').getAttribute('data-result')`, 'col-apps-meta'), { timeout: 15000 })
+      .toBe('col-apps-meta');
   });
 });

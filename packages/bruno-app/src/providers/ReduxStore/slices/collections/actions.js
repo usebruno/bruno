@@ -1817,9 +1817,16 @@ export const newApp = (params) => (dispatch, getState) => {
     };
 
     const resolvedFilename = resolveRequestFilename(filename, collection.format);
-    const parent = itemUid ? findItemInCollection(collection, itemUid) : null;
-    const parentPath = parent ? parent.pathname : collection.pathname;
-    const siblings = parent ? parent.items : collection.items;
+
+    const selectedItem = itemUid ? findItemInCollection(collection, itemUid) : null;
+    let parent = collection;
+    if (selectedItem) {
+      parent = isItemAFolder(selectedItem)
+        ? selectedItem
+        : (findParentItemInCollection(collection, selectedItem.uid) || collection);
+    }
+    const parentPath = parent.pathname;
+    const siblings = parent.items || [];
 
     const dupe = find(
       siblings,

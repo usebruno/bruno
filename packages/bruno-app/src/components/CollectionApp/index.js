@@ -22,6 +22,8 @@ import {
 import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { useTheme } from 'providers/Theme';
 import CodeEditor from 'components/CodeEditor';
+import AIAssist from 'components/AIAssist';
+import { buildDocsContextFromCollection } from 'utils/ai';
 import StyledWrapper from './StyledWrapper';
 import EmptyAppState from '../AppView/EmptyAppState';
 import {
@@ -187,6 +189,7 @@ const CollectionApp = ({ item, collection }) => {
     () => ({ name: collection?.name || null, pathname: collection?.pathname || null }),
     [collection?.name, collection?.pathname]
   );
+  const docsContext = useMemo(() => buildDocsContextFromCollection(collection), [collection]);
 
   const onEdit = useCallback(
     (value) => dispatch(updateAppCode({ code: value, itemUid: item.uid, collectionUid: collection.uid })),
@@ -348,7 +351,7 @@ const CollectionApp = ({ item, collection }) => {
       </div>
 
       {view === 'code' ? (
-        <div className="app-pane code" data-testid="collection-app-code">
+        <div className="app-pane code relative" data-testid="collection-app-code">
           <CodeEditor
             collection={collection}
             value={code || ''}
@@ -358,6 +361,12 @@ const CollectionApp = ({ item, collection }) => {
             onEdit={onEdit}
             onSave={onSave}
             mode="htmlmixed"
+          />
+          <AIAssist
+            scriptType="app-collection"
+            currentScript={code || ''}
+            docsContext={docsContext}
+            onApply={onEdit}
           />
         </div>
       ) : code && code.trim().length ? (
