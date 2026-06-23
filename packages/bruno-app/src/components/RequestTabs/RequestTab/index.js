@@ -261,7 +261,7 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
             .catch(() => toast.error('An error occurred while saving the changes'));
         }
       }
-    } else if (tab.type === 'global-environment-settings') {
+    } else if (tab.type === 'global-environment-settings' || tab.type === 'workspaceEnvironments') {
       if (globalEnvironmentDraft) {
         const { environmentUid, variables } = globalEnvironmentDraft;
         if (environmentUid?.startsWith('dotenv:')) {
