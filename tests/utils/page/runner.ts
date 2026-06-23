@@ -1,4 +1,4 @@
-import { Page, expect, test } from '../../../playwright';
+import { Page, expect, test, Locator } from '../../../playwright';
 import { buildSandboxLocators } from './locators';
 
 /**
@@ -147,15 +147,23 @@ const openFolderRunMenu = async (page: Page, collectionName: string, folderPath:
   const collectionContainer = page.locator(`#${collectionId}`);
   await collectionContainer.waitFor({ state: 'visible', timeout: 5000 });
 
-  // Walk down the folder path, scoping each step to the previous folder's container.
-  // Each CollectionItem renders as a StyledWrapper div containing:
-  //   - div.collection-item-name (the row with chevron, name, menu)
-  //   - div (children container when expanded)
-  // We scope to the parent wrapper so the next folder lookup is unambiguous.
-  let scope = collectionContainer;
+  // Escape regex metacharacters so folder names are treated as plain text in exact-match patterns.
+  const REGEXP_SPECIAL_CHARACTERS = /[\\^$.*+?()[\]{}|]/g;
+  const escapeRegExp = (value: string) => value.replace(REGEXP_SPECIAL_CHARACTERS, '\\$&');
+
+  // Top-level collection items are rendered in the collection content container.
+  let scope = collectionContainer.locator(':scope > div').last().locator(':scope > div').first();
+  await scope.waitFor({ state: 'visible', timeout: 5000 });
+
+  // Walk down one hierarchy level at a time using only immediate child rows.
+  let targetRow: Locator;
   for (const folderName of folderPath) {
-    const row = scope.locator('.collection-item-name').filter({ hasText: folderName }).first();
+    const levelRows = scope.locator(':scope > div > .collection-item-name');
+    const row = levelRows
+      .filter({ has: page.locator('.item-name', { hasText: new RegExp(`^${escapeRegExp(folderName)}$`) }) })
+      .first();
     await row.waitFor({ state: 'visible', timeout: 5000 });
+    targetRow = row;
 
     // Click the chevron to expand (skip if already expanded)
     const chevron = row.getByTestId('folder-chevron');
@@ -164,12 +172,15 @@ const openFolderRunMenu = async (page: Page, collectionName: string, folderPath:
       await chevron.click();
     }
 
-    // Scope to this folder's wrapper (parent of the row) for the next iteration
-    scope = row.locator('..');
+    // Scope to the next-level children container for this folder.
+    const folderWrapper = row.locator('..');
+    scope = folderWrapper.locator(':scope > div').last();
   }
 
-  // The target folder row is the last one we found — hover to reveal menu
-  const targetRow = scope.locator('.collection-item-name').filter({ hasText: folderPath[folderPath.length - 1] }).first();
+  // The target folder row is the last exact row matched in the loop.
+  if (!targetRow) {
+    throw new Error('Folder path is empty; cannot open folder run menu');
+  }
   await targetRow.hover();
 
   // Click the menu icon
