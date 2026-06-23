@@ -929,4 +929,40 @@ describe('parseCurlCommand', () => {
       });
     });
   });
+
+  describe('Windows CMD format (Copy as cURL (cmd))', () => {
+    it('should decode caret-escaping, line continuations and quoted values', () => {
+      const result = parseCurlCommand(
+        'curl ^"https://api.example.com/v1/intake^" ^\r\n'
+        + '  -H ^"Content-Type: application/json^" ^\r\n'
+        + '  -H ^"sec-ch-ua: ^\\^"Brave^\\^";v=^\\^"149^\\^"^" ^\r\n'
+        + '  --data-raw ^"^{^\\^"pageNum^\\^":1,^\\^"name^\\^":^\\^"John^\\^"^}^"'
+      );
+
+      expect(result).toEqual({
+        method: 'post',
+        url: 'https://api.example.com/v1/intake',
+        urlWithoutQuery: 'https://api.example.com/v1/intake',
+        headers: {
+          'Content-Type': 'application/json',
+          'sec-ch-ua': '"Brave";v="149"'
+        },
+        data: '{"pageNum":1,"name":"John"}',
+        isDataRaw: true
+      });
+    });
+
+    it('should not alter bash-style commands that contain no caret-quoting', () => {
+      const result = parseCurlCommand(`
+        curl -X POST --data '{"a":1}' https://api.example.com/v1/intake
+      `);
+
+      expect(result).toEqual({
+        method: 'post',
+        url: 'https://api.example.com/v1/intake',
+        urlWithoutQuery: 'https://api.example.com/v1/intake',
+        data: '{"a":1}'
+      });
+    });
+  });
 });
