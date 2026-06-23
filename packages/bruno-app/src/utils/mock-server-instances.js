@@ -7,6 +7,25 @@ import { stopMockServer } from 'providers/ReduxStore/slices/mock-server';
 
 export const DEFAULT_MOCK_SERVER_PORT = 4000;
 
+export const suggestNextMockServerPort = (instances, { excludeUid } = {}) => {
+  const usedPorts = new Set(
+    instances
+      .filter((instance) => instance.uid !== excludeUid)
+      .map((instance) => Number(instance.port))
+      .filter((port) => port >= 1 && port <= 65535)
+  );
+
+  let port = DEFAULT_MOCK_SERVER_PORT;
+  while (usedPorts.has(port)) {
+    port += 1;
+    if (port > 65535) {
+      return DEFAULT_MOCK_SERVER_PORT;
+    }
+  }
+
+  return port;
+};
+
 export const getMockServerInstances = (preferences, workspaceUid) => {
   const instances = get(preferences, 'mockServer.instances', []);
   if (!workspaceUid) {
@@ -66,7 +85,7 @@ export const deleteMockServerInstance = (mockServerUid) => async (dispatch, getS
   }
 
   const tabUids = (state.tabs?.tabs || [])
-    .filter((tab) => tab.type === 'mock-server-dashboard' && tab.mockServerUid === mockServerUid)
+    .filter((tab) => tab.type === 'mocker' && tab.mockServerUid === mockServerUid)
     .map((tab) => tab.uid);
 
   if (tabUids.length) {
@@ -198,10 +217,10 @@ export const resolveMockServerStartPayload = (instance, { collection, apiSpecs }
 
 export const openMockServerDashboard = (instance, collectionUid) => (dispatch) => {
   dispatch(addTab({
-    uid: uuid(),
+    uid: instance.uid,
     collectionUid: collectionUid || instance.collectionUid,
     mockServerUid: instance.uid,
     tabName: instance.name,
-    type: 'mock-server-dashboard'
+    type: 'mocker'
   }));
 };

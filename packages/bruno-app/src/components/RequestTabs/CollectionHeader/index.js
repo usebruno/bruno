@@ -633,14 +633,13 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
                 <IconRun size={16} strokeWidth={1.5} />
               </ActionIcon>
             </ToolHint>
-            {/* Mocker - visible when beta enabled */}
-            {/* {isMockServerEnabled && (
+            {isMockServerEnabled && (
               <ToolHint text="Mocker" toolhintId="MockerToolhintId" place="bottom">
                 <ActionIcon onClick={viewMockServer} aria-label="Mocker" size="sm" data-testid="mocker">
                   <IconServer2 size={16} strokeWidth={1.5} />
                 </ActionIcon>
               </ToolHint>
-            )} */}
+            )}
             {/* JS Sandbox Mode - always visible */}
             <JsSandboxMode collection={collection} />
             {/* Overflow menu */}

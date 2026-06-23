@@ -17,7 +17,7 @@ const SINGLETON_TAB_TYPES = new Set([
   'workspaceEnvironments',
   'openapi-sync',
   'openapi-spec',
-  'mock-server-dashboard'
+  'mocker'
 ]);
 
 const NON_REPLACEABLE_SINGLETON_TAB_TYPES = new Set([
@@ -25,7 +25,7 @@ const NON_REPLACEABLE_SINGLETON_TAB_TYPES = new Set([
   'variables',
   'openapi-sync',
   'openapi-spec',
-  'mock-server-dashboard'
+  'mocker'
 ]);
 
 export const SAVE_TRIGGERS = new Map([
@@ -347,6 +347,7 @@ export const findCollectionEnvironmentFromSnapshot = (collection, snapshotData =
 
 const getAccessor = (tab) => {
   if (tab.type === 'response-example') return 'pathname::exampleIndex';
+  if (tab.type === 'mocker' && tab.mockServerUid) return 'type::mockServerUid';
   if (SINGLETON_TAB_TYPES.has(tab.type)) return 'type';
   return 'pathname';
 };
@@ -424,6 +425,13 @@ export const serializeTab = (tab, collection) => {
     };
   }
 
+  if (tab.type === 'mocker' && tab.mockServerUid) {
+    serialized.mockServerUid = tab.mockServerUid;
+    if (tab.tabName) {
+      serialized.name = tab.tabName;
+    }
+  }
+
   return serialized;
 };
 
@@ -459,6 +467,10 @@ export const serializeActiveTab = (tab, collection) => {
     return { accessor, value: `${pathname}::-1` };
   }
 
+  if (tab.type === 'mocker' && tab.mockServerUid) {
+    return { accessor: 'type::mockServerUid', value: tab.mockServerUid };
+  }
+
   return { accessor: 'type', value: tab.type };
 };
 
@@ -467,8 +479,14 @@ export const isActiveTab = (tab, activeTab, collection) => {
 
   const { accessor, value } = activeTab;
 
+  if (accessor === 'type::mockServerUid') {
+    return tab.type === 'mocker' && tab.mockServerUid === value;
+  }
+
   if (accessor === 'type') {
-    return tab.type === value;
+    const normalizedValue = value === 'mock-server-dashboard' ? 'mocker' : value;
+    const normalizedType = tab.type === 'mock-server-dashboard' ? 'mocker' : tab.type;
+    return normalizedType === normalizedValue;
   }
 
   if (accessor === 'pathname') {
@@ -537,8 +555,30 @@ const resolveResponseExampleTabState = ({ item, pathname, exampleName, exampleIn
 };
 
 export const deserializeTab = (snapshotTab, collection) => {
-  const { accessor, pathname, exampleName, exampleIndex, exampleUid, type } = snapshotTab;
+  const { accessor, pathname, exampleName, exampleIndex, exampleUid } = snapshotTab;
+  const type = snapshotTab.type === 'mock-server-dashboard' ? 'mocker' : snapshotTab.type;
   const restoredRequestPaneTab = typeof snapshotTab.request?.tab === 'string' ? snapshotTab.request.tab : null;
+
+  if (type === 'mocker') {
+    const mockServerUid = snapshotTab.mockServerUid || null;
+    return {
+      collectionUid: collection.uid,
+      type: 'mocker',
+      mockServerUid,
+      tabName: snapshotTab.name || snapshotTab.tabName || null,
+      uid: mockServerUid || uuid(),
+      preview: !snapshotTab.permanent,
+      pathname: null,
+      requestPaneTab: 'params',
+      requestPaneWidth: null,
+      requestPaneHeight: null,
+      responsePaneTab: 'response',
+      responseFormat: null,
+      responseViewTab: null,
+      responsePaneScrollPosition: null,
+      scriptPaneTab: null
+    };
+  }
 
   const tab = {
     collectionUid: collection.uid,
@@ -665,8 +705,17 @@ export const getActiveTabFromSnapshot = async (collectionPathname, collection, s
   const { accessor, value } = tabsSnapshot.activeTab;
   let snapshotTab = null;
 
-  if (accessor === 'type') {
-    snapshotTab = tabsSnapshot.tabs.find((t) => t.type === value);
+  if (accessor === 'type::mockServerUid') {
+    snapshotTab = tabsSnapshot.tabs.find((t) => {
+      const normalizedType = t.type === 'mock-server-dashboard' ? 'mocker' : t.type;
+      return normalizedType === 'mocker' && t.mockServerUid === value;
+    });
+  } else if (accessor === 'type') {
+    const normalizedValue = value === 'mock-server-dashboard' ? 'mocker' : value;
+    snapshotTab = tabsSnapshot.tabs.find((t) => {
+      const normalizedType = t.type === 'mock-server-dashboard' ? 'mocker' : t.type;
+      return normalizedType === normalizedValue;
+    });
   } else if (accessor === 'pathname') {
     snapshotTab = tabsSnapshot.tabs.find((t) => t.pathname === value && t.type !== 'response-example');
   } else if (accessor === 'pathname::exampleName') {

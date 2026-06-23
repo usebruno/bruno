@@ -193,11 +193,11 @@ const MockServerDashboard = ({ instance, collection }) => {
             Source: {sourceLabel}
             {!isSharedMode ? ` · Port ${port}` : ''}
           </div>
-          {sourcePath ? (
+          {/* {sourcePath ? (
             <div className="text-xs opacity-60 mt-1 break-all" data-testid="mock-server-source-path">
               {sourcePath}
             </div>
-          ) : null}
+          ) : null} */}
         </div>
         <button
           className="action-btn refresh-btn"

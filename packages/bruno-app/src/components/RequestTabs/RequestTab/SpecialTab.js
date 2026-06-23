@@ -103,7 +103,7 @@ const SpecialTab = ({ handleCloseClick, type, tabName, handleDoubleClick, hasDra
           </>
         );
       }
-      case 'mock-server-dashboard': {
+      case 'mocker': {
         return (
           <>
             <IconServer2 size={14} strokeWidth={1.5} className="special-tab-icon flex-shrink-0" />

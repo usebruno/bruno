@@ -9,7 +9,7 @@ const DeleteMockServerModal = ({ instance, onClose, onDeleted }) => {
 
   const handleConfirm = async () => {
     try {
-      await dispatch(deleteMockServerInstance(instance.uid)).unwrap();
+      await dispatch(deleteMockServerInstance(instance.uid));
       toast.success('Mock server deleted');
       onDeleted?.();
       onClose();

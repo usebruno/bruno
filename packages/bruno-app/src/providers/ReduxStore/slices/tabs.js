@@ -86,7 +86,7 @@ export const tabsSlice = createSlice({
         'openapi-sync',
         'openapi-spec',
         'changelog',
-        'mock-server-dashboard'
+        'mocker'
       ];
 
       const existingTab = find(state.tabs, (tab) => tab.uid === uid);
@@ -104,7 +104,7 @@ export const tabsSlice = createSlice({
       if (nonReplaceableTabTypes.includes(type)) {
         let existingTab = null;
 
-        if (type === 'mock-server-dashboard' && mockServerUid) {
+        if (type === 'mocker' && mockServerUid) {
           existingTab = find(state.tabs, (tab) => tab.type === type && tab.mockServerUid === mockServerUid);
         } else {
           existingTab = tabTypeAlreadyExists(state.tabs, collectionUid, type);

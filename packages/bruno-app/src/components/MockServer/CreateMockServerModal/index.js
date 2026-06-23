@@ -13,11 +13,11 @@ import { isScratchCollection } from 'utils/collections';
 import { matchLoadedApiSpecs } from 'components/Sidebar/ApiSpecs/matchLoadedApiSpecs';
 import {
   createMockServerInstance,
-  DEFAULT_MOCK_SERVER_PORT,
   getMockServerInstances,
   openMockServerDashboard,
   resolveTabCollectionUid,
-  saveMockServerInstance
+  saveMockServerInstance,
+  suggestNextMockServerPort
 } from 'utils/mock-server-instances';
 
 const resolveSelectedSpecUid = (editingInstance, apiSpecs) => {
@@ -169,6 +169,10 @@ const CreateMockServerModal = ({
     || null;
 
   const existingInstances = getMockServerInstances(preferences, activeWorkspaceUid);
+  const configuredInstances = get(preferences, 'mockServer.instances', []);
+  const suggestedPort = suggestNextMockServerPort(configuredInstances, {
+    excludeUid: editingInstance?.uid
+  });
   const initialSpecUid = editingInstance
     ? resolveSelectedSpecUid(editingInstance, apiSpecs)
     : (defaultSpec?.uid || '');
@@ -180,7 +184,7 @@ const CreateMockServerModal = ({
       sourceType: editingInstance?.sourceType || defaultSourceType,
       collectionUid: editingInstance?.collectionUid || defaultCollection?.uid || '',
       specUid: initialSpecUid,
-      port: editingInstance?.port || DEFAULT_MOCK_SERVER_PORT,
+      port: editingInstance?.port || suggestedPort,
       globalDelay: editingInstance?.globalDelay || 0
     },
     validationSchema: Yup.object({
@@ -282,14 +286,24 @@ const CreateMockServerModal = ({
       return;
     }
 
+    const localPort = suggestNextMockServerPort(configuredInstances);
+    const usedPorts = new Set(configuredInstances.map((instance) => Number(instance.port)));
+
     window.ipcRenderer.invoke('renderer:mock-server-suggest-port')
       .then((result) => {
-        if (result?.success && result.port) {
-          formik.setFieldValue('port', result.port);
+        let port = localPort;
+        if (result?.success && result.port && result.port > port) {
+          port = result.port;
+          while (usedPorts.has(port) && port <= 65535) {
+            port += 1;
+          }
         }
+        formik.setFieldValue('port', port);
       })
-      .catch(() => { });
-  }, [isSharedMode, isEditing]);
+      .catch(() => {
+        formik.setFieldValue('port', localPort);
+      });
+  }, [isSharedMode, isEditing, configuredInstances]);
 
   const handleConfirm = () => {
     formik.handleSubmit();

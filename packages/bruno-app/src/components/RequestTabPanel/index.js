@@ -350,7 +350,7 @@ const RequestTabPanel = () => {
     return <GlobalEnvironmentSettings />;
   }
 
-  if (focusedTab.type === 'mock-server-dashboard') {
+  if (focusedTab.type === 'mocker') {
     const instance = resolveMockServerInstance(preferences, focusedTab);
     if (!instance) {
       return (
