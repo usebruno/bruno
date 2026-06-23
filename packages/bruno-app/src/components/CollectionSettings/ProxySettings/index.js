@@ -300,6 +300,17 @@ const ProxySettings = ({ collection }) => {
                   />
                   SOCKS5
                 </label>
+                <label className="flex items-center ml-4" title="SOCKS5 with hostname resolution performed by the proxy (remote DNS)">
+                  <input
+                    type="radio"
+                    name="protocol"
+                    value="socks5h"
+                    checked={(currentProxyConfig.config?.protocol || 'http') === 'socks5h'}
+                    onChange={handleProtocolChange}
+                    className="mr-1"
+                  />
+                  SOCKS5h
+                </label>
               </div>
             </div>
             <div className="mb-3 flex items-center">
