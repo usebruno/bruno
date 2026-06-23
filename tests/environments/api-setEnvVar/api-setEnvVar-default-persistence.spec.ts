@@ -1,9 +1,12 @@
+import fs from 'fs';
+import path from 'path';
 import { test, expect, closeElectronApp } from '../../../playwright';
 import { sendRequest, waitForReadyPage } from '../../utils/page';
 import { buildCommonLocators } from '../../utils/page/locators';
 
 test.describe.serial('bru.setEnvVar(name, value) - default persistence', () => {
-  test('set env var using script persists by default across restart', async ({ pageWithUserData: page, restartApp }) => {
+  test('set env var using script persists by default across restart', async ({ pageWithUserData: page, restartApp, collectionFixturePath }) => {
+    const stageBruPath = path.join(collectionFixturePath!, 'environments', 'Stage.bru');
     const locators = buildCommonLocators(page);
     const envTab = page.locator('.request-tab').filter({ hasText: 'Environments' });
 
@@ -36,6 +39,10 @@ test.describe.serial('bru.setEnvVar(name, value) - default persistence', () => {
     await expect(tokenRow).toBeVisible();
     await expect(locators.environment.varRowLine('token')).toHaveText('secret');
 
+    // On-disk env file: setEnvVar persisted `token` to Stage.bru.
+    await expect.poll(() => fs.readFileSync(stageBruPath, 'utf8'), { timeout: 5000 })
+      .toMatch(/token:\s*secret/);
+
     await envTab.hover();
     await envTab.getByTestId('request-tab-close-icon').click({ force: true });
 
@@ -64,6 +71,9 @@ test.describe.serial('bru.setEnvVar(name, value) - default persistence', () => {
     await newTokenRow.scrollIntoViewIfNeeded();
     await expect(newTokenRow).toBeVisible();
     await expect(newLocators.environment.varRowLine('token')).toHaveText('secret');
+
+    // On-disk env file survived the restart unchanged.
+    expect(fs.readFileSync(stageBruPath, 'utf8')).toMatch(/token:\s*secret/);
 
     await newEnvTab.hover();
     await newEnvTab.getByTestId('request-tab-close-icon').click({ force: true });

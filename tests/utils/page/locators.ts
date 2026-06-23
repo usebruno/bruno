@@ -76,20 +76,21 @@ export const buildCommonLocators = (page: Page) => ({
     currentEnvironment: () => page.locator('.current-environment'),
     configureButton: () => page.locator('#configure-env'),
     saveButton: () => page.getByTestId('save-env'),
-    varRow: (name: string) => page.locator(`[data-testid="env-var-row-${name}"]`),
+    varRow: (name: string) => page.getByTestId(`env-var-row-${name}`),
+    // Prefix match — keep as a CSS selector since getByTestId is exact-match only.
     varRows: () => page.locator('tbody tr[data-testid^="env-var-row-"]'),
     // Rows for `name` whose CodeMirror value matches `value`. Useful when two rows
     // share a name (e.g. enabled + disabled twins after a script write).
     varRowsByValue: (name: string, value: string | RegExp) =>
-      page.locator(`[data-testid="env-var-row-${name}"]`)
+      page.getByTestId(`env-var-row-${name}`)
         .filter({ has: page.locator('.CodeMirror-line', { hasText: value }) }),
     // Each env-var row has an `enabled` and a `secret` checkbox; target the latter
     // by its `<index>.secret` name (the formik index is dynamic).
-    varRowSecretCheckbox: (name: string) => page.locator(`[data-testid="env-var-row-${name}"]`).locator('input[name$=".secret"]'),
-    // Eye icon that masks/reveals a secret variable's value (SingleLineEditor `button.mx-2`).
-    varRowEyeToggle: (name: string) => page.locator(`[data-testid="env-var-row-${name}"]`).locator('button.mx-2'),
-    varRowLine: (name: string) => page.locator(`[data-testid="env-var-row-${name}"] .CodeMirror-line`).first(),
-    addVariableButton: () => page.locator('button[data-testid="add-variable"]'),
+    varRowSecretCheckbox: (name: string) => page.getByTestId(`env-var-row-${name}`).locator('input[name$=".secret"]'),
+    // Eye icon that masks/reveals a secret variable's value.
+    varRowEyeToggle: (name: string) => page.getByTestId(`env-var-row-${name}`).getByTestId('secret-reveal-toggle'),
+    varRowLine: (name: string) => page.getByTestId(`env-var-row-${name}`).locator('.CodeMirror-line').first(),
+    addVariableButton: () => page.getByTestId('add-variable'),
     variableNameInput: (index: number) => page.locator(`input[name="${index}.name"]`),
     variableSecretCheckbox: (index: number) => page.locator(`input[name="${index}.secret"]`),
     variableRow: (index: number) => page.locator('tr').filter({ has: page.locator(`input[name="${index}.name"]`) }),
