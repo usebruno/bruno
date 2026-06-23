@@ -55,9 +55,11 @@ test.describe.serial('bru.setEnvVar multiple persistent variables', () => {
       // Ensure we're in the correct collection context before selecting the folder
       await expect(page.locator('#sidebar-collection-name', { hasText: 'collection' })).toBeVisible();
 
-      // Hover on the folder and open context menu
-      await page.getByText('multiple-persist-vars-folder', { exact: true }).hover();
-      await page.locator('.collection-item-name').filter({ hasText: 'multiple-persist-vars-folder' }).locator('.menu-icon').click();
+      // Hover on the folder and open context menu — chain hover + click on the SAME locator
+      // so the row-level :hover state (which CSS-reveals .menu-icon) holds for the click.
+      const folderRow = page.locator('.collection-item-name').filter({ hasText: 'multiple-persist-vars-folder' });
+      await folderRow.hover();
+      await folderRow.locator('.menu-icon').click();
 
       // Click on Run option
       await page.getByText('Run', { exact: true }).click();
