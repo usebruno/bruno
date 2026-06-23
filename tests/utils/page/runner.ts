@@ -39,6 +39,27 @@ export const getRunnerResultCounts = async (page: Page) => {
 };
 
 /**
+ * Reads the "N of M selected" indicator from the runner configuration counter
+ * @param page - The Playwright page object
+ * @returns An object with selected count (N) and total count (M)
+ */
+export const getRunnerSelectionCounters = async (page: Page) => {
+  const locators = buildRunnerLocators(page);
+  const counterText = await locators.configCounter().innerText();
+
+  // Parse "N of M selected" format
+  const match = counterText.match(/(\d+)\s+of\s+(\d+)\s+selected/);
+  if (!match) {
+    throw new Error(`Unable to parse counter text: "${counterText}"`);
+  }
+
+  return {
+    selected: parseInt(match[1]),
+    total: parseInt(match[2])
+  };
+};
+
+/**
  * Opens the runner tab for a collection without starting a run
  * @param page - The Playwright page object
  * @param collectionName - The name of the collection to open the runner for
@@ -115,6 +136,54 @@ export const runCollection = async (page: Page, collectionName: string) => {
 };
 
 /**
+ * Navigates to a folder in the sidebar and clicks "Run" from its context menu
+ * @param page - The Playwright page object
+ * @param collectionName - The name of the collection containing the folder
+ * @param folderPath - Array of folder names forming the path, (e.g. ['scripting', 'api', 'bru', 'cookies'])
+ */
+const openFolderRunMenu = async (page: Page, collectionName: string, folderPath: string[]) => {
+  // Scope to the specific collection by its DOM id (collection-<name-kebab>)
+  const collectionId = `collection-${collectionName.replace(/\s+/g, '-').toLowerCase()}`;
+  const collectionContainer = page.locator(`#${collectionId}`);
+  await collectionContainer.waitFor({ state: 'visible', timeout: 5000 });
+
+  // Walk down the folder path, scoping each step to the previous folder's container.
+  // Each CollectionItem renders as a StyledWrapper div containing:
+  //   - div.collection-item-name (the row with chevron, name, menu)
+  //   - div (children container when expanded)
+  // We scope to the parent wrapper so the next folder lookup is unambiguous.
+  let scope = collectionContainer;
+  for (const folderName of folderPath) {
+    const row = scope.locator('.collection-item-name').filter({ hasText: folderName }).first();
+    await row.waitFor({ state: 'visible', timeout: 5000 });
+
+    // Click the chevron to expand (skip if already expanded)
+    const chevron = row.getByTestId('folder-chevron');
+    const isExpanded = await chevron.evaluate((el: HTMLElement) => el.classList.contains('rotate-90'));
+    if (!isExpanded) {
+      await chevron.click();
+    }
+
+    // Scope to this folder's wrapper (parent of the row) for the next iteration
+    scope = row.locator('..');
+  }
+
+  // The target folder row is the last one we found — hover to reveal menu
+  const targetRow = scope.locator('.collection-item-name').filter({ hasText: folderPath[folderPath.length - 1] }).first();
+  await targetRow.hover();
+
+  // Click the menu icon
+  const menuIcon = targetRow.locator('.menu-icon');
+  await menuIcon.waitFor({ state: 'visible', timeout: 5000 });
+  await menuIcon.click();
+
+  // Click "Run" in the dropdown
+  const runMenuItem = page.locator('.dropdown-item').filter({ hasText: 'Run' });
+  await runMenuItem.waitFor({ state: 'visible' });
+  await runMenuItem.click();
+};
+
+/**
  * Runs a specific folder within a collection by navigating to it in the sidebar,
  * opening its context menu, and clicking "Run" followed by "Recursive Run".
  * @param page - The Playwright page object
@@ -123,45 +192,7 @@ export const runCollection = async (page: Page, collectionName: string) => {
  */
 export const runFolder = async (page: Page, collectionName: string, folderPath: string[]) => {
   await test.step(`Run folder "${folderPath.join('/')}" in "${collectionName}"`, async () => {
-    // Scope to the specific collection by its DOM id (collection-<name-kebab>)
-    const collectionId = `collection-${collectionName.replace(/\s+/g, '-').toLowerCase()}`;
-    const collectionContainer = page.locator(`#${collectionId}`);
-    await collectionContainer.waitFor({ state: 'visible', timeout: 5000 });
-
-    // Walk down the folder path, scoping each step to the previous folder's container.
-    // Each CollectionItem renders as a StyledWrapper div containing:
-    //   - div.collection-item-name (the row with chevron, name, menu)
-    //   - div (children container when expanded)
-    // We scope to the parent wrapper so the next folder lookup is unambiguous.
-    let scope = collectionContainer;
-    for (const folderName of folderPath) {
-      const row = scope.locator('.collection-item-name').filter({ hasText: folderName }).first();
-      await row.waitFor({ state: 'visible', timeout: 5000 });
-
-      // Click the chevron to expand (skip if already expanded)
-      const chevron = row.getByTestId('folder-chevron');
-      const isExpanded = await chevron.evaluate((el: HTMLElement) => el.classList.contains('rotate-90'));
-      if (!isExpanded) {
-        await chevron.click();
-      }
-
-      // Scope to this folder's wrapper (parent of the row) for the next iteration
-      scope = row.locator('..');
-    }
-
-    // The target folder row is the last one we found — hover to reveal menu
-    const targetRow = scope.locator('.collection-item-name').filter({ hasText: folderPath[folderPath.length - 1] }).first();
-    await targetRow.hover();
-
-    // Click the menu icon
-    const menuIcon = targetRow.locator('.menu-icon');
-    await menuIcon.waitFor({ state: 'visible', timeout: 5000 });
-    await menuIcon.click();
-
-    // Click "Run" in the dropdown
-    const runMenuItem = page.locator('.dropdown-item').filter({ hasText: 'Run' });
-    await runMenuItem.waitFor({ state: 'visible' });
-    await runMenuItem.click();
+    await openFolderRunMenu(page, collectionName, folderPath);
 
     // In the RunCollectionItem modal, click "Recursive Run"
     const recursiveRunButton = page.getByRole('button', { name: 'Recursive Run' });
@@ -249,4 +280,56 @@ export const validateRunnerResults = async (page: Page,
 
   // Validate that passed + failed + skipped = totalRequests
   await expect(passed).toBe(totalRequests - skipped - failed);
+};
+
+/**
+ * Opens the folder run modal without executing a run
+ * Navigates to a folder in the sidebar and clicks "Run" from its context menu
+ * @param page - The Playwright page object
+ * @param collectionName - The name of the collection containing the folder
+ * @param folderPath - Array of folder names forming the path
+ */
+export const openFolderRunModal = async (page: Page, collectionName: string, folderPath: string[]) => {
+  await test.step(`Open folder run modal for "${folderPath.join('/')}"`, async () => {
+    await openFolderRunMenu(page, collectionName, folderPath);
+
+    // Wait for modal to appear
+    const modal = page.locator('.bruno-modal-card').filter({ hasText: /Collection Runner/i });
+    await modal.waitFor({ state: 'visible', timeout: 10000 });
+
+    // Wait for request items to load
+    await expect.poll(
+      async () => {
+        const items = await page.locator('[data-testid="runner-request-item"]').count();
+        return items > 0;
+      },
+      { timeout: 10000 }
+    ).toBeTruthy();
+  });
+};
+
+/**
+ * Gets all request item locators visible in the folder run modal
+ * @param page - The Playwright page object
+ * @returns Locator for all request items
+ */
+export const getRequestItemsInFolderModal = (page: Page) => {
+  return page.locator('[data-testid="runner-request-item"]');
+};
+
+/**
+ * Clicks the "Run X Request(s)" button to execute selected requests in folder modal
+ * @param page - The Playwright page object
+ */
+export const runSelectedRequestsInFolder = async (page: Page) => {
+  await test.step('Run selected requests from folder modal', async () => {
+    const runButton = page.locator('button').filter({ hasText: /Run \d+ Request/ }).first();
+    await runButton.waitFor({ state: 'visible', timeout: 5000 });
+    await expect(runButton).toBeEnabled();
+    await runButton.click();
+
+    // Wait for the runner results to display
+    const runnerLocators = buildRunnerLocators(page);
+    await runnerLocators.runAgainButton().waitFor({ timeout: 2 * 60 * 1000 });
+  });
 };
