@@ -507,6 +507,29 @@ const registerNetworkIpc = (mainWindow) => {
     };
   };
 
+  const syncCollectionVarsToCollection = ({ collection, collectionVariables }) => {
+    if (!collection || !collectionVariables) return;
+    const applyTo = (root) => {
+      if (!root) return;
+      root.request = root.request || {};
+      root.request.vars = root.request.vars || {};
+      const existing = root.request.vars.req || [];
+      const incoming = new Map(Object.entries(collectionVariables));
+      const next = [];
+      for (const v of existing) {
+        if (!incoming.has(v.name)) continue;
+        next.push({ ...v, value: incoming.get(v.name) });
+        incoming.delete(v.name);
+      }
+      for (const [name, value] of incoming) {
+        next.push({ uid: uuid(), name, value, enabled: true, type: 'text' });
+      }
+      root.request.vars.req = next;
+    };
+    if (collection.draft?.root) applyTo(collection.draft.root);
+    if (collection.root) applyTo(collection.root);
+  };
+
   const resetOauth2Credentials = ({ oauth2CredentialsToReset, request, collectionUid }) => {
     if (!oauth2CredentialsToReset?.length) return;
     for (const credentialId of oauth2CredentialsToReset) {
@@ -576,6 +599,12 @@ const registerNetworkIpc = (mainWindow) => {
       });
 
       collection.globalEnvironmentVariables = scriptResult.globalEnvironmentVariables;
+
+      mainWindow.webContents.send('main:collection-variables-update', {
+        collectionVariables: scriptResult.collectionVariables,
+        collectionUid
+      });
+      syncCollectionVarsToCollection({ collection, collectionVariables: scriptResult.collectionVariables });
 
       resetOauth2Credentials({ oauth2CredentialsToReset: scriptResult.oauth2CredentialsToReset, request, collectionUid });
 
@@ -731,6 +760,12 @@ const registerNetworkIpc = (mainWindow) => {
       });
 
       collection.globalEnvironmentVariables = scriptResult.globalEnvironmentVariables;
+
+      mainWindow.webContents.send('main:collection-variables-update', {
+        collectionVariables: scriptResult.collectionVariables,
+        collectionUid
+      });
+      syncCollectionVarsToCollection({ collection, collectionVariables: scriptResult.collectionVariables });
 
       resetOauth2Credentials({ oauth2CredentialsToReset: scriptResult.oauth2CredentialsToReset, request, collectionUid });
 
@@ -1196,6 +1231,7 @@ const registerNetworkIpc = (mainWindow) => {
                 envVariables: envVars,
                 runtimeVariables,
                 globalEnvironmentVariables: request?.globalEnvironmentVariables || {},
+                collectionVariables: request?.collectionVariables || {},
                 results: [],
                 nextRequestName: null
               };
@@ -1231,6 +1267,12 @@ const registerNetworkIpc = (mainWindow) => {
           });
 
           collection.globalEnvironmentVariables = testResults.globalEnvironmentVariables;
+
+          mainWindow.webContents.send('main:collection-variables-update', {
+            collectionVariables: testResults.collectionVariables,
+            collectionUid
+          });
+          syncCollectionVarsToCollection({ collection, collectionVariables: testResults.collectionVariables });
 
           resetOauth2Credentials({ oauth2CredentialsToReset: testResults.oauth2CredentialsToReset, request, collectionUid });
 
@@ -2068,6 +2110,7 @@ const registerNetworkIpc = (mainWindow) => {
                     envVariables: envVars,
                     runtimeVariables,
                     globalEnvironmentVariables: request?.globalEnvironmentVariables || {},
+                    collectionVariables: request?.collectionVariables || {},
                     results: [],
                     nextRequestName: null
                   };
@@ -2098,6 +2141,12 @@ const registerNetworkIpc = (mainWindow) => {
               });
 
               collection.globalEnvironmentVariables = testResults.globalEnvironmentVariables;
+
+              mainWindow.webContents.send('main:collection-variables-update', {
+                collectionVariables: testResults.collectionVariables,
+                collectionUid
+              });
+              syncCollectionVarsToCollection({ collection, collectionVariables: testResults.collectionVariables });
 
               resetOauth2Credentials({ oauth2CredentialsToReset: testResults.oauth2CredentialsToReset, request, collectionUid });
 

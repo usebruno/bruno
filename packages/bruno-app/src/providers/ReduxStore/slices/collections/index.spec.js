@@ -5,7 +5,8 @@ const {
   setFolderVars,
   setCollectionVars,
   collectionAddEnvFileEvent,
-  scriptEnvironmentUpdateEvent
+  scriptEnvironmentUpdateEvent,
+  _applyCollectionVariablesUpdate
 } = collectionsSlice.actions;
 const reducer = collectionsSlice.reducer;
 
@@ -181,5 +182,69 @@ describe('setCollectionVars — strips dataType: \'string\' (implicit default)',
     );
 
     assertGuardedVars(next.collections[0].draft.root.request.vars.req);
+  });
+});
+
+describe('_applyCollectionVariablesUpdate — sync script-driven changes to collection vars', () => {
+  const stateWith = (req) => ({
+    collections: [
+      {
+        uid: 'col1',
+        items: [],
+        root: { request: { vars: { req, res: [] } } }
+      }
+    ]
+  });
+
+  it('updates value on existing vars and drops vars removed by deleteCollectionVar', () => {
+    const state = stateWith([
+      { uid: 'v1', name: 'keep', value: 'old', enabled: true },
+      { uid: 'v2', name: 'remove_me', value: 'gone', enabled: true }
+    ]);
+
+    const next = reducer(
+      state,
+      _applyCollectionVariablesUpdate({
+        collectionUid: 'col1',
+        collectionVariables: { keep: 'new' }
+      })
+    );
+
+    const vars = next.collections[0].draft.root.request.vars.req;
+    expect(vars).toHaveLength(1);
+    expect(vars[0]).toMatchObject({ uid: 'v1', name: 'keep', value: 'new' });
+  });
+
+  it('infers non-string dataType when overwriting existing vars with typed values', () => {
+    const state = stateWith([
+      { uid: 'v1', name: 'count', value: 'placeholder', enabled: true },
+      { uid: 'v2', name: 'flag', value: 'placeholder', enabled: true },
+      { uid: 'v3', name: 'label', value: 'placeholder', enabled: true }
+    ]);
+
+    const next = reducer(
+      state,
+      _applyCollectionVariablesUpdate({
+        collectionUid: 'col1',
+        collectionVariables: { count: 5, flag: true, label: 'hi' }
+      })
+    );
+
+    const byName = Object.fromEntries(
+      next.collections[0].draft.root.request.vars.req.map((v) => [v.name, v])
+    );
+    expect(byName.count).toMatchObject({ value: 5, dataType: 'number' });
+    expect(byName.flag).toMatchObject({ value: true, dataType: 'boolean' });
+    expect(byName.label.value).toBe('hi');
+    expect(byName.label.dataType).toBeUndefined();
+  });
+
+  it('no-ops when collectionVariables payload is missing', () => {
+    const state = stateWith([{ uid: 'v1', name: 'keep', value: 'old', enabled: true }]);
+    const next = reducer(
+      state,
+      _applyCollectionVariablesUpdate({ collectionUid: 'col1' })
+    );
+    expect(next).toBe(state);
   });
 });
