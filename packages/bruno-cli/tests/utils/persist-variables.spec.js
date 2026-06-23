@@ -355,3 +355,117 @@ describe('typed-value inference', () => {
     expect(flagVar.dataType).toBe('boolean');
   });
 });
+
+describe('script-driven typed vars: disk content has the right dataType annotations', () => {
+  // The .bru serializer emits `@number\n  port: 3000` (annotation on its own line) — see
+  // packages/bruno-lang/v2/src/utils.js serializeAnnotations + serializeVar.
+  it('persists @number/@boolean/@object annotations in a .bru env file', () => {
+    const filePath = writeFile('Test.bru', 'vars {\n  host: https://example.test\n}\n');
+
+    persistVariableUpdates(
+      {
+        envVariables: {
+          host: 'https://example.test',
+          envNum: 42,
+          envBool: true,
+          envObj: { port: 3000, ssl: true },
+          envStr: 'hello'
+        }
+      },
+      { envFile: { path: filePath, format: 'bru' } }
+    );
+
+    const written = fs.readFileSync(filePath, 'utf8');
+    expect(written).toMatch(/@number\s+envNum:\s*42/);
+    expect(written).toMatch(/@boolean\s+envBool:\s*true/);
+    expect(written).toMatch(/@object\s+envObj:/);
+    expect(written).toContain('"port": 3000');
+    expect(written).toContain('"ssl": true');
+    // 'string' is the implicit default — never materialized as an annotation.
+    expect(written).not.toMatch(/@string\s+envStr/);
+    expect(written).toMatch(/envStr:\s*hello/);
+  });
+
+  it('persists @number/@boolean/@object annotations in collection.bru for collection vars', () => {
+    const collectionRootPath = writeFile(
+      'collection.bru',
+      'meta {\n  name: typed-collection\n  seq: 1\n}\n'
+    );
+    const collection = {
+      format: 'bru',
+      brunoConfig: { name: 'typed-collection' },
+      root: {
+        meta: { name: 'typed-collection', seq: 1 },
+        request: { vars: { req: [] } }
+      }
+    };
+
+    persistVariableUpdates(
+      {
+        collectionVariables: {
+          collNum: 7,
+          collBool: false,
+          collObj: { region: 'eu', retries: 3 },
+          collStr: 'plain'
+        }
+      },
+      { collection, collectionRootPath }
+    );
+
+    const written = fs.readFileSync(collectionRootPath, 'utf8');
+    expect(written).toMatch(/@number\s+collNum:\s*7/);
+    expect(written).toMatch(/@boolean\s+collBool:\s*false/);
+    expect(written).toMatch(/@object\s+collObj:/);
+    expect(written).toContain('"region": "eu"');
+    expect(written).toContain('"retries": 3');
+    expect(written).not.toMatch(/@string\s+collStr/);
+    expect(written).toMatch(/collStr:\s*plain/);
+  });
+
+  // The yml serializer encodes typed values as a `{ type, data }` block instead of `@dataType`
+  // decorators — see packages/bruno-filestore/src/formats/yml/common/datatype.ts.
+  it('persists typed global env vars to a yml global env file with type/data blocks', () => {
+    const globalPath = writeFile(
+      'global.yml',
+      'name: global\nvariables:\n  - name: baseUrl\n    value: https://example.test\n'
+    );
+
+    persistVariableUpdates(
+      {
+        globalEnvironmentVariables: {
+          baseUrl: 'https://example.test',
+          globalNum: 99,
+          globalBool: false,
+          globalObj: { tier: 'premium', limit: 100 }
+        }
+      },
+      { globalEnvFile: { path: globalPath, format: 'yml' } }
+    );
+
+    const written = fs.readFileSync(globalPath, 'utf8');
+    expect(written).toMatch(/name:\s*globalNum[\s\S]*?type:\s*number[\s\S]*?data:\s*['"]?99/);
+    expect(written).toMatch(/name:\s*globalBool[\s\S]*?type:\s*boolean[\s\S]*?data:\s*['"]?false/);
+    expect(written).toMatch(/name:\s*globalObj[\s\S]*?type:\s*object[\s\S]*?data:[\s\S]*?tier/);
+    // 'string' values stay as raw `value: ...` — no type/data block.
+    expect(written).toMatch(/name:\s*baseUrl[\s\S]*?value:\s*https:\/\/example\.test/);
+    expect(written).not.toMatch(/name:\s*baseUrl[\s\S]*?type:\s*string/);
+  });
+
+  // Regression guard: a script that writes a string to a previously typed key must drop the
+  // annotation so the disk shape matches the new value's inferred dataType.
+  it('drops the @number annotation in a .bru env file when a script downgrades the value to a string', () => {
+    const filePath = writeFile(
+      'Test.bru',
+      'vars {\n  @number\n  count: 1\n}\n'
+    );
+
+    persistVariableUpdates(
+      { envVariables: { count: 'now-a-string' } },
+      { envFile: { path: filePath, format: 'bru' } }
+    );
+
+    const written = fs.readFileSync(filePath, 'utf8');
+    expect(written).not.toMatch(/@number/);
+    expect(written).toMatch(/count:\s*now-a-string/);
+  });
+});
