@@ -112,6 +112,37 @@ describe('proxy-util', () => {
     );
   });
 
+  test('setupProxyAgents: manual socks5h proxy routes through socks agent and preserves the socks5h scheme', async () => {
+    setupMocks();
+    const { setupProxyAgents } = require('../src/utils/proxy-util');
+    const { SocksProxyAgent } = require('socks-proxy-agent');
+    const { getOrCreateHttpsAgent } = require('@usebruno/requests');
+
+    // https request → only the https agent should be set
+    const requestConfig = { url: 'https://example.com/resource' };
+    const timeline = [];
+
+    await setupProxyAgents({
+      requestConfig,
+      proxyMode: 'on',
+      proxyConfig: {
+        protocol: 'socks5h',
+        hostname: 'socks.example',
+        port: 1080,
+        auth: { disabled: true }
+      },
+      httpsAgentRequestFields: {},
+      interpolationOptions: {},
+      timeline
+    });
+
+    // The socks5h scheme must reach socks-proxy-agent verbatim — that scheme is what
+    // tells the agent to resolve the target hostname on the proxy side (remote DNS).
+    expect(getOrCreateHttpsAgent).toHaveBeenCalledWith(
+      expect.objectContaining({ AgentClass: SocksProxyAgent, proxyUri: 'socks5h://socks.example:1080' })
+    );
+  });
+
   test('setupProxyAgents: PAC resolution error logs to timeline and falls back to direct agent', async () => {
     jest.doMock('../src/store/preferences', () => ({
       preferencesUtil: { isSslSessionCachingEnabled: () => false }
