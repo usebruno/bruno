@@ -16,10 +16,9 @@ import {
   getMockResponseItemUid,
   mockResponseFromEditorItem
 } from 'utils/mock-responses/editor';
-import ResponseExampleRequestPane from 'components/ResponseExample/ResponseExampleRequestPane';
 import ResponseExampleResponsePane from 'components/ResponseExample/ResponseExampleResponsePane';
 import MockResponseTopBar from './MockResponseTopBar';
-import MockResponseRules from './MockResponseRules';
+import MockResponseRequestPane from './MockResponseRequestPane';
 import StyledWrapper from 'components/ResponseExample/StyledWrapper';
 
 const MIN_LEFT_PANE_WIDTH = 300;
@@ -322,7 +321,7 @@ const MockResponse = ({ instance, collection, responseUid }) => {
       <section ref={mainSectionRef} className={`main wrapper flex mt-4 ${isVerticalLayout ? 'flex-col' : ''} flex-grow pb-4 relative overflow-auto scrollbar-hover`}>
         <section className="request-pane" data-testid="mock-response-request-pane">
           <div
-            className="px-4 h-full"
+            className="h-full"
             style={isVerticalLayout ? {
               height: `${Math.max(topPaneHeight, MIN_TOP_PANE_HEIGHT)}px`,
               minHeight: `${MIN_TOP_PANE_HEIGHT}px`,
@@ -331,22 +330,15 @@ const MockResponse = ({ instance, collection, responseUid }) => {
               width: `${Math.max(leftPaneWidth, MIN_LEFT_PANE_WIDTH)}px`
             }}
           >
-            <ResponseExampleRequestPane
+            <MockResponseRequestPane
               item={item}
               collection={editorCollection}
-              example={item.draft?.examples?.find((entry) => entry.uid === exampleUid)}
-              editMode={editMode}
               exampleUid={exampleUid}
+              editMode={editMode}
               onSave={handleSave}
+              rules={editor.rules}
+              onRulesChange={(rules) => dispatch(updateMockResponseRules({ responseUid, rules }))}
             />
-
-            <div className="mt-4">
-              <MockResponseRules
-                rules={editor.rules}
-                editMode={editMode}
-                onChange={(rules) => dispatch(updateMockResponseRules({ responseUid, rules }))}
-              />
-            </div>
           </div>
         </section>
 

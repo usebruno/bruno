@@ -14,7 +14,7 @@ const OPERATOR_OPTIONS = [
   { value: 'regex', label: 'regex' }
 ];
 
-const MockResponseRules = ({ rules, editMode, onChange }) => {
+const MockResponseRules = ({ rules, editMode, onChange, embedded = false }) => {
   const conditions = rules?.conditions || [];
   const operator = rules?.operator === 'OR' ? 'OR' : 'AND';
 
@@ -52,9 +52,9 @@ const MockResponseRules = ({ rules, editMode, onChange }) => {
   };
 
   return (
-    <StyledWrapper className="rules-panel">
-      <div className="flex items-center justify-between mb-3">
-        <div className="font-medium text-sm">Response rules</div>
+    <StyledWrapper className={embedded ? 'rules-panel embedded' : 'rules-panel'}>
+      <div className={`flex items-center mb-3 ${embedded ? 'justify-end' : 'justify-between'}`}>
+        {!embedded ? <div className="font-medium text-sm">Response rules</div> : null}
         <div className="flex items-center gap-2 text-xs">
           <label htmlFor="mock-response-rule-operator">Match</label>
           <select

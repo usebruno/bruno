@@ -5,8 +5,14 @@ const StyledWrapper = styled.div`
     border: 1px solid ${(props) => props.theme.table.border};
     border-radius: ${(props) => props.theme.border.radius.sm};
     padding: 12px;
-    margin-top: 12px;
     background: ${(props) => props.theme.bg.secondary || 'transparent'};
+
+    &.embedded {
+      border: none;
+      border-radius: 0;
+      padding: 0;
+      background: transparent;
+    }
   }
 
   .rule-row {
