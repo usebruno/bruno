@@ -1,6 +1,7 @@
 import { test, expect, Page, Locator, ElectronApplication, waitForReadyPage as waitForReadyPageImpl } from '../../../playwright';
 import process from 'node:process';
 import * as path from 'path';
+import AdmZip from 'adm-zip';
 import { buildCommonLocators, buildScriptErrorLocators, buildGrpcCommonLocators, buildWebsocketCommonLocators } from './locators';
 import { waitForCollectionMount } from './mounting';
 
@@ -2172,3 +2173,118 @@ export {
 };
 
 export type { SandboxMode, EnvironmentType, EnvironmentVariable, ImportCollectionOptions, CreateRequestOptions, CreateUntitledRequestOptions, CreateTransientRequestOptions, AssertionInput };
+
+/* ------------------------------------------------------------------ *
+ * Import Workspace flow
+ * Used by tests/workspace/import-workspace.
+ * ------------------------------------------------------------------ */
+
+export const buildImportWorkspaceLocators = (page: Page) => ({
+  // Title-bar workspace dropdown
+  menuTrigger: () => page.getByTestId('workspace-menu'),
+  activeWorkspaceName: () => page.getByTestId('workspace-name'),
+  dropdownItem: (text: string) => page.locator('.dropdown-item').filter({ hasText: text }),
+
+  // Import Workspace modal
+  modal: () => page.locator('.bruno-modal-card').filter({ hasText: 'Import Workspace' }),
+  fileInput: () => page.locator('.bruno-modal-card input[type="file"]'),
+  selectedFileName: (name: string) =>
+    page.locator('.bruno-modal-card').filter({ hasText: 'Import Workspace' }).getByText(name),
+  removeFileButton: () => page.locator('.bruno-modal-card').filter({ hasText: 'Import Workspace' }).getByText('Remove'),
+  locationInput: () => page.locator('#workspace-location'),
+  browseLink: () =>
+    page.locator('.bruno-modal-card').filter({ hasText: 'Import Workspace' }).getByText('Browse', { exact: true }),
+  importButton: () =>
+    page.locator('.bruno-modal-card').filter({ hasText: 'Import Workspace' }).getByRole('button', { name: 'Import' })
+});
+
+/**
+ * Build a valid Bruno workspace zip on disk that the importer will accept.
+ * The zip contains a single `workspace.yml` (info.name + info.type: workspace).
+ *
+ * @param zipDir - directory in which to write the zip
+ * @param workspaceName - the workspace name embedded in workspace.yml
+ * @returns absolute path to the created zip file
+ */
+export const createWorkspaceZip = (zipDir: string, workspaceName: string): string => {
+  const workspaceYml = [
+    'opencollection: 1.0.0',
+    'info:',
+    `  name: "${workspaceName}"`,
+    '  type: workspace',
+    '',
+    'collections: []',
+    'specs: []',
+    'docs: \'\'',
+    ''
+  ].join('\n');
+
+  const zip = new AdmZip();
+  zip.addFile('workspace.yml', Buffer.from(workspaceYml, 'utf8'));
+
+  const zipPath = path.join(zipDir, `${workspaceName}.zip`);
+  zip.writeZip(zipPath);
+  return zipPath;
+};
+
+/**
+ * Open the title-bar workspace dropdown and launch the Import Workspace modal.
+ */
+export const openImportWorkspaceModal = async (page: Page) => {
+  const l = buildImportWorkspaceLocators(page);
+  await test.step('Open workspace menu and click "Import workspace"', async () => {
+    await l.menuTrigger().click();
+    await l.dropdownItem('Import workspace').click();
+    await expect(l.modal()).toBeVisible({ timeout: 5000 });
+  });
+};
+
+type ImportWorkspaceOptions = {
+  zipPath: string;
+  /**
+   * Where to extract the workspace. When omitted, the modal's pre-filled
+   * default location (from preferences.general.defaultLocation) is used as-is.
+   */
+  extractLocation?: string;
+  app?: ElectronApplication;
+};
+
+/**
+ * Run the full import flow inside an already-open modal:
+ * select the zip, ensure an extract location is set, and click Import.
+ */
+export const submitWorkspaceImport = async (page: Page, opts: ImportWorkspaceOptions) => {
+  const l = buildImportWorkspaceLocators(page);
+
+  await test.step('Select the workspace zip file', async () => {
+    await l.fileInput().setInputFiles(opts.zipPath);
+    await expect(l.selectedFileName(path.basename(opts.zipPath))).toBeVisible({ timeout: 5000 });
+  });
+
+  await test.step('Ensure an extract location is set', async () => {
+    if (opts.extractLocation && opts.app) {
+      // Stub the directory picker so Browse resolves to the desired location.
+      await opts.app.evaluate(({ dialog }, target: string) => {
+        (dialog as { showOpenDialog: typeof dialog.showOpenDialog }).showOpenDialog = () =>
+          Promise.resolve({ canceled: false, filePaths: [target] });
+      }, opts.extractLocation);
+      await l.locationInput().click();
+      await expect(l.locationInput()).toHaveValue(opts.extractLocation, { timeout: 5000 });
+    } else {
+      // Rely on the pre-filled default location.
+      await expect(l.locationInput()).not.toHaveValue('');
+    }
+  });
+
+  await test.step('Submit the import', async () => {
+    await l.importButton().click();
+  });
+};
+
+/**
+ * Convenience: open the modal and import a zip in one call.
+ */
+export const importWorkspaceFromZip = async (page: Page, opts: ImportWorkspaceOptions) => {
+  await openImportWorkspaceModal(page);
+  await submitWorkspaceImport(page, opts);
+};
