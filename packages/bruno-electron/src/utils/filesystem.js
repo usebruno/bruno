@@ -331,6 +331,47 @@ const getUniqueRenamePath = (oldPath, desiredNewPath) => {
   }
 };
 
+/**
+ * Resolve a collision-free destination path for moving `sourcePathname` into
+ * `targetDirname`, keeping the source's basename and appending a numeric suffix
+ * if it's taken. Works for both files (extension preserved) and folders.
+ */
+const getUniqueTargetPath = (sourcePathname, targetDirname) => {
+  const desired = path.join(targetDirname, path.basename(sourcePathname));
+  return getUniqueRenamePath(sourcePathname, desired);
+};
+
+/**
+ * Recursively copy `source` to an explicit `targetPath` (file or directory).
+ */
+const copyPathTo = async (source, targetPath) => {
+  const stat = await fsPromises.lstat(source);
+  if (stat.isDirectory()) {
+    await fsPromises.mkdir(targetPath, { recursive: true });
+    const entries = await fsPromises.readdir(source);
+    for (const entry of entries) {
+      await copyPathTo(path.join(source, entry), path.join(targetPath, entry));
+    }
+  } else {
+    await fsPromises.copyFile(source, targetPath);
+  }
+};
+
+/**
+ * Per-directory async mutex. Serializes operations targeting the same directory
+ * so multi-step, non-atomic operations (move = copy-then-delete) can't interleave
+ * with each other or with a concurrent create in the same destination.
+ */
+const dirLockChains = new Map();
+const withDirLock = (dirname, fn) => {
+  const prev = dirLockChains.get(dirname) || Promise.resolve();
+  // Run fn only after the previous op for this dir settles (success or failure).
+  const result = prev.then(() => fn(), () => fn());
+  // Keep the chain alive regardless of fn's outcome so the next op still runs.
+  dirLockChains.set(dirname, result.then(() => {}, () => {}));
+  return result;
+};
+
 const getCollectionStats = async (directoryPath) => {
   let size = 0;
   let filesCount = 0;
@@ -404,33 +445,6 @@ function safeWriteFileSync(filePath, data) {
   const safePath = getSafePathToWrite(filePath);
   fs.writeFileSync(safePath, data);
 }
-
-// Recursively copies a source <file/directory> to a destination <directory>.
-const copyPath = async (source, destination) => {
-  let targetPath = `${destination}/${path.basename(source)}`;
-
-  const targetPathExists = await fsPromises.access(targetPath).then(() => true).catch(() => false);
-  if (targetPathExists) {
-    throw new Error(`Cannot copy, ${path.basename(source)} already exists in ${path.basename(destination)}`);
-  }
-
-  const copy = async (source, destination) => {
-    const stat = await fsPromises.lstat(source);
-    if (stat.isDirectory()) {
-      await fsPromises.mkdir(destination, { recursive: true });
-      const entries = await fsPromises.readdir(source);
-      for (const entry of entries) {
-        const srcPath = path.join(source, entry);
-        const destPath = path.join(destination, entry);
-        await copy(srcPath, destPath);
-      }
-    } else {
-      await fsPromises.copyFile(source, destination);
-    }
-  };
-
-  await copy(source, targetPath);
-};
 
 // Recursively removes a source <file/directory>.
 const removePath = async (source) => {
@@ -593,6 +607,9 @@ module.exports = {
   writeFileUnique,
   mkdirUnique,
   getUniqueRenamePath,
+  getUniqueTargetPath,
+  copyPathTo,
+  withDirLock,
   hasJsonExtension,
   hasBruExtension,
   hasRequestExtension,
@@ -611,7 +628,6 @@ module.exports = {
   sizeInMB,
   safeWriteFile,
   safeWriteFileSync,
-  copyPath,
   removePath,
   moveCollectionDirectory,
   getPaths,
