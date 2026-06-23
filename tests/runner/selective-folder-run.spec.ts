@@ -12,7 +12,7 @@ import {
 const TEST_COLLECTION_NAME = 'bruno-testbench';
 const TEST_FOLDER_PATH = ['scripting', 'api', 'bru', 'cookies'];
 
-test.describe.serial('Selective Folder Run', () => {
+test.describe('Selective Folder Run', () => {
   const getSelectiveRunButton = (page) => page.locator('button').filter({ hasText: /Run \d+ Request/ }).first();
   const getRunButton = (page) => page.locator('button').filter({ hasText: /^Run \(/ });
   const getRecursiveRunButton = (page) => page.locator('button').filter({ hasText: /^Recursive Run \(/ });
