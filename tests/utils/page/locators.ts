@@ -86,6 +86,8 @@ export const buildCommonLocators = (page: Page) => ({
     // Each env-var row has an `enabled` and a `secret` checkbox; target the latter
     // by its `<index>.secret` name (the formik index is dynamic).
     varRowSecretCheckbox: (name: string) => page.locator(`[data-testid="env-var-row-${name}"]`).locator('input[name$=".secret"]'),
+    // Eye icon that masks/reveals a secret variable's value (SingleLineEditor `button.mx-2`).
+    varRowEyeToggle: (name: string) => page.locator(`[data-testid="env-var-row-${name}"]`).locator('button.mx-2'),
     varRowLine: (name: string) => page.locator(`[data-testid="env-var-row-${name}"] .CodeMirror-line`).first(),
     addVariableButton: () => page.locator('button[data-testid="add-variable"]'),
     variableNameInput: (index: number) => page.locator(`input[name="${index}.name"]`),

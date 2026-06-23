@@ -259,6 +259,32 @@ describe('applyScriptEnvVars', () => {
       expect(result.find((x) => x.name === 'stale')).toBeUndefined();
     });
   });
+
+  describe('secret flag preservation', () => {
+    const secretVar = (name, value, enabled = true) => ({
+      uid: `uid-${name}`,
+      name,
+      value,
+      type: 'text',
+      secret: true,
+      enabled
+    });
+
+    it('preserves secret: true when script updates an enabled secret var (baseline mode)', () => {
+      const result = applyScriptEnvVars(
+        [secretVar('apiToken', 'old')],
+        { apiToken: 'new' },
+        { apiToken: 'old' }
+      );
+      expect(result).toHaveLength(1);
+      expect(result[0]).toMatchObject({ name: 'apiToken', value: 'new', secret: true, enabled: true });
+    });
+
+    it('preserves secret: true in direct-apply (no baseline) mode', () => {
+      const result = applyScriptEnvVars([secretVar('apiToken', 'old')], { apiToken: 'new' }, null);
+      expect(result[0]).toMatchObject({ name: 'apiToken', value: 'new', secret: true });
+    });
+  });
 });
 
 describe('Env export → import round-trip via JSON', () => {
