@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { usePersistedState } from 'hooks/usePersistedState';
 import { useSelector, useDispatch } from 'react-redux';
 import ReactJson from 'react-json-view';
 import { useTheme } from 'providers/Theme';
@@ -23,8 +24,7 @@ import {
   setActiveTab,
   clearDebugErrors,
   updateNetworkFilter,
-  toggleAllNetworkFilters,
-  updateRequestDetailsPanelWidth
+  toggleAllNetworkFilters
 } from 'providers/ReduxStore/slices/logs';
 
 import NetworkTab from './NetworkTab';
@@ -386,7 +386,7 @@ const Console = () => {
   const dispatch = useDispatch();
   const { logs, filters, activeTab, selectedRequest, selectedError, networkFilters, debugErrors } = useSelector((state) => state.logs);
   const collections = useSelector((state) => state.collections.collections);
-  const savedDetailsPanelWidth = useSelector((state) => state.logs.requestDetailsPanelWidth);
+  const [savedDetailsPanelWidth, setSavedDetailsPanelWidth] = usePersistedState({ key: 'devtools-details-panel-width', default: 400 });
   const consoleRef = useRef(null);
 
   const { width: detailsPanelWidth, handleDragStart: handleDetailsPanelDragStart } = useResizablePanel({
@@ -394,7 +394,7 @@ const Console = () => {
     minWidth: MIN_DETAILS_PANEL_WIDTH,
     maxWidth: MAX_DETAILS_PANEL_WIDTH,
     direction: 'right',
-    onResizeEnd: (newWidth) => dispatch(updateRequestDetailsPanelWidth({ requestDetailsPanelWidth: newWidth }))
+    onResizeEnd: (newWidth) => setSavedDetailsPanelWidth(newWidth)
   });
 
   const logCounts = logs.reduce((counts, log) => {
