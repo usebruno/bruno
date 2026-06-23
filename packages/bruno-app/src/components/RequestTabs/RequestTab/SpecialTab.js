@@ -1,5 +1,6 @@
 import React from 'react';
 import GradientCloseButton from './GradientCloseButton';
+import DraftTabIcon from './DraftTabIcon';
 import { IconVariable, IconSettings, IconRun, IconFolder, IconDatabase, IconWorld, IconHome, IconFileCode, IconConfetti } from '@tabler/icons';
 import OpenAPISyncIcon from 'components/Icons/OpenAPISync';
 
@@ -121,7 +122,9 @@ const SpecialTab = ({ handleCloseClick, type, tabName, handleDoubleClick, hasDra
       >
         {getTabInfo(type, tabName)}
       </div>
-      {handleCloseClick && <GradientCloseButton hasChanges={hasDraft} onClick={(e) => handleCloseClick(e)} />}
+      {handleCloseClick
+        ? <GradientCloseButton hasChanges={hasDraft} onClick={(e) => handleCloseClick(e)} />
+        : hasDraft && <DraftTabIcon />}
     </>
   );
 };
