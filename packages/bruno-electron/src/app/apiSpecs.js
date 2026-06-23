@@ -19,24 +19,6 @@ const validateApiSpec = (filePath) => {
   if (!VALID_API_SPEC_EXTENSIONS.includes(ext)) {
     throw new Error('Invalid file format. Please select a valid OpenAPI spec in YAML or JSON format.');
   }
-
-  const content = fs.readFileSync(filePath, 'utf8');
-
-  let parsed;
-  try {
-    parsed = ext === '.json' ? JSON.parse(content) : yaml.load(content);
-  } catch {
-    throw new Error('Invalid file format. Please select a valid OpenAPI spec in YAML or JSON format.');
-  }
-
-  if (!parsed || typeof parsed !== 'object') {
-    throw new Error('Invalid file format. Please select a valid OpenAPI spec in YAML or JSON format.');
-  }
-
-  const hasSpecVersion = typeof parsed.openapi === 'string' || typeof parsed.swagger === 'string';
-  if (!hasSpecVersion || typeof parsed.info !== 'object' || parsed.info === null) {
-    throw new Error('Invalid OpenAPI spec. The file must contain a valid OpenAPI (3.x) or Swagger (2.0) specification.');
-  }
 };
 
 const prepareWorkspaceConfigForClient = (workspaceConfig, isDefault) => {
@@ -116,10 +98,14 @@ const openApiSpec = async (win, watcher, apiSpecPath, options = {}) => {
         json: (() => {
           const ext = require('path').extname(apiSpecPath).toLowerCase();
           const content = require('fs').readFileSync(apiSpecPath, 'utf8');
-          if (ext === '.yaml' || ext === '.yml') {
-            return require('js-yaml').load(content);
-          } else if (ext === '.json') {
-            return JSON.parse(content);
+          try {
+            if (ext === '.yaml' || ext === '.yml') {
+              return require('js-yaml').load(content);
+            } else if (ext === '.json') {
+              return JSON.parse(content);
+            }
+          } catch {
+            return null;
           }
           return null;
         })()
