@@ -1,20 +1,26 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import styled from 'styled-components';
 import { useDispatch, useSelector } from 'react-redux';
-import { IconDots, IconPlayerPlay, IconPlayerStop, IconSettings, IconTrash } from '@tabler/icons';
+import classnames from 'classnames';
+import { IconChevronRight, IconCopy, IconDots, IconPencil, IconPlayerPlay, IconPlayerStop, IconSettings, IconTrash } from '@tabler/icons';
 import toast from 'react-hot-toast';
 import { mountCollection } from 'providers/ReduxStore/slices/collections/actions';
-import { startMockServer, stopMockServer, syncMockServerState } from 'providers/ReduxStore/slices/mock-server';
+import { startMockServer, stopMockServer, syncMockServerState, loadMockResponses } from 'providers/ReduxStore/slices/mock-server';
 import { normalizePath } from 'utils/common/path';
 import {
   getMockServerInstances,
   openMockServerDashboard,
   resolveMockServerStartPayload,
+  resolveMockServerWorkspacePath,
   resolveTabCollectionUid,
   saveMockServerInstance
 } from 'utils/mock-server-instances';
+import { resolveMockResponseLocation } from 'utils/mock-responses';
 import CreateMockServerModal from 'components/MockServer/CreateMockServerModal';
+import CloneMockServerModal from 'components/MockServer/CloneMockServerModal';
+import RenameMockServerModal from 'components/MockServer/RenameMockServerModal';
 import DeleteMockServerModal from 'components/MockServer/DeleteMockServerModal';
+import MockResponseSidebarItem from './MockResponseSidebarItem';
 import MenuDropdown from 'ui/MenuDropdown';
 import ActionIcon from 'ui/ActionIcon';
 import StyledWrapper from '../ApiSpecs/StyledWrapper';
@@ -28,12 +34,34 @@ const StatusDot = styled.span`
   background: ${(props) => (props.$running ? '#22c55e' : '#9ca3af')};
 `;
 
-const MockServerItem = ({ instance, collection, workspaceCollections, activeWorkspace, apiSpecs, onEditSettings, onDelete }) => {
+const MockServerItem = ({
+  instance,
+  collection,
+  workspaceCollections,
+  activeWorkspace,
+  apiSpecs,
+  onEditSettings,
+  onRename,
+  onClone,
+  onDelete
+}) => {
   const dispatch = useDispatch();
+  const collections = useSelector((state) => state.collections.collections);
+  const workspaces = useSelector((state) => state.workspaces.workspaces);
+  const [expanded, setExpanded] = useState(false);
   const serverState = useSelector((state) => state.mockServer.servers[instance.uid]);
+  const responses = useSelector((state) => state.mockServer.mockResponses[instance.uid] || []);
   const isRunning = serverState?.status === 'running';
   const isStarting = serverState?.status === 'starting';
   const isStopping = serverState?.status === 'stopping';
+  const resolvedCollection = collection || collections.find((item) => item.uid === instance.collectionUid) || null;
+  const location = useMemo(() => (
+    resolveMockResponseLocation(instance, resolvedCollection, collections, workspaces, activeWorkspace)
+  ), [instance, resolvedCollection, collections, workspaces, activeWorkspace]);
+
+  useEffect(() => {
+    dispatch(loadMockResponses(location));
+  }, [dispatch, location.mockServerUid, location.collectionPath, location.sourceType, location.workspacePath]);
 
   const ensureCollectionMounted = () => {
     if (instance.sourceType !== 'collection' || collection?.mountStatus === 'mounted') {
@@ -63,7 +91,11 @@ const MockServerItem = ({ instance, collection, workspaceCollections, activeWork
   const handleStart = async () => {
     try {
       ensureCollectionMounted();
-      const payload = resolveMockServerStartPayload(instance, { collection, apiSpecs });
+      const payload = resolveMockServerStartPayload(instance, {
+        collection,
+        apiSpecs,
+        workspacePath: resolveMockServerWorkspacePath(instance, workspaces, activeWorkspace)
+      });
       const result = await dispatch(startMockServer(payload)).unwrap();
       await dispatch(syncMockServerState({ mockServerUid: instance.uid }));
 
@@ -112,6 +144,20 @@ const MockServerItem = ({ instance, collection, workspaceCollections, activeWork
           onClick: handleStart
         },
     {
+      id: 'rename',
+      leftSection: IconPencil,
+      label: 'Rename',
+      testId: `mock-server-sidebar-rename-${instance.uid}`,
+      onClick: () => onRename(instance)
+    },
+    {
+      id: 'clone',
+      leftSection: IconCopy,
+      label: 'Clone',
+      testId: `mock-server-sidebar-clone-${instance.uid}`,
+      onClick: () => onClone(instance)
+    },
+    {
       id: 'settings',
       leftSection: IconSettings,
       label: 'Settings',
@@ -121,33 +167,72 @@ const MockServerItem = ({ instance, collection, workspaceCollections, activeWork
       id: 'delete',
       leftSection: IconTrash,
       label: 'Delete',
+      className: 'delete-item',
       onClick: () => onDelete(instance)
     }
   ];
 
   return (
-    <div
-      className="api-spec-item flex flex-grow items-center overflow-hidden w-full justify-between cursor-pointer py-2 pl-4 h-8"
-      data-testid={`mock-server-sidebar-item-${instance.uid}`}
-    >
-      <span
-        className="flex items-center flex-nowrap whitespace-nowrap overflow-ellipsis overflow-hidden flex-1 min-w-0"
-        onClick={openDashboard}
+    <>
+      <div
+        className="api-spec-item flex flex-grow items-center overflow-hidden w-full justify-between cursor-pointer py-2 pl-4 h-8"
+        data-testid={`mock-server-sidebar-item-${instance.uid}`}
       >
-        <StatusDot $running={isRunning} data-testid="mock-server-sidebar-status-dot" />
-        <span className="truncate">{instance.name}</span>
-      </span>
-      <MenuDropdown items={menuItems} placement="bottom-end">
-        <ActionIcon label="Mock server actions" className="mr-2">
-          <IconDots size={14} stroke={1.5} aria-hidden="true" />
-        </ActionIcon>
-      </MenuDropdown>
-    </div>
+        <span className="flex items-center flex-1 min-w-0">
+          {responses.length > 0 ? (
+            <button
+              type="button"
+              className={classnames('mr-1 flex-shrink-0', { 'rotate-90': expanded })}
+              onClick={(event) => {
+                event.stopPropagation();
+                setExpanded(!expanded);
+              }}
+              aria-label="Toggle mock responses"
+            >
+              <IconChevronRight size={14} />
+            </button>
+          ) : (
+            <span className="w-[18px] mr-1 flex-shrink-0" />
+          )}
+          <span
+            className="flex items-center flex-nowrap whitespace-nowrap overflow-ellipsis overflow-hidden flex-1 min-w-0"
+            onClick={openDashboard}
+          >
+            <StatusDot $running={isRunning} data-testid="mock-server-sidebar-status-dot" />
+            <span className="truncate">{instance.name}</span>
+            {responses.length > 0 ? (
+              <sup className="ml-1 opacity-70">{responses.length}</sup>
+            ) : null}
+          </span>
+        </span>
+        <MenuDropdown items={menuItems} placement="bottom-end">
+          <ActionIcon label="Mock server actions" className="mr-2">
+            <IconDots size={14} stroke={1.5} aria-hidden="true" />
+          </ActionIcon>
+        </MenuDropdown>
+      </div>
+
+      {expanded && responses.length > 0 ? (
+        <div className="pl-8">
+          {responses.map((response) => (
+            <MockResponseSidebarItem
+              key={response.uid}
+              response={response}
+              instance={instance}
+              collectionUid={resolvedCollection?.uid || instance.collectionUid}
+              location={location}
+            />
+          ))}
+        </div>
+      ) : null}
+    </>
   );
 };
 
 const MockServers = () => {
   const [editingInstance, setEditingInstance] = useState(null);
+  const [renamingInstance, setRenamingInstance] = useState(null);
+  const [cloningInstance, setCloningInstance] = useState(null);
   const [deletingInstance, setDeletingInstance] = useState(null);
   const { collections, preferences, activeWorkspaceUid, workspaces, apiSpecs } = useSelector((state) => ({
     collections: state.collections.collections,
@@ -187,6 +272,21 @@ const MockServers = () => {
 
   return (
     <>
+      {renamingInstance && (
+        <RenameMockServerModal
+          instance={renamingInstance}
+          onClose={() => setRenamingInstance(null)}
+        />
+      )}
+      {cloningInstance && (
+        <CloneMockServerModal
+          instance={cloningInstance}
+          workspacePath={resolveMockServerWorkspacePath(cloningInstance, workspaces, activeWorkspace)}
+          workspaceCollections={workspaceCollections}
+          activeWorkspace={activeWorkspace}
+          onClose={() => setCloningInstance(null)}
+        />
+      )}
       {editingInstance && (
         <CreateMockServerModal
           editingInstance={editingInstance}
@@ -219,6 +319,8 @@ const MockServers = () => {
                 apiSpecs={apiSpecs}
                 key={instance.uid}
                 onEditSettings={setEditingInstance}
+                onRename={setRenamingInstance}
+                onClone={setCloningInstance}
                 onDelete={setDeletingInstance}
               />
             );

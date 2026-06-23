@@ -26,6 +26,7 @@ import { getUniqueTagsFromItems } from 'utils/collections/index';
 import { getCollectionEnvironmentPath } from 'utils/snapshot';
 import { getDataTypeFromValue } from '@usebruno/common/utils';
 import * as exampleReducers from './exampleReducers';
+import * as mockResponseEditorReducers from './mockResponseEditorReducers';
 
 // gRPC status code meanings
 const grpcStatusCodes = {
@@ -119,7 +120,8 @@ const initialState = {
   collectionSortOrder: 'default',
   activeConnections: [],
   tempDirectories: {},
-  saveTransientRequestModals: []
+  saveTransientRequestModals: [],
+  mockResponseEditors: {}
 };
 
 const initiatedGrpcResponse = {
@@ -3725,7 +3727,12 @@ export const collectionsSlice = createSlice({
     deleteResponseExampleFormUrlEncodedParam: exampleReducers.deleteResponseExampleFormUrlEncodedParam,
     addResponseExampleMultipartFormParam: exampleReducers.addResponseExampleMultipartFormParam,
     updateResponseExampleMultipartFormParam: exampleReducers.updateResponseExampleMultipartFormParam,
-    deleteResponseExampleMultipartFormParam: exampleReducers.deleteResponseExampleMultipartFormParam
+    deleteResponseExampleMultipartFormParam: exampleReducers.deleteResponseExampleMultipartFormParam,
+    initMockResponseEditor: mockResponseEditorReducers.initMockResponseEditor,
+    syncMockResponseEditorSaved: mockResponseEditorReducers.syncMockResponseEditorSaved,
+    updateMockResponseRules: mockResponseEditorReducers.updateMockResponseRules,
+    cancelMockResponseEditorEdit: mockResponseEditorReducers.cancelMockResponseEditorEdit,
+    removeMockResponseEditor: mockResponseEditorReducers.removeMockResponseEditor
     /* End Response Example Actions */
   }
 });
@@ -3915,7 +3922,21 @@ export const {
   moveResponseExampleRequestHeader,
   setResponseExampleRequestHeaders,
   setResponseExampleParams,
-  /* Response Example Actions - End */
+  updateResponseExampleBody,
+  addResponseExampleFileParam,
+  updateResponseExampleFileParam,
+  deleteResponseExampleFileParam,
+  addResponseExampleFormUrlEncodedParam,
+  updateResponseExampleFormUrlEncodedParam,
+  deleteResponseExampleFormUrlEncodedParam,
+  addResponseExampleMultipartFormParam,
+  updateResponseExampleMultipartFormParam,
+  deleteResponseExampleMultipartFormParam,
+  initMockResponseEditor,
+  syncMockResponseEditorSaved,
+  updateMockResponseRules,
+  cancelMockResponseEditorEdit,
+  removeMockResponseEditor,
   addTransientDirectory,
   addSaveTransientRequestModal,
   removeSaveTransientRequestModal,

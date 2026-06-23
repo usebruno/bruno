@@ -2,6 +2,14 @@ import { findItemInCollection, findItemInCollectionByPathname } from 'utils/coll
 import path, { normalizePath } from 'utils/common/path';
 import { uuid } from 'utils/common';
 
+const normalizeTabType = (type) => {
+  if (type === 'mock-server-dashboard') {
+    return 'mocker';
+  }
+
+  return type;
+};
+
 const isObject = (value) => value && typeof value === 'object' && !Array.isArray(value);
 
 const REQUEST_TAB_TYPES = new Set(['http-request', 'graphql-request', 'grpc-request', 'ws-request']);
@@ -348,6 +356,7 @@ export const findCollectionEnvironmentFromSnapshot = (collection, snapshotData =
 const getAccessor = (tab) => {
   if (tab.type === 'response-example') return 'pathname::exampleIndex';
   if (tab.type === 'mocker' && tab.mockServerUid) return 'type::mockServerUid';
+  if (tab.type === 'mock-response' && tab.uid) return 'type::mockResponseUid';
   if (SINGLETON_TAB_TYPES.has(tab.type)) return 'type';
   return 'pathname';
 };
@@ -432,6 +441,14 @@ export const serializeTab = (tab, collection) => {
     }
   }
 
+  if (tab.type === 'mock-response') {
+    serialized.mockServerUid = tab.mockServerUid || null;
+    serialized.responseUid = tab.uid;
+    if (tab.responseName || tab.tabName) {
+      serialized.name = tab.responseName || tab.tabName;
+    }
+  }
+
   return serialized;
 };
 
@@ -471,6 +488,10 @@ export const serializeActiveTab = (tab, collection) => {
     return { accessor: 'type::mockServerUid', value: tab.mockServerUid };
   }
 
+  if (tab.type === 'mock-response' && tab.uid) {
+    return { accessor: 'type::mockResponseUid', value: tab.uid };
+  }
+
   return { accessor: 'type', value: tab.type };
 };
 
@@ -480,18 +501,24 @@ export const isActiveTab = (tab, activeTab, collection) => {
   const { accessor, value } = activeTab;
 
   if (accessor === 'type::mockServerUid') {
-    return tab.type === 'mocker' && tab.mockServerUid === value;
+    return normalizeTabType(tab.type) === 'mocker' && tab.mockServerUid === value;
+  }
+
+  if (accessor === 'type::mockResponseUid') {
+    return tab.type === 'mock-response' && tab.uid === value;
   }
 
   if (accessor === 'type') {
-    const normalizedValue = value === 'mock-server-dashboard' ? 'mocker' : value;
-    const normalizedType = tab.type === 'mock-server-dashboard' ? 'mocker' : tab.type;
+    const normalizedValue = normalizeTabType(value);
+    const normalizedType = normalizeTabType(tab.type);
     return normalizedType === normalizedValue;
   }
 
   if (accessor === 'pathname') {
     const item = findItemInCollection(collection, tab.uid);
-    return tab.type !== 'response-example' && (item?.pathname === value || tab.pathname === value);
+    return tab.type !== 'response-example'
+      && tab.type !== 'mock-response'
+      && (item?.pathname === value || tab.pathname === value);
   }
 
   if (accessor === 'pathname::exampleName') {
@@ -556,7 +583,7 @@ const resolveResponseExampleTabState = ({ item, pathname, exampleName, exampleIn
 
 export const deserializeTab = (snapshotTab, collection) => {
   const { accessor, pathname, exampleName, exampleIndex, exampleUid } = snapshotTab;
-  const type = snapshotTab.type === 'mock-server-dashboard' ? 'mocker' : snapshotTab.type;
+  const type = normalizeTabType(snapshotTab.type);
   const restoredRequestPaneTab = typeof snapshotTab.request?.tab === 'string' ? snapshotTab.request.tab : null;
 
   if (type === 'mocker') {
@@ -567,6 +594,28 @@ export const deserializeTab = (snapshotTab, collection) => {
       mockServerUid,
       tabName: snapshotTab.name || snapshotTab.tabName || null,
       uid: mockServerUid || uuid(),
+      preview: !snapshotTab.permanent,
+      pathname: null,
+      requestPaneTab: 'params',
+      requestPaneWidth: null,
+      requestPaneHeight: null,
+      responsePaneTab: 'response',
+      responseFormat: null,
+      responseViewTab: null,
+      responsePaneScrollPosition: null,
+      scriptPaneTab: null
+    };
+  }
+
+  if (type === 'mock-response') {
+    const responseUid = snapshotTab.responseUid || snapshotTab.exampleUid || uuid();
+    return {
+      collectionUid: collection.uid,
+      type: 'mock-response',
+      mockServerUid: snapshotTab.mockServerUid || null,
+      responseName: snapshotTab.name || snapshotTab.responseName || snapshotTab.tabName || null,
+      tabName: snapshotTab.name || snapshotTab.tabName || null,
+      uid: responseUid,
       preview: !snapshotTab.permanent,
       pathname: null,
       requestPaneTab: 'params',
@@ -706,18 +755,20 @@ export const getActiveTabFromSnapshot = async (collectionPathname, collection, s
   let snapshotTab = null;
 
   if (accessor === 'type::mockServerUid') {
-    snapshotTab = tabsSnapshot.tabs.find((t) => {
-      const normalizedType = t.type === 'mock-server-dashboard' ? 'mocker' : t.type;
-      return normalizedType === 'mocker' && t.mockServerUid === value;
-    });
+    snapshotTab = tabsSnapshot.tabs.find((t) => (
+      normalizeTabType(t.type) === 'mocker' && t.mockServerUid === value
+    ));
+  } else if (accessor === 'type::mockResponseUid') {
+    snapshotTab = tabsSnapshot.tabs.find((t) => (
+      t.type === 'mock-response' && (t.responseUid === value || t.exampleUid === value)
+    ));
   } else if (accessor === 'type') {
-    const normalizedValue = value === 'mock-server-dashboard' ? 'mocker' : value;
-    snapshotTab = tabsSnapshot.tabs.find((t) => {
-      const normalizedType = t.type === 'mock-server-dashboard' ? 'mocker' : t.type;
-      return normalizedType === normalizedValue;
-    });
+    const normalizedValue = normalizeTabType(value);
+    snapshotTab = tabsSnapshot.tabs.find((t) => normalizeTabType(t.type) === normalizedValue);
   } else if (accessor === 'pathname') {
-    snapshotTab = tabsSnapshot.tabs.find((t) => t.pathname === value && t.type !== 'response-example');
+    snapshotTab = tabsSnapshot.tabs.find((t) => (
+      t.pathname === value && t.type !== 'response-example' && t.type !== 'mock-response'
+    ));
   } else if (accessor === 'pathname::exampleName') {
     snapshotTab = tabsSnapshot.tabs.find((t) => `${t.pathname}::${t.exampleName}` === value);
   } else if (accessor === 'pathname::exampleIndex') {

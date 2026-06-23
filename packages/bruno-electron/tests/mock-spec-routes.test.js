@@ -1,4 +1,4 @@
-const { buildRouteMapFromSpec, convertOpenApiPath } = require('../src/app/mock-spec-routes');
+const { buildRouteMapFromSpec, buildMockResponsesFromSpec, convertOpenApiPath } = require('../src/app/mock-spec-routes');
 const { schemaToExample } = require('../src/app/mock-example-generator');
 
 const beeceptorProductSchema = {
@@ -84,7 +84,7 @@ describe('mock-spec-routes', () => {
       }
     };
 
-    const routeMap = buildRouteMapFromSpec(spec);
+    const routeMap = buildRouteMapFromSpec(spec, { generateFromSchema: true });
     const route = routeMap.get('GET /products');
 
     expect(route).toBeTruthy();
@@ -142,5 +142,129 @@ describe('mock-spec-routes', () => {
     expect(typeof example[0].name).toBe('string');
     expect(example[0].name.length).toBeGreaterThan(0);
     expect(typeof example[0].price).toBe('number');
+  });
+
+  it('builds mock response records from OpenAPI spec paths', () => {
+    const responses = buildMockResponsesFromSpec({
+      openapi: '3.0.0',
+      paths: {
+        '/pets': {
+          get: {
+            summary: 'List pets',
+            responses: {
+              200: {
+                description: 'OK',
+                content: {
+                  'application/json': {
+                    schema: { type: 'object' }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }, { generateFromSchema: true });
+
+    expect(responses).toHaveLength(1);
+    expect(responses[0].name).toBe('List pets');
+    expect(responses[0].request.method).toBe('GET');
+    expect(responses[0].request.url).toBe('/pets');
+    expect(responses[0].rules.conditions).toEqual([]);
+  });
+
+  it('creates separate mock responses for each operation status code', () => {
+    const responses = buildMockResponsesFromSpec({
+      openapi: '3.1.0',
+      paths: {
+        '/auth/login': {
+          post: {
+            summary: 'Login and get access token',
+            responses: {
+              200: {
+                description: 'Authenticated successfully'
+              },
+              401: {
+                description: 'Unauthorized'
+              }
+            }
+          }
+        }
+      }
+    });
+
+    expect(responses).toHaveLength(2);
+    expect(responses[0].name).toBe('Login and get access token (200 Authenticated successfully)');
+    expect(responses[0].response.status).toBe(200);
+    expect(responses[1].name).toBe('Login and get access token (401 Unauthorized)');
+    expect(responses[1].response.status).toBe(401);
+    expect(responses[0].request.url).toBe('/auth/login');
+    expect(responses[1].request.url).toBe('/auth/login');
+  });
+
+  it('uses empty JSON bodies when schema generation is disabled', () => {
+    const responses = buildMockResponsesFromSpec({
+      openapi: '3.1.0',
+      components: {
+        schemas: {
+          Product: beeceptorProductSchema
+        }
+      },
+      paths: {
+        '/products': {
+          get: {
+            summary: 'List products',
+            responses: {
+              200: {
+                content: {
+                  'application/json': {
+                    schema: {
+                      type: 'array',
+                      items: { $ref: '#/components/schemas/Product' }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }, { generateFromSchema: false });
+
+    expect(responses[0].response.body.content).toBe('{}');
+  });
+
+  it('generates faker-backed bodies when schema generation is enabled', () => {
+    const responses = buildMockResponsesFromSpec({
+      openapi: '3.1.0',
+      components: {
+        schemas: {
+          Product: beeceptorProductSchema
+        }
+      },
+      paths: {
+        '/products': {
+          get: {
+            summary: 'List products',
+            responses: {
+              200: {
+                content: {
+                  'application/json': {
+                    schema: {
+                      type: 'array',
+                      items: { $ref: '#/components/schemas/Product' }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }, { generateFromSchema: true });
+
+    const body = JSON.parse(responses[0].response.body.content);
+    expect(Array.isArray(body)).toBe(true);
+    expect(body[0].name).toBe('Worry Management');
   });
 });

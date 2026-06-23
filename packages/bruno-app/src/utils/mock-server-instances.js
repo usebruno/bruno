@@ -2,10 +2,23 @@ import get from 'lodash/get';
 import { uuid } from 'utils/common';
 import { normalizePath } from 'utils/common/path';
 import { savePreferences } from 'providers/ReduxStore/slices/app';
-import { addTab, closeTabs } from 'providers/ReduxStore/slices/tabs';
+import { addTab, closeTabs, updateTabMeta } from 'providers/ReduxStore/slices/tabs';
 import { stopMockServer } from 'providers/ReduxStore/slices/mock-server';
 
 export const DEFAULT_MOCK_SERVER_PORT = 4000;
+
+export const normalizeMockTabType = (type) => {
+  if (type === 'mock-server-dashboard') {
+    return 'mocker';
+  }
+
+  return type;
+};
+
+export const isMockServerRelatedTab = (tab, mockServerUid) => {
+  const type = normalizeMockTabType(tab?.type);
+  return (type === 'mocker' || type === 'mock-response') && tab?.mockServerUid === mockServerUid;
+};
 
 export const suggestNextMockServerPort = (instances, { excludeUid } = {}) => {
   const usedPorts = new Set(
@@ -85,7 +98,7 @@ export const deleteMockServerInstance = (mockServerUid) => async (dispatch, getS
   }
 
   const tabUids = (state.tabs?.tabs || [])
-    .filter((tab) => tab.type === 'mocker' && tab.mockServerUid === mockServerUid)
+    .filter((tab) => isMockServerRelatedTab(tab, mockServerUid))
     .map((tab) => tab.uid);
 
   if (tabUids.length) {
@@ -180,8 +193,20 @@ export const resolveTabCollectionUid = ({
   return collectionUid || null;
 };
 
-export const resolveMockServerStartPayload = (instance, { collection, apiSpecs }) => {
+export const resolveMockServerWorkspacePath = (instance, workspaces = [], activeWorkspace = null) => {
+  if (instance?.workspaceUid) {
+    const workspace = workspaces.find((item) => item.uid === instance.workspaceUid);
+    if (workspace?.pathname) {
+      return workspace.pathname;
+    }
+  }
+
+  return activeWorkspace?.pathname || null;
+};
+
+export const resolveMockServerStartPayload = (instance, { collection, apiSpecs, workspacePath }) => {
   const mockServerUid = instance.uid;
+  const resolvedWorkspacePath = workspacePath || null;
 
   if (instance.sourceType === 'spec') {
     const spec = resolveInstanceSpec(instance, apiSpecs);
@@ -194,6 +219,7 @@ export const resolveMockServerStartPayload = (instance, { collection, apiSpecs }
       serverName: instance.name,
       sourceType: 'spec',
       specPath: spec.pathname,
+      workspacePath: resolvedWorkspacePath,
       port: Number(instance.port),
       globalDelay: Number(instance.globalDelay) || 0
     };
@@ -210,6 +236,7 @@ export const resolveMockServerStartPayload = (instance, { collection, apiSpecs }
     collectionPath: collection.pathname,
     collectionName: collection.name,
     brunoConfig: collection.brunoConfig,
+    workspacePath: resolvedWorkspacePath,
     port: Number(instance.port),
     globalDelay: Number(instance.globalDelay) || 0
   };
@@ -224,3 +251,46 @@ export const openMockServerDashboard = (instance, collectionUid) => (dispatch) =
     type: 'mocker'
   }));
 };
+
+export const updateMockServerTabName = (instance) => (dispatch) => {
+  dispatch(updateTabMeta({
+    uid: instance.uid,
+    tabName: instance.name
+  }));
+};
+
+export const isMockServerNameTaken = (instances, name, excludeUid = null) => {
+  const normalized = name?.trim().toLowerCase();
+  if (!normalized) {
+    return false;
+  }
+
+  return instances.some((instance) => (
+    instance.uid !== excludeUid && instance.name.trim().toLowerCase() === normalized
+  ));
+};
+
+export const isMockServerPortTaken = (instances, port, excludeUid = null) => {
+  const normalizedPort = Number(port);
+  if (!normalizedPort) {
+    return false;
+  }
+
+  return instances.some((instance) => (
+    instance.uid !== excludeUid && Number(instance.port) === normalizedPort
+  ));
+};
+
+export const cloneMockServerInstancePayload = (sourceInstance, { name, port, workspaceUid }) => (
+  createMockServerInstance({
+    name,
+    sourceType: sourceInstance.sourceType,
+    collectionUid: sourceInstance.collectionUid,
+    specUid: sourceInstance.specUid,
+    specPath: sourceInstance.specPath,
+    specName: sourceInstance.specName,
+    port,
+    globalDelay: sourceInstance.globalDelay,
+    workspaceUid: workspaceUid || sourceInstance.workspaceUid
+  })
+);

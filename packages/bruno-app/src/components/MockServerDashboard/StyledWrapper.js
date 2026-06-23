@@ -196,6 +196,26 @@ const StyledWrapper = styled.div`
     0%, 100% { opacity: 1; }
     50% { opacity: 0.4; }
   }
+
+  .mock-server-name-input {
+    display: block;
+    width: 100%;
+    max-width: 420px;
+    padding: 0;
+    font-size: 16px;
+    font-weight: 600;
+    line-height: 1.4;
+    border: none;
+    border-bottom: 1px solid transparent;
+    background: transparent;
+    color: inherit;
+
+    &:hover,
+    &:focus {
+      outline: none;
+      border-bottom-color: ${(props) => props.theme.table.border};
+    }
+  }
 `;
 
 export default StyledWrapper;

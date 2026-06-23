@@ -10,7 +10,7 @@ const BODY_TYPES = [
   { value: 'html', label: 'HTML' }
 ];
 
-const CreateExampleModal = ({ isOpen, onClose, onSave, title = 'Create Response Example', initialName = '', showMockFields = false }) => {
+const CreateExampleModal = ({ isOpen, onClose, onSave, title = 'Create Response Example', initialName = '', showMockFields = false, confirmText = 'Create Example' }) => {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [nameError, setNameError] = useState('');
@@ -74,7 +74,7 @@ const CreateExampleModal = ({ isOpen, onClose, onSave, title = 'Create Response 
         title={title}
         handleCancel={handleClose}
         handleConfirm={handleConfirm}
-        confirmText="Create Example"
+        confirmText={confirmText}
         cancelText="Cancel"
         isOpen={isOpen}
       >

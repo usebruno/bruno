@@ -59,6 +59,7 @@ const MockResponseRules = ({ rules, editMode, onChange }) => {
           <label htmlFor="mock-response-rule-operator">Match</label>
           <select
             id="mock-response-rule-operator"
+            className="rule-operator"
             value={operator}
             disabled={!editMode}
             onChange={(event) => updateRules({ operator: event.target.value, conditions })}
@@ -124,7 +125,7 @@ const MockResponseRules = ({ rules, editMode, onChange }) => {
       ))}
 
       {editMode ? (
-        <button type="button" className="action-btn text-xs mt-2" onClick={addCondition}>
+        <button type="button" className="add-rule-btn mt-2" onClick={addCondition}>
           <IconPlus size={14} className="mr-1" />
           Add rule
         </button>

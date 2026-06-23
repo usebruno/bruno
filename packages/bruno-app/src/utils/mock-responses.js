@@ -1,8 +1,33 @@
-export const resolveMockResponseLocation = (instance, collection) => ({
-  mockServerUid: instance.uid,
-  sourceType: instance.sourceType,
-  collectionPath: instance.sourceType === 'collection' ? collection?.pathname || null : null
-});
+import { uuid } from 'utils/common';
+import { cloneDeep } from 'lodash';
+import {
+  getGlobalEnvironmentVariables,
+  getGlobalEnvironmentVariablesMasked
+} from 'utils/collections';
+import { resolveMockServerWorkspacePath } from 'utils/mock-server-instances';
+
+export const resolveMockResponseLocation = (
+  instance,
+  collection,
+  collections = [],
+  workspaces = [],
+  activeWorkspace = null
+) => {
+  let collectionPath = null;
+
+  if (instance?.sourceType === 'collection') {
+    collectionPath = collection?.pathname
+      || collections.find((item) => item.uid === instance.collectionUid)?.pathname
+      || null;
+  }
+
+  return {
+    mockServerUid: instance.uid,
+    sourceType: instance.sourceType,
+    collectionPath,
+    workspacePath: resolveMockServerWorkspacePath(instance, workspaces, activeWorkspace)
+  };
+};
 
 export const copyExampleToMockResponse = (example, parentRequest) => ({
   name: `${example.name || 'Example'} (mock)`,
@@ -32,6 +57,93 @@ export const copyExampleToMockResponse = (example, parentRequest) => ({
     conditions: []
   }
 });
+
+export const resolveMockResponseCollection = ({
+  collection,
+  instance,
+  collections = [],
+  activeWorkspace = null
+}) => {
+  if (collection?.uid) {
+    return collection;
+  }
+
+  if (instance?.collectionUid) {
+    const instanceCollection = collections.find((item) => item.uid === instance.collectionUid);
+    if (instanceCollection) {
+      return instanceCollection;
+    }
+  }
+
+  if (activeWorkspace?.scratchCollectionUid) {
+    return collections.find((item) => item.uid === activeWorkspace.scratchCollectionUid) || null;
+  }
+
+  return null;
+};
+
+export const resolveMockResponseEditorCollection = ({
+  collection,
+  globalEnvironments = [],
+  activeGlobalEnvironmentUid = null,
+  activeWorkspace = null
+}) => {
+  if (!collection?.uid) {
+    return null;
+  }
+
+  const enrichedCollection = cloneDeep(collection);
+  enrichedCollection.globalEnvironmentVariables = getGlobalEnvironmentVariables({
+    globalEnvironments,
+    activeGlobalEnvironmentUid
+  });
+  enrichedCollection.globalEnvSecrets = getGlobalEnvironmentVariablesMasked({
+    globalEnvironments,
+    activeGlobalEnvironmentUid
+  });
+
+  if (activeWorkspace?.processEnvVariables) {
+    enrichedCollection.workspaceProcessEnvVariables = activeWorkspace.processEnvVariables;
+  }
+
+  return enrichedCollection;
+};
+
+export const cloneMockResponseRecord = (response, { name } = {}) => {
+  const cloned = JSON.parse(JSON.stringify(response));
+  cloned.uid = uuid();
+  cloned.name = name || `${response.name || 'Mock Response'} copy`;
+
+  if (Array.isArray(cloned.response?.headers)) {
+    cloned.response.headers = cloned.response.headers.map((header) => ({
+      ...header,
+      uid: uuid()
+    }));
+  }
+
+  if (Array.isArray(cloned.request?.headers)) {
+    cloned.request.headers = cloned.request.headers.map((header) => ({
+      ...header,
+      uid: uuid()
+    }));
+  }
+
+  if (Array.isArray(cloned.request?.params)) {
+    cloned.request.params = cloned.request.params.map((param) => ({
+      ...param,
+      uid: uuid()
+    }));
+  }
+
+  if (Array.isArray(cloned.rules?.conditions)) {
+    cloned.rules.conditions = cloned.rules.conditions.map((condition) => ({
+      ...condition,
+      uid: condition?.uid ? uuid() : condition?.uid
+    }));
+  }
+
+  return cloned;
+};
 
 export const collectCollectionExamples = (collection) => {
   const examples = [];

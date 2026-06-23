@@ -8,7 +8,9 @@ const initialState = {
   // Per-instance request logs: { [mockServerUid]: RequestLogEntry[] }
   requestLogs: {},
   // Per-instance route tables: { [mockServerUid]: Route[] }
-  routes: {}
+  routes: {},
+  // Per-instance mock responses: { [mockServerUid]: MockResponse[] }
+  mockResponses: {}
 };
 
 const resolveMockServerUid = (payload) => payload.mockServerUid || payload.collectionUid;
@@ -45,8 +47,8 @@ export const startMockServer = createAsyncThunk(
       throw new Error(result.error);
     }
 
-    const routes = await window.ipcRenderer.invoke('renderer:mock-server-get-routes', { mockServerUid });
-    dispatch(setRouteTable({ mockServerUid, routes }));
+    const routes = await window.ipcRenderer.invoke('renderer:mock-server-get-routes', payload);
+    dispatch(setRouteTable({ mockServerUid, routes: routes || [] }));
 
     dispatch(updateServerStatus({
       mockServerUid,
@@ -81,13 +83,13 @@ export const refreshMockRoutes = createAsyncThunk(
   'mockServer/refreshRoutes',
   async (payload, { dispatch }) => {
     const mockServerUid = resolveMockServerUid(payload);
-    const result = await window.ipcRenderer.invoke('renderer:mock-server-refresh-routes', { mockServerUid });
+    const result = await window.ipcRenderer.invoke('renderer:mock-server-refresh-routes', payload);
     if (!result.success) {
       throw new Error(result.error);
     }
 
-    const routes = await window.ipcRenderer.invoke('renderer:mock-server-get-routes', { mockServerUid });
-    dispatch(setRouteTable({ mockServerUid, routes }));
+    const routes = result.routes || await window.ipcRenderer.invoke('renderer:mock-server-get-routes', payload);
+    dispatch(setRouteTable({ mockServerUid, routes: routes || [] }));
 
     return result;
   }
@@ -122,7 +124,7 @@ export const syncMockServerState = createAsyncThunk(
   'mockServer/syncState',
   async (payload, { dispatch }) => {
     const mockServerUid = resolveMockServerUid(payload);
-    const result = await window.ipcRenderer.invoke('renderer:mock-server-sync-state', { mockServerUid });
+    const result = await window.ipcRenderer.invoke('renderer:mock-server-sync-state', payload);
 
     dispatch(updateServerStatus({
       mockServerUid,
@@ -143,6 +145,110 @@ export const syncRunningMockServers = createAsyncThunk(
       dispatch(syncMockServerState({ mockServerUid })).unwrap()
     )));
     return runningUids || [];
+  }
+);
+
+export const loadMockServerRoutes = createAsyncThunk(
+  'mockServer/loadRoutes',
+  async (payload, { dispatch }) => {
+    const mockServerUid = resolveMockServerUid(payload);
+    const routes = await window.ipcRenderer.invoke('renderer:mock-server-get-routes', payload);
+    dispatch(setRouteTable({ mockServerUid, routes: routes || [] }));
+
+    return {
+      mockServerUid,
+      routes: routes || []
+    };
+  }
+);
+
+export const loadMockResponses = createAsyncThunk(
+  'mockServer/loadResponses',
+  async (payload, { dispatch }) => {
+    const result = await window.ipcRenderer.invoke('renderer:mock-server-get-responses', payload);
+    if (!result.success) {
+      throw new Error(result.error);
+    }
+
+    await dispatch(loadMockServerRoutes(payload));
+
+    return {
+      mockServerUid: payload.mockServerUid,
+      responses: result.responses || []
+    };
+  }
+);
+
+export const createMockResponse = createAsyncThunk(
+  'mockServer/createResponse',
+  async (payload, { dispatch }) => {
+    const result = await window.ipcRenderer.invoke('renderer:mock-server-create-response', payload);
+    if (!result.success) {
+      throw new Error(result.error);
+    }
+
+    await dispatch(loadMockResponses(payload));
+    await dispatch(syncMockServerState({ mockServerUid: payload.mockServerUid }));
+
+    return {
+      mockServerUid: payload.mockServerUid,
+      response: result.response
+    };
+  }
+);
+
+export const saveMockResponse = createAsyncThunk(
+  'mockServer/saveResponse',
+  async (payload, { dispatch }) => {
+    const result = await window.ipcRenderer.invoke('renderer:mock-server-save-response', payload);
+    if (!result.success) {
+      throw new Error(result.error);
+    }
+
+    await dispatch(loadMockResponses(payload));
+    await dispatch(syncMockServerState({ mockServerUid: payload.mockServerUid }));
+
+    return {
+      mockServerUid: payload.mockServerUid,
+      response: result.response
+    };
+  }
+);
+
+export const deleteMockResponse = createAsyncThunk(
+  'mockServer/deleteResponse',
+  async (payload, { dispatch }) => {
+    const result = await window.ipcRenderer.invoke('renderer:mock-server-delete-response', payload);
+    if (!result.success) {
+      throw new Error(result.error);
+    }
+
+    await dispatch(loadMockResponses(payload));
+    await dispatch(syncMockServerState({ mockServerUid: payload.mockServerUid }));
+
+    return {
+      mockServerUid: payload.mockServerUid,
+      responseUid: payload.responseUid
+    };
+  }
+);
+
+export const generateMockResponsesFromSpec = createAsyncThunk(
+  'mockServer/generateFromSpec',
+  async (payload, { dispatch }) => {
+    const result = await window.ipcRenderer.invoke('renderer:mock-server-generate-from-spec', payload);
+    if (!result.success) {
+      throw new Error(result.error);
+    }
+
+    await dispatch(loadMockResponses(payload));
+    await dispatch(syncMockServerState({ mockServerUid: payload.mockServerUid }));
+
+    return {
+      mockServerUid: payload.mockServerUid,
+      createdCount: result.createdCount || 0,
+      responses: result.responses || []
+    };
   }
 );
 
@@ -187,6 +293,11 @@ export const mockServerSlice = createSlice({
       const { mockServerUid, collectionUid, entries } = action.payload;
       const uid = mockServerUid || collectionUid;
       state.requestLogs[uid] = entries || [];
+    },
+
+    setMockResponses: (state, action) => {
+      const { mockServerUid, responses } = action.payload;
+      state.mockResponses[mockServerUid] = responses || [];
     }
   },
 
@@ -217,6 +328,48 @@ export const mockServerSlice = createSlice({
       .addCase(clearMockLog.fulfilled, (state, action) => {
         const { mockServerUid } = action.payload;
         state.requestLogs[mockServerUid] = [];
+      })
+      .addCase(loadMockResponses.fulfilled, (state, action) => {
+        const { mockServerUid, responses } = action.payload;
+        state.mockResponses[mockServerUid] = responses;
+      })
+      .addCase(createMockResponse.fulfilled, (state, action) => {
+        const { mockServerUid, response } = action.payload;
+        if (!state.mockResponses[mockServerUid]) {
+          state.mockResponses[mockServerUid] = [];
+        }
+
+        const existingIndex = state.mockResponses[mockServerUid].findIndex((item) => item.uid === response.uid);
+        if (existingIndex >= 0) {
+          state.mockResponses[mockServerUid][existingIndex] = response;
+        } else {
+          state.mockResponses[mockServerUid].push(response);
+        }
+      })
+      .addCase(saveMockResponse.fulfilled, (state, action) => {
+        const { mockServerUid, response } = action.payload;
+        if (!state.mockResponses[mockServerUid]) {
+          state.mockResponses[mockServerUid] = [];
+        }
+
+        const existingIndex = state.mockResponses[mockServerUid].findIndex((item) => item.uid === response.uid);
+        if (existingIndex >= 0) {
+          state.mockResponses[mockServerUid][existingIndex] = response;
+        } else {
+          state.mockResponses[mockServerUid].push(response);
+        }
+      })
+      .addCase(deleteMockResponse.fulfilled, (state, action) => {
+        const { mockServerUid, responseUid } = action.payload;
+        state.mockResponses[mockServerUid] = (state.mockResponses[mockServerUid] || [])
+          .filter((response) => response.uid !== responseUid);
+      })
+      .addCase(generateMockResponsesFromSpec.fulfilled, (state, action) => {
+        const { mockServerUid } = action.payload;
+        // Responses are reloaded via loadMockResponses in the thunk.
+        if (!state.mockResponses[mockServerUid]) {
+          state.mockResponses[mockServerUid] = [];
+        }
       });
   }
 });
@@ -226,7 +379,8 @@ export const {
   addRequestLogEntry,
   clearRequestLog,
   setRouteTable,
-  setRequestLogs
+  setRequestLogs,
+  setMockResponses
 } = mockServerSlice.actions;
 
 export default mockServerSlice.reducer;

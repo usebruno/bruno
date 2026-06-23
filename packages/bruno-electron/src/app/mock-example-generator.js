@@ -272,7 +272,8 @@ const shouldSkipRequestFile = (basename, relativePath) => {
   if (basename === 'opencollection.yml' || basename === 'folder.yml') return true;
 
   const relDir = path.dirname(relativePath);
-  return relDir === 'environments' || relDir.startsWith(`environments${path.sep}`);
+  return relDir === 'environments' || relDir.startsWith(`environments${path.sep}`)
+    || relDir === 'mocks' || relDir.startsWith(`mocks${path.sep}`);
 };
 
 const ensureMockExamples = async (collectionPath, brunoConfig) => {

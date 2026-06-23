@@ -2,10 +2,11 @@ import styled from 'styled-components';
 
 const StyledWrapper = styled.div`
   .rules-panel {
-    border: 1px solid var(--border-color);
-    border-radius: 6px;
+    border: 1px solid ${(props) => props.theme.table.border};
+    border-radius: ${(props) => props.theme.border.radius.sm};
     padding: 12px;
     margin-top: 12px;
+    background: ${(props) => props.theme.bg.secondary || 'transparent'};
   }
 
   .rule-row {
@@ -20,6 +21,47 @@ const StyledWrapper = styled.div`
   .rule-row input {
     width: 100%;
     min-width: 0;
+    line-height: 1.42857143;
+    padding: 0.45rem;
+    border-radius: ${(props) => props.theme.border.radius.sm};
+    background-color: ${(props) => props.theme.input.bg};
+    border: 1px solid ${(props) => props.theme.input.border};
+    color: ${(props) => props.theme.input.color || 'inherit'};
+    outline: none;
+
+    &:focus {
+      border-color: ${(props) => props.theme.input.focusBorder};
+    }
+
+    &:disabled {
+      opacity: 0.8;
+    }
+  }
+
+  .rule-operator {
+    line-height: 1.42857143;
+    padding: 0.45rem;
+    border-radius: ${(props) => props.theme.border.radius.sm};
+    background-color: ${(props) => props.theme.input.bg};
+    border: 1px solid ${(props) => props.theme.input.border};
+    color: ${(props) => props.theme.input.color || 'inherit'};
+  }
+
+  .add-rule-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    font-size: 12px;
+    border-radius: ${(props) => props.theme.border.radius.sm};
+    border: 1px solid ${(props) => props.theme.table.border};
+    background: transparent;
+    color: inherit;
+    cursor: pointer;
+
+    &:hover {
+      border-color: ${(props) => props.theme.input.focusBorder};
+    }
   }
 `;
 

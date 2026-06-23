@@ -25,6 +25,7 @@ import { flattenItems } from 'utils/collections/index';
 import { closeWsConnection } from 'utils/network/index';
 import { getInvalidVariableNames } from 'utils/common/variables';
 import ExampleTab from '../ExampleTab';
+import MockResponseTab from '../MockResponseTab';
 import toast from 'react-hot-toast';
 
 const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUid, hasOverflow, setHasOverflow, dropdownContainerRef }) => {
@@ -499,6 +500,12 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
         collectionRequestTabs={collectionRequestTabs}
         folderUid={folderUid}
       />
+    );
+  }
+
+  if (tab.type === 'mock-response') {
+    return (
+      <MockResponseTab tab={tab} />
     );
   }
 

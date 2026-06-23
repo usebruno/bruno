@@ -650,6 +650,45 @@ describe('active tab matching', () => {
 
     expect(isActiveTab(tab, activeTab, collection)).toBe(false);
   });
+
+  it('matches mock-response tabs by response uid', () => {
+    const tab = {
+      uid: 'mock-response-1',
+      type: 'mock-response',
+      mockServerUid: 'mock-server-1',
+      responseName: 'Premium'
+    };
+
+    expect(isActiveTab(tab, { accessor: 'type::mockResponseUid', value: 'mock-response-1' }, collection)).toBe(true);
+    expect(isActiveTab(tab, { accessor: 'type::mockResponseUid', value: 'mock-response-2' }, collection)).toBe(false);
+  });
+
+  it('serializes and restores mock-response tabs by response uid', () => {
+    const tab = {
+      uid: 'mock-response-1',
+      type: 'mock-response',
+      mockServerUid: 'mock-server-1',
+      responseName: 'Premium',
+      tabName: 'Premium',
+      preview: false
+    };
+
+    const serialized = serializeTab(tab, collection);
+    expect(serialized.type).toBe('mock-response');
+    expect(serialized.accessor).toBe('type::mockResponseUid');
+    expect(serialized.mockServerUid).toBe('mock-server-1');
+    expect(serialized.responseUid).toBe('mock-response-1');
+    expect(serialized.name).toBe('Premium');
+
+    const activeTab = serializeActiveTab(tab, collection);
+    expect(activeTab).toEqual({ accessor: 'type::mockResponseUid', value: 'mock-response-1' });
+
+    const restored = deserializeTab(serialized, collection);
+    expect(restored.type).toBe('mock-response');
+    expect(restored.uid).toBe('mock-response-1');
+    expect(restored.mockServerUid).toBe('mock-server-1');
+    expect(restored.responseName).toBe('Premium');
+  });
 });
 
 describe('getActiveTabFromSnapshot', () => {

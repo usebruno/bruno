@@ -17,7 +17,8 @@ import {
   openMockServerDashboard,
   resolveTabCollectionUid,
   saveMockServerInstance,
-  suggestNextMockServerPort
+  suggestNextMockServerPort,
+  updateMockServerTabName
 } from 'utils/mock-server-instances';
 
 const resolveSelectedSpecUid = (editingInstance, apiSpecs) => {
@@ -180,7 +181,7 @@ const CreateMockServerModal = ({
   const formik = useFormik({
     enableReinitialize: true,
     initialValues: {
-      name: editingInstance?.name || (defaultCollection ? `${defaultCollection.name} Mock` : ''),
+      name: editingInstance?.name || 'New Mock Server',
       sourceType: editingInstance?.sourceType || defaultSourceType,
       collectionUid: editingInstance?.collectionUid || defaultCollection?.uid || '',
       specUid: initialSpecUid,
@@ -263,7 +264,9 @@ const CreateMockServerModal = ({
           workspaceCollections
         });
 
-        if (!isEditing) {
+        if (isEditing) {
+          dispatch(updateMockServerTabName(instance));
+        } else {
           dispatch(openMockServerDashboard(instance, tabCollectionUid));
         }
 

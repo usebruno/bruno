@@ -44,6 +44,7 @@ import GlobalEnvironmentSettings from 'components/Environments/GlobalEnvironment
 import OpenAPISyncTab from 'components/OpenAPISyncTab';
 import OpenAPISpecTab from 'components/OpenAPISpecTab';
 import MockServerDashboard from 'components/MockServerDashboard';
+import MockResponse from 'components/MockResponse';
 import ChangelogTab from 'components/ChangelogTab';
 import { resolveMockServerInstance } from 'utils/mock-server-instances';
 import CollapsedPanelIndicator from './CollapsedPanelIndicator';
@@ -368,6 +369,29 @@ const RequestTabPanel = () => {
       : (focusedTab.collectionUid ? find(collections, (c) => c.uid === focusedTab.collectionUid) : null);
 
     return <MockServerDashboard instance={instance} collection={instanceCollection} />;
+  }
+
+  if (focusedTab.type === 'mock-response') {
+    const instance = resolveMockServerInstance(preferences, focusedTab);
+    if (!instance) {
+      return (
+        <div className="pb-4 px-4">
+          <div className="font-medium">Mock server not found</div>
+        </div>
+      );
+    }
+
+    const instanceCollection = instance.sourceType === 'collection'
+      ? find(collections, (c) => c.uid === instance.collectionUid)
+      : (focusedTab.collectionUid ? find(collections, (c) => c.uid === focusedTab.collectionUid) : null);
+
+    return (
+      <MockResponse
+        instance={instance}
+        collection={instanceCollection}
+        responseUid={focusedTab.uid}
+      />
+    );
   }
 
   if (!focusedTab.uid || !focusedTab.collectionUid) {

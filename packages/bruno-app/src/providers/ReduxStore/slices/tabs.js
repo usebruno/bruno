@@ -72,7 +72,8 @@ export const tabsSlice = createSlice({
         exampleIndex,
         isTransient,
         mockServerUid,
-        tabName
+        tabName,
+        responseName
       } = action.payload;
 
       const nonReplaceableTabTypes = [
@@ -152,7 +153,8 @@ export const tabsSlice = createSlice({
           ...(typeof exampleIndex === 'number' ? { exampleIndex } : {}),
           ...(isTransient ? { isTransient: true } : {}),
           ...(mockServerUid ? { mockServerUid } : {}),
-          ...(tabName ? { tabName } : {})
+          ...(tabName ? { tabName } : {}),
+          ...(responseName ? { responseName } : {})
         };
 
         state.activeTabUid = uid;
@@ -190,7 +192,8 @@ export const tabsSlice = createSlice({
         ...(typeof exampleIndex === 'number' ? { exampleIndex } : {}),
         ...(isTransient ? { isTransient: true } : {}),
         ...(mockServerUid ? { mockServerUid } : {}),
-        ...(tabName ? { tabName } : {})
+        ...(tabName ? { tabName } : {}),
+        ...(responseName ? { responseName } : {})
       });
       state.activeTabUid = uid;
     },
@@ -254,6 +257,22 @@ export const tabsSlice = createSlice({
 
       if (tab) {
         tab.responsePaneTab = action.payload.responsePaneTab;
+      }
+    },
+    updateTabMeta: (state, action) => {
+      const { uid, tabName, responseName } = action.payload;
+      const tab = find(state.tabs, (t) => t.uid === uid);
+
+      if (!tab) {
+        return;
+      }
+
+      if (tabName !== undefined) {
+        tab.tabName = tabName;
+      }
+
+      if (responseName !== undefined) {
+        tab.responseName = responseName;
       }
     },
     updateResponseFormat: (state, action) => {
@@ -565,6 +584,7 @@ export const {
   updateApiSpecTabLeftPaneWidth,
   updateRequestPaneTab,
   updateResponsePaneTab,
+  updateTabMeta,
   updateResponseFormat,
   updateResponseViewTab,
   updateResponseFilter,

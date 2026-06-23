@@ -39,7 +39,9 @@ const RouteTable = ({ mockServerUid }) => {
         ...route,
         uid: `${route.method} ${route.path}`,
         hits: hitCounts[`${route.method} ${route.path}`] || 0,
-        source: route.examples?.[0]?.sourceFile || '-'
+        responseCount: route.responseCount ?? route.exampleCount ?? 0,
+        defaultResponse: route.defaultResponse ?? route.defaultExample ?? null,
+        source: route.responses?.[0]?.sourceFile || route.examples?.[0]?.sourceFile || '-'
       }));
   }, [routes, searchQuery, methodFilter, hitCounts]);
 
@@ -96,21 +98,21 @@ const RouteTable = ({ mockServerUid }) => {
       )
     },
     {
-      key: 'exampleCount',
-      name: 'Examples',
-      width: '80px',
-      render: ({ value }) => <span>{value}</span>
+      key: 'responseCount',
+      name: 'Responses',
+      width: '90px',
+      render: ({ row }) => <span>{row.responseCount}</span>
     },
     {
-      key: 'defaultExample',
+      key: 'defaultResponse',
       name: 'Default',
-      width: '120px',
-      render: ({ value }) => <span>{value || '-'}</span>
+      width: '140px',
+      render: ({ row }) => <span>{row.defaultResponse || '-'}</span>
     },
     {
       key: 'source',
       name: 'Source',
-      width: '180px',
+      width: '120px',
       render: ({ value }) => <span className="text-muted source-file" title={value}>{value}</span>
     },
     {
@@ -125,7 +127,7 @@ const RouteTable = ({ mockServerUid }) => {
     return (
       <StyledWrapper className="h-full w-full">
         <div className="text-xs text-muted empty-state">
-          No routes registered. Start the mock server to scan your collection for examples.
+          No routes registered yet. Create mock responses to define routes for this server.
         </div>
       </StyledWrapper>
     );

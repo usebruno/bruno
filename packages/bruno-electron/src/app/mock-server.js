@@ -1,16 +1,16 @@
 const express = require('express');
 const cors = require('cors');
-const path = require('path');
-const fs = require('fs');
 const net = require('net');
 const { BrowserWindow } = require('electron');
 const { v4: uuidv4 } = require('uuid');
-const { parseRequest } = require('@usebruno/filestore');
-const { searchForRequestFiles, getCollectionFormat } = require('../utils/filesystem');
 const { preferencesUtil, getPreferences } = require('../store/preferences');
-const { ensureMockExamples } = require('./mock-example-generator');
-const { loadBrunoConfig, parseSpec } = require('./mock-spec-loader');
-const { buildRouteMapFromSpec } = require('./mock-spec-routes');
+const {
+  buildRouteMapFromMockResponses,
+  countRouteResponses,
+  extractRoutePath,
+  routeMapToRouteTable
+} = require('./mock-response-routes');
+const { buildRequestContext, selectMatchingResponse } = require('./mock-rule-matcher');
 const {
   DEFAULT_GATEWAY_PORT,
   allocateCollectionSlug,
@@ -32,12 +32,45 @@ const setMainWindow = (mainWindow) => {
 
 const getMockMode = () => getPreferences()?.mockServer?.mode || 'isolated';
 
-const countExamples = (routeMap) => {
-  let count = 0;
-  for (const examples of routeMap.values()) {
-    count += examples.length;
+const resolveMockServerLocation = (mockServerUid, location = {}) => {
+  const running = collections.get(mockServerUid);
+  if (running) {
+    return {
+      mockServerUid,
+      sourceType: running.sourceType || 'collection',
+      collectionPath: running.collectionPath,
+      workspacePath: running.workspacePath
+    };
   }
-  return count;
+
+  return {
+    mockServerUid,
+    sourceType: location.sourceType,
+    collectionPath: location.collectionPath,
+    workspacePath: location.workspacePath
+  };
+};
+
+const resolveRouteMap = (mockServerUid, location = {}) => {
+  const running = collections.get(mockServerUid);
+  if (running?.routeMap) {
+    return running.routeMap;
+  }
+
+  const resolvedLocation = resolveMockServerLocation(mockServerUid, location);
+  if (!resolvedLocation.mockServerUid || !resolvedLocation.workspacePath) {
+    return new Map();
+  }
+
+  return buildRouteMapFromMockResponses(resolvedLocation);
+};
+
+const getRouteCounts = (mockServerUid, location = {}) => {
+  const routeMap = resolveRouteMap(mockServerUid, location);
+  return {
+    routeCount: routeMap.size,
+    exampleCount: countRouteResponses(routeMap)
+  };
 };
 
 const getUsedPorts = () => {
@@ -94,114 +127,6 @@ const suggestPort = async (startPort = DEFAULT_GATEWAY_PORT) => {
   }
 
   return port;
-};
-
-const extractRoutePath = (rawUrl) => {
-  if (!rawUrl) return null;
-
-  let cleaned = rawUrl.replace(/^\{\{[^}]+\}\}/, '');
-
-  if (cleaned.startsWith('http://') || cleaned.startsWith('https://')) {
-    try {
-      cleaned = new URL(cleaned).pathname;
-    } catch {
-      const qIndex = cleaned.indexOf('?');
-      if (qIndex !== -1) cleaned = cleaned.substring(0, qIndex);
-    }
-  } else {
-    const qIndex = cleaned.indexOf('?');
-    if (qIndex !== -1) cleaned = cleaned.substring(0, qIndex);
-  }
-
-  cleaned = cleaned.replace(/\{\{([^}]+)\}\}/g, ':$1');
-
-  if (!cleaned.startsWith('/')) cleaned = '/' + cleaned;
-  if (cleaned.length > 1 && cleaned.endsWith('/')) cleaned = cleaned.slice(0, -1);
-  cleaned = cleaned.replace(/\/+/g, '/');
-
-  return cleaned || '/';
-};
-
-const buildRouteMap = (collectionPath) => {
-  const format = getCollectionFormat(collectionPath);
-  const routeMap = new Map();
-
-  let files;
-  try {
-    files = searchForRequestFiles(collectionPath, collectionPath);
-  } catch (err) {
-    console.warn(`[MockServer] Failed to scan collection: ${err.message}`);
-    return routeMap;
-  }
-
-  for (const filePath of files) {
-    const basename = path.basename(filePath);
-    const relativePath = path.relative(collectionPath, filePath);
-
-    if (basename === 'collection.bru' || basename === 'folder.bru') continue;
-    if (basename === 'opencollection.yml' || basename === 'folder.yml') continue;
-
-    const relDir = path.dirname(relativePath);
-    if (relDir === 'environments' || relDir.startsWith('environments' + path.sep)) continue;
-
-    let content;
-    try {
-      content = fs.readFileSync(filePath, 'utf8');
-    } catch (err) {
-      console.warn(`[MockServer] Failed to read file ${relativePath}: ${err.message}`);
-      continue;
-    }
-
-    let parsed;
-    try {
-      parsed = parseRequest(content, { format });
-    } catch (err) {
-      console.warn(`[MockServer] Failed to parse file ${relativePath}: ${err.message}`);
-      continue;
-    }
-
-    if (!parsed?.examples?.length) continue;
-
-    const requestType = parsed.type || 'http-request';
-    if (requestType !== 'http-request' && requestType !== 'http') continue;
-
-    const parentMethod = (parsed.request?.method || 'GET').toUpperCase();
-    const parentUrl = parsed.request?.url || '';
-
-    for (const example of parsed.examples) {
-      const method = (example.request?.method || parentMethod).toUpperCase();
-      const rawUrl = example.request?.url || parentUrl;
-      const routePath = extractRoutePath(rawUrl);
-
-      if (!routePath) continue;
-
-      const routeKey = `${method} ${routePath}`;
-
-      if (!routeMap.has(routeKey)) {
-        routeMap.set(routeKey, []);
-      }
-
-      routeMap.get(routeKey).push({
-        exampleName: example.name || 'default',
-        sourceFile: relativePath,
-        requestItemName: parsed.name || basename,
-        response: {
-          status: Number(example.response?.status) || 200,
-          statusText: example.response?.statusText || '',
-          headers: (example.response?.headers || []).map((h) => ({
-            name: h.name,
-            value: h.value
-          })),
-          body: {
-            type: example.response?.body?.type || 'text',
-            content: example.response?.body?.content || ''
-          }
-        }
-      });
-    }
-  }
-
-  return routeMap;
 };
 
 const emit = (channel, data) => {
@@ -313,16 +238,36 @@ const handleRequest = (mockServerUid, req, res) => {
     });
 
     res.status(404).json({
-      error: 'No mock example found',
+      error: 'No mock response found',
       method: req.method,
       path: reqPath,
-      hint: 'Add an example for this route in your Bruno collection',
+      hint: 'Create a mock response for this route',
       availableRoutes: Array.from(collection.routeMap.keys()).sort()
     });
     return;
   }
 
-  let selected = examples[0];
+  const selected = selectMatchingResponse(examples, buildRequestContext(req));
+
+  if (!selected) {
+    logRequest(collection, mockServerUid, {
+      method: req.method,
+      path: reqPath,
+      matched: false,
+      matchedExampleName: null,
+      statusCode: 404,
+      duration: Date.now() - startTime
+    });
+
+    res.status(404).json({
+      error: 'No matching mock response',
+      method: req.method,
+      path: reqPath,
+      hint: 'Add or adjust mock response rules for this route',
+      availableRoutes: Array.from(collection.routeMap.keys()).sort()
+    });
+    return;
+  }
 
   const delay = collection.globalDelay;
 
@@ -357,7 +302,7 @@ const handleRequest = (mockServerUid, req, res) => {
       method: req.method,
       path: reqPath,
       matched: true,
-      matchedExampleName: selected.exampleName,
+      matchedExampleName: selected.responseName || selected.exampleName,
       matchedSourceFile: selected.sourceFile,
       statusCode,
       delay,
@@ -378,14 +323,19 @@ const handleRequest = (mockServerUid, req, res) => {
   }
 };
 
-const createGatewayApp = () => {
-  const app = express();
-
+const applyMockMiddleware = (app) => {
   app.use(cors({
     origin: '*',
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS', 'HEAD'],
-    allowedHeaders: ['Content-Type', 'Authorization']
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Mock-Example', 'X-Mock-Response-Code']
   }));
+  app.use(express.json({ limit: '10mb' }));
+  app.use(express.text({ type: '*/*', limit: '10mb' }));
+};
+
+const createGatewayApp = () => {
+  const app = express();
+  applyMockMiddleware(app);
 
   app.all('*', (req, res) => {
     const mockServerUid = resolveSharedCollectionUid(req.path);
@@ -444,34 +394,20 @@ const unregisterSlug = (slug) => {
 };
 
 const buildRouteMapForSource = async ({
+  mockServerUid,
   sourceType,
   collectionPath,
-  brunoConfig,
-  specPath
-}) => {
-  if (sourceType === 'spec') {
-    if (!specPath || !fs.existsSync(specPath)) {
-      throw new Error('API spec file not found.');
-    }
-
-    const content = fs.readFileSync(specPath, 'utf8');
-    const spec = parseSpec(content);
-    return {
-      routeMap: buildRouteMapFromSpec(spec),
-      examplesGenerated: 0,
-      filesUpdated: 0
-    };
-  }
-
-  const resolvedBrunoConfig = brunoConfig || loadBrunoConfig(collectionPath);
-  const generationResult = await ensureMockExamples(collectionPath, resolvedBrunoConfig);
-
-  return {
-    routeMap: buildRouteMap(collectionPath),
-    examplesGenerated: generationResult.examplesGenerated,
-    filesUpdated: generationResult.filesUpdated
-  };
-};
+  workspacePath
+}) => ({
+  routeMap: buildRouteMapFromMockResponses({
+    mockServerUid,
+    collectionPath,
+    sourceType,
+    workspacePath
+  }),
+  examplesGenerated: 0,
+  filesUpdated: 0
+});
 
 const start = async ({
   mockServerUid,
@@ -481,6 +417,7 @@ const start = async ({
   collectionName,
   brunoConfig,
   specPath,
+  workspacePath,
   port = DEFAULT_GATEWAY_PORT,
   globalDelay = 0
 }) => {
@@ -498,10 +435,10 @@ const start = async ({
 
   const mode = getMockMode();
   const { routeMap, examplesGenerated, filesUpdated } = await buildRouteMapForSource({
+    mockServerUid,
     sourceType,
     collectionPath,
-    brunoConfig,
-    specPath
+    workspacePath
   });
   const slug = mode === 'shared'
     ? allocateCollectionSlug(serverName || collectionName, mockServerUid, slugToCollectionUid)
@@ -517,11 +454,7 @@ const start = async ({
     resolvedPort = await resolveIsolatedPort(resolvedPort, mockServerUid);
 
     const app = express();
-    app.use(cors({
-      origin: '*',
-      methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS', 'HEAD'],
-      allowedHeaders: ['Content-Type', 'Authorization']
-    }));
+    applyMockMiddleware(app);
     app.all('*', (req, res) => handleRequest(mockServerUid, req, res));
 
     const httpServer = await listenOnPort(app, resolvedPort);
@@ -534,6 +467,7 @@ const start = async ({
     mockServerUid,
     sourceType,
     collectionPath,
+    workspacePath,
     collectionName: serverName || collectionName,
     mode,
     slug,
@@ -546,7 +480,7 @@ const start = async ({
   });
 
   const routeCount = routeMap.size;
-  const exampleCount = countExamples(routeMap);
+  const exampleCount = countRouteResponses(routeMap);
 
   emitStatusChanged(mockServerUid, {
     status: 'running',
@@ -623,17 +557,18 @@ const stopAll = async () => {
   await Promise.all(uids.map((uid) => stop(uid)));
 };
 
-const getStatus = (mockServerUid) => {
+const getStatus = (mockServerUid, location = {}) => {
   const collection = collections.get(mockServerUid);
   if (!collection) {
+    const counts = getRouteCounts(mockServerUid, location);
     return {
       status: 'stopped',
       port: null,
       baseUrl: null,
       slug: null,
       mode: getMockMode(),
-      routeCount: 0,
-      exampleCount: 0,
+      routeCount: counts.routeCount,
+      exampleCount: counts.exampleCount,
       globalDelay: 0
     };
   }
@@ -645,47 +580,31 @@ const getStatus = (mockServerUid) => {
     slug: collection.slug,
     mode: collection.mode,
     routeCount: collection.routeMap.size,
-    exampleCount: countExamples(collection.routeMap),
+    exampleCount: countRouteResponses(collection.routeMap),
     globalDelay: collection.globalDelay
   };
 };
 
-const refreshRoutes = async (mockServerUid) => {
+const refreshRoutes = async (mockServerUid, location = {}) => {
   const collection = collections.get(mockServerUid);
-  if (!collection) throw new Error('Mock server is not running.');
+  const resolvedLocation = resolveMockServerLocation(mockServerUid, location);
+  const routeMap = buildRouteMapFromMockResponses(resolvedLocation);
 
-  const { routeMap } = await buildRouteMapForSource({
-    sourceType: collection.sourceType || 'collection',
-    collectionPath: collection.collectionPath,
-    specPath: collection.specPath
-  });
-  collection.routeMap = routeMap;
-  emitRouteTableUpdated(mockServerUid);
-
-  return { routeCount: collection.routeMap.size, exampleCount: countExamples(collection.routeMap) };
-};
-
-const getRoutes = (mockServerUid) => {
-  const collection = collections.get(mockServerUid);
-  if (!collection) return [];
-
-  const routes = [];
-  for (const [routeKey, examples] of collection.routeMap) {
-    const [method, ...pathParts] = routeKey.split(' ');
-    routes.push({
-      method,
-      path: pathParts.join(' '),
-      exampleCount: examples.length,
-      examples: examples.map((ex) => ({
-        name: ex.exampleName,
-        status: ex.response.status,
-        sourceFile: ex.sourceFile
-      })),
-      defaultExample: examples[0]?.exampleName || null
-    });
+  if (collection) {
+    collection.routeMap = routeMap;
+    emitRouteTableUpdated(mockServerUid);
   }
-  return routes;
+
+  return {
+    routeCount: routeMap.size,
+    exampleCount: countRouteResponses(routeMap),
+    routes: routeMapToRouteTable(routeMap)
+  };
 };
+
+const getRoutes = (mockServerUid, location = {}) => (
+  routeMapToRouteTable(resolveRouteMap(mockServerUid, location))
+);
 
 const getLog = (mockServerUid) => {
   const collection = collections.get(mockServerUid);
@@ -705,6 +624,19 @@ const clearLog = (mockServerUid) => {
 
 const getRunningMockServerUids = () => Array.from(collections.keys());
 
+const reloadRoutesFromStore = async (mockServerUid, location = {}) => {
+  const collection = collections.get(mockServerUid);
+  if (!collection) {
+    return refreshRoutes(mockServerUid, location);
+  }
+
+  return refreshRoutes(mockServerUid, {
+    sourceType: collection.sourceType,
+    collectionPath: collection.collectionPath,
+    workspacePath: collection.workspacePath
+  });
+};
+
 module.exports = {
   setMainWindow,
   start,
@@ -718,5 +650,6 @@ module.exports = {
   clearLog,
   suggestPort,
   getMockMode,
-  getRunningMockServerUids
+  getRunningMockServerUids,
+  reloadRoutesFromStore
 };
