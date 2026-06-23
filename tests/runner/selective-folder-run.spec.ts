@@ -86,9 +86,9 @@ test.describe('Selective Folder Run', () => {
     const deselectedRequestIndex = 0;
     const deselectedRequestName = (await requestItems
       .nth(deselectedRequestIndex)
-      .locator('.request-name > span:first-child')
+      .getByTestId('runner-request-item-name')
       .innerText()).trim();
-    await requestItems.nth(deselectedRequestIndex).locator('.checkbox-container').click();
+    await requestItems.nth(deselectedRequestIndex).getByTestId('runner-request-item-checkbox').click();
     await expect(async () => {
       expect(await readButtonCount(getSelectiveRunButton(page))).toBe(initialCount - 1);
     }).toPass({ timeout: 5000 });
@@ -104,7 +104,7 @@ test.describe('Selective Folder Run', () => {
     expect(totalRequests).toBe(initialCount - 1);
     expect(failed).toBe(0);
 
-    const resultDisplayNames = (await page.getByTestId('runner-result-item').locator('span.mr-1.ml-2').allInnerTexts())
+    const resultDisplayNames = (await page.getByTestId('runner-result-item-name').allInnerTexts())
       .map((name) => name.trim());
     expect(resultDisplayNames).not.toContain(deselectedRequestName);
   });

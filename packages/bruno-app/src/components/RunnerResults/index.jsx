@@ -419,7 +419,8 @@ export default function RunnerResults({ collection }) {
                           : null}
                       </span>
                       <span
-                        className={`mr-1 ml-2 ${item.status == 'skipped' ? 'skipped-request' : anyTestFailed(item) ? 'danger' : ''}`}
+                        data-testid="runner-result-item-name"
+                        className={`mr-1 ml-2 ${item.status === 'skipped' ? 'skipped-request' : anyTestFailed(item) ? 'danger' : ''}`}
                       >
                         {item.displayName}
                       </span>
@@ -442,7 +443,7 @@ export default function RunnerResults({ collection }) {
                         Tags: {item.tags.filter((t) => tags.include.includes(t)).join(', ')}
                       </div>
                     )}
-                    {item.status == 'error' ? <div className="error-message pl-8 pt-2 text-xs">{item.error}</div> : null}
+                    {item.status === 'error' ? <div className="error-message pl-8 pt-2 text-xs">{item.error}</div> : null}
 
                     <ul className="pl-8">
                       {item.preRequestTestResults

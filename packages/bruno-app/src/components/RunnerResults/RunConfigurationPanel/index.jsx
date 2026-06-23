@@ -152,7 +152,11 @@ const RequestItem = ({ item, index, moveItem, isSelected, onSelect, onDrop, isDi
         <IconGripVertical size={16} strokeWidth={1.5} />
       </div>
 
-      <div className="checkbox-container" onClick={() => !isDisabled && onSelect(item)}>
+      <div
+        className="checkbox-container"
+        data-testid="runner-request-item-checkbox"
+        onClick={() => !isDisabled && onSelect(item)}
+      >
         <div className="checkbox">
           {isSelected && !isDisabled && <IconCheck className="checkbox-icon" size={12} strokeWidth={3} />}
         </div>
@@ -163,7 +167,7 @@ const RequestItem = ({ item, index, moveItem, isSelected, onSelect, onDrop, isDi
       </div>
 
       <div className="request-name">
-        <span>{item.name}</span>
+        <span data-testid="runner-request-item-name">{item.name}</span>
         {item.folderPath && (
           <span className="folder-path">{item.folderPath}</span>
         )}
