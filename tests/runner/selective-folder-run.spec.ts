@@ -27,8 +27,8 @@ test.describe('Selective Folder Run', () => {
     return match ? parseInt(match[0]) : 0;
   };
   const closeRunnerModal = async (page) => {
-    await page.keyboard.press('Escape').catch(() => {});
-    await page.locator('.bruno-modal-backdrop').first().waitFor({ state: 'hidden', timeout: 3000 }).catch(() => {});
+    await page.keyboard.press('Escape');
+    await page.locator('.bruno-modal-backdrop').first().waitFor({ state: 'hidden', timeout: 3000 });
   };
 
   test.beforeEach(async ({ pageWithUserData: page }) => {
