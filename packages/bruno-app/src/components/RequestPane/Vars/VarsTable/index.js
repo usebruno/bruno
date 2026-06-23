@@ -7,6 +7,7 @@ import { updateTableColumnWidths } from 'providers/ReduxStore/slices/tabs';
 import MultiLineEditor from 'components/MultiLineEditor';
 import InfoTip from 'components/InfoTip';
 import DataTypeSelector from 'components/DataTypeSelector';
+import VarValueCell from 'components/VarValueCell';
 import { valueToString } from '@usebruno/common/utils';
 import EditableTable from 'components/EditableTable';
 import StyledWrapper from './StyledWrapper';
@@ -95,8 +96,8 @@ const VarsTable = ({ item, collection, vars, varType, initialScroll = 0 }) => {
       ),
       placeholder: varType === 'request' ? 'Value' : 'Expr',
       render: ({ row, value, onChange, isLastEmptyRow, rowIndex }) => (
-        <div className="flex items-center w-full gap-2">
-          <div className="flex-1 min-w-0">
+        <VarValueCell
+          editor={(
             <MultiLineEditor
               value={valueToString(value)}
               name={`${rowIndex}.value`}
@@ -108,20 +109,22 @@ const VarsTable = ({ item, collection, vars, varType, initialScroll = 0 }) => {
               item={item}
               placeholder={value == null || (typeof value === 'string' && value.trim() === '') ? (varType === 'request' ? 'Value' : 'Expr') : ''}
             />
-          </div>
-          {/* DataTypes apply to literal values, not to the JS expression that produces a post-response value. */}
-          {!isLastEmptyRow && varType === 'request' && (
-            <DataTypeSelector
-              variable={row}
-              theme={storedTheme}
-              collection={collection}
-              onChange={(fields) => {
-                const updated = (vars || []).map((v) => v.uid === row.uid ? { ...v, ...fields } : v);
-                handleVarsChange(updated);
-              }}
-            />
           )}
-        </div>
+          renderTypeSelector={!isLastEmptyRow && varType === 'request'
+            ? ({ compact }) => (
+                <DataTypeSelector
+                  compact={compact}
+                  variable={row}
+                  theme={storedTheme}
+                  collection={collection}
+                  onChange={(fields) => {
+                    const updated = (vars || []).map((v) => v.uid === row.uid ? { ...v, ...fields } : v);
+                    handleVarsChange(updated);
+                  }}
+                />
+              )
+            : null}
+        />
       )
     },
     descriptionColumn
