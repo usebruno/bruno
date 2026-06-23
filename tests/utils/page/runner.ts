@@ -41,7 +41,7 @@ export const getRunnerResultCounts = async (page: Page) => {
 /**
  * Reads the "N of M selected" indicator from the runner configuration counter
  * @param page - The Playwright page object
- * @returns An object with selected count (N) and total count (M)
+ * @returns An object with selected count (N) and enabled (selectable) count (M)
  */
 export const getRunnerSelectionCounters = async (page: Page) => {
   const locators = buildRunnerLocators(page);
