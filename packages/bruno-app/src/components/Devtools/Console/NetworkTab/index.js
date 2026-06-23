@@ -1,4 +1,5 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo } from 'react';
+import { usePersistedState } from 'hooks/usePersistedState';
 import { useSelector, useDispatch } from 'react-redux';
 import {
   IconNetwork,
@@ -133,7 +134,7 @@ const RequestRow = ({ request, isSelected, onClick, gridTemplateColumns }) => {
 
 const NetworkTab = () => {
   const dispatch = useDispatch();
-  const [sortConfig, setSortConfig] = useState({ key: null, direction: null });
+  const [sortConfig, setSortConfig] = usePersistedState({ key: 'devtools-network-sort', default: { key: null, direction: null } });
   const gridTemplateColumns = useMemo(() => getGridTemplate(COLUMNS), []);
   const separatorPositions = useMemo(() => getSeparatorPositions(COLUMNS), []);
   const { networkFilters, selectedRequest } = useSelector((state) => state.logs);

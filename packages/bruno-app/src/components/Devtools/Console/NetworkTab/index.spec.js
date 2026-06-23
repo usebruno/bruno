@@ -55,6 +55,10 @@ const renderNetworkTab = (requests = []) => {
   );
 };
 
+beforeEach(() => {
+  localStorage.clear();
+});
+
 describe('sort state cycle', () => {
   const requests = [
     makeRequest({ itemUid: 'a', method: 'GET' }),
@@ -161,6 +165,26 @@ describe('sort results', () => {
     fireEvent.click(screen.getByTestId('network-header-method'));
     // MethodBadge always renders uppercase; sort order should treat 'post' == 'POST'
     expect(getRowMethods()).toEqual(['DELETE', 'GET', 'POST']);
+  });
+
+  it('restores sort config after close and reopen', () => {
+    const requests = [
+      makeRequest({ itemUid: '1', method: 'POST' }),
+      makeRequest({ itemUid: '2', method: 'GET' }),
+      makeRequest({ itemUid: '3', method: 'DELETE' })
+    ];
+
+    // First mount — set sort to method descending
+    const { unmount } = renderNetworkTab(requests);
+    fireEvent.click(screen.getByTestId('network-header-method')); // asc
+    fireEvent.click(screen.getByTestId('network-header-method')); // desc
+    expect(getRowMethods()).toEqual(['POST', 'GET', 'DELETE']);
+    unmount(); // simulate closing devtools
+
+    // Second mount — sort should be restored from localStorage
+    renderNetworkTab(requests);
+    expect(screen.getByTestId('sort-icon-desc')).toBeInTheDocument();
+    expect(getRowMethods()).toEqual(['POST', 'GET', 'DELETE']);
   });
 
   it('preserves insertion order when sort is cleared', () => {
