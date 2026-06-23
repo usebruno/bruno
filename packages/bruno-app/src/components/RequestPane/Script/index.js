@@ -127,6 +127,7 @@ const Script = ({ item, collection }) => {
             <CodeEditor
               ref={preRequestEditorRef}
               collection={collection}
+              item={item}
               docKey="script:pre-request"
               value={requestScript || ''}
               theme={displayedTheme}
@@ -137,6 +138,7 @@ const Script = ({ item, collection }) => {
               onRun={onRun}
               onSave={onSave}
               showHintsFor={['req', 'bru']}
+              scriptType="pre-request"
               initialScroll={preReqScroll}
               onScroll={setPreReqScroll}
             />
@@ -154,6 +156,7 @@ const Script = ({ item, collection }) => {
             <CodeEditor
               ref={postResponseEditorRef}
               collection={collection}
+              item={item}
               docKey="script:post-response"
               value={responseScript || ''}
               theme={displayedTheme}
@@ -164,6 +167,7 @@ const Script = ({ item, collection }) => {
               onRun={onRun}
               onSave={onSave}
               showHintsFor={['req', 'res', 'bru']}
+              scriptType="post-response"
               initialScroll={postResScroll}
               onScroll={setPostResScroll}
             />

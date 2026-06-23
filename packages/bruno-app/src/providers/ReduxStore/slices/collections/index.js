@@ -1,6 +1,6 @@
 import { parseQueryParams, buildQueryString as stringifyQueryParams } from '@usebruno/common/utils';
 import { uuid } from 'utils/common';
-import { find, map, forOwn, concat, filter, each, cloneDeep, get, set, findIndex } from 'lodash';
+import { find, map, forOwn, concat, filter, each, cloneDeep, get, set, findIndex, pick } from 'lodash';
 import { createSlice } from '@reduxjs/toolkit';
 import { hexy as hexdump } from 'hexy';
 import {
@@ -27,6 +27,69 @@ import { getCollectionEnvironmentPath } from 'utils/snapshot';
 import { getDataTypeFromValue } from '@usebruno/common/utils';
 import * as exampleReducers from './exampleReducers';
 import * as mockResponseEditorReducers from './mockResponseEditorReducers';
+
+const FILE_DERIVED_REQUEST_FIELDS = [
+  'name',
+  'type',
+  'seq',
+  'tags',
+  'request',
+  'settings',
+  'examples',
+  'filename',
+  'pathname',
+  'partial',
+  'loading',
+  'size',
+  'error',
+  'isTransient'
+];
+
+const FILE_DERIVED_FOLDER_FIELDS = [
+  'name',
+  'filename',
+  'pathname',
+  'seq',
+  'type',
+  'root'
+];
+
+const mergeTreeItems = (existingItems, newItems) => {
+  if (!Array.isArray(existingItems) || existingItems.length === 0) return newItems;
+  const existingByUid = new Map();
+  for (const item of existingItems) {
+    if (item && item.uid) existingByUid.set(item.uid, item);
+  }
+
+  return newItems.map((newItem) => {
+    const existing = existingByUid.get(newItem.uid);
+    if (!existing) return newItem;
+
+    if (newItem.type === 'folder') {
+      const merged = { ...existing, ...pick(newItem, FILE_DERIVED_FOLDER_FIELDS) };
+      merged.items = mergeTreeItems(existing.items, newItem.items || []);
+      return merged;
+    }
+
+    // seq-only change (reorder) — keep everything else, including the draft
+    if (areItemsTheSameExceptSeqUpdate(existing, newItem)) {
+      const merged = { ...existing, seq: newItem.seq };
+      if (merged.draft) {
+        merged.draft = { ...merged.draft, seq: newItem.seq };
+        if (areItemsTheSameExceptSeqUpdate(merged.draft, newItem)) {
+          merged.draft = null;
+        }
+      }
+      return merged;
+    }
+
+    const merged = { ...existing, ...pick(newItem, FILE_DERIVED_REQUEST_FIELDS) };
+    // only drop the draft if it matches what's on disk — user may still be typing
+    const draftMatchesFile = existing.draft && areItemsTheSameExceptSeqUpdate(existing.draft, newItem);
+    merged.draft = draftMatchesFile ? null : (existing.draft || null);
+    return merged;
+  });
+};
 
 // gRPC status code meanings
 const grpcStatusCodes = {
@@ -783,6 +846,9 @@ export const collectionsSlice = createSlice({
           item.request = item.draft.request;
           if (item.draft.settings) {
             item.settings = item.draft.settings;
+          }
+          if (item.draft.app) {
+            item.app = item.draft.app;
           }
           item.draft = null;
         }
@@ -2781,6 +2847,7 @@ export const collectionsSlice = createSlice({
               request: file.data.request,
               settings: file.data.settings,
               examples: file.data.examples,
+              app: file.data.app,
               filename: file.meta.name,
               pathname: file.meta.pathname,
               raw: file.data.raw,
@@ -2884,6 +2951,16 @@ export const collectionsSlice = createSlice({
             item.request = mergeRequestWithPreservedUids(item.request, file.data.request);
             item.settings = file.data.settings;
             item.examples = file.data.examples;
+            // app.enabled is runtime-only and not persisted, so preserve it across file reloads
+            // even when the file no longer has an `app` block on disk.
+            const currentEnabled = item.draft?.app?.enabled ?? item.app?.enabled ?? false;
+            if (file.data.app) {
+              item.app = { ...file.data.app, enabled: currentEnabled };
+            } else if (currentEnabled) {
+              item.app = { code: null, enabled: true };
+            } else {
+              item.app = null;
+            }
             item.filename = file.meta.name;
             item.pathname = file.meta.pathname;
             item.raw = file.data.raw;
@@ -3310,6 +3387,39 @@ export const collectionsSlice = createSlice({
         }
       }
     },
+    updateAppCode: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+      if (!collection) return;
+
+      const item = findItemInCollection(collection, action.payload.itemUid);
+      if (item && isItemARequest(item)) {
+        if (!item.draft) {
+          item.draft = cloneDeep(item);
+        }
+        item.draft.app = item.draft.app || {};
+        item.draft.app.code = action.payload.code;
+      }
+    },
+    toggleAppMode: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+      if (!collection) return;
+
+      const item = findItemInCollection(collection, action.payload.itemUid);
+      if (item && isItemARequest(item)) {
+        item.app = item.app || {};
+        item.app.enabled = action.payload.enabled;
+        if (item.draft) {
+          item.draft.app = item.draft.app || {};
+          item.draft.app.enabled = action.payload.enabled;
+        }
+      }
+    },
+    appSetRuntimeVariable: (state, action) => {
+      const { collectionUid, key, value } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+      if (!collection) return;
+      collection.runtimeVariables = { ...(collection.runtimeVariables || {}), [key]: value };
+    },
     updateFolderDocs: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
       const folder = collection ? findItemInCollection(collection, action.payload.folderUid) : null;
@@ -3342,6 +3452,35 @@ export const collectionsSlice = createSlice({
           item.draft.raw = action.payload.content;
         }
       }
+    },
+    collectionLoadedFromTree: (state, action) => {
+      const { collectionUid, tree } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+      if (!collection) return;
+
+      collection.items = mergeTreeItems(collection.items, tree?.items || []);
+      collection.environments = tree?.environments || [];
+      if (tree?.root !== undefined) {
+        collection.root = tree.root;
+      }
+      if (tree?.brunoConfig) {
+        collection.brunoConfig = tree.brunoConfig;
+      }
+      const tempDirectory = state.tempDirectories?.[collectionUid];
+      if (tempDirectory) {
+        const annotateTransient = (items) => {
+          for (const item of items) {
+            if (item.pathname && item.pathname.startsWith(tempDirectory)) {
+              item.isTransient = true;
+            }
+            if (item.type === 'folder' && Array.isArray(item.items)) {
+              annotateTransient(item.items);
+            }
+          }
+        };
+        annotateTransient(collection.items);
+      }
+      addDepth(collection.items);
     },
     collectionAddOauth2CredentialsByUrl: (state, action) => {
       const { collectionUid, folderUid, itemUid, url, credentials, credentialsId, debugInfo, executionMode } = action.payload;
@@ -3741,6 +3880,7 @@ export const {
   createCollection,
   updateCollectionMountStatus,
   updateCollectionLoadingState,
+  collectionLoadedFromTree,
   setCollectionSecurityConfig,
   brunoConfigUpdateEvent,
   renameCollection,
@@ -3875,6 +4015,9 @@ export const {
   updateFolderDocs,
   toggleCollectionFileMode,
   updateFileContent,
+  updateAppCode,
+  toggleAppMode,
+  appSetRuntimeVariable,
   moveCollection,
   streamDataReceived,
   collectionAddOauth2CredentialsByUrl,

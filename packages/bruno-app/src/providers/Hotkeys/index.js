@@ -88,26 +88,6 @@ export const HotkeysProvider = (props) => {
     };
   }, [activeTabUid, tabs, collections, dispatch, userKeyBindings, keybindingsEnabled]);
 
-  // new request
-  useEffect(() => {
-    bindAction('newRequest', (e) => {
-      const activeTab = find(tabs, (t) => t.uid === activeTabUid);
-      if (activeTab) {
-        const collection = findCollectionByUid(collections, activeTab.collectionUid);
-
-        if (collection) {
-          setShowNewRequestModal(true);
-        }
-      }
-
-      return false; // this stops the event bubbling
-    });
-
-    return () => {
-      unbindAction('newRequest');
-    };
-  }, [activeTabUid, tabs, collections, setShowNewRequestModal, userKeyBindings, keybindingsEnabled]);
-
   // global search
   useEffect(() => {
     bindAction('globalSearch', (e) => {

@@ -48,9 +48,15 @@ const closeAllCollections = async (page) => {
 
     for (let i = 0; i < numberOfCollections; i++) {
       const firstCollection = page.locator('[data-testid="collections"] .collection-name').first();
-      await firstCollection.hover();
-      await firstCollection.locator('.collection-actions .icon').click();
-      await page.locator('.dropdown-item').getByText('Remove').click();
+      await firstCollection.scrollIntoViewIfNeeded();
+
+      const removeMenuItem = page.locator('.dropdown-item').getByText('Remove');
+      await expect(async () => {
+        await firstCollection.hover();
+        await firstCollection.locator('.collection-actions .icon').click({ force: true });
+        await expect(removeMenuItem).toBeVisible({ timeout: 2000 });
+      }).toPass({ timeout: 15000 });
+      await removeMenuItem.click();
 
       // Wait for modal to appear - could be either regular remove or drafts confirmation
       const removeModal = page.locator('.bruno-modal').filter({ hasText: 'Remove Collection' });
@@ -150,10 +156,18 @@ const createCollection = async (
     await expect(nameInput).toHaveValue(collectionName, { timeout: 2000 });
 
     if (format) {
-      await createCollectionModal.locator('.advanced-options .btn-advanced').click();
-      await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Show File Format' }).click();
+      const advancedBtn = createCollectionModal.locator('.advanced-options .btn-advanced');
+      const showFileFormatToggle = page.getByTestId('show-file-format-toggle');
       const formatSelect = createCollectionModal.locator('#format');
-      await formatSelect.waitFor({ state: 'visible', timeout: 5000 });
+
+      await expect(async () => {
+        if (!(await formatSelect.isVisible())) {
+          await advancedBtn.click();
+          await showFileFormatToggle.click({ timeout: 2000 });
+        }
+        await expect(formatSelect).toBeVisible({ timeout: 2000 });
+      }).toPass({ timeout: 15000 });
+
       await formatSelect.selectOption(format);
     }
 
@@ -1945,6 +1959,75 @@ const generateCollectionDocs = async (
 };
 
 /**
+ * Set the request's app code. Opens the App tab and writes the editor value
+ * directly via the CodeMirror API (avoids auto-close-bracket corruption when
+ * typing HTML/JS char-by-char). The app must not be enabled (editor visible).
+ * @param page - The page object
+ * @param code - The HTML/JS app code
+ */
+const setAppCode = async (page: Page, code: string) => {
+  await test.step('Set app code', async () => {
+    await selectRequestPaneTab(page, 'App');
+    const editor = page.getByTestId('app-code-editor').locator('.CodeMirror').first();
+    await editor.waitFor({ state: 'visible' });
+    await editor.evaluate((el, val) => {
+      const cm = (el as any).CodeMirror;
+      if (cm) cm.setValue(val);
+    }, code);
+  });
+};
+
+/**
+ * Enable app mode via the App tab's "Enable App" toggle. Asserts the app view
+ * takes over the request/response area.
+ * @param page - The page object
+ */
+const enableApp = async (page: Page) => {
+  await test.step('Enable app mode (App tab toggle)', async () => {
+    await selectRequestPaneTab(page, 'App');
+    await page.getByTestId('app-enable-toggle').click();
+    await expect(page.getByTestId('app-view')).toBeVisible({ timeout: 5000 });
+  });
+};
+
+/**
+ * Exit app mode via the app view's "Exit to editor" button.
+ * @param page - The page object
+ */
+const exitApp = async (page: Page) => {
+  await test.step('Exit app mode', async () => {
+    await page.getByTestId('app-exit-button').click();
+    await expect(page.getByTestId('app-view')).toBeHidden({ timeout: 5000 });
+  });
+};
+
+/**
+ * Switch the active request's view mode using the collection toolbar toggle.
+ * @param page - The page object
+ * @param mode - 'request' | 'app' | 'file'
+ */
+const selectViewMode = async (page: Page, mode: 'request' | 'app' | 'file') => {
+  await test.step(`Switch view mode to "${mode}"`, async () => {
+    await page.getByTestId(`view-mode-${mode}`).click();
+  });
+};
+
+/**
+ * Read the decoded HTML the app webview is loading (its data: URL src).
+ * Useful for asserting the injected ctx bootstrap and user code.
+ * @param page - The page object
+ * @returns The decoded HTML document string
+ */
+const getAppWebviewHtml = async (page: Page): Promise<string> => {
+  const webview = page.getByTestId('app-view').locator('webview');
+  await webview.waitFor({ state: 'attached', timeout: 5000 });
+  const src = await webview.getAttribute('src');
+  if (!src) return '';
+  const comma = src.indexOf(',');
+  return decodeURIComponent(src.slice(comma + 1));
+};
+
+/**
  * Rename a websocket message by double-clicking its label and typing a new name.
  * @param page - The page object
  * @param index - The zero-based index of the message in the list
@@ -2080,6 +2163,11 @@ export {
   openRequestInFolder,
   setUrlEncoding,
   generateCollectionDocs,
+  setAppCode,
+  enableApp,
+  exitApp,
+  selectViewMode,
+  getAppWebviewHtml,
   renameWsMessage
 };
 

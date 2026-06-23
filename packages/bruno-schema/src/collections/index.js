@@ -684,6 +684,11 @@ const itemSchema = Yup.object({
     then: (schema) => schema.nullable(),
     otherwise: Yup.array().strip()
   }),
+  app: Yup.object({
+    code: Yup.string().nullable()
+  })
+    .noUnknown(true)
+    .nullable(),
   filename: Yup.string().nullable(),
   pathname: Yup.string().nullable()
 })

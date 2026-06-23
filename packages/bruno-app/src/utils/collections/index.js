@@ -704,6 +704,10 @@ export const transformRequestToSaveToFilesystem = (item) => {
     }));
   };
 
+  const appToSave = _item.app && _item.app.code && _item.app.code.length
+    ? { code: _item.app.code }
+    : null;
+
   const itemToSave = {
     uid: _item.uid,
     type: _item.type,
@@ -711,6 +715,7 @@ export const transformRequestToSaveToFilesystem = (item) => {
     seq: _item.seq,
     settings: _item.settings,
     tags: _item.tags,
+    app: appToSave,
     examples: transformExamples(_item.examples || []),
     request: {
       method: _item.request.method,

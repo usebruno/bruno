@@ -129,6 +129,12 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
     return false;
   }, { enabled: isKeyboardFocused, deps: [isKeyboardFocused] });
 
+  useKeybinding('newRequest', () => {
+    if (!isFolder) return false;
+    setNewRequestModalOpen(true);
+    return false;
+  }, { enabled: isKeyboardFocused && isFolder, deps: [isKeyboardFocused, isFolder] });
+
   const [dropType, setDropType] = useState(null); // 'adjacent' or 'inside'
 
   const [{ isDragging }, drag, dragPreview] = useDrag({
