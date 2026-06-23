@@ -10,6 +10,7 @@ const TARGET_OPTIONS = [
 
 const OPERATOR_OPTIONS = [
   { value: 'equals', label: 'equals' },
+  { value: 'not_equals', label: 'not equals' },
   { value: 'contains', label: 'contains' },
   { value: 'regex', label: 'regex' }
 ];
@@ -88,6 +89,14 @@ const MockResponseRules = ({ rules, editMode, onChange, embedded = false }) => {
             ))}
           </select>
 
+          <input
+            type="text"
+            placeholder={condition.target === 'body' ? '$.user.type' : 'name'}
+            value={condition.key || ''}
+            disabled={!editMode}
+            onChange={(event) => updateCondition(index, { key: event.target.value })}
+          />
+
           <select
             value={condition.operator || 'equals'}
             disabled={!editMode}
@@ -100,17 +109,7 @@ const MockResponseRules = ({ rules, editMode, onChange, embedded = false }) => {
 
           <input
             type="text"
-            placeholder={condition.target === 'body' ? '$.user.type' : 'name'}
-            value={condition.key || ''}
-            disabled={!editMode}
-            onChange={(event) => updateCondition(index, { key: event.target.value })}
-          />
-
-          <span className="text-xs opacity-70">value</span>
-
-          <input
-            type="text"
-            placeholder="expected value"
+            placeholder="value"
             value={condition.value || ''}
             disabled={!editMode}
             onChange={(event) => updateCondition(index, { value: event.target.value })}

@@ -39,6 +39,13 @@ describe('mock-rule-matcher', () => {
       operator: 'equals',
       value: 'admin'
     }, context)).toBe(true);
+
+    expect(evaluateCondition({
+      target: 'header',
+      key: 'X-Plan',
+      operator: 'not_equals',
+      value: 'free'
+    }, context)).toBe(true);
   });
 
   it('matches AND and OR rule groups', () => {

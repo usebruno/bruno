@@ -17,7 +17,7 @@ const StyledWrapper = styled.div`
 
   .rule-row {
     display: grid;
-    grid-template-columns: 110px 110px 1fr 120px 1fr auto;
+    grid-template-columns: 120px 1fr 120px 1fr auto;
     gap: 8px;
     align-items: center;
     margin-bottom: 8px;
