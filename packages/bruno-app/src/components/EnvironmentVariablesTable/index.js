@@ -618,6 +618,7 @@ const EnvironmentVariablesTable = ({
                   >
                     <MultiLineEditor
                       theme={storedTheme}
+                      canGrow={true}
                       collection={_collection}
                       name={`${actualIndex}.value`}
                       value={valueToString(variable.value, 2)}
