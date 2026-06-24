@@ -24,6 +24,9 @@ const ensureChat = (state, tabUid) => {
       isLoading: false,
       error: null,
       currentRequestId: null,
+      // createdAt is stamped on first message in addAiMessage / startNewConversation
+      // and preserved through openConversation so subsequent saves don't rewrite it.
+      createdAt: null,
       historyList: []
     };
   }
@@ -51,17 +54,19 @@ export const chatSlice = createSlice({
       if (contentType) chat.contentType = contentType;
     },
     startNewConversation: (state, action) => {
-      const { tabUid, contentType } = action.payload;
+      const { tabUid, contentType, createdAt } = action.payload;
       const chat = ensureChat(state, tabUid);
       chat.conversationId = newConversationId();
       chat.messages = [];
       chat.error = null;
+      chat.createdAt = typeof createdAt === 'number' ? createdAt : null;
       if (contentType) chat.contentType = contentType;
     },
     addAiMessage: (state, action) => {
       const { tabUid, message } = action.payload;
       const chat = ensureChat(state, tabUid);
       if (!chat.conversationId) chat.conversationId = newConversationId();
+      if (!chat.createdAt) chat.createdAt = action.payload.timestamp || null;
       chat.messages.push(message);
     },
     setAiLoading: (state, action) => {
@@ -141,11 +146,12 @@ export const chatSlice = createSlice({
       chat.historyList = Array.isArray(historyList) ? historyList : [];
     },
     replaceChatMessages: (state, action) => {
-      const { tabUid, conversationId, messages, contentType } = action.payload;
+      const { tabUid, conversationId, messages, contentType, createdAt } = action.payload;
       const chat = ensureChat(state, tabUid);
       chat.conversationId = conversationId;
       chat.messages = messages || [];
       chat.error = null;
+      chat.createdAt = typeof createdAt === 'number' ? createdAt : null;
       if (contentType) chat.contentType = contentType;
     }
   },
@@ -207,7 +213,8 @@ export const openConversation = (tabUid, conversationId) => async (dispatch) => 
     tabUid,
     conversationId: record.id,
     messages: record.messages || [],
-    contentType: record.contentType
+    contentType: record.contentType,
+    createdAt: record.createdAt
   }));
 };
 
@@ -236,15 +243,26 @@ export const sendAiMessage = (
   contentType = 'app'
 ) => async (dispatch, getState) => {
   const { ipcRenderer } = window;
-  const requestId = `${tabUid}-${Date.now()}`;
 
-  const existing = getState().chat.chats[tabUid]?.messages || [];
+  // Reject overlapping sends for the same tab. The slice tracks one
+  // currentRequestId per tab and chunk/tool reducers mutate the last
+  // assistant message, so a concurrent send would interleave into the same
+  // streaming entry and only the latest stop would target a controller.
+  const existingChat = getState().chat.chats[tabUid];
+  if (existingChat?.currentRequestId || existingChat?.isLoading) {
+    return;
+  }
+
+  const now = Date.now();
+  const requestId = `${tabUid}-${now}`;
+
+  const existing = existingChat?.messages || [];
   const priorMessages = existing
     .filter((m) => !m.isStreaming)
     .map((m) => ({ role: m.role, content: m.content }));
 
-  dispatch(addAiMessage({ tabUid, message: { role: 'user', content: userMessage } }));
-  dispatch(addAiMessage({ tabUid, message: { role: 'assistant', content: '', isStreaming: true } }));
+  dispatch(addAiMessage({ tabUid, message: { role: 'user', content: userMessage }, timestamp: now }));
+  dispatch(addAiMessage({ tabUid, message: { role: 'assistant', content: '', isStreaming: true }, timestamp: now }));
   dispatch(setAiLoading({ tabUid, isLoading: true }));
   dispatch(setCurrentRequestId({ tabUid, requestId }));
   dispatch(setAiError({ tabUid, error: null }));
@@ -316,6 +334,17 @@ export const sendAiMessage = (
 
     const handleError = (data) => {
       if (data.requestId !== requestId) return;
+      // Finalize the streaming assistant placeholder so the UI doesn't stay
+      // stuck in "Thinking…", the error itself surfaces via setAiError.
+      const original = typeof allContent === 'object' ? (allContent[contentType] || '') : allContent;
+      dispatch(finalizeAiStreamingMessage({
+        tabUid,
+        content: '',
+        code: null,
+        originalCode: original,
+        contentType,
+        cancelled: true
+      }));
       dispatch(setAiError({ tabUid, error: data.error }));
       dispatch(setAiLoading({ tabUid, isLoading: false }));
       dispatch(setCurrentRequestId({ tabUid, requestId: null }));

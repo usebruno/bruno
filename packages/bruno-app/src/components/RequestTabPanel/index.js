@@ -317,7 +317,10 @@ const RequestTabPanel = () => {
         if (!width) return;
         const maxLeft = width - MIN_RIGHT_PANE_WIDTH;
         if (leftPaneWidthRef.current > maxLeft) {
-          setLeftPaneWidth(Math.max(MIN_LEFT_PANE_WIDTH, maxLeft));
+          const next = maxLeft >= MIN_LEFT_PANE_WIDTH
+            ? Math.max(MIN_LEFT_PANE_WIDTH, maxLeft)
+            : Math.max(0, maxLeft);
+          setLeftPaneWidth(next);
         }
       });
     });

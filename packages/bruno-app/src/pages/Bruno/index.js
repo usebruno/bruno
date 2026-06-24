@@ -165,7 +165,7 @@ export default function Main() {
               </>
             )}
           </section>
-          {isAiSidebarOpen && activeCollection && (
+          {isAiSidebarOpen && activeCollection && !showApiSpecPage && !showManageWorkspacePage && (
             <AiChatSidebar collection={activeCollection} />
           )}
         </StyledWrapper>

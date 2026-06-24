@@ -58,6 +58,29 @@ const redactResponseValues = (data, depth = 0, maxDepth = 6) => {
 const REDACTION_NOTICE
   = 'Values are placeholders (`<string>`, `<number>`, …). The shape, keys, and types are accurate but no real data is shown. Reference fields by path in generated code — do not hard-code these placeholders as literal values.';
 
+const SENSITIVE_HEADER_PATTERNS = [
+  /^authorization$/i,
+  /^proxy-authorization$/i,
+  /^cookie$/i,
+  /^set-cookie$/i,
+  /^x-api-key$/i,
+  /^x-auth-token$/i,
+  /^x-access-token$/i,
+  /^x-csrf-token$/i,
+  /api[_-]?key/i,
+  /access[_-]?token/i,
+  /auth[_-]?token/i,
+  /secret/i,
+  /password/i
+];
+
+const isSensitiveName = (name) => {
+  if (!name) return false;
+  return SENSITIVE_HEADER_PATTERNS.some((re) => re.test(name));
+};
+
+const maskValue = (name, value) => (isSensitiveName(name) ? '<redacted>' : value);
+
 const formatRequestContext = (ctx) => {
   if (!ctx) return '';
   const parts = [];
@@ -68,17 +91,17 @@ const formatRequestContext = (ctx) => {
 
   const headers = (ctx.headers || []).filter((h) => h.enabled);
   if (headers.length > 0) {
-    parts.push(`**Headers:**\n${headers.map((h) => `  ${h.name}: ${h.value}`).join('\n')}`);
+    parts.push(`**Headers:**\n${headers.map((h) => `  ${h.name}: ${maskValue(h.name, h.value)}`).join('\n')}`);
   }
 
   const params = (ctx.params || []).filter((p) => p.enabled);
   const query = params.filter((p) => p.type === 'query');
   const pathParams = params.filter((p) => p.type === 'path');
   if (query.length > 0) {
-    parts.push(`**Query Parameters:**\n${query.map((p) => `  ${p.name}: ${p.value}`).join('\n')}`);
+    parts.push(`**Query Parameters:**\n${query.map((p) => `  ${p.name}: ${maskValue(p.name, p.value)}`).join('\n')}`);
   }
   if (pathParams.length > 0) {
-    parts.push(`**Path Parameters:**\n${pathParams.map((p) => `  ${p.name}: ${p.value}`).join('\n')}`);
+    parts.push(`**Path Parameters:**\n${pathParams.map((p) => `  ${p.name}: ${maskValue(p.name, p.value)}`).join('\n')}`);
   }
 
   if (ctx.body && ctx.body.mode && ctx.body.mode !== 'none') {
@@ -90,12 +113,12 @@ const formatRequestContext = (ctx) => {
       case 'sparql': content = ctx.body.sparql || ''; break;
       case 'formUrlEncoded': {
         const items = (ctx.body.formUrlEncoded || []).filter((p) => p.enabled);
-        content = items.map((p) => `  ${p.name}: ${p.value}`).join('\n');
+        content = items.map((p) => `  ${p.name}: ${maskValue(p.name, p.value)}`).join('\n');
         break;
       }
       case 'multipartForm': {
         const items = (ctx.body.multipartForm || []).filter((p) => p.enabled);
-        content = items.map((p) => `  ${p.name}: ${p.type === 'file' ? '[file]' : p.value}`).join('\n');
+        content = items.map((p) => `  ${p.name}: ${p.type === 'file' ? '[file]' : maskValue(p.name, p.value)}`).join('\n');
         break;
       }
       case 'graphql':
@@ -198,6 +221,19 @@ const registerChatIpc = ({ mainWindow, resolveModel, pickDefaultModelId, isAiEna
         mainWindow.webContents.send(channel, data);
       }
     };
+
+    // Validate payload shape upfront. Without this, a missing or wrong-typed
+    // `messages` would throw out of the handler at `messages.map(...)` below,
+    // bypassing the try/catch and never emitting `main:ai-chat-error` — the
+    // renderer would then sit waiting on a stream that will never arrive.
+    if (!requestId || typeof requestId !== 'string') {
+      console.error('[AI] ai-chat-stream missing/invalid requestId, dropping payload');
+      return;
+    }
+    if (!Array.isArray(messages)) {
+      send('main:ai-chat-error', { requestId, error: 'Invalid request: messages must be an array' });
+      return;
+    }
 
     if (!isAiEnabled()) {
       send('main:ai-chat-error', { requestId, error: 'AI features are disabled. Enable them in Preferences > AI.' });

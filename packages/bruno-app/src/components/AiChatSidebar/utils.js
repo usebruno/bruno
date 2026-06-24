@@ -1,11 +1,14 @@
 import MarkdownIt from 'markdown-it';
 
+const SAFE_LANG = /^[a-z0-9_+#.-]+$/i;
+const safeLanguage = (lang) => (lang && SAFE_LANG.test(lang) ? lang : 'text');
+
 const md = new MarkdownIt({
   html: false,
   breaks: true,
   linkify: true,
   highlight: (str, lang) =>
-    `<pre class="code-block"><code class="language-${lang || 'text'}">${md.utils.escapeHtml(str)}</code></pre>`
+    `<pre class="code-block"><code class="language-${safeLanguage(lang)}">${md.utils.escapeHtml(str)}</code></pre>`
 });
 
 export const renderMarkdown = (content) => md.render(content || '');

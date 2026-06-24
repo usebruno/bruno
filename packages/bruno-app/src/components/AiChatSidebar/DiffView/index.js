@@ -78,19 +78,19 @@ const DiffView = ({ originalCode, newCode, onAccept, onReject, status, contentTy
   }, [diffResult]);
 
   const expandUp = (startIndex, totalLines) => {
-    setExpandedFromBottom((prev) => {
+    setExpandedFromTop((prev) => {
       const current = prev[startIndex] || 0;
-      const topExpanded = expandedFromTop[startIndex] || 0;
-      const remaining = totalLines - topExpanded - current;
+      const bottomExpanded = expandedFromBottom[startIndex] || 0;
+      const remaining = totalLines - current - bottomExpanded;
       return { ...prev, [startIndex]: Math.min(current + EXPAND_CHUNK_SIZE, current + remaining) };
     });
   };
 
   const expandDown = (startIndex, totalLines) => {
-    setExpandedFromTop((prev) => {
+    setExpandedFromBottom((prev) => {
       const current = prev[startIndex] || 0;
-      const bottomExpanded = expandedFromBottom[startIndex] || 0;
-      const remaining = totalLines - current - bottomExpanded;
+      const topExpanded = expandedFromTop[startIndex] || 0;
+      const remaining = totalLines - topExpanded - current;
       return { ...prev, [startIndex]: Math.min(current + EXPAND_CHUNK_SIZE, current + remaining) };
     });
   };

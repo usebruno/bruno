@@ -659,125 +659,125 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
           )}
         </div>
 
-        {/* Right side: Actions (only for regular collections) */}
-        {!isScratchCollection && (
-          <div className="flex flex-grow gap-1.5 items-center justify-end">
-            {isHttpRequestActive && (
-              <ToolHint text="Switch view mode" toolhintId="ViewModeToggleToolhintId" place="bottom">
-                <div className="mode-toggle" data-testid="view-mode-toggle">
-                  <button
-                    type="button"
-                    data-testid="view-mode-request"
-                    className={`mode-btn ${!appEnabled && !collection.fileMode ? 'active' : ''}`}
-                    onClick={() => {
-                      if (collection.fileMode) handleFileModeClick();
-                      if (appEnabled) handleToggleAppMode(false);
-                    }}
-                    title="Request"
-                  >
-                    <IconCode size={16} strokeWidth={1.5} />
-                  </button>
-                  <button
-                    type="button"
-                    data-testid="view-mode-app"
-                    className={`mode-btn ${appEnabled && !collection.fileMode ? 'active' : ''}`}
-                    onClick={() => {
-                      if (collection.fileMode) handleFileModeClick();
-                      if (!appEnabled) handleToggleAppMode(true);
-                    }}
-                    title="App"
-                  >
-                    <IconApps size={16} strokeWidth={1.5} />
-                  </button>
-                  <button
-                    type="button"
-                    data-testid="view-mode-file"
-                    className={`mode-btn ${collection.fileMode ? 'active' : ''}`}
-                    onClick={() => {
-                      if (appEnabled) handleToggleAppMode(false);
-                      if (!collection.fileMode) handleFileModeClick();
-                    }}
-                    title="File"
-                  >
-                    <IconFileCode size={16} strokeWidth={1.5} />
-                  </button>
-                </div>
-              </ToolHint>
-            )}
-            {collection.format === 'bru' && !migratePillDismissed && (
-              <div
-                className="migrate-yml-pill"
-                data-testid="migrate-yml-pill"
-                title="Migrate this collection to YML"
+        <div className="flex flex-grow gap-1.5 items-center justify-end">
+          {isAiEnabled && (
+            <ToolHint text="AI Assistant" toolhintId="AiAssistantToolhintId" place="bottom">
+              <ActionIcon
+                onClick={() => dispatch(toggleAiSidebar())}
+                aria-label="AI Assistant"
+                size="sm"
+                data-testid="ai-assistant"
+                className={isAiSidebarOpen ? 'active' : ''}
               >
-                <button
-                  type="button"
-                  className="pill-main"
-                  onClick={viewMigrationSettings}
-                >
-                  <IconTransform size={13} strokeWidth={1.5} />
-                  <span className="pill-label">Migrate to YML</span>
-                </button>
-                <button
-                  type="button"
-                  className="pill-dismiss"
-                  onClick={dismissMigratePill}
-                  aria-label="Dismiss"
-                  data-testid="migrate-yml-pill-dismiss"
-                >
-                  <IconX size={12} strokeWidth={2} />
-                </button>
-              </div>
-            )}
-            {/* OpenAPI Sync - standalone only when configured and beta enabled */}
-            {hasOpenApiSyncConfigured && (
-              <ToolHint
-                text={hasOpenApiError ? 'OpenAPI Error' : hasOpenApiUpdates ? 'OpenAPI Updates Available' : 'OpenAPI'}
-                toolhintId="OpenApiSyncToolhintId"
-                place="bottom"
-              >
-                <ActionIcon onClick={viewOpenApiSync} aria-label="OpenAPI" size="sm" className="relative">
-                  <OpenAPISyncIcon size={15} />
-                  {(hasOpenApiUpdates || hasOpenApiError) && (
-                    <span className="absolute top-0 right-0 w-1.5 h-1.5 rounded-full" style={{ backgroundColor: hasOpenApiError ? theme.status.danger.text : theme.status.warning.text }} />
-                  )}
-                </ActionIcon>
-              </ToolHint>
-            )}
-            {/* Runner - always visible */}
-            <ToolHint text="Runner" toolhintId="RunnerToolhintId" place="bottom">
-              <ActionIcon onClick={handleRun} aria-label="Runner" size="sm" data-testid="runner">
-                <IconRun size={16} strokeWidth={1.5} />
+                <IconStars size={16} strokeWidth={1.5} />
               </ActionIcon>
             </ToolHint>
-            {/* AI Assistant - only when AI is enabled */}
-            {isAiEnabled && (
-              <ToolHint text="AI Assistant" toolhintId="AiAssistantToolhintId" place="bottom">
-                <ActionIcon
-                  onClick={() => dispatch(toggleAiSidebar())}
-                  aria-label="AI Assistant"
-                  size="sm"
-                  data-testid="ai-assistant"
-                  className={isAiSidebarOpen ? 'active' : ''}
+          )}
+          {!isScratchCollection && (
+            <>
+              {isHttpRequestActive && (
+                <ToolHint text="Switch view mode" toolhintId="ViewModeToggleToolhintId" place="bottom">
+                  <div className="mode-toggle" data-testid="view-mode-toggle">
+                    <button
+                      type="button"
+                      data-testid="view-mode-request"
+                      className={`mode-btn ${!appEnabled && !collection.fileMode ? 'active' : ''}`}
+                      onClick={() => {
+                        if (collection.fileMode) handleFileModeClick();
+                        if (appEnabled) handleToggleAppMode(false);
+                      }}
+                      title="Request"
+                    >
+                      <IconCode size={16} strokeWidth={1.5} />
+                    </button>
+                    <button
+                      type="button"
+                      data-testid="view-mode-app"
+                      className={`mode-btn ${appEnabled && !collection.fileMode ? 'active' : ''}`}
+                      onClick={() => {
+                        if (collection.fileMode) handleFileModeClick();
+                        if (!appEnabled) handleToggleAppMode(true);
+                      }}
+                      title="App"
+                    >
+                      <IconApps size={16} strokeWidth={1.5} />
+                    </button>
+                    <button
+                      type="button"
+                      data-testid="view-mode-file"
+                      className={`mode-btn ${collection.fileMode ? 'active' : ''}`}
+                      onClick={() => {
+                        if (appEnabled) handleToggleAppMode(false);
+                        if (!collection.fileMode) handleFileModeClick();
+                      }}
+                      title="File"
+                    >
+                      <IconFileCode size={16} strokeWidth={1.5} />
+                    </button>
+                  </div>
+                </ToolHint>
+              )}
+              {collection.format === 'bru' && !migratePillDismissed && (
+                <div
+                  className="migrate-yml-pill"
+                  data-testid="migrate-yml-pill"
+                  title="Migrate this collection to YML"
                 >
-                  <IconStars size={16} strokeWidth={1.5} />
+                  <button
+                    type="button"
+                    className="pill-main"
+                    onClick={viewMigrationSettings}
+                  >
+                    <IconTransform size={13} strokeWidth={1.5} />
+                    <span className="pill-label">Migrate to YML</span>
+                  </button>
+                  <button
+                    type="button"
+                    className="pill-dismiss"
+                    onClick={dismissMigratePill}
+                    aria-label="Dismiss"
+                    data-testid="migrate-yml-pill-dismiss"
+                  >
+                    <IconX size={12} strokeWidth={2} />
+                  </button>
+                </div>
+              )}
+              {/* OpenAPI Sync - standalone only when configured and beta enabled */}
+              {hasOpenApiSyncConfigured && (
+                <ToolHint
+                  text={hasOpenApiError ? 'OpenAPI Error' : hasOpenApiUpdates ? 'OpenAPI Updates Available' : 'OpenAPI'}
+                  toolhintId="OpenApiSyncToolhintId"
+                  place="bottom"
+                >
+                  <ActionIcon onClick={viewOpenApiSync} aria-label="OpenAPI" size="sm" className="relative">
+                    <OpenAPISyncIcon size={15} />
+                    {(hasOpenApiUpdates || hasOpenApiError) && (
+                      <span className="absolute top-0 right-0 w-1.5 h-1.5 rounded-full" style={{ backgroundColor: hasOpenApiError ? theme.status.danger.text : theme.status.warning.text }} />
+                    )}
+                  </ActionIcon>
+                </ToolHint>
+              )}
+              {/* Runner - always visible */}
+              <ToolHint text="Runner" toolhintId="RunnerToolhintId" place="bottom">
+                <ActionIcon onClick={handleRun} aria-label="Runner" size="sm" data-testid="runner">
+                  <IconRun size={16} strokeWidth={1.5} />
                 </ActionIcon>
               </ToolHint>
-            )}
-            {/* JS Sandbox Mode - always visible */}
-            <JsSandboxMode collection={collection} />
-            {/* Overflow menu */}
-            <MenuDropdown items={overflowMenuItems} placement="bottom-end" data-testid="more-actions">
-              <ActionIcon label="More actions" size="sm" style={{ border: `1px solid ${theme.border.border1}`, borderRadius: theme.border.radius.base, width: 24, marginRight: 4, marginLeft: 4 }}>
-                <IconDots size={16} strokeWidth={1.5} />
-              </ActionIcon>
-            </MenuDropdown>
-            {/* Environment Selector - always visible */}
-            <span>
-              <EnvironmentSelector collection={collection} />
-            </span>
-          </div>
-        )}
+              {/* JS Sandbox Mode - always visible */}
+              <JsSandboxMode collection={collection} />
+              {/* Overflow menu */}
+              <MenuDropdown items={overflowMenuItems} placement="bottom-end" data-testid="more-actions">
+                <ActionIcon label="More actions" size="sm" style={{ border: `1px solid ${theme.border.border1}`, borderRadius: theme.border.radius.base, width: 24, marginRight: 4, marginLeft: 4 }}>
+                  <IconDots size={16} strokeWidth={1.5} />
+                </ActionIcon>
+              </MenuDropdown>
+              {/* Environment Selector - always visible */}
+              <span>
+                <EnvironmentSelector collection={collection} />
+              </span>
+            </>
+          )}
+        </div>
       </div>
     </StyledWrapper>
   );

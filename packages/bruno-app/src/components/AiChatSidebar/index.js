@@ -374,9 +374,18 @@ const AiChatSidebar = ({ collection }) => {
     setProcessingStage(null);
   };
 
-  const handleApplyCode = (code, messageIndex, msgContentType, writeIndex) => {
+  const handleApplyCode = (code, originalCode, messageIndex, msgContentType, writeIndex) => {
     if (!activeItem || code == null) return;
     const targetType = msgContentType || contentType;
+
+    // Bail if the live buffer has drifted from what the AI based the diff on.
+    // The DiffView already disables the button in this case, but guarding here
+    // too means the keyboard / programmatic path can't blow away local edits.
+    const liveContent = allContent[targetType] || '';
+    if (originalCode != null && liveContent !== originalCode) {
+      return;
+    }
+
     const payload = { itemUid: activeItem.uid, collectionUid: collection.uid };
 
     switch (targetType) {
@@ -571,8 +580,8 @@ const AiChatSidebar = ({ collection }) => {
                         : isStale ? 'Content has been modified since AI read it'
                           : null
                     }
-                    disableAccept={false}
-                    onAccept={() => handleApplyCode(write.content, index, write.type, writeIdx)}
+                    disableAccept={isStale || notRead}
+                    onAccept={() => handleApplyCode(write.content, write.originalContent, index, write.type, writeIdx)}
                     onReject={() => handleRejectCode(index, writeIdx)}
                     status={write.status}
                   />
@@ -583,7 +592,7 @@ const AiChatSidebar = ({ collection }) => {
                 <DiffView
                   originalCode={msg.originalCode || ''}
                   newCode={msg.code}
-                  onAccept={() => handleApplyCode(msg.code, index, msg.contentType)}
+                  onAccept={() => handleApplyCode(msg.code, msg.originalCode, index, msg.contentType)}
                   onReject={() => handleRejectCode(index)}
                   status={msg.codeStatus}
                 />
