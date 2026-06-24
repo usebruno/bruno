@@ -69,8 +69,6 @@ export const refreshShellEnvProxyVars = async (): Promise<Record<string, string>
     const value = shellEnvVars[key];
     if (value) {
       process.env[key] = value;
-    } else {
-      delete process.env[key];
     }
   }
 
