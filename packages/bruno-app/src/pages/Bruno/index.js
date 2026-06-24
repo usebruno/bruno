@@ -3,6 +3,7 @@ import classnames from 'classnames';
 import ManageWorkspace from 'components/ManageWorkspace';
 import RequestTabs from 'components/RequestTabs';
 import RequestTabPanel from 'components/RequestTabPanel';
+import AiChatSidebar from 'components/AiChatSidebar';
 import Sidebar from 'components/Sidebar';
 import StatusBar from 'components/StatusBar';
 import AppTitleBar from 'components/AppTitleBar';
@@ -81,6 +82,18 @@ export default function Main() {
   const showManageWorkspacePage = useSelector((state) => state.app.showManageWorkspacePage);
   const isConsoleOpen = useSelector((state) => state.logs.isConsoleOpen);
   const saveTransientRequestModals = useSelector((state) => state.collections.saveTransientRequestModals);
+
+  // AI sidebar mounts here so it spans the full request-pane height. It reads
+  // the active collection via the active tab so the sidebar follows tab switches.
+  const isAiSidebarOpen = useSelector((state) => state.chat.isOpen);
+  const tabs = useSelector((state) => state.tabs.tabs);
+  const collections = useSelector((state) => state.collections.collections);
+  const activeCollection = (() => {
+    if (!isAiSidebarOpen) return null;
+    const activeTab = tabs.find((t) => t.uid === activeTabUid);
+    if (!activeTab) return null;
+    return collections.find((c) => c.uid === activeTab.collectionUid) || null;
+  })();
   const mainSectionRef = useRef(null);
   const [showRosettaBanner, setShowRosettaBanner] = useState(false);
 
@@ -152,6 +165,9 @@ export default function Main() {
               </>
             )}
           </section>
+          {isAiSidebarOpen && activeCollection && (
+            <AiChatSidebar collection={activeCollection} />
+          )}
         </StyledWrapper>
       </div>
 

@@ -12,6 +12,7 @@ const {
   clearSdkCache
 } = require('./providers');
 const { SCRIPT_PROMPTS, SCRIPT_TYPES, buildScriptUserPrompt, stripCodeFences } = require('./script-prompts');
+const registerChatIpc = require('./chat');
 
 const activeStreams = new Map();
 
@@ -258,6 +259,13 @@ const registerAiIpc = (mainWindow) => {
       controller.abort();
       activeStreams.delete(streamId);
     }
+  });
+
+  registerChatIpc({
+    mainWindow,
+    resolveModel,
+    pickDefaultModelId,
+    isAiEnabled: isEnabled
   });
 };
 

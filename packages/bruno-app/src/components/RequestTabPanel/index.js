@@ -295,6 +295,40 @@ const RequestTabPanel = () => {
     };
   }, [handleMouseUp, handleMouseMove]);
 
+  // Clamp leftPaneWidth whenever the main section shrinks. Without this,
+  // opening the AI sidebar (or shrinking the window) leaves the stored
+  // request-pane width larger than the available container, the section
+  // then scrolls horizontally and pushes the response pane off-screen,
+  // which also breaks the drag bar's hit math. Vertical layout doesn't
+  // need this because both panes get full width.
+  const leftPaneWidthRef = useRef(leftPaneWidth);
+  useEffect(() => { leftPaneWidthRef.current = leftPaneWidth; }, [leftPaneWidth]);
+
+  useEffect(() => {
+    const el = mainSectionRef.current;
+    if (!el || isVerticalLayout) return;
+
+    let frame = null;
+    const observer = new ResizeObserver((entries) => {
+      if (frame) return;
+      frame = requestAnimationFrame(() => {
+        frame = null;
+        const width = entries[0]?.contentRect?.width || el.getBoundingClientRect().width;
+        if (!width) return;
+        const maxLeft = width - MIN_RIGHT_PANE_WIDTH;
+        if (leftPaneWidthRef.current > maxLeft) {
+          setLeftPaneWidth(Math.max(MIN_LEFT_PANE_WIDTH, maxLeft));
+        }
+      });
+    });
+
+    observer.observe(el);
+    return () => {
+      observer.disconnect();
+      if (frame) cancelAnimationFrame(frame);
+    };
+  }, [setLeftPaneWidth, isVerticalLayout]);
+
   useEffect(() => {
     if (!isVerticalLayout) return;
     if (responsePaneCollapsed) return;

@@ -17,13 +17,15 @@ import {
   IconFileOff,
   IconCode,
   IconApps,
-  IconTransform
+  IconTransform,
+  IconStars
 } from '@tabler/icons';
 import OpenAPISyncIcon from 'components/Icons/OpenAPISync';
 import { switchWorkspace, renameWorkspaceAction, exportWorkspaceAction, confirmWorkspaceCreation, cancelWorkspaceCreation } from 'providers/ReduxStore/slices/workspaces/actions';
 import { updateWorkspace } from 'providers/ReduxStore/slices/workspaces';
 import { showInFolder } from 'providers/ReduxStore/slices/collections/actions';
 import { toggleCollectionFileMode, toggleAppMode, updateSettingsSelectedTab } from 'providers/ReduxStore/slices/collections';
+import { toggleAiSidebar } from 'providers/ReduxStore/slices/chat';
 import { findItemInCollection, findItemInCollectionByPathname } from 'utils/collections';
 import find from 'lodash/find';
 import get from 'lodash/get';
@@ -64,6 +66,9 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
   const collections = useSelector((state) => state.collections.collections);
   const tabs = useSelector((state) => state.tabs.tabs);
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
+  const preferences = useSelector((state) => state.app.preferences);
+  const isAiEnabled = get(preferences, 'ai.enabled', false);
+  const isAiSidebarOpen = useSelector((state) => state.chat.isOpen);
 
   // Get the current active workspace
   const currentWorkspace = workspaces.find((w) => w.uid === activeWorkspaceUid);
@@ -745,6 +750,20 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
                 <IconRun size={16} strokeWidth={1.5} />
               </ActionIcon>
             </ToolHint>
+            {/* AI Assistant - only when AI is enabled */}
+            {isAiEnabled && (
+              <ToolHint text="AI Assistant" toolhintId="AiAssistantToolhintId" place="bottom">
+                <ActionIcon
+                  onClick={() => dispatch(toggleAiSidebar())}
+                  aria-label="AI Assistant"
+                  size="sm"
+                  data-testid="ai-assistant"
+                  className={isAiSidebarOpen ? 'active' : ''}
+                >
+                  <IconStars size={16} strokeWidth={1.5} />
+                </ActionIcon>
+              </ToolHint>
+            )}
             {/* JS Sandbox Mode - always visible */}
             <JsSandboxMode collection={collection} />
             {/* Overflow menu */}
