@@ -712,15 +712,13 @@ const generateCodeVerifier = () => {
   return crypto.randomBytes(22).toString('hex');
 };
 
-// Build an OAuth2 state string to help prevent CSRF and forged auth codes.
-// If the user passes a state, it goes first; we append random bytes after it.
-// The user keeps their custom data, and the random suffix keeps the flow secure.
+// Generate a cryptographically random state value used to protect OAuth2
+// authorization flows against CSRF / authorization code injection.
 const generateState = ({ userState }) => {
-  const trimmedUserState = userState?.trim();
-  if (trimmedUserState && trimmedUserState.length > 0) {
-    return trimmedUserState;
-  }
   let cryptographicallyRandomString = crypto.randomBytes(16).toString('hex');
+  if (userState && userState.length) {
+    return userState + cryptographicallyRandomString;
+  }
   return cryptographicallyRandomString;
 };
 
@@ -864,8 +862,9 @@ const getOAuth2TokenUsingImplicitGrant = async ({ request, collectionUid, forceF
   if (scope) {
     authorizationUrlWithQueryParams.searchParams.append('scope', scope);
   }
-  authorizationUrlWithQueryParams.searchParams.append('state', effectiveState);
-
+  if (effectiveState) {
+    authorizationUrlWithQueryParams.searchParams.append('state', effectiveState);
+  }
   if (additionalParameters?.authorization?.length) {
     additionalParameters.authorization.forEach((param) => {
       if (param.enabled && param.name) {
