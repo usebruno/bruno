@@ -469,3 +469,81 @@ describe('script-driven typed vars: disk content has the right dataType annotati
     expect(written).toMatch(/count:\s*now-a-string/);
   });
 });
+
+// Regression guards for --env-var leak: CLI overrides commonly carry secret material
+// (the CLI can't decrypt secret vars at rest, so users pass them in transiently).
+// Those values must never reach disk, and the file's existing entry must be preserved.
+describe('mergeScriptVarsIntoEnvList — --env-var overrides', () => {
+  it('does not persist an override value even when the script returns it back in the env map', () => {
+    const variables = [
+      { name: 'token', value: 'real-secret', enabled: true, type: 'text', secret: true },
+      { name: 'host', value: 'localhost', enabled: true, type: 'text', secret: false }
+    ];
+    // Runtime returns the full env map (because some other var was dirtied), including the override.
+    const scriptVars = { token: 'transient-cli-value', host: 'api.example.com' };
+
+    const merged = mergeScriptVarsIntoEnvList(variables, scriptVars, {
+      overrides: new Set(['token'])
+    });
+
+    const tokenEntry = merged.find((v) => v.name === 'token');
+    expect(tokenEntry).toBeDefined();
+    expect(tokenEntry.value).toBe('real-secret');
+    expect(tokenEntry.secret).toBe(true);
+
+    const hostEntry = merged.find((v) => v.name === 'host');
+    expect(hostEntry.value).toBe('api.example.com');
+  });
+
+  it('does not drop an overridden file entry when the script does not echo it back', () => {
+    const variables = [
+      { name: 'token', value: 'real-secret', enabled: true, type: 'text', secret: true }
+    ];
+    // Script touched something else; runtime returns env without `token` since the override
+    // was filtered out before this call (or simply was never in the map).
+    const merged = mergeScriptVarsIntoEnvList(variables, { other: 'x' }, {
+      overrides: new Set(['token'])
+    });
+
+    expect(merged.find((v) => v.name === 'token')).toMatchObject({ value: 'real-secret', secret: true });
+  });
+
+  it('does not append a new entry for an override key the script also set', () => {
+    const merged = mergeScriptVarsIntoEnvList([], { token: 'transient', x: '1' }, {
+      overrides: new Set(['token'])
+    });
+
+    expect(merged.find((v) => v.name === 'token')).toBeUndefined();
+    expect(merged.find((v) => v.name === 'x')).toBeDefined();
+  });
+});
+
+describe('persistVariableUpdates — disk error resilience', () => {
+  // CI runs may execute against read-only mounts. The PR's design choice is to log + continue.
+  // The actual try/catch lives in run-single-request.js; persistVariableUpdates itself surfaces
+  // the throw, which is what we verify here — the caller is the one that swallows it.
+  it('surfaces fs errors to the caller (caller is expected to catch and warn)', () => {
+    const filePath = path.join(tmpBase, 'Locked.bru');
+    fs.writeFileSync(filePath, 'vars {\n  host: old\n}\n');
+    fs.chmodSync(filePath, 0o444);
+
+    let threw = false;
+    try {
+      persistVariableUpdates(
+        { envVariables: { host: 'new' } },
+        { envFile: { path: filePath, format: 'bru' } }
+      );
+    } catch (err) {
+      threw = true;
+      expect(err.code).toMatch(/EACCES|EPERM/);
+    } finally {
+      fs.chmodSync(filePath, 0o644);
+    }
+
+    // On some filesystems / OS combos chmod 444 doesn't block root-equivalent writes (e.g.
+    // running as root in a container). Skip the assertion in that case rather than fail noisily.
+    if (process.getuid && process.getuid() !== 0) {
+      expect(threw).toBe(true);
+    }
+  });
+});

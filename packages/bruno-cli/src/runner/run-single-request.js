@@ -105,12 +105,19 @@ const runSingleRequest = async function (
       globalEnvVars,
       request: currentRequest
     });
-    persistVariableUpdates(result, {
-      envFile: persistPaths.envFile,
-      globalEnvFile: persistPaths.globalEnvFile,
-      collection,
-      collectionRootPath: persistPaths.collectionRootPath
-    });
+    // Persistence is a side effect — never tank the run for it. In CI, env files may sit on
+    // read-only mounts or the user's shell may lack write permissions; log and continue.
+    try {
+      persistVariableUpdates(result, {
+        envFile: persistPaths.envFile,
+        globalEnvFile: persistPaths.globalEnvFile,
+        collection,
+        collectionRootPath: persistPaths.collectionRootPath,
+        envVarOverrides: persistPaths.envVarOverrides
+      });
+    } catch (err) {
+      console.warn(chalk.yellow(`Warning: failed to persist variable updates: ${err.message}`));
+    }
   };
   const { pathname: itemPathname } = item;
   const relativeItemPathname = path.relative(collectionPath, itemPathname);
