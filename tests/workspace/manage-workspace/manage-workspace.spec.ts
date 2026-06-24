@@ -1,6 +1,7 @@
 import path from 'path';
 import fs from 'fs';
-import { test, expect, closeElectronApp, Page } from '../../../playwright';
+import { test, expect, closeElectronApp } from '../../../playwright';
+import { createWorkspace } from '../../utils/page/actions';
 
 const initUserDataPath = path.join(__dirname, '../create-workspace/init-user-data');
 
@@ -15,16 +16,6 @@ function findCreatedWorkspaceDirs(location: string): string[] {
   });
 }
 
-async function createWorkspace({ page, directoryName }: { page: Page; directoryName: string }) {
-  await page.locator('.workspace-name-container').click();
-  await page.locator('.dropdown-item').filter({ hasText: 'Create workspace' }).click();
-  const renameInput = page.locator('.workspace-name-input');
-  await expect(renameInput).toBeVisible({ timeout: 5000 });
-  await renameInput.fill(directoryName);
-  await renameInput.press('Enter');
-  await expect(page.getByText('Workspace created!')).toBeVisible({ timeout: 10000 });
-}
-
 test.describe('Manage Workspace', () => {
   test('should open terminal from the workspace actions menu', async ({ launchElectronApp, createTmpDir }) => {
     const wsLocation = await createTmpDir('ws-location-terminal');
@@ -36,7 +27,7 @@ test.describe('Manage Workspace', () => {
       await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
 
       await test.step('Create a workspace', async () => {
-        await createWorkspace({ page, directoryName: 'Terminal Workspace' });
+        await createWorkspace(page, 'Terminal Workspace');
       });
 
       const wsDirs = findCreatedWorkspaceDirs(wsLocation);
@@ -45,7 +36,7 @@ test.describe('Manage Workspace', () => {
       await test.step('Open Manage Workspaces', async () => {
         await page.locator('.workspace-name-container').click();
         await page.locator('.dropdown-item').filter({ hasText: 'Manage workspaces' }).click();
-        await expect(page.getByText('Manage Workspace')).toBeVisible({ timeout: 5000 });
+        await expect(page.getByText('Manage Workspace', { exact: true })).toBeVisible();
       });
 
       await test.step('Verify default workspace has no actions menu', async () => {
@@ -55,14 +46,14 @@ test.describe('Manage Workspace', () => {
 
       await test.step('Open terminal from workspace actions', async () => {
         const workspaceItem = page.locator('.workspace-item').filter({ hasText: 'Terminal Workspace' });
-        await expect(workspaceItem).toBeVisible({ timeout: 5000 });
+        await expect(workspaceItem).toBeVisible();
         await workspaceItem.locator('.more-actions-btn').click();
         await page.locator('.dropdown-item').filter({ hasText: 'Open in Terminal' }).click();
       });
 
       await test.step('Verify terminal session opens at the workspace folder', async () => {
         const terminalSession = page.getByTestId('session-list-0');
-        await expect(terminalSession).toBeVisible({ timeout: 5000 });
+        await expect(terminalSession).toBeVisible();
         await expect(terminalSession).toContainText(wsDirs[0]);
       });
     } finally {
@@ -79,35 +70,40 @@ test.describe('Manage Workspace', () => {
     try {
       await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
       await test.step('Create a workspace', async () => {
-        await createWorkspace({ page, directoryName: 'Terminal My Workspace' });
+        await createWorkspace(page, 'Terminal My Workspace');
       });
 
       const wsDirs = findCreatedWorkspaceDirs(wsLocation);
       expect(wsDirs).toHaveLength(1);
 
       await test.step('Open Manage Workspaces', async () => {
-        await page.locator('.workspace-name-container').click();
+        await page.getByTestId('workspace-menu').click();
         await page.locator('.dropdown-item').filter({ hasText: 'Manage workspaces' }).click();
-        await expect(page.getByText('Manage Workspace')).toBeVisible({ timeout: 5000 });
+        await expect(page.getByText('Manage Workspace', { exact: true })).toBeVisible();
       });
 
       await test.step('Click on the 3 dots icon on the workspace you want to rename.', async () => {
-        await page.locator('.more-actions-btn').click();
+        const workspaceItem = page.locator('.workspace-item').filter({
+          has: page.locator('.workspace-name', { hasText: 'Terminal My Workspace' })
+        });
+        await workspaceItem.locator('.more-actions-btn').click();
         await page.locator('.dropdown-item').filter({ hasText: 'Rename' }).click();
-        await expect(page.locator('.bruno-modal-card')).toBeVisible({ timeout: 5000 });
+        await expect(page.locator('.bruno-modal-card')).toBeVisible();
 
         await test.step('Enter a new name for the workspace in the editing field.', async () => {
           const workspaceNameInput = page.locator('#workspace-name');
-          await expect(workspaceNameInput).toBeVisible({ timeout: 5000 });
+          await expect(workspaceNameInput).toBeVisible();
           await workspaceNameInput.fill('New Workspace Name');
-          await page.locator('.button-content').filter({ hasText: 'Rename' }).click();
+          await page.getByTestId('modal-submit-btn').filter({ hasText: 'Rename' }).click();
         });
 
         await test.step('Verify the workspace name is updated in the workspace list.', async () => {
-          const workspaceItem = page.locator('[data-testid="workspace-name"]');
+          const workspaceItem = page.getByTestId('workspace-name');
           await expect(workspaceItem).toHaveText('New Workspace Name');
-          const manageworkspaceItem = page.locator('.workspace-item:nth-child(2) .workspace-name-row');
-          await expect(manageworkspaceItem).toHaveText('New Workspace Name');
+          const manageWorkspaceItem = page.locator('.workspace-item').filter({
+            has: page.locator('.workspace-name', { hasText: 'New Workspace Name' })
+          });
+          await expect(manageWorkspaceItem).toBeVisible();
         });
       });
     } finally {
@@ -124,28 +120,32 @@ test.describe('Manage Workspace', () => {
     try {
       await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
       await test.step('Create a workspace', async () => {
-        await createWorkspace({ page, directoryName: 'Remove My Workspace' });
+        await createWorkspace(page, 'Remove My Workspace');
       });
 
       const wsDirs = findCreatedWorkspaceDirs(wsLocation);
       expect(wsDirs).toHaveLength(1);
 
       await test.step('Open Manage Workspaces', async () => {
-        await page.locator('.workspace-name-container').click();
+        await page.getByTestId('workspace-menu').click();
         await page.locator('.dropdown-item').filter({ hasText: 'Manage workspaces' }).click();
-        await expect(page.getByText('Manage Workspace')).toBeVisible({ timeout: 5000 });
+        await expect(page.getByText('Manage Workspace', { exact: true })).toBeVisible();
       });
 
       await test.step('Click on the 3 dots icon on the workspace you want to remove.', async () => {
-        await page.locator('.more-actions-btn').click();
-        await page.locator('.dropdown-item').filter({ hasText: 'Remove' }).click();
-        await expect(page.locator('.bruno-modal-card')).toBeVisible({ timeout: 5000 });
-        // await page.pause();
+        const workspace = page.locator('.workspace-item').filter({
+          has: page.locator('.workspace-name', { hasText: 'Remove My Workspace' })
+        });
+        await workspace.locator('.more-actions-btn').click();
+        await expect(page.getByTestId('menu-dropdown-dropdown')).toBeVisible();
+        await page.getByTestId('menu-dropdown-remove').click();
+        await expect(page.locator('.bruno-modal-card')).toBeVisible();
         await expect(page.locator('.bruno-modal-content span').first()).toHaveText('Remove My Workspace');
       });
+
       await test.step('Click on the Remove button in the modal.', async () => {
-        await page.locator('.button-content').filter({ hasText: 'Remove' }).click();
-        await expect(page.locator('.workspace-item:nth-child(2) .workspace-name-row')).not.toBeVisible({ timeout: 10000 });
+        await page.getByTestId('modal-submit-btn').click();
+        await expect(page.locator('.workspace-item').filter({ hasText: 'Remove My Workspace' })).not.toBeVisible({ timeout: 10000 });
       });
     } finally {
       await closeElectronApp(app);
