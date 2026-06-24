@@ -763,7 +763,7 @@ const runSingleRequest = async function (
     const postResponseVars = get(item, 'request.vars.res');
     if (postResponseVars?.length) {
       const varsRuntime = new VarsRuntime({ runtime: scriptingConfig?.runtime });
-      const varsResult = varsRuntime.runPostResponseVars(
+      varsRuntime.runPostResponseVars(
         postResponseVars,
         request,
         response,
@@ -772,7 +772,6 @@ const runSingleRequest = async function (
         collectionPath,
         processEnvVars
       );
-      syncVariableUpdates(varsResult, request);
     }
 
     // run post response script
