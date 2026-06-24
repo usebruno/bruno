@@ -1,6 +1,6 @@
 let oauth2AuthorizationRequest = null;
 
-const registerOauth2AuthorizationRequest = (resolve, reject, debugInfo = null) => {
+const registerOauth2AuthorizationRequest = (resolve, reject, debugInfo = null, expectedState = null) => {
   // Cancel any existing pending request
   if (oauth2AuthorizationRequest) {
     oauth2AuthorizationRequest.reject(new Error('Authorization cancelled: new request started'));
@@ -10,6 +10,7 @@ const registerOauth2AuthorizationRequest = (resolve, reject, debugInfo = null) =
     resolve,
     reject,
     debugInfo,
+    expectedState,
     timestamp: Date.now()
   };
 };
@@ -78,6 +79,23 @@ const handleOauth2ProtocolUrl = (url) => {
       };
       rejectOauth2AuthorizationRequest(new Error(JSON.stringify(errorData)));
       return;
+    }
+
+    // Validate the state parameter to protect against CSRF / authorization code
+    // injection. The returned state must match the cryptographically random state
+    // issued when the flow was initiated.
+    const expectedState = oauth2AuthorizationRequest?.expectedState;
+    if (expectedState) {
+      const returnedState
+        = urlObj.searchParams.get('state')
+          || (urlObj.hash ? new URLSearchParams(urlObj.hash.substring(1)).get('state') : null);
+
+      if (returnedState !== expectedState) {
+        rejectOauth2AuthorizationRequest(
+          new Error('OAuth2 state mismatch: the returned state does not match the issued state. Aborting to prevent authorization code injection.')
+        );
+        return;
+      }
     }
 
     // Check if this is an implicit grant (tokens in hash fragment)
