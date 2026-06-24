@@ -456,6 +456,7 @@ const deleteCollectionFromOverview = async (page: Page, collectionName: string) 
 type ImportCollectionOptions = {
   expectedCollectionName?: string;
   expectIssues?: boolean;
+  sidebarTimeout?: number;
 };
 
 const importCollection = async (
@@ -496,7 +497,7 @@ const importCollection = async (
     if (options.expectedCollectionName) {
       await expect(
         page.locator('#sidebar-collection-name').filter({ hasText: options.expectedCollectionName })
-      ).toBeVisible();
+      ).toBeVisible({ timeout: options.sidebarTimeout ?? 5000 });
     }
 
     // Wait for import issues toast if expected

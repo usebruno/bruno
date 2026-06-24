@@ -43,6 +43,10 @@ export const buildEnvVariable = ({ envVariable: obj, withUuid = false }) => {
     envVariable.dataType = obj.dataType;
   }
 
+  if (obj.description !== undefined && obj.description !== '') {
+    envVariable.description = obj.description;
+  }
+
   if (!withUuid) {
     return envVariable;
   }
