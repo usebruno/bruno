@@ -198,114 +198,126 @@ test.describe('Snapshot: Sidebar Persistence', () => {
     const userDataPath = await createTmpDir('snap-sidebar-mixed');
 
     // ── Session 1: establish collapsed state and width in snapshot ───────────
-    const app = await launchElectronApp({ userDataPath });
-    const page = await waitForReadyPage(app);
+    await test.step('Session 1: establish collapsed state and width in snapshot', async () => {
+      const app = await launchElectronApp({ userDataPath });
+      const page = await waitForReadyPage(app);
 
-    const toggleButton = page.getByTestId('toggle-sidebar-button');
-    const dragHandle = page.getByTestId('sidebar-drag-handle');
-    await expect(dragHandle).toBeVisible({ timeout: 10000 });
+      const toggleButton = page.getByTestId('toggle-sidebar-button');
+      const dragHandle = page.getByTestId('sidebar-drag-handle');
+      await expect(dragHandle).toBeVisible({ timeout: 10000 });
 
-    const handleBox = await dragHandle.boundingBox();
-    expect(handleBox).not.toBeNull();
-    await page.mouse.move(handleBox!.x + handleBox!.width / 2, handleBox!.y + handleBox!.height / 2);
-    await page.mouse.down();
-    await page.mouse.move(300, handleBox!.y + handleBox!.height / 2, { steps: 10 });
-    await page.mouse.up();
+      const handleBox = await dragHandle.boundingBox();
+      expect(handleBox).not.toBeNull();
+      await page.mouse.move(handleBox!.x + handleBox!.width / 2, handleBox!.y + handleBox!.height / 2);
+      await page.mouse.down();
+      await page.mouse.move(300, handleBox!.y + handleBox!.height / 2, { steps: 10 });
+      await page.mouse.up();
 
-    // Collapse the sidebar
-    await toggleButton.click();
-    // Wait for snapshot file update
-    await expect.poll(() => {
-      const snapshot = readSnapshot(userDataPath);
-      return snapshot?.extras?.sidebar?.collapsed;
-    }).toBe(true);
-    await closeElectronApp(app);
+      // Collapse the sidebar
+      await toggleButton.click();
+      // Wait for snapshot file update
+      await expect.poll(() => {
+        const snapshot = readSnapshot(userDataPath);
+        return snapshot?.extras?.sidebar?.collapsed;
+      }).toBe(true);
+      await closeElectronApp(app);
+    });
 
     // ── Session 2: configure mixed localStorage keys ─────────────────────────
-    const app2 = await launchElectronApp({ userDataPath });
-    const page2 = await waitForReadyPage(app2);
+    await test.step('Session 2: configure mixed localStorage keys', async () => {
+      const app2 = await launchElectronApp({ userDataPath });
+      const page2 = await waitForReadyPage(app2);
 
-    // Set width and delete collapsed state in localStorage
-    await page2.evaluate(() => {
-      window.localStorage.setItem('bruno.leftSidebarWidth', '450');
-      window.localStorage.removeItem('bruno.sidebarCollapsed');
+      // Set width and delete collapsed state in localStorage
+      await page2.evaluate(() => {
+        window.localStorage.setItem('bruno.leftSidebarWidth', '450');
+        window.localStorage.removeItem('bruno.sidebarCollapsed');
+      });
+      await closeElectronApp(app2);
     });
-    await closeElectronApp(app2);
 
     // ── Session 3: verify mixed hydration takes effect ───────────────────────
-    const app3 = await launchElectronApp({ userDataPath });
-    const page3 = await waitForReadyPage(app3);
+    await test.step('Session 3: verify mixed hydration takes effect', async () => {
+      const app3 = await launchElectronApp({ userDataPath });
+      const page3 = await waitForReadyPage(app3);
 
-    const sidebar3 = page3.getByTestId('sidebar');
-    // Wait for layout/hydration to complete and verify collapsed width = 0
-    await expect.poll(async () => {
-      return await sidebar3.evaluate((el: HTMLElement) => el.offsetWidth);
-    }).toBe(0);
+      const sidebar3 = page3.getByTestId('sidebar');
+      // Wait for layout/hydration to complete and verify collapsed width = 0
+      await expect.poll(async () => {
+        return await sidebar3.evaluate((el: HTMLElement) => el.offsetWidth);
+      }).toBe(0);
 
-    // Uncollapse and verify it restores width = 450 from localStorage
-    const toggleButton3 = page3.getByTestId('toggle-sidebar-button');
-    await toggleButton3.click();
-    await expect.poll(async () => {
-      const width = await sidebar3.evaluate((el: HTMLElement) => el.offsetWidth);
-      return Math.abs(width - 450) < 15;
-    }).toBe(true);
+      // Uncollapse and verify it restores width = 450 from localStorage
+      const toggleButton3 = page3.getByTestId('toggle-sidebar-button');
+      await toggleButton3.click();
+      await expect.poll(async () => {
+        const width = await sidebar3.evaluate((el: HTMLElement) => el.offsetWidth);
+        return Math.abs(width - 450) < 15;
+      }).toBe(true);
 
-    await closeElectronApp(app3);
+      await closeElectronApp(app3);
+    });
   });
 
   test('sidebar mixed-source hydration (collapsed from localStorage, width from snapshot)', async ({ launchElectronApp, createTmpDir }) => {
     const userDataPath = await createTmpDir('snap-sidebar-mixed-inverse');
 
     // ── Session 1: establish collapsed state (false) and width (380) in snapshot ──
-    const app = await launchElectronApp({ userDataPath });
-    const page = await waitForReadyPage(app);
+    await test.step('Session 1: establish collapsed state and width in snapshot', async () => {
+      const app = await launchElectronApp({ userDataPath });
+      const page = await waitForReadyPage(app);
 
-    const dragHandle = page.getByTestId('sidebar-drag-handle');
-    await expect(dragHandle).toBeVisible({ timeout: 10000 });
+      const dragHandle = page.getByTestId('sidebar-drag-handle');
+      await expect(dragHandle).toBeVisible({ timeout: 10000 });
 
-    const handleBox = await dragHandle.boundingBox();
-    expect(handleBox).not.toBeNull();
-    await page.mouse.move(handleBox!.x + handleBox!.width / 2, handleBox!.y + handleBox!.height / 2);
-    await page.mouse.down();
-    await page.mouse.move(380, handleBox!.y + handleBox!.height / 2, { steps: 10 });
-    await page.mouse.up();
+      const handleBox = await dragHandle.boundingBox();
+      expect(handleBox).not.toBeNull();
+      await page.mouse.move(handleBox!.x + handleBox!.width / 2, handleBox!.y + handleBox!.height / 2);
+      await page.mouse.down();
+      await page.mouse.move(380, handleBox!.y + handleBox!.height / 2, { steps: 10 });
+      await page.mouse.up();
 
-    // Wait for snapshot file update
-    await expect.poll(() => {
-      const snapshot = readSnapshot(userDataPath);
-      return snapshot?.extras?.sidebar?.width !== undefined && Math.abs(snapshot.extras.sidebar.width - 380) < 15;
-    }).toBe(true);
-    await closeElectronApp(app);
+      // Wait for snapshot file update
+      await expect.poll(() => {
+        const snapshot = readSnapshot(userDataPath);
+        return snapshot?.extras?.sidebar?.width !== undefined && Math.abs(snapshot.extras.sidebar.width - 380) < 15;
+      }).toBe(true);
+      await closeElectronApp(app);
+    });
 
     // ── Session 2: configure mixed localStorage keys (collapsed in localStorage, width removed) ──
-    const app2 = await launchElectronApp({ userDataPath });
-    const page2 = await waitForReadyPage(app2);
+    await test.step('Session 2: configure mixed localStorage keys', async () => {
+      const app2 = await launchElectronApp({ userDataPath });
+      const page2 = await waitForReadyPage(app2);
 
-    // Set collapsed to true in localStorage, and delete width key
-    await page2.evaluate(() => {
-      window.localStorage.setItem('bruno.sidebarCollapsed', 'true');
-      window.localStorage.removeItem('bruno.leftSidebarWidth');
+      // Set collapsed to true in localStorage, and delete width key
+      await page2.evaluate(() => {
+        window.localStorage.setItem('bruno.sidebarCollapsed', 'true');
+        window.localStorage.removeItem('bruno.leftSidebarWidth');
+      });
+      await closeElectronApp(app2);
     });
-    await closeElectronApp(app2);
 
     // ── Session 3: verify mixed hydration takes effect ───────────────────────
-    const app3 = await launchElectronApp({ userDataPath });
-    const page3 = await waitForReadyPage(app3);
+    await test.step('Session 3: verify mixed hydration takes effect', async () => {
+      const app3 = await launchElectronApp({ userDataPath });
+      const page3 = await waitForReadyPage(app3);
 
-    const sidebar3 = page3.getByTestId('sidebar');
-    // Wait for layout/hydration to complete and verify collapsed width = 0
-    await expect.poll(async () => {
-      return await sidebar3.evaluate((el: HTMLElement) => el.offsetWidth);
-    }).toBe(0);
+      const sidebar3 = page3.getByTestId('sidebar');
+      // Wait for layout/hydration to complete and verify collapsed width = 0
+      await expect.poll(async () => {
+        return await sidebar3.evaluate((el: HTMLElement) => el.offsetWidth);
+      }).toBe(0);
 
-    // Uncollapse and verify it restores width = 380 from snapshot
-    const toggleButton3 = page3.getByTestId('toggle-sidebar-button');
-    await toggleButton3.click();
-    await expect.poll(async () => {
-      const width = await sidebar3.evaluate((el: HTMLElement) => el.offsetWidth);
-      return Math.abs(width - 380) < 15;
-    }).toBe(true);
+      // Uncollapse and verify it restores width = 380 from snapshot
+      const toggleButton3 = page3.getByTestId('toggle-sidebar-button');
+      await toggleButton3.click();
+      await expect.poll(async () => {
+        const width = await sidebar3.evaluate((el: HTMLElement) => el.offsetWidth);
+        return Math.abs(width - 380) < 15;
+      }).toBe(true);
 
-    await closeElectronApp(app3);
+      await closeElectronApp(app3);
+    });
   });
 });
