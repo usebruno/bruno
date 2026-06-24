@@ -24,7 +24,7 @@ test.describe('Snapshot: Sidebar Persistence', () => {
     const page = await waitForReadyPage(app);
 
     const toggleButton = page.getByTestId('toggle-sidebar-button');
-    const sidebar = page.locator('aside.sidebar');
+    const sidebar = page.getByTestId('sidebar');
 
     await test.step('Sidebar is visible on first launch', async () => {
       await expect(sidebar).toBeVisible({ timeout: 10000 });
@@ -40,8 +40,11 @@ test.describe('Snapshot: Sidebar Persistence', () => {
         return width;
       }, { timeout: 5000 }).toBe(0);
 
-      // Wait for the debounced snapshot save (1 s debounce + buffer)
-      await page.waitForTimeout(2000);
+      // Poll snapshot until collapsed=true is recorded
+      await expect.poll(() => {
+        const snapshot = readSnapshot(userDataPath);
+        return snapshot?.extras?.sidebar?.collapsed;
+      }).toBe(true);
     });
 
     await test.step('Snapshot file records collapsed=true', async () => {
@@ -57,12 +60,11 @@ test.describe('Snapshot: Sidebar Persistence', () => {
       const app2 = await launchElectronApp({ userDataPath });
       const page2 = await waitForReadyPage(app2);
 
-      const sidebar2 = page2.locator('aside.sidebar');
-      // Give the async preloadedState a moment to take effect
-      await page2.waitForTimeout(500);
-
-      const width = await sidebar2.evaluate((el: HTMLElement) => el.offsetWidth);
-      expect(width).toBe(0);
+      const sidebar2 = page2.getByTestId('sidebar');
+      // Wait for layout/hydration to complete and verify collapsed width = 0
+      await expect.poll(async () => {
+        return await sidebar2.evaluate((el: HTMLElement) => el.offsetWidth);
+      }).toBe(0);
 
       await closeElectronApp(app2);
     });
@@ -78,8 +80,8 @@ test.describe('Snapshot: Sidebar Persistence', () => {
     const app = await launchElectronApp({ userDataPath });
     const page = await waitForReadyPage(app);
 
-    const dragHandle = page.locator('.sidebar-drag-handle');
-    const sidebar = page.locator('aside.sidebar');
+    const dragHandle = page.getByTestId('sidebar-drag-handle');
+    const sidebar = page.getByTestId('sidebar');
 
     await test.step('Resize sidebar by dragging the drag handle', async () => {
       await expect(dragHandle).toBeVisible({ timeout: 10000 });
@@ -101,7 +103,11 @@ test.describe('Snapshot: Sidebar Persistence', () => {
     });
 
     await test.step('Wait for debounced snapshot save', async () => {
-      await page.waitForTimeout(2000);
+      // Poll snapshot until new width is written
+      await expect.poll(() => {
+        const snapshot = readSnapshot(userDataPath);
+        return snapshot?.extras?.sidebar?.width !== undefined && Math.abs(snapshot.extras.sidebar.width - TARGET_WIDTH) < 15;
+      }).toBe(true);
     });
 
     await test.step('Snapshot file records the new width', async () => {
@@ -118,12 +124,12 @@ test.describe('Snapshot: Sidebar Persistence', () => {
       const app2 = await launchElectronApp({ userDataPath });
       const page2 = await waitForReadyPage(app2);
 
-      const sidebar2 = page2.locator('aside.sidebar');
-      // Brief pause for React to finish painting with preloadedState values
-      await page2.waitForTimeout(500);
-
-      const restoredWidth = await sidebar2.evaluate((el: HTMLElement) => el.offsetWidth);
-      expect(Math.abs(restoredWidth - TARGET_WIDTH)).toBeLessThan(15);
+      const sidebar2 = page2.getByTestId('sidebar');
+      // Wait for layout/hydration to apply the saved width
+      await expect.poll(async () => {
+        const restoredWidth = await sidebar2.evaluate((el: HTMLElement) => el.offsetWidth);
+        return Math.abs(restoredWidth - TARGET_WIDTH) < 15;
+      }).toBe(true);
 
       await closeElectronApp(app2);
     });
@@ -137,7 +143,11 @@ test.describe('Snapshot: Sidebar Persistence', () => {
     // Launch & close without changes (first launch)
     const app = await launchElectronApp({ userDataPath });
     const page = await waitForReadyPage(app);
-    await page.waitForTimeout(2000);
+    // Wait for initial snapshot write
+    await expect.poll(() => {
+      const snapshot = readSnapshot(userDataPath);
+      return snapshot?.extras?.sidebar !== undefined;
+    }).toBe(true);
     await closeElectronApp(app);
 
     const snapshot = readSnapshot(userDataPath);
@@ -159,7 +169,7 @@ test.describe('Snapshot: Sidebar Persistence', () => {
     // Launch again with the existing snapshot (missing sidebar) and verify it doesn't crash
     const app2 = await launchElectronApp({ userDataPath });
     const page2 = await waitForReadyPage(app2);
-    const dragHandle = page2.locator('.sidebar-drag-handle');
+    const dragHandle = page2.getByTestId('sidebar-drag-handle');
     await expect(dragHandle).toBeVisible({ timeout: 10000 });
 
     const handleBox = await dragHandle.boundingBox();
@@ -169,7 +179,11 @@ test.describe('Snapshot: Sidebar Persistence', () => {
     await page2.mouse.down();
     await page2.mouse.move(300, handleBox!.y + handleBox!.height / 2, { steps: 10 });
     await page2.mouse.up();
-    await page2.waitForTimeout(2000);
+    // Wait for the new save to reflect the new width
+    await expect.poll(() => {
+      const snapshot2 = readSnapshot(userDataPath);
+      return snapshot2?.extras?.sidebar?.width !== undefined && Math.abs(snapshot2.extras.sidebar.width - 300) < 15;
+    }).toBe(true);
     await closeElectronApp(app2);
 
     const snapshot2 = readSnapshot(userDataPath);
@@ -188,7 +202,7 @@ test.describe('Snapshot: Sidebar Persistence', () => {
     const page = await waitForReadyPage(app);
 
     const toggleButton = page.getByTestId('toggle-sidebar-button');
-    const dragHandle = page.locator('.sidebar-drag-handle');
+    const dragHandle = page.getByTestId('sidebar-drag-handle');
     await expect(dragHandle).toBeVisible({ timeout: 10000 });
 
     const handleBox = await dragHandle.boundingBox();
@@ -200,7 +214,11 @@ test.describe('Snapshot: Sidebar Persistence', () => {
 
     // Collapse the sidebar
     await toggleButton.click();
-    await page.waitForTimeout(2000);
+    // Wait for snapshot file update
+    await expect.poll(() => {
+      const snapshot = readSnapshot(userDataPath);
+      return snapshot?.extras?.sidebar?.collapsed;
+    }).toBe(true);
     await closeElectronApp(app);
 
     // ── Session 2: configure mixed localStorage keys ─────────────────────────
@@ -218,20 +236,19 @@ test.describe('Snapshot: Sidebar Persistence', () => {
     const app3 = await launchElectronApp({ userDataPath });
     const page3 = await waitForReadyPage(app3);
 
-    const sidebar3 = page3.locator('aside.sidebar');
-    await page3.waitForTimeout(500);
-
-    // Should be collapsed (width = 0) since collapsed was hydrated from snapshot
-    const width = await sidebar3.evaluate((el: HTMLElement) => el.offsetWidth);
-    expect(width).toBe(0);
+    const sidebar3 = page3.getByTestId('sidebar');
+    // Wait for layout/hydration to complete and verify collapsed width = 0
+    await expect.poll(async () => {
+      return await sidebar3.evaluate((el: HTMLElement) => el.offsetWidth);
+    }).toBe(0);
 
     // Uncollapse and verify it restores width = 450 from localStorage
     const toggleButton3 = page3.getByTestId('toggle-sidebar-button');
     await toggleButton3.click();
-    await page3.waitForTimeout(500);
-
-    const expandedWidth = await sidebar3.evaluate((el: HTMLElement) => el.offsetWidth);
-    expect(Math.abs(expandedWidth - 450)).toBeLessThan(15);
+    await expect.poll(async () => {
+      const width = await sidebar3.evaluate((el: HTMLElement) => el.offsetWidth);
+      return Math.abs(width - 450) < 15;
+    }).toBe(true);
 
     await closeElectronApp(app3);
   });
@@ -243,7 +260,7 @@ test.describe('Snapshot: Sidebar Persistence', () => {
     const app = await launchElectronApp({ userDataPath });
     const page = await waitForReadyPage(app);
 
-    const dragHandle = page.locator('.sidebar-drag-handle');
+    const dragHandle = page.getByTestId('sidebar-drag-handle');
     await expect(dragHandle).toBeVisible({ timeout: 10000 });
 
     const handleBox = await dragHandle.boundingBox();
@@ -253,7 +270,11 @@ test.describe('Snapshot: Sidebar Persistence', () => {
     await page.mouse.move(380, handleBox!.y + handleBox!.height / 2, { steps: 10 });
     await page.mouse.up();
 
-    await page.waitForTimeout(2000);
+    // Wait for snapshot file update
+    await expect.poll(() => {
+      const snapshot = readSnapshot(userDataPath);
+      return snapshot?.extras?.sidebar?.width !== undefined && Math.abs(snapshot.extras.sidebar.width - 380) < 15;
+    }).toBe(true);
     await closeElectronApp(app);
 
     // ── Session 2: configure mixed localStorage keys (collapsed in localStorage, width removed) ──
@@ -271,20 +292,19 @@ test.describe('Snapshot: Sidebar Persistence', () => {
     const app3 = await launchElectronApp({ userDataPath });
     const page3 = await waitForReadyPage(app3);
 
-    const sidebar3 = page3.locator('aside.sidebar');
-    await page3.waitForTimeout(500);
-
-    // Should be collapsed (width = 0) since collapsed is true from localStorage
-    const width = await sidebar3.evaluate((el: HTMLElement) => el.offsetWidth);
-    expect(width).toBe(0);
+    const sidebar3 = page3.getByTestId('sidebar');
+    // Wait for layout/hydration to complete and verify collapsed width = 0
+    await expect.poll(async () => {
+      return await sidebar3.evaluate((el: HTMLElement) => el.offsetWidth);
+    }).toBe(0);
 
     // Uncollapse and verify it restores width = 380 from snapshot
     const toggleButton3 = page3.getByTestId('toggle-sidebar-button');
     await toggleButton3.click();
-    await page3.waitForTimeout(500);
-
-    const expandedWidth = await sidebar3.evaluate((el: HTMLElement) => el.offsetWidth);
-    expect(Math.abs(expandedWidth - 380)).toBeLessThan(15);
+    await expect.poll(async () => {
+      const width = await sidebar3.evaluate((el: HTMLElement) => el.offsetWidth);
+      return Math.abs(width - 380) < 15;
+    }).toBe(true);
 
     await closeElectronApp(app3);
   });
