@@ -362,6 +362,9 @@ const handler = async function (argv) {
     let envVars = {};
     let envFileDescriptor = null;
     let globalEnvFileDescriptor = null;
+    // Names overridden via --env-var. Tracked so the persistence layer never writes these
+    // transient values back to disk — common case is CI overriding secrets the CLI can't decrypt.
+    const envVarOverrides = new Set();
 
     const resolveEnvFileFormat = (filePath) => {
       const ext = path.extname(filePath).toLowerCase();
@@ -510,6 +513,7 @@ const handler = async function (argv) {
             process.exit(constants.EXIT_STATUS.ERROR_INCORRECT_ENV_OVERRIDE);
           }
           envVars[match[1]] = match[2];
+          envVarOverrides.add(match[1]);
         }
       }
     }
@@ -635,7 +639,8 @@ const handler = async function (argv) {
     const persistPaths = {
       envFile: envFileDescriptor,
       globalEnvFile: globalEnvFileDescriptor,
-      collectionRootPath
+      collectionRootPath,
+      envVarOverrides
     };
 
     // Fetch system proxy once for all requests (skip if --noproxy flag is set)
