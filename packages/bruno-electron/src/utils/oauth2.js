@@ -973,5 +973,6 @@ module.exports = {
   refreshOauth2Token,
   generateCodeVerifier,
   generateCodeChallenge,
+  generateState,
   updateCollectionOauth2Credentials
 };
