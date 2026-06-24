@@ -17,7 +17,7 @@ const initialState = {
   isDragging: false,
   idbConnectionReady: false,
   snapshotReady: false,
-  sidebarHydrated: hasLocalStorageSidebarWidth() || hasLocalStorageSidebarCollapsed(),
+  sidebarHydrated: hasLocalStorageSidebarWidth() && hasLocalStorageSidebarCollapsed(),
   snapshotHydration: {
     workspaceUid: null,
     pendingCollectionPathnames: [],
@@ -319,7 +319,7 @@ export const hydrateApp = () => async (dispatch) => {
   try {
     const hasLocalWidth = hasLocalStorageSidebarWidth();
     const hasLocalCollapsed = hasLocalStorageSidebarCollapsed();
-    if (hasLocalWidth || hasLocalCollapsed) {
+    if (hasLocalWidth && hasLocalCollapsed) {
       return;
     }
     const sidebar = await window.ipcRenderer.invoke('renderer:snapshot:get-sidebar');

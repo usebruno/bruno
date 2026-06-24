@@ -179,4 +179,113 @@ test.describe('Snapshot: Sidebar Persistence', () => {
     expect(typeof snapshot2.extras.sidebar.width).toBe('number');
     expect(Math.abs(snapshot2.extras.sidebar.width - 300)).toBeLessThan(15);
   });
+
+  test('sidebar mixed-source hydration (width from localStorage, collapsed from snapshot)', async ({ launchElectronApp, createTmpDir }) => {
+    const userDataPath = await createTmpDir('snap-sidebar-mixed');
+
+    // ── Session 1: establish collapsed state and width in snapshot ───────────
+    const app = await launchElectronApp({ userDataPath });
+    const page = await waitForReadyPage(app);
+
+    const toggleButton = page.getByTestId('toggle-sidebar-button');
+    const dragHandle = page.locator('.sidebar-drag-handle');
+    await expect(dragHandle).toBeVisible({ timeout: 10000 });
+
+    const handleBox = await dragHandle.boundingBox();
+    expect(handleBox).not.toBeNull();
+    await page.mouse.move(handleBox!.x + handleBox!.width / 2, handleBox!.y + handleBox!.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(300, handleBox!.y + handleBox!.height / 2, { steps: 10 });
+    await page.mouse.up();
+
+    // Collapse the sidebar
+    await toggleButton.click();
+    await page.waitForTimeout(2000);
+    await closeElectronApp(app);
+
+    // ── Session 2: configure mixed localStorage keys ─────────────────────────
+    const app2 = await launchElectronApp({ userDataPath });
+    const page2 = await waitForReadyPage(app2);
+
+    // Set width and delete collapsed state in localStorage
+    await page2.evaluate(() => {
+      window.localStorage.setItem('bruno.leftSidebarWidth', '450');
+      window.localStorage.removeItem('bruno.sidebarCollapsed');
+    });
+    await closeElectronApp(app2);
+
+    // ── Session 3: verify mixed hydration takes effect ───────────────────────
+    const app3 = await launchElectronApp({ userDataPath });
+    const page3 = await waitForReadyPage(app3);
+
+    const sidebar3 = page3.locator('aside.sidebar');
+    await page3.waitForTimeout(500);
+
+    // Should be collapsed (width = 0) since collapsed was hydrated from snapshot
+    const width = await sidebar3.evaluate((el: HTMLElement) => el.offsetWidth);
+    expect(width).toBe(0);
+
+    // Uncollapse and verify it restores width = 450 from localStorage
+    const toggleButton3 = page3.getByTestId('toggle-sidebar-button');
+    await toggleButton3.click();
+    await page3.waitForTimeout(500);
+
+    const expandedWidth = await sidebar3.evaluate((el: HTMLElement) => el.offsetWidth);
+    expect(Math.abs(expandedWidth - 450)).toBeLessThan(15);
+
+    await closeElectronApp(app3);
+  });
+
+  test('sidebar mixed-source hydration (collapsed from localStorage, width from snapshot)', async ({ launchElectronApp, createTmpDir }) => {
+    const userDataPath = await createTmpDir('snap-sidebar-mixed-inverse');
+
+    // ── Session 1: establish collapsed state (false) and width (380) in snapshot ──
+    const app = await launchElectronApp({ userDataPath });
+    const page = await waitForReadyPage(app);
+
+    const dragHandle = page.locator('.sidebar-drag-handle');
+    await expect(dragHandle).toBeVisible({ timeout: 10000 });
+
+    const handleBox = await dragHandle.boundingBox();
+    expect(handleBox).not.toBeNull();
+    await page.mouse.move(handleBox!.x + handleBox!.width / 2, handleBox!.y + handleBox!.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(380, handleBox!.y + handleBox!.height / 2, { steps: 10 });
+    await page.mouse.up();
+
+    await page.waitForTimeout(2000);
+    await closeElectronApp(app);
+
+    // ── Session 2: configure mixed localStorage keys (collapsed in localStorage, width removed) ──
+    const app2 = await launchElectronApp({ userDataPath });
+    const page2 = await waitForReadyPage(app2);
+
+    // Set collapsed to true in localStorage, and delete width key
+    await page2.evaluate(() => {
+      window.localStorage.setItem('bruno.sidebarCollapsed', 'true');
+      window.localStorage.removeItem('bruno.leftSidebarWidth');
+    });
+    await closeElectronApp(app2);
+
+    // ── Session 3: verify mixed hydration takes effect ───────────────────────
+    const app3 = await launchElectronApp({ userDataPath });
+    const page3 = await waitForReadyPage(app3);
+
+    const sidebar3 = page3.locator('aside.sidebar');
+    await page3.waitForTimeout(500);
+
+    // Should be collapsed (width = 0) since collapsed is true from localStorage
+    const width = await sidebar3.evaluate((el: HTMLElement) => el.offsetWidth);
+    expect(width).toBe(0);
+
+    // Uncollapse and verify it restores width = 380 from snapshot
+    const toggleButton3 = page3.getByTestId('toggle-sidebar-button');
+    await toggleButton3.click();
+    await page3.waitForTimeout(500);
+
+    const expandedWidth = await sidebar3.evaluate((el: HTMLElement) => el.offsetWidth);
+    expect(Math.abs(expandedWidth - 380)).toBeLessThan(15);
+
+    await closeElectronApp(app3);
+  });
 });
