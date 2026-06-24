@@ -44,13 +44,15 @@ const dismissImportIssuesToasts = async (page: Page) => {
  */
 const closeAllCollections = async (page) => {
   await test.step('Close all collections', async () => {
-    const numberOfCollections = await page.locator('[data-testid="collections"] .collection-name').count();
+    const locators = buildCommonLocators(page);
+    const collectionsContainer = locators.sidebar.collectionsContainer();
+    const numberOfCollections = await collectionsContainer.locator('.collection-name').count();
 
     for (let i = 0; i < numberOfCollections; i++) {
-      const firstCollection = page.locator('[data-testid="collections"] .collection-name').first();
+      const firstCollection = collectionsContainer.locator('.collection-name').first();
       await firstCollection.scrollIntoViewIfNeeded();
 
-      const removeMenuItem = page.locator('.dropdown-item').getByText('Remove');
+      const removeMenuItem = locators.dropdown.item('Remove');
       await expect(async () => {
         await firstCollection.hover();
         await firstCollection.locator('.collection-actions .icon').click({ force: true });
@@ -58,30 +60,21 @@ const closeAllCollections = async (page) => {
       }).toPass({ timeout: 15000 });
       await removeMenuItem.click();
 
-      // Wait for modal to appear - could be either regular remove or drafts confirmation
-      const removeModal = page.locator('.bruno-modal').filter({ hasText: 'Remove Collection' });
-      await removeModal.waitFor({ state: 'visible', timeout: 5000 });
+      const removeModal = locators.modal.removeCollection;
+      await removeModal.modal().waitFor({ state: 'visible', timeout: 5000 });
 
-      // Check if it's the drafts confirmation modal (has "Discard All and Remove" button)
-      const hasDiscardButton = await page.getByRole('button', { name: 'Discard All and Remove' }).isVisible().catch(() => false);
+      const hasDiscardButton = await removeModal.discardAllAndRemoveButton().isVisible().catch(() => false);
 
       if (hasDiscardButton) {
-        // Drafts modal - the modal animates in and the footer can shift mid-frame,
-        // causing Playwright's "element is stable" actionability check to fail
-        // intermittently on slower machines. Use force to skip the stability check;
-        // visibility is already verified above via waitFor.
-        await page.getByRole('button', { name: 'Discard All and Remove' }).click({ force: true });
+        await removeModal.discardAllAndRemoveButton().click({ force: true });
       } else {
-        // Regular modal - click the submit button
-        await page.locator('.bruno-modal-footer .submit').click();
+        await removeModal.removeButton().click();
       }
 
-      // Wait for modal to close
-      await removeModal.waitFor({ state: 'hidden', timeout: 5000 });
+      await removeModal.modal().waitFor({ state: 'hidden', timeout: 5000 });
     }
 
-    // Wait until no collections are left open (check sidebar only)
-    await expect(page.getByTestId('collections').locator('.collection-name')).toHaveCount(0);
+    await expect(collectionsContainer.locator('.collection-name')).toHaveCount(0);
   });
 };
 
@@ -390,7 +383,7 @@ const createRequest = async (
     if (inFolder) {
       await expect(locators.sidebar.folderRequest(parentName, requestName)).toBeVisible();
     } else {
-      await expect(locators.sidebar.request(requestName)).toBeVisible();
+      await expect(locators.sidebar.scopedRequest(parentName, requestName)).toBeVisible();
     }
   });
 };
@@ -525,6 +518,129 @@ const importCollection = async (
 };
 
 /**
+ * Create a collection with a request and verify the collection is open and the request is executable.
+ */
+const createCollectionWithExecutableRequest = async (
+  page: Page,
+  options: {
+    collectionName: string;
+    collectionLocation: string;
+    requestName: string;
+    requestUrl: string;
+  }
+) => {
+  const { collectionName, collectionLocation, requestName, requestUrl } = options;
+
+  await test.step(`Create collection "${collectionName}" with executable request "${requestName}"`, async () => {
+    const locators = buildCommonLocators(page);
+
+    await createCollection(page, collectionName, collectionLocation);
+
+    await createRequest(page, requestName, collectionName, {
+      url: requestUrl,
+      method: 'POST'
+    });
+
+    await openRequest(page, collectionName, requestName);
+    await expect(locators.tabs.activeRequestTab()).toContainText(requestName);
+    await sendRequestAndWaitForResponse(page, 200);
+  });
+};
+
+/**
+ * Hover a collection row and open its actions (three-dots) menu.
+ */
+const openCollectionActionsMenu = async (page: Page, collectionName: string) => {
+  await test.step(`Open actions menu for collection "${collectionName}"`, async () => {
+    const locators = buildCommonLocators(page);
+    await locators.sidebar.collectionRow(collectionName).hover();
+    await locators.actions.collectionActions(collectionName).click();
+  });
+};
+
+/**
+ * Verify the collection actions menu shows Remove and related options.
+ */
+const expectCollectionRemoveMenuOptions = async (page: Page) => {
+  await test.step('Verify collection actions menu shows Remove option', async () => {
+    const locators = buildCommonLocators(page);
+    await expect(locators.dropdown.item('Remove')).toBeVisible();
+    await expect(locators.dropdown.item('New Request')).toBeVisible();
+  });
+};
+
+/**
+ * Click Remove in the open collection actions menu.
+ */
+const clickRemoveInCollectionMenu = async (page: Page) => {
+  const locators = buildCommonLocators(page);
+  await locators.dropdown.item('Remove').click();
+  await locators.modal.removeCollection.modal().waitFor({ state: 'visible', timeout: 5000 });
+};
+
+/**
+ * Open the Remove Collection confirmation modal from the sidebar.
+ */
+const openRemoveCollectionModal = async (page: Page, collectionName: string) => {
+  await test.step(`Open Remove Collection modal for "${collectionName}"`, async () => {
+    const locators = buildCommonLocators(page);
+    const removeMenuItem = locators.dropdown.item('Remove');
+
+    if (!(await removeMenuItem.isVisible().catch(() => false))) {
+      await openCollectionActionsMenu(page, collectionName);
+    }
+
+    await clickRemoveInCollectionMenu(page);
+  });
+};
+
+/**
+ * Verify the Remove Collection confirmation modal content.
+ */
+const expectRemoveCollectionModal = async (page: Page, collectionPath: string) => {
+  await test.step('Verify Remove Collection confirmation modal', async () => {
+    const locators = buildCommonLocators(page);
+    const removeModal = locators.modal.removeCollection;
+
+    await expect(removeModal.modal()).toBeVisible();
+    await expect(removeModal.removeButton()).toBeVisible();
+    await expect(removeModal.cancelButton()).toBeVisible();
+    await expect(removeModal.path()).toContainText(collectionPath);
+  });
+};
+
+/**
+ * Confirm removal in the Remove Collection modal (handles drafts modal when present).
+ */
+const confirmRemoveCollection = async (page: Page) => {
+  await test.step('Confirm Remove Collection', async () => {
+    const locators = buildCommonLocators(page);
+    const removeModal = locators.modal.removeCollection;
+
+    const hasDiscardButton = await removeModal.discardAllAndRemoveButton().isVisible().catch(() => false);
+
+    if (hasDiscardButton) {
+      await removeModal.discardAllAndRemoveButton().click();
+    } else {
+      await removeModal.removeButton().click();
+    }
+
+    await removeModal.modal().waitFor({ state: 'hidden', timeout: 5000 });
+  });
+};
+
+/**
+ * Verify the collection was removed from the sidebar and a success toast is shown.
+ */
+const expectCollectionRemovedFromSidebar = async (page: Page, collectionName: string) => {
+  await test.step(`Verify collection "${collectionName}" was removed from sidebar`, async () => {
+    const locators = buildCommonLocators(page);
+    await expect(locators.toast.collectionRemovedFromWorkspace()).toBeVisible();
+    await expect(locators.sidebar.collection(collectionName)).not.toBeVisible();
+  });
+};
+
+/**
  * Remove a specific collection from the sidebar
  * @param page - The page object
  * @param collectionName - The name of the collection to remove
@@ -532,37 +648,9 @@ const importCollection = async (
  */
 const removeCollection = async (page: Page, collectionName: string) => {
   await test.step(`Remove collection "${collectionName}"`, async () => {
-    const locators = buildCommonLocators(page);
-    const collectionRow = page.locator('.collection-name').filter({
-      has: page.locator('#sidebar-collection-name', { hasText: collectionName })
-    });
-
-    await collectionRow.hover();
-    await collectionRow.locator('.collection-actions .icon').click();
-    await locators.dropdown.item('Remove').click();
-
-    // Wait for modal to appear - could be either regular remove or drafts confirmation
-    const removeModal = page.locator('.bruno-modal').filter({ hasText: 'Remove Collection' });
-    await removeModal.waitFor({ state: 'visible', timeout: 5000 });
-
-    // Check if it's the drafts confirmation modal (has "Discard All and Remove" button)
-    const hasDiscardButton = await page.getByRole('button', { name: 'Discard All and Remove' }).isVisible().catch(() => false);
-
-    if (hasDiscardButton) {
-      // Drafts modal - click "Discard All and Remove"
-      await page.getByRole('button', { name: 'Discard All and Remove' }).click();
-    } else {
-      // Regular modal - click Remove button
-      await locators.modal.button('Remove').click();
-    }
-
-    // Wait for modal to close
-    await removeModal.waitFor({ state: 'hidden', timeout: 5000 });
-
-    // Verify collection is removed
-    await expect(
-      page.locator('#sidebar-collection-name').filter({ hasText: collectionName })
-    ).not.toBeVisible();
+    await openRemoveCollectionModal(page, collectionName);
+    await confirmRemoveCollection(page);
+    await expectCollectionRemovedFromSidebar(page, collectionName);
   });
 };
 
@@ -2149,6 +2237,14 @@ export {
   deleteCollectionFromOverview,
   importCollection,
   removeCollection,
+  createCollectionWithExecutableRequest,
+  openCollectionActionsMenu,
+  expectCollectionRemoveMenuOptions,
+  clickRemoveInCollectionMenu,
+  openRemoveCollectionModal,
+  expectRemoveCollectionModal,
+  confirmRemoveCollection,
+  expectCollectionRemovedFromSidebar,
   createFolder,
   openEnvironmentSelector,
   createEnvironment,
