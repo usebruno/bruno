@@ -1,4 +1,34 @@
-const { parseValueByDataType, BRUNO_VARIABLE_DATATYPES } = require('@usebruno/common/utils');
+const BRUNO_VARIABLE_DATATYPES = ['string', 'number', 'boolean', 'object'];
+
+const parseValueByDataType = (value, dataType) => {
+  if (!dataType || dataType === 'string') return value;
+  try {
+    if (dataType === 'number') {
+      if (typeof value === 'number') return value;
+      const trimmed = typeof value === 'string' ? value.trim() : value;
+      if (trimmed === '' || trimmed == null) return value;
+      const num = Number(trimmed);
+      if (!Number.isNaN(num)) return num;
+    } else if (dataType === 'boolean') {
+      if (typeof value === 'boolean') return value;
+      if (value === 'true') return true;
+      if (value === 'false') return false;
+    } else if (dataType === 'object') {
+      if (typeof value === 'object' && value !== null) return value;
+      const trimmed = typeof value === 'string' ? value.trim() : value;
+      if (trimmed === '' || trimmed == null) return value;
+      try {
+        const parsed = JSON.parse(trimmed);
+        if (parsed !== null && typeof parsed === 'object') return parsed;
+      } catch (_) {
+        // not JSON — fall through
+      }
+    }
+  } catch (_) {
+    // fall through
+  }
+  return value;
+};
 
 // safely parse json
 const safeParseJson = (json) => {

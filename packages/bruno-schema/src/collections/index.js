@@ -1,6 +1,7 @@
 const Yup = require('yup');
-const { BRUNO_VARIABLE_DATATYPES } = require('@usebruno/common/utils');
 const { uidSchema } = require('../common');
+
+const BRUNO_VARIABLE_DATATYPES = ['string', 'number', 'boolean', 'object'];
 
 const annotationSchema = Yup.object({
   name: Yup.string().min(1).required('annotation name is required'),
