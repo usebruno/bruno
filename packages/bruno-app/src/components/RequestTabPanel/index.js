@@ -22,6 +22,7 @@ import { DocExplorer } from '@usebruno/graphql-docs';
 
 import FileEditor from 'components/FileEditor';
 import AppView from 'components/AppView';
+import CollectionApp from 'components/CollectionApp';
 import StyledWrapper from './StyledWrapper';
 import FolderSettings from 'components/FolderSettings';
 import { getGlobalEnvironmentVariables, getGlobalEnvironmentVariablesMasked } from 'utils/collections/index';
@@ -490,6 +491,18 @@ const RequestTabPanel = () => {
       <ScopedPersistenceProvider scope={focusedTab.uid}>
         <StyledWrapper className="flex flex-col flex-grow relative p-4 file-mode overflow-hidden">
           <FileEditor item={item} collection={collection} />
+        </StyledWrapper>
+      </ScopedPersistenceProvider>
+    );
+  }
+
+  // Standalone app item (collection- or folder-level). Renders as its own tab
+  // with a Code/Preview toggle and its own ctx API surface.
+  if (item.type === 'app') {
+    return (
+      <ScopedPersistenceProvider scope={focusedTab.uid}>
+        <StyledWrapper className="flex flex-col flex-grow relative overflow-hidden">
+          <CollectionApp item={item} collection={collection} />
         </StyledWrapper>
       </ScopedPersistenceProvider>
     );
