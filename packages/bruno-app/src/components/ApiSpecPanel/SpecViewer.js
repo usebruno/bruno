@@ -4,6 +4,7 @@ import jsyaml from 'js-yaml';
 import { useTheme } from 'providers/Theme';
 import { useSelector } from 'react-redux';
 import { IconAlertCircle, IconDeviceFloppy, IconLoader2 } from '@tabler/icons';
+import { isOpenApiSpec } from 'utils/importers/openapi-collection';
 import CodeEditor from './FileEditor/CodeEditor/index';
 import Swagger from './Renderers/Swagger';
 import { useDragResize } from 'hooks/useDragResize';
@@ -23,6 +24,9 @@ const getPreviewParseError = (content) => {
     return 'Unable to render preview: content is not a valid YAML or JSON.';
   }
   if (!parsed || typeof parsed !== 'object') {
+    return 'Unable to render preview: content is not a valid OpenAPI specification.';
+  }
+  if (!isOpenApiSpec(parsed)) {
     return 'Unable to render preview: content is not a valid OpenAPI specification.';
   }
   return null;
