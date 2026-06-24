@@ -163,7 +163,7 @@ const ManageWorkspace = () => {
                         { id: 'remove', label: 'Remove', onClick: () => handleCloseClick(workspace) }
                       ]}
                     >
-                      <button className="more-actions-btn">
+                      <button data-testid="more-actions-btn" className="more-actions-btn">
                         <IconDots size={14} strokeWidth={1.5} />
                       </button>
                     </MenuDropdown>
