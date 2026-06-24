@@ -1,13 +1,5 @@
 import { test, expect } from '../../../playwright';
-
-const openCollectionSettings = async (page, collectionName: string) => {
-  await page
-    .locator('#sidebar-collection-name')
-    .filter({ hasText: collectionName })
-    .click();
-  // The tab label always reads "Collection" regardless of the collection name
-  await expect(page.locator('.request-tab .tab-label').filter({ hasText: 'Collection' })).toBeVisible();
-};
+import { openCollectionSettings, focusCollectionSettingsTab, selectCollectionPaneTab } from '../../utils/page';
 
 test.describe('Collection Settings Descriptions - Read', () => {
   test('reads descriptions from headers and vars in a pre-existing collection.bru', async ({
@@ -16,9 +8,10 @@ test.describe('Collection Settings Descriptions - Read', () => {
     test.setTimeout(30_000);
 
     await openCollectionSettings(page, 'col-description');
+    await focusCollectionSettingsTab(page);
 
     // ── Headers tab ──────────────────────────────────────────────────────────
-    await page.locator('.tab.headers').click();
+    await selectCollectionPaneTab(page, 'headers');
 
     // Each header row has three CodeMirrors: name (0), value (1), description (2)
     const headerRows = page.locator('table').first().locator('tbody tr');
@@ -37,7 +30,7 @@ test.describe('Collection Settings Descriptions - Read', () => {
     await expect(plainDescEditor.locator('.CodeMirror-line').first()).toHaveText('');
 
     // ── Vars tab ─────────────────────────────────────────────────────────────
-    await page.locator('.tab.vars').click();
+    await selectCollectionPaneTab(page, 'vars');
 
     // In the vars tab the pre-request VarsTable is the first <table>.
     // Var rows have two CodeMirrors: value (nth 0) and description (nth 1).

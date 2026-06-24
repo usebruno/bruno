@@ -240,7 +240,23 @@ const sem = grammar.createSemantics().addAttribute('ast', {
     return chars.sourceString ? chars.sourceString.trim() : '';
   },
   value(chars) {
-    return chars.ast;
+    if (chars.ctorName === 'list') {
+      return chars.ast;
+    }
+    try {
+      let isMultiline = chars.sourceString?.startsWith(`'''`) && chars.sourceString?.endsWith(`'''`);
+      if (isMultiline) {
+        const multilineString = chars.sourceString?.replace(/^'''|'''$/g, '');
+        return multilineString
+          .split('\n')
+          .map((line) => line.slice(4))
+          .join('\n');
+      }
+      return chars.sourceString ? chars.sourceString.trim() : '';
+    } catch (err) {
+      console.error(err);
+    }
+    return chars.sourceString ? chars.sourceString.trim() : '';
   },
   singlelinevalue(chars) {
     return chars.sourceString?.trim() || '';

@@ -170,14 +170,6 @@ const Wrapper = styled.div`
     }
   }
 
-  .secret-column {
-    width: 8% !important;
-  }
-
-  .actions-column {
-    width: 5%;
-  }
-
   .reset {
     background: transparent;
     padding: 6px 16px;

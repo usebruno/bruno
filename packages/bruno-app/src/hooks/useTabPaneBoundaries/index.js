@@ -18,7 +18,7 @@ export function useTabPaneBoundaries(activeTabUid) {
   const focusedTab = find(tabs, (t) => t.uid === activeTabUid);
   const screenWidth = useSelector((state) => state.app.screenWidth);
   let asideWidth = useSelector((state) => state.app.leftSidebarWidth);
-  let isSidebarHidden = useSelector((state) => state.app.sidebarCollapsed);
+  const isSidebarHidden = useSelector((state) => state.app.sidebarCollapsed);
   const left = focusedTab && focusedTab.requestPaneWidth ? focusedTab.requestPaneWidth : (screenWidth - asideWidth) / DEFAULT_PANE_WIDTH_DIVISOR;
   const top = focusedTab?.requestPaneHeight || MIN_TOP_PANE_HEIGHT;
   const requestPaneCollapsed = focusedTab?.requestPaneCollapsed || false;

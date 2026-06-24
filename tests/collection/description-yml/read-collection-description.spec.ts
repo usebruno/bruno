@@ -1,9 +1,5 @@
 import { test, expect } from '../../../playwright';
-
-const openCollectionSettings = async (page, collectionName: string) => {
-  await page.locator('#sidebar-collection-name').filter({ hasText: collectionName }).click();
-  await expect(page.locator('.request-tab .tab-label').filter({ hasText: 'Collection' })).toBeVisible();
-};
+import { openCollectionSettings, focusCollectionSettingsTab, selectCollectionPaneTab } from '../../utils/page';
 
 test.describe('Collection Settings Descriptions (YAML) - Read', () => {
   test('reads descriptions from headers and vars in a pre-existing opencollection.yml', async ({
@@ -12,8 +8,9 @@ test.describe('Collection Settings Descriptions (YAML) - Read', () => {
     test.setTimeout(30_000);
 
     await openCollectionSettings(page, 'col-description-yml');
+    await focusCollectionSettingsTab(page);
 
-    await page.getByTestId('collection-settings-tab-headers').click();
+    await selectCollectionPaneTab(page, 'headers');
 
     const headerRows = page.getByTestId('collection-headers').locator('tbody tr');
 
@@ -27,7 +24,7 @@ test.describe('Collection Settings Descriptions (YAML) - Read', () => {
     const plainDescEditor = headerRows.nth(2).getByTestId('column-description').locator('.CodeMirror');
     await expect(plainDescEditor.locator('.CodeMirror-line').first()).toHaveText('');
 
-    await page.getByTestId('collection-settings-tab-vars').click();
+    await selectCollectionPaneTab(page, 'vars');
 
     const varRows = page.getByTestId('collection-vars-req').locator('tbody tr');
 

@@ -255,7 +255,11 @@ const sem = grammar.createSemantics().addAttribute('ast', {
     return chars.sourceString ? chars.sourceString.trim() : '';
   },
   value(chars) {
-    return chars.ast;
+    // .ctorName provides the name of the rule that matched the input
+    if (chars.ctorName === 'multilinetextblock') {
+      return chars.ast;
+    }
+    return chars.sourceString ? chars.sourceString.trim() : '';
   },
   singlelinevalue(chars) {
     return chars.sourceString?.trim() || '';

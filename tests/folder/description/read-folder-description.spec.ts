@@ -1,21 +1,5 @@
 import { test, expect } from '../../../playwright';
-
-const openFolderSettings = async (page, collectionName: string, folderName = 'api') => {
-  const collectionRow = page.locator('#sidebar-collection-name').filter({ hasText: collectionName });
-  await expect(collectionRow).toBeVisible();
-
-  const folderRow = page
-    .getByTestId('collections')
-    .locator('.collection-item-name')
-    .filter({ hasText: folderName });
-  if (!(await folderRow.isVisible().catch(() => false))) {
-    await collectionRow.click();
-    await expect(folderRow).toBeVisible();
-  }
-
-  await folderRow.dblclick();
-  await expect(page.locator('.request-tab .tab-label').filter({ hasText: folderName })).toBeVisible();
-};
+import { openFolderSettings } from '../../utils/page';
 
 test.describe('Folder Settings Descriptions - Read', () => {
   test('reads descriptions from headers and vars in a pre-existing folder.bru', async ({

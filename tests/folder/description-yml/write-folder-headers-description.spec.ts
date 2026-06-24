@@ -1,23 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { test, expect } from '../../../playwright';
-
-const openFolderSettings = async (page, collectionName: string, folderName = 'api') => {
-  const collectionRow = page.locator('#sidebar-collection-name').filter({ hasText: collectionName });
-  await expect(collectionRow).toBeVisible();
-
-  const folderRow = page
-    .getByTestId('collections')
-    .locator('.collection-item-name')
-    .filter({ hasText: folderName });
-  if (!(await folderRow.isVisible().catch(() => false))) {
-    await collectionRow.click();
-    await expect(folderRow).toBeVisible();
-  }
-
-  await folderRow.dblclick();
-  await expect(page.locator('.request-tab .tab-label').filter({ hasText: folderName })).toBeVisible();
-};
+import { openFolderSettings, setTableRowDescriptionValue } from '../../utils/page';
 
 test.describe('Folder Settings Descriptions (YAML) - Write (Headers)', () => {
   test('writes a multiline description to a header and persists it to folder.yml', async ({
@@ -34,13 +18,7 @@ test.describe('Folder Settings Descriptions (YAML) - Write (Headers)', () => {
     });
     const descCell = xPlainRow.getByTestId('column-description');
 
-    await descCell.evaluate((el) => {
-      const cmEl = el.querySelector('.CodeMirror');
-      if (!cmEl) throw new Error('No CodeMirror in X-Plain description cell');
-      const cm = (cmEl as any).CodeMirror;
-      if (!cm) throw new Error('CodeMirror instance not found');
-      cm.setValue('First line\nSecond line');
-    });
+    await setTableRowDescriptionValue(xPlainRow, 'First line\nSecond line');
 
     await expect(descCell.locator('.CodeMirror-line').nth(0)).toHaveText('First line');
     await expect(descCell.locator('.CodeMirror-line').nth(1)).toHaveText('Second line');

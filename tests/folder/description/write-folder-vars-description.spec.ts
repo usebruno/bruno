@@ -1,23 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { test, expect } from '../../../playwright';
-
-const openFolderSettings = async (page, collectionName: string, folderName = 'api') => {
-  const collectionRow = page.locator('#sidebar-collection-name').filter({ hasText: collectionName });
-  await expect(collectionRow).toBeVisible();
-
-  const folderRow = page
-    .getByTestId('collections')
-    .locator('.collection-item-name')
-    .filter({ hasText: folderName });
-  if (!(await folderRow.isVisible().catch(() => false))) {
-    await collectionRow.click();
-    await expect(folderRow).toBeVisible();
-  }
-
-  await folderRow.dblclick();
-  await expect(page.locator('.request-tab .tab-label').filter({ hasText: folderName })).toBeVisible();
-};
+import { openFolderSettings, setTableRowDescriptionValue } from '../../utils/page';
 
 test.describe('Folder Settings Descriptions - Write (Vars)', () => {
   test('writes a multiline description to a pre-request var and persists it to folder.bru', async ({
@@ -27,31 +11,19 @@ test.describe('Folder Settings Descriptions - Write (Vars)', () => {
     await openFolderSettings(page, 'fold-description');
 
     await page.getByTestId('folder-settings-tab-vars').click();
-    await expect(page.getByTestId('folder-vars-req').locator('tbody tr').first()).toBeVisible();
-
-    await page.evaluate(() => {
-      const table = document.querySelector('[data-testid="folder-vars-req"]');
-      const rows = table?.querySelectorAll('tbody tr') ?? [];
-      const targetRow = Array.from(rows).find((row) => {
-        const input = row.querySelector('[data-testid="column-name"] input') as HTMLInputElement;
-        return input?.value === 'plain';
-      });
-      if (!targetRow) throw new Error('\'plain\' var row not found in pre-request vars table');
-
-      const cms = targetRow.querySelectorAll('.CodeMirror');
-      const cm = (cms[1] as any)?.CodeMirror;
-      if (!cm) throw new Error('Description CodeMirror not found in plain row');
-
-      cm.setValue('First line\nSecond line');
-    });
 
     const varsTable = page.getByTestId('folder-vars-req');
+    await expect(varsTable.locator('tbody tr').first()).toBeVisible();
+
     const plainRowIndex = await varsTable.locator('[data-testid="column-name"] input').evaluateAll(
       (inputs) => inputs.findIndex((el) => (el as HTMLInputElement).value === 'plain')
     );
-    if (plainRowIndex === -1) throw new Error('\'plain\' var not found for assertion');
+    if (plainRowIndex === -1) throw new Error('\'plain\' var not found in pre-request vars table');
 
-    const descCell = varsTable.locator('tbody tr').nth(plainRowIndex).getByTestId('column-description');
+    const plainRow = varsTable.locator('tbody tr').nth(plainRowIndex);
+    await setTableRowDescriptionValue(plainRow, 'First line\nSecond line');
+
+    const descCell = plainRow.getByTestId('column-description');
     await expect(descCell.locator('.CodeMirror-line').nth(0)).toHaveText('First line');
     await expect(descCell.locator('.CodeMirror-line').nth(1)).toHaveText('Second line');
 
