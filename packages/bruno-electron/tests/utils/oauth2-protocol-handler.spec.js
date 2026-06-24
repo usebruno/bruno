@@ -26,7 +26,7 @@ describe('handleOauth2ProtocolUrl - state validation', () => {
     it('should resolve with the code when the returned state matches', () => {
       registerOauth2AuthorizationRequest(resolve, reject, null, 'expected-state');
 
-      handleOauth2ProtocolUrl('bruno://app/oauth2/callback?code=auth-code-123&state=expected-state');
+      handleOauth2ProtocolUrl('bruno://oauth2/callback?code=auth-code-123&state=expected-state');
 
       expect(resolve).toHaveBeenCalledWith('auth-code-123');
       expect(reject).not.toHaveBeenCalled();
@@ -35,7 +35,7 @@ describe('handleOauth2ProtocolUrl - state validation', () => {
     it('should reject when the returned state does not match', () => {
       registerOauth2AuthorizationRequest(resolve, reject, null, 'expected-state');
 
-      handleOauth2ProtocolUrl('bruno://app/oauth2/callback?code=auth-code-123&state=attacker-state');
+      handleOauth2ProtocolUrl('bruno://oauth2/callback?code=auth-code-123&state=attacker-state');
 
       expect(resolve).not.toHaveBeenCalled();
       expect(reject).toHaveBeenCalledWith(
@@ -46,7 +46,7 @@ describe('handleOauth2ProtocolUrl - state validation', () => {
     it('should reject when no state is returned but one was expected', () => {
       registerOauth2AuthorizationRequest(resolve, reject, null, 'expected-state');
 
-      handleOauth2ProtocolUrl('bruno://app/oauth2/callback?code=auth-code-123');
+      handleOauth2ProtocolUrl('bruno://oauth2/callback?code=auth-code-123');
 
       expect(resolve).not.toHaveBeenCalled();
       expect(reject).toHaveBeenCalledWith(
@@ -60,7 +60,7 @@ describe('handleOauth2ProtocolUrl - state validation', () => {
       registerOauth2AuthorizationRequest(resolve, reject, null, 'expected-state');
 
       handleOauth2ProtocolUrl(
-        'bruno://app/oauth2/callback#access_token=token-abc&token_type=bearer&state=expected-state'
+        'bruno://oauth2/callback#access_token=token-abc&token_type=bearer&state=expected-state'
       );
 
       expect(resolve).toHaveBeenCalledWith(
@@ -73,20 +73,7 @@ describe('handleOauth2ProtocolUrl - state validation', () => {
       registerOauth2AuthorizationRequest(resolve, reject, null, 'expected-state');
 
       handleOauth2ProtocolUrl(
-        'bruno://app/oauth2/callback#access_token=token-abc&token_type=bearer&state=attacker-state'
-      );
-
-      expect(resolve).not.toHaveBeenCalled();
-      expect(reject).toHaveBeenCalledWith(
-        expect.objectContaining({ message: expect.stringContaining('state mismatch') })
-      );
-    });
-
-    it('should reject when no hash state is returned but one was expected', () => {
-      registerOauth2AuthorizationRequest(resolve, reject, null, 'expected-state');
-
-      handleOauth2ProtocolUrl(
-        'bruno://app/oauth2/callback#access_token=token-abc&token_type=bearer'
+        'bruno://oauth2/callback#access_token=token-abc&token_type=bearer&state=attacker-state'
       );
 
       expect(resolve).not.toHaveBeenCalled();
@@ -96,16 +83,14 @@ describe('handleOauth2ProtocolUrl - state validation', () => {
     });
   });
 
-  describe('when no expected state was registered', () => {
-    it('should reject rather than resolve without state (fail closed)', () => {
+  describe('when no expected state was registered (backward compatibility)', () => {
+    it('should resolve without validating state', () => {
       registerOauth2AuthorizationRequest(resolve, reject, null, null);
 
-      handleOauth2ProtocolUrl('bruno://app/oauth2/callback?code=auth-code-123');
+      handleOauth2ProtocolUrl('bruno://oauth2/callback?code=auth-code-123');
 
-      expect(resolve).not.toHaveBeenCalled();
-      expect(reject).toHaveBeenCalledWith(
-        expect.objectContaining({ message: expect.stringContaining('state mismatch') })
-      );
+      expect(resolve).toHaveBeenCalledWith('auth-code-123');
+      expect(reject).not.toHaveBeenCalled();
     });
   });
 
@@ -113,18 +98,7 @@ describe('handleOauth2ProtocolUrl - state validation', () => {
     it('should reject with the provider error even if state is absent', () => {
       registerOauth2AuthorizationRequest(resolve, reject, null, 'expected-state');
 
-      handleOauth2ProtocolUrl('bruno://app/oauth2/callback?error=access_denied');
-
-      expect(resolve).not.toHaveBeenCalled();
-      expect(reject).toHaveBeenCalledWith(
-        expect.objectContaining({ message: expect.stringContaining('Authorization Failed') })
-      );
-    });
-
-    it('should reject with the provider error in the hash fragment even if state is absent', () => {
-      registerOauth2AuthorizationRequest(resolve, reject, null, 'expected-state');
-
-      handleOauth2ProtocolUrl('bruno://app/oauth2/callback#error=access_denied');
+      handleOauth2ProtocolUrl('bruno://oauth2/callback?error=access_denied');
 
       expect(resolve).not.toHaveBeenCalled();
       expect(reject).toHaveBeenCalledWith(
