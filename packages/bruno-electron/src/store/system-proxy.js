@@ -1,10 +1,13 @@
-const { getSystemProxy } = require('@usebruno/requests');
+const { getSystemProxy, refreshShellEnvProxyVars } = require('@usebruno/requests');
 
 let cachedSystemProxy;
 let systemProxyPromise;
 
-const loadSystemProxy = async () => {
+const loadSystemProxy = async ({ refreshShellEnv = false } = {}) => {
   try {
+    if (refreshShellEnv) {
+      await refreshShellEnvProxyVars();
+    }
     cachedSystemProxy = await getSystemProxy();
   } catch (error) {
     console.error('Failed to initialize system proxy:', error);
@@ -21,7 +24,7 @@ const loadSystemProxy = async () => {
 
 const fetchSystemProxy = ({ refresh = false } = {}) => {
   if (refresh || !systemProxyPromise) {
-    systemProxyPromise = loadSystemProxy();
+    systemProxyPromise = loadSystemProxy({ refreshShellEnv: refresh });
   }
   return systemProxyPromise;
 };
