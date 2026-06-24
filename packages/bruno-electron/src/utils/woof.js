@@ -1,4 +1,4 @@
-const buildWoofResponse = (request) => {
+const easterEggResponse = (request) => {
   const woofStart = Date.now();
   const body = [
     'Woof! Woof!',
@@ -35,4 +35,4 @@ const buildWoofResponse = (request) => {
   };
 };
 
-module.exports = { buildWoofResponse };
+module.exports = { easterEggResponse };

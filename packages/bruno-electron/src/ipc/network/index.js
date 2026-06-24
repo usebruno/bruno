@@ -37,7 +37,7 @@ const { cookiesStore } = require('../../store/cookies');
 const registerGrpcEventHandlers = require('./grpc-event-handlers');
 const { registerWsEventHandlers } = require('./ws-event-handlers');
 const { getCertsAndProxyConfig, buildCertsAndProxyConfig } = require('./cert-utils');
-const { buildWoofResponse } = require('../../utils/woof');
+const { easterEggResponse } = require('../../utils/woof');
 const { buildFormUrlEncodedPayload, isFormData, extractBoundaryFromContentType } = require('@usebruno/common').utils;
 
 const ERROR_OCCURRED_WHILE_EXECUTING_REQUEST = 'Error occurred while executing the request!';
@@ -877,7 +877,7 @@ const registerNetworkIpc = (mainWindow) => {
 
     // Every good boy deserves a response.
     if (request.method && request.method.toUpperCase() === 'WOOF') {
-      return buildWoofResponse(request);
+      return easterEggResponse(request);
     }
 
     request.__bruno__executionMode = 'standalone';
