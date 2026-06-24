@@ -87,7 +87,10 @@ export const buildCommonLocators = (page: Page) => ({
     variableSecretCheckbox: (index: number) => page.locator(`input[name="${index}.secret"]`),
     variableRow: (index: number) => page.locator('tr').filter({ has: page.locator(`input[name="${index}.name"]`) }),
     createEnvButton: () => page.locator('button[id="create-env"]'),
-    envNameInput: () => page.locator('input[name="name"]')
+    envNameInput: () => page.locator('input[name="name"]'),
+    detailsTitle: () => page.getByTestId('environment-title'),
+    detailsAction: (action: 'search' | 'rename' | 'copy' | 'delete') =>
+      page.getByTestId(`environment-action-${action}`)
   },
   codeMirror: {
     byTestId: (testId: string) => page.getByTestId(testId).locator('.CodeMirror').first()
