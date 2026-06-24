@@ -293,6 +293,86 @@ script:post-response {
     expect(written).toMatch(/name:\s*globalBool[\s\S]*?type:\s*boolean[\s\S]*?data:\s*['"]?false/);
   }, 60_000);
 
+  // --env-file is the only CLI surface that supports JSON env files (--global-env and --env
+  // are locked to yml / bru-or-yml respectively). End-to-end coverage of the JSON branch in
+  // persistEnvFile, including the shape-preservation guarantee: uid and custom fields on
+  // entries the script doesn't touch must survive the round trip.
+  it('persists typed env vars to a --env-file JSON file and preserves per-entry uid / custom fields', async () => {
+    writeFixtureFile(
+      path.join(tmpDir, 'bruno.json'),
+      JSON.stringify({ version: '1', name: 'json-env-collection', type: 'collection' }, null, 2) + '\n'
+    );
+    writeFixtureFile(
+      path.join(tmpDir, 'collection.bru'),
+      'meta {\n  name: json-env-collection\n  seq: 1\n}\n'
+    );
+
+    // Existing entries carry uid + custom fields to verify the rewrite path doesn't strip
+    // them. `host` will be echoed back unchanged by the script (used by the request URL);
+    // `untouched` will not appear in the script's writes at all.
+    writeFixtureFile(
+      path.join(tmpDir, 'External.json'),
+      JSON.stringify({
+        name: 'External',
+        uid: 'env-uid-abc',
+        variables: [
+          { name: 'host', value: baseUrl, uid: 'var-host', custom: 'keep-host' },
+          { name: 'untouched', value: 'stays-put', uid: 'var-untouched', custom: 'keep-me' }
+        ]
+      }, null, 2) + '\n'
+    );
+
+    writeFixtureFile(
+      path.join(tmpDir, 'set-typed-vars.bru'),
+      `meta {
+  name: set-typed-vars
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+script:post-response {
+  bru.setEnvVar("port", 3000);
+  bru.setEnvVar("enabled", true);
+}
+`
+    );
+
+    const result = await runCli([
+      'run', 'set-typed-vars.bru',
+      '--env-file', 'External.json',
+      '--sandbox', 'developer',
+      '--noproxy'
+    ]);
+
+    if (result.code !== 0) {
+      throw new Error(
+        `CLI exited with code ${result.code}.\n--- stdout ---\n${result.stdout}\n--- stderr ---\n${result.stderr}`
+      );
+    }
+
+    const written = JSON.parse(fs.readFileSync(path.join(tmpDir, 'External.json'), 'utf8'));
+    // Top-level metadata preserved
+    expect(written.uid).toBe('env-uid-abc');
+    const byName = Object.fromEntries(written.variables.map((v) => [v.name, v]));
+    // New typed vars from the script
+    expect(byName.port).toMatchObject({ value: 3000, dataType: 'number' });
+    expect(byName.enabled).toMatchObject({ value: true, dataType: 'boolean' });
+    // Untouched entry retains uid + custom field
+    expect(byName.untouched).toMatchObject({
+      value: 'stays-put',
+      uid: 'var-untouched',
+      custom: 'keep-me'
+    });
+    // Echoed-back entry retains uid + custom field
+    expect(byName.host).toMatchObject({ uid: 'var-host', custom: 'keep-host' });
+  }, 60_000);
+
   // Regression guard at the CLI binary boundary: --env-var values are transient (the CLI
   // can't decrypt at-rest secrets, so users pass them in for a single run). Even though a
   // script writes an unrelated env var — which dirties the env scope and makes the runtime
