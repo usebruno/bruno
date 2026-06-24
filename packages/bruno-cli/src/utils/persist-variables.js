@@ -293,8 +293,16 @@ const persistEnvFile = (envFile, scriptVars, options = {}) => {
       // Bail rather than overwrite a malformed user file with our best guess.
       return;
     }
-    const normalized = parseEnvironmentJson(parsed);
-    const mergedVars = mergeScriptVarsIntoEnvList(normalized.variables || [], scriptVars, options);
+    // Validate shape, but merge against the raw `parsed.variables` so per-entry fields the
+    // CLI doesn't recognize (uid, dataType, custom metadata) survive on entries the script
+    // didn't touch — parseEnvironmentJson's normalizer would otherwise strip them.
+    try {
+      parseEnvironmentJson(parsed);
+    } catch {
+      return;
+    }
+    const rawVariables = Array.isArray(parsed.variables) ? parsed.variables : [];
+    const mergedVars = mergeScriptVarsIntoEnvList(rawVariables, scriptVars, options);
     // Spread preserves any top-level fields the user has beyond `variables` (name, metadata, etc.).
     const next = { ...parsed, variables: mergedVars };
     const content = JSON.stringify(next, null, 2) + '\n';
@@ -386,8 +394,12 @@ const persistVariableUpdates = (result, { envFile, globalEnvFile, collection, co
   if (!result) return;
   const envOpts = envVarOverrides ? { overrides: envVarOverrides } : undefined;
   if (result.envVariables) persistEnvFile(envFile, result.envVariables, envOpts);
-  // `--env-var` overrides apply only to the active env, not the global env.
-  if (result.globalEnvironmentVariables) persistEnvFile(globalEnvFile, result.globalEnvironmentVariables);
+  // Defense-in-depth: the bru runtime keeps envVariables and globalEnvironmentVariables as
+  // separate maps and never auto-syncs between them, so the override can't reach the global
+  // env map through normal flow. Still, pass the override filter through — if a user script
+  // ever copies via `bru.setGlobalEnvVar(k, bru.getVar(k))`, the override value won't land
+  // on disk in the global env file.
+  if (result.globalEnvironmentVariables) persistEnvFile(globalEnvFile, result.globalEnvironmentVariables, envOpts);
   if (result.collectionVariables) persistCollectionVars(collection, result.collectionVariables, collectionRootPath);
 };
 

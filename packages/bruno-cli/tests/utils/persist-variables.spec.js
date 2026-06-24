@@ -157,6 +157,35 @@ describe('persistVariableUpdates — env file', () => {
     expect(byName.token).toBeUndefined();
   });
 
+  // Regression guard: the JSON normalizer (parseEnvironmentJson) only declares the four
+  // fields it knows about. We must NOT round-trip through it for the on-disk write — entries
+  // should keep uid, custom metadata, and (for natural typed values) dataType.
+  it('preserves uid / dataType / unknown fields on json entries', () => {
+    const filePath = writeFile('dev.json', JSON.stringify({
+      name: 'dev',
+      uid: 'env-uid-123',
+      variables: [
+        // Natural JS number with dataType tag — script will echo it back as `42` (number).
+        { name: 'port', value: 42, dataType: 'number', uid: 'var-1', custom: 'keep-me' },
+        { name: 'host', value: 'old', uid: 'var-2' }
+      ]
+    }, null, 2));
+    persistVariableUpdates(
+      { envVariables: { port: 42, host: 'new', __name__: 'dev' } },
+      { envFile: { path: filePath, format: 'json' } }
+    );
+    const written = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+    expect(written.uid).toBe('env-uid-123');
+    const byName = Object.fromEntries(written.variables.map((v) => [v.name, v]));
+    expect(byName.port).toMatchObject({
+      value: 42,
+      dataType: 'number',
+      uid: 'var-1',
+      custom: 'keep-me'
+    });
+    expect(byName.host).toMatchObject({ value: 'new', uid: 'var-2' });
+  });
+
   it('content-comparison guard skips rewrites that are byte-identical', () => {
     const filePath = writeFile('dev.yml',
       'name: dev\nvariables:\n  - name: host\n    value: same\n'
@@ -294,6 +323,31 @@ describe('persistVariableUpdates — global env file', () => {
     expect(fs.readFileSync(globalPath, 'utf8')).toMatch(/value:\s*eu/);
     // env file untouched — no envVariables in result
     expect(fs.readFileSync(envPath, 'utf8')).toMatch(/stale/);
+  });
+
+  // Defense-in-depth: the runtime can't currently leak an --env-var override into the
+  // globalEnvironmentVariables result (envVariables and globalEnvironmentVariables are
+  // separate maps in the bru sandbox). But if a user script ever copies between the two
+  // — e.g. `bru.setGlobalEnvVar('token', bru.getVar('token'))` — the override must still
+  // be filtered before reaching the global env file.
+  it('respects envVarOverrides when persisting to the global env file', () => {
+    const globalPath = writeFile('global.yml',
+      'name: global\nvariables:\n  - name: token\n    value: real-global-secret\n  - name: region\n    value: us\n'
+    );
+    persistVariableUpdates(
+      // Simulates a user script that copied the env override into the global env scope.
+      { globalEnvironmentVariables: { token: 'transient-cli-value', region: 'eu' } },
+      {
+        globalEnvFile: { path: globalPath, format: 'yml' },
+        envVarOverrides: new Set(['token'])
+      }
+    );
+    const written = fs.readFileSync(globalPath, 'utf8');
+    // token's on-disk value must NOT be the transient override
+    expect(written).not.toMatch(/transient-cli-value/);
+    expect(written).toMatch(/real-global-secret/);
+    // unrelated keys still update
+    expect(written).toMatch(/value:\s*eu/);
   });
 });
 
