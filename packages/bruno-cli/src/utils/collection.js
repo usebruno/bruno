@@ -539,7 +539,7 @@ const safeWriteFileSync = (filePath, content) => {
  * @param {string} dirPath - The output directory path
  */
 const createCollectionFromBrunoObject = async (collection, dirPath, options = {}) => {
-  const { format = 'bru' } = options;
+  const { format = 'yml' } = options;
   // Create brunoConfig for yml format
   const brunoConfig = {
     version: '1',
@@ -595,7 +595,7 @@ const createCollectionFromBrunoObject = async (collection, dirPath, options = {}
  * @param {"bru"|"yml"} options.format - Current directory path
  */
 const processCollectionItems = async (items = [], currentPath, options = {}) => {
-  const { format = 'bru' } = options;
+  const { format = 'yml' } = options;
   for (const item of items) {
     if (item.type === 'folder') {
       // Create folder

@@ -154,7 +154,7 @@ export const BulkImportCollectionLocation = ({
   const [applyToGlobal, setApplyToGlobal] = useState(true);
   const [applyToCollection, setApplyToCollection] = useState(false);
   const [groupingType, setGroupingType] = useState('tags');
-  const [collectionFormat, setCollectionFormat] = useState('bru');
+  const [collectionFormat, setCollectionFormat] = useState('yml');
   const [renamedCollectionNames, setRenamedCollectionNames] = useState({});
   const [renamedEnvironmentNames, setRenamedEnvironmentNames] = useState({});
   const [importIssues, setImportIssues] = useState({});
@@ -585,6 +585,7 @@ export const BulkImportCollectionLocation = ({
       <Modal
         size="md"
         title="Bulk Import"
+        dataTestId="bulk-import-collection-location-modal"
         confirmText={importStarted ? 'Close' : 'Import'}
         confirmDisabled={Boolean(!selectedCollections?.length)}
         handleConfirm={onSubmit}
@@ -878,6 +879,7 @@ export const BulkImportCollectionLocation = ({
                   <select
                     id="format"
                     name="format"
+                    data-testid="collection-format-selector"
                     className="block textbox mt-2 w-full"
                     value={collectionFormat}
                     onChange={(e) => setCollectionFormat(e.target.value)}
