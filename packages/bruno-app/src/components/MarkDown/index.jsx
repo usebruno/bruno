@@ -6,9 +6,9 @@ import { isValidUrl } from 'utils/url/index';
 import DOMPurify from 'dompurify';
 import { useMemo } from 'react';
 
-const Markdown = ({ collectionPath, onDoubleClick, content }) => {
+const Markdown = ({ collectionPath, onDoubleClick, content, allowHtml = true }) => {
   const markdownItOptions = {
-    html: true,
+    html: allowHtml,
     breaks: true,
     linkify: true,
     replaceLink: function (link, env) {
@@ -35,7 +35,7 @@ const Markdown = ({ collectionPath, onDoubleClick, content }) => {
   };
 
   const md = new MarkdownIt(markdownItOptions).use(MarkdownItReplaceLink);
-  const htmlFromMarkdown = useMemo(() => md.render(content || ''), [content, collectionPath]);
+  const htmlFromMarkdown = useMemo(() => md.render(content || ''), [content, collectionPath, allowHtml]);
   const cleanHTML = useMemo(() => DOMPurify.sanitize(htmlFromMarkdown), [htmlFromMarkdown]);
 
   return (
