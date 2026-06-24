@@ -1,4 +1,5 @@
 const Yup = require('yup');
+const { BRUNO_VARIABLE_DATATYPES } = require('@usebruno/common/utils');
 const { uidSchema } = require('../common');
 
 const annotationSchema = Yup.object({
@@ -19,7 +20,21 @@ const environmentVariablesSchema = Yup.object({
     .nullable(),
   type: Yup.string().oneOf(['text']).required('type is required'),
   enabled: Yup.boolean().defined(),
-  secret: Yup.boolean()
+  secret: Yup.boolean(),
+  dataType: Yup.string().oneOf(BRUNO_VARIABLE_DATATYPES).nullable()
+})
+  .noUnknown(true)
+  .strict();
+
+// External secret variables carry `name` plus a provider-specific reference key
+// (path / vaultName / secretName / ...), so unknown keys are allowed through.
+const externalSecretVariableSchema = Yup.object({
+  name: Yup.string().nullable()
+}).strict();
+
+const externalSecretsSchema = Yup.object({
+  type: Yup.string().nullable(),
+  variables: Yup.array().of(externalSecretVariableSchema)
 })
   .noUnknown(true)
   .strict();
@@ -28,6 +43,7 @@ const environmentSchema = Yup.object({
   uid: uidSchema,
   name: Yup.string().min(1).required('name is required'),
   variables: Yup.array().of(environmentVariablesSchema).required('variables are required'),
+  externalSecrets: externalSecretsSchema.nullable().optional(),
   color: Yup.string().nullable().optional(),
   pathname: Yup.string().nullable()
 })
@@ -94,7 +110,8 @@ const assertionSchema = keyValueSchema.shape({
 const varsSchema = Yup.object({
   uid: uidSchema,
   name: Yup.string().nullable(),
-  value: Yup.string().nullable(),
+  // Allow mixed types (string, number, boolean, object) to support coerced dataType values.
+  value: Yup.mixed().nullable(),
   description: Yup.string().nullable(),
   // Optional annotations on variables
   annotations: Yup.array()
@@ -103,6 +120,7 @@ const varsSchema = Yup.object({
     )
     .nullable(),
   enabled: Yup.boolean(),
+  dataType: Yup.string().oneOf(BRUNO_VARIABLE_DATATYPES).nullable(),
 
   // todo
   // anoop(4 feb 2023) - nobody uses this, and it needs to be removed
@@ -618,7 +636,7 @@ const folderRootSchema = Yup.object({
 
 const itemSchema = Yup.object({
   uid: uidSchema,
-  type: Yup.string().oneOf(['http-request', 'graphql-request', 'folder', 'js', 'grpc-request', 'ws-request']).required('type is required'),
+  type: Yup.string().oneOf(['http-request', 'graphql-request', 'folder', 'js', 'app', 'grpc-request', 'ws-request']).required('type is required'),
   seq: Yup.number().min(1),
   name: Yup.string().min(1, 'name must be at least 1 character').required('name is required'),
   tags: Yup.array().of(Yup.string().min(1, 'tag must not be empty')),
@@ -666,6 +684,11 @@ const itemSchema = Yup.object({
     then: (schema) => schema.nullable(),
     otherwise: Yup.array().strip()
   }),
+  app: Yup.object({
+    code: Yup.string().nullable()
+  })
+    .noUnknown(true)
+    .nullable(),
   filename: Yup.string().nullable(),
   pathname: Yup.string().nullable()
 })

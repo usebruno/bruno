@@ -18,7 +18,8 @@ import {
   IconTrash,
   IconSettings,
   IconInfoCircle,
-  IconTerminal2
+  IconTerminal2,
+  IconApps
 } from '@tabler/icons';
 import { useSelector, useDispatch } from 'react-redux';
 import { addTab, focusTab, makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
@@ -29,6 +30,7 @@ import { uuid } from 'utils/common';
 import { copyRequest, setFocusedSidebarPath } from 'providers/ReduxStore/slices/app';
 import NewRequest from 'components/Sidebar/NewRequest';
 import NewFolder from 'components/Sidebar/NewFolder';
+import NewApp from 'components/Sidebar/NewApp';
 import RenameCollectionItem from './RenameCollectionItem';
 import CloneCollectionItem from './CloneCollectionItem';
 import DeleteCollectionItem from './DeleteCollectionItem';
@@ -100,6 +102,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
   const [generateCodeItemModalOpen, setGenerateCodeItemModalOpen] = useState(false);
   const [newRequestModalOpen, setNewRequestModalOpen] = useState(false);
   const [newFolderModalOpen, setNewFolderModalOpen] = useState(false);
+  const [newAppModalOpen, setNewAppModalOpen] = useState(false);
   const [runCollectionModalOpen, setRunCollectionModalOpen] = useState(false);
   const [itemInfoModalOpen, setItemInfoModalOpen] = useState(false);
   const [examplesExpanded, setExamplesExpanded] = useState(false);
@@ -131,6 +134,12 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
     setRenameItemModalOpen(true);
     return false;
   }, { enabled: isKeyboardFocused, deps: [isKeyboardFocused] });
+
+  useKeybinding('newRequest', () => {
+    if (!isFolder) return false;
+    setNewRequestModalOpen(true);
+    return false;
+  }, { enabled: isKeyboardFocused && isFolder, deps: [isKeyboardFocused, isFolder] });
 
   const [dropType, setDropType] = useState(null); // 'above', 'inside' or 'below'
 
@@ -265,7 +274,8 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
     // scroll to the active tab
     setTimeout(scrollToTheActiveTab, 50);
     const isRequest = isItemARequest(item);
-    if (isRequest) {
+    const isApp = item.type === 'app';
+    if (isRequest || isApp) {
       if (isTabForItemPresent) {
         dispatch(
           focusTab({
@@ -278,7 +288,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
         addTab({
           uid: item.uid,
           collectionUid: collectionUid,
-          requestPaneTab: getDefaultRequestPaneTab(item),
+          ...(isRequest ? { requestPaneTab: getDefaultRequestPaneTab(item) } : {}),
           type: item.type,
           pathname: item.pathname
         })
@@ -358,6 +368,12 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
           leftSection: IconFolderPlus,
           label: 'New Folder',
           onClick: () => setNewFolderModalOpen(true)
+        },
+        {
+          id: 'new-app',
+          leftSection: IconApps,
+          label: 'New App',
+          onClick: () => setNewAppModalOpen(true)
         },
         {
           id: 'run',
@@ -555,7 +571,10 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
   };
 
   const folderItems = sortByNameThenSequence(filter(item.items, (i) => isItemAFolder(i) && !i.isTransient));
-  const requestItems = sortItemsBySequence(filter(item.items, (i) => isItemARequest(i) && !i.isTransient));
+  // Standalone 'app' items live alongside requests in the folder listing.
+  const requestItems = sortItemsBySequence(
+    filter(item.items, (i) => (isItemARequest(i) || i.type === 'app') && !i.isTransient)
+  );
   const showEmptyFolderMessage = isFolder && !hasSearchText && !folderItems?.length && !requestItems?.length;
 
   const emptyFolderMenuItems = createEmptyStateMenuItems({ dispatch, collection, itemUid: item.uid });
@@ -638,6 +657,9 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
       )}
       {newFolderModalOpen && (
         <NewFolder item={item} collectionUid={collectionUid} onClose={() => setNewFolderModalOpen(false)} />
+      )}
+      {newAppModalOpen && (
+        <NewApp item={item} collectionUid={collectionUid} onClose={() => setNewAppModalOpen(false)} />
       )}
       {runCollectionModalOpen && (
         <RunCollectionItem collectionUid={collectionUid} item={item} onClose={() => setRunCollectionModalOpen(false)} />

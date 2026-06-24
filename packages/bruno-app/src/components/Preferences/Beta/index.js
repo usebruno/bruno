@@ -6,20 +6,38 @@ import StyledWrapper from './StyledWrapper';
 import * as Yup from 'yup';
 import debounce from 'lodash/debounce';
 import toast from 'react-hot-toast';
-import { IconFlask } from '@tabler/icons';
 import get from 'lodash/get';
-import { BETA_FEATURES as BETA_FEATURE_IDS } from 'utils/beta-features';
+// Commented out while there are no active beta features. Re-enable this import when
+// adding a beta feature its keys are then referenced as BETA_FEATURE_IDS.MY_FEATURE in the BETA_FEATURES array.
+// import { BETA_FEATURES as BETA_FEATURE_IDS } from 'utils/beta-features';
 
 /**
- * UI metadata for beta features rendered in Preferences.
- * IDs must match keys from utils/beta-features.js BETA_FEATURES.
+ * UI metadata for the Beta Features section in Preferences — one entry per toggle.
+ * The whole tab is data-driven from this array: the form fields, validation schema,
+ * initial values and the rendered checkboxes are all generated from it.
+ *
+ * Each entry has the shape { id, label, description }:
+ *   - id          (required) the feature key. MUST be a value from BETA_FEATURES in
+ *                 utils/beta-features.js (imported here as BETA_FEATURE_IDS). It is
+ *                 used as the preference key (preferences.beta[id]), the form field
+ *                 name and the checkbox id, so it must be stable and unique.
+ *   - label       (required) short name shown next to the checkbox.
+ *   - description (required) one-line explanation shown under the label.
+ *
+ * To add a beta feature:
+ *   1. Add its key to BETA_FEATURES in utils/beta-features.js (e.g. MY_FEATURE: 'my-feature').
+ *   2. Add an entry to the array below using BETA_FEATURE_IDS.MY_FEATURE.
+ *   3. Gate the feature in code with useBetaFeature(BETA_FEATURES.MY_FEATURE).
+ *
+ * When the array is empty, the Beta tab shows "No beta features are currently available",
+ * so a feature can be hidden by simply removing or commenting out its entry.
  */
 const BETA_FEATURES = [
-  {
-    id: BETA_FEATURE_IDS.OPENAPI_SYNC,
-    label: 'OpenAPI Sync',
-    description: 'Synchronize your Bruno collection with an OpenAPI specification. Detect drift, review changes, and sync with a single click.'
-  }
+  // {
+  //   id: BETA_FEATURE_IDS.OPENAPI_SYNC,
+  //   label: 'OpenAPI Sync',
+  //   description: 'Synchronize your Bruno collection with an OpenAPI specification. Detect drift, review changes, and sync with a single click.'
+  // }
 ];
 
 const Beta = ({ close }) => {

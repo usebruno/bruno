@@ -181,36 +181,25 @@ describe('runtime', () => {
   });
 
   describe('persistent environment variables validation', () => {
-    it('should throw error when trying to persist non-string values', async () => {
-      const script = `bru.setEnvVar('number', 42, {persist: true});`;
+    it('should persist non-string values without throwing', async () => {
+      const script = `
+        bru.setEnvVar('number', 42, {persist: true});
+        bru.setEnvVar('isActive', true, {persist: true});
+        bru.setEnvVar('config', {port: 3000}, {persist: true});
+        bru.setEnvVar('items', ['item1', 'item2'], {persist: true});
+      `;
       const runtime = new ScriptRuntime({ runtime: 'nodevm' });
 
-      await expect(runtime.runRequestScript(script, {}, {}, {}, '.', null, process.env))
-        .rejects.toThrow('Persistent environment variables must be strings. Received number for key "number".');
-    });
+      const result = await runtime.runRequestScript(script, {}, {}, {}, '.', null, process.env);
 
-    it('should throw error when trying to persist boolean values', async () => {
-      const script = `bru.setEnvVar('isActive', true, {persist: true});`;
-      const runtime = new ScriptRuntime({ runtime: 'nodevm' });
-
-      await expect(runtime.runRequestScript(script, {}, {}, {}, '.', null, process.env))
-        .rejects.toThrow('Persistent environment variables must be strings. Received boolean for key "isActive".');
-    });
-
-    it('should throw error when trying to persist object values', async () => {
-      const script = `bru.setEnvVar('config', {port: 3000}, {persist: true});`;
-      const runtime = new ScriptRuntime({ runtime: 'nodevm' });
-
-      await expect(runtime.runRequestScript(script, {}, {}, {}, '.', null, process.env))
-        .rejects.toThrow('Persistent environment variables must be strings. Received object for key "config".');
-    });
-
-    it('should throw error when trying to persist array values', async () => {
-      const script = `bru.setEnvVar('items', ['item1', 'item2'], {persist: true});`;
-      const runtime = new ScriptRuntime({ runtime: 'nodevm' });
-
-      await expect(runtime.runRequestScript(script, {}, {}, {}, '.', null, process.env))
-        .rejects.toThrow('Persistent environment variables must be strings. Received object for key "items".');
+      expect(result.envVariables.number).toBe(42);
+      expect(result.persistentEnvVariables.number).toBe(42);
+      expect(result.envVariables.isActive).toBe(true);
+      expect(result.persistentEnvVariables.isActive).toBe(true);
+      expect(result.envVariables.config).toEqual({ port: 3000 });
+      expect(result.persistentEnvVariables.config).toEqual({ port: 3000 });
+      expect(result.envVariables.items).toEqual(['item1', 'item2']);
+      expect(result.persistentEnvVariables.items).toEqual(['item1', 'item2']);
     });
 
     it('should allow string values when persist is true', async () => {

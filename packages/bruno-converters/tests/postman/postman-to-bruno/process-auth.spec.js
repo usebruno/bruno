@@ -278,6 +278,8 @@ describe('processAuth', () => {
       state: 'test-state',
       pkce: false,
       tokenPlacement: 'header',
+      tokenHeaderPrefix: '',
+      tokenQueryKey: 'access_token',
       credentialsPlacement: 'body'
     });
   });
@@ -312,6 +314,8 @@ describe('processAuth', () => {
       scope: 'test-scope',
       state: 'test-state',
       tokenPlacement: 'header',
+      tokenHeaderPrefix: '',
+      tokenQueryKey: 'access_token',
       credentialsPlacement: 'body'
     });
   });
@@ -342,6 +346,8 @@ describe('processAuth', () => {
       scope: 'test-scope',
       state: 'test-state',
       tokenPlacement: 'header',
+      tokenHeaderPrefix: '',
+      tokenQueryKey: 'access_token',
       credentialsPlacement: 'body'
     });
   });
@@ -362,6 +368,8 @@ describe('processAuth', () => {
       scope: '',
       state: '',
       tokenPlacement: 'url',
+      tokenHeaderPrefix: '',
+      tokenQueryKey: 'access_token',
       credentialsPlacement: 'basic_auth_header'
     });
   });
@@ -381,6 +389,8 @@ describe('processAuth', () => {
       scope: '',
       state: '',
       tokenPlacement: 'url',
+      tokenHeaderPrefix: '',
+      tokenQueryKey: 'access_token',
       credentialsPlacement: 'basic_auth_header'
     });
   });
@@ -416,6 +426,46 @@ describe('processAuth', () => {
       state: 'test-state',
       pkce: true,
       tokenPlacement: 'header',
+      tokenHeaderPrefix: '',
+      tokenQueryKey: 'access_token',
+      credentialsPlacement: 'body'
+    });
+  });
+
+  it('should handle oauth2 auth with implicit grant type', () => {
+    const auth = {
+      type: 'oauth2',
+      oauth2: {
+        grant_type: 'implicit',
+        authUrl: 'https://auth.example.com',
+        redirect_uri: 'https://callback.example.com',
+        accessTokenUrl: 'https://token.example.com',
+        refreshTokenUrl: 'https://refresh.example.com',
+        clientId: 'test-client-id',
+        clientSecret: 'test-client-secret',
+        scope: 'test-scope',
+        state: 'test-state',
+        addTokenTo: 'header',
+        tokenHeaderPrefix: 'Bearer',
+        tokenQueryKey: '',
+        client_authentication: 'body'
+      }
+    };
+    processAuth(auth, requestObject);
+    expect(requestObject.auth.mode).toBe('oauth2');
+    expect(requestObject.auth.oauth2).toEqual({
+      grantType: 'implicit',
+      authorizationUrl: 'https://auth.example.com',
+      callbackUrl: 'https://callback.example.com',
+      accessTokenUrl: 'https://token.example.com',
+      refreshTokenUrl: 'https://refresh.example.com',
+      clientId: 'test-client-id',
+      clientSecret: 'test-client-secret',
+      scope: 'test-scope',
+      state: 'test-state',
+      tokenPlacement: 'header',
+      tokenHeaderPrefix: '',
+      tokenQueryKey: 'access_token',
       credentialsPlacement: 'body'
     });
   });

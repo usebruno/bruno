@@ -1,0 +1,22 @@
+meta {
+  name: query-arrays
+  type: http
+  seq: 13
+}
+
+get {
+  url: http://localhost:8081/api/echo/anything/api?empty=[]&nums=[1, 2, 3]&strs=["string", "string"]&nested=[[1, 2, 3], ["string", "string"]]
+  body: none
+  auth: none
+}
+
+params:query {
+  empty: []
+  nums: [1, 2, 3]
+  strs: ["string", "string"]
+  nested: [[1, 2, 3], ["string", "string"]]
+}
+
+settings {
+  encodeUrl: false
+}

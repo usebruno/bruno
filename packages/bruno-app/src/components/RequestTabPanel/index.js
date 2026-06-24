@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import find from 'lodash/find';
+import get from 'lodash/get';
 import toast from 'react-hot-toast';
 import { useSelector, useDispatch } from 'react-redux';
 import GraphQLRequestPane from 'components/RequestPane/GraphQLRequestPane';
@@ -19,6 +20,9 @@ import VariablesEditor from 'components/VariablesEditor';
 import CollectionSettings from 'components/CollectionSettings';
 import { DocExplorer } from '@usebruno/graphql-docs';
 
+import FileEditor from 'components/FileEditor';
+import AppView from 'components/AppView';
+import CollectionApp from 'components/CollectionApp';
 import StyledWrapper from './StyledWrapper';
 import FolderSettings from 'components/FolderSettings';
 import { getGlobalEnvironmentVariables, getGlobalEnvironmentVariablesMasked } from 'utils/collections/index';
@@ -42,7 +46,9 @@ import EnvironmentSettings from 'components/Environments/EnvironmentSettings';
 import GlobalEnvironmentSettings from 'components/Environments/GlobalEnvironmentSettings';
 import OpenAPISyncTab from 'components/OpenAPISyncTab';
 import OpenAPISpecTab from 'components/OpenAPISpecTab';
+import ChangelogTab from 'components/ChangelogTab';
 import CollapsedPanelIndicator from './CollapsedPanelIndicator';
+import { clampRequestHeightForResponse } from './paneSize';
 import { IconLoader2 } from '@tabler/icons';
 
 const MIN_LEFT_PANE_WIDTH = 300;
@@ -51,6 +57,8 @@ const MIN_TOP_PANE_HEIGHT = 150;
 const MIN_BOTTOM_PANE_HEIGHT = 150;
 const COLLAPSE_EDGE_THRESHOLD = 80;
 const EXPAND_EDGE_THRESHOLD = 100;
+// Minimum response pane height to show placeholder content on click-expand
+const RESPONSE_EXPAND_MIN_HEIGHT = 300;
 
 const RequestTabPanel = () => {
   const dispatch = useDispatch();
@@ -262,6 +270,21 @@ const RequestTabPanel = () => {
     startDragging(e);
   }, [expandResponse, applyPointerResize, startDragging]);
 
+  const handleResponseIndicatorClickExpand = useCallback(() => {
+    expandResponse();
+    if (!isVerticalLayoutRef.current || !mainSectionRef.current) return;
+    const { height: containerHeight } = mainSectionRef.current.getBoundingClientRect();
+    const clampedHeight = clampRequestHeightForResponse(
+      topPaneHeight,
+      containerHeight,
+      RESPONSE_EXPAND_MIN_HEIGHT,
+      MIN_TOP_PANE_HEIGHT
+    );
+    if (clampedHeight != null) {
+      setTopPaneHeight(clampedHeight);
+    }
+  }, [expandResponse, topPaneHeight, setTopPaneHeight]);
+
   useEffect(() => {
     document.addEventListener('mouseup', handleMouseUp);
     document.addEventListener('mousemove', handleMouseMove);
@@ -314,6 +337,10 @@ const RequestTabPanel = () => {
 
   if (focusedTab.type === 'preferences') {
     return <Preferences />;
+  }
+
+  if (focusedTab.type === 'changelog') {
+    return <ChangelogTab />;
   }
 
   if (focusedTab.type === 'workspaceOverview') {
@@ -458,6 +485,41 @@ const RequestTabPanel = () => {
         }));
     }
   };
+
+  if (collection.fileMode) {
+    return (
+      <ScopedPersistenceProvider scope={focusedTab.uid}>
+        <StyledWrapper className="flex flex-col flex-grow relative p-4 file-mode overflow-hidden">
+          <FileEditor item={item} collection={collection} />
+        </StyledWrapper>
+      </ScopedPersistenceProvider>
+    );
+  }
+
+  // Standalone app item (collection- or folder-level). Renders as its own tab
+  // with a Code/Preview toggle and its own ctx API surface.
+  if (item.type === 'app') {
+    return (
+      <ScopedPersistenceProvider scope={focusedTab.uid}>
+        <StyledWrapper className="flex flex-col flex-grow relative overflow-hidden">
+          <CollectionApp item={item} collection={collection} />
+        </StyledWrapper>
+      </ScopedPersistenceProvider>
+    );
+  }
+
+  const appEnabled = item.draft ? get(item, 'draft.app.enabled', false) : get(item, 'app.enabled', false);
+  if (appEnabled) {
+    const appCode = item.draft ? get(item, 'draft.app.code', '') : get(item, 'app.code', '');
+    return (
+      <ScopedPersistenceProvider scope={focusedTab.uid}>
+        <StyledWrapper className="flex flex-col flex-grow relative overflow-hidden">
+          <AppView item={item} collection={collection} code={appCode} />
+        </StyledWrapper>
+      </ScopedPersistenceProvider>
+    );
+  }
+
   const renderQueryUrl = () => {
     if (isGrpcRequest) {
       return <GrpcQueryUrl item={item} collection={collection} handleRun={handleRun} />;
@@ -563,7 +625,7 @@ const RequestTabPanel = () => {
             <CollapsedPanelIndicator
               panelType="response"
               isVertical={isVerticalLayout}
-              onExpand={expandResponse}
+              onExpand={handleResponseIndicatorClickExpand}
               onDragStart={handleResponseIndicatorDragStart}
               dragThresholdPx={isVerticalLayout ? MIN_BOTTOM_PANE_HEIGHT / 2 : MIN_RIGHT_PANE_WIDTH / 2}
             />

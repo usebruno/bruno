@@ -19,11 +19,12 @@ test.describe.serial('bru.setEnvVar(name, value)', () => {
     await sendRequest(page, 200);
 
     // confirm that the environment variable is set
+    await page.getByTestId('environment-selector-trigger').hover();
     await page.getByTestId('environment-selector-trigger').click();
     await page.locator('#configure-env').waitFor({ state: 'visible' });
     await page.locator('#configure-env').dispatchEvent('click');
 
-    const envTab = page.locator('.request-tab').filter({ hasText: 'Environments' });
+    const envTab = page.locator('.request-tab').filter({ has: page.locator('.tab-label', { hasText: 'Environments' }) });
     await expect(envTab).toBeVisible();
 
     await expect(page.getByRole('row', { name: 'token' }).getByRole('cell').nth(1)).toBeVisible();
@@ -40,12 +41,15 @@ test.describe.serial('bru.setEnvVar(name, value)', () => {
     await newPage.getByText('api-setEnvVar-without-persist', { exact: true }).click();
 
     // open environment dropdown
+    await newPage.getByTestId('environment-selector-trigger').hover();
     await newPage.getByTestId('environment-selector-trigger').click();
     await newPage.locator('#configure-env').waitFor({ state: 'visible' });
     await newPage.locator('#configure-env').dispatchEvent('click');
 
-    const newEnvTab = newPage.locator('.request-tab').filter({ hasText: 'Environments' });
+    const newEnvTab = newPage.locator('.request-tab').filter({ has: newPage.locator('.tab-label', { hasText: 'Environments' }) });
     await expect(newEnvTab).toBeVisible();
+
+    await newPage.locator('.environment-item', { hasText: 'Stage' }).click();
 
     await expect(newPage.locator('.table-container tbody')).not.toContainText('token');
 

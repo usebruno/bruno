@@ -1,5 +1,5 @@
 import { collectionSchema, environmentSchema, itemSchema } from '@usebruno/schema';
-import { parseQueryParams, extractPromptVariables } from '@usebruno/common/utils';
+import { parseQueryParams, extractPromptVariables, getDataTypeFromValue } from '@usebruno/common/utils';
 import { REQUEST_TYPES, DEFAULT_COLLECTION_FORMAT } from 'utils/common/constants';
 import cloneDeep from 'lodash/cloneDeep';
 import filter from 'lodash/filter';
@@ -7,10 +7,11 @@ import find from 'lodash/find';
 import get from 'lodash/get';
 import set from 'lodash/set';
 import trim from 'lodash/trim';
-import path, { normalizePath } from 'utils/common/path';
+import path, { normalizePath, isPathExternalToBasePath } from 'utils/common/path';
 import { insertTaskIntoQueue, toggleSidebarCollapse } from 'providers/ReduxStore/slices/app';
 import toast from 'react-hot-toast';
 import IpcErrorModal from 'components/Errors/IpcErrorModal/index';
+import SaveFileErrorModal from 'components/Errors/SaveFileErrorModal/index';
 import {
   findCollectionByUid,
   findEnvironmentInCollection,
@@ -61,7 +62,8 @@ import {
   updateCollectionVar,
   addTransientDirectory,
   addSaveTransientRequestModal,
-  updatePathParam
+  updatePathParam,
+  toggleCollection
 } from './index';
 
 import { each } from 'lodash';
@@ -192,6 +194,59 @@ export const saveRequest = (itemUid, collectionUid, silent = false) => (dispatch
         reject(err);
       });
   });
+};
+
+export const saveFile = (content, itemUid, collectionUid, silent = false) => async (dispatch, getState) => {
+  const state = getState();
+  const collection = findCollectionByUid(state.collections.collections, collectionUid);
+  const tempDirectory = state.collections.tempDirectories?.[collectionUid];
+
+  if (!collection) {
+    throw new Error('Collection not found');
+  }
+
+  const collectionCopy = cloneDeep(collection);
+  const item = findItemInCollection(collectionCopy, itemUid);
+
+  // Item is not used to save the bru file
+  // This is to validate if the bru content is associated with a valid item
+  if (!item) {
+    throw new Error('Not able to locate item');
+  }
+
+  const isTransient = tempDirectory && item.pathname.startsWith(tempDirectory);
+  if (isTransient) {
+    if (!silent) {
+      dispatch(addSaveTransientRequestModal({ item, collection }));
+    }
+    throw new Error('Cannot save transient request');
+  }
+
+  const { ipcRenderer } = window;
+  try {
+    if (['http-request', 'graphql-request'].includes(item?.type)) {
+      let json = await ipcRenderer.invoke('renderer:convert-to-json', item, content, collection.format);
+      delete json.isTransient;
+      await itemSchema.validate(json);
+    }
+  } catch (err) {
+    if (!silent) {
+      toast.custom(<SaveFileErrorModal error={err.message} />);
+    }
+    throw err;
+  }
+
+  try {
+    await ipcRenderer.invoke('renderer:save-file', item.pathname, content);
+    if (!silent) {
+      toast.success('File saved successfully!');
+    }
+  } catch (err) {
+    if (!silent) {
+      toast.error('Failed to save file!');
+    }
+    throw err;
+  }
 };
 
 export const saveMultipleRequests = (items) => (dispatch, getState) => {
@@ -583,7 +638,9 @@ export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
           toast.error(err.message);
         });
     } else if (isWsRequest) {
-      sendWsRequest(itemCopy, collectionCopy, environment, collectionCopy.runtimeVariables)
+      const wsMessages = itemCopy.draft?.request?.body?.ws || itemCopy.request?.body?.ws || [];
+      const wsSelectedMessageIndex = Math.max(0, wsMessages.findIndex((msg) => msg.selected));
+      sendWsRequest(itemCopy, collectionCopy, environment, collectionCopy.runtimeVariables, wsSelectedMessageIndex)
         .then(resolve)
         .catch((err) => {
           toast.error(err.message);
@@ -1612,6 +1669,7 @@ export const newWsRequest = (params) => (dispatch, getState) => {
           mode: 'ws',
           ws: [
             {
+              uid: uuid(),
               name: 'message 1',
               type: 'json',
               content: '{}'
@@ -1709,6 +1767,101 @@ export const newWsRequest = (params) => (dispatch, getState) => {
         })
         .catch(reject);
     }
+  });
+};
+
+const DEFAULT_APP_STARTER = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>App</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; padding: 1rem; }
+    button { padding: 6px 10px; cursor: pointer; }
+    pre { background: #f6f7f9; padding: 8px; border-radius: 4px; overflow: auto; }
+    body.dark { color: #e0e0e0; }
+    body.dark pre { background: #1f2123; }
+  </style>
+</head>
+<body>
+  <h2>Hello from a Bruno app</h2>
+  <p>This app can list request in the collection.</p>
+  <button id="refresh">List requests</button>
+  <pre id="out">click "List requests"</pre>
+  <script>
+    const out = document.getElementById('out');
+    document.getElementById('refresh').addEventListener('click', async () => {
+      const requests = await ctx.listRequests();
+      out.textContent = requests.map(r => \`\${r.method || r.type}  \${r.name}\`).join('\\n') || '(no requests)';
+    });
+  </script>
+</body>
+</html>
+`;
+
+export const newApp = (params) => (dispatch, getState) => {
+  const { appName, filename, collectionUid, itemUid } = params;
+
+  return new Promise((resolve, reject) => {
+    const state = getState();
+    const collection = findCollectionByUid(state.collections.collections, collectionUid);
+    if (!collection) {
+      return reject(new Error('Collection not found'));
+    }
+
+    const item = {
+      uid: uuid(),
+      type: 'app',
+      name: appName,
+      filename,
+      app: { code: DEFAULT_APP_STARTER },
+      settings: {}
+    };
+
+    const resolvedFilename = resolveRequestFilename(filename, collection.format);
+
+    const selectedItem = itemUid ? findItemInCollection(collection, itemUid) : null;
+    let parent = collection;
+    if (selectedItem) {
+      parent = isItemAFolder(selectedItem)
+        ? selectedItem
+        : (findParentItemInCollection(collection, selectedItem.uid) || collection);
+    }
+    const parentPath = parent.pathname;
+    const siblings = parent.items || [];
+
+    const dupe = find(
+      siblings,
+      (i) => i.type !== 'folder' && trim(i.filename) === trim(resolvedFilename)
+    );
+    if (dupe) {
+      return reject(new Error('An item with this name already exists in this folder'));
+    }
+
+    const orderableSiblings = filter(
+      siblings,
+      (i) => isItemAFolder(i) || isItemARequest(i) || i.type === 'app'
+    );
+    item.seq = orderableSiblings.length + 1;
+
+    const fullName = path.join(parentPath, resolvedFilename);
+    const { ipcRenderer } = window;
+
+    ipcRenderer
+      .invoke('renderer:new-request', fullName, item)
+      .then(() => {
+        dispatch(
+          insertTaskIntoQueue({
+            uid: uuid(),
+            type: 'OPEN_REQUEST',
+            collectionUid,
+            itemPathname: fullName
+          })
+        );
+        resolve();
+      })
+      .catch(reject);
   });
 };
 
@@ -1950,13 +2103,6 @@ export const saveEnvironment = (variables, environmentUid, collectionUid) => (di
       return reject(new Error('Environment not found'));
     }
 
-    /*
-     Modal Save writes what the user sees:
-     - Non-ephemeral vars are saved as-is (without metadata)
-     - Ephemeral vars:
-       - if persistedValue exists, save that (explicit persisted case)
-       - otherwise save the current UI value (treat as user-authored)
-     */
     const persisted = buildPersistedEnvVariables(variables, { mode: 'save' });
     environment.variables = persisted;
 
@@ -1967,8 +2113,6 @@ export const saveEnvironment = (variables, environmentUid, collectionUid) => (di
       .validate(environment)
       .then(() => ipcRenderer.invoke('renderer:save-environment', collection.pathname, envForValidation))
       .then(() => {
-        // Immediately sync Redux to the saved (persisted) set so old ephemerals
-        // aren’t around when the watcher event arrives.
         dispatch(_saveEnvironment({ variables: persisted, environmentUid, collectionUid }));
       })
       .then(resolve)
@@ -2292,21 +2436,24 @@ export const mergeAndPersistEnvironment
 
         let existingVars = environment.variables || [];
 
-        let normalizedNewVars = Object.entries(persistentEnvVariables).map(([name, value]) => ({
-          uid: uuid(),
-          name,
-          value,
-          type: 'text',
-          enabled: true,
-          secret: false
-        }));
+        let normalizedNewVars = Object.entries(persistentEnvVariables).map(([name, value]) => {
+          const inferred = getDataTypeFromValue(value);
+          return {
+            uid: uuid(),
+            name,
+            value,
+            type: 'text',
+            enabled: true,
+            secret: false,
+            ...(inferred !== 'string' ? { dataType: inferred } : {})
+          };
+        });
 
         const merged = existingVars.map((v) => {
           const found = normalizedNewVars.find((nv) => nv.name === v.name);
-          if (found) {
-            return { ...v, value: found.value };
-          }
-          return v;
+          if (!found) return v;
+          const { dataType: _oldDataType, ...rest } = v;
+          return { ...rest, value: found.value, ...(found.dataType ? { dataType: found.dataType } : {}) };
         });
         normalizedNewVars.forEach((nv) => {
           if (!merged.some((v) => v.name === nv.name)) {
@@ -2419,6 +2566,60 @@ export const removeCollection = (collectionUid) => (dispatch, getState) => {
         } else {
           // Collection still exists in other workspaces
         }
+      })
+      .then(resolve)
+      .catch(reject);
+  });
+};
+
+// Move an external collection into the workspace's collections directory
+export const moveCollectionToWorkspace = (collectionUid) => (dispatch, getState) => {
+  return new Promise((resolve, reject) => {
+    const state = getState();
+    const collection = findCollectionByUid(state.collections.collections, collectionUid);
+    if (!collection) {
+      return reject(new Error('Collection not found'));
+    }
+
+    const { workspaces } = state;
+    const activeWorkspace = workspaces.workspaces.find((w) => w.uid === workspaces.activeWorkspaceUid);
+
+    if (!activeWorkspace || !activeWorkspace.pathname) {
+      return reject(new Error('No active workspace found'));
+    }
+
+    if (!isPathExternalToBasePath(activeWorkspace.pathname, collection.pathname)) {
+      return reject(new Error('Collection is already inside the workspace'));
+    }
+
+    const { ipcRenderer } = window;
+
+    ipcRenderer
+      .invoke('renderer:move-collection-to-workspace', {
+        workspacePath: activeWorkspace.pathname,
+        collectionPath: collection.pathname,
+        collectionUid,
+        collectionName: collection.name
+      })
+      .then(async (result) => {
+        dispatch(closeAllCollectionTabs({ collectionUid }));
+        dispatch(removeCollectionFromWorkspace({
+          workspaceUid: activeWorkspace.uid,
+          collectionLocation: collection.pathname
+        }));
+        await waitForNextTick();
+        dispatch(_removeCollection({ collectionUid }));
+
+        if (result?.newPath) {
+          const openResult = await dispatch(openMultipleCollections([result.newPath], { workspacePath: activeWorkspace.pathname }));
+          const reopened = (openResult?.opened || []).some(
+            (openedPath) => normalizePath(openedPath) === normalizePath(result.newPath)
+          );
+          if (!reopened) {
+            throw new Error('Collection was moved into the workspace but could not be re-opened. Reload the workspace to access it.');
+          }
+        }
+        dispatch(ensureActiveTabInCurrentWorkspace());
       })
       .then(resolve)
       .catch(reject);
@@ -3019,8 +3220,10 @@ export const mountCollection
   = ({ collectionUid, collectionPathname, brunoConfig, skipTabRestore = false, workspacePathname = null }) =>
     (dispatch, getState) => {
       dispatch(updateCollectionMountStatus({ collectionUid, mountStatus: 'mounting' }));
+      const fileCacheEnabled = getState().app?.preferences?.cache?.file?.enabled;
+      const channel = fileCacheEnabled ? 'renderer:mount-collection-v2' : 'renderer:mount-collection';
       return new Promise(async (resolve, reject) => {
-        callIpc('renderer:mount-collection', { collectionUid, collectionPathname, brunoConfig })
+        callIpc(channel, { collectionUid, collectionPathname, brunoConfig })
           .then(async (transientDirPath) => {
             dispatch(updateCollectionMountStatus({ collectionUid, mountStatus: 'mounted' }));
             dispatch(addTransientDirectory({ collectionUid, pathname: transientDirPath }));
@@ -3272,4 +3475,74 @@ export const closeTabs = ({ tabUids }) => async (dispatch, getState) => {
 export const reopenClosedTab = ({ collectionUid } = {}) => async (dispatch) => {
   dispatch(reopenLastClosedTab({ collectionUid }));
   await dispatch(ensureActiveTabInCurrentWorkspace());
+};
+
+export const migrateCollectionToYml = (collectionUid) => (dispatch, getState) => {
+  const { ipcRenderer } = window;
+
+  return new Promise((resolve, reject) => {
+    const state = getState();
+    const collection = findCollectionByUid(state.collections.collections, collectionUid);
+    if (!collection) {
+      return reject(new Error('Collection not found'));
+    }
+
+    const collectionPathname = collection.pathname;
+    const uid = collection.uid;
+    ipcRenderer
+      .invoke('renderer:migrate-collection-to-yml', collectionPathname, collectionUid)
+      .then(async (updatedBrunoConfig) => {
+        // Remove old collection state so we can recreate it with the new yml config.
+        // openCollectionEvent requires no existing collection with the same pathname.
+        dispatch(_removeCollection({ collectionUid }));
+        dispatch(closeAllCollectionTabs({ collectionUid }));
+
+        try {
+          // Reopen the collection with updated config (now yml format)
+          await dispatch(openCollectionEvent(uid, collectionPathname, updatedBrunoConfig));
+
+          // Mount the collection (starts the watcher and loads items)
+          await dispatch(mountCollection({
+            collectionUid: uid,
+            collectionPathname: collectionPathname,
+            brunoConfig: updatedBrunoConfig
+          }));
+        } catch (reopenError) {
+          // Files on disk are already yml; best-effort recovery so the
+          // collection doesn't disappear from the UI. openCollectionEvent is
+          // a no-op if it already succeeded, and mountCollection is what we
+          // retry when it was the failing step.
+          try {
+            await dispatch(openCollectionEvent(uid, collectionPathname, updatedBrunoConfig));
+            await dispatch(mountCollection({
+              collectionUid: uid,
+              collectionPathname: collectionPathname,
+              brunoConfig: updatedBrunoConfig
+            }));
+          } catch (_) {}
+          throw reopenError;
+        }
+
+        // Expand the collection in the sidebar (only if collapsed)
+        const reopenedCollection = findCollectionByUid(getState().collections.collections, uid);
+        if (reopenedCollection?.collapsed) {
+          dispatch(toggleCollection(uid));
+        }
+
+        // Reopen collection settings on the overview tab
+        dispatch(addTab({
+          uid: uid,
+          collectionUid: uid,
+          type: 'collection-settings'
+        }));
+        dispatch(updateSettingsSelectedTab({ collectionUid: uid, tab: 'overview' }));
+
+        toast.success('Collection migrated to YML format successfully');
+        resolve();
+      })
+      .catch((err) => {
+        toast.error(`Migration failed: ${err.message || 'Unknown error'}`);
+        reject(err);
+      });
+  });
 };

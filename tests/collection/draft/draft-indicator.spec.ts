@@ -1,7 +1,7 @@
 import { test, expect } from '../../../playwright';
 import { closeAllCollections, createCollection } from '../../utils/page';
 
-test.describe('Draft indicator in collection and folder settings', () => {
+test.describe.serial('Draft indicator in collection and folder settings', () => {
   test.afterAll(async ({ page }) => {
     // cleanup: close all collections
     await closeAllCollections(page);

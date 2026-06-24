@@ -218,5 +218,11 @@ const normalizePath = (p) => {
   return p.replace(/\\/g, '/').replace(/\/+$/, '');
 };
 
+// Returns true when `targetPath` is located outside `basePath`.
+const isPathExternalToBasePath = (basePath, targetPath) => {
+  if (!basePath || !targetPath) return false;
+  return brunoPath.isAbsolute(getRelativePathWithinBasePath(basePath, targetPath, true));
+};
+
 export default brunoPath;
-export { getRelativePath, getBasename, getAbsoluteFilePath, getRelativePathWithinBasePath, normalizePath };
+export { getRelativePath, getBasename, getAbsoluteFilePath, getRelativePathWithinBasePath, normalizePath, isPathExternalToBasePath };

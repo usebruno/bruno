@@ -1,7 +1,7 @@
 import { test, expect } from '../../../playwright';
 import { closeAllCollections, createCollection, createRequest } from '../../utils/page';
 
-test.describe('Copy and Paste Requests', () => {
+test.describe.serial('Copy and Paste Requests', () => {
   test.afterAll(async ({ page }) => {
     await closeAllCollections(page);
   });

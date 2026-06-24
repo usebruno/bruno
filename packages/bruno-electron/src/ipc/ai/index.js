@@ -4,13 +4,13 @@ const { getPreferences } = require('../../store/preferences');
 const { aiKeyStore } = require('../../store/ai-keys');
 const {
   PROVIDERS,
-  MODEL_DEFINITIONS,
   listProviders,
   listModels,
   getModel,
   getAvailableModels,
   clearSdkCache
 } = require('./providers');
+const { SCRIPT_PROMPTS, SCRIPT_TYPES, buildScriptUserPrompt, stripCodeFences } = require('./script-prompts');
 
 const activeStreams = new Map();
 
@@ -47,6 +47,16 @@ const resolveModel = (modelId) => {
     aiPreferences: getAiPrefs(),
     getApiKey: (providerId) => aiKeyStore.getKey(providerId)
   });
+};
+
+const pickDefaultModelId = () => {
+  const aiPreferences = getAiPrefs();
+  const hasApiKey = (providerId) => aiKeyStore.hasKey(providerId);
+  const available = getAvailableModels({ aiPreferences, hasApiKey });
+  if (available.length === 0) return null;
+  const preferred = aiPreferences.defaultModel;
+  if (preferred && available.some((m) => m.id === preferred)) return preferred;
+  return available[0].id;
 };
 
 const registerAiIpc = (mainWindow) => {
@@ -96,18 +106,20 @@ const registerAiIpc = (mainWindow) => {
       return { ok: false, error: `${PROVIDERS[providerId].label} is disabled` };
     }
 
-    const probeModel = Object.entries(MODEL_DEFINITIONS)
-      .find(([, def]) => def.provider === providerId);
-    if (!probeModel) {
-      return { ok: false, error: `No models registered for ${providerId}` };
-    }
-
     try {
-      const model = resolveModel(probeModel[0]);
-      await generateText({ model, prompt: 'ping', maxOutputTokens: 1 });
-      return { ok: true };
+      const res = await PROVIDERS[providerId].validateApiKey({ apiKey });
+      if (res.ok) {
+        return { ok: true };
+      }
+      if (res.status === 401 || res.status === 403) {
+        return { ok: false, error: 'Invalid API key' };
+      }
+      if (res.status === 429) {
+        return { ok: false, error: 'Rate limited — try again in a moment' };
+      }
+      return { ok: false, error: `Could not verify key (HTTP ${res.status})` };
     } catch (err) {
-      return { ok: false, error: err.message || 'Connection failed' };
+      return { ok: false, error: 'Could not reach provider. Check your network connection.' };
     }
   });
 
@@ -130,6 +142,42 @@ const registerAiIpc = (mainWindow) => {
     } catch (err) {
       console.error('AI generate-text error:', err);
       return { error: err.message || 'Failed to generate text' };
+    }
+  });
+
+  ipcMain.handle('renderer:ai-generate-script', async (_event, params) => {
+    const { scriptType, prompt, currentScript, requestContext, docsContext, model: requestedModel } = params || {};
+
+    if (!SCRIPT_TYPES.includes(scriptType)) {
+      return { error: `Unknown scriptType: ${scriptType}` };
+    }
+    if (!prompt || !prompt.trim()) {
+      return { error: 'Prompt is required' };
+    }
+
+    const modelId = requestedModel || pickDefaultModelId();
+    if (!modelId) {
+      return { error: 'No AI model available. Configure a provider in Preferences > AI.' };
+    }
+
+    let model;
+    try {
+      model = resolveModel(modelId);
+    } catch (err) {
+      return { error: err.message };
+    }
+
+    try {
+      const { text } = await generateText({
+        model,
+        system: SCRIPT_PROMPTS[scriptType],
+        prompt: buildScriptUserPrompt({ userPrompt: prompt, currentScript, requestContext, docsContext, scriptType }),
+        maxOutputTokens: 2048
+      });
+      return { content: stripCodeFences(text), modelId };
+    } catch (err) {
+      console.error('AI generate-script error:', err);
+      return { error: err.message || 'Failed to generate script' };
     }
   });
 
