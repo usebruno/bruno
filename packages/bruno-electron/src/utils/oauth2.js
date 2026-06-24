@@ -308,6 +308,10 @@ const getOAuth2AuthorizationCode = (request, codeChallenge, collectionUid) => {
     const { callbackUrl, clientId, authorizationUrl, scope, state, pkce, accessTokenUrl, additionalParameters } = oauth2;
     const useSystemBrowser = preferencesUtil.shouldUseSystemBrowser();
     const effectiveCallbackUrl = callbackUrl && callbackUrl.length ? callbackUrl : BRUNO_OAUTH2_CALLBACK_URL;
+    // Always append a cryptographically random nonce to the user-configured state
+    // (or generate a fully random one when none is set). The state is validated when
+    // the callback is received to prevent authorization code injection / CSRF.
+    const effectiveState = generateState({ userState: state });
 
     const authorizationUrlWithQueryParams = new URL(authorizationUrl);
     authorizationUrlWithQueryParams.searchParams.append('response_type', 'code');
@@ -324,8 +328,8 @@ const getOAuth2AuthorizationCode = (request, codeChallenge, collectionUid) => {
       authorizationUrlWithQueryParams.searchParams.append('code_challenge', codeChallenge);
       authorizationUrlWithQueryParams.searchParams.append('code_challenge_method', 'S256');
     }
-    if (state) {
-      authorizationUrlWithQueryParams.searchParams.append('state', state);
+    if (effectiveState) {
+      authorizationUrlWithQueryParams.searchParams.append('state', effectiveState);
     }
     if (additionalParameters?.authorization?.length) {
       additionalParameters.authorization.forEach((param) => {
@@ -344,6 +348,7 @@ const getOAuth2AuthorizationCode = (request, codeChallenge, collectionUid) => {
         authorizeUrl,
         callbackUrl: effectiveCallbackUrl,
         session: oauth2Store.getSessionIdOfCollection({ collectionUid, url: accessTokenUrl }),
+        expectedState: effectiveState,
         additionalHeaders: getAdditionalHeaders(additionalParameters?.authorization)
       });
       resolve({ authorizationCode, debugInfo });
@@ -707,6 +712,16 @@ const generateCodeVerifier = () => {
   return crypto.randomBytes(22).toString('hex');
 };
 
+// Generate a cryptographically random state value used to protect OAuth2
+// authorization flows against CSRF / authorization code injection.
+const generateState = ({ userState }) => {
+  let cryptographicallyRandomString = crypto.randomBytes(16).toString('hex');
+  if (userState && userState.length) {
+    return userState + cryptographicallyRandomString;
+  }
+  return cryptographicallyRandomString;
+};
+
 const generateCodeChallenge = (codeVerifier) => {
   const hash = crypto.createHash('sha256');
   hash.update(codeVerifier);
@@ -760,6 +775,9 @@ const getOAuth2TokenUsingImplicitGrant = async ({ request, collectionUid, forceF
   } = oauth2;
   const useSystemBrowser = preferencesUtil.shouldUseSystemBrowser();
   const effectiveCallbackUrl = callbackUrl && callbackUrl.length ? callbackUrl : BRUNO_OAUTH2_CALLBACK_URL;
+  // Use the user-configured state if present, otherwise generate a cryptographically
+  // random one. The state is validated when the callback is received to prevent CSRF.
+  const effectiveState = generateState({ userState: state });
 
   // Validate required fields
   if (!authorizationUrl) {
@@ -844,8 +862,8 @@ const getOAuth2TokenUsingImplicitGrant = async ({ request, collectionUid, forceF
   if (scope) {
     authorizationUrlWithQueryParams.searchParams.append('scope', scope);
   }
-  if (state) {
-    authorizationUrlWithQueryParams.searchParams.append('state', state);
+  if (effectiveState) {
+    authorizationUrlWithQueryParams.searchParams.append('state', effectiveState);
   }
   if (additionalParameters?.authorization?.length) {
     additionalParameters.authorization.forEach((param) => {
@@ -866,6 +884,7 @@ const getOAuth2TokenUsingImplicitGrant = async ({ request, collectionUid, forceF
       callbackUrl: effectiveCallbackUrl,
       session: oauth2Store.getSessionIdOfCollection({ collectionUid, url: authorizationUrl }),
       grantType: 'implicit',
+      expectedState: effectiveState,
       additionalHeaders: getAdditionalHeaders(additionalParameters?.authorization)
     });
 
