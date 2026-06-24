@@ -215,6 +215,44 @@ const StyledWrapper = styled.div`
       border-radius: ${(props) => props.theme.border.radius.sm}
     }
   }
+
+  .mode-toggle {
+    display: flex;
+    align-items: center;
+    height: 24px;
+    border: 1px solid ${(props) => props.theme.input.border};
+    border-radius: ${(props) => props.theme.border.radius.base};
+    overflow: hidden;
+
+    .mode-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 28px;
+      height: 100%;
+      padding: 0;
+      border: none;
+      border-right: 1px solid ${(props) => props.theme.input.border};
+      background: transparent;
+      color: ${(props) => props.theme.colors.text.muted};
+      cursor: pointer;
+      transition: background 0.15s ease, color 0.15s ease;
+
+      &:last-child {
+        border-right: none;
+      }
+
+      &:hover:not(.active) {
+        background: ${(props) => props.theme.sidebar.collection.item.hoverBg};
+        color: ${(props) => props.theme.text};
+      }
+
+      &.active {
+        background: ${(props) => props.theme.sidebar.collection.item.hoverBg};
+        color: ${(props) => props.theme.primary.text};
+      }
+    }
+  }
 `;
 
 export default StyledWrapper;

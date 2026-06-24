@@ -45,6 +45,7 @@ const Tests = ({ item, collection }) => {
       <CodeEditor
         ref={testsEditorRef}
         collection={collection}
+        item={item}
         docKey="tests"
         value={tests || ''}
         theme={displayedTheme}
@@ -55,6 +56,7 @@ const Tests = ({ item, collection }) => {
         onRun={onRun}
         onSave={onSave}
         showHintsFor={['req', 'res', 'bru']}
+        scriptType="tests"
         initialScroll={testsScroll}
         onScroll={setTestsScroll}
       />
