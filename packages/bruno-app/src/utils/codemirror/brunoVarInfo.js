@@ -153,8 +153,13 @@ const getCopyButton = (getVariableValue, onCopyCallback) => {
     // Resolve the latest value at click time so edits/saves are reflected.
     const valueToCopy = typeof getVariableValue === 'function' ? getVariableValue() : getVariableValue;
 
+    const valueStr
+      = typeof valueToCopy === 'object' && valueToCopy !== null
+        ? JSON.stringify(valueToCopy, null, 2)
+        : String(valueToCopy ?? '');
+
     navigator.clipboard
-      .writeText(valueToCopy ?? '')
+      .writeText(valueStr)
       .then(() => {
         isCopied = true;
         copyButton.innerHTML = CHECKMARK_ICON_SVG_TEXT;
