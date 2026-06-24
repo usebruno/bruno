@@ -32,8 +32,8 @@ const CloneMockServerModal = ({
   const activeWorkspaceUid = useSelector((state) => state.workspaces.activeWorkspaceUid);
   const mockMode = get(preferences, 'mockServer.mode', 'isolated');
   const isSharedMode = mockMode === 'shared';
-  const configuredInstances = get(preferences, 'mockServer.instances', []);
-  const existingInstances = getMockServerInstances(preferences, activeWorkspaceUid);
+  const configuredInstances = useSelector((state) => getMockServerInstances(state));
+  const existingInstances = useSelector((state) => getMockServerInstances(state, activeWorkspaceUid));
   const suggestedPort = suggestNextMockServerPort(configuredInstances);
 
   const formik = useFormik({

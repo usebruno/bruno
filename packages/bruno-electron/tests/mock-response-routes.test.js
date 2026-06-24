@@ -22,7 +22,11 @@ describe('mock-response-routes', () => {
 
   it('extracts route paths from mock response urls', () => {
     expect(extractRoutePath('{{baseUrl}}/products')).toBe('/products');
+    expect(extractRoutePath('{{baseUrl}}/breeds')).toBe('/breeds');
     expect(extractRoutePath('/users/:userId')).toBe('/users/:userId');
+    expect(extractRoutePath('google.com/test')).toBe('/test');
+    expect(extractRoutePath('https://api.example.com/v1/users')).toBe('/v1/users');
+    expect(extractRoutePath('127.0.0.1:8080/api')).toBe('/api');
   });
 
   it('builds route table rows from stored mock responses', () => {

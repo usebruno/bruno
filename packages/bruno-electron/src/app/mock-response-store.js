@@ -98,6 +98,45 @@ const createEmptyStore = () => ({
   mockServers: {}
 });
 
+const MOCK_SERVER_META_FIELDS = [
+  'name',
+  'port',
+  'sourceType',
+  'collectionUid',
+  'specUid',
+  'specPath',
+  'specName',
+  'globalDelay'
+];
+
+const DEFAULT_MOCK_SERVER_PORT = 4000;
+const DEFAULT_MOCK_SERVER_NAME = 'Mock Server';
+
+const pickMockServerMeta = (instance = {}) => {
+  const meta = {};
+
+  for (const key of MOCK_SERVER_META_FIELDS) {
+    if (instance[key] !== undefined && instance[key] !== null) {
+      meta[key] = instance[key];
+    }
+  }
+
+  return meta;
+};
+
+const mockServerBlockToInstance = (uid, block = {}, workspaceUid) => ({
+  uid,
+  name: block.name || DEFAULT_MOCK_SERVER_NAME,
+  port: Number(block.port) || DEFAULT_MOCK_SERVER_PORT,
+  sourceType: block.sourceType || 'collection',
+  collectionUid: block.collectionUid || null,
+  specUid: block.specUid || null,
+  specPath: block.specPath || null,
+  specName: block.specName || null,
+  globalDelay: Number(block.globalDelay) || 0,
+  workspaceUid
+});
+
 const parseStoreContent = (content, filePath) => {
   if (filePath.endsWith('.json')) {
     const parsed = JSON.parse(content);
@@ -210,6 +249,7 @@ const migrateLegacyResponses = (location) => {
   }
 
   store.mockServers[mockServerUid] = {
+    ...(store.mockServers[mockServerUid] || {}),
     responses: legacyResponses
   };
   writeWorkspaceStore(workspacePath, store);
@@ -245,12 +285,67 @@ const getMockServerResponses = (location) => {
 
 const setMockServerResponses = (location, responses) => {
   const store = readWorkspaceStore(location.workspacePath);
+  const existing = store.mockServers[location.mockServerUid] || {};
 
   store.mockServers[location.mockServerUid] = {
+    ...existing,
     responses: responses || []
   };
 
   writeWorkspaceStore(location.workspacePath, store);
+};
+
+const saveMockServer = (workspacePath, instance) => {
+  if (!workspacePath) {
+    throw new Error('Workspace path is required.');
+  }
+
+  if (!instance?.uid) {
+    throw new Error('Mock server id is required.');
+  }
+
+  const store = readWorkspaceStore(workspacePath);
+  const existing = store.mockServers[instance.uid] || {};
+
+  store.mockServers[instance.uid] = {
+    ...pickMockServerMeta(instance),
+    responses: Array.isArray(existing.responses) ? existing.responses : []
+  };
+
+  writeWorkspaceStore(workspacePath, store);
+  return mockServerBlockToInstance(instance.uid, store.mockServers[instance.uid], instance.workspaceUid);
+};
+
+const listMockServers = (workspacePath, workspaceUid, { migrateFrom = [] } = {}) => {
+  if (!workspacePath) {
+    throw new Error('Workspace path is required.');
+  }
+
+  const store = readWorkspaceStore(workspacePath);
+  let dirty = false;
+
+  for (const instance of migrateFrom) {
+    if (!instance?.uid) {
+      continue;
+    }
+
+    const existing = store.mockServers[instance.uid] || {};
+    if (!existing.name) {
+      store.mockServers[instance.uid] = {
+        ...pickMockServerMeta(instance),
+        responses: Array.isArray(existing.responses) ? existing.responses : []
+      };
+      dirty = true;
+    }
+  }
+
+  if (dirty) {
+    writeWorkspaceStore(workspacePath, store);
+  }
+
+  return Object.entries(store.mockServers || {}).map(([uid, block]) => (
+    mockServerBlockToInstance(uid, block, workspaceUid)
+  ));
 };
 
 const createEmptyMockResponse = (name = 'New Mock Response') => ({
@@ -312,6 +407,21 @@ const deleteMockResponse = (location, responseUid) => {
 
   setMockServerResponses(location, nextResponses);
   return { responseUid };
+};
+
+const deleteMockServer = (location) => {
+  if (!location?.mockServerUid) {
+    throw new Error('Mock server id is required.');
+  }
+
+  if (!location?.workspacePath) {
+    throw new Error('Workspace path is required.');
+  }
+
+  const store = readWorkspaceStore(location.workspacePath);
+  delete store.mockServers[location.mockServerUid];
+  writeWorkspaceStore(location.workspacePath, store);
+  return { mockServerUid: location.mockServerUid };
 };
 
 const cloneMockResponseRecord = (response) => {
@@ -387,10 +497,14 @@ module.exports = {
   cloneMockServerResponses,
   createEmptyMockResponse,
   deleteMockResponse,
+  deleteMockServer,
   getStorePath: getWorkspaceStorePath,
   getWorkspaceStorePath,
   listMockResponses,
+  listMockServers,
   readWorkspaceStore,
   saveMockResponse,
+  saveMockServer,
+  setMockServerResponses,
   writeWorkspaceStore
 };

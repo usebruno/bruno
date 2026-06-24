@@ -71,6 +71,13 @@ const RequestTabPanel = () => {
   const _collections = useSelector((state) => state.collections.collections);
   const preferences = useSelector((state) => state.app.preferences);
   const { workspaces, activeWorkspaceUid } = useSelector((state) => state.workspaces);
+  const resolvedMockServerInstance = useSelector((state) => {
+    if (!focusedTab || (focusedTab.type !== 'mocker' && focusedTab.type !== 'mock-response')) {
+      return null;
+    }
+
+    return resolveMockServerInstance(state, focusedTab);
+  });
   const activeWorkspace = workspaces.find((w) => w.uid === activeWorkspaceUid);
   const isVerticalLayout = preferences?.layout?.responsePaneOrientation === 'vertical';
   const isConsoleOpen = useSelector((state) => state.logs.isConsoleOpen);
@@ -354,7 +361,7 @@ const RequestTabPanel = () => {
   }
 
   if (focusedTab.type === 'mocker') {
-    const instance = resolveMockServerInstance(preferences, focusedTab);
+    const instance = resolvedMockServerInstance;
     if (!instance) {
       return (
         <div className="pb-4 px-4">
@@ -374,7 +381,7 @@ const RequestTabPanel = () => {
   }
 
   if (focusedTab.type === 'mock-response') {
-    const instance = resolveMockServerInstance(preferences, focusedTab);
+    const instance = resolvedMockServerInstance;
     if (!instance) {
       return (
         <div className="pb-4 px-4">

@@ -24,6 +24,12 @@ const initialState = {
   recentlyClosedTabs: [] // LIFO stack of closed tabs, grouped by collection
 };
 
+const normalizeMockTabType = (type) => (type === 'mock-server-dashboard' ? 'mocker' : type);
+
+const findMockerTab = (tabs, mockServerUid) => find(tabs, (tab) => (
+  normalizeMockTabType(tab.type) === 'mocker' && tab.mockServerUid === mockServerUid
+));
+
 const tabTypeAlreadyExists = (tabs, collectionUid, type) => {
   return find(tabs, (tab) => tab.collectionUid === collectionUid && tab.type === type);
 };
@@ -106,7 +112,10 @@ export const tabsSlice = createSlice({
         let existingTab = null;
 
         if (type === 'mocker' && mockServerUid) {
-          existingTab = find(state.tabs, (tab) => tab.type === type && tab.mockServerUid === mockServerUid);
+          existingTab = findMockerTab(state.tabs, mockServerUid);
+          if (existingTab && existingTab.type !== 'mocker') {
+            existingTab.type = 'mocker';
+          }
         } else {
           existingTab = tabTypeAlreadyExists(state.tabs, collectionUid, type);
         }
@@ -543,6 +552,18 @@ export const tabsSlice = createSlice({
       (snapshotTabs || []).forEach((snapshotTab) => {
         const tab = deserializeTab(snapshotTab, collection);
         ensureTabUid(tab);
+
+        if (normalizeMockTabType(tab.type) === 'mocker' && tab.mockServerUid) {
+          const existingTab = findMockerTab(state.tabs, tab.mockServerUid);
+          if (existingTab) {
+            if (checkIsActiveTab(tab, activeTab, collection)) {
+              state.activeTabUid = ensureTabUid(existingTab);
+            }
+            return;
+          }
+          tab.type = 'mocker';
+        }
+
         state.tabs.push(tab);
 
         if (checkIsActiveTab(tab, activeTab, collection)) {

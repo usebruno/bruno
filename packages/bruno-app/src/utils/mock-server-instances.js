@@ -3,7 +3,13 @@ import { uuid } from 'utils/common';
 import { normalizePath } from 'utils/common/path';
 import { savePreferences } from 'providers/ReduxStore/slices/app';
 import { addTab, closeTabs, updateTabMeta } from 'providers/ReduxStore/slices/tabs';
-import { stopMockServer } from 'providers/ReduxStore/slices/mock-server';
+import {
+  loadMockServerInstances,
+  removeMockServerData,
+  removeMockServerInstance,
+  stopMockServer,
+  upsertMockServerInstance
+} from 'providers/ReduxStore/slices/mock-server';
 
 export const DEFAULT_MOCK_SERVER_PORT = 4000;
 
@@ -39,53 +45,101 @@ export const suggestNextMockServerPort = (instances, { excludeUid } = {}) => {
   return port;
 };
 
-export const getMockServerInstances = (preferences, workspaceUid) => {
-  const instances = get(preferences, 'mockServer.instances', []);
+export const getMockServerInstances = (state, workspaceUid) => {
   if (!workspaceUid) {
-    return instances;
+    return Object.values(state.mockServer?.instancesByWorkspace || {}).flat();
   }
 
-  return instances.filter((instance) => instance.workspaceUid === workspaceUid);
+  return get(state.mockServer?.instancesByWorkspace, workspaceUid, []);
 };
 
-export const findMockServerInstance = (preferences, mockServerUid) => {
-  const instances = get(preferences, 'mockServer.instances', []);
-  return instances.find((instance) => instance.uid === mockServerUid) || null;
+export const findMockServerInstance = (state, mockServerUid) => {
+  const instancesByWorkspace = state.mockServer?.instancesByWorkspace || {};
+
+  for (const instances of Object.values(instancesByWorkspace)) {
+    const instance = instances.find((item) => item.uid === mockServerUid);
+    if (instance) {
+      return instance;
+    }
+  }
+
+  return null;
 };
 
-export const resolveMockServerInstance = (preferences, { mockServerUid, collectionUid }) => {
+export const resolveMockServerInstance = (state, { mockServerUid, collectionUid }) => {
   if (mockServerUid) {
-    return findMockServerInstance(preferences, mockServerUid);
+    return findMockServerInstance(state, mockServerUid);
   }
 
-  const instances = get(preferences, 'mockServer.instances', []);
+  const instances = getMockServerInstances(state);
   return instances.find((instance) => (
     instance.sourceType === 'collection' && instance.collectionUid === collectionUid
   )) || null;
 };
 
-export const saveMockServerInstance = (instance) => (dispatch, getState) => {
-  const preferences = getState().app.preferences;
-  const instances = [...get(preferences, 'mockServer.instances', [])];
-  const existingIndex = instances.findIndex((item) => item.uid === instance.uid);
+const clearLegacyMockServerPrefs = (preferences, workspaceUid) => ({
+  ...preferences,
+  mockServer: {
+    ...preferences.mockServer,
+    instances: get(preferences, 'mockServer.instances', []).filter((item) => item.workspaceUid !== workspaceUid)
+  }
+});
 
-  if (existingIndex >= 0) {
-    instances[existingIndex] = instance;
-  } else {
-    instances.push(instance);
+export const hydrateMockServerInstances = (workspacePath, workspaceUid) => async (dispatch, getState) => {
+  if (!workspacePath || !workspaceUid) {
+    return [];
   }
 
-  return dispatch(savePreferences({
-    ...preferences,
-    mockServer: {
-      ...preferences.mockServer,
-      instances
-    }
+  const preferences = getState().app.preferences;
+  const migrateFrom = get(preferences, 'mockServer.instances', [])
+    .filter((instance) => instance.workspaceUid === workspaceUid);
+
+  const result = await dispatch(loadMockServerInstances({
+    workspacePath,
+    workspaceUid,
+    migrateFrom
+  })).unwrap();
+
+  if (migrateFrom.length) {
+    await dispatch(savePreferences(clearLegacyMockServerPrefs(preferences, workspaceUid)));
+  }
+
+  return result.instances || [];
+};
+
+export const saveMockServerInstance = (instance) => async (dispatch, getState) => {
+  const state = getState();
+  const workspacePath = resolveMockServerWorkspacePath(
+    instance,
+    state.workspaces.workspaces,
+    state.workspaces.workspaces.find((workspace) => workspace.uid === state.workspaces.activeWorkspaceUid) || null
+  );
+
+  if (!workspacePath) {
+    throw new Error('Workspace path is required.');
+  }
+
+  const result = await window.ipcRenderer.invoke('renderer:mock-server-save-instance', {
+    workspacePath,
+    instance
+  });
+
+  if (!result?.success) {
+    throw new Error(result?.error || 'Failed to save mock server');
+  }
+
+  const savedInstance = result.instance || instance;
+  dispatch(upsertMockServerInstance({
+    workspaceUid: instance.workspaceUid,
+    instance: savedInstance
   }));
+
+  return savedInstance;
 };
 
 export const deleteMockServerInstance = (mockServerUid) => async (dispatch, getState) => {
   const state = getState();
+  const instance = findMockServerInstance(state, mockServerUid);
   const serverState = state.mockServer?.servers?.[mockServerUid];
   const isActive = serverState?.status === 'running' || serverState?.status === 'starting';
 
@@ -97,6 +151,23 @@ export const deleteMockServerInstance = (mockServerUid) => async (dispatch, getS
     }
   }
 
+  const workspacePath = resolveMockServerWorkspacePath(
+    instance,
+    state.workspaces.workspaces,
+    state.workspaces.workspaces.find((workspace) => workspace.uid === state.workspaces.activeWorkspaceUid) || null
+  );
+
+  if (workspacePath) {
+    const result = await window.ipcRenderer.invoke('renderer:mock-server-delete', {
+      mockServerUid,
+      workspacePath
+    });
+
+    if (!result?.success) {
+      throw new Error(result?.error || 'Failed to delete mock server data');
+    }
+  }
+
   const tabUids = (state.tabs?.tabs || [])
     .filter((tab) => isMockServerRelatedTab(tab, mockServerUid))
     .map((tab) => tab.uid);
@@ -105,16 +176,14 @@ export const deleteMockServerInstance = (mockServerUid) => async (dispatch, getS
     dispatch(closeTabs({ tabUids }));
   }
 
-  const preferences = state.app.preferences;
-  const instances = get(preferences, 'mockServer.instances', []).filter((instance) => instance.uid !== mockServerUid);
+  if (instance?.workspaceUid) {
+    dispatch(removeMockServerInstance({
+      workspaceUid: instance.workspaceUid,
+      mockServerUid
+    }));
+  }
 
-  await dispatch(savePreferences({
-    ...preferences,
-    mockServer: {
-      ...preferences.mockServer,
-      instances
-    }
-  }));
+  dispatch(removeMockServerData({ mockServerUid }));
 
   return { mockServerUid };
 };
@@ -132,7 +201,7 @@ export const createMockServerInstance = ({
 }) => ({
   uid: uuid(),
   name: name.trim(),
-  sourceType,
+  sourceType: sourceType || 'manual',
   collectionUid: sourceType === 'collection' ? collectionUid : null,
   specUid: sourceType === 'spec' ? specUid : null,
   specPath: sourceType === 'spec' ? specPath || null : null,
@@ -208,6 +277,17 @@ export const resolveMockServerStartPayload = (instance, { collection, apiSpecs, 
   const mockServerUid = instance.uid;
   const resolvedWorkspacePath = workspacePath || null;
 
+  if (instance.sourceType === 'manual') {
+    return {
+      mockServerUid,
+      serverName: instance.name,
+      sourceType: 'manual',
+      workspacePath: resolvedWorkspacePath,
+      port: Number(instance.port),
+      globalDelay: Number(instance.globalDelay) || 0
+    };
+  }
+
   if (instance.sourceType === 'spec') {
     const spec = resolveInstanceSpec(instance, apiSpecs);
     if (!spec?.pathname) {
@@ -279,6 +359,59 @@ export const isMockServerPortTaken = (instances, port, excludeUid = null) => {
   return instances.some((instance) => (
     instance.uid !== excludeUid && Number(instance.port) === normalizedPort
   ));
+};
+
+export const getConfiguredMockServerPorts = (instances, { excludeUid } = {}) => (
+  instances
+    .filter((instance) => instance.uid !== excludeUid)
+    .map((instance) => Number(instance.port))
+    .filter((port) => port >= 1 && port <= 65535)
+);
+
+export const checkMockServerPortAvailable = async (port, instances, { excludeUid } = {}) => {
+  const result = await window.ipcRenderer.invoke('renderer:mock-server-check-port', {
+    port: Number(port),
+    mockServerUid: excludeUid || null,
+    additionalUsedPorts: getConfiguredMockServerPorts(instances, { excludeUid })
+  });
+
+  if (!result?.success) {
+    throw new Error(result?.error || 'Failed to check port availability');
+  }
+
+  return result;
+};
+
+export const getMockServerPortError = (portCheck, port) => {
+  if (!portCheck || portCheck.available) {
+    return null;
+  }
+
+  const normalizedPort = Number(port);
+
+  if (portCheck.reason === 'system') {
+    return `Port ${normalizedPort} is already in use on this system.`;
+  }
+
+  if (portCheck.reason === 'bruno' || portCheck.reason === 'bruno-config') {
+    return `Port ${normalizedPort} is already used by another mock server in Bruno.`;
+  }
+
+  return 'Port must be between 1 and 65535.';
+};
+
+export const suggestAvailableMockServerPort = async (instances, { excludeUid, startPort } = {}) => {
+  const localPort = suggestNextMockServerPort(instances, { excludeUid });
+  const result = await window.ipcRenderer.invoke('renderer:mock-server-suggest-port', {
+    startPort: startPort || localPort,
+    additionalUsedPorts: getConfiguredMockServerPorts(instances, { excludeUid })
+  });
+
+  if (result?.success && result.port) {
+    return result.port;
+  }
+
+  return localPort;
 };
 
 export const cloneMockServerInstancePayload = (sourceInstance, { name, port, workspaceUid }) => (

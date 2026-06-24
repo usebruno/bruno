@@ -99,6 +99,7 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
   const [createWorkspaceModalOpen, setCreateWorkspaceModalOpen] = useState(false);
   const [showCreateMockServerModal, setShowCreateMockServerModal] = useState(false);
   const preferences = useSelector((state) => state.app.preferences);
+  const mockServerInstances = useSelector((state) => getMockServerInstances(state, activeWorkspaceUid));
 
   // Migrate-to-YML pill dismissal state (persisted by collection pathname)
   const [migratePillDismissed, setMigratePillDismissed] = useState(true);
@@ -297,8 +298,7 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
   };
 
   const viewMockServer = () => {
-    const instances = getMockServerInstances(preferences, activeWorkspaceUid);
-    const existingInstance = instances.find((instance) => (
+    const existingInstance = mockServerInstances.find((instance) => (
       instance.sourceType === 'collection' && instance.collectionUid === collection.uid
     ));
 

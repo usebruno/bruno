@@ -4,10 +4,13 @@ const path = require('path');
 const {
   appendMockResponses,
   cloneMockServerResponses,
+  deleteMockServer,
   getWorkspaceStorePath,
   listMockResponses,
+  listMockServers,
   readWorkspaceStore,
-  saveMockResponse
+  saveMockResponse,
+  saveMockServer
 } = require('../src/app/mock-response-store');
 
 describe('mock-response-store', () => {
@@ -78,6 +81,104 @@ describe('mock-response-store', () => {
     const store = readWorkspaceStore(workspacePath);
     expect(store.mockServers['mock-1'].responses).toHaveLength(1);
     expect(store.mockServers['mock-2'].responses).toHaveLength(1);
+  });
+
+  it('removes a mock server block from workspace mockserver.yml on delete', () => {
+    const location = {
+      mockServerUid: 'mock-1',
+      sourceType: 'spec',
+      workspacePath
+    };
+
+    saveMockResponse(location, {
+      uid: 'response-1',
+      name: 'Users',
+      request: { url: '/users', method: 'GET' },
+      response: { status: 200, body: { type: 'json', content: '{}' } },
+      rules: { operator: 'AND', conditions: [] }
+    });
+
+    deleteMockServer(location);
+
+    const store = readWorkspaceStore(workspacePath);
+    expect(store.mockServers['mock-1']).toBeUndefined();
+  });
+
+  it('stores mock server metadata in workspace mockserver.yml', () => {
+    const workspacePath = fs.mkdtempSync(path.join(os.tmpdir(), 'bruno-mock-meta-'));
+    const instance = {
+      uid: 'mock-1',
+      name: 'Dog API Mocker',
+      port: 4001,
+      sourceType: 'collection',
+      collectionUid: 'collection-1',
+      globalDelay: 0,
+      workspaceUid: 'workspace-1'
+    };
+
+    saveMockServer(workspacePath, instance);
+
+    const store = readWorkspaceStore(workspacePath);
+    expect(store.mockServers['mock-1'].name).toBe('Dog API Mocker');
+    expect(store.mockServers['mock-1'].port).toBe(4001);
+    expect(store.mockServers['mock-1'].collectionUid).toBe('collection-1');
+    expect(store.mockServers['mock-1'].responses).toEqual([]);
+
+    const instances = listMockServers(workspacePath, 'workspace-1');
+    expect(instances).toHaveLength(1);
+    expect(instances[0].name).toBe('Dog API Mocker');
+
+    fs.rmSync(workspacePath, { recursive: true, force: true });
+  });
+
+  it('preserves mock server metadata when saving responses', () => {
+    const workspacePath = fs.mkdtempSync(path.join(os.tmpdir(), 'bruno-mock-meta-'));
+    const location = {
+      mockServerUid: 'mock-1',
+      sourceType: 'spec',
+      workspacePath
+    };
+
+    saveMockServer(workspacePath, {
+      uid: 'mock-1',
+      name: 'Spec Mocker',
+      port: 4000,
+      sourceType: 'spec',
+      specUid: 'spec-1',
+      workspaceUid: 'workspace-1'
+    });
+
+    saveMockResponse(location, {
+      uid: 'response-1',
+      name: 'Users',
+      request: { url: '/users', method: 'GET' },
+      response: { status: 200, body: { type: 'json', content: '{}' } },
+      rules: { operator: 'AND', conditions: [] }
+    });
+
+    const store = readWorkspaceStore(workspacePath);
+    expect(store.mockServers['mock-1'].name).toBe('Spec Mocker');
+    expect(store.mockServers['mock-1'].responses).toHaveLength(1);
+
+    fs.rmSync(workspacePath, { recursive: true, force: true });
+  });
+
+  it('migrates legacy preference instances into workspace mockserver.yml', () => {
+    const instances = listMockServers(workspacePath, 'workspace-1', {
+      migrateFrom: [{
+        uid: 'mock-1',
+        name: 'Legacy Mocker',
+        port: 4002,
+        sourceType: 'spec',
+        specUid: 'spec-legacy',
+        globalDelay: 0,
+        workspaceUid: 'workspace-1'
+      }]
+    });
+
+    expect(instances).toHaveLength(1);
+    expect(instances[0].name).toBe('Legacy Mocker');
+    expect(readWorkspaceStore(workspacePath).mockServers['mock-1'].name).toBe('Legacy Mocker');
   });
 
   it('migrates legacy collection mocks yml into workspace mockserver.yml', () => {

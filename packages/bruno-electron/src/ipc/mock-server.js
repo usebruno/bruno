@@ -7,8 +7,12 @@ const {
   cloneMockServerResponses,
   createEmptyMockResponse,
   deleteMockResponse,
+  deleteMockServer,
   listMockResponses,
-  saveMockResponse
+  listMockServers,
+  saveMockResponse,
+  saveMockServer,
+  setMockServerResponses
 } = require('../app/mock-response-store');
 
 const parseSpecContent = (content) => {
@@ -23,10 +27,34 @@ const parseSpecContent = (content) => {
 const registerMockServerIpc = (mainWindow) => {
   mockServer.setMainWindow(mainWindow);
 
-  ipcMain.handle('renderer:mock-server-suggest-port', async () => {
+  ipcMain.handle('renderer:mock-server-suggest-port', async (_event, payload = {}) => {
     try {
-      const port = await mockServer.suggestPort();
+      const startPort = Number(payload.startPort) || undefined;
+      const port = await mockServer.suggestPort(startPort, {
+        additionalUsedPorts: payload.additionalUsedPorts || []
+      });
       return { success: true, port, mode: mockServer.getMockMode() };
+    } catch (err) {
+      return { success: false, error: err.message };
+    }
+  });
+
+  ipcMain.handle('renderer:mock-server-try-request', async (_event, payload) => {
+    try {
+      const result = await mockServer.tryMockRequest(payload);
+      return { success: true, ...result };
+    } catch (err) {
+      return { success: false, error: err.message };
+    }
+  });
+
+  ipcMain.handle('renderer:mock-server-check-port', async (_event, payload = {}) => {
+    try {
+      const result = await mockServer.checkPortAvailable(payload.port, {
+        mockServerUid: payload.mockServerUid || null,
+        additionalUsedPorts: payload.additionalUsedPorts || []
+      });
+      return { success: true, ...result };
     } catch (err) {
       return { success: false, error: err.message };
     }
@@ -147,6 +175,61 @@ const registerMockServerIpc = (mainWindow) => {
       deleteMockResponse(location, responseUid);
       await mockServer.reloadRoutesFromStore(location.mockServerUid, location);
       return { success: true, responseUid };
+    } catch (err) {
+      return { success: false, error: err.message };
+    }
+  });
+
+  ipcMain.handle('renderer:mock-server-replace-responses', async (_event, payload) => {
+    try {
+      const { responses, ...location } = payload;
+      setMockServerResponses(location, responses || []);
+      await mockServer.reloadRoutesFromStore(location.mockServerUid, location);
+      return { success: true, responses: responses || [] };
+    } catch (err) {
+      return { success: false, error: err.message };
+    }
+  });
+
+  ipcMain.handle('renderer:mock-server-list-instances', async (_event, payload) => {
+    try {
+      const { workspacePath, workspaceUid, migrateFrom = [] } = payload;
+
+      if (!workspacePath) {
+        throw new Error('Workspace path is required.');
+      }
+
+      const instances = listMockServers(workspacePath, workspaceUid, { migrateFrom });
+      return { success: true, instances };
+    } catch (err) {
+      return { success: false, error: err.message };
+    }
+  });
+
+  ipcMain.handle('renderer:mock-server-save-instance', async (_event, payload) => {
+    try {
+      const { workspacePath, instance } = payload;
+
+      if (!workspacePath) {
+        throw new Error('Workspace path is required.');
+      }
+
+      if (!instance?.uid) {
+        throw new Error('Mock server id is required.');
+      }
+
+      const savedInstance = saveMockServer(workspacePath, instance);
+      return { success: true, instance: savedInstance };
+    } catch (err) {
+      return { success: false, error: err.message };
+    }
+  });
+
+  ipcMain.handle('renderer:mock-server-delete', async (_event, payload) => {
+    try {
+      deleteMockServer(payload);
+      await mockServer.reloadRoutesFromStore(payload.mockServerUid, payload);
+      return { success: true, mockServerUid: payload.mockServerUid };
     } catch (err) {
       return { success: false, error: err.message };
     }

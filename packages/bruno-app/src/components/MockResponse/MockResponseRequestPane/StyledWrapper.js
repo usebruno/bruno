@@ -1,6 +1,17 @@
 import styled from 'styled-components';
 
 const StyledWrapper = styled.div`
+  .try-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .try-url-bar {
+    flex: 1;
+    min-width: 0;
+  }
+
   div.tabs {
     div.tab {
       padding: 6px 0px;

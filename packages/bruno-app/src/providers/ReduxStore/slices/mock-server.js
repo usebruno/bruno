@@ -10,7 +10,9 @@ const initialState = {
   // Per-instance route tables: { [mockServerUid]: Route[] }
   routes: {},
   // Per-instance mock responses: { [mockServerUid]: MockResponse[] }
-  mockResponses: {}
+  mockResponses: {},
+  // Workspace-scoped mock server instances from mockserver.yml
+  instancesByWorkspace: {}
 };
 
 const resolveMockServerUid = (payload) => payload.mockServerUid || payload.collectionUid;
@@ -148,6 +150,27 @@ export const syncRunningMockServers = createAsyncThunk(
   }
 );
 
+export const loadMockServerInstances = createAsyncThunk(
+  'mockServer/loadInstances',
+  async ({ workspacePath, workspaceUid, migrateFrom = [] }, { rejectWithValue }) => {
+    const result = await window.ipcRenderer.invoke('renderer:mock-server-list-instances', {
+      workspacePath,
+      workspaceUid,
+      migrateFrom
+    });
+
+    if (!result.success) {
+      return rejectWithValue(result.error);
+    }
+
+    return {
+      workspaceUid,
+      instances: result.instances || [],
+      migratedCount: migrateFrom.length
+    };
+  }
+);
+
 export const loadMockServerRoutes = createAsyncThunk(
   'mockServer/loadRoutes',
   async (payload, { dispatch }) => {
@@ -252,6 +275,24 @@ export const generateMockResponsesFromSpec = createAsyncThunk(
   }
 );
 
+export const syncMockResponsesFromExamples = createAsyncThunk(
+  'mockServer/syncFromExamples',
+  async (payload, { dispatch }) => {
+    const result = await window.ipcRenderer.invoke('renderer:mock-server-replace-responses', payload);
+    if (!result.success) {
+      throw new Error(result.error);
+    }
+
+    await dispatch(loadMockResponses(payload));
+    await dispatch(syncMockServerState({ mockServerUid: payload.mockServerUid }));
+
+    return {
+      mockServerUid: payload.mockServerUid,
+      responses: result.responses || []
+    };
+  }
+);
+
 export const mockServerSlice = createSlice({
   name: 'mockServer',
   initialState,
@@ -298,11 +339,48 @@ export const mockServerSlice = createSlice({
     setMockResponses: (state, action) => {
       const { mockServerUid, responses } = action.payload;
       state.mockResponses[mockServerUid] = responses || [];
+    },
+
+    removeMockServerData: (state, action) => {
+      const { mockServerUid } = action.payload;
+      delete state.servers[mockServerUid];
+      delete state.requestLogs[mockServerUid];
+      delete state.routes[mockServerUid];
+      delete state.mockResponses[mockServerUid];
+    },
+
+    setMockServerInstances: (state, action) => {
+      const { workspaceUid, instances } = action.payload;
+      state.instancesByWorkspace[workspaceUid] = instances || [];
+    },
+
+    upsertMockServerInstance: (state, action) => {
+      const { workspaceUid, instance } = action.payload;
+      const instances = [...(state.instancesByWorkspace[workspaceUid] || [])];
+      const existingIndex = instances.findIndex((item) => item.uid === instance.uid);
+
+      if (existingIndex >= 0) {
+        instances[existingIndex] = instance;
+      } else {
+        instances.push(instance);
+      }
+
+      state.instancesByWorkspace[workspaceUid] = instances;
+    },
+
+    removeMockServerInstance: (state, action) => {
+      const { workspaceUid, mockServerUid } = action.payload;
+      state.instancesByWorkspace[workspaceUid] = (state.instancesByWorkspace[workspaceUid] || [])
+        .filter((instance) => instance.uid !== mockServerUid);
     }
   },
 
   extraReducers: (builder) => {
     builder
+      .addCase(loadMockServerInstances.fulfilled, (state, action) => {
+        const { workspaceUid, instances } = action.payload;
+        state.instancesByWorkspace[workspaceUid] = instances;
+      })
       .addCase(stopMockServer.fulfilled, (state, action) => {
         const { mockServerUid } = action.payload;
         state.servers[mockServerUid] = {
@@ -370,6 +448,10 @@ export const mockServerSlice = createSlice({
         if (!state.mockResponses[mockServerUid]) {
           state.mockResponses[mockServerUid] = [];
         }
+      })
+      .addCase(syncMockResponsesFromExamples.fulfilled, (state, action) => {
+        const { mockServerUid, responses } = action.payload;
+        state.mockResponses[mockServerUid] = responses;
       });
   }
 });
@@ -380,7 +462,11 @@ export const {
   clearRequestLog,
   setRouteTable,
   setRequestLogs,
-  setMockResponses
+  setMockResponses,
+  removeMockServerData,
+  setMockServerInstances,
+  upsertMockServerInstance,
+  removeMockServerInstance
 } = mockServerSlice.actions;
 
 export default mockServerSlice.reducer;

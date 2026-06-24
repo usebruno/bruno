@@ -1,5 +1,6 @@
 import { cloneDeep } from 'lodash';
 import { findCollectionByUid, findItemInCollection } from 'utils/collections';
+import { extractMockResponseRoutePath } from 'utils/mock-responses';
 
 export const MOCK_RESPONSE_ITEM_UID_PREFIX = 'mock-response-item-';
 
@@ -31,7 +32,7 @@ export const buildMockResponseEditorItem = (mockResponse) => {
     description: mockResponse.description || '',
     type: 'http-request',
     request: {
-      url: mockResponse.request?.url || '/',
+      url: extractMockResponseRoutePath(mockResponse.request?.url || '/'),
       method: (mockResponse.request?.method || 'GET').toUpperCase(),
       headers: cloneDeep(mockResponse.request?.headers || []),
       params: cloneDeep(mockResponse.request?.params || []),
@@ -73,7 +74,10 @@ export const mockResponseFromEditorItem = (item, responseUid, rules, savedMockRe
     uid: responseUid,
     name: example.name || '',
     description: example.description || '',
-    request: cloneDeep(example.request),
+    request: {
+      ...cloneDeep(example.request),
+      url: extractMockResponseRoutePath(example.request?.url)
+    },
     response: cloneDeep(example.response),
     rules: cloneDeep(rules || { operator: 'AND', conditions: [] }),
     ...(savedMockResponse.copiedFrom ? { copiedFrom: cloneDeep(savedMockResponse.copiedFrom) } : {})

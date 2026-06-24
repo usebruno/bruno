@@ -243,7 +243,7 @@ const CreateMockResponsePanel = ({ collection, onCreate }) => {
   const [expanded, setExpanded] = useState(false);
 
   return (
-    <div className={`create-panel ${expanded ? 'expanded' : ''}`}>
+    <div className={`ml-auto flex-shrink-0 create-panel ${expanded ? 'expanded' : ''}`}>
       {!expanded ? (
         <Button
           variant="outline"
@@ -253,7 +253,7 @@ const CreateMockResponsePanel = ({ collection, onCreate }) => {
           onClick={() => setExpanded(true)}
           data-testid="mock-response-create-btn"
         >
-          Create Mock Response
+          Create New Mock Response
         </Button>
       ) : (
         <CreateMockResponseForm

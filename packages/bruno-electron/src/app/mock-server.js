@@ -1,5 +1,7 @@
 const express = require('express');
 const cors = require('cors');
+const http = require('http');
+const https = require('https');
 const net = require('net');
 const { BrowserWindow } = require('electron');
 const { v4: uuidv4 } = require('uuid');
@@ -82,15 +84,6 @@ const getUsedPorts = () => {
   return ports;
 };
 
-const isPortAvailable = (port) => new Promise((resolve) => {
-  const tester = net.createServer()
-    .once('error', () => resolve(false))
-    .once('listening', () => {
-      tester.close(() => resolve(true));
-    })
-    .listen(port, '127.0.0.1');
-});
-
 const isPortUsedByMockServer = (port, mockServerUid = null) => {
   if (gateway?.port === port) {
     return true;
@@ -105,19 +98,70 @@ const isPortUsedByMockServer = (port, mockServerUid = null) => {
   return false;
 };
 
-const resolveIsolatedPort = async (requestedPort, mockServerUid) => {
-  let port = Number(requestedPort) || DEFAULT_GATEWAY_PORT;
+const isPortAvailable = (port) => new Promise((resolve) => {
+  const tester = net.createServer()
+    .once('error', () => resolve(false))
+    .once('listening', () => {
+      tester.close(() => resolve(true));
+    })
+    .listen(port, '127.0.0.1');
+});
 
-  if (isPortUsedByMockServer(port, mockServerUid) || !(await isPortAvailable(port))) {
-    port = await suggestPort(DEFAULT_GATEWAY_PORT);
+const checkPortAvailable = async (port, { mockServerUid = null, additionalUsedPorts = [] } = {}) => {
+  const normalizedPort = Number(port);
+
+  if (!normalizedPort || normalizedPort < 1 || normalizedPort > 65535) {
+    return { available: false, reason: 'invalid' };
+  }
+
+  if (isPortUsedByMockServer(normalizedPort, mockServerUid)) {
+    return { available: false, reason: 'bruno' };
+  }
+
+  if (additionalUsedPorts.some((usedPort) => Number(usedPort) === normalizedPort)) {
+    return { available: false, reason: 'bruno-config' };
+  }
+
+  if (!(await isPortAvailable(normalizedPort))) {
+    return { available: false, reason: 'system' };
+  }
+
+  return { available: true, reason: null };
+};
+
+const assertIsolatedPortAvailable = async (requestedPort, mockServerUid) => {
+  const port = Number(requestedPort) || DEFAULT_GATEWAY_PORT;
+  const result = await checkPortAvailable(port, { mockServerUid });
+
+  if (!result.available) {
+    if (result.reason === 'bruno' || result.reason === 'bruno-config') {
+      throw new Error(`Port ${port} is already used by another mock server in Bruno.`);
+    }
+
+    if (result.reason === 'system') {
+      throw new Error(`Port ${port} is already in use on this system.`);
+    }
+
+    throw new Error(`Port ${port} is not available.`);
   }
 
   return port;
 };
 
-const suggestPort = async (startPort = DEFAULT_GATEWAY_PORT) => {
+const resolveIsolatedPort = async (requestedPort, mockServerUid) => (
+  assertIsolatedPortAvailable(requestedPort, mockServerUid)
+);
+
+const suggestPort = async (startPort = DEFAULT_GATEWAY_PORT, { additionalUsedPorts = [] } = {}) => {
   const used = getUsedPorts();
-  let port = startPort;
+  for (const port of additionalUsedPorts) {
+    const normalizedPort = Number(port);
+    if (normalizedPort >= 1 && normalizedPort <= 65535) {
+      used.add(normalizedPort);
+    }
+  }
+
+  let port = Number(startPort) || DEFAULT_GATEWAY_PORT;
 
   while (used.has(port) || !(await isPortAvailable(port))) {
     port += 1;
@@ -352,6 +396,56 @@ const createGatewayApp = () => {
 
   return app;
 };
+
+const tryMockRequest = ({ url, method = 'GET', headers = {}, body = null }) => new Promise((resolve, reject) => {
+  let parsedUrl;
+
+  try {
+    parsedUrl = new URL(url);
+  } catch (err) {
+    reject(new Error('Invalid try URL'));
+    return;
+  }
+
+  const transport = parsedUrl.protocol === 'https:' ? https : http;
+  const payload = body === null || body === undefined
+    ? null
+    : (typeof body === 'string' ? body : JSON.stringify(body));
+  const requestHeaders = { ...headers };
+
+  if (payload && !requestHeaders['Content-Length'] && !requestHeaders['content-length']) {
+    requestHeaders['Content-Length'] = Buffer.byteLength(payload);
+  }
+
+  const req = transport.request({
+    hostname: parsedUrl.hostname,
+    port: parsedUrl.port || (parsedUrl.protocol === 'https:' ? 443 : 80),
+    path: `${parsedUrl.pathname}${parsedUrl.search}`,
+    method: method.toUpperCase(),
+    headers: requestHeaders
+  }, (res) => {
+    const chunks = [];
+
+    res.on('data', (chunk) => chunks.push(chunk));
+    res.on('end', () => {
+      resolve({
+        status: res.statusCode,
+        statusText: res.statusMessage,
+        headers: res.headers,
+        body: Buffer.concat(chunks).toString('utf8'),
+        url
+      });
+    });
+  });
+
+  req.on('error', reject);
+
+  if (payload) {
+    req.write(payload);
+  }
+
+  req.end();
+});
 
 const listenOnPort = (app, port) => new Promise((resolve, reject) => {
   const server = app.listen(port, '127.0.0.1', () => resolve(server));
@@ -649,7 +743,9 @@ module.exports = {
   setDelay,
   clearLog,
   suggestPort,
+  checkPortAvailable,
   getMockMode,
   getRunningMockServerUids,
-  reloadRoutesFromStore
+  reloadRoutesFromStore,
+  tryMockRequest
 };

@@ -105,6 +105,39 @@ const StyledWrapper = styled.div`
             opacity: 0.5;
           }
         }
+
+        &.control-group-advanced {
+          flex-direction: column;
+          align-items: flex-start;
+        }
+
+        .advanced-toggle {
+          padding: 0;
+          border: none;
+          background: transparent;
+          color: ${(props) => props.theme.colors?.text?.link || props.theme.text};
+          font-size: 12px;
+          cursor: pointer;
+          opacity: 0.85;
+
+          &:hover {
+            opacity: 1;
+            text-decoration: underline;
+          }
+        }
+
+        .advanced-port-field {
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+          margin-top: 4px;
+        }
+
+        .field-error {
+          font-size: 11px;
+          color: ${(props) => props.theme.colors.text.danger};
+          max-width: 180px;
+        }
       }
     }
 

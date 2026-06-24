@@ -4,16 +4,19 @@ import { useDispatch, useSelector } from 'react-redux';
 import classnames from 'classnames';
 import { IconChevronRight, IconCopy, IconDots, IconPencil, IconPlayerPlay, IconPlayerStop, IconSettings, IconTrash } from '@tabler/icons';
 import toast from 'react-hot-toast';
+import get from 'lodash/get';
 import { mountCollection } from 'providers/ReduxStore/slices/collections/actions';
 import { startMockServer, stopMockServer, syncMockServerState, loadMockResponses } from 'providers/ReduxStore/slices/mock-server';
 import { normalizePath } from 'utils/common/path';
 import {
   getMockServerInstances,
+  hydrateMockServerInstances,
   openMockServerDashboard,
+  checkMockServerPortAvailable,
+  getMockServerPortError,
   resolveMockServerStartPayload,
   resolveMockServerWorkspacePath,
-  resolveTabCollectionUid,
-  saveMockServerInstance
+  resolveTabCollectionUid
 } from 'utils/mock-server-instances';
 import { resolveMockResponseLocation } from 'utils/mock-responses';
 import CreateMockServerModal from 'components/MockServer/CreateMockServerModal';
@@ -46,8 +49,10 @@ const MockServerItem = ({
   onDelete
 }) => {
   const dispatch = useDispatch();
+  const preferences = useSelector((state) => state.app.preferences);
   const collections = useSelector((state) => state.collections.collections);
   const workspaces = useSelector((state) => state.workspaces.workspaces);
+  const workspaceInstances = useSelector((state) => getMockServerInstances(state, instance.workspaceUid));
   const [expanded, setExpanded] = useState(false);
   const serverState = useSelector((state) => state.mockServer.servers[instance.uid]);
   const responses = useSelector((state) => state.mockServer.mockResponses[instance.uid] || []);
@@ -90,7 +95,22 @@ const MockServerItem = ({
 
   const handleStart = async () => {
     try {
-      ensureCollectionMounted();
+      if (instance.sourceType === 'collection') {
+        ensureCollectionMounted();
+      }
+
+      const mockMode = get(preferences, 'mockServer.mode', 'isolated');
+      if (mockMode !== 'shared') {
+        const portCheck = await checkMockServerPortAvailable(instance.port, workspaceInstances, {
+          excludeUid: instance.uid
+        });
+        const portError = getMockServerPortError(portCheck, instance.port);
+        if (portError) {
+          toast.error(portError);
+          return;
+        }
+      }
+
       const payload = resolveMockServerStartPayload(instance, {
         collection,
         apiSpecs,
@@ -98,14 +118,6 @@ const MockServerItem = ({
       });
       const result = await dispatch(startMockServer(payload)).unwrap();
       await dispatch(syncMockServerState({ mockServerUid: instance.uid }));
-
-      if (result.port && result.port !== instance.port) {
-        await dispatch(saveMockServerInstance({
-          ...instance,
-          port: result.port
-        }));
-        toast(`Port ${instance.port} was unavailable. Server started on port ${result.port}.`, { icon: '⚠️' });
-      }
 
       const message = result.examplesGenerated
         ? `Mock server started at ${result.baseUrl}. Generated ${result.examplesGenerated} example(s).`
@@ -230,19 +242,29 @@ const MockServerItem = ({
 };
 
 const MockServers = () => {
+  const dispatch = useDispatch();
   const [editingInstance, setEditingInstance] = useState(null);
   const [renamingInstance, setRenamingInstance] = useState(null);
   const [cloningInstance, setCloningInstance] = useState(null);
   const [deletingInstance, setDeletingInstance] = useState(null);
-  const { collections, preferences, activeWorkspaceUid, workspaces, apiSpecs } = useSelector((state) => ({
+  const { collections, activeWorkspaceUid, workspaces, apiSpecs } = useSelector((state) => ({
     collections: state.collections.collections,
-    preferences: state.app.preferences,
     activeWorkspaceUid: state.workspaces.activeWorkspaceUid,
     workspaces: state.workspaces.workspaces,
     apiSpecs: state.apiSpec.apiSpecs
   }));
 
   const activeWorkspace = workspaces.find((workspace) => workspace.uid === activeWorkspaceUid);
+
+  useEffect(() => {
+    if (!activeWorkspace?.pathname || !activeWorkspaceUid) {
+      return;
+    }
+
+    dispatch(hydrateMockServerInstances(activeWorkspace.pathname, activeWorkspaceUid));
+  }, [dispatch, activeWorkspace?.pathname, activeWorkspaceUid]);
+
+  const instances = useSelector((state) => getMockServerInstances(state, activeWorkspaceUid));
   const workspaceCollections = useMemo(() => {
     if (!activeWorkspace) {
       return [];
@@ -254,10 +276,6 @@ const MockServers = () => {
       )
     ));
   }, [activeWorkspace, collections]);
-
-  const instances = useMemo(() => {
-    return getMockServerInstances(preferences, activeWorkspaceUid);
-  }, [preferences, activeWorkspaceUid]);
 
   if (!instances.length) {
     return (

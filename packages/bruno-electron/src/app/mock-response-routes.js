@@ -5,7 +5,8 @@ const extractRoutePath = (rawUrl) => {
     return null;
   }
 
-  let cleaned = rawUrl.replace(/^\{\{[^}]+\}\}/, '');
+  let cleaned = String(rawUrl).trim();
+  cleaned = cleaned.replace(/^\{\{[^}]+\}\}/, '');
 
   if (cleaned.startsWith('http://') || cleaned.startsWith('https://')) {
     try {
@@ -17,6 +18,16 @@ const extractRoutePath = (rawUrl) => {
       }
     }
   } else {
+    const ipHostMatch = cleaned.match(/^(?:\d{1,3}\.){3}\d{1,3}(?::\d+)?(\/[^?#]*)?/);
+    if (ipHostMatch) {
+      cleaned = ipHostMatch[1] || '/';
+    } else {
+      const domainHostMatch = cleaned.match(/^(?:[a-zA-Z0-9-]+\.)+[a-zA-Z0-9-]+(?::\d+)?(\/[^?#]*)?/);
+      if (domainHostMatch) {
+        cleaned = domainHostMatch[1] || '/';
+      }
+    }
+
     const qIndex = cleaned.indexOf('?');
     if (qIndex !== -1) {
       cleaned = cleaned.substring(0, qIndex);

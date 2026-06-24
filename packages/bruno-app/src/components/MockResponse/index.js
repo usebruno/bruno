@@ -10,8 +10,9 @@ import {
 } from 'providers/ReduxStore/slices/collections/mockResponseEditorActions';
 import { cancelResponseExampleEdit } from 'providers/ReduxStore/slices/collections';
 import { saveMockResponse, deleteMockResponse, loadMockResponses } from 'providers/ReduxStore/slices/mock-server';
-import { closeTabs, updateTabMeta } from 'providers/ReduxStore/slices/tabs';
-import { resolveMockResponseLocation, resolveMockResponseCollection, resolveMockResponseEditorCollection } from 'utils/mock-responses';
+import { closeTabs, updateTabMeta, updateResponsePaneTab } from 'providers/ReduxStore/slices/tabs';
+import { resolveMockResponseLocation, resolveMockResponseCollection, resolveMockResponseEditorCollection, tryMockResponseRequest } from 'utils/mock-responses';
+import get from 'lodash/get';
 import {
   getMockResponseItemUid,
   mockResponseFromEditorItem
@@ -34,10 +35,15 @@ const MockResponse = ({ instance, collection, responseUid }) => {
   const { globalEnvironments, activeGlobalEnvironmentUid } = useSelector((state) => state.globalEnvironments);
   const editor = useSelector((state) => state.collections.mockResponseEditors[responseUid]);
   const responses = useSelector((state) => state.mockServer.mockResponses[instance.uid] || []);
+  const serverState = useSelector((state) => state.mockServer.servers[instance.uid]);
+  const isServerRunning = serverState?.status === 'running';
+  const mockServerPort = serverState?.port || instance.port;
   const preferences = useSelector((state) => state.app.preferences);
   const screenWidth = useSelector((state) => state.app.screenWidth);
   const leftSidebarWidth = useSelector((state) => state.app.leftSidebarWidth);
   const isVerticalLayout = preferences?.layout?.responsePaneOrientation === 'vertical';
+  const isSharedMode = get(preferences, 'mockServer.mode', 'isolated') === 'shared';
+  const sharedSlug = serverState?.slug || null;
 
   const activeWorkspace = useMemo(() => (
     workspaces.find((workspace) => workspace.uid === activeWorkspaceUid) || null
@@ -81,10 +87,15 @@ const MockResponse = ({ instance, collection, responseUid }) => {
   const [leftPaneWidth, setLeftPaneWidth] = useState((screenWidth - leftSidebarWidth) / 2.2);
   const [topPaneHeight, setTopPaneHeight] = useState(MIN_TOP_PANE_HEIGHT);
   const [dragging, setDragging] = useState(false);
-  const isNewResponse = !storedResponse?.response?.body?.content;
-  const [editMode, setEditMode] = useState(isNewResponse);
+  const [editMode, setEditMode] = useState(false);
+  const [tryResult, setTryResult] = useState(null);
+  const [isTrying, setIsTrying] = useState(false);
   const dragOffset = useRef({ x: 0, y: 0 });
   const mainSectionRef = useRef(null);
+
+  useEffect(() => {
+    setTryResult(null);
+  }, [responseUid]);
 
   useEffect(() => {
     let cancelled = false;
@@ -285,6 +296,42 @@ const MockResponse = ({ instance, collection, responseUid }) => {
     };
   }, [editMode, item, editor]);
 
+  const handleTry = async () => {
+    if (!isServerRunning || !mockServerPort) {
+      toast.error('Start the mock server before trying this response');
+      return;
+    }
+
+    const example = item?.draft?.examples?.find((entry) => entry.uid === responseUid)
+      || item?.examples?.find((entry) => entry.uid === responseUid);
+
+    if (!example?.request?.url) {
+      toast.error('Set a request URL before trying this response');
+      return;
+    }
+
+    setIsTrying(true);
+    try {
+      const result = await tryMockResponseRequest({
+        port: mockServerPort,
+        request: example.request,
+        sharedSlug,
+        isSharedMode
+      });
+
+      setTryResult(result);
+      dispatch(updateResponsePaneTab({
+        uid: responseUid,
+        responsePaneTab: 'try-result'
+      }));
+      toast.success(`Mock returned ${result.status} ${result.statusText || ''}`.trim());
+    } catch (err) {
+      toast.error(err.message || 'Could not reach the mock server');
+    } finally {
+      setIsTrying(false);
+    }
+  };
+
   if (isLoading) {
     return <div className="p-4 text-sm opacity-70">Loading mock response...</div>;
   }
@@ -338,6 +385,9 @@ const MockResponse = ({ instance, collection, responseUid }) => {
               onSave={handleSave}
               rules={editor.rules}
               onRulesChange={(rules) => dispatch(updateMockResponseRules({ responseUid, rules }))}
+              onTry={handleTry}
+              isTrying={isTrying}
+              isServerRunning={isServerRunning}
             />
           </div>
         </section>
@@ -354,6 +404,8 @@ const MockResponse = ({ instance, collection, responseUid }) => {
             editMode={editMode}
             exampleUid={exampleUid}
             onSave={handleSave}
+            expectedResponseLabel="Expected"
+            tryResult={tryResult}
           />
         </section>
       </section>

@@ -6,19 +6,24 @@ import {
   deleteMockResponse,
   generateMockResponsesFromSpec,
   loadMockResponses,
-  saveMockResponse
+  saveMockResponse,
+  syncMockResponsesFromExamples
 } from 'providers/ReduxStore/slices/mock-server';
 import { addTab, closeTabs } from 'providers/ReduxStore/slices/tabs';
 import { removeMockResponseEditor } from 'providers/ReduxStore/slices/collections/mockResponseEditorActions';
 import {
+  buildMockServerTryUrl,
+  collectCollectionExamples,
   copyExampleToMockResponse,
-  resolveMockResponseLocation
+  resolveMockResponseLocation,
+  syncMockResponsesFromExamples as mergeMockResponsesFromExamples
 } from 'utils/mock-responses';
 import { resolveInstanceSpec } from 'utils/mock-server-instances';
-import { IconServer2, IconTrash } from '@tabler/icons';
+import { IconCopy, IconSearch, IconServer2, IconTrash } from '@tabler/icons';
 import CreateMockResponsePanel from '../CreateMockResponsePanel';
 import DeleteMockResponseModal from '../DeleteMockResponseModal';
 import GenerateFromSpecModal from '../GenerateFromSpecModal';
+import SyncFromExamplesModal from '../SyncFromExamplesModal';
 import Button from 'ui/Button';
 import ActionIcon from 'ui/ActionIcon';
 import StyledWrapper from './StyledWrapper';
@@ -29,11 +34,18 @@ const MockResponsesList = ({ instance, collection }) => {
   const [showGenerateModal, setShowGenerateModal] = useState(false);
   const [deletingResponse, setDeletingResponse] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showSyncModal, setShowSyncModal] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
   const collections = useSelector((state) => state.collections.collections);
   const workspaces = useSelector((state) => state.workspaces.workspaces);
   const activeWorkspaceUid = useSelector((state) => state.workspaces.activeWorkspaceUid);
   const apiSpecs = useSelector((state) => state.apiSpec.apiSpecs);
   const responses = useSelector((state) => state.mockServer.mockResponses[instance.uid] || []);
+  const serverState = useSelector((state) => state.mockServer.servers[instance.uid]);
+  const isSharedMode = useSelector((state) => state.app.preferences?.mockServer?.mode === 'shared');
+  const mockServerPort = serverState?.port || instance.port;
+  const sharedSlug = serverState?.slug || null;
 
   const resolvedCollection = useMemo(() => (
     collection || collections.find((item) => item.uid === instance.collectionUid) || null
@@ -126,6 +138,46 @@ const MockResponsesList = ({ instance, collection }) => {
   };
 
   const isSpecServer = instance.sourceType === 'spec';
+  const isCollectionServer = instance.sourceType === 'collection';
+
+  const filteredResponses = useMemo(() => {
+    const normalized = searchQuery.trim().toLowerCase();
+    if (!normalized) {
+      return responses;
+    }
+
+    return responses.filter((response) => {
+      const name = response.name?.toLowerCase() || '';
+      const method = (response.request?.method || 'GET').toLowerCase();
+      const url = (response.request?.url || '').toLowerCase();
+      return name.includes(normalized) || method.includes(normalized) || url.includes(normalized);
+    });
+  }, [responses, searchQuery]);
+
+  const handleConfirmSync = async () => {
+    if (!resolvedCollection?.items?.length) {
+      toast.error('Collection is not loaded. Open the linked collection first.');
+      return;
+    }
+
+    setIsSyncing(true);
+    try {
+      const exampleEntries = collectCollectionExamples(resolvedCollection);
+      const nextResponses = mergeMockResponsesFromExamples(responses, exampleEntries);
+
+      await dispatch(syncMockResponsesFromExamples({
+        ...location,
+        responses: nextResponses
+      })).unwrap();
+
+      setShowSyncModal(false);
+      toast.success('Mock responses synced with collection examples');
+    } catch (err) {
+      toast.error(err.message || 'Failed to sync mock responses');
+    } finally {
+      setIsSyncing(false);
+    }
+  };
 
   const handleConfirmDelete = async () => {
     if (!deletingResponse) {
@@ -147,6 +199,24 @@ const MockResponsesList = ({ instance, collection }) => {
       toast.error(err.message || 'Failed to delete mock response');
     } finally {
       setIsDeleting(false);
+    }
+  };
+
+  const handleCopyUrl = async (event, response) => {
+    event.stopPropagation();
+
+    try {
+      const url = buildMockServerTryUrl({
+        port: mockServerPort,
+        requestUrl: response.request?.url,
+        sharedSlug,
+        isSharedMode,
+        params: response.request?.params
+      });
+      await navigator.clipboard.writeText(url);
+      toast.success('URL copied');
+    } catch {
+      toast.error('Failed to copy URL');
     }
   };
 
@@ -178,12 +248,37 @@ const MockResponsesList = ({ instance, collection }) => {
         />
       ) : null}
 
+      {showSyncModal ? (
+        <SyncFromExamplesModal
+          isSyncing={isSyncing}
+          onClose={() => {
+            if (!isSyncing) {
+              setShowSyncModal(false);
+            }
+          }}
+          onConfirm={handleConfirmSync}
+        />
+      ) : null}
+
       <div className="actions">
         <div className="actions-toolbar">
           <CreateMockResponsePanel
             collection={isSpecServer ? null : resolvedCollection}
             onCreate={handleCreate}
           />
+
+          {isCollectionServer ? (
+            <Button
+              variant="outline"
+              color="secondary"
+              size="sm"
+              onClick={() => setShowSyncModal(true)}
+              disabled={!resolvedCollection}
+              data-testid="mock-response-sync-examples-btn"
+            >
+              Sync with Examples
+            </Button>
+          ) : null}
 
           {isSpecServer ? (
             <Button
@@ -198,6 +293,19 @@ const MockResponsesList = ({ instance, collection }) => {
             </Button>
           ) : null}
         </div>
+
+        {responses.length > 0 ? (
+          <div className="search-bar">
+            <IconSearch size={14} stroke={1.5} aria-hidden="true" />
+            <input
+              type="search"
+              value={searchQuery}
+              onChange={(event) => setSearchQuery(event.target.value)}
+              placeholder="Search by name, method, or endpoint"
+              data-testid="mock-response-search-input"
+            />
+          </div>
+        ) : null}
       </div>
 
       {responses.length === 0 ? (
@@ -212,9 +320,11 @@ const MockResponsesList = ({ instance, collection }) => {
             </>
           )}
         </div>
+      ) : filteredResponses.length === 0 ? (
+        <div className="text-sm opacity-70">No mock responses match your search.</div>
       ) : (
         <div className="response-list">
-          {responses.map((response) => (
+          {filteredResponses.map((response) => (
             <div
               key={response.uid}
               className="response-item"
@@ -242,6 +352,15 @@ const MockResponsesList = ({ instance, collection }) => {
                     : 'No rules (default match)'}
                 </div>
               </div>
+
+              <ActionIcon
+                label="Copy mock URL"
+                className="response-item-copy"
+                onClick={(event) => handleCopyUrl(event, response)}
+                data-testid={`mock-response-copy-${response.uid}`}
+              >
+                <IconCopy size={15} stroke={1.5} aria-hidden="true" />
+              </ActionIcon>
 
               <ActionIcon
                 label="Delete mock response"

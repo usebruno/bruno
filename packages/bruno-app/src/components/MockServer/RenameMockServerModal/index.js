@@ -20,9 +20,9 @@ const RenameMockServerModal = ({ instance, onClose }) => {
   const preferences = useSelector((state) => state.app.preferences);
   const activeWorkspaceUid = useSelector((state) => state.workspaces.activeWorkspaceUid);
   const storedInstance = useSelector((state) => (
-    findMockServerInstance(state.app.preferences, instance.uid) || instance
+    findMockServerInstance(state, instance.uid) || instance
   ));
-  const existingInstances = getMockServerInstances(preferences, activeWorkspaceUid);
+  const existingInstances = useSelector((state) => getMockServerInstances(state, activeWorkspaceUid));
 
   const formik = useFormik({
     enableReinitialize: true,

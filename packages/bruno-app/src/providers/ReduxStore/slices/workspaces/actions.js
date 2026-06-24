@@ -23,6 +23,7 @@ import {
 import { openConsole, closeConsole, setActiveTab as setActiveDevToolsTab, TAB_IDENFIERS as DEVTOOL_TABS } from '../logs';
 import { normalizePath } from 'utils/common/path';
 import { hydrateTabs, getActiveTabFromSnapshot, hydrateSnapshotLookups } from 'utils/snapshot';
+import { hydrateMockServerInstances } from 'utils/mock-server-instances';
 import toast from 'react-hot-toast';
 
 const { ipcRenderer } = window;
@@ -605,6 +606,10 @@ export const switchWorkspace = (workspaceUid) => {
       // Mount scratch collection and load workspace collections
       const scratchCollection = await dispatch(mountScratchCollection(workspaceUid));
       const { updatedWorkspace, openedCollectionPaths } = await loadWorkspaceCollectionsForSwitch(dispatch, workspace);
+
+      if (workspace.pathname) {
+        await dispatch(hydrateMockServerInstances(workspace.pathname, workspaceUid));
+      }
 
       const latestWorkspace = updatedWorkspace || getState().workspaces.workspaces.find((w) => w.uid === workspaceUid);
       const workspaceCollectionPaths = [...new Map(

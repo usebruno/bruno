@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import Tab from 'components/Tab';
 import HeightBoundContainer from 'ui/HeightBoundContainer';
+import Button from 'ui/Button';
 import ResponseExampleUrlBar from 'components/ResponseExample/ResponseExampleRequestPane/ResponseExampleUrlBar';
 import ResponseExampleParams from 'components/ResponseExample/ResponseExampleRequestPane/ResponseExampleParams';
 import ResponseExampleHeaders from 'components/ResponseExample/ResponseExampleRequestPane/ResponseExampleHeaders';
@@ -16,7 +17,10 @@ const MockResponseRequestPane = ({
   editMode,
   onSave,
   rules,
-  onRulesChange
+  onRulesChange,
+  onTry,
+  isTrying,
+  isServerRunning
 }) => {
   const [activeTab, setActiveTab] = useState('request');
   const ruleCount = rules?.conditions?.length || 0;
@@ -68,14 +72,29 @@ const MockResponseRequestPane = ({
 
   return (
     <StyledWrapper className="flex flex-col h-full relative">
-      <div className="px-4">
-        <ResponseExampleUrlBar
-          item={item}
-          collection={collection}
-          exampleUid={exampleUid}
-          editMode={editMode}
-          onSave={onSave}
-        />
+      <div className="px-4 try-row">
+        <div className="try-url-bar">
+          <ResponseExampleUrlBar
+            item={item}
+            collection={collection}
+            exampleUid={exampleUid}
+            editMode={editMode}
+            onSave={onSave}
+          />
+        </div>
+        <span
+          title={!isServerRunning && !isTrying ? 'Start the mock server before trying this response' : undefined}
+        >
+          <Button
+            color="secondary"
+            size="sm"
+            onClick={onTry}
+            disabled={isTrying || !isServerRunning}
+            data-testid="mock-response-try-btn"
+          >
+            {isTrying ? 'Trying...' : 'Try'}
+          </Button>
+        </span>
       </div>
 
       <div className="flex flex-wrap items-center tabs mb-4 px-4" role="tablist">
