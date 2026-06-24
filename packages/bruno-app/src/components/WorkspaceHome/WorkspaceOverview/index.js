@@ -3,6 +3,7 @@ import { useSelector, useDispatch } from 'react-redux';
 import { IconPlus, IconFolder, IconDownload } from '@tabler/icons';
 import { importCollection, openCollection, importCollectionFromZip } from 'providers/ReduxStore/slices/collections/actions';
 import { setIsCreatingCollection, toggleSidebarCollapse } from 'providers/ReduxStore/slices/app';
+import { setLocalStorageSidebarCollapsed } from 'utils/common/localStorage';
 import toast from 'react-hot-toast';
 import ImportCollection from 'components/Sidebar/ImportCollection';
 import ImportCollectionLocation from 'components/Sidebar/ImportCollectionLocation';
@@ -46,6 +47,7 @@ const WorkspaceOverview = ({ workspace }) => {
       await ipcRenderer.invoke('renderer:ensure-collections-folder', workspace.pathname);
       if (sidebarCollapsed) {
         dispatch(toggleSidebarCollapse());
+        setLocalStorageSidebarCollapsed(false);
       }
       dispatch(setIsCreatingCollection(true));
     } catch (error) {

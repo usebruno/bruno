@@ -11,6 +11,7 @@ import { findCollectionByUid, findItemInCollection, flattenItems, isItemARequest
 import { addTab, focusTab, reorderTabs } from 'providers/ReduxStore/slices/tabs';
 import { saveMultipleRequests, saveMultipleCollections, saveMultipleFolders, saveEnvironment, reopenClosedTab } from 'providers/ReduxStore/slices/collections/actions';
 import { toggleSidebarCollapse, savePreferences } from 'providers/ReduxStore/slices/app';
+import { setLocalStorageSidebarCollapsed } from 'utils/common/localStorage';
 import { openDevtoolsAndSwitchToTerminal } from 'utils/terminal';
 import { getKeyBindingsForActionAllOS } from './keyMappings';
 
@@ -28,6 +29,7 @@ export const HotkeysProvider = (props) => {
   const [showSaveRequestsModal, setShowSaveRequestsModal] = useState(false);
   const [tabUidsToClose, setTabUidsToClose] = useState([]);
   const preferences = useSelector((state) => state.app.preferences);
+  const sidebarCollapsed = useSelector((state) => state.app.sidebarCollapsed);
 
   const getCurrentCollection = () => {
     const activeTab = find(tabs, (t) => t.uid === activeTabUid);
@@ -281,13 +283,14 @@ export const HotkeysProvider = (props) => {
   useEffect(() => {
     bindAction('collapseSidebar', (e) => {
       dispatch(toggleSidebarCollapse());
+      setLocalStorageSidebarCollapsed(!sidebarCollapsed);
       return false;
     });
 
     return () => {
       unbindAction('collapseSidebar');
     };
-  }, [dispatch, userKeyBindings, keybindingsEnabled]);
+  }, [dispatch, userKeyBindings, keybindingsEnabled, sidebarCollapsed]);
 
   // Open terminal — context-aware:
   // focusedSidebarPath: null = no sidebar focus, '' = request focused (no-op), '/path' = folder/collection

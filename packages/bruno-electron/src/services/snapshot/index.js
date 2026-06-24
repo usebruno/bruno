@@ -6,9 +6,6 @@ const yup = require('yup');
 const SNAPSHOT_VERSION = '0.0.1';
 const ENV_FILE_EXTENSIONS = ['bru', 'yml', 'yaml'];
 
-const DEFAULT_SIDEBAR_COLLAPSED = false;
-const DEFAULT_SIDEBAR_WIDTH = 250;
-
 const isObject = (value) => value && typeof value === 'object' && !Array.isArray(value);
 
 const normalizeLookupKey = (pathname) => {
@@ -111,10 +108,6 @@ const emptySnapshot = {
   extras: {
     devTools: {
       open: false
-    },
-    sidebar: {
-      collapsed: DEFAULT_SIDEBAR_COLLAPSED,
-      width: DEFAULT_SIDEBAR_WIDTH
     }
   },
   workspaces: [],
@@ -183,6 +176,11 @@ class SnapshotManager {
       activeTab: tabsEntry.activeTab,
       tabs: tabsEntry.tabs
     };
+  }
+
+  getSidebar() {
+    const snapshot = this._normalizeSnapshot(this.store.store);
+    return snapshot?.extras?.sidebar || null;
   }
 
   // --- Writes ---
@@ -286,23 +284,34 @@ class SnapshotManager {
   }
 
   _normalizeSnapshot(snapshot = {}) {
+    const sidebar = this._normalizeSidebar(snapshot?.extras?.sidebar);
+    const extras = {
+      devTools: this._normalizeDevTools(snapshot?.extras?.devTools)
+    };
+    if (sidebar !== undefined) {
+      extras.sidebar = sidebar;
+    }
     return {
       version: snapshot.version ?? SNAPSHOT_VERSION,
       activeWorkspacePath: typeof snapshot.activeWorkspacePath === 'string' ? snapshot.activeWorkspacePath : null,
-      extras: {
-        devTools: this._normalizeDevTools(snapshot?.extras?.devTools),
-        sidebar: this._normalizeSidebar(snapshot?.extras?.sidebar)
-      },
+      extras,
       workspaces: this._normalizeWorkspaceList(snapshot.workspaces),
       collections: this._normalizeCollectionList(snapshot.collections, snapshot.tabs)
     };
   }
 
-  _normalizeSidebar(sidebar = {}) {
-    return {
-      collapsed: typeof sidebar?.collapsed === 'boolean' ? sidebar.collapsed : DEFAULT_SIDEBAR_COLLAPSED,
-      width: typeof sidebar?.width === 'number' ? sidebar.width : DEFAULT_SIDEBAR_WIDTH
-    };
+  _normalizeSidebar(sidebar) {
+    if (!sidebar) {
+      return undefined;
+    }
+    const result = {};
+    if (typeof sidebar.collapsed === 'boolean') {
+      result.collapsed = sidebar.collapsed;
+    }
+    if (typeof sidebar.width === 'number') {
+      result.width = sidebar.width;
+    }
+    return Object.keys(result).length > 0 ? result : undefined;
   }
 
   _normalizeDevTools(devTools = {}) {

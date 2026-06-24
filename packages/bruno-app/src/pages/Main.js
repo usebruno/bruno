@@ -1,14 +1,11 @@
-import { useState, useEffect } from 'react';
-import { Provider, useSelector } from 'react-redux';
+import { Provider } from 'react-redux';
 import { AppProvider } from 'providers/App';
 import { ToastProvider } from 'providers/Toaster';
 import { HotkeysProvider } from 'providers/Hotkeys';
 import { PromptVariablesProvider } from 'providers/PromptVariables';
-
 import ReduxStore from 'providers/ReduxStore';
 import ThemeProvider from 'providers/Theme/index';
 import ErrorBoundary from './ErrorBoundary';
-import { hydrateApp } from 'providers/ReduxStore/slices/app';
 
 import '../styles/globals.css';
 import 'codemirror/lib/codemirror.css';
@@ -27,20 +24,7 @@ import '@fontsource/inter/900.css';
 import { setupPolyfills } from 'utils/common/setupPolyfills';
 setupPolyfills();
 
-function HydrationGate({ children }) {
-  const isHydrated = useSelector((state) => state.app.isHydrated);
-
-  // Render nothing until the async snapshot fetch completes
-  if (!isHydrated) return null;
-
-  return children;
-}
-
 function Main({ children }) {
-  useEffect(() => {
-    ReduxStore.dispatch(hydrateApp());
-  }, []);
-
   if (!window.ipcRenderer) {
     return (
       <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 mx-10 my-10 rounded relative" role="alert">
@@ -62,9 +46,7 @@ function Main({ children }) {
             <PromptVariablesProvider>
               <AppProvider>
                 <HotkeysProvider>
-                  <HydrationGate>
-                    {children}
-                  </HydrationGate>
+                  {children}
                 </HotkeysProvider>
               </AppProvider>
             </PromptVariablesProvider>

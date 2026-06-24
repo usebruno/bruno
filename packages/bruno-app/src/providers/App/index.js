@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { get } from 'lodash';
 import { useDispatch } from 'react-redux';
-import { refreshScreenWidth } from 'providers/ReduxStore/slices/app';
+import { refreshScreenWidth, hydrateApp } from 'providers/ReduxStore/slices/app';
 import ConfirmAppClose from './ConfirmAppClose';
 import useIpcEvents from './useIpcEvents';
 import useTelemetry from './useTelemetry';
@@ -21,6 +21,7 @@ export const AppProvider = (props) => {
 
   useEffect(() => {
     dispatch(refreshScreenWidth());
+    dispatch(hydrateApp());
   }, []);
 
   useEffect(() => {

@@ -4,20 +4,28 @@ import brunoClipboard from 'utils/bruno-clipboard';
 import { normalizePath } from 'utils/common/path';
 import { addTab, focusTab } from './tabs';
 import { clearPersistedScope } from 'hooks/usePersistedState/PersistedScopeProvider';
+import {
+  getLocalStorageSidebarWidth,
+  getLocalStorageSidebarCollapsed,
+  setLocalStorageSidebarWidth,
+  setLocalStorageSidebarCollapsed,
+  hasLocalStorageSidebarWidth,
+  hasLocalStorageSidebarCollapsed
+} from 'utils/common/localStorage';
 
 const initialState = {
   isDragging: false,
   idbConnectionReady: false,
   snapshotReady: false,
-  isHydrated: false,
+  sidebarHydrated: hasLocalStorageSidebarWidth() || hasLocalStorageSidebarCollapsed(),
   snapshotHydration: {
     workspaceUid: null,
     pendingCollectionPathnames: [],
     activeCollectionPathname: null,
     startedAt: null
   },
-  leftSidebarWidth: 250,
-  sidebarCollapsed: false,
+  leftSidebarWidth: getLocalStorageSidebarWidth(),
+  sidebarCollapsed: getLocalStorageSidebarCollapsed(),
   showSidebarSearch: false,
   focusedSidebarPath: null,
   screenWidth: 500,
@@ -102,18 +110,15 @@ export const appSlice = createSlice({
     setSnapshotReady: (state, action) => {
       state.snapshotReady = action.payload;
     },
-    setHydratedState: (state, action) => {
-      const snapshot = action.payload;
-      if (snapshot && snapshot.extras && snapshot.extras.sidebar) {
-        const sidebar = snapshot.extras.sidebar;
-        if (sidebar.width !== undefined) {
-          state.leftSidebarWidth = sidebar.width;
-        }
-        if (sidebar.collapsed !== undefined) {
-          state.sidebarCollapsed = sidebar.collapsed;
-        }
+    setSidebarState: (state, action) => {
+      const { width, collapsed } = action.payload || {};
+      if (width !== undefined) {
+        state.leftSidebarWidth = width;
       }
-      state.isHydrated = true;
+      if (collapsed !== undefined) {
+        state.sidebarCollapsed = collapsed;
+      }
+      state.sidebarHydrated = true;
     },
     startSnapshotHydrationSession: (state, action) => {
       const {
@@ -247,6 +252,9 @@ export const appSlice = createSlice({
     },
     setIsCreatingCollection: (state, action) => {
       state.isCreatingCollection = action.payload;
+    },
+    setSidebarHydrated: (state, action) => {
+      state.sidebarHydrated = action.payload;
     }
   },
   extraReducers: (builder) => {
@@ -268,7 +276,7 @@ export const appSlice = createSlice({
 export const {
   idbConnectionReady,
   setSnapshotReady,
-  setHydratedState,
+  setSidebarState,
   startSnapshotHydrationSession,
   markSnapshotCollectionHydrated,
   clearSnapshotHydrationSession,
@@ -298,21 +306,41 @@ export const {
   setClipboard,
   setEnvVarSearchQuery,
   setEnvVarSearchExpanded,
-  setIsCreatingCollection
+  setIsCreatingCollection,
+  setSidebarHydrated
 } = appSlice.actions;
 
 export const hydrateApp = () => async (dispatch) => {
   if (!window.ipcRenderer) {
-    dispatch(setHydratedState(null));
+    dispatch(setSidebarHydrated(true));
     return;
   }
 
   try {
-    const snapshot = await window.ipcRenderer.invoke('renderer:snapshot:get');
-    dispatch(setHydratedState(snapshot));
+    const hasLocalWidth = hasLocalStorageSidebarWidth();
+    const hasLocalCollapsed = hasLocalStorageSidebarCollapsed();
+    if (hasLocalWidth || hasLocalCollapsed) {
+      return;
+    }
+    const sidebar = await window.ipcRenderer.invoke('renderer:snapshot:get-sidebar');
+    if (sidebar) {
+      const widthToApply = !hasLocalWidth ? sidebar.width : undefined;
+      const collapsedToApply = !hasLocalCollapsed ? sidebar.collapsed : undefined;
+
+      if (widthToApply !== undefined || collapsedToApply !== undefined) {
+        dispatch(setSidebarState({ width: widthToApply, collapsed: collapsedToApply }));
+        if (widthToApply !== undefined) {
+          setLocalStorageSidebarWidth(widthToApply);
+        }
+        if (collapsedToApply !== undefined) {
+          setLocalStorageSidebarCollapsed(collapsedToApply);
+        }
+      }
+    }
   } catch (error) {
     console.error('Failed to hydrate snapshot:', error);
-    dispatch(setHydratedState(null));
+  } finally {
+    dispatch(setSidebarHydrated(true));
   }
 };
 
