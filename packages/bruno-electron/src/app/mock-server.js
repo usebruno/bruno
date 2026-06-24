@@ -104,7 +104,7 @@ const isPortAvailable = (port) => new Promise((resolve) => {
     .once('listening', () => {
       tester.close(() => resolve(true));
     })
-    .listen(port, '127.0.0.1');
+    .listen(port, 'localhost');
 });
 
 const checkPortAvailable = async (port, { mockServerUid = null, additionalUsedPorts = [] } = {}) => {
@@ -448,7 +448,7 @@ const tryMockRequest = ({ url, method = 'GET', headers = {}, body = null }) => n
 });
 
 const listenOnPort = (app, port) => new Promise((resolve, reject) => {
-  const server = app.listen(port, '127.0.0.1', () => resolve(server));
+  const server = app.listen(port, 'localhost', () => resolve(server));
   server.on('error', (err) => {
     if (err.code === 'EADDRINUSE') {
       reject(new Error(`Port ${port} is already in use. Choose a different port.`));

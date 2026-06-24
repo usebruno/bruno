@@ -26,7 +26,7 @@ describe('mock-server routing', () => {
   });
 
   it('builds base URLs for isolated and shared modes', () => {
-    expect(buildBaseUrl({ mode: 'isolated', port: 4001, slug: null })).toBe('http://127.0.0.1:4001');
-    expect(buildBaseUrl({ mode: 'shared', port: DEFAULT_GATEWAY_PORT, slug: 'my-api' })).toBe(`http://127.0.0.1:${DEFAULT_GATEWAY_PORT}/my-api`);
+    expect(buildBaseUrl({ mode: 'isolated', port: 4001, slug: null })).toBe('http://localhost:4001');
+    expect(buildBaseUrl({ mode: 'shared', port: DEFAULT_GATEWAY_PORT, slug: 'my-api' })).toBe(`http://localhost:${DEFAULT_GATEWAY_PORT}/my-api`);
   });
 });

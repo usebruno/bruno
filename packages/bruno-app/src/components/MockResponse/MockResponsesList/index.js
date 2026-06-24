@@ -9,7 +9,7 @@ import {
   saveMockResponse,
   syncMockResponsesFromExamples
 } from 'providers/ReduxStore/slices/mock-server';
-import { addTab, closeTabs } from 'providers/ReduxStore/slices/tabs';
+import { addTab, closeTabs, updateTabMeta } from 'providers/ReduxStore/slices/tabs';
 import { removeMockResponseEditor } from 'providers/ReduxStore/slices/collections/mockResponseEditorActions';
 import {
   buildMockServerTryUrl,
@@ -163,12 +163,24 @@ const MockResponsesList = ({ instance, collection }) => {
     setIsSyncing(true);
     try {
       const exampleEntries = collectCollectionExamples(resolvedCollection);
+      const previousNamesByUid = new Map(responses.map((response) => [response.uid, response.name]));
       const nextResponses = mergeMockResponsesFromExamples(responses, exampleEntries);
 
       await dispatch(syncMockResponsesFromExamples({
         ...location,
         responses: nextResponses
       })).unwrap();
+
+      for (const response of nextResponses) {
+        const previousName = previousNamesByUid.get(response.uid);
+        if (previousName !== undefined && previousName !== response.name) {
+          dispatch(updateTabMeta({
+            uid: response.uid,
+            tabName: response.name,
+            responseName: response.name
+          }));
+        }
+      }
 
       setShowSyncModal(false);
       toast.success('Mock responses synced with collection examples');

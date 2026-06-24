@@ -4,7 +4,7 @@ import { createRequest, sendRequest, getResponseBody } from '../utils/page/actio
 
 const COLLECTION_NAME = 'mocker-test-collection';
 const MOCK_PORT = '4111';
-const MOCK_BASE = `http://127.0.0.1:${MOCK_PORT}`;
+const MOCK_BASE = `http://localhost:${MOCK_PORT}`;
 
 const openMockerTab = async (page: Page) => {
   await page.getByTestId('mocker').click();

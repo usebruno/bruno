@@ -430,56 +430,57 @@ const MockServerDashboard = ({ instance, collection }) => {
         )}
 
         <div className="server-controls">
-          <div className="control-group control-group-advanced">
-            <button
-              type="button"
-              className="advanced-toggle"
-              onClick={() => setShowAdvancedPort((value) => !value)}
-              data-testid="mock-server-advanced-settings-toggle"
-            >
-              {showAdvancedPort ? 'Hide advanced settings' : 'Advanced settings'}
-            </button>
-            {showAdvancedPort ? (
-              <div className="advanced-port-field">
-                {!isSharedMode ? (
-                  <>
-                    <label htmlFor="mock-server-port-input">Port</label>
-                    <input
-                      id="mock-server-port-input"
-                      type="number"
-                      value={portDraft}
-                      onChange={(event) => {
-                        setPortDraft(event.target.value);
-                        if (portError) {
-                          setPortError(null);
-                        }
-                      }}
-                      onBlur={handlePortBlur}
-                      disabled={isRunning || isStarting || isStopping}
-                      min={1}
-                      max={65535}
-                      data-testid="mock-server-port-input"
-                    />
-                    {portError ? (
-                      <div className="field-error" data-testid="mock-server-port-error">{portError}</div>
-                    ) : null}
-                  </>
-                ) : null}
-                <label htmlFor="mock-server-delay-input">Response delay (ms)</label>
-                <input
-                  id="mock-server-delay-input"
-                  type="number"
-                  value={delayDraft}
-                  onChange={handleDelayChange}
-                  onBlur={handleDelayBlur}
-                  disabled={isStarting}
-                  min={0}
-                  step={100}
-                  data-testid="mock-server-delay-input"
-                />
-              </div>
-            ) : null}
+          <div className="control-group">
+            <label htmlFor="mock-server-delay-input">Delay (ms)</label>
+            <input
+              id="mock-server-delay-input"
+              type="number"
+              value={delayDraft}
+              onChange={handleDelayChange}
+              onBlur={handleDelayBlur}
+              disabled={isStarting}
+              min={0}
+              step={100}
+              data-testid="mock-server-delay-input"
+            />
           </div>
+
+          {/* {!isSharedMode ? (
+            <div className="control-group control-group-advanced">
+              <button
+                type="button"
+                className="advanced-toggle"
+                onClick={() => setShowAdvancedPort((value) => !value)}
+                data-testid="mock-server-advanced-port-toggle"
+              >
+                {showAdvancedPort ? 'Hide port' : 'Port settings'}
+              </button>
+              {showAdvancedPort ? (
+                <div className="advanced-port-field">
+                  <label htmlFor="mock-server-port-input">Port</label>
+                  <input
+                    id="mock-server-port-input"
+                    type="number"
+                    value={portDraft}
+                    onChange={(event) => {
+                      setPortDraft(event.target.value);
+                      if (portError) {
+                        setPortError(null);
+                      }
+                    }}
+                    onBlur={handlePortBlur}
+                    disabled={isRunning || isStarting || isStopping}
+                    min={1}
+                    max={65535}
+                    data-testid="mock-server-port-input"
+                  />
+                  {portError ? (
+                    <div className="field-error" data-testid="mock-server-port-error">{portError}</div>
+                  ) : null}
+                </div>
+              ) : null}
+            </div>
+          ) : null} */}
 
           {!isRunning && !isStopping ? (
             <button

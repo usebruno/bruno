@@ -5,7 +5,7 @@ describe('extractMockResponseRoutePath', () => {
     expect(extractMockResponseRoutePath('{{baseUrl}}/breeds')).toBe('/breeds');
     expect(extractMockResponseRoutePath('google.com/test')).toBe('/test');
     expect(extractMockResponseRoutePath('https://api.example.com/v1/users')).toBe('/v1/users');
-    expect(extractMockResponseRoutePath('127.0.0.1:8080/api')).toBe('/api');
+    expect(extractMockResponseRoutePath('localhost:8080/api')).toBe('/api');
     expect(extractMockResponseRoutePath('pets')).toBe('/pets');
   });
 });
@@ -19,6 +19,6 @@ describe('buildMockServerTryUrl', () => {
         { name: 'limit', value: '10', enabled: true },
         { name: 'skip', value: '1', enabled: false }
       ]
-    })).toBe('http://127.0.0.1:4000/breeds?limit=10');
+    })).toBe('http://localhost:4000/breeds?limit=10');
   });
 });

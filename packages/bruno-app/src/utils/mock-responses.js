@@ -159,7 +159,7 @@ export const buildMockServerTryUrl = ({
     path += path.includes('?') ? `&${query}` : `?${query}`;
   }
 
-  const base = `http://127.0.0.1:${port}`;
+  const base = `http://localhost:${port}`;
 
   if (isSharedMode && sharedSlug) {
     return `${base}/${sharedSlug}${path === '/' ? '' : path}`;

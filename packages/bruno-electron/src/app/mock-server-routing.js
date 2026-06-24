@@ -48,10 +48,10 @@ const stripCollectionPrefix = (reqPath, slug) => {
 
 const buildBaseUrl = ({ mode, port, slug }) => {
   if (mode === 'shared') {
-    return `http://127.0.0.1:${port}/${slug}`;
+    return `http://localhost:${port}/${slug}`;
   }
 
-  return `http://127.0.0.1:${port}`;
+  return `http://localhost:${port}`;
 };
 
 module.exports = {
