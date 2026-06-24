@@ -7,7 +7,8 @@ const { spawn } = require('child_process');
 
 const CLI_BIN = path.resolve(__dirname, '..', '..', 'bin', 'bru.js');
 
-const writeFileSyncMkdirP = (filePath, content) => {
+// Writes a fixture file, creating any missing parent directories first (mkdir -p semantics).
+const writeFixtureFile = (filePath, content) => {
   fs.mkdirSync(path.dirname(filePath), { recursive: true });
   fs.writeFileSync(filePath, content);
 };
@@ -69,6 +70,12 @@ describe('CLI run — typed env + collection vars set via scripts are persisted 
   // spawnSync would block jest's event loop, leaving the in-process HTTP server unable to
   // answer the CLI's request — leading to ECONNREFUSED and the post-response script never
   // running. Use async spawn so the server stays responsive.
+  //
+  // SHELL=/bin/sh: the CLI bootstrap (packages/bruno-cli/src/index.js) calls
+  // `initializeShellEnv()` unconditionally, which spawns $SHELL via the `shell-env` package
+  // to source the user's dotfiles. Forcing /bin/sh standardizes that across machines (a
+  // developer with fish/zsh shouldn't have their dotfiles sourced into the test env) and
+  // keeps the bootstrap fast and deterministic.
   const runCli = (args, cwd = tmpDir) =>
     new Promise((resolve, reject) => {
       const child = spawn(process.execPath, [CLI_BIN, ...args], {
@@ -82,22 +89,6 @@ describe('CLI run — typed env + collection vars set via scripts are persisted 
       child.on('error', reject);
       child.on('close', (code) => resolve({ code, stdout, stderr }));
     });
-
-  const writeFixture = () => {
-    writeFileSyncMkdirP(
-      path.join(tmpDir, 'bruno.json'),
-      JSON.stringify({ version: '1', name: 'typed-cli-collection', type: 'collection' }, null, 2) + '\n'
-    );
-    writeFileSyncMkdirP(
-      path.join(tmpDir, 'collection.bru'),
-      'meta {\n  name: typed-cli-collection\n  seq: 1\n}\n'
-    );
-    writeFileSyncMkdirP(
-      path.join(tmpDir, 'environments', 'Test.bru'),
-      `vars {\n  host: ${baseUrl}\n}\n`
-    );
-    writeFileSyncMkdirP(path.join(tmpDir, 'set-typed-vars.bru'), REQUEST_BRU);
-  };
 
   const assertDiskState = () => {
     const envContent = fs.readFileSync(path.join(tmpDir, 'environments', 'Test.bru'), 'utf8');
@@ -128,7 +119,19 @@ describe('CLI run — typed env + collection vars set via scripts are persisted 
     ['developer'],
     ['safe']
   ])('writes @number/@boolean/@object annotations after CLI run (--sandbox %s)', async (sandbox) => {
-    writeFixture();
+    writeFixtureFile(
+      path.join(tmpDir, 'bruno.json'),
+      JSON.stringify({ version: '1', name: 'typed-cli-collection', type: 'collection' }, null, 2) + '\n'
+    );
+    writeFixtureFile(
+      path.join(tmpDir, 'collection.bru'),
+      'meta {\n  name: typed-cli-collection\n  seq: 1\n}\n'
+    );
+    writeFixtureFile(
+      path.join(tmpDir, 'environments', 'Test.bru'),
+      `vars {\n  host: ${baseUrl}\n}\n`
+    );
+    writeFixtureFile(path.join(tmpDir, 'set-typed-vars.bru'), REQUEST_BRU);
 
     const result = await runCli([
       'run', 'set-typed-vars.bru', '--env', 'Test', '--sandbox', sandbox, '--noproxy'
@@ -159,24 +162,24 @@ describe('CLI run — typed env + collection vars set via scripts are persisted 
 
     // The CLI's workspace check only looks for the file's existence — see run.js
     // findWorkspacePath. A minimal valid YAML body keeps the fixture small.
-    writeFileSyncMkdirP(
+    writeFixtureFile(
       path.join(workspaceDir, 'workspace.yml'),
       'opencollection: 1.0.0\ninfo:\n  name: "Test Workspace"\n  type: workspace\ncollections:\n  - name: "typed-cli-collection"\n    path: "typed-cli-collection"\nspecs:\ndocs: \'\'\n'
     );
-    writeFileSyncMkdirP(
+    writeFixtureFile(
       path.join(workspaceDir, 'environments', 'Global.yml'),
       `name: Global\nvariables:\n  - name: baseUrl\n    value: ${baseUrl}\n    enabled: true\n    secret: false\n`
     );
 
-    writeFileSyncMkdirP(
+    writeFixtureFile(
       path.join(collectionDir, 'bruno.json'),
       JSON.stringify({ version: '1', name: 'typed-cli-collection', type: 'collection' }, null, 2) + '\n'
     );
-    writeFileSyncMkdirP(
+    writeFixtureFile(
       path.join(collectionDir, 'collection.bru'),
       'meta {\n  name: typed-cli-collection\n  seq: 1\n}\n'
     );
-    writeFileSyncMkdirP(
+    writeFixtureFile(
       path.join(collectionDir, 'set-typed-global-vars.bru'),
       `meta {
   name: set-typed-global-vars
@@ -218,5 +221,136 @@ script:post-response {
     expect(written).toMatch(/name:\s*globalObj[\s\S]*?type:\s*object[\s\S]*?data:[\s\S]*?tier/);
     expect(written).toMatch(/name:\s*baseUrl[\s\S]*?value:\s*['"]?http:\/\/127\.0\.0\.1/);
     expect(written).not.toMatch(/name:\s*baseUrl[\s\S]*?type:\s*string/);
+  }, 60_000);
+
+  // Verifies the explicit --workspace-path flag (vs. cwd walk-up via findWorkspacePath at
+  // run.js:440). With the collection sitting OUTSIDE the workspace tree, the auto-detect
+  // walk-up cannot find workspace.yml — the only way the CLI locates the global env file is
+  // via the explicit flag. Persistence must still route correctly through that code path.
+  it('persists typed global env vars when --workspace-path is provided explicitly', async () => {
+    // Workspace and collection are siblings — auto-detect walk-up from the collection dir
+    // never reaches the workspace, so --workspace-path is the only way the CLI finds it.
+    const workspaceDir = path.join(tmpDir, 'workspace');
+    const collectionDir = path.join(tmpDir, 'standalone-collection');
+
+    writeFixtureFile(
+      path.join(workspaceDir, 'workspace.yml'),
+      'opencollection: 1.0.0\ninfo:\n  name: "Test Workspace"\n  type: workspace\ncollections:\nspecs:\ndocs: \'\'\n'
+    );
+    writeFixtureFile(
+      path.join(workspaceDir, 'environments', 'Global.yml'),
+      `name: Global\nvariables:\n  - name: baseUrl\n    value: ${baseUrl}\n    enabled: true\n    secret: false\n`
+    );
+
+    writeFixtureFile(
+      path.join(collectionDir, 'bruno.json'),
+      JSON.stringify({ version: '1', name: 'standalone-collection', type: 'collection' }, null, 2) + '\n'
+    );
+    writeFixtureFile(
+      path.join(collectionDir, 'collection.bru'),
+      'meta {\n  name: standalone-collection\n  seq: 1\n}\n'
+    );
+    writeFixtureFile(
+      path.join(collectionDir, 'set-typed-global-vars.bru'),
+      `meta {
+  name: set-typed-global-vars
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/ping
+  body: none
+  auth: none
+}
+
+script:post-response {
+  bru.setGlobalEnvVar("globalNum", 99);
+  bru.setGlobalEnvVar("globalBool", false);
+}
+`
+    );
+
+    const result = await runCli(
+      [
+        'run', 'set-typed-global-vars.bru',
+        '--global-env', 'Global',
+        '--workspace-path', workspaceDir,
+        '--sandbox', 'developer',
+        '--noproxy'
+      ],
+      collectionDir
+    );
+
+    if (result.code !== 0) {
+      throw new Error(
+        `CLI exited with code ${result.code}.\n--- stdout ---\n${result.stdout}\n--- stderr ---\n${result.stderr}`
+      );
+    }
+
+    const written = fs.readFileSync(path.join(workspaceDir, 'environments', 'Global.yml'), 'utf8');
+    expect(written).toMatch(/name:\s*globalNum[\s\S]*?type:\s*number[\s\S]*?data:\s*['"]?99/);
+    expect(written).toMatch(/name:\s*globalBool[\s\S]*?type:\s*boolean[\s\S]*?data:\s*['"]?false/);
+  }, 60_000);
+
+  // Regression guard at the CLI binary boundary: --env-var values are transient (the CLI
+  // can't decrypt at-rest secrets, so users pass them in for a single run). Even though a
+  // script writes an unrelated env var — which dirties the env scope and makes the runtime
+  // echo back the full envVariables map including the override — the on-disk env file must
+  // keep its real secret untouched.
+  it('does not persist --env-var override values into the env file', async () => {
+    writeFixtureFile(
+      path.join(tmpDir, 'bruno.json'),
+      JSON.stringify({ version: '1', name: 'override-leak-collection', type: 'collection' }, null, 2) + '\n'
+    );
+    writeFixtureFile(
+      path.join(tmpDir, 'collection.bru'),
+      'meta {\n  name: override-leak-collection\n  seq: 1\n}\n'
+    );
+    writeFixtureFile(
+      path.join(tmpDir, 'environments', 'Test.bru'),
+      `vars {\n  host: ${baseUrl}\n  token: real-secret-on-disk\n}\n`
+    );
+    writeFixtureFile(
+      path.join(tmpDir, 'set-unrelated.bru'),
+      `meta {
+  name: set-unrelated
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+script:post-response {
+  bru.setEnvVar("unrelated", "value");
+}
+`
+    );
+
+    const result = await runCli([
+      'run', 'set-unrelated.bru',
+      '--env', 'Test',
+      '--env-var', 'token=transient-cli-value',
+      '--sandbox', 'developer',
+      '--noproxy'
+    ]);
+
+    if (result.code !== 0) {
+      throw new Error(
+        `CLI exited with code ${result.code}.\n--- stdout ---\n${result.stdout}\n--- stderr ---\n${result.stderr}`
+      );
+    }
+
+    const envContent = fs.readFileSync(path.join(tmpDir, 'environments', 'Test.bru'), 'utf8');
+    // Real on-disk secret preserved
+    expect(envContent).toMatch(/token:\s*real-secret-on-disk/);
+    // Transient override value NEVER reaches disk
+    expect(envContent).not.toContain('transient-cli-value');
+    // Unrelated key from the script is persisted normally
+    expect(envContent).toMatch(/unrelated:\s*value/);
   }, 60_000);
 });
