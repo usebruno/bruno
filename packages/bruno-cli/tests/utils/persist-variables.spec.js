@@ -1,4 +1,4 @@
-const { describe, it, expect, beforeEach, afterEach } = require('@jest/globals');
+const { describe, it, expect, beforeEach, afterEach, jest: jestObj } = require('@jest/globals');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
@@ -9,10 +9,12 @@ const {
   mergeScriptVarsIntoCollectionVarsList
 } = require('../../src/utils/persist-variables');
 
-const tmpBase = path.join(os.tmpdir(), 'bruno-cli-persist-vars-tests');
+// Each test gets a unique temp dir — mkdtempSync prevents cross-test contamination if any
+// future test shares a filename, and lets the file work safely under concurrent jest workers.
+let tmpBase;
 
 beforeEach(() => {
-  fs.mkdirSync(tmpBase, { recursive: true });
+  tmpBase = fs.mkdtempSync(path.join(os.tmpdir(), 'bruno-cli-persist-vars-'));
 });
 
 afterEach(() => {
@@ -190,15 +192,18 @@ describe('persistVariableUpdates — env file', () => {
     const filePath = writeFile('dev.yml',
       'name: dev\nvariables:\n  - name: host\n    value: same\n'
     );
-    const before = fs.statSync(filePath).mtimeMs;
-    const wait = Date.now() + 5;
-    while (Date.now() < wait) { /* spin to ensure mtime can change */ }
-    persistVariableUpdates(
-      { envVariables: { host: 'same', __name__: 'dev' } },
-      { envFile: { path: filePath, format: 'yml' } }
-    );
-    const after = fs.statSync(filePath).mtimeMs;
-    expect(after).toBe(before);
+    // Spy on writeFileSync instead of comparing mtimes — some filesystems (HFS+, FAT32) have
+    // coarse mtime resolution and would silently pass even if a write occurred.
+    const spy = jestObj.spyOn(fs, 'writeFileSync');
+    try {
+      persistVariableUpdates(
+        { envVariables: { host: 'same', __name__: 'dev' } },
+        { envFile: { path: filePath, format: 'yml' } }
+      );
+      expect(spy).not.toHaveBeenCalled();
+    } finally {
+      spy.mockRestore();
+    }
   });
 
   it('is a no-op when the env file does not exist', () => {
@@ -221,6 +226,72 @@ describe('persistVariableUpdates — env file', () => {
     const written = fs.readFileSync(filePath, 'utf8');
     expect(written).toMatch(/stash/);
     expect(written).toMatch(/disabled:\s*true/);
+  });
+
+  // End-to-end of the `bru.deleteEnvVar` flow: the runtime returns an envVariables map that
+  // simply omits the deleted key, and that omission must reach disk. (The merge filter is
+  // covered as a unit at the mergeScriptVarsIntoEnvList level; this verifies the full
+  // persistEnvFile path including the file write.)
+  it('deletes an enabled key from disk when the script removed it from the env map', () => {
+    const filePath = writeFile('dev.bru',
+      'vars {\n  host: keep\n  token: gone\n}\n'
+    );
+    persistVariableUpdates(
+      // Note: `token` absent — simulates `bru.deleteEnvVar("token")`.
+      { envVariables: { host: 'keep', __name__: 'dev' } },
+      { envFile: { path: filePath, format: 'bru' } }
+    );
+    const written = fs.readFileSync(filePath, 'utf8');
+    expect(written).toMatch(/host:\s*keep/);
+    expect(written).not.toMatch(/token/);
+  });
+});
+
+// Design contract: runtime vars live for the duration of the run and never reach disk.
+// A future refactor that wires runtime persistence by accident would be a leak risk
+// (runtime is where ephemeral state like generated tokens lives) — guard against it.
+describe('persistVariableUpdates — runtimeVariables are NEVER persisted', () => {
+  it('does not touch any file when only runtimeVariables is dirtied', () => {
+    const envPath = writeFile('dev.yml',
+      'name: dev\nvariables:\n  - name: host\n    value: original\n'
+    );
+    const globalPath = writeFile('global.yml',
+      'name: global\nvariables:\n  - name: region\n    value: us\n'
+    );
+    const collectionRootPath = writeFile('collection.bru',
+      'meta {\n  name: t\n  seq: 1\n}\n'
+    );
+    const collection = {
+      format: 'bru',
+      brunoConfig: { name: 't' },
+      root: { meta: { name: 't', seq: 1 }, request: { vars: { req: [] } } }
+    };
+
+    const spy = jestObj.spyOn(fs, 'writeFileSync');
+    try {
+      persistVariableUpdates(
+        // Only runtimeVariables dirtied; envVariables/globalEnvironmentVariables/collectionVariables null.
+        {
+          envVariables: null,
+          globalEnvironmentVariables: null,
+          collectionVariables: null,
+          runtimeVariables: { ephemeral: 'should-not-persist' }
+        },
+        {
+          envFile: { path: envPath, format: 'yml' },
+          globalEnvFile: { path: globalPath, format: 'yml' },
+          collection,
+          collectionRootPath
+        }
+      );
+      expect(spy).not.toHaveBeenCalled();
+    } finally {
+      spy.mockRestore();
+    }
+
+    // Sanity check: files on disk unchanged.
+    expect(fs.readFileSync(envPath, 'utf8')).toMatch(/original/);
+    expect(fs.readFileSync(globalPath, 'utf8')).toMatch(/region/);
   });
 });
 
