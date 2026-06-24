@@ -131,24 +131,52 @@ test.describe('Snapshot: Sidebar Persistence', () => {
 
   // ─── Snapshot file structure ──────────────────────────────────────────────
 
-  test('snapshot file always contains extras.sidebar with correct shape', async ({ launchElectronApp, createTmpDir }) => {
+  test('snapshot file extras.sidebar is optional in existing snapshots, and populated with defaults on first launch', async ({ launchElectronApp, createTmpDir }) => {
     const userDataPath = await createTmpDir('snap-sidebar-schema');
 
+    // Launch & close without changes (first launch)
     const app = await launchElectronApp({ userDataPath });
     const page = await waitForReadyPage(app);
-
-    // Allow the app to settle and write an initial snapshot
     await page.waitForTimeout(2000);
     await closeElectronApp(app);
 
     const snapshot = readSnapshot(userDataPath);
     expect(snapshot).not.toBeNull();
-    expect(snapshot).toHaveProperty('extras.sidebar');
-    expect(typeof snapshot.extras.sidebar.collapsed).toBe('boolean');
-    expect(typeof snapshot.extras.sidebar.width).toBe('number');
-
-    // Defaults on first run
+    expect(snapshot.extras.sidebar).toBeDefined();
     expect(snapshot.extras.sidebar.collapsed).toBe(false);
     expect(snapshot.extras.sidebar.width).toBe(250);
+
+    // Simulate an existing snapshot by deleting the sidebar state
+    const fs = require('fs');
+    const path = require('path');
+    const snapshotPath = path.join(userDataPath, 'ui-state-snapshot.json');
+    if (fs.existsSync(snapshotPath)) {
+      const data = JSON.parse(fs.readFileSync(snapshotPath, 'utf8'));
+      delete data.extras.sidebar;
+      fs.writeFileSync(snapshotPath, JSON.stringify(data, null, 2), 'utf8');
+    }
+
+    // Launch again with the existing snapshot (missing sidebar) and verify it doesn't crash
+    const app2 = await launchElectronApp({ userDataPath });
+    const page2 = await waitForReadyPage(app2);
+    const dragHandle = page2.locator('.sidebar-drag-handle');
+    await expect(dragHandle).toBeVisible({ timeout: 10000 });
+
+    const handleBox = await dragHandle.boundingBox();
+    expect(handleBox).not.toBeNull();
+
+    await page2.mouse.move(handleBox!.x + handleBox!.width / 2, handleBox!.y + handleBox!.height / 2);
+    await page2.mouse.down();
+    await page2.mouse.move(300, handleBox!.y + handleBox!.height / 2, { steps: 10 });
+    await page2.mouse.up();
+    await page2.waitForTimeout(2000);
+    await closeElectronApp(app2);
+
+    const snapshot2 = readSnapshot(userDataPath);
+    expect(snapshot2).not.toBeNull();
+    expect(snapshot2.extras.sidebar).toBeDefined();
+    expect(typeof snapshot2.extras.sidebar.collapsed).toBe('boolean');
+    expect(typeof snapshot2.extras.sidebar.width).toBe('number');
+    expect(Math.abs(snapshot2.extras.sidebar.width - 300)).toBeLessThan(15);
   });
 });
