@@ -2174,24 +2174,30 @@ export {
 
 export type { SandboxMode, EnvironmentType, EnvironmentVariable, ImportCollectionOptions, CreateRequestOptions, CreateUntitledRequestOptions, CreateTransientRequestOptions, AssertionInput };
 
-export const buildImportWorkspaceLocators = (page: Page) => ({
-  // Title-bar workspace dropdown
-  menuTrigger: () => page.getByTestId('workspace-menu'),
-  activeWorkspaceName: () => page.getByTestId('workspace-name'),
-  dropdownItem: (text: string) => page.locator('.dropdown-item').filter({ hasText: text }),
+export const buildImportWorkspaceLocators = (page: Page) => {
+  // Scope every modal query to the dialog so we avoid the brittle
+  // `.bruno-modal-card` class selector. The title filter also disambiguates
+  // this modal from any other open dialog.
+  const modal = () => page.getByRole('dialog').filter({ hasText: 'Import Workspace' });
 
-  // Import Workspace modal
-  modal: () => page.locator('.bruno-modal-card').filter({ hasText: 'Import Workspace' }),
-  fileInput: () => page.locator('.bruno-modal-card input[type="file"]'),
-  selectedFileName: (name: string) =>
-    page.locator('.bruno-modal-card').filter({ hasText: 'Import Workspace' }).getByText(name),
-  removeFileButton: () => page.locator('.bruno-modal-card').filter({ hasText: 'Import Workspace' }).getByText('Remove'),
-  locationInput: () => page.locator('#workspace-location'),
-  browseLink: () =>
-    page.locator('.bruno-modal-card').filter({ hasText: 'Import Workspace' }).getByText('Browse', { exact: true }),
-  importButton: () =>
-    page.locator('.bruno-modal-card').filter({ hasText: 'Import Workspace' }).getByRole('button', { name: 'Import' })
-});
+  return {
+    // Title-bar workspace dropdown
+    menuTrigger: () => page.getByTestId('workspace-menu'),
+    activeWorkspaceName: () => page.getByTestId('workspace-name'),
+    dropdownItem: () => page.getByTestId('workspace-menu-import-workspace'),
+
+    // Import Workspace modal
+    modal,
+    // The file <input> is hidden with no testid/label/role, so an attribute
+    // selector scoped to the modal is the only reliable handle for setInputFiles().
+    fileInput: () => modal().locator('input[type="file"]'),
+    selectedFileName: (name: string) => modal().getByText(name),
+    removeFileButton: () => modal().getByText('Remove'),
+    locationInput: () => page.getByLabel('Extract Location'),
+    browseLink: () => modal().getByText('Browse', { exact: true }),
+    importButton: () => modal().getByTestId('modal-submit-btn')
+  };
+};
 
 /**
  * Build a valid Bruno workspace zip on disk that the importer will accept.
@@ -2229,8 +2235,8 @@ export const openImportWorkspaceModal = async (page: Page) => {
   const l = buildImportWorkspaceLocators(page);
   await test.step('Open workspace menu and click "Import workspace"', async () => {
     await l.menuTrigger().click();
-    await l.dropdownItem('Import workspace').click();
-    await expect(l.modal()).toBeVisible({ timeout: 5000 });
+    await l.dropdownItem().click();
+    await expect(l.modal()).toBeVisible({ timeout: 2000 });
   });
 };
 
@@ -2253,7 +2259,7 @@ export const submitWorkspaceImport = async (page: Page, opts: ImportWorkspaceOpt
 
   await test.step('Select the workspace zip file', async () => {
     await l.fileInput().setInputFiles(opts.zipPath);
-    await expect(l.selectedFileName(path.basename(opts.zipPath))).toBeVisible({ timeout: 5000 });
+    await expect(l.selectedFileName(path.basename(opts.zipPath))).toBeVisible({ timeout: 2000 });
   });
 
   await test.step('Ensure an extract location is set', async () => {
@@ -2264,7 +2270,7 @@ export const submitWorkspaceImport = async (page: Page, opts: ImportWorkspaceOpt
           Promise.resolve({ canceled: false, filePaths: [target] });
       }, opts.extractLocation);
       await l.locationInput().click();
-      await expect(l.locationInput()).toHaveValue(opts.extractLocation, { timeout: 5000 });
+      await expect(l.locationInput()).toHaveValue(opts.extractLocation, { timeout: 2000 });
     } else {
       // Rely on the pre-filled default location.
       await expect(l.locationInput()).not.toHaveValue('');
