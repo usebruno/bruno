@@ -608,72 +608,70 @@ const EnvironmentVariablesTable = ({
                     <ErrorMessage name={`${actualIndex}.name`} index={actualIndex} />
                   </div>
                 </td>
-                <td
-                  className="flex flex-row flex-nowrap items-center gap-2"
-                  style={{ width: columnWidths.value }}
-                >
-                  <div
-                    className="flex-1 min-w-0 relative"
-                    onFocus={() => handleRowFocus(variable.uid)}
-                  >
-                    <MultiLineEditor
-                      theme={storedTheme}
-                      canGrow={true}
-                      collection={_collection}
-                      name={`${actualIndex}.value`}
-                      value={valueToString(variable.value, 2)}
-                      placeholder={variable.value == null || (typeof variable.value === 'string' && variable.value.trim() === '') ? 'Value' : ''}
-                      isSecret={variable.secret}
-                      onChange={(newValue) => {
-                        formik.setFieldValue(`${actualIndex}.value`, newValue, true);
-                        // Clear ephemeral metadata when user manually edits the value
-                        if (variable.ephemeral) {
-                          formik.setFieldValue(`${actualIndex}.ephemeral`, undefined, false);
-                          formik.setFieldValue(`${actualIndex}.persistedValue`, undefined, false);
-                        }
-                        // Append a new empty row when editing value on the last row
-                        if (isLastRow) {
-                          setTimeout(() => {
-                            formik.setFieldValue(formik.values.length, {
-                              uid: uuid(),
-                              name: '',
-                              value: '',
-                              type: 'text',
-                              secret: false,
-                              enabled: true
-                            }, false);
-                          }, 0);
-                        }
-                      }}
-                      onSave={handleSave}
-                    />
-                    {typeof variable.value !== 'string' && (
-                      <span className="ml-2 flex items-center flex-shrink-0">
-                        <IconInfoCircle id={`${variable.uid}-disabled-info-icon`} className="text-muted" size={16} />
-                        <Tooltip
-                          anchorId={`${variable.uid}-disabled-info-icon`}
-                          content="Non-string values set via scripts are read-only and can only be updated through scripts."
-                          place="top"
+                <td style={{ width: columnWidths.value }}>
+                  <div className="flex flex-row flex-nowrap items-center gap-2 h-full">
+                    <div
+                      className="flex-1 min-w-0 relative flex flex-col"
+                      onFocus={() => handleRowFocus(variable.uid)}
+                    >
+                      <MultiLineEditor
+                        theme={storedTheme}
+                        collection={_collection}
+                        name={`${actualIndex}.value`}
+                        value={valueToString(variable.value, 2)}
+                        placeholder={variable.value == null || (typeof variable.value === 'string' && variable.value.trim() === '') ? 'Value' : ''}
+                        isSecret={variable.secret}
+                        onChange={(newValue) => {
+                          formik.setFieldValue(`${actualIndex}.value`, newValue, true);
+                          // Clear ephemeral metadata when user manually edits the value
+                          if (variable.ephemeral) {
+                            formik.setFieldValue(`${actualIndex}.ephemeral`, undefined, false);
+                            formik.setFieldValue(`${actualIndex}.persistedValue`, undefined, false);
+                          }
+                          // Append a new empty row when editing value on the last row
+                          if (isLastRow) {
+                            setTimeout(() => {
+                              formik.setFieldValue(formik.values.length, {
+                                uid: uuid(),
+                                name: '',
+                                value: '',
+                                type: 'text',
+                                secret: false,
+                                enabled: true
+                              }, false);
+                            }, 0);
+                          }
+                        }}
+                        onSave={handleSave}
+                      />
+                      {typeof variable.value !== 'string' && (
+                        <span className="ml-2 flex items-center flex-shrink-0">
+                          <IconInfoCircle id={`${variable.uid}-disabled-info-icon`} className="text-muted" size={16} />
+                          <Tooltip
+                            anchorId={`${variable.uid}-disabled-info-icon`}
+                            content="Non-string values set via scripts are read-only and can only be updated through scripts."
+                            place="top"
+                          />
+                        </span>
+                      )}
+                      {renderExtraValueContent && renderExtraValueContent(variable)}
+                    </div>
+                    {!isLastEmptyRow && (
+                      <span>
+                        <DataTypeSelector
+                          variable={variable}
+                          theme={storedTheme}
+                          collection={_collection}
+                          onChange={(fields) => {
+                            Object.entries(fields).forEach(([key, val]) => {
+                              formik.setFieldValue(`${actualIndex}.${key}`, val, true);
+                            });
+                          }}
                         />
                       </span>
                     )}
                     {renderExtraValueContent && renderExtraValueContent(variable)}
                   </div>
-                  {!isLastEmptyRow && (
-                    <span>
-                      <DataTypeSelector
-                        variable={variable}
-                        theme={storedTheme}
-                        collection={_collection}
-                        onChange={(fields) => {
-                          Object.entries(fields).forEach(([key, val]) => {
-                            formik.setFieldValue(`${actualIndex}.${key}`, val, true);
-                          });
-                        }}
-                      />
-                    </span>
-                  )}
-                  {renderExtraValueContent && renderExtraValueContent(variable)}
                 </td>
                 <td style={{ width: columnWidths.description }}>
                   <MultiLineEditor
