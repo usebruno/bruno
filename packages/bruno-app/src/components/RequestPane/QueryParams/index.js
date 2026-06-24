@@ -12,6 +12,7 @@ import { saveRequest, sendRequest } from 'providers/ReduxStore/slices/collection
 import { updateTableColumnWidths } from 'providers/ReduxStore/slices/tabs';
 import MultiLineEditor from 'components/MultiLineEditor';
 import EditableTable from 'components/EditableTable';
+import { createDescriptionColumn } from 'components/EditableTable/descriptionColumn';
 import StyledWrapper from './StyledWrapper';
 import BulkEditor from '../../BulkEditor';
 import { usePersistedState } from 'hooks/usePersistedState';
@@ -80,43 +81,22 @@ const QueryParams = ({ item, collection }) => {
     setIsBulkEditMode(!isBulkEditMode);
   };
 
-  const descriptionColumnQuery = {
-    key: 'description',
-    name: 'Description',
-    placeholder: 'Description',
-    width: '25%',
-    render: ({ value, onChange }) => (
-      <MultiLineEditor
-        value={value || ''}
-        theme={storedTheme}
-        onSave={onSave}
-        onChange={onChange}
-        allowNewlines={true}
-        onRun={handleRun}
-        collection={collection}
-        item={item}
-      />
-    )
-  };
+  const descriptionColumnQuery = createDescriptionColumn({
+    theme: storedTheme,
+    onSave,
+    onRun: handleRun,
+    collection,
+    item
+  });
 
-  const descriptionColumnPath = {
-    key: 'description',
-    name: 'Description',
-    placeholder: 'Description',
-    width: '25%',
-    render: ({ row, value, onChange }) => (
-      <MultiLineEditor
-        value={value || ''}
-        theme={storedTheme}
-        onSave={onSave}
-        onChange={(newValue) => handlePathParamChange(row.uid, 'description', newValue)}
-        allowNewlines={true}
-        onRun={handleRun}
-        collection={collection}
-        item={item}
-      />
-    )
-  };
+  const descriptionColumnPath = createDescriptionColumn({
+    theme: storedTheme,
+    onSave,
+    onRun: handleRun,
+    collection,
+    item,
+    onDescriptionChange: (newValue, { row }) => handlePathParamChange(row.uid, 'description', newValue)
+  });
 
   const queryColumns = [
     {

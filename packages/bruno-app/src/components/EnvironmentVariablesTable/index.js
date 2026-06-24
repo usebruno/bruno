@@ -635,6 +635,7 @@ const EnvironmentVariablesTable = ({
                                 uid: uuid(),
                                 name: '',
                                 value: '',
+                                description: '',
                                 type: 'text',
                                 secret: false,
                                 enabled: true
@@ -670,7 +671,6 @@ const EnvironmentVariablesTable = ({
                         />
                       </span>
                     )}
-                    {renderExtraValueContent && renderExtraValueContent(variable)}
                   </div>
                 </td>
                 <td style={{ width: columnWidths.description }}>
@@ -684,7 +684,6 @@ const EnvironmentVariablesTable = ({
                       formik.setFieldValue(`${actualIndex}.description`, newValue, true);
                     }}
                     onSave={handleSave}
-                    allowNewlines={true}
                   />
                 </td>
                 <td className="text-center">

@@ -9,6 +9,7 @@ import DataTypeSelector from 'components/DataTypeSelector';
 import VarValueCell from 'components/VarValueCell';
 import { valueToString } from '@usebruno/common/utils';
 import EditableTable from 'components/EditableTable';
+import { createDescriptionColumn } from 'components/EditableTable/descriptionColumn';
 import StyledWrapper from './StyledWrapper';
 import toast from 'react-hot-toast';
 import { variableNameRegex } from 'utils/common/regex';
@@ -43,23 +44,12 @@ const VarsTable = ({ collection, vars, varType, initialScroll = 0 }) => {
     return null;
   }, []);
 
-  const descriptionColumn = {
-    key: 'description',
-    name: 'Description',
-    placeholder: 'Description',
-    width: '25%',
-    render: ({ value, onChange, rowIndex }) => (
-      <MultiLineEditor
-        value={value || ''}
-        name={`${rowIndex}.description`}
-        theme={storedTheme}
-        onSave={onSave}
-        onChange={onChange}
-        allowNewlines={true}
-        collection={collection}
-      />
-    )
-  };
+  const descriptionColumn = createDescriptionColumn({
+    theme: storedTheme,
+    onSave,
+    collection,
+    nameFromRowIndex: true
+  });
 
   const columns = [
     {

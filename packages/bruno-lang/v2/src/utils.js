@@ -173,21 +173,23 @@ function serializeAnnotations(annotations) {
   );
 };
 
+const resolveDescriptionAnnotations = (annotations, description) => {
+  const other = (annotations || []).filter((a) => a.name !== 'description');
+  if (description !== undefined && description !== null) {
+    if (description !== '') {
+      return { descArr: [{ name: 'description', value: description }], other };
+    }
+    return { descArr: [], other };
+  }
+  const descAnnotation = (annotations || []).find((a) => a.name === 'description');
+  const descArr = descAnnotation !== undefined ? [descAnnotation] : [];
+  return { descArr, other };
+};
+
 const buildAnnotationsFromVariable = (variable) => {
   const { annotations = [], dataType, description } = variable;
-  // Drop dataType annotations; they'll be rebuilt from the dataType field
   const dataTypeFiltered = annotations.filter((a) => !BRUNO_VARIABLE_DATATYPES.includes(a.name));
-
-  // Build description annotation (description field takes priority; fall back to annotations)
-  let descAnnotation;
-  if (description !== undefined && description !== null) {
-    descAnnotation = description !== '' ? { name: 'description', value: description } : null;
-  } else {
-    descAnnotation = dataTypeFiltered.find((a) => a.name === 'description') || null;
-  }
-
-  const other = dataTypeFiltered.filter((a) => a.name !== 'description');
-  const descArr = descAnnotation ? [descAnnotation] : [];
+  const { descArr, other } = resolveDescriptionAnnotations(dataTypeFiltered, description);
 
   if (dataType && dataType !== 'string') {
     return [{ name: dataType }, ...descArr, ...other];
@@ -220,21 +222,8 @@ const applyDescriptionFromAnnotations = (result, annotations) => {
 };
 
 const buildAnnotationsFromKVItem = (item) => {
-  const { annotations = [], description } = item;
-  const other = (annotations || []).filter((a) => a.name !== 'description');
-  if (description !== undefined && description !== null) {
-    // description explicitly set (UI edits): use it, but only if non-empty
-    if (description !== '') {
-      return [{ name: 'description', value: description }, ...other];
-    }
-    return other;
-  }
-  // No description field: use raw annotations as-is (round-trips empty @description too)
-  const descAnnotation = (annotations || []).find((a) => a.name === 'description');
-  if (descAnnotation !== undefined) {
-    return [descAnnotation, ...other];
-  }
-  return other;
+  const { descArr, other } = resolveDescriptionAnnotations(item.annotations, item.description);
+  return [...descArr, ...other];
 };
 
 module.exports = {

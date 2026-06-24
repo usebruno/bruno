@@ -15,6 +15,7 @@ import MultipartFileChipsCell from 'components/MultipartFileChipsCell';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { updateTableColumnWidths } from 'providers/ReduxStore/slices/tabs';
 import EditableTable from 'components/EditableTable';
+import { createDescriptionColumn } from 'components/EditableTable/descriptionColumn';
 import StyledWrapper from './StyledWrapper';
 import path, { getRelativePathWithinBasePath, normalizePath } from 'utils/common/path';
 import { getMultipartAutoContentType } from 'utils/common/multipartContentType';
@@ -230,24 +231,13 @@ const MultipartFormParams = ({ item, collection }) => {
         />
       )
     },
-    {
-      key: 'description',
-      name: 'Description',
-      placeholder: 'Description',
-      width: '25%',
-      render: ({ value, onChange }) => (
-        <MultiLineEditor
-          value={value || ''}
-          theme={storedTheme}
-          onSave={onSave}
-          onChange={onChange}
-          allowNewlines={true}
-          onRun={handleRun}
-          collection={collection}
-          item={item}
-        />
-      )
-    }
+    createDescriptionColumn({
+      theme: storedTheme,
+      onSave,
+      onRun: handleRun,
+      collection,
+      item
+    })
   ];
 
   const defaultRow = {

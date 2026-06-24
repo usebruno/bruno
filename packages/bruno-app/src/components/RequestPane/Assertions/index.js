@@ -6,9 +6,9 @@ import { moveAssertion, setRequestAssertions } from 'providers/ReduxStore/slices
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { updateTableColumnWidths } from 'providers/ReduxStore/slices/tabs';
 import SingleLineEditor from 'components/SingleLineEditor';
-import MultiLineEditor from 'components/MultiLineEditor';
 import AssertionOperator from './AssertionOperator';
 import EditableTable from 'components/EditableTable';
+import { createDescriptionColumn } from 'components/EditableTable/descriptionColumn';
 import StyledWrapper from './StyledWrapper';
 import { usePersistedState } from 'hooks/usePersistedState';
 import { useTrackScroll } from 'hooks/useTrackScroll';
@@ -92,25 +92,14 @@ const Assertions = ({ item, collection }) => {
     }));
   }, [dispatch, collection.uid, item.uid]);
 
-  const descriptionColumn = {
-    key: 'description',
-    name: 'Description',
-    placeholder: 'Description',
-    width: '25%',
-    render: ({ value, onChange, rowIndex }) => (
-      <MultiLineEditor
-        name={`${rowIndex}.description`}
-        value={value || ''}
-        theme={storedTheme}
-        onSave={onSave}
-        onChange={onChange}
-        allowNewlines={true}
-        onRun={handleRun}
-        collection={collection}
-        item={item}
-      />
-    )
-  };
+  const descriptionColumn = createDescriptionColumn({
+    theme: storedTheme,
+    onSave,
+    onRun: handleRun,
+    collection,
+    item,
+    nameFromRowIndex: true
+  });
 
   const columns = [
     {

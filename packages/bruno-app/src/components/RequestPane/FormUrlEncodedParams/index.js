@@ -10,6 +10,7 @@ import MultiLineEditor from 'components/MultiLineEditor';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { updateTableColumnWidths } from 'providers/ReduxStore/slices/tabs';
 import EditableTable from 'components/EditableTable';
+import { createDescriptionColumn } from 'components/EditableTable/descriptionColumn';
 import StyledWrapper from './StyledWrapper';
 import { usePersistedState } from 'hooks/usePersistedState';
 import { useTrackScroll } from 'hooks/useTrackScroll';
@@ -51,24 +52,13 @@ const FormUrlEncodedParams = ({ item, collection }) => {
     }));
   }, [dispatch, collection.uid, item.uid]);
 
-  const descriptionColumn = {
-    key: 'description',
-    name: 'Description',
-    placeholder: 'Description',
-    width: '25%',
-    render: ({ value, onChange }) => (
-      <MultiLineEditor
-        value={value || ''}
-        theme={storedTheme}
-        onSave={onSave}
-        onChange={onChange}
-        allowNewlines={true}
-        onRun={handleRun}
-        collection={collection}
-        item={item}
-      />
-    )
-  };
+  const descriptionColumn = createDescriptionColumn({
+    theme: storedTheme,
+    onSave,
+    onRun: handleRun,
+    collection,
+    item
+  });
 
   const columns = [
     {

@@ -324,6 +324,38 @@ describe('brunoToPostman null checks and fallbacks', () => {
     expect(result.item[0].request.description).toBe('');
   });
 
+  it('should pass through header and form field descriptions', () => {
+    const simpleCollection = {
+      items: [
+        {
+          name: 'Test Request',
+          type: 'http-request',
+          request: {
+            method: 'POST',
+            url: 'https://example.com',
+            headers: [
+              { name: 'X-Custom', value: 'v', enabled: true, description: 'Header note' }
+            ],
+            body: {
+              mode: 'formUrlEncoded',
+              formUrlEncoded: [
+                { name: 'field', value: 'val', enabled: true, description: 'Field note' }
+              ]
+            }
+          }
+        }
+      ]
+    };
+
+    const result = brunoToPostman(simpleCollection);
+    expect(result.item[0].request.header).toEqual([
+      expect.objectContaining({ key: 'X-Custom', value: 'v', description: 'Header note' })
+    ]);
+    expect(result.item[0].request.body.urlencoded).toEqual([
+      expect.objectContaining({ key: 'field', value: 'val', description: 'Field note' })
+    ]);
+  });
+
   it('should handle null or undefined folder name', () => {
     const simpleCollection = {
       items: [

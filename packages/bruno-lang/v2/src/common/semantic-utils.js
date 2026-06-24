@@ -11,8 +11,7 @@ const mapPairListToKeyValPairs = (pairList = [], parseEnabled = true) => {
     return [];
   }
   return _.map(pairList[0], (pair) => {
-    // Skip the internal __desc marker when resolving the real key name
-    let name = _.keys(pair).find((k) => k !== '__desc');
+    let name = _.keys(pair)[0];
     let value = pair[name];
 
     if (!parseEnabled) {
@@ -49,8 +48,7 @@ const mapRequestParams = (pairList = [], type) => {
     return [];
   }
   return _.map(pairList[0], (pair) => {
-    // Skip the internal __desc marker when resolving the real key name
-    let name = _.keys(pair).find((k) => k !== '__desc');
+    let name = _.keys(pair)[0];
     let value = pair[name];
     let enabled = true;
     if (name && name.length && name.charAt(0) === '~') {

@@ -32,6 +32,33 @@ http:
       value: value
       type: query
 
+runtime:
+  variables:
+    - name: apiKey
+      value: secret
+      description: Single-line var desc
+    - name: baseUrl
+      value: https://example.com
+      description: |-
+        Multi-line var desc line one
+        Multi-line var desc line two
+    - name: plainVar
+      value: value
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "200"
+      description: Single-line assert desc
+    - expression: res.body.ok
+      operator: eq
+      value: "true"
+      description: |-
+        Multi-line assert line one
+        Multi-line assert line two
+    - expression: plainAssert
+      operator: eq
+      value: foo
+
 settings:
   encodeUrl: true
   timeout: 0

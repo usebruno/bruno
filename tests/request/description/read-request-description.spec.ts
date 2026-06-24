@@ -103,4 +103,48 @@ test.describe('Request Description - Read', () => {
     const plainDescEditor = rows.nth(2).getByTestId('column-description').locator('.CodeMirror');
     await expect(plainDescEditor.locator('.CodeMirror-line').first()).toHaveText('');
   });
+
+  test('reads descriptions from request vars in a pre-existing .bru file', async ({
+    pageWithUserData: page
+  }) => {
+    test.setTimeout(30_000);
+
+    await openRequest(page, COLLECTION, 'request-with-descriptions');
+    await selectRequestPaneTab(page, 'Vars');
+
+    const varsTable = page.getByTestId('request-vars-req');
+    const rows = varsTable.locator('tbody tr');
+
+    const apiKeyDescEditor = rows.nth(0).getByTestId('column-description').locator('.CodeMirror');
+    await expect(apiKeyDescEditor.locator('.CodeMirror-line').first()).toHaveText('Single-line var desc');
+
+    const baseUrlDescEditor = rows.nth(1).getByTestId('column-description').locator('.CodeMirror');
+    await expect(baseUrlDescEditor.locator('.CodeMirror-line').nth(0)).toHaveText('Multi-line var desc line one');
+    await expect(baseUrlDescEditor.locator('.CodeMirror-line').nth(1)).toHaveText('Multi-line var desc line two');
+
+    const plainDescEditor = rows.nth(2).getByTestId('column-description').locator('.CodeMirror');
+    await expect(plainDescEditor.locator('.CodeMirror-line').first()).toHaveText('');
+  });
+
+  test('reads descriptions from request assertions in a pre-existing .bru file', async ({
+    pageWithUserData: page
+  }) => {
+    test.setTimeout(30_000);
+
+    await openRequest(page, COLLECTION, 'request-with-descriptions');
+    await selectRequestPaneTab(page, 'Assert');
+
+    const assertionsTable = page.getByTestId('assertions-table');
+    const rows = assertionsTable.locator('tbody tr');
+
+    const statusDescEditor = rows.nth(0).getByTestId('column-description').locator('.CodeMirror');
+    await expect(statusDescEditor.locator('.CodeMirror-line').first()).toHaveText('Single-line assert desc');
+
+    const bodyDescEditor = rows.nth(1).getByTestId('column-description').locator('.CodeMirror');
+    await expect(bodyDescEditor.locator('.CodeMirror-line').nth(0)).toHaveText('Multi-line assert line one');
+    await expect(bodyDescEditor.locator('.CodeMirror-line').nth(1)).toHaveText('Multi-line assert line two');
+
+    const plainDescEditor = rows.nth(2).getByTestId('column-description').locator('.CodeMirror');
+    await expect(plainDescEditor.locator('.CodeMirror-line').first()).toHaveText('');
+  });
 });

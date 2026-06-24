@@ -85,8 +85,7 @@ const mapPairListToKeyValPairs = (pairList = []) => {
   }
 
   return _.flatMap(pairList[0], (pair) => {
-    // Skip the internal __desc marker when resolving the real key name
-    let name = _.keys(pair).find((k) => k !== '__desc');
+    let name = _.keys(pair)[0];
     let value = pair[name];
     const rawAnnotations = pair[ANNOTATIONS_KEY];
     let enabled = true;

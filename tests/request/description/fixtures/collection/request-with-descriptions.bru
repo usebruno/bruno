@@ -31,3 +31,25 @@ headers {
   X-Multi: value
   X-Plain: plain-value
 }
+
+vars:pre-request {
+  @description('''Single-line var desc''')
+  apiKey: secret
+  @description('''
+    Multi-line var desc line one
+    Multi-line var desc line two
+  ''')
+  baseUrl: https://example.com
+  plainVar: value
+}
+
+assert {
+  @description('''Single-line assert desc''')
+  res.status: eq 200
+  @description('''
+    Multi-line assert line one
+    Multi-line assert line two
+  ''')
+  res.body.ok: eq true
+  plainAssert: eq foo
+}
