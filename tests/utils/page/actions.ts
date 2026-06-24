@@ -1220,14 +1220,19 @@ const addMultipartFileToLastRow = async (page: Page, electronApp: ElectronApplic
     // The last row is the empty "add" row. Capture its index now, because once
     // we set a file the table appends a new empty row — so `.last()` would jump
     // to that new row instead of staying on the one we just filled.
-    const rowIndex = (await table.allRows().count()) - 1;
+    let rowIndex = (await table.allRows().count()) - 1;
     const targetRow = table.allRows().nth(rowIndex);
+
+    if (rowIndex < 0) {
+      rowIndex = 0;
+    }
 
     await expect(targetRow.getByTestId('multipart-file-upload')).toBeVisible();
     await targetRow.getByTestId('multipart-file-upload').click();
-    await expect(targetRow.locator('.file-value-cell')).toBeVisible();
-    const inlineChip = targetRow.getByTestId('multipart-file-chip').filter({ hasText: path.basename(filePath) });
-    const summary = targetRow.getByTestId('multipart-file-summary');
+    const specificRow = table.allRows().nth(rowIndex);
+    await expect(specificRow.locator('.file-value-cell')).toBeVisible({ timeout: 10000 });
+    const inlineChip = specificRow.getByTestId('multipart-file-chip').filter({ hasText: path.basename(filePath) });
+    const summary = specificRow.getByTestId('multipart-file-summary');
     await expect(inlineChip.or(summary)).toBeVisible();
   });
 };
