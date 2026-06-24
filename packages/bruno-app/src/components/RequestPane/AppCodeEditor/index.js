@@ -1,8 +1,10 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import get from 'lodash/get';
 import { useDispatch, useSelector } from 'react-redux';
 import CodeEditor from 'components/CodeEditor';
 import ToggleSwitch from 'components/ToggleSwitch';
+import AIAssist from 'components/AIAssist';
+import { buildRequestContextFromItem } from 'utils/ai';
 import { updateAppCode, toggleAppMode } from 'providers/ReduxStore/slices/collections';
 import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { useTheme } from 'providers/Theme';
@@ -24,6 +26,8 @@ const AppCodeEditor = ({ item, collection }) => {
 
   const onSave = () => dispatch(saveRequest(item.uid, collection.uid));
 
+  const requestContext = useMemo(() => buildRequestContextFromItem(item), [item]);
+
   return (
     <StyledWrapper className="w-full h-full flex flex-col">
       <div className="app-toggle-row mb-3 px-1 pb-3 flex items-center justify-between">
@@ -36,7 +40,7 @@ const AppCodeEditor = ({ item, collection }) => {
         <ToggleSwitch isOn={enabled} handleToggle={onToggle} size="m" data-testid="app-enable-toggle" />
       </div>
 
-      <div className="flex-1 app-editor" data-testid="app-code-editor">
+      <div className="flex-1 app-editor relative" data-testid="app-code-editor">
         <CodeEditor
           collection={collection}
           value={code || ''}
@@ -46,6 +50,12 @@ const AppCodeEditor = ({ item, collection }) => {
           onEdit={onEdit}
           onSave={onSave}
           mode="javascript"
+        />
+        <AIAssist
+          scriptType="app-request"
+          currentScript={code || ''}
+          requestContext={requestContext}
+          onApply={onEdit}
         />
       </div>
     </StyledWrapper>

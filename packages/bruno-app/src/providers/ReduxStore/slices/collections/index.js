@@ -3390,7 +3390,8 @@ export const collectionsSlice = createSlice({
       if (!collection) return;
 
       const item = findItemInCollection(collection, action.payload.itemUid);
-      if (item && isItemARequest(item)) {
+      // Accept both request-attached apps and standalone 'app' items.
+      if (item && (isItemARequest(item) || item.type === 'app')) {
         if (!item.draft) {
           item.draft = cloneDeep(item);
         }
