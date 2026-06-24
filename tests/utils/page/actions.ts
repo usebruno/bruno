@@ -2248,9 +2248,8 @@ export {
   openRequestInFolder,
   setUrlEncoding,
   generateCollectionDocs,
-  renameWsMessage,
   openFolderSettings,
-  setTableRowDescriptionValue
+  setTableRowDescriptionValue,
   setAppCode,
   enableApp,
   exitApp,
