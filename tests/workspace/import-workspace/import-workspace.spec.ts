@@ -2,6 +2,7 @@ import path from 'path';
 import fs from 'fs';
 import yaml from 'js-yaml';
 import { test, expect, closeElectronApp } from '../../../playwright';
+import { findWorkspaceDirByName, WorkspaceConfig } from '../../utils/helpers';
 import {
   waitForReadyPage,
   buildImportWorkspaceLocators,
@@ -9,22 +10,7 @@ import {
   importWorkspaceFromZip
 } from '../../utils/page';
 
-type WorkspaceConfig = {
-  info?: { name: string; type: string };
-};
-
 const initUserDataPath = path.join(__dirname, 'init-user-data');
-
-/** Find a workspace dir under `location` whose workspace.yml has the given name. */
-function findWorkspaceDirByName(location: string, name: string): string | null {
-  for (const entry of fs.readdirSync(location)) {
-    const ymlPath = path.join(location, entry, 'workspace.yml');
-    if (!fs.existsSync(ymlPath)) continue;
-    const config = yaml.load(fs.readFileSync(ymlPath, 'utf8')) as WorkspaceConfig;
-    if (config?.info?.name === name) return path.join(location, entry);
-  }
-  return null;
-}
 
 test.describe('Import Workspace', () => {
   // TC-969: Import workspace from local directory containing a valid workspace.zip file
@@ -52,11 +38,11 @@ test.describe('Import Workspace', () => {
     });
 
     await test.step('Verify the xworkspace was extracted to the filesystem', async () => {
-      const wsDir = findWorkspaceDirByName(wsLocation, workspaceName);
+      const wsDir = await findWorkspaceDirByName(wsLocation, workspaceName);
       expect(wsDir).not.toBeNull();
 
       const config = yaml.load(
-        fs.readFileSync(path.join(wsDir as string, 'workspace.yml'), 'utf8')
+        fs.readFileSync(path.join(wsDir!, 'workspace.yml'), 'utf8')
       ) as WorkspaceConfig;
       expect(config?.info?.name).toBe(workspaceName);
       expect(config?.info?.type).toBe('workspace');

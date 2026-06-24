@@ -2174,11 +2174,6 @@ export {
 
 export type { SandboxMode, EnvironmentType, EnvironmentVariable, ImportCollectionOptions, CreateRequestOptions, CreateUntitledRequestOptions, CreateTransientRequestOptions, AssertionInput };
 
-/* ------------------------------------------------------------------ *
- * Import Workspace flow
- * Used by tests/workspace/import-workspace.
- * ------------------------------------------------------------------ */
-
 export const buildImportWorkspaceLocators = (page: Page) => ({
   // Title-bar workspace dropdown
   menuTrigger: () => page.getByTestId('workspace-menu'),
