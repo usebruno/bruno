@@ -93,6 +93,7 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
   const [workspaceNameError, setWorkspaceNameError] = useState('');
   const [closeWorkspaceModalOpen, setCloseWorkspaceModalOpen] = useState(false);
   const [createWorkspaceModalOpen, setCreateWorkspaceModalOpen] = useState(false);
+  const [showMigrateModal, setShowMigrateModal] = useState(false);
 
   // Migrate-to-YML pill dismissal state (persisted by collection pathname)
   const [migratePillDismissed, setMigratePillDismissed] = useState(true);
@@ -270,8 +271,6 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
       })
     );
   };
-
-  const [showMigrateModal, setShowMigrateModal] = useState(false);
 
   const viewOpenApiSync = () => {
     dispatch(addTab({
