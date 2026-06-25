@@ -129,7 +129,7 @@ const varsSchema = Yup.object({
   .noUnknown(true)
   .strict();
 
-const requestUrlSchema = Yup.string().optional();
+const requestUrlSchema = Yup.string().min(0).defined();
 const requestMethodSchema = Yup.string()
   .min(1, 'method is required')
   .required('method is required');
