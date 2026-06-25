@@ -1,6 +1,7 @@
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
+const { INVALID_EXTENSION_MESSAGE } = require('../../src/app/apiSpecs');
 
 jest.mock('electron', () => ({
   dialog: { showOpenDialog: jest.fn() },
@@ -39,7 +40,7 @@ describe('openApiSpec', () => {
       await openApiSpec(win, watcher, specPath);
 
       expect(win.webContents.send).toHaveBeenCalledWith('main:display-error', {
-        message: 'Invalid file format. Please select a valid OpenAPI spec in YAML or JSON format.'
+        message: INVALID_EXTENSION_MESSAGE
       });
       expect(ipcMain.emit).not.toHaveBeenCalled();
     }
