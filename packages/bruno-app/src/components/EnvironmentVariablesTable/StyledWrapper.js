@@ -36,8 +36,13 @@ const Wrapper = styled.div`
       &:nth-child(4) {
         width: 80px;
       }
+      
       &:nth-child(5) {
         width: 10%;
+      }
+      
+      &:nth-child(6) {
+        width: 5%;
       }
     }
 
