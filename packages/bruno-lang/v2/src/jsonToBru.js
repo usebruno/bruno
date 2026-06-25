@@ -741,6 +741,14 @@ ${indentString(script.req)}
 `;
   }
 
+  if (script && script.stream && script.stream.length) {
+    bru += `script:on-message {
+${indentString(script.stream)}
+}
+
+`;
+  }
+
   if (script && script.res && script.res.length) {
     bru += `script:post-response {
 ${indentString(script.res)}

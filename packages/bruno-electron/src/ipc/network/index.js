@@ -539,7 +539,6 @@ const registerNetworkIpc = (mainWindow) => {
     scriptingConfig,
     runRequestByItemPathname
   ) => {
-    // run pre-request script
     let scriptResult;
     const { promptVariables = {}, name: collectionName } = collection;
 
@@ -911,6 +910,7 @@ const registerNetworkIpc = (mainWindow) => {
       let preRequestScriptResult = null;
       let preRequestError = null;
       try {
+        // run pre-request script
         preRequestScriptResult = await runPreRequest(
           request,
           requestUid,
@@ -1710,6 +1710,7 @@ const registerNetworkIpc = (mainWindow) => {
             let preRequestScriptResult;
             let preRequestError = null;
             try {
+              // run pre-request script
               preRequestScriptResult = await runPreRequest(
                 request,
                 requestUid,

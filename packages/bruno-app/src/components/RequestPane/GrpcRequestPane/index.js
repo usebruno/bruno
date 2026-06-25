@@ -14,6 +14,7 @@ import ResponsiveTabs from 'ui/ResponsiveTabs';
 import StyledWrapper from './StyledWrapper';
 import { hasEffectiveAuth } from 'utils/auth';
 import { AUTH_MODES_GRPC } from 'utils/common/constants';
+import Script from 'components/RequestPane/Script';
 
 const GrpcRequestPane = ({ item, collection, handleRun }) => {
   const dispatch = useDispatch();
@@ -45,6 +46,9 @@ const GrpcRequestPane = ({ item, collection, handleRun }) => {
       }
       case 'docs': {
         return <Documentation item={item} collection={collection} />;
+      }
+      case 'scripts': {
+        return <Script protocol="grpc" item={item} collection={collection} />;
       }
       default: {
         return <div className="mt-4">404 | Not found</div>;
@@ -98,6 +102,11 @@ const GrpcRequestPane = ({ item, collection, handleRun }) => {
       {
         key: 'docs',
         label: 'Docs',
+        indicator: docs && docs.length > 0 ? <StatusDot type="default" /> : null
+      },
+      {
+        key: 'scripts',
+        label: 'Scripts',
         indicator: docs && docs.length > 0 ? <StatusDot type="default" /> : null
       }
     ];

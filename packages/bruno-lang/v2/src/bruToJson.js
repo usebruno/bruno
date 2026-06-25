@@ -176,9 +176,10 @@ const grammar = ohm.grammar(`Bru {
   example = "example" st* "{" nl* examplecontent tagend
   examplecontent = (~tagend any)*
   
-  script = scriptreq | scriptres
+  script = scriptreq | scriptres | scriptstream
   scriptreq = "script:pre-request" st* "{" nl* textblock tagend
   scriptres = "script:post-response" st* "{" nl* textblock tagend
+  scriptstream = "script:on-message" st* "{" nl* textblock tagend
   tests = "tests" st* "{" nl* textblock tagend
   docs = "docs" st* "{" nl* textblock tagend
 }`);
@@ -1137,6 +1138,13 @@ const sem = grammar.createSemantics().addAttribute('ast', {
     return {
       script: {
         res: outdentString(textblock.sourceString)
+      }
+    };
+  },
+  scriptstream(_1, _2, _3, _4, textblock, _5) {
+    return {
+      script: {
+        stream: outdentString(textblock.sourceString)
       }
     };
   },

@@ -13,6 +13,12 @@ export const toOpenCollectionScripts = (request: BrunoFolderRequest | BrunoHttpR
       code: request.script.req.trim()
     });
   }
+  if (request?.script?.stream?.trim().length) {
+    ocScripts.push({
+      type: 'on-message',
+      code: request.script.stream.trim()
+    } as unknown as Script);
+  }
   if (request?.script?.res?.trim().length) {
     ocScripts.push({
       type: 'after-response',
@@ -30,7 +36,7 @@ export const toOpenCollectionScripts = (request: BrunoFolderRequest | BrunoHttpR
 };
 
 export const toBrunoScripts = (scripts: Scripts | null | undefined): {
-  script?: { req?: string; res?: string };
+  script?: { req?: string; res?: string; stream?: string };
   tests?: string;
 } | undefined => {
   if (!scripts || !Array.isArray(scripts) || scripts.length === 0) {
@@ -38,7 +44,7 @@ export const toBrunoScripts = (scripts: Scripts | null | undefined): {
   }
 
   const brunoScripts: {
-    script?: { req?: string; res?: string };
+    script?: { req?: string; res?: string; stream?: string };
     tests?: string;
   } = {};
 
@@ -48,6 +54,12 @@ export const toBrunoScripts = (scripts: Scripts | null | undefined): {
         brunoScripts.script = {};
       }
       brunoScripts.script.req = script.code;
+    }
+    if ((script.type as string) === 'on-message' && script.code) {
+      if (!brunoScripts.script) {
+        brunoScripts.script = {};
+      }
+      brunoScripts.script.stream = script.code;
     }
     if (script.type === 'after-response' && script.code) {
       if (!brunoScripts.script) {

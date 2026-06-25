@@ -1,6 +1,6 @@
 const _ = require('lodash');
 const Bru = require('../bru');
-const BrunoRequest = require('../bruno-request');
+const { createBrunoRequest } = require('../bruno-request');
 const { evaluateJsExpression, createResponseParser } = require('../utils');
 const { cleanJson } = require('../utils');
 
@@ -51,7 +51,7 @@ class VarsRuntime {
       certsAndProxyConfig,
       requestUrl: request?.url
     });
-    const req = new BrunoRequest(request);
+    const req = createBrunoRequest(request);
     const res = createResponseParser(response);
 
     const bruContext = {
