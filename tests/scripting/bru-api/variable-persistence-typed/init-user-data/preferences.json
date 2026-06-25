@@ -1,13 +1,5 @@
 {
-  "maximized": false,
   "lastOpenedCollections": [
     "{{collectionPath}}/variable-persistence-typed-test"
-  ],
-  "preferences": {
-    "onboarding": {
-      "hasLaunchedBefore": true,
-      "hasSeenWelcomeModal": true,
-      "lastSeenVersion": "999.0.0"
-    }
-  }
+  ]
 }

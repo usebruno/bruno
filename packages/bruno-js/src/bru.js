@@ -216,6 +216,7 @@ class Bru {
   }
 
   deleteEnvVar(key) {
+    if (key === '__name__') return;
     if (Object.hasOwn(this.envVariables, key)) {
       delete this.envVariables[key];
       this._envDirty = true;
