@@ -1,4 +1,3 @@
-// title-bar.ts
 import { Page, test } from '../../../playwright';
 
 export const buildWorkspaceTitleBarLocators = (page: Page) => ({
