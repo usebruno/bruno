@@ -3,21 +3,8 @@ import fs from 'fs';
 import { test, expect } from '../../../playwright';
 import { createWorkspace } from '../../utils/page/actions';
 
-function findCreatedWorkspaceDirs(location: string): string[] {
-  return fs.readdirSync(location).filter((e) => {
-    const fullPath = path.join(location, e);
-    return (
-      fs.statSync(fullPath).isDirectory()
-      && e !== 'default-workspace'
-      && fs.existsSync(path.join(fullPath, 'workspace.yml'))
-    );
-  });
-}
-
 test.describe('Manage Workspace', () => {
-  test.beforeEach(async ({ page, createTmpDir }) => {
-    const wsLocation = await createTmpDir('ws-location-terminal');
-
+  test.beforeEach(async ({ page }) => {
     await test.step('Create a workspace', async () => {
       await createWorkspace(page, 'Custom Workspace');
     });
