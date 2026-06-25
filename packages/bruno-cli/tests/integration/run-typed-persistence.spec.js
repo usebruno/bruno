@@ -373,6 +373,123 @@ script:post-response {
     expect(byName.host).toMatchObject({ uid: 'var-host', custom: 'keep-host' });
   }, 60_000);
 
+  // End-to-end coverage of resolveEnvFileFormat's extension-detection branching for the
+  // two non-JSON formats. The persistence behavior for yml / bru is already proven via
+  // --env (.bru) and --global-env (.yml); these tests prove that --env-file <path>.yml
+  // and --env-file <path>.bru also wire through correctly — descriptor format inferred
+  // from the extension, parser/serializer selected accordingly.
+  it('persists typed env vars to a --env-file YAML file with type/data blocks', async () => {
+    writeFixtureFile(
+      path.join(tmpDir, 'bruno.json'),
+      JSON.stringify({ version: '1', name: 'yml-envfile-collection', type: 'collection' }, null, 2) + '\n'
+    );
+    writeFixtureFile(
+      path.join(tmpDir, 'collection.bru'),
+      'meta {\n  name: yml-envfile-collection\n  seq: 1\n}\n'
+    );
+    writeFixtureFile(
+      path.join(tmpDir, 'External.yml'),
+      `name: External\nvariables:\n  - name: host\n    value: ${baseUrl}\n    enabled: true\n    secret: false\n`
+    );
+    writeFixtureFile(
+      path.join(tmpDir, 'set-typed-vars.bru'),
+      `meta {
+  name: set-typed-vars
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+script:post-response {
+  bru.setEnvVar("port", 3000);
+  bru.setEnvVar("enabled", true);
+}
+`
+    );
+
+    const result = await runCli([
+      'run', 'set-typed-vars.bru',
+      '--env-file', 'External.yml',
+      '--sandbox', 'developer',
+      '--noproxy'
+    ]);
+
+    if (result.code !== 0) {
+      throw new Error(
+        `CLI exited with code ${result.code}.\n--- stdout ---\n${result.stdout}\n--- stderr ---\n${result.stderr}`
+      );
+    }
+
+    // yml serializer encodes typed values as `value: { type, data }` blocks.
+    const written = fs.readFileSync(path.join(tmpDir, 'External.yml'), 'utf8');
+    expect(written).toMatch(/name:\s*port[\s\S]*?type:\s*number[\s\S]*?data:\s*['"]?3000/);
+    expect(written).toMatch(/name:\s*enabled[\s\S]*?type:\s*boolean[\s\S]*?data:\s*['"]?true/);
+    // String values stay as raw `value: ...` — no type/data block.
+    expect(written).toMatch(/name:\s*host[\s\S]*?value:\s*['"]?http:\/\/127\.0\.0\.1/);
+    expect(written).not.toMatch(/name:\s*host[\s\S]*?type:\s*string/);
+  }, 60_000);
+
+  it('persists typed env vars to a --env-file .bru file with @dataType annotations', async () => {
+    writeFixtureFile(
+      path.join(tmpDir, 'bruno.json'),
+      JSON.stringify({ version: '1', name: 'bru-envfile-collection', type: 'collection' }, null, 2) + '\n'
+    );
+    writeFixtureFile(
+      path.join(tmpDir, 'collection.bru'),
+      'meta {\n  name: bru-envfile-collection\n  seq: 1\n}\n'
+    );
+    writeFixtureFile(
+      path.join(tmpDir, 'External.bru'),
+      `vars {\n  host: ${baseUrl}\n}\n`
+    );
+    writeFixtureFile(
+      path.join(tmpDir, 'set-typed-vars.bru'),
+      `meta {
+  name: set-typed-vars
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+script:post-response {
+  bru.setEnvVar("port", 3000);
+  bru.setEnvVar("enabled", true);
+}
+`
+    );
+
+    const result = await runCli([
+      'run', 'set-typed-vars.bru',
+      '--env-file', 'External.bru',
+      '--sandbox', 'developer',
+      '--noproxy'
+    ]);
+
+    if (result.code !== 0) {
+      throw new Error(
+        `CLI exited with code ${result.code}.\n--- stdout ---\n${result.stdout}\n--- stderr ---\n${result.stderr}`
+      );
+    }
+
+    // .bru serializer emits typed values as `@dataType` decorators on the preceding line.
+    const written = fs.readFileSync(path.join(tmpDir, 'External.bru'), 'utf8');
+    expect(written).toMatch(/@number\s+port:\s*3000/);
+    expect(written).toMatch(/@boolean\s+enabled:\s*true/);
+    // String values get no annotation.
+    expect(written).not.toMatch(/@string\s+host/);
+    expect(written).toMatch(/host:\s*http:\/\/127\.0\.0\.1/);
+  }, 60_000);
+
   // Regression guard at the CLI binary boundary: --env-var values are transient (the CLI
   // can't decrypt at-rest secrets, so users pass them in for a single run). Even though a
   // script writes an unrelated env var — which dirties the env scope and makes the runtime
