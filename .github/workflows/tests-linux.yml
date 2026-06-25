@@ -6,6 +6,10 @@ on:
   pull_request:
     branches: [main, 'release/v*']
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   unit-test:
     name: Unit Tests (Linux)
@@ -49,7 +53,7 @@ jobs:
 
   e2e-test:
     name: Playwright E2E Tests (Linux)
-    timeout-minutes: 120
+    timeout-minutes: 240
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v6
@@ -70,7 +74,7 @@ jobs:
           sudo chown root node_modules/electron/dist/chrome-sandbox
           sudo chmod 4755 node_modules/electron/dist/chrome-sandbox
 
-      - name: Run playwright Tests
+      - name: Run E2E Tests
         uses: ./.github/actions/tests/run-e2e-tests
         with:
           os: ubuntu

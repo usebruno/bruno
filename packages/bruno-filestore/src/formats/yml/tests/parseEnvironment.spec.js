@@ -48,46 +48,46 @@ variables:
 const byName = (env) => Object.fromEntries(env.variables.map((v) => [v.name, v]));
 
 describe('yml parseEnvironment - typed values', () => {
-  it('keeps the value as a string and preserves the type via datatype', () => {
+  it('coerces the value to its native JS type and preserves the type via dataType', () => {
     const variables = byName(parseEnvironment(ENV_YML));
 
-    expect(variables.env_num).toMatchObject({ value: '300', type: 'text', datatype: 'number' });
-    expect(typeof variables.env_num.value).toBe('string');
+    expect(variables.env_num).toMatchObject({ value: 300, type: 'text', dataType: 'number' });
+    expect(typeof variables.env_num.value).toBe('number');
 
-    expect(variables.env_bool).toMatchObject({ value: 'true', datatype: 'boolean' });
-    expect(variables.falsy_num).toMatchObject({ value: '0', datatype: 'number' });
-    expect(variables.falsy_bool).toMatchObject({ value: 'false', datatype: 'boolean' });
+    expect(variables.env_bool).toMatchObject({ value: true, dataType: 'boolean' });
+    expect(variables.falsy_num).toMatchObject({ value: 0, dataType: 'number' });
+    expect(variables.falsy_bool).toMatchObject({ value: false, dataType: 'boolean' });
 
-    expect(variables.env_obj.datatype).toBe('object');
-    expect(typeof variables.env_obj.value).toBe('string');
-    expect(variables.env_obj.value).toContain('"scope": "env"');
+    expect(variables.env_obj.dataType).toBe('object');
+    expect(typeof variables.env_obj.value).toBe('object');
+    expect(variables.env_obj.value).toMatchObject({ scope: 'env' });
 
-    expect(variables.env_array_obj).toMatchObject({ value: '[1,2,3,4]', datatype: 'object' });
+    expect(variables.env_array_obj).toMatchObject({ value: [1, 2, 3, 4], dataType: 'object' });
   });
 
-  it('does not set datatype for plain string values', () => {
+  it('does not set dataType for plain string values', () => {
     const variables = byName(parseEnvironment(ENV_YML));
 
     expect(variables.env_str).toMatchObject({ value: 'env_string', type: 'text', secret: false });
-    expect(variables.env_str).not.toHaveProperty('datatype');
+    expect(variables.env_str).not.toHaveProperty('dataType');
   });
 
-  it('parses secret variables with no value or datatype', () => {
+  it('parses secret variables with no value or dataType', () => {
     const variables = byName(parseEnvironment(ENV_YML));
 
     expect(variables.env_secret_str).toMatchObject({ name: 'env_secret_str', value: '', secret: true });
-    expect(variables.env_secret_str).not.toHaveProperty('datatype');
+    expect(variables.env_secret_str).not.toHaveProperty('dataType');
   });
 
-  it('parses secret variables with a type, keeping the value empty and the type in datatype', () => {
+  it('parses secret variables with a type, keeping the value empty and the type in dataType', () => {
     const variables = byName(parseEnvironment(ENV_YML));
 
-    expect(variables.env_secret_num).toMatchObject({ value: '', secret: true, datatype: 'number' });
-    expect(variables.env_secret_bool).toMatchObject({ value: '', secret: true, datatype: 'boolean' });
-    expect(variables.env_secret_obj).toMatchObject({ value: '', secret: true, datatype: 'object' });
+    expect(variables.env_secret_num).toMatchObject({ value: '', secret: true, dataType: 'number' });
+    expect(variables.env_secret_bool).toMatchObject({ value: '', secret: true, dataType: 'boolean' });
+    expect(variables.env_secret_obj).toMatchObject({ value: '', secret: true, dataType: 'object' });
   });
 
-  it('serializes secret variable datatype back to a type field, omitting it for plain secrets', () => {
+  it('serializes secret variable dataType back to a type field, omitting it for plain secrets', () => {
     const yml = stringifyEnvironment(parseEnvironment(ENV_YML));
 
     expect(yml).toContain('- secret: true\n    name: env_secret_num\n    type: number');
@@ -97,19 +97,19 @@ describe('yml parseEnvironment - typed values', () => {
     expect(yml).not.toContain('name: env_secret_str\n    type:');
   });
 
-  it('serializes datatype back to an OpenCollection { type, data } value', () => {
+  it('serializes dataType back to an OpenCollection { type, data } value', () => {
     const yml = stringifyEnvironment(parseEnvironment(ENV_YML));
 
     expect(yml).toContain('type: number');
     expect(yml).toContain('data: "300"');
     expect(yml).toContain('type: boolean');
     expect(yml).toContain('type: object');
-    // plain strings stay plain, never wrapped as a string datatype
+    // plain strings stay plain, never wrapped as a string dataType
     expect(yml).toContain('value: env_string');
     expect(yml).not.toContain('type: string');
   });
 
-  it('round-trips value and datatype through parse -> stringify -> parse', () => {
+  it('round-trips value and dataType through parse -> stringify -> parse', () => {
     const env = parseEnvironment(ENV_YML);
     const reparsed = parseEnvironment(stringifyEnvironment(env));
 

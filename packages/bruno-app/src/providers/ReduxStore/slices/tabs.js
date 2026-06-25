@@ -62,7 +62,8 @@ export const tabsSlice = createSlice({
         'workspaceOverview',
         'workspaceEnvironments',
         'openapi-sync',
-        'openapi-spec'
+        'openapi-spec',
+        'changelog'
       ];
 
       const existingTab = find(state.tabs, (tab) => tab.uid === uid);
@@ -278,6 +279,24 @@ export const tabsSlice = createSlice({
 
       if (tab) {
         tab.scriptPaneTab = action.payload.scriptPaneTab;
+      }
+    },
+    setFocusErrorLine: (state, action) => {
+      const tab = find(state.tabs, (t) => t.uid === action.payload.uid);
+
+      if (tab) {
+        tab.focusErrorLine = {
+          scriptPhase: action.payload.scriptPhase,
+          line: action.payload.line,
+          requestedAt: action.payload.requestedAt
+        };
+      }
+    },
+    clearFocusErrorLine: (state, action) => {
+      const tab = find(state.tabs, (t) => t.uid === action.payload.uid);
+
+      if (tab) {
+        tab.focusErrorLine = null;
       }
     },
     updateQueryBuilderOpen: (state, action) => {
@@ -519,6 +538,8 @@ export const {
   updateGqlDocsOpen,
   updateTableColumnWidths,
   updateScriptPaneTab,
+  setFocusErrorLine,
+  clearFocusErrorLine,
   closeTabs,
   closeAllCollectionTabs,
   makeTabPermanent,

@@ -8,6 +8,7 @@ import { updateRequestTests } from 'providers/ReduxStore/slices/collections';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { useTheme } from 'providers/Theme';
 import { usePersistedState } from 'hooks/usePersistedState';
+import { useFocusErrorLine } from 'hooks/useFocusErrorLine';
 
 const Tests = ({ item, collection }) => {
   const dispatch = useDispatch();
@@ -31,6 +32,12 @@ const Tests = ({ item, collection }) => {
   const onRun = () => dispatch(sendRequest(item, collection.uid));
   const onSave = () => dispatch(saveRequest(item.uid, collection.uid));
 
+  useFocusErrorLine({
+    uid: item.uid,
+    editorRef: testsEditorRef,
+    scriptPhase: 'test'
+  });
+
   const requestContext = useMemo(() => buildRequestContextFromItem(item), [item]);
 
   return (
@@ -38,6 +45,7 @@ const Tests = ({ item, collection }) => {
       <CodeEditor
         ref={testsEditorRef}
         collection={collection}
+        item={item}
         docKey="tests"
         value={tests || ''}
         theme={displayedTheme}
@@ -48,6 +56,7 @@ const Tests = ({ item, collection }) => {
         onRun={onRun}
         onSave={onSave}
         showHintsFor={['req', 'res', 'bru']}
+        scriptType="tests"
         initialScroll={testsScroll}
         onScroll={setTestsScroll}
       />

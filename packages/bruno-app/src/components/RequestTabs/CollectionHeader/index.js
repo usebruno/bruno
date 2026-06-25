@@ -12,12 +12,21 @@ import {
   IconX,
   IconCheck,
   IconFolder,
-  IconUpload
+  IconUpload,
+  IconFileCode,
+  IconFileOff,
+  IconCode,
+  IconApps,
+  IconTransform
 } from '@tabler/icons';
 import OpenAPISyncIcon from 'components/Icons/OpenAPISync';
 import { switchWorkspace, renameWorkspaceAction, exportWorkspaceAction, confirmWorkspaceCreation, cancelWorkspaceCreation } from 'providers/ReduxStore/slices/workspaces/actions';
 import { updateWorkspace } from 'providers/ReduxStore/slices/workspaces';
 import { showInFolder } from 'providers/ReduxStore/slices/collections/actions';
+import { toggleCollectionFileMode, toggleAppMode, updateSettingsSelectedTab } from 'providers/ReduxStore/slices/collections';
+import { findItemInCollection, findItemInCollectionByPathname } from 'utils/collections';
+import find from 'lodash/find';
+import get from 'lodash/get';
 import { addTab, focusTab } from 'providers/ReduxStore/slices/tabs';
 import { uuid } from 'utils/common';
 import toast from 'react-hot-toast';
@@ -34,8 +43,19 @@ import { normalizePath } from 'utils/common/path';
 import classNames from 'classnames';
 import StyledWrapper from './StyledWrapper';
 import { useTheme } from 'providers/Theme';
-import { useBetaFeature, BETA_FEATURES } from 'utils/beta-features';
-import StatusBadge from 'ui/StatusBadge/index';
+
+const MIGRATE_PILL_DISMISSED_KEY = 'bruno.migrateToYmlPill.dismissed';
+
+const readDismissedCollections = () => {
+  try {
+    const raw = localStorage.getItem(MIGRATE_PILL_DISMISSED_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+};
 
 const CollectionHeader = ({ collection, isScratchCollection }) => {
   const dispatch = useDispatch();
@@ -43,11 +63,28 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
   const activeWorkspaceUid = useSelector((state) => state.workspaces.activeWorkspaceUid);
   const collections = useSelector((state) => state.collections.collections);
   const tabs = useSelector((state) => state.tabs.tabs);
+  const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
 
   // Get the current active workspace
   const currentWorkspace = workspaces.find((w) => w.uid === activeWorkspaceUid);
   const gitRootPath = collection?.git?.gitRootPath;
-  const isOpenAPISyncEnabled = useBetaFeature(BETA_FEATURES.OPENAPI_SYNC);
+
+  // Active request (used by the Request / App / File view-mode toggle)
+  const focusedTab = find(tabs, (t) => t.uid === activeTabUid);
+  const activeItem = focusedTab && collection
+    ? (findItemInCollection(collection, activeTabUid)
+      || (focusedTab.pathname ? findItemInCollectionByPathname(collection, focusedTab.pathname) : null))
+    : null;
+  const isHttpRequestActive = activeItem?.type === 'http-request';
+  const appEnabled = activeItem
+    ? (activeItem.draft ? get(activeItem, 'draft.app.enabled', false) : get(activeItem, 'app.enabled', false))
+    : false;
+
+  const handleToggleAppMode = (enabled) => {
+    if (isHttpRequestActive) {
+      dispatch(toggleAppMode({ enabled, itemUid: activeItem.uid, collectionUid: collection.uid }));
+    }
+  };
 
   // Workspace rename state
   const [isRenamingWorkspace, setIsRenamingWorkspace] = useState(false);
@@ -55,6 +92,27 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
   const [workspaceNameError, setWorkspaceNameError] = useState('');
   const [closeWorkspaceModalOpen, setCloseWorkspaceModalOpen] = useState(false);
   const [createWorkspaceModalOpen, setCreateWorkspaceModalOpen] = useState(false);
+
+  // Migrate-to-YML pill dismissal state (persisted by collection pathname)
+  const [migratePillDismissed, setMigratePillDismissed] = useState(true);
+  useEffect(() => {
+    if (!collection?.pathname) return;
+    const dismissed = readDismissedCollections();
+    setMigratePillDismissed(dismissed.includes(collection.pathname));
+  }, [collection?.pathname]);
+
+  const dismissMigratePill = (e) => {
+    e?.stopPropagation();
+    if (!collection?.pathname) return;
+    const dismissed = readDismissedCollections();
+    if (!dismissed.includes(collection.pathname)) {
+      dismissed.push(collection.pathname);
+      try {
+        localStorage.setItem(MIGRATE_PILL_DISMISSED_KEY, JSON.stringify(dismissed));
+      } catch { }
+    }
+    setMigratePillDismissed(true);
+  };
 
   const switcherRef = useRef();
   const workspaceActionsRef = useRef();
@@ -212,6 +270,17 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
     );
   };
 
+  const viewMigrationSettings = () => {
+    dispatch(
+      addTab({
+        uid: collection.uid,
+        collectionUid: collection.uid,
+        type: 'collection-settings'
+      })
+    );
+    dispatch(updateSettingsSelectedTab({ collectionUid: collection.uid, tab: 'overview' }));
+  };
+
   const viewOpenApiSync = () => {
     dispatch(addTab({
       uid: uuid(),
@@ -220,11 +289,24 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
     }));
   };
 
+  const handleFileModeClick = () => {
+    dispatch(
+      toggleCollectionFileMode({
+        collectionUid: collection.uid
+      })
+    );
+  };
+
   // Build overflow menu items for the "..." dropdown
   const overflowMenuItems = [
     { id: 'variables', label: 'Variables', leftSection: IconEye, onClick: viewVariables },
-    ...(isOpenAPISyncEnabled && !hasOpenApiSyncConfigured
-      ? [{ id: 'openapi-sync', label: 'OpenAPI', leftSection: OpenAPISyncIcon, rightSection: <StatusBadge status="info" size="xs">Beta</StatusBadge>, onClick: viewOpenApiSync }]
+    // File mode is exposed via the Request/App/File view-mode toggle when a request is active;
+    // keep it in the overflow as a fallback for non-request contexts.
+    ...(!isHttpRequestActive
+      ? [{ id: 'file-mode', label: collection.fileMode ? 'Switch to Code Mode' : 'Switch to File Mode', leftSection: collection.fileMode ? IconFileOff : IconFileCode, onClick: handleFileModeClick }]
+      : []),
+    ...(!hasOpenApiSyncConfigured
+      ? [{ id: 'openapi-sync', label: 'OpenAPI', leftSection: OpenAPISyncIcon, onClick: viewOpenApiSync }]
       : []),
     { id: 'collection-settings', label: 'Collection Settings', leftSection: IconSettings, onClick: viewCollectionSettings }
   ];
@@ -575,8 +657,75 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
         {/* Right side: Actions (only for regular collections) */}
         {!isScratchCollection && (
           <div className="flex flex-grow gap-1.5 items-center justify-end">
+            {isHttpRequestActive && (
+              <ToolHint text="Switch view mode" toolhintId="ViewModeToggleToolhintId" place="bottom">
+                <div className="mode-toggle" data-testid="view-mode-toggle">
+                  <button
+                    type="button"
+                    data-testid="view-mode-request"
+                    className={`mode-btn ${!appEnabled && !collection.fileMode ? 'active' : ''}`}
+                    onClick={() => {
+                      if (collection.fileMode) handleFileModeClick();
+                      if (appEnabled) handleToggleAppMode(false);
+                    }}
+                    title="Request"
+                  >
+                    <IconCode size={16} strokeWidth={1.5} />
+                  </button>
+                  <button
+                    type="button"
+                    data-testid="view-mode-app"
+                    className={`mode-btn ${appEnabled && !collection.fileMode ? 'active' : ''}`}
+                    onClick={() => {
+                      if (collection.fileMode) handleFileModeClick();
+                      if (!appEnabled) handleToggleAppMode(true);
+                    }}
+                    title="App"
+                  >
+                    <IconApps size={16} strokeWidth={1.5} />
+                  </button>
+                  <button
+                    type="button"
+                    data-testid="view-mode-file"
+                    className={`mode-btn ${collection.fileMode ? 'active' : ''}`}
+                    onClick={() => {
+                      if (appEnabled) handleToggleAppMode(false);
+                      if (!collection.fileMode) handleFileModeClick();
+                    }}
+                    title="File"
+                  >
+                    <IconFileCode size={16} strokeWidth={1.5} />
+                  </button>
+                </div>
+              </ToolHint>
+            )}
+            {collection.format === 'bru' && !migratePillDismissed && (
+              <div
+                className="migrate-yml-pill"
+                data-testid="migrate-yml-pill"
+                title="Migrate this collection to YML"
+              >
+                <button
+                  type="button"
+                  className="pill-main"
+                  onClick={viewMigrationSettings}
+                >
+                  <IconTransform size={13} strokeWidth={1.5} />
+                  <span className="pill-label">Migrate to YML</span>
+                </button>
+                <button
+                  type="button"
+                  className="pill-dismiss"
+                  onClick={dismissMigratePill}
+                  aria-label="Dismiss"
+                  data-testid="migrate-yml-pill-dismiss"
+                >
+                  <IconX size={12} strokeWidth={2} />
+                </button>
+              </div>
+            )}
             {/* OpenAPI Sync - standalone only when configured and beta enabled */}
-            {isOpenAPISyncEnabled && hasOpenApiSyncConfigured && (
+            {hasOpenApiSyncConfigured && (
               <ToolHint
                 text={hasOpenApiError ? 'OpenAPI Error' : hasOpenApiUpdates ? 'OpenAPI Updates Available' : 'OpenAPI'}
                 toolhintId="OpenApiSyncToolhintId"

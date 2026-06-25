@@ -42,6 +42,7 @@ const {
   isWindowsOS,
   hasRequestExtension,
   getCollectionFormat,
+  searchForFiles,
   searchForRequestFiles,
   validateName,
   getCollectionStats,
@@ -112,8 +113,9 @@ const getTransientScratchPrefix = () => {
 
 // Check if a path is within the transient directory
 const isTransientPath = (filePath) => {
+  const normalizedFilePath = path.normalize(filePath);
   const transientBase = getTransientDirectoryBase();
-  return filePath.startsWith(transientBase + path.sep) || filePath.startsWith(transientBase);
+  return normalizedFilePath.startsWith(transientBase + path.sep) || normalizedFilePath === transientBase;
 };
 
 const envHasSecrets = (environment = {}) => {
@@ -123,11 +125,14 @@ const envHasSecrets = (environment = {}) => {
 };
 
 const findCollectionPathByItemPath = (filePath) => {
-  const parts = filePath.split(path.sep);
-  const index = parts.findIndex((part) => part.startsWith('bruno-'));
+  const normalizedFilePath = path.normalize(filePath);
 
-  if (isTransientPath(filePath) && index !== -1) {
-    const transientDirPath = parts.slice(0, index + 1).join(path.sep);
+  if (isTransientPath(normalizedFilePath)) {
+    const transientBase = getTransientDirectoryBase();
+    const transientDirName = path.relative(transientBase, normalizedFilePath).split(path.sep)[0];
+    if (!transientDirName) return null;
+
+    const transientDirPath = path.join(transientBase, transientDirName);
     const metadataPath = path.join(transientDirPath, 'metadata.json');
     try {
       const metadataContent = fs.readFileSync(metadataPath, 'utf8');
@@ -151,9 +156,6 @@ const findCollectionPathByItemPath = (filePath) => {
   // Find the collection path that contains this file
   // Sort by length descending to find the most specific (deepest) match first
   const sortedPaths = allCollectionPaths.sort((a, b) => b.length - a.length);
-
-  // Normalize the file path for comparison
-  const normalizedFilePath = path.normalize(filePath);
 
   for (const collectionPath of sortedPaths) {
     const normalizedCollectionPath = path.normalize(collectionPath);
@@ -619,6 +621,20 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
         const content = await stringifyRequestViaWorker(request, { format: r.format });
         await writeFile(pathname, content);
       }
+    } catch (error) {
+      return Promise.reject(error);
+    }
+  });
+
+  ipcMain.handle('renderer:save-file', async (event, pathname, content) => {
+    try {
+      validatePathIsInsideCollection(pathname);
+
+      if (!fs.existsSync(pathname)) {
+        throw new Error(`path: ${pathname} does not exist`);
+      }
+
+      await writeFile(pathname, content);
     } catch (error) {
       return Promise.reject(error);
     }
@@ -1247,6 +1263,8 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
       }
     }
 
+    await require('./mount').unmount(collectionUid).catch(() => {});
+
     // Clean up
     const { clearCollectionWorkspace } = require('../store/process-env');
     clearCollectionWorkspace(collectionUid);
@@ -1715,6 +1733,16 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
     try {
       await deleteCookie(domain, path, cookieKey);
       await updateCookiesAndNotify();
+    } catch (error) {
+      return Promise.reject(error);
+    }
+  });
+
+  ipcMain.handle('renderer:convert-to-json', async (event, item, content, format = 'bru') => {
+    try {
+      const jsonContent = await parseRequestViaWorker(content, { format });
+      const json = hydrateRequestWithUuid(jsonContent, item?.pathname);
+      return json;
     } catch (error) {
       return Promise.reject(error);
     }
@@ -2596,6 +2624,124 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
         throw error;
       }
     } catch (error) {
+      throw error;
+    }
+  });
+
+  ipcMain.handle('renderer:migrate-collection-to-yml', async (event, collectionPathname, collectionUid) => {
+    const format = getCollectionFormat(collectionPathname);
+    if (format === 'yml') {
+      throw new Error('Collection is already in YML format');
+    }
+
+    // Stop the watcher during migration to avoid triggering events
+    if (watcher) {
+      watcher.removeWatcher(collectionPathname, mainWindow, collectionUid);
+    }
+
+    // Track all written yml files so we can roll back on failure
+    const writtenYmlFiles = [];
+
+    try {
+      const brunoJsonPath = path.join(collectionPathname, 'bruno.json');
+      const brunoJsonContent = fs.readFileSync(brunoJsonPath, 'utf8');
+      const brunoConfig = JSON.parse(brunoJsonContent);
+
+      const collectionBruPath = path.join(collectionPathname, 'collection.bru');
+      let collectionRoot = {};
+      if (fs.existsSync(collectionBruPath)) {
+        const collectionBruContent = fs.readFileSync(collectionBruPath, 'utf8');
+        collectionRoot = parseCollection(collectionBruContent, { format: 'bru' });
+      }
+
+      const ymlBrunoConfig = { ...brunoConfig };
+      delete ymlBrunoConfig.version;
+      ymlBrunoConfig.opencollection = '1.0.0';
+
+      const ocYmlPath = path.join(collectionPathname, 'opencollection.yml');
+      const ymlCollectionContent = stringifyCollection(collectionRoot, ymlBrunoConfig, { format: 'yml' });
+      await writeFile(ocYmlPath, ymlCollectionContent);
+      writtenYmlFiles.push(ocYmlPath);
+
+      const bruFiles = searchForFiles(collectionPathname, '.bru');
+      const envDirPath = path.join(collectionPathname, 'environments');
+      const bruFilesToDelete = [];
+
+      for (const bruFilePath of bruFiles) {
+        const basename = path.basename(bruFilePath);
+        const dirname = path.dirname(bruFilePath);
+
+        if (basename === 'collection.bru' && path.normalize(dirname) === path.normalize(collectionPathname)) {
+          bruFilesToDelete.push(bruFilePath);
+          continue;
+        }
+
+        if (path.normalize(dirname) === path.normalize(envDirPath)) {
+          continue;
+        }
+
+        if (basename === 'folder.bru') {
+          const folderBruContent = fs.readFileSync(bruFilePath, 'utf8');
+          const folderData = parseFolder(folderBruContent, { format: 'bru' });
+          const ymlContent = stringifyFolder(folderData, { format: 'yml' });
+          const ymlFilePath = path.join(dirname, 'folder.yml');
+          await writeFile(ymlFilePath, ymlContent);
+          writtenYmlFiles.push(ymlFilePath);
+          bruFilesToDelete.push(bruFilePath);
+          continue;
+        }
+
+        const bruContent = fs.readFileSync(bruFilePath, 'utf8');
+        const requestData = parseRequest(bruContent, { format: 'bru' });
+        const ymlContent = stringifyRequest(requestData, { format: 'yml' });
+        const ymlFilePath = bruFilePath.replace(/\.bru$/, '.yml');
+        await writeFile(ymlFilePath, ymlContent);
+        writtenYmlFiles.push(ymlFilePath);
+        bruFilesToDelete.push(bruFilePath);
+      }
+
+      if (fs.existsSync(envDirPath)) {
+        const envBruFiles = searchForFiles(envDirPath, '.bru');
+        for (const envBruFilePath of envBruFiles) {
+          const envBruContent = fs.readFileSync(envBruFilePath, 'utf8');
+          const envData = parseEnvironment(envBruContent, { format: 'bru' });
+          const ymlContent = stringifyEnvironment(envData, { format: 'yml' });
+          const ymlFilePath = envBruFilePath.replace(/\.bru$/, '.yml');
+          await writeFile(ymlFilePath, ymlContent);
+          writtenYmlFiles.push(ymlFilePath);
+          bruFilesToDelete.push(envBruFilePath);
+        }
+      }
+
+      for (const bruFile of bruFilesToDelete) {
+        fs.unlinkSync(bruFile);
+      }
+      fs.unlinkSync(brunoJsonPath);
+
+      const { size, filesCount } = await getCollectionStats(collectionPathname);
+      ymlBrunoConfig.size = size;
+      ymlBrunoConfig.filesCount = filesCount;
+
+      return ymlBrunoConfig;
+    } catch (error) {
+      for (const ymlFile of writtenYmlFiles) {
+        try {
+          if (fs.existsSync(ymlFile)) {
+            fs.unlinkSync(ymlFile);
+          }
+        } catch (_) {
+        }
+      }
+
+      // Restart the watcher on the original bru collection
+      if (watcher) {
+        try {
+          const config = JSON.parse(fs.readFileSync(path.join(collectionPathname, 'bruno.json'), 'utf8'));
+          watcher.addWatcher(mainWindow, collectionPathname, collectionUid, config);
+        } catch (watcherError) {
+          console.error('Failed to restart watcher after migration error:', watcherError);
+        }
+      }
       throw error;
     }
   });

@@ -7,6 +7,15 @@ const os = require('os');
 const { preferencesUtil } = require('../store/preferences');
 const path = require('path');
 const { DEFAULT_COLLECTION_FORMAT } = require('@usebruno/filestore');
+const { parseValueByDataType } = require('@usebruno/common/utils');
+
+/**
+ * Returns the variable's runtime value with datatype-driven coercion applied.
+ * The shared `parseValueByDataType` from `@usebruno/common/utils` honors
+ * draft dataType changes — e.g. a user picking `@number` on a "42" string
+ * via the UI takes effect at request-execution time without requiring a save.
+ */
+const resolveTypedValue = (v) => parseValueByDataType(v.value, v.dataType);
 
 const FORMAT_CONFIG = {
   yml: { ext: '.yml', collectionFile: 'opencollection.yml', folderFile: 'folder.yml' },
@@ -75,8 +84,9 @@ const mergeVars = (collection, request, requestTreePath = []) => {
   let collectionVariables = {};
   collectionRequestVars.forEach((_var) => {
     if (_var.enabled) {
-      reqVars.set(_var.name, _var.value);
-      collectionVariables[_var.name] = _var.value;
+      const typed = resolveTypedValue(_var);
+      reqVars.set(_var.name, typed);
+      collectionVariables[_var.name] = typed;
     }
   });
   let folderVariables = {};
@@ -87,16 +97,18 @@ const mergeVars = (collection, request, requestTreePath = []) => {
       let vars = get(folderRoot, 'request.vars.req', []);
       vars.forEach((_var) => {
         if (_var.enabled) {
-          reqVars.set(_var.name, _var.value);
-          folderVariables[_var.name] = _var.value;
+          const typed = resolveTypedValue(_var);
+          reqVars.set(_var.name, typed);
+          folderVariables[_var.name] = typed;
         }
       });
     } else {
       const vars = i?.draft ? get(i, 'draft.request.vars.req', []) : get(i, 'request.vars.req', []);
       vars.forEach((_var) => {
         if (_var.enabled) {
-          reqVars.set(_var.name, _var.value);
-          requestVariables[_var.name] = _var.value;
+          const typed = resolveTypedValue(_var);
+          reqVars.set(_var.name, typed);
+          requestVariables[_var.name] = typed;
         }
       });
     }
@@ -119,7 +131,7 @@ const mergeVars = (collection, request, requestTreePath = []) => {
   let collectionResponseVars = get(collectionRoot, 'request.vars.res', []);
   collectionResponseVars.forEach((_var) => {
     if (_var.enabled) {
-      resVars.set(_var.name, _var.value);
+      resVars.set(_var.name, resolveTypedValue(_var));
     }
   });
   for (let i of requestTreePath) {
@@ -128,14 +140,14 @@ const mergeVars = (collection, request, requestTreePath = []) => {
       let vars = get(folderRoot, 'request.vars.res', []);
       vars.forEach((_var) => {
         if (_var.enabled) {
-          resVars.set(_var.name, _var.value);
+          resVars.set(_var.name, resolveTypedValue(_var));
         }
       });
     } else {
       const vars = i?.draft ? get(i, 'draft.request.vars.res', []) : get(i, 'request.vars.res', []);
       vars.forEach((_var) => {
         if (_var.enabled) {
-          resVars.set(_var.name, _var.value);
+          resVars.set(_var.name, resolveTypedValue(_var));
         }
       });
     }
@@ -776,7 +788,7 @@ const getEnvVars = (environment = {}) => {
   const envVars = {};
   each(variables, (variable) => {
     if (variable.enabled) {
-      envVars[variable.name] = variable.value;
+      envVars[variable.name] = resolveTypedValue(variable);
     }
   });
 

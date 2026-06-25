@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
+import { IconX } from '@tabler/icons';
 import StyledWrapper from './StyledWrapper';
 import useFocusTrap from 'hooks/useFocusTrap';
 import Button from 'ui/Button';
@@ -12,13 +13,15 @@ const ModalHeader = ({ title, handleCancel, customHeader, hideClose }) => (
     {handleCancel && !hideClose ? (
       // TODO: Remove data-test-id and use data-testid instead across the codebase.
       <div className="close cursor-pointer" onClick={handleCancel ? () => handleCancel() : null} data-testid="modal-close-button">
-        ×
+        <IconX size={16} strokeWidth={1.5} />
       </div>
     ) : null}
   </div>
 );
 
-const ModalContent = ({ children }) => <div className="bruno-modal-content px-4 py-4">{children}</div>;
+const ModalContent = ({ children, noPadding }) => (
+  <div className={`bruno-modal-content ${noPadding ? '' : 'px-4 py-4'}`}>{children}</div>
+);
 
 const ModalFooter = ({
   confirmText,
@@ -84,7 +87,8 @@ const Modal = ({
   onClick,
   closeModalFadeTimeout = 500,
   dataTestId,
-  confirmButtonColor = 'primary'
+  confirmButtonColor = 'primary',
+  noPadding
 }) => {
   const modalRef = useRef(null);
   const [isClosing, setIsClosing] = useState(false);
@@ -148,7 +152,7 @@ const Modal = ({
           handleCancel={() => closeModal({ type: 'icon' })}
           customHeader={customHeader}
         />
-        <ModalContent>{children}</ModalContent>
+        <ModalContent noPadding={noPadding}>{children}</ModalContent>
         <ModalFooter
           confirmText={confirmText}
           cancelText={cancelText}

@@ -19,19 +19,19 @@ const buildEnvironment = (overrides = {}) => ({
 });
 
 describe('Environment Schema Validation', () => {
-  describe('variable datatype', () => {
-    it.each(['string', 'number', 'boolean', 'object'])('validates a variable with datatype %s', async (datatype) => {
-      const env = buildEnvironment({ variables: [buildVariable({ datatype })] });
+  describe('variable dataType', () => {
+    it.each(['string', 'number', 'boolean', 'object'])('validates a variable with dataType %s', async (dataType) => {
+      const env = buildEnvironment({ variables: [buildVariable({ dataType })] });
 
       await expect(environmentSchema.validate(env)).resolves.toBeTruthy();
     });
 
-    it('preserves datatype after validation', async () => {
-      const env = buildEnvironment({ variables: [buildVariable({ value: '300', datatype: 'number' })] });
+    it('preserves dataType after validation', async () => {
+      const env = buildEnvironment({ variables: [buildVariable({ value: '300', dataType: 'number' })] });
 
       const validated = await environmentSchema.validate(env);
 
-      expect(validated.variables[0].datatype).toBe('number');
+      expect(validated.variables[0].dataType).toBe('number');
       expect(validated.variables[0].value).toBe('300');
     });
   });

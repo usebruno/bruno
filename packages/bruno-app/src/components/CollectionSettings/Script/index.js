@@ -14,6 +14,7 @@ import { flattenItems, isItemARequest } from 'utils/collections';
 import StyledWrapper from './StyledWrapper';
 import Button from 'ui/Button';
 import { usePersistedState } from 'hooks/usePersistedState';
+import { useFocusErrorLine } from 'hooks/useFocusErrorLine';
 
 const Script = ({ collection }) => {
   const dispatch = useDispatch();
@@ -59,6 +60,20 @@ const Script = ({ collection }) => {
 
     return () => clearTimeout(timer);
   }, [activeTab]);
+
+  useFocusErrorLine({
+    uid: collection.uid,
+    editorRef: preRequestEditorRef,
+    scriptPhase: 'pre-request',
+    isVisible: activeTab === 'pre-request'
+  });
+
+  useFocusErrorLine({
+    uid: collection.uid,
+    editorRef: postResponseEditorRef,
+    scriptPhase: 'post-response',
+    isVisible: activeTab === 'post-response'
+  });
 
   const onRequestScriptEdit = (value) => {
     dispatch(
@@ -122,6 +137,7 @@ const Script = ({ collection }) => {
               font={get(preferences, 'font.codeFont', 'default')}
               fontSize={get(preferences, 'font.codeFontSize')}
               showHintsFor={['req', 'bru']}
+              scriptType="pre-request"
               initialScroll={preReqScroll}
               onScroll={setPreReqScroll}
             />
@@ -147,6 +163,7 @@ const Script = ({ collection }) => {
               font={get(preferences, 'font.codeFont', 'default')}
               fontSize={get(preferences, 'font.codeFontSize')}
               showHintsFor={['req', 'res', 'bru']}
+              scriptType="post-response"
               initialScroll={postResScroll}
               onScroll={setPostResScroll}
             />

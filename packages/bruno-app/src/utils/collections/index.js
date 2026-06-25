@@ -704,6 +704,10 @@ export const transformRequestToSaveToFilesystem = (item) => {
     }));
   };
 
+  const appToSave = _item.app && _item.app.code && _item.app.code.length
+    ? { code: _item.app.code }
+    : null;
+
   const itemToSave = {
     uid: _item.uid,
     type: _item.type,
@@ -711,6 +715,7 @@ export const transformRequestToSaveToFilesystem = (item) => {
     seq: _item.seq,
     settings: _item.settings,
     tags: _item.tags,
+    app: appToSave,
     examples: transformExamples(_item.examples || []),
     request: {
       method: _item.request.method,
@@ -886,6 +891,21 @@ export const isItemARequest = (item) => {
 
 export const isItemAFolder = (item) => {
   return !item.hasOwnProperty('request') && item.type === 'folder';
+};
+
+/**
+ * Counts the folders and requests in a collection's item tree, recursively at every
+ * depth. Used to summarise a collection (e.g. in the Generate Documentation modal).
+ *
+ * @param {Array} items - The collection's `items` tree.
+ * @returns {{ folderCount: number, requestCount: number }}
+ */
+export const getCollectionItemCounts = (items = []) => {
+  const flattened = flattenItems(items);
+  return {
+    folderCount: flattened.filter(isItemAFolder).length,
+    requestCount: flattened.filter(isItemARequest).length
+  };
 };
 
 /**
@@ -1188,7 +1208,7 @@ export const getEnvironmentVariables = (collection) => {
     const environment = findEnvironmentInCollection(collection, collection.activeEnvironmentUid);
     if (environment) {
       each(environment.variables, (variable) => {
-        if (variable.name && variable.value && variable.enabled) {
+        if (variable.name && variable.enabled) {
           variables[variable.name] = variable.value;
         }
       });
@@ -1696,7 +1716,7 @@ export const getVariableScope = (variableName, collection, item) => {
 
   // 5. Check Global Environment Variables
   const { globalEnvironmentVariables = {} } = collection;
-  if (globalEnvironmentVariables && globalEnvironmentVariables[variableName]) {
+  if (variableName in globalEnvironmentVariables) {
     return {
       type: 'global',
       value: globalEnvironmentVariables[variableName],
@@ -1706,7 +1726,7 @@ export const getVariableScope = (variableName, collection, item) => {
 
   // 6. Check Runtime Variables (set during request execution via scripts)
   const { runtimeVariables = {} } = collection;
-  if (runtimeVariables && runtimeVariables[variableName]) {
+  if (variableName in runtimeVariables) {
     return {
       type: 'runtime',
       value: runtimeVariables[variableName],

@@ -425,4 +425,168 @@ vars {
 
     expect(output).toEqual(expected);
   });
+
+  describe('typed environment variables', () => {
+    it('should parse @number decorator and coerce value to number', () => {
+      const input = `
+vars {
+  @number
+  port: 3000
+}
+`;
+
+      const output = parser(input);
+      expect(output).toEqual({
+        variables: [
+          {
+            name: 'port',
+            value: 3000,
+            enabled: true,
+            secret: false,
+            annotations: [{ name: 'number' }],
+            dataType: 'number'
+          }
+        ]
+      });
+    });
+
+    it('should parse @boolean decorator and coerce value to boolean', () => {
+      const input = `
+vars {
+  @boolean
+  isEnabled: true
+}
+`;
+
+      const output = parser(input);
+      expect(output.variables[0]).toEqual({
+        name: 'isEnabled',
+        value: true,
+        enabled: true,
+        secret: false,
+        annotations: [{ name: 'boolean' }],
+        dataType: 'boolean'
+      });
+    });
+
+    it('should parse @object decorator and coerce multiline JSON value', () => {
+      const input = `
+vars {
+  @object
+  config: '''
+    {"a": 1, "b": "x"}
+  '''
+}
+`;
+
+      const output = parser(input);
+      expect(output.variables[0]).toEqual({
+        name: 'config',
+        value: { a: 1, b: 'x' },
+        enabled: true,
+        secret: false,
+        annotations: [{ name: 'object' }],
+        dataType: 'object'
+      });
+    });
+
+    it('should leave plain vars without dataType', () => {
+      const input = `
+vars {
+  apiKey: abc123
+}
+`;
+
+      const output = parser(input);
+      expect(output.variables[0]).toEqual({
+        name: 'apiKey',
+        value: 'abc123',
+        enabled: true,
+        secret: false
+      });
+      expect(output.variables[0].dataType).toBeUndefined();
+    });
+
+    it('extracts the dataType from a secret var decorator', () => {
+      const input = `
+vars:secret [
+  @number
+  api_key
+]
+`;
+
+      const output = parser(input);
+      expect(output.variables[0].secret).toBe(true);
+      expect(output.variables[0].dataType).toBe('number');
+    });
+
+    it('leaves a bare secret var without a dataType', () => {
+      const input = `
+vars:secret [
+  api_key
+]
+`;
+
+      const output = parser(input);
+      expect(output.variables[0].secret).toBe(true);
+      expect(output.variables[0].dataType).toBeUndefined();
+    });
+
+    it('should preserve the declared dataType and the raw value when coercion is impossible', () => {
+      // The UI's DataTypeSelector surfaces a warning icon for these rows; the
+      // declared dataType is retained so the user sees their intent.
+      const input = `
+vars {
+  @number
+  port: not-a-number
+  @boolean
+  flag: maybe
+  @object
+  config: plain
+}
+`;
+
+      const output = parser(input);
+      expect(output.variables).toEqual([
+        {
+          name: 'port',
+          value: 'not-a-number',
+          enabled: true,
+          secret: false,
+          annotations: [{ name: 'number' }],
+          dataType: 'number'
+        },
+        {
+          name: 'flag',
+          value: 'maybe',
+          enabled: true,
+          secret: false,
+          annotations: [{ name: 'boolean' }],
+          dataType: 'boolean'
+        },
+        {
+          name: 'config',
+          value: 'plain',
+          enabled: true,
+          secret: false,
+          annotations: [{ name: 'object' }],
+          dataType: 'object'
+        }
+      ]);
+    });
+
+    it('should keep only the last dataType when multiple are stacked', () => {
+      const input = `
+vars {
+  @object
+  @number
+  port: 3000
+}
+`;
+
+      const output = parser(input);
+      expect(output.variables[0].dataType).toBe('number');
+      expect(output.variables[0].value).toBe(3000);
+    });
+  });
 });
