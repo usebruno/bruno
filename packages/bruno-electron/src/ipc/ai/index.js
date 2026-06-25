@@ -8,7 +8,10 @@ const {
   listModels,
   getModel,
   getAvailableModels,
-  clearSdkCache
+  clearSdkCache,
+  isKnownProviderId,
+  validateApiKeyForProvider,
+  providerLabel
 } = require('./providers');
 const { SCRIPT_PROMPTS, SCRIPT_TYPES, buildScriptUserPrompt, stripCodeFences } = require('./script-prompts');
 
@@ -23,7 +26,7 @@ const buildStatus = () => {
   const hasApiKey = (providerId) => aiKeyStore.hasKey(providerId);
 
   const providers = {};
-  for (const provider of listProviders()) {
+  for (const provider of listProviders(aiPreferences)) {
     providers[provider.id] = {
       ...provider,
       enabled: Boolean(aiPreferences?.providers?.[provider.id]?.enabled),
@@ -34,7 +37,7 @@ const buildStatus = () => {
   return {
     enabled: Boolean(aiPreferences.enabled),
     providers,
-    models: listModels(),
+    models: listModels(aiPreferences),
     availableModels: getAvailableModels({ aiPreferences, hasApiKey })
   };
 };
@@ -59,13 +62,17 @@ const pickDefaultModelId = () => {
   return available[0].id;
 };
 
+const assertKnownProvider = (providerId) => {
+  if (!isKnownProviderId(providerId, getAiPrefs())) {
+    throw new Error(`Unknown AI provider: ${providerId}`);
+  }
+};
+
 const registerAiIpc = (mainWindow) => {
   ipcMain.handle('renderer:get-ai-status', async () => buildStatus());
 
   ipcMain.handle('renderer:set-ai-api-key', async (_event, { providerId, apiKey }) => {
-    if (!PROVIDERS[providerId]) {
-      throw new Error(`Unknown AI provider: ${providerId}`);
-    }
+    assertKnownProvider(providerId);
     const trimmed = typeof apiKey === 'string' ? apiKey.trim() : '';
     if (!trimmed) {
       throw new Error('API key cannot be empty');
@@ -76,23 +83,20 @@ const registerAiIpc = (mainWindow) => {
   });
 
   ipcMain.handle('renderer:clear-ai-api-key', async (_event, { providerId }) => {
-    if (!PROVIDERS[providerId]) {
-      throw new Error(`Unknown AI provider: ${providerId}`);
-    }
+    assertKnownProvider(providerId);
     aiKeyStore.clearKey(providerId);
     clearSdkCache();
     return buildStatus();
   });
 
   ipcMain.handle('renderer:get-ai-api-key', async (_event, { providerId }) => {
-    if (!PROVIDERS[providerId]) {
-      throw new Error(`Unknown AI provider: ${providerId}`);
-    }
+    assertKnownProvider(providerId);
     return aiKeyStore.getKey(providerId) || '';
   });
 
   ipcMain.handle('renderer:ai-test-provider', async (_event, { providerId }) => {
-    if (!PROVIDERS[providerId]) {
+    const aiPrefs = getAiPrefs();
+    if (!isKnownProviderId(providerId, aiPrefs)) {
       return { ok: false, error: `Unknown provider: ${providerId}` };
     }
     const apiKey = aiKeyStore.getKey(providerId);
@@ -100,14 +104,13 @@ const registerAiIpc = (mainWindow) => {
       return { ok: false, error: 'No API key configured' };
     }
 
-    const aiPrefs = getAiPrefs();
     const providerEnabled = aiPrefs?.providers?.[providerId]?.enabled;
     if (!providerEnabled) {
-      return { ok: false, error: `${PROVIDERS[providerId].label} is disabled` };
+      return { ok: false, error: `${providerLabel(providerId, aiPrefs)} is disabled` };
     }
 
     try {
-      const res = await PROVIDERS[providerId].validateApiKey({ apiKey });
+      const res = await validateApiKeyForProvider({ providerId, apiKey, aiPreferences: aiPrefs });
       if (res.ok) {
         return { ok: true };
       }
@@ -119,7 +122,7 @@ const registerAiIpc = (mainWindow) => {
       }
       return { ok: false, error: `Could not verify key (HTTP ${res.status})` };
     } catch (err) {
-      return { ok: false, error: 'Could not reach provider. Check your network connection.' };
+      return { ok: false, error: err.message || 'Could not reach provider. Check your network connection.' };
     }
   });
 
