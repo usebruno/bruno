@@ -371,12 +371,14 @@ const persistCollectionVars = (collection, scriptCollVars, collectionRootPath) =
  * } | null} result - Runtime return value; any field may be null to indicate "unchanged".
  * @param {{
  *   envFile?: { path: string, format: 'json' | 'yml' | 'bru' },
- *   globalEnvFile?: { path: string, format: 'json' | 'yml' | 'bru' },
+ *   globalEnvFile?: { path: string, format: 'yml' },
  *   collection: object,
  *   collectionRootPath: string,
  *   envVarOverrides?: Set<string>
  * }} targets - Where each kind of var should land on disk. `envVarOverrides` lists names
  *   supplied via CLI `--env-var`; they are never persisted to the active env file.
+ *   `globalEnvFile.format` is yml-only because the CLI's `--global-env <name>` flag looks
+ *   up `<workspace>/environments/<name>.yml` (no JSON/bru equivalent exists today).
  * @returns {void}
  *
  * @example
