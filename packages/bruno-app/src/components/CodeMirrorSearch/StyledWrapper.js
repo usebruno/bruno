@@ -26,7 +26,8 @@ const StyledWrapper = styled.div`
     justify-content: center;
     flex-shrink: 0;
     width: 18px;
-    align-self: stretch;
+    align-self: flex-start;
+    height: 26px;
     background: none;
     border: none;
     cursor: pointer;
@@ -38,6 +39,11 @@ const StyledWrapper = styled.div`
   .toggle-replace-btn:hover {
     background: ${(props) => rgba(props.theme.brand, 0.08)};
     color: ${(props) => props.theme.brand};
+  }
+
+  .toggle-replace-btn.active {
+    color: ${(props) => props.theme.brand};
+    background-color: ${(props) => rgba(props.theme.brand, 0.1)};
   }
 
   /* Column: search row stacked above replace row */
@@ -97,7 +103,8 @@ const StyledWrapper = styled.div`
     color: ${(props) => props.theme.colors.text.subtext1};
     white-space: nowrap;
     flex-shrink: 0;
-    width: 68px;
+    min-width: 68px;
+    width: max-content;
     margin-left: 4px;
   }
 

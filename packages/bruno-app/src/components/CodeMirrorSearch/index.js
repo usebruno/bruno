@@ -3,50 +3,11 @@ import { IconRegex, IconArrowUp, IconArrowDown, IconX, IconLetterCase, IconLette
 import ToolHint from 'components/ToolHint';
 import StyledWrapper from './StyledWrapper';
 import useDebounce from 'hooks/useDebounce';
+import { replaceSingle, replaceAll } from './replaceUtils';
+import { findSearchMatches, createCacheKey } from './searchUtils';
+import { markViewportMatches, clearMarks } from './markingUtils';
 
-function escapeRegExp(string) {
-  return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
-
-const MAX_MATCHES = 99_999;
-function findSearchMatches(editor, searchText, regex, caseSensitive, wholeWord) {
-  try {
-    let query, options = {};
-    if (regex) {
-      try {
-        query = new RegExp(searchText, caseSensitive ? 'g' : 'gi');
-      } catch (error) {
-        console.warn('Invalid regex provided in search!', error);
-        return [];
-      }
-    } else if (wholeWord) {
-      const escaped = escapeRegExp(searchText);
-      query = new RegExp(`\\b${escaped}\\b`, caseSensitive ? 'g' : 'gi');
-    } else {
-      query = searchText;
-      options = { caseFold: !caseSensitive };
-    }
-
-    const cursor = editor.getSearchCursor(query, { line: 0, ch: 0 }, options);
-    const out = [];
-    while (cursor.findNext()) {
-      out.push({ from: cursor.from(), to: cursor.to() });
-      if (out.length >= MAX_MATCHES) {
-        break;
-      }
-    }
-    return out;
-  } catch (e) {
-    console.error('Search error:', e);
-    return [];
-  }
-}
-
-function createCacheKey(editor, searchText, regex, caseSensitive, wholeWord) {
-  return `${editor.getValue().length}⇴${searchText}⇴${regex}⇴${caseSensitive}⇴${wholeWord}`;
-}
-
-const CodeMirrorSearch = forwardRef(({ visible, editor, onClose }, ref) => {
+const CodeMirrorSearch = forwardRef(({ visible, editor, readOnly, onClose }, ref) => {
   const [searchText, setSearchText] = useState('');
   const [replaceText, setReplaceText] = useState('');
   const [replaceVisible, setReplaceVisible] = useState(false);
@@ -60,12 +21,20 @@ const CodeMirrorSearch = forwardRef(({ visible, editor, onClose }, ref) => {
   const searchLineHighlight = useRef(null);
   const searchMatches = useRef([]);
   const searchCacheKey = useRef('');
+  const currentMatchIndex = useRef(0);
+  const docVersion = useRef(0);
   const inputRef = useRef(null);
   const replaceInputRef = useRef(null);
   const containerRef = useRef(null);
   const initialIndexRef = useRef(null);
+  const rafRef = useRef(null);
 
   const debouncedSearchText = useDebounce(searchText, 250);
+
+  const redrawMarks = useCallback(() => {
+    if (!editor) return;
+    markViewportMatches(editor, searchMatches.current, currentMatchIndex.current, searchMarks.current);
+  }, [editor]);
 
   const doSearch = useCallback((text, newIndex = 0) => {
     if (!editor || !visible) {
@@ -80,14 +49,14 @@ const CodeMirrorSearch = forwardRef(({ visible, editor, onClose }, ref) => {
     if (!text) {
       setMatchCount(0);
       setMatchIndex(0);
+      currentMatchIndex.current = 0;
       searchMatches.current = [];
-      searchMarks.current.forEach((mark) => mark.clear());
-      searchMarks.current = [];
+      clearMarks(searchMarks.current);
       return;
     }
 
     try {
-      const newCacheKey = createCacheKey(editor, text, regex, caseSensitive, wholeWord);
+      const newCacheKey = createCacheKey(docVersion.current, text, regex, caseSensitive, wholeWord);
       const isCacheHit = newCacheKey === searchCacheKey.current;
 
       let matches = searchMatches.current;
@@ -100,83 +69,45 @@ const CodeMirrorSearch = forwardRef(({ visible, editor, onClose }, ref) => {
 
       if (!matches.length) {
         setMatchIndex(0);
-        // Clear previous marks
-        searchMarks.current.forEach((mark) => mark.clear());
-        searchMarks.current = [];
+        currentMatchIndex.current = 0;
+        clearMarks(searchMarks.current);
         return;
       }
 
-      const matchIndex = Math.max(0, Math.min(newIndex, matches.length - 1));
-      setMatchIndex(matchIndex);
+      const resolvedIndex = Math.max(0, Math.min(newIndex, matches.length - 1));
+      setMatchIndex(resolvedIndex);
+      currentMatchIndex.current = resolvedIndex;
 
-      if (isCacheHit) {
-        // Clear only old current mark
-        const oldIndex = searchMarks.current.findIndex((mark) => mark.className?.includes('cm-search-current'));
+      redrawMarks();
 
-        if (oldIndex !== -1) {
-          searchMarks.current[oldIndex].clear();
-          searchMarks.current.splice(oldIndex, 1);
-        }
-
-        // Add mark to the new current and remark the previous and next
-        const toMark = [
-          // Previous
-          matchIndex > 0 ? matchIndex - 1 : null,
-          // Current
-          matchIndex,
-          // Next
-          matchIndex < matches.length - 1 ? matchIndex + 1 : null
-        ].filter((i) => i !== null);
-
-        toMark.forEach((i) => {
-          const mark = editor.markText(matches[i].from, matches[i].to, {
-            className: i === matchIndex ? 'cm-search-current' : 'cm-search-match',
-            clearOnEnter: true
-          });
-          searchMarks.current.push(mark);
-        });
-      } else {
-        // Clear previous marks
-        searchMarks.current.forEach((mark) => mark.clear());
-        searchMarks.current = [];
-
-        // Mark all on new search
-        matches.forEach((m, i) => {
-          const mark = editor.markText(m.from, m.to, {
-            className: i === matchIndex ? 'cm-search-current' : 'cm-search-match',
-            clearOnEnter: true
-          });
-          searchMarks.current.push(mark);
-        });
-      }
-
-      const currentLine = matches[matchIndex].from.line;
+      const currentLine = matches[resolvedIndex].from.line;
       editor.addLineClass(currentLine, 'wrap', 'cm-search-line-highlight');
       searchLineHighlight.current = currentLine;
 
-      editor.scrollIntoView(matches[matchIndex].from, 100);
-      editor.setSelection(matches[matchIndex].from, matches[matchIndex].to);
+      editor.scrollIntoView(matches[resolvedIndex].from, 100);
+      editor.setSelection(matches[resolvedIndex].from, matches[resolvedIndex].to);
     } catch (e) {
       console.error('Search error:', e);
       setMatchCount(0);
       setMatchIndex(0);
+      currentMatchIndex.current = 0;
       searchMatches.current = [];
       searchCacheKey.current = '';
     }
-  }, [regex, caseSensitive, wholeWord, editor, visible]);
+  }, [regex, caseSensitive, wholeWord, editor, visible, redrawMarks]);
 
   const handleSearchBarClose = useCallback(() => {
-    searchMarks.current.forEach((mark) => mark.clear());
-    searchMarks.current = [];
+    if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    clearMarks(searchMarks.current);
     if (searchLineHighlight.current !== null && editor) {
       editor.removeLineClass(searchLineHighlight.current, 'wrap', 'cm-search-line-highlight');
       searchLineHighlight.current = null;
     }
     searchMatches.current = [];
     searchCacheKey.current = '';
+    currentMatchIndex.current = 0;
     setReplaceVisible(false);
     if (onClose) onClose();
-    // Focus the editor after closing the search bar
     if (editor) {
       setTimeout(() => editor.focus(), 0);
     }
@@ -200,13 +131,11 @@ const CodeMirrorSearch = forwardRef(({ visible, editor, onClose }, ref) => {
         const targetIdx = matchAtCursorIdx >= 0 ? matchAtCursorIdx : 0;
         // Pre-populate cache so doSearch hits it regardless of path
         searchMatches.current = matches;
-        searchCacheKey.current = createCacheKey(editor, text, regex, caseSensitive, wholeWord);
+        searchCacheKey.current = createCacheKey(docVersion.current, text, regex, caseSensitive, wholeWord);
         // Set both count and index immediately to avoid "1 / N" flash before debounce fires
         setMatchCount(matches.length);
         setMatchIndex(targetIdx);
-        // Call immediately — text is passed directly, no debounce dependency
         doSearch(text, targetIdx);
-        // Store so the debounce-fired effect uses the right index instead of 0
         if (text !== searchText) {
           initialIndexRef.current = { idx: targetIdx, forText: text };
         }
@@ -231,7 +160,6 @@ const CodeMirrorSearch = forwardRef(({ visible, editor, onClose }, ref) => {
 
   useEffect(() => {
     if (initialIndexRef.current) {
-      // setSearch has pre-computed a result — wait for debouncedSearchText to catch up
       if (initialIndexRef.current.forText === debouncedSearchText) {
         const idx = initialIndexRef.current.idx;
         initialIndexRef.current = null;
@@ -256,12 +184,29 @@ const CodeMirrorSearch = forwardRef(({ visible, editor, onClose }, ref) => {
     return () => container.removeEventListener('keydown', onKeyDown, true);
   }, [visible, handleSearchBarClose]);
 
-  // Re-run search when the document changes (undo, redo, edits)
+  useEffect(() => {
+    if (!editor || !visible) return;
+
+    const handleScroll = () => {
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      rafRef.current = requestAnimationFrame(() => {
+        redrawMarks();
+      });
+    };
+
+    editor.on('scroll', handleScroll);
+    return () => {
+      editor.off('scroll', handleScroll);
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    };
+  }, [editor, visible, redrawMarks]);
+
   useEffect(() => {
     if (!editor || !visible) return;
 
     let timeoutId;
     const handleChange = () => {
+      docVersion.current += 1;
       clearTimeout(timeoutId);
       timeoutId = setTimeout(() => {
         searchCacheKey.current = '';
@@ -310,36 +255,26 @@ const CodeMirrorSearch = forwardRef(({ visible, editor, onClose }, ref) => {
 
   const handleReplace = useCallback(() => {
     if (!editor || !searchMatches.current.length) return;
-    const match = searchMatches.current[matchIndex];
-    if (!match) return;
-    editor.replaceRange(replaceText, match.from, match.to);
+    if (!searchMatches.current[matchIndex]) return;
 
-    const replaceLines = replaceText.split('\n');
-    const endLine = match.from.line + replaceLines.length - 1;
-    const endCh = replaceLines.length === 1
-      ? match.from.ch + replaceText.length
-      : replaceLines[replaceLines.length - 1].length;
+    const { endLine, endCh } = replaceSingle(editor, searchMatches.current, matchIndex, replaceText);
 
-    // Re-search and pre-populate the cache so doSearch uses these results directly
     const newMatches = findSearchMatches(editor, debouncedSearchText, regex, caseSensitive, wholeWord);
     searchMatches.current = newMatches;
-    searchCacheKey.current = createCacheKey(editor, debouncedSearchText, regex, caseSensitive, wholeWord);
+    searchCacheKey.current = createCacheKey(docVersion.current, debouncedSearchText, regex, caseSensitive, wholeWord);
     setMatchCount(newMatches.length);
 
-    // Find the first match that starts after the replacement end
     const nextIdx = newMatches.findIndex(
       (m) => m.from.line > endLine || (m.from.line === endLine && m.from.ch >= endCh)
     );
-
     doSearch(debouncedSearchText, nextIdx >= 0 ? nextIdx : 0);
   }, [editor, matchIndex, replaceText, debouncedSearchText, regex, caseSensitive, wholeWord, doSearch]);
 
   const handleReplaceAll = useCallback(() => {
     if (!editor || !searchMatches.current.length) return;
-    const matches = [...searchMatches.current].reverse();
-    editor.operation(() => {
-      matches.forEach((match) => editor.replaceRange(replaceText, match.from, match.to));
-    });
+
+    replaceAll(editor, searchMatches.current, replaceText);
+
     searchCacheKey.current = '';
     doSearch(debouncedSearchText, 0);
   }, [editor, replaceText, debouncedSearchText, doSearch]);
@@ -353,9 +288,10 @@ const CodeMirrorSearch = forwardRef(({ visible, editor, onClose }, ref) => {
       <div className="bruno-search-bar" ref={containerRef}>
         <button
           type="button"
-          className="toggle-replace-btn"
+          className={`toggle-replace-btn${replaceVisible ? ' active' : ''}`}
           title={replaceVisible ? 'Hide replace' : 'Show replace'}
           onClick={() => setReplaceVisible((prev) => !prev)}
+          style={readOnly ? { display: 'none' } : {}}
         >
           <IconChevronRight
             size={12}
@@ -391,7 +327,7 @@ const CodeMirrorSearch = forwardRef(({ visible, editor, onClose }, ref) => {
             <button type="button" className="searchbar-icon-btn" title="Next (Enter)" onClick={handleNext}><IconArrowDown size={14} /></button>
             <button type="button" className="searchbar-icon-btn" title="Close" onClick={handleSearchBarClose}><IconX size={14} /></button>
           </div>
-          {replaceVisible && (
+          {replaceVisible && !readOnly && (
             <div className="replace-row">
               <input
                 ref={replaceInputRef}

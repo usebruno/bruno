@@ -474,6 +474,7 @@ class CodeEditor extends React.Component {
           }}
           visible={this.state.searchBarVisible}
           editor={this.editor}
+          readOnly={this.props.readOnly}
           onClose={() => this.setState({ searchBarVisible: false })}
         />
         <div
