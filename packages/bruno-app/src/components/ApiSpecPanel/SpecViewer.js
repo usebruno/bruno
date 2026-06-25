@@ -8,6 +8,7 @@ import { isOpenApiSpec } from 'utils/importers/openapi-collection';
 import CodeEditor from './FileEditor/CodeEditor/index';
 import Swagger from './Renderers/Swagger';
 import { useDragResize } from 'hooks/useDragResize';
+import { SPEC_PREVIEW_ERRORS } from './constants';
 
 const PREVIEW_TIMEOUT_MS = 15000;
 
@@ -21,13 +22,13 @@ const getPreviewParseError = (content) => {
       parsed = jsyaml.load(content);
     }
   } catch {
-    return 'Unable to render preview: content is not a valid YAML or JSON.';
+    return SPEC_PREVIEW_ERRORS.INVALID_YAML_JSON;
   }
   if (!parsed || typeof parsed !== 'object') {
-    return 'Unable to render preview: content is not a valid OpenAPI specification.';
+    return SPEC_PREVIEW_ERRORS.INVALID_OPENAPI;
   }
   if (!isOpenApiSpec(parsed)) {
-    return 'Unable to render preview: content is not a valid OpenAPI specification.';
+    return SPEC_PREVIEW_ERRORS.INVALID_OPENAPI;
   }
   return null;
 };
@@ -84,7 +85,7 @@ const SpecViewer = ({ content, readOnly, onSave, leftPaneWidth, onLeftPaneWidthC
     clearTimeout(previewTimeoutRef.current);
 
     if (!content || !content.trim()) {
-      setPreviewError('Unable to render preview: No API definition provided.');
+      setPreviewError(SPEC_PREVIEW_ERRORS.EMPTY);
       return;
     }
 
@@ -96,7 +97,7 @@ const SpecViewer = ({ content, readOnly, onSave, leftPaneWidth, onLeftPaneWidthC
     setPreviewError(null);
 
     previewTimeoutRef.current = setTimeout(() => {
-      setPreviewError('Preview timed out. The spec may be too large or contain unsupported content.');
+      setPreviewError(SPEC_PREVIEW_ERRORS.TIMEOUT);
     }, PREVIEW_TIMEOUT_MS);
 
     return () => clearTimeout(previewTimeoutRef.current);

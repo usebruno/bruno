@@ -12,12 +12,15 @@ const {
 
 const DEFAULT_WORKSPACE_NAME = 'My Workspace';
 
+const INVALID_EXTENSION_MESSAGE
+  = 'Invalid file format. Please select a valid OpenAPI spec in YAML or JSON format.';
+
 const VALID_API_SPEC_EXTENSIONS = ['.yaml', '.yml', '.json'];
 
 const validateApiSpec = (filePath) => {
   const ext = path.extname(filePath).toLowerCase();
   if (!VALID_API_SPEC_EXTENSIONS.includes(ext)) {
-    throw new Error('Invalid file format. Please select a valid OpenAPI spec in YAML or JSON format.');
+    throw new Error(INVALID_EXTENSION_MESSAGE);
   }
 };
 
@@ -122,5 +125,6 @@ const openApiSpec = async (win, watcher, apiSpecPath, options = {}) => {
 
 module.exports = {
   openApiSpec,
-  openApiSpecDialog
+  openApiSpecDialog,
+  INVALID_EXTENSION_MESSAGE
 };

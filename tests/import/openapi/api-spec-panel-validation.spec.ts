@@ -1,20 +1,19 @@
 import { test, expect } from '../../../playwright';
 import * as path from 'path';
+import { SPEC_PREVIEW_ERRORS } from '../../../packages/bruno-app/src/components/ApiSpecPanel/constants';
+import { INVALID_EXTENSION_MESSAGE } from '../../../packages/bruno-electron/src/app/apiSpecs';
 
 test.describe('API Spec Panel - open & preview validation', () => {
-  let originalShowOpenDialog: any;
-
   test.beforeAll(async ({ electronApp }) => {
-    // save the original showOpenDialog function
     await electronApp.evaluate(({ dialog }) => {
-      originalShowOpenDialog = dialog.showOpenDialog;
+      (dialog as any).__savedShowOpenDialog = dialog.showOpenDialog;
     });
   });
 
   test.afterAll(async ({ electronApp }) => {
-    // restore the original showOpenDialog function
     await electronApp.evaluate(({ dialog }) => {
-      dialog.showOpenDialog = originalShowOpenDialog;
+      dialog.showOpenDialog = (dialog as any).__savedShowOpenDialog;
+      delete (dialog as any).__savedShowOpenDialog;
     });
   });
 
@@ -30,7 +29,7 @@ test.describe('API Spec Panel - open & preview validation', () => {
     await page.getByTestId('api-specs-header-add-menu-open-api-spec').click();
 
     await expect(
-      page.getByText('Invalid file format. Please select a valid OpenAPI spec in YAML or JSON format.')
+      page.getByText(INVALID_EXTENSION_MESSAGE)
     ).toBeVisible({ timeout: 10000 });
   });
 
@@ -47,7 +46,7 @@ test.describe('API Spec Panel - open & preview validation', () => {
     // Opened spec shows up in the sidebar; click it to render the preview pane
     await page.locator('.api-spec-item').filter({ hasText: 'openapi-empty' }).click();
 
-    await expect(page.getByText('Unable to render preview: No API definition provided.')).toBeVisible({
+    await expect(page.getByText(SPEC_PREVIEW_ERRORS.EMPTY)).toBeVisible({
       timeout: 10000
     });
   });
@@ -65,7 +64,7 @@ test.describe('API Spec Panel - open & preview validation', () => {
     await page.locator('.api-spec-item').filter({ hasText: 'openapi-malformed' }).click();
 
     await expect(
-      page.getByText('Unable to render preview: content is not a valid YAML or JSON.')
+      page.getByText(SPEC_PREVIEW_ERRORS.INVALID_YAML_JSON)
     ).toBeVisible({ timeout: 10000 });
   });
 
@@ -84,7 +83,7 @@ test.describe('API Spec Panel - open & preview validation', () => {
     // Parses as an object but lacks the openapi/swagger + info contract, so it must fail
     // fast with a precise message rather than falling through to the preview timeout.
     await expect(
-      page.getByText('Unable to render preview: content is not a valid OpenAPI specification.')
+      page.getByText(SPEC_PREVIEW_ERRORS.INVALID_OPENAPI)
     ).toBeVisible({ timeout: 10000 });
   });
 
@@ -102,6 +101,6 @@ test.describe('API Spec Panel - open & preview validation', () => {
 
     // Panel opens for the valid spec (filename shown in the header) and no preview error appears
     await expect(page.getByText('openapi-simple.json')).toBeVisible({ timeout: 10000 });
-    await expect(page.getByText(/Unable to render preview/)).toHaveCount(0);
+    await expect(page.getByText(/Unable to render preview/i)).toHaveCount(0);
   });
 });
