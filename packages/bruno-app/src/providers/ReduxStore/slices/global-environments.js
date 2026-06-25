@@ -3,7 +3,7 @@ import { uuid } from 'utils/common/index';
 import { environmentSchema } from '@usebruno/schema';
 import { getDataTypeFromValue } from '@usebruno/common/utils';
 import { cloneDeep } from 'lodash';
-import { applyScriptEnvVars, buildPersistedEnvVariables, getScriptModifiedKeys } from 'utils/environments';
+import { applyScriptEnvVars, getScriptModifiedKeys } from 'utils/environments';
 
 const initialState = {
   globalEnvironments: [],
@@ -311,7 +311,7 @@ export const globalEnvironmentsUpdateEvent = ({ globalEnvironmentVariables, coll
     });
     dispatch(_setScriptGlobalEnvBaseline(baseline));
 
-    dispatch(_saveGlobalEnvironment({ environmentUid, variables: buildPersistedEnvVariables(draft.variables) }));
+    dispatch(_saveGlobalEnvironment({ environmentUid, variables: draft.variables }));
     dispatch(clearGlobalEnvironmentDraft());
   }
 
@@ -335,16 +335,15 @@ export const globalEnvironmentsUpdateEvent = ({ globalEnvironmentVariables, coll
     }
   });
 
-  const persisted = buildPersistedEnvVariables(variables);
-  dispatch(_saveGlobalEnvironment({ environmentUid, variables: persisted }));
+  dispatch(_saveGlobalEnvironment({ environmentUid, variables }));
 
   const { ipcRenderer } = window;
   const { workspaceUid, workspacePath } = getWorkspaceContext(state);
   environmentSchema
-    .validate({ ...environment, variables: persisted })
+    .validate({ ...environment, variables })
     .then(() => ipcRenderer.invoke('renderer:save-global-environment', {
       environmentUid,
-      variables: persisted,
+      variables,
       color: environment.color,
       workspaceUid,
       workspacePath
