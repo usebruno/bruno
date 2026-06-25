@@ -1,20 +1,19 @@
 import path from 'path';
 import fs from 'fs';
 import yaml from 'js-yaml';
-import { test, expect, closeElectronApp } from '../../../playwright';
+import { test, expect, closeElectronApp, waitForReadyPage } from '../../../playwright';
 import { findWorkspaceDirByName, WorkspaceConfig } from '../../utils/helpers';
 import {
-  waitForReadyPage,
   buildImportWorkspaceLocators,
   createWorkspaceZip,
   importWorkspaceFromZip
-} from '../../utils/page';
+} from '../../utils/page/actions/workspace';
 
 const initUserDataPath = path.join(__dirname, 'init-user-data');
 
 test.describe('Import Workspace', () => {
   // TC-969: Import workspace from local directory containing a valid workspace.zip file
-  test('should import a workspace from a valid zip file', { tag: '@sanity' }, async ({ launchElectronApp, createTmpDir }) => {
+  test('TC-969: Verify Import workspace from local directory containing valid workspace.zip file', { tag: '@sanity' }, async ({ launchElectronApp, createTmpDir }) => {
     const wsLocation = await createTmpDir('import-ws-location');
     const zipDir = await createTmpDir('import-ws-zip');
     const workspaceName = 'Imported WS';
@@ -30,14 +29,14 @@ test.describe('Import Workspace', () => {
     });
 
     await test.step('Verify success toast is shown', async () => {
-      await expect(page.getByText('Workspace imported successfully!')).toBeVisible({ timeout: 10000 });
+      await expect(page.getByText('Workspace imported successfully!')).toBeVisible({ timeout: 5000 });
     });
 
     await test.step('Verify the imported workspace becomes the active workspace', async () => {
       await expect(locators.activeWorkspaceName()).toHaveText(workspaceName, { timeout: 5000 });
     });
 
-    await test.step('Verify the xworkspace was extracted to the filesystem', async () => {
+    await test.step('Verify the workspace was extracted to the filesystem', async () => {
       const wsDir = await findWorkspaceDirByName(wsLocation, workspaceName);
       expect(wsDir).not.toBeNull();
 
