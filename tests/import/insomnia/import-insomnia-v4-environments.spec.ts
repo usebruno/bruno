@@ -1,6 +1,6 @@
 import { test, expect } from '../../../playwright';
 import * as path from 'path';
-import { openCollection, closeAllCollections, expectEnvVar } from '../../utils/page/actions';
+import { openCollection, closeAllCollections, getEnvVarValueLine } from '../../utils/page/actions';
 
 test.describe('Import Insomnia v4 Collection - Environment Import', () => {
   test.afterEach(async ({ page }) => {
@@ -76,19 +76,19 @@ test.describe('Import Insomnia v4 Collection - Environment Import', () => {
 
       // **Assertion 1: Basic Variables (Top-level keys)**
       // Verifies that simple key-value pairs from the base environment are imported correctly
-      await expectEnvVar(page, 'baseUrl', 'https://api.example.com');
-      await expectEnvVar(page, 'authToken', 'your_auth_token_here');
+      await expect(await getEnvVarValueLine(page, 'baseUrl')).toHaveText('https://api.example.com');
+      await expect(await getEnvVarValueLine(page, 'authToken')).toHaveText('your_auth_token_here');
 
       // **Assertion 2: Nested Object Flattening**
       // Verifies that nested objects are flattened to dot-notation keys (e.g., user.name, user.id)
-      await expectEnvVar(page, 'user.name', 'admin');
+      await expect(await getEnvVarValueLine(page, 'user.name')).toHaveText('admin');
       // Numeric values are converted to strings and preserved
-      await expectEnvVar(page, 'user.id', '123');
+      await expect(await getEnvVarValueLine(page, 'user.id')).toHaveText('123');
 
       // **Assertion 3: Array Flattening**
       // Verifies that arrays are flattened using JavaScript-style square bracket notation (e.g., user.roles[0], user.roles[1])
-      await expectEnvVar(page, 'user.roles[0]', 'admin');
-      await expectEnvVar(page, 'user.roles[1]', 'user');
+      await expect(await getEnvVarValueLine(page, 'user.roles[0]')).toHaveText('admin');
+      await expect(await getEnvVarValueLine(page, 'user.roles[1]')).toHaveText('user');
     });
 
     await test.step('Test Staging Environment - verify merging with base', async () => {
@@ -100,20 +100,20 @@ test.describe('Import Insomnia v4 Collection - Environment Import', () => {
 
       // **Assertion 1: Top-level Variable Override**
       // Verifies that staging environment overrides base environment values
-      await expectEnvVar(page, 'baseUrl', 'https://staging-api.example.com');
+      await expect(await getEnvVarValueLine(page, 'baseUrl')).toHaveText('https://staging-api.example.com');
 
       // **Assertion 2: Top-level Variable Inheritance**
       // Staging inherits authToken from base (not overridden in staging)
-      await expectEnvVar(page, 'authToken', 'your_auth_token_here');
+      await expect(await getEnvVarValueLine(page, 'authToken')).toHaveText('your_auth_token_here');
 
       // **Assertion 3: Nested Object Variable Override and Inheritance**
       // Verifies that nested object properties can be selectively overridden while inheriting others
       // Staging overrides user.name with its own value
-      await expectEnvVar(page, 'user.name', 'staging_admin');
+      await expect(await getEnvVarValueLine(page, 'user.name')).toHaveText('staging_admin');
       // Staging inherits user.id from base (not overridden in staging)
-      await expectEnvVar(page, 'user.id', '123');
+      await expect(await getEnvVarValueLine(page, 'user.id')).toHaveText('123');
       // Staging inherits user.roles[0] from base (not overridden in staging)
-      await expectEnvVar(page, 'user.roles[0]', 'admin');
+      await expect(await getEnvVarValueLine(page, 'user.roles[0]')).toHaveText('admin');
     });
 
     await test.step('Test Development Environment - verify new variables', async () => {
@@ -125,15 +125,15 @@ test.describe('Import Insomnia v4 Collection - Environment Import', () => {
 
       // **Assertion 1: Multiple Top-level Variable Overrides**
       // Verifies that development environment can override multiple base environment values
-      await expectEnvVar(page, 'baseUrl', 'https://dev-api.example.com');
-      await expectEnvVar(page, 'authToken', 'dev_token_123');
+      await expect(await getEnvVarValueLine(page, 'baseUrl')).toHaveText('https://dev-api.example.com');
+      await expect(await getEnvVarValueLine(page, 'authToken')).toHaveText('dev_token_123');
 
       // **Assertion 2: New Nested Variables Addition**
       // Verifies that development environment can add completely new nested variables not present in base
       // New boolean variable is added and converted to string
-      await expectEnvVar(page, 'newFeature.enabled', 'true');
+      await expect(await getEnvVarValueLine(page, 'newFeature.enabled')).toHaveText('true');
       // New numeric variable is added and converted to string with full precision
-      await expectEnvVar(page, 'newFeature.version', '2.099123123');
+      await expect(await getEnvVarValueLine(page, 'newFeature.version')).toHaveText('2.099123123');
     });
 
     await test.step('Close environment tab', async () => {

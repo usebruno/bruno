@@ -1,6 +1,6 @@
 import { test, expect } from '../../../playwright';
 import * as path from 'path';
-import { openCollection, closeAllCollections, expectEnvVar } from '../../utils/page/actions';
+import { openCollection, closeAllCollections, getEnvVarValueLine } from '../../utils/page/actions';
 
 test.describe('Import Insomnia v5 Collection - Environment Import', () => {
   test.afterEach(async ({ page }) => {
@@ -73,26 +73,26 @@ test.describe('Import Insomnia v5 Collection - Environment Import', () => {
 
       // **Assertion 1: Basic Variables (Top-level keys)**
       // Verifies that simple key-value pairs from the base environment are imported correctly
-      await expectEnvVar(page, 'base_url', 'https://api.example.com');
-      await expectEnvVar(page, 'auth_token', 'your_auth_token_here');
+      await expect(await getEnvVarValueLine(page, 'base_url')).toHaveText('https://api.example.com');
+      await expect(await getEnvVarValueLine(page, 'auth_token')).toHaveText('your_auth_token_here');
 
       // **Assertion 2: Nested Object Flattening**
       // Verifies that nested objects are flattened to dot-notation keys (e.g., user.name, user.id)
-      await expectEnvVar(page, 'user.name', 'admin');
+      await expect(await getEnvVarValueLine(page, 'user.name')).toHaveText('admin');
       // Assert: Numeric values are converted to strings and preserved
-      await expectEnvVar(page, 'user.id', '123');
+      await expect(await getEnvVarValueLine(page, 'user.id')).toHaveText('123');
 
       // **Assertion 3: Array Flattening**
       // Verifies that arrays are flattened using JavaScript-style square bracket notation (e.g., user.roles[0], user.roles[1])
-      await expectEnvVar(page, 'user.roles[0]', 'admin');
-      await expectEnvVar(page, 'user.roles[1]', 'user');
+      await expect(await getEnvVarValueLine(page, 'user.roles[0]')).toHaveText('admin');
+      await expect(await getEnvVarValueLine(page, 'user.roles[1]')).toHaveText('user');
 
       // **Assertion 4: Deeply Nested Config Objects**
       // Verifies that deeply nested objects are properly flattened (e.g., config.timeout, config.debug)
       // Numeric values in nested objects are converted to strings
-      await expectEnvVar(page, 'config.timeout', '30000');
+      await expect(await getEnvVarValueLine(page, 'config.timeout')).toHaveText('30000');
       // Boolean values in nested objects are converted to strings
-      await expectEnvVar(page, 'config.debug', 'true');
+      await expect(await getEnvVarValueLine(page, 'config.debug')).toHaveText('true');
     });
 
     await test.step('Test Staging Environment - verify merging and overrides', async () => {
@@ -104,25 +104,25 @@ test.describe('Import Insomnia v5 Collection - Environment Import', () => {
 
       // **Assertion 1: Top-level Variable Override**
       // Verifies that staging environment overrides base environment values
-      await expectEnvVar(page, 'base_url', 'https://staging-api.example.com');
+      await expect(await getEnvVarValueLine(page, 'base_url')).toHaveText('https://staging-api.example.com');
 
       // **Assertion 2: Top-level Variable Inheritance**
       // Staging inherits auth_token from base (not overridden in staging)
-      await expectEnvVar(page, 'auth_token', 'your_auth_token_here');
+      await expect(await getEnvVarValueLine(page, 'auth_token')).toHaveText('your_auth_token_here');
 
       // **Assertion 3: Nested Object Variable Override and Inheritance**
       // Verifies that nested object properties can be selectively overridden while inheriting others
       // Staging overrides user.name with its own value
-      await expectEnvVar(page, 'user.name', 'staging_admin');
+      await expect(await getEnvVarValueLine(page, 'user.name')).toHaveText('staging_admin');
       // Staging inherits user.id from base (not overridden in staging)
-      await expectEnvVar(page, 'user.id', '123');
+      await expect(await getEnvVarValueLine(page, 'user.id')).toHaveText('123');
 
       // **Assertion 4: Deeply Nested Config Override**
       // Verifies that deeply nested object properties can be overridden
       // Staging overrides config.timeout with its own value
-      await expectEnvVar(page, 'config.timeout', '60000');
+      await expect(await getEnvVarValueLine(page, 'config.timeout')).toHaveText('60000');
       // Staging overrides config.debug with its own value
-      await expectEnvVar(page, 'config.debug', 'false');
+      await expect(await getEnvVarValueLine(page, 'config.debug')).toHaveText('false');
     });
 
     await test.step('Test Development Environment - verify new variables', async () => {
@@ -134,19 +134,19 @@ test.describe('Import Insomnia v5 Collection - Environment Import', () => {
 
       // **Assertion 1: Multiple Top-level Variable Overrides**
       // Verifies that development environment can override multiple base environment values
-      await expectEnvVar(page, 'base_url', 'https://dev-api.example.com');
-      await expectEnvVar(page, 'auth_token', 'dev_token_123');
+      await expect(await getEnvVarValueLine(page, 'base_url')).toHaveText('https://dev-api.example.com');
+      await expect(await getEnvVarValueLine(page, 'auth_token')).toHaveText('dev_token_123');
 
       // **Assertion 2: New Nested Variables Addition**
       // Verifies that development environment can add completely new nested variables not present in base
       // New boolean variable is added and converted to string
-      await expectEnvVar(page, 'new_feature.enabled', 'true');
+      await expect(await getEnvVarValueLine(page, 'new_feature.enabled')).toHaveText('true');
       // New numeric variable is added and converted to string with full precision
-      await expectEnvVar(page, 'new_feature.version', '2.099123123');
+      await expect(await getEnvVarValueLine(page, 'new_feature.version')).toHaveText('2.099123123');
 
       // **Assertion 3: Base Variable Inheritance**
       // Development inherits user.roles[0] from base (not overridden in development)
-      await expectEnvVar(page, 'user.roles[0]', 'admin');
+      await expect(await getEnvVarValueLine(page, 'user.roles[0]')).toHaveText('admin');
     });
 
     await test.step('Close environment tab', async () => {
