@@ -5,7 +5,7 @@ import StyledWrapper from './StyledWrapper';
 import { useState, useEffect, useRef } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { updateLeftSidebarWidth, updateIsDragging, toggleSidebarSearch } from 'providers/ReduxStore/slices/app';
-import { setLocalStorageSidebarWidth } from 'utils/common/localStorage';
+import { setLocalStorageValue, SIDEBAR_WIDTH_KEY } from 'utils/common/localStorage';
 import CollectionsSection from './Sections/CollectionsSection/index';
 import ApiSpecsSection from './Sections/ApiSpecsSection/index';
 import useKeybinding from 'hooks/useKeybinding';
@@ -27,7 +27,6 @@ const SIDEBAR_SECTIONS = [
 const Sidebar = () => {
   const leftSidebarWidth = useSelector((state) => state.app.leftSidebarWidth);
   const sidebarCollapsed = useSelector((state) => state.app.sidebarCollapsed);
-  const sidebarHydrated = useSelector((state) => state.app.sidebarHydrated);
   const [asideWidth, setAsideWidth] = useState(leftSidebarWidth);
   const lastWidthRef = useRef(leftSidebarWidth);
 
@@ -66,7 +65,7 @@ const Sidebar = () => {
           leftSidebarWidth: asideWidth
         })
       );
-      setLocalStorageSidebarWidth(asideWidth);
+      setLocalStorageValue(SIDEBAR_WIDTH_KEY, asideWidth);
       dispatch(
         updateIsDragging({
           isDragging: false
@@ -99,7 +98,7 @@ const Sidebar = () => {
     };
   }, [dragging, asideWidth]);
 
-  if (!sidebarHydrated) {
+  if (leftSidebarWidth === null || sidebarCollapsed === null) {
     return null;
   }
 

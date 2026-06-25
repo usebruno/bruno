@@ -5,7 +5,7 @@ import toast from 'react-hot-toast';
 import { useDispatch, useSelector } from 'react-redux';
 
 import { savePreferences, showManageWorkspacePage, toggleSidebarCollapse } from 'providers/ReduxStore/slices/app';
-import { setLocalStorageSidebarCollapsed } from 'utils/common/localStorage';
+import { setLocalStorageValue, SIDEBAR_COLLAPSED_KEY } from 'utils/common/localStorage';
 import { closeConsole, openConsole } from 'providers/ReduxStore/slices/logs';
 import { createWorkspaceWithUniqueName, openWorkspaceDialog, switchWorkspace } from 'providers/ReduxStore/slices/workspaces/actions';
 import { sortWorkspaces, toggleWorkspacePin } from 'utils/workspaces';
@@ -193,7 +193,7 @@ const AppTitleBar = () => {
 
   const handleToggleSidebar = () => {
     dispatch(toggleSidebarCollapse());
-    setLocalStorageSidebarCollapsed(!sidebarCollapsed);
+    setLocalStorageValue(SIDEBAR_COLLAPSED_KEY, !sidebarCollapsed);
   };
 
   const handleToggleDevtools = () => {

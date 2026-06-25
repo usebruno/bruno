@@ -5,27 +5,28 @@ import { normalizePath } from 'utils/common/path';
 import { addTab, focusTab } from './tabs';
 import { clearPersistedScope } from 'hooks/usePersistedState/PersistedScopeProvider';
 import {
-  getLocalStorageSidebarWidth,
-  getLocalStorageSidebarCollapsed,
-  setLocalStorageSidebarWidth,
-  setLocalStorageSidebarCollapsed,
-  hasLocalStorageSidebarWidth,
-  hasLocalStorageSidebarCollapsed
+  DEFAULT_SIDEBAR_WIDTH,
+  DEFAULT_SIDEBAR_COLLAPSED
+} from 'utils/common/constants';
+import {
+  getLocalStorageValue,
+  setLocalStorageValue,
+  SIDEBAR_WIDTH_KEY,
+  SIDEBAR_COLLAPSED_KEY
 } from 'utils/common/localStorage';
 
 const initialState = {
   isDragging: false,
   idbConnectionReady: false,
   snapshotReady: false,
-  sidebarHydrated: hasLocalStorageSidebarWidth() && hasLocalStorageSidebarCollapsed(),
   snapshotHydration: {
     workspaceUid: null,
     pendingCollectionPathnames: [],
     activeCollectionPathname: null,
     startedAt: null
   },
-  leftSidebarWidth: getLocalStorageSidebarWidth(),
-  sidebarCollapsed: getLocalStorageSidebarCollapsed(),
+  leftSidebarWidth: null,
+  sidebarCollapsed: null,
   showSidebarSearch: false,
   focusedSidebarPath: null,
   screenWidth: 500,
@@ -252,9 +253,6 @@ export const appSlice = createSlice({
     },
     setIsCreatingCollection: (state, action) => {
       state.isCreatingCollection = action.payload;
-    },
-    setSidebarHydrated: (state, action) => {
-      state.sidebarHydrated = action.payload;
     }
   },
   extraReducers: (builder) => {
@@ -306,41 +304,39 @@ export const {
   setClipboard,
   setEnvVarSearchQuery,
   setEnvVarSearchExpanded,
-  setIsCreatingCollection,
-  setSidebarHydrated
+  setIsCreatingCollection
 } = appSlice.actions;
 
 export const hydrateApp = () => async (dispatch) => {
   if (!window.ipcRenderer) {
-    dispatch(setSidebarHydrated(true));
     return;
   }
 
   try {
-    const hasLocalWidth = hasLocalStorageSidebarWidth();
-    const hasLocalCollapsed = hasLocalStorageSidebarCollapsed();
-    if (hasLocalWidth && hasLocalCollapsed) {
-      return;
+    const localWidth = getLocalStorageValue(SIDEBAR_WIDTH_KEY, null, (val) => parseInt(val, 10));
+    const localCollapsed = getLocalStorageValue(SIDEBAR_COLLAPSED_KEY, null, (val) => val === 'true');
+    if (localWidth && localCollapsed) {
+      dispatch(setSidebarState({
+        width: localWidth,
+        collapsed: localCollapsed
+      }));
     }
-    const sidebar = await window.ipcRenderer.invoke('renderer:snapshot:get-sidebar');
-    if (sidebar) {
-      const widthToApply = !hasLocalWidth ? sidebar.width : undefined;
-      const collapsedToApply = !hasLocalCollapsed ? sidebar.collapsed : undefined;
 
-      if (widthToApply !== undefined || collapsedToApply !== undefined) {
-        dispatch(setSidebarState({ width: widthToApply, collapsed: collapsedToApply }));
-        if (widthToApply !== undefined) {
-          setLocalStorageSidebarWidth(widthToApply);
-        }
-        if (collapsedToApply !== undefined) {
-          setLocalStorageSidebarCollapsed(collapsedToApply);
-        }
-      }
+    const sidebar = await window.ipcRenderer.invoke('renderer:snapshot:get-sidebar');
+
+    dispatch(setSidebarState({
+      width: localWidth ?? sidebar?.width ?? DEFAULT_SIDEBAR_WIDTH,
+      collapsed: localCollapsed ?? sidebar?.collapsed ?? DEFAULT_SIDEBAR_COLLAPSED
+    }));
+
+    if (!localWidth) {
+      setLocalStorageValue(SIDEBAR_WIDTH_KEY, sidebar?.width ?? DEFAULT_SIDEBAR_WIDTH);
+    }
+    if (!localCollapsed) {
+      setLocalStorageValue(SIDEBAR_COLLAPSED_KEY, sidebar?.collapsed ?? DEFAULT_SIDEBAR_COLLAPSED);
     }
   } catch (error) {
     console.error('Failed to hydrate snapshot:', error);
-  } finally {
-    dispatch(setSidebarHydrated(true));
   }
 };
 

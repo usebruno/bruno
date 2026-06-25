@@ -11,7 +11,7 @@ import { findCollectionByUid, findItemInCollection, flattenItems, isItemARequest
 import { addTab, focusTab, reorderTabs } from 'providers/ReduxStore/slices/tabs';
 import { saveMultipleRequests, saveMultipleCollections, saveMultipleFolders, saveEnvironment, reopenClosedTab } from 'providers/ReduxStore/slices/collections/actions';
 import { toggleSidebarCollapse, savePreferences } from 'providers/ReduxStore/slices/app';
-import { setLocalStorageSidebarCollapsed } from 'utils/common/localStorage';
+import { setLocalStorageValue, SIDEBAR_COLLAPSED_KEY } from 'utils/common/localStorage';
 import { openDevtoolsAndSwitchToTerminal } from 'utils/terminal';
 import { getKeyBindingsForActionAllOS } from './keyMappings';
 
@@ -283,7 +283,7 @@ export const HotkeysProvider = (props) => {
   useEffect(() => {
     bindAction('collapseSidebar', (e) => {
       dispatch(toggleSidebarCollapse());
-      setLocalStorageSidebarCollapsed(!sidebarCollapsed);
+      setLocalStorageValue(SIDEBAR_COLLAPSED_KEY, !sidebarCollapsed);
       return false;
     });
 

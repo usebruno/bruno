@@ -1,47 +1,55 @@
-import { DEFAULT_SIDEBAR_WIDTH, DEFAULT_SIDEBAR_COLLAPSED } from './constants';
+export const SIDEBAR_WIDTH_KEY = 'bruno.leftSidebarWidth';
+export const SIDEBAR_COLLAPSED_KEY = 'bruno.sidebarCollapsed';
 
-export const getLocalStorageSidebarWidth = () => {
+/**
+ * Read a value from localStorage with a fallback and optional parsing function.
+ * @param {string} key - The localStorage key.
+ * @param {*} fallback - The fallback value if key is not found.
+ * @param {function} [parse] - The parse function to convert the stored string to the target type.
+ * @returns {*} The read value or fallback.
+ */
+export const getLocalStorageValue = (key, fallback, parse) => {
   try {
-    const stored = window.localStorage.getItem('bruno.leftSidebarWidth');
-    return stored ? parseInt(stored, 10) : DEFAULT_SIDEBAR_WIDTH;
+    const stored = window.localStorage.getItem(key);
+    if (stored === null) {
+      return fallback;
+    }
+    return parse ? parse(stored) : stored;
   } catch (err) {
-    return DEFAULT_SIDEBAR_WIDTH;
+    return fallback;
   }
 };
 
-export const getLocalStorageSidebarCollapsed = () => {
+/**
+ * Write a value to localStorage.
+ * @param {string} key - The localStorage key.
+ * @param {*} value - The value to store.
+ */
+export const setLocalStorageValue = (key, value) => {
   try {
-    const stored = window.localStorage.getItem('bruno.sidebarCollapsed');
-    return stored !== null ? stored === 'true' : DEFAULT_SIDEBAR_COLLAPSED;
-  } catch (err) {
-    return DEFAULT_SIDEBAR_COLLAPSED;
-  }
-};
-
-export const setLocalStorageSidebarWidth = (width) => {
-  try {
-    window.localStorage.setItem('bruno.leftSidebarWidth', width);
+    window.localStorage.setItem(key, value);
   } catch (err) { }
 };
 
-export const setLocalStorageSidebarCollapsed = (collapsed) => {
+/**
+ * Check if a key exists in localStorage.
+ * @param {string} key - The localStorage key.
+ * @returns {boolean} True if the key exists, false otherwise.
+ */
+export const hasLocalStorageValue = (key) => {
   try {
-    window.localStorage.setItem('bruno.sidebarCollapsed', collapsed);
-  } catch (err) { }
-};
-
-export const hasLocalStorageSidebarWidth = () => {
-  try {
-    return window.localStorage.getItem('bruno.leftSidebarWidth') !== null;
+    return window.localStorage.getItem(key) !== null;
   } catch (err) {
     return false;
   }
 };
 
-export const hasLocalStorageSidebarCollapsed = () => {
+/**
+ * Delete a key from localStorage.
+ * @param {string} key - The localStorage key.
+ */
+export const deleteLocalStorageValue = (key) => {
   try {
-    return window.localStorage.getItem('bruno.sidebarCollapsed') !== null;
-  } catch (err) {
-    return false;
-  }
+    window.localStorage.removeItem(key);
+  } catch (err) { }
 };
