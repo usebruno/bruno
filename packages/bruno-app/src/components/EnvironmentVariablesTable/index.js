@@ -398,16 +398,7 @@ const EnvironmentVariablesTable = ({
     const variablesToSave = formik.values.filter((variable) => variable.name && variable.name.trim() !== '');
     const savedValues = environment.variables || [];
 
-    // Compare against what's on disk: for an ephemeral overlay, that's
-    // `persistedValue`, not the scripted value Redux is holding.
-    const baselineForCompare = (v) => {
-      const stripped = stripEnvVarUid(v);
-      if (v?.ephemeral && v?.persistedValue !== undefined) {
-        stripped.value = v.persistedValue;
-      }
-      return stripped;
-    };
-    const hasChanges = JSON.stringify(variablesToSave.map(stripEnvVarUid)) !== JSON.stringify(savedValues.map(baselineForCompare));
+    const hasChanges = JSON.stringify(variablesToSave.map(stripEnvVarUid)) !== JSON.stringify(savedValues.map(stripEnvVarUid));
     if (!hasChanges) {
       toast.error('No changes to save');
       return;
@@ -601,11 +592,6 @@ const EnvironmentVariablesTable = ({
                       isSecret={variable.secret}
                       onChange={(newValue) => {
                         formik.setFieldValue(`${actualIndex}.value`, newValue, true);
-                        // Clear ephemeral metadata when user manually edits the value
-                        if (variable.ephemeral) {
-                          formik.setFieldValue(`${actualIndex}.ephemeral`, undefined, false);
-                          formik.setFieldValue(`${actualIndex}.persistedValue`, undefined, false);
-                        }
                         // Append a new empty row when editing value on the last row
                         if (isLastRow) {
                           setTimeout(() => {

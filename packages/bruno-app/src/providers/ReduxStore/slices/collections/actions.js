@@ -88,7 +88,7 @@ import {
   mergeHeaders
 } from 'utils/collections/index';
 import { sanitizeName } from 'utils/common/regex';
-import { buildPersistedEnvVariables, applyScriptEnvVars, getScriptModifiedKeys } from 'utils/environments';
+import { applyScriptEnvVars, getScriptModifiedKeys } from 'utils/environments';
 import { safeParseJSON, safeStringifyJSON } from 'utils/common/index';
 import { resolveInheritedAuth } from 'utils/auth';
 import { addTab } from 'providers/ReduxStore/slices/tabs';
@@ -1925,12 +1925,7 @@ export const copyEnvironment = (name, baseEnvUid, collectionUid) => (dispatch, g
 
     const { ipcRenderer } = window;
 
-    // strip "ephemeral" metadata
-    const variablesToCopy = (baseEnv.variables || [])
-      .filter((v) => !v.ephemeral)
-      .map(({ ephemeral, ...rest }) => {
-        return rest;
-      });
+    const variablesToCopy = baseEnv.variables || [];
 
     ipcRenderer
       .invoke('renderer:create-environment', collection.pathname, sanitizedName, variablesToCopy)
@@ -2014,8 +2009,7 @@ export const saveEnvironment = (variables, environmentUid, collectionUid) => (di
       return reject(new Error('Environment not found'));
     }
 
-    const persisted = buildPersistedEnvVariables(variables);
-    environment.variables = persisted;
+    environment.variables = variables;
 
     const { ipcRenderer } = window;
     const envForValidation = cloneDeep(environment);
@@ -2024,7 +2018,7 @@ export const saveEnvironment = (variables, environmentUid, collectionUid) => (di
       .validate(environment)
       .then(() => ipcRenderer.invoke('renderer:save-environment', collection.pathname, envForValidation))
       .then(() => {
-        dispatch(_saveEnvironment({ variables: persisted, environmentUid, collectionUid }));
+        dispatch(_saveEnvironment({ variables, environmentUid, collectionUid }));
       })
       .then(resolve)
       .catch(reject);
@@ -2161,9 +2155,7 @@ export const updateVariableInScope = (variableName, newValue, scopeInfo, collect
 
           const updatedVariables = environment.variables.map((v) => {
             if (v.uid === variable.uid) {
-              // Clear ephemeral metadata when user manually edits the value
-              const { ephemeral, persistedValue, ...rest } = v;
-              return { ...rest, value: newValue };
+              return { ...v, value: newValue };
             }
             return v;
           });
@@ -2277,9 +2269,7 @@ export const updateVariableInScope = (variableName, newValue, scopeInfo, collect
 
           const updatedVariables = environment.variables.map((v) => {
             if (v.uid === variable.uid) {
-              // Clear ephemeral metadata when user manually edits the value
-              const { ephemeral, persistedValue, ...rest } = v;
-              return { ...rest, value: newValue };
+              return { ...v, value: newValue };
             }
             return v;
           });
@@ -2339,7 +2329,7 @@ export const persistActiveEnvironment = (collectionUid) => (dispatch, getState) 
     // Baseline exists — a draft was flushed earlier in this request cycle.
     // Write to disk silently (without dispatching _saveEnvironment) to avoid
     // racing with file-watcher callbacks.
-    const envCopy = { ...environment, variables: buildPersistedEnvVariables(environment.variables) };
+    const envCopy = { ...environment };
     const { ipcRenderer } = window;
     environmentSchema
       .validate(envCopy)

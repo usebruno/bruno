@@ -1,19 +1,6 @@
 import { isEqual } from 'lodash';
 import { uuid } from './common/index';
 
-const stripEphemeralMetadata = (v) => {
-  const { ephemeral, persistedValue, ...rest } = v || {};
-  return rest;
-};
-
-/*
- Strips internal metadata that should not be written to the environment file.
-*/
-export const buildPersistedEnvVariables = (variables) => {
-  const src = Array.isArray(variables) ? variables : [];
-  return src.map(stripEphemeralMetadata);
-};
-
 export const buildEnvVariable = ({ envVariable: obj, withUuid = false }) => {
   const isSecret = !!obj.secret;
   let envVariable = {

@@ -3,9 +3,7 @@ import { collectionsSlice } from './index';
 const {
   setRequestVars,
   setFolderVars,
-  setCollectionVars,
-  collectionAddEnvFileEvent,
-  scriptEnvironmentUpdateEvent
+  setCollectionVars
 } = collectionsSlice.actions;
 const reducer = collectionsSlice.reducer;
 
@@ -32,66 +30,6 @@ const assertGuardedVars = (vars) => {
   expect(vars[2]).toMatchObject({ name: 'plain', value: 'hello' });
   expect(vars[2].dataType).toBeUndefined();
 };
-
-describe('collectionAddEnvFileEvent — ephemeral env vars on disk reload', () => {
-  const stateWithEnv = (variables) => ({
-    collections: [
-      {
-        uid: 'col1',
-        items: [],
-        environments: [{ uid: 'env1', name: 'dev', pathname: '/dev.bru', variables }]
-      }
-    ]
-  });
-
-  // A persist:true setEnvVar writes the file, which reloads only the persisted var.
-  const fileReload = reducer(
-    stateWithEnv([
-      { uid: 'v1', name: 'test_env_var', value: 'test', ephemeral: true },
-      { uid: 'v2', name: 'test_env_var_test', value: 'test', ephemeral: false }
-    ]),
-    collectionAddEnvFileEvent({
-      collectionUid: 'col1',
-      environment: {
-        uid: 'env1',
-        name: 'dev',
-        pathname: '/dev.bru',
-        variables: [{ uid: 'v2', name: 'test_env_var_test', value: 'test' }]
-      }
-    })
-  );
-  const reloadedVars = fileReload.collections[0].environments[0].variables;
-
-  it('keeps a script-created ephemeral var absent from the reloaded file', () => {
-    const kept = reloadedVars.find((v) => v.name === 'test_env_var');
-    expect(kept).toMatchObject({ name: 'test_env_var', value: 'test', ephemeral: true });
-  });
-
-  it('drops an overlay ephemeral (persistedValue set) absent from the reloaded file', () => {
-    const next = reducer(
-      stateWithEnv([{ uid: 'v1', name: 'deleted_overlay', value: 'temp', ephemeral: true, persistedValue: 'orig' }]),
-      collectionAddEnvFileEvent({
-        collectionUid: 'col1',
-        environment: { uid: 'env1', name: 'dev', pathname: '/dev.bru', variables: [] }
-      })
-    );
-
-    expect(next.collections[0].environments[0].variables).toHaveLength(0);
-  });
-});
-
-describe('scriptEnvironmentUpdateEvent — re-updating a script-created ephemeral var', () => {
-  const stateWithEnvVar = (variable) => ({
-    collections: [
-      {
-        uid: 'col1',
-        items: [],
-        activeEnvironmentUid: 'env1',
-        environments: [{ uid: 'env1', name: 'dev', variables: [variable] }]
-      }
-    ]
-  });
-});
 
 describe('setRequestVars — strips dataType: \'string\' (implicit default)', () => {
   it('drops a stray string-dataType on request vars and preserves typed datatypes', () => {

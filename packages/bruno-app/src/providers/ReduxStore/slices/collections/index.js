@@ -3010,32 +3010,11 @@ export const collectionsSlice = createSlice({
         const existingEnv = collection.environments.find((e) => e.uid === environment.uid);
 
         if (existingEnv) {
-          const prevEphemerals = (existingEnv.variables || []).filter((v) => v.ephemeral);
           existingEnv.name = environment.name;
           existingEnv.pathname = environment.pathname;
           existingEnv.variables = environment.variables;
           existingEnv.color = environment.color;
           existingEnv.externalSecrets = environment.externalSecrets;
-          /*
-           Apply temporary (ephemeral) values only to variables that actually exist in the file. This prevents deleted temporaries from “popping back” after a save. If a variable is present in the file, we temporarily override the UI value while also remembering the on-disk value in persistedValue for future saves.
-          */
-          prevEphemerals.forEach((ev) => {
-            const target = existingEnv.variables?.find((v) => v.name === ev.name);
-            if (target) {
-              if (target.value !== ev.value) {
-                if (target.persistedValue === undefined) target.persistedValue = target.value;
-                target.value = ev.value;
-              }
-              target.ephemeral = true;
-            } else if (ev.persistedValue === undefined) {
-              /*
-               No counterpart in the file. A script-created overlay (persistedValue undefined) never
-               existed on disk, so a sibling persist:true save must not erase it — keep it visible.
-               An ephemeral with persistedValue shadowed a now-absent disk var (deleted), so it drops.
-              */
-              existingEnv.variables.push(ev);
-            }
-          });
         } else {
           collection.environments.push(environment);
           collection.environments.sort((a, b) => a.name.localeCompare(b.name));
