@@ -24,8 +24,9 @@ import OpenAPISyncIcon from 'components/Icons/OpenAPISync';
 import { switchWorkspace, renameWorkspaceAction, exportWorkspaceAction, confirmWorkspaceCreation, cancelWorkspaceCreation } from 'providers/ReduxStore/slices/workspaces/actions';
 import { updateWorkspace } from 'providers/ReduxStore/slices/workspaces';
 import { showInFolder } from 'providers/ReduxStore/slices/collections/actions';
-import { toggleCollectionFileMode, toggleAppMode, updateSettingsSelectedTab } from 'providers/ReduxStore/slices/collections';
+import { toggleCollectionFileMode, toggleAppMode } from 'providers/ReduxStore/slices/collections';
 import { toggleAiSidebar } from 'providers/ReduxStore/slices/chat';
+import MigrateToYmlModal from 'components/CollectionSettings/Overview/Migration/MigrateToYmlModal';
 import { findItemInCollection, findItemInCollectionByPathname } from 'utils/collections';
 import find from 'lodash/find';
 import get from 'lodash/get';
@@ -97,6 +98,7 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
   const [workspaceNameError, setWorkspaceNameError] = useState('');
   const [closeWorkspaceModalOpen, setCloseWorkspaceModalOpen] = useState(false);
   const [createWorkspaceModalOpen, setCreateWorkspaceModalOpen] = useState(false);
+  const [showMigrateModal, setShowMigrateModal] = useState(false);
 
   // Migrate-to-YML pill dismissal state (persisted by collection pathname)
   const [migratePillDismissed, setMigratePillDismissed] = useState(true);
@@ -273,17 +275,6 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
         type: 'collection-settings'
       })
     );
-  };
-
-  const viewMigrationSettings = () => {
-    dispatch(
-      addTab({
-        uid: collection.uid,
-        collectionUid: collection.uid,
-        type: 'collection-settings'
-      })
-    );
-    dispatch(updateSettingsSelectedTab({ collectionUid: collection.uid, tab: 'overview' }));
   };
 
   const viewOpenApiSync = () => {
@@ -726,7 +717,7 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
                   <button
                     type="button"
                     className="pill-main"
-                    onClick={viewMigrationSettings}
+                    onClick={() => setShowMigrateModal(true)}
                   >
                     <IconTransform size={13} strokeWidth={1.5} />
                     <span className="pill-label">Migrate to YML</span>
@@ -779,6 +770,12 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
           )}
         </div>
       </div>
+      {showMigrateModal && (
+        <MigrateToYmlModal
+          collection={collection}
+          onClose={() => setShowMigrateModal(false)}
+        />
+      )}
     </StyledWrapper>
   );
 };
