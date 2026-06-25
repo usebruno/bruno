@@ -46,7 +46,7 @@ const DeleteCollectionItem = ({ onClose, item, collectionUid }) => {
         handleConfirm={onConfirm}
         handleCancel={onClose}
       >
-        Are you sure you want to delete <span className="font-medium">{item.name}</span> ?
+        Are you sure you want to delete <span className="delete-item-name font-medium">{item.name}</span> ?
       </Modal>
     </StyledWrapper>
   );
