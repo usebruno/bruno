@@ -24,6 +24,7 @@ const CompatEndpointCard = ({
   provider,
   providerEnabled,
   providerToggle,
+  pending,
   isModelEnabled,
   onToggleModel,
   onChangeName,
@@ -248,9 +249,10 @@ const CompatEndpointCard = ({
                       type="button"
                       className="btn-icon w-7 h-7 box-border inline-flex items-center justify-center cursor-pointer"
                       onClick={handleTest}
-                      disabled={testing || !providerEnabled || !endpoint.baseURL}
+                      disabled={testing || pending || !providerEnabled || !endpoint.baseURL}
                       title={endpoint.baseURL ? 'Test connection' : 'Set Base URL first'}
                       aria-label="Test connection"
+                      data-testid={`ai-endpoint-${endpoint.id}-test`}
                     >
                       {testing ? <IconLoader2 size={15} className="spin" /> : <IconBolt size={15} />}
                     </button>
@@ -258,8 +260,10 @@ const CompatEndpointCard = ({
                       type="button"
                       className="btn-icon w-7 h-7 box-border inline-flex items-center justify-center cursor-pointer"
                       onClick={handleStartEditKey}
+                      disabled={pending}
                       title="Replace key"
                       aria-label="Replace key"
+                      data-testid={`ai-endpoint-${endpoint.id}-edit-key`}
                     >
                       <IconPencil size={15} />
                     </button>
@@ -267,8 +271,10 @@ const CompatEndpointCard = ({
                       type="button"
                       className="btn-icon danger w-7 h-7 box-border inline-flex items-center justify-center cursor-pointer"
                       onClick={handleClearKey}
+                      disabled={pending}
                       title="Remove key"
                       aria-label="Remove key"
+                      data-testid={`ai-endpoint-${endpoint.id}-clear-key`}
                     >
                       <IconTrash size={15} />
                     </button>
@@ -291,6 +297,7 @@ const CompatEndpointCard = ({
                       onKeyDown={handleKeyDown}
                       onClick={stopBubble}
                       autoFocus
+                      data-testid={`ai-endpoint-${endpoint.id}-key-input`}
                     />
                     <button
                       type="button"
@@ -305,8 +312,9 @@ const CompatEndpointCard = ({
                   <button
                     type="button"
                     className="btn-primary h-8 box-border px-3 text-xs font-medium inline-flex items-center justify-center gap-1 cursor-pointer"
-                    disabled={saving || !keyDraft.trim()}
+                    disabled={saving || pending || !keyDraft.trim()}
                     onClick={handleSaveKey}
+                    data-testid={`ai-endpoint-${endpoint.id}-save-key`}
                   >
                     {saving ? <IconLoader2 size={13} className="spin" /> : <IconCheck size={13} />}
                     Save
@@ -321,6 +329,13 @@ const CompatEndpointCard = ({
                       <IconX size={15} />
                     </button>
                   )}
+                </div>
+              )}
+
+              {pending && (
+                <div className="feedback flex items-center gap-1.5 text-[11px] px-2 py-1 mt-1.5" role="status">
+                  <IconLoader2 size={12} className="spin" />
+                  Saving endpoint…
                 </div>
               )}
 
@@ -407,6 +422,7 @@ const CompatEndpointCard = ({
                   value={newModelId}
                   onChange={(e) => setNewModelId(e.target.value)}
                   onKeyDown={handleAddModelKeyDown}
+                  data-testid={`ai-endpoint-${endpoint.id}-new-model-id`}
                 />
                 <input
                   type="text"
@@ -415,12 +431,14 @@ const CompatEndpointCard = ({
                   value={newModelLabel}
                   onChange={(e) => setNewModelLabel(e.target.value)}
                   onKeyDown={handleAddModelKeyDown}
+                  data-testid={`ai-endpoint-${endpoint.id}-new-model-label`}
                 />
                 <button
                   type="button"
                   className="btn-primary h-8 box-border px-3 text-xs font-medium inline-flex items-center justify-center gap-1 cursor-pointer"
                   disabled={!newModelId.trim()}
                   onClick={handleAddModel}
+                  data-testid={`ai-endpoint-${endpoint.id}-add-model`}
                 >
                   <IconPlus size={13} />
                   Add
@@ -433,6 +451,7 @@ const CompatEndpointCard = ({
                 type="button"
                 className="compat-remove-endpoint inline-flex items-center gap-1 text-[11px] cursor-pointer"
                 onClick={() => onRemoveEndpoint(endpoint.id)}
+                data-testid={`ai-endpoint-${endpoint.id}-remove`}
               >
                 <IconTrash size={12} />
                 Remove endpoint

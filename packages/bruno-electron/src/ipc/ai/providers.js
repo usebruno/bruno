@@ -56,8 +56,10 @@ const MODEL_DEFINITIONS = {
 // also folds baseURL in so editing the URL rebuilds the SDK.
 const sdkCache = new Map();
 
+// JSON-stringified tuple so values containing ":" (provider ids, URLs) can't
+// collide and reuse an SDK configured for a different endpoint/key.
 const sdkCacheKey = ({ providerId, apiKey, baseURL }) =>
-  baseURL ? `${providerId}:${baseURL}:${apiKey}` : `${providerId}:${apiKey}`;
+  JSON.stringify([providerId, baseURL || '', apiKey]);
 
 const getCompatEndpoint = (aiPreferences, endpointId) => {
   const list = Array.isArray(aiPreferences?.openaiCompatibleEndpoints)

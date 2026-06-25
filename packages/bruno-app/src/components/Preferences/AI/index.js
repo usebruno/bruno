@@ -89,7 +89,7 @@ const AI = () => {
   });
 
   const handleSave = useCallback(
-    (values) => {
+    (values) =>
       dispatch(
         savePreferences({
           ...preferences,
@@ -111,8 +111,8 @@ const AI = () => {
         .catch((err) => {
           console.error('Failed to save AI preferences:', err);
           toast.error('Failed to save AI preferences');
-        });
-    },
+          throw err;
+        }),
     [dispatch, preferences, refreshStatus]
   );
 
@@ -154,7 +154,7 @@ const AI = () => {
 
   const endpoints = formik.values.openaiCompatibleEndpoints || [];
 
-  const handleAddEndpoint = () => {
+  const handleAddEndpoint = async () => {
     const newEndpoint = {
       id: uuid(),
       name: `Endpoint ${endpoints.length + 1}`,
@@ -165,15 +165,21 @@ const AI = () => {
     formik.setFieldValue('openaiCompatibleEndpoints', next);
     formik.setFieldValue(`providers.${OPENAI_COMPATIBLE_PREFIX}${newEndpoint.id}.enabled`, true);
     // Persist immediately so the backend recognises the new virtual provider id
-    // by the time the user enters an API key (avoids "Unknown AI provider").
-    handleSaveRef.current({
-      ...formik.values,
-      openaiCompatibleEndpoints: next,
-      providers: {
-        ...formik.values.providers,
-        [`${OPENAI_COMPATIBLE_PREFIX}${newEndpoint.id}`]: { enabled: true }
-      }
-    });
+    // by the time the user enters an API key. The card derives a `pending` flag
+    // from `status.providers` so its key/test actions stay disabled until this
+    // resolves, which also closes the race with debouncedSave.
+    try {
+      await handleSaveRef.current({
+        ...formik.values,
+        openaiCompatibleEndpoints: next,
+        providers: {
+          ...formik.values.providers,
+          [`${OPENAI_COMPATIBLE_PREFIX}${newEndpoint.id}`]: { enabled: true }
+        }
+      });
+    } catch (_) {
+      // toast already raised by handleSave
+    }
   };
 
   const updateEndpoint = (endpointId, patch) => {
@@ -188,12 +194,30 @@ const AI = () => {
 
   const handleRemoveEndpoint = async (endpointId) => {
     const providerId = `${OPENAI_COMPATIBLE_PREFIX}${endpointId}`;
+    const removed = endpoints.find((e) => e.id === endpointId);
+    const removedModelIds = new Set((removed?.models || []).map((m) => m.id));
+
     const next = endpoints.filter((e) => e.id !== endpointId);
     formik.setFieldValue('openaiCompatibleEndpoints', next);
 
     const providersCopy = { ...formik.values.providers };
     delete providersCopy[providerId];
     formik.setFieldValue('providers', providersCopy);
+
+    // Drop per-model toggles and clear any selector still pointing at a removed
+    // model so the picker doesn't resolve to an unknown id later.
+    if (removedModelIds.size > 0) {
+      const modelsCopy = { ...(formik.values.models || {}) };
+      for (const id of removedModelIds) delete modelsCopy[id];
+      formik.setFieldValue('models', modelsCopy);
+
+      if (removedModelIds.has(formik.values.defaultModel)) {
+        formik.setFieldValue('defaultModel', '');
+      }
+      if (removedModelIds.has(formik.values.autocomplete?.model)) {
+        formik.setFieldValue('autocomplete.model', '');
+      }
+    }
 
     // Best-effort key cleanup so we don't leave orphan encrypted blobs on disk.
     try {
@@ -318,6 +342,7 @@ const AI = () => {
                   type="button"
                   className="compat-add-btn inline-flex items-center gap-1 text-[11px] font-medium cursor-pointer normal-case tracking-normal"
                   onClick={handleAddEndpoint}
+                  data-testid="ai-compat-add-endpoint"
                 >
                   <IconPlus size={13} strokeWidth={1.75} />
                   Add endpoint
@@ -334,6 +359,7 @@ const AI = () => {
                 <div className="flex flex-col gap-1.5">
                   {endpoints.map((endpoint) => {
                     const providerId = `${OPENAI_COMPATIBLE_PREFIX}${endpoint.id}`;
+                    const pending = !status.providers[providerId];
                     const provider = status.providers[providerId] || {
                       id: providerId,
                       label: endpoint.name,
@@ -358,6 +384,7 @@ const AI = () => {
                         provider={provider}
                         providerEnabled={providerEnabled}
                         providerToggle={providerToggle}
+                        pending={pending}
                         isModelEnabled={isModelEnabled}
                         onToggleModel={handleToggleModel}
                         onChangeName={(name) => updateEndpoint(endpoint.id, { name })}
