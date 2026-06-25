@@ -51,7 +51,8 @@
     "randomstring": "^1.2.2",
     "rimraf": "^6.0.1",
     "storybook": "^10.1.10",
-    "ts-jest": "^29.2.6"
+    "ts-jest": "^29.2.6",
+    "adm-zip": "^0.5.17"
   },
   "scripts": {
     "setup": "node ./scripts/setup.js",
@@ -106,7 +107,6 @@
     }
   },
   "dependencies": {
-    "adm-zip": "^0.5.17",
     "ajv": "^8.17.1",
     "git-url-parse": "^14.1.0"
   }

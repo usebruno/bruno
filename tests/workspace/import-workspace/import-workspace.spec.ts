@@ -12,7 +12,6 @@ import {
 const initUserDataPath = path.join(__dirname, 'init-user-data');
 
 test.describe('Import Workspace', () => {
-  // TC-969: Import workspace from local directory containing a valid workspace.zip file
   test('TC-969: Verify Import workspace from local directory containing valid workspace.zip file', { tag: '@sanity' }, async ({ launchElectronApp, createTmpDir }) => {
     const wsLocation = await createTmpDir('import-ws-location');
     const zipDir = await createTmpDir('import-ws-zip');
@@ -29,11 +28,11 @@ test.describe('Import Workspace', () => {
     });
 
     await test.step('Verify success toast is shown', async () => {
-      await expect(page.getByText('Workspace imported successfully!')).toBeVisible({ timeout: 5000 });
+      await expect(page.getByText('Workspace imported successfully!')).toBeVisible();
     });
 
     await test.step('Verify the imported workspace becomes the active workspace', async () => {
-      await expect(locators.activeWorkspaceName()).toHaveText(workspaceName, { timeout: 5000 });
+      await expect(locators.activeWorkspaceName()).toHaveText(workspaceName);
     });
 
     await test.step('Verify the workspace was extracted to the filesystem', async () => {

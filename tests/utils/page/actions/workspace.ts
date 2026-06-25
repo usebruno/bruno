@@ -87,7 +87,7 @@ export const submitWorkspaceImport = async (page: Page, opts: ImportWorkspaceOpt
 
   await test.step('Select the workspace zip file', async () => {
     await l.fileInput().setInputFiles(opts.zipPath);
-    await expect(l.selectedFileName(path.basename(opts.zipPath))).toBeVisible({ timeout: 2000 });
+    await expect(l.selectedFileName(path.basename(opts.zipPath))).toBeVisible();
   });
 
   await test.step('Ensure an extract location is set', async () => {
@@ -98,7 +98,7 @@ export const submitWorkspaceImport = async (page: Page, opts: ImportWorkspaceOpt
           Promise.resolve({ canceled: false, filePaths: [target] });
       }, opts.extractLocation);
       await l.locationInput().click();
-      await expect(l.locationInput()).toHaveValue(opts.extractLocation, { timeout: 2000 });
+      await expect(l.locationInput()).toHaveValue(opts.extractLocation);
     } else {
       // Rely on the pre-filled default location.
       await expect(l.locationInput()).not.toHaveValue('');
