@@ -1,16 +1,27 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { IconSend } from '@tabler/icons';
 import { useSelector } from 'react-redux';
 import StyledWrapper from './StyledWrapper';
 import { isMacOS } from 'utils/common/platform';
+import { getKeyBindingDisplayTextByOS } from 'providers/Hotkeys/keyMappings';
+
+const KEY_BINDING_ACTIONS = [
+  { label: 'Send Request', action: 'sendRequest' },
+  { label: 'New Request', action: 'newRequest' },
+  { label: 'Edit Environments', action: 'editEnvironment' }
+];
 
 const Placeholder = () => {
   const isMac = isMacOS();
-  const sendRequestShortcut = isMac ? 'Cmd + Enter' : 'Ctrl + Enter';
-  const newRequestShortcut = isMac ? 'Cmd + N' : 'Ctrl + N';
-  const editEnvironmentShortcut = isMac ? 'Cmd + E' : 'Ctrl + E';
+  const os = isMac ? 'mac' : 'windows';
   const preferences = useSelector((state) => state.app.preferences);
   const isVerticalLayout = preferences?.layout?.responsePaneOrientation === 'vertical';
+  const keyBindingActions = useMemo(() => {
+    return KEY_BINDING_ACTIONS.map(({ label, action }) => ({
+      label,
+      shortcut: getKeyBindingDisplayTextByOS(action, preferences?.keyBindings, os)
+    }));
+  }, [preferences?.keyBindings, os]);
 
   const iconSize = isVerticalLayout ? 80 : 150;
 
@@ -21,14 +32,14 @@ const Placeholder = () => {
       </div>
       <div className={`flex ${isVerticalLayout ? 'mt-2' : 'mt-4'}`}>
         <div className="flex flex-1 flex-col items-end px-1">
-          <div className="px-1 py-2">Send Request</div>
-          <div className="px-1 py-2">New Request</div>
-          <div className="px-1 py-2">Edit Environments</div>
+          {keyBindingActions.map(({ label }) => (
+            <div key={label} className="px-1 py-2">{label}</div>
+          ))}
         </div>
         <div className="flex flex-1 flex-col px-1">
-          <div className="px-1 py-2">{sendRequestShortcut}</div>
-          <div className="px-1 py-2">{newRequestShortcut}</div>
-          <div className="px-1 py-2">{editEnvironmentShortcut}</div>
+          {keyBindingActions.map(({ label, shortcut }) => (
+            <div key={label} className="px-1 py-2">{shortcut}</div>
+          ))}
         </div>
       </div>
     </StyledWrapper>
