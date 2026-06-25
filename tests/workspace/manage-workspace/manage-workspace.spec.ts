@@ -39,14 +39,17 @@ test.describe('Manage Workspace', () => {
   });
 
   test.describe('Manage Workspace Actions - Rename Workspace', () => {
-    test('Click on the 3 dots icon on the workspace you want to rename.', async ({ page }) => {
+    test('Verify renaming a workspace from manage workspace section.', { tag: '@sanity' }, async ({ page }) => {
       const workspaceItem = page.locator('.workspace-item').filter({
         has: page.locator('.workspace-name', { hasText: 'Custom Workspace' })
       });
+      await expect(workspaceItem).toBeVisible();
 
-      await workspaceItem.locator('.more-actions-btn').click();
-      await page.locator('.dropdown-item').filter({ hasText: 'Rename' }).click();
-      await expect(page.locator('.bruno-modal-card')).toBeVisible();
+      await test.step('Click on the more actions button', async () => {
+        await workspaceItem.locator('.more-actions-btn').click();
+        await page.locator('.dropdown-item').filter({ hasText: 'Rename' }).click();
+        await expect(page.locator('.bruno-modal-card')).toBeVisible();
+      });
 
       await test.step('Enter a new name for the workspace in the editing field.', async () => {
         const workspaceNameInput = page.locator('#workspace-name');
@@ -56,8 +59,8 @@ test.describe('Manage Workspace', () => {
       });
 
       await test.step('Verify the workspace name is updated in the workspace list.', async () => {
-        const workspaceItem = page.getByTestId('workspace-name');
-        await expect(workspaceItem).toHaveText('New Workspace Name');
+        const renamedWorkspaceName = page.getByTestId('workspace-name');
+        await expect(renamedWorkspaceName).toHaveText('New Workspace Name');
         const manageWorkspaceItem = page.locator('.workspace-item').filter({
           has: page.locator('.workspace-name', { hasText: 'New Workspace Name' })
         });
@@ -67,12 +70,13 @@ test.describe('Manage Workspace', () => {
   });
 
   test.describe('Manage Workspace Actions - Remove Workspace', () => {
-    test('Should be able to remove a Workspace from manage workspace section', async ({ page }) => {
+    test('Verify removing a Workspace from manage workspace section', { tag: '@sanity' }, async ({ page }) => {
       const workspaceItem = page.locator('.workspace-item').filter({
         has: page.locator('.workspace-name', { hasText: 'Custom Workspace' })
       });
+      await expect(workspaceItem).toBeVisible();
 
-      await test.step('Open Manage Workspaces', async () => {
+      await test.step('Click on the 3 dots icon on the workspace you want to remove', async () => {
         await workspaceItem.locator('.more-actions-btn').click();
         await expect(page.getByTestId('menu-dropdown-dropdown')).toBeVisible();
         await page.getByTestId('menu-dropdown-remove').click();
