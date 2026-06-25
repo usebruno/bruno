@@ -115,7 +115,7 @@ const SLOW_RENDER_TIMEOUT_MS = 15_000;
 const expectTypeLabel = async (row: Locator, label: string) => {
   await scrollVirtuosoRowIntoView(row.page(), row);
   const { dataTypeSelector } = buildCommonLocators(row.page());
-  await expect(dataTypeSelector.typeLabel(row)).toHaveText(label, { timeout: SLOW_RENDER_TIMEOUT_MS });
+  await expect(dataTypeSelector.typeLabel(row)).toHaveAttribute('data-selected-type', label, { timeout: SLOW_RENDER_TIMEOUT_MS });
 };
 
 /**
@@ -126,13 +126,15 @@ const expectTypeLabel = async (row: Locator, label: string) => {
 const changeRowDataType = async (page: Page, row: Locator, newType: string) => {
   const { dataTypeSelector } = buildCommonLocators(page);
   const trigger = dataTypeSelector.typeLabel(row);
+  // Hover the row first so the compact overlay's pointer-events become 'auto'.
+  await row.hover();
   await trigger.click();
 
   const menuItem = dataTypeSelector.menuItem(newType);
   await expect(menuItem).toBeVisible();
   await menuItem.click();
 
-  await expect(trigger).toHaveText(newType);
+  await expect(trigger).toHaveAttribute('data-selected-type', newType);
   // Let the dispatched Redux mutation propagate before the caller saves.
   await page.waitForTimeout(300);
 };
@@ -272,7 +274,7 @@ const expectEnvVarTypeLabel = async (page: Page, name: string, label: string) =>
   const { environment, dataTypeSelector } = buildCommonLocators(page);
   const row = environment.varRow(name);
   await scrollVirtuosoRowIntoView(page, row);
-  await expect(dataTypeSelector.typeLabel(row)).toHaveText(label, { timeout: SLOW_RENDER_TIMEOUT_MS });
+  await expect(dataTypeSelector.typeLabel(row)).toHaveAttribute('data-selected-type', label, { timeout: SLOW_RENDER_TIMEOUT_MS });
 };
 
 /**
@@ -501,11 +503,11 @@ const runDataTypeSelectorTests = (
     await openRequestInCollection(page, collectionName);
     await selectRequestPaneTab(page, 'Params');
     const queryTable = buildCommonLocators(page).table('query-params');
-    await expect(queryTable.container().locator('.type-label')).toHaveCount(0);
+    await expect(queryTable.container().getByTestId('datatype-selector-trigger')).toHaveCount(0);
 
     await selectRequestPaneTab(page, 'Headers');
     const headersTable = buildCommonLocators(page).table('request-headers');
-    await expect(headersTable.container().locator('.type-label')).toHaveCount(0);
+    await expect(headersTable.container().getByTestId('datatype-selector-trigger')).toHaveCount(0);
   });
 
   test('test script: every typed var across scopes asserts true', async ({ pageWithUserData: page }) => {

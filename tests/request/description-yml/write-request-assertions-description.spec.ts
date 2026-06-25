@@ -2,6 +2,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { test, expect } from '../../../playwright';
 import { openRequest, selectRequestPaneTab } from '../../utils/page';
+import { buildCommonLocators } from '../../utils/page/locators';
 
 const COLLECTION = 'req-description-yml';
 const saveShortcut = process.platform === 'darwin' ? 'Meta+s' : 'Control+s';
@@ -14,10 +15,8 @@ test.describe('Request Description (YAML) - Write (Assertions)', () => {
     await openRequest(page, COLLECTION, 'request-with-descriptions');
     await selectRequestPaneTab(page, 'Assert');
 
-    const assertionsTable = page.getByTestId('assertions-table');
-    const plainAssertRow = assertionsTable.locator('tbody tr').filter({
-      has: page.locator('[data-testid="column-name"] .CodeMirror-line', { hasText: 'plainAssert' })
-    });
+    const assertionsTable = buildCommonLocators(page).table('assertions-table');
+    const plainAssertRow = assertionsTable.rowByName('plainAssert');
     const descCell = plainAssertRow.getByTestId('column-description');
 
     await descCell.evaluate((el) => {

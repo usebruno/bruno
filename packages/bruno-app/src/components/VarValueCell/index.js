@@ -5,6 +5,7 @@ const COMPACT_WIDTH_THRESHOLD = 150;
 
 const VarValueCell = ({ editor, renderTypeSelector }) => {
   const [compact, setCompact] = useState(true);
+  const [hovered, setHovered] = useState(false);
   const observerRef = useRef(null);
 
   const containerRef = useCallback((node) => {
@@ -25,13 +26,15 @@ const VarValueCell = ({ editor, renderTypeSelector }) => {
     <StyledWrapper
       ref={containerRef}
       className={`relative flex items-center w-full${compact ? ' var-value-compact' : ' gap-2'}`}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
     >
       <div style={compact ? { width: '100%', minWidth: 0 } : { flex: '1 1 0', minWidth: 0 }}>
         {editor}
       </div>
       {renderTypeSelector && (
         compact
-          ? <div className="type-selector-overlay">{renderTypeSelector({ compact: true })}</div>
+          ? <div className="type-selector-overlay" style={{ pointerEvents: hovered ? 'auto' : 'none' }}>{renderTypeSelector({ compact: true })}</div>
           : renderTypeSelector({ compact: false })
       )}
     </StyledWrapper>

@@ -45,8 +45,13 @@ const DataTypeSelector = ({ variable, onChange, compact = false }) => {
           placement="bottom-end"
           showTickMark={true}
           appendTo={() => document.body}
+          data-testid="datatype-selector-trigger"
         >
-          <div className="flex items-center cursor-pointer select-none">
+          <div
+            className="flex items-center cursor-pointer select-none"
+            data-selected-type={selectedType}
+            aria-label={`Data type: ${selectedType}`}
+          >
             {compact ? (
               <TypeIcon className="type-icon" size={12} strokeWidth={2} />
             ) : (

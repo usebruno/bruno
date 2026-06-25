@@ -9,6 +9,7 @@ const StyledWrapper = styled.div`
     top: 50%;
     transform: translateY(-50%);
     opacity: 0;
+    pointer-events: none;
     transition: opacity 0.15s ease;
     background: ${(props) => props.theme.bg};
     padding: 0 4px;

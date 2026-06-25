@@ -31,7 +31,7 @@ const tableRowByName = (page: Page, tableId: string, name: string) =>
   buildCommonLocators(page).table(tableId).rowByName(name);
 
 const expectTypeLabel = async (row: Locator, label: string) => {
-  await expect(buildCommonLocators(row.page()).dataTypeSelector.typeLabel(row)).toHaveText(label);
+  await expect(buildCommonLocators(row.page()).dataTypeSelector.typeLabel(row)).toHaveAttribute('data-selected-type', label);
 };
 
 // Add a row to the Vars table and pick `dataType` from the DataTypeSelector.
@@ -71,7 +71,7 @@ const addTypedVarRow = async (
     const menuItem = locators.dataTypeSelector.menuItem(dataType);
     await expect(menuItem).toBeVisible();
     await menuItem.click();
-    await expect(typeTrigger).toHaveText(dataType);
+    await expect(typeTrigger).toHaveAttribute('data-selected-type', dataType);
     // Let the dispatched Redux mutation settle before the next interaction.
     await page.waitForTimeout(200);
   });
@@ -211,7 +211,7 @@ test.describe('DataType selector — new collection created via UI', () => {
 
         await locators.dataTypeSelector.typeLabel(namedRow).click();
         await locators.dataTypeSelector.menuItem(dataType).click();
-        await expect(locators.dataTypeSelector.typeLabel(namedRow)).toHaveText(dataType);
+        await expect(locators.dataTypeSelector.typeLabel(namedRow)).toHaveAttribute('data-selected-type', dataType);
         await page.waitForTimeout(200);
       });
     };
@@ -229,12 +229,12 @@ test.describe('DataType selector — new collection created via UI', () => {
 
     // Re-assert after save (post-formik-reset).
     for (const dt of TYPED_DATATYPES) {
-      await expect(locators.dataTypeSelector.typeLabel(locators.environment.varRow(`env_${dt}`))).toHaveText(dt);
+      await expect(locators.dataTypeSelector.typeLabel(locators.environment.varRow(`env_${dt}`))).toHaveAttribute('data-selected-type', dt);
     }
     // Each secret var keeps both its secret flag and its dataType after save.
     for (const dt of TYPED_DATATYPES) {
       await expect(locators.environment.varRowSecretCheckbox(`env_secret_${dt}`)).toBeChecked();
-      await expect(locators.dataTypeSelector.typeLabel(locators.environment.varRow(`env_secret_${dt}`))).toHaveText(dt);
+      await expect(locators.dataTypeSelector.typeLabel(locators.environment.varRow(`env_secret_${dt}`))).toHaveAttribute('data-selected-type', dt);
     }
   });
 });

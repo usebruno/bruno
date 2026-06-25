@@ -31,7 +31,7 @@ const expectDescriptionCell = async (descCell: Locator, expected: DescriptionRow
 };
 
 const expectVarDescriptionCell = async (row: Locator, expected: DescriptionRow) => {
-  const cm = row.locator('.CodeMirror').nth(1);
+  const cm = row.getByTestId('column-description').locator('.CodeMirror');
   if (expected.empty) {
     await expect(cm.locator('.CodeMirror-line').first()).toHaveText('');
     return;
