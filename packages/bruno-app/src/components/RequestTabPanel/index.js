@@ -295,12 +295,17 @@ const RequestTabPanel = () => {
     };
   }, [handleMouseUp, handleMouseMove]);
 
-  // Clamp leftPaneWidth whenever the main section shrinks. Without this,
-  // opening the AI sidebar (or shrinking the window) leaves the stored
-  // request-pane width larger than the available container, the section
-  // then scrolls horizontally and pushes the response pane off-screen,
-  // which also breaks the drag bar's hit math. Vertical layout doesn't
-  // need this because both panes get full width.
+  // Clamp leftPaneWidth when the main section shrinks (AI sidebar opens, or
+  // the window narrows). Without this the stored pixel width can exceed the
+  // available container, the section scrolls horizontally, and the response
+  // pane is pushed off-screen.
+  //
+  // Important: we ONLY react to genuine shrinks vs the last stable width. The
+  // initial observation and any growth are ignored. During mount Windows can
+  // emit a few transient narrow sizes (often 0) before layout settles — if
+  // we treated those as shrinks we'd lock leftPaneWidth at the transient value
+  // and never recover, which made several CodeMirror-driven tests flaky on
+  // Windows CI while passing on Linux.
   const leftPaneWidthRef = useRef(leftPaneWidth);
   useEffect(() => { leftPaneWidthRef.current = leftPaneWidth; }, [leftPaneWidth]);
 
@@ -308,6 +313,7 @@ const RequestTabPanel = () => {
     const el = mainSectionRef.current;
     if (!el || isVerticalLayout) return;
 
+    let lastWidth = null;
     let frame = null;
     const observer = new ResizeObserver((entries) => {
       if (frame) return;
@@ -315,12 +321,21 @@ const RequestTabPanel = () => {
         frame = null;
         const width = entries[0]?.contentRect?.width || el.getBoundingClientRect().width;
         if (!width) return;
+
+        // Skip the first observation (initial layout) and any non-shrink — we
+        // only clamp on real reductions in available width.
+        if (lastWidth === null || width >= lastWidth) {
+          lastWidth = width;
+          return;
+        }
+        lastWidth = width;
+
         const maxLeft = width - MIN_RIGHT_PANE_WIDTH;
         if (leftPaneWidthRef.current > maxLeft) {
-          const next = maxLeft >= MIN_LEFT_PANE_WIDTH
-            ? Math.max(MIN_LEFT_PANE_WIDTH, maxLeft)
-            : Math.max(0, maxLeft);
-          setLeftPaneWidth(next);
+          // Floor at MIN_LEFT_PANE_WIDTH even if maxLeft is smaller — losing
+          // a few px from the response is preferable to collapsing the
+          // request pane to zero.
+          setLeftPaneWidth(Math.max(MIN_LEFT_PANE_WIDTH, maxLeft));
         }
       });
     });

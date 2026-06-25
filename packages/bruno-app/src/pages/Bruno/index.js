@@ -85,15 +85,16 @@ export default function Main() {
 
   // AI sidebar mounts here so it spans the full request-pane height. It reads
   // the active collection via the active tab so the sidebar follows tab switches.
+  // The selector returns null while the sidebar is closed so the page doesn't
+  // re-render on every tabs/collections change — important on Windows where
+  // extra re-renders during initial layout were destabilising CodeMirror.
   const isAiSidebarOpen = useSelector((state) => state.chat.isOpen);
-  const tabs = useSelector((state) => state.tabs.tabs);
-  const collections = useSelector((state) => state.collections.collections);
-  const activeCollection = (() => {
-    if (!isAiSidebarOpen) return null;
-    const activeTab = tabs.find((t) => t.uid === activeTabUid);
+  const activeCollection = useSelector((state) => {
+    if (!state.chat.isOpen) return null;
+    const activeTab = state.tabs.tabs.find((t) => t.uid === state.tabs.activeTabUid);
     if (!activeTab) return null;
-    return collections.find((c) => c.uid === activeTab.collectionUid) || null;
-  })();
+    return state.collections.collections.find((c) => c.uid === activeTab.collectionUid) || null;
+  });
   const mainSectionRef = useRef(null);
   const [showRosettaBanner, setShowRosettaBanner] = useState(false);
 
