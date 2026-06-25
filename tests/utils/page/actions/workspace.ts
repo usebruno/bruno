@@ -60,11 +60,11 @@ export const createWorkspaceZip = (zipDir: string, workspaceName: string): strin
  * Open the title-bar workspace dropdown and launch the Import Workspace modal.
  */
 export const openImportWorkspaceModal = async (page: Page) => {
-  const l = buildImportWorkspaceLocators(page);
+  const locators = buildImportWorkspaceLocators(page);
   await test.step('Open workspace menu and click "Import workspace"', async () => {
-    await l.menuTrigger().click();
-    await l.dropdownItem().click();
-    await expect(l.modal()).toBeVisible({ timeout: 2000 });
+    await locators.menuTrigger().click();
+    await locators.dropdownItem().click();
+    await expect(locators.modal()).toBeVisible();
   });
 };
 
@@ -83,11 +83,11 @@ type ImportWorkspaceOptions = {
  * select the zip, ensure an extract location is set, and click Import.
  */
 export const submitWorkspaceImport = async (page: Page, opts: ImportWorkspaceOptions) => {
-  const l = buildImportWorkspaceLocators(page);
+  const locators = buildImportWorkspaceLocators(page);
 
   await test.step('Select the workspace zip file', async () => {
-    await l.fileInput().setInputFiles(opts.zipPath);
-    await expect(l.selectedFileName(path.basename(opts.zipPath))).toBeVisible();
+    await locators.fileInput().setInputFiles(opts.zipPath);
+    await expect(locators.selectedFileName(path.basename(opts.zipPath))).toBeVisible();
   });
 
   await test.step('Ensure an extract location is set', async () => {
@@ -97,16 +97,16 @@ export const submitWorkspaceImport = async (page: Page, opts: ImportWorkspaceOpt
         (dialog as { showOpenDialog: typeof dialog.showOpenDialog }).showOpenDialog = () =>
           Promise.resolve({ canceled: false, filePaths: [target] });
       }, opts.extractLocation);
-      await l.locationInput().click();
-      await expect(l.locationInput()).toHaveValue(opts.extractLocation);
+      await locators.locationInput().click();
+      await expect(locators.locationInput()).toHaveValue(opts.extractLocation);
     } else {
       // Rely on the pre-filled default location.
-      await expect(l.locationInput()).not.toHaveValue('');
+      await expect(locators.locationInput()).not.toHaveValue('');
     }
   });
 
   await test.step('Submit the import', async () => {
-    await l.importButton().click();
+    await locators.importButton().click();
   });
 };
 
