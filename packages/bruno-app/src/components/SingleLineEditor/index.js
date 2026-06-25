@@ -45,7 +45,7 @@ class SingleLineEditor extends Component {
 
     this.editor = CodeMirror(this.editorRef.current, {
       placeholder: this.props.placeholder ?? '',
-      lineWrapping: false,
+      lineWrapping: true,
       lineNumbers: false,
       theme: this.props.theme === 'dark' ? 'monokai' : 'default',
       mode: 'brunovariables',

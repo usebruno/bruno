@@ -20,11 +20,11 @@ const StyledWrapper = styled.div`
     }
   }
 
-  .CodeMirror {
+    .CodeMirror {
     background: transparent;
     height: fit-content;
     font-size: ${(props) => props.theme.font.size.base};
-    line-height: 30px;
+    line-height: 1.5;
     display: flex;
     flex-direction: column;
     max-height: 200px;
@@ -46,8 +46,6 @@ const StyledWrapper = styled.div`
     }
 
     .CodeMirror-cursor {
-      height: 20px !important;
-      margin-top: 5px !important;
       border-left: 1px solid ${(props) => props.theme.text} !important;
     }
 

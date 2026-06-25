@@ -16,7 +16,7 @@ const StyledWrapper = styled.div`
     background: transparent;
     height: ${(props) => (props.$isCompact ? '1.375rem' : '2.125rem')};
     font-size: ${(props) => props.theme.font.size.base};
-    line-height: ${(props) => (props.$isCompact ? '1.375rem' : '1.875rem')};
+    line-height: 1.5;
     overflow: hidden;
 
     .CodeMirror-scroll {
@@ -40,8 +40,6 @@ const StyledWrapper = styled.div`
     }
 
     .CodeMirror-cursor {
-      height: ${(props) => (props.$isCompact ? '0.875rem' : '1.25rem')} !important;
-      margin-top: ${(props) => (props.$isCompact ? '0.25rem' : '0.3125rem')} !important;
       border-left: 1px solid ${(props) => props.theme.text} !important;
     }
 

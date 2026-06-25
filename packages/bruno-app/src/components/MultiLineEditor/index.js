@@ -39,10 +39,10 @@ class MultiLineEditor extends Component {
      * in request tabs. Falling through with CodeMirror.Pass when onRun is absent
      * would re-introduce the newline in collection/folder-level editors.
      */
-    const runShortcut = () => {};
+    const runShortcut = () => { };
 
     this.editor = CodeMirror(this.editorRef.current, {
-      lineWrapping: false,
+      lineWrapping: true,
       lineNumbers: false,
       theme: this.props.theme === 'dark' ? 'monokai' : 'default',
       placeholder: this.props.placeholder,
@@ -55,8 +55,8 @@ class MultiLineEditor extends Component {
       readOnly: this.props.readOnly,
       tabindex: 0,
       extraKeys: {
-        'Cmd-F': () => {},
-        'Ctrl-F': () => {},
+        'Cmd-F': () => { },
+        'Ctrl-F': () => { },
         'Cmd-Enter': runShortcut,
         'Ctrl-Enter': runShortcut,
         // Tabbing disabled to make tabindex work

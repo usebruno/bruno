@@ -102,9 +102,21 @@ const StyledWrapper = styled.div`
         box-sizing: border-box;
 
         > div:not(.drag-handle) {
-          height: 33px;
-          max-height: 33px;
+          height: 1.5em;
+          max-height: 1.5em;
           overflow: hidden;
+          align-items: flex-start;
+        }
+
+        > div:not(.drag-handle) > * {
+          min-height: 0;
+        }
+
+        &:focus-within > div:not(.drag-handle) {
+          height: auto;
+          max-height: none;
+          overflow: visible;
+          align-items: center;
         }
 
         /* Handle CodeMirror editors overflow */
@@ -122,15 +134,33 @@ const StyledWrapper = styled.div`
             max-width: 100%;
           }
 
-          .cm-line {
+        .cm-line {
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
           }
         }
+
+        &:focus-within {
+          height: auto;
+          max-height: none;
+          overflow: visible;
+          white-space: normal;
+          text-overflow: clip;
+        }
+
+        &:focus-within > div:not(.drag-handle) {
+          height: auto;
+          max-height: none;
+          overflow: visible;
+        }
+
+        &:focus-within .single-line-editor,
+        &:focus-within .single-line-editor .CodeMirror {
+          height: auto !important;
+        }
       }
     }
-  }
 
   &.has-checkbox tbody td:nth-child(1) {
     width: 25px;
