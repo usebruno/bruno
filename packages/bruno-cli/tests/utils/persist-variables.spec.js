@@ -481,6 +481,95 @@ describe('typed-value inference', () => {
   });
 });
 
+// The inference rule (getDataTypeFromValue in @usebruno/common/utils) is purely:
+//   string → drop dataType (string is the implicit default)
+//   number → 'number'
+//   boolean → 'boolean'
+//   object → 'object'  (arrays are typeof 'object' in JS, so they go here too)
+//   null / undefined → 'string' (treated as no-type-info → drop)
+// Existing dataType on disk does NOT influence the inference — only the new JS value's type.
+describe('typed-value inference matrix — dataType derived from the new JS value type', () => {
+  const { parseEnvironment } = require('@usebruno/filestore');
+
+  // Tuple shape: [ label, scriptValue, expectedDataType, expectedValue ]
+  //  - label             : human-readable name interpolated into the test title
+  //  - scriptValue       : the value `bru.setEnvVar('v', X)` puts in the env map
+  //  - expectedDataType  : what `dataType` should end up on disk (or undefined if absent)
+  //  - expectedValue     : what the value should round-trip to through the yml parser
+  it.each([
+    ['string', 'hello', undefined, 'hello'],
+    ['number', 42, 'number', 42],
+    ['number (zero)', 0, 'number', 0],
+    ['boolean (true)', true, 'boolean', true],
+    ['boolean (false)', false, 'boolean', false],
+    ['object', { port: 3000 }, 'object', { port: 3000 }],
+    ['array (typeof object)', [1, 2, 3], 'object', [1, 2, 3]],
+    // null collapses to '' through yml round-trip; the inference rule still treats it as
+    // string (no dataType). undefined behaves the same way.
+    ['null (→ string, empty)', null, undefined, '']
+  ])('script writes %s → on-disk dataType is %s', (_label, value, expectedDataType, expectedValue) => {
+    const filePath = writeFile('inference.yml',
+      'name: t\nvariables:\n  - name: v\n    value: original\n'
+    );
+    persistVariableUpdates(
+      { envVariables: { v: value } },
+      { envFile: { path: filePath, format: 'yml' } }
+    );
+    const reparsed = parseEnvironment(fs.readFileSync(filePath, 'utf8'), { format: 'yml' });
+    expect(reparsed.variables[0].value).toEqual(expectedValue);
+    if (expectedDataType === undefined) {
+      expect(reparsed.variables[0].dataType).toBeUndefined();
+    } else {
+      expect(reparsed.variables[0].dataType).toBe(expectedDataType);
+    }
+  });
+});
+
+// Cross-type transitions: the rule above means inference IGNORES the existing dataType on
+// disk. Whatever type the script writes is what lands on disk. This matters because a
+// user-written `dataType: number` annotation can be silently dropped (or flipped to another
+// type) the first time a script writes a different-typed value to that key.
+describe('typed-value inference: cross-type transitions ignore the existing on-disk dataType', () => {
+  const { parseEnvironment, stringifyEnvironment } = require('@usebruno/filestore');
+
+  const seedYmlEnv = (seedVar) => stringifyEnvironment(
+    {
+      name: 't',
+      variables: [{ name: 'v', enabled: true, secret: false, ...seedVar }]
+    },
+    { format: 'yml' }
+  );
+
+  // Tuple shape: [ label, seed, scriptValue, expected ]
+  //  - label             : human-readable name interpolated into the test title
+  //  - seed              : { value, dataType? } — variable's initial on-disk state.
+  //                        Omit dataType to seed a plain string.
+  //  - scriptValue       : the value `bru.setEnvVar('v', X)` puts in the env map after parse
+  //  - expected          : { value, dataType } end state on disk after persistVariableUpdates;
+  //                        `dataType: undefined` asserts the field is absent on disk
+  it.each([
+    ['number → boolean (annotation flips)', { value: 42, dataType: 'number' }, true, { value: true, dataType: 'boolean' }],
+    ['number → object', { value: 42, dataType: 'number' }, { x: 1 }, { value: { x: 1 }, dataType: 'object' }],
+    ['boolean → number', { value: true, dataType: 'boolean' }, 99, { value: 99, dataType: 'number' }],
+    ['object → string (annotation dropped)', { value: { port: 3000 }, dataType: 'object' }, 'now-a-string', { value: 'now-a-string', dataType: undefined }],
+    ['string → number (annotation added)', { value: 'was-a-string' }, 42, { value: 42, dataType: 'number' }]
+  ])('%s', (_label, seed, scriptValue, expected) => {
+    const filePath = writeFile('xform.yml', seedYmlEnv(seed));
+    persistVariableUpdates(
+      { envVariables: { v: scriptValue } },
+      { envFile: { path: filePath, format: 'yml' } }
+    );
+    const reparsed = parseEnvironment(fs.readFileSync(filePath, 'utf8'), { format: 'yml' });
+    const entry = reparsed.variables[0];
+    expect(entry.value).toEqual(expected.value);
+    if (expected.dataType === undefined) {
+      expect(entry.dataType).toBeUndefined();
+    } else {
+      expect(entry.dataType).toBe(expected.dataType);
+    }
+  });
+});
+
 describe('script-driven typed vars: disk content has the right dataType annotations', () => {
   // The .bru serializer emits `@number\n  port: 3000` (annotation on its own line) — see
   // packages/bruno-lang/v2/src/utils.js serializeAnnotations + serializeVar.

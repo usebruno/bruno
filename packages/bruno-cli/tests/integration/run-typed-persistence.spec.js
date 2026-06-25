@@ -434,6 +434,83 @@ script:post-response {
     expect(written).not.toMatch(/name:\s*host[\s\S]*?type:\s*string/);
   }, 60_000);
 
+  // JSON natively supports typed values (`"value": 42`, `"value": true`, `"value": {…}`),
+  // so a JSON env file can seed with real JS types directly — no `dataType` tag needed.
+  // The script then touches an UNRELATED key, which forces the runtime to echo back the
+  // full env map. Every seeded typed value must survive that echo intact — same type, same
+  // value, and `dataType` gets auto-annotated to match the JS type.
+  it('preserves pre-existing native typed values in --env-file JSON when script touches unrelated keys', async () => {
+    writeFixtureFile(
+      path.join(tmpDir, 'bruno.json'),
+      JSON.stringify({ version: '1', name: 'json-types-collection', type: 'collection' }, null, 2) + '\n'
+    );
+    writeFixtureFile(
+      path.join(tmpDir, 'collection.bru'),
+      'meta {\n  name: json-types-collection\n  seq: 1\n}\n'
+    );
+    writeFixtureFile(
+      path.join(tmpDir, 'External.json'),
+      JSON.stringify({
+        name: 'External',
+        variables: [
+          { name: 'host', value: baseUrl },
+          // Native typed values — no dataType tag needed; JSON.parse keeps the JS type.
+          { name: 'seedNum', value: 42 },
+          { name: 'seedBool', value: true },
+          { name: 'seedObj', value: { region: 'eu', port: 3000 } },
+          { name: 'seedArr', value: [1, 2, 3] }
+        ]
+      }, null, 2) + '\n'
+    );
+    writeFixtureFile(
+      path.join(tmpDir, 'touch-unrelated.bru'),
+      `meta {
+  name: touch-unrelated
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+script:post-response {
+  bru.setEnvVar("trigger", "x");
+}
+`
+    );
+
+    const result = await runCli([
+      'run', 'touch-unrelated.bru',
+      '--env-file', 'External.json',
+      '--sandbox', 'developer',
+      '--noproxy'
+    ]);
+
+    if (result.code !== 0) {
+      throw new Error(
+        `CLI exited with code ${result.code}.\n--- stdout ---\n${result.stdout}\n--- stderr ---\n${result.stderr}`
+      );
+    }
+
+    const written = JSON.parse(fs.readFileSync(path.join(tmpDir, 'External.json'), 'utf8'));
+    const byName = Object.fromEntries(written.variables.map((v) => [v.name, v]));
+    // Native types preserved AND auto-annotated with dataType matching the JS type.
+    expect(byName.seedNum).toMatchObject({ value: 42, dataType: 'number' });
+    expect(byName.seedBool).toMatchObject({ value: true, dataType: 'boolean' });
+    expect(byName.seedObj).toMatchObject({ value: { region: 'eu', port: 3000 }, dataType: 'object' });
+    // Arrays are `typeof === 'object'` in JS, so they get dataType: 'object'.
+    expect(byName.seedArr).toMatchObject({ value: [1, 2, 3], dataType: 'object' });
+    // String stays string — no dataType added.
+    expect(byName.host.value).toBe(baseUrl);
+    expect(byName.host.dataType).toBeUndefined();
+    // The trigger key the script wrote is also there.
+    expect(byName.trigger).toMatchObject({ value: 'x' });
+    expect(byName.trigger.dataType).toBeUndefined();
+  }, 60_000);
+
   it('persists typed env vars to a --env-file .bru file with @dataType annotations', async () => {
     writeFixtureFile(
       path.join(tmpDir, 'bruno.json'),
