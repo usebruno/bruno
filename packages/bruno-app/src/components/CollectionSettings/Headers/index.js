@@ -79,7 +79,7 @@ const Headers = ({ collection }) => {
       name: 'Name',
       isKeyField: true,
       placeholder: 'Name',
-      width: '30%',
+      width: '20%',
       render: ({ value, onChange }) => (
         <SingleLineEditor
           value={value || ''}

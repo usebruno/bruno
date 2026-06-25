@@ -74,7 +74,7 @@ const VarsTable = ({ item, collection, vars, varType, initialScroll = 0 }) => {
       name: 'Name',
       isKeyField: true,
       placeholder: 'Name',
-      width: '35%'
+      width: '20%'
     },
     {
       key: 'value',

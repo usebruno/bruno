@@ -168,7 +168,7 @@ const MultipartFormParams = ({ item, collection }) => {
       name: 'Key',
       isKeyField: true,
       placeholder: 'Key',
-      width: '30%'
+      width: '20%'
     },
     {
       key: 'value',

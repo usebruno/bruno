@@ -107,7 +107,7 @@ const Assertions = ({ item, collection }) => {
       name: 'Expr',
       isKeyField: true,
       placeholder: 'Expr',
-      width: '30%'
+      width: '20%'
     },
     {
       key: 'operator',

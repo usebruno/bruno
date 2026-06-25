@@ -104,7 +104,7 @@ const QueryParams = ({ item, collection }) => {
       name: 'Name',
       isKeyField: true,
       placeholder: 'Name',
-      width: '30%'
+      width: '20%'
     },
     {
       key: 'value',
@@ -132,7 +132,7 @@ const QueryParams = ({ item, collection }) => {
       key: 'name',
       name: 'Name',
       isKeyField: true,
-      width: '30%',
+      width: '20%',
       readOnly: true
     },
     {
