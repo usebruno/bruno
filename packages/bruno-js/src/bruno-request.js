@@ -1,6 +1,7 @@
 const HeaderList = require('./header-list');
+const { hasJSONContentType, safeParseJSON, safeStringifyJSON, isObject } = require('./utils');
 
-class BrunoRequest {
+class HttpRequest {
   /**
    * The following properties are available as shorthand:
    * - req.url
@@ -16,6 +17,7 @@ class BrunoRequest {
    */
   constructor(req) {
     this.req = req;
+    this.isGrpc = false;
     this.url = req.url;
     this.method = req.method;
     this.headers = req.headers;
@@ -31,9 +33,9 @@ class BrunoRequest {
      * It must be noted that the request data is always a string and is what gets sent over the network
      * If the user wants to access the raw data, they can use getBody({raw: true}) method
      */
-    const isJson = this.hasJSONContentType(this.req.headers);
+    const isJson = hasJSONContentType(this.req.headers);
     if (isJson) {
-      this.body = this.__safeParseJSON(req.data);
+      this.body = safeParseJSON(req.data);
     }
   }
 
@@ -169,11 +171,6 @@ class BrunoRequest {
     }
   }
 
-  hasJSONContentType(headers) {
-    const contentType = headers?.['Content-Type'] || headers?.['content-type'] || '';
-    return contentType.includes('json');
-  }
-
   /**
    * Get the body of the request
    *
@@ -185,9 +182,9 @@ class BrunoRequest {
       return this.req.data;
     }
 
-    const isJson = this.hasJSONContentType(this.req.headers);
+    const isJson = hasJSONContentType(this.req.headers);
     if (isJson) {
-      return this.__safeParseJSON(this.req.data);
+      return safeParseJSON(this.req.data);
     }
 
     return this.req.data;
@@ -210,10 +207,10 @@ class BrunoRequest {
       return;
     }
 
-    const isJson = this.hasJSONContentType(this.req.headers);
-    if (isJson && this.__isObject(data)) {
+    const isJson = hasJSONContentType(this.req.headers);
+    if (isJson && isObject(data)) {
       this.body = data;
-      this.req.data = this.__safeStringifyJSON(data);
+      this.req.data = safeStringifyJSON(data);
       return;
     }
 
@@ -240,26 +237,6 @@ class BrunoRequest {
     } else if (callback) {
       throw new Error(`${callback} is not a function`);
     }
-  }
-
-  __safeParseJSON(str) {
-    try {
-      return JSON.parse(str);
-    } catch (e) {
-      return str;
-    }
-  }
-
-  __safeStringifyJSON(obj) {
-    try {
-      return JSON.stringify(obj);
-    } catch (e) {
-      return obj;
-    }
-  }
-
-  __isObject(obj) {
-    return obj !== null && typeof obj === 'object';
   }
 
   disableParsingResponseJson() {
@@ -293,4 +270,164 @@ class BrunoRequest {
   }
 }
 
-module.exports = BrunoRequest;
+class GrpcRequest {
+  constructor(req) {
+    this.req = req;
+    this.isGrpc = true;
+    this.url = req.url;
+    this.method = req.method;
+  }
+
+  get messages() {
+    return this.getMessages();
+  }
+
+  get metadata() {
+    return this.req.headers || {};
+  }
+
+  getMetadata(key) {
+    if (key === undefined) {
+      return this.req.headers || {};
+    }
+    return this.req.headers?.[key];
+  }
+
+  setMetadata(key, value) {
+    if (!this.req.headers) {
+      this.req.headers = {};
+    }
+    this.req.headers[key] = value;
+  }
+
+  hasMetadata(key) {
+    return Boolean(this.req.headers && Object.prototype.hasOwnProperty.call(this.req.headers, key));
+  }
+
+  getAuthMode() {
+    const headers = this.req.headers;
+    if (this.req?.oauth2) {
+      return 'oauth2';
+    } else if (this.req?.oauth1config) {
+      return 'oauth1';
+    } else if (headers?.['Authorization']?.startsWith('Bearer')) {
+      return 'bearer';
+    } else if (headers?.['Authorization']?.startsWith('Basic') || this.req?.auth?.username) {
+      return 'basic';
+    } else if (this.req?.apiKeyAuthValueForQueryParams) {
+      return 'apikey';
+    } else if (this.req?.apiKeyHeaderName && headers?.[this.req.apiKeyHeaderName] !== undefined) {
+      return 'apikey';
+    } else if (this.req?.awsv4) {
+      return 'awsv4';
+    } else if (this.req?.digestConfig) {
+      return 'digest';
+    } else if (headers?.['X-WSSE'] || this.req?.auth?.username) {
+      return 'wsse';
+    } else {
+      return 'none';
+    }
+  }
+
+  getUrl() {
+    return this.req.url;
+  }
+
+  getMessages() {
+    const messages = this.req?.body?.grpc;
+    if (!Array.isArray(messages)) {
+      return [];
+    }
+    return messages.map((m) => safeParseJSON(m?.content));
+  }
+
+  getMessage(index = 0) {
+    const message = this.req?.body?.grpc?.[index];
+    if (!message) {
+      return null;
+    }
+    return safeParseJSON(message.content);
+  }
+
+  setMessage(index, data) {
+    const content = isObject(data) ? safeStringifyJSON(data) : data;
+    if (!this.req.body || this.req.body.mode !== 'grpc' || !Array.isArray(this.req.body.grpc)) {
+      this.req.body = { mode: 'grpc', grpc: [] };
+    }
+    const messages = this.req.body.grpc;
+    if (messages[index]) {
+      messages[index] = { ...messages[index], content };
+    } else {
+      messages[index] = { name: '', content };
+    }
+  }
+
+  addMessage(message) {
+    const content = isObject(message) ? safeStringifyJSON(message) : message;
+    if (!this.req.body || this.req.body.mode !== 'grpc' || !Array.isArray(this.req.body.grpc)) {
+      this.req.body = { mode: 'grpc', grpc: [] };
+    }
+    this.req.body.grpc.push({ name: '', content });
+  }
+
+  addMessages(messages) {
+    if (!Array.isArray(messages)) {
+      throw new Error('addMessages expects an array of messages');
+    }
+    messages.forEach((message) => this.addMessage(message));
+  }
+
+  clearMessages() {
+    if (!this.req.body || this.req.body.mode !== 'grpc' || !Array.isArray(this.req.body.grpc)) {
+      this.req.body = { mode: 'grpc', grpc: [] };
+    } else {
+      this.req.body.grpc = [];
+    }
+  }
+
+  getTimeout() {
+    return this.req.timeout;
+  }
+
+  setTimeout(timeout) {
+    this.timeout = timeout;
+    this.req.timeout = timeout;
+  }
+
+  getName() {
+    return this.req.name;
+  }
+
+  getTags() {
+    return this.req.tags || [];
+  }
+
+  getExecutionMode() {
+    return this.req.__bruno__executionMode;
+  }
+
+  onFail(callback) {
+    if (typeof callback === 'function') {
+      this.req.onFailHandler = callback;
+    } else if (callback) {
+      throw new Error(`${callback} is not a function`);
+    }
+  }
+}
+
+function createBrunoRequest(req) {
+  switch (req.protocol) {
+    case 'grpc':
+      return new GrpcRequest(req);
+
+    case 'http':
+    default:
+      return new HttpRequest(req);
+  }
+}
+
+module.exports = {
+  HttpRequest,
+  GrpcRequest,
+  createBrunoRequest
+};

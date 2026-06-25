@@ -1,9 +1,7 @@
 const { marshallToVm } = require('../utils');
 const { createPropertyListBridge } = require('../utils/property-list-bridge');
 
-const addBrunoRequestShimToContext = (vm, req) => {
-  const reqObject = vm.newObject();
-
+const addHttpRequestShim = (vm, req, reqObject) => {
   const url = marshallToVm(req.getUrl(), vm);
   const method = marshallToVm(req.getMethod(), vm);
   const body = marshallToVm(req.getBody(), vm);
@@ -190,13 +188,119 @@ const addBrunoRequestShimToContext = (vm, req) => {
   vm.setProp(reqObject, 'getTags', getTags);
   getTags.dispose();
 
+  return headersEvalCode;
+};
+
+const addGrpcRequestShim = (vm, req, reqObject) => {
+  const url = marshallToVm(req.getUrl(), vm);
+  vm.setProp(reqObject, 'url', url);
+  url.dispose();
+
+  const method = marshallToVm(req.method, vm);
+  vm.setProp(reqObject, 'method', method);
+  method.dispose();
+
+  let getMessages = vm.newFunction('getMessages', function () {
+    return marshallToVm(req.getMessages(), vm);
+  });
+  vm.setProp(reqObject, 'getMessages', getMessages);
+  getMessages.dispose();
+
+  let getMessage = vm.newFunction('getMessage', function (index) {
+    const idx = index === undefined ? undefined : vm.dump(index);
+    return marshallToVm(req.getMessage(idx), vm);
+  });
+  vm.setProp(reqObject, 'getMessage', getMessage);
+  getMessage.dispose();
+
+  let setMessage = vm.newFunction('setMessage', function (index, data) {
+    req.setMessage(vm.dump(index), vm.dump(data));
+  });
+  vm.setProp(reqObject, 'setMessage', setMessage);
+  setMessage.dispose();
+
+  let addMessage = vm.newFunction('addMessage', function (message) {
+    req.addMessage(vm.dump(message));
+  });
+  vm.setProp(reqObject, 'addMessage', addMessage);
+  addMessage.dispose();
+
+  let addMessages = vm.newFunction('addMessages', function (messages) {
+    req.addMessages(vm.dump(messages));
+  });
+  vm.setProp(reqObject, 'addMessages', addMessages);
+  addMessages.dispose();
+
+  let clearMessages = vm.newFunction('clearMessages', function () {
+    req.clearMessages();
+  });
+  vm.setProp(reqObject, 'clearMessages', clearMessages);
+  clearMessages.dispose();
+
+  let getMetadata = vm.newFunction('getMetadata', function (key) {
+    const k = key === undefined ? undefined : vm.dump(key);
+    return marshallToVm(req.getMetadata(k), vm);
+  });
+  vm.setProp(reqObject, 'getMetadata', getMetadata);
+  getMetadata.dispose();
+
+  let setMetadata = vm.newFunction('setMetadata', function (key, value) {
+    req.setMetadata(vm.dump(key), vm.dump(value));
+  });
+  vm.setProp(reqObject, 'setMetadata', setMetadata);
+  setMetadata.dispose();
+
+  let hasMetadata = vm.newFunction('hasMetadata', function (key) {
+    return marshallToVm(req.hasMetadata(vm.dump(key)), vm);
+  });
+  vm.setProp(reqObject, 'hasMetadata', hasMetadata);
+  hasMetadata.dispose();
+
+  let getAuthMode = vm.newFunction('getAuthMode', function () {
+    return marshallToVm(req.getAuthMode(), vm);
+  });
+  vm.setProp(reqObject, 'getAuthMode', getAuthMode);
+  getAuthMode.dispose();
+
+  let getName = vm.newFunction('getName', function () {
+    return marshallToVm(req.getName(), vm);
+  });
+  vm.setProp(reqObject, 'getName', getName);
+  getName.dispose();
+
+  let getUrl = vm.newFunction('getUrl', function () {
+    return marshallToVm(req.getUrl(), vm);
+  });
+  vm.setProp(reqObject, 'getUrl', getUrl);
+  getUrl.dispose();
+
+  return `
+    Object.defineProperty(globalThis.req, 'messages', {
+      get() { return globalThis.req.getMessages(); }, enumerable: true, configurable: true
+    });
+    Object.defineProperty(globalThis.req, 'metadata', {
+      get() { return globalThis.req.getMetadata(); }, enumerable: true, configurable: true
+    });
+  `;
+};
+
+const addBrunoRequestShimToContext = (vm, req) => {
+  const reqObject = vm.newObject();
+
+  let evalCode;
+  if (req.isGrpc) {
+    evalCode = addGrpcRequestShim(vm, req, reqObject);
+  } else {
+    evalCode = addHttpRequestShim(vm, req, reqObject);
+  }
+
   vm.setProp(vm.global, 'req', reqObject);
   reqObject.dispose();
 
-  // Evaluate iterator code after req is on global (iterators reference globalThis.req.headerList)
+  // Evaluate trailing code after req is on global (getters/iterators reference globalThis.req)
   // Wrapped in a block to avoid const redeclaration conflicts with other evalCode blocks
-  if (headersEvalCode) {
-    vm.evalCode(`{ ${headersEvalCode} }`);
+  if (evalCode) {
+    vm.evalCode(`{ ${evalCode} }`);
   }
 };
 

@@ -274,6 +274,7 @@ const wrapAndJoinScripts = (scripts, requestIndex, segmentSources = null, reques
 const mergeScripts = (collection, request, requestTreePath, scriptFlow) => {
   const collectionRoot = collection?.draft?.root || collection?.root || {};
   let collectionPreReqScript = get(collectionRoot, 'request.script.req', '');
+  let collectionStreamScript = get(collectionRoot, 'request.script.stream', '');
   let collectionPostResScript = get(collectionRoot, 'request.script.res', '');
   let collectionTests = get(collectionRoot, 'request.tests', '');
 
@@ -297,6 +298,8 @@ const mergeScripts = (collection, request, requestTreePath, scriptFlow) => {
 
   let combinedPreReqScript = [];
   let combinedPreReqSources = [];
+  let combinedStreamScript = [];
+  let combinedStreamSources = [];
   let combinedPostResScript = [];
   let combinedPostResSources = [];
   let combinedTests = [];
@@ -317,6 +320,12 @@ const mergeScripts = (collection, request, requestTreePath, scriptFlow) => {
         combinedPreReqSources.push(withContent(folderSource, preReqScript));
       }
 
+      let streamScript = get(folderRoot, 'request.script.stream', '');
+      if (streamScript && streamScript.trim() !== '') {
+        combinedStreamScript.push(streamScript);
+        combinedStreamSources.push(withContent(folderSource, streamScript));
+      }
+
       let postResScript = get(folderRoot, 'request.script.res', '');
       if (postResScript && postResScript.trim() !== '') {
         combinedPostResScript.push(postResScript);
@@ -333,6 +342,7 @@ const mergeScripts = (collection, request, requestTreePath, scriptFlow) => {
 
   // Capture original request script content before overwriting with combined code
   const originalPreReqScript = request?.script?.req || '';
+  const originalStreamScript = request?.script?.stream || '';
   const originalPostResScript = request?.script?.res || '';
   const originalTests = request?.tests || '';
 
@@ -360,6 +370,33 @@ const mergeScripts = (collection, request, requestTreePath, scriptFlow) => {
   const preReq = buildCombinedScript(preReqScripts, preReqScripts.length - 1, preReqSources, originalPreReqScript);
   request.script.req = preReq.code;
   request.script.reqMetadata = preReq.metadata;
+
+  const collectionStreamSource = withContent(collectionSource, collectionStreamScript);
+  if (scriptFlow === 'sequential') {
+    const streamScripts = [
+      collectionStreamScript,
+      ...combinedStreamScript,
+      originalStreamScript
+    ];
+    const streamSources = [collectionStreamSource, ...combinedStreamSources, null];
+    const stream = buildCombinedScript(streamScripts, streamScripts.length - 1, streamSources, originalStreamScript);
+    if (request.script) {
+      request.script.stream = stream.code;
+      request.script.streamMetadata = stream.metadata;
+    }
+  } else {
+    const streamScripts = [
+      originalStreamScript,
+      ...[...combinedStreamScript].reverse(),
+      collectionStreamScript
+    ];
+    const streamSources = [null, ...[...combinedStreamSources].reverse(), collectionStreamSource];
+    const stream = buildCombinedScript(streamScripts, 0, streamSources, originalStreamScript);
+    if (request.script) {
+      request.script.stream = stream.code;
+      request.script.streamMetadata = stream.metadata;
+    }
+  }
 
   // Handle post-response scripts based on scriptFlow
   const collectionPostResSource = withContent(collectionSource, collectionPostResScript);

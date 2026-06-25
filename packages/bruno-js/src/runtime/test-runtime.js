@@ -1,7 +1,7 @@
 const chai = require('chai');
 const Bru = require('../bru');
-const BrunoRequest = require('../bruno-request');
-const BrunoResponse = require('../bruno-response');
+const { createBrunoRequest } = require('../bruno-request');
+const { createBrunoResponse } = require('../bruno-response');
 const { cleanJson } = require('../utils');
 const { createBruTestResultMethods } = require('../utils/results');
 const { runScriptInNodeVm } = require('../sandbox/node-vm');
@@ -53,8 +53,8 @@ class TestRuntime {
       certsAndProxyConfig,
       requestUrl: request?.url
     });
-    const req = new BrunoRequest(request);
-    const res = new BrunoResponse(response);
+    const req = createBrunoRequest(request);
+    const res = createBrunoResponse(response, request?.protocol);
 
     // extend bru with result getter methods
     const { __brunoTestResults, test } = createBruTestResultMethods(bru, assertionResults, chai);

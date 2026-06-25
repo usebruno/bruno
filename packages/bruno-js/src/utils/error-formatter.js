@@ -13,6 +13,7 @@ const isAllowedSourceFile = (filePath) =>
 
 const SCRIPT_TYPES = Object.freeze({
   PRE_REQUEST: 'pre-request',
+  ON_MESSAGE: 'on-message',
   POST_RESPONSE: 'post-response',
   TEST: 'test'
 });
@@ -20,6 +21,7 @@ const SCRIPT_TYPES = Object.freeze({
 // Bruno script types → OpenCollection YAML script types
 const SCRIPT_TYPE_TO_YML = {
   [SCRIPT_TYPES.PRE_REQUEST]: 'before-request',
+  [SCRIPT_TYPES.ON_MESSAGE]: 'on-message',
   [SCRIPT_TYPES.POST_RESPONSE]: 'after-response',
   [SCRIPT_TYPES.TEST]: 'tests'
 };
@@ -37,6 +39,7 @@ const readFile = (filePath, cache = null) => {
 
 const BLOCK_PATTERNS = {
   [SCRIPT_TYPES.PRE_REQUEST]: /^script:pre-request\s*\{/,
+  [SCRIPT_TYPES.ON_MESSAGE]: /^script:on-message\s*\{/,
   [SCRIPT_TYPES.POST_RESPONSE]: /^script:post-response\s*\{/,
   [SCRIPT_TYPES.TEST]: /^tests\s*\{/
 };

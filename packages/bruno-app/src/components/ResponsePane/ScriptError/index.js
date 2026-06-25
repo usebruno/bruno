@@ -211,22 +211,29 @@ const ScriptErrorCard = ({ title, message, errorContext, item, collection, scrip
 
 const ScriptError = ({ item, collection, onClose }) => {
   const preRequestError = item?.preRequestScriptErrorMessage;
+  const onMessageError = item?.onMessageScriptErrorMessage;
   const postResponseError = item?.postResponseScriptErrorMessage;
   const testScriptError = item?.testScriptErrorMessage;
 
-  if (!preRequestError && !postResponseError && !testScriptError) return null;
+  if (!preRequestError && !onMessageError && !postResponseError && !testScriptError) return null;
 
   const preRequestContext = item?.preRequestScriptErrorContext;
+  const onMessageContext = item?.onMessageScriptErrorContext;
   const postResponseContext = item?.postResponseScriptErrorContext;
   const testContext = item?.testScriptErrorContext;
 
-  const hasAnyContext = preRequestContext || postResponseContext || testContext;
+  const hasAnyContext = preRequestContext || onMessageContext || postResponseContext || testContext;
+
+  const isGrpc = item?.type === 'grpc-request';
+  const preRequestTitle = isGrpc ? 'Before Invoke Script Error' : 'Pre-Request Script Error';
+  const postResponseTitle = isGrpc ? 'After Response Script Error' : 'Post-Response Script Error';
 
   // If no error context available for any error, fall back to ErrorBanner
   if (!hasAnyContext) {
     const errors = [];
-    if (preRequestError) errors.push({ title: 'Pre-Request Script Error', message: preRequestError });
-    if (postResponseError) errors.push({ title: 'Post-Response Script Error', message: postResponseError });
+    if (preRequestError) errors.push({ title: preRequestTitle, message: preRequestError });
+    if (onMessageError) errors.push({ title: 'On-Message Script Error', message: onMessageError });
+    if (postResponseError) errors.push({ title: postResponseTitle, message: postResponseError });
     if (testScriptError) errors.push({ title: 'Test Script Error', message: testScriptError });
     return <ErrorBanner errors={errors} onClose={onClose} className="mb-2" />;
   }
@@ -235,7 +242,7 @@ const ScriptError = ({ item, collection, onClose }) => {
     <div className="mb-2 flex flex-col gap-2">
       {preRequestError && (
         <ScriptErrorCard
-          title="Pre-Request Script Error"
+          title={preRequestTitle}
           message={preRequestError}
           errorContext={preRequestContext}
           item={item}
@@ -244,9 +251,20 @@ const ScriptError = ({ item, collection, onClose }) => {
           onClose={onClose}
         />
       )}
+      {onMessageError && (
+        <ScriptErrorCard
+          title="On-Message Script Error"
+          message={onMessageError}
+          errorContext={onMessageContext}
+          item={item}
+          collection={collection}
+          scriptPhase="on-message"
+          onClose={onClose}
+        />
+      )}
       {postResponseError && (
         <ScriptErrorCard
-          title="Post-Response Script Error"
+          title={postResponseTitle}
           message={postResponseError}
           errorContext={postResponseContext}
           item={item}

@@ -549,7 +549,8 @@ const grpcRequestSchema = Yup.object({
     .required('body is required'),
   script: Yup.object({
     req: Yup.string().nullable(),
-    res: Yup.string().nullable()
+    res: Yup.string().nullable(),
+    stream: Yup.string().nullable()
   })
     .noUnknown(true)
     .strict(),
