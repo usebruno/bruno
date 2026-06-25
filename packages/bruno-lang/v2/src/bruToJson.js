@@ -185,10 +185,11 @@ const grammar = ohm.grammar(`Bru {
   // Examples - multiple example blocks
   example = "example" st* "{" nl* examplecontent tagend
   examplecontent = (~tagend any)*
-
-  script = scriptreq | scriptres
+  
+  script = scriptreq | scriptres | scriptstream
   scriptreq = "script:pre-request" st* "{" nl* textblock tagend
   scriptres = "script:post-response" st* "{" nl* textblock tagend
+  scriptstream = "script:on-message" st* "{" nl* textblock tagend
   tests = "tests" st* "{" nl* textblock tagend
   docs = "docs" st* "{" nl* textblock tagend
 }`);
@@ -867,14 +868,35 @@ const sem = grammar.createSemantics().addAttribute('ast', {
         oauth2:
           grantTypeKey?.value && grantTypeKey?.value == 'password'
             ? {
+              grantType: grantTypeKey ? grantTypeKey.value : '',
+              accessTokenUrl: accessTokenUrlKey ? accessTokenUrlKey.value : '',
+              refreshTokenUrl: refreshTokenUrlKey ? refreshTokenUrlKey.value : '',
+              username: usernameKey ? usernameKey.value : '',
+              password: passwordKey ? passwordKey.value : '',
+              clientId: clientIdKey ? clientIdKey.value : '',
+              clientSecret: clientSecretKey ? clientSecretKey.value : '',
+              scope: scopeKey ? scopeKey.value : '',
+              credentialsPlacement: credentialsPlacementKey?.value ? credentialsPlacementKey.value : 'body',
+              credentialsId: credentialsIdKey?.value ? credentialsIdKey.value : 'credentials',
+              tokenSource: tokenSourceKey?.value ? tokenSourceKey.value : 'access_token',
+              tokenPlacement: tokenPlacementKey?.value ? tokenPlacementKey.value : 'header',
+              tokenHeaderPrefix: tokenHeaderPrefixKey?.value ? tokenHeaderPrefixKey.value : '',
+              tokenQueryKey: tokenQueryKeyKey?.value ? tokenQueryKeyKey.value : 'access_token',
+              autoFetchToken: autoFetchTokenKey ? safeParseJson(autoFetchTokenKey?.value) ?? true : true,
+              autoRefreshToken: autoRefreshTokenKey ? safeParseJson(autoRefreshTokenKey?.value) ?? false : false
+            }
+            : grantTypeKey?.value && grantTypeKey?.value == 'authorization_code'
+              ? {
                 grantType: grantTypeKey ? grantTypeKey.value : '',
+                callbackUrl: callbackUrlKey ? callbackUrlKey.value : '',
+                authorizationUrl: authorizationUrlKey ? authorizationUrlKey.value : '',
                 accessTokenUrl: accessTokenUrlKey ? accessTokenUrlKey.value : '',
                 refreshTokenUrl: refreshTokenUrlKey ? refreshTokenUrlKey.value : '',
-                username: usernameKey ? usernameKey.value : '',
-                password: passwordKey ? passwordKey.value : '',
                 clientId: clientIdKey ? clientIdKey.value : '',
                 clientSecret: clientSecretKey ? clientSecretKey.value : '',
                 scope: scopeKey ? scopeKey.value : '',
+                state: stateKey ? stateKey.value : '',
+                pkce: pkceKey ? safeParseJson(pkceKey?.value) ?? false : false,
                 credentialsPlacement: credentialsPlacementKey?.value ? credentialsPlacementKey.value : 'body',
                 credentialsId: credentialsIdKey?.value ? credentialsIdKey.value : 'credentials',
                 tokenSource: tokenSourceKey?.value ? tokenSourceKey.value : 'access_token',
@@ -884,18 +906,14 @@ const sem = grammar.createSemantics().addAttribute('ast', {
                 autoFetchToken: autoFetchTokenKey ? safeParseJson(autoFetchTokenKey?.value) ?? true : true,
                 autoRefreshToken: autoRefreshTokenKey ? safeParseJson(autoRefreshTokenKey?.value) ?? false : false
               }
-            : grantTypeKey?.value && grantTypeKey?.value == 'authorization_code'
-              ? {
+              : grantTypeKey?.value && grantTypeKey?.value == 'client_credentials'
+                ? {
                   grantType: grantTypeKey ? grantTypeKey.value : '',
-                  callbackUrl: callbackUrlKey ? callbackUrlKey.value : '',
-                  authorizationUrl: authorizationUrlKey ? authorizationUrlKey.value : '',
                   accessTokenUrl: accessTokenUrlKey ? accessTokenUrlKey.value : '',
                   refreshTokenUrl: refreshTokenUrlKey ? refreshTokenUrlKey.value : '',
                   clientId: clientIdKey ? clientIdKey.value : '',
                   clientSecret: clientSecretKey ? clientSecretKey.value : '',
                   scope: scopeKey ? scopeKey.value : '',
-                  state: stateKey ? stateKey.value : '',
-                  pkce: pkceKey ? safeParseJson(pkceKey?.value) ?? false : false,
                   credentialsPlacement: credentialsPlacementKey?.value ? credentialsPlacementKey.value : 'body',
                   credentialsId: credentialsIdKey?.value ? credentialsIdKey.value : 'credentials',
                   tokenSource: tokenSourceKey?.value ? tokenSourceKey.value : 'access_token',
@@ -905,38 +923,21 @@ const sem = grammar.createSemantics().addAttribute('ast', {
                   autoFetchToken: autoFetchTokenKey ? safeParseJson(autoFetchTokenKey?.value) ?? true : true,
                   autoRefreshToken: autoRefreshTokenKey ? safeParseJson(autoRefreshTokenKey?.value) ?? false : false
                 }
-              : grantTypeKey?.value && grantTypeKey?.value == 'client_credentials'
-                ? {
+                : grantTypeKey?.value && grantTypeKey?.value == 'implicit'
+                  ? {
                     grantType: grantTypeKey ? grantTypeKey.value : '',
-                    accessTokenUrl: accessTokenUrlKey ? accessTokenUrlKey.value : '',
-                    refreshTokenUrl: refreshTokenUrlKey ? refreshTokenUrlKey.value : '',
+                    callbackUrl: callbackUrlKey ? callbackUrlKey.value : '',
+                    authorizationUrl: authorizationUrlKey ? authorizationUrlKey.value : '',
                     clientId: clientIdKey ? clientIdKey.value : '',
-                    clientSecret: clientSecretKey ? clientSecretKey.value : '',
                     scope: scopeKey ? scopeKey.value : '',
-                    credentialsPlacement: credentialsPlacementKey?.value ? credentialsPlacementKey.value : 'body',
+                    state: stateKey ? stateKey.value : '',
                     credentialsId: credentialsIdKey?.value ? credentialsIdKey.value : 'credentials',
                     tokenSource: tokenSourceKey?.value ? tokenSourceKey.value : 'access_token',
                     tokenPlacement: tokenPlacementKey?.value ? tokenPlacementKey.value : 'header',
                     tokenHeaderPrefix: tokenHeaderPrefixKey?.value ? tokenHeaderPrefixKey.value : '',
                     tokenQueryKey: tokenQueryKeyKey?.value ? tokenQueryKeyKey.value : 'access_token',
-                    autoFetchToken: autoFetchTokenKey ? safeParseJson(autoFetchTokenKey?.value) ?? true : true,
-                    autoRefreshToken: autoRefreshTokenKey ? safeParseJson(autoRefreshTokenKey?.value) ?? false : false
+                    autoFetchToken: autoFetchTokenKey ? safeParseJson(autoFetchTokenKey?.value) ?? true : true
                   }
-                : grantTypeKey?.value && grantTypeKey?.value == 'implicit'
-                  ? {
-                      grantType: grantTypeKey ? grantTypeKey.value : '',
-                      callbackUrl: callbackUrlKey ? callbackUrlKey.value : '',
-                      authorizationUrl: authorizationUrlKey ? authorizationUrlKey.value : '',
-                      clientId: clientIdKey ? clientIdKey.value : '',
-                      scope: scopeKey ? scopeKey.value : '',
-                      state: stateKey ? stateKey.value : '',
-                      credentialsId: credentialsIdKey?.value ? credentialsIdKey.value : 'credentials',
-                      tokenSource: tokenSourceKey?.value ? tokenSourceKey.value : 'access_token',
-                      tokenPlacement: tokenPlacementKey?.value ? tokenPlacementKey.value : 'header',
-                      tokenHeaderPrefix: tokenHeaderPrefixKey?.value ? tokenHeaderPrefixKey.value : '',
-                      tokenQueryKey: tokenQueryKeyKey?.value ? tokenQueryKeyKey.value : 'access_token',
-                      autoFetchToken: autoFetchTokenKey ? safeParseJson(autoFetchTokenKey?.value) ?? true : true
-                    }
                   : {}
       }
     };
@@ -1185,6 +1186,13 @@ const sem = grammar.createSemantics().addAttribute('ast', {
     return {
       script: {
         res: outdentString(textblock.sourceString)
+      }
+    };
+  },
+  scriptstream(_1, _2, _3, _4, textblock, _5) {
+    return {
+      script: {
+        stream: outdentString(textblock.sourceString)
       }
     };
   },

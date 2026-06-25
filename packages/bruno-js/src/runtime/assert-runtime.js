@@ -2,7 +2,7 @@ const _ = require('lodash');
 const chai = require('chai');
 const { nanoid } = require('nanoid');
 const Bru = require('../bru');
-const BrunoRequest = require('../bruno-request');
+const { createBrunoRequest } = require('../bruno-request');
 const { evaluateJsTemplateLiteral, evaluateJsExpression, createResponseParser } = require('../utils');
 const { interpolateString } = require('../interpolate-string');
 const { executeQuickJsVm } = require('../sandbox/quickjs');
@@ -431,7 +431,7 @@ class AssertRuntime {
       certsAndProxyConfig,
       requestUrl: request?.url
     });
-    const req = new BrunoRequest(request);
+    const req = createBrunoRequest(request);
     const res = createResponseParser(response);
 
     const bruContext = {

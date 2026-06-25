@@ -27,7 +27,7 @@ const toHostQueryArg = (vm, arg) => {
   return vm.dump(arg);
 };
 
-const addBrunoResponseShimToContext = (vm, res) => {
+const addHttpResponseShim = (vm, res) => {
   let resFn = vm.newFunction('res', function (exprStr, ...queryArgs) {
     const nativeArgs = queryArgs.map((arg) => toHostQueryArg(vm, arg));
     return marshallToVm(res(vm.dump(exprStr), ...nativeArgs), vm);
@@ -133,6 +133,25 @@ const addBrunoResponseShimToContext = (vm, res) => {
   // Wrapped in a block to avoid const redeclaration conflicts with req.headerList's evalCode
   if (resHeadersEvalCode) {
     vm.evalCode(`{ ${resHeadersEvalCode} }`);
+  }
+};
+
+const addGrpcResponseShim = (vm, res) => {
+  const resObject = vm.newObject();
+
+  const messages = marshallToVm(res.messages, vm);
+  vm.setProp(resObject, 'messages', messages);
+  messages.dispose();
+
+  vm.setProp(vm.global, 'res', resObject);
+  resObject.dispose();
+};
+
+const addBrunoResponseShimToContext = (vm, res) => {
+  if (res?.isGrpc) {
+    addGrpcResponseShim(vm, res);
+  } else {
+    addHttpResponseShim(vm, res);
   }
 };
 

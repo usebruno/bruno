@@ -52,7 +52,8 @@ const parseGrpcRequest = (ocRequest: GrpcRequest): BrunoItem => {
     },
     script: {
       req: null,
-      res: null
+      res: null,
+      stream: null
     },
     vars: {
       req: [],
@@ -85,6 +86,9 @@ const parseGrpcRequest = (ocRequest: GrpcRequest): BrunoItem => {
     }
     if (scripts.script.res) {
       brunoRequest.script.res = scripts.script.res;
+    }
+    if (scripts.script.stream) {
+      brunoRequest.script.stream = scripts.script.stream;
     }
   }
   if (scripts?.tests) {
