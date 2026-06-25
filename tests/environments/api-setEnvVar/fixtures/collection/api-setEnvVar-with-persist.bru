@@ -1,0 +1,18 @@
+meta {
+  name: api-setEnvVar-with-persist
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+script:pre-request {
+  // Legacy syntax — v3 opted in to persistence via { persist: true }.
+  // v4 always persists, so the third arg is silently ignored. This fixture
+  // proves the old syntax still works (no throw, var ends up on disk).
+  bru.setEnvVar("legacy_persist_var", "from-legacy-flag", { persist: true });
+}
