@@ -4,7 +4,6 @@ const { getPreferences } = require('../../store/preferences');
 const { aiKeyStore } = require('../../store/ai-keys');
 const {
   PROVIDERS,
-  MODEL_DEFINITIONS,
   listProviders,
   listModels,
   getModel,
@@ -108,18 +107,20 @@ const registerAiIpc = (mainWindow) => {
       return { ok: false, error: `${PROVIDERS[providerId].label} is disabled` };
     }
 
-    const probeModel = Object.entries(MODEL_DEFINITIONS)
-      .find(([, def]) => def.provider === providerId);
-    if (!probeModel) {
-      return { ok: false, error: `No models registered for ${providerId}` };
-    }
-
     try {
-      const model = resolveModel(probeModel[0]);
-      await generateText({ model, prompt: 'ping', maxOutputTokens: 1 });
-      return { ok: true };
+      const res = await PROVIDERS[providerId].validateApiKey({ apiKey });
+      if (res.ok) {
+        return { ok: true };
+      }
+      if (res.status === 401 || res.status === 403) {
+        return { ok: false, error: 'Invalid API key' };
+      }
+      if (res.status === 429) {
+        return { ok: false, error: 'Rate limited — try again in a moment' };
+      }
+      return { ok: false, error: `Could not verify key (HTTP ${res.status})` };
     } catch (err) {
-      return { ok: false, error: err.message || 'Connection failed' };
+      return { ok: false, error: 'Could not reach provider. Check your network connection.' };
     }
   });
 

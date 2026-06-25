@@ -7,14 +7,22 @@ const PROVIDERS = {
     label: 'OpenAI',
     apiKeyPlaceholder: 'sk-...',
     apiKeyHelpUrl: 'https://platform.openai.com/api-keys',
-    createSdk: ({ apiKey }) => createOpenAI({ apiKey })
+    createSdk: ({ apiKey }) => createOpenAI({ apiKey }),
+    validateApiKey: ({ apiKey }) => fetch('https://api.openai.com/v1/models', {
+      headers: { Authorization: `Bearer ${apiKey}` },
+      signal: AbortSignal.timeout(10000)
+    })
   },
   anthropic: {
     id: 'anthropic',
     label: 'Anthropic',
     apiKeyPlaceholder: 'sk-ant-...',
     apiKeyHelpUrl: 'https://console.anthropic.com/settings/keys',
-    createSdk: ({ apiKey }) => createAnthropic({ apiKey })
+    createSdk: ({ apiKey }) => createAnthropic({ apiKey }),
+    validateApiKey: ({ apiKey }) => fetch('https://api.anthropic.com/v1/models', {
+      headers: { 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
+      signal: AbortSignal.timeout(10000)
+    })
   }
 };
 
