@@ -4,7 +4,7 @@ import { test, expect, closeElectronApp } from '../../../playwright';
 import { sendRequest, waitForReadyPage } from '../../utils/page';
 import { buildCommonLocators } from '../../utils/page/locators';
 
-test.describe.serial('bru.setEnvVar(name, value) - default persistence', () => {
+test.describe('bru.setEnvVar(name, value)', () => {
   test('set env var using script persists by default across restart', async ({ pageWithUserData: page, restartApp, collectionFixturePath }) => {
     const stageBruPath = path.join(collectionFixturePath!, 'environments', 'Stage.bru');
     const locators = buildCommonLocators(page);
@@ -27,7 +27,7 @@ test.describe.serial('bru.setEnvVar(name, value) - default persistence', () => {
 
     // Select the collection and request
     await page.locator('#sidebar-collection-name').click();
-    await page.getByText('api-setEnvVar-default-persistence', { exact: true }).click();
+    await page.getByText('api-setEnvVar', { exact: true }).click();
 
     await selectStage();
     await sendRequest(page, 200);
@@ -53,7 +53,7 @@ test.describe.serial('bru.setEnvVar(name, value) - default persistence', () => {
     const newEnvTab = newPage.locator('.request-tab').filter({ hasText: 'Environments' });
 
     await newPage.locator('#sidebar-collection-name').click();
-    await newPage.getByText('api-setEnvVar-default-persistence', { exact: true }).click();
+    await newPage.getByText('api-setEnvVar', { exact: true }).click();
 
     // Re-select Stage — active env isn't guaranteed to persist across restart.
     await newLocators.environment.selector().click();

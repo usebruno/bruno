@@ -282,6 +282,20 @@ describe('runtime', () => {
       const result2 = await runtime.runRequestScript(scriptFalse, {}, {}, {}, '.', null, process.env);
       expect(result2.envVariables.key2).toBe('val2');
     });
+
+    it('should silently ignore old persist flag as extra argument — QuickJS parity', async () => {
+      await quickJsLoader();
+      const scriptTrue = `bru.setEnvVar('key1', 'val1', { persist: true });`;
+      const scriptFalse = `bru.setEnvVar('key2', 'val2', { persist: false });`;
+      const runtime = new ScriptRuntime({ runtime: 'quickjs' });
+      const onConsoleLog = () => {};
+
+      const result1 = await runtime.runRequestScript(scriptTrue, {}, {}, {}, '.', onConsoleLog, process.env);
+      expect(result1.envVariables.key1).toBe('val1');
+
+      const result2 = await runtime.runRequestScript(scriptFalse, {}, {}, {}, '.', onConsoleLog, process.env);
+      expect(result2.envVariables.key2).toBe('val2');
+    });
   });
 
   describe('bru.setVar random variable', () => {

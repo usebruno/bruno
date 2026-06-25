@@ -80,6 +80,20 @@ describe('bru.deleteEnvVar', () => {
     const bru = makeBru();
     expect(() => bru.deleteEnvVar('missing')).not.toThrow();
   });
+
+  test('does not delete the internal __name__ marker', () => {
+    const bru = new Bru({
+      runtime: 'quickjs',
+      envVariables: { __name__: 'dev', token: 'abc' },
+      runtimeVariables: {},
+      processEnvVars: {},
+      collectionPath: '/',
+      collectionName: 'Test'
+    });
+    bru.deleteEnvVar('__name__');
+    expect(bru.envVariables.__name__).toBe('dev');
+    expect(bru._envDirty).toBe(false);
+  });
 });
 
 describe('bru.setEnvVar — dirty flag for reference-mutation idiom', () => {
