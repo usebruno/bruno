@@ -229,7 +229,6 @@ class Bru {
   }
 
   deleteAllEnvVars() {
-    const envName = this.envVariables.__name__;
     // Iterate via Object.keys (own enumerable) so a user-set `hasOwnProperty` var
     // can't shadow Object.prototype.hasOwnProperty and crash the loop.
     let removed = false;
@@ -237,9 +236,6 @@ class Bru {
       if (key === '__name__') continue;
       delete this.envVariables[key];
       removed = true;
-    }
-    if (envName !== undefined && !Object.hasOwn(this.envVariables, '__name__')) {
-      this.envVariables.__name__ = envName;
     }
     if (removed) this._envDirty = true;
   }
