@@ -2317,10 +2317,14 @@ export const clearScriptVariableBaselines = (collectionUid) => (dispatch) => {
   dispatch(_clearScriptGlobalEnvBaseline());
 };
 
-export const persistActiveEnvironment = (collectionUid) => (dispatch, getState) => {
+export const persistActiveEnvironment = (collectionUid, requestUid) => (dispatch, getState) => {
   const state = getState();
   const collection = findCollectionByUid(state.collections.collections, collectionUid);
   if (!collection) return;
+
+  // Ignore stale updates from superseded requests so an in-flight pre/post
+  // from request N-1 can't trigger a disk write for request N.
+  if (requestUid && collection._scriptRequestUid && requestUid !== collection._scriptRequestUid) return;
 
   const environment = findEnvironmentInCollection(collection, collection.activeEnvironmentUid);
   if (!environment) return;
