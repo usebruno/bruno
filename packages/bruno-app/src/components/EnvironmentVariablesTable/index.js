@@ -6,7 +6,9 @@ import { useTheme } from 'providers/Theme';
 import { useSelector, useDispatch } from 'react-redux';
 import { updateTableColumnWidths } from 'providers/ReduxStore/slices/tabs';
 import MultiLineEditor from 'components/MultiLineEditor/index';
+import SecretEyeButton from 'components/MultiLineEditor/SecretEyeButton';
 import DataTypeSelector from 'components/DataTypeSelector';
+import VarValueCell from 'components/VarValueCell';
 import StyledWrapper from './StyledWrapper';
 import { uuid } from 'utils/common';
 import { useFormik } from 'formik';
@@ -41,6 +43,103 @@ const TableRow = React.memo(
 );
 
 const columns = ['name', 'value', 'description', 'secret'];
+
+const EnvVarValueCell = ({
+  variable,
+  actualIndex,
+  isLastRow,
+  isLastEmptyRow,
+  storedTheme,
+  collection,
+  formik,
+  handleRowFocus,
+  handleSave,
+  renderExtraValueContent
+}) => {
+  const editorRef = useRef(null);
+  const [compact, setCompact] = useState(true);
+  const [masked, setMasked] = useState(variable.secret);
+
+  useEffect(() => {
+    setMasked(variable.secret);
+  }, [variable.secret]);
+
+  return (
+    <VarValueCell
+      onCompactChange={setCompact}
+      trailingContent={variable.secret && compact ? (
+        <SecretEyeButton
+          masked={masked}
+          onToggle={() => editorRef.current?.toggleVisibleSecret()}
+        />
+      ) : null}
+      editor={(
+        <div
+          className="relative flex flex-col"
+          onFocus={() => handleRowFocus(variable.uid)}
+        >
+          <MultiLineEditor
+            ref={editorRef}
+            theme={storedTheme}
+            collection={collection}
+            name={`${actualIndex}.value`}
+            value={valueToString(variable.value, 2)}
+            placeholder={variable.value == null || (typeof variable.value === 'string' && variable.value.trim() === '') ? 'Value' : ''}
+            isSecret={variable.secret}
+            hideSecretEye={variable.secret && compact}
+            onMaskChange={setMasked}
+            onChange={(newValue) => {
+              formik.setFieldValue(`${actualIndex}.value`, newValue, true);
+              if (variable.ephemeral) {
+                formik.setFieldValue(`${actualIndex}.ephemeral`, undefined, false);
+                formik.setFieldValue(`${actualIndex}.persistedValue`, undefined, false);
+              }
+              if (isLastRow) {
+                setTimeout(() => {
+                  formik.setFieldValue(formik.values.length, {
+                    uid: uuid(),
+                    name: '',
+                    value: '',
+                    description: '',
+                    type: 'text',
+                    secret: false,
+                    enabled: true
+                  }, false);
+                }, 0);
+              }
+            }}
+            onSave={handleSave}
+          />
+          {typeof variable.value !== 'string' && (
+            <span className="ml-2 flex items-center flex-shrink-0">
+              <IconInfoCircle id={`${variable.uid}-disabled-info-icon`} className="text-muted" size={16} />
+              <Tooltip
+                anchorId={`${variable.uid}-disabled-info-icon`}
+                content="Non-string values set via scripts are read-only and can only be updated through scripts."
+                place="top"
+              />
+            </span>
+          )}
+          {renderExtraValueContent && renderExtraValueContent(variable)}
+        </div>
+      )}
+      renderTypeSelector={!isLastEmptyRow
+        ? ({ compact: isCompact }) => (
+            <DataTypeSelector
+              compact={isCompact}
+              variable={variable}
+              collection={collection}
+              onChange={(fields) => {
+                Object.entries(fields).forEach(([key, val]) => {
+                  formik.setFieldValue(`${actualIndex}.${key}`, val, true);
+                });
+              }}
+            />
+          )
+        : null}
+    />
+  );
+};
 
 const EnvironmentVariablesTable = ({
   environment,
@@ -609,69 +708,18 @@ const EnvironmentVariablesTable = ({
                   </div>
                 </td>
                 <td style={{ width: columnWidths.value }}>
-                  <div className="flex flex-row flex-nowrap items-center gap-2 h-full">
-                    <div
-                      className="flex-1 min-w-0 relative flex flex-col"
-                      onFocus={() => handleRowFocus(variable.uid)}
-                    >
-                      <MultiLineEditor
-                        theme={storedTheme}
-                        collection={_collection}
-                        name={`${actualIndex}.value`}
-                        value={valueToString(variable.value, 2)}
-                        placeholder={variable.value == null || (typeof variable.value === 'string' && variable.value.trim() === '') ? 'Value' : ''}
-                        isSecret={variable.secret}
-                        onChange={(newValue) => {
-                          formik.setFieldValue(`${actualIndex}.value`, newValue, true);
-                          // Clear ephemeral metadata when user manually edits the value
-                          if (variable.ephemeral) {
-                            formik.setFieldValue(`${actualIndex}.ephemeral`, undefined, false);
-                            formik.setFieldValue(`${actualIndex}.persistedValue`, undefined, false);
-                          }
-                          // Append a new empty row when editing value on the last row
-                          if (isLastRow) {
-                            setTimeout(() => {
-                              formik.setFieldValue(formik.values.length, {
-                                uid: uuid(),
-                                name: '',
-                                value: '',
-                                description: '',
-                                type: 'text',
-                                secret: false,
-                                enabled: true
-                              }, false);
-                            }, 0);
-                          }
-                        }}
-                        onSave={handleSave}
-                      />
-                      {typeof variable.value !== 'string' && (
-                        <span className="ml-2 flex items-center flex-shrink-0">
-                          <IconInfoCircle id={`${variable.uid}-disabled-info-icon`} className="text-muted" size={16} />
-                          <Tooltip
-                            anchorId={`${variable.uid}-disabled-info-icon`}
-                            content="Non-string values set via scripts are read-only and can only be updated through scripts."
-                            place="top"
-                          />
-                        </span>
-                      )}
-                      {renderExtraValueContent && renderExtraValueContent(variable)}
-                    </div>
-                    {!isLastEmptyRow && (
-                      <span>
-                        <DataTypeSelector
-                          variable={variable}
-                          theme={storedTheme}
-                          collection={_collection}
-                          onChange={(fields) => {
-                            Object.entries(fields).forEach(([key, val]) => {
-                              formik.setFieldValue(`${actualIndex}.${key}`, val, true);
-                            });
-                          }}
-                        />
-                      </span>
-                    )}
-                  </div>
+                  <EnvVarValueCell
+                    variable={variable}
+                    actualIndex={actualIndex}
+                    isLastRow={isLastRow}
+                    isLastEmptyRow={isLastEmptyRow}
+                    storedTheme={storedTheme}
+                    collection={_collection}
+                    formik={formik}
+                    handleRowFocus={handleRowFocus}
+                    handleSave={handleSave}
+                    renderExtraValueContent={renderExtraValueContent}
+                  />
                 </td>
                 <td style={{ width: columnWidths.description }}>
                   <MultiLineEditor

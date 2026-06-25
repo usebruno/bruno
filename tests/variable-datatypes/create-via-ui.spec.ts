@@ -64,6 +64,7 @@ const addTypedVarRow = async (
     await valueEditor.click({ force: true });
     await expect(valueEditor).toHaveClass(/CodeMirror-focused/);
     await page.keyboard.insertText(value);
+    await valueEditor.hover();
 
     // Pick dataType from the selector menu.
     const typeTrigger = locators.dataTypeSelector.typeLabel(namedRow);
@@ -199,6 +200,7 @@ test.describe('DataType selector — new collection created via UI', () => {
         await expect(envRows).toHaveCount(addedEnvVars + 1);
 
         const valueEditor = namedRow.locator('.CodeMirror').first();
+        await valueEditor.hover();
         await valueEditor.click({ force: true });
         await expect(valueEditor).toHaveClass(/CodeMirror-focused/);
         await page.keyboard.insertText(VALUE_FOR_DATATYPE[dataType]);

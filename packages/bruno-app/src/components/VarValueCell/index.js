@@ -3,7 +3,7 @@ import StyledWrapper from './StyledWrapper';
 
 const COMPACT_WIDTH_THRESHOLD = 150;
 
-const VarValueCell = ({ editor, renderTypeSelector }) => {
+const VarValueCell = ({ editor, renderTypeSelector, trailingContent, onCompactChange }) => {
   const [compact, setCompact] = useState(true);
   const [hovered, setHovered] = useState(false);
   const observerRef = useRef(null);
@@ -16,11 +16,22 @@ const VarValueCell = ({ editor, renderTypeSelector }) => {
 
     if (node) {
       observerRef.current = new ResizeObserver(([entry]) => {
-        setCompact(entry.contentRect.width < COMPACT_WIDTH_THRESHOLD);
+        const isCompact = entry.contentRect.width < COMPACT_WIDTH_THRESHOLD;
+        setCompact(isCompact);
+        onCompactChange?.(isCompact);
       });
       observerRef.current.observe(node);
     }
-  }, []);
+  }, [onCompactChange]);
+
+  const typeSelectorOverlay = renderTypeSelector && compact ? (
+    <div
+      className="type-selector-overlay"
+      style={{ pointerEvents: hovered ? 'auto' : 'none' }}
+    >
+      {renderTypeSelector({ compact: true })}
+    </div>
+  ) : null;
 
   return (
     <StyledWrapper
@@ -29,13 +40,19 @@ const VarValueCell = ({ editor, renderTypeSelector }) => {
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
-      <div style={compact ? { width: '100%', minWidth: 0 } : { flex: '1 1 0', minWidth: 0 }}>
+      <div style={{ flex: '1 1 0', minWidth: 0 }}>
         {editor}
       </div>
-      {renderTypeSelector && (
-        compact
-          ? <div className="type-selector-overlay" style={{ pointerEvents: hovered ? 'auto' : 'none' }}>{renderTypeSelector({ compact: true })}</div>
-          : renderTypeSelector({ compact: false })
+      {compact && trailingContent ? (
+        <div className="trailing-area">
+          {typeSelectorOverlay}
+          {trailingContent}
+        </div>
+      ) : (
+        <>
+          {typeSelectorOverlay}
+          {!compact && renderTypeSelector && renderTypeSelector({ compact: false })}
+        </>
       )}
     </StyledWrapper>
   );
