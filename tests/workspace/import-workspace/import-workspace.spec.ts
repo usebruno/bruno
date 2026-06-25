@@ -2,12 +2,15 @@ import path from 'path';
 import fs from 'fs';
 import yaml from 'js-yaml';
 import { test, expect, closeElectronApp, waitForReadyPage } from '../../../playwright';
-import { findWorkspaceDirByName, WorkspaceConfig } from '../../utils/helpers';
 import {
-  buildImportWorkspaceLocators,
+  buildImportWorkspaceModalLocators,
   createWorkspaceZip,
   importWorkspaceFromZip
-} from '../../utils/page/actions/workspace';
+} from '../../utils/page/workspace/import-workspace';
+
+type WorkspaceConfig = {
+  info?: { name: string; type: string };
+};
 
 const initUserDataPath = path.join(__dirname, 'init-user-data');
 
@@ -20,7 +23,7 @@ test.describe('Import Workspace', () => {
 
     const app = await launchElectronApp({ initUserDataPath, templateVars: { wsLocation } });
     const page = await waitForReadyPage(app);
-    const locators = buildImportWorkspaceLocators(page);
+    const importwsmodallocators = buildImportWorkspaceModalLocators(page);
 
     await test.step('Import the workspace zip via the Import Workspace modal', async () => {
       // extractLocation isn't passed as a parameter: the modal pre-fills the seeded default location.
@@ -32,12 +35,22 @@ test.describe('Import Workspace', () => {
     });
 
     await test.step('Verify the imported workspace becomes the active workspace', async () => {
-      await expect(locators.activeWorkspaceName()).toHaveText(workspaceName);
+      await expect(importwsmodallocators.titleBar.activeWorkspaceName()).toHaveText(workspaceName);
     });
 
     await test.step('Verify the workspace was extracted to the filesystem', async () => {
-      const wsDir = await findWorkspaceDirByName(wsLocation, workspaceName);
-      expect(wsDir).not.toBeNull();
+      let wsDir: string | undefined;
+      for (const entry of fs.readdirSync(wsLocation)) {
+        const dir = path.join(wsLocation, entry);
+        const ymlPath = path.join(dir, 'workspace.yml');
+        if (!fs.existsSync(ymlPath)) continue;
+        const wsConfig = yaml.load(fs.readFileSync(ymlPath, 'utf8')) as WorkspaceConfig;
+        if (wsConfig?.info?.name === workspaceName) {
+          wsDir = dir;
+          break;
+        }
+      }
+      expect(wsDir).toBeDefined();
 
       const config = yaml.load(
         fs.readFileSync(path.join(wsDir!, 'workspace.yml'), 'utf8')

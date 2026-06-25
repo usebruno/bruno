@@ -24,8 +24,8 @@ function findCreatedWorkspaceDirs(location: string): string[] {
 }
 
 test.describe('Create Workspace', () => {
-  test.describe('Inline Creation Flow', () => {
-    test('TC-957: Verify user able to Create a Workspace', { tag: '@sanity' }, async ({ launchElectronApp, createTmpDir }) => {
+  test.describe('inline workspace creation flow', () => {
+    test('TC-957: Verify create a workspace directly from the title bar by typing a name', { tag: '@sanity' }, async ({ launchElectronApp, createTmpDir }) => {
       const wsLocation = await createTmpDir('ws-location-enter');
 
       const app = await launchElectronApp({ initUserDataPath, templateVars: { wsLocation } });
