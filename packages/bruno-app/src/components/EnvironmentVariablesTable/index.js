@@ -110,16 +110,6 @@ const EnvVarValueCell = ({
             }}
             onSave={handleSave}
           />
-          {typeof variable.value !== 'string' && (
-            <span className="ml-2 flex items-center flex-shrink-0">
-              <IconInfoCircle id={`${variable.uid}-disabled-info-icon`} className="text-muted" size={16} />
-              <Tooltip
-                anchorId={`${variable.uid}-disabled-info-icon`}
-                content="Non-string values set via scripts are read-only and can only be updated through scripts."
-                place="top"
-              />
-            </span>
-          )}
           {renderExtraValueContent && renderExtraValueContent(variable)}
         </div>
       )}
