@@ -837,6 +837,7 @@ export const BulkImportCollectionLocation = ({
                   <div className="font-semibold mb-2">Location</div>
                   <input
                     id="collection-location"
+                    data-testid="bulk-import-collection-location-input"
                     type="text"
                     placeholder="Select a location to save the collection"
                     name="collectionLocation"
@@ -879,7 +880,7 @@ export const BulkImportCollectionLocation = ({
                   <select
                     id="format"
                     name="format"
-                    data-testid="collection-format-selector"
+                    data-testid="bulk-import-collection-format-selector"
                     className="block textbox mt-2 w-full"
                     value={collectionFormat}
                     onChange={(e) => setCollectionFormat(e.target.value)}

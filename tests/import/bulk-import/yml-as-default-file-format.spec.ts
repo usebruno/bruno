@@ -15,28 +15,20 @@ test.describe('Bulk Import default file format', () => {
     await closeAllCollections(page);
   });
 
-  test('File Format selector defaults to OpenCollection (YAML)', async ({ page }) => {
-    await openBulkImportModal(page, filesToImport);
+  test('Bulk import defaults to OpenCollection (YAML) and writes opencollection.yml collections', async ({ page, createTmpDir }) => {
     const locators = buildCommonLocators(page);
+    const importDir = await createTmpDir('bulk-import-default-format');
 
-    await test.step('File Format defaults to OpenCollection (YAML)', async () => {
+    await test.step('Open the bulk import modal and verify the File Format defaults to OpenCollection (YAML)', async () => {
+      await openBulkImportModal(page, filesToImport);
+
       const formatSelect = locators.import.bulkFormatSelect();
       await expect(formatSelect).toBeVisible();
       await expect(formatSelect).toHaveValue('yml');
       await expect(formatSelect.locator('option')).toHaveText(['OpenCollection (YAML)', 'BRU Format (.bru)']);
     });
-  });
 
-  test('importing with the default format writes opencollection.yml collections', async ({ page, createTmpDir }) => {
-    await openBulkImportModal(page, filesToImport);
-    const locators = buildCommonLocators(page);
-    const importDir = await createTmpDir('bulk-import-default-format');
-
-    await test.step('Check the File Format defaults to OpenCollection (YAML)', async () => {
-      await expect(locators.import.bulkFormatSelect()).toHaveValue('yml');
-    });
-
-    await test.step('Import with the default format and close the modal', async () => {
+    await test.step('Set the location, Click Import, then close the modal', async () => {
       await locators.import.bulkLocationInput().fill(importDir);
 
       await expect(locators.import.bulkSubmitButton()).toHaveText('Import');
