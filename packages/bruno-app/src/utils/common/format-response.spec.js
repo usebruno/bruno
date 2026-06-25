@@ -53,6 +53,15 @@ describe('formatResponse', () => {
       expect(typeof result).toBe('string');
     });
 
+    it('should preserve unicode escaped quotes when formatting JSON responses', () => {
+      const data = '{"foo":"\\u0022bar"}';
+      const dataBuffer = createBase64Buffer(data);
+      const result = formatResponse(data, dataBuffer, 'application/json');
+
+      expect(result).toBe('{\n  "foo": "\\u0022bar"\n}');
+      expect(() => JSON.parse(result)).not.toThrow();
+    });
+
     it('should preserve bigint value after JSON format', () => {
       const data = '{ "data": 1736184243098437392 }';
       const dataBuffer = createBase64Buffer(data);
