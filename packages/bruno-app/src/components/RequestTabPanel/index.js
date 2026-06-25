@@ -33,6 +33,7 @@ import RequestTabPanelLoading from './RequestTabPanelLoading';
 import FolderNotFound from './FolderNotFound';
 import ExampleNotFound from './ExampleNotFound';
 import WsQueryUrl from 'components/RequestPane/WsQueryUrl';
+import SignalRRequestPane from 'components/RequestPane/SignalRRequestPane';
 import WSRequestPane from 'components/RequestPane/WSRequestPane';
 import WSResponsePane from 'components/ResponsePane/WsResponsePane';
 import { useTabPaneBoundaries } from 'hooks/useTabPaneBoundaries/index';
@@ -535,6 +536,8 @@ const RequestTabPanel = () => {
         return <GrpcRequestPane item={item} collection={collection} handleRun={handleRun} />;
       case 'ws-request':
         return <WSRequestPane item={item} collection={collection} handleRun={handleRun} />;
+      case 'signalr-request':
+        return <SignalRRequestPane item={item} collection={collection} handleRun={handleRun} />;
       default:
         return null;
     }

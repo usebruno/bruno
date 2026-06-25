@@ -1,6 +1,9 @@
 import type { HttpRequest } from './http';
 import type { GrpcRequest } from './grpc';
 import type { WebSocketRequest } from './websocket';
+import type { SignalRRequest } from './signalr';
+
+export type { SignalRRequest } from './signalr';
 
 export type {
   HttpRequest,
@@ -23,4 +26,4 @@ export type {
   WebSocketMessage
 } from './websocket';
 
-export type Request = HttpRequest | GrpcRequest | WebSocketRequest;
+export type Request = HttpRequest | GrpcRequest | WebSocketRequest | SignalRRequest;
