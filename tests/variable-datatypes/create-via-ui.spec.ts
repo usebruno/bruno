@@ -211,6 +211,7 @@ test.describe('DataType selector — new collection created via UI', () => {
           await expect(secretCheckbox).toBeChecked();
         }
 
+        await valueEditor.hover();
         await locators.dataTypeSelector.typeLabel(namedRow).click();
         await locators.dataTypeSelector.menuItem(dataType).click();
         await expect(locators.dataTypeSelector.typeLabel(namedRow)).toHaveAttribute('data-selected-type', dataType);
