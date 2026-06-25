@@ -49,14 +49,14 @@ body:
   - type: textarea
     attributes:
       label: Describe the bug
-      description: A clear and concise description of the bug and how it's effecting your work. 
+      description: A clear and concise description of the bug and how it's affecting your work
     validations:
       required: true
 
   - type: textarea
     attributes:
       label: Steps to reproduce
-      description: The exact steps that can be performd to reproduce the issue 
+      description: The exact steps that can be performed to reproduce the issue
     validations:
       required: true
 
