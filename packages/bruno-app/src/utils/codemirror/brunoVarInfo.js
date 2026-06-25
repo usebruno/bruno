@@ -95,7 +95,15 @@ const updateValueDisplay = (valueDisplay, value, isSecret, isMasked, isRevealed)
   }
 
   if (typeof value === 'object') {
-    valueDisplay.textContent = value === null ? 'null' : JSON.stringify(value, null, 2);
+    if (value === null) {
+      valueDisplay.textContent = 'null';
+    } else {
+      try {
+        valueDisplay.textContent = JSON.stringify(value, null, 2);
+      } catch {
+        valueDisplay.textContent = String(value);
+      }
+    }
     return;
   }
 
@@ -153,10 +161,16 @@ const getCopyButton = (getVariableValue, onCopyCallback) => {
     // Resolve the latest value at click time so edits/saves are reflected.
     const valueToCopy = typeof getVariableValue === 'function' ? getVariableValue() : getVariableValue;
 
-    const valueStr
-      = typeof valueToCopy === 'object' && valueToCopy !== null
-        ? JSON.stringify(valueToCopy, null, 2)
-        : String(valueToCopy ?? '');
+    let valueStr;
+    if (typeof valueToCopy === 'object' && valueToCopy !== null) {
+      try {
+        valueStr = JSON.stringify(valueToCopy, null, 2);
+      } catch {
+        valueStr = String(valueToCopy);
+      }
+    } else {
+      valueStr = String(valueToCopy ?? '');
+    }
 
     navigator.clipboard
       .writeText(valueStr)
