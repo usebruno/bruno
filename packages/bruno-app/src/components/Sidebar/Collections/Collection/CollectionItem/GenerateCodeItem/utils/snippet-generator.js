@@ -4,8 +4,6 @@ import { getAllVariables, getTreePathFromCollectionToItem, mergeHeaders } from '
 import { resolveInheritedAuth } from 'utils/auth';
 import { get } from 'lodash';
 import { interpolateUrl, interpolateUrlPathParams } from 'utils/url/index';
-import { interpolateAuth, interpolateHeaders, interpolateBody, interpolateParams } from './interpolation';
-import { encodeUrl as encodeUrlCommon, stripOrigin } from '@usebruno/common/utils';
 import { parse } from 'url';
 import { stringify } from 'query-string';
 
@@ -53,15 +51,12 @@ const generateSnippet = ({ language, item, collection, shouldInterpolate = false
 
     const settings = item.draft ? get(item, 'draft.settings') : get(item, 'settings');
 
+    // buildHar intentionally does NOT resolve `{{var}}` / `:pathParam` in the URL
+    // so the caller owns URL interpolation.
     const templateUrl = request.url;
     const interpolatedUrl = interpolateUrl({ url: templateUrl, variables });
-    const harUrl = interpolateUrlPathParams(interpolatedUrl, request.params);
-
-    // Build HAR request with the interpolated URL without mutating the original request
-    const harRequest = buildHarRequest({
-      request: { ...request, url: harUrl },
-      headers
-    const sourceUrl = item.rawUrl || request.url;
+    const harUrl = interpolateUrlPathParams(interpolatedUrl, request.params, variables, { raw: true });
+    const sourceUrl = item.rawUrl || harUrl;
     const { har, rawUrl, encodedUrl, unhash } = buildHar({
       request: {
         method: request.method,
