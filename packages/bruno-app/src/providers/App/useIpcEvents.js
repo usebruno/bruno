@@ -28,15 +28,17 @@ import {
 import { collectionAddEnvFileEvent, openCollectionEvent, hydrateCollectionWithUiStateSnapshot, mergeAndPersistEnvironment } from 'providers/ReduxStore/slices/collections/actions';
 import {
   workspaceOpenedEvent,
-  workspaceConfigUpdatedEvent
+  workspaceConfigUpdatedEvent,
+  hydrateSnapshotForOpenedCollection
 } from 'providers/ReduxStore/slices/workspaces/actions';
 import { workspaceDotEnvUpdateEvent, setWorkspaceDotEnvVariables } from 'providers/ReduxStore/slices/workspaces';
 import toast from 'react-hot-toast';
 import { useDispatch, useStore } from 'react-redux';
 import { isElectron } from 'utils/common/platform';
 import { globalEnvironmentsUpdateEvent, updateGlobalEnvironments } from 'providers/ReduxStore/slices/global-environments';
-import { collectionAddOauth2CredentialsByUrl, collectionClearOauth2CredentialsByCredentialsId, updateCollectionLoadingState } from 'providers/ReduxStore/slices/collections/index';
+import { collectionAddOauth2CredentialsByUrl, collectionClearOauth2CredentialsByCredentialsId, updateCollectionLoadingState, collectionLoadedFromTree } from 'providers/ReduxStore/slices/collections/index';
 import { addLog } from 'providers/ReduxStore/slices/logs';
+import { loadNotifications } from 'providers/ReduxStore/slices/notifications';
 import { updateSystemResources } from 'providers/ReduxStore/slices/performance';
 import { apiSpecAddFileEvent, apiSpecChangeFileEvent } from 'providers/ReduxStore/slices/apiSpec';
 
@@ -120,8 +122,12 @@ const useIpcEvents = () => {
 
     const removeApiSpecTreeUpdateListener = ipcRenderer.on('main:apispec-tree-updated', _apiSpecTreeUpdated);
 
-    const removeOpenCollectionListener = ipcRenderer.on('main:collection-opened', (pathname, uid, brunoConfig) => {
-      dispatch(openCollectionEvent(uid, pathname, brunoConfig));
+    const removeOpenCollectionListener = ipcRenderer.on('main:collection-opened', async (pathname, uid, brunoConfig) => {
+      try {
+        await dispatch(openCollectionEvent(uid, pathname, brunoConfig));
+      } finally {
+        dispatch(hydrateSnapshotForOpenedCollection(pathname));
+      }
     });
 
     const removeOpenWorkspaceListener = ipcRenderer.on('main:workspace-opened', (workspacePath, workspaceUid, workspaceConfig) => {
@@ -338,7 +344,26 @@ const useIpcEvents = () => {
       dispatch(setGitVersion(val));
     });
 
+    const removeLoadNotificationsListener = ipcRenderer.on('main:load-notifications', (notifications) => {
+      dispatch(loadNotifications(notifications));
+    });
+
+    const removeCollectionTreeLoadedListener = ipcRenderer.on('main:collection-tree-loaded', ({ collectionUid, tree }) => {
+      dispatch(collectionLoadedFromTree({ collectionUid, tree }));
+    });
+
+    const removeCollectionLoadingStateV2Listener = ipcRenderer.on('main:collection-loading-state-updated-v2', (val) => {
+      dispatch(updateCollectionLoadingState(val));
+    });
+
+    const removeBrunoConfigUpdateV2Listener = ipcRenderer.on('main:bruno-config-update-v2', (val) => {
+      dispatch(brunoConfigUpdateEvent(val));
+    });
+
     return () => {
+      removeCollectionTreeLoadedListener();
+      removeCollectionLoadingStateV2Listener();
+      removeBrunoConfigUpdateV2Listener();
       removeCollectionTreeUpdateListener();
       removeApiSpecTreeUpdateListener();
       removeOpenCollectionListener();
@@ -371,6 +396,7 @@ const useIpcEvents = () => {
       removePersistentEnvVariablesUpdateListener();
       removeSystemResourcesListener();
       gitVersionListener();
+      removeLoadNotificationsListener();
     };
   }, [isElectron]);
 };

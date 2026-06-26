@@ -12,6 +12,7 @@ import { saveCollectionSettings } from 'providers/ReduxStore/slices/collections/
 import StyledWrapper from './StyledWrapper';
 import OAuth2 from './OAuth2';
 import NTLMAuth from './NTLMAuth';
+import OAuth1 from './Oauth1';
 import Button from 'ui/Button';
 
 const Auth = ({ collection }) => {
@@ -36,6 +37,9 @@ const Auth = ({ collection }) => {
       }
       case 'ntlm': {
         return <NTLMAuth collection={collection} />;
+      }
+      case 'oauth1': {
+        return <OAuth1 collection={collection} />;
       }
       case 'oauth2': {
         return <OAuth2 collection={collection} />;

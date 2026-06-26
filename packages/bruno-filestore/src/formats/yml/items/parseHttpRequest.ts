@@ -9,6 +9,7 @@ import { toBrunoVariables } from '../common/variables';
 import { toBrunoPostResponseVariables } from '../common/actions';
 import { toBrunoScripts } from '../common/scripts';
 import { toBrunoAssertions } from '../common/assertions';
+import { toBrunoApp } from '../common/app';
 import { uuid, ensureString } from '../../../utils';
 
 const parseHttpRequest = (ocRequest: HttpRequest): BrunoItem => {
@@ -79,6 +80,9 @@ const parseHttpRequest = (ocRequest: HttpRequest): BrunoItem => {
     brunoRequest.docs = ocRequest.docs;
   }
 
+  // app
+  const app = toBrunoApp((ocRequest as any).app);
+
   // bruno item
   const brunoItem: BrunoItem = {
     uid: uuid(),
@@ -88,6 +92,7 @@ const parseHttpRequest = (ocRequest: HttpRequest): BrunoItem => {
     tags: info?.tags || [],
     request: brunoRequest,
     settings: null,
+    app,
     fileContent: null,
     root: null,
     items: [],

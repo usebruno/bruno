@@ -51,9 +51,16 @@ bruno.iml
 .cursor
 .claude
 .codex
+.agents
+.agent
+skills-lock.json
 
 # Playwright
 /blob-report/
+
+# Benchmark results (generated at runtime)
+tests/benchmarks/results/
+/benchmark-report/
 
 # Development plan files
 CLAUDE.md

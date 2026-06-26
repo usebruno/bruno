@@ -15,6 +15,7 @@ const Wrapper = styled.div`
     overflow-y: auto;
     border-radius: 8px;
     border: solid 1px ${(props) => props.theme.border.border0};
+    transition: height 75ms cubic-bezier(0,1.12,.84,.64);
   }
 
   table {
@@ -99,24 +100,6 @@ const Wrapper = styled.div`
   .name-cell-wrapper {
     position: relative;
     width: 100%;
-
-    .name-highlight-overlay {
-      position: absolute;
-      inset: 0;
-      pointer-events: none;
-      white-space: pre;
-      overflow: hidden;
-      font-size: inherit;
-      line-height: inherit;
-      color: ${(props) => props.theme.text};
-    }
-  }
-
-  .search-highlight {
-    background: ${(props) => props.theme.colors.accent}55;
-    color: inherit;
-    border-radius: 2px;
-    padding: 0 1px;
   }
 
   .no-results {

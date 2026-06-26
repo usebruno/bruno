@@ -2,7 +2,7 @@ const { nodeResolve } = require('@rollup/plugin-node-resolve');
 const commonjs = require('@rollup/plugin-commonjs');
 const typescript = require('@rollup/plugin-typescript');
 const dts = require('rollup-plugin-dts');
-const { terser } = require('rollup-plugin-terser');
+const terser = require('@rollup/plugin-terser').default;
 const peerDepsExternal = require('rollup-plugin-peer-deps-external');
 const json = require('@rollup/plugin-json');
 const { isBuiltin } = require('module');
@@ -39,6 +39,6 @@ module.exports = [
       typescript({ tsconfig: './tsconfig.json' }),
       terser()
     ],
-    external: (id) => isBuiltin(id) || ['axios', 'qs', 'ws', 'debug', 'shell-env'].includes(id)
+    external: (id) => isBuiltin(id) || ['axios', 'qs', 'ws', 'debug', 'shell-env', 'pac-resolver', 'quickjs-emscripten'].includes(id)
   }
 ];

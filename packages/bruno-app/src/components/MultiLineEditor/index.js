@@ -6,7 +6,6 @@ import { setupAutoComplete } from 'utils/codemirror/autocomplete';
 import { MaskedEditor } from 'utils/common/masked-editor';
 import StyledWrapper from './StyledWrapper';
 import { setupLinkAware } from 'utils/codemirror/linkAware';
-import { setupShortcuts } from 'utils/codemirror/shortcuts';
 import { IconEye, IconEyeOff } from '@tabler/icons';
 
 const CodeMirror = require('codemirror');
@@ -25,15 +24,22 @@ class MultiLineEditor extends Component {
     this.state = {
       maskInput: props.isSecret || false // Always mask the input by default (if it's a secret)
     };
-
-    // Shortcuts cleanup function
-    this._shortcutsCleanup = null;
   }
 
   componentDidMount() {
     // Initialize CodeMirror as a single line editor
     /** @type {import("codemirror").Editor} */
     const variables = getAllVariables(this.props.collection, this.props.item);
+    /**
+     * No-op. We claim Cmd-Enter / Ctrl-Enter here only to suppress CodeMirror's
+     * sublime keymap default (insertLineAfter), which would otherwise insert a
+     * newline. sendRequest dispatch is owned by Mousetrap — the editor input has
+     * the `mousetrap` class (added below) so the global
+     * useKeybinding('sendRequest', …) in RequestTabPanel handles it, and only
+     * in request tabs. Falling through with CodeMirror.Pass when onRun is absent
+     * would re-introduce the newline in collection/folder-level editors.
+     */
+    const runShortcut = () => {};
 
     this.editor = CodeMirror(this.editorRef.current, {
       lineWrapping: false,
@@ -49,28 +55,10 @@ class MultiLineEditor extends Component {
       readOnly: this.props.readOnly,
       tabindex: 0,
       extraKeys: {
-        // 'Ctrl-Enter': () => {
-        //   if (this.props.onRun) {
-        //     this.props.onRun();
-        //   }
-        // },
-        // 'Cmd-Enter': () => {
-        //   if (this.props.onRun) {
-        //     this.props.onRun();
-        //   }
-        // },
-        'Cmd-S': () => {
-          if (this.props.onSave) {
-            this.props.onSave();
-          }
-        },
-        'Ctrl-S': () => {
-          if (this.props.onSave) {
-            this.props.onSave();
-          }
-        },
         'Cmd-F': () => {},
         'Ctrl-F': () => {},
+        'Cmd-Enter': runShortcut,
+        'Ctrl-Enter': runShortcut,
         // Tabbing disabled to make tabindex work
         'Tab': false,
         'Shift-Tab': false
@@ -94,17 +82,27 @@ class MultiLineEditor extends Component {
 
     setupLinkAware(this.editor);
 
-    // Setup keyboard shortcuts
-    this._shortcutsCleanup = setupShortcuts(this.editor, this);
+    // Add mousetrap calss so Mousetrap captures shortcuts even when Codemirror is focused
+    const cmInput = this.editor.getInputField();
+    if (cmInput) {
+      cmInput.classList.add('mousetrap');
+    }
 
     this.editor.setValue(String(this.props.value) || '');
     this.editor.on('change', this._onEdit);
+    this.editor.on('blur', this._onBlur);
     this.addOverlay(variables);
 
     // Initialize masking if this is a secret field
     this.setState({ maskInput: this.props.isSecret });
     this._enableMaskedEditor(this.props.isSecret);
   }
+
+  _onBlur = () => {
+    if (this.editor) {
+      this.editor.setCursor(this.editor.getCursor());
+    }
+  };
 
   _onEdit = () => {
     if (!this.ignoreChangeEvent && this.editor) {
@@ -161,16 +159,13 @@ class MultiLineEditor extends Component {
       this.editor.setOption('readOnly', this.props.readOnly);
     }
     if (this.props.value !== prevProps.value && this.props.value !== this.cachedValue && this.editor) {
-      // TODO: temporary fix for keeping cursor state when auto save and new line insertion collide PR#7098
-      const nextValue = String(this.props.value ?? '');
-      const currentValue = this.editor.getValue();
-      if (this.editor.hasFocus?.() && currentValue !== nextValue) {
-        this.cachedValue = currentValue;
-      } else {
-        const cursor = this.editor.getCursor();
-        this.cachedValue = nextValue;
-        this.editor.setValue(nextValue);
-        this.editor.setCursor(cursor);
+      const cursor = this.editor.getCursor();
+      this.cachedValue = String(this.props.value);
+      this.editor.setValue(String(this.props.value) || '');
+      this.editor.setCursor(cursor);
+      // Re-apply masking after setValue() since it destroys all CodeMirror marks
+      if (this.maskedEditor && this.maskedEditor.isEnabled()) {
+        this.maskedEditor.update();
       }
     }
     if (!isEqual(this.props.isSecret, prevProps.isSecret)) {
@@ -186,12 +181,6 @@ class MultiLineEditor extends Component {
   }
 
   componentWillUnmount() {
-    // Cleanup shortcuts (keymap and store subscription)
-    if (this._shortcutsCleanup) {
-      this._shortcutsCleanup();
-      this._shortcutsCleanup = null;
-    }
-
     if (this.brunoAutoCompleteCleanup) {
       this.brunoAutoCompleteCleanup();
     }
@@ -202,7 +191,11 @@ class MultiLineEditor extends Component {
       this.maskedEditor.destroy();
       this.maskedEditor = null;
     }
-    this.editor.getWrapperElement().remove();
+    if (this.editor) {
+      this.editor.off('change', this._onEdit);
+      this.editor.off('blur', this._onBlur);
+      this.editor.getWrapperElement().remove();
+    }
   }
 
   addOverlay = (variables) => {

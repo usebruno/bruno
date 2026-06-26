@@ -1,103 +1,263 @@
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useMemo, useRef, useState, useEffect, Fragment } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import toast from 'react-hot-toast';
+import { useTheme } from 'providers/Theme';
 
 import StyledWrapper from './StyledWrapper';
-import { IconRefresh, IconPencil } from '@tabler/icons';
+import { IconReload, IconPencil, IconLock, IconCircleCheck, IconAlertCircle } from '@tabler/icons';
 import { isMacOS } from 'utils/common/platform';
 
 import { savePreferences } from 'providers/ReduxStore/slices/app';
-import { DEFAULT_KEY_BINDINGS } from 'providers/Hotkeys/keyMappings.js';
+import { KEY_BINDING_SECTIONS } from 'providers/Hotkeys/keyMappings.js';
 import { Tooltip } from 'react-tooltip';
+import ToggleSwitch from 'components/ToggleSwitch/index';
+import toast from 'react-hot-toast';
 
 const SEP = '+bind+';
 const getOS = () => (isMacOS() ? 'mac' : 'windows');
 
-// Stored tokens must match your preferences defaults (lowercase)
+// Modifier tokens used in stored preferences.
+// These are lowercase on purpose so they match persisted values.
 const MODIFIERS = new Set(['ctrl', 'command', 'alt', 'shift']);
 
-const REQUIRED_MODIFIERS_BY_OS = {
-  mac: new Set(['command', 'alt', 'shift', 'ctrl']),
-  windows: new Set(['ctrl', 'alt', 'shift']) // command (Win key) should NOT count
+const MODIFIER_SYMBOLS = {
+  mac: {
+    command: '⌘',
+    ctrl: '⌃',
+    alt: '⌥',
+    shift: '⇧'
+  },
+  windows: {
+    ctrl: 'Ctrl',
+    alt: 'Alt',
+    shift: 'Shift',
+    command: 'Win'
+  }
 };
 
-const hasRequiredModifier = (os, arr) => arr.some((k) => REQUIRED_MODIFIERS_BY_OS[os]?.has(k));
+// Helper to parse displayValue string into arrays of key arrays for rendering as keycaps
+// Takes a raw string like "command+bind+1 - command+bind+8" and returns [["command", "1"], ["command", "8"]]
+// This allows rendering in the same pills style as regular keybindings
+const parseDisplayValue = (displayValue, os) => {
+  if (!displayValue || typeof displayValue !== 'string') return null;
+
+  const symbols = MODIFIER_SYMBOLS[os] || MODIFIER_SYMBOLS.windows;
+
+  // Reverse mapping from symbol to key name
+  const symbolToKey = {};
+  Object.entries(symbols).forEach(([key, symbol]) => {
+    symbolToKey[symbol.toLowerCase()] = key;
+  });
+
+  // Split by " - " to get range parts (e.g., ["command+bind+1", "command+bind+8"])
+  const rangeParts = displayValue.split(/\s*-\s*/);
+
+  const result = rangeParts.map((part) => {
+    // Split by "+bind+" to get individual keys (consistent with storage format)
+    // Filter out empty strings that may result from the split
+    const keys = part.split(SEP).filter(Boolean).map((key) => {
+      const lowerKey = key.toLowerCase().trim();
+      // Check if it's a symbol and convert back to key name
+      if (symbolToKey[lowerKey]) {
+        return symbolToKey[lowerKey];
+      }
+      // For non-modifier keys, return as-is but lowercase
+      return lowerKey;
+    });
+    return keys;
+  });
+
+  return result;
+};
+
+// Render displayValue using the same pills style as regular keybindings
+const renderDisplayValue = (displayValue, os) => {
+  const parsed = parseDisplayValue(displayValue, os);
+  if (!parsed || !parsed.length) return null;
+
+  // If there's only one shortcut, render it normally
+  if (parsed.length === 1) {
+    return <span className="shortcut-pills">{renderKeycaps(parsed[0], os)}</span>;
+  }
+
+  // If there are multiple shortcuts (range), render each as a group with separator
+  return (
+    <span className="shortcut-pills">
+      {parsed.map((keysArr, index) => (
+        <Fragment key={index}>
+          {index > 0 && <span className="shortcut-separator"> - </span>}
+          {renderKeycaps(keysArr, os)}
+        </Fragment>
+      ))}
+    </span>
+  );
+};
+
+// Required modifier policy by OS.
+// On macOS, command/ctrl/alt/shift are allowed as the required modifier.
+// On Windows, command should not count as a valid modifier for app shortcuts.
+const REQUIRED_MODIFIERS_BY_OS = {
+  mac: new Set(['command', 'alt', 'shift', 'ctrl']),
+  windows: new Set(['ctrl', 'alt', 'shift'])
+};
+
+const FUNCTION_KEY_PATTERN = /^f([1-9]|1[0-2])$/;
+const isFunctionKey = (k) => FUNCTION_KEY_PATTERN.test(k);
+const hasRequiredModifier = (os, arr) => {
+  // Function keys (F1-F12) are allowed without a modifier
+  if (arr.some(isFunctionKey)) return true;
+  return arr.some((k) => REQUIRED_MODIFIERS_BY_OS[os]?.has(k));
+};
 const isOnlyModifiers = (arr) => arr.length > 0 && arr.every((k) => MODIFIERS.has(k));
 
+// Keep a stable modifier order for display, storage, and duplicate detection.
+// Non-modifier keys keep their original order.
+const MODIFIER_ORDER = ['ctrl', 'command', 'alt', 'shift'];
+
 const sortCombo = (arr) => {
-  const order = ['ctrl', 'command', 'alt', 'shift'];
   const modifiers = [];
   const nonModifiers = [];
 
-  // Separate modifiers from non-modifiers
   arr.forEach((key) => {
-    if (order.includes(key)) {
+    if (MODIFIERS.has(key)) {
       modifiers.push(key);
     } else {
       nonModifiers.push(key);
     }
   });
 
-  // Sort modifiers by their order
-  modifiers.sort((a, b) => order.indexOf(a) - order.indexOf(b));
+  modifiers.sort((a, b) => MODIFIER_ORDER.indexOf(a) - MODIFIER_ORDER.indexOf(b));
 
-  // Keep non-modifiers in the order they were pressed (don't sort them)
   return [...modifiers, ...nonModifiers];
 };
 
+// Remove duplicates while preserving insertion order, then apply stable sorting.
 const uniqSorted = (arr) => {
-  // Remove duplicates while preserving order
-  const unique = [];
   const seen = new Set();
+  const unique = [];
+
   arr.forEach((key) => {
     if (!seen.has(key)) {
       seen.add(key);
       unique.push(key);
     }
   });
+
   return sortCombo(unique);
 };
 
 const fromKeysString = (keysStr) => (keysStr ? keysStr.split(SEP).filter(Boolean) : []);
 const toKeysString = (keysArr) => uniqSorted(keysArr).join(SEP);
 
-// Signature MUST be stable: unique + sorted
+const formatSingleKeyForDisplay = (key, os) => {
+  if (MODIFIER_SYMBOLS[os]?.[key]) return MODIFIER_SYMBOLS[os][key];
+  if (key.length === 1) return key.toUpperCase();
+
+  const SPECIAL_LABELS = {
+    enter: os === 'mac' ? '↩' : 'Enter',
+    backspace: os === 'mac' ? '⌫' : 'Backspace',
+    tab: os === 'mac' ? '⇥' : 'Tab',
+    delete: os === 'mac' ? '⌦' : 'Delete',
+    esc: os === 'mac' ? '⎋' : 'Esc',
+    space: os === 'mac' ? '␣' : 'Space',
+    arrowup: '↑',
+    arrowdown: '↓',
+    arrowleft: '←',
+    arrowright: '→',
+    pageup: 'PageUp',
+    pagedown: 'PageDown',
+    home: 'Home',
+    end: 'End'
+  };
+
+  return SPECIAL_LABELS[key] || key.charAt(0).toUpperCase() + key.slice(1);
+};
+
+const renderKeycaps = (keysArr, os) => {
+  if (!keysArr?.length) return null;
+
+  return keysArr.map((key, index) => (
+    <span key={`${key}-${index}`} className="keycap">
+      {formatSingleKeyForDisplay(key, os)}
+    </span>
+  ));
+};
+
+// Signature is intentionally exact.
+// This means:
+// - command + f
+// - command + shift + f
+// are treated as different shortcuts and can coexist.
+// Only an exact same normalized combo is considered duplicate.
 const comboSignature = (arr) => toKeysString(arr);
 
-// OS reserved shortcuts in stored-token format
+// OS reserved shortcuts in stored-token format.
+// These are blocked because they are usually intercepted by the OS/window manager.
+// Also includes common editing shortcuts that should not be overridden.
 const RESERVED_BY_OS = {
   mac: new Set([
-    comboSignature(['command', 'q']),
-    comboSignature(['command', 'w']),
     comboSignature(['command', 'h']),
+    comboSignature(['command', 'alt', 'h']),
+    comboSignature(['ctrl', 'command', 'f']),
+    comboSignature(['command', 'shift', 'q']),
+    comboSignature(['command', 'alt', 'd']),
     comboSignature(['command', 'm']),
     comboSignature(['command', 'tab']),
     comboSignature(['command', 'space']),
     comboSignature(['ctrl', 'command', 'q']),
-    comboSignature(['command', ',']),
     comboSignature(['command', 'shift', '3']),
     comboSignature(['command', 'shift', '4']),
     comboSignature(['command', 'shift', '5']),
-    comboSignature(['command', 'alt', 'esc'])
+    comboSignature(['command', 'alt', 'esc']),
+    // Undo/Redo - standard text editing shortcuts that browsers handle natively
+    comboSignature(['command', 'z']),
+    comboSignature(['command', 'shift', 'z']),
+    comboSignature(['command', 'alt', 'z']),
+    // Toggle Developer Tools
+    comboSignature(['command', 'alt', 'i']),
+    // Function keys reserved by macOS
+    comboSignature(['f11']), // Show Desktop
+    comboSignature(['f12']) // Dashboard (older macOS)
   ]),
   windows: new Set([
+    // System-level shortcuts (intercepted by Windows before reaching the app)
     comboSignature(['alt', 'tab']),
+    comboSignature(['alt', 'shift', 'tab']),
     comboSignature(['alt', 'f4']),
+    comboSignature(['alt', 'esc']),
+    comboSignature(['alt', 'space']),
     comboSignature(['ctrl', 'alt', 'delete']),
-    comboSignature(['command', 'l']),
-    comboSignature(['command', 'd']),
-    comboSignature(['command', 'e']),
-    comboSignature(['command', 'r']),
-    comboSignature(['command', 'tab']),
-    comboSignature(['ctrl', 'shift', 'esc'])
+    comboSignature(['ctrl', 'shift', 'esc']),
+    // Function keys
+    comboSignature(['f1']), // Windows Help
+    comboSignature(['f11']), // Fullscreen toggle
+    comboSignature(['f12']), // DevTools
+    // Undo/Redo - standard text editing shortcuts that browsers handle natively
+    comboSignature(['ctrl', 'z']),
+    comboSignature(['ctrl', 'y']),
+    comboSignature(['ctrl', 'shift', 'z']),
+    // Toggle Developer Tools
+    comboSignature(['ctrl', 'shift', 'i'])
   ])
 };
 
-// normalize keyboard event -> stored tokens
+// Normalize keyboard event to stored token format.
+// The output must stay aligned with default preference values.
 const normalizeKey = (e) => {
   const k = e.key;
 
-  // ignore lock keys
+  // Handle dead keys on macOS - Option+letter produces dead key characters
+  // Convert dead key back to the base character for consistent normalization
+  if (k === 'Dead') {
+    // Use code to determine the base key (e.g., 'KeyI' for 'i')
+    const code = e.code;
+    if (code) {
+      const baseKey = code.replace('Key', '').toLowerCase();
+      return baseKey;
+    }
+    return 'dead';
+  }
+
+  // Ignore lock keys. They should not be recordable shortcuts.
   if (k === 'CapsLock' || k === 'NumLock' || k === 'ScrollLock') return null;
 
   if (k === ' ') return 'space';
@@ -110,13 +270,21 @@ const normalizeKey = (e) => {
   if (k === 'Tab') return 'tab';
   if (k === 'Delete') return 'delete';
 
-  // Meta -> command (matches your stored default format)
+  // Meta maps to command so storage format stays consistent across the app.
   if (k === 'Meta') return 'command';
 
-  // single char (letters/punct) to lowercase
+  // For letter and digit keys always use e.code (the physical key) instead of e.key.
+  // When Option/Alt is held, e.key produces a composed character (e.g. Option+X → '≈')
+  // which Mousetrap does not recognise — it expects the base key name ('x').
+  // e.code is unaffected by modifier state: 'KeyX' → 'x', 'Digit1' → '1'.
+  const code = e.code || '';
+  if (code.startsWith('Key')) return code.slice(3).toLowerCase();
+  if (code.startsWith('Digit')) return code.slice(5);
+
+  // Single printable chars become lowercase.
   if (k.length === 1) return k.toLowerCase();
 
-  // ArrowUp -> arrowup, PageUp -> pageup, etc
+  // ArrowUp -> arrowup, PageUp -> pageup, etc.
   return k.toLowerCase();
 };
 
@@ -124,31 +292,52 @@ const ERROR = {
   EMPTY: 'EMPTY',
   ONLY_MODIFIERS: 'ONLY_MODIFIERS',
   MISSING_REQUIRED_MOD: 'MISSING_REQUIRED_MOD',
+  MULTIPLE_NON_MODIFIERS: 'MULTIPLE_NON_MODIFIERS',
   RESERVED: 'RESERVED',
-  DUPLICATE: 'DUPLICATE',
-  CONFLICT: 'CONFLICT'
+  DUPLICATE: 'DUPLICATE'
 };
 
 const Keybindings = () => {
   const dispatch = useDispatch();
   const preferences = useSelector((state) => state.app.preferences);
+  const { theme } = useTheme();
 
   const os = getOS();
+  const keybindingsEnabled = preferences?.keybindingsEnabled !== false;
 
-  //  Source of truth: merge defaults with user preferences
+  const handleToggleKeybindings = () => {
+    const updatedPreferences = {
+      ...preferences,
+      keybindingsEnabled: !keybindingsEnabled
+    };
+    dispatch(savePreferences(updatedPreferences));
+  };
+
+  // Flatten KEY_BINDING_SECTIONS into a single lookup map for internal logic.
+  const sectionDefaults = useMemo(() => {
+    const merged = {};
+
+    for (const section of KEY_BINDING_SECTIONS) {
+      for (const [action, binding] of Object.entries(section.bindings || {})) {
+        merged[action] = { ...binding };
+      }
+    }
+
+    return merged;
+  }, []);
+
+  // Source of truth:
+  // Start from grouped defaults, then merge user-specific overrides on top.
   const keyBindings = useMemo(() => {
     const merged = {};
 
-    // Start with defaults
-    for (const [action, binding] of Object.entries(DEFAULT_KEY_BINDINGS)) {
+    for (const [action, binding] of Object.entries(sectionDefaults)) {
       merged[action] = { ...binding };
     }
 
-    // Override with user preferences
     const userBindings = preferences?.keyBindings || {};
     for (const [action, binding] of Object.entries(userBindings)) {
       if (merged[action]) {
-        // Merge user's OS-specific overrides into defaults
         merged[action] = {
           ...merged[action],
           ...binding
@@ -157,70 +346,124 @@ const Keybindings = () => {
     }
 
     return merged;
-  }, [preferences?.keyBindings]);
+  }, [preferences?.keyBindings, sectionDefaults]);
 
-  // Build table data (action -> { name, keys })
-  const keyMapping = useMemo(() => {
-    const out = {};
-    for (const [action, binding] of Object.entries(keyBindings)) {
-      if (binding?.[os]) out[action] = { name: binding.name, keys: binding[os] };
-    }
-    return out;
+  // Build grouped rows for current OS only and skip hidden bindings.
+  const groupedKeyMappings = useMemo(() => {
+    return KEY_BINDING_SECTIONS.map((section) => {
+      const rows = Object.entries(section.bindings || {})
+        .map(([action]) => {
+          const binding = keyBindings[action];
+          if (!binding?.[os] || binding.hidden) return null;
+
+          return {
+            action,
+            name: binding.name,
+            keys: binding[os],
+            readOnly: binding.readOnly,
+            displayValue: binding.displayValue
+          };
+        })
+        .filter(Boolean);
+
+      return {
+        heading: section.heading,
+        rows
+      };
+    }).filter((section) => section.rows.length > 0);
   }, [keyBindings, os]);
 
-  // ✏️ which row is allowed to edit (pencil clicked)
+  // editingAction:
+  // The row currently in edit mode.
   const [editingAction, setEditingAction] = useState(null);
 
-  //  hover tracking (for showing pencil/refresh only on hover row)
+  // hoveredAction:
+  // Tracks row hover state to show pencil/reset/lock controls.
   const [hoveredAction, setHoveredAction] = useState(null);
 
-  // Recording state
+  // recordingAction:
+  // The row actively listening for key presses.
   const [recordingAction, setRecordingAction] = useState(null);
+
+  // Tracks currently held keys while recording.
+  // A Set allows more than 2 keys and avoids duplicates naturally.
   const pressedKeysRef = useRef(new Set());
+
+  // Refs for row inputs, used to focus the selected row when editing starts.
   const inputRefs = useRef({});
-  const [draftByAction, setDraftByAction] = useState({}); // action -> string[]
-  const [errorByAction, setErrorByAction] = useState({}); // action -> { code, message }
+
+  // draftByAction:
+  // Temporary in-progress shortcut for a row while editing.
+  const [draftByAction, setDraftByAction] = useState({});
+
+  // errorByAction:
+  // Validation result per row while editing.
+  const [errorByAction, setErrorByAction] = useState({});
+
+  // successAction:
+  // Tracks which row just saved successfully for a 1-second flash.
+  const [successAction, setSuccessAction] = useState(null);
+  const successTimerRef = useRef(null);
 
   const getCurrentRowKeysString = (action) => keyBindings?.[action]?.[os] || '';
-  const getDefaultRowKeysString = (action) => DEFAULT_KEY_BINDINGS?.[action]?.[os] || '';
+  const getDefaultRowKeysString = (action) => sectionDefaults?.[action]?.[os] || '';
 
   const isRowDirty = (action) => {
     const current = getCurrentRowKeysString(action);
     const def = getDefaultRowKeysString(action);
-    if (!DEFAULT_KEY_BINDINGS) return false;
+
+    if (!sectionDefaults[action]) return false;
     return current !== def;
   };
 
-  // Check if any keybinding is dirty (different from default)
+  // Whether any row differs from the default binding.
   const hasDirtyRows = useMemo(() => {
-    for (const action of Object.keys(DEFAULT_KEY_BINDINGS)) {
+    for (const action of Object.keys(sectionDefaults)) {
       if (isRowDirty(action)) {
         return true;
       }
     }
     return false;
-  }, [keyBindings, os]);
+  }, [keyBindings, os, sectionDefaults]);
 
+  // Build a set of exact normalized signatures for all shortcuts except the row being edited.
+  // This allows:
+  // - command + f
+  // - command + shift + f
+  // to coexist, because signatures differ.
   const buildUsedSignatures = (excludeAction) => {
     const used = new Set();
+
     for (const [action, binding] of Object.entries(keyBindings)) {
       if (action === excludeAction) continue;
+
       const keysStr = binding?.[os];
       if (!keysStr) continue;
-      used.add(comboSignature(fromKeysString(keysStr)));
+
+      const normalized = comboSignature(fromKeysString(keysStr));
+      if (normalized) used.add(normalized);
     }
+
     return used;
   };
 
+  // Validate only the exact current combo.
+  // No subset/superset conflict detection is done here.
   const validateCombo = (action, arrRaw) => {
     const arr = uniqSorted(arrRaw);
     const sig = comboSignature(arr);
 
-    if (!sig) return { code: ERROR.EMPTY, message: `Shortcut can’t be empty.` };
-    if (isOnlyModifiers(arr))
-      return { code: ERROR.ONLY_MODIFIERS, message: 'Add a non-modifier key (e.g. Ctrl + K).' };
+    if (!sig) {
+      return { code: ERROR.EMPTY, message: `Shortcut can’t be empty.` };
+    }
 
-    // OS-specific must-have modifier rule
+    if (isOnlyModifiers(arr)) {
+      return {
+        code: ERROR.ONLY_MODIFIERS,
+        message: 'Add a non-modifier key (e.g. Ctrl + K).'
+      };
+    }
+
     if (!hasRequiredModifier(os, arr)) {
       return {
         code: ERROR.MISSING_REQUIRED_MOD,
@@ -231,43 +474,26 @@ const Keybindings = () => {
       };
     }
 
-    // OS reserved
-    if (RESERVED_BY_OS[os]?.has(sig))
-      return { code: ERROR.RESERVED, message: 'This shortcut is reserved by the OS.' };
+    const nonModifierCount = arr.filter((k) => !MODIFIERS.has(k)).length;
+    if (nonModifierCount > 1) {
+      return {
+        code: ERROR.MULTIPLE_NON_MODIFIERS,
+        message: 'Only one non-modifier key allowed (e.g. Cmd + Shift + K).'
+      };
+    }
 
-    // No duplicates (across all other actions)
-    if (buildUsedSignatures(action).has(sig))
-      return { code: ERROR.DUPLICATE, message: 'That shortcut is already in use.' };
+    if (RESERVED_BY_OS[os]?.has(sig)) {
+      return {
+        code: ERROR.RESERVED,
+        message: 'This shortcut is reserved by the OS.'
+      };
+    }
 
-    // Check for subset conflicts (e.g., Cmd+A conflicts with Cmd+Z+A)
-    for (const [otherAction, binding] of Object.entries(keyBindings)) {
-      if (otherAction === action) continue;
-      const otherKeysStr = binding?.[os];
-      if (!otherKeysStr) continue;
-
-      const otherKeys = fromKeysString(otherKeysStr);
-
-      // Check if current is a subset of other (current is shorter)
-      if (arr.length < otherKeys.length) {
-        const isSubset = arr.every((k) => otherKeys.includes(k));
-        if (isSubset) {
-          return {
-            code: ERROR.CONFLICT,
-            message: `Conflicts with "${binding.name}" (${otherKeys.join(' + ')}). Remove the longer shortcut first.`
-          };
-        }
-      }
-
-      // Check if other is a subset of current (current is longer)
-      if (arr.length > otherKeys.length) {
-        const isSubset = otherKeys.every((k) => arr.includes(k));
-        if (isSubset) {
-          return {
-            code: ERROR.CONFLICT,
-            message: `Conflicts with "${binding.name}" (${otherKeys.join(' + ')}). Remove that shortcut first.`
-          };
-        }
-      }
+    if (buildUsedSignatures(action).has(sig)) {
+      return {
+        code: ERROR.DUPLICATE,
+        message: 'This shortcut is already in use.'
+      };
     }
 
     return null;
@@ -280,7 +506,7 @@ const Keybindings = () => {
         ...(preferences?.keyBindings || {}),
         [action]: {
           ...(preferences?.keyBindings?.[action] || {}),
-          name: preferences?.keyBindings?.[action]?.name || action,
+          name: preferences?.keyBindings?.[action]?.name || sectionDefaults?.[action]?.name || action,
           [os]: nextKeys
         }
       }
@@ -289,7 +515,8 @@ const Keybindings = () => {
     dispatch(savePreferences(updatedPreferences));
   };
 
-  // Commit only if valid. Returns true if commit succeeded (or no-op), false if invalid.
+  // Commit the draft only if it is valid.
+  // Returns true if saved or unchanged, false if invalid.
   const commitCombo = (action) => {
     const draftArr = draftByAction[action] || [];
     if (!draftArr.length) return;
@@ -310,17 +537,16 @@ const Keybindings = () => {
 
     const nextKeys = toKeysString(arr);
     const currentKeys = getCurrentRowKeysString(action);
+
     if (nextKeys === currentKeys) return true;
 
     persistToPreferences(action, nextKeys);
-    // toast success for 2s with Command name
-    const commandName = keyBindings?.[action]?.name || action;
-    toast.success(`"${commandName}" shortcut updated`, { autoClose: 2000 });
+
     return true;
   };
 
   const resetRowToDefault = (action) => {
-    const def = DEFAULT_KEY_BINDINGS?.[action]?.[os];
+    const def = sectionDefaults?.[action]?.[os];
     if (!def) return;
 
     setErrorByAction((prev) => {
@@ -335,19 +561,38 @@ const Keybindings = () => {
       return next;
     });
 
-    persistToPreferences(action, def);
+    // Remove the entry from user preferences entirely so falls back to default.
+    // This also keeps `hasCustomizedKeybindings` accurate.
+    const nextKeyBindings = { ...(preferences?.keyBindings || {}) };
+    delete nextKeyBindings[action];
+
+    const updatedPreferences = {
+      ...preferences,
+      keyBindings: nextKeyBindings
+    };
+
+    dispatch(savePreferences(updatedPreferences));
   };
+
+  const hasCustomizedKeybindings = useMemo(() => {
+    const userKeyBindings = preferences?.keyBindings || {};
+    return Object.keys(userKeyBindings).length > 0;
+  }, [preferences?.keyBindings]);
 
   const resetAllKeybindings = () => {
     const updatedPreferences = {
       ...preferences,
       keyBindings: {}
     };
+
     dispatch(savePreferences(updatedPreferences));
+    toast.success('All shortcuts have been reset to default');
   };
 
   const startEditing = (action) => {
-    // if another row is editing, commit/stop it first
+    if (!keybindingsEnabled) return;
+    // If another row is already editing, try to commit it first.
+    // If invalid, keep the previous row active.
     if (editingAction && editingAction !== action) {
       const ok = commitCombo(editingAction);
       if (ok) {
@@ -355,7 +600,6 @@ const Keybindings = () => {
         setEditingAction(null);
         pressedKeysRef.current = new Set();
       } else {
-        // keep previous row editing if invalid
         return;
       }
     }
@@ -364,32 +608,47 @@ const Keybindings = () => {
     setRecordingAction(action);
     pressedKeysRef.current = new Set();
 
-    // seed draft with current value
+    // Seed the draft with the current saved value so the row reflects existing state.
     setDraftByAction((prev) => ({
       ...prev,
       [action]: fromKeysString(getCurrentRowKeysString(action))
     }));
 
-    // clear error on start edit
+    // Clear any previous validation error for this row.
     setErrorByAction((prev) => {
       const next = { ...prev };
       delete next[action];
       return next;
     });
+  };
 
-    requestAnimationFrame(() => {
-      inputRefs.current[action]?.focus?.();
-      inputRefs.current[action]?.setSelectionRange?.(
-        inputRefs.current[action].value.length,
-        inputRefs.current[action].value.length
-      );
-    });
+  // Focus the input div after React has committed the editingAction state change.
+  // Runs only when editingAction changes — no extra renders beyond what already happens.
+  useEffect(() => {
+    if (editingAction) {
+      inputRefs.current[editingAction]?.focus?.();
+    }
+  }, [editingAction]);
+
+  const showSuccessFlash = (action) => {
+    if (successTimerRef.current) clearTimeout(successTimerRef.current);
+    setSuccessAction(action);
+    successTimerRef.current = setTimeout(() => {
+      setSuccessAction(null);
+      successTimerRef.current = null;
+    }, 800);
   };
 
   const stopEditing = (action) => {
+    const draftArr = draftByAction[action] || [];
+    const currentKeys = getCurrentRowKeysString(action);
+    const nextKeys = draftArr.length ? toKeysString(draftArr) : currentKeys;
+    const willChange = nextKeys !== currentKeys;
+
     const ok = commitCombo(action);
+
     if (!ok) {
-      // If commit failed (validation error), reset to original value
+      // On invalid commit, discard the invalid draft and restore saved value.
       cancelEditing(action);
       return;
     }
@@ -397,18 +656,20 @@ const Keybindings = () => {
     setRecordingAction(null);
     setEditingAction(null);
     pressedKeysRef.current = new Set();
+
+    if (willChange) {
+      showSuccessFlash(action);
+    }
   };
 
-  // Reset draft to original value and clear error (used on blur with invalid state)
+  // Cancel editing and restore the persisted value.
   const cancelEditing = (action) => {
-    // Clear error for this action
     setErrorByAction((prev) => {
       const next = { ...prev };
       delete next[action];
       return next;
     });
 
-    // Reset draft to current saved value
     setDraftByAction((prev) => {
       const next = { ...prev };
       delete next[action];
@@ -426,7 +687,7 @@ const Keybindings = () => {
     e.preventDefault();
     e.stopPropagation();
 
-    // allow user to clear and keep editing (do NOT auto-stop)
+    // Allow clearing current draft while staying in edit mode.
     if (e.key === 'Backspace' || e.key === 'Delete') {
       pressedKeysRef.current = new Set();
       setDraftByAction((prev) => ({ ...prev, [action]: [] }));
@@ -437,30 +698,46 @@ const Keybindings = () => {
       return;
     }
 
+    // Ignore key repeat so holding a key does not cause noise.
     if (e.repeat) return;
 
     const keyName = normalizeKey(e);
     if (!keyName) return;
 
-    pressedKeysRef.current.add(keyName);
-
-    const currentDraft = uniqSorted(Array.from(pressedKeysRef.current));
-
-    setDraftByAction((prev) => ({
-      ...prev,
-      [action]: currentDraft
-    }));
-
-    const err = validateCombo(action, currentDraft);
-    if (err) {
-      setErrorByAction((prev) => ({ ...prev, [action]: err }));
-    } else {
+    // Starting a new combo after a failed one — clear stale draft
+    if (pressedKeysRef.current.size === 0 && errorByAction[action]?.message) {
+      setDraftByAction((prev) => ({ ...prev, [action]: [] }));
       setErrorByAction((prev) => {
         const next = { ...prev };
         delete next[action];
         return next;
       });
     }
+
+    // Max 3 keys allowed per keybinding
+    if (pressedKeysRef.current.size >= 3 && !pressedKeysRef.current.has(keyName)) return;
+
+    pressedKeysRef.current.add(keyName);
+
+    const nextDraft = uniqSorted(Array.from(pressedKeysRef.current));
+
+    setDraftByAction((prev) => ({
+      ...prev,
+      [action]: nextDraft
+    }));
+
+    const err = validateCombo(action, nextDraft);
+    setErrorByAction((prev) => {
+      const next = { ...prev };
+
+      if (err) {
+        next[action] = err;
+      } else {
+        delete next[action];
+      }
+
+      return next;
+    });
   };
 
   const handleKeyUp = (action, e) => {
@@ -474,152 +751,230 @@ const Keybindings = () => {
 
     pressedKeysRef.current.delete(keyName);
 
-    // commit only when released AND currently valid
-    if (pressedKeysRef.current.size === 0) {
-      const currentDraft = draftByAction[action] || [];
+    const currentDraft = draftByAction[action] || [];
 
-      // if empty -> keep editing
-      if (currentDraft.length === 0) return;
+    // If empty, keep editing.
+    if (currentDraft.length === 0) return;
 
-      // if error -> keep editing
-      if (errorByAction[action]?.message) return;
+    // If invalid, keep the draft visible but mark for reset on next keypress.
+    if (errorByAction[action]?.message) return;
 
-      stopEditing(action);
-    }
+    // Commit as soon as the draft is valid, regardless of how many keys are still held.
+    // On macOS, keyup events for non-Meta keys are swallowed when Cmd is held, so
+    // pressedKeysRef.size may never reach 0 — committing on any keyup fixes this.
+    stopEditing(action);
   };
 
   const renderValue = (action) => {
-    const arr
-      = recordingAction === action ? draftByAction[action] : fromKeysString(getCurrentRowKeysString(action));
+    const binding = keyBindings[action];
 
-    return (arr || []).join(' + ');
+    if (binding?.displayValue) {
+      // Use the same pills style rendering as regular keybindings
+      if (typeof binding.displayValue === 'string') {
+        return <span className="shortcut-text">{renderDisplayValue(binding.displayValue, os)}</span>;
+      }
+
+      // displayValue can be an object with OS-specific values
+      const rawDisplayText = binding.displayValue[os] || binding.displayValue.mac || binding.displayValue.windows;
+      return <span className="shortcut-text">{renderDisplayValue(rawDisplayText, os)}</span>;
+    }
+
+    const isRecording = recordingAction === action;
+    const arr = isRecording
+      ? draftByAction[action]
+      : fromKeysString(getCurrentRowKeysString(action));
+
+    if (isRecording) {
+      const textParts = (arr || []).map((key) => formatSingleKeyForDisplay(key, os));
+      return (
+        <span className="shortcut-text">
+          {textParts.join(' ')}
+          <span className="editing-caret" />
+        </span>
+      );
+    }
+
+    return renderKeycaps(arr || [], os);
   };
 
   return (
     <StyledWrapper className="w-full">
-      <Tooltip
-        id="kb-editing-error-tooltip"
-        place="bottom-start"
-        opacity={1}
-        className="kb-tooltip kb-tooltip--error"
-      />
-
       <div className="section-header">
         <span>Keybindings</span>
-        {hasDirtyRows && (
-          <button
-            type="button"
-            className="reset-all-btn"
-            onClick={resetAllKeybindings}
-            title="Reset all keybindings to default"
-          >
-            <IconRefresh size={12} stroke={1} />
 
+        <div className="section-actions">
+          <ToggleSwitch
+            isOn={keybindingsEnabled}
+            handleToggle={handleToggleKeybindings}
+            size="2xs"
+            activeColor={theme.primary.solid}
+          />
+          <div className="section-actions-divider" />
+          <button
+            onClick={resetAllKeybindings}
+            className="reset-btn"
+            data-testid="reset-all-keybindings-btn"
+            disabled={!hasCustomizedKeybindings}
+          >
+            Reset Default
           </button>
-        )}
+        </div>
       </div>
 
-      <div className="table-container">
-        <table>
-          <thead>
-            <tr>
-              <th>Command</th>
-              <th>Keybinding</th>
-            </tr>
-          </thead>
-          <tbody>
-            {keyMapping ? (
-              Object.entries(keyMapping).map(([action, row]) => {
-                const isEditing = editingAction === action;
-                const isHovered = hoveredAction === action;
-                const isDirty = isRowDirty(action);
+      <div className={`tables-container ${!keybindingsEnabled ? 'tables-disabled' : ''}`}>
+        {groupedKeyMappings.length > 0 ? (
+          <div className="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <td>Command</td>
+                  <td>Keybinding</td>
+                </tr>
+              </thead>
+              <tbody>
+                {groupedKeyMappings.map((section, sectionIndex) => (
+                  <Fragment key={section.heading}>
+                    <tr className="section-heading-row">
+                      <td colSpan={2}>{section.heading}</td>
+                    </tr>
+                    {section.rows.map((row, rowIndex) => {
+                      const { action } = row;
+                      const isEditing = editingAction === action;
+                      const isHovered = hoveredAction === action;
+                      const isDirty = isRowDirty(action);
+                      const isReadOnly = row?.readOnly === true;
 
-                const showPencil = isHovered && !isEditing && !isDirty;
-                const showRefresh = isDirty && !isEditing;
-                const hasError = Boolean(errorByAction[action]?.message);
-                const errorMessage = errorByAction[action]?.message;
-                const inputId = `kb-input-${action}`;
+                      const isSuccess = successAction === action;
+                      const hasError = Boolean(errorByAction[action]?.message);
+                      const errorMessage = errorByAction[action]?.message;
 
-                return (
-                  <tr
-                    key={action}
-                    data-testid={`keybinding-row-${action}`}
-                    onMouseEnter={() => setHoveredAction(action)}
-                    onMouseLeave={() => setHoveredAction((prev) => (prev === action ? null : prev))}
-                  >
-                    <td data-testid={`keybinding-name-${action}`}>{row.name}</td>
+                      const showPencil = isHovered && !isDirty && !isEditing && !isReadOnly && !isSuccess && !hasError;
+                      const showRefresh = isDirty && !isEditing && !isSuccess && !hasError;
+                      const showLock = isHovered && isReadOnly && !isEditing && !isSuccess;
+                      const inputId = `kb-input-${action}`;
 
-                    <td>
-                      <div className="keybinding-row">
-                        <div className="shortcut-wrap">
-                          <input
-                            id={inputId}
-                            ref={(el) => {
-                              if (el) inputRefs.current[action] = el;
-                            }}
-                            data-testid={`keybinding-input-${action}`}
-                            className={`shortcut-input ${hasError ? 'shortcut-input--error' : ''}`}
-                            value={renderValue(action)}
-                            readOnly={!isEditing}
-                            onKeyDown={(e) => handleKeyDown(action, e)}
-                            onKeyUp={(e) => handleKeyUp(action, e)}
-                            onBlur={() => {
-                              // If there's an error, reset to original value instead of keeping invalid state
-                              if (isEditing && hasError) {
-                                cancelEditing(action);
-                              } else if (isEditing) {
-                                stopEditing(action);
-                              }
-                            }}
-                            spellCheck={false}
-                          />
-                          {isEditing && hasError && (
-                            <Tooltip
-                              id={`kb-editing-error-tooltip-${action}`}
-                              anchorSelect={`#${inputId}`}
-                              place="bottom-start"
-                              opacity={1}
-                              isOpen={true}
-                              content={errorMessage}
-                              className="kb-tooltip kb-tooltip--error"
-                            />
-                          )}
-                        </div>
+                      const isLastInSection = rowIndex === section.rows.length - 1
+                        && sectionIndex < groupedKeyMappings.length - 1;
 
-                        {showRefresh && (
-                          <button
-                            type="button"
-                            className="reset-btn"
-                            data-testid={`keybinding-reset-${action}`}
-                            onClick={() => resetRowToDefault(action)}
-                            title="Reset to default"
-                          >
-                            <IconRefresh size={12} stroke={1} />
-                          </button>
-                        )}
-                        {showPencil && (
-                          <button
-                            type="button"
-                            className="edit-btn"
-                            data-testid={`keybinding-edit-${action}`}
-                            onClick={() => startEditing(action)}
-                            title="Edit shortcut"
-                          >
-                            <IconPencil size={12} stroke={1.5} />
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })
-            ) : (
-              <tr>
-                <td colSpan="2">No key bindings available</td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+                      return (
+                        <tr
+                          key={action}
+                          className={`${isSuccess ? 'row-success' : ''} ${isEditing ? 'row-editing' : ''} ${isLastInSection ? 'section-last-row' : ''}`}
+                          data-testid={`keybinding-row-${action}`}
+                          onMouseEnter={() => setHoveredAction(action)}
+                          onMouseLeave={() =>
+                            setHoveredAction((prev) => (prev === action ? null : prev))}
+                          onClick={() => !isReadOnly && !isEditing && startEditing(action)}
+                        >
+                          <td data-testid={`keybinding-name-${action}`}>{row.name}</td>
+
+                          <td>
+                            <div className="keybinding-row">
+                              <div className="shortcut-wrap">
+                                <div
+                                  id={inputId}
+                                  ref={(el) => {
+                                    if (el) inputRefs.current[action] = el;
+                                  }}
+                                  data-testid={`keybinding-input-${action}`}
+                                  className={`shortcut-input ${hasError && errorByAction[action]?.code !== ERROR.EMPTY ? 'shortcut-input--error' : ''} ${isEditing ? 'shortcut-input--editing' : ''
+                                  } ${isReadOnly ? 'shortcut-input--readonly' : ''}`}
+                                  tabIndex={isReadOnly ? -1 : 0}
+                                  role="textbox"
+                                  aria-readonly={!isEditing || isReadOnly}
+                                  aria-disabled={isReadOnly}
+                                  onKeyDown={(e) => (isReadOnly ? null : handleKeyDown(action, e))}
+                                  onKeyUp={(e) => (isReadOnly ? null : handleKeyUp(action, e))}
+                                  onBlur={() => {
+                                    if (isEditing && hasError) {
+                                      cancelEditing(action);
+                                    } else if (isEditing) {
+                                      stopEditing(action);
+                                    }
+                                  }}
+                                >
+                                  {renderValue(action)}
+                                  {hasError && errorByAction[action]?.code !== ERROR.EMPTY && (
+                                    <span className="input-error-icon">
+                                      <IconAlertCircle size={14} stroke={1.5} />
+                                    </span>
+                                  )}
+                                </div>
+
+                                {isEditing && hasError && errorByAction[action]?.code !== ERROR.EMPTY && (
+                                  <Tooltip
+                                    id={`kb-editing-error-tooltip-${action}`}
+                                    anchorSelect={`#${inputId}`}
+                                    place="bottom-start"
+                                    opacity={1}
+                                    isOpen={true}
+                                    content={errorMessage}
+                                    className="tooltip-mod tooltip-mod--error"
+                                  />
+                                )}
+                              </div>
+
+                              {!isEditing && (
+                                <div className="button-placeholder">
+                                  {isSuccess && !hasError && (
+                                    <span className="success-icon">
+                                      <IconCircleCheck size={14} stroke={1.5} />
+                                    </span>
+                                  )}
+
+                                  {showRefresh && !hasError && (
+                                    <button
+                                      className="action-btn"
+                                      data-testid={`keybinding-reset-${action}`}
+                                      onClick={(e) => {
+                                        e.stopPropagation(); resetRowToDefault(action);
+                                      }}
+                                      title="Reset to default"
+                                    >
+                                      <IconReload size={14} stroke={1.5} />
+                                    </button>
+                                  )}
+
+                                  {showPencil && (
+                                    <span
+                                      className="pencil-icon"
+                                      data-testid={`keybinding-edit-${action}`}
+                                      title="Customize keys"
+                                    >
+                                      <IconPencil size={14} stroke={1.5} />
+                                    </span>
+                                  )}
+
+                                  {showLock && (
+                                    <button
+                                      type="button"
+                                      className="edit-btn"
+                                      data-testid={`keybinding-locked-${action}`}
+                                      title="Reserved shortcut"
+                                    >
+                                      <IconLock size={14} stroke={1.5} />
+                                    </button>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                    {sectionIndex < groupedKeyMappings.length - 1 && (
+                      <tr className="section-spacer-row" aria-hidden="true">
+                        <td colSpan={2}>&nbsp;</td>
+                      </tr>
+                    )}
+                  </Fragment>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className="empty-state">No key bindings available</div>
+        )}
       </div>
     </StyledWrapper>
   );

@@ -1,5 +1,6 @@
 import path from 'path';
 import { test, expect, errors, closeElectronApp } from '../../playwright';
+import { waitForReadyPage } from '../utils/page';
 
 const initUserDataPath = path.join(__dirname, 'init-user-data-fresh');
 
@@ -20,10 +21,7 @@ async function dismissWelcomeModalIfVisible(page: any) {
 test.describe('Onboarding', () => {
   test('should create sample collection on first launch', async ({ launchElectronApp }) => {
     const app = await launchElectronApp({ initUserDataPath, dotEnv: env });
-    const page = await app.firstWindow();
-
-    // Wait for app to load and dismiss welcome modal
-    await page.locator('[data-app-state="loaded"]').waitFor();
+    const page = await waitForReadyPage(app);
     await dismissWelcomeModalIfVisible(page);
 
     // Verify sample collection appears in sidebar
@@ -49,10 +47,7 @@ test.describe('Onboarding', () => {
     // Use a fresh app instance to avoid contamination from previous tests
     const userDataPath = await createTmpDir('duplicate-collections');
     const app = await launchElectronApp({ userDataPath, initUserDataPath, dotEnv: env });
-    const page = await app.firstWindow();
-
-    // Wait for app to load and dismiss welcome modal
-    await page.locator('[data-app-state="loaded"]').waitFor();
+    const page = await waitForReadyPage(app);
     await dismissWelcomeModalIfVisible(page);
 
     // First launch - verify sample collection is created
@@ -73,7 +68,7 @@ test.describe('Onboarding', () => {
 
     // Restart app - should not create sample collection again
     const newApp = await launchElectronApp({ userDataPath, dotEnv: env });
-    const newPage = await newApp.firstWindow();
+    const newPage = await waitForReadyPage(newApp);
 
     // Verify only one sample collection exists
     const sampleCollections = newPage.locator('#sidebar-collection-name').getByText('Sample API Collection');
@@ -95,10 +90,7 @@ test.describe('Onboarding', () => {
   test('should not recreate sample collection after user deletes it', async ({ launchElectronApp, reuseOrLaunchElectronApp, createTmpDir }) => {
     const userDataPath = await createTmpDir('first-launch');
     const app = await launchElectronApp({ userDataPath, initUserDataPath, dotEnv: env });
-    const page = await app.firstWindow();
-
-    // Wait for app to load and dismiss welcome modal
-    await page.locator('[data-app-state="loaded"]').waitFor();
+    const page = await waitForReadyPage(app);
     await dismissWelcomeModalIfVisible(page);
 
     // First launch - sample collection should be created
@@ -134,10 +126,7 @@ test.describe('Onboarding', () => {
 
     // Restart app - sample collection should NOT be recreated
     const newApp = await reuseOrLaunchElectronApp({ userDataPath, dotEnv: env });
-    const newPage = await newApp.firstWindow();
-
-    // Wait for the app to be loaded / onboarding to be completed
-    await newPage.locator('[data-app-state="loaded"]').waitFor();
+    const newPage = await waitForReadyPage(newApp);
 
     // Sample collection should not appear since it's no longer first launch
     const sampleCollections = newPage.locator('#sidebar-collection-name').getByText('Sample API Collection');

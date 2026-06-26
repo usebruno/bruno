@@ -8,7 +8,7 @@ import StyledWrapper from './StyledWrapper';
  * - children:     badge text content
  * - status:       theme status key — 'danger' | 'warning' | 'info' | 'success' | 'muted' (default: 'muted')
  * - variant:      visual style — 'light' | 'filled' | 'outline' | 'ghost' (default: 'light')
- * - size:         size preset — 'sm' | 'md' (default: 'sm')
+ * - size:         size preset — 'xs' | 'sm' | 'md' (default: 'sm')
  * - radius:       theme radius key ('sm','base','md','lg','xl') or CSS value (default: theme sm)
  * - leftSection:  ReactNode rendered before children (e.g. icon)
  * - rightSection: ReactNode rendered after children (e.g. Help tooltip)

@@ -1,4 +1,27 @@
+import jsyaml from 'js-yaml';
 import { BrunoError } from 'utils/common/error';
+
+/**
+ * Parse a File object as JSON or YAML and return the parsed object.
+ * Throws with a user-friendly message on parse failure.
+ */
+export const parseFileAsJsonOrYaml = async (file) => {
+  try {
+    const text = await file.text();
+    let parsed;
+    if (file.name.toLowerCase().endsWith('.json')) {
+      parsed = JSON.parse(text);
+    } else {
+      parsed = jsyaml.load(text);
+    }
+    if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
+      throw new Error('Document root must be an object');
+    }
+    return parsed;
+  } catch {
+    throw new Error('Failed to parse the file – ensure it is valid JSON or YAML');
+  }
+};
 
 const readFile = (file) => {
   return new Promise((resolve, reject) => {

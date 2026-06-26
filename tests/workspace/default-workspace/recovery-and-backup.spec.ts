@@ -1,6 +1,7 @@
 import path from 'path';
 import fs from 'fs';
 import { test, expect, closeElectronApp } from '../../../playwright';
+import { waitForReadyPage } from '../../utils/page';
 
 test.describe('Default Workspace Recovery and Backup', () => {
   test.describe('Global Environments Backup', () => {
@@ -46,8 +47,7 @@ test.describe('Default Workspace Recovery and Backup', () => {
 
       // Launch app - should trigger migration and create backup
       const app = await launchElectronApp({ userDataPath });
-      const page = await app.firstWindow();
-      await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
+      await waitForReadyPage(app);
 
       // Verify backup file was created
       const backupPath = path.join(userDataPath, 'global-environments-backup.json');
@@ -93,8 +93,8 @@ test.describe('Default Workspace Recovery and Backup', () => {
 
       // First launch
       const app1 = await launchElectronApp({ userDataPath });
-      const page1 = await app1.firstWindow();
-      await page1.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
+      await waitForReadyPage(app1);
+
       await closeElectronApp(app1);
 
       // Verify backup exists
@@ -104,8 +104,7 @@ test.describe('Default Workspace Recovery and Backup', () => {
 
       // Second launch - backup should still exist
       const app2 = await launchElectronApp({ userDataPath });
-      const page2 = await app2.firstWindow();
-      await page2.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
+      await waitForReadyPage(app2);
 
       // Backup should not be modified on second launch
       expect(fs.existsSync(backupPath)).toBe(true);
@@ -136,8 +135,8 @@ test.describe('Default Workspace Recovery and Backup', () => {
 
       // Launch app - triggers migration
       const app = await launchElectronApp({ userDataPath });
-      const page = await app.firstWindow();
-      await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
+      await waitForReadyPage(app);
+
       await closeElectronApp(app);
 
       // Verify lastOpenedCollections is still in preferences
@@ -177,8 +176,7 @@ docs: ''
 
       // Launch app - should discover and use existing workspace
       const app = await launchElectronApp({ userDataPath });
-      const page = await app.firstWindow();
-      await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
+      const page = await waitForReadyPage(app);
 
       // UI always shows "My Workspace"
       await expect(page.getByTestId('workspace-name')).toHaveText('My Workspace');
@@ -225,8 +223,7 @@ docs: ''
 
       // Launch app - should use workspace-2 (latest/highest number)
       const app = await launchElectronApp({ userDataPath });
-      const page = await app.firstWindow();
-      await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
+      const page = await waitForReadyPage(app);
 
       await expect(page.getByTestId('workspace-name')).toHaveText('My Workspace');
 
@@ -288,8 +285,7 @@ docs: ''
 
       // Launch app - should skip workspace-2, use workspace-1
       const app = await launchElectronApp({ userDataPath });
-      const page = await app.firstWindow();
-      await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
+      const page = await waitForReadyPage(app);
 
       await expect(page.getByTestId('workspace-name')).toHaveText('My Workspace');
 
@@ -345,8 +341,7 @@ docs: ''
 
       // Launch app - should recover collections and create new workspace
       const app = await launchElectronApp({ userDataPath });
-      const page = await app.firstWindow();
-      await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
+      await waitForReadyPage(app);
 
       // New workspace should be created
       const newWorkspace = path.join(userDataPath, 'default-workspace-1');
@@ -416,8 +411,7 @@ docs: ''
 
       // Launch app
       const app = await launchElectronApp({ userDataPath });
-      const page = await app.firstWindow();
-      await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
+      await waitForReadyPage(app);
 
       // New workspace should have recovered environments
       const newWorkspace = path.join(userDataPath, 'default-workspace-1');
@@ -456,8 +450,7 @@ docs: ''
 
       // Launch app
       const app = await launchElectronApp({ userDataPath });
-      const page = await app.firstWindow();
-      await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
+      await waitForReadyPage(app);
 
       // New workspace should have the collection from lastOpenedCollections
       const newWorkspace = path.join(userDataPath, 'default-workspace-1');
@@ -510,8 +503,7 @@ docs: ''
 
       // Launch app - should find and use the existing valid workspace
       const app = await launchElectronApp({ userDataPath });
-      const page = await app.firstWindow();
-      await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
+      const page = await waitForReadyPage(app);
 
       await expect(page.getByTestId('workspace-name')).toHaveText('My Workspace');
 
@@ -591,8 +583,7 @@ docs: ''
 
       // Launch app - should use workspace-1 (latest valid)
       const app = await launchElectronApp({ userDataPath });
-      const page = await app.firstWindow();
-      await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
+      const page = await waitForReadyPage(app);
 
       await expect(page.getByTestId('workspace-name')).toHaveText('My Workspace');
 
@@ -620,8 +611,7 @@ docs: ''
 
       // First launch - creates workspace
       const app1 = await launchElectronApp({ userDataPath });
-      const page1 = await app1.firstWindow();
-      await page1.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
+      await waitForReadyPage(app1);
 
       // Verify workspace was created
       const workspacePath = path.join(userDataPath, 'default-workspace');
@@ -666,8 +656,7 @@ variables:
 
       // Second launch - should recover
       const app2 = await launchElectronApp({ userDataPath });
-      const page2 = await app2.firstWindow();
-      await page2.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
+      await waitForReadyPage(app2);
 
       // New workspace should exist
       const newWorkspace = path.join(userDataPath, 'default-workspace-1');
@@ -684,8 +673,7 @@ variables:
 
       // First launch - creates workspace
       const app1 = await launchElectronApp({ userDataPath });
-      const page1 = await app1.firstWindow();
-      await page1.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
+      await waitForReadyPage(app1);
 
       const workspacePath = path.join(userDataPath, 'default-workspace');
       expect(fs.existsSync(workspacePath)).toBe(true);
@@ -698,8 +686,7 @@ variables:
 
       // Second launch - should create new workspace
       const app2 = await launchElectronApp({ userDataPath });
-      const page2 = await app2.firstWindow();
-      await page2.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
+      await waitForReadyPage(app2);
 
       // New workspace should be created at default-workspace (since it was deleted)
       expect(fs.existsSync(workspacePath)).toBe(true);
@@ -727,8 +714,8 @@ variables:
 
       // First launch
       const app1 = await launchElectronApp({ userDataPath });
-      const page1 = await app1.firstWindow();
-      await page1.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
+      await waitForReadyPage(app1);
+
       await closeElectronApp(app1);
 
       // Verify workspace-0 created
@@ -750,8 +737,8 @@ variables: []
 
       // Second launch - recovery to workspace-1
       const app2 = await launchElectronApp({ userDataPath });
-      const page2 = await app2.firstWindow();
-      await page2.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
+      await waitForReadyPage(app2);
+
       await closeElectronApp(app2);
 
       // Verify workspace-1 created with recovered data
@@ -767,8 +754,7 @@ variables: []
 
       // Third launch - recovery to workspace-2
       const app3 = await launchElectronApp({ userDataPath });
-      const page3 = await app3.firstWindow();
-      await page3.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
+      await waitForReadyPage(app3);
 
       // Verify workspace-2 created with all data preserved
       const ws2 = path.join(userDataPath, 'default-workspace-2');
@@ -798,8 +784,7 @@ variables: []
       );
 
       const app = await launchElectronApp({ userDataPath });
-      const page = await app.firstWindow();
-      await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
+      await waitForReadyPage(app);
 
       // Should not crash, new workspace created
       const newWorkspace = path.join(userDataPath, 'default-workspace-1');
@@ -822,8 +807,7 @@ variables: []
       );
 
       const app = await launchElectronApp({ userDataPath });
-      const page = await app.firstWindow();
-      await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
+      await waitForReadyPage(app);
 
       // Should not crash
       expect(fs.existsSync(path.join(userDataPath, 'default-workspace-1'))).toBe(true);
@@ -859,8 +843,7 @@ variables: []
       );
 
       const app = await launchElectronApp({ userDataPath });
-      const page = await app.firstWindow();
-      await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
+      await waitForReadyPage(app);
 
       // New workspace should have collection only ONCE (no duplicates)
       const newWorkspace = path.join(userDataPath, 'default-workspace-1');
@@ -918,8 +901,7 @@ variables:
       );
 
       const app = await launchElectronApp({ userDataPath });
-      const page = await app.firstWindow();
-      await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
+      await waitForReadyPage(app);
 
       // Check new workspace has the recovered environment (not overwritten by global)
       const newWorkspace = path.join(userDataPath, 'default-workspace-1');

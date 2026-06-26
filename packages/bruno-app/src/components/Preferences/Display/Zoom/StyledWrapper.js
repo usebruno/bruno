@@ -4,7 +4,6 @@ const StyledWrapper = styled.div`
   color: ${(props) => props.theme.text};
 
   .zoom-field {
-    width: 120px;
     position: relative;
   }
 
@@ -16,7 +15,7 @@ const StyledWrapper = styled.div`
   }
 
   .custom-select {
-    width: 80px;
+    width: fit-content;
     height: 35.89px;
     padding: 0 0.5rem;
     cursor: pointer;

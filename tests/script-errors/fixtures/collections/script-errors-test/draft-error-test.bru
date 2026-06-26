@@ -1,0 +1,16 @@
+meta {
+  name: draft-error-test
+  type: http
+  seq: 9
+}
+
+get {
+  url: http://localhost:8081/ping
+  body: none
+  auth: none
+}
+
+script:pre-request {
+  const savedVar = "this works fine";
+  console.log(savedVar);
+}

@@ -25,14 +25,13 @@ const template = [
           }
         ]
       },
+      { type: 'separator' },
       {
-        label: 'Preferences',
+        label: 'Quit',
         click() {
-          ipcMain.emit('main:open-preferences');
+          ipcMain.emit('main:start-quit-flow');
         }
       },
-      { type: 'separator' },
-      { role: 'quit' },
       {
         label: 'Force Quit',
         click() {
@@ -64,6 +63,7 @@ const template = [
       {
         label: 'Actual Size',
         accelerator: 'CommandOrControl+0',
+        registerAccelerator: false,
         click() {
           ipcMain.emit('menu:reset-zoom');
         }
@@ -71,6 +71,7 @@ const template = [
       {
         label: 'Zoom In',
         accelerator: 'CommandOrControl+Plus',
+        registerAccelerator: false,
         click() {
           ipcMain.emit('menu:zoom-in');
         }
@@ -78,6 +79,7 @@ const template = [
       {
         label: 'Zoom Out',
         accelerator: 'CommandOrControl+-',
+        registerAccelerator: false,
         click() {
           ipcMain.emit('menu:zoom-out');
         }
@@ -88,7 +90,7 @@ const template = [
   },
   {
     role: 'window',
-    submenu: [{ role: 'minimize' }, { role: 'close' }]
+    submenu: [{ role: 'minimize' }, { role: 'close', accelerator: 'CommandOrControl+Shift+Q' }]
   },
   {
     role: 'help',

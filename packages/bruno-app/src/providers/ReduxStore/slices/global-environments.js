@@ -1,7 +1,13 @@
 import { createSlice } from '@reduxjs/toolkit';
 import { uuid } from 'utils/common/index';
 import { environmentSchema } from '@usebruno/schema';
+import { getDataTypeFromValue, valueToString } from '@usebruno/common/utils';
 import { cloneDeep, has } from 'lodash';
+
+const typedFieldsFor = (value) => {
+  const inferred = getDataTypeFromValue(value);
+  return inferred === 'string' ? { dataType: undefined } : { dataType: inferred };
+};
 
 const initialState = {
   globalEnvironments: [],
@@ -226,6 +232,7 @@ export const saveGlobalEnvironment = ({ variables, environmentUid }) => (dispatc
       .then(() => ipcRenderer.invoke('renderer:save-global-environment', {
         environmentUid,
         variables,
+        color: environment.color,
         workspaceUid,
         workspacePath
       }))
@@ -280,14 +287,16 @@ export const globalEnvironmentsUpdateEvent = ({ globalEnvironmentVariables }) =>
 
     let variables = cloneDeep(environment?.variables);
 
-    // "globalEnvironmentVariables" will include only the enabled variables and newly added variables created using the script.
-    // Update the value of each variable if it's present in "globalEnvironmentVariables", otherwise keep the existing value.
-    variables = variables?.map?.((variable) => ({
-      ...variable,
-      value: has(globalEnvironmentVariables, variable?.name)
-        ? globalEnvironmentVariables[variable?.name]
-        : variable?.value
-    }));
+    variables = variables?.map?.((variable) => {
+      if (!has(globalEnvironmentVariables, variable?.name)) return variable;
+      const newValue = globalEnvironmentVariables[variable?.name];
+
+      return {
+        ...variable,
+        value: newValue,
+        ...typedFieldsFor(newValue)
+      };
+    });
 
     Object.entries(globalEnvironmentVariables)?.forEach?.(([key, value]) => {
       const isAnExistingVariable = variables?.find((v) => v?.name == key);
@@ -298,7 +307,8 @@ export const globalEnvironmentsUpdateEvent = ({ globalEnvironmentVariables }) =>
           value,
           type: 'text',
           secret: false,
-          enabled: true
+          enabled: true,
+          ...typedFieldsFor(value)
         });
       }
     });
@@ -310,6 +320,7 @@ export const globalEnvironmentsUpdateEvent = ({ globalEnvironmentVariables }) =>
       .then(() => ipcRenderer.invoke('renderer:save-global-environment', {
         environmentUid,
         variables,
+        color: environment.color,
         workspaceUid,
         workspacePath
       }))

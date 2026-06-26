@@ -2,6 +2,7 @@ import React, { useRef, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
+import path from 'utils/common/path';
 import { browseDirectory } from 'providers/ReduxStore/slices/collections/actions';
 import { cloneCollection } from 'providers/ReduxStore/slices/collections/actions';
 import toast from 'react-hot-toast';
@@ -27,7 +28,7 @@ const CloneCollection = ({ onClose, collectionUid }) => {
 
   const defaultLocation = isDefaultWorkspace
     ? get(preferences, 'general.defaultLocation', '')
-    : (activeWorkspace?.pathname ? `${activeWorkspace.pathname}/collections` : '');
+    : (activeWorkspace?.pathname ? path.join(activeWorkspace.pathname, 'collections') : '');
   const { name } = collection;
 
   const formik = useFormik({

@@ -1,44 +1,44 @@
 import React, { useCallback, useRef, useState, useEffect, useMemo } from 'react';
 import { TableVirtuoso } from 'react-virtuoso';
 import cloneDeep from 'lodash/cloneDeep';
-import { IconTrash, IconAlertCircle, IconInfoCircle } from '@tabler/icons';
+import { IconTrash, IconAlertCircle } from '@tabler/icons';
 import { useTheme } from 'providers/Theme';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
+import { updateTableColumnWidths } from 'providers/ReduxStore/slices/tabs';
 import MultiLineEditor from 'components/MultiLineEditor/index';
+import DataTypeSelector from 'components/DataTypeSelector';
 import StyledWrapper from './StyledWrapper';
 import { uuid } from 'utils/common';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
+import { BRUNO_VARIABLE_DATATYPES, valueToString } from '@usebruno/common/utils';
 import { variableNameRegex } from 'utils/common/regex';
 import toast from 'react-hot-toast';
 import { Tooltip } from 'react-tooltip';
 import { getGlobalEnvironmentVariables } from 'utils/collections';
 import { stripEnvVarUid } from 'utils/environments';
+import { usePersistedState } from 'hooks/usePersistedState';
+import { useTrackScroll } from 'hooks/useTrackScroll';
 
 const MIN_H = 35 * 2;
 const MIN_COLUMN_WIDTH = 80;
+const MIN_ROW_HEIGHT = 35;
 
 const TableRow = React.memo(
-  ({ children, item }) => (
-    <tr key={item.uid} data-testid={`env-var-row-${item.name}`}>
-      {children}
-    </tr>
-  ),
+  ({ children, item, style, ...rest }) => {
+    const variable = item?.variable ?? item;
+    return (
+      <tr key={variable?.uid} style={style} {...rest} data-testid={`env-var-row-${variable?.name}`}>
+        {children}
+      </tr>
+    );
+  },
   (prevProps, nextProps) => {
-    const prevUid = prevProps?.item?.uid;
-    const nextUid = nextProps?.item?.uid;
+    const prevUid = prevProps?.item?.variable?.uid ?? prevProps?.item?.uid;
+    const nextUid = nextProps?.item?.variable?.uid ?? nextProps?.item?.uid;
     return prevUid === nextUid && prevProps.children === nextProps.children;
   }
 );
-
-const highlightText = (text, query) => {
-  if (!query?.trim() || !text) return text;
-  const regex = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
-  const parts = text.split(regex);
-  return parts.map((part, i) =>
-    regex.test(part) ? <mark key={i} className="search-highlight">{part}</mark> : part
-  );
-};
 
 const EnvironmentVariablesTable = ({
   environment,
@@ -51,16 +51,55 @@ const EnvironmentVariablesTable = ({
   renderExtraValueContent,
   searchQuery = ''
 }) => {
-  const { storedTheme, theme } = useTheme();
-  const valueMatchBg = theme?.colors?.accent ? `${theme.colors.accent}1a` : undefined;
+  const { storedTheme } = useTheme();
   const { globalEnvironments, activeGlobalEnvironmentUid } = useSelector((state) => state.globalEnvironments);
+  const activeWorkspace = useSelector((state) => {
+    const uid = state.workspaces?.activeWorkspaceUid;
+    return state.workspaces?.workspaces?.find((w) => w.uid === uid);
+  });
+
+  const dispatch = useDispatch();
+  const tabs = useSelector((state) => state.tabs.tabs);
+  const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
 
   const hasDraftForThisEnv = draft?.environmentUid === environment.uid;
 
-  const [tableHeight, setTableHeight] = useState(MIN_H);
-  const [columnWidths, setColumnWidths] = useState({ name: '30%', value: 'auto' });
+  const rowCount = (environment.variables?.length || 0) + 1;
+  const [tableHeight, setTableHeight] = useState(rowCount * MIN_ROW_HEIGHT);
+
+  // We need to add <EditableTable/> component for env table
+  const [scroll, setScroll] = usePersistedState({
+    key: `persisted::${activeTabUid}::collection-envs-scroll-${environment.uid}`,
+    default: 0
+  });
+  const scrollerRef = useRef(null);
+  const [scrollerEl, setScrollerEl] = useState(null);
+  scrollerRef.current = scrollerEl;
+  const initialTopMostItemIndex = useRef(Math.max(0, Math.floor(scroll / MIN_ROW_HEIGHT))).current;
+  useTrackScroll({ ref: scrollerRef, onChange: setScroll, initialValue: scroll, enabled: !!scrollerEl });
+
+  // Use environment UID as part of tableId so each environment has its own column widths
+  const tableId = `env-vars-table-${environment.uid}`;
+
+  // Get column widths from Redux - derived value (not state)
+  const focusedTab = tabs?.find((t) => t.uid === activeTabUid);
+  const storedColumnWidths = focusedTab?.tableColumnWidths?.[tableId];
+
+  // Local state initialized from Redux (computed once on mount/environment change via key)
+  const [columnWidths, setColumnWidths] = useState(() => {
+    return storedColumnWidths || { name: '30%', value: 'auto' };
+  });
+
   const [resizing, setResizing] = useState(null);
-  const [focusedNameIndex, setFocusedNameIndex] = useState(null);
+  const [pinnedData, setPinnedData] = useState({ query: '', uids: new Set() });
+
+  const handleColumnWidthsChange = (id, widths) => {
+    dispatch(updateTableColumnWidths({ uid: activeTabUid, tableId: id, widths }));
+  };
+
+  // Store column widths in ref for access in event handlers
+  const columnWidthsRef = useRef(columnWidths);
+  columnWidthsRef.current = columnWidths;
 
   const handleResizeStart = useCallback((e, columnKey) => {
     e.preventDefault();
@@ -83,35 +122,55 @@ const EnvironmentVariablesTable = ({
       const maxShrink = startWidth - MIN_COLUMN_WIDTH;
       const clampedDiff = Math.max(-maxShrink, Math.min(maxGrow, diff));
 
-      setColumnWidths({
+      const newWidths = {
         [columnKey]: `${startWidth + clampedDiff}px`,
         [nextColumnKey]: `${nextColumnStartWidth - clampedDiff}px`
-      });
+      };
+      setColumnWidths(newWidths);
     };
 
     const handleMouseUp = () => {
       setResizing(null);
+      // Save to Redux after resize ends using ref for latest values
+      handleColumnWidthsChange(tableId, columnWidthsRef.current);
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
     };
 
     document.addEventListener('mousemove', handleMouseMove);
     document.addEventListener('mouseup', handleMouseUp);
-  }, []);
+  }, [handleColumnWidthsChange]);
 
   const handleTotalHeightChanged = useCallback((h) => {
     setTableHeight(h);
   }, []);
 
+  const handleRowFocus = useCallback((uid) => {
+    setPinnedData((prev) => ({
+      query: searchQuery,
+      uids: prev.query === searchQuery ? new Set([...prev.uids, uid]) : new Set([uid])
+    }));
+  }, [searchQuery]);
+
   const prevEnvUidRef = useRef(null);
   const prevEnvVariablesRef = useRef(environment.variables);
   const mountedRef = useRef(false);
 
-  let _collection = collection ? cloneDeep(collection) : {};
   const globalEnvironmentVariables = getGlobalEnvironmentVariables({ globalEnvironments, activeGlobalEnvironmentUid });
-  if (_collection) {
-    _collection.globalEnvironmentVariables = globalEnvironmentVariables;
-  }
+  const workspaceProcessEnvVariables = activeWorkspace?.processEnvVariables;
+  // `_collection` flows into every row's MultiLineEditor as the variable-resolution
+  // context. Without memoization, `cloneDeep(collection)` runs on every render —
+  // and Formik triggers a re-render on every keystroke, so a single env edit
+  // session can deep-clone the entire collection 100+ times. That's the
+  // dominant cost behind the test-budget flake.
+  const _collection = useMemo(() => {
+    const c = collection ? cloneDeep(collection) : {};
+    c.globalEnvironmentVariables = globalEnvironmentVariables;
+    if (!collection && workspaceProcessEnvVariables) {
+      c.workspaceProcessEnvVariables = workspaceProcessEnvVariables;
+    }
+    return c;
+  }, [collection, globalEnvironmentVariables, workspaceProcessEnvVariables]);
 
   const initialValues = useMemo(() => {
     const vars = environment.variables || [];
@@ -149,7 +208,9 @@ const EnvironmentVariablesTable = ({
         secret: Yup.boolean(),
         type: Yup.string(),
         uid: Yup.string(),
-        value: Yup.mixed().nullable()
+        value: Yup.mixed().nullable(),
+        dataType: Yup.string().oneOf(BRUNO_VARIABLE_DATATYPES).nullable(),
+        annotations: Yup.array().nullable()
       })
     ),
     validate: (values) => {
@@ -204,6 +265,10 @@ const EnvironmentVariablesTable = ({
   const savedValuesJson = useMemo(() => {
     return JSON.stringify((environment.variables || []).map(stripEnvVarUid));
   }, [environment.variables]);
+
+  useEffect(() => {
+    setPinnedData({ query: '', uids: new Set() });
+  }, [savedValuesJson]);
 
   // Sync modified state
   useEffect(() => {
@@ -333,8 +398,16 @@ const EnvironmentVariablesTable = ({
     const variablesToSave = formik.values.filter((variable) => variable.name && variable.name.trim() !== '');
     const savedValues = environment.variables || [];
 
-    // Compare without UIDs since they can be different but the actual data is the same
-    const hasChanges = JSON.stringify(variablesToSave.map(stripEnvVarUid)) !== JSON.stringify(savedValues.map(stripEnvVarUid));
+    // Compare against what's on disk: for an ephemeral overlay, that's
+    // `persistedValue`, not the scripted value Redux is holding.
+    const baselineForCompare = (v) => {
+      const stripped = stripEnvVarUid(v);
+      if (v?.ephemeral && v?.persistedValue !== undefined) {
+        stripped.value = v.persistedValue;
+      }
+      return stripped;
+    };
+    const hasChanges = JSON.stringify(variablesToSave.map(stripEnvVarUid)) !== JSON.stringify(savedValues.map(baselineForCompare));
     if (!hasChanges) {
       toast.error('No changes to save');
       return;
@@ -358,6 +431,7 @@ const EnvironmentVariablesTable = ({
     onSave(cloneDeep(variablesToSave))
       .then(() => {
         toast.success('Changes saved successfully');
+        onDraftClear();
         const newValues = [
           ...variablesToSave,
           {
@@ -376,7 +450,7 @@ const EnvironmentVariablesTable = ({
         console.error(error);
         toast.error('An error occurred while saving the changes');
       });
-  }, [formik.values, environment.variables, onSave, setIsModified]);
+  }, [formik.values, environment.variables, onSave, onDraftClear, setIsModified]);
 
   const handleReset = useCallback(() => {
     const originalVars = environment.variables || [];
@@ -418,12 +492,20 @@ const EnvironmentVariablesTable = ({
 
     const query = searchQuery.toLowerCase().trim();
 
+    const effectivePins = pinnedData.query === searchQuery ? pinnedData.uids : new Set();
     return allVariables.filter(({ variable }) => {
+      if (effectivePins.has(variable.uid)) return true;
       const nameMatch = variable.name ? variable.name.toLowerCase().includes(query) : false;
-      const valueMatch = typeof variable.value === 'string' ? variable.value.toLowerCase().includes(query) : false;
+      const valueText
+        = typeof variable.value === 'string'
+          ? variable.value
+          : typeof variable.value === 'number' || typeof variable.value === 'boolean'
+            ? String(variable.value)
+            : '';
+      const valueMatch = valueText.toLowerCase().includes(query);
       return !!(nameMatch || valueMatch);
     });
-  }, [formik.values, searchQuery]);
+  }, [formik.values, searchQuery, pinnedData]);
 
   const isSearchActive = !!searchQuery?.trim();
 
@@ -435,6 +517,9 @@ const EnvironmentVariablesTable = ({
         <TableVirtuoso
           className="table-container"
           style={{ height: tableHeight }}
+          scrollerRef={setScrollerEl}
+          initialTopMostItemIndex={initialTopMostItemIndex}
+          overscan={Math.min(30, filteredVariables.length)}
           components={{ TableRow }}
           data={filteredVariables}
           totalListHeightChanged={handleTotalHeightChanged}
@@ -454,17 +539,12 @@ const EnvironmentVariablesTable = ({
               <td></td>
             </tr>
           )}
-          fixedItemHeight={35}
+          defaultItemHeight={35}
           computeItemKey={(virtualIndex, item) => `${environment.uid}-${item.index}`}
           itemContent={(virtualIndex, { variable, index: actualIndex }) => {
             const isLastRow = actualIndex === formik.values.length - 1;
             const isEmptyRow = !variable.name || variable.name.trim() === '';
             const isLastEmptyRow = isLastRow && isEmptyRow;
-            const activeQuery = searchQuery?.trim().toLowerCase();
-            const valueMatchesOnly = activeQuery
-              && !(variable.name?.toLowerCase().includes(activeQuery))
-              && typeof variable.value === 'string'
-              && variable.value.toLowerCase().includes(activeQuery);
 
             return (
               <>
@@ -475,8 +555,7 @@ const EnvironmentVariablesTable = ({
                       className="mousetrap"
                       name={`${actualIndex}.enabled`}
                       checked={variable.enabled}
-                      onChange={isSearchActive ? undefined : formik.handleChange}
-                      disabled={isSearchActive}
+                      onChange={formik.handleChange}
                     />
                   )}
                 </td>
@@ -493,38 +572,33 @@ const EnvironmentVariablesTable = ({
                         id={`${actualIndex}.name`}
                         name={`${actualIndex}.name`}
                         value={variable.name}
-                        placeholder={!variable.value || (typeof variable.value === 'string' && variable.value.trim() === '') ? 'Name' : ''}
-                        readOnly={isSearchActive}
-                        onChange={isSearchActive ? undefined : (e) => handleNameChange(actualIndex, e)}
-                        onFocus={() => !isSearchActive && setFocusedNameIndex(actualIndex)}
+                        placeholder={!variable.name || (typeof variable.name === 'string' && variable.name.trim() === '') ? 'Name' : ''}
+                        onChange={(e) => handleNameChange(actualIndex, e)}
+                        onFocus={() => handleRowFocus(variable.uid)}
                         onBlur={() => {
-                          setFocusedNameIndex(null); if (!isSearchActive) handleNameBlur(actualIndex);
+                          handleNameBlur(actualIndex);
                         }}
-                        onKeyDown={isSearchActive ? undefined : (e) => handleNameKeyDown(actualIndex, e)}
-                        style={searchQuery?.trim() && focusedNameIndex !== actualIndex ? { color: 'transparent' } : undefined}
+                        onKeyDown={(e) => handleNameKeyDown(actualIndex, e)}
                       />
-                      {searchQuery?.trim() && focusedNameIndex !== actualIndex && (
-                        <div className="name-highlight-overlay">
-                          {highlightText(variable.name || '', searchQuery)}
-                        </div>
-                      )}
                     </div>
                     <ErrorMessage name={`${actualIndex}.name`} index={actualIndex} />
                   </div>
                 </td>
                 <td
-                  className="flex flex-row flex-nowrap items-center"
-                  style={{ width: columnWidths.value, ...(valueMatchesOnly && valueMatchBg ? { background: valueMatchBg } : {}) }}
+                  className="flex flex-row flex-nowrap items-center gap-2"
+                  style={{ width: columnWidths.value }}
                 >
-                  <div className="overflow-hidden grow w-full relative">
+                  <div
+                    className="flex-1 min-w-0 relative"
+                    onFocus={() => handleRowFocus(variable.uid)}
+                  >
                     <MultiLineEditor
                       theme={storedTheme}
                       collection={_collection}
                       name={`${actualIndex}.value`}
-                      value={variable.value}
-                      placeholder={isLastEmptyRow ? 'Value' : ''}
+                      value={valueToString(variable.value, 2)}
+                      placeholder={variable.value == null || (typeof variable.value === 'string' && variable.value.trim() === '') ? 'Value' : ''}
                       isSecret={variable.secret}
-                      readOnly={isSearchActive || typeof variable.value !== 'string'}
                       onChange={(newValue) => {
                         formik.setFieldValue(`${actualIndex}.value`, newValue, true);
                         // Clear ephemeral metadata when user manually edits the value
@@ -532,17 +606,34 @@ const EnvironmentVariablesTable = ({
                           formik.setFieldValue(`${actualIndex}.ephemeral`, undefined, false);
                           formik.setFieldValue(`${actualIndex}.persistedValue`, undefined, false);
                         }
+                        // Append a new empty row when editing value on the last row
+                        if (isLastRow) {
+                          setTimeout(() => {
+                            formik.setFieldValue(formik.values.length, {
+                              uid: uuid(),
+                              name: '',
+                              value: '',
+                              type: 'text',
+                              secret: false,
+                              enabled: true
+                            }, false);
+                          }, 0);
+                        }
                       }}
                       onSave={handleSave}
                     />
                   </div>
-                  {typeof variable.value !== 'string' && (
-                    <span className="ml-2 flex items-center">
-                      <IconInfoCircle id={`${variable.uid}-disabled-info-icon`} className="text-muted" size={16} />
-                      <Tooltip
-                        anchorId={`${variable.uid}-disabled-info-icon`}
-                        content="Non-string values set via scripts are read-only and can only be updated through scripts."
-                        place="top"
+                  {!isLastEmptyRow && (
+                    <span>
+                      <DataTypeSelector
+                        variable={variable}
+                        theme={storedTheme}
+                        collection={_collection}
+                        onChange={(fields) => {
+                          Object.entries(fields).forEach(([key, val]) => {
+                            formik.setFieldValue(`${actualIndex}.${key}`, val, true);
+                          });
+                        }}
                       />
                     </span>
                   )}
@@ -555,14 +646,13 @@ const EnvironmentVariablesTable = ({
                       className="mousetrap"
                       name={`${actualIndex}.secret`}
                       checked={variable.secret}
-                      onChange={isSearchActive ? undefined : formik.handleChange}
-                      disabled={isSearchActive}
+                      onChange={formik.handleChange}
                     />
                   )}
                 </td>
                 <td>
                   {!isLastEmptyRow && (
-                    <button onClick={isSearchActive ? undefined : () => handleRemoveVar(variable.uid)} disabled={isSearchActive}>
+                    <button onClick={() => handleRemoveVar(variable.uid)}>
                       <IconTrash strokeWidth={1.5} size={18} />
                     </button>
                   )}
@@ -573,6 +663,8 @@ const EnvironmentVariablesTable = ({
         />
       )}
 
+      {/* We should re-think of these buttons placement in component as we use TableVirtuoso which because of
+      these buttons renders at some transition: height 0.1s ease` */}
       <div className="button-container">
         <div className="flex items-center">
           <button type="button" className="submit" onClick={handleSave} data-testid="save-env">

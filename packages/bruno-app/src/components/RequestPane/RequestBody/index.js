@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import get from 'lodash/get';
 import CodeEditor from 'components/CodeEditor';
 import FormUrlEncodedParams from 'components/RequestPane/FormUrlEncodedParams';
@@ -9,13 +9,16 @@ import { updateRequestBody } from 'providers/ReduxStore/slices/collections';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import StyledWrapper from './StyledWrapper';
 import FileBody from '../FileBody/index';
+import { usePersistedState } from 'hooks/usePersistedState';
 
 const RequestBody = ({ item, collection }) => {
   const dispatch = useDispatch();
+  const editorRef = useRef(null);
   const body = item.draft ? get(item, 'draft.request.body') : get(item, 'request.body');
   const bodyMode = item.draft ? get(item, 'draft.request.body.mode') : get(item, 'request.body.mode');
   const { displayedTheme } = useTheme();
   const preferences = useSelector((state) => state.app.preferences);
+  const [bodyScroll, setBodyScroll] = usePersistedState({ key: `request-body-${bodyMode}-scroll-${item.uid}`, default: 0 });
 
   const onEdit = (value) => {
     dispatch(
@@ -48,6 +51,7 @@ const RequestBody = ({ item, collection }) => {
     return (
       <StyledWrapper className="w-full" data-testid="request-body-editor">
         <CodeEditor
+          ref={editorRef}
           collection={collection}
           item={item}
           theme={displayedTheme}
@@ -57,6 +61,8 @@ const RequestBody = ({ item, collection }) => {
           onEdit={onEdit}
           onRun={onRun}
           onSave={onSave}
+          initialScroll={bodyScroll}
+          onScroll={setBodyScroll}
           mode={codeMirrorMode[bodyMode]}
           enableVariableHighlighting={true}
           showHintsFor={['variables']}

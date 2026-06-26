@@ -23,6 +23,7 @@ export const TabsTrigger = ({ value: triggerValue, children, className = '' }) =
   return (
     <button
       onClick={() => onValueChange(triggerValue)}
+      data-testid={`tab-trigger-${triggerValue}`}
       className={classnames('tab-trigger', className, { active: isActive })}
     >
       {children}

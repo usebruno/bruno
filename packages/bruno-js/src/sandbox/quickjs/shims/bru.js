@@ -1,5 +1,6 @@
 const { cleanJson, cleanCircularJson } = require('../../../utils');
 const { marshallToVm } = require('../utils');
+const { createPropertyListBridge } = require('../utils/property-list-bridge');
 
 const addBruShimToContext = (vm, bru) => {
   const bruObject = vm.newObject();
@@ -114,6 +115,12 @@ const addBruShimToContext = (vm, bru) => {
   });
   vm.setProp(bruObject, 'getAllGlobalEnvVars', getAllGlobalEnvVars);
   getAllGlobalEnvVars.dispose();
+
+  let hasGlobalEnvVar = vm.newFunction('hasGlobalEnvVar', function (key) {
+    return marshallToVm(bru.hasGlobalEnvVar(vm.dump(key)), vm);
+  });
+  vm.setProp(bruObject, 'hasGlobalEnvVar', hasGlobalEnvVar);
+  hasGlobalEnvVar.dispose();
 
   // TODO: deleteAllGlobalEnvVars works in the request lifecycle but does not update the UI.
   // Re-enable once the UI sync issue is resolved.
@@ -337,10 +344,20 @@ const addBruShimToContext = (vm, bru) => {
   });
   sendRequestHandle.consume((handle) => vm.setProp(bruObject, '_sendRequest', handle));
 
+  // On vm.global, not bru, to stay off user-facing autocomplete.
+  let setScopeHandle = vm.newFunction('__bruSetScope', (scopeArg) => {
+    bru._currentScope = vm.dump(scopeArg) || null;
+  });
+  setScopeHandle.consume((handle) => vm.setProp(vm.global, '__bruSetScope', handle));
+
   const sleep = vm.newFunction('sleep', (timer) => {
     const t = vm.getString(timer);
     const promise = vm.newPromise();
     setTimeout(() => {
+      // The VM may have been disposed while this native timer was pending
+      // (e.g. a setTimeout/sleep whose promise the script never awaited).
+      // Touching the VM after teardown throws QuickJSUseAfterFree, so bail out.
+      if (!vm.alive) return;
       promise.resolve(vm.newString('slept'));
     }, t);
     promise.settled.then(vm.runtime.executePendingJobs);
@@ -349,6 +366,13 @@ const addBruShimToContext = (vm, bru) => {
   sleep.consume((handle) => vm.setProp(bruObject, 'sleep', handle));
 
   let bruCookiesObject = vm.newObject();
+  const { evalCode: cookiesEvalCode } = createPropertyListBridge(vm, bru.cookies, bruCookiesObject, {
+    globalPath: 'globalThis.bru.cookies',
+    syncReadMethods: ['get', 'has', 'count', 'indexOf', 'toObject', 'toString'],
+    syncReadObjectMethods: ['one', 'all', 'idx', 'toJSON'],
+    asyncWriteMethods: ['add', 'upsert', 'remove', 'clear', 'delete'],
+    withIterators: true
+  });
 
   const _jarFn = vm.newFunction('_jar', () => {
     const nativeJar = bru.cookies.jar();
@@ -471,6 +495,20 @@ const addBruShimToContext = (vm, bru) => {
     });
     _deleteCookieFn.consume((handle) => vm.setProp(jarObj, '_deleteCookie', handle));
 
+    const _hasCookieFn = vm.newFunction('_hasCookie', (url, cookieName) => {
+      const promise = vm.newPromise();
+      nativeJar.hasCookie(vm.dump(url), vm.dump(cookieName), (err, exists) => {
+        if (err) {
+          promise.reject(marshallToVm(cleanJson(err), vm));
+        } else {
+          promise.resolve(marshallToVm(exists, vm));
+        }
+      });
+      promise.settled.then(vm.runtime.executePendingJobs);
+      return promise.handle;
+    });
+    _hasCookieFn.consume((handle) => vm.setProp(jarObj, '_hasCookie', handle));
+
     return jarObj;
   });
   _jarFn.consume((handle) => vm.setProp(bruCookiesObject, '_jar', handle));
@@ -510,6 +548,10 @@ const addBruShimToContext = (vm, bru) => {
       }
     };
 
+    {
+      ${cookiesEvalCode}
+    }
+
     globalThis.bru.cookies.jar = () => {
       const _jar = globalThis.bru.cookies._jar();
 
@@ -540,7 +582,8 @@ const addBruShimToContext = (vm, bru) => {
         setCookies: (url, cookiesArray, cb) => callWithCallback(() => _jar._setCookies(url, cookiesArray), cb),
         clear: (cb) => callWithCallback(() => _jar._clear(), cb),
         deleteCookies: (url, cb) => callWithCallback(() => _jar._deleteCookies(url), cb),
-        deleteCookie: (url, name, cb) => callWithCallback(() => _jar._deleteCookie(url, name), cb)
+        deleteCookie: (url, name, cb) => callWithCallback(() => _jar._deleteCookie(url, name), cb),
+        hasCookie: (url, name, cb) => callWithCallback(() => _jar._hasCookie(url, name), cb)
       };
     };
   `);

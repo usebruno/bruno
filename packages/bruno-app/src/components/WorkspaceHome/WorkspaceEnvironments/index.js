@@ -6,11 +6,16 @@ import ExportEnvironmentModal from 'components/Environments/Common/ExportEnviron
 
 const WorkspaceEnvironments = ({ workspace }) => {
   const [isModified, setIsModified] = useState(false);
-  const [selectedEnvironment, setSelectedEnvironment] = useState(null);
   const [showExportModal, setShowExportModal] = useState(false);
 
   const globalEnvironments = useSelector((state) => state.globalEnvironments.globalEnvironments);
   const activeGlobalEnvironmentUid = useSelector((state) => state.globalEnvironments.activeGlobalEnvironmentUid);
+
+  const [selectedEnvironment, setSelectedEnvironment] = useState(() => {
+    const environments = globalEnvironments || [];
+    if (!environments.length) return null;
+    return environments.find((env) => env.uid === activeGlobalEnvironmentUid) || environments[0];
+  });
 
   return (
     <StyledWrapper>

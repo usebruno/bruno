@@ -13,7 +13,7 @@
   "scripts": {
     "clean": "rimraf dist",
     "prebuild": "npm run clean",
-    "build": "rollup -c && tsc --emitDeclarationOnly",
+    "build": "rollup -c && tsc --emitDeclarationOnly -p tsconfig.build.json",
     "watch": "rollup -c -w",
     "test": "jest",
     "test:watch": "jest --watch",
@@ -29,22 +29,24 @@
     "@types/jest": "^29.5.11",
     "@types/lodash": "^4.14.191",
     "@types/node": "^24.1.0",
+    "@opencollection/types": "0.9.1",
     "@usebruno/schema-types": "0.0.1",
     "babel-jest": "^29.7.0",
     "jest": "^29.2.0",
     "nanoid": "3.3.8",
     "rimraf": "^3.0.2",
-    "rollup": "3.29.5",
+    "rollup": "3.30.0",
     "rollup-plugin-dts": "^5.0.0",
     "rollup-plugin-peer-deps-external": "^2.2.4",
-    "rollup-plugin-terser": "^7.0.2",
+    "@rollup/plugin-terser": "^1.0.0",
     "typescript": "^4.8.4"
   },
   "overrides": {
-    "rollup": "3.29.5"
+    "rollup": "3.30.0"
   },
   "dependencies": {
     "@types/nanoid": "^2.1.0",
+    "@usebruno/common": "0.1.0",
     "@usebruno/lang": "0.12.0",
     "ajv": "^8.17.1",
     "lodash": "^4.17.21",

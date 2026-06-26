@@ -1,13 +1,16 @@
 export {
+  hasExplicitScheme,
   encodeUrl,
   parseQueryParams,
   buildQueryString,
-  stripOrigin
+  stripOrigin,
+  safeDecodeURIComponent
 } from './url';
 
 export {
   buildFormUrlEncodedPayload,
-  isFormData
+  isFormData,
+  extractBoundaryFromContentType
 } from './form-data';
 
 export {
@@ -20,3 +23,18 @@ export {
   extractPromptVariables,
   extractPromptVariablesFromString
 } from './prompt-variables';
+
+export {
+  jsonToDotenv,
+  DotenvVariable
+} from './jsonToDotenv';
+
+export {
+  parseValueByDataType,
+  getDataTypeFromValue,
+  validateDataTypeValue,
+  valueToString,
+  BrunoVariableDataType,
+  BRUNO_VARIABLE_DATATYPES,
+  isBrunoVariableDataType
+} from './datatype';

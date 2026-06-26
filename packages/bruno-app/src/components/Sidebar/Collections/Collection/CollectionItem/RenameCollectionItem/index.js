@@ -221,7 +221,7 @@ const RenameCollectionItem = ({ collectionUid, item, onClose }) => {
                 <Button type="button" color="secondary" variant="ghost" onClick={onClose} className="mr-2">
                   Cancel
                 </Button>
-                <Button type="submit">
+                <Button type="submit" data-testid="rename-item-button">
                   Rename
                 </Button>
               </div>

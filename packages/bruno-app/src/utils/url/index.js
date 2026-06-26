@@ -12,6 +12,24 @@ const hasLength = (str) => {
   return str.length > 0;
 };
 
+const hasResolvablePathParamValue = (pathParam) => {
+  if (!pathParam || pathParam.enabled === false) {
+    return false;
+  }
+
+  const { value } = pathParam;
+
+  if (value === null || value === undefined) {
+    return false;
+  }
+
+  if (typeof value === 'string' && !hasLength(value)) {
+    return false;
+  }
+
+  return true;
+};
+
 export const parsePathParams = (url) => {
   let uri = url.slice();
 
@@ -53,7 +71,7 @@ export const parsePathParams = (url) => {
       return;
     }
 
-    const paramRegex = /[:](\w+)/g;
+    const paramRegex = /[:]([a-zA-Z_]\w*)/g;
     let match;
     while ((match = paramRegex.exec(segment))) {
       if (!match[1]) continue;
@@ -73,7 +91,10 @@ export const splitOnFirst = (str, char) => {
     return [str];
   }
 
-  let index = str.indexOf(char);
+  // Mask {{ }} template variables so their contents don't interfere with the search
+  const masked = str.replace(/\{\{.*?\}\}/g, (match) => '_'.repeat(match.length));
+  const index = masked.indexOf(char);
+
   if (index === -1) {
     return [str];
   }
@@ -90,6 +111,15 @@ export const isValidUrl = (url) => {
   }
 };
 
+export const isHttpUrl = (url) => {
+  try {
+    const parsed = new URL(url);
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+  } catch {
+    return false;
+  }
+};
+
 export const interpolateUrl = ({ url, variables }) => {
   if (!url || !url.length || typeof url !== 'string') {
     return;
@@ -99,6 +129,11 @@ export const interpolateUrl = ({ url, variables }) => {
 };
 
 export const interpolateUrlPathParams = (url, params, variables = {}, options = {}) => {
+  const substituteValue = (value) => {
+    const v = value == null ? '' : String(value);
+    return options.encodeUrl ? encodeURIComponent(v) : v;
+  };
+
   const getInterpolatedBasePath = (pathname, params) => {
     let replacedPathname = pathname
       .split('/')
@@ -107,7 +142,8 @@ export const interpolateUrlPathParams = (url, params, variables = {}, options = 
         if (segment.startsWith(':')) {
           const name = segment.slice(1);
           const pathParam = params.find((p) => p?.name === name && p?.type === 'path');
-          return pathParam ? pathParam.value : segment;
+          return hasResolvablePathParamValue(pathParam) ? substituteValue(pathParam.value) : segment;
+          // return pathParam ? substituteValue(pathParam.value) : segment;
         }
 
         // for OData-style parameters (parameters inside parentheses)
@@ -119,7 +155,7 @@ export const interpolateUrlPathParams = (url, params, variables = {}, options = 
           return segment;
         }
 
-        const regex = /[:](\w+)/g;
+        const regex = /[:]([a-zA-Z_]\w*)/g;
         let match;
         let result = segment;
         while ((match = regex.exec(segment))) {
@@ -130,8 +166,8 @@ export const interpolateUrlPathParams = (url, params, variables = {}, options = 
           if (!name) continue;
 
           const pathParam = params.find((p) => p?.name === name && p?.type === 'path');
-          if (pathParam) {
-            result = result.replace(':' + match[1], pathParam.value);
+          if (hasResolvablePathParamValue(pathParam)) {
+            result = result.replace(':' + match[1], substituteValue(pathParam.value));
           }
         }
         return result;

@@ -2,7 +2,7 @@ import { find, map, filter, cloneDeep, each, concat } from 'lodash';
 import { parseQueryParams, buildQueryString as stringifyQueryParams } from '@usebruno/common/utils';
 import { uuid } from 'utils/common';
 import { findCollectionByUid, findItemInCollection } from 'utils/collections';
-import { parsePathParams, splitOnFirst, interpolateUrlPathParams } from 'utils/url';
+import { parsePathParams, splitOnFirst } from 'utils/url';
 import statusCodePhraseMap from 'components/ResponsePane/StatusCode/get-status-code-phrase';
 
 export const addResponseExample = (state, action) => {
@@ -22,7 +22,7 @@ export const addResponseExample = (state, action) => {
   }
 
   // Ensure body always has a mode field (default to 'none' if not present)
-  const requestBody = item.draft.request.body || {};
+  const requestBody = cloneDeep(item.draft.request.body || {});
   if (!requestBody.mode) {
     requestBody.mode = 'none';
   }

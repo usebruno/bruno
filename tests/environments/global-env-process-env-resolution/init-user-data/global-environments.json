@@ -1,0 +1,19 @@
+{
+  "environments": [
+    {
+      "uid": "pEnvTestGlobalEnvUi01",
+      "name": "ProcessEnv Test",
+      "variables": [
+        {
+          "uid": "pEnvTestVarUid0000001",
+          "name": "testVar",
+          "value": "{{process.env.MY_SECRET}}",
+          "type": "text",
+          "secret": false,
+          "enabled": true
+        }
+      ]
+    }
+  ],
+  "activeGlobalEnvironmentUid": "pEnvTestGlobalEnvUi01"
+}

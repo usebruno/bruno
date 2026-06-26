@@ -1,9 +1,10 @@
-const { describe, it, expect } = require('@jest/globals');
+const { describe, it, expect, beforeAll } = require('@jest/globals');
 const TestRuntime = require('../src/runtime/test-runtime');
 const ScriptRuntime = require('../src/runtime/script-runtime');
 const AssertRuntime = require('../src/runtime/assert-runtime');
 const Bru = require('../src/bru');
 const VarsRuntime = require('../src/runtime/vars-runtime');
+const { loader: quickJsLoader } = require('../src/sandbox/quickjs');
 
 describe('runtime', () => {
   describe('test-runtime', () => {
@@ -180,36 +181,25 @@ describe('runtime', () => {
   });
 
   describe('persistent environment variables validation', () => {
-    it('should throw error when trying to persist non-string values', async () => {
-      const script = `bru.setEnvVar('number', 42, {persist: true});`;
+    it('should persist non-string values without throwing', async () => {
+      const script = `
+        bru.setEnvVar('number', 42, {persist: true});
+        bru.setEnvVar('isActive', true, {persist: true});
+        bru.setEnvVar('config', {port: 3000}, {persist: true});
+        bru.setEnvVar('items', ['item1', 'item2'], {persist: true});
+      `;
       const runtime = new ScriptRuntime({ runtime: 'nodevm' });
 
-      await expect(runtime.runRequestScript(script, {}, {}, {}, '.', null, process.env))
-        .rejects.toThrow('Persistent environment variables must be strings. Received number for key "number".');
-    });
+      const result = await runtime.runRequestScript(script, {}, {}, {}, '.', null, process.env);
 
-    it('should throw error when trying to persist boolean values', async () => {
-      const script = `bru.setEnvVar('isActive', true, {persist: true});`;
-      const runtime = new ScriptRuntime({ runtime: 'nodevm' });
-
-      await expect(runtime.runRequestScript(script, {}, {}, {}, '.', null, process.env))
-        .rejects.toThrow('Persistent environment variables must be strings. Received boolean for key "isActive".');
-    });
-
-    it('should throw error when trying to persist object values', async () => {
-      const script = `bru.setEnvVar('config', {port: 3000}, {persist: true});`;
-      const runtime = new ScriptRuntime({ runtime: 'nodevm' });
-
-      await expect(runtime.runRequestScript(script, {}, {}, {}, '.', null, process.env))
-        .rejects.toThrow('Persistent environment variables must be strings. Received object for key "config".');
-    });
-
-    it('should throw error when trying to persist array values', async () => {
-      const script = `bru.setEnvVar('items', ['item1', 'item2'], {persist: true});`;
-      const runtime = new ScriptRuntime({ runtime: 'nodevm' });
-
-      await expect(runtime.runRequestScript(script, {}, {}, {}, '.', null, process.env))
-        .rejects.toThrow('Persistent environment variables must be strings. Received object for key "items".');
+      expect(result.envVariables.number).toBe(42);
+      expect(result.persistentEnvVariables.number).toBe(42);
+      expect(result.envVariables.isActive).toBe(true);
+      expect(result.persistentEnvVariables.isActive).toBe(true);
+      expect(result.envVariables.config).toEqual({ port: 3000 });
+      expect(result.persistentEnvVariables.config).toEqual({ port: 3000 });
+      expect(result.envVariables.items).toEqual(['item1', 'item2']);
+      expect(result.persistentEnvVariables.items).toEqual(['item1', 'item2']);
     });
 
     it('should allow string values when persist is true', async () => {
@@ -261,6 +251,10 @@ describe('runtime', () => {
   });
 
   describe('assert-runtime', () => {
+    beforeAll(async () => {
+      await quickJsLoader();
+    });
+
     const baseRequest = {
       method: 'GET',
       url: 'http://localhost:3000/',
@@ -275,10 +269,80 @@ describe('runtime', () => {
       headers: {}
     });
 
-    const runAssertions = (assertions, response, runtime = 'nodevm') => {
+    const runAssertions = (assertions, response, runtime = 'nodevm', runtimeVariables = {}) => {
       const assertRuntime = new AssertRuntime({ runtime });
-      return assertRuntime.runAssertions(assertions, { ...baseRequest }, response, {}, {}, process.env);
+      return assertRuntime.runAssertions(assertions, { ...baseRequest }, response, {}, runtimeVariables, process.env);
     };
+
+    // Ensures each QuickJS evaluation gets a fresh context
+    describe('quickjs context isolation across iterations', () => {
+      const ITERATION_COUNT = 350;
+
+      it('should return correct res.status on every iteration', () => {
+        for (let i = 0; i < ITERATION_COUNT; i++) {
+          const status = 200 + i;
+          const results = runAssertions(
+            [{ name: 'res.status', value: `eq ${status}`, enabled: true }],
+            { status, statusText: 'OK', data: {}, headers: {} },
+            'quickjs'
+          );
+          expect(results[0].status).toBe('pass');
+        }
+      });
+
+      it('should return correct res.body values on every iteration', () => {
+        for (let i = 0; i < ITERATION_COUNT; i++) {
+          const results = runAssertions(
+            [{ name: 'res.body.id', value: `eq ${i}`, enabled: true }],
+            { status: 200, statusText: 'OK', data: { id: i }, headers: {} },
+            'quickjs'
+          );
+          expect(results[0].status).toBe('pass');
+        }
+      });
+
+      it('should not return stale data from a previous iteration', () => {
+        // First call with status 200
+        runAssertions(
+          [{ name: 'res.status', value: 'eq 200', enabled: true }],
+          { status: 200, statusText: 'OK', data: { token: 'bearer_abc' }, headers: { authorization: 'bearer xyz' } },
+          'quickjs'
+        );
+
+        // Second call with status 404 — must not return 200 or any data from previous call
+        const results = runAssertions(
+          [
+            { name: 'res.status', value: 'eq 404', enabled: true },
+            { name: 'res.body.error', value: 'eq not_found', enabled: true }
+          ],
+          { status: 404, statusText: 'Not Found', data: { error: 'not_found' }, headers: {} },
+          'quickjs'
+        );
+
+        expect(results[0].status).toBe('pass');
+        expect(results[1].status).toBe('pass');
+      });
+
+      it('should not persist runtime variables from a previous call', () => {
+        // First call with runtime variable token = "one"
+        const results1 = runAssertions(
+          [{ name: 'token', value: 'eq one', enabled: true }],
+          { status: 200, statusText: 'OK', data: {}, headers: {} },
+          'quickjs',
+          { token: 'one' }
+        );
+        expect(results1[0].status).toBe('pass');
+
+        // Second call without token
+        const results2 = runAssertions(
+          [{ name: 'token', value: 'eq one', enabled: true }],
+          { status: 200, statusText: 'OK', data: {}, headers: {} },
+          'quickjs'
+        );
+        // Must fail — token should not exist in a fresh context
+        expect(results2[0].status).toBe('fail');
+      });
+    });
 
     describe('isJson', () => {
       it('should pass for a plain object', () => {
@@ -317,12 +381,36 @@ describe('runtime', () => {
         expect(results[0].status).toBe('pass');
       });
 
-      it('should fail for an array', () => {
+      it('should pass for an array', () => {
         const results = runAssertions(
           [{ name: 'res.body', value: 'isJson', enabled: true }],
           makeResponse([1, 2, 3])
         );
-        expect(results[0].status).toBe('fail');
+        expect(results[0].status).toBe('pass');
+      });
+
+      it('should pass for an array of strings', () => {
+        const results = runAssertions(
+          [{ name: 'res.body', value: 'isJson', enabled: true }],
+          makeResponse(['A55001213ZX0A'])
+        );
+        expect(results[0].status).toBe('pass');
+      });
+
+      it('should pass for an empty array', () => {
+        const results = runAssertions(
+          [{ name: 'res.body', value: 'isJson', enabled: true }],
+          makeResponse([])
+        );
+        expect(results[0].status).toBe('pass');
+      });
+
+      it('should pass for an array of objects', () => {
+        const results = runAssertions(
+          [{ name: 'res.body', value: 'isJson', enabled: true }],
+          makeResponse([{ id: 1 }, { id: 2 }])
+        );
+        expect(results[0].status).toBe('pass');
       });
 
       it('should fail for a string', () => {
@@ -339,6 +427,102 @@ describe('runtime', () => {
           makeResponse(null)
         );
         expect(results[0].status).toBe('fail');
+      });
+    });
+
+    describe('jsonSchema', () => {
+      const chai = require('chai');
+
+      it('should pass when body matches a valid schema', () => {
+        const body = { name: 'John', age: 30 };
+        const schema = {
+          type: 'object',
+          properties: {
+            name: { type: 'string' },
+            age: { type: 'number' }
+          },
+          required: ['name', 'age']
+        };
+        chai.expect(body).to.have.jsonSchema(schema);
+      });
+
+      it('should fail when body has a type mismatch', () => {
+        const body = { name: 'John', age: 'thirty' };
+        const schema = {
+          type: 'object',
+          properties: {
+            name: { type: 'string' },
+            age: { type: 'number' }
+          },
+          required: ['name', 'age']
+        };
+        expect(() => chai.expect(body).to.have.jsonSchema(schema)).toThrow(/validation errors/);
+      });
+
+      it('should fail when a required field is missing', () => {
+        const body = { name: 'John' };
+        const schema = {
+          type: 'object',
+          properties: {
+            name: { type: 'string' },
+            age: { type: 'number' }
+          },
+          required: ['name', 'age']
+        };
+        expect(() => chai.expect(body).to.have.jsonSchema(schema)).toThrow(/validation errors/);
+      });
+
+      it('should pass with custom ajvOptions', () => {
+        const body = { name: 'John', age: 30 };
+        const schema = {
+          type: 'object',
+          properties: {
+            name: { type: 'string' },
+            age: { type: 'number' }
+          },
+          required: ['name', 'age']
+        };
+        chai.expect(body).to.have.jsonSchema(schema, { allErrors: false });
+      });
+
+      it('should support negation with .not', () => {
+        const body = { name: 'John' };
+        const schema = { type: 'array' };
+        chai.expect(body).to.not.have.jsonSchema(schema);
+      });
+
+      it('should throw a clear error for unsupported Draft 2020-12 $schema', () => {
+        const body = { name: 'John' };
+        const schema = {
+          $schema: 'https://json-schema.org/draft/2020-12/schema',
+          type: 'object',
+          properties: { name: { type: 'string' } }
+        };
+        expect(() => chai.expect(body).to.have.jsonSchema(schema)).toThrow(/Unsupported JSON Schema version.*2020-12.*only supports Draft-07/);
+      });
+
+      it('should throw a clear error for unsupported Draft 2019-09 $schema', () => {
+        const body = { name: 'John' };
+        const schema = {
+          $schema: 'https://json-schema.org/draft/2019-09/schema',
+          type: 'object',
+          properties: { name: { type: 'string' } }
+        };
+        expect(() => chai.expect(body).to.have.jsonSchema(schema)).toThrow(/Unsupported JSON Schema version.*2019-09.*only supports Draft-07/);
+      });
+
+      it('should allow explicit Draft-07 $schema', () => {
+        const body = { name: 'John', age: 30 };
+        const schema = {
+          $schema: 'http://json-schema.org/draft-07/schema#',
+          type: 'object',
+          properties: {
+            name: { type: 'string' },
+            age: { type: 'number' }
+          },
+          required: ['name', 'age']
+        };
+        chai.expect(body).to.have.jsonSchema(schema);
       });
     });
   });

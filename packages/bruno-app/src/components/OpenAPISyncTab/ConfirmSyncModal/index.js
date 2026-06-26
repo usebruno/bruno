@@ -74,7 +74,7 @@ const ConfirmSyncModal = ({ groups, onCancel, onSync, isSyncing }) => {
         )}
 
         <div className="sync-confirm-actions">
-          <Button variant="ghost" onClick={onCancel}>
+          <Button variant="ghost" color="secondary" onClick={onCancel}>
             Cancel
           </Button>
           <Button onClick={onSync} loading={isSyncing} disabled={isSyncing}>

@@ -3,7 +3,21 @@ const TestRuntime = require('./runtime/test-runtime');
 const VarsRuntime = require('./runtime/vars-runtime');
 const AssertRuntime = require('./runtime/assert-runtime');
 const { runScriptInNodeVm } = require('./sandbox/node-vm');
-const { formatErrorWithContext, SCRIPT_TYPES } = require('./utils/error-formatter');
+const {
+  formatErrorWithContext,
+  formatErrorWithContextV2,
+  SCRIPT_TYPES,
+  parseErrorLocation,
+  adjustLineNumber,
+  resolveSegmentError,
+  getSourceContext,
+  adjustStackTrace,
+  getErrorTypeName,
+  findScriptBlockStartLine,
+  findScriptBlockEndLine,
+  findYmlScriptBlockStartLine,
+  findYmlScriptBlockEndLine
+} = require('./utils/error-formatter');
 
 module.exports = {
   ScriptRuntime,
@@ -12,5 +26,16 @@ module.exports = {
   AssertRuntime,
   runScriptInNodeVm,
   formatErrorWithContext,
-  SCRIPT_TYPES
+  formatErrorWithContextV2,
+  SCRIPT_TYPES,
+  parseErrorLocation,
+  adjustLineNumber,
+  resolveSegmentError,
+  getSourceContext,
+  adjustStackTrace,
+  getErrorTypeName,
+  findScriptBlockStartLine,
+  findScriptBlockEndLine,
+  findYmlScriptBlockStartLine,
+  findYmlScriptBlockEndLine
 };

@@ -937,3 +937,113 @@ describe('brunoToPostman event handling', () => {
     expect(nestedRequest.event[0].script.exec).toEqual(['console.log("nested pre");']);
   });
 });
+
+describe('brunoToPostman item ordering', () => {
+  const makeRequest = (name, seq) => ({
+    type: 'http-request',
+    name,
+    seq,
+    request: {
+      method: 'GET',
+      url: 'https://example.com',
+      headers: [],
+      params: [],
+      body: { mode: 'none' },
+      auth: { mode: 'none' }
+    }
+  });
+
+  const makeFolder = (name, seq, items = []) => ({
+    type: 'folder',
+    name,
+    seq,
+    items
+  });
+
+  it('should place folders before requests in export output', () => {
+    const collection = {
+      items: [
+        makeRequest('Request A', 1),
+        makeFolder('Folder B'),
+        makeRequest('Request C', 2),
+        makeFolder('Folder A')
+      ]
+    };
+
+    const result = brunoToPostman(collection);
+    const names = result.item.map((i) => i.name);
+
+    // Folders first (alphabetical since no seq), then requests (by seq)
+    expect(names[0]).toBe('Folder A');
+    expect(names[1]).toBe('Folder B');
+    expect(names[2]).toBe('Request A');
+    expect(names[3]).toBe('Request C');
+  });
+
+  it('should sort requests by seq ascending', () => {
+    const collection = {
+      items: [
+        makeRequest('Third', 3),
+        makeRequest('First', 1),
+        makeRequest('Second', 2)
+      ]
+    };
+
+    const result = brunoToPostman(collection);
+    const names = result.item.map((i) => i.name);
+
+    expect(names).toEqual(['First', 'Second', 'Third']);
+  });
+
+  it('should sort folders by name then sequence', () => {
+    const collection = {
+      items: [
+        makeFolder('Gamma', undefined),
+        makeFolder('Alpha', undefined),
+        makeFolder('Beta', 1)
+      ]
+    };
+
+    const result = brunoToPostman(collection);
+    const names = result.item.map((i) => i.name);
+
+    // Beta has seq=1, so it goes to position 0; Alpha and Gamma are alphabetical
+    expect(names[0]).toBe('Beta');
+    expect(names[1]).toBe('Alpha');
+    expect(names[2]).toBe('Gamma');
+  });
+
+  it('should sort items recursively within nested folders', () => {
+    const collection = {
+      items: [
+        makeFolder('Parent', 1, [
+          makeRequest('Nested C', 3),
+          makeFolder('Nested Folder', 1),
+          makeRequest('Nested A', 1)
+        ])
+      ]
+    };
+
+    const result = brunoToPostman(collection);
+    const parent = result.item[0];
+    const nestedNames = parent.item.map((i) => i.name);
+
+    // Folder first, then requests sorted by seq
+    expect(nestedNames).toEqual(['Nested Folder', 'Nested A', 'Nested C']);
+  });
+
+  it('should handle folders without seq (older collections) alphabetically', () => {
+    const collection = {
+      items: [
+        makeFolder('Zebra', undefined),
+        makeFolder('Apple', undefined),
+        makeFolder('Mango', undefined)
+      ]
+    };
+
+    const result = brunoToPostman(collection);
+    const names = result.item.map((i) => i.name);
+
+    expect(names).toEqual(['Apple', 'Mango', 'Zebra']);
+  });
+});

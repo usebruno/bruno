@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { getEmptyImage } from 'react-dnd-html5-backend';
 import range from 'lodash/range';
 import filter from 'lodash/filter';
@@ -18,7 +18,8 @@ import {
   IconTrash,
   IconSettings,
   IconInfoCircle,
-  IconTerminal2
+  IconTerminal2,
+  IconApps
 } from '@tabler/icons';
 import { useSelector, useDispatch } from 'react-redux';
 import { addTab, focusTab, makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
@@ -26,9 +27,10 @@ import { handleCollectionItemDrop, sendRequest, showInFolder, pasteItem, saveReq
 import { toggleCollectionItem, addResponseExample } from 'providers/ReduxStore/slices/collections';
 import { insertTaskIntoQueue } from 'providers/ReduxStore/slices/app';
 import { uuid } from 'utils/common';
-import { copyRequest } from 'providers/ReduxStore/slices/app';
+import { copyRequest, setFocusedSidebarPath } from 'providers/ReduxStore/slices/app';
 import NewRequest from 'components/Sidebar/NewRequest';
 import NewFolder from 'components/Sidebar/NewFolder';
+import NewApp from 'components/Sidebar/NewApp';
 import RenameCollectionItem from './RenameCollectionItem';
 import CloneCollectionItem from './CloneCollectionItem';
 import DeleteCollectionItem from './DeleteCollectionItem';
@@ -39,14 +41,17 @@ import { doesRequestMatchSearchText, doesFolderHaveItemsMatchSearchText } from '
 import { getDefaultRequestPaneTab } from 'utils/collections';
 import toast from 'react-hot-toast';
 import StyledWrapper from './StyledWrapper';
-import { getKeyBindingsForActionAllOS } from 'providers/Hotkeys/keyMappings';
 import NetworkError from 'components/ResponsePane/NetworkError/index';
 import CollectionItemInfo from './CollectionItemInfo/index';
 import CollectionItemIcon from './CollectionItemIcon';
 import ExampleItem from './ExampleItem';
 import ExampleIcon from 'components/Icons/ExampleIcon';
 import { scrollToTheActiveTab } from 'utils/tabs';
-import { isTabForItemActive as isTabForItemActiveSelector, isTabForItemPresent as isTabForItemPresentSelector } from 'src/selectors/tab';
+import {
+  getTabUidForItem as getTabUidForItemSelector,
+  isTabForItemActive as isTabForItemActiveSelector,
+  isTabForItemPresent as isTabForItemPresentSelector
+} from 'src/selectors/tab';
 import { isEqual } from 'lodash';
 import { createEmptyStateMenuItems } from 'utils/collections/emptyStateRequest';
 import { calculateDraggedItemNewPathname, getInitialExampleName, findParentItemInCollection } from 'utils/collections/index';
@@ -57,32 +62,33 @@ import { openDevtoolsAndSwitchToTerminal } from 'utils/terminal';
 import ActionIcon from 'ui/ActionIcon';
 import MenuDropdown from 'ui/MenuDropdown';
 import { useSidebarAccordion } from 'components/Sidebar/SidebarAccordionContext';
+import useKeybinding from 'hooks/useKeybinding';
 
 const CollectionItem = ({ item, collectionUid, collectionPathname, searchText }) => {
   const { dropdownContainerRef } = useSidebarAccordion();
-  const _isTabForItemActiveSelector = isTabForItemActiveSelector({ itemUid: item.uid });
+  const selectorInput = {
+    itemUid: item.uid,
+    itemPathname: item.pathname,
+    collectionUid
+  };
+
+  const _isTabForItemActiveSelector = isTabForItemActiveSelector(selectorInput);
   const isTabForItemActive = useSelector(_isTabForItemActiveSelector, isEqual);
 
-  const _isTabForItemPresentSelector = isTabForItemPresentSelector({ itemUid: item.uid });
+  const _isTabForItemPresentSelector = isTabForItemPresentSelector(selectorInput);
   const isTabForItemPresent = useSelector(_isTabForItemPresentSelector, isEqual);
+
+  const _tabUidForItemSelector = getTabUidForItemSelector(selectorInput);
+  const tabUidForItem = useSelector(_tabUidForItemSelector, isEqual);
 
   const isSidebarDragging = useSelector((state) => state.app.isDragging);
   const collection = useSelector((state) => state.collections.collections?.find((c) => c.uid === collectionUid));
   const { hasCopiedItems } = useSelector((state) => state.app.clipboard);
-  const preferences = useSelector((state) => state.app.preferences);
-  const userKeyBindings = preferences?.keyBindings || {};
-  const hasCustomCopyBinding = !!userKeyBindings?.copyItem;
-  const hasCustomPasteBinding = !!userKeyBindings?.pasteItem;
-  const hasCustomRenameBinding = !!userKeyBindings?.renameItem;
   const dispatch = useDispatch();
 
   // We use a single ref for drag and drop.
   const ref = useRef(null);
   const menuDropdownRef = useRef(null);
-
-  // Refs to store current handler references for event listeners (avoid stale closures)
-  const copyHandlerRef = useRef(null);
-  const pasteHandlerRef = useRef(null);
 
   const [renameItemModalOpen, setRenameItemModalOpen] = useState(false);
   const [cloneItemModalOpen, setCloneItemModalOpen] = useState(false);
@@ -91,6 +97,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
   const [generateCodeItemModalOpen, setGenerateCodeItemModalOpen] = useState(false);
   const [newRequestModalOpen, setNewRequestModalOpen] = useState(false);
   const [newFolderModalOpen, setNewFolderModalOpen] = useState(false);
+  const [newAppModalOpen, setNewAppModalOpen] = useState(false);
   const [runCollectionModalOpen, setRunCollectionModalOpen] = useState(false);
   const [itemInfoModalOpen, setItemInfoModalOpen] = useState(false);
   const [examplesExpanded, setExamplesExpanded] = useState(false);
@@ -101,6 +108,33 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
 
   // Check if request has examples (only for HTTP requests)
   const hasExamples = isItemARequest(item) && item.type === 'http-request' && item.examples && item.examples.length > 0;
+
+  // Sidebar shortcuts — only active when this sidebar item has keyboard focus
+  useKeybinding('cloneItem', () => {
+    setCloneItemModalOpen(true);
+    return false;
+  }, { enabled: isKeyboardFocused, deps: [isKeyboardFocused] });
+
+  useKeybinding('copyItem', () => {
+    handleCopyItem();
+    return false;
+  }, { enabled: isKeyboardFocused, deps: [isKeyboardFocused] });
+
+  useKeybinding('pasteItem', () => {
+    handlePasteItem();
+    return false;
+  }, { enabled: isKeyboardFocused, deps: [isKeyboardFocused] });
+
+  useKeybinding('renameItem', () => {
+    setRenameItemModalOpen(true);
+    return false;
+  }, { enabled: isKeyboardFocused, deps: [isKeyboardFocused] });
+
+  useKeybinding('newRequest', () => {
+    if (!isFolder) return false;
+    setNewRequestModalOpen(true);
+    return false;
+  }, { enabled: isKeyboardFocused && isFolder, deps: [isKeyboardFocused, isFolder] });
 
   const [dropType, setDropType] = useState(null); // 'adjacent' or 'inside'
 
@@ -129,52 +163,6 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
       }
     }
   }, [isTabForItemActive]);
-
-  // Listen for clone-item-open event from Hotkeys provider
-  const isFocusedRef = useRef(isKeyboardFocused);
-  isFocusedRef.current = isKeyboardFocused;
-
-  useEffect(() => {
-    const handleCloneItemOpen = () => {
-      // Only open modal if this item is keyboard focused
-      if (isFocusedRef.current) {
-        setCloneItemModalOpen(true);
-      }
-    };
-
-    const handleCopyItemOpen = () => {
-      // Copy item to clipboard if this item is keyboard focused
-      if (isFocusedRef.current && copyHandlerRef.current) {
-        copyHandlerRef.current();
-      }
-    };
-
-    const handlePasteItemOpen = () => {
-      // Paste item from clipboard if this item is keyboard focused
-      if (isFocusedRef.current && pasteHandlerRef.current) {
-        pasteHandlerRef.current();
-      }
-    };
-
-    const handleRenameItemOpen = () => {
-      // Rename item if this item is keyboard focused
-      if (isFocusedRef.current) {
-        setRenameItemModalOpen(true);
-      }
-    };
-
-    window.addEventListener('clone-item-open', handleCloneItemOpen);
-    window.addEventListener('copy-item-open', handleCopyItemOpen);
-    window.addEventListener('paste-item-open', handlePasteItemOpen);
-    window.addEventListener('rename-item-open', handleRenameItemOpen);
-
-    return () => {
-      window.removeEventListener('clone-item-open', handleCloneItemOpen);
-      window.removeEventListener('copy-item-open', handleCopyItemOpen);
-      window.removeEventListener('paste-item-open', handlePasteItemOpen);
-      window.removeEventListener('rename-item-open', handleRenameItemOpen);
-    };
-  }, []);
 
   const determineDropType = (monitor) => {
     const hoverBoundingRect = ref.current?.getBoundingClientRect();
@@ -272,11 +260,12 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
     // scroll to the active tab
     setTimeout(scrollToTheActiveTab, 50);
     const isRequest = isItemARequest(item);
-    if (isRequest) {
+    const isApp = item.type === 'app';
+    if (isRequest || isApp) {
       if (isTabForItemPresent) {
         dispatch(
           focusTab({
-            uid: item.uid
+            uid: tabUidForItem || item.uid
           })
         );
         return;
@@ -285,8 +274,9 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
         addTab({
           uid: item.uid,
           collectionUid: collectionUid,
-          requestPaneTab: getDefaultRequestPaneTab(item),
-          type: 'request'
+          ...(isRequest ? { requestPaneTab: getDefaultRequestPaneTab(item) } : {}),
+          type: item.type,
+          pathname: item.pathname
         })
       );
     } else {
@@ -294,7 +284,8 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
         addTab({
           uid: item.uid,
           collectionUid: collectionUid,
-          type: 'folder-settings'
+          type: 'folder-settings',
+          pathname: item.pathname
         })
       );
       if (item.collapsed) {
@@ -363,6 +354,12 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
           leftSection: IconFolderPlus,
           label: 'New Folder',
           onClick: () => setNewFolderModalOpen(true)
+        },
+        {
+          id: 'new-app',
+          leftSection: IconApps,
+          label: 'New App',
+          onClick: () => setNewAppModalOpen(true)
         },
         {
           id: 'run',
@@ -500,7 +497,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
   }
 
   const handleDoubleClick = (event) => {
-    dispatch(makeTabPermanent({ uid: item.uid }));
+    dispatch(makeTabPermanent({ uid: tabUidForItem || item.uid }));
   };
 
   // Sort items by their "seq" property.
@@ -560,7 +557,10 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
   };
 
   const folderItems = sortByNameThenSequence(filter(item.items, (i) => isItemAFolder(i) && !i.isTransient));
-  const requestItems = sortItemsBySequence(filter(item.items, (i) => isItemARequest(i) && !i.isTransient));
+  // Standalone 'app' items live alongside requests in the folder listing.
+  const requestItems = sortItemsBySequence(
+    filter(item.items, (i) => (isItemARequest(i) || i.type === 'app') && !i.isTransient)
+  );
   const showEmptyFolderMessage = isFolder && !hasSearchText && !folderItems?.length && !requestItems?.length;
 
   const emptyFolderMenuItems = createEmptyStateMenuItems({ dispatch, collection, itemUid: item.uid });
@@ -579,26 +579,27 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
   const viewFolderSettings = () => {
     if (isItemAFolder(item)) {
       if (isTabForItemPresent) {
-        dispatch(focusTab({ uid: item.uid }));
+        dispatch(focusTab({ uid: tabUidForItem || item.uid }));
         return;
       }
       dispatch(
         addTab({
           uid: item.uid,
           collectionUid,
-          type: 'folder-settings'
+          type: 'folder-settings',
+          pathname: item.pathname
         })
       );
     }
   };
 
-  const handleCopyItem = useCallback(() => {
+  const handleCopyItem = () => {
     dispatch(copyRequest(item));
     const itemType = isFolder ? 'Folder' : 'Request';
     toast.success(`${itemType} copied`);
-  }, [dispatch, item, isFolder]);
+  };
 
-  const handlePasteItem = useCallback(() => {
+  const handlePasteItem = () => {
     // Determine target folder: if item is a folder, paste into it; otherwise paste into parent folder
     let targetFolderUid = item.uid;
     if (!isFolder) {
@@ -613,40 +614,17 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
       .catch((err) => {
         toast.error(err ? err.message : 'An error occurred while pasting the item');
       });
-  }, [dispatch, collection, item, isFolder, collectionUid]);
-
-  // Update refs whenever handlers change
-  copyHandlerRef.current = handleCopyItem;
-  pasteHandlerRef.current = handlePasteItem;
-
-  // Keyboard shortcuts handler
-  const handleKeyDown = (e) => {
-    // Detect Mac by checking both metaKey and platform
-    const isMac = navigator.userAgent?.includes('Mac') || navigator.platform?.startsWith('Mac');
-    const isModifierPressed = isMac ? e.metaKey : e.ctrlKey;
-
-    // Only use default handler if no custom keybinding is set for copy/paste
-    if (!hasCustomCopyBinding && isModifierPressed && e.key.toLowerCase() === 'c') {
-      e.preventDefault();
-      e.stopPropagation();
-      if (copyHandlerRef.current) copyHandlerRef.current();
-    } else if (!hasCustomPasteBinding && isModifierPressed && e.key.toLowerCase() === 'v') {
-      e.preventDefault();
-      e.stopPropagation();
-      if (pasteHandlerRef.current) pasteHandlerRef.current();
-    } else if (!hasCustomRenameBinding && e.key === 'F2') {
-      e.preventDefault();
-      e.stopPropagation();
-      setRenameItemModalOpen(true);
-    }
   };
 
   const handleFocus = () => {
     setIsKeyboardFocused(true);
+    // For folders, set the folder path; for requests, set empty string (no terminal)
+    dispatch(setFocusedSidebarPath(isFolder ? item.pathname : ''));
   };
 
   const handleBlur = () => {
     setIsKeyboardFocused(false);
+    dispatch(setFocusedSidebarPath(null));
   };
 
   return (
@@ -665,6 +643,9 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
       )}
       {newFolderModalOpen && (
         <NewFolder item={item} collectionUid={collectionUid} onClose={() => setNewFolderModalOpen(false)} />
+      )}
+      {newAppModalOpen && (
+        <NewApp item={item} collectionUid={collectionUid} onClose={() => setNewAppModalOpen(false)} />
       )}
       {runCollectionModalOpen && (
         <RunCollectionItem collectionUid={collectionUid} item={item} onClose={() => setRunCollectionModalOpen(false)} />
@@ -689,7 +670,6 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
           drag(drop(node));
         }}
         tabIndex={0}
-        onKeyDown={handleKeyDown}
         onFocus={handleFocus}
         onBlur={handleBlur}
         onContextMenu={handleContextMenu}
@@ -705,7 +685,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
                   key={i}
                   style={{ width: 16, minWidth: 16, height: '100%' }}
                 >
-                  &nbsp;{/* Indent */}
+                &nbsp;{/* Indent */}
                 </div>
               ))
             : null}
@@ -786,6 +766,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
               ))}
               <div style={{ paddingLeft: 8 }}>
                 <MenuDropdown
+                  data-testid="add-request-cta-folder"
                   items={emptyFolderMenuItems}
                   placement="bottom-start"
                   appendTo={dropdownContainerRef?.current || document.body}

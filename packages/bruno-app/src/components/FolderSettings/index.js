@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import classnames from 'classnames';
 import { updatedFolderSettingsSelectedTab } from 'providers/ReduxStore/slices/collections';
 import { useDispatch } from 'react-redux';
@@ -10,7 +10,7 @@ import Vars from './Vars';
 import Documentation from './Documentation';
 import Auth from './Auth';
 import StatusDot from 'components/StatusDot';
-import get from 'lodash/get';
+import { hasEffectiveAuth } from 'utils/auth';
 
 const FolderSettings = ({ collection, folder }) => {
   const dispatch = useDispatch();
@@ -31,8 +31,11 @@ const FolderSettings = ({ collection, folder }) => {
   const responseVars = folderRoot?.request?.vars?.res || [];
   const activeVarsCount = requestVars.filter((v) => v.enabled).length + responseVars.filter((v) => v.enabled).length;
 
-  const auth = get(folderRoot, 'request.auth.mode');
-  const hasAuth = auth && auth !== 'none';
+  const folderAuthMode = folder?.draft?.request?.auth?.mode ?? folder?.root?.request?.auth?.mode;
+  const hasAuth = useMemo(
+    () => hasEffectiveAuth(collection, folder),
+    [folder, folderAuthMode, collection]
+  );
 
   const setTab = (tab) => {
     dispatch(
@@ -77,31 +80,31 @@ const FolderSettings = ({ collection, folder }) => {
     <StyledWrapper className="flex flex-col h-full overflow-auto">
       <div className="flex flex-col h-full relative px-4 py-4">
         <div className="flex flex-wrap items-center tabs" role="tablist">
-          <div className={getTabClassname('headers')} role="tab" onClick={() => setTab('headers')}>
+          <div className={getTabClassname('headers')} role="tab" data-testid="folder-settings-tab-headers" onClick={() => setTab('headers')}>
             Headers
             {activeHeadersCount > 0 && <sup className="ml-1 font-medium">{activeHeadersCount}</sup>}
           </div>
-          <div className={getTabClassname('script')} role="tab" onClick={() => setTab('script')}>
+          <div className={getTabClassname('script')} role="tab" data-testid="folder-settings-tab-script" onClick={() => setTab('script')}>
             Script
             {hasScripts && <StatusDot />}
           </div>
-          <div className={getTabClassname('test')} role="tab" onClick={() => setTab('test')}>
+          <div className={getTabClassname('test')} role="tab" data-testid="folder-settings-tab-test" onClick={() => setTab('test')}>
             Test
             {hasTests && <StatusDot />}
           </div>
-          <div className={getTabClassname('vars')} role="tab" onClick={() => setTab('vars')}>
+          <div className={getTabClassname('vars')} role="tab" data-testid="folder-settings-tab-vars" onClick={() => setTab('vars')}>
             Vars
             {activeVarsCount > 0 && <sup className="ml-1 font-medium">{activeVarsCount}</sup>}
           </div>
-          <div className={getTabClassname('auth')} role="tab" onClick={() => setTab('auth')}>
+          <div className={getTabClassname('auth')} role="tab" data-testid="folder-settings-tab-auth" onClick={() => setTab('auth')}>
             Auth
-            {hasAuth && <StatusDot />}
+            {hasAuth && <StatusDot dataTestId="auth" />}
           </div>
-          <div className={getTabClassname('docs')} role="tab" onClick={() => setTab('docs')}>
+          <div className={getTabClassname('docs')} role="tab" data-testid="folder-settings-tab-docs" onClick={() => setTab('docs')}>
             Docs
           </div>
         </div>
-        <section className="flex mt-4 h-full overflow-auto">{getTabPanel(tab)}</section>
+        <section className="folder-settings-content flex mt-4 h-full overflow-auto">{getTabPanel(tab)}</section>
       </div>
     </StyledWrapper>
   );

@@ -144,4 +144,60 @@ if (bru.getVar("clearAll") === "true") {
     expect(translatedCode).toContain('if (pm.variables.get("clearAll") === "true") {');
     expect(translatedCode).toContain('jar.clear(domain);');
   });
+
+  // Direct cookie access API tests (bru.cookies.get/has/toObject)
+  it('should translate bru.cookies.get to pm.cookies.get', () => {
+    const code = 'const token = bru.cookies.get("authToken");';
+    const translatedCode = translateBruToPostman(code);
+    expect(translatedCode).toBe('const token = pm.cookies.get("authToken");');
+  });
+
+  it('should translate bru.cookies.has to pm.cookies.has', () => {
+    const code = 'const exists = bru.cookies.has("sessionId");';
+    const translatedCode = translateBruToPostman(code);
+    expect(translatedCode).toBe('const exists = pm.cookies.has("sessionId");');
+  });
+
+  it('should translate bru.cookies.toString to pm.cookies.toString', () => {
+    const code = 'const str = bru.cookies.toString();';
+    const translatedCode = translateBruToPostman(code);
+    expect(translatedCode).toBe('const str = pm.cookies.toString();');
+  });
+
+  it('should pass through jar().hasCookie() (no Postman equivalent)', () => {
+    const code = 'const exists = bru.cookies.jar().hasCookie("https://example.com", "session");';
+    const translatedCode = translateBruToPostman(code);
+    // hasCookie has no Postman equivalent, so the jar() part translates but hasCookie stays
+    expect(translatedCode).toContain('pm.cookies.jar().hasCookie');
+  });
+
+  it('should translate bru.cookies.toObject to pm.cookies.toObject', () => {
+    const code = 'const allCookies = bru.cookies.toObject();';
+    const translatedCode = translateBruToPostman(code);
+    expect(translatedCode).toBe('const allCookies = pm.cookies.toObject();');
+  });
+
+  it('should translate bru.cookies.has in conditional', () => {
+    const code = `if (bru.cookies.has("auth")) {
+  console.log(bru.cookies.get("auth"));
+}`;
+    const translatedCode = translateBruToPostman(code);
+    expect(translatedCode).toContain('if (pm.cookies.has("auth"))');
+    expect(translatedCode).toContain('console.log(pm.cookies.get("auth"))');
+  });
+
+  it('should handle mixed direct cookie access and jar methods', () => {
+    const code = `
+const token = bru.cookies.get("authToken");
+const jar = bru.cookies.jar();
+jar.setCookie("https://example.com", "newCookie", "value");
+const allCookies = bru.cookies.toObject();
+`;
+    const translatedCode = translateBruToPostman(code);
+
+    expect(translatedCode).toContain('const token = pm.cookies.get("authToken");');
+    expect(translatedCode).toContain('const jar = pm.cookies.jar();');
+    expect(translatedCode).toContain('jar.set("https://example.com", "newCookie", "value");');
+    expect(translatedCode).toContain('const allCookies = pm.cookies.toObject();');
+  });
 });

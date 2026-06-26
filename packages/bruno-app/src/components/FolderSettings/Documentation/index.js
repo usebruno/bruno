@@ -1,24 +1,37 @@
 import 'github-markdown-css/github-markdown.css';
 import get from 'lodash/get';
+import find from 'lodash/find';
 import { updateFolderDocs } from 'providers/ReduxStore/slices/collections';
+import { updateDocsEditing } from 'providers/ReduxStore/slices/tabs';
 import { useTheme } from 'providers/Theme';
-import { useState } from 'react';
+import { useMemo, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { saveFolderRoot } from 'providers/ReduxStore/slices/collections/actions';
 import Markdown from 'components/MarkDown';
 import CodeEditor from 'components/CodeEditor';
+import AIAssist from 'components/AIAssist';
+import { buildDocsContextFromFolder } from 'utils/ai';
 import Button from 'ui/Button';
 import StyledWrapper from './StyledWrapper';
+import { usePersistedState } from 'hooks/usePersistedState';
+import { useTrackScroll } from 'hooks/useTrackScroll';
 
 const Documentation = ({ collection, folder }) => {
   const dispatch = useDispatch();
   const { displayedTheme } = useTheme();
   const preferences = useSelector((state) => state.app.preferences);
-  const [isEditing, setIsEditing] = useState(false);
+  const tabs = useSelector((state) => state.tabs.tabs);
+  const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
+  const focusedTab = find(tabs, (t) => t.uid === activeTabUid);
+  const isEditing = focusedTab?.docsEditing || false;
   const docs = folder.draft ? get(folder, 'draft.docs', '') : get(folder, 'root.docs', '');
 
+  const wrapperRef = useRef(null);
+  const [scroll, setScroll] = usePersistedState({ key: `folder-docs-scroll-${folder.uid}`, default: 0 });
+  useTrackScroll({ ref: wrapperRef, selector: '.folder-settings-content', onChange: setScroll, enabled: !isEditing, initialValue: scroll });
+
   const toggleViewMode = () => {
-    setIsEditing((prev) => !prev);
+    dispatch(updateDocsEditing({ uid: activeTabUid, docsEditing: !isEditing }));
   };
 
   const onEdit = (value) => {
@@ -32,20 +45,21 @@ const Documentation = ({ collection, folder }) => {
   };
 
   const onSave = () => dispatch(saveFolderRoot(collection.uid, folder.uid));
+  const docsContext = useMemo(() => buildDocsContextFromFolder(collection, folder), [collection, folder]);
 
   if (!folder) {
     return null;
   }
 
   return (
-    <StyledWrapper className="w-full relative flex flex-col">
+    <StyledWrapper className="w-full relative flex flex-col" ref={wrapperRef}>
       <div className="editing-mode flex justify-between items-center flex-shrink-0" role="tab" onClick={toggleViewMode}>
         {isEditing ? 'Preview' : 'Edit'}
       </div>
 
       {isEditing ? (
         <div className="flex flex-col flex-1 min-h-0">
-          <div className="mt-2 flex-1 overflow-auto min-h-0">
+          <div className="mt-2 flex-1 overflow-auto min-h-0 relative">
             <CodeEditor
               collection={collection}
               theme={displayedTheme}
@@ -55,7 +69,10 @@ const Documentation = ({ collection, folder }) => {
               font={get(preferences, 'font.codeFont', 'default')}
               fontSize={get(preferences, 'font.codeFontSize')}
               mode="application/text"
+              initialScroll={scroll}
+              onScroll={setScroll}
             />
+            <AIAssist scriptType="docs" currentScript={docs || ''} docsContext={docsContext} onApply={onEdit} />
           </div>
           <div className="mt-6 flex-shrink-0">
             <Button type="submit" size="sm" onClick={onSave}>

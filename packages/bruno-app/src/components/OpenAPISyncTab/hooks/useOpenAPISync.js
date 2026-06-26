@@ -1,11 +1,21 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
+import { useDispatch, useSelector, useStore } from 'react-redux';
 import toast from 'react-hot-toast';
-import { addTab, focusTab, closeTabs } from 'providers/ReduxStore/slices/tabs';
+import { addTab, focusTab } from 'providers/ReduxStore/slices/tabs';
+import { closeTabs } from 'providers/ReduxStore/slices/collections/actions';
 import { getDefaultRequestPaneTab } from 'utils/collections';
-import { clearCollectionState, setCollectionUpdate } from 'providers/ReduxStore/slices/openapi-sync';
+import {
+  clearCollectionState,
+  setCollectionUpdate,
+  setStoredSpec,
+  setStoredSpecMeta,
+  setDrift
+} from 'providers/ReduxStore/slices/openapi-sync';
+import { fetchAndValidateApiSpecFromUrl } from 'utils/importers/common';
+import { isHttpUrl } from 'utils/url/index';
 import { flattenItems } from 'utils/collections/index';
 import { formatIpcError } from 'utils/common/error';
+import { countEndpoints } from '../utils';
 
 const useOpenAPISync = (collection) => {
   const dispatch = useDispatch();
@@ -16,23 +26,30 @@ const useOpenAPISync = (collection) => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const [fileNotFound, setFileNotFound] = useState(false);
-  const [specDrift, setSpecDrift] = useState(null);
-  // Collection drift state
-  const [collectionDrift, setCollectionDrift] = useState(null);
-  const [remoteDrift, setRemoteDrift] = useState(null);
   const [isDriftLoading, setIsDriftLoading] = useState(false);
-  const [storedSpec, setStoredSpec] = useState(null);
 
-  const tabs = useSelector((state) => state.tabs.tabs);
+  const drift = useSelector((state) => state.openapiSync?.drift?.[collection.uid] || null);
+  const specDrift = drift?.specDrift || null;
+  const collectionDrift = drift?.collectionDrift || null;
+  const remoteDrift = drift?.remoteDrift || null;
+  const storedSpec = useSelector((state) => state.openapiSync?.storedSpec?.[collection.uid] || null);
+
+  const updateDrift = (patch) => dispatch(setDrift({ collectionUid: collection.uid, patch }));
+
+  // useStore: tabs are read only inside handlers — useSelector would re-render on every tab change.
+  const store = useStore();
 
   const isConfigured = !!openApiSyncConfig?.sourceUrl;
 
-  // Clear Redux state when the sync tab is closed (unmount)
-  useEffect(() => {
-    return () => {
-      dispatch(clearCollectionState({ collectionUid: collection.uid }));
-    };
-  }, [collection.uid]);
+  const updateStoredSpec = (spec) => {
+    dispatch(setStoredSpec({ collectionUid: collection.uid, spec }));
+    dispatch(setStoredSpecMeta({
+      collectionUid: collection.uid,
+      title: spec?.info?.title || null,
+      version: spec?.info?.version || null,
+      endpointCount: spec ? countEndpoints(spec) : null
+    }));
+  };
 
   // Flatten collection items including nested items in folders
   const allHttpItems = useMemo(() => {
@@ -66,6 +83,7 @@ const useOpenAPISync = (collection) => {
   const openEndpointInTab = (endpointId) => {
     const itemUid = endpointUidMap[endpointId];
     if (!itemUid) return;
+    const tabs = store.getState().tabs?.tabs || [];
     const existingTab = tabs.find((t) => t.uid === itemUid);
     if (existingTab) {
       dispatch(focusTab({ uid: itemUid }));
@@ -75,28 +93,27 @@ const useOpenAPISync = (collection) => {
         uid: itemUid,
         collectionUid: collection.uid,
         requestPaneTab: item ? getDefaultRequestPaneTab(item) : undefined,
-        type: 'request'
+        type: item?.type ?? 'request'
       }));
     }
   };
 
-  const prevItemCountRef = useRef(httpItemCount);
   const isDriftLoadingRef = useRef(false);
+  const specDriftRef = useRef(specDrift);
 
   const loadCollectionDrift = async ({ clear = false } = {}) => {
     if (isDriftLoadingRef.current && !clear) return;
     isDriftLoadingRef.current = true;
-    if (clear) setCollectionDrift(null);
+    if (clear) updateDrift({ collectionDrift: null });
     setIsDriftLoading(true);
     try {
       const { ipcRenderer } = window;
       const result = await ipcRenderer.invoke('renderer:get-collection-drift', {
-        collectionPath: collection.pathname,
-        brunoConfig: collection.brunoConfig
+        collectionPath: collection.pathname
       });
 
       if (!result.error) {
-        setCollectionDrift(result);
+        updateDrift({ collectionDrift: result, itemCountAtLastFetch: httpItemCount });
       }
     } catch (err) {
       console.error('Error loading collection drift:', err);
@@ -116,8 +133,7 @@ const useOpenAPISync = (collection) => {
     setIsLoading(true);
     setError(null);
     setFileNotFound(false);
-    setSpecDrift(null);
-    setRemoteDrift(null);
+    updateDrift({ fetching: true });
 
     try {
       const { ipcRenderer } = window;
@@ -139,16 +155,13 @@ const useOpenAPISync = (collection) => {
         return;
       }
 
-      setSpecDrift(result);
-      if (result.storedSpec) {
-        setStoredSpec(result.storedSpec);
-      }
+      updateDrift({ specDrift: result, lastChecked: Date.now() });
+      updateStoredSpec(result.storedSpec || null);
 
       // Update Redux store so toolbar status stays in sync
       dispatch(setCollectionUpdate({
         collectionUid: collection.uid,
         hasUpdates: result.isValid !== false && result.hasChanges,
-        diff: result,
         error: result.isValid === false ? result.error : null
       }));
 
@@ -156,14 +169,13 @@ const useOpenAPISync = (collection) => {
       if (result.newSpec) {
         const remoteComparison = await ipcRenderer.invoke('renderer:get-collection-drift', {
           collectionPath: collection.pathname,
-          brunoConfig: collection.brunoConfig,
           compareSpec: result.newSpec
         });
         if (remoteComparison.error) {
           console.error('Error computing remote drift:', remoteComparison.error);
           setError(remoteComparison.error);
         } else {
-          setRemoteDrift(remoteComparison);
+          updateDrift({ remoteDrift: remoteComparison });
         }
       }
 
@@ -177,30 +189,32 @@ const useOpenAPISync = (collection) => {
       dispatch(setCollectionUpdate({
         collectionUid: collection.uid,
         hasUpdates: false,
-        diff: null,
         error: formatIpcError(err) || 'Failed to check for updates'
       }));
     } finally {
+      updateDrift({ fetching: false });
       setIsLoading(false);
     }
   };
 
   useEffect(() => {
-    if (isConfigured) {
+    if (isConfigured && !drift?.specDrift && !drift?.fetching) {
       checkForUpdates();
     }
   }, [isConfigured]);
 
-  // Reload drift when collection items change (e.g., endpoint deleted from sidebar)
+  // Reload drift when the collection's HTTP item count differs from what was recorded at the last fetch.
   useEffect(() => {
-    if (prevItemCountRef.current !== httpItemCount && isConfigured) {
-      prevItemCountRef.current = httpItemCount;
+    if (!isConfigured) return;
+    const cachedCount = drift?.itemCountAtLastFetch;
+    if (cachedCount !== undefined && cachedCount !== httpItemCount && !drift?.fetching) {
       loadCollectionDrift();
     }
   }, [httpItemCount, isConfigured]);
 
   const handleConnect = async () => {
-    if (!sourceUrl.trim()) {
+    const trimmedUrl = sourceUrl.trim();
+    if (!trimmedUrl) {
       setError('Please enter a URL or select a file');
       return;
     }
@@ -210,13 +224,27 @@ const useOpenAPISync = (collection) => {
     setFileNotFound(false);
 
     try {
+      // Validate it's a valid OpenAPI spec before proceeding (URL only; files are validated at picker)
+      if (isHttpUrl(trimmedUrl)) {
+        try {
+          const { specType } = await fetchAndValidateApiSpecFromUrl({ url: trimmedUrl });
+          if (specType !== 'openapi') {
+            setError('The URL does not point to a valid OpenAPI 3.x specification');
+            return;
+          }
+        } catch {
+          setError('The URL does not point to a valid OpenAPI 3.x specification');
+          return;
+        }
+      }
+
       const { ipcRenderer } = window;
 
       // Validate the spec first
       const result = await ipcRenderer.invoke('renderer:compare-openapi-specs', {
         collectionUid: collection.uid,
         collectionPath: collection.pathname,
-        sourceUrl: sourceUrl.trim(),
+        sourceUrl: trimmedUrl,
         environmentContext: {
           activeEnvironmentUid: collection.activeEnvironmentUid,
           environments: collection.environments,
@@ -226,7 +254,7 @@ const useOpenAPISync = (collection) => {
       });
 
       if (result.isValid === false) {
-        setSpecDrift(result);
+        updateDrift({ specDrift: result });
         setError(result.error);
         return;
       }
@@ -235,7 +263,7 @@ const useOpenAPISync = (collection) => {
       await ipcRenderer.invoke('renderer:update-openapi-sync-config', {
         collectionPath: collection.pathname,
         config: {
-          sourceUrl: sourceUrl.trim(),
+          sourceUrl: trimmedUrl,
           groupBy: 'tags',
           autoCheck: true,
           autoCheckInterval: 5
@@ -244,23 +272,21 @@ const useOpenAPISync = (collection) => {
 
       // Check if collection already matches the spec
       if (result.newSpec) {
-        const drift = await ipcRenderer.invoke('renderer:get-collection-drift', {
+        const initialDrift = await ipcRenderer.invoke('renderer:get-collection-drift', {
           collectionPath: collection.pathname,
-          brunoConfig: collection.brunoConfig,
           compareSpec: result.newSpec
         });
 
-        const isInSync = !drift.error
-          && (!drift.missing || drift.missing.length === 0)
-          && (!drift.modified || drift.modified.length === 0)
-          && (!drift.localOnly || drift.localOnly.length === 0);
+        const isInSync = !initialDrift.error
+          && (!initialDrift.missing || initialDrift.missing.length === 0)
+          && (!initialDrift.modified || initialDrift.modified.length === 0)
+          && (!initialDrift.localOnly || initialDrift.localOnly.length === 0);
 
         if (isInSync) {
           // Collection matches — save spec file silently to complete setup
           await ipcRenderer.invoke('renderer:save-openapi-spec', {
             collectionPath: collection.pathname,
-            specContent: result.newSpecContent || JSON.stringify(result.newSpec, null, 2),
-            sourceUrl: sourceUrl.trim()
+            specContent: result.newSpecContent || JSON.stringify(result.newSpec, null, 2)
           });
         }
       }
@@ -279,19 +305,15 @@ const useOpenAPISync = (collection) => {
       const { ipcRenderer } = window;
       await ipcRenderer.invoke('renderer:remove-openapi-sync-config', {
         collectionPath: collection.pathname,
-        sourceUrl: openApiSyncConfig?.sourceUrl || sourceUrl,
         deleteSpecFile: true
       });
       setSourceUrl('');
-      setSpecDrift(null);
-      setCollectionDrift(null);
-      setRemoteDrift(null);
-      setStoredSpec(null);
 
       // Clear Redux state for this collection
       dispatch(clearCollectionState({ collectionUid: collection.uid }));
 
       // Close the openapi-spec tab if open (spec file no longer exists)
+      const tabs = store.getState().tabs?.tabs || [];
       const specTab = tabs.find((t) => t.collectionUid === collection.uid && t.type === 'openapi-spec');
       if (specTab) {
         dispatch(closeTabs({ tabUids: [specTab.uid] }));
@@ -304,16 +326,56 @@ const useOpenAPISync = (collection) => {
     }
   };
 
-  // Reload drift — passed to useEndpointActions so it can refresh after actions
-  const reloadDrift = () => loadCollectionDrift({ clear: true });
+  // Keep ref in sync so reloadDrift always reads the latest specDrift
+  specDriftRef.current = specDrift;
+
+  // Reload both drifts — passed to useEndpointActions so it can refresh after actions.
+  // Uses specDriftRef to avoid stale closure over specDrift state.
+  const reloadDrift = async () => {
+    await loadCollectionDrift({ clear: true });
+    // Refresh remoteDrift if we have a remote spec cached from the last check
+    const currentSpecDrift = specDriftRef.current;
+    if (currentSpecDrift?.newSpec) {
+      try {
+        const { ipcRenderer } = window;
+        const remoteComparison = await ipcRenderer.invoke('renderer:get-collection-drift', {
+          collectionPath: collection.pathname,
+          compareSpec: currentSpecDrift.newSpec
+        });
+        if (!remoteComparison.error) {
+          updateDrift({ remoteDrift: remoteComparison });
+        }
+      } catch (err) {
+        console.error('Error reloading remote drift:', err);
+      }
+    }
+  };
 
   // Save connection settings from the modal
   const handleSaveSettings = async ({ sourceUrl: newUrl, autoCheck, autoCheckInterval }) => {
+    const sourceUrlChanged = newUrl !== openApiSyncConfig?.sourceUrl;
+
+    // Validate the spec before saving if source URL changed (URL only; files are validated at picker)
+    // Kept outside try-catch so validation errors propagate to the caller and the modal stays open
+    if (sourceUrlChanged && isHttpUrl(newUrl)) {
+      let specType;
+      try {
+        ({ specType } = await fetchAndValidateApiSpecFromUrl({ url: newUrl }));
+      } catch {
+        toast.error('The URL does not point to a valid OpenAPI 3.x specification');
+        throw new Error('Invalid OpenAPI specification');
+      }
+      if (specType !== 'openapi') {
+        toast.error('The URL does not point to a valid OpenAPI 3.x specification');
+        throw new Error('Invalid OpenAPI specification');
+      }
+    }
+
     try {
       const { ipcRenderer } = window;
+
       await ipcRenderer.invoke('renderer:update-openapi-sync-config', {
         collectionPath: collection.pathname,
-        oldSourceUrl: openApiSyncConfig?.sourceUrl,
         config: {
           sourceUrl: newUrl,
           autoCheck,

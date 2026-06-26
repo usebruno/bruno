@@ -181,6 +181,7 @@ describe('SystemProxyResolver Integration', () => {
         http_proxy: 'http://env-proxy.usebruno.com:9090',
         https_proxy: 'https://system-proxy.usebruno.com:8443',
         no_proxy: 'localhost',
+        pac_url: null,
         source: 'windows-system + environment'
       });
     });
@@ -209,6 +210,7 @@ describe('SystemProxyResolver Integration', () => {
         http_proxy: 'http://system-proxy.usebruno.com:8080',
         https_proxy: 'https://system-proxy.usebruno.com:8443',
         no_proxy: 'localhost',
+        pac_url: null,
         source: 'macos-system'
       });
     });
@@ -263,6 +265,7 @@ describe('SystemProxyResolver Integration', () => {
         http_proxy: null,
         https_proxy: null,
         no_proxy: null,
+        pac_url: null,
         source: 'macos-system'
       });
     });

@@ -1,6 +1,9 @@
 import { useState, useRef } from 'react';
 import { IconCheck } from '@tabler/icons';
 import Button from 'ui/Button';
+import { isHttpUrl } from 'utils/url/index';
+import { isOpenApiSpec } from 'utils/importers/openapi-collection';
+import { parseFileAsJsonOrYaml } from 'utils/importers/file-reader';
 
 const FEATURES = [
   'Detect new, modified, and removed endpoints',
@@ -9,7 +12,7 @@ const FEATURES = [
   'Your tests, assertions, and scripts are preserved during sync'
 ];
 
-const ConnectSpecForm = ({ sourceUrl, setSourceUrl, isLoading, onConnect }) => {
+const ConnectSpecForm = ({ sourceUrl, setSourceUrl, isLoading, error, setError, onConnect }) => {
   const [mode, setMode] = useState('url');
   const fileInputRef = useRef(null);
 
@@ -66,11 +69,25 @@ const ConnectSpecForm = ({ sourceUrl, setSourceUrl, isLoading, onConnect }) => {
                 type="file"
                 accept=".json,.yaml,.yml"
                 style={{ display: 'none' }}
-                onChange={(e) => {
+                onChange={async (e) => {
                   const file = e.target.files?.[0];
-                  if (file) {
+                  if (!file) return;
+                  setError(null);
+                  setSourceUrl('');
+                  try {
+                    const data = await parseFileAsJsonOrYaml(file);
+                    if (!isOpenApiSpec(data)) {
+                      setError('The selected file is not a valid OpenAPI 3.x specification');
+                      return;
+                    }
+                    if (data.swagger && String(data.swagger).startsWith('2')) {
+                      setError('Swagger 2.0 is not supported. Please convert your spec to OpenAPI 3.x.');
+                      return;
+                    }
                     const filePath = window.ipcRenderer.getFilePath(file);
                     if (filePath) setSourceUrl(filePath);
+                  } catch (err) {
+                    setError(err.message || 'Failed to read the selected file');
                   }
                 }}
               />
@@ -79,7 +96,7 @@ const ConnectSpecForm = ({ sourceUrl, setSourceUrl, isLoading, onConnect }) => {
                 className="url-input file-pick-btn"
                 onClick={() => fileInputRef.current?.click()}
               >
-                {sourceUrl ? sourceUrl.split(/[\\/]/).pop() : 'Choose file...'}
+                {sourceUrl ? sourceUrl.split(/[\\/]/).pop() : 'Select File'}
               </button>
             </>
           )}
@@ -87,7 +104,7 @@ const ConnectSpecForm = ({ sourceUrl, setSourceUrl, isLoading, onConnect }) => {
           <Button
             type="submit"
             size="sm"
-            disabled={!sourceUrl.trim()}
+            disabled={mode === 'url' ? !isHttpUrl(sourceUrl.trim()) : !sourceUrl.trim()}
             loading={isLoading}
           >
             Connect
@@ -98,6 +115,9 @@ const ConnectSpecForm = ({ sourceUrl, setSourceUrl, isLoading, onConnect }) => {
             ? 'Supports OpenAPI 3.x specifications in JSON or YAML format'
             : 'Select a local OpenAPI/Swagger JSON or YAML file'}
         </p>
+        {error && (
+          <p className="setup-error">{error}</p>
+        )}
       </form>
 
       <div className="setup-features">

@@ -16,6 +16,7 @@ import StyledWrapper from './StyledWrapper';
 import MenuDropdown from 'ui/MenuDropdown/index';
 import Button from 'ui/Button';
 import { getRevealInFolderLabel } from 'utils/common/platform';
+import { openDevtoolsAndSwitchToTerminal } from 'utils/terminal';
 
 const ManageWorkspace = () => {
   const dispatch = useDispatch();
@@ -27,7 +28,8 @@ const ManageWorkspace = () => {
   const [deleteWorkspaceModal, setDeleteWorkspaceModal] = useState({ open: false, workspace: null });
 
   const sortedWorkspaces = useMemo(() => {
-    return sortWorkspaces(workspaces, preferences);
+    const persistedWorkspaces = workspaces.filter((w) => !w.isCreating);
+    return sortWorkspaces(persistedWorkspaces, preferences);
   }, [workspaces, preferences]);
 
   const handleBack = () => {
@@ -69,7 +71,6 @@ const ManageWorkspace = () => {
 
     try {
       await dispatch(createWorkspaceWithUniqueName(defaultLocation));
-      toast.success('Workspace created!');
     } catch (error) {
       toast.error(error?.message || 'Failed to create workspace');
     }
@@ -157,6 +158,7 @@ const ManageWorkspace = () => {
                     <MenuDropdown
                       placement="bottom-end"
                       items={[
+                        { id: 'open-in-terminal', label: 'Open in Terminal', onClick: () => openDevtoolsAndSwitchToTerminal(dispatch, workspace.pathname) },
                         { id: 'rename', label: 'Rename', onClick: () => handleRenameClick(workspace) },
                         { id: 'remove', label: 'Remove', onClick: () => handleCloseClick(workspace) }
                       ]}

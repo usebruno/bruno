@@ -2,6 +2,51 @@ import map from 'lodash/map';
 import { deleteSecretsInEnvs, deleteUidsInEnvs, deleteUidsInItems, isItemARequest } from '../common';
 import translateBruToPostman from '../utils/bruno-to-postman-translator';
 
+const isItemAFolder = (item) => item.type === 'folder';
+
+const sortItemsBySequence = (items) => [...items].sort((a, b) => a.seq - b.seq);
+
+const sortByNameThenSequence = (items) => {
+  const isSeqValid = (seq) => Number.isFinite(seq) && Number.isInteger(seq) && seq > 0;
+
+  const alphabeticallySorted = [...items].sort((a, b) => a.name && b.name && a.name.localeCompare(b.name));
+
+  const withoutSeq = alphabeticallySorted.filter((f) => !isSeqValid(f['seq']));
+  const withSeq = alphabeticallySorted.filter((f) => isSeqValid(f['seq'])).sort((a, b) => a.seq - b.seq);
+
+  const sortedItems = withoutSeq;
+
+  withSeq.forEach((item) => {
+    const position = item.seq - 1;
+    const existingItem = withoutSeq[position];
+
+    const hasItemWithSameSeq = Array.isArray(existingItem)
+      ? existingItem?.[0]?.seq === item.seq
+      : existingItem?.seq === item.seq;
+
+    if (hasItemWithSameSeq) {
+      const newGroup = Array.isArray(existingItem) ? [...existingItem, item] : [existingItem, item];
+      withoutSeq.splice(position, 1, newGroup);
+    } else {
+      withoutSeq.splice(position, 0, item);
+    }
+  });
+
+  return sortedItems.flat();
+};
+
+const sortItemsForExport = (items) => {
+  if (!items || !Array.isArray(items)) return [];
+
+  const folders = items.filter((item) => item && isItemAFolder(item));
+  const requests = items.filter((item) => item && isItemARequest(item));
+
+  const sortedFolders = sortByNameThenSequence(folders);
+  const sortedRequests = sortItemsBySequence(requests);
+
+  return [...sortedFolders, ...sortedRequests];
+};
+
 /**
  * Transforms a given URL string into an object representing the protocol, host, path, query, and variables.
  *
@@ -497,7 +542,9 @@ export const brunoToPostman = (collection) => {
       return [];
     }
 
-    return map(itemsArray, (item) => {
+    const sortedItems = sortItemsForExport(itemsArray);
+
+    return map(sortedItems, (item) => {
       if (!item) {
         return null;
       }

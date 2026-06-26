@@ -52,6 +52,11 @@ const AuthMode = ({ collection }) => {
       onClick: () => onModeChange('ntlm')
     },
     {
+      id: 'oauth1',
+      label: 'OAuth 1.0',
+      onClick: () => onModeChange('oauth1')
+    },
+    {
       id: 'oauth2',
       label: 'OAuth 2.0',
       onClick: () => onModeChange('oauth2')
@@ -70,13 +75,13 @@ const AuthMode = ({ collection }) => {
 
   return (
     <StyledWrapper>
-      <div className="inline-flex items-center cursor-pointer auth-mode-selector">
+      <div className="inline-flex items-center cursor-pointer auth-mode-selector" data-testid="auth-mode-selector">
         <MenuDropdown
           items={menuItems}
           placement="bottom-end"
           selectedItemId={authMode}
         >
-          <div className="flex items-center justify-center auth-mode-label select-none">
+          <div className="flex items-center justify-center auth-mode-label select-none" data-testid="auth-mode-label">
             {humanizeRequestAuthMode(authMode)} <IconCaretDown className="caret ml-1" size={14} strokeWidth={2} />
           </div>
         </MenuDropdown>

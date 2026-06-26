@@ -88,6 +88,8 @@ export type T_RunnerRequestExecutionResult = {
   request: T_EmptyRequest | T_Request;
   response: T_EmptyResponse | T_Response | T_SkippedResponse;
   status: null | undefined | string;
+  skipped?: boolean;
+  skipReason?: string;
   error: null | undefined | string;
   assertionResults?: T_AssertionResult[];
   testResults?: T_TestResult[];
@@ -110,6 +112,7 @@ export type T_RunSummary = {
   failedRequests: number;
   errorRequests: number;
   skippedRequests: number;
+  skippedByBail: number;
   totalAssertions: number;
   passedAssertions: number;
   failedAssertions: number;

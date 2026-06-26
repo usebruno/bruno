@@ -1,14 +1,31 @@
-const { get, each, find, compact, isString, filter } = require('lodash');
+const { get, each, find, isString, filter } = require('lodash');
 const fs = require('fs');
 const { getRequestUid, getExampleUid } = require('../cache/requestUids');
 const { uuid } = require('./common');
+const { posixifyPath } = require('./filesystem');
 const os = require('os');
 const { preferencesUtil } = require('../store/preferences');
 const path = require('path');
 const { DEFAULT_COLLECTION_FORMAT } = require('@usebruno/filestore');
+const { parseValueByDataType } = require('@usebruno/common/utils');
 
-const mergeHeaders = (collection, request, requestTreePath) => {
+/**
+ * Returns the variable's runtime value with datatype-driven coercion applied.
+ * The shared `parseValueByDataType` from `@usebruno/common/utils` honors
+ * draft dataType changes — e.g. a user picking `@number` on a "42" string
+ * via the UI takes effect at request-execution time without requiring a save.
+ */
+const resolveTypedValue = (v) => parseValueByDataType(v.value, v.dataType);
+
+const FORMAT_CONFIG = {
+  yml: { ext: '.yml', collectionFile: 'opencollection.yml', folderFile: 'folder.yml' },
+  bru: { ext: '.bru', collectionFile: 'collection.bru', folderFile: 'folder.bru' }
+};
+
+const mergeHeaders = (collection, request, requestTreePath, options = {}) => {
+  const { includeDisabledHeaders = false } = options;
   let headers = new Map();
+  let disabledHeaders = new Map();
 
   let collectionHeaders = collection?.draft?.root ? get(collection, 'draft.root.request.headers', []) : get(collection, 'root.request.headers', []);
   collectionHeaders.forEach((header) => {
@@ -18,6 +35,8 @@ const mergeHeaders = (collection, request, requestTreePath) => {
       } else {
         headers.set(header.name, header.value);
       }
+    } else if (header.name?.length > 0) {
+      disabledHeaders.set(header.name, header.value);
     }
   });
 
@@ -32,6 +51,8 @@ const mergeHeaders = (collection, request, requestTreePath) => {
           } else {
             headers.set(header.name, header.value);
           }
+        } else if (header.name?.length > 0) {
+          disabledHeaders.set(header.name, header.value);
         }
       });
     } else {
@@ -43,12 +64,17 @@ const mergeHeaders = (collection, request, requestTreePath) => {
           } else {
             headers.set(header.name, header.value);
           }
+        } else if (header.name?.length > 0) {
+          disabledHeaders.set(header.name, header.value);
         }
       });
     }
   }
 
-  request.headers = Array.from(headers, ([name, value]) => ({ name, value, enabled: true }));
+  request.headers = [
+    ...Array.from(headers, ([name, value]) => ({ name, value, enabled: true })),
+    ...(includeDisabledHeaders ? Array.from(disabledHeaders, ([name, value]) => ({ name, value, enabled: false })) : [])
+  ];
 };
 
 const mergeVars = (collection, request, requestTreePath = []) => {
@@ -58,8 +84,9 @@ const mergeVars = (collection, request, requestTreePath = []) => {
   let collectionVariables = {};
   collectionRequestVars.forEach((_var) => {
     if (_var.enabled) {
-      reqVars.set(_var.name, _var.value);
-      collectionVariables[_var.name] = _var.value;
+      const typed = resolveTypedValue(_var);
+      reqVars.set(_var.name, typed);
+      collectionVariables[_var.name] = typed;
     }
   });
   let folderVariables = {};
@@ -70,16 +97,18 @@ const mergeVars = (collection, request, requestTreePath = []) => {
       let vars = get(folderRoot, 'request.vars.req', []);
       vars.forEach((_var) => {
         if (_var.enabled) {
-          reqVars.set(_var.name, _var.value);
-          folderVariables[_var.name] = _var.value;
+          const typed = resolveTypedValue(_var);
+          reqVars.set(_var.name, typed);
+          folderVariables[_var.name] = typed;
         }
       });
     } else {
       const vars = i?.draft ? get(i, 'draft.request.vars.req', []) : get(i, 'request.vars.req', []);
       vars.forEach((_var) => {
         if (_var.enabled) {
-          reqVars.set(_var.name, _var.value);
-          requestVariables[_var.name] = _var.value;
+          const typed = resolveTypedValue(_var);
+          reqVars.set(_var.name, typed);
+          requestVariables[_var.name] = typed;
         }
       });
     }
@@ -102,7 +131,7 @@ const mergeVars = (collection, request, requestTreePath = []) => {
   let collectionResponseVars = get(collectionRoot, 'request.vars.res', []);
   collectionResponseVars.forEach((_var) => {
     if (_var.enabled) {
-      resVars.set(_var.name, _var.value);
+      resVars.set(_var.name, resolveTypedValue(_var));
     }
   });
   for (let i of requestTreePath) {
@@ -111,14 +140,14 @@ const mergeVars = (collection, request, requestTreePath = []) => {
       let vars = get(folderRoot, 'request.vars.res', []);
       vars.forEach((_var) => {
         if (_var.enabled) {
-          resVars.set(_var.name, _var.value);
+          resVars.set(_var.name, resolveTypedValue(_var));
         }
       });
     } else {
       const vars = i?.draft ? get(i, 'draft.request.vars.res', []) : get(i, 'request.vars.res', []);
       vars.forEach((_var) => {
         if (_var.enabled) {
-          resVars.set(_var.name, _var.value);
+          resVars.set(_var.name, resolveTypedValue(_var));
         }
       });
     }
@@ -134,12 +163,9 @@ const mergeVars = (collection, request, requestTreePath = []) => {
   }
 };
 
-/**
- * Wraps a script in an IIFE closure to isolate its scope
- * @param {string} script - The script code to wrap
- * @returns {string} The wrapped script
- */
-const wrapScriptInClosure = (script) => {
+// __bruSetScope must stay on the IIFE opener line so wrapAndJoinScripts' line
+// counts (and stack-trace mapping) are unaffected.
+const wrapScriptInClosure = (script, scopeInfo = null) => {
   if (!script || script.trim() === '') {
     return '';
   }
@@ -147,9 +173,102 @@ const wrapScriptInClosure = (script) => {
   // Wrap script in async IIFE to create isolated scope
   // This prevents variable re-declaration errors and allows early returns
   // to only affect the current script segment
-  return `await (async () => {
+  const scopeSetter = scopeInfo
+    ? ` __bruSetScope(${JSON.stringify(scopeInfo)});`
+    : '';
+  return `await (async () => {${scopeSetter}
 ${script}
 })();`;
+};
+
+/**
+ * Wraps each script segment in an async IIFE, joins them with double newlines,
+ * and records the line range of the "request" segment for stack-trace mapping.
+ *
+ * @param {string[]} scripts - Script segments in order (e.g. collection, folders, request).
+ * @param {number} requestIndex - Index in scripts of the request-level segment.
+ * @param {Array|null} segmentSources - Source file info for each segment (null for request segment).
+ * @returns {{ code: string, metadata: { requestStartLine: number, requestEndLine: number } | null }}
+ *
+ * @example
+ * ** Input **
+ * const scripts = ['let col = 1;', 'let fold = 2;', 'let req = 3;'];
+ * const requestIndex = 2;
+ * const segmentSources = [
+ *   { source: 'collection', fileName: 'collection.bru' },
+ *   { source: 'folder', fileName: 'folder.bru' },
+ *   null // request segment — no source needed
+ * ];
+ *
+ * ** Output **
+ * {
+ *   code:
+ *       'await (async () => {\n'   // line 1
+ *      + 'let col = 1;\n'           // line 2
+ *      + '})();\n'                  // line 3
+ *      + '\n'                       // line 4 (blank separator)
+ *      + 'await (async () => {\n'   // line 5
+ *      + 'let fold = 2;\n'          // line 6
+ *      + '})();\n'                  // line 7
+ *      + '\n'                       // line 8 (blank separator)
+ *      + 'await (async () => {\n'   // line 9
+ *      + 'let req = 3;\n'           // line 10
+ *      + '})();',                   // line 11
+ *   metadata: {
+ *      requestStartLine: 9,
+ *      requestEndLine: 11,
+ *     segments: [
+ *       { startLine: 1, endLine: 3, source: 'collection', fileName: 'collection.bru' },
+ *       { startLine: 5, endLine: 7, source: 'folder', fileName: 'folder.bru' }
+ *     ]
+ *   }
+ * }
+ */
+const wrapAndJoinScripts = (scripts, requestIndex, segmentSources = null, requestSegmentSource = null) => {
+  const buildScopeInfo = (i) => {
+    if (i === requestIndex && requestSegmentSource?.displayPath) {
+      return { type: 'request', sourceFile: requestSegmentSource.displayPath };
+    }
+    const seg = segmentSources?.[i];
+    if (!seg?.type || !seg?.displayPath) return null;
+    return { type: seg.type, sourceFile: seg.displayPath };
+  };
+
+  const wrapped = scripts.map((s, i) => wrapScriptInClosure(s, buildScopeInfo(i)));
+  const code = wrapped.filter(Boolean).join('\n\n');
+
+  let offset = 0;
+  let metadata = null;
+  const segments = [];
+
+  for (let i = 0; i < scripts.length; i++) {
+    if (!wrapped[i]) continue;
+    const lineCount = wrapped[i].split('\n').length;
+    const startLine = offset + 1;
+    const endLine = offset + lineCount;
+
+    if (i === requestIndex) {
+      metadata = { requestStartLine: startLine, requestEndLine: endLine };
+    }
+
+    if (segmentSources?.[i]) {
+      segments.push({ startLine, endLine, ...segmentSources[i] });
+    }
+
+    offset += lineCount + 1;
+  }
+
+  // Request-level script was empty, but collection/folder scripts produced code.
+  // Use a zero line range to prevent stack traces from mapping to the request file.
+  if (!metadata && code) {
+    metadata = { requestStartLine: 0, requestEndLine: 0 };
+  }
+
+  if (metadata && segments.length > 0) {
+    metadata.segments = segments;
+  }
+
+  return { code, metadata };
 };
 
 const mergeScripts = (collection, request, requestTreePath, scriptFlow) => {
@@ -158,74 +277,138 @@ const mergeScripts = (collection, request, requestTreePath, scriptFlow) => {
   let collectionPostResScript = get(collectionRoot, 'request.script.res', '');
   let collectionTests = get(collectionRoot, 'request.tests', '');
 
+  // Build source file info for error trace mapping
+  const format = collection.format || 'bru';
+  const config = FORMAT_CONFIG[format];
+  const collectionSource = {
+    type: 'collection',
+    filePath: path.join(collection.pathname, config.collectionFile),
+    displayPath: config.collectionFile
+  };
+
+  const requestItem = requestTreePath?.[requestTreePath.length - 1];
+  const requestPathname = request?.pathname || requestItem?.pathname;
+  const requestSegmentSource = requestPathname && collection?.pathname
+    ? { displayPath: posixifyPath(path.relative(collection.pathname, requestPathname)) }
+    : null;
+
+  const withContent = (source, script) =>
+    script?.trim() ? { ...source, scriptContent: script } : source;
+
   let combinedPreReqScript = [];
+  let combinedPreReqSources = [];
   let combinedPostResScript = [];
+  let combinedPostResSources = [];
   let combinedTests = [];
+  let combinedTestsSources = [];
+
   for (let i of requestTreePath) {
     if (i.type === 'folder') {
       const folderRoot = i?.draft || i?.root;
+      const folderSource = {
+        type: 'folder',
+        filePath: path.join(i.pathname, config.folderFile),
+        displayPath: posixifyPath(path.relative(collection.pathname, path.join(i.pathname, config.folderFile)))
+      };
+
       let preReqScript = get(folderRoot, 'request.script.req', '');
       if (preReqScript && preReqScript.trim() !== '') {
         combinedPreReqScript.push(preReqScript);
+        combinedPreReqSources.push(withContent(folderSource, preReqScript));
       }
 
       let postResScript = get(folderRoot, 'request.script.res', '');
       if (postResScript && postResScript.trim() !== '') {
         combinedPostResScript.push(postResScript);
+        combinedPostResSources.push(withContent(folderSource, postResScript));
       }
 
       let tests = get(folderRoot, 'request.tests', '');
       if (tests && tests?.trim?.() !== '') {
         combinedTests.push(tests);
+        combinedTestsSources.push(withContent(folderSource, tests));
       }
     }
   }
+
+  // Capture original request script content before overwriting with combined code
+  const originalPreReqScript = request?.script?.req || '';
+  const originalPostResScript = request?.script?.res || '';
+  const originalTests = request?.tests || '';
+
+  // Wrap scripts, join them, and annotate metadata with the original request script content.
+  // Returns { code, metadata } where metadata.requestScriptContent is set.
+  const buildCombinedScript = (scripts, requestIndex, sources, originalScript) => {
+    const result = wrapAndJoinScripts(scripts, requestIndex, sources, requestSegmentSource);
+    if (result.metadata) {
+      result.metadata.requestScriptContent = originalScript;
+    }
+    return result;
+  };
 
   // Wrap each script segment in its own closure and join them
   // This allows each script to run separately with its own scope,
   // preventing variable re-declaration errors and allowing early returns
   // to only affect that specific script segment
+  const collectionPreReqSource = withContent(collectionSource, collectionPreReqScript);
   const preReqScripts = [
     collectionPreReqScript,
     ...combinedPreReqScript,
-    request?.script?.req || ''
+    originalPreReqScript
   ];
-  request.script.req = compact(preReqScripts.map(wrapScriptInClosure)).join(os.EOL + os.EOL);
+  const preReqSources = [collectionPreReqSource, ...combinedPreReqSources, null];
+  const preReq = buildCombinedScript(preReqScripts, preReqScripts.length - 1, preReqSources, originalPreReqScript);
+  request.script.req = preReq.code;
+  request.script.reqMetadata = preReq.metadata;
 
   // Handle post-response scripts based on scriptFlow
+  const collectionPostResSource = withContent(collectionSource, collectionPostResScript);
   if (scriptFlow === 'sequential') {
     const postResScripts = [
       collectionPostResScript,
       ...combinedPostResScript,
-      request?.script?.res || ''
+      originalPostResScript
     ];
-    request.script.res = compact(postResScripts.map(wrapScriptInClosure)).join(os.EOL + os.EOL);
+    const postResSources = [collectionPostResSource, ...combinedPostResSources, null];
+    const postRes = buildCombinedScript(postResScripts, postResScripts.length - 1, postResSources, originalPostResScript);
+    request.script.res = postRes.code;
+    request.script.resMetadata = postRes.metadata;
   } else {
     // Reverse order for non-sequential flow
     const postResScripts = [
-      request?.script?.res || '',
+      originalPostResScript,
       ...[...combinedPostResScript].reverse(),
       collectionPostResScript
     ];
-    request.script.res = compact(postResScripts.map(wrapScriptInClosure)).join(os.EOL + os.EOL);
+    const postResSources = [null, ...[...combinedPostResSources].reverse(), collectionPostResSource];
+    const postRes = buildCombinedScript(postResScripts, 0, postResSources, originalPostResScript);
+    request.script.res = postRes.code;
+    request.script.resMetadata = postRes.metadata;
   }
 
   // Handle tests based on scriptFlow
+  const collectionTestsSource = withContent(collectionSource, collectionTests);
   if (scriptFlow === 'sequential') {
     const testScripts = [
       collectionTests,
       ...combinedTests,
-      request?.tests || ''
+      originalTests
     ];
-    request.tests = compact(testScripts.map(wrapScriptInClosure)).join(os.EOL + os.EOL);
+    const testSources = [collectionTestsSource, ...combinedTestsSources, null];
+    const tests = buildCombinedScript(testScripts, testScripts.length - 1, testSources, originalTests);
+    request.tests = tests.code;
+    request.testsMetadata = tests.metadata;
   } else {
     // Reverse order for non-sequential flow
     const testScripts = [
-      request?.tests || '',
+      originalTests,
       ...[...combinedTests].reverse(),
       collectionTests
     ];
-    request.tests = compact(testScripts.map(wrapScriptInClosure)).join(os.EOL + os.EOL);
+    const testSources = [null, ...[...combinedTestsSources].reverse(), collectionTestsSource];
+    const tests = buildCombinedScript(testScripts, 0, testSources, originalTests);
+    request.tests = tests.code;
+    request.testsMetadata = tests.metadata;
   }
 };
 
@@ -425,6 +608,8 @@ const hydrateRequestWithUuid = (request, pathname) => {
   bodyFormUrlEncoded.forEach((param) => (param.uid = uuid()));
   bodyMultipartForm.forEach((param) => (param.uid = uuid()));
   file.forEach((param) => (param.uid = uuid()));
+  const wsMessages = get(request, 'request.body.ws', []);
+  wsMessages.forEach((msg) => (msg.uid = uuid()));
   examples.forEach((example, eIndex) => {
     example.uid = getExampleUid(pathname, eIndex);
     example.itemUid = request.uid;
@@ -502,6 +687,7 @@ const transformRequestToSaveToFilesystem = (item) => {
         name: param.name,
         value: param.value,
         description: param.description,
+        annotations: param.annotations,
         type: param.type,
         enabled: param.enabled
       });
@@ -514,6 +700,7 @@ const transformRequestToSaveToFilesystem = (item) => {
       name: header.name,
       value: header.value,
       description: header.description,
+      annotations: header.annotations,
       enabled: header.enabled
     });
   });
@@ -601,7 +788,7 @@ const getEnvVars = (environment = {}) => {
   const envVars = {};
   each(variables, (variable) => {
     if (variable.enabled) {
-      envVars[variable.name] = variable.value;
+      envVars[variable.name] = resolveTypedValue(variable);
     }
   });
 
@@ -636,7 +823,7 @@ const mergeAuth = (collection, request, requestTreePath) => {
       const folderRoot = i?.draft || i?.root;
       const folderAuth = get(folderRoot, 'request.auth');
       // Only consider folders that have a valid auth mode
-      if (folderAuth && folderAuth.mode && folderAuth.mode !== 'none' && folderAuth.mode !== 'inherit') {
+      if (folderAuth && folderAuth.mode && folderAuth.mode !== 'inherit') {
         effectiveAuth = folderAuth;
         lastFolderWithAuth = i;
       }
@@ -742,6 +929,7 @@ module.exports = {
   mergeVars,
   mergeScripts,
   mergeAuth,
+  wrapAndJoinScripts,
   getTreePathFromCollectionToItem,
   flattenItems,
   findItem,

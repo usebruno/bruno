@@ -22,7 +22,6 @@ const StyledWrapper = styled.div`
   }
 
   .setup-form {
-    /* background: ${(props) => props.theme.background.surface0}; */
     border: 1px solid ${(props) => props.theme.border.border1};
     border-radius: ${(props) => props.theme.border.radius.md};
     padding: 1rem;
@@ -40,6 +39,7 @@ const StyledWrapper = styled.div`
       display: flex;
       gap: 0.5rem;
       align-items: center;
+      margin-top: 0.25rem;
     }
 
     .url-input {
@@ -68,6 +68,12 @@ const StyledWrapper = styled.div`
     margin: 0.5rem 0 0 0;
   }
 
+  .setup-error {
+    font-size: ${(props) => props.theme.font.size.sm};
+    color: ${(props) => props.theme.colors.text.danger};
+    margin: 0.5rem 0 0 0;
+  }
+
   .setup-features {
     display: flex;
     flex-direction: column;
@@ -84,40 +90,6 @@ const StyledWrapper = styled.div`
     svg {
       color: ${(props) => props.theme.colors.text.green};
       flex-shrink: 0;
-    }
-  }
-
-  .url-label {
-    display: block;
-    font-size: ${(props) => props.theme.font.size.xs};
-    font-weight: 500;
-    color: ${(props) => props.theme.colors.text.muted};
-    margin-bottom: 0.375rem;
-  }
-
-  .url-row {
-    display: flex;
-    gap: 0.5rem;
-    align-items: center;
-  }
-
-  .url-input {
-    flex: 1;
-    padding: 0.375rem 0.75rem;
-    font-size: ${(props) => props.theme.font.size.sm};
-    font-family: monospace;
-    color: ${(props) => props.theme.text};
-    background: ${(props) => props.theme.input.bg};
-    border: 1px solid ${(props) => props.theme.input.border};
-    border-radius: ${(props) => props.theme.border.radius.md};
-    outline: none;
-
-    &:focus {
-      border-color: ${(props) => props.theme.input.focusBorder};
-    }
-
-    &::placeholder {
-      color: ${(props) => props.theme.colors.text.muted};
     }
   }
 
@@ -161,20 +133,20 @@ const StyledWrapper = styled.div`
       flex-shrink: 0;
     }
 
+    .spec-url-label {
+      color: ${(props) => props.theme.colors.text.muted};
+      flex-shrink: 0;
+    }
+
     .spec-url-row {
       display: flex;
       align-items: center;
       gap: 6px;
-
-      .spec-url-label {
-        font-size: 11px;
-        color: ${(props) => props.theme.colors.text.muted};
-        flex-shrink: 0;
-      }
+      font-size: 11px;
+      margin-top: 0.35rem;
 
       .spec-url-value {
         font-family: monospace;
-        font-size: 11px;
         color: ${(props) => props.theme.colors.text.subtext0};
         overflow: hidden;
         text-overflow: ellipsis;
@@ -201,6 +173,27 @@ const StyledWrapper = styled.div`
         }
       }
 
+    }
+
+    .linked-collection-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+
+      .linked-collection-name {
+        color: ${(props) => props.theme.colors.text.subtext0};
+      }
+
+      .sync-status-icon {
+        &.in-sync {
+          color: ${(props) => props.theme.colors.text.green};
+        }
+
+        &.not-in-sync {
+          color: ${(props) => props.theme.colors.text.warning};
+        }
+      }
     }
 
     .copy-btn {
@@ -279,59 +272,8 @@ const StyledWrapper = styled.div`
       gap: 8px;
     }
 
-    .status-dot {
-      position: relative;
-      width: 12px;
-      height: 12px;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
-
-      &::before {
-        content: '';
-        position: absolute;
-        width: 7px;
-        height: 7px;
-        border-radius: 50%;
-        opacity: 0.35;
-        animation: radiate 1.6s ease-out infinite;
-      }
-
-      &::after {
-        content: '';
-        position: relative;
-        width: 7px;
-        height: 7px;
-        border-radius: 50%;
-      }
-
-      &.success {
-        &::before, &::after { background: ${(props) => props.theme.colors.text.green}; }
-        &::before { animation: none; }
-      }
-      &.warning {
-        &::before, &::after { background: ${(props) => props.theme.colors.text.warning}; }
-      }
-      &.muted {
-        &::before, &::after { background: ${(props) => props.theme.colors.text.muted}; }
-      }
-      &.danger {
-        &::before, &::after { background: ${(props) => props.theme.colors.text.danger}; }
-      }
-      &.info {
-        &::before, &::after { background: ${(props) => props.theme.status.info.text}; }
-      }
-    }
-
-    .status-check-icon {
-      flex-shrink: 0;
-      color: ${(props) => props.theme.colors.text.green};
-    }
-
-    .banner-title {
-      font-size: 12px;
-      font-weight: 500;
+    .status-dot.success::before {
+      animation: none;
     }
 
     .banner-subtitle {
@@ -404,6 +346,14 @@ const StyledWrapper = styled.div`
       font-size: 13px;
       font-weight: 500;
       color: ${(props) => props.theme.text};
+
+      svg {
+        opacity: 0.3;
+      }
+
+      &:hover svg {
+        opacity: 0.6;
+      }
     }
   }
 
@@ -456,58 +406,7 @@ const StyledWrapper = styled.div`
       min-width: 0;
     }
 
-    .status-dot {
-      position: relative;
-      width: 12px;
-      height: 12px;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
-
-      &::before {
-        content: '';
-        position: absolute;
-        width: 7px;
-        height: 7px;
-        border-radius: 50%;
-        opacity: 0.35;
-        animation: radiate 1.6s ease-out infinite;
-      }
-
-      &::after {
-        content: '';
-        position: relative;
-        width: 7px;
-        height: 7px;
-        border-radius: 50%;
-      }
-
-      &.success {
-        &::before, &::after { background: ${(props) => props.theme.colors.text.green}; }
-      }
-      &.info {
-        &::before, &::after { background: ${(props) => props.theme.status.info.text}; }
-      }
-      &.warning {
-        &::before, &::after { background: ${(props) => props.theme.colors.text.warning}; }
-      }
-      &.danger {
-        &::before, &::after { background: ${(props) => props.theme.colors.text.danger}; }
-      }
-      &.muted {
-        &::before, &::after { background: ${(props) => props.theme.colors.text.muted}; }
-      }
-    }
-
-    .status-check-icon {
-      flex-shrink: 0;
-      color: ${(props) => props.theme.colors.text.green};
-    }
-
     .banner-title {
-      font-size: 12px;
-      font-weight: 500;
       color: ${(props) => props.theme.text};
 
       .version-code {
@@ -548,6 +447,60 @@ const StyledWrapper = styled.div`
     100% { transform: scale(2.8); opacity: 0; }
   }
 
+  .status-dot {
+    position: relative;
+    width: 12px;
+    height: 12px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+
+    &::before {
+      content: '';
+      position: absolute;
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      opacity: 0.35;
+      animation: radiate 1.6s ease-out infinite;
+    }
+
+    &::after {
+      content: '';
+      position: relative;
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+    }
+
+    &.success {
+      &::before, &::after { background: ${(props) => props.theme.colors.text.green}; }
+    }
+    &.warning {
+      &::before, &::after { background: ${(props) => props.theme.colors.text.warning}; }
+    }
+    &.muted {
+      &::before, &::after { background: ${(props) => props.theme.colors.text.muted}; }
+    }
+    &.danger {
+      &::before, &::after { background: ${(props) => props.theme.colors.text.danger}; }
+    }
+    &.info {
+      &::before, &::after { background: ${(props) => props.theme.status.info.text}; }
+    }
+  }
+
+  .status-check-icon {
+    flex-shrink: 0;
+    color: ${(props) => props.theme.colors.text.green};
+  }
+
+  .banner-title {
+    font-size: 12px;
+    font-weight: 500;
+  }
+
   /* Summary Cards */
 
   .sync-summary-title-row {
@@ -584,6 +537,7 @@ const StyledWrapper = styled.div`
 
   .sync-summary-cards {
     display: flex;
+    flex-wrap: wrap;
     gap: 10px;
   }
 
@@ -671,7 +625,7 @@ const StyledWrapper = styled.div`
     .settings-label {
       font-size: 11px;
       font-weight: 600;
-      color: ${(props) => props.theme.colors.text.subtext0};
+      color: ${(props) => props.theme.text};
       display: block;
       margin-bottom: 5px;
     }
@@ -716,7 +670,7 @@ const StyledWrapper = styled.div`
 
     .toggle-description {
       font-size: 11px;
-      color: ${(props) => props.theme.colors.text.muted};
+      color: ${(props) => props.theme.text};
       margin-top: 2px;
     }
 
@@ -733,7 +687,7 @@ const StyledWrapper = styled.div`
       background: ${(props) => props.theme.colors.text.muted};
 
       &.active {
-        background: ${(props) => props.theme.colors.text.green};
+        background: ${(props) => props.theme.button2.color.primary.bg};
       }
 
       .toggle-knob {
@@ -770,9 +724,9 @@ const StyledWrapper = styled.div`
         transition: all 0.15s;
 
         &.active {
-          border-color: ${(props) => props.theme.button2.color.primary.border};
-          background: ${(props) => props.theme.button2.color.primary.bg};
-          color: ${(props) => props.theme.button2.color.primary.text};
+          border-color: ${(props) => props.theme.accents.primary};
+          background: ${(props) => rgba(props.theme.accents.primary, 0.07)};
+          color: ${(props) => props.theme.accents.primary};
         }
       }
     }
@@ -802,8 +756,6 @@ const StyledWrapper = styled.div`
       gap: 8px;
     }
   }
-
-
 
   /* State Messages */
   .state-message {
@@ -859,54 +811,7 @@ const StyledWrapper = styled.div`
     }
   }
 
-  .collection-status-section {
-    margin-top: 20px;
-
-    .change-section {
-      margin-top: 0.75rem;
-
-      .section-body.expandable-mode {
-        border-radius: 0 0 8px 8px;
-        max-height: none; /* Override default max-height so all items remain visible */
-      }
-    }
-
-    /* Local Changes tab: override hover background */
-    .endpoint-review-row .review-row-header:hover {
-      background: ${(props) => props.theme.sidebar.collection.item.hoverBg};
-    }
-
-    .sync-review-empty-state {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 4rem 2rem;
-      text-align: center;
-
-      .empty-state-icon {
-        color: var(--color-text-muted, #9ca3af);
-        margin-bottom: 1rem;
-      }
-
-      h4 {
-        font-size: ${(props) => props.theme.font.size.base};
-        font-weight: 500;
-        color: ${(props) => props.theme.text};
-        margin: 0 0 0.375rem 0;
-      }
-
-      p {
-        font-size: ${(props) => props.theme.font.size.xs};
-        line-height: 1.5;
-        max-width: 400px;
-        margin: 0;
-        color: ${(props) => props.theme.colors.text.muted};
-      }
-    }
-  }
-
-  .sync-tab-content .sync-review-empty-state {
+  .sync-review-empty-state {
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -933,6 +838,20 @@ const StyledWrapper = styled.div`
       margin: 0;
       color: ${(props) => props.theme.colors.text.muted};
     }
+  }
+
+  .collection-status-section {
+    margin-top: 20px;
+
+    .change-section {
+      margin-top: 0.75rem;
+
+      .section-body.expandable-mode {
+        border-radius: 0 0 8px 8px;
+        max-height: none; /* Override default max-height so all items remain visible */
+      }
+    }
+
   }
 
   /* Expandable endpoint rows — shared base styles */
@@ -1051,7 +970,7 @@ const StyledWrapper = styled.div`
         &.type-local-only { background: ${(props) => props.theme.colors.text.muted}; }
         &.type-in-sync { background: ${(props) => props.theme.colors.text.green}; }
         &.type-conflict { background: ${(props) => props.theme.colors.text.danger}; }
-        &.type-spec-modified { background: ${(props) => props.theme.colors.text.info}; }
+        &.type-spec-modified { background: ${(props) => props.theme.colors.text.warning}; }
         &.type-collection-drift { background: ${(props) => props.theme.colors.text.warning}; }
       }
 
@@ -1069,8 +988,8 @@ const StyledWrapper = styled.div`
         height: 1.25rem;
         padding: 0 0.3rem;
         font-size: ${(props) => props.theme.font.size.xs};
-        color: ${(props) => props.theme.colors.text.subtext0};
-        background: ${(props) => props.theme.background.surface0};
+        color: ${(props) => props.theme.colors.text.subtext1};
+        background: ${(props) => props.theme.background.surface1};
         border-radius: 999px;
       }
 
@@ -1182,10 +1101,6 @@ const StyledWrapper = styled.div`
       }
     }
   }
-
-
-
-
 
   /* Endpoint Details */
   .endpoint-details {
@@ -1332,15 +1247,10 @@ const StyledWrapper = styled.div`
     }
   }
 
-
-
-
-
   /* Disconnect Modal */
   .disconnect-modal {
     .disconnect-message {
       font-size: ${(props) => props.theme.font.size.sm};
-      color: ${(props) => props.theme.colors.text.muted};
       line-height: 1.5;
       margin-bottom: 1.5rem;
     }
@@ -1370,7 +1280,7 @@ const StyledWrapper = styled.div`
   .action-confirm-modal {
     .confirm-message {
       font-size: ${(props) => props.theme.font.size.sm};
-      color: ${(props) => props.theme.colors.text.muted};
+      color: ${(props) => props.theme.text};
       line-height: 1.5;
       margin-bottom: 1.5rem;
     }
@@ -1469,8 +1379,6 @@ const StyledWrapper = styled.div`
       text-decoration: underline;
     }
   }
-
-
 
   /* Sync Review Modal */
   .sync-review-page {
@@ -1596,139 +1504,164 @@ const StyledWrapper = styled.div`
       border-radius: ${(props) => props.theme.border.radius.sm};
       border: 1px solid ${(props) => props.theme.border.border1};
       overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      background: ${(props) => props.theme.bg};
 
       .diff-column-headers {
-        display: flex;
+        display: grid;
+        grid-template-columns: 9ch 1fr 9ch 1fr;
         border-bottom: 1px solid ${(props) => props.theme.border.border1};
+        background: ${(props) => props.theme.bg};
+        flex-shrink: 0;
 
         .diff-column-label {
-          flex: 1;
           padding: 6px 12px;
           font-size: 12px;
           font-weight: 600;
           color: ${(props) => props.theme.colors.text.muted};
+          grid-column: span 2;
 
-          &:first-child {
-            border-right: 1px solid ${(props) => props.theme.border.border1};
+          &:last-child {
+            border-left: 1px solid ${(props) => props.theme.border.border1};
           }
         }
       }
 
-      .d2h-wrapper {
-        background-color: ${(props) => props.theme.bg} !important;
+      /* The Virtuoso scroll container fills the rest of the modal body. */
+      > div[data-testid='virtuoso-scroller'],
+      > div:last-child {
+        flex: 1 1 auto;
+        min-height: 0;
+      }
+
+      /* Active block gets a persistent 3px yellow bar down the left edge. */
+      .diff-row {
+        display: grid;
+        grid-template-columns: 9ch 1fr 9ch 1fr;
         font-family: 'Fira Code', monospace;
         font-size: 12px;
+        line-height: 1.5;
+        /* Must match Virtuoso's fixedItemHeight in SpecDiffModal/index.js */
+        min-height: 18px;
+        color: ${(props) => props.theme.text};
+        font-variant-ligatures: none;
+        font-feature-settings: 'liga' 0, 'calt' 0;
       }
 
-      .d2h-file-wrapper {
-        border: none;
-        border-radius: 0;
-        margin-bottom: 0;
+      /* Vertical divider between the two side-by-side panels. Applied to the
+         third grid cell (right-side line number), aligned with the header's
+         existing border-right on the "Current Spec" label. */
+      .diff-row > *:nth-child(3) {
+        border-left: 1px solid ${(props) => props.theme.border.border1};
       }
 
-      .d2h-file-header {
-        display: none;
+      .diff-row.diff-row-focused > .diff-cell-num:first-child {
+        box-shadow: inset 3px 0 0 ${(props) => props.theme.colors.text.yellow};
       }
 
-      .d2h-files-diff {
-        width: 100%;
+      .diff-row.diff-row-focused > .diff-cell-num {
+        color: ${(props) => props.theme.text};
+        font-weight: 600;
+      }
 
-        .d2h-file-side-diff:first-child {
-          border-right: 1px solid ${(props) => props.theme.border.border1};
+      .diff-cell-num {
+        padding: 0 0.5em;
+        text-align: right;
+        color: ${(props) => props.theme.colors.text.muted};
+        user-select: none;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+
+        &.diff-kind-del {
+          background-color: color-mix(in srgb, ${(props) => props.theme.colors.text.danger} 22%, transparent);
+        }
+
+        &.diff-kind-ins {
+          background-color: color-mix(in srgb, ${(props) => props.theme.colors.text.green} 15%, transparent);
+        }
+
+        &.diff-kind-empty {
+          background-color: ${(props) => rgba(props.theme.colors.text.muted, 0.05)};
         }
       }
 
-      .d2h-code-side-linenumber {
-        background: transparent !important;
-        position: static !important;
+      .diff-cell-code {
+        display: flex;
+        min-width: 0;
+        padding: 0 0.5em;
+        white-space: pre;
+        overflow: hidden;
+
+        &.diff-kind-del {
+          background-color: color-mix(in srgb, ${(props) => props.theme.colors.text.danger} 22%, transparent);
+        }
+
+        &.diff-kind-ins {
+          background-color: color-mix(in srgb, ${(props) => props.theme.colors.text.green} 15%, transparent);
+        }
+
+        &.diff-kind-empty {
+          background-color: ${(props) => rgba(props.theme.colors.text.muted, 0.05)};
+        }
       }
 
-      .d2h-diff-tbody {
-        tr td { border: none !important; }
+      .diff-prefix {
+        width: 1em;
+        flex-shrink: 0;
+        color: ${(props) => props.theme.colors.text.muted};
+        user-select: none;
       }
 
-      .d2h-ins {
-        background-color: color-mix(in srgb, ${(props) => props.theme.colors.text.green} 15%, transparent) !important;
-        border-color: color-mix(in srgb, ${(props) => props.theme.colors.text.green} 40%, transparent) !important;
+      .diff-content {
+        flex: 1 1 auto;
+        min-width: 0;
+        overflow-x: auto;
+        scrollbar-width: thin;
+
+        del {
+          background-color: color-mix(in srgb, ${(props) => props.theme.colors.text.danger} 40%, transparent);
+          text-decoration: none;
+        }
+
+        ins {
+          background-color: color-mix(in srgb, ${(props) => props.theme.colors.text.green} 40%, transparent);
+          text-decoration: none;
+        }
       }
 
-      .d2h-del {
-        background-color: color-mix(in srgb, ${(props) => props.theme.colors.text.danger} 15%, transparent) !important;
-        border-color: color-mix(in srgb, ${(props) => props.theme.colors.text.danger} 40%, transparent) !important;
-      }
+      /* Hunk row must be exactly 18px so Virtuoso's fixedItemHeight is
+         accurate. Borders would add 2px; we use inset box-shadow to get the
+         visual top/bottom rule without consuming layout space. Vertical
+         padding removed for the same reason. */
+      .diff-row-hunk {
+        grid-template-columns: 1fr;
+        background-color: ${(props) => rgba(props.theme.colors.text.muted, 0.08)};
+        color: ${(props) => props.theme.colors.text.muted};
+        box-shadow:
+          inset 0 1px 0 ${(props) => props.theme.border.border1},
+          inset 0 -1px 0 ${(props) => props.theme.border.border1};
 
-      .d2h-file-diff .d2h-ins.d2h-change {
-        background-color: color-mix(in srgb, ${(props) => props.theme.colors.text.green} 25%, transparent) !important;
+        .diff-cell-hunk {
+          padding: 0 0.75em;
+          font-family: 'Fira Code', monospace;
+          font-size: 11px;
+          white-space: pre;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
       }
+    }
 
-      .d2h-file-diff .d2h-del.d2h-change {
-        background-color: color-mix(in srgb, ${(props) => props.theme.colors.text.warning} 20%, transparent) !important;
-      }
-
-      .d2h-code-line ins,
-      .d2h-code-side-line ins {
-        background-color: color-mix(in srgb, ${(props) => props.theme.colors.text.green} 40%, transparent) !important;
-        text-decoration: none;
-      }
-
-      .d2h-code-line del,
-      .d2h-code-side-line del {
-        background-color: color-mix(in srgb, ${(props) => props.theme.colors.text.danger} 40%, transparent) !important;
-        text-decoration: none;
-      }
-
-      .d2h-code-line,
-      .d2h-code-side-line {
-        color: ${(props) => props.theme.text} !important;
-        word-break: break-all;
-      }
-
-      .d2h-code-line-ctn {
-        word-break: break-all;
-      }
-
-      .d2h-tag {
-        font-size: 9px;
-        font-weight: 500;
-        padding: 1px 5px;
-        border-radius: ${(props) => props.theme.border.radius.sm};
-        text-transform: uppercase;
-        letter-spacing: 0.02em;
-        border: none;
-      }
-
-      .d2h-changed-tag {
-        background-color: color-mix(in srgb, ${(props) => props.theme.colors.text.warning} 15%, transparent);
-        color: ${(props) => props.theme.colors.text.warning};
-      }
-
-      .d2h-added-tag {
-        background-color: color-mix(in srgb, ${(props) => props.theme.colors.text.green} 13%, transparent);
-        color: ${(props) => props.theme.colors.text.green};
-      }
-
-      .d2h-deleted-tag {
-        background-color: color-mix(in srgb, ${(props) => props.theme.colors.text.danger} 13%, transparent);
-        color: ${(props) => props.theme.colors.text.danger};
-      }
-
-      .d2h-renamed-tag,
-      .d2h-moved-tag {
-        display: none;
-      }
-
-      .d2h-file-wrapper,
-      .d2h-file-diff,
-      .d2h-code-wrapper,
-      .d2h-diff-table,
-      .d2h-code-line,
-      .d2h-code-side-line,
-      .d2h-code-line-ctn,
-      .d2h-code-linenumber,
-      .d2h-code-side-linenumber {
-        font-family: 'Fira Code', monospace !important;
-        font-size: 12px !important;
-      }
+    .text-diff-loading {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      padding: 2rem;
+      color: ${(props) => props.theme.colors.text.muted};
+      font-size: ${(props) => props.theme.font.size.sm};
     }
 
     .text-diff-empty {
@@ -1739,6 +1672,15 @@ const StyledWrapper = styled.div`
     }
 
     .spec-diff-modal {
+
+      .spec-diff-header {
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+      }
+
       .spec-diff-badges {
         display: flex;
         gap: 0.5rem;
@@ -1749,12 +1691,51 @@ const StyledWrapper = styled.div`
       .spec-diff-subtitle {
         font-size: ${(props) => props.theme.font.size.sm};
         color: ${(props) => props.theme.colors.text.muted};
-        margin: 0 0 0.75rem 0;
+      }
+
+      .spec-diff-nav {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+
+        .spec-diff-nav-counter {
+          font-size: ${(props) => props.theme.font.size.sm};
+          color: ${(props) => props.theme.colors.text.muted};
+        }
+
+        .spec-diff-nav-buttons {
+          display: flex;
+          gap: 0.5rem;
+        }
+
+        .spec-diff-nav-btn {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.25rem;
+          padding: 0.25rem 0.5rem;
+          font-size: ${(props) => props.theme.font.size.xs};
+          background: none;
+          border: 1px solid ${(props) => props.theme.border.border1};
+          border-radius: ${(props) => props.theme.border.radius.sm};
+          color: ${(props) => props.theme.text};
+          cursor: pointer;
+
+          &:hover:not(:disabled) {
+            background: ${(props) => props.theme.background.surface1};
+          }
+
+          &:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+          }
+        }
       }
 
       .spec-diff-body {
-        max-height: calc(80vh - 140px);
-        overflow: auto;
+        .text-diff-container {
+          height: calc(80vh - 140px);
+        }
       }
     }
 
@@ -1789,6 +1770,7 @@ const StyledWrapper = styled.div`
     .bulk-actions {
       display: flex;
       gap: 0.5rem;
+      user-select: none; /* these are controls, not selectable text (e.g. double-click on the info icon) */
     }
 
     .bulk-btn {
@@ -1812,6 +1794,86 @@ const StyledWrapper = styled.div`
         color: ${(props) => props.theme.status.info.text};
         background: ${(props) => props.theme.status.info.background};
       }
+
+      &:disabled {
+        opacity: 0.7;
+        cursor: not-allowed;
+      }
+
+      .spinner-icon {
+        animation: spin 1s linear infinite;
+      }
+    }
+
+    /* the three Preserve elements read as one control: label + info + toggle */
+    .preserve-values-control {
+      display: inline-flex;
+      align-items: center;
+      margin-right: 0.25rem;
+      padding: 0.25rem 0.5rem;
+      font-size: ${(props) => props.theme.font.size.xs};
+      color: ${(props) => props.theme.text};
+
+      .preserve-values-label {
+        white-space: nowrap;
+      }
+
+      /* the shared InfoCircle icon ships a hardcoded ml-2 (8px); override it
+         so the info icon sits tight to the label. It is a hover-only tooltip
+         affordance, not a button — use a help cursor and never show a
+         click/focus box around it. */
+      svg {
+        margin-left: 4px;
+        cursor: help;
+      }
+      svg:focus,
+      svg:focus-visible,
+      span:focus,
+      span:focus-visible {
+        outline: none;
+        box-shadow: none;
+        background: transparent;
+      }
+
+      /* compact themed track + knob toggle, sized to the button row height */
+      .preserve-toggle {
+        margin-right: 4px; /* space between the toggle and the label */
+        width: 26px;
+        height: 14px;
+        border-radius: 7px;
+        border: none;
+        padding: 0;
+        flex-shrink: 0;
+        position: relative;
+        cursor: pointer;
+        transition: background 0.2s;
+        background: ${(props) => props.theme.colors.text.muted};
+
+        &.active {
+          background: ${(props) => props.theme.button2.color.primary.bg};
+        }
+
+        &:focus-visible {
+          outline: 2px solid ${(props) => props.theme.button2.color.primary.bg};
+          outline-offset: 2px;
+        }
+
+        .preserve-toggle-knob {
+          width: 10px;
+          height: 10px;
+          border-radius: 50%;
+          background: #fff;
+          position: absolute;
+          top: 2px;
+          left: 2px;
+          transition: left 0.2s;
+          box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+        }
+
+        &.active .preserve-toggle-knob {
+          left: 14px;
+        }
+      }
     }
 
     .sync-review-body {
@@ -1821,36 +1883,6 @@ const StyledWrapper = styled.div`
 
     &.sync-mode .sync-review-body {
       margin-top: 0;
-    }
-
-    .sync-review-empty-state {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 4rem 2rem;
-      text-align: center;
-      color: var(--color-text-muted, #6b7280);
-
-      .empty-state-icon {
-        color: var(--color-text-muted, #9ca3af);
-        margin-bottom: 1rem;
-      }
-
-      h4 {
-        font-size: ${(props) => props.theme.font.size.base};
-        font-weight: 500;
-        color: ${(props) => props.theme.text};
-        margin: 0 0 0.375rem 0;
-      }
-
-      p {
-        font-size: ${(props) => props.theme.font.size.xs};
-        line-height: 1.5;
-        max-width: 400px;
-        margin: 0;
-        color: ${(props) => props.theme.colors.text.muted};
-      }
     }
 
     .endpoints-review-sections {
@@ -1890,7 +1922,6 @@ const StyledWrapper = styled.div`
           max-height: none;
 
           &.expandable-mode {
-            /* border: 1px solid ${(props) => props.theme.border.border1}; */
             border-top: none;
             border-radius: 0 0 ${(props) => props.theme.border.radius.sm} ${(props) => props.theme.border.radius.sm};
           }
@@ -1972,10 +2003,6 @@ const StyledWrapper = styled.div`
           border-color: ${(props) => props.theme.colors.text.green};
           color: ${(props) => props.theme.colors.text.green};
         }
-      }
-
-      .review-row-diff {
-        background: ${(props) => props.theme.background.mantle};
       }
 
       .endpoint-diff-view {
@@ -2108,11 +2135,9 @@ const StyledWrapper = styled.div`
       bottom: 0rem;
       background: ${(props) => props.theme.background.base};
       margin-top: 1rem;
-      /* box-shadow: 0 -4px 12px -4px rgba(0, 0, 0, 0.3); */
       z-index: 10;
       padding-top: 0.75rem;
       padding-bottom: 0.75rem;
-
 
       .bar-stats {
         display: flex;
@@ -2218,12 +2243,6 @@ const StyledWrapper = styled.div`
         cursor: pointer;
         user-select: none;
 
-        .chevron {
-          color: ${(props) => props.theme.colors.text.muted};
-          transition: transform 0.15s ease;
-          flex-shrink: 0;
-          &.expanded { transform: rotate(90deg); }
-        }
       }
 
       .confirm-group-label {
@@ -2316,10 +2335,6 @@ const StyledWrapper = styled.div`
     }
   }
 
-  &.review-active {
-    padding-bottom: 0;
-  }
-
   /* URL/File mode toggle in setup form and settings modal */
   .setup-mode-toggle {
     display: inline-flex;
@@ -2328,7 +2343,7 @@ const StyledWrapper = styled.div`
     align-self: stretch;
     gap: 2px;
     padding: 2px;
-    background: ${(props) => props.theme.background.surface2};
+    background: ${(props) => props.theme.background.surface1};
     border-radius: ${(props) => props.theme.border.radius.md};
   }
 
@@ -2336,7 +2351,7 @@ const StyledWrapper = styled.div`
     padding: 0 0.65rem;
     font-size: ${(props) => props.theme.font.size.sm};
     font-weight: 500;
-    color: ${(props) => props.theme.colors.text.muted};
+    color: ${(props) => props.theme.text};
     background: transparent;
     border: none;
     border-radius: calc(${(props) => props.theme.border.radius.md} - 3px);
@@ -2415,6 +2430,26 @@ const StyledWrapper = styled.div`
     align-items: center;
     gap: 0.5rem;
     flex-shrink: 0;
+  }
+
+  .beta-feedback-inline {
+    margin-top: 2rem;
+    font-size: ${(props) => props.theme.font.size.xs};
+    color: ${(props) => props.theme.colors.text.muted};
+
+    .beta-feedback-link {
+      background: none;
+      border: none;
+      padding: 0;
+      color: ${(props) => props.theme.status.info.text};
+      cursor: pointer;
+      font-size: inherit;
+      text-decoration: underline;
+
+      &:hover {
+        opacity: 0.8;
+      }
+    }
   }
 `;
 

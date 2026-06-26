@@ -1,5 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
-import { setIsCreatingCollection } from 'providers/ReduxStore/slices/app';
+import { useState, useMemo } from 'react';
 import toast from 'react-hot-toast';
 import get from 'lodash/get';
 import { useDispatch, useSelector } from 'react-redux';
@@ -19,7 +18,7 @@ import {
 
 import { importCollection, openCollection, importCollectionFromZip, newHttpRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { sortCollections } from 'providers/ReduxStore/slices/collections/index';
-import { savePreferences } from 'providers/ReduxStore/slices/app';
+import { savePreferences, setIsCreatingCollection, toggleSidebarSearch } from 'providers/ReduxStore/slices/app';
 import { normalizePath } from 'utils/common/path';
 import { isScratchCollection, flattenItems, isItemTransientRequest } from 'utils/collections';
 import { sanitizeName } from 'utils/common/regex';
@@ -33,14 +32,17 @@ import BulkImportCollectionLocation from 'components/Sidebar/BulkImportCollectio
 import CloneGitRepository from 'components/Sidebar/CloneGitRespository';
 import RemoveCollectionsModal from 'components/Sidebar/Collections/RemoveCollectionsModal/index';
 import CreateCollection from 'components/Sidebar/CreateCollection';
+import PostmanPackageReport from 'components/Sidebar/PostmanPackageReport';
+import usePostmanPackagePrompt from 'hooks/usePostmanPackagePrompt';
 import WelcomeModal from 'components/WelcomeModal';
 import Collections from 'components/Sidebar/Collections';
 import SidebarSection from 'components/Sidebar/SidebarSection';
 import { openDevtoolsAndSwitchToTerminal } from 'utils/terminal';
+import useKeybinding from 'hooks/useKeybinding';
 
 const CollectionsSection = () => {
-  const [showSearch, setShowSearch] = useState(false);
   const dispatch = useDispatch();
+  const showSearch = useSelector((state) => state.app.showSidebarSearch);
 
   const { workspaces, activeWorkspaceUid } = useSelector((state) => state.workspaces);
   const activeWorkspace = workspaces.find((w) => w.uid === activeWorkspaceUid);
@@ -58,23 +60,14 @@ const CollectionsSection = () => {
   const [importCollectionLocationModalOpen, setImportCollectionLocationModalOpen] = useState(false);
   const [showCloneGitModal, setShowCloneGitModal] = useState(false);
   const [gitRepositoryUrl, setGitRepositoryUrl] = useState(null);
+  const { postmanPackagePrompt, clearPostmanPackagePrompt, handleImportResolved } = usePostmanPackagePrompt();
 
-  // Listen for sidebar-search-open hotkey event
-  useEffect(() => {
-    const handleSidebarSearch = () => {
-      setShowSearch(true);
-      // Focus the search input after it's rendered
-      setTimeout(() => {
-        const searchInput = document.querySelector('.collection-search-input');
-        if (searchInput) {
-          searchInput.focus();
-        }
-      }, 50);
-    };
+  // Import collection shortcut
+  useKeybinding('importCollection', () => {
+    setImportCollectionModalOpen(true);
+    return false;
+  });
 
-    window.addEventListener('sidebar-search-open', handleSidebarSearch);
-    return () => window.removeEventListener('sidebar-search-open', handleSidebarSearch);
-  }, []);
   // Default to true (don't show modal) so that:
   // 1. Existing users who upgrade (no hasSeenWelcomeModal in their prefs) don't see it
   // 2. The modal doesn't flash before preferences are loaded from the electron process
@@ -125,9 +118,10 @@ const CollectionsSection = () => {
       : importCollection(convertedCollection, collectionLocation, options);
 
     dispatch(importAction)
-      .then(() => {
+      .then((importedItem) => {
         setImportCollectionLocationModalOpen(false);
         setImportData(null);
+        handleImportResolved(convertedCollection, importedItem);
       });
   };
 
@@ -137,7 +131,7 @@ const CollectionsSection = () => {
   };
 
   const handleToggleSearch = () => {
-    setShowSearch((prev) => !prev);
+    dispatch(toggleSidebarSearch());
   };
 
   const handleSortCollections = () => {
@@ -404,6 +398,14 @@ const CollectionsSection = () => {
           onClose={handleCloseGitModal}
           onFinish={handleCloseGitModal}
           collectionRepositoryUrl={gitRepositoryUrl}
+        />
+      )}
+      {postmanPackagePrompt && (
+        <PostmanPackageReport
+          key={postmanPackagePrompt.collectionPath}
+          report={postmanPackagePrompt.report}
+          collectionPath={postmanPackagePrompt.collectionPath}
+          onClose={clearPostmanPackagePrompt}
         />
       )}
       <SidebarSection

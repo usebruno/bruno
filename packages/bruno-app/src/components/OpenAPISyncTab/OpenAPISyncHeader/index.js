@@ -1,26 +1,43 @@
+import { useState, useEffect } from 'react';
+import { useSelector } from 'react-redux';
 import {
   IconCopy,
   IconDotsVertical,
   IconUnlink,
   IconSettings,
-  IconRefresh
+  IconRefresh,
+  IconCircleCheck,
+  IconAlertTriangle
 } from '@tabler/icons';
 import toast from 'react-hot-toast';
 import Button from 'ui/Button';
-import StatusBadge from 'ui/StatusBadge';
 import ActionIcon from 'ui/ActionIcon/index';
 import MenuDropdown from 'ui/MenuDropdown';
+import Help from 'components/Help';
+import { isHttpUrl } from 'utils/url/index';
 
 const OpenAPISyncHeader = ({
-  collection, spec, sourceUrl, onViewSpec,
+  collection, spec, sourceUrl, syncStatus, onViewSpec,
   onOpenSettings, onOpenDisconnect,
   onCheck, isLoading
 }) => {
-  const sourceIsLocal = !sourceUrl?.startsWith('http');
+  const sourceIsLocal = !isHttpUrl(sourceUrl);
   const canCheck = !!sourceUrl?.trim();
 
-  const title = spec?.info?.title || 'Unknown API';
-  const version = spec?.info?.version || '-';
+  // Resolve relative file paths to absolute for display
+  const [displayPath, setDisplayPath] = useState(sourceUrl);
+  useEffect(() => {
+    if (sourceIsLocal && sourceUrl) {
+      window.ipcRenderer.invoke('renderer:resolve-path', sourceUrl, collection.pathname)
+        .then((resolved) => setDisplayPath(resolved))
+        .catch(() => setDisplayPath(sourceUrl));
+    } else {
+      setDisplayPath(sourceUrl);
+    }
+  }, [sourceUrl, sourceIsLocal, collection.pathname]);
+
+  const specMeta = useSelector((state) => state.openapiSync?.storedSpecMeta?.[collection.uid] || null);
+  const title = specMeta?.title || spec?.info?.title || 'Unknown API';
 
   const copyUrl = async () => {
     if (!sourceUrl) return;
@@ -71,7 +88,6 @@ const OpenAPISyncHeader = ({
         <div className="spec-title-section">
           <div className="spec-title-row">
             <span className="spec-title">{title}</span>
-            <StatusBadge status="muted" className="spec-version">{version}</StatusBadge>
           </div>
         </div>
         <div className="spec-header-actions">
@@ -100,7 +116,7 @@ const OpenAPISyncHeader = ({
         </div>
       </div>
       <div className="spec-url-row">
-        <span className="spec-url-label">{sourceIsLocal ? 'Source File' : 'Source URL'}</span>
+        <span className="spec-url-label">{sourceIsLocal ? 'Source File:' : 'Source URL:'}</span>
         {sourceIsLocal ? (
           <button
             className="spec-url-value spec-file-reveal"
@@ -108,7 +124,7 @@ const OpenAPISyncHeader = ({
             type="button"
             onClick={revealInFolder}
           >
-            {sourceUrl}
+            {displayPath}
           </button>
         ) : (
           <a
@@ -124,6 +140,28 @@ const OpenAPISyncHeader = ({
         <button className="copy-btn" onClick={copyUrl} title={sourceIsLocal ? 'Copy path' : 'Copy URL'} type="button">
           <IconCopy size={12} />
         </button>
+      </div>
+      <div className="linked-collection-row mt-1">
+        <span className="spec-url-label">Linked Collection:</span>
+        <span className="linked-collection-name">{collection.name}</span>
+        {syncStatus === 'in-sync' && (
+          <Help
+            placement="bottom"
+            width={240}
+            iconComponent={() => <IconCircleCheck size={14} className="sync-status-icon in-sync" />}
+          >
+            Collection is up to date with the spec
+          </Help>
+        )}
+        {syncStatus === 'not-in-sync' && (
+          <Help
+            placement="bottom"
+            width={260}
+            iconComponent={() => <IconAlertTriangle size={14} className="sync-status-icon not-in-sync" />}
+          >
+            Collection is not up to date with the spec
+          </Help>
+        )}
       </div>
     </div>
   );

@@ -9,7 +9,9 @@ import {
   IconUserCircle,
   IconKeyboard,
   IconZoomQuestion,
-  IconSquareLetterB
+  IconSquareLetterB,
+  IconDatabase,
+  IconStars
 } from '@tabler/icons';
 
 import Support from './Support';
@@ -19,8 +21,10 @@ import Proxy from './ProxySettings';
 import Display from './Display';
 import Keybindings from './Keybindings';
 import Beta from './Beta';
+import AI from './AI';
 
 import StyledWrapper from './StyledWrapper';
+import Cache from './Cache/index';
 
 const Preferences = () => {
   const dispatch = useDispatch();
@@ -62,8 +66,16 @@ const Preferences = () => {
         return <Beta />;
       }
 
+      case 'ai': {
+        return <AI />;
+      }
+
       case 'support': {
         return <Support />;
+      }
+
+      case 'cache': {
+        return <Cache />;
       }
     }
   };
@@ -91,6 +103,14 @@ const Preferences = () => {
           <div className={getTabClassname('keybindings')} role="tab" onClick={() => setTab('keybindings')}>
             <IconKeyboard size={16} strokeWidth={1.5} />
             Keybindings
+          </div>
+          <div className={getTabClassname('ai')} role="tab" onClick={() => setTab('ai')}>
+            <IconStars size={16} strokeWidth={1.5} />
+            AI
+          </div>
+          <div className={getTabClassname('cache')} role="tab" onClick={() => setTab('cache')}>
+            <IconDatabase size={16} strokeWidth={1.5} />
+            Cache
           </div>
           <div className={getTabClassname('support')} role="tab" onClick={() => setTab('support')}>
             <IconZoomQuestion size={16} strokeWidth={1.5} />

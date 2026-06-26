@@ -1,4 +1,4 @@
-import React, { useEffect, useCallback } from 'react';
+import React, { useEffect, useCallback, useRef } from 'react';
 import { useFormik } from 'formik';
 import { useSelector, useDispatch } from 'react-redux';
 import { savePreferences } from 'providers/ReduxStore/slices/app';
@@ -6,19 +6,39 @@ import StyledWrapper from './StyledWrapper';
 import * as Yup from 'yup';
 import debounce from 'lodash/debounce';
 import toast from 'react-hot-toast';
-import { IconFlask } from '@tabler/icons';
 import get from 'lodash/get';
+// Commented out while there are no active beta features. Re-enable this import when
+// adding a beta feature its keys are then referenced as BETA_FEATURE_IDS.MY_FEATURE in the BETA_FEATURES array.
+// import { BETA_FEATURES as BETA_FEATURE_IDS } from 'utils/beta-features';
 
 /**
- * Add beta features here.
- * Example:
- * {
- *   id: 'nodevm',
- *   label: 'Node VM Runtime',
- *   description: 'Enable Node VM runtime for JavaScript execution in Developer Mode'
- * }
+ * UI metadata for the Beta Features section in Preferences — one entry per toggle.
+ * The whole tab is data-driven from this array: the form fields, validation schema,
+ * initial values and the rendered checkboxes are all generated from it.
+ *
+ * Each entry has the shape { id, label, description }:
+ *   - id          (required) the feature key. MUST be a value from BETA_FEATURES in
+ *                 utils/beta-features.js (imported here as BETA_FEATURE_IDS). It is
+ *                 used as the preference key (preferences.beta[id]), the form field
+ *                 name and the checkbox id, so it must be stable and unique.
+ *   - label       (required) short name shown next to the checkbox.
+ *   - description (required) one-line explanation shown under the label.
+ *
+ * To add a beta feature:
+ *   1. Add its key to BETA_FEATURES in utils/beta-features.js (e.g. MY_FEATURE: 'my-feature').
+ *   2. Add an entry to the array below using BETA_FEATURE_IDS.MY_FEATURE.
+ *   3. Gate the feature in code with useBetaFeature(BETA_FEATURES.MY_FEATURE).
+ *
+ * When the array is empty, the Beta tab shows "No beta features are currently available",
+ * so a feature can be hidden by simply removing or commenting out its entry.
  */
-const BETA_FEATURES = [];
+const BETA_FEATURES = [
+  // {
+  //   id: BETA_FEATURE_IDS.OPENAPI_SYNC,
+  //   label: 'OpenAPI Sync',
+  //   description: 'Synchronize your Bruno collection with an OpenAPI specification. Detect drift, review changes, and sync with a single click.'
+  // }
+];
 
 const Beta = ({ close }) => {
   const preferences = useSelector((state) => state.app.preferences);
@@ -45,6 +65,7 @@ const Beta = ({ close }) => {
   const betaSchema = generateValidationSchema();
 
   const formik = useFormik({
+    enableReinitialize: true,
     initialValues: generateInitialValues(),
     validationSchema: betaSchema,
     onSubmit: async (values) => {
@@ -61,22 +82,28 @@ const Beta = ({ close }) => {
     dispatch(
       savePreferences({
         ...preferences,
-        beta: newBetaPreferences
+        beta: {
+          ...preferences.beta,
+          ...newBetaPreferences
+        }
       })
     )
       .catch((err) => console.log(err) && toast.error('Failed to update beta preferences'));
   }, [dispatch, preferences]);
 
+  const handleSaveRef = useRef(handleSave);
+  handleSaveRef.current = handleSave;
+
   const debouncedSave = useCallback(
     debounce((values) => {
       betaSchema.validate(values, { abortEarly: true })
         .then((validatedValues) => {
-          handleSave(validatedValues);
+          handleSaveRef.current(validatedValues);
         })
         .catch((error) => {
         });
     }, 500),
-    [handleSave, betaSchema]
+    [betaSchema]
   );
 
   // Auto-save when form values change
@@ -85,7 +112,7 @@ const Beta = ({ close }) => {
       debouncedSave(formik.values);
     }
     return () => {
-      debouncedSave.cancel();
+      debouncedSave.flush();
     };
   }, [formik.values, formik.dirty, formik.isValid, debouncedSave]);
 

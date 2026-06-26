@@ -141,6 +141,19 @@ class ApiSpecWatcher {
       delete this.watcherWorkspaces[watchPath];
     }
   }
+
+  closeAllWatchers() {
+    const pending = [];
+    for (const [watchPath, watcher] of Object.entries(this.watchers)) {
+      try {
+        const result = watcher?.close();
+        if (result && typeof result.then === 'function') pending.push(result);
+      } catch (err) {}
+    }
+    this.watchers = {};
+    this.watcherWorkspaces = {};
+    return Promise.allSettled(pending);
+  }
 }
 
 module.exports = ApiSpecWatcher;

@@ -1,9 +1,9 @@
 import { test, expect } from '../../../playwright';
 import { closeAllCollections, createCollection } from '../../utils/page';
 
-test.describe('Move tabs', () => {
-  const modifier = process.platform === 'darwin' ? 'Meta' : 'Control';
+const modifier = process.platform === 'darwin' ? 'Meta' : 'Control';
 
+test.describe('Move tabs', () => {
   test.afterEach(async ({ page }) => {
     // cleanup: close all collections
     await closeAllCollections(page);
