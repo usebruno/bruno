@@ -87,7 +87,12 @@ export const buildCommonLocators = (page: Page) => ({
     variableSecretCheckbox: (index: number) => page.locator(`input[name="${index}.secret"]`),
     variableRow: (index: number) => page.locator('tr').filter({ has: page.locator(`input[name="${index}.name"]`) }),
     createEnvButton: () => page.locator('button[id="create-env"]'),
-    envNameInput: () => page.locator('input[name="name"]')
+    envNameInput: () => page.locator('input[name="name"]'),
+    // Variables and secrets each live on their own tab in the environment editor.
+    variablesTab: () => page.getByTestId('responsive-tab-variables'),
+    secretsTab: () => page.getByTestId('responsive-tab-secrets'),
+    saveTab: () => page.getByTestId('save-env'),
+    saveAll: () => page.getByTestId('save-all-env')
   },
   codeMirror: {
     byTestId: (testId: string) => page.getByTestId(testId).locator('.CodeMirror').first()
