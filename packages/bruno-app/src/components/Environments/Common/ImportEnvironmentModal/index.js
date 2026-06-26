@@ -8,7 +8,6 @@ import importBrunoEnvironment from 'utils/importers/bruno-environment';
 import { readMultipleFiles } from 'utils/importers/file-reader';
 import { importEnvironment } from 'providers/ReduxStore/slices/collections/actions';
 import { addGlobalEnvironment } from 'providers/ReduxStore/slices/global-environments';
-import { toastError } from 'utils/common/error';
 import { sanitizeName } from 'utils/common/regex';
 import { IconFileImport } from '@tabler/icons';
 
@@ -44,13 +43,13 @@ const ImportEnvironmentModal = ({ type = 'collection', collection, onClose, onEn
     const toImport = [];
     let skipped = 0;
     for (const env of named) {
-      const key = sanitizeName(env.name);
-      if (seen.has(key)) {
+      const name = sanitizeName(env.name);
+      if (seen.has(name)) {
         skipped++;
-      } else {
-        seen.add(key);
-        toImport.push(env);
+        continue;
       }
+      seen.add(name);
+      toImport.push({ ...env, name });
     }
 
     let imported = 0;
@@ -107,17 +106,18 @@ const ImportEnvironmentModal = ({ type = 'collection', collection, onClose, onEn
   };
 
   const handleImportEnvironment = async (files) => {
-    let parsedFiles;
-    try {
-      parsedFiles = await readMultipleFiles(Array.from(files));
-    } catch (err) {
-      toastError(err, 'Import environment failed');
-      return;
-    }
-
     const environments = [];
     const parseFailures = [];
-    for (const parsedFile of parsedFiles) {
+    for (const file of Array.from(files)) {
+      let parsedFile;
+      try {
+        [parsedFile] = await readMultipleFiles([file]);
+      } catch (err) {
+        console.error(`Failed to read ${file.name}:`, err);
+        parseFailures.push({ name: file.name, message: err?.message || String(err) });
+        continue;
+      }
+
       try {
         const format = detectEnvironmentFormat(parsedFile.content);
         const result
