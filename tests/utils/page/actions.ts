@@ -84,7 +84,6 @@ const closeAllCollections = async (page) => {
     await expect(page.getByTestId('collections').locator('.collection-name')).toHaveCount(0);
   });
 };
-
 /**
  * Open a collection from the sidebar and accept the JavaScript Sandbox modal
  * @param page - The page object
