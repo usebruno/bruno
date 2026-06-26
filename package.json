@@ -5,6 +5,7 @@
     "packages/bruno-app",
     "packages/bruno-electron",
     "packages/bruno-cli",
+    "packages/bruno-mcp",
     "packages/bruno-common",
     "packages/bruno-converters",
     "packages/bruno-schema",
