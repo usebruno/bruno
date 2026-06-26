@@ -118,7 +118,7 @@ const stringifyHttpRequest = (item: BrunoItem): string => {
     }
 
     const timeout = httpSettings?.timeout;
-    if (isNumber(timeout)) {
+    if (isNumber(timeout) || timeout === 'inherit') {
       settings.timeout = timeout;
     } else {
       settings.timeout = 0;
