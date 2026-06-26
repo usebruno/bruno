@@ -9,7 +9,8 @@ test.describe.serial('Import Bruno Collection - request with missing URL', () =>
 
   const cases = [
     { fixture: 'bruno-http-request-missing-url.json', collectionName: 'HTTP Collection', type: 'HTTP' },
-    { fixture: 'bruno-grpc-request-missing-url.json', collectionName: 'GRPC Collection', type: 'gRPC' }
+    { fixture: 'bruno-grpc-request-missing-url.json', collectionName: 'GRPC Collection', type: 'gRPC' },
+    { fixture: 'bruno-http-example-request-missing-url.json', collectionName: 'HTTP Example Collection', type: 'HTTP example' }
   ];
 
   for (const { fixture, collectionName, type } of cases) {
