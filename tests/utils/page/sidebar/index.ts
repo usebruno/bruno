@@ -59,6 +59,8 @@ export const buildSidebarLocators = (page: Page) => {
       page.getByTestId('sidebar-collection-item-row').filter({ hasText: requestName }).getByTestId('request-item-chevron'),
     example: (name: string) => page.getByTestId('sidebar-response-example-item').filter({ hasText: name }),
     collectionScope,
+    scopedRequest: (collectionName: string, requestName: string) =>
+      collectionScope(collectionName).locator('.collection-item-name', { hasText: requestName }),
     scopedItem: function (collectionName: string, itemName: string) {
       return this.collectionScope(collectionName).locator('.item-name').and(page.getByTitle(itemName, { exact: true }));
     },
