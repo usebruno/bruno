@@ -1,9 +1,10 @@
 import { Page, Locator } from '../../../playwright';
 
-const toCollectionSlug = (name: string) => name.replace(/\s+/g, '-').toLowerCase();
-
 export const buildCommonLocators = (page: Page) => {
-  const collectionScope = (name: string) => page.locator(`#collection-${toCollectionSlug(name)}`);
+  const collectionScope = (name: string) => {
+    const toCollectionSlug = (n: string) => n.replace(/\s+/g, '-').toLowerCase();
+    return page.locator(`#collection-${toCollectionSlug(name)}`);
+  };
   const removeCollectionModal = () => page.locator('.bruno-modal').filter({ hasText: 'Remove Collection' });
 
   return {
