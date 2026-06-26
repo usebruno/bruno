@@ -54,7 +54,7 @@
   },
   "scripts": {
     "setup": "node ./scripts/setup.js",
-    "clean": "rimraf node_modules packages/*/node_modules",
+    "clean": "rimraf --glob node_modules packages/*/node_modules",
     "watch:converters": "npm run watch --workspace=packages/bruno-converters",
     "dev": "node ./scripts/dev.js",
     "watch": "npm run dev:watch",
