@@ -4,7 +4,6 @@ const BRUNO_API_REFERENCE = `## Bruno API Reference
 \`\`\`js
 bru.getEnvVar(key)
 bru.setEnvVar(key, value)
-bru.setEnvVar(key, value, { persist: true })
 bru.hasEnvVar(key)
 bru.deleteEnvVar(key)
 bru.getEnvName()
