@@ -46,6 +46,12 @@ If you need to collect the results of your API tests, you can specify the `--out
 bru run folder --output results.json
 ```
 
+If you need JSON output in a shell pipeline, you can print results to stdout:
+
+```bash
+bru run folder --reporter-json-stdout | jq '.summary.failedTests'
+```
+
 If you need to run a set of requests that connect to peers with both publicly and privately signed certificates respectively, you can add private CA certificates via the `--cacert` option. By default, these certificates will be used in addition to the default truststore:
 
 ```bash
@@ -109,6 +115,7 @@ Import Options:
 | -o, --output [string]        | Path to write file results to                                                 |
 | -f, --format [string]        | Format of the file results; available formats are "json" (default) or "junit" |
 | --reporter-json [string]     | Path to generate a JSON report                                                |
+| --reporter-json-stdout       | Print run results JSON to stdout                                              |
 | --reporter-junit [string]    | Path to generate a JUnit report                                               |
 | --reporter-html [string]     | Path to generate an HTML report                                               |
 | --insecure                   | Allow insecure server connections                                             |
