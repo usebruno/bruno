@@ -27,6 +27,7 @@ const CodeMirrorSearch = forwardRef(({ visible, editor, readOnly, onClose }, ref
   const replaceInputRef = useRef(null);
   const containerRef = useRef(null);
   const initialIndexRef = useRef(null);
+  const pendingSearchIndexRef = useRef(null);
   const rafRef = useRef(null);
 
   const debouncedSearchText = useDebounce(searchText, 250);
@@ -36,7 +37,7 @@ const CodeMirrorSearch = forwardRef(({ visible, editor, readOnly, onClose }, ref
     markViewportMatches(editor, searchMatches.current, currentMatchIndex.current, searchMarks.current);
   }, [editor]);
 
-  const doSearch = useCallback((text, newIndex = 0) => {
+  const doSearch = useCallback((text, newIndex = 0, preferLine = null) => {
     if (!editor || !visible) {
       return;
     }
@@ -65,6 +66,11 @@ const CodeMirrorSearch = forwardRef(({ visible, editor, readOnly, onClose }, ref
         searchMatches.current = matches;
         searchCacheKey.current = newCacheKey;
         setMatchCount(matches.length);
+
+        if (preferLine !== null && newIndex === 0) {
+          const nearestIdx = matches.findIndex((m) => m.from.line >= preferLine);
+          newIndex = nearestIdx >= 0 ? nearestIdx : 0;
+        }
       }
 
       if (!matches.length) {
@@ -136,11 +142,34 @@ const CodeMirrorSearch = forwardRef(({ visible, editor, readOnly, onClose }, ref
         setMatchCount(matches.length);
         setMatchIndex(targetIdx);
         doSearch(text, targetIdx);
-        if (text !== searchText) {
-          initialIndexRef.current = { idx: targetIdx, forText: text };
-        }
+        initialIndexRef.current = { idx: targetIdx, forText: text };
       } else {
         setMatchIndex(0);
+      }
+      setTimeout(() => {
+        if (inputRef.current) {
+          inputRef.current.focus();
+          inputRef.current.select();
+        }
+      }, 0);
+    },
+    focusAtCursor: (cursorPos) => {
+      // If there's existing search text, navigate to nearest match at cursor
+      if (cursorPos && editor && searchText) {
+        const matches = searchMatches.current.length
+          ? searchMatches.current
+          : findSearchMatches(editor, searchText, regex, caseSensitive, wholeWord);
+        const startsAtOrAfterCursor = (match) =>
+          match.from.line > cursorPos.line
+          || (match.from.line === cursorPos.line && match.from.ch >= cursorPos.ch);
+        const targetIdx = matches.findIndex(startsAtOrAfterCursor);
+        const resolvedIdx = targetIdx >= 0 ? targetIdx : 0;
+        searchMatches.current = matches;
+        searchCacheKey.current = createCacheKey(docVersion.current, searchText, regex, caseSensitive, wholeWord);
+        setMatchCount(matches.length);
+        setMatchIndex(resolvedIdx);
+        initialIndexRef.current = { idx: resolvedIdx, forText: searchText };
+        doSearch(searchText, resolvedIdx);
       }
       setTimeout(() => {
         if (inputRef.current) {
@@ -166,9 +195,11 @@ const CodeMirrorSearch = forwardRef(({ visible, editor, readOnly, onClose }, ref
         doSearch(debouncedSearchText, idx);
       }
     } else {
-      doSearch(debouncedSearchText, 0);
+      const viewport = editor?.getViewport();
+      const centerLine = viewport ? Math.floor((viewport.from + viewport.to) / 2) : null;
+      doSearch(debouncedSearchText, 0, centerLine);
     }
-  }, [debouncedSearchText, doSearch]);
+  }, [debouncedSearchText, doSearch, editor]);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -210,7 +241,9 @@ const CodeMirrorSearch = forwardRef(({ visible, editor, readOnly, onClose }, ref
       clearTimeout(timeoutId);
       timeoutId = setTimeout(() => {
         searchCacheKey.current = '';
-        doSearch(debouncedSearchText, 0);
+        const idx = pendingSearchIndexRef.current ?? 0;
+        pendingSearchIndexRef.current = null;
+        doSearch(debouncedSearchText, idx);
       }, 100);
     };
 
@@ -267,7 +300,9 @@ const CodeMirrorSearch = forwardRef(({ visible, editor, readOnly, onClose }, ref
     const nextIdx = newMatches.findIndex(
       (m) => m.from.line > endLine || (m.from.line === endLine && m.from.ch >= endCh)
     );
-    doSearch(debouncedSearchText, nextIdx >= 0 ? nextIdx : 0);
+    const resolvedNextIdx = nextIdx >= 0 ? nextIdx : 0;
+    pendingSearchIndexRef.current = resolvedNextIdx;
+    doSearch(debouncedSearchText, resolvedNextIdx);
   }, [editor, matchIndex, replaceText, debouncedSearchText, regex, caseSensitive, wholeWord, doSearch]);
 
   const handleReplaceAll = useCallback(() => {

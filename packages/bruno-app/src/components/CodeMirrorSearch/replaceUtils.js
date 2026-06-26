@@ -1,10 +1,8 @@
 /**
- * Replaces the current match in the editor and returns info needed to find
- * the next match after the replacement.
  *
  * @param {CodeMirror.Editor} editor
- * @param {Array}  matches     - current match list
- * @param {number} matchIndex  - index of the match to replace
+ * @param {Array}  matches
+ * @param {number} matchIndex
  * @param {string} replaceText
  * @returns {{ endLine: number, endCh: number }} - end position of the replacement
  */
@@ -23,17 +21,14 @@ export function replaceSingle(editor, matches, matchIndex, replaceText) {
 }
 
 /**
- * Replaces all matches in the editor in a single undoable operation.
- * Builds a line offset map in one pass to avoid O(n) indexFromPos calls.
  *
  * @param {CodeMirror.Editor} editor
- * @param {Array}  matches     - full match list
+ * @param {Array}  matches
  * @param {string} replaceText
  */
 export function replaceAll(editor, matches, replaceText) {
   const originalText = editor.getValue();
 
-  // Single-pass line offset map — avoids 42k indexFromPos B-tree traversals
   const lineOffsets = new Uint32Array(editor.lineCount());
   let line = 1;
   for (let i = 0; i < originalText.length; i++) {
@@ -52,7 +47,6 @@ export function replaceAll(editor, matches, replaceText) {
   });
   result += originalText.slice(lastIndex);
 
-  // Single replaceRange = one undo step, no per-match change objects
   editor.operation(() => {
     const lastLine = editor.lastLine();
     editor.replaceRange(result, { line: 0, ch: 0 }, { line: lastLine, ch: editor.getLine(lastLine).length });

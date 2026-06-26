@@ -104,21 +104,31 @@ class CodeEditor extends React.Component {
       extraKeys: {
         'Cmd-F': (cm) => {
           const selected = cm.getSelection();
+          const cursor = cm.getCursor('from');
+          const viewport = cm.getViewport();
+          const effectiveCursor = (cursor.line >= viewport.from && cursor.line <= viewport.to)
+            ? cursor
+            : { line: Math.floor((viewport.from + viewport.to) / 2), ch: 0 };
           this.setState({ searchBarVisible: true }, () => {
             if (selected) {
-              this.searchBarRef.current?.setSearch(selected, cm.getCursor('from'));
+              this.searchBarRef.current?.setSearch(selected, effectiveCursor);
             } else {
-              this.searchBarRef.current?.focus();
+              this.searchBarRef.current?.focusAtCursor(effectiveCursor);
             }
           });
         },
         'Ctrl-F': (cm) => {
           const selected = cm.getSelection();
+          const cursor = cm.getCursor('from');
+          const viewport = cm.getViewport();
+          const effectiveCursor = (cursor.line >= viewport.from && cursor.line <= viewport.to)
+            ? cursor
+            : { line: Math.floor((viewport.from + viewport.to) / 2), ch: 0 };
           this.setState({ searchBarVisible: true }, () => {
             if (selected) {
-              this.searchBarRef.current?.setSearch(selected, cm.getCursor('from'));
+              this.searchBarRef.current?.setSearch(selected, effectiveCursor);
             } else {
-              this.searchBarRef.current?.focus();
+              this.searchBarRef.current?.focusAtCursor(effectiveCursor);
             }
           });
         },
