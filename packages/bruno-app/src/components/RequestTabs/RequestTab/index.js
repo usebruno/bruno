@@ -256,7 +256,9 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
         if (environmentUid?.startsWith('dotenv:')) {
           window.dispatchEvent(new Event('dotenv-save'));
         } else {
-          dispatch(saveEnvironment(variables, environmentUid, collection.uid));
+          dispatch(saveEnvironment(variables, environmentUid, collection.uid))
+            .then(() => toast.success('Changes saved successfully'))
+            .catch(() => toast.error('An error occurred while saving the changes'));
         }
       }
     } else if (tab.type === 'global-environment-settings') {
@@ -265,7 +267,9 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
         if (environmentUid?.startsWith('dotenv:')) {
           window.dispatchEvent(new Event('dotenv-save'));
         } else {
-          dispatch(saveGlobalEnvironment({ variables, environmentUid }));
+          dispatch(saveGlobalEnvironment({ variables, environmentUid }))
+            .then(() => toast.success('Changes saved successfully'))
+            .catch(() => toast.error('An error occurred while saving the changes'));
         }
       }
     } else if (tab.type === 'folder-settings') {
