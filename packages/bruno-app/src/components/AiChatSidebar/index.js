@@ -272,7 +272,7 @@ const AiChatSidebar = ({ collection }) => {
     }
     switch (requestPaneTab) {
       case 'tests': return 'tests';
-      case 'script': return 'pre-request';
+      case 'script': return scriptPaneTab === 'post-response' ? 'post-response' : 'pre-request';
       case 'docs': return 'docs';
       default: return 'app';
     }
@@ -344,10 +344,10 @@ const AiChatSidebar = ({ collection }) => {
   const currentContent = allContent[contentType] || '';
 
   // requestContext (URL/method/headers/response shape) only makes sense for
-  // request items. Folder and collection chats operate on bare scripts/docs
-  // and skip the HTTP context.
+  // HTTP-style request items. Folder, collection, and App chats skip it —
+  // App items live under kind: 'request' but have no URL/method to surface.
   const requestContext = useMemo(() => {
-    if (aiContext?.kind !== 'request') return null;
+    if (aiContext?.kind !== 'request' || !isItemARequest(aiContext.item)) return null;
     const item = aiContext.item;
     const draft = item.draft;
     return {
@@ -487,7 +487,9 @@ const AiChatSidebar = ({ collection }) => {
         case 'pre-request': dispatch(updateFolderRequestScript({ ...payload, script: code })); break;
         case 'post-response': dispatch(updateFolderResponseScript({ ...payload, script: code })); break;
         case 'docs': dispatch(updateFolderDocs({ ...payload, docs: code })); break;
-        default: break;
+        // Folders / collections have no 'app' equivalent. Bail rather than
+        // marking the diff accepted when nothing was dispatched.
+        default: return;
       }
     } else {
       const payload = { collectionUid: collection.uid };
@@ -496,7 +498,7 @@ const AiChatSidebar = ({ collection }) => {
         case 'pre-request': dispatch(updateCollectionRequestScript({ ...payload, script: code })); break;
         case 'post-response': dispatch(updateCollectionResponseScript({ ...payload, script: code })); break;
         case 'docs': dispatch(updateCollectionDocs({ ...payload, docs: code })); break;
-        default: break;
+        default: return;
       }
     }
 

@@ -245,7 +245,7 @@ const StyledWrapper = styled.div`
         background: ${(props) => props.theme.bg};
         color: ${(props) => props.theme.text};
         border-color: ${(props) => props.theme.input.border};
-        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+        box-shadow: ${(props) => props.theme.shadow.sm};
       }
     }
   }

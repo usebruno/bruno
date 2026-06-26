@@ -659,6 +659,7 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
                     <button
                       type="button"
                       data-testid="view-mode-request"
+                      aria-label="Request view"
                       className={`mode-btn ${!appEnabled && !collection.fileMode ? 'active' : ''}`}
                       onClick={() => {
                         if (collection.fileMode) handleFileModeClick();
@@ -672,6 +673,7 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
                     <button
                       type="button"
                       data-testid="view-mode-app"
+                      aria-label="App view"
                       className={`mode-btn ${appEnabled && !collection.fileMode ? 'active' : ''}`}
                       onClick={() => {
                         if (collection.fileMode) handleFileModeClick();
@@ -685,6 +687,7 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
                     <button
                       type="button"
                       data-testid="view-mode-file"
+                      aria-label="File view"
                       className={`mode-btn ${collection.fileMode ? 'active' : ''}`}
                       onClick={() => {
                         if (appEnabled) handleToggleAppMode(false);
