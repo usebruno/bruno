@@ -204,6 +204,17 @@ for (const { format, collectionName } of FORMATS) {
         await fileChooser.setFiles(exportedFile);
       });
 
+      await test.step(`Select the imported "${IMPORTED_ENV_NAME}" in the env editor sidebar`, async () => {
+        // After import, the editor stays on whichever env was previously selected.
+        // Explicitly switch to the imported env so the assertions exercise its rendering.
+        const importedItem = page
+          .locator('.environments-list .environment-item')
+          .filter({ hasText: IMPORTED_ENV_NAME });
+        await expect(importedItem).toBeVisible();
+        await importedItem.click();
+        await expect(importedItem).toHaveClass(/\bactive\b/);
+      });
+
       await test.step('Verify the imported env editor shows datatypes correctly', async () => {
         await expect(locators.tabs.activeRequestTab()).toContainText('Environments');
 
