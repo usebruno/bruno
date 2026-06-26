@@ -17,20 +17,22 @@ const notarize = async function (params) {
   }
 
   console.log(`Notarizing ${appId} found at ${appPath} using Apple ID ${process.env.APPLE_ID}`);
-
+  const teamId = 'P3WTZH48ZB';
   try {
     await electron_notarize.notarize({
+      tool: 'notarytool',
       appBundleId: appId,
       appPath: appPath,
       appleId: process.env.APPLE_ID,
       appleIdPassword: process.env.APPLE_ID_PASSWORD,
-      ascProvider: 'W7LPPWA48L'
+      ascProvider: teamId,
+      teamId: teamId
     });
   } catch (error) {
     console.error(error);
   }
 
-  console.log(`Done notarizing ${appId}`);
+  console.log(`Done notarizing ${appPath}`);
 };
 
 module.exports = notarize;

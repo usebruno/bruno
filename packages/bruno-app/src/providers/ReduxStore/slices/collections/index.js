@@ -904,7 +904,12 @@ export const collectionsSlice = createSlice({
       const { collectionUid, environmentUid, variables } = action.payload;
       const collection = findCollectionByUid(state.collections, collectionUid);
       if (collection) {
-        collection.environmentsDraft = { environmentUid, variables };
+        // Reset the draft when switching environments; otherwise update variables in place.
+        if (!collection.environmentsDraft || collection.environmentsDraft.environmentUid !== environmentUid) {
+          collection.environmentsDraft = { environmentUid, variables };
+        } else {
+          collection.environmentsDraft.variables = variables;
+        }
       }
     },
     clearEnvironmentsDraft: (state, action) => {
@@ -3390,7 +3395,8 @@ export const collectionsSlice = createSlice({
       if (!collection) return;
 
       const item = findItemInCollection(collection, action.payload.itemUid);
-      if (item && isItemARequest(item)) {
+      // Accept both request-attached apps and standalone 'app' items.
+      if (item && (isItemARequest(item) || item.type === 'app')) {
         if (!item.draft) {
           item.draft = cloneDeep(item);
         }
