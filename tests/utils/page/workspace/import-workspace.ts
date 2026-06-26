@@ -57,7 +57,7 @@ export const createWorkspaceZip = (zipDir: string, workspaceName: string): strin
 export const openImportWorkspaceModal = async (page: Page) => {
   const locators = buildImportWorkspaceModalLocators(page);
   await clickImportWorkspace(page);
-  await expect(locators.modal()).toBeVisible();
+  await locators.modal().waitFor({ state: 'visible' });
 };
 
 type ImportWorkspaceOptions = {
