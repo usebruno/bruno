@@ -130,6 +130,7 @@ const stringifyGraphQLRequest = (item: BrunoItem): string => {
     }
 
     const timeout = httpSettings?.timeout;
+
     if (isNumber(timeout) || timeout === 'inherit') {
       settings.timeout = timeout;
     } else {
