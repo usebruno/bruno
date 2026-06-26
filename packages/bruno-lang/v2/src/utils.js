@@ -1,4 +1,34 @@
-const { parseValueByDataType, BRUNO_VARIABLE_DATATYPES } = require('@usebruno/common/utils');
+const BRUNO_VARIABLE_DATATYPES = ['string', 'number', 'boolean', 'object'];
+
+const parseValueByDataType = (value, dataType) => {
+  if (!dataType || dataType === 'string') return value;
+  try {
+    if (dataType === 'number') {
+      if (typeof value === 'number') return value;
+      const trimmed = typeof value === 'string' ? value.trim() : value;
+      if (trimmed === '' || trimmed == null) return value;
+      const num = Number(trimmed);
+      if (!Number.isNaN(num)) return num;
+    } else if (dataType === 'boolean') {
+      if (typeof value === 'boolean') return value;
+      if (value === 'true') return true;
+      if (value === 'false') return false;
+    } else if (dataType === 'object') {
+      if (typeof value === 'object' && value !== null) return value;
+      const trimmed = typeof value === 'string' ? value.trim() : value;
+      if (trimmed === '' || trimmed == null) return value;
+      try {
+        const parsed = JSON.parse(trimmed);
+        if (parsed !== null && typeof parsed === 'object') return parsed;
+      } catch (_) {
+        // not JSON — fall through
+      }
+    }
+  } catch (_) {
+    // fall through
+  }
+  return value;
+};
 
 // safely parse json
 const safeParseJson = (json) => {
@@ -32,6 +62,52 @@ const outdentString = (str, spaces = 2) => {
     .map((line) => line.replace(spacesRegex, ''))
     .join('\n');
 };
+
+const parseAnnotationMultilineTextBlock = (content) => {
+  if (!content || !content.length) {
+    return '';
+  }
+
+  if (!content.includes('\n') && !content.includes('\r')) {
+    return content;
+  }
+
+  const lineEnding = content.includes('\r\n') ? '\r\n' : content.includes('\r') ? '\r' : '\n';
+  const lines = content.split(/\r\n|\r|\n/);
+
+  if (lines.length > 0 && lines[0] === '') lines.shift();
+  if (lines.length > 0 && lines[lines.length - 1].trim() === '') lines.pop();
+
+  const nonEmptyLines = lines.filter((line) => line.trim() !== '');
+  const minIndent = nonEmptyLines.length
+    ? Math.min(...nonEmptyLines.map((line) => line.match(/^[ \t]*/)[0].length))
+    : 0;
+
+  return lines
+    .map((line) => (line.trim() === '' ? '' : line.substring(minIndent)))
+    .join(lineEnding);
+};
+
+const unescapeAnnotationDoubleQuotedArg = (value) =>
+  value.replace(/\\(r|n|t|"|\\)/g, (_, char) => {
+    switch (char) {
+      case 'r':
+        return '\r';
+      case 'n':
+        return '\n';
+      case 't':
+        return '\t';
+      case '"':
+        return '"';
+      case '\\':
+        return '\\';
+      default:
+        return char;
+    }
+  });
+
+const escapeAnnotationDoubleQuotedArg = (value) =>
+  value.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
 
 const getValueString = (value) => {
   // Handle null, undefined, and empty strings
@@ -75,6 +151,13 @@ const getValueUrl = (url) => {
   return `'''\n${indentString(url, 2)}\n'''`;
 };
 
+const formatAnnotationArg = (strValue) => {
+  if (strValue.includes('\'\'\'') || strValue.includes('\'')) {
+    return `"${escapeAnnotationDoubleQuotedArg(strValue)}"`;
+  }
+  return `'${strValue}'`;
+};
+
 function serializeAnnotations(annotations) {
   if (!annotations?.length) return '';
   return (
@@ -85,23 +168,35 @@ function serializeAnnotations(annotations) {
         if (strValue.includes('\n')) {
           return `@${a.name}('''\n${indentString(strValue)}\n''')`;
         }
-        const quote = strValue.includes('\'') ? '"' : '\'';
-        return `@${a.name}(${quote}${strValue}${quote})`;
+        return `@${a.name}(${formatAnnotationArg(strValue)})`;
       })
       .join('\n') + '\n'
   );
 };
 
+const resolveDescriptionAnnotations = (annotations, description) => {
+  const other = (annotations || []).filter((a) => a.name !== 'description');
+  if (description !== undefined && description !== null) {
+    if (description !== '') {
+      return { descArr: [{ name: 'description', value: description }], other };
+    }
+    return { descArr: [], other };
+  }
+  const descAnnotation = (annotations || []).find((a) => a.name === 'description');
+  const descArr = descAnnotation !== undefined ? [descAnnotation] : [];
+  return { descArr, other };
+};
+
 const buildAnnotationsFromVariable = (variable) => {
-  const { annotations = [], dataType } = variable;
-  // Drop any dataType annotations from the existing list; they'll be rebuilt from the dataType field
-  const other = annotations.filter((a) => !BRUNO_VARIABLE_DATATYPES.includes(a.name));
+  const { annotations = [], dataType, description } = variable;
+  const dataTypeFiltered = annotations.filter((a) => !BRUNO_VARIABLE_DATATYPES.includes(a.name));
+  const { descArr, other } = resolveDescriptionAnnotations(dataTypeFiltered, description);
 
   if (dataType && dataType !== 'string') {
-    return [{ name: dataType }, ...other];
+    return [{ name: dataType }, ...descArr, ...other];
   }
 
-  return other;
+  return [...descArr, ...other];
 };
 
 const extractTypedAnnotations = (rawAnnotations, result) => {
@@ -119,15 +214,32 @@ const serializeVar = (item, prefix = '') => {
   return `${serializeAnnotations(buildAnnotationsFromVariable(item))}${prefix}${item.name}: ${getValueString(item.value)}`;
 };
 
+const applyDescriptionFromAnnotations = (result, annotations) => {
+  if (!annotations?.length) return;
+  const descAnnotation = annotations.find((a) => a.name === 'description');
+  if (descAnnotation !== undefined) {
+    result.description = descAnnotation.value ?? '';
+  }
+};
+
+const buildAnnotationsFromKVItem = (item) => {
+  const { descArr, other } = resolveDescriptionAnnotations(item.annotations, item.description);
+  return [...descArr, ...other];
+};
+
 module.exports = {
   safeParseJson,
   indentString,
   outdentString,
+  unescapeAnnotationDoubleQuotedArg,
+  parseAnnotationMultilineTextBlock,
   getValueString,
   getKeyString,
   getValueUrl,
   serializeAnnotations,
   extractTypedAnnotations,
   buildAnnotationsFromVariable,
-  serializeVar
+  serializeVar,
+  applyDescriptionFromAnnotations,
+  buildAnnotationsFromKVItem
 };

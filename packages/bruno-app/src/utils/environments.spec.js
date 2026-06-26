@@ -36,6 +36,40 @@ describe('buildEnvVariable — dataType preservation for env export/import', () 
     expect(out.uid).toEqual(expect.any(String));
     expect(out).toMatchObject({ name: 'count', value: 42, dataType: 'number' });
   });
+
+  it('preserves non-empty descriptions on export', () => {
+    expect(buildEnvVariable({
+      envVariable: { name: 'host', value: 'http://localhost', secret: false, description: 'Single-line host desc' }
+    })).toEqual({
+      name: 'host',
+      value: 'http://localhost',
+      type: 'text',
+      enabled: true,
+      secret: false,
+      description: 'Single-line host desc'
+    });
+
+    expect(buildEnvVariable({
+      envVariable: {
+        name: 'secretToken',
+        value: 'shh',
+        secret: true,
+        description: 'Secret line one\nSecret line two'
+      }
+    })).toEqual({
+      name: 'secretToken',
+      value: '',
+      type: 'text',
+      enabled: true,
+      secret: true,
+      description: 'Secret line one\nSecret line two'
+    });
+  });
+
+  it('omits empty descriptions', () => {
+    const out = buildEnvVariable({ envVariable: { name: 'plain', value: 'x', secret: false, description: '' } });
+    expect(out.description).toBeUndefined();
+  });
 });
 
 describe('stripEnvVarUid — datatype-aware comparison key', () => {
@@ -52,6 +86,25 @@ describe('stripEnvVarUid — datatype-aware comparison key', () => {
   it('keeps dataType on secrets', () => {
     expect(stripEnvVarUid({ uid: 'u', name: 'token', value: '', type: 'text', enabled: true, secret: true, dataType: 'number' }))
       .toEqual({ name: 'token', value: '', type: 'text', enabled: true, secret: true, dataType: 'number' });
+  });
+
+  it('keeps non-empty descriptions', () => {
+    expect(stripEnvVarUid({
+      uid: 'u',
+      name: 'host',
+      value: 'http://localhost',
+      type: 'text',
+      enabled: true,
+      secret: false,
+      description: 'Single-line host desc'
+    })).toEqual({
+      name: 'host',
+      value: 'http://localhost',
+      type: 'text',
+      enabled: true,
+      secret: false,
+      description: 'Single-line host desc'
+    });
   });
 });
 

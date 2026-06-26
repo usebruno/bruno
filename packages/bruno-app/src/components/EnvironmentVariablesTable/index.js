@@ -7,7 +7,9 @@ import { useTheme } from 'providers/Theme';
 import { useSelector, useDispatch } from 'react-redux';
 import { updateTableColumnWidths } from 'providers/ReduxStore/slices/tabs';
 import MultiLineEditor from 'components/MultiLineEditor/index';
+import SecretEyeButton from 'components/MultiLineEditor/SecretEyeButton';
 import DataTypeSelector from 'components/DataTypeSelector';
+import VarValueCell from 'components/VarValueCell';
 import StyledWrapper from './StyledWrapper';
 import { uuid } from 'utils/common';
 import { useFormik } from 'formik';
@@ -49,6 +51,95 @@ const TableRow = React.memo(
     return prevUid === nextUid && prevProps.children === nextProps.children;
   }
 );
+
+const columns = ['name', 'value', 'description'];
+
+const EnvVarValueCell = ({
+  variable,
+  actualIndex,
+  isLastRow,
+  isLastEmptyRow,
+  storedTheme,
+  collection,
+  formik,
+  handleRowFocus,
+  handleSave,
+  renderExtraValueContent
+}) => {
+  const editorRef = useRef(null);
+  const [compact, setCompact] = useState(true);
+  const [masked, setMasked] = useState(variable.secret);
+
+  useEffect(() => {
+    setMasked(variable.secret);
+  }, [variable.secret]);
+
+  return (
+    <VarValueCell
+      onCompactChange={setCompact}
+      trailingContent={variable.secret && compact ? (
+        <SecretEyeButton
+          masked={masked}
+          onToggle={() => editorRef.current?.toggleVisibleSecret()}
+        />
+      ) : null}
+      editor={(
+        <div
+          className="relative flex flex-col"
+          onFocus={() => handleRowFocus(variable.uid)}
+        >
+          <MultiLineEditor
+            ref={editorRef}
+            theme={storedTheme}
+            collection={collection}
+            name={`${actualIndex}.value`}
+            value={valueToString(variable.value, 2)}
+            placeholder={variable.value == null || (typeof variable.value === 'string' && variable.value.trim() === '') ? 'Value' : ''}
+            isSecret={variable.secret}
+            hideSecretEye={variable.secret && compact}
+            onMaskChange={setMasked}
+            onChange={(newValue) => {
+              formik.setFieldValue(`${actualIndex}.value`, newValue, true);
+              if (variable.ephemeral) {
+                formik.setFieldValue(`${actualIndex}.ephemeral`, undefined, false);
+                formik.setFieldValue(`${actualIndex}.persistedValue`, undefined, false);
+              }
+              if (isLastRow) {
+                setTimeout(() => {
+                  formik.setFieldValue(formik.values.length, {
+                    uid: uuid(),
+                    name: '',
+                    value: '',
+                    description: '',
+                    type: 'text',
+                    secret: false,
+                    enabled: true
+                  }, false);
+                }, 0);
+              }
+            }}
+            onSave={handleSave}
+          />
+          {renderExtraValueContent && renderExtraValueContent(variable)}
+        </div>
+      )}
+      renderTypeSelector={!isLastEmptyRow
+        ? ({ compact: isCompact }) => (
+            <DataTypeSelector
+              compact={isCompact}
+              variable={variable}
+              collection={collection}
+              onChange={(fields) => {
+                Object.entries(fields).forEach(([key, val]) => {
+                  formik.setFieldValue(`${actualIndex}.${key}`, val, true);
+                });
+              }}
+            />
+          )
+        : null}
+    />
+  );
+};
 
 const EnvironmentVariablesTable = ({
   environment,
@@ -98,7 +189,7 @@ const EnvironmentVariablesTable = ({
 
   // Local state initialized from Redux (computed once on mount/environment change via key)
   const [columnWidths, setColumnWidths] = useState(() => {
-    return storedColumnWidths || { name: '30%', value: 'auto' };
+    return storedColumnWidths || { name: '20%', value: 'auto', description: '35%' };
   });
 
   const [resizing, setResizing] = useState(null);
@@ -122,7 +213,12 @@ const EnvironmentVariablesTable = ({
 
     const startX = e.clientX;
     const startWidth = currentCell.offsetWidth;
-    const nextColumnKey = 'value';
+
+    const colIndex = columns.indexOf(columnKey) + 1;
+    if (colIndex >= columns.length - 1) return;
+
+    const matchedNextCol = columns[colIndex];
+    const nextColumnKey = matchedNextCol ?? columns.at(-1);
     const nextColumnStartWidth = nextCell.offsetWidth;
 
     setResizing(columnKey);
@@ -164,7 +260,6 @@ const EnvironmentVariablesTable = ({
   }, [searchQuery]);
 
   const prevEnvUidRef = useRef(null);
-  const prevEnvVariablesRef = useRef(environment.variables);
   const mountedRef = useRef(false);
 
   const globalEnvironmentVariables = getGlobalEnvironmentVariables({ globalEnvironments, activeGlobalEnvironmentUid });
@@ -190,14 +285,15 @@ const EnvironmentVariablesTable = ({
   const initialValues = useMemo(() => {
     const vars = environment.variables || [];
     const next = [
-      ...vars,
+      ...vars.map((v) => ({ ...v, description: v.description ?? '' })),
       {
         uid: uuid(),
         name: '',
         value: '',
         type: 'text',
         secret: false,
-        enabled: true
+        enabled: true,
+        description: ''
       }
     ];
     const prev = initialValuesRef.current;
@@ -230,6 +326,7 @@ const EnvironmentVariablesTable = ({
         type: Yup.string(),
         uid: Yup.string(),
         value: Yup.mixed().nullable(),
+        description: Yup.string().nullable(),
         dataType: Yup.string().oneOf(BRUNO_VARIABLE_DATATYPES).nullable(),
         annotations: Yup.array().nullable()
       })
@@ -258,30 +355,29 @@ const EnvironmentVariablesTable = ({
     onSubmit: () => {}
   });
 
-  // Restore draft values on mount or environment switch
+  // Restore draft values on mount or environment switch (not on external filesystem reloads)
   useEffect(() => {
     const isMount = !mountedRef.current;
     const envChanged = prevEnvUidRef.current !== null && prevEnvUidRef.current !== environment.uid;
-    const variablesReloaded = !isMount && !envChanged && prevEnvVariablesRef.current !== environment.variables;
 
     prevEnvUidRef.current = environment.uid;
-    prevEnvVariablesRef.current = environment.variables;
     mountedRef.current = true;
 
-    if ((isMount || envChanged || variablesReloaded) && hasDraftForThisEnv && draft?.variables) {
+    if ((isMount || envChanged) && hasDraftForThisEnv && draft?.variables) {
       formik.setValues([
-        ...draft.variables,
+        ...draft.variables.map((v) => ({ ...v, description: v.description ?? '' })),
         {
           uid: uuid(),
           name: '',
           value: '',
           type: 'text',
           secret: isSecretTab,
-          enabled: true
+          enabled: true,
+          description: ''
         }
       ]);
     }
-  }, [environment.uid, environment.variables, hasDraftForThisEnv, draft?.variables]);
+  }, [environment.uid, hasDraftForThisEnv, draft?.variables]);
 
   const savedValuesJson = useMemo(() => {
     return JSON.stringify((environment.variables || []).map(stripEnvVarUid));
@@ -388,7 +484,8 @@ const EnvironmentVariablesTable = ({
               value: '',
               type: 'text',
               secret: isSecretTab,
-              enabled: true
+              enabled: true,
+              description: ''
             }
           ];
 
@@ -412,7 +509,8 @@ const EnvironmentVariablesTable = ({
         value: '',
         type: 'text',
         secret: isSecretTab,
-        enabled: true
+        enabled: true,
+        description: ''
       };
       setTimeout(() => {
         formik.setFieldValue(formik.values.length, newVariable, false);
@@ -662,14 +760,19 @@ const EnvironmentVariablesTable = ({
             ? String(variable.value)
             : '';
       const valueMatch = valueText.toLowerCase().includes(query);
-      return !!(nameMatch || valueMatch);
+      const descriptionMatch
+        = variable.description && typeof variable.description === 'string'
+          ? variable.description.toLowerCase().includes(query)
+          : false;
+
+      return !!(nameMatch || valueMatch || descriptionMatch);
     });
   }, [formik.values, searchQuery, pinnedData, isSecretTab]);
 
   const isSearchActive = !!searchQuery?.trim();
 
   return (
-    <StyledWrapper className={resizing ? 'is-resizing' : ''}>
+    <StyledWrapper className={`${resizing ? 'is-resizing' : ''} has-description-column`.trim()}>
       {isSearchActive && filteredVariables.length === 0 ? (
         <div className="no-results">No results found for &ldquo;{searchQuery.trim()}&rdquo;</div>
       ) : (
@@ -693,8 +796,16 @@ const EnvironmentVariablesTable = ({
                   onMouseDown={(e) => handleResizeStart(e, 'name')}
                 />
               </td>
-              <td style={{ width: columnWidths.value }}>Value</td>
-              <td></td>
+              <td style={{ width: columnWidths.value }}>
+                Value
+                <div
+                  className={`resize-handle ${resizing === 'value' ? 'resizing' : ''}`}
+                  style={{ height: tableHeight > 0 ? `${tableHeight}px` : undefined }}
+                  onMouseDown={(e) => handleResizeStart(e, 'value')}
+                />
+              </td>
+              <td style={{ width: columnWidths.description }}>Description</td>
+              <td className="actions-column"></td>
             </tr>
           )}
           defaultItemHeight={35}
@@ -742,60 +853,32 @@ const EnvironmentVariablesTable = ({
                     <ErrorMessage name={`${actualIndex}.name`} index={actualIndex} />
                   </div>
                 </td>
-                <td
-                  className="flex flex-row flex-nowrap items-center gap-2"
-                  style={{ width: columnWidths.value }}
-                >
-                  <div
-                    className="flex-1 min-w-0 relative"
-                    onFocus={() => handleRowFocus(variable.uid)}
-                  >
-                    <MultiLineEditor
-                      theme={storedTheme}
-                      collection={_collection}
-                      name={`${actualIndex}.value`}
-                      value={valueToString(variable.value, 2)}
-                      placeholder={variable.value == null || (typeof variable.value === 'string' && variable.value.trim() === '') ? 'Value' : ''}
-                      isSecret={variable.secret}
-                      onChange={(newValue) => {
-                        formik.setFieldValue(`${actualIndex}.value`, newValue, true);
-                        // Clear ephemeral metadata when user manually edits the value
-                        if (variable.ephemeral) {
-                          formik.setFieldValue(`${actualIndex}.ephemeral`, undefined, false);
-                          formik.setFieldValue(`${actualIndex}.persistedValue`, undefined, false);
-                        }
-                        // Append a new empty row when editing value on the last row
-                        if (isLastRow) {
-                          setTimeout(() => {
-                            formik.setFieldValue(formik.values.length, {
-                              uid: uuid(),
-                              name: '',
-                              value: '',
-                              type: 'text',
-                              secret: isSecretTab,
-                              enabled: true
-                            }, false);
-                          }, 0);
-                        }
-                      }}
-                      onSave={handleSave}
-                    />
-                  </div>
-                  {!isLastEmptyRow && (
-                    <span>
-                      <DataTypeSelector
-                        variable={variable}
-                        theme={storedTheme}
-                        collection={_collection}
-                        onChange={(fields) => {
-                          Object.entries(fields).forEach(([key, val]) => {
-                            formik.setFieldValue(`${actualIndex}.${key}`, val, true);
-                          });
-                        }}
-                      />
-                    </span>
-                  )}
-                  {renderExtraValueContent && renderExtraValueContent(variable)}
+                <td style={{ width: columnWidths.value }}>
+                  <EnvVarValueCell
+                    variable={variable}
+                    actualIndex={actualIndex}
+                    isLastRow={isLastRow}
+                    isLastEmptyRow={isLastEmptyRow}
+                    storedTheme={storedTheme}
+                    collection={_collection}
+                    formik={formik}
+                    handleRowFocus={handleRowFocus}
+                    handleSave={handleSave}
+                    renderExtraValueContent={renderExtraValueContent}
+                  />
+                </td>
+                <td style={{ width: columnWidths.description }}>
+                  <MultiLineEditor
+                    theme={storedTheme}
+                    collection={_collection}
+                    name={`${actualIndex}.description`}
+                    value={variable.description ?? ''}
+                    placeholder={!variable.description || (typeof variable.description === 'string' && variable.description.trim() === '') ? 'Description' : ''}
+                    onChange={(newValue) => {
+                      formik.setFieldValue(`${actualIndex}.description`, newValue, true);
+                    }}
+                    onSave={handleSave}
+                  />
                 </td>
                 <td>
                   {!isLastEmptyRow && (

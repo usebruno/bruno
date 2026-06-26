@@ -470,6 +470,7 @@ const deleteCollectionFromOverview = async (page: Page, collectionName: string) 
 type ImportCollectionOptions = {
   expectedCollectionName?: string;
   expectIssues?: boolean;
+  sidebarTimeout?: number;
 };
 
 const importCollection = async (
@@ -510,7 +511,7 @@ const importCollection = async (
     if (options.expectedCollectionName) {
       await expect(
         page.locator('#sidebar-collection-name').filter({ hasText: options.expectedCollectionName })
-      ).toBeVisible();
+      ).toBeVisible({ timeout: options.sidebarTimeout ?? 5000 });
     }
 
     // Wait for import issues toast if expected
@@ -1276,25 +1277,30 @@ const addMultipartFileToLastRow = async (page: Page, electronApp: ElectronApplic
   await test.step(`Add multipart file "${path.basename(filePath)}"`, async () => {
     await mockBrowseFiles(electronApp, [filePath]);
 
-    const table = buildCommonLocators(page).table('editable-table');
+    const table = buildCommonLocators(page).table('multipart-form-table');
     // The last row is the empty "add" row. Capture its index now, because once
     // we set a file the table appends a new empty row — so `.last()` would jump
     // to that new row instead of staying on the one we just filled.
-    const rowIndex = (await table.allRows().count()) - 1;
+    let rowIndex = (await table.allRows().count()) - 1;
     const targetRow = table.allRows().nth(rowIndex);
 
-    await expect(targetRow.locator('.upload-btn')).toBeVisible();
-    await targetRow.locator('.upload-btn').click();
-    await expect(targetRow.locator('.file-value-cell')).toBeVisible();
-    const inlineChip = targetRow.getByTestId('multipart-file-chip').filter({ hasText: path.basename(filePath) });
-    const summary = targetRow.getByTestId('multipart-file-summary');
+    if (rowIndex < 0) {
+      rowIndex = 0;
+    }
+
+    await expect(targetRow.getByTestId('multipart-file-upload')).toBeVisible();
+    await targetRow.getByTestId('multipart-file-upload').click();
+    const specificRow = table.allRows().nth(rowIndex);
+    await expect(specificRow.locator('.file-value-cell')).toBeVisible({ timeout: 10000 });
+    const inlineChip = specificRow.getByTestId('multipart-file-chip').filter({ hasText: path.basename(filePath) });
+    const summary = specificRow.getByTestId('multipart-file-summary');
     await expect(inlineChip.or(summary)).toBeVisible();
   });
 };
 
 const removeFirstMultipartFile = async (page: Page) => {
   await test.step('Remove first multipart file', async () => {
-    const table = buildCommonLocators(page).table('editable-table');
+    const table = buildCommonLocators(page).table('multipart-form-table');
     const firstRow = table.allRows().first();
     await expect(firstRow.locator('.file-value-cell')).toBeVisible();
 
@@ -1789,6 +1795,36 @@ const readField = async (page: Page, labelText: string): Promise<string> => {
   return editor.evaluate((el: any) => (el as any).CodeMirror?.getValue() ?? '');
 };
 
+const openFolderSettings = async (page: Page, collectionName: string, folderName = 'api') => {
+  await test.step(`Open folder settings for "${folderName}" in collection "${collectionName}"`, async () => {
+    const collectionRow = page.locator('#sidebar-collection-name').filter({ hasText: collectionName });
+    await expect(collectionRow).toBeVisible();
+
+    const folderRow = page
+      .getByTestId('collections')
+      .locator('.collection-item-name')
+      .filter({ hasText: folderName });
+    if (!(await folderRow.isVisible().catch(() => false))) {
+      await collectionRow.click();
+      await expect(folderRow).toBeVisible();
+    }
+
+    await folderRow.dblclick();
+    await expect(page.locator('.request-tab .tab-label').filter({ hasText: folderName })).toBeVisible();
+  });
+};
+
+const setTableRowDescriptionValue = async (rowLocator: Locator, value: string) => {
+  const descCell = rowLocator.getByTestId('column-description');
+  await descCell.evaluate((el: any, val: string) => {
+    const cmEl = el.querySelector('.CodeMirror');
+    if (!cmEl) throw new Error('No CodeMirror in description cell');
+    const cm = (cmEl as any).CodeMirror;
+    if (!cm) throw new Error('CodeMirror instance not found');
+    cm.setValue(val);
+  }, value);
+};
+
 const createExampleFromSidebar = async (page: Page, requestName: string, exampleName: string, description: string = '') => {
   const requestRow = page.locator('.collection-item-name').filter({ hasText: requestName }).first();
 
@@ -2261,6 +2297,8 @@ export {
   openRequestInFolder,
   setUrlEncoding,
   generateCollectionDocs,
+  openFolderSettings,
+  setTableRowDescriptionValue,
   setAppCode,
   enableApp,
   exitApp,
