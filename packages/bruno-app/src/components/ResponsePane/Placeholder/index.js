@@ -19,6 +19,7 @@ const Placeholder = () => {
   const keyBindingActions = useMemo(() => {
     return KEY_BINDING_ACTIONS.map(({ label, action }) => ({
       label,
+      action,
       shortcut: getKeyBindingDisplayTextByOS(action, preferences?.keyBindings, os)
     }));
   }, [preferences?.keyBindings, os]);
@@ -32,13 +33,17 @@ const Placeholder = () => {
       </div>
       <div className={`flex ${isVerticalLayout ? 'mt-2' : 'mt-4'}`}>
         <div className="flex flex-1 flex-col items-end px-1">
-          {keyBindingActions.map(({ label }) => (
-            <div key={label} className="px-1 py-2">{label}</div>
+          {keyBindingActions.map(({ label, action }) => (
+            <div key={label} className="px-1 py-2" data-testid={`response-placeholder-shortcut-label-${action}`}>
+              {label}
+            </div>
           ))}
         </div>
         <div className="flex flex-1 flex-col px-1">
-          {keyBindingActions.map(({ label, shortcut }) => (
-            <div key={label} className="px-1 py-2">{shortcut}</div>
+          {keyBindingActions.map(({ label, action, shortcut }) => (
+            <div key={label} className="px-1 py-2" data-testid={`response-placeholder-shortcut-value-${action}`}>
+              {shortcut}
+            </div>
           ))}
         </div>
       </div>

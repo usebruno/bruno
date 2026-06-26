@@ -42,9 +42,7 @@ const parseDisplayValue = (displayValue, os) => {
   const rangeParts = displayValue.split(/\s*-\s*/);
 
   const result = rangeParts.map((part) => {
-    // Split by "+bind+" to get individual keys (consistent with storage format)
-    // Filter out empty strings that may result from the split
-    const keys = part.split(KEY_BINDING_SEPARATOR).filter(Boolean).map((key) => {
+    const keys = fromKeysString(part).map((key) => {
       const lowerKey = key.toLowerCase().trim();
       // Check if it's a symbol and convert back to key name
       if (symbolToKey[lowerKey]) {

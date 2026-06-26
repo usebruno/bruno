@@ -14,6 +14,12 @@ const customShortcutText = {
   editEnvironment: process.platform === 'darwin' ? '⌥ + E' : 'Alt + E'
 };
 
+const placeholderShortcuts = [
+  { action: 'sendRequest', label: 'Send Request', shortcut: customShortcutText.sendRequest },
+  { action: 'newRequest', label: 'New Request', shortcut: customShortcutText.newRequest },
+  { action: 'editEnvironment', label: 'Edit Environments', shortcut: customShortcutText.editEnvironment }
+];
+
 const writePreferencesWithCustomKeybindings = async (initUserDataPath: string) => {
   await fs.promises.writeFile(
     path.join(initUserDataPath, 'preferences.json'),
@@ -55,12 +61,10 @@ test.describe('Shortcut Keys - Response Placeholder', () => {
     await openRequest(page, collectionName, 'req-5', { persist: true });
 
     const placeholder = page.getByTestId('response-placeholder');
-    await expect(placeholder).toContainText('Send Request');
-    await expect(placeholder).toContainText(customShortcutText.sendRequest);
-    await expect(placeholder).toContainText('New Request');
-    await expect(placeholder).toContainText(customShortcutText.newRequest);
-    await expect(placeholder).toContainText('Edit Environments');
-    await expect(placeholder).toContainText(customShortcutText.editEnvironment);
+    for (const { action, label, shortcut } of placeholderShortcuts) {
+      await expect(placeholder.getByTestId(`response-placeholder-shortcut-label-${action}`)).toHaveText(label);
+      await expect(placeholder.getByTestId(`response-placeholder-shortcut-value-${action}`)).toHaveText(shortcut);
+    }
 
     await closeAllCollections(page);
   });
