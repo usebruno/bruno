@@ -29,7 +29,7 @@ const confirmRemoveCollection = async (page: Page) => {
     await removeModal.removeButton().click();
   }
 
-  await removeModal.modal().waitFor({ state: 'hidden', timeout: 5000 });
+  await removeModal.modal().waitFor({ state: 'hidden' });
 };
 
 test.describe('Open collection sanity testcases', () => {
