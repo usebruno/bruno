@@ -4,7 +4,6 @@ import {
   createCollection,
   createFolder,
   saveRequest,
-  scrollVirtuosoRowIntoView,
   selectRequestPaneTab
 } from '../utils/page';
 import { buildCommonLocators } from '../utils/page/locators';
@@ -32,7 +31,6 @@ const tableRowByName = (page: Page, tableId: string, name: string) =>
   buildCommonLocators(page).table(tableId).rowByName(name);
 
 const expectTypeLabel = async (row: Locator, label: string) => {
-  await scrollVirtuosoRowIntoView(row.page(), row);
   await expect(buildCommonLocators(row.page()).dataTypeSelector.typeLabel(row)).toHaveText(label);
 };
 
