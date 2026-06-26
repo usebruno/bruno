@@ -143,7 +143,7 @@ const CodeMirrorSearch = forwardRef(({ visible, editor, readOnly, onClose }, ref
         // Set both count and index immediately to avoid "1 / N" flash before debounce fires
         setMatchCount(matches.length);
         setMatchIndex(targetIdx);
-        doSearch(text, targetIdx);
+        doSearch(text, targetIdx, null, true);
         initialIndexRef.current = { idx: targetIdx, forText: text };
       } else {
         setMatchIndex(0);
@@ -171,7 +171,7 @@ const CodeMirrorSearch = forwardRef(({ visible, editor, readOnly, onClose }, ref
         setMatchCount(matches.length);
         setMatchIndex(resolvedIdx);
         initialIndexRef.current = { idx: resolvedIdx, forText: searchText };
-        doSearch(searchText, resolvedIdx);
+        doSearch(searchText, resolvedIdx, null, true);
       }
       setTimeout(() => {
         if (inputRef.current) {
@@ -304,7 +304,7 @@ const CodeMirrorSearch = forwardRef(({ visible, editor, readOnly, onClose }, ref
     );
     const resolvedNextIdx = nextIdx >= 0 ? nextIdx : 0;
     pendingSearchIndexRef.current = resolvedNextIdx;
-    doSearch(debouncedSearchText, resolvedNextIdx);
+    doSearch(debouncedSearchText, resolvedNextIdx, null, true);
     setTimeout(() => inputRef.current?.focus(), 0);
   }, [editor, matchIndex, replaceText, debouncedSearchText, regex, caseSensitive, wholeWord, doSearch]);
 
