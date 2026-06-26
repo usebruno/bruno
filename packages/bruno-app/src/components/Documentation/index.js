@@ -69,6 +69,7 @@ const Documentation = ({ item, collection }) => {
             mode="application/text"
             initialScroll={scroll}
             onScroll={setScroll}
+            testId="docs-editor"
           />
           <AIAssist
             scriptType="docs"

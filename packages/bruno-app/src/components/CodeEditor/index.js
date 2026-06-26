@@ -105,30 +105,22 @@ class CodeEditor extends React.Component {
         'Cmd-F': (cm) => {
           const selected = cm.getSelection();
           const cursor = cm.getCursor('from');
-          const viewport = cm.getViewport();
-          const effectiveCursor = (cursor.line >= viewport.from && cursor.line <= viewport.to)
-            ? cursor
-            : { line: Math.floor((viewport.from + viewport.to) / 2), ch: 0 };
           this.setState({ searchBarVisible: true }, () => {
             if (selected) {
-              this.searchBarRef.current?.setSearch(selected, effectiveCursor);
+              this.searchBarRef.current?.setSearch(selected, cursor);
             } else {
-              this.searchBarRef.current?.focusAtCursor(effectiveCursor);
+              this.searchBarRef.current?.focusAtCursor(cursor);
             }
           });
         },
         'Ctrl-F': (cm) => {
           const selected = cm.getSelection();
           const cursor = cm.getCursor('from');
-          const viewport = cm.getViewport();
-          const effectiveCursor = (cursor.line >= viewport.from && cursor.line <= viewport.to)
-            ? cursor
-            : { line: Math.floor((viewport.from + viewport.to) / 2), ch: 0 };
           this.setState({ searchBarVisible: true }, () => {
             if (selected) {
-              this.searchBarRef.current?.setSearch(selected, effectiveCursor);
+              this.searchBarRef.current?.setSearch(selected, cursor);
             } else {
-              this.searchBarRef.current?.focusAtCursor(effectiveCursor);
+              this.searchBarRef.current?.focusAtCursor(cursor);
             }
           });
         },
@@ -486,6 +478,7 @@ class CodeEditor extends React.Component {
       <StyledWrapper
         className={`h-full w-full flex flex-col relative graphiql-container ${this.props.readOnly ? 'read-only' : ''}`}
         aria-label="Code Editor"
+        data-testid={this.props.testId}
         font={this.props.font}
         fontSize={this.props.fontSize}
       >
