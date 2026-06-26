@@ -122,13 +122,25 @@ class CodeEditor extends React.Component {
             }
           });
         },
-        'Cmd-H': this.props.readOnly ? false : (cm) => {
+        'Cmd-H': this.props.readOnly ? false : () => {
           this.setState({ searchBarVisible: true }, () => {
             this.searchBarRef.current?.focus();
             this.searchBarRef.current?.openReplace();
           });
         },
-        'Ctrl-H': this.props.readOnly ? false : (cm) => {
+        'Ctrl-H': this.props.readOnly ? false : () => {
+          this.setState({ searchBarVisible: true }, () => {
+            this.searchBarRef.current?.focus();
+            this.searchBarRef.current?.openReplace();
+          });
+        },
+        'Cmd-Alt-F': this.props.readOnly ? false : () => {
+          this.setState({ searchBarVisible: true }, () => {
+            this.searchBarRef.current?.focus();
+            this.searchBarRef.current?.openReplace();
+          });
+        },
+        'Ctrl-Alt-F': this.props.readOnly ? false : () => {
           this.setState({ searchBarVisible: true }, () => {
             this.searchBarRef.current?.focus();
             this.searchBarRef.current?.openReplace();
