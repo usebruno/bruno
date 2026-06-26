@@ -106,6 +106,9 @@ const unescapeAnnotationDoubleQuotedArg = (value) =>
     }
   });
 
+const escapeAnnotationDoubleQuotedArg = (value) =>
+  value.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+
 const getValueString = (value) => {
   // Handle null, undefined, and empty strings
   if (!value && value !== 0 && value !== false) {
@@ -148,6 +151,13 @@ const getValueUrl = (url) => {
   return `'''\n${indentString(url, 2)}\n'''`;
 };
 
+const formatAnnotationArg = (strValue) => {
+  if (strValue.includes('\'\'\'') || strValue.includes('\'')) {
+    return `"${escapeAnnotationDoubleQuotedArg(strValue)}"`;
+  }
+  return `'${strValue}'`;
+};
+
 function serializeAnnotations(annotations) {
   if (!annotations?.length) return '';
   return (
@@ -158,16 +168,7 @@ function serializeAnnotations(annotations) {
         if (strValue.includes('\n')) {
           return `@${a.name}('''\n${indentString(strValue)}\n''')`;
         }
-        if (a.name === 'description' && strValue.length > 0) {
-          // non-empty descriptions always use triple-quote format for consistency
-          if (strValue.includes('\'\'\'')) {
-            // fall back to double-quoted when value itself contains '''
-            return `@description("${strValue}")`;
-          }
-          return `@description('''${strValue}''')`;
-        }
-        const quote = strValue.includes('\'') ? '"' : '\'';
-        return `@${a.name}(${quote}${strValue}${quote})`;
+        return `@${a.name}(${formatAnnotationArg(strValue)})`;
       })
       .join('\n') + '\n'
   );

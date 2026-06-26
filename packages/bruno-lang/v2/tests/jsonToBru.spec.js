@@ -138,7 +138,7 @@ describe('jsonToBru stringify', () => {
   });
 
   describe('description annotation', () => {
-    it('emits @description with triple-quotes (literal newlines) for headers, params, vars, and assertions when present in JSON', () => {
+    it('emits @description with single quotes for headers, params, vars, and assertions when present in JSON', () => {
       const input = {
         meta: { name: 'desc-test', type: 'http', seq: 1 },
         http: { method: 'get', url: 'https://example.com', body: 'none' },
@@ -160,10 +160,10 @@ describe('jsonToBru stringify', () => {
 
       const output = stringify(input);
 
-      expect(output).toMatch(/@description\('''Custom header note'''\)\n  X-Custom: val/);
-      expect(output).toMatch(/@description\('''Query param hint'''\)\n  q: search/);
-      expect(output).toMatch(/@description\('''Pre-request API key'''\)\n  apiKey: key123/);
-      expect(output).toMatch(/@description\('''Expect OK'''\)\n  res\.status: eq 200/);
+      expect(output).toMatch(/@description\('Custom header note'\)\n  X-Custom: val/);
+      expect(output).toMatch(/@description\('Query param hint'\)\n  q: search/);
+      expect(output).toMatch(/@description\('Pre-request API key'\)\n  apiKey: key123/);
+      expect(output).toMatch(/@description\('Expect OK'\)\n  res\.status: eq 200/);
     });
 
     it('emits triple-quoted description with literal newlines when description is multiline', () => {
@@ -194,7 +194,7 @@ describe('jsonToBru stringify', () => {
       expect(output).toMatch(/@description\("Say '''triple'''"\)/);
     });
 
-    it('escapes backslash in triple-quoted description; double-quoted when description contains triple quote or newline', () => {
+    it('emits single-quoted description when value contains double quotes', () => {
       const input = {
         meta: { name: 'esc', type: 'http', seq: 1 },
         http: { method: 'get', url: 'https://example.com', body: 'none' },
@@ -204,8 +204,7 @@ describe('jsonToBru stringify', () => {
       };
 
       const output = stringify(input);
-      // No ''' or newline so triple-quoted (double-quote is fine inside triple quotes)
-      expect(output).toMatch(/@description\('''Say "hello"'''\)/);
+      expect(output).toMatch(/@description\('Say "hello"'\)/);
     });
 
     it('emits triple-quoted description with emoji', () => {
@@ -219,8 +218,8 @@ describe('jsonToBru stringify', () => {
       };
 
       const output = stringify(input);
-      expect(output).toMatch(/@description\('''Auth token 🔑'''\)/);
-      expect(output).toMatch(/@description\('''Region 🌍 selector'''\)/);
+      expect(output).toMatch(/@description\('Auth token 🔑'\)/);
+      expect(output).toMatch(/@description\('Region 🌍 selector'\)/);
     });
 
     it('emits multiline triple-quoted description with emoji', () => {
@@ -269,6 +268,32 @@ describe('jsonToBru stringify', () => {
         http: { method: 'get', url: 'https://example.com', body: 'none' },
         headers: [
           { name: 'X-Note', value: 'v', enabled: true, description: 'Line one\r\nLine two\r\nLine three' }
+        ]
+      };
+
+      const output = stringify(input);
+      expect(output).toContain('@description(\'\'\'\n    Line one\n    Line two\n    Line three\n  \'\'\')\n  X-Note: v');
+    });
+
+    it('emits single line single-quoted description when single lined', () => {
+      const input = {
+        meta: { name: 'single-line-single-quoted', type: 'http', seq: 1 },
+        http: { method: 'get', url: 'https://example.com', body: 'none' },
+        headers: [
+          { name: 'X-Note', value: 'v', enabled: true, description: 'Line one' }
+        ]
+      };
+
+      const output = stringify(input);
+      expect(output).toContain('@description(\'Line one\'');
+    });
+
+    it('emits multiline triple-quoted description when multi line description', () => {
+      const input = {
+        meta: { name: 'multi-line-triple-quoted', type: 'http', seq: 1 },
+        http: { method: 'get', url: 'https://example.com', body: 'none' },
+        headers: [
+          { name: 'X-Note', value: 'v', enabled: true, description: 'Line one\nLine two\nLine three' }
         ]
       };
 
@@ -368,7 +393,7 @@ describe('jsonToBru stringify', () => {
 
       expect(output).toContain('@number');
       expect(output).not.toContain('@string');
-      expect(output).toContain('@description(\'\'\'service port\'\'\')');
+      expect(output).toContain('@description(\'service port\')');
     });
   });
 });
