@@ -34,8 +34,7 @@ describe('postmanTranslations - variables commands', () => {
     expect(result).toContain('.to.be.true');
   });
 
-  // TODO: Restore once UI update fixes are live for setCollectionVar
-  test.skip('should translate pm.collectionVariables.set to bru.setCollectionVar', () => {
+  test('should translate pm.collectionVariables.set to bru.setCollectionVar', () => {
     const inputScript = 'pm.collectionVariables.set(\'key\', \'value\');';
     expect(postmanTranslation(inputScript)).toBe('bru.setCollectionVar(\'key\', \'value\');');
   });

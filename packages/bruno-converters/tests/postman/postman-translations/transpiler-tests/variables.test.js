@@ -71,8 +71,7 @@ describe('Variables Translation', () => {
     expect(translatedCode).toBe('bru.getCollectionVar("apiUrl");');
   });
 
-  // TODO: Restore once UI update fixes are live for setCollectionVar
-  it.skip('should translate pm.collectionVariables.set', () => {
+  it('should translate pm.collectionVariables.set', () => {
     const code = 'pm.collectionVariables.set("token", jsonData.token);';
     const translatedCode = translateCode(code);
 
@@ -86,8 +85,7 @@ describe('Variables Translation', () => {
     expect(translatedCode).toBe('bru.hasCollectionVar("authToken");');
   });
 
-  // TODO: Restore once UI update fixes are live for deleteCollectionVar
-  it.skip('should translate pm.collectionVariables.unset', () => {
+  it('should translate pm.collectionVariables.unset', () => {
     const code = 'pm.collectionVariables.unset("tempVar");';
     const translatedCode = translateCode(code);
 
@@ -126,8 +124,7 @@ describe('Variables Translation', () => {
   });
 
   // Alias tests for collection variables
-  // TODO: Restore once UI update fixes are live for setCollectionVar/deleteCollectionVar
-  it.skip('should handle collection variables aliases', () => {
+  it('should handle collection variables aliases', () => {
     const code = `
         const collVars = pm.collectionVariables;
         const has = collVars.has("test");
@@ -183,8 +180,7 @@ describe('Variables Translation', () => {
     expect(translatedCode).toContain('bru.setVar("requestTime", new Date().toISOString());');
   });
 
-  // TODO: Restore once UI update fixes are live for setCollectionVar/deleteCollectionVar
-  it.skip('should handle all collection variable methods together', () => {
+  it('should handle all collection variable methods together', () => {
     const code = `
         // All collection variable methods
         const hasApiUrl = pm.collectionVariables.has("apiUrl");
@@ -202,8 +198,7 @@ describe('Variables Translation', () => {
     expect(translatedCode).toContain('bru.deleteCollectionVar("tempVar");');
   });
 
-  // TODO: Restore once UI update fixes are live for setCollectionVar
-  it.skip('should handle more complex nested expressions with variables', () => {
+  it('should handle more complex nested expressions with variables', () => {
     const code = 'pm.collectionVariables.set("fullPath", pm.environment.get("baseUrl") + pm.variables.get("endpoint"));';
     const translatedCode = translateCode(code);
 

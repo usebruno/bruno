@@ -533,6 +533,51 @@ export const collectionsSlice = createSlice({
         collection.runtimeVariables = runtimeVariables;
       }
     },
+    _applyCollectionVariablesUpdate: (state, action) => {
+      const { collectionUid, collectionVariables } = action.payload;
+      if (!collectionVariables) return;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+      if (!collection) return;
+
+      // Start a draft so saveCollectionSettings has something to flush to .bru on disk.
+      if (!collection.draft) {
+        collection.draft = { root: cloneDeep(collection.root) };
+      }
+      const root = collection.draft.root || {};
+      root.request = root.request || {};
+      root.request.vars = root.request.vars || {};
+      const existing = root.request.vars.req || [];
+      const incomingKeys = new Set(Object.keys(collectionVariables));
+
+      // Update existing vars (preserve uid, enabled, dataType-as-needed) and drop ones removed by script.
+      const updated = [];
+      existing.forEach((variable) => {
+        if (!incomingKeys.has(variable.name)) return;
+        const newValue = collectionVariables[variable.name];
+        const inferred = getDataTypeFromValue(newValue);
+        updated.push({
+          ...variable,
+          value: newValue,
+          ...(inferred === 'string' ? { dataType: undefined } : { dataType: inferred })
+        });
+        incomingKeys.delete(variable.name);
+      });
+
+      // Add brand-new vars introduced by setCollectionVar.
+      incomingKeys.forEach((key) => {
+        const value = collectionVariables[key];
+        const inferred = getDataTypeFromValue(value);
+        updated.push({
+          uid: uuid(),
+          name: key,
+          value,
+          enabled: true,
+          ...(inferred === 'string' ? {} : { dataType: inferred })
+        });
+      });
+
+      root.request.vars.req = updated;
+    },
     processEnvUpdateEvent: (state, action) => {
       const { collectionUid, processEnvVariables } = action.payload;
       const collection = findCollectionByUid(state.collections, collectionUid);
@@ -3892,6 +3937,7 @@ export const {
   renameItem,
   cloneItem,
   scriptEnvironmentUpdateEvent,
+  _applyCollectionVariablesUpdate,
   processEnvUpdateEvent,
   workspaceEnvUpdateEvent,
   setDotEnvVariables,

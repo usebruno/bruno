@@ -287,16 +287,18 @@ export const globalEnvironmentsUpdateEvent = ({ globalEnvironmentVariables }) =>
 
     let variables = cloneDeep(environment?.variables);
 
-    variables = variables?.map?.((variable) => {
-      if (!has(globalEnvironmentVariables, variable?.name)) return variable;
+    // Update existing variables and drop any that disappeared from the incoming snapshot
+    // (those were removed via bru.deleteGlobalEnvVar / deleteAllGlobalEnvVars).
+    variables = (variables || []).reduce((acc, variable) => {
+      if (!has(globalEnvironmentVariables, variable?.name)) return acc;
       const newValue = globalEnvironmentVariables[variable?.name];
-
-      return {
+      acc.push({
         ...variable,
         value: newValue,
         ...typedFieldsFor(newValue)
-      };
-    });
+      });
+      return acc;
+    }, []);
 
     Object.entries(globalEnvironmentVariables)?.forEach?.(([key, value]) => {
       const isAnExistingVariable = variables?.find((v) => v?.name == key);

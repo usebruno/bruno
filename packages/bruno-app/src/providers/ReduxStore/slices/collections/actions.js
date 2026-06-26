@@ -63,7 +63,8 @@ import {
   addTransientDirectory,
   addSaveTransientRequestModal,
   updatePathParam,
-  toggleCollection
+  toggleCollection,
+  _applyCollectionVariablesUpdate
 } from './index';
 
 import { each } from 'lodash';
@@ -2637,6 +2638,23 @@ export const browseFiles = (filters, properties) => (_dispatch, _getState) => {
   return new Promise((resolve, reject) => {
     ipcRenderer.invoke('renderer:browse-files', filters, properties).then(resolve).catch(reject);
   });
+};
+
+/**
+ * Apply script-driven collection-var changes (setCollectionVar / deleteCollectionVar /
+ * deleteAllCollectionVars) coming from the bruno-electron IPC and persist them to
+ * the collection's `.bru` file. Update Redux first, then save synchronously so the
+ * change survives a refresh, autosave is opt-in and we can't depend on it for
+ * script-driven mutations.
+ */
+export const collectionVariablesUpdateEvent = ({ collectionUid, collectionVariables }) => (dispatch, getState) => {
+  if (!collectionVariables) return Promise.resolve();
+  const state = getState();
+  const collection = findCollectionByUid(state.collections.collections, collectionUid);
+  if (!collection) return Promise.resolve();
+
+  dispatch(_applyCollectionVariablesUpdate({ collectionUid, collectionVariables }));
+  return dispatch(saveCollectionSettings(collectionUid, null, true));
 };
 
 export const saveCollectionSettings = (collectionUid, brunoConfig = null, silent = false) => (dispatch, getState) => {
