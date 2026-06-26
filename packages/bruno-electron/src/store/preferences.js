@@ -81,6 +81,7 @@ const defaultPreferences = {
     },
     models: {},
     defaultModel: '',
+    openaiCompatibleEndpoints: [],
     autocomplete: {
       enabled: true,
       model: '',
@@ -163,6 +164,20 @@ const preferencesSchema = Yup.object().shape({
     providers: Yup.object().optional(),
     models: Yup.object().optional(),
     defaultModel: Yup.string().max(200).nullable(),
+    openaiCompatibleEndpoints: Yup.array().of(
+      Yup.object({
+        id: Yup.string().required(),
+        name: Yup.string().max(120).nullable(),
+        baseURL: Yup.string().max(2048).nullable(),
+        models: Yup.array().of(
+          Yup.object({
+            id: Yup.string().required(),
+            label: Yup.string().max(120).nullable(),
+            modelId: Yup.string().max(200).nullable()
+          })
+        )
+      })
+    ).optional(),
     autocomplete: Yup.object({
       enabled: Yup.boolean(),
       model: Yup.string().max(200).nullable(),

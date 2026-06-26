@@ -1,6 +1,7 @@
 import React, { useCallback, useRef, useState, useEffect, useMemo } from 'react';
 import { TableVirtuoso } from 'react-virtuoso';
 import cloneDeep from 'lodash/cloneDeep';
+import isEqual from 'lodash/isEqual';
 import { IconTrash, IconAlertCircle, IconInfoCircle } from '@tabler/icons';
 import { useTheme } from 'providers/Theme';
 import { useSelector, useDispatch } from 'react-redux';
@@ -26,6 +27,15 @@ const MIN_H = 35 * 2;
 const MIN_COLUMN_WIDTH = 80;
 const MIN_ROW_HEIGHT = 35;
 
+// Non-secret rows first, then secrets. The tabs save independently, so a stable
+// order keeps the "modified" comparison accurate regardless of which tab saved last.
+const orderVarsBySecret = (vars) => {
+  const nonSecret = [];
+  const secret = [];
+  vars.forEach((v) => (v.secret ? secret : nonSecret).push(v));
+  return [...nonSecret, ...secret];
+};
+
 const TableRow = React.memo(
   ({ children, item, style, ...rest }) => {
     const variable = item?.variable ?? item;
@@ -42,7 +52,7 @@ const TableRow = React.memo(
   }
 );
 
-const columns = ['name', 'value', 'description', 'secret'];
+const columns = ['name', 'value', 'description'];
 
 const EnvVarValueCell = ({
   variable,
@@ -140,8 +150,10 @@ const EnvironmentVariablesTable = ({
   onDraftClear,
   setIsModified,
   renderExtraValueContent,
-  searchQuery = ''
+  searchQuery = '',
+  variableType = 'variables'
 }) => {
+  const isSecretTab = variableType === 'secrets';
   const { storedTheme } = useTheme();
   const { globalEnvironments, activeGlobalEnvironmentUid } = useSelector((state) => state.globalEnvironments);
   const activeWorkspace = useSelector((state) => {
@@ -158,7 +170,6 @@ const EnvironmentVariablesTable = ({
   const rowCount = (environment.variables?.length || 0) + 1;
   const [tableHeight, setTableHeight] = useState(rowCount * MIN_ROW_HEIGHT);
 
-  // We need to add <EditableTable/> component for env table
   const [scroll, setScroll] = usePersistedState({
     key: `persisted::${activeTabUid}::collection-envs-scroll-${environment.uid}`,
     default: 0
@@ -178,7 +189,7 @@ const EnvironmentVariablesTable = ({
 
   // Local state initialized from Redux (computed once on mount/environment change via key)
   const [columnWidths, setColumnWidths] = useState(() => {
-    return storedColumnWidths || { name: '30%', value: 'auto', description: '25%' };
+    return storedColumnWidths || { name: '20%', value: 'auto', description: '35%' };
   });
 
   const [resizing, setResizing] = useState(null);
@@ -261,15 +272,19 @@ const EnvironmentVariablesTable = ({
   const _collection = useMemo(() => {
     const c = collection ? cloneDeep(collection) : {};
     c.globalEnvironmentVariables = globalEnvironmentVariables;
+    c.activeEnvironmentUid = environment.uid;
     if (!collection && workspaceProcessEnvVariables) {
       c.workspaceProcessEnvVariables = workspaceProcessEnvVariables;
     }
     return c;
-  }, [collection, globalEnvironmentVariables, workspaceProcessEnvVariables]);
+  }, [collection, globalEnvironmentVariables, workspaceProcessEnvVariables, environment.uid]);
 
+  // Reuse the previous initialValues when only uids changed but the content is
+  // identical.
+  const initialValuesRef = useRef(null);
   const initialValues = useMemo(() => {
     const vars = environment.variables || [];
-    return [
+    const next = [
       ...vars.map((v) => ({ ...v, description: v.description ?? '' })),
       {
         uid: uuid(),
@@ -281,6 +296,12 @@ const EnvironmentVariablesTable = ({
         description: ''
       }
     ];
+    const prev = initialValuesRef.current;
+    if (prev && isEqual(prev.map(stripEnvVarUid), next.map(stripEnvVarUid))) {
+      return prev;
+    }
+    initialValuesRef.current = next;
+    return next;
   }, [environment.uid, environment.variables]);
 
   const formik = useFormik({
@@ -350,7 +371,7 @@ const EnvironmentVariablesTable = ({
           name: '',
           value: '',
           type: 'text',
-          secret: false,
+          secret: isSecretTab,
           enabled: true,
           description: ''
         }
@@ -365,6 +386,18 @@ const EnvironmentVariablesTable = ({
   useEffect(() => {
     setPinnedData({ query: '', uids: new Set() });
   }, [savedValuesJson]);
+
+  // Keep the trailing empty "add new" row's secret flag in sync with the active
+  // tab, so typing into it creates a variable of the correct type. The empty row
+  // is filtered out of save/draft, so this never affects persisted data.
+  useEffect(() => {
+    const lastIndex = formik.values.length - 1;
+    const last = formik.values[lastIndex];
+    const isEmpty = !last?.name || (typeof last.name === 'string' && last.name.trim() === '');
+    if (last && isEmpty && !!last.secret !== isSecretTab) {
+      formik.setFieldValue(`${lastIndex}.secret`, isSecretTab, false);
+    }
+  }, [isSecretTab, formik.values]);
 
   // Sync modified state
   useEffect(() => {
@@ -450,7 +483,7 @@ const EnvironmentVariablesTable = ({
               name: '',
               value: '',
               type: 'text',
-              secret: false,
+              secret: isSecretTab,
               enabled: true,
               description: ''
             }
@@ -466,12 +499,16 @@ const EnvironmentVariablesTable = ({
     const isLastRow = index === formik.values.length - 1;
 
     if (isLastRow) {
+      // Pin the newly-named row's secret flag to the active tab synchronously; the
+      // passive sync effect runs after paint and is racy for fast input.
+      formik.setFieldValue(`${index}.secret`, isSecretTab, false);
+
       const newVariable = {
         uid: uuid(),
         name: '',
         value: '',
         type: 'text',
-        secret: false,
+        secret: isSecretTab,
         enabled: true,
         description: ''
       };
@@ -493,8 +530,18 @@ const EnvironmentVariablesTable = ({
   };
 
   const handleSave = useCallback(() => {
-    const variablesToSave = formik.values.filter((variable) => variable.name && variable.name.trim() !== '');
+    const belongsToActiveTab = (variable) => (isSecretTab ? !!variable.secret : !variable.secret);
+
+    const namedValues = formik.values.filter((variable) => variable.name && variable.name.trim() !== '');
     const savedValues = environment.variables || [];
+
+    // Save is scoped to the active tab. Only the active tab's rows are persisted; the
+    // other tab keeps its last-saved rows so saving variables never touches secrets and
+    // vice versa.
+    const activeCurrent = namedValues.filter(belongsToActiveTab);
+    const activeSaved = savedValues.filter(belongsToActiveTab);
+    const otherCurrent = namedValues.filter((variable) => !belongsToActiveTab(variable));
+    const otherSaved = savedValues.filter((variable) => !belongsToActiveTab(variable));
 
     // Compare against what's on disk: for an ephemeral overlay, that's
     // `persistedValue`, not the scripted value Redux is holding.
@@ -505,13 +552,15 @@ const EnvironmentVariablesTable = ({
       }
       return stripped;
     };
-    const hasChanges = JSON.stringify(variablesToSave.map(stripEnvVarUid)) !== JSON.stringify(savedValues.map(baselineForCompare));
+    // Compare without UIDs; only the active tab's subset decides if there's anything to save.
+    const hasChanges
+      = JSON.stringify(activeCurrent.map(stripEnvVarUid)) !== JSON.stringify(activeSaved.map(baselineForCompare));
     if (!hasChanges) {
       toast.error('No changes to save');
       return;
     }
 
-    const hasValidationErrors = variablesToSave.some((variable) => {
+    const hasValidationErrors = activeCurrent.some((variable) => {
       if (!variable.name || variable.name.trim() === '') {
         return true;
       }
@@ -526,74 +575,182 @@ const EnvironmentVariablesTable = ({
       return;
     }
 
-    onSave(cloneDeep(variablesToSave))
+    // Persist the active tab's edits alongside the other tab's last-saved rows (unchanged).
+    const persistedVariables = orderVarsBySecret([...activeCurrent, ...otherSaved]);
+
+    onSave(cloneDeep(persistedVariables))
+      .then(() => {
+        toast.success('Changes saved successfully');
+
+        // Preserve unsaved edits on the other tab across the post-save reinit via the
+        // draft: keep it if the other tab is still dirty, clear it otherwise.
+        const otherDirty
+          = JSON.stringify(otherCurrent.map(stripEnvVarUid)) !== JSON.stringify(otherSaved.map(stripEnvVarUid));
+        const retainedVariables = orderVarsBySecret([...activeCurrent, ...otherCurrent]);
+
+        if (otherDirty) {
+          onDraftChange(cloneDeep(retainedVariables));
+        } else {
+          onDraftClear();
+        }
+
+        formik.resetForm({
+          values: [
+            ...retainedVariables,
+            {
+              uid: uuid(),
+              name: '',
+              value: '',
+              type: 'text',
+              secret: isSecretTab,
+              enabled: true
+            }
+          ]
+        });
+        setIsModified(otherDirty);
+      })
+      .catch((error) => {
+        console.error(error);
+        toast.error('An error occurred while saving the changes');
+      });
+  }, [formik.values, environment.variables, onSave, onDraftChange, onDraftClear, setIsModified, isSecretTab]);
+
+  const handleReset = useCallback(() => {
+    const belongsToActiveTab = (variable) => (isSecretTab ? !!variable.secret : !variable.secret);
+
+    const savedValues = environment.variables || [];
+    const activeSaved = savedValues.filter(belongsToActiveTab);
+    const otherSaved = savedValues.filter((variable) => !belongsToActiveTab(variable));
+    const otherCurrent = formik.values
+      .filter((variable) => variable.name && variable.name.trim() !== '')
+      .filter((variable) => !belongsToActiveTab(variable));
+
+    // Reset is scoped to the active tab: revert its rows to the saved baseline while
+    // leaving the other tab's current (possibly unsaved) edits intact.
+    const resetVariables = orderVarsBySecret([...activeSaved, ...otherCurrent]);
+
+    const otherDirty
+      = JSON.stringify(otherCurrent.map(stripEnvVarUid)) !== JSON.stringify(otherSaved.map(stripEnvVarUid));
+
+    if (otherDirty) {
+      onDraftChange(cloneDeep(resetVariables));
+    } else {
+      onDraftClear();
+    }
+
+    formik.resetForm({
+      values: [
+        ...resetVariables,
+        {
+          uid: uuid(),
+          name: '',
+          value: '',
+          type: 'text',
+          secret: isSecretTab,
+          enabled: true
+        }
+      ]
+    });
+    setIsModified(otherDirty);
+  }, [environment.variables, formik.values, isSecretTab, onDraftChange, onDraftClear, setIsModified]);
+
+  const handleSaveAll = useCallback(() => {
+    const namedValues = formik.values.filter((variable) => variable.name && variable.name.trim() !== '');
+    const savedValues = environment.variables || [];
+
+    const persistedVariables = orderVarsBySecret(namedValues);
+
+    const hasChanges
+      = JSON.stringify(persistedVariables.map(stripEnvVarUid)) !== JSON.stringify(savedValues.map(stripEnvVarUid));
+    if (!hasChanges) {
+      toast.error('No changes to save');
+      return;
+    }
+
+    const hasValidationErrors = namedValues.some((variable) => {
+      if (!variable.name || variable.name.trim() === '') {
+        return true;
+      }
+      if (!variableNameRegex.test(variable.name)) {
+        return true;
+      }
+      return false;
+    });
+
+    if (hasValidationErrors) {
+      toast.error('Please fix validation errors before saving');
+      return;
+    }
+
+    onSave(cloneDeep(persistedVariables))
       .then(() => {
         toast.success('Changes saved successfully');
         onDraftClear();
-        const newValues = [
-          ...variablesToSave,
-          {
-            uid: uuid(),
-            name: '',
-            value: '',
-            type: 'text',
-            secret: false,
-            enabled: true,
-            description: ''
-          }
-        ];
-        formik.resetForm({ values: newValues });
+
+        formik.resetForm({
+          values: [
+            ...persistedVariables,
+            {
+              uid: uuid(),
+              name: '',
+              value: '',
+              type: 'text',
+              secret: isSecretTab,
+              enabled: true
+            }
+          ]
+        });
         setIsModified(false);
       })
       .catch((error) => {
         console.error(error);
         toast.error('An error occurred while saving the changes');
       });
-  }, [formik.values, environment.variables, onSave, onDraftClear, setIsModified]);
-
-  const handleReset = useCallback(() => {
-    const originalVars = environment.variables || [];
-    const resetValues = [
-      ...originalVars.map((v) => ({ ...v, description: v.description ?? '' })),
-      {
-        uid: uuid(),
-        name: '',
-        value: '',
-        type: 'text',
-        secret: false,
-        enabled: true,
-        description: ''
-      }
-    ];
-    formik.resetForm({ values: resetValues });
-    setIsModified(false);
-  }, [environment.variables, setIsModified]);
+  }, [formik.values, environment.variables, onSave, onDraftClear, setIsModified, isSecretTab]);
 
   const handleSaveRef = useRef(handleSave);
   handleSaveRef.current = handleSave;
+  const handleSaveAllRef = useRef(handleSaveAll);
+  handleSaveAllRef.current = handleSaveAll;
 
   useEffect(() => {
     const handleSaveEvent = () => {
       handleSaveRef.current();
     };
+    const handleSaveAllEvent = () => {
+      handleSaveAllRef.current();
+    };
 
     window.addEventListener('environment-save', handleSaveEvent);
+    window.addEventListener('environment-save-all', handleSaveAllEvent);
 
     return () => {
       window.removeEventListener('environment-save', handleSaveEvent);
+      window.removeEventListener('environment-save-all', handleSaveAllEvent);
     };
   }, []);
 
   const filteredVariables = useMemo(() => {
-    const allVariables = formik.values.map((variable, index) => ({ variable, index }));
+    const lastIndex = formik.values.length - 1;
+    // Show only rows belonging to the active tab, but always keep the trailing
+    // empty "add new" row so the user can add a variable/secret on either tab.
+    const tabVariables = formik.values
+      .map((variable, index) => ({ variable, index }))
+      .filter(({ variable, index }) => {
+        const isLastEmptyRow
+          = index === lastIndex && (!variable.name || (typeof variable.name === 'string' && variable.name.trim() === ''));
+        if (isLastEmptyRow) return true;
+        return isSecretTab ? !!variable.secret : !variable.secret;
+      });
+
     if (!searchQuery?.trim()) {
-      return allVariables;
+      return tabVariables;
     }
 
     const query = searchQuery.toLowerCase().trim();
 
     const effectivePins = pinnedData.query === searchQuery ? pinnedData.uids : new Set();
-    return allVariables.filter(({ variable }) => {
+    return tabVariables.filter(({ variable }) => {
       if (effectivePins.has(variable.uid)) return true;
       const nameMatch = variable.name ? variable.name.toLowerCase().includes(query) : false;
       const valueText
@@ -610,7 +767,7 @@ const EnvironmentVariablesTable = ({
 
       return !!(nameMatch || valueMatch || descriptionMatch);
     });
-  }, [formik.values, searchQuery, pinnedData]);
+  }, [formik.values, searchQuery, pinnedData, isSecretTab]);
 
   const isSearchActive = !!searchQuery?.trim();
 
@@ -648,7 +805,6 @@ const EnvironmentVariablesTable = ({
                 />
               </td>
               <td style={{ width: columnWidths.description }}>Description</td>
-              <td className="text-center secret-column">Secret</td>
               <td className="actions-column"></td>
             </tr>
           )}
@@ -723,17 +879,6 @@ const EnvironmentVariablesTable = ({
                     }}
                     onSave={handleSave}
                   />
-                </td>
-                <td className="text-center">
-                  {!isLastEmptyRow && (
-                    <input
-                      type="checkbox"
-                      className="mousetrap"
-                      name={`${actualIndex}.secret`}
-                      checked={variable.secret}
-                      onChange={formik.handleChange}
-                    />
-                  )}
                 </td>
                 <td>
                   {!isLastEmptyRow && (
