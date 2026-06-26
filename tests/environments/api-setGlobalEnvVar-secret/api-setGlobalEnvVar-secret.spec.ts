@@ -68,6 +68,7 @@ test.describe('bru.setGlobalEnvVar(name, value) - secret variable persistence (w
       await test.step('Global env panel BEFORE script: eye toggle reveals an empty initial value', async () => {
         await openEnvironmentConfigTab(page, 'global');
         const envTab = locators.environment.globalEnvTab();
+        await locators.environment.secretsTab().click();
         await expect(locators.environment.varRow('apiToken')).toBeVisible();
 
         await locators.environment.varRowEyeToggle('apiToken').click();
@@ -111,6 +112,7 @@ test.describe('bru.setGlobalEnvVar(name, value) - secret variable persistence (w
       await test.step('Global env panel AFTER script: eye toggle reveals NEW_VALUE, no draft icon', async () => {
         await openEnvironmentConfigTab(page, 'global');
         const envTab = locators.environment.globalEnvTab();
+        await locators.environment.secretsTab().click();
         await expect(locators.environment.varRow('apiToken')).toBeVisible();
         await expect(envTab.locator('.close-gradient')).not.toHaveClass(/has-changes/);
 
@@ -166,6 +168,8 @@ test.describe('bru.setGlobalEnvVar(name, value) - secret variable persistence (w
       await test.step('After seed: global env panel shows INITIAL_VALUE; encrypted entry persisted', async () => {
         await openEnvironmentConfigTab(page, 'global');
         const envTab = locators.environment.globalEnvTab();
+        await locators.environment.secretsTab().click();
+        await expect(locators.environment.varRow('apiToken')).toBeVisible();
         await locators.environment.varRowEyeToggle('apiToken').click();
         await expect(locators.environment.varRow('apiToken').locator('.CodeMirror'))
           .toContainText(INITIAL_VALUE);
@@ -193,6 +197,8 @@ test.describe('bru.setGlobalEnvVar(name, value) - secret variable persistence (w
       await test.step('After overwrite: panel shows NEW_VALUE (not INITIAL_VALUE); encrypted entry changed; .yml still clean', async () => {
         await openEnvironmentConfigTab(page, 'global');
         const envTab = locators.environment.globalEnvTab();
+        await locators.environment.secretsTab().click();
+        await expect(locators.environment.varRow('apiToken')).toBeVisible();
         await expect(envTab.locator('.close-gradient')).not.toHaveClass(/has-changes/);
 
         await locators.environment.varRowEyeToggle('apiToken').click();
