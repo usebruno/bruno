@@ -132,13 +132,14 @@ const applyVariableUpdates = (result, { envVariables, runtimeVariables, globalEn
  * - Disabled entries are always preserved (user intent — toggled off, not deleted).
  * - Enabled entries absent from script output are dropped (so `bru.deleteEnvVar` reaches disk).
  * - New script keys are appended as enabled text vars with inferred dataType.
- * - `overrides`: names supplied via CLI `--env-var`. Their values are never persisted, and the
- *   file's existing entry for those names is preserved untouched.
+ * - `overrides`: names supplied via CLI `--env-var` keyed to their injected value. The leaked
+ *   override value never reaches disk and the file's entry is preserved, but a deliberate
+ *   script write of a *different* value for the same name still persists.
  *
  * @param {Array<{ name: string, value: any, enabled?: boolean, type?: string, secret?: boolean, dataType?: string }>} variables
  *   Existing entries from the env file.
  * @param {Object<string, any>} scriptVarsRaw - Flat map from the script runtime; may include `__name__`.
- * @param {{ overrides?: Set<string> }} [options] - Names to exclude from persistence.
+ * @param {{ overrides?: Map<string, string> }} [options] - Names → injected override values.
  * @returns {Array<object>} New array of merged variable entries.
  *
  * @example
@@ -161,18 +162,33 @@ const applyVariableUpdates = (result, { envVariables, runtimeVariables, globalEn
  * mergeScriptVarsIntoEnvList(
  *   [{ name: 'token', value: 'real', enabled: true, type: 'text', secret: true }],
  *   { token: 'transient', other: 'x' },
- *   { overrides: new Set(['token']) }
+ *   { overrides: new Map([['token', 'transient']]) }
  * );
  * → [
  *     { name: 'token', value: 'real', enabled: true, type: 'text', secret: true },         // preserved unchanged
  *     { name: 'other', value: 'x',    enabled: true, type: 'text', secret: false }         // appended
  *   ]
+ *
+ * @example
+ * Script *deliberately* sets the overridden key to a new value:
+ * mergeScriptVarsIntoEnvList(
+ *   [{ name: 'token', value: 'real', enabled: true, type: 'text', secret: true }],
+ *   { token: 'rotated' },
+ *   { overrides: new Map([['token', 'transient']]) }
+ * );
+ * → [{ name: 'token', value: 'rotated', enabled: true, type: 'text', secret: true }]      // persisted
  */
 const mergeScriptVarsIntoEnvList = (variables, scriptVarsRaw, options = {}) => {
-  const overrides = options.overrides instanceof Set ? options.overrides : new Set();
+  const overrides = options.overrides instanceof Map ? options.overrides : new Map();
   const scriptVars = stripInternal(scriptVarsRaw);
-  // CLI --env-var values are transient — never reach disk. Drop them before the merge sees them.
-  for (const key of overrides) delete scriptVars[key];
+  // Drop a script value only when it still matches the injected override — a different
+  // value means the script deliberately wrote it (e.g. `bru.setEnvVar('token', 'rotated')`)
+  // and must reach disk.
+  for (const [key, overrideValue] of overrides) {
+    if (key in scriptVars && scriptVars[key] === overrideValue) {
+      delete scriptVars[key];
+    }
+  }
   const scriptKeys = new Set(Object.keys(scriptVars));
 
   const next = (variables || [])
@@ -301,7 +317,8 @@ const persistEnvFile = (envFile, scriptVars, options = {}) => {
     } catch {
       return;
     }
-    const rawVariables = Array.isArray(parsed.variables) ? parsed.variables : [];
+
+    const rawVariables = Array.isArray(parsed.variables) ? parsed.variables.filter(Boolean) : [];
     const mergedVars = mergeScriptVarsIntoEnvList(rawVariables, scriptVars, options);
     // Spread preserves any top-level fields the user has beyond `variables` (name, metadata, etc.).
     const next = { ...parsed, variables: mergedVars };
@@ -374,9 +391,10 @@ const persistCollectionVars = (collection, scriptCollVars, collectionRootPath) =
  *   globalEnvFile?: { path: string, format: 'yml' },
  *   collection: object,
  *   collectionRootPath: string,
- *   envVarOverrides?: Set<string>
- * }} targets - Where each kind of var should land on disk. `envVarOverrides` lists names
- *   supplied via CLI `--env-var`; they are never persisted to the active env file.
+ *   envVarOverrides?: Map<string, string>
+ * }} targets - Where each kind of var should land on disk. `envVarOverrides` maps each
+ *   CLI `--env-var name=value` to its injected value; that value is never persisted, but a
+ *   deliberate same-named script write with a different value still reaches disk.
  *   `globalEnvFile.format` is yml-only because the CLI's `--global-env <name>` flag looks
  *   up `<workspace>/environments/<name>.yml` (no JSON/bru equivalent exists today).
  * @returns {void}

@@ -70,18 +70,9 @@ describe('CLI run — typed env + collection vars set via scripts are persisted 
   // spawnSync would block jest's event loop, leaving the in-process HTTP server unable to
   // answer the CLI's request — leading to ECONNREFUSED and the post-response script never
   // running. Use async spawn so the server stays responsive.
-  //
-  // SHELL=/bin/sh: the CLI bootstrap (packages/bruno-cli/src/index.js) calls
-  // `initializeShellEnv()` unconditionally, which spawns $SHELL via the `shell-env` package
-  // to source the user's dotfiles. Forcing /bin/sh standardizes that across machines (a
-  // developer with fish/zsh shouldn't have their dotfiles sourced into the test env) and
-  // keeps the bootstrap fast and deterministic.
   const runCli = (args, cwd = tmpDir) =>
     new Promise((resolve, reject) => {
-      const child = spawn(process.execPath, [CLI_BIN, ...args], {
-        cwd,
-        env: { ...process.env, SHELL: '/bin/sh' }
-      });
+      const child = spawn(process.execPath, [CLI_BIN, ...args], { cwd, env: { ...process.env } });
       let stdout = '';
       let stderr = '';
       child.stdout.on('data', (chunk) => { stdout += chunk; });
@@ -626,5 +617,53 @@ script:post-response {
     expect(envContent).not.toContain('transient-cli-value');
     // Unrelated key from the script is persisted normally
     expect(envContent).toMatch(/unrelated:\s*value/);
+  }, 60_000);
+
+  // Regression guard for the partial-results path: when a post-response script throws
+  // after writing a var, run-single-request.js still calls syncVariableUpdates with
+  // `error.partialResults`. The on-disk env file must reflect the pre-throw write.
+  it('persists vars written before a post-response script error (partial results)', async () => {
+    writeFixtureFile(
+      path.join(tmpDir, 'bruno.json'),
+      JSON.stringify({ version: '1', name: 'partial-results-collection', type: 'collection' }, null, 2) + '\n'
+    );
+    writeFixtureFile(
+      path.join(tmpDir, 'collection.bru'),
+      'meta {\n  name: partial-results-collection\n  seq: 1\n}\n'
+    );
+    writeFixtureFile(
+      path.join(tmpDir, 'environments', 'Test.bru'),
+      `vars {\n  host: ${baseUrl}\n}\n`
+    );
+    writeFixtureFile(
+      path.join(tmpDir, 'set-then-throw.bru'),
+      `meta {
+  name: set-then-throw
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+script:post-response {
+  bru.setEnvVar("beforeThrow", 42);
+  throw new Error("boom");
+}
+`
+    );
+
+    // CLI exits non-zero (the thrown script is logged as a failed post-response test, which
+    // trips the failedPostResponseTests check in run.js). That failure IS the case we want
+    // to exercise — persistence runs from the script's partial results regardless.
+    await runCli([
+      'run', 'set-then-throw.bru', '--env', 'Test', '--sandbox', 'developer', '--noproxy'
+    ]);
+
+    const envContent = fs.readFileSync(path.join(tmpDir, 'environments', 'Test.bru'), 'utf8');
+    expect(envContent).toMatch(/@number\s+beforeThrow:\s*42/);
   }, 60_000);
 });

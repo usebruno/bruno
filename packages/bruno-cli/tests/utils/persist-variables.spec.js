@@ -410,7 +410,7 @@ describe('persistVariableUpdates — global env file', () => {
       { globalEnvironmentVariables: { token: 'transient-cli-value', region: 'eu' } },
       {
         globalEnvFile: { path: globalPath, format: 'yml' },
-        envVarOverrides: new Set(['token'])
+        envVarOverrides: new Map([['token', 'transient-cli-value']])
       }
     );
     const written = fs.readFileSync(globalPath, 'utf8');
@@ -697,7 +697,7 @@ describe('mergeScriptVarsIntoEnvList — --env-var overrides', () => {
     const scriptVars = { token: 'transient-cli-value', host: 'api.example.com' };
 
     const merged = mergeScriptVarsIntoEnvList(variables, scriptVars, {
-      overrides: new Set(['token'])
+      overrides: new Map([['token', 'transient-cli-value']])
     });
 
     const tokenEntry = merged.find((v) => v.name === 'token');
@@ -716,48 +716,68 @@ describe('mergeScriptVarsIntoEnvList — --env-var overrides', () => {
     // Script touched something else; runtime returns env without `token` since the override
     // was filtered out before this call (or simply was never in the map).
     const merged = mergeScriptVarsIntoEnvList(variables, { other: 'x' }, {
-      overrides: new Set(['token'])
+      overrides: new Map([['token', 'transient-cli-value']])
     });
 
     expect(merged.find((v) => v.name === 'token')).toMatchObject({ value: 'real-secret', secret: true });
   });
 
-  it('does not append a new entry for an override key the script also set', () => {
+  it('does not append a new entry for an override key when the script echoes back the override value', () => {
     const merged = mergeScriptVarsIntoEnvList([], { token: 'transient', x: '1' }, {
-      overrides: new Set(['token'])
+      overrides: new Map([['token', 'transient']])
     });
 
     expect(merged.find((v) => v.name === 'token')).toBeUndefined();
     expect(merged.find((v) => v.name === 'x')).toBeDefined();
   });
+
+  // A deliberate `bru.setEnvVar('token', 'rotated')` must persist even when the CLI also
+  // injected `--env-var token=transient`. We can tell it apart from the leak because the
+  // script's value differs from the injected override value.
+  it('persists a deliberate same-named script write that differs from the override value', () => {
+    const variables = [
+      { name: 'token', value: 'real', enabled: true, type: 'text', secret: true }
+    ];
+    const merged = mergeScriptVarsIntoEnvList(variables, { token: 'rotated' }, {
+      overrides: new Map([['token', 'transient-cli-value']])
+    });
+
+    const tokenEntry = merged.find((v) => v.name === 'token');
+    expect(tokenEntry).toBeDefined();
+    expect(tokenEntry.value).toBe('rotated');
+    // Existing on-disk metadata (secret flag) is preserved during the update.
+    expect(tokenEntry.secret).toBe(true);
+  });
 });
 
 describe('persistVariableUpdates — disk error resilience', () => {
-  // CI runs may execute against read-only mounts. The PR's design choice is to log + continue.
-  // The actual try/catch lives in run-single-request.js; persistVariableUpdates itself surfaces
-  // the throw, which is what we verify here — the caller is the one that swallows it.
+  // CI runs may execute against read-only mounts. The design choice is to log + continue;
+  // the try/catch lives in run-single-request.js. persistVariableUpdates itself surfaces the
+  // throw, which is what we verify here — the caller is the one that swallows it.
+  // fs.writeFileSync is mocked to throw EACCES so the assertion holds on every OS (root in
+  // a container can write through a chmod 0o444, and Windows doesn't honor unix bits).
   it('surfaces fs errors to the caller (caller is expected to catch and warn)', () => {
     const filePath = path.join(tmpBase, 'Locked.bru');
     fs.writeFileSync(filePath, 'vars {\n  host: old\n}\n');
-    fs.chmodSync(filePath, 0o444);
 
-    let threw = false;
+    const writeErr = Object.assign(new Error('locked'), { code: 'EACCES' });
+    const spy = jestObj.spyOn(fs, 'writeFileSync').mockImplementation(() => {
+      throw writeErr;
+    });
+
+    let thrown;
     try {
       persistVariableUpdates(
         { envVariables: { host: 'new' } },
         { envFile: { path: filePath, format: 'bru' } }
       );
     } catch (err) {
-      threw = true;
-      expect(err.code).toMatch(/EACCES|EPERM/);
+      thrown = err;
     } finally {
-      fs.chmodSync(filePath, 0o644);
+      spy.mockRestore();
     }
 
-    // On some filesystems / OS combos chmod 444 doesn't block root-equivalent writes (e.g.
-    // running as root in a container). Skip the assertion in that case rather than fail noisily.
-    if (process.getuid && process.getuid() !== 0) {
-      expect(threw).toBe(true);
-    }
+    expect(thrown).toBe(writeErr);
+    expect(thrown.code).toBe('EACCES');
   });
 });
