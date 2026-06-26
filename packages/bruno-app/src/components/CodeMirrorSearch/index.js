@@ -305,6 +305,7 @@ const CodeMirrorSearch = forwardRef(({ visible, editor, readOnly, onClose }, ref
     const resolvedNextIdx = nextIdx >= 0 ? nextIdx : 0;
     pendingSearchIndexRef.current = resolvedNextIdx;
     doSearch(debouncedSearchText, resolvedNextIdx);
+    setTimeout(() => inputRef.current?.focus(), 0);
   }, [editor, matchIndex, replaceText, debouncedSearchText, regex, caseSensitive, wholeWord, doSearch]);
 
   const handleReplaceAll = useCallback(() => {
@@ -314,6 +315,7 @@ const CodeMirrorSearch = forwardRef(({ visible, editor, readOnly, onClose }, ref
 
     searchCacheKey.current = '';
     doSearch(debouncedSearchText, 0);
+    setTimeout(() => inputRef.current?.focus(), 0);
   }, [editor, replaceText, debouncedSearchText, doSearch]);
 
   const isDebouncing = searchText !== debouncedSearchText;
