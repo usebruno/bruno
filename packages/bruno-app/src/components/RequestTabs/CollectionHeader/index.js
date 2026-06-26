@@ -16,7 +16,7 @@ import {
   IconFileCode,
   IconFileOff,
   IconCode,
-  IconApps,
+  IconAppWindow,
   IconTransform,
   IconStars
 } from '@tabler/icons';
@@ -651,24 +651,11 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
         </div>
 
         <div className="flex flex-grow gap-1.5 items-center justify-end">
-          {isAiEnabled && (
-            <ToolHint text="AI Assistant" toolhintId="AiAssistantToolhintId" place="bottom">
-              <ActionIcon
-                onClick={() => dispatch(toggleAiSidebar())}
-                aria-label="AI Assistant"
-                size="sm"
-                data-testid="ai-assistant"
-                className={isAiSidebarOpen ? 'active' : ''}
-              >
-                <IconStars size={16} strokeWidth={1.5} />
-              </ActionIcon>
-            </ToolHint>
-          )}
           {!isScratchCollection && (
             <>
               {isHttpRequestActive && (
-                <ToolHint text="Switch view mode" toolhintId="ViewModeToggleToolhintId" place="bottom">
-                  <div className="mode-toggle" data-testid="view-mode-toggle">
+                <div className="mode-toggle" data-testid="view-mode-toggle">
+                  <ToolHint text="Request" toolhintId="ViewModeRequestToolhintId" place="bottom">
                     <button
                       type="button"
                       data-testid="view-mode-request"
@@ -677,10 +664,11 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
                         if (collection.fileMode) handleFileModeClick();
                         if (appEnabled) handleToggleAppMode(false);
                       }}
-                      title="Request"
                     >
                       <IconCode size={16} strokeWidth={1.5} />
                     </button>
+                  </ToolHint>
+                  <ToolHint text="App" toolhintId="ViewModeAppToolhintId" place="bottom">
                     <button
                       type="button"
                       data-testid="view-mode-app"
@@ -689,10 +677,11 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
                         if (collection.fileMode) handleFileModeClick();
                         if (!appEnabled) handleToggleAppMode(true);
                       }}
-                      title="App"
                     >
-                      <IconApps size={16} strokeWidth={1.5} />
+                      <IconAppWindow size={16} strokeWidth={1.5} />
                     </button>
+                  </ToolHint>
+                  <ToolHint text="File" toolhintId="ViewModeFileToolhintId" place="bottom">
                     <button
                       type="button"
                       data-testid="view-mode-file"
@@ -701,11 +690,23 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
                         if (appEnabled) handleToggleAppMode(false);
                         if (!collection.fileMode) handleFileModeClick();
                       }}
-                      title="File"
                     >
                       <IconFileCode size={16} strokeWidth={1.5} />
                     </button>
-                  </div>
+                  </ToolHint>
+                </div>
+              )}
+              {isAiEnabled && (
+                <ToolHint text="AI Assistant" toolhintId="AiAssistantToolhintId" place="bottom">
+                  <ActionIcon
+                    onClick={() => dispatch(toggleAiSidebar())}
+                    aria-label="AI Assistant"
+                    size="sm"
+                    data-testid="ai-assistant"
+                    className={isAiSidebarOpen ? 'active' : ''}
+                  >
+                    <IconStars size={16} strokeWidth={1.5} />
+                  </ActionIcon>
                 </ToolHint>
               )}
               {collection.format === 'bru' && !migratePillDismissed && (

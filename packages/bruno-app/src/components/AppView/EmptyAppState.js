@@ -1,6 +1,6 @@
 import React from 'react';
 import styled from 'styled-components';
-import { IconApps } from '@tabler/icons';
+import { IconAppWindow } from '@tabler/icons';
 
 const Wrapper = styled.div`
   flex: 1 1 0;
@@ -38,7 +38,7 @@ const Wrapper = styled.div`
 const EmptyAppState = ({ title = 'No app yet', hint }) => (
   <Wrapper data-testid="empty-app-state">
     <div className="empty-app-inner">
-      <IconApps size={32} strokeWidth={1.25} />
+      <IconAppWindow size={32} strokeWidth={1.25} />
       <div className="empty-app-title">{title}</div>
       {hint ? <div className="empty-app-hint">{hint}</div> : null}
     </div>

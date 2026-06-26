@@ -217,39 +217,35 @@ const StyledWrapper = styled.div`
   }
 
   .mode-toggle {
-    display: flex;
-    align-items: center;
-    height: 24px;
-    border: 1px solid ${(props) => props.theme.input.border};
+    display: inline-flex;
+    align-items: stretch;
+    padding: 2px;
+    gap: 2px;
+    background: ${(props) => props.theme.sidebar.collection.item.hoverBg};
     border-radius: ${(props) => props.theme.border.radius.base};
-    overflow: hidden;
 
     .mode-btn {
       display: flex;
       align-items: center;
       justify-content: center;
-      width: 28px;
-      height: 100%;
+      width: 26px;
       padding: 0;
-      border: none;
-      border-right: 1px solid ${(props) => props.theme.input.border};
+      border: 1px solid transparent;
       background: transparent;
       color: ${(props) => props.theme.colors.text.muted};
+      border-radius: ${(props) => props.theme.border.radius.sm};
       cursor: pointer;
-      transition: background 0.15s ease, color 0.15s ease;
-
-      &:last-child {
-        border-right: none;
-      }
+      transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
 
       &:hover:not(.active) {
-        background: ${(props) => props.theme.sidebar.collection.item.hoverBg};
         color: ${(props) => props.theme.text};
       }
 
       &.active {
-        background: ${(props) => props.theme.sidebar.collection.item.hoverBg};
-        color: ${(props) => props.theme.primary.text};
+        background: ${(props) => props.theme.bg};
+        color: ${(props) => props.theme.text};
+        border-color: ${(props) => props.theme.input.border};
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
       }
     }
   }
