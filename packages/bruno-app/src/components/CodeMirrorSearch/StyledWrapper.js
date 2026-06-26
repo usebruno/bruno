@@ -98,6 +98,12 @@ const StyledWrapper = styled.div`
     color: ${(props) => props.theme.text.base};
   }
 
+  .searchbar-icon-btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.4;
+    pointer-events: none;
+  }
+
   .searchbar-result-count {
     font-size: ${(props) => props.theme.font.size.xs};
     color: ${(props) => props.theme.colors.text.subtext1};

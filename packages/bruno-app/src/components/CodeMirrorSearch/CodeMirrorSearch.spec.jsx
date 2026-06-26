@@ -3,8 +3,6 @@ import { render, screen, fireEvent, act, waitFor } from '@testing-library/react'
 import { ThemeProvider } from 'styled-components';
 import CodeMirrorSearch from './index';
 
-// ─── Mocks ───────────────────────────────────────────────────────────────────
-
 jest.mock('components/ToolHint', () => ({ children }) => <>{children}</>);
 
 const theme = {
@@ -42,7 +40,12 @@ function makeMockEditor(matchResults = []) {
     scrollIntoView: jest.fn(),
     setSelection: jest.fn(),
     focus: jest.fn(),
+    getCursor: jest.fn(() => ({ line: 0, ch: 0 })),
+    getViewport: jest.fn(() => ({ from: 0, to: 100 })),
     getValue: jest.fn(() => 'test content'),
+    lineCount: jest.fn(() => 1),
+    lastLine: jest.fn(() => 0),
+    getLine: jest.fn(() => 'test content'),
     changeGeneration: jest.fn(() => 1),
     on: jest.fn(),
     off: jest.fn(),
@@ -66,13 +69,10 @@ function renderSearch(props = {}, ref = null) {
   return { ...result, ref: defaultRef };
 }
 
-// Type into the search input and advance past the 250ms debounce
 function typeSearch(text) {
   fireEvent.change(screen.getByPlaceholderText('Search...'), { target: { value: text } });
   act(() => jest.advanceTimersByTime(250));
 }
-
-// ─── Tests ───────────────────────────────────────────────────────────────────
 
 describe('CodeMirrorSearch', () => {
   beforeEach(() => jest.useFakeTimers());
@@ -253,8 +253,9 @@ describe('CodeMirrorSearch', () => {
     });
 
     it('replace buttons are enabled once debounce settles', () => {
+      const matches = [{ from: { line: 0, ch: 0 }, to: { line: 0, ch: 4 } }];
       const ref = createRef();
-      renderSearch({}, ref);
+      renderSearch({ editor: makeMockEditor(matches) }, ref);
       act(() => {
         ref.current.openReplace(); jest.runAllTimers();
       });
@@ -299,13 +300,21 @@ describe('CodeMirrorSearch', () => {
   });
 
   describe('handleReplaceAll', () => {
-    it('calls replaceRange for each match in reverse order', () => {
+    it('replaces all matches via a single replaceRange call with the reconstructed text', () => {
+      const content = 'console\nconsole\nconsole';
+      const lines = content.split('\n');
       const matches = [
         { from: { line: 0, ch: 0 }, to: { line: 0, ch: 7 } },
         { from: { line: 1, ch: 0 }, to: { line: 1, ch: 7 } },
         { from: { line: 2, ch: 0 }, to: { line: 2, ch: 7 } }
       ];
-      const editor = makeMockEditor(matches);
+      const editor = {
+        ...makeMockEditor(matches),
+        getValue: jest.fn(() => content),
+        lineCount: jest.fn(() => lines.length),
+        lastLine: jest.fn(() => lines.length - 1),
+        getLine: jest.fn((n) => lines[n])
+      };
       const ref = createRef();
       renderSearch({ editor }, ref);
 
@@ -318,12 +327,8 @@ describe('CodeMirrorSearch', () => {
       fireEvent.click(screen.getByRole('button', { name: 'Replace all' }));
 
       expect(editor.operation).toHaveBeenCalled();
-      expect(editor.replaceRange).toHaveBeenCalledTimes(3);
-
-      const calls = editor.replaceRange.mock.calls;
-      expect(calls[0][1]).toEqual(matches[2].from);
-      expect(calls[1][1]).toEqual(matches[1].from);
-      expect(calls[2][1]).toEqual(matches[0].from);
+      expect(editor.replaceRange).toHaveBeenCalledTimes(1);
+      expect(editor.replaceRange.mock.calls[0][0]).toBe('log\nlog\nlog');
     });
   });
 });

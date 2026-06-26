@@ -72,14 +72,38 @@ export default class CodeEditor extends React.Component {
             this.props.toggleFileMode();
           }
         },
-        'Cmd-F': () => {
+        'Cmd-F': (cm) => {
+          const selected = cm.getSelection();
+          const cursor = cm.getCursor('from');
           this.setState({ searchBarVisible: true }, () => {
-            this.searchBarRef.current?.focus();
+            if (selected) {
+              this.searchBarRef.current?.setSearch(selected, cursor);
+            } else {
+              this.searchBarRef.current?.focusAtCursor(cursor);
+            }
           });
         },
-        'Ctrl-F': () => {
+        'Ctrl-F': (cm) => {
+          const selected = cm.getSelection();
+          const cursor = cm.getCursor('from');
+          this.setState({ searchBarVisible: true }, () => {
+            if (selected) {
+              this.searchBarRef.current?.setSearch(selected, cursor);
+            } else {
+              this.searchBarRef.current?.focusAtCursor(cursor);
+            }
+          });
+        },
+        'Cmd-Alt-F': this.props.readOnly ? false : () => {
           this.setState({ searchBarVisible: true }, () => {
             this.searchBarRef.current?.focus();
+            this.searchBarRef.current?.openReplace();
+          });
+        },
+        'Ctrl-Alt-F': this.props.readOnly ? false : () => {
+          this.setState({ searchBarVisible: true }, () => {
+            this.searchBarRef.current?.focus();
+            this.searchBarRef.current?.openReplace();
           });
         },
         'Cmd-H': 'replace',
@@ -98,7 +122,7 @@ export default class CodeEditor extends React.Component {
         'Cmd-I': 'unfoldAll',
         'Esc': () => {
           if (this.state.searchBarVisible) {
-            this.setState({ searchBarVisible: false });
+            this.searchBarRef.current?.close();
           }
         }
       }
@@ -184,6 +208,7 @@ export default class CodeEditor extends React.Component {
           ref={this.searchBarRef}
           visible={this.state.searchBarVisible}
           editor={this.editor}
+          readOnly={this.props.readOnly}
           onClose={() => this.setState({ searchBarVisible: false })}
         />
         <div
