@@ -44,13 +44,15 @@ const dismissImportIssuesToasts = async (page: Page) => {
  */
 const closeAllCollections = async (page) => {
   await test.step('Close all collections', async () => {
-    const numberOfCollections = await page.locator('[data-testid="collections"] .collection-name').count();
+    const locators = buildCommonLocators(page);
+    const collectionsContainer = locators.sidebar.collectionsContainer();
+    const numberOfCollections = await collectionsContainer.locator('.collection-name').count();
 
     for (let i = 0; i < numberOfCollections; i++) {
-      const firstCollection = page.locator('[data-testid="collections"] .collection-name').first();
+      const firstCollection = collectionsContainer.locator('.collection-name').first();
       await firstCollection.scrollIntoViewIfNeeded();
 
-      const removeMenuItem = page.locator('.dropdown-item').getByText('Remove');
+      const removeMenuItem = locators.dropdown.item('Remove');
       await expect(async () => {
         await firstCollection.hover();
         await firstCollection.locator('.collection-actions .icon').click({ force: true });
@@ -58,30 +60,21 @@ const closeAllCollections = async (page) => {
       }).toPass({ timeout: 15000 });
       await removeMenuItem.click();
 
-      // Wait for modal to appear - could be either regular remove or drafts confirmation
-      const removeModal = page.locator('.bruno-modal').filter({ hasText: 'Remove Collection' });
-      await removeModal.waitFor({ state: 'visible', timeout: 5000 });
+      const removeModal = locators.modal.removeCollection;
+      await removeModal.modal().waitFor({ state: 'visible', timeout: 5000 });
 
-      // Check if it's the drafts confirmation modal (has "Discard All and Remove" button)
-      const hasDiscardButton = await page.getByRole('button', { name: 'Discard All and Remove' }).isVisible().catch(() => false);
+      const hasDiscardButton = await removeModal.discardAllAndRemoveButton().isVisible().catch(() => false);
 
       if (hasDiscardButton) {
-        // Drafts modal - the modal animates in and the footer can shift mid-frame,
-        // causing Playwright's "element is stable" actionability check to fail
-        // intermittently on slower machines. Use force to skip the stability check;
-        // visibility is already verified above via waitFor.
-        await page.getByRole('button', { name: 'Discard All and Remove' }).click({ force: true });
+        await removeModal.discardAllAndRemoveButton().click({ force: true });
       } else {
-        // Regular modal - click the submit button
-        await page.locator('.bruno-modal-footer .submit').click();
+        await removeModal.removeButton().click();
       }
 
-      // Wait for modal to close
-      await removeModal.waitFor({ state: 'hidden', timeout: 5000 });
+      await removeModal.modal().waitFor({ state: 'hidden', timeout: 5000 });
     }
 
-    // Wait until no collections are left open (check sidebar only)
-    await expect(page.getByTestId('collections').locator('.collection-name')).toHaveCount(0);
+    await expect(collectionsContainer.locator('.collection-name')).toHaveCount(0);
   });
 };
 
@@ -390,7 +383,7 @@ const createRequest = async (
     if (inFolder) {
       await expect(locators.sidebar.folderRequest(parentName, requestName)).toBeVisible();
     } else {
-      await expect(locators.sidebar.request(requestName)).toBeVisible();
+      await expect(locators.sidebar.scopedRequest(parentName, requestName)).toBeVisible();
     }
   });
 };
@@ -683,7 +676,7 @@ type EnvironmentVariable = {
  * Add an environment variable to the currently open environment. Variables and
  * secrets live on separate tabs, so a secret is routed to the Secrets tab and a
  * plain variable to the Variables tab before the row is added.
- * @param page - The page object
+* @param page - The page object
  * @param variable - The variable to add (name, value, and optional secret flag)
  * @returns void
  */
