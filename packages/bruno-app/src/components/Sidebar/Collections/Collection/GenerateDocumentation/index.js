@@ -189,7 +189,7 @@ const GenerateDocumentation = ({ onClose, collectionUid }) => {
         handleCancel={onClose}
         confirmDisabled={isLoading}
       >
-        <StyledWrapper className="w-[500px]">
+        <StyledWrapper>
           {isLoading ? (
             <div className="flex items-center justify-center gap-3 py-8">
               <IconLoader2 size={20} className="animate-spin" />
@@ -215,7 +215,7 @@ const GenerateDocumentation = ({ onClose, collectionUid }) => {
               </ul>
 
               <div className="config-card mb-4">
-                <CollectionVersionInfo version={currentVersion} folderCount={folderCount} requestCount={requestCount} />
+                <CollectionVersionInfo name={collection.name} version={currentVersion} folderCount={folderCount} requestCount={requestCount} />
                 {environments.length > 0 && (
                   <Fragment>
                     <div className="card-divider" />

@@ -14,23 +14,20 @@ const formatVersion = (version) => {
   return coerced ? `v${coerced.version}` : DEFAULT_VERSION;
 };
 
-/**
- * Read-only display of the collection's current version and a summary of its
- * contents (folder + request counts). Presentational and prop-driven so it can be
- * reused wherever the collection version needs to be shown.
- */
-const CollectionVersionInfo = ({ version, folderCount = 0, requestCount = 0 }) => {
+const CollectionVersionInfo = ({ name, version, folderCount = 0, requestCount = 0 }) => {
   const folderLabel = folderCount === 1 ? 'Folder' : 'Folders';
   const requestLabel = requestCount === 1 ? 'request' : 'requests';
 
   return (
     <div className="version-info" data-testid="version-info">
       <div className="version-line">
-        <span className="version-label">Collection Version:</span>{' '}
+        <span className="collection-name" data-testid="collection-name">{name}</span>
         <span className="version-value" data-testid="version-value">{formatVersion(version)}</span>
       </div>
       <p className="version-summary" data-testid="version-summary">
-        {`${folderCount} ${folderLabel} • ${requestCount} ${requestLabel}`}
+        <span>{`${folderCount} ${folderLabel}`}</span>
+        <span className="version-dot" aria-hidden="true" />
+        <span>{`${requestCount} ${requestLabel}`}</span>
       </p>
     </div>
   );
