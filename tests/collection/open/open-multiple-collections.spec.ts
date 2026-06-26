@@ -20,7 +20,7 @@ test.describe('Open Multiple Collections', () => {
     });
   });
 
-  test('Should open multiple collections using Open Collection feature', async ({
+  test('TC777: Verify opening of multiple collections from parent folder with successful launch', { tag: '@sanity' }, async ({
     page,
     electronApp,
     createTmpDir
