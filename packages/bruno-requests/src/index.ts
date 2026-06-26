@@ -1,6 +1,7 @@
 export { addDigestInterceptor, getOAuth2Token, createOAuth1Authorizer, computeBodyHash, applyOAuth1ToRequest } from './auth';
 export { GrpcClient, generateGrpcSampleMessage } from './grpc';
 export { WsClient } from './ws/ws-client';
+export { AmqpClient } from './amqp/amqp-client';
 export { default as cookies } from './cookies';
 
 export { getCACertificates } from './utils/ca-cert';

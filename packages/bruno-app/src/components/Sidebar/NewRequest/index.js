@@ -8,7 +8,7 @@ import { uuid } from 'utils/common';
 import Modal from 'components/Modal';
 import { useDispatch, useSelector } from 'react-redux';
 import { newEphemeralHttpRequest } from 'providers/ReduxStore/slices/collections';
-import { newHttpRequest, newGrpcRequest, newWsRequest } from 'providers/ReduxStore/slices/collections/actions';
+import { newHttpRequest, newGrpcRequest, newWsRequest, newAmqpRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { addTab } from 'providers/ReduxStore/slices/tabs';
 import HttpMethodSelector from 'components/RequestPane/QueryUrl/HttpMethodSelector';
 import { getDefaultRequestPaneTab } from 'utils/collections';
@@ -101,6 +101,10 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
       return 'ws-request';
     }
 
+    if (collectionPresets.requestType === 'amqp') {
+      return 'amqp-request';
+    }
+
     return 'http-request';
   };
 
@@ -149,6 +153,7 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
     onSubmit: (values) => {
       const isGrpcRequest = values.requestType === 'grpc-request';
       const isWsRequest = values.requestType === 'ws-request';
+      const isAmqpRequest = values.requestType === 'amqp-request';
       const filename = values.filename;
 
       if (isGrpcRequest) {
@@ -176,6 +181,19 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
           filename: filename,
           requestType: values.requestType,
           requestUrl: values.requestUrl,
+          collectionUid: collection.uid,
+          itemUid: item ? item.uid : null
+        }))
+          .then(() => {
+            toast.success('New request created!');
+            onClose();
+          })
+          .catch((err) => toast.error(err ? err.message : 'An error occurred while adding the request'));
+      } else if (isAmqpRequest) {
+        dispatch(newAmqpRequest({
+          requestName: values.requestName,
+          filename: filename,
+          requestUrl: values.requestUrl || 'amqp://localhost:5672',
           collectionUid: collection.uid,
           itemUid: item ? item.uid : null
         }))
@@ -390,6 +408,21 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
                   <div className="flex items-center gap-2">
                     <input
                       type="radio"
+                      id="amqp-request"
+                      name="requestType"
+                      value="amqp-request"
+                      checked={formik.values.requestType === 'amqp-request'}
+                      onChange={formik.handleChange}
+                      data-testid="amqp-request"
+                    />
+                    <label htmlFor="amqp-request" className="ml-1 cursor-pointer select-none">
+                      AMQP
+                    </label>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="radio"
                       id="from-curl"
                       name="requestType"
                       value="from-curl"
@@ -496,7 +529,7 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
                     URL
                   </label>
                   <div className="flex items-center mt-2 ">
-                    {!['grpc-request', 'ws-request'].includes(formik.values.requestType) ? (
+                    {!['grpc-request', 'ws-request', 'amqp-request'].includes(formik.values.requestType) ? (
                       <div className="flex items-center h-full method-selector-container">
                         <HttpMethodSelector
                           method={formik.values.requestMethod}

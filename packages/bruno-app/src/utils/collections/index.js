@@ -346,6 +346,24 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
           delete di.request.params;
         }
 
+        if (si.type === 'amqp-request') {
+          di.request.publish = si.request.publish || { exchange: '', exchangeType: 'direct', routingKey: '' };
+          di.request.consume = {
+            ...(si.request.consume || { exchange: '', exchangeType: 'direct', routingKey: '', queue: '' }),
+            subscriptions: Array.isArray(si.request.consume?.subscriptions)
+              ? si.request.consume.subscriptions.map((sub) => ({
+                  uid: sub.uid,
+                  queue: sub.queue || '',
+                  exchange: sub.exchange || '',
+                  exchangeType: sub.exchangeType || 'direct',
+                  routingKey: sub.routingKey || ''
+                }))
+              : []
+          };
+          delete di.request.method;
+          delete di.request.params;
+        }
+
         // Handle auth object dynamically
         di.request.auth = {
           mode: get(si.request, 'auth.mode', 'none')
@@ -757,8 +775,39 @@ export const transformRequestToSaveToFilesystem = (item) => {
     delete itemToSave.request.params;
   }
 
+  if (_item.type === 'amqp-request') {
+    itemToSave.request.publish = {
+      exchange: _item.request.publish?.exchange || '',
+      exchangeType: _item.request.publish?.exchangeType || 'direct',
+      routingKey: _item.request.publish?.routingKey || ''
+    };
+    itemToSave.request.consume = {
+      exchange: _item.request.consume?.exchange || '',
+      exchangeType: _item.request.consume?.exchangeType || 'direct',
+      routingKey: _item.request.consume?.routingKey || '',
+      queue: _item.request.consume?.queue || '',
+      subscriptions: Array.isArray(_item.request.consume?.subscriptions)
+        ? _item.request.consume.subscriptions.map((sub) => ({
+            uid: sub.uid,
+            queue: sub.queue || '',
+            exchange: sub.exchange || '',
+            exchangeType: sub.exchangeType || 'direct',
+            routingKey: sub.routingKey || ''
+          }))
+        : []
+    };
+    if (!itemToSave.request.auth || !itemToSave.request.auth.mode) {
+      itemToSave.request.auth = { ...(itemToSave.request.auth || {}), mode: 'none' };
+    }
+    if (!itemToSave.request.body || !itemToSave.request.body.mode) {
+      itemToSave.request.body = { ...(itemToSave.request.body || {}), mode: 'json', json: itemToSave.request.body?.json ?? '{}' };
+    }
+    delete itemToSave.request.method;
+    delete itemToSave.request.params;
+  }
+
   // Only process params for non-gRPC requests
-  if (!['grpc-request', 'ws-request'].includes(_item.type)) {
+  if (!['grpc-request', 'ws-request', 'amqp-request'].includes(_item.type)) {
     each(_item.request.params, (param) => {
       itemToSave.request.params.push({
         uid: param.uid,
@@ -899,7 +948,7 @@ export const deleteItemInCollectionByPathname = (pathname, collection) => {
 };
 
 export const isItemARequest = (item) => {
-  return item.hasOwnProperty('request') && ['http-request', 'graphql-request', 'grpc-request', 'ws-request'].includes(item.type) && !item.items;
+  return item.hasOwnProperty('request') && ['http-request', 'graphql-request', 'grpc-request', 'ws-request', 'amqp-request'].includes(item.type) && !item.items;
 };
 
 export const isItemAFolder = (item) => {
@@ -1183,6 +1232,10 @@ export const getDefaultRequestPaneTab = (item) => {
 
   if (item.type === 'graphql-request') {
     return 'query';
+  }
+
+  if (item.type === 'amqp-request') {
+    return 'publish';
   }
 
   if (['ws-request', 'grpc-request'].includes(item.type)) {

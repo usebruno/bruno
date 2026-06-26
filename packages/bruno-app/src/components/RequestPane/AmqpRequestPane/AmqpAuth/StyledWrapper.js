@@ -1,10 +1,9 @@
 import styled from 'styled-components';
 
 const Wrapper = styled.div`
-  flex: 1 1 0;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
+  .inherit-mode-text {
+    color: ${(props) => props.theme.primary.text};
+  }
 `;
 
 export default Wrapper;

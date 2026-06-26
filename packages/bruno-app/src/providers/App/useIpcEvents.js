@@ -270,6 +270,125 @@ const useIpcEvents = () => {
       }));
     });
 
+    const cleanLogObject = (obj = {}) => {
+      return Object.entries(obj).reduce((acc, [key, value]) => {
+        if (value !== undefined) {
+          acc[key] = value;
+        }
+        return acc;
+      }, {});
+    };
+
+    const addAmqpConsoleLog = ({ type, title, requestUid, collectionUid, data = {} }) => {
+      const details = cleanLogObject({
+        requestUid,
+        collectionUid,
+        ...data
+      });
+
+      const args = [`[AMQP] ${title}`];
+      if (Object.keys(details).length) {
+        args.push(details);
+      }
+
+      dispatch(addLog({
+        type,
+        args,
+        timestamp: data?.timestamp || new Date().toISOString()
+      }));
+    };
+
+    const removeAmqpConnectedListener = ipcRenderer.on('main:amqp:connected', (requestUid, collectionUid, data = {}) => {
+      addAmqpConsoleLog({
+        type: 'info',
+        title: 'Connected',
+        requestUid,
+        collectionUid,
+        data
+      });
+    });
+
+    const removeAmqpDisconnectedListener = ipcRenderer.on('main:amqp:disconnected', (requestUid, collectionUid, data = {}) => {
+      addAmqpConsoleLog({
+        type: 'warn',
+        title: 'Disconnected',
+        requestUid,
+        collectionUid,
+        data
+      });
+    });
+
+    const removeAmqpErrorListener = ipcRenderer.on('main:amqp:error', (requestUid, collectionUid, data = {}) => {
+      const errorMessage = data?.message || 'Unknown AMQP error';
+      addAmqpConsoleLog({
+        type: 'error',
+        title: `Error: ${errorMessage}`,
+        requestUid,
+        collectionUid,
+        data
+      });
+    });
+
+    const removeAmqpMessagePublishedListener = ipcRenderer.on('main:amqp:message-published', (requestUid, collectionUid, data = {}) => {
+      addAmqpConsoleLog({
+        type: 'debug',
+        title: 'Message Published',
+        requestUid,
+        collectionUid,
+        data
+      });
+    });
+
+    const removeAmqpMessageReceivedListener = ipcRenderer.on('main:amqp:message-received', (requestUid, collectionUid, data = {}) => {
+      addAmqpConsoleLog({
+        type: 'debug',
+        title: 'Message Received',
+        requestUid,
+        collectionUid,
+        data
+      });
+    });
+
+    const removeAmqpConsumingListener = ipcRenderer.on('main:amqp:consuming', (requestUid, collectionUid, data = {}) => {
+      addAmqpConsoleLog({
+        type: 'info',
+        title: 'Consumer Started',
+        requestUid,
+        collectionUid,
+        data
+      });
+    });
+
+    const removeAmqpConsumerStoppedListener = ipcRenderer.on('main:amqp:consumer-stopped', (requestUid, collectionUid, data = {}) => {
+      addAmqpConsoleLog({
+        type: 'info',
+        title: 'Consumer Stopped',
+        requestUid,
+        collectionUid,
+        data
+      });
+    });
+
+    const removeAmqpConsumerCancelledListener = ipcRenderer.on('main:amqp:consumer-cancelled', (requestUid, collectionUid, data = {}) => {
+      addAmqpConsoleLog({
+        type: 'warn',
+        title: 'Consumer Cancelled',
+        requestUid,
+        collectionUid,
+        data
+      });
+    });
+
+    const removeAmqpDebugListener = ipcRenderer.on('main:amqp:debug', (requestUid, collectionUid, data = {}) => {
+      addAmqpConsoleLog({
+        type: 'debug',
+        title: data?.operation || 'Debug',
+        requestUid,
+        collectionUid,
+        data
+      });
+    });
+
     const removeSystemResourcesListener = ipcRenderer.on('main:filesync-system-resources', (resourceData) => {
       dispatch(updateSystemResources(resourceData));
     });
@@ -382,6 +501,15 @@ const useIpcEvents = () => {
       removeWorkspaceDotEnvUpdatesListener();
       removeDotEnvFileUpdateListener();
       removeConsoleLogListener();
+      removeAmqpConnectedListener();
+      removeAmqpDisconnectedListener();
+      removeAmqpErrorListener();
+      removeAmqpMessagePublishedListener();
+      removeAmqpMessageReceivedListener();
+      removeAmqpConsumingListener();
+      removeAmqpConsumerStoppedListener();
+      removeAmqpConsumerCancelledListener();
+      removeAmqpDebugListener();
       removeConfigUpdatesListener();
       removeShowPreferencesListener();
       removePreferencesUpdatesListener();

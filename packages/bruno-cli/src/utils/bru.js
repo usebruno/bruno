@@ -66,6 +66,9 @@ const bruToJson = (bru) => {
       case 'ws':
         requestType = 'ws-request';
         break;
+      case 'amqp':
+        requestType = 'amqp-request';
+        break;
       default:
         requestType = 'http-request';
     }
@@ -80,7 +83,7 @@ const bruToJson = (bru) => {
       tags: Array.isArray(tags) ? tags : [],
       examples: _.get(json, 'examples', []),
       request: {
-        url: _.get(json, requestType === 'grpc-request' ? 'grpc.url' : 'http.url'),
+        url: _.get(json, requestType === 'grpc-request' ? 'grpc.url' : requestType === 'amqp-request' ? 'amqp.url' : 'http.url'),
         headers: requestType === 'grpc-request' ? _.get(json, 'metadata', []) : _.get(json, 'headers', []),
         // Preserving special characters in custom methods. Using _.upperCase strips special characters.
         method: String(_.get(json, 'http.method') ?? '').toUpperCase(),
@@ -115,6 +118,23 @@ const bruToJson = (bru) => {
         mode: 'ws',
         ws: [bodyFromBru]
       };
+    } else if (requestType === 'amqp-request') {
+      transformedJson.request.auth.mode = _.get(json, 'amqp.auth', 'none');
+      transformedJson.request.publish = {
+        exchange: _.get(json, 'amqp.publishExchange', ''),
+        exchangeType: _.get(json, 'amqp.publishExchangeType', 'direct'),
+        routingKey: _.get(json, 'amqp.publishRoutingKey', '')
+      };
+      transformedJson.request.consume = {
+        exchange: _.get(json, 'amqp.consumeExchange', ''),
+        exchangeType: _.get(json, 'amqp.consumeExchangeType', 'direct'),
+        routingKey: _.get(json, 'amqp.consumeRoutingKey', ''),
+        queue: _.get(json, 'amqp.consumeQueue', '')
+      };
+      const rawBody = _.get(json, 'body', { mode: 'json', json: '{}' });
+      transformedJson.request.body = rawBody.mode === 'amqp'
+        ? { mode: 'json', json: _.get(rawBody, 'amqp[0].content', '{}') }
+        : rawBody;
     } else {
       transformedJson.request.method = _.upperCase(_.get(json, 'http.method'));
       transformedJson.request.auth.mode = _.get(json, 'http.auth', 'none');

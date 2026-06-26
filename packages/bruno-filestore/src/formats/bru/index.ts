@@ -41,6 +41,9 @@ export const parseBruRequest = (data: string | any, parsed: boolean = false): an
       case 'ws':
         requestType = 'ws-request';
         break;
+      case 'amqp':
+        requestType = 'amqp-request';
+        break;
       default:
         requestType = 'http-request';
     }
@@ -50,6 +53,7 @@ export const parseBruRequest = (data: string | any, parsed: boolean = false): an
     const urlPath: Record<typeof requestType, string> = {
       'grpc-request': 'grpc.url',
       'ws-request': 'ws.url',
+      'amqp-request': 'amqp.url',
       'default': 'http.url'
     };
 
@@ -111,6 +115,28 @@ export const parseBruRequest = (data: string | any, parsed: boolean = false): an
           }
         ])
       });
+    } else if (requestType === 'amqp-request') {
+      transformedJson.request.auth.mode = _.get(json, 'amqp.auth', 'none');
+      (transformedJson.request as any).publish = {
+        exchange: _.get(json, 'amqp.publishExchange', ''),
+        exchangeType: _.get(json, 'amqp.publishExchangeType', 'direct'),
+        routingKey: _.get(json, 'amqp.publishRoutingKey', '')
+      };
+      (transformedJson.request as any).consume = {
+        exchange: _.get(json, 'amqp.consumeExchange', ''),
+        exchangeType: _.get(json, 'amqp.consumeExchangeType', 'direct'),
+        routingKey: _.get(json, 'amqp.consumeRoutingKey', ''),
+        queue: _.get(json, 'amqp.consumeQueue', '')
+      };
+      const rawBody = _.get(json, 'body', { mode: 'json', json: '{}' });
+      transformedJson.request.body = rawBody.mode === 'amqp'
+        ? { mode: 'json', json: _.get(rawBody, 'amqp[0].content', '{}') }
+        : rawBody;
+      // Normalize settings to { settings: { ... } } structure
+      const rawSettings = transformedJson.settings || {};
+      if (!rawSettings.settings) {
+        transformedJson.settings = { settings: rawSettings };
+      }
     } else {
       // For HTTP and GraphQL
       (transformedJson.request as any).params = _.get(json, 'params', []);
@@ -165,6 +191,9 @@ export const stringifyBruRequest = (json: any): string => {
         break;
       case 'ws-request':
         type = 'ws';
+        break;
+      case 'amqp-request':
+        type = 'amqp';
         break;
       default:
         type = 'http';
@@ -235,6 +264,24 @@ export const stringifyBruRequest = (json: any): string => {
           }
         ])
       });
+    } else if (type === 'amqp') {
+      bruJson.amqp = {
+        url: _.get(json, 'request.url'),
+        auth: _.get(json, 'request.auth.mode', 'none'),
+        publish: {
+          exchange: _.get(json, 'request.publish.exchange', ''),
+          exchangeType: _.get(json, 'request.publish.exchangeType', 'direct'),
+          routingKey: _.get(json, 'request.publish.routingKey', '')
+        },
+        consume: {
+          exchange: _.get(json, 'request.consume.exchange', ''),
+          exchangeType: _.get(json, 'request.consume.exchangeType', 'direct'),
+          routingKey: _.get(json, 'request.consume.routingKey', ''),
+          queue: _.get(json, 'request.consume.queue', '')
+        }
+      };
+
+      bruJson.body = _.get(json, 'request.body', { mode: 'json', json: '{}' });
     }
 
     // Common fields for all request types

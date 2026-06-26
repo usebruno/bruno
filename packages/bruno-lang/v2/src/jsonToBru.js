@@ -14,7 +14,7 @@ const stripLastLine = (text) => {
 };
 
 const jsonToBru = (json) => {
-  const { meta, http, grpc, ws, params, headers, metadata, auth, body, script, tests, vars, assertions, settings, app, docs, examples } = json;
+  const { meta, http, grpc, ws, amqp, params, headers, metadata, auth, body, script, tests, vars, assertions, settings, app, docs, examples } = json;
 
   let bru = '';
 
@@ -111,6 +111,58 @@ const jsonToBru = (json) => {
     if (ws.methodType && ws.methodType.length) {
       bru += `
   methodType: ${ws.methodType}`;
+    }
+
+    bru += `
+}
+
+`;
+  }
+
+  if (amqp && amqp.url) {
+    bru += `amqp {
+  url: ${amqp.url}`;
+
+    if (amqp.auth && amqp.auth.length) {
+      bru += `
+  auth: ${amqp.auth}`;
+    }
+
+    const publish = amqp.publish || {};
+    if (publish.exchange && publish.exchange.length) {
+      bru += `
+  publishExchange: ${publish.exchange}`;
+    }
+    if (publish.exchangeType && publish.exchangeType.length) {
+      bru += `
+  publishExchangeType: ${publish.exchangeType}`;
+    }
+    if (publish.routingKey && publish.routingKey.length) {
+      bru += `
+  publishRoutingKey: ${publish.routingKey}`;
+    }
+
+    const consume = amqp.consume || {};
+    if (consume.exchange && consume.exchange.length) {
+      bru += `
+  consumeExchange: ${consume.exchange}`;
+    }
+    if (consume.exchangeType && consume.exchangeType.length) {
+      bru += `
+  consumeExchangeType: ${consume.exchangeType}`;
+    }
+    if (consume.routingKey && consume.routingKey.length) {
+      bru += `
+  consumeRoutingKey: ${consume.routingKey}`;
+    }
+    if (consume.queue && consume.queue.length) {
+      bru += `
+  consumeQueue: ${consume.queue}`;
+    }
+
+    if (amqp.body && amqp.body.length) {
+      bru += `
+  body: ${amqp.body}`;
     }
 
     bru += `
@@ -656,6 +708,26 @@ ${indentString(body.sparql)}
     }
   }
 
+  if (body && body.amqp) {
+    // Convert each AMQP message to a separate body:amqp block
+    if (Array.isArray(body.amqp)) {
+      body.amqp.forEach((message) => {
+        const { name, content, type = '' } = message;
+        bru += `body:amqp {\n`;
+        bru += `${indentString(`name: ${getValueString(name)}`)}\n`;
+
+        if (type.length) {
+          bru += `${indentString(`type: ${getValueString(type)}`)}\n`;
+        }
+        // Convert content to JSON string if it's an object
+        let contentValue = typeof content === 'object' ? JSON.stringify(content, null, 2) : content || '{}';
+
+        // Wrap content with triple quotes for multiline support, without extra indentation
+        bru += `${indentString(`content: '''\n${indentString(contentValue)}\n'''`)}\n`;
+        bru += '}\n\n';
+      });
+    }
+  }
   let reqvars = _.get(vars, 'req');
   let resvars = _.get(vars, 'res');
   if (reqvars && reqvars.length) {
