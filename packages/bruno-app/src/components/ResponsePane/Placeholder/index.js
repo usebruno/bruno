@@ -26,7 +26,7 @@ const Placeholder = () => {
   const iconSize = isVerticalLayout ? 80 : 150;
 
   return (
-    <StyledWrapper className={`${isVerticalLayout ? 'vertical-layout' : ''}`}>
+    <StyledWrapper className={`${isVerticalLayout ? 'vertical-layout' : ''}`} data-testid="response-placeholder">
       <div className="send-icon flex justify-center" style={{ fontSize: isVerticalLayout ? 100 : 200 }}>
         <IconSend size={iconSize} strokeWidth={1} />
       </div>
