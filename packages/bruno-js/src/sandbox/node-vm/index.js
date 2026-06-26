@@ -1,5 +1,6 @@
 const vm = require('node:vm');
 const path = require('node:path');
+const chai = require('chai');
 const { get } = require('lodash');
 const lodash = require('lodash');
 const { wrapConsoleWithSerializers } = require('./console');
@@ -8,6 +9,32 @@ const { createCustomRequire } = require('./cjs-loader');
 const { safeGlobals } = require('./constants');
 const { mixinTypedArrays } = require('../mixins/typed-arrays');
 const { wrapScriptInClosure, SANDBOX } = require('../../utils/sandbox');
+
+// chai is a Node module-level singleton. Once a user plugin calls
+// chai.Assertion.addMethod('foo', ...), that method stays on the prototype
+// for the lifetime of the process. To make "Disable plugin" actually take
+// effect on subsequent runs, we track the prototype keys our plugins add and
+// strip them before re-applying the currently-enabled set.
+const trackedChaiPluginKeys = new Set();
+
+const stripPreviouslyAppliedChaiPlugins = () => {
+  for (const key of trackedChaiPluginKeys) {
+    try {
+      delete chai.Assertion.prototype[key];
+    } catch (_) {
+      // ignore non-configurable props — those won't be ours anyway
+    }
+  }
+  trackedChaiPluginKeys.clear();
+};
+
+const recordPluginKeysAddedSince = (snapshotKeys) => {
+  for (const key of Object.getOwnPropertyNames(chai.Assertion.prototype)) {
+    if (!snapshotKeys.has(key)) {
+      trackedChaiPluginKeys.add(key);
+    }
+  }
+};
 
 /**
  * Executes a script in a Node.js VM context with enhanced security and module loading
@@ -26,7 +53,8 @@ async function runScriptInNodeVm({
   context,
   collectionPath,
   scriptingConfig,
-  scriptPath
+  scriptPath,
+  chaiPlugins
 }) {
   if (script.trim().length === 0) {
     return;
@@ -65,6 +93,21 @@ async function runScriptInNodeVm({
       localModuleCache,
       additionalContextRootsAbsolute
     });
+
+    // Expose chai as a global so plugin code can call `chai.use(...)`.
+    // Plugin registrations mutate this shared chai instance, which is the same
+    // one referenced by context.expect / context.assert, so registered methods
+    // become available in the user's test script.
+    scriptContext.chai = chai;
+
+    // Remove any plugin-added prototype methods from the previous run, so
+    // disabling a plugin actually removes its assertions on the next run.
+    stripPreviouslyAppliedChaiPlugins();
+    const baselineKeys = new Set(Object.getOwnPropertyNames(chai.Assertion.prototype));
+
+    evaluateChaiPluginsInNodeVm(isolatedContext, chaiPlugins, context.__brunoTestResults);
+
+    recordPluginKeysAddedSince(baselineKeys);
 
     const vmFilename = resolveVmFilename(scriptPath, collectionPath);
 
@@ -154,6 +197,33 @@ function buildScriptContext(context, scriptingConfig) {
   mixinTypedArrays(scriptContext);
 
   return scriptContext;
+}
+
+function evaluateChaiPluginsInNodeVm(isolatedContext, chaiPlugins, brunoTestResults) {
+  if (!Array.isArray(chaiPlugins) || chaiPlugins.length === 0) return;
+
+  chaiPlugins.forEach((plugin) => {
+    if (!plugin || plugin.enabled === false) return;
+    const name = plugin.name || 'unnamed-plugin';
+    const code = plugin.code;
+    if (!code || typeof code !== 'string' || !code.trim()) return;
+
+    try {
+      const compiled = new vm.Script(code, { filename: `bruno:plugin:${name}` });
+      compiled.runInContext(isolatedContext, { displayErrors: true });
+    } catch (error) {
+      const message = `Plugin init failed: '${name}' — ${error.message || error}`;
+      if (brunoTestResults && typeof brunoTestResults.addResult === 'function') {
+        brunoTestResults.addResult({
+          description: `Plugin init: ${name}`,
+          status: 'fail',
+          error: message
+        });
+      } else {
+        console.error(message);
+      }
+    }
+  });
 }
 
 module.exports = {

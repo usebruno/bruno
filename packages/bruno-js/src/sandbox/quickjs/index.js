@@ -92,7 +92,7 @@ const executeQuickJsVm = ({ script: externalScript, context: externalContext, sc
   }
 };
 
-const executeQuickJsVmAsync = async ({ script: externalScript, context: externalContext, collectionPath, scriptPath }) => {
+const executeQuickJsVmAsync = async ({ script: externalScript, context: externalContext, collectionPath, scriptPath, chaiPlugins }) => {
   if (!externalScript?.length || typeof externalScript !== 'string') {
     return externalScript;
   }
@@ -129,6 +129,8 @@ const executeQuickJsVmAsync = async ({ script: externalScript, context: external
 
     test && __brunoTestResults && addTestShimToContext(vm, __brunoTestResults);
 
+    evaluateChaiPlugins(vm, chaiPlugins, __brunoTestResults);
+
     const script = wrapScriptInClosure(externalScript, SANDBOX.QUICKJS);
 
     const result = vm.evalCodeRetained(script, scriptPath);
@@ -152,6 +154,49 @@ const executeQuickJsVmAsync = async ({ script: externalScript, context: external
     } catch (teardownError) {
       throw teardownError;
     }
+  }
+};
+
+const evaluateChaiPlugins = (vm, chaiPlugins, brunoTestResults) => {
+  if (!Array.isArray(chaiPlugins) || chaiPlugins.length === 0) return;
+
+  // `chai` is exposed on globalThis by the bundled libraries, so plugin code
+  // can call `chai.use(...)` directly without an explicit require.
+
+  chaiPlugins.forEach((plugin) => {
+    if (!plugin || plugin.enabled === false) return;
+    const name = plugin.name || 'unnamed-plugin';
+    const code = plugin.code;
+    if (!code || typeof code !== 'string' || !code.trim()) return;
+
+    const result = vm.evalCode(code, `bruno:plugin:${name}`);
+    if (result.error) {
+      const errorValue = vm.dump(result.error);
+      result.error.dispose();
+      const message = `Plugin init failed: '${name}' — ${formatPluginError(errorValue)}`;
+      if (brunoTestResults && typeof brunoTestResults.addResult === 'function') {
+        brunoTestResults.addResult({
+          description: `Plugin init: ${name}`,
+          status: 'fail',
+          error: message
+        });
+      } else {
+        console.error(message);
+      }
+    } else {
+      result.value.dispose();
+    }
+  });
+};
+
+const formatPluginError = (err) => {
+  if (!err) return 'unknown error';
+  if (typeof err === 'string') return err;
+  if (err.message) return err.message;
+  try {
+    return JSON.stringify(err);
+  } catch {
+    return String(err);
   }
 };
 

@@ -106,6 +106,10 @@ class ScriptRuntime {
     // Similar pattern to test-runtime.js which already handles this correctly
     let scriptError = null;
 
+    const chaiPlugins = Array.isArray(scriptingConfig?.plugins?.chai)
+      ? scriptingConfig.plugins.chai
+      : [];
+
     if (this.runtime === SANDBOX.NODEVM) {
       try {
         await runScriptInNodeVm({
@@ -113,7 +117,8 @@ class ScriptRuntime {
           context,
           collectionPath,
           scriptingConfig,
-          scriptPath
+          scriptPath,
+          chaiPlugins
         });
       } catch (error) {
         scriptError = error;
@@ -135,7 +140,8 @@ class ScriptRuntime {
         script: script,
         context: context,
         collectionPath,
-        scriptPath
+        scriptPath,
+        chaiPlugins
       });
     } catch (error) {
       scriptError = error;
@@ -242,6 +248,10 @@ class ScriptRuntime {
     // Similar pattern to test-runtime.js which already handles this correctly
     let scriptError = null;
 
+    const chaiPlugins = Array.isArray(scriptingConfig?.plugins?.chai)
+      ? scriptingConfig.plugins.chai
+      : [];
+
     if (this.runtime === SANDBOX.NODEVM) {
       try {
         await runScriptInNodeVm({
@@ -249,7 +259,8 @@ class ScriptRuntime {
           context,
           collectionPath,
           scriptingConfig,
-          scriptPath
+          scriptPath,
+          chaiPlugins
         });
       } catch (error) {
         scriptError = error;
@@ -271,7 +282,8 @@ class ScriptRuntime {
         script: script,
         context: context,
         collectionPath,
-        scriptPath
+        scriptPath,
+        chaiPlugins
       });
     } catch (error) {
       scriptError = error;

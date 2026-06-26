@@ -7,7 +7,7 @@ const terser = require('@rollup/plugin-terser').default;
 
 const bundleLibraries = async () => {
   const codeScript = `
-    import { expect, assert } from 'chai';
+    import chai from 'chai';
     import { Buffer } from "buffer";
     import moment from "moment";
     import btoa from "btoa";
@@ -16,8 +16,9 @@ const bundleLibraries = async () => {
     import tv4 from "tv4";
     import Ajv from "ajv";
     import addFormats from "ajv-formats";
-    globalThis.expect = expect;
-    globalThis.assert = assert;
+    globalThis.chai = chai;
+    globalThis.expect = chai.expect;
+    globalThis.assert = chai.assert;
     globalThis.moment = moment;
     globalThis.btoa = btoa;
     globalThis.atob = atob;
@@ -27,7 +28,7 @@ const bundleLibraries = async () => {
     globalThis.addFormats = addFormats;
     globalThis.requireObject = {
       ...(globalThis.requireObject || {}),
-      'chai': { expect, assert },
+      'chai': chai,
       'moment': moment,
       'buffer': { Buffer },
       'btoa': btoa,

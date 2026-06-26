@@ -55,6 +55,28 @@ const parseCollection = (ymlString: string): ParsedCollection => {
         };
       }
     }
+
+    // chai plugins (user-defined assertion plugins; see bruno-app Plugins panel)
+    if (Array.isArray(brunoExtensions?.scripts?.plugins?.chai)) {
+      const sanitizedChai = brunoExtensions.scripts.plugins.chai
+        .filter((p: any) => p && typeof p === 'object' && typeof p.code === 'string')
+        .map((p: any) => ({
+          uid: typeof p.uid === 'string' ? p.uid : undefined,
+          name: typeof p.name === 'string' ? p.name : 'plugin',
+          enabled: p.enabled !== false,
+          code: p.code
+        }));
+
+      if (sanitizedChai.length > 0) {
+        brunoConfig.scripts = {
+          ...brunoConfig.scripts,
+          plugins: {
+            ...(brunoConfig.scripts?.plugins || {}),
+            chai: sanitizedChai
+          }
+        };
+      }
+    }
     if (Array.isArray(brunoExtensions?.openapi) && brunoExtensions.openapi.length > 0) {
       brunoConfig.openapi = brunoExtensions.openapi.map((entry: any) => ({
         sourceUrl: entry.sourceUrl,

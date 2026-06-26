@@ -101,6 +101,10 @@ class TestRuntime {
 
     let scriptError = null;
 
+    const chaiPlugins = Array.isArray(scriptingConfig?.plugins?.chai)
+      ? scriptingConfig.plugins.chai
+      : [];
+
     try {
       if (this.runtime === SANDBOX.NODEVM) {
         await runScriptInNodeVm({
@@ -108,7 +112,8 @@ class TestRuntime {
           context,
           collectionPath,
           scriptingConfig,
-          scriptPath
+          scriptPath,
+          chaiPlugins
         });
       } else {
         // default runtime is `quickjs`
@@ -116,7 +121,8 @@ class TestRuntime {
           script: testsFile,
           context: context,
           collectionPath,
-          scriptPath
+          scriptPath,
+          chaiPlugins
         });
       }
     } catch (error) {

@@ -1701,6 +1701,27 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
     mainWindow.webContents.openDevTools();
   });
 
+  // Parse-only validation of a chai plugin snippet.
+  // Runs in main where there's no renderer CSP blocking `new Function(...)`.
+  // We don't execute the plugin (no chai instance here); we only confirm the
+  // snippet is syntactically valid JavaScript.
+  ipcMain.handle('renderer:validate-plugin-syntax', async (event, code) => {
+    if (typeof code !== 'string' || !code.trim()) {
+      return { ok: false, message: 'Plugin code is empty.' };
+    }
+    try {
+      new Function('chai', 'utils', code);
+      return { ok: true, message: 'Parse OK' };
+    } catch (error) {
+      return {
+        ok: false,
+        message: error?.message || String(error),
+        line: typeof error?.lineNumber === 'number' ? error.lineNumber : undefined,
+        column: typeof error?.columnNumber === 'number' ? error.columnNumber : undefined
+      };
+    }
+  });
+
   ipcMain.handle('renderer:load-gql-schema-file', async () => {
     try {
       const { filePaths } = await dialog.showOpenDialog(mainWindow, {
@@ -2307,6 +2328,33 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
       console.error('Error converting Postman to Bruno:', error);
       return Promise.reject(error);
     }
+  });
+
+  // Returns a map of { [pkg]: boolean } indicating which packages are already
+  // installed in <collectionPathname>/node_modules. Used by the chai-plugin
+  // catalog to render an accurate "Installed" state after restarts.
+  ipcMain.handle('renderer:check-installed-packages', async (_event, collectionPathname, packages) => {
+    if (typeof collectionPathname !== 'string' || !collectionPathname) {
+      throw new Error('collectionPathname is required');
+    }
+    if (!Array.isArray(packages)) {
+      throw new Error('packages must be an array');
+    }
+    const result = {};
+    for (const pkg of packages) {
+      if (typeof pkg !== 'string' || !pkg) {
+        result[pkg] = false;
+        continue;
+      }
+      // Resolve <collectionPathname>/node_modules/<pkg>, including scoped names.
+      const pkgPath = path.join(collectionPathname, 'node_modules', ...pkg.split('/'));
+      try {
+        result[pkg] = fs.existsSync(pkgPath) && fs.statSync(pkgPath).isDirectory();
+      } catch (_) {
+        result[pkg] = false;
+      }
+    }
+    return result;
   });
 
   ipcMain.handle('renderer:install-postman-packages', async (_event, collectionPathname, packages) => {

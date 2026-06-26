@@ -253,13 +253,33 @@ const stringifyCollection = (collectionRoot: any, brunoConfig: any): string => {
     }
 
     // bruno-specific script extensions
-    if (brunoConfig.scripts?.additionalContextRoots?.length) {
+    const hasAdditionalContextRoots = Array.isArray(brunoConfig.scripts?.additionalContextRoots)
+      && brunoConfig.scripts.additionalContextRoots.length > 0;
+    const hasChaiPlugins = Array.isArray(brunoConfig.scripts?.plugins?.chai)
+      && brunoConfig.scripts.plugins.chai.length > 0;
+
+    if (hasAdditionalContextRoots || hasChaiPlugins) {
       if (!oc.extensions.bruno) {
         oc.extensions.bruno = {};
       }
-      (oc.extensions.bruno as any).scripts = {
-        additionalContextRoots: brunoConfig.scripts.additionalContextRoots
-      };
+      const scriptsExt: any = {};
+
+      if (hasAdditionalContextRoots) {
+        scriptsExt.additionalContextRoots = brunoConfig.scripts.additionalContextRoots;
+      }
+
+      if (hasChaiPlugins) {
+        scriptsExt.plugins = {
+          chai: brunoConfig.scripts.plugins.chai.map((p: any) => ({
+            ...(p.uid && { uid: p.uid }),
+            name: p.name || 'plugin',
+            enabled: p.enabled !== false,
+            code: p.code || ''
+          }))
+        };
+      }
+
+      (oc.extensions.bruno as any).scripts = scriptsExt;
     }
 
     // bruno-specific extensions
