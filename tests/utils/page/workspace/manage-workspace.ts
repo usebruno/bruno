@@ -28,9 +28,11 @@ export const manageWorkspace = async (page: Page) => {
 
 export const openTerminalFromWorkspaceActions = async (page: Page, workspaceName: string) => {
   const locators = buildManageWorkspaceLocators(page);
-  const workspaceItem = locators.defaultWorkspaceItem().filter({ hasText: workspaceName });
-  await workspaceItem.locator(locators.moreActionsBtn()).click();
-  await locators.workspaceListItem().filter({ hasText: 'Open in Terminal' }).click();
+  await test.step('Open terminal from workspace actions', async () => {
+    const workspaceItem = locators.defaultWorkspaceItem().filter({ hasText: workspaceName });
+    await workspaceItem.locator(locators.moreActionsBtn()).click();
+    await locators.workspaceListItem().filter({ hasText: 'Open in Terminal' }).click();
+  });
 };
 
 export const clickOnMoreActionsButton = async (page: Page, workspaceName: string) => {
@@ -43,8 +45,10 @@ export const clickOnMoreActionsButton = async (page: Page, workspaceName: string
 
 export const renameOrRemoveWorkspaceOnPopup = async (page: Page, optionName: string) => {
   const locators = buildManageWorkspaceLocators(page);
-  await locators.dropdownItem().filter({ hasText: optionName }).click();
-  await locators.modalCard().waitFor({ state: 'visible' });
+  await test.step('Rename or remove workspace on popup', async () => {
+    await locators.dropdownItem().filter({ hasText: optionName }).click();
+    await locators.modalCard().waitFor({ state: 'visible' });
+  });
 };
 
 export const enterNewWorkspaceFilename = async (page: Page, workspaceName: string, btnName: string) => {
