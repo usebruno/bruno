@@ -132,16 +132,37 @@ describe('ImportEnvironmentModal — batch import summary', () => {
     expect(onEnvironmentCreated).not.toHaveBeenCalled();
   });
 
-  it('counts unnamed environments while still importing the named ones', async () => {
+  it('counts unnamed Postman environments while still importing the named ones', async () => {
+    // The Bruno importer defaults missing names to 'Imported Environment', so a
+    // genuinely nameless environment only reaches processEnvironments via Postman.
     setupFiles({
-      'mixed.json': { content: brunoContent([{ name: 'Named', variables: [] }, { variables: [] }]) }
+      'mixed.postman.json': { content: postmanContent([{ name: 'Named', variables: [] }, { variables: [] }]) }
     });
     renderModal({ collection: collectionWith([]) });
 
-    dropFiles('import-environment', [makeFile('mixed.json')]);
+    dropFiles('import-environment', [makeFile('mixed.postman.json')]);
 
     await waitFor(() => expect(toast.success).toHaveBeenCalledWith('Imported 1 environment.'));
     await waitFor(() => expect(toast).toHaveBeenCalledWith('1 had no name.'));
+    expect(mockDispatch).toHaveBeenCalledTimes(1);
+  });
+
+  it('treats non-string and empty-after-sanitize names as unnamed', async () => {
+    setupFiles({
+      'odd.json': {
+        content: brunoContent([
+          { name: 12345, variables: [] },
+          { name: '///', variables: [] },
+          { name: 'Valid', variables: [] }
+        ])
+      }
+    });
+    renderModal({ collection: collectionWith([]) });
+
+    dropFiles('import-environment', [makeFile('odd.json')]);
+
+    await waitFor(() => expect(toast.success).toHaveBeenCalledWith('Imported 1 environment.'));
+    await waitFor(() => expect(toast).toHaveBeenCalledWith('2 had no name.'));
     expect(mockDispatch).toHaveBeenCalledTimes(1);
   });
 

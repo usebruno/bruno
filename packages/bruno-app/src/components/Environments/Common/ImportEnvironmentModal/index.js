@@ -33,7 +33,8 @@ const ImportEnvironmentModal = ({ type = 'collection', collection, onClose, onEn
     const named = [];
     let unnamed = 0;
     for (const env of environments) {
-      if (env.name && env.name !== 'undefined') named.push(env);
+      const name = typeof env.name === 'string' ? sanitizeName(env.name) : '';
+      if (name && name !== 'undefined') named.push({ ...env, name });
       else unnamed++;
     }
 
@@ -43,13 +44,13 @@ const ImportEnvironmentModal = ({ type = 'collection', collection, onClose, onEn
     const toImport = [];
     let skipped = 0;
     for (const env of named) {
-      const name = sanitizeName(env.name);
-      if (seen.has(name)) {
+      const key = env.name;
+      if (seen.has(key)) {
         skipped++;
         continue;
       }
-      seen.add(name);
-      toImport.push({ ...env, name });
+      seen.add(key);
+      toImport.push(env);
     }
 
     let imported = 0;
