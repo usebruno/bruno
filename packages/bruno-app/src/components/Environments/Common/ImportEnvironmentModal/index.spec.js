@@ -75,12 +75,15 @@ describe('ImportEnvironmentModal — batch import summary', () => {
     mockDispatch = jest.fn(() => Promise.resolve());
     mockSelectorState = { globalEnvironments: { globalEnvironments: [] } };
 
-    const passthrough = async ([parsedFile]) => {
+    const readEnvs = ([parsedFile]) => {
       if (parsedFile.content.importError) throw new Error(parsedFile.content.importError);
       return parsedFile.content.envs || [];
     };
-    importBrunoEnvironment.mockImplementation(passthrough);
-    importPostmanEnvironment.mockImplementation(passthrough);
+    // Mirror importBrunoEnvironment: a missing name is normalized to 'Imported Environment'.
+    importBrunoEnvironment.mockImplementation(async (files) =>
+      readEnvs(files).map((env) => ({ ...env, name: env.name || 'Imported Environment' }))
+    );
+    importPostmanEnvironment.mockImplementation(async (files) => readEnvs(files));
   });
 
   it('imports a mix of Bruno and Postman files and reports the combined count', async () => {
@@ -132,6 +135,31 @@ describe('ImportEnvironmentModal — batch import summary', () => {
     expect(onEnvironmentCreated).not.toHaveBeenCalled();
   });
 
+  it('skips a within-batch duplicate whose sanitized name collapses, without a "copy" suffix', async () => {
+    setupFiles({
+      'batch.json': {
+        content: brunoContent([
+          { name: 'Prod/Env', variables: [{ name: 'first' }] },
+          { name: 'Prod-Env', variables: [{ name: 'second' }] }
+        ])
+      }
+    });
+    renderModal({ collection: collectionWith([]) });
+
+    dropFiles('import-environment', [makeFile('batch.json')]);
+
+    await waitFor(() => expect(toast.success).toHaveBeenCalledWith('Imported 1 environment.'));
+    await waitFor(() => expect(toast).toHaveBeenCalledWith('1 already existed and was skipped.'));
+    expect(importEnvironment).toHaveBeenCalledTimes(1);
+    expect(importEnvironment).toHaveBeenCalledWith(
+      expect.objectContaining({ name: 'Prod-Env', variables: [{ name: 'first' }] })
+    );
+    expect(importEnvironment).not.toHaveBeenCalledWith(
+      expect.objectContaining({ name: expect.stringContaining('copy') })
+    );
+    expect(mockDispatch).toHaveBeenCalledTimes(1);
+  });
+
   it('counts unnamed Postman environments while still importing the named ones', async () => {
     // The Bruno importer defaults missing names to 'Imported Environment', so a
     // genuinely nameless environment only reaches processEnvironments via Postman.
@@ -144,6 +172,18 @@ describe('ImportEnvironmentModal — batch import summary', () => {
 
     await waitFor(() => expect(toast.success).toHaveBeenCalledWith('Imported 1 environment.'));
     await waitFor(() => expect(toast).toHaveBeenCalledWith('1 had no name.'));
+    expect(mockDispatch).toHaveBeenCalledTimes(1);
+  });
+
+  it('imports an unnamed Bruno environment as "Imported Environment" per the importer contract', async () => {
+    setupFiles({ 'noname.json': { content: brunoContent([{ variables: [] }]) } });
+    renderModal({ collection: collectionWith([]) });
+
+    dropFiles('import-environment', [makeFile('noname.json')]);
+
+    await waitFor(() => expect(toast.success).toHaveBeenCalledWith('Imported 1 environment.'));
+    expect(importEnvironment).toHaveBeenCalledWith(expect.objectContaining({ name: 'Imported Environment' }));
+    expect(toast).not.toHaveBeenCalledWith('1 had no name.');
     expect(mockDispatch).toHaveBeenCalledTimes(1);
   });
 
