@@ -52,6 +52,11 @@ const useIpcEvents = () => {
     }
 
     const { ipcRenderer } = window;
+    let snapshotMode = 'modern';
+    const snapshotModeReady = ipcRenderer.invoke('renderer:snapshot:mode')
+      .then((mode) => {
+        snapshotMode = mode === 'legacy' ? 'legacy' : 'modern';
+      });
 
     const _collectionTreeUpdated = (type, val) => {
       if (window.__IS_DEV__) {
@@ -126,6 +131,9 @@ const useIpcEvents = () => {
       try {
         await dispatch(openCollectionEvent(uid, pathname, brunoConfig));
       } finally {
+        await snapshotModeReady;
+        if (snapshotMode !== 'modern') return;
+
         dispatch(hydrateSnapshotForOpenedCollection(pathname));
       }
     });
