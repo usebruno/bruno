@@ -1,28 +1,22 @@
-import { buildWorkspaceTitleBarLocators, clickImportWorkspace, WorkspaceTitleBarLocators } from '../title-bar';
-import { test, expect, Page, Locator, ElectronApplication, waitForReadyPage } from '../../../../playwright';
 import AdmZip from 'adm-zip';
 import * as path from 'path';
+import { clickImportWorkspace } from '../title-bar';
+import { test, expect, Page, Locator, ElectronApplication, waitForReadyPage } from '../../../../playwright';
 
 /**
- * Import Workspace modal locators. Takes the title-bar locators
+ * Import Workspace modal locators.
  */
-export const buildImportWorkspaceModalLocators = (
-  page: Page,
-  titleBar: WorkspaceTitleBarLocators = buildWorkspaceTitleBarLocators(page)
-) => {
+export const buildImportWorkspaceModalLocators = (page: Page) => {
   // Scope every modal query to the dialog so we avoid the brittle
   const modal = () => page.getByRole('dialog').filter({ hasText: 'Import Workspace' });
 
   return {
-    // Title-bar entry points, forwarded from the param.
-    titleBar,
-
     // Import Workspace modal
     modal,
     fileInput: () => modal().getByTestId('import-workspace-file-input'),
     selectedFileName: (name: string) => modal().getByText(name),
     removeFileButton: () => modal().getByText('Remove'),
-    locationInput: () => page.getByLabel('Extract Location'),
+    locationInput: () => modal().getByLabel('Extract Location'),
     browseLink: () => modal().getByText('Browse', { exact: true }),
     importButton: () => modal().getByTestId('modal-submit-btn')
   };
@@ -58,7 +52,7 @@ export const createWorkspaceZip = (zipDir: string, workspaceName: string): strin
 };
 
 /**
- * Open the title-bar workspace dropdown and launch the Import Workspace modal.
+ * Open the workspace dropdown and launch the Import Workspace modal.
  */
 export const openImportWorkspaceModal = async (page: Page) => {
   const locators = buildImportWorkspaceModalLocators(page);

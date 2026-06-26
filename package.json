@@ -36,6 +36,7 @@
     "@types/lodash-es": "^4.17.12",
     "@types/node": "^22.14.1",
     "@typescript-eslint/parser": "^8.39.0",
+    "adm-zip": "^0.5.17",
     "concurrently": "^8.2.2",
     "cross-env": "10.1.0",
     "eslint": "^9.39.4",
@@ -51,8 +52,7 @@
     "randomstring": "^1.2.2",
     "rimraf": "^6.0.1",
     "storybook": "^10.1.10",
-    "ts-jest": "^29.2.6",
-    "adm-zip": "^0.5.17"
+    "ts-jest": "^29.2.6"
   },
   "scripts": {
     "setup": "node ./scripts/setup.js",
