@@ -542,6 +542,10 @@ const sem = grammar.createSemantics().addAttribute('ast', {
       parsedSettings.followRedirects = typeof settings.followRedirects === 'boolean' ? settings.followRedirects : settings.followRedirects === 'true';
     }
 
+    if (settings.forwardAuthorizationOnRedirect !== undefined) {
+      parsedSettings.forwardAuthorizationOnRedirect = typeof settings.forwardAuthorizationOnRedirect === 'boolean' ? settings.forwardAuthorizationOnRedirect : settings.forwardAuthorizationOnRedirect === 'true';
+    }
+
     // Parse maxRedirects as number
     if (settings.maxRedirects !== undefined) {
       const maxRedirects = parseInt(settings.maxRedirects, 10);
@@ -573,6 +577,10 @@ const sem = grammar.createSemantics().addAttribute('ast', {
 
     if (parsedSettings.maxRedirects !== undefined) {
       _settings.maxRedirects = parsedSettings.maxRedirects;
+    }
+
+    if (parsedSettings.forwardAuthorizationOnRedirect !== undefined) {
+      _settings.forwardAuthorizationOnRedirect = parsedSettings.forwardAuthorizationOnRedirect;
     }
 
     if (keepAliveInterval) {

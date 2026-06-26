@@ -1401,7 +1401,8 @@ export const newHttpRequest = (params) => (dispatch, getState) => {
         }
       },
       settings: settings ?? {
-        encodeUrl: true
+        encodeUrl: true,
+        forwardAuthorizationOnRedirect: false
       }
     };
 

@@ -1,0 +1,23 @@
+meta {
+  name: cross-origin-redirect-auth-forward
+  type: http
+  seq: 5
+}
+
+get {
+  url: http://127.0.0.1:8081/api/redirect/cross-origin
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer token-test
+  Proxy-Authorization: Bearer proxy-test
+}
+
+settings {
+  followRedirects: true
+  forwardAuthorizationOnRedirect: true
+  maxRedirects: 5
+  timeout: 0
+}

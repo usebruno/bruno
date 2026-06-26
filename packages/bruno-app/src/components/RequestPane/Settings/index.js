@@ -14,7 +14,8 @@ const DEFAULT_SETTINGS = {
   encodeUrl: false,
   followRedirects: true,
   maxRedirects: 5,
-  timeout: 'inherit'
+  timeout: 'inherit',
+  forwardAuthorizationOnRedirect: true
 };
 
 const Settings = ({ item, collection }) => {
@@ -26,7 +27,7 @@ const Settings = ({ item, collection }) => {
 
   const rawSettings = getPropertyFromDraftOrRequest('settings');
   const settings = { ...DEFAULT_SETTINGS, ...rawSettings };
-  const { encodeUrl, followRedirects, maxRedirects, timeout } = settings;
+  const { encodeUrl, followRedirects, maxRedirects, timeout, forwardAuthorizationOnRedirect } = settings;
 
   // Reusable function to update settings
   const updateSetting = useCallback((settingUpdate) => {
@@ -44,6 +45,9 @@ const Settings = ({ item, collection }) => {
 
   const onToggleFollowRedirects = useCallback(() =>
     updateSetting({ followRedirects: !followRedirects }), [followRedirects, updateSetting]);
+
+  const onToggleForwardAuthorizationOnRedirect = useCallback(() =>
+    updateSetting({ forwardAuthorizationOnRedirect: !forwardAuthorizationOnRedirect }), [forwardAuthorizationOnRedirect, updateSetting]);
 
   const onMaxRedirectsChange = useCallback((e) => {
     const value = e.target.value;
@@ -107,7 +111,7 @@ const Settings = ({ item, collection }) => {
           <Tags item={item} collection={collection} />
         </div>
 
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-4 pr-1">
 
           <div className="flex flex-col gap-4">
             <ToggleSelector
@@ -128,6 +132,17 @@ const Settings = ({ item, collection }) => {
               description="Follow HTTP redirects automatically"
               size="medium"
               data-testid="follow-redirects-toggle"
+            />
+          </div>
+
+          <div className="flex flex-col gap-4">
+            <ToggleSelector
+              checked={forwardAuthorizationOnRedirect}
+              onChange={onToggleForwardAuthorizationOnRedirect}
+              label="Forward Authorization on Redirect"
+              description="Send Authorization and Proxy-Authorization headers when a redirect points to a different origin"
+              size="medium"
+              data-testid="forward-authorization-toggle"
             />
           </div>
 

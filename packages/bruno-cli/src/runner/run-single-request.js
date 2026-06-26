@@ -514,6 +514,9 @@ const runSingleRequest = async function (
     // Get followRedirects setting, default to true for backward compatibility
     const followRedirects = request.settings?.followRedirects ?? true;
 
+    // Get forwardAuthorizationOnRedirect setting, default to true for backward compatibility
+    const forwardAuthorizationOnRedirect = request.settings?.forwardAuthorizationOnRedirect ?? true;
+
     // Get maxRedirects from request settings, fallback to request.maxRedirects, then default to 5
     let requestMaxRedirects = request.settings?.maxRedirects ?? request.maxRedirects ?? 5;
 
@@ -620,6 +623,7 @@ const runSingleRequest = async function (
         requestMaxRedirects: requestMaxRedirects,
         disableCookies: options.disableCookies,
         followRedirects: followRedirects,
+        forwardAuthorizationOnRedirect: forwardAuthorizationOnRedirect,
         proxyMode,
         proxyConfig,
         systemProxyConfig: cachedSystemProxy,

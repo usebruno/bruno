@@ -963,6 +963,10 @@ export const collectionsSlice = createSlice({
               content: null
             }
           },
+          settings: {
+            encodeUrl: true,
+            forwardAuthorizationOnRedirect: false
+          },
           draft: null
         };
         item.draft = cloneDeep(item);

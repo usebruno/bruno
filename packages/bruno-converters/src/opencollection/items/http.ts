@@ -107,7 +107,8 @@ export const fromOpenCollectionHttpItem = (ocRequest: HttpRequest): BrunoItem =>
       encodeUrl: typeof ocRequest.settings.encodeUrl === 'boolean' ? ocRequest.settings.encodeUrl : true,
       timeout: typeof ocRequest.settings.timeout === 'number' ? ocRequest.settings.timeout : 0,
       followRedirects: typeof ocRequest.settings.followRedirects === 'boolean' ? ocRequest.settings.followRedirects : true,
-      maxRedirects: typeof ocRequest.settings.maxRedirects === 'number' ? ocRequest.settings.maxRedirects : 5
+      maxRedirects: typeof ocRequest.settings.maxRedirects === 'number' ? ocRequest.settings.maxRedirects : 5,
+      forwardAuthorizationOnRedirect: typeof ocRequest.settings.forwardAuthorizationOnRedirect === 'boolean' ? ocRequest.settings.forwardAuthorizationOnRedirect : false
     };
     brunoItem.settings = settings;
   }
@@ -223,7 +224,8 @@ export const toOpenCollectionHttpItem = (item: BrunoItem): HttpRequest => {
     encodeUrl: typeof brunoSettings?.encodeUrl === 'boolean' ? brunoSettings.encodeUrl : true,
     timeout: typeof brunoSettings?.timeout === 'number' ? brunoSettings.timeout : 0,
     followRedirects: typeof brunoSettings?.followRedirects === 'boolean' ? brunoSettings.followRedirects : true,
-    maxRedirects: typeof brunoSettings?.maxRedirects === 'number' ? brunoSettings.maxRedirects : 5
+    maxRedirects: typeof brunoSettings?.maxRedirects === 'number' ? brunoSettings.maxRedirects : 5,
+    forwardAuthorizationOnRedirect: typeof brunoSettings?.forwardAuthorizationOnRedirect === 'boolean' ? brunoSettings.forwardAuthorizationOnRedirect : false
   };
   ocRequest.settings = settings;
 
