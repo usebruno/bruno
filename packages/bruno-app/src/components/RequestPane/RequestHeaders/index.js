@@ -62,10 +62,19 @@ const RequestHeaders = ({ item, collection }) => {
 
     dryRunHttpRequest(item, collection, environment, collection.runtimeVariables)
       .then((res) => {
-        if (!isMounted || !res?.headers) return;
+        if (!isMounted) return;
+        if (res?.error || !res?.headers) {
+          setDryRunHeaders({});
+          return;
+        }
         setDryRunHeaders(res.headers);
       })
-      .catch(console.error);
+      .catch((error) => {
+        console.error(error);
+        if (isMounted) {
+          setDryRunHeaders({});
+        }
+      });
 
     return () => { isMounted = false; };
   }, [item.uid, bodyMode, itemAuthStr, collectionAuthStr, activeEnvironmentUid]);
