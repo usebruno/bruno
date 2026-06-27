@@ -49,7 +49,7 @@ const RequestHeaders = ({ item, collection }) => {
 
   const authHeaderNames = useMemo(() => {
     const effectiveAuth = resolveInheritedAuth(item, collection)?.auth || {};
-    const names = new Set(['authorization']);
+    const names = new Set(['authorization', 'x-wsse']);
     if (effectiveAuth.mode === 'apikey' && effectiveAuth.apikey?.placement === 'header' && effectiveAuth.apikey?.key) {
       names.add(effectiveAuth.apikey.key.toLowerCase());
     }
