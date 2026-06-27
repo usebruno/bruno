@@ -34,7 +34,7 @@ const ProxySettings = ({ close }) => {
         .nullable()
     }).optional(),
     config: Yup.object({
-      protocol: Yup.string().required().oneOf(['http', 'https', 'socks4', 'socks5']),
+      protocol: Yup.string().required().oneOf(['http', 'https', 'socks4', 'socks5', 'socks5h']),
       hostname: Yup.string().max(1024),
       port: Yup.number()
         .min(1)
@@ -256,6 +256,17 @@ const ProxySettings = ({ close }) => {
                     className="mr-1"
                   />
                   SOCKS5
+                </label>
+                <label className="flex items-center ml-4" title="SOCKS5 with hostname resolution performed by the proxy (remote DNS)">
+                  <input
+                    type="radio"
+                    name="config.protocol"
+                    value="socks5h"
+                    checked={formik.values.config.protocol === 'socks5h'}
+                    onChange={formik.handleChange}
+                    className="mr-1"
+                  />
+                  SOCKS5h
                 </label>
               </div>
             </div>

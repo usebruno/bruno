@@ -118,7 +118,7 @@ const preferencesSchema = Yup.object().shape({
       source: Yup.string().optional().max(2048).nullable()
     }).optional(),
     config: Yup.object({
-      protocol: Yup.string().oneOf(['http', 'https', 'socks4', 'socks5']),
+      protocol: Yup.string().oneOf(['http', 'https', 'socks4', 'socks5', 'socks5h']),
       hostname: Yup.string().max(1024),
       port: Yup.number().min(1).max(65535).nullable(),
       auth: Yup.object({
