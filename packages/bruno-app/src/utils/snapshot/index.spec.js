@@ -767,3 +767,67 @@ describe('hydrateCollectionTabs', () => {
     expect(restoreTabs).toHaveBeenCalledTimes(1);
   });
 });
+
+describe('snapshot restore dependency helpers', () => {
+  const {
+    buildSnapshotRestoreDependencyKey,
+    getSnapshotRestoreDependency,
+    shouldPreserveSnapshotRestoreDependency,
+    getWaitingCollectionDependencies
+  } = require('./index');
+
+  it('builds stable dependency keys by type', () => {
+    expect(buildSnapshotRestoreDependencyKey({
+      type: 'workspace',
+      pathname: '/tmp/workspace'
+    })).toBe('workspace::/tmp/workspace');
+
+    expect(buildSnapshotRestoreDependencyKey({
+      type: 'collection',
+      pathname: '/tmp/collection',
+      workspacePathname: '/tmp/workspace'
+    })).toBe('collection::/tmp/workspace::/tmp/collection');
+
+    expect(buildSnapshotRestoreDependencyKey({
+      type: 'environment',
+      pathname: '/tmp/collection'
+    })).toBe('environment::/tmp/collection');
+  });
+
+  it('preserves snapshot only for waiting, missing, or failed dependencies', () => {
+    expect(shouldPreserveSnapshotRestoreDependency({
+      preserveSnapshot: true,
+      status: 'waiting'
+    })).toBe(true);
+    expect(shouldPreserveSnapshotRestoreDependency({
+      preserveSnapshot: true,
+      status: 'resolved'
+    })).toBe(false);
+  });
+
+  it('returns waiting collection dependencies for a workspace', () => {
+    const dependencies = {
+      'collection::/tmp/workspace::/tmp/collection-a': {
+        type: 'collection',
+        status: 'waiting',
+        pathname: '/tmp/collection-a',
+        workspacePathname: '/tmp/workspace'
+      },
+      'collection::/tmp/other::/tmp/collection-b': {
+        type: 'collection',
+        status: 'waiting',
+        pathname: '/tmp/collection-b',
+        workspacePathname: '/tmp/other'
+      }
+    };
+
+    const waiting = getWaitingCollectionDependencies(dependencies, '/tmp/workspace');
+    expect(waiting).toHaveLength(1);
+    expect(waiting[0].pathname).toBe('/tmp/collection-a');
+    expect(getSnapshotRestoreDependency(dependencies, {
+      type: 'collection',
+      pathname: '/tmp/collection-a',
+      workspacePathname: '/tmp/workspace'
+    })).toMatchObject({ status: 'waiting' });
+  });
+});

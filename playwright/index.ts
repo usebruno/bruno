@@ -250,7 +250,13 @@ export const test = baseTest.extend<
           };
 
           for (const file of await fs.promises.readdir(initUserDataPath)) {
-            let content = await fs.promises.readFile(path.join(initUserDataPath, file), 'utf-8');
+            const sourcePath = path.join(initUserDataPath, file);
+            const sourceStat = await fs.promises.stat(sourcePath);
+            if (!sourceStat.isFile()) {
+              continue;
+            }
+
+            let content = await fs.promises.readFile(sourcePath, 'utf-8');
             content = content.replace(/{{(\w+)}}/g, (_, key) => {
               if (replacements[key]) {
                 return replacements[key].replace(/\\/g, '/');

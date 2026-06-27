@@ -148,6 +148,196 @@ class SnapshotManager {
     };
   }
 
+  async _pathExists(filePath) {
+    if (typeof filePath !== 'string' || !filePath) {
+      return false;
+    }
+
+    try {
+      await fs.promises.access(filePath, fs.constants.F_OK);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  _getCollectionEnvironmentRef(collectionSnapshot) {
+    if (!collectionSnapshot) {
+      return null;
+    }
+
+    const environmentRef = collectionSnapshot.environment?.collection
+      || collectionSnapshot.environmentPath
+      || collectionSnapshot.selectedEnvironment;
+
+    if (typeof environmentRef !== 'string') {
+      return null;
+    }
+
+    const trimmedRef = environmentRef.trim();
+    return trimmedRef || null;
+  }
+
+  async _collectionExists(collectionPath) {
+    if (typeof collectionPath !== 'string' || !collectionPath) {
+      return false;
+    }
+
+    const bruJsonPath = path.join(collectionPath, 'bruno.json');
+    const openCollectionPath = path.join(collectionPath, 'opencollection.yml');
+    return (await this._pathExists(bruJsonPath)) || (await this._pathExists(openCollectionPath));
+  }
+
+  _buildDependencyRecord({
+    type,
+    status,
+    pathname,
+    workspacePathname = '',
+    environmentPath = '',
+    selectedEnvironment = '',
+    preserveSnapshot = false,
+    error = null
+  }) {
+    return {
+      type,
+      status,
+      pathname,
+      workspacePathname,
+      environmentPath,
+      selectedEnvironment,
+      preserveSnapshot,
+      ...(error ? { error } : {})
+    };
+  }
+
+  async getBootWorkspaceRestoreDependencies(workspacePaths = []) {
+    const snapshot = this.getSnapshot();
+    const { workspacesByPath } = this._buildLookupMaps();
+    const dependencies = [];
+    const seenWorkspacePaths = new Set();
+
+    const queueWorkspace = (workspacePath) => {
+      const normalizedPath = normalizeLookupKey(workspacePath);
+      if (!normalizedPath || seenWorkspacePaths.has(normalizedPath)) {
+        return;
+      }
+
+      seenWorkspacePaths.add(normalizedPath);
+    };
+
+    (Array.isArray(workspacePaths) ? workspacePaths : []).forEach(queueWorkspace);
+    Object.keys(workspacesByPath).forEach(queueWorkspace);
+
+    if (snapshot.activeWorkspacePath) {
+      queueWorkspace(snapshot.activeWorkspacePath);
+    }
+
+    for (const normalizedWorkspacePath of seenWorkspacePaths) {
+      const workspaceSnapshot = workspacesByPath[normalizedWorkspacePath];
+      const workspacePath = workspaceSnapshot?.pathname || normalizedWorkspacePath;
+      const workspaceYmlPath = path.join(workspacePath, 'workspace.yml');
+      const workspaceExists = await this._pathExists(workspaceYmlPath);
+
+      dependencies.push(this._buildDependencyRecord({
+        type: 'workspace',
+        status: workspaceExists ? 'waiting' : 'missing',
+        pathname: workspacePath,
+        preserveSnapshot: Boolean(workspaceSnapshot) || !workspaceExists
+      }));
+
+      const collectionDependencies = await this.getWorkspaceCollectionRestoreDependencies(workspacePath);
+      dependencies.push(...collectionDependencies);
+    }
+
+    return dependencies;
+  }
+
+  async getWorkspaceCollectionRestoreDependencies(workspacePath) {
+    const snapshot = this.getSnapshot();
+    const normalizedWorkspacePath = normalizeLookupKey(workspacePath);
+    if (!normalizedWorkspacePath) {
+      return [];
+    }
+
+    const { workspacesByPath } = this._buildLookupMaps();
+    const workspaceSnapshot = workspacesByPath[normalizedWorkspacePath];
+    const collectionPaths = new Set();
+
+    (workspaceSnapshot?.collections || []).forEach((collectionPath) => {
+      if (typeof collectionPath === 'string' && collectionPath.trim()) {
+        collectionPaths.add(collectionPath);
+      }
+    });
+
+    (snapshot.collections || []).forEach((collection) => {
+      if (normalizeLookupKey(collection.workspacePathname || '') === normalizedWorkspacePath && collection.pathname) {
+        collectionPaths.add(collection.pathname);
+      }
+    });
+
+    const dependencies = [];
+
+    for (const collectionPath of collectionPaths) {
+      const collectionExists = await this._collectionExists(collectionPath);
+      dependencies.push(this._buildDependencyRecord({
+        type: 'collection',
+        status: collectionExists ? 'waiting' : 'missing',
+        pathname: collectionPath,
+        workspacePathname: workspacePath,
+        preserveSnapshot: true
+      }));
+    }
+
+    return dependencies;
+  }
+
+  async getCollectionEnvironmentRestoreState(collectionPath) {
+    const collectionSnapshot = this.getCollection(collectionPath);
+    const environmentRef = this._getCollectionEnvironmentRef(collectionSnapshot);
+
+    if (!environmentRef) {
+      return this._buildDependencyRecord({
+        type: 'environment',
+        status: 'none',
+        pathname: collectionPath,
+        preserveSnapshot: false
+      });
+    }
+
+    let resolvedEnvironmentPath = '';
+    if (path.isAbsolute(environmentRef)) {
+      resolvedEnvironmentPath = path.normalize(environmentRef);
+    } else {
+      resolvedEnvironmentPath = await this._resolveEnvironmentPathByNameAsync(collectionPath, environmentRef) || '';
+    }
+
+    const selectedEnvironment = typeof collectionSnapshot?.selectedEnvironment === 'string'
+      ? collectionSnapshot.selectedEnvironment
+      : (path.isAbsolute(environmentRef) ? path.basename(environmentRef).replace(/\.(bru|yml|yaml)$/i, '') : environmentRef);
+
+    if (!resolvedEnvironmentPath) {
+      return this._buildDependencyRecord({
+        type: 'environment',
+        status: 'missing',
+        pathname: collectionPath,
+        environmentPath: environmentRef,
+        selectedEnvironment,
+        preserveSnapshot: true
+      });
+    }
+
+    const environmentExists = await this._pathExists(resolvedEnvironmentPath);
+
+    return this._buildDependencyRecord({
+      type: 'environment',
+      status: environmentExists ? 'waiting' : 'missing',
+      pathname: collectionPath,
+      environmentPath: resolvedEnvironmentPath,
+      selectedEnvironment,
+      preserveSnapshot: true
+    });
+  }
+
   getTabs(collectionPathname, workspacePathname = null) {
     const normalizedPath = normalizeLookupKey(collectionPathname);
     if (!normalizedPath) {

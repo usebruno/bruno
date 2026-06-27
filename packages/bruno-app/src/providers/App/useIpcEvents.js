@@ -25,7 +25,8 @@ import {
   streamDataReceived,
   setDotEnvVariables
 } from 'providers/ReduxStore/slices/collections';
-import { collectionAddEnvFileEvent, openCollectionEvent, hydrateCollectionWithUiStateSnapshot, mergeAndPersistEnvironment } from 'providers/ReduxStore/slices/collections/actions';
+import { collectionAddEnvFileEvent, openCollectionEvent, hydrateCollectionWithUiStateSnapshot, mergeAndPersistEnvironment, tryApplyPendingSnapshotEnvironment, handleSnapshotRestoreDependency, handleCollectionEnvironmentParseStatus } from 'providers/ReduxStore/slices/collections/actions';
+import { setSnapshotRestoreDependencies } from 'providers/ReduxStore/slices/app';
 import {
   workspaceOpenedEvent,
   workspaceConfigUpdatedEvent,
@@ -314,6 +315,21 @@ const useIpcEvents = () => {
       dispatch(hydrateCollectionWithUiStateSnapshot(val));
     });
 
+    const removeSnapshotRestoreDependenciesListener = ipcRenderer.on('main:snapshot-restore-dependencies', (dependencies) => {
+      dispatch(setSnapshotRestoreDependencies(dependencies));
+      (Array.isArray(dependencies) ? dependencies : []).forEach((dependency) => {
+        dispatch(handleSnapshotRestoreDependency(dependency));
+      });
+    });
+
+    const removeSnapshotRestoreDependencyListener = ipcRenderer.on('main:snapshot-restore-dependency', (dependency) => {
+      dispatch(handleSnapshotRestoreDependency(dependency));
+    });
+
+    const removeCollectionEnvironmentParseStatusListener = ipcRenderer.on('main:collection-environment-parse-status', (payload) => {
+      dispatch(handleCollectionEnvironmentParseStatus(payload));
+    });
+
     const removeCollectionOauth2CredentialsUpdatesListener = ipcRenderer.on('main:credentials-update', (val) => {
       const payload = {
         ...val,
@@ -338,6 +354,9 @@ const useIpcEvents = () => {
 
     const removeCollectionLoadingStateListener = ipcRenderer.on('main:collection-loading-state-updated', (val) => {
       dispatch(updateCollectionLoadingState(val));
+      if (!val?.isLoading && val?.collectionUid) {
+        dispatch(tryApplyPendingSnapshotEnvironment(val.collectionUid));
+      }
     });
 
     const gitVersionListener = ipcRenderer.on('main:git-version', (val) => {
@@ -350,10 +369,14 @@ const useIpcEvents = () => {
 
     const removeCollectionTreeLoadedListener = ipcRenderer.on('main:collection-tree-loaded', ({ collectionUid, tree }) => {
       dispatch(collectionLoadedFromTree({ collectionUid, tree }));
+      dispatch(tryApplyPendingSnapshotEnvironment(collectionUid));
     });
 
     const removeCollectionLoadingStateV2Listener = ipcRenderer.on('main:collection-loading-state-updated-v2', (val) => {
       dispatch(updateCollectionLoadingState(val));
+      if (!val?.isLoading && val?.collectionUid) {
+        dispatch(tryApplyPendingSnapshotEnvironment(val.collectionUid));
+      }
     });
 
     const removeBrunoConfigUpdateV2Listener = ipcRenderer.on('main:bruno-config-update-v2', (val) => {
@@ -388,6 +411,9 @@ const useIpcEvents = () => {
       removeCookieUpdateListener();
       removeGlobalEnvironmentsUpdatesListener();
       removeSnapshotHydrationListener();
+      removeSnapshotRestoreDependenciesListener();
+      removeSnapshotRestoreDependencyListener();
+      removeCollectionEnvironmentParseStatusListener();
       removeCollectionOauth2CredentialsUpdatesListener();
       removeCollectionOauth2CredentialsClearListener();
       removeHttpStreamNewDataListener();

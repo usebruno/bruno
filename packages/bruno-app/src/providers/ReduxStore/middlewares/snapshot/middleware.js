@@ -11,7 +11,9 @@ import {
   serializeTab,
   serializeActiveTab,
   getCollectionEnvironmentPath,
-  hydrateSnapshotLookups
+  hydrateSnapshotLookups,
+  getSnapshotRestoreDependency,
+  shouldPreserveSnapshotRestoreDependency
 } from 'utils/snapshot';
 import { normalizePath } from 'utils/common/path';
 import { TAB_IDENFIERS as DEVTOOL_TABS } from 'providers/ReduxStore/slices/logs';
@@ -45,6 +47,70 @@ const getWorkspaceCollectionSnapshotKey = (workspacePathname, collectionPathname
   return `${normalizePath(workspacePathname || '')}::${normalizedCollectionPathname}`;
 };
 
+const shouldPreserveWorkspaceSnapshot = (dependencies, workspacePathname, existingWorkspace, isActiveWorkspace) => {
+  if (!existingWorkspace || isActiveWorkspace) {
+    return false;
+  }
+
+  const workspaceDependency = getSnapshotRestoreDependency(dependencies, {
+    type: 'workspace',
+    pathname: workspacePathname
+  });
+
+  return shouldPreserveSnapshotRestoreDependency(workspaceDependency);
+};
+
+const shouldPreserveCollectionSnapshot = (
+  dependencies,
+  workspacePathname,
+  collectionPathname,
+  existingCollection,
+  { pendingHydrationPaths = new Set(), isLoading = false } = {}
+) => {
+  if (!existingCollection) {
+    return false;
+  }
+
+  const normalizedPath = normalizePath(collectionPathname);
+  if (pendingHydrationPaths.has(normalizedPath) || isLoading) {
+    return true;
+  }
+
+  const collectionDependency = getSnapshotRestoreDependency(dependencies, {
+    type: 'collection',
+    pathname: collectionPathname,
+    workspacePathname
+  });
+
+  return shouldPreserveSnapshotRestoreDependency(collectionDependency);
+};
+
+const shouldPreserveEnvironmentSnapshot = (collection, existingCollection, snapshotRestoreDependencies = {}) => {
+  const restoreState = collection?.snapshotRestore?.environment;
+  if (shouldPreserveSnapshotRestoreDependency(restoreState)) {
+    return true;
+  }
+
+  const environmentDependency = getSnapshotRestoreDependency(snapshotRestoreDependencies, {
+    type: 'environment',
+    pathname: collection?.pathname
+  });
+  if (shouldPreserveSnapshotRestoreDependency(environmentDependency)) {
+    return true;
+  }
+
+  const hasSelectedEnvironmentInRedux = Boolean(collection.activeEnvironmentUid);
+  const hasExistingEnvironmentInSnapshot = Boolean(
+    existingCollection?.environment?.collection
+    || existingCollection?.environmentPath
+    || existingCollection?.selectedEnvironment
+  );
+
+  return hasExistingEnvironmentInSnapshot
+    && !hasSelectedEnvironmentInRedux
+    && (collection.isLoading || collection.pendingSnapshotEnvironment || collection.mountStatus !== 'mounted');
+};
+
 /**
  * Serialize the current app state into a snapshot format
  * Persists array-based schema and supports lookup hydration.
@@ -52,6 +118,7 @@ const getWorkspaceCollectionSnapshotKey = (workspacePathname, collectionPathname
 const serializeSnapshot = async (state) => {
   const { workspaces, collections, tabs, logs, globalEnvironments } = state;
   const snapshotHydration = state.app?.snapshotHydration;
+  const snapshotRestoreDependencies = state.app?.snapshotRestoreDependencies || {};
   const activeWorkspaceCollectionSortOrder = normalizeCollectionSortOrder(collections.collectionSortOrder);
 
   // Get existing snapshot to preserve data for collections not currently loaded
@@ -101,6 +168,12 @@ const serializeSnapshot = async (state) => {
 
   // Track which workspace+collection entries we've serialized from Redux
   const serializedCollectionKeys = new Set();
+  const pendingHydrationPaths = new Set(
+    (snapshotHydration?.pendingCollectionPathnames || []).map((pathname) => normalizePath(pathname))
+  );
+  const hasWaitingRestoreDependencies = Object.values(snapshotRestoreDependencies).some(
+    (dependency) => dependency?.status === 'waiting'
+  );
 
   (workspaces.workspaces || []).forEach((workspace) => {
     if (!workspace.pathname) return;
@@ -123,6 +196,14 @@ const serializeSnapshot = async (state) => {
       lastActiveCollectionPathname = normalizedPathname && normalizedWorkspacePaths.includes(normalizedPathname)
         ? normalizedPathname
         : null;
+
+      if (
+        !lastActiveCollectionPathname
+        && existingWorkspace?.lastActiveCollectionPathname
+        && (pendingHydrationPaths.size > 0 || hasWaitingRestoreDependencies)
+      ) {
+        lastActiveCollectionPathname = existingWorkspace.lastActiveCollectionPathname;
+      }
     } else {
       // For non-active workspaces, preserve from existing snapshot
       lastActiveCollectionPathname = existingWorkspace?.lastActiveCollectionPathname || null;
@@ -131,6 +212,22 @@ const serializeSnapshot = async (state) => {
     const workspaceSorting = isActiveWorkspace
       ? activeWorkspaceCollectionSortOrder
       : normalizeWorkspaceSorting(existingWorkspace?.sorting);
+
+    if (shouldPreserveWorkspaceSnapshot(
+      snapshotRestoreDependencies,
+      workspace.pathname,
+      existingWorkspace,
+      isActiveWorkspace
+    )) {
+      snapshot.workspaces.push({
+        pathname: existingWorkspace.pathname,
+        environment: existingWorkspace.environment || '',
+        lastActiveCollectionPathname: existingWorkspace.lastActiveCollectionPathname || null,
+        sorting: existingWorkspace.sorting || workspaceSorting,
+        collections: Array.isArray(existingWorkspace.collections) ? [...existingWorkspace.collections] : workspaceCollectionPaths
+      });
+      return;
+    }
 
     snapshot.workspaces.push({
       pathname: workspace.pathname,
@@ -181,20 +278,51 @@ const serializeSnapshot = async (state) => {
     const selectedEnvironmentFromRedux = selectedEnvironment?.name || '';
     const existingEnvironmentPath = existingCollection?.environment?.collection || existingCollection?.environmentPath || '';
     const existingSelectedEnvironment = existingCollection?.selectedEnvironment || '';
-    const shouldPreserveExistingEnvironment = collection.mountStatus !== 'mounted'
-      && !environmentPathFromRedux
-      && !selectedEnvironmentFromRedux;
+    const existingGlobalEnvironmentUid = existingCollection?.environment?.global || '';
+    const shouldPreserveExistingEnvironment = shouldPreserveEnvironmentSnapshot(
+      collection,
+      existingCollection,
+      snapshotRestoreDependencies
+    );
     const environmentPath = shouldPreserveExistingEnvironment ? existingEnvironmentPath : environmentPathFromRedux;
     const selectedEnvironmentName = shouldPreserveExistingEnvironment
       ? existingSelectedEnvironment
       : selectedEnvironmentFromRedux;
+    const globalEnvironmentUid = globalEnvironments.activeGlobalEnvironmentUid || existingGlobalEnvironmentUid || '';
+
+    if (shouldPreserveCollectionSnapshot(
+      snapshotRestoreDependencies,
+      workspacePathname,
+      collection.pathname,
+      existingCollection,
+      {
+        pendingHydrationPaths,
+        isLoading: collection.isLoading
+      }
+    )) {
+      snapshot.collections.push({
+        pathname: existingCollection.pathname,
+        workspacePathname,
+        environment: {
+          collection: existingEnvironmentPath,
+          global: existingGlobalEnvironmentUid || globalEnvironmentUid
+        },
+        environmentPath: existingEnvironmentPath,
+        selectedEnvironment: existingSelectedEnvironment,
+        isOpen: typeof existingCollection.isOpen === 'boolean' ? existingCollection.isOpen : !collection.collapsed,
+        isMounted: typeof existingCollection.isMounted === 'boolean' ? existingCollection.isMounted : collection.mountStatus === 'mounted',
+        activeTab: serializeActiveTab(activeTabInCollection, collection) || existingCollection.activeTab || null,
+        tabs: collectionTabs.length > 0 ? collectionTabs : (Array.isArray(existingCollection.tabs) ? existingCollection.tabs : [])
+      });
+      return;
+    }
 
     snapshot.collections.push({
       pathname: collection.pathname,
       workspacePathname,
       environment: {
         collection: environmentPath,
-        global: globalEnvironments.activeGlobalEnvironmentUid || ''
+        global: globalEnvironmentUid
       },
       environmentPath,
       selectedEnvironment: selectedEnvironmentName,
@@ -204,10 +332,6 @@ const serializeSnapshot = async (state) => {
       tabs: collectionTabs
     });
   });
-
-  const pendingHydrationPaths = new Set(
-    (snapshotHydration?.pendingCollectionPathnames || []).map((pathname) => normalizePath(pathname))
-  );
 
   // Preserve collections from existing snapshot that aren't currently loaded in Redux
   // and collections that are still pending hydration during workspace switch.

@@ -682,3 +682,46 @@ export const getActiveTabFromSnapshot = async (collectionPathname, collection, s
 
   return deserializeTab(snapshotTab, collection);
 };
+
+export const buildSnapshotRestoreDependencyKey = (dependency = {}) => {
+  const { type, pathname, workspacePathname = '' } = dependency;
+
+  if (type === 'workspace') {
+    return `workspace::${normalizePath(pathname)}`;
+  }
+
+  if (type === 'collection') {
+    return `collection::${normalizePath(workspacePathname)}::${normalizePath(pathname)}`;
+  }
+
+  if (type === 'environment') {
+    return `environment::${normalizePath(pathname)}`;
+  }
+
+  return `${type || 'unknown'}::${normalizePath(pathname)}`;
+};
+
+export const getSnapshotRestoreDependency = (dependencies = {}, dependency = {}) => {
+  const key = buildSnapshotRestoreDependencyKey(dependency);
+  return dependencies?.[key] || null;
+};
+
+export const shouldPreserveSnapshotRestoreDependency = (dependency) => {
+  if (!dependency) {
+    return false;
+  }
+
+  return Boolean(dependency.preserveSnapshot)
+    && ['waiting', 'missing', 'failed'].includes(dependency.status);
+};
+
+export const getWaitingCollectionDependencies = (dependencies = {}, workspacePathname = '') => {
+  const normalizedWorkspacePath = normalizePath(workspacePathname || '');
+  return Object.values(dependencies).filter((dependency) => {
+    if (dependency?.type !== 'collection' || dependency.status !== 'waiting') {
+      return false;
+    }
+
+    return normalizePath(dependency.workspacePathname || '') === normalizedWorkspacePath;
+  });
+};

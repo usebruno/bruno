@@ -13,8 +13,10 @@ const initialState = {
     workspaceUid: null,
     pendingCollectionPathnames: [],
     activeCollectionPathname: null,
-    startedAt: null
+    startedAt: null,
+    snapshotLookups: null
   },
+  snapshotRestoreDependencies: {},
   leftSidebarWidth: 250,
   sidebarCollapsed: false,
   showSidebarSearch: false,
@@ -96,6 +98,36 @@ const initialState = {
   isCreatingCollection: false
 };
 
+const buildSnapshotRestoreDependencyKey = (dependency = {}) => {
+  const { type, pathname, workspacePathname = '' } = dependency;
+
+  if (type === 'workspace') {
+    return `workspace::${normalizePath(pathname)}`;
+  }
+
+  if (type === 'collection') {
+    return `collection::${normalizePath(workspacePathname)}::${normalizePath(pathname)}`;
+  }
+
+  if (type === 'environment') {
+    return `environment::${normalizePath(pathname)}`;
+  }
+
+  return `${type || 'unknown'}::${normalizePath(pathname)}`;
+};
+
+const upsertSnapshotRestoreDependencyRecord = (state, dependency = {}) => {
+  const key = buildSnapshotRestoreDependencyKey(dependency);
+  if (!key || key.endsWith('::')) {
+    return;
+  }
+
+  state.snapshotRestoreDependencies[key] = {
+    ...state.snapshotRestoreDependencies[key],
+    ...dependency
+  };
+};
+
 export const appSlice = createSlice({
   name: 'app',
   initialState,
@@ -105,12 +137,26 @@ export const appSlice = createSlice({
     },
     setSnapshotReady: (state, action) => {
       state.snapshotReady = action.payload;
+
+      if (action.payload) {
+        Object.keys(state.snapshotRestoreDependencies).forEach((key) => {
+          const dependency = state.snapshotRestoreDependencies[key];
+          if (dependency?.status === 'waiting' && dependency.type !== 'environment') {
+            state.snapshotRestoreDependencies[key] = {
+              ...dependency,
+              status: 'resolved',
+              preserveSnapshot: false
+            };
+          }
+        });
+      }
     },
     startSnapshotHydrationSession: (state, action) => {
       const {
         workspaceUid = null,
         pendingCollectionPathnames = [],
-        activeCollectionPathname = null
+        activeCollectionPathname = null,
+        snapshotLookups = null
       } = action.payload || {};
       const normalizedPathnames = [...new Set(
         pendingCollectionPathnames
@@ -122,7 +168,8 @@ export const appSlice = createSlice({
         workspaceUid,
         pendingCollectionPathnames: normalizedPathnames,
         activeCollectionPathname: activeCollectionPathname ? normalizePath(activeCollectionPathname) : null,
-        startedAt: Date.now()
+        startedAt: Date.now(),
+        snapshotLookups
       };
     },
     markSnapshotCollectionHydrated: (state, action) => {
@@ -140,8 +187,49 @@ export const appSlice = createSlice({
         workspaceUid: null,
         pendingCollectionPathnames: [],
         activeCollectionPathname: null,
-        startedAt: null
+        startedAt: null,
+        snapshotLookups: null
       };
+    },
+    setSnapshotRestoreDependencies: (state, action) => {
+      const dependencies = Array.isArray(action.payload) ? action.payload : [];
+      dependencies.forEach((dependency) => upsertSnapshotRestoreDependencyRecord(state, dependency));
+    },
+    upsertSnapshotRestoreDependency: (state, action) => {
+      upsertSnapshotRestoreDependencyRecord(state, action.payload || {});
+    },
+    updateSnapshotRestoreDependencyStatus: (state, action) => {
+      const {
+        type,
+        pathname,
+        workspacePathname = '',
+        status,
+        error = null,
+        preserveSnapshot = true
+      } = action.payload || {};
+
+      const key = buildSnapshotRestoreDependencyKey({ type, pathname, workspacePathname });
+      if (!key || !state.snapshotRestoreDependencies[key]) {
+        upsertSnapshotRestoreDependencyRecord(state, {
+          type,
+          pathname,
+          workspacePathname,
+          status,
+          error,
+          preserveSnapshot
+        });
+        return;
+      }
+
+      state.snapshotRestoreDependencies[key] = {
+        ...state.snapshotRestoreDependencies[key],
+        status,
+        preserveSnapshot,
+        ...(error ? { error } : {})
+      };
+    },
+    clearSnapshotRestoreDependencies: (state) => {
+      state.snapshotRestoreDependencies = {};
     },
     refreshScreenWidth: (state) => {
       state.screenWidth = window.innerWidth;
@@ -262,6 +350,10 @@ export const {
   startSnapshotHydrationSession,
   markSnapshotCollectionHydrated,
   clearSnapshotHydrationSession,
+  setSnapshotRestoreDependencies,
+  upsertSnapshotRestoreDependency,
+  updateSnapshotRestoreDependencyStatus,
+  clearSnapshotRestoreDependencies,
   refreshScreenWidth,
   updateLeftSidebarWidth,
   updateIsDragging,

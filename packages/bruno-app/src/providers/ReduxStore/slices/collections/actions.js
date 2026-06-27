@@ -8,7 +8,7 @@ import get from 'lodash/get';
 import set from 'lodash/set';
 import trim from 'lodash/trim';
 import path, { normalizePath, isPathExternalToBasePath } from 'utils/common/path';
-import { insertTaskIntoQueue, toggleSidebarCollapse } from 'providers/ReduxStore/slices/app';
+import { insertTaskIntoQueue, toggleSidebarCollapse, upsertSnapshotRestoreDependency, updateSnapshotRestoreDependencyStatus } from 'providers/ReduxStore/slices/app';
 import toast from 'react-hot-toast';
 import IpcErrorModal from 'components/Errors/IpcErrorModal/index';
 import SaveFileErrorModal from 'components/Errors/SaveFileErrorModal/index';
@@ -63,7 +63,11 @@ import {
   addTransientDirectory,
   addSaveTransientRequestModal,
   updatePathParam,
-  toggleCollection
+  toggleCollection,
+  setCollectionSnapshotRestoreEnvironment,
+  updateCollectionSnapshotRestoreEnvironment,
+  setPendingSnapshotEnvironment as _setPendingSnapshotEnvironment,
+  clearPendingSnapshotEnvironment as _clearPendingSnapshotEnvironment
 } from './index';
 
 import { each } from 'lodash';
@@ -97,7 +101,8 @@ import {
   getCollectionEnvironmentPath,
   findCollectionEnvironmentFromSnapshot,
   hydrateCollectionTabs,
-  hydrateSnapshotLookups
+  hydrateSnapshotLookups,
+  getSnapshotRestoreDependency
 } from 'utils/snapshot';
 
 // generate a unique names
@@ -2745,6 +2750,36 @@ export const openScratchCollectionEvent = (uid, pathname, brunoConfig) => (dispa
   });
 };
 
+const syncSnapshotEnvironmentRestoreDependency = (dispatch, getState, collection) => {
+  if (!collection?.uid || !collection?.pathname) {
+    return;
+  }
+
+  if (collection.snapshotRestore?.environment) {
+    return;
+  }
+
+  const dependency = getSnapshotRestoreDependency(getState().app.snapshotRestoreDependencies, {
+    type: 'environment',
+    pathname: collection.pathname
+  });
+
+  if (!dependency || dependency.status === 'resolved' || dependency.status === 'none') {
+    return;
+  }
+
+  dispatch(setCollectionSnapshotRestoreEnvironment({
+    collectionUid: collection.uid,
+    restoreState: {
+      status: dependency.status,
+      environmentPath: dependency.environmentPath || '',
+      selectedEnvironment: dependency.selectedEnvironment || '',
+      preserveSnapshot: dependency.preserveSnapshot,
+      error: dependency.error || null
+    }
+  }));
+};
+
 export const openCollectionEvent = (uid, pathname, brunoConfig) => (dispatch, getState) => {
   const { ipcRenderer } = window;
 
@@ -2804,7 +2839,10 @@ export const openCollectionEvent = (uid, pathname, brunoConfig) => (dispatch, ge
           true
         ))
         .catch(() => null)
-        .finally(resolve);
+        .finally(() => {
+          syncSnapshotEnvironmentRestoreDependency(dispatch, getState, existingCollection);
+          resolve();
+        });
       return;
     }
 
@@ -2825,6 +2863,8 @@ export const openCollectionEvent = (uid, pathname, brunoConfig) => (dispatch, ge
         .then(() => dispatch(_createCollection({ ...collection, securityConfig })))
         .then(() => {
           const currentState = getState();
+          const createdCollection = findCollectionByUid(currentState.collections.collections, uid);
+          syncSnapshotEnvironmentRestoreDependency(dispatch, getState, createdCollection);
           if (currentState.app.sidebarCollapsed) {
             dispatch(toggleSidebarCollapse());
           }
@@ -2953,6 +2993,7 @@ export const collectionAddEnvFileEvent = (payload) => (dispatch, getState) => {
           })
         )
       )
+      .then(() => dispatch(tryApplyPendingSnapshotEnvironment(meta.collectionUid)))
       .then(resolve)
       .catch(reject);
   });
@@ -3063,28 +3104,220 @@ export const saveCollectionSecurityConfig = (collectionUid, securityConfig) => (
   });
 };
 
+const applySnapshotEnvironmentToCollection = (dispatch, collection, collectionSnapshotData) => {
+  if (!collection || !collectionSnapshotData) {
+    return false;
+  }
+
+  const environment = findCollectionEnvironmentFromSnapshot(collection, collectionSnapshotData);
+
+  if (environment) {
+    dispatch(_selectEnvironment({ environmentUid: environment.uid, collectionUid: collection.uid }));
+    dispatch(_clearPendingSnapshotEnvironment({ collectionUid: collection.uid }));
+    dispatch(updateCollectionSnapshotRestoreEnvironment({
+      collectionUid: collection.uid,
+      status: 'resolved'
+    }));
+    dispatch(updateSnapshotRestoreDependencyStatus({
+      type: 'environment',
+      pathname: collection.pathname,
+      status: 'resolved',
+      preserveSnapshot: false
+    }));
+    return true;
+  }
+
+  return false;
+};
+
+const buildSnapshotEnvironmentData = (restoreState, dependency) => {
+  if (restoreState?.status === 'missing' || restoreState?.status === 'failed') {
+    return null;
+  }
+
+  if (restoreState?.environmentPath || restoreState?.selectedEnvironment) {
+    return {
+      environmentPath: restoreState.environmentPath || '',
+      selectedEnvironment: restoreState.selectedEnvironment || ''
+    };
+  }
+
+  if (dependency?.environmentPath || dependency?.selectedEnvironment) {
+    return {
+      environmentPath: dependency.environmentPath || '',
+      selectedEnvironment: dependency.selectedEnvironment || ''
+    };
+  }
+
+  return null;
+};
+
+const attemptSnapshotEnvironmentRestore = (dispatch, getState, collectionUid) => {
+  const state = getState();
+  const collection = findCollectionByUid(state.collections.collections, collectionUid);
+
+  if (!collection || collection.activeEnvironmentUid) {
+    return Boolean(collection?.activeEnvironmentUid);
+  }
+
+  if (collection.pendingSnapshotEnvironment) {
+    if (applySnapshotEnvironmentToCollection(dispatch, collection, collection.pendingSnapshotEnvironment)) {
+      return true;
+    }
+  }
+
+  const restoreState = collection.snapshotRestore?.environment;
+  const dependency = getSnapshotRestoreDependency(state.app.snapshotRestoreDependencies, {
+    type: 'environment',
+    pathname: collection.pathname
+  });
+  const snapshotData = buildSnapshotEnvironmentData(restoreState, dependency);
+
+  if (!snapshotData?.environmentPath && !snapshotData?.selectedEnvironment) {
+    return false;
+  }
+
+  if (applySnapshotEnvironmentToCollection(dispatch, collection, snapshotData)) {
+    return true;
+  }
+
+  const shouldQueuePending = !restoreState
+    || restoreState.status === 'waiting'
+    || (restoreState.status === 'resolved' && !collection.activeEnvironmentUid)
+    || dependency?.status === 'waiting';
+
+  if (shouldQueuePending) {
+    dispatch(_setPendingSnapshotEnvironment({
+      collectionUid: collection.uid,
+      snapshotData
+    }));
+  }
+
+  return false;
+};
+
+export const tryApplyPendingSnapshotEnvironment = (collectionUid) => (dispatch, getState) => {
+  attemptSnapshotEnvironmentRestore(dispatch, getState, collectionUid);
+};
+
+export const handleSnapshotRestoreDependency = (dependency) => (dispatch, getState) => {
+  if (!dependency?.type) {
+    return;
+  }
+
+  dispatch(upsertSnapshotRestoreDependency(dependency));
+
+  if (dependency.type !== 'environment') {
+    return;
+  }
+
+  const state = getState();
+  const collection = dependency.collectionUid
+    ? findCollectionByUid(state.collections.collections, dependency.collectionUid)
+    : findCollectionByPathname(state.collections.collections, dependency.pathname);
+
+  if (!collection) {
+    return;
+  }
+
+  syncSnapshotEnvironmentRestoreDependency(dispatch, getState, collection);
+};
+
+export const handleCollectionEnvironmentParseStatus = (payload) => (dispatch, getState) => {
+  const {
+    collectionUid,
+    collectionPathname,
+    pathname,
+    status,
+    error = null
+  } = payload || {};
+
+  const state = getState();
+  const collection = collectionUid
+    ? findCollectionByUid(state.collections.collections, collectionUid)
+    : findCollectionByPathname(state.collections.collections, collectionPathname);
+
+  if (!collection) {
+    return;
+  }
+
+  const restoreState = collection.snapshotRestore?.environment;
+  if (!restoreState || restoreState.status === 'resolved' || restoreState.status === 'none') {
+    if (status === 'resolved') {
+      attemptSnapshotEnvironmentRestore(dispatch, getState, collection.uid);
+    }
+    return;
+  }
+
+  const normalizedExpectedPath = normalizePath(restoreState.environmentPath || '');
+  const normalizedParsedPath = normalizePath(pathname || '');
+  const pathsMatch = !normalizedExpectedPath
+    || normalizedParsedPath === normalizedExpectedPath
+    || normalizedParsedPath.endsWith(normalizedExpectedPath);
+
+  if (!pathsMatch && status !== 'failed') {
+    return;
+  }
+
+  if (status === 'resolved') {
+    attemptSnapshotEnvironmentRestore(dispatch, getState, collection.uid);
+    return;
+  }
+
+  if (status === 'failed') {
+    dispatch(updateCollectionSnapshotRestoreEnvironment({
+      collectionUid: collection.uid,
+      status: 'failed',
+      error
+    }));
+    dispatch(updateSnapshotRestoreDependencyStatus({
+      type: 'environment',
+      pathname: collection.pathname,
+      status: 'failed',
+      error,
+      preserveSnapshot: true
+    }));
+    dispatch(_clearPendingSnapshotEnvironment({ collectionUid: collection.uid }));
+  }
+};
+
 export const hydrateCollectionWithUiStateSnapshot = (payload) => (dispatch, getState) => {
   const collectionSnapshotData = payload;
   return new Promise((resolve, reject) => {
-    const state = getState();
     try {
-      if (!collectionSnapshotData) {
+      if (!collectionSnapshotData?.pathname) {
         resolve();
         return;
       }
-      const { pathname } = collectionSnapshotData;
-      const collection = findCollectionByPathname(state.collections.collections, pathname);
-      const collectionCopy = cloneDeep(collection);
-      const collectionUid = collectionCopy?.uid;
 
-      // update selected environment
-      const environment = findCollectionEnvironmentFromSnapshot(collectionCopy, collectionSnapshotData);
+      const state = getState();
+      const collection = findCollectionByPathname(state.collections.collections, collectionSnapshotData.pathname);
 
-      if (environment) {
-        dispatch(_selectEnvironment({ environmentUid: environment?.uid, collectionUid }));
+      if (!collection) {
+        resolve();
+        return;
       }
 
-      // todo: add any other redux state that you want to save
+      const applied = applySnapshotEnvironmentToCollection(dispatch, collection, collectionSnapshotData);
+
+      if (!applied && (collectionSnapshotData.selectedEnvironment || collectionSnapshotData.environmentPath)) {
+        const restoreState = collection.snapshotRestore?.environment;
+
+        if (restoreState?.status === 'missing' || restoreState?.status === 'failed') {
+          dispatch(_clearPendingSnapshotEnvironment({ collectionUid: collection.uid }));
+        } else if (
+          !restoreState
+          || restoreState.status === 'waiting'
+          || (restoreState.status === 'resolved' && !collection.activeEnvironmentUid)
+        ) {
+          dispatch(_setPendingSnapshotEnvironment({
+            collectionUid: collection.uid,
+            snapshotData: collectionSnapshotData
+          }));
+        }
+      } else if (!applied) {
+        attemptSnapshotEnvironmentRestore(dispatch, getState, collection.uid);
+      }
 
       resolve();
     } catch (error) {

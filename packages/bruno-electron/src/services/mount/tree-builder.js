@@ -144,6 +144,7 @@ const buildEnvironmentNode = (collectionPath, relativePath, entry, uidFor) => {
   return {
     uid: uidFor(absolutePath),
     name: stripExt(basename),
+    pathname: absolutePath,
     variables: data.variables || [],
     ...(entry.error ? { error: entry.error } : {})
   };

@@ -113,7 +113,19 @@ const hydrateCollectionRootWithUuid = (collectionRoot) => {
   return collectionRoot;
 };
 
-const addEnvironmentFile = async (win, pathname, collectionUid, collectionPath) => {
+const emitSnapshotRestoreDependency = (win, dependency) => {
+  win.webContents.send('main:snapshot-restore-dependency', dependency);
+};
+
+const emitEnvironmentParseStatus = (win, payload) => {
+  win.webContents.send('main:collection-environment-parse-status', payload);
+};
+
+const addEnvironmentFile = async (win, pathname, collectionUid, collectionPath, watcher) => {
+  if (watcher) {
+    watcher.addFileToProcessing(collectionUid, pathname);
+  }
+
   try {
     const basename = path.basename(pathname);
     const file = {
@@ -150,8 +162,25 @@ const addEnvironmentFile = async (win, pathname, collectionUid, collectionPath) 
     }
 
     win.webContents.send('main:collection-tree-updated', 'addEnvironmentFile', file);
+    emitEnvironmentParseStatus(win, {
+      collectionUid,
+      collectionPathname: collectionPath,
+      pathname,
+      status: 'resolved'
+    });
   } catch (err) {
     console.error('Error processing environment file: ', err);
+    emitEnvironmentParseStatus(win, {
+      collectionUid,
+      collectionPathname: collectionPath,
+      pathname,
+      status: 'failed',
+      error: err?.message || 'Failed to parse environment file'
+    });
+  } finally {
+    if (watcher) {
+      watcher.markFileAsProcessed(win, collectionUid, pathname);
+    }
   }
 };
 
@@ -194,8 +223,21 @@ const changeEnvironmentFile = async (win, pathname, collectionUid, collectionPat
     // this is because the uid of the pathname remains the same
     // and the collection tree will be able to update the existing environment
     win.webContents.send('main:collection-tree-updated', 'addEnvironmentFile', file);
+    emitEnvironmentParseStatus(win, {
+      collectionUid,
+      collectionPathname: collectionPath,
+      pathname,
+      status: 'resolved'
+    });
   } catch (err) {
     console.error(err);
+    emitEnvironmentParseStatus(win, {
+      collectionUid,
+      collectionPathname: collectionPath,
+      pathname,
+      status: 'failed',
+      error: err?.message || 'Failed to parse environment file'
+    });
   }
 };
 
@@ -245,7 +287,7 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
   }
 
   if (isEnvironmentsFolder(pathname, collectionPath)) {
-    return addEnvironmentFile(win, pathname, collectionUid, collectionPath);
+    return addEnvironmentFile(win, pathname, collectionUid, collectionPath, watcher);
   }
 
   if (isCollectionRootFile(pathname, collectionPath)) {
@@ -675,20 +717,8 @@ const unlinkDir = async (win, pathname, collectionUid, collectionPath) => {
 };
 
 const onWatcherSetupComplete = (win, watchPath, collectionUid, watcher) => {
-  // Mark discovery as complete
   watcher.completeCollectionDiscovery(win, collectionUid);
-
-  const collectionSnapshotState = snapshotManager.getCollection(watchPath);
-
-  const hydratePayload = collectionSnapshotState
-    ? {
-        pathname: watchPath,
-        environmentPath: collectionSnapshotState?.environment?.collection || '',
-        selectedEnvironment: collectionSnapshotState?.selectedEnvironment || ''
-      }
-    : null;
-
-  win.webContents.send('main:hydrate-app-with-ui-state-snapshot', hydratePayload);
+  watcher.maybeSendSnapshotHydration(win, collectionUid);
 };
 
 class CollectionWatcher {
@@ -699,22 +729,44 @@ class CollectionWatcher {
   }
 
   // Initialize loading state tracking for a collection
-  initializeLoadingState(collectionUid) {
+  initializeLoadingState(collectionUid, collectionPath = null) {
     if (!this.loadingStates[collectionUid]) {
       this.loadingStates[collectionUid] = {
-        isDiscovering: false, // Initial discovery phase
-        isProcessing: false, // Processing discovered files
-        pendingFiles: new Set() // Files that need processing
+        isDiscovering: false,
+        isProcessing: false,
+        pendingFiles: new Set(),
+        snapshotHydrationSent: false,
+        collectionPath
       };
+      return;
+    }
+
+    if (collectionPath && !this.loadingStates[collectionUid].collectionPath) {
+      this.loadingStates[collectionUid].collectionPath = collectionPath;
     }
   }
 
-  startCollectionDiscovery(win, collectionUid) {
-    this.initializeLoadingState(collectionUid);
+  async startCollectionDiscovery(win, collectionUid, collectionPath = null) {
+    this.initializeLoadingState(collectionUid, collectionPath);
     const state = this.loadingStates[collectionUid];
 
     state.isDiscovering = true;
     state.pendingFiles.clear();
+    state.snapshotHydrationSent = false;
+
+    if (collectionPath) {
+      try {
+        const restoreState = await snapshotManager.getCollectionEnvironmentRestoreState(collectionPath);
+        if (restoreState.status !== 'none') {
+          emitSnapshotRestoreDependency(win, {
+            ...restoreState,
+            collectionUid
+          });
+        }
+      } catch (error) {
+        console.error('Failed to resolve collection environment restore dependency:', error);
+      }
+    }
 
     win.webContents.send('main:collection-loading-state-updated', {
       collectionUid,
@@ -742,6 +794,38 @@ class CollectionWatcher {
         isLoading: false
       });
     }
+
+    if (!state.isDiscovering && state.pendingFiles.size === 0) {
+      this.maybeSendSnapshotHydration(win, collectionUid);
+    }
+  }
+
+  maybeSendSnapshotHydration(win, collectionUid) {
+    const state = this.loadingStates[collectionUid];
+    if (!state || state.isDiscovering || state.pendingFiles.size > 0 || state.snapshotHydrationSent) {
+      return;
+    }
+
+    const watchPath = state.collectionPath;
+    if (!watchPath) {
+      return;
+    }
+
+    state.snapshotHydrationSent = true;
+
+    const collectionSnapshotState = snapshotManager.getCollection(watchPath);
+
+    const hydratePayload = collectionSnapshotState
+      ? {
+          pathname: watchPath,
+          environmentPath: collectionSnapshotState?.environment?.collection
+            || collectionSnapshotState?.environmentPath
+            || '',
+          selectedEnvironment: collectionSnapshotState?.selectedEnvironment || ''
+        }
+      : null;
+
+    win.webContents.send('main:hydrate-app-with-ui-state-snapshot', hydratePayload);
   }
 
   completeCollectionDiscovery(win, collectionUid) {
@@ -754,11 +838,11 @@ class CollectionWatcher {
     if (state.pendingFiles.size > 0) {
       state.isProcessing = true;
     } else {
-      // No pending files, collection is fully loaded
       win.webContents.send('main:collection-loading-state-updated', {
         collectionUid,
         isLoading: false
       });
+      this.maybeSendSnapshotHydration(win, collectionUid);
     }
   }
 
@@ -772,14 +856,17 @@ class CollectionWatcher {
     }
 
     // v2 already loaded the tree from cache; skip startup scan and stage live edits
-    const { ignoreInitial = false, fileIndex = null } = options;
+    const { ignoreInitial = false, fileIndex = null, skipSnapshotHydration = false } = options;
     if (fileIndex) {
       fileIndexByCollection.set(watchPath, fileIndex);
     }
 
-    this.initializeLoadingState(collectionUid);
+    this.initializeLoadingState(collectionUid, watchPath);
+    if (skipSnapshotHydration && this.loadingStates[collectionUid]) {
+      this.loadingStates[collectionUid].snapshotHydrationSent = true;
+    }
 
-    this.startCollectionDiscovery(win, collectionUid);
+    this.startCollectionDiscovery(win, collectionUid, watchPath);
 
     // Always ignore node_modules and .git, regardless of user config
     // This prevents infinite loops with symlinked directories (e.g., npm workspaces)

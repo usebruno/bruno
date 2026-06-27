@@ -278,6 +278,54 @@ export const collectionsSlice = createSlice({
         collection.isLoading = action.payload.isLoading;
       }
     },
+    setCollectionSnapshotRestoreEnvironment: (state, action) => {
+      const { collectionUid, restoreState } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+
+      if (collection) {
+        collection.snapshotRestore = {
+          ...(collection.snapshotRestore || {}),
+          environment: restoreState
+        };
+      }
+    },
+    updateCollectionSnapshotRestoreEnvironment: (state, action) => {
+      const { collectionUid, status, error = null } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+
+      if (collection?.snapshotRestore?.environment) {
+        collection.snapshotRestore.environment = {
+          ...collection.snapshotRestore.environment,
+          status,
+          ...(error ? { error } : {})
+        };
+      }
+    },
+    clearCollectionSnapshotRestoreEnvironment: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+
+      if (collection?.snapshotRestore) {
+        delete collection.snapshotRestore.environment;
+        if (Object.keys(collection.snapshotRestore).length === 0) {
+          delete collection.snapshotRestore;
+        }
+      }
+    },
+    setPendingSnapshotEnvironment: (state, action) => {
+      const { collectionUid, snapshotData } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+
+      if (collection) {
+        collection.pendingSnapshotEnvironment = snapshotData;
+      }
+    },
+    clearPendingSnapshotEnvironment: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+
+      if (collection) {
+        collection.pendingSnapshotEnvironment = null;
+      }
+    },
     setCollectionSecurityConfig: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
       if (collection) {
@@ -383,6 +431,13 @@ export const collectionsSlice = createSlice({
 
           if (environment) {
             collection.activeEnvironmentUid = environmentUid;
+            if (collection.snapshotRestore?.environment) {
+              delete collection.snapshotRestore.environment;
+              if (Object.keys(collection.snapshotRestore).length === 0) {
+                delete collection.snapshotRestore;
+              }
+            }
+            collection.pendingSnapshotEnvironment = null;
           }
         } else {
           collection.activeEnvironmentUid = null;
@@ -3874,6 +3929,11 @@ export const {
   createCollection,
   updateCollectionMountStatus,
   updateCollectionLoadingState,
+  setCollectionSnapshotRestoreEnvironment,
+  updateCollectionSnapshotRestoreEnvironment,
+  clearCollectionSnapshotRestoreEnvironment,
+  setPendingSnapshotEnvironment,
+  clearPendingSnapshotEnvironment,
   collectionLoadedFromTree,
   setCollectionSecurityConfig,
   brunoConfigUpdateEvent,

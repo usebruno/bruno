@@ -4,6 +4,7 @@ const { JobType, getPool, destroyPool } = require('../pool');
 const { FileIndex } = require('./file-index');
 const { buildTree } = require('./tree-builder');
 const { defaultClassify, uidForSeed } = require('../../utils/mount');
+const snapshotManager = require('../snapshot');
 
 // cold start only — collection-watcher handles live changes and writes through to the cache
 
@@ -81,6 +82,8 @@ class MountManager {
       existing.brunoConfig = brunoConfig || existing.brunoConfig;
       existing.state = this.#getIndex().entries(existing.collectionPath);
       await this.#emitTree(collectionUid, existing);
+      this.#emitEnvironmentParseStatuses(collectionUid, existing.collectionPath, existing);
+      this.#emitSnapshotHydration(existing.collectionPath, win);
       return existing.tempDirectoryPath;
     }
 
@@ -99,15 +102,26 @@ class MountManager {
 
     entry.emit.loading(true);
     try {
+      const restoreState = await snapshotManager.getCollectionEnvironmentRestoreState(collectionPath);
+      if (restoreState.status !== 'none') {
+        win.webContents.send('main:snapshot-restore-dependency', {
+          ...restoreState,
+          collectionUid
+        });
+      }
+
       entry.state = this.#getIndex().entries(collectionPath);
       await this.#reconcile(entry);
       await this.#emitTree(collectionUid, entry);
+      this.#emitEnvironmentParseStatuses(collectionUid, collectionPath, entry);
+      this.#emitSnapshotHydration(collectionPath, win);
 
       // skip the startup walk (already done) and stage live edits into the cache
       const collectionWatcher = require('../../app/collection-watcher');
       collectionWatcher.addWatcher(entry.win, collectionPath, collectionUid, brunoConfig, false, false, {
         ignoreInitial: true,
-        fileIndex: this.#getIndex()
+        fileIndex: this.#getIndex(),
+        skipSnapshotHydration: true
       });
       collectionWatcher.addTempDirectoryWatcher(entry.win, tempDirectoryPath, collectionUid, collectionPath);
     } finally {
@@ -211,7 +225,40 @@ class MountManager {
   async #emitTree(collectionUid, entry) {
     const { getRequestUid } = require('../../cache/requestUids');
     const tree = buildTree(entry.collectionPath, entry.state, { uidFor: getRequestUid });
+    entry.latestTree = tree;
     await sendTree(collectionUid, entry.collectionPath, tree, entry.emit);
+  }
+
+  #emitEnvironmentParseStatuses(collectionUid, collectionPath, entry) {
+    const environments = entry.latestTree?.environments || [];
+    for (const environment of environments) {
+      if (!environment?.error) {
+        continue;
+      }
+
+      entry.win.webContents.send('main:collection-environment-parse-status', {
+        collectionUid,
+        collectionPathname: collectionPath,
+        pathname: environment.pathname,
+        status: 'failed',
+        error: environment.error?.message || 'Failed to parse environment file'
+      });
+    }
+  }
+
+  #emitSnapshotHydration(collectionPath, win) {
+    const collectionSnapshotState = snapshotManager.getCollection(collectionPath);
+    const hydratePayload = collectionSnapshotState
+      ? {
+          pathname: collectionPath,
+          environmentPath: collectionSnapshotState?.environment?.collection
+            || collectionSnapshotState?.environmentPath
+            || '',
+          selectedEnvironment: collectionSnapshotState?.selectedEnvironment || ''
+        }
+      : null;
+
+    win.webContents.send('main:hydrate-app-with-ui-state-snapshot', hydratePayload);
   }
 
   #getIndex() {

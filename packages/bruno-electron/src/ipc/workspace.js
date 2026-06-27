@@ -11,6 +11,7 @@ const LastOpenedWorkspaces = require('../store/last-opened-workspaces');
 const { defaultWorkspaceManager } = require('../store/default-workspace');
 const { globalEnvironmentsManager } = require('../store/workspace-environments');
 const { globalEnvironmentsStore } = require('../store/global-environments');
+const snapshotManager = require('../services/snapshot');
 
 const {
   createWorkspaceConfig,
@@ -676,11 +677,13 @@ const registerWorkspaceIpc = (mainWindow, workspaceWatcher) => {
 
     try {
       let defaultWorkspacePath = null;
+      const bootWorkspacePaths = [];
 
       const defaultResult = await defaultWorkspaceManager.ensureDefaultWorkspaceExists();
       if (defaultResult) {
         const { workspacePath, workspaceUid } = defaultResult;
         defaultWorkspacePath = workspacePath;
+        bootWorkspacePaths.push(workspacePath);
         const workspaceConfig = readWorkspaceConfig(workspacePath);
         const configForClient = prepareWorkspaceConfigForClient(workspaceConfig, workspacePath, true);
 
@@ -699,6 +702,7 @@ const registerWorkspaceIpc = (mainWindow, workspaceWatcher) => {
           continue;
         }
 
+        bootWorkspacePaths.push(workspacePath);
         const workspaceYmlPath = path.join(workspacePath, 'workspace.yml');
 
         if (fs.existsSync(workspaceYmlPath)) {
@@ -721,6 +725,15 @@ const registerWorkspaceIpc = (mainWindow, workspaceWatcher) => {
         } else {
           invalidPaths.push(workspacePath);
         }
+      }
+
+      try {
+        const restoreDependencies = await snapshotManager.getBootWorkspaceRestoreDependencies(bootWorkspacePaths);
+        if (restoreDependencies.length > 0) {
+          win.webContents.send('main:snapshot-restore-dependencies', restoreDependencies);
+        }
+      } catch (error) {
+        console.error('Failed to emit snapshot restore dependencies:', error);
       }
 
       for (const invalidPath of invalidPaths) {

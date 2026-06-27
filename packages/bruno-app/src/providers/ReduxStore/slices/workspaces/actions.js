@@ -22,7 +22,7 @@ import {
 } from '../app';
 import { openConsole, closeConsole, setActiveTab as setActiveDevToolsTab, TAB_IDENFIERS as DEVTOOL_TABS } from '../logs';
 import { normalizePath } from 'utils/common/path';
-import { hydrateTabs, getActiveTabFromSnapshot, hydrateSnapshotLookups } from 'utils/snapshot';
+import { hydrateTabs, getActiveTabFromSnapshot, hydrateSnapshotLookups, getWaitingCollectionDependencies } from 'utils/snapshot';
 import toast from 'react-hot-toast';
 
 const { ipcRenderer } = window;
@@ -499,7 +499,13 @@ export const hydrateSnapshotForOpenedCollection = (collectionPathname) => {
     const activeWorkspace = state.workspaces.workspaces.find((w) => w.uid === snapshotHydration.workspaceUid);
     const activeWorkspacePathname = activeWorkspace?.pathname || null;
 
-    await hydrateTabs([collection], dispatch, restoreTabs, null, activeWorkspacePathname);
+    await hydrateTabs(
+      [collection],
+      dispatch,
+      restoreTabs,
+      snapshotHydration.snapshotLookups,
+      activeWorkspacePathname
+    );
 
     if (
       snapshotHydration.activeCollectionPathname
@@ -521,7 +527,7 @@ export const hydrateSnapshotForOpenedCollection = (collectionPathname) => {
       const activeTab = await getActiveTabFromSnapshot(
         collection.pathname,
         collection,
-        null,
+        snapshotHydration.snapshotLookups,
         activeWorkspacePathname
       );
       if (activeTab) {
@@ -679,13 +685,22 @@ export const switchWorkspace = (workspaceUid) => {
         ? openedCollectionPaths
         : [];
 
-      const pendingCollectionPathnames = expectedHydrationCollectionPathnames
+      const waitingCollectionDependencies = getWaitingCollectionDependencies(
+        getState().app.snapshotRestoreDependencies,
+        workspace.pathname || ''
+      ).map((dependency) => dependency.pathname).filter(Boolean);
+
+      const pendingCollectionPathnames = [...new Set([
+        ...expectedHydrationCollectionPathnames,
+        ...waitingCollectionDependencies
+      ])]
         .filter((collectionPath) => !openWorkspaceCollectionPaths.has(normalizePath(collectionPath)));
 
       dispatch(startSnapshotHydrationSession({
         workspaceUid,
         pendingCollectionPathnames,
-        activeCollectionPathname: lastActiveCollectionPathname || null
+        activeCollectionPathname: lastActiveCollectionPathname || null,
+        snapshotLookups
       }));
 
       const completed = maybeCompleteSnapshotHydrationSession(dispatch, getState);
