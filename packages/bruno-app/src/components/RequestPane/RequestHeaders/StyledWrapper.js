@@ -40,7 +40,6 @@ const Wrapper = styled.div`
 
   .read-only {
     opacity: 0.6;
-    pointer-events: none;
     cursor: not-allowed;
   }
 `;
