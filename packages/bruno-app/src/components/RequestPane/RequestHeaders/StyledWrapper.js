@@ -9,12 +9,15 @@ const Wrapper = styled.div`
     }
   }
 
-  .bulk-edit-bar {
+  .actions-bar {
     position: sticky;
     bottom: 0;
     background: ${(props) => props.theme.bg};
     padding-top: 8px;
     padding-bottom: 4px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
   }
 
   input[type='text'] {
@@ -33,6 +36,12 @@ const Wrapper = styled.div`
     cursor: pointer;
     position: relative;
     top: 1px;
+  }
+
+  .read-only {
+    opacity: 0.6;
+    pointer-events: none;
+    cursor: not-allowed;
   }
 `;
 

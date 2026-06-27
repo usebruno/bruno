@@ -1350,6 +1350,110 @@ const registerNetworkIpc = (mainWindow) => {
     return Array.from(new Set(prompts));
   };
 
+  // dry-run request
+  ipcMain.handle('dry-run-http-request', async (event, item, collection, environment, runtimeVariables) => {
+    try {
+      const collectionUid = collection.uid;
+      const envVars = getEnvVars(environment);
+      const processEnvVars = getProcessEnvVars(collectionUid);
+      const abortController = new AbortController();
+      const request = await prepareRequest(item, collection, abortController);
+      const collectionPath = collection.pathname;
+      const promptVariables = collection.promptVariables || {};
+
+      interpolateVars(request, envVars, runtimeVariables, processEnvVars, promptVariables);
+
+      if (request.settings?.encodeUrl) {
+        request.url = encodeUrl(request.url);
+      }
+
+      // If URL contains unresolved variables that make it invalid, mock it so configureRequest doesn't crash
+      const originalUrl = request.url;
+      try {
+        new URL(request.url);
+      } catch (err) {
+        if (!hasExplicitScheme(request.url)) {
+          try {
+            new URL(`http://${request.url}`);
+            request.url = `http://${request.url}`;
+          } catch (e) {
+            request.url = 'http://bruno.mock/';
+          }
+        } else {
+          request.url = 'http://bruno.mock/';
+        }
+      }
+
+      const axiosInstance = await configureRequest(
+        collectionUid,
+        collection,
+        request,
+        envVars,
+        runtimeVariables,
+        processEnvVars,
+        collectionPath,
+        collection.globalEnvironmentVariables
+      );
+
+      // Restore original URL
+      request.url = originalUrl;
+
+      // Apply interceptors to get the final headers
+      const method = (request.method || 'get').toLowerCase();
+      let finalRequest = {
+        ...request,
+        headers: {
+          ...axiosInstance.defaults.headers.common,
+          ...axiosInstance.defaults.headers[method],
+          ...request.headers
+        }
+      };
+      if (axiosInstance?.interceptors?.request?.handlers) {
+        for (const interceptor of axiosInstance.interceptors.request.handlers) {
+          if (interceptor && interceptor.fulfilled) {
+            finalRequest = (await interceptor.fulfilled(finalRequest)) || finalRequest;
+          }
+        }
+      }
+
+      const headersSent = { ...finalRequest.headers };
+      Object.keys(headersSent).forEach((key) => {
+        if (key.toLowerCase() === 'content-type' && (headersSent[key] === false || headersSent[key] === null || headersSent[key] === undefined)) {
+          delete headersSent[key];
+        }
+      });
+
+      const orderedHeaders = {};
+      const authHeaderNames = new Set(['authorization', 'x-wsse']);
+      if (request.apiKeyHeaderName) {
+        authHeaderNames.add(request.apiKeyHeaderName.toLowerCase());
+      }
+
+      // Add auth headers first
+      Object.keys(headersSent).forEach((key) => {
+        if (authHeaderNames.has(key.toLowerCase())) {
+          orderedHeaders[key] = headersSent[key];
+        }
+      });
+
+      // Add the rest
+      Object.keys(headersSent).forEach((key) => {
+        if (!authHeaderNames.has(key.toLowerCase())) {
+          orderedHeaders[key] = headersSent[key];
+        }
+      });
+
+      return {
+        headers: orderedHeaders
+      };
+    } catch (error) {
+      console.error('Error during dry-run-request:', error);
+      return {
+        error: error.message || 'Error occurred during dry run'
+      };
+    }
+  });
+
   // handler for sending http request
   ipcMain.handle('send-http-request', async (event, item, collection, environment, runtimeVariables) => {
     let seq = 0;

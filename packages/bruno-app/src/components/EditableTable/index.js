@@ -23,7 +23,7 @@ const TableRow = React.memo(
     const rowIndex = Number(rest['data-item-index']);
     const { reorderable, reorderableRowCount, isLastEmptyRow, dragOverRow, onDragStart, onDragOver, onDrop, onDragEnd, onDragLeave, keyColumn } = context;
     const isEmpty = isLastEmptyRow(item, rowIndex);
-    const canDrag = reorderable && !isEmpty && rowIndex < reorderableRowCount;
+    const canDrag = reorderable && !isEmpty && rowIndex < reorderableRowCount && !item.readOnly;
     const isDragOver = canDrag && dragOverRow === rowIndex;
     const existingClass = rest.className || '';
     const className = isDragOver ? `${existingClass} drag-over`.trim() : existingClass;
@@ -387,7 +387,7 @@ const EditableTable = ({
 
   const itemContent = useCallback((rowIndex, row) => {
     const isEmpty = isLastEmptyRow(row, rowIndex);
-    const canDrag = reorderable && !isEmpty && rowIndex < reorderableRowCount;
+    const canDrag = reorderable && !isEmpty && rowIndex < reorderableRowCount && !row.readOnly;
 
     return (
       <>
@@ -414,7 +414,7 @@ const EditableTable = ({
                 className="mousetrap"
                 data-testid="column-checkbox"
                 checked={row[checkboxKey] ?? true}
-                disabled={disableCheckbox}
+                disabled={disableCheckbox || row.readOnly}
                 onChange={(e) => handleCheckboxChange(row.uid, e.target.checked)}
               />
             )}
@@ -427,7 +427,7 @@ const EditableTable = ({
         ))}
         {showDelete && (
           <td>
-            {!isEmpty && (
+            {!isEmpty && !row.readOnly && (
               <button
                 data-testid="column-delete"
                 onClick={() => handleRemoveRow(row.uid)}
