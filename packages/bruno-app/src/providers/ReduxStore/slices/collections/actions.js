@@ -63,6 +63,7 @@ import {
   scriptUpdateCollectionVars,
   setScriptCollVarBaseline,
   _clearScriptCollectionBaselines,
+  isStaleScriptRequest,
   addTransientDirectory,
   addSaveTransientRequestModal,
   updatePathParam,
@@ -505,8 +506,6 @@ export const wsConnectOnly = (item, collectionUid) => (dispatch, getState) => {
     const environment = findEnvironmentInCollection(collectionCopy, collectionCopy.activeEnvironmentUid);
 
     // WS connect does not run user scripts — no baseline to clear.
-    // Wiping baselines here would also wipe collection._scriptRequestUid, opening
-    // a window where a late HTTP post-response could pass the stale-update gate.
 
     connectWS(itemCopy, collectionCopy, environment, collectionCopy.runtimeVariables, { connectOnly: true })
       .then(resolve)
@@ -2417,9 +2416,10 @@ export const persistActiveEnvironment = (collectionUid, requestUid) => (dispatch
   const collection = findCollectionByUid(state.collections.collections, collectionUid);
   if (!collection) return;
 
-  // Ignore stale updates from superseded requests so an in-flight pre/post
-  // from request N-1 can't trigger a disk write for request N.
-  if (requestUid && collection._scriptRequestUid && requestUid !== collection._scriptRequestUid) return;
+  // Ignore stale updates from superseded/cancelled requests so an in-flight
+  // pre/post from a retired request can't trigger a disk write that overwrites
+  // a newer request's environment state.
+  if (isStaleScriptRequest(collection, requestUid)) return;
 
   const environment = findEnvironmentInCollection(collection, collection.activeEnvironmentUid);
   if (!environment) return;
@@ -2448,8 +2448,8 @@ export const collectionVariablesUpdateEvent = ({ collectionVariables, collection
   const collection = findCollectionByUid(state.collections.collections, collectionUid);
   if (!collection) return;
 
-  // Ignore stale updates from superseded requests.
-  if (requestUid && collection._scriptRequestUid && requestUid !== collection._scriptRequestUid) {
+  // Ignore stale updates from superseded/cancelled requests.
+  if (isStaleScriptRequest(collection, requestUid)) {
     return;
   }
 

@@ -220,6 +220,51 @@ const initiatedWsResponse = {
 
 // Properties prefixed with `_` (e.g. `_scriptEnvBaseline`) are transient runtime state —
 // never persisted to disk or included in exports.
+
+// _scriptRequestUids is a bounded sliding window of recent script-request UIDs.
+// A stale-update guard against late emissions from superseded/cancelled requests
+// needs to know which UIDs are "still valid" — but per-event cleanup is unsafe
+// because main → renderer messages on different IPC channels (script-environment-update
+// vs run-folder-event vs invoke's reply) have no cross-channel ordering guarantee.
+// A `response-received` or `responseReceived` can arrive at the renderer BEFORE
+// a post-response/test sendVariableUpdates with the same requestUid, and explicit
+// removal there would gate out the very updates that drive disk persistence.
+//
+// Sliding window sidesteps the race: every kickoff pushes a UID, the oldest falls
+// off when capacity is reached. Updates from the last N requests always land;
+// updates from requests older than the window are dropped (matches OSS's
+// single-slot "latest wins" semantic, just with a longer tail).
+const SCRIPT_REQUEST_UID_WINDOW = 256;
+
+export const addScriptRequestUid = (collection, requestUid) => {
+  if (!requestUid) return;
+  if (!Array.isArray(collection._scriptRequestUids)) collection._scriptRequestUids = [];
+  if (collection._scriptRequestUids.includes(requestUid)) return;
+  collection._scriptRequestUids.push(requestUid);
+  if (collection._scriptRequestUids.length > SCRIPT_REQUEST_UID_WINDOW) {
+    collection._scriptRequestUids.shift();
+  }
+};
+
+// Explicit-cancel path only — removes the UID when the user clicks Cancel so
+// any post-cancel script emission (sandbox cancellation isn't wired) is dropped.
+// NOT called from response-received / test-script-execution / etc. — see header
+// comment for why per-terminal-event cleanup is unsafe.
+export const removeScriptRequestUid = (collection, requestUid) => {
+  if (!requestUid || !Array.isArray(collection._scriptRequestUids)) return;
+  collection._scriptRequestUids = collection._scriptRequestUids.filter((u) => u !== requestUid);
+};
+
+export const isStaleScriptRequest = (collection, requestUid) => {
+  if (!requestUid) return false;
+  const uids = collection._scriptRequestUids;
+  // Undefined = the set has never been initialized for this collection (no request
+  // has gone through the tracking path yet). Accept the update — preserves backward
+  // compat for WS/OAuth2 / out-of-band emissions.
+  if (!Array.isArray(uids)) return false;
+  return !uids.includes(requestUid);
+};
+
 export const collectionsSlice = createSlice({
   name: 'collections',
   initialState,
@@ -459,9 +504,11 @@ export const collectionsSlice = createSlice({
       const collection = findCollectionByUid(state.collections, collectionUid);
 
       if (collection) {
-        // Ignore stale updates from superseded requests so an in-flight pre/post
-        // from request N-1 can't clobber state for request N.
-        if (requestUid && collection._scriptRequestUid && requestUid !== collection._scriptRequestUid) {
+        // Ignore stale updates from superseded/cancelled requests. _scriptRequestUids
+        // is the set of UIDs currently in-flight for this collection; an update whose
+        // UID has already been retired (response received, request cancelled, runner
+        // ended) is dropped so it can't clobber state for a newer request.
+        if (isStaleScriptRequest(collection, requestUid)) {
           return;
         }
 
@@ -506,7 +553,7 @@ export const collectionsSlice = createSlice({
       const { collectionUid, runtimeVariables, requestUid } = action.payload;
       const collection = findCollectionByUid(state.collections, collectionUid);
       if (collection) {
-        if (requestUid && collection._scriptRequestUid && requestUid !== collection._scriptRequestUid) {
+        if (isStaleScriptRequest(collection, requestUid)) {
           return;
         }
         collection.runtimeVariables = runtimeVariables;
@@ -564,6 +611,10 @@ export const collectionsSlice = createSlice({
       if (collection) {
         const item = findItemInCollection(collection, itemUid);
         if (item) {
+          // Retire this request's UID so any late script-emitted IPC from the
+          // cancelled script (sandbox cancellation isn't wired) can't slip
+          // through onto a subsequent send for the same item.
+          removeScriptRequestUid(collection, item.requestUid);
           if (item.response?.stream?.running) {
             item.response.stream.running = null;
 
@@ -585,6 +636,15 @@ export const collectionsSlice = createSlice({
       if (collection) {
         const item = findItemInCollection(collection, action.payload.itemUid);
         if (item) {
+          // NB: do NOT remove the UID here. The invoke('send-http-request') promise
+          // resolves AFTER main returns, but webContents.send messages for late
+          // script updates (e.g. delayed post-response or test results) may still
+          // arrive at the renderer AFTER the invoke's .then(responseReceived) microtask
+          // has been scheduled — removing the UID here would gate them out. Cleanup
+          // happens via `runFolderEvent` test-script-execution (for runner) or via
+          // `requestCancelled` (for explicit cancel). For single-send success, the
+          // UID stays in the set until the next request retires it via baseline
+          // wipe — same lifetime as the OSS PR's single-slot design.
           item.requestState = 'received';
           item.response = action.payload.response;
           item.cancelTokenUid = item.response.stream?.running ? item.cancelTokenUid : null;
@@ -2772,9 +2832,11 @@ export const collectionsSlice = createSlice({
       if (!collection) return;
       delete collection._scriptEnvBaseline;
       delete collection._scriptCollVarBaseline;
-      // Also drop the inflight request UID so updates from WS/OAuth2 paths (which
-      // don't dispatch initRunRequestEvent) aren't gated out by a stale HTTP UID.
-      delete collection._scriptRequestUid;
+      // NB: do NOT touch _scriptRequestUids here. Baselines are draft-merge state and
+      // can be safely reset between request kickoffs (selectEnvironment, sendRequest,
+      // etc.), but the in-flight UID set is the authoritative gate against stale
+      // updates from superseded requests — wiping it opens a window where a late
+      // script update from request N-1 slips through onto request N's state.
     },
     collectionAddFileEvent: (state, action) => {
       const file = action.payload.file;
@@ -3089,7 +3151,7 @@ export const collectionsSlice = createSlice({
 
       delete collection._scriptEnvBaseline;
       delete collection._scriptCollVarBaseline;
-      collection._scriptRequestUid = requestUid;
+      addScriptRequestUid(collection, requestUid);
 
       const item = findItemInCollection(collection, itemUid);
       if (!item) return;
@@ -3234,6 +3296,10 @@ export const collectionsSlice = createSlice({
         if (type === 'testrun-ended') {
           const info = collection.runnerResult.info;
           info.status = 'ended';
+          // NB: do NOT clear _scriptRequestUids here. With parallel iterations
+          // sharing one collection, an earlier iteration's testrun-ended would
+          // wipe still-in-flight UIDs from sibling iterations. The sliding
+          // window in addScriptRequestUid bounds memory; no explicit clear needed.
           if (action.payload.runCompletionTime) {
             info.runCompletionTime = action.payload.runCompletionTime;
           }
@@ -3245,10 +3311,11 @@ export const collectionsSlice = createSlice({
         if (type === 'request-queued') {
           // Folder runs reuse the same collection across N requests; clear baselines
           // per request so request N's script-update doesn't diff against request N-1's
-          // pre-flush snapshot.
+          // pre-flush snapshot. Add this request's UID to the in-flight set —
+          // cleanup happens at testrun-ended (or on cancellation via requestCancelled).
           delete collection._scriptEnvBaseline;
           delete collection._scriptCollVarBaseline;
-          collection._scriptRequestUid = action.payload.requestUid || null;
+          addScriptRequestUid(collection, action.payload.requestUid);
 
           collection.runnerResult.items.push({
             uid: request.uid,
@@ -3266,6 +3333,14 @@ export const collectionsSlice = createSlice({
           const item = collection.runnerResult.items.findLast((i) => i.uid === request.uid);
           item.status = 'completed';
           item.responseReceived = action.payload.responseReceived;
+          // NB: do NOT remove the UID here. In the folder runner, response-received
+          // is emitted from main BEFORE the post-response and test scripts run, but
+          // those scripts emit their own variable updates carrying the same
+          // requestUid (sendVariableUpdates at network/index.js post-response/tests).
+          // Removing the UID here would gate out those later updates and break the
+          // persist-to-disk path for bru.setEnvVar / bru.setCollectionVar called from
+          // post-response or test scripts. Cleanup is consolidated in testrun-ended,
+          // which clears the whole set when the run completes (or is cancelled).
         }
 
         if (type === 'test-results') {
@@ -3293,12 +3368,18 @@ export const collectionsSlice = createSlice({
           item.error = action.payload.error;
           item.responseReceived = action.payload.responseReceived;
           item.status = 'error';
+          // No UID cleanup — sliding window handles eviction; explicit removal
+          // here races with same-request webContents.send messages on a different
+          // IPC channel that may still be in flight.
         }
 
         if (type === 'runner-request-skipped') {
           const item = collection.runnerResult.items.findLast((i) => i.uid === request.uid);
-          item.status = 'skipped';
-          item.responseReceived = action.payload.responseReceived;
+          if (item) {
+            item.status = 'skipped';
+            item.responseReceived = action.payload.responseReceived;
+          }
+          // No UID cleanup — sliding window handles eviction.
         }
 
         if (type === 'post-response-script-execution') {
@@ -3311,6 +3392,13 @@ export const collectionsSlice = createSlice({
           const item = collection.runnerResult.items.findLast((i) => i.uid === request.uid);
           item.testScriptErrorMessage = action.payload.errorMessage;
           item.testScriptErrorContext = action.payload.errorContext || null;
+          // No UID cleanup here either. Even though sendVariableUpdates() for
+          // tests is called in main BEFORE notifyScriptExecution('test'), the
+          // two go through DIFFERENT IPC channels (main:script-environment-update
+          // vs main:run-folder-event) and Electron only guarantees ordering
+          // within a channel — so the test-script-execution event can reach the
+          // renderer before the variable updates with the same requestUid.
+          // The sliding window eviction in addScriptRequestUid bounds memory.
         }
 
         if (type === 'pre-request-script-execution') {

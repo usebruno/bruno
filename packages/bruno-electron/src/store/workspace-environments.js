@@ -3,7 +3,7 @@ const path = require('path');
 const _ = require('lodash');
 const { parseEnvironment, stringifyEnvironment } = require('@usebruno/filestore');
 const { parseValueByDataType } = require('@usebruno/common/utils');
-const { writeFile, createDirectory } = require('../utils/filesystem');
+const { writeFile, createDirectory, withFileLock } = require('../utils/filesystem');
 const { generateUidBasedOnHash, uuid } = require('../utils/common');
 const { decryptStringSafe } = require('../utils/encryption');
 const EnvironmentSecretsStore = require('./env-secrets');
@@ -183,12 +183,17 @@ class GlobalEnvironmentsManager {
         environment.color = color;
       }
 
-      if (this.envHasSecrets(environment)) {
-        environmentSecretsStore.storeEnvSecrets(workspacePath, environment);
-      }
+      // Serialize concurrent writes per env file. Two rapid scripted
+      // bru.setGlobalEnvVar() persist calls can otherwise overlap and the
+      // second writer's stringify+write can land before the first, dropping it.
+      await withFileLock(envFile.filePath, async () => {
+        if (this.envHasSecrets(environment)) {
+          environmentSecretsStore.storeEnvSecrets(workspacePath, environment);
+        }
 
-      const content = await stringifyEnvironment(environment, { format: 'yml' });
-      await writeFile(envFile.filePath, content);
+        const content = await stringifyEnvironment(environment, { format: 'yml' });
+        await writeFile(envFile.filePath, content);
+      });
 
       return true;
     } catch (error) {

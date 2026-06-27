@@ -289,10 +289,14 @@ export const globalEnvironmentsUpdateEvent = ({ globalEnvironmentVariables, coll
 
   const state = getState();
 
-  // Ignore stale updates from superseded requests on the originating collection.
+  // Ignore stale updates from superseded/cancelled requests on the originating
+  // collection. _scriptRequestUids holds the set of in-flight script-request UIDs;
+  // an incoming UID that's no longer in the set has been retired. Untyped/missing
+  // set = never tracked (backward compat); empty array = strict drop (nothing in-flight).
   if (collectionUid && requestUid) {
     const sourceCollection = state?.collections?.collections?.find((c) => c.uid === collectionUid);
-    if (sourceCollection?._scriptRequestUid && requestUid !== sourceCollection._scriptRequestUid) {
+    const uids = sourceCollection?._scriptRequestUids;
+    if (Array.isArray(uids) && !uids.includes(requestUid)) {
       return;
     }
   }

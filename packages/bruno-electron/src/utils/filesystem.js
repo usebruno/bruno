@@ -104,6 +104,36 @@ const writeFile = async (pathname, content, isBinary = false) => {
   }
 };
 
+// Per-path async mutex for file writes. Callers that perform read-modify-write
+// against the same file from multiple async chains (e.g. two scripted variable
+// writes racing on the same environment file) wrap the whole critical section in
+// withFileLock(absPath, ...) so the second writer reads the post-first-write state.
+// Without this, `fs.readFileSync` outside the lock can capture pre-A state while
+// A is still flushing, and B then overwrites A. Lock entries are cleaned up once
+// the queue for a path drains.
+const _pathLocks = new Map();
+const withFileLock = async (pathname, fn) => {
+  const prior = _pathLocks.get(pathname) || Promise.resolve();
+  // Errors from a prior writer must not block subsequent writers; the next caller
+  // gets its own try/catch.
+  const next = prior.catch(() => {}).then(() => fn());
+  _pathLocks.set(pathname, next);
+  try {
+    return await next;
+  } finally {
+    if (_pathLocks.get(pathname) === next) {
+      _pathLocks.delete(pathname);
+    }
+  }
+};
+
+const hasJsExtension = (filename) => {
+  if (!filename || typeof filename !== 'string') return false;
+  return ['js'].some((ext) => filename.toLowerCase().endsWith(`.${ext}`));
+};
+
+const isBrunoJsonFile = (filename) => filename.toLowerCase().endsWith('bruno.json');
+
 const hasJsonExtension = (filename) => {
   if (!filename || typeof filename !== 'string') return false;
   return ['json'].some((ext) => filename.toLowerCase().endsWith(`.${ext}`));
@@ -547,6 +577,8 @@ module.exports = {
   isWSLPath,
   normalizeWSLPath,
   writeFile,
+  withFileLock,
+  hasJsExtension,
   hasJsonExtension,
   hasBruExtension,
   hasRequestExtension,
