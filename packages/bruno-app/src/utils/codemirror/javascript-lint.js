@@ -14,7 +14,7 @@ if (!SERVER_RENDERED) {
   CodeMirror = require('codemirror');
   const { filter } = require('lodash');
 
-  const TOP_LEVEL_AWAIT_DYNAMIC_IMPORT_PATTERN = /\bawait\s+import\s*\(/;
+  const TOP_LEVEL_AWAIT_DYNAMIC_IMPORT_PATTERN = /\bawait(?:\s+|\/\*[^*]*\*+(?:[^/*][^*]*\*+)*\/\s*)+import\s*\(/;
 
   function validator(text, options) {
     if (!window.JSHINT) {

@@ -26,6 +26,18 @@ describe('javascript lint', () => {
     expect(result).toEqual([]);
   });
 
+  it('does not report top-level await dynamic import errors split across lines', () => {
+    const result = lintJavascript('const helper = await\n  import("./helper.mjs");');
+
+    expect(result).toEqual([]);
+  });
+
+  it('does not report top-level await dynamic import errors with a comment between await and import', () => {
+    const result = lintJavascript('const helper = await /* load esm */ import("./helper.mjs");');
+
+    expect(result).toEqual([]);
+  });
+
   it('continues to report unrelated syntax errors', () => {
     const result = lintJavascript('const value = ;');
 
