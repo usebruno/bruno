@@ -216,6 +216,7 @@ const RequestHeaders = ({ item, collection }) => {
                 <div
                   className="cursor-pointer text-link text-xs whitespace-nowrap px-2 py-1 rounded"
                   onClick={() => dispatch(updateRequestPaneTab({ uid: item.uid, requestPaneTab: 'auth' }))}
+                  data-testid="go-to-authorization"
                 >
                   Go to Authorization
                 </div>
@@ -223,6 +224,7 @@ const RequestHeaders = ({ item, collection }) => {
                   className="cursor-pointer text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 p-1 rounded"
                   onClick={() => setShowAuthValue(!showAuthValue)}
                   title={showAuthValue ? 'Hide value' : 'Show value'}
+                  data-testid="reveal-auth-value"
                 >
                   {showAuthValue ? <IconEyeOff size={16} strokeWidth={1.5} /> : <IconEye size={16} strokeWidth={1.5} />}
                 </div>
@@ -274,6 +276,7 @@ const RequestHeaders = ({ item, collection }) => {
           <button
             className="btn-action text-link select-none flex items-center gap-1"
             onClick={() => setShowDynamicHeaders(!showDynamicHeaders)}
+            data-testid="dynamic-header-toggle"
           >
             {showDynamicHeaders ? <IconEye size={16} strokeWidth={1.5} /> : <IconEyeOff size={16} strokeWidth={1.5} />}
             <span>{showDynamicHeaders ? `Hide ${dynamicHeaders.length} dynamic headers` : `${dynamicHeaders.length} Hidden headers`}</span>
