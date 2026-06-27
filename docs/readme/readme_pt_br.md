@@ -89,14 +89,6 @@ Ou qualquer sistema de controle de versão de sua escolha.
 
 ![bruno](../../assets/images/version-control.png) <br /><br />
 
-### Colaboradores
-
-<div align="center">
-    <a href="https://github.com/usebruno/bruno/graphs/contributors">
-        <img src="https://contrib.rocks/image?repo=usebruno/bruno" />
-    </a>
-</div>
-
 ### Links Importantes 📌
 
 - [Nossa Visão de Longo Prazo](https://github.com/usebruno/bruno/discussions/269)
