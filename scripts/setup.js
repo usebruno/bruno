@@ -23,50 +23,13 @@ const execCommand = (command, description) => {
   }
 };
 
-const glob = function (startPath, pattern) {
-  let results = [];
-
-  // Ensure start path exists
-  if (!fs.existsSync(startPath)) {
-    return results;
-  }
-
-  const files = fs.readdirSync(startPath);
-  for (const file of files) {
-    const filename = path.join(startPath, file);
-    const stat = fs.lstatSync(filename);
-
-    // If directory, recurse into it
-    if (stat.isDirectory()) {
-      // Skip node_modules recursion to avoid unnecessary deep scanning
-      if (file === 'node_modules') {
-        if (file === pattern) {
-          results.push(filename);
-        }
-        continue;
-      }
-      results = results.concat(glob(filename, pattern));
-    }
-
-    // If file matches pattern, add to results
-    if (file === pattern) {
-      results.push(filename);
-    }
-  }
-
-  return results;
-};
-
 function forceInstallPlatformDeps() {
-  // Note: make sure to hard pin deps and only add deps that have been checked
-  // for sec vuln already since the following will be force installed.
   const deps = {
     darwin: ['@lydell/node-pty-darwin-arm64@1.1.0', '@lydell/node-pty-darwin-x64@1.1.0'],
     win32: ['@lydell/node-pty-win32-arm64@1.1.0', '@lydell/node-pty-win32-x64@1.1.0'],
     linux: ['@lydell/node-pty-linux-arm64@1.1.0', '@lydell/node-pty-linux-x64@1.1.0']
   };
 
-  // Ignore if no deps need to be installed
   if (!deps[process.platform] || (Array.isArray(deps[process.platform]) && deps[process.platform].length === 0)) return;
 
   const toInstall = deps[process.platform];
@@ -78,13 +41,8 @@ function forceInstallPlatformDeps() {
 
 async function setup() {
   try {
-    // Clean up node_modules (if exists)
-    console.log(`\n${icons.clean} Cleaning up node_modules directories...`);
-    const nodeModulesPaths = glob('.', 'node_modules');
-    for (const dir of nodeModulesPaths) {
-      console.log(`${icons.delete} Removing ${dir}`);
-      fs.rmSync(dir, { recursive: true, force: true });
-    }
+    // Clean up node_modules
+    execCommand('npm run clean', 'Cleaning up node_modules');
 
     // Install dependencies
     execCommand('npm i --legacy-peer-deps', 'Installing dependencies');
