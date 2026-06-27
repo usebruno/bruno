@@ -2,6 +2,7 @@ const { describe, it, expect, beforeEach, afterEach } = require('@jest/globals')
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
+const vm = require('node:vm');
 const { runScriptInNodeVm } = require('./index');
 
 describe('node-vm sandbox', () => {
@@ -777,7 +778,7 @@ describe('node-vm sandbox', () => {
         expect(context.bru.setVar).toHaveBeenCalledWith('result', 'cjs-100');
       });
 
-      it('should fail when loading .mjs files (ES modules)', async () => {
+      it('should fail when requiring .mjs files (ES modules)', async () => {
         const nodeModulesDir = path.join(collectionPath, 'node_modules', 'mjs-ext-module');
         fs.mkdirSync(nodeModulesDir, { recursive: true });
         fs.writeFileSync(
@@ -798,6 +799,27 @@ describe('node-vm sandbox', () => {
         await expect(
           runScriptInNodeVm({ script, context, collectionPath, scriptingConfig: {} })
         ).rejects.toThrow();
+      });
+
+      it('should dynamically import .mjs files from node-vm scripts', async () => {
+        fs.writeFileSync(
+          path.join(collectionPath, 'esm-helper.mjs'),
+          'export function makeGreeting(name) { return `hello ${name} from esm`; }'
+        );
+
+        const script = `
+          const helper = await import('./esm-helper.mjs');
+          bru.setVar('result', helper.makeGreeting('bruno'));
+        `;
+
+        const context = {
+          bru: { setVar: jest.fn() },
+          console: console
+        };
+
+        await runScriptInNodeVm({ script, context, collectionPath, scriptingConfig: {} });
+
+        expect(context.bru.setVar).toHaveBeenCalledWith('result', 'hello bruno from esm');
       });
 
       it('should load module with package.json main field', async () => {

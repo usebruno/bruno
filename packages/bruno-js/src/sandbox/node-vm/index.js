@@ -72,9 +72,15 @@ async function runScriptInNodeVm({
     const wrappedScript = wrapScriptInClosure(script, SANDBOX.NODEVM);
     let compiledScript;
     try {
-      compiledScript = new vm.Script(wrappedScript, {
+      const scriptOptions = {
         filename: vmFilename
-      });
+      };
+
+      if (vm.constants?.USE_MAIN_CONTEXT_DEFAULT_LOADER) {
+        scriptOptions.importModuleDynamically = vm.constants.USE_MAIN_CONTEXT_DEFAULT_LOADER;
+      }
+
+      compiledScript = new vm.Script(wrappedScript, scriptOptions);
     } catch (error) {
       // V8 puts "filename:line" as the first line of syntax error stacks.
       // Parse it so the error formatter can map to the correct source location.
