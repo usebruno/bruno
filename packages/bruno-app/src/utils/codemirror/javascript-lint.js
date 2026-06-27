@@ -14,15 +14,7 @@ if (!SERVER_RENDERED) {
   CodeMirror = require('codemirror');
   const { filter } = require('lodash');
 
-  const isTopLevelDynamicImportError = (error) => {
-    return (
-      error.code === 'E033'
-      && error.a === 'import'
-      && error.evidence
-      && error.evidence.includes('import(')
-      && error.scope === '(main)'
-    );
-  };
+  const TOP_LEVEL_AWAIT_DYNAMIC_IMPORT_PATTERN = /\bawait\s+import\s*\(/;
 
   function validator(text, options) {
     if (!window.JSHINT) {
@@ -78,8 +70,17 @@ if (!SERVER_RENDERED) {
      * and we can use the default javascript-lint addon from codemirror
      */
     errors = filter(errors, (error) => {
-      if (isTopLevelDynamicImportError(error)) {
-        return false;
+      if (
+        error.code === 'E033'
+      ) {
+        if (
+          error.a === 'import'
+          && error.evidence
+          && TOP_LEVEL_AWAIT_DYNAMIC_IMPORT_PATTERN.test(error.evidence)
+          && error.scope === '(main)'
+        ) {
+          return false;
+        }
       }
 
       if (error.code === 'E058' || error.code === 'W024') {
