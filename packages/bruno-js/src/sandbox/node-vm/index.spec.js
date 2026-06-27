@@ -1195,4 +1195,72 @@ describe('node-vm sandbox', () => {
       expect(context.bru.setVar).toHaveBeenCalledWith('result', 'a,b');
     });
   });
+
+  describe('top-level __dirname / __filename', () => {
+    it('should expose __dirname as the collection path', async () => {
+      const context = {
+        bru: { setVar: jest.fn() },
+        console: console
+      };
+
+      const script = `bru.setVar('result', __dirname)`;
+
+      await runScriptInNodeVm({ script, context, collectionPath, scriptingConfig: {} });
+
+      expect(context.bru.setVar).toHaveBeenCalledWith('result', collectionPath);
+    });
+
+    it('should expose __filename as the script path when provided', async () => {
+      const context = {
+        bru: { setVar: jest.fn() },
+        console: console
+      };
+
+      const scriptPath = '/some/path/to/req.bru';
+      const script = `bru.setVar('result', __filename)`;
+
+      await runScriptInNodeVm({ script, context, collectionPath, scriptingConfig: {}, scriptPath });
+
+      expect(context.bru.setVar).toHaveBeenCalledWith('result', scriptPath);
+    });
+
+    it('should leave __filename undefined when no scriptPath is provided', async () => {
+      const context = {
+        bru: { setVar: jest.fn() },
+        console: console
+      };
+
+      const script = `bru.setVar('result', typeof __filename)`;
+
+      await runScriptInNodeVm({ script, context, collectionPath, scriptingConfig: {} });
+
+      expect(context.bru.setVar).toHaveBeenCalledWith('result', 'undefined');
+    });
+
+    it('should expose __dirname inside a require()\'d module too', async () => {
+      // Module reads __dirname at top-level (CJS module wrapper) and re-exports it.
+      fs.writeFileSync(
+        path.join(collectionPath, 'check-dirname.js'),
+        'module.exports = { dirname: typeof __dirname === "string" ? __dirname : null };'
+      );
+
+      const script = `
+        const mod = require('./check-dirname');
+        bru.setVar('fromCollection', __dirname);
+        bru.setVar('fromModule', mod.dirname);
+        bru.setVar('same', __dirname === mod.dirname);
+      `;
+
+      const context = {
+        bru: { setVar: jest.fn() },
+        console: console
+      };
+
+      await runScriptInNodeVm({ script, context, collectionPath, scriptingConfig: {} });
+
+      expect(context.bru.setVar).toHaveBeenCalledWith('fromCollection', collectionPath);
+      expect(context.bru.setVar).toHaveBeenCalledWith('fromModule', collectionPath);
+      expect(context.bru.setVar).toHaveBeenCalledWith('same', true);
+    });
+  });
 });

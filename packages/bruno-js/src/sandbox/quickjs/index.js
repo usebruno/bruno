@@ -125,6 +125,16 @@ const executeQuickJsVmAsync = async ({ script: externalScript, context: external
     addLocalModuleLoaderShimToContext(vm, collectionPath);
     addPathShimToContext(vm);
 
+    // Mirror node-vm: expose __dirname/__filename so scripts can use them.
+    const dirnameHandle = vm.newString(collectionPath);
+    vm.setProp(vm.global, '__dirname', dirnameHandle);
+    dirnameHandle.dispose();
+    if (scriptPath) {
+      const filenameHandle = vm.newString(scriptPath);
+      vm.setProp(vm.global, '__filename', filenameHandle);
+      filenameHandle.dispose();
+    }
+
     await addLibraryShimsToContext(vm);
 
     test && __brunoTestResults && addTestShimToContext(vm, __brunoTestResults);

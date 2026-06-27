@@ -45,6 +45,13 @@ async function runScriptInNodeVm({
     // Build the script context with Bruno objects and globals
     const scriptContext = buildScriptContext(context, scriptingConfig);
 
+    // Inject CJS-like globals so scripts can use __dirname / __filename
+    // the way they did under the legacy vm2 sandbox (and the way the docs
+    // still document). __dirname is the collection root; __filename is the
+    // .bru/.yml source file when known.
+    scriptContext.__dirname = collectionPath;
+    scriptContext.__filename = scriptPath || undefined;
+
     // Create truly isolated context - scriptContext becomes the global object
     // Scripts can ONLY access what's explicitly in scriptContext
     const isolatedContext = vm.createContext(scriptContext);
