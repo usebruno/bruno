@@ -117,17 +117,7 @@ export const buildCommonLocators = (page: Page) => ({
     footer: () => page.locator('.bruno-modal-footer'),
     submitButton: () => page.locator('.bruno-modal-footer .submit'),
     newRequestMethodOption: (id: string) => page.getByTestId(`method-selector-${id.toLowerCase()}`),
-    backdrop: () => page.locator('.bruno-modal-backdrop'),
-    removeCollection: (() => {
-      const removeCollectionModal = () => page.locator('.bruno-modal').filter({ hasText: /Remove Collections?/ });
-      return {
-        modal: removeCollectionModal,
-        path: () => removeCollectionModal().locator('.collection-path'),
-        removeButton: () => removeCollectionModal().getByRole('button', { name: 'Remove', exact: true }),
-        cancelButton: () => removeCollectionModal().getByRole('button', { name: 'Cancel', exact: true }),
-        discardAllAndRemoveButton: () => page.getByRole('button', { name: 'Discard All and Remove' })
-      };
-    })()
+    backdrop: () => page.locator('.bruno-modal-backdrop')
   },
   openCollectionPicker: {
     list: () => page.getByTestId('selection-list'),
