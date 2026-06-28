@@ -138,8 +138,11 @@ export const buildCommonLocators = (page: Page) => ({
     footer: () => page.locator('.bruno-modal-footer'),
     submitButton: () => page.locator('.bruno-modal-footer .submit'),
     newRequestMethodOption: (id: string) => page.getByTestId(`method-selector-${id.toLowerCase()}`),
+<<<<<<< HEAD
     newRequestVariableToken: (name: string) =>
       page.getByTestId('new-request-url').locator('.cm-variable-valid').filter({ hasText: name }).first(),
+=======
+>>>>>>> e6a93407c (moved locator,actions and made changes to match test steps)
     backdrop: () => page.locator('.bruno-modal-backdrop')
   },
   openCollectionPicker: {
