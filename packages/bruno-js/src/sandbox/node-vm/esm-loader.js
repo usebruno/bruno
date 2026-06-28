@@ -12,14 +12,16 @@ const { createCustomRequire } = require('./cjs-loader');
 const ESM_CACHE_PREFIX = 'esm:';
 
 /**
- * Creates a custom import function with enhanced security and local module support
- * @param {Object} options - Configuration options
- * @param {string} options.collectionPath - Path to the collection directory
- * @param {Object} options.isolatedContext - The VM isolated context created with vm.createContext()
- * @param {string} options.currentModuleDir - Current module directory for resolving relative paths
- * @param {Map} options.localModuleCache - Cache for loaded modules
- * @param {string[]} options.additionalContextRootsAbsolute - Additional allowed root paths
- * @returns {Function} Custom import function
+ * Creates the dynamic import callback used by vm.Script and vm.SourceTextModule.
+ * The callback resolves local files, Node builtins, and npm dependencies through
+ * Bruno's allowed-root checks before returning a vm.Module instance.
+ * @param {Object} options - Configuration options.
+ * @param {string} options.collectionPath - Path to the collection directory.
+ * @param {vm.Context} options.isolatedContext - VM context created with vm.createContext().
+ * @param {string} [options.currentModuleDir=collectionPath] - Directory used to resolve relative imports.
+ * @param {Map<string, *>} [options.localModuleCache] - Shared CJS/ESM module cache.
+ * @param {string[]} [options.additionalContextRootsAbsolute] - Absolute roots allowed for local module access.
+ * @returns {(moduleName: string, referrer?: vm.Module) => Promise<vm.Module>} Custom dynamic import callback.
  */
 function createCustomImport({
   collectionPath,
@@ -79,6 +81,12 @@ function createCustomImport({
   };
 }
 
+/**
+ * Gets the directory imports should resolve from for a referrer module.
+ * @param {vm.Module|undefined} referrer - Module requesting the import.
+ * @param {string} fallbackDir - Directory used when the referrer has no absolute identifier.
+ * @returns {string} Directory for resolving relative import specifiers.
+ */
 function getReferrerDir(referrer, fallbackDir) {
   if (referrer?.identifier && path.isAbsolute(referrer.identifier)) {
     return path.dirname(referrer.identifier);
@@ -88,10 +96,18 @@ function getReferrerDir(referrer, fallbackDir) {
 }
 
 /**
- * Loads a local ESM or CJS module from the filesystem with security checks and caching
- * @param {Object} options - Configuration options
- * @returns {Promise<vm.Module>} VM module instance
- * @throws {Error} When module is outside collection path or cannot be loaded
+ * Loads a local ESM, CJS, or JSON module from the filesystem.
+ * The module specifier is checked before and after path resolution so extension
+ * inference or package main resolution cannot escape the allowed roots.
+ * @param {Object} options - Configuration options.
+ * @param {string} options.moduleName - Local or absolute module specifier.
+ * @param {string} options.collectionPath - Path to the collection directory.
+ * @param {vm.Context} options.isolatedContext - VM context created with vm.createContext().
+ * @param {string} options.currentModuleDir - Directory used to resolve relative paths.
+ * @param {Map<string, *>} options.localModuleCache - Shared CJS/ESM module cache.
+ * @param {string[]} [options.additionalContextRootsAbsolute] - Absolute roots allowed for local module access.
+ * @returns {Promise<vm.Module>} VM module instance.
+ * @throws {Error} When the module is outside allowed roots or cannot be found.
  */
 async function loadLocalModule({
   moduleName,
@@ -137,6 +153,14 @@ async function loadLocalModule({
   });
 }
 
+/**
+ * Loads a Node.js builtin module and exposes it as a synthetic ESM namespace.
+ * @param {Object} options - Configuration options.
+ * @param {string} options.moduleName - Builtin module name, with or without the node: prefix.
+ * @param {vm.Context} options.isolatedContext - VM context created with vm.createContext().
+ * @param {Map<string, *>} options.localModuleCache - Shared CJS/ESM module cache.
+ * @returns {Promise<vm.SyntheticModule>} Synthetic VM module for the builtin exports.
+ */
 async function loadBuiltinModule({
   moduleName,
   isolatedContext,
@@ -155,10 +179,16 @@ async function loadBuiltinModule({
 }
 
 /**
- * Loads an npm module into the VM context
- * @param {Object} options - Configuration options
- * @returns {Promise<vm.Module>} VM module instance
- * @throws {Error} When module cannot be resolved or loaded
+ * Resolves and loads an npm dependency into the VM context.
+ * Collection-local dependencies are preferred over Bruno's own dependencies.
+ * @param {Object} options - Configuration options.
+ * @param {string} options.moduleName - Package specifier to resolve.
+ * @param {string} options.collectionPath - Path to the collection directory.
+ * @param {vm.Context} options.isolatedContext - VM context created with vm.createContext().
+ * @param {Map<string, *>} options.localModuleCache - Shared CJS/ESM module cache.
+ * @param {string[]} options.additionalContextRootsAbsolute - Absolute roots allowed for local module access.
+ * @returns {Promise<vm.Module>} VM module instance.
+ * @throws {Error} When the dependency cannot be resolved or loaded.
  */
 async function loadNpmModule({
   moduleName,
@@ -208,10 +238,18 @@ async function loadNpmModule({
 }
 
 /**
- * Executes a resolved module and returns a VM module instance
- * @param {Object} options - Configuration options
- * @returns {Promise<vm.Module>} VM module instance
- * @throws {Error} When module cannot be loaded
+ * Executes or wraps a resolved module path and returns a VM module instance.
+ * ESM files are loaded as SourceTextModule instances; CJS and JSON values are
+ * bridged into synthetic ESM modules.
+ * @param {Object} options - Configuration options.
+ * @param {string} options.resolvedPath - Absolute path resolved for the module.
+ * @param {string} options.moduleName - Original module specifier.
+ * @param {string} options.collectionPath - Path to the collection directory.
+ * @param {vm.Context} options.isolatedContext - VM context created with vm.createContext().
+ * @param {Map<string, *>} options.localModuleCache - Shared CJS/ESM module cache.
+ * @param {string[]} options.additionalContextRootsAbsolute - Absolute roots allowed for local module access.
+ * @returns {Promise<vm.Module>} VM module instance.
+ * @throws {Error} When the module cannot be loaded.
  */
 async function executeModuleInVmContext({
   resolvedPath,
@@ -263,6 +301,18 @@ async function executeModuleInVmContext({
   });
 }
 
+/**
+ * Creates, links, evaluates, and caches a real ESM source module.
+ * Static imports are delegated back through the custom import resolver so nested
+ * dependencies keep the same security and collection-resolution behavior.
+ * @param {Object} options - Configuration options.
+ * @param {string} options.resolvedPath - Absolute path to the ESM file.
+ * @param {string} options.collectionPath - Path to the collection directory.
+ * @param {vm.Context} options.isolatedContext - VM context created with vm.createContext().
+ * @param {Map<string, *>} options.localModuleCache - Shared CJS/ESM module cache.
+ * @param {string[]} options.additionalContextRootsAbsolute - Absolute roots allowed for local module access.
+ * @returns {Promise<vm.SourceTextModule>} Linked and evaluated source text module.
+ */
 async function loadSourceTextModule({
   resolvedPath,
   collectionPath,
@@ -315,6 +365,17 @@ async function loadSourceTextModule({
   return sourceModule;
 }
 
+/**
+ * Wraps a plain JavaScript value in a SyntheticModule so dynamic import can
+ * return CJS, JSON, and builtin modules through an ESM-compatible namespace.
+ * @param {Object} options - Configuration options.
+ * @param {string} options.identifier - Stable module identifier used as the ESM cache key.
+ * @param {*} options.exportsValue - Value to expose through synthetic exports.
+ * @param {vm.Context} options.isolatedContext - VM context created with vm.createContext().
+ * @param {Map<string, *>} options.localModuleCache - Shared CJS/ESM module cache.
+ * @param {boolean} [options.defaultOnly=false] - Whether to expose only the default export.
+ * @returns {Promise<vm.SyntheticModule>} Linked and evaluated synthetic module.
+ */
 async function createSyntheticModuleFromExports({
   identifier,
   exportsValue,
@@ -353,6 +414,11 @@ async function createSyntheticModuleFromExports({
   return syntheticModule;
 }
 
+/**
+ * Determines whether a resolved path should be evaluated as ESM.
+ * @param {string} resolvedPath - Absolute resolved module path.
+ * @returns {boolean} True for .mjs files and .js files inside type=module packages.
+ */
 function shouldLoadAsEsm(resolvedPath) {
   if (resolvedPath.endsWith('.mjs')) {
     return true;
@@ -375,6 +441,11 @@ function shouldLoadAsEsm(resolvedPath) {
   }
 }
 
+/**
+ * Finds the nearest package.json by walking up from a starting directory.
+ * @param {string} startDir - Directory to begin searching from.
+ * @returns {string|null} Absolute package.json path, or null when none is found.
+ */
 function findNearestPackageJson(startDir) {
   let currentDir = startDir;
 
@@ -389,6 +460,12 @@ function findNearestPackageJson(startDir) {
   return null;
 }
 
+/**
+ * Builds the export names exposed by a SyntheticModule wrapper.
+ * @param {*} exportsValue - CJS, JSON, or builtin export value to wrap.
+ * @param {boolean} defaultOnly - Whether to expose only the default export.
+ * @returns {string[]} Export names for the synthetic namespace.
+ */
 function getSyntheticExportNames(exportsValue, defaultOnly) {
   const exportNames = new Set(['default']);
 
@@ -401,12 +478,22 @@ function getSyntheticExportNames(exportsValue, defaultOnly) {
   return Array.from(exportNames);
 }
 
+/**
+ * Evaluates a VM module when it has not already been evaluated.
+ * @param {vm.Module} moduleInstance - SourceTextModule or SyntheticModule instance.
+ * @returns {Promise<void>} Resolves after evaluation completes.
+ */
 async function evaluateModuleIfNeeded(moduleInstance) {
   if (moduleInstance.status !== 'evaluated') {
     await moduleInstance.evaluate();
   }
 }
 
+/**
+ * Creates the ESM cache key for a module identifier.
+ * @param {string} identifier - Module path or synthetic identifier.
+ * @returns {string} Cache key namespaced for ESM entries.
+ */
 function getEsmCacheKey(identifier) {
   return ESM_CACHE_PREFIX + identifier;
 }
