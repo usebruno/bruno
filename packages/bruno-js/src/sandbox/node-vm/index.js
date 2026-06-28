@@ -5,6 +5,7 @@ const lodash = require('lodash');
 const { wrapConsoleWithSerializers } = require('./console');
 const { ScriptError, resolveVmFilename } = require('./utils');
 const { createCustomRequire } = require('./cjs-loader');
+const { createCustomImport } = require('./esm-loader');
 const { safeGlobals } = require('./constants');
 const { mixinTypedArrays } = require('../mixins/typed-arrays');
 const { wrapScriptInClosure, SANDBOX } = require('../../utils/sandbox');
@@ -66,6 +67,14 @@ async function runScriptInNodeVm({
       additionalContextRootsAbsolute
     });
 
+    const customImport = createCustomImport({
+      collectionPath,
+      isolatedContext,
+      currentModuleDir: collectionPath,
+      localModuleCache,
+      additionalContextRootsAbsolute
+    });
+
     const vmFilename = resolveVmFilename(scriptPath, collectionPath);
 
     // Execute the script in the isolated context
@@ -73,12 +82,9 @@ async function runScriptInNodeVm({
     let compiledScript;
     try {
       const scriptOptions = {
-        filename: vmFilename
+        filename: vmFilename,
+        importModuleDynamically: customImport
       };
-
-      if (vm.constants?.USE_MAIN_CONTEXT_DEFAULT_LOADER) {
-        scriptOptions.importModuleDynamically = vm.constants.USE_MAIN_CONTEXT_DEFAULT_LOADER;
-      }
 
       compiledScript = new vm.Script(wrappedScript, scriptOptions);
     } catch (error) {

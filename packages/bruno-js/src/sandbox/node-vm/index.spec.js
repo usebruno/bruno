@@ -822,6 +822,75 @@ describe('node-vm sandbox', () => {
         expect(context.bru.setVar).toHaveBeenCalledWith('result', 'hello bruno from esm');
       });
 
+      it('should resolve static imports inside dynamically imported .mjs files', async () => {
+        fs.writeFileSync(
+          path.join(collectionPath, 'message.mjs'),
+          'export const message = "nested-esm";'
+        );
+        fs.writeFileSync(
+          path.join(collectionPath, 'esm-helper.mjs'),
+          'import { message } from "./message.mjs"; export function getMessage() { return message; }'
+        );
+
+        const script = `
+          const helper = await import('./esm-helper.mjs');
+          bru.setVar('result', helper.getMessage());
+        `;
+
+        const context = {
+          bru: { setVar: jest.fn() },
+          console: console
+        };
+
+        await runScriptInNodeVm({ script, context, collectionPath, scriptingConfig: {} });
+
+        expect(context.bru.setVar).toHaveBeenCalledWith('result', 'nested-esm');
+      });
+
+      it('should dynamically import collection npm dependencies as synthetic modules', async () => {
+        const nodeModulesDir = path.join(collectionPath, 'node_modules', 'esm-cjs-dependency');
+        fs.mkdirSync(nodeModulesDir, { recursive: true });
+        fs.writeFileSync(
+          path.join(nodeModulesDir, 'package.json'),
+          '{"name": "esm-cjs-dependency", "main": "index.js"}'
+        );
+        fs.writeFileSync(
+          path.join(nodeModulesDir, 'index.js'),
+          'exports.message = "from-cjs-dependency";'
+        );
+
+        const script = `
+          const dependency = await import('esm-cjs-dependency');
+          bru.setVar('result', dependency.message);
+        `;
+
+        const context = {
+          bru: { setVar: jest.fn() },
+          console: console
+        };
+
+        await runScriptInNodeVm({ script, context, collectionPath, scriptingConfig: {} });
+
+        expect(context.bru.setVar).toHaveBeenCalledWith('result', 'from-cjs-dependency');
+      });
+
+      it('should block dynamic imports outside allowed roots', async () => {
+        fs.writeFileSync(
+          path.join(testDir, 'outside.mjs'),
+          'export const secret = "nope";'
+        );
+
+        const script = `
+          const outside = await import('../outside.mjs');
+        `;
+
+        const context = { console: console };
+
+        await expect(
+          runScriptInNodeVm({ script, context, collectionPath, scriptingConfig: {} })
+        ).rejects.toThrow('Access to files outside of the allowed context roots is not allowed');
+      });
+
       it('should load module with package.json main field', async () => {
         const nodeModulesDir = path.join(collectionPath, 'node_modules', 'custom-main');
         fs.mkdirSync(path.join(nodeModulesDir, 'lib'), { recursive: true });
