@@ -874,6 +874,33 @@ describe('node-vm sandbox', () => {
         expect(context.bru.setVar).toHaveBeenCalledWith('result', 'from-cjs-dependency');
       });
 
+      it('should dynamically import collection ESM npm dependencies', async () => {
+        const nodeModulesDir = path.join(collectionPath, 'node_modules', 'esm-package-dependency');
+        fs.mkdirSync(nodeModulesDir, { recursive: true });
+        fs.writeFileSync(
+          path.join(nodeModulesDir, 'package.json'),
+          '{"name": "esm-package-dependency", "type": "module", "main": "index.js"}'
+        );
+        fs.writeFileSync(
+          path.join(nodeModulesDir, 'index.js'),
+          'export const message = "from-esm-dependency"; export default { message };'
+        );
+
+        const script = `
+          const dependency = await import('esm-package-dependency');
+          bru.setVar('result', dependency.message);
+        `;
+
+        const context = {
+          bru: { setVar: jest.fn() },
+          console: console
+        };
+
+        await runScriptInNodeVm({ script, context, collectionPath, scriptingConfig: {} });
+
+        expect(context.bru.setVar).toHaveBeenCalledWith('result', 'from-esm-dependency');
+      });
+
       it('should block dynamic imports outside allowed roots', async () => {
         fs.writeFileSync(
           path.join(testDir, 'outside.mjs'),

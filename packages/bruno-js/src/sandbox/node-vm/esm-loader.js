@@ -398,6 +398,9 @@ async function createSyntheticModuleFromExports({
 
     if (!defaultOnly && exportsValue && (typeof exportsValue === 'object' || typeof exportsValue === 'function')) {
       Object.keys(exportsValue).forEach((key) => {
+        if (key === 'default') {
+          return;
+        }
         this.setExport(key, exportsValue[key]);
       });
     }
