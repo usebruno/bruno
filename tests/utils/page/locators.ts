@@ -5,7 +5,6 @@ export const buildCommonLocators = (page: Page) => {
     const toCollectionSlug = (n: string) => n.replace(/\s+/g, '-').toLowerCase();
     return page.locator(`#collection-${toCollectionSlug(name)}`);
   };
-  const removeCollectionModal = () => page.locator('.bruno-modal').filter({ hasText: 'Remove Collection' });
 
   return {
     runner: () => page.getByTestId('run-button'),
@@ -29,9 +28,7 @@ export const buildCommonLocators = (page: Page) => {
       collectionRow: (name: string) => page.getByTestId('sidebar-collection-row').filter({ hasText: name }),
       // The sidebar tree wraps each collection in `#collection-<slug>`; scope queries
       // to it to disambiguate items that share names across collections.
-      collectionScope,
-      scopedRequest: (collectionName: string, requestName: string) =>
-        collectionScope(collectionName).locator('.collection-item-name', { hasText: requestName })
+      collectionScope
     },
     actions: {
       collectionActions: (collectionName: string) =>
@@ -74,17 +71,7 @@ export const buildCommonLocators = (page: Page) => {
       card: () => page.locator('.bruno-modal-card'),
       footer: () => page.locator('.bruno-modal-footer'),
       submitButton: () => page.locator('.bruno-modal-footer .submit'),
-      newRequestMethodOption: (id: string) => page.getByTestId(`method-selector-${id.toLowerCase()}`),
-      removeCollection: {
-        modal: removeCollectionModal,
-        path: () => removeCollectionModal().locator('.collection-path'),
-        removeButton: () => removeCollectionModal().getByRole('button', { name: 'Remove', exact: true }),
-        cancelButton: () => removeCollectionModal().getByRole('button', { name: 'Cancel', exact: true }),
-        discardAllAndRemoveButton: () => page.getByRole('button', { name: 'Discard All and Remove' })
-      }
-    },
-    toast: {
-      collectionRemovedFromWorkspace: () => page.getByText('Collection removed from workspace')
+      newRequestMethodOption: (id: string) => page.getByTestId(`method-selector-${id.toLowerCase()}`)
     },
     environment: {
       selector: () => page.getByTestId('environment-selector-trigger'),

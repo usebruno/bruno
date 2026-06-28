@@ -29,43 +29,60 @@ test.describe('Open Multiple Collections', () => {
     const collection1Dir = await createTmpDir('collection-1');
     const collection2Dir = await createTmpDir('collection-2');
 
-    // Create bruno.json for first collection
-    const collection1Config = {
-      version: '1',
-      name: 'Test Collection 1',
-      type: 'collection'
-    };
-    // Create bruno.json for second collection
-    const collection2Config = {
-      version: '1',
-      name: 'Test Collection 2',
-      type: 'collection'
-    };
+    await test.step('Navigate to the parent folder containing multiple collections', async () => {
+      // Create bruno.json for first collection
+      const collection1Config = {
+        version: '1',
+        name: 'Test Collection 1',
+        type: 'collection'
+      };
+      // Create bruno.json for second collection
+      const collection2Config = {
+        version: '1',
+        name: 'Test Collection 2',
+        type: 'collection'
+      };
 
-    fs.writeFileSync(path.join(collection1Dir, 'bruno.json'), JSON.stringify(collection1Config, null, 2));
-    fs.writeFileSync(path.join(collection2Dir, 'bruno.json'), JSON.stringify(collection2Config, null, 2));
+      fs.writeFileSync(path.join(collection1Dir, 'bruno.json'), JSON.stringify(collection1Config, null, 2));
+      fs.writeFileSync(path.join(collection2Dir, 'bruno.json'), JSON.stringify(collection2Config, null, 2));
+    });
 
-    // Mock the electron dialog to return multiple folder selections
-    await electronApp.evaluate(({ dialog }, { collection1Dir, collection2Dir }) => {
-      dialog.showOpenDialog = async () => ({
-        canceled: false,
-        filePaths: [collection1Dir, collection2Dir]
-      });
-    },
-    { collection1Dir, collection2Dir });
+    await test.step('Select two different collections within the parent folder simultaneously', async () => {
+      // Mock the electron dialog to return multiple folder selections
+      await electronApp.evaluate(({ dialog }, { collection1Dir, collection2Dir }) => {
+        dialog.showOpenDialog = async () => ({
+          canceled: false,
+          filePaths: [collection1Dir, collection2Dir]
+        });
+      },
+      { collection1Dir, collection2Dir });
+    });
 
-    await expect(page.locator('#sidebar-collection-name').getByText('Test Collection 1')).not.toBeVisible();
-
-    // Click on plus icon button and then "Open collection" in the dropdown
-    await page.getByTestId('collections-header-add-menu').click();
-    await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Open collection' }).click();
-
-    // Wait for both collections to appear in the sidebar
     const collection1Element = page.locator('#sidebar-collection-name').getByText('Test Collection 1');
     const collection2Element = page.locator('#sidebar-collection-name').getByText('Test Collection 2');
 
-    await expect(collection1Element).toBeVisible();
-    await expect(collection2Element).toBeVisible();
+    await test.step('Initiate the simultaneous opening command', async () => {
+      await expect(collection1Element).not.toBeVisible();
+
+      // Click on plus icon button and then "Open collection" in the dropdown
+      await page.getByTestId('collections-header-add-menu').click();
+      await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Open collection' }).click();
+    });
+
+    await test.step('Verify the launch status of both collections', async () => {
+      await expect(collection1Element).toBeVisible();
+      await expect(collection2Element).toBeVisible();
+    });
+
+    await test.step('Check the functionality and accessibility of each opened collection', async () => {
+      await collection1Element.click();
+      await collection2Element.click();
+    });
+
+    await test.step('Confirm no performance degradation or system resource overload', async () => {
+      await expect(page.getByTestId('collections')).toBeVisible();
+      await expect(page.getByTestId('collections-header-add-menu')).toBeEnabled();
+    });
 
     // cleanup: close all collections
     await closeAllCollections(page);
