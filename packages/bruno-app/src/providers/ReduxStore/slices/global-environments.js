@@ -284,22 +284,10 @@ export const deleteGlobalEnvironment = ({ environmentUid }) => (dispatch, getSta
   });
 };
 
-export const globalEnvironmentsUpdateEvent = ({ globalEnvironmentVariables, collectionUid, requestUid }) => (dispatch, getState) => {
+export const globalEnvironmentsUpdateEvent = ({ globalEnvironmentVariables }) => (dispatch, getState) => {
   if (!globalEnvironmentVariables) return;
 
   const state = getState();
-
-  // Ignore stale updates from superseded/cancelled requests on the originating
-  // collection. _scriptRequestUids holds the set of in-flight script-request UIDs;
-  // an incoming UID that's no longer in the set has been retired. Untyped/missing
-  // set = never tracked (backward compat); empty array = strict drop (nothing in-flight).
-  if (collectionUid && requestUid) {
-    const sourceCollection = state?.collections?.collections?.find((c) => c.uid === collectionUid);
-    const uids = sourceCollection?._scriptRequestUids;
-    if (Array.isArray(uids) && !uids.includes(requestUid)) {
-      return;
-    }
-  }
 
   const globalEnvironments = state?.globalEnvironments?.globalEnvironments || [];
   const environmentUid = state?.globalEnvironments?.activeGlobalEnvironmentUid;

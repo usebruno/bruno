@@ -113,16 +113,21 @@ const writeFile = async (pathname, content, isBinary = false) => {
 // the queue for a path drains.
 const _pathLocks = new Map();
 const withFileLock = async (pathname, fn) => {
-  const prior = _pathLocks.get(pathname) || Promise.resolve();
+  // Canonicalize so callers passing `/foo/./bar.env` and `/foo/bar.env` (or
+  // trailing slashes / `..` segments) share a single lock. Does NOT normalize
+  // symlinks or filesystem case-insensitivity — callers passing semantically
+  // equivalent but different strings beyond that get separate locks.
+  const key = path.resolve(pathname);
+  const prior = _pathLocks.get(key) || Promise.resolve();
   // Errors from a prior writer must not block subsequent writers; the next caller
   // gets its own try/catch.
   const next = prior.catch(() => {}).then(() => fn());
-  _pathLocks.set(pathname, next);
+  _pathLocks.set(key, next);
   try {
     return await next;
   } finally {
-    if (_pathLocks.get(pathname) === next) {
-      _pathLocks.delete(pathname);
+    if (_pathLocks.get(key) === next) {
+      _pathLocks.delete(key);
     }
   }
 };

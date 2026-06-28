@@ -63,7 +63,6 @@ import {
   scriptUpdateCollectionVars,
   setScriptCollVarBaseline,
   _clearScriptCollectionBaselines,
-  isStaleScriptRequest,
   addTransientDirectory,
   addSaveTransientRequestModal,
   updatePathParam,
@@ -2411,15 +2410,10 @@ export const clearScriptVariableBaselines = (collectionUid) => (dispatch) => {
   dispatch(_clearScriptGlobalEnvBaseline());
 };
 
-export const persistActiveEnvironment = (collectionUid, requestUid) => (dispatch, getState) => {
+export const persistActiveEnvironment = (collectionUid) => (dispatch, getState) => {
   const state = getState();
   const collection = findCollectionByUid(state.collections.collections, collectionUid);
   if (!collection) return;
-
-  // Ignore stale updates from superseded/cancelled requests so an in-flight
-  // pre/post from a retired request can't trigger a disk write that overwrites
-  // a newer request's environment state.
-  if (isStaleScriptRequest(collection, requestUid)) return;
 
   const environment = findEnvironmentInCollection(collection, collection.activeEnvironmentUid);
   if (!environment) return;
@@ -2441,17 +2435,12 @@ export const persistActiveEnvironment = (collectionUid, requestUid) => (dispatch
     .catch((err) => console.error('Failed to persist environment during script execution:', err));
 };
 
-export const collectionVariablesUpdateEvent = ({ collectionVariables, collectionUid, requestUid }) => (dispatch, getState) => {
+export const collectionVariablesUpdateEvent = ({ collectionVariables, collectionUid }) => (dispatch, getState) => {
   if (!collectionVariables || !collectionUid) return;
 
   const state = getState();
   const collection = findCollectionByUid(state.collections.collections, collectionUid);
   if (!collection) return;
-
-  // Ignore stale updates from superseded/cancelled requests.
-  if (isStaleScriptRequest(collection, requestUid)) {
-    return;
-  }
 
   const savedVars = get(collection, 'root.request.vars.req', []);
   const draftVars = collection.draft?.root

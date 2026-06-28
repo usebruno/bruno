@@ -1654,15 +1654,10 @@ const registerNetworkIpc = (mainWindow) => {
           let timeEnd;
 
           const requestUid = uuid();
-          // Thread requestUid into the shared eventData so every downstream
-          // run-folder-event for this request carries it. The renderer uses
-          // it to retire the script-request UID on the *last* per-request
-          // event (test-script-execution), gating out late stale emissions
-          // without dropping in-flight post-response/test variable updates.
-          eventData.requestUid = requestUid;
 
           mainWindow.webContents.send('main:run-folder-event', {
             type: 'request-queued',
+            requestUid,
             ...eventData
           });
 
