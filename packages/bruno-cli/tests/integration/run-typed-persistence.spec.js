@@ -7,7 +7,6 @@ const { spawn } = require('child_process');
 
 const CLI_BIN = path.resolve(__dirname, '..', '..', 'bin', 'bru.js');
 
-// Writes a fixture file, creating any missing parent directories first (mkdir -p semantics).
 const writeFixtureFile = (filePath, content) => {
   fs.mkdirSync(path.dirname(filePath), { recursive: true });
   fs.writeFileSync(filePath, content);
@@ -39,8 +38,6 @@ script:post-response {
 `;
 
 describe('CLI run — typed env + collection vars set via scripts are persisted to disk', () => {
-  // The CLI needs a reachable HTTP target so its post-response script can run.
-  // Spin up a throwaway local server so the test doesn't depend on the network.
   let server;
   let baseUrl;
   let tmpDir;
@@ -67,9 +64,8 @@ describe('CLI run — typed env + collection vars set via scripts are persisted 
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  // spawnSync would block jest's event loop, leaving the in-process HTTP server unable to
-  // answer the CLI's request — leading to ECONNREFUSED and the post-response script never
-  // running. Use async spawn so the server stays responsive.
+  // spawnSync blocks jest's event loop, starving the in-process HTTP server → ECONNREFUSED.
+  // Use async spawn so the server stays responsive.
   const runCli = (args, cwd = tmpDir) =>
     new Promise((resolve, reject) => {
       const child = spawn(process.execPath, [CLI_BIN, ...args], { cwd, env: { ...process.env } });
@@ -102,10 +98,7 @@ describe('CLI run — typed env + collection vars set via scripts are persisted 
     expect(collectionBru).toMatch(/collStr:\s*plain/);
   };
 
-  // Run the same fixture under both sandboxes — they wrap different JS runtimes (`nodevm` vs
-  // `quickjs`) but must produce identical persisted disk state. See
-  // packages/bruno-cli/src/commands/run.js getJsSandboxRuntime: 'safe' → quickjs, anything
-  // else → nodevm.
+  // 'safe' → quickjs, anything else → nodevm. Both runtimes must produce identical disk state.
   it.each([
     ['developer'],
     ['safe']
@@ -128,8 +121,6 @@ describe('CLI run — typed env + collection vars set via scripts are persisted 
       'run', 'set-typed-vars.bru', '--env', 'Test', '--sandbox', sandbox, '--noproxy'
     ]);
 
-    // If the CLI hard-fails (non-zero exit + no request output), surface its stderr so the
-    // failure mode is obvious instead of a cryptic "file content didn't match" assertion below.
     if (result.code !== 0) {
       throw new Error(
         `CLI exited with code ${result.code}.\n--- stdout ---\n${result.stdout}\n--- stderr ---\n${result.stderr}`
@@ -139,11 +130,8 @@ describe('CLI run — typed env + collection vars set via scripts are persisted 
     assertDiskState();
   }, 60_000);
 
-  // Global env vars live in the workspace, not the collection. The CLI finds them by walking
-  // up from cwd looking for workspace.yml (or honoring --workspace-path), then reading
-  // <workspace>/environments/<name>.yml. Persistence routes through the same
-  // persistVariableUpdates path as env/collection vars — see run.js:484 for the
-  // globalEnvFileDescriptor wiring.
+  // Global env vars live in the workspace, not the collection — CLI walks up from cwd looking
+  // for workspace.yml, then reads <workspace>/environments/<name>.yml.
   it.each([
     ['developer'],
     ['safe']
@@ -151,8 +139,6 @@ describe('CLI run — typed env + collection vars set via scripts are persisted 
     const workspaceDir = path.join(tmpDir, 'workspace');
     const collectionDir = path.join(workspaceDir, 'typed-cli-collection');
 
-    // The CLI's workspace check only looks for the file's existence — see run.js
-    // findWorkspacePath. A minimal valid YAML body keeps the fixture small.
     writeFixtureFile(
       path.join(workspaceDir, 'workspace.yml'),
       'opencollection: 1.0.0\ninfo:\n  name: "Test Workspace"\n  type: workspace\ncollections:\n  - name: "typed-cli-collection"\n    path: "typed-cli-collection"\nspecs:\ndocs: \'\'\n'
@@ -203,9 +189,7 @@ script:post-response {
       );
     }
 
-    // The yml env serializer encodes typed values as `value: { type, data }` blocks — see
-    // packages/bruno-filestore/src/formats/yml/common/datatype.ts. Strings stay as raw
-    // `value: …` with no type block.
+    // yml encodes typed values as `value: { type, data }` blocks; strings stay as raw `value:`.
     const written = fs.readFileSync(path.join(workspaceDir, 'environments', 'Global.yml'), 'utf8');
     expect(written).toMatch(/name:\s*globalNum[\s\S]*?type:\s*number[\s\S]*?data:\s*['"]?99/);
     expect(written).toMatch(/name:\s*globalBool[\s\S]*?type:\s*boolean[\s\S]*?data:\s*['"]?false/);
@@ -214,13 +198,9 @@ script:post-response {
     expect(written).not.toMatch(/name:\s*baseUrl[\s\S]*?type:\s*string/);
   }, 60_000);
 
-  // Verifies the explicit --workspace-path flag (vs. cwd walk-up via findWorkspacePath at
-  // run.js:440). With the collection sitting OUTSIDE the workspace tree, the auto-detect
-  // walk-up cannot find workspace.yml — the only way the CLI locates the global env file is
-  // via the explicit flag. Persistence must still route correctly through that code path.
+  // Collection lives outside the workspace tree, so cwd walk-up can't find workspace.yml —
+  // only --workspace-path can locate it.
   it('persists typed global env vars when --workspace-path is provided explicitly', async () => {
-    // Workspace and collection are siblings — auto-detect walk-up from the collection dir
-    // never reaches the workspace, so --workspace-path is the only way the CLI finds it.
     const workspaceDir = path.join(tmpDir, 'workspace');
     const collectionDir = path.join(tmpDir, 'standalone-collection');
 
@@ -284,10 +264,8 @@ script:post-response {
     expect(written).toMatch(/name:\s*globalBool[\s\S]*?type:\s*boolean[\s\S]*?data:\s*['"]?false/);
   }, 60_000);
 
-  // --env-file is the only CLI surface that supports JSON env files (--global-env and --env
-  // are locked to yml / bru-or-yml respectively). End-to-end coverage of the JSON branch in
-  // persistEnvFile, including the shape-preservation guarantee: uid and custom fields on
-  // entries the script doesn't touch must survive the round trip.
+  // --env-file is the only CLI surface that supports JSON env files. uid + custom fields on
+  // untouched entries must survive the rewrite.
   it('persists typed env vars to a --env-file JSON file and preserves per-entry uid / custom fields', async () => {
     writeFixtureFile(
       path.join(tmpDir, 'bruno.json'),
@@ -298,9 +276,6 @@ script:post-response {
       'meta {\n  name: json-env-collection\n  seq: 1\n}\n'
     );
 
-    // Existing entries carry uid + custom fields to verify the rewrite path doesn't strip
-    // them. `host` will be echoed back unchanged by the script (used by the request URL);
-    // `untouched` will not appear in the script's writes at all.
     writeFixtureFile(
       path.join(tmpDir, 'External.json'),
       JSON.stringify({
@@ -348,27 +323,20 @@ script:post-response {
     }
 
     const written = JSON.parse(fs.readFileSync(path.join(tmpDir, 'External.json'), 'utf8'));
-    // Top-level metadata preserved
     expect(written.uid).toBe('env-uid-abc');
     const byName = Object.fromEntries(written.variables.map((v) => [v.name, v]));
-    // New typed vars from the script
     expect(byName.port).toMatchObject({ value: 3000, dataType: 'number' });
     expect(byName.enabled).toMatchObject({ value: true, dataType: 'boolean' });
-    // Untouched entry retains uid + custom field
     expect(byName.untouched).toMatchObject({
       value: 'stays-put',
       uid: 'var-untouched',
       custom: 'keep-me'
     });
-    // Echoed-back entry retains uid + custom field
     expect(byName.host).toMatchObject({ uid: 'var-host', custom: 'keep-host' });
   }, 60_000);
 
-  // End-to-end coverage of resolveEnvFileFormat's extension-detection branching for the
-  // two non-JSON formats. The persistence behavior for yml / bru is already proven via
-  // --env (.bru) and --global-env (.yml); these tests prove that --env-file <path>.yml
-  // and --env-file <path>.bru also wire through correctly — descriptor format inferred
-  // from the extension, parser/serializer selected accordingly.
+  // --env-file infers format from extension — yml/bru wiring is covered separately by --env
+  // and --global-env. These tests prove the --env-file <path>.{yml,bru} branches.
   it('persists typed env vars to a --env-file YAML file with type/data blocks', async () => {
     writeFixtureFile(
       path.join(tmpDir, 'bruno.json'),
@@ -416,20 +384,16 @@ script:post-response {
       );
     }
 
-    // yml serializer encodes typed values as `value: { type, data }` blocks.
     const written = fs.readFileSync(path.join(tmpDir, 'External.yml'), 'utf8');
     expect(written).toMatch(/name:\s*port[\s\S]*?type:\s*number[\s\S]*?data:\s*['"]?3000/);
     expect(written).toMatch(/name:\s*enabled[\s\S]*?type:\s*boolean[\s\S]*?data:\s*['"]?true/);
-    // String values stay as raw `value: ...` — no type/data block.
     expect(written).toMatch(/name:\s*host[\s\S]*?value:\s*['"]?http:\/\/127\.0\.0\.1/);
     expect(written).not.toMatch(/name:\s*host[\s\S]*?type:\s*string/);
   }, 60_000);
 
-  // JSON natively supports typed values (`"value": 42`, `"value": true`, `"value": {…}`),
-  // so a JSON env file can seed with real JS types directly — no `dataType` tag needed.
-  // The script then touches an UNRELATED key, which forces the runtime to echo back the
-  // full env map. Every seeded typed value must survive that echo intact — same type, same
-  // value, and `dataType` gets auto-annotated to match the JS type.
+  // JSON natively types values via JSON.parse — no dataType tag needed on seed. Script touches
+  // an unrelated key, forcing a full-env echo; seeded values must survive intact with
+  // auto-annotated dataType.
   it('preserves pre-existing native typed values in --env-file JSON when script touches unrelated keys', async () => {
     writeFixtureFile(
       path.join(tmpDir, 'bruno.json'),
@@ -445,7 +409,6 @@ script:post-response {
         name: 'External',
         variables: [
           { name: 'host', value: baseUrl },
-          // Native typed values — no dataType tag needed; JSON.parse keeps the JS type.
           { name: 'seedNum', value: 42 },
           { name: 'seedBool', value: true },
           { name: 'seedObj', value: { region: 'eu', port: 3000 } },
@@ -488,16 +451,13 @@ script:post-response {
 
     const written = JSON.parse(fs.readFileSync(path.join(tmpDir, 'External.json'), 'utf8'));
     const byName = Object.fromEntries(written.variables.map((v) => [v.name, v]));
-    // Native types preserved AND auto-annotated with dataType matching the JS type.
     expect(byName.seedNum).toMatchObject({ value: 42, dataType: 'number' });
     expect(byName.seedBool).toMatchObject({ value: true, dataType: 'boolean' });
     expect(byName.seedObj).toMatchObject({ value: { region: 'eu', port: 3000 }, dataType: 'object' });
     // Arrays are `typeof === 'object'` in JS, so they get dataType: 'object'.
     expect(byName.seedArr).toMatchObject({ value: [1, 2, 3], dataType: 'object' });
-    // String stays string — no dataType added.
     expect(byName.host.value).toBe(baseUrl);
     expect(byName.host.dataType).toBeUndefined();
-    // The trigger key the script wrote is also there.
     expect(byName.trigger).toMatchObject({ value: 'x' });
     expect(byName.trigger.dataType).toBeUndefined();
   }, 60_000);
@@ -549,20 +509,15 @@ script:post-response {
       );
     }
 
-    // .bru serializer emits typed values as `@dataType` decorators on the preceding line.
     const written = fs.readFileSync(path.join(tmpDir, 'External.bru'), 'utf8');
     expect(written).toMatch(/@number\s+port:\s*3000/);
     expect(written).toMatch(/@boolean\s+enabled:\s*true/);
-    // String values get no annotation.
     expect(written).not.toMatch(/@string\s+host/);
     expect(written).toMatch(/host:\s*http:\/\/127\.0\.0\.1/);
   }, 60_000);
 
-  // Regression guard at the CLI binary boundary: --env-var values are transient (the CLI
-  // can't decrypt at-rest secrets, so users pass them in for a single run). Even though a
-  // script writes an unrelated env var — which dirties the env scope and makes the runtime
-  // echo back the full envVariables map including the override — the on-disk env file must
-  // keep its real secret untouched.
+  // --env-var values are transient. Even when a script write triggers full-env echo, the
+  // override must NOT replace the on-disk secret.
   it('does not persist --env-var override values into the env file', async () => {
     writeFixtureFile(
       path.join(tmpDir, 'bruno.json'),
@@ -611,17 +566,14 @@ script:post-response {
     }
 
     const envContent = fs.readFileSync(path.join(tmpDir, 'environments', 'Test.bru'), 'utf8');
-    // Real on-disk secret preserved
     expect(envContent).toMatch(/token:\s*real-secret-on-disk/);
-    // Transient override value NEVER reaches disk
     expect(envContent).not.toContain('transient-cli-value');
-    // Unrelated key from the script is persisted normally
     expect(envContent).toMatch(/unrelated:\s*value/);
   }, 60_000);
 
-  // Regression guard for the partial-results path: when a post-response script throws
-  // after writing a var, run-single-request.js still calls syncVariableUpdates with
-  // `error.partialResults`. The on-disk env file must reflect the pre-throw write.
+  // When a post-response script throws after writing a var, run-single-request.js calls
+  // syncVariableUpdates with `error.partialResults`. The on-disk env file must reflect the
+  // pre-throw write.
   it('persists vars written before a post-response script error (partial results)', async () => {
     writeFixtureFile(
       path.join(tmpDir, 'bruno.json'),
@@ -656,12 +608,13 @@ script:post-response {
 `
     );
 
-    // CLI exits non-zero (the thrown script is logged as a failed post-response test, which
-    // trips the failedPostResponseTests check in run.js). That failure IS the case we want
-    // to exercise — persistence runs from the script's partial results regardless.
-    await runCli([
+    const result = await runCli([
       'run', 'set-then-throw.bru', '--env', 'Test', '--sandbox', 'developer', '--noproxy'
     ]);
+
+    // Pin failure exit first — otherwise the persistence assertion below could pass for the
+    // wrong reason (e.g. the script never ran).
+    expect(result.code).not.toBe(0);
 
     const envContent = fs.readFileSync(path.join(tmpDir, 'environments', 'Test.bru'), 'utf8');
     expect(envContent).toMatch(/@number\s+beforeThrow:\s*42/);
