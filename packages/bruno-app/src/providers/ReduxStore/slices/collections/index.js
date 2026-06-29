@@ -2348,6 +2348,23 @@ export const collectionsSlice = createSlice({
         set(collection, 'draft.brunoConfig.protobuf', action.payload.protobuf);
       }
     },
+    ignoreCollectionFolder: (state, action) => {
+      const { collectionUid, folderPathname, ignorePath } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+
+      if (collection) {
+        collection.brunoConfig = cloneDeep(collection.brunoConfig || {});
+        const currentIgnore = collection.brunoConfig.ignore || [];
+        collection.brunoConfig.ignore = [...new Set([...currentIgnore, ignorePath])];
+
+        if (collection.draft?.brunoConfig) {
+          const currentDraftIgnore = collection.draft.brunoConfig.ignore || [];
+          collection.draft.brunoConfig.ignore = [...new Set([...currentDraftIgnore, ignorePath])];
+        }
+
+        deleteItemInCollectionByPathname(folderPathname, collection);
+      }
+    },
     addFolderHeader: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
       const folder = collection ? findItemInCollection(collection, action.payload.folderUid) : null;
@@ -4008,6 +4025,7 @@ export const {
   updateCollectionClientCertificates,
   updateCollectionPresets,
   updateCollectionProtobuf,
+  ignoreCollectionFolder,
   collectionAddFileEvent,
   collectionAddDirectoryEvent,
   collectionChangeFileEvent,

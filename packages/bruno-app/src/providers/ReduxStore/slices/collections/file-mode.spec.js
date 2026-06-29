@@ -1,5 +1,6 @@
 import reducer, {
   createCollection,
+  ignoreCollectionFolder,
   toggleCollectionFileMode,
   updateFileContent,
   collectionChangeFileEvent
@@ -7,6 +8,7 @@ import reducer, {
 
 const COLLECTION_UID = 'col-1';
 const ITEM_UID = 'req-1';
+const FOLDER_UID = 'folder-1';
 
 const makeRequest = (overrides = {}) => ({
   url: 'https://example.com/userinfo',
@@ -77,6 +79,75 @@ describe('toggleCollectionFileMode', () => {
     const state = reducer(initialState, toggleCollectionFileMode({ collectionUid: 'unknown' }));
 
     expect(state.collections[0].fileMode).toBe(false);
+  });
+});
+
+describe('ignoreCollectionFolder', () => {
+  test('adds the folder path to collection ignore config and removes it from the tree', () => {
+    const state = reducer(
+      {
+        collections: [
+          {
+            uid: COLLECTION_UID,
+            pathname: '/coll',
+            brunoConfig: { ignore: ['node_modules'], proxy: { enabled: true } },
+            root: {},
+            items: [
+              {
+                uid: FOLDER_UID,
+                name: 'Drafts',
+                filename: 'drafts',
+                pathname: '/coll/drafts',
+                type: 'folder',
+                items: []
+              }
+            ]
+          }
+        ]
+      },
+      ignoreCollectionFolder({
+        collectionUid: COLLECTION_UID,
+        folderPathname: '/coll/drafts',
+        ignorePath: 'drafts'
+      })
+    );
+
+    const collection = state.collections[0];
+    expect(collection.items).toHaveLength(0);
+    expect(collection.brunoConfig.ignore).toEqual(['node_modules', 'drafts']);
+    expect(collection.brunoConfig.proxy).toEqual({ enabled: true });
+  });
+
+  test('does not duplicate an existing ignore entry', () => {
+    const state = reducer(
+      {
+        collections: [
+          {
+            uid: COLLECTION_UID,
+            pathname: '/coll',
+            brunoConfig: { ignore: ['drafts'] },
+            root: {},
+            items: [
+              {
+                uid: FOLDER_UID,
+                name: 'Drafts',
+                filename: 'drafts',
+                pathname: '/coll/drafts',
+                type: 'folder',
+                items: []
+              }
+            ]
+          }
+        ]
+      },
+      ignoreCollectionFolder({
+        collectionUid: COLLECTION_UID,
+        folderPathname: '/coll/drafts',
+        ignorePath: 'drafts'
+      })
+    );
+
+    expect(state.collections[0].brunoConfig.ignore).toEqual(['drafts']);
   });
 });
 

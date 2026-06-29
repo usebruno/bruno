@@ -7,7 +7,7 @@ import find from 'lodash/find';
 import get from 'lodash/get';
 import set from 'lodash/set';
 import trim from 'lodash/trim';
-import path, { normalizePath, isPathExternalToBasePath } from 'utils/common/path';
+import path, { getRelativePath, normalizePath, isPathExternalToBasePath } from 'utils/common/path';
 import { insertTaskIntoQueue, toggleSidebarCollapse } from 'providers/ReduxStore/slices/app';
 import toast from 'react-hot-toast';
 import IpcErrorModal from 'components/Errors/IpcErrorModal/index';
@@ -50,6 +50,7 @@ import {
   updateRunnerConfiguration as _updateRunnerConfiguration,
   updateActiveConnections,
   saveRequest as _saveRequest,
+  ignoreCollectionFolder,
   saveEnvironment as _saveEnvironment,
   updateEnvironmentColor as _updateEnvironmentColor,
   saveCollectionDraft,
@@ -2716,6 +2717,40 @@ export const updateBrunoConfig = (brunoConfig, collectionUid) => (dispatch, getS
       .then(resolve)
       .catch(reject);
   });
+};
+
+export const ignoreFolder = (folderUid, collectionUid) => async (dispatch, getState) => {
+  const state = getState();
+  const collection = findCollectionByUid(state.collections.collections, collectionUid);
+
+  if (!collection) {
+    throw new Error('Collection not found');
+  }
+
+  const folder = findItemInCollection(collection, folderUid);
+  if (!folder || !isItemAFolder(folder)) {
+    throw new Error('Folder not found');
+  }
+
+  const ignorePath = getRelativePath(collection.pathname, folder.pathname, true);
+  if (!ignorePath || ignorePath === '.' || ignorePath === '..' || ignorePath.startsWith('../')) {
+    throw new Error('Folder must be inside the collection');
+  }
+
+  const brunoConfig = cloneDeep(collection.draft?.brunoConfig || collection.brunoConfig || {});
+  brunoConfig.ignore = [...new Set([...(brunoConfig.ignore || []), ignorePath])];
+
+  await dispatch(updateBrunoConfig(brunoConfig, collectionUid));
+
+  dispatch(
+    ignoreCollectionFolder({
+      collectionUid,
+      folderPathname: folder.pathname,
+      ignorePath
+    })
+  );
+
+  toast.success(`Folder "${folder.name}" ignored`);
 };
 
 /**
