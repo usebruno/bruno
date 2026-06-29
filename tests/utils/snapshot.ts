@@ -41,3 +41,30 @@ export const findSnapshotCollectionTab = (snapshot: any, collectionPath: string)
   }
   return null;
 };
+
+export const findSnapshotCollectionEntry = (snapshot: any, collectionPath: string) => {
+  if (!snapshot || !Array.isArray(snapshot.collections)) {
+    return null;
+  }
+
+  const normalizedTarget = path.normalize(collectionPath);
+  return snapshot.collections.find(
+    (collection: any) => typeof collection?.pathname === 'string'
+      && path.normalize(collection.pathname) === normalizedTarget
+  ) || null;
+};
+
+export const waitForSnapshotCollectionEnvironment = async (
+  userDataPath: string,
+  collectionPath: string,
+  selectedEnvironment: string,
+  options: { timeout?: number } = {}
+) => {
+  const { timeout = 15000 } = options;
+
+  await expect.poll(() => {
+    const snapshot = readSnapshot(userDataPath);
+    const entry = findSnapshotCollectionEntry(snapshot, collectionPath);
+    return entry?.selectedEnvironment || '';
+  }, { timeout }).toBe(selectedEnvironment);
+};
