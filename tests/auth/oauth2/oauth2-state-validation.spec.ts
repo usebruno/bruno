@@ -107,13 +107,18 @@ type CallbackStyle = 'query' | 'hash';
 
 const stateFromAuthorizationUrl = (url: string) => new URL(url).searchParams.get('state');
 
+// Bruno always appends a cryptographically random nonce (crypto.randomBytes(16) → 32 hex
+// chars) to the state — whether the user configured one or not (see generateState in
+// oauth2.js). So the issued state is at least that nonce length.
+const STATE_NONCE_HEX_LENGTH = 32;
+
 /** `state` Bruno sent on the authorization URL (stored internally as expectedState). */
 const getIssuedState = async (app: ElectronApplication): Promise<string> => {
   const authUrl = await getCapturedAuthUrl(app);
   expect(authUrl, 'authorization URL should have been opened').toBeTruthy();
   const state = stateFromAuthorizationUrl(authUrl as string);
   expect(state, 'issued state should be present on the authorization URL').toBeTruthy();
-  expect(state).toMatch(/^[0-9a-f]{32}$/);
+  expect((state as string).length).toBeGreaterThanOrEqual(STATE_NONCE_HEX_LENGTH);
   return state as string;
 };
 
@@ -249,6 +254,40 @@ test.describe('OAuth2 callback state validation', () => {
     const { state: returnedState, access_token } = getCallbackParams(receivedCallbackUrl as string, 'hash');
     expect(returnedState).toBe(issuedState);
     expect(access_token).toBe(PROVIDER_ACCESS_TOKEN);
+
+    await expect(page.getByText('Token fetched successfully!')).toBeVisible({ timeout: 15_000 });
+  });
+
+  test('authorization code (user-supplied state): issues userState + nonce and accepts matching callback', async ({ restartApp }) => {
+    test.setTimeout(60_000);
+    const USER_STATE = 'brunoUserState';
+    const app = await restartApp();
+    const page = await waitForReadyPage(app);
+    await stubOpenExternal(app);
+    await installCallbackCapture(app);
+
+    await clickGetAccessToken(page, 'User Supplied State');
+    await waitForAuthorizationStarted(app);
+    const authUrl = await getCapturedAuthUrl(app);
+    expect(authUrl).toBeTruthy();
+
+    const issuedState = await getIssuedState(app);
+    // Bruno appends a nonce — the issued state must be `userState + <32 hex>`, not the raw input.
+    expect(issuedState.startsWith(USER_STATE)).toBeTruthy();
+    expect(issuedState).not.toBe(USER_STATE);
+    expect(issuedState.slice(USER_STATE.length)).toMatch(/^[0-9a-f]{32}$/);
+
+    const authCode = await fetchAuthCodeFromTestbench(authUrl as string);
+    const callbackUrl = `${CALLBACK}?code=${authCode}&state=${encodeURIComponent(issuedState)}`;
+
+    await fireCallback(app, callbackUrl);
+
+    const receivedCallbackUrl = await getCapturedCallbackUrl(app);
+    expect(receivedCallbackUrl).toBe(callbackUrl);
+
+    const { state: returnedState, code } = getCallbackParams(receivedCallbackUrl as string);
+    expect(returnedState).toBe(issuedState);
+    expect(code).toBe(authCode);
 
     await expect(page.getByText('Token fetched successfully!')).toBeVisible({ timeout: 15_000 });
   });
