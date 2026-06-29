@@ -120,6 +120,13 @@ describe('Variables Translation', () => {
     expect(translatedCode).toBe('bru.deleteAllGlobalEnvVars();');
   });
 
+  it('should translate pm.globals.toObject', () => {
+    const code = 'const globals = pm.globals.toObject();';
+    const translatedCode = translateCode(code);
+
+    expect(translatedCode).toBe('const globals = bru.getAllGlobalEnvVars();');
+  });
+
   it('should translate pm.collectionVariables.clear', () => {
     const code = 'pm.collectionVariables.clear();';
     const translatedCode = translateCode(code);
