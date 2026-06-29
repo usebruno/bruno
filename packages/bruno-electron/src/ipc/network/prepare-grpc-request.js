@@ -161,6 +161,8 @@ const prepareGrpcRequest = async (item, collection, environment, runtimeVariable
     body: request.body,
     protoPath: request.protoPath,
     script: request.script,
+    tests: request.tests,
+    testsMetadata: request.testsMetadata,
     // Add variable properties for interpolation
     vars: request.vars,
     collectionVariables: request.collectionVariables,

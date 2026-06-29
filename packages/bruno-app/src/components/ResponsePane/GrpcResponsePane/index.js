@@ -18,6 +18,8 @@ import ResponseLayoutToggle from '../ResponseLayoutToggle';
 import ResponsiveTabs from 'ui/ResponsiveTabs';
 import ScriptError from '../ScriptError';
 import ScriptErrorIcon from '../ScriptErrorIcon';
+import TestResults from '../TestResults';
+import TestResultsLabel from '../TestResultsLabel';
 
 const GrpcResponsePane = ({ item, collection }) => {
   const dispatch = useDispatch();
@@ -80,6 +82,18 @@ const GrpcResponsePane = ({ item, collection }) => {
       key: 'timeline',
       label: 'Timeline',
       indicator: null
+    },
+    {
+      key: 'tests',
+      label: (
+        <TestResultsLabel
+          results={item.testResults}
+          assertionResults={item.assertionResults}
+          preRequestTestResults={item.preRequestTestResults}
+          postResponseTestResults={item.postResponseTestResults}
+        />
+      ),
+      indicator: null
     }
   ];
 
@@ -96,6 +110,17 @@ const GrpcResponsePane = ({ item, collection }) => {
       }
       case 'timeline': {
         return <Timeline collection={collection} item={item} activeTabUid={activeTabUid} />;
+      }
+      case 'tests': {
+        return (
+          <TestResults
+            item={item}
+            results={item.testResults}
+            assertionResults={item.assertionResults}
+            preRequestTestResults={item.preRequestTestResults}
+            postResponseTestResults={item.postResponseTestResults}
+          />
+        );
       }
       default: {
         return <div>404 | Not found</div>;
