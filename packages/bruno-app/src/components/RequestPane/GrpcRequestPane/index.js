@@ -5,6 +5,7 @@ import RequestHeaders from 'components/RequestPane/RequestHeaders';
 import GrpcBody from 'components/RequestPane/GrpcBody';
 import GrpcAuth from './GrpcAuth/index';
 import GrpcAuthMode from './GrpcAuth/GrpcAuthMode/index';
+import GrpcSettingsPane from 'components/RequestPane/GrpcSettingsPane';
 import StatusDot from 'components/StatusDot/index';
 import HeightBoundContainer from 'ui/HeightBoundContainer';
 import find from 'lodash/find';
@@ -42,6 +43,9 @@ const GrpcRequestPane = ({ item, collection, handleRun }) => {
       }
       case 'auth': {
         return <GrpcAuth item={item} collection={collection} />;
+      }
+      case 'settings': {
+        return <GrpcSettingsPane item={item} collection={collection} />;
       }
       case 'docs': {
         return <Documentation item={item} collection={collection} />;
@@ -94,6 +98,11 @@ const GrpcRequestPane = ({ item, collection, handleRun }) => {
         key: 'auth',
         label: 'Auth',
         indicator: hasAuth ? <StatusDot type="default" dataTestId="auth" /> : null
+      },
+      {
+        key: 'settings',
+        label: 'Settings',
+        indicator: null
       },
       {
         key: 'docs',

@@ -34,6 +34,16 @@ const configOptions = {
   json: true
 };
 
+/**
+ * Default gRPC channel options.
+ * Sets unlimited message sizes since Bruno is a client-side tool
+ * and should not impose arbitrary limits on responses.
+ */
+const DEFAULT_CHANNEL_OPTIONS = {
+  'grpc.max_receive_message_length': -1,
+  'grpc.max_send_message_length': -1
+};
+
 const reflectionServices = ['grpc.reflection.v1alpha.ServerReflection', 'grpc.reflection.v1.ServerReflection'];
 
 const replaceTabsWithSpaces = (str, numSpaces = 2) => {
@@ -431,7 +441,7 @@ class GrpcClient {
    * @returns {Promise<boolean>} Whether methods were successfully refreshed
    * @private
    */
-  async #refreshMethods({ url, headers, protoPath, collectionPath, collectionUid, certificates = {}, verifyOptions, includeDirs = [], proxyConfig }) {
+  async #refreshMethods({ url, headers, protoPath, collectionPath, collectionUid, certificates = {}, verifyOptions, includeDirs = [], proxyConfig, protoOptions = {} }) {
     try {
       // Try reflection first if no proto path is specified
       if (!protoPath) {
@@ -445,7 +455,8 @@ class GrpcClient {
           pfx: certificates.pfx,
           verifyOptions,
           sendEvent: () => {}, // No-op for refresh
-          proxyConfig
+          proxyConfig,
+          protoOptions
         });
         return true;
       }
@@ -453,7 +464,7 @@ class GrpcClient {
       // Try proto file if available
       if (protoPath) {
         const absoluteProtoPath = nodePath.resolve(collectionPath, protoPath);
-        await this.loadMethodsFromProtoFile(absoluteProtoPath, includeDirs);
+        await this.loadMethodsFromProtoFile(absoluteProtoPath, includeDirs, protoOptions);
         return true;
       }
 
@@ -498,13 +509,14 @@ class GrpcClient {
   /**
    * Handle unary responses
    */
-  #handleUnaryResponse({ client, requestId, requestPath, method, messages, metadata, collectionUid }) {
+  #handleUnaryResponse({ client, requestId, requestPath, method, messages, metadata, collectionUid, callOptions = {} }) {
     const rpc = client.makeUnaryRequest(
       requestPath,
       method.requestSerialize,
       method.responseDeserialize,
       messages[0],
       metadata,
+      callOptions,
       (error, res) => {
         this.eventCallback('grpc:response', requestId, collectionUid, { error, res });
       }
@@ -514,12 +526,13 @@ class GrpcClient {
     setupGrpcEventHandlers(this.eventCallback, requestId, collectionUid, rpc, () => this.#removeConnection(requestId));
   }
 
-  #handleClientStreamingResponse({ client, requestId, requestPath, method, metadata, collectionUid }) {
+  #handleClientStreamingResponse({ client, requestId, requestPath, method, metadata, collectionUid, callOptions = {} }) {
     const rpc = client.makeClientStreamRequest(
       requestPath,
       method.requestSerialize,
       method.responseDeserialize,
       metadata,
+      callOptions,
       (error, res) => {
         this.eventCallback('grpc:response', requestId, collectionUid, { error, res });
       }
@@ -529,7 +542,7 @@ class GrpcClient {
     setupGrpcEventHandlers(this.eventCallback, requestId, collectionUid, rpc, () => this.#removeConnection(requestId));
   }
 
-  #handleServerStreamingResponse({ client, requestId, requestPath, method, messages, metadata, collectionUid }) {
+  #handleServerStreamingResponse({ client, requestId, requestPath, method, messages, metadata, collectionUid, callOptions = {} }) {
     const message = messages[0];
     const rpc = client.makeServerStreamRequest(
       requestPath,
@@ -537,6 +550,7 @@ class GrpcClient {
       method.responseDeserialize,
       message,
       metadata,
+      callOptions,
       (error, res) => {
         this.eventCallback('grpc:response', requestId, collectionUid, { error, res });
       }
@@ -546,12 +560,13 @@ class GrpcClient {
     setupGrpcEventHandlers(this.eventCallback, requestId, collectionUid, rpc, () => this.#removeConnection(requestId));
   }
 
-  #handleBidiStreamingResponse({ client, requestId, requestPath, method, messages, metadata, collectionUid }) {
+  #handleBidiStreamingResponse({ client, requestId, requestPath, method, messages, metadata, collectionUid, callOptions = {} }) {
     const rpc = client.makeBidiStreamRequest(
       requestPath,
       method.requestSerialize,
       method.responseDeserialize,
-      metadata
+      metadata,
+      callOptions
     );
     this.#addConnection(requestId, { rpc, client });
 
@@ -592,7 +607,9 @@ class GrpcClient {
     verifyOptions,
     channelOptions = {},
     includeDirs = [],
-    proxyConfig
+    proxyConfig,
+    protoOptions = {},
+    deadline
   }) {
     const credentials = this.#getChannelCredentials({
       url: request.url,
@@ -630,7 +647,8 @@ class GrpcClient {
         },
         verifyOptions,
         includeDirs,
-        proxyConfig
+        proxyConfig,
+        protoOptions
       });
 
       if (!refreshSuccess) {
@@ -655,7 +673,7 @@ class GrpcClient {
     // Resolve proxy target and channel options
     const { targetHost, proxyChannelOptions } = this.#resolveProxyTarget(host, proxyConfig);
 
-    const mergedChannelOptions = { ...channelOptions, ...proxyChannelOptions };
+    const mergedChannelOptions = { ...DEFAULT_CHANNEL_OPTIONS, ...channelOptions, ...proxyChannelOptions };
     if (userAgentValue && !channelOptions?.['grpc.primary_user_agent']) {
       mergedChannelOptions['grpc.primary_user_agent'] = userAgentValue;
     }
@@ -664,6 +682,12 @@ class GrpcClient {
     const client = new Client(targetHost, credentials, mergedChannelOptions);
     if (!client) {
       throw new Error('Failed to create client');
+    }
+
+    // Build per-RPC call options (e.g. deadline)
+    const callOptions = {};
+    if (deadline != null && deadline > 0) {
+      callOptions.deadline = new Date(Date.now() + deadline);
     }
 
     let messages = request.body.grpc;
@@ -693,7 +717,8 @@ class GrpcClient {
       requestPath,
       method,
       messages,
-      metadata
+      metadata,
+      callOptions
     });
   }
 
@@ -748,7 +773,8 @@ class GrpcClient {
     verifyOptions,
     sendEvent,
     channelOptions = {},
-    proxyConfig
+    proxyConfig,
+    protoOptions = {}
   }) {
     const { host, path } = getParsedGrpcUrlObject(request.url);
 
@@ -762,7 +788,7 @@ class GrpcClient {
     // Resolve proxy target and channel options
     const { targetHost, proxyChannelOptions } = this.#resolveProxyTarget(host, proxyConfig);
 
-    const mergedChannelOptions = { ...channelOptions, ...proxyChannelOptions };
+    const mergedChannelOptions = { ...DEFAULT_CHANNEL_OPTIONS, ...channelOptions, ...proxyChannelOptions };
     if (userAgentValue && !channelOptions?.['grpc.primary_user_agent']) {
       mergedChannelOptions['grpc.primary_user_agent'] = userAgentValue;
     }
@@ -786,12 +812,15 @@ class GrpcClient {
       const { client, services, callOptions } = await this.#getReflectionClient(targetHost, credentials, metadata, mergedChannelOptions);
       reflectionClient = client;
 
+      const mergedProtoOptions = { ...configOptions, ...protoOptions };
       const methods = [];
       for (const service of services) {
         if (reflectionServices.includes(service)) {
           continue;
         }
-        const m = await client.listMethods(service, callOptions);
+        const descriptor = await client.getDescriptorBySymbol(service, callOptions);
+        const packageObject = descriptor.getPackageObject(mergedProtoOptions);
+        const m = client.getServiceMethods(packageObject, service);
         methods.push(...m);
       }
 
@@ -817,8 +846,9 @@ class GrpcClient {
     }
   }
 
-  async loadMethodsFromProtoFile(filePath, includeDirs = []) {
-    const protoDefinition = await protoLoader.load(filePath, { ...configOptions, includeDirs });
+  async loadMethodsFromProtoFile(filePath, includeDirs = [], protoOptions = {}) {
+    const mergedConfigOptions = { ...configOptions, ...protoOptions };
+    const protoDefinition = await protoLoader.load(filePath, { ...mergedConfigOptions, includeDirs });
     const methods = Object.values(protoDefinition)
       .filter((definition) => !definition?.format)
       .flatMap(Object.values);

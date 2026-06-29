@@ -26,7 +26,18 @@ export interface WebSocketItemSettings {
   } | null;
 }
 
-export type ItemSettings = HttpItemSettings | WebSocketItemSettings | null;
+export interface GrpcItemSettings {
+  maxReceiveMessageLength?: number | null;
+  maxSendMessageLength?: number | null;
+  keepaliveTime?: number | null;
+  keepaliveTimeout?: number | null;
+  clientIdleTimeout?: number | null;
+  maxReconnectBackoff?: number | null;
+  deadline?: number | null;
+  includeDefaultValues?: boolean | null;
+}
+
+export type ItemSettings = HttpItemSettings | WebSocketItemSettings | GrpcItemSettings | null;
 
 export interface App {
   code?: string | null;
