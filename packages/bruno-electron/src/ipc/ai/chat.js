@@ -190,7 +190,7 @@ const registerChatIpc = ({ mainWindow, resolveModel, pickDefaultModelId, isAiEna
         }
       },
       search_variables: {
-        description: 'Search environment / collection / global / runtime variables by name (case-insensitive substring match). Use this when the user has many variables or you need to confirm a name before referencing it in code. Values are returned, but variables marked `secret` (or whose names match patterns like `*_token`, `*_secret`, `password`, etc.) come back as `<redacted>`. Always reference values at runtime via `bru.getEnvVar(name)` / `bru.getVar(name)` — never hard-code a returned value.',
+        description: 'Search environment / collection / global / runtime variables by name (case-insensitive substring match). Use this when the user has many variables or you need to confirm a name before referencing it in code. Values are returned, but variables marked `secret` (or whose names match patterns like `*_token`, `*_secret`, `password`, etc.) come back as `<redacted>`. Each result has a `scope` field — use it to pick the right runtime accessor: `bru.getEnvVar` for `env`, `bru.getGlobalEnvVar` for `global`, `bru.getCollectionVar` / `bru.getFolderVar` / `bru.getRequestVar` for `collection`, `bru.getVar` for `runtime`, and `bru.getSecretVar` for any value that came back redacted. Never hard-code a returned value.',
         inputSchema: SEARCH_VARS_PARAMS,
         execute: async ({ query }) => {
           if (!Array.isArray(variables) || variables.length === 0) {

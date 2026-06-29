@@ -103,7 +103,7 @@ const Script = ({ collection, folder }) => {
     dispatch(saveFolderRoot(collection.uid, folder.uid));
   };
 
-  const aiVariables = useMemo(() => buildAiVariablesPayload(collection, null), [collection]);
+  const aiVariables = useMemo(() => buildAiVariablesPayload(collection, folder), [collection, folder]);
 
   const items = flattenItems(folder.items || []);
   const hasPreRequestScriptError = items.some((i) => isItemARequest(i) && i.preRequestScriptErrorMessage);

@@ -366,10 +366,11 @@ const AiChatSidebar = ({ collection }) => {
   // collection chats alike. Each entry is { name, value, scope, secret }; the
   // model gets a name-only preview in the prompt and can call search_variables
   // to fetch values (secrets come back redacted).
-  const aiVariables = useMemo(
-    () => buildAiVariablesPayload(collection, aiContext?.kind === 'request' ? aiContext.item : null),
-    [collection, aiContext]
-  );
+  const aiVariables = useMemo(() => {
+    if (aiContext?.kind === 'request') return buildAiVariablesPayload(collection, aiContext.item);
+    if (aiContext?.kind === 'folder') return buildAiVariablesPayload(collection, aiContext.folder);
+    return buildAiVariablesPayload(collection, null);
+  }, [collection, aiContext]);
 
   const chatsWithMessages = useMemo(() => {
     if (!collection) return [];

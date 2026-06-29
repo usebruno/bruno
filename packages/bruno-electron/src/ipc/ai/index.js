@@ -209,7 +209,7 @@ const registerAiIpc = (mainWindow) => {
         }
       },
       search_variables: {
-        description: 'Search environment / collection / global / runtime variables by name (case-insensitive substring). Pass a query to confirm a name before referencing it. Secret variables come back as `<redacted>`. Never hard-code a returned value — always reference via `bru.getEnvVar(name)` / `bru.getVar(name)`.',
+        description: 'Search environment / collection / global / runtime variables by name (case-insensitive substring). Pass a query to confirm a name before referencing it. Secret variables come back as `<redacted>`. Each result has a `scope` field — use it to pick the right runtime accessor: `bru.getEnvVar` for `env`, `bru.getGlobalEnvVar` for `global`, `bru.getCollectionVar` / `bru.getFolderVar` / `bru.getRequestVar` for `collection`, `bru.getVar` for `runtime`, and `bru.getSecretVar` for any value that came back redacted. Never hard-code a returned value.',
         inputSchema: z.object({
           query: z
             .string()

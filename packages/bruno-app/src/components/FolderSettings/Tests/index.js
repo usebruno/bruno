@@ -39,7 +39,7 @@ const Tests = ({ collection, folder }) => {
     scriptPhase: 'test'
   });
 
-  const aiVariables = useMemo(() => buildAiVariablesPayload(collection, null), [collection]);
+  const aiVariables = useMemo(() => buildAiVariablesPayload(collection, folder), [collection, folder]);
 
   return (
     <StyledWrapper className="w-full flex flex-col h-full">

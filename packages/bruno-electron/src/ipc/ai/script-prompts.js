@@ -353,7 +353,7 @@ const TOOL_INSTRUCTIONS = `## Available Tools
 You may call these tools BEFORE producing the final code to gather context. Do not announce the tool calls in your final output — only the generated code goes back to the user.
 
 - read_response(): returns the redacted shape (keys + value types) of the most recent response for this request. Use it when writing tests / post-response scripts that need to know which fields exist. Values are placeholders (\`<string>\`, \`<number>\`, …) — never hard-code them; reference fields at runtime via \`res.getBody()\` / \`res('path')\`.
-- search_variables(query?): search environment / collection / global / runtime variables by name (case-insensitive substring). Pass a query to confirm a name exists before referencing it in code. Variables marked \`secret\` come back as \`<redacted>\` — always reference them at runtime via \`bru.getEnvVar(name)\` / \`bru.getVar(name)\`, never paste a returned value.
+- search_variables(query?): search environment / collection / global / runtime variables by name (case-insensitive substring). Pass a query to confirm a name exists before referencing it in code. Variables marked \`secret\` come back as \`<redacted>\`. Each result has a \`scope\` field — use it to pick the right runtime accessor: \`bru.getEnvVar\` for \`env\`, \`bru.getGlobalEnvVar\` for \`global\`, \`bru.getCollectionVar\` / \`bru.getFolderVar\` / \`bru.getRequestVar\` for \`collection\`, \`bru.getVar\` for \`runtime\`, and \`bru.getSecretVar\` for any value that came back redacted. Never paste a returned value.
 
 Only call a tool when the extra information would change the code you write. For greetings, simple boilerplate, or tasks fully covered by the inline context, skip the tools.`;
 

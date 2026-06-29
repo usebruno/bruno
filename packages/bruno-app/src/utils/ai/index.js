@@ -99,6 +99,9 @@ export const buildAiRequestContext = (item) => {
  */
 const SENSITIVE_NAME_PATTERNS = [
   /api[_-]?key/i,
+  // Catches refresh_token, id_token, csrfToken, plain TOKEN, etc. on top of
+  // the specific access/auth-token forms below.
+  /token/i,
   /access[_-]?token/i,
   /auth[_-]?token/i,
   /secret/i,
@@ -116,6 +119,14 @@ const isSensitiveName = (name) => {
  * Flat list of variables the model can search. Each entry:
  *   { name, value, scope, secret }
  *
+ * Values come from `getAllVariables()` so they match what `bru.*` returns at
+ * runtime - important because the model's `search_variables` tool would
+ * otherwise show a lower-precedence value for any name that's overridden by
+ * a higher-precedence scope (e.g. a folder var hiding behind an env var).
+ *
+ * Scope + secret metadata is attached by walking each named source. A name
+ * marked secret by ANY source stays secret in the output.
+ *
  * - `secret: true` => value is replaced by `<redacted>` here, not sent in the
  *   clear over IPC.
  * - The backend re-applies redaction in `formatVariableLine`, so even if a
@@ -124,60 +135,68 @@ const isSensitiveName = (name) => {
 export const buildAiVariablesPayload = (collection, item) => {
   if (!collection) return [];
 
-  const out = [];
-  const seen = new Set();
   const REDACTED = '<redacted>';
 
-  const add = (name, value, scope, secret) => {
-    if (!name || seen.has(name)) return;
-    seen.add(name);
-    const isSecret = Boolean(secret) || isSensitiveName(name);
+  // Authoritative values - same merge `bru.getEnvVar` / `bru.getVar` resolve.
+  const resolved = getAllVariables(collection, item) || {};
+
+  // name -> { scope, secret } - last claim wins for scope (matches the spread
+  // order in getAllVariables); secret is sticky-on once any source flags it.
+  const meta = new Map();
+  const claim = (name, scope, secret) => {
+    if (!name) return;
+    const existing = meta.get(name);
+    const finalSecret = Boolean(secret) || Boolean(existing?.secret);
+    meta.set(name, { scope, secret: finalSecret });
+  };
+
+  // Global env - secrets tracked as a separate name list.
+  const globalSecrets = new Set(collection.globalEnvSecrets || []);
+  for (const name of Object.keys(collection.globalEnvironmentVariables || {})) {
+    claim(name, 'global', globalSecrets.has(name));
+  }
+
+  // Active environment - explicit `secret` flag per variable.
+  const env = findEnvironmentInCollection(collection, collection.activeEnvironmentUid);
+  if (env && Array.isArray(env.variables)) {
+    for (const v of env.variables) {
+      if (v?.name && v.enabled) claim(v.name, 'env', Boolean(v.secret));
+    }
+  }
+
+  // Runtime - set via bru.setVar() at runtime. No secret flag.
+  for (const name of Object.keys(collection.runtimeVariables || {})) {
+    claim(name, 'runtime', false);
+  }
+
+  // OAuth2 credentials — always treat as secret. `getAllVariables` already
+  // surfaces these via the same helper, so claiming here just stamps the
+  // right scope/secret on names that would otherwise default to 'collection'.
+  const oauth = getFormattedCollectionOauth2Credentials({ oauth2Credentials: collection?.oauth2Credentials });
+  if (oauth) {
+    for (const name of Object.keys(oauth)) {
+      claim(name, 'oauth2', true);
+    }
+  }
+
+  const out = [];
+  for (const name of Object.keys(resolved)) {
+    if (name === 'pathParams' || name === 'maskedEnvVariables' || name === 'process') continue;
+    const m = meta.get(name);
+    // Default scope for names not claimed by any explicit source — these come
+    // from collection/folder/request-level vars that don't carry a secret
+    // flag of their own, so we rely on `isSensitiveName` to catch token-like
+    // names by pattern.
+    const scope = m?.scope || 'collection';
+    const isSecret = Boolean(m?.secret) || isSensitiveName(name);
+    const value = resolved[name];
     out.push({
       name,
       value: isSecret ? REDACTED : (value == null ? '' : String(value)),
       scope,
       secret: isSecret
     });
-  };
-
-  // 1. Active environment - explicit `secret` flag per variable.
-  const env = findEnvironmentInCollection(collection, collection.activeEnvironmentUid);
-  if (env && Array.isArray(env.variables)) {
-    for (const v of env.variables) {
-      if (v?.name && v.enabled) add(v.name, v.value, 'env', Boolean(v.secret));
-    }
   }
-
-  // 2. Global env - secrets tracked as a separate name list.
-  const globalSecrets = new Set(collection.globalEnvSecrets || []);
-  const globalVars = collection.globalEnvironmentVariables || {};
-  for (const name of Object.keys(globalVars)) {
-    add(name, globalVars[name], 'global', globalSecrets.has(name));
-  }
-
-  // 3. Runtime - set via bru.setVar() at runtime. No secret flag.
-  const runtimeVars = collection.runtimeVariables || {};
-  for (const name of Object.keys(runtimeVars)) {
-    add(name, runtimeVars[name], 'runtime', false);
-  }
-
-  // 4. Everything else (collection/folder/request) - folded together. Per-var
-  // secret info doesn't exist for these scopes, but `isSensitiveName` still
-  // catches names like `apiToken`.
-  const all = getAllVariables(collection, item) || {};
-  for (const name of Object.keys(all)) {
-    if (name === 'pathParams' || name === 'maskedEnvVariables' || name === 'process') continue;
-    add(name, all[name], 'collection', false);
-  }
-
-  // 5. OAuth2 credentials - always treat as secret.
-  const oauth = getFormattedCollectionOauth2Credentials({ oauth2Credentials: collection?.oauth2Credentials });
-  if (oauth) {
-    for (const name of Object.keys(oauth)) {
-      add(name, oauth[name], 'oauth2', true);
-    }
-  }
-
   return out;
 };
 

@@ -215,6 +215,81 @@ describe('utils/ai', () => {
       expect(shared[0]).toEqual({ name: 'SHARED', value: 'env-val', scope: 'env', secret: false });
     });
 
+    it('lets runtime override env when both define the same name', () => {
+      const collectionWithOverride = {
+        activeEnvironmentUid: 'env-1',
+        environments: [
+          { uid: 'env-1', variables: [{ name: 'API_URL', value: 'env-url', enabled: true, secret: false }] }
+        ],
+        globalEnvironmentVariables: {},
+        globalEnvSecrets: [],
+        runtimeVariables: { API_URL: 'runtime-url' }
+      };
+      const result = buildAiVariablesPayload(collectionWithOverride, null);
+      const shared = result.filter((v) => v.name === 'API_URL');
+      expect(shared).toHaveLength(1);
+      expect(shared[0]).toEqual({ name: 'API_URL', value: 'runtime-url', scope: 'runtime', secret: false });
+    });
+
+    it('keeps secret stickiness across scopes — env-secret value stays redacted even if runtime overrides', () => {
+      // If env declares API_TOKEN as secret and runtime overrides it, the
+      // runtime value should still be redacted.
+      const collectionWithSecretOverride = {
+        activeEnvironmentUid: 'env-1',
+        environments: [
+          { uid: 'env-1', variables: [{ name: 'API_TOKEN', value: 'env-tok', enabled: true, secret: true }] }
+        ],
+        globalEnvironmentVariables: {},
+        globalEnvSecrets: [],
+        runtimeVariables: { API_TOKEN: 'runtime-tok' }
+      };
+      const result = buildAiVariablesPayload(collectionWithSecretOverride, null);
+      const tok = result.find((v) => v.name === 'API_TOKEN');
+      // scope tracks the source the user would actually hit; the value stays
+      // redacted because env marked the name secret.
+      expect(tok.value).toBe('<redacted>');
+      expect(tok.secret).toBe(true);
+    });
+
+    it('redacts OAuth2 credentials with scope = oauth2', () => {
+      const collectionWithOauth = {
+        activeEnvironmentUid: null,
+        environments: [],
+        globalEnvironmentVariables: {},
+        globalEnvSecrets: [],
+        runtimeVariables: {},
+        oauth2Credentials: [
+          {
+            credentialsId: 'github',
+            credentials: { access_token: 'real-tok', token_type: 'Bearer' }
+          }
+        ]
+      };
+      const result = buildAiVariablesPayload(collectionWithOauth, null);
+      const tok = result.find((v) => v.name === '$oauth2.github.access_token');
+      expect(tok).toBeDefined();
+      expect(tok.value).toBe('<redacted>');
+      expect(tok.secret).toBe(true);
+      expect(result.some((v) => v.name === '$oauth2.github.access_token' && v.scope === 'collection' && !v.secret)).toBe(false);
+    });
+
+    it('redacts generic token names like refresh_token / id_token / TOKEN by pattern', () => {
+      const collectionWithVariousTokens = {
+        activeEnvironmentUid: null,
+        environments: [],
+        globalEnvironmentVariables: {},
+        globalEnvSecrets: [],
+        runtimeVariables: { refresh_token: 'r', id_token: 'i', csrfToken: 'c', TOKEN: 't' }
+      };
+      const result = buildAiVariablesPayload(collectionWithVariousTokens, null);
+      for (const name of ['refresh_token', 'id_token', 'csrfToken', 'TOKEN']) {
+        const v = result.find((x) => x.name === name);
+        expect(v).toBeDefined();
+        expect(v.value).toBe('<redacted>');
+        expect(v.secret).toBe(true);
+      }
+    });
+
     it('returns an empty array when no collection is supplied', () => {
       expect(buildAiVariablesPayload(null, null)).toEqual([]);
     });

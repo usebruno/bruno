@@ -46,7 +46,7 @@ const Documentation = ({ collection, folder }) => {
 
   const onSave = () => dispatch(saveFolderRoot(collection.uid, folder.uid));
   const docsContext = useMemo(() => buildDocsContextFromFolder(collection, folder), [collection, folder]);
-  const aiVariables = useMemo(() => buildAiVariablesPayload(collection, null), [collection]);
+  const aiVariables = useMemo(() => buildAiVariablesPayload(collection, folder), [collection, folder]);
 
   if (!folder) {
     return null;

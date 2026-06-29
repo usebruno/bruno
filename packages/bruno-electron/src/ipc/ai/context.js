@@ -19,6 +19,9 @@ const SENSITIVE_HEADER_PATTERNS = [
   /^x-access-token$/i,
   /^x-csrf-token$/i,
   /api[_-]?key/i,
+  // Catches refresh_token, id_token, csrfToken, plain TOKEN, etc. on top of
+  // the specific access/auth-token forms above.
+  /token/i,
   /access[_-]?token/i,
   /auth[_-]?token/i,
   /secret/i,
@@ -102,6 +105,46 @@ const formatResponseShape = (status, data) => {
   return parts.join('\n\n');
 };
 
+/**
+ * Walk a JSON-shaped value and replace primitive values whose KEY is sensitive
+ * (`password`, `*_token`, `secret`, etc.) with `<redacted>`. Keeps the shape
+ * intact so the model can still see the body's structure and field names.
+ *
+ * Differs from `redactResponseValues` (which replaces ALL primitives with
+ * type placeholders): we DO want the model to see non-sensitive request body
+ * values so it can write code that references them correctly.
+ */
+const redactJsonBodyValues = (data, depth = 0, maxDepth = 8) => {
+  if (data === null || data === undefined) return data;
+  if (depth >= maxDepth) return REDACTED_TRUNCATED;
+  if (Array.isArray(data)) return data.map((item) => redactJsonBodyValues(item, depth + 1, maxDepth));
+  if (typeof data === 'object') {
+    const out = {};
+    for (const key of Object.keys(data)) {
+      const val = data[key];
+      if (isSensitiveName(key) && val !== null && typeof val !== 'object') {
+        out[key] = REDACTED_VALUE;
+      } else {
+        out[key] = redactJsonBodyValues(val, depth + 1, maxDepth);
+      }
+    }
+    return out;
+  }
+  return data;
+};
+
+const redactJsonBodyString = (raw) => {
+  if (typeof raw !== 'string' || !raw.trim()) return raw || '';
+  try {
+    const parsed = JSON.parse(raw);
+    return JSON.stringify(redactJsonBodyValues(parsed), null, 2);
+  } catch {
+    // Not parseable JSON — return as-is. The renderer-side patterns + variable
+    // redaction are the main line of defense for arbitrary text bodies.
+    return raw;
+  }
+};
+
 // --- Request context (method/url/headers/params/body/+response) ---------
 
 /**
@@ -148,7 +191,10 @@ const formatRequestContext = (ctx, opts = {}) => {
   if (includeBody && body && body.mode && body.mode !== 'none') {
     let content = '';
     switch (body.mode) {
-      case 'json': content = body.json || ''; break;
+      // JSON bodies often contain fields like `password`, `client_secret`,
+      // `refresh_token`. Redact by key so the model sees the structure but
+      // not the secret values.
+      case 'json': content = redactJsonBodyString(body.json || ''); break;
       case 'text': content = body.text || ''; break;
       case 'xml': content = body.xml || ''; break;
       case 'sparql': content = body.sparql || ''; break;
@@ -164,7 +210,11 @@ const formatRequestContext = (ctx, opts = {}) => {
       }
       case 'graphql':
         content = body.graphql?.query || '';
-        if (body.graphql?.variables) content += `\n\nVariables:\n${body.graphql.variables}`;
+        if (body.graphql?.variables) {
+          // GraphQL variables are stored as a JSON string in Bruno — same
+          // key-based redaction applies.
+          content += `\n\nVariables:\n${redactJsonBodyString(body.graphql.variables)}`;
+        }
         break;
       default: content = '';
     }
