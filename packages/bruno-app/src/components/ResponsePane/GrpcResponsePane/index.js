@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import find from 'lodash/find';
 import { useDispatch, useSelector } from 'react-redux';
 import { updateResponsePaneTab } from 'providers/ReduxStore/slices/tabs';
@@ -16,6 +16,10 @@ import ResponseTrailers from './ResponseTrailers';
 import GrpcQueryResult from './GrpcQueryResult';
 import ResponseLayoutToggle from '../ResponseLayoutToggle';
 import ResponsiveTabs from 'ui/ResponsiveTabs';
+import ScriptError from '../ScriptError';
+import ScriptErrorIcon from '../ScriptErrorIcon';
+import TestResults from '../TestResults';
+import TestResultsLabel from '../TestResultsLabel';
 
 const GrpcResponsePane = ({ item, collection }) => {
   const dispatch = useDispatch();
@@ -23,6 +27,16 @@ const GrpcResponsePane = ({ item, collection }) => {
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
   const isLoading = ['queued', 'sending'].includes(item.requestState);
   const rightContentRef = useRef(null);
+  const [showScriptErrorCard, setShowScriptErrorCard] = useState(false);
+
+  const hasScriptError
+    = item?.preRequestScriptErrorMessage || item?.onMessageScriptErrorMessage || item?.postResponseScriptErrorMessage || item?.testScriptErrorMessage;
+
+  useEffect(() => {
+    if (hasScriptError) {
+      setShowScriptErrorCard(true);
+    }
+  }, [hasScriptError]);
 
   const requestTimeline = [...(collection?.timeline || [])].filter((obj) => {
     if (obj.itemUid === item.uid) return true;
@@ -68,6 +82,18 @@ const GrpcResponsePane = ({ item, collection }) => {
       key: 'timeline',
       label: 'Timeline',
       indicator: null
+    },
+    {
+      key: 'tests',
+      label: (
+        <TestResultsLabel
+          results={item.testResults}
+          assertionResults={item.assertionResults}
+          preRequestTestResults={item.preRequestTestResults}
+          postResponseTestResults={item.postResponseTestResults}
+        />
+      ),
+      indicator: null
     }
   ];
 
@@ -85,6 +111,17 @@ const GrpcResponsePane = ({ item, collection }) => {
       case 'timeline': {
         return <Timeline collection={collection} item={item} activeTabUid={activeTabUid} />;
       }
+      case 'tests': {
+        return (
+          <TestResults
+            item={item}
+            results={item.testResults}
+            assertionResults={item.assertionResults}
+            preRequestTestResults={item.preRequestTestResults}
+            postResponseTestResults={item.postResponseTestResults}
+          />
+        );
+      }
       default: {
         return <div>404 | Not found</div>;
       }
@@ -99,7 +136,7 @@ const GrpcResponsePane = ({ item, collection }) => {
     );
   }
 
-  if (!item.response && !requestTimeline?.length) {
+  if (!item.response && !requestTimeline?.length && !hasScriptError) {
     return (
       <HeightBoundContainer>
         <Placeholder />
@@ -118,6 +155,9 @@ const GrpcResponsePane = ({ item, collection }) => {
 
   const rightContent = !isLoading ? (
     <div ref={rightContentRef} className="flex items-center">
+      {hasScriptError && !showScriptErrorCard && (
+        <ScriptErrorIcon item={item} onClick={() => setShowScriptErrorCard(true)} />
+      )}
       {focusedTab?.responsePaneTab === 'timeline' ? (
         <>
           <ResponseLayoutToggle />
@@ -149,8 +189,15 @@ const GrpcResponsePane = ({ item, collection }) => {
           rightContentRef={rightContentRef}
         />
       </div>
-      <section className="response-pane-content">
+      <section className={`response-pane-content ${hasScriptError && showScriptErrorCard ? 'has-script-error' : ''}`}>
         {isLoading ? <Overlay item={item} collection={collection} /> : null}
+        {hasScriptError && showScriptErrorCard && (
+          <ScriptError
+            item={item}
+            onClose={() => setShowScriptErrorCard(false)}
+            collection={collection}
+          />
+        )}
         <div className="response-tab-content">
           {!item?.response ? (
             focusedTab?.responsePaneTab === 'timeline' && requestTimeline?.length ? (

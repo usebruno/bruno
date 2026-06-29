@@ -1,9 +1,12 @@
 // To implement grpc event handlers
 const { ipcMain, app } = require('electron');
 const { GrpcClient } = require('@usebruno/requests');
+const { ScriptRuntime, TestRuntime, formatErrorWithContextV2 } = require('@usebruno/js');
+const decomment = require('decomment');
 const { safeParseJSON, safeStringifyJSON } = require('../../utils/common');
 const { cloneDeep, get } = require('lodash');
 const { preferencesUtil } = require('../../store/preferences');
+const { getBrunoConfig } = require('../../store/bruno-config');
 const { getCertsAndProxyConfig } = require('./cert-utils');
 const { interpolateString } = require('./interpolate-string');
 const path = require('node:path');
@@ -15,6 +18,11 @@ const { getPacResolver } = require('@usebruno/requests');
 
 // Creating grpcClient at module level so it can be accessed from window-all-closed event
 let grpcClient;
+
+const getJsSandboxRuntime = (collection) => {
+  const securityConfig = get(collection, 'securityConfig', {});
+  return securityConfig.jsSandboxMode === 'developer' ? 'nodevm' : 'quickjs';
+};
 
 /**
  * Resolve proxy configuration for gRPC requests.
@@ -147,12 +155,301 @@ const registerGrpcEventHandlers = (window) => {
 
   grpcClient = new GrpcClient(sendEvent);
 
+  const onConsoleLog = (type, args) => {
+    console[type]?.(...args);
+    sendEvent('main:console-log', { type, args });
+  };
+
+  /**
+   * Propagate env / runtime / global variable changes from a script result to the renderer.
+   * Shared between the before-message and on-message script runners.
+   */
+  const propagateScriptEnvUpdates = (scriptResult, request, collection) => {
+    if (!scriptResult) return;
+    sendEvent('main:script-environment-update', {
+      envVariables: scriptResult.envVariables,
+      runtimeVariables: scriptResult.runtimeVariables,
+      persistentEnvVariables: scriptResult.persistentEnvVariables,
+      requestUid: request.uid,
+      collectionUid: collection.uid
+    });
+    sendEvent('main:persistent-env-variables-update', {
+      persistentEnvVariables: scriptResult.persistentEnvVariables,
+      collectionUid: collection.uid
+    });
+    sendEvent('main:global-environment-variables-update', {
+      globalEnvironmentVariables: scriptResult.globalEnvironmentVariables
+    });
+    collection.globalEnvironmentVariables = scriptResult.globalEnvironmentVariables;
+  };
+
+  /**
+   * Run the gRPC "before message" script (script.req) before a request/message is sent.
+   * Mirrors runPreRequest in the HTTP path: executes the user script, surfaces any
+   * script error to the UI via `pre-request-script-execution`, and propagates env /
+   * runtime / global variable changes back to the renderer.
+   *
+   * @returns {{ scriptResult: object | null, scriptError: Error | null }}
+   */
+  const runBeforeMessageScript = async ({
+    request,
+    collection,
+    envVars,
+    runtimeVariables,
+    processEnvVars,
+    scriptingConfig,
+    requestUid,
+    itemUid
+  }) => {
+    const beforeMessageScript = get(request, 'script.req');
+    if (!beforeMessageScript?.length) {
+      return { scriptResult: null, scriptError: null };
+    }
+
+    const scriptRuntime = new ScriptRuntime({ runtime: scriptingConfig?.runtime });
+    let scriptError = null;
+    let scriptResult = null;
+    try {
+      scriptResult = await scriptRuntime.runRequestScript(
+        decomment(beforeMessageScript, { space: true }),
+        request,
+        envVars,
+        runtimeVariables,
+        collection.pathname,
+        onConsoleLog,
+        processEnvVars,
+        scriptingConfig,
+        null,
+        collection.name
+      );
+    } catch (error) {
+      scriptError = error;
+    }
+
+    sendEvent('main:run-request-event', {
+      type: 'pre-request-script-execution',
+      requestUid,
+      itemUid,
+      collectionUid: collection.uid,
+      errorMessage: scriptError ? (scriptError.message || 'An error occurred in pre request script') : null,
+      errorContext: scriptError
+        ? formatErrorWithContextV2(scriptError, 'pre-request', request?.script?.reqMetadata, collection.pathname)
+        : null
+    });
+
+    propagateScriptEnvUpdates(scriptResult, request, collection);
+
+    return { scriptResult, scriptError };
+  };
+
+  /**
+   * Run the gRPC "on message" script (script.stream) for each received message.
+   * Mirrors runResponseScript: takes the message as the `response` argument so the
+   * user script can read it via `res` in their sandbox. Surfaces script errors to
+   * the UI through the same `post-response-script-execution` event the HTTP path
+   * uses, so the existing ScriptError card renders for gRPC too.
+   *
+   * @returns {{ scriptResult: object | null, scriptError: Error | null }}
+   */
+  const runOnMessageScript = async ({
+    request,
+    collection,
+    envVars,
+    runtimeVariables,
+    processEnvVars,
+    scriptingConfig,
+    requestUid,
+    itemUid,
+    message
+  }) => {
+    const onMessageScript = get(request, 'script.stream');
+    if (!onMessageScript?.length) {
+      return { scriptResult: null, scriptError: null };
+    }
+
+    const scriptRuntime = new ScriptRuntime({ runtime: scriptingConfig?.runtime });
+    let scriptError = null;
+    let scriptResult = null;
+    try {
+      scriptResult = await scriptRuntime.runOnMessageScript(
+        decomment(onMessageScript, { space: true }),
+        request,
+        message,
+        envVars,
+        runtimeVariables,
+        collection.pathname,
+        onConsoleLog,
+        processEnvVars,
+        scriptingConfig,
+        null,
+        collection.name
+      );
+    } catch (error) {
+      scriptError = error;
+    }
+
+    sendEvent('main:run-request-event', {
+      type: 'on-message-script-execution',
+      requestUid,
+      itemUid,
+      collectionUid: collection.uid,
+      errorMessage: scriptError ? (scriptError.message || 'An error occurred in on-message script') : null,
+      errorContext: scriptError
+        ? formatErrorWithContextV2(scriptError, 'on-message', request?.script?.streamMetadata, collection.pathname)
+        : null
+    });
+
+    propagateScriptEnvUpdates(scriptResult, request, collection);
+
+    return { scriptResult, scriptError };
+  };
+
+  /**
+   * Run the gRPC "after response" script (script.res) once the call terminates
+   * (status / server-end / cancel / error). Mirrors HTTP's post-response: fires
+   * exactly once per invocation, surfaces script errors as a `post-response-script-execution`
+   * event so the existing ScriptError card renders unchanged.
+   *
+   * @returns {{ scriptResult: object | null, scriptError: Error | null }}
+   */
+  const runAfterResponseScript = async ({
+    request,
+    collection,
+    envVars,
+    runtimeVariables,
+    processEnvVars,
+    scriptingConfig,
+    requestUid,
+    itemUid,
+    responses
+  }) => {
+    const afterResponseScript = get(request, 'script.res');
+    if (!afterResponseScript?.length) {
+      return { scriptResult: null, scriptError: null };
+    }
+
+    const scriptRuntime = new ScriptRuntime({ runtime: scriptingConfig?.runtime });
+    let scriptError = null;
+    let scriptResult = null;
+    try {
+      scriptResult = await scriptRuntime.runResponseScript(
+        decomment(afterResponseScript, { space: true }),
+        request,
+        { responses: responses || [] },
+        envVars,
+        runtimeVariables,
+        collection.pathname,
+        onConsoleLog,
+        processEnvVars,
+        scriptingConfig,
+        null,
+        collection.name
+      );
+    } catch (error) {
+      scriptError = error;
+    }
+
+    sendEvent('main:run-request-event', {
+      type: 'post-response-script-execution',
+      requestUid,
+      itemUid,
+      collectionUid: collection.uid,
+      errorMessage: scriptError ? (scriptError.message || 'An error occurred in after-response script') : null,
+      errorContext: scriptError
+        ? formatErrorWithContextV2(scriptError, 'post-response', request?.script?.resMetadata, collection.pathname)
+        : null
+    });
+
+    propagateScriptEnvUpdates(scriptResult, request, collection);
+
+    return { scriptResult, scriptError };
+  };
+
+  /**
+   * Run the gRPC request tests (the `tests` block) once the call terminates.
+   * Mirrors the HTTP post-response test execution: runs the test source stored in
+   * the .bru file against the collected responses, emits the `test-results` event,
+   * and surfaces any test script error via a `test-script-execution` event so the
+   * existing ScriptError card renders for gRPC too.
+   *
+   * @returns {{ testResults: object | null, testError: Error | null }}
+   */
+  const runResponseTests = async ({
+    request,
+    collection,
+    envVars,
+    runtimeVariables,
+    processEnvVars,
+    scriptingConfig,
+    requestUid,
+    itemUid,
+    responses
+  }) => {
+    const testFile = get(request, 'tests');
+    if (typeof testFile !== 'string' || !testFile.length) {
+      return { testResults: null, testError: null };
+    }
+
+    const testRuntime = new TestRuntime({ runtime: scriptingConfig?.runtime });
+    let testResults = null;
+    let testError = null;
+    try {
+      testResults = await testRuntime.runTests(
+        decomment(testFile, { space: true }),
+        request,
+        { responses: responses || [] },
+        envVars,
+        runtimeVariables,
+        collection.pathname,
+        onConsoleLog,
+        processEnvVars,
+        scriptingConfig,
+        null,
+        collection.name
+      );
+    } catch (error) {
+      testError = error;
+      // Preserve any test() calls that passed before the script errored
+      testResults = error.partialResults || {
+        request,
+        envVariables: envVars,
+        runtimeVariables,
+        globalEnvironmentVariables: request?.globalEnvironmentVariables || {},
+        results: [],
+        nextRequestName: null
+      };
+    }
+
+    sendEvent('main:run-request-event', {
+      type: 'test-results',
+      results: testResults.results,
+      requestUid,
+      itemUid,
+      collectionUid: collection.uid
+    });
+
+    sendEvent('main:run-request-event', {
+      type: 'test-script-execution',
+      requestUid,
+      itemUid,
+      collectionUid: collection.uid,
+      errorMessage: testError ? (testError.message || 'An error occurred while executing the test script') : null,
+      errorContext: testError
+        ? formatErrorWithContextV2(testError, 'test', request?.testsMetadata, collection.pathname)
+        : null
+    });
+
+    propagateScriptEnvUpdates(testResults, request, collection);
+
+    return { testResults, testError };
+  };
+
   ipcMain.handle('connections-changed', (event) => {
     sendEvent('grpc:connections-changed', event);
   });
 
   // Start a new gRPC connection
-  ipcMain.handle('grpc:start-connection', async (event, { request, collection, environment, runtimeVariables }) => {
+  ipcMain.handle('grpc:start-connection', async (event, { request, collection, environment, runtimeVariables, requestUid }) => {
     try {
       const requestCopy = cloneDeep(request);
       const preparedRequest = await prepareGrpcRequest(requestCopy, collection, environment, runtimeVariables, {});
@@ -161,6 +458,63 @@ const registerGrpcEventHandlers = (window) => {
       if (!protocolRegex.test(preparedRequest.url)) {
         preparedRequest.url = `http://${preparedRequest.url}`;
       }
+
+      const brunoConfig = getBrunoConfig(collection.uid, collection);
+      const scriptingConfig = get(brunoConfig, 'scripts', {});
+      scriptingConfig.runtime = getJsSandboxRuntime(collection);
+
+      const scriptContext = {
+        request: preparedRequest,
+        collection,
+        envVars: preparedRequest.envVars,
+        runtimeVariables,
+        processEnvVars: preparedRequest.processEnvVars,
+        scriptingConfig,
+        requestUid,
+        itemUid: request.uid
+      };
+
+      // 1. Before Invoke — script.req
+      const { scriptError: preRequestError } = await runBeforeMessageScript(scriptContext);
+      if (preRequestError) {
+        return { success: false, error: preRequestError.message };
+      }
+
+      let onMessageErrored = false;
+
+      // 2. On Message — script.stream (one call per received server message)
+      const onMessage = preparedRequest?.script?.stream?.length
+        ? (message) => {
+            runOnMessageScript({ ...scriptContext, message })
+              .then(({ scriptError }) => {
+                if (scriptError) onMessageErrored = true;
+              })
+              .catch((err) => {
+                console.error('Error running gRPC on-message script:', err);
+              });
+          }
+        : undefined;
+
+      // 3. After Response — script.res then tests (fire once on terminal event).
+      // `responses` is the full list of received messages, collected by the gRPC client.
+      const hasAfterResponseScript = !!preparedRequest?.script?.res?.length;
+      const afterResponseTests = get(preparedRequest, 'tests');
+      const hasTests = typeof afterResponseTests === 'string' && afterResponseTests.length > 0;
+      const onAfterResponse = (hasAfterResponseScript || hasTests)
+        ? (responses) => {
+            if (onMessageErrored) return;
+            (async () => {
+              if (hasAfterResponseScript) {
+                await runAfterResponseScript({ ...scriptContext, responses });
+              }
+              if (hasTests) {
+                await runResponseTests({ ...scriptContext, responses });
+              }
+            })().catch((err) => {
+              console.error('Error running gRPC after-response script/tests:', err);
+            });
+          }
+        : undefined;
 
       // Get certificates and proxy configuration
       const certsAndProxyConfig = await getCertsAndProxyConfig({
@@ -230,7 +584,9 @@ const registerGrpcEventHandlers = (window) => {
         pfx,
         verifyOptions,
         includeDirs,
-        proxyConfig: grpcProxyConfig
+        proxyConfig: grpcProxyConfig,
+        onMessage,
+        onAfterResponse
       });
 
       sendEvent('grpc:request', preparedRequest.uid, collection.uid, requestSent);

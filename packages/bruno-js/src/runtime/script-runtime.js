@@ -1,7 +1,8 @@
 const chai = require('chai');
 const Bru = require('../bru');
-const BrunoRequest = require('../bruno-request');
-const BrunoResponse = require('../bruno-response');
+const { createBrunoRequest } = require('../bruno-request');
+const { createBrunoResponse } = require('../bruno-response');
+const BrunoOnMessage = require('../bruno-onmessage');
 const { cleanJson } = require('../utils');
 const { createBruTestResultMethods } = require('../utils/results');
 const { runScriptInNodeVm } = require('../sandbox/node-vm');
@@ -53,7 +54,7 @@ class ScriptRuntime {
       certsAndProxyConfig,
       requestUrl: request?.url
     });
-    const req = new BrunoRequest(request);
+    const req = createBrunoRequest(request);
 
     // extend bru with result getter methods
     const { __brunoTestResults, test } = createBruTestResultMethods(bru, assertionResults, chai);
@@ -149,6 +150,35 @@ class ScriptRuntime {
     return buildRequestScriptResult();
   }
 
+  async runOnMessageScript(
+    script,
+    request,
+    message,
+    envVariables,
+    runtimeVariables,
+    collectionPath,
+    onConsoleLog,
+    processEnvVars,
+    scriptingConfig,
+    runRequestByItemPathname,
+    collectionName
+  ) {
+    return this.runResponseScript(
+      script,
+      request,
+      message,
+      envVariables,
+      runtimeVariables,
+      collectionPath,
+      onConsoleLog,
+      processEnvVars,
+      scriptingConfig,
+      runRequestByItemPathname,
+      collectionName,
+      { isOnMessage: true }
+    );
+  }
+
   async runResponseScript(
     script,
     request,
@@ -160,7 +190,8 @@ class ScriptRuntime {
     processEnvVars,
     scriptingConfig,
     runRequestByItemPathname,
-    collectionName
+    collectionName,
+    options = {}
   ) {
     const globalEnvironmentVariables = request?.globalEnvironmentVariables || {};
     const oauth2CredentialVariables = request?.oauth2CredentialVariables || {};
@@ -187,8 +218,8 @@ class ScriptRuntime {
       certsAndProxyConfig,
       requestUrl: request?.url
     });
-    const req = new BrunoRequest(request);
-    const res = new BrunoResponse(response);
+    const req = createBrunoRequest(request);
+    const res = createBrunoResponse(response, request?.protocol);
 
     // extend bru with result getter methods
     const { __brunoTestResults, test } = createBruTestResultMethods(bru, assertionResults, chai);
@@ -203,6 +234,10 @@ class ScriptRuntime {
       __brunoTestResults: __brunoTestResults,
       __bruSetScope: createScopeSetter(bru)
     };
+
+    if (options.isOnMessage) {
+      context.stream = new BrunoOnMessage(response);
+    }
 
     if (onConsoleLog && typeof onConsoleLog === 'function') {
       const customLogger = (type) => {

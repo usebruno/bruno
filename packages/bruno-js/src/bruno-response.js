@@ -2,7 +2,7 @@ const { get } = require('@usebruno/query');
 const _ = require('lodash');
 const HeaderList = require('./header-list');
 
-class BrunoResponse {
+class HttpResponse {
   constructor(res) {
     this.res = res;
     this.status = res ? res.status : null;
@@ -119,4 +119,30 @@ class BrunoResponse {
   }
 }
 
-module.exports = BrunoResponse;
+class GrpcResponse {
+  constructor(res) {
+    this.res = res;
+    this.isGrpc = true;
+  }
+
+  get messages() {
+    return Array.isArray(this.res?.responses) ? this.res.responses : [];
+  }
+}
+
+function createBrunoResponse(res, protocol) {
+  switch (protocol) {
+    case 'grpc':
+      return new GrpcResponse(res);
+
+    case 'http':
+    default:
+      return new HttpResponse(res);
+  }
+}
+
+module.exports = {
+  HttpResponse,
+  GrpcResponse,
+  createBrunoResponse
+};

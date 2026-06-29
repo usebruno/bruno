@@ -181,6 +181,43 @@ const STATIC_API_HINTS = {
   ]
 };
 
+const GRPC_API_HINTS = {
+  req: [
+    'req',
+    'req.method',
+    'req.url',
+    'req.messages',
+    'req.getMessages()',
+    'req.getMessage(index)',
+    'req.setMessage(index, data)',
+    'req.addMessage(message)',
+    'req.addMessages(messages)',
+    'req.metadata',
+    'req.getMetadata()',
+    'req.getMetadata(key)',
+    'req.setMetadata(key, value)',
+    'req.hasMetadata(key)',
+    'req.getAuthMode()',
+    'req.getName()',
+    'req.getUrl()',
+    'req.clearMessages()'
+  ],
+  stream: [
+    'stream',
+    'stream.message',
+    'stream.getMessage()'
+  ],
+  res: [
+    'res',
+    'res.messages'
+  ],
+  bru: STATIC_API_HINTS.bru
+};
+
+const getApiHints = (protocol) => (protocol === 'grpc' ? GRPC_API_HINTS : STATIC_API_HINTS);
+
+const API_ROOTS = [...new Set([...Object.keys(STATIC_API_HINTS), ...Object.keys(GRPC_API_HINTS)])];
+
 // Mock data functions - prefixed with $
 const MOCK_DATA_HINTS = Object.keys(mockDataFunctions).map((key) => `$${key}`);
 
@@ -246,12 +283,13 @@ const transformVariablesToHints = (allVariables = {}) => {
  * @param {Set} apiHints - Set to add API hints to
  * @param {string[]} showHintsFor - Array of hint types to show
  */
-const addApiHintsToSet = (apiHints, showHintsFor) => {
-  const apiTypes = ['req', 'res', 'bru'];
+const addApiHintsToSet = (apiHints, showHintsFor, protocol = 'http') => {
+  const apiTypes = ['req', 'res', 'stream', 'bru'];
+  const source = getApiHints(protocol);
 
   apiTypes.forEach((apiType) => {
     if (showHintsFor.includes(apiType)) {
-      STATIC_API_HINTS[apiType].forEach((hint) => {
+      source[apiType]?.forEach((hint) => {
         generateProgressiveHints(hint).forEach((h) => apiHints.add(h));
       });
     }
@@ -306,7 +344,7 @@ const buildCategorizedHintsList = (allVariables = {}, anywordAutocompleteHints =
   const showHintsFor = options.showHintsFor || [];
 
   // Add different types of hints
-  addApiHintsToSet(categorizedHints.api, showHintsFor);
+  addApiHintsToSet(categorizedHints.api, showHintsFor, options.protocol);
   addVariableHintsToSet(categorizedHints.variables, allVariables);
   addCustomHintsToSet(categorizedHints.anyword, anywordAutocompleteHints);
 
@@ -378,7 +416,7 @@ const calculateWordReplacementPositions = (cursor, start, end, word) => {
  * @returns {string} The determined context
  */
 const determineWordContext = (word) => {
-  const isApiHint = Object.keys(STATIC_API_HINTS).some(
+  const isApiHint = API_ROOTS.some(
     (apiRoot) => apiRoot.toLowerCase().startsWith(word.toLowerCase()) || word.toLowerCase().startsWith(apiRoot.toLowerCase())
   );
 
@@ -540,7 +578,7 @@ const getAllowedHintsByContext = (categorizedHints, context, showHintsFor) => {
   if (context === 'variables' && showHintsFor.includes('variables')) {
     allowedHints = [...categorizedHints.variables];
   } else if (context === 'api') {
-    const hasApiHints = showHintsFor.some((hint) => ['req', 'res', 'bru'].includes(hint));
+    const hasApiHints = showHintsFor.some((hint) => API_ROOTS.includes(hint));
     if (hasApiHints) {
       allowedHints = [...categorizedHints.api];
     }
@@ -617,7 +655,7 @@ const createStandardHintList = (filteredHints, from, to) => {
  * @param {string[]} showHintsFor - Array of hint types to show (e.g., ['req', 'res', 'bru'])
  * @returns {boolean} True if hints were shown, false otherwise
  */
-export const showRootHints = (cm, showHintsFor = []) => {
+export const showRootHints = (cm, showHintsFor = [], protocol = 'http') => {
   const wordInfo = getCurrentWordWithContext(cm);
   // If user is currently typing a word, let handleKeyupForAutocomplete
   // handle it instead of showing root hints.
@@ -625,7 +663,8 @@ export const showRootHints = (cm, showHintsFor = []) => {
     return false;
   }
 
-  const hints = Object.keys(STATIC_API_HINTS).filter((rootHint) => showHintsFor.includes(rootHint));
+  const validRoots = Object.keys(getApiHints(protocol));
+  const hints = showHintsFor.filter((rootHint) => validRoots.includes(rootHint));
 
   if (hints.length === 0) return false;
 

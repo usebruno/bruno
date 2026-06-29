@@ -147,6 +147,8 @@ const prepareGrpcRequest = async (item, collection, environment, runtimeVariable
 
   let grpcRequest = {
     uid: item.uid,
+    pathname: item.pathname,
+    protocol: 'grpc',
     mode: request.body.mode,
     method: request.method,
     methodType: request.methodType,
@@ -158,6 +160,9 @@ const prepareGrpcRequest = async (item, collection, environment, runtimeVariable
     promptVariables,
     body: request.body,
     protoPath: request.protoPath,
+    script: request.script,
+    tests: request.tests,
+    testsMetadata: request.testsMetadata,
     // Add variable properties for interpolation
     vars: request.vars,
     collectionVariables: request.collectionVariables,
