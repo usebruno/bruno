@@ -678,6 +678,57 @@ tests {
     expect(collectionBru).toMatch(/@boolean\s+collFromTests:\s*true/);
   }, 60_000);
 
+  it('persists env/collection vars mutated as a side effect of vars:post-response expressions', async () => {
+    writeFixtureFile(
+      path.join(tmpDir, 'bruno.json'),
+      JSON.stringify({ version: '1', name: 'vars-side-effect-collection', type: 'collection' }, null, 2) + '\n'
+    );
+    writeFixtureFile(
+      path.join(tmpDir, 'collection.bru'),
+      'meta {\n  name: vars-side-effect-collection\n  seq: 1\n}\n'
+    );
+    writeFixtureFile(
+      path.join(tmpDir, 'environments', 'Test.bru'),
+      `vars {\n  host: ${baseUrl}\n}\n`
+    );
+    writeFixtureFile(
+      path.join(tmpDir, 'set-from-vars-block.bru'),
+      `meta {
+  name: set-from-vars-block
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+vars:post-response {
+  envSideEffect: bru.setEnvVar("envFromVars", 42)
+  collSideEffect: bru.setCollectionVar("collFromVars", true)
+}
+`
+    );
+
+    const result = await runCli([
+      'run', 'set-from-vars-block.bru', '--env', 'Test', '--sandbox', 'developer', '--noproxy'
+    ]);
+
+    if (result.code !== 0) {
+      throw new Error(
+        `CLI exited with code ${result.code}.\n--- stdout ---\n${result.stdout}\n--- stderr ---\n${result.stderr}`
+      );
+    }
+
+    const envContent = fs.readFileSync(path.join(tmpDir, 'environments', 'Test.bru'), 'utf8');
+    expect(envContent).toMatch(/@number\s+envFromVars:\s*42/);
+
+    const collectionBru = fs.readFileSync(path.join(tmpDir, 'collection.bru'), 'utf8');
+    expect(collectionBru).toMatch(/@boolean\s+collFromVars:\s*true/);
+  }, 60_000);
+
   // A throw at the top of `tests {}` (outside any test() callback) is caught by test-runtime,
   // which attaches in-flight env/collection mutations to `error.partialResults`. The CLI
   // catch at run-single-request.js:914 syncs those partials so pre-throw writes still land

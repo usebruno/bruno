@@ -770,7 +770,7 @@ const runSingleRequest = async function (
     const postResponseVars = get(item, 'request.vars.res');
     if (postResponseVars?.length) {
       const varsRuntime = new VarsRuntime({ runtime: scriptingConfig?.runtime });
-      varsRuntime.runPostResponseVars(
+      const result = varsRuntime.runPostResponseVars(
         postResponseVars,
         request,
         response,
@@ -779,6 +779,9 @@ const runSingleRequest = async function (
         collectionPath,
         processEnvVars
       );
+      // Expressions can invoke bru.setEnvVar / setGlobalEnvVar / setCollectionVar as a side effect,
+      // mirroring how the desktop app surfaces these mutations after the vars block.
+      syncVariableUpdates(result, request);
     }
 
     // run post response script
