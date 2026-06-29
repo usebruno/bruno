@@ -1,5 +1,11 @@
+import { execSync } from 'child_process';
+import fs from 'fs';
+import path from 'path';
 import { expect, Page, test } from '../../../playwright';
 import { closeAllCollections, selectRequestPaneTab } from '../../utils/page';
+
+const bruRequestPath = path.join(__dirname, 'collection', 'requests-settings-bru', 'timeout.bru');
+const yamlRequestPath = path.join(__dirname, 'collection', 'requests-settings-yml', 'timeout.yml');
 
 const setGlobalRequestTimeout = async (page: Page, value: string) => {
   // Open preferences tab
@@ -25,6 +31,10 @@ const setGlobalRequestTimeout = async (page: Page, value: string) => {
 test.describe('Timeout Settings Tests', () => {
   test.afterEach(async ({ pageWithUserData: page }) => {
     await closeAllCollections(page);
+  });
+
+  test.afterAll(() => {
+    execSync(`git checkout -- "${bruRequestPath}" "${yamlRequestPath}"`);
   });
 
   test.describe('bru request timeout settings', () => {
@@ -71,15 +81,32 @@ test.describe('Timeout Settings Tests', () => {
       await expect(inheritButton).toBeVisible();
       await expect(timeoutInput).not.toBeVisible();
 
-      // Run the request with inherit timeout
+      // Save the request so the inherit setting is serialized to the .bru file
+      const saveShortcut = process.platform === 'darwin' ? 'Meta+s' : 'Control+s';
+      await page.keyboard.press(saveShortcut);
+      await expect(page.getByText('Request saved successfully')).toBeVisible();
+
+      // Verify persistence: the serialized file must keep timeout: inherit (not reset to a custom value)
+      const savedContent = fs.readFileSync(bruRequestPath, 'utf-8');
+      expect(savedContent).toMatch(/timeout:\s*['"]?inherit['"]?/);
+
+      // Reopen the request to confirm the inherit state persists in the Settings UI
+      const requestTab = page.locator('.request-tab').filter({ hasText: 'timeout-test' });
+      await requestTab.hover();
+      await requestTab.getByTestId('request-tab-close-icon').click({ force: true });
+
+      await page.getByRole('complementary').getByText('timeout-test').click();
+      await selectRequestPaneTab(page, 'Settings');
+
+      // Settings UI should still show Inherit (not a custom value) after reopening
+      await expect(inheritButton).toBeVisible();
+      await expect(timeoutInput).not.toBeVisible();
+
+      // Run the request with the inherited timeout
       await page.getByTestId('send-arrow-icon').click();
 
-      // Verify the request runs successfully with inherited timeout (should not timeout)
-      await expect(responsePane).toContainText('302');
-
-      // Close without saving to avoid modifying the .bru file
-      await page.locator('.close-icon-container').click({ force: true });
-      await page.locator('button:has-text("Don\'t Save")').first().click();
+      // Verify the inherited timeout resolves to the global preference (10ms), not the file value (5ms)
+      await expect(responsePane).toContainText('timeout of 10ms exceeded', { timeout: 15000 });
     });
   });
 
@@ -128,15 +155,32 @@ test.describe('Timeout Settings Tests', () => {
       await expect(inheritButton).toBeVisible();
       await expect(timeoutInput).not.toBeVisible();
 
-      // Run the request with inherit timeout
+      // Save the request so the inherit setting is serialized to the .yml file
+      const saveShortcut = process.platform === 'darwin' ? 'Meta+s' : 'Control+s';
+      await page.keyboard.press(saveShortcut);
+      await expect(page.getByText('Request saved successfully')).toBeVisible();
+
+      // Verify YAML persistence: the serialized file must keep timeout: inherit (not reset to 0)
+      const savedContent = fs.readFileSync(yamlRequestPath, 'utf-8');
+      expect(savedContent).toMatch(/timeout:\s*['"]?inherit['"]?/);
+
+      // Reopen the request to confirm the inherit state persists in the Settings UI
+      const requestTab = page.locator('.request-tab').filter({ hasText: 'timeout-test-yaml' });
+      await requestTab.hover();
+      await requestTab.getByTestId('request-tab-close-icon').click({ force: true });
+
+      await page.getByRole('complementary').getByText('timeout-test-yaml').click();
+      await selectRequestPaneTab(page, 'Settings');
+
+      // Settings UI should still show Inherit (not a custom value) after reopening
+      await expect(inheritButton).toBeVisible();
+      await expect(timeoutInput).not.toBeVisible();
+
+      // Run the request with the inherited timeout
       await page.getByTestId('send-arrow-icon').click();
 
-      // Verify the inherited timeout resolves to the new global preference (10ms), not the file value (5ms)
+      // Verify the inherited timeout resolves to the global preference (10ms), not the file value (5ms)
       await expect(responsePane).toContainText('timeout of 10ms exceeded', { timeout: 15000 });
-
-      // Close without saving to avoid modifying the .yml file
-      await page.locator('.close-icon-container').click({ force: true });
-      await page.locator('button:has-text("Don\'t Save")').first().click();
     });
   });
 });
