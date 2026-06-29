@@ -818,7 +818,7 @@ const mergeAuth = (collection, request, requestTreePath) => {
   let lastFolderWithAuth = null;
 
   // Traverse through the path to find the closest auth configuration
-  for (let i of requestTreePath) {
+  for (let i of [...requestTreePath].reverse()) {
     if (i.type === 'folder') {
       const folderRoot = i?.draft || i?.root;
       const folderAuth = get(folderRoot, 'request.auth');
@@ -826,6 +826,7 @@ const mergeAuth = (collection, request, requestTreePath) => {
       if (folderAuth && folderAuth.mode && folderAuth.mode !== 'inherit') {
         effectiveAuth = folderAuth;
         lastFolderWithAuth = i;
+        break;
       }
     }
   }
