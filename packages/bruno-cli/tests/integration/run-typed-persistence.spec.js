@@ -711,6 +711,7 @@ get {
 
 tests {
   bru.setEnvVar("beforeThrow", 42);
+  bru.setCollectionVar("collBeforeThrow", true);
   throw new Error("boom");
 }
 `
@@ -726,5 +727,8 @@ tests {
 
     const envContent = fs.readFileSync(path.join(tmpDir, 'environments', 'Test.bru'), 'utf8');
     expect(envContent).toMatch(/@number\s+beforeThrow:\s*42/);
+
+    const collectionBru = fs.readFileSync(path.join(tmpDir, 'collection.bru'), 'utf8');
+    expect(collectionBru).toMatch(/@boolean\s+collBeforeThrow:\s*true/);
   }, 60_000);
 });
