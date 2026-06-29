@@ -38,3 +38,5 @@ export {
   BRUNO_VARIABLE_DATATYPES,
   isBrunoVariableDataType
 } from './datatype';
+
+export const TIMEOUT_INHERIT = 'inherit' as const;
