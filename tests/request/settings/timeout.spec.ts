@@ -16,7 +16,6 @@ const setGlobalRequestTimeout = async (page: Page, value: string) => {
   await timeoutPreference.fill(value);
   await expect(timeoutPreference).toHaveValue(value, { timeout: 5000 });
 
-  // Closing the preferences tab unmounts the form, which flushes the debounced save immediately
   const preferencesTab = page.locator('.request-tab').filter({ hasText: 'Preferences' });
   await preferencesTab.hover();
   await preferencesTab.locator('.close-icon').click({ force: true });
