@@ -493,6 +493,49 @@ describe('brunoToPostman null checks and fallbacks', () => {
   });
 });
 
+describe('brunoToPostman auth export', () => {
+  it('should preserve collection auth and inherited request auth', () => {
+    const collection = {
+      name: 'Auth Collection',
+      root: {
+        request: {
+          auth: {
+            mode: 'bearer',
+            bearer: {
+              token: '{{token}}'
+            }
+          }
+        }
+      },
+      items: [
+        {
+          name: 'Inherited Request',
+          type: 'http-request',
+          request: {
+            method: 'GET',
+            url: 'https://example.com',
+            auth: {
+              mode: 'inherit'
+            }
+          }
+        }
+      ]
+    };
+
+    const result = brunoToPostman(collection);
+
+    expect(result.auth).toEqual({
+      type: 'bearer',
+      bearer: {
+        key: 'token',
+        value: '{{token}}',
+        type: 'string'
+      }
+    });
+    expect(result.item[0].request.auth).toBeUndefined();
+  });
+});
+
 describe('brunoToPostman multipartForm handling', () => {
   it('should export file type with type: file and src field', () => {
     const simpleCollection = {

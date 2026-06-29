@@ -377,6 +377,9 @@ export const brunoToPostman = (collection) => {
 
   const generateAuth = (itemAuth) => {
     switch (itemAuth?.mode) {
+      case 'inherit':
+      case 'inherited':
+        return null;
       case 'bearer':
         return {
           type: 'bearer',
@@ -433,10 +436,11 @@ export const brunoToPostman = (collection) => {
       return {};
     }
 
+    const auth = generateAuth(itemRequest.auth);
     const requestObject = {
       method: itemRequest.method || 'GET',
       header: generateHeaders(itemRequest.headers),
-      auth: generateAuth(itemRequest.auth),
+      ...(auth ? { auth } : {}),
       description: itemRequest.docs || '',
       // We sanitize the URL to make sure it's in the right format before passing it to the transformUrl func. This means changing backslashes to forward slashes and reducing multiple slashes to a single one, except in the protocol part.
       url: transformUrl(sanitizeUrl(itemRequest.url || ''), itemRequest.params || [])
@@ -589,6 +593,10 @@ export const brunoToPostman = (collection) => {
   collectionToExport.info = generateInfoSection();
   collectionToExport.item = generateItemSection(collection.items);
   collectionToExport.variable = generateCollectionVars(collection);
+  const collectionAuth = generateAuth(collection.root?.request?.auth);
+  if (collectionAuth && collectionAuth.type !== 'noauth') {
+    collectionToExport.auth = collectionAuth;
+  }
   const collectionEvents = generateEventSection(collection.root);
   if (collectionEvents.length) {
     collectionToExport.event = collectionEvents;
