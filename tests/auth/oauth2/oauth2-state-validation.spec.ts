@@ -46,9 +46,12 @@ const fetchAuthCodeFromTestbench = async (authorizationUrl: string): Promise<str
   const response = await fetch(authorizationUrl);
   expect(response.ok, 'testbench authorize should respond').toBeTruthy();
   const html = await response.text();
-  const match = html.match(/bruno:\/\/app\/oauth2\/callback\?code=([a-f0-9]+)/);
-  expect(match, 'authorize response should embed a callback code').toBeTruthy();
-  return match![1];
+  const callbackMatch = html.match(/bruno:\/\/app\/oauth2\/callback\?[^\s"'`<]+/);
+  expect(callbackMatch, 'authorize response should embed a callback url').toBeTruthy();
+  const callbackUrl = new URL(callbackMatch![0]);
+  const code = callbackUrl.searchParams.get('code');
+  expect(code, 'authorize response should embed a callback code').toBeTruthy();
+  return code as string;
 };
 
 /** Fire a deep-link callback through the real protocol handler (cross-platform path). */
@@ -65,21 +68,12 @@ const installCallbackCapture = (app: ElectronApplication) =>
   app.evaluate(({ app: electronApp }) => {
     (globalThis as any).__brunoCapturedCallbackUrl = null;
 
-    const listeners = electronApp.listeners('second-instance') as Array<
-      (event: unknown, commandLine: string[]) => void
-    >;
-
-    electronApp.removeAllListeners('second-instance');
-
-    for (const listener of listeners) {
-      electronApp.on('second-instance', (event, commandLine) => {
-        const url = commandLine?.find((arg) => arg?.startsWith('bruno://'));
-        if (url) {
-          (globalThis as any).__brunoCapturedCallbackUrl = url;
-        }
-        listener.call(electronApp, event, commandLine);
-      });
-    }
+    electronApp.prependListener('second-instance', (_event, commandLine) => {
+      const url = commandLine?.find((arg) => arg?.startsWith('bruno://'));
+      if (url) {
+        (globalThis as any).__brunoCapturedCallbackUrl = url;
+      }
+    });
   });
 
 const getCapturedCallbackUrl = (app: ElectronApplication): Promise<string | null> =>
