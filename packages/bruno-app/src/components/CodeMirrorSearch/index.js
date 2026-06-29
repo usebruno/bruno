@@ -117,6 +117,10 @@ const CodeMirrorSearch = forwardRef(({ visible, editor, readOnly, onClose }, ref
     setReplaceVisible(false);
     if (onClose) onClose();
     if (editor) {
+      // Collapse the match selection to a cursor so that re-opening the bar
+      // doesn't mistake the highlighted match text for a user selection.
+      const cursor = editor.getCursor('from');
+      editor.setSelection(cursor, cursor, { scroll: false });
       setTimeout(() => editor.focus(), 0);
     }
   }, [editor, onClose]);
@@ -171,7 +175,7 @@ const CodeMirrorSearch = forwardRef(({ visible, editor, readOnly, onClose }, ref
         setMatchCount(matches.length);
         setMatchIndex(resolvedIdx);
         initialIndexRef.current = { idx: resolvedIdx, forText: searchText };
-        doSearch(searchText, resolvedIdx, null, true);
+        doSearch(searchText, resolvedIdx);
       }
       setTimeout(() => {
         if (inputRef.current) {

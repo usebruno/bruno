@@ -248,6 +248,33 @@ test.describe.serial('CodeEditor Search/Replace', () => {
     await closeSearchBar(page);
   });
 
+  test('reopening the search bar does not scroll away from the current viewport', async ({ page }) => {
+    // Search, navigate to a match, then close — leaving the match text selected in the editor
+    await openSearchBar(page);
+    await page.getByTestId(EDITOR_ID).getByTestId('search-input').fill('Section');
+    await expectMatchCount(page, '1 / 200');
+    await closeSearchBar(page);
+
+    // Scroll to the middle of the document without moving the cursor
+    const cm = page.getByTestId(EDITOR_ID).locator('.CodeMirror').first();
+    await cm.evaluate((el: any) => {
+      if (el.CodeMirror) {
+        el.CodeMirror.scrollTo(null, el.CodeMirror.heightAtLine(500, 'local'));
+      }
+    });
+
+    const scrollBefore = await cm.evaluate((el: any) => el.CodeMirror?.getScrollInfo().top ?? 0);
+
+    // Reopen — previously this would re-detect the selected match text and scroll back to it
+    await page.keyboard.press(`${cmdKey}+f`);
+    await page.getByTestId(EDITOR_ID).getByTestId('search-bar').waitFor({ state: 'visible' });
+
+    const scrollAfter = await cm.evaluate((el: any) => el.CodeMirror?.getScrollInfo().top ?? 0);
+    expect(Math.abs(scrollAfter - scrollBefore)).toBeLessThan(50);
+
+    await closeSearchBar(page);
+  });
+
   test('case-sensitive toggle halves matches for mixed-case term', async ({ page }) => {
     await openSearchBar(page);
     await page.getByTestId(EDITOR_ID).getByTestId('search-input').fill('lorem');
