@@ -10,7 +10,15 @@ import { useTheme } from 'providers/Theme';
 import { usePersistedState } from 'hooks/usePersistedState';
 import { useFocusErrorLine } from 'hooks/useFocusErrorLine';
 
-const Tests = ({ item, collection }) => {
+/**
+ * @typedef {Object} TestsProps
+ * @property {Object} item - The request item (http or grpc).
+ * @property {Object} collection - The collection the item belongs to.
+ * @property {'http' | 'grpc'} [protocol] - Request protocol; defaults to 'http'.
+ */
+
+/** @param {TestsProps} props */
+const Tests = ({ item, collection, protocol = 'http' }) => {
   const dispatch = useDispatch();
   const testsEditorRef = useRef(null);
   const tests = item.draft ? get(item, 'draft.request.tests') : get(item, 'request.tests');
@@ -49,6 +57,7 @@ const Tests = ({ item, collection }) => {
         ref={testsEditorRef}
         collection={collection}
         item={item}
+        protocol={protocol}
         docKey="tests"
         value={tests || ''}
         theme={displayedTheme}

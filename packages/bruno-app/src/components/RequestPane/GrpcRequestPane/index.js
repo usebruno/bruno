@@ -15,6 +15,7 @@ import StyledWrapper from './StyledWrapper';
 import { hasEffectiveAuth } from 'utils/auth';
 import { AUTH_MODES_GRPC } from 'utils/common/constants';
 import Script from 'components/RequestPane/Script';
+import Tests from 'components/RequestPane/Tests';
 
 const GrpcRequestPane = ({ item, collection, handleRun }) => {
   const dispatch = useDispatch();
@@ -50,6 +51,9 @@ const GrpcRequestPane = ({ item, collection, handleRun }) => {
       case 'scripts': {
         return <Script protocol="grpc" item={item} collection={collection} />;
       }
+      case 'tests': {
+        return <Tests item={item} collection={collection} protocol="grpc" />;
+      }
       default: {
         return <div className="mt-4">404 | Not found</div>;
       }
@@ -59,6 +63,10 @@ const GrpcRequestPane = ({ item, collection, handleRun }) => {
   const body = getPropertyFromDraftOrRequest(item, 'request.body');
   const headers = getPropertyFromDraftOrRequest(item, 'request.headers');
   const docs = getPropertyFromDraftOrRequest(item, 'request.docs');
+  const script = getPropertyFromDraftOrRequest(item, 'request.script');
+  const tests = getPropertyFromDraftOrRequest(item, 'request.tests');
+  const hasTestError = item.testScriptErrorMessage;
+
   const itemAuthMode = item.draft?.request?.auth?.mode ?? item.request?.auth?.mode ?? item.root?.request?.auth?.mode;
   const hasAuth = useMemo(
     () => hasEffectiveAuth(collection, item, AUTH_MODES_GRPC),
@@ -72,6 +80,7 @@ const GrpcRequestPane = ({ item, collection, handleRun }) => {
   const isClientStreaming = request.methodType === 'client-streaming' || request.methodType === 'bidi-streaming';
 
   const allTabs = useMemo(() => {
+    const hasScriptError = item.preRequestScriptErrorMessage || item.onMessageScriptErrorMessage || item.postResponseScriptErrorMessage;
     const getMessageIndicator = () => {
       if (grpcMessagesCount > 0) {
         return isClientStreaming ? (
@@ -107,10 +116,15 @@ const GrpcRequestPane = ({ item, collection, handleRun }) => {
       {
         key: 'scripts',
         label: 'Scripts',
-        indicator: docs && docs.length > 0 ? <StatusDot type="default" /> : null
+        indicator: (script.req || script.stream || script.res) ? (hasScriptError ? <StatusDot type="error" /> : <StatusDot />) : null
+      },
+      {
+        key: 'tests',
+        label: 'Tests',
+        indicator: tests && tests.length > 0 ? hasTestError ? <StatusDot type="error" /> : <StatusDot type="default" /> : null
       }
     ];
-  }, [grpcMessagesCount, isClientStreaming, activeHeadersLength, hasAuth, docs]);
+  }, [grpcMessagesCount, isClientStreaming, activeHeadersLength, hasAuth, tests, hasTestError, docs, item.preRequestScriptErrorMessage, item.onMessageScriptErrorMessage, item.postResponseScriptErrorMessage]);
 
   // Initialize tab to 'body' if no tab is currently set
   useEffect(() => {

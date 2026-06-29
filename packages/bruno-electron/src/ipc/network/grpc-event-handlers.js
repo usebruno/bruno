@@ -1,7 +1,7 @@
 // To implement grpc event handlers
 const { ipcMain, app } = require('electron');
 const { GrpcClient } = require('@usebruno/requests');
-const { ScriptRuntime, formatErrorWithContextV2 } = require('@usebruno/js');
+const { ScriptRuntime, TestRuntime, formatErrorWithContextV2 } = require('@usebruno/js');
 const decomment = require('decomment');
 const { safeParseJSON, safeStringifyJSON } = require('../../utils/common');
 const { cloneDeep, get } = require('lodash');
@@ -365,6 +365,85 @@ const registerGrpcEventHandlers = (window) => {
     return { scriptResult, scriptError };
   };
 
+  /**
+   * Run the gRPC request tests (the `tests` block) once the call terminates.
+   * Mirrors the HTTP post-response test execution: runs the test source stored in
+   * the .bru file against the collected responses, emits the `test-results` event,
+   * and surfaces any test script error via a `test-script-execution` event so the
+   * existing ScriptError card renders for gRPC too.
+   *
+   * @returns {{ testResults: object | null, testError: Error | null }}
+   */
+  const runResponseTests = async ({
+    request,
+    collection,
+    envVars,
+    runtimeVariables,
+    processEnvVars,
+    scriptingConfig,
+    requestUid,
+    itemUid,
+    responses
+  }) => {
+    const testFile = get(request, 'tests');
+    if (typeof testFile !== 'string' || !testFile.length) {
+      return { testResults: null, testError: null };
+    }
+
+    const testRuntime = new TestRuntime({ runtime: scriptingConfig?.runtime });
+    let testResults = null;
+    let testError = null;
+    try {
+      testResults = await testRuntime.runTests(
+        decomment(testFile, { space: true }),
+        request,
+        { responses: responses || [] },
+        envVars,
+        runtimeVariables,
+        collection.pathname,
+        onConsoleLog,
+        processEnvVars,
+        scriptingConfig,
+        null,
+        collection.name
+      );
+    } catch (error) {
+      testError = error;
+      // Preserve any test() calls that passed before the script errored
+      testResults = error.partialResults || {
+        request,
+        envVariables: envVars,
+        runtimeVariables,
+        globalEnvironmentVariables: request?.globalEnvironmentVariables || {},
+        results: [],
+        nextRequestName: null
+      };
+    }
+
+    sendEvent('main:run-request-event', {
+      type: 'test-results',
+      results: testResults.results,
+      requestUid,
+      itemUid,
+      collectionUid: collection.uid
+    });
+
+    sendEvent('main:run-request-event', {
+      type: 'test-script-execution',
+      requestUid,
+      itemUid,
+      collectionUid: collection.uid,
+      errorMessage: testError ? (testError.message || 'An error occurred while executing the test script') : null,
+      errorContext: testError
+        ? formatErrorWithContextV2(testError, 'test', request?.testsMetadata, collection.pathname)
+        : null
+    });
+
+    propagateScriptEnvUpdates(testResults, request, collection);
+
+    return { testResults, testError };
+  };
+
   ipcMain.handle('connections-changed', (event) => {
     sendEvent('grpc:connections-changed', event);
   });
@@ -416,13 +495,23 @@ const registerGrpcEventHandlers = (window) => {
           }
         : undefined;
 
-      // 3. After Response — script.res (fires once on terminal event).
+      // 3. After Response — script.res then tests (fire once on terminal event).
       // `responses` is the full list of received messages, collected by the gRPC client.
-      const onAfterResponse = preparedRequest?.script?.res?.length
+      const hasAfterResponseScript = !!preparedRequest?.script?.res?.length;
+      const afterResponseTests = get(preparedRequest, 'tests');
+      const hasTests = typeof afterResponseTests === 'string' && afterResponseTests.length > 0;
+      const onAfterResponse = (hasAfterResponseScript || hasTests)
         ? (responses) => {
             if (onMessageErrored) return;
-            runAfterResponseScript({ ...scriptContext, responses }).catch((err) => {
-              console.error('Error running gRPC after-response script:', err);
+            (async () => {
+              if (hasAfterResponseScript) {
+                await runAfterResponseScript({ ...scriptContext, responses });
+              }
+              if (hasTests) {
+                await runResponseTests({ ...scriptContext, responses });
+              }
+            })().catch((err) => {
+              console.error('Error running gRPC after-response script/tests:', err);
             });
           }
         : undefined;
