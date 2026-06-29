@@ -494,7 +494,7 @@ describe('brunoToPostman null checks and fallbacks', () => {
 });
 
 describe('brunoToPostman auth export', () => {
-  it('should preserve collection auth and inherited request auth', () => {
+  it.each(['inherit', 'inherited'])('should preserve collection auth and %s request auth', (authMode) => {
     const collection = {
       name: 'Auth Collection',
       root: {
@@ -515,7 +515,7 @@ describe('brunoToPostman auth export', () => {
             method: 'GET',
             url: 'https://example.com',
             auth: {
-              mode: 'inherit'
+              mode: authMode
             }
           }
         }
