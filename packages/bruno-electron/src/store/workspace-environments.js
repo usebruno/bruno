@@ -279,11 +279,13 @@ class GlobalEnvironmentsManager {
         throw new Error(`Environment file not found for uid: ${environmentUid}`);
       }
 
-      const environment = await this.parseEnvironmentFile(envFile.filePath, workspacePath);
-      environment.color = color;
+      await withFileLock(envFile.filePath, async () => {
+        const environment = await this.parseEnvironmentFile(envFile.filePath, workspacePath);
+        environment.color = color;
 
-      const content = stringifyEnvironment(environment, { format: 'yml' });
-      await writeFile(envFile.filePath, content);
+        const content = stringifyEnvironment(environment, { format: 'yml' });
+        await writeFile(envFile.filePath, content);
+      });
 
       return true;
     } catch (error) {
