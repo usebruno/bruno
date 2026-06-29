@@ -25,12 +25,10 @@ test.describe('Move tabs', () => {
     await page.getByRole('button', { name: 'Create' }).click();
 
     // Wait for the folder to be created and appear in the sidebar
-    await page.waitForTimeout(2000);
     await expect(page.locator('.collection-item-name').filter({ hasText: 'test-folder' })).toBeVisible();
 
     // Open the folder tab
     await page.locator('.collection-item-name').filter({ hasText: 'test-folder' }).dblclick();
-    await page.waitForTimeout(500);
     await expect(page.locator('.request-tab .tab-label').filter({ hasText: 'test-folder' })).toBeVisible();
 
     // Add a request to the collection
@@ -43,12 +41,10 @@ test.describe('Move tabs', () => {
     await page.getByRole('button', { name: 'Create' }).click();
 
     // Wait for the request to be created
-    await page.waitForTimeout(1000);
     await expect(page.locator('.collection-item-name').filter({ hasText: 'test-request' })).toBeVisible();
 
     // Open the request tab
     await page.locator('.collection-item-name').filter({ hasText: 'test-request' }).dblclick();
-    await page.waitForTimeout(500);
     await expect(page.locator('.request-tab .tab-label').filter({ hasText: 'test-request' })).toBeVisible();
 
     // Verify order of tabs before move
@@ -103,12 +99,10 @@ test.describe('Move tabs', () => {
     await page.getByRole('button', { name: 'Create' }).click();
 
     // Wait for the folder to be created and appear in the sidebar
-    await page.waitForTimeout(2000);
     await expect(page.locator('.collection-item-name').filter({ hasText: 'test-folder' })).toBeVisible();
 
     // Open the folder tab
     await page.locator('.collection-item-name').filter({ hasText: 'test-folder' }).dblclick();
-    await page.waitForTimeout(500);
     await expect(page.locator('.request-tab .tab-label').filter({ hasText: 'test-folder' })).toBeVisible();
 
     // Add a request to the collection
@@ -121,12 +115,10 @@ test.describe('Move tabs', () => {
     await page.getByRole('button', { name: 'Create' }).click();
 
     // Wait for the request to be created
-    await page.waitForTimeout(1000);
     await expect(page.locator('.collection-item-name').filter({ hasText: 'test-request' })).toBeVisible();
 
     // Open the request tab
     await page.locator('.collection-item-name').filter({ hasText: 'test-request' }).dblclick();
-    await page.waitForTimeout(500);
     await expect(page.locator('.request-tab .tab-label').filter({ hasText: 'test-request' })).toBeVisible();
 
     // Verify order of tabs before move
@@ -138,8 +130,6 @@ test.describe('Move tabs', () => {
     const source = page.locator('.request-tab .tab-label').filter({ hasText: 'test-request' });
     await source.click();
     await page.keyboard.press(`${modifier}+BracketLeft`);
-    await page.waitForTimeout(500);
-
     // Verify order of tabs after move
     await expect(tabs.nth(0)).toHaveText('GETtest-request');
     await expect(tabs.nth(1)).toHaveText('test-folder');
@@ -147,8 +137,6 @@ test.describe('Move tabs', () => {
     // Move the request tab back to its original position using keyboard shortcut
     await source.click();
     await page.keyboard.press(`${modifier}+BracketRight`);
-    await page.waitForTimeout(500);
-
     // Verify order of tabs after move
     await expect(tabs.nth(0)).toHaveText('test-folder');
     await expect(tabs.nth(1)).toHaveText('GETtest-request');

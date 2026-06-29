@@ -10,11 +10,8 @@ test.describe.serial('bru.setEnvVar multiple persistent variables', () => {
       if (page && !page.isClosed()) {
         await page.locator('#sidebar-collection-name').click();
         await page.getByTestId('environment-selector-trigger').click();
-        await page.waitForTimeout(200);
         await page.locator('#configure-env').waitFor({ state: 'visible' });
         await page.locator('#configure-env').dispatchEvent('click');
-        await page.waitForTimeout(200);
-
         const envTab = page.locator('.request-tab').filter({ hasText: 'Environments' });
 
         const key1Row = page.getByRole('row', { name: 'multiple-persist-vars-key1' });
@@ -45,7 +42,6 @@ test.describe.serial('bru.setEnvVar multiple persistent variables', () => {
 
     await test.step('Select stage environment', async () => {
       await page.getByTestId('environment-selector-trigger').click();
-      await page.waitForTimeout(200);
       await expect(page.locator('.environment-list .dropdown-item', { hasText: 'Stage' })).toBeVisible();
       await page.locator('.environment-list .dropdown-item', { hasText: 'Stage' }).click();
       await expect(page.locator('.current-environment', { hasText: 'Stage' })).toBeVisible();
@@ -80,10 +76,8 @@ test.describe.serial('bru.setEnvVar multiple persistent variables', () => {
       await expect(page.locator('#sidebar-collection-name', { hasText: 'collection' })).toBeVisible();
 
       await page.getByTestId('environment-selector-trigger').click();
-      await page.waitForTimeout(200);
       await page.locator('#configure-env').waitFor({ state: 'visible' });
       await page.locator('#configure-env').dispatchEvent('click');
-      await page.waitForTimeout(200);
 
       const envTab = page.locator('.request-tab').filter({ hasText: 'Environments' });
       await expect(envTab).toBeVisible();

@@ -69,7 +69,6 @@ export async function waitForReadyPage(app: ElectronApplication, options: { time
   }
 
   await page.locator('[data-app-state="loaded"]').waitFor({ timeout });
-  await page.waitForTimeout(200);
 
   return page;
 }

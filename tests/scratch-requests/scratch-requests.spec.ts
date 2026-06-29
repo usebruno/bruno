@@ -41,7 +41,6 @@ test.describe.serial('Scratch Requests', () => {
       // Wait for the request tab to be active
       await page.locator('.request-tab.active').waitFor({ state: 'visible' });
       await expect(page.locator('.request-tab.active')).toContainText('Untitled');
-      await page.waitForTimeout(300);
     });
   };
 
@@ -53,7 +52,6 @@ test.describe.serial('Scratch Requests', () => {
       // Click the home icon in the title bar to go to workspace overview
       const homeButton = page.locator('.titlebar-left .home-button');
       await homeButton.click();
-      await page.waitForTimeout(300);
     });
   };
 

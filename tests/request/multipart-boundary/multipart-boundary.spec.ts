@@ -142,10 +142,6 @@ value1\r
       // Select Multipart Form body mode so Bruno has data to create FormData from
       await locators.request.bodyModeSelector().click();
       await locators.dropdown.item('Multipart Form').click();
-
-      // Wait for the body editor to switch to multipart form mode
-      await page.waitForTimeout(500);
-
       // The multipart form has an editable table - find and fill the first row
       // The name column has placeholder "Key" (defined in MultipartFormParams columns)
       const nameInput = page.locator('[data-testid="editable-table"] input[placeholder="Key"]').first();

@@ -59,8 +59,6 @@ test.describe('Global Environment Import Tests', () => {
 
     // Scroll the virtualized table to reveal remaining rows
     await variablesTable.evaluate((el) => el.scrollTop = el.scrollHeight);
-    await page.waitForTimeout(500);
-
     await expect(variablesTable.locator('input[name$=".name"][value="postTitle"]')).toBeVisible();
     await expect(variablesTable.locator('input[name$=".name"][value="postBody"]')).toBeVisible();
     await expect(variablesTable.locator('input[name$=".name"][value="secretApiToken"]')).toHaveCount(0);

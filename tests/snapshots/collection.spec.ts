@@ -13,6 +13,22 @@ import {
   waitForSnapshotFile
 } from '../utils/page';
 
+type Snapshot = Record<string, unknown>;
+
+/** Poll until ui-state-snapshot.json reflects expected state (1s debounce in app). */
+const waitForSnapshotPersisted = async (
+  userDataPath: string,
+  predicate: (snapshot: Snapshot) => boolean
+) => {
+  await expect.poll(() => {
+    const snapshot = readSnapshot(userDataPath);
+    return Boolean(snapshot && predicate(snapshot));
+  }, { timeout: 10000 }).toBe(true);
+};
+
+const snapshotHasCollectionSettingsTab = (snapshot: Snapshot, collectionPath: string) =>
+  Boolean(findSnapshotCollectionTab(snapshot, collectionPath));
+
 test.describe('Snapshot: collection Pane Interactivity', () => {
   test('collection pane tab interactivity is preserved after workspace switch', async ({ launchElectronApp, createTmpDir }) => {
     const userDataPath = await createTmpDir('snap-collection-workspace-switch');
@@ -28,8 +44,9 @@ test.describe('Snapshot: collection Pane Interactivity', () => {
     });
 
     await test.step('Switch to a new workspace', async () => {
-      // Background flushing takes about 2 seconds to complete
-      await page.waitForTimeout(2000);
+      await waitForSnapshotPersisted(userDataPath, (snapshot) =>
+        snapshotHasCollectionSettingsTab(snapshot, colPath)
+      );
       await createWorkspace(page, 'SecondWorkspace');
       await expect(page.getByTestId('workspace-name')).toHaveText('SecondWorkspace', { timeout: 5000 });
     });
@@ -64,7 +81,9 @@ test.describe('Snapshot: collection Pane Interactivity', () => {
     });
 
     await test.step('Close app and verify snapshot stores collection-settings tab', async () => {
-      await page.waitForTimeout(2000);
+      await waitForSnapshotPersisted(userDataPath, (snapshot) =>
+        snapshotHasCollectionSettingsTab(snapshot, colPath)
+      );
       await closeElectronApp(app);
 
       await waitForSnapshotFile(userDataPath);
@@ -106,7 +125,9 @@ test.describe('Snapshot: collection Pane Interactivity', () => {
     });
 
     await test.step('Close app and verify snapshot stores collection-settings tab', async () => {
-      await page.waitForTimeout(2000);
+      await waitForSnapshotPersisted(userDataPath, (snapshot) =>
+        snapshotHasCollectionSettingsTab(snapshot, colPath)
+      );
       await closeElectronApp(app);
 
       await waitForSnapshotFile(userDataPath);

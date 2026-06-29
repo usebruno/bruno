@@ -7,7 +7,6 @@ import { readExportedJson } from '../../../utils/helpers';
 // Helper function to load expected fixtures
 function loadExpectedFixture(fixturePath: string) {
   const fullPath = path.join(__dirname, '..', '../fixtures', 'environment-exports', fixturePath);
-  console.log(fullPath);
   return JSON.parse(fs.readFileSync(fullPath, 'utf8'));
 }
 

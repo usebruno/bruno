@@ -63,7 +63,6 @@ test.describe('Tag persistence', () => {
     // Create a new folder
     await locators.sidebar.collectionRow('test-collection').hover();
     await locators.actions.collectionActions('test-collection').click();
-    await page.waitForTimeout(1);
     await locators.dropdown.item('New Folder').click();
     await page.locator('#folder-name').fill('folder-1');
     await locators.modal.button('Create').click();

@@ -63,8 +63,6 @@ test.describe('Snapshot: Collection Environment Persistence', () => {
           && path.normalize(collection.pathname) === path.normalize(migrationCollectionPath)
       );
       expect(migratedCollectionEntry).toBeTruthy();
-      console.log(JSON.stringify(migratedCollectionEntry));
-
       expect(migratedCollectionEntry?.selectedEnvironment).toBe('local');
     });
   });

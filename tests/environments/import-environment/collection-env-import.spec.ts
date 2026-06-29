@@ -64,8 +64,6 @@ test.describe('Collection Environment Import Tests', () => {
 
     // Scroll the virtualized table to reveal remaining rows
     await page.locator('.table-container').evaluate((el) => el.scrollTop = el.scrollHeight);
-    await page.waitForTimeout(500);
-
     await expect(page.locator('input[name$=".name"][value="postTitle"]')).toBeVisible();
     await expect(page.locator('input[name$=".name"][value="postBody"]')).toBeVisible();
     await expect(page.locator('input[name$=".name"][value="secretApiToken"]')).toHaveCount(0);

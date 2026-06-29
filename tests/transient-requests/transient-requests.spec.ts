@@ -43,7 +43,6 @@ test.describe.serial('Transient Requests', () => {
     await test.step('Verify request is NOT in sidebar', async () => {
       // Click on the collection to ensure it's expanded
       await locators.sidebar.collection('transient-requests-test').click();
-      await page.waitForTimeout(300);
 
       // Check that there are no requests in the collection
       // Transient requests should not appear in the sidebar
@@ -126,7 +125,6 @@ test.describe.serial('Transient Requests', () => {
     await test.step('Trigger save action using keyboard shortcut', async () => {
       // Try to save using Cmd+S (Mac) or Ctrl+S (other platforms)
       await page.keyboard.press(saveShortcut);
-      await page.waitForTimeout(500);
     });
 
     await test.step('Fill in save dialog', async () => {
@@ -142,8 +140,7 @@ test.describe.serial('Transient Requests', () => {
       // Click Save button
       await saveModal.getByRole('button', { name: 'Save' }).click();
 
-      // Wait for success toast
-      await page.waitForTimeout(1000);
+      await expect(page.getByText('Request saved successfully').last()).toBeVisible({ timeout: 10000 });
     });
 
     await test.step('Verify saved request appears in sidebar', async () => {
@@ -174,7 +171,6 @@ test.describe.serial('Transient Requests', () => {
 
     await test.step('Trigger save action using keyboard shortcut', async () => {
       await page.keyboard.press(saveShortcut);
-      await page.waitForTimeout(500);
     });
 
     await test.step('Fill in save dialog', async () => {
@@ -186,7 +182,7 @@ test.describe.serial('Transient Requests', () => {
       await requestNameInput.fill('Saved GraphQL Request');
 
       await saveModal.getByRole('button', { name: 'Save' }).click();
-      await page.waitForTimeout(1000);
+      await expect(page.getByText('Request saved successfully').last()).toBeVisible({ timeout: 10000 });
     });
 
     await test.step('Verify saved request appears in sidebar', async () => {

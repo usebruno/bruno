@@ -56,7 +56,6 @@ test.describe('Timeline URL Update', () => {
       const modifier = process.platform === 'darwin' ? 'Meta' : 'Control';
       await page.keyboard.press(`${modifier}+a`);
       await page.keyboard.type(secondUrl);
-      await page.waitForTimeout(200);
       await sendRequest(page, 200);
     });
 

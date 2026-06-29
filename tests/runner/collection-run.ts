@@ -41,8 +41,6 @@ test.describe.parallel('Collection Run', () => {
     const resetVisible = await resetButton.isVisible().catch(() => false);
     if (resetVisible) {
       await resetButton.click();
-      // Wait a bit for the reset to complete
-      await page.waitForTimeout(500);
     }
 
     // Now wait for and click Run Collection button

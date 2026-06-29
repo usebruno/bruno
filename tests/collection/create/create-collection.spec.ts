@@ -1,5 +1,6 @@
 import { test, expect } from '../../../playwright';
 import { closeAllCollections, createCollection, createRequest } from '../../utils/page';
+import { buildCommonLocators } from '../../utils/page/locators';
 
 test.describe('Create collection', () => {
   test.afterEach(async ({ page }) => {
@@ -8,7 +9,7 @@ test.describe('Create collection', () => {
   });
 
   test('should show validation error for empty name in modal and keep modal open', async ({ page }) => {
-    await page.getByTestId('collections-header-add-menu').click();
+    await buildCommonLocators(page).plusMenu.button().click();
     await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Create collection' }).click();
 
     const inlineCreator = page.locator('.inline-collection-creator');
@@ -31,7 +32,7 @@ test.describe('Create collection', () => {
   });
 
   test('should show validation error for whitespace-only name in modal and keep modal open', async ({ page }) => {
-    await page.getByTestId('collections-header-add-menu').click();
+    await buildCommonLocators(page).plusMenu.button().click();
     await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Create collection' }).click();
 
     const inlineCreator = page.locator('.inline-collection-creator');
