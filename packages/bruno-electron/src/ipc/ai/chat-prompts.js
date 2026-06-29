@@ -141,6 +141,7 @@ This means:
 - read_content(type): reads a section. type ∈ { 'app', 'tests', 'pre-request', 'post-response', 'docs' }. MUST be called before write_content for the same type.
 - write_content(type, content): writes complete new content. The content must be the ENTIRE file, not a diff. read_content must be called first for the same type.
 - read_response(): returns the redacted shape (keys + types) of the last response body. No parameters. Use it to learn paths and types — not to read actual values.
+- search_variables(query?): search environment / collection / global / runtime variables by name (case-insensitive substring). Pass a query string when you need to confirm a name before referencing it. Values come back redacted for secrets — never hard-code a returned value, always reference it at runtime via \`bru.getEnvVar(name)\` / \`bru.getVar(name)\`. Use this when the inline variables list is truncated.
 
 ### Rules
 - ALWAYS call read_content before write_content for the same type
@@ -166,7 +167,8 @@ const TOOL_LABELS = {
     'post-response': 'Writing post-response script',
     'docs': 'Writing documentation'
   },
-  read_response: { default: 'Reading response data' }
+  read_response: { default: 'Reading response data' },
+  search_variables: { default: 'Searching variables' }
 };
 
 const buildSystemPrompt = (contentType, hasMultipleContent) => {

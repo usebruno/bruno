@@ -1,9 +1,10 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
 import get from 'lodash/get';
 import find from 'lodash/find';
 import { useDispatch, useSelector } from 'react-redux';
 import CodeEditor from 'components/CodeEditor';
 import AIAssist from 'components/AIAssist';
+import { buildAiVariablesPayload } from 'utils/ai';
 import { updateCollectionRequestScript, updateCollectionResponseScript } from 'providers/ReduxStore/slices/collections';
 import { saveCollectionSettings } from 'providers/ReduxStore/slices/collections/actions';
 import { updateScriptPaneTab } from 'providers/ReduxStore/slices/tabs';
@@ -101,6 +102,8 @@ const Script = ({ collection }) => {
   const hasPreRequestScriptError = items.some((i) => isItemARequest(i) && i.preRequestScriptErrorMessage);
   const hasPostResponseScriptError = items.some((i) => isItemARequest(i) && i.postResponseScriptErrorMessage);
 
+  const aiVariables = useMemo(() => buildAiVariablesPayload(collection, null), [collection]);
+
   return (
     <StyledWrapper className="w-full flex flex-col h-full">
       <div className="text-xs mb-4 text-muted">
@@ -144,6 +147,7 @@ const Script = ({ collection }) => {
             <AIAssist
               scriptType="pre-request"
               currentScript={requestScript || ''}
+              variables={aiVariables}
               onApply={onRequestScriptEdit}
             />
           </div>
@@ -170,6 +174,7 @@ const Script = ({ collection }) => {
             <AIAssist
               scriptType="post-response"
               currentScript={responseScript || ''}
+              variables={aiVariables}
               onApply={onResponseScriptEdit}
             />
           </div>

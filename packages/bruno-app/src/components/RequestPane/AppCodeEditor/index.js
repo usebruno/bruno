@@ -4,7 +4,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import CodeEditor from 'components/CodeEditor';
 import ToggleSwitch from 'components/ToggleSwitch';
 import AIAssist from 'components/AIAssist';
-import { buildRequestContextFromItem } from 'utils/ai';
+import { buildAiContextPayload } from 'utils/ai';
 import { updateAppCode, toggleAppMode } from 'providers/ReduxStore/slices/collections';
 import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { useTheme } from 'providers/Theme';
@@ -26,7 +26,10 @@ const AppCodeEditor = ({ item, collection }) => {
 
   const onSave = () => dispatch(saveRequest(item.uid, collection.uid));
 
-  const requestContext = useMemo(() => buildRequestContextFromItem(item), [item]);
+  const { requestContext, variables: aiVariables } = useMemo(
+    () => buildAiContextPayload(item, collection),
+    [item, collection]
+  );
 
   return (
     <StyledWrapper className="w-full h-full flex flex-col">
@@ -55,6 +58,7 @@ const AppCodeEditor = ({ item, collection }) => {
           scriptType="app-request"
           currentScript={code || ''}
           requestContext={requestContext}
+          variables={aiVariables}
           onApply={onEdit}
         />
       </div>
