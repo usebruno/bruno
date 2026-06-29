@@ -81,6 +81,19 @@ describe('handleOauth2ProtocolUrl - state validation', () => {
         expect.objectContaining({ message: expect.stringContaining('state mismatch') })
       );
     });
+
+    it('should reject when no hash state is returned but one was expected', () => {
+      registerOauth2AuthorizationRequest(resolve, reject, null, 'expected-state');
+
+      handleOauth2ProtocolUrl(
+        'bruno://oauth2/callback#access_token=token-abc&token_type=bearer'
+      );
+
+      expect(resolve).not.toHaveBeenCalled();
+      expect(reject).toHaveBeenCalledWith(
+        expect.objectContaining({ message: expect.stringContaining('state mismatch') })
+      );
+    });
   });
 
   describe('when no expected state was registered (backward compatibility)', () => {
