@@ -1045,4 +1045,159 @@ headers {
       });
     });
   });
+
+  // The v2 grammar matches the ohm grammar character-by-character across the
+  // whole file, including the large opaque body/script/docs/tests content that
+  // the grammar simply returns verbatim. That parse scales super-linearly with
+  // block size — a ~1MB JSON body takes several seconds, and larger bodies
+  // effectively freeze the parser. To avoid that, the parser hoists each text
+  // block behind a sentinel, parses the small remaining skeleton, then splices
+  // the real content back into the AST (falling back to a full parse if a
+  // sentinel does not land as a standalone value).
+  //
+  // These tests pin both halves of that contract: the output must be identical
+  // to a plain parse, and the parse time must no longer explode with body size.
+  describe('large text blocks (parse performance)', () => {
+    it('parses a ~1MB JSON body in a fraction of the time a full grammar parse needs', () => {
+      const rows = [];
+      for (let i = 0; i < 30000; i++) {
+        rows.push(`    { "id": ${i}, "name": "row ${i}" }`);
+      }
+      const json = `{\n  "rows": [\n${rows.join(',\n')}\n  ]\n}`;
+      // Bruno indents body content by 2 spaces; only the block's own closing
+      // brace sits at column 0, which is the boundary both the grammar and the
+      // hoisting pre-pass key off.
+      const indentedJson = json
+        .split('\n')
+        .map((line) => '  ' + line)
+        .join('\n');
+      const input = `get {\n  url: https://example.com\n}\n\nbody:json {\n${indentedJson}\n}\n`;
+
+      // Sanity: this really is a large body (the regression only bites at scale).
+      expect(input.length).toBeGreaterThan(1024 * 1024);
+
+      const start = process.hrtime.bigint();
+      const output = parser(input);
+      const elapsedMs = Number(process.hrtime.bigint() - start) / 1e6;
+
+      // Correctness: the body round-trips exactly to its outdented source form.
+      expect(output.http.method).toBe('get');
+      expect(output.body.json).toBe(json);
+
+      // Necessity: parsing this same input through the full grammar takes ~3s
+      // and grows super-linearly beyond it; the hoisting path is a few
+      // milliseconds. The 1s budget separates the two with a ~100x margin, so it
+      // flags a regression to the slow path without being timing-fragile.
+      expect(elapsedMs).toBeLessThan(1000);
+    }, 20000);
+
+    it('produces identical output for a large pretty-printed JSON body as for a small one', () => {
+      const json = `{\n  "rows": [\n${Array.from({ length: 2000 }, (_v, i) => `    { "id": ${i} }`).join(',\n')}\n  ]\n}`;
+      const indentedJson = json
+        .split('\n')
+        .map((line) => '  ' + line)
+        .join('\n');
+      const input = `get {\n  url: https://example.com\n}\n\nbody:json {\n${indentedJson}\n}\n`;
+
+      const output = parser(input);
+
+      expect(output).toEqual({
+        http: {
+          method: 'get',
+          url: 'https://example.com'
+        },
+        body: {
+          json
+        }
+      });
+      // The sentinel used internally must never leak into the result.
+      expect(JSON.stringify(output)).not.toContain('\u0000');
+    });
+
+    it('hoists and restores every text block when several appear in one file', () => {
+      const input = `get {
+  url: https://example.com
+}
+
+body:json {
+  {
+    "a": 1
+  }
+}
+
+script:pre-request {
+  console.log('hi');
+}
+
+docs {
+  # Title
+  some docs
+}
+`;
+
+      const output = parser(input);
+
+      expect(output).toEqual({
+        http: {
+          method: 'get',
+          url: 'https://example.com'
+        },
+        body: {
+          json: '{\n  "a": 1\n}'
+        },
+        script: {
+          req: 'console.log(\'hi\');'
+        },
+        docs: '# Title\nsome docs'
+      });
+    });
+
+    it('handles CRLF line endings inside a text block', () => {
+      const input = 'get {\r\n  url: https://example.com\r\n}\r\n\r\nbody:json {\r\n  {\r\n    "a": 1\r\n  }\r\n}\r\n';
+
+      const output = parser(input);
+
+      expect(output).toEqual({
+        http: {
+          method: 'get',
+          url: 'https://example.com'
+        },
+        body: {
+          json: '{\n  "a": 1\n}'
+        }
+      });
+    });
+
+    it('falls back to a full parse and stays correct when a hoisted block is dropped by the reducer', () => {
+      // Duplicate text blocks are valid .bru: the grammar accepts them and the
+      // reducer keeps the last one. Both blocks get hoisted, but only the
+      // surviving block's sentinel remains in the merged AST, so the number of
+      // spliced sentinels no longer matches the number hoisted. That mismatch
+      // makes the parser discard the fast path and fall back to a full parse,
+      // which yields exactly the stock result — the optimization never changes
+      // the output, only (in this rare case) the speed.
+      const input = `get {
+  url: https://example.com
+}
+
+docs {
+  first docs
+}
+
+docs {
+  second docs
+}
+`;
+
+      const output = parser(input);
+
+      expect(output).toEqual({
+        http: {
+          method: 'get',
+          url: 'https://example.com'
+        },
+        docs: 'second docs'
+      });
+    });
+  });
 });
