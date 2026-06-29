@@ -1,38 +1,69 @@
 import { test, expect } from '../../../playwright';
-import { closeAllCollections } from '../../utils/page';
+import { buildCommonLocators, closeAllCollections } from '../../utils/page';
 
-test.describe('GitHub Repository URL Import', () => {
+test.describe('Git repository import', () => {
   test.afterEach(async ({ page }) => {
     await closeAllCollections(page);
   });
 
-  test('GitHub repository URL import', async ({ page }) => {
-    const githubUrl = 'https://github.com/usebruno/github-rest-api-collection';
+  test('TC114: Verify import collection through Cloning from Git Repository', { tag: '@sanity' }, async ({
+    page,
+    electronApp,
+    createTmpDir
+  }) => {
+    const gitUrl = 'https://github.com/usebruno/github-rest-api-collection';
+    const collectionName = 'github rest api';
+    const cloneLocation = await createTmpDir('git-clone');
+    const locators = buildCommonLocators(page);
+    const importLocators = locators.import;
+    const { cloneGit } = importLocators;
 
-    // Test GitHub repository import
-    await page.getByTestId('collections-header-add-menu').click();
-    await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Import collection' }).click();
+    await test.step('Step 01: Go to menu click on the + icon', async () => {
+      await locators.plusMenu.button().click();
+      await expect(locators.plusMenu.importCollection()).toBeVisible();
+    });
 
-    // Wait for import collection modal to be ready
-    const importModal = page.getByRole('dialog');
-    await importModal.waitFor({ state: 'visible' });
-    await expect(importModal.locator('.bruno-modal-header-title')).toContainText('Import Collection');
+    await test.step('Step 02: Click on Import a collection', async () => {
+      await locators.plusMenu.importCollection().click();
 
-    // Select the GitHub tab
-    await page.getByTestId('github-tab').click();
+      await importLocators.modal().waitFor({ state: 'visible' });
+      await expect(importLocators.modalTitle()).toContainText('Import Collection');
+      await expect(importLocators.fileTab()).toBeVisible();
+      await expect(importLocators.gitRepositoryTab()).toBeVisible();
+      await expect(importLocators.urlTab()).toBeVisible();
+    });
 
-    // Fill in the URL input
-    await page.getByTestId('git-url-input').fill(githubUrl);
-    await page.locator('#clone-git-button').click();
+    await test.step('Step 03: Go to git repository section and Enter the URL and select the location to save the repo then click on the import button', async () => {
+      await importLocators.gitRepositoryTab().click();
+      await importLocators.gitUrlInput().fill(gitUrl);
+      await importLocators.cloneGitButton().click();
+      await importLocators.loader().waitFor({ state: 'hidden' });
 
-    // Wait for the loader to disappear
-    await page.locator('#import-collection-loader').waitFor({ state: 'hidden' });
+      await expect(cloneGit.modal()).toBeVisible();
+      await expect(cloneGit.modal()).toContainText(gitUrl);
 
-    // Verify that the Clone Git Repository modal is displayed
-    const cloneModal = page.getByRole('dialog');
-    await expect(cloneModal.locator('.bruno-modal-header-title')).toContainText('Clone Git Repository');
+      await electronApp.evaluate(({ dialog }, dir) => {
+        dialog.showOpenDialog = async () => ({
+          canceled: false,
+          filePaths: [dir]
+        });
+      }, cloneLocation);
 
-    // Cleanup: close any open modals using Cancel button (avoids form validation)
-    await page.getByRole('button', { name: 'Cancel' }).click();
+      await cloneGit.locationInput().click();
+      await expect(cloneGit.locationInput()).toHaveValue(cloneLocation);
+
+      await cloneGit.cloneButton().click();
+      await expect(cloneGit.collectionItemTitle(collectionName)).toBeVisible();
+    });
+
+    await test.step('Step 04: Select the desired collections and click on open', async () => {
+      await cloneGit.collectionCheckbox(collectionName).check();
+
+      await cloneGit.openButton().click();
+      await cloneGit.modal().waitFor({ state: 'hidden' });
+
+      await expect(locators.sidebar.collection(collectionName)).toBeVisible();
+      await expect(locators.toast.repositoryClonedSuccessfully()).toBeVisible();
+    });
   });
 });
