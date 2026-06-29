@@ -619,4 +619,112 @@ script:post-response {
     const envContent = fs.readFileSync(path.join(tmpDir, 'environments', 'Test.bru'), 'utf8');
     expect(envContent).toMatch(/@number\s+beforeThrow:\s*42/);
   }, 60_000);
+
+  // Vars set from inside a `tests {}` block reach disk through the same syncVariableUpdates
+  // path as the post-response script, but via run-single-request.js:881 instead of :802.
+  // Sandbox-agnostic plumbing — runtime equivalence is already covered by the dual-sandbox
+  // happy-path tests above; single-sandbox here matches the analogous L577 case.
+  it('persists vars set inside a tests {} block', async () => {
+    writeFixtureFile(
+      path.join(tmpDir, 'bruno.json'),
+      JSON.stringify({ version: '1', name: 'tests-block-persist-collection', type: 'collection' }, null, 2) + '\n'
+    );
+    writeFixtureFile(
+      path.join(tmpDir, 'collection.bru'),
+      'meta {\n  name: tests-block-persist-collection\n  seq: 1\n}\n'
+    );
+    writeFixtureFile(
+      path.join(tmpDir, 'environments', 'Test.bru'),
+      `vars {\n  host: ${baseUrl}\n}\n`
+    );
+    writeFixtureFile(
+      path.join(tmpDir, 'set-from-tests.bru'),
+      `meta {
+  name: set-from-tests
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+tests {
+  test("sets vars from the tests block", function () {
+    bru.setEnvVar("envFromTests", 42);
+    bru.setCollectionVar("collFromTests", true);
+    expect(true).to.equal(true);
+  });
+}
+`
+    );
+
+    const result = await runCli([
+      'run', 'set-from-tests.bru', '--env', 'Test', '--sandbox', 'developer', '--noproxy'
+    ]);
+
+    if (result.code !== 0) {
+      throw new Error(
+        `CLI exited with code ${result.code}.\n--- stdout ---\n${result.stdout}\n--- stderr ---\n${result.stderr}`
+      );
+    }
+
+    const envContent = fs.readFileSync(path.join(tmpDir, 'environments', 'Test.bru'), 'utf8');
+    expect(envContent).toMatch(/@number\s+envFromTests:\s*42/);
+
+    const collectionBru = fs.readFileSync(path.join(tmpDir, 'collection.bru'), 'utf8');
+    expect(collectionBru).toMatch(/@boolean\s+collFromTests:\s*true/);
+  }, 60_000);
+
+  // A throw at the top of `tests {}` (outside any test() callback) is caught by test-runtime,
+  // which attaches in-flight env/collection mutations to `error.partialResults`. The CLI
+  // catch at run-single-request.js:914 syncs those partials so pre-throw writes still land
+  // on disk — same contract as the post-response partial-results case above.
+  it('persists vars written before a tests-block script error (partial results)', async () => {
+    writeFixtureFile(
+      path.join(tmpDir, 'bruno.json'),
+      JSON.stringify({ version: '1', name: 'tests-block-partial-results-collection', type: 'collection' }, null, 2) + '\n'
+    );
+    writeFixtureFile(
+      path.join(tmpDir, 'collection.bru'),
+      'meta {\n  name: tests-block-partial-results-collection\n  seq: 1\n}\n'
+    );
+    writeFixtureFile(
+      path.join(tmpDir, 'environments', 'Test.bru'),
+      `vars {\n  host: ${baseUrl}\n}\n`
+    );
+    writeFixtureFile(
+      path.join(tmpDir, 'set-then-throw-in-tests.bru'),
+      `meta {
+  name: set-then-throw-in-tests
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+tests {
+  bru.setEnvVar("beforeThrow", 42);
+  throw new Error("boom");
+}
+`
+    );
+
+    const result = await runCli([
+      'run', 'set-then-throw-in-tests.bru', '--env', 'Test', '--sandbox', 'developer', '--noproxy'
+    ]);
+
+    // Pin failure exit first — otherwise the persistence assertion below could pass for the
+    // wrong reason (e.g. the script never ran).
+    expect(result.code).not.toBe(0);
+
+    const envContent = fs.readFileSync(path.join(tmpDir, 'environments', 'Test.bru'), 'utf8');
+    expect(envContent).toMatch(/@number\s+beforeThrow:\s*42/);
+  }, 60_000);
 });
