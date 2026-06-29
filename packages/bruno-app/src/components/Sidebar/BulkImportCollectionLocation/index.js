@@ -22,6 +22,7 @@ import StyledWrapper from './StyledWrapper';
 import toast from 'react-hot-toast';
 import { showImportIssuesToast } from 'components/Toast/ImportIssuesToast';
 import get from 'lodash/get';
+import { DEFAULT_COLLECTION_FORMAT } from 'utils/common/constants';
 
 const STATUS = {
   LOADING: 'loading',
@@ -154,7 +155,7 @@ export const BulkImportCollectionLocation = ({
   const [applyToGlobal, setApplyToGlobal] = useState(true);
   const [applyToCollection, setApplyToCollection] = useState(false);
   const [groupingType, setGroupingType] = useState('tags');
-  const [collectionFormat, setCollectionFormat] = useState('yml');
+  const [collectionFormat, setCollectionFormat] = useState(DEFAULT_COLLECTION_FORMAT);
   const [renamedCollectionNames, setRenamedCollectionNames] = useState({});
   const [renamedEnvironmentNames, setRenamedEnvironmentNames] = useState({});
   const [importIssues, setImportIssues] = useState({});
