@@ -164,7 +164,7 @@ test.describe('Generate Documentation', () => {
     await expect(modal).toBeHidden();
   });
 
-  test('shows the collection name alongside the current version formatted as a v-prefixed semver', async ({
+  test('shows the collection name alongside the raw collection version', async ({
     pageWithUserData: page
   }) => {
     const locators = buildCommonLocators(page);
@@ -178,13 +178,16 @@ test.describe('Generate Documentation', () => {
 
     await expect(locators.generateDocs.collectionName()).toHaveText(COLLECTION_NAME);
 
-    // The fixture's bruno.json version ("1") is normalised for display to "v1.0.0".
-    await expect(locators.generateDocs.versionValue()).toHaveText('v1.0.0');
+    // The version is shown exactly as the collection sets it.
+    await expect(locators.generateDocs.versionValue()).toHaveText('version : 1');
 
     // The fixture has 2 folders (Zoo, Aviary) and 5 requests (Lion, Bear, Parrot,
     // ReqAlpha, ReqBeta), counted recursively across the whole tree.
     await expect(locators.generateDocs.versionCounts()).toContainText('2 Folders');
     await expect(locators.generateDocs.versionCounts()).toContainText('5 requests');
+
+    // This collection has environments, so the "0 environments" hint is not shown.
+    await expect(locators.generateDocs.versionCounts()).not.toContainText('environments');
 
     await locators.generateDocs.cancelButton().click();
     await expect(modal).toBeHidden();

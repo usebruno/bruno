@@ -215,7 +215,7 @@ const GenerateDocumentation = ({ onClose, collectionUid }) => {
               </ul>
 
               <div className="config-card mb-4">
-                <CollectionVersionInfo name={collection.name} version={currentVersion} folderCount={folderCount} requestCount={requestCount} />
+                <CollectionVersionInfo name={collection.name} version={currentVersion} folderCount={folderCount} requestCount={requestCount} environmentCount={environments.length} />
                 {environments.length > 0 && (
                   <Fragment>
                     <div className="card-divider" />
