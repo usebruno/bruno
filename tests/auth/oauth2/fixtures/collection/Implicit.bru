@@ -1,0 +1,24 @@
+meta {
+  name: Implicit
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{localhost}}/ping
+  body: none
+  auth: oauth2
+}
+
+auth:oauth2 {
+  grant_type: implicit
+  callback_url: bruno://app/oauth2/callback
+  authorization_url: {{localhost}}/api/auth/oauth2/authorization_code/authorize
+  client_id: client_id_1
+  scope: read
+  state:
+  credentials_id: credentials
+  token_placement: header
+  token_header_prefix: Bearer
+  auto_fetch_token: true
+}

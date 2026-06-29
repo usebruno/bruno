@@ -51,8 +51,10 @@ const Oauth2ActionButtons = ({ item, request, collection, url: accessTokenUrl, c
         collectionUid,
         response: {
           error: errorMessage,
-          isError: true,
-          status: 'Error',
+          status: null,
+          headers: {},
+          data: null,
+          dataBuffer: null,
           size: 0,
           duration: 0
         }
@@ -91,7 +93,7 @@ const Oauth2ActionButtons = ({ item, request, collection, url: accessTokenUrl, c
       if (error?.message && error.message.includes('cancelled by user')) {
         return;
       }
-      const errorMessage = formatIpcError(error) || 'An error occurred while fetching token!';
+      const errorMessage = error?.message || 'An error occurred while fetching token!';
       toast.error(errorMessage);
       showOauth2Error(errorMessage);
     } finally {
@@ -120,6 +122,7 @@ const Oauth2ActionButtons = ({ item, request, collection, url: accessTokenUrl, c
         const errorMessage = result?.error || 'No access token received from authorization server';
         console.error(errorMessage);
         toast.error(errorMessage);
+        showOauth2Error(errorMessage);
         return;
       }
 
@@ -127,8 +130,9 @@ const Oauth2ActionButtons = ({ item, request, collection, url: accessTokenUrl, c
     } catch (error) {
       console.error(error);
       toggleRefreshingToken(false);
-      const errorMessage = formatIpcError(error) || 'An error occurred while refreshing token!';
+      const errorMessage = error?.message || 'An error occurred while refreshing token!';
       toast.error(errorMessage);
+      showOauth2Error(errorMessage);
     }
   };
 
