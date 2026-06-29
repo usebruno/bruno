@@ -6,6 +6,7 @@
 | [বাংলা](docs/publishing/publishing_bn.md)
 | [Română](docs/publishing/publishing_ro.md)
 | [Polski](docs/publishing/publishing_pl.md)
+| [Tiếng Việt](docs/publishing/publishing_vi.md)
 | [简体中文](docs/publishing/publishing_cn.md)
 | [正體中文](docs/publishing/publishing_zhtw.md)
 | [日本語](docs/publishing/publishing_ja.md)
