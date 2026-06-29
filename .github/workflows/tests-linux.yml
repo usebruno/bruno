@@ -54,10 +54,7 @@ jobs:
   e2e-test:
     name: Playwright E2E Tests (Linux)
     timeout-minutes: 240
-    runs-on: 
-      - ubuntu-24.04
-      - self-hosted 
-      - large-runner
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v6
 
