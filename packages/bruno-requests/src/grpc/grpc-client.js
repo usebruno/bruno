@@ -116,7 +116,8 @@ const normalizeWindowsNamedPipe = (pipePath) => {
 const getParsedGrpcUrlObject = (url) => {
   const addProtocolIfMissing = (str) => {
     if (str.includes('://')) return str;
-    if (str.includes('localhost') || str.includes('127.0.0.1')) {
+    const lower = str.toLowerCase();
+    if (lower.includes('localhost') || lower.includes('127.0.0.1')) {
       return `grpc://${str}`;
     }
     return `grpcs://${str}`;
@@ -133,11 +134,11 @@ const getParsedGrpcUrlObject = (url) => {
     return { host: normalizeWindowsNamedPipe(url), path: '', protocol: 'pipe', isLocalTransport: true };
   }
 
-  const urlObj = new URL(addProtocolIfMissing(url.toLowerCase()));
+  const urlObj = new URL(addProtocolIfMissing(url));
 
   return {
     host: urlObj.host,
-    protocol: urlObj.protocol.replace(':', ''),
+    protocol: urlObj.protocol.replace(':', '').toLowerCase(),
     path: removeTrailingSlash(urlObj.pathname),
     isLocalTransport: false
   };
@@ -228,8 +229,14 @@ class GrpcClient {
    * @param {grpc.ChannelOptions} options - channel options
    * @returns {Promise<{ client: GrpcReflection, services: string[], callOptions: Object }>}
    */
-  async #getReflectionClient(host, credentials = ChannelCredentials.createInsecure(), metadata = null, options = {}) {
-    const makeClient = (version) => new GrpcReflection(host, credentials, options, version);
+  async #getReflectionClient(host, credentials = ChannelCredentials.createInsecure(), metadata = null, options = {}, pathPrefix = '') {
+    const makeClient = (version) => {
+      const client = new GrpcReflection(host, credentials, options, version);
+      if (pathPrefix) {
+        this.#applyPathPrefix(client, host, credentials, options, pathPrefix);
+      }
+      return client;
+    };
     const callOptions = this.#createCallOptions(metadata);
 
     let client;
@@ -248,6 +255,30 @@ class GrpcClient {
     client = makeClient('v1alpha');
     services = await client.listServices('*', callOptions);
     return { client, services, callOptions };
+  }
+
+  /**
+   * Replace a GrpcReflection instance's internal gRPC client with one
+   * whose method paths are prefixed with the URL subpath.
+   * This allows reflection to work when the gRPC server is hosted behind a URL subpath.
+   */
+  #applyPathPrefix(reflectionInstance, host, credentials, options, prefix) {
+    const originalClient = reflectionInstance.client;
+    const serviceDef = originalClient.constructor?.service;
+    if (!serviceDef) return;
+
+    const prefixedDef = {};
+    for (const [name, def] of Object.entries(serviceDef)) {
+      prefixedDef[name] = { ...def, path: prefix + def.path };
+    }
+
+    const PrefixedClient = makeGenericClientConstructor(prefixedDef);
+    const prefixedClient = new PrefixedClient(host, credentials, options);
+    // Close the original client's channel to prevent leaks
+    if (typeof originalClient.close === 'function') {
+      originalClient.close();
+    }
+    reflectionInstance.client = prefixedClient;
   }
 
   /**
@@ -783,7 +814,7 @@ class GrpcClient {
 
     let reflectionClient = null;
     try {
-      const { client, services, callOptions } = await this.#getReflectionClient(targetHost, credentials, metadata, mergedChannelOptions);
+      const { client, services, callOptions } = await this.#getReflectionClient(targetHost, credentials, metadata, mergedChannelOptions, path);
       reflectionClient = client;
 
       const methods = [];
@@ -1003,7 +1034,7 @@ class GrpcClient {
     } else if (protocol === 'pipe') {
       console.warn('Windows named pipes are not directly supported by grpcurl');
       parts.push('-plaintext');
-    } else if (url.startsWith('grpcs://') || url.startsWith('https://')) {
+    } else if (protocol === 'grpcs' || protocol === 'https') {
       if (ca) {
         /**
          * Instead of using certificate that relies on CN, use SANs
