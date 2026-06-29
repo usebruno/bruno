@@ -16,6 +16,7 @@ import { toOpenCollectionVariables } from '../common/variables';
 import { toOpenCollectionActions } from '../common/actions';
 import { toOpenCollectionScripts } from '../common/scripts';
 import { toOpenCollectionAssertions } from '../common/assertions';
+import { TIMEOUT_INHERIT } from '@usebruno/common/utils';
 
 const stringifyGraphQLRequest = (item: BrunoItem): string => {
   try {
@@ -131,7 +132,7 @@ const stringifyGraphQLRequest = (item: BrunoItem): string => {
 
     const timeout = httpSettings?.timeout;
 
-    if (isNumber(timeout) || timeout === 'inherit') {
+    if (isNumber(timeout) || timeout === TIMEOUT_INHERIT) {
       settings.timeout = timeout;
     } else {
       settings.timeout = 0;

@@ -1,0 +1,14 @@
+info:
+  name: timeout-test-yaml
+  type: http
+  seq: 1
+
+http:
+  method: GET
+  url: https://testbench-sanity.usebruno.com/redirect-to-ping
+  auth: inherit
+
+settings:
+  followRedirects: false
+  maxRedirects: 0
+  timeout: 5
