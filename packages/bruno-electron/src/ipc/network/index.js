@@ -3,7 +3,6 @@ const axios = require('axios');
 const path = require('path');
 const { applyOAuth1ToRequest } = require('@usebruno/requests');
 const { buildScriptedEntry } = require('@usebruno/requests').scripting;
-const qs = require('qs');
 const decomment = require('decomment');
 const contentDispositionParser = require('content-disposition');
 const mime = require('mime-types');
@@ -38,7 +37,8 @@ const registerGrpcEventHandlers = require('./grpc-event-handlers');
 const { registerWsEventHandlers } = require('./ws-event-handlers');
 const { getCertsAndProxyConfig, buildCertsAndProxyConfig } = require('./cert-utils');
 const { easterEggResponse } = require('../../utils/woof');
-const { buildFormUrlEncodedPayload, isFormData, extractBoundaryFromContentType } = require('@usebruno/common').utils;
+const { isFormData, extractBoundaryFromContentType } = require('@usebruno/common').utils;
+const { stringifyFormUrlEncodedBody } = require('./form-url-encoded');
 
 const ERROR_OCCURRED_WHILE_EXECUTING_REQUEST = 'Error occurred while executing the request!';
 
@@ -621,13 +621,11 @@ const registerNetworkIpc = (mainWindow) => {
     // stringify the request url encoded params
     const contentTypeHeader = Object.keys(request.headers).find((name) => name.toLowerCase() === 'content-type');
 
-    if (contentTypeHeader && request.headers[contentTypeHeader] === 'application/x-www-form-urlencoded') {
-      if (Array.isArray(request.data)) {
-        request.data = buildFormUrlEncodedPayload(request.data);
-      } else if (typeof request.data !== 'string') {
-        request.data = qs.stringify(request.data, { arrayFormat: 'repeat' });
-      }
-      // if `data` is of string type - return as-is (assumes already encoded)
+    if (contentTypeHeader) {
+      request.data = stringifyFormUrlEncodedBody(
+        request.headers[contentTypeHeader],
+        request.data
+      );
     }
 
     const contentType = contentTypeHeader ? request.headers[contentTypeHeader] : '';
