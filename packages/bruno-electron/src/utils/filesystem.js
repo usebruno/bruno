@@ -132,13 +132,6 @@ const withFileLock = async (pathname, fn) => {
   }
 };
 
-const hasJsExtension = (filename) => {
-  if (!filename || typeof filename !== 'string') return false;
-  return ['js'].some((ext) => filename.toLowerCase().endsWith(`.${ext}`));
-};
-
-const isBrunoJsonFile = (filename) => filename.toLowerCase().endsWith('bruno.json');
-
 const hasJsonExtension = (filename) => {
   if (!filename || typeof filename !== 'string') return false;
   return ['json'].some((ext) => filename.toLowerCase().endsWith(`.${ext}`));
@@ -583,7 +576,6 @@ module.exports = {
   normalizeWSLPath,
   writeFile,
   withFileLock,
-  hasJsExtension,
   hasJsonExtension,
   hasBruExtension,
   hasRequestExtension,

@@ -220,7 +220,6 @@ const initiatedWsResponse = {
 
 // Properties prefixed with `_` (e.g. `_scriptEnvBaseline`) are transient runtime state —
 // never persisted to disk or included in exports.
-
 export const collectionsSlice = createSlice({
   name: 'collections',
   initialState,
