@@ -208,7 +208,7 @@ const Script = ({ item, collection, protocol = 'http' }) => {
             className="mt-2"
             dataTestId={`${phase.key}-script-editor`}
           >
-            {renderEditor(phase)}
+            {activeTab === phase.key ? renderEditor(phase) : null}
           </TabsContent>
         ))}
       </Tabs>
