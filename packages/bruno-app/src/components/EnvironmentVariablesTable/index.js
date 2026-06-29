@@ -156,6 +156,14 @@ const EnvironmentVariablesTable = ({
   const prevEnvVariablesRef = useRef(environment.variables);
   const mountedRef = useRef(false);
 
+  const selfSnapshotsRef = useRef([]);
+
+  const makeEmptyRow = () => ({ uid: uuid(), name: '', value: '', type: 'text', secret: false, enabled: true });
+
+  const recordSelfSnapshot = useCallback((json) => {
+    selfSnapshotsRef.current = [json, ...selfSnapshotsRef.current.filter((j) => j !== json)].slice(0, 3);
+  }, []);
+
   const globalEnvironmentVariables = getGlobalEnvironmentVariables({ globalEnvironments, activeGlobalEnvironmentUid });
   const workspaceProcessEnvVariables = activeWorkspace?.processEnvVariables;
   // `_collection` flows into every row's MultiLineEditor as the variable-resolution
@@ -188,7 +196,6 @@ const EnvironmentVariablesTable = ({
   }, [environment.uid, environment.variables]);
 
   const formik = useFormik({
-    enableReinitialize: true,
     initialValues: initialValues,
     validationSchema: Yup.array().of(
       Yup.object({
@@ -237,7 +244,7 @@ const EnvironmentVariablesTable = ({
     onSubmit: () => {}
   });
 
-  // Restore draft values on mount or environment switch
+  // Restore draft on mount/environment switch, and reload only for external changes.
   useEffect(() => {
     const isMount = !mountedRef.current;
     const envChanged = prevEnvUidRef.current !== null && prevEnvUidRef.current !== environment.uid;
@@ -247,18 +254,21 @@ const EnvironmentVariablesTable = ({
     prevEnvVariablesRef.current = environment.variables;
     mountedRef.current = true;
 
-    if ((isMount || envChanged || variablesReloaded) && hasDraftForThisEnv && draft?.variables) {
-      formik.setValues([
-        ...draft.variables,
-        {
-          uid: uuid(),
-          name: '',
-          value: '',
-          type: 'text',
-          secret: false,
-          enabled: true
-        }
-      ]);
+    if ((isMount || envChanged) && hasDraftForThisEnv && draft?.variables) {
+      formik.setValues([...draft.variables, makeEmptyRow()]);
+      return;
+    }
+
+    if (variablesReloaded) {
+      const incomingJson = JSON.stringify((environment.variables || []).map(stripEnvVarUid));
+
+      // Ignore the save echo from this editor.
+      if (selfSnapshotsRef.current.includes(incomingJson)) {
+        return;
+      }
+
+      const base = hasDraftForThisEnv && draft?.variables ? draft.variables : environment.variables || [];
+      formik.setValues([...base, makeEmptyRow()]);
     }
   }, [environment.uid, environment.variables, hasDraftForThisEnv, draft?.variables]);
 
@@ -290,6 +300,7 @@ const EnvironmentVariablesTable = ({
 
       if (hasActualChanges) {
         if (currentValuesJson !== existingDraftJson) {
+          recordSelfSnapshot(currentValuesJson);
           onDraftChange(currentValues);
         }
       } else if (hasDraftForThisEnv) {
@@ -298,7 +309,7 @@ const EnvironmentVariablesTable = ({
     }, 300);
 
     return () => clearTimeout(timeoutId);
-  }, [formik.values, savedValuesJson, environment.uid, hasDraftForThisEnv, draft?.variables, onDraftChange, onDraftClear]);
+  }, [formik.values, savedValuesJson, environment.uid, hasDraftForThisEnv, draft?.variables, onDraftChange, onDraftClear, recordSelfSnapshot]);
 
   const ErrorMessage = ({ name, index }) => {
     const meta = formik.getFieldMeta(name);
@@ -428,6 +439,7 @@ const EnvironmentVariablesTable = ({
       return;
     }
 
+    recordSelfSnapshot(JSON.stringify(variablesToSave.map(stripEnvVarUid)));
     onSave(cloneDeep(variablesToSave))
       .then(() => {
         toast.success('Changes saved successfully');
@@ -450,7 +462,7 @@ const EnvironmentVariablesTable = ({
         console.error(error);
         toast.error('An error occurred while saving the changes');
       });
-  }, [formik.values, environment.variables, onSave, onDraftClear, setIsModified]);
+  }, [formik.values, environment.variables, onSave, onDraftClear, setIsModified, recordSelfSnapshot]);
 
   const handleReset = useCallback(() => {
     const originalVars = environment.variables || [];
