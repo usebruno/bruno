@@ -162,6 +162,7 @@ const ManageWorkspace = () => {
                         { id: 'rename', label: 'Rename', onClick: () => handleRenameClick(workspace) },
                         { id: 'remove', label: 'Remove', onClick: () => handleCloseClick(workspace) }
                       ]}
+                      data-testid="manage-workspace-more-options-btn"
                     >
                       <button data-testid="more-actions-btn" className="more-actions-btn">
                         <IconDots size={14} strokeWidth={1.5} />
