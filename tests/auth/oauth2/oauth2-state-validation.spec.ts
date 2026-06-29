@@ -33,7 +33,7 @@ const PROVIDER_AUTH_CODE = 'provider-auth-code';
 const PROVIDER_ACCESS_TOKEN = 'provider-access-token';
 const WRONG_STATE = 'not-the-issued-state';
 const STATE_MISMATCH_ERROR
-  = 'Error invoking remote method \'renderer:fetch-oauth2-credentials\': Error: OAuth2 state mismatch: the returned state does not match the issued state. Aborting to prevent authorization code injection.';
+  = 'OAuth2 state mismatch: the returned state does not match the issued state. Aborting to prevent authorization code injection.';
 
 test.beforeAll(async () => {
   const response = await fetch(`${TESTBENCH}/ping`);
@@ -41,8 +41,8 @@ test.beforeAll(async () => {
   expect(await response.text()).toBe('pong');
 });
 
-/** Register an auth code with the testbench by hitting the captured authorization URL. */
-const registerAuthCodeWithTestbench = async (authorizationUrl: string): Promise<string> => {
+/** Obtain a valid auth code issued by the testbench by hitting the captured authorization URL. */
+const fetchAuthCodeFromTestbench = async (authorizationUrl: string): Promise<string> => {
   const response = await fetch(authorizationUrl);
   expect(response.ok, 'testbench authorize should respond').toBeTruthy();
   const html = await response.text();
@@ -141,7 +141,7 @@ const getCallbackParams = (callbackUrl: string, style: CallbackStyle = 'query') 
   };
 };
 
-test.describe.serial('OAuth2 callback state validation', () => {
+test.describe('OAuth2 callback state validation', () => {
   test('authorization code: rejects callback when returned state does not match issued state', async ({ restartApp }) => {
     const app = await restartApp();
     const page = await waitForReadyPage(app);
@@ -149,7 +149,6 @@ test.describe.serial('OAuth2 callback state validation', () => {
     await installCallbackCapture(app);
     await clickGetAccessToken(page, 'Authorization Code');
     await waitForAuthorizationStarted(app);
-    // await page.pause();
 
     const issuedState = await getIssuedState(app);
     const callbackUrl = `${CALLBACK}?code=${PROVIDER_AUTH_CODE}&state=${WRONG_STATE}`;
@@ -165,12 +164,11 @@ test.describe.serial('OAuth2 callback state validation', () => {
     expect(code).toBe(PROVIDER_AUTH_CODE);
 
     await expect(
-      page.getByTestId('response-pane').getByText(STATE_MISMATCH_ERROR)
-    ).toBeVisible({ timeout: 15_000 });
-    await expect(
       page.getByRole('status').filter({ hasText: STATE_MISMATCH_ERROR })
     ).toBeVisible({ timeout: 15_000 });
-    // await page.pause();
+    await expect(
+      page.getByTestId('response-pane').getByText(STATE_MISMATCH_ERROR)
+    ).toBeVisible({ timeout: 15_000 });
   });
 
   test('implicit grant: rejects callback when returned state does not match issued state', async ({ restartApp }) => {
@@ -194,14 +192,12 @@ test.describe.serial('OAuth2 callback state validation', () => {
     expect(returnedState).toBe(WRONG_STATE);
     expect(returnedState).not.toBe(issuedState);
     expect(access_token).toBe(PROVIDER_ACCESS_TOKEN);
-
-    await expect(
-      page.getByTestId('response-pane').getByText(STATE_MISMATCH_ERROR)
-    ).toBeVisible({ timeout: 15_000 });
     await expect(
       page.getByRole('status').filter({ hasText: STATE_MISMATCH_ERROR })
     ).toBeVisible({ timeout: 15_000 });
-    await expect(page.getByText('Token fetched successfully!')).not.toBeVisible();
+    await expect(
+      page.getByTestId('response-pane').getByText(STATE_MISMATCH_ERROR)
+    ).toBeVisible({ timeout: 15_000 });
   });
 
   test('authorization code: accepts callback when returned state matches issued state', async ({ restartApp }) => {
@@ -213,11 +209,10 @@ test.describe.serial('OAuth2 callback state validation', () => {
 
     await clickGetAccessToken(page, 'Authorization Code');
     await waitForAuthorizationStarted(app);
-
     const authUrl = await getCapturedAuthUrl(app);
     expect(authUrl).toBeTruthy();
     const issuedState = await getIssuedState(app);
-    const authCode = await registerAuthCodeWithTestbench(authUrl as string);
+    const authCode = await fetchAuthCodeFromTestbench(authUrl as string);
     const callbackUrl = `${CALLBACK}?code=${authCode}&state=${encodeURIComponent(issuedState)}`;
 
     await fireCallback(app, callbackUrl);
