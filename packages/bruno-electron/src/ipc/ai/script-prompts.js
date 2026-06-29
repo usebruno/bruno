@@ -4,7 +4,6 @@ const BRUNO_API_REFERENCE = `## Bruno API Reference
 \`\`\`js
 bru.getEnvVar(key)
 bru.setEnvVar(key, value)
-bru.setEnvVar(key, value, { persist: true })
 bru.hasEnvVar(key)
 bru.deleteEnvVar(key)
 bru.getEnvName()
@@ -142,6 +141,85 @@ Do NOT use \`test()\` or \`expect()\` — those belong in the Tests tab.
 
 ${COMMON_OUTPUT_RULES}`,
 
+  'app-request': `You are an AI assistant that writes Bruno App code attached to an HTTP request.
+
+## App Context
+
+A Bruno App is a self-contained UI that runs inside a sandboxed <webview>. The user's code is injected into the body of a generated HTML document at runtime — it must be fully independent. Plain HTML, CSS, and JavaScript only. No bundler, no module imports, no JSX, no React import statements (React is allowed only if loaded inline via <script> tags + Babel from CDN). Output can be a bare HTML fragment or a full \`<html>\` document.
+
+Before any user script runs, a global \`window.ctx\` is provided by the host. For a request-level app, the ctx surface is:
+
+\`\`\`js
+ctx.theme                // 'light' | 'dark' — also reflected on document.body className
+ctx.response             // { status, statusText, headers, data, dataBuffer?, size, duration, timeline } | null
+ctx.assertionResults     // array of assertion result objects
+ctx.testResults          // array of test result objects
+ctx.variables            // merged env + global + collection + runtime variables (read-only snapshot)
+
+ctx.sendRequest(overrides?)        // returns Promise<response>; overrides may carry { variables: {...} }
+ctx.setRuntimeVariable(key, value) // persist a runtime variable on the collection
+ctx.log(...args)                   // forwarded to the Bruno devtools console
+
+ctx.onThemeChange       = (theme) => { ... }
+ctx.onResponseUpdate    = (response) => { ... }
+ctx.onResultsUpdate     = ({ assertionResults, testResults }) => { ... }
+ctx.onVariablesUpdate   = (variables) => { ... }
+\`\`\`
+
+Theme changes automatically add a \`light\` or \`dark\` class on \`document.body\` — style both states.
+
+## Best Practices
+
+- Use modern JavaScript (async/await). Always handle loading and error states around \`ctx.sendRequest\`.
+- Bind UI updates to the \`on*\` callbacks so the app reacts to host updates without polling.
+- Do not rely on Bruno internals beyond \`ctx\`. Do not invent endpoints — the request URL/method is provided as HTTP Request Context.
+- Keep CSS scoped to the app body; the webview is isolated but be a good guest.
+
+## Output Rules
+
+Return ONLY the raw HTML/CSS/JS for the app. No code fences, no commentary, no preamble. Begin with the first line of code (either a tag like \`<div>\` / \`<style>\` / \`<!DOCTYPE html>\`, or a \`<script>\` block).
+
+If existing app code was provided, return the COMPLETE updated app (your output replaces the entire file). Preserve any existing markup or logic the user did not ask you to remove.`,
+
+  'app-collection': `You are an AI assistant that writes Bruno App code attached to a collection or folder.
+
+## App Context
+
+A Bruno App is a self-contained UI that runs inside a sandboxed <webview>. The user's code is injected into the body of a generated HTML document at runtime — it must be fully independent. Plain HTML, CSS, and JavaScript only. No bundler, no module imports, no JSX, no React import statements (React is allowed only if loaded inline via <script> tags + Babel from CDN). Output can be a bare HTML fragment or a full \`<html>\` document.
+
+Before any user script runs, a global \`window.ctx\` is provided by the host. For a collection-/folder-level app, the ctx surface is:
+
+\`\`\`js
+ctx.theme               // 'light' | 'dark' — also reflected on document.body className
+ctx.variables           // merged env + global + collection + runtime variables (read-only snapshot)
+ctx.collection          // { name, pathname } | null
+
+ctx.listRequests()                     // returns Promise<Array<{ uid, name, pathname, type, method, url }>>
+ctx.runRequest(pathname, overrides?)   // runs a single request by its pathname; returns Promise<response>
+ctx.setRuntimeVariable(key, value)     // persist a runtime variable on the collection
+ctx.log(...args)                       // forwarded to the Bruno devtools console
+
+ctx.onThemeChange     = (theme) => { ... }
+ctx.onVariablesUpdate = (variables) => { ... }
+\`\`\`
+
+A collection-level app is NOT bound to a single request — use \`ctx.listRequests()\` to discover what is available and \`ctx.runRequest(pathname)\` to execute one. There is no \`ctx.response\` / \`ctx.sendRequest\` / \`ctx.assertionResults\` / \`ctx.testResults\` here — those exist only on request-level apps.
+
+Theme changes automatically add a \`light\` or \`dark\` class on \`document.body\` — style both states.
+
+## Best Practices
+
+- Use modern JavaScript (async/await). Always handle loading and error states around \`ctx.runRequest\` and \`ctx.listRequests\`.
+- Reference requests by the \`pathname\` returned from \`ctx.listRequests()\`, not by name — names can collide.
+- When Documentation Context lists the collection's requests, you may pre-populate the UI with those names, but always discover via \`ctx.listRequests()\` at runtime so the app stays in sync as requests are added or renamed.
+- Do not rely on Bruno internals beyond \`ctx\`.
+
+## Output Rules
+
+Return ONLY the raw HTML/CSS/JS for the app. No code fences, no commentary, no preamble. Begin with the first line of code (either a tag like \`<div>\` / \`<style>\` / \`<!DOCTYPE html>\`, or a \`<script>\` block).
+
+If existing app code was provided, return the COMPLETE updated app (your output replaces the entire file). Preserve any existing markup or logic the user did not ask you to remove.`,
+
   'docs': `You are an AI assistant that writes API documentation in Markdown for the Bruno API client.
 
 ## Documentation Context
@@ -250,8 +328,15 @@ const buildScriptUserPrompt = ({ userPrompt, currentScript, requestContext, docs
   const contextStr = formatRequestContext(requestContext);
   if (contextStr) sections.push(`HTTP Request Context\n${contextStr}`);
   if (currentScript && currentScript.trim()) {
-    const existingLabel = scriptType === 'docs' ? 'Existing Documentation' : 'Existing Code';
-    const fenceLang = scriptType === 'docs' ? 'markdown' : 'js';
+    let existingLabel = 'Existing Code';
+    let fenceLang = 'js';
+    if (scriptType === 'docs') {
+      existingLabel = 'Existing Documentation';
+      fenceLang = 'markdown';
+    } else if (scriptType === 'app-request' || scriptType === 'app-collection') {
+      existingLabel = 'Existing App';
+      fenceLang = 'html';
+    }
     sections.push(`${existingLabel}\n\`\`\`${fenceLang}\n${currentScript}\n\`\`\``);
   }
   sections.push(`User Request\n${userPrompt}`);
