@@ -1,0 +1,40 @@
+meta {
+  name: multipart
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{echo-host}}
+  body: multipartForm
+  auth: none
+}
+
+body:multipart-form {
+  mp_str: {{mp_str}}
+  mp_num: {{mp_num}}
+  mp_bool: {{mp_bool}}
+  mp_obj: {{mp_obj}}
+}
+
+vars:pre-request {
+  mp_str: form_string
+  @number
+  mp_num: 42
+  @boolean
+  mp_bool: true
+  @object
+  mp_obj: '''
+    {"key":"value"}
+  '''
+}
+
+tests {
+  test("multipart text fields stringify typed values on the wire", () => {
+    const raw = res.getBody();
+    expect(raw).to.contain("form_string");
+    expect(raw).to.match(/name="mp_num"[\s\S]*?\r?\n\r?\n42/);
+    expect(raw).to.match(/name="mp_bool"[\s\S]*?\r?\n\r?\ntrue/);
+    expect(raw).to.contain('{"key":"value"}');
+  });
+}

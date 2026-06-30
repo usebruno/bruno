@@ -19,7 +19,8 @@ jest.mock('codemirror', () => {
 import {
   getAutoCompleteHints,
   setupAutoComplete,
-  extractNextSegmentSuggestions
+  extractNextSegmentSuggestions,
+  WORD_PATTERN
 } from './autocomplete';
 
 describe('Bruno Autocomplete', () => {
@@ -174,6 +175,32 @@ describe('Bruno Autocomplete', () => {
           mockedCodemirror.getCursor.mockReturnValue({ line: 0, ch: input.length });
           mockedCodemirror.getLine.mockReturnValue(input);
           mockedCodemirror.getRange.mockReturnValue(input);
+
+          const result = getAutoCompleteHints(mockedCodemirror, {}, [], {
+            showHintsFor: ['req', 'res', 'bru']
+          });
+
+          expect(result).toBeTruthy();
+          expect(result.list).toEqual(expect.arrayContaining(expected));
+        });
+      });
+
+      // The API token must be isolated from the surrounding code so the right
+      // context is detected — regression guard for the WORD_PATTERN range bug,
+      // where `( , + ...` glued the preceding code onto the token.
+      const embeddedCases = [
+        { name: 'bru inside a function call', line: 'console.log(bru.get', expected: ['getEnvVar(key)', 'getAllEnvVars()'] },
+        { name: 'bru after an assignment', line: 'const value = bru.get', expected: ['getEnvVar(key)', 'getAllEnvVars()'] },
+        { name: 'bru as an argument after a comma', line: 'fn(arg,bru.get', expected: ['getEnvVar(key)', 'getAllEnvVars()'] },
+        { name: 'req inside a function call', line: 'console.log(req.get', expected: ['getUrl()', 'getHeaders()'] },
+        { name: 'res after a return', line: 'return res.get', expected: ['getStatus()', 'getBody()'] }
+      ];
+
+      embeddedCases.forEach(({ name, line, expected }) => {
+        it(`should provide hints for ${name}`, () => {
+          mockedCodemirror.getCursor.mockReturnValue({ line: 0, ch: line.length });
+          mockedCodemirror.getLine.mockReturnValue(line);
+          mockedCodemirror.getRange.mockReturnValue(line);
 
           const result = getAutoCompleteHints(mockedCodemirror, {}, [], {
             showHintsFor: ['req', 'res', 'bru']
@@ -417,6 +444,16 @@ describe('Bruno Autocomplete', () => {
         expect(result).toBeTruthy();
         expect(result.list.length).toBe(3);
       });
+    });
+  });
+
+  describe('WORD_PATTERN', () => {
+    it('matches token characters (word chars, . $ / -) and nothing else', () => {
+      const matching = [...'abcXYZ0189_', '.', '$', '/', '-'];
+      const nonMatching = [...'()%&\'*+,', ' ', '\t', '{', '}', '[', ']', '=', '@', '#', '!'];
+
+      matching.forEach((ch) => expect(WORD_PATTERN.test(ch)).toBe(true));
+      nonMatching.forEach((ch) => expect(WORD_PATTERN.test(ch)).toBe(false));
     });
   });
 

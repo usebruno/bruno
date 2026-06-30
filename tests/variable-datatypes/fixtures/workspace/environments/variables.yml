@@ -1,0 +1,36 @@
+name: variables
+
+variables:
+  - name: glob_str
+    value: global_string
+  - name: glob_num
+    value:
+      type: number
+      data: "400"
+  - name: glob_bool
+    value:
+      type: boolean
+      data: "false"
+  - name: glob_obj
+    value:
+      type: object
+      data: '{"scope":"global"}'
+  - name: glob_untyped_num
+    value: "42"
+  - name: glob_untyped_bool
+    value: "true"
+  - name: glob_untyped_obj
+    value: '{"a":1}'
+  - secret: true
+    name: glob_secret_str
+  - secret: true
+    name: glob_secret_num
+    type: number
+  - secret: true
+    name: glob_secret_bool
+    type: boolean
+  - secret: true
+    name: glob_secret_obj
+    type: object
+  - secret: true
+    name: glob_secret_untyped

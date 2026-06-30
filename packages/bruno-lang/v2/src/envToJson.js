@@ -1,5 +1,6 @@
 const ohm = require('ohm-js');
 const _ = require('lodash');
+const { extractTypedAnnotations } = require('./utils');
 
 // this is done to avoid breaking existing pairlist mapping so
 // the key is hidden and not added into the json automatically
@@ -16,7 +17,7 @@ const ANNOTATIONS_KEY = Symbol('annotations');
 // }
 const indentLevel = 4;
 const grammar = ohm.grammar(`Bru {
-  BruEnvFile = (vars | secretvars | color)*
+  BruEnvFile = (vars | secretvars | externalsecrets | color)*
 
   nl = "\\r"? "\\n"
   st = " " | "\\t"
@@ -59,10 +60,13 @@ const grammar = ohm.grammar(`Bru {
   // Array Blocks
   array = st* "[" stnl* valuelist stnl* "]"
   valuelist = stnl* arrayvalue stnl* ("," stnl* arrayvalue)*
-  arrayvalue = arrayvaluechar*
+  arrayvalue = pairannotations st* arrayvaluechar*
   arrayvaluechar = ~(nl | st | "[" | "]" | ",") any
 
   secretvars = "vars:secret" array
+  externalsecrets = "vars:externalsecrets:" externalsecretsname dictionary
+  externalsecretsname = externalsecretsnamechar+
+  externalsecretsnamechar = ~(st | nl | "{") any
   vars = "vars" dictionary
   color = "color:" any*
 }`);
@@ -86,30 +90,36 @@ const mapPairListToKeyValPairs = (pairList = []) => {
     if (rawAnnotations && rawAnnotations.length) {
       result.annotations = rawAnnotations;
     }
+
+    extractTypedAnnotations(rawAnnotations, result);
+
     return result;
   });
 };
 
 const mapArrayListToKeyValPairs = (arrayList = []) => {
-  arrayList = arrayList.filter((v) => v && v.length);
+  arrayList = arrayList.filter((item) => item && item.name && item.name.length);
 
   if (!arrayList.length) {
     return [];
   }
 
-  return _.map(arrayList, (value) => {
-    let name = value;
+  return _.map(arrayList, (item) => {
+    let name = item.name;
     let enabled = true;
     if (name && name.length && name.charAt(0) === '~') {
       name = name.slice(1);
       enabled = false;
     }
 
-    return {
-      name,
-      value: '',
-      enabled
-    };
+    const result = { name, value: '', enabled };
+    if (item.annotations && item.annotations.length) {
+      result.annotations = item.annotations;
+    }
+
+    extractTypedAnnotations(item.annotations, result);
+
+    return result;
   });
 };
 
@@ -138,8 +148,13 @@ const sem = grammar.createSemantics().addAttribute('ast', {
   array(_1, _2, _3, valuelist, _4, _5) {
     return valuelist.ast;
   },
-  arrayvalue(chars) {
-    return chars.sourceString ? chars.sourceString.trim() : '';
+  arrayvalue(annotations, _st, chars) {
+    const result = { name: chars.sourceString ? chars.sourceString.trim() : '' };
+    const annotationList = annotations.ast;
+    if (annotationList && annotationList.length > 0) {
+      result.annotations = annotationList;
+    }
+    return result;
   },
   valuelist(_1, value, _2, _3, _4, rest) {
     return [value.ast, ...rest.ast];
@@ -260,6 +275,21 @@ const sem = grammar.createSemantics().addAttribute('ast', {
     return {
       variables: vars
     };
+  },
+  externalsecrets(_1, name, dictionary) {
+    const variables = mapPairListToKeyValPairs(dictionary.ast).map((pair) => ({
+      name: pair.name,
+      value: pair.value
+    }));
+    return {
+      externalSecrets: {
+        type: name.ast,
+        variables
+      }
+    };
+  },
+  externalsecretsname(chars) {
+    return chars.sourceString;
   },
   color: (_1, anystring) => {
     return {

@@ -51,7 +51,8 @@ const defaultPreferences = {
   },
   onboarding: {
     hasLaunchedBefore: false,
-    hasSeenWelcomeModal: true
+    hasSeenWelcomeModal: true,
+    lastSeenVersion: null
   },
   general: {
     defaultLocation: '',
@@ -67,6 +68,9 @@ const defaultPreferences = {
   cache: {
     sslSession: {
       enabled: false
+    },
+    file: {
+      enabled: false
     }
   },
   ai: {
@@ -76,7 +80,13 @@ const defaultPreferences = {
       anthropic: { enabled: false }
     },
     models: {},
-    defaultModel: ''
+    defaultModel: '',
+    openaiCompatibleEndpoints: [],
+    autocomplete: {
+      enabled: true,
+      model: '',
+      triggerMode: 'debounced'
+    }
   }
 };
 
@@ -127,7 +137,8 @@ const preferencesSchema = Yup.object().shape({
   }),
   onboarding: Yup.object({
     hasLaunchedBefore: Yup.boolean(),
-    hasSeenWelcomeModal: Yup.boolean()
+    hasSeenWelcomeModal: Yup.boolean(),
+    lastSeenVersion: Yup.string().nullable()
   }),
   general: Yup.object({
     defaultLocation: Yup.string().max(1024).nullable(),
@@ -143,13 +154,35 @@ const preferencesSchema = Yup.object().shape({
   cache: Yup.object({
     sslSession: Yup.object({
       enabled: Yup.boolean()
+    }),
+    file: Yup.object({
+      enabled: Yup.boolean()
     })
   }).optional(),
   ai: Yup.object({
     enabled: Yup.boolean(),
     providers: Yup.object().optional(),
     models: Yup.object().optional(),
-    defaultModel: Yup.string().max(200).nullable()
+    defaultModel: Yup.string().max(200).nullable(),
+    openaiCompatibleEndpoints: Yup.array().of(
+      Yup.object({
+        id: Yup.string().required(),
+        name: Yup.string().max(120).nullable(),
+        baseURL: Yup.string().max(2048).nullable(),
+        models: Yup.array().of(
+          Yup.object({
+            id: Yup.string().required(),
+            label: Yup.string().max(120).nullable(),
+            modelId: Yup.string().max(200).nullable()
+          })
+        )
+      })
+    ).optional(),
+    autocomplete: Yup.object({
+      enabled: Yup.boolean(),
+      model: Yup.string().max(200).nullable(),
+      triggerMode: Yup.string().oneOf(['aggressive', 'debounced', 'manual']).nullable()
+    }).optional()
   }).optional()
 });
 
@@ -349,6 +382,9 @@ const preferencesUtil = {
   },
   isSslSessionCachingEnabled: () => {
     return get(getPreferences(), 'cache.sslSession.enabled', false);
+  },
+  isFileCacheEnabled: () => {
+    return get(getPreferences(), 'cache.file.enabled', false);
   },
   hasLaunchedBefore: () => {
     return get(getPreferences(), 'onboarding.hasLaunchedBefore', false);

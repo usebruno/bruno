@@ -550,10 +550,12 @@ export const loadWorkspaceApiSpecs = (workspaceUid) => {
       }));
 
       const allApiSpecs = getState().apiSpec.apiSpecs;
-      const alreadyOpenApiSpecs = allApiSpecs.map((a) => a.pathname);
+      // Compare by normalized path so a spec already loaded under a native (Windows)
+      // path isn't treated as "not open" and needlessly re-opened.
+      const alreadyOpenApiSpecs = allApiSpecs.map((a) => normalizePath(a.pathname));
 
       for (const apiSpec of apiSpecs) {
-        if (apiSpec.path && !alreadyOpenApiSpecs.includes(apiSpec.path)) {
+        if (apiSpec.path && !alreadyOpenApiSpecs.includes(normalizePath(apiSpec.path))) {
           try {
             await ipcRenderer.invoke('renderer:open-api-spec-file', apiSpec.path, workspace.pathname);
           } catch (error) {
@@ -1342,11 +1344,20 @@ export const mountScratchCollection = (workspaceUid) => {
         ignore: ['node_modules', '.git']
       };
 
-      await ipcRenderer.invoke('renderer:add-collection-watcher', {
-        collectionPath: tempDirectoryPath,
-        collectionUid: scratchCollectionUid,
-        brunoConfig
-      });
+      const fileCacheEnabled = state.app?.preferences?.cache?.file?.enabled;
+      if (fileCacheEnabled) {
+        await ipcRenderer.invoke('renderer:mount-collection-v2', {
+          collectionUid: scratchCollectionUid,
+          collectionPathname: tempDirectoryPath,
+          brunoConfig
+        });
+      } else {
+        await ipcRenderer.invoke('renderer:add-collection-watcher', {
+          collectionPath: tempDirectoryPath,
+          collectionUid: scratchCollectionUid,
+          brunoConfig
+        });
+      }
 
       // Map scratch collection to workspace so getProcessEnvVars can resolve workspace .env values
       if (workspace.pathname) {

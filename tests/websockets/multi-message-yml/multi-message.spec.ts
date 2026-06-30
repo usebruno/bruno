@@ -11,7 +11,7 @@ const MULTI_MSG_YML_PATH = join(__dirname, 'fixtures/collection/ws-multi-msg.yml
 const SINGLE_MSG_YML_PATH = join(__dirname, 'fixtures/collection/ws-single-msg.yml');
 const MAX_CONNECTION_TIME = 3000;
 
-test.describe('websocket multi-message (yml format)', () => {
+test.describe.serial('websocket multi-message (yml format)', () => {
   let originalMultiMsgData = '';
   let originalSingleMsgData = '';
 

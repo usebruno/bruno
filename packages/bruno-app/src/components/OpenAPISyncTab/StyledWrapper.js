@@ -1770,6 +1770,7 @@ const StyledWrapper = styled.div`
     .bulk-actions {
       display: flex;
       gap: 0.5rem;
+      user-select: none; /* these are controls, not selectable text (e.g. double-click on the info icon) */
     }
 
     .bulk-btn {
@@ -1801,6 +1802,77 @@ const StyledWrapper = styled.div`
 
       .spinner-icon {
         animation: spin 1s linear infinite;
+      }
+    }
+
+    /* the three Preserve elements read as one control: label + info + toggle */
+    .preserve-values-control {
+      display: inline-flex;
+      align-items: center;
+      margin-right: 0.25rem;
+      padding: 0.25rem 0.5rem;
+      font-size: ${(props) => props.theme.font.size.xs};
+      color: ${(props) => props.theme.text};
+
+      .preserve-values-label {
+        white-space: nowrap;
+      }
+
+      /* the shared InfoCircle icon ships a hardcoded ml-2 (8px); override it
+         so the info icon sits tight to the label. It is a hover-only tooltip
+         affordance, not a button — use a help cursor and never show a
+         click/focus box around it. */
+      svg {
+        margin-left: 4px;
+        cursor: help;
+      }
+      svg:focus,
+      svg:focus-visible,
+      span:focus,
+      span:focus-visible {
+        outline: none;
+        box-shadow: none;
+        background: transparent;
+      }
+
+      /* compact themed track + knob toggle, sized to the button row height */
+      .preserve-toggle {
+        margin-right: 4px; /* space between the toggle and the label */
+        width: 26px;
+        height: 14px;
+        border-radius: 7px;
+        border: none;
+        padding: 0;
+        flex-shrink: 0;
+        position: relative;
+        cursor: pointer;
+        transition: background 0.2s;
+        background: ${(props) => props.theme.colors.text.muted};
+
+        &.active {
+          background: ${(props) => props.theme.button2.color.primary.bg};
+        }
+
+        &:focus-visible {
+          outline: 2px solid ${(props) => props.theme.button2.color.primary.bg};
+          outline-offset: 2px;
+        }
+
+        .preserve-toggle-knob {
+          width: 10px;
+          height: 10px;
+          border-radius: 50%;
+          background: #fff;
+          position: absolute;
+          top: 2px;
+          left: 2px;
+          transition: left 0.2s;
+          box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+        }
+
+        &.active .preserve-toggle-knob {
+          left: 14px;
+        }
       }
     }
 

@@ -13,6 +13,7 @@ import Assertions from 'components/RequestPane/Assertions';
 import Script from 'components/RequestPane/Script';
 import Tests from 'components/RequestPane/Tests';
 import Settings from 'components/RequestPane/Settings';
+import AppCodeEditor from 'components/RequestPane/AppCodeEditor';
 import Documentation from 'components/Documentation/index';
 import StatusDot from 'components/StatusDot';
 import ResponsiveTabs from 'ui/ResponsiveTabs';
@@ -30,6 +31,7 @@ const TAB_CONFIG = [
   { key: 'assert', label: 'Assert' },
   { key: 'tests', label: 'Tests' },
   { key: 'docs', label: 'Docs' },
+  { key: 'app', label: 'App' },
   { key: 'settings', label: 'Settings' }
 ];
 
@@ -43,6 +45,7 @@ const TAB_PANELS = {
   script: Script,
   tests: Tests,
   docs: Documentation,
+  app: AppCodeEditor,
   settings: Settings
 };
 
@@ -71,6 +74,7 @@ const HttpRequestPane = ({ item, collection }) => {
   const responseVars = getProperty('request.vars.res');
   const auth = getProperty('request.auth');
   const tags = getProperty('tags');
+  const app = item.draft ? get(item, 'draft.app') : get(item, 'app');
 
   const activeCounts = useMemo(() => ({
     params: params.filter((p) => p.enabled).length,
@@ -106,9 +110,10 @@ const HttpRequestPane = ({ item, collection }) => {
       assert: activeCounts.assertions > 0 ? <sup className="font-medium">{activeCounts.assertions}</sup> : null,
       tests: tests?.length > 0 ? (hasTestError ? <StatusDot type="error" /> : <StatusDot />) : null,
       docs: docs?.length > 0 ? <StatusDot /> : null,
+      app: app?.code?.length > 0 ? <StatusDot dataTestId="app" /> : null,
       settings: tags?.length > 0 ? <StatusDot /> : null
     };
-  }, [activeCounts, body.mode, hasAuth, script, item.preRequestScriptErrorMessage, item.postResponseScriptErrorMessage, item.testScriptErrorMessage, tests, docs, tags]);
+  }, [activeCounts, body.mode, hasAuth, script, item.preRequestScriptErrorMessage, item.postResponseScriptErrorMessage, item.testScriptErrorMessage, tests, docs, app, tags]);
 
   const allTabs = useMemo(
     () => TAB_CONFIG.map(({ key, label }) => ({ key, label, indicator: indicators[key] })),

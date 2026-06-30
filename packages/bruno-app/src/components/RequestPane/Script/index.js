@@ -12,6 +12,7 @@ import { useTheme } from 'providers/Theme';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from 'components/Tabs';
 import StatusDot from 'components/StatusDot';
 import { usePersistedState } from 'hooks/usePersistedState';
+import { useFocusErrorLine } from 'hooks/useFocusErrorLine';
 
 const Script = ({ item, collection }) => {
   const dispatch = useDispatch();
@@ -56,6 +57,20 @@ const Script = ({ item, collection }) => {
 
     return () => clearTimeout(timer);
   }, [activeTab]);
+
+  useFocusErrorLine({
+    uid: item.uid,
+    editorRef: preRequestEditorRef,
+    scriptPhase: 'pre-request',
+    isVisible: activeTab === 'pre-request'
+  });
+
+  useFocusErrorLine({
+    uid: item.uid,
+    editorRef: postResponseEditorRef,
+    scriptPhase: 'post-response',
+    isVisible: activeTab === 'post-response'
+  });
 
   const onRequestScriptEdit = (value) => {
     dispatch(
@@ -112,6 +127,7 @@ const Script = ({ item, collection }) => {
             <CodeEditor
               ref={preRequestEditorRef}
               collection={collection}
+              item={item}
               docKey="script:pre-request"
               value={requestScript || ''}
               theme={displayedTheme}
@@ -122,6 +138,7 @@ const Script = ({ item, collection }) => {
               onRun={onRun}
               onSave={onSave}
               showHintsFor={['req', 'bru']}
+              scriptType="pre-request"
               initialScroll={preReqScroll}
               onScroll={setPreReqScroll}
             />
@@ -139,6 +156,7 @@ const Script = ({ item, collection }) => {
             <CodeEditor
               ref={postResponseEditorRef}
               collection={collection}
+              item={item}
               docKey="script:post-response"
               value={responseScript || ''}
               theme={displayedTheme}
@@ -149,6 +167,7 @@ const Script = ({ item, collection }) => {
               onRun={onRun}
               onSave={onSave}
               showHintsFor={['req', 'res', 'bru']}
+              scriptType="post-response"
               initialScroll={postResScroll}
               onScroll={setPostResScroll}
             />

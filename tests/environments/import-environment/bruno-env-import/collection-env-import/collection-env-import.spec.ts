@@ -44,6 +44,7 @@ test.describe.serial('Collection Environment Import Tests', () => {
       await expect(envTab).toBeVisible();
 
       await expect(page.getByRole('row', { name: 'host' }).getByRole('cell').nth(1)).toBeVisible();
+      await page.getByTestId('responsive-tab-secrets').click();
       await expect(page.getByRole('row', { name: 'secretToken' }).getByRole('cell').nth(1)).toBeVisible();
 
       await envTab.hover();
@@ -125,6 +126,9 @@ test.describe.serial('Collection Environment Import Tests', () => {
 
       // Verify prod environment variables
       await expect(page.getByRole('row', { name: 'host' }).getByRole('cell').nth(1)).toBeVisible();
+
+      // secretToken was imported as a secret, so it lives on the Secrets tab, not Variables.
+      await page.getByTestId('responsive-tab-secrets').click();
       await expect(page.getByRole('row', { name: 'secretToken' }).getByRole('cell').nth(1)).toBeVisible();
 
       await envTab.hover();

@@ -1,9 +1,30 @@
 import { test as baseTest, BrowserContext, ElectronApplication, Page, TestInfo } from '@playwright/test';
+import { merge } from 'lodash-es';
 import * as path from 'path';
 import * as os from 'os';
 import * as fs from 'fs';
+import { version } from '../packages/bruno-app/package.json';
 
 const electronAppPath = path.join(__dirname, '../packages/bruno-electron');
+
+const PREFERENCES_FILE = 'preferences.json';
+
+/**
+ * Default preferences for the app - preferences.json file.
+ * This is overridden by the init-user-data/preferences.json file if it exists.
+ *
+ * Uses lodash/merge to merge the default preferences with the init-user-data/preferences.json file.
+ *   - Note: arrays are merged by index, not concatenated. (e.g. lastOpenedCollections, lastOpenedWorkspaces, etc.)
+ */
+const defaultPreferences = {
+  preferences: {
+    onboarding: {
+      hasLaunchedBefore: true,
+      hasSeenWelcomeModal: true,
+      lastSeenVersion: version
+    }
+  }
+};
 
 const existsAsync = (filepath: string) => fs.promises.access(filepath).then(() => true).catch(() => false);
 
@@ -148,6 +169,7 @@ export const test = baseTest.extend<
     newPage: Page;
     pageWithUserData: Page;
     collectionFixturePath: string | null;
+    workspaceFixturePath: string | null;
     restartApp: (options?: { initUserDataPath?: string }) => Promise<ElectronApplication>;
   },
   {
@@ -161,7 +183,11 @@ export const test = baseTest.extend<
     async ({ }, use) => {
       const dirs: string[] = [];
       await use(async (tag?: string) => {
-        const dir = await fs.promises.mkdtemp(path.join(os.tmpdir(), `pw-${tag || ''}-`));
+        // Strip characters that are illegal in Windows filenames (<>:"/\|?*) and
+        // whitespace, so a descriptive tag (e.g. one derived from a test title
+        // containing quotes) can't produce a path mkdtemp refuses to create.
+        const safeTag = (tag || '').replace(/[<>:"/\\|?*\s]+/g, '-');
+        const dir = await fs.promises.mkdtemp(path.join(os.tmpdir(), `pw-${safeTag}-`));
         dirs.push(dir);
         return dir;
       });
@@ -187,6 +213,20 @@ export const test = baseTest.extend<
       // into template files (e.g. preferences.json). Windows paths with backslashes
       // produce invalid JSON escape sequences such as \U, \A, \T, etc.
       await use(tmpDir.replace(/\\/g, '/'));
+    } else {
+      await use(null);
+    }
+  },
+
+  workspaceFixturePath: async ({ createTmpDir }, use, testInfo) => {
+    const testDir = path.dirname(testInfo.file);
+    // fixtures/workspace — a workspace.yml + environments/*.yml (+ optional collections/)
+    // Copied to a tmp dir so tests can mutate it without affecting the source.
+    const srcPath = path.join(testDir, 'fixtures', 'workspace');
+    if (fs.existsSync(srcPath)) {
+      const tmpDir = await createTmpDir('workspace');
+      await fs.promises.cp(srcPath, tmpDir, { recursive: true });
+      await use(tmpDir);
     } else {
       await use(null);
     }
@@ -218,23 +258,18 @@ export const test = baseTest.extend<
                 throw new Error(`\tNo replacement for {{${key}}} in ${path.join(initUserDataPath, file)}`);
               }
             });
+            if (file === PREFERENCES_FILE) {
+              content = JSON.stringify(merge({}, defaultPreferences, JSON.parse(content)), null, 2);
+            }
             await fs.promises.writeFile(path.join(userDataPath, file), content, 'utf-8');
           }
         } else {
           // No initUserDataPath provided: create default preferences to skip onboarding
           // BUT only if preferences.json doesn't already exist
-          const prefsPath = path.join(userDataPath, 'preferences.json');
+          const prefsPath = path.join(userDataPath, PREFERENCES_FILE);
           const prefsExist = await existsAsync(prefsPath);
 
           if (!prefsExist) {
-            const defaultPreferences = {
-              preferences: {
-                onboarding: {
-                  hasLaunchedBefore: true,
-                  hasSeenWelcomeModal: true
-                }
-              }
-            };
             await fs.promises.writeFile(
               prefsPath,
               JSON.stringify(defaultPreferences, null, 2),
@@ -340,7 +375,7 @@ export const test = baseTest.extend<
     { scope: 'worker' }
   ],
 
-  restartApp: async ({ reuseOrLaunchElectronApp, createTmpDir, collectionFixturePath }, use, testInfo) => {
+  restartApp: async ({ reuseOrLaunchElectronApp, createTmpDir, collectionFixturePath, workspaceFixturePath }, use, testInfo) => {
     await use(async ({ initUserDataPath } = {}) => {
       const testDir = path.dirname(testInfo.file);
       const defaultInitUserDataPath = path.join(testDir, 'init-user-data');
@@ -361,6 +396,9 @@ export const test = baseTest.extend<
       if (collectionFixturePath) {
         templateVars.collectionPath = collectionFixturePath.split(path.sep).join('/');
       }
+      if (workspaceFixturePath) {
+        templateVars.workspacePath = workspaceFixturePath.split(path.sep).join('/');
+      }
 
       // Close the previous app (from pageWithUserData) before launching a new one
       return await reuseOrLaunchElectronApp({
@@ -372,7 +410,7 @@ export const test = baseTest.extend<
     });
   },
 
-  pageWithUserData: async ({ reuseOrLaunchElectronApp, createTmpDir, collectionFixturePath }, use, testInfo) => {
+  pageWithUserData: async ({ reuseOrLaunchElectronApp, createTmpDir, collectionFixturePath, workspaceFixturePath }, use, testInfo) => {
     const testDir = path.dirname(testInfo.file);
     const initUserDataPath = path.join(testDir, 'init-user-data');
 
@@ -389,6 +427,9 @@ export const test = baseTest.extend<
     const templateVars: Record<string, string> = {};
     if (collectionFixturePath) {
       templateVars.collectionPath = collectionFixturePath.split(path.sep).join('/');
+    }
+    if (workspaceFixturePath) {
+      templateVars.workspacePath = workspaceFixturePath.split(path.sep).join('/');
     }
 
     const app = await reuseOrLaunchElectronApp({ initUserDataPath: tmpAppDataDir, testFile: testInfo.file, templateVars });
