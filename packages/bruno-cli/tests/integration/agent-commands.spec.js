@@ -234,29 +234,42 @@ describe('bru get', () => {
   });
 });
 
-describe('bru schema (stub)', () => {
+describe('bru schema', () => {
   let tmpDir;
   beforeEach(() => { tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'bru-schema-')); });
   afterEach(() => { fs.rmSync(tmpDir, { recursive: true, force: true }); });
 
-  it('emits a placeholder schema labelled as stub', async () => {
+  it('returns the on-disk Draft 2020-12 schema for a request', async () => {
     const { code, stdout } = await runCli(['schema', 'request', '--json'], tmpDir);
     expect(code).toBe(0);
     const env = parseEnvelope(stdout);
     expect(env.kind).toBe('schema');
     expect(env.data.resource).toBe('request');
-    expect(env.data.status).toBe('stub');
+    expect(env.data.source).toBe('hand-authored');
     expect(env.data.schema.$schema).toBe('https://json-schema.org/draft/2020-12/schema');
-    expect(env.data.schema.$comment).toMatch(/stub/i);
+    expect(env.data.schema.title).toBe('Bruno request');
+    expect(env.data.schema.properties.type.enum).toEqual(
+      expect.arrayContaining(['http-request', 'graphql-request'])
+    );
   });
 
-  it('accepts every documented kind', async () => {
-    const kinds = ['request', 'folder', 'environment', 'collection', 'collection-var', 'cli-output'];
+  it('returns the generated environment schema (sourced from Yup)', async () => {
+    const { code, stdout } = await runCli(['schema', 'environment', '--json'], tmpDir);
+    expect(code).toBe(0);
+    const env = parseEnvelope(stdout);
+    expect(env.data.source).toBe('generated');
+    expect(env.data.schema.properties.name).toBeTruthy();
+    expect(env.data.schema.properties.variables.type).toBe('array');
+  });
+
+  it('returns a schema for every documented kind', async () => {
+    const kinds = ['request', 'folder', 'environment', 'environments', 'collection', 'collection-var', 'cli-output'];
     for (const k of kinds) {
       const { code, stdout } = await runCli(['schema', k, '--json'], tmpDir);
       expect(code).toBe(0);
       const env = parseEnvelope(stdout);
       expect(env.data.resource).toBe(k);
+      expect(env.data.schema.$schema).toBe('https://json-schema.org/draft/2020-12/schema');
     }
   });
 });

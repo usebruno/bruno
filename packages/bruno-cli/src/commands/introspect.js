@@ -67,12 +67,11 @@ const COMMANDS = [
   {
     name: 'schema',
     summary: 'Emit the JSON Schema for a Bruno resource so agents can author payloads safely',
-    args: [{ name: 'kind', variadic: false, type: 'string', choices: ['request', 'folder', 'environment', 'collection', 'collection-var', 'cli-output'] }],
+    args: [{ name: 'kind', variadic: false, type: 'string', choices: ['request', 'folder', 'environment', 'environments', 'collection', 'collection-var', 'cli-output'] }],
     notable_flags: [
       { name: '--json', type: 'boolean' },
       { name: '--json-version', type: 'number' }
-    ],
-    status: 'stub'
+    ]
   },
   {
     name: 'import',

@@ -1,11 +1,26 @@
+const fs = require('fs');
+const path = require('path');
 const { addJsonOptions, buildWriterFromArgv, emitResult } = require('../json/argv');
 const { EXIT_STATUS } = require('../constants');
 const { JSON_CONTRACT_VERSION } = require('../json/version');
 
 const command = 'schema <kind>';
-const desc = 'Emit the JSON Schema for a Bruno resource (stub — populated in PR 4)';
+const desc = 'Emit the JSON Schema for a Bruno resource';
 
-const KINDS = ['request', 'folder', 'environment', 'collection', 'collection-var', 'cli-output'];
+// kind → file under schemas/v1/. Keep ordered the same way as introspect's KINDS.
+const KIND_TO_FILE = {
+  'request': 'request.json',
+  'folder': 'folder.json',
+  'environment': 'environment.json',
+  'environments': 'environments.json',
+  'collection': 'collection.json',
+  'collection-var': 'collection-var.json',
+  'cli-output': 'cli-output.json'
+};
+
+const KINDS = Object.keys(KIND_TO_FILE);
+
+const SCHEMAS_DIR = path.resolve(__dirname, '..', '..', 'schemas', `v${JSON_CONTRACT_VERSION}`);
 
 const builder = (yargs) => {
   yargs
@@ -18,18 +33,13 @@ const builder = (yargs) => {
     .example('$0 schema request --json', 'Emit the JSON Schema for a request payload');
 };
 
-// Stub schemas. Real schemas are generated in PR 4 from @usebruno/schema (Yup)
-// and committed under packages/bruno-cli/schemas/v1/. Agents that depend on this
-// command should treat $comment="stub" as "schema not yet authoritative" and fall
-// back to inspecting `bru get <kind>` output.
-const STUB_SCHEMA = (kind) => ({
-  $schema: 'https://json-schema.org/draft/2020-12/schema',
-  $id: `https://usebruno.com/schemas/v${JSON_CONTRACT_VERSION}/${kind}.json`,
-  $comment: 'stub — populated in PR 4',
-  title: `Bruno ${kind} (stub)`,
-  type: 'object',
-  additionalProperties: true
-});
+const readSchema = (kind) => {
+  const file = KIND_TO_FILE[kind];
+  if (!file) return null;
+  const target = path.join(SCHEMAS_DIR, file);
+  if (!fs.existsSync(target)) return null;
+  return JSON.parse(fs.readFileSync(target, 'utf8'));
+};
 
 const handler = async (argv) => {
   const writer = buildWriterFromArgv(argv);
@@ -42,12 +52,20 @@ const handler = async (argv) => {
     });
   }
 
+  const schema = readSchema(kind);
+  if (!schema) {
+    writer.exitWithError({
+      code: EXIT_STATUS.ERROR_FILE_NOT_FOUND,
+      message: `Schema file missing for kind "${kind}". Run: node scripts/generate-schemas.js`
+    });
+  }
+
   emitResult(writer, {
     kind: 'schema',
     data: {
       resource: kind,
-      status: 'stub',
-      schema: STUB_SCHEMA(kind)
+      source: schema['x-source'] || 'unknown',
+      schema
     }
   });
 };
