@@ -52,6 +52,7 @@ const SaveTransientRequestContainer = () => {
           item={modalToOpen.item}
           collection={modalToOpen.collection}
           isOpen={true}
+          closeAfterSave={modalToOpen.closeAfterSave}
         />
       );
     }

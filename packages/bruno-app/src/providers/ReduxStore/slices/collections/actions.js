@@ -152,7 +152,7 @@ export const renameCollection = (newName, collectionUid) => (dispatch, getState)
   });
 };
 
-export const saveRequest = (itemUid, collectionUid, silent = false) => (dispatch, getState) => {
+export const saveRequest = (itemUid, collectionUid, silent = false, closeAfterSave = false) => (dispatch, getState) => {
   const state = getState();
   const collection = findCollectionByUid(state.collections.collections, collectionUid);
   const tempDirectory = state.collections.tempDirectories?.[collectionUid];
@@ -169,7 +169,7 @@ export const saveRequest = (itemUid, collectionUid, silent = false) => (dispatch
 
     const isTransient = tempDirectory && item.pathname.startsWith(tempDirectory);
     if (isTransient) {
-      dispatch(addSaveTransientRequestModal({ item, collection }));
+      dispatch(addSaveTransientRequestModal({ item, collection, closeAfterSave }));
       return reject();
     }
 

@@ -1,5 +1,5 @@
 import { expect, test } from '../../playwright';
-import { closeAllCollections } from '../utils/page';
+import { closeAllCollections, createTransientRequest, fillRequestUrl } from '../utils/page';
 import {
   closePreferencesTab,
   closeTabByName,
@@ -186,6 +186,60 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await expect(modal).toBeVisible({ timeout: 3000 });
         await modal.getByRole('button', { name: 'Don\'t Save' }).click();
         await expect(collectionTab).not.toBeVisible({ timeout: 3000 });
+      });
+
+      test('Close transient request (Shift+X): saves to collection and closes tab without reopening', async ({ pageWithUserData: page }) => {
+        // Count tabs already open before we start
+        const initialTabCount = await page.locator('.request-tab').count();
+
+        // Create a new transient HTTP request — it opens as "Untitled X" and is NOT in the sidebar
+        await createTransientRequest(page, { requestType: 'HTTP' });
+
+        // One new tab should be open and active
+        await expect(page.locator('.request-tab')).toHaveCount(initialTabCount + 1);
+        const transientTab = page.locator('.request-tab.active');
+        await expect(transientTab).toContainText('Untitled');
+
+        // Type a URL so the request has an unsaved change (creates a draft, shows the dot indicator)
+        await fillRequestUrl(page, 'http://localhost:8081/ping');
+        await expect(transientTab.locator('.has-changes-icon')).toBeVisible();
+
+        // Press Shift+X (closeTab remapped in beforeEach)
+        await pressShortcut(page, 'Shift', 'KeyX');
+
+        // "Unsaved changes" dialog should appear
+        const unsavedModal = page.locator('.bruno-modal-card').filter({ has: page.getByText('Unsaved changes', { exact: true }) });
+        await expect(unsavedModal).toBeVisible({ timeout: 3000 });
+
+        // Click "Save" — this should dismiss this dialog and open the Save Request picker
+        await unsavedModal.getByRole('button', { name: 'Save', exact: true }).click();
+
+        // The save flow modal appears. In workspaces with a scratch collection it first shows
+        // "Select Collection" so the user can pick a target — handle that automatically.
+        const saveFlowModal = page.locator('.bruno-modal-card');
+        await expect(saveFlowModal.filter({ hasText: /Save Request|Select Collection/ })).toBeVisible({ timeout: 5000 });
+
+        if (await saveFlowModal.filter({ hasText: 'Select Collection' }).isVisible()) {
+          // Pick kb-collection from the list so the form advances to "Save Request"
+          await saveFlowModal.locator('.collection-item-name').filter({ hasText: collectionName }).click();
+          await expect(saveFlowModal.filter({ hasText: 'Save Request' })).toBeVisible({ timeout: 5000 });
+        }
+
+        // Give the request a name and confirm
+        const saveModal = saveFlowModal.filter({ hasText: 'Save Request' });
+        const nameInput = saveModal.locator('#request-name');
+        await nameInput.clear();
+        await nameInput.fill('Transient Close Test');
+        await saveModal.getByRole('button', { name: 'Save' }).click();
+
+        // After saving, the tab count must return to the initial count:
+        // the transient tab closed AND no new tab was reopened for the saved request
+        await expect(page.locator('.request-tab')).toHaveCount(initialTabCount, { timeout: 5000 });
+
+        // Double-check: no tab named "Transient Close Test" is visible
+        await expect(
+          page.locator('.request-tab').filter({ has: page.getByText('Transient Close Test', { exact: true }) })
+        ).not.toBeVisible();
       });
     });
 

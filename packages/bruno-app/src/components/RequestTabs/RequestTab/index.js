@@ -550,7 +550,7 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
             setShowConfirmClose(false);
           }}
           onSaveAndClose={() => {
-            dispatch(saveRequest(item.uid, collection.uid))
+            dispatch(saveRequest(item.uid, collection.uid, false, true))
               .then(() => {
                 dispatch(
                   closeTabs({
@@ -560,7 +560,11 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
                 setShowConfirmClose(false);
               })
               .catch((err) => {
-                console.log('err', err);
+                if (!err) {
+                  setShowConfirmClose(false);
+                } else {
+                  console.log('err', err);
+                }
               });
           }}
         />
