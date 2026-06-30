@@ -291,16 +291,17 @@ class SnapshotManager {
       'performance',
       'terminal'
     ];
+    const devToolTabs = devTools.tabs || {};
 
     const _snapshotEntry = {
       open: typeof devTools?.open === 'boolean' ? devTools.open : false,
-      activeTab: devTools.activeTab,
+      activeTab: typeof devTools.activeTab === 'string' ? devTools.activeTab : 'terminal',
       tabs: {}
     };
 
     devToolKeys.forEach((key) => {
-      if (key in devTools) {
-        _snapshotEntry.tabs[key] = devTools.tabs[key];
+      if (key in devToolTabs) {
+        _snapshotEntry.tabs[key] = devToolTabs[key];
       }
     });
 

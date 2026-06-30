@@ -52,11 +52,7 @@ test.describe('Snapshot: Collection Environment Persistence', () => {
       expect(Array.isArray(snapshot?.workspaces)).toBe(true);
       expect(Array.isArray(snapshot?.collections)).toBe(true);
 
-      const migratedCollectionEntry = snapshot?.collections?.find(
-        (collection: any) =>
-          typeof collection?.pathname === 'string'
-          && path.normalize(collection.pathname) === path.normalize(migrationCollectionPath)
-      );
+      const migratedCollectionEntry = findSnapshotCollectionEntry(snapshot, migrationCollectionPath);
       expect(migratedCollectionEntry).toBeTruthy();
       expect(migratedCollectionEntry?.selectedEnvironment).toBe('local');
     });
@@ -112,10 +108,8 @@ test.describe('Snapshot: Collection Environment Persistence', () => {
 
       const snapshot = readSnapshot(userDataPath);
       expect(snapshot).not.toBeNull();
-
-      const collections = Array.isArray(snapshot?.collections) ? snapshot.collections : [];
-      const firstEntry = collections.find((collection: any) => collection?.pathname === firstCollectionRoot);
-      const secondEntry = collections.find((collection: any) => collection?.pathname === secondCollectionRoot);
+      const firstEntry = findSnapshotCollectionEntry(snapshot, firstCollectionRoot);
+      const secondEntry = findSnapshotCollectionEntry(snapshot, secondCollectionRoot);
 
       expect(firstEntry?.selectedEnvironment).toBe('local-a');
       expect(secondEntry?.selectedEnvironment).toBe('local-b');
@@ -252,11 +246,9 @@ test.describe('Snapshot: Collection Environment Persistence', () => {
 
       const snapshot = readSnapshot(userDataPath);
       expect(snapshot).not.toBeNull();
-
-      const collections = Array.isArray(snapshot?.collections) ? snapshot.collections : [];
-      const firstEntry = collections.find((collection: any) => collection?.pathname === firstCollectionRoot);
-      const secondEntry = collections.find((collection: any) => collection?.pathname === secondCollectionRoot);
-      const thirdEntry = collections.find((collection: any) => collection?.pathname === thirdCollectionRoot);
+      const firstEntry = findSnapshotCollectionEntry(snapshot, firstCollectionRoot);
+      const secondEntry = findSnapshotCollectionEntry(snapshot, secondCollectionRoot);
+      const thirdEntry = findSnapshotCollectionEntry(snapshot, thirdCollectionRoot);
 
       expect(firstEntry?.selectedEnvironment).toBe('local-a');
       expect(secondEntry?.selectedEnvironment).toBe('local-b');
@@ -314,7 +306,7 @@ test.describe('Snapshot: Collection Environment Persistence', () => {
     await closeElectronApp(app);
 
     const initialSnapshot = readSnapshot(userDataPath);
-    const initialEntry = initialSnapshot?.collections?.find((collection: any) => collection?.pathname === collectionRoot);
+    const initialEntry = findSnapshotCollectionEntry(initialSnapshot, collectionRoot);
     const envFilePath = initialEntry?.environmentPath || initialEntry?.environment?.collection;
     expect(envFilePath).toBeTruthy();
     expect(fs.existsSync(envFilePath)).toBe(true);
@@ -323,11 +315,12 @@ test.describe('Snapshot: Collection Environment Persistence', () => {
     const app2 = await launchElectronApp({ userDataPath });
     const page2 = await waitForReadyPage(app2);
     await openCollection(page2, 'Collection Missing Env');
+    await expect(page2.locator('.current-environment')).toContainText('local-missing');
     await page2.waitForTimeout(2000);
     await closeElectronApp(app2);
 
     const snapshot = readSnapshot(userDataPath);
-    const entry = snapshot?.collections?.find((collection: any) => collection?.pathname === collectionRoot);
+    const entry = findSnapshotCollectionEntry(snapshot, collectionRoot);
     expect(entry?.selectedEnvironment).toBe('local-missing');
     expect(entry?.environmentPath).toContain('local-missing');
   });
@@ -357,11 +350,12 @@ test.describe('Snapshot: Collection Environment Persistence', () => {
     const app2 = await launchElectronApp({ userDataPath });
     const page2 = await waitForReadyPage(app2);
     await openCollection(page2, 'Collection Bad Env');
+    await expect(page2.locator('.current-environment')).toContainText('local-bad');
     await page2.waitForTimeout(2000);
     await closeElectronApp(app2);
 
     const snapshot = readSnapshot(userDataPath);
-    const entry = snapshot?.collections?.find((collection: any) => collection?.pathname === collectionRoot);
+    const entry = findSnapshotCollectionEntry(snapshot, collectionRoot);
     expect(entry?.selectedEnvironment).toBe('local-bad');
     expect(entry?.environmentPath).toContain('local-bad');
   });

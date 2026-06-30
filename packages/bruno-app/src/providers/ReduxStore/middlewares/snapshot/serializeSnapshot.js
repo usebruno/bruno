@@ -103,16 +103,19 @@ export const serializeSnapshot = async (state, options = {}) => {
   );
 
   const existingDevTools = existingSnapshot?.extras?.devTools ?? {};
+  const resolvedDevToolsActiveTab = logs.activeTab ?? existingDevTools.activeTab ?? 'terminal';
+  const existingDevToolsTabs = existingDevTools.tabs || {};
 
   const snapshot = {
     activeWorkspacePath: activeWorkspace?.pathname || null,
     extras: {
       devTools: {
         open: logs.isConsoleOpen,
-        activeTab: logs.activeTab ?? existingDevTools.activeTab ?? 'terminal',
-        tabs: Object.assign(existingDevTools.tabs, {
-          [logs.activeTab]: {}
-        })
+        activeTab: resolvedDevToolsActiveTab,
+        tabs: {
+          ...existingDevToolsTabs,
+          [resolvedDevToolsActiveTab]: existingDevToolsTabs[resolvedDevToolsActiveTab] ?? {}
+        }
       }
     },
     workspaces: [],

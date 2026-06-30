@@ -835,13 +835,14 @@ export const workspaceOpenedEvent = (workspacePath, workspaceUid, workspaceConfi
       ...workspaceConfig
     }));
 
+    let snapshot = null;
     try {
       await dispatch(loadWorkspaceCollections(workspaceUid));
     } catch (error) {
     }
 
     try {
-      const snapshot = await ipcRenderer.invoke('renderer:snapshot:get');
+      snapshot = await ipcRenderer.invoke('renderer:snapshot:get');
       const currentState = getState();
 
       if (!currentState.app.snapshotReady && snapshot?.extras?.devTools) {
@@ -866,7 +867,6 @@ export const workspaceOpenedEvent = (workspacePath, workspaceUid, workspaceConfi
     let shouldSwitch = false;
 
     try {
-      const snapshot = await ipcRenderer.invoke('renderer:snapshot:get');
       const activeWorkspacePath = snapshot?.activeWorkspacePath;
       const normalizedWorkspacePath = normalizePath(workspacePath || '');
 

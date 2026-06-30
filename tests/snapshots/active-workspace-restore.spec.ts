@@ -101,11 +101,17 @@ test.describe('Snapshot: Active Workspace Restore', () => {
 
     const app = await launchElectronApp({ userDataPath });
     const page = await waitForReadyPage(app);
+    const workspaceNameLocator = page.getByTestId('workspace-name');
+    const workspaceMenuLocator = page.getByTestId('workspace-menu');
 
-    await expect(page.getByTestId('workspace-name')).toHaveText(activeWorkspaceName, { timeout: 10000 });
+    await test.step('Assert restored workspace is visible', async () => {
+      await expect(workspaceNameLocator).toHaveText(activeWorkspaceName, { timeout: 10000 });
+    });
 
-    await page.getByTestId('workspace-menu').click();
-    await expect(page.locator('.workspace-item.active')).toContainText(activeWorkspaceName);
+    await test.step('Assert restored workspace is active in the menu', async () => {
+      await workspaceMenuLocator.click();
+      await expect(page.locator('.workspace-item.active')).toContainText(activeWorkspaceName);
+    });
 
     await closeElectronApp(app);
   });
@@ -117,8 +123,17 @@ test.describe('Snapshot: Active Workspace Restore', () => {
 
     const app = await launchElectronApp({ userDataPath });
     const page = await waitForReadyPage(app);
+    const workspaceNameLocator = page.getByTestId('workspace-name');
+    const workspaceMenuLocator = page.getByTestId('workspace-menu');
 
-    await expect(page.getByTestId('workspace-name')).toHaveText(activeWorkspaceName, { timeout: 10000 });
+    await test.step('Assert restored workspace is visible', async () => {
+      await expect(workspaceNameLocator).toHaveText(activeWorkspaceName, { timeout: 10000 });
+    });
+
+    await test.step('Assert restored workspace is active in the menu', async () => {
+      await workspaceMenuLocator.click();
+      await expect(page.locator('.workspace-item.active')).toContainText(activeWorkspaceName);
+    });
 
     await closeElectronApp(app);
   });

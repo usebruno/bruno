@@ -126,6 +126,24 @@ describe('shouldPreserveCollectionEnvironmentInSnapshot', () => {
 });
 
 describe('serializeSnapshot collection environment preservation', () => {
+  it('creates a safe first-run snapshot when no existing snapshot is available', async () => {
+    const snapshot = await serializeSnapshot(makeState(), {
+      getExistingSnapshot: async () => null
+    });
+
+    expect(snapshot).toMatchObject({
+      extras: {
+        devTools: {
+          open: false,
+          activeTab: 'terminal',
+          tabs: {
+            terminal: {}
+          }
+        }
+      }
+    });
+  });
+
   it('preserves existing environment fields for an unmounted collection without loaded environments', async () => {
     const snapshot = await serializeSnapshot(makeState(), {
       getExistingSnapshot: async () => makeExistingSnapshot()

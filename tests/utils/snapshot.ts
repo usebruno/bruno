@@ -65,6 +65,6 @@ export const waitForSnapshotCollectionEnvironment = async (
   await expect.poll(() => {
     const snapshot = readSnapshot(userDataPath);
     const entry = findSnapshotCollectionEntry(snapshot, collectionPath);
-    return entry?.selectedEnvironment || '';
+    return entry ? (entry.selectedEnvironment ?? '') : null;
   }, { timeout }).toBe(selectedEnvironment);
 };

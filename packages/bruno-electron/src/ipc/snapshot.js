@@ -18,8 +18,8 @@ const registerSnapshotIpc = () => {
     }
   });
 
-  ipcMain.handle('renderer:snapshot:save', async (event, data) => {
-    return snapshotManager.saveSnapshot(data);
+  ipcMain.handle('renderer:snapshot:save', async (event, data, saveToken) => {
+    return snapshotManager.saveSnapshot(data, saveToken);
   });
 };
 
