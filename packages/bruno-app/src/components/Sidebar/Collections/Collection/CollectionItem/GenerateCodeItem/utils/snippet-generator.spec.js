@@ -1311,3 +1311,47 @@ describe('generateSnippet – pre-encode URL before HAR (HTTPSnippet validator r
     expect(result).not.toBe('Error generating code snippet');
   });
 });
+
+describe('generateSnippet – line continuation char against real httpsnippet output', () => {
+  const baseCollection = { root: { request: { auth: { mode: 'none' }, headers: [] } } };
+
+  const item = {
+    uid: 'real-shell-req',
+    request: {
+      method: 'GET',
+      url: 'https://example.com/api',
+      headers: [{ name: 'X-Api-Key', value: 'abc123', enabled: true }],
+      body: { mode: 'none' },
+      auth: { mode: 'none' }
+    }
+  };
+
+  let savedHTTPSnippet;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    const utilsCollections = require('utils/collections/index');
+    utilsCollections.getTreePathFromCollectionToItem.mockImplementation(() => []);
+    utilsCollections.getAllVariables.mockReturnValue({});
+
+    savedHTTPSnippet = require('httpsnippet').HTTPSnippet;
+    require('httpsnippet').HTTPSnippet = jest.requireActual('httpsnippet').HTTPSnippet;
+  });
+
+  afterEach(() => {
+    require('httpsnippet').HTTPSnippet = savedHTTPSnippet;
+  });
+
+  it.each([
+    ['curl', { target: 'shell', client: 'curl' }],
+    ['wget', { target: 'shell', client: 'wget' }],
+    ['httpie', { target: 'shell', client: 'httpie' }]
+  ])('%s: real output contains \\ continuation and caret swap applies', (_client, language) => {
+    const defaultResult = generateSnippet({ language, item, collection: baseCollection, shouldInterpolate: false });
+    const cmdResult = generateSnippet({ language, item, collection: baseCollection, shouldInterpolate: false, lineContinuationChar: '^' });
+
+    expect(defaultResult).toContain(' \\\n');
+    expect(cmdResult).not.toContain(' \\\n');
+    expect(cmdResult).toContain(' ^\n');
+  });
+});
