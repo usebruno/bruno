@@ -240,7 +240,8 @@ export const sendAiMessage = (
   allContent,
   requestContext,
   model,
-  contentType = 'app'
+  contentType = 'app',
+  variables = []
 ) => async (dispatch, getState) => {
   const { ipcRenderer } = window;
 
@@ -376,6 +377,7 @@ export const sendAiMessage = (
       allContent: normalizedContent,
       contentType,
       requestContext,
+      variables,
       requestId,
       model
     });
