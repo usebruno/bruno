@@ -4,8 +4,27 @@ import DraftTabIcon from '../DraftTabIcon';
 import StyledWrapper from './StyledWrapper';
 
 const GradientCloseButton = ({ onClick, hasChanges = false }) => {
+  // Prevent the browser's autoscroll (triggered on middle-button mousedown)
+  const handleMouseDown = (e) => {
+    if (e.button === 1) {
+      e.preventDefault();
+    }
+  };
+
+  const handleMouseUp = (e) => {
+    if (e.button === 1) {
+      e.preventDefault();
+      e.stopPropagation();
+      onClick?.(e);
+    }
+  };
+
   return (
-    <StyledWrapper className={`close-gradient ${hasChanges ? 'has-changes' : ''}`}>
+    <StyledWrapper
+      className={`close-gradient ${hasChanges ? 'has-changes' : ''}`}
+      onMouseDown={handleMouseDown}
+      onMouseUp={handleMouseUp}
+    >
       <div className="close-icon-container" onClick={onClick} data-testid="request-tab-close-icon">
         <span className="draft-icon-wrapper" data-testid="tab-draft-icon">
           <DraftTabIcon />
