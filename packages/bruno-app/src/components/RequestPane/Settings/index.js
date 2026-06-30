@@ -15,7 +15,7 @@ const DEFAULT_SETTINGS = {
   followRedirects: true,
   maxRedirects: 5,
   timeout: 'inherit',
-  forwardAuthorizationOnRedirect: true
+  forwardAuthorizationHeader: true
 };
 
 const Settings = ({ item, collection }) => {
@@ -27,7 +27,7 @@ const Settings = ({ item, collection }) => {
 
   const rawSettings = getPropertyFromDraftOrRequest('settings');
   const settings = { ...DEFAULT_SETTINGS, ...rawSettings };
-  const { encodeUrl, followRedirects, maxRedirects, timeout, forwardAuthorizationOnRedirect } = settings;
+  const { encodeUrl, followRedirects, maxRedirects, timeout, forwardAuthorizationHeader } = settings;
 
   // Reusable function to update settings
   const updateSetting = useCallback((settingUpdate) => {
@@ -47,7 +47,7 @@ const Settings = ({ item, collection }) => {
     updateSetting({ followRedirects: !followRedirects }), [followRedirects, updateSetting]);
 
   const onToggleForwardAuthorizationOnRedirect = useCallback(() =>
-    updateSetting({ forwardAuthorizationOnRedirect: !forwardAuthorizationOnRedirect }), [forwardAuthorizationOnRedirect, updateSetting]);
+    updateSetting({ forwardAuthorizationHeader: !forwardAuthorizationHeader }), [forwardAuthorizationHeader, updateSetting]);
 
   const onMaxRedirectsChange = useCallback((e) => {
     const value = e.target.value;
@@ -137,7 +137,7 @@ const Settings = ({ item, collection }) => {
 
           <div className="flex flex-col gap-4">
             <ToggleSelector
-              checked={forwardAuthorizationOnRedirect}
+              checked={forwardAuthorizationHeader}
               onChange={onToggleForwardAuthorizationOnRedirect}
               label="Forward Authorization on Redirect"
               description="Send Authorization and Proxy-Authorization headers when a redirect points to a different origin"

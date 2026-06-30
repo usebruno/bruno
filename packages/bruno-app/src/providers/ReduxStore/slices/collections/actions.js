@@ -1402,7 +1402,7 @@ export const newHttpRequest = (params) => (dispatch, getState) => {
       },
       settings: settings ?? {
         encodeUrl: true,
-        forwardAuthorizationOnRedirect: false
+        forwardAuthorizationHeader: false
       }
     };
 

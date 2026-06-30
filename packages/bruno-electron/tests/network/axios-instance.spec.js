@@ -238,11 +238,11 @@ describe('axios-instance: cross-origin redirects authorization stripping', () =>
     return adapter;
   }
 
-  test('should strip Authorization and Proxy-Authorization headers on cross-origin redirect when forwardAuthorizationOnRedirect is false', async () => {
+  test('should strip Authorization and Proxy-Authorization headers on cross-origin redirect when forwardAuthorizationHeader is false', async () => {
     const stubAdapter = createRedirectingStubAdapter('https://other-domain.com/target');
     const instance = makeAxiosInstance({
       followRedirects: true,
-      forwardAuthorizationOnRedirect: false
+      forwardAuthorizationHeader: false
     });
 
     await instance({
@@ -270,11 +270,11 @@ describe('axios-instance: cross-origin redirects authorization stripping', () =>
     expect(calls[1].headers['Custom-Header']).toBe('keep-me');
   });
 
-  test('should preserve Authorization and Proxy-Authorization headers on cross-origin redirect when forwardAuthorizationOnRedirect is true', async () => {
+  test('should preserve Authorization and Proxy-Authorization headers on cross-origin redirect when forwardAuthorizationHeader is true', async () => {
     const stubAdapter = createRedirectingStubAdapter('https://other-domain.com/target');
     const instance = makeAxiosInstance({
       followRedirects: true,
-      forwardAuthorizationOnRedirect: true
+      forwardAuthorizationHeader: true
     });
 
     await instance({
@@ -295,11 +295,11 @@ describe('axios-instance: cross-origin redirects authorization stripping', () =>
     expect(calls[1].headers['Custom-Header']).toBe('keep-me');
   });
 
-  test('should preserve Authorization and Proxy-Authorization headers on same-origin redirect even if forwardAuthorizationOnRedirect is false', async () => {
+  test('should preserve Authorization and Proxy-Authorization headers on same-origin redirect even if forwardAuthorizationHeader is false', async () => {
     const stubAdapter = createRedirectingStubAdapter('https://api.example.com/target');
     const instance = makeAxiosInstance({
       followRedirects: true,
-      forwardAuthorizationOnRedirect: false
+      forwardAuthorizationHeader: false
     });
 
     await instance({
@@ -318,11 +318,11 @@ describe('axios-instance: cross-origin redirects authorization stripping', () =>
     expect(calls[1].headers['Proxy-Authorization']).toBe('Bearer proxy-token');
   });
 
-  test('should preserve Authorization and Proxy-Authorization headers on relative redirect even if forwardAuthorizationOnRedirect is false', async () => {
+  test('should preserve Authorization and Proxy-Authorization headers on relative redirect even if forwardAuthorizationHeader is false', async () => {
     const stubAdapter = createRedirectingStubAdapter('/relative-target');
     const instance = makeAxiosInstance({
       followRedirects: true,
-      forwardAuthorizationOnRedirect: false
+      forwardAuthorizationHeader: false
     });
 
     await instance({

@@ -16,7 +16,7 @@ export interface HttpItemSettings {
   followRedirects?: boolean | null;
   maxRedirects?: number | null;
   timeout?: number | 'inherit' | null;
-  forwardAuthorizationOnRedirect?: boolean | null;
+  forwardAuthorizationHeader?: boolean | null;
 }
 
 export interface WebSocketItemSettings {

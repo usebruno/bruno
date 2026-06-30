@@ -507,7 +507,7 @@ const importPostmanV2CollectionItem = (brunoParent, item, { useWorkers = false }
 
         const settings = {
           encodeUrl: i.protocolProfileBehavior?.disableUrlEncoding !== true,
-          forwardAuthorizationOnRedirect: false
+          forwardAuthorizationHeader: false
         };
 
         // Handle followRedirects setting

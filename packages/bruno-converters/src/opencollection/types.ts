@@ -232,12 +232,12 @@ export interface BrunoCollectionRoot {
 // FIX ME (draft) - need to update this in @opencollection/types package
 declare module '@opencollection/types/requests/graphql' {
   export interface GraphQLRequestSettings {
-    forwardAuthorizationOnRedirect?: boolean | 'inherit';
+    forwardAuthorizationHeader?: boolean | 'inherit';
   }
 }
 
 declare module '@opencollection/types/requests/http' {
   export interface HttpRequestSettings {
-    forwardAuthorizationOnRedirect?: boolean | 'inherit';
+    forwardAuthorizationHeader?: boolean | 'inherit';
   }
 }

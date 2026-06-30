@@ -965,7 +965,7 @@ export const collectionsSlice = createSlice({
           },
           settings: {
             encodeUrl: true,
-            forwardAuthorizationOnRedirect: false
+            forwardAuthorizationHeader: false
           },
           draft: null
         };

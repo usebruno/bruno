@@ -86,7 +86,7 @@ function makeAxiosInstance({
   requestMaxRedirects = 5,
   disableCookies,
   followRedirects = true,
-  forwardAuthorizationOnRedirect = true,
+  forwardAuthorizationHeader = true,
   proxyMode,
   proxyConfig,
   systemProxyConfig,
@@ -190,7 +190,7 @@ function makeAxiosInstance({
 
           const requestConfig = createRedirectConfig(error, redirectUrl);
 
-          if (!forwardAuthorizationOnRedirect) {
+          if (!forwardAuthorizationHeader) {
             if (!isSameOrigin(error.config.url, redirectUrl)) {
               Object.keys(requestConfig.headers).forEach((key) => {
                 const lowerKey = key.toLowerCase();

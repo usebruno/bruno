@@ -661,7 +661,7 @@ const itemSchema = Yup.object({
         followRedirects: Yup.boolean().nullable(),
         maxRedirects: Yup.number().min(0).max(50).nullable(),
         timeout: Yup.mixed().nullable(),
-        forwardAuthorizationOnRedirect: Yup.boolean().nullable(),
+        forwardAuthorizationHeader: Yup.boolean().nullable(),
       }).noUnknown(true)
     .strict()
     .nullable()

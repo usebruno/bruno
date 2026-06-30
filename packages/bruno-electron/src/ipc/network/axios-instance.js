@@ -89,7 +89,7 @@ function makeAxiosInstance({
   httpsAgentRequestFields = {},
   interpolationOptions = {},
   followRedirects = true,
-  forwardAuthorizationOnRedirect = true
+  forwardAuthorizationHeader = true
 } = {}) {
   /** @type {axios.AxiosInstance} */
   const instance = axios.create({
@@ -365,7 +365,7 @@ function makeAxiosInstance({
             }
           };
 
-          if (!forwardAuthorizationOnRedirect) {
+          if (!forwardAuthorizationHeader) {
             if (!isSameOrigin(error.config.url, redirectUrl)) {
               Object.keys(requestConfig.headers).forEach((key) => {
                 const lowerKey = key.toLowerCase();

@@ -90,8 +90,8 @@ export const fromOpenCollectionGraphqlItem = (item: GraphQLRequest): BrunoItem =
     if (settings.maxRedirects !== undefined) {
       (brunoItem.settings as Record<string, unknown>).maxRedirects = settings.maxRedirects;
     }
-    if (settings.forwardAuthorizationOnRedirect !== undefined) {
-      (brunoItem.settings as Record<string, unknown>).forwardAuthorizationOnRedirect = settings.forwardAuthorizationOnRedirect;
+    if (settings.forwardAuthorizationHeader !== undefined) {
+      (brunoItem.settings as Record<string, unknown>).forwardAuthorizationHeader = settings.forwardAuthorizationHeader;
     }
   }
 
@@ -185,7 +185,7 @@ export const toOpenCollectionGraphqlItem = (item: BrunoItem): GraphQLRequest => 
     timeout: typeof brunoSettings.timeout === 'number' ? brunoSettings.timeout : 0,
     followRedirects: typeof brunoSettings.followRedirects === 'boolean' ? brunoSettings.followRedirects : true,
     maxRedirects: typeof brunoSettings.maxRedirects === 'number' ? brunoSettings.maxRedirects : 5,
-    forwardAuthorizationOnRedirect: typeof brunoSettings.forwardAuthorizationOnRedirect === 'boolean' ? brunoSettings.forwardAuthorizationOnRedirect : false
+    forwardAuthorizationHeader: typeof brunoSettings.forwardAuthorizationHeader === 'boolean' ? brunoSettings.forwardAuthorizationHeader : false
   };
   ocRequest.settings = settings;
 
