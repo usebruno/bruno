@@ -79,6 +79,7 @@ const Collection = ({ collection, searchText }) => {
   const [isInlineRenaming, setIsInlineRenaming] = useState(false);
   const [inlineRenameValue, setInlineRenameValue] = useState('');
   const inlineInputRef = useRef(null);
+  const isSubmittingRef = useRef(false);
   const dispatch = useDispatch();
   const isLoading = collection.isLoading;
   const collectionRef = useRef(null);
@@ -175,20 +176,32 @@ const Collection = ({ collection, searchText }) => {
   const handleNameDoubleClick = (e) => {
     e.stopPropagation();
     e.preventDefault();
+    ensureCollectionIsMounted();
+    dispatch(makeTabPermanent({ uid: collection.uid }));
     setInlineRenameValue(collection.name);
     setIsInlineRenaming(true);
   };
 
   const handleInlineRenameSubmit = async () => {
+    if (isSubmittingRef.current) return;
     const newName = inlineRenameValue.trim();
+    if (!newName || newName === collection.name) {
+      setIsInlineRenaming(false);
+      return;
+    }
+    if (newName.length > 255) {
+      toast.error('Name must be 255 characters or less');
+      return;
+    }
+    isSubmittingRef.current = true;
     setIsInlineRenaming(false);
-    if (!newName || newName === collection.name) return;
     try {
       await dispatch(renameCollection(newName, collection.uid));
       toast.success('Collection renamed!');
     } catch (err) {
       toast.error(err ? err.message : 'An error occurred while renaming the collection');
     }
+    isSubmittingRef.current = false;
   };
 
   const handleInlineRenameKeyDown = (e) => {

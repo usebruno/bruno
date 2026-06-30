@@ -90,6 +90,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
   const ref = useRef(null);
   const menuDropdownRef = useRef(null);
   const inlineInputRef = useRef(null);
+  const isSubmittingRef = useRef(false);
 
   const [renameItemModalOpen, setRenameItemModalOpen] = useState(false);
   const [cloneItemModalOpen, setCloneItemModalOpen] = useState(false);
@@ -510,19 +511,30 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
     if (!isFolder) return;
     e.stopPropagation();
     e.preventDefault();
+    dispatch(makeTabPermanent({ uid: tabUidForItem || item.uid }));
     setInlineRenameValue(item.name);
     setIsInlineRenaming(true);
   };
 
   const handleInlineRenameSubmit = async () => {
+    if (isSubmittingRef.current) return;
     const newName = inlineRenameValue.trim();
+    if (!newName || newName === item.name) {
+      setIsInlineRenaming(false);
+      return;
+    }
+    if (newName.length > 255) {
+      toast.error('Name must be 255 characters or less');
+      return;
+    }
+    isSubmittingRef.current = true;
     setIsInlineRenaming(false);
-    if (!newName || newName === item.name) return;
     try {
       await dispatch(renameItem({ itemUid: item.uid, collectionUid, newName }));
     } catch (error) {
       toast.error(error.message || 'An error occurred while renaming');
     }
+    isSubmittingRef.current = false;
   };
 
   const handleInlineRenameKeyDown = (e) => {
