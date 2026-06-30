@@ -4,7 +4,7 @@
     "items": [
         {
             "type": "grpc",
-            "name": "request without url",
+            "name": "grpc request without url",
             "filename": "request-without-url.bru",
             "seq": 2,
             "settings": {},

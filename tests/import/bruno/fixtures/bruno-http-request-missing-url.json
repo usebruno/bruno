@@ -4,7 +4,7 @@
     "items": [
         {
             "type": "http",
-            "name": "request without url",
+            "name": "http request without url",
             "filename": "request-without-url.bru",
             "seq": 2,
             "settings": {},

@@ -4,7 +4,7 @@
     "items": [
         {
             "type": "http",
-            "name": "request with example",
+            "name": "http example request without url",
             "filename": "request-with-example.bru",
             "seq": 1,
             "settings": {},
@@ -13,7 +13,7 @@
                 {
                     "uid": "ex0011223344556677889",
                     "itemUid": "it0011223344556677889",
-                    "name": "Successful response",
+                    "name": "Http request example response",
                     "description": "Example whose request has no url",
                     "type": "http",
                     "request": {
