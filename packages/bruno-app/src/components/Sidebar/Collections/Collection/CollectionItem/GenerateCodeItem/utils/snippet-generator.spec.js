@@ -866,11 +866,18 @@ describe('generateSnippet – line continuation character', () => {
 
   const multilineSnippet = 'curl --request GET \\\n  --url https://example.com/api \\\n  --header \'Accept: application/json\'';
 
+  let savedHTTPSnippet;
+
   beforeEach(() => {
     jest.clearAllMocks();
+    savedHTTPSnippet = require('httpsnippet').HTTPSnippet;
     require('httpsnippet').HTTPSnippet = jest.fn().mockImplementation(() => ({
       convert: jest.fn(() => multilineSnippet)
     }));
+  });
+
+  afterEach(() => {
+    require('httpsnippet').HTTPSnippet = savedHTTPSnippet;
   });
 
   it('leaves the backslash continuation untouched by default', () => {
