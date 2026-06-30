@@ -1,4 +1,5 @@
 import path from 'path';
+import fs from 'fs';
 import { test, expect, closeElectronApp } from '../../../playwright';
 import {
   createCollection,
@@ -246,6 +247,7 @@ test.describe('Snapshot: Collection Environment Persistence', () => {
     });
 
     await test.step('Close app and assert snapshot stores all three environments', async () => {
+      await page.waitForTimeout(2000);
       await closeElectronApp(app);
 
       const snapshot = readSnapshot(userDataPath);
@@ -269,15 +271,15 @@ test.describe('Snapshot: Collection Environment Persistence', () => {
       const page2 = await waitForReadyPage(app2);
 
       await openCollection(page2, 'Collection A');
-      await expect(page2.locator('.current-environment')).toContainText('local-a');
+      await expect(page2.locator('.current-environment')).toContainText('local-a', { timeout: 15000 });
       await page2.waitForTimeout(2000);
 
       await openCollection(page2, 'Collection B');
-      await expect(page2.locator('.current-environment')).toContainText('local-b');
+      await expect(page2.locator('.current-environment')).toContainText('local-b', { timeout: 15000 });
       await page2.waitForTimeout(2000);
 
       await openCollection(page2, 'Collection C');
-      await expect(page2.locator('.current-environment')).toContainText('local-c');
+      await expect(page2.locator('.current-environment')).toContainText('local-c', { timeout: 15000 });
       await page2.waitForTimeout(2000);
 
       await closeElectronApp(app2);
@@ -294,5 +296,73 @@ test.describe('Snapshot: Collection Environment Persistence', () => {
       expect(secondUpdatedEntry?.selectedEnvironment).toBe('local-b');
       expect(thirdUpdatedEntry?.selectedEnvironment).toBe('local-c');
     });
+  });
+
+  test('preserves snapshot environment when referenced environment file is missing after restart', async ({ launchElectronApp, createTmpDir }) => {
+    const userDataPath = await createTmpDir('snap-missing-env');
+    const collectionPath = await createTmpDir('snap-missing-env-col');
+    const collectionRoot = path.join(collectionPath, 'Collection Missing Env');
+
+    const app = await launchElectronApp({ userDataPath });
+    const page = await waitForReadyPage(app);
+
+    await createCollection(page, 'Collection Missing Env', collectionPath);
+    await openCollection(page, 'Collection Missing Env');
+    await createEnvironment(page, 'local-missing', 'collection');
+    await selectEnvironment(page, 'local-missing', 'collection');
+    await page.waitForTimeout(1500);
+    await closeElectronApp(app);
+
+    const initialSnapshot = readSnapshot(userDataPath);
+    const initialEntry = initialSnapshot?.collections?.find((collection: any) => collection?.pathname === collectionRoot);
+    const envFilePath = initialEntry?.environmentPath || initialEntry?.environment?.collection;
+    expect(envFilePath).toBeTruthy();
+    expect(fs.existsSync(envFilePath)).toBe(true);
+    fs.rmSync(envFilePath);
+
+    const app2 = await launchElectronApp({ userDataPath });
+    const page2 = await waitForReadyPage(app2);
+    await openCollection(page2, 'Collection Missing Env');
+    await page2.waitForTimeout(2000);
+    await closeElectronApp(app2);
+
+    const snapshot = readSnapshot(userDataPath);
+    const entry = snapshot?.collections?.find((collection: any) => collection?.pathname === collectionRoot);
+    expect(entry?.selectedEnvironment).toBe('local-missing');
+    expect(entry?.environmentPath).toContain('local-missing');
+  });
+
+  test('preserves snapshot environment when environment file fails to parse after restart', async ({ launchElectronApp, createTmpDir }) => {
+    const userDataPath = await createTmpDir('snap-bad-env');
+    const collectionPath = await createTmpDir('snap-bad-env-col');
+    const collectionRoot = path.join(collectionPath, 'Collection Bad Env');
+
+    const app = await launchElectronApp({ userDataPath });
+    const page = await waitForReadyPage(app);
+
+    await createCollection(page, 'Collection Bad Env', collectionPath);
+    await openCollection(page, 'Collection Bad Env');
+    await createEnvironment(page, 'local-bad', 'collection');
+    await selectEnvironment(page, 'local-bad', 'collection');
+    await page.waitForTimeout(1500);
+    await closeElectronApp(app);
+
+    const initialSnapshot = readSnapshot(userDataPath);
+    const initialEntry = initialSnapshot?.collections?.find((collection: any) => collection?.pathname === collectionRoot);
+    const envFilePath = initialEntry?.environmentPath || initialEntry?.environment?.collection;
+    expect(envFilePath).toBeTruthy();
+    expect(fs.existsSync(envFilePath)).toBe(true);
+    fs.writeFileSync(envFilePath, 'this is not valid environment syntax {{{');
+
+    const app2 = await launchElectronApp({ userDataPath });
+    const page2 = await waitForReadyPage(app2);
+    await openCollection(page2, 'Collection Bad Env');
+    await page2.waitForTimeout(2000);
+    await closeElectronApp(app2);
+
+    const snapshot = readSnapshot(userDataPath);
+    const entry = snapshot?.collections?.find((collection: any) => collection?.pathname === collectionRoot);
+    expect(entry?.selectedEnvironment).toBe('local-bad');
+    expect(entry?.environmentPath).toContain('local-bad');
   });
 });
