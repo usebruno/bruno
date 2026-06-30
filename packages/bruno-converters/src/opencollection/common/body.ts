@@ -16,6 +16,8 @@ import type {
   BrunoGraphqlBody
 } from '../types';
 
+type FileBodyVariantWithDescription = FileBodyVariant & { description?: string };
+
 export const fromOpenCollectionBody = (body: HttpRequestBody | GraphQLBody | undefined, requestType: string = 'http'): BrunoHttpRequestBody => {
   const defaultBody: BrunoHttpRequestBody = {
     mode: 'none',
@@ -130,12 +132,20 @@ export const fromOpenCollectionBody = (body: HttpRequestBody | GraphQLBody | und
         return {
           ...defaultBody,
           mode: 'file',
-          file: (fileBody.data || []).map((file): BrunoFileEntry => ({
-            uid: uuid(),
-            filePath: file.filePath || '',
-            contentType: file.contentType || '',
-            selected: file.selected !== false
-          }))
+          file: (fileBody.data || []).map((file): BrunoFileEntry => {
+            const entry: BrunoFileEntry = {
+              uid: uuid(),
+              filePath: file.filePath || '',
+              contentType: file.contentType || '',
+              selected: file.selected !== false
+            };
+            const fileWithDescription = file as FileBodyVariantWithDescription;
+            const desc = typeof fileWithDescription.description === 'string'
+              ? fileWithDescription.description
+              : (fileWithDescription.description as { content?: string } | undefined)?.content;
+            if (desc && desc.trim().length) entry.description = desc;
+            return entry;
+          })
         };
       }
     }
@@ -206,11 +216,19 @@ export const toOpenCollectionBody = (body: BrunoHttpRequestBody | null | undefin
     }
 
     case 'file': {
-      const fileData: FileBodyVariant[] = (body.file || []).map((file): FileBodyVariant => ({
-        filePath: file.filePath || '',
-        contentType: file.contentType || '',
-        selected: file.selected !== false
-      }));
+      const fileData: FileBodyVariantWithDescription[] = (body.file || []).map((file): FileBodyVariantWithDescription => {
+        const entry: FileBodyVariantWithDescription = {
+          filePath: file.filePath || '',
+          contentType: file.contentType || '',
+          selected: file.selected !== false
+        };
+
+        if (file.description && typeof file.description === 'string' && file.description.trim().length) {
+          entry.description = file.description;
+        }
+
+        return entry;
+      });
 
       return { type: 'file', data: fileData };
     }

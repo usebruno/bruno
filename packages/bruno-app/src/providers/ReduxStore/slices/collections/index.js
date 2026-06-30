@@ -1710,6 +1710,7 @@ export const collectionsSlice = createSlice({
             uid: uuid(),
             filePath: '',
             contentType: '',
+            description: '',
             selected: false
           });
         }
@@ -1732,6 +1733,7 @@ export const collectionsSlice = createSlice({
             const contentType = mime.contentType(path.extname(action.payload.param.filePath));
             param.filePath = action.payload.param.filePath;
             param.contentType = action.payload.param.contentType || contentType || '';
+            param.description = action.payload.param.description ?? param.description ?? '';
             param.selected = action.payload.param.selected;
 
             item.draft.request.body.file = item.draft.request.body.file.map((p) => {
