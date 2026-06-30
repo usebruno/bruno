@@ -19,7 +19,7 @@ import {
   IconSettings,
   IconInfoCircle,
   IconTerminal2,
-  IconApps
+  IconAppWindow
 } from '@tabler/icons';
 import { useSelector, useDispatch } from 'react-redux';
 import { addTab, focusTab, makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
@@ -357,7 +357,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
         },
         {
           id: 'new-app',
-          leftSection: IconApps,
+          leftSection: IconAppWindow,
           label: 'New App',
           onClick: () => setNewAppModalOpen(true)
         },

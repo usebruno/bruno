@@ -1,0 +1,21 @@
+meta {
+  name: req-1-write
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+script:post-response {
+  bru.setEnvVar("counter", "1");
+}
+
+tests {
+  test("request 1 wrote counter=1", function() {
+    expect(bru.getEnvVar("counter")).to.equal("1");
+  });
+}

@@ -22,7 +22,7 @@ import {
   IconFolder,
   IconBook,
   IconFileArrowRight,
-  IconApps
+  IconAppWindow
 } from '@tabler/icons';
 import OpenAPISyncIcon from 'components/Icons/OpenAPISync';
 import { toggleCollection, collapseFullCollection } from 'providers/ReduxStore/slices/collections';
@@ -368,7 +368,7 @@ const Collection = ({ collection, searchText }) => {
     },
     {
       id: 'new-app',
-      leftSection: IconApps,
+      leftSection: IconAppWindow,
       label: 'New App',
       onClick: () => {
         ensureCollectionIsMounted();

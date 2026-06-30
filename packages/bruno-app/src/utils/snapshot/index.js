@@ -26,6 +26,10 @@ const NON_REPLACEABLE_SINGLETON_TAB_TYPES = new Set([
   'openapi-spec'
 ]);
 
+const IGNORED_TAB_TYPES = new Set([
+  'v4-migration'
+]);
+
 export const SAVE_TRIGGERS = new Map([
   ['app/setSnapshotReady', null],
   ['tabs/addTab', null],
@@ -55,6 +59,24 @@ export const SAVE_TRIGGERS = new Map([
 ]);
 
 export const isRequestTab = (type) => REQUEST_TAB_TYPES.has(type);
+
+const isIgnoredTab = (tab) => IGNORED_TAB_TYPES.has(tab?.type);
+
+const isIgnoredActiveTab = (activeTab) => activeTab?.accessor === 'type' && IGNORED_TAB_TYPES.has(activeTab.value);
+
+// Strip ignored tab types from a snapshot read on any path (lookups or ipc fallback),
+// including an active tab that points at one.
+const sanitizeSnapshotTabs = (tabsSnapshot) => {
+  if (!tabsSnapshot || !Array.isArray(tabsSnapshot.tabs)) {
+    return tabsSnapshot;
+  }
+
+  return {
+    ...tabsSnapshot,
+    activeTab: isIgnoredActiveTab(tabsSnapshot.activeTab) ? null : tabsSnapshot.activeTab,
+    tabs: tabsSnapshot.tabs.filter((tab) => !isIgnoredTab(tab))
+  };
+};
 
 export const shouldExcludeTab = (tab, transientDirectory) => {
   return transientDirectory && tab.pathname?.startsWith(transientDirectory);
@@ -107,8 +129,8 @@ const normalizeCollectionSnapshotEntry = (pathname, entry = {}, tabsEntry = {}) 
     isMounted: typeof entry.isMounted === 'boolean' ? entry.isMounted : false,
     activeTab: tabsEntry.activeTab ?? entry.activeTab ?? null,
     tabs: Array.isArray(tabsEntry.tabs)
-      ? tabsEntry.tabs.filter((tab) => isObject(tab))
-      : (Array.isArray(entry.tabs) ? entry.tabs.filter((tab) => isObject(tab)) : [])
+      ? tabsEntry.tabs.filter((tab) => isObject(tab) && !isIgnoredTab(tab))
+      : (Array.isArray(entry.tabs) ? entry.tabs.filter((tab) => isObject(tab) && !isIgnoredTab(tab)) : [])
   };
 };
 
@@ -613,13 +635,15 @@ export const hydrateCollectionTabs = async (
 ) => {
   const { ipcRenderer } = window;
 
-  const tabsSnapshot = getTabsSnapshotFromLookups(
-    collection.pathname,
-    snapshotLookups,
-    workspacePathname,
-    strictWorkspaceScope
-  )
-  || await ipcRenderer.invoke('renderer:snapshot:get-tabs', collection.pathname, workspacePathname).catch(() => null);
+  const tabsSnapshot = sanitizeSnapshotTabs(
+    getTabsSnapshotFromLookups(
+      collection.pathname,
+      snapshotLookups,
+      workspacePathname,
+      strictWorkspaceScope
+    )
+    || await ipcRenderer.invoke('renderer:snapshot:get-tabs', collection.pathname, workspacePathname).catch(() => null)
+  );
 
   const hasPersistedTabs = Array.isArray(tabsSnapshot?.tabs) && tabsSnapshot.tabs.length > 0;
   const hasPersistedActiveTab = Boolean(tabsSnapshot?.activeTab);
@@ -651,8 +675,10 @@ export const hydrateTabs = async (collections, dispatch, restoreTabs, snapshotLo
 export const getActiveTabFromSnapshot = async (collectionPathname, collection, snapshotLookups = null, workspacePathname = null) => {
   const { ipcRenderer } = window;
 
-  const tabsSnapshot = getTabsSnapshotFromLookups(collectionPathname, snapshotLookups, workspacePathname)
-    || await ipcRenderer.invoke('renderer:snapshot:get-tabs', collectionPathname, workspacePathname).catch(() => null);
+  const tabsSnapshot = sanitizeSnapshotTabs(
+    getTabsSnapshotFromLookups(collectionPathname, snapshotLookups, workspacePathname)
+    || await ipcRenderer.invoke('renderer:snapshot:get-tabs', collectionPathname, workspacePathname).catch(() => null)
+  );
 
   if (!tabsSnapshot?.activeTab || !tabsSnapshot?.tabs?.length) return null;
 
