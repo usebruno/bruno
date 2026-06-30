@@ -16,6 +16,7 @@ import ConfirmCloseEnvironment from 'components/Environments/ConfirmCloseEnviron
 import RequestTabNotFound from './RequestTabNotFound';
 import RequestTabLoading from './RequestTabLoading';
 import SpecialTab from './SpecialTab';
+import { IconAppWindow } from '@tabler/icons';
 import StyledWrapper from './StyledWrapper';
 import MenuDropdown from 'ui/MenuDropdown';
 import CloneCollectionItem from 'components/Sidebar/Collections/Collection/CollectionItem/CloneCollectionItem/index';
@@ -255,7 +256,9 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
         if (environmentUid?.startsWith('dotenv:')) {
           window.dispatchEvent(new Event('dotenv-save'));
         } else {
-          dispatch(saveEnvironment(variables, environmentUid, collection.uid));
+          dispatch(saveEnvironment(variables, environmentUid, collection.uid))
+            .then(() => toast.success('Changes saved successfully'))
+            .catch(() => toast.error('An error occurred while saving the changes'));
         }
       }
     } else if (tab.type === 'global-environment-settings') {
@@ -264,7 +267,9 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
         if (environmentUid?.startsWith('dotenv:')) {
           window.dispatchEvent(new Event('dotenv-save'));
         } else {
-          dispatch(saveGlobalEnvironment({ variables, environmentUid }));
+          dispatch(saveGlobalEnvironment({ variables, environmentUid }))
+            .then(() => toast.success('Changes saved successfully'))
+            .catch(() => toast.error('An error occurred while saving the changes'));
         }
       }
     } else if (tab.type === 'folder-settings') {
@@ -576,9 +581,15 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
           }
         }}
       >
-        <span className="tab-method uppercase" style={{ color: getMethodColor(method) }}>
-          {method}
-        </span>
+        {item.type === 'app' ? (
+          <span className="tab-method flex items-center" aria-label="App">
+            <IconAppWindow size={14} strokeWidth={1.5} />
+          </span>
+        ) : (
+          <span className="tab-method uppercase" style={{ color: getMethodColor(method) }}>
+            {method}
+          </span>
+        )}
         <span ref={tabNameRef} className="ml-1 tab-name" title={item.name}>
           {item.name}
         </span>

@@ -1,6 +1,5 @@
 import { cloneDeep, isEqual, sortBy, filter, map, isString, findIndex, find, each, get } from 'lodash';
 import { uuid } from 'utils/common';
-import { buildPersistedEnvVariables } from 'utils/environments';
 import { sortByNameThenSequence } from 'utils/common/index';
 import path from 'utils/common/path';
 import { isRequestTagsIncluded } from '@usebruno/common';
@@ -603,11 +602,7 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
   collectionToSave.version = '1';
   collectionToSave.items = [];
   collectionToSave.activeEnvironmentUid = collection.activeEnvironmentUid;
-  // Save environments without runtime metadata (ephemeral/persistedValue)
-  collectionToSave.environments = (collection.environments || []).map((env) => ({
-    ...env,
-    variables: buildPersistedEnvVariables(env?.variables, { mode: 'save' })
-  }));
+  collectionToSave.environments = collection.environments || [];
 
   collectionToSave.root = {
     request: {}
@@ -690,6 +685,19 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
 
 export const transformRequestToSaveToFilesystem = (item) => {
   const _item = item.draft ? item.draft : item;
+
+  // Standalone app items have no request, emit only what the filestore needs.
+  if (_item.type === 'app') {
+    return {
+      uid: _item.uid,
+      type: 'app',
+      name: _item.name,
+      seq: _item.seq,
+      tags: _item.tags,
+      settings: _item.settings,
+      app: { code: _item.app?.code || '' }
+    };
+  }
 
   // Transform examples to ensure status is a number
   const transformExamples = (examples = []) => {

@@ -60,6 +60,9 @@ import {
   updateFolderVar,
   addCollectionVar,
   updateCollectionVar,
+  scriptUpdateCollectionVars,
+  setScriptCollVarBaseline,
+  _clearScriptCollectionBaselines,
   addTransientDirectory,
   addSaveTransientRequestModal,
   updatePathParam,
@@ -85,12 +88,12 @@ import {
   mergeHeaders
 } from 'utils/collections/index';
 import { sanitizeName } from 'utils/common/regex';
-import { buildPersistedEnvVariables } from 'utils/environments';
+import { applyScriptEnvVars, getScriptModifiedKeys } from 'utils/environments';
 import { safeParseJSON, safeStringifyJSON } from 'utils/common/index';
 import { resolveInheritedAuth } from 'utils/auth';
 import { addTab } from 'providers/ReduxStore/slices/tabs';
 import { updateSettingsSelectedTab } from './index';
-import { saveGlobalEnvironment } from 'providers/ReduxStore/slices/global-environments';
+import { saveGlobalEnvironment, _clearScriptGlobalEnvBaseline } from 'providers/ReduxStore/slices/global-environments';
 import { getTabToFocusForCurrentWorkspace } from 'providers/ReduxStore/slices/workspaces/getTabToFocusForCurrentWorkspace';
 import { clearPersistedScope } from 'hooks/usePersistedState/PersistedScopeProvider';
 import {
@@ -501,6 +504,10 @@ export const wsConnectOnly = (item, collectionUid) => (dispatch, getState) => {
 
     const environment = findEnvironmentInCollection(collectionCopy, collectionCopy.activeEnvironmentUid);
 
+    // WS connect does not run user scripts — no baseline to clear.
+    // Wiping baselines here would also wipe collection._scriptRequestUid, opening
+    // a window where a late HTTP post-response could pass the stale-update gate.
+
     connectWS(itemCopy, collectionCopy, environment, collectionCopy.runtimeVariables, { connectOnly: true })
       .then(resolve)
       .catch((err) => {
@@ -618,6 +625,8 @@ export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
       }
       return reject(error);
     }
+
+    dispatch(clearScriptVariableBaselines(collectionUid));
 
     await dispatch(
       initRunRequestEvent({
@@ -1767,6 +1776,101 @@ export const newWsRequest = (params) => (dispatch, getState) => {
   });
 };
 
+const DEFAULT_APP_STARTER = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>App</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; padding: 1rem; }
+    button { padding: 6px 10px; cursor: pointer; }
+    pre { background: #f6f7f9; padding: 8px; border-radius: 4px; overflow: auto; }
+    body.dark { color: #e0e0e0; }
+    body.dark pre { background: #1f2123; }
+  </style>
+</head>
+<body>
+  <h2>Hello from a Bruno app</h2>
+  <p>This app can list request in the collection.</p>
+  <button id="refresh">List requests</button>
+  <pre id="out">click "List requests"</pre>
+  <script>
+    const out = document.getElementById('out');
+    document.getElementById('refresh').addEventListener('click', async () => {
+      const requests = await ctx.listRequests();
+      out.textContent = requests.map(r => \`\${r.method || r.type}  \${r.name}\`).join('\\n') || '(no requests)';
+    });
+  </script>
+</body>
+</html>
+`;
+
+export const newApp = (params) => (dispatch, getState) => {
+  const { appName, filename, collectionUid, itemUid } = params;
+
+  return new Promise((resolve, reject) => {
+    const state = getState();
+    const collection = findCollectionByUid(state.collections.collections, collectionUid);
+    if (!collection) {
+      return reject(new Error('Collection not found'));
+    }
+
+    const item = {
+      uid: uuid(),
+      type: 'app',
+      name: appName,
+      filename,
+      app: { code: DEFAULT_APP_STARTER },
+      settings: {}
+    };
+
+    const resolvedFilename = resolveRequestFilename(filename, collection.format);
+
+    const selectedItem = itemUid ? findItemInCollection(collection, itemUid) : null;
+    let parent = collection;
+    if (selectedItem) {
+      parent = isItemAFolder(selectedItem)
+        ? selectedItem
+        : (findParentItemInCollection(collection, selectedItem.uid) || collection);
+    }
+    const parentPath = parent.pathname;
+    const siblings = parent.items || [];
+
+    const dupe = find(
+      siblings,
+      (i) => i.type !== 'folder' && trim(i.filename) === trim(resolvedFilename)
+    );
+    if (dupe) {
+      return reject(new Error('An item with this name already exists in this folder'));
+    }
+
+    const orderableSiblings = filter(
+      siblings,
+      (i) => isItemAFolder(i) || isItemARequest(i) || i.type === 'app'
+    );
+    item.seq = orderableSiblings.length + 1;
+
+    const fullName = path.join(parentPath, resolvedFilename);
+    const { ipcRenderer } = window;
+
+    ipcRenderer
+      .invoke('renderer:new-request', fullName, item)
+      .then(() => {
+        dispatch(
+          insertTaskIntoQueue({
+            uid: uuid(),
+            type: 'OPEN_REQUEST',
+            collectionUid,
+            itemPathname: fullName
+          })
+        );
+        resolve();
+      })
+      .catch(reject);
+  });
+};
+
 export const loadGrpcMethodsFromReflection = (item, collectionUid, url) => async (dispatch, getState) => {
   const state = getState();
   const collection = findCollectionByUid(state.collections.collections, collectionUid);
@@ -1916,12 +2020,7 @@ export const copyEnvironment = (name, baseEnvUid, collectionUid) => (dispatch, g
 
     const { ipcRenderer } = window;
 
-    // strip "ephemeral" metadata
-    const variablesToCopy = (baseEnv.variables || [])
-      .filter((v) => !v.ephemeral)
-      .map(({ ephemeral, ...rest }) => {
-        return rest;
-      });
+    const variablesToCopy = baseEnv.variables || [];
 
     ipcRenderer
       .invoke('renderer:create-environment', collection.pathname, sanitizedName, variablesToCopy)
@@ -2005,8 +2104,7 @@ export const saveEnvironment = (variables, environmentUid, collectionUid) => (di
       return reject(new Error('Environment not found'));
     }
 
-    const persisted = buildPersistedEnvVariables(variables, { mode: 'save' });
-    environment.variables = persisted;
+    environment.variables = variables;
 
     const { ipcRenderer } = window;
     const envForValidation = cloneDeep(environment);
@@ -2015,7 +2113,7 @@ export const saveEnvironment = (variables, environmentUid, collectionUid) => (di
       .validate(environment)
       .then(() => ipcRenderer.invoke('renderer:save-environment', collection.pathname, envForValidation))
       .then(() => {
-        dispatch(_saveEnvironment({ variables: persisted, environmentUid, collectionUid }));
+        dispatch(_saveEnvironment({ variables, environmentUid, collectionUid }));
       })
       .then(resolve)
       .catch(reject);
@@ -2152,9 +2250,7 @@ export const updateVariableInScope = (variableName, newValue, scopeInfo, collect
 
           const updatedVariables = environment.variables.map((v) => {
             if (v.uid === variable.uid) {
-              // Clear ephemeral metadata when user manually edits the value
-              const { ephemeral, persistedValue, ...rest } = v;
-              return { ...rest, value: newValue };
+              return { ...v, value: newValue };
             }
             return v;
           });
@@ -2268,9 +2364,7 @@ export const updateVariableInScope = (variableName, newValue, scopeInfo, collect
 
           const updatedVariables = environment.variables.map((v) => {
             if (v.uid === variable.uid) {
-              // Clear ephemeral metadata when user manually edits the value
-              const { ephemeral, persistedValue, ...rest } = v;
-              return { ...rest, value: newValue };
+              return { ...v, value: newValue };
             }
             return v;
           });
@@ -2309,81 +2403,100 @@ export const updateVariableInScope = (variableName, newValue, scopeInfo, collect
   });
 };
 
-export const mergeAndPersistEnvironment
-  = ({ persistentEnvVariables, collectionUid }) =>
-    (_dispatch, getState) => {
-      return new Promise((resolve, reject) => {
-        const state = getState();
-        const collection = findCollectionByUid(state.collections.collections, collectionUid);
+// Clears all three script-driven baselines for a given collection:
+//   collection-scope env baseline, collection-scope coll-vars baseline, and the
+//   workspace-scope global-env baseline. Call at the start of any request kickoff
+//   path so a stale baseline from a previous send can't leak into draft merging.
+export const clearScriptVariableBaselines = (collectionUid) => (dispatch) => {
+  dispatch(_clearScriptCollectionBaselines({ collectionUid }));
+  dispatch(_clearScriptGlobalEnvBaseline());
+};
 
-        if (!collection) {
-          return reject(new Error('Collection not found'));
-        }
+export const persistActiveEnvironment = (collectionUid, requestUid) => (dispatch, getState) => {
+  const state = getState();
+  const collection = findCollectionByUid(state.collections.collections, collectionUid);
+  if (!collection) return;
 
-        const environmentUid = collection.activeEnvironmentUid;
-        if (!environmentUid) {
-          return reject(new Error('No active environment found'));
-        }
+  // Ignore stale updates from superseded requests so an in-flight pre/post
+  // from request N-1 can't trigger a disk write for request N.
+  if (requestUid && collection._scriptRequestUid && requestUid !== collection._scriptRequestUid) return;
 
-        const collectionCopy = cloneDeep(collection);
-        const environment = findEnvironmentInCollection(collectionCopy, environmentUid);
-        if (!environment) {
-          return reject(new Error('Environment not found'));
-        }
+  const environment = findEnvironmentInCollection(collection, collection.activeEnvironmentUid);
+  if (!environment) return;
 
-        // Only proceed if there are persistent variables to save
-        if (!persistentEnvVariables || Object.keys(persistentEnvVariables).length === 0) {
-          return resolve();
-        }
+  if (collection._scriptEnvBaseline) {
+    // Baseline exists — a draft was flushed earlier in this request cycle.
+    // Write to disk silently (without dispatching _saveEnvironment) to avoid
+    // racing with file-watcher callbacks.
+    const envCopy = { ...environment };
+    const { ipcRenderer } = window;
+    environmentSchema
+      .validate(envCopy)
+      .then(() => ipcRenderer.invoke('renderer:save-environment', collection.pathname, envCopy))
+      .catch((err) => console.error('Failed to persist environment during script execution:', err));
+    return;
+  }
 
-        let existingVars = environment.variables || [];
+  dispatch(saveEnvironment(environment.variables, environment.uid, collectionUid))
+    .catch((err) => console.error('Failed to persist environment during script execution:', err));
+};
 
-        let normalizedNewVars = Object.entries(persistentEnvVariables).map(([name, value]) => {
-          const inferred = getDataTypeFromValue(value);
-          return {
-            uid: uuid(),
-            name,
-            value,
-            type: 'text',
-            enabled: true,
-            secret: false,
-            ...(inferred !== 'string' ? { dataType: inferred } : {})
-          };
-        });
+export const collectionVariablesUpdateEvent = ({ collectionVariables, collectionUid, requestUid }) => (dispatch, getState) => {
+  if (!collectionVariables || !collectionUid) return;
 
-        const merged = existingVars.map((v) => {
-          const found = normalizedNewVars.find((nv) => nv.name === v.name);
-          if (!found) return v;
-          const { dataType: _oldDataType, ...rest } = v;
-          return { ...rest, value: found.value, ...(found.dataType ? { dataType: found.dataType } : {}) };
-        });
-        normalizedNewVars.forEach((nv) => {
-          if (!merged.some((v) => v.name === nv.name)) {
-            merged.push(nv);
-          }
-        });
+  const state = getState();
+  const collection = findCollectionByUid(state.collections.collections, collectionUid);
+  if (!collection) return;
 
-        // Save all non-ephemeral vars and all variables that were previously persisted
-        const persistedNames = new Set(Object.keys(persistentEnvVariables));
+  // Ignore stale updates from superseded requests.
+  if (requestUid && collection._scriptRequestUid && requestUid !== collection._scriptRequestUid) {
+    return;
+  }
 
-        // Add all existing non-ephemeral variables to persistedNames so they are preserved
-        existingVars.forEach((v) => {
-          if (!v.ephemeral) {
-            persistedNames.add(v.name);
-          }
-        });
+  const savedVars = get(collection, 'root.request.vars.req', []);
+  const draftVars = collection.draft?.root
+    ? get(collection, 'draft.root.request.vars.req', null)
+    : null;
 
-        const environmentToSave = cloneDeep(environment);
-        environmentToSave.variables = buildPersistedEnvVariables(merged, { mode: 'merge', persistedNames });
+  let baseline = collection._scriptCollVarBaseline || null;
 
-        const { ipcRenderer } = window;
-        environmentSchema
-          .validate(environmentToSave)
-          .then(() => ipcRenderer.invoke('renderer:save-environment', collection.pathname, environmentToSave))
-          .then(resolve)
-          .catch(reject);
-      });
-    };
+  if (!baseline && draftVars) {
+    baseline = {};
+    savedVars.forEach((v) => {
+      if (v.enabled) baseline[v.name] = v.value;
+    });
+    dispatch(setScriptCollVarBaseline({ collectionUid, baseline }));
+  }
+
+  let vars = cloneDeep(draftVars || savedVars);
+
+  vars = applyScriptEnvVars(vars, collectionVariables, baseline);
+
+  // Re-infer dataType only for vars the script actually modified; baseline-mode no-op writes
+  // must NOT overwrite a user's in-progress draft type change.
+  const modifiedKeys = getScriptModifiedKeys(collectionVariables, baseline);
+  modifiedKeys.forEach((name) => {
+    const existing = vars.find((v) => v.name === name);
+    if (!existing) return;
+    const inferred = getDataTypeFromValue(collectionVariables[name]);
+    if (inferred === 'string') {
+      delete existing.dataType;
+    } else {
+      existing.dataType = inferred;
+    }
+  });
+
+  dispatch(scriptUpdateCollectionVars({ collectionUid, vars }));
+
+  // Save from root (not draft) so draft headers/auth/scripts are not persisted to disk.
+  const fresh = findCollectionByUid(getState().collections.collections, collectionUid);
+  if (fresh) {
+    const collectionRootToSave = transformCollectionRootToSave({ root: fresh.root });
+    const { ipcRenderer } = window;
+    ipcRenderer.invoke('renderer:save-collection-root', fresh.pathname, collectionRootToSave, fresh.brunoConfig)
+      .catch((err) => console.error('Failed to persist collection variables:', err));
+  }
+};
 
 export const selectEnvironment = (environmentUid, collectionUid) => (dispatch, getState) => {
   return new Promise((resolve, reject) => {
@@ -2410,6 +2523,8 @@ export const selectEnvironment = (environmentUid, collectionUid) => (dispatch, g
         selectedEnvironment: environment?.name || ''
       }
     });
+
+    dispatch(clearScriptVariableBaselines(collectionUid));
 
     dispatch(_selectEnvironment({ environmentUid, collectionUid }));
     resolve();

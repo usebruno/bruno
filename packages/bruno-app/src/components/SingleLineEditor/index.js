@@ -302,7 +302,7 @@ class SingleLineEditor extends Component {
    */
   secretEye = (isSecret) => {
     return isSecret === true ? (
-      <button type="button" className="mx-2" onClick={() => this.toggleVisibleSecret()}>
+      <button type="button" className="mx-2" data-testid="secret-reveal-toggle" onClick={() => this.toggleVisibleSecret()}>
         {this.state.maskInput === true ? (
           <IconEyeOff size={18} strokeWidth={2} />
         ) : (
