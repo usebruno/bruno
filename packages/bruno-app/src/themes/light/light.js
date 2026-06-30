@@ -279,6 +279,8 @@ const lightTheme = {
     responseStatus: palette.text.SUBTEXT1,
     responseOk: palette.hues.GREEN,
     responseError: palette.hues.RED,
+    responseClientError: palette.hues.ORANGE,
+    responseRedirect: palette.hues.CYAN,
     responsePending: palette.hues.BLUE,
     responseOverlayBg: 'rgba(255, 255, 255, 0.6)',
     card: {
