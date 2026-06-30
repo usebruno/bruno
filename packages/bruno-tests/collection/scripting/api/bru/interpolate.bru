@@ -12,8 +12,9 @@ get {
 
 tests {
   test("should interpolate envs", function() {
+    const host = bru.getEnvVar("host");
     const interpolated = bru.interpolate("url: {{host}}")
-    expect(interpolated).to.equal("url: https://testbench-sanity.usebruno.com");
+    expect(interpolated).to.equal("url: " + host);
   });
   
   test("should interpolate random variables", function() {
