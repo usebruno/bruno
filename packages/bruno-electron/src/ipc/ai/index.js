@@ -4,14 +4,17 @@ const { getPreferences } = require('../../store/preferences');
 const { aiKeyStore } = require('../../store/ai-keys');
 const {
   PROVIDERS,
-  MODEL_DEFINITIONS,
   listProviders,
   listModels,
   getModel,
   getAvailableModels,
-  clearSdkCache
+  clearSdkCache,
+  isKnownProviderId,
+  validateApiKeyForProvider,
+  providerLabel
 } = require('./providers');
 const { SCRIPT_PROMPTS, SCRIPT_TYPES, buildScriptUserPrompt, stripCodeFences } = require('./script-prompts');
+const registerChatIpc = require('./chat');
 
 const activeStreams = new Map();
 
@@ -24,7 +27,7 @@ const buildStatus = () => {
   const hasApiKey = (providerId) => aiKeyStore.hasKey(providerId);
 
   const providers = {};
-  for (const provider of listProviders()) {
+  for (const provider of listProviders(aiPreferences)) {
     providers[provider.id] = {
       ...provider,
       enabled: Boolean(aiPreferences?.providers?.[provider.id]?.enabled),
@@ -35,7 +38,7 @@ const buildStatus = () => {
   return {
     enabled: Boolean(aiPreferences.enabled),
     providers,
-    models: listModels(),
+    models: listModels(aiPreferences),
     availableModels: getAvailableModels({ aiPreferences, hasApiKey })
   };
 };
@@ -60,13 +63,17 @@ const pickDefaultModelId = () => {
   return available[0].id;
 };
 
+const assertKnownProvider = (providerId) => {
+  if (!isKnownProviderId(providerId, getAiPrefs())) {
+    throw new Error(`Unknown AI provider: ${providerId}`);
+  }
+};
+
 const registerAiIpc = (mainWindow) => {
   ipcMain.handle('renderer:get-ai-status', async () => buildStatus());
 
   ipcMain.handle('renderer:set-ai-api-key', async (_event, { providerId, apiKey }) => {
-    if (!PROVIDERS[providerId]) {
-      throw new Error(`Unknown AI provider: ${providerId}`);
-    }
+    assertKnownProvider(providerId);
     const trimmed = typeof apiKey === 'string' ? apiKey.trim() : '';
     if (!trimmed) {
       throw new Error('API key cannot be empty');
@@ -77,23 +84,20 @@ const registerAiIpc = (mainWindow) => {
   });
 
   ipcMain.handle('renderer:clear-ai-api-key', async (_event, { providerId }) => {
-    if (!PROVIDERS[providerId]) {
-      throw new Error(`Unknown AI provider: ${providerId}`);
-    }
+    assertKnownProvider(providerId);
     aiKeyStore.clearKey(providerId);
     clearSdkCache();
     return buildStatus();
   });
 
   ipcMain.handle('renderer:get-ai-api-key', async (_event, { providerId }) => {
-    if (!PROVIDERS[providerId]) {
-      throw new Error(`Unknown AI provider: ${providerId}`);
-    }
+    assertKnownProvider(providerId);
     return aiKeyStore.getKey(providerId) || '';
   });
 
   ipcMain.handle('renderer:ai-test-provider', async (_event, { providerId }) => {
-    if (!PROVIDERS[providerId]) {
+    const aiPrefs = getAiPrefs();
+    if (!isKnownProviderId(providerId, aiPrefs)) {
       return { ok: false, error: `Unknown provider: ${providerId}` };
     }
     const apiKey = aiKeyStore.getKey(providerId);
@@ -101,24 +105,25 @@ const registerAiIpc = (mainWindow) => {
       return { ok: false, error: 'No API key configured' };
     }
 
-    const aiPrefs = getAiPrefs();
     const providerEnabled = aiPrefs?.providers?.[providerId]?.enabled;
     if (!providerEnabled) {
-      return { ok: false, error: `${PROVIDERS[providerId].label} is disabled` };
-    }
-
-    const probeModel = Object.entries(MODEL_DEFINITIONS)
-      .find(([, def]) => def.provider === providerId);
-    if (!probeModel) {
-      return { ok: false, error: `No models registered for ${providerId}` };
+      return { ok: false, error: `${providerLabel(providerId, aiPrefs)} is disabled` };
     }
 
     try {
-      const model = resolveModel(probeModel[0]);
-      await generateText({ model, prompt: 'ping', maxOutputTokens: 1 });
-      return { ok: true };
+      const res = await validateApiKeyForProvider({ providerId, apiKey, aiPreferences: aiPrefs });
+      if (res.ok) {
+        return { ok: true };
+      }
+      if (res.status === 401 || res.status === 403) {
+        return { ok: false, error: 'Invalid API key' };
+      }
+      if (res.status === 429) {
+        return { ok: false, error: 'Rate limited — try again in a moment' };
+      }
+      return { ok: false, error: `Could not verify key (HTTP ${res.status})` };
     } catch (err) {
-      return { ok: false, error: err.message || 'Connection failed' };
+      return { ok: false, error: err.message || 'Could not reach provider. Check your network connection.' };
     }
   });
 
@@ -145,7 +150,7 @@ const registerAiIpc = (mainWindow) => {
   });
 
   ipcMain.handle('renderer:ai-generate-script', async (_event, params) => {
-    const { scriptType, prompt, currentScript, requestContext, model: requestedModel } = params || {};
+    const { scriptType, prompt, currentScript, requestContext, docsContext, model: requestedModel } = params || {};
 
     if (!SCRIPT_TYPES.includes(scriptType)) {
       return { error: `Unknown scriptType: ${scriptType}` };
@@ -170,7 +175,7 @@ const registerAiIpc = (mainWindow) => {
       const { text } = await generateText({
         model,
         system: SCRIPT_PROMPTS[scriptType],
-        prompt: buildScriptUserPrompt({ userPrompt: prompt, currentScript, requestContext }),
+        prompt: buildScriptUserPrompt({ userPrompt: prompt, currentScript, requestContext, docsContext, scriptType }),
         maxOutputTokens: 2048
       });
       return { content: stripCodeFences(text), modelId };
@@ -258,6 +263,13 @@ const registerAiIpc = (mainWindow) => {
       controller.abort();
       activeStreams.delete(streamId);
     }
+  });
+
+  registerChatIpc({
+    mainWindow,
+    resolveModel,
+    pickDefaultModelId,
+    isAiEnabled: isEnabled
   });
 };
 

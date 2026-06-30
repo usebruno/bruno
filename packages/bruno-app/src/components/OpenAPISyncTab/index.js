@@ -131,16 +131,6 @@ const OpenAPISyncTab = ({ collection }) => {
                   error={error}
                   onOpenSettings={() => setShowSettingsModal(true)}
                 />
-                <p className="beta-feedback-inline">
-                  OpenAPI Sync is in Beta — we'd love to hear your feedback and suggestions.{' '}
-                  <button
-                    type="button"
-                    className="beta-feedback-link"
-                    onClick={() => window?.ipcRenderer?.openExternal('https://github.com/usebruno/bruno/discussions/7401')}
-                  >
-                    Share feedback
-                  </button>
-                </p>
               </div>
             )}
 

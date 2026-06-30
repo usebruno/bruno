@@ -314,6 +314,7 @@ const StyledWrapper = styled.div`
       height: 100% !important;
       max-height: 400px !important;
       padding: 0.5rem !important;
+      overflow: auto !important;
 
       .network-logs-pre {
         color: ${(props) => props.theme.console.messageColor} !important;

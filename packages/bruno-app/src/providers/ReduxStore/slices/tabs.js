@@ -62,7 +62,8 @@ export const tabsSlice = createSlice({
         'workspaceOverview',
         'workspaceEnvironments',
         'openapi-sync',
-        'openapi-spec'
+        'openapi-spec',
+        'changelog'
       ];
 
       const existingTab = find(state.tabs, (tab) => tab.uid === uid);
@@ -280,6 +281,24 @@ export const tabsSlice = createSlice({
         tab.scriptPaneTab = action.payload.scriptPaneTab;
       }
     },
+    setFocusErrorLine: (state, action) => {
+      const tab = find(state.tabs, (t) => t.uid === action.payload.uid);
+
+      if (tab) {
+        tab.focusErrorLine = {
+          scriptPhase: action.payload.scriptPhase,
+          line: action.payload.line,
+          requestedAt: action.payload.requestedAt
+        };
+      }
+    },
+    clearFocusErrorLine: (state, action) => {
+      const tab = find(state.tabs, (t) => t.uid === action.payload.uid);
+
+      if (tab) {
+        tab.focusErrorLine = null;
+      }
+    },
     updateQueryBuilderOpen: (state, action) => {
       const tab = find(state.tabs, (t) => t.uid === action.payload.uid);
 
@@ -481,6 +500,13 @@ export const tabsSlice = createSlice({
         state.activeTabUid = state.tabs.find((t) => t.collectionUid === collectionUid)?.uid || null;
       }
     },
+    updateTabState: (state, action) => {
+      const { uid, tabState } = action.payload;
+      const tab = find(state.tabs, (t) => t.uid === uid);
+      if (tab) {
+        tab.tabState = { ...tab.tabState, ...tabState };
+      }
+    },
     reopenLastClosedTab: (state, action) => {
       const collectionUid = action.payload?.collectionUid;
       // Find the last closed tab for this collection (LIFO). If no collectionUid is
@@ -519,6 +545,8 @@ export const {
   updateGqlDocsOpen,
   updateTableColumnWidths,
   updateScriptPaneTab,
+  setFocusErrorLine,
+  clearFocusErrorLine,
   closeTabs,
   closeAllCollectionTabs,
   makeTabPermanent,
@@ -529,6 +557,7 @@ export const {
   reorderTabs,
   syncTabUid,
   restoreTabs,
+  updateTabState,
   reopenLastClosedTab,
   updateQueryBuilderOpen,
   updateQueryBuilderWidth,

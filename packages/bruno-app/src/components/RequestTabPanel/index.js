@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import find from 'lodash/find';
+import get from 'lodash/get';
 import toast from 'react-hot-toast';
 import { useSelector, useDispatch } from 'react-redux';
 import GraphQLRequestPane from 'components/RequestPane/GraphQLRequestPane';
@@ -19,6 +20,9 @@ import VariablesEditor from 'components/VariablesEditor';
 import CollectionSettings from 'components/CollectionSettings';
 import { DocExplorer } from '@usebruno/graphql-docs';
 
+import FileEditor from 'components/FileEditor';
+import AppView from 'components/AppView';
+import CollectionApp from 'components/CollectionApp';
 import StyledWrapper from './StyledWrapper';
 import FolderSettings from 'components/FolderSettings';
 import { getGlobalEnvironmentVariables, getGlobalEnvironmentVariablesMasked } from 'utils/collections/index';
@@ -42,7 +46,9 @@ import EnvironmentSettings from 'components/Environments/EnvironmentSettings';
 import GlobalEnvironmentSettings from 'components/Environments/GlobalEnvironmentSettings';
 import OpenAPISyncTab from 'components/OpenAPISyncTab';
 import OpenAPISpecTab from 'components/OpenAPISpecTab';
+import ChangelogTab from 'components/ChangelogTab';
 import CollapsedPanelIndicator from './CollapsedPanelIndicator';
+import { clampRequestHeightForResponse } from './paneSize';
 import { IconLoader2 } from '@tabler/icons';
 
 const MIN_LEFT_PANE_WIDTH = 300;
@@ -51,6 +57,8 @@ const MIN_TOP_PANE_HEIGHT = 150;
 const MIN_BOTTOM_PANE_HEIGHT = 150;
 const COLLAPSE_EDGE_THRESHOLD = 80;
 const EXPAND_EDGE_THRESHOLD = 100;
+// Minimum response pane height to show placeholder content on click-expand
+const RESPONSE_EXPAND_MIN_HEIGHT = 300;
 
 const RequestTabPanel = () => {
   const dispatch = useDispatch();
@@ -262,6 +270,21 @@ const RequestTabPanel = () => {
     startDragging(e);
   }, [expandResponse, applyPointerResize, startDragging]);
 
+  const handleResponseIndicatorClickExpand = useCallback(() => {
+    expandResponse();
+    if (!isVerticalLayoutRef.current || !mainSectionRef.current) return;
+    const { height: containerHeight } = mainSectionRef.current.getBoundingClientRect();
+    const clampedHeight = clampRequestHeightForResponse(
+      topPaneHeight,
+      containerHeight,
+      RESPONSE_EXPAND_MIN_HEIGHT,
+      MIN_TOP_PANE_HEIGHT
+    );
+    if (clampedHeight != null) {
+      setTopPaneHeight(clampedHeight);
+    }
+  }, [expandResponse, topPaneHeight, setTopPaneHeight]);
+
   useEffect(() => {
     document.addEventListener('mouseup', handleMouseUp);
     document.addEventListener('mousemove', handleMouseMove);
@@ -271,6 +294,58 @@ const RequestTabPanel = () => {
       document.removeEventListener('mousemove', handleMouseMove);
     };
   }, [handleMouseUp, handleMouseMove]);
+
+  // Clamp leftPaneWidth when the main section shrinks (AI sidebar opens, or
+  // the window narrows). Without this the stored pixel width can exceed the
+  // available container, the section scrolls horizontally, and the response
+  // pane is pushed off-screen.
+  //
+  // Important: we ONLY react to genuine shrinks vs the last stable width. The
+  // initial observation and any growth are ignored. During mount Windows can
+  // emit a few transient narrow sizes (often 0) before layout settles — if
+  // we treated those as shrinks we'd lock leftPaneWidth at the transient value
+  // and never recover, which made several CodeMirror-driven tests flaky on
+  // Windows CI while passing on Linux.
+  const leftPaneWidthRef = useRef(leftPaneWidth);
+  useEffect(() => { leftPaneWidthRef.current = leftPaneWidth; }, [leftPaneWidth]);
+
+  useEffect(() => {
+    const el = mainSectionRef.current;
+    if (!el || isVerticalLayout) return;
+
+    let lastWidth = null;
+    let frame = null;
+    const observer = new ResizeObserver((entries) => {
+      if (frame) return;
+      frame = requestAnimationFrame(() => {
+        frame = null;
+        const width = entries[0]?.contentRect?.width || el.getBoundingClientRect().width;
+        if (!width) return;
+
+        // Skip the first observation (initial layout) and any non-shrink — we
+        // only clamp on real reductions in available width.
+        if (lastWidth === null || width >= lastWidth) {
+          lastWidth = width;
+          return;
+        }
+        lastWidth = width;
+
+        const maxLeft = width - MIN_RIGHT_PANE_WIDTH;
+        if (leftPaneWidthRef.current > maxLeft) {
+          // Floor at MIN_LEFT_PANE_WIDTH even if maxLeft is smaller — losing
+          // a few px from the response is preferable to collapsing the
+          // request pane to zero.
+          setLeftPaneWidth(Math.max(MIN_LEFT_PANE_WIDTH, maxLeft));
+        }
+      });
+    });
+
+    observer.observe(el);
+    return () => {
+      observer.disconnect();
+      if (frame) cancelAnimationFrame(frame);
+    };
+  }, [setLeftPaneWidth, isVerticalLayout]);
 
   useEffect(() => {
     if (!isVerticalLayout) return;
@@ -314,6 +389,10 @@ const RequestTabPanel = () => {
 
   if (focusedTab.type === 'preferences') {
     return <Preferences />;
+  }
+
+  if (focusedTab.type === 'changelog') {
+    return <ChangelogTab />;
   }
 
   if (focusedTab.type === 'workspaceOverview') {
@@ -458,6 +537,41 @@ const RequestTabPanel = () => {
         }));
     }
   };
+
+  if (collection.fileMode) {
+    return (
+      <ScopedPersistenceProvider scope={focusedTab.uid}>
+        <StyledWrapper className="flex flex-col flex-grow relative p-4 file-mode overflow-hidden">
+          <FileEditor item={item} collection={collection} />
+        </StyledWrapper>
+      </ScopedPersistenceProvider>
+    );
+  }
+
+  // Standalone app item (collection- or folder-level). Renders as its own tab
+  // with a Code/Preview toggle and its own ctx API surface.
+  if (item.type === 'app') {
+    return (
+      <ScopedPersistenceProvider scope={focusedTab.uid}>
+        <StyledWrapper className="flex flex-col flex-grow relative overflow-hidden">
+          <CollectionApp item={item} collection={collection} />
+        </StyledWrapper>
+      </ScopedPersistenceProvider>
+    );
+  }
+
+  const appEnabled = item.draft ? get(item, 'draft.app.enabled', false) : get(item, 'app.enabled', false);
+  if (appEnabled) {
+    const appCode = item.draft ? get(item, 'draft.app.code', '') : get(item, 'app.code', '');
+    return (
+      <ScopedPersistenceProvider scope={focusedTab.uid}>
+        <StyledWrapper className="flex flex-col flex-grow relative overflow-hidden">
+          <AppView item={item} collection={collection} code={appCode} />
+        </StyledWrapper>
+      </ScopedPersistenceProvider>
+    );
+  }
+
   const renderQueryUrl = () => {
     if (isGrpcRequest) {
       return <GrpcQueryUrl item={item} collection={collection} handleRun={handleRun} />;
@@ -563,7 +677,7 @@ const RequestTabPanel = () => {
             <CollapsedPanelIndicator
               panelType="response"
               isVertical={isVerticalLayout}
-              onExpand={expandResponse}
+              onExpand={handleResponseIndicatorClickExpand}
               onDragStart={handleResponseIndicatorDragStart}
               dragThresholdPx={isVerticalLayout ? MIN_BOTTOM_PANE_HEIGHT / 2 : MIN_RIGHT_PANE_WIDTH / 2}
             />

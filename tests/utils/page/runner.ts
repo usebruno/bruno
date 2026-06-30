@@ -49,9 +49,13 @@ export const openRunnerTab = async (page: Page, collectionName: string) => {
     const collectionContainer = page.getByTestId('collections').locator('.collection-name').filter({ hasText: collectionName });
     await collectionContainer.waitFor({ state: 'visible' });
 
+    // Re-hover on each poll: CSS `:hover` reveals `.collection-actions`, but sidebar
+    // re-renders can shift the row out from under a one-shot hover().
     const actionsContainer = collectionContainer.locator('.collection-actions');
-    await collectionContainer.hover();
-    await actionsContainer.waitFor({ state: 'visible' });
+    await expect(async () => {
+      await collectionContainer.hover();
+      await expect(actionsContainer).toBeVisible({ timeout: 1000 });
+    }).toPass({ timeout: 10000 });
 
     const icon = actionsContainer.locator('.icon');
     await icon.waitFor({ state: 'visible', timeout: 5000 });
@@ -81,9 +85,13 @@ export const runCollection = async (page: Page, collectionName: string) => {
     await collectionContainer.waitFor({ state: 'visible' });
 
     // Open collection actions menu - hover first to reveal the hidden actions button
+    // Re-hover on each poll: CSS `:hover` reveals `.collection-actions`, but sidebar
+    // re-renders can shift the row out from under a one-shot hover().
     const actionsContainer = collectionContainer.locator('.collection-actions');
-    await collectionContainer.hover();
-    await actionsContainer.waitFor({ state: 'visible' });
+    await expect(async () => {
+      await collectionContainer.hover();
+      await expect(actionsContainer).toBeVisible({ timeout: 1000 });
+    }).toPass({ timeout: 10000 });
 
     const icon = actionsContainer.locator('.icon');
     await icon.waitFor({ state: 'visible', timeout: 5000 });
