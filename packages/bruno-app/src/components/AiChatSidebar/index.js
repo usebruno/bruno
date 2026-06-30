@@ -33,10 +33,18 @@ import {
   updateRequestTests,
   updateRequestScript,
   updateResponseScript,
-  updateRequestDocs
+  updateRequestDocs,
+  updateFolderRequestScript,
+  updateFolderResponseScript,
+  updateFolderTests,
+  updateFolderDocs,
+  updateCollectionRequestScript,
+  updateCollectionResponseScript,
+  updateCollectionTests,
+  updateCollectionDocs
 } from 'providers/ReduxStore/slices/collections';
-import { findItemInCollection } from 'utils/collections';
-import { getAiStatus } from 'utils/ai';
+import { findItemInCollection, isItemAFolder, isItemARequest } from 'utils/collections';
+import { buildAiVariablesPayload, getAiStatus } from 'utils/ai';
 
 import StyledWrapper from './StyledWrapper';
 import DiffView from './DiffView';
@@ -182,6 +190,20 @@ const AiChatSidebar = ({ collection }) => {
   const focusedTab = find(tabs, (t) => t.uid === activeTabUid);
   const activeItem = focusedTab && collection ? findItemInCollection(collection, activeTabUid) : null;
 
+  const aiContext = useMemo(() => {
+    if (!focusedTab || !collection) return null;
+    if (activeItem && (isItemARequest(activeItem) || activeItem.type === 'app')) {
+      return { kind: 'request', item: activeItem, pathname: activeItem.pathname || '', name: activeItem.name || 'Untitled' };
+    }
+    if (activeItem && isItemAFolder(activeItem)) {
+      return { kind: 'folder', folder: activeItem, pathname: activeItem.pathname || '', name: activeItem.name || 'Untitled' };
+    }
+    // Anything else (collection-settings, runner, variables, openapi-sync,
+    // .js files in File Mode …) falls back to the collection root so the AI
+    // button always opens a useful chat instead of a no-op.
+    return { kind: 'collection', pathname: collection.pathname || '', name: collection.name || 'Untitled Collection' };
+  }, [focusedTab, collection, activeItem]);
+
   const currentChat = allChats[activeTabUid] || { messages: [], isLoading: false, error: null, historyList: [] };
   const { messages, isLoading, error, historyList, conversationId } = currentChat;
 
@@ -209,37 +231,69 @@ const AiChatSidebar = ({ collection }) => {
     try { localStorage.setItem(SELECTED_MODEL_LS_KEY, AUTO_MODEL_ID); } catch {}
   }, [availableModels, selectedModel]);
 
-  const requestName = activeItem?.name || 'Untitled';
-  const requestMethod = activeItem?.draft
-    ? get(activeItem, 'draft.request.method', 'GET')
-    : get(activeItem, 'request.method', 'GET');
+  const requestName = aiContext?.name || activeItem?.name || 'Untitled';
+  const requestMethod = useMemo(() => {
+    if (aiContext?.kind === 'folder') return 'FOLDER';
+    if (aiContext?.kind === 'collection') return 'ROOT';
+    if (!activeItem) return 'GET';
+    if (activeItem.type === 'grpc-request') return 'GRPC';
+    if (activeItem.type === 'ws-request') return 'WS';
+    if (activeItem.type === 'graphql-request') return 'GQL';
+    if (activeItem.type === 'app') return 'APP';
+    const appOn = activeItem.draft
+      ? get(activeItem, 'draft.app.enabled', false)
+      : get(activeItem, 'app.enabled', false);
+    if (appOn) return 'APP';
+    return activeItem.draft
+      ? get(activeItem, 'draft.request.method', 'GET')
+      : get(activeItem, 'request.method', 'GET');
+  }, [aiContext?.kind, activeItem]);
 
+  // contentType drives the AI prompt, the diff target, and which entry of
+  // allContent the backend treats as "active". For requests it follows the
+  // request-pane tab. For folders / collections we read the settings sub-tab
+  // (and the inner pre/post script split for the Script sub-tab).
   const requestPaneTab = focusedTab?.requestPaneTab;
+  const scriptPaneTab = focusedTab?.scriptPaneTab;
   const contentType = useMemo(() => {
+    if (aiContext?.kind === 'folder') {
+      const sub = collection?.folderLevelSettingsSelectedTab?.[aiContext.folder.uid];
+      if (sub === 'test') return 'tests';
+      if (sub === 'docs') return 'docs';
+      if (sub === 'script') return scriptPaneTab === 'post-response' ? 'post-response' : 'pre-request';
+      return 'pre-request';
+    }
+    if (aiContext?.kind === 'collection') {
+      const sub = collection?.settingsSelectedTab;
+      if (sub === 'tests') return 'tests';
+      if (sub === 'overview') return 'docs';
+      if (sub === 'script') return scriptPaneTab === 'post-response' ? 'post-response' : 'pre-request';
+      return 'pre-request';
+    }
     switch (requestPaneTab) {
       case 'tests': return 'tests';
-      case 'script': return 'pre-request';
+      case 'script': return scriptPaneTab === 'post-response' ? 'post-response' : 'pre-request';
       case 'docs': return 'docs';
       default: return 'app';
     }
-  }, [requestPaneTab]);
+  }, [aiContext, collection?.folderLevelSettingsSelectedTab, collection?.settingsSelectedTab, requestPaneTab, scriptPaneTab]);
 
-  // Bind the chat to the active item's pathname so the history list reflects
-  // this specific request and persistence keys stay stable across sessions.
-  // Restoring the most recent conversation happens once per tab — if the
-  // user explicitly starts a new chat, we don't auto-replace it.
+  // Bind the chat to the active context's pathname so the history list
+  // reflects this specific request/folder/collection and persistence keys stay
+  // stable across sessions. Restoring the most recent conversation happens
+  // once per tab — if the user explicitly starts a new chat, we don't
+  // auto-replace it.
   const restoredOnceRef = useRef({});
   useEffect(() => {
-    if (!isOpen || !activeItem || !collection) return;
-    const pathname = activeItem.pathname || '';
+    if (!isOpen || !aiContext || !collection) return;
     dispatch(setChatBinding({
       tabUid: activeTabUid,
-      pathname,
+      pathname: aiContext.pathname,
       collectionUid: collection.uid,
       contentType
     }));
     dispatch(refreshChatHistory(activeTabUid));
-  }, [isOpen, activeItem?.pathname, collection?.uid, activeTabUid, contentType, dispatch]);
+  }, [isOpen, aiContext?.pathname, collection?.uid, activeTabUid, contentType, dispatch]);
 
   // First-open restore: if this tab has no conversation yet and there's a
   // saved one for the same file, load the most recent.
@@ -254,42 +308,83 @@ const AiChatSidebar = ({ collection }) => {
   }, [isOpen, activeTabUid, currentChat.conversationId, currentChat.messages?.length, historyList, dispatch]);
 
   const allContent = useMemo(() => {
-    if (!activeItem) return {};
-    const draft = activeItem.draft;
-    const draftAppCode = get(activeItem, 'draft.app.code');
+    if (!aiContext) return {};
+    if (aiContext.kind === 'request') {
+      const item = aiContext.item;
+      const draft = item.draft;
+      const draftAppCode = get(item, 'draft.app.code');
+      return {
+        'app': draftAppCode != null ? draftAppCode : get(item, 'app.code', ''),
+        'tests': draft ? get(draft, 'request.tests', '') : get(item, 'request.tests', ''),
+        'pre-request': draft ? get(draft, 'request.script.req', '') : get(item, 'request.script.req', ''),
+        'post-response': draft ? get(draft, 'request.script.res', '') : get(item, 'request.script.res', ''),
+        'docs': draft ? get(draft, 'request.docs', '') : get(item, 'request.docs', '')
+      };
+    }
+    if (aiContext.kind === 'folder') {
+      const folder = aiContext.folder;
+      const root = folder.draft || folder.root || {};
+      return {
+        'tests': get(root, 'request.tests', ''),
+        'pre-request': get(root, 'request.script.req', ''),
+        'post-response': get(root, 'request.script.res', ''),
+        'docs': get(root, 'docs', '')
+      };
+    }
+    // collection
+    const root = collection?.draft?.root || collection?.root || {};
     return {
-      'app': draftAppCode != null ? draftAppCode : get(activeItem, 'app.code', ''),
-      'tests': draft ? get(draft, 'request.tests', '') : get(activeItem, 'request.tests', ''),
-      'pre-request': draft ? get(draft, 'request.script.req', '') : get(activeItem, 'request.script.req', ''),
-      'post-response': draft ? get(draft, 'request.script.res', '') : get(activeItem, 'request.script.res', ''),
-      'docs': draft ? get(draft, 'request.docs', '') : get(activeItem, 'request.docs', '')
+      'tests': get(root, 'request.tests', ''),
+      'pre-request': get(root, 'request.script.req', ''),
+      'post-response': get(root, 'request.script.res', ''),
+      'docs': get(root, 'docs', '')
     };
-  }, [activeItem]);
+  }, [aiContext, collection?.draft?.root, collection?.root]);
 
   const currentContent = allContent[contentType] || '';
 
+  // requestContext (URL/method/headers/response shape) only makes sense for
+  // HTTP-style request items. Folder, collection, and App chats skip it —
+  // App items live under kind: 'request' but have no URL/method to surface.
   const requestContext = useMemo(() => {
-    if (!activeItem) return null;
-    const draft = activeItem.draft;
+    if (aiContext?.kind !== 'request' || !isItemARequest(aiContext.item)) return null;
+    const item = aiContext.item;
+    const draft = item.draft;
     return {
-      url: draft ? get(activeItem, 'draft.request.url', '') : get(activeItem, 'request.url', ''),
-      method: draft ? get(activeItem, 'draft.request.method', '') : get(activeItem, 'request.method', ''),
-      headers: draft ? get(activeItem, 'draft.request.headers', []) : get(activeItem, 'request.headers', []),
-      params: draft ? get(activeItem, 'draft.request.params', []) : get(activeItem, 'request.params', []),
-      body: draft ? get(activeItem, 'draft.request.body', null) : get(activeItem, 'request.body', null),
-      docs: draft ? get(activeItem, 'draft.request.docs', null) : get(activeItem, 'request.docs', null),
-      responseStatus: get(activeItem, 'response.status', null),
-      responseData: get(activeItem, 'response.data', null)
+      url: draft ? get(item, 'draft.request.url', '') : get(item, 'request.url', ''),
+      method: draft ? get(item, 'draft.request.method', '') : get(item, 'request.method', ''),
+      headers: draft ? get(item, 'draft.request.headers', []) : get(item, 'request.headers', []),
+      params: draft ? get(item, 'draft.request.params', []) : get(item, 'request.params', []),
+      body: draft ? get(item, 'draft.request.body', null) : get(item, 'request.body', null),
+      docs: draft ? get(item, 'draft.request.docs', null) : get(item, 'request.docs', null),
+      responseStatus: get(item, 'response.status', null),
+      responseData: get(item, 'response.data', null)
     };
-  }, [activeItem]);
+  }, [aiContext]);
+
+  // Variables payload is collection-scoped — works for request, folder, and
+  // collection chats alike. Each entry is { name, value, scope, secret }; the
+  // model gets a name-only preview in the prompt and can call search_variables
+  // to fetch values (secrets come back redacted).
+  const aiVariables = useMemo(() => {
+    if (aiContext?.kind === 'request') return buildAiVariablesPayload(collection, aiContext.item);
+    if (aiContext?.kind === 'folder') return buildAiVariablesPayload(collection, aiContext.folder);
+    return buildAiVariablesPayload(collection, null);
+  }, [collection, aiContext]);
 
   const chatsWithMessages = useMemo(() => {
     if (!collection) return [];
     return Object.entries(allChats)
       .filter(([, chat]) => chat.messages?.length > 0)
       .map(([tabUid, chat]) => {
+        if (tabUid === collection.uid) {
+          return { id: tabUid, name: collection.name || 'Untitled Collection', method: 'ROOT', messageCount: chat.messages.length };
+        }
         const item = findItemInCollection(collection, tabUid);
         if (!item) return null;
+        if (isItemAFolder(item)) {
+          return { id: tabUid, name: item.name || 'Untitled', method: 'FOLDER', messageCount: chat.messages.length };
+        }
         const method = item.draft
           ? get(item, 'draft.request.method', 'GET')
           : get(item, 'request.method', 'GET');
@@ -353,7 +448,7 @@ const AiChatSidebar = ({ collection }) => {
     if (textareaRef.current) textareaRef.current.style.height = 'auto';
 
     try {
-      await dispatch(sendAiMessage(activeTabUid, text, allContent, requestContext, selectedModel, contentType));
+      await dispatch(sendAiMessage(activeTabUid, text, allContent, requestContext, selectedModel, contentType, aiVariables));
       setProcessingStage('applying');
       setTimeout(() => setProcessingStage(null), 500);
     } catch (err) {
@@ -375,7 +470,7 @@ const AiChatSidebar = ({ collection }) => {
   };
 
   const handleApplyCode = (code, originalCode, messageIndex, msgContentType, writeIndex) => {
-    if (!activeItem || code == null) return;
+    if (!aiContext || code == null) return;
     const targetType = msgContentType || contentType;
 
     // Bail if the live buffer has drifted from what the AI based the diff on.
@@ -386,24 +481,35 @@ const AiChatSidebar = ({ collection }) => {
       return;
     }
 
-    const payload = { itemUid: activeItem.uid, collectionUid: collection.uid };
-
-    switch (targetType) {
-      case 'tests':
-        dispatch(updateRequestTests({ ...payload, tests: code }));
-        break;
-      case 'pre-request':
-        dispatch(updateRequestScript({ ...payload, script: code }));
-        break;
-      case 'post-response':
-        dispatch(updateResponseScript({ ...payload, script: code }));
-        break;
-      case 'docs':
-        dispatch(updateRequestDocs({ ...payload, docs: code }));
-        break;
-      default:
-        dispatch(updateAppCode({ ...payload, code }));
-        break;
+    if (aiContext.kind === 'request') {
+      const payload = { itemUid: aiContext.item.uid, collectionUid: collection.uid };
+      switch (targetType) {
+        case 'tests': dispatch(updateRequestTests({ ...payload, tests: code })); break;
+        case 'pre-request': dispatch(updateRequestScript({ ...payload, script: code })); break;
+        case 'post-response': dispatch(updateResponseScript({ ...payload, script: code })); break;
+        case 'docs': dispatch(updateRequestDocs({ ...payload, docs: code })); break;
+        default: dispatch(updateAppCode({ ...payload, code })); break;
+      }
+    } else if (aiContext.kind === 'folder') {
+      const payload = { folderUid: aiContext.folder.uid, collectionUid: collection.uid };
+      switch (targetType) {
+        case 'tests': dispatch(updateFolderTests({ ...payload, tests: code })); break;
+        case 'pre-request': dispatch(updateFolderRequestScript({ ...payload, script: code })); break;
+        case 'post-response': dispatch(updateFolderResponseScript({ ...payload, script: code })); break;
+        case 'docs': dispatch(updateFolderDocs({ ...payload, docs: code })); break;
+        // Folders / collections have no 'app' equivalent. Bail rather than
+        // marking the diff accepted when nothing was dispatched.
+        default: return;
+      }
+    } else {
+      const payload = { collectionUid: collection.uid };
+      switch (targetType) {
+        case 'tests': dispatch(updateCollectionTests({ ...payload, tests: code })); break;
+        case 'pre-request': dispatch(updateCollectionRequestScript({ ...payload, script: code })); break;
+        case 'post-response': dispatch(updateCollectionResponseScript({ ...payload, script: code })); break;
+        case 'docs': dispatch(updateCollectionDocs({ ...payload, docs: code })); break;
+        default: return;
+      }
     }
 
     dispatch(setMessageCodeStatus({
@@ -630,7 +736,7 @@ const AiChatSidebar = ({ collection }) => {
   };
 
   if (!isOpen) return null;
-  if (!activeItem) return null;
+  if (!aiContext) return null;
 
   const placeholders = PLACEHOLDER_BY_TYPE[contentType] || PLACEHOLDER_BY_TYPE.app;
   const placeholder = currentContent ? placeholders.filled : placeholders.empty;

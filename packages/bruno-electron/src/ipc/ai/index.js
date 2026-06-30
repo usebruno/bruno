@@ -1,5 +1,6 @@
 const { ipcMain } = require('electron');
-const { generateText, streamText } = require('ai');
+const { generateText, streamText, stepCountIs } = require('ai');
+const { z } = require('zod');
 const { getPreferences } = require('../../store/preferences');
 const { aiKeyStore } = require('../../store/ai-keys');
 const {
@@ -13,7 +14,17 @@ const {
   validateApiKeyForProvider,
   providerLabel
 } = require('./providers');
-const { SCRIPT_PROMPTS, SCRIPT_TYPES, buildScriptUserPrompt, stripCodeFences } = require('./script-prompts');
+const {
+  SCRIPT_TYPES,
+  buildScriptSystemPrompt,
+  buildScriptUserPrompt,
+  stripCodeFences
+} = require('./script-prompts');
+const {
+  formatResponseShape,
+  searchVariables,
+  formatSearchVariablesResult
+} = require('./context');
 const registerChatIpc = require('./chat');
 
 const activeStreams = new Map();
@@ -150,7 +161,15 @@ const registerAiIpc = (mainWindow) => {
   });
 
   ipcMain.handle('renderer:ai-generate-script', async (_event, params) => {
-    const { scriptType, prompt, currentScript, requestContext, docsContext, model: requestedModel } = params || {};
+    const {
+      scriptType,
+      prompt,
+      currentScript,
+      requestContext,
+      docsContext,
+      variables,
+      model: requestedModel
+    } = params || {};
 
     if (!SCRIPT_TYPES.includes(scriptType)) {
       return { error: `Unknown scriptType: ${scriptType}` };
@@ -171,14 +190,74 @@ const registerAiIpc = (mainWindow) => {
       return { error: err.message };
     }
 
+    // Generation runs through streamText so the model can call tools
+    // (read_response, search_variables) when the inline context isn't enough.
+    // We don't stream tokens back to the renderer — the sparkle UI shows a
+    // spinner and applies the final code as a single blob — but the
+    // step-based loop gives the model a chance to gather context first.
+    const tools = {
+      read_response: {
+        description: 'Returns the redacted shape (keys + value types) of the last response for this request. Use it before writing tests/post-response code to learn property paths and types. Real values are stripped — reference fields at runtime, don\'t hard-code the placeholder strings.',
+        inputSchema: z.object({}),
+        execute: async () => {
+          const status = requestContext?.responseStatus;
+          const data = requestContext?.responseData;
+          if (!status && data == null) {
+            return '(No response available — the request has not been executed yet.)';
+          }
+          return formatResponseShape(status, data) || '(empty response)';
+        }
+      },
+      search_variables: {
+        description: 'Search environment / collection / global / runtime variables by name (case-insensitive substring). Pass a query to confirm a name before referencing it. Secret variables come back as `<redacted>`. Each result has a `scope` field — use it to pick the right runtime accessor: `bru.getEnvVar` for `env`, `bru.getGlobalEnvVar` for `global`, `bru.getCollectionVar` / `bru.getFolderVar` / `bru.getRequestVar` for `collection`, `bru.getVar` for `runtime`, and `bru.getSecretVar` for any value that came back redacted. Never hard-code a returned value.',
+        inputSchema: z.object({
+          query: z
+            .string()
+            .optional()
+            .describe('Substring to match against variable names. Omit to list the first 50.')
+        }),
+        execute: async ({ query }) => {
+          if (!Array.isArray(variables) || variables.length === 0) {
+            return '(No variables available — the collection has no environment, runtime, or collection variables defined.)';
+          }
+          const result = searchVariables(variables, query);
+          return formatSearchVariablesResult(result, query);
+        }
+      }
+    };
+
     try {
-      const { text } = await generateText({
+      const result = streamText({
         model,
-        system: SCRIPT_PROMPTS[scriptType],
-        prompt: buildScriptUserPrompt({ userPrompt: prompt, currentScript, requestContext, docsContext, scriptType }),
+        system: buildScriptSystemPrompt(scriptType),
+        prompt: buildScriptUserPrompt({
+          userPrompt: prompt,
+          currentScript,
+          requestContext,
+          docsContext,
+          variables,
+          scriptType
+        }),
+        tools,
+        // Cap tool-call iteration — the model gets a few chances to look
+        // things up before it MUST produce the final script.
+        stopWhen: stepCountIs(4),
+        toolChoice: 'auto',
         maxOutputTokens: 2048
       });
-      return { content: stripCodeFences(text), modelId };
+
+      let fullText = '';
+      for await (const part of result.fullStream) {
+        if (part.type === 'text-delta') {
+          fullText += part.text;
+        }
+      }
+
+      const content = stripCodeFences(fullText);
+      if (!content || !content.trim()) {
+        return { error: 'No content was generated. Try rephrasing your prompt.' };
+      }
+      return { content, modelId };
     } catch (err) {
       console.error('AI generate-script error:', err);
       return { error: err.message || 'Failed to generate script' };

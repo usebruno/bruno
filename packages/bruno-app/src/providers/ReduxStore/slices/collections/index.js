@@ -18,6 +18,7 @@ import {
   isItemARequest
 } from 'utils/collections';
 import { parsePathParams, splitOnFirst } from 'utils/url';
+import { applyScriptEnvVars, getScriptModifiedKeys } from 'utils/environments';
 import { getSubdirectoriesFromRoot } from 'utils/common/platform';
 import toast from 'react-hot-toast';
 import mime from 'mime-types';
@@ -217,6 +218,8 @@ const initiatedWsResponse = {
   trailers: []
 };
 
+// Properties prefixed with `_` (e.g. `_scriptEnvBaseline`) are transient runtime state —
+// never persisted to disk or included in exports.
 export const collectionsSlice = createSlice({
   name: 'collections',
   initialState,
@@ -452,84 +455,60 @@ export const collectionsSlice = createSlice({
       }
     },
     scriptEnvironmentUpdateEvent: (state, action) => {
-      const { collectionUid, envVariables, runtimeVariables, persistentEnvVariables } = action.payload;
+      const { collectionUid, envVariables, requestUid } = action.payload;
       const collection = findCollectionByUid(state.collections, collectionUid);
 
       if (collection) {
-        const activeEnvironmentUid = collection.activeEnvironmentUid;
-        const activeEnvironment = findEnvironmentInCollection(collection, activeEnvironmentUid);
-
-        if (activeEnvironment) {
-          const existingEnvVarNames = new Set(Object.keys(envVariables));
-
-          // Update or add variables that exist in envVariables
-          forOwn(envVariables, (value, key) => {
-            const variable = find(activeEnvironment.variables, (v) => v.name === key);
-            const isPersistent = persistentEnvVariables && persistentEnvVariables[key] !== undefined;
-
-            if (variable) {
-              // For updates coming from scripts, treat them as ephemeral overlays unless they are persistent.
-              if (variable.value !== value) {
-                /*
-                 Overlay (persist: false): keep new value in Redux for UI and mark ephemeral
-                 so it isn't written to disk. persistedValue stores the previous on-disk value;
-                 save/persist uses that base unless the key is explicitly persisted.
-                */
-                const previousValue = variable.value;
-                const wasEphemeral = !!variable.ephemeral;
-                variable.value = value;
-                variable.ephemeral = !isPersistent;
-                // Capture the on-disk base only when shadowing a real (non-ephemeral) var for
-                // the first time. A script-created ephemeral has no on-disk value to restore,
-                // so giving it a persistedValue would leak its overlay value into the file.
-                if (variable.persistedValue === undefined && !wasEphemeral) {
-                  variable.persistedValue = previousValue;
-                }
-
-                // Secrets carry a dataType too; infer it from the value like any other var.
-                const inferred = getDataTypeFromValue(value);
-                variable.dataType = inferred === 'string' ? undefined : inferred;
-              }
-            } else {
-              // __name__ is a private variable used to store the name of the environment
-              // this is not a user defined variable and hence should not be updated
-              if (key !== '__name__') {
-                const inferred = getDataTypeFromValue(value);
-                activeEnvironment.variables.push({
-                  name: key,
-                  value,
-                  secret: false,
-                  enabled: true,
-                  type: 'text',
-                  uid: uuid(),
-                  ephemeral: !isPersistent,
-                  ...(inferred !== 'string' ? { dataType: inferred } : {})
-                });
-              }
-            }
-          });
-
-          // Handle variables that were deleted via bru.deleteEnvVar()
-          activeEnvironment.variables = activeEnvironment.variables.filter((variable) => {
-            // Variable still exists in envVariables after script execution - keep it
-            if (existingEnvVarNames.has(variable.name)) {
-              return true;
-            }
-
-            // Variable was deleted via bru.deleteEnvVar() - handle based on its state
-            // If variable was modified by script (has persistedValue), restore original value
-            if (variable.persistedValue !== undefined) {
-              variable.value = variable.persistedValue;
-              variable.ephemeral = false;
-              delete variable.persistedValue;
-              return true;
-            }
-
-            // Remove variable: either ephemeral (created by scripts) or non-ephemeral deleted via API
-            return false;
-          });
+        // Ignore stale updates from superseded requests so an in-flight pre/post
+        // from request N-1 can't clobber state for request N.
+        if (requestUid && collection._scriptRequestUid && requestUid !== collection._scriptRequestUid) {
+          return;
         }
 
+        const activeEnvironment = findEnvironmentInCollection(collection, collection.activeEnvironmentUid);
+
+        if (activeEnvironment) {
+          const draft = collection.environmentsDraft;
+          if (draft && draft.environmentUid === activeEnvironment.uid && draft.variables) {
+            const baseline = {};
+            activeEnvironment.variables.forEach((v) => {
+              if (v.enabled) baseline[v.name] = v.value;
+            });
+            collection._scriptEnvBaseline = baseline;
+
+            activeEnvironment.variables = cloneDeep(draft.variables);
+            collection.environmentsDraft = null;
+          }
+
+          activeEnvironment.variables = applyScriptEnvVars(
+            activeEnvironment.variables,
+            envVariables,
+            collection._scriptEnvBaseline,
+            { skipKeys: ['__name__'] }
+          );
+
+          // Re-infer dataType only for vars the script actually modified — otherwise a no-op
+          // script re-write would clobber a user's in-progress draft type change.
+          const modifiedKeys = getScriptModifiedKeys(envVariables, collection._scriptEnvBaseline, { skipKeys: ['__name__'] });
+          activeEnvironment.variables.forEach((v) => {
+            if (!modifiedKeys.has(v.name)) return;
+            const inferred = getDataTypeFromValue(envVariables[v.name]);
+            if (inferred === 'string') {
+              delete v.dataType;
+            } else {
+              v.dataType = inferred;
+            }
+          });
+        }
+      }
+    },
+    runtimeVariablesUpdateEvent: (state, action) => {
+      const { collectionUid, runtimeVariables, requestUid } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+      if (collection) {
+        if (requestUid && collection._scriptRequestUid && requestUid !== collection._scriptRequestUid) {
+          return;
+        }
         collection.runtimeVariables = runtimeVariables;
       }
     },
@@ -904,7 +883,12 @@ export const collectionsSlice = createSlice({
       const { collectionUid, environmentUid, variables } = action.payload;
       const collection = findCollectionByUid(state.collections, collectionUid);
       if (collection) {
-        collection.environmentsDraft = { environmentUid, variables };
+        // Reset the draft when switching environments; otherwise update variables in place.
+        if (!collection.environmentsDraft || collection.environmentsDraft.environmentUid !== environmentUid) {
+          collection.environmentsDraft = { environmentUid, variables };
+        } else {
+          collection.environmentsDraft.variables = variables;
+        }
       }
     },
     clearEnvironmentsDraft: (state, action) => {
@@ -2756,6 +2740,42 @@ export const collectionsSlice = createSlice({
         set(collection, 'draft.root.request.vars.res', mappedVars);
       }
     },
+    scriptUpdateCollectionVars: (state, action) => {
+      const { collectionUid, vars } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+      if (!collection) return;
+
+      // Preserve description/annotations/secret/type and any other per-var metadata via `...rest`
+      // — earlier this reducer cherry-picked only {uid, name, value, enabled, dataType} which
+      // wiped those fields whenever a script touched any collection var.
+      const mappedVars = map(vars, ({ uid, name = '', value = '', enabled = true, dataType, ...rest }) => {
+        const out = { ...rest, uid: uid || uuid(), name, value, enabled };
+        if (dataType && dataType !== 'string') out.dataType = dataType;
+        return out;
+      });
+
+      set(collection, 'root.request.vars.req', mappedVars);
+
+      if (collection.draft?.root) {
+        set(collection, 'draft.root.request.vars.req', mappedVars);
+      }
+    },
+    setScriptCollVarBaseline: (state, action) => {
+      const { collectionUid, baseline } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+      if (!collection) return;
+      collection._scriptCollVarBaseline = baseline;
+    },
+    _clearScriptCollectionBaselines: (state, action) => {
+      const { collectionUid } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+      if (!collection) return;
+      delete collection._scriptEnvBaseline;
+      delete collection._scriptCollVarBaseline;
+      // Also drop the inflight request UID so updates from WS/OAuth2 paths (which
+      // don't dispatch initRunRequestEvent) aren't gated out by a stale HTTP UID.
+      delete collection._scriptRequestUid;
+    },
     collectionAddFileEvent: (state, action) => {
       const file = action.payload.file;
       const isCollectionRoot = file.meta.collectionRoot ? true : false;
@@ -3009,32 +3029,11 @@ export const collectionsSlice = createSlice({
         const existingEnv = collection.environments.find((e) => e.uid === environment.uid);
 
         if (existingEnv) {
-          const prevEphemerals = (existingEnv.variables || []).filter((v) => v.ephemeral);
           existingEnv.name = environment.name;
           existingEnv.pathname = environment.pathname;
           existingEnv.variables = environment.variables;
           existingEnv.color = environment.color;
           existingEnv.externalSecrets = environment.externalSecrets;
-          /*
-           Apply temporary (ephemeral) values only to variables that actually exist in the file. This prevents deleted temporaries from “popping back” after a save. If a variable is present in the file, we temporarily override the UI value while also remembering the on-disk value in persistedValue for future saves.
-          */
-          prevEphemerals.forEach((ev) => {
-            const target = existingEnv.variables?.find((v) => v.name === ev.name);
-            if (target) {
-              if (target.value !== ev.value) {
-                if (target.persistedValue === undefined) target.persistedValue = target.value;
-                target.value = ev.value;
-              }
-              target.ephemeral = true;
-            } else if (ev.persistedValue === undefined) {
-              /*
-               No counterpart in the file. A script-created overlay (persistedValue undefined) never
-               existed on disk, so a sibling persist:true save must not erase it — keep it visible.
-               An ephemeral with persistedValue shadowed a now-absent disk var (deleted), so it drops.
-              */
-              existingEnv.variables.push(ev);
-            }
-          });
         } else {
           collection.environments.push(environment);
           collection.environments.sort((a, b) => a.name.localeCompare(b.name));
@@ -3087,6 +3086,10 @@ export const collectionsSlice = createSlice({
       const { requestUid, itemUid, collectionUid } = action.payload;
       const collection = findCollectionByUid(state.collections, collectionUid);
       if (!collection) return;
+
+      delete collection._scriptEnvBaseline;
+      delete collection._scriptCollVarBaseline;
+      collection._scriptRequestUid = requestUid;
 
       const item = findItemInCollection(collection, itemUid);
       if (!item) return;
@@ -3217,6 +3220,9 @@ export const collectionsSlice = createSlice({
         // todo
         // get startedAt and endedAt from the runner and display it in the UI
         if (type === 'testrun-started') {
+          delete collection._scriptEnvBaseline;
+          delete collection._scriptCollVarBaseline;
+
           const info = collection.runnerResult.info;
           info.collectionUid = collectionUid;
           info.folderUid = folderUid;
@@ -3237,6 +3243,13 @@ export const collectionsSlice = createSlice({
         }
 
         if (type === 'request-queued') {
+          // Folder runs reuse the same collection across N requests; clear baselines
+          // per request so request N's script-update doesn't diff against request N-1's
+          // pre-flush snapshot.
+          delete collection._scriptEnvBaseline;
+          delete collection._scriptCollVarBaseline;
+          collection._scriptRequestUid = action.payload.requestUid || null;
+
           collection.runnerResult.items.push({
             uid: request.uid,
             status: 'queued'
@@ -3892,6 +3905,7 @@ export const {
   renameItem,
   cloneItem,
   scriptEnvironmentUpdateEvent,
+  runtimeVariablesUpdateEvent,
   processEnvUpdateEvent,
   workspaceEnvUpdateEvent,
   setDotEnvVariables,
@@ -3981,6 +3995,9 @@ export const {
   updateCollectionVar,
   deleteCollectionVar,
   setCollectionVars,
+  scriptUpdateCollectionVars,
+  setScriptCollVarBaseline,
+  _clearScriptCollectionBaselines,
   updateCollectionAuthMode,
   updateCollectionAuth,
   updateCollectionRequestScript,

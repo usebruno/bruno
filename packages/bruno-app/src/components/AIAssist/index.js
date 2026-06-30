@@ -59,7 +59,7 @@ const PREVIEW_LABELS = {
 
 const isValidType = (t) => SUGGESTIONS[t] !== undefined;
 
-const AIAssist = ({ scriptType, currentScript, requestContext, docsContext, onApply }) => {
+const AIAssist = ({ scriptType, currentScript, requestContext, docsContext, variables, onApply }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [prompt, setPrompt] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -114,7 +114,8 @@ const AIAssist = ({ scriptType, currentScript, requestContext, docsContext, onAp
           prompt: text,
           currentScript: currentScript || '',
           requestContext,
-          docsContext
+          docsContext,
+          variables
         });
         if (result?.error) {
           setError(result.error);
@@ -131,7 +132,7 @@ const AIAssist = ({ scriptType, currentScript, requestContext, docsContext, onAp
         setIsLoading(false);
       }
     },
-    [prompt, isLoading, scriptType, currentScript, requestContext, docsContext]
+    [prompt, isLoading, scriptType, currentScript, requestContext, docsContext, variables]
   );
 
   const handleApply = useCallback(() => {

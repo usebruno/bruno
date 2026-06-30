@@ -7,7 +7,7 @@ const GradientCloseButton = ({ onClick, hasChanges = false }) => {
   return (
     <StyledWrapper className={`close-gradient ${hasChanges ? 'has-changes' : ''}`}>
       <div className="close-icon-container" onClick={onClick} data-testid="request-tab-close-icon">
-        <span className="draft-icon-wrapper">
+        <span className="draft-icon-wrapper" data-testid="tab-draft-icon">
           <DraftTabIcon />
         </span>
         <span className="close-icon-wrapper">

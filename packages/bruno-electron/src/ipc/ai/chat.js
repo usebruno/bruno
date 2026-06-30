@@ -2,6 +2,13 @@ const { ipcMain } = require('electron');
 const { streamText, stepCountIs } = require('ai');
 const { z } = require('zod');
 const { CONTENT_TYPES, TOOL_LABELS, buildSystemPrompt, resolveContentType } = require('./chat-prompts');
+const {
+  formatRequestContext,
+  formatResponseShape,
+  formatVariablesList,
+  searchVariables,
+  formatSearchVariablesResult
+} = require('./context');
 
 const activeStreams = new Map();
 
@@ -13,157 +20,16 @@ const CONTENT_LABELS = {
   'docs': 'Documentation'
 };
 
-// Replace every primitive value with a type-name placeholder so the model
-// sees the response *shape* without any real data. Customer responses can
-// contain PII / secrets / tokens — we keep keys, types, and array structure
-// intact so the AI can write correct property paths and assertions, but
-// strip the values themselves. The AI is told these are placeholders so it
-// doesn't hard-code them into generated code.
-const REDACTED_TRUNCATED = '<truncated>';
-const REDACTED_NULL = '<null>';
-const REDACTED_BY_TYPE = {
-  string: '<string>',
-  number: '<number>',
-  boolean: '<boolean>',
-  bigint: '<bigint>'
-};
-
-const redactResponseValues = (data, depth = 0, maxDepth = 6) => {
-  if (data === null) return REDACTED_NULL;
-  if (data === undefined) return REDACTED_NULL;
-  if (depth >= maxDepth) return REDACTED_TRUNCATED;
-
-  if (Array.isArray(data)) {
-    if (data.length === 0) return [];
-    // Cap sample size — long arrays only need a few items to convey shape.
-    const sampleSize = Math.min(data.length, 3);
-    const out = data.slice(0, sampleSize).map((item) => redactResponseValues(item, depth + 1, maxDepth));
-    if (data.length > sampleSize) out.push(`<${data.length - sampleSize} more items>`);
-    return out;
-  }
-
-  if (typeof data === 'object') {
-    const keys = Object.keys(data);
-    const out = {};
-    for (const key of keys.slice(0, 30)) {
-      out[key] = redactResponseValues(data[key], depth + 1, maxDepth);
-    }
-    if (keys.length > 30) out['...'] = `<${keys.length - 30} more keys>`;
-    return out;
-  }
-
-  return REDACTED_BY_TYPE[typeof data] || '<unknown>';
-};
-
-const REDACTION_NOTICE
-  = 'Values are placeholders (`<string>`, `<number>`, …). The shape, keys, and types are accurate but no real data is shown. Reference fields by path in generated code — do not hard-code these placeholders as literal values.';
-
-const SENSITIVE_HEADER_PATTERNS = [
-  /^authorization$/i,
-  /^proxy-authorization$/i,
-  /^cookie$/i,
-  /^set-cookie$/i,
-  /^x-api-key$/i,
-  /^x-auth-token$/i,
-  /^x-access-token$/i,
-  /^x-csrf-token$/i,
-  /api[_-]?key/i,
-  /access[_-]?token/i,
-  /auth[_-]?token/i,
-  /secret/i,
-  /password/i
-];
-
-const isSensitiveName = (name) => {
-  if (!name) return false;
-  return SENSITIVE_HEADER_PATTERNS.some((re) => re.test(name));
-};
-
-const maskValue = (name, value) => (isSensitiveName(name) ? '<redacted>' : value);
-
-const formatRequestContext = (ctx) => {
-  if (!ctx) return '';
+const buildContextMessage = (contentType, allContent, requestContext, variables) => {
   const parts = [];
-
-  if (ctx.url || ctx.method) {
-    parts.push(`**Request:** ${ctx.method || 'GET'} ${ctx.url || ''}`);
-  }
-
-  const headers = (ctx.headers || []).filter((h) => h.enabled);
-  if (headers.length > 0) {
-    parts.push(`**Headers:**\n${headers.map((h) => `  ${h.name}: ${maskValue(h.name, h.value)}`).join('\n')}`);
-  }
-
-  const params = (ctx.params || []).filter((p) => p.enabled);
-  const query = params.filter((p) => p.type === 'query');
-  const pathParams = params.filter((p) => p.type === 'path');
-  if (query.length > 0) {
-    parts.push(`**Query Parameters:**\n${query.map((p) => `  ${p.name}: ${maskValue(p.name, p.value)}`).join('\n')}`);
-  }
-  if (pathParams.length > 0) {
-    parts.push(`**Path Parameters:**\n${pathParams.map((p) => `  ${p.name}: ${maskValue(p.name, p.value)}`).join('\n')}`);
-  }
-
-  if (ctx.body && ctx.body.mode && ctx.body.mode !== 'none') {
-    let content = '';
-    switch (ctx.body.mode) {
-      case 'json': content = ctx.body.json || ''; break;
-      case 'text': content = ctx.body.text || ''; break;
-      case 'xml': content = ctx.body.xml || ''; break;
-      case 'sparql': content = ctx.body.sparql || ''; break;
-      case 'formUrlEncoded': {
-        const items = (ctx.body.formUrlEncoded || []).filter((p) => p.enabled);
-        content = items.map((p) => `  ${p.name}: ${maskValue(p.name, p.value)}`).join('\n');
-        break;
-      }
-      case 'multipartForm': {
-        const items = (ctx.body.multipartForm || []).filter((p) => p.enabled);
-        content = items.map((p) => `  ${p.name}: ${p.type === 'file' ? '[file]' : maskValue(p.name, p.value)}`).join('\n');
-        break;
-      }
-      case 'graphql':
-        content = ctx.body.graphql?.query || '';
-        if (ctx.body.graphql?.variables) {
-          content += `\n\nVariables:\n${ctx.body.graphql.variables}`;
-        }
-        break;
-      default:
-        content = '';
-    }
-    if (content) {
-      parts.push(`**Body (${ctx.body.mode}):**\n\`\`\`\n${content}\n\`\`\``);
-    }
-  }
-
-  if (ctx.responseStatus) {
-    parts.push(`**Last Response Status:** ${ctx.responseStatus}`);
-  }
-  if (ctx.responseData) {
-    try {
-      const parsed = typeof ctx.responseData === 'string' ? JSON.parse(ctx.responseData) : ctx.responseData;
-      const redacted = redactResponseValues(parsed);
-      if (redacted != null) {
-        parts.push(`**Response Shape (values redacted — ${REDACTION_NOTICE}):**\n\`\`\`json\n${JSON.stringify(redacted, null, 2)}\n\`\`\``);
-      }
-    } catch {
-      if (typeof ctx.responseData === 'string' && ctx.responseData.trim()) {
-        parts.push(`**Response:** non-JSON, ${ctx.responseData.length} chars (call read_response() for a redacted view)`);
-      }
-    }
-  }
-
-  if (ctx.docs && ctx.docs.trim()) {
-    parts.push(`**Documentation:**\n${ctx.docs.trim()}`);
-  }
-
-  return parts.join('\n\n');
-};
-
-const buildContextMessage = (contentType, allContent, requestContext) => {
-  const parts = [];
-  const ctx = formatRequestContext(requestContext);
+  const ctx = formatRequestContext(requestContext, { includeResponse: true });
   if (ctx) {
     parts.push(`HTTP Request Context:\n${ctx}`);
+  }
+
+  const varsStr = formatVariablesList(variables);
+  if (varsStr) {
+    parts.push(`Available Variables (names only — call search_variables(query) for a value):\n${varsStr}`);
   }
 
   const activeLabel = CONTENT_LABELS[contentType] || 'Code';
@@ -203,6 +69,12 @@ const WRITE_PARAMS = z.object({
   content: z.string().describe('The complete new content for the section.')
 });
 const READ_RESPONSE_PARAMS = z.object({});
+const SEARCH_VARS_PARAMS = z.object({
+  query: z
+    .string()
+    .optional()
+    .describe('Substring to match against variable names (case-insensitive). Omit to list the first 50 variables.')
+});
 
 const registerChatIpc = ({ mainWindow, resolveModel, pickDefaultModelId, isAiEnabled }) => {
   ipcMain.on('renderer:ai-chat-stop', (_event, { requestId } = {}) => {
@@ -214,7 +86,7 @@ const registerChatIpc = ({ mainWindow, resolveModel, pickDefaultModelId, isAiEna
   });
 
   ipcMain.on('renderer:ai-chat-stream', async (_event, payload) => {
-    const { messages, allContent, contentType, requestContext, requestId, model: modelId } = payload || {};
+    const { messages, allContent, contentType, requestContext, variables, requestId, model: modelId } = payload || {};
 
     const send = (channel, data) => {
       if (mainWindow?.webContents && !mainWindow.webContents.isDestroyed()) {
@@ -310,45 +182,28 @@ const registerChatIpc = ({ mainWindow, resolveModel, pickDefaultModelId, isAiEna
         execute: async () => {
           const status = requestContext?.responseStatus;
           const data = requestContext?.responseData;
-          if (!status && !data) {
+          if (!status && data == null) {
             return '(No response available — the request has not been executed yet. The user needs to run the request first.)';
           }
-
-          const parts = [];
-          if (status) parts.push(`Status: ${status}`);
-
-          if (data !== undefined && data !== null) {
-            // Try to parse JSON so we can redact structurally. Non-JSON
-            // payloads only get a type/length summary, we won't echo their
-            // contents either, since they may contain sensitive text.
-            let parsed = data;
-            let parsedOk = false;
-            if (typeof data === 'string') {
-              try {
-                parsed = JSON.parse(data); parsedOk = true;
-              } catch { parsedOk = false; }
-            } else if (typeof data === 'object') {
-              parsedOk = true;
-            }
-
-            if (parsedOk) {
-              const redacted = redactResponseValues(parsed);
-              parts.push(`Response Body (redacted shape):\n\`\`\`json\n${JSON.stringify(redacted, null, 2)}\n\`\`\``);
-              parts.push(`Note: ${REDACTION_NOTICE}`);
-            } else if (typeof data === 'string') {
-              parts.push(`Response Body: non-JSON text payload, ${data.length} chars (contents withheld for user privacy)`);
-            } else {
-              parts.push('Response Body: opaque value (contents withheld for user privacy)');
-            }
+          const formatted = formatResponseShape(status, data);
+          return formatted || '(empty response)';
+        }
+      },
+      search_variables: {
+        description: 'Search environment / collection / global / runtime variables by name (case-insensitive substring match). Use this when the user has many variables or you need to confirm a name before referencing it in code. Values are returned, but variables marked `secret` (or whose names match patterns like `*_token`, `*_secret`, `password`, etc.) come back as `<redacted>`. Each result has a `scope` field — use it to pick the right runtime accessor: `bru.getEnvVar` for `env`, `bru.getGlobalEnvVar` for `global`, `bru.getCollectionVar` / `bru.getFolderVar` / `bru.getRequestVar` for `collection`, `bru.getVar` for `runtime`, and `bru.getSecretVar` for any value that came back redacted. Never hard-code a returned value.',
+        inputSchema: SEARCH_VARS_PARAMS,
+        execute: async ({ query }) => {
+          if (!Array.isArray(variables) || variables.length === 0) {
+            return '(No variables available — the collection has no environment, runtime, or collection variables defined.)';
           }
-
-          return parts.join('\n') || '(empty response)';
+          const result = searchVariables(variables, query);
+          return formatSearchVariablesResult(result, query);
         }
       }
     };
 
     const allMessages = [
-      { role: 'user', content: buildContextMessage(effectiveType, normalizedContent, requestContext) },
+      { role: 'user', content: buildContextMessage(effectiveType, normalizedContent, requestContext, variables) },
       ...messages.map((m) => ({ role: m.role, content: m.content }))
     ];
 
