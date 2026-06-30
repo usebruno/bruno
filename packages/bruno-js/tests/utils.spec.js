@@ -226,6 +226,19 @@ describe('utils', () => {
       expect(cleanJson(obj)).toEqual({ a: 1, self: '[Circular Reference]' });
     });
 
+    it('duplicates shared object references instead of treating them as circular', () => {
+      const shared = { id: 'abc' };
+      const input = {
+        objectArray: [shared, { id: 'def' }],
+        filteredArray: [shared]
+      };
+
+      expect(cleanJson(input)).toEqual({
+        objectArray: [{ id: 'abc' }, { id: 'def' }],
+        filteredArray: [{ id: 'abc' }]
+      });
+    });
+
     it('serializes Error instances with all own properties', () => {
       const err = new Error('oops');
       const out = cleanJson(err);
@@ -295,6 +308,19 @@ describe('utils', () => {
       const obj = { a: 1 };
       obj.self = obj;
       expect(cleanCircularJson(obj)).toEqual({ a: 1, self: '[Circular Reference]' });
+    });
+
+    it('duplicates shared object references instead of treating them as circular', () => {
+      const shared = { id: 'abc' };
+      const input = {
+        objectArray: [shared, { id: 'def' }],
+        filteredArray: [shared]
+      };
+
+      expect(cleanCircularJson(input)).toEqual({
+        objectArray: [{ id: 'abc' }, { id: 'def' }],
+        filteredArray: [{ id: 'abc' }]
+      });
     });
 
     it('handles deeply nested circular ref', () => {
