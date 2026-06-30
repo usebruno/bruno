@@ -25,15 +25,13 @@ test.describe.serial('Import Bruno Collection - request with missing URL', () =>
 
     test(`${type} collection, request${exampleName ? ' and example' : ''} appear in the sidebar after import`, async ({ page }) => {
       const locators = buildCommonLocators(page);
-      const scope = locators.sidebar.collectionScope(collectionName);
 
       await expect(locators.sidebar.collection(collectionName)).toBeVisible();
-      await expect(scope.locator('.collection-item-name').filter({ hasText: requestName })).toBeVisible();
+      await expect(locators.sidebar.itemRow(requestName)).toBeVisible();
 
       if (exampleName) {
-        const requestRow = scope.getByTestId('sidebar-collection-item-row').filter({ hasText: requestName });
-        await requestRow.getByTestId('request-item-chevron').click();
-        await expect(scope.locator('.collection-item-name').filter({ hasText: exampleName })).toBeVisible();
+        await locators.sidebar.requestExamplesToggle(requestName).click();
+        await expect(locators.sidebar.example(exampleName)).toBeVisible();
       }
     });
   }
