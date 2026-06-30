@@ -851,6 +851,66 @@ describe('generateSnippet – digest and NTLM auth curl export', () => {
   });
 });
 
+describe('generateSnippet – line continuation character', () => {
+  const baseCollection = { root: { request: { auth: { mode: 'none' }, headers: [] } } };
+  const item = {
+    uid: 'continuation-req',
+    request: {
+      method: 'GET',
+      url: 'https://example.com/api',
+      headers: [],
+      body: { mode: 'none' },
+      auth: { mode: 'none' }
+    }
+  };
+
+  const multilineSnippet = 'curl --request GET \\\n  --url https://example.com/api \\\n  --header \'Accept: application/json\'';
+
+  let savedHTTPSnippet;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    savedHTTPSnippet = require('httpsnippet').HTTPSnippet;
+    require('httpsnippet').HTTPSnippet = jest.fn().mockImplementation(() => ({
+      convert: jest.fn(() => multilineSnippet)
+    }));
+  });
+
+  afterEach(() => {
+    require('httpsnippet').HTTPSnippet = savedHTTPSnippet;
+  });
+
+  it('leaves the backslash continuation untouched by default', () => {
+    const language = { target: 'shell', client: 'curl' };
+    const result = generateSnippet({ language, item, collection: baseCollection, shouldInterpolate: false });
+    expect(result).toBe(multilineSnippet);
+  });
+
+  it('swaps to the caret continuation for Windows cmd', () => {
+    const language = { target: 'shell', client: 'curl' };
+    const result = generateSnippet({ language, item, collection: baseCollection, shouldInterpolate: false, lineContinuationChar: '^' });
+    expect(result).toBe('curl --request GET ^\n  --url https://example.com/api ^\n  --header \'Accept: application/json\'');
+  });
+
+  it('swaps to the backtick continuation for PowerShell', () => {
+    const language = { target: 'shell', client: 'curl' };
+    const result = generateSnippet({ language, item, collection: baseCollection, shouldInterpolate: false, lineContinuationChar: '`' });
+    expect(result).toBe('curl --request GET `\n  --url https://example.com/api `\n  --header \'Accept: application/json\'');
+  });
+
+  it('applies to other shell clients (wget/httpie), not just curl', () => {
+    const language = { target: 'shell', client: 'httpie' };
+    const result = generateSnippet({ language, item, collection: baseCollection, shouldInterpolate: false, lineContinuationChar: '^' });
+    expect(result).toBe('curl --request GET ^\n  --url https://example.com/api ^\n  --header \'Accept: application/json\'');
+  });
+
+  it('does not affect non-shell targets', () => {
+    const language = { target: 'javascript', client: 'fetch' };
+    const result = generateSnippet({ language, item, collection: baseCollection, shouldInterpolate: false, lineContinuationChar: '^' });
+    expect(result).toBe(multilineSnippet);
+  });
+});
+
 describe('generateSnippet – encodeUrl setting', () => {
   const language = { target: 'shell', client: 'curl' };
   const baseCollection = { root: { request: { auth: { mode: 'none' }, headers: [] } } };
@@ -1256,5 +1316,49 @@ describe('generateSnippet – pre-encode URL before HAR (HTTPSnippet validator r
     const item = makeItem('https://example.com/users/José', { encodeUrl: false });
     const result = generateSnippet({ language, item, collection: baseCollection, shouldInterpolate: false });
     expect(result).not.toBe('Error generating code snippet');
+  });
+});
+
+describe('generateSnippet – line continuation char against real httpsnippet output', () => {
+  const baseCollection = { root: { request: { auth: { mode: 'none' }, headers: [] } } };
+
+  const item = {
+    uid: 'real-shell-req',
+    request: {
+      method: 'GET',
+      url: 'https://example.com/api',
+      headers: [{ name: 'X-Api-Key', value: 'abc123', enabled: true }],
+      body: { mode: 'none' },
+      auth: { mode: 'none' }
+    }
+  };
+
+  let savedHTTPSnippet;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    const utilsCollections = require('utils/collections/index');
+    utilsCollections.getTreePathFromCollectionToItem.mockImplementation(() => []);
+    utilsCollections.getAllVariables.mockReturnValue({});
+
+    savedHTTPSnippet = require('httpsnippet').HTTPSnippet;
+    require('httpsnippet').HTTPSnippet = jest.requireActual('httpsnippet').HTTPSnippet;
+  });
+
+  afterEach(() => {
+    require('httpsnippet').HTTPSnippet = savedHTTPSnippet;
+  });
+
+  it.each([
+    ['curl', { target: 'shell', client: 'curl' }],
+    ['wget', { target: 'shell', client: 'wget' }],
+    ['httpie', { target: 'shell', client: 'httpie' }]
+  ])('%s: real output contains \\ continuation and caret swap applies', (_client, language) => {
+    const defaultResult = generateSnippet({ language, item, collection: baseCollection, shouldInterpolate: false });
+    const cmdResult = generateSnippet({ language, item, collection: baseCollection, shouldInterpolate: false, lineContinuationChar: '^' });
+
+    expect(defaultResult).toContain(' \\\n');
+    expect(cmdResult).not.toContain(' \\\n');
+    expect(cmdResult).toContain(' ^\n');
   });
 });

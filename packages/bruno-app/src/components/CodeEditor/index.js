@@ -386,7 +386,7 @@ class CodeEditor extends React.Component {
     }
 
     if (this.props.mode !== prevProps.mode) {
-      this.editor.setOption('mode', this.props.mode);
+      this.addOverlay();
     }
 
     if (this.props.readOnly !== prevProps.readOnly && this.editor) {
