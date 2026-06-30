@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const { addJsonOptions, buildWriterFromArgv, emitResult } = require('../json/argv');
+const { CliError } = require('../json/cli-error');
 const { EXIT_STATUS } = require('../constants');
 const { JSON_CONTRACT_VERSION } = require('../json/version');
 
@@ -41,33 +42,39 @@ const readSchema = (kind) => {
   return JSON.parse(fs.readFileSync(target, 'utf8'));
 };
 
-const handler = async (argv) => {
-  const writer = buildWriterFromArgv(argv);
-  const kind = argv.kind;
-
+const runCore = ({ kind } = {}) => {
   if (!KINDS.includes(kind)) {
-    writer.exitWithError({
+    throw new CliError({
       code: EXIT_STATUS.ERROR_INCORRECT_OUTPUT_FORMAT,
       message: `Unknown schema kind "${kind}". Expected one of: ${KINDS.join(', ')}`
     });
   }
-
   const schema = readSchema(kind);
   if (!schema) {
-    writer.exitWithError({
+    throw new CliError({
       code: EXIT_STATUS.ERROR_FILE_NOT_FOUND,
       message: `Schema file missing for kind "${kind}". Run: node scripts/generate-schemas.js`
     });
   }
-
-  emitResult(writer, {
+  return {
     kind: 'schema',
     data: {
       resource: kind,
       source: schema['x-source'] || 'unknown',
       schema
     }
-  });
+  };
+};
+
+const handler = async (argv) => {
+  const writer = buildWriterFromArgv(argv);
+  try {
+    emitResult(writer, runCore({ kind: argv.kind }));
+  } catch (err) {
+    if (err instanceof CliError) {
+      writer.exitWithError({ code: err.code, name: err.name, message: err.message });
+    } else { throw err; }
+  }
 };
 
 module.exports = {
@@ -75,5 +82,6 @@ module.exports = {
   desc,
   builder,
   handler,
+  runCore,
   KINDS
 };

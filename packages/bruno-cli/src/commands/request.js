@@ -4,6 +4,7 @@ const { parseRequest, stringifyRequest } = require('@usebruno/filestore');
 const { FORMAT_CONFIG } = require('../utils/collection');
 const { writeFileAtomicSync } = require('../utils/filesystem');
 const { addJsonOptions, buildWriterFromArgv, emitResult } = require('../json/argv');
+const { CliError } = require('../json/cli-error');
 const { mergePatch } = require('../json/merge-patch');
 const { EXIT_STATUS } = require('../constants');
 
@@ -21,20 +22,25 @@ const ensureBruExt = (p, format) => {
 const resolvePath = (collectionPath, relPath, format) =>
   ensureBruExt(path.resolve(collectionPath, relPath), format);
 
-// Read a --json/--patch payload either inline (the arg value) or from stdin when
-// the arg is "-". Synchronous on purpose: agents pipe and wait.
-const readPayload = (writer, arg, flagName) => {
+// Coerce a payload argument into a parsed JS value.
+//   - undefined/null → CliError
+//   - "-"            → read all of stdin (synchronously; agents pipe and wait)
+//   - any other      → parse the value as JSON inline
+// In serve mode the dispatcher pre-parses payloads from the command envelope, so
+// the typeof check lets it pass plain objects/arrays straight through.
+const coercePayload = (arg, flagName) => {
   if (arg === undefined || arg === null) {
-    writer.exitWithError({
+    throw new CliError({
       code: EXIT_STATUS.ERROR_INCORRECT_ENV_OVERRIDE,
-      message: `Missing required ${flagName} payload (use ${flagName} '<json>' or ${flagName} - to read stdin).`
+      message: `Missing required ${flagName} payload (use ${flagName} '<json>' or ${flagName}=- to read stdin).`
     });
   }
+  if (typeof arg === 'object') return arg;
   const raw = arg === '-' ? fs.readFileSync(0, 'utf8') : arg;
   try {
     return JSON.parse(raw);
   } catch (err) {
-    writer.exitWithError({
+    throw new CliError({
       code: EXIT_STATUS.ERROR_INCORRECT_ENV_OVERRIDE,
       message: `Could not parse ${flagName} payload as JSON: ${err.message}`
     });
@@ -50,37 +56,34 @@ const addBuilder = (yargs) => {
     .example('cat req.json | $0 request add auth/login.bru --data=-', 'Use --data=- (not --data -) so yargs treats the dash as the flag value.');
 };
 
-const addHandler = async (argv) => {
-  const writer = buildWriterFromArgv(argv);
-  const collectionPath = process.cwd();
+const addCore = ({ collectionPath: cp, path: relPath, data, ifNotExists } = {}) => {
+  const collectionPath = cp || process.cwd();
   const format = detectCollectionFormat(collectionPath);
-  const target = resolvePath(collectionPath, argv.path, format);
+  const target = resolvePath(collectionPath, relPath, format);
 
   if (fs.existsSync(target)) {
-    if (argv['if-not-exists']) {
-      emitResult(writer, {
+    if (ifNotExists) {
+      return {
         kind: 'request.add',
         data: {
           path: path.relative(collectionPath, target),
           status: 'unchanged',
           reason: 'already_exists'
         }
-      });
-      return;
+      };
     }
-    writer.exitWithError({
+    throw new CliError({
       code: EXIT_STATUS.ERROR_GENERIC,
       message: `Request already exists: ${path.relative(collectionPath, target)}. Pass --if-not-exists to make this a no-op.`
     });
   }
 
-  const payload = readPayload(writer, argv.data, '--data');
-
+  const payload = coercePayload(data, '--data');
   let serialised;
   try {
     serialised = stringifyRequest(payload, { format });
   } catch (err) {
-    writer.exitWithError({
+    throw new CliError({
       code: EXIT_STATUS.ERROR_INVALID_FILE,
       message: `Could not serialise request payload: ${err.message}`
     });
@@ -89,14 +92,30 @@ const addHandler = async (argv) => {
   fs.mkdirSync(path.dirname(target), { recursive: true });
   writeFileAtomicSync(target, serialised);
 
-  emitResult(writer, {
+  return {
     kind: 'request.add',
     data: {
       path: path.relative(collectionPath, target),
       status: 'created',
       request: parseRequest(serialised, { format })
     }
-  });
+  };
+};
+
+const addHandler = async (argv) => {
+  const writer = buildWriterFromArgv(argv);
+  try {
+    emitResult(writer, addCore({
+      collectionPath: process.cwd(),
+      path: argv.path,
+      data: argv.data,
+      ifNotExists: argv['if-not-exists']
+    }));
+  } catch (err) {
+    if (err instanceof CliError) {
+      writer.exitWithError({ code: err.code, name: err.name, message: err.message });
+    } else { throw err; }
+  }
 };
 
 const editBuilder = (yargs) => {
@@ -106,29 +125,27 @@ const editBuilder = (yargs) => {
     .example('$0 request edit auth/login.bru --patch \'{"request":{"url":"{{host}}/v2/login"}}\'');
 };
 
-const editHandler = async (argv) => {
-  const writer = buildWriterFromArgv(argv);
-  const collectionPath = process.cwd();
+const editCore = ({ collectionPath: cp, path: relPath, patch } = {}) => {
+  const collectionPath = cp || process.cwd();
   const format = detectCollectionFormat(collectionPath);
-  const target = resolvePath(collectionPath, argv.path, format);
+  const target = resolvePath(collectionPath, relPath, format);
 
   if (!fs.existsSync(target)) {
-    writer.exitWithError({
+    throw new CliError({
       code: EXIT_STATUS.ERROR_FILE_NOT_FOUND,
       message: `Request file not found: ${path.relative(collectionPath, target)}`
     });
   }
 
-  const patch = readPayload(writer, argv.patch, '--patch');
-
+  const patchObj = coercePayload(patch, '--patch');
   const current = parseRequest(fs.readFileSync(target, 'utf8'), { format });
-  const next = mergePatch(current, patch);
+  const next = mergePatch(current, patchObj);
 
   let serialised;
   try {
     serialised = stringifyRequest(next, { format });
   } catch (err) {
-    writer.exitWithError({
+    throw new CliError({
       code: EXIT_STATUS.ERROR_INVALID_FILE,
       message: `Patched payload could not be serialised: ${err.message}`
     });
@@ -136,14 +153,29 @@ const editHandler = async (argv) => {
 
   writeFileAtomicSync(target, serialised);
 
-  emitResult(writer, {
+  return {
     kind: 'request.edit',
     data: {
       path: path.relative(collectionPath, target),
       status: 'updated',
       request: parseRequest(serialised, { format })
     }
-  });
+  };
+};
+
+const editHandler = async (argv) => {
+  const writer = buildWriterFromArgv(argv);
+  try {
+    emitResult(writer, editCore({
+      collectionPath: process.cwd(),
+      path: argv.path,
+      patch: argv.patch
+    }));
+  } catch (err) {
+    if (err instanceof CliError) {
+      writer.exitWithError({ code: err.code, name: err.name, message: err.message });
+    } else { throw err; }
+  }
 };
 
 const deleteBuilder = (yargs) => {
@@ -152,14 +184,13 @@ const deleteBuilder = (yargs) => {
     .example('$0 request delete auth/login.bru');
 };
 
-const deleteHandler = async (argv) => {
-  const writer = buildWriterFromArgv(argv);
-  const collectionPath = process.cwd();
+const deleteCore = ({ collectionPath: cp, path: relPath } = {}) => {
+  const collectionPath = cp || process.cwd();
   const format = detectCollectionFormat(collectionPath);
-  const target = resolvePath(collectionPath, argv.path, format);
+  const target = resolvePath(collectionPath, relPath, format);
 
   if (!fs.existsSync(target)) {
-    writer.exitWithError({
+    throw new CliError({
       code: EXIT_STATUS.ERROR_FILE_NOT_FOUND,
       message: `Request file not found: ${path.relative(collectionPath, target)}`
     });
@@ -167,13 +198,24 @@ const deleteHandler = async (argv) => {
 
   fs.unlinkSync(target);
 
-  emitResult(writer, {
+  return {
     kind: 'request.delete',
     data: {
       path: path.relative(collectionPath, target),
       status: 'deleted'
     }
-  });
+  };
+};
+
+const deleteHandler = async (argv) => {
+  const writer = buildWriterFromArgv(argv);
+  try {
+    emitResult(writer, deleteCore({ collectionPath: process.cwd(), path: argv.path }));
+  } catch (err) {
+    if (err instanceof CliError) {
+      writer.exitWithError({ code: err.code, name: err.name, message: err.message });
+    } else { throw err; }
+  }
 };
 
 const builder = (yargs) => {
@@ -208,5 +250,8 @@ const builder = (yargs) => {
 module.exports = {
   command,
   desc,
-  builder
+  builder,
+  addCore,
+  editCore,
+  deleteCore
 };

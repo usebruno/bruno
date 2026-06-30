@@ -82,26 +82,50 @@ const COMMANDS = [
       { name: '--output', type: 'path', summary: 'Output directory' },
       { name: '--collection-name', type: 'string' }
     ]
+  },
+  {
+    name: 'request',
+    summary: 'Create, edit, or delete request files via JSON payloads',
+    args: [{ name: 'action', variadic: false, type: 'string', choices: ['add', 'edit', 'delete'] }],
+    subcommands: [
+      { name: 'request.add', args: ['path'], notable_flags: [{ name: '--data', alias: '-d', type: 'string', summary: 'Request payload (or "-" for stdin via --data=-)' }, { name: '--if-not-exists', type: 'boolean' }] },
+      { name: 'request.edit', args: ['path'], notable_flags: [{ name: '--patch', type: 'string', summary: 'RFC 7396 JSON Merge Patch' }] },
+      { name: 'request.delete', args: ['path'], notable_flags: [] }
+    ]
+  },
+  {
+    name: 'serve',
+    summary: 'Long-lived NDJSON dispatcher — reads command envelopes on stdin, writes responses on stdout',
+    args: [],
+    notable_flags: [
+      { name: '--stdio', type: 'boolean', summary: 'Use stdin/stdout for command transport (required)' },
+      { name: '--collection', type: 'string', summary: 'Default collection path for commands that omit collection_path' },
+      { name: '--json-version', type: 'number' }
+    ],
+    accepts_commands: ['introspect', 'ls', 'get', 'schema', 'request.add', 'request.edit', 'request.delete', 'shutdown']
   }
 ];
 
+// Pure core — callable from yargs handlers and from the bru serve --stdio dispatcher.
+// Returns { kind, data } or throws CliError.
+const runCore = () => ({
+  kind: 'introspect',
+  data: {
+    cli_version: CLI_VERSION,
+    json_contract_version: JSON_CONTRACT_VERSION,
+    supported_json_versions: SUPPORTED_VERSIONS,
+    exit_codes: Object.entries(EXIT_STATUS).map(([constant, code]) => ({
+      code,
+      constant,
+      name: ERROR_NAMES[code] || 'internal_error'
+    })),
+    commands: COMMANDS
+  }
+});
+
 const handler = async (argv) => {
   const writer = buildWriterFromArgv(argv);
-
-  emitResult(writer, {
-    kind: 'introspect',
-    data: {
-      cli_version: CLI_VERSION,
-      json_contract_version: JSON_CONTRACT_VERSION,
-      supported_json_versions: SUPPORTED_VERSIONS,
-      exit_codes: Object.entries(EXIT_STATUS).map(([constant, code]) => ({
-        code,
-        constant,
-        name: ERROR_NAMES[code] || 'internal_error'
-      })),
-      commands: COMMANDS
-    }
-  });
+  emitResult(writer, runCore());
 };
 
 module.exports = {
@@ -109,5 +133,6 @@ module.exports = {
   desc,
   builder,
   handler,
+  runCore,
   COMMANDS
 };

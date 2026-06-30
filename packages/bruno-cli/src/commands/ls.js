@@ -2,6 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const { createCollectionJsonFromPathname } = require('../utils/collection');
 const { addJsonOptions, buildWriterFromArgv, emitResult } = require('../json/argv');
+const { CliError } = require('../json/cli-error');
 const { EXIT_STATUS } = require('../constants');
 
 const command = 'ls [collection-path]';
@@ -75,14 +76,12 @@ const listEnvironments = (collectionPath) => {
     }));
 };
 
-const handler = async (argv) => {
-  const writer = buildWriterFromArgv(argv);
-  const collectionPath = argv['collection-path']
-    ? path.resolve(process.cwd(), argv['collection-path'])
-    : process.cwd();
+// Pure core — callable from yargs and from bru serve. Throws CliError on user errors.
+const runCore = ({ collectionPath: cp, depth } = {}) => {
+  const collectionPath = cp || process.cwd();
 
   if (!fs.existsSync(collectionPath) || !fs.statSync(collectionPath).isDirectory()) {
-    writer.exitWithError({
+    throw new CliError({
       code: EXIT_STATUS.ERROR_FILE_NOT_FOUND,
       message: `Collection path does not exist or is not a directory: ${collectionPath}`
     });
@@ -92,16 +91,16 @@ const handler = async (argv) => {
   try {
     collection = createCollectionJsonFromPathname(collectionPath);
   } catch (err) {
-    writer.exitWithError({
+    throw new CliError({
       code: EXIT_STATUS.ERROR_NOT_IN_COLLECTION,
       message: `Could not load collection at ${collectionPath}: ${err.message}`
     });
   }
 
-  const items = walkItems(collection.items || [], collectionPath, 1, argv.depth);
+  const items = walkItems(collection.items || [], collectionPath, 1, depth);
   const environments = listEnvironments(collectionPath);
 
-  emitResult(writer, {
+  return {
     kind: 'ls',
     data: {
       collection: {
@@ -118,12 +117,27 @@ const handler = async (argv) => {
         environments: environments.length
       }
     }
-  });
+  };
+};
+
+const handler = async (argv) => {
+  const writer = buildWriterFromArgv(argv);
+  const collectionPath = argv['collection-path']
+    ? path.resolve(process.cwd(), argv['collection-path'])
+    : process.cwd();
+  try {
+    emitResult(writer, runCore({ collectionPath, depth: argv.depth }));
+  } catch (err) {
+    if (err instanceof CliError) {
+      writer.exitWithError({ code: err.code, name: err.name, message: err.message });
+    } else { throw err; }
+  }
 };
 
 module.exports = {
   command,
   desc,
   builder,
-  handler
+  handler,
+  runCore
 };

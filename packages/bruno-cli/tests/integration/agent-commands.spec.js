@@ -90,7 +90,7 @@ describe('bru introspect', () => {
     expect(env.data.cli_version).toMatch(/^\d+\.\d+\.\d+/);
 
     const names = env.data.commands.map((c) => c.name).sort();
-    expect(names).toEqual(['get', 'import', 'introspect', 'ls', 'run', 'schema']);
+    expect(names).toEqual(['get', 'import', 'introspect', 'ls', 'request', 'run', 'schema', 'serve']);
 
     // Every documented exit code maps to a stable slug.
     for (const ec of env.data.exit_codes) {

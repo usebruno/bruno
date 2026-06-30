@@ -8,6 +8,7 @@ const {
 } = require('@usebruno/filestore');
 const { FORMAT_CONFIG } = require('../utils/collection');
 const { addJsonOptions, buildWriterFromArgv, emitResult } = require('../json/argv');
+const { CliError } = require('../json/cli-error');
 const { EXIT_STATUS } = require('../constants');
 
 const command = 'get <kind> [resource-path]';
@@ -46,28 +47,27 @@ const resolveEnvironmentPath = (collectionPath, name, format) => {
   return path.join(collectionPath, 'environments', `${name}${ext}`);
 };
 
-const readResource = (kind, resourcePath, collectionPath, writer) => {
+const readResource = (kind, resourcePath, collectionPath) => {
   const format = detectCollectionFormat(collectionPath);
 
   if (kind === 'collection') {
     const rootFile = FORMAT_CONFIG[format].collectionFile;
     const filePath = path.join(collectionPath, rootFile);
     if (!fs.existsSync(filePath)) {
-      writer.exitWithError({
+      throw new CliError({
         code: EXIT_STATUS.ERROR_FILE_NOT_FOUND,
         message: `Collection root file not found: ${filePath}`
       });
     }
-    const content = fs.readFileSync(filePath, 'utf8');
     return {
       kind: 'collection',
       path: path.relative(collectionPath, filePath),
-      data: parseCollection(content, { format })
+      data: parseCollection(fs.readFileSync(filePath, 'utf8'), { format })
     };
   }
 
   if (!resourcePath) {
-    writer.exitWithError({
+    throw new CliError({
       code: EXIT_STATUS.ERROR_FILE_NOT_FOUND,
       message: `<resource-path> is required for kind="${kind}"`
     });
@@ -76,43 +76,39 @@ const readResource = (kind, resourcePath, collectionPath, writer) => {
   if (kind === 'environment') {
     const resolved = resolveEnvironmentPath(collectionPath, resourcePath, format);
     if (!fs.existsSync(resolved)) {
-      writer.exitWithError({
+      throw new CliError({
         code: EXIT_STATUS.ERROR_ENV_NOT_FOUND,
         message: `Environment file not found: ${resolved}`
       });
     }
     const ext = path.extname(resolved).slice(1) || 'bru';
-    const content = fs.readFileSync(resolved, 'utf8');
     return {
       kind: 'environment',
       path: path.relative(collectionPath, resolved),
-      data: parseEnvironment(content, { format: ext === 'yml' ? 'yml' : 'bru' })
+      data: parseEnvironment(fs.readFileSync(resolved, 'utf8'), { format: ext === 'yml' ? 'yml' : 'bru' })
     };
   }
 
-  // request | folder
   const resolved = path.resolve(collectionPath, resourcePath);
   if (kind === 'request') {
-    // Auto-append the collection's request extension if missing.
     const ext = FORMAT_CONFIG[format].ext;
     const finalPath = resolved.endsWith(ext) ? resolved : `${resolved}${ext}`;
     if (!fs.existsSync(finalPath)) {
-      writer.exitWithError({
+      throw new CliError({
         code: EXIT_STATUS.ERROR_FILE_NOT_FOUND,
         message: `Request file not found: ${finalPath}`
       });
     }
-    const content = fs.readFileSync(finalPath, 'utf8');
     return {
       kind: 'request',
       path: path.relative(collectionPath, finalPath),
-      data: parseRequest(content, { format })
+      data: parseRequest(fs.readFileSync(finalPath, 'utf8'), { format })
     };
   }
 
   // folder
   if (!fs.existsSync(resolved) || !fs.statSync(resolved).isDirectory()) {
-    writer.exitWithError({
+    throw new CliError({
       code: EXIT_STATUS.ERROR_FILE_NOT_FOUND,
       message: `Folder not found: ${resolved}`
     });
@@ -128,34 +124,45 @@ const readResource = (kind, resourcePath, collectionPath, writer) => {
   };
 };
 
-const handler = async (argv) => {
-  const writer = buildWriterFromArgv(argv);
-  const collectionPath = process.cwd();
-  const kind = argv.kind;
-  const resourcePath = argv['resource-path'];
-
+const runCore = ({ collectionPath: cp, kind, resourcePath } = {}) => {
+  const collectionPath = cp || process.cwd();
   if (!KINDS.includes(kind)) {
-    writer.exitWithError({
+    throw new CliError({
       code: EXIT_STATUS.ERROR_INCORRECT_OUTPUT_FORMAT,
       message: `Unknown kind "${kind}". Expected one of: ${KINDS.join(', ')}`
     });
   }
-
-  const result = readResource(kind, resourcePath, collectionPath, writer);
-
-  emitResult(writer, {
+  const result = readResource(kind, resourcePath, collectionPath);
+  return {
     kind: `${kind}.get`,
     data: {
       collection_path: collectionPath,
       path: result.path,
       [kind]: result.data
     }
-  });
+  };
+};
+
+const handler = async (argv) => {
+  const writer = buildWriterFromArgv(argv);
+  try {
+    emitResult(writer, runCore({
+      collectionPath: process.cwd(),
+      kind: argv.kind,
+      resourcePath: argv['resource-path']
+    }));
+  } catch (err) {
+    if (err instanceof CliError) {
+      writer.exitWithError({ code: err.code, name: err.name, message: err.message });
+    } else { throw err; }
+  }
 };
 
 module.exports = {
   command,
   desc,
   builder,
-  handler
+  handler,
+  runCore,
+  KINDS
 };
