@@ -275,7 +275,7 @@ const writeIfChanged = (filePath, content, existing) => {
  *
  * @param {{ path: string, format: 'json' | 'yml' | 'bru' } | null | undefined} envFile - Env file descriptor; no-op when missing.
  * @param {Object<string, any>} scriptVars - Flat map of vars the script declared.
- * @param {{ overrides?: Set<string> }} [options] - Names supplied via `--env-var`; excluded from persistence.
+ * @param {{ overrides?: Map<string, string> }} [options] - `--env-var name=value` entries keyed by name → injected value; forwarded to `mergeScriptVarsIntoEnvList` to keep override values off disk.
  * @returns {void}
  *
  * @example
