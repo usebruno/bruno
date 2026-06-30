@@ -167,6 +167,14 @@ const EnvironmentVariablesTable = ({
   const prevEnvVariablesRef = useRef(environment.variables);
   const mountedRef = useRef(false);
 
+  const selfSnapshotsRef = useRef([]);
+
+  const makeEmptyRow = () => ({ uid: uuid(), name: '', value: '', type: 'text', secret: false, enabled: true });
+
+  const recordSelfSnapshot = useCallback((json) => {
+    selfSnapshotsRef.current = [json, ...selfSnapshotsRef.current.filter((j) => j !== json)].slice(0, 3);
+  }, []);
+
   const globalEnvironmentVariables = getGlobalEnvironmentVariables({ globalEnvironments, activeGlobalEnvironmentUid });
   const workspaceProcessEnvVariables = activeWorkspace?.processEnvVariables;
   // `_collection` flows into every row's MultiLineEditor as the variable-resolution
@@ -209,7 +217,6 @@ const EnvironmentVariablesTable = ({
   }, [environment.uid, environment.variables]);
 
   const formik = useFormik({
-    enableReinitialize: true,
     initialValues: initialValues,
     validationSchema: Yup.array().of(
       Yup.object({
@@ -258,7 +265,6 @@ const EnvironmentVariablesTable = ({
     onSubmit: () => {}
   });
 
-  // Restore draft values on mount or environment switch
   useEffect(() => {
     const isMount = !mountedRef.current;
     const envChanged = prevEnvUidRef.current !== null && prevEnvUidRef.current !== environment.uid;
@@ -268,20 +274,26 @@ const EnvironmentVariablesTable = ({
     prevEnvVariablesRef.current = environment.variables;
     mountedRef.current = true;
 
-    if ((isMount || envChanged || variablesReloaded) && hasDraftForThisEnv && draft?.variables) {
-      formik.setValues([
-        ...draft.variables,
-        {
-          uid: uuid(),
-          name: '',
-          value: '',
-          type: 'text',
-          secret: isSecretTab,
-          enabled: true
-        }
-      ]);
+    const trailingRow = { uid: uuid(), name: '', value: '', type: 'text', secret: isSecretTab, enabled: true };
+
+    // Mount or environment switch: restore an in-progress draft over the saved values.
+    if ((isMount || envChanged) && hasDraftForThisEnv && draft?.variables) {
+      formik.setValues([...draft.variables, trailingRow]);
+      return;
     }
-  }, [environment.uid, environment.variables, hasDraftForThisEnv, draft?.variables]);
+
+    // Same environment, environment.variables changed reference. Skip the reset when the
+    // incoming saved values match something this component just emitted (a save echo);
+    // only reinitialize for a genuine external change.
+    if (variablesReloaded) {
+      const incomingJson = JSON.stringify((environment.variables || []).map(stripEnvVarUid));
+      if (selfSnapshotsRef.current.includes(incomingJson)) {
+        return;
+      }
+      const base = hasDraftForThisEnv && draft?.variables ? draft.variables : environment.variables || [];
+      formik.setValues([...base, trailingRow]);
+    }
+  }, [environment.uid, environment.variables, hasDraftForThisEnv, draft?.variables, isSecretTab]);
 
   const savedValuesJson = useMemo(() => {
     return JSON.stringify((environment.variables || []).map(stripEnvVarUid));
@@ -323,6 +335,7 @@ const EnvironmentVariablesTable = ({
 
       if (hasActualChanges) {
         if (currentValuesJson !== existingDraftJson) {
+          recordSelfSnapshot(currentValuesJson);
           onDraftChange(currentValues);
         }
       } else if (hasDraftForThisEnv) {
@@ -331,7 +344,7 @@ const EnvironmentVariablesTable = ({
     }, 300);
 
     return () => clearTimeout(timeoutId);
-  }, [formik.values, savedValuesJson, environment.uid, hasDraftForThisEnv, draft?.variables, onDraftChange, onDraftClear]);
+  }, [formik.values, savedValuesJson, environment.uid, hasDraftForThisEnv, draft?.variables, onDraftChange, onDraftClear, recordSelfSnapshot]);
 
   const ErrorMessage = ({ name, index }) => {
     const meta = formik.getFieldMeta(name);
@@ -469,6 +482,9 @@ const EnvironmentVariablesTable = ({
     // Persist the active tab's edits alongside the other tab's last-saved rows (unchanged).
     const persistedVariables = orderVarsBySecret([...activeCurrent, ...otherSaved]);
 
+    // Remember what we're persisting so the resulting environment.variables echo is
+    // recognized and doesn't reinitialize the form over freshly typed characters.
+    recordSelfSnapshot(JSON.stringify(persistedVariables.map(stripEnvVarUid)));
     onSave(cloneDeep(persistedVariables))
       .then(() => {
         toast.success('Changes saved successfully');
@@ -504,7 +520,7 @@ const EnvironmentVariablesTable = ({
         console.error(error);
         toast.error('An error occurred while saving the changes');
       });
-  }, [formik.values, environment.variables, onSave, onDraftChange, onDraftClear, setIsModified, isSecretTab]);
+  }, [formik.values, environment.variables, onSave, onDraftChange, onDraftClear, setIsModified, isSecretTab, recordSelfSnapshot]);
 
   const handleReset = useCallback(() => {
     const belongsToActiveTab = (variable) => (isSecretTab ? !!variable.secret : !variable.secret);
@@ -573,6 +589,7 @@ const EnvironmentVariablesTable = ({
       return;
     }
 
+    recordSelfSnapshot(JSON.stringify(persistedVariables.map(stripEnvVarUid)));
     onSave(cloneDeep(persistedVariables))
       .then(() => {
         toast.success('Changes saved successfully');
@@ -597,7 +614,7 @@ const EnvironmentVariablesTable = ({
         console.error(error);
         toast.error('An error occurred while saving the changes');
       });
-  }, [formik.values, environment.variables, onSave, onDraftClear, setIsModified, isSecretTab]);
+  }, [formik.values, environment.variables, onSave, onDraftClear, setIsModified, isSecretTab, recordSelfSnapshot]);
 
   const handleSaveRef = useRef(handleSave);
   handleSaveRef.current = handleSave;
