@@ -39,6 +39,7 @@ const { registerWsEventHandlers } = require('./ws-event-handlers');
 const { getCertsAndProxyConfig, buildCertsAndProxyConfig } = require('./cert-utils');
 const { easterEggResponse } = require('../../utils/woof');
 const { buildFormUrlEncodedPayload, isFormData, extractBoundaryFromContentType } = require('@usebruno/common').utils;
+const { getResponseSaveDefaultPath, rememberResponseSavePath } = require('./response-save-location');
 
 const ERROR_OCCURRED_WHILE_EXECUTING_REQUEST = 'Error occurred while executing the request!';
 
@@ -2193,10 +2194,10 @@ const registerNetworkIpc = (mainWindow) => {
         );
       };
 
-      const dirPath = path.dirname(pathname);
       const fileName = determineFileName();
-      const filePath = await chooseFileToSave(mainWindow, path.join(dirPath, fileName));
+      const filePath = await chooseFileToSave(mainWindow, getResponseSaveDefaultPath(pathname, fileName));
       if (filePath) {
+        rememberResponseSavePath(filePath);
         const encoding = getEncodingFormat();
         const data = Buffer.from(response.dataBuffer, 'base64');
         if (encoding === 'utf-8') {
