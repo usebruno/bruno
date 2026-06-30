@@ -2531,7 +2531,7 @@ export const selectEnvironment = (environmentUid, collectionUid) => (dispatch, g
   });
 };
 
-export const removeCollection = (collectionUid) => (dispatch, getState) => {
+export const removeCollection = (collectionUid, options = {}) => (dispatch, getState) => {
   return new Promise((resolve, reject) => {
     const state = getState();
     const collection = findCollectionByUid(state.collections.collections, collectionUid);
@@ -2554,7 +2554,7 @@ export const removeCollection = (collectionUid) => (dispatch, getState) => {
     }
 
     ipcRenderer
-      .invoke('renderer:remove-collection', collection.pathname, collectionUid, workspaceId)
+      .invoke('renderer:remove-collection', collection.pathname, collectionUid, workspaceId, { deleteFolder: !!options.deleteFolder })
       .then(() => {
         // Check if the collection still exists in other workspaces
         return ipcRenderer.invoke('renderer:get-collection-workspaces', collection.pathname);

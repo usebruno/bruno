@@ -1,8 +1,7 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import Modal from 'components/Modal';
 import { useDispatch, useSelector } from 'react-redux';
-import { IconAlertCircle } from '@tabler/icons';
 import { removeCollection } from 'providers/ReduxStore/slices/collections/actions';
 import { findCollectionByUid, flattenItems, isItemARequest, hasRequestChanges } from 'utils/collections/index';
 import filter from 'lodash/filter';
@@ -12,6 +11,7 @@ import StyledWrapper from './StyledWrapper';
 const RemoveCollection = ({ onClose, collectionUid }) => {
   const dispatch = useDispatch();
   const collection = useSelector((state) => findCollectionByUid(state.collections.collections, collectionUid));
+  const [deleteFolder, setDeleteFolder] = useState(false);
 
   // Detect drafts in the collection
   const drafts = useMemo(() => {
@@ -26,12 +26,15 @@ const RemoveCollection = ({ onClose, collectionUid }) => {
       onClose();
       return;
     }
-    dispatch(removeCollection(collection.uid))
+    dispatch(removeCollection(collection.uid, { deleteFolder }))
       .then(() => {
-        toast.success('Collection removed from workspace');
+        toast.success(deleteFolder ? 'Collection removed and folder moved to trash' : 'Collection removed from workspace');
         onClose();
       })
-      .catch(() => toast.error('An error occurred while removing the collection'));
+      .catch((error) => {
+        console.error(error);
+        toast.error(error?.message || 'An error occurred while removing the collection');
+      });
   };
 
   if (!collection) {
@@ -40,7 +43,13 @@ const RemoveCollection = ({ onClose, collectionUid }) => {
 
   // If there are drafts, show the draft confirmation modal
   if (drafts.length > 0) {
-    return <ConfirmCollectionCloseDrafts onClose={onClose} collection={collection} collectionUid={collectionUid} />;
+    return (
+      <ConfirmCollectionCloseDrafts
+        onClose={onClose}
+        collection={collection}
+        collectionUid={collectionUid}
+      />
+    );
   }
 
   // Otherwise, show the standard remove confirmation modal
@@ -49,7 +58,7 @@ const RemoveCollection = ({ onClose, collectionUid }) => {
       <Modal
         size="sm"
         title="Remove Collection"
-        confirmText="Remove"
+        confirmText={deleteFolder ? 'Remove and Delete folder' : 'Remove'}
         confirmButtonColor="danger"
         handleConfirm={onConfirm}
         handleCancel={onClose}
@@ -59,9 +68,28 @@ const RemoveCollection = ({ onClose, collectionUid }) => {
           <div className="collection-name">{collection.name}</div>
           <div className="collection-path">{collection.pathname}</div>
         </div>
-        <p className="mt-4 text-muted text-sm">
-          It will still be available in the filesystem at the above location and can be re-opened later.
-        </p>
+
+        <label className="mt-4 flex items-start gap-2 cursor-pointer text-sm select-none">
+          <input
+            type="checkbox"
+            data-testid="remove-collection-delete-folder-checkbox"
+            checked={deleteFolder}
+            onChange={(e) => setDeleteFolder(e.target.checked)}
+            className="mt-1"
+          />
+          <span>
+            Also delete folder from disk
+            <span className="block text-muted text-xs mt-0.5">
+              The folder will be moved to your system trash.
+            </span>
+          </span>
+        </label>
+
+        {!deleteFolder && (
+          <p className="mt-4 text-muted text-sm">
+            It will still be available in the filesystem at the above location and can be re-opened later.
+          </p>
+        )}
       </Modal>
     </StyledWrapper>
   );
