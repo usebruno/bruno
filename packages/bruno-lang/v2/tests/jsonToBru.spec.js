@@ -231,4 +231,27 @@ describe('jsonToBru stringify', () => {
       expect(output).toContain('@description(\'service port\')');
     });
   });
+
+  describe('body:multipart-form', () => {
+    it('omits empty file path placeholders when serializing file values', () => {
+      const input = {
+        body: {
+          multipartForm: [
+            {
+              name: 'file',
+              value: ['', '/Users/myuser/Downloads/somefile.csv'],
+              enabled: true,
+              type: 'file',
+              contentType: 'multipart/mixed'
+            }
+          ]
+        }
+      };
+
+      const output = stringify(input);
+
+      expect(output).toContain('file: @file(/Users/myuser/Downloads/somefile.csv) @contentType(multipart/mixed)');
+      expect(output).not.toContain('@file(|/Users/myuser/Downloads/somefile.csv)');
+    });
+  });
 });

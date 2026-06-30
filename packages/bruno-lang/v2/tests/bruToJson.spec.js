@@ -485,5 +485,30 @@ body:multipart-form {
       const output = parser(input);
       expect(output).toEqual(expected);
     });
+
+    it('parses empty multipart file references as empty file lists', () => {
+      const input = `
+body:multipart-form {
+  file: @file()
+}
+`;
+
+      const expected = {
+        body: {
+          multipartForm: [
+            {
+              name: 'file',
+              value: [],
+              enabled: true,
+              type: 'file',
+              contentType: ''
+            }
+          ]
+        }
+      };
+
+      const output = parser(input);
+      expect(output).toEqual(expected);
+    });
   });
 });
