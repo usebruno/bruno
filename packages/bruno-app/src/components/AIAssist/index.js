@@ -3,6 +3,7 @@ import { useSelector } from 'react-redux';
 import get from 'lodash/get';
 import { IconStars, IconX, IconArrowBackUp } from '@tabler/icons';
 import { aiGenerateScript } from 'utils/ai';
+import { getPlatformModifierKey } from 'utils/common/platform';
 import StyledWrapper from './StyledWrapper';
 
 const SUGGESTIONS = {
@@ -220,7 +221,7 @@ const AIAssist = ({ scriptType, currentScript, requestContext, docsContext, vari
                     Generating...
                   </span>
                 ) : (
-                  <span className="popup-hint">⌘ + Enter to generate</span>
+                  <span className="popup-hint">{getPlatformModifierKey()} + Enter to generate</span>
                 )}
                 <button
                   className="btn-generate"
