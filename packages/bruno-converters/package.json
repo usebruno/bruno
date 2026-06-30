@@ -19,6 +19,7 @@
     "prepack": "npm run test && npm run build"
   },
   "dependencies": {
+    "@usebruno/common": "^0.1.0",
     "@usebruno/schema": "^0.7.0",
     "js-yaml": "^4.1.1",
     "jscodeshift": "^17.3.0",
@@ -29,6 +30,7 @@
   "devDependencies": {
     "@babel/core": "^7.25.2",
     "@babel/preset-env": "^7.25.4",
+    "@babel/preset-typescript": "^7.25.0",
     "@opencollection/types": "0.9.1",
     "@rollup/plugin-alias": "^5.1.0",
     "@rollup/plugin-commonjs": "^23.0.2",

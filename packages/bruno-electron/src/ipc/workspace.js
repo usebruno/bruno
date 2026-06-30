@@ -214,7 +214,7 @@ const registerWorkspaceIpc = (mainWindow, workspaceWatcher) => {
         return [];
       }
 
-      const specs = workspaceConfig.specs || [];
+      const specs = Array.isArray(workspaceConfig.specs) ? workspaceConfig.specs : [];
 
       const resolvedSpecs = specs
         .map((spec) => {

@@ -281,6 +281,7 @@ const CreateCollection = ({ onClose, defaultLocation: propDefaultLocation, initi
                   <div
                     className="dropdown-item"
                     key="show-file-format"
+                    data-testid="show-file-format-toggle"
                     onClick={(e) => {
                       dropdownTippyRef.current.hide();
                       setShowFileFormat(!showFileFormat);

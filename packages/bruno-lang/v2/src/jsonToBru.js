@@ -1,6 +1,6 @@
 const _ = require('lodash');
 
-const { indentString, getValueString, getKeyString, getValueUrl, serializeAnnotations } = require('./utils');
+const { indentString, getValueString, getKeyString, getValueUrl, serializeAnnotations, serializeVar } = require('./utils');
 const jsonToExampleBru = require('./example/jsonToBru');
 
 const enabled = (items = [], key = 'enabled') => items.filter((item) => item[key]);
@@ -14,7 +14,7 @@ const stripLastLine = (text) => {
 };
 
 const jsonToBru = (json) => {
-  const { meta, http, grpc, ws, params, headers, metadata, auth, body, script, tests, vars, assertions, settings, docs, examples } = json;
+  const { meta, http, grpc, ws, params, headers, metadata, auth, body, script, tests, vars, assertions, settings, app, docs, examples } = json;
 
   let bru = '';
 
@@ -634,13 +634,16 @@ ${indentString(body.sparql)}
     // Convert each ws message to a separate body:ws block
     if (Array.isArray(body.ws)) {
       body.ws.forEach((message) => {
-        const { name, content, type = '' } = message;
+        const { name, content, type = '', selected } = message;
 
         bru += `body:ws {\n`;
 
         bru += `${indentString(`name: ${getValueString(name)}`)}\n`;
         if (type.length) {
           bru += `${indentString(`type: ${getValueString(type)}`)}\n`;
+        }
+        if (selected) {
+          bru += `${indentString(`selected: true`)}\n`;
         }
 
         // Convert content to JSON string if it's an object
@@ -664,19 +667,19 @@ ${indentString(body.sparql)}
     bru += `vars:pre-request {`;
 
     if (varsEnabled.length) {
-      bru += `\n${indentString(varsEnabled.map((item) => `${serializeAnnotations(item.annotations)}${item.name}: ${getValueString(item.value)}`).join('\n'))}`;
+      bru += `\n${indentString(varsEnabled.map((item) => serializeVar(item)).join('\n'))}`;
     }
 
     if (varsLocalEnabled.length) {
-      bru += `\n${indentString(varsLocalEnabled.map((item) => `${serializeAnnotations(item.annotations)}@${item.name}: ${getValueString(item.value)}`).join('\n'))}`;
+      bru += `\n${indentString(varsLocalEnabled.map((item) => serializeVar(item, '@')).join('\n'))}`;
     }
 
     if (varsDisabled.length) {
-      bru += `\n${indentString(varsDisabled.map((item) => `${serializeAnnotations(item.annotations)}~${item.name}: ${getValueString(item.value)}`).join('\n'))}`;
+      bru += `\n${indentString(varsDisabled.map((item) => serializeVar(item, '~')).join('\n'))}`;
     }
 
     if (varsLocalDisabled.length) {
-      bru += `\n${indentString(varsLocalDisabled.map((item) => `${serializeAnnotations(item.annotations)}~@${item.name}: ${getValueString(item.value)}`).join('\n'))}`;
+      bru += `\n${indentString(varsLocalDisabled.map((item) => serializeVar(item, '~@')).join('\n'))}`;
     }
 
     bru += '\n}\n\n';
@@ -690,19 +693,19 @@ ${indentString(body.sparql)}
     bru += `vars:post-response {`;
 
     if (varsEnabled.length) {
-      bru += `\n${indentString(varsEnabled.map((item) => `${serializeAnnotations(item.annotations)}${item.name}: ${getValueString(item.value)}`).join('\n'))}`;
+      bru += `\n${indentString(varsEnabled.map((item) => serializeVar(item)).join('\n'))}`;
     }
 
     if (varsLocalEnabled.length) {
-      bru += `\n${indentString(varsLocalEnabled.map((item) => `${serializeAnnotations(item.annotations)}@${item.name}: ${getValueString(item.value)}`).join('\n'))}`;
+      bru += `\n${indentString(varsLocalEnabled.map((item) => serializeVar(item, '@')).join('\n'))}`;
     }
 
     if (varsDisabled.length) {
-      bru += `\n${indentString(varsDisabled.map((item) => `${serializeAnnotations(item.annotations)}~${item.name}: ${getValueString(item.value)}`).join('\n'))}`;
+      bru += `\n${indentString(varsDisabled.map((item) => serializeVar(item, '~')).join('\n'))}`;
     }
 
     if (varsLocalDisabled.length) {
-      bru += `\n${indentString(varsLocalDisabled.map((item) => `${serializeAnnotations(item.annotations)}~@${item.name}: ${getValueString(item.value)}`).join('\n'))}`;
+      bru += `\n${indentString(varsLocalDisabled.map((item) => serializeVar(item, '~@')).join('\n'))}`;
     }
 
     bru += '\n}\n\n';
@@ -752,6 +755,12 @@ ${indentString(tests)}
 }
 
 `;
+  }
+
+  if (app && app.code && app.code.length) {
+    bru += `app {\n`;
+    bru += `  code: '''\n${indentString(app.code, 2)}\n  '''`;
+    bru += '\n}\n\n';
   }
 
   if (settings && Object.keys(settings).length) {

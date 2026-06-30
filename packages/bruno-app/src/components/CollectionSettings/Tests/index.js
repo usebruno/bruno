@@ -1,13 +1,16 @@
-import React, { useRef } from 'react';
+import React, { useMemo, useRef } from 'react';
 import get from 'lodash/get';
 import { useDispatch, useSelector } from 'react-redux';
 import CodeEditor from 'components/CodeEditor';
+import AIAssist from 'components/AIAssist';
+import { buildAiVariablesPayload } from 'utils/ai';
 import { updateCollectionTests } from 'providers/ReduxStore/slices/collections';
 import { saveCollectionSettings } from 'providers/ReduxStore/slices/collections/actions';
 import { useTheme } from 'providers/Theme';
 import StyledWrapper from './StyledWrapper';
 import Button from 'ui/Button';
 import { usePersistedState } from 'hooks/usePersistedState';
+import { useFocusErrorLine } from 'hooks/useFocusErrorLine';
 
 const Tests = ({ collection }) => {
   const dispatch = useDispatch();
@@ -29,24 +32,35 @@ const Tests = ({ collection }) => {
 
   const handleSave = () => dispatch(saveCollectionSettings(collection.uid));
 
+  useFocusErrorLine({
+    uid: collection.uid,
+    editorRef: testsEditorRef,
+    scriptPhase: 'test'
+  });
+
+  const aiVariables = useMemo(() => buildAiVariablesPayload(collection, null), [collection]);
+
   return (
     <StyledWrapper className="w-full flex flex-col h-full">
       <div className="text-xs mb-4 text-muted">These tests will run any time a request in this collection is sent.</div>
-      <CodeEditor
-        ref={testsEditorRef}
-        collection={collection}
-        docKey="collection-tests"
-        value={tests || ''}
-        theme={displayedTheme}
-        onEdit={onEdit}
-        mode="javascript"
-        onSave={handleSave}
-        font={get(preferences, 'font.codeFont', 'default')}
-        fontSize={get(preferences, 'font.codeFontSize')}
-        showHintsFor={['req', 'res', 'bru']}
-        initialScroll={testsScroll}
-        onScroll={setTestsScroll}
-      />
+      <div className="relative h-full">
+        <CodeEditor
+          ref={testsEditorRef}
+          collection={collection}
+          docKey="collection-tests"
+          value={tests || ''}
+          theme={displayedTheme}
+          onEdit={onEdit}
+          mode="javascript"
+          onSave={handleSave}
+          font={get(preferences, 'font.codeFont', 'default')}
+          fontSize={get(preferences, 'font.codeFontSize')}
+          showHintsFor={['req', 'res', 'bru']}
+          initialScroll={testsScroll}
+          onScroll={setTestsScroll}
+        />
+        <AIAssist scriptType="tests" currentScript={tests || ''} variables={aiVariables} onApply={onEdit} />
+      </div>
 
       <div className="mt-6">
         <Button type="submit" size="sm" onClick={handleSave}>

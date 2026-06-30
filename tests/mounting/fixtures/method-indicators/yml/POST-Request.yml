@@ -1,0 +1,8 @@
+info:
+  name: POST-Request
+  type: http
+  seq: 2
+
+http:
+  method: POST
+  url: "{{host}}/api/resource"

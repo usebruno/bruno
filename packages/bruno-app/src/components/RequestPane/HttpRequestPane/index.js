@@ -13,11 +13,13 @@ import Assertions from 'components/RequestPane/Assertions';
 import Script from 'components/RequestPane/Script';
 import Tests from 'components/RequestPane/Tests';
 import Settings from 'components/RequestPane/Settings';
+import AppCodeEditor from 'components/RequestPane/AppCodeEditor';
 import Documentation from 'components/Documentation/index';
 import StatusDot from 'components/StatusDot';
 import ResponsiveTabs from 'ui/ResponsiveTabs';
 import HeightBoundContainer from 'ui/HeightBoundContainer';
 import AuthMode from '../Auth/AuthMode/index';
+import { hasEffectiveAuth } from 'utils/auth';
 
 const TAB_CONFIG = [
   { key: 'params', label: 'Params' },
@@ -29,6 +31,7 @@ const TAB_CONFIG = [
   { key: 'assert', label: 'Assert' },
   { key: 'tests', label: 'Tests' },
   { key: 'docs', label: 'Docs' },
+  { key: 'app', label: 'App' },
   { key: 'settings', label: 'Settings' }
 ];
 
@@ -42,6 +45,7 @@ const TAB_PANELS = {
   script: Script,
   tests: Tests,
   docs: Documentation,
+  app: AppCodeEditor,
   settings: Settings
 };
 
@@ -54,7 +58,6 @@ const HttpRequestPane = ({ item, collection }) => {
 
   const focusedTab = find(tabs, (t) => t.uid === activeTabUid);
   const requestPaneTab = focusedTab?.requestPaneTab;
-
   const getProperty = useCallback(
     (key) => (item.draft ? get(item, `draft.${key}`, []) : get(item, key, [])),
     [item.draft, item]
@@ -71,6 +74,7 @@ const HttpRequestPane = ({ item, collection }) => {
   const responseVars = getProperty('request.vars.res');
   const auth = getProperty('request.auth');
   const tags = getProperty('tags');
+  const app = item.draft ? get(item, 'draft.app') : get(item, 'app');
 
   const activeCounts = useMemo(() => ({
     params: params.filter((p) => p.enabled).length,
@@ -86,6 +90,12 @@ const HttpRequestPane = ({ item, collection }) => {
     [dispatch, item.uid]
   );
 
+  const itemAuthMode = item.draft?.request?.auth?.mode ?? item.request?.auth?.mode ?? item.root?.request?.auth?.mode;
+  const hasAuth = useMemo(
+    () => hasEffectiveAuth(collection, item),
+    [item, itemAuthMode, collection]
+  );
+
   const indicators = useMemo(() => {
     const hasScriptError = item.preRequestScriptErrorMessage || item.postResponseScriptErrorMessage;
     const hasTestError = item.testScriptErrorMessage;
@@ -94,15 +104,16 @@ const HttpRequestPane = ({ item, collection }) => {
       params: activeCounts.params > 0 ? <sup className="font-medium">{activeCounts.params}</sup> : null,
       body: body.mode !== 'none' ? <StatusDot /> : null,
       headers: activeCounts.headers > 0 ? <sup className="font-medium">{activeCounts.headers}</sup> : null,
-      auth: auth.mode !== 'none' ? <StatusDot /> : null,
+      auth: hasAuth ? <StatusDot dataTestId="auth" /> : null,
       vars: activeCounts.vars > 0 ? <sup className="font-medium">{activeCounts.vars}</sup> : null,
       script: (script.req || script.res) ? (hasScriptError ? <StatusDot type="error" /> : <StatusDot />) : null,
       assert: activeCounts.assertions > 0 ? <sup className="font-medium">{activeCounts.assertions}</sup> : null,
       tests: tests?.length > 0 ? (hasTestError ? <StatusDot type="error" /> : <StatusDot />) : null,
       docs: docs?.length > 0 ? <StatusDot /> : null,
+      app: app?.code?.length > 0 ? <StatusDot dataTestId="app" /> : null,
       settings: tags?.length > 0 ? <StatusDot /> : null
     };
-  }, [activeCounts, body.mode, auth.mode, script, item.preRequestScriptErrorMessage, item.postResponseScriptErrorMessage, item.testScriptErrorMessage, tests, docs, tags]);
+  }, [activeCounts, body.mode, hasAuth, script, item.preRequestScriptErrorMessage, item.postResponseScriptErrorMessage, item.testScriptErrorMessage, tests, docs, app, tags]);
 
   const allTabs = useMemo(
     () => TAB_CONFIG.map(({ key, label }) => ({ key, label, indicator: indicators[key] })),
