@@ -15,7 +15,7 @@ const WORKSPACE_YML_WORKSPACEB = [
   ''
 ].join('\n');
 
-test.describe('Close workspace returns to default workspace (BRU-3663)', () => {
+test.describe('Close workspace returns to default workspace', () => {
   test('closing the active workspace shows "My Workspace" (not "Scratch") and restores its collections', async ({
     launchElectronApp,
     createTmpDir
