@@ -603,6 +603,7 @@ get {
 
 script:post-response {
   bru.setEnvVar("beforeThrow", 42);
+  bru.setCollectionVar("collBeforeThrow", true);
   throw new Error("boom");
 }
 `
@@ -618,6 +619,9 @@ script:post-response {
 
     const envContent = fs.readFileSync(path.join(tmpDir, 'environments', 'Test.bru'), 'utf8');
     expect(envContent).toMatch(/@number\s+beforeThrow:\s*42/);
+
+    const collectionBru = fs.readFileSync(path.join(tmpDir, 'collection.bru'), 'utf8');
+    expect(collectionBru).toMatch(/@boolean\s+collBeforeThrow:\s*true/);
   }, 60_000);
 
   // Vars set from inside a `tests {}` block reach disk through the same syncVariableUpdates

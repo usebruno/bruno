@@ -347,7 +347,15 @@ describe('persistVariableUpdates — collection vars', () => {
       }
     };
     persistVariableUpdates(
-      { collectionVariables: { k1: 'new', k2: 'fresh' } },
+      {
+        collectionVariables: {
+          k1: 'new',
+          k2: 'fresh',
+          count: 42,
+          flag: false,
+          cfg: { tier: 'premium', limit: 100 }
+        }
+      },
       { collection, collectionRootPath }
     );
     const written = fs.readFileSync(collectionRootPath, 'utf8');
@@ -355,6 +363,12 @@ describe('persistVariableUpdates — collection vars', () => {
     expect(written).toMatch(/value:\s*new/);
     expect(written).toMatch(/name:\s*k2/);
     expect(written).toMatch(/value:\s*fresh/);
+    // Typed collection vars round-trip via the OC `{ type, data }` struct.
+    expect(written).toMatch(/name:\s*count[\s\S]*?type:\s*number[\s\S]*?data:\s*['"]?42/);
+    expect(written).toMatch(/name:\s*flag[\s\S]*?type:\s*boolean[\s\S]*?data:\s*['"]?false/);
+    expect(written).toMatch(/name:\s*cfg[\s\S]*?type:\s*object[\s\S]*?data:[\s\S]*?tier/);
+    // Plain strings stay as raw `value: ...` — no type/data block, no `type: string`.
+    expect(written).not.toMatch(/name:\s*k1[\s\S]*?type:\s*string/);
   });
 });
 

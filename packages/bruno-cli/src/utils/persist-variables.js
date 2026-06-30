@@ -302,21 +302,11 @@ const persistEnvFile = (envFile, scriptVars, options = {}) => {
 
   if (format === 'json') {
     const existingRaw = fs.readFileSync(filePath, 'utf8');
-    let parsed;
-    try {
-      parsed = JSON.parse(existingRaw);
-    } catch {
-      // Bail rather than overwrite a malformed user file with our best guess.
-      return;
-    }
+    const parsed = JSON.parse(existingRaw);
     // Validate shape, but merge against the raw `parsed.variables` so per-entry fields the
     // CLI doesn't recognize (uid, dataType, custom metadata) survive on entries the script
     // didn't touch — parseEnvironmentJson's normalizer would otherwise strip them.
-    try {
-      parseEnvironmentJson(parsed);
-    } catch {
-      return;
-    }
+    parseEnvironmentJson(parsed);
 
     const rawVariables = Array.isArray(parsed.variables) ? parsed.variables.filter(Boolean) : [];
     const mergedVars = mergeScriptVarsIntoEnvList(rawVariables, scriptVars, options);
