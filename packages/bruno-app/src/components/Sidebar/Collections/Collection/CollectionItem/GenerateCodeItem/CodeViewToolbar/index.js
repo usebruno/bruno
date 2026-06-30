@@ -102,6 +102,7 @@ const CodeViewToolbar = () => {
                 value={generateCodePrefs.lineContinuationChar}
                 onChange={handleLineContinuationChange}
                 title="Line continuation character"
+                aria-label="Line continuation character"
               >
                 <option value={'\\'}>{'\\'} (Unix/macOS)</option>
                 <option value="^">^ (Windows cmd)</option>
