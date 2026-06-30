@@ -30,7 +30,8 @@ test.describe('Close workspace returns to default workspace', () => {
       app = await launchElectronApp({ userDataPath });
       const page = await waitForReadyPage(app);
       const locators = buildCommonLocators(page);
-      const switcherName = page.locator('.switcher-name').first();
+      const switcherName = page.getByTestId('workspace-switcher-name');
+      const workspaceActionsTrigger = page.getByTestId('workspace-actions-trigger');
 
       await test.step('Default workspace is "My Workspace" with a collection ColA', async () => {
         await expect(page.getByTestId('workspace-name')).toHaveText('My Workspace', { timeout: 10000 });
@@ -47,14 +48,14 @@ test.describe('Close workspace returns to default workspace', () => {
           workspaceBPath
         );
         await page.getByTestId('workspace-menu').click();
-        await page.locator('.dropdown-item').filter({ hasText: 'Open workspace' }).click();
+        await locators.dropdown.item('Open workspace').click();
         await expect(page.getByTestId('workspace-name')).toHaveText('WorkspaceB', { timeout: 10000 });
         await expect(switcherName).toHaveText('WorkspaceB', { timeout: 10000 });
       });
 
       await test.step('Close WorkspaceB via the workspace-actions ellipsis', async () => {
-        await expect(page.locator('.workspace-actions-trigger')).toBeVisible({ timeout: 10000 });
-        await page.locator('.workspace-actions-trigger').click();
+        await expect(workspaceActionsTrigger).toBeVisible({ timeout: 10000 });
+        await workspaceActionsTrigger.click();
         await locators.dropdown.item('Close').click();
         await expect(locators.modal.byTitle('Close Workspace')).toBeVisible({ timeout: 5000 });
         await locators.modal.button('Close').click();
