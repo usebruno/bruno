@@ -229,15 +229,3 @@ export interface BrunoCollectionRoot {
     seq?: number;
   };
 }
-// FIX ME (draft) - need to update this in @opencollection/types package
-declare module '@opencollection/types/requests/graphql' {
-  export interface GraphQLRequestSettings {
-    forwardAuthorizationHeader?: boolean | 'inherit';
-  }
-}
-
-declare module '@opencollection/types/requests/http' {
-  export interface HttpRequestSettings {
-    forwardAuthorizationHeader?: boolean | 'inherit';
-  }
-}
