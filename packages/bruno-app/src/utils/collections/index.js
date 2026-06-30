@@ -231,6 +231,7 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
         uid: param.uid,
         filePath: param.filePath,
         contentType: param.contentType,
+        description: param.description,
         selected: param.selected
       };
     });

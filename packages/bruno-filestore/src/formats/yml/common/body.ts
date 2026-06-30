@@ -7,8 +7,11 @@ import type {
   MultipartFormBody,
   MultipartFormEntry,
   FileBody,
-  FileBodyEntry
+  FileBodyVariant
 } from '@opencollection/types/requests/http';
+import type { FileEntry as BrunoFileEntry } from '@usebruno/schema-types/common/file';
+
+type FileBodyEntryWithDescription = FileBodyVariant & { description?: string };
 import type { KeyValue as BrunoKeyValue } from '@usebruno/schema-types/common/key-value';
 import { uuid, ensureString } from '../../../utils';
 
@@ -103,12 +106,18 @@ export const toOpenCollectionBody = (body: BrunoHttpRequestBody | null | undefin
       return multipartBody;
 
     case 'file':
-      const fileEntries: FileBodyEntry[] = body.file?.map((file): FileBodyEntry => {
-        return {
+      const fileEntries: FileBodyEntryWithDescription[] = body.file?.map((file): FileBodyEntryWithDescription => {
+        const fileEntry: FileBodyEntryWithDescription = {
           filePath: file.filePath || '',
           contentType: file.contentType || '',
           selected: file.selected ?? false
         };
+
+        if (file?.description?.trim().length) {
+          fileEntry.description = file.description;
+        }
+
+        return fileEntry;
       }) || [];
 
       const fileBody: FileBody = {
@@ -222,12 +231,22 @@ export const toBrunoBody = (body: HttpRequestBody | null | undefined): BrunoHttp
 
     case 'file':
       brunoBody.mode = 'file';
-      brunoBody.file = body.data?.map((file): any => ({
-        uid: uuid(),
-        filePath: file.filePath || '',
-        contentType: file.contentType || '',
-        selected: file.selected ?? false
-      })) || [];
+      brunoBody.file = body.data?.map((file): BrunoFileEntry => {
+        const fileEntry: BrunoFileEntry = {
+          uid: uuid(),
+          filePath: file.filePath || '',
+          contentType: file.contentType || '',
+          selected: file.selected ?? false
+        };
+
+        const fileWithDescription = file as FileBodyEntryWithDescription;
+        const desc = typeof fileWithDescription.description === 'string'
+          ? fileWithDescription.description
+          : (fileWithDescription.description as { content?: string } | undefined)?.content;
+        if (desc && desc.trim().length) fileEntry.description = desc;
+
+        return fileEntry;
+      }) || [];
       break;
 
     default:
