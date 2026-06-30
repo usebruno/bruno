@@ -116,7 +116,8 @@ function createCustomRequire({
       moduleName,
       collectionPath,
       isolatedContext,
-      localModuleCache
+      localModuleCache,
+      additionalContextRootsAbsolute
     });
   };
 }
@@ -278,23 +279,42 @@ function loadNpmModule({
   moduleName,
   collectionPath,
   isolatedContext,
-  localModuleCache
+  localModuleCache,
+  additionalContextRootsAbsolute = []
 }) {
   let resolvedPath;
 
   // Module resolution order:
   // 1. Collection's node_modules (user-installed packages for their collection)
-  // 2. Bruno's node_modules (fallback for built-in dependencies)
+  // 2. Additional context roots' node_modules (packages installed alongside shared scripts)
+  // 3. Bruno's node_modules (fallback for built-in dependencies)
   //
   // This order ensures user packages take precedence, allowing users to:
   // - Override Bruno's bundled package versions
   // - Install collection-specific dependencies
+  // - Use npm packages installed in additionalContextRoots directories
   if (collectionPath) {
     try {
       const collectionRequire = nodeModule.createRequire(path.join(collectionPath, 'package.json'));
       resolvedPath = collectionRequire.resolve(moduleName);
     } catch {
       // Module not found in collection, continue to fallback
+    }
+  }
+
+  // Search additional context roots' node_modules
+  if (!resolvedPath) {
+    for (const contextRoot of additionalContextRootsAbsolute) {
+      if (collectionPath && path.normalize(contextRoot) === path.normalize(collectionPath)) {
+        continue;
+      }
+      try {
+        const contextRequire = nodeModule.createRequire(path.join(contextRoot, 'package.json'));
+        resolvedPath = contextRequire.resolve(moduleName);
+        break;
+      } catch {
+        // Module not found in this context root, try next
+      }
     }
   }
 
