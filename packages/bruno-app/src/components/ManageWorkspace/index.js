@@ -164,7 +164,7 @@ const ManageWorkspace = () => {
                       ]}
                       data-testid="manage-workspace-more-options-btn"
                     >
-                      <button data-testid="more-actions-btn" className="more-actions-btn">
+                      <button className="more-actions-btn">
                         <IconDots size={14} strokeWidth={1.5} />
                       </button>
                     </MenuDropdown>

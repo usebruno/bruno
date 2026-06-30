@@ -21,7 +21,7 @@ export const buildManageWorkspaceLocators = (page: Page) => ({
   // The modal card in the manage workspace item list.
   modalCard: () => page.locator('.bruno-modal-card'),
   // The workspace file name input in the manage workspace pop up model.
-  workspaceFileNameInput: () => page.locator('#workspace-name'),
+  workspaceFileNameInput: () => page.getByTestId('workspace-name-input'),
   // The submit rename button in the manage workspace pop up model
   submitRenameBtn: () => page.getByTestId('modal-submit-btn'),
   // The renamed workspace item in the manage workspace item list.
