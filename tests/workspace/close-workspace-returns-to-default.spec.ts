@@ -20,7 +20,7 @@ test.describe('Close workspace returns to default workspace', () => {
     launchElectronApp,
     createTmpDir
   }) => {
-    const userDataPath = await createTmpDir('close-workspace-bru3663');
+    const userDataPath = await createTmpDir('close-workspace');
     const colAPath = await createTmpDir('col-a');
     const workspaceBPath = await createTmpDir('workspace-b');
     fs.writeFileSync(path.join(workspaceBPath, 'workspace.yml'), WORKSPACE_YML_WORKSPACEB);
