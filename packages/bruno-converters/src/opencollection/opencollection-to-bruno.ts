@@ -23,6 +23,10 @@ const fromOpenCollectionConfig = (oc: OpenCollection): BrunoConfig => {
     ignore: ignoreList
   };
 
+  if (oc.info?.version != null && oc.info.version !== '') {
+    brunoConfig.collectionVersion = String(oc.info.version);
+  }
+
   if (brunoExtension?.presets?.requestType || brunoExtension?.presets?.requestUrl) {
     brunoConfig.presets = {};
     if (brunoExtension.presets.requestType) {

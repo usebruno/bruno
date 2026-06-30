@@ -1256,6 +1256,20 @@ const getPathParams = (item) => {
   return pathParams;
 };
 
+export const isOpenCollectionFormat = (collection) => Boolean(collection?.brunoConfig?.opencollection);
+
+export const getCollectionVersion = (collection) => {
+  const brunoConfig = collection?.brunoConfig;
+  if (!brunoConfig) return '';
+  if (isOpenCollectionFormat(collection)) {
+    // yml: the user version is info.version (brunoConfig.version). When the file has none,
+    // default to '1' (mirroring the schema version) so a yml collection always shows a version.
+    return brunoConfig.version || '1';
+  }
+  // bru: only the explicit collectionVersion; an existing bru collection without one shows "Not Set".
+  return brunoConfig.collectionVersion || '';
+};
+
 export const getTotalRequestCountInCollection = (collection) => {
   let count = 0;
   each(collection.items, (item) => {

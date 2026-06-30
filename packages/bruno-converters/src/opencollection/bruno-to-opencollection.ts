@@ -93,7 +93,15 @@ export const brunoToOpenCollection = (collection: BrunoCollection): OpenCollecti
     }
   };
 
-  const config = toOpenCollectionConfig(collection.brunoConfig as BrunoConfig);
+  const brunoConfig = collection.brunoConfig as BrunoConfig | undefined;
+
+  const isOpenCollectionFormat = Boolean(brunoConfig?.opencollection);
+  const collectionVersion = isOpenCollectionFormat ? brunoConfig?.version : brunoConfig?.collectionVersion;
+  if (openCollection.info && collectionVersion != null && collectionVersion !== '') {
+    openCollection.info.version = String(collectionVersion);
+  }
+
+  const config = toOpenCollectionConfig(brunoConfig);
   if (config) {
     openCollection.config = config;
   }
@@ -150,11 +158,11 @@ export const brunoToOpenCollection = (collection: BrunoCollection): OpenCollecti
     presets?: BrunoPresets;
   } = {};
 
-  if ((collection.brunoConfig as BrunoConfig)?.ignore?.length) {
-    brunoExtension.ignore = (collection.brunoConfig as BrunoConfig).ignore;
+  if (brunoConfig?.ignore?.length) {
+    brunoExtension.ignore = brunoConfig.ignore;
   }
 
-  const presets = (collection.brunoConfig as BrunoConfig)?.presets;
+  const presets = brunoConfig?.presets;
   if (presets?.requestType || presets?.requestUrl) {
     brunoExtension.presets = {};
     if (presets.requestType) {

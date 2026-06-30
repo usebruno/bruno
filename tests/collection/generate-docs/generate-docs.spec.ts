@@ -164,7 +164,7 @@ test.describe('Generate Documentation', () => {
     await expect(modal).toBeHidden();
   });
 
-  test('shows the collection name alongside the raw collection version', async ({
+  test('shows the current collection version verbatim, consistent with the settings page', async ({
     pageWithUserData: page
   }) => {
     const locators = buildCommonLocators(page);

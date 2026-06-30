@@ -10,7 +10,9 @@ const CollectionVersionInfo = ({ name, version, folderCount = 0, requestCount = 
         <span className="collection-name" data-testid="collection-name">{name}</span>
         {version ? (
           <span className="version-value" data-testid="version-value">{`Version: ${version}`}</span>
-        ) : null}
+        ) : (
+          <span className="version-value unset" data-testid="version-value">Not Set</span>
+        )}
       </div>
       <p className="version-summary" data-testid="version-summary">
         <span>{`${folderCount} ${folderLabel}`}</span>

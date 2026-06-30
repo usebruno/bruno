@@ -1,11 +1,12 @@
 import React from 'react';
 import { getTotalRequestCountInCollection } from 'utils/collections/';
-import { IconFolder, IconWorld, IconApi, IconShare, IconBook } from '@tabler/icons';
-import { areItemsLoading, getItemsLoadStats } from 'utils/collections/index';
+import { IconFolder, IconWorld, IconApi, IconShare, IconBook, IconTag } from '@tabler/icons';
+import { areItemsLoading, getItemsLoadStats, getCollectionVersion } from 'utils/collections/index';
 import { useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import ShareCollection from 'components/ShareCollection/index';
 import GenerateDocumentation from 'components/Sidebar/Collections/Collection/GenerateDocumentation';
+import ChangeCollectionVersion from 'components/Sidebar/Collections/Collection/ChangeCollectionVersion';
 import { addTab } from 'providers/ReduxStore/slices/tabs';
 import StyledWrapper from './StyledWrapper';
 import Migration from '../Migration';
@@ -18,6 +19,9 @@ const Info = ({ collection }) => {
   const { loading: itemsLoadingCount, total: totalItems } = getItemsLoadStats(collection);
   const [showShareCollectionModal, toggleShowShareCollectionModal] = useState(false);
   const [showGenerateDocumentationModal, setShowGenerateDocumentationModal] = useState(false);
+  const [showChangeVersionModal, setShowChangeVersionModal] = useState(false);
+
+  const collectionVersion = getCollectionVersion(collection);
 
   const globalEnvironments = useSelector((state) => state.globalEnvironments.globalEnvironments);
 
@@ -44,6 +48,22 @@ const Info = ({ collection }) => {
               </div>
             </div>
           </div>
+
+          <div className="flex items-start group cursor-pointer" onClick={() => setShowChangeVersionModal(true)} data-testid="info-version-row">
+            <div className="icon-box version flex-shrink-0 p-3 rounded-lg">
+              <IconTag className="w-5 h-5" stroke={1.5} />
+            </div>
+            <div className="ml-4 h-full flex flex-col justify-start">
+              <div className="font-medium h-fit my-auto">Version</div>
+              <div className="flex items-center gap-2">
+                {collectionVersion
+                  ? <span className="text-muted" data-testid="info-version-value">{collectionVersion}</span>
+                  : <span className="text-muted italic" data-testid="info-version-value">Not Set</span>}
+                <span className="group-hover:underline text-link" data-testid="info-version-change">Change</span>
+              </div>
+            </div>
+          </div>
+          {showChangeVersionModal && <ChangeCollectionVersion collectionUid={collection.uid} onClose={() => setShowChangeVersionModal(false)} />}
 
           {/* Environments Row */}
           <div className="flex items-start">

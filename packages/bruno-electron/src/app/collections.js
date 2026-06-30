@@ -19,10 +19,14 @@ const registerScratchCollectionPath = (scratchPath) => {
 const configSchema = Yup.object({
   name: Yup.string().max(256, 'name must be 256 characters or less').required('name is required'),
   type: Yup.string().oneOf(['collection']).required('type is required'),
-  // For BRU format collections
-  version: Yup.string().oneOf(['1']).notRequired(),
+  version: Yup.string().when('opencollection', {
+    is: (opencollection) => Boolean(opencollection),
+    then: Yup.string().notRequired(),
+    otherwise: Yup.string().oneOf(['1']).notRequired()
+  }),
   // For YAML format collections (opencollection)
   opencollection: Yup.string().notRequired(),
+  collectionVersion: Yup.string().notRequired(),
   // OpenAPI sync configuration (array, one entry per synced spec)
   openapi: Yup.array().of(
     Yup.object({

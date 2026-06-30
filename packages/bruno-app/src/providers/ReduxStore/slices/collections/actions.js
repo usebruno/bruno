@@ -44,6 +44,7 @@ import {
   responseReceived,
   updateLastAction,
   setCollectionSecurityConfig,
+  updateCollectionVersion as _updateCollectionVersion,
   collectionAddOauth2CredentialsByUrl,
   collectionClearOauth2CredentialsByUrlAndCredentialsId,
   initRunRequestEvent,
@@ -308,6 +309,42 @@ export const saveCollectionRoot = (collectionUid) => (dispatch, getState) => {
       .then(resolve)
       .catch((err) => {
         toast.error('Failed to save collection settings!');
+        reject(err);
+      });
+  });
+};
+
+export const saveCollectionVersion = (collectionUid, version) => (dispatch, getState) => {
+  const state = getState();
+  const collection = findCollectionByUid(state.collections.collections, collectionUid);
+
+  return new Promise((resolve, reject) => {
+    if (!collection) {
+      return reject(new Error('Collection not found'));
+    }
+
+    const updatedVersion = typeof version === 'string' ? version.trim() : '';
+
+    const isYml = Boolean(collection.brunoConfig?.opencollection);
+    const versionKey = isYml ? 'version' : 'collectionVersion';
+    const brunoConfigToSave = { ...(collection.brunoConfig || {}) };
+    if (updatedVersion) {
+      brunoConfigToSave[versionKey] = updatedVersion;
+    } else {
+      delete brunoConfigToSave[versionKey];
+    }
+
+    const { ipcRenderer } = window;
+
+    ipcRenderer
+      .invoke('renderer:update-bruno-config', brunoConfigToSave, collection.pathname, collection.root)
+      .then(() => {
+        dispatch(_updateCollectionVersion({ collectionUid, version: updatedVersion }));
+        toast.success('Collection version updated');
+      })
+      .then(resolve)
+      .catch((err) => {
+        toast.error('Failed to update collection version');
         reject(err);
       });
   });

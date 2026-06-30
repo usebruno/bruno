@@ -203,6 +203,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
         const uid = generateUidBasedOnHash(dirPath);
         let brunoConfig = {
           version: '1',
+          collectionVersion: '1',
           name: collectionName,
           type: 'collection',
           ignore: ['node_modules', '.git']
@@ -214,9 +215,9 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
               name: collectionName
             }
           };
-          // For YAML collections, set opencollection instead of version
           brunoConfig = {
             opencollection: '1.0.0',
+            version: '1',
             name: collectionName,
             type: 'collection',
             ignore: ['node_modules', '.git']
@@ -313,7 +314,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
       brunoConfig.filesCount = filesCount;
 
       mainWindow.webContents.send('main:collection-opened', dirPath, uid, brunoConfig);
-      ipcMain.emit('main:collection-opened', mainWindow, dirPath, uid);
+      ipcMain.emit('main:collection-opened', mainWindow, dirPath, uid, brunoConfig);
     }
   );
 
@@ -1386,10 +1387,15 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
           if (!brunoConfig) {
             brunoConfig = {
               version: '1',
+              collectionVersion: '1',
               name: collection.name,
               type: 'collection',
               ignore: ['node_modules', '.git']
             };
+          } else if (!brunoConfig.collectionVersion) {
+            // Imports create new collection files; default the user-facing version when the
+            // source didn't carry one (a present version, e.g. OpenCollection info.version, is kept).
+            brunoConfig.collectionVersion = '1';
           }
           if (brunoConfig.proxy) {
             brunoConfig.proxy = transformProxyConfig(brunoConfig.proxy);
@@ -1413,6 +1419,12 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
 
         if (format === 'yml') {
           brunoConfig.opencollection = '1.0.0';
+          // For yml the user-facing version is info.version (brunoConfig.version); map the
+          // neutral collectionVersion onto it and keep collectionVersion out of the yaml.
+          if (brunoConfig.collectionVersion) {
+            brunoConfig.version = brunoConfig.collectionVersion;
+          }
+          delete brunoConfig.collectionVersion;
           const collectionContent = await stringifyCollection(coll.root, brunoConfig, { format });
           await writeFile(path.join(collectionPath, 'opencollection.yml'), collectionContent);
         } else if (format === 'bru') {
@@ -1692,7 +1704,22 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
         const content = await stringifyJson(transformedBrunoConfig);
         await writeFile(brunoConfigPath, content);
       } else if (format === 'yml') {
-        const content = await stringifyCollection(collectionRoot, transformedBrunoConfig, { format });
+        // opencollection.yml holds both config AND the collection root. If the caller
+        // didn't supply a root (e.g. a config-only update before the tree finished
+        // loading), recover it from disk so request defaults/docs/scripts aren't wiped.
+        let rootToWrite = collectionRoot;
+        if (!rootToWrite) {
+          const ocYmlPath = path.join(collectionPath, 'opencollection.yml');
+          if (fs.existsSync(ocYmlPath)) {
+            try {
+              const existing = fs.readFileSync(ocYmlPath, 'utf8');
+              rootToWrite = parseCollection(existing, { format }).collectionRoot;
+            } catch (e) {
+              rootToWrite = collectionRoot;
+            }
+          }
+        }
+        const content = await stringifyCollection(rootToWrite, transformedBrunoConfig, { format });
         await writeFile(path.join(collectionPath, 'opencollection.yml'), content);
       } else {
         throw new Error(`Invalid collection format: ${format}`);
@@ -2202,6 +2229,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
 
       const brunoConfig = {
         opencollection: '1.0.0',
+        version: '1',
         name: 'Scratch',
         type: 'collection',
         ignore: ['node_modules', '.git']
@@ -2587,7 +2615,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
         }
 
         let collectionName = 'Imported Collection';
-        let brunoConfig = { name: collectionName, version: '1', type: 'collection', ignore: ['node_modules', '.git'] };
+        let brunoConfig = { name: collectionName, version: '1', collectionVersion: '1', type: 'collection', ignore: ['node_modules', '.git'] };
         if (fs.existsSync(openCollectionYmlPath)) {
           try {
             const content = fs.readFileSync(openCollectionYmlPath, 'utf8');
@@ -2667,8 +2695,13 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
       }
 
       const ymlBrunoConfig = { ...brunoConfig };
-      delete ymlBrunoConfig.version;
+      delete ymlBrunoConfig.version; // drop the bru format marker
       ymlBrunoConfig.opencollection = '1.0.0';
+      // Carry the user-facing version: bru's collectionVersion becomes yml's info.version.
+      if (ymlBrunoConfig.collectionVersion) {
+        ymlBrunoConfig.version = ymlBrunoConfig.collectionVersion;
+      }
+      delete ymlBrunoConfig.collectionVersion;
 
       const ocYmlPath = path.join(collectionPathname, 'opencollection.yml');
       const ymlCollectionContent = stringifyCollection(collectionRoot, ymlBrunoConfig, { format: 'yml' });
