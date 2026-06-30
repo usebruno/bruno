@@ -128,6 +128,62 @@ const Wrapper = styled.div`
     padding-bottom: 2.625rem;
   }
 
+  .env-list-search {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background-color: ${(props) => props.theme.dropdown.bg};
+    display: flex;
+    align-items: center;
+    padding: 0 4px 6px 4px;
+    margin: 0;
+
+    .env-list-search-icon {
+      position: absolute;
+      left: 12px;
+      color: ${(props) => props.theme.colors.text.muted};
+      pointer-events: none;
+    }
+
+    .env-list-search-input {
+      width: 100%;
+      padding: 5px 24px 5px 26px;
+      font-size: 12px;
+      background: transparent;
+      border: 1px solid ${(props) => props.theme.border.border1};
+      border-radius: 6px;
+      color: ${(props) => props.theme.text};
+      transition: border-color 0.15s ease;
+
+      &::placeholder {
+        color: ${(props) => props.theme.colors.text.muted};
+      }
+      
+      &:focus {
+        outline: none;
+        border-color: ${(props) => props.theme.colors.accent};
+      }
+    }
+
+    .env-list-search-clear {
+      position: absolute;
+      right: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2px;
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      color: ${(props) => props.theme.colors.text.muted};
+      border-radius: 3px;
+
+      &:hover {
+        color: ${(props) => props.theme.text};
+      }
+    }
+  }
+
   .dropdown-item-list {
     max-height: 75vh;
     overflow-y: scroll;

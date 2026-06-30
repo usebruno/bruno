@@ -290,6 +290,7 @@ const EnvironmentSelector = ({ collection }) => {
           {/* Tab Content */}
           <div className="tab-content">
             <EnvironmentListContent
+              key={activeTab}
               environments={activeTab === 'collection' ? environments : globalEnvironments}
               activeEnvironmentUid={activeTab === 'collection' ? activeEnvironmentUid : activeGlobalEnvironmentUid}
               description={description}
