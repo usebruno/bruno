@@ -4,6 +4,9 @@ const fsPromises = require('fs/promises');
 const { dialog } = require('electron');
 const isValidPathname = require('is-valid-path');
 const os = require('os');
+// Single shared implementation lives in @usebruno/common; re-exported below so
+// `require('../utils/filesystem')` consumers keep working unchanged.
+const { sanitizeName, validateName, nextSuffixedName } = require('@usebruno/common').utils;
 
 const DEFAULT_GITIGNORE = [
   '# Secrets',
@@ -104,6 +107,56 @@ const writeFile = async (pathname, content, isBinary = false) => {
   }
 };
 
+/**
+ * Atomically create a file under `dirname`, resolving name collisions silently.
+ *
+ * Tries `${base}.${ext}`, then `${base}1.${ext}`, `${base}2.${ext}`, … using the
+ * exclusive-create flag (`wx`) so the filesystem itself arbitrates the name: if
+ * two callers race for the same name, the loser gets EEXIST and retries the next
+ * suffix instead of throwing or overwriting. Removes the check-then-write
+ * (TOCTOU) window behind "path: … already exists" errors.
+ *
+ * @returns {Promise<{ pathname: string, filename: string }>} the path created
+ */
+const writeFileUnique = async (dirname, baseFilename, ext, content) => {
+  const normalizedExt = ext && ext.startsWith('.') ? ext.slice(1) : ext;
+  for (let counter = 0; ; counter++) {
+    const candidate = nextSuffixedName(baseFilename, normalizedExt, counter);
+    const pathname = getSafePathToWrite(path.join(dirname, candidate));
+    try {
+      await fsPromises.writeFile(pathname, content, { flag: 'wx' });
+      return { pathname, filename: path.basename(pathname) };
+    } catch (err) {
+      if (err && err.code === 'EEXIST') continue;
+      console.error(`Error writing file at ${pathname}:`, err);
+      throw err;
+    }
+  }
+};
+
+/**
+ * Atomically create a directory under `dirname`, resolving name collisions
+ * silently. Directory analog of `writeFileUnique`: `mkdir` (non-recursive)
+ * throws EEXIST when the dir already exists, so each retry climbs to the next
+ * suffix (`name`, `name1`, `name2`, …).
+ *
+ * @returns {Promise<{ pathname: string, name: string }>} the directory created
+ */
+const mkdirUnique = async (dirname, baseName) => {
+  for (let counter = 0; ; counter++) {
+    const name = nextSuffixedName(baseName, '', counter);
+    const pathname = path.join(dirname, name);
+    try {
+      await fsPromises.mkdir(pathname);
+      return { pathname, name };
+    } catch (err) {
+      if (err && err.code === 'EEXIST') continue;
+      console.error(`Error creating directory at ${pathname}:`, err);
+      throw err;
+    }
+  }
+};
+
 const hasJsonExtension = (filename) => {
   if (!filename || typeof filename !== 'string') return false;
   return ['json'].some((ext) => filename.toLowerCase().endsWith(`.${ext}`));
@@ -198,15 +251,6 @@ const searchForRequestFiles = (dir, collectionPath = null) => {
   }
 };
 
-const sanitizeName = (name) => {
-  const invalidCharacters = /[<>:"/\\|?*\x00-\x1F]/g;
-  name = name
-    .replace(invalidCharacters, '-') // replace invalid characters with hyphens
-    .replace(/^[\s\-]+/, '') // remove leading spaces and hyphens
-    .replace(/[.\s]+$/, ''); // remove trailing dots and spaces
-  return name;
-};
-
 const isWindowsOS = () => {
   return os.platform() === 'win32';
 };
@@ -245,23 +289,6 @@ const getCollectionFormat = (collectionPath) => {
   }
 
   throw new Error(`No collection configuration found at: ${collectionPath}`);
-};
-
-const validateName = (name) => {
-  const invalidCharacters = /[<>:"/\\|?*\x00-\x1F]/g; // keeping this for informational purpose
-  const reservedDeviceNames = /^(CON|PRN|AUX|NUL|COM[0-9]|LPT[0-9])$/i;
-  const firstCharacter = /^[^\s\-<>:"/\\|?*\x00-\x1F]/; // no space, hyphen and `invalidCharacters`
-  const middleCharacters = /^[^<>:"/\\|?*\x00-\x1F]*$/; // no `invalidCharacters`
-  const lastCharacter = /[^.\s<>:"/\\|?*\x00-\x1F]$/; // no dot, space and `invalidCharacters`
-  if (name.length > 255) return false; // max name length
-
-  if (reservedDeviceNames.test(name)) return false; // windows reserved names
-
-  return (
-    firstCharacter.test(name)
-    && middleCharacters.test(name)
-    && lastCharacter.test(name)
-  );
 };
 
 const safeToRename = (oldPath, newPath) => {
@@ -547,6 +574,8 @@ module.exports = {
   isWSLPath,
   normalizeWSLPath,
   writeFile,
+  writeFileUnique,
+  mkdirUnique,
   hasJsonExtension,
   hasBruExtension,
   hasRequestExtension,

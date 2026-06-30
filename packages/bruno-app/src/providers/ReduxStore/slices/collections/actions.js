@@ -103,41 +103,10 @@ import {
   hydrateSnapshotLookups
 } from 'utils/snapshot';
 
-// generate a unique names
-const generateUniqueName = (originalName, existingItems, isFolder) => {
-  // Extract base name by removing any existing " (number)" suffix
-  const baseName = originalName.replace(/\s*\(\d+\)$/, '');
-  const baseFilename = sanitizeName(baseName);
-
-  // Get normalized filenames for items of the same type
-  const existingFilenames = existingItems
-    .filter((item) => isFolder ? item.type === 'folder' : item.type !== 'folder')
-    .map((item) => {
-      let filename = trim(item.filename);
-      // For requests, remove file extension (.bru, .yml, .yaml)
-      return isFolder ? filename : filename.replace(/\.(bru|yml|yaml)$/, '');
-    });
-
-  // Check if base name conflicts with existing items
-  if (!existingFilenames.includes(baseFilename)) {
-    return { newName: baseName, newFilename: baseFilename };
-  }
-
-  // Find highest counter among conflicting names
-  const counters = existingFilenames
-    .filter((filename) => filename === baseFilename || filename.startsWith(`${baseFilename} (`))
-    .map((filename) => {
-      if (filename === baseFilename) return 0;
-      const match = filename.match(/\((\d+)\)$/);
-      return match ? parseInt(match[1], 10) : 0;
-    });
-
-  const nextCounter = Math.max(0, ...counters) + 1;
-  return {
-    newName: `${baseName} (${nextCounter})`,
-    newFilename: `${baseFilename} (${nextCounter})`
-  };
-};
+// Display name for a cloned/pasted item: always "<source> copy" (semantic).
+// Filename uniqueness is resolved silently by the electron main process
+// (atomic wx-create + numeric suffix), so the renderer no longer guesses.
+const copyDisplayName = (originalName) => `${originalName} copy`;
 
 export const renameCollection = (newName, collectionUid) => (dispatch, getState) => {
   const state = getState();
@@ -946,15 +915,7 @@ export const cloneItem = (newName, newFilename, itemUid, collectionUid) => (disp
     if (isItemAFolder(item)) {
       const parentFolder = findParentItemInCollection(collection, item.uid) || collection;
 
-      const folderWithSameNameExists = find(
-        parentFolder.items,
-        (i) => i.type === 'folder' && trim(i?.filename) === trim(newFilename)
-      );
-
-      if (folderWithSameNameExists) {
-        return reject(new Error('Duplicate folder names under same parent folder are not allowed'));
-      }
-
+      // Filename uniqueness is resolved silently by electron; no pre-check.
       set(item, 'name', newName);
       set(item, 'filename', newFilename);
       set(item, 'root.meta.name', newName);
@@ -972,63 +933,51 @@ export const cloneItem = (newName, newFilename, itemUid, collectionUid) => (disp
     const itemToSave = refreshUidsInItem(transformRequestToSaveToFilesystem(item));
     set(itemToSave, 'name', trim(newName));
     set(itemToSave, 'filename', trim(filename));
+    // Filename uniqueness is resolved silently by electron; no pre-check.
+    // The OPEN_REQUEST task uses the path electron actually created.
     if (!parentItem) {
-      const reqWithSameNameExists = find(
-        collection.items,
-        (i) => i.type !== 'folder' && trim(i.filename) === trim(filename)
-      );
-      if (!reqWithSameNameExists) {
-        const fullPathname = path.join(collection.pathname, filename);
-        const { ipcRenderer } = window;
-        const requestItems = filter(collection.items, (i) => i.type !== 'folder');
-        itemToSave.seq = requestItems ? requestItems.length + 1 : 1;
+      const fullPathname = path.join(collection.pathname, filename);
+      const { ipcRenderer } = window;
+      const requestItems = filter(collection.items, (i) => i.type !== 'folder');
+      itemToSave.seq = requestItems ? requestItems.length + 1 : 1;
 
-        itemSchema
-          .validate(itemToSave)
-          .then(() => ipcRenderer.invoke('renderer:new-request', fullPathname, itemToSave))
-          .then(resolve)
-          .catch(reject);
-
-        dispatch(
-          insertTaskIntoQueue({
-            uid: uuid(),
-            type: 'OPEN_REQUEST',
-            collectionUid,
-            itemPathname: fullPathname
-          })
-        );
-      } else {
-        return reject(new Error('Duplicate request names are not allowed under the same folder'));
-      }
+      itemSchema
+        .validate(itemToSave)
+        .then(() => ipcRenderer.invoke('renderer:new-request', fullPathname, itemToSave))
+        .then((result) => {
+          dispatch(
+            insertTaskIntoQueue({
+              uid: uuid(),
+              type: 'OPEN_REQUEST',
+              collectionUid,
+              itemPathname: result?.pathname || fullPathname
+            })
+          );
+          resolve();
+        })
+        .catch(reject);
     } else {
-      const reqWithSameNameExists = find(
-        parentItem.items,
-        (i) => i.type !== 'folder' && trim(i.filename) === trim(filename)
-      );
-      if (!reqWithSameNameExists) {
-        const dirname = path.dirname(item.pathname);
-        const fullName = path.join(dirname, filename);
-        const { ipcRenderer } = window;
-        const requestItems = filter(parentItem.items, (i) => i.type !== 'folder');
-        itemToSave.seq = requestItems ? requestItems.length + 1 : 1;
+      const dirname = path.dirname(item.pathname);
+      const fullName = path.join(dirname, filename);
+      const { ipcRenderer } = window;
+      const requestItems = filter(parentItem.items, (i) => i.type !== 'folder');
+      itemToSave.seq = requestItems ? requestItems.length + 1 : 1;
 
-        itemSchema
-          .validate(itemToSave)
-          .then(() => ipcRenderer.invoke('renderer:new-request', fullName, itemToSave))
-          .then(resolve)
-          .catch(reject);
-
-        dispatch(
-          insertTaskIntoQueue({
-            uid: uuid(),
-            type: 'OPEN_REQUEST',
-            collectionUid,
-            itemPathname: fullName
-          })
-        );
-      } else {
-        return reject(new Error('Duplicate request names are not allowed under the same folder'));
-      }
+      itemSchema
+        .validate(itemToSave)
+        .then(() => ipcRenderer.invoke('renderer:new-request', fullName, itemToSave))
+        .then((result) => {
+          dispatch(
+            insertTaskIntoQueue({
+              uid: uuid(),
+              type: 'OPEN_REQUEST',
+              collectionUid,
+              itemPathname: result?.pathname || fullName
+            })
+          );
+          resolve();
+        })
+        .catch(reject);
     }
   });
 };
@@ -1073,8 +1022,10 @@ export const pasteItem = (targetCollectionUid, targetItemUid = null) => (dispatc
 
         // Handle folder pasting
         if (isItemAFolder(copiedItem)) {
-          // Generate unique name for folder
-          const { newName, newFilename } = generateUniqueName(copiedItem.name, existingItems, true);
+          // Display name becomes "<source> copy"; electron resolves the
+          // filesystem name uniqueness silently.
+          const newName = copyDisplayName(copiedItem.name);
+          const newFilename = sanitizeName(newName);
 
           set(copiedItem, 'name', newName);
           set(copiedItem, 'filename', newFilename);
@@ -1086,9 +1037,10 @@ export const pasteItem = (targetCollectionUid, targetItemUid = null) => (dispatc
 
           await ipcRenderer.invoke('renderer:clone-folder', copiedItem, fullPathname, targetCollection.pathname);
         } else {
-          // Handle request pasting
-          // Generate unique name for request
-          const { newName, newFilename } = generateUniqueName(copiedItem.name, existingItems, false);
+          // Handle request pasting — display name "<source> copy"; electron
+          // resolves the filename uniqueness and returns the path actually used.
+          const newName = copyDisplayName(copiedItem.name);
+          const newFilename = sanitizeName(newName);
 
           const filename = resolveRequestFilename(newFilename, targetCollection.format);
           const itemToSave = refreshUidsInItem(transformRequestToSaveToFilesystem(copiedItem));
@@ -1101,13 +1053,13 @@ export const pasteItem = (targetCollectionUid, targetItemUid = null) => (dispatc
           itemToSave.seq = requestItems ? requestItems.length + 1 : 1;
 
           await itemSchema.validate(itemToSave);
-          await ipcRenderer.invoke('renderer:new-request', fullPathname, itemToSave, targetCollection.format);
+          const result = await ipcRenderer.invoke('renderer:new-request', fullPathname, itemToSave, targetCollection.format);
 
           dispatch(insertTaskIntoQueue({
             uid: uuid(),
             type: 'OPEN_REQUEST',
             collectionUid: targetCollectionUid,
-            itemPathname: fullPathname
+            itemPathname: result?.pathname || fullPathname
           }));
         }
       }

@@ -38,3 +38,10 @@ export {
   BRUNO_VARIABLE_DATATYPES,
   isBrunoVariableDataType
 } from './datatype';
+
+export {
+  sanitizeName,
+  validateName,
+  validateNameError,
+  nextSuffixedName
+} from './naming';
