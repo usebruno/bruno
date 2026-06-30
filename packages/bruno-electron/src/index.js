@@ -482,6 +482,18 @@ app.on('ready', async () => {
   registerAiAutocompleteIpc(mainWindow);
   registerMountIpc();
 
+  try {
+    const { DatabaseSync } = require('node:sqlite');
+    const sqlite = require('@usebruno/sqlite/node');
+    const sqliteDb = new DatabaseSync(require('node:path').join(app.getPath('userData'), 'bruno-sqlite.db'));
+    sqlite.migrate(sqliteDb, sqlite.migrations);
+    const sqliteStore = sqlite.createStore(sqliteDb);
+    sqlite.registerHandlers(sqliteDb, ipcMain);
+    console.log('[sqlite] initialized,', typeof sqliteStore.run === 'function' ? 'store ready' : 'no store');
+  } catch (err) {
+    console.error('[sqlite] failed to initialize', err);
+  }
+
   // Internal delegator
   ipcMain.handle('main:cache-clear', async () => {
     ipcMain.emit('internal:snapshot:reset');

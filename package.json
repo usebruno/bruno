@@ -16,7 +16,9 @@
     "packages/bruno-toml",
     "packages/bruno-graphql-docs",
     "packages/bruno-requests",
-    "packages/bruno-filestore"
+    "packages/bruno-filestore",
+    "packages/bruno-sql-gen",
+    "packages/bruno-sqlite"
   ],
   "homepage": "https://usebruno.com",
   "devDependencies": {
@@ -72,6 +74,8 @@
     "build:bruno-query": "npm run build --workspace=packages/bruno-query",
     "build:graphql-docs": "npm run build --workspace=packages/bruno-graphql-docs",
     "build:schema-types": "npm run build --workspace=packages/bruno-schema-types",
+    "build:bruno-sql-gen": "npm run build --workspace=packages/bruno-sql-gen",
+    "build:bruno-sqlite": "npm run build --workspace=packages/bruno-sqlite",
     "build:electron": "node ./scripts/build-electron.js",
     "build:electron:mac": "./scripts/build-electron.sh mac",
     "build:electron:win": "./scripts/build-electron.sh win",
