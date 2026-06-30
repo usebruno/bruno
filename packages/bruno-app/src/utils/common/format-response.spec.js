@@ -121,6 +121,23 @@ describe('formatResponse', () => {
       expect(typeof result).toBe('string');
       expect(result).toContain('Lorem ipsum');
     });
+
+    it('should preserve binary response content as base64', () => {
+      const data = {};
+      const dataBuffer = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAAB';
+      const result = formatResponse(data, dataBuffer, 'binary');
+
+      expect(result).toBe(dataBuffer);
+      expect(typeof result).toBe('string');
+    });
+
+    it('should preserve binary response content when parsed data is missing', () => {
+      const dataBuffer = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAAB';
+      const result = formatResponse(undefined, dataBuffer, 'binary');
+
+      expect(result).toBe(dataBuffer);
+      expect(typeof result).toBe('string');
+    });
   });
 
   describe('data type handling', () => {
