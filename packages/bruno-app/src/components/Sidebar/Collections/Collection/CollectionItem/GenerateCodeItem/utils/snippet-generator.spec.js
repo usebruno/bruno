@@ -851,6 +851,59 @@ describe('generateSnippet – digest and NTLM auth curl export', () => {
   });
 });
 
+describe('generateSnippet – line continuation character', () => {
+  const baseCollection = { root: { request: { auth: { mode: 'none' }, headers: [] } } };
+  const item = {
+    uid: 'continuation-req',
+    request: {
+      method: 'GET',
+      url: 'https://example.com/api',
+      headers: [],
+      body: { mode: 'none' },
+      auth: { mode: 'none' }
+    }
+  };
+
+  const multilineSnippet = 'curl --request GET \\\n  --url https://example.com/api \\\n  --header \'Accept: application/json\'';
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    require('httpsnippet').HTTPSnippet = jest.fn().mockImplementation(() => ({
+      convert: jest.fn(() => multilineSnippet)
+    }));
+  });
+
+  it('leaves the backslash continuation untouched by default', () => {
+    const language = { target: 'shell', client: 'curl' };
+    const result = generateSnippet({ language, item, collection: baseCollection, shouldInterpolate: false });
+    expect(result).toBe(multilineSnippet);
+  });
+
+  it('swaps to the caret continuation for Windows cmd', () => {
+    const language = { target: 'shell', client: 'curl' };
+    const result = generateSnippet({ language, item, collection: baseCollection, shouldInterpolate: false, lineContinuationChar: '^' });
+    expect(result).toBe('curl --request GET ^\n  --url https://example.com/api ^\n  --header \'Accept: application/json\'');
+  });
+
+  it('swaps to the backtick continuation for PowerShell', () => {
+    const language = { target: 'shell', client: 'curl' };
+    const result = generateSnippet({ language, item, collection: baseCollection, shouldInterpolate: false, lineContinuationChar: '`' });
+    expect(result).toBe('curl --request GET `\n  --url https://example.com/api `\n  --header \'Accept: application/json\'');
+  });
+
+  it('applies to other shell clients (wget/httpie), not just curl', () => {
+    const language = { target: 'shell', client: 'httpie' };
+    const result = generateSnippet({ language, item, collection: baseCollection, shouldInterpolate: false, lineContinuationChar: '^' });
+    expect(result).toBe('curl --request GET ^\n  --url https://example.com/api ^\n  --header \'Accept: application/json\'');
+  });
+
+  it('does not affect non-shell targets', () => {
+    const language = { target: 'javascript', client: 'fetch' };
+    const result = generateSnippet({ language, item, collection: baseCollection, shouldInterpolate: false, lineContinuationChar: '^' });
+    expect(result).toBe(multilineSnippet);
+  });
+});
+
 describe('generateSnippet – encodeUrl setting', () => {
   const language = { target: 'shell', client: 'curl' };
   const baseCollection = { root: { request: { auth: { mode: 'none' }, headers: [] } } };

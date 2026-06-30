@@ -94,6 +94,14 @@ const StyledWrapper = styled.div`
   }
 
   .right-controls {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+
+    .continuation-select .native-select {
+      min-width: 170px;
+    }
+
     .interpolate-checkbox {
       display: flex;
       align-items: center;
