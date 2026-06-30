@@ -18,6 +18,7 @@ const {
 } = require('@usebruno/filestore');
 
 const { uuid } = require('../utils/common');
+const { parseValueByDataType } = require('@usebruno/common/utils');
 const { getRequestUid } = require('../cache/requestUids');
 const { decryptStringSafe } = require('../utils/encryption');
 const { setBrunoConfig } = require('../store/bruno-config');
@@ -31,6 +32,27 @@ const dotEnvWatcher = require('./dotenv-watcher');
 const MAX_FILE_SIZE = 2.5 * 1024 * 1024;
 
 const environmentSecretsStore = new EnvironmentSecretsStore();
+
+// registered collections stage parsed data into the git-lite snapshot (no-op otherwise)
+const fileIndexByCollection = new Map();
+const stageToCache = (collectionPath, pathname, data) => {
+  const index = fileIndexByCollection.get(collectionPath);
+  if (!index) return;
+  try {
+    index.stageParsed(collectionPath, pathname, data);
+  } catch (err) {
+    console.error('[collection-watcher] cache stage failed for', pathname, err);
+  }
+};
+const unstageFromCache = (collectionPath, pathname) => {
+  const index = fileIndexByCollection.get(collectionPath);
+  if (!index) return;
+  try {
+    index.unstagePath(collectionPath, pathname);
+  } catch (err) {
+    console.error('[collection-watcher] cache unstage failed for', pathname, err);
+  }
+};
 
 const isBrunoConfigFile = (pathname, collectionPath) => {
   const dirname = path.dirname(pathname);
@@ -106,6 +128,7 @@ const addEnvironmentFile = async (win, pathname, collectionUid, collectionPath) 
     let content = fs.readFileSync(pathname, 'utf8');
 
     file.data = await parseEnvironment(content, { format });
+    stageToCache(collectionPath, pathname, file.data);
 
     // Extract name by removing the extension
     const ext = path.extname(basename);
@@ -121,7 +144,7 @@ const addEnvironmentFile = async (win, pathname, collectionUid, collectionPath) 
         const variable = _.find(file.data.variables, (v) => v.name === secret.name);
         if (variable && secret.value) {
           const decryptionResult = decryptStringSafe(secret.value);
-          variable.value = decryptionResult.value;
+          variable.value = parseValueByDataType(decryptionResult.value, variable.dataType);
         }
       });
     }
@@ -147,6 +170,7 @@ const changeEnvironmentFile = async (win, pathname, collectionUid, collectionPat
     const content = fs.readFileSync(pathname, 'utf8');
 
     file.data = await parseEnvironment(content, { format });
+    stageToCache(collectionPath, pathname, file.data);
 
     // Extract name by removing the extension
     const ext = path.extname(basename);
@@ -161,7 +185,7 @@ const changeEnvironmentFile = async (win, pathname, collectionUid, collectionPat
         const variable = _.find(file.data.variables, (v) => v.name === secret.name);
         if (variable && secret.value) {
           const decryptionResult = decryptStringSafe(secret.value);
-          variable.value = decryptionResult.value;
+          variable.value = parseValueByDataType(decryptionResult.value, variable.dataType);
         }
       });
     }
@@ -202,6 +226,7 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
     try {
       const content = fs.readFileSync(pathname, 'utf8');
       let brunoConfig = JSON.parse(content);
+      stageToCache(collectionPath, pathname, brunoConfig);
 
       // Transform the config to add exists metadata for protobuf files and import paths
       brunoConfig = await transformBrunoConfigAfterRead(brunoConfig, collectionPath);
@@ -248,6 +273,8 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
       }
 
       file.data = collectionRoot;
+      // cache the full parse result (collectionRoot + brunoConfig for yml)
+      stageToCache(collectionPath, pathname, parsed);
 
       hydrateCollectionRootWithUuid(file.data);
       win.webContents.send('main:collection-tree-updated', 'addFile', file);
@@ -287,6 +314,7 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
       let format = getCollectionFormat(collectionPath);
       let content = fs.readFileSync(pathname, 'utf8');
       file.data = await parseFolder(content, { format });
+      stageToCache(collectionPath, pathname, file.data);
 
       hydrateCollectionRootWithUuid(file.data);
       win.webContents.send('main:collection-tree-updated', 'addFile', file);
@@ -316,9 +344,11 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
     if (!useWorkerThread) {
       try {
         file.data = await parseRequest(content, { format });
+        stageToCache(collectionPath, pathname, file.data);
         file.partial = false;
         file.loading = false;
         file.size = sizeInMB(fileStats?.size);
+        file.data.raw = content;
         hydrateRequestWithUuid(file.data, pathname);
         win.webContents.send('main:collection-tree-updated', 'addFile', file);
       } catch (error) {
@@ -358,8 +388,10 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
           format,
           filename: pathname
         });
+        stageToCache(collectionPath, pathname, file.data);
         file.partial = false;
         file.loading = false;
+        file.data.raw = content;
         hydrateRequestWithUuid(file.data, pathname);
         win.webContents.send('main:collection-tree-updated', 'addFile', file);
       }
@@ -374,6 +406,7 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
       file.partial = true;
       file.loading = false;
       file.size = sizeInMB(fileStats?.size);
+      file.data.raw = content;
       hydrateRequestWithUuid(file.data, pathname);
       win.webContents.send('main:collection-tree-updated', 'addFile', file);
     } finally {
@@ -425,6 +458,7 @@ const change = async (win, pathname, collectionUid, collectionPath) => {
     try {
       const content = fs.readFileSync(pathname, 'utf8');
       let brunoConfig = JSON.parse(content);
+      stageToCache(collectionPath, pathname, brunoConfig);
 
       // Transform the config to add file existence checks for protobuf files and import paths
       brunoConfig = await transformBrunoConfigAfterRead(brunoConfig, collectionPath);
@@ -473,6 +507,8 @@ const change = async (win, pathname, collectionUid, collectionPath) => {
       }
 
       file.data = collectionRoot;
+      // cache the full parse result (collectionRoot + brunoConfig for yml)
+      stageToCache(collectionPath, pathname, parsed);
 
       hydrateCollectionRootWithUuid(file.data);
       win.webContents.send('main:collection-tree-updated', 'change', file);
@@ -512,6 +548,7 @@ const change = async (win, pathname, collectionUid, collectionPath) => {
       let format = getCollectionFormat(collectionPath);
       let content = fs.readFileSync(pathname, 'utf8');
       file.data = await parseFolder(content, { format });
+      stageToCache(collectionPath, pathname, file.data);
 
       hydrateCollectionRootWithUuid(file.data);
       win.webContents.send('main:collection-tree-updated', 'change', file);
@@ -537,11 +574,14 @@ const change = async (win, pathname, collectionUid, collectionPath) => {
       const fileStats = fs.statSync(pathname);
 
       if (fileStats.size >= MAX_FILE_SIZE && format === 'bru') {
+        // redacted parse — do not write the redacted data through to the cache
         file.data = await parseLargeRequestWithRedaction(content, 'bru');
       } else {
         file.data = await parseRequest(content, { format });
+        stageToCache(collectionPath, pathname, file.data);
       }
 
+      file.data.raw = content;
       file.size = sizeInMB(fileStats?.size);
       hydrateRequestWithUuid(file.data, pathname);
       win.webContents.send('main:collection-tree-updated', 'change', file);
@@ -557,6 +597,8 @@ const unlink = (win, pathname, collectionUid, collectionPath) => {
       return;
     }
     console.log(`watcher unlink: ${pathname}`);
+    // drop the file from the snapshot regardless of type (request/env/config/folder root)
+    unstageFromCache(collectionPath, pathname);
 
     if (isEnvironmentsFolder(pathname, collectionPath)) {
       return unlinkEnvironmentFile(win, pathname, collectionUid);
@@ -724,9 +766,15 @@ class CollectionWatcher {
     delete this.loadingStates[collectionUid];
   }
 
-  addWatcher(win, watchPath, collectionUid, brunoConfig, forcePolling = false, useWorkerThread) {
+  addWatcher(win, watchPath, collectionUid, brunoConfig, forcePolling = false, useWorkerThread, options = {}) {
     if (this.watchers[watchPath]) {
       this.watchers[watchPath].close();
+    }
+
+    // v2 already loaded the tree from cache; skip startup scan and stage live edits
+    const { ignoreInitial = false, fileIndex = null } = options;
+    if (fileIndex) {
+      fileIndexByCollection.set(watchPath, fileIndex);
     }
 
     this.initializeLoadingState(collectionUid);
@@ -741,7 +789,7 @@ class CollectionWatcher {
 
     setTimeout(() => {
       const watcher = chokidar.watch(watchPath, {
-        ignoreInitial: false,
+        ignoreInitial,
         usePolling: isWSLPath(watchPath) || forcePolling ? true : false,
         ignored: (filepath) => {
           const normalizedPath = normalizeAndResolvePath(filepath);
@@ -797,7 +845,7 @@ class CollectionWatcher {
               'Update your system config to allow more concurrently watched files with:',
               '"echo fs.inotify.max_user_watches=524288 | sudo tee -a /etc/sysctl.conf && sudo sysctl -p"'
             );
-            this.addWatcher(win, watchPath, collectionUid, brunoConfig, true, useWorkerThread);
+            this.addWatcher(win, watchPath, collectionUid, brunoConfig, true, useWorkerThread, options);
           } else {
             console.error(`An error occurred in the watcher for: ${watchPath}`, error);
           }
@@ -818,6 +866,8 @@ class CollectionWatcher {
       this.watchers[watchPath].close();
       this.watchers[watchPath] = null;
     }
+
+    fileIndexByCollection.delete(watchPath);
 
     dotEnvWatcher.removeCollectionWatcher(watchPath);
 

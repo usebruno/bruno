@@ -257,16 +257,14 @@ const lightMonochromeTheme = {
   },
 
   notifications: {
-    bg: 'white',
+    bg: colors.BACKGROUND,
     list: {
-      bg: '#eaeaea',
-      borderRight: 'transparent',
+      bg: colors.BACKGROUND,
       borderBottom: '#d3d3d3',
-      hoverBg: '#e4e4e4',
+      hoverBg: colors.GRAY_4,
       active: {
-        border: '#525252',
-        bg: '#dcdcdc',
-        hoverBg: '#dcdcdc'
+        bg: colors.GRAY_3,
+        hoverBg: colors.GRAY_5
       }
     }
   },

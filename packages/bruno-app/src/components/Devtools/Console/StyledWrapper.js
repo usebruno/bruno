@@ -144,6 +144,41 @@ const StyledWrapper = styled.div`
     gap: 4px;
   }
 
+  .details-panel-wrapper {
+    position: relative;
+    flex-shrink: 0;
+    height: 100%;
+    display: flex;
+  }
+
+  div.details-drag-handle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    cursor: col-resize;
+    background-color: transparent;
+    width: 6px;
+    position: absolute;
+    left: -3px;
+    top: 0;
+    z-index: 10;
+    transition: opacity 0.2s ease;
+
+    div.drag-request-border {
+      width: 1px;
+      height: 100%;
+      border-left: solid 1px ${(props) => props.theme.sidebar.dragbar.border};
+    }
+
+    &:hover div.drag-request-border {
+      width: 1px;
+      height: 100%;
+      border-left: solid 1px ${(props) => props.theme.sidebar.dragbar.activeBorder};
+    }
+  }
+
+
   .action-controls {
     display: flex;
     align-items: center;

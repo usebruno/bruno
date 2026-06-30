@@ -36,7 +36,7 @@ const BodyBlock = ({ collection, data, dataBuffer, headers, error, item, type })
             />
           </div>
         ) : (
-          <div className="tl-empty">No Body found</div>
+          <div className="tl-empty">No Body</div>
         )
       )}
     </div>

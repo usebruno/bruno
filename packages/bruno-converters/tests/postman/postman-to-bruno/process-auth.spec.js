@@ -278,6 +278,8 @@ describe('processAuth', () => {
       state: 'test-state',
       pkce: false,
       tokenPlacement: 'header',
+      tokenHeaderPrefix: '',
+      tokenQueryKey: 'access_token',
       credentialsPlacement: 'body'
     });
   });
@@ -312,6 +314,8 @@ describe('processAuth', () => {
       scope: 'test-scope',
       state: 'test-state',
       tokenPlacement: 'header',
+      tokenHeaderPrefix: '',
+      tokenQueryKey: 'access_token',
       credentialsPlacement: 'body'
     });
   });
@@ -342,6 +346,8 @@ describe('processAuth', () => {
       scope: 'test-scope',
       state: 'test-state',
       tokenPlacement: 'header',
+      tokenHeaderPrefix: '',
+      tokenQueryKey: 'access_token',
       credentialsPlacement: 'body'
     });
   });
@@ -362,6 +368,8 @@ describe('processAuth', () => {
       scope: '',
       state: '',
       tokenPlacement: 'url',
+      tokenHeaderPrefix: '',
+      tokenQueryKey: 'access_token',
       credentialsPlacement: 'basic_auth_header'
     });
   });
@@ -381,6 +389,8 @@ describe('processAuth', () => {
       scope: '',
       state: '',
       tokenPlacement: 'url',
+      tokenHeaderPrefix: '',
+      tokenQueryKey: 'access_token',
       credentialsPlacement: 'basic_auth_header'
     });
   });
@@ -416,6 +426,8 @@ describe('processAuth', () => {
       state: 'test-state',
       pkce: true,
       tokenPlacement: 'header',
+      tokenHeaderPrefix: '',
+      tokenQueryKey: 'access_token',
       credentialsPlacement: 'body'
     });
   });
@@ -434,6 +446,8 @@ describe('processAuth', () => {
         scope: 'test-scope',
         state: 'test-state',
         addTokenTo: 'header',
+        tokenHeaderPrefix: 'Bearer',
+        tokenQueryKey: '',
         client_authentication: 'body'
       }
     };
@@ -450,6 +464,8 @@ describe('processAuth', () => {
       scope: 'test-scope',
       state: 'test-state',
       tokenPlacement: 'header',
+      tokenHeaderPrefix: '',
+      tokenQueryKey: 'access_token',
       credentialsPlacement: 'body'
     });
   });
