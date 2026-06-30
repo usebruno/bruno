@@ -581,7 +581,7 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
             const useFileSave = collection.fileMode || item.type === 'js';
             const savePromise = useFileSave
               ? dispatch(saveFile(item?.draft?.raw ?? item?.raw, item.uid, collection.uid))
-              : dispatch(saveRequest(item.uid, collection.uid));
+              : dispatch(saveRequest(item.uid, collection.uid, false, true));
 
             savePromise
               .then(() => {
@@ -591,7 +591,11 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
                 setShowConfirmClose(false);
               })
               .catch((err) => {
-                console.log('err', err);
+                if (!err) {
+                  setShowConfirmClose(false);
+                } else {
+                  console.log('err', err);
+                }
               });
           }}
         />
