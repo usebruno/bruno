@@ -2,7 +2,7 @@ import { test, expect } from '../../../playwright';
 import * as path from 'path';
 import { importCollection, closeAllCollections, buildCommonLocators } from '../../utils/page';
 
-test.describe.serial('Import Bruno Collection - request with missing URL', () => {
+test.describe('Import Bruno Collection - request with missing URL', () => {
   test.afterAll(async ({ page }) => {
     await closeAllCollections(page);
   });
@@ -18,21 +18,23 @@ test.describe.serial('Import Bruno Collection - request with missing URL', () =>
       const brunoFile = path.resolve(__dirname, 'fixtures', fixture);
       const location = await createTmpDir(collectionName);
 
-      await importCollection(page, brunoFile, location, {
-        expectedCollectionName: collectionName
+      await test.step('Import the collection', async () => {
+        await importCollection(page, brunoFile, location, {
+          expectedCollectionName: collectionName
+        });
       });
-    });
 
-    test(`${type} collection, request${exampleName ? ' and example' : ''} appear in the sidebar after import`, async ({ page }) => {
-      const locators = buildCommonLocators(page);
+      await test.step(`Verify the collection, request${exampleName ? ' and example' : ''} appear in the sidebar`, async () => {
+        const locators = buildCommonLocators(page);
 
-      await expect(locators.sidebar.collection(collectionName)).toBeVisible();
-      await expect(locators.sidebar.itemRow(requestName)).toBeVisible();
+        await expect(locators.sidebar.collection(collectionName)).toBeVisible();
+        await expect(locators.sidebar.itemRow(requestName)).toBeVisible();
 
-      if (exampleName) {
-        await locators.sidebar.requestExamplesToggle(requestName).click();
-        await expect(locators.sidebar.example(exampleName)).toBeVisible();
-      }
+        if (exampleName) {
+          await locators.sidebar.requestExamplesToggle(requestName).click();
+          await expect(locators.sidebar.example(exampleName)).toBeVisible();
+        }
+      });
     });
   }
 });
