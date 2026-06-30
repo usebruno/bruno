@@ -7,7 +7,6 @@ const StyledWrapper = styled.div`
   border-top: 1px solid ${(props) => props.theme.console.border};
   display: flex;
   flex-direction: column;
-  overflow: hidden;
 
   .console-header {
     display: flex;
@@ -235,25 +234,6 @@ const StyledWrapper = styled.div`
     }
   }
 
-  .filter-dropdown-menu {
-    position: absolute;
-    top: calc(100% + 4px);
-    left: 0;
-    min-width: 200px;
-    max-width: 250px;
-    background: ${(props) => props.theme.console.dropdownBg};
-    border: 1px solid ${(props) => props.theme.console.border};
-    border-radius: 6px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-    z-index: 1000;
-    overflow: hidden;
-    
-    &.right {
-      left: auto;
-      right: 0;
-    }
-  }
-
   .filter-dropdown-header {
     display: flex;
     align-items: center;
@@ -369,12 +349,12 @@ const StyledWrapper = styled.div`
 
     &.error {
       border-left-color: #f14c4c;
-      
+
       .log-level {
         background: #f14c4c;
         color: white;
       }
-      
+
       .log-icon {
         color: #f14c4c;
       }
@@ -382,12 +362,12 @@ const StyledWrapper = styled.div`
 
     &.warn {
       border-left-color: #ffcc02;
-      
+
       .log-level {
         background: #ffcc02;
         color: #000;
       }
-      
+
       .log-icon {
         color: #ffcc02;
       }
@@ -395,12 +375,12 @@ const StyledWrapper = styled.div`
 
     &.info {
       border-left-color: #0078d4;
-      
+
       .log-level {
         background: #0078d4;
         color: white;
       }
-      
+
       .log-icon {
         color: #0078d4;
       }
@@ -408,12 +388,12 @@ const StyledWrapper = styled.div`
 
     &.debug {
       border-left-color: #9b59b6;
-      
+
       .log-level {
         background: #9b59b6;
         color: white;
       }
-      
+
       .log-icon {
         color: #9b59b6;
       }
@@ -421,12 +401,12 @@ const StyledWrapper = styled.div`
 
     &.log {
       border-left-color: #6a6a6a;
-      
+
       .log-level {
         background: #6a6a6a;
         color: white;
       }
-      
+
       .log-icon {
         color: #6a6a6a;
       }
@@ -526,6 +506,96 @@ const StyledWrapper = styled.div`
         }
       }
     }
+  }
+`;
+
+export const PortalDropdownMenu = styled.div`
+  min-width: 200px;
+  max-width: 250px;
+  background: ${(props) => props.theme.console.dropdownBg};
+  border: 1px solid ${(props) => props.theme.console.border};
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  overflow: hidden;
+
+  .filter-dropdown-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 4px 12px;
+    background: ${(props) => props.theme.console.dropdownHeaderBg};
+    border-bottom: 1px solid ${(props) => props.theme.console.border};
+    font-size: ${(props) => props.theme.font.size.sm};
+    font-weight: 500;
+    color: ${(props) => props.theme.console.titleColor};
+  }
+
+  .filter-toggle-all {
+    background: transparent;
+    border: none;
+    color: ${(props) => props.theme.console.buttonColor};
+    cursor: pointer;
+    font-size: ${(props) => props.theme.font.size.xs};
+    font-weight: 500;
+    padding: 2px 4px;
+    border-radius: 2px;
+    transition: all 0.2s ease;
+
+    &:hover {
+      background: ${(props) => props.theme.console.buttonHoverBg};
+    }
+  }
+
+  .filter-dropdown-options {
+    padding: 4px 0;
+    overflow-y: auto;
+  }
+
+  .filter-option {
+    display: flex;
+    align-items: center;
+    padding: 4px 12px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+
+    &:hover {
+      background: ${(props) => props.theme.console.optionHoverBg};
+    }
+
+    input[type='checkbox'] {
+      margin: 0 8px 0 0;
+      width: 14px;
+      height: 14px;
+      accent-color: ${(props) => props.theme.console.checkboxColor};
+    }
+  }
+
+  .filter-option-content {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+  }
+
+  .filter-option-label {
+    color: ${(props) => props.theme.console.optionLabelColor};
+    font-size: ${(props) => props.theme.font.size.sm};
+    font-weight: 400;
+  }
+
+  .filter-option-count {
+    color: ${(props) => props.theme.console.optionCountColor};
+    font-size: ${(props) => props.theme.font.size.xs};
+    font-weight: 400;
+    margin-left: auto;
+  }
+
+  .log-icon {
+    flex-shrink: 0;
+    &.error { color: #f14c4c; }
+    &.warn  { color: #ffcc02; }
+    &.info  { color: #0078d4; }
+    &.log   { color: #6a6a6a; }
   }
 `;
 
