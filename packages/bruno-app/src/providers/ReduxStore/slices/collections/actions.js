@@ -58,6 +58,7 @@ import {
   updateVar,
   addFolderVar,
   updateFolderVar,
+  deleteFolderVar,
   addCollectionVar,
   updateCollectionVar,
   scriptUpdateCollectionVars,
@@ -2291,7 +2292,14 @@ export const updateVariableInScope = (variableName, newValue, scopeInfo, collect
         case 'folder': {
           const { folder, variable } = data;
 
-          if (variable) {
+          if (variable && newValue === '') {
+            dispatch(deleteFolderVar({
+              collectionUid,
+              folderUid: folder.uid,
+              type: 'request',
+              varUid: variable.uid
+            }));
+          } else if (variable) {
             // Update existing variable in draft
             dispatch(updateFolderVar({
               collectionUid,
