@@ -68,6 +68,11 @@ const WSBody = ({ item, collection, handleRun, onAddMessage }) => {
         setNewMessageUid(newMsg.uid);
         setSelectedIndex(messages.length - 1);
       }
+
+      if (messagesContainerRef.current) {
+        const container = messagesContainerRef.current;
+        container.scrollTop = container.scrollHeight;
+      }
     }
     prevMessagesLengthRef.current = messages.length;
   }, [messages.length]);
@@ -75,14 +80,6 @@ const WSBody = ({ item, collection, handleRun, onAddMessage }) => {
   const handleNewMessageRendered = useCallback(() => {
     setNewMessageUid(null);
   }, []);
-
-  // Auto-scroll to bottom when new message is added
-  useEffect(() => {
-    if (messagesContainerRef.current && messages.length > 0) {
-      const container = messagesContainerRef.current;
-      container.scrollTop = container.scrollHeight;
-    }
-  }, [messages.length]);
 
   if (!messages.length) {
     return (
@@ -100,7 +97,7 @@ const WSBody = ({ item, collection, handleRun, onAddMessage }) => {
 
   return (
     <StyledWrapper>
-      <div ref={messagesContainerRef} className="messages-container">
+      <div ref={messagesContainerRef} className="messages-container" data-testid="ws-messages-container">
         {messages.map((message, index) => (
           <SingleWSMessage
             key={message.uid}
