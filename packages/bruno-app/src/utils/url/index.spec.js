@@ -330,6 +330,11 @@ describe('Url Utils - splitOnFirst', () => {
 });
 
 describe('Url Utils - interpolateUrl, interpolateUrlPathParams', () => {
+  it('should return empty URLs without interpolating path params', () => {
+    expect(interpolateUrlPathParams(undefined, [])).toBeUndefined();
+    expect(interpolateUrlPathParams('', [])).toBe('');
+  });
+
   it('should interpolate url correctly', () => {
     const url = '{{host}}/api/:id/path?foo={{foo}}&bar={{bar}}&baz={{process.env.baz}}';
     const expectedUrl = 'https://example.com/api/:id/path?foo=foo_value&bar=bar_value&baz=baz_value';
