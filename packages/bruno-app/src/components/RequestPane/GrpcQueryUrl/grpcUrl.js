@@ -19,8 +19,20 @@ const VARIABLE_PREFIX_REGEX = /^\s*\{\{/;
  * Mirrors the backend's host check: localhost is treated as plaintext by default.
  */
 export const isLocalGrpcHost = (url = '') => {
-  const value = url.toLowerCase();
-  return value.includes('localhost') || value.includes('127.0.0.1');
+  const value = url.trim().replace(SCHEME_REGEX, '');
+  if (!value || VARIABLE_PREFIX_REGEX.test(value)) {
+    return false;
+  }
+
+  const hostWithPort = value.split(/[/?#]/)[0];
+  const bracketedIpv6End = hostWithPort.startsWith('[') ? hostWithPort.indexOf(']') : -1;
+  const hostname = (
+    bracketedIpv6End > -1
+      ? hostWithPort.slice(1, bracketedIpv6End)
+      : hostWithPort.split(':')[0]
+  ).toLowerCase();
+
+  return hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1';
 };
 
 /**
@@ -48,10 +60,17 @@ export const isSecureGrpcUrl = (url = '') => {
 };
 
 /**
- * Strip a leading grpc:// or grpcs:// for display in the URL editor, so the
+ * Strip a leading scheme for display in the URL editor, so the
  * scheme is controlled by the lock toggle instead of being typed by hand.
  */
-export const getDisplayGrpcUrl = (url = '') => url.replace(/^(grpc|grpcs):\/\//i, '');
+export const getDisplayGrpcUrl = (url = '') => url.replace(SCHEME_REGEX, '');
+
+/**
+ * True when a gRPC URL has a host-like value after stripping the transport
+ * scheme. Used to avoid reflection attempts for scheme-only values like
+ * grpc:// or grpcs://.
+ */
+export const hasGrpcUrlHost = (url = '') => Boolean(getDisplayGrpcUrl(url).trim());
 
 /**
  * Apply the chosen scheme to a URL. A leading scheme is replaced; otherwise the
@@ -72,12 +91,14 @@ export const setGrpcUrlSecureScheme = (url = '', secure = false) => {
 };
 
 /**
- * Decide whether the resulting URL should be secure when the user edits the URL.
- * Priority: a scheme typed/pasted in the new value wins; otherwise the previously
- * chosen scheme is preserved; otherwise the host-based default is inferred.
+ * Decide whether a typed URL should be normalized to an explicit scheme.
+ * Priority: a scheme typed/pasted in the new value wins; otherwise the
+ * previously chosen explicit scheme is preserved. If neither side has an
+ * explicit scheme, return undefined so the URL can remain backend-inferred until
+ * the user makes an explicit TLS choice with the lock toggle.
  */
 export const resolveSecureForInput = (storedUrl = '', inputValue = '') => {
   if (hasExplicitGrpcScheme(inputValue)) return isSecureGrpcUrl(inputValue);
   if (hasExplicitGrpcScheme(storedUrl)) return isSecureGrpcUrl(storedUrl);
-  return isSecureGrpcUrl(inputValue);
+  return undefined;
 };

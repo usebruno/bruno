@@ -32,6 +32,7 @@ import {
   isSecureGrpcUrl,
   setGrpcUrlSecureScheme,
   getDisplayGrpcUrl,
+  hasGrpcUrlHost,
   resolveSecureForInput
 } from './grpcUrl';
 
@@ -108,10 +109,17 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
     const cursor = editor.getCursor();
 
     const trimmedValue = value?.trim() || '';
-    // Preserve an explicitly chosen scheme; otherwise infer the default from the
-    // new value's host, mirroring the backend (remote -> TLS, local -> plaintext).
+    // Preserve an explicitly chosen scheme; otherwise keep scheme-less URLs
+    // scheme-less so the backend can keep inferring the transport until the user
+    // makes an explicit TLS choice with the lock toggle.
     const secureUrl = resolveSecureForInput(url, trimmedValue);
-    const finalUrl = trimmedValue ? setGrpcUrlSecureScheme(trimmedValue, secureUrl) : '';
+    let finalUrl = '';
+    if (trimmedValue) {
+      finalUrl = trimmedValue;
+      if (secureUrl !== undefined) {
+        finalUrl = setGrpcUrlSecureScheme(trimmedValue, secureUrl);
+      }
+    }
 
     dispatch(
       requestUrlChanged({
@@ -129,7 +137,7 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
       }, 0);
     }
 
-    if (!protoFilePath && finalUrl) {
+    if (!protoFilePath && hasGrpcUrlHost(finalUrl)) {
       setIsReflectionMode(true);
       handleReflection(finalUrl);
     }
@@ -253,7 +261,7 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
       })
     );
 
-    if (isReflectionMode && finalUrl) {
+    if (isReflectionMode && hasGrpcUrlHost(finalUrl)) {
       handleReflection(finalUrl);
     }
   };

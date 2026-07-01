@@ -4,6 +4,7 @@ import {
   hasExplicitGrpcScheme,
   isSecureGrpcUrl,
   getDisplayGrpcUrl,
+  hasGrpcUrlHost,
   setGrpcUrlSecureScheme,
   resolveSecureForInput
 } from './grpcUrl';
@@ -14,10 +15,13 @@ describe('grpcUrl helpers', () => {
       expect(isLocalGrpcHost('localhost:50051')).toBe(true);
       expect(isLocalGrpcHost('grpc://127.0.0.1:50051')).toBe(true);
       expect(isLocalGrpcHost('LOCALHOST:9090')).toBe(true);
+      expect(isLocalGrpcHost('grpcs://[::1]:50051')).toBe(true);
     });
 
     it('treats remote hosts as non-local', () => {
       expect(isLocalGrpcHost('api.example.com:443')).toBe(false);
+      expect(isLocalGrpcHost('api-localhost.example.com:443')).toBe(false);
+      expect(isLocalGrpcHost('127.0.0.1.example.com:443')).toBe(false);
       expect(isLocalGrpcHost('')).toBe(false);
     });
   });
@@ -63,14 +67,30 @@ describe('grpcUrl helpers', () => {
   });
 
   describe('getDisplayGrpcUrl', () => {
-    it('strips grpc/grpcs schemes for display', () => {
+    it('strips explicit schemes for display', () => {
       expect(getDisplayGrpcUrl('grpc://localhost:50051')).toBe('localhost:50051');
       expect(getDisplayGrpcUrl('grpcs://example.com')).toBe('example.com');
+      expect(getDisplayGrpcUrl('http://localhost:50051')).toBe('localhost:50051');
+      expect(getDisplayGrpcUrl('https://example.com')).toBe('example.com');
     });
 
     it('leaves scheme-less and variable urls untouched', () => {
       expect(getDisplayGrpcUrl('example.com')).toBe('example.com');
       expect(getDisplayGrpcUrl('{{baseUrl}}')).toBe('{{baseUrl}}');
+    });
+  });
+
+  describe('hasGrpcUrlHost', () => {
+    it('is false for empty and scheme-only values', () => {
+      expect(hasGrpcUrlHost('')).toBe(false);
+      expect(hasGrpcUrlHost('grpc://')).toBe(false);
+      expect(hasGrpcUrlHost('grpcs://')).toBe(false);
+    });
+
+    it('is true when a host-like value remains after stripping the scheme', () => {
+      expect(hasGrpcUrlHost('localhost:50051')).toBe(true);
+      expect(hasGrpcUrlHost('grpcs://example.com')).toBe(true);
+      expect(hasGrpcUrlHost('{{baseUrl}}')).toBe(true);
     });
   });
 
@@ -112,9 +132,10 @@ describe('grpcUrl helpers', () => {
       expect(resolveSecureForInput('grpc://localhost', 'localhost:1')).toBe(false);
     });
 
-    it('infers from the host when neither side has a scheme', () => {
-      expect(resolveSecureForInput('', 'example.com:443')).toBe(true);
-      expect(resolveSecureForInput('', 'localhost:50051')).toBe(false);
+    it('preserves scheme-less input when neither side has a scheme', () => {
+      expect(resolveSecureForInput('', 'example.com:443')).toBeUndefined();
+      expect(resolveSecureForInput('', 'localhost:50051')).toBeUndefined();
+      expect(resolveSecureForInput('{{baseUrl}}', '{{baseUrl}}')).toBeUndefined();
     });
   });
 });
