@@ -103,17 +103,51 @@ class CodeEditor extends React.Component {
       theme: this.props.theme === 'dark' ? 'monokai' : 'default',
       extraKeys: {
         'Cmd-F': (cm) => {
+          const selected = cm.getSelection();
+          const cursor = cm.getCursor('from');
           this.setState({ searchBarVisible: true }, () => {
-            this.searchBarRef.current?.focus();
+            if (selected) {
+              this.searchBarRef.current?.setSearch(selected, cursor);
+            } else {
+              this.searchBarRef.current?.focusAtCursor(cursor);
+            }
           });
         },
         'Ctrl-F': (cm) => {
+          const selected = cm.getSelection();
+          const cursor = cm.getCursor('from');
           this.setState({ searchBarVisible: true }, () => {
-            this.searchBarRef.current?.focus();
+            if (selected) {
+              this.searchBarRef.current?.setSearch(selected, cursor);
+            } else {
+              this.searchBarRef.current?.focusAtCursor(cursor);
+            }
           });
         },
-        'Cmd-H': this.props.readOnly ? false : 'replace',
-        'Ctrl-H': this.props.readOnly ? false : 'replace',
+        'Cmd-H': this.props.readOnly ? false : () => {
+          this.setState({ searchBarVisible: true }, () => {
+            this.searchBarRef.current?.focus();
+            this.searchBarRef.current?.openReplace();
+          });
+        },
+        'Ctrl-H': this.props.readOnly ? false : () => {
+          this.setState({ searchBarVisible: true }, () => {
+            this.searchBarRef.current?.focus();
+            this.searchBarRef.current?.openReplace();
+          });
+        },
+        'Cmd-Alt-F': this.props.readOnly ? false : () => {
+          this.setState({ searchBarVisible: true }, () => {
+            this.searchBarRef.current?.focus();
+            this.searchBarRef.current?.openReplace();
+          });
+        },
+        'Ctrl-Alt-F': this.props.readOnly ? false : () => {
+          this.setState({ searchBarVisible: true }, () => {
+            this.searchBarRef.current?.focus();
+            this.searchBarRef.current?.openReplace();
+          });
+        },
         'Cmd-Enter': runShortcut,
         'Ctrl-Enter': runShortcut,
         'Tab': function (cm) {
@@ -148,7 +182,7 @@ class CodeEditor extends React.Component {
         },
         'Esc': () => {
           if (this.state.searchBarVisible) {
-            this.setState({ searchBarVisible: false });
+            this.searchBarRef.current?.close();
           }
         }
       },
@@ -444,6 +478,7 @@ class CodeEditor extends React.Component {
       <StyledWrapper
         className={`h-full w-full flex flex-col relative graphiql-container ${this.props.readOnly ? 'read-only' : ''}`}
         aria-label="Code Editor"
+        data-testid={this.props.testId}
         font={this.props.font}
         fontSize={this.props.fontSize}
       >
@@ -454,6 +489,7 @@ class CodeEditor extends React.Component {
           }}
           visible={this.state.searchBarVisible}
           editor={this.editor}
+          readOnly={this.props.readOnly}
           onClose={() => this.setState({ searchBarVisible: false })}
         />
         <div
