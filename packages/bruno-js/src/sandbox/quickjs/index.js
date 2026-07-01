@@ -7,6 +7,7 @@ const addLibraryShimsToContext = require('./shims/lib');
 const addLocalModuleLoaderShimToContext = require('./shims/local-module');
 const { getRequireCode } = require('./shims/require');
 const { newQuickJSWASMModule, memoizePromiseFactory } = require('quickjs-emscripten');
+const path = require('path');
 
 // execute `npm run sandbox:bundle-libraries` if the below file doesn't exist
 const getBundledCode = require('../bundle-browser-rollup');
@@ -29,6 +30,13 @@ const removeQuotes = (str) => {
     return str.slice(1, -1);
   }
   return str;
+};
+
+const resolveScriptFilename = (scriptPath, collectionPath) => {
+  if (scriptPath) {
+    return path.isAbsolute(scriptPath) ? scriptPath : path.join(collectionPath, scriptPath);
+  }
+  return path.join(collectionPath, 'script.js');
 };
 
 const executeQuickJsVm = ({ script: externalScript, context: externalContext, scriptType = 'template-literal' }) => {
@@ -117,11 +125,14 @@ const executeQuickJsVmAsync = async ({ script: externalScript, context: external
     );
 
     const { bru, req, res, test, __brunoTestResults, console: consoleFn } = externalContext;
+    const vmFilename = resolveScriptFilename(scriptPath, collectionPath);
 
     consoleFn && addConsoleShimToContext(vm, consoleFn);
     bru && addBruShimToContext(vm, bru);
     req && addBrunoRequestShimToContext(vm, req);
     res && addBrunoResponseShimToContext(vm, res);
+    vm.setProp(vm.global, '__filename', marshallToVm(vmFilename, vm));
+    vm.setProp(vm.global, '__dirname', marshallToVm(path.dirname(vmFilename), vm));
     addLocalModuleLoaderShimToContext(vm, collectionPath);
     addPathShimToContext(vm);
 
