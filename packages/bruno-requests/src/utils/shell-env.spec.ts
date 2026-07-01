@@ -1,4 +1,4 @@
-import { initializeShellEnv, refreshShellEnvProxyVars } from './shell-env';
+import { initializeShellEnv } from './shell-env';
 import path from 'path';
 
 let mockShellEnvResult: Record<string, string> = {};
@@ -90,56 +90,5 @@ describe('initializeShellEnv', () => {
 
     expect(result).toEqual({});
     expect(process.env.SHOULD_NOT_APPEAR).toBeUndefined();
-  });
-});
-
-describe('refreshShellEnvProxyVars', () => {
-  afterEach(() => {
-    // Lowercase proxy vars
-    delete process.env.http_proxy;
-    delete process.env.https_proxy;
-    delete process.env.no_proxy;
-    delete process.env.all_proxy;
-
-    // Uppercase proxy vars
-    delete process.env.HTTP_PROXY;
-    delete process.env.HTTPS_PROXY;
-    delete process.env.NO_PROXY;
-    delete process.env.ALL_PROXY;
-  });
-
-  test('should update proxy env vars from shell config', async () => {
-    process.env.http_proxy = 'http://old-proxy:8080';
-    mockShellEnvResult = {
-      http_proxy: 'http://new-proxy:8080',
-      https_proxy: 'http://new-proxy:8443'
-    };
-
-    await refreshShellEnvProxyVars();
-
-    expect(process.env.http_proxy).toBe('http://new-proxy:8080');
-    expect(process.env.https_proxy).toBe('http://new-proxy:8443');
-  });
-
-  test('should remove proxy env vars missing from shell config', async () => {
-    process.env.http_proxy = 'http://old-proxy:8080';
-    process.env.no_proxy = 'localhost';
-    mockShellEnvResult = {};
-
-    await refreshShellEnvProxyVars();
-
-    expect(process.env.http_proxy).toBeUndefined();
-    expect(process.env.no_proxy).toBeUndefined();
-  });
-
-  test('should not keep stale process.env proxy vars after shell config is cleared', async () => {
-    process.env.http_proxy = 'http://stale-proxy:8080';
-    process.env.https_proxy = 'http://stale-proxy:8443';
-    mockShellEnvResult = {};
-
-    await refreshShellEnvProxyVars();
-
-    expect(process.env.http_proxy).toBeUndefined();
-    expect(process.env.https_proxy).toBeUndefined();
   });
 });
