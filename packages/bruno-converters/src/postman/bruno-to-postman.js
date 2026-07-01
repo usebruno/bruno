@@ -420,6 +420,8 @@ export const brunoToPostman = (collection) => {
           ]
         };
       }
+      case 'inherit':
+        return undefined;
       default: {
         return {
           type: 'noauth'
@@ -436,11 +438,14 @@ export const brunoToPostman = (collection) => {
     const requestObject = {
       method: itemRequest.method || 'GET',
       header: generateHeaders(itemRequest.headers),
-      auth: generateAuth(itemRequest.auth),
       description: itemRequest.docs || '',
       // We sanitize the URL to make sure it's in the right format before passing it to the transformUrl func. This means changing backslashes to forward slashes and reducing multiple slashes to a single one, except in the protocol part.
       url: transformUrl(sanitizeUrl(itemRequest.url || ''), itemRequest.params || [])
     };
+    const auth = generateAuth(itemRequest.auth);
+    if (auth) {
+      requestObject.auth = auth;
+    }
 
     if (itemRequest.body && itemRequest.body.mode !== 'none') {
       requestObject.body = generateBody(itemRequest.body);
@@ -555,9 +560,11 @@ export const brunoToPostman = (collection) => {
 
       if (item.type === 'folder') {
         const folderEvents = generateEventSection(item);
+        const folderAuth = item.root?.request?.auth ? generateAuth(item.root.request.auth) : undefined;
         return {
           name: item.name || 'Untitled Folder',
           item: generateItemSection(item.items),
+          ...(folderAuth ? { auth: folderAuth } : {}),
           ...(folderEvents.length ? { event: folderEvents } : {})
         };
       } else if (isItemARequest(item)) {
@@ -589,6 +596,10 @@ export const brunoToPostman = (collection) => {
   collectionToExport.info = generateInfoSection();
   collectionToExport.item = generateItemSection(collection.items);
   collectionToExport.variable = generateCollectionVars(collection);
+  const collectionAuth = collection.root?.request?.auth ? generateAuth(collection.root.request.auth) : undefined;
+  if (collectionAuth) {
+    collectionToExport.auth = collectionAuth;
+  }
   const collectionEvents = generateEventSection(collection.root);
   if (collectionEvents.length) {
     collectionToExport.event = collectionEvents;

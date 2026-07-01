@@ -491,6 +491,84 @@ describe('brunoToPostman null checks and fallbacks', () => {
       ]
     });
   });
+
+  it('should export collection bearer auth and let inherited requests use it', () => {
+    const simpleCollection = {
+      name: 'Auth Collection',
+      root: {
+        request: {
+          auth: {
+            mode: 'bearer',
+            bearer: { token: '{{token}}' }
+          }
+        }
+      },
+      items: [
+        {
+          name: 'Inherited Request',
+          type: 'http-request',
+          request: {
+            method: 'GET',
+            url: 'https://example.com',
+            auth: { mode: 'inherit' }
+          }
+        }
+      ]
+    };
+
+    const result = brunoToPostman(simpleCollection);
+    expect(result.auth).toEqual({
+      type: 'bearer',
+      bearer: {
+        key: 'token',
+        value: '{{token}}',
+        type: 'string'
+      }
+    });
+    expect(result.item[0].request.auth).toBeUndefined();
+  });
+
+  it('should export folder bearer auth and let inherited child requests use it', () => {
+    const simpleCollection = {
+      name: 'Folder Auth Collection',
+      items: [
+        {
+          name: 'Auth Folder',
+          type: 'folder',
+          root: {
+            request: {
+              auth: {
+                mode: 'bearer',
+                bearer: { token: '{{folderToken}}' }
+              }
+            }
+          },
+          items: [
+            {
+              name: 'Inherited Request',
+              type: 'http-request',
+              request: {
+                method: 'GET',
+                url: 'https://example.com',
+                auth: { mode: 'inherit' }
+              }
+            }
+          ]
+        }
+      ]
+    };
+
+    const result = brunoToPostman(simpleCollection);
+    expect(result.item[0].auth).toEqual({
+      type: 'bearer',
+      bearer: {
+        key: 'token',
+        value: '{{folderToken}}',
+        type: 'string'
+      }
+    });
+    expect(result.item[0].item[0].request.auth).toBeUndefined();
+  });
 });
 
 describe('brunoToPostman multipartForm handling', () => {
