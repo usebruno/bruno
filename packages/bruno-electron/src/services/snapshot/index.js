@@ -383,23 +383,39 @@ class SnapshotManager {
     const collectionMap = new Map();
 
     if (Array.isArray(collections)) {
+      const rawCollectionsByKey = new Map();
+
       collections.forEach((collection) => {
         if (!isObject(collection) || typeof collection.pathname !== 'string') {
           return;
         }
 
-        const normalizedCollection = this._normalizeCollectionEntry(collection.pathname, collection);
+        const workspacePathname = typeof collection.workspacePathname === 'string' ? collection.workspacePathname : '';
         const normalizedPath = normalizeLookupKey(collection.pathname);
-        const workspaceCollectionKey = buildWorkspaceCollectionLookupKey(
-          normalizedCollection.workspacePathname,
-          normalizedCollection.pathname
-        );
+        const key = buildWorkspaceCollectionLookupKey(workspacePathname, collection.pathname) || normalizedPath;
 
-        if (workspaceCollectionKey) {
-          collectionMap.set(workspaceCollectionKey, normalizedCollection);
-        } else if (normalizedPath) {
-          collectionMap.set(normalizedPath, normalizedCollection);
+        if (!key) {
+          return;
         }
+
+        const existingRaw = rawCollectionsByKey.get(key);
+        const mergedRaw = existingRaw
+          ? {
+              ...existingRaw,
+              ...collection,
+              environment: {
+                ...(isObject(existingRaw.environment) ? existingRaw.environment : {}),
+                ...(isObject(collection.environment) ? collection.environment : {})
+              }
+            }
+          : collection;
+
+        rawCollectionsByKey.set(key, mergedRaw);
+      });
+
+      rawCollectionsByKey.forEach((mergedRaw, key) => {
+        const normalizedCollection = this._normalizeCollectionEntry(mergedRaw.pathname, mergedRaw);
+        collectionMap.set(key, normalizedCollection);
       });
 
       return [...collectionMap.values()];
