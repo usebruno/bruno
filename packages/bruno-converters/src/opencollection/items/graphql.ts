@@ -185,7 +185,7 @@ export const toOpenCollectionGraphqlItem = (item: BrunoItem): GraphQLRequest => 
     timeout: typeof brunoSettings.timeout === 'number' ? brunoSettings.timeout : 0,
     followRedirects: typeof brunoSettings.followRedirects === 'boolean' ? brunoSettings.followRedirects : true,
     maxRedirects: typeof brunoSettings.maxRedirects === 'number' ? brunoSettings.maxRedirects : 5,
-    forwardAuthorizationHeader: typeof brunoSettings.forwardAuthorizationHeader === 'boolean' ? brunoSettings.forwardAuthorizationHeader : false
+    forwardAuthorizationHeader: typeof brunoSettings.forwardAuthorizationHeader === 'boolean' ? brunoSettings.forwardAuthorizationHeader : true
   };
   ocRequest.settings = settings;
 
