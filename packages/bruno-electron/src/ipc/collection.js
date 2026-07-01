@@ -2654,6 +2654,8 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
     // Track all written yml files so we can roll back on failure
     const writtenYmlFiles = [];
 
+    const tabPathMap = {};
+
     try {
       const brunoJsonPath = path.join(collectionPathname, 'bruno.json');
       const brunoJsonContent = fs.readFileSync(brunoJsonPath, 'utf8');
@@ -2708,6 +2710,8 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
         const ymlContent = stringifyRequest(requestData, { format: 'yml' });
         const ymlFilePath = bruFilePath.replace(/\.bru$/, '.yml');
         await writeFile(ymlFilePath, ymlContent);
+        moveRequestUid(bruFilePath, ymlFilePath);
+        tabPathMap[bruFilePath] = ymlFilePath;
         writtenYmlFiles.push(ymlFilePath);
         bruFilesToDelete.push(bruFilePath);
       }
@@ -2720,6 +2724,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
           const ymlContent = stringifyEnvironment(envData, { format: 'yml' });
           const ymlFilePath = envBruFilePath.replace(/\.bru$/, '.yml');
           await writeFile(ymlFilePath, ymlContent);
+          moveRequestUid(envBruFilePath, ymlFilePath);
           writtenYmlFiles.push(ymlFilePath);
           bruFilesToDelete.push(envBruFilePath);
         }
@@ -2729,6 +2734,11 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
         fs.unlinkSync(bruFile);
       }
       fs.unlinkSync(brunoJsonPath);
+
+      try {
+        snapshotManager.remapCollectionTabPaths(collectionPathname, tabPathMap);
+      } catch (_) {
+      }
 
       const { size, filesCount } = await getCollectionStats(collectionPathname);
       ymlBrunoConfig.size = size;

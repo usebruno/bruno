@@ -132,4 +132,78 @@ test.describe('Migrate collection from bru to yml format', () => {
     // Verify no uncaught JS errors occurred during migration
     expect(pageErrors).toHaveLength(0);
   });
+
+  test('should keep a request tab open during migration functional (no "Request no longer exists")', async ({ pageWithUserData: page, collectionFixturePath }) => {
+    const collectionPath = collectionFixturePath!;
+
+    const pageErrors: Error[] = [];
+    page.on('pageerror', (error) => pageErrors.push(error));
+
+    const readSnapshotTabPathnames = async (): Promise<string[]> => {
+      const tabsSnapshot = await page.evaluate(
+        (path) => (window as any).ipcRenderer.invoke('renderer:snapshot:get-tabs', path, null),
+        collectionPath
+      );
+      return ((tabsSnapshot?.tabs || []) as Array<{ pathname?: string }>)
+        .map((tab) => tab.pathname)
+        .filter((pathname): pathname is string => typeof pathname === 'string');
+    };
+
+    await test.step('Open the ping request as a permanent tab', async () => {
+      await openCollection(page, 'migration-test');
+      await page.locator('.item-name').filter({ hasText: 'ping' }).dblclick();
+
+      const urlContainer = page.locator('#request-url');
+      await expect(urlContainer).toBeVisible();
+      await expect(urlContainer.locator('.CodeMirror')).toContainText('/ping');
+    });
+
+    await test.step('The open tab is persisted to the UI-state snapshot as a .bru tab', async () => {
+      await expect
+        .poll(async () => (await readSnapshotTabPathnames()).some((p) => p.endsWith('ping.bru')), { timeout: 10000 })
+        .toBe(true);
+    });
+
+    await test.step('Migrate the collection to yml', async () => {
+      await page.locator('#sidebar-collection-name').filter({ hasText: 'migration-test' }).click();
+      await page.getByTestId('collection-settings-tab-overview').click();
+      await page.getByRole('button', { name: 'Convert to YML' }).click();
+
+      const modal = page.locator('.bruno-modal').filter({ hasText: 'Migrate to YML format' });
+      await modal.waitFor({ state: 'visible', timeout: 5000 });
+      await modal.getByRole('button', { name: 'Migrate' }).click();
+
+      await expect(page.getByText('Collection migrated to YML format successfully')).toBeVisible({ timeout: 30000 });
+    });
+
+    await test.step('The migrated files exist on disk', async () => {
+      expect(fs.existsSync(path.join(collectionPath, 'ping.yml'))).toBe(true);
+      expect(fs.existsSync(path.join(collectionPath, 'ping.bru'))).toBe(false);
+    });
+
+    await test.step('The persisted snapshot no longer references any .bru request tab', async () => {
+      await expect
+        .poll(async () => (await readSnapshotTabPathnames()).some((p) => p.endsWith('.bru')), { timeout: 10000 })
+        .toBe(false);
+    });
+
+    await test.step('Migration does not leave a broken "Request no longer exists" tab', async () => {
+      await expect(page.getByText('Request no longer exists')).not.toBeVisible();
+    });
+
+    await test.step('The migrated request opens against the yml file and is runnable', async () => {
+      await page.locator('.item-name').filter({ hasText: 'ping' }).click();
+
+      await expect(page.getByText('Request no longer exists')).not.toBeVisible();
+
+      const urlContainer = page.locator('#request-url');
+      await expect(urlContainer).toBeVisible();
+      await expect(urlContainer.locator('.CodeMirror')).toContainText('/ping');
+
+      await selectEnvironment(page, 'Local');
+      await sendRequestAndWaitForResponse(page, 200);
+    });
+
+    expect(pageErrors).toHaveLength(0);
+  });
 });
