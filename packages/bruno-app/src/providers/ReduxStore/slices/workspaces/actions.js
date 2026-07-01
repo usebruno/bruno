@@ -24,6 +24,7 @@ import { openConsole, closeConsole, setActiveTab as setActiveDevToolsTab, TAB_ID
 import { normalizePath } from 'utils/common/path';
 import { hydrateTabs, getActiveTabFromSnapshot, hydrateSnapshotLookups } from 'utils/snapshot';
 import toast from 'react-hot-toast';
+import { closeAiSidebar } from '../chat';
 
 const { ipcRenderer } = window;
 let snapshotHydrationTimer = null;
@@ -571,10 +572,10 @@ export const loadWorkspaceApiSpecs = (workspaceUid) => {
 
 export const switchWorkspace = (workspaceUid) => {
   return async (dispatch, getState) => {
+    dispatch(closeAiSidebar());
     clearSnapshotHydrationTimeout();
     dispatch(setSnapshotReady(false));
     dispatch(clearSnapshotHydrationSession());
-
     try {
       dispatch(setActiveWorkspace(workspaceUid));
 
