@@ -15,8 +15,8 @@ import { toOpenCollectionOAuth2, toBrunoOAuth2 } from './auth-oauth2';
 
 // EdgeGrid is a Bruno-specific auth mode that is not part of the OpenCollection spec,
 // so its shape is defined locally and serialized using the same field names as Bruno.
-interface AuthEdgeGrid {
-  type: 'edgegrid';
+interface AkamaiEdgeGridAuthValues {
+  type: 'akamai-edgegrid';
   accessToken?: string;
   clientToken?: string;
   clientSecret?: string;
@@ -24,7 +24,7 @@ interface AuthEdgeGrid {
   timestamp?: string;
   baseURL?: string;
   headersToSign?: string;
-  maxBodySize?: string;
+  maxBodySize?: number;
 }
 
 const buildAwsV4Auth = (config?: BrunoAuth['awsv4']): AuthAwsV4 => {
@@ -130,8 +130,8 @@ const buildApiKeyAuth = (config?: BrunoAuth['apikey']): AuthApiKey => {
   return auth;
 };
 
-const buildEdgeGridAuth = (config?: BrunoAuth['edgegrid']): AuthEdgeGrid => {
-  const auth: AuthEdgeGrid = { type: 'edgegrid' };
+const buildEdgeGridAuth = (config?: BrunoAuth['akamaiEdgegrid']): AkamaiEdgeGridAuthValues => {
+  const auth: AkamaiEdgeGridAuthValues = { type: 'akamai-edgegrid' };
 
   if (!config) {
     return auth;
@@ -144,7 +144,7 @@ const buildEdgeGridAuth = (config?: BrunoAuth['edgegrid']): AuthEdgeGrid => {
   if (isString(config.timestamp)) auth.timestamp = config.timestamp;
   if (isString(config.baseURL)) auth.baseURL = config.baseURL;
   if (isString(config.headersToSign)) auth.headersToSign = config.headersToSign;
-  if (isString(config.maxBodySize)) auth.maxBodySize = config.maxBodySize;
+  if (typeof config.maxBodySize === 'number') auth.maxBodySize = config.maxBodySize;
 
   return auth;
 };
@@ -206,8 +206,8 @@ export const toOpenCollectionAuth = (auth?: BrunoAuth | null): Auth | undefined 
       return buildOAuth1Auth(auth.oauth1);
     case 'oauth2':
       return toOpenCollectionOAuth2(auth.oauth2);
-    case 'edgegrid':
-      return buildEdgeGridAuth(auth.edgegrid) as unknown as Auth;
+    case 'akamai-edgegrid':
+      return buildEdgeGridAuth(auth.akamaiEdgegrid) as unknown as Auth;
     default:
       console.warn(`toOpenCollectionAuth failed: Unsupported auth mode "${auth.mode}".`);
       return undefined;
@@ -225,7 +225,7 @@ export const toBrunoAuth = (auth: Auth | null | undefined): BrunoAuth | null => 
     oauth2: null,
     wsse: null,
     apikey: null,
-    edgegrid: null
+    akamaiEdgegrid: null
   };
 
   if (!auth) {
@@ -237,10 +237,10 @@ export const toBrunoAuth = (auth: Auth | null | undefined): BrunoAuth | null => 
     return brunoAuth;
   }
 
-  if ((auth as unknown as AuthEdgeGrid).type === 'edgegrid') {
-    const edgegrid = auth as unknown as AuthEdgeGrid;
-    brunoAuth.mode = 'edgegrid';
-    brunoAuth.edgegrid = {
+  if ((auth as unknown as AkamaiEdgeGridAuthValues).type === 'akamai-edgegrid') {
+    const edgegrid = auth as unknown as AkamaiEdgeGridAuthValues;
+    brunoAuth.mode = 'akamai-edgegrid';
+    brunoAuth.akamaiEdgegrid = {
       accessToken: edgegrid.accessToken || '',
       clientToken: edgegrid.clientToken || '',
       clientSecret: edgegrid.clientSecret || '',
@@ -248,7 +248,7 @@ export const toBrunoAuth = (auth: Auth | null | undefined): BrunoAuth | null => 
       timestamp: edgegrid.timestamp || '',
       baseURL: edgegrid.baseURL || '',
       headersToSign: edgegrid.headersToSign || '',
-      maxBodySize: edgegrid.maxBodySize || ''
+      maxBodySize: typeof edgegrid.maxBodySize === 'number' ? edgegrid.maxBodySize : null
     };
     return brunoAuth;
   }

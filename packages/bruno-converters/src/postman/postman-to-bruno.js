@@ -92,6 +92,13 @@ const ensureString = (value, fallback = '') => {
   return String(value);
 };
 
+// EdgeGrid's maxBodySize is numeric in Bruno; coerce Postman's value (number or string) to a number or null.
+const ensureMaxBodySize = (value) => {
+  if (value == null || value === '') return null;
+  const num = Number(value);
+  return isNaN(num) ? null : num;
+};
+
 /**
  * Postman's schema allows headers as strings in the format "Key: Value".
  * This parses a single string header into an object.
@@ -283,7 +290,8 @@ export const processAuth = (auth, requestObject, isCollection = false) => {
       };
       break;
     case AUTH_TYPES.EDGEGRID:
-      requestObject.auth.edgegrid = {
+      requestObject.auth.mode = 'akamai-edgegrid';
+      requestObject.auth.akamaiEdgegrid = {
         accessToken: ensureString(authValues.accessToken),
         clientToken: ensureString(authValues.clientToken),
         clientSecret: ensureString(authValues.clientSecret),
@@ -291,7 +299,7 @@ export const processAuth = (auth, requestObject, isCollection = false) => {
         timestamp: ensureString(authValues.timestamp),
         baseURL: ensureString(authValues.baseURL),
         headersToSign: ensureString(authValues.headersToSign),
-        maxBodySize: ensureString(authValues.maxBodySize)
+        maxBodySize: ensureMaxBodySize(authValues.maxBodySize)
       };
       break;
     case AUTH_TYPES.OAUTH1:

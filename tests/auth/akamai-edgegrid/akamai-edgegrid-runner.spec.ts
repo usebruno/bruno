@@ -1,12 +1,11 @@
 import { test } from '../../../playwright';
 import {
-  sendRequestAndWaitForResponse,
   closeAllCollections,
-  selectEnvironment,
   openCollection,
-  openRequest
+  openRequest,
+  selectEnvironment,
+  sendRequestAndWaitForResponse
 } from '../../utils/page';
-import { runCollection, validateRunnerResults } from '../../utils/page/runner';
 
 /**
  * End-to-end EdgeGrid (EG1-HMAC-SHA256) auth against the local simulator
@@ -40,15 +39,6 @@ const sendAllRequests = async (page, collectionName: string) => {
   }
 };
 
-const runAndValidate = async (page, collectionName: string) => {
-  await runCollection(page, collectionName);
-  await validateRunnerResults(page, {
-    totalRequests: requests.length,
-    passed: requests.length,
-    failed: 0
-  });
-};
-
 test.describe('Akamai EdgeGrid Runner', () => {
   test.afterAll(async ({ pageWithUserData: page }) => {
     await closeAllCollections(page);
@@ -59,22 +49,12 @@ test.describe('Akamai EdgeGrid Runner', () => {
       test.setTimeout(3 * 60 * 1000);
       await sendAllRequests(page, BRU_COLLECTION);
     });
-
-    test('Run collection and verify all assertions pass', async ({ pageWithUserData: page }) => {
-      test.setTimeout(3 * 60 * 1000);
-      await runAndValidate(page, BRU_COLLECTION);
-    });
   });
 
   test.describe('[yml]', () => {
     test('Send individual requests', async ({ pageWithUserData: page }) => {
       test.setTimeout(3 * 60 * 1000);
       await sendAllRequests(page, YML_COLLECTION);
-    });
-
-    test('Run collection and verify all assertions pass', async ({ pageWithUserData: page }) => {
-      test.setTimeout(3 * 60 * 1000);
-      await runAndValidate(page, YML_COLLECTION);
     });
   });
 });

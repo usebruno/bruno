@@ -1,15 +1,15 @@
-import { test, expect } from '../../../playwright';
+import { expect, test } from '../../../playwright';
 import {
   closeAllCollections,
   createCollection,
   createFolder,
   createRequest,
-  openRequest,
+  getResponseBody,
   openFolderRequest,
-  selectRequestPaneTab,
+  openRequest,
   selectAuthMode,
-  sendRequestAndWaitForResponse,
-  getResponseBody
+  selectRequestPaneTab,
+  sendRequestAndWaitForResponse
 } from '../../utils/page';
 
 /**

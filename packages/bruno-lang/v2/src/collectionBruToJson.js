@@ -93,7 +93,7 @@ const grammar = ohm.grammar(`Bru {
   authOAuth2 = "auth:oauth2" dictionary
   authwsse = "auth:wsse" dictionary
   authapikey = "auth:apikey" dictionary
-  authedgegrid = "auth:edgegrid" dictionary
+  authedgegrid = "auth:akamai-edgegrid" dictionary
   
   script = scriptreq | scriptres
   scriptreq = "script:pre-request" st* "{" nl* textblock tagend
@@ -622,11 +622,12 @@ const sem = grammar.createSemantics().addAttribute('ast', {
     const timestamp = findValueByName('timestamp');
     const baseURL = findValueByName('baseURL');
     const headersToSign = findValueByName('headersToSign');
-    const maxBodySize = findValueByName('maxBodySize');
+    const maxBodySizeRaw = findValueByName('maxBodySize');
+    const maxBodySize = maxBodySizeRaw === '' || isNaN(Number(maxBodySizeRaw)) ? null : Number(maxBodySizeRaw);
 
     return {
       auth: {
-        edgegrid: {
+        akamaiEdgegrid: {
           accessToken,
           clientToken,
           clientSecret,

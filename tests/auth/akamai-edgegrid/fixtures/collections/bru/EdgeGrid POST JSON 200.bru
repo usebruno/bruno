@@ -1,16 +1,16 @@
 meta {
-  name: EdgeGrid GET 200
+  name: EdgeGrid POST JSON 200
   type: http
-  seq: 1
+  seq: 3
 }
 
-get {
+post {
   url: {{localhost}}/api/auth/edgegrid/resource
-  body: none
-  auth: edgegrid
+  body: json
+  auth: akamai-edgegrid
 }
 
-auth:edgegrid {
+auth:akamai-edgegrid {
   accessToken: akab-access-token-bruno-test
   clientToken: akab-client-token-bruno-test
   clientSecret: dGVzdC1jbGllbnQtc2VjcmV0LWZvci1icnVuby1lZGdlZ3JpZA==
@@ -19,6 +19,10 @@ auth:edgegrid {
   baseURL:
   headersToSign:
   maxBodySize:
+}
+
+body:json {
+  {"name":"bruno","kind":"compact"}
 }
 
 assert {

@@ -269,7 +269,7 @@ const authEdgeGridSchema = Yup.object({
   timestamp: Yup.string().nullable(),
   baseURL: Yup.string().nullable(),
   headersToSign: Yup.string().nullable(),
-  maxBodySize: Yup.string().nullable()
+  maxBodySize: Yup.number().nullable()
 })
   .noUnknown(true)
   .strict();
@@ -432,7 +432,7 @@ const oauth2Schema = Yup.object({
 
 const authSchema = Yup.object({
   mode: Yup.string()
-    .oneOf(['inherit', 'none', 'awsv4', 'basic', 'bearer', 'digest', 'ntlm', 'oauth1', 'oauth2', 'wsse', 'apikey', 'edgegrid'])
+    .oneOf(['inherit', 'none', 'awsv4', 'basic', 'bearer', 'digest', 'ntlm', 'oauth1', 'oauth2', 'wsse', 'apikey', 'akamai-edgegrid'])
     .required('mode is required'),
   awsv4: authAwsV4Schema.nullable(),
   basic: authBasicSchema.nullable(),
@@ -443,7 +443,7 @@ const authSchema = Yup.object({
   oauth2: oauth2Schema.nullable(),
   wsse: authWsseSchema.nullable(),
   apikey: authApiKeySchema.nullable(),
-  edgegrid: authEdgeGridSchema.nullable()
+  akamaiEdgegrid: authEdgeGridSchema.nullable()
 })
   .noUnknown(true)
   .strict()

@@ -51,7 +51,7 @@ const Auth = ({ collection }) => {
       case 'apikey': {
         return <ApiKeyAuth collection={collection} />;
       }
-      case 'edgegrid': {
+      case 'akamai-edgegrid': {
         return <EdgeGridAuth collection={collection} />;
       }
     }

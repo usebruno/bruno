@@ -94,16 +94,16 @@ const prepareRequest = async (item = {}, collection = {}) => {
       };
     }
 
-    if (collectionAuth.mode === 'edgegrid') {
+    if (collectionAuth.mode === 'akamai-edgegrid') {
       axiosRequest.edgeGridConfig = {
-        accessToken: get(collectionAuth, 'edgegrid.accessToken'),
-        clientToken: get(collectionAuth, 'edgegrid.clientToken'),
-        clientSecret: get(collectionAuth, 'edgegrid.clientSecret'),
-        nonce: get(collectionAuth, 'edgegrid.nonce'),
-        timestamp: get(collectionAuth, 'edgegrid.timestamp'),
-        baseURL: get(collectionAuth, 'edgegrid.baseURL'),
-        headersToSign: get(collectionAuth, 'edgegrid.headersToSign'),
-        maxBodySize: get(collectionAuth, 'edgegrid.maxBodySize')
+        accessToken: get(collectionAuth, 'akamaiEdgegrid.accessToken'),
+        clientToken: get(collectionAuth, 'akamaiEdgegrid.clientToken'),
+        clientSecret: get(collectionAuth, 'akamaiEdgegrid.clientSecret'),
+        nonce: get(collectionAuth, 'akamaiEdgegrid.nonce'),
+        timestamp: get(collectionAuth, 'akamaiEdgegrid.timestamp'),
+        baseURL: get(collectionAuth, 'akamaiEdgegrid.baseURL'),
+        headersToSign: get(collectionAuth, 'akamaiEdgegrid.headersToSign'),
+        maxBodySize: get(collectionAuth, 'akamaiEdgegrid.maxBodySize')
       };
     }
 
@@ -343,16 +343,16 @@ const prepareRequest = async (item = {}, collection = {}) => {
       }
     }
 
-    if (request.auth.mode === 'edgegrid') {
+    if (request.auth.mode === 'akamai-edgegrid') {
       axiosRequest.edgeGridConfig = {
-        accessToken: get(request, 'auth.edgegrid.accessToken'),
-        clientToken: get(request, 'auth.edgegrid.clientToken'),
-        clientSecret: get(request, 'auth.edgegrid.clientSecret'),
-        nonce: get(request, 'auth.edgegrid.nonce'),
-        timestamp: get(request, 'auth.edgegrid.timestamp'),
-        baseURL: get(request, 'auth.edgegrid.baseURL'),
-        headersToSign: get(request, 'auth.edgegrid.headersToSign'),
-        maxBodySize: get(request, 'auth.edgegrid.maxBodySize')
+        accessToken: get(request, 'auth.akamaiEdgegrid.accessToken'),
+        clientToken: get(request, 'auth.akamaiEdgegrid.clientToken'),
+        clientSecret: get(request, 'auth.akamaiEdgegrid.clientSecret'),
+        nonce: get(request, 'auth.akamaiEdgegrid.nonce'),
+        timestamp: get(request, 'auth.akamaiEdgegrid.timestamp'),
+        baseURL: get(request, 'auth.akamaiEdgegrid.baseURL'),
+        headersToSign: get(request, 'auth.akamaiEdgegrid.headersToSign'),
+        maxBodySize: get(request, 'auth.akamaiEdgegrid.maxBodySize')
       };
     }
   }

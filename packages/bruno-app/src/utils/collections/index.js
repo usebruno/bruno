@@ -497,16 +497,16 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
               password: get(si.request, 'auth.wsse.password', '')
             };
             break;
-          case 'edgegrid':
-            di.request.auth.edgegrid = {
-              accessToken: get(si.request, 'auth.edgegrid.accessToken', ''),
-              clientToken: get(si.request, 'auth.edgegrid.clientToken', ''),
-              clientSecret: get(si.request, 'auth.edgegrid.clientSecret', ''),
-              nonce: get(si.request, 'auth.edgegrid.nonce', ''),
-              timestamp: get(si.request, 'auth.edgegrid.timestamp', ''),
-              baseURL: get(si.request, 'auth.edgegrid.baseURL', ''),
-              headersToSign: get(si.request, 'auth.edgegrid.headersToSign', ''),
-              maxBodySize: get(si.request, 'auth.edgegrid.maxBodySize', '')
+          case 'akamai-edgegrid':
+            di.request.auth.akamaiEdgegrid = {
+              accessToken: get(si.request, 'auth.akamaiEdgegrid.accessToken', ''),
+              clientToken: get(si.request, 'auth.akamaiEdgegrid.clientToken', ''),
+              clientSecret: get(si.request, 'auth.akamaiEdgegrid.clientSecret', ''),
+              nonce: get(si.request, 'auth.akamaiEdgegrid.nonce', ''),
+              timestamp: get(si.request, 'auth.akamaiEdgegrid.timestamp', ''),
+              baseURL: get(si.request, 'auth.akamaiEdgegrid.baseURL', ''),
+              headersToSign: get(si.request, 'auth.akamaiEdgegrid.headersToSign', ''),
+              maxBodySize: get(si.request, 'auth.akamaiEdgegrid.maxBodySize', null)
             };
             break;
           default:
@@ -1026,7 +1026,7 @@ export const humanizeRequestAuthMode = (mode) => {
       label = 'API Key';
       break;
     }
-    case 'edgegrid': {
+    case 'akamai-edgegrid': {
       label = 'Akamai EdgeGrid';
       break;
     }

@@ -183,7 +183,7 @@ const Auth = ({ collection, folder }) => {
           </>
         );
       }
-      case 'edgegrid': {
+      case 'akamai-edgegrid': {
         return (
           <>
             <EdgeGridAuth

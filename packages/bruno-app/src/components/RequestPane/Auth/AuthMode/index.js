@@ -69,7 +69,7 @@ const AuthMode = ({ item, collection }) => {
       onClick: () => onModeChange('apikey')
     },
     {
-      id: 'edgegrid',
+      id: 'akamai-edgegrid',
       label: (
         <span className="flex items-center gap-2">
           Akamai EdgeGrid
@@ -77,7 +77,7 @@ const AuthMode = ({ item, collection }) => {
         </span>
       ),
       ariaLabel: 'Akamai EdgeGrid (Beta)',
-      onClick: () => onModeChange('edgegrid')
+      onClick: () => onModeChange('akamai-edgegrid')
     },
     {
       id: 'inherit',

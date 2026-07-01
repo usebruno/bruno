@@ -706,8 +706,8 @@ describe('processAuth', () => {
       ]
     };
     processAuth(auth, requestObject);
-    expect(requestObject.auth.mode).toBe('edgegrid');
-    expect(requestObject.auth.edgegrid).toEqual({
+    expect(requestObject.auth.mode).toBe('akamai-edgegrid');
+    expect(requestObject.auth.akamaiEdgegrid).toEqual({
       accessToken: 'akab-access-token',
       clientToken: 'akab-client-token',
       clientSecret: 'secret==',
@@ -715,7 +715,7 @@ describe('processAuth', () => {
       timestamp: '20240101T00:00:00+0000',
       baseURL: 'https://akaa-x.luna.akamaiapis.net',
       headersToSign: 'X-Test1,X-Test2',
-      maxBodySize: '2048'
+      maxBodySize: 2048
     });
   });
 
@@ -725,8 +725,8 @@ describe('processAuth', () => {
       edgegrid: { accessToken: 'at', clientToken: 'ct', clientSecret: 'cs' }
     };
     processAuth(auth, requestObject);
-    expect(requestObject.auth.mode).toBe('edgegrid');
-    expect(requestObject.auth.edgegrid).toEqual({
+    expect(requestObject.auth.mode).toBe('akamai-edgegrid');
+    expect(requestObject.auth.akamaiEdgegrid).toEqual({
       accessToken: 'at',
       clientToken: 'ct',
       clientSecret: 'cs',
@@ -734,14 +734,14 @@ describe('processAuth', () => {
       timestamp: '',
       baseURL: '',
       headersToSign: '',
-      maxBodySize: ''
+      maxBodySize: null
     });
   });
 
   it('should handle edgegrid auth with missing edgegrid key', () => {
     processAuth({ type: 'edgegrid' }, requestObject);
-    expect(requestObject.auth.mode).toBe('edgegrid');
-    expect(requestObject.auth.edgegrid).toEqual({
+    expect(requestObject.auth.mode).toBe('akamai-edgegrid');
+    expect(requestObject.auth.akamaiEdgegrid).toEqual({
       accessToken: '',
       clientToken: '',
       clientSecret: '',
@@ -749,7 +749,7 @@ describe('processAuth', () => {
       timestamp: '',
       baseURL: '',
       headersToSign: '',
-      maxBodySize: ''
+      maxBodySize: null
     });
   });
 });

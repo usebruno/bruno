@@ -1,19 +1,19 @@
 meta {
-  name: EdgeGrid GET 401
+  name: EdgeGrid GET 200
   type: http
-  seq: 2
+  seq: 1
 }
 
 get {
   url: {{localhost}}/api/auth/edgegrid/resource
   body: none
-  auth: edgegrid
+  auth: akamai-edgegrid
 }
 
-auth:edgegrid {
+auth:akamai-edgegrid {
   accessToken: akab-access-token-bruno-test
   clientToken: akab-client-token-bruno-test
-  clientSecret: this-is-the-wrong-secret=
+  clientSecret: dGVzdC1jbGllbnQtc2VjcmV0LWZvci1icnVuby1lZGdlZ3JpZA==
   nonce:
   timestamp:
   baseURL:
@@ -22,5 +22,6 @@ auth:edgegrid {
 }
 
 assert {
-  res.status: eq 401
+  res.status: eq 200
+  res.body.authenticated: eq true
 }

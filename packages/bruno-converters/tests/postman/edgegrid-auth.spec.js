@@ -2,7 +2,6 @@ import { describe, it, expect } from '@jest/globals';
 import postmanToBruno from '../../src/postman/postman-to-bruno';
 import { brunoToPostman } from '../../src/postman/bruno-to-postman';
 
-// Bruno's auth.edgegrid keys are camelCase, 1:1 with Postman (baseURL, maxBodySize, etc.).
 const EDGEGRID = {
   accessToken: 'akab-access-token',
   clientToken: 'akab-client-token',
@@ -11,7 +10,7 @@ const EDGEGRID = {
   timestamp: '20240101T00:00:00+0000',
   baseURL: 'https://akaa-x.luna.akamaiapis.net',
   headersToSign: 'X-Test1,X-Test2',
-  maxBodySize: '2048'
+  maxBodySize: 2048
 };
 
 const brunoCollectionWithEdgeGrid = () => ({
@@ -24,7 +23,7 @@ const brunoCollectionWithEdgeGrid = () => ({
         method: 'GET',
         url: 'https://akaa-x.luna.akamaiapis.net/identity/v1',
         headers: [],
-        auth: { mode: 'edgegrid', edgegrid: { ...EDGEGRID } }
+        auth: { mode: 'akamai-edgegrid', akamaiEdgegrid: { ...EDGEGRID } }
       }
     }
   ]
@@ -59,7 +58,7 @@ describe('EdgeGrid — Postman export (bruno → postman)', () => {
             method: 'GET',
             url: 'https://x.luna.akamaiapis.net/',
             headers: [],
-            auth: { mode: 'edgegrid', edgegrid: { accessToken: 'at', clientToken: 'ct', clientSecret: 'cs' } }
+            auth: { mode: 'akamai-edgegrid', akamaiEdgegrid: { accessToken: 'at', clientToken: 'ct', clientSecret: 'cs' } }
           }
         }
       ]
@@ -101,8 +100,8 @@ describe('EdgeGrid — Postman import (postman → bruno)', () => {
     };
     const { collection } = await postmanToBruno(postmanCollection);
     const auth = collection.items[0].request.auth;
-    expect(auth.mode).toBe('edgegrid');
-    expect(auth.edgegrid).toEqual(EDGEGRID);
+    expect(auth.mode).toBe('akamai-edgegrid');
+    expect(auth.akamaiEdgegrid).toEqual(EDGEGRID);
   });
 });
 
@@ -111,7 +110,7 @@ describe('EdgeGrid — Postman round-trip (bruno → postman → bruno)', () => 
     const postman = brunoToPostman(brunoCollectionWithEdgeGrid());
     const { collection } = await postmanToBruno(postman);
     const auth = collection.items[0].request.auth;
-    expect(auth.mode).toBe('edgegrid');
-    expect(auth.edgegrid).toEqual(EDGEGRID);
+    expect(auth.mode).toBe('akamai-edgegrid');
+    expect(auth.akamaiEdgegrid).toEqual(EDGEGRID);
   });
 });

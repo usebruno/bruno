@@ -10,7 +10,7 @@ import { sendRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { useTheme } from 'providers/Theme';
 import StyledWrapper from './StyledWrapper';
 
-interface EdgeGridAuthValues {
+interface AkamaiEdgeGridAuthValues {
   accessToken?: string;
   clientToken?: string;
   clientSecret?: string;
@@ -18,12 +18,19 @@ interface EdgeGridAuthValues {
   timestamp?: string;
   baseURL?: string;
   headersToSign?: string;
-  maxBodySize?: string;
+  maxBodySize?: number | null;
 }
 
-type EdgeGridField = keyof EdgeGridAuthValues;
+type EdgeGridField = keyof AkamaiEdgeGridAuthValues;
 
-interface EdgeGridAuthProps {
+// Coerce the Max Body Size editor string into the numeric value the model stores (empty/invalid -> null).
+const toMaxBodySize = (value: string): number | null => {
+  if (value === '' || value == null) return null;
+  const num = Number(value);
+  return Number.isNaN(num) ? null : num;
+};
+
+interface AkamaiEdgeGridAuthProps {
   item: any;
   collection: any;
   request: any;
@@ -65,11 +72,11 @@ type EdgeGridFieldConfig = (typeof FIELDS)[number];
 const BASIC_FIELDS = FIELDS.slice(0, 3);
 const ADVANCED_FIELDS = FIELDS.slice(3);
 
-const EdgeGridAuth: React.FC<EdgeGridAuthProps> = ({ item, collection, updateAuth, request, save }) => {
+const EdgeGridAuth: React.FC<AkamaiEdgeGridAuthProps> = ({ item, collection, updateAuth, request, save }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
 
-  const edgeGridAuth: EdgeGridAuthValues = get(request, 'auth.edgegrid') || {};
+  const edgeGridAuth: AkamaiEdgeGridAuthValues = get(request, 'auth.akamaiEdgegrid') || {};
   const requestUrl = get(request, 'url', '');
   const { isSensitive } = useDetectSensitiveField(collection);
   const { showWarning: showClientSecretWarning, warningMessage: clientSecretWarningMessage } = isSensitive(
@@ -83,28 +90,37 @@ const EdgeGridAuth: React.FC<EdgeGridAuthProps> = ({ item, collection, updateAut
   };
 
   const handleFieldChange = (field: EdgeGridField, value: string) => {
+    const content: AkamaiEdgeGridAuthValues = {
+      accessToken: edgeGridAuth.accessToken || '',
+      clientToken: edgeGridAuth.clientToken || '',
+      clientSecret: edgeGridAuth.clientSecret || '',
+      nonce: edgeGridAuth.nonce || '',
+      timestamp: edgeGridAuth.timestamp || '',
+      baseURL: edgeGridAuth.baseURL || '',
+      headersToSign: edgeGridAuth.headersToSign || '',
+      maxBodySize: edgeGridAuth.maxBodySize ?? null
+    };
+
+    if (field === 'maxBodySize') {
+      content.maxBodySize = toMaxBodySize(value);
+    } else {
+      (content as Record<string, unknown>)[field] = value || '';
+    }
+
     dispatch(
       updateAuth({
-        mode: 'edgegrid',
+        mode: 'akamai-edgegrid',
         collectionUid: collection.uid,
         itemUid: item.uid,
-        content: {
-          accessToken: edgeGridAuth.accessToken || '',
-          clientToken: edgeGridAuth.clientToken || '',
-          clientSecret: edgeGridAuth.clientSecret || '',
-          nonce: edgeGridAuth.nonce || '',
-          timestamp: edgeGridAuth.timestamp || '',
-          baseURL: edgeGridAuth.baseURL || '',
-          headersToSign: edgeGridAuth.headersToSign || '',
-          maxBodySize: edgeGridAuth.maxBodySize || '',
-          [field]: value || ''
-        }
+        content
       })
     );
   };
 
   const renderField = ({ key, label, tooltip, isSecret }: EdgeGridFieldConfig) => {
     const showWarning = isSecret && showClientSecretWarning;
+    const rawValue = key === 'baseURL' ? edgeGridAuth.baseURL || requestUrl : edgeGridAuth[key];
+    const fieldValue = rawValue === null || rawValue === undefined ? '' : String(rawValue);
     return (
       <div key={key}>
         <label>
@@ -118,7 +134,7 @@ const EdgeGridAuth: React.FC<EdgeGridAuthProps> = ({ item, collection, updateAut
         </label>
         <div className="single-line-editor-wrapper">
           <SingleLineEditor
-            value={key === 'baseURL' ? edgeGridAuth.baseURL || requestUrl : edgeGridAuth[key] || ''}
+            value={fieldValue}
             theme={storedTheme}
             onSave={handleSave}
             onChange={(val: string) => handleFieldChange(key, val)}

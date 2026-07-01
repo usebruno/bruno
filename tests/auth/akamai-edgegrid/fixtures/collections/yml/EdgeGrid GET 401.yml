@@ -1,29 +1,22 @@
 info:
-  name: EdgeGrid POST JSON 200
+  name: EdgeGrid GET 401
   type: http
-  seq: 3
+  seq: 2
 
 http:
-  method: POST
+  method: GET
   url: "{{localhost}}/api/auth/edgegrid/resource"
   auth:
-    type: edgegrid
+    type: akamai-edgegrid
     accessToken: akab-access-token-bruno-test
     clientToken: akab-client-token-bruno-test
-    clientSecret: dGVzdC1jbGllbnQtc2VjcmV0LWZvci1icnVuby1lZGdlZ3JpZA==
-  body:
-    type: json
-    data: |-
-      {"name":"bruno","kind":"compact"}
+    clientSecret: this-is-the-wrong-secret=
 
 runtime:
   assertions:
     - expression: res.status
       operator: eq
-      value: "200"
-    - expression: res.body.authenticated
-      operator: eq
-      value: "true"
+      value: "401"
 
 settings:
   encodeUrl: true

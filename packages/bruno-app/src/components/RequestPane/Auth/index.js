@@ -69,7 +69,7 @@ const Auth = ({ item, collection }) => {
       case 'apikey': {
         return <ApiKeyAuth collection={collection} item={item} request={request} save={save} updateAuth={updateAuth} />;
       }
-      case 'edgegrid': {
+      case 'akamai-edgegrid': {
         return <EdgeGridAuth collection={collection} item={item} request={request} save={save} updateAuth={updateAuth} />;
       }
       case 'inherit': {

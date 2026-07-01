@@ -420,18 +420,18 @@ export const brunoToPostman = (collection) => {
           ]
         };
       }
-      case 'edgegrid': {
+      case 'akamai-edgegrid': {
         return {
           type: 'edgegrid',
           edgegrid: [
-            { key: 'accessToken', value: itemAuth.edgegrid?.accessToken || '', type: 'string' },
-            { key: 'clientToken', value: itemAuth.edgegrid?.clientToken || '', type: 'string' },
-            { key: 'clientSecret', value: itemAuth.edgegrid?.clientSecret || '', type: 'string' },
-            { key: 'baseURL', value: itemAuth.edgegrid?.baseURL || '', type: 'string' },
-            { key: 'nonce', value: itemAuth.edgegrid?.nonce || '', type: 'string' },
-            { key: 'timestamp', value: itemAuth.edgegrid?.timestamp || '', type: 'string' },
-            { key: 'headersToSign', value: itemAuth.edgegrid?.headersToSign || '', type: 'string' },
-            { key: 'maxBodySize', value: itemAuth.edgegrid?.maxBodySize || '', type: 'string' }
+            { key: 'accessToken', value: itemAuth.akamaiEdgegrid?.accessToken || '', type: 'string' },
+            { key: 'clientToken', value: itemAuth.akamaiEdgegrid?.clientToken || '', type: 'string' },
+            { key: 'clientSecret', value: itemAuth.akamaiEdgegrid?.clientSecret || '', type: 'string' },
+            { key: 'baseURL', value: itemAuth.akamaiEdgegrid?.baseURL || '', type: 'string' },
+            { key: 'nonce', value: itemAuth.akamaiEdgegrid?.nonce || '', type: 'string' },
+            { key: 'timestamp', value: itemAuth.akamaiEdgegrid?.timestamp || '', type: 'string' },
+            { key: 'headersToSign', value: itemAuth.akamaiEdgegrid?.headersToSign || '', type: 'string' },
+            { key: 'maxBodySize', value: itemAuth.akamaiEdgegrid?.maxBodySize ?? '', type: 'string' }
           ]
         };
       }

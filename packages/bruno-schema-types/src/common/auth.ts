@@ -38,7 +38,7 @@ export interface AuthApiKey {
   placement?: 'header' | 'queryparams' | null;
 }
 
-export interface AuthEdgeGrid {
+export interface AkamaiEdgeGridAuthValues {
   accessToken?: string | null;
   clientToken?: string | null;
   clientSecret?: string | null;
@@ -46,7 +46,7 @@ export interface AuthEdgeGrid {
   timestamp?: string | null;
   baseURL?: string | null;
   headersToSign?: string | null;
-  maxBodySize?: string | null;
+  maxBodySize?: number | null;
 }
 
 export interface AuthOauth1 {
@@ -122,7 +122,7 @@ export type AuthMode
     | 'oauth2'
     | 'wsse'
     | 'apikey'
-    | 'edgegrid';
+    | 'akamai-edgegrid';
 
 export interface Auth {
   mode: AuthMode;
@@ -135,5 +135,5 @@ export interface Auth {
   oauth2?: OAuth2 | null;
   wsse?: AuthWsse | null;
   apikey?: AuthApiKey | null;
-  edgegrid?: AuthEdgeGrid | null;
+  akamaiEdgegrid?: AkamaiEdgeGridAuthValues | null;
 }
