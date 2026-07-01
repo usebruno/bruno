@@ -203,7 +203,7 @@ const EnvironmentDetails = ({ environment, setIsModified, collection, searchQuer
         </div>
         {nameError && isRenaming && <div className="title-error">{nameError}</div>}
         <div className="actions">
-          <ActionIcon label="Save" onClick={handleSaveAll} data-testid="save-all-env">
+          <ActionIcon label="Save All" onClick={handleSaveAll} data-testid="save-all-env">
             <IconDeviceFloppy size={15} strokeWidth={1.5} />
           </ActionIcon>
           <ActionIcon label="Rename" onClick={handleRenameClick} data-testid="env-rename-action">
