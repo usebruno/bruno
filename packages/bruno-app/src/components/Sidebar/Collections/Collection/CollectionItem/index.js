@@ -23,7 +23,7 @@ import {
 } from '@tabler/icons';
 import { useSelector, useDispatch } from 'react-redux';
 import { addTab, focusTab, makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
-import { handleCollectionItemDrop, sendRequest, showInFolder, pasteItem, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
+import { handleCollectionItemDrop, sendRequest, showInFolder, pasteItem, saveRequest, renameItem } from 'providers/ReduxStore/slices/collections/actions';
 import { toggleCollectionItem, addResponseExample } from 'providers/ReduxStore/slices/collections';
 import { insertTaskIntoQueue } from 'providers/ReduxStore/slices/app';
 import { uuid } from 'utils/common';
@@ -89,6 +89,8 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
   // We use a single ref for drag and drop.
   const ref = useRef(null);
   const menuDropdownRef = useRef(null);
+  const inlineInputRef = useRef(null);
+  const isSubmittingRef = useRef(false);
 
   const [renameItemModalOpen, setRenameItemModalOpen] = useState(false);
   const [cloneItemModalOpen, setCloneItemModalOpen] = useState(false);
@@ -102,6 +104,8 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
   const [itemInfoModalOpen, setItemInfoModalOpen] = useState(false);
   const [examplesExpanded, setExamplesExpanded] = useState(false);
   const [isKeyboardFocused, setIsKeyboardFocused] = useState(false);
+  const [isInlineRenaming, setIsInlineRenaming] = useState(false);
+  const [inlineRenameValue, setInlineRenameValue] = useState('');
   const hasSearchText = searchText && searchText?.trim()?.length;
   const itemIsCollapsed = hasSearchText ? false : item.collapsed;
   const isFolder = isItemAFolder(item);
@@ -152,6 +156,13 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
   useEffect(() => {
     dragPreview(getEmptyImage(), { captureDraggingState: true });
   }, []);
+
+  useEffect(() => {
+    if (isInlineRenaming && inlineInputRef.current) {
+      inlineInputRef.current.focus();
+      inlineInputRef.current.select();
+    }
+  }, [isInlineRenaming]);
 
   // Auto-scroll to show this item when its tab becomes active
   useEffect(() => {
@@ -496,6 +507,45 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
     }
   }
 
+  const handleNameDoubleClick = (e) => {
+    if (!isFolder) return;
+    e.stopPropagation();
+    e.preventDefault();
+    dispatch(makeTabPermanent({ uid: tabUidForItem || item.uid }));
+    setInlineRenameValue(item.name);
+    setIsInlineRenaming(true);
+  };
+
+  const handleInlineRenameSubmit = async () => {
+    if (isSubmittingRef.current) return;
+    const newName = inlineRenameValue.trim();
+    if (!newName || newName === item.name) {
+      setIsInlineRenaming(false);
+      return;
+    }
+    if (newName.length > 255) {
+      toast.error('Name must be 255 characters or less');
+      return;
+    }
+    isSubmittingRef.current = true;
+    setIsInlineRenaming(false);
+    try {
+      await dispatch(renameItem({ itemUid: item.uid, collectionUid, newName }));
+    } catch (error) {
+      toast.error(error.message || 'An error occurred while renaming');
+    }
+    isSubmittingRef.current = false;
+  };
+
+  const handleInlineRenameKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleInlineRenameSubmit();
+    } else if (e.key === 'Escape') {
+      setIsInlineRenaming(false);
+    }
+  };
+
   const handleDoubleClick = (event) => {
     dispatch(makeTabPermanent({ uid: tabUidForItem || item.uid }));
   };
@@ -724,9 +774,27 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
 
             <div className="ml-1 flex w-full h-full items-center overflow-hidden">
               <CollectionItemIcon item={item} />
-              <span className="item-name" title={item.name}>
-                {item.name}
-              </span>
+              {isInlineRenaming ? (
+                <input
+                  ref={inlineInputRef}
+                  type="text"
+                  value={inlineRenameValue}
+                  className="item-name-input"
+                  onChange={(e) => setInlineRenameValue(e.target.value)}
+                  onBlur={handleInlineRenameSubmit}
+                  onKeyDown={handleInlineRenameKeyDown}
+                  onClick={(e) => e.stopPropagation()}
+                  onDoubleClick={(e) => e.stopPropagation()}
+                  autoComplete="off"
+                  autoCorrect="off"
+                  autoCapitalize="off"
+                  spellCheck="false"
+                />
+              ) : (
+                <span className="item-name" title={item.name} onDoubleClick={handleNameDoubleClick}>
+                  {item.name}
+                </span>
+              )}
             </div>
           </div>
           <div className="pr-2">

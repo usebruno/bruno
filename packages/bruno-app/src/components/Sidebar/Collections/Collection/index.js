@@ -26,7 +26,7 @@ import {
 } from '@tabler/icons';
 import OpenAPISyncIcon from 'components/Icons/OpenAPISync';
 import { toggleCollection, collapseFullCollection } from 'providers/ReduxStore/slices/collections';
-import { mountCollection, moveCollectionAndPersist, handleCollectionItemDrop, pasteItem, showInFolder, saveCollectionSecurityConfig } from 'providers/ReduxStore/slices/collections/actions';
+import { mountCollection, moveCollectionAndPersist, handleCollectionItemDrop, pasteItem, showInFolder, saveCollectionSecurityConfig, renameCollection } from 'providers/ReduxStore/slices/collections/actions';
 import { useDispatch, useSelector } from 'react-redux';
 import { addTab, makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
 import { setFocusedSidebarPath } from 'providers/ReduxStore/slices/app';
@@ -76,6 +76,10 @@ const Collection = ({ collection, searchText }) => {
   const [dropType, setDropType] = useState(null);
   const [isKeyboardFocused, setIsKeyboardFocused] = useState(false);
   const [showEmptyState, setShowEmptyState] = useState(false);
+  const [isInlineRenaming, setIsInlineRenaming] = useState(false);
+  const [inlineRenameValue, setInlineRenameValue] = useState('');
+  const inlineInputRef = useRef(null);
+  const isSubmittingRef = useRef(false);
   const dispatch = useDispatch();
   const isLoading = collection.isLoading;
   const collectionRef = useRef(null);
@@ -159,6 +163,53 @@ const Collection = ({ collection, searchText }) => {
           type: 'collection-settings'
         })
       );
+    }
+  };
+
+  useEffect(() => {
+    if (isInlineRenaming && inlineInputRef.current) {
+      inlineInputRef.current.focus();
+      inlineInputRef.current.select();
+    }
+  }, [isInlineRenaming]);
+
+  const handleNameDoubleClick = (e) => {
+    e.stopPropagation();
+    e.preventDefault();
+    ensureCollectionIsMounted();
+    dispatch(makeTabPermanent({ uid: collection.uid }));
+    setInlineRenameValue(collection.name);
+    setIsInlineRenaming(true);
+  };
+
+  const handleInlineRenameSubmit = async () => {
+    if (isSubmittingRef.current) return;
+    const newName = inlineRenameValue.trim();
+    if (!newName || newName === collection.name) {
+      setIsInlineRenaming(false);
+      return;
+    }
+    if (newName.length > 255) {
+      toast.error('Name must be 255 characters or less');
+      return;
+    }
+    isSubmittingRef.current = true;
+    setIsInlineRenaming(false);
+    try {
+      await dispatch(renameCollection(newName, collection.uid));
+      toast.success('Collection renamed!');
+    } catch (err) {
+      toast.error(err ? err.message : 'An error occurred while renaming the collection');
+    }
+    isSubmittingRef.current = false;
+  };
+
+  const handleInlineRenameKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleInlineRenameSubmit();
+    } else if (e.key === 'Escape') {
+      setIsInlineRenaming(false);
     }
   };
 
@@ -540,8 +591,26 @@ const Collection = ({ collection, searchText }) => {
               onDoubleClick={handleCollectionDoubleClick}
             />
           </ActionIcon>
-          <div className="ml-1 w-full" id="sidebar-collection-name" title={collection.name}>
-            {collection.name}
+          <div className="ml-1 w-full" id="sidebar-collection-name" title={isInlineRenaming ? undefined : collection.name}>
+            {isInlineRenaming ? (
+              <input
+                ref={inlineInputRef}
+                type="text"
+                value={inlineRenameValue}
+                className="collection-name-input"
+                onChange={(e) => setInlineRenameValue(e.target.value)}
+                onBlur={handleInlineRenameSubmit}
+                onKeyDown={handleInlineRenameKeyDown}
+                onClick={(e) => e.stopPropagation()}
+                onDoubleClick={(e) => e.stopPropagation()}
+                autoComplete="off"
+                autoCorrect="off"
+                autoCapitalize="off"
+                spellCheck="false"
+              />
+            ) : (
+              <span onDoubleClick={handleNameDoubleClick}>{collection.name}</span>
+            )}
           </div>
           {isLoading ? <IconLoader2 className="animate-spin mx-1" size={18} strokeWidth={1.5} /> : null}
         </div>
