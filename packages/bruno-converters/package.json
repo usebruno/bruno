@@ -28,9 +28,9 @@
     "xml2js": "^0.6.2"
   },
   "devDependencies": {
-    "@babel/core": "^7.25.2",
-    "@babel/preset-env": "^7.25.4",
-    "@babel/preset-typescript": "^7.25.0",
+    "@babel/core": "^8.0.1",
+    "@babel/preset-env": "^8.0.2",
+    "@babel/preset-typescript": "^8.0.1",
     "@opencollection/types": "0.9.1",
     "@rollup/plugin-alias": "^5.1.0",
     "@rollup/plugin-commonjs": "^23.0.2",
@@ -38,7 +38,7 @@
     "@rollup/plugin-typescript": "^9.0.2",
     "@usebruno/schema-types": "0.0.1",
     "@web/rollup-plugin-copy": "^0.5.1",
-    "babel-jest": "^29.7.0",
+    "babel-jest": "^30.4.1",
     "rimraf": "^5.0.7",
     "rollup": "3.30.0",
     "rollup-plugin-dts": "^5.0.0",
