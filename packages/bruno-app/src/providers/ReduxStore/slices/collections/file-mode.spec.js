@@ -59,6 +59,15 @@ describe('createCollection', () => {
     expect(state.collections).toHaveLength(1);
     expect(state.collections[0].fileMode).toBe(false);
   });
+
+  test('preserves yml format from the collection payload', () => {
+    const state = reducer(
+      { collections: [] },
+      createCollection({ uid: COLLECTION_UID, pathname: '/coll', items: [], format: 'yml', brunoConfig: {} })
+    );
+
+    expect(state.collections[0].format).toBe('yml');
+  });
 });
 
 describe('toggleCollectionFileMode', () => {

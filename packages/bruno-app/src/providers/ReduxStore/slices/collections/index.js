@@ -242,7 +242,7 @@ export const collectionsSlice = createSlice({
       if (collection.brunoConfig?.opencollection) {
         collection.format = 'yml';
       } else {
-        collection.format = collection.brunoConfig?.format || 'bru';
+        collection.format = collection.brunoConfig?.format || collection.format || 'bru';
       }
 
       // TODO: move this to use the nextAction approach
