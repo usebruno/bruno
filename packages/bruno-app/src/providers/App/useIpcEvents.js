@@ -30,7 +30,8 @@ import { collectionAddEnvFileEvent, openCollectionEvent, hydrateCollectionWithUi
 import {
   workspaceOpenedEvent,
   workspaceConfigUpdatedEvent,
-  hydrateSnapshotForOpenedCollection
+  hydrateSnapshotForOpenedCollection,
+  restoreActiveWorkspaceFromSnapshot
 } from 'providers/ReduxStore/slices/workspaces/actions';
 import { workspaceDotEnvUpdateEvent, setWorkspaceDotEnvVariables } from 'providers/ReduxStore/slices/workspaces';
 import toast from 'react-hot-toast';
@@ -116,7 +117,6 @@ const useIpcEvents = () => {
         dispatch(apiSpecChangeFileEvent({ data: val }));
       }
     };
-
     ipcRenderer.invoke('renderer:ready');
 
     const removeCollectionTreeUpdateListener = ipcRenderer.on('main:collection-tree-updated', _collectionTreeUpdated);
@@ -133,6 +133,10 @@ const useIpcEvents = () => {
 
     const removeOpenWorkspaceListener = ipcRenderer.on('main:workspace-opened', (workspacePath, workspaceUid, workspaceConfig) => {
       dispatch(workspaceOpenedEvent(workspacePath, workspaceUid, workspaceConfig));
+    });
+
+    const removeWorkspacesReadyListener = ipcRenderer.on('main:workspaces-ready', () => {
+      dispatch(restoreActiveWorkspaceFromSnapshot());
     });
 
     const removeWorkspaceConfigUpdatedListener = ipcRenderer.on('main:workspace-config-updated', (workspacePath, workspaceUid, workspaceConfig) => {
@@ -382,6 +386,7 @@ const useIpcEvents = () => {
       removeApiSpecTreeUpdateListener();
       removeOpenCollectionListener();
       removeOpenWorkspaceListener();
+      removeWorkspacesReadyListener();
       removeWorkspaceConfigUpdatedListener();
       removeWorkspaceEnvironmentAddedListener();
       removeWorkspaceEnvironmentChangedListener();

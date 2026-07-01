@@ -27,6 +27,7 @@ import toast from 'react-hot-toast';
 
 const { ipcRenderer } = window;
 let snapshotHydrationTimer = null;
+let startupWorkspaceRestorePending = true;
 const SNAPSHOT_HYDRATION_LONG_STOP_GUARD_MS = 5 * 60 * 1000;
 
 const COLLECTION_SORT_ORDER_BY_WORKSPACE_SORTING = {
@@ -792,6 +793,40 @@ export const loadLastOpenedWorkspaces = () => {
   };
 };
 
+export const restoreActiveWorkspaceFromSnapshot = () => {
+  return async (dispatch, getState) => {
+    startupWorkspaceRestorePending = false;
+
+    try {
+      const snapshot = await ipcRenderer.invoke('renderer:snapshot:get');
+      const activeWorkspacePath = snapshot?.activeWorkspacePath;
+      const { workspaces } = getState().workspaces;
+
+      if (activeWorkspacePath) {
+        const normalizedActiveWorkspacePath = normalizePath(activeWorkspacePath);
+        const matchingWorkspace = workspaces.find(
+          (workspace) => normalizePath(workspace.pathname || '') === normalizedActiveWorkspacePath
+        );
+
+        if (matchingWorkspace) {
+          await dispatch(switchWorkspace(matchingWorkspace.uid));
+          return;
+        }
+      }
+
+      const defaultWorkspace = workspaces.find((workspace) => workspace.type === 'default');
+      if (defaultWorkspace) {
+        await dispatch(switchWorkspace(defaultWorkspace.uid));
+      }
+    } catch (err) {
+      const defaultWorkspace = getState().workspaces.workspaces.find((workspace) => workspace.type === 'default');
+      if (defaultWorkspace) {
+        await dispatch(switchWorkspace(defaultWorkspace.uid));
+      }
+    }
+  };
+};
+
 export const workspaceOpenedEvent = (workspacePath, workspaceUid, workspaceConfig) => {
   return async (dispatch, getState) => {
     dispatch(createWorkspace({
@@ -800,21 +835,16 @@ export const workspaceOpenedEvent = (workspacePath, workspaceUid, workspaceConfi
       ...workspaceConfig
     }));
 
+    let snapshot = null;
     try {
       await dispatch(loadWorkspaceCollections(workspaceUid));
     } catch (error) {
     }
 
-    const state = getState();
-    const activeWorkspaceUid = state.workspaces.activeWorkspaceUid;
-
-    let shouldSwitch = false;
     try {
-      const snapshot = await ipcRenderer.invoke('renderer:snapshot:get');
-      const activeWorkspacePath = snapshot?.activeWorkspacePath;
-      const normalizedWorkspacePath = normalizePath(workspacePath || '');
-
+      snapshot = await ipcRenderer.invoke('renderer:snapshot:get');
       const currentState = getState();
+
       if (!currentState.app.snapshotReady && snapshot?.extras?.devTools) {
         const { open } = snapshot.extras.devTools;
         if (open) {
@@ -825,33 +855,33 @@ export const workspaceOpenedEvent = (workspacePath, workspaceUid, workspaceConfi
         const { activeTab = 'terminal' } = snapshot.extras.devTools;
         dispatch(setActiveDevToolsTab(activeTab));
       }
+    } catch (err) {
+    }
+
+    if (startupWorkspaceRestorePending) {
+      return;
+    }
+
+    const state = getState();
+    const activeWorkspaceUid = state.workspaces.activeWorkspaceUid;
+    let shouldSwitch = false;
+
+    try {
+      const activeWorkspacePath = snapshot?.activeWorkspacePath;
+      const normalizedWorkspacePath = normalizePath(workspacePath || '');
 
       if (activeWorkspacePath) {
         const normalizedActiveWorkspacePath = normalizePath(activeWorkspacePath);
         shouldSwitch = normalizedWorkspacePath === normalizedActiveWorkspacePath;
-
-        // If the snapshot points to a workspace that no longer exists on disk,
-        // fall back to the default workspace instead of leaving stale active state.
-        if (!shouldSwitch && workspaceConfig.type === 'default') {
-          const lastOpenedWorkspacePaths = await ipcRenderer.invoke('renderer:get-last-opened-workspaces').catch(() => []);
-          const normalizedLastOpenedWorkspacePaths = new Set(
-            (Array.isArray(lastOpenedWorkspacePaths) ? lastOpenedWorkspacePaths : [])
-              .map((pathname) => normalizePath(pathname))
-          );
-          const hasActiveWorkspacePath = normalizedLastOpenedWorkspacePaths.has(normalizedActiveWorkspacePath);
-
-          if (!hasActiveWorkspacePath) {
-            shouldSwitch = true;
-          }
-        }
       } else {
         shouldSwitch = !activeWorkspaceUid || workspaceConfig.type === 'default';
       }
     } catch (err) {
       shouldSwitch = !activeWorkspaceUid || workspaceConfig.type === 'default';
     }
+
     if (shouldSwitch) {
-      dispatch(switchWorkspace(workspaceUid));
+      await dispatch(switchWorkspace(workspaceUid));
     }
   };
 };
