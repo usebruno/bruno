@@ -219,6 +219,26 @@ const StyledWrapper = styled.div`
     }
   }
 
+  .btn-stop {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 5px 12px;
+    font-size: 12px;
+    font-weight: 500;
+    border-radius: ${(props) => props.theme.border.radius.sm};
+    border: 1px solid ${(props) => props.theme.input.border};
+    background: ${(props) => props.theme.input.bg};
+    color: ${(props) => props.theme.text};
+    cursor: pointer;
+    transition: background-color 0.15s ease, border-color 0.15s ease;
+
+    &:hover {
+      border-color: ${(props) => props.theme.colors.text.danger};
+      color: ${(props) => props.theme.colors.text.danger};
+    }
+  }
+
   .btn-secondary {
     padding: 5px 12px;
     font-size: 12px;
