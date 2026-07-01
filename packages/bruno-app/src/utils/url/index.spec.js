@@ -339,6 +339,15 @@ describe('Url Utils - interpolateUrl, interpolateUrlPathParams', () => {
     expect(result).toEqual(expectedUrl);
   });
 
+  it('should treat explicitly present undefined variables as empty strings', () => {
+    const url = '{{API_URL}}{{CORE}}v1/upn/409619';
+    const variables = { API_URL: 'https://api.example.com/', CORE: undefined };
+
+    const result = interpolateUrl({ url, variables });
+
+    expect(result).toEqual('https://api.example.com/v1/upn/409619');
+  });
+
   it('should interpolate path params correctly', () => {
     const url = 'https://example.com/api/:id/path';
     const params = [{ name: 'id', type: 'path', enabled: true, value: '123' }];

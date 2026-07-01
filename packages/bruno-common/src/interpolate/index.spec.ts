@@ -48,6 +48,18 @@ describe('interpolate', () => {
     expect(result).toBe('Hello, my name is Bruno and I am {{user.age}} years old');
   });
 
+  it('should treat explicitly present undefined values as empty strings', () => {
+    const inputString = '{{API_URL}}{{CORE}}v1/upn/409619';
+    const inputObject = {
+      API_URL: 'https://api.example.com/',
+      CORE: undefined
+    };
+
+    const result = interpolate(inputString, inputObject as any);
+
+    expect(result).toBe('https://api.example.com/v1/upn/409619');
+  });
+
   it('should handle all valid keys', () => {
     const inputObject = {
       user: {
