@@ -41,6 +41,7 @@ export default class CodeEditor extends React.Component {
     this.state = {
       searchBarVisible: false
     };
+    this.searchBarRef = React.createRef();
   }
 
   componentDidMount() {
@@ -81,22 +82,8 @@ export default class CodeEditor extends React.Component {
             this.props.toggleFileMode();
           }
         },
-        'Cmd-F': (cm) => {
-          if (this.state.searchBarVisible) {
-            this._node.querySelector('.bruno-search-bar > input').focus();
-          }
-          if (!this.state.searchBarVisible) {
-            this.setState({ searchBarVisible: true });
-          }
-        },
-        'Ctrl-F': (cm) => {
-          if (this.state.searchBarVisible) {
-            this._node.querySelector('.bruno-search-bar > input').focus();
-          }
-          if (!this.state.searchBarVisible) {
-            this.setState({ searchBarVisible: true });
-          }
-        },
+        'Cmd-F': () => this.showSearchBar(),
+        'Ctrl-F': () => this.showSearchBar(),
         'Cmd-H': 'replace',
         'Ctrl-H': 'replace',
         'Tab': function (cm) {
@@ -191,6 +178,7 @@ export default class CodeEditor extends React.Component {
         font={this.props.font}
       >
         <CodeMirrorSearch
+          ref={this.searchBarRef}
           visible={this.state.searchBarVisible}
           editor={this.editor}
           onClose={() => this.setState({ searchBarVisible: false })}
@@ -212,6 +200,12 @@ export default class CodeEditor extends React.Component {
 
     defineCodeMirrorBrunoVariablesMode(variables, mode);
     this.editor.setOption('mode', 'brunovariables');
+  };
+
+  showSearchBar = () => {
+    this.setState({ searchBarVisible: true }, () => {
+      this.searchBarRef.current?.focus();
+    });
   };
 
   _onEdit = () => {
