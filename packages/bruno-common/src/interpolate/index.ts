@@ -12,7 +12,7 @@
  */
 
 import { mockDataFunctions } from '../utils/faker-functions';
-import { get, isPlainObject, mapValues } from 'lodash-es';
+import { get, has, isPlainObject, mapValues } from 'lodash-es';
 
 // regex to match {{$keyword}}
 const MOCK_PATTERN = /\{\{\$(\w+)\}\}/g;
@@ -99,6 +99,7 @@ const replace = (
     const patternRegex = /\{\{([^}]+)\}\}/g;
     matchFound = false;
     resultStr = resultStr.replace(patternRegex, (match, placeholder) => {
+      const hasReplacement = has(obj, placeholder);
       let replacement = get(obj, placeholder);
       if (typeof replacement === 'object' && replacement !== null) {
         replacement = JSON.stringify(replacement);
@@ -108,7 +109,7 @@ const replace = (
         return results.get(match);
       }
 
-      if (patternRegex.test(replacement) && !visited.has(match)) {
+      if (typeof replacement === 'string' && patternRegex.test(replacement) && !visited.has(match)) {
         visited.add(match);
         const result = replace(replacement, obj, visited, results);
         results.set(match, result);
@@ -118,7 +119,7 @@ const replace = (
       }
 
       visited.add(match);
-      const result = replacement !== undefined ? replacement : match;
+      const result = hasReplacement ? (replacement === undefined ? '' : replacement) : match;
       results.set(match, result);
 
       matchFound = true;
