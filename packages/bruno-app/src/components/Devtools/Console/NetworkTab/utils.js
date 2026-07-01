@@ -1,29 +1,3 @@
-export const getGridTemplate = (columns) =>
-  columns.map((c) => (c.width ? `${c.width}px` : '1fr')).join(' ');
-
-export const getSeparatorPositions = (columns) => {
-  const n = columns.length;
-  const positions = new Array(n - 1).fill(null);
-
-  let leftOffset = 0;
-  for (let i = 0; i < n - 1; i++) {
-    if (columns[i].width === null) break;
-    leftOffset += columns[i].width;
-    positions[i] = { left: leftOffset };
-  }
-
-  let rightOffset = 0;
-  for (let i = n - 1; i > 0; i--) {
-    if (columns[i].width === null) break;
-    rightOffset += columns[i].width;
-    if (positions[i - 1] === null) {
-      positions[i - 1] = { right: rightOffset };
-    }
-  }
-
-  return positions;
-};
-
 export const getSortValue = (request, key) => {
   const { request: req, response: res, timestamp } = request.data;
   switch (key) {

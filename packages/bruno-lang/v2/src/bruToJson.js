@@ -34,7 +34,7 @@ const ANNOTATIONS_KEY = Symbol('annotations');
  *
  */
 const grammar = ohm.grammar(`Bru {
-  BruFile = (meta | http | grpc | ws | query | params | headers | metadata | auths | bodies | varsandassert | script | tests | settings | docs | example)*
+  BruFile = (meta | http | grpc | ws | query | params | headers | metadata | auths | bodies | varsandassert | script | tests | app | settings | docs | example)*
   auths = authawsv4 | authbasic | authbearer | authdigest | authNTLM | authOAuth1 | authOAuth2 | authwsse | authapikey | authOauth2Configs
   bodies = bodyjson | bodytext | bodyxml | bodysparql | bodygraphql | bodygraphqlvars | bodyforms | body | bodygrpc | bodyws
   bodyforms = bodyformurlencoded | bodymultipart | bodyfile
@@ -108,6 +108,7 @@ const grammar = ohm.grammar(`Bru {
   listitem = st+ (alnum | "_" | "-")+ st*
 
   meta = "meta" dictionary
+  app = "app" dictionary
   settings = "settings" dictionary
 
   http = get | post | put | delete | patch | options | head | connect | trace | httpcustom
@@ -265,7 +266,7 @@ const mapPairListToKeyValPairsMultipart = (pairList = [], parseEnabled = true) =
     if (pair.value.startsWith('@file(') && pair.value.endsWith(')')) {
       let filestr = pair.value.replace(/^@file\(/, '').replace(/\)$/, '');
       pair.type = 'file';
-      pair.value = filestr.split('|');
+      pair.value = filestr.split('|').filter(Boolean);
     }
 
     return pair;
@@ -520,6 +521,14 @@ const sem = grammar.createSemantics().addAttribute('ast', {
 
     return {
       meta
+    };
+  },
+  app(_1, dictionary) {
+    const appData = mapPairListToKeyValPair(dictionary.ast);
+    return {
+      app: {
+        code: appData.code || null
+      }
     };
   },
   settings(_1, dictionary) {

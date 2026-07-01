@@ -142,6 +142,85 @@ Do NOT use \`test()\` or \`expect()\` — those belong in the Tests tab.
 
 ${COMMON_OUTPUT_RULES}`,
 
+  'app-request': `You are an AI assistant that writes Bruno App code attached to an HTTP request.
+
+## App Context
+
+A Bruno App is a self-contained UI that runs inside a sandboxed <webview>. The user's code is injected into the body of a generated HTML document at runtime — it must be fully independent. Plain HTML, CSS, and JavaScript only. No bundler, no module imports, no JSX, no React import statements (React is allowed only if loaded inline via <script> tags + Babel from CDN). Output can be a bare HTML fragment or a full \`<html>\` document.
+
+Before any user script runs, a global \`window.ctx\` is provided by the host. For a request-level app, the ctx surface is:
+
+\`\`\`js
+ctx.theme                // 'light' | 'dark' — also reflected on document.body className
+ctx.response             // { status, statusText, headers, data, dataBuffer?, size, duration, timeline } | null
+ctx.assertionResults     // array of assertion result objects
+ctx.testResults          // array of test result objects
+ctx.variables            // merged env + global + collection + runtime variables (read-only snapshot)
+
+ctx.sendRequest(overrides?)        // returns Promise<response>; overrides may carry { variables: {...} }
+ctx.setRuntimeVariable(key, value) // persist a runtime variable on the collection
+ctx.log(...args)                   // forwarded to the Bruno devtools console
+
+ctx.onThemeChange       = (theme) => { ... }
+ctx.onResponseUpdate    = (response) => { ... }
+ctx.onResultsUpdate     = ({ assertionResults, testResults }) => { ... }
+ctx.onVariablesUpdate   = (variables) => { ... }
+\`\`\`
+
+Theme changes automatically add a \`light\` or \`dark\` class on \`document.body\` — style both states.
+
+## Best Practices
+
+- Use modern JavaScript (async/await). Always handle loading and error states around \`ctx.sendRequest\`.
+- Bind UI updates to the \`on*\` callbacks so the app reacts to host updates without polling.
+- Do not rely on Bruno internals beyond \`ctx\`. Do not invent endpoints — the request URL/method is provided as HTTP Request Context.
+- Keep CSS scoped to the app body; the webview is isolated but be a good guest.
+
+## Output Rules
+
+Return ONLY the raw HTML/CSS/JS for the app. No code fences, no commentary, no preamble. Begin with the first line of code (either a tag like \`<div>\` / \`<style>\` / \`<!DOCTYPE html>\`, or a \`<script>\` block).
+
+If existing app code was provided, return the COMPLETE updated app (your output replaces the entire file). Preserve any existing markup or logic the user did not ask you to remove.`,
+
+  'app-collection': `You are an AI assistant that writes Bruno App code attached to a collection or folder.
+
+## App Context
+
+A Bruno App is a self-contained UI that runs inside a sandboxed <webview>. The user's code is injected into the body of a generated HTML document at runtime — it must be fully independent. Plain HTML, CSS, and JavaScript only. No bundler, no module imports, no JSX, no React import statements (React is allowed only if loaded inline via <script> tags + Babel from CDN). Output can be a bare HTML fragment or a full \`<html>\` document.
+
+Before any user script runs, a global \`window.ctx\` is provided by the host. For a collection-/folder-level app, the ctx surface is:
+
+\`\`\`js
+ctx.theme               // 'light' | 'dark' — also reflected on document.body className
+ctx.variables           // merged env + global + collection + runtime variables (read-only snapshot)
+ctx.collection          // { name, pathname } | null
+
+ctx.listRequests()                     // returns Promise<Array<{ uid, name, pathname, type, method, url }>>
+ctx.runRequest(pathname, overrides?)   // runs a single request by its pathname; returns Promise<response>
+ctx.setRuntimeVariable(key, value)     // persist a runtime variable on the collection
+ctx.log(...args)                       // forwarded to the Bruno devtools console
+
+ctx.onThemeChange     = (theme) => { ... }
+ctx.onVariablesUpdate = (variables) => { ... }
+\`\`\`
+
+A collection-level app is NOT bound to a single request — use \`ctx.listRequests()\` to discover what is available and \`ctx.runRequest(pathname)\` to execute one. There is no \`ctx.response\` / \`ctx.sendRequest\` / \`ctx.assertionResults\` / \`ctx.testResults\` here — those exist only on request-level apps.
+
+Theme changes automatically add a \`light\` or \`dark\` class on \`document.body\` — style both states.
+
+## Best Practices
+
+- Use modern JavaScript (async/await). Always handle loading and error states around \`ctx.runRequest\` and \`ctx.listRequests\`.
+- Reference requests by the \`pathname\` returned from \`ctx.listRequests()\`, not by name — names can collide.
+- When Documentation Context lists the collection's requests, you may pre-populate the UI with those names, but always discover via \`ctx.listRequests()\` at runtime so the app stays in sync as requests are added or renamed.
+- Do not rely on Bruno internals beyond \`ctx\`.
+
+## Output Rules
+
+Return ONLY the raw HTML/CSS/JS for the app. No code fences, no commentary, no preamble. Begin with the first line of code (either a tag like \`<div>\` / \`<style>\` / \`<!DOCTYPE html>\`, or a \`<script>\` block).
+
+If existing app code was provided, return the COMPLETE updated app (your output replaces the entire file). Preserve any existing markup or logic the user did not ask you to remove.`,
+
   'docs': `You are an AI assistant that writes API documentation in Markdown for the Bruno API client.
 
 ## Documentation Context
@@ -212,46 +291,41 @@ const formatDocsContext = (ctx) => {
   return parts.join('\n\n');
 };
 
-const formatRequestContext = (ctx) => {
-  if (!ctx) return '';
-  const parts = [];
+const { formatRequestContext, formatVariablesList } = require('./context');
 
-  if (ctx.url || ctx.method) {
-    parts.push(`Request: ${ctx.method || 'GET'} ${ctx.url || ''}`);
-  }
-
-  const headers = (ctx.headers || []).filter((h) => h?.enabled && h?.name);
-  if (headers.length) {
-    parts.push(`Headers:\n${headers.map((h) => `  ${h.name}: ${h.value ?? ''}`).join('\n')}`);
-  }
-
-  const params = (ctx.params || []).filter((p) => p?.enabled && p?.name);
-  if (params.length) {
-    parts.push(`Params:\n${params.map((p) => `  ${p.name}: ${p.value ?? ''}`).join('\n')}`);
-  }
-
-  const body = ctx.body;
-  if (body && body.mode && body.mode !== 'none') {
-    let bodyText = '';
-    if (body.mode === 'json') bodyText = body.json || '';
-    else if (body.mode === 'text') bodyText = body.text || '';
-    else if (body.mode === 'xml') bodyText = body.xml || '';
-    else if (body.mode === 'graphql') bodyText = body.graphql?.query || '';
-    if (bodyText) parts.push(`Body (${body.mode}):\n${bodyText.slice(0, 2000)}`);
-  }
-
-  return parts.join('\n\n');
-};
-
-const buildScriptUserPrompt = ({ userPrompt, currentScript, requestContext, docsContext, scriptType }) => {
+const buildScriptUserPrompt = ({
+  userPrompt,
+  currentScript,
+  requestContext,
+  docsContext,
+  variables,
+  scriptType
+}) => {
   const sections = [];
   const docsContextStr = formatDocsContext(docsContext);
   if (docsContextStr) sections.push(`Documentation Context\n${docsContextStr}`);
-  const contextStr = formatRequestContext(requestContext);
+
+  // Same redaction rules as the chat sidebar — sensitive headers/params masked,
+  // response shape only (no real values). Body is sent in full so the model
+  // can write code that references real keys.
+  const contextStr = formatRequestContext(requestContext, { includeResponse: true });
   if (contextStr) sections.push(`HTTP Request Context\n${contextStr}`);
+
+  const varsStr = formatVariablesList(variables);
+  if (varsStr) {
+    sections.push(`Available Variables (names only — call search_variables(query) for a value)\n${varsStr}`);
+  }
+
   if (currentScript && currentScript.trim()) {
-    const existingLabel = scriptType === 'docs' ? 'Existing Documentation' : 'Existing Code';
-    const fenceLang = scriptType === 'docs' ? 'markdown' : 'js';
+    let existingLabel = 'Existing Code';
+    let fenceLang = 'js';
+    if (scriptType === 'docs') {
+      existingLabel = 'Existing Documentation';
+      fenceLang = 'markdown';
+    } else if (scriptType === 'app-request' || scriptType === 'app-collection') {
+      existingLabel = 'Existing App';
+      fenceLang = 'html';
+    }
     sections.push(`${existingLabel}\n\`\`\`${fenceLang}\n${currentScript}\n\`\`\``);
   }
   sections.push(`User Request\n${userPrompt}`);
@@ -270,9 +344,29 @@ const stripCodeFences = (text) => {
   return out.replace(/^\n+/, '');
 };
 
+// Tool instructions appended to every script system prompt so the model knows
+// it can call `read_response` and `search_variables` instead of relying on a
+// possibly-truncated inline summary. Generation does NOT have write tools —
+// the model still returns the final script as its assistant text.
+const TOOL_INSTRUCTIONS = `## Available Tools
+
+You may call these tools BEFORE producing the final code to gather context. Do not announce the tool calls in your final output — only the generated code goes back to the user.
+
+- read_response(): returns the redacted shape (keys + value types) of the most recent response for this request. Use it when writing tests / post-response scripts that need to know which fields exist. Values are placeholders (\`<string>\`, \`<number>\`, …) — never hard-code them; reference fields at runtime via \`res.getBody()\` / \`res('path')\`.
+- search_variables(query?): search environment / collection / global / runtime variables by name (case-insensitive substring). Pass a query to confirm a name exists before referencing it in code. Variables marked \`secret\` come back as \`<redacted>\`. Each result has a \`scope\` field — use it to pick the right runtime accessor: \`bru.getEnvVar\` for \`env\`, \`bru.getGlobalEnvVar\` for \`global\`, \`bru.getCollectionVar\` / \`bru.getFolderVar\` / \`bru.getRequestVar\` for \`collection\`, \`bru.getVar\` for \`runtime\`, and \`bru.getSecretVar\` for any value that came back redacted. Never paste a returned value.
+
+Only call a tool when the extra information would change the code you write. For greetings, simple boilerplate, or tasks fully covered by the inline context, skip the tools.`;
+
+const buildScriptSystemPrompt = (scriptType) => {
+  const base = SCRIPT_PROMPTS[scriptType];
+  if (!base) return SCRIPT_PROMPTS.tests; // sensible fallback
+  return `${base}\n\n${TOOL_INSTRUCTIONS}`;
+};
+
 module.exports = {
   SCRIPT_PROMPTS,
   SCRIPT_TYPES,
+  buildScriptSystemPrompt,
   buildScriptUserPrompt,
   formatDocsContext,
   stripCodeFences

@@ -14,7 +14,7 @@ const stripLastLine = (text) => {
 };
 
 const jsonToBru = (json) => {
-  const { meta, http, grpc, ws, params, headers, metadata, auth, body, script, tests, vars, assertions, settings, docs, examples } = json;
+  const { meta, http, grpc, ws, params, headers, metadata, auth, body, script, tests, vars, assertions, settings, app, docs, examples } = json;
 
   let bru = '';
 
@@ -560,7 +560,7 @@ ${indentString(body.sparql)}
             }
 
             if (item.type === 'file') {
-              const filepaths = Array.isArray(item.value) ? item.value : [];
+              const filepaths = (Array.isArray(item.value) ? item.value : []).filter(Boolean);
               const filestr = filepaths.join('|');
 
               const value = `@file(${filestr})`;
@@ -755,6 +755,12 @@ ${indentString(tests)}
 }
 
 `;
+  }
+
+  if (app && app.code && app.code.length) {
+    bru += `app {\n`;
+    bru += `  code: '''\n${indentString(app.code, 2)}\n  '''`;
+    bru += '\n}\n\n';
   }
 
   if (settings && Object.keys(settings).length) {

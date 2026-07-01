@@ -40,8 +40,11 @@ jobs:
       - name: Install npm dependencies
         run: |
           npm ci --legacy-peer-deps
-          sudo chown root /home/runner/work/bruno/bruno/node_modules/electron/dist/chrome-sandbox
-          sudo chmod 4755 /home/runner/work/bruno/bruno/node_modules/electron/dist/chrome-sandbox
+          CHROME_SANDBOX="${GITHUB_WORKSPACE}/node_modules/electron/dist/chrome-sandbox"
+          if [[ -f "$CHROME_SANDBOX" ]]; then
+            sudo chown root "$CHROME_SANDBOX"
+            sudo chmod 4755 "$CHROME_SANDBOX"
+          fi
 
       - name: Install test collection dependencies
         run: npm ci --prefix packages/bruno-tests/collection

@@ -151,12 +151,102 @@ const StyledWrapper = styled.div`
     color: ${(props) => props.theme.colors.text.danger};
     margin-left: 8px;
   }
+
+  .migrate-yml-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 2px 4px 2px 8px;
+    border: 1px solid ${(props) => props.theme.input.border};
+    border-radius: 999px;
+    background: transparent;
+    color: ${(props) => props.theme.text};
+    font-size: 12px;
+    line-height: 1;
+    transition: background-color 0.15s ease;
+
+    &:hover {
+      background: ${(props) => props.theme.sidebar.collection.item.hoverBg};
+    }
+
+    .pill-main {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 0;
+      border: none;
+      background: transparent;
+      color: inherit;
+      font: inherit;
+      cursor: pointer;
+    }
+
+    .pill-label {
+      font-weight: 500;
+    }
+
+    .pill-dismiss {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 16px;
+      height: 16px;
+      padding: 0;
+      border: none;
+      border-radius: 50%;
+      background: transparent;
+      color: inherit;
+      cursor: pointer;
+      opacity: 0.6;
+      transition: opacity 0.15s ease, background-color 0.15s ease;
+
+      &:hover {
+        opacity: 1;
+        background: ${(props) => props.theme.sidebar.collection.item.hoverBg};
+      }
+    }
+  }
+
   .display-icon{
     padding: 4px;
     box-sizing: content-box;
     &:hover {
       background: ${(props) => props.theme.sidebar.collection.item.hoverBg};
       border-radius: ${(props) => props.theme.border.radius.sm}
+    }
+  }
+
+  .mode-toggle {
+    display: inline-flex;
+    align-items: stretch;
+    padding: 2px;
+    gap: 2px;
+    background: ${(props) => props.theme.sidebar.collection.item.hoverBg};
+    border-radius: ${(props) => props.theme.border.radius.base};
+
+    .mode-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 26px;
+      padding: 0;
+      border: 1px solid transparent;
+      background: transparent;
+      color: ${(props) => props.theme.colors.text.muted};
+      border-radius: ${(props) => props.theme.border.radius.sm};
+      cursor: pointer;
+      transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+
+      &:hover:not(.active) {
+        color: ${(props) => props.theme.text};
+      }
+
+      &.active {
+        background: ${(props) => props.theme.bg};
+        color: ${(props) => props.theme.text};
+        border-color: ${(props) => props.theme.input.border};
+        box-shadow: ${(props) => props.theme.shadow.sm};
+      }
     }
   }
 `;
