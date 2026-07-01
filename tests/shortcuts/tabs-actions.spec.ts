@@ -240,6 +240,10 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await expect(
           page.locator('.request-tab').filter({ has: page.getByText('Transient Close Test', { exact: true }) })
         ).not.toBeVisible();
+
+        // Open the saved request from the sidebar and verify the URL was persisted correctly
+        await openRequest(page, collectionName, 'Transient Close Test');
+        await expect(page.locator('#request-url .CodeMirror-line')).toContainText('http://localhost:8081/ping');
       });
     });
 
