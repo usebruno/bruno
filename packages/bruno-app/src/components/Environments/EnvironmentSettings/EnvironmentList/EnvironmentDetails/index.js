@@ -203,6 +203,9 @@ const EnvironmentDetails = ({ environment, setIsModified, collection, searchQuer
         </div>
         {nameError && isRenaming && <div className="title-error">{nameError}</div>}
         <div className="actions">
+          <ActionIcon label="Save" onClick={handleSaveAll} data-testid="save-all-env">
+            <IconDeviceFloppy size={15} strokeWidth={1.5} />
+          </ActionIcon>
           <ActionIcon label="Rename" onClick={handleRenameClick} data-testid="env-rename-action">
             <IconEdit size={15} strokeWidth={1.5} />
           </ActionIcon>
@@ -222,9 +225,6 @@ const EnvironmentDetails = ({ environment, setIsModified, collection, searchQuer
           onTabSelect={setActiveTab}
           rightContent={(
             <div ref={rightContentRef} className="env-search-container">
-              <ActionIcon label="Save" onClick={handleSaveAll} data-testid="save-all-env">
-                <IconDeviceFloppy size={15} strokeWidth={1.5} />
-              </ActionIcon>
               {isSearchExpanded ? (
                 <div className="search-input-wrapper">
                   <IconSearch size={14} strokeWidth={1.5} className="search-icon" />
