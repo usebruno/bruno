@@ -1167,7 +1167,10 @@ const selectPaneTab = async (page: Page, paneSelector: string, tabName: string) 
       }
 
       if (await overflowButton.isVisible()) {
-        await overflowButton.click({ timeout: 2000 });
+        const isExpanded = (await overflowButton.getAttribute('aria-expanded')) === 'true';
+        if (!isExpanded) {
+          await overflowButton.click({ timeout: 2000 });
+        }
 
         const dropdownItem = page.locator('.tippy-box .dropdown-item').filter({ hasText: tabName });
         await dropdownItem.waitFor({ state: 'visible', timeout: 2000 });
