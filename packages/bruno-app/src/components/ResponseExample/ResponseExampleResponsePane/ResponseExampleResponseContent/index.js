@@ -5,8 +5,38 @@ import { useSelector } from 'react-redux';
 import get from 'lodash/get';
 import { updateResponseExampleResponse } from 'providers/ReduxStore/slices/collections';
 import CodeEditor from 'components/CodeEditor';
+import QueryResultPreview from 'components/ResponsePane/QueryResult/QueryResultPreview';
 import { getCodeMirrorModeBasedOnContentType } from 'utils/common/codemirror';
+import { detectContentTypeFromBase64 } from 'utils/response';
 import StyledWrapper from './StyledWrapper';
+
+const BINARY_BODY_TYPES = ['binary', 'base64'];
+
+const getResponseHeaderValue = (headers = [], name) => {
+  return headers.find((h) => h.name?.toLowerCase() === name.toLowerCase())?.value || '';
+};
+
+const getBinaryPreviewMode = (contentType = '') => {
+  const normalizedContentType = contentType.toLowerCase();
+
+  if (normalizedContentType.includes('image/')) {
+    return 'preview-image';
+  }
+
+  if (normalizedContentType.includes('pdf')) {
+    return 'preview-pdf';
+  }
+
+  if (normalizedContentType.includes('audio/')) {
+    return 'preview-audio';
+  }
+
+  if (normalizedContentType.includes('video/')) {
+    return 'preview-video';
+  }
+
+  return 'preview-text';
+};
 
 const ResponseExampleResponseContent = ({ editMode, item, collection, exampleUid, onSave }) => {
   const dispatch = useDispatch();
@@ -44,6 +74,8 @@ const ResponseExampleResponseContent = ({ editMode, item, collection, exampleUid
         return 'application/html';
       } else if (bodyType === 'text') {
         return 'application/text';
+      } else if (BINARY_BODY_TYPES.includes(bodyType)) {
+        return 'text/plain';
       }
     }
 
@@ -68,6 +100,42 @@ const ResponseExampleResponseContent = ({ editMode, item, collection, exampleUid
       }));
     }
   };
+
+  const responseContent = getResponseContent();
+  const isBinaryResponse = BINARY_BODY_TYPES.includes(response.body?.type);
+  const detectedContentType = useMemo(() => {
+    if (!isBinaryResponse) {
+      return null;
+    }
+
+    return detectContentTypeFromBase64(responseContent);
+  }, [isBinaryResponse, responseContent]);
+  const headerContentType = getResponseHeaderValue(response.headers, 'content-type');
+  const previewContentType = detectedContentType || headerContentType;
+  const previewMode = getBinaryPreviewMode(previewContentType);
+
+  if (!editMode && isBinaryResponse) {
+    return (
+      <StyledWrapper className="w-full px-4">
+        <div className="response-example-preview-container">
+          <QueryResultPreview
+            selectedTab="preview"
+            data={responseContent}
+            dataBuffer={responseContent}
+            formattedData={responseContent}
+            item={item}
+            contentType={previewContentType}
+            previewMode={previewMode}
+            codeMirrorMode="text/plain"
+            collection={collection}
+            disableRunEventListener
+            displayedTheme={displayedTheme}
+            docKey={`response-example:${exampleUid}`}
+          />
+        </div>
+      </StyledWrapper>
+    );
+  }
 
   return (
     <StyledWrapper className="w-full px-4">

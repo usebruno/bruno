@@ -9,7 +9,7 @@
  * @returns {string} - The body type (json, xml, html, text, binary)
  */
 export const getBodyType = (contentType = '') => {
-  const normalizedContentType = contentType.toLowerCase();
+  const normalizedContentType = String(contentType).trim().toLowerCase();
 
   if (normalizedContentType.includes('application/json')) {
     return 'json';
@@ -17,6 +17,13 @@ export const getBodyType = (contentType = '') => {
     return 'xml';
   } else if (normalizedContentType.includes('text/html')) {
     return 'html';
+  } else if (
+    normalizedContentType.startsWith('image/')
+    || normalizedContentType.startsWith('audio/')
+    || normalizedContentType.startsWith('video/')
+    || normalizedContentType.includes('application/pdf')
+  ) {
+    return 'binary';
   }
 
   return 'text';

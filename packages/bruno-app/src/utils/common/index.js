@@ -275,7 +275,16 @@ const applyJSONPathFilter = (data, filter) => {
 };
 
 export const formatResponse = (data, dataBufferString, mode, filter, bufferThreshold = LARGE_BUFFER_THRESHOLD) => {
-  if (data === undefined || !dataBufferString || !mode) {
+  if (!dataBufferString || !mode) {
+    return '';
+  }
+
+  // Handle binary/base64 format - return base64 string as-is
+  if (mode.includes('base64') || mode.includes('binary')) {
+    return dataBufferString;
+  }
+
+  if (data === undefined) {
     return '';
   }
 
@@ -400,11 +409,6 @@ export const formatResponse = (data, dataBufferString, mode, filter, bufferThres
       }
       return '';
     }
-  }
-
-  // Handle base64 format - return base64 string as-is
-  if (mode.includes('base64')) {
-    return dataBufferString;
   }
 
   // Handle raw format - return data as-is without any formatting
