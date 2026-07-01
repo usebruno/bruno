@@ -1,0 +1,4 @@
+name: global-env
+variables:
+  - name: foo
+    value: bar
