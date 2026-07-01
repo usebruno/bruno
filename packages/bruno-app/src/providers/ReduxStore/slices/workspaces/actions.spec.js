@@ -9,6 +9,8 @@ jest.mock('react-hot-toast', () => ({
   error: jest.fn()
 }));
 
+import os from 'os';
+import path from 'path';
 import { configureStore } from '@reduxjs/toolkit';
 import workspacesReducer from './index';
 import collectionsReducer from '../collections';
@@ -24,7 +26,7 @@ const SCRATCH_B = 'scratch-b';
 
 const makeScratchCollection = (uid) => ({
   uid,
-  pathname: `/tmp/${uid}`,
+  pathname: path.join(os.tmpdir(), uid),
   name: 'Scratch',
   items: [],
   brunoConfig: { version: '1', name: 'Scratch', type: 'collection' },
