@@ -9,7 +9,7 @@ const CollectionVersionInfo = ({ name, version, folderCount = 0, requestCount = 
       <div className="version-line">
         <span className="collection-name" data-testid="collection-name">{name}</span>
         {version ? (
-          <span className="version-value" data-testid="version-value">{`version : ${version}`}</span>
+          <span className="version-value" data-testid="version-value">{`Version: ${version}`}</span>
         ) : null}
       </div>
       <p className="version-summary" data-testid="version-summary">

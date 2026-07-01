@@ -4,14 +4,14 @@ import { render, screen } from '@testing-library/react';
 import CollectionVersionInfo from './index';
 
 describe('CollectionVersionInfo', () => {
-  it('shows the raw collection version with a "version :" prefix and no "v"/semver formatting', () => {
+  it('shows the raw collection version with a "Version:" prefix and no "v"/semver formatting', () => {
     render(<CollectionVersionInfo name="Hotel Booking API" version="1" />);
-    expect(screen.getByTestId('version-value')).toHaveTextContent('version : 1');
+    expect(screen.getByTestId('version-value')).toHaveTextContent('Version: 1');
   });
 
   it('shows whatever version string the collection has, unchanged', () => {
     render(<CollectionVersionInfo name="API" version="2.3-beta" />);
-    expect(screen.getByTestId('version-value')).toHaveTextContent('version : 2.3-beta');
+    expect(screen.getByTestId('version-value')).toHaveTextContent('Version: 2.3-beta');
   });
 
   it('omits the version when the collection has none', () => {

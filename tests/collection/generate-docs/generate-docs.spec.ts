@@ -179,7 +179,7 @@ test.describe('Generate Documentation', () => {
     await expect(locators.generateDocs.collectionName()).toHaveText(COLLECTION_NAME);
 
     // The version is shown exactly as the collection sets it.
-    await expect(locators.generateDocs.versionValue()).toHaveText('version : 1');
+    await expect(locators.generateDocs.versionValue()).toHaveText('Version: 1');
 
     // The fixture has 2 folders (Zoo, Aviary) and 5 requests (Lion, Bear, Parrot,
     // ReqAlpha, ReqBeta), counted recursively across the whole tree.
