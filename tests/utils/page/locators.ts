@@ -20,6 +20,10 @@ export const buildCommonLocators = (page: Page) => ({
     },
     closeAllCollectionsButton: () => page.getByTestId('collections-header-actions-menu-close-all'),
     collectionRow: (name: string) => page.getByTestId('sidebar-collection-row').filter({ hasText: name }),
+    itemRow: (name: string) => page.getByTestId('sidebar-collection-item-row').filter({ hasText: name }),
+    requestExamplesToggle: (requestName: string) =>
+      page.getByTestId('sidebar-collection-item-row').filter({ hasText: requestName }).getByTestId('request-item-chevron'),
+    example: (name: string) => page.getByTestId('sidebar-response-example-item').filter({ hasText: name }),
     // The sidebar tree wraps each collection in `#collection-<slug>`; scope queries
     // to it to disambiguate items that share names across collections.
     collectionScope: (name: string) => page.locator(`#collection-${name.replace(/\s+/g, '-').toLowerCase()}`)
@@ -240,6 +244,10 @@ export const buildCommonLocators = (page: Page) => ({
     locationModal: () => page.locator('[data-testid="import-collection-location-modal"]'),
     locationInput: () => page.locator('#collection-location'),
     fileInput: () => page.locator('input[type="file"]'),
+    bulkModal: () => page.getByTestId('bulk-import-collection-location-modal'),
+    bulkFormatSelect: () => page.getByTestId('bulk-import-collection-location-modal').getByTestId('bulk-import-collection-format-selector'),
+    bulkLocationInput: () => page.getByTestId('bulk-import-collection-location-modal').getByTestId('bulk-import-collection-location-input'),
+    bulkSubmitButton: () => page.getByTestId('bulk-import-collection-location-modal-submit-btn'),
     envOption: (name: string) => page.locator('.dropdown-item').getByText(name, { exact: true }),
     parsingError: () => page.getByTestId('import-error-message'),
     browseLink: (root?: Locator) => (root ?? page).getByTestId('import-collection-browse-link'),

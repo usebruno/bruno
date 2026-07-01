@@ -23,7 +23,7 @@ import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { useTheme } from 'providers/Theme';
 import CodeEditor from 'components/CodeEditor';
 import AIAssist from 'components/AIAssist';
-import { buildDocsContextFromCollection } from 'utils/ai';
+import { buildAiVariablesPayload, buildDocsContextFromCollection } from 'utils/ai';
 import StyledWrapper from './StyledWrapper';
 import EmptyAppState from '../AppView/EmptyAppState';
 import {
@@ -190,6 +190,7 @@ const CollectionApp = ({ item, collection }) => {
     [collection?.name, collection?.pathname]
   );
   const docsContext = useMemo(() => buildDocsContextFromCollection(collection), [collection]);
+  const aiVariables = useMemo(() => buildAiVariablesPayload(collection, null), [collection]);
 
   const onEdit = useCallback(
     (value) => dispatch(updateAppCode({ code: value, itemUid: item.uid, collectionUid: collection.uid })),
@@ -366,6 +367,7 @@ const CollectionApp = ({ item, collection }) => {
             scriptType="app-collection"
             currentScript={code || ''}
             docsContext={docsContext}
+            variables={aiVariables}
             onApply={onEdit}
           />
         </div>
