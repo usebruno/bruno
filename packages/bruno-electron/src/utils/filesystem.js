@@ -4,6 +4,9 @@ const fsPromises = require('fs/promises');
 const { dialog } = require('electron');
 const isValidPathname = require('is-valid-path');
 const os = require('os');
+// Single shared implementation lives in @usebruno/common; re-exported below so
+// `require('../utils/filesystem')` consumers keep working unchanged.
+const { sanitizeName, validateName, nextSuffixedName } = require('@usebruno/common').utils;
 
 const DEFAULT_GITIGNORE = [
   '# Secrets',
@@ -104,6 +107,88 @@ const writeFile = async (pathname, content, isBinary = false) => {
   }
 };
 
+const MAX_DUPLICATE_NAMES = 200;
+
+const firstFreeSuffix = async (dirname, baseName, ext) => {
+  let existing;
+  try {
+    existing = new Set(await fsPromises.readdir(dirname));
+  } catch (err) {
+    return 0;
+  }
+  let counter = 0;
+  while (existing.has(nextSuffixedName(baseName, ext, counter))) {
+    counter++;
+  }
+  return counter;
+};
+
+/**
+ * Atomically create a file under `dirname`, resolving name collisions silently.
+ *
+ * Tries `${base}.${ext}`, then `${base}1.${ext}`, `${base}2.${ext}`, using the
+ * exclusive-create flag (`wx`) so the filesystem itself arbitrates the name: if
+ * two callers race for the same name, the loser gets EEXIST and retries the next
+ * suffix instead of throwing or overwriting.
+ *
+ * @returns {Promise<{ pathname: string, filename: string }>} the path created
+ */
+const writeFileUnique = async (dirname, baseFilename, ext, content) => {
+  const normalizedExt = ext && ext.startsWith('.') ? ext.slice(1) : ext;
+
+  const MAX_FILENAME_LENGTH = 255;
+  const extLength = normalizedExt ? normalizedExt.length + 1 : 0;
+  // Reserve exactly enough room for the largest possible suffix (bounded by the
+  // duplicate cap) so base + suffix + ext can never exceed the filename limit.
+  const SUFFIX_RESERVE = String(MAX_DUPLICATE_NAMES - 1).length;
+  const maxBaseLength = Math.max(1, MAX_FILENAME_LENGTH - extLength - SUFFIX_RESERVE);
+  const safeBase = baseFilename.length > maxBaseLength ? baseFilename.slice(0, maxBaseLength) : baseFilename;
+
+  // readdir hint: jump to the first free suffix instead of probing from 0.
+  const start = await firstFreeSuffix(dirname, safeBase, normalizedExt);
+
+  for (let counter = start; counter < MAX_DUPLICATE_NAMES; counter++) {
+    const candidate = nextSuffixedName(safeBase, normalizedExt, counter);
+    const pathname = path.join(dirname, candidate);
+    try {
+      await fsPromises.writeFile(pathname, content, { flag: 'wx' });
+      return { pathname, filename: path.basename(pathname) };
+    } catch (err) {
+      if (err && err.code === 'EEXIST') continue;
+      console.error(`Error writing file at ${pathname}:`, err);
+      throw err;
+    }
+  }
+  throw new Error(`Too many items named "${baseFilename}" (limit ${MAX_DUPLICATE_NAMES}). Please use a different name.`);
+};
+
+/**
+ * Atomically create a directory under `dirname`, resolving name collisions
+ * silently. Directory analog of `writeFileUnique`: `mkdir` (non-recursive)
+ * throws EEXIST when the dir already exists, so each retry climbs to the next
+ * suffix (`name`, `name1`, `name2`, …).
+ *
+ * @returns {Promise<{ pathname: string, name: string }>} the directory created
+ */
+const mkdirUnique = async (dirname, baseName) => {
+  // readdir hint: jump to the first free suffix instead of probing from 0.
+  const start = await firstFreeSuffix(dirname, baseName, '');
+
+  for (let counter = start; counter < MAX_DUPLICATE_NAMES; counter++) {
+    const name = nextSuffixedName(baseName, '', counter);
+    const pathname = path.join(dirname, name);
+    try {
+      await fsPromises.mkdir(pathname);
+      return { pathname, name };
+    } catch (err) {
+      if (err && err.code === 'EEXIST') continue;
+      console.error(`Error creating directory at ${pathname}:`, err);
+      throw err;
+    }
+  }
+  throw new Error(`Too many items named "${baseName}" (limit ${MAX_DUPLICATE_NAMES}). Please use a different name.`);
+};
+
 const hasJsonExtension = (filename) => {
   if (!filename || typeof filename !== 'string') return false;
   return ['json'].some((ext) => filename.toLowerCase().endsWith(`.${ext}`));
@@ -198,15 +283,6 @@ const searchForRequestFiles = (dir, collectionPath = null) => {
   }
 };
 
-const sanitizeName = (name) => {
-  const invalidCharacters = /[<>:"/\\|?*\x00-\x1F]/g;
-  name = name
-    .replace(invalidCharacters, '-') // replace invalid characters with hyphens
-    .replace(/^[\s\-]+/, '') // remove leading spaces and hyphens
-    .replace(/[.\s]+$/, ''); // remove trailing dots and spaces
-  return name;
-};
-
 const isWindowsOS = () => {
   return os.platform() === 'win32';
 };
@@ -247,23 +323,6 @@ const getCollectionFormat = (collectionPath) => {
   throw new Error(`No collection configuration found at: ${collectionPath}`);
 };
 
-const validateName = (name) => {
-  const invalidCharacters = /[<>:"/\\|?*\x00-\x1F]/g; // keeping this for informational purpose
-  const reservedDeviceNames = /^(CON|PRN|AUX|NUL|COM[0-9]|LPT[0-9])$/i;
-  const firstCharacter = /^[^\s\-<>:"/\\|?*\x00-\x1F]/; // no space, hyphen and `invalidCharacters`
-  const middleCharacters = /^[^<>:"/\\|?*\x00-\x1F]*$/; // no `invalidCharacters`
-  const lastCharacter = /[^.\s<>:"/\\|?*\x00-\x1F]$/; // no dot, space and `invalidCharacters`
-  if (name.length > 255) return false; // max name length
-
-  if (reservedDeviceNames.test(name)) return false; // windows reserved names
-
-  return (
-    firstCharacter.test(name)
-    && middleCharacters.test(name)
-    && lastCharacter.test(name)
-  );
-};
-
 const safeToRename = (oldPath, newPath) => {
   try {
     // If the new path doesn't exist, it's safe to rename
@@ -286,6 +345,87 @@ const safeToRename = (oldPath, newPath) => {
     console.error(`Error checking file rename safety for ${oldPath} and ${newPath}:`, error);
     return false;
   }
+};
+
+const getUniqueRenamePath = (oldPath, desiredNewPath) => {
+  if (safeToRename(oldPath, desiredNewPath)) {
+    return desiredNewPath;
+  }
+  const dir = path.dirname(desiredNewPath);
+  const ext = path.extname(desiredNewPath); // '' for directories, '.bru' etc. for files
+  const base = path.basename(desiredNewPath, ext);
+  const extNoDot = ext.startsWith('.') ? ext.slice(1) : ext;
+
+  let existing;
+  try {
+    existing = new Set(fs.readdirSync(dir));
+  } catch (err) {
+    existing = null;
+  }
+
+  for (let counter = 1; counter < MAX_DUPLICATE_NAMES; counter++) {
+    const candidate = nextSuffixedName(base, extNoDot, counter);
+    const candidatePath = path.join(dir, candidate);
+    const isFree = existing ? !existing.has(candidate) : safeToRename(oldPath, candidatePath);
+    if (isFree) {
+      return candidatePath;
+    }
+  }
+  throw new Error(`Too many items named "${base}" (limit ${MAX_DUPLICATE_NAMES}). Please use a different name.`);
+};
+
+/**
+ * Resolve a collision-free destination path for moving `sourcePathname` into
+ * `targetDirname`, keeping the source's basename and appending a numeric suffix
+ * if it's taken. Works for both files (extension preserved) and folders.
+ */
+const getUniqueTargetPath = (sourcePathname, targetDirname) => {
+  const desired = path.join(targetDirname, path.basename(sourcePathname));
+  return getUniqueRenamePath(sourcePathname, desired);
+};
+
+/**
+ * Recursively copy `source` to an explicit `targetPath` (file or directory).
+ */
+const copyPathTo = async (source, targetPath) => {
+  const resolvedSource = path.resolve(source);
+  const resolvedTarget = path.resolve(targetPath);
+  // Refuse to copy a path into itself or into a descendant of itself — that would
+  // recurse forever. The drag-drop UI already blocks this; this guards the IPC
+  // boundary against a bad or direct call.
+  if (resolvedTarget === resolvedSource || resolvedTarget.startsWith(resolvedSource + path.sep)) {
+    throw new Error('Cannot copy a path into itself or a subdirectory of itself');
+  }
+
+  const copyTree = async (src, dest) => {
+    const stat = await fsPromises.lstat(src);
+    if (stat.isDirectory()) {
+      await fsPromises.mkdir(dest, { recursive: true });
+      const entries = await fsPromises.readdir(src);
+      for (const entry of entries) {
+        await copyTree(path.join(src, entry), path.join(dest, entry));
+      }
+    } else {
+      await fsPromises.copyFile(src, dest);
+    }
+  };
+
+  await copyTree(source, targetPath);
+};
+
+/**
+ * Per-directory async mutex. Serializes operations targeting the same directory
+ * so multi-step, non-atomic operations (move = copy-then-delete) can't interleave
+ * with each other or with a concurrent create in the same destination.
+ */
+const dirLockChains = new Map();
+const withDirLock = (dirname, fn) => {
+  const prev = dirLockChains.get(dirname) || Promise.resolve();
+  // Run fn only after the previous op for this dir settles (success or failure).
+  const result = prev.then(() => fn(), () => fn());
+  // Keep the chain alive regardless of fn's outcome so the next op still runs.
+  dirLockChains.set(dirname, result.then(() => {}, () => {}));
+  return result;
 };
 
 const getCollectionStats = async (directoryPath) => {
@@ -361,33 +501,6 @@ function safeWriteFileSync(filePath, data) {
   const safePath = getSafePathToWrite(filePath);
   fs.writeFileSync(safePath, data);
 }
-
-// Recursively copies a source <file/directory> to a destination <directory>.
-const copyPath = async (source, destination) => {
-  let targetPath = `${destination}/${path.basename(source)}`;
-
-  const targetPathExists = await fsPromises.access(targetPath).then(() => true).catch(() => false);
-  if (targetPathExists) {
-    throw new Error(`Cannot copy, ${path.basename(source)} already exists in ${path.basename(destination)}`);
-  }
-
-  const copy = async (source, destination) => {
-    const stat = await fsPromises.lstat(source);
-    if (stat.isDirectory()) {
-      await fsPromises.mkdir(destination, { recursive: true });
-      const entries = await fsPromises.readdir(source);
-      for (const entry of entries) {
-        const srcPath = path.join(source, entry);
-        const destPath = path.join(destination, entry);
-        await copy(srcPath, destPath);
-      }
-    } else {
-      await fsPromises.copyFile(source, destination);
-    }
-  };
-
-  await copy(source, targetPath);
-};
 
 // Recursively removes a source <file/directory>.
 const removePath = async (source) => {
@@ -547,6 +660,12 @@ module.exports = {
   isWSLPath,
   normalizeWSLPath,
   writeFile,
+  writeFileUnique,
+  mkdirUnique,
+  getUniqueRenamePath,
+  getUniqueTargetPath,
+  copyPathTo,
+  withDirLock,
   hasJsonExtension,
   hasBruExtension,
   hasRequestExtension,
@@ -565,7 +684,6 @@ module.exports = {
   sizeInMB,
   safeWriteFile,
   safeWriteFileSync,
-  copyPath,
   removePath,
   moveCollectionDirectory,
   getPaths,
