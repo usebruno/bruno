@@ -32,7 +32,19 @@ class BrunoResponse {
   }
 
   getHeader(name) {
-    return this.res && this.res.headers ? this.res.headers[name] : null;
+    if (!this.res || !this.res.headers) {
+      return null;
+    }
+
+    if (Object.prototype.hasOwnProperty.call(this.res.headers, name)) {
+      return this.res.headers[name];
+    }
+
+    const normalizedName = String(name).toLowerCase();
+    const matchingName = Object.keys(this.res.headers).find(
+      (headerName) => headerName.toLowerCase() === normalizedName
+    );
+    return matchingName ? this.res.headers[matchingName] : undefined;
   }
 
   getHeaders() {
