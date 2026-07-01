@@ -19,7 +19,11 @@ export const getCollectionRelativePath = (collectionPathname, itemPathname) => {
     return target.slice(root.length + 1);
   }
 
-  return target;
+  // The item is not inside this collection, so there is no collection-relative
+  // path to derive. Return '' rather than the absolute target — writing a
+  // non-relative path into bruno.json's ignore list would be meaningless and
+  // would not survive being shared across machines.
+  return '';
 };
 
 /**

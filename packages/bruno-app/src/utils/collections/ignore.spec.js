@@ -25,6 +25,18 @@ describe('getCollectionRelativePath', () => {
     expect(getCollectionRelativePath('', '/home/adi/coll/auth')).toBe('');
     expect(getCollectionRelativePath('/home/adi/coll', '')).toBe('');
   });
+
+  it('returns an empty string when the item is not inside the collection root', () => {
+    expect(getCollectionRelativePath('/home/adi/coll', '/home/adi/other/auth')).toBe('');
+  });
+
+  it('returns an empty string when a shared prefix is not a real path boundary', () => {
+    expect(getCollectionRelativePath('/home/adi/coll', '/home/adi/collection/auth')).toBe('');
+  });
+
+  it('returns an empty string when the collection and item paths differ only by case', () => {
+    expect(getCollectionRelativePath('/home/adi/coll', '/home/adi/COLL/auth')).toBe('');
+  });
 });
 
 describe('addPathToIgnoreList', () => {
