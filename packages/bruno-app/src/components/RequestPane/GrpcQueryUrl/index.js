@@ -70,6 +70,8 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
   const methodDropdownRef = useRef(null);
   const protoDropdownRef = useRef(null);
   const haveFetchedMethodsRef = useRef(false);
+  const onUrlChangeRef = useRef(null);
+  const debouncedOnUrlChangeRef = useRef(null);
 
   const protoFileManagement = useProtoFileManagement(collection, protoFilePath);
   const reflectionManagement = useReflectionManagement(item, collection.uid);
@@ -103,11 +105,7 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
     dispatch(saveRequest(item.uid, collection.uid));
   };
 
-  const onUrlChange = (value) => {
-    if (!editorRef.current?.editor) return;
-    const editor = editorRef.current.editor;
-    const cursor = editor.getCursor();
-
+  const resolveFinalUrlFromInput = (value) => {
     const trimmedValue = value?.trim() || '';
     // Preserve an explicitly chosen scheme; otherwise keep scheme-less URLs
     // scheme-less so the backend can keep inferring the transport until the user
@@ -120,6 +118,16 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
         finalUrl = setGrpcUrlSecureScheme(trimmedValue, secureUrl);
       }
     }
+
+    return finalUrl;
+  };
+
+  const onUrlChange = (value) => {
+    if (!editorRef.current?.editor) return;
+    const editor = editorRef.current.editor;
+    const cursor = editor.getCursor();
+
+    const finalUrl = resolveFinalUrlFromInput(value);
 
     dispatch(
       requestUrlChanged({
@@ -142,6 +150,14 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
       handleReflection(finalUrl);
     }
   };
+
+  onUrlChangeRef.current = onUrlChange;
+  if (!debouncedOnUrlChangeRef.current) {
+    debouncedOnUrlChangeRef.current = debounce((value) => {
+      onUrlChangeRef.current?.(value);
+    }, 1000);
+  }
+  const debouncedOnUrlChange = debouncedOnUrlChangeRef.current;
 
   const handleReflection = async (url, isManualRefresh = false) => {
     const { methods, error, fromCache } = await reflectionManagement.loadMethodsFromReflection(url, isManualRefresh);
@@ -249,9 +265,12 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
 
   const handleTlsToggle = (e) => {
     e.stopPropagation();
+    debouncedOnUrlChange.cancel();
 
-    const secureUrl = !isSecureGrpcUrl(url);
-    const finalUrl = setGrpcUrlSecureScheme(url, secureUrl);
+    const currentValue = editorRef.current?.editor?.getValue() ?? displayUrl;
+    const currentUrl = resolveFinalUrlFromInput(currentValue);
+    const secureUrl = !isSecureGrpcUrl(currentUrl);
+    const finalUrl = setGrpcUrlSecureScheme(currentUrl, secureUrl);
 
     dispatch(
       requestUrlChanged({
@@ -322,7 +341,11 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
     }
   };
 
-  const debouncedOnUrlChange = debounce(onUrlChange, 1000);
+  useEffect(() => {
+    return () => {
+      debouncedOnUrlChange.cancel();
+    };
+  }, [debouncedOnUrlChange]);
 
   useEffect(() => {
     if (haveFetchedMethodsRef.current) {
