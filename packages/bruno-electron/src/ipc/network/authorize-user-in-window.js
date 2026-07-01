@@ -214,7 +214,7 @@ const authorizeUserInWindow = ({ authorizeUrl, callbackUrl, session, additionalH
 
             if (returnedState !== expectedState) {
               return reject(
-                new Error('OAuth2 state mismatch: the returned state does not match the issued state. Aborting to prevent authorization code injection.')
+                new Error('OAuth2 state mismatch')
               );
             }
           }
