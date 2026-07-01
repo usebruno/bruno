@@ -1,0 +1,83 @@
+{
+    "name": "HTTP Example Collection",
+    "version": "1",
+    "items": [
+        {
+            "type": "http",
+            "name": "http example request without url",
+            "filename": "request-with-example.bru",
+            "seq": 1,
+            "settings": {},
+            "tags": [],
+            "examples": [
+                {
+                    "uid": "ex0011223344556677889",
+                    "itemUid": "it0011223344556677889",
+                    "name": "Http request example response",
+                    "description": "Example whose request has no url",
+                    "type": "http",
+                    "request": {
+                        "method": "GET",
+                        "headers": [],
+                        "params": [],
+                        "body": {
+                            "mode": "none"
+                        }
+                    },
+                    "response": {
+                        "status": 200,
+                        "statusText": "OK",
+                        "headers": [
+                            {
+                                "uid": "hd0011223344556677889",
+                                "name": "content-type",
+                                "value": "application/json",
+                                "enabled": true
+                            }
+                        ],
+                        "body": {
+                            "type": "json",
+                            "content": "{\n  \"message\": \"hello\"\n}"
+                        }
+                    }
+                }
+            ],
+            "request": {
+                "method": "GET",
+                "headers": [],
+                "url": "",
+                "params": [],
+                "body": {
+                    "mode": "none",
+                    "json": null,
+                    "text": null,
+                    "xml": null,
+                    "sparql": null,
+                    "formUrlEncoded": [],
+                    "multipartForm": [],
+                    "file": []
+                },
+                "script": {},
+                "vars": {},
+                "assertions": [],
+                "tests": "",
+                "docs": "",
+                "auth": {
+                    "mode": "none"
+                }
+            }
+        }
+    ],
+    "environments": [],
+    "brunoConfig": {
+        "version": "1",
+        "name": "HTTP Example Collection",
+        "type": "collection",
+        "ignore": [
+            "node_modules",
+            ".git"
+        ],
+        "size": 0,
+        "filesCount": 0
+    }
+}
