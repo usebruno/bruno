@@ -67,6 +67,11 @@ export const buildCommonLocators = (page: Page) => ({
     submitButton: () => page.locator('.bruno-modal-footer .submit'),
     newRequestMethodOption: (id: string) => page.getByTestId(`method-selector-${id.toLowerCase()}`)
   },
+  toast: {
+    collectionCreated: () => page.getByText('Collection created!'),
+    repositoryClonedSuccessfully: () => page.getByText('Repository cloned successfully'),
+    collectionImportedSuccessfully: () => page.getByText('Collection imported successfully')
+  },
   environment: {
     selector: () => page.getByTestId('environment-selector-trigger'),
     collectionTab: () => page.getByTestId('env-tab-collection'),
@@ -237,6 +242,15 @@ export const buildCommonLocators = (page: Page) => ({
   },
   import: {
     modal: () => page.locator('[data-testid="import-collection-modal"]'),
+    modalTitle: () => page.locator('[data-testid="import-collection-modal"] .bruno-modal-header-title'),
+    fileTab: () => page.getByTestId('file-tab'),
+    gitRepositoryTab: () => page.getByTestId('github-tab'),
+    urlTab: () => page.getByTestId('url-tab'),
+    gitUrlInput: () => page.getByTestId('git-url-input'),
+    urlInput: () => page.getByTestId('url-input'),
+    cloneGitButton: () => page.locator('#clone-git-button'),
+    importUrlButton: () => page.locator('#import-url-button'),
+    loader: () => page.locator('#import-collection-loader'),
     locationModal: () => page.locator('[data-testid="import-collection-location-modal"]'),
     locationInput: () => page.locator('#collection-location'),
     fileInput: () => page.locator('input[type="file"]'),
@@ -248,6 +262,18 @@ export const buildCommonLocators = (page: Page) => ({
     parsingError: () => page.getByTestId('import-error-message'),
     browseLink: (root?: Locator) => (root ?? page).getByTestId('import-collection-browse-link'),
     importButton: (root?: Locator) => (root ?? page).getByTestId('import-collection-location-modal-submit-btn'),
+    cloneGit: {
+      modal: () => page.locator('.bruno-modal-card').filter({ hasText: 'Clone Git Repository' }),
+      locationInput: () =>
+        page.locator('.bruno-modal-card').filter({ hasText: 'Clone Git Repository' }).locator('#collection-location'),
+      cloneButton: () =>
+        page.locator('.bruno-modal-card').filter({ hasText: 'Clone Git Repository' }).getByRole('button', { name: 'Clone', exact: true }),
+      openButton: () =>
+        page.locator('.bruno-modal-card').filter({ hasText: 'Clone Git Repository' }).getByRole('button', { name: 'Open', exact: true }),
+      collectionItemTitle: (name: string) => page.locator('.selection-item-title').filter({ hasText: name }),
+      collectionCheckbox: (name: string) =>
+        page.locator('.selection-item').filter({ hasText: name }).locator('input[type="checkbox"]')
+    },
     ...(() => {
       const issuesToast = () => page.getByTestId('import-issues-toast').last();
       return {
