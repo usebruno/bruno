@@ -18,6 +18,7 @@ import { toOpenCollectionActions } from '../common/actions';
 import { toOpenCollectionScripts } from '../common/scripts';
 import { toOpenCollectionAssertions } from '../common/assertions';
 import { isNumber, isNonEmptyString } from '../../../utils';
+import { TIMEOUT_INHERIT } from '@usebruno/common/utils';
 
 const stringifyHttpRequest = (item: BrunoItem): string => {
   try {
@@ -118,7 +119,7 @@ const stringifyHttpRequest = (item: BrunoItem): string => {
     }
 
     const timeout = httpSettings?.timeout;
-    if (isNumber(timeout)) {
+    if (isNumber(timeout) || timeout === TIMEOUT_INHERIT) {
       settings.timeout = timeout;
     } else {
       settings.timeout = 0;
