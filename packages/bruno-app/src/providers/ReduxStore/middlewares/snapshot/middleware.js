@@ -93,6 +93,10 @@ const serializeSnapshot = async (state) => {
         tabs: Object.assign(existingDevTools.tabs, {
           [logs.activeTab]: {}
         })
+      },
+      sidebar: {
+        width: state.app.leftSidebarWidth,
+        collapsed: state.app.sidebarCollapsed
       }
     },
     workspaces: [],
