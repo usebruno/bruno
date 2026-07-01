@@ -525,6 +525,26 @@ const importCollection = async (
 };
 
 /**
+ * Open the Bulk Import modal by importing multiple files at once.
+ * Selecting more than one file routes the import flow to the Bulk Import modal
+ * (instead of the single-collection location modal).
+ * @param page - The page object
+ * @param filePaths - Absolute paths of the files to import (must be 2 or more)
+ */
+const openBulkImportModal = async (page: Page, filePaths: string[]) => {
+  await test.step('Open the Bulk Import modal', async () => {
+    const locators = buildCommonLocators(page);
+
+    await locators.plusMenu.button().click();
+    await locators.plusMenu.importCollection().click();
+    await expect(locators.import.modal()).toBeVisible();
+
+    await locators.import.fileInput().setInputFiles(filePaths);
+    await expect(locators.import.bulkModal()).toBeVisible();
+  });
+};
+
+/**
  * Remove a specific collection from the sidebar
  * @param page - The page object
  * @param collectionName - The name of the collection to remove
@@ -632,6 +652,31 @@ const openEnvironmentSelector = async (page: Page, type: EnvironmentType = 'coll
     } else {
       await expect(locators.environment.collectionTab()).toHaveClass(/active/);
     }
+  });
+};
+
+/**
+ * Open the configuration tab for the currently active environment (collection or global).
+ * Combines opening the env selector dropdown + clicking the "configure" button + waiting
+ * for the resulting env config tab to appear. Use this when the test needs to interact
+ * with the env variable rows (read a value, toggle the secret eye, etc.).
+ * @param page - The page object
+ * @param type - The type of environment configuration tab to open
+ */
+const openEnvironmentConfigTab = async (page: Page, type: EnvironmentType = 'collection') => {
+  await test.step(`Open ${type} environment configuration tab`, async () => {
+    await openEnvironmentSelector(page, type);
+
+    const locators = buildCommonLocators(page);
+    // `waitFor` + `dispatchEvent` keeps the click stable when the dropdown is mid-transition;
+    // the menu item briefly intercepts pointer events during the open animation.
+    await locators.environment.configureButton().waitFor({ state: 'visible' });
+    await locators.environment.configureButton().dispatchEvent('click');
+
+    const envTab = type === 'global'
+      ? locators.environment.globalEnvTab()
+      : locators.environment.collectionEnvTab();
+    await expect(envTab).toBeVisible();
   });
 };
 
@@ -2195,9 +2240,11 @@ export {
   deleteRequest,
   deleteCollectionFromOverview,
   importCollection,
+  openBulkImportModal,
   removeCollection,
   createFolder,
   openEnvironmentSelector,
+  openEnvironmentConfigTab,
   createEnvironment,
   addEnvironmentVariable,
   addEnvironmentVariables,

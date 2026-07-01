@@ -44,7 +44,7 @@ import {
   updateCollectionDocs
 } from 'providers/ReduxStore/slices/collections';
 import { findItemInCollection, isItemAFolder, isItemARequest } from 'utils/collections';
-import { getAiStatus } from 'utils/ai';
+import { buildAiVariablesPayload, getAiStatus } from 'utils/ai';
 
 import StyledWrapper from './StyledWrapper';
 import DiffView from './DiffView';
@@ -362,6 +362,16 @@ const AiChatSidebar = ({ collection }) => {
     };
   }, [aiContext]);
 
+  // Variables payload is collection-scoped — works for request, folder, and
+  // collection chats alike. Each entry is { name, value, scope, secret }; the
+  // model gets a name-only preview in the prompt and can call search_variables
+  // to fetch values (secrets come back redacted).
+  const aiVariables = useMemo(() => {
+    if (aiContext?.kind === 'request') return buildAiVariablesPayload(collection, aiContext.item);
+    if (aiContext?.kind === 'folder') return buildAiVariablesPayload(collection, aiContext.folder);
+    return buildAiVariablesPayload(collection, null);
+  }, [collection, aiContext]);
+
   const chatsWithMessages = useMemo(() => {
     if (!collection) return [];
     return Object.entries(allChats)
@@ -438,7 +448,7 @@ const AiChatSidebar = ({ collection }) => {
     if (textareaRef.current) textareaRef.current.style.height = 'auto';
 
     try {
-      await dispatch(sendAiMessage(activeTabUid, text, allContent, requestContext, selectedModel, contentType));
+      await dispatch(sendAiMessage(activeTabUid, text, allContent, requestContext, selectedModel, contentType, aiVariables));
       setProcessingStage('applying');
       setTimeout(() => setProcessingStage(null), 500);
     } catch (err) {
