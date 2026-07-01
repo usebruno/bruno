@@ -1053,8 +1053,8 @@ export const pasteItem = (targetCollectionUid, targetItemUid = null) => (dispatc
 
           await ipcRenderer.invoke('renderer:clone-folder', copiedItem, fullPathname, targetCollection.pathname);
         } else {
-          // Handle request pasting — display name "<source> copy"; electron
-          // resolves the filename uniqueness and returns the path actually used.
+          // Handle request pasting — display name "<source> copy"
+          // electron resolves the filename uniqueness and returns the path actually used.
           const newName = copyDisplayName(copiedItem.name);
           const newFilename = sanitizeName(newName);
 

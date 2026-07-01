@@ -1052,9 +1052,13 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
         throw new Error(`path: ${oldPath} does not exist`);
       }
 
-      newPath = getUniqueRenamePath(oldPath, newPath);
-
       const format = getCollectionFormat(collectionPathname);
+
+      if (!validateName(newFilename)) {
+        throw new Error(`${newFilename} is not a valid filename`);
+      }
+      const derivedFilename = isDirectory(oldPath) ? newFilename : `${newFilename}.${format}`;
+      newPath = getUniqueRenamePath(oldPath, path.join(path.dirname(oldPath), derivedFilename));
 
       if (isDirectory(oldPath)) {
         const folderFilePath = path.join(oldPath, `folder.${format}`);
@@ -1104,10 +1108,6 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
 
       if (!hasRequestExtension(oldPath, format)) {
         throw new Error(`path: ${oldPath} is not a valid request file`);
-      }
-
-      if (!validateName(newFilename)) {
-        throw new Error(`path: ${newFilename} is not a valid filename`);
       }
 
       // update name in file and save new copy, then delete old copy
@@ -1616,6 +1616,10 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
         if (!fs.existsSync(targetDirname)) {
           return;
         }
+
+        validatePathIsInsideCollection(sourcePathname);
+        validatePathIsInsideCollection(targetDirname);
+
         // No-op if the item is already in the destination directory (e.g. a
         // same-folder drop) — don't create a spurious suffixed copy.
         if (path.dirname(sourcePathname) === targetDirname) {
@@ -1655,6 +1659,9 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
         if (!fs.existsSync(targetDirname)) {
           throw new Error(`Target directory: ${targetDirname} does not exist`);
         }
+
+        validatePathIsInsideCollection(sourcePathname);
+        validatePathIsInsideCollection(targetDirname);
 
         const sourceBasename = path.basename(sourcePathname);
         const filenameWithoutExt = sourceBasename.replace(/\.(bru|yml|yaml)$/, '');

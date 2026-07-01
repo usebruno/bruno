@@ -107,6 +107,8 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
   const itemIsCollapsed = hasSearchText ? false : item.collapsed;
   const isFolder = isItemAFolder(item);
 
+  const isCloneable = isFolder || isItemARequest(item);
+
   // Check if request has examples (only for HTTP requests)
   const hasExamples = isItemARequest(item) && item.type === 'http-request' && item.examples && item.examples.length > 0;
 
@@ -371,20 +373,21 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
       );
     }
 
-    items.push(
-      {
+    if (isCloneable) {
+      items.push({
         id: 'clone',
         leftSection: IconCopy,
         label: 'Clone',
         onClick: handleCloneItem
-      },
-      {
-        id: 'copy',
-        leftSection: IconCopy,
-        label: 'Copy',
-        onClick: handleCopyItem
-      }
-    );
+      });
+    }
+
+    items.push({
+      id: 'copy',
+      leftSection: IconCopy,
+      label: 'Copy',
+      onClick: handleCopyItem
+    });
 
     if (isFolder && hasCopiedItems) {
       items.push({
@@ -601,8 +604,9 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
   };
 
   // One-click clone: display name becomes "<source> copy"; the filesystem name
-  // uniqueness is resolved silently by electron (no name prompt / modal).
+  // uniqueness is resolved silently by electron.
   const handleCloneItem = () => {
+    if (!isCloneable) return;
     dispatch(cloneItem(`${item.name} copy`, `${sanitizeName(item.name)} copy`, item.uid, collectionUid))
       .then(() => toast.success(`${isFolder ? 'Folder' : 'Request'} cloned!`))
       .catch((err) => toast.error(err?.message || `An error occurred while cloning the ${isFolder ? 'folder' : 'request'}`));

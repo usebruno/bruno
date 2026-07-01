@@ -135,22 +135,49 @@ const withFileLock = async (pathname, fn) => {
   }
 };
 
+const MAX_DUPLICATE_NAMES = 200;
+
+const firstFreeSuffix = async (dirname, baseName, ext) => {
+  let existing;
+  try {
+    existing = new Set(await fsPromises.readdir(dirname));
+  } catch (err) {
+    return 0;
+  }
+  let counter = 0;
+  while (existing.has(nextSuffixedName(baseName, ext, counter))) {
+    counter++;
+  }
+  return counter;
+};
+
 /**
  * Atomically create a file under `dirname`, resolving name collisions silently.
  *
- * Tries `${base}.${ext}`, then `${base}1.${ext}`, `${base}2.${ext}`, … using the
+ * Tries `${base}.${ext}`, then `${base}1.${ext}`, `${base}2.${ext}`, using the
  * exclusive-create flag (`wx`) so the filesystem itself arbitrates the name: if
  * two callers race for the same name, the loser gets EEXIST and retries the next
- * suffix instead of throwing or overwriting. Removes the check-then-write
- * (TOCTOU) window behind "path: … already exists" errors.
+ * suffix instead of throwing or overwriting.
  *
  * @returns {Promise<{ pathname: string, filename: string }>} the path created
  */
 const writeFileUnique = async (dirname, baseFilename, ext, content) => {
   const normalizedExt = ext && ext.startsWith('.') ? ext.slice(1) : ext;
-  for (let counter = 0; ; counter++) {
-    const candidate = nextSuffixedName(baseFilename, normalizedExt, counter);
-    const pathname = getSafePathToWrite(path.join(dirname, candidate));
+
+  const MAX_FILENAME_LENGTH = 255;
+  const extLength = normalizedExt ? normalizedExt.length + 1 : 0;
+  // Reserve exactly enough room for the largest possible suffix (bounded by the
+  // duplicate cap) so base + suffix + ext can never exceed the filename limit.
+  const SUFFIX_RESERVE = String(MAX_DUPLICATE_NAMES - 1).length;
+  const maxBaseLength = Math.max(1, MAX_FILENAME_LENGTH - extLength - SUFFIX_RESERVE);
+  const safeBase = baseFilename.length > maxBaseLength ? baseFilename.slice(0, maxBaseLength) : baseFilename;
+
+  // readdir hint: jump to the first free suffix instead of probing from 0.
+  const start = await firstFreeSuffix(dirname, safeBase, normalizedExt);
+
+  for (let counter = start; counter < MAX_DUPLICATE_NAMES; counter++) {
+    const candidate = nextSuffixedName(safeBase, normalizedExt, counter);
+    const pathname = path.join(dirname, candidate);
     try {
       await fsPromises.writeFile(pathname, content, { flag: 'wx' });
       return { pathname, filename: path.basename(pathname) };
@@ -160,6 +187,7 @@ const writeFileUnique = async (dirname, baseFilename, ext, content) => {
       throw err;
     }
   }
+  throw new Error(`Too many items named "${baseFilename}" (limit ${MAX_DUPLICATE_NAMES}). Please use a different name.`);
 };
 
 /**
@@ -171,7 +199,10 @@ const writeFileUnique = async (dirname, baseFilename, ext, content) => {
  * @returns {Promise<{ pathname: string, name: string }>} the directory created
  */
 const mkdirUnique = async (dirname, baseName) => {
-  for (let counter = 0; ; counter++) {
+  // readdir hint: jump to the first free suffix instead of probing from 0.
+  const start = await firstFreeSuffix(dirname, baseName, '');
+
+  for (let counter = start; counter < MAX_DUPLICATE_NAMES; counter++) {
     const name = nextSuffixedName(baseName, '', counter);
     const pathname = path.join(dirname, name);
     try {
@@ -183,6 +214,7 @@ const mkdirUnique = async (dirname, baseName) => {
       throw err;
     }
   }
+  throw new Error(`Too many items named "${baseName}" (limit ${MAX_DUPLICATE_NAMES}). Please use a different name.`);
 };
 
 const hasJsonExtension = (filename) => {
@@ -351,12 +383,23 @@ const getUniqueRenamePath = (oldPath, desiredNewPath) => {
   const ext = path.extname(desiredNewPath); // '' for directories, '.bru' etc. for files
   const base = path.basename(desiredNewPath, ext);
   const extNoDot = ext.startsWith('.') ? ext.slice(1) : ext;
-  for (let counter = 1; ; counter++) {
-    const candidate = path.join(dir, nextSuffixedName(base, extNoDot, counter));
-    if (safeToRename(oldPath, candidate)) {
-      return candidate;
+
+  let existing;
+  try {
+    existing = new Set(fs.readdirSync(dir));
+  } catch (err) {
+    existing = null;
+  }
+
+  for (let counter = 1; counter < MAX_DUPLICATE_NAMES; counter++) {
+    const candidate = nextSuffixedName(base, extNoDot, counter);
+    const candidatePath = path.join(dir, candidate);
+    const isFree = existing ? !existing.has(candidate) : safeToRename(oldPath, candidatePath);
+    if (isFree) {
+      return candidatePath;
     }
   }
+  throw new Error(`Too many items named "${base}" (limit ${MAX_DUPLICATE_NAMES}). Please use a different name.`);
 };
 
 /**
@@ -373,16 +416,29 @@ const getUniqueTargetPath = (sourcePathname, targetDirname) => {
  * Recursively copy `source` to an explicit `targetPath` (file or directory).
  */
 const copyPathTo = async (source, targetPath) => {
-  const stat = await fsPromises.lstat(source);
-  if (stat.isDirectory()) {
-    await fsPromises.mkdir(targetPath, { recursive: true });
-    const entries = await fsPromises.readdir(source);
-    for (const entry of entries) {
-      await copyPathTo(path.join(source, entry), path.join(targetPath, entry));
-    }
-  } else {
-    await fsPromises.copyFile(source, targetPath);
+  const resolvedSource = path.resolve(source);
+  const resolvedTarget = path.resolve(targetPath);
+  // Refuse to copy a path into itself or into a descendant of itself — that would
+  // recurse forever. The drag-drop UI already blocks this; this guards the IPC
+  // boundary against a bad or direct call.
+  if (resolvedTarget === resolvedSource || resolvedTarget.startsWith(resolvedSource + path.sep)) {
+    throw new Error('Cannot copy a path into itself or a subdirectory of itself');
   }
+
+  const copyTree = async (src, dest) => {
+    const stat = await fsPromises.lstat(src);
+    if (stat.isDirectory()) {
+      await fsPromises.mkdir(dest, { recursive: true });
+      const entries = await fsPromises.readdir(src);
+      for (const entry of entries) {
+        await copyTree(path.join(src, entry), path.join(dest, entry));
+      }
+    } else {
+      await fsPromises.copyFile(src, dest);
+    }
+  };
+
+  await copyTree(source, targetPath);
 };
 
 /**
