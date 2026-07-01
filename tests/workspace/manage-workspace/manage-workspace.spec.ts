@@ -1,5 +1,6 @@
 import { test, expect } from '../../../playwright';
 import { createWorkspace, removeWorkspace } from '../../utils/page/actions';
+import { buildTerminalLocators } from '../../utils/page/devtools/terminal';
 import {
   openWorkspaceActionsMenu,
   openManageWorkspace,
@@ -29,7 +30,7 @@ test.describe('Manage workspace', () => {
   test.describe('Open terminal from workspace actions menu', () => {
     test('TC-3109: Verify opening terminal from workspace actions menu', { tag: '@sanity' }, async ({ page }) => {
       await openTerminalFromWorkspaceActions(page, workspaceName);
-      const locators = buildManageWorkspaceLocators(page);
+      const locators = buildTerminalLocators(page);
       await expect(locators.terminalSession()).toBeVisible();
       await expect(locators.terminalSession()).toContainText('Custom Workspace');
     });

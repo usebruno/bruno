@@ -71,7 +71,7 @@ const RenameWorkspace = ({ onClose, workspace }) => {
             </label>
             <input
               id="workspace-name"
-              data-testid="workspace-name-input"
+              data-testid="workspace-rename-input"
               type="text"
               name="name"
               ref={inputRef}

@@ -1,5 +1,5 @@
 import { Page, test } from '../../../../playwright';
-
+import { buildCommonLocators } from '../locators';
 import { buildTitleBarLocators } from '../title-bar';
 
 export const buildManageWorkspaceLocators = (page: Page) => ({
@@ -11,17 +11,13 @@ export const buildManageWorkspaceLocators = (page: Page) => ({
     const rows = page.locator('.dropdown-item');
     return name ? rows.filter({ hasText: name }) : rows;
   },
-  // The terminal session item in the manage workspace item list.
-  terminalSession: (index: number = 0) => page.getByTestId(`session-list-${index}`),
   // The workspace item in the manage workspace item list.
   workspaceItems: (name?: string) => {
     const rows = page.locator('.workspace-item');
     return name ? rows.filter({ hasText: name }) : rows;
   },
-  // The modal card in the manage workspace item list.
-  modalCard: () => page.locator('.bruno-modal-card'),
   // The workspace file name input in the manage workspace pop up model.
-  workspaceFileNameInput: () => page.getByTestId('workspace-name-input'),
+  workspaceFileRenameInput: () => page.getByTestId('workspace-rename-input'),
   // The submit rename button in the manage workspace pop up model
   submitRenameBtn: () => page.getByTestId('modal-submit-btn'),
   // The renamed workspace item in the manage workspace item list.
@@ -55,16 +51,17 @@ export const openWorkspaceActionsMenu = async (page: Page, workspaceName: string
 
 export const selectWorkspaceAction = async (page: Page, optionName: string) => {
   const locators = buildManageWorkspaceLocators(page);
+  const modalCardLocators = buildCommonLocators(page);
   await test.step('Select workspace action on popup', async () => {
     await locators.workspaceDropdownItem(optionName).click();
-    await locators.modalCard().waitFor({ state: 'visible' });
+    await modalCardLocators.modal.card().waitFor({ state: 'visible' });
   });
 };
 
 export const enterNewWorkspaceNameAndSubmit = async (page: Page, workspaceName: string, btnName: string) => {
   const locators = buildManageWorkspaceLocators(page);
   await test.step('Enter a new name for the workspace in the editing field.', async () => {
-    await locators.workspaceFileNameInput().fill(workspaceName);
+    await locators.workspaceFileRenameInput().fill(workspaceName);
     await locators.submitRenameBtn().filter({ hasText: btnName }).click();
   });
 };

@@ -1,7 +1,8 @@
-import { test, expect, Page, Locator, ElectronApplication, waitForReadyPage as waitForReadyPageImpl } from '../../../playwright';
 import process from 'node:process';
 import * as path from 'path';
+import { test, expect, Page, Locator, ElectronApplication, waitForReadyPage as waitForReadyPageImpl } from '../../../playwright';
 import { buildCommonLocators, buildScriptErrorLocators, buildGrpcCommonLocators, buildWebsocketCommonLocators } from './locators';
+import { buildManageWorkspaceLocators, openManageWorkspace } from './workspace/manage-workspace';
 import { waitForCollectionMount } from './mounting';
 
 type SandboxMode = 'safe' | 'developer';
@@ -1596,20 +1597,19 @@ const createWorkspace = async (page: Page, workspaceName: string) => {
  */
 const removeWorkspace = async (page: Page, workspaceName: string) => {
   await test.step(`Remove workspace "${workspaceName}"`, async () => {
-    await page.getByTestId('workspace-menu').click();
-    await page.locator('.dropdown-item').filter({ hasText: 'Manage workspaces' }).click();
-    await page.getByText('Manage Workspace', { exact: true }).waitFor({ state: 'visible' });
-
-    const workspaceItem = page.locator('.workspace-item').filter({ hasText: workspaceName }).last();
+    await openManageWorkspace(page);
+    const locators = buildManageWorkspaceLocators(page);
+    await locators.manageWorkspaceTitle().waitFor({ state: 'visible' });
+    const workspaceItem = locators.workspaceItems(workspaceName).last();
     if ((await workspaceItem.count()) === 0 || !(await workspaceItem.isVisible())) {
       return;
     }
-
-    await workspaceItem.getByTestId('manage-workspace-more-options-btn').click();
-    await page.locator('.dropdown-item').filter({ hasText: 'Remove' }).click();
-    await page.locator('.bruno-modal-card').waitFor({ state: 'visible' });
-    await page.getByTestId('modal-submit-btn').click();
-    await page.locator('.workspace-item').filter({ hasText: workspaceName }).waitFor({ state: 'hidden' });
+    await workspaceItem.locator(locators.moreActionsBtn()).click();
+    await locators.workspaceDropdownItem('Remove').click();
+    const modalCardLocators = buildCommonLocators(page);
+    await modalCardLocators.modal.card().waitFor({ state: 'visible' });
+    await locators.submitRemoveBtn().click();
+    await locators.workspaceItems(workspaceName).waitFor({ state: 'hidden' });
   });
 };
 
