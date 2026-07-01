@@ -178,11 +178,10 @@ const redactJsonBodyValues = (data, policy, depth = 0, maxDepth = 8) => {
   if (typeof data === 'object') {
     const out = {};
     for (const key of Object.keys(data)) {
-      const val = data[key];
-      if (policy.isSensitiveKey(key) && val !== null && typeof val !== 'object') {
+      if (policy.isSensitiveKey(key)) {
         out[key] = REDACTED_VALUE;
       } else {
-        out[key] = redactJsonBodyValues(val, policy, depth + 1, maxDepth);
+        out[key] = redactJsonBodyValues(data[key], policy, depth + 1, maxDepth);
       }
     }
     return out;
@@ -229,6 +228,7 @@ const formatRequestContext = (ctx, opts = {}) => {
   if (!ctx) return '';
   const policy = buildRedactionPolicy(security);
   const maskHeader = (name, value) => (policy.redactHeaders && policy.isSensitiveHeader(name) ? REDACTED_VALUE : (value ?? ''));
+  const maskFormField = (name, value) => (policy.redactBody && policy.isSensitiveKey(name) ? REDACTED_VALUE : (value ?? ''));
   const parts = [];
 
   if (ctx.url || ctx.method) {
@@ -263,12 +263,12 @@ const formatRequestContext = (ctx, opts = {}) => {
       case 'sparql': content = body.sparql || ''; break;
       case 'formUrlEncoded': {
         const items = (body.formUrlEncoded || []).filter((p) => p.enabled);
-        content = items.map((p) => `  ${p.name}: ${maskHeader(p.name, p.value)}`).join('\n');
+        content = items.map((p) => `  ${p.name}: ${maskFormField(p.name, p.value)}`).join('\n');
         break;
       }
       case 'multipartForm': {
         const items = (body.multipartForm || []).filter((p) => p.enabled);
-        content = items.map((p) => `  ${p.name}: ${p.type === 'file' ? '[file]' : maskHeader(p.name, p.value)}`).join('\n');
+        content = items.map((p) => `  ${p.name}: ${p.type === 'file' ? '[file]' : maskFormField(p.name, p.value)}`).join('\n');
         break;
       }
       case 'graphql':

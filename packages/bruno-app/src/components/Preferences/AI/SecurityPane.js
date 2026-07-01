@@ -19,13 +19,18 @@ const normalize = (raw) => String(raw || '').trim();
  * Compact editor for a case-insensitive name list. Used for both custom
  * header names and custom variable names — the shape is identical.
  */
-const ChipListEditor = ({ list, placeholder, onChange, addTestId, inputTestId }) => {
+
+const CHIP_MAX_LENGTH = 200;
+const CHIP_MAX_COUNT = 200;
+
+const ChipListEditor = ({ list, placeholder, onChange, addTestId, inputTestId, removeTestIdPrefix }) => {
   const [draft, setDraft] = useState('');
   const values = Array.isArray(list) ? list : [];
+  const atCapacity = values.length >= CHIP_MAX_COUNT;
 
   const handleAdd = () => {
     const value = normalize(draft);
-    if (!value) return;
+    if (!value || value.length > CHIP_MAX_LENGTH || atCapacity) return;
     if (values.some((v) => v.toLowerCase() === value.toLowerCase())) {
       setDraft('');
       return;
@@ -45,6 +50,10 @@ const ChipListEditor = ({ list, placeholder, onChange, addTestId, inputTestId })
     }
   };
 
+  const trimmedDraft = normalize(draft);
+  const draftTooLong = trimmedDraft.length > CHIP_MAX_LENGTH;
+  const addDisabled = !trimmedDraft || draftTooLong || atCapacity;
+
   return (
     <>
       <div className="security-add-row flex items-center gap-2">
@@ -53,21 +62,29 @@ const ChipListEditor = ({ list, placeholder, onChange, addTestId, inputTestId })
           className="security-input flex-1"
           placeholder={placeholder}
           value={draft}
+          maxLength={CHIP_MAX_LENGTH}
           onChange={(e) => setDraft(e.target.value)}
           onKeyDown={handleKeyDown}
+          disabled={atCapacity}
           data-testid={inputTestId}
         />
         <button
           type="button"
           className="security-add-btn inline-flex items-center gap-1 text-[11px] font-medium"
           onClick={handleAdd}
-          disabled={!normalize(draft)}
+          disabled={addDisabled}
           data-testid={addTestId}
         >
           <IconPlus size={13} strokeWidth={1.75} />
           Add
         </button>
       </div>
+
+      {atCapacity && (
+        <span className="security-sub text-[10.5px]">
+          Reached the {CHIP_MAX_COUNT}-entry limit. Remove one to add another.
+        </span>
+      )}
 
       {values.length > 0 && (
         <ul className="security-chip-list flex flex-wrap gap-1.5">
@@ -79,6 +96,7 @@ const ChipListEditor = ({ list, placeholder, onChange, addTestId, inputTestId })
                 className="security-chip-remove"
                 onClick={() => handleRemove(name)}
                 aria-label={`Remove ${name}`}
+                data-testid={removeTestIdPrefix ? `${removeTestIdPrefix}-${name}` : undefined}
               >
                 <IconTrash size={11} strokeWidth={1.75} />
               </button>
@@ -197,6 +215,7 @@ const SecurityPane = ({
             onChange={onChangeCustomRedactedHeaders}
             inputTestId="ai-security-custom-header-input"
             addTestId="ai-security-custom-header-add"
+            removeTestIdPrefix="ai-security-custom-header-remove"
           />
         </div>
 
@@ -213,6 +232,7 @@ const SecurityPane = ({
             onChange={onChangeCustomRedactedVariables}
             inputTestId="ai-security-custom-var-input"
             addTestId="ai-security-custom-var-add"
+            removeTestIdPrefix="ai-security-custom-var-remove"
           />
         </div>
 

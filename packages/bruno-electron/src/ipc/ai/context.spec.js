@@ -108,6 +108,50 @@ describe('ipc/ai/context', () => {
       expect(out).not.toContain('secret-key');
     });
 
+    it('redacts the full subtree under a sensitive key (not just direct primitives)', () => {
+      const out = formatRequestContext({
+        method: 'POST',
+        url: '/x',
+        headers: [],
+        params: [],
+        body: {
+          mode: 'json',
+          json: JSON.stringify({
+            password: { value: 'hunter2', hint: 'first pet' },
+            data: { safe: 'ok' }
+          })
+        }
+      });
+      expect(out).toContain('"password": "<redacted>"');
+      expect(out).not.toContain('hunter2');
+      expect(out).not.toContain('first pet');
+      expect(out).toContain('"safe": "ok"');
+    });
+
+    it('masks formUrlEncoded values based on redactBody, not redactHeaders', () => {
+      const ctx = {
+        method: 'POST',
+        url: '/login',
+        headers: [],
+        params: [],
+        body: {
+          mode: 'formUrlEncoded',
+          formUrlEncoded: [
+            { name: 'username', value: 'alice', enabled: true },
+            { name: 'password', value: 'hunter2', enabled: true }
+          ]
+        }
+      };
+      // Headers-only off + body on: form field values still masked.
+      const bodyOn = formatRequestContext(ctx, { security: { redactHeaders: false, redactBody: true } });
+      expect(bodyOn).toContain('password: <redacted>');
+      expect(bodyOn).not.toContain('hunter2');
+
+      // Body off: raw values pass through even if headers still redacted.
+      const bodyOff = formatRequestContext(ctx, { security: { redactHeaders: true, redactBody: false } });
+      expect(bodyOff).toContain('password: hunter2');
+    });
+
     it('redacts sensitive keys inside JSON bodies but keeps the shape', () => {
       const out = formatRequestContext({
         method: 'POST',

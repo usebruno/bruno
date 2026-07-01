@@ -307,7 +307,9 @@ export const savePreferences = (preferences) => (dispatch, getState) => {
   return ipcRenderer
     .invoke('renderer:save-preferences', preferences)
     .catch((err) => {
-      dispatch(updatePreferences(previous));
+      if (getState().app.preferences === preferences) {
+        dispatch(updatePreferences(previous));
+      }
       throw err;
     });
 };
