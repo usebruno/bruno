@@ -7,6 +7,7 @@
  */
 
 import { interpolate, mockDataFunctions, timeBasedDynamicVars } from '@usebruno/common';
+import { toDisplayString } from '@usebruno/common/utils';
 import { getVariableScope, isVariableSecret, getAllVariables, findCollectionByUid, findItemInCollectionByItemUid } from 'utils/collections';
 import { updateVariableInScope } from 'providers/ReduxStore/slices/collections/actions';
 import store from 'providers/ReduxStore';
@@ -95,15 +96,7 @@ const updateValueDisplay = (valueDisplay, value, isSecret, isMasked, isRevealed)
   }
 
   if (typeof value === 'object') {
-    if (value === null) {
-      valueDisplay.textContent = 'null';
-    } else {
-      try {
-        valueDisplay.textContent = JSON.stringify(value, null, 2);
-      } catch {
-        valueDisplay.textContent = String(value);
-      }
-    }
+    valueDisplay.textContent = value === null ? 'null' : toDisplayString(value, String(value));
     return;
   }
 
@@ -161,16 +154,9 @@ const getCopyButton = (getVariableValue, onCopyCallback) => {
     // Resolve the latest value at click time so edits/saves are reflected.
     const valueToCopy = typeof getVariableValue === 'function' ? getVariableValue() : getVariableValue;
 
-    let valueStr;
-    if (typeof valueToCopy === 'object' && valueToCopy !== null) {
-      try {
-        valueStr = JSON.stringify(valueToCopy, null, 2);
-      } catch {
-        valueStr = String(valueToCopy);
-      }
-    } else {
-      valueStr = String(valueToCopy ?? '');
-    }
+    const valueStr = typeof valueToCopy === 'object' && valueToCopy !== null
+      ? toDisplayString(valueToCopy, String(valueToCopy))
+      : String(valueToCopy ?? '');
 
     navigator.clipboard
       .writeText(valueStr)
