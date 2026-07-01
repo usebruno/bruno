@@ -485,5 +485,55 @@ body:multipart-form {
       const output = parser(input);
       expect(output).toEqual(expected);
     });
+
+    it('parses an empty multipart-form file value as an empty array', () => {
+      const input = `
+body:multipart-form {
+  file: @file()
+}
+`;
+
+      const expected = {
+        body: {
+          multipartForm: [
+            {
+              name: 'file',
+              value: [],
+              enabled: true,
+              type: 'file',
+              contentType: ''
+            }
+          ]
+        }
+      };
+
+      const output = parser(input);
+      expect(output).toEqual(expected);
+    });
+
+    it('drops empty entries when parsing multiple multipart-form file paths', () => {
+      const input = `
+body:multipart-form {
+  file: @file(a.txt||b.txt)
+}
+`;
+
+      const expected = {
+        body: {
+          multipartForm: [
+            {
+              name: 'file',
+              value: ['a.txt', 'b.txt'],
+              enabled: true,
+              type: 'file',
+              contentType: ''
+            }
+          ]
+        }
+      };
+
+      const output = parser(input);
+      expect(output).toEqual(expected);
+    });
   });
 });
