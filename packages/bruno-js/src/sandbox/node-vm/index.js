@@ -42,8 +42,12 @@ async function runScriptInNodeVm({
       .value();
     additionalContextRootsAbsolute.push(path.normalize(collectionPath));
 
+    const vmFilename = resolveVmFilename(scriptPath, collectionPath);
+
     // Build the script context with Bruno objects and globals
     const scriptContext = buildScriptContext(context, scriptingConfig);
+    scriptContext.__filename = vmFilename;
+    scriptContext.__dirname = path.dirname(vmFilename);
 
     // Create truly isolated context - scriptContext becomes the global object
     // Scripts can ONLY access what's explicitly in scriptContext
@@ -65,8 +69,6 @@ async function runScriptInNodeVm({
       localModuleCache,
       additionalContextRootsAbsolute
     });
-
-    const vmFilename = resolveVmFilename(scriptPath, collectionPath);
 
     // Execute the script in the isolated context
     const wrappedScript = wrapScriptInClosure(script, SANDBOX.NODEVM);
