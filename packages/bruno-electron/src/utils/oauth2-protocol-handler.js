@@ -41,6 +41,15 @@ const cancelOAuth2AuthorizationRequest = () => {
   return rejectOauth2AuthorizationRequest(new Error('Authorization cancelled by user'));
 };
 
+// Read a param from the query string, falling back to the URL hash fragment
+// (implicit flow returns values in the hash rather than query params).
+const getParamFromUrl = (urlObj, param) => {
+  return (
+    urlObj.searchParams.get(param)
+    || (urlObj.hash ? new URLSearchParams(urlObj.hash.substring(1)).get(param) : null)
+  );
+};
+
 const handleOauth2ProtocolUrl = (url) => {
   try {
     const urlObj = new URL(url);
@@ -68,8 +77,8 @@ const handleOauth2ProtocolUrl = (url) => {
     }
 
     // Check for errors in query params (authorization code flow) or hash (implicit flow)
-    const error = urlObj.searchParams.get('error') || (urlObj.hash ? new URLSearchParams(urlObj.hash.substring(1)).get('error') : null);
-    const errorDescription = urlObj.searchParams.get('error_description') || (urlObj.hash ? new URLSearchParams(urlObj.hash.substring(1)).get('error_description') : null);
+    const error = getParamFromUrl(urlObj, 'error');
+    const errorDescription = getParamFromUrl(urlObj, 'error_description');
 
     if (error) {
       const errorData = {
@@ -86,13 +95,11 @@ const handleOauth2ProtocolUrl = (url) => {
     // issued when the flow was initiated.
     const expectedState = oauth2AuthorizationRequest?.expectedState;
     if (expectedState) {
-      const returnedState
-        = urlObj.searchParams.get('state')
-          || (urlObj.hash ? new URLSearchParams(urlObj.hash.substring(1)).get('state') : null);
+      const returnedState = getParamFromUrl(urlObj, 'state');
 
       if (returnedState !== expectedState) {
         rejectOauth2AuthorizationRequest(
-          new Error('OAuth2 state mismatch: the returned state does not match the issued state. Aborting to prevent authorization code injection.')
+          new Error('OAuth2 state mismatch')
         );
         return;
       }

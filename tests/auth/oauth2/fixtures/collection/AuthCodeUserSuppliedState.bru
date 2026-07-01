@@ -1,7 +1,7 @@
 meta {
-  name: Implicit
+  name: AuthCodeUserSuppliedState
   type: http
-  seq: 2
+  seq: 3
 }
 
 get {
@@ -11,14 +11,21 @@ get {
 }
 
 auth:oauth2 {
-  grant_type: implicit
+  grant_type: authorization_code
   callback_url: bruno://app/oauth2/callback
   authorization_url: {{localhost}}/api/auth/oauth2/authorization_code/authorize
+  access_token_url: {{localhost}}/api/auth/oauth2/authorization_code/token
+  refresh_token_url: 
   client_id: client_id_1
+  client_secret: client_secret_1
   scope: read
-  state:
+  state: brunoUserState
+  pkce: false
+  credentials_placement: body
   credentials_id: credentials
+  token_source: access_token
   token_placement: header
   token_header_prefix: Bearer
   auto_fetch_token: true
+  auto_refresh_token: false
 }
