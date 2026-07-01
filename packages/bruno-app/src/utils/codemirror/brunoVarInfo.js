@@ -154,9 +154,7 @@ const getCopyButton = (getVariableValue, onCopyCallback) => {
     // Resolve the latest value at click time so edits/saves are reflected.
     const valueToCopy = typeof getVariableValue === 'function' ? getVariableValue() : getVariableValue;
 
-    const valueStr = typeof valueToCopy === 'object' && valueToCopy !== null
-      ? toDisplayString(valueToCopy, String(valueToCopy))
-      : String(valueToCopy ?? '');
+    const valueStr = toDisplayString(valueToCopy, String(valueToCopy));
 
     navigator.clipboard
       .writeText(valueStr)
