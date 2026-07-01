@@ -1589,6 +1589,31 @@ const createWorkspace = async (page: Page, workspaceName: string) => {
 };
 
 /**
+ * Remove a workspace via the manage workspaces panel
+ * @param page - The page object
+ * @param workspaceName - The name of the workspace to remove
+ * @returns void
+ */
+const removeWorkspace = async (page: Page, workspaceName: string) => {
+  await test.step(`Remove workspace "${workspaceName}"`, async () => {
+    await page.getByTestId('workspace-menu').click();
+    await page.locator('.dropdown-item').filter({ hasText: 'Manage workspaces' }).click();
+    await page.getByText('Manage Workspace', { exact: true }).waitFor({ state: 'visible' });
+
+    const workspaceItem = page.locator('.workspace-item').filter({ hasText: workspaceName }).last();
+    if ((await workspaceItem.count()) === 0 || !(await workspaceItem.isVisible())) {
+      return;
+    }
+
+    await workspaceItem.getByTestId('manage-workspace-more-options-btn').click();
+    await page.locator('.dropdown-item').filter({ hasText: 'Remove' }).click();
+    await page.locator('.bruno-modal-card').waitFor({ state: 'visible' });
+    await page.getByTestId('modal-submit-btn').click();
+    await page.locator('.workspace-item').filter({ hasText: workspaceName }).waitFor({ state: 'hidden' });
+  });
+};
+
+/**
  * Switch to an existing workspace via the title bar dropdown
  * @param page - The page object
  * @param workspaceName - The name of the workspace to switch to
@@ -2239,6 +2264,7 @@ export {
   selectGrpcMethod,
   closeAllTabs,
   createWorkspace,
+  removeWorkspace,
   switchWorkspace,
   selectScriptSubTab,
   editCodeMirrorEditor,

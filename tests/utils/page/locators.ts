@@ -1,4 +1,5 @@
 import { Page, Locator } from '../../../playwright';
+import { buildManageWorkspaceLocators } from './workspace/manage-workspace';
 
 export const buildCommonLocators = (page: Page) => ({
   runner: () => page.getByTestId('run-button'),
@@ -6,6 +7,10 @@ export const buildCommonLocators = (page: Page) => ({
     .locator('.infotip')
     .filter({ hasText: /^Save/ }),
   openPreferences: () => page.getByRole('button', { name: 'Open Preferences' }),
+
+  /** Locators for the manage workspace panel */
+  manageWorkspace: () => buildManageWorkspaceLocators(page),
+
   sidebar: {
     collectionsContainer: () => page.getByTestId('collections'),
     collection: (name: string) => page.locator('#sidebar-collection-name').filter({ hasText: name }),
