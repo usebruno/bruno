@@ -178,8 +178,8 @@ test.describe('Generate Documentation', () => {
 
     await expect(locators.generateDocs.collectionName()).toHaveText(COLLECTION_NAME);
 
-    // The version is shown exactly as the collection sets it.
-    await expect(locators.generateDocs.versionValue()).toHaveText('Version: 1');
+    // The user-facing collection version (bruno.json `collectionVersion`), not the schema `version`.
+    await expect(locators.generateDocs.versionValue()).toHaveText('Version: 2.5');
 
     // The fixture has 2 folders (Zoo, Aviary) and 5 requests (Lion, Bear, Parrot,
     // ReqAlpha, ReqBeta), counted recursively across the whole tree.
