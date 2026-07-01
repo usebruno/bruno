@@ -7,6 +7,7 @@ import {
   setFormUrlEncodedParams
 } from 'providers/ReduxStore/slices/collections';
 import MultiLineEditor from 'components/MultiLineEditor';
+import SingleLineEditor from 'components/SingleLineEditor';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { updateTableColumnWidths } from 'providers/ReduxStore/slices/tabs';
 import EditableTable from 'components/EditableTable';
@@ -57,7 +58,19 @@ const FormUrlEncodedParams = ({ item, collection }) => {
       name: 'Key',
       isKeyField: true,
       placeholder: 'Key',
-      width: '30%'
+      width: '30%',
+      render: ({ value, onChange }) => (
+        <SingleLineEditor
+          value={value || ''}
+          theme={storedTheme}
+          onSave={onSave}
+          onChange={(newValue) => onChange(newValue.replace(/[\r\n]/g, ''))}
+          onRun={handleRun}
+          collection={collection}
+          item={item}
+          placeholder={!value ? 'Key' : ''}
+        />
+      )
     },
     {
       key: 'value',
