@@ -299,7 +299,8 @@ const buildScriptUserPrompt = ({
   requestContext,
   docsContext,
   variables,
-  scriptType
+  scriptType,
+  security
 }) => {
   const sections = [];
   const docsContextStr = formatDocsContext(docsContext);
@@ -308,10 +309,10 @@ const buildScriptUserPrompt = ({
   // Same redaction rules as the chat sidebar — sensitive headers/params masked,
   // response shape only (no real values). Body is sent in full so the model
   // can write code that references real keys.
-  const contextStr = formatRequestContext(requestContext, { includeResponse: true });
+  const contextStr = formatRequestContext(requestContext, { includeResponse: true, security });
   if (contextStr) sections.push(`HTTP Request Context\n${contextStr}`);
 
-  const varsStr = formatVariablesList(variables);
+  const varsStr = formatVariablesList(variables, { security });
   if (varsStr) {
     sections.push(`Available Variables (names only — call search_variables(query) for a value)\n${varsStr}`);
   }

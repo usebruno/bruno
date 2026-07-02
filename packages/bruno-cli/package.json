@@ -67,7 +67,7 @@
     "https-proxy-agent": "^7.0.2",
     "iconv-lite": "^0.6.3",
     "js-yaml": "^4.1.1",
-    "lodash": "^4.17.21",
+    "lodash": "4.18.1",
     "qs": "^6.14.1",
     "socks-proxy-agent": "^8.0.2",
     "xmlbuilder": "^15.1.1",
