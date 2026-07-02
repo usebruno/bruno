@@ -70,8 +70,11 @@ const truncateLinesFromStart = (text, maxLines) => {
   return lines.slice(0, maxLines).join('\n');
 };
 
-const formatRequestContext = (ctx) => {
+const { redactJsonBodyString, buildRedactionPolicy } = require('./context');
+
+const formatRequestContext = (ctx, security) => {
   if (!ctx) return '';
+  const policy = buildRedactionPolicy(security);
   const parts = [];
   if (ctx.url || ctx.method) {
     parts.push(`${ctx.method || 'GET'} ${ctx.url || ''}`.trim());
@@ -85,7 +88,7 @@ const formatRequestContext = (ctx) => {
   const body = ctx.body;
   if (body && body.mode && body.mode !== 'none') {
     let bodyText = '';
-    if (body.mode === 'json') bodyText = body.json || '';
+    if (body.mode === 'json') bodyText = redactJsonBodyString(body.json || '', policy);
     else if (body.mode === 'text') bodyText = body.text || '';
     else if (body.mode === 'xml') bodyText = body.xml || '';
     else if (body.mode === 'graphql') bodyText = body.graphql?.query || '';
@@ -118,7 +121,7 @@ const formatSiblingScripts = (siblings) => {
     .join('\n\n');
 };
 
-const buildUserPrompt = ({ prefix, suffix, scriptType, requestContext, variableNames, siblingScripts }) => {
+const buildUserPrompt = ({ prefix, suffix, scriptType, requestContext, variableNames, siblingScripts, security }) => {
   // Keep recent context in the prefix (last 80 lines) and a short forward window (30 lines).
   // Cloud LLMs can handle more, but trimming keeps latency low and the model focused.
   const trimmedPrefix = truncateLines(prefix || '', 80);
@@ -126,7 +129,7 @@ const buildUserPrompt = ({ prefix, suffix, scriptType, requestContext, variableN
 
   const sections = [];
 
-  const reqStr = formatRequestContext(requestContext);
+  const reqStr = formatRequestContext(requestContext, security);
   if (reqStr) sections.push(`### Request being scripted\n${reqStr}`);
 
   const varStr = formatVariableNames(variableNames);
