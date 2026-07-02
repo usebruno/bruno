@@ -19,7 +19,8 @@ import {
   IconSettings,
   IconInfoCircle,
   IconTerminal2,
-  IconAppWindow
+  IconAppWindow,
+  IconEyeOff
 } from '@tabler/icons';
 import { useSelector, useDispatch } from 'react-redux';
 import { addTab, focusTab, makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
@@ -34,6 +35,7 @@ import NewApp from 'components/Sidebar/NewApp';
 import RenameCollectionItem from './RenameCollectionItem';
 import CloneCollectionItem from './CloneCollectionItem';
 import DeleteCollectionItem from './DeleteCollectionItem';
+import IgnoreCollectionItem from './IgnoreCollectionItem';
 import RunCollectionItem from './RunCollectionItem';
 import GenerateCodeItem from './GenerateCodeItem';
 import { isItemARequest, isItemAFolder } from 'utils/tabs';
@@ -93,6 +95,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
   const [renameItemModalOpen, setRenameItemModalOpen] = useState(false);
   const [cloneItemModalOpen, setCloneItemModalOpen] = useState(false);
   const [deleteItemModalOpen, setDeleteItemModalOpen] = useState(false);
+  const [ignoreItemModalOpen, setIgnoreItemModalOpen] = useState(false);
   const [createExampleModalOpen, setCreateExampleModalOpen] = useState(false);
   const [generateCodeItemModalOpen, setGenerateCodeItemModalOpen] = useState(false);
   const [newRequestModalOpen, setNewRequestModalOpen] = useState(false);
@@ -440,6 +443,15 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
       }
     );
 
+    if (isFolder) {
+      items.push({
+        id: 'ignore',
+        leftSection: IconEyeOff,
+        label: 'Ignore',
+        onClick: () => setIgnoreItemModalOpen(true)
+      });
+    }
+
     items.push({ id: 'separator-1', type: 'divider' });
 
     items.push({
@@ -637,6 +649,9 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
       )}
       {deleteItemModalOpen && (
         <DeleteCollectionItem item={item} collectionUid={collectionUid} onClose={() => setDeleteItemModalOpen(false)} />
+      )}
+      {ignoreItemModalOpen && (
+        <IgnoreCollectionItem item={item} collectionUid={collectionUid} onClose={() => setIgnoreItemModalOpen(false)} />
       )}
       {newRequestModalOpen && (
         <NewRequest item={item} collectionUid={collectionUid} onClose={() => setNewRequestModalOpen(false)} />

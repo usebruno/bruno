@@ -21,7 +21,7 @@ const { uuid } = require('../utils/common');
 const { parseValueByDataType } = require('@usebruno/common/utils');
 const { getRequestUid } = require('../cache/requestUids');
 const { decryptStringSafe } = require('../utils/encryption');
-const { setBrunoConfig } = require('../store/bruno-config');
+const { setBrunoConfig, getBrunoConfig } = require('../store/bruno-config');
 const EnvironmentSecretsStore = require('../store/env-secrets');
 const snapshotManager = require('../services/snapshot');
 const { parseFileMeta, hydrateRequestWithUuid } = require('../utils/collection');
@@ -784,8 +784,6 @@ class CollectionWatcher {
     // Always ignore node_modules and .git, regardless of user config
     // This prevents infinite loops with symlinked directories (e.g., npm workspaces)
     const defaultIgnores = ['node_modules', '.git'];
-    const userIgnores = brunoConfig?.ignore || [];
-    const ignores = [...new Set([...defaultIgnores, ...userIgnores])];
 
     setTimeout(() => {
       const watcher = chokidar.watch(watchPath, {
@@ -807,8 +805,13 @@ class CollectionWatcher {
             return true;
           }
 
+          const userIgnores = getBrunoConfig(collectionUid)?.ignore || [];
+          const ignores = [...new Set([...defaultIgnores, ...userIgnores])];
+          const normalizedRelativePath = relativePath.split(path.sep).join('/');
+
           return ignores.some((ignorePattern) => {
-            return relativePath === ignorePattern || relativePath.startsWith(ignorePattern);
+            const normalizedIgnorePattern = ignorePattern.replace(/\\/g, '/');
+            return normalizedRelativePath === normalizedIgnorePattern || normalizedRelativePath.startsWith(normalizedIgnorePattern);
           });
         },
         persistent: true,
