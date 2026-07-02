@@ -17,7 +17,7 @@ const Wrapper = styled.div`
     }
 
     .selected-body-mode {
-      color: ${(props) => props.theme.primary.text};
+      color: ${(props) => props.theme.ws?.activeMessage?.label || props.theme.primary.text};
     }
   }
 
