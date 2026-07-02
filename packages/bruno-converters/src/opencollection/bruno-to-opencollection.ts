@@ -86,20 +86,19 @@ const hasRequestDefaults = (root: BrunoCollectionRoot | undefined): boolean => {
 };
 
 export const brunoToOpenCollection = (collection: BrunoCollection): OpenCollection => {
-  const openCollection: OpenCollection = {
-    opencollection: '1.0.0',
-    info: {
-      name: collection.name || 'Untitled Collection'
-    }
-  };
-
   const brunoConfig = collection.brunoConfig as BrunoConfig | undefined;
 
   const isOpenCollectionFormat = Boolean(brunoConfig?.opencollection);
   const collectionVersion = isOpenCollectionFormat ? brunoConfig?.version : brunoConfig?.collectionVersion;
-  if (openCollection.info && collectionVersion != null && collectionVersion !== '') {
-    openCollection.info.version = String(collectionVersion);
-  }
+  const hasCollectionVersion = collectionVersion != null && collectionVersion !== '';
+
+  const openCollection: OpenCollection = {
+    opencollection: '1.0.0',
+    info: {
+      name: collection.name || 'Untitled Collection',
+      ...(hasCollectionVersion ? { version: String(collectionVersion) } : {})
+    }
+  };
 
   const config = toOpenCollectionConfig(brunoConfig);
   if (config) {

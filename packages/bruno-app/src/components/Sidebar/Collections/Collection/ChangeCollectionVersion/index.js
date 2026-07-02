@@ -56,10 +56,12 @@ const ChangeCollectionVersion = ({ collectionUid, onClose }) => {
   };
 
   const handleCopy = () => {
-    if (!trimmedVersion) return;
-    navigator.clipboard?.writeText(trimmedVersion);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 1500);
+    if (!trimmedVersion || !navigator.clipboard) return;
+    navigator.clipboard.writeText(trimmedVersion)
+      .then(() => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 1500);
+      }).catch(() => {});
   };
 
   if (!collection) {
@@ -70,7 +72,6 @@ const ChangeCollectionVersion = ({ collectionUid, onClose }) => {
     <Portal>
       <Modal
         size="md"
-        title="Change Collection Version"
         customHeader={<ModalTitle>Change Collection Version</ModalTitle>}
         confirmText={isSaving ? 'Updating...' : 'Update Version'}
         cancelText="Cancel"
@@ -106,7 +107,8 @@ const ChangeCollectionVersion = ({ collectionUid, onClose }) => {
                     autoCorrect="off"
                     autoCapitalize="off"
                     spellCheck="false"
-                    placeholder="e.g. 1.0.0"
+                    placeholder="e.g. v1.0.0"
+                    maxLength={50}
                     value={newVersion}
                     onChange={(e) => setNewVersion(e.target.value)}
                     data-testid="change-version-input"

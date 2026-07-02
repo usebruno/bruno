@@ -8,7 +8,7 @@ export const ModalTitle = styled.div`
 `;
 
 const StyledWrapper = styled.div`
-  width: 100%;
+  max-width: 100%;
   .subheader {
     margin-bottom: 0.5rem;
     color: ${(props) => props.theme.colors.text.muted};
@@ -55,6 +55,7 @@ const StyledWrapper = styled.div`
       font-weight: 400;
       font-size: ${(props) => props.theme.font.size.sm};
       line-height: 20px;
+      overflow-wrap: anywhere;
 
       .unset {
         font-family: inherit;

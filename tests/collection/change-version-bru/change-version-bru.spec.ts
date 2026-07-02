@@ -47,4 +47,17 @@ test.describe('Change Collection Version (bru collection)', () => {
         .toMatchObject({ version: '1', collectionVersion: 'v2.3.4' });
     });
   });
+
+  test('limits the version input at 50 characters', async ({ pageWithUserData: page }) => {
+    await openCollectionSettings(page, COLLECTION_NAME);
+    await selectCollectionPaneTab(page, 'overview');
+    await page.getByTestId('info-version-change').click();
+
+    const input = page.getByTestId('change-version-input');
+    await expect(input).toHaveAttribute('maxlength', '50');
+
+    await input.fill('');
+    await input.pressSequentially('9'.repeat(55));
+    await expect(input).toHaveValue('9'.repeat(50));
+  });
 });

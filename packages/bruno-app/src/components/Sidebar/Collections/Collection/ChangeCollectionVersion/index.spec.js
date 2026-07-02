@@ -78,6 +78,11 @@ describe('ChangeCollectionVersion', () => {
     expect(submit).toBeDisabled();
   });
 
+  it('limits the version input at 50 characters', () => {
+    renderModal(buildCollection());
+    expect(screen.getByTestId('change-version-input')).toHaveAttribute('maxlength', '50');
+  });
+
   it('does not let you save an empty or blank version', () => {
     renderModal(buildCollection());
     fireEvent.change(screen.getByTestId('change-version-input'), { target: { value: '   ' } });
