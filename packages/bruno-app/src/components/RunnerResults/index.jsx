@@ -415,7 +415,7 @@ export default function RunnerResults({ collection }) {
                           <span className={`mr-1 ${item.responseReceived?.status >= 400 ? 'danger' : 'text-green'}`}>{item.responseReceived?.status}</span>
                           <button
                             onClick={() => setSelectedItem(item)}
-                            className="ml-1 mr-1 link cursor-pointer flex items-center"
+                            className="mr-1 link cursor-pointer flex items-center"
                             title="View response"
                             aria-label="View response"
                           >
