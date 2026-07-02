@@ -1,0 +1,51 @@
+{
+    "name": "GRPC Collection",
+    "version": "1",
+    "items": [
+        {
+            "type": "grpc",
+            "name": "grpc request without url",
+            "filename": "request-without-url.bru",
+            "seq": 2,
+            "settings": {},
+            "tags": [],
+            "examples": [],
+            "request": {
+                "method": "",
+                "headers": [],
+                "body": {
+                    "mode": "grpc",
+                    "formUrlEncoded": [],
+                    "multipartForm": [],
+                    "file": [],
+                    "grpc": [
+                        {
+                            "name": "message 1",
+                            "content": "{}"
+                        }
+                    ]
+                },
+                "script": {},
+                "vars": {},
+                "assertions": [],
+                "tests": "",
+                "docs": "",
+                "auth": {
+                    "mode": "none"
+                }
+            }
+        }
+    ],
+    "environments": [],
+    "brunoConfig": {
+        "version": "1",
+        "name": "GRPC Collection",
+        "type": "collection",
+        "ignore": [
+            "node_modules",
+            ".git"
+        ],
+        "size": 0,
+        "filesCount": 0
+    }
+}

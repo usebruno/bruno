@@ -560,7 +560,7 @@ ${indentString(body.sparql)}
             }
 
             if (item.type === 'file') {
-              const filepaths = Array.isArray(item.value) ? item.value : [];
+              const filepaths = (Array.isArray(item.value) ? item.value : []).filter(Boolean);
               const filestr = filepaths.join('|');
 
               const value = `@file(${filestr})`;
