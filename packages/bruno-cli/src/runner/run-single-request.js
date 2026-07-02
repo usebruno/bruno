@@ -22,7 +22,15 @@ const { addDigestInterceptor, getHttpHttpsAgents, makeAxiosInstance: makeAxiosIn
 const { getCACertificates, transformProxyConfig } = require('@usebruno/requests');
 const { getOAuth2Token, getFormattedOauth2Credentials } = require('../utils/oauth2');
 const tokenStore = require('../store/tokenStore');
-const { encodeUrl, buildFormUrlEncodedPayload, extractPromptVariables, isFormData, extractBoundaryFromContentType, hasExplicitScheme } = require('@usebruno/common').utils;
+const {
+  encodeUrl,
+  buildFormUrlEncodedPayload,
+  isFormUrlEncodedContentType,
+  extractPromptVariables,
+  isFormData,
+  extractBoundaryFromContentType,
+  hasExplicitScheme
+} = require('@usebruno/common').utils;
 
 const onConsoleLog = (type, args) => {
   console[type](...args);
@@ -504,7 +512,7 @@ const runSingleRequest = async function (
       (name) => name.toLowerCase() === 'content-type'
     );
 
-    if (contentTypeHeader && request.headers[contentTypeHeader] === 'application/x-www-form-urlencoded') {
+    if (contentTypeHeader && isFormUrlEncodedContentType(request.headers[contentTypeHeader])) {
       if (Array.isArray(request.data)) {
         request.data = buildFormUrlEncodedPayload(request.data);
       } else if (typeof request.data !== 'string') {
