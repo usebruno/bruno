@@ -1678,7 +1678,7 @@ export const newWsRequest = (params) => (dispatch, getState) => {
               uid: uuid(),
               name: 'message 1',
               type: 'json',
-              content: '{}'
+              content: ''
             }
           ]
         },
