@@ -74,6 +74,7 @@ const interpolateVars = require('./network/interpolate-vars');
 const { interpolateString } = require('./network/interpolate-string');
 const { getEnvVars, getTreePathFromCollectionToItem, mergeVars, parseBruFileMeta, hydrateRequestWithUuid, transformRequestToSaveToFilesystem } = require('../utils/collection');
 const { getProcessEnvVars } = require('../store/process-env');
+const { setBrunoConfig } = require('../store/bruno-config');
 const { getOAuth2TokenUsingAuthorizationCode, getOAuth2TokenUsingClientCredentials, getOAuth2TokenUsingPasswordCredentials, getOAuth2TokenUsingImplicitGrant, refreshOauth2Token } = require('../utils/oauth2');
 const { getCertsAndProxyConfig } = require('./network/cert-utils');
 const collectionWatcher = require('../app/collection-watcher');
@@ -1708,36 +1709,78 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
     }
   });
 
-  ipcMain.handle('renderer:update-bruno-config', async (event, brunoConfig, collectionPath, collectionRoot) => {
-    try {
-      const transformedBrunoConfig = transformBrunoConfigBeforeSave(brunoConfig);
-      const format = getCollectionFormat(collectionPath);
+  const writeBrunoConfig = async (brunoConfig, collectionPath, collectionRoot) => {
+    const transformedBrunoConfig = transformBrunoConfigBeforeSave(brunoConfig);
+    const format = getCollectionFormat(collectionPath);
 
-      if (format === 'bru') {
-        const brunoConfigPath = path.join(collectionPath, 'bruno.json');
-        const content = await stringifyJson(transformedBrunoConfig);
-        await writeFile(brunoConfigPath, content);
-      } else if (format === 'yml') {
-        // opencollection.yml holds both config AND the collection root. If the caller
-        // didn't supply a root (e.g. a config-only update before the tree finished
-        // loading), recover it from disk so request defaults/docs/scripts aren't wiped.
-        let rootToWrite = collectionRoot;
-        if (!rootToWrite) {
-          const ocYmlPath = path.join(collectionPath, 'opencollection.yml');
-          if (fs.existsSync(ocYmlPath)) {
-            try {
-              const existing = fs.readFileSync(ocYmlPath, 'utf8');
-              rootToWrite = parseCollection(existing, { format }).collectionRoot;
-            } catch (e) {
-              rootToWrite = collectionRoot;
-            }
+    if (format === 'bru') {
+      const brunoConfigPath = path.join(collectionPath, 'bruno.json');
+      const content = await stringifyJson(transformedBrunoConfig);
+      await writeFile(brunoConfigPath, content);
+    } else if (format === 'yml') {
+      // opencollection.yml holds both config AND the collection root. If the caller
+      // didn't supply a root (e.g. a config-only update before the tree finished
+      // loading), recover it from disk so request defaults/docs/scripts aren't wiped.
+      let rootToWrite = collectionRoot;
+      if (!rootToWrite) {
+        const ocYmlPath = path.join(collectionPath, 'opencollection.yml');
+        if (fs.existsSync(ocYmlPath)) {
+          try {
+            const existing = fs.readFileSync(ocYmlPath, 'utf8');
+            rootToWrite = parseCollection(existing, { format }).collectionRoot;
+          } catch (e) {
+            rootToWrite = collectionRoot;
           }
         }
-        const content = await stringifyCollection(rootToWrite, transformedBrunoConfig, { format });
-        await writeFile(path.join(collectionPath, 'opencollection.yml'), content);
-      } else {
-        throw new Error(`Invalid collection format: ${format}`);
       }
+      const content = await stringifyCollection(rootToWrite, transformedBrunoConfig, { format });
+      await writeFile(path.join(collectionPath, 'opencollection.yml'), content);
+    } else {
+      throw new Error(`Invalid collection format: ${format}`);
+    }
+  };
+
+  ipcMain.handle('renderer:update-bruno-config', async (event, brunoConfig, collectionPath, collectionRoot) => {
+    try {
+      await writeBrunoConfig(brunoConfig, collectionPath, collectionRoot);
+    } catch (error) {
+      return Promise.reject(error);
+    }
+  });
+
+  ipcMain.handle('renderer:ignore-folder', async (event, collectionUid, collectionPath, collectionRoot, brunoConfig, folderPath) => {
+    try {
+      const relativePath = path.relative(collectionPath, folderPath).replace(/\\/g, '/');
+      const existingIgnores = brunoConfig?.ignore || [];
+      const updatedBrunoConfig = {
+        ...brunoConfig,
+        ignore: [...new Set([...existingIgnores, relativePath])]
+      };
+
+      await writeBrunoConfig(updatedBrunoConfig, collectionPath, collectionRoot);
+      setBrunoConfig(collectionUid, updatedBrunoConfig);
+      collectionWatcher.unlinkItemPathInWatcher(folderPath);
+
+      return updatedBrunoConfig;
+    } catch (error) {
+      return Promise.reject(error);
+    }
+  });
+
+  ipcMain.handle('renderer:unignore-folder', async (event, collectionUid, collectionPath, collectionRoot, brunoConfig, relativePath) => {
+    try {
+      const normalizedPath = relativePath.replace(/\\/g, '/');
+      const existingIgnores = brunoConfig?.ignore || [];
+      const updatedBrunoConfig = {
+        ...brunoConfig,
+        ignore: existingIgnores.filter((p) => p.replace(/\\/g, '/') !== normalizedPath)
+      };
+
+      await writeBrunoConfig(updatedBrunoConfig, collectionPath, collectionRoot);
+      setBrunoConfig(collectionUid, updatedBrunoConfig);
+      collectionWatcher.addItemPathInWatcher(path.resolve(collectionPath, relativePath));
+
+      return updatedBrunoConfig;
     } catch (error) {
       return Promise.reject(error);
     }
