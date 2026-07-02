@@ -2,17 +2,18 @@ import React, { useState } from 'react';
 import Portal from 'components/Portal';
 import Modal from 'components/Modal';
 import toast from 'react-hot-toast';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import importPostmanEnvironment from 'utils/importers/postman-environment';
 import importBrunoEnvironment from 'utils/importers/bruno-environment';
 import { readMultipleFiles } from 'utils/importers/file-reader';
 import { importEnvironment } from 'providers/ReduxStore/slices/collections/actions';
 import { addGlobalEnvironment } from 'providers/ReduxStore/slices/global-environments';
-import { toastError } from 'utils/common/error';
+import { sanitizeName } from 'utils/common/regex';
 import { IconFileImport } from '@tabler/icons';
 
 const ImportEnvironmentModal = ({ type = 'collection', collection, onClose, onEnvironmentCreated }) => {
   const dispatch = useDispatch();
+  const globalEnvironments = useSelector((state) => state.globalEnvironments.globalEnvironments) || [];
   const [isDragOver, setIsDragOver] = useState(false);
 
   const isGlobal = type === 'global';
@@ -26,39 +27,69 @@ const ImportEnvironmentModal = ({ type = 'collection', collection, onClose, onEn
   const modalTestId = isGlobal ? 'import-global-environment-modal' : 'import-environment-modal';
   const importTestId = isGlobal ? 'import-global-environment' : 'import-environment';
 
-  const processEnvironments = async (environments, successMessage) => {
-    const validEnvironments = environments.filter((env) => {
-      if (env.name && env.name !== 'undefined') {
-        return true;
-      } else {
-        toast.error('Failed to import environment: env has no name');
-        return false;
-      }
-    });
+  const processEnvironments = async (environments, parseFailures = []) => {
+    const failures = [...parseFailures];
 
-    if (validEnvironments.length === 0) {
-      toast.error('No valid environments found to import');
-      return;
+    const named = [];
+    let unnamed = 0;
+    for (const env of environments) {
+      const name = typeof env.name === 'string' ? sanitizeName(env.name) : '';
+      if (name && name !== 'undefined') named.push({ ...env, name });
+      else unnamed++;
     }
 
-    try {
-      // Process environments sequentially to ensure unique name checking considers previously imported environments
-      let importedCount = 0;
-      for (const environment of validEnvironments) {
+    const existing = isGlobal ? globalEnvironments : collection?.environments || [];
+    const seen = new Set(existing.map((e) => sanitizeName(e.name || '')));
+
+    const toImport = [];
+    let skipped = 0;
+    for (const env of named) {
+      const key = env.name;
+      if (seen.has(key)) {
+        skipped++;
+        continue;
+      }
+      seen.add(key);
+      toImport.push(env);
+    }
+
+    let imported = 0;
+    for (const environment of toImport) {
+      try {
         const action = isGlobal
           ? addGlobalEnvironment({ name: environment.name, variables: environment.variables, color: environment.color })
           : importEnvironment({ name: environment.name, variables: environment.variables, color: environment.color, collectionUid: collection?.uid });
 
         await dispatch(action);
-        importedCount++;
+        imported++;
+      } catch (error) {
+        console.error(`Failed to import environment "${environment.name}":`, error);
+        failures.push({ name: environment.name, message: error?.message || String(error) });
       }
-
-      toast.success(`${importedCount > 1 ? `${importedCount} environments` : 'Environment'} imported successfully`);
-    } catch (error) {
-      toast.error('An error occurred while importing the environment(s)');
-      console.error(error);
-      throw error;
     }
+
+    if (imported > 0) {
+      toast.success(`Imported ${imported} environment${imported > 1 ? 's' : ''}.`);
+    }
+
+    const notes = [];
+    if (skipped > 0) notes.push(`${skipped} already existed and ${skipped > 1 ? 'were' : 'was'} skipped`);
+    if (unnamed > 0) notes.push(`${unnamed} had no name`);
+    if (failures.length > 0) {
+      const names = failures.map((f) => f.name).slice(0, 3).join(', ');
+      const more = failures.length > 3 ? ` and ${failures.length - 3} more` : '';
+      notes.push(`${failures.length} failed (${names}${more})`);
+    }
+
+    if (notes.length > 0) {
+      const message = notes.join('; ') + '.';
+      if (failures.length > 0) toast.error(message);
+      else toast(message);
+    } else if (imported === 0) {
+      toast.error('No valid environments found to import.');
+    }
+
+    return { imported, skipped, unnamed, failures };
   };
 
   const detectEnvironmentFormat = (data) => {
@@ -76,27 +107,40 @@ const ImportEnvironmentModal = ({ type = 'collection', collection, onClose, onEn
   };
 
   const handleImportEnvironment = async (files) => {
-    try {
-      // Read and parse all files
-      const parsedFiles = await readMultipleFiles(Array.from(files));
-
-      // Detect format from first file's content
-      const format = detectEnvironmentFormat(parsedFiles[0].content);
-      let environments;
-
-      if (format === 'postman') {
-        environments = await importPostmanEnvironment(parsedFiles);
-      } else {
-        environments = await importBrunoEnvironment(parsedFiles);
+    const environments = [];
+    const parseFailures = [];
+    for (const file of Array.from(files)) {
+      let parsedFile;
+      try {
+        [parsedFile] = await readMultipleFiles([file]);
+      } catch (err) {
+        console.error(`Failed to read ${file.name}:`, err);
+        parseFailures.push({ name: file.name, message: err?.message || String(err) });
+        continue;
       }
 
-      await processEnvironments(environments);
-      onClose();
-      if (onEnvironmentCreated) {
-        onEnvironmentCreated();
+      try {
+        const format = detectEnvironmentFormat(parsedFile.content);
+        const result
+          = format === 'postman'
+            ? await importPostmanEnvironment([parsedFile])
+            : await importBrunoEnvironment([parsedFile]);
+        environments.push(...result);
+      } catch (err) {
+        console.error(`Failed to parse ${parsedFile.fileName}:`, err);
+        parseFailures.push({ name: parsedFile.fileName, message: err?.message || String(err) });
       }
-    } catch (err) {
-      toastError(err, 'Import environment failed');
+    }
+
+    const summary = await processEnvironments(environments, parseFailures);
+
+    if (summary.imported === 0 && summary.skipped === 0) {
+      return;
+    }
+
+    onClose();
+    if (summary.imported > 0 && onEnvironmentCreated) {
+      onEnvironmentCreated();
     }
   };
 
