@@ -1,11 +1,8 @@
 import { customAlphabet } from 'nanoid';
 import xmlFormat from 'xml-formatter';
 import { JSONPath } from 'jsonpath-plus';
-import fastJsonFormat from 'fast-json-format';
 import { format, applyEdits } from 'jsonc-parser';
 import { patternHasher } from '@usebruno/common/utils';
-import prettierFormat from 'prettier/standalone';
-import parserBabel from 'prettier/parser-babel';
 
 export const isPlaywright = () => {
   return typeof window !== 'undefined' && window.isPlaywright === true;
@@ -262,175 +259,8 @@ export const sortByNameThenSequence = (items) => {
   return sortedItems.flat();
 };
 
-// Memory threshold to prevent crashes when decoding large buffers
-const LARGE_BUFFER_THRESHOLD = 50 * 1024 * 1024; // 50 MB
-
-const applyJSONPathFilter = (data, filter) => {
-  try {
-    return JSONPath({ path: filter, json: data });
-  } catch (e) {
-    console.warn('Could not apply JSONPath filter:', e.message);
-    return data;
-  }
-};
-
-export const formatResponse = (data, dataBufferString, mode, filter, bufferThreshold = LARGE_BUFFER_THRESHOLD) => {
-  if (data === undefined || !dataBufferString || !mode) {
-    return '';
-  }
-
-  let bufferSize = 0, rawData = '', isVeryLargeResponse = false;
-  try {
-    const dataBuffer = Buffer.from(dataBufferString, 'base64');
-    bufferSize = dataBuffer.length;
-    isVeryLargeResponse = bufferSize > bufferThreshold;
-    if (!isVeryLargeResponse) {
-      rawData = dataBuffer.toString();
-    }
-  } catch (error) {
-    console.warn('Failed to calculate buffer size:', error);
-  }
-
-  if (mode.includes('json')) {
-    try {
-      if (filter) {
-        return safeStringifyJSON(applyJSONPathFilter(data, filter), true);
-      }
-    } catch (error) {}
-
-    if (isVeryLargeResponse) {
-      return safeStringifyJSON(data, false);
-    }
-
-    try {
-      return fastJsonFormat(rawData);
-    } catch (error) {}
-
-    if (typeof data === 'string') {
-      return data;
-    }
-    // Try to stringify the data, fallback to String conversion if needed
-    const stringified = safeStringifyJSON(data, false);
-    return typeof stringified === 'string' ? stringified : String(data);
-  }
-
-  if (mode.includes('xml')) {
-    if (isVeryLargeResponse) {
-      return typeof data === 'string' ? data : safeStringifyJSON(data, false);
-    }
-
-    let parsed = safeParseXML(data, { collapseContent: true });
-    if (typeof parsed === 'string') {
-      return parsed;
-    }
-    return safeStringifyJSON(parsed, true);
-  }
-
-  if (mode.includes('html')) {
-    if (isVeryLargeResponse) {
-      if (typeof data === 'string') {
-        return data;
-      }
-      if (data === null || data === undefined) {
-        return String(data);
-      }
-      if (typeof data === 'object') {
-        return safeStringifyJSON(data, false);
-      }
-      return String(data);
-    }
-
-    // Get HTML string from rawData
-    let htmlString = rawData;
-    // Prettify HTML
-    try {
-      return prettifyHtmlString(htmlString);
-    } catch (error) {
-      return htmlString;
-    }
-  }
-
-  if (mode.includes('javascript')) {
-    if (isVeryLargeResponse) {
-      if (typeof data === 'string') {
-        return data;
-      }
-      if (data === null || data === undefined) {
-        return String(data);
-      }
-      if (typeof data === 'object') {
-        return safeStringifyJSON(data, false);
-      }
-      return String(data);
-    }
-
-    // Get JavaScript string from rawData
-    let jsString = rawData;
-
-    // Prettify JavaScript
-    try {
-      return prettifyJavaScriptString(jsString);
-    } catch (error) {
-      return jsString;
-    }
-  }
-
-  // Handle hex format - return hex representation
-  if (mode.includes('hex')) {
-    // Check if data is already in hex format
-    if (typeof data === 'string' && isHexFormat(data)) {
-      // Data is already in hex format, return it as-is
-      return data;
-    }
-
-    // Data is not in hex format, encode it to hex
-    try {
-      const dataBuffer = Buffer.from(dataBufferString, 'base64');
-      const hexView = formatHexView(dataBuffer);
-      return hexView;
-    } catch (error) {
-      // If buffer conversion fails, try to encode the string data directly
-      if (typeof data === 'string') {
-        try {
-          const stringBuffer = Buffer.from(data, 'utf8');
-          return formatHexView(stringBuffer);
-        } catch (stringError) {
-          return '';
-        }
-      }
-      return '';
-    }
-  }
-
-  // Handle base64 format - return base64 string as-is
-  if (mode.includes('base64')) {
-    return dataBufferString;
-  }
-
-  // Handle raw format - return data as-is without any formatting
-  if (mode.includes('text') || mode.includes('raw')) {
-    if (isVeryLargeResponse) {
-      if (typeof data === 'string') {
-        return data;
-      }
-      if (data === null || data === undefined) {
-        return String(data);
-      }
-      if (typeof data === 'object') {
-        return safeStringifyJSON(data, false);
-      }
-      return String(data);
-    }
-    // Return the raw decoded buffer data
-    return rawData;
-  }
-
-  if (typeof data === 'string') {
-    return data;
-  }
-
-  return safeStringifyJSON(data, !isVeryLargeResponse);
-};
+// formatResponse has been moved to utils/common/format-response.js
+// to keep prettier out of the main bundle.
 
 export const prettifyJsonString = (jsonDataString) => {
   if (typeof jsonDataString !== 'string') return jsonDataString;
@@ -486,25 +316,7 @@ export function prettifyHtmlString(htmlString) {
   }
 };
 
-// Simple JavaScript formatter that uses prettier
-export function prettifyJavaScriptString(jsString) {
-  if (typeof jsString !== 'string') return jsString;
-
-  try {
-    return prettierFormat.format(jsString, {
-      parser: 'babel',
-      plugins: [parserBabel],
-      semi: true,
-      singleQuote: true,
-      tabWidth: 2,
-      trailingComma: 'none',
-      printWidth: 120
-    });
-  } catch (error) {
-    // If prettier fails, return the original string
-    return jsString;
-  }
-};
+// prettifyJavaScriptString has been moved to utils/common/format-response.js
 
 export function formatHexView(buffer) {
   const width = 16;

@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, Suspense, lazy } from 'react';
 import toast from 'react-hot-toast';
 import get from 'lodash/get';
 import { useDispatch, useSelector } from 'react-redux';
@@ -26,19 +26,22 @@ import filter from 'lodash/filter';
 
 import MenuDropdown from 'ui/MenuDropdown';
 import ActionIcon from 'ui/ActionIcon';
-import ImportCollection from 'components/Sidebar/ImportCollection';
-import ImportCollectionLocation from 'components/Sidebar/ImportCollectionLocation';
-import BulkImportCollectionLocation from 'components/Sidebar/BulkImportCollectionLocation';
-import CloneGitRepository from 'components/Sidebar/CloneGitRespository';
-import RemoveCollectionsModal from 'components/Sidebar/Collections/RemoveCollectionsModal/index';
-import CreateCollection from 'components/Sidebar/CreateCollection';
-import PostmanPackageReport from 'components/Sidebar/PostmanPackageReport';
-import usePostmanPackagePrompt from 'hooks/usePostmanPackagePrompt';
-import WelcomeModal from 'components/WelcomeModal';
 import Collections from 'components/Sidebar/Collections';
 import SidebarSection from 'components/Sidebar/SidebarSection';
 import { openDevtoolsAndSwitchToTerminal } from 'utils/terminal';
 import useKeybinding from 'hooks/useKeybinding';
+import usePostmanPackagePrompt from 'hooks/usePostmanPackagePrompt';
+
+// Modals are only shown on user interaction — lazy-load so they stay out of
+// the initial bundle and don't block first paint.
+const ImportCollection = lazy(() => import('components/Sidebar/ImportCollection'));
+const ImportCollectionLocation = lazy(() => import('components/Sidebar/ImportCollectionLocation'));
+const BulkImportCollectionLocation = lazy(() => import('components/Sidebar/BulkImportCollectionLocation'));
+const CloneGitRepository = lazy(() => import('components/Sidebar/CloneGitRespository'));
+const RemoveCollectionsModal = lazy(() => import('components/Sidebar/Collections/RemoveCollectionsModal/index'));
+const CreateCollection = lazy(() => import('components/Sidebar/CreateCollection'));
+const PostmanPackageReport = lazy(() => import('components/Sidebar/PostmanPackageReport'));
+const WelcomeModal = lazy(() => import('components/WelcomeModal'));
 
 const CollectionsSection = () => {
   const dispatch = useDispatch();
@@ -330,84 +333,85 @@ const CollectionsSection = () => {
           <IconDotsVertical size={14} stroke={1.5} aria-hidden="true" />
         </ActionIcon>
       </MenuDropdown>
-
-      {collectionsToClose.length > 0 && (
-        <RemoveCollectionsModal collectionUids={collectionsToClose} onClose={clearCollectionsToClose} />
-      )}
     </>
   );
 
   return (
     <>
-      {showWelcomeModal && (
-        <WelcomeModal
-          onDismiss={handleDismissWelcomeModal}
-          onImportCollection={() => {
-            handleDismissWelcomeModal();
-            setImportCollectionModalOpen(true);
-          }}
-          onCreateCollection={() => {
-            handleDismissWelcomeModal();
-            setCreateCollectionModalOpen(true);
-          }}
-          onOpenCollection={() => {
-            handleDismissWelcomeModal();
-            handleOpenCollection();
-          }}
-          onStartRequest={() => {
-            handleDismissWelcomeModal();
-            handleStartRequest();
-          }}
-        />
-      )}
-      {createCollectionModalOpen && (
-        <CreateCollection
-          onClose={() => {
-            setCreateCollectionModalOpen(false);
-            setAdvancedCreateName('');
-          }}
-          initialCollectionName={advancedCreateName}
-        />
-      )}
-      {importCollectionModalOpen && (
-        <ImportCollection
-          onClose={() => setImportCollectionModalOpen(false)}
-          handleSubmit={handleImportCollection}
-        />
-      )}
-      {importCollectionLocationModalOpen && importData && (importData.type !== 'multiple' && importData.type !== 'bulk') && (
-        <ImportCollectionLocation
-          rawData={importData.rawData}
-          format={importData.type}
-          sourceUrl={importData.sourceUrl}
-          filePath={importData.filePath}
-          rawContent={importData.rawContent}
-          onClose={() => setImportCollectionLocationModalOpen(false)}
-          handleSubmit={handleImportCollectionLocation}
-        />
-      )}
-      {importCollectionLocationModalOpen && importData && (importData.type === 'multiple' || importData.type === 'bulk') && (
-        <BulkImportCollectionLocation
-          importData={importData}
-          onClose={() => setImportCollectionLocationModalOpen(false)}
-          handleSubmit={handleImportCollectionLocation}
-        />
-      )}
-      {showCloneGitModal && (
-        <CloneGitRepository
-          onClose={handleCloseGitModal}
-          onFinish={handleCloseGitModal}
-          collectionRepositoryUrl={gitRepositoryUrl}
-        />
-      )}
-      {postmanPackagePrompt && (
-        <PostmanPackageReport
-          key={postmanPackagePrompt.collectionPath}
-          report={postmanPackagePrompt.report}
-          collectionPath={postmanPackagePrompt.collectionPath}
-          onClose={clearPostmanPackagePrompt}
-        />
-      )}
+      <Suspense fallback={null}>
+        {showWelcomeModal && (
+          <WelcomeModal
+            onDismiss={handleDismissWelcomeModal}
+            onImportCollection={() => {
+              handleDismissWelcomeModal();
+              setImportCollectionModalOpen(true);
+            }}
+            onCreateCollection={() => {
+              handleDismissWelcomeModal();
+              setCreateCollectionModalOpen(true);
+            }}
+            onOpenCollection={() => {
+              handleDismissWelcomeModal();
+              handleOpenCollection();
+            }}
+            onStartRequest={() => {
+              handleDismissWelcomeModal();
+              handleStartRequest();
+            }}
+          />
+        )}
+        {createCollectionModalOpen && (
+          <CreateCollection
+            onClose={() => {
+              setCreateCollectionModalOpen(false);
+              setAdvancedCreateName('');
+            }}
+            initialCollectionName={advancedCreateName}
+          />
+        )}
+        {importCollectionModalOpen && (
+          <ImportCollection
+            onClose={() => setImportCollectionModalOpen(false)}
+            handleSubmit={handleImportCollection}
+          />
+        )}
+        {importCollectionLocationModalOpen && importData && (importData.type !== 'multiple' && importData.type !== 'bulk') && (
+          <ImportCollectionLocation
+            rawData={importData.rawData}
+            format={importData.type}
+            sourceUrl={importData.sourceUrl}
+            filePath={importData.filePath}
+            rawContent={importData.rawContent}
+            onClose={() => setImportCollectionLocationModalOpen(false)}
+            handleSubmit={handleImportCollectionLocation}
+          />
+        )}
+        {importCollectionLocationModalOpen && importData && (importData.type === 'multiple' || importData.type === 'bulk') && (
+          <BulkImportCollectionLocation
+            importData={importData}
+            onClose={() => setImportCollectionLocationModalOpen(false)}
+            handleSubmit={handleImportCollectionLocation}
+          />
+        )}
+        {showCloneGitModal && (
+          <CloneGitRepository
+            onClose={handleCloseGitModal}
+            onFinish={handleCloseGitModal}
+            collectionRepositoryUrl={gitRepositoryUrl}
+          />
+        )}
+        {postmanPackagePrompt && (
+          <PostmanPackageReport
+            key={postmanPackagePrompt.collectionPath}
+            report={postmanPackagePrompt.report}
+            collectionPath={postmanPackagePrompt.collectionPath}
+            onClose={clearPostmanPackagePrompt}
+          />
+        )}
+        {collectionsToClose.length > 0 && (
+          <RemoveCollectionsModal collectionUids={collectionsToClose} onClose={clearCollectionsToClose} />
+        )}
+      </Suspense>
       <SidebarSection
         id="collections"
         title="Collections"

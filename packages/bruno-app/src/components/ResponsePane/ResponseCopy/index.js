@@ -4,7 +4,7 @@ import toast from 'react-hot-toast';
 import { IconCopy, IconCheck } from '@tabler/icons';
 import classnames from 'classnames';
 import ActionIcon from 'ui/ActionIcon/index';
-import { formatResponse } from 'utils/common';
+import { formatResponse } from 'utils/common/format-response';
 
 // Helper function to get text to copy
 const getTextToCopy = (selectedTab, selectedFormat, data, dataBuffer) => {

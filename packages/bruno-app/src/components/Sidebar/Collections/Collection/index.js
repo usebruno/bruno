@@ -31,24 +31,25 @@ import { useDispatch, useSelector } from 'react-redux';
 import { addTab, makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
 import { setFocusedSidebarPath } from 'providers/ReduxStore/slices/app';
 import toast from 'react-hot-toast';
-import NewRequest from 'components/Sidebar/NewRequest';
-import NewFolder from 'components/Sidebar/NewFolder';
-import NewApp from 'components/Sidebar/NewApp';
 import CollectionItem from './CollectionItem';
-import RemoveCollection from './RemoveCollection';
-import MoveToWorkspace from './MoveToWorkspace';
+import StyledWrapper from './StyledWrapper';
 import { isPathExternalToBasePath } from 'utils/common/path';
 import { doesCollectionHaveItemsMatchingSearchText } from 'utils/collections/search';
 import { isItemAFolder, isItemARequest, areItemsLoading } from 'utils/collections';
 import { isTabForItemActive } from 'src/selectors/tab';
-
-import RenameCollection from './RenameCollection';
-import StyledWrapper from './StyledWrapper';
-import CloneCollection from './CloneCollection';
 import { scrollToTheActiveTab } from 'utils/tabs';
-import ShareCollection from 'components/ShareCollection/index';
-import GenerateDocumentation from './GenerateDocumentation';
 import { CollectionItemDragPreview } from './CollectionItem/CollectionItemDragPreview/index';
+
+// Only rendered on user interaction (right-click menus / actions)
+const NewRequest = React.lazy(() => import('components/Sidebar/NewRequest'));
+const NewFolder = React.lazy(() => import('components/Sidebar/NewFolder'));
+const NewApp = React.lazy(() => import('components/Sidebar/NewApp'));
+const RemoveCollection = React.lazy(() => import('./RemoveCollection'));
+const MoveToWorkspace = React.lazy(() => import('./MoveToWorkspace'));
+const RenameCollection = React.lazy(() => import('./RenameCollection'));
+const CloneCollection = React.lazy(() => import('./CloneCollection'));
+const ShareCollection = React.lazy(() => import('components/ShareCollection/index'));
+const GenerateDocumentation = React.lazy(() => import('./GenerateDocumentation'));
 import { sortByNameThenSequence } from 'utils/common/index';
 import { getRevealInFolderLabel } from 'utils/common/platform';
 import { openDevtoolsAndSwitchToTerminal } from 'utils/terminal';
@@ -491,27 +492,29 @@ const Collection = ({ collection, searchText }) => {
 
   return (
     <StyledWrapper className="flex flex-col" id={`collection-${collection.name.replace(/\s+/g, '-').toLowerCase()}`}>
-      {showNewRequestModal && <NewRequest collectionUid={collection.uid} onClose={() => setShowNewRequestModal(false)} />}
-      {showNewFolderModal && <NewFolder collectionUid={collection.uid} onClose={() => setShowNewFolderModal(false)} />}
-      {showNewAppModal && <NewApp collectionUid={collection.uid} onClose={() => setShowNewAppModal(false)} />}
-      {showRenameCollectionModal && (
-        <RenameCollection collectionUid={collection.uid} onClose={() => setShowRenameCollectionModal(false)} />
-      )}
-      {showRemoveCollectionModal && (
-        <RemoveCollection collectionUid={collection.uid} onClose={() => setShowRemoveCollectionModal(false)} />
-      )}
-      {showMoveToWorkspaceModal && (
-        <MoveToWorkspace collectionUid={collection.uid} onClose={() => setShowMoveToWorkspaceModal(false)} />
-      )}
-      {showShareCollectionModal && (
-        <ShareCollection collectionUid={collection.uid} onClose={() => setShowShareCollectionModal(false)} />
-      )}
-      {showGenerateDocumentationModal && (
-        <GenerateDocumentation collectionUid={collection.uid} onClose={() => setShowGenerateDocumentationModal(false)} />
-      )}
-      {showCloneCollectionModalOpen && (
-        <CloneCollection collectionUid={collection.uid} onClose={() => setShowCloneCollectionModalOpen(false)} />
-      )}
+      <React.Suspense fallback={null}>
+        {showNewRequestModal && <NewRequest collectionUid={collection.uid} onClose={() => setShowNewRequestModal(false)} />}
+        {showNewFolderModal && <NewFolder collectionUid={collection.uid} onClose={() => setShowNewFolderModal(false)} />}
+        {showNewAppModal && <NewApp collectionUid={collection.uid} onClose={() => setShowNewAppModal(false)} />}
+        {showRenameCollectionModal && (
+          <RenameCollection collectionUid={collection.uid} onClose={() => setShowRenameCollectionModal(false)} />
+        )}
+        {showRemoveCollectionModal && (
+          <RemoveCollection collectionUid={collection.uid} onClose={() => setShowRemoveCollectionModal(false)} />
+        )}
+        {showMoveToWorkspaceModal && (
+          <MoveToWorkspace collectionUid={collection.uid} onClose={() => setShowMoveToWorkspaceModal(false)} />
+        )}
+        {showShareCollectionModal && (
+          <ShareCollection collectionUid={collection.uid} onClose={() => setShowShareCollectionModal(false)} />
+        )}
+        {showGenerateDocumentationModal && (
+          <GenerateDocumentation collectionUid={collection.uid} onClose={() => setShowGenerateDocumentationModal(false)} />
+        )}
+        {showCloneCollectionModalOpen && (
+          <CloneCollection collectionUid={collection.uid} onClose={() => setShowCloneCollectionModalOpen(false)} />
+        )}
+      </React.Suspense>
       <CollectionItemDragPreview />
       <div
         className={collectionRowClassName}

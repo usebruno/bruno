@@ -4,12 +4,8 @@ import { get } from 'lodash';
 import { useDispatch, useSelector } from 'react-redux';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { usePersistedState } from 'hooks/usePersistedState';
-import { Document, Page } from 'react-pdf';
-import 'pdfjs-dist/build/pdf.worker';
-import 'react-pdf/dist/esm/Page/AnnotationLayer.css';
-import 'react-pdf/dist/esm/Page/TextLayer.css';
-import { GlobalWorkerOptions } from 'pdfjs-dist/build/pdf';
-GlobalWorkerOptions.workerSrc = 'pdfjs-dist/legacy/build/pdf.worker.min.mjs';
+// PdfPreview is lazy-loaded so pdfjs-dist (582 KiB) stays out of the main bundle
+const PdfPreview = React.lazy(() => import('./PdfPreview'));
 import XmlPreview from './XmlPreview/index';
 import TextPreview from './TextPreview';
 import HtmlPreview from './HtmlPreview';
@@ -34,11 +30,6 @@ const QueryResultPreview = ({
   const dispatch = useDispatch();
   const editorRef = useRef(null);
   const [responseScroll, setResponseScroll] = usePersistedState({ key: `response-body-scroll-${item.uid}`, default: 0 });
-
-  const [numPages, setNumPages] = useState(null);
-  function onDocumentLoadSuccess({ numPages }) {
-    setNumPages(numPages);
-  }
 
   const onRun = () => {
     if (disableRunEventListener) {
@@ -80,13 +71,9 @@ const QueryResultPreview = ({
     }
     case 'preview-pdf': {
       return (
-        <div className="preview-pdf" style={{ height: '100%', overflow: 'auto', maxHeight: 'calc(100vh - 220px)' }}>
-          <Document file={`data:application/pdf;base64,${dataBuffer}`} onLoadSuccess={onDocumentLoadSuccess}>
-            {Array.from(new Array(numPages), (el, index) => (
-              <Page key={`page_${index + 1}`} pageNumber={index + 1} renderAnnotationLayer={false} />
-            ))}
-          </Document>
-        </div>
+        <React.Suspense fallback={<div className="p-4">Loading PDF viewer…</div>}>
+          <PdfPreview dataBuffer={dataBuffer} />
+        </React.Suspense>
       );
     }
     case 'preview-audio': {
