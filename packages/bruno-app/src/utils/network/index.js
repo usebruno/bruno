@@ -54,6 +54,17 @@ const sendHttpRequest = async (item, collection, environment, runtimeVariables) 
   });
 };
 
+export const dryRunHttpRequest = async (item, collection, environment, runtimeVariables) => {
+  return new Promise((resolve, reject) => {
+    const { ipcRenderer } = window;
+
+    ipcRenderer
+      .invoke('dry-run-http-request', item, collection, environment, runtimeVariables)
+      .then(resolve)
+      .catch(reject);
+  });
+};
+
 export const sendCollectionOauth2Request = async (collection, environment, runtimeVariables) => {
   return new Promise((resolve, reject) => {
     const { ipcRenderer } = window;
