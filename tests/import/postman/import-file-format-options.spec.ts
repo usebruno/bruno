@@ -55,5 +55,10 @@ test.describe('Import Collection File Format Options toggle', () => {
 
       await expect(locationModal.locator('#format')).toHaveCount(0);
     });
+
+    await test.step('Dismiss the location modal so it does not leak into the next test', async () => {
+      await page.keyboard.press('Escape');
+      await expect(locationModal).toBeHidden();
+    });
   });
 });
