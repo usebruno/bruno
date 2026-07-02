@@ -2,6 +2,8 @@ node_modules
 web
 out
 
+output.html
+
 pnpm-lock.yaml
 package-lock.json
 yarn.lock
