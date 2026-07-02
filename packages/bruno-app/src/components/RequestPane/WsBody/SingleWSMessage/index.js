@@ -169,8 +169,8 @@ export const SingleWSMessage = ({
   return (
     <StyledWrapper
       className={!isSelected ? 'disabled' : ''}
-      onMouseDownCapture={() => {
-        if (!isSelected) setTimeout(onSelect, 0);
+      onMouseUpCapture={() => {
+        if (!isSelected) onSelect();
       }}
     >
       <div
