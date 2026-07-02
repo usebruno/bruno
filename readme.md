@@ -1,9 +1,11 @@
 Bienvenue sur Curly CATS, l'adaptation de Bruno pour CATS.
 
-Après avoir cloné le repo , faites 'npm install' pour build le projet.
+Après avoir cloné le repo , faites `npm install` pour build le projet.
 
-Une fois les packages téléchargés, on peut lancer "npm run build:packages".
+Une fois les packages téléchargés, on peut lancer `npm run build:packages`.
 
-Vous pouvez ensuite faire 'npm run dev' pour démarrer Curly CATS.
+Il faut ensuite packager les librairies sandbox `npm run sandbox:bundle-libraries --workspace=packages/bruno-js`
 
-Pour faire fonctionner l'assistant AI, lancez fiddler et paramétrez le proxy HTTP de Curly CATS sur 127.0.0.1 et le port 8888.
+Vous pouvez finalement faire `npm run dev` pour démarrer Curly CATS.
+
+Pour faire fonctionner l'assistant AI, il faut modifier le paramètre pour indiquer le fichier proxy pac `https://pacfile-p1-c800.ca-ts.gca/cats.pac`
