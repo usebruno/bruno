@@ -6,6 +6,10 @@ const { isDirectory, getCollectionStats, normalizeAndResolvePath } = require('..
 const { generateUidBasedOnHash } = require('../utils/common');
 const { transformBrunoConfigAfterRead } = require('../utils/transformBrunoConfig');
 const { parseCollection } = require('@usebruno/filestore');
+const { decryptStringSafe } = require('../utils/encryption');
+const EnvironmentSecretsStore = require('../store/env-secrets');
+
+const environmentSecretsStore = new EnvironmentSecretsStore();
 
 // Track scratch collection paths (temp directories for workspace scratch requests)
 const scratchCollectionPaths = new Set();
@@ -124,6 +128,19 @@ const openCollection = async (win, watcher, collectionPath, options = {}) => {
       let brunoConfig = await getCollectionConfigFile(collectionPath);
       const uid = generateUidBasedOnHash(collectionPath);
       brunoConfig = await transformBrunoConfigAfterRead(brunoConfig, collectionPath);
+
+      // Hydrate cert passphrases from the secrets store (they are not written to disk)
+      const certPassphrases = environmentSecretsStore.getCertPassphrases(collectionPath);
+      if (certPassphrases.length && brunoConfig?.clientCertificates?.certs) {
+        brunoConfig.clientCertificates.certs = brunoConfig.clientCertificates.certs.map((cert) => {
+          const stored = certPassphrases.find((cp) => cp.domain === cert.domain && cp.type === cert.type);
+          if (stored && stored.passphrase) {
+            return { ...cert, passphrase: decryptStringSafe(stored.passphrase).value };
+          }
+          return cert;
+        });
+      }
+
       const { size, filesCount } = await getCollectionStats(collectionPath);
       brunoConfig.size = size;
       brunoConfig.filesCount = filesCount;
@@ -158,6 +175,18 @@ const openCollection = async (win, watcher, collectionPath, options = {}) => {
     brunoConfig.ignore = [...new Set([...defaultIgnores, ...userIgnores])];
 
     brunoConfig = await transformBrunoConfigAfterRead(brunoConfig, collectionPath);
+
+    // Hydrate cert passphrases from the secrets store (they are not written to disk)
+    const certPassphrases = environmentSecretsStore.getCertPassphrases(collectionPath);
+    if (certPassphrases.length && brunoConfig?.clientCertificates?.certs) {
+      brunoConfig.clientCertificates.certs = brunoConfig.clientCertificates.certs.map((cert) => {
+        const stored = certPassphrases.find((cp) => cp.domain === cert.domain && cp.type === cert.type);
+        if (stored && stored.passphrase) {
+          return { ...cert, passphrase: decryptStringSafe(stored.passphrase).value };
+        }
+        return cert;
+      });
+    }
 
     const { size, filesCount } = await getCollectionStats(collectionPath);
     brunoConfig.size = size;
