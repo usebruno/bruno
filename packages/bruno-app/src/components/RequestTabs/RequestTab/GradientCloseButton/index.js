@@ -3,18 +3,20 @@ import CloseTabIcon from '../CloseTabIcon';
 import DraftTabIcon from '../DraftTabIcon';
 import StyledWrapper from './StyledWrapper';
 
-const GradientCloseButton = ({ onClick, hasChanges = false, closeable = true }) => {
+const GradientCloseButton = ({ onClick, hasChanges = false }) => {
+  const canClose = typeof onClick === 'function';
+
   return (
-    <StyledWrapper className={`close-gradient ${hasChanges ? 'has-changes' : ''} ${closeable ? '' : 'no-close'}`}>
+    <StyledWrapper className={`close-gradient ${hasChanges ? 'has-changes' : ''} ${canClose ? '' : 'no-close'}`}>
       <div
         className="close-icon-container"
-        onClick={closeable ? onClick : undefined}
-        data-testid={closeable ? 'request-tab-close-icon' : 'request-tab-draft-icon'}
+        onClick={canClose ? onClick : undefined}
+        data-testid={canClose ? 'request-tab-close-icon' : 'request-tab-draft-icon'}
       >
         <span className="draft-icon-wrapper" data-testid="tab-draft-icon">
           <DraftTabIcon />
         </span>
-        {closeable && (
+        {canClose && (
           <span className="close-icon-wrapper">
             <CloseTabIcon />
           </span>

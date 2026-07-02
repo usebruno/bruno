@@ -121,9 +121,8 @@ const SpecialTab = ({ handleCloseClick, type, tabName, handleDoubleClick, hasDra
       >
         {getTabInfo(type, tabName)}
       </div>
-      {handleCloseClick
-        ? <GradientCloseButton hasChanges={hasDraft} onClick={(e) => handleCloseClick(e)} />
-        : hasDraft && <GradientCloseButton hasChanges={hasDraft} closeable={false} />}
+
+      <GradientCloseButton hasChanges={hasDraft} onClick={handleCloseClick} />
     </>
   );
 };

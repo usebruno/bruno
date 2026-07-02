@@ -34,7 +34,7 @@ const StyledWrapper = styled.div.attrs((props) => ({
     );
   }
 
-  li:hover &,
+  li:hover &:not(.no-close),
   &.has-changes {
     opacity: 1;
     pointer-events: auto;
@@ -56,6 +56,12 @@ const StyledWrapper = styled.div.attrs((props) => ({
       .close-icon {
         color: ${(props) => props.theme.requestTabs.icon.hoverColor};
       }
+    }
+  }
+
+  &.no-close .close-icon-container {
+    &:hover {
+      background-color: transparent;
     }
   }
 
@@ -82,17 +88,18 @@ const StyledWrapper = styled.div.attrs((props) => ({
   }
 
   &.has-changes:not(li:hover &) {
-    .draft-icon-wrapper { 
+    .draft-icon-wrapper {
       display: flex;
       align-items: center;
       justify-content: center;
     }
-    .close-icon-wrapper { 
-      display: none; 
+    .close-icon-wrapper {
+      display: none;
     }
   }
 
-  li:hover &.has-changes {
+  /* Closable tabs: hovering shows the close icon, replacing the draft icon */
+  li:hover &:not(.no-close) {
     .draft-icon-wrapper {
       display: none;
     }
@@ -101,12 +108,15 @@ const StyledWrapper = styled.div.attrs((props) => ({
     }
   }
 
-  &.no-close,
-  li:hover &.no-close {
-    pointer-events: none;
-
+  /* Non-closable tabs with changes: keep the draft icon visible even on hover */
+  &.no-close.has-changes {
     .draft-icon-wrapper {
       display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .close-icon-wrapper {
+      display: none;
     }
   }
 `;
