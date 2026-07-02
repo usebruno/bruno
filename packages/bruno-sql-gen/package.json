@@ -1,0 +1,32 @@
+{
+  "name": "@usebruno/sql-gen",
+  "version": "0.1.0",
+  "private": true,
+  "license": "MIT",
+  "description": "Dev-time SQL codegen tool: reads a package's schema + statements and emits a typed node/web data layer (migrations, statements, IPC, hooks).",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./generate": "./dist/gen/generate.js"
+  },
+  "files": [
+    "dist",
+    "internal/templates"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "prepare": "npm run build"
+  },
+  "dependencies": {
+    "drizzle-orm": "0.45.2",
+    "tsx": "4.22.4"
+  },
+  "devDependencies": {
+    "@types/node": "22.15.17",
+    "typescript": "5.8.3"
+  }
+}
