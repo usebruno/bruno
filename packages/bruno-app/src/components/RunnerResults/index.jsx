@@ -394,7 +394,7 @@ export default function RunnerResults({ collection }) {
                 <div key={item.uid}>
                   <div className="item-path mt-2" data-testid="runner-result-item">
                     <div className="flex items-center">
-                      <span>
+                      <span className="flex-shrink-0">
                         {allTestsPassed(item)
                           ? <IconCircleCheck className="test-success" size={20} strokeWidth={1.5} />
                           : null}
@@ -405,21 +405,19 @@ export default function RunnerResults({ collection }) {
                           ? <IconCircleX className="test-failure" size={20} strokeWidth={1.5} />
                           : null}
                       </span>
-                      <span
-                        className={`mr-1 ml-2 ${item.status == 'skipped' ? 'skipped-request' : anyTestFailed(item) ? 'danger' : ''}`}
-                      >
+                      <span className={`flex-1 min-w-0 truncate mr-1 ml-2 ${item.status == 'skipped' ? 'skipped-request' : anyTestFailed(item) ? 'danger' : ''}`}>
                         {item.displayName}
                       </span>
                       {item.status !== 'error' && item.status !== 'skipped' && item.status !== 'completed' ? (
-                        <IconRefresh className="animate-spin ml-1" size={18} strokeWidth={1.5} />
+                        <IconRefresh className="animate-spin ml-1 flex-shrink-0" size={18} strokeWidth={1.5} />
                       ) : item.responseReceived?.status ? (
-                        <span className="text-xs link cursor-pointer" onClick={() => setSelectedItem(item)}>
+                        <span className="text-xs link cursor-pointer flex-shrink-0" onClick={() => setSelectedItem(item)}>
                           <span className="mr-1">{item.responseReceived?.status}</span>
                           -&nbsp;
                           <span>{item.responseReceived?.statusText}</span>
                         </span>
                       ) : (
-                        <span className="danger text-xs cursor-pointer" onClick={() => setSelectedItem(item)}>
+                        <span className="danger text-xs cursor-pointer flex-shrink-0" onClick={() => setSelectedItem(item)}>
                           (request failed)
                         </span>
                       )}
