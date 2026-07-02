@@ -287,6 +287,24 @@ export const collectionsSlice = createSlice({
         collection.securityConfig = action.payload.securityConfig;
       }
     },
+    updateCollectionVersion: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+      if (collection) {
+        const version = action.payload.version;
+        const applyVersion = (target) => {
+          if (!target) return;
+          if (version) {
+            target.version = version;
+          } else {
+            delete target.version;
+          }
+        };
+        collection.brunoConfig = collection.brunoConfig || {};
+        applyVersion(collection.brunoConfig);
+        // Keep any unsaved brunoConfig draft in sync so a later settings-save can't wipe it.
+        applyVersion(collection.draft?.brunoConfig);
+      }
+    },
     brunoConfigUpdateEvent: (state, action) => {
       const { collectionUid, brunoConfig } = action.payload;
       const collection = findCollectionByUid(state.collections, collectionUid);
@@ -3046,7 +3064,7 @@ export const collectionsSlice = createSlice({
               // Persist the selection to the UI state snapshot
               const { ipcRenderer } = window;
               if (ipcRenderer) {
-                const extension = collection?.brunoConfig?.version === '1' ? 'bru' : 'yml';
+                const extension = collection?.brunoConfig?.opencollection ? 'yml' : 'bru';
                 const environmentPath = environment?.pathname
                   || (environment?.name && collection?.pathname
                     ? path.join(collection.pathname, 'environments', `${environment.name}.${extension}`)
@@ -3889,6 +3907,7 @@ export const {
   updateCollectionLoadingState,
   collectionLoadedFromTree,
   setCollectionSecurityConfig,
+  updateCollectionVersion,
   brunoConfigUpdateEvent,
   renameCollection,
   removeCollection,
