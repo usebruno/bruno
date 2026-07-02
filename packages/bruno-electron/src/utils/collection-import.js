@@ -87,14 +87,10 @@ async function importCollection(collection, collectionLocation, mainWindow, uniq
 
     if (!brunoConfig) {
       brunoConfig = {
-        version: '1',
-        collectionVersion: '1',
         name: collection.name,
         type: 'collection',
         ignore: ['node_modules', '.git']
       };
-    } else if (!brunoConfig.collectionVersion) {
-      brunoConfig.collectionVersion = '1';
     }
 
     if (brunoConfig.proxy) {
@@ -110,14 +106,17 @@ async function importCollection(collection, collectionLocation, mainWindow, uniq
   let brunoConfig = getBrunoJsonConfig(collection);
 
   if (format === 'yml') {
-    if (brunoConfig.collectionVersion) {
-      brunoConfig.version = brunoConfig.collectionVersion;
-    }
-    delete brunoConfig.collectionVersion;
+    brunoConfig.opencollection = '1.0.0';
     const collectionContent = await stringifyCollection(collection.root, brunoConfig, { format });
     await writeFile(path.join(collectionPath, 'opencollection.yml'), collectionContent);
   } else if (format === 'bru') {
-    const stringifiedBrunoConfig = await stringifyJson(brunoConfig);
+    const bruJsonConfig = { ...brunoConfig, version: '1' };
+    if (brunoConfig.version) {
+      bruJsonConfig.collectionVersion = brunoConfig.version;
+    } else {
+      delete bruJsonConfig.collectionVersion;
+    }
+    const stringifiedBrunoConfig = await stringifyJson(bruJsonConfig);
     await writeFile(path.join(collectionPath, 'bruno.json'), stringifiedBrunoConfig);
 
     const collectionContent = await stringifyCollection(collection.root, brunoConfig, { format });

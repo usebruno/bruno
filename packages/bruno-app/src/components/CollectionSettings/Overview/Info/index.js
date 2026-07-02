@@ -59,7 +59,7 @@ const Info = ({ collection }) => {
                 {collectionVersion
                   ? <span className="text-muted" data-testid="info-version-value">{collectionVersion}</span>
                   : <span className="text-muted italic" data-testid="info-version-value">Not Set</span>}
-                <span className="group-hover:underline text-link" data-testid="info-version-change">Change</span>
+                <span className="group-hover:underline text-link" data-testid="info-version-change">change</span>
               </div>
             </div>
           </div>

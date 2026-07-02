@@ -291,13 +291,12 @@ export const collectionsSlice = createSlice({
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
       if (collection) {
         const version = action.payload.version;
-        const versionKey = collection.brunoConfig?.opencollection ? 'version' : 'collectionVersion';
         const applyVersion = (target) => {
           if (!target) return;
           if (version) {
-            target[versionKey] = version;
+            target.version = version;
           } else {
-            delete target[versionKey];
+            delete target.version;
           }
         };
         collection.brunoConfig = collection.brunoConfig || {};

@@ -109,11 +109,11 @@ describe('ChangeCollectionVersion', () => {
     expect(preview).not.toHaveTextContent('info.version');
   });
 
-  it('shows "1" for a yml collection that has no version yet', () => {
+  it('shows "Not Set" for a yml collection that has no version yet', () => {
     renderModal(buildCollection({ brunoConfig: { opencollection: '1.0.0', name: 'Bruno-Testbench' } }));
 
-    expect(screen.getByTestId('change-version-current')).toHaveTextContent('1');
-    expect(screen.getByTestId('change-version-input')).toHaveValue('1');
+    expect(screen.getByTestId('change-version-current')).toHaveTextContent('Not Set');
+    expect(screen.getByTestId('change-version-input')).toHaveValue('');
   });
 
   it('shows a "Collection not found" message when the collection is missing', () => {

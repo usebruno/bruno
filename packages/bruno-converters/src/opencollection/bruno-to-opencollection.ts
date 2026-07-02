@@ -88,8 +88,7 @@ const hasRequestDefaults = (root: BrunoCollectionRoot | undefined): boolean => {
 export const brunoToOpenCollection = (collection: BrunoCollection): OpenCollection => {
   const brunoConfig = collection.brunoConfig as BrunoConfig | undefined;
 
-  const isOpenCollectionFormat = Boolean(brunoConfig?.opencollection);
-  const collectionVersion = isOpenCollectionFormat ? brunoConfig?.version : brunoConfig?.collectionVersion;
+  const collectionVersion = brunoConfig?.version;
   const hasCollectionVersion = collectionVersion != null && collectionVersion !== '';
 
   const openCollection: OpenCollection = {

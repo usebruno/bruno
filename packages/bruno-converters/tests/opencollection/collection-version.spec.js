@@ -5,27 +5,27 @@ import { openCollectionToBruno } from '../../src/opencollection/opencollection-t
 describe('openCollectionToBruno (import): keeps the collection version', () => {
   it('keeps the version as-is when importing', () => {
     const { brunoConfig } = openCollectionToBruno({ opencollection: '1.0.0', info: { name: 'API', version: 'v2.3.4' } });
-    expect(brunoConfig.collectionVersion).toBe('v2.3.4');
+    expect(brunoConfig.version).toBe('v2.3.4');
   });
 
   it('turns a number version into text (2 becomes "2")', () => {
     const { brunoConfig } = openCollectionToBruno({ opencollection: '1.0.0', info: { name: 'API', version: 2 } });
-    expect(brunoConfig.collectionVersion).toBe('2');
+    expect(brunoConfig.version).toBe('2');
   });
 
   it('has no version when the imported file has none', () => {
     const { brunoConfig } = openCollectionToBruno({ opencollection: '1.0.0', info: { name: 'API' } });
-    expect(brunoConfig.collectionVersion).toBeUndefined();
+    expect(brunoConfig.version).toBeUndefined();
   });
 });
 
 describe('brunoToOpenCollection (export): writes the collection version', () => {
-  it('uses the bru version (collectionVersion) for a bru collection', () => {
-    const oc = brunoToOpenCollection({ name: 'API', brunoConfig: { version: '1', collectionVersion: 'v2.3.4' }, items: [] });
+  it('uses the agnostic version for a bru collection', () => {
+    const oc = brunoToOpenCollection({ name: 'API', brunoConfig: { version: 'v2.3.4' }, items: [] });
     expect(oc.info.version).toBe('v2.3.4');
   });
 
-  it('uses the yml version (info.version) for a yml collection', () => {
+  it('uses the agnostic version for a yml collection', () => {
     const oc = brunoToOpenCollection({ name: 'API', brunoConfig: { opencollection: '1.0.0', version: 'v9.9' }, items: [] });
     expect(oc.info.version).toBe('v9.9');
   });
@@ -38,8 +38,8 @@ describe('brunoToOpenCollection (export): writes the collection version', () => 
 
 describe('collection version: export then import keeps it the same', () => {
   it('keeps the same version after exporting and importing again', () => {
-    const oc = brunoToOpenCollection({ name: 'API', brunoConfig: { collectionVersion: '1.2.3-beta' }, items: [] });
+    const oc = brunoToOpenCollection({ name: 'API', brunoConfig: { version: '1.2.3-beta' }, items: [] });
     const { brunoConfig } = openCollectionToBruno(oc);
-    expect(brunoConfig.collectionVersion).toBe('1.2.3-beta');
+    expect(brunoConfig.version).toBe('1.2.3-beta');
   });
 });

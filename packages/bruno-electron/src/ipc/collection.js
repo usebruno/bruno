@@ -76,7 +76,7 @@ const { getProcessEnvVars } = require('../store/process-env');
 const { getOAuth2TokenUsingAuthorizationCode, getOAuth2TokenUsingClientCredentials, getOAuth2TokenUsingPasswordCredentials, getOAuth2TokenUsingImplicitGrant, refreshOauth2Token } = require('../utils/oauth2');
 const { getCertsAndProxyConfig } = require('./network/cert-utils');
 const collectionWatcher = require('../app/collection-watcher');
-const { transformBrunoConfigBeforeSave } = require('../utils/transformBrunoConfig');
+const { transformBrunoConfigBeforeSave, transformBrunoConfigAfterRead } = require('../utils/transformBrunoConfig');
 const { REQUEST_TYPES } = require('../utils/constants');
 const { cancelOAuth2AuthorizationRequest, isOauth2AuthorizationRequestInProgress } = require('../utils/oauth2-protocol-handler');
 const { findUniqueFolderName } = require('../utils/collection-import');
@@ -203,7 +203,6 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
         const uid = generateUidBasedOnHash(dirPath);
         let brunoConfig = {
           version: '1',
-          collectionVersion: '1',
           name: collectionName,
           type: 'collection',
           ignore: ['node_modules', '.git']
@@ -217,7 +216,6 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
           };
           brunoConfig = {
             opencollection: '1.0.0',
-            version: '1',
             name: collectionName,
             type: 'collection',
             ignore: ['node_modules', '.git']
@@ -233,12 +231,15 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
 
         await writeFile(path.join(dirPath, '.gitignore'), DEFAULT_GITIGNORE);
 
-        const { size, filesCount } = await getCollectionStats(dirPath);
-        brunoConfig.size = size;
-        brunoConfig.filesCount = filesCount;
+        let persistedConfig = await getCollectionConfigFile(dirPath);
+        persistedConfig = await transformBrunoConfigAfterRead(persistedConfig, dirPath);
 
-        mainWindow.webContents.send('main:collection-opened', dirPath, uid, brunoConfig);
-        ipcMain.emit('main:collection-opened', mainWindow, dirPath, uid, brunoConfig);
+        const { size, filesCount } = await getCollectionStats(dirPath);
+        persistedConfig.size = size;
+        persistedConfig.filesCount = filesCount;
+
+        mainWindow.webContents.send('main:collection-opened', dirPath, uid, persistedConfig);
+        ipcMain.emit('main:collection-opened', mainWindow, dirPath, uid, persistedConfig);
       } catch (error) {
         return Promise.reject(error);
       }
@@ -1386,16 +1387,10 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
 
           if (!brunoConfig) {
             brunoConfig = {
-              version: '1',
-              collectionVersion: '1',
               name: collection.name,
               type: 'collection',
               ignore: ['node_modules', '.git']
             };
-          } else if (!brunoConfig.collectionVersion) {
-            // Imports create new collection files; default the user-facing version when the
-            // source didn't carry one (a present version, e.g. OpenCollection info.version, is kept).
-            brunoConfig.collectionVersion = '1';
           }
           if (brunoConfig.proxy) {
             brunoConfig.proxy = transformProxyConfig(brunoConfig.proxy);
@@ -1419,16 +1414,16 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
 
         if (format === 'yml') {
           brunoConfig.opencollection = '1.0.0';
-          // For yml the user-facing version is info.version (brunoConfig.version); map the
-          // neutral collectionVersion onto it and keep collectionVersion out of the yaml.
-          if (brunoConfig.collectionVersion) {
-            brunoConfig.version = brunoConfig.collectionVersion;
-          }
-          delete brunoConfig.collectionVersion;
           const collectionContent = await stringifyCollection(coll.root, brunoConfig, { format });
           await writeFile(path.join(collectionPath, 'opencollection.yml'), collectionContent);
         } else if (format === 'bru') {
-          const stringifiedBrunoConfig = await stringifyJson(brunoConfig);
+          const bruJsonConfig = { ...brunoConfig, version: '1' };
+          if (brunoConfig.version) {
+            bruJsonConfig.collectionVersion = brunoConfig.version;
+          } else {
+            delete bruJsonConfig.collectionVersion;
+          }
+          const stringifiedBrunoConfig = await stringifyJson(bruJsonConfig);
           await writeFile(path.join(collectionPath, 'bruno.json'), stringifiedBrunoConfig);
 
           const collectionContent = await stringifyCollection(coll.root, brunoConfig, { format });
@@ -2615,7 +2610,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
         }
 
         let collectionName = 'Imported Collection';
-        let brunoConfig = { name: collectionName, version: '1', collectionVersion: '1', type: 'collection', ignore: ['node_modules', '.git'] };
+        let brunoConfig = { name: collectionName, version: '1', type: 'collection', ignore: ['node_modules', '.git'] };
         if (fs.existsSync(openCollectionYmlPath)) {
           try {
             const content = fs.readFileSync(openCollectionYmlPath, 'utf8');
@@ -2651,6 +2646,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
         }
 
         const uid = generateUidBasedOnHash(finalCollectionPath);
+        brunoConfig = await transformBrunoConfigAfterRead(brunoConfig, finalCollectionPath);
         const { size, filesCount } = await getCollectionStats(finalCollectionPath);
         brunoConfig.size = size;
         brunoConfig.filesCount = filesCount;

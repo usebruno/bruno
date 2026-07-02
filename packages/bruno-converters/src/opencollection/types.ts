@@ -175,8 +175,6 @@ export interface BrunoPresets {
 
 export interface BrunoConfig {
   version?: string;
-  // bru only: the user-facing collection version (bruno.json key, sibling of the marker).
-  collectionVersion?: string;
   // present only for OpenCollection (yml) collections; its presence marks the format.
   opencollection?: string;
   name?: string;

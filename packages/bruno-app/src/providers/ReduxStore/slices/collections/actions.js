@@ -325,13 +325,11 @@ export const saveCollectionVersion = (collectionUid, version) => (dispatch, getS
 
     const updatedVersion = typeof version === 'string' ? version.trim() : '';
 
-    const isYml = Boolean(collection.brunoConfig?.opencollection);
-    const versionKey = isYml ? 'version' : 'collectionVersion';
     const brunoConfigToSave = { ...(collection.brunoConfig || {}) };
     if (updatedVersion) {
-      brunoConfigToSave[versionKey] = updatedVersion;
+      brunoConfigToSave.version = updatedVersion;
     } else {
-      delete brunoConfigToSave[versionKey];
+      delete brunoConfigToSave.version;
     }
 
     const { ipcRenderer } = window;
