@@ -76,6 +76,7 @@
     "build:schema-types": "npm run build --workspace=packages/bruno-schema-types",
     "build:bruno-sql-gen": "npm run build --workspace=packages/bruno-sql-gen",
     "build:bruno-sqlite": "npm run build --workspace=packages/bruno-sqlite",
+    "generate:sqlite": "npm run migration:generate --workspace=packages/bruno-sqlite",
     "build:electron": "node ./scripts/build-electron.js",
     "build:electron:mac": "./scripts/build-electron.sh mac",
     "build:electron:win": "./scripts/build-electron.sh win",

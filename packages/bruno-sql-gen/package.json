@@ -6,15 +6,20 @@
   "description": "Dev-time SQL codegen tool: reads a package's schema + statements and emits a typed node/web data layer (migrations, statements, IPC, hooks).",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
-  "bin": {
-    "bruno-sql-gen": "dist/gen/generate.js"
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./generate": "./dist/gen/generate.js"
   },
   "files": [
     "dist",
     "internal/templates"
   ],
   "scripts": {
-    "build": "tsc -p tsconfig.build.json"
+    "build": "tsc -p tsconfig.build.json",
+    "prepare": "npm run build"
   },
   "dependencies": {
     "drizzle-orm": "0.45.2",

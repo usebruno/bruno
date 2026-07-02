@@ -18,7 +18,7 @@
   },
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
-    "migration:generate": "drizzle-kit generate && bruno-sql-gen && npm run build"
+    "migration:generate": "drizzle-kit generate && node -e \"require('@usebruno/sql-gen/generate')\" && npm run build"
   },
   "dependencies": {
     "zod": "4.1.8"

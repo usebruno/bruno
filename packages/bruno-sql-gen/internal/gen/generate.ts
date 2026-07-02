@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 import "tsx/cjs";
 import fs from "node:fs";
 import path from "node:path";
