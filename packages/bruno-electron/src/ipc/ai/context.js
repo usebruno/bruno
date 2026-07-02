@@ -37,6 +37,45 @@ const isSensitiveName = (name) => {
 
 const maskValue = (name, value) => (isSensitiveName(name) ? REDACTED_VALUE : value);
 
+const normalizeList = (list) =>
+  Array.isArray(list)
+    ? list.map((s) => String(s || '').trim().toLowerCase()).filter(Boolean)
+    : [];
+
+const buildRedactionPolicy = (security) => {
+  const redactHeaders = security?.redactHeaders !== false;
+  const redactBody = security?.redactBody !== false;
+  const redactVariables = security?.redactVariables !== false;
+  const redactResponse = security?.redactResponse !== false;
+  const customHeaderSet = new Set(normalizeList(security?.customRedactedHeaders));
+  const customVarSet = new Set(normalizeList(security?.customRedactedVariables));
+
+  return {
+    redactHeaders,
+    redactBody,
+    redactVariables,
+    redactResponse,
+    isSensitiveHeader: (name) => {
+      if (!name) return false;
+      if (customHeaderSet.has(String(name).toLowerCase())) return true;
+      return isSensitiveName(name);
+    },
+    // Body checks reuse the header list — custom entries are matched exactly,
+    // so a user who adds `password` here also catches JSON keys named the same.
+    isSensitiveKey: (name) => {
+      if (!name) return false;
+      if (customHeaderSet.has(String(name).toLowerCase())) return true;
+      return isSensitiveName(name);
+    },
+    // Explicit custom entries always redact — the toggle only gates
+    // pattern-based matches, since the user opted into the specific names.
+    isCustomVariable: (name) => Boolean(name) && customVarSet.has(String(name).toLowerCase()),
+    matchesVariablePattern: (name) => Boolean(name) && isSensitiveName(name)
+  };
+};
+
+const DEFAULT_POLICY = buildRedactionPolicy(null);
+
 // --- Response body shape redaction ---------------------------------------
 
 const REDACTED_TRUNCATED = '<truncated>';
@@ -76,8 +115,11 @@ const redactResponseValues = (data, depth = 0, maxDepth = 6) => {
   return REDACTED_BY_TYPE[typeof data] || '<unknown>';
 };
 
-const formatResponseShape = (status, data) => {
+const RESPONSE_RAW_BODY_MAX_CHARS = 8000;
+
+const formatResponseShape = (status, data, opts = {}) => {
   if (!status && data == null) return '';
+  const policy = buildRedactionPolicy(opts.security);
   const parts = [];
   if (status) parts.push(`**Last Response Status:** ${status}`);
 
@@ -93,12 +135,27 @@ const formatResponseShape = (status, data) => {
     }
 
     if (parsedOk) {
-      const redacted = redactResponseValues(parsed);
-      if (redacted != null) {
-        parts.push(`**Response Shape (values redacted — ${REDACTION_NOTICE}):**\n\`\`\`json\n${JSON.stringify(redacted, null, 2)}\n\`\`\``);
+      if (policy.redactResponse) {
+        const redacted = redactResponseValues(parsed);
+        if (redacted != null) {
+          parts.push(`**Response Shape (values redacted — ${REDACTION_NOTICE}):**\n\`\`\`json\n${JSON.stringify(redacted, null, 2)}\n\`\`\``);
+        }
+      } else {
+        // User opted out of response-value redaction — send the real body,
+        // capped so a huge response doesn't blow the model's context window.
+        const raw = JSON.stringify(parsed, null, 2);
+        const truncated = raw.length > RESPONSE_RAW_BODY_MAX_CHARS;
+        const shown = truncated ? `${raw.slice(0, RESPONSE_RAW_BODY_MAX_CHARS)}…` : raw;
+        parts.push(`**Response Body:**\n\`\`\`json\n${shown}\n\`\`\`${truncated ? '\n\n(truncated)' : ''}`);
       }
     } else if (typeof data === 'string' && data.trim()) {
-      parts.push(`**Response:** non-JSON, ${data.length} chars (call read_response() for the redacted view)`);
+      if (policy.redactResponse) {
+        parts.push(`**Response:** non-JSON, ${data.length} chars (call read_response() for the redacted view)`);
+      } else {
+        const truncated = data.length > RESPONSE_RAW_BODY_MAX_CHARS;
+        const shown = truncated ? `${data.slice(0, RESPONSE_RAW_BODY_MAX_CHARS)}…` : data;
+        parts.push(`**Response Body:**\n\`\`\`\n${shown}\n\`\`\`${truncated ? '\n\n(truncated)' : ''}`);
+      }
     }
   }
 
@@ -114,18 +171,17 @@ const formatResponseShape = (status, data) => {
  * type placeholders): we DO want the model to see non-sensitive request body
  * values so it can write code that references them correctly.
  */
-const redactJsonBodyValues = (data, depth = 0, maxDepth = 8) => {
+const redactJsonBodyValues = (data, policy, depth = 0, maxDepth = 8) => {
   if (data === null || data === undefined) return data;
   if (depth >= maxDepth) return REDACTED_TRUNCATED;
-  if (Array.isArray(data)) return data.map((item) => redactJsonBodyValues(item, depth + 1, maxDepth));
+  if (Array.isArray(data)) return data.map((item) => redactJsonBodyValues(item, policy, depth + 1, maxDepth));
   if (typeof data === 'object') {
     const out = {};
     for (const key of Object.keys(data)) {
-      const val = data[key];
-      if (isSensitiveName(key) && val !== null && typeof val !== 'object') {
+      if (policy.isSensitiveKey(key)) {
         out[key] = REDACTED_VALUE;
       } else {
-        out[key] = redactJsonBodyValues(val, depth + 1, maxDepth);
+        out[key] = redactJsonBodyValues(data[key], policy, depth + 1, maxDepth);
       }
     }
     return out;
@@ -133,11 +189,12 @@ const redactJsonBodyValues = (data, depth = 0, maxDepth = 8) => {
   return data;
 };
 
-const redactJsonBodyString = (raw) => {
+const redactJsonBodyString = (raw, policy = DEFAULT_POLICY) => {
   if (typeof raw !== 'string' || !raw.trim()) return raw || '';
+  if (!policy.redactBody) return raw;
   try {
     const parsed = JSON.parse(raw);
-    return JSON.stringify(redactJsonBodyValues(parsed), null, 2);
+    return JSON.stringify(redactJsonBodyValues(parsed, policy), null, 2);
   } catch {
     // Not parseable JSON — return as-is. The renderer-side patterns + variable
     // redaction are the main line of defense for arbitrary text bodies.
@@ -157,15 +214,21 @@ const redactJsonBodyString = (raw) => {
  *   bodyMaxChars     - truncate body to this many chars (default null = full)
  *   includeResponse  - inline the redacted response shape (default false)
  *   includeDocs      - include the request's docs field (default true)
+ *   security         - user-configured redaction toggles (see
+ *                      buildRedactionPolicy). Omit for strict defaults.
  */
 const formatRequestContext = (ctx, opts = {}) => {
   const {
     includeBody = true,
     bodyMaxChars = null,
     includeResponse = false,
-    includeDocs = true
+    includeDocs = true,
+    security = null
   } = opts;
   if (!ctx) return '';
+  const policy = buildRedactionPolicy(security);
+  const maskHeader = (name, value) => (policy.redactHeaders && policy.isSensitiveHeader(name) ? REDACTED_VALUE : (value ?? ''));
+  const maskFormField = (name, value) => (policy.redactBody && policy.isSensitiveKey(name) ? REDACTED_VALUE : (value ?? ''));
   const parts = [];
 
   if (ctx.url || ctx.method) {
@@ -174,17 +237,17 @@ const formatRequestContext = (ctx, opts = {}) => {
 
   const headers = (ctx.headers || []).filter((h) => h?.enabled && h?.name);
   if (headers.length) {
-    parts.push(`**Headers:**\n${headers.map((h) => `  ${h.name}: ${maskValue(h.name, h.value ?? '')}`).join('\n')}`);
+    parts.push(`**Headers:**\n${headers.map((h) => `  ${h.name}: ${maskHeader(h.name, h.value)}`).join('\n')}`);
   }
 
   const params = (ctx.params || []).filter((p) => p?.enabled && p?.name);
   const query = params.filter((p) => p.type === 'query' || !p.type);
   const pathParams = params.filter((p) => p.type === 'path');
   if (query.length) {
-    parts.push(`**Query Parameters:**\n${query.map((p) => `  ${p.name}: ${maskValue(p.name, p.value ?? '')}`).join('\n')}`);
+    parts.push(`**Query Parameters:**\n${query.map((p) => `  ${p.name}: ${maskHeader(p.name, p.value)}`).join('\n')}`);
   }
   if (pathParams.length) {
-    parts.push(`**Path Parameters:**\n${pathParams.map((p) => `  ${p.name}: ${maskValue(p.name, p.value ?? '')}`).join('\n')}`);
+    parts.push(`**Path Parameters:**\n${pathParams.map((p) => `  ${p.name}: ${maskHeader(p.name, p.value)}`).join('\n')}`);
   }
 
   const body = ctx.body;
@@ -194,18 +257,18 @@ const formatRequestContext = (ctx, opts = {}) => {
       // JSON bodies often contain fields like `password`, `client_secret`,
       // `refresh_token`. Redact by key so the model sees the structure but
       // not the secret values.
-      case 'json': content = redactJsonBodyString(body.json || ''); break;
+      case 'json': content = redactJsonBodyString(body.json || '', policy); break;
       case 'text': content = body.text || ''; break;
       case 'xml': content = body.xml || ''; break;
       case 'sparql': content = body.sparql || ''; break;
       case 'formUrlEncoded': {
         const items = (body.formUrlEncoded || []).filter((p) => p.enabled);
-        content = items.map((p) => `  ${p.name}: ${maskValue(p.name, p.value ?? '')}`).join('\n');
+        content = items.map((p) => `  ${p.name}: ${maskFormField(p.name, p.value)}`).join('\n');
         break;
       }
       case 'multipartForm': {
         const items = (body.multipartForm || []).filter((p) => p.enabled);
-        content = items.map((p) => `  ${p.name}: ${p.type === 'file' ? '[file]' : maskValue(p.name, p.value ?? '')}`).join('\n');
+        content = items.map((p) => `  ${p.name}: ${p.type === 'file' ? '[file]' : maskFormField(p.name, p.value)}`).join('\n');
         break;
       }
       case 'graphql':
@@ -213,7 +276,7 @@ const formatRequestContext = (ctx, opts = {}) => {
         if (body.graphql?.variables) {
           // GraphQL variables are stored as a JSON string in Bruno — same
           // key-based redaction applies.
-          content += `\n\nVariables:\n${redactJsonBodyString(body.graphql.variables)}`;
+          content += `\n\nVariables:\n${redactJsonBodyString(body.graphql.variables, policy)}`;
         }
         break;
       default: content = '';
@@ -226,7 +289,7 @@ const formatRequestContext = (ctx, opts = {}) => {
   }
 
   if (includeResponse) {
-    const responseStr = formatResponseShape(ctx.responseStatus, ctx.responseData);
+    const responseStr = formatResponseShape(ctx.responseStatus, ctx.responseData, { security });
     if (responseStr) parts.push(responseStr);
   }
 
@@ -250,11 +313,21 @@ const formatRequestContext = (ctx, opts = {}) => {
  *   too — never trust the value field on a secret. The backend re-masks.
  */
 
-const isSecretVariable = (v) => Boolean(v && (v.secret || isSensitiveName(v.name)));
+const isSecretVariable = (v, policy = DEFAULT_POLICY) => {
+  if (!v) return false;
+  // `secret: true` is a hard promise from the renderer's variable
+  // pipeline - always honor it, even when the pattern-match toggle is off.
+  if (v.secret) return true;
+  // Custom-listed names redact unconditionally, the user opted in explicitly.
+  if (policy.isCustomVariable(v.name)) return true;
+  // Built-in pattern matches only apply when the toggle is on.
+  if (!policy.redactVariables) return false;
+  return policy.matchesVariablePattern(v.name);
+};
 
-const variableValueForModel = (v) => {
+const variableValueForModel = (v, policy) => {
   if (!v) return '';
-  if (isSecretVariable(v)) return REDACTED_VALUE;
+  if (isSecretVariable(v, policy)) return REDACTED_VALUE;
   if (v.value == null) return '';
   return String(v.value);
 };
@@ -265,8 +338,9 @@ const VAR_NAMES_PREVIEW_PER_SCOPE = 25;
  * Inline preview shown in the prompt. Names + a small per-scope sample so
  * the model knows what's available without us dumping 500 env vars.
  */
-const formatVariablesList = (variables) => {
+const formatVariablesList = (variables, opts = {}) => {
   if (!Array.isArray(variables) || !variables.length) return '';
+  const policy = buildRedactionPolicy(opts.security);
 
   const byScope = new Map();
   for (const v of variables) {
@@ -282,7 +356,7 @@ const formatVariablesList = (variables) => {
     const preview = list.slice(0, VAR_NAMES_PREVIEW_PER_SCOPE);
     const more = total > preview.length ? ` (+${total - preview.length} more — use search_variables to find them)` : '';
     const names = preview
-      .map((v) => (isSecretVariable(v) ? `${v.name} (secret)` : v.name))
+      .map((v) => (isSecretVariable(v, policy) ? `${v.name} (secret)` : v.name))
       .join(', ');
     lines.push(`- ${scope} (${total}): ${names}${more}`);
   }
@@ -307,20 +381,19 @@ const searchVariables = (variables, rawQuery, limit = SEARCH_LIMIT) => {
   return { items: filtered.slice(0, limit), totalMatched: filtered.length, limit };
 };
 
-const formatVariableLine = (v) => {
-  const value = variableValueForModel(v);
-  const tags = [v.scope || 'unknown'];
-  if (isSecretVariable(v)) tags.push('secret');
-  return `  ${v.name} = ${value}    [${tags.join(', ')}]`;
-};
-
-const formatSearchVariablesResult = ({ items, totalMatched, limit }, query) => {
+const formatSearchVariablesResult = ({ items, totalMatched, limit }, query, opts = {}) => {
   if (!items.length) {
     return query
       ? `No variables match "${query}".`
       : 'No variables defined for this collection/environment.';
   }
-  const lines = items.map(formatVariableLine);
+  const policy = buildRedactionPolicy(opts.security);
+  const lines = items.map((v) => {
+    const value = variableValueForModel(v, policy);
+    const tags = [v.scope || 'unknown'];
+    if (isSecretVariable(v, policy)) tags.push('secret');
+    return `  ${v.name} = ${value}    [${tags.join(', ')}]`;
+  });
   const heading = query
     ? `Found ${items.length}${totalMatched > items.length ? ` of ${totalMatched}` : ''} variable(s) matching "${query}":`
     : `Variables (${items.length}${totalMatched > items.length ? ` of ${totalMatched}` : ''}):`;
@@ -337,11 +410,13 @@ module.exports = {
   REDACTION_NOTICE,
   isSensitiveName,
   maskValue,
+  buildRedactionPolicy,
   // response shape
   redactResponseValues,
   formatResponseShape,
   // request context
   formatRequestContext,
+  redactJsonBodyString,
   // variables
   isSecretVariable,
   formatVariablesList,

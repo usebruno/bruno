@@ -73,6 +73,14 @@ const initialState = {
         enabled: true,
         model: '',
         triggerMode: 'debounced'
+      },
+      security: {
+        redactHeaders: true,
+        redactBody: true,
+        redactVariables: true,
+        redactResponse: true,
+        customRedactedHeaders: [],
+        customRedactedVariables: []
       }
     }
   },
@@ -292,15 +300,18 @@ export const {
 } = appSlice.actions;
 
 export const savePreferences = (preferences) => (dispatch, getState) => {
-  return new Promise((resolve, reject) => {
-    const { ipcRenderer } = window;
+  const previous = getState().app.preferences;
+  dispatch(updatePreferences(preferences));
 
-    ipcRenderer
-      .invoke('renderer:save-preferences', preferences)
-      .then(() => dispatch(updatePreferences(preferences)))
-      .then(resolve)
-      .catch(reject);
-  });
+  const { ipcRenderer } = window;
+  return ipcRenderer
+    .invoke('renderer:save-preferences', preferences)
+    .catch((err) => {
+      if (getState().app.preferences === preferences) {
+        dispatch(updatePreferences(previous));
+      }
+      throw err;
+    });
 };
 
 export const deleteCookiesForDomain = (domain) => (dispatch, getState) => {
