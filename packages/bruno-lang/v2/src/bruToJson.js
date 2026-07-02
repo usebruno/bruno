@@ -266,7 +266,7 @@ const mapPairListToKeyValPairsMultipart = (pairList = [], parseEnabled = true) =
     if (pair.value.startsWith('@file(') && pair.value.endsWith(')')) {
       let filestr = pair.value.replace(/^@file\(/, '').replace(/\)$/, '');
       pair.type = 'file';
-      pair.value = filestr.split('|');
+      pair.value = filestr.split('|').filter(Boolean);
     }
 
     return pair;

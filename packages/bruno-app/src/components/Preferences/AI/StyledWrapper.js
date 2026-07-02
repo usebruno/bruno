@@ -379,6 +379,93 @@ const StyledWrapper = styled.div`
     }
   }
 
+  .compat-add-btn {
+    color: ${(props) => props.theme.colors.text.muted};
+    background: transparent;
+    border: 1px solid ${(props) => props.theme.input.border};
+    border-radius: ${(props) => props.theme.border.radius.sm};
+    padding: 3px 8px;
+    transition: color 0.15s ease, border-color 0.15s ease;
+
+    &:hover {
+      color: ${(props) => props.theme.text};
+      border-color: ${(props) => props.theme.colors.accent}80;
+    }
+  }
+
+  .compat-models-empty {
+    color: ${(props) => props.theme.colors.text.muted};
+    border: 1px dashed ${(props) => props.theme.input.border};
+    border-radius: ${(props) => props.theme.border.radius.sm};
+
+    code {
+      font-family: ${(props) => props.theme.font.monospace || 'monospace'};
+      color: ${(props) => props.theme.text};
+    }
+  }
+
+  .compat-model-row {
+    border-radius: ${(props) => props.theme.border.radius.sm};
+    border: 1px solid ${(props) => props.theme.input.border};
+    background: ${(props) => props.theme.input.bg};
+    transition: background-color 0.15s ease, border-color 0.15s ease;
+
+    &.selected {
+      background: ${(props) => props.theme.colors.accent}06;
+    }
+
+    &.disabled {
+      opacity: 0.45;
+
+      input {
+        cursor: not-allowed;
+      }
+    }
+  }
+
+  .compat-inline-input {
+    background: transparent;
+    border: none;
+    outline: none;
+    color: ${(props) => props.theme.text};
+    padding: 2px 4px;
+    border-radius: ${(props) => props.theme.border.radius.sm};
+    min-width: 0;
+    font-family: inherit;
+
+    &::placeholder {
+      color: ${(props) => props.theme.colors.text.muted};
+      opacity: 0.6;
+    }
+
+    &:focus {
+      background: ${(props) => props.theme.bg};
+      box-shadow: inset 0 0 0 1px ${(props) => props.theme.input.focusBorder};
+    }
+  }
+
+  .compat-inline-id {
+    font-family: ${(props) => props.theme.font.monospace || 'monospace'};
+  }
+
+  .compat-add-model {
+    padding-top: 4px;
+  }
+
+  .compat-remove-endpoint {
+    color: ${(props) => props.theme.colors.text.muted};
+    background: transparent;
+    border: none;
+    padding: 4px 6px;
+    border-radius: ${(props) => props.theme.border.radius.sm};
+    transition: color 0.15s ease, background-color 0.15s ease;
+
+    &:hover {
+      color: ${(props) => props.theme.colors.text.danger};
+      background: ${(props) => props.theme.colors.bg.danger}15;
+    }
+  }
+
   @keyframes spin {
     from { transform: rotate(0deg); }
     to { transform: rotate(360deg); }
