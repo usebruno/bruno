@@ -405,7 +405,9 @@ export default function RunnerResults({ collection }) {
                           ? <IconCircleX className="test-failure" size={20} strokeWidth={1.5} />
                           : null}
                       </span>
-                      <span className={`flex-1 min-w-0 truncate mr-1 ml-2 ${item.status == 'skipped' ? 'skipped-request' : anyTestFailed(item) ? 'danger' : ''}`}>
+                      <span
+                        className={`flex-1 min-w-0 truncate mr-1 ml-2 ${item.status == 'skipped' ? 'skipped-request' : anyTestFailed(item) ? 'danger' : ''}`}
+                      >
                         {item.displayName}
                       </span>
                       {item.status !== 'error' && item.status !== 'skipped' && item.status !== 'completed' ? (
