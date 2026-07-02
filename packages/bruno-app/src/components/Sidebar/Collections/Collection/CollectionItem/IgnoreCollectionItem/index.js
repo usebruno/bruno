@@ -44,7 +44,14 @@ const IgnoreCollectionItem = ({ onClose, item, collectionUid }) => {
       list in
       {' '}
       <span className="font-medium">{configFileName}</span>
-      . The folder and its files are not deleted, and you can unignore it later from the collection settings.
+      . The folder and its files are not deleted. To restore it later, remove the entry from the
+      {' '}
+      <span className="font-medium">ignore</span>
+      {' '}
+      list in
+      {' '}
+      <span className="font-medium">{configFileName}</span>
+      .
     </Modal>
   );
 };

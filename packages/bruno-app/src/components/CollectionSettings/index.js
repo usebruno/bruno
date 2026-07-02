@@ -11,7 +11,6 @@ import Script from './Script';
 import Test from './Tests';
 import Presets from './Presets';
 import Protobuf from './Protobuf';
-import Ignore from './Ignore';
 import StyledWrapper from './StyledWrapper';
 import Vars from './Vars/index';
 import StatusDot from 'components/StatusDot';
@@ -61,9 +60,6 @@ const CollectionSettings = ({ collection }) => {
   const protobufConfig = collection.draft?.brunoConfig
     ? get(collection, 'draft.brunoConfig.protobuf', {})
     : get(collection, 'brunoConfig.protobuf', {});
-  const ignoredFoldersCount = get(collection, 'brunoConfig.ignore', []).filter(
-    (entry) => entry !== 'node_modules' && entry !== '.git'
-  ).length;
   const presets = collection.draft?.brunoConfig ? get(collection, 'draft.brunoConfig.presets', {}) : get(collection, 'brunoConfig.presets', {});
   const hasPresets = presets && ((presets.requestType && presets.requestType !== DEFAULT_PRESET_REQUEST_TYPE) || (presets.requestUrl && presets.requestUrl !== ''));
 
@@ -98,9 +94,6 @@ const CollectionSettings = ({ collection }) => {
       }
       case 'protobuf': {
         return <Protobuf collection={collection} />;
-      }
-      case 'ignore': {
-        return <Ignore collection={collection} />;
       }
     }
   };
@@ -152,10 +145,6 @@ const CollectionSettings = ({ collection }) => {
         <div className={getTabClassname('protobuf')} role="tab" data-testid="collection-settings-tab-protobuf" onClick={() => setTab('protobuf')}>
           Protobuf
           {protobufConfig.protoFiles && protobufConfig.protoFiles.length > 0 && <StatusDot />}
-        </div>
-        <div className={getTabClassname('ignore')} role="tab" data-testid="collection-settings-tab-ignore" onClick={() => setTab('ignore')}>
-          Ignore
-          {ignoredFoldersCount > 0 && <sup className="ml-1 font-medium">{ignoredFoldersCount}</sup>}
         </div>
       </div>
       <section className="collection-settings-content mt-4 h-full overflow-auto">{getTabPanel(tab)}</section>

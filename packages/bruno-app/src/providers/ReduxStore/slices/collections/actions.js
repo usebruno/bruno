@@ -2772,26 +2772,6 @@ export const ignoreFolder = (itemUid, collectionUid) => (dispatch, getState) => 
   });
 };
 
-export const unignoreFolder = (relativePath, collectionUid) => (dispatch, getState) => {
-  const state = getState();
-  const collection = findCollectionByUid(state.collections.collections, collectionUid);
-
-  return new Promise((resolve, reject) => {
-    if (!collection) {
-      return reject(new Error('Collection not found'));
-    }
-
-    const { ipcRenderer } = window;
-    ipcRenderer
-      .invoke('renderer:unignore-folder', collectionUid, collection.pathname, collection.root, collection.brunoConfig || {}, relativePath)
-      .then((updatedBrunoConfig) => {
-        dispatch(_brunoConfigUpdateEvent({ collectionUid, brunoConfig: updatedBrunoConfig }));
-        resolve();
-      })
-      .catch(reject);
-  });
-};
-
 /**
  * Opens a scratch collection and creates it in Redux state.
  * This is a simplified version of openCollectionEvent for scratch collections,
