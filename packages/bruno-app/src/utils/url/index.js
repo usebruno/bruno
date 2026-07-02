@@ -30,6 +30,11 @@ const hasResolvablePathParamValue = (pathParam) => {
   return true;
 };
 
+const getSingleLetterPrefixedPathParamName = (segment) => {
+  const match = segment.match(/^[A-Za-z]:([A-Za-z_][A-Za-z0-9_-]*)$/);
+  return match?.[1];
+};
+
 export const parsePathParams = (url) => {
   let uri = url.slice();
 
@@ -58,6 +63,14 @@ export const parsePathParams = (url) => {
       const name = segment.slice(1);
       if (name && !foundParams.has(name)) {
         foundParams.add(name);
+      }
+      return;
+    }
+
+    const prefixedName = getSingleLetterPrefixedPathParamName(segment);
+    if (prefixedName) {
+      if (!foundParams.has(prefixedName)) {
+        foundParams.add(prefixedName);
       }
       return;
     }
@@ -144,6 +157,14 @@ export const interpolateUrlPathParams = (url, params, variables = {}, options = 
           const pathParam = params.find((p) => p?.name === name && p?.type === 'path');
           return hasResolvablePathParamValue(pathParam) ? substituteValue(pathParam.value) : segment;
           // return pathParam ? substituteValue(pathParam.value) : segment;
+        }
+
+        const prefixedName = getSingleLetterPrefixedPathParamName(segment);
+        if (prefixedName) {
+          const pathParam = params.find((p) => p?.name === prefixedName && p?.type === 'path');
+          return hasResolvablePathParamValue(pathParam)
+            ? segment.replace(`:${prefixedName}`, substituteValue(pathParam.value))
+            : segment;
         }
 
         // for OData-style parameters (parameters inside parentheses)

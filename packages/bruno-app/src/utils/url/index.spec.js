@@ -44,6 +44,11 @@ describe('Url Utils - parsePathParams', () => {
     ]);
   });
 
+  it('should parse path params with a static segment prefix', () => {
+    const params = parsePathParams('https://www.example.com/api/v:version/physical-activity');
+    expect(params).toEqual([{ name: 'version', value: '' }]);
+  });
+
   it('should parse path param inside parentheses and quotes', () => {
     const params = parsePathParams('https://example.com/ExchangeRates(\':ExchangeRateOID\')');
     expect(params).toEqual([{ name: 'ExchangeRateOID', value: '' }]);
@@ -347,6 +352,15 @@ describe('Url Utils - interpolateUrl, interpolateUrlPathParams', () => {
     const result = interpolateUrlPathParams(url, params);
 
     expect(result).toEqual(expectedUrl);
+  });
+
+  it('should interpolate path params with a static segment prefix', () => {
+    const url = 'https://example.com/api/v:version/physical-activity';
+    const params = [{ name: 'version', type: 'path', enabled: true, value: '1' }];
+
+    const result = interpolateUrlPathParams(url, params);
+
+    expect(result).toEqual('https://example.com/api/v1/physical-activity');
   });
 
   it('should interpolate url and path params correctly', () => {

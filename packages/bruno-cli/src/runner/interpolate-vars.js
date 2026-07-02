@@ -20,6 +20,11 @@ const hasResolvablePathParamValue = (pathParam) => {
   return true;
 };
 
+const getSingleLetterPrefixedPathParamName = (path) => {
+  const match = path.match(/^[A-Za-z]:([A-Za-z_][A-Za-z0-9_-]*)$/);
+  return match?.[1];
+};
+
 const isBinaryRequestBody = (data) => Buffer.isBuffer(data) || typeof data?.pipe === 'function';
 
 const getContentType = (headers = {}) => {
@@ -164,6 +169,15 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
             return '/' + path;
           }
           return '/' + existingPathParam.value;
+        }
+
+        const prefixedParamName = getSingleLetterPrefixedPathParamName(path);
+        if (prefixedParamName) {
+          const existingPathParam = request.pathParams.find((param) => param.name === prefixedParamName);
+          if (!hasResolvablePathParamValue(existingPathParam)) {
+            return '/' + path;
+          }
+          return '/' + path.replace(`:${prefixedParamName}`, existingPathParam.value);
         }
 
         // for OData-style parameters (parameters inside parentheses)
