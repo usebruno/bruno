@@ -66,6 +66,16 @@ const createRedirectConfig = (error, redirectUrl) => {
   return requestConfig;
 };
 
+const isSameOrigin = (url1, url2) => {
+  try {
+    const parsed1 = new global.URL(url1);
+    const parsed2 = new global.URL(url2);
+    return parsed1.origin === parsed2.origin;
+  } catch (err) {
+    return false;
+  }
+};
+
 /**
  * Function that configures axios with timing interceptors
  * Important to note here that the timings are not completely accurate.
@@ -76,6 +86,7 @@ function makeAxiosInstance({
   requestMaxRedirects = 5,
   disableCookies,
   followRedirects = true,
+  forwardAuthorizationHeader = true,
   proxyMode,
   proxyConfig,
   systemProxyConfig,
@@ -178,6 +189,17 @@ function makeAxiosInstance({
           }
 
           const requestConfig = createRedirectConfig(error, redirectUrl);
+
+          if (!forwardAuthorizationHeader) {
+            if (!isSameOrigin(error.config.url, redirectUrl)) {
+              Object.keys(requestConfig.headers).forEach((key) => {
+                const lowerKey = key.toLowerCase();
+                if (lowerKey === 'authorization' || lowerKey === 'proxy-authorization') {
+                  delete requestConfig.headers[key];
+                }
+              });
+            }
+          }
 
           await setupProxyAgents({
             requestConfig,

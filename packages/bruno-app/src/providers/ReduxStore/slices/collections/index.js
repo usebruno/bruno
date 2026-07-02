@@ -24,6 +24,7 @@ import toast from 'react-hot-toast';
 import mime from 'mime-types';
 import path from 'utils/common/path';
 import { getUniqueTagsFromItems } from 'utils/collections/index';
+import { DEFAULT_HTTP_ITEM_SETTINGS } from 'utils/common/constants';
 import { getCollectionEnvironmentPath } from 'utils/snapshot';
 import { getDataTypeFromValue } from '@usebruno/common/utils';
 import * as exampleReducers from './exampleReducers';
@@ -947,6 +948,7 @@ export const collectionsSlice = createSlice({
               content: null
             }
           },
+          settings: cloneDeep(DEFAULT_HTTP_ITEM_SETTINGS),
           draft: null
         };
         item.draft = cloneDeep(item);
