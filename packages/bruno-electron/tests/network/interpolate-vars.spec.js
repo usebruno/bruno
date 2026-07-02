@@ -155,6 +155,23 @@ describe('interpolate-vars: interpolateVars', () => {
         expect(result.url).toBe('http://example.com/foobar');
       });
 
+      it('updates path params with a static segment prefix', async () => {
+        const request = {
+          method: 'GET',
+          url: 'http://example.com/api/v:version/physical-activity',
+          pathParams: [
+            {
+              type: 'path',
+              name: 'version',
+              value: '2'
+            }
+          ]
+        };
+
+        const result = interpolateVars(request, null, null, null);
+        expect(result.url).toBe('http://example.com/api/v2/physical-activity');
+      });
+
       it('updates the path with odata style params | smoke', async () => {
         const request = {
           method: 'GET',

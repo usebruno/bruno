@@ -70,6 +70,25 @@ describe('interpolate-vars: interpolateVars', () => {
     expect(result.data).toContain(`--${boundary}`);
     expect(result.data).toContain(`--${boundary}--`);
   });
+
+  it('interpolates path params with a static segment prefix', () => {
+    const request = {
+      method: 'GET',
+      url: 'https://example.com/api/v:version/physical-activity',
+      headers: {},
+      pathParams: [
+        {
+          type: 'path',
+          name: 'version',
+          value: '2'
+        }
+      ]
+    };
+
+    const result = interpolateVars(request, {}, null, null);
+
+    expect(result.url).toBe('https://example.com/api/v2/physical-activity');
+  });
 });
 
 describe('interpolate-vars: api key header name sidecar', () => {
