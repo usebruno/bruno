@@ -17,7 +17,11 @@ const parseApiSpecContent = (pathname) => {
   let content = fs.readFileSync(pathname, 'utf8');
 
   if (extension === '.yaml' || extension === '.yml') {
-    return yaml.load(content);
+    try {
+      return yaml.load(content);
+    } catch {
+      return null;
+    }
   } else if (extension === '.json') {
     return safeParseJSON(content);
   }
