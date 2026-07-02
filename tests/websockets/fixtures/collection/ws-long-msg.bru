@@ -1,0 +1,332 @@
+meta {
+  name: ws-long-msg
+  type: ws
+  seq: 4
+}
+
+ws {
+  url: ws://localhost:8081/ws/echo
+  body: ws
+  auth: inherit
+}
+
+body:ws {
+  name: long message
+  type: json
+  content: '''
+    {
+      "type": "bulk",
+      "count": 60,
+      "items": [
+        {
+          "id": 0,
+          "name": "item-0",
+          "active": true
+        },
+        {
+          "id": 1,
+          "name": "item-1",
+          "active": false
+        },
+        {
+          "id": 2,
+          "name": "item-2",
+          "active": true
+        },
+        {
+          "id": 3,
+          "name": "item-3",
+          "active": false
+        },
+        {
+          "id": 4,
+          "name": "item-4",
+          "active": true
+        },
+        {
+          "id": 5,
+          "name": "item-5",
+          "active": false
+        },
+        {
+          "id": 6,
+          "name": "item-6",
+          "active": true
+        },
+        {
+          "id": 7,
+          "name": "item-7",
+          "active": false
+        },
+        {
+          "id": 8,
+          "name": "item-8",
+          "active": true
+        },
+        {
+          "id": 9,
+          "name": "item-9",
+          "active": false
+        },
+        {
+          "id": 10,
+          "name": "item-10",
+          "active": true
+        },
+        {
+          "id": 11,
+          "name": "item-11",
+          "active": false
+        },
+        {
+          "id": 12,
+          "name": "item-12",
+          "active": true
+        },
+        {
+          "id": 13,
+          "name": "item-13",
+          "active": false
+        },
+        {
+          "id": 14,
+          "name": "item-14",
+          "active": true
+        },
+        {
+          "id": 15,
+          "name": "item-15",
+          "active": false
+        },
+        {
+          "id": 16,
+          "name": "item-16",
+          "active": true
+        },
+        {
+          "id": 17,
+          "name": "item-17",
+          "active": false
+        },
+        {
+          "id": 18,
+          "name": "item-18",
+          "active": true
+        },
+        {
+          "id": 19,
+          "name": "item-19",
+          "active": false
+        },
+        {
+          "id": 20,
+          "name": "item-20",
+          "active": true
+        },
+        {
+          "id": 21,
+          "name": "item-21",
+          "active": false
+        },
+        {
+          "id": 22,
+          "name": "item-22",
+          "active": true
+        },
+        {
+          "id": 23,
+          "name": "item-23",
+          "active": false
+        },
+        {
+          "id": 24,
+          "name": "item-24",
+          "active": true
+        },
+        {
+          "id": 25,
+          "name": "item-25",
+          "active": false
+        },
+        {
+          "id": 26,
+          "name": "item-26",
+          "active": true
+        },
+        {
+          "id": 27,
+          "name": "item-27",
+          "active": false
+        },
+        {
+          "id": 28,
+          "name": "item-28",
+          "active": true
+        },
+        {
+          "id": 29,
+          "name": "item-29",
+          "active": false
+        },
+        {
+          "id": 30,
+          "name": "item-30",
+          "active": true
+        },
+        {
+          "id": 31,
+          "name": "item-31",
+          "active": false
+        },
+        {
+          "id": 32,
+          "name": "item-32",
+          "active": true
+        },
+        {
+          "id": 33,
+          "name": "item-33",
+          "active": false
+        },
+        {
+          "id": 34,
+          "name": "item-34",
+          "active": true
+        },
+        {
+          "id": 35,
+          "name": "item-35",
+          "active": false
+        },
+        {
+          "id": 36,
+          "name": "item-36",
+          "active": true
+        },
+        {
+          "id": 37,
+          "name": "item-37",
+          "active": false
+        },
+        {
+          "id": 38,
+          "name": "item-38",
+          "active": true
+        },
+        {
+          "id": 39,
+          "name": "item-39",
+          "active": false
+        },
+        {
+          "id": 40,
+          "name": "item-40",
+          "active": true
+        },
+        {
+          "id": 41,
+          "name": "item-41",
+          "active": false
+        },
+        {
+          "id": 42,
+          "name": "item-42",
+          "active": true
+        },
+        {
+          "id": 43,
+          "name": "item-43",
+          "active": false
+        },
+        {
+          "id": 44,
+          "name": "item-44",
+          "active": true
+        },
+        {
+          "id": 45,
+          "name": "item-45",
+          "active": false
+        },
+        {
+          "id": 46,
+          "name": "item-46",
+          "active": true
+        },
+        {
+          "id": 47,
+          "name": "item-47",
+          "active": false
+        },
+        {
+          "id": 48,
+          "name": "item-48",
+          "active": true
+        },
+        {
+          "id": 49,
+          "name": "item-49",
+          "active": false
+        },
+        {
+          "id": 50,
+          "name": "item-50",
+          "active": true
+        },
+        {
+          "id": 51,
+          "name": "item-51",
+          "active": false
+        },
+        {
+          "id": 52,
+          "name": "item-52",
+          "active": true
+        },
+        {
+          "id": 53,
+          "name": "item-53",
+          "active": false
+        },
+        {
+          "id": 54,
+          "name": "item-54",
+          "active": true
+        },
+        {
+          "id": 55,
+          "name": "item-55",
+          "active": false
+        },
+        {
+          "id": 56,
+          "name": "item-56",
+          "active": true
+        },
+        {
+          "id": 57,
+          "name": "item-57",
+          "active": false
+        },
+        {
+          "id": 58,
+          "name": "item-58",
+          "active": true
+        },
+        {
+          "id": 59,
+          "name": "item-59",
+          "active": false
+        }
+      ]
+    }
+  '''
+}
+
+body:ws {
+  name: short message
+  type: text
+  content: '''
+    hello world
+  '''
+}

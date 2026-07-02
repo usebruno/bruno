@@ -3,6 +3,8 @@ import { updateRequestBody } from 'providers/ReduxStore/slices/collections';
 import { IconPlus } from '@tabler/icons';
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useDispatch } from 'react-redux';
+import { usePersistedState } from 'hooks/usePersistedState';
+import { useTrackScroll } from 'hooks/useTrackScroll';
 import StyledWrapper from './StyledWrapper';
 import { SingleWSMessage } from './SingleWSMessage/index';
 
@@ -26,6 +28,9 @@ const WSBody = ({ item, collection, handleRun, onAddMessage }) => {
   });
   const [newMessageUid, setNewMessageUid] = useState(null);
   const prevMessagesLengthRef = useRef(messages.length);
+
+  const [scroll, setScroll] = usePersistedState({ key: `ws-msg-scroll-${item.uid}`, default: 0 });
+  useTrackScroll({ ref: messagesContainerRef, onChange: setScroll, initialValue: scroll });
 
   const setSelectedIndex = useCallback((index) => {
     const currentMessages = [...(body?.ws || [])];
@@ -68,6 +73,11 @@ const WSBody = ({ item, collection, handleRun, onAddMessage }) => {
         setNewMessageUid(newMsg.uid);
         setSelectedIndex(messages.length - 1);
       }
+
+      if (messagesContainerRef.current) {
+        const container = messagesContainerRef.current;
+        container.scrollTop = container.scrollHeight;
+      }
     }
     prevMessagesLengthRef.current = messages.length;
   }, [messages.length]);
@@ -76,13 +86,20 @@ const WSBody = ({ item, collection, handleRun, onAddMessage }) => {
     setNewMessageUid(null);
   }, []);
 
-  // Auto-scroll to bottom when new message is added
-  useEffect(() => {
-    if (messagesContainerRef.current && messages.length > 0) {
-      const container = messagesContainerRef.current;
-      container.scrollTop = container.scrollHeight;
-    }
-  }, [messages.length]);
+  // Clicking into a message editor focuses CodeMirror, which makes the browser
+  // scroll the container to bring the focused input into view. Snapshot the
+  // scroll position before the click and restore it on the next frame so the
+  // list doesn't jump when a message gains focus.
+  const handleContainerMouseDownCapture = useCallback(() => {
+    const container = messagesContainerRef.current;
+    if (!container) return;
+    const top = container.scrollTop;
+    requestAnimationFrame(() => {
+      if (container.scrollTop !== top) {
+        container.scrollTop = top;
+      }
+    });
+  }, []);
 
   if (!messages.length) {
     return (
@@ -100,7 +117,12 @@ const WSBody = ({ item, collection, handleRun, onAddMessage }) => {
 
   return (
     <StyledWrapper>
-      <div ref={messagesContainerRef} className="messages-container">
+      <div
+        ref={messagesContainerRef}
+        className="messages-container"
+        data-testid="ws-messages-container"
+        onMouseDownCapture={handleContainerMouseDownCapture}
+      >
         {messages.map((message, index) => (
           <SingleWSMessage
             key={message.uid}
