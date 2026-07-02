@@ -11,7 +11,7 @@ const matchesCallbackUrl = (url, callbackUrl) => {
     && (url.searchParams.has('code') || url.hash.length > 1);
 };
 
-const authorizeUserInWindow = ({ authorizeUrl, callbackUrl, session, additionalHeaders = {}, grantType = 'authorization_code' }) => {
+const authorizeUserInWindow = ({ authorizeUrl, callbackUrl, session, additionalHeaders = {}, grantType = 'authorization_code', expectedState = null }) => {
   return new Promise(async (resolve, reject) => {
     let finalUrl = null;
     let debugInfo = {
@@ -202,6 +202,22 @@ const authorizeUserInWindow = ({ authorizeUrl, callbackUrl, session, additionalH
 
       if (finalUrl) {
         try {
+          // Validate the state parameter to protect against CSRF / authorization
+          // code injection. The returned state must match the cryptographically
+          // random state issued when the flow was initiated.
+          if (expectedState) {
+            const finalUrlObj = new URL(finalUrl);
+            const returnedState
+              = finalUrlObj.searchParams.get('state')
+                || (finalUrlObj.hash ? new URLSearchParams(finalUrlObj.hash.substring(1)).get('state') : null);
+
+            if (returnedState !== expectedState) {
+              return reject(
+                new Error('OAuth2 state mismatch')
+              );
+            }
+          }
+
           // Handle different grant types differently
           if (grantType === 'implicit') {
             // For implicit flow, tokens are in the URL hash fragment
