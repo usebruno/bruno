@@ -4,12 +4,12 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { Provider } from 'react-redux';
 import { configureStore } from '@reduxjs/toolkit';
 import { ThemeProvider } from 'styled-components';
-import { aiGenerateScript } from 'utils/ai';
-import { getPlatformModifierKey } from 'utils/common/platform';
+import { aiGenerateScript, stopAiGeneration } from 'utils/ai';
 import AIAssist from './index';
 
 jest.mock('utils/ai', () => ({
-  aiGenerateScript: jest.fn()
+  aiGenerateScript: jest.fn(),
+  stopAiGeneration: jest.fn()
 }));
 
 jest.mock('utils/common/platform', () => ({
@@ -189,12 +189,13 @@ describe('AIAssist', () => {
       fireEvent.click(screen.getByRole('button', { name: 'Status 200' }));
 
       await waitFor(() => {
-        expect(aiGenerateScript).toHaveBeenCalledWith({
+        expect(aiGenerateScript).toHaveBeenCalledWith(expect.objectContaining({
           scriptType: 'tests',
           prompt: 'Add a test asserting the response status code is 200',
           currentScript: 'test("ok", () => {});',
-          requestContext: undefined
-        });
+          requestContext: undefined,
+          streamId: expect.any(String)
+        }));
       });
 
       expect(screen.getByText('test("generated", () => {});')).toBeInTheDocument();
@@ -214,13 +215,13 @@ describe('AIAssist', () => {
       fireEvent.click(screen.getByRole('button', { name: 'Overview' }));
 
       await waitFor(() => {
-        expect(aiGenerateScript).toHaveBeenCalledWith({
+        expect(aiGenerateScript).toHaveBeenCalledWith(expect.objectContaining({
           scriptType: 'docs',
           prompt: 'Write an overview section describing the purpose and key features',
           currentScript: '',
           requestContext: undefined,
           docsContext
-        });
+        }));
       });
     });
 
@@ -242,34 +243,42 @@ describe('AIAssist', () => {
       fireEvent.click(screen.getByRole('button', { name: 'Generate' }));
 
       await waitFor(() => {
-        expect(aiGenerateScript).toHaveBeenCalledWith({
+        expect(aiGenerateScript).toHaveBeenCalledWith(expect.objectContaining({
           scriptType: 'tests',
           prompt: 'Add auth header test',
           currentScript: 'test("ok", () => {});',
           requestContext
-        });
+        }));
       });
     });
 
-    it.each([
-      ['metaKey', { metaKey: true }],
-      ['ctrlKey', { ctrlKey: true }]
-    ])('generates when pressing modifier+Enter using %s', async (_modifier, keyEvent) => {
+    it('generates when pressing Enter', async () => {
       renderAIAssist();
       openPopup();
 
       const textarea = screen.getByPlaceholderText('Describe what you want to generate...');
       fireEvent.change(textarea, { target: { value: 'Add response time test' } });
-      fireEvent.keyDown(textarea, { key: 'Enter', ...keyEvent });
+      fireEvent.keyDown(textarea, { key: 'Enter' });
 
       await waitFor(() => {
-        expect(aiGenerateScript).toHaveBeenCalledWith({
+        expect(aiGenerateScript).toHaveBeenCalledWith(expect.objectContaining({
           scriptType: 'tests',
           prompt: 'Add response time test',
           currentScript: 'test("ok", () => {});',
           requestContext: undefined
-        });
+        }));
       });
+    });
+
+    it('does not generate when pressing Shift+Enter (allows newline)', () => {
+      renderAIAssist();
+      openPopup();
+
+      const textarea = screen.getByPlaceholderText('Describe what you want to generate...');
+      fireEvent.change(textarea, { target: { value: 'Add response time test' } });
+      fireEvent.keyDown(textarea, { key: 'Enter', shiftKey: true });
+
+      expect(aiGenerateScript).not.toHaveBeenCalled();
     });
 
     it('shows a loading state while generation is in progress', async () => {
@@ -289,6 +298,35 @@ describe('AIAssist', () => {
       await waitFor(() => {
         expect(screen.getByText('test("done", () => {});')).toBeInTheDocument();
       });
+    });
+
+    it('shows a Stop button during generation and cancels via streamId', async () => {
+      let resolveGenerate;
+      aiGenerateScript.mockImplementation(() => new Promise((resolve) => {
+        resolveGenerate = resolve;
+      }));
+
+      renderAIAssist();
+      openPopup();
+      fireEvent.click(screen.getByRole('button', { name: 'Status 200' }));
+
+      const stopButton = await screen.findByRole('button', { name: /stop/i });
+      expect(stopButton).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Generate' })).not.toBeInTheDocument();
+
+      const passedStreamId = aiGenerateScript.mock.calls[0][0].streamId;
+      expect(passedStreamId).toEqual(expect.any(String));
+
+      fireEvent.click(stopButton);
+      expect(stopAiGeneration).toHaveBeenCalledWith(passedStreamId);
+
+      resolveGenerate({ stopped: true });
+
+      await waitFor(() => {
+        expect(screen.queryByRole('button', { name: /stop/i })).not.toBeInTheDocument();
+      });
+      expect(screen.queryByRole('button', { name: 'Apply' })).not.toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Generate' })).toBeInTheDocument();
     });
 
     it('shows an API error without entering preview mode', async () => {

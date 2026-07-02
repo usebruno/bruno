@@ -38,3 +38,7 @@ export {
   BRUNO_VARIABLE_DATATYPES,
   isBrunoVariableDataType
 } from './datatype';
+
+export {
+  toDisplayString
+} from './string';

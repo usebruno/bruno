@@ -1,9 +1,8 @@
 import React, { useCallback, useMemo, useRef, useState } from 'react';
 import { useSelector } from 'react-redux';
 import get from 'lodash/get';
-import { IconStars, IconX, IconArrowBackUp } from '@tabler/icons';
-import { aiGenerateScript } from 'utils/ai';
-import { getPlatformModifierKey } from 'utils/common/platform';
+import { IconStars, IconX, IconArrowBackUp, IconPlayerStop } from '@tabler/icons';
+import { aiGenerateScript, stopAiGeneration } from 'utils/ai';
 import StyledWrapper from './StyledWrapper';
 
 const SUGGESTIONS = {
@@ -67,6 +66,7 @@ const AIAssist = ({ scriptType, currentScript, requestContext, docsContext, vari
   const [error, setError] = useState(null);
   const [generated, setGenerated] = useState(null);
   const buttonRef = useRef(null);
+  const streamIdRef = useRef(null);
 
   const focusOnMount = useCallback((el) => {
     el?.focus();
@@ -109,6 +109,9 @@ const AIAssist = ({ scriptType, currentScript, requestContext, docsContext, vari
       setIsLoading(true);
       setError(null);
 
+      const streamId = `sparkle-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+      streamIdRef.current = streamId;
+
       try {
         const result = await aiGenerateScript({
           scriptType,
@@ -116,8 +119,12 @@ const AIAssist = ({ scriptType, currentScript, requestContext, docsContext, vari
           currentScript: currentScript || '',
           requestContext,
           docsContext,
-          variables
+          variables,
+          streamId
         });
+        if (result?.stopped) {
+          return;
+        }
         if (result?.error) {
           setError(result.error);
           return;
@@ -130,11 +137,18 @@ const AIAssist = ({ scriptType, currentScript, requestContext, docsContext, vari
       } catch (err) {
         setError(err?.message || 'Failed to generate script');
       } finally {
+        streamIdRef.current = null;
         setIsLoading(false);
       }
     },
     [prompt, isLoading, scriptType, currentScript, requestContext, docsContext, variables]
   );
+
+  const handleStop = useCallback(() => {
+    if (streamIdRef.current) {
+      stopAiGeneration(streamIdRef.current);
+    }
+  }, []);
 
   const handleApply = useCallback(() => {
     if (generated == null) return;
@@ -185,7 +199,7 @@ const AIAssist = ({ scriptType, currentScript, requestContext, docsContext, vari
                   value={prompt}
                   onChange={(e) => setPrompt(e.target.value)}
                   onKeyDown={(e) => {
-                    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+                    if (e.key === 'Enter' && !e.shiftKey) {
                       e.preventDefault();
                       handleGenerate();
                     }
@@ -221,16 +235,27 @@ const AIAssist = ({ scriptType, currentScript, requestContext, docsContext, vari
                     Generating...
                   </span>
                 ) : (
-                  <span className="popup-hint">{getPlatformModifierKey()} + Enter to generate</span>
+                  <span className="popup-hint">Enter to generate · Shift+Enter for newline</span>
                 )}
-                <button
-                  className="btn-generate"
-                  type="button"
-                  onClick={() => handleGenerate()}
-                  disabled={!prompt.trim() || isLoading}
-                >
-                  Generate
-                </button>
+                {isLoading ? (
+                  <button
+                    className="btn-stop"
+                    type="button"
+                    onClick={handleStop}
+                    title="Stop generating"
+                  >
+                    <IconPlayerStop size={12} /> Stop
+                  </button>
+                ) : (
+                  <button
+                    className="btn-generate"
+                    type="button"
+                    onClick={() => handleGenerate()}
+                    disabled={!prompt.trim()}
+                  >
+                    Generate
+                  </button>
+                )}
               </div>
             </>
           ) : (
