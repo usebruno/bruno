@@ -93,11 +93,20 @@ const StyledWrapper = styled.div.attrs((props) => ({
   }
 
   li:hover &.has-changes {
-    .draft-icon-wrapper { 
-      display: none; 
+    .draft-icon-wrapper {
+      display: none;
     }
-    .close-icon-wrapper { 
-      display: flex; 
+    .close-icon-wrapper {
+      display: flex;
+    }
+  }
+
+  &.no-close,
+  li:hover &.no-close {
+    pointer-events: none;
+
+    .draft-icon-wrapper {
+      display: flex;
     }
   }
 `;
