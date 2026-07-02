@@ -1726,25 +1726,6 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
     }
   });
 
-  ipcMain.handle('renderer:unignore-folder', async (event, collectionUid, collectionPath, collectionRoot, brunoConfig, relativePath) => {
-    try {
-      const normalizedPath = relativePath.replace(/\\/g, '/');
-      const existingIgnores = brunoConfig?.ignore || [];
-      const updatedBrunoConfig = {
-        ...brunoConfig,
-        ignore: existingIgnores.filter((p) => p.replace(/\\/g, '/') !== normalizedPath)
-      };
-
-      await writeBrunoConfig(updatedBrunoConfig, collectionPath, collectionRoot);
-      setBrunoConfig(collectionUid, updatedBrunoConfig);
-      collectionWatcher.addItemPathInWatcher(path.resolve(collectionPath, relativePath));
-
-      return updatedBrunoConfig;
-    } catch (error) {
-      return Promise.reject(error);
-    }
-  });
-
   ipcMain.handle('renderer:open-devtools', async () => {
     mainWindow.webContents.openDevTools();
   });
