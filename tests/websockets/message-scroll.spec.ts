@@ -1,7 +1,7 @@
-import { expect, test } from '../../../playwright';
-import { openRequest, selectRequestPaneTab, closeAllCollections } from '../../utils/page/actions';
+import { expect, test } from '../../playwright';
+import { openRequest, selectRequestPaneTab, closeAllCollections } from '../utils/page/actions';
 
-const COLLECTION_NAME = 'ws-tab-switch-scroll';
+const COLLECTION_NAME = 'collection';
 const LONG_MSG_REQ = 'ws-long-msg';
 
 test.describe('websocket message list scroll on tab switch', () => {
