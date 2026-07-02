@@ -10,6 +10,8 @@ import {
   IconX,
   IconCheck,
   IconRefresh,
+  IconLock,
+  IconLockOpen,
   IconDeviceFloppy,
   IconArrowRight,
   IconCode
@@ -26,6 +28,13 @@ import useReflectionManagement from 'hooks/useReflectionManagement/index';
 import useProtoFileManagement from 'hooks/useProtoFileManagement/index';
 import MethodDropdown from './MethodDropdown';
 import ProtoFileDropdown from './ProtoFileDropdown';
+import {
+  isSecureGrpcUrl,
+  setGrpcUrlSecureScheme,
+  getDisplayGrpcUrl,
+  hasGrpcUrlHost,
+  resolveSecureForInput
+} from './grpcUrl';
 
 const STREAMING_METHOD_TYPES = ['client-streaming', 'server-streaming', 'bidi-streaming'];
 const CLIENT_STREAMING_METHOD_TYPES = ['client-streaming', 'bidi-streaming'];
@@ -36,6 +45,12 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
   const method = getPropertyFromDraftOrRequest(item, 'request.method');
   const type = getPropertyFromDraftOrRequest(item, 'request.type');
   const url = getPropertyFromDraftOrRequest(item, 'request.url', '');
+  const displayUrl = getDisplayGrpcUrl(url);
+  // TLS is driven by the URL scheme; the lock reflects it (host-inferred when no
+  // scheme is present, and shown as plaintext when the host is an unresolved
+  // variable). The toggle is always available — it simply writes grpc:// or
+  // grpcs:// onto the URL, which is well-defined even for {{variable}} hosts.
+  const tlsSecure = isSecureGrpcUrl(url);
   const isMac = isMacOS();
   const saveShortcut = isMac ? 'Cmd + S' : 'Ctrl + S';
   const editorRef = useRef(null);
@@ -55,6 +70,8 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
   const methodDropdownRef = useRef(null);
   const protoDropdownRef = useRef(null);
   const haveFetchedMethodsRef = useRef(false);
+  const onUrlChangeRef = useRef(null);
+  const debouncedOnUrlChangeRef = useRef(null);
 
   const protoFileManagement = useProtoFileManagement(collection, protoFilePath);
   const reflectionManagement = useReflectionManagement(item, collection.uid);
@@ -88,12 +105,29 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
     dispatch(saveRequest(item.uid, collection.uid));
   };
 
+  const resolveFinalUrlFromInput = (value) => {
+    const trimmedValue = value?.trim() || '';
+    // Preserve an explicitly chosen scheme; otherwise keep scheme-less URLs
+    // scheme-less so the backend can keep inferring the transport until the user
+    // makes an explicit TLS choice with the lock toggle.
+    const secureUrl = resolveSecureForInput(url, trimmedValue);
+    let finalUrl = '';
+    if (trimmedValue) {
+      finalUrl = trimmedValue;
+      if (secureUrl !== undefined) {
+        finalUrl = setGrpcUrlSecureScheme(trimmedValue, secureUrl);
+      }
+    }
+
+    return finalUrl;
+  };
+
   const onUrlChange = (value) => {
     if (!editorRef.current?.editor) return;
     const editor = editorRef.current.editor;
     const cursor = editor.getCursor();
 
-    const finalUrl = value?.trim() || value;
+    const finalUrl = resolveFinalUrlFromInput(value);
 
     dispatch(
       requestUrlChanged({
@@ -103,7 +137,7 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
       })
     );
 
-    if (finalUrl !== value) {
+    if (getDisplayGrpcUrl(finalUrl) !== value) {
       setTimeout(() => {
         if (editor) {
           editor.setCursor(cursor);
@@ -111,11 +145,19 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
       }, 0);
     }
 
-    if (!protoFilePath && value) {
+    if (!protoFilePath && hasGrpcUrlHost(finalUrl)) {
       setIsReflectionMode(true);
       handleReflection(finalUrl);
     }
   };
+
+  onUrlChangeRef.current = onUrlChange;
+  if (!debouncedOnUrlChangeRef.current) {
+    debouncedOnUrlChangeRef.current = debounce((value) => {
+      onUrlChangeRef.current?.(value);
+    }, 1000);
+  }
+  const debouncedOnUrlChange = debouncedOnUrlChangeRef.current;
 
   const handleReflection = async (url, isManualRefresh = false) => {
     const { methods, error, fromCache } = await reflectionManagement.loadMethodsFromReflection(url, isManualRefresh);
@@ -221,6 +263,28 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
     }
   };
 
+  const handleTlsToggle = (e) => {
+    e.stopPropagation();
+    debouncedOnUrlChange.cancel();
+
+    const currentValue = editorRef.current?.editor?.getValue() ?? displayUrl;
+    const currentUrl = resolveFinalUrlFromInput(currentValue);
+    const secureUrl = !isSecureGrpcUrl(currentUrl);
+    const finalUrl = setGrpcUrlSecureScheme(currentUrl, secureUrl);
+
+    dispatch(
+      requestUrlChanged({
+        itemUid: item.uid,
+        collectionUid: collection.uid,
+        url: finalUrl
+      })
+    );
+
+    if (isReflectionMode && hasGrpcUrlHost(finalUrl)) {
+      handleReflection(finalUrl);
+    }
+  };
+
   const handleGrpcMethodSelect = (method) => {
     const methodType = method.type;
     setSelectedGrpcMethod({
@@ -277,7 +341,11 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
     }
   };
 
-  const debouncedOnUrlChange = debounce(onUrlChange, 1000);
+  useEffect(() => {
+    return () => {
+      debouncedOnUrlChange.cancel();
+    };
+  }, [debouncedOnUrlChange]);
 
   useEffect(() => {
     if (haveFetchedMethodsRef.current) {
@@ -301,11 +369,30 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
         <div className="flex items-center justify-center h-full px-[10px]" data-testid="grpc-method-indicator">
           <span className="text-xs font-medium" style={{ color: theme.request.grpc }}>gRPC</span>
         </div>
+        <button
+          type="button"
+          className="tls-toggle h-full px-[10px] flex items-center justify-center"
+          data-testid="grpc-tls-toggle"
+          title={
+            tlsSecure
+              ? 'TLS enabled (grpcs://). Click to use plaintext (grpc://)'
+              : 'TLS disabled (grpc://). Click to use TLS (grpcs://)'
+          }
+          aria-label={tlsSecure ? 'TLS enabled' : 'TLS disabled'}
+          aria-pressed={tlsSecure}
+          onClick={handleTlsToggle}
+        >
+          {tlsSecure ? (
+            <IconLock size={18} strokeWidth={2} color={theme.colors.text.green} />
+          ) : (
+            <IconLockOpen size={18} strokeWidth={2} color={theme.requestTabs.icon.color} />
+          )}
+        </button>
       </div>
       <div className="flex items-center w-full input-container h-full relative overflow-auto">
         <SingleLineEditor
           ref={editorRef}
-          value={url}
+          value={displayUrl}
           onSave={(finalValue) => onSave(finalValue)}
           theme={storedTheme}
           onChange={(newValue) => debouncedOnUrlChange(newValue)}
