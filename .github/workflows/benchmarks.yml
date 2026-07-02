@@ -6,8 +6,9 @@ on:
         description: 'Update baseline with current results instead of comparing'
         type: boolean
         default: false
-  pull_request:
-    branches: [main, 'release/v*']
+  # Temporarily disabled - re-enable by uncommenting
+  # pull_request:
+  #   branches: [main, 'release/v*']
 
 jobs:
   benchmark:
