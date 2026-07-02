@@ -18,6 +18,7 @@ export const PROXY_ENV_KEYS = [
 ] as const;
 
 const fetchShellEnv = async (): Promise<Record<string, string>> => {
+  // Windows handles environment variables differently - skip
   if (process.platform === 'win32') {
     return {};
   }
