@@ -2,6 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const _ = require('lodash');
 const { parseEnvironment, stringifyEnvironment } = require('@usebruno/filestore');
+const { parseValueByDataType } = require('@usebruno/common/utils');
 const { writeFile, createDirectory } = require('../utils/filesystem');
 const { generateUidBasedOnHash, uuid } = require('../utils/common');
 const { decryptStringSafe } = require('../utils/encryption');
@@ -73,7 +74,7 @@ class GlobalEnvironmentsManager {
         const variable = _.find(environment.variables, (v) => v.name === secret.name);
         if (variable && secret.value) {
           const decryptionResult = decryptStringSafe(secret.value);
-          variable.value = decryptionResult.value;
+          variable.value = parseValueByDataType(decryptionResult.value, variable.dataType);
         }
       });
     }

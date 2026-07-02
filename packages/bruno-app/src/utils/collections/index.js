@@ -1,6 +1,5 @@
 import { cloneDeep, isEqual, sortBy, filter, map, isString, findIndex, find, each, get } from 'lodash';
 import { uuid } from 'utils/common';
-import { buildPersistedEnvVariables } from 'utils/environments';
 import { sortByNameThenSequence } from 'utils/common/index';
 import path from 'utils/common/path';
 import { isRequestTagsIncluded } from '@usebruno/common';
@@ -603,11 +602,7 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
   collectionToSave.version = '1';
   collectionToSave.items = [];
   collectionToSave.activeEnvironmentUid = collection.activeEnvironmentUid;
-  // Save environments without runtime metadata (ephemeral/persistedValue)
-  collectionToSave.environments = (collection.environments || []).map((env) => ({
-    ...env,
-    variables: buildPersistedEnvVariables(env?.variables, { mode: 'save' })
-  }));
+  collectionToSave.environments = collection.environments || [];
 
   collectionToSave.root = {
     request: {}
@@ -691,6 +686,19 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
 export const transformRequestToSaveToFilesystem = (item) => {
   const _item = item.draft ? item.draft : item;
 
+  // Standalone app items have no request, emit only what the filestore needs.
+  if (_item.type === 'app') {
+    return {
+      uid: _item.uid,
+      type: 'app',
+      name: _item.name,
+      seq: _item.seq,
+      tags: _item.tags,
+      settings: _item.settings,
+      app: { code: _item.app?.code || '' }
+    };
+  }
+
   // Transform examples to ensure status is a number
   const transformExamples = (examples = []) => {
     return map(examples, (example) => ({
@@ -704,6 +712,10 @@ export const transformRequestToSaveToFilesystem = (item) => {
     }));
   };
 
+  const appToSave = _item.app && _item.app.code && _item.app.code.length
+    ? { code: _item.app.code }
+    : null;
+
   const itemToSave = {
     uid: _item.uid,
     type: _item.type,
@@ -711,6 +723,7 @@ export const transformRequestToSaveToFilesystem = (item) => {
     seq: _item.seq,
     settings: _item.settings,
     tags: _item.tags,
+    app: appToSave,
     examples: transformExamples(_item.examples || []),
     request: {
       method: _item.request.method,
@@ -886,6 +899,21 @@ export const isItemARequest = (item) => {
 
 export const isItemAFolder = (item) => {
   return !item.hasOwnProperty('request') && item.type === 'folder';
+};
+
+/**
+ * Counts the folders and requests in a collection's item tree, recursively at every
+ * depth. Used to summarise a collection (e.g. in the Generate Documentation modal).
+ *
+ * @param {Array} items - The collection's `items` tree.
+ * @returns {{ folderCount: number, requestCount: number }}
+ */
+export const getCollectionItemCounts = (items = []) => {
+  const flattened = flattenItems(items);
+  return {
+    folderCount: flattened.filter(isItemAFolder).length,
+    requestCount: flattened.filter(isItemARequest).length
+  };
 };
 
 /**
@@ -1188,7 +1216,7 @@ export const getEnvironmentVariables = (collection) => {
     const environment = findEnvironmentInCollection(collection, collection.activeEnvironmentUid);
     if (environment) {
       each(environment.variables, (variable) => {
-        if (variable.name && variable.value && variable.enabled) {
+        if (variable.name && variable.enabled) {
           variables[variable.name] = variable.value;
         }
       });
@@ -1696,7 +1724,7 @@ export const getVariableScope = (variableName, collection, item) => {
 
   // 5. Check Global Environment Variables
   const { globalEnvironmentVariables = {} } = collection;
-  if (globalEnvironmentVariables && globalEnvironmentVariables[variableName]) {
+  if (variableName in globalEnvironmentVariables) {
     return {
       type: 'global',
       value: globalEnvironmentVariables[variableName],
@@ -1706,7 +1734,7 @@ export const getVariableScope = (variableName, collection, item) => {
 
   // 6. Check Runtime Variables (set during request execution via scripts)
   const { runtimeVariables = {} } = collection;
-  if (runtimeVariables && runtimeVariables[variableName]) {
+  if (variableName in runtimeVariables) {
     return {
       type: 'runtime',
       value: runtimeVariables[variableName],

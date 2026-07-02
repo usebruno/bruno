@@ -1,7 +1,7 @@
 import { test, expect } from '../../../playwright';
 import { closeAllCollections, createCollection } from '../../utils/page';
 
-test.describe('Copy and Paste with Keyboard Shortcuts', () => {
+test.describe.serial('Copy and Paste with Keyboard Shortcuts', () => {
   test.afterAll(async ({ page }) => {
     await closeAllCollections(page);
   });

@@ -6,6 +6,8 @@ import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collection
 import { updateTableColumnWidths } from 'providers/ReduxStore/slices/tabs';
 import MultiLineEditor from 'components/MultiLineEditor';
 import InfoTip from 'components/InfoTip';
+import DataTypeSelector from 'components/DataTypeSelector';
+import { valueToString } from '@usebruno/common/utils';
 import EditableTable from 'components/EditableTable';
 import StyledWrapper from './StyledWrapper';
 import toast from 'react-hot-toast';
@@ -72,17 +74,33 @@ const VarsTable = ({ item, collection, vars, varType, initialScroll = 0 }) => {
         </div>
       ),
       placeholder: varType === 'request' ? 'Value' : 'Expr',
-      render: ({ value, onChange }) => (
-        <MultiLineEditor
-          value={value || ''}
-          theme={storedTheme}
-          onSave={onSave}
-          onChange={onChange}
-          onRun={handleRun}
-          collection={collection}
-          item={item}
-          placeholder={!value ? (varType === 'request' ? 'Value' : 'Expr') : ''}
-        />
+      render: ({ row, value, onChange, isLastEmptyRow }) => (
+        <div className="flex items-center w-full gap-2">
+          <div className="flex-1 min-w-0">
+            <MultiLineEditor
+              value={valueToString(value)}
+              theme={storedTheme}
+              onSave={onSave}
+              onChange={onChange}
+              onRun={handleRun}
+              collection={collection}
+              item={item}
+              placeholder={value == null || (typeof value === 'string' && value.trim() === '') ? (varType === 'request' ? 'Value' : 'Expr') : ''}
+            />
+          </div>
+          {/* DataTypes apply to literal values, not to the JS expression that produces a post-response value. */}
+          {!isLastEmptyRow && varType === 'request' && (
+            <DataTypeSelector
+              variable={row}
+              theme={storedTheme}
+              collection={collection}
+              onChange={(fields) => {
+                const updated = (vars || []).map((v) => v.uid === row.uid ? { ...v, ...fields } : v);
+                handleVarsChange(updated);
+              }}
+            />
+          )}
+        </div>
       )
     }
   ];
@@ -97,6 +115,7 @@ const VarsTable = ({ item, collection, vars, varType, initialScroll = 0 }) => {
     <StyledWrapper className="w-full">
       <EditableTable
         tableId="request-vars"
+        testId={`request-vars-${varType === 'response' ? 'res' : 'req'}`}
         columns={columns}
         rows={vars || []}
         onChange={handleVarsChange}

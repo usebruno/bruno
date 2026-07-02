@@ -45,6 +45,15 @@ const StyledWrapper = styled.div`
     text-decoration: underline;
   }
 
+  .cm-ghost-text-ai {
+    opacity: 0.45;
+    color: ${(props) => props.theme.colors.text.muted};
+    font-style: italic;
+    pointer-events: none;
+    user-select: none;
+    white-space: pre;
+  }
+
   /* Removes the glow outline around the folded json */
   .CodeMirror-foldmarker {
     text-shadow: none;

@@ -1,7 +1,7 @@
 import { toBrunoVariables, toOpenCollectionVariables } from '../common/variables';
 
 describe('yml variables - typed values (collection / folder / request vars)', () => {
-  it('reads a typed value keeping the value as a string and the type in datatype', () => {
+  it('reads a typed value coercing it to its native JS type and records the dataType', () => {
     const ocVariables = [
       { name: 'var_str', value: 'plain' },
       { name: 'var_num', value: { type: 'number', data: '300' } },
@@ -12,16 +12,16 @@ describe('yml variables - typed values (collection / folder / request vars)', ()
     const { req } = toBrunoVariables(ocVariables);
 
     expect(req.find((v) => v.name === 'var_str')).toMatchObject({ value: 'plain' });
-    expect(req.find((v) => v.name === 'var_str')).not.toHaveProperty('datatype');
-    expect(req.find((v) => v.name === 'var_num')).toMatchObject({ value: '300', datatype: 'number' });
-    expect(req.find((v) => v.name === 'var_bool')).toMatchObject({ value: 'false', datatype: 'boolean' });
-    expect(req.find((v) => v.name === 'var_obj')).toMatchObject({ value: '{"scope":"folder"}', datatype: 'object' });
+    expect(req.find((v) => v.name === 'var_str')).not.toHaveProperty('dataType');
+    expect(req.find((v) => v.name === 'var_num')).toMatchObject({ value: 300, dataType: 'number' });
+    expect(req.find((v) => v.name === 'var_bool')).toMatchObject({ value: false, dataType: 'boolean' });
+    expect(req.find((v) => v.name === 'var_obj')).toMatchObject({ value: { scope: 'folder' }, dataType: 'object' });
   });
 
-  it('writes datatype back as a { type, data } value, leaving plain strings untouched', () => {
+  it('writes dataType back as a { type, data } value, leaving plain strings untouched', () => {
     const brunoVariables = [
       { uid: 'u1', name: 'var_str', value: 'plain', enabled: true, local: false },
-      { uid: 'u2', name: 'var_num', value: '300', datatype: 'number', enabled: true, local: false }
+      { uid: 'u2', name: 'var_num', value: '300', dataType: 'number', enabled: true, local: false }
     ];
 
     const ocVariables = toOpenCollectionVariables(brunoVariables);

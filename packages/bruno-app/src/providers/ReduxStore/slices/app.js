@@ -49,7 +49,8 @@ const initialState = {
     },
     onboarding: {
       hasLaunchedBefore: false,
-      hasSeenWelcomeModal: true
+      hasSeenWelcomeModal: true,
+      lastSeenVersion: null
     },
     autoSave: {
       enabled: false,
@@ -67,7 +68,12 @@ const initialState = {
         anthropic: { enabled: false }
       },
       models: {},
-      defaultModel: ''
+      defaultModel: '',
+      autocomplete: {
+        enabled: true,
+        model: '',
+        triggerMode: 'debounced'
+      }
     }
   },
   generateCode: {

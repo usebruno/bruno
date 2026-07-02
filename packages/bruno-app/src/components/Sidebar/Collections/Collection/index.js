@@ -21,7 +21,8 @@ import {
   IconTerminal2,
   IconFolder,
   IconBook,
-  IconFileArrowRight
+  IconFileArrowRight,
+  IconAppWindow
 } from '@tabler/icons';
 import OpenAPISyncIcon from 'components/Icons/OpenAPISync';
 import { toggleCollection, collapseFullCollection } from 'providers/ReduxStore/slices/collections';
@@ -32,6 +33,7 @@ import { setFocusedSidebarPath } from 'providers/ReduxStore/slices/app';
 import toast from 'react-hot-toast';
 import NewRequest from 'components/Sidebar/NewRequest';
 import NewFolder from 'components/Sidebar/NewFolder';
+import NewApp from 'components/Sidebar/NewApp';
 import CollectionItem from './CollectionItem';
 import RemoveCollection from './RemoveCollection';
 import MoveToWorkspace from './MoveToWorkspace';
@@ -52,8 +54,6 @@ import { getRevealInFolderLabel } from 'utils/common/platform';
 import { openDevtoolsAndSwitchToTerminal } from 'utils/terminal';
 import ActionIcon from 'ui/ActionIcon';
 import MenuDropdown from 'ui/MenuDropdown';
-import StatusBadge from 'ui/StatusBadge';
-import { useBetaFeature, BETA_FEATURES } from 'utils/beta-features';
 import { useSidebarAccordion } from 'components/Sidebar/SidebarAccordionContext';
 import { createEmptyStateMenuItems } from 'utils/collections/emptyStateRequest';
 import useKeybinding from 'hooks/useKeybinding';
@@ -63,10 +63,10 @@ import useKeybinding from 'hooks/useKeybinding';
 const EMPTY_STATE_DELAY_MS = 300;
 
 const Collection = ({ collection, searchText }) => {
-  const isOpenAPISyncEnabled = useBetaFeature(BETA_FEATURES.OPENAPI_SYNC);
   const { dropdownContainerRef } = useSidebarAccordion();
   const [showNewFolderModal, setShowNewFolderModal] = useState(false);
   const [showNewRequestModal, setShowNewRequestModal] = useState(false);
+  const [showNewAppModal, setShowNewAppModal] = useState(false);
   const [showRenameCollectionModal, setShowRenameCollectionModal] = useState(false);
   const [showCloneCollectionModalOpen, setShowCloneCollectionModalOpen] = useState(false);
   const [showShareCollectionModal, setShowShareCollectionModal] = useState(false);
@@ -81,7 +81,7 @@ const Collection = ({ collection, searchText }) => {
   const collectionRef = useRef(null);
   // Only count persisted requests and folders; transients and file items
   // (bruno.json, .js scripts) don't affect empty state
-  const itemCount = collection.items?.filter((i) => !i.isTransient && (isItemARequest(i) || isItemAFolder(i))).length || 0;
+  const itemCount = collection.items?.filter((i) => !i.isTransient && (isItemARequest(i) || isItemAFolder(i) || i.type === 'app')).length || 0;
 
   const isCollectionFocused = useSelector(isTabForItemActive({ itemUid: collection.uid }));
   const { hasCopiedItems } = useSelector((state) => state.app.clipboard);
@@ -231,6 +231,11 @@ const Collection = ({ collection, searchText }) => {
     return false;
   }, { enabled: isKeyboardFocused, deps: [isKeyboardFocused] });
 
+  useKeybinding('newRequest', () => {
+    setShowNewRequestModal(true);
+    return false;
+  }, { enabled: isKeyboardFocused, deps: [isKeyboardFocused] });
+
   const handleFocus = () => {
     setIsKeyboardFocused(true);
     dispatch(setFocusedSidebarPath(collection.pathname));
@@ -332,7 +337,11 @@ const Collection = ({ collection, searchText }) => {
     return items.sort((a, b) => a.seq - b.seq);
   };
 
-  const requestItems = sortItemsBySequence(filter(collection.items, (i) => isItemARequest(i) && !i.isTransient));
+  // Standalone 'app' items sit alongside requests in the listing — both are
+  // file leaves that share the seq-based ordering.
+  const requestItems = sortItemsBySequence(
+    filter(collection.items, (i) => (isItemARequest(i) || i.type === 'app') && !i.isTransient)
+  );
   const folderItems = sortByNameThenSequence(filter(collection.items, (i) => isItemAFolder(i) && !i.isTransient));
   const showEmptyCollectionMessage = showEmptyState && !hasSearchText;
 
@@ -358,6 +367,15 @@ const Collection = ({ collection, searchText }) => {
       }
     },
     {
+      id: 'new-app',
+      leftSection: IconAppWindow,
+      label: 'New App',
+      onClick: () => {
+        ensureCollectionIsMounted();
+        setShowNewAppModal(true);
+      }
+    },
+    {
       id: 'run',
       leftSection: IconPlayerPlay,
       label: 'Run',
@@ -375,13 +393,12 @@ const Collection = ({ collection, searchText }) => {
         setShowCloneCollectionModalOpen(true);
       }
     },
-    ...(isOpenAPISyncEnabled ? [{
+    {
       id: 'sync-openapi',
       leftSection: OpenAPISyncIcon,
       label: 'OpenAPI',
-      rightSection: <StatusBadge status="info" size="xs">Beta</StatusBadge>,
       onClick: openOpenAPISyncTab
-    }] : []),
+    },
     ...(hasCopiedItems
       ? [
           {
@@ -476,6 +493,7 @@ const Collection = ({ collection, searchText }) => {
     <StyledWrapper className="flex flex-col" id={`collection-${collection.name.replace(/\s+/g, '-').toLowerCase()}`}>
       {showNewRequestModal && <NewRequest collectionUid={collection.uid} onClose={() => setShowNewRequestModal(false)} />}
       {showNewFolderModal && <NewFolder collectionUid={collection.uid} onClose={() => setShowNewFolderModal(false)} />}
+      {showNewAppModal && <NewApp collectionUid={collection.uid} onClose={() => setShowNewAppModal(false)} />}
       {showRenameCollectionModal && (
         <RenameCollection collectionUid={collection.uid} onClose={() => setShowRenameCollectionModal(false)} />
       )}

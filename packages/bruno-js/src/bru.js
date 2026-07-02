@@ -1,4 +1,4 @@
-const { cloneDeep } = require('lodash');
+const { cloneDeep, isEqual } = require('lodash');
 const xmlFormat = require('xml-formatter');
 const { interpolate: _interpolate } = require('@usebruno/common');
 const { createSendRequest } = require('@usebruno/requests').scripting;
@@ -76,8 +76,11 @@ class Bru {
       createCookieJar,
       getCookiesForUrl
     });
-    // Holds variables that are marked as persistent by scripts
-    this.persistentEnvVariables = {};
+    // Dirty flags — set by mutators so runtimes can skip IPC/disk writes for unchanged scopes
+    this._envDirty = false;
+    this._globalEnvDirty = false;
+    this._collVarsDirty = false;
+    this._runtimeVarsDirty = false;
     // Holds credential IDs to be reset after script execution
     this.oauth2CredentialsToReset = [];
     this.runner = {
@@ -192,7 +195,7 @@ class Bru {
     return this.interpolate(this.envVariables[key]);
   }
 
-  setEnvVar(key, value, options = {}) {
+  setEnvVar(key, value) {
     if (!key) {
       throw new Error('Creating a env variable without specifying a name is not allowed.');
     }
@@ -203,24 +206,21 @@ class Bru {
       );
     }
 
-    // When persist is true, only string values are allowed
-    if (options?.persist && typeof value !== 'string') {
-      throw new Error(`Persistent environment variables must be strings. Received ${typeof value} for key "${key}".`);
-    }
-
-    this.envVariables[key] = value;
-
-    if (options?.persist) {
-      this.persistentEnvVariables[key] = value;
-    } else {
-      if (this.persistentEnvVariables[key]) {
-        delete this.persistentEnvVariables[key];
-      }
+    // Deep-equal compare so object/array writes that mutate in place
+    // (e.g. `const c = bru.getEnvVar('cfg'); c.port = 4000; bru.setEnvVar('cfg', c);`)
+    // still flip the dirty flag — strict `!==` returned false for same-reference writes.
+    if (!Object.hasOwn(this.envVariables, key) || !isEqual(this.envVariables[key], value)) {
+      this.envVariables[key] = value;
+      this._envDirty = true;
     }
   }
 
   deleteEnvVar(key) {
-    delete this.envVariables[key];
+    if (key === '__name__') return;
+    if (Object.hasOwn(this.envVariables, key)) {
+      delete this.envVariables[key];
+      this._envDirty = true;
+    }
   }
 
   getAllEnvVars() {
@@ -230,15 +230,15 @@ class Bru {
   }
 
   deleteAllEnvVars() {
-    const envName = this.envVariables.__name__;
-    for (let key in this.envVariables) {
-      if (this.envVariables.hasOwnProperty(key)) {
-        delete this.envVariables[key];
-      }
+    // Iterate via Object.keys (own enumerable) so a user-set `hasOwnProperty` var
+    // can't shadow Object.prototype.hasOwnProperty and crash the loop.
+    let removed = false;
+    for (const key of Object.keys(this.envVariables)) {
+      if (key === '__name__') continue;
+      delete this.envVariables[key];
+      removed = true;
     }
-    if (envName !== undefined) {
-      this.envVariables.__name__ = envName;
-    }
+    if (removed) this._envDirty = true;
   }
 
   hasGlobalEnvVar(key) {
@@ -254,28 +254,31 @@ class Bru {
       throw new Error('Creating a env variable without specifying a name is not allowed.');
     }
 
-    this.globalEnvironmentVariables[key] = value;
+    if (!Object.hasOwn(this.globalEnvironmentVariables, key) || !isEqual(this.globalEnvironmentVariables[key], value)) {
+      this.globalEnvironmentVariables[key] = value;
+      this._globalEnvDirty = true;
+    }
   }
 
-  // TODO: deleteGlobalEnvVar works in the request lifecycle but does not update the UI.
-  // Re-enable once the UI sync issue is resolved.
-  // deleteGlobalEnvVar(key) {
-  //   delete this.globalEnvironmentVariables[key];
-  // }
+  deleteGlobalEnvVar(key) {
+    if (Object.hasOwn(this.globalEnvironmentVariables, key)) {
+      delete this.globalEnvironmentVariables[key];
+      this._globalEnvDirty = true;
+    }
+  }
 
   getAllGlobalEnvVars() {
     return Object.assign({}, this.globalEnvironmentVariables);
   }
 
-  // TODO: deleteAllGlobalEnvVars works in the request lifecycle but does not update the UI.
-  // Re-enable once the UI sync issue is resolved.
-  // deleteAllGlobalEnvVars() {
-  //   for (let key in this.globalEnvironmentVariables) {
-  //     if (this.globalEnvironmentVariables.hasOwnProperty(key)) {
-  //       delete this.globalEnvironmentVariables[key];
-  //     }
-  //   }
-  // }
+  deleteAllGlobalEnvVars() {
+    const keys = Object.keys(this.globalEnvironmentVariables);
+    if (!keys.length) return;
+    for (const key of keys) {
+      delete this.globalEnvironmentVariables[key];
+    }
+    this._globalEnvDirty = true;
+  }
 
   getOauth2CredentialVar(key) {
     return this.interpolate(this.oauth2CredentialVariables[key]);
@@ -315,7 +318,10 @@ class Bru {
       );
     }
 
-    this.runtimeVariables[key] = value;
+    if (!Object.hasOwn(this.runtimeVariables, key) || !isEqual(this.runtimeVariables[key], value)) {
+      this.runtimeVariables[key] = value;
+      this._runtimeVarsDirty = true;
+    }
   }
 
   getVar(key) {
@@ -330,15 +336,19 @@ class Bru {
   }
 
   deleteVar(key) {
-    delete this.runtimeVariables[key];
+    if (Object.hasOwn(this.runtimeVariables, key)) {
+      delete this.runtimeVariables[key];
+      this._runtimeVarsDirty = true;
+    }
   }
 
   deleteAllVars() {
-    for (let key in this.runtimeVariables) {
-      if (this.runtimeVariables.hasOwnProperty(key)) {
-        delete this.runtimeVariables[key];
-      }
+    const keys = Object.keys(this.runtimeVariables);
+    if (!keys.length) return;
+    for (const key of keys) {
+      delete this.runtimeVariables[key];
     }
+    this._runtimeVarsDirty = true;
   }
 
   getAllVars() {
@@ -349,48 +359,47 @@ class Bru {
     return this.interpolate(this.collectionVariables[key]);
   }
 
-  // TODO: setCollectionVar works in the request lifecycle but does not update the UI.
-  // Re-enable once the UI sync issue is resolved.
-  // setCollectionVar(key, value) {
-  //   if (!key) {
-  //     throw new Error('Creating a variable without specifying a name is not allowed.');
-  //   }
-  //
-  //   if (variableNameRegex.test(key) === false) {
-  //     throw new Error(
-  //       `Variable name: "${key}" contains invalid characters!`
-  //       + ' Names must only contain alpha-numeric characters, "-", "_", "."'
-  //     );
-  //   }
-  //
-  //   this.collectionVariables[key] = value;
-  // }
+  setCollectionVar(key, value) {
+    if (!key) {
+      throw new Error('Creating a variable without specifying a name is not allowed.');
+    }
+
+    if (variableNameRegex.test(key) === false) {
+      throw new Error(
+        `Variable name: "${key}" contains invalid characters!`
+        + ' Names must only contain alpha-numeric characters, "-", "_", "."'
+      );
+    }
+
+    if (!Object.hasOwn(this.collectionVariables, key) || !isEqual(this.collectionVariables[key], value)) {
+      this.collectionVariables[key] = value;
+      this._collVarsDirty = true;
+    }
+  }
 
   hasCollectionVar(key) {
     return Object.hasOwn(this.collectionVariables, key);
   }
 
-  // TODO: deleteCollectionVar works in the request lifecycle but does not update the UI.
-  // Re-enable once the UI sync issue is resolved.
-  // deleteCollectionVar(key) {
-  //   delete this.collectionVariables[key];
-  // }
+  deleteCollectionVar(key) {
+    if (Object.hasOwn(this.collectionVariables, key)) {
+      delete this.collectionVariables[key];
+      this._collVarsDirty = true;
+    }
+  }
 
-  // TODO: deleteAllCollectionVars works in the request lifecycle but does not update the UI.
-  // Re-enable once the UI sync issue is resolved.
-  // deleteAllCollectionVars() {
-  //   for (let key in this.collectionVariables) {
-  //     if (this.collectionVariables.hasOwnProperty(key)) {
-  //       delete this.collectionVariables[key];
-  //     }
-  //   }
-  // }
+  deleteAllCollectionVars() {
+    const keys = Object.keys(this.collectionVariables);
+    if (!keys.length) return;
+    for (const key of keys) {
+      delete this.collectionVariables[key];
+    }
+    this._collVarsDirty = true;
+  }
 
-  // TODO: getAllCollectionVars works in the request lifecycle but does not update the UI.
-  // Re-enable once the UI sync issue is resolved.
-  // getAllCollectionVars() {
-  //   return Object.assign({}, this.collectionVariables);
-  // }
+  getAllCollectionVars() {
+    return Object.assign({}, this.collectionVariables);
+  }
 
   getFolderVar(key) {
     return this.interpolate(this.folderVariables[key]);

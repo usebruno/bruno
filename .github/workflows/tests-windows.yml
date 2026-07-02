@@ -6,6 +6,10 @@ on:
   pull_request:
     branches: [main, 'release/v*']
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   unit-test:
     name: Unit Tests (Windows)
@@ -58,7 +62,7 @@ jobs:
 
   e2e-test:
     name: Playwright E2E Tests (Windows)
-    timeout-minutes: 120
+    timeout-minutes: 240
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v6
