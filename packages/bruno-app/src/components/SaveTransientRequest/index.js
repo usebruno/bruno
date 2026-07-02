@@ -25,7 +25,7 @@ import { uuid } from 'utils/common';
 import { formatIpcError } from 'utils/common/error';
 import get from 'lodash/get';
 
-const SaveTransientRequest = ({ item: itemProp, collection: collectionProp, isOpen = false, onClose }) => {
+const SaveTransientRequest = ({ item: itemProp, collection: collectionProp, isOpen = false, onClose, closeAfterSave = false }) => {
   const dispatch = useDispatch();
 
   const latestCollection = useSelector((state) =>
@@ -222,15 +222,17 @@ const SaveTransientRequest = ({ item: itemProp, collection: collectionProp, isOp
         sourceFormat
       });
 
-      dispatch(
-        insertTaskIntoQueue({
-          uid: uuid(),
-          type: 'OPEN_REQUEST',
-          collectionUid: targetCollection.uid,
-          itemPathname: targetPathname,
-          preview: false
-        })
-      );
+      if (!closeAfterSave) {
+        dispatch(
+          insertTaskIntoQueue({
+            uid: uuid(),
+            type: 'OPEN_REQUEST',
+            collectionUid: targetCollection.uid,
+            itemPathname: targetPathname,
+            preview: false
+          })
+        );
+      }
 
       dispatch(closeTabs({ tabUids: [item.uid] }));
 
