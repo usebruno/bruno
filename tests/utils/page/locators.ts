@@ -188,8 +188,9 @@ export const buildCommonLocators = (page: Page) => ({
     heading: () => page.locator('.bruno-modal').getByText('Interactive API Documentation'),
     generateButton: () => page.locator('.bruno-modal').getByRole('button', { name: 'Generate', exact: true }),
     cancelButton: () => page.locator('.bruno-modal').getByRole('button', { name: 'Cancel', exact: true }),
-    // Collection version (read-only) display
+    // Collection name + version (read-only) display
     versionInfo: () => page.locator('.bruno-modal').getByTestId('version-info'),
+    collectionName: () => page.locator('.bruno-modal').getByTestId('collection-name'),
     versionValue: () => page.locator('.bruno-modal').getByTestId('version-value'),
     versionCounts: () => page.locator('.bruno-modal').getByTestId('version-summary'),
     // Environment selection list
