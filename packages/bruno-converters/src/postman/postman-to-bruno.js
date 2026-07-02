@@ -499,7 +499,8 @@ const importPostmanV2CollectionItem = (brunoParent, item, { useWorkers = false }
               text: null,
               xml: null,
               formUrlEncoded: [],
-              multipartForm: []
+              multipartForm: [],
+              file: []
             },
             docs: transformDescription(i.request.description)
           }
@@ -609,6 +610,16 @@ const importPostmanV2CollectionItem = (brunoParent, item, { useWorkers = false }
               brunoRequestItem.request.body.text = i.request.body.raw;
             }
           }
+
+          if (bodyMode === 'file') {
+            brunoRequestItem.request.body.mode = 'file';
+            brunoRequestItem.request.body.file.push({
+              uid: uuid(),
+              selected: true,
+              filePath: ensureString(i.request.body.file?.src),
+              contentType: 'application/octet-stream'
+            });
+          }
         }
 
         if (bodyMode === 'graphql') {
@@ -691,7 +702,8 @@ const importPostmanV2CollectionItem = (brunoParent, item, { useWorkers = false }
                   text: null,
                   xml: null,
                   formUrlEncoded: [],
-                  multipartForm: []
+                  multipartForm: [],
+                  file: []
                 }
               },
               response: {
@@ -803,6 +815,14 @@ const importPostmanV2CollectionItem = (brunoParent, item, { useWorkers = false }
                   example.request.body.mode = 'text';
                   example.request.body.text = originalRequest.body.raw;
                 }
+              } else if (bodyMode === 'file') {
+                example.request.body.mode = 'file';
+                example.request.body.file.push({
+                  uid: uuid(),
+                  selected: true,
+                  filePath: ensureString(originalRequest.body.file?.src),
+                  contentType: 'application/octet-stream'
+                });
               }
             }
 
