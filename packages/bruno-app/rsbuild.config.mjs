@@ -29,17 +29,29 @@ export default defineConfig({
   html: {
     title: 'Bruno'
   },
+  output: {
+    // Use relative paths so chunks load correctly from file:// in Electron production builds.
+    // Without this, split chunks would request /chunk.js which fails under file:// protocol.
+    assetPrefix: './',
+  },
   tools: {
     rspack: {
       module: {
-        parser: {
-          javascript: {
-            // This loads the JavaScript contents from a library along with the main JavaScript bundle.
-            dynamicImportMode: "eager",
-          },
-        },
         rules: [
-          { test: /\.md$/, type: 'asset/source' }
+          { test: /\.md$/, type: 'asset/source' },
+          // react-player uses dynamic import() internally to lazy-load player
+          // implementations (YouTube, Vimeo, HLS, etc.). Rspack splits those into
+          // separate chunks that fail to load in Electron's file:// context even
+          // with assetPrefix set. Scoping eager mode to react-player only avoids
+          // the loading failure without collapsing the rest of our code splitting.
+          {
+            test: /node_modules\/react-player/,
+            parser: {
+              javascript: {
+                dynamicImportMode: 'eager',
+              },
+            },
+          },
         ]
       },
       ignoreWarnings: [

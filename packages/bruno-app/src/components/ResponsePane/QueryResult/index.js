@@ -1,7 +1,8 @@
 import { debounce } from 'lodash';
 import { useTheme } from 'providers/Theme/index';
 import React, { useMemo, useState } from 'react';
-import { formatResponse, getContentType } from 'utils/common';
+import { getContentType } from 'utils/common';
+import { formatResponse } from 'utils/common/format-response';
 import { getDefaultResponseFormat, detectContentTypeFromBase64 } from 'utils/response';
 import LargeResponseWarning from '../LargeResponseWarning';
 import QueryResultFilter from './QueryResultFilter';

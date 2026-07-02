@@ -19,6 +19,8 @@ import RunnerResults from 'components/RunnerResults';
 import VariablesEditor from 'components/VariablesEditor';
 import CollectionSettings from 'components/CollectionSettings';
 import { DocExplorer } from '@usebruno/graphql-docs';
+import '@usebruno/graphql-docs/dist/esm/index.css';
+import 'graphiql/graphiql.min.css';
 
 import FileEditor from 'components/FileEditor';
 import AppView from 'components/AppView';

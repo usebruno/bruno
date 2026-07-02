@@ -1,22 +1,13 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, Suspense, lazy } from 'react';
 import classnames from 'classnames';
-import ManageWorkspace from 'components/ManageWorkspace';
-import RequestTabs from 'components/RequestTabs';
-import RequestTabPanel from 'components/RequestTabPanel';
-import AiChatSidebar from 'components/AiChatSidebar';
 import Sidebar from 'components/Sidebar';
 import StatusBar from 'components/StatusBar';
 import AppTitleBar from 'components/AppTitleBar';
-import ApiSpecPanel from 'components/ApiSpecPanel';
-import TabPanelErrorBoundary from 'components/RequestTabPanel/TabPanelErrorBoundary';
+import RequestTabs from 'components/RequestTabs';
 // import ErrorCapture from 'components/ErrorCapture';
 import { useSelector } from 'react-redux';
 import { isElectron } from 'utils/common/platform';
 import StyledWrapper from './StyledWrapper';
-import 'codemirror/theme/material.css';
-import 'codemirror/theme/monokai.css';
-import 'codemirror/addon/scroll/simplescrollbars.css';
-import 'swagger-ui-react/swagger-ui.css';
 import Devtools from 'components/Devtools';
 import useGrpcEventListeners from 'utils/network/grpc-event-listeners';
 import useWsEventListeners from 'utils/network/ws-event-listeners';
@@ -24,37 +15,13 @@ import Portal from 'components/Portal';
 import SaveTransientRequestContainer from 'components/SaveTransientRequest/Container';
 import SaveTransientRequest from 'components/SaveTransientRequest';
 
-require('codemirror/mode/javascript/javascript');
-require('codemirror/mode/xml/xml');
-require('codemirror/mode/sparql/sparql');
-require('codemirror/addon/comment/comment');
-require('codemirror/addon/dialog/dialog');
-require('codemirror/addon/edit/closebrackets');
-require('codemirror/addon/edit/matchbrackets');
-require('codemirror/addon/fold/brace-fold');
-require('codemirror/addon/fold/foldgutter');
-require('codemirror/addon/fold/xml-fold');
-require('codemirror/addon/hint/javascript-hint');
-require('codemirror/addon/hint/show-hint');
-require('codemirror/addon/lint/lint');
-require('codemirror/addon/lint/json-lint');
-require('codemirror/addon/mode/overlay');
-require('codemirror/addon/scroll/simplescrollbars');
-require('codemirror/addon/search/jump-to-line');
-require('codemirror/addon/search/search');
-require('codemirror/addon/search/searchcursor');
-require('codemirror/addon/display/placeholder');
-require('codemirror/keymap/sublime');
-
-require('codemirror-graphql/hint');
-require('codemirror-graphql/info');
-require('codemirror-graphql/jump');
-require('codemirror-graphql/lint');
-require('codemirror-graphql/mode');
-
-require('utils/codemirror/brunoVarInfo');
-require('utils/codemirror/javascript-lint');
-require('utils/codemirror/autocomplete');
+// Lazy-load heavy panels — none of these are needed for first paint.
+// They will be code-split into separate chunks and only fetched when rendered.
+const RequestTabPanel = lazy(() => import('components/RequestTabPanel'));
+const TabPanelErrorBoundary = lazy(() => import('components/RequestTabPanel/TabPanelErrorBoundary'));
+const ApiSpecPanel = lazy(() => import('components/ApiSpecPanel'));
+const ManageWorkspace = lazy(() => import('components/ManageWorkspace'));
+const AiChatSidebar = lazy(() => import('components/AiChatSidebar'));
 
 const TransientRequestModalsRenderer = ({ modals }) => {
   if (modals.length === 0) {
@@ -153,21 +120,25 @@ export default function Main() {
         <StyledWrapper className={className} style={{ height: '100%', zIndex: 1 }}>
           <Sidebar />
           <section className="flex flex-grow flex-col overflow-hidden">
-            {showApiSpecPage && activeApiSpecUid ? (
-              <ApiSpecPanel key={activeApiSpecUid} />
-            ) : showManageWorkspacePage ? (
-              <ManageWorkspace />
-            ) : (
-              <>
-                <RequestTabs />
-                <TabPanelErrorBoundary key={activeTabUid} tabUid={activeTabUid}>
-                  <RequestTabPanel key={activeTabUid} />
-                </TabPanelErrorBoundary>
-              </>
-            )}
+            <Suspense fallback={null}>
+              {showApiSpecPage && activeApiSpecUid ? (
+                <ApiSpecPanel key={activeApiSpecUid} />
+              ) : showManageWorkspacePage ? (
+                <ManageWorkspace />
+              ) : (
+                <>
+                  <RequestTabs />
+                  <TabPanelErrorBoundary key={activeTabUid} tabUid={activeTabUid}>
+                    <RequestTabPanel key={activeTabUid} />
+                  </TabPanelErrorBoundary>
+                </>
+              )}
+            </Suspense>
           </section>
           {isAiSidebarOpen && activeCollection && !showApiSpecPage && !showManageWorkspacePage && (
-            <AiChatSidebar collection={activeCollection} />
+            <Suspense fallback={null}>
+              <AiChatSidebar collection={activeCollection} />
+            </Suspense>
           )}
         </StyledWrapper>
       </div>
