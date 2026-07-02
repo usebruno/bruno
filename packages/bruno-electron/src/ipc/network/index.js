@@ -19,6 +19,7 @@ const { addDigestInterceptor } = require('@usebruno/requests');
 const prepareGqlIntrospectionRequest = require('./prepare-gql-introspection-request');
 const { prepareRequest } = require('./prepare-request');
 const interpolateVars = require('./interpolate-vars');
+const { applyCollectionVarsToCollectionRoot } = require('./apply-collection-vars');
 const { makeAxiosInstance } = require('./axios-instance');
 const { resolveInheritedSettings } = require('../../utils/collection');
 const { cancelTokens, saveCancelToken, deleteCancelToken } = require('../../utils/cancel-token');
@@ -540,6 +541,7 @@ const registerNetworkIpc = (mainWindow) => {
         requestUid,
         collectionUid
       });
+      applyCollectionVarsToCollectionRoot(collection, result.collectionVariables);
     }
   };
 
