@@ -2,6 +2,7 @@ const { describe, it, expect, beforeEach, afterEach } = require('@jest/globals')
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
+const vm = require('node:vm');
 const { runScriptInNodeVm } = require('./index');
 
 describe('node-vm sandbox', () => {
@@ -777,7 +778,7 @@ describe('node-vm sandbox', () => {
         expect(context.bru.setVar).toHaveBeenCalledWith('result', 'cjs-100');
       });
 
-      it('should fail when loading .mjs files (ES modules)', async () => {
+      it('should fail when requiring .mjs files (ES modules)', async () => {
         const nodeModulesDir = path.join(collectionPath, 'node_modules', 'mjs-ext-module');
         fs.mkdirSync(nodeModulesDir, { recursive: true });
         fs.writeFileSync(
@@ -798,6 +799,123 @@ describe('node-vm sandbox', () => {
         await expect(
           runScriptInNodeVm({ script, context, collectionPath, scriptingConfig: {} })
         ).rejects.toThrow();
+      });
+
+      it('should dynamically import .mjs files from node-vm scripts', async () => {
+        fs.writeFileSync(
+          path.join(collectionPath, 'esm-helper.mjs'),
+          'export function makeGreeting(name) { return `hello ${name} from esm`; }'
+        );
+
+        const script = `
+          const helper = await import('./esm-helper.mjs');
+          bru.setVar('result', helper.makeGreeting('bruno'));
+        `;
+
+        const context = {
+          bru: { setVar: jest.fn() },
+          console: console
+        };
+
+        await runScriptInNodeVm({ script, context, collectionPath, scriptingConfig: {} });
+
+        expect(context.bru.setVar).toHaveBeenCalledWith('result', 'hello bruno from esm');
+      });
+
+      it('should resolve static imports inside dynamically imported .mjs files', async () => {
+        fs.writeFileSync(
+          path.join(collectionPath, 'message.mjs'),
+          'export const message = "nested-esm";'
+        );
+        fs.writeFileSync(
+          path.join(collectionPath, 'esm-helper.mjs'),
+          'import { message } from "./message.mjs"; export function getMessage() { return message; }'
+        );
+
+        const script = `
+          const helper = await import('./esm-helper.mjs');
+          bru.setVar('result', helper.getMessage());
+        `;
+
+        const context = {
+          bru: { setVar: jest.fn() },
+          console: console
+        };
+
+        await runScriptInNodeVm({ script, context, collectionPath, scriptingConfig: {} });
+
+        expect(context.bru.setVar).toHaveBeenCalledWith('result', 'nested-esm');
+      });
+
+      it('should dynamically import collection npm dependencies as synthetic modules', async () => {
+        const nodeModulesDir = path.join(collectionPath, 'node_modules', 'esm-cjs-dependency');
+        fs.mkdirSync(nodeModulesDir, { recursive: true });
+        fs.writeFileSync(
+          path.join(nodeModulesDir, 'package.json'),
+          '{"name": "esm-cjs-dependency", "main": "index.js"}'
+        );
+        fs.writeFileSync(
+          path.join(nodeModulesDir, 'index.js'),
+          'exports.message = "from-cjs-dependency";'
+        );
+
+        const script = `
+          const dependency = await import('esm-cjs-dependency');
+          bru.setVar('result', dependency.message);
+        `;
+
+        const context = {
+          bru: { setVar: jest.fn() },
+          console: console
+        };
+
+        await runScriptInNodeVm({ script, context, collectionPath, scriptingConfig: {} });
+
+        expect(context.bru.setVar).toHaveBeenCalledWith('result', 'from-cjs-dependency');
+      });
+
+      it('should dynamically import collection ESM npm dependencies', async () => {
+        const nodeModulesDir = path.join(collectionPath, 'node_modules', 'esm-package-dependency');
+        fs.mkdirSync(nodeModulesDir, { recursive: true });
+        fs.writeFileSync(
+          path.join(nodeModulesDir, 'package.json'),
+          '{"name": "esm-package-dependency", "type": "module", "main": "index.js"}'
+        );
+        fs.writeFileSync(
+          path.join(nodeModulesDir, 'index.js'),
+          'export const message = "from-esm-dependency"; export default { message };'
+        );
+
+        const script = `
+          const dependency = await import('esm-package-dependency');
+          bru.setVar('result', dependency.message);
+        `;
+
+        const context = {
+          bru: { setVar: jest.fn() },
+          console: console
+        };
+
+        await runScriptInNodeVm({ script, context, collectionPath, scriptingConfig: {} });
+
+        expect(context.bru.setVar).toHaveBeenCalledWith('result', 'from-esm-dependency');
+      });
+
+      it('should block dynamic imports outside allowed roots', async () => {
+        fs.writeFileSync(
+          path.join(testDir, 'outside.mjs'),
+          'export const secret = "nope";'
+        );
+
+        const script = `
+          const outside = await import('../outside.mjs');
+        `;
+
+        const context = { console: console };
+
+        await expect(
+          runScriptInNodeVm({ script, context, collectionPath, scriptingConfig: {} })
+        ).rejects.toThrow('Access to files outside of the allowed context roots is not allowed');
       });
 
       it('should load module with package.json main field', async () => {

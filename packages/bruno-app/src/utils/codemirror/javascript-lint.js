@@ -14,6 +14,8 @@ if (!SERVER_RENDERED) {
   CodeMirror = require('codemirror');
   const { filter } = require('lodash');
 
+  const TOP_LEVEL_AWAIT_DYNAMIC_IMPORT_PATTERN = /\bawait(?:\s+|\/\*[^*]*\*+(?:[^/*][^*]*\*+)*\/\s*)+import\s*\(/;
+
   function validator(text, options) {
     if (!window.JSHINT) {
       if (window.console) {
@@ -61,11 +63,26 @@ if (!SERVER_RENDERED) {
      *  codemirror error: "Missing semicolon."
      * - W024: 'await' used as identifier (JSHint doesn't recognize top-level await syntax)
      *  codemirror error: "Expected an identifier and instead saw 'await' (a reserved word)."
+     * - E033: 'import' in dynamic import after top-level await
+     *  codemirror error: "Expected an operator and instead saw 'import'."
      *
      * Once JSHINT top level await support is added, this file can be removed
      * and we can use the default javascript-lint addon from codemirror
      */
     errors = filter(errors, (error) => {
+      if (
+        error.code === 'E033'
+      ) {
+        if (
+          error.a === 'import'
+          && error.evidence
+          && TOP_LEVEL_AWAIT_DYNAMIC_IMPORT_PATTERN.test(error.evidence)
+          && error.scope === '(main)'
+        ) {
+          return false;
+        }
+      }
+
       if (error.code === 'E058' || error.code === 'W024') {
         if (
           error.evidence
