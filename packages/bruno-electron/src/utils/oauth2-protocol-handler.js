@@ -91,18 +91,16 @@ const handleOauth2ProtocolUrl = (url) => {
     }
 
     // Validate the state parameter to protect against CSRF / authorization code
-    // injection. The returned state must match the cryptographically random state
-    // issued when the flow was initiated.
+    // injection. State is always issued when a flow is initiated, so a missing
+    // expected or returned state means a forged/invalid callback — fail closed.
     const expectedState = oauth2AuthorizationRequest?.expectedState;
-    if (expectedState) {
-      const returnedState = getParamFromUrl(urlObj, 'state');
+    const returnedState = getParamFromUrl(urlObj, 'state');
 
-      if (returnedState !== expectedState) {
-        rejectOauth2AuthorizationRequest(
-          new Error('OAuth2 state mismatch: the returned state does not match the issued state.')
-        );
-        return;
-      }
+    if (!expectedState || returnedState !== expectedState) {
+      rejectOauth2AuthorizationRequest(
+        new Error('OAuth2 state mismatch: the returned state does not match the issued state.')
+      );
+      return;
     }
 
     // Check if this is an implicit grant (tokens in hash fragment)

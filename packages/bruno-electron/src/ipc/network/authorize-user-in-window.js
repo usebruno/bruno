@@ -203,19 +203,18 @@ const authorizeUserInWindow = ({ authorizeUrl, callbackUrl, session, additionalH
       if (finalUrl) {
         try {
           // Validate the state parameter to protect against CSRF / authorization
-          // code injection. The returned state must match the cryptographically
-          // random state issued when the flow was initiated.
-          if (expectedState) {
-            const finalUrlObj = new URL(finalUrl);
-            const returnedState
-              = finalUrlObj.searchParams.get('state')
-                || (finalUrlObj.hash ? new URLSearchParams(finalUrlObj.hash.substring(1)).get('state') : null);
+          // code injection. State is always issued when a flow is initiated, so a
+          // missing expected or returned state means a forged/invalid callback —
+          // fail closed.
+          const finalUrlObj = new URL(finalUrl);
+          const returnedState
+            = finalUrlObj.searchParams.get('state')
+              || (finalUrlObj.hash ? new URLSearchParams(finalUrlObj.hash.substring(1)).get('state') : null);
 
-            if (returnedState !== expectedState) {
-              return reject(
-                new Error('OAuth2 state mismatch: the returned state does not match the issued state.')
-              );
-            }
+          if (!expectedState || returnedState !== expectedState) {
+            return reject(
+              new Error('OAuth2 state mismatch: the returned state does not match the issued state.')
+            );
           }
 
           // Handle different grant types differently

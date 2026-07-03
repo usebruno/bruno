@@ -96,14 +96,16 @@ describe('handleOauth2ProtocolUrl - state validation', () => {
     });
   });
 
-  describe('when no expected state was registered ', () => { // it stops someone from later making state mandatory and breaking flows when state is not passed
-    it('should resolve without validating state', () => {
+  describe('when no expected state was registered', () => {
+    it('should reject rather than resolve without state (fail closed)', () => {
       registerOauth2AuthorizationRequest(resolve, reject, null, null);
 
       handleOauth2ProtocolUrl('bruno://app/oauth2/callback?code=auth-code-123');
 
-      expect(resolve).toHaveBeenCalledWith('auth-code-123');
-      expect(reject).not.toHaveBeenCalled();
+      expect(resolve).not.toHaveBeenCalled();
+      expect(reject).toHaveBeenCalledWith(
+        expect.objectContaining({ message: expect.stringContaining('state mismatch') })
+      );
     });
   });
 
