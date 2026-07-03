@@ -1,6 +1,6 @@
 import path from 'path';
 import fs from 'fs';
-import { test, expect, closeElectronApp } from '../../playwright';
+import { test, expect, closeElectronApp } from '../../../playwright';
 import {
   createRequest,
   createEnvironment,
@@ -9,7 +9,7 @@ import {
   openWorkspaceFromDialog,
   waitForReadyPage,
   openCollection
-} from '../utils/page';
+} from '../../utils/page';
 
 const buildWorkspaceYml = (workspaceName: string, collectionPath: string) => [
   'opencollection: 1.0.0',

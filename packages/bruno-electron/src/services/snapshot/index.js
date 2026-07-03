@@ -240,11 +240,7 @@ class SnapshotManager {
       activeTab: data?.activeTab ?? existingCollection?.activeTab,
       tabs: data?.tabs ?? existingCollection?.tabs,
       environmentPath: data?.environmentPath ?? existingCollection?.environmentPath,
-      selectedEnvironment: data?.selectedEnvironment ?? existingCollection?.selectedEnvironment,
-      sourceWorkspacePathname: data?.sourceWorkspacePathname
-        ?? existingCollection?.sourceWorkspacePathname
-        ?? data?.workspacePathname
-        ?? existingCollection?.workspacePathname
+      selectedEnvironment: data?.selectedEnvironment ?? existingCollection?.selectedEnvironment
     };
 
     const normalizedCollection = this._normalizeCollectionEntry(pathname, mergedCollection);
@@ -301,9 +297,6 @@ class SnapshotManager {
       workspacePathname: typeof resolvedWorkspacePathname === 'string'
         ? resolvedWorkspacePathname
         : (typeof existingCollection.workspacePathname === 'string' ? existingCollection.workspacePathname : ''),
-      sourceWorkspacePathname: typeof existingCollection.sourceWorkspacePathname === 'string'
-        ? existingCollection.sourceWorkspacePathname
-        : (typeof resolvedWorkspacePathname === 'string' ? resolvedWorkspacePathname : ''),
       environment: {
         collection: normalizedEnvironmentPath,
         global: typeof existingEnvironment.global === 'string' ? existingEnvironment.global : ''
@@ -497,9 +490,6 @@ class SnapshotManager {
     return {
       pathname,
       workspacePathname: typeof collection.workspacePathname === 'string' ? collection.workspacePathname : '',
-      sourceWorkspacePathname: typeof collection.sourceWorkspacePathname === 'string'
-        ? collection.sourceWorkspacePathname
-        : (typeof collection.workspacePathname === 'string' ? collection.workspacePathname : ''),
       environment: {
         collection: normalizedEnvironmentPath,
         global: typeof environment.global === 'string' ? environment.global : ''
