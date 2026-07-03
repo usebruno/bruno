@@ -1,3 +1,8 @@
+// This is a Playwright E2E test (in the auth project). It needs the bruno-tests server running (port 8081), and the app built.
+
+// To run just this file:
+// npx playwright test --project=auth tests/auth/oauth2/oauth2-state-validation.spec.ts
+
 /**
  * E2E tests for OAuth2 callback `state` validation (authorization code + implicit grant).
  *
@@ -34,7 +39,7 @@ const PROVIDER_AUTH_CODE = 'provider-auth-code';
 const PROVIDER_ACCESS_TOKEN = 'provider-access-token';
 const WRONG_STATE = 'not-the-issued-state';
 const STATE_MISMATCH_ERROR
-  = 'OAuth2 state mismatch';
+  = 'OAuth2 state mismatch: the returned state does not match the issued state.';
 
 test.beforeAll(async () => {
   const response = await fetch(`${TESTBENCH}/ping`);
@@ -118,7 +123,7 @@ const getIssuedState = async (app: ElectronApplication): Promise<string> => {
 };
 
 const clickGetAccessToken = async (page: Parameters<typeof openRequest>[0], requestName: string) => {
-  await openRequest(page, 'oauth2-state', requestName);
+  await openRequest(page, COLLECTION, requestName);
   await selectEnvironment(page, 'Local', 'collection');
   await selectRequestPaneTab(page, 'Auth');
   await page.getByRole('button', { name: 'Get Access Token' }).click();

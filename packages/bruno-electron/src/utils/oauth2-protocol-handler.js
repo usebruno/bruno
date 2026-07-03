@@ -99,7 +99,7 @@ const handleOauth2ProtocolUrl = (url) => {
 
       if (returnedState !== expectedState) {
         rejectOauth2AuthorizationRequest(
-          new Error('OAuth2 state mismatch')
+          new Error('OAuth2 state mismatch: the returned state does not match the issued state.')
         );
         return;
       }
