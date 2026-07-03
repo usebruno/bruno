@@ -43,15 +43,6 @@ const cancelOAuth2AuthorizationRequest = () => {
   return rejectOauth2AuthorizationRequest(new Error('Authorization cancelled by user'));
 };
 
-// Read a param from the query string, falling back to the URL hash fragment
-// (implicit flow returns values in the hash rather than query params).
-const getParamFromUrl = (urlObj, param) => {
-  return (
-    urlObj.searchParams.get(param)
-    || (urlObj.hash ? new URLSearchParams(urlObj.hash.substring(1)).get(param) : null)
-  );
-};
-
 const handleOauth2ProtocolUrl = (url) => {
   try {
     const urlObj = new URL(url);

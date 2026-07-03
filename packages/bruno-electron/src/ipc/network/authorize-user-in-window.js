@@ -208,10 +208,7 @@ const authorizeUserInWindow = ({ authorizeUrl, callbackUrl, session, additionalH
           // missing expected or returned state means a forged/invalid callback —
           // fail closed.
           const finalUrlObj = new URL(finalUrl);
-          const returnedState
-            = finalUrlObj.searchParams.get('state')
-              || (finalUrlObj.hash ? new URLSearchParams(finalUrlObj.hash.substring(1)).get('state') : null);
-
+          const returnedState = getParamFromUrl(finalUrlObj, 'state');
           if (!expectedState || returnedState !== expectedState) {
             return reject(
               new Error('OAuth2 state mismatch: the returned state does not match the issued state.')

@@ -51,10 +51,8 @@ const Oauth2ActionButtons = ({ item, request, collection, url: accessTokenUrl, c
         collectionUid,
         response: {
           error: errorMessage,
-          status: null,
-          headers: {},
-          data: null,
-          dataBuffer: null,
+          isError: true,
+          status: 'Error',
           size: 0,
           duration: 0
         }
@@ -131,7 +129,6 @@ const Oauth2ActionButtons = ({ item, request, collection, url: accessTokenUrl, c
       toggleRefreshingToken(false);
       const errorMessage = formatIpcError(error) || 'An error occurred while refreshing token!';
       toast.error(errorMessage);
-      showOauth2Error(errorMessage);
     }
   };
 
