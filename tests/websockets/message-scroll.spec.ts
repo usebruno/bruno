@@ -44,7 +44,7 @@ test.describe('websocket message list scroll on tab switch', () => {
     await expect.poll(() => container.evaluate((el) => el.scrollTop)).toBe(0);
   });
 
-  test.only('restores the scroll position when switching back to the Message tab', async ({
+  test('restores the scroll position when switching back to the Message tab', async ({
     pageWithUserData: page
   }) => {
     await openRequest(page, COLLECTION_NAME, LONG_MSG_REQ);
