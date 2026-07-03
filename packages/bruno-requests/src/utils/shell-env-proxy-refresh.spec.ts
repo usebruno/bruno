@@ -52,12 +52,6 @@ describe('refreshShellEnvProxyVars — shell inheritance', () => {
     }
   });
 
-  afterEach(() => {
-    for (const key of PROXY_ENV_KEYS) {
-      delete process.env[key];
-    }
-  });
-
   test('should update proxy env vars from shell config', async () => {
     process.env.http_proxy = 'http://old-proxy:8080';
     mockShellEnvResult = {

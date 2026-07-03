@@ -1,5 +1,5 @@
-import { initializeShellEnv } from './shell-env';
 import path from 'path';
+import { initializeShellEnv } from './shell-env';
 
 let mockShellEnvResult: Record<string, string> = {};
 
