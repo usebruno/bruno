@@ -459,12 +459,6 @@ export const collectionsSlice = createSlice({
       const collection = findCollectionByUid(state.collections, collectionUid);
 
       if (collection) {
-        // Ignore stale updates from superseded requests so an in-flight pre/post
-        // from request N-1 can't clobber state for request N.
-        if (requestUid && collection._scriptRequestUid && requestUid !== collection._scriptRequestUid) {
-          return;
-        }
-
         const activeEnvironment = findEnvironmentInCollection(collection, collection.activeEnvironmentUid);
 
         if (activeEnvironment) {
@@ -503,12 +497,9 @@ export const collectionsSlice = createSlice({
       }
     },
     runtimeVariablesUpdateEvent: (state, action) => {
-      const { collectionUid, runtimeVariables, requestUid } = action.payload;
+      const { collectionUid, runtimeVariables } = action.payload;
       const collection = findCollectionByUid(state.collections, collectionUid);
       if (collection) {
-        if (requestUid && collection._scriptRequestUid && requestUid !== collection._scriptRequestUid) {
-          return;
-        }
         collection.runtimeVariables = runtimeVariables;
       }
     },
@@ -2782,9 +2773,6 @@ export const collectionsSlice = createSlice({
       if (!collection) return;
       delete collection._scriptEnvBaseline;
       delete collection._scriptCollVarBaseline;
-      // Also drop the inflight request UID so updates from WS/OAuth2 paths (which
-      // don't dispatch initRunRequestEvent) aren't gated out by a stale HTTP UID.
-      delete collection._scriptRequestUid;
     },
     collectionAddFileEvent: (state, action) => {
       const file = action.payload.file;
@@ -3099,7 +3087,6 @@ export const collectionsSlice = createSlice({
 
       delete collection._scriptEnvBaseline;
       delete collection._scriptCollVarBaseline;
-      collection._scriptRequestUid = requestUid;
 
       const item = findItemInCollection(collection, itemUid);
       if (!item) return;
@@ -3258,7 +3245,6 @@ export const collectionsSlice = createSlice({
           // pre-flush snapshot.
           delete collection._scriptEnvBaseline;
           delete collection._scriptCollVarBaseline;
-          collection._scriptRequestUid = action.payload.requestUid || null;
 
           collection.runnerResult.items.push({
             uid: request.uid,
@@ -3307,8 +3293,10 @@ export const collectionsSlice = createSlice({
 
         if (type === 'runner-request-skipped') {
           const item = collection.runnerResult.items.findLast((i) => i.uid === request.uid);
-          item.status = 'skipped';
-          item.responseReceived = action.payload.responseReceived;
+          if (item) {
+            item.status = 'skipped';
+            item.responseReceived = action.payload.responseReceived;
+          }
         }
 
         if (type === 'post-response-script-execution') {

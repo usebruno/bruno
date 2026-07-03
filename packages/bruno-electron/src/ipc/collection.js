@@ -58,7 +58,8 @@ const {
   isBrunoConfigFile,
   isBruEnvironmentConfig,
   isCollectionRootBruFile,
-  scanForBrunoFiles
+  scanForBrunoFiles,
+  withFileLock
 } = require('../utils/filesystem');
 const { getCollectionConfigFile, openCollection, openCollectionDialog, openCollectionsByPathname, registerScratchCollectionPath } = require('../app/collections');
 const { generateUidBasedOnHash, stringifyJson, safeStringifyJSON, safeParseJSON } = require('../utils/common');
@@ -764,14 +765,21 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
         throw new Error(`environment: ${envFilePath} does not exist`);
       }
 
-      if (envHasSecrets(environment)) {
-        environmentSecretsStore.storeEnvSecrets(collectionPathname, environment);
-      }
+      // Serialize concurrent saves to the same env file. Without the lock the
+      // read-then-write pattern below can interleave: writer A reads pre-A state,
+      // writer B reads pre-A state, B writes B-content, A writes A-content —
+      // dropping B's update. Rapid scripted `bru.setEnvVar(..., {persist:true})`
+      // calls (e.g. across folder-run requests) hit this without serialization.
+      await withFileLock(envFilePath, async () => {
+        if (envHasSecrets(environment)) {
+          environmentSecretsStore.storeEnvSecrets(collectionPathname, environment);
+        }
 
-      const content = await stringifyEnvironment(environment, { format });
-      const existing = fs.readFileSync(envFilePath, 'utf8');
-      if (content === existing) return; // skip write if content unchanged
-      await writeFile(envFilePath, content);
+        const content = await stringifyEnvironment(environment, { format });
+        const existing = fs.readFileSync(envFilePath, 'utf8');
+        if (content === existing) return; // skip write if content unchanged
+        await writeFile(envFilePath, content);
+      });
     } catch (error) {
       return Promise.reject(error);
     }
@@ -909,12 +917,13 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
         throw new Error(`environment: ${envFilePath} does not exist`);
       }
 
-      // Read, update color, and write back to file
-      const fileContent = fs.readFileSync(envFilePath, 'utf8');
-      const environment = parseEnvironment(fileContent, { format });
-      environment.color = color;
-      const updatedContent = stringifyEnvironment(environment, { format });
-      fs.writeFileSync(envFilePath, updatedContent, 'utf8');
+      await withFileLock(envFilePath, async () => {
+        const fileContent = fs.readFileSync(envFilePath, 'utf8');
+        const environment = parseEnvironment(fileContent, { format });
+        environment.color = color;
+        const updatedContent = stringifyEnvironment(environment, { format });
+        await writeFile(envFilePath, updatedContent);
+      });
     } catch (error) {
       return Promise.reject(error);
     }

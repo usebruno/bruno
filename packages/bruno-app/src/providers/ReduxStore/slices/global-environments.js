@@ -284,18 +284,10 @@ export const deleteGlobalEnvironment = ({ environmentUid }) => (dispatch, getSta
   });
 };
 
-export const globalEnvironmentsUpdateEvent = ({ globalEnvironmentVariables, collectionUid, requestUid }) => (dispatch, getState) => {
+export const globalEnvironmentsUpdateEvent = ({ globalEnvironmentVariables }) => (dispatch, getState) => {
   if (!globalEnvironmentVariables) return;
 
   const state = getState();
-
-  // Ignore stale updates from superseded requests on the originating collection.
-  if (collectionUid && requestUid) {
-    const sourceCollection = state?.collections?.collections?.find((c) => c.uid === collectionUid);
-    if (sourceCollection?._scriptRequestUid && requestUid !== sourceCollection._scriptRequestUid) {
-      return;
-    }
-  }
 
   const globalEnvironments = state?.globalEnvironments?.globalEnvironments || [];
   const environmentUid = state?.globalEnvironments?.activeGlobalEnvironmentUid;
