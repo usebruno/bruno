@@ -61,10 +61,9 @@ interface ExtractQueryParamsOptions {
   stripFragment?: boolean;
 }
 
-// Per PR #5507's design contract: when encode is true, run encodeURIComponent on the
-// value even if it's already encoded. Pre-encoded inputs intentionally double-encode
-// (e.g. `%23` → `%2523`) — useful for redirect URLs where the server expects to
-// receive the encoded form after one round of URL-decoding.
+// Per PR #5507's original design: when encode is true, run encodeURIComponent on the
+// value. With the idempotent fix, pre-encoded inputs are decoded first so that
+// double-encoding is avoided.
 function buildQueryString(paramsArray: QueryParam[], { encode = false }: BuildQueryStringOptions = {}): string {
   return paramsArray
     .filter(({ name }) => typeof name === 'string' && name.trim().length > 0)
@@ -116,8 +115,9 @@ function parseQueryParams(query: string, { decode = false, stripFragment = true 
 
 // decodeURIComponent throws on bare '%' or malformed %XX. Forgiving variant that
 // decodes well-formed escapes and leaves anything else alone. Exported so other
-// modules can use it without each one inventing its own try/catch. Not used
-// inside encodeUrl itself (PR #5507's design is content-blind — no decode-encode).
+// modules can use it without each one inventing its own try/catch. Used by both
+// encodePathSegments and the query-side encoding in encodeUrl to achieve
+// idempotent encode behavior (decode-then-encode avoids double-encoding).
 const safeDecodeURIComponent = (s: string): string => {
   try {
     return decodeURIComponent(s);
@@ -141,10 +141,8 @@ const safeDecodeURIComponent = (s: string): string => {
 // double-encoded. By decoding-then-encoding we collapse both cases (raw input
 // + already-encoded input) to the same single-encoded form.
 //
-// NOTE: this idempotency is path-side only. The QUERY side stays content-blind
-// per PR #5507's contract — query values are user data and pre-encoded inputs
-// are a legitimate signal that the user wants the encoding to survive a server
-// URL-decode pass (the redirect-URL use case). See `encodeUrl` below.
+// NOTE: the query side now also uses the same decode-then-encode strategy
+// to prevent double-encoding of pre-encoded query parameters.
 const encodePathSegments = (path: string): string =>
   path
     .split('/')
@@ -152,8 +150,9 @@ const encodePathSegments = (path: string): string =>
     .join('/');
 
 // Encodes path segments and query name/value pairs when the URL Encoding toggle is on.
-// Content-blind per PR #5507's design contract: applying it to an already-encoded
-// input intentionally double-encodes (e.g. `?q=%20` → `?q=%2520`).
+// Idempotent: applying it to an already-encoded input produces the same result
+// (e.g. `?q=%20` stays `?q=%20`, not `?q=%2520`). Both path and query sides
+// decode-then-encode to collapse raw and pre-encoded inputs to the same form.
 //
 // `#` is treated as **data**, not as the RFC 3986 §3.5 fragment delimiter:
 //   `?token=abc#def`  →  `?token=abc%23def`   (toggle ON)
@@ -192,11 +191,13 @@ const encodeUrl = (url: string): string => {
     const params = parseQueryParams(queryString, { decode: false, stripFragment: false });
     const rebuilt = params
       .map(({ name, value }) => {
-        const encodedName = encodeURIComponent(name);
+        // Idempotent encoding: decode first then re-encode, so already-encoded
+        // values don't get double-encoded (e.g. %20 stays as %20, not %2520).
+        const encodedName = encodeURIComponent(safeDecodeURIComponent(name));
         if (value === undefined) {
           return encodedName;
         }
-        const encodedValue = encodeURIComponent(value);
+        const encodedValue = encodeURIComponent(safeDecodeURIComponent(value));
         return `${encodedName}=${encodedValue}`;
       })
       .filter((pair) => pair.length > 0 && !pair.startsWith('='))
