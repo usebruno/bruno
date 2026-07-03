@@ -211,6 +211,7 @@ export const serializeSnapshot = async (state, options = {}) => {
     snapshot.collections.push({
       pathname: collection.pathname,
       workspacePathname,
+      sourceWorkspacePathname: workspacePathname,
       environment: {
         collection: environmentPath,
         global: globalEnvironments.activeGlobalEnvironmentUid || ''
@@ -234,6 +235,7 @@ export const serializeSnapshot = async (state, options = {}) => {
   (existingCollections.length > 0 ? existingCollections : fallbackCollections).forEach((existingCollection) => {
     const normalizedPath = normalizePath(existingCollection.pathname || '');
     const workspacePathname = existingCollection.workspacePathname || '';
+    const sourceWorkspacePathname = existingCollection.sourceWorkspacePathname || workspacePathname;
     const collectionSnapshotKey = getWorkspaceCollectionSnapshotKey(workspacePathname, existingCollection.pathname);
     const isSerializedCollection = collectionSnapshotKey && serializedCollectionKeys.has(collectionSnapshotKey);
     const shouldPreservePendingHydration = pendingHydrationPaths.has(normalizedPath)
@@ -250,6 +252,7 @@ export const serializeSnapshot = async (state, options = {}) => {
     snapshot.collections.push({
       pathname: existingCollection.pathname,
       workspacePathname,
+      sourceWorkspacePathname,
       environment: {
         collection: existingCollection.environment?.collection || existingCollection.environmentPath || '',
         global: existingCollection.environment?.global || ''

@@ -119,6 +119,9 @@ const normalizeCollectionSnapshotEntry = (pathname, entry = {}, tabsEntry = {}) 
   return {
     pathname,
     workspacePathname: typeof entry.workspacePathname === 'string' ? entry.workspacePathname : '',
+    sourceWorkspacePathname: typeof entry.sourceWorkspacePathname === 'string'
+      ? entry.sourceWorkspacePathname
+      : (typeof entry.workspacePathname === 'string' ? entry.workspacePathname : ''),
     environment: {
       collection: collectionEnvironmentPath,
       global: typeof environment.global === 'string' ? environment.global : ''
@@ -174,6 +177,9 @@ export const hydrateSnapshotLookups = (snapshot = {}) => {
       collectionsByPath[normalizedCollectionPathname] = {
         pathname: collection.pathname,
         workspacePathname: typeof collection.workspacePathname === 'string' ? collection.workspacePathname : '',
+        sourceWorkspacePathname: typeof collection.sourceWorkspacePathname === 'string'
+          ? collection.sourceWorkspacePathname
+          : (typeof collection.workspacePathname === 'string' ? collection.workspacePathname : ''),
         environment: collection.environment,
         environmentPath: collection.environmentPath,
         selectedEnvironment: collection.selectedEnvironment,
@@ -191,6 +197,9 @@ export const hydrateSnapshotLookups = (snapshot = {}) => {
         collectionsByWorkspaceAndPath[workspaceCollectionKey] = {
           pathname: collection.pathname,
           workspacePathname: typeof collection.workspacePathname === 'string' ? collection.workspacePathname : '',
+          sourceWorkspacePathname: typeof collection.sourceWorkspacePathname === 'string'
+            ? collection.sourceWorkspacePathname
+            : (typeof collection.workspacePathname === 'string' ? collection.workspacePathname : ''),
           environment: collection.environment,
           environmentPath: collection.environmentPath,
           selectedEnvironment: collection.selectedEnvironment,
@@ -318,6 +327,23 @@ const getTabsSnapshotFromLookups = (
     activeTab: tabsEntry.activeTab,
     tabs: Array.isArray(tabsEntry.tabs) ? tabsEntry.tabs : []
   };
+};
+
+export const getCollectionSnapshotFromLookups = (collectionPathname, snapshotLookups = {}, workspacePathname = null) => {
+  const normalizedPathname = normalizePath(collectionPathname);
+  if (!normalizedPathname) {
+    return null;
+  }
+
+  if (workspacePathname) {
+    const workspaceCollectionKey = getWorkspaceCollectionSnapshotKey(workspacePathname, collectionPathname);
+    const workspaceCollectionEntry = snapshotLookups?.collectionsByWorkspaceAndPath?.[workspaceCollectionKey];
+    if (workspaceCollectionEntry) {
+      return workspaceCollectionEntry;
+    }
+  }
+
+  return snapshotLookups?.collectionsByPath?.[normalizedPathname] || null;
 };
 
 export const getCollectionEnvironmentPath = (collection, environment, defaultValue = null) => {

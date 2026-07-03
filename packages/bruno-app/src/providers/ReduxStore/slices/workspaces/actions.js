@@ -8,7 +8,7 @@ import {
   updateWorkspaceLoadingState,
   setWorkspaceScratchCollection
 } from '../workspaces';
-import { createCollection, openCollection, openMultipleCollections, openScratchCollectionEvent, mountCollection } from '../collections/actions';
+import { createCollection, openCollection, openMultipleCollections, openScratchCollectionEvent, mountCollection, hydrateCollectionWithUiStateSnapshot } from '../collections/actions';
 import { removeCollection, addTransientDirectory, updateCollectionMountStatus, expandCollection, sortCollections } from '../collections';
 import { sanitizeName } from 'utils/common/regex';
 import { clearCollectionState } from '../openapi-sync';
@@ -22,7 +22,7 @@ import {
 } from '../app';
 import { openConsole, closeConsole, setActiveTab as setActiveDevToolsTab, TAB_IDENFIERS as DEVTOOL_TABS } from '../logs';
 import { normalizePath } from 'utils/common/path';
-import { hydrateTabs, getActiveTabFromSnapshot, hydrateSnapshotLookups } from 'utils/snapshot';
+import { hydrateTabs, getActiveTabFromSnapshot, hydrateSnapshotLookups, getCollectionSnapshotFromLookups } from 'utils/snapshot';
 import toast from 'react-hot-toast';
 
 const { ipcRenderer } = window;
@@ -625,6 +625,19 @@ export const switchWorkspace = (workspaceUid) => {
           && workspaceCollectionPathSet.has(normalizePath(c.pathname))
       );
       await hydrateTabs(collections, dispatch, restoreTabs, snapshotLookups, workspace.pathname || null);
+
+      // Restore each collection's workspace-scoped selected environment, so the same
+      // collection open under two workspaces restores its own environment per workspace.
+      await Promise.all(collections.map((collection) => {
+        const collectionSnapshotState = getCollectionSnapshotFromLookups(
+          collection.pathname,
+          snapshotLookups,
+          workspace.pathname || null
+        );
+        return dispatch(hydrateCollectionWithUiStateSnapshot(
+          collectionSnapshotState ? { pathname: collection.pathname, ...collectionSnapshotState } : null
+        ));
+      }));
 
       // Add workspace tabs
       if (scratchCollection?.uid) {

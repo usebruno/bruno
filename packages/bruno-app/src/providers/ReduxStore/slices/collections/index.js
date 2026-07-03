@@ -24,7 +24,6 @@ import toast from 'react-hot-toast';
 import mime from 'mime-types';
 import path from 'utils/common/path';
 import { getUniqueTagsFromItems } from 'utils/collections/index';
-import { getCollectionEnvironmentPath } from 'utils/snapshot';
 import { getDataTypeFromValue } from '@usebruno/common/utils';
 import * as exampleReducers from './exampleReducers';
 
@@ -3043,24 +3042,6 @@ export const collectionsSlice = createSlice({
             collection.lastAction = null;
             if (lastAction.payload === environment.name) {
               collection.activeEnvironmentUid = environment.uid;
-              // Persist the selection to the UI state snapshot
-              const { ipcRenderer } = window;
-              if (ipcRenderer) {
-                const extension = collection?.brunoConfig?.version === '1' ? 'bru' : 'yml';
-                const environmentPath = environment?.pathname
-                  || (environment?.name && collection?.pathname
-                    ? path.join(collection.pathname, 'environments', `${environment.name}.${extension}`)
-                    : null);
-
-                ipcRenderer.invoke('renderer:update-ui-state-snapshot', {
-                  type: 'COLLECTION_ENVIRONMENT',
-                  data: {
-                    collectionPath: collection?.pathname,
-                    environmentPath: getCollectionEnvironmentPath(collection, environment, environmentPath),
-                    selectedEnvironment: environment?.name || ''
-                  }
-                });
-              }
             }
           }
         }

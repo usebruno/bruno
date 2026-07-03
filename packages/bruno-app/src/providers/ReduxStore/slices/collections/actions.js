@@ -2502,6 +2502,7 @@ export const selectEnvironment = (environmentUid, collectionUid) => (dispatch, g
   return new Promise((resolve, reject) => {
     const state = getState();
     const collection = findCollectionByUid(state.collections.collections, collectionUid);
+    const activeWorkspace = state.workspaces.workspaces.find((w) => w.uid === state.workspaces.activeWorkspaceUid);
     if (!collection) {
       return reject(new Error('Collection not found'));
     }
@@ -2519,6 +2520,7 @@ export const selectEnvironment = (environmentUid, collectionUid) => (dispatch, g
       type: 'COLLECTION_ENVIRONMENT',
       data: {
         collectionPath: collection?.pathname,
+        workspacePathname: activeWorkspace?.pathname || null,
         environmentPath: getCollectionEnvironmentPath(collection, environment),
         selectedEnvironment: environment?.name || ''
       }
@@ -2951,6 +2953,9 @@ export const collectionAddEnvFileEvent = (payload) => (dispatch, getState) => {
   return new Promise((resolve, reject) => {
     const state = getState();
     const collection = findCollectionByUid(state.collections.collections, meta.collectionUid);
+    const activeWorkspace = state.workspaces.workspaces.find((w) => w.uid === state.workspaces.activeWorkspaceUid);
+    const shouldPersistSelectionFromLastAction = collection?.lastAction?.type === 'ADD_ENVIRONMENT'
+      && collection?.lastAction?.payload === environment?.name;
     if (!collection) {
       return reject(new Error('Collection not found'));
     }
@@ -2973,6 +2978,22 @@ export const collectionAddEnvFileEvent = (payload) => (dispatch, getState) => {
           })
         )
       )
+      .then(() => {
+        if (!shouldPersistSelectionFromLastAction) {
+          return;
+        }
+
+        const { ipcRenderer } = window;
+        ipcRenderer.invoke('renderer:update-ui-state-snapshot', {
+          type: 'COLLECTION_ENVIRONMENT',
+          data: {
+            collectionPath: collection?.pathname,
+            workspacePathname: activeWorkspace?.pathname || null,
+            environmentPath: getCollectionEnvironmentPath(collection, environment, environment?.pathname),
+            selectedEnvironment: environment?.name || ''
+          }
+        });
+      })
       .then(resolve)
       .catch(reject);
   });
@@ -3240,7 +3261,7 @@ export const mountCollection
       const fileCacheEnabled = getState().app?.preferences?.cache?.file?.enabled;
       const channel = fileCacheEnabled ? 'renderer:mount-collection-v2' : 'renderer:mount-collection';
       return new Promise(async (resolve, reject) => {
-        callIpc(channel, { collectionUid, collectionPathname, brunoConfig })
+        callIpc(channel, { collectionUid, collectionPathname, brunoConfig, workspacePathname })
           .then(async (transientDirPath) => {
             dispatch(updateCollectionMountStatus({ collectionUid, mountStatus: 'mounted' }));
             dispatch(addTransientDirectory({ collectionUid, pathname: transientDirPath }));
@@ -3248,6 +3269,13 @@ export const mountCollection
             const collection = getState().collections.collections.find((c) => c.uid === collectionUid);
             if (!skipTabRestore && collection?.pathname) {
               await hydrateCollectionTabs(collection, dispatch, restoreTabs, null, workspacePathname);
+
+              const collectionSnapshotState = await window.ipcRenderer
+                .invoke('renderer:snapshot:get-collection', collection.pathname, workspacePathname)
+                .catch(() => null);
+              await dispatch(hydrateCollectionWithUiStateSnapshot(
+                collectionSnapshotState ? { pathname: collection.pathname, ...collectionSnapshotState } : null
+              ));
             }
           })
           .then(resolve)
@@ -3536,7 +3564,7 @@ export const migrateCollectionToYml = (collectionUid) => (dispatch, getState) =>
               collectionPathname: collectionPathname,
               brunoConfig: updatedBrunoConfig
             }));
-          } catch (_) {}
+          } catch (_) { }
           throw reopenError;
         }
 

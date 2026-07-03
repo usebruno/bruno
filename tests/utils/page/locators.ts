@@ -101,6 +101,13 @@ export const buildCommonLocators = (page: Page) => ({
     // matching on the wrapper is the only way to get the full concatenated text.
     variableValue: (name: string) => page.locator('tbody tr').filter({ has: page.locator(`input[value="${name}"]`) }).locator('.CodeMirror').first(),
     createEnvButton: () => page.locator('button[id="create-env"]'),
+    settingsCreateButton: () =>
+      page.locator('.environments-container .sidebar button[title="Create environment"]'),
+    settingsCreateNameInput: () => page.locator('.environment-item.creating .environment-name-input'),
+    settingsCreateSaveButton: () => page.locator('.environment-item.creating .inline-action-btn.save'),
+    createModal: () => page.locator('.bruno-modal').filter({ hasText: /Create( Global)? Environment/ }),
+    createModalNameInput: () => page.locator('.bruno-modal #environment-name'),
+    createModalCreateButton: () => page.locator('.bruno-modal').getByRole('button', { name: 'Create', exact: true }),
     envNameInput: () => page.locator('input[name="name"]'),
     // Variables and secrets each live on their own tab in the environment editor.
     variablesTab: () => page.getByTestId('responsive-tab-variables'),
