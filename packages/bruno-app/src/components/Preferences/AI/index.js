@@ -53,12 +53,18 @@ const aiPreferencesSchema = Yup.object().shape({
   })
 });
 
+let lastActiveSubTab = 'config';
+
 const AI = () => {
   const dispatch = useDispatch();
   const preferences = useSelector((state) => state.app.preferences);
   const [status, setStatus] = useState(null);
   const [statusError, setStatusError] = useState(null);
-  const [activeTab, setActiveTab] = useState('config');
+  const [activeTab, setActiveTabState] = useState(lastActiveSubTab);
+  const setActiveTab = useCallback((tab) => {
+    lastActiveSubTab = tab;
+    setActiveTabState(tab);
+  }, []);
 
   const refreshStatus = useCallback(async () => {
     try {

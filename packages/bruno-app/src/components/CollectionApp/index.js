@@ -56,6 +56,7 @@ const COLLECTION_CTX_BOOTSTRAP = `<script>
   var SENTINEL = ${JSON.stringify(SENTINEL)};
   var pending = new Map();
   var nextReplyId = 0;
+  var initialized = false;
 
   function sendToHost(payload) {
     try { console.log(SENTINEL + JSON.stringify(payload)); } catch (e) {}
@@ -74,8 +75,10 @@ const COLLECTION_CTX_BOOTSTRAP = `<script>
     variables: {},
     collection: null,
 
+    onInit: null,
     onThemeChange: null,
     onVariablesUpdate: null,
+    onCollectionUpdate: null,
 
     listRequests: function () {
       return awaitReply('listRequests');
@@ -108,6 +111,12 @@ const COLLECTION_CTX_BOOTSTRAP = `<script>
         applyTheme(msg.theme);
         ctx.variables = msg.variables || {};
         ctx.collection = msg.collection || null;
+        if (!initialized) {
+          initialized = true;
+          if (typeof ctx.onInit === 'function') {
+            try { ctx.onInit(ctx); } catch (e) { sendToHost({ type: 'log', args: ['onInit error: ' + (e && e.message)] }); }
+          }
+        }
         break;
       case 'theme':
         applyTheme(msg.theme);

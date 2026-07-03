@@ -43,7 +43,7 @@ import {
   updateCollectionTests,
   updateCollectionDocs
 } from 'providers/ReduxStore/slices/collections';
-import { findItemInCollection, isItemAFolder, isItemARequest } from 'utils/collections';
+import { findItemInCollection, findItemInCollectionByPathname, isItemAFolder, isItemARequest } from 'utils/collections';
 import { buildAiVariablesPayload, getAiStatus } from 'utils/ai';
 
 import StyledWrapper from './StyledWrapper';
@@ -188,7 +188,13 @@ const AiChatSidebar = ({ collection }) => {
   const aiEnabled = get(preferences, 'ai.enabled', false);
 
   const focusedTab = find(tabs, (t) => t.uid === activeTabUid);
-  const activeItem = focusedTab && collection ? findItemInCollection(collection, activeTabUid) : null;
+
+  const activeItem = useMemo(() => {
+    if (!focusedTab || !collection) return null;
+    const found = findItemInCollection(collection, activeTabUid);
+    if (found) return found;
+    return focusedTab.pathname ? findItemInCollectionByPathname(collection, focusedTab.pathname) : null;
+  }, [focusedTab, collection, activeTabUid]);
 
   const aiContext = useMemo(() => {
     if (!focusedTab || !collection) return null;
