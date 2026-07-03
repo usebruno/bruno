@@ -4,6 +4,7 @@ const BRUNO_API_REFERENCE = `## Bruno API Reference
 \`\`\`js
 bru.getEnvVar(key)
 bru.setEnvVar(key, value)
+bru.setEnvVar(key, value, { persist: true })
 bru.hasEnvVar(key)
 bru.deleteEnvVar(key)
 bru.getEnvName()
@@ -290,43 +291,32 @@ const formatDocsContext = (ctx) => {
   return parts.join('\n\n');
 };
 
-const formatRequestContext = (ctx) => {
-  if (!ctx) return '';
-  const parts = [];
+const { formatRequestContext, formatVariablesList } = require('./context');
 
-  if (ctx.url || ctx.method) {
-    parts.push(`Request: ${ctx.method || 'GET'} ${ctx.url || ''}`);
-  }
-
-  const headers = (ctx.headers || []).filter((h) => h?.enabled && h?.name);
-  if (headers.length) {
-    parts.push(`Headers:\n${headers.map((h) => `  ${h.name}: ${h.value ?? ''}`).join('\n')}`);
-  }
-
-  const params = (ctx.params || []).filter((p) => p?.enabled && p?.name);
-  if (params.length) {
-    parts.push(`Params:\n${params.map((p) => `  ${p.name}: ${p.value ?? ''}`).join('\n')}`);
-  }
-
-  const body = ctx.body;
-  if (body && body.mode && body.mode !== 'none') {
-    let bodyText = '';
-    if (body.mode === 'json') bodyText = body.json || '';
-    else if (body.mode === 'text') bodyText = body.text || '';
-    else if (body.mode === 'xml') bodyText = body.xml || '';
-    else if (body.mode === 'graphql') bodyText = body.graphql?.query || '';
-    if (bodyText) parts.push(`Body (${body.mode}):\n${bodyText.slice(0, 2000)}`);
-  }
-
-  return parts.join('\n\n');
-};
-
-const buildScriptUserPrompt = ({ userPrompt, currentScript, requestContext, docsContext, scriptType }) => {
+const buildScriptUserPrompt = ({
+  userPrompt,
+  currentScript,
+  requestContext,
+  docsContext,
+  variables,
+  scriptType,
+  security
+}) => {
   const sections = [];
   const docsContextStr = formatDocsContext(docsContext);
   if (docsContextStr) sections.push(`Documentation Context\n${docsContextStr}`);
-  const contextStr = formatRequestContext(requestContext);
+
+  // Same redaction rules as the chat sidebar — sensitive headers/params masked,
+  // response shape only (no real values). Body is sent in full so the model
+  // can write code that references real keys.
+  const contextStr = formatRequestContext(requestContext, { includeResponse: true, security });
   if (contextStr) sections.push(`HTTP Request Context\n${contextStr}`);
+
+  const varsStr = formatVariablesList(variables, { security });
+  if (varsStr) {
+    sections.push(`Available Variables (names only — call search_variables(query) for a value)\n${varsStr}`);
+  }
+
   if (currentScript && currentScript.trim()) {
     let existingLabel = 'Existing Code';
     let fenceLang = 'js';
@@ -355,9 +345,29 @@ const stripCodeFences = (text) => {
   return out.replace(/^\n+/, '');
 };
 
+// Tool instructions appended to every script system prompt so the model knows
+// it can call `read_response` and `search_variables` instead of relying on a
+// possibly-truncated inline summary. Generation does NOT have write tools —
+// the model still returns the final script as its assistant text.
+const TOOL_INSTRUCTIONS = `## Available Tools
+
+You may call these tools BEFORE producing the final code to gather context. Do not announce the tool calls in your final output — only the generated code goes back to the user.
+
+- read_response(): returns the redacted shape (keys + value types) of the most recent response for this request. Use it when writing tests / post-response scripts that need to know which fields exist. Values are placeholders (\`<string>\`, \`<number>\`, …) — never hard-code them; reference fields at runtime via \`res.getBody()\` / \`res('path')\`.
+- search_variables(query?): search environment / collection / global / runtime variables by name (case-insensitive substring). Pass a query to confirm a name exists before referencing it in code. Variables marked \`secret\` come back as \`<redacted>\`. Each result has a \`scope\` field — use it to pick the right runtime accessor: \`bru.getEnvVar\` for \`env\`, \`bru.getGlobalEnvVar\` for \`global\`, \`bru.getCollectionVar\` / \`bru.getFolderVar\` / \`bru.getRequestVar\` for \`collection\`, \`bru.getVar\` for \`runtime\`, and \`bru.getSecretVar\` for any value that came back redacted. Never paste a returned value.
+
+Only call a tool when the extra information would change the code you write. For greetings, simple boilerplate, or tasks fully covered by the inline context, skip the tools.`;
+
+const buildScriptSystemPrompt = (scriptType) => {
+  const base = SCRIPT_PROMPTS[scriptType];
+  if (!base) return SCRIPT_PROMPTS.tests; // sensible fallback
+  return `${base}\n\n${TOOL_INSTRUCTIONS}`;
+};
+
 module.exports = {
   SCRIPT_PROMPTS,
   SCRIPT_TYPES,
+  buildScriptSystemPrompt,
   buildScriptUserPrompt,
   formatDocsContext,
   stripCodeFences
