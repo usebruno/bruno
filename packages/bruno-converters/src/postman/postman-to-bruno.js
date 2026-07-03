@@ -1,14 +1,14 @@
-import get from 'lodash/get';
-import { validateSchema, transformItemsInCollection, hydrateSeqInCollection, uuid } from '../common';
 import { transformExampleStatusInCollection } from '@usebruno/common';
 import each from 'lodash/each';
-import postmanTranslation from './postman-translations';
+import get from 'lodash/get';
+import { hydrateSeqInCollection, transformItemsInCollection, uuid, validateSchema } from '../common';
+import { invalidVariableCharacterRegex } from '../constants/index';
 import {
-  extractPackagesFromScript,
   buildPackageReport,
+  extractPackagesFromScript,
   TRANSLATOR_INJECTED_GLOBALS
 } from './postman-package-detector';
-import { invalidVariableCharacterRegex } from '../constants/index';
+import postmanTranslation from './postman-translations';
 
 const AUTH_TYPES = Object.freeze({
   BASIC: 'basic',
@@ -18,6 +18,7 @@ const AUTH_TYPES = Object.freeze({
   DIGEST: 'digest',
   OAUTH1: 'oauth1',
   OAUTH2: 'oauth2',
+  EDGEGRID: 'edgegrid',
   NOAUTH: 'noauth',
   NONE: 'none'
 });
@@ -89,6 +90,13 @@ const ensureString = (value, fallback = '') => {
   if (typeof value === 'string') return value;
   if (typeof value === 'object') return JSON.stringify(value);
   return String(value);
+};
+
+// EdgeGrid's maxBodySize is numeric in Bruno; coerce Postman's value (number or string) to a number or null.
+const ensureMaxBodySize = (value) => {
+  if (value == null || value === '') return null;
+  const num = Number(value);
+  return isNaN(num) ? null : num;
 };
 
 /**
@@ -279,6 +287,19 @@ export const processAuth = (auth, requestObject, isCollection = false) => {
       requestObject.auth.digest = {
         username: ensureString(authValues.username),
         password: ensureString(authValues.password)
+      };
+      break;
+    case AUTH_TYPES.EDGEGRID:
+      requestObject.auth.mode = 'akamai-edgegrid';
+      requestObject.auth.akamaiEdgegrid = {
+        accessToken: ensureString(authValues.accessToken),
+        clientToken: ensureString(authValues.clientToken),
+        clientSecret: ensureString(authValues.clientSecret),
+        nonce: ensureString(authValues.nonce),
+        timestamp: ensureString(authValues.timestamp),
+        baseURL: ensureString(authValues.baseURL),
+        headersToSign: ensureString(authValues.headersToSign),
+        maxBodySize: ensureMaxBodySize(authValues.maxBodySize)
       };
       break;
     case AUTH_TYPES.OAUTH1:
