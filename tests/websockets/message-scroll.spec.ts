@@ -17,8 +17,6 @@ test.describe('websocket message list scroll on tab switch', () => {
     const container = page.getByTestId('ws-messages-container');
     await expect(container).toBeVisible();
 
-    // The first (long) message is expanded by default. Ensure its editor is
-    // rendered so the container has enough content to overflow.
     await expect(page.getByTestId('ws-message-body-0')).toBeVisible();
 
     // the container must actually be scrollable.
@@ -34,7 +32,7 @@ test.describe('websocket message list scroll on tab switch', () => {
 
     // Switch away from the Message tab and back — this remounts WsBody.
     await selectRequestPaneTab(page, 'Headers');
-    await expect(page.getByTestId('ws-messages-container')).toBeHidden();
+    await expect(container).toBeHidden();
     await selectRequestPaneTab(page, 'Message');
 
     await expect(container).toBeVisible();
@@ -69,7 +67,7 @@ test.describe('websocket message list scroll on tab switch', () => {
 
     // Switch away from the Message tab and back — this remounts WsBody.
     await selectRequestPaneTab(page, 'Headers');
-    await expect(page.getByTestId('ws-messages-container')).toBeHidden();
+    await expect(container).toBeHidden();
     await selectRequestPaneTab(page, 'Message');
 
     await expect(container).toBeVisible();

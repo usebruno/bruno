@@ -3,8 +3,6 @@ import { updateRequestBody } from 'providers/ReduxStore/slices/collections';
 import { IconPlus } from '@tabler/icons';
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useDispatch } from 'react-redux';
-import { usePersistedState } from 'hooks/usePersistedState';
-import { useTrackScroll } from 'hooks/useTrackScroll';
 import StyledWrapper from './StyledWrapper';
 import { SingleWSMessage } from './SingleWSMessage/index';
 
@@ -12,6 +10,8 @@ const getSelectedIndex = (messages) => {
   const idx = messages.findIndex((msg) => msg.selected);
   return idx >= 0 ? idx : 0;
 };
+
+const scrollPositions = new Map();
 
 const WSBody = ({ item, collection, handleRun, onAddMessage }) => {
   const dispatch = useDispatch();
@@ -28,9 +28,6 @@ const WSBody = ({ item, collection, handleRun, onAddMessage }) => {
   });
   const [newMessageUid, setNewMessageUid] = useState(null);
   const prevMessagesLengthRef = useRef(messages.length);
-
-  const [scroll, setScroll] = usePersistedState({ key: `ws-msg-scroll-${item.uid}`, default: 0 });
-  useTrackScroll({ ref: messagesContainerRef, onChange: setScroll, initialValue: scroll });
 
   const setSelectedIndex = useCallback((index) => {
     const currentMessages = [...(body?.ws || [])];
@@ -86,6 +83,21 @@ const WSBody = ({ item, collection, handleRun, onAddMessage }) => {
     setNewMessageUid(null);
   }, []);
 
+  // Restore the last scroll position on mount (component remounts on tab switch)
+  useEffect(() => {
+    const container = messagesContainerRef.current;
+    if (container && scrollPositions.has(item.uid)) {
+      container.scrollTop = scrollPositions.get(item.uid);
+    }
+  }, [item.uid]);
+
+  const handleScroll = useCallback(() => {
+    const container = messagesContainerRef.current;
+    if (container) {
+      scrollPositions.set(item.uid, container.scrollTop);
+    }
+  }, [item.uid]);
+
   // Clicking into a message editor focuses CodeMirror, which makes the browser
   // scroll the container to bring the focused input into view. Snapshot the
   // scroll position before the click and restore it on the next frame so the
@@ -121,6 +133,7 @@ const WSBody = ({ item, collection, handleRun, onAddMessage }) => {
         ref={messagesContainerRef}
         className="messages-container"
         data-testid="ws-messages-container"
+        onScroll={handleScroll}
         onMouseDownCapture={handleContainerMouseDownCapture}
       >
         {messages.map((message, index) => (
