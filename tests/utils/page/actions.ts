@@ -1870,38 +1870,6 @@ const openExampleFromSidebar = async (page: Page, requestName: string, exampleNa
 };
 
 /**
- * Open the Generate Code dialog and return the visible snippet text.
- * @param page - The page object
- * @returns The text content of the generated code snippet
- */
-const getGeneratedSnippet = async (page: Page): Promise<string> => {
-  return await test.step('Open Generate Code dialog and read snippet', async () => {
-    const { request } = buildCommonLocators(page);
-
-    await request.generateCodeButton().click();
-    await expect(page.getByRole('dialog')).toBeVisible();
-
-    const codeEditor = page.locator('.editor-content .CodeMirror').first();
-    await expect(codeEditor).toBeVisible();
-
-    return (await codeEditor.textContent()) ?? '';
-  });
-};
-
-/**
- * Close the Generate Code dialog and wait for it to disappear.
- * @param page - The page object
- * @returns void
- */
-const closeGenerateCodeDialog = async (page: Page) => {
-  await test.step('Close Generate Code dialog', async () => {
-    const { modal } = buildCommonLocators(page);
-    await modal.closeButton().click();
-    await modal.closeButton().waitFor({ state: 'hidden' });
-  });
-};
-
-/**
  * Open a request inside a folder by exact request name.
  * @param page - The page object
  * @param folderName - The name of the folder containing the request
@@ -1919,25 +1887,6 @@ const openRequestInFolder = async (page: Page, folderName: string, requestName: 
       has: page.locator('.item-name').filter({ hasText: new RegExp(`^${escapedName}$`) })
     });
     await requestRow.click();
-  });
-};
-
-/**
- * Toggle the URL encoding setting on the current request idempotently.
- * @param page - The page object
- * @param enabled - Whether URL encoding should be enabled
- * @returns void
- */
-const setUrlEncoding = async (page: Page, enabled: boolean) => {
-  await test.step(`Set URL encoding ${enabled ? 'ON' : 'OFF'}`, async () => {
-    await selectRequestPaneTab(page, 'Settings');
-    const toggle = page.getByTestId('encode-url-toggle');
-    await expect(toggle).toBeVisible();
-    const current = (await toggle.getAttribute('aria-checked')) === 'true';
-    if (current !== enabled) {
-      await toggle.click();
-      await expect(toggle).toHaveAttribute('aria-checked', String(enabled));
-    }
   });
 };
 
@@ -2303,10 +2252,7 @@ export {
   createExampleFromSidebar,
   openExampleFromSidebar,
   openWorkspaceFromDialog,
-  getGeneratedSnippet,
-  closeGenerateCodeDialog,
   openRequestInFolder,
-  setUrlEncoding,
   generateCollectionDocs,
   setAppCode,
   enableApp,
