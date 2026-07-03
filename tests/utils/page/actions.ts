@@ -2239,8 +2239,10 @@ const scrollVirtuosoRowIntoView = async (page: Page, target: Locator) => {
  */
 const getEnvVarValueLine = async (page: Page, name: string): Promise<Locator> => {
   const input = page.locator(`input[value="${name}"]`);
-  await scrollVirtuosoRowIntoView(page, input);
-  await expect(input).toBeVisible();
+  await expect(async () => {
+    await scrollVirtuosoRowIntoView(page, input);
+    await expect(input).toBeVisible({ timeout: 1000 });
+  }).toPass({ timeout: 15000 });
   const row = page.locator('tbody tr').filter({ has: input });
   return row.locator('.CodeMirror-line').first();
 };
