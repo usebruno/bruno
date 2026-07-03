@@ -315,7 +315,7 @@ test.describe('Snapshot: Collection Environment Persistence', () => {
     const app2 = await launchElectronApp({ userDataPath });
     const page2 = await waitForReadyPage(app2);
     await openCollection(page2, 'Collection Missing Env');
-    await expect(page2.locator('.current-environment')).toContainText('local-missing');
+    await expect(page2.locator('.current-environment')).toContainText('No Environment');
     await page2.waitForTimeout(2000);
     await closeElectronApp(app2);
 
