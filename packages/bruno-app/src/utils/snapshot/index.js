@@ -119,9 +119,6 @@ const normalizeCollectionSnapshotEntry = (pathname, entry = {}, tabsEntry = {}) 
   return {
     pathname,
     workspacePathname: typeof entry.workspacePathname === 'string' ? entry.workspacePathname : '',
-    sourceWorkspacePathname: typeof entry.sourceWorkspacePathname === 'string'
-      ? entry.sourceWorkspacePathname
-      : (typeof entry.workspacePathname === 'string' ? entry.workspacePathname : ''),
     environment: {
       collection: collectionEnvironmentPath,
       global: typeof environment.global === 'string' ? environment.global : ''
@@ -177,9 +174,6 @@ export const hydrateSnapshotLookups = (snapshot = {}) => {
       collectionsByPath[normalizedCollectionPathname] = {
         pathname: collection.pathname,
         workspacePathname: typeof collection.workspacePathname === 'string' ? collection.workspacePathname : '',
-        sourceWorkspacePathname: typeof collection.sourceWorkspacePathname === 'string'
-          ? collection.sourceWorkspacePathname
-          : (typeof collection.workspacePathname === 'string' ? collection.workspacePathname : ''),
         environment: collection.environment,
         environmentPath: collection.environmentPath,
         selectedEnvironment: collection.selectedEnvironment,
@@ -197,9 +191,6 @@ export const hydrateSnapshotLookups = (snapshot = {}) => {
         collectionsByWorkspaceAndPath[workspaceCollectionKey] = {
           pathname: collection.pathname,
           workspacePathname: typeof collection.workspacePathname === 'string' ? collection.workspacePathname : '',
-          sourceWorkspacePathname: typeof collection.sourceWorkspacePathname === 'string'
-            ? collection.sourceWorkspacePathname
-            : (typeof collection.workspacePathname === 'string' ? collection.workspacePathname : ''),
           environment: collection.environment,
           environmentPath: collection.environmentPath,
           selectedEnvironment: collection.selectedEnvironment,

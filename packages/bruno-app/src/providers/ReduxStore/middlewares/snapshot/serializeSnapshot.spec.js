@@ -23,7 +23,6 @@ const makeExistingSnapshot = () => ({
     {
       pathname: COLLECTION_PATH,
       workspacePathname: WORKSPACE_PATH,
-      sourceWorkspacePathname: WORKSPACE_PATH,
       environment: {
         collection: ENVIRONMENT_PATH,
         global: ''
@@ -154,7 +153,6 @@ describe('serializeSnapshot collection environment preservation', () => {
     expect(snapshot.collections[0]).toMatchObject({
       pathname: COLLECTION_PATH,
       workspacePathname: WORKSPACE_PATH,
-      sourceWorkspacePathname: WORKSPACE_PATH,
       environmentPath: ENVIRONMENT_PATH,
       selectedEnvironment: 'local',
       environment: {
@@ -171,7 +169,6 @@ describe('serializeSnapshot collection environment preservation', () => {
     );
 
     expect(snapshot.collections[0]).toMatchObject({
-      sourceWorkspacePathname: WORKSPACE_PATH,
       environmentPath: ENVIRONMENT_PATH,
       selectedEnvironment: 'local'
     });
@@ -194,7 +191,6 @@ describe('serializeSnapshot collection environment preservation', () => {
     );
 
     expect(snapshot.collections[0]).toMatchObject({
-      sourceWorkspacePathname: WORKSPACE_PATH,
       environmentPath: '/tmp/workspace/collections/api/environments/staging.yml',
       selectedEnvironment: 'staging'
     });
@@ -217,7 +213,6 @@ describe('serializeSnapshot collection environment preservation', () => {
     );
 
     expect(snapshot.collections[0]).toMatchObject({
-      sourceWorkspacePathname: WORKSPACE_PATH,
       environmentPath: '',
       selectedEnvironment: ''
     });

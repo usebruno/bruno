@@ -55,7 +55,6 @@ const activeTabSchema = yup.object({
 const collectionSchema = yup.object({
   pathname: yup.string().required(),
   workspacePathname: yup.string().optional().default(''),
-  sourceWorkspacePathname: yup.string().optional().default(''),
   environment: yup.object({
     collection: yup.string(),
     global: yup.string()
