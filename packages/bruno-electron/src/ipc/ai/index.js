@@ -31,6 +31,8 @@ const activeStreams = new Map();
 
 const getAiPrefs = () => getPreferences().ai || {};
 
+const getSecurityPrefs = () => getAiPrefs().security || null;
+
 const isEnabled = () => Boolean(getAiPrefs().enabled);
 
 const buildStatus = () => {
@@ -168,7 +170,8 @@ const registerAiIpc = (mainWindow) => {
       requestContext,
       docsContext,
       variables,
-      model: requestedModel
+      model: requestedModel,
+      streamId
     } = params || {};
 
     if (!SCRIPT_TYPES.includes(scriptType)) {
@@ -190,6 +193,12 @@ const registerAiIpc = (mainWindow) => {
       return { error: err.message };
     }
 
+    const security = getSecurityPrefs();
+    const controller = streamId ? new AbortController() : null;
+    if (streamId && controller) {
+      activeStreams.set(streamId, controller);
+    }
+
     // Generation runs through streamText so the model can call tools
     // (read_response, search_variables) when the inline context isn't enough.
     // We don't stream tokens back to the renderer — the sparkle UI shows a
@@ -205,7 +214,7 @@ const registerAiIpc = (mainWindow) => {
           if (!status && data == null) {
             return '(No response available — the request has not been executed yet.)';
           }
-          return formatResponseShape(status, data) || '(empty response)';
+          return formatResponseShape(status, data, { security }) || '(empty response)';
         }
       },
       search_variables: {
@@ -221,7 +230,7 @@ const registerAiIpc = (mainWindow) => {
             return '(No variables available — the collection has no environment, runtime, or collection variables defined.)';
           }
           const result = searchVariables(variables, query);
-          return formatSearchVariablesResult(result, query);
+          return formatSearchVariablesResult(result, query, { security });
         }
       }
     };
@@ -236,21 +245,28 @@ const registerAiIpc = (mainWindow) => {
           requestContext,
           docsContext,
           variables,
-          scriptType
+          scriptType,
+          security
         }),
         tools,
         // Cap tool-call iteration — the model gets a few chances to look
         // things up before it MUST produce the final script.
         stopWhen: stepCountIs(4),
         toolChoice: 'auto',
-        maxOutputTokens: 2048
+        maxOutputTokens: 2048,
+        abortSignal: controller?.signal
       });
 
       let fullText = '';
       for await (const part of result.fullStream) {
+        if (controller?.signal.aborted) break;
         if (part.type === 'text-delta') {
           fullText += part.text;
         }
+      }
+
+      if (controller?.signal.aborted) {
+        return { stopped: true };
       }
 
       const content = stripCodeFences(fullText);
@@ -259,8 +275,13 @@ const registerAiIpc = (mainWindow) => {
       }
       return { content, modelId };
     } catch (err) {
+      if (err?.name === 'AbortError' || controller?.signal.aborted) {
+        return { stopped: true };
+      }
       console.error('AI generate-script error:', err);
       return { error: err.message || 'Failed to generate script' };
+    } finally {
+      if (streamId) activeStreams.delete(streamId);
     }
   });
 

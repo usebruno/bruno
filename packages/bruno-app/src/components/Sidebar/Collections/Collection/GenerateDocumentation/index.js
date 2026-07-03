@@ -18,7 +18,7 @@ import { brunoToOpenCollection } from '@usebruno/converters';
 import { sanitizeName } from 'utils/common/regex';
 import { escapeHtml } from 'utils/response';
 
-const CDN_BASE_URL = 'https://cdn.opencollection.com';
+const CDN_BASE_URL = 'https://cdn.usebruno.com';
 
 const FEATURES = [
   'Standalone HTML file - no server required',
@@ -36,8 +36,8 @@ const buildHtmlDocument = (collectionName, escapedYamlContent) => `<!DOCTYPE htm
         body { margin: 0; padding: 0; }
         #opencollection-container { width: 100vw; height: 100vh; }
     </style>
-    <link rel="stylesheet" href="${CDN_BASE_URL}/docs.css">
-    <script src="${CDN_BASE_URL}/docs.js"></script>
+    <link rel="stylesheet" href="${CDN_BASE_URL}/docs/index.css">
+    <script src="${CDN_BASE_URL}/docs/index.js"></script>
 </head>
 <body>
     <div id="opencollection-container"></div>
@@ -189,7 +189,7 @@ const GenerateDocumentation = ({ onClose, collectionUid }) => {
         handleCancel={onClose}
         confirmDisabled={isLoading}
       >
-        <StyledWrapper className="w-[500px]">
+        <StyledWrapper>
           {isLoading ? (
             <div className="flex items-center justify-center gap-3 py-8">
               <IconLoader2 size={20} className="animate-spin" />
@@ -215,7 +215,7 @@ const GenerateDocumentation = ({ onClose, collectionUid }) => {
               </ul>
 
               <div className="config-card mb-4">
-                <CollectionVersionInfo version={currentVersion} folderCount={folderCount} requestCount={requestCount} />
+                <CollectionVersionInfo name={collection.name} version={currentVersion} folderCount={folderCount} requestCount={requestCount} environmentCount={environments.length} />
                 {environments.length > 0 && (
                   <Fragment>
                     <div className="card-divider" />
