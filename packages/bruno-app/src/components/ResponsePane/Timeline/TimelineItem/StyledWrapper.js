@@ -1,5 +1,5 @@
-import styled from 'styled-components';
 import { rgba } from 'polished';
+import styled from 'styled-components';
 
 const StyledWrapper = styled.div`
   .tl-row-wrap {
@@ -251,12 +251,21 @@ const StyledWrapper = styled.div`
   .tl-block-sections {
     padding-left: 18px;
   }
+  /* Indent the table so it starts under the pill (past the chevron), not under the chevron
+     (chevron icon 12px + the .tl-block-h gap 8px = 20px), and leave matching space on the right. */
+  .tl-block-sections .tl-headers-table,
+  .tl-block-sections .tl-empty {
+    margin-left: 20px;
+  }
+  .tl-block-sections .tl-headers-table {
+    width: calc(100% - 40px);
+  }
 
   .tl-pill {
     display: inline-flex;
     align-items: center;
     padding: 1px 8px;
-    border-radius: 10px;
+    border-radius: 4px;
     font-size: 10px;
     font-weight: 600;
     text-transform: uppercase;
@@ -264,24 +273,24 @@ const StyledWrapper = styled.div`
     border: 1px solid transparent;
   }
   .tl-pill--default {
-    color: #16a34a;
-    background: rgba(34, 197, 94, 0.14);
-    border-color: rgba(34, 197, 94, 0.4);
+    color: ${(props) => props.theme.status.info.text};
+    background: ${(props) => props.theme.status.info.background};
+    border-color: ${(props) => rgba(props.theme.status.info.border, 0.4)};
   }
   .tl-pill--collection {
-    color: #2563eb;
-    background: rgba(59, 130, 246, 0.14);
-    border-color: rgba(59, 130, 246, 0.4);
+    color: ${(props) => props.theme.status.warning.text};
+    background: ${(props) => props.theme.status.warning.background};
+    border-color: ${(props) => rgba(props.theme.status.warning.border, 0.4)};
   }
   .tl-pill--folder {
-    color: #ca8a04;
-    background: rgba(234, 179, 8, 0.16);
-    border-color: rgba(234, 179, 8, 0.45);
+    color: ${(props) => props.theme.colors.text.purple};
+    background: ${(props) => rgba(props.theme.colors.text.purple, 0.15)};
+    border-color: ${(props) => rgba(props.theme.colors.text.purple, 0.4)};
   }
   .tl-pill--request {
-    color: #ea580c;
-    background: rgba(249, 115, 22, 0.14);
-    border-color: rgba(249, 115, 22, 0.4);
+    color: ${(props) => props.theme.status.success.text};
+    background: ${(props) => props.theme.status.success.background};
+    border-color: ${(props) => rgba(props.theme.status.success.border, 0.4)};
   }
 
   .tl-headers-table {
@@ -308,9 +317,10 @@ const StyledWrapper = styled.div`
   }
   .tl-headers-table td.tl-headers-key {
     color: ${(props) => props.theme.colors.text.muted};
-    width: 220px;
-    min-width: 120px;
-    max-width: 280px;
+    width: 160px;
+    min-width: 100px;
+    max-width: 200px;
+    padding-right: 6px;
   }
   .tl-headers-table td.tl-headers-val {
     color: ${(props) => props.theme.text};
