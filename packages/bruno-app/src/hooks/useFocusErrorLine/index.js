@@ -39,7 +39,7 @@ export const useFocusErrorLine = ({ uid, editorRef, scriptPhase, isVisible = tru
         disposeRef.current = null;
       }
 
-      disposeRef.current = focusErrorLine(editor, focusErrorLineState.line);
+      disposeRef.current = focusErrorLine(editor, focusErrorLineState.line, { variant: focusErrorLineState.variant });
       dispatch(clearFocusErrorLine({ uid }));
     }, 0);
 

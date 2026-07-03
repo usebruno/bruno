@@ -200,6 +200,32 @@ const StyledWrapper = styled.div`
     }
   }
 
+  @keyframes cm-focus-line-flash {
+    0%, 60% {
+      background-color: ${(props) => props.theme.status.info.background};
+    }
+    100% {
+      background-color: transparent;
+    }
+  }
+
+  .CodeMirror .cm-focus-line-flash {
+    background-color: transparent;
+    animation: cm-focus-line-flash 1s ease-in-out;
+  }
+
+  .CodeMirror .cm-focus-line-flash-gutter {
+    color: ${(props) => props.theme.status.info.text} !important;
+    font-weight: 600;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .CodeMirror .cm-focus-line-flash {
+      animation: none;
+      background-color: ${(props) => props.theme.status.info.background};
+    }
+  }
+
   .cm-search-match {
     background: rgba(255, 193, 7, 0.25);
   }

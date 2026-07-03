@@ -16,6 +16,25 @@ const StyledWrapper = styled.div`
     overflow: clip;
   }
 
+  /* ~1s neutral flash when a row is revealed from elsewhere (e.g. the response timeline headers). */
+  @keyframes editable-row-flash {
+    0%, 60% {
+      background-color: ${(props) => props.theme.status.info.background};
+    }
+    100% {
+      background-color: transparent;
+    }
+  }
+  tr.row-flash td {
+    animation: editable-row-flash 1s ease-in-out;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    tr.row-flash td {
+      animation: none;
+      background-color: ${(props) => props.theme.status.info.background};
+    }
+  }
+
   table {
     width: 100%;
     border-collapse: collapse;

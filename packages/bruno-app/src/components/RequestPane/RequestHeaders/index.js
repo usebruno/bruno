@@ -140,6 +140,7 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
     <StyledWrapper className="w-full" ref={wrapperRef}>
       <EditableTable
         tableId="request-headers"
+        focusUid={item.uid}
         columns={columns}
         rows={headers || []}
         onChange={handleHeadersChange}

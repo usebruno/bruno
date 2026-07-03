@@ -322,6 +322,34 @@ const StyledWrapper = styled.div`
   .tl-headers-table td.tl-headers-val {
     color: ${(props) => props.theme.text};
   }
+  .tl-headers-table td.tl-headers-act {
+    width: 24px;
+    text-align: right;
+    padding-right: 0;
+  }
+  .tl-headers-goto {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2px;
+    border: none;
+    background: none;
+    border-radius: 4px;
+    color: ${(props) => props.theme.colors.text.muted};
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.1s ease, color 0.1s ease;
+  }
+  .tl-headers-table tr:hover .tl-headers-goto {
+    opacity: 1;
+  }
+  .tl-headers-goto:hover {
+    color: ${(props) => props.theme.text};
+  }
+  .tl-headers-goto:focus-visible {
+    opacity: 1;
+    outline: 1px solid ${(props) => props.theme.status.info.border};
+  }
   /* Align section tables under the pill (past the chevron), and leave room on the right. */
   .tl-block-sections .tl-headers-table {
     margin-left: 20px;

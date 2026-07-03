@@ -136,6 +136,7 @@ const Headers = ({ collection, folder }) => {
       </div>
       <EditableTable
         tableId="folder-headers"
+        focusUid={folder.uid}
         columns={columns}
         rows={headers}
         onChange={handleHeadersChange}

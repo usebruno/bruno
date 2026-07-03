@@ -288,6 +288,8 @@ export const tabsSlice = createSlice({
         tab.focusErrorLine = {
           scriptPhase: action.payload.scriptPhase,
           line: action.payload.line,
+          // 'error' (default, red ~3s) or 'info' (neutral ~1s) — lets non-error callers reuse the flash.
+          variant: action.payload.variant || 'error',
           requestedAt: action.payload.requestedAt
         };
       }
@@ -297,6 +299,25 @@ export const tabsSlice = createSlice({
 
       if (tab) {
         tab.focusErrorLine = null;
+      }
+    },
+    // Signal to scroll a headers EditableTable to a specific row (by header uid) and flash it briefly.
+    setFocusHeaderRow: (state, action) => {
+      const tab = find(state.tabs, (t) => t.uid === action.payload.uid);
+
+      if (tab) {
+        tab.focusHeaderRow = {
+          tableId: action.payload.tableId,
+          headerUid: action.payload.headerUid,
+          requestedAt: action.payload.requestedAt
+        };
+      }
+    },
+    clearFocusHeaderRow: (state, action) => {
+      const tab = find(state.tabs, (t) => t.uid === action.payload.uid);
+
+      if (tab) {
+        tab.focusHeaderRow = null;
       }
     },
     updateQueryBuilderOpen: (state, action) => {
@@ -547,6 +568,8 @@ export const {
   updateScriptPaneTab,
   setFocusErrorLine,
   clearFocusErrorLine,
+  setFocusHeaderRow,
+  clearFocusHeaderRow,
   closeTabs,
   closeAllCollectionTabs,
   makeTabPermanent,

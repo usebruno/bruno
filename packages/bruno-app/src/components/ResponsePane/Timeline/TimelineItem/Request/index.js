@@ -1,5 +1,14 @@
 import get from 'lodash/get';
+import { useDispatch } from 'react-redux';
 import { getTreePathFromCollectionToItem } from 'utils/collections/index';
+import {
+  addTab,
+  updateRequestPaneTab,
+  updateScriptPaneTab,
+  setFocusErrorLine,
+  setFocusHeaderRow
+} from 'providers/ReduxStore/slices/tabs';
+import { updateSettingsSelectedTab, updatedFolderSettingsSelectedTab } from 'providers/ReduxStore/slices/collections';
 import BodyBlock from '../Common/Body/index';
 import Headers, { toEntries } from '../Common/Headers/index';
 
@@ -15,12 +24,16 @@ const safeStringifyJSONIfNotString = (obj) => {
 
 const norm = (name) => String(name ?? '').trim().toLowerCase();
 
-const enabledHeaderNames = (headers) =>
-  (Array.isArray(headers) ? headers : [])
-    .filter((h) => h && h.enabled !== false && norm(h.name))
-    .map((h) => norm(h.name));
+// name(lowercased) -> header uid, for enabled headers in a definition list.
+const enabledHeaderMap = (headers) => {
+  const map = new Map();
+  (Array.isArray(headers) ? headers : []).forEach((h) => {
+    if (h && h.enabled !== false && norm(h.name)) map.set(norm(h.name), h.uid);
+  });
+  return map;
+};
 
-// The transport-level "default" headers (Accept, User-Agent, Accept-Encoding, request-start-time, …)
+// The transport-level "default" headers (Accept, User-Agent, Accept-Encoding, Host, Connection, …)
 // are added by the axios instance/adapter and never make it into the request definition. They exist
 // only as `requestHeader` entries in the network timeline (the same source the Network tab reads).
 const parseTimelineHeaders = (timeline) => {
@@ -39,50 +52,63 @@ const parseTimelineHeaders = (timeline) => {
 
 const escapeRegExp = (s) => String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
-// Best-effort static check: does this pre-request script set the given header (via req.setHeader or
-// a req.headers[...] / req.headers.x assignment)? Used only to attribute an already-detected
-// script-set header to its level, so a false miss just falls back to Request Script.
-const scriptSetsHeader = (script, name) => {
-  if (!script || !name) return false;
+// Best-effort static check: the 1-based line where this pre-request script sets the given header
+// (via req.setHeader or a req.headers[...] / req.headers.x assignment), else null. Used only to
+// attribute an already-detected script-set header to its level/line — a miss falls back to line 1.
+const scriptHeaderLine = (script, name) => {
+  if (!script || !name) return null;
   const n = escapeRegExp(name);
-  return (
-    new RegExp(`setHeader\\s*\\(\\s*[\`'"]${n}[\`'"]`, 'i').test(script)
-      || new RegExp(`headers\\s*\\[\\s*[\`'"]${n}[\`'"]\\s*\\]`, 'i').test(script)
-      || new RegExp(`headers\\s*\\.\\s*${n}(?![\\w-])`, 'i').test(script)
-  );
+  const patterns = [
+    new RegExp(`setHeader\\s*\\(\\s*[\`'"]${n}[\`'"]`, 'i'),
+    new RegExp(`headers\\s*\\[\\s*[\`'"]${n}[\`'"]\\s*\\]`, 'i'),
+    new RegExp(`headers\\s*\\.\\s*${n}(?![\\w-])`, 'i')
+  ];
+  const lines = String(script).split('\n');
+  for (let i = 0; i < lines.length; i++) {
+    if (patterns.some((re) => re.test(lines[i]))) return i + 1;
+  }
+  return null;
 };
 
 // Build the collapsible sections tree for the Headers block. Header sources (default / collection /
 // folder / request) each become a section; script-set headers are grouped under a "Script" section
-// with Collection / Folder / Request Script sub-sections.
+// with Collection / Folder / Request Script sub-sections. Each non-default row carries `nav` metadata
+// describing where to jump to (a headers table row, or a pre-request script line).
 const buildHeaderSections = ({ collection, item, request, timeline }) => {
   const collectionRoot = collection?.draft?.root || collection?.root || {};
-  const collectionNames = new Set(enabledHeaderNames(get(collectionRoot, 'request.headers', [])));
+  const collectionHeaders = enabledHeaderMap(get(collectionRoot, 'request.headers', []));
   const collectionScript = get(collectionRoot, 'request.script.req', '') || '';
 
   const treePath = getTreePathFromCollectionToItem(collection, item) || [];
-  const folderNames = new Set();
-  const folderScripts = [];
+  const folderHeaders = new Map(); // name -> { folderUid, headerUid }; deeper folder wins
+  const folderScripts = []; // { uid, script } in collection->item order
   treePath.forEach((node) => {
     if (node?.type !== 'folder') return;
     const folderRoot = node?.draft || node?.root || {};
-    enabledHeaderNames(get(folderRoot, 'request.headers', [])).forEach((n) => folderNames.add(n));
+    enabledHeaderMap(get(folderRoot, 'request.headers', [])).forEach((headerUid, name) => {
+      folderHeaders.set(name, { folderUid: node.uid, headerUid });
+    });
     const s = get(folderRoot, 'request.script.req', '') || '';
-    if (s) folderScripts.push(s);
+    if (s) folderScripts.push({ uid: node.uid, script: s });
   });
 
   const itemHeaders = item?.draft ? get(item, 'draft.request.headers', []) : get(item, 'request.headers', []);
-  const requestNames = new Set(enabledHeaderNames(itemHeaders));
+  const requestHeaders = enabledHeaderMap(itemHeaders);
   const requestScript = item?.draft ? get(item, 'draft.request.script.req', '') : get(item, 'request.script.req', '');
 
   // Headers the pre-request script added/changed via req.setHeader (recorded by the network layer).
   const scriptSetNames = new Set((Array.isArray(request?.scriptSetHeaders) ? request.scriptSetHeaders : []).map(norm));
 
-  // Which level's script set this header (request wins, then folder, then collection). null if none.
-  const scriptLevelOf = (name) => {
-    if (scriptSetsHeader(requestScript, name)) return 'request';
-    if (folderScripts.some((s) => scriptSetsHeader(s, name))) return 'folder';
-    if (scriptSetsHeader(collectionScript, name)) return 'collection';
+  // Which level's script set this header, and where. { level, folderUid?, line } | null.
+  const scriptInfoOf = (name) => {
+    let line = scriptHeaderLine(requestScript, name);
+    if (line) return { level: 'request', line };
+    for (const f of folderScripts) {
+      line = scriptHeaderLine(f.script, name);
+      if (line) return { level: 'folder', folderUid: f.uid, line };
+    }
+    line = scriptHeaderLine(collectionScript, name);
+    if (line) return { level: 'collection', line };
     return null;
   };
 
@@ -97,14 +123,26 @@ const buildHeaderSections = ({ collection, item, request, timeline }) => {
     const key = norm(h.name);
     if (!key || seen.has(key)) return;
     seen.add(key);
-    const row = { name: h.name, value: h.value };
-    const level = scriptLevelOf(h.name);
+
+    const scriptInfo = scriptInfoOf(h.name);
     // A script setting a header wins over any definition it overrides, so it's checked first.
-    if (scriptSetNames.has(key) || level) scriptBuckets[level || 'request'].push(row);
-    else if (requestNames.has(key)) buckets.request.push(row);
-    else if (folderNames.has(key)) buckets.folder.push(row);
-    else if (collectionNames.has(key)) buckets.collection.push(row);
-    else buckets.default.push(row);
+    if (scriptSetNames.has(key) || scriptInfo) {
+      const level = scriptInfo?.level || 'request';
+      scriptBuckets[level].push({
+        name: h.name,
+        value: h.value,
+        nav: { kind: 'script', level, folderUid: scriptInfo?.folderUid, line: scriptInfo?.line || 1 }
+      });
+    } else if (requestHeaders.has(key)) {
+      buckets.request.push({ name: h.name, value: h.value, nav: { kind: 'request', headerUid: requestHeaders.get(key) } });
+    } else if (folderHeaders.has(key)) {
+      const f = folderHeaders.get(key);
+      buckets.folder.push({ name: h.name, value: h.value, nav: { kind: 'folder', folderUid: f.folderUid, headerUid: f.headerUid } });
+    } else if (collectionHeaders.has(key)) {
+      buckets.collection.push({ name: h.name, value: h.value, nav: { kind: 'collection', headerUid: collectionHeaders.get(key) } });
+    } else {
+      buckets.default.push({ name: h.name, value: h.value });
+    }
   });
 
   const sections = [];
@@ -136,6 +174,7 @@ const buildHeaderSections = ({ collection, item, request, timeline }) => {
 };
 
 const Request = ({ collection, request, item, timeline }) => {
+  const dispatch = useDispatch();
   let { headers, data, dataBuffer, error } = request || {};
   if (!dataBuffer) {
     dataBuffer = Buffer.from(safeStringifyJSONIfNotString(data))?.toString('base64');
@@ -143,9 +182,48 @@ const Request = ({ collection, request, item, timeline }) => {
 
   const headerSections = buildHeaderSections({ collection, item, request, timeline });
 
+  // Open (mounting if needed) the tab/sub-tab where this header comes from, then flash the row/line.
+  const handleNavigate = (nav) => {
+    if (!nav || !collection?.uid) return;
+    const requestedAt = Date.now();
+
+    if (nav.kind === 'collection') {
+      dispatch(addTab({ uid: collection.uid, collectionUid: collection.uid, type: 'collection-settings' }));
+      dispatch(updateSettingsSelectedTab({ collectionUid: collection.uid, tab: 'headers' }));
+      if (nav.headerUid) dispatch(setFocusHeaderRow({ uid: collection.uid, tableId: 'collection-headers', headerUid: nav.headerUid, requestedAt }));
+    } else if (nav.kind === 'folder' && nav.folderUid) {
+      dispatch(addTab({ uid: nav.folderUid, collectionUid: collection.uid, type: 'folder-settings' }));
+      dispatch(updatedFolderSettingsSelectedTab({ collectionUid: collection.uid, folderUid: nav.folderUid, tab: 'headers' }));
+      if (nav.headerUid) dispatch(setFocusHeaderRow({ uid: nav.folderUid, tableId: 'folder-headers', headerUid: nav.headerUid, requestedAt }));
+    } else if (nav.kind === 'request' && item?.uid) {
+      dispatch(addTab({ uid: item.uid, collectionUid: collection.uid, type: 'request' }));
+      dispatch(updateRequestPaneTab({ uid: item.uid, requestPaneTab: 'headers' }));
+      if (nav.headerUid) dispatch(setFocusHeaderRow({ uid: item.uid, tableId: 'request-headers', headerUid: nav.headerUid, requestedAt }));
+    } else if (nav.kind === 'script') {
+      const line = nav.line || 1;
+      const focus = (uid) => dispatch(setFocusErrorLine({ uid, scriptPhase: 'pre-request', line, variant: 'info', requestedAt }));
+      if (nav.level === 'collection') {
+        dispatch(addTab({ uid: collection.uid, collectionUid: collection.uid, type: 'collection-settings' }));
+        dispatch(updateSettingsSelectedTab({ collectionUid: collection.uid, tab: 'script' }));
+        dispatch(updateScriptPaneTab({ uid: collection.uid, scriptPaneTab: 'pre-request' }));
+        focus(collection.uid);
+      } else if (nav.level === 'folder' && nav.folderUid) {
+        dispatch(addTab({ uid: nav.folderUid, collectionUid: collection.uid, type: 'folder-settings' }));
+        dispatch(updatedFolderSettingsSelectedTab({ collectionUid: collection.uid, folderUid: nav.folderUid, tab: 'script' }));
+        dispatch(updateScriptPaneTab({ uid: nav.folderUid, scriptPaneTab: 'pre-request' }));
+        focus(nav.folderUid);
+      } else if (item?.uid) {
+        dispatch(addTab({ uid: item.uid, collectionUid: collection.uid, type: 'request' }));
+        dispatch(updateRequestPaneTab({ uid: item.uid, requestPaneTab: 'script' }));
+        dispatch(updateScriptPaneTab({ uid: item.uid, scriptPaneTab: 'pre-request' }));
+        focus(item.uid);
+      }
+    }
+  };
+
   return (
     <>
-      <Headers sections={headerSections} />
+      <Headers sections={headerSections} onNavigate={handleNavigate} />
       <BodyBlock
         collection={collection}
         data={data}

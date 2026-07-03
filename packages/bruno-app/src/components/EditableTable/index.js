@@ -2,7 +2,10 @@ import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useSta
 import { TableVirtuoso } from 'react-virtuoso';
 import { IconTrash, IconAlertCircle, IconGripVertical, IconMinusVertical } from '@tabler/icons';
 import { Tooltip } from 'react-tooltip';
+import { useDispatch } from 'react-redux';
 import { uuid } from 'utils/common';
+import { useFocusHeaderRow } from 'hooks/useFocusHeaderRow';
+import { clearFocusHeaderRow } from 'providers/ReduxStore/slices/tabs';
 import StyledWrapper from './StyledWrapper';
 
 const MIN_COLUMN_WIDTH = 80;
@@ -26,7 +29,10 @@ const TableRow = React.memo(
     const canDrag = reorderable && !isEmpty && rowIndex < reorderableRowCount;
     const isDragOver = canDrag && dragOverRow === rowIndex;
     const existingClass = rest.className || '';
-    const className = isDragOver ? `${existingClass} drag-over`.trim() : existingClass;
+    const isFlashing = context.flashRowUid && item?.uid === context.flashRowUid;
+    const className = [existingClass, isDragOver ? 'drag-over' : '', isFlashing ? 'row-flash' : '']
+      .filter(Boolean)
+      .join(' ');
     const rowName = keyColumn ? item?.[keyColumn.key] : undefined;
 
     return (
@@ -34,6 +40,7 @@ const TableRow = React.memo(
         {...rest}
         className={className}
         data-row-name={rowName || undefined}
+        data-row-uid={item?.uid || undefined}
         draggable={canDrag}
         onDragStart={canDrag ? (e) => onDragStart(e, rowIndex) : undefined}
         onDragOver={canDrag ? (e) => onDragOver(e, rowIndex) : undefined}
@@ -65,16 +72,20 @@ const EditableTable = ({
   testId = 'editable-table',
   columnWidths,
   initialScroll = 0,
-  onColumnWidthsChange
+  onColumnWidthsChange,
+  focusUid // tab uid; when set, this table subscribes to the focusHeaderRow signal
 }) => {
+  const dispatch = useDispatch();
   const wrapperRef = useRef(null);
   const virtuosoRef = useRef(null);
   const emptyRowUidRef = useRef(null);
   const prevRowCountRef = useRef(0);
+  const flashTimerRef = useRef(null);
   const [resizing, setResizing] = useState(null);
   const [tableHeight, setTableHeight] = useState(0);
   const [scrollParent, setScrollParent] = useState(null);
   const [dragOverRow, setDragOverRow] = useState(null);
+  const [flashRowUid, setFlashRowUid] = useState(null);
   const widths = columnWidths || {};
 
   useLayoutEffect(() => {
@@ -227,6 +238,29 @@ const EditableTable = ({
     prevRowCountRef.current = rowsWithEmpty.length;
   }, [rowsWithEmpty.length]);
 
+  // When another view (e.g. the response timeline) asks to reveal a specific header row, scroll it
+  // into view and flash it for ~1s.
+  const focusHeaderRow = useFocusHeaderRow({ uid: focusUid, tableId });
+  useEffect(() => {
+    if (!focusUid || !focusHeaderRow?.headerUid) return;
+    const targetUid = focusHeaderRow.headerUid;
+    // Defer a tick so a freshly-mounted virtualized table has rendered before we scroll to the row.
+    const timer = setTimeout(() => {
+      dispatch(clearFocusHeaderRow({ uid: focusUid }));
+      const index = rowsWithEmpty.findIndex((r) => r.uid === targetUid);
+      if (index === -1) return;
+      virtuosoRef.current?.scrollToIndex({ index, behavior: 'smooth' });
+      setFlashRowUid(targetUid);
+      if (flashTimerRef.current) clearTimeout(flashTimerRef.current);
+      flashTimerRef.current = setTimeout(() => setFlashRowUid(null), 1000);
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [focusHeaderRow?.requestedAt]);
+
+  useEffect(() => () => {
+    if (flashTimerRef.current) clearTimeout(flashTimerRef.current);
+  }, []);
+
   const handleValueChange = useCallback((rowUid, key, value) => {
     const rowIndex = rowsWithEmpty.findIndex((r) => r.uid === rowUid);
     if (rowIndex === -1) return;
@@ -351,13 +385,14 @@ const EditableTable = ({
     reorderableRowCount,
     isLastEmptyRow,
     dragOverRow,
+    flashRowUid,
     keyColumn,
     onDragStart: handleDragStart,
     onDragOver: handleDragOver,
     onDragLeave: handleDragLeave,
     onDrop: handleDrop,
     onDragEnd: handleDragEnd
-  }), [reorderable, reorderableRowCount, isLastEmptyRow, dragOverRow, keyColumn, handleDragStart, handleDragOver, handleDragLeave, handleDrop, handleDragEnd]);
+  }), [reorderable, reorderableRowCount, isLastEmptyRow, dragOverRow, flashRowUid, keyColumn, handleDragStart, handleDragOver, handleDragLeave, handleDrop, handleDragEnd]);
 
   const fixedHeaderContent = useCallback(() => (
     <tr>
