@@ -327,7 +327,7 @@ class SnapshotManager {
       'performance',
       'terminal'
     ];
-    const devToolTabs = devTools.tabs || {};
+    const devToolTabs = isObject(devTools.tabs) ? devTools.tabs : {};
 
     const _snapshotEntry = {
       open: typeof devTools?.open === 'boolean' ? devTools.open : false,

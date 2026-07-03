@@ -125,13 +125,13 @@ test.describe('Snapshot: Collection Environment Persistence', () => {
       await expect(page2.locator('.current-environment')).toContainText('local-a');
 
       // Wait for debounced snapshot save to flush to verify the snapshot isn't overwritten by the next save
-      await page2.waitForTimeout(2000);
+      await waitForSnapshotCollectionEnvironment(userDataPath, firstCollectionRoot, 'local-a');
 
       await openCollection(page2, 'Collection B');
       await expect(page2.locator('.current-environment')).toContainText('local-b');
 
       // Wait for debounced snapshot save to flush to verify the snapshot isn't overwritten by the next save
-      await page2.waitForTimeout(2000);
+      await waitForSnapshotCollectionEnvironment(userDataPath, secondCollectionRoot, 'local-b');
 
       await closeElectronApp(app2);
     });
@@ -264,25 +264,24 @@ test.describe('Snapshot: Collection Environment Persistence', () => {
 
       await openCollection(page2, 'Collection A');
       await expect(page2.locator('.current-environment')).toContainText('local-a', { timeout: 15000 });
-      await page2.waitForTimeout(2000);
+      await waitForSnapshotCollectionEnvironment(userDataPath, firstCollectionRoot, 'local-a');
 
       await openCollection(page2, 'Collection B');
       await expect(page2.locator('.current-environment')).toContainText('local-b', { timeout: 15000 });
-      await page2.waitForTimeout(2000);
+      await waitForSnapshotCollectionEnvironment(userDataPath, secondCollectionRoot, 'local-b');
 
       await openCollection(page2, 'Collection C');
       await expect(page2.locator('.current-environment')).toContainText('local-c', { timeout: 15000 });
-      await page2.waitForTimeout(2000);
+      await waitForSnapshotCollectionEnvironment(userDataPath, thirdCollectionRoot, 'local-c');
 
       await closeElectronApp(app2);
 
       const updatedSnapshot = readSnapshot(userDataPath);
       expect(updatedSnapshot).not.toBeNull();
 
-      const updatedCollections = Array.isArray(updatedSnapshot?.collections) ? updatedSnapshot.collections : [];
-      const firstUpdatedEntry = updatedCollections.find((collection: any) => collection?.pathname === firstCollectionRoot);
-      const secondUpdatedEntry = updatedCollections.find((collection: any) => collection?.pathname === secondCollectionRoot);
-      const thirdUpdatedEntry = updatedCollections.find((collection: any) => collection?.pathname === thirdCollectionRoot);
+      const firstUpdatedEntry = findSnapshotCollectionEntry(updatedSnapshot, firstCollectionRoot);
+      const secondUpdatedEntry = findSnapshotCollectionEntry(updatedSnapshot, secondCollectionRoot);
+      const thirdUpdatedEntry = findSnapshotCollectionEntry(updatedSnapshot, thirdCollectionRoot);
 
       expect(firstUpdatedEntry?.selectedEnvironment).toBe('local-a');
       expect(secondUpdatedEntry?.selectedEnvironment).toBe('local-b');
@@ -316,7 +315,7 @@ test.describe('Snapshot: Collection Environment Persistence', () => {
     const page2 = await waitForReadyPage(app2);
     await openCollection(page2, 'Collection Missing Env');
     await expect(page2.locator('.current-environment')).toContainText('No Environment');
-    await page2.waitForTimeout(2000);
+    await waitForSnapshotCollectionEnvironment(userDataPath, collectionRoot, 'local-missing');
     await closeElectronApp(app2);
 
     const snapshot = readSnapshot(userDataPath);
@@ -341,7 +340,7 @@ test.describe('Snapshot: Collection Environment Persistence', () => {
     await closeElectronApp(app);
 
     const initialSnapshot = readSnapshot(userDataPath);
-    const initialEntry = initialSnapshot?.collections?.find((collection: any) => collection?.pathname === collectionRoot);
+    const initialEntry = findSnapshotCollectionEntry(initialSnapshot, collectionRoot);
     const envFilePath = initialEntry?.environmentPath || initialEntry?.environment?.collection;
     expect(envFilePath).toBeTruthy();
     expect(fs.existsSync(envFilePath)).toBe(true);
@@ -351,7 +350,7 @@ test.describe('Snapshot: Collection Environment Persistence', () => {
     const page2 = await waitForReadyPage(app2);
     await openCollection(page2, 'Collection Bad Env');
     await expect(page2.locator('.current-environment')).toContainText('local-bad');
-    await page2.waitForTimeout(2000);
+    await waitForSnapshotCollectionEnvironment(userDataPath, collectionRoot, 'local-bad');
     await closeElectronApp(app2);
 
     const snapshot = readSnapshot(userDataPath);

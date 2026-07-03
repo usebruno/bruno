@@ -61,10 +61,11 @@ const resolveLastOpenedWorkspacePaths = (lastOpenedWorkspaces, {
 } = {}) => {
   const workspacePaths = lastOpenedWorkspaces.getAll();
   const activeWorkspacePath = snapshotManager.getSnapshot()?.activeWorkspacePath;
+  const normalizedDefaultWorkspacePath = defaultWorkspacePath ? normalizeWorkspacePathname(defaultWorkspacePath) : null;
   const validWorkspaces = [];
   const invalidPaths = [];
   for (const workspacePath of workspacePaths) {
-    if (defaultWorkspacePath && workspacePath === defaultWorkspacePath) {
+    if (normalizedDefaultWorkspacePath && normalizeWorkspacePathname(workspacePath) === normalizedDefaultWorkspacePath) {
       continue;
     }
 
@@ -86,7 +87,7 @@ const resolveLastOpenedWorkspacePaths = (lastOpenedWorkspaces, {
     if (
       !alreadyIncluded
       && normalizedActivePath
-      && (!defaultWorkspacePath || activeWorkspacePath !== defaultWorkspacePath)
+      && (!normalizedDefaultWorkspacePath || normalizedActivePath !== normalizedDefaultWorkspacePath)
       && isValidWorkspacePathOnDisk(activeWorkspacePath, { validateConfig })
     ) {
       prioritizedWorkspaces.unshift(activeWorkspacePath);
