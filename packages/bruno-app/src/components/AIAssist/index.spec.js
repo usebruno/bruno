@@ -105,6 +105,15 @@ describe('AIAssist', () => {
       expect(screen.queryByRole('dialog', { name: 'Generate Tests' })).not.toBeInTheDocument();
     });
 
+    it('renders the popup into document.body as a portal', () => {
+      renderAIAssist();
+      openPopup();
+      const dialog = screen.getByRole('dialog', { name: 'Generate Tests' });
+      const tippyRoot = dialog.closest('[data-tippy-root]');
+      expect(tippyRoot).not.toBeNull();
+      expect(tippyRoot.parentElement).toBe(document.body);
+    });
+
     it('closes the popup when Escape is pressed', () => {
       renderAIAssist();
       openPopup();
