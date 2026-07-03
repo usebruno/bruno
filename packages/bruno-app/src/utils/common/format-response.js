@@ -1,12 +1,7 @@
 /**
  * Response formatting utilities.
  *
- * Kept in a separate module (not re-exported from utils/common/index.js) so that
- * prettier — a large dependency — is only bundled into the chunks that actually
- * render responses (ResponsePane/QueryResult, ResponseCopy, ResponseBookmark),
- * all of which are inside the lazy-loaded RequestTabPanel chunk.
- *
- * DO NOT re-export from utils/common/index.js — that would pull prettier back
+ * DO NOT re-export from utils/common/index.js — that would pull prettier
  * into the main bundle.
  */
 

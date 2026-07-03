@@ -8,7 +8,9 @@ import RequestTabs from 'components/RequestTabs';
 import { useSelector } from 'react-redux';
 import { isElectron } from 'utils/common/platform';
 import StyledWrapper from './StyledWrapper';
-import Devtools from 'components/Devtools';
+import PageLoader from 'components/RequestTabPanel/RequestTabPanelLoading';
+// Devtools (xterm, codemirror, etc.) only needed when the panel is opened
+const Devtools = lazy(() => import('components/Devtools'));
 import useGrpcEventListeners from 'utils/network/grpc-event-listeners';
 import useWsEventListeners from 'utils/network/ws-event-listeners';
 import Portal from 'components/Portal';
@@ -120,7 +122,7 @@ export default function Main() {
         <StyledWrapper className={className} style={{ height: '100%', zIndex: 1 }}>
           <Sidebar />
           <section className="flex flex-grow flex-col overflow-hidden">
-            <Suspense fallback={null}>
+            <Suspense fallback={<PageLoader />}>
               {showApiSpecPage && activeApiSpecUid ? (
                 <ApiSpecPanel key={activeApiSpecUid} />
               ) : showManageWorkspacePage ? (
@@ -136,14 +138,16 @@ export default function Main() {
             </Suspense>
           </section>
           {isAiSidebarOpen && activeCollection && !showApiSpecPage && !showManageWorkspacePage && (
-            <Suspense fallback={null}>
+            <Suspense fallback={<PageLoader />}>
               <AiChatSidebar collection={activeCollection} />
             </Suspense>
           )}
         </StyledWrapper>
       </div>
 
-      <Devtools mainSectionRef={mainSectionRef} />
+      <Suspense fallback={null}>
+        <Devtools mainSectionRef={mainSectionRef} />
+      </Suspense>
       <StatusBar />
       <TransientRequestModalsRenderer modals={saveTransientRequestModals} />
     </div>

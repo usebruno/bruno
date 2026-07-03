@@ -5,7 +5,8 @@ import { IconSettings, IconCookie, IconTool, IconSearch, IconPalette, IconBrandG
 import Mousetrap from 'mousetrap';
 import { getKeyBindingsForActionAllOS } from 'providers/Hotkeys/keyMappings';
 import ToolHint from 'components/ToolHint';
-import Cookies from 'components/Cookies';
+// Cookies pulls in moment-timezone (723 KiB). Only needed on click, so lazy-load it.
+const Cookies = React.lazy(() => import('components/Cookies'));
 import Notifications from 'components/Notifications';
 import Portal from 'components/Portal';
 import ThemeDropdown from './ThemeDropdown';
@@ -59,16 +60,18 @@ const StatusBar = () => {
     <StyledWrapper>
       {cookiesOpen && (
         <Portal>
-          <Cookies
-            onClose={() => {
-              setCookiesOpen(false);
-              document.querySelector('[data-trigger="cookies"]').focus();
-            }}
-            aria-modal="true"
-            role="dialog"
-            aria-labelledby="cookies-title"
-            aria-describedby="cookies-description"
-          />
+          <React.Suspense fallback={null}>
+            <Cookies
+              onClose={() => {
+                setCookiesOpen(false);
+                document.querySelector('[data-trigger="cookies"]').focus();
+              }}
+              aria-modal="true"
+              role="dialog"
+              aria-labelledby="cookies-title"
+              aria-describedby="cookies-description"
+            />
+          </React.Suspense>
         </Portal>
       )}
 
