@@ -44,6 +44,7 @@ import {
   responseReceived,
   updateLastAction,
   setCollectionSecurityConfig,
+  updateCollectionVersion as _updateCollectionVersion,
   collectionAddOauth2CredentialsByUrl,
   collectionClearOauth2CredentialsByUrlAndCredentialsId,
   initRunRequestEvent,
@@ -313,6 +314,40 @@ export const saveCollectionRoot = (collectionUid) => (dispatch, getState) => {
   });
 };
 
+export const saveCollectionVersion = (collectionUid, version) => (dispatch, getState) => {
+  const state = getState();
+  const collection = findCollectionByUid(state.collections.collections, collectionUid);
+
+  return new Promise((resolve, reject) => {
+    if (!collection) {
+      return reject(new Error('Collection not found'));
+    }
+
+    const updatedVersion = typeof version === 'string' ? version.trim() : '';
+
+    const brunoConfigToSave = { ...(collection.brunoConfig || {}) };
+    if (updatedVersion) {
+      brunoConfigToSave.version = updatedVersion;
+    } else {
+      delete brunoConfigToSave.version;
+    }
+
+    const { ipcRenderer } = window;
+
+    ipcRenderer
+      .invoke('renderer:update-bruno-config', brunoConfigToSave, collection.pathname, collection.root)
+      .then(() => {
+        dispatch(_updateCollectionVersion({ collectionUid, version: updatedVersion }));
+        toast.success('Collection version updated');
+      })
+      .then(resolve)
+      .catch((err) => {
+        toast.error('Failed to update collection version');
+        reject(err);
+      });
+  });
+};
+
 export const saveFolderRoot = (collectionUid, folderUid, silent = false) => (dispatch, getState) => {
   const state = getState();
   const collection = findCollectionByUid(state.collections.collections, collectionUid);
@@ -505,8 +540,6 @@ export const wsConnectOnly = (item, collectionUid) => (dispatch, getState) => {
     const environment = findEnvironmentInCollection(collectionCopy, collectionCopy.activeEnvironmentUid);
 
     // WS connect does not run user scripts — no baseline to clear.
-    // Wiping baselines here would also wipe collection._scriptRequestUid, opening
-    // a window where a late HTTP post-response could pass the stale-update gate.
 
     connectWS(itemCopy, collectionCopy, environment, collectionCopy.runtimeVariables, { connectOnly: true })
       .then(resolve)
@@ -2412,14 +2445,10 @@ export const clearScriptVariableBaselines = (collectionUid) => (dispatch) => {
   dispatch(_clearScriptGlobalEnvBaseline());
 };
 
-export const persistActiveEnvironment = (collectionUid, requestUid) => (dispatch, getState) => {
+export const persistActiveEnvironment = (collectionUid) => (dispatch, getState) => {
   const state = getState();
   const collection = findCollectionByUid(state.collections.collections, collectionUid);
   if (!collection) return;
-
-  // Ignore stale updates from superseded requests so an in-flight pre/post
-  // from request N-1 can't trigger a disk write for request N.
-  if (requestUid && collection._scriptRequestUid && requestUid !== collection._scriptRequestUid) return;
 
   const environment = findEnvironmentInCollection(collection, collection.activeEnvironmentUid);
   if (!environment) return;
@@ -2441,17 +2470,12 @@ export const persistActiveEnvironment = (collectionUid, requestUid) => (dispatch
     .catch((err) => console.error('Failed to persist environment during script execution:', err));
 };
 
-export const collectionVariablesUpdateEvent = ({ collectionVariables, collectionUid, requestUid }) => (dispatch, getState) => {
+export const collectionVariablesUpdateEvent = ({ collectionVariables, collectionUid }) => (dispatch, getState) => {
   if (!collectionVariables || !collectionUid) return;
 
   const state = getState();
   const collection = findCollectionByUid(state.collections.collections, collectionUid);
   if (!collection) return;
-
-  // Ignore stale updates from superseded requests.
-  if (requestUid && collection._scriptRequestUid && requestUid !== collection._scriptRequestUid) {
-    return;
-  }
 
   const savedVars = get(collection, 'root.request.vars.req', []);
   const draftVars = collection.draft?.root

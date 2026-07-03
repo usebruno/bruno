@@ -1,6 +1,7 @@
 const { ipcMain } = require('electron');
 const { streamText, stepCountIs } = require('ai');
 const { z } = require('zod');
+const { get } = require('lodash');
 const { CONTENT_TYPES, TOOL_LABELS, buildSystemPrompt, resolveContentType } = require('./chat-prompts');
 const {
   formatRequestContext,
@@ -9,6 +10,9 @@ const {
   searchVariables,
   formatSearchVariablesResult
 } = require('./context');
+const { getPreferences } = require('../../store/preferences');
+
+const getSecurityPrefs = () => get(getPreferences(), 'ai.security', null);
 
 const activeStreams = new Map();
 
@@ -20,14 +24,14 @@ const CONTENT_LABELS = {
   'docs': 'Documentation'
 };
 
-const buildContextMessage = (contentType, allContent, requestContext, variables) => {
+const buildContextMessage = (contentType, allContent, requestContext, variables, security) => {
   const parts = [];
-  const ctx = formatRequestContext(requestContext, { includeResponse: true });
+  const ctx = formatRequestContext(requestContext, { includeResponse: true, security });
   if (ctx) {
     parts.push(`HTTP Request Context:\n${ctx}`);
   }
 
-  const varsStr = formatVariablesList(variables);
+  const varsStr = formatVariablesList(variables, { security });
   if (varsStr) {
     parts.push(`Available Variables (names only — call search_variables(query) for a value):\n${varsStr}`);
   }
@@ -134,6 +138,7 @@ const registerChatIpc = ({ mainWindow, resolveModel, pickDefaultModelId, isAiEna
     const normalizedContent = allContent || {};
     const effectiveType = contentType || 'app';
     const hasMultiple = Object.values(normalizedContent).filter((c) => c && c.trim()).length > 1;
+    const security = getSecurityPrefs();
 
     const readState = {};
     const writeResults = [];
@@ -185,7 +190,7 @@ const registerChatIpc = ({ mainWindow, resolveModel, pickDefaultModelId, isAiEna
           if (!status && data == null) {
             return '(No response available — the request has not been executed yet. The user needs to run the request first.)';
           }
-          const formatted = formatResponseShape(status, data);
+          const formatted = formatResponseShape(status, data, { security });
           return formatted || '(empty response)';
         }
       },
@@ -197,13 +202,13 @@ const registerChatIpc = ({ mainWindow, resolveModel, pickDefaultModelId, isAiEna
             return '(No variables available — the collection has no environment, runtime, or collection variables defined.)';
           }
           const result = searchVariables(variables, query);
-          return formatSearchVariablesResult(result, query);
+          return formatSearchVariablesResult(result, query, { security });
         }
       }
     };
 
     const allMessages = [
-      { role: 'user', content: buildContextMessage(effectiveType, normalizedContent, requestContext, variables) },
+      { role: 'user', content: buildContextMessage(effectiveType, normalizedContent, requestContext, variables, security) },
       ...messages.map((m) => ({ role: m.role, content: m.content }))
     ];
 

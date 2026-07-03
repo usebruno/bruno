@@ -213,7 +213,7 @@ const useIpcEvents = () => {
     const removeScriptEnvUpdateListener = ipcRenderer.on('main:script-environment-update', (val) => {
       dispatch(scriptEnvironmentUpdateEvent(val));
       if (val.collectionUid) {
-        dispatch(persistActiveEnvironment(val.collectionUid, val.requestUid));
+        dispatch(persistActiveEnvironment(val.collectionUid));
       }
     });
 
