@@ -228,6 +228,46 @@ function makeAxiosInstance({
 
   let redirectCount = 0;
 
+  // The Node http adapter appends transport headers (Host, Connection, Accept-Encoding,
+  // Content-Length) after the request interceptor logged config.headers, so they're missing from the
+  // timeline. Read the real serialized header block off the ClientRequest and backfill the ones we
+  // didn't already log, inserted right after the existing request-header block so ordering holds.
+  const parseSentHeaders = (req) => {
+    const raw = req?._header;
+    if (typeof raw === 'string') {
+      return raw
+        .split('\r\n')
+        .slice(1) // drop the request line (e.g. "GET /path HTTP/1.1")
+        .filter(Boolean)
+        .map((line) => {
+          const idx = line.indexOf(':');
+          return idx === -1 ? null : { name: line.slice(0, idx).trim(), value: line.slice(idx + 1).trim() };
+        })
+        .filter((h) => h && h.name);
+    }
+    const hdrs = typeof req?.getHeaders === 'function' ? req.getHeaders() : null;
+    return hdrs
+      ? Object.entries(hdrs).map(([name, value]) => ({ name, value: Array.isArray(value) ? value.join(', ') : String(value) }))
+      : [];
+  };
+
+  const backfillSentHeaders = (timeline, req) => {
+    if (!Array.isArray(timeline) || !req) return;
+    const existing = new Set();
+    let lastIdx = -1;
+    timeline.forEach((entry, i) => {
+      if (entry?.type !== 'requestHeader' || typeof entry.message !== 'string') return;
+      const idx = entry.message.indexOf(':');
+      if (idx !== -1) existing.add(entry.message.slice(0, idx).trim().toLowerCase());
+      lastIdx = i;
+    });
+    const additions = parseSentHeaders(req)
+      .filter((h) => !existing.has(h.name.toLowerCase()))
+      .map((h) => ({ timestamp: new Date(), type: 'requestHeader', message: `${h.name}: ${h.value}` }));
+    if (!additions.length) return;
+    timeline.splice(lastIdx >= 0 ? lastIdx + 1 : timeline.length, 0, ...additions);
+  };
+
   instance.interceptors.response.use(
     (response) => {
       let timeline;
@@ -238,6 +278,7 @@ function makeAxiosInstance({
 
       const config = response.config;
       timeline = config?.metadata?.timeline || [];
+      backfillSentHeaders(timeline, response.request);
       const duration = end - config?.metadata.startTime;
 
       const httpVersion = response?.request?.res?.httpVersion || response?.httpVersion;
@@ -273,6 +314,7 @@ function makeAxiosInstance({
     async (error) => {
       const config = error.config;
       const timeline = config?.metadata?.timeline || [];
+      backfillSentHeaders(timeline, error.request || error.response?.request);
       timeline?.push({
         timestamp: new Date(),
         type: 'error',

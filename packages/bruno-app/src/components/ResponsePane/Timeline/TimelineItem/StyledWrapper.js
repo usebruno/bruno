@@ -250,15 +250,7 @@ const StyledWrapper = styled.div`
 
   .tl-block-sections {
     padding-left: 18px;
-  }
-  /* Indent the table so it starts under the pill (past the chevron), not under the chevron
-     (chevron icon 12px + the .tl-block-h gap 8px = 20px), and leave matching space on the right. */
-  .tl-block-sections .tl-headers-table,
-  .tl-block-sections .tl-empty {
-    margin-left: 20px;
-  }
-  .tl-block-sections .tl-headers-table {
-    width: calc(100% - 40px);
+    padding-right: 4px;
   }
 
   .tl-pill {
@@ -292,6 +284,11 @@ const StyledWrapper = styled.div`
     background: ${(props) => props.theme.status.success.background};
     border-color: ${(props) => rgba(props.theme.status.success.border, 0.4)};
   }
+  .tl-pill--script {
+    color: ${(props) => props.theme.status.danger.text};
+    background: ${(props) => props.theme.status.danger.background};
+    border-color: ${(props) => rgba(props.theme.status.danger.border, 0.4)};
+  }
 
   .tl-headers-table {
     width: 100%;
@@ -324,6 +321,14 @@ const StyledWrapper = styled.div`
   }
   .tl-headers-table td.tl-headers-val {
     color: ${(props) => props.theme.text};
+  }
+  /* Align section tables under the pill (past the chevron), and leave room on the right. */
+  .tl-block-sections .tl-headers-table {
+    margin-left: 20px;
+    width: calc(100% - 20px);
+  }
+  .tl-block-sections .tl-empty {
+    margin-left: 20px;
   }
 
   .tl-empty {

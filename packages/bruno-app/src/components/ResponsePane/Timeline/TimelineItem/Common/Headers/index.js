@@ -25,32 +25,56 @@ const HeaderTable = ({ entries }) => {
   );
 };
 
-// A collapsible headers block. `pillClass` (optional) renders the label as a colored source pill.
-const HeaderSection = ({ label, pillClass, entries, defaultOpen = true, testId = 'headers-toggle' }) => {
+const countSection = (section) =>
+  Array.isArray(section.children)
+    ? section.children.reduce((sum, c) => sum + countSection(c), 0)
+    : section.entries.length;
+
+// A collapsible section. Renders a headers table, or nested sections when `children` is present.
+// `pillClass` renders the label as a colored source pill; sections start collapsed.
+const CollapsibleSection = ({ section, defaultOpen = false }) => {
   const [isOpen, setIsOpen] = useState(defaultOpen);
+  const hasChildren = Array.isArray(section.children);
   return (
     <div className="tl-block">
       <button
         type="button"
         className="tl-block-h"
         aria-expanded={isOpen}
-        data-testid={testId}
+        data-testid="headers-section-toggle"
         onClick={() => setIsOpen(!isOpen)}
       >
         <span className="tl-block-chev">
           {isOpen ? <IconChevronDown size={12} strokeWidth={2} /> : <IconChevronRight size={12} strokeWidth={2} />}
         </span>
-        {pillClass ? <span className={`tl-pill ${pillClass}`}>{label}</span> : label}
-        <span className="tl-block-count">({entries.length})</span>
+        {section.pillClass ? <span className={`tl-pill ${section.pillClass}`}>{section.label}</span> : section.label}
+        <span className="tl-block-count">({countSection(section)})</span>
       </button>
-      {isOpen && <HeaderTable entries={entries} />}
+      {isOpen
+        && (hasChildren ? (
+          <div className="tl-block-sections">
+            {section.children.map((child) => (
+              <CollapsibleSection key={child.key} section={child} />
+            ))}
+          </div>
+        ) : (
+          <HeaderTable entries={section.entries} />
+        ))}
     </div>
   );
 };
 
-// Outer "Headers" wrapper, open by default, holding the per-source sections.
-const HeadersContainer = ({ count, children }) => {
+// `sections` (request tab): an open "Headers" wrapper holding collapsible per-source sections.
+// `headers` (response tab): a single flat, collapsible "Headers" section.
+const Headers = ({ headers, sections }) => {
   const [isOpen, setIsOpen] = useState(true);
+
+  const isTree = Array.isArray(sections);
+  const rootSection = isTree
+    ? { label: 'Headers', children: sections }
+    : { label: 'Headers', entries: toEntries(headers) };
+  const count = countSection(rootSection);
+
   return (
     <div className="tl-block">
       <button
@@ -66,36 +90,18 @@ const HeadersContainer = ({ count, children }) => {
         Headers
         <span className="tl-block-count">({count})</span>
       </button>
-      {isOpen && <div className="tl-block-sections">{children}</div>}
+      {isOpen
+        && (isTree ? (
+          <div className="tl-block-sections">
+            {sections.length
+              ? sections.map((s) => <CollapsibleSection key={s.key} section={s} />)
+              : <div className="tl-empty">No Headers</div>}
+          </div>
+        ) : (
+          <HeaderTable entries={rootSection.entries} />
+        ))}
     </div>
   );
-};
-
-// `groups` (request tab): an open "Headers" wrapper with a collapsed, pill-labelled section per
-// header source. `headers` (response tab): a single flat, collapsible "Headers" section.
-const Headers = ({ headers, groups }) => {
-  if (Array.isArray(groups)) {
-    const visible = groups.filter((g) => g.entries.length > 0);
-    const total = visible.reduce((sum, g) => sum + g.entries.length, 0);
-    return (
-      <HeadersContainer count={total}>
-        {visible.length
-          ? visible.map((g) => (
-              <HeaderSection
-                key={g.key}
-                label={g.label}
-                pillClass={g.pillClass}
-                entries={g.entries}
-                defaultOpen={false}
-                testId="headers-section-toggle"
-              />
-            ))
-          : <div className="tl-empty">No Headers</div>}
-      </HeadersContainer>
-    );
-  }
-
-  return <HeaderSection label="Headers" entries={toEntries(headers)} />;
 };
 
 export default Headers;
