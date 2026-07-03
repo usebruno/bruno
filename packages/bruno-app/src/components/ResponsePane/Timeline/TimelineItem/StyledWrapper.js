@@ -248,6 +248,42 @@ const StyledWrapper = styled.div`
     letter-spacing: 0;
   }
 
+  .tl-block-sections {
+    padding-left: 18px;
+  }
+
+  .tl-pill {
+    display: inline-flex;
+    align-items: center;
+    padding: 1px 8px;
+    border-radius: 10px;
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    border: 1px solid transparent;
+  }
+  .tl-pill--default {
+    color: #16a34a;
+    background: rgba(34, 197, 94, 0.14);
+    border-color: rgba(34, 197, 94, 0.4);
+  }
+  .tl-pill--collection {
+    color: #2563eb;
+    background: rgba(59, 130, 246, 0.14);
+    border-color: rgba(59, 130, 246, 0.4);
+  }
+  .tl-pill--folder {
+    color: #ca8a04;
+    background: rgba(234, 179, 8, 0.16);
+    border-color: rgba(234, 179, 8, 0.45);
+  }
+  .tl-pill--request {
+    color: #ea580c;
+    background: rgba(249, 115, 22, 0.14);
+    border-color: rgba(249, 115, 22, 0.4);
+  }
+
   .tl-headers-table {
     width: 100%;
     border-collapse: collapse;

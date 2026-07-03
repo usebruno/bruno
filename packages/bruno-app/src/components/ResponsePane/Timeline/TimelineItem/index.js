@@ -204,7 +204,7 @@ const TimelineItem = ({
             <div className="tl-panel">
               {visitedTabs.request && (
                 <div style={{ display: activeTab === 'request' ? 'block' : 'none' }}>
-                  <Request request={request} item={item} collection={collection} />
+                  <Request request={request} item={item} collection={collection} timeline={response?.timeline} />
                 </div>
               )}
               {visitedTabs.response && (
