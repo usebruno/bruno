@@ -5,13 +5,16 @@
  * system-level network proxies when a user triggers a manual environment refresh
  * (e.g., clicking "Refresh" in Preferences -> Proxy -> System Proxy).
  * * WHAT WE ARE TESTING:
- * 1. Env Var Purging & Re-reads: Verifies that `refreshShellEnvProxyVars()` clears out
- * stale process environment variables and successfully syncs fresh values from a
- * simulated user login-shell profile.
- * 2. Cross-Platform Priority Rules: Confirms that `getSystemProxy()` properly merges
- * environment configurations with OS-native network utilities, ensuring that explicit
- * user profile overrides win out where documented.
- * 3. Deep Fallback Extraction: Validates OS-native fallback chains for all major platforms:
+ * 1. Env + System Merge / Priority Rules: Confirms that `getSystemProxy()` properly merges
+ * the shell-env proxy layer (populated by `refreshShellEnvProxyVars()`) with OS-native
+ * network utilities — ensuring explicit user profile overrides win over system detection,
+ * that the two layers combine (env supplies http/https, system supplies pac_url/bypass),
+ * and that the reported `source` reflects both layers where both contribute.
+ *   NOTE: The delete-before-fetch / purge contract of `refreshShellEnvProxyVars()` in
+ *   isolation (stale-var purging, empty-string removal, non-proxy vars untouched) is
+ *   covered by the dedicated unit test `../../utils/shell-env-proxy-refresh.spec.ts`;
+ *   this file focuses on the cross-platform merge behavior that consumes it.
+ * 2. Deep Fallback Extraction: Validates OS-native fallback chains for all major platforms:
  * - macOS: scutil dictionary structural parsing.
  * - Linux: GNOME (gsettings) -> KDE (kreadconfig5) -> /etc/environment -> systemd.
  * - Windows: IE/Edge Internet Options (Registry) -> WinHTTP (netsh) -> HKLM/HKCU Env blocks.
@@ -95,12 +98,6 @@ const loadForPlatform = (platform: string): FreshModules => {
 
 beforeEach(() => {
   mockShellEnvResult = {};
-  for (const key of PROXY_ENV_KEYS) {
-    delete process.env[key];
-  }
-});
-
-afterEach(() => {
   for (const key of PROXY_ENV_KEYS) {
     delete process.env[key];
   }
@@ -191,6 +188,73 @@ describe('pressing Refresh — Linux', () => {
     expect(result.http_proxy).toBe('http://proxy.usebruno.com:8080');
     expect(result.https_proxy).toBe('http://secure-proxy.usebruno.com:8443');
     expect(result.no_proxy).toBe('localhost,127.0.0.1');
+    expect(result.source).toBe('linux-system');
+  });
+
+  it('merges env vars with system detection: env wins for http, system supplies https + bypass, source notes both', async () => {
+    const { execFile, existsSync, pressRefresh } = loadForPlatform('linux');
+    existsSync.mockReturnValue(false); // isolate the command-based (gsettings) path
+    mockShellEnvResult = { http_proxy: 'http://env-proxy.usebruno.com:9090' };
+
+    // gsettings reports a DIFFERENT http proxy plus an https proxy the env does not set.
+    execFile.mockImplementation((_file: string, args: string[]) => {
+      const command = args.join(' ');
+      if (command.includes('org.gnome.system.proxy mode')) {
+        return Promise.resolve({ stdout: '\'manual\'', stderr: '' });
+      }
+      if (command.includes('org.gnome.system.proxy.http host')) {
+        return Promise.resolve({ stdout: '\'sys-proxy.usebruno.com\'', stderr: '' });
+      }
+      if (command.includes('org.gnome.system.proxy.http port')) {
+        return Promise.resolve({ stdout: '8080', stderr: '' });
+      }
+      if (command.includes('org.gnome.system.proxy.https host')) {
+        return Promise.resolve({ stdout: '\'secure-proxy.usebruno.com\'', stderr: '' });
+      }
+      if (command.includes('org.gnome.system.proxy.https port')) {
+        return Promise.resolve({ stdout: '8443', stderr: '' });
+      }
+      if (command.includes('org.gnome.system.proxy ignore-hosts')) {
+        return Promise.resolve({ stdout: '[\'localhost\', \'127.0.0.1\']', stderr: '' });
+      }
+      return Promise.resolve({ stdout: '', stderr: '' });
+    });
+
+    const result = await pressRefresh();
+
+    expect(result.http_proxy).toBe('http://env-proxy.usebruno.com:9090'); // env wins
+    expect(result.https_proxy).toBe('http://secure-proxy.usebruno.com:8443'); // from system
+    expect(result.no_proxy).toBe('localhost,127.0.0.1'); // from system
+    expect(result.source).toBe('linux-system + environment');
+  });
+
+  it('purges a stale process.env proxy var on refresh so system detection wins', async () => {
+    // A proxy var lingering on process.env from a previous session that the user has since
+    // removed from their shell profile (mockShellEnvResult stays empty).
+    process.env.http_proxy = 'http://stale-proxy.usebruno.com:1234';
+
+    const { execFile, existsSync, pressRefresh } = loadForPlatform('linux');
+    existsSync.mockReturnValue(false);
+
+    execFile.mockImplementation((_file: string, args: string[]) => {
+      const command = args.join(' ');
+      if (command.includes('org.gnome.system.proxy mode')) {
+        return Promise.resolve({ stdout: '\'manual\'', stderr: '' });
+      }
+      if (command.includes('org.gnome.system.proxy.http host')) {
+        return Promise.resolve({ stdout: '\'sys-proxy.usebruno.com\'', stderr: '' });
+      }
+      if (command.includes('org.gnome.system.proxy.http port')) {
+        return Promise.resolve({ stdout: '8080', stderr: '' });
+      }
+      return Promise.resolve({ stdout: '', stderr: '' });
+    });
+
+    const result = await pressRefresh();
+
+    // The stale env value was purged before the shell re-read, so system detection wins
+    // and the stale proxy does not leak into the merged result.
+    expect(result.http_proxy).toBe('http://sys-proxy.usebruno.com:8080');
     expect(result.source).toBe('linux-system');
   });
 
@@ -403,5 +467,62 @@ HKEY_CURRENT_USER\\Environment
 
     expect(result.http_proxy).toBe('http://user-proxy.usebruno.com:8080');
     expect(result.source).toBe('windows-system');
+  });
+
+  it('ignores the shell-env proxy layer on Windows: system registry detection wins', async () => {
+    // On Windows the shell-env layer is intentionally empty (fetchShellEnv returns {} for
+    // process.platform === 'win32'), so a proxy exported by a login shell must NOT surface.
+    const originalPlatform = process.platform;
+    Object.defineProperty(process, 'platform', { value: 'win32', configurable: true });
+
+    try {
+      const { execFile, pressRefresh } = loadForPlatform('win32');
+      // A shell profile that exports a proxy — must be ignored on Windows.
+      mockShellEnvResult = { http_proxy: 'http://shell-proxy.usebruno.com:9090' };
+
+      execFile.mockImplementation((_file: string, args: string[]) => {
+        const command = args.join(' ');
+        if (command.includes('Internet Settings')) {
+          return Promise.resolve({
+            stdout: `
+HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Internet Settings
+    ProxyEnable    REG_DWORD    0x1
+    ProxyServer    REG_SZ    sys-proxy.usebruno.com:8080
+`,
+            stderr: ''
+          });
+        }
+        return Promise.resolve({ stdout: '', stderr: '' });
+      });
+
+      const result = await pressRefresh();
+
+      // Registry value surfaces; shell value is absent, so no "+ environment" in source.
+      expect(result.http_proxy).toBe('http://sys-proxy.usebruno.com:8080');
+      expect(result.source).toBe('windows-system');
+    } finally {
+      Object.defineProperty(process, 'platform', { value: originalPlatform, configurable: true });
+    }
+  });
+
+  it('refreshShellEnvProxyVars is a no-op on Windows: does not sync proxy vars from the login shell', async () => {
+    // fetchShellEnv() branches on process.platform (not the mocked node:os), so force it to win32.
+    const originalPlatform = process.platform;
+    Object.defineProperty(process, 'platform', { value: 'win32', configurable: true });
+
+    try {
+      jest.resetModules();
+      const { refreshShellEnvProxyVars } = require('../../utils/shell-env');
+      // Arrange a shell profile that DOES export a proxy var — on Windows it must be ignored.
+      mockShellEnvResult = { http_proxy: 'http://should-be-ignored.usebruno.com:8080' };
+
+      const result = await refreshShellEnvProxyVars();
+
+      // No-op w.r.t. the shell: nothing is read back, nothing leaks into the environment.
+      expect(result).toEqual({});
+      expect(process.env.http_proxy).toBeUndefined();
+    } finally {
+      Object.defineProperty(process, 'platform', { value: originalPlatform, configurable: true });
+    }
   });
 });
