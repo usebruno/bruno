@@ -1420,8 +1420,6 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
           const bruJsonConfig = { ...brunoConfig, version: '1' };
           if (brunoConfig.version) {
             bruJsonConfig.collectionVersion = brunoConfig.version;
-          } else {
-            delete bruJsonConfig.collectionVersion;
           }
           const stringifiedBrunoConfig = await stringifyJson(bruJsonConfig);
           await writeFile(path.join(collectionPath, 'bruno.json'), stringifiedBrunoConfig);
