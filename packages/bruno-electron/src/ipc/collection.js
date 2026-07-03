@@ -2224,7 +2224,6 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
 
       const brunoConfig = {
         opencollection: '1.0.0',
-        version: '1',
         name: 'Scratch',
         type: 'collection',
         ignore: ['node_modules', '.git']

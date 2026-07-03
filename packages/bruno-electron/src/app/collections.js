@@ -22,7 +22,6 @@ const configSchema = Yup.object({
   version: Yup.string().notRequired(),
   // For YAML format collections (opencollection)
   opencollection: Yup.string().notRequired(),
-  collectionVersion: Yup.string().notRequired(),
   // OpenAPI sync configuration (array, one entry per synced spec)
   openapi: Yup.array().of(
     Yup.object({
