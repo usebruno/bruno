@@ -1,3 +1,4 @@
+import process from 'node:process';
 import * as path from 'path';
 import { test, expect, Page } from '../../playwright';
 import { buildCommonLocators, createCollection, createRequest, createFolder, closeAllCollections } from '../utils/page';
@@ -132,6 +133,58 @@ test.describe('Naming collisions - create request', () => {
       const files = listRequestFiles(testDir);
       expect(files).toContain('login.bru');
       expect(files).toContain('login1.bru');
+    });
+  });
+
+  test('creating with a reserved name is blocked and shows a validation error', async ({ page, createTmpDir }) => {
+    const testDir = await createTmpDir('create-request-reserved');
+
+    await createCollection(page, 'Create Reserved', testDir, 'bru');
+
+    const modal = page.locator('.bruno-modal');
+
+    await test.step('Enter reserved name "CON", reveal filesystem name, submit', async () => {
+      await openNewRequestModal(page, 'Create Reserved');
+      await page.getByPlaceholder('Request Name').fill('CON');
+      // Reveal the filesystem-name section so its validation error renders.
+      await page.locator('.advanced-options .btn-advanced').click();
+      await page.locator('.dropdown-item').filter({ hasText: 'Show Filesystem Name' }).click();
+      await page.getByTestId('create-new-request-button').click();
+    });
+
+    await test.step('Reserved-name error is shown and nothing is created', async () => {
+      await expect(page.getByText('Name cannot be a reserved device name.')).toBeVisible();
+      await expect(modal).toBeVisible();
+      expect(listRequestFiles(testDir)).toHaveLength(0);
+    });
+
+    await modal.getByRole('button', { name: 'Cancel' }).click();
+    await expect(modal).toHaveCount(0, { timeout: 5000 });
+  });
+
+  test('creating a case-variant name behaves per filesystem case-sensitivity', async ({ page, createTmpDir }) => {
+    const testDir = await createTmpDir('create-case');
+
+    await createCollection(page, 'Create Case', testDir, 'bru');
+    await createRequest(page, 'login', 'Create Case'); // login.bru
+    await createRequestViaModal(page, 'Create Case', 'Login'); // case variant
+
+    await test.step('Both display names appear in the sidebar', async () => {
+      await expect(page.locator('.item-name[title="login"]')).toHaveCount(1);
+      await expect(page.locator('.item-name[title="Login"]')).toHaveCount(1);
+    });
+
+    await test.step('On disk: case-insensitive FS suffixes; case-sensitive FS coexists', async () => {
+      const files = listRequestFiles(testDir);
+      expect(files).toContain('login.bru');
+      if (process.platform === 'linux') {
+        // Case-sensitive: "Login.bru" is a distinct free name, no suffix.
+        expect(files).toContain('Login.bru');
+      } else {
+        // Case-insensitive (macOS/Windows): "Login.bru" collides with "login.bru" -> suffixed.
+        expect(files).toContain('Login1.bru');
+      }
+      expect(files).toHaveLength(2);
     });
   });
 });
