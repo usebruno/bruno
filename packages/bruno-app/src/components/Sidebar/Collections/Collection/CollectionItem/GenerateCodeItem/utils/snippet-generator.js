@@ -68,6 +68,17 @@ const generateSnippet = ({ language, item, collection, shouldInterpolate = false
       collectionUid: collection?.uid
     });
 
+    // har-validator (used by HTTPSnippet) rejects bare % and [ ] in the path;
+    // encode them before passing in, but only in the path so IPv6 hosts
+    // (e.g. http://[::1]/path) are preserved.
+    harRequest.url = harRequest.url.replace(/%(?![0-9A-Fa-f]{2})/g, '%25');
+    const pathStart = harRequest.url.indexOf('/', harRequest.url.indexOf('//') + 2);
+    if (pathStart !== -1) {
+      harRequest.url
+        = harRequest.url.slice(0, pathStart)
+          + harRequest.url.slice(pathStart).replace(/\[/g, '%5B').replace(/\]/g, '%5D');
+    }
+
     // Generate snippet using HTTPSnippet
     const snippet = new HTTPSnippet(har);
     let result = snippet.convert(language.target, language.client);
