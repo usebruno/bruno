@@ -714,6 +714,9 @@ const generateCodeVerifier = () => {
 
 // Generate a cryptographically random state value used to protect OAuth2
 // authorization flows against CSRF / authorization code injection.
+// If the user supplies a state (userState), it will be prepended to the cryptographically random state value.
+// This means the resulting state will start with the user-provided value, followed by a random value.
+// This allows the user to pass custom state data, but still preserves cryptographic security against CSRF/injection.
 const generateState = ({ userState }) => {
   let cryptographicallyRandomString = crypto.randomBytes(16).toString('hex');
   if (userState && userState.length) {
