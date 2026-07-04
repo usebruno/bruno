@@ -46,6 +46,24 @@ const parseRequestCookies = (headers = {}) => {
     .map((pair) => splitNameValue(pair));
 };
 
+// requestSent.dataBuffer is a Buffer in the main process but arrives in the
+// renderer as a Uint8Array (or a JSON-serialized Buffer if it crossed a JSON boundary)
+const toBuffer = (value) => {
+  if (!value) {
+    return null;
+  }
+  if (Buffer.isBuffer(value)) {
+    return value;
+  }
+  if (value instanceof Uint8Array) {
+    return Buffer.from(value);
+  }
+  if (Array.isArray(value?.data)) {
+    return Buffer.from(value.data);
+  }
+  return null;
+};
+
 const parseResponseCookies = (headers = {}) => {
   const key = Object.keys(headers || {}).find((name) => name.toLowerCase() === 'set-cookie');
   if (!key) {
@@ -69,9 +87,17 @@ const buildHarRequest = (requestSent = {}) => {
     bodySize: 0
   };
 
+  // Prefer dataBuffer (the exact body that was sent); data may have been
+  // parsed into an object, and re-stringifying it loses the original formatting
+  const bodyBuffer = toBuffer(requestSent.dataBuffer);
   const body = requestSent.data;
-  if (body !== undefined && body !== null && body !== '') {
-    const text = typeof body === 'string' ? body : JSON.stringify(body);
+  let text = null;
+  if (bodyBuffer?.length) {
+    text = bodyBuffer.toString('utf8');
+  } else if (body !== undefined && body !== null && body !== '') {
+    text = typeof body === 'string' ? body : JSON.stringify(body);
+  }
+  if (text !== null) {
     harRequest.postData = {
       mimeType: findHeaderValue(headers, 'content-type') || 'text/plain',
       text

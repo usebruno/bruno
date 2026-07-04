@@ -72,6 +72,30 @@ describe('buildHarLog', () => {
     expect(request.headersSize).toBe(-1);
   });
 
+  it('should prefer dataBuffer over data for the request body to preserve the original formatting', () => {
+    const originalBody = '{\n  "name": "John"\n}';
+    const { request } = buildHarLog({
+      requestSent: {
+        ...requestSent,
+        data: { name: 'John' },
+        dataBuffer: new Uint8Array(Buffer.from(originalBody))
+      },
+      response
+    }).log.entries[0];
+
+    expect(request.postData.text).toBe(originalBody);
+    expect(request.bodySize).toBe(Buffer.byteLength(originalBody));
+  });
+
+  it('should stringify a parsed object body when no dataBuffer is available', () => {
+    const { request } = buildHarLog({
+      requestSent: { ...requestSent, data: { name: 'John' }, dataBuffer: undefined },
+      response
+    }).log.entries[0];
+
+    expect(request.postData.text).toBe('{"name":"John"}');
+  });
+
   it('should omit postData and report zero body size when there is no request body', () => {
     const { request } = buildHarLog({
       requestSent: { ...requestSent, method: 'GET', data: undefined },
