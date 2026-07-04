@@ -423,6 +423,21 @@ export const brunoToPostman = (collection) => {
           ]
         };
       }
+      case 'akamai-edgegrid': {
+        return {
+          type: 'edgegrid',
+          edgegrid: [
+            { key: 'accessToken', value: itemAuth.akamaiEdgegrid?.accessToken || '', type: 'string' },
+            { key: 'clientToken', value: itemAuth.akamaiEdgegrid?.clientToken || '', type: 'string' },
+            { key: 'clientSecret', value: itemAuth.akamaiEdgegrid?.clientSecret || '', type: 'string' },
+            { key: 'baseURL', value: itemAuth.akamaiEdgegrid?.baseURL || '', type: 'string' },
+            { key: 'nonce', value: itemAuth.akamaiEdgegrid?.nonce || '', type: 'string' },
+            { key: 'timestamp', value: itemAuth.akamaiEdgegrid?.timestamp || '', type: 'string' },
+            { key: 'headersToSign', value: itemAuth.akamaiEdgegrid?.headersToSign || '', type: 'string' },
+            { key: 'maxBodySize', value: itemAuth.akamaiEdgegrid?.maxBodySize ?? '', type: 'string' }
+          ]
+        };
+      }
       default: {
         return {
           type: 'noauth'

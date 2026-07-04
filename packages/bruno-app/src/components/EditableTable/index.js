@@ -21,17 +21,19 @@ const findScrollParent = (element) => {
 const TableRow = React.memo(
   ({ children, item, context, ...rest }) => {
     const rowIndex = Number(rest['data-item-index']);
-    const { reorderable, reorderableRowCount, isLastEmptyRow, dragOverRow, onDragStart, onDragOver, onDrop, onDragEnd, onDragLeave } = context;
+    const { reorderable, reorderableRowCount, isLastEmptyRow, dragOverRow, onDragStart, onDragOver, onDrop, onDragEnd, onDragLeave, keyColumn } = context;
     const isEmpty = isLastEmptyRow(item, rowIndex);
     const canDrag = reorderable && !isEmpty && rowIndex < reorderableRowCount;
     const isDragOver = canDrag && dragOverRow === rowIndex;
     const existingClass = rest.className || '';
     const className = isDragOver ? `${existingClass} drag-over`.trim() : existingClass;
+    const rowName = keyColumn ? item?.[keyColumn.key] : undefined;
 
     return (
       <tr
         {...rest}
         className={className}
+        data-row-name={rowName || undefined}
         draggable={canDrag}
         onDragStart={canDrag ? (e) => onDragStart(e, rowIndex) : undefined}
         onDragOver={canDrag ? (e) => onDragOver(e, rowIndex) : undefined}
@@ -342,17 +344,20 @@ const EditableTable = ({
     );
   }, [isLastEmptyRow, getRowError, handleValueChange]);
 
+  const keyColumn = useMemo(() => columns.find((col) => col.isKeyField), [columns]);
+
   const virtuosoContext = useMemo(() => ({
     reorderable,
     reorderableRowCount,
     isLastEmptyRow,
     dragOverRow,
+    keyColumn,
     onDragStart: handleDragStart,
     onDragOver: handleDragOver,
     onDragLeave: handleDragLeave,
     onDrop: handleDrop,
     onDragEnd: handleDragEnd
-  }), [reorderable, reorderableRowCount, isLastEmptyRow, dragOverRow, handleDragStart, handleDragOver, handleDragLeave, handleDrop, handleDragEnd]);
+  }), [reorderable, reorderableRowCount, isLastEmptyRow, dragOverRow, keyColumn, handleDragStart, handleDragOver, handleDragLeave, handleDrop, handleDragEnd]);
 
   const fixedHeaderContent = useCallback(() => (
     <tr>

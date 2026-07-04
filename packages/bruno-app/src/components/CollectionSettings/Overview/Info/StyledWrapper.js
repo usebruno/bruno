@@ -39,6 +39,15 @@ const StyledWrapper = styled.div`
       }
     }
 
+    &.version {
+      background-color: ${(props) => rgba(props.theme.colors.text.yellow, 0.1)};
+      border: 1px solid ${(props) => rgba(props.theme.colors.text.yellow, 0.1)};
+
+      svg {
+        color: ${(props) => props.theme.colors.text.yellow};
+      }
+    }
+
     &.generate-docs {
       background-color: ${(props) => rgba(props.theme.accents.primary, 0.08)};
       border: 1px solid ${(props) => rgba(props.theme.accents.primary, 0.09)};

@@ -9,7 +9,7 @@ import SensitiveFieldWarning from 'components/SensitiveFieldWarning';
 import EnvironmentVariablesTable from 'components/EnvironmentVariablesTable';
 import { sensitiveFields } from './constants';
 
-const EnvironmentVariables = ({ environment, setIsModified, collection, searchQuery = '' }) => {
+const EnvironmentVariables = ({ environment, setIsModified, collection, searchQuery = '', variableType = 'variables' }) => {
   const dispatch = useDispatch();
 
   const environmentsDraft = collection?.environmentsDraft;
@@ -92,7 +92,7 @@ const EnvironmentVariables = ({ environment, setIsModified, collection, searchQu
         return (
           <SensitiveFieldWarning
             fieldName={variable.name}
-            warningMessage="This variable is used in sensitive fields. Mark it as a secret for security"
+            warningMessage="This variable is used in sensitive fields. Add it as a secret in the Secrets tab for security"
           />
         );
       }
@@ -113,6 +113,7 @@ const EnvironmentVariables = ({ environment, setIsModified, collection, searchQu
       setIsModified={setIsModified}
       renderExtraValueContent={renderExtraValueContent}
       searchQuery={searchQuery}
+      variableType={variableType}
     />
   );
 };

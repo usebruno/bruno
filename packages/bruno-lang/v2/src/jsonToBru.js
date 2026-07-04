@@ -1,6 +1,6 @@
 const _ = require('lodash');
 
-const { indentString, getValueString, getKeyString, getValueUrl, serializeAnnotations } = require('./utils');
+const { indentString, getValueString, getKeyString, getValueUrl, serializeAnnotations, serializeVar } = require('./utils');
 const jsonToExampleBru = require('./example/jsonToBru');
 
 const enabled = (items = [], key = 'enabled') => items.filter((item) => item[key]);
@@ -14,7 +14,7 @@ const stripLastLine = (text) => {
 };
 
 const jsonToBru = (json) => {
-  const { meta, http, grpc, ws, params, headers, metadata, auth, body, script, tests, vars, assertions, settings, docs, examples } = json;
+  const { meta, http, grpc, ws, params, headers, metadata, auth, body, script, tests, vars, assertions, settings, app, docs, examples } = json;
 
   let bru = '';
 
@@ -490,6 +490,21 @@ ${indentString(`placement: ${auth?.apikey?.placement || ''}`)}
 `;
   }
 
+  if (auth && auth.akamaiEdgegrid) {
+    bru += `auth:akamai-edgegrid {
+${indentString(`accessToken: ${auth?.akamaiEdgegrid?.accessToken || ''}`)}
+${indentString(`clientToken: ${auth?.akamaiEdgegrid?.clientToken || ''}`)}
+${indentString(`clientSecret: ${auth?.akamaiEdgegrid?.clientSecret || ''}`)}
+${indentString(`nonce: ${auth?.akamaiEdgegrid?.nonce || ''}`)}
+${indentString(`timestamp: ${auth?.akamaiEdgegrid?.timestamp || ''}`)}
+${indentString(`baseURL: ${auth?.akamaiEdgegrid?.baseURL || ''}`)}
+${indentString(`headersToSign: ${auth?.akamaiEdgegrid?.headersToSign || ''}`)}
+${indentString(`maxBodySize: ${auth?.akamaiEdgegrid?.maxBodySize ?? ''}`)}
+}
+
+`;
+  }
+
   if (body && body.json && body.json.length) {
     bru += `body:json {
 ${indentString(body.json)}
@@ -560,7 +575,7 @@ ${indentString(body.sparql)}
             }
 
             if (item.type === 'file') {
-              const filepaths = Array.isArray(item.value) ? item.value : [];
+              const filepaths = (Array.isArray(item.value) ? item.value : []).filter(Boolean);
               const filestr = filepaths.join('|');
 
               const value = `@file(${filestr})`;
@@ -667,19 +682,19 @@ ${indentString(body.sparql)}
     bru += `vars:pre-request {`;
 
     if (varsEnabled.length) {
-      bru += `\n${indentString(varsEnabled.map((item) => `${serializeAnnotations(item.annotations)}${item.name}: ${getValueString(item.value)}`).join('\n'))}`;
+      bru += `\n${indentString(varsEnabled.map((item) => serializeVar(item)).join('\n'))}`;
     }
 
     if (varsLocalEnabled.length) {
-      bru += `\n${indentString(varsLocalEnabled.map((item) => `${serializeAnnotations(item.annotations)}@${item.name}: ${getValueString(item.value)}`).join('\n'))}`;
+      bru += `\n${indentString(varsLocalEnabled.map((item) => serializeVar(item, '@')).join('\n'))}`;
     }
 
     if (varsDisabled.length) {
-      bru += `\n${indentString(varsDisabled.map((item) => `${serializeAnnotations(item.annotations)}~${item.name}: ${getValueString(item.value)}`).join('\n'))}`;
+      bru += `\n${indentString(varsDisabled.map((item) => serializeVar(item, '~')).join('\n'))}`;
     }
 
     if (varsLocalDisabled.length) {
-      bru += `\n${indentString(varsLocalDisabled.map((item) => `${serializeAnnotations(item.annotations)}~@${item.name}: ${getValueString(item.value)}`).join('\n'))}`;
+      bru += `\n${indentString(varsLocalDisabled.map((item) => serializeVar(item, '~@')).join('\n'))}`;
     }
 
     bru += '\n}\n\n';
@@ -693,19 +708,19 @@ ${indentString(body.sparql)}
     bru += `vars:post-response {`;
 
     if (varsEnabled.length) {
-      bru += `\n${indentString(varsEnabled.map((item) => `${serializeAnnotations(item.annotations)}${item.name}: ${getValueString(item.value)}`).join('\n'))}`;
+      bru += `\n${indentString(varsEnabled.map((item) => serializeVar(item)).join('\n'))}`;
     }
 
     if (varsLocalEnabled.length) {
-      bru += `\n${indentString(varsLocalEnabled.map((item) => `${serializeAnnotations(item.annotations)}@${item.name}: ${getValueString(item.value)}`).join('\n'))}`;
+      bru += `\n${indentString(varsLocalEnabled.map((item) => serializeVar(item, '@')).join('\n'))}`;
     }
 
     if (varsDisabled.length) {
-      bru += `\n${indentString(varsDisabled.map((item) => `${serializeAnnotations(item.annotations)}~${item.name}: ${getValueString(item.value)}`).join('\n'))}`;
+      bru += `\n${indentString(varsDisabled.map((item) => serializeVar(item, '~')).join('\n'))}`;
     }
 
     if (varsLocalDisabled.length) {
-      bru += `\n${indentString(varsLocalDisabled.map((item) => `${serializeAnnotations(item.annotations)}~@${item.name}: ${getValueString(item.value)}`).join('\n'))}`;
+      bru += `\n${indentString(varsLocalDisabled.map((item) => serializeVar(item, '~@')).join('\n'))}`;
     }
 
     bru += '\n}\n\n';
@@ -755,6 +770,12 @@ ${indentString(tests)}
 }
 
 `;
+  }
+
+  if (app && app.code && app.code.length) {
+    bru += `app {\n`;
+    bru += `  code: '''\n${indentString(app.code, 2)}\n  '''`;
+    bru += '\n}\n\n';
   }
 
   if (settings && Object.keys(settings).length) {

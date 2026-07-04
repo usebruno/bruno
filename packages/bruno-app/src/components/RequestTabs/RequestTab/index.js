@@ -16,6 +16,7 @@ import ConfirmCloseEnvironment from 'components/Environments/ConfirmCloseEnviron
 import RequestTabNotFound from './RequestTabNotFound';
 import RequestTabLoading from './RequestTabLoading';
 import SpecialTab from './SpecialTab';
+import { IconAppWindow } from '@tabler/icons';
 import StyledWrapper from './StyledWrapper';
 import MenuDropdown from 'ui/MenuDropdown';
 import CloneCollectionItem from 'components/Sidebar/Collections/Collection/CollectionItem/CloneCollectionItem/index';
@@ -193,14 +194,15 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
     'workspaceOverview',
     'workspaceEnvironments',
     'openapi-sync',
-    'openapi-spec'
+    'openapi-spec',
+    'changelog'
   ];
 
   const hasDraft = tab.type === 'collection-settings' && collection?.draft;
   const hasFolderDraft = tab.type === 'folder-settings' && folder?.draft;
   const hasEnvironmentDraft = tab.type === 'environment-settings' && collection?.environmentsDraft;
   const globalEnvironmentDraft = useSelector((state) => state.globalEnvironments.globalEnvironmentDraft);
-  const hasGlobalEnvironmentDraft = tab.type === 'global-environment-settings' && globalEnvironmentDraft;
+  const hasGlobalEnvironmentDraft = (tab.type === 'global-environment-settings' || tab.type === 'workspaceEnvironments') && globalEnvironmentDraft;
 
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
   const isActive = tab.uid === activeTabUid;
@@ -254,16 +256,20 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
         if (environmentUid?.startsWith('dotenv:')) {
           window.dispatchEvent(new Event('dotenv-save'));
         } else {
-          dispatch(saveEnvironment(variables, environmentUid, collection.uid));
+          dispatch(saveEnvironment(variables, environmentUid, collection.uid))
+            .then(() => toast.success('Changes saved successfully'))
+            .catch(() => toast.error('An error occurred while saving the changes'));
         }
       }
-    } else if (tab.type === 'global-environment-settings') {
+    } else if (tab.type === 'global-environment-settings' || tab.type === 'workspaceEnvironments') {
       if (globalEnvironmentDraft) {
         const { environmentUid, variables } = globalEnvironmentDraft;
         if (environmentUid?.startsWith('dotenv:')) {
           window.dispatchEvent(new Event('dotenv-save'));
         } else {
-          dispatch(saveGlobalEnvironment({ variables, environmentUid }));
+          dispatch(saveGlobalEnvironment({ variables, environmentUid }))
+            .then(() => toast.success('Changes saved successfully'))
+            .catch(() => toast.error('An error occurred while saving the changes'));
         }
       }
     } else if (tab.type === 'folder-settings') {
@@ -477,7 +483,7 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
         ) : tab.type === 'workspaceOverview' ? (
           <SpecialTab handleCloseClick={null} type={tab.type} />
         ) : tab.type === 'workspaceEnvironments' ? (
-          <SpecialTab handleCloseClick={null} type={tab.type} />
+          <SpecialTab handleCloseClick={null} type={tab.type} hasDraft={hasGlobalEnvironmentDraft} />
         ) : (
           <SpecialTab handleCloseClick={handleCloseClick} handleDoubleClick={() => dispatch(makeTabPermanent({ uid: tab.uid }))} type={tab.type} />
         )}
@@ -575,9 +581,15 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
           }
         }}
       >
-        <span className="tab-method uppercase" style={{ color: getMethodColor(method) }}>
-          {method}
-        </span>
+        {item.type === 'app' ? (
+          <span className="tab-method flex items-center" aria-label="App">
+            <IconAppWindow size={14} strokeWidth={1.5} />
+          </span>
+        ) : (
+          <span className="tab-method uppercase" style={{ color: getMethodColor(method) }}>
+            {method}
+          </span>
+        )}
         <span ref={tabNameRef} className="ml-1 tab-name" title={item.name}>
           {item.name}
         </span>

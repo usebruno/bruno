@@ -24,6 +24,7 @@ import { openConsole, closeConsole, setActiveTab as setActiveDevToolsTab, TAB_ID
 import { normalizePath } from 'utils/common/path';
 import { hydrateTabs, getActiveTabFromSnapshot, hydrateSnapshotLookups } from 'utils/snapshot';
 import toast from 'react-hot-toast';
+import { closeAiSidebar } from '../chat';
 
 const { ipcRenderer } = window;
 let snapshotHydrationTimer = null;
@@ -571,10 +572,10 @@ export const loadWorkspaceApiSpecs = (workspaceUid) => {
 
 export const switchWorkspace = (workspaceUid) => {
   return async (dispatch, getState) => {
+    dispatch(closeAiSidebar());
     clearSnapshotHydrationTimeout();
     dispatch(setSnapshotReady(false));
     dispatch(clearSnapshotHydrationSession());
-
     try {
       dispatch(setActiveWorkspace(workspaceUid));
 
@@ -1344,11 +1345,20 @@ export const mountScratchCollection = (workspaceUid) => {
         ignore: ['node_modules', '.git']
       };
 
-      await ipcRenderer.invoke('renderer:add-collection-watcher', {
-        collectionPath: tempDirectoryPath,
-        collectionUid: scratchCollectionUid,
-        brunoConfig
-      });
+      const fileCacheEnabled = state.app?.preferences?.cache?.file?.enabled;
+      if (fileCacheEnabled) {
+        await ipcRenderer.invoke('renderer:mount-collection-v2', {
+          collectionUid: scratchCollectionUid,
+          collectionPathname: tempDirectoryPath,
+          brunoConfig
+        });
+      } else {
+        await ipcRenderer.invoke('renderer:add-collection-watcher', {
+          collectionPath: tempDirectoryPath,
+          collectionUid: scratchCollectionUid,
+          brunoConfig
+        });
+      }
 
       // Map scratch collection to workspace so getProcessEnvVars can resolve workspace .env values
       if (workspace.pathname) {
