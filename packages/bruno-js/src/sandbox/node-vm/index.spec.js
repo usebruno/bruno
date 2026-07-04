@@ -1195,4 +1195,64 @@ describe('node-vm sandbox', () => {
       expect(context.bru.setVar).toHaveBeenCalledWith('result', 'a,b');
     });
   });
+
+  describe('__dirname / __filename globals', () => {
+    it('should expose __dirname and __filename to the top-level script', async () => {
+      const context = {
+        bru: { setVar: jest.fn() },
+        console: console
+      };
+
+      const script = `
+        bru.setVar('dirname', __dirname);
+        bru.setVar('filename', __filename);
+      `;
+
+      const scriptPath = path.join(collectionPath, 'requests', 'get-users.bru');
+
+      await runScriptInNodeVm({ script, context, collectionPath, scriptingConfig: {}, scriptPath });
+
+      expect(context.bru.setVar).toHaveBeenCalledWith('filename', scriptPath);
+      expect(context.bru.setVar).toHaveBeenCalledWith('dirname', path.dirname(scriptPath));
+    });
+
+    it('should fall back to the collection directory when scriptPath is not provided', async () => {
+      const context = {
+        bru: { setVar: jest.fn() },
+        console: console
+      };
+
+      const script = `
+        bru.setVar('dirname', __dirname);
+        bru.setVar('filename', __filename);
+      `;
+
+      await runScriptInNodeVm({ script, context, collectionPath, scriptingConfig: {} });
+
+      expect(context.bru.setVar).toHaveBeenCalledWith('filename', path.join(collectionPath, 'script.js'));
+      expect(context.bru.setVar).toHaveBeenCalledWith('dirname', collectionPath);
+    });
+
+    it('should let a script read a file relative to __dirname', async () => {
+      fs.writeFileSync(path.join(collectionPath, 'template.hbs'), 'Hello {{name}}');
+
+      const context = {
+        bru: { setVar: jest.fn() },
+        console: console
+      };
+
+      const script = `
+        const fs = require('fs');
+        const path = require('path');
+        const template = fs.readFileSync(path.join(__dirname, './template.hbs'), 'utf-8');
+        bru.setVar('template', template);
+      `;
+
+      const scriptPath = path.join(collectionPath, 'read-template.bru');
+
+      await runScriptInNodeVm({ script, context, collectionPath, scriptingConfig: {}, scriptPath });
+
+      expect(context.bru.setVar).toHaveBeenCalledWith('template', 'Hello {{name}}');
+    });
+  });
 });

@@ -68,6 +68,14 @@ async function runScriptInNodeVm({
 
     const vmFilename = resolveVmFilename(scriptPath, collectionPath);
 
+    // Expose Node's CommonJS module globals to the top-level user script,
+    // mirroring what cjs-loader already provides to require()d modules. This
+    // lets scripts resolve files relative to their .bru request file /
+    // collection directory, e.g.
+    // fs.readFileSync(path.join(__dirname, './template.hbs')).
+    scriptContext.__filename = vmFilename;
+    scriptContext.__dirname = path.dirname(vmFilename);
+
     // Execute the script in the isolated context
     const wrappedScript = wrapScriptInClosure(script, SANDBOX.NODEVM);
     let compiledScript;
