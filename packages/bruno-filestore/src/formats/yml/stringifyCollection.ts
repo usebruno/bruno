@@ -73,6 +73,10 @@ const stringifyCollection = (collectionRoot: any, brunoConfig: any): string => {
       name: brunoConfig.name || 'Untitled Collection'
     };
 
+    if (brunoConfig.version != null && brunoConfig.version !== '') {
+      oc.info.version = String(brunoConfig.version);
+    }
+
     // collection config
     if (hasCollectionConfig(brunoConfig)) {
       oc.config = {};
