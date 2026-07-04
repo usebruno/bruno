@@ -18,6 +18,7 @@ describe('buildHarLog', () => {
     statusText: 'Created',
     headers: {
       'content-type': 'application/json',
+      'content-length': '9',
       'set-cookie': ['session=def456; Path=/', 'theme=light; Path=/']
     },
     dataBuffer: Buffer.from('{"id":42}').toString('base64'),
@@ -141,6 +142,48 @@ describe('buildHarLog', () => {
 
     expect(harResponse.redirectURL).toBe('https://api.example.com/users/42');
     expect(harResponse.content.size).toBe(0);
+    expect(harResponse.bodySize).toBe(-1);
+  });
+
+  it('should not treat a location header on a non-redirect response as redirectURL', () => {
+    const createdResponse = {
+      ...response,
+      headers: { 'content-type': 'application/json', 'location': 'https://api.example.com/users/42' }
+    };
+
+    const { response: harResponse } = buildHarLog({ requestSent, response: createdResponse }).log.entries[0];
+
+    expect(harResponse.status).toBe(201);
+    expect(harResponse.redirectURL).toBe('');
+  });
+
+  it('should return empty request cookies when there is no cookie header', () => {
+    const { request } = buildHarLog({
+      requestSent: { ...requestSent, headers: { 'Content-Type': 'application/json' } },
+      response
+    }).log.entries[0];
+
+    expect(request.cookies).toEqual([]);
+  });
+
+  it('should treat content types with a charset suffix as textual and preserve the full mime type', () => {
+    const charsetResponse = {
+      ...response,
+      headers: { 'content-type': 'application/json; charset=utf-8' }
+    };
+    const charsetRequest = {
+      ...requestSent,
+      headers: { 'Content-Type': 'application/json; charset=utf-8' }
+    };
+
+    const entry = buildHarLog({ requestSent: charsetRequest, response: charsetResponse }).log.entries[0];
+
+    expect(entry.request.postData.mimeType).toBe('application/json; charset=utf-8');
+    expect(entry.response.content).toEqual({
+      size: 9,
+      mimeType: 'application/json; charset=utf-8',
+      text: '{"id":42}'
+    });
   });
 
   it('should not throw on empty request and response', () => {

@@ -60,6 +60,7 @@ const buildHarRequest = (requestSent = {}) => {
   const harRequest = {
     method: requestSent.method || 'GET',
     url: requestSent.url || '',
+    // The negotiated protocol version isn't tracked, so HTTP/1.1 is assumed
     httpVersion: 'HTTP/1.1',
     cookies: parseRequestCookies(headers),
     headers: headersToHarArray(headers),
@@ -83,6 +84,7 @@ const buildHarRequest = (requestSent = {}) => {
 
 const buildHarResponse = (response = {}) => {
   const headers = response.headers || {};
+  const status = Number(response.status) || 0;
   const mimeType = findHeaderValue(headers, 'content-type');
   const bodyBuffer = response.dataBuffer ? Buffer.from(response.dataBuffer, 'base64') : Buffer.alloc(0);
 
@@ -97,16 +99,21 @@ const buildHarResponse = (response = {}) => {
     content.encoding = 'base64';
   }
 
+  // bodySize is the size of the body as transferred (possibly compressed), which is only
+  // known via content-length; dataBuffer holds the decoded body (reported in content.size)
+  const contentLength = findHeaderValue(headers, 'content-length');
+  const bodySize = contentLength !== '' && Number.isFinite(Number(contentLength)) ? Number(contentLength) : -1;
+
   return {
-    status: Number(response.status) || 0,
+    status,
     statusText: response.statusText || '',
     httpVersion: 'HTTP/1.1',
     cookies: parseResponseCookies(headers),
     headers: headersToHarArray(headers),
     content,
-    redirectURL: findHeaderValue(headers, 'location'),
+    redirectURL: status >= 300 && status < 400 ? findHeaderValue(headers, 'location') : '',
     headersSize: -1,
-    bodySize: bodyBuffer.length
+    bodySize
   };
 };
 
@@ -131,6 +138,8 @@ export const buildHarLog = ({ requestSent = {}, response = {} }) => {
           request: buildHarRequest(requestSent),
           response: buildHarResponse(response),
           cache: {},
+          // Per-phase timings (dns, connect, ssl, ...) aren't tracked, so the total
+          // duration is reported as wait time (time must equal the sum of known phases)
           timings: {
             blocked: -1,
             dns: -1,
