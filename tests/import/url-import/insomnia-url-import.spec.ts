@@ -17,7 +17,7 @@ test.describe('Insomnia URL Import', () => {
       const locators = buildCommonLocators(page);
       const importLocators = locators.import;
 
-      await test.step('Step 01: Navigate to the Import functionality in Bruno', async () => {
+      await test.step('Navigate to the Import functionality in Bruno', async () => {
         await locators.plusMenu.button().click();
         await expect(locators.plusMenu.importCollection()).toBeVisible();
         await locators.plusMenu.importCollection().click();
@@ -29,25 +29,25 @@ test.describe('Insomnia URL Import', () => {
         await expect(importLocators.urlTab()).toBeVisible();
       });
 
-      await test.step('Step 02: Select \'Import from URL\' option', async () => {
+      await test.step('Select \'Import from URL\' option', async () => {
         await importLocators.urlTab().click();
         await expect(importLocators.urlInput()).toBeVisible();
         await expect(importLocators.importUrlButton()).toBeVisible();
       });
 
-      await test.step('Step 03: Enter a valid Insomnia export URL', async () => {
+      await test.step('Enter a valid Insomnia export URL', async () => {
         await importLocators.urlInput().fill(insomniaUrl);
         await expect(importLocators.urlInput()).toHaveValue(insomniaUrl);
       });
 
-      await test.step('Step 04: Initiate the import process', async () => {
+      await test.step('Initiate the import process', async () => {
         await importLocators.importUrlButton().click();
         await importLocators.loader().waitFor({ state: 'hidden' });
         await expect(importLocators.locationModal()).toBeVisible();
         await expect(importLocators.locationModal().getByText(collectionName)).toBeVisible();
       });
 
-      await test.step('Step 05: Verify successful import of the Insomnia export', async () => {
+      await test.step('Verify successful import of the Insomnia export', async () => {
         await importLocators.locationInput().fill(collectionLocation);
         await importLocators.importButton(importLocators.locationModal()).click();
         await importLocators.locationModal().waitFor({ state: 'hidden' });

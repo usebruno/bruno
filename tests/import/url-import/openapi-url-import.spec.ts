@@ -7,7 +7,7 @@ test.describe('OpenAPI URL Import', () => {
     await closeAllCollections(page);
   });
 
-  test('Swagger/OpenAPI URL import', async ({ page, createTmpDir }) => {
+  test('TC115: Verify the import collection from OpenAPIV3 / Swagger through URL.', async ({ page, createTmpDir }) => {
     const openapiUrl = 'https://petstore.swagger.io/v2/swagger.json';
 
     await page.getByTestId('collections-header-add-menu').click();
