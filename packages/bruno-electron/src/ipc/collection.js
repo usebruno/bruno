@@ -21,12 +21,14 @@ const {
   DEFAULT_COLLECTION_FORMAT
 } = require('@usebruno/filestore');
 const { dotenvToJson } = require('@usebruno/lang');
+const { utils } = require('@usebruno/common');
 const brunoConverters = require('@usebruno/converters');
 const { postmanToBruno } = brunoConverters;
 const { cookiesStore } = require('../store/cookies');
 const { parseLargeRequestWithRedaction } = require('../utils/parse');
 const { wsClient } = require('../ipc/network/ws-event-handlers');
 const { hasSubDirectories } = require('../utils/filesystem');
+const { transformProxyConfig } = require('@usebruno/requests');
 
 const {
   DEFAULT_GITIGNORE,
@@ -40,6 +42,7 @@ const {
   isWindowsOS,
   hasRequestExtension,
   getCollectionFormat,
+  searchForFiles,
   searchForRequestFiles,
   validateName,
   getCollectionStats,
@@ -47,6 +50,7 @@ const {
   safeWriteFileSync,
   copyPath,
   removePath,
+  moveCollectionDirectory,
   getPaths,
   generateUniqueName,
   isDotEnvFile,
@@ -54,15 +58,18 @@ const {
   isBrunoConfigFile,
   isBruEnvironmentConfig,
   isCollectionRootBruFile,
-  scanForBrunoFiles
+  scanForBrunoFiles,
+  withFileLock
 } = require('../utils/filesystem');
-const { openCollectionDialog, openCollectionsByPathname, registerScratchCollectionPath } = require('../app/collections');
+const { getCollectionConfigFile, openCollection, openCollectionDialog, openCollectionsByPathname, registerScratchCollectionPath } = require('../app/collections');
 const { generateUidBasedOnHash, stringifyJson, safeStringifyJSON, safeParseJSON } = require('../utils/common');
+const { isValidNpmPackageName, runNpmInstall } = require('../utils/install-packages');
+const { waitForShellEnv } = require('../store/shell-env-state');
 const { moveRequestUid, deleteRequestUid, syncExampleUidsCache } = require('../cache/requestUids');
 const { deleteCookiesForDomain, getDomainsWithCookies, addCookieForDomain, modifyCookieForDomain, parseCookieString, createCookieString, deleteCookie } = require('../utils/cookies');
 const EnvironmentSecretsStore = require('../store/env-secrets');
 const CollectionSecurityStore = require('../store/collection-security');
-const UiStateSnapshotStore = require('../store/ui-state-snapshot');
+const snapshotManager = require('../services/snapshot');
 const interpolateVars = require('./network/interpolate-vars');
 const { interpolateString } = require('./network/interpolate-string');
 const { getEnvVars, getTreePathFromCollectionToItem, mergeVars, parseBruFileMeta, hydrateRequestWithUuid, transformRequestToSaveToFilesystem } = require('../utils/collection');
@@ -70,15 +77,20 @@ const { getProcessEnvVars } = require('../store/process-env');
 const { getOAuth2TokenUsingAuthorizationCode, getOAuth2TokenUsingClientCredentials, getOAuth2TokenUsingPasswordCredentials, getOAuth2TokenUsingImplicitGrant, refreshOauth2Token } = require('../utils/oauth2');
 const { getCertsAndProxyConfig } = require('./network/cert-utils');
 const collectionWatcher = require('../app/collection-watcher');
-const { transformBrunoConfigBeforeSave } = require('../utils/transformBrunoConfig');
+const { transformBrunoConfigBeforeSave, transformBrunoConfigAfterRead } = require('../utils/transformBrunoConfig');
 const { REQUEST_TYPES } = require('../utils/constants');
 const { cancelOAuth2AuthorizationRequest, isOauth2AuthorizationRequestInProgress } = require('../utils/oauth2-protocol-handler');
 const { findUniqueFolderName } = require('../utils/collection-import');
 const { saveSpecAndUpdateMetadata, cleanupSpecFilesForCollection } = require('./openapi-sync');
+const {
+  validateWorkspacePath,
+  normalizeCollectionEntry,
+  addCollectionToWorkspace,
+  removeCollectionFromWorkspace
+} = require('../utils/workspace-config');
 
 const environmentSecretsStore = new EnvironmentSecretsStore();
 const collectionSecurityStore = new CollectionSecurityStore();
-const uiStateSnapshotStore = new UiStateSnapshotStore();
 
 // size and file count limits to determine whether the bru files in the collection should be loaded asynchronously or not.
 const MAX_COLLECTION_SIZE_IN_MB = 20;
@@ -102,8 +114,9 @@ const getTransientScratchPrefix = () => {
 
 // Check if a path is within the transient directory
 const isTransientPath = (filePath) => {
+  const normalizedFilePath = path.normalize(filePath);
   const transientBase = getTransientDirectoryBase();
-  return filePath.startsWith(transientBase + path.sep) || filePath.startsWith(transientBase);
+  return normalizedFilePath.startsWith(transientBase + path.sep) || normalizedFilePath === transientBase;
 };
 
 const envHasSecrets = (environment = {}) => {
@@ -113,11 +126,14 @@ const envHasSecrets = (environment = {}) => {
 };
 
 const findCollectionPathByItemPath = (filePath) => {
-  const parts = filePath.split(path.sep);
-  const index = parts.findIndex((part) => part.startsWith('bruno-'));
+  const normalizedFilePath = path.normalize(filePath);
 
-  if (isTransientPath(filePath) && index !== -1) {
-    const transientDirPath = parts.slice(0, index + 1).join(path.sep);
+  if (isTransientPath(normalizedFilePath)) {
+    const transientBase = getTransientDirectoryBase();
+    const transientDirName = path.relative(transientBase, normalizedFilePath).split(path.sep)[0];
+    if (!transientDirName) return null;
+
+    const transientDirPath = path.join(transientBase, transientDirName);
     const metadataPath = path.join(transientDirPath, 'metadata.json');
     try {
       const metadataContent = fs.readFileSync(metadataPath, 'utf8');
@@ -141,9 +157,6 @@ const findCollectionPathByItemPath = (filePath) => {
   // Find the collection path that contains this file
   // Sort by length descending to find the most specific (deepest) match first
   const sortedPaths = allCollectionPaths.sort((a, b) => b.length - a.length);
-
-  // Normalize the file path for comparison
-  const normalizedFilePath = path.normalize(filePath);
 
   for (const collectionPath of sortedPaths) {
     const normalizedCollectionPath = path.normalize(collectionPath);
@@ -202,7 +215,6 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
               name: collectionName
             }
           };
-          // For YAML collections, set opencollection instead of version
           brunoConfig = {
             opencollection: '1.0.0',
             name: collectionName,
@@ -220,12 +232,15 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
 
         await writeFile(path.join(dirPath, '.gitignore'), DEFAULT_GITIGNORE);
 
-        const { size, filesCount } = await getCollectionStats(dirPath);
-        brunoConfig.size = size;
-        brunoConfig.filesCount = filesCount;
+        let persistedConfig = await getCollectionConfigFile(dirPath);
+        persistedConfig = await transformBrunoConfigAfterRead(persistedConfig, dirPath);
 
-        mainWindow.webContents.send('main:collection-opened', dirPath, uid, brunoConfig);
-        ipcMain.emit('main:collection-opened', mainWindow, dirPath, uid, brunoConfig);
+        const { size, filesCount } = await getCollectionStats(dirPath);
+        persistedConfig.size = size;
+        persistedConfig.filesCount = filesCount;
+
+        mainWindow.webContents.send('main:collection-opened', dirPath, uid, persistedConfig);
+        ipcMain.emit('main:collection-opened', mainWindow, dirPath, uid, persistedConfig);
       } catch (error) {
         return Promise.reject(error);
       }
@@ -301,9 +316,135 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
       brunoConfig.filesCount = filesCount;
 
       mainWindow.webContents.send('main:collection-opened', dirPath, uid, brunoConfig);
-      ipcMain.emit('main:collection-opened', mainWindow, dirPath, uid);
+      ipcMain.emit('main:collection-opened', mainWindow, dirPath, uid, brunoConfig);
     }
   );
+
+  // move an external collection into the workspace's directory
+  ipcMain.handle(
+    'renderer:move-collection-to-workspace',
+    async (event, { workspacePath, collectionPath, collectionUid, collectionName }) => {
+      validateWorkspacePath(workspacePath);
+
+      if (!collectionPath || !isDirectory(collectionPath)) {
+        throw new Error(`Collection: ${collectionPath} does not exist`);
+      }
+
+      // resolve a collision-free target folder inside `<workspace>/collections`
+      const collectionsDir = path.join(workspacePath, 'collections');
+      if (!fs.existsSync(collectionsDir)) {
+        await createDirectory(collectionsDir);
+      }
+
+      let folderName = sanitizeName(path.basename(collectionPath));
+      if (fs.existsSync(path.join(collectionsDir, folderName))) {
+        const uniqueName = await findUniqueFolderName(folderName, collectionsDir);
+        folderName = sanitizeName(uniqueName);
+      }
+      const newPath = path.join(collectionsDir, folderName);
+
+      if (path.normalize(collectionPath) === path.normalize(newPath)) {
+        throw new Error('Collection is already inside the workspace');
+      }
+
+      // tear down the old watcher before moving the collection directory
+      if (watcher && mainWindow) {
+        watcher.removeWatcher(collectionPath, mainWindow, collectionUid);
+        if (wsClient) {
+          wsClient.closeForCollection(collectionUid);
+        }
+      }
+
+      // move the collection directory into the workspace
+      try {
+        await moveCollectionDirectory(collectionPath, newPath);
+      } catch (error) {
+        // reopen the collection at the original path
+        if (watcher && mainWindow && fs.existsSync(collectionPath)) {
+          try {
+            await openCollection(mainWindow, watcher, collectionPath);
+          } catch (err) {
+            console.error('Failed to restore collection after move failure:', err);
+          }
+        }
+        throw error;
+      }
+
+      // remap request uids so request identity survives the move
+      try {
+        const movedRequestFiles = searchForRequestFiles(newPath);
+        for (const newFilePath of movedRequestFiles) {
+          const oldFilePath = newFilePath.replace(newPath, collectionPath);
+          moveRequestUid(oldFilePath, newFilePath);
+        }
+      } catch (error) {
+        console.error('Error remapping request uids after move:', error);
+      }
+
+      // Register the collection at its new path in workspace.yml
+      try {
+        await addCollectionToWorkspace(
+          workspacePath,
+          normalizeCollectionEntry(workspacePath, {
+            name: collectionName,
+            path: newPath
+          })
+        );
+      } catch (error) {
+        console.error('Failed to register collection in workspace.yml:', error);
+        try {
+          await moveCollectionDirectory(newPath, collectionPath);
+          const restoredRequestFiles = searchForRequestFiles(collectionPath);
+          for (const restoredFilePath of restoredRequestFiles) {
+            const movedFilePath = restoredFilePath.replace(collectionPath, newPath);
+            moveRequestUid(movedFilePath, restoredFilePath);
+          }
+        } catch (rollbackError) {
+          console.error('Failed to roll back collection move:', rollbackError);
+        }
+        if (watcher && mainWindow && fs.existsSync(collectionPath)) {
+          try {
+            await openCollection(mainWindow, watcher, collectionPath);
+          } catch (err) {
+            console.error('Failed to restore collection after rollback:', err);
+          }
+        }
+        throw error;
+      }
+
+      // remove the stale workspace.yml entry
+      try {
+        await removeCollectionFromWorkspace(workspacePath, collectionPath);
+      } catch (error) {
+        console.error('Error cleaning up old workspace.yml entry after move:', error);
+      }
+
+      // update the recently opened collections store to point at the new location
+      try {
+        const LastOpenedCollections = require('../store/last-opened-collections');
+        const lastOpenedCollections = new LastOpenedCollections();
+        lastOpenedCollections.remove(collectionPath);
+        lastOpenedCollections.add(newPath);
+      } catch (error) {
+        console.error('Error updating last opened collections after move:', error);
+      }
+
+      // process env cleanup for the old uid
+      try {
+        const { clearCollectionWorkspace } = require('../store/process-env');
+        clearCollectionWorkspace(collectionUid);
+      } catch (error) {
+        console.error('Error clearing collection workspace mapping after move:', error);
+      }
+
+      return {
+        newPath,
+        newUid: generateUidBasedOnHash(newPath),
+        folderName
+      };
+    }
+  );
+
   // rename collection
   ipcMain.handle('renderer:rename-collection', async (event, newName, collectionPathname) => {
     try {
@@ -368,7 +509,10 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
       const filename = format === 'yml' ? 'opencollection.yml' : 'collection.bru';
       const content = await stringifyCollection(collectionRoot, brunoConfig, { format });
 
-      await writeFile(path.join(collectionPathname, filename), content);
+      const filePath = path.join(collectionPathname, filename);
+      const existing = fs.existsSync(filePath) ? fs.readFileSync(filePath, 'utf8') : null;
+      if (content === existing) return; // skip write if content unchanged
+      await writeFile(filePath, content);
     } catch (error) {
       console.error('Error in save-collection-root:', error);
       return Promise.reject(error);
@@ -483,6 +627,20 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
         const content = await stringifyRequestViaWorker(request, { format: r.format });
         await writeFile(pathname, content);
       }
+    } catch (error) {
+      return Promise.reject(error);
+    }
+  });
+
+  ipcMain.handle('renderer:save-file', async (event, pathname, content) => {
+    try {
+      validatePathIsInsideCollection(pathname);
+
+      if (!fs.existsSync(pathname)) {
+        throw new Error(`path: ${pathname} does not exist`);
+      }
+
+      await writeFile(pathname, content);
     } catch (error) {
       return Promise.reject(error);
     }
@@ -609,12 +767,21 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
         throw new Error(`environment: ${envFilePath} does not exist`);
       }
 
-      if (envHasSecrets(environment)) {
-        environmentSecretsStore.storeEnvSecrets(collectionPathname, environment);
-      }
+      // Serialize concurrent saves to the same env file. Without the lock the
+      // read-then-write pattern below can interleave: writer A reads pre-A state,
+      // writer B reads pre-A state, B writes B-content, A writes A-content —
+      // dropping B's update. Rapid scripted `bru.setEnvVar(..., {persist:true})`
+      // calls (e.g. across folder-run requests) hit this without serialization.
+      await withFileLock(envFilePath, async () => {
+        if (envHasSecrets(environment)) {
+          environmentSecretsStore.storeEnvSecrets(collectionPathname, environment);
+        }
 
-      const content = await stringifyEnvironment(environment, { format });
-      await writeFile(envFilePath, content);
+        const content = await stringifyEnvironment(environment, { format });
+        const existing = fs.readFileSync(envFilePath, 'utf8');
+        if (content === existing) return; // skip write if content unchanged
+        await writeFile(envFilePath, content);
+      });
     } catch (error) {
       return Promise.reject(error);
     }
@@ -671,22 +838,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
       }
 
       const dotEnvPath = path.join(collectionPathname, filename);
-
-      // Convert variables array to .env format
-      const content = variables
-        .filter((v) => v.name && v.name.trim() !== '')
-        .map((v) => {
-          const value = v.value || '';
-          // If value contains newlines or special characters, wrap in quotes
-          if (value.includes('\n') || value.includes('"') || value.includes('\'') || value.includes('\\')) {
-            // Escape backslashes first, then double quotes
-            const escapedValue = value.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
-            return `${v.name}="${escapedValue}"`;
-          }
-          return `${v.name}=${value}`;
-        })
-        .join('\n');
-
+      const content = utils.jsonToDotenv(variables);
       await writeFile(dotEnvPath, content);
 
       return { success: true };
@@ -767,12 +919,13 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
         throw new Error(`environment: ${envFilePath} does not exist`);
       }
 
-      // Read, update color, and write back to file
-      const fileContent = fs.readFileSync(envFilePath, 'utf8');
-      const environment = parseEnvironment(fileContent, { format });
-      environment.color = color;
-      const updatedContent = stringifyEnvironment(environment, { format });
-      fs.writeFileSync(envFilePath, updatedContent, 'utf8');
+      await withFileLock(envFilePath, async () => {
+        const fileContent = fs.readFileSync(envFilePath, 'utf8');
+        const environment = parseEnvironment(fileContent, { format });
+        environment.color = color;
+        const updatedContent = stringifyEnvironment(environment, { format });
+        await writeFile(envFilePath, updatedContent);
+      });
     } catch (error) {
       return Promise.reject(error);
     }
@@ -1034,8 +1187,15 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
         deleteRequestUid(pathname);
 
         fs.unlinkSync(pathname);
+      } else if (type === 'app') {
+        // Standalone app items are single files with no per-line uid mapping.
+        if (!fs.existsSync(pathname)) {
+          return Promise.reject(new Error('The file does not exist'));
+        }
+
+        fs.unlinkSync(pathname);
       } else {
-        return Promise.reject();
+        return Promise.reject(new Error(`Unsupported item type for delete: ${type}`));
       }
     } catch (error) {
       return Promise.reject(error);
@@ -1090,16 +1250,24 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
 
   ipcMain.handle('renderer:open-multiple-collections', async (e, collectionPaths, options = {}) => {
     if (watcher && mainWindow) {
-      await openCollectionsByPathname(mainWindow, watcher, collectionPaths);
+      const result = await openCollectionsByPathname(mainWindow, watcher, collectionPaths, options);
       if (options.workspacePath) {
         const { setCollectionWorkspace } = require('../store/process-env');
         const { generateUidBasedOnHash } = require('../utils/common');
-        for (const collectionPath of collectionPaths) {
+        for (const collectionPath of result?.opened || []) {
           const collectionUid = generateUidBasedOnHash(collectionPath);
           setCollectionWorkspace(collectionUid, options.workspacePath);
         }
       }
+
+      return result;
     }
+
+    return {
+      opened: [],
+      failed: [],
+      invalid: []
+    };
   });
 
   ipcMain.handle('renderer:set-collection-workspace', (event, collectionUid, workspacePath) => {
@@ -1118,13 +1286,14 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
       }
     }
 
+    await require('./mount').unmount(collectionUid).catch(() => {});
+
     // Clean up
     const { clearCollectionWorkspace } = require('../store/process-env');
     clearCollectionWorkspace(collectionUid);
 
     if (workspacePath && workspacePath !== 'default') {
       try {
-        const { removeCollectionFromWorkspace } = require('../utils/workspace-config');
         await removeCollectionFromWorkspace(workspacePath, collectionPath);
       } catch (error) {
         console.error('Error removing collection from workspace.yml:', error);
@@ -1186,7 +1355,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
             if (item.type === 'folder') {
               let sanitizedFolderName = sanitizeName(item?.filename || item?.name);
               const folderPath = path.join(currentPath, sanitizedFolderName);
-              fs.mkdirSync(folderPath);
+              fs.mkdirSync(folderPath, { recursive: true });
 
               if (item?.root?.meta?.name) {
                 const folderFilePath = path.join(folderPath, `folder.${format}`);
@@ -1227,13 +1396,14 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
 
           if (!brunoConfig) {
             brunoConfig = {
-              version: '1',
               name: collection.name,
               type: 'collection',
               ignore: ['node_modules', '.git']
             };
           }
-
+          if (brunoConfig.proxy) {
+            brunoConfig.proxy = transformProxyConfig(brunoConfig.proxy);
+          }
           return brunoConfig;
         };
 
@@ -1256,7 +1426,11 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
           const collectionContent = await stringifyCollection(coll.root, brunoConfig, { format });
           await writeFile(path.join(collectionPath, 'opencollection.yml'), collectionContent);
         } else if (format === 'bru') {
-          const stringifiedBrunoConfig = await stringifyJson(brunoConfig);
+          const bruJsonConfig = { ...brunoConfig, version: '1' };
+          if (brunoConfig.version) {
+            bruJsonConfig.collectionVersion = brunoConfig.version;
+          }
+          const stringifiedBrunoConfig = await stringifyJson(bruJsonConfig);
           await writeFile(path.join(collectionPath, 'bruno.json'), stringifiedBrunoConfig);
 
           const collectionContent = await stringifyCollection(coll.root, brunoConfig, { format });
@@ -1462,6 +1636,40 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
     }
   });
 
+  ipcMain.handle('renderer:move-item-cross-format', async (event, { targetDirname, sourcePathname, sourceFormat, targetFormat }) => {
+    try {
+      if (!fs.existsSync(sourcePathname)) {
+        throw new Error(`Source path: ${sourcePathname} does not exist`);
+      }
+      if (!fs.existsSync(targetDirname)) {
+        throw new Error(`Target directory: ${targetDirname} does not exist`);
+      }
+
+      const sourceBasename = path.basename(sourcePathname);
+      const filenameWithoutExt = sourceBasename.replace(/\.(bru|yml|yaml)$/, '');
+      const targetExt = targetFormat === 'yml' ? 'yml' : 'bru';
+      const targetFilename = `${filenameWithoutExt}.${targetExt}`;
+      const targetPathname = path.join(targetDirname, targetFilename);
+
+      if (fs.existsSync(targetPathname)) {
+        throw new Error(`A file with the name "${targetFilename}" already exists in the target location`);
+      }
+
+      const sourceContent = await fs.promises.readFile(sourcePathname, 'utf8');
+      const parsedRequest = parseRequest(sourceContent, { format: sourceFormat });
+      const finalContent = stringifyRequest(parsedRequest, { format: targetFormat });
+
+      await writeFile(targetPathname, finalContent);
+      await removePath(sourcePathname);
+
+      moveRequestUid(sourcePathname, targetPathname);
+
+      return { newPathname: targetPathname };
+    } catch (error) {
+      return Promise.reject(error);
+    }
+  });
+
   ipcMain.handle('renderer:move-folder-item', async (event, folderPath, destinationPath) => {
     try {
       const folderName = path.basename(folderPath);
@@ -1498,7 +1706,22 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
         const content = await stringifyJson(transformedBrunoConfig);
         await writeFile(brunoConfigPath, content);
       } else if (format === 'yml') {
-        const content = await stringifyCollection(collectionRoot, transformedBrunoConfig, { format });
+        // opencollection.yml holds both config AND the collection root. If the caller
+        // didn't supply a root (e.g. a config-only update before the tree finished
+        // loading), recover it from disk so request defaults/docs/scripts aren't wiped.
+        let rootToWrite = collectionRoot;
+        if (!rootToWrite) {
+          const ocYmlPath = path.join(collectionPath, 'opencollection.yml');
+          if (fs.existsSync(ocYmlPath)) {
+            try {
+              const existing = fs.readFileSync(ocYmlPath, 'utf8');
+              rootToWrite = parseCollection(existing, { format }).collectionRoot;
+            } catch (e) {
+              rootToWrite = collectionRoot;
+            }
+          }
+        }
+        const content = await stringifyCollection(rootToWrite, transformedBrunoConfig, { format });
         await writeFile(path.join(collectionPath, 'opencollection.yml'), content);
       } else {
         throw new Error(`Invalid collection format: ${format}`);
@@ -1551,6 +1774,16 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
     try {
       await deleteCookie(domain, path, cookieKey);
       await updateCookiesAndNotify();
+    } catch (error) {
+      return Promise.reject(error);
+    }
+  });
+
+  ipcMain.handle('renderer:convert-to-json', async (event, item, content, format = 'bru') => {
+    try {
+      const jsonContent = await parseRequestViaWorker(content, { format });
+      const json = hydrateRequestWithUuid(jsonContent, item?.pathname);
+      return json;
     } catch (error) {
       return Promise.reject(error);
     }
@@ -1610,9 +1843,9 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
     }
   });
 
-  ipcMain.handle('renderer:update-ui-state-snapshot', (event, { type, data }) => {
+  ipcMain.handle('renderer:update-ui-state-snapshot', async (event, { type, data }) => {
     try {
-      uiStateSnapshotStore.update({ type, data });
+      await snapshotManager.update({ type, data });
     } catch (error) {
       throw new Error(error.message);
     }
@@ -1945,7 +2178,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
     }
   });
 
-  ipcMain.handle('renderer:mount-collection', async (event, { collectionUid, collectionPathname, brunoConfig }) => {
+  ipcMain.handle('renderer:mount-collection', async (event, { collectionUid, collectionPathname, brunoConfig, workspacePathname }) => {
     let tempDirectoryPath = null;
     try {
       // Ensure the transient base directory exists
@@ -1972,7 +2205,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
         || (filesCount > MAX_COLLECTION_FILES_COUNT)
         || (maxFileSize > MAX_SINGLE_FILE_SIZE_IN_COLLECTION_IN_MB);
 
-    watcher.addWatcher(mainWindow, collectionPathname, collectionUid, brunoConfig, false, shouldLoadCollectionAsync);
+    watcher.addWatcher(mainWindow, collectionPathname, collectionUid, brunoConfig, false, shouldLoadCollectionAsync, { workspacePathname: workspacePathname || null });
 
     // Add watcher for transient directory
     watcher.addTempDirectoryWatcher(mainWindow, tempDirectoryPath, collectionUid, collectionPathname);
@@ -2100,13 +2333,34 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
   ipcMain.handle('renderer:convert-postman-to-bruno', async (event, postmanCollection) => {
     try {
       // Convert Postman collection to Bruno format
-      const brunoCollection = await postmanToBruno(postmanCollection, { useWorkers: true });
+      // Returns { collection, issues } where issues tracks items that were skipped or degraded
+      const result = await postmanToBruno(postmanCollection, { useWorkers: true });
 
-      return brunoCollection;
+      return result;
     } catch (error) {
       console.error('Error converting Postman to Bruno:', error);
       return Promise.reject(error);
     }
+  });
+
+  ipcMain.handle('renderer:install-postman-packages', async (_event, collectionPathname, packages) => {
+    if (typeof collectionPathname !== 'string' || !collectionPathname) {
+      throw new Error('collectionPathname is required');
+    }
+    if (!Array.isArray(packages) || packages.length === 0) {
+      throw new Error('packages must be a non-empty array');
+    }
+    if (!fs.existsSync(collectionPathname) || !fs.statSync(collectionPathname).isDirectory()) {
+      throw new Error(`Collection path does not exist: ${collectionPathname}`);
+    }
+
+    const invalid = packages.filter((p) => !isValidNpmPackageName(p));
+    if (invalid.length > 0) {
+      throw new Error(`Invalid package name(s): ${invalid.join(', ')}`);
+    }
+
+    await waitForShellEnv();
+    return runNpmInstall({ collectionPath: collectionPathname, packages });
   });
 
   ipcMain.handle('renderer:get-collection-json', async (event, collectionPath) => {
@@ -2394,10 +2648,11 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
 
         await fsExtra.move(collectionDir, finalCollectionPath);
         if (tempDir !== collectionDir) {
-          await fsExtra.remove(tempDir).catch(() => {});
+          await fsExtra.remove(tempDir).catch(() => { });
         }
 
         const uid = generateUidBasedOnHash(finalCollectionPath);
+        brunoConfig = await transformBrunoConfigAfterRead(brunoConfig, finalCollectionPath);
         const { size, filesCount } = await getCollectionStats(finalCollectionPath);
         brunoConfig.size = size;
         brunoConfig.filesCount = filesCount;
@@ -2407,10 +2662,133 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
 
         return finalCollectionPath;
       } catch (error) {
-        await fsExtra.remove(tempDir).catch(() => {});
+        await fsExtra.remove(tempDir).catch(() => { });
         throw error;
       }
     } catch (error) {
+      throw error;
+    }
+  });
+
+  ipcMain.handle('renderer:migrate-collection-to-yml', async (event, collectionPathname, collectionUid) => {
+    const format = getCollectionFormat(collectionPathname);
+    if (format === 'yml') {
+      throw new Error('Collection is already in YML format');
+    }
+
+    // Stop the watcher during migration to avoid triggering events
+    if (watcher) {
+      watcher.removeWatcher(collectionPathname, mainWindow, collectionUid);
+    }
+
+    // Track all written yml files so we can roll back on failure
+    const writtenYmlFiles = [];
+
+    try {
+      const brunoJsonPath = path.join(collectionPathname, 'bruno.json');
+      const brunoJsonContent = fs.readFileSync(brunoJsonPath, 'utf8');
+      const brunoConfig = JSON.parse(brunoJsonContent);
+
+      const collectionBruPath = path.join(collectionPathname, 'collection.bru');
+      let collectionRoot = {};
+      if (fs.existsSync(collectionBruPath)) {
+        const collectionBruContent = fs.readFileSync(collectionBruPath, 'utf8');
+        collectionRoot = parseCollection(collectionBruContent, { format: 'bru' });
+      }
+
+      const ymlBrunoConfig = { ...brunoConfig };
+      delete ymlBrunoConfig.version; // drop the bru format marker
+      ymlBrunoConfig.opencollection = '1.0.0';
+      // Carry the user-facing version: bru's collectionVersion becomes yml's info.version.
+      if (ymlBrunoConfig.collectionVersion) {
+        ymlBrunoConfig.version = ymlBrunoConfig.collectionVersion;
+      }
+      delete ymlBrunoConfig.collectionVersion;
+
+      const ocYmlPath = path.join(collectionPathname, 'opencollection.yml');
+      const ymlCollectionContent = stringifyCollection(collectionRoot, ymlBrunoConfig, { format: 'yml' });
+      await writeFile(ocYmlPath, ymlCollectionContent);
+      writtenYmlFiles.push(ocYmlPath);
+
+      const bruFiles = searchForFiles(collectionPathname, '.bru');
+      const envDirPath = path.join(collectionPathname, 'environments');
+      const bruFilesToDelete = [];
+
+      for (const bruFilePath of bruFiles) {
+        const basename = path.basename(bruFilePath);
+        const dirname = path.dirname(bruFilePath);
+
+        if (basename === 'collection.bru' && path.normalize(dirname) === path.normalize(collectionPathname)) {
+          bruFilesToDelete.push(bruFilePath);
+          continue;
+        }
+
+        if (path.normalize(dirname) === path.normalize(envDirPath)) {
+          continue;
+        }
+
+        if (basename === 'folder.bru') {
+          const folderBruContent = fs.readFileSync(bruFilePath, 'utf8');
+          const folderData = parseFolder(folderBruContent, { format: 'bru' });
+          const ymlContent = stringifyFolder(folderData, { format: 'yml' });
+          const ymlFilePath = path.join(dirname, 'folder.yml');
+          await writeFile(ymlFilePath, ymlContent);
+          writtenYmlFiles.push(ymlFilePath);
+          bruFilesToDelete.push(bruFilePath);
+          continue;
+        }
+
+        const bruContent = fs.readFileSync(bruFilePath, 'utf8');
+        const requestData = parseRequest(bruContent, { format: 'bru' });
+        const ymlContent = stringifyRequest(requestData, { format: 'yml' });
+        const ymlFilePath = bruFilePath.replace(/\.bru$/, '.yml');
+        await writeFile(ymlFilePath, ymlContent);
+        writtenYmlFiles.push(ymlFilePath);
+        bruFilesToDelete.push(bruFilePath);
+      }
+
+      if (fs.existsSync(envDirPath)) {
+        const envBruFiles = searchForFiles(envDirPath, '.bru');
+        for (const envBruFilePath of envBruFiles) {
+          const envBruContent = fs.readFileSync(envBruFilePath, 'utf8');
+          const envData = parseEnvironment(envBruContent, { format: 'bru' });
+          const ymlContent = stringifyEnvironment(envData, { format: 'yml' });
+          const ymlFilePath = envBruFilePath.replace(/\.bru$/, '.yml');
+          await writeFile(ymlFilePath, ymlContent);
+          writtenYmlFiles.push(ymlFilePath);
+          bruFilesToDelete.push(envBruFilePath);
+        }
+      }
+
+      for (const bruFile of bruFilesToDelete) {
+        fs.unlinkSync(bruFile);
+      }
+      fs.unlinkSync(brunoJsonPath);
+
+      const { size, filesCount } = await getCollectionStats(collectionPathname);
+      ymlBrunoConfig.size = size;
+      ymlBrunoConfig.filesCount = filesCount;
+
+      return ymlBrunoConfig;
+    } catch (error) {
+      for (const ymlFile of writtenYmlFiles) {
+        try {
+          if (fs.existsSync(ymlFile)) {
+            fs.unlinkSync(ymlFile);
+          }
+        } catch (_) {
+        }
+      }
+
+      // Restart the watcher on the original bru collection
+      if (watcher) {
+        try {
+          const config = JSON.parse(fs.readFileSync(path.join(collectionPathname, 'bruno.json'), 'utf8'));
+          watcher.addWatcher(mainWindow, collectionPathname, collectionUid, config);
+        } catch (watcherError) {
+          console.error('Failed to restart watcher after migration error:', watcherError);
+        }
+      }
       throw error;
     }
   });
@@ -2432,9 +2810,30 @@ const registerMainEventHandlers = (mainWindow, watcher) => {
     app.addRecentDocument(pathname);
   });
 
-  ipcMain.handle('renderer:scan-for-bruno-files', (event, dir) => {
+  ipcMain.handle('renderer:scan-for-bruno-files', async (event, dir) => {
     try {
-      return scanForBrunoFiles(dir);
+      const collectionPaths = await scanForBrunoFiles(dir);
+
+      const scanResults = await Promise.all(
+        collectionPaths.map(async (pathname) => {
+          try {
+            const brunoConfig = await getCollectionConfigFile(pathname);
+
+            return {
+              pathname,
+              name: brunoConfig.name
+            };
+          } catch (error) {
+            console.warn(`Skipping invalid Bruno collection at ${pathname}: ${error.message}`);
+            return { pathname, skipped: true };
+          }
+        })
+      );
+
+      return {
+        items: scanResults.filter((result) => !result.skipped),
+        skippedItems: scanResults.filter((result) => result.skipped).map(({ pathname }) => pathname)
+      };
     } catch (error) {
       throw new Error(error.message);
     }

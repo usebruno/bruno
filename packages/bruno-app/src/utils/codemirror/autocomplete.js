@@ -3,9 +3,6 @@ import { mockDataFunctions } from '@usebruno/common';
 const CodeMirror = require('codemirror');
 
 // Static API hints - Bruno JavaScript API (subgrouped by category)
-// TODO: Restore the commented-out APIs once the UI update fixes are live.
-// Currently these APIs only work within the request lifecycle but fail to update the UI tables.
-// e.g., setCollectionVar only sets the variable in the request lifecycle, fails to update the table in the UI.
 const STATIC_API_HINTS = {
   req: [
     'req',
@@ -38,7 +35,30 @@ const STATIC_API_HINTS = {
     'req.getPathParams()',
     'req.getTags()',
     'req.disableParsingResponseJson()',
-    'req.onFail(function(err) {})'
+    'req.onFail(function(err) {})',
+    'req.headerList',
+    'req.headerList.get(name)',
+    'req.headerList.one(name)',
+    'req.headerList.all()',
+    'req.headerList.count()',
+    'req.headerList.has(name)',
+    'req.headerList.has(name, value)',
+    'req.headerList.find(fn)',
+    'req.headerList.filter(fn)',
+    'req.headerList.indexOf(item)',
+    'req.headerList.each(fn)',
+    'req.headerList.map(fn)',
+    'req.headerList.reduce(fn, initialValue)',
+    'req.headerList.toObject()',
+    'req.headerList.toString()',
+    'req.headerList.toJSON()',
+    'req.headerList.add(headerObj)',
+    'req.headerList.upsert(headerObj)',
+    'req.headerList.remove(predicate)',
+    'req.headerList.clear()',
+    'req.headerList.populate(items)',
+    'req.headerList.repopulate(items)',
+    'req.headerList.assimilate(source, prune)'
   ],
   res: [
     'res',
@@ -59,7 +79,23 @@ const STATIC_API_HINTS = {
     'res.getSize().header',
     'res.getSize().body',
     'res.getSize().total',
-    'res.getUrl()'
+    'res.getUrl()',
+    'res.headerList',
+    'res.headerList.get(name)',
+    'res.headerList.one(name)',
+    'res.headerList.all()',
+    'res.headerList.count()',
+    'res.headerList.has(name)',
+    'res.headerList.has(name, value)',
+    'res.headerList.find(fn)',
+    'res.headerList.filter(fn)',
+    'res.headerList.indexOf(item)',
+    'res.headerList.each(fn)',
+    'res.headerList.map(fn)',
+    'res.headerList.reduce(fn, initialValue)',
+    'res.headerList.toObject()',
+    'res.headerList.toString()',
+    'res.headerList.toJSON()'
   ],
   bru: [
     'bru',
@@ -70,13 +106,12 @@ const STATIC_API_HINTS = {
     'bru.getEnvVar(key)',
     'bru.getFolderVar(key)',
     'bru.getCollectionVar(key)',
-    // 'bru.setCollectionVar(key, value)',
+    'bru.setCollectionVar(key, value)',
     'bru.hasCollectionVar(key)',
-    // 'bru.deleteCollectionVar(key)',
-    // 'bru.deleteAllCollectionVars()',
-    // 'bru.getAllCollectionVars()',
+    'bru.deleteCollectionVar(key)',
+    'bru.deleteAllCollectionVars()',
+    'bru.getAllCollectionVars()',
     'bru.setEnvVar(key, value)',
-    'bru.setEnvVar(key, value, options)',
     'bru.deleteEnvVar(key)',
     'bru.getAllEnvVars()',
     'bru.deleteAllEnvVars()',
@@ -97,17 +132,38 @@ const STATIC_API_HINTS = {
     'bru.getCollectionName()',
     'bru.isSafeMode()',
     'bru.getOauth2CredentialVar(key)',
+    'bru.hasGlobalEnvVar(key)',
     'bru.getGlobalEnvVar(key)',
     'bru.setGlobalEnvVar(key, value)',
-    // 'bru.deleteGlobalEnvVar(key)',
+    'bru.deleteGlobalEnvVar(key)',
     'bru.getAllGlobalEnvVars()',
-    // 'bru.deleteAllGlobalEnvVars()',
+    'bru.deleteAllGlobalEnvVars()',
     'bru.runner',
     'bru.runner.setNextRequest(requestName)',
     'bru.runner.skipRequest()',
     'bru.runner.stopExecution()',
     'bru.interpolate(str)',
     'bru.cookies',
+    'bru.cookies.get(name)',
+    'bru.cookies.has(name)',
+    'bru.cookies.has(name, value)',
+    'bru.cookies.one(name)',
+    'bru.cookies.all()',
+    'bru.cookies.count()',
+    'bru.cookies.idx(index)',
+    'bru.cookies.indexOf(item)',
+    'bru.cookies.find(fn)',
+    'bru.cookies.filter(fn)',
+    'bru.cookies.each(fn)',
+    'bru.cookies.map(fn)',
+    'bru.cookies.reduce(fn, initialValue)',
+    'bru.cookies.toObject()',
+    'bru.cookies.toString()',
+    'bru.cookies.add(cookieObj)',
+    'bru.cookies.upsert(cookieObj)',
+    'bru.cookies.remove(name)',
+    'bru.cookies.delete(name)',
+    'bru.cookies.clear()',
     'bru.cookies.jar()',
     'bru.cookies.jar().getCookie(url, name, callback)',
     'bru.cookies.jar().getCookies(url, callback)',
@@ -117,6 +173,7 @@ const STATIC_API_HINTS = {
     'bru.cookies.jar().clear(callback)',
     'bru.cookies.jar().deleteCookies(url, callback)',
     'bru.cookies.jar().deleteCookie(url, name, callback)',
+    'bru.cookies.jar().hasCookie(url, name, callback)',
     'bru.utils',
     'bru.utils.minifyJson(json)',
     'bru.utils.minifyXml(xml)',
@@ -127,8 +184,10 @@ const STATIC_API_HINTS = {
 // Mock data functions - prefixed with $
 const MOCK_DATA_HINTS = Object.keys(mockDataFunctions).map((key) => `$${key}`);
 
-// Constants for word pattern matching
-const WORD_PATTERN = /[\w.$-/]/;
+// Constants for word pattern matching.
+// `-` is placed last so it is a literal hyphen, not a range operator — `$-/`
+// would otherwise match `( ) % & ' * + ,`
+const WORD_PATTERN = /[\w.$/-]/;
 const VARIABLE_PATTERN = /\{\{([\w$.-]*)$/;
 const NON_CHARACTER_KEYS = /^(?!Shift|Tab|Enter|Escape|ArrowUp|ArrowDown|ArrowLeft|ArrowRight|Meta|Alt|Home|End\s)\w*/;
 
@@ -742,7 +801,7 @@ export const setupAutoComplete = (editor, options = {}) => {
 };
 
 // Exported for testing
-export { extractNextSegmentSuggestions };
+export { extractNextSegmentSuggestions, WORD_PATTERN };
 
 // Initialize autocomplete command if not already present
 if (!CodeMirror.commands.autocomplete) {

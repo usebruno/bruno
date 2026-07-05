@@ -54,6 +54,48 @@ describe('jsonToBru stringify', () => {
     });
   });
 
+  describe('body:multipart-form file values', () => {
+    it('stringifies an empty file value without a leading pipe', () => {
+      const input = {
+        body: {
+          multipartForm: [
+            {
+              name: 'file',
+              value: [],
+              enabled: true,
+              type: 'file',
+              contentType: ''
+            }
+          ]
+        }
+      };
+
+      const output = stringify(input);
+      expect(output).toContain('file: @file()');
+      expect(output).not.toContain('@file(|');
+    });
+
+    it('drops empty entries when stringifying multiple file paths', () => {
+      const input = {
+        body: {
+          multipartForm: [
+            {
+              name: 'file',
+              value: ['', '/path/to/file.csv'],
+              enabled: true,
+              type: 'file',
+              contentType: ''
+            }
+          ]
+        }
+      };
+
+      const output = stringify(input);
+      expect(output).toContain('file: @file(/path/to/file.csv)');
+      expect(output).not.toContain('@file(|');
+    });
+  });
+
   describe('multi-line values', () => {
     it('handles multi-line values in URL, headers, params, and vars', () => {
       const input = {
@@ -134,6 +176,101 @@ describe('jsonToBru stringify', () => {
         }
         "
       `);
+    });
+  });
+
+  describe('vars:pre-request dataType decorators', () => {
+    const baseMeta = { name: 'test', type: 'http', seq: 1 };
+    const baseHttp = { method: 'get', url: 'http://localhost' };
+
+    it('emits dataType decorators for typed variables', () => {
+      const output = stringify({
+        meta: baseMeta,
+        http: baseHttp,
+        vars: {
+          req: [
+            { name: 'apiKey', value: 'abc', enabled: true, local: false },
+            { name: 'port', value: 3000, enabled: true, local: false, dataType: 'number' },
+            { name: 'flag', value: true, enabled: true, local: false, dataType: 'boolean' }
+          ]
+        }
+      });
+
+      expect(output).toContain('apiKey: abc');
+      expect(output).toContain('@number\n  port: 3000');
+      expect(output).toContain('@boolean\n  flag: true');
+    });
+
+    it('serializes @object values as multiline JSON', () => {
+      const output = stringify({
+        meta: baseMeta,
+        http: baseHttp,
+        vars: {
+          req: [
+            { name: 'config', value: { a: 1, b: 'x' }, enabled: true, local: false, dataType: 'object' }
+          ]
+        }
+      });
+
+      expect(output).toContain('@object');
+      expect(output).toContain('"a": 1');
+      expect(output).toContain('"b": "x"');
+    });
+
+    it('preserves local, disabled and disabled+local prefixes alongside dataType', () => {
+      const output = stringify({
+        meta: baseMeta,
+        http: baseHttp,
+        vars: {
+          req: [
+            { name: 'a', value: 1, enabled: true, local: true, dataType: 'number' },
+            { name: 'b', value: 2, enabled: false, local: false, dataType: 'number' },
+            { name: 'c', value: 3, enabled: false, local: true, dataType: 'number' }
+          ]
+        }
+      });
+
+      expect(output).toContain('@number\n  @a: 1');
+      expect(output).toContain('@number\n  ~b: 2');
+      expect(output).toContain('@number\n  ~@c: 3');
+    });
+
+    it('does not emit a dataType decorator for the string default', () => {
+      const output = stringify({
+        meta: baseMeta,
+        http: baseHttp,
+        vars: {
+          req: [
+            { name: 'apiKey', value: 'abc', enabled: true, local: false, dataType: 'string' }
+          ]
+        }
+      });
+
+      expect(output).not.toContain('@string');
+      expect(output).toContain('apiKey: abc');
+    });
+
+    it('drops a stale dataType annotation in favour of the dataType field', () => {
+      const output = stringify({
+        meta: baseMeta,
+        http: baseHttp,
+        vars: {
+          req: [
+            {
+              name: 'port',
+              value: 3000,
+              enabled: true,
+              local: false,
+              annotations: [{ name: 'string' }, { name: 'description', value: 'service port' }],
+              dataType: 'number'
+            }
+          ]
+        }
+      });
+
+      expect(output).toContain('@number');
+      expect(output).not.toContain('@string');
+      expect(output).toContain('@description(\'service port\')');
     });
   });
 });

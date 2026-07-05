@@ -1,5 +1,5 @@
 import { OpenCollection } from "@opencollection/types";
-import { BrunoCollection, BrunoCollectionRoot, BrunoConfig, PemCertificate, Pkcs12Certificate } from "./types";
+import { BrunoCollection, BrunoCollectionRoot, BrunoConfig, BrunoPresets, PemCertificate, Pkcs12Certificate } from "./types";
 import { fromOpenCollectionAuth, fromOpenCollectionHeaders, fromOpenCollectionScripts, fromOpenCollectionVariables } from "./common";
 import { uuid } from "../common";
 import { fromOpenCollectionItems } from "./items";
@@ -9,10 +9,7 @@ import { fromOpenCollectionEnvironments } from "./environment";
 const fromOpenCollectionConfig = (oc: OpenCollection): BrunoConfig => {
   const brunoExtension = oc.extensions?.bruno as {
     ignore?: string[];
-    presets?: {
-      requestType?: string;
-      requestUrl?: string;
-    };
+    presets?: BrunoPresets;
   } | undefined;
 
   const ignoreList = brunoExtension && Array.isArray(brunoExtension.ignore)
@@ -20,11 +17,14 @@ const fromOpenCollectionConfig = (oc: OpenCollection): BrunoConfig => {
     : ['node_modules', '.git'];
 
   const brunoConfig: BrunoConfig = {
-    version: '1',
     name: oc.info?.name || 'Untitled Collection',
     type: 'collection',
     ignore: ignoreList
   };
+
+  if (oc.info?.version != null && oc.info.version !== '') {
+    brunoConfig.version = String(oc.info.version);
+  }
 
   if (brunoExtension?.presets?.requestType || brunoExtension?.presets?.requestUrl) {
     brunoConfig.presets = {};

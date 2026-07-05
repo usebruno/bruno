@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
+import { IconX } from '@tabler/icons';
 import StyledWrapper from './StyledWrapper';
 import useFocusTrap from 'hooks/useFocusTrap';
 import Button from 'ui/Button';
@@ -12,13 +13,15 @@ const ModalHeader = ({ title, handleCancel, customHeader, hideClose }) => (
     {handleCancel && !hideClose ? (
       // TODO: Remove data-test-id and use data-testid instead across the codebase.
       <div className="close cursor-pointer" onClick={handleCancel ? () => handleCancel() : null} data-testid="modal-close-button">
-        ×
+        <IconX size={16} strokeWidth={1.5} />
       </div>
     ) : null}
   </div>
 );
 
-const ModalContent = ({ children }) => <div className="bruno-modal-content px-4 py-4">{children}</div>;
+const ModalContent = ({ children, noPadding }) => (
+  <div className={`bruno-modal-content ${noPadding ? '' : 'px-4 py-4'}`}>{children}</div>
+);
 
 const ModalFooter = ({
   confirmText,
@@ -28,7 +31,9 @@ const ModalFooter = ({
   confirmDisabled,
   hideCancel,
   hideFooter,
-  confirmButtonColor = 'primary'
+  footerLeft,
+  confirmButtonColor = 'primary',
+  dataTestId = 'modal'
 }) => {
   confirmText = confirmText || 'Save';
   cancelText = cancelText || 'Cancel';
@@ -38,23 +43,27 @@ const ModalFooter = ({
   }
 
   return (
-    <div className="flex justify-end p-4 bruno-modal-footer">
-      <span className={hideCancel ? 'hidden' : 'mr-2'}>
-        <Button type="button" color="secondary" variant="ghost" onClick={handleCancel}>
-          {cancelText}
-        </Button>
-      </span>
-      <span>
-        <Button
-          type="submit"
-          color={confirmButtonColor}
-          disabled={confirmDisabled}
-          onClick={handleSubmit}
-          className="submit"
-        >
-          {confirmText}
-        </Button>
-      </span>
+    <div className="flex justify-between items-center p-4 bruno-modal-footer">
+      <div>{footerLeft}</div>
+      <div className="flex justify-end">
+        <span className={hideCancel ? 'hidden' : 'mr-2'}>
+          <Button type="button" color="secondary" variant="ghost" onClick={handleCancel}>
+            {cancelText}
+          </Button>
+        </span>
+        <span>
+          <Button
+            type="submit"
+            color={confirmButtonColor}
+            disabled={confirmDisabled}
+            onClick={handleSubmit}
+            className="submit"
+            data-testid={`${dataTestId}-submit-btn`}
+          >
+            {confirmText}
+          </Button>
+        </span>
+      </div>
     </div>
   );
 };
@@ -72,12 +81,14 @@ const Modal = ({
   hideCancel,
   hideFooter,
   hideClose,
+  footerLeft,
   disableCloseOnOutsideClick,
   disableEscapeKey,
   onClick,
   closeModalFadeTimeout = 500,
   dataTestId,
-  confirmButtonColor = 'primary'
+  confirmButtonColor = 'primary',
+  noPadding
 }) => {
   const modalRef = useRef(null);
   const [isClosing, setIsClosing] = useState(false);
@@ -141,7 +152,7 @@ const Modal = ({
           handleCancel={() => closeModal({ type: 'icon' })}
           customHeader={customHeader}
         />
-        <ModalContent>{children}</ModalContent>
+        <ModalContent noPadding={noPadding}>{children}</ModalContent>
         <ModalFooter
           confirmText={confirmText}
           cancelText={cancelText}
@@ -150,7 +161,9 @@ const Modal = ({
           confirmDisabled={confirmDisabled}
           hideCancel={hideCancel}
           hideFooter={hideFooter}
+          footerLeft={footerLeft}
           confirmButtonColor={confirmButtonColor}
+          dataTestId={dataTestId}
         />
       </div>
 

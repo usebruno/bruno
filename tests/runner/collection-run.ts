@@ -35,7 +35,7 @@ test.describe.parallel('Collection Run', () => {
     // Wait for the runner tab to open
     // If there are existing results, reset first, otherwise wait for Run Collection button
     const resetButton = page.getByRole('button', { name: 'Reset' });
-    const runCollectionButton = page.getByRole('button', { name: 'Run Collection' });
+    const runCollectionButton = page.getByTestId('runner-run-button');
 
     // Check if Reset button is visible (means there are existing results)
     const resetVisible = await resetButton.isVisible().catch(() => false);

@@ -3,6 +3,8 @@ import {
   createCollection,
   closeAllCollections,
   createRequest,
+  createFolder,
+  expandFolder,
   createEnvironment,
   addEnvironmentVariables,
   saveEnvironment,
@@ -10,6 +12,8 @@ import {
   closeEnvironmentPanel
 } from '../utils/page';
 import { buildCommonLocators } from '../utils/page/locators';
+
+const saveShortcut = process.platform === 'darwin' ? 'Meta+s' : 'Control+s';
 
 test.describe('Variable Tooltip', () => {
   test.afterEach(async ({ page }) => {
@@ -44,7 +48,7 @@ test.describe('Variable Tooltip', () => {
       const urlEditor = page.locator('#request-url .CodeMirror');
       await urlEditor.click();
       await page.keyboard.type('https://api.example.com?key={{apiKey}}');
-      await page.keyboard.press('Control+s');
+      await page.keyboard.press(saveShortcut);
     });
 
     await test.step('Test basic tooltip', async () => {
@@ -76,7 +80,7 @@ test.describe('Variable Tooltip', () => {
       const headerValueEditor = headerRow.locator('.CodeMirror').nth(1);
       await headerValueEditor.click();
       await page.keyboard.type('Bearer {{secretToken}}');
-      await page.keyboard.press('Control+s');
+      await page.keyboard.press(saveShortcut);
 
       // Test tooltip with secret
       const secretVar = headerValueEditor.locator('.cm-variable-valid').filter({ hasText: 'secretToken' }).first();
@@ -132,7 +136,7 @@ test.describe('Variable Tooltip', () => {
       const urlEditor = page.locator('#request-url .CodeMirror');
       await urlEditor.click();
       await page.keyboard.type('{{endpoint}}');
-      await page.keyboard.press('Control+s');
+      await page.keyboard.press(saveShortcut);
     });
 
     await test.step('Test variable referencing other variables', async () => {
@@ -216,11 +220,7 @@ test.describe('Variable Tooltip', () => {
       // Click copy button
       await copyButton.click();
 
-      // Should show success state (checkmark)
-      await expect(copyButton.locator('svg polyline')).toBeVisible({ timeout: 1000 });
-
-      // Wait for it to revert back to copy icon
-      await expect(copyButton.locator('svg rect')).toBeVisible();
+      await expect.poll(() => page.evaluate(() => navigator.clipboard.readText()), { timeout: 1000 }).toBe('https://api.example.com/users/posts');
     });
   });
 
@@ -243,7 +243,7 @@ test.describe('Variable Tooltip', () => {
       const urlEditor = locators.request.urlInput();
       await urlEditor.click();
       await page.keyboard.type('https://example.com');
-      await page.keyboard.press('Control+s');
+      await page.keyboard.press(saveShortcut);
     });
 
     await test.step('Test process.env variable tooltip', async () => {
@@ -255,7 +255,7 @@ test.describe('Variable Tooltip', () => {
       await urlEditor.click();
       await page.keyboard.press('End');
       await page.keyboard.type('?env={{process.env.HOME}}');
-      await page.keyboard.press('Control+s');
+      await page.keyboard.press(saveShortcut);
 
       // Hover over process.env variable
       const processEnvVar = urlEditor.locator('.cm-variable-valid, .cm-variable-invalid').filter({ hasText: 'process.env.HOME' }).first();
@@ -289,7 +289,7 @@ test.describe('Variable Tooltip', () => {
       const urlEditor = page.locator('#request-url .CodeMirror');
       await urlEditor.click();
       await page.keyboard.type('https://api.example.com');
-      await page.keyboard.press('Control+s');
+      await page.keyboard.press(saveShortcut);
     });
 
     await test.step('Edit URL to create draft with undefined variable', async () => {
@@ -397,7 +397,7 @@ test.describe('Variable Tooltip', () => {
       const urlEditor = page.locator('#request-url .CodeMirror');
       await urlEditor.click();
       await page.keyboard.type('https://api.example.com');
-      await page.keyboard.press('Control+s');
+      await page.keyboard.press(saveShortcut);
     });
 
     await test.step('Test invalid variable name with space', async () => {
@@ -414,7 +414,7 @@ test.describe('Variable Tooltip', () => {
         const cm = el.CodeMirror;
         cm.setValue('{\n  "userId": "{{user id}}"\n}');
       });
-      await page.keyboard.press('Control+s');
+      await page.keyboard.press(saveShortcut);
 
       // Hover over the invalid variable
       await page.mouse.move(0, 0);
@@ -427,6 +427,293 @@ test.describe('Variable Tooltip', () => {
       await expect(tooltip.locator('.var-name')).toContainText('user id');
       await expect(tooltip.locator('.var-warning-note')).toBeVisible();
       await expect(tooltip.locator('.var-value-editable-display')).not.toBeVisible();
+    });
+  });
+
+  test('should keep tooltip open while editing when mouse leaves popup area', async ({ page, createTmpDir }) => {
+    const collectionName = 'tooltip-pin-test';
+
+    await test.step('Setup collection, environment variable, and request', async () => {
+      await createCollection(page, collectionName, await createTmpDir('tooltip-pin-collection'));
+
+      await createEnvironment(page, 'Pin Env', 'collection');
+      await addEnvironmentVariables(page, [{ name: 'pinVar', value: 'pin-value' }]);
+      await saveEnvironment(page);
+      await closeEnvironmentPanel(page);
+
+      await createRequest(page, 'Pin Test Request', collectionName);
+      await page.locator('.collection-item-name').filter({ hasText: 'Pin Test Request' }).click();
+      const urlEditor = page.locator('#request-url .CodeMirror');
+      await urlEditor.click();
+      await page.keyboard.type('https://api.example.com?key={{pinVar}}');
+      await page.keyboard.press(saveShortcut);
+    });
+
+    await test.step('Tooltip stays open and accepts input while mouse is outside popup', async () => {
+      await page.mouse.move(0, 0);
+
+      const urlEditor = page.locator('#request-url .CodeMirror');
+      const pinVar = urlEditor.locator('.cm-variable-valid').filter({ hasText: 'pinVar' }).first();
+      await pinVar.hover();
+
+      const tooltip = page.locator('.CodeMirror-brunoVarInfo').first();
+      await expect(tooltip).toBeVisible();
+
+      // Click value display to enter edit mode (this also pins the popup)
+      const valueDisplay = tooltip.locator('.var-value-editable-display');
+      await valueDisplay.click();
+
+      const editor = tooltip.locator('.var-value-editor .CodeMirror');
+      await expect(editor).toBeVisible();
+
+      // Move mouse far outside the popup
+      await page.mouse.move(0, 0);
+
+      // Type with a per-keystroke delay so the typing window spans past the internal
+      // 500ms hide timer. If the popup were not pinned, it would hide mid-typing and
+      // the keystrokes would never reach the editor — the assertion below would fail.
+      // This validates pinning via real editor activity instead of a fixed sleep.
+      await page.keyboard.press('End');
+      await page.keyboard.type('-still-editable-after-mouse-left', { delay: 25 });
+
+      await expect(editor.locator('.CodeMirror-line')).toContainText(
+        'pin-value-still-editable-after-mouse-left'
+      );
+      await expect(tooltip).toBeVisible();
+    });
+  });
+
+  test('should persist subsequent edits while popup stays open', async ({ page, createTmpDir }) => {
+    const collectionName = 'tooltip-subsequent-edit-test';
+
+    await test.step('Setup collection, environment variable, and request', async () => {
+      await createCollection(page, collectionName, await createTmpDir('tooltip-subsequent-collection'));
+
+      await createEnvironment(page, 'Edit Env', 'collection');
+      await addEnvironmentVariables(page, [{ name: 'editVar', value: 'initial' }]);
+      await saveEnvironment(page);
+      await closeEnvironmentPanel(page);
+
+      await createRequest(page, 'Edit Test Request', collectionName);
+      await page.locator('.collection-item-name').filter({ hasText: 'Edit Test Request' }).click();
+      const urlEditor = page.locator('#request-url .CodeMirror');
+      await urlEditor.click();
+      await page.keyboard.type('https://api.example.com?key={{editVar}}');
+      await page.keyboard.press(saveShortcut);
+    });
+
+    await test.step('First edit saves via Enter and keeps popup open', async () => {
+      await page.mouse.move(0, 0);
+
+      const urlEditor = page.locator('#request-url .CodeMirror');
+      const editVar = urlEditor.locator('.cm-variable-valid').filter({ hasText: 'editVar' }).first();
+      await editVar.hover();
+
+      const tooltip = page.locator('.CodeMirror-brunoVarInfo').first();
+      await expect(tooltip).toBeVisible();
+
+      const valueDisplay = tooltip.locator('.var-value-editable-display');
+      await expect(valueDisplay).toContainText('initial');
+
+      await valueDisplay.click();
+
+      const editor = tooltip.locator('.var-value-editor .CodeMirror');
+      await expect(editor).toBeVisible();
+
+      await page.keyboard.press('End');
+      await page.keyboard.type('-one');
+
+      // Pressing Enter saves and keeps the popup open (does not click outside)
+      await page.keyboard.press('Enter');
+
+      // Display reflects the saved value, and tooltip is still visible
+      await expect(valueDisplay).toContainText('initial-one');
+      await expect(tooltip).toBeVisible();
+    });
+
+    await test.step('Second edit on the same popup also saves', async () => {
+      const tooltip = page.locator('.CodeMirror-brunoVarInfo').first();
+      await expect(tooltip).toBeVisible();
+
+      const valueDisplay = tooltip.locator('.var-value-editable-display');
+      await valueDisplay.click();
+
+      const editor = tooltip.locator('.var-value-editor .CodeMirror');
+      await expect(editor).toBeVisible();
+
+      await page.keyboard.press('End');
+      await page.keyboard.type('-two');
+
+      await page.keyboard.press('Enter');
+
+      await expect(valueDisplay).toContainText('initial-one-two');
+    });
+
+    await test.step('Reopen tooltip and verify the second edit persisted', async () => {
+      // Close the existing tooltip with an outside click, then re-hover to get a fresh one
+      await page.locator('body').click();
+      const tooltip = page.locator('.CodeMirror-brunoVarInfo').first();
+      await expect(tooltip).not.toBeVisible();
+
+      await page.mouse.move(0, 0);
+
+      const urlEditor = page.locator('#request-url .CodeMirror');
+      const editVar = urlEditor.locator('.cm-variable-valid').filter({ hasText: 'editVar' }).first();
+      await editVar.hover();
+
+      const newTooltip = page.locator('.CodeMirror-brunoVarInfo').first();
+      await expect(newTooltip).toBeVisible();
+      await expect(newTooltip.locator('.var-value-editable-display')).toContainText('initial-one-two');
+    });
+  });
+
+  test('should copy latest value after editing within the same tooltip', async ({ page, createTmpDir }) => {
+    const collectionName = 'tooltip-copy-latest-test';
+
+    await test.step('Setup collection, environment variable, and request', async () => {
+      await createCollection(page, collectionName, await createTmpDir('tooltip-copy-latest-collection'));
+
+      await createEnvironment(page, 'Copy Env', 'collection');
+      await addEnvironmentVariables(page, [{ name: 'copyVar', value: 'original-copy' }]);
+      await saveEnvironment(page);
+      await closeEnvironmentPanel(page);
+
+      await createRequest(page, 'Copy Test Request', collectionName);
+      await page.locator('.collection-item-name').filter({ hasText: 'Copy Test Request' }).click();
+      const urlEditor = page.locator('#request-url .CodeMirror');
+      await urlEditor.click();
+      await page.keyboard.type('https://api.example.com?key={{copyVar}}');
+      await page.keyboard.press(saveShortcut);
+    });
+
+    await test.step('Copy button copies the initial value', async () => {
+      await page.mouse.move(0, 0);
+
+      const urlEditor = page.locator('#request-url .CodeMirror');
+      const copyVar = urlEditor.locator('.cm-variable-valid').filter({ hasText: 'copyVar' }).first();
+      await copyVar.hover();
+
+      const tooltip = page.locator('.CodeMirror-brunoVarInfo').first();
+      await expect(tooltip).toBeVisible();
+
+      const copyButton = tooltip.locator('.copy-button');
+      await copyButton.click();
+
+      // Success state confirms writeText resolved before we read the clipboard
+      await expect(copyButton.locator('svg polyline')).toBeVisible({ timeout: 1000 });
+
+      const initialClipboard = await page.evaluate(() => navigator.clipboard.readText());
+      expect(initialClipboard).toBe('original-copy');
+
+      // Wait for the icon to revert so the next click is allowed
+      await expect(copyButton.locator('svg rect')).toBeVisible();
+    });
+
+    await test.step('Edit value, save with Enter, then copy without re-hovering', async () => {
+      const tooltip = page.locator('.CodeMirror-brunoVarInfo').first();
+      await expect(tooltip).toBeVisible();
+
+      const valueDisplay = tooltip.locator('.var-value-editable-display');
+      await valueDisplay.click();
+
+      const editor = tooltip.locator('.var-value-editor .CodeMirror');
+      await expect(editor).toBeVisible();
+
+      await page.keyboard.press('End');
+      await page.keyboard.type('-edited');
+
+      await page.keyboard.press('Enter');
+
+      // Wait for the display to reflect the saved value before clicking copy
+      await expect(valueDisplay).toContainText('original-copy-edited');
+
+      const copyButton = tooltip.locator('.copy-button');
+      await copyButton.click();
+
+      await expect(copyButton.locator('svg polyline')).toBeVisible({ timeout: 1000 });
+
+      const updatedClipboard = await page.evaluate(() => navigator.clipboard.readText());
+      expect(updatedClipboard).toBe('original-copy-edited');
+    });
+  });
+
+  test('should copy pretty-printed JSON for an object-typed folder variable', async ({ page, createTmpDir }) => {
+    const collectionName = 'tooltip-object-copy-test';
+    const folderName = 'objFolder';
+    const objectValue = { city: 'NYC', zip: 10001 };
+
+    const expectedJson = JSON.stringify(objectValue, null, 2);
+
+    await test.step('Create a folder with an object-typed folder variable', async () => {
+      await createCollection(page, collectionName, await createTmpDir('tooltip-object-collection'));
+      await createFolder(page, folderName, collectionName);
+
+      const locators = buildCommonLocators(page);
+
+      // Open Folder Settings > Vars tab
+      const folderRow = locators.sidebar.folder(folderName);
+      await folderRow.dblclick();
+      await locators.paneTabs.folderSettingsTab('vars').click();
+
+      // Add the variable row and type its value
+      const tableContainer = page.getByTestId('folder-vars-req').first();
+      const lastRow = tableContainer.locator('tbody tr').last();
+      const nameInput = lastRow.locator('input[type="text"]').first();
+      await nameInput.click();
+      await page.keyboard.type('objVar');
+
+      const namedRow = tableContainer.locator('tbody tr[data-row-name="objVar"]');
+      await expect(namedRow).toBeVisible();
+
+      const valueEditor = namedRow.locator('[data-testid="column-value"] .CodeMirror').first();
+      await valueEditor.click({ force: true });
+      await expect(valueEditor).toHaveClass(/CodeMirror-focused/);
+      await page.keyboard.insertText(JSON.stringify(objectValue));
+
+      // Switch the variable's dataType from the default `string` to `object`
+      const typeTrigger = locators.dataTypeSelector.typeLabel(namedRow);
+      await typeTrigger.click();
+      await locators.dataTypeSelector.menuItem('object').click();
+      await expect(typeTrigger).toHaveText('object');
+
+      await page.getByRole('button', { name: 'Save', exact: true }).first().click();
+      await page.waitForTimeout(500);
+    });
+
+    await test.step('Create request inside the folder referencing the object variable', async () => {
+      await expandFolder(page, folderName);
+      await createRequest(page, 'Object Copy Request', folderName, { inFolder: true });
+
+      const locators = buildCommonLocators(page);
+      await locators.sidebar.folderRequest(folderName, 'Object Copy Request').click();
+
+      const urlEditor = page.locator('#request-url .CodeMirror');
+      await urlEditor.click();
+      await page.keyboard.type('https://api.example.com?data={{objVar}}');
+      await page.keyboard.press(saveShortcut);
+    });
+
+    await test.step('Tooltip shows pretty-printed JSON and copy button copies it verbatim', async () => {
+      const urlEditor = page.locator('#request-url .CodeMirror');
+      const objVar = urlEditor.locator('.cm-variable-valid').filter({ hasText: 'objVar' }).first();
+      await objVar.hover();
+
+      const tooltip = page.locator('.CodeMirror-brunoVarInfo').first();
+      await expect(tooltip).toBeVisible();
+      await expect(tooltip.locator('.var-scope-badge')).toContainText('Folder');
+
+      // Parse back and deep-compare so the assertion isn't coupled to whitespace.
+      const valueDisplay = tooltip.locator('.var-value-editable-display');
+      await expect.poll(async () => JSON.parse((await valueDisplay.textContent()) ?? 'null')).toEqual(objectValue);
+
+      const copyButton = tooltip.locator('.copy-button');
+      await copyButton.click();
+
+      // Success state confirms writeText resolved before we read the clipboard.
+      await expect(copyButton.locator('svg polyline')).toBeVisible({ timeout: 1000 });
+
+      const clipboardText = await page.evaluate(() => navigator.clipboard.readText());
+      expect(clipboardText).toBe(expectedJson);
     });
   });
 });

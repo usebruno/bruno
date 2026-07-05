@@ -1,7 +1,7 @@
 import styled from 'styled-components';
 
 const StyledWrapper = styled.div`
-  background-color: ${(props) => props.theme.sidebar.bg};
+  background-color: ${(props) => props.theme.bg};
   height: 100%;
   display: flex;
   flex-direction: column;
@@ -12,13 +12,14 @@ const StyledWrapper = styled.div`
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 1rem;
-    border-bottom: 1px solid ${(props) => props.theme.sidebar.dragbar};
-    margin-bottom: 0.5rem;
+    padding: 0.75rem 1rem;
+    background-color: ${(props) => props.theme.background.mantle};
+    border-bottom: 1px solid ${(props) => props.theme.border.border0};
 
     .counter {
-      font-size: ${(props) => props.theme.font.size.base};
+      font-size: ${(props) => props.theme.font.size.sm};
       font-weight: 500;
+      color: ${(props) => props.theme.colors.text.subtext0};
     }
 
     .actions {
@@ -66,11 +67,12 @@ const StyledWrapper = styled.div`
     position: relative;
     height: 2.5rem;
     border: 1px solid transparent;
-    background-color: ${(props) => props.theme.sidebar.bg};
+    background-color: ${(props) => props.theme.bg};
     transition: transform 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease;
 
     &.is-selected {
-      background-color: ${(props) => props.theme.background.surface0};
+      background-color: ${(props) => props.theme.background.mantle};
+      border-color: ${(props) => props.theme.border.border0};
 
       .checkbox {
         background-color: ${(props) => props.theme.primary.solid};
@@ -82,9 +84,32 @@ const StyledWrapper = styled.div`
       }
     }
 
+    &.is-disabled {
+      opacity: 0.4;
+      pointer-events: none;
+      user-select: none;
+
+      .drag-handle {
+        visibility: hidden;
+      }
+
+      .checkbox-container {
+        cursor: default;
+
+        .checkbox {
+          border-color: ${(props) => props.theme.border.border2};
+          background-color: ${(props) => props.theme.background.surface0};
+
+          &:hover {
+            border-color: ${(props) => props.theme.border.border2};
+          }
+        }
+      }
+    }
+
     &.is-dragging {
       opacity: 0.5;
-      background-color: ${(props) => props.theme.sidebar.bg};
+      background-color: ${(props) => props.theme.bg};
       border: 1px dashed ${(props) => props.theme.sidebar.dragbar};
       transform: scale(0.98);
       box-shadow: ${(props) => props.theme.shadow.md};

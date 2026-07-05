@@ -26,7 +26,7 @@ describe('Request Authentication', () => {
       ]
     };
 
-    const result = await postmanToBruno(postmanCollection);
+    const { collection: result } = await postmanToBruno(postmanCollection);
 
     expect(result.items[0].request.auth).toEqual({
       mode: 'basic',
@@ -38,6 +38,7 @@ describe('Request Authentication', () => {
       awsv4: null,
       apikey: null,
       oauth2: null,
+      oauth1: null,
       digest: null
     });
   });
@@ -68,7 +69,7 @@ describe('Request Authentication', () => {
       ]
     };
 
-    const result = await postmanToBruno(postmanCollection);
+    const { collection: result } = await postmanToBruno(postmanCollection);
 
     expect(result.items[0].items[0].request.auth).toEqual({
       mode: 'inherit',
@@ -77,7 +78,8 @@ describe('Request Authentication', () => {
       awsv4: null,
       apikey: null,
       oauth2: null,
-      digest: null
+      digest: null,
+      oauth1: null
     });
   });
 
@@ -108,7 +110,7 @@ describe('Request Authentication', () => {
       ]
     };
 
-    const result = await postmanToBruno(postmanCollection);
+    const { collection: result } = await postmanToBruno(postmanCollection);
 
     expect(result.items[0].items[0].request.auth).toEqual({
       mode: 'inherit',
@@ -117,7 +119,8 @@ describe('Request Authentication', () => {
       awsv4: null,
       apikey: null,
       oauth2: null,
-      digest: null
+      digest: null,
+      oauth1: null
     });
   });
 
@@ -153,17 +156,17 @@ describe('Request Authentication', () => {
       ]
     };
 
-    const result = await postmanToBruno(postmanCollection);
+    const { collection: result } = await postmanToBruno(postmanCollection);
 
     // Check folder first
     expect(result.items[0].root.request.auth).toEqual({
       mode: 'inherit',
-      basic: null, bearer: null, awsv4: null, apikey: null, oauth2: null, digest: null
+      basic: null, bearer: null, awsv4: null, apikey: null, oauth2: null, digest: null, oauth1: null
     });
     // Then check request
     expect(result.items[0].items[0].request.auth).toEqual({
       mode: 'inherit',
-      basic: null, bearer: null, awsv4: null, apikey: null, oauth2: null, digest: null
+      basic: null, bearer: null, awsv4: null, apikey: null, oauth2: null, digest: null, oauth1: null
     });
   });
 
@@ -196,7 +199,7 @@ describe('Request Authentication', () => {
       ]
     };
 
-    const result = await postmanToBruno(postmanCollection);
+    const { collection: result } = await postmanToBruno(postmanCollection);
 
     expect(result.items[0].items[0].request.auth).toEqual({
       mode: 'none', // <<<< KEY CHECK
@@ -205,7 +208,8 @@ describe('Request Authentication', () => {
       awsv4: null,
       apikey: null,
       oauth2: null,
-      digest: null
+      digest: null,
+      oauth1: null
     });
   });
 
@@ -246,24 +250,24 @@ describe('Request Authentication', () => {
       ]
     };
 
-    const result = await postmanToBruno(postmanCollection);
+    const { collection: result } = await postmanToBruno(postmanCollection);
 
     // Check Folder Level 1
     expect(result.items[0].root.request.auth).toEqual({
       mode: 'inherit',
-      basic: null, bearer: null, awsv4: null, apikey: null, oauth2: null, digest: null
+      basic: null, bearer: null, awsv4: null, apikey: null, oauth2: null, digest: null, oauth1: null
     });
 
     // Check Folder Level 2
     expect(result.items[0].items[0].root.request.auth).toEqual({
       mode: 'inherit',
-      basic: null, bearer: null, awsv4: null, apikey: null, oauth2: null, digest: null
+      basic: null, bearer: null, awsv4: null, apikey: null, oauth2: null, digest: null, oauth1: null
     });
 
     // Check the Request
     expect(result.items[0].items[0].items[0].request.auth).toEqual({
       mode: 'inherit',
-      basic: null, bearer: null, awsv4: null, apikey: null, oauth2: null, digest: null
+      basic: null, bearer: null, awsv4: null, apikey: null, oauth2: null, digest: null, oauth1: null
     });
   });
 
@@ -307,27 +311,214 @@ describe('Request Authentication', () => {
       ]
     };
 
-    const result = await postmanToBruno(postmanCollection);
+    const { collection: result } = await postmanToBruno(postmanCollection);
 
     // Check Folder Level 1
     expect(result.items[0].root.request.auth).toEqual({
       mode: 'bearer',
       basic: null,
       bearer: { token: 'folder1Token' }, // Explicitly set
-      awsv4: null, apikey: null, oauth2: null, digest: null
+      awsv4: null, apikey: null, oauth2: null, digest: null, oauth1: null
     });
 
     // Check Folder Level 2
     expect(result.items[0].items[0].root.request.auth).toEqual({
       mode: 'inherit', // Inherits from Folder 1
-      basic: null, bearer: null, awsv4: null, apikey: null, oauth2: null, digest: null
+      basic: null, bearer: null, awsv4: null, apikey: null, oauth2: null, digest: null, oauth1: null
     });
 
     // Check the Request
     expect(result.items[0].items[0].items[0].request.auth).toEqual({
       mode: 'inherit', // Inherits from Folder 1
-      basic: null, bearer: null, awsv4: null, apikey: null, oauth2: null, digest: null
+      basic: null, bearer: null, awsv4: null, apikey: null, oauth2: null, digest: null, oauth1: null
     });
+  });
+
+  it('should handle oauth1 auth with HMAC-SHA1 and placement query (addParamsToHeader false)', async () => {
+    const postmanCollection = {
+      info: {
+        name: 'OAuth1 HMAC Query Collection',
+        schema: 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json'
+      },
+      item: [
+        {
+          name: 'OAuth1 HMAC Query Request',
+          request: {
+            method: 'GET',
+            url: 'http://www.example.com',
+            auth: {
+              type: 'oauth1',
+              oauth1: [
+                { key: 'consumerKey', value: 'consumer_key', type: 'string' },
+                { key: 'consumerSecret', value: 'consumer_secret', type: 'string' },
+                { key: 'token', value: 'access_token', type: 'string' },
+                { key: 'tokenSecret', value: 'token_secret', type: 'string' },
+                { key: 'signatureMethod', value: 'HMAC-SHA1', type: 'string' },
+                { key: 'version', value: '1.0', type: 'string' },
+                { key: 'addParamsToHeader', value: false, type: 'boolean' },
+                { key: 'includeBodyHash', value: true, type: 'boolean' },
+                { key: 'callback', value: 'https://www.example.com', type: 'string' },
+                { key: 'verifier', value: 'verifier', type: 'string' }
+              ]
+            }
+          }
+        }
+      ]
+    };
+
+    const { collection: result } = await postmanToBruno(postmanCollection);
+
+    expect(result.items[0].request.auth).toEqual({
+      mode: 'oauth1',
+      basic: null,
+      bearer: null,
+      awsv4: null,
+      apikey: null,
+      oauth2: null,
+      digest: null,
+      oauth1: {
+        consumerKey: 'consumer_key',
+        consumerSecret: 'consumer_secret',
+        accessToken: 'access_token',
+        accessTokenSecret: 'token_secret',
+        callbackUrl: 'https://www.example.com',
+        verifier: 'verifier',
+        signatureMethod: 'HMAC-SHA1',
+        privateKey: null,
+        privateKeyType: 'text',
+        timestamp: null,
+        nonce: null,
+        version: '1.0',
+        realm: null,
+        placement: 'query',
+        includeBodyHash: true
+      }
+    });
+  });
+
+  it('should handle oauth1 auth with HMAC-SHA1 and placement header (addParamsToHeader true)', async () => {
+    const postmanCollection = {
+      info: {
+        name: 'OAuth1 HMAC Header Collection',
+        schema: 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json'
+      },
+      item: [
+        {
+          name: 'OAuth1 HMAC Header Request',
+          request: {
+            method: 'GET',
+            url: 'http://www.example.com',
+            auth: {
+              type: 'oauth1',
+              oauth1: [
+                { key: 'consumerKey', value: 'consumer_key', type: 'string' },
+                { key: 'consumerSecret', value: 'consumer_secret', type: 'string' },
+                { key: 'token', value: 'access_token', type: 'string' },
+                { key: 'tokenSecret', value: 'token_secret', type: 'string' },
+                { key: 'signatureMethod', value: 'HMAC-SHA1', type: 'string' },
+                { key: 'version', value: '1.0', type: 'string' },
+                { key: 'addParamsToHeader', value: true, type: 'boolean' },
+                { key: 'includeBodyHash', value: true, type: 'boolean' },
+                { key: 'callback', value: 'https://www.example.com', type: 'string' },
+                { key: 'verifier', value: 'verifier', type: 'string' }
+              ]
+            }
+          }
+        }
+      ]
+    };
+
+    const { collection: result } = await postmanToBruno(postmanCollection);
+
+    expect(result.items[0].request.auth.mode).toBe('oauth1');
+    expect(result.items[0].request.auth.oauth1.placement).toBe('header');
+    expect(result.items[0].request.auth.oauth1.consumerKey).toBe('consumer_key');
+    expect(result.items[0].request.auth.oauth1.accessToken).toBe('access_token');
+    expect(result.items[0].request.auth.oauth1.accessTokenSecret).toBe('token_secret');
+  });
+
+  it('should handle oauth1 auth with RSA-SHA1 and private key', async () => {
+    const privateKey = '-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBg...\n-----END PRIVATE KEY-----';
+    const postmanCollection = {
+      info: {
+        name: 'OAuth1 RSA Collection',
+        schema: 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json'
+      },
+      item: [
+        {
+          name: 'OAuth1 RSA Request',
+          request: {
+            method: 'GET',
+            url: 'http://www.example.com',
+            auth: {
+              type: 'oauth1',
+              oauth1: [
+                { key: 'consumerKey', value: 'consumer_key', type: 'string' },
+                { key: 'consumerSecret', value: 'consumer_secret', type: 'string' },
+                { key: 'token', value: 'access_token', type: 'string' },
+                { key: 'tokenSecret', value: 'token_secret', type: 'string' },
+                { key: 'signatureMethod', value: 'RSA-SHA1', type: 'string' },
+                { key: 'privateKey', value: privateKey, type: 'string' },
+                { key: 'version', value: '1.0', type: 'string' },
+                { key: 'addParamsToHeader', value: true, type: 'boolean' },
+                { key: 'includeBodyHash', value: true, type: 'boolean' },
+                { key: 'callback', value: 'https://www.example.com', type: 'string' },
+                { key: 'verifier', value: 'verifier', type: 'string' }
+              ]
+            }
+          }
+        }
+      ]
+    };
+
+    const { collection: result } = await postmanToBruno(postmanCollection);
+
+    expect(result.items[0].request.auth.mode).toBe('oauth1');
+    expect(result.items[0].request.auth.oauth1.signatureMethod).toBe('RSA-SHA1');
+    expect(result.items[0].request.auth.oauth1.privateKey).toBe(privateKey);
+    expect(result.items[0].request.auth.oauth1.privateKeyType).toBe('text');
+    expect(result.items[0].request.auth.oauth1.placement).toBe('header');
+  });
+
+  it('should handle oauth1 auth at collection level', async () => {
+    const postmanCollection = {
+      info: {
+        name: 'OAuth1 Collection Level',
+        schema: 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json'
+      },
+      auth: {
+        type: 'oauth1',
+        oauth1: [
+          { key: 'consumerKey', value: 'col_consumer_key', type: 'string' },
+          { key: 'consumerSecret', value: 'col_consumer_secret', type: 'string' },
+          { key: 'token', value: 'col_access_token', type: 'string' },
+          { key: 'tokenSecret', value: 'col_token_secret', type: 'string' },
+          { key: 'signatureMethod', value: 'HMAC-SHA1', type: 'string' },
+          { key: 'addParamsToHeader', value: true, type: 'boolean' }
+        ]
+      },
+      item: [
+        {
+          name: 'Inheriting Request',
+          request: {
+            method: 'GET',
+            url: 'http://www.example.com'
+          }
+        }
+      ]
+    };
+
+    const { collection: result } = await postmanToBruno(postmanCollection);
+
+    // Collection root should have oauth1
+    expect(result.root.request.auth.mode).toBe('oauth1');
+    expect(result.root.request.auth.oauth1.consumerKey).toBe('col_consumer_key');
+    expect(result.root.request.auth.oauth1.accessToken).toBe('col_access_token');
+    expect(result.root.request.auth.oauth1.placement).toBe('header');
+
+    // Request should inherit
+    expect(result.items[0].request.auth.mode).toBe('inherit');
+    expect(result.items[0].request.auth.oauth1).toBe(null);
   });
 
   it('should handle "Inherit Auth" where an intermediate folder has explicit "No Auth"', async () => {
@@ -369,24 +560,87 @@ describe('Request Authentication', () => {
       ]
     };
 
-    const result = await postmanToBruno(postmanCollection);
+    const { collection: result } = await postmanToBruno(postmanCollection);
 
     // Check Folder Level 1
     expect(result.items[0].root.request.auth).toEqual({
       mode: 'none', // Explicitly "No Auth"
-      basic: null, bearer: null, awsv4: null, apikey: null, oauth2: null, digest: null
+      basic: null, bearer: null, awsv4: null, apikey: null, oauth2: null, digest: null, oauth1: null
     });
 
     // Check Folder Level 2
     expect(result.items[0].items[0].root.request.auth).toEqual({
       mode: 'inherit', // Inherits from Folder 1
-      basic: null, bearer: null, awsv4: null, apikey: null, oauth2: null, digest: null
+      basic: null, bearer: null, awsv4: null, apikey: null, oauth2: null, digest: null, oauth1: null
     });
 
     // Check the Request
     expect(result.items[0].items[0].items[0].request.auth).toEqual({
       mode: 'inherit', // Inherits from Folder 1
-      basic: null, bearer: null, awsv4: null, apikey: null, oauth2: null, digest: null
+      basic: null, bearer: null, awsv4: null, apikey: null, oauth2: null, digest: null, oauth1: null
+    });
+  });
+
+  describe('API Key Auth placement', () => {
+    const buildApiKeyCollection = (apikey) => ({
+      info: {
+        name: 'API Key Collection',
+        schema: 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json'
+      },
+      item: [
+        {
+          name: 'API Key Request',
+          request: {
+            method: 'GET',
+            url: 'https://api.example.com/test',
+            auth: { type: 'apikey', apikey }
+          }
+        }
+      ]
+    });
+
+    it('should map Postman in=query to Bruno placement=queryparams', async () => {
+      const postmanCollection = buildApiKeyCollection([
+        { key: 'key', value: 'X-API-Key' },
+        { key: 'value', value: 'secret-token' },
+        { key: 'in', value: 'query' }
+      ]);
+
+      const { collection: result } = await postmanToBruno(postmanCollection);
+
+      expect(result.items[0].request.auth.mode).toBe('apikey');
+      expect(result.items[0].request.auth.apikey).toEqual({
+        key: 'X-API-Key',
+        value: 'secret-token',
+        placement: 'queryparams'
+      });
+    });
+
+    it('should map Postman in=header to Bruno placement=header', async () => {
+      const postmanCollection = buildApiKeyCollection([
+        { key: 'key', value: 'X-API-Key' },
+        { key: 'value', value: 'secret-token' },
+        { key: 'in', value: 'header' }
+      ]);
+
+      const { collection: result } = await postmanToBruno(postmanCollection);
+
+      expect(result.items[0].request.auth.apikey).toEqual({
+        key: 'X-API-Key',
+        value: 'secret-token',
+        placement: 'header'
+      });
+    });
+
+    it('should default placement to header when Postman in is absent', async () => {
+      const postmanCollection = buildApiKeyCollection([
+        { key: 'key', value: 'X-API-Key' },
+        { key: 'value', value: 'secret-token' }
+      ]);
+
+      const { collection: result } = await postmanToBruno(postmanCollection);
+
+      expect(result.items[0].request.auth.apikey.placement).toBe('header');
     });
   });
 });

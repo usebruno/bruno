@@ -1,0 +1,155 @@
+{
+  "info": {
+    "_postman_id": "5dfec9be-beb9-45f2-b5b1-0ecf5c3d3e2b",
+    "name": "EgdeGrid Auth",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "36465539"
+  },
+  "item": [
+    {
+      "name": "Edgegrid Auth - inherit",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:6000/edgegrid/version",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "6000",
+          "path": [
+            "edgegrid",
+            "version"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Edgegrid auth -  request level",
+      "request": {
+        "auth": {
+          "type": "edgegrid",
+          "edgegrid": [
+            {
+              "key": "maxBodySize",
+              "value": 131072,
+              "type": "number"
+            },
+            {
+              "key": "baseURL",
+              "value": "https://akab-h05tnam3wl42son7nktnlnnx-kbob3i3v.luna.akamaiapis.request.net",
+              "type": "string"
+            },
+            {
+              "key": "timestamp",
+              "value": "20160804T07:00:00+0000",
+              "type": "string"
+            },
+            {
+              "key": "nonce",
+              "value": "ec9d20ee-1e9b-4c1f-925a-request",
+              "type": "string"
+            },
+            {
+              "key": "clientSecret",
+              "value": "C113nt53KR3TN6N90yVuAgICxIRwsObLi0E67/request=",
+              "type": "string"
+            },
+            {
+              "key": "clientToken",
+              "value": "akab-c113ntt0k3n4qtari252bfxxbsl-request",
+              "type": "string"
+            },
+            {
+              "key": "accessToken",
+              "value": "akab-acc35t0k3nodujqunph3w7hzp7-request",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "POST",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:6000/edgegrid/version/2",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "6000",
+          "path": [
+            "edgegrid",
+            "version",
+            "2"
+          ]
+        }
+      },
+      "response": []
+    }
+  ],
+  "auth": {
+    "type": "edgegrid",
+    "edgegrid": [
+      {
+        "key": "maxBodySize",
+        "value": 131072,
+        "type": "number"
+      },
+      {
+        "key": "baseURL",
+        "value": "https://akab-h05tnam3wl42son7nktnlnnx-kbob3i3v.luna.akamaiapis.net",
+        "type": "string"
+      },
+      {
+        "key": "timestamp",
+        "value": "20160804T07:00:00+0000",
+        "type": "string"
+      },
+      {
+        "key": "nonce",
+        "value": "ec9d20ee-1e9b-4c1f-925a-f0017754f86c",
+        "type": "string"
+      },
+      {
+        "key": "clientSecret",
+        "value": "C113nt53KR3TN6N90yVuAgICxIRwsObLi0E67/N8eRN=",
+        "type": "string"
+      },
+      {
+        "key": "clientToken",
+        "value": "akab-c113ntt0k3n4qtari252bfxxbsl-yvsdj",
+        "type": "string"
+      },
+      {
+        "key": "accessToken",
+        "value": "akab-acc35t0k3nodujqunph3w7hzp7-gtm6ij",
+        "type": "string"
+      }
+    ]
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "packages": {},
+        "requests": {},
+        "exec": [
+          ""
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "packages": {},
+        "requests": {},
+        "exec": [
+          ""
+        ]
+      }
+    }
+  ]
+}

@@ -1,6 +1,5 @@
 import { cloneDeep, isEqual, sortBy, filter, map, isString, findIndex, find, each, get } from 'lodash';
 import { uuid } from 'utils/common';
-import { buildPersistedEnvVariables } from 'utils/environments';
 import { sortByNameThenSequence } from 'utils/common/index';
 import path from 'utils/common/path';
 import { isRequestTagsIncluded } from '@usebruno/common';
@@ -181,6 +180,7 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
         name: header.name,
         value: header.value,
         description: header.description,
+        annotations: header.annotations,
         enabled: header.enabled
       };
     });
@@ -193,6 +193,7 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
         name: param.name,
         value: param.value,
         description: param.description,
+        annotations: param.annotations,
         type: param.type,
         enabled: param.enabled
       };
@@ -384,6 +385,25 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
               domain: get(si.request, 'auth.ntlm.domain', '')
             };
             break;
+          case 'oauth1':
+            di.request.auth.oauth1 = {
+              consumerKey: get(si.request, 'auth.oauth1.consumerKey', ''),
+              consumerSecret: get(si.request, 'auth.oauth1.consumerSecret', ''),
+              accessToken: get(si.request, 'auth.oauth1.accessToken', ''),
+              accessTokenSecret: get(si.request, 'auth.oauth1.accessTokenSecret', ''),
+              callbackUrl: get(si.request, 'auth.oauth1.callbackUrl', ''),
+              verifier: get(si.request, 'auth.oauth1.verifier', ''),
+              signatureMethod: get(si.request, 'auth.oauth1.signatureMethod', 'HMAC-SHA1'),
+              privateKey: get(si.request, 'auth.oauth1.privateKey', ''),
+              privateKeyType: get(si.request, 'auth.oauth1.privateKeyType', 'text'),
+              timestamp: get(si.request, 'auth.oauth1.timestamp', ''),
+              nonce: get(si.request, 'auth.oauth1.nonce', ''),
+              version: get(si.request, 'auth.oauth1.version', '1.0'),
+              realm: get(si.request, 'auth.oauth1.realm', ''),
+              placement: get(si.request, 'auth.oauth1.placement', 'header'),
+              includeBodyHash: get(si.request, 'auth.oauth1.includeBodyHash', false)
+            };
+            break;
           case 'oauth2':
             let grantType = get(si.request, 'auth.oauth2.grantType', '');
             switch (grantType) {
@@ -475,6 +495,18 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
             di.request.auth.wsse = {
               username: get(si.request, 'auth.wsse.username', ''),
               password: get(si.request, 'auth.wsse.password', '')
+            };
+            break;
+          case 'akamai-edgegrid':
+            di.request.auth.akamaiEdgegrid = {
+              accessToken: get(si.request, 'auth.akamaiEdgegrid.accessToken', ''),
+              clientToken: get(si.request, 'auth.akamaiEdgegrid.clientToken', ''),
+              clientSecret: get(si.request, 'auth.akamaiEdgegrid.clientSecret', ''),
+              nonce: get(si.request, 'auth.akamaiEdgegrid.nonce', ''),
+              timestamp: get(si.request, 'auth.akamaiEdgegrid.timestamp', ''),
+              baseURL: get(si.request, 'auth.akamaiEdgegrid.baseURL', ''),
+              headersToSign: get(si.request, 'auth.akamaiEdgegrid.headersToSign', ''),
+              maxBodySize: get(si.request, 'auth.akamaiEdgegrid.maxBodySize', null)
             };
             break;
           default:
@@ -582,11 +614,7 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
   collectionToSave.version = '1';
   collectionToSave.items = [];
   collectionToSave.activeEnvironmentUid = collection.activeEnvironmentUid;
-  // Save environments without runtime metadata (ephemeral/persistedValue)
-  collectionToSave.environments = (collection.environments || []).map((env) => ({
-    ...env,
-    variables: buildPersistedEnvVariables(env?.variables, { mode: 'save' })
-  }));
+  collectionToSave.environments = collection.environments || [];
 
   collectionToSave.root = {
     request: {}
@@ -670,6 +698,19 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
 export const transformRequestToSaveToFilesystem = (item) => {
   const _item = item.draft ? item.draft : item;
 
+  // Standalone app items have no request, emit only what the filestore needs.
+  if (_item.type === 'app') {
+    return {
+      uid: _item.uid,
+      type: 'app',
+      name: _item.name,
+      seq: _item.seq,
+      tags: _item.tags,
+      settings: _item.settings,
+      app: { code: _item.app?.code || '' }
+    };
+  }
+
   // Transform examples to ensure status is a number
   const transformExamples = (examples = []) => {
     return map(examples, (example) => ({
@@ -683,6 +724,10 @@ export const transformRequestToSaveToFilesystem = (item) => {
     }));
   };
 
+  const appToSave = _item.app && _item.app.code && _item.app.code.length
+    ? { code: _item.app.code }
+    : null;
+
   const itemToSave = {
     uid: _item.uid,
     type: _item.type,
@@ -690,6 +735,7 @@ export const transformRequestToSaveToFilesystem = (item) => {
     seq: _item.seq,
     settings: _item.settings,
     tags: _item.tags,
+    app: appToSave,
     examples: transformExamples(_item.examples || []),
     request: {
       method: _item.request.method,
@@ -726,6 +772,7 @@ export const transformRequestToSaveToFilesystem = (item) => {
         name: param.name,
         value: param.value,
         description: param.description,
+        annotations: param.annotations,
         type: param.type,
         enabled: param.enabled
       });
@@ -738,6 +785,7 @@ export const transformRequestToSaveToFilesystem = (item) => {
       name: header.name,
       value: header.value,
       description: header.description,
+      annotations: header.annotations,
       enabled: header.enabled
     });
   });
@@ -762,10 +810,11 @@ export const transformRequestToSaveToFilesystem = (item) => {
   if (itemToSave.request.body.mode === 'ws') {
     itemToSave.request.body = {
       ...itemToSave.request.body,
-      ws: itemToSave.request.body.ws.map(({ name, content, type }, index) => ({
+      ws: itemToSave.request.body.ws.map(({ name, content, type, selected }, index) => ({
         name: name ? name : `message ${index + 1}`,
         type,
-        content: replaceTabsWithSpaces(content)
+        content: replaceTabsWithSpaces(content),
+        selected: selected || false
       }))
     };
   }
@@ -794,6 +843,7 @@ export const transformCollectionRootToSave = (collection) => {
       name: header.name,
       value: header.value,
       description: header.description,
+      annotations: header.annotations,
       enabled: header.enabled
     });
   });
@@ -804,6 +854,10 @@ export const transformCollectionRootToSave = (collection) => {
 export const transformFolderRootToSave = (folder) => {
   const _folder = folder.draft ? folder.draft : folder.root;
   const folderRootToSave = {
+    meta: {
+      name: folder.name,
+      seq: folder.seq
+    },
     docs: _folder.docs,
     request: {
       auth: _folder?.request?.auth,
@@ -820,6 +874,7 @@ export const transformFolderRootToSave = (folder) => {
       name: header.name,
       value: header.value,
       description: header.description,
+      annotations: header.annotations,
       enabled: header.enabled
     });
   });
@@ -856,6 +911,40 @@ export const isItemARequest = (item) => {
 
 export const isItemAFolder = (item) => {
   return !item.hasOwnProperty('request') && item.type === 'folder';
+};
+
+/**
+ * Counts the folders and requests in a collection's item tree, recursively at every
+ * depth. Used to summarise a collection (e.g. in the Generate Documentation modal).
+ *
+ * @param {Array} items - The collection's `items` tree.
+ * @returns {{ folderCount: number, requestCount: number }}
+ */
+export const getCollectionItemCounts = (items = []) => {
+  const flattened = flattenItems(items);
+  return {
+    folderCount: flattened.filter(isItemAFolder).length,
+    requestCount: flattened.filter(isItemARequest).length
+  };
+};
+
+/**
+ * Orders a list of collection items exactly the way the Sidebar tree renders them:
+ * folders first (via `sortByNameThenSequence`), then requests ordered by `seq`. The
+ * same ordering is applied recursively to every nested folder so an exported/serialized
+ * tree matches the sidebar at all depths.
+ *
+ * Items that are neither folders nor requests (e.g. `js` script files) are excluded,
+ * mirroring the sidebar, which only renders folders and requests. Transient items are
+ * excluded too.
+ */
+export const sortItemsBySidebarOrder = (items = []) => {
+  const folderItems = sortByNameThenSequence(filter(items, (i) => isItemAFolder(i) && !i.isTransient));
+  const requestItems = filter(items, (i) => isItemARequest(i) && !i.isTransient).sort((a, b) => a.seq - b.seq);
+
+  return [...folderItems, ...requestItems].map((item) =>
+    Array.isArray(item.items) ? { ...item, items: sortItemsBySidebarOrder(item.items) } : item
+  );
 };
 
 export const humanizeRequestBodyMode = (mode) => {
@@ -921,6 +1010,10 @@ export const humanizeRequestAuthMode = (mode) => {
       label = 'NTLM';
       break;
     }
+    case 'oauth1': {
+      label = 'OAuth 1.0';
+      break;
+    }
     case 'oauth2': {
       label = 'OAuth 2.0';
       break;
@@ -931,6 +1024,10 @@ export const humanizeRequestAuthMode = (mode) => {
     }
     case 'apikey': {
       label = 'API Key';
+      break;
+    }
+    case 'akamai-edgegrid': {
+      label = 'Akamai EdgeGrid';
       break;
     }
   }
@@ -981,6 +1078,7 @@ export const refreshUidsInItem = (item) => {
   each(get(item, 'request.body.multipartForm'), (param) => (param.uid = uuid()));
   each(get(item, 'request.body.formUrlEncoded'), (param) => (param.uid = uuid()));
   each(get(item, 'request.body.file'), (param) => (param.uid = uuid()));
+  each(get(item, 'request.body.ws'), (msg) => (msg.uid = uuid()));
   each(get(item, 'request.assertions'), (assertion) => (assertion.uid = uuid()));
 
   return item;
@@ -1134,7 +1232,7 @@ export const getEnvironmentVariables = (collection) => {
     const environment = findEnvironmentInCollection(collection, collection.activeEnvironmentUid);
     if (environment) {
       each(environment.variables, (variable) => {
-        if (variable.name && variable.value && variable.enabled) {
+        if (variable.name && variable.enabled) {
           variables[variable.name] = variable.value;
         }
       });
@@ -1173,6 +1271,10 @@ const getPathParams = (item) => {
   }
   return pathParams;
 };
+
+export const isOpenCollectionFormat = (collection) => Boolean(collection?.brunoConfig?.opencollection);
+
+export const getCollectionVersion = (collection) => collection?.brunoConfig?.version || '';
 
 export const getTotalRequestCountInCollection = (collection) => {
   let count = 0;
@@ -1251,14 +1353,18 @@ export const getAllVariables = (collection, item) => {
 };
 
 // Merge headers from collection, folders, and request
-export const mergeHeaders = (collection, request, requestTreePath) => {
+export const mergeHeaders = (collection, request, requestTreePath, options = {}) => {
+  const { includeDisabledHeaders = false } = options;
   let headers = new Map();
+  let disabledHeaders = new Map();
 
   // Add collection headers first
   const collectionHeaders = collection?.draft?.root ? get(collection, 'draft.root.request.headers', []) : get(collection, 'root.request.headers', []);
   collectionHeaders.forEach((header) => {
     if (header.enabled) {
       headers.set(header.name, header);
+    } else if (header.name?.length > 0) {
+      disabledHeaders.set(header.name, header);
     }
   });
 
@@ -1270,6 +1376,8 @@ export const mergeHeaders = (collection, request, requestTreePath) => {
         folderHeaders.forEach((header) => {
           if (header.enabled) {
             headers.set(header.name, header);
+          } else if (header.name?.length > 0) {
+            disabledHeaders.set(header.name, header);
           }
         });
       }
@@ -1281,11 +1389,16 @@ export const mergeHeaders = (collection, request, requestTreePath) => {
   requestHeaders.forEach((header) => {
     if (header.enabled) {
       headers.set(header.name, header);
+    } else if (header.name?.length > 0) {
+      disabledHeaders.set(header.name, header);
     }
   });
 
   // Convert Map back to array
-  return Array.from(headers.values());
+  return [
+    ...Array.from(headers.values()),
+    ...(includeDisabledHeaders ? Array.from(disabledHeaders.values()) : [])
+  ];
 };
 
 export const maskInputValue = (value) => {
@@ -1631,7 +1744,7 @@ export const getVariableScope = (variableName, collection, item) => {
 
   // 5. Check Global Environment Variables
   const { globalEnvironmentVariables = {} } = collection;
-  if (globalEnvironmentVariables && globalEnvironmentVariables[variableName]) {
+  if (variableName in globalEnvironmentVariables) {
     return {
       type: 'global',
       value: globalEnvironmentVariables[variableName],
@@ -1641,7 +1754,7 @@ export const getVariableScope = (variableName, collection, item) => {
 
   // 6. Check Runtime Variables (set during request execution via scripts)
   const { runtimeVariables = {} } = collection;
-  if (runtimeVariables && runtimeVariables[variableName]) {
+  if (variableName in runtimeVariables) {
     return {
       type: 'runtime',
       value: runtimeVariables[variableName],

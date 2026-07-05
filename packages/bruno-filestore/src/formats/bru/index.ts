@@ -13,6 +13,20 @@ export const parseBruRequest = (data: string | any, parsed: boolean = false): an
   try {
     const json = parsed ? data : bruToJsonV2(data);
 
+    if (_.get(json, 'meta.type') === 'app') {
+      const seq = _.get(json, 'meta.seq');
+      const tags = _.get(json, 'meta.tags', []);
+      return {
+        type: 'app',
+        name: _.get(json, 'meta.name'),
+        seq: !_.isNaN(seq) ? Number(seq) : 1,
+        tags: Array.isArray(tags) ? tags : [],
+        settings: _.get(json, 'settings', {}),
+        app: { code: _.get(json, 'app.code', null) },
+        request: null
+      };
+    }
+
     let requestType = _.get(json, 'meta.type');
     switch (requestType) {
       case 'http':
@@ -32,17 +46,23 @@ export const parseBruRequest = (data: string | any, parsed: boolean = false): an
     }
 
     const sequence = _.get(json, 'meta.seq');
+    const tags = _.get(json, 'meta.tags', []);
     const urlPath: Record<typeof requestType, string> = {
       'grpc-request': 'grpc.url',
       'ws-request': 'ws.url',
       'default': 'http.url'
     };
+
+    const appData = _.get(json, 'app');
+    const app = appData ? { code: _.get(appData, 'code', null) } : null;
+
     const transformedJson = {
       type: requestType,
       name: _.get(json, 'meta.name'),
       seq: !_.isNaN(sequence) ? Number(sequence) : 1,
       settings: _.get(json, 'settings', {}),
-      tags: _.get(json, 'meta.tags', []),
+      app,
+      tags: Array.isArray(tags) ? tags : [],
       request: {
         // Preserving special characters in custom methods. Using _.upperCase strips special characters.
         method:
@@ -116,6 +136,22 @@ export const parseBruRequest = (data: string | any, parsed: boolean = false): an
 
 export const stringifyBruRequest = (json: any): string => {
   try {
+    // Standalone app item — emit only meta + the app code block.
+    if (_.get(json, 'type') === 'app') {
+      const seq = _.get(json, 'seq');
+      const bruJson: any = {
+        meta: {
+          name: _.get(json, 'name'),
+          type: 'app',
+          seq: !_.isNaN(seq) ? Number(seq) : 1,
+          tags: _.get(json, 'tags', [])
+        },
+        settings: _.get(json, 'settings', {}),
+        app: { code: _.get(json, 'app.code', '') }
+      };
+      return jsonToBruV2(bruJson);
+    }
+
     let type = _.get(json, 'type');
     switch (type) {
       case 'http-request':
@@ -219,6 +255,11 @@ export const stringifyBruRequest = (json: any): string => {
     bruJson.settings = _.get(json, 'settings', {});
     bruJson.docs = _.get(json, 'request.docs', '');
     bruJson.examples = _.get(json, 'examples', []).map((e: any) => jsonExampleToBru(e));
+
+    const app = _.get(json, 'app');
+    if (app && app.code && app.code.length) {
+      bruJson.app = { code: app.code };
+    }
 
     const bru = jsonToBruV2(bruJson);
     return bru;
@@ -367,6 +408,17 @@ export const bruExampleToJson = (data: string | any, parsed: boolean = false, pa
         transformedType = 'http-request';
     }
 
+    /**
+     * Backward compatibility (pre-v3.0.2 - v3.2.0): Postman imports before PR #6876 stored status/statusText swapped
+     * (code: "OK", text: "202" instead of code: 202, text: "OK"). Detect and swap back.
+     * TODO(Sid / Shubh): Remove after v5 — all collections should be migrated by then.
+     */
+    let status = _.get(json, 'response.status', '200');
+    let statusText = _.get(json, 'response.statusText', 'OK');
+    if (isNaN(Number(status)) && !isNaN(Number(statusText))) {
+      [status, statusText] = [statusText, status];
+    }
+
     // Follow the same structure as the main request, but with missing fields for examples
     const transformedJson = {
       type: transformedType,
@@ -388,8 +440,8 @@ export const bruExampleToJson = (data: string | any, parsed: boolean = false, pa
           name: header.name,
           value: header.value
         })),
-        status: String(_.get(json, 'response.status', '200')),
-        statusText: _.get(json, 'response.statusText', 'OK'),
+        status: Number(status) || 200,
+        statusText: statusText || 'OK',
         body: {
           type: _.get(json, 'response.body.type', 'json'),
           content: _.get(json, 'response.body.content', '')

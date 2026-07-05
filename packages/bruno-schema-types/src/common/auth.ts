@@ -38,6 +38,35 @@ export interface AuthApiKey {
   placement?: 'header' | 'queryparams' | null;
 }
 
+export interface AkamaiEdgeGridAuthValues {
+  accessToken?: string | null;
+  clientToken?: string | null;
+  clientSecret?: string | null;
+  nonce?: string | null;
+  timestamp?: string | null;
+  baseURL?: string | null;
+  headersToSign?: string | null;
+  maxBodySize?: number | null;
+}
+
+export interface AuthOauth1 {
+  consumerKey?: string | null;
+  consumerSecret?: string | null;
+  accessToken?: string | null;
+  accessTokenSecret?: string | null;
+  callbackUrl?: string | null;
+  verifier?: string | null;
+  signatureMethod?: 'HMAC-SHA1' | 'HMAC-SHA256' | 'HMAC-SHA512' | 'RSA-SHA1' | 'RSA-SHA256' | 'RSA-SHA512' | 'PLAINTEXT' | null;
+  privateKey?: string | null;
+  privateKeyType?: 'file' | 'text' | null;
+  timestamp?: string | null;
+  nonce?: string | null;
+  version?: string | null;
+  realm?: string | null;
+  placement?: 'header' | 'query' | 'body' | null;
+  includeBodyHash?: boolean | null;
+}
+
 export type OAuthGrantType
   = | 'client_credentials'
     | 'password'
@@ -89,9 +118,11 @@ export type AuthMode
     | 'bearer'
     | 'digest'
     | 'ntlm'
+    | 'oauth1'
     | 'oauth2'
     | 'wsse'
-    | 'apikey';
+    | 'apikey'
+    | 'akamai-edgegrid';
 
 export interface Auth {
   mode: AuthMode;
@@ -100,7 +131,9 @@ export interface Auth {
   bearer?: AuthBearer | null;
   digest?: AuthDigest | null;
   ntlm?: AuthNTLM | null;
+  oauth1?: AuthOauth1 | null;
   oauth2?: OAuth2 | null;
   wsse?: AuthWsse | null;
   apikey?: AuthApiKey | null;
+  akamaiEdgegrid?: AkamaiEdgeGridAuthValues | null;
 }

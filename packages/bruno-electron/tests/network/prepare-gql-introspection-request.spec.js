@@ -29,6 +29,43 @@ describe('prepareGqlIntrospectionRequest', () => {
     expect(result.url).toBe(setup.endpoint);
   });
 
+  it('should interpolate bearer auth headers from request auth', () => {
+    const setup = createBasicSetup();
+    setup.request.auth = {
+      mode: 'bearer',
+      bearer: {
+        token: '{{AUTH_TOKEN}}'
+      }
+    };
+    const vars = {
+      AUTH_TOKEN: 'request-token'
+    };
+
+    const result = prepareGqlIntrospectionRequest(setup.endpoint, vars, setup.request, setup.collectionRoot);
+
+    expect(result.headers['Authorization']).toBe('Bearer request-token');
+  });
+
+  it('should interpolate inherited bearer auth headers', () => {
+    const setup = createBasicSetup();
+    setup.request.auth = {
+      mode: 'inherit'
+    };
+    setup.collectionRoot.request.auth = {
+      mode: 'bearer',
+      bearer: {
+        token: '{{AUTH_TOKEN}}'
+      }
+    };
+    const vars = {
+      AUTH_TOKEN: 'collection-token'
+    };
+
+    const result = prepareGqlIntrospectionRequest(setup.endpoint, vars, setup.request, setup.collectionRoot);
+
+    expect(result.headers['Authorization']).toBe('Bearer collection-token');
+  });
+
   it('should override collection headers with request headers', () => {
     const setup = createBasicSetup();
     setup.collectionRoot.request.headers = [

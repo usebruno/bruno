@@ -10,6 +10,8 @@ const yaml = require('js-yaml');
 const LastOpenedWorkspaces = require('../store/last-opened-workspaces');
 const { defaultWorkspaceManager } = require('../store/default-workspace');
 const { globalEnvironmentsManager } = require('../store/workspace-environments');
+const { globalEnvironmentsStore } = require('../store/global-environments');
+const { resolveLastOpenedWorkspacePaths } = require('../utils/workspace-startup');
 
 const {
   createWorkspaceConfig,
@@ -20,32 +22,23 @@ const {
   updateWorkspaceDocs,
   addCollectionToWorkspace,
   removeCollectionFromWorkspace,
+  setCollectionGitRemote,
+  clearCollectionGitRemote,
   reorderWorkspaceCollections,
   getWorkspaceCollections,
+  resolveAndFilterWorkspaceCollections,
   normalizeCollectionEntry,
   validateWorkspacePath,
   validateWorkspaceDirectory,
   getWorkspaceUid
 } = require('../utils/workspace-config');
 
-const { isValidCollectionDirectory } = require('../utils/filesystem');
-
 const DEFAULT_WORKSPACE_NAME = 'My Workspace';
 
 const prepareWorkspaceConfigForClient = (workspaceConfig, workspacePath, isDefault) => {
-  const collections = workspaceConfig.collections || [];
-  const filteredCollections = collections
-    .map((collection) => {
-      if (collection.path && !path.isAbsolute(collection.path)) {
-        return { ...collection, path: path.resolve(workspacePath, collection.path) };
-      }
-      return collection;
-    })
-    .filter((collection) => collection.path && isValidCollectionDirectory(collection.path));
-
   const config = {
     ...workspaceConfig,
-    collections: filteredCollections
+    collections: resolveAndFilterWorkspaceCollections(workspacePath, workspaceConfig.collections)
   };
 
   if (isDefault) {
@@ -222,7 +215,7 @@ const registerWorkspaceIpc = (mainWindow, workspaceWatcher) => {
         return [];
       }
 
-      const specs = workspaceConfig.specs || [];
+      const specs = Array.isArray(workspaceConfig.specs) ? workspaceConfig.specs : [];
 
       const resolvedSpecs = specs
         .map((spec) => {
@@ -244,23 +237,9 @@ const registerWorkspaceIpc = (mainWindow, workspaceWatcher) => {
 
   ipcMain.handle('renderer:get-last-opened-workspaces', async () => {
     try {
-      const workspacePaths = lastOpenedWorkspaces.getAll();
-      const validWorkspaces = [];
-      const invalidPaths = [];
-
-      for (const workspacePath of workspacePaths) {
-        const workspaceYmlPath = path.join(workspacePath, 'workspace.yml');
-
-        if (fs.existsSync(workspaceYmlPath)) {
-          validWorkspaces.push(workspacePath);
-        } else {
-          invalidPaths.push(workspacePath);
-        }
-      }
-
-      for (const invalidPath of invalidPaths) {
-        lastOpenedWorkspaces.remove(invalidPath);
-      }
+      const { validWorkspaces } = resolveLastOpenedWorkspacePaths(lastOpenedWorkspaces, {
+        validateConfig: true
+      });
 
       return validWorkspaces;
     } catch (error) {
@@ -280,6 +259,7 @@ const registerWorkspaceIpc = (mainWindow, workspaceWatcher) => {
   ipcMain.handle('renderer:close-workspace', async (event, workspacePath) => {
     try {
       lastOpenedWorkspaces.remove(workspacePath);
+      globalEnvironmentsStore.removeActiveGlobalEnvironmentUidForWorkspace(workspacePath);
 
       if (workspaceWatcher) {
         workspaceWatcher.removeWatcher(workspacePath);
@@ -468,14 +448,6 @@ const registerWorkspaceIpc = (mainWindow, workspaceWatcher) => {
     }
   });
 
-  ipcMain.handle('renderer:select-workspace-environment', async (event, workspacePath, environmentUid) => {
-    try {
-      return await globalEnvironmentsManager.selectGlobalEnvironment(workspacePath, { environmentUid });
-    } catch (error) {
-      throw error;
-    }
-  });
-
   ipcMain.handle('renderer:import-workspace-environment', async (event, workspacePath, environmentData) => {
     try {
       return await globalEnvironmentsManager.createGlobalEnvironment(workspacePath, {
@@ -588,6 +560,42 @@ const registerWorkspaceIpc = (mainWindow, workspaceWatcher) => {
     }
   });
 
+  const broadcastWorkspaceConfig = (workspacePath, config) => {
+    const workspaceUid = getWorkspaceUid(workspacePath);
+    const isDefault = workspaceUid === 'default';
+    const configForClient = prepareWorkspaceConfigForClient(config, workspacePath, isDefault);
+    mainWindow.webContents.send('main:workspace-config-updated', workspacePath, workspaceUid, configForClient);
+  };
+
+  ipcMain.handle('renderer:connect-collection-to-git', async (event, workspacePath, collectionPath, remoteUrl) => {
+    try {
+      if (typeof remoteUrl !== 'string' || remoteUrl.trim() === '') {
+        throw new Error('A Git remote URL is required');
+      }
+
+      const trimmedUrl = remoteUrl.trim();
+      if (!/^(https?:\/\/|git@|ssh:\/\/|git:\/\/).+/.test(trimmedUrl)) {
+        throw new Error('Invalid Git remote URL');
+      }
+
+      const updatedConfig = await setCollectionGitRemote(workspacePath, collectionPath, trimmedUrl);
+      broadcastWorkspaceConfig(workspacePath, updatedConfig);
+      return true;
+    } catch (error) {
+      throw error;
+    }
+  });
+
+  ipcMain.handle('renderer:disconnect-collection-from-git', async (event, workspacePath, collectionPath) => {
+    try {
+      const updatedConfig = await clearCollectionGitRemote(workspacePath, collectionPath);
+      broadcastWorkspaceConfig(workspacePath, updatedConfig);
+      return true;
+    } catch (error) {
+      throw error;
+    }
+  });
+
   ipcMain.handle('renderer:get-collection-workspaces', async (event, collectionPath) => {
     try {
       const workspacePaths = lastOpenedWorkspaces.getAll();
@@ -670,44 +678,33 @@ const registerWorkspaceIpc = (mainWindow, workspaceWatcher) => {
         }
       }
 
-      const workspacePaths = lastOpenedWorkspaces.getAll();
-      const invalidPaths = [];
+      const { validWorkspaces } = resolveLastOpenedWorkspacePaths(lastOpenedWorkspaces, {
+        defaultWorkspacePath
+      });
 
-      for (const workspacePath of workspacePaths) {
-        if (defaultWorkspacePath && workspacePath === defaultWorkspacePath) {
-          continue;
-        }
+      for (const workspacePath of validWorkspaces) {
+        try {
+          const workspaceConfig = readWorkspaceConfig(workspacePath);
+          const workspaceUid = getWorkspaceUid(workspacePath);
+          const isDefault = workspaceUid === 'default';
+          const configForClient = prepareWorkspaceConfigForClient(workspaceConfig, workspacePath, isDefault);
 
-        const workspaceYmlPath = path.join(workspacePath, 'workspace.yml');
+          win.webContents.send('main:workspace-opened', workspacePath, workspaceUid, configForClient);
 
-        if (fs.existsSync(workspaceYmlPath)) {
-          try {
-            const workspaceConfig = readWorkspaceConfig(workspacePath);
-            validateWorkspaceConfig(workspaceConfig);
-            const workspaceUid = getWorkspaceUid(workspacePath);
-            const isDefault = workspaceUid === 'default';
-            const configForClient = prepareWorkspaceConfigForClient(workspaceConfig, workspacePath, isDefault);
-
-            win.webContents.send('main:workspace-opened', workspacePath, workspaceUid, configForClient);
-
-            if (workspaceWatcher) {
-              workspaceWatcher.addWatcher(win, workspacePath);
-            }
-          } catch (error) {
-            console.error(`Error loading workspace ${workspacePath}:`, error);
-            invalidPaths.push(workspacePath);
+          if (workspaceWatcher) {
+            workspaceWatcher.addWatcher(win, workspacePath);
           }
-        } else {
-          invalidPaths.push(workspacePath);
+        } catch (error) {
+          console.error(`Error loading workspace ${workspacePath}:`, error);
+          lastOpenedWorkspaces.remove(workspacePath);
         }
-      }
-
-      for (const invalidPath of invalidPaths) {
-        lastOpenedWorkspaces.remove(invalidPath);
       }
     } catch (error) {
       console.error('Error initializing workspaces:', error);
     }
+
+    win.webContents.send('main:workspaces-ready');
+    ipcMain.emit('main:workspaces-ready', win);
   });
 };
 

@@ -35,10 +35,10 @@
 Remember, these rules are here to make our codebase harmonious. If something doesn't fit perfectly, let's chat about it. Happy coding! 🚀
 
 
-## Tests 
+## Tests
 
 - Add tests for any new functionality or meaningful changes. If code is added, removed, or significantly modified, corresponding tests should be updated or created.
- 
+
 - Prioritise high-value tests over maximum coverage. Focus on testing behaviour that is critical, complex, or likely to break—don’t chase coverage numbers for their own sake.
 
 - Write behaviour-driven tests, not implementation-driven ones. Tests should validate real expected output and observable behaviour, not internal details or mocked-out logic unless absolutely necessary.
@@ -59,13 +59,56 @@ Remember, these rules are here to make our codebase harmonious. If something doe
 
 - Tests should be fast enough to run continuously. Avoid long-running operations unless absolutely necessary; prefer lightweight fixtures and isolated units.
 
+### E2E Tests
 
-## UI Specific instructions 
+When reviewing Electron-specific Playwright tests, treat `<project-root>/tests/**` as the canonical location for specs, typically matching `<project-root>/tests/**/*.spec.{ts,js}`. For broader Playwright workflow guidance, also refer to `docs/playwright-testing-guide.md`.
+
+Goal: rewrite or critique the tests so they are genuinely behavioural, maintainable, and safely parallelizable.
+
+Rules:
+1. Tests must verify user-visible behaviour, not implementation details.
+   - Prefer assertions on UI state, persisted data, windows, dialogs, filesystem effects, and app-level outcomes.
+   - Avoid hardcoded waits, brittle selectors, fake internal state checks, and “click then expect mock called” tests unless the user behaviour is the point.
+
+2. Tests must be Electron-aware.
+   - Use Electron app launch patterns correctly.
+   - Handle main window, secondary windows, dialogs, menus, native prompts, clipboard, file pickers, and IPC-driven UI behaviour through observable outcomes.
+   - Do not reach into app internals unless absolutely necessary for setup or controlled test fixtures.
+
+3. Tests must be parallel-safe.
+   - No shared user data directories.
+   - No shared ports, files, DBs, caches, clipboard assumptions, or global app state.
+   - Each test gets isolated temp paths, unique workspace/project names, and deterministic cleanup.
+   - Avoid test ordering assumptions.
+
+4. No hardcoded mess.
+   - Replace magic timeouts with event-driven waits.
+   - Replace brittle text/index selectors with role, label, test id, or stable user-facing selectors.
+   - Replace duplicated setup with fixtures.
+   - Replace hardcoded absolute paths with temp dirs.
+   - Replace random sleeps with waiting for actual app signals.
+
+5. Every test should follow this shape:
+   - Arrange: create isolated fixture state.
+   - Act: perform real user actions.
+   - Assert: verify observable behavioural outcome.
+   - Cleanup: remove isolated resources.
+
+6. Centralise locators and actions in page modules under `tests/utils/page/*` — never inline raw selectors in a spec. See the **Best Practices** section of `docs/playwright-testing-guide.md` for the page-module pattern and `buildCommonLocators` usage.
+
+For each test file:
+- Identify behavioural vs non-behavioural tests.
+- Flag brittle selectors, hardcoded waits, shared state, serial dependencies, and fake assertions.
+- Rewrite the tests using Playwright best practices for Electron.
+- Make them parallel-ready.
+- Explain briefly why each rewrite is better.
+
+## UI Specific instructions
 
 ### React
 
-- Use styled component's theme prop to manage CSS colors and not CSS variables when in the context of a styled component or any react component using the styled component 
-- Styled Components are used as wrappers to define both self and children components style, tailwind classes are used specifically for layout based styles. 
+- Use styled component's theme prop to manage CSS colors and not CSS variables when in the context of a styled component or any react component using the styled component
+- Styled Components are used as wrappers to define both self and children components style, tailwind classes are used specifically for layout based styles.
 - Styled Component CSS might also change layout but tailwind classes shouldn't define colors.
 - MUST: Prefer custom hooks for business logic, data fetching, and side-effects.
 - MUST: Avoid `useEffect` unless absolutely needed. Prefer derived state, event handlers.
@@ -75,6 +118,8 @@ Remember, these rules are here to make our codebase harmonious. If something doe
   - Avoid: `import * as React from "react";` then `React.useCallback(...)`
 - Add `data-testid` to testable elements for Playwright
 - Co-locate utilities that are truly component-specific next to the component, otherwise place shared items under a common folder
+- Avoid mixed controlled and uncontrolled state in React components. A component is either controlled or uncontrolled. State needs a single source of truth instead of being computed by props and then recomputed internally.
+- SHOULD: Use derived state variables instead of adding unneeded `React.useState` / `useState` hooks.
 
 
 ## Readability and Abstractions
@@ -85,3 +130,4 @@ Remember, these rules are here to make our codebase harmonious. If something doe
 - Follow functional programming but just enough to be readable, we don't need to go as deep as ADTs and Monads, we want to keep the code pipeline obvious and easy for everyone to read and contribute to.
 - Avoid single line abstractions where all that's being done is increasing the call stack with one additional function.
 - Add in meaningful comments instead of obvious ones where complex code flow is explained properly.
+- Avoid optional chaining (`?.`) where it doesn't make sense — it hides whether a value can genuinely be null and works against TypeScript's guarantees. Only use it when the null case is handled right there (fallback, early return, or guard); otherwise fix the type or narrow first.

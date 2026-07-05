@@ -13,9 +13,9 @@ test.describe.serial('custom invalid ca cert added to the config and NO default 
 
     // Validate test results
     await validateRunnerResults(page, {
-      totalRequests: 1,
+      totalRequests: 2,
       passed: 0,
-      failed: 1,
+      failed: 2,
       skipped: 0
     });
   });
@@ -31,9 +31,9 @@ test.describe.serial('custom invalid ca cert added to the config and NO default 
 
     // Validate test results
     await validateRunnerResults(page, {
-      totalRequests: 1,
+      totalRequests: 2,
       passed: 0,
-      failed: 1,
+      failed: 2,
       skipped: 0
     });
   });

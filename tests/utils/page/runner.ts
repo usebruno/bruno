@@ -12,8 +12,14 @@ export const buildRunnerLocators = (page: Page) => ({
   failedButton: () => page.locator('button').filter({ hasText: /^Failed/ }),
   skippedButton: () => page.locator('button').filter({ hasText: /^Skipped/ }),
   resetButton: () => page.getByRole('button', { name: 'Reset' }),
-  runCollectionButton: () => page.getByRole('button', { name: 'Run Collection' }),
-  runAgainButton: () => page.getByRole('button', { name: 'Run Again' })
+  runCollectionButton: () => page.getByTestId('runner-run-button'),
+  runAgainButton: () => page.getByRole('button', { name: 'Run Again' }),
+  configPanel: () => page.getByTestId('runner-config-panel'),
+  configCounter: () => page.getByTestId('runner-config-counter'),
+  selectAllButton: () => page.getByTestId('runner-select-all'),
+  configResetButton: () => page.getByTestId('runner-config-reset'),
+  requestItems: () => page.getByTestId('runner-request-item'),
+  delayInput: () => page.getByTestId('runner-delay-input')
 });
 
 /**
@@ -33,6 +39,39 @@ export const getRunnerResultCounts = async (page: Page) => {
 };
 
 /**
+ * Opens the runner tab for a collection without starting a run
+ * @param page - The Playwright page object
+ * @param collectionName - The name of the collection to open the runner for
+ * @returns void
+ */
+export const openRunnerTab = async (page: Page, collectionName: string) => {
+  await test.step(`Open runner tab for "${collectionName}"`, async () => {
+    const collectionContainer = page.getByTestId('collections').locator('.collection-name').filter({ hasText: collectionName });
+    await collectionContainer.waitFor({ state: 'visible' });
+
+    // Re-hover on each poll: CSS `:hover` reveals `.collection-actions`, but sidebar
+    // re-renders can shift the row out from under a one-shot hover().
+    const actionsContainer = collectionContainer.locator('.collection-actions');
+    await expect(async () => {
+      await collectionContainer.hover();
+      await expect(actionsContainer).toBeVisible({ timeout: 1000 });
+    }).toPass({ timeout: 10000 });
+
+    const icon = actionsContainer.locator('.icon');
+    await icon.waitFor({ state: 'visible', timeout: 5000 });
+    await icon.click();
+
+    const runMenuItem = page.getByText('Run', { exact: true });
+    await runMenuItem.waitFor({ state: 'visible' });
+    await runMenuItem.click();
+
+    // Wait for the config panel to load
+    const locators = buildRunnerLocators(page);
+    await locators.configPanel().waitFor({ state: 'visible', timeout: 10000 });
+  });
+};
+
+/**
  * Runs a collection by clicking the Run menu item and handling the runner tab
  * Includes logic to reset existing results if present
  * @param page - The Playwright page object
@@ -46,9 +85,13 @@ export const runCollection = async (page: Page, collectionName: string) => {
     await collectionContainer.waitFor({ state: 'visible' });
 
     // Open collection actions menu - hover first to reveal the hidden actions button
+    // Re-hover on each poll: CSS `:hover` reveals `.collection-actions`, but sidebar
+    // re-renders can shift the row out from under a one-shot hover().
     const actionsContainer = collectionContainer.locator('.collection-actions');
-    await collectionContainer.hover();
-    await actionsContainer.waitFor({ state: 'visible' });
+    await expect(async () => {
+      await collectionContainer.hover();
+      await expect(actionsContainer).toBeVisible({ timeout: 1000 });
+    }).toPass({ timeout: 10000 });
 
     const icon = actionsContainer.locator('.icon');
     await icon.waitFor({ state: 'visible', timeout: 5000 });
@@ -76,6 +119,66 @@ export const runCollection = async (page: Page, collectionName: string) => {
 
     // Wait for the run to complete
     await locators.runAgainButton().waitFor({ timeout: 2 * 60 * 1000 });
+  });
+};
+
+/**
+ * Runs a specific folder within a collection by navigating to it in the sidebar,
+ * opening its context menu, and clicking "Run" followed by "Recursive Run".
+ * @param page - The Playwright page object
+ * @param collectionName - The name of the collection containing the folder
+ * @param folderPath - Array of folder names forming the path (e.g. ['scripting', 'api', 'bru', 'cookies'])
+ */
+export const runFolder = async (page: Page, collectionName: string, folderPath: string[]) => {
+  await test.step(`Run folder "${folderPath.join('/')}" in "${collectionName}"`, async () => {
+    // Scope to the specific collection by its DOM id (collection-<name-kebab>)
+    const collectionId = `collection-${collectionName.replace(/\s+/g, '-').toLowerCase()}`;
+    const collectionContainer = page.locator(`#${collectionId}`);
+    await collectionContainer.waitFor({ state: 'visible', timeout: 5000 });
+
+    // Walk down the folder path, scoping each step to the previous folder's container.
+    // Each CollectionItem renders as a StyledWrapper div containing:
+    //   - div.collection-item-name (the row with chevron, name, menu)
+    //   - div (children container when expanded)
+    // We scope to the parent wrapper so the next folder lookup is unambiguous.
+    let scope = collectionContainer;
+    for (const folderName of folderPath) {
+      const row = scope.locator('.collection-item-name').filter({ hasText: folderName }).first();
+      await row.waitFor({ state: 'visible', timeout: 5000 });
+
+      // Click the chevron to expand (skip if already expanded)
+      const chevron = row.getByTestId('folder-chevron');
+      const isExpanded = await chevron.evaluate((el: HTMLElement) => el.classList.contains('rotate-90'));
+      if (!isExpanded) {
+        await chevron.click();
+      }
+
+      // Scope to this folder's wrapper (parent of the row) for the next iteration
+      scope = row.locator('..');
+    }
+
+    // The target folder row is the last one we found — hover to reveal menu
+    const targetRow = scope.locator('.collection-item-name').filter({ hasText: folderPath[folderPath.length - 1] }).first();
+    await targetRow.hover();
+
+    // Click the menu icon
+    const menuIcon = targetRow.locator('.menu-icon');
+    await menuIcon.waitFor({ state: 'visible', timeout: 5000 });
+    await menuIcon.click();
+
+    // Click "Run" in the dropdown
+    const runMenuItem = page.locator('.dropdown-item').filter({ hasText: 'Run' });
+    await runMenuItem.waitFor({ state: 'visible' });
+    await runMenuItem.click();
+
+    // In the RunCollectionItem modal, click "Recursive Run"
+    const recursiveRunButton = page.getByRole('button', { name: 'Recursive Run' });
+    await recursiveRunButton.waitFor({ state: 'visible', timeout: 5000 });
+    await recursiveRunButton.click();
+
+    // Wait for the run to complete
+    const runnerLocators = buildRunnerLocators(page);
+    await runnerLocators.runAgainButton().waitFor({ timeout: 2 * 60 * 1000 });
   });
 };
 
