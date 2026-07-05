@@ -1,12 +1,16 @@
 const parseUrl = require('url').parse;
 const https = require('node:https');
 const http = require('node:http');
-const { HttpsProxyAgent } = require('https-proxy-agent');
 const { interpolateString } = require('../ipc/network/interpolate-string');
 const { SocksProxyAgent } = require('socks-proxy-agent');
 const { HttpProxyAgent } = require('http-proxy-agent');
 const { isEmpty, get, isUndefined, isNull } = require('lodash');
-const { getOrCreateHttpsAgent, getOrCreateHttpAgent } = require('@usebruno/requests');
+const {
+  getOrCreateHttpsAgent,
+  getOrCreateHttpAgent,
+  resolveAgentsFromPac,
+  PatchedHttpsProxyAgent
+} = require('@usebruno/requests');
 const { preferencesUtil } = require('../store/preferences');
 
 const DEFAULT_PORTS = {
@@ -69,48 +73,28 @@ const shouldUseProxy = (url, proxyBypass) => {
   });
 };
 
-/**
- * Options that should be forwarded from the constructor to the target TLS upgrade.
- */
-const TARGET_TLS_OPTIONS = ['cert', 'key', 'pfx', 'passphrase', 'rejectUnauthorized', 'secureContext'];
-
-/**
- * Patched version of HttpsProxyAgent that correctly handles TLS options for
- * both the proxy connection and the target server connection.
- *
- * The upstream HttpsProxyAgent (https://github.com/TooTallNate/proxy-agents/issues/194)
- * ignores constructor options when upgrading the tunneled socket to TLS for the
- * target server. This patch forwards the relevant TLS options to the target upgrade.
- */
-class PatchedHttpsProxyAgent extends HttpsProxyAgent {
-  constructor(proxy, opts) {
-    super(proxy, opts);
-    this.constructorOpts = opts;
-  }
-
-  async connect(req, opts) {
-    const targetOpts = { ...opts };
-
-    if (this.constructorOpts) {
-      for (const key of TARGET_TLS_OPTIONS) {
-        if (key in this.constructorOpts) {
-          targetOpts[key] = this.constructorOpts[key];
-        }
-      }
-    }
-
-    return super.connect(req, targetOpts);
-  }
-}
-
-function setupProxyAgents({
+async function setupProxyAgents({
   requestConfig,
   proxyMode = 'off',
+  proxyModeReason = '',
   proxyConfig,
   httpsAgentRequestFields,
   interpolationOptions,
   timeline
 }) {
+  if (timeline) {
+    let modeMsg = `Proxy mode: ${proxyMode}`;
+    if (proxyMode === 'pac') modeMsg += ` | PAC URL: ${get(proxyConfig, 'pac.source') || '(empty)'}`;
+    else if (proxyMode === 'on') modeMsg += ` | ${get(proxyConfig, 'protocol')}://${get(proxyConfig, 'hostname')}:${get(proxyConfig, 'port')}`;
+    else if (proxyMode === 'off' && proxyModeReason) modeMsg += ` (${proxyModeReason})`;
+    timeline.push({ timestamp: new Date(), type: 'info', message: modeMsg });
+  }
+
+  // Clear stale agents so we always recreate them for the current URL
+  // (handles protocol switches, host changes, and proxy-bypass rules on redirects).
+  delete requestConfig.httpAgent;
+  delete requestConfig.httpsAgent;
+
   const disableCache = !preferencesUtil.isSslSessionCachingEnabled();
 
   // Ensure TLS options are properly set
@@ -148,14 +132,6 @@ function setupProxyAgents({
         proxyUri = `${proxyProtocol}://${proxyHostname}${uriPort}`;
       }
 
-      if (timeline) {
-        timeline.push({
-          timestamp: new Date(),
-          type: 'info',
-          message: `Using proxy: ${proxyProtocol}://${proxyHostname}${uriPort}`
-        });
-      }
-
       // When the proxy itself uses HTTPS, the agent connecting to it needs TLS options
       // (e.g., ca certs) even for plain HTTP requests
       const isHttpsProxy = proxyProtocol === 'https';
@@ -177,40 +153,75 @@ function setupProxyAgents({
       }
     }
   } else if (proxyMode === 'system') {
-    const { http_proxy, https_proxy, no_proxy } = proxyConfig || {};
-    const shouldUseSystemProxy = shouldUseProxy(requestConfig.url, no_proxy || '');
-    if (shouldUseSystemProxy) {
+    const { http_proxy, https_proxy, no_proxy, pac_url } = proxyConfig || {};
+
+    // If the OS is configured with a PAC URL, resolve it using the existing PAC infrastructure
+    if (pac_url) {
+      if (timeline) timeline.push({ timestamp: new Date(), type: 'info', message: `Resolving system PAC: ${pac_url}` });
       try {
-        if (http_proxy?.length && !isHttpsRequest) {
-          const parsedHttpProxy = new URL(http_proxy);
-          const isHttpsSystemProxy = parsedHttpProxy.protocol === 'https:';
-          const systemHttpProxyAgentOptions = isHttpsSystemProxy ? { keepAlive: true, ...tlsOptions } : { keepAlive: true };
-          if (timeline) {
-            timeline.push({
-              timestamp: new Date(),
-              type: 'info',
-              message: `Using system proxy: ${http_proxy}`
-            });
-          }
-          requestConfig.httpAgent = getOrCreateHttpAgent({ AgentClass: HttpProxyAgent, options: systemHttpProxyAgentOptions, proxyUri: http_proxy, timeline, disableCache, hostname });
+        const { directives, httpAgent, httpsAgent } = await resolveAgentsFromPac({ pacSource: pac_url, requestUrl: requestConfig.url, requestProtocol: isHttpsRequest ? 'https' : 'http', tlsOptions, httpsAgentRequestFields, timeline, disableCache, hostname });
+        if (httpAgent) requestConfig.httpAgent = httpAgent;
+        if (httpsAgent) requestConfig.httpsAgent = httpsAgent;
+        if (directives) {
+          if (timeline) { timeline.push({ timestamp: new Date(), type: 'info', message: `PAC directives: ${directives.join('; ')}` }); }
+        } else {
+          if (timeline) { timeline.push({ timestamp: new Date(), type: 'info', message: 'System PAC resolved: DIRECT (no proxy)' }); }
         }
-      } catch (error) {
-        throw new Error(`Invalid system http_proxy "${http_proxy}": ${error.message}`);
+      } catch (err) {
+        if (timeline) { timeline.push({ timestamp: new Date(), type: 'error', message: `System PAC resolution failed: ${err.message}` }); }
       }
-      try {
-        if (https_proxy?.length && isHttpsRequest) {
-          new URL(https_proxy);
-          if (timeline) {
-            timeline.push({
-              timestamp: new Date(),
-              type: 'info',
-              message: `Using system proxy: ${https_proxy}`
-            });
+    } else {
+      const shouldUseSystemProxy = shouldUseProxy(requestConfig.url, no_proxy || '');
+      if (shouldUseSystemProxy) {
+        try {
+          if (http_proxy?.length && !isHttpsRequest) {
+            const parsedHttpProxy = new URL(http_proxy);
+            const isHttpsSystemProxy = parsedHttpProxy.protocol === 'https:';
+            const systemHttpProxyAgentOptions = isHttpsSystemProxy ? { keepAlive: true, ...tlsOptions } : { keepAlive: true };
+            if (timeline) {
+              timeline.push({
+                timestamp: new Date(),
+                type: 'info',
+                message: `Using system proxy: ${http_proxy}`
+              });
+            }
+            requestConfig.httpAgent = getOrCreateHttpAgent({ AgentClass: HttpProxyAgent, options: systemHttpProxyAgentOptions, proxyUri: http_proxy, timeline, disableCache, hostname });
           }
-          requestConfig.httpsAgent = getOrCreateHttpsAgent({ AgentClass: PatchedHttpsProxyAgent, options: tlsOptions, proxyUri: https_proxy, timeline, disableCache, hostname });
+        } catch (error) {
+          throw new Error(`Invalid system http_proxy "${http_proxy}": ${error.message}`);
         }
-      } catch (error) {
-        throw new Error(`Invalid system https_proxy "${https_proxy}": ${error.message}`);
+        try {
+          if (https_proxy?.length && isHttpsRequest) {
+            new URL(https_proxy);
+            if (timeline) {
+              timeline.push({
+                timestamp: new Date(),
+                type: 'info',
+                message: `Using system proxy: ${https_proxy}`
+              });
+            }
+            requestConfig.httpsAgent = getOrCreateHttpsAgent({ AgentClass: PatchedHttpsProxyAgent, options: tlsOptions, proxyUri: https_proxy, timeline, disableCache, hostname });
+          }
+        } catch (error) {
+          throw new Error(`Invalid system https_proxy "${https_proxy}": ${error.message}`);
+        }
+      }
+    }
+  } else if (proxyMode === 'pac') {
+    const pacSource = get(proxyConfig, 'pac.source');
+    if (pacSource) {
+      if (timeline) timeline.push({ timestamp: new Date(), type: 'info', message: `Resolving PAC: ${pacSource}` });
+      try {
+        const { directives, httpAgent, httpsAgent } = await resolveAgentsFromPac({ pacSource, requestUrl: requestConfig.url, requestProtocol: isHttpsRequest ? 'https' : 'http', tlsOptions, httpsAgentRequestFields, timeline, disableCache, hostname });
+        if (httpAgent) requestConfig.httpAgent = httpAgent;
+        if (httpsAgent) requestConfig.httpsAgent = httpsAgent;
+        if (directives) {
+          if (timeline) timeline.push({ timestamp: new Date(), type: 'info', message: `PAC directives: ${directives.join('; ')}` });
+        } else {
+          if (timeline) timeline.push({ timestamp: new Date(), type: 'info', message: 'PAC resolved: DIRECT (no proxy)' });
+        }
+      } catch (err) {
+        if (timeline) timeline.push({ timestamp: new Date(), type: 'error', message: `PAC resolution failed: ${err.message}` });
       }
     }
   }

@@ -2,6 +2,7 @@ const axios = require('axios');
 const { CLI_VERSION } = require('../constants');
 const { addCookieToJar, getCookieStringForUrl } = require('./cookies');
 const { createFormData } = require('./form-data');
+const { setupProxyAgents } = require('./proxy-util');
 
 const redirectResponseCodes = [301, 302, 303, 307, 308];
 const METHOD_CHANGING_REDIRECTS = [301, 302, 303];
@@ -71,7 +72,17 @@ const createRedirectConfig = (error, redirectUrl) => {
  * @see https://github.com/axios/axios/issues/695
  * @returns {axios.AxiosInstance}
  */
-function makeAxiosInstance({ requestMaxRedirects = 5, disableCookies, followRedirects = true } = {}) {
+function makeAxiosInstance({
+  requestMaxRedirects = 5,
+  disableCookies,
+  followRedirects = true,
+  proxyMode,
+  proxyConfig,
+  systemProxyConfig,
+  httpsAgentRequestFields,
+  interpolationOptions,
+  disableCache
+} = {}) {
   let redirectCount = 0;
 
   /** @type {axios.AxiosInstance} */
@@ -81,10 +92,11 @@ function makeAxiosInstance({ requestMaxRedirects = 5, disableCookies, followRedi
     headers: {}
   });
 
-  // Set User-Agent manually (using transformRequest to delete headers instead)
-  instance.defaults.headers.common = {
-    'User-Agent': `bruno-runtime/${CLI_VERSION}`
-  };
+  // Extend common headers with User-Agent rather than replacing the object.
+  // axios.create() preserves defaults.headers.common = { Accept: 'application/json, text/plain, */*' }.
+  // Assigning a new object (= { 'User-Agent': ... }) would nuke that default, causing servers that
+  // rely on content-negotiation to receive requests with no Accept header.
+  instance.defaults.headers.common['User-Agent'] = `bruno-runtime/${CLI_VERSION}`;
 
   instance.interceptors.request.use((config) => {
     config.headers['request-start-time'] = Date.now();
@@ -127,7 +139,7 @@ function makeAxiosInstance({ requestMaxRedirects = 5, disableCookies, followRedi
 
       return response;
     },
-    (error) => {
+    async (error) => {
       if (error.response) {
         const end = Date.now();
         const start = error.config.headers['request-start-time'];
@@ -166,6 +178,16 @@ function makeAxiosInstance({ requestMaxRedirects = 5, disableCookies, followRedi
           }
 
           const requestConfig = createRedirectConfig(error, redirectUrl);
+
+          await setupProxyAgents({
+            requestConfig,
+            proxyMode,
+            proxyConfig,
+            systemProxyConfig,
+            httpsAgentRequestFields,
+            interpolationOptions,
+            disableCache
+          });
 
           if (!disableCookies) {
             const cookieString = getCookieStringForUrl(redirectUrl);

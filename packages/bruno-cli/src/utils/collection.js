@@ -3,7 +3,7 @@ const os = require('os');
 const fs = require('fs');
 const path = require('path');
 const { sanitizeName } = require('./filesystem');
-const { parseRequest, parseCollection, parseFolder, stringifyCollection, stringifyFolder, stringifyEnvironment, stringifyRequest } = require('@usebruno/filestore');
+const { parseRequest, parseCollection, parseFolder, stringifyCollection, stringifyFolder, stringifyEnvironment, stringifyRequest, DEFAULT_COLLECTION_FORMAT } = require('@usebruno/filestore');
 const constants = require('../constants');
 const chalk = require('chalk');
 
@@ -94,14 +94,18 @@ const createCollectionJsonFromPathname = (collectionPath) => {
   };
 };
 
-const mergeHeaders = (collection, request, requestTreePath) => {
+const mergeHeaders = (collection, request, requestTreePath, options = {}) => {
+  const { includeDisabledHeaders = false } = options;
   let headers = new Map();
+  let disabledHeaders = new Map();
 
   const collectionRoot = collection?.draft?.root || collection?.root || {};
   let collectionHeaders = get(collectionRoot, 'request.headers', []);
   collectionHeaders.forEach((header) => {
     if (header.enabled) {
       headers.set(header.name, header.value);
+    } else if (header.name?.length > 0) {
+      disabledHeaders.set(header.name, header.value);
     }
   });
 
@@ -112,6 +116,8 @@ const mergeHeaders = (collection, request, requestTreePath) => {
       _headers.forEach((header) => {
         if (header.enabled) {
           headers.set(header.name, header.value);
+        } else if (header.name?.length > 0) {
+          disabledHeaders.set(header.name, header.value);
         }
       });
     } else {
@@ -119,12 +125,17 @@ const mergeHeaders = (collection, request, requestTreePath) => {
       _headers.forEach((header) => {
         if (header.enabled) {
           headers.set(header.name, header.value);
+        } else if (header.name?.length > 0) {
+          disabledHeaders.set(header.name, header.value);
         }
       });
     }
   }
 
-  request.headers = Array.from(headers, ([name, value]) => ({ name, value, enabled: true }));
+  request.headers = [
+    ...Array.from(headers, ([name, value]) => ({ name, value, enabled: true })),
+    ...(includeDisabledHeaders ? Array.from(disabledHeaders, ([name, value]) => ({ name, value, enabled: false })) : [])
+  ];
 };
 
 const mergeVars = (collection, request, requestTreePath) => {
@@ -528,7 +539,7 @@ const safeWriteFileSync = (filePath, content) => {
  * @param {string} dirPath - The output directory path
  */
 const createCollectionFromBrunoObject = async (collection, dirPath, options = {}) => {
-  const { format = 'bru' } = options;
+  const { format = DEFAULT_COLLECTION_FORMAT } = options;
   // Create brunoConfig for yml format
   const brunoConfig = {
     version: '1',
@@ -584,7 +595,7 @@ const createCollectionFromBrunoObject = async (collection, dirPath, options = {}
  * @param {"bru"|"yml"} options.format - Current directory path
  */
 const processCollectionItems = async (items = [], currentPath, options = {}) => {
-  const { format = 'bru' } = options;
+  const { format = DEFAULT_COLLECTION_FORMAT } = options;
   for (const item of items) {
     if (item.type === 'folder') {
       // Create folder
@@ -641,7 +652,8 @@ const processCollectionItems = async (items = [], currentPath, options = {}) => 
           assertions: item.request?.assertions || [],
           tests: item.request?.tests || '',
           docs: item.request?.docs || ''
-        }
+        },
+        examples: item.examples || []
       };
 
       // Convert to YML format and write to file

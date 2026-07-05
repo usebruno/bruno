@@ -1,8 +1,10 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
 import get from 'lodash/get';
 import find from 'lodash/find';
 import { useDispatch, useSelector } from 'react-redux';
 import CodeEditor from 'components/CodeEditor';
+import AIAssist from 'components/AIAssist';
+import { buildAiVariablesPayload } from 'utils/ai';
 import { updateFolderRequestScript, updateFolderResponseScript } from 'providers/ReduxStore/slices/collections';
 import { saveFolderRoot } from 'providers/ReduxStore/slices/collections/actions';
 import { updateScriptPaneTab } from 'providers/ReduxStore/slices/tabs';
@@ -12,6 +14,8 @@ import StatusDot from 'components/StatusDot';
 import { flattenItems, isItemARequest } from 'utils/collections';
 import StyledWrapper from './StyledWrapper';
 import Button from 'ui/Button';
+import { usePersistedState } from 'hooks/usePersistedState';
+import { useFocusErrorLine } from 'hooks/useFocusErrorLine';
 
 const Script = ({ collection, folder }) => {
   const dispatch = useDispatch();
@@ -21,7 +25,9 @@ const Script = ({ collection, folder }) => {
   const responseScript = folder.draft ? get(folder, 'draft.request.script.res', '') : get(folder, 'root.request.script.res', '');
 
   const tabs = useSelector((state) => state.tabs.tabs);
-  const focusedTab = find(tabs, (t) => t.uid === folder.uid);
+  const focusedTab = find(tabs, (tab) => tab.type === 'folder-settings' && (tab.uid === folder.uid || tab.folderUid === folder.uid))
+    || find(tabs, (tab) => tab.type === 'folder-settings' && tab.pathname === folder.pathname);
+  const tabUid = focusedTab?.uid || folder.uid;
   const scriptPaneTab = focusedTab?.scriptPaneTab;
 
   // Default to post-response if pre-request script is empty (only when scriptPaneTab is null/undefined)
@@ -33,24 +39,45 @@ const Script = ({ collection, folder }) => {
   const activeTab = scriptPaneTab || getDefaultTab();
 
   const setActiveTab = (tab) => {
-    dispatch(updateScriptPaneTab({ uid: folder.uid, scriptPaneTab: tab }));
+    dispatch(updateScriptPaneTab({ uid: tabUid, scriptPaneTab: tab }));
   };
 
   const { displayedTheme } = useTheme();
   const preferences = useSelector((state) => state.app.preferences);
 
-  // Refresh CodeMirror when tab becomes visible
+  const [preReqScroll, setPreReqScroll] = usePersistedState({ key: `folder-pre-req-scroll-${folder.uid}`, default: 0 });
+  const [postResScroll, setPostResScroll] = usePersistedState({ key: `folder-post-res-scroll-${folder.uid}`, default: 0 });
+
+  // Refresh CodeMirror when tab becomes visible and restore scroll position.
+  // CodeMirror's scrollTo() is silently ignored when the editor is inside a display:none container
+  // (TabsContent hides inactive tabs via display:none). After refresh() recalculates layout, we re-apply scrollTo().
   useEffect(() => {
     const timer = setTimeout(() => {
       if (activeTab === 'pre-request' && preRequestEditorRef.current?.editor) {
         preRequestEditorRef.current.editor.refresh();
+        preRequestEditorRef.current.editor.scrollTo(null, preReqScroll);
       } else if (activeTab === 'post-response' && postResponseEditorRef.current?.editor) {
         postResponseEditorRef.current.editor.refresh();
+        postResponseEditorRef.current.editor.scrollTo(null, postResScroll);
       }
     }, 0);
 
     return () => clearTimeout(timer);
   }, [activeTab]);
+
+  useFocusErrorLine({
+    uid: folder.uid,
+    editorRef: preRequestEditorRef,
+    scriptPhase: 'pre-request',
+    isVisible: activeTab === 'pre-request'
+  });
+
+  useFocusErrorLine({
+    uid: folder.uid,
+    editorRef: postResponseEditorRef,
+    scriptPhase: 'post-response',
+    isVisible: activeTab === 'post-response'
+  });
 
   const onRequestScriptEdit = (value) => {
     dispatch(
@@ -75,6 +102,8 @@ const Script = ({ collection, folder }) => {
   const handleSave = () => {
     dispatch(saveFolderRoot(collection.uid, folder.uid));
   };
+
+  const aiVariables = useMemo(() => buildAiVariablesPayload(collection, folder), [collection, folder]);
 
   const items = flattenItems(folder.items || []);
   const hasPreRequestScriptError = items.some((i) => isItemARequest(i) && i.preRequestScriptErrorMessage);
@@ -102,34 +131,58 @@ const Script = ({ collection, folder }) => {
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="pre-request" className="mt-2">
-          <CodeEditor
-            ref={preRequestEditorRef}
-            collection={collection}
-            value={requestScript || ''}
-            theme={displayedTheme}
-            onEdit={onRequestScriptEdit}
-            mode="javascript"
-            onSave={handleSave}
-            font={get(preferences, 'font.codeFont', 'default')}
-            fontSize={get(preferences, 'font.codeFontSize')}
-            showHintsFor={['req', 'bru']}
-          />
+        <TabsContent value="pre-request" className="mt-2" dataTestId="folder-pre-request-script-editor">
+          <div className="relative h-full">
+            <CodeEditor
+              ref={preRequestEditorRef}
+              collection={collection}
+              docKey="folder-script:pre-request"
+              value={requestScript || ''}
+              theme={displayedTheme}
+              onEdit={onRequestScriptEdit}
+              mode="javascript"
+              onSave={handleSave}
+              font={get(preferences, 'font.codeFont', 'default')}
+              fontSize={get(preferences, 'font.codeFontSize')}
+              showHintsFor={['req', 'bru']}
+              scriptType="pre-request"
+              initialScroll={preReqScroll}
+              onScroll={setPreReqScroll}
+            />
+            <AIAssist
+              scriptType="pre-request"
+              currentScript={requestScript || ''}
+              variables={aiVariables}
+              onApply={onRequestScriptEdit}
+            />
+          </div>
         </TabsContent>
 
-        <TabsContent value="post-response" className="mt-2">
-          <CodeEditor
-            ref={postResponseEditorRef}
-            collection={collection}
-            value={responseScript || ''}
-            theme={displayedTheme}
-            onEdit={onResponseScriptEdit}
-            mode="javascript"
-            onSave={handleSave}
-            font={get(preferences, 'font.codeFont', 'default')}
-            fontSize={get(preferences, 'font.codeFontSize')}
-            showHintsFor={['req', 'res', 'bru']}
-          />
+        <TabsContent value="post-response" className="mt-2" dataTestId="folder-post-response-script-editor">
+          <div className="relative h-full">
+            <CodeEditor
+              ref={postResponseEditorRef}
+              collection={collection}
+              docKey="folder-script:post-response"
+              value={responseScript || ''}
+              theme={displayedTheme}
+              onEdit={onResponseScriptEdit}
+              mode="javascript"
+              onSave={handleSave}
+              font={get(preferences, 'font.codeFont', 'default')}
+              fontSize={get(preferences, 'font.codeFontSize')}
+              showHintsFor={['req', 'res', 'bru']}
+              scriptType="post-response"
+              initialScroll={postResScroll}
+              onScroll={setPostResScroll}
+            />
+            <AIAssist
+              scriptType="post-response"
+              currentScript={responseScript || ''}
+              variables={aiVariables}
+              onApply={onResponseScriptEdit}
+            />
+          </div>
         </TabsContent>
       </Tabs>
 

@@ -2,7 +2,7 @@ import { toOpenCollectionAuth, toOpenCollectionHeaders, toOpenCollectionScripts,
 import { toOpenCollectionEnvironments } from "./environment";
 import { toOpenCollectionFolder } from "./folder";
 import { toOpenCollectionItems } from "./items";
-import { BrunoCollection, BrunoCollectionRoot, BrunoConfig, ClientCertificate, CollectionConfig, OpenCollection, PemCertificate, Pkcs12Certificate, Protobuf } from "./types";
+import { BrunoCollection, BrunoCollectionRoot, BrunoConfig, BrunoPresets, ClientCertificate, CollectionConfig, OpenCollection, PemCertificate, Pkcs12Certificate, Protobuf } from "./types";
 
 const toOpenCollectionConfig = (brunoConfig: BrunoConfig | undefined): CollectionConfig | undefined => {
   if (!brunoConfig) {
@@ -86,14 +86,20 @@ const hasRequestDefaults = (root: BrunoCollectionRoot | undefined): boolean => {
 };
 
 export const brunoToOpenCollection = (collection: BrunoCollection): OpenCollection => {
+  const brunoConfig = collection.brunoConfig as BrunoConfig | undefined;
+
+  const collectionVersion = brunoConfig?.version;
+  const hasCollectionVersion = collectionVersion != null && collectionVersion !== '';
+
   const openCollection: OpenCollection = {
     opencollection: '1.0.0',
     info: {
-      name: collection.name || 'Untitled Collection'
+      name: collection.name || 'Untitled Collection',
+      ...(hasCollectionVersion ? { version: String(collectionVersion) } : {})
     }
   };
 
-  const config = toOpenCollectionConfig(collection.brunoConfig as BrunoConfig);
+  const config = toOpenCollectionConfig(brunoConfig);
   if (config) {
     openCollection.config = config;
   }
@@ -147,17 +153,14 @@ export const brunoToOpenCollection = (collection: BrunoCollection): OpenCollecti
 
   const brunoExtension: {
     ignore?: string[];
-    presets?: {
-      requestType?: string;
-      requestUrl?: string;
-    };
+    presets?: BrunoPresets;
   } = {};
 
-  if ((collection.brunoConfig as BrunoConfig)?.ignore?.length) {
-    brunoExtension.ignore = (collection.brunoConfig as BrunoConfig).ignore;
+  if (brunoConfig?.ignore?.length) {
+    brunoExtension.ignore = brunoConfig.ignore;
   }
 
-  const presets = (collection.brunoConfig as BrunoConfig)?.presets;
+  const presets = brunoConfig?.presets;
   if (presets?.requestType || presets?.requestUrl) {
     brunoExtension.presets = {};
     if (presets.requestType) {

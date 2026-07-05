@@ -393,3 +393,46 @@ describe('OpenAPI Import - Tag Sanitization', () => {
     expect(folder).toBeDefined();
   });
 });
+
+describe('OpenAPI Import - yml (opencollection) tag preservation (BRU-3175)', () => {
+  const buildSpec = (tag) => ({
+    openapi: '3.0.0',
+    info: { title: 'Test API', version: '1.0.0' },
+    paths: {
+      '/x': {
+        get: {
+          operationId: 'getX',
+          summary: 'Get X',
+          tags: [tag],
+          responses: { 200: { description: 'OK' } }
+        }
+      }
+    }
+  });
+
+  it.each([
+    ['Pets & Dogs', 'Pets & Dogs'],
+    ['R&D', 'R&D'],
+    ['&', '&'],
+    ['API (v1)', 'API (v1)'],
+    ['api.v1', 'api.v1']
+  ])('preserves tag %p verbatim on request and folder for yml format', (sourceTag, expected) => {
+    const result = openApiToBruno(JSON.stringify(buildSpec(sourceTag)), { collectionFormat: 'yml' });
+
+    const request = findRequestByName(result.items, 'Get X');
+    expect(request).toBeDefined();
+    expect(request.tags).toEqual([expected]);
+
+    const folder = findFolderByName(result.items, expected);
+    expect(folder).toBeDefined();
+  });
+
+  it('keeps bru-format sanitization unchanged when collectionFormat is omitted', () => {
+    const result = openApiToBruno(JSON.stringify(buildSpec('Pets & Dogs')));
+    const request = findRequestByName(result.items, 'Get X');
+    expect(request.tags).toEqual(['Pets_Dogs']);
+
+    const folder = findFolderByName(result.items, 'Pets_Dogs');
+    expect(folder).toBeDefined();
+  });
+});

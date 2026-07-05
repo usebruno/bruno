@@ -14,6 +14,8 @@ import DotEnvFileDetails from 'components/Environments/DotEnvFileDetails';
 import ColorBadge from 'components/ColorBadge';
 import { isEqual } from 'lodash';
 import { useDispatch, useSelector } from 'react-redux';
+import { usePersistedState } from 'hooks/usePersistedState';
+import { useTrackScroll } from 'hooks/useTrackScroll';
 import { addGlobalEnvironment, renameGlobalEnvironment, selectGlobalEnvironment, setGlobalEnvironmentDraft, clearGlobalEnvironmentDraft } from 'providers/ReduxStore/slices/global-environments';
 import {
   saveWorkspaceDotEnvVariables,
@@ -43,12 +45,22 @@ const EnvironmentList = ({
   const globalEnvs = useSelector((state) => state?.globalEnvironments?.globalEnvironments);
   const envSearchQuery = useSelector((state) => state.app.envVarSearch?.global?.query ?? '');
   const isEnvSearchExpanded = useSelector((state) => state.app.envVarSearch?.global?.expanded ?? false);
+  const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
   const setEnvSearchQuery = (q) => dispatch(setEnvVarSearchQuery({ context: 'global', query: q }));
   const setIsEnvSearchExpanded = (v) => dispatch(setEnvVarSearchExpanded({ context: 'global', expanded: v }));
 
   const [openImportModal, setOpenImportModal] = useState(false);
   const [searchText, setSearchText] = useState('');
   const envListSearchInputRef = useRef(null);
+
+  // Scroll persistence for the environments list — key follows the standard
+  // `persisted::<activeTabUid>::<key>` format so clearPersistedScope works.
+  const envListRef = useRef(null);
+  const [envListScroll, setEnvListScroll] = usePersistedState({
+    key: `persisted::${activeTabUid}::workspace-envs-scroll-${workspace?.uid ?? 'global'}`,
+    default: 0
+  });
+  useTrackScroll({ ref: envListRef, onChange: setEnvListScroll, initialValue: envListScroll });
   const [isCreatingInline, setIsCreatingInline] = useState(false);
   const [renamingEnvUid, setRenamingEnvUid] = useState(null);
   const [newEnvName, setNewEnvName] = useState('');
@@ -613,7 +625,7 @@ const EnvironmentList = ({
                   </button>
                 )}
               </div>
-              <div className="environments-list">
+              <div className="environments-list" ref={envListRef}>
                 {filteredEnvironments.map((env) => (
                   <div
                     key={env.uid}
@@ -731,6 +743,7 @@ const EnvironmentList = ({
 
             <CollapsibleSection
               title=".env Files"
+              testId="dotenv-files-section"
               expanded={dotEnvExpanded}
               onToggle={() => setDotEnvExpanded(!dotEnvExpanded)}
               badge={dotEnvFiles.length}
@@ -739,6 +752,7 @@ const EnvironmentList = ({
                   className="btn-action"
                   onClick={handleCreateDotEnvInlineClick}
                   title="Create .env file"
+                  data-testid="create-dotenv-file"
                 >
                   <IconPlus size={14} strokeWidth={1.5} />
                 </button>
@@ -763,6 +777,7 @@ const EnvironmentList = ({
                       ref={dotEnvInputRef}
                       type="text"
                       className="environment-name-input"
+                      data-testid="dotenv-name-input"
                       value={newDotEnvName}
                       onChange={handleDotEnvNameChange}
                       onKeyDown={handleDotEnvNameKeyDown}

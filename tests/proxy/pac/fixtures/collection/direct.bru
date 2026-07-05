@@ -1,0 +1,21 @@
+meta {
+  name: direct
+  type: http
+  seq: 2
+}
+
+get {
+  url: http://localhost:19000/direct
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+}
+
+tests {
+  test("request bypassed proxy (PAC returned DIRECT)", function() {
+    expect(res.headers['x-proxied']).to.be.undefined;
+  });
+}

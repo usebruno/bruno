@@ -1,13 +1,24 @@
 import { createSlice } from '@reduxjs/toolkit';
 import filter from 'lodash/filter';
 import brunoClipboard from 'utils/bruno-clipboard';
+import { normalizePath } from 'utils/common/path';
 import { addTab, focusTab } from './tabs';
+import { clearPersistedScope } from 'hooks/usePersistedState/PersistedScopeProvider';
 
 const initialState = {
   isDragging: false,
   idbConnectionReady: false,
+  snapshotReady: false,
+  snapshotHydration: {
+    workspaceUid: null,
+    pendingCollectionPathnames: [],
+    activeCollectionPathname: null,
+    startedAt: null
+  },
   leftSidebarWidth: 250,
   sidebarCollapsed: false,
+  showSidebarSearch: false,
+  focusedSidebarPath: null,
   screenWidth: 500,
   showHomePage: false,
   showApiSpecPage: false,
@@ -38,7 +49,8 @@ const initialState = {
     },
     onboarding: {
       hasLaunchedBefore: false,
-      hasSeenWelcomeModal: true
+      hasSeenWelcomeModal: true,
+      lastSeenVersion: null
     },
     autoSave: {
       enabled: false,
@@ -47,6 +59,28 @@ const initialState = {
     cache: {
       sslSession: {
         enabled: false
+      }
+    },
+    ai: {
+      enabled: false,
+      providers: {
+        openai: { enabled: false },
+        anthropic: { enabled: false }
+      },
+      models: {},
+      defaultModel: '',
+      autocomplete: {
+        enabled: true,
+        model: '',
+        triggerMode: 'debounced'
+      },
+      security: {
+        redactHeaders: true,
+        redactBody: true,
+        redactVariables: true,
+        redactResponse: true,
+        customRedactedHeaders: [],
+        customRedactedVariables: []
       }
     }
   },
@@ -76,6 +110,46 @@ export const appSlice = createSlice({
   reducers: {
     idbConnectionReady: (state) => {
       state.idbConnectionReady = true;
+    },
+    setSnapshotReady: (state, action) => {
+      state.snapshotReady = action.payload;
+    },
+    startSnapshotHydrationSession: (state, action) => {
+      const {
+        workspaceUid = null,
+        pendingCollectionPathnames = [],
+        activeCollectionPathname = null
+      } = action.payload || {};
+      const normalizedPathnames = [...new Set(
+        pendingCollectionPathnames
+          .filter(Boolean)
+          .map((pathname) => normalizePath(pathname))
+      )];
+
+      state.snapshotHydration = {
+        workspaceUid,
+        pendingCollectionPathnames: normalizedPathnames,
+        activeCollectionPathname: activeCollectionPathname ? normalizePath(activeCollectionPathname) : null,
+        startedAt: Date.now()
+      };
+    },
+    markSnapshotCollectionHydrated: (state, action) => {
+      const pathname = action.payload?.pathname;
+      if (!pathname) {
+        return;
+      }
+
+      const normalizedPathname = normalizePath(pathname);
+      state.snapshotHydration.pendingCollectionPathnames = state.snapshotHydration.pendingCollectionPathnames
+        .filter((pendingPathname) => normalizePath(pendingPathname) !== normalizedPathname);
+    },
+    clearSnapshotHydrationSession: (state) => {
+      state.snapshotHydration = {
+        workspaceUid: null,
+        pendingCollectionPathnames: [],
+        activeCollectionPathname: null,
+        startedAt: null
+      };
     },
     refreshScreenWidth: (state) => {
       state.screenWidth = window.innerWidth;
@@ -139,6 +213,12 @@ export const appSlice = createSlice({
     toggleSidebarCollapse: (state) => {
       state.sidebarCollapsed = !state.sidebarCollapsed;
     },
+    toggleSidebarSearch: (state) => {
+      state.showSidebarSearch = !state.showSidebarSearch;
+    },
+    setFocusedSidebarPath: (state, action) => {
+      state.focusedSidebarPath = action.payload;
+    },
     updateGitOperationProgress: (state, action) => {
       const { uid, data } = action.payload;
       if (!state.gitOperationProgress[uid]) {
@@ -186,6 +266,10 @@ export const appSlice = createSlice({
 
 export const {
   idbConnectionReady,
+  setSnapshotReady,
+  startSnapshotHydrationSession,
+  markSnapshotCollectionHydrated,
+  clearSnapshotHydrationSession,
   refreshScreenWidth,
   updateLeftSidebarWidth,
   updateIsDragging,
@@ -204,6 +288,8 @@ export const {
   updateSystemProxyVariables,
   updateGenerateCode,
   toggleSidebarCollapse,
+  toggleSidebarSearch,
+  setFocusedSidebarPath,
   updateGitOperationProgress,
   removeGitOperationProgress,
   setGitVersion,
@@ -214,15 +300,18 @@ export const {
 } = appSlice.actions;
 
 export const savePreferences = (preferences) => (dispatch, getState) => {
-  return new Promise((resolve, reject) => {
-    const { ipcRenderer } = window;
+  const previous = getState().app.preferences;
+  dispatch(updatePreferences(preferences));
 
-    ipcRenderer
-      .invoke('renderer:save-preferences', preferences)
-      .then(() => dispatch(updatePreferences(preferences)))
-      .then(resolve)
-      .catch(reject);
-  });
+  const { ipcRenderer } = window;
+  return ipcRenderer
+    .invoke('renderer:save-preferences', preferences)
+    .catch((err) => {
+      if (getState().app.preferences === preferences) {
+        dispatch(updatePreferences(previous));
+      }
+      throw err;
+    });
 };
 
 export const deleteCookiesForDomain = (domain) => (dispatch, getState) => {
@@ -273,6 +362,8 @@ export const createCookieString = (cookieObj) => () => {
 
 export const completeQuitFlow = () => (dispatch, getState) => {
   const { ipcRenderer } = window;
+  // Wipe all `persisted::*` keys from localStorage before quitting
+  clearPersistedScope();
   return ipcRenderer.invoke('main:complete-quit-flow');
 };
 
@@ -310,6 +401,13 @@ export const clearHttpHttpsAgentCache = () => () => {
   return new Promise((resolve, reject) => {
     const { ipcRenderer } = window;
     ipcRenderer.invoke('renderer:clear-http-https-agent-cache').then(resolve).catch(reject);
+  });
+};
+
+export const refreshPacCache = () => () => {
+  return new Promise((resolve, reject) => {
+    const { ipcRenderer } = window;
+    ipcRenderer.invoke('renderer:refresh-pac-cache').then(resolve).catch(reject);
   });
 };
 

@@ -21,6 +21,10 @@ const config = {
     category: 'public.app-category.developer-tools',
     target: [
       {
+        target: 'pkg',
+        arch: ['x64', 'arm64']
+      },
+      {
         target: 'dmg',
         arch: ['x64', 'arm64']
       },
@@ -31,7 +35,7 @@ const config = {
     ],
     icon: 'resources/icons/mac/icon.icns',
     hardenedRuntime: true,
-    identity: 'Anoop MD (W7LPPWA48L)',
+    identity: 'Bruno Software, Inc. (P3WTZH48ZB)',
     entitlements: 'resources/entitlements.mac.plist',
     entitlementsInherit: 'resources/entitlements.mac.plist',
     notarize: false,
@@ -100,11 +104,16 @@ const config = {
     publisherName: 'Bruno Software Inc'
   },
   nsis: {
+    include: 'resources/installer.nsh',
     oneClick: false,
     allowToChangeInstallationDirectory: true,
     allowElevation: true,
     createDesktopShortcut: true,
     createStartMenuShortcut: true
+  },
+  pkg: {
+    installLocation: '/Applications',
+    isRelocatable: false
   }
 };
 

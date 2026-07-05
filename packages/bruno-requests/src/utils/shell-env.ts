@@ -4,6 +4,8 @@
  * Fetches environment variables from the user's shell configuration files (e.g., .zshenv, .bashrc)
  */
 
+import path from 'path';
+
 const fetchShellEnv = async (): Promise<Record<string, string>> => {
   // Windows handles environment variables differently - skip
   if (process.platform === 'win32') {
@@ -29,7 +31,9 @@ const fetchShellEnv = async (): Promise<Record<string, string>> => {
 export const initializeShellEnv = async (): Promise<Record<string, string>> => {
   const shellEnvVars = await fetchShellEnv();
   for (const [key, value] of Object.entries(shellEnvVars)) {
-    if (!(key in process.env)) {
+    if (key === 'PATH' && process.env.PATH) {
+      process.env.PATH = `${value}${path.delimiter}${process.env.PATH}`;
+    } else if (!(key in process.env)) {
       process.env[key] = value;
     }
   }

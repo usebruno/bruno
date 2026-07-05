@@ -1,27 +1,7 @@
 import { test, expect, Page } from '../../playwright';
 import { buildScriptErrorLocators, buildCommonLocators } from '../utils/page/locators';
-import { openRequest, closeAllTabs } from '../utils/page/actions';
+import { openRequest, closeAllTabs, sendAndWaitForErrorCard, sendAndWaitForResponse } from '../utils/page/actions';
 import { setSandboxMode, runCollection } from '../utils/page/runner';
-
-/**
- * Helper: click send and wait for at least one error card to appear.
- */
-const sendAndWaitForErrorCard = async (page: Page) => {
-  const { request } = buildCommonLocators(page);
-  const scriptErrorLocators = buildScriptErrorLocators(page);
-  await request.sendButton().click();
-  await scriptErrorLocators.card().waitFor({ state: 'visible', timeout: 15000 });
-};
-
-/**
- * Helper: click send and wait for a response status code to appear.
- * Used for requests that succeed at HTTP level but may have post-response/test errors.
- */
-const sendAndWaitForResponse = async (page: Page) => {
-  const { request, response } = buildCommonLocators(page);
-  await request.sendButton().click();
-  await response.statusCode().waitFor({ state: 'visible', timeout: 15000 });
-};
 
 /**
  * Helper: expand a folder in the sidebar and open a nested request.

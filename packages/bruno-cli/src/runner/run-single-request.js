@@ -2,31 +2,27 @@ const qs = require('qs');
 const chalk = require('chalk');
 const decomment = require('decomment');
 const fs = require('fs');
-const { forOwn, isUndefined, isNull, each, extend, get, compact } = require('lodash');
+const { forOwn, each, extend, get, compact } = require('lodash');
 const prepareRequest = require('./prepare-request');
 const interpolateVars = require('./interpolate-vars');
 const { interpolateString, interpolateObject } = require('./interpolate-string');
 const { ScriptRuntime, TestRuntime, VarsRuntime, AssertRuntime, formatErrorWithContext, SCRIPT_TYPES } = require('@usebruno/js');
 const { stripExtension } = require('../utils/filesystem');
 const { getOptions } = require('../utils/bru');
-const https = require('node:https');
-const http = require('node:http');
-const { HttpProxyAgent } = require('http-proxy-agent');
-const { SocksProxyAgent } = require('socks-proxy-agent');
+const { applyVariableUpdates, persistVariableUpdates } = require('../utils/persist-variables');
 const { makeAxiosInstance } = require('../utils/axios-instance');
 const { addAwsV4Interceptor, resolveAwsV4Credentials } = require('./awsv4auth-helper');
-const { shouldUseProxy, PatchedHttpsProxyAgent } = require('../utils/proxy-util');
+const { setupProxyAgents } = require('../utils/proxy-util');
 const path = require('path');
 const { parseDataFromResponse } = require('../utils/common');
 const { getCookieStringForUrl, saveCookies } = require('../utils/cookies');
 const { createFormData } = require('../utils/form-data');
-const protocolRegex = /^([-+\w]{1,25})(:?\/\/|:)/;
 const { NtlmClient } = require('axios-ntlm');
-const { addDigestInterceptor, getHttpHttpsAgents, makeAxiosInstance: makeAxiosInstanceForOauth2 } = require('@usebruno/requests');
-const { getCACertificates, transformProxyConfig, getOrCreateHttpsAgent, getOrCreateHttpAgent } = require('@usebruno/requests');
+const { addDigestInterceptor, addEdgeGridInterceptor, getHttpHttpsAgents, makeAxiosInstance: makeAxiosInstanceForOauth2, applyOAuth1ToRequest } = require('@usebruno/requests');
+const { getCACertificates, transformProxyConfig } = require('@usebruno/requests');
 const { getOAuth2Token, getFormattedOauth2Credentials } = require('../utils/oauth2');
 const tokenStore = require('../store/tokenStore');
-const { encodeUrl, buildFormUrlEncodedPayload, extractPromptVariables, isFormData } = require('@usebruno/common').utils;
+const { encodeUrl, buildFormUrlEncodedPayload, extractPromptVariables, isFormData, extractBoundaryFromContentType, hasExplicitScheme } = require('@usebruno/common').utils;
 
 const onConsoleLog = (type, args) => {
   console[type](...args);
@@ -98,8 +94,31 @@ const runSingleRequest = async function (
   runtime,
   collection,
   runSingleRequestByPathname,
-  globalEnvVars = {}
+  globalEnvVars = {},
+  persistPaths = {}
 ) {
+  const syncVariableUpdates = (result, currentRequest) => {
+    if (!result) return;
+    applyVariableUpdates(result, {
+      envVariables,
+      runtimeVariables,
+      globalEnvVars,
+      request: currentRequest
+    });
+    // Persistence is a side effect — never tank the run for it. In CI, env files may sit on
+    // read-only mounts or the user's shell may lack write permissions; log and continue.
+    try {
+      persistVariableUpdates(result, {
+        envFile: persistPaths.envFile,
+        globalEnvFile: persistPaths.globalEnvFile,
+        collection,
+        collectionRootPath: persistPaths.collectionRootPath,
+        envVarOverrides: persistPaths.envVarOverrides
+      });
+    } catch (err) {
+      console.warn(chalk.yellow(`Warning: failed to persist variable updates: ${err.message}`));
+    }
+  };
   const { pathname: itemPathname } = item;
   const relativeItemPathname = path.relative(collectionPath, itemPathname);
 
@@ -165,7 +184,9 @@ const runSingleRequest = async function (
           status: 'skipped',
           statusText: errorMsg,
           data: null,
-          responseTime: 0
+          responseTime: 0,
+          duration: 0,
+          size: 0
         },
         error: null,
         status: 'skipped',
@@ -231,6 +252,7 @@ const runSingleRequest = async function (
           scriptingConfig,
           runSingleRequestByPathname,
           collectionName);
+        syncVariableUpdates(result, request);
         if (result?.nextRequestName !== undefined) {
           nextRequestName = result.nextRequestName;
         }
@@ -260,7 +282,9 @@ const runSingleRequest = async function (
               status: 'skipped',
               statusText: 'request skipped via pre-request script',
               data: null,
-              responseTime: 0
+              responseTime: 0,
+              duration: 0,
+              size: 0
             },
             error: null,
             status: 'skipped',
@@ -281,6 +305,9 @@ const runSingleRequest = async function (
 
         // Extract partial results from the error (tests that passed before the error)
         preRequestTestResults = error?.partialResults?.results || [];
+
+        // Persist any variable changes the script made before erroring
+        syncVariableUpdates(error?.partialResults, request);
 
         // Preserve nextRequestName if it was set before the error
         if (error?.partialResults?.nextRequestName !== undefined) {
@@ -311,7 +338,9 @@ const runSingleRequest = async function (
             headers: null,
             data: null,
             url: null,
-            responseTime: 0
+            responseTime: 0,
+            duration: 0,
+            size: 0
           },
           error: error?.message || 'An error occurred while executing the pre-request script.',
           status: 'error',
@@ -342,7 +371,7 @@ const runSingleRequest = async function (
       request.url = encodeUrl(request.url);
     }
 
-    if (!protocolRegex.test(request.url)) {
+    if (!hasExplicitScheme(request.url)) {
       request.url = `http://${request.url}`;
     }
 
@@ -420,8 +449,8 @@ const runSingleRequest = async function (
     } else if (!collectionProxyDisabled && collectionProxyInherit) {
       // Inherit from system proxy
       if (cachedSystemProxy) {
-        const { http_proxy, https_proxy } = cachedSystemProxy;
-        if (http_proxy?.length || https_proxy?.length) {
+        const { http_proxy, https_proxy, pac_url } = cachedSystemProxy;
+        if (http_proxy?.length || https_proxy?.length || pac_url?.length) {
           proxyMode = 'system';
         }
       }
@@ -429,90 +458,15 @@ const runSingleRequest = async function (
     }
     // else: collection proxy is disabled, proxyMode stays 'off'
 
-    // Prepare TLS options for agent caching
-    const tlsOptions = {
-      ...httpsAgentRequestFields
-    };
-
-    // HTTP agent options — separate from tlsOptions to avoid leaking TLS fields
-    const httpAgentOptions = { keepAlive: true };
-
-    const parsedRequestUrl = new URL(request.url);
-    const isHttpsRequest = parsedRequestUrl.protocol === 'https:';
-    const hostname = parsedRequestUrl.hostname || null;
-
-    if (proxyMode === 'on') {
-      const shouldProxy = shouldUseProxy(request.url, get(proxyConfig, 'bypassProxy', ''));
-      if (shouldProxy) {
-        const proxyProtocol = interpolateString(get(proxyConfig, 'protocol'), interpolationOptions);
-        const proxyHostname = interpolateString(get(proxyConfig, 'hostname'), interpolationOptions);
-        const proxyPort = interpolateString(get(proxyConfig, 'port'), interpolationOptions);
-        const proxyAuthEnabled = !get(proxyConfig, 'auth.disabled', false);
-        const socksEnabled = proxyProtocol.includes('socks');
-        let uriPort = isUndefined(proxyPort) || isNull(proxyPort) ? '' : `:${proxyPort}`;
-        let proxyUri;
-        if (proxyAuthEnabled) {
-          const proxyAuthUsername = encodeURIComponent(interpolateString(get(proxyConfig, 'auth.username'), interpolationOptions));
-          const proxyAuthPassword = encodeURIComponent(interpolateString(get(proxyConfig, 'auth.password'), interpolationOptions));
-
-          proxyUri = `${proxyProtocol}://${proxyAuthUsername}:${proxyAuthPassword}@${proxyHostname}${uriPort}`;
-        } else {
-          proxyUri = `${proxyProtocol}://${proxyHostname}${uriPort}`;
-        }
-        // When the proxy itself uses HTTPS, the agent connecting to it needs TLS options
-        // (e.g., ca certs) even for plain HTTP requests
-        const isHttpsProxy = proxyProtocol === 'https';
-        const httpProxyAgentOptions = isHttpsProxy ? { ...httpAgentOptions, ...tlsOptions } : httpAgentOptions;
-
-        // Only set the agent needed for the request protocol
-        if (socksEnabled) {
-          if (isHttpsRequest) {
-            request.httpsAgent = getOrCreateHttpsAgent({ AgentClass: SocksProxyAgent, options: tlsOptions, proxyUri, disableCache, hostname });
-          } else {
-            request.httpAgent = getOrCreateHttpAgent({ AgentClass: SocksProxyAgent, options: httpProxyAgentOptions, proxyUri, disableCache, hostname });
-          }
-        } else {
-          if (isHttpsRequest) {
-            request.httpsAgent = getOrCreateHttpsAgent({ AgentClass: PatchedHttpsProxyAgent, options: tlsOptions, proxyUri, disableCache, hostname });
-          } else {
-            request.httpAgent = getOrCreateHttpAgent({ AgentClass: HttpProxyAgent, options: httpProxyAgentOptions, proxyUri, disableCache, hostname });
-          }
-        }
-      }
-    } else if (proxyMode === 'system') {
-      try {
-        const { http_proxy, https_proxy, no_proxy } = cachedSystemProxy || {};
-        const shouldUseSystemProxy = shouldUseProxy(request.url, no_proxy || '');
-        if (shouldUseSystemProxy) {
-          try {
-            if (http_proxy?.length && !isHttpsRequest) {
-              const parsedHttpProxy = new URL(http_proxy);
-              const isHttpsSystemProxy = parsedHttpProxy.protocol === 'https:';
-              const systemHttpProxyAgentOptions = isHttpsSystemProxy ? { ...httpAgentOptions, ...tlsOptions } : httpAgentOptions;
-              request.httpAgent = getOrCreateHttpAgent({ AgentClass: HttpProxyAgent, options: systemHttpProxyAgentOptions, proxyUri: http_proxy, disableCache, hostname });
-            }
-          } catch (error) {
-            throw new Error('Invalid system http_proxy');
-          }
-          try {
-            if (https_proxy?.length && isHttpsRequest) {
-              new URL(https_proxy);
-              request.httpsAgent = getOrCreateHttpsAgent({ AgentClass: PatchedHttpsProxyAgent, options: tlsOptions, proxyUri: https_proxy, disableCache, hostname });
-            }
-          } catch (error) {
-            throw new Error('Invalid system https_proxy');
-          }
-        }
-      } catch (error) {}
-    }
-
-    if (!request.httpAgent && !request.httpsAgent) {
-      if (isHttpsRequest) {
-        request.httpsAgent = getOrCreateHttpsAgent({ AgentClass: https.Agent, options: tlsOptions, disableCache, hostname });
-      } else {
-        request.httpAgent = getOrCreateHttpAgent({ AgentClass: http.Agent, options: httpAgentOptions, disableCache, hostname });
-      }
-    }
+    await setupProxyAgents({
+      requestConfig: request,
+      proxyMode,
+      proxyConfig,
+      systemProxyConfig: cachedSystemProxy,
+      httpsAgentRequestFields,
+      interpolationOptions,
+      disableCache
+    });
 
     // set cookies if enabled
     if (!options.disableCookies) {
@@ -561,7 +515,7 @@ const runSingleRequest = async function (
 
     const contentType = contentTypeHeader ? request.headers[contentTypeHeader] : '';
     if (typeof contentType === 'string' && contentType.startsWith('multipart/')) {
-      if (!isFormData(request?.data)) {
+      if (typeof request.data !== 'string' && !isFormData(request?.data)) {
         request._originalMultipartData = request.data;
         request.collectionPath = collectionPath;
         let form = createFormData(request.data, collectionPath);
@@ -570,7 +524,12 @@ const runSingleRequest = async function (
         if (contentType !== 'multipart/form-data') {
           // Patch: Axios leverages getHeaders method to get the headers so FormData should be monkey patched
           const formHeaders = form.getHeaders();
-          formHeaders['content-type'] = `${contentType}; boundary=${form.getBoundary()}`;
+          const existingBoundary = extractBoundaryFromContentType(contentType);
+          if (existingBoundary) {
+            formHeaders['content-type'] = contentType;
+          } else {
+            formHeaders['content-type'] = `${contentType}; boundary=${form.getBoundary()}`;
+          }
           form.getHeaders = function () {
             return formHeaders;
           };
@@ -688,12 +647,26 @@ const runSingleRequest = async function (
       let axiosInstance = makeAxiosInstance({
         requestMaxRedirects: requestMaxRedirects,
         disableCookies: options.disableCookies,
-        followRedirects: followRedirects
+        followRedirects: followRedirects,
+        proxyMode,
+        proxyConfig,
+        systemProxyConfig: cachedSystemProxy,
+        httpsAgentRequestFields,
+        interpolationOptions,
+        disableCache
       });
 
       if (request.ntlmConfig) {
         axiosInstance = NtlmClient(request.ntlmConfig, axiosInstance.defaults);
         delete request.ntlmConfig;
+      }
+
+      if (request.oauth1config) {
+        try {
+          applyOAuth1ToRequest(request, collectionPath);
+        } catch (error) {
+          throw new Error(`OAuth1 signing failed: ${error.message}`);
+        }
       }
 
       if (request.awsv4config) {
@@ -719,6 +692,11 @@ const runSingleRequest = async function (
         delete request.digestConfig;
       }
 
+      if (request.edgeGridConfig) {
+        addEdgeGridInterceptor(axiosInstance, request);
+        delete request.edgeGridConfig;
+      }
+
       /** @type {import('axios').AxiosResponse} */
       response = await axiosInstance(request);
 
@@ -727,7 +705,7 @@ const runSingleRequest = async function (
       response.dataBuffer = dataBuffer;
 
       // Prevents the duration on leaking to the actual result
-      responseTime = response.headers.get('request-duration');
+      responseTime = Number(response.headers.get('request-duration')) || 0;
       response.headers.delete('request-duration');
 
       // save cookies if enabled
@@ -744,6 +722,11 @@ const runSingleRequest = async function (
         // Prevents the duration on leaking to the actual result
         responseTime = response.headers.get('request-duration');
         response.headers.delete('request-duration');
+
+        // save cookies if enabled (4XX/5XX responses can also set cookies)
+        if (!options.disableCookies) {
+          saveCookies(request.url, response.headers);
+        }
       } else {
         console.log(chalk.red(stripExtension(relativeItemPathname)) + chalk.dim(` (${err.message})`));
         return {
@@ -762,7 +745,9 @@ const runSingleRequest = async function (
             headers: null,
             data: null,
             url: null,
-            responseTime: 0
+            responseTime: 0,
+            duration: 0,
+            size: 0
           },
           error: err?.message || err?.errors?.map((e) => e?.message)?.at(0) || err?.code || 'Request Failed!',
           status: 'error',
@@ -790,7 +775,7 @@ const runSingleRequest = async function (
     const postResponseVars = get(item, 'request.vars.res');
     if (postResponseVars?.length) {
       const varsRuntime = new VarsRuntime({ runtime: scriptingConfig?.runtime });
-      varsRuntime.runPostResponseVars(
+      const result = varsRuntime.runPostResponseVars(
         postResponseVars,
         request,
         response,
@@ -799,6 +784,9 @@ const runSingleRequest = async function (
         collectionPath,
         processEnvVars
       );
+      // Expressions can invoke bru.setEnvVar / setGlobalEnvVar / setCollectionVar as a side effect,
+      // mirroring how the desktop app surfaces these mutations after the vars block.
+      syncVariableUpdates(result, request);
     }
 
     // run post response script
@@ -819,6 +807,7 @@ const runSingleRequest = async function (
           runSingleRequestByPathname,
           collectionName
         );
+        syncVariableUpdates(result, request);
         if (result?.nextRequestName !== undefined) {
           nextRequestName = result.nextRequestName;
         }
@@ -849,6 +838,8 @@ const runSingleRequest = async function (
             isScriptError: true
           }
         ];
+
+        syncVariableUpdates(error?.partialResults, request);
 
         if (error?.partialResults?.nextRequestName !== undefined) {
           nextRequestName = error.partialResults.nextRequestName;
@@ -895,6 +886,7 @@ const runSingleRequest = async function (
           runSingleRequestByPathname,
           collectionName
         );
+        syncVariableUpdates(result, request);
         testResults = get(result, 'results', []);
 
         if (result?.nextRequestName !== undefined) {
@@ -927,6 +919,8 @@ const runSingleRequest = async function (
           }
         ];
 
+        syncVariableUpdates(error?.partialResults, request);
+
         if (error?.partialResults?.nextRequestName !== undefined) {
           nextRequestName = error.partialResults.nextRequestName;
         }
@@ -957,7 +951,11 @@ const runSingleRequest = async function (
         headers: response.headers,
         data: response.data,
         url: response.request ? response.request.protocol + '//' + response.request.host + response.request.path : null,
-        responseTime
+        responseTime,
+        // In the GUI, duration is wall-clock time (timeEnd - timeStart).
+        // In the CLI we use responseTime as a close approximation.
+        duration: responseTime,
+        size: response.dataBuffer ? Buffer.byteLength(response.dataBuffer) : 0
       },
       error: null,
       status: 'pass',
@@ -986,7 +984,9 @@ const runSingleRequest = async function (
         headers: null,
         data: null,
         url: null,
-        responseTime: 0
+        responseTime: 0,
+        duration: 0,
+        size: 0
       },
       status: 'error',
       error: err.message,

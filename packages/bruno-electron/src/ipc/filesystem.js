@@ -1,5 +1,6 @@
-const { ipcMain } = require('electron');
+const { ipcMain, dialog } = require('electron');
 const path = require('node:path');
+const { pathToFileURL } = require('node:url');
 
 const {
   browseDirectory,
@@ -25,6 +26,15 @@ const registerFilesystemIpc = (mainWindow) => {
     } catch (error) {
       throw error;
     }
+  });
+
+  ipcMain.handle('renderer:browse-pac-file', async () => {
+    const { filePaths } = await dialog.showOpenDialog(mainWindow, {
+      properties: ['openFile'],
+      filters: [{ name: 'PAC Files', extensions: ['pac', 'js'] }]
+    });
+    if (!filePaths || filePaths.length === 0) return null;
+    return pathToFileURL(filePaths[0]).href;
   });
 
   ipcMain.handle('renderer:exists-sync', async (_, filePath) => {

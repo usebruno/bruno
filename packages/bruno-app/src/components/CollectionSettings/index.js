@@ -15,6 +15,7 @@ import StyledWrapper from './StyledWrapper';
 import Vars from './Vars/index';
 import StatusDot from 'components/StatusDot';
 import Overview from './Overview/index';
+import { DEFAULT_PRESET_REQUEST_TYPE } from 'utils/common/constants';
 
 const CollectionSettings = ({ collection }) => {
   const dispatch = useDispatch();
@@ -60,7 +61,7 @@ const CollectionSettings = ({ collection }) => {
     ? get(collection, 'draft.brunoConfig.protobuf', {})
     : get(collection, 'brunoConfig.protobuf', {});
   const presets = collection.draft?.brunoConfig ? get(collection, 'draft.brunoConfig.presets', {}) : get(collection, 'brunoConfig.presets', {});
-  const hasPresets = presets && presets.requestUrl !== '';
+  const hasPresets = presets && ((presets.requestType && presets.requestType !== DEFAULT_PRESET_REQUEST_TYPE) || (presets.requestUrl && presets.requestUrl !== ''));
 
   const getTabPanel = (tab) => {
     switch (tab) {
@@ -146,7 +147,7 @@ const CollectionSettings = ({ collection }) => {
           {protobufConfig.protoFiles && protobufConfig.protoFiles.length > 0 && <StatusDot />}
         </div>
       </div>
-      <section className="mt-4 h-full overflow-auto">{getTabPanel(tab)}</section>
+      <section className="collection-settings-content mt-4 h-full overflow-auto">{getTabPanel(tab)}</section>
     </StyledWrapper>
   );
 };

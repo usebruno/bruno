@@ -104,6 +104,34 @@ const writeFile = async (pathname, content, isBinary = false) => {
   }
 };
 
+// Per-path async mutex for file writes. Callers that perform read-modify-write
+// against the same file from multiple async chains (e.g. two scripted variable
+// writes racing on the same environment file) wrap the whole critical section in
+// withFileLock(absPath, ...) so the second writer reads the post-first-write state.
+// Without this, `fs.readFileSync` outside the lock can capture pre-A state while
+// A is still flushing, and B then overwrites A. Lock entries are cleaned up once
+// the queue for a path drains.
+const _pathLocks = new Map();
+const withFileLock = async (pathname, fn) => {
+  // Canonicalize so callers passing `/foo/./bar.env` and `/foo/bar.env` (or
+  // trailing slashes / `..` segments) share a single lock. Does NOT normalize
+  // symlinks or filesystem case-insensitivity — callers passing semantically
+  // equivalent but different strings beyond that get separate locks.
+  const key = path.resolve(pathname);
+  const prior = _pathLocks.get(key) || Promise.resolve();
+  // Errors from a prior writer must not block subsequent writers; the next caller
+  // gets its own try/catch.
+  const next = prior.catch(() => {}).then(() => fn());
+  _pathLocks.set(key, next);
+  try {
+    return await next;
+  } finally {
+    if (_pathLocks.get(key) === next) {
+      _pathLocks.delete(key);
+    }
+  }
+};
+
 const hasJsonExtension = (filename) => {
   if (!filename || typeof filename !== 'string') return false;
   return ['json'].some((ext) => filename.toLowerCase().endsWith(`.${ext}`));
@@ -404,6 +432,37 @@ const removePath = async (source) => {
   }
 };
 
+/**
+ * Move a collection directory from source to destination.
+ * Uses fs-extra's move for cross-device compatibility.
+ */
+const moveCollectionDirectory = async (source, destination) => {
+  const needsWindowsSafeMove = isWindowsOS() && !isWSLPath(source) && hasSubDirectories(source);
+  if (!needsWindowsSafeMove) {
+    await fs.move(source, destination, { overwrite: false });
+    return;
+  }
+
+  const tempDir = path.join(os.tmpdir(), `temp-collection-${Date.now()}`);
+  try {
+    await fs.copy(source, tempDir);
+    await fs.remove(source);
+    await fs.move(tempDir, destination, { overwrite: false });
+    await fs.remove(tempDir);
+  } catch (error) {
+    // restore the source if the windows safe move left files in the temp dir
+    if (fs.pathExistsSync(tempDir) && !fs.pathExistsSync(source)) {
+      try {
+        await fs.copy(tempDir, source);
+        await fs.remove(tempDir);
+      } catch (err) {
+        console.error('Failed to restore collection directory to its original path:', err);
+      }
+    }
+    throw error;
+  }
+};
+
 // Recursively gets paths.
 const getPaths = async (source) => {
   let paths = [];
@@ -490,7 +549,7 @@ const scanForBrunoFiles = async (dir) => {
             return;
           }
           scanDir(fullPath);
-        } else if (file === 'bruno.json') {
+        } else if ((file === 'bruno.json' || file === 'opencollection.yml') && !brunoFolders.includes(currentDir)) {
           brunoFolders.push(currentDir);
         }
       });
@@ -516,6 +575,7 @@ module.exports = {
   isWSLPath,
   normalizeWSLPath,
   writeFile,
+  withFileLock,
   hasJsonExtension,
   hasBruExtension,
   hasRequestExtension,
@@ -536,6 +596,7 @@ module.exports = {
   safeWriteFileSync,
   copyPath,
   removePath,
+  moveCollectionDirectory,
   getPaths,
   isLargeFile,
   generateUniqueName,
