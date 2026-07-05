@@ -54,6 +54,12 @@ const CodeViewToolbar = () => {
     }));
   };
 
+  const handleLineContinuationChange = (e) => {
+    dispatch(updateGenerateCode({
+      lineContinuationChar: e.target.value
+    }));
+  };
+
   return (
     <StyledWrapper>
       <div className="toolbar">
@@ -89,6 +95,23 @@ const CodeViewToolbar = () => {
         </div>
 
         <div className="right-controls">
+          {generateCodePrefs.mainLanguage === 'Shell' && (
+            <div className="select-wrapper continuation-select">
+              <select
+                className="native-select"
+                value={generateCodePrefs.lineContinuationChar}
+                onChange={handleLineContinuationChange}
+                title="Line continuation character"
+                aria-label="Line continuation character"
+              >
+                <option value={'\\'}>{'\\'} (Unix/macOS)</option>
+                <option value="^">^ (Windows cmd)</option>
+                <option value="`">` (PowerShell)</option>
+              </select>
+              <IconChevronDown size={16} className="select-arrow" />
+            </div>
+          )}
+
           <label className="interpolate-checkbox">
             <input
               type="checkbox"

@@ -36,9 +36,10 @@ const CodeView = ({ language, item }) => {
       language,
       item,
       collection,
-      shouldInterpolate: generateCodePrefs.shouldInterpolate
+      shouldInterpolate: generateCodePrefs.shouldInterpolate,
+      lineContinuationChar: generateCodePrefs.lineContinuationChar
     });
-  }, [language, item, collection, generateCodePrefs.shouldInterpolate]);
+  }, [language, item, collection, generateCodePrefs.shouldInterpolate, generateCodePrefs.lineContinuationChar]);
 
   return (
     <StyledWrapper>

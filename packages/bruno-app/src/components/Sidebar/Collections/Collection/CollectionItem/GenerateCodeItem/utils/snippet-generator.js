@@ -31,7 +31,16 @@ const addCurlAuthFlags = (curlCommand, auth) => {
   return curlCommand;
 };
 
-const generateSnippet = ({ language, item, collection, shouldInterpolate = false }) => {
+// package httpsnippet's shell clients (curl/httpie/wget) hardcode `\` as the
+// multiline join character. There is no option to override it upstream.
+// Swap it on the rendered text for cmd (^) / PowerShell (`) snippets.
+const applyLineContinuation = (text, lineContinuationChar) => {
+  if (!lineContinuationChar || lineContinuationChar === '\\') return text;
+
+  return text.split(' \\\n').join(` ${lineContinuationChar}\n`);
+};
+
+const generateSnippet = ({ language, item, collection, shouldInterpolate = false, lineContinuationChar = '\\' }) => {
   try {
     // Get HTTPSnippet dynamically so mocks can be applied in tests
     const { HTTPSnippet } = require('httpsnippet');
@@ -108,7 +117,13 @@ const generateSnippet = ({ language, item, collection, shouldInterpolate = false
     }
 
     // Restore `{{var}}` placeholders that buildHar hashed during processing.
-    return unhash(result);
+    result = unhash(result);
+
+    if (language.target === 'shell') {
+      result = applyLineContinuation(result, lineContinuationChar);
+    }
+
+    return result;
   } catch (error) {
     console.error('Error generating code snippet:', error);
     return 'Error generating code snippet';

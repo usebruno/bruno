@@ -87,7 +87,8 @@ const initialState = {
   generateCode: {
     mainLanguage: 'Shell',
     library: 'curl',
-    shouldInterpolate: true
+    shouldInterpolate: true,
+    lineContinuationChar: '\\'
   },
   cookies: [],
   taskQueue: [],
