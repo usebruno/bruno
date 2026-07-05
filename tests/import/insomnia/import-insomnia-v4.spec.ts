@@ -7,7 +7,7 @@ test.describe('Import Insomnia Collection v4', () => {
     await closeAllCollections(page);
   });
 
-  test('Import Insomnia Collection v4 successfully', async ({ page, createTmpDir }) => {
+  test('TC110: Verify the Importing insomnia collection as .Json File', async ({ page, createTmpDir }) => {
     const insomniaFile = path.resolve(__dirname, 'fixtures', 'insomnia-v4.json');
 
     await importCollection(page, insomniaFile, await createTmpDir('insomnia-v4-test'), {
