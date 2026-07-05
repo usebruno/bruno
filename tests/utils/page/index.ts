@@ -2,6 +2,8 @@ export * from './actions';
 export * from './file-mode';
 export * from './runner';
 export * from './locators';
+export * from './collection';
+export * from './toast';
 export * from './mounting';
 export * from './preferences';
 export * from './ai';

@@ -512,6 +512,10 @@ const importCollection = async (
     await page.locator('#collection-location').fill(collectionLocation);
     await locationModal.getByRole('button', { name: 'Import' }).click();
 
+    if (options.successToast) {
+      await expect(locators.toast.success(options.successToast)).toBeVisible();
+    }
+
     // Wait for collection to appear in sidebar
     if (options.expectedCollectionName) {
       await expect(

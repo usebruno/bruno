@@ -57,7 +57,7 @@ test.describe('Create collection', () => {
     const collectionName = 'test-collection';
     const locators = buildCommonLocators(page);
     await createCollection(page, collectionName, await createTmpDir(collectionName));
-    await expect(locators.toast.collectionCreated()).toBeVisible();
+    await expect(locators.toast.success('Collection created!')).toBeVisible();
     await expect(locators.sidebar.collection(collectionName)).toBeVisible();
   });
 

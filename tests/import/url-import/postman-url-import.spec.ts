@@ -7,7 +7,7 @@ test.describe('Postman URL Import', () => {
     await closeAllCollections(page);
   });
 
-  test('Postman URL import', async ({ page, createTmpDir }) => {
+  test('TC811: Verify import collection through Valid Postman Collection from Direct URL', async ({ page, createTmpDir }) => {
     const postmanUrl = 'https://raw.githubusercontent.com/usebruno/bruno/refs/heads/main/tests/import/postman/fixtures/postman-v21.json';
 
     await page.getByTestId('collections-header-add-menu').click();
