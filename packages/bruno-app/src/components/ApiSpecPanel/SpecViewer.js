@@ -16,16 +16,13 @@ const getPreviewParseError = (content) => {
   if (!content || typeof content !== 'string') return null;
   let parsed;
   try {
-    try {
-      parsed = JSON.parse(content);
-    } catch {
-      parsed = jsyaml.load(content);
-    }
+    parsed = JSON.parse(content);
   } catch {
-    return SPEC_PREVIEW_ERRORS.INVALID_YAML_JSON;
-  }
-  if (!parsed || typeof parsed !== 'object') {
-    return SPEC_PREVIEW_ERRORS.INVALID_OPENAPI;
+    try {
+      parsed = jsyaml.load(content);
+    } catch {
+      return SPEC_PREVIEW_ERRORS.INVALID_YAML_JSON;
+    }
   }
   if (!isOpenApiSpec(parsed)) {
     return SPEC_PREVIEW_ERRORS.INVALID_OPENAPI;

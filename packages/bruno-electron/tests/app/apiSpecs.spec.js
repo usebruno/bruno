@@ -90,4 +90,18 @@ describe('openApiSpec', () => {
     );
     expect(win.webContents.send).not.toHaveBeenCalledWith('main:display-error', expect.anything());
   });
+
+  test('opens a broken JSON file with a valid extension without throwing, resolving json to null', async () => {
+    const specPath = writeSpecFile('broken.json', '{\n  "openapi": "3.0.0",\n  "info": {\n    "title": "Test"\n    "version": "1.0.0"\n  },\n  "paths": {\n');
+    watcher.hasWatcher.mockReturnValue(true);
+
+    await openApiSpec(win, watcher, specPath);
+
+    expect(win.webContents.send).toHaveBeenCalledWith(
+      'main:apispec-tree-updated',
+      'addFile',
+      expect.objectContaining({ pathname: specPath, json: null })
+    );
+    expect(win.webContents.send).not.toHaveBeenCalledWith('main:display-error', expect.anything());
+  });
 });

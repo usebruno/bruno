@@ -68,6 +68,23 @@ test.describe('API Spec Panel - open & preview validation', () => {
     ).toBeVisible({ timeout: 10000 });
   });
 
+  test('Show a parse error when opening malformed JSON', async ({ page, electronApp }) => {
+    const openApiFile = path.resolve(__dirname, 'fixtures', 'openapi-broken.json');
+
+    await electronApp.evaluate(({ dialog }, openApiFile) => {
+      dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [openApiFile] });
+    }, openApiFile);
+
+    await page.getByTestId('api-specs-header-add-menu').click();
+    await page.getByTestId('api-specs-header-add-menu-open-api-spec').click();
+
+    await page.locator('.api-spec-item').filter({ hasText: 'openapi-broken' }).click();
+
+    await expect(
+      page.getByText(SPEC_PREVIEW_ERRORS.INVALID_YAML_JSON)
+    ).toBeVisible({ timeout: 10000 });
+  });
+
   test('Show a spec error when the file parses but is not a valid OpenAPI document', async ({ page, electronApp }) => {
     const openApiFile = path.resolve(__dirname, 'fixtures', 'openapi-missing-info.yaml');
 
