@@ -1085,6 +1085,13 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
           moveRequestUid(requestFile, newRequestFilePath);
         }
 
+        // Remap the folder's own uid so its identity survives the rename. Without
+        // this the watcher's addDir for the new path mints a fresh uid and the
+        // sidebar ends up with a duplicate folder node (notably on case-only
+        // renames on case-insensitive filesystems, where the directory is the
+        // same on disk but the path casing differs).
+        moveRequestUid(oldPath, newPath);
+
         /**
          * If it is windows OS
          * And it is not a WSL path (meaning it is not running in WSL (linux pathtype))

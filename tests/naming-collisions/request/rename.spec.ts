@@ -1,8 +1,8 @@
 import process from 'node:process';
 import * as path from 'path';
-import { test, expect, Page } from '../../playwright';
-import { buildCommonLocators, createCollection, createRequest, createFolder, closeAllCollections } from '../utils/page';
-import { listRequestFiles } from './utils';
+import { test, expect, Page } from '../../../playwright';
+import { buildCommonLocators, createCollection, createRequest, createFolder, closeAllCollections } from '../../utils/page';
+import { listRequestFiles } from '../utils';
 
 const openRenameModal = async (page: Page, currentName: string) => {
   const locators = buildCommonLocators(page);
