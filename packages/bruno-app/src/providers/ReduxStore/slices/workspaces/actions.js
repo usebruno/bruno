@@ -843,6 +843,7 @@ export const restoreActiveWorkspaceFromSnapshot = () => {
 
 export const workspaceOpenedEvent = (workspacePath, workspaceUid, workspaceConfig) => {
   return async (dispatch, getState) => {
+    const deferSwitchToStartupRestore = startupWorkspaceRestorePending;
     dispatch(createWorkspace({
       uid: workspaceUid,
       pathname: workspacePath,
@@ -872,7 +873,7 @@ export const workspaceOpenedEvent = (workspacePath, workspaceUid, workspaceConfi
     } catch (err) {
     }
 
-    if (startupWorkspaceRestorePending) {
+    if (deferSwitchToStartupRestore) {
       return;
     }
 
