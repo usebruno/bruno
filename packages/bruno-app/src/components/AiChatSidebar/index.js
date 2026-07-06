@@ -6,13 +6,13 @@ import {
   IconCheck,
   IconCode,
   IconWand,
-  IconStars,
   IconCornerDownLeft,
   IconChevronDown,
   IconHistory,
   IconPlus,
   IconTrash
 } from '@tabler/icons';
+import IconSparkles from 'components/Icons/IconSparkles';
 import get from 'lodash/get';
 import find from 'lodash/find';
 import MenuDropdown from 'ui/MenuDropdown';
@@ -572,7 +572,7 @@ const AiChatSidebar = ({ collection }) => {
 
   const ModelSelectorTrigger = forwardRef((props, ref) => (
     <div ref={ref} className="model-btn" {...props}>
-      <IconStars size={14} strokeWidth={1.75} />
+      <IconSparkles size={14} strokeWidth={1.75} />
       <span>{selectedModelLabel}</span>
       <IconChevronDown size={12} />
     </div>
@@ -600,7 +600,7 @@ const AiChatSidebar = ({ collection }) => {
       <div className="processing-indicator">
         <div className="processing-content">
           <div className="processing-icon">
-            {stage.icon === 'sparkles' && <IconStars size={12} />}
+            {stage.icon === 'sparkles' && <IconSparkles size={12} />}
             {stage.icon === 'wand' && <IconWand size={12} />}
             {stage.icon === 'code' && <IconCode size={12} />}
             {stage.icon === 'send' && <IconCornerDownLeft size={12} />}
@@ -724,7 +724,7 @@ const AiChatSidebar = ({ collection }) => {
     const suggestions = SUGGESTIONS_BY_TYPE[contentType] || SUGGESTIONS_BY_TYPE.app;
     return (
       <div className="empty-state">
-        <div className="empty-icon"><IconStars size={20} /></div>
+        <div className="empty-icon"><IconSparkles size={20} /></div>
         <h3>AI Assistant</h3>
         <p>Ask me to generate or modify code, tests, scripts, and docs.</p>
         <div className="suggestions">
@@ -753,7 +753,7 @@ const AiChatSidebar = ({ collection }) => {
       <div className="ai-sidebar">
         <div className="ai-sidebar-header">
           <div className="header-left">
-            <IconStars size={18} className="header-icon" />
+            <IconSparkles size={18} className="header-icon" />
             <span className={`header-method method-${(requestMethod || 'get').toLowerCase()}`}>{requestMethod}</span>
             <span className="header-title">{requestName}</span>
             {chatsWithMessages.length > 1 && (
