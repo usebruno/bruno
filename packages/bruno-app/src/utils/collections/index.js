@@ -497,6 +497,18 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
               password: get(si.request, 'auth.wsse.password', '')
             };
             break;
+          case 'akamai-edgegrid':
+            di.request.auth.akamaiEdgegrid = {
+              accessToken: get(si.request, 'auth.akamaiEdgegrid.accessToken', ''),
+              clientToken: get(si.request, 'auth.akamaiEdgegrid.clientToken', ''),
+              clientSecret: get(si.request, 'auth.akamaiEdgegrid.clientSecret', ''),
+              nonce: get(si.request, 'auth.akamaiEdgegrid.nonce', ''),
+              timestamp: get(si.request, 'auth.akamaiEdgegrid.timestamp', ''),
+              baseURL: get(si.request, 'auth.akamaiEdgegrid.baseURL', ''),
+              headersToSign: get(si.request, 'auth.akamaiEdgegrid.headersToSign', ''),
+              maxBodySize: get(si.request, 'auth.akamaiEdgegrid.maxBodySize', null)
+            };
+            break;
           default:
             break;
         }
@@ -1014,6 +1026,10 @@ export const humanizeRequestAuthMode = (mode) => {
       label = 'API Key';
       break;
     }
+    case 'akamai-edgegrid': {
+      label = 'Akamai EdgeGrid';
+      break;
+    }
   }
 
   return label;
@@ -1255,6 +1271,10 @@ const getPathParams = (item) => {
   }
   return pathParams;
 };
+
+export const isOpenCollectionFormat = (collection) => Boolean(collection?.brunoConfig?.opencollection);
+
+export const getCollectionVersion = (collection) => collection?.brunoConfig?.version || '';
 
 export const getTotalRequestCountInCollection = (collection) => {
   let count = 0;

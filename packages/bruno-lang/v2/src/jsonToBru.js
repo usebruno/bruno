@@ -490,6 +490,21 @@ ${indentString(`placement: ${auth?.apikey?.placement || ''}`)}
 `;
   }
 
+  if (auth && auth.akamaiEdgegrid) {
+    bru += `auth:akamai-edgegrid {
+${indentString(`accessToken: ${auth?.akamaiEdgegrid?.accessToken || ''}`)}
+${indentString(`clientToken: ${auth?.akamaiEdgegrid?.clientToken || ''}`)}
+${indentString(`clientSecret: ${auth?.akamaiEdgegrid?.clientSecret || ''}`)}
+${indentString(`nonce: ${auth?.akamaiEdgegrid?.nonce || ''}`)}
+${indentString(`timestamp: ${auth?.akamaiEdgegrid?.timestamp || ''}`)}
+${indentString(`baseURL: ${auth?.akamaiEdgegrid?.baseURL || ''}`)}
+${indentString(`headersToSign: ${auth?.akamaiEdgegrid?.headersToSign || ''}`)}
+${indentString(`maxBodySize: ${auth?.akamaiEdgegrid?.maxBodySize ?? ''}`)}
+}
+
+`;
+  }
+
   if (body && body.json && body.json.length) {
     bru += `body:json {
 ${indentString(body.json)}

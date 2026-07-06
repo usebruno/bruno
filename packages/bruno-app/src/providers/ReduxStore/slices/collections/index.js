@@ -24,7 +24,6 @@ import toast from 'react-hot-toast';
 import mime from 'mime-types';
 import path from 'utils/common/path';
 import { getUniqueTagsFromItems } from 'utils/collections/index';
-import { getCollectionEnvironmentPath } from 'utils/snapshot';
 import { getDataTypeFromValue } from '@usebruno/common/utils';
 import * as exampleReducers from './exampleReducers';
 
@@ -287,6 +286,24 @@ export const collectionsSlice = createSlice({
         collection.securityConfig = action.payload.securityConfig;
       }
     },
+    updateCollectionVersion: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+      if (collection) {
+        const version = action.payload.version;
+        const applyVersion = (target) => {
+          if (!target) return;
+          if (version) {
+            target.version = version;
+          } else {
+            delete target.version;
+          }
+        };
+        collection.brunoConfig = collection.brunoConfig || {};
+        applyVersion(collection.brunoConfig);
+        // Keep any unsaved brunoConfig draft in sync so a later settings-save can't wipe it.
+        applyVersion(collection.draft?.brunoConfig);
+      }
+    },
     brunoConfigUpdateEvent: (state, action) => {
       const { collectionUid, brunoConfig } = action.payload;
       const collection = findCollectionByUid(state.collections, collectionUid);
@@ -459,12 +476,6 @@ export const collectionsSlice = createSlice({
       const collection = findCollectionByUid(state.collections, collectionUid);
 
       if (collection) {
-        // Ignore stale updates from superseded requests so an in-flight pre/post
-        // from request N-1 can't clobber state for request N.
-        if (requestUid && collection._scriptRequestUid && requestUid !== collection._scriptRequestUid) {
-          return;
-        }
-
         const activeEnvironment = findEnvironmentInCollection(collection, collection.activeEnvironmentUid);
 
         if (activeEnvironment) {
@@ -503,12 +514,9 @@ export const collectionsSlice = createSlice({
       }
     },
     runtimeVariablesUpdateEvent: (state, action) => {
-      const { collectionUid, runtimeVariables, requestUid } = action.payload;
+      const { collectionUid, runtimeVariables } = action.payload;
       const collection = findCollectionByUid(state.collections, collectionUid);
       if (collection) {
-        if (requestUid && collection._scriptRequestUid && requestUid !== collection._scriptRequestUid) {
-          return;
-        }
         collection.runtimeVariables = runtimeVariables;
       }
     },
@@ -1110,6 +1118,10 @@ export const collectionsSlice = createSlice({
             case 'apikey':
               item.draft.request.auth.mode = 'apikey';
               item.draft.request.auth.apikey = action.payload.content;
+              break;
+            case 'akamai-edgegrid':
+              item.draft.request.auth.mode = 'akamai-edgegrid';
+              item.draft.request.auth.akamaiEdgegrid = action.payload.content;
               break;
           }
         }
@@ -2233,6 +2245,9 @@ export const collectionsSlice = createSlice({
           case 'apikey':
             set(collection, 'draft.root.request.auth.apikey', action.payload.content);
             break;
+          case 'akamai-edgegrid':
+            set(collection, 'draft.root.request.auth.akamaiEdgegrid', action.payload.content);
+            break;
         }
       }
     },
@@ -2565,6 +2580,9 @@ export const collectionsSlice = createSlice({
           case 'apikey':
             set(folder, 'draft.request.auth.apikey', action.payload.content);
             break;
+          case 'akamai-edgegrid':
+            set(folder, 'draft.request.auth.akamaiEdgegrid', action.payload.content);
+            break;
           case 'awsv4':
             set(folder, 'draft.request.auth.awsv4', action.payload.content);
             break;
@@ -2772,9 +2790,6 @@ export const collectionsSlice = createSlice({
       if (!collection) return;
       delete collection._scriptEnvBaseline;
       delete collection._scriptCollVarBaseline;
-      // Also drop the inflight request UID so updates from WS/OAuth2 paths (which
-      // don't dispatch initRunRequestEvent) aren't gated out by a stale HTTP UID.
-      delete collection._scriptRequestUid;
     },
     collectionAddFileEvent: (state, action) => {
       const file = action.payload.file;
@@ -3043,24 +3058,6 @@ export const collectionsSlice = createSlice({
             collection.lastAction = null;
             if (lastAction.payload === environment.name) {
               collection.activeEnvironmentUid = environment.uid;
-              // Persist the selection to the UI state snapshot
-              const { ipcRenderer } = window;
-              if (ipcRenderer) {
-                const extension = collection?.brunoConfig?.version === '1' ? 'bru' : 'yml';
-                const environmentPath = environment?.pathname
-                  || (environment?.name && collection?.pathname
-                    ? path.join(collection.pathname, 'environments', `${environment.name}.${extension}`)
-                    : null);
-
-                ipcRenderer.invoke('renderer:update-ui-state-snapshot', {
-                  type: 'COLLECTION_ENVIRONMENT',
-                  data: {
-                    collectionPath: collection?.pathname,
-                    environmentPath: getCollectionEnvironmentPath(collection, environment, environmentPath),
-                    selectedEnvironment: environment?.name || ''
-                  }
-                });
-              }
             }
           }
         }
@@ -3089,7 +3086,6 @@ export const collectionsSlice = createSlice({
 
       delete collection._scriptEnvBaseline;
       delete collection._scriptCollVarBaseline;
-      collection._scriptRequestUid = requestUid;
 
       const item = findItemInCollection(collection, itemUid);
       if (!item) return;
@@ -3248,7 +3244,6 @@ export const collectionsSlice = createSlice({
           // pre-flush snapshot.
           delete collection._scriptEnvBaseline;
           delete collection._scriptCollVarBaseline;
-          collection._scriptRequestUid = action.payload.requestUid || null;
 
           collection.runnerResult.items.push({
             uid: request.uid,
@@ -3297,8 +3292,10 @@ export const collectionsSlice = createSlice({
 
         if (type === 'runner-request-skipped') {
           const item = collection.runnerResult.items.findLast((i) => i.uid === request.uid);
-          item.status = 'skipped';
-          item.responseReceived = action.payload.responseReceived;
+          if (item) {
+            item.status = 'skipped';
+            item.responseReceived = action.payload.responseReceived;
+          }
         }
 
         if (type === 'post-response-script-execution') {
@@ -3889,6 +3886,7 @@ export const {
   updateCollectionLoadingState,
   collectionLoadedFromTree,
   setCollectionSecurityConfig,
+  updateCollectionVersion,
   brunoConfigUpdateEvent,
   renameCollection,
   removeCollection,
