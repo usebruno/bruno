@@ -77,7 +77,7 @@ const { getProcessEnvVars } = require('../store/process-env');
 const { getOAuth2TokenUsingAuthorizationCode, getOAuth2TokenUsingClientCredentials, getOAuth2TokenUsingPasswordCredentials, getOAuth2TokenUsingImplicitGrant, refreshOauth2Token } = require('../utils/oauth2');
 const { getCertsAndProxyConfig } = require('./network/cert-utils');
 const collectionWatcher = require('../app/collection-watcher');
-const { transformBrunoConfigBeforeSave } = require('../utils/transformBrunoConfig');
+const { transformBrunoConfigBeforeSave, transformBrunoConfigAfterRead } = require('../utils/transformBrunoConfig');
 const { REQUEST_TYPES } = require('../utils/constants');
 const { cancelOAuth2AuthorizationRequest, isOauth2AuthorizationRequestInProgress } = require('../utils/oauth2-protocol-handler');
 const { findUniqueFolderName } = require('../utils/collection-import');
@@ -215,7 +215,6 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
               name: collectionName
             }
           };
-          // For YAML collections, set opencollection instead of version
           brunoConfig = {
             opencollection: '1.0.0',
             name: collectionName,
@@ -233,12 +232,15 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
 
         await writeFile(path.join(dirPath, '.gitignore'), DEFAULT_GITIGNORE);
 
-        const { size, filesCount } = await getCollectionStats(dirPath);
-        brunoConfig.size = size;
-        brunoConfig.filesCount = filesCount;
+        let persistedConfig = await getCollectionConfigFile(dirPath);
+        persistedConfig = await transformBrunoConfigAfterRead(persistedConfig, dirPath);
 
-        mainWindow.webContents.send('main:collection-opened', dirPath, uid, brunoConfig);
-        ipcMain.emit('main:collection-opened', mainWindow, dirPath, uid, brunoConfig);
+        const { size, filesCount } = await getCollectionStats(dirPath);
+        persistedConfig.size = size;
+        persistedConfig.filesCount = filesCount;
+
+        mainWindow.webContents.send('main:collection-opened', dirPath, uid, persistedConfig);
+        ipcMain.emit('main:collection-opened', mainWindow, dirPath, uid, persistedConfig);
       } catch (error) {
         return Promise.reject(error);
       }
@@ -314,7 +316,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
       brunoConfig.filesCount = filesCount;
 
       mainWindow.webContents.send('main:collection-opened', dirPath, uid, brunoConfig);
-      ipcMain.emit('main:collection-opened', mainWindow, dirPath, uid);
+      ipcMain.emit('main:collection-opened', mainWindow, dirPath, uid, brunoConfig);
     }
   );
 
@@ -1394,7 +1396,6 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
 
           if (!brunoConfig) {
             brunoConfig = {
-              version: '1',
               name: collection.name,
               type: 'collection',
               ignore: ['node_modules', '.git']
@@ -1425,7 +1426,11 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
           const collectionContent = await stringifyCollection(coll.root, brunoConfig, { format });
           await writeFile(path.join(collectionPath, 'opencollection.yml'), collectionContent);
         } else if (format === 'bru') {
-          const stringifiedBrunoConfig = await stringifyJson(brunoConfig);
+          const bruJsonConfig = { ...brunoConfig, version: '1' };
+          if (brunoConfig.version) {
+            bruJsonConfig.collectionVersion = brunoConfig.version;
+          }
+          const stringifiedBrunoConfig = await stringifyJson(bruJsonConfig);
           await writeFile(path.join(collectionPath, 'bruno.json'), stringifiedBrunoConfig);
 
           const collectionContent = await stringifyCollection(coll.root, brunoConfig, { format });
@@ -1701,7 +1706,22 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
         const content = await stringifyJson(transformedBrunoConfig);
         await writeFile(brunoConfigPath, content);
       } else if (format === 'yml') {
-        const content = await stringifyCollection(collectionRoot, transformedBrunoConfig, { format });
+        // opencollection.yml holds both config AND the collection root. If the caller
+        // didn't supply a root (e.g. a config-only update before the tree finished
+        // loading), recover it from disk so request defaults/docs/scripts aren't wiped.
+        let rootToWrite = collectionRoot;
+        if (!rootToWrite) {
+          const ocYmlPath = path.join(collectionPath, 'opencollection.yml');
+          if (fs.existsSync(ocYmlPath)) {
+            try {
+              const existing = fs.readFileSync(ocYmlPath, 'utf8');
+              rootToWrite = parseCollection(existing, { format }).collectionRoot;
+            } catch (e) {
+              rootToWrite = collectionRoot;
+            }
+          }
+        }
+        const content = await stringifyCollection(rootToWrite, transformedBrunoConfig, { format });
         await writeFile(path.join(collectionPath, 'opencollection.yml'), content);
       } else {
         throw new Error(`Invalid collection format: ${format}`);
@@ -2158,7 +2178,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
     }
   });
 
-  ipcMain.handle('renderer:mount-collection', async (event, { collectionUid, collectionPathname, brunoConfig }) => {
+  ipcMain.handle('renderer:mount-collection', async (event, { collectionUid, collectionPathname, brunoConfig, workspacePathname }) => {
     let tempDirectoryPath = null;
     try {
       // Ensure the transient base directory exists
@@ -2185,7 +2205,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
         || (filesCount > MAX_COLLECTION_FILES_COUNT)
         || (maxFileSize > MAX_SINGLE_FILE_SIZE_IN_COLLECTION_IN_MB);
 
-    watcher.addWatcher(mainWindow, collectionPathname, collectionUid, brunoConfig, false, shouldLoadCollectionAsync);
+    watcher.addWatcher(mainWindow, collectionPathname, collectionUid, brunoConfig, false, shouldLoadCollectionAsync, { workspacePathname: workspacePathname || null });
 
     // Add watcher for transient directory
     watcher.addTempDirectoryWatcher(mainWindow, tempDirectoryPath, collectionUid, collectionPathname);
@@ -2632,6 +2652,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
         }
 
         const uid = generateUidBasedOnHash(finalCollectionPath);
+        brunoConfig = await transformBrunoConfigAfterRead(brunoConfig, finalCollectionPath);
         const { size, filesCount } = await getCollectionStats(finalCollectionPath);
         brunoConfig.size = size;
         brunoConfig.filesCount = filesCount;
@@ -2676,8 +2697,13 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
       }
 
       const ymlBrunoConfig = { ...brunoConfig };
-      delete ymlBrunoConfig.version;
+      delete ymlBrunoConfig.version; // drop the bru format marker
       ymlBrunoConfig.opencollection = '1.0.0';
+      // Carry the user-facing version: bru's collectionVersion becomes yml's info.version.
+      if (ymlBrunoConfig.collectionVersion) {
+        ymlBrunoConfig.version = ymlBrunoConfig.collectionVersion;
+      }
+      delete ymlBrunoConfig.collectionVersion;
 
       const ocYmlPath = path.join(collectionPathname, 'opencollection.yml');
       const ymlCollectionContent = stringifyCollection(collectionRoot, ymlBrunoConfig, { format: 'yml' });
