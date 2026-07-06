@@ -302,6 +302,39 @@ headers {
     expect(parsed.headers[0].annotations).toEqual([{ name: 'description', value: 'line one\nline two' }]);
   });
 
+  it('serializeAnnotations — multiline value with embedded triple quotes roundtrips correctly', () => {
+    const json = {
+      meta: { name: 'test', type: 'http', seq: 1 },
+      http: { method: 'get', url: 'https://example.com' },
+      headers: [{
+        name: 'x-key',
+        value: 'val',
+        enabled: true,
+        annotations: [{ name: 'description', value: 'line one\nline two with \'\'\' inside\nline three' }]
+      }]
+    };
+    const bru = jsonToBru(json);
+    expect(bru).toContain('@description(\'\'\'\n    line one\n    line two with \\\'\\\'\\\' inside\n    line three\n  \'\'\')');
+    const parsed = parser(bru);
+    expect(parsed.headers[0].description).toBe('line one\nline two with \'\'\' inside\nline three');
+  });
+
+  it('serializeAnnotations — multiline value with backslash-quote and triple quotes roundtrips correctly', () => {
+    const json = {
+      meta: { name: 'test', type: 'http', seq: 1 },
+      http: { method: 'get', url: 'https://example.com' },
+      headers: [{
+        name: 'x-key',
+        value: 'val',
+        enabled: true,
+        annotations: [{ name: 'description', value: 'it\\\'s multiline\nand has \'\'\' too' }]
+      }]
+    };
+    const bru = jsonToBru(json);
+    const parsed = parser(bru);
+    expect(parsed.headers[0].description).toBe('it\\\'s multiline\nand has \'\'\' too');
+  });
+
   it('serializeAnnotations — empty string value roundtrips correctly', () => {
     const json = {
       meta: { name: 'test', type: 'http', seq: 1 },

@@ -2,7 +2,9 @@ const {
   getValueString,
   extractTypedAnnotations,
   buildAnnotationsFromVariable,
-  serializeAnnotations
+  serializeAnnotations,
+  escapeMultilineDescription,
+  unescapeMultilineDescription
 } = require('../src/utils');
 
 describe('getValueString', () => {
@@ -179,5 +181,49 @@ describe('serializeAnnotations', () => {
     expect(serializeAnnotations([{ name: 'description', value: null }])).toBe('@description(\'null\')\n');
     // empty string falls through to standard single-quote format
     expect(serializeAnnotations([{ name: 'description', value: '' }])).toBe('@description(\'\')\n');
+  });
+
+  it('escapes embedded triple quotes in a multiline description', () => {
+    expect(serializeAnnotations([{ name: 'description', value: 'line1\nline2 with \'\'\' inside\nline3' }])).toBe(
+      '@description(\'\'\'\n  line1\n  line2 with \\\'\\\'\\\' inside\n  line3\n\'\'\')\n'
+    );
+  });
+
+  it('doubles a pre-existing backslash-quote before escaping triple quotes in a multiline description', () => {
+    expect(serializeAnnotations([{ name: 'description', value: 'it\\\'s multiline\nand has \'\'\' too' }])).toBe(
+      '@description(\'\'\'\n  it\\\\\'s multiline\n  and has \\\'\\\'\\\' too\n\'\'\')\n'
+    );
+  });
+
+  it('does not escape triple quotes on other (non-description) multiline annotations', () => {
+    expect(serializeAnnotations([{ name: 'note', value: 'line1 \'\'\'\nline2' }])).toBe(
+      '@note(\'\'\'\n  line1 \'\'\'\n  line2\n\'\'\')\n'
+    );
+  });
+});
+
+describe('escapeMultilineDescription / unescapeMultilineDescription', () => {
+  it('escapes a literal triple-quote sequence', () => {
+    expect(escapeMultilineDescription('has \'\'\' inside')).toBe('has \\\'\\\'\\\' inside');
+  });
+
+  it('doubles a pre-existing backslash-quote sequence', () => {
+    expect(escapeMultilineDescription('it\\\'s here')).toBe('it\\\\\'s here');
+  });
+
+  it('round-trips a value containing both a backslash-quote and a triple-quote', () => {
+    const original = 'it\\\'s \'\'\' here';
+    const escaped = escapeMultilineDescription(original);
+    expect(unescapeMultilineDescription(escaped)).toBe(original);
+  });
+
+  it('leaves plain text untouched', () => {
+    expect(escapeMultilineDescription('plain text')).toBe('plain text');
+    expect(unescapeMultilineDescription('plain text')).toBe('plain text');
+  });
+
+  it('unescapeMultilineDescription reverses escapeMultilineDescription', () => {
+    const original = 'line1\nline2 with \'\'\' and \\\'quoted\\\' bits\nline3';
+    expect(unescapeMultilineDescription(escapeMultilineDescription(original))).toBe(original);
   });
 });

@@ -109,6 +109,15 @@ const unescapeAnnotationDoubleQuotedArg = (value) =>
 const escapeAnnotationDoubleQuotedArg = (value) =>
   value.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
 
+// Escapes a multiline description's own delimiter (''') so it can safely round-trip
+// inside a '''...''' block. Any pre-existing \' must be doubled first so decoding
+// can tell it apart from the backslashes introduced by escaping '''.
+const escapeMultilineDescription = (value) =>
+  value.split('\\\'').join('\\\\\'').split('\'\'\'').join('\\\'\\\'\\\'');
+
+const unescapeMultilineDescription = (value) =>
+  value.split('\\\'\\\'\\\'').join('\'\'\'').split('\\\\\'').join('\\\'');
+
 const getValueString = (value) => {
   // Handle null, undefined, and empty strings
   if (!value && value !== 0 && value !== false) {
@@ -166,7 +175,8 @@ function serializeAnnotations(annotations) {
         if (a.value === undefined) return `@${a.name}`;
         const strValue = String(a.value);
         if (strValue.includes('\n')) {
-          return `@${a.name}('''\n${indentString(strValue)}\n''')`;
+          const blockValue = a.name === 'description' ? escapeMultilineDescription(strValue) : strValue;
+          return `@${a.name}('''\n${indentString(blockValue)}\n''')`;
         }
         return `@${a.name}(${formatAnnotationArg(strValue)})`;
       })
@@ -218,7 +228,8 @@ const applyDescriptionFromAnnotations = (result, annotations) => {
   if (!annotations?.length) return;
   const descAnnotation = annotations.find((a) => a.name === 'description');
   if (descAnnotation !== undefined) {
-    result.description = descAnnotation.value ?? '';
+    const value = descAnnotation.value ?? '';
+    result.description = typeof value === 'string' && value.includes('\n') ? unescapeMultilineDescription(value) : value;
   }
 };
 
@@ -232,6 +243,8 @@ module.exports = {
   indentString,
   outdentString,
   unescapeAnnotationDoubleQuotedArg,
+  escapeMultilineDescription,
+  unescapeMultilineDescription,
   parseAnnotationMultilineTextBlock,
   getValueString,
   getKeyString,
