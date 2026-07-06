@@ -85,6 +85,12 @@ const vscodeDarkTheme = {
     subtle: '#005a9e'
   },
 
+  ws: {
+    activeMessage: {
+      label: colors.BRAND_TEXT
+    }
+  },
+
   accents: {
     primary: colors.BRAND
   },
