@@ -91,7 +91,7 @@ const closeAllCollections = async (page) => {
  * @param collectionName - The name of the collection to open
  * @returns void
  */
-const openCollection = async (page, collectionName: string) => {
+const openCollection = async (page: Page, collectionName: string) => {
   await test.step(`Open collection "${collectionName}"`, async () => {
     await page.locator('#sidebar-collection-name').filter({ hasText: collectionName }).click();
   });
@@ -352,9 +352,14 @@ const createRequest = async (
       await locators.sidebar.folder(parentName).hover();
       await locators.actions.collectionItemActions(parentName).click();
     } else {
-      await locators.sidebar.collection(parentName).hover();
+      const collectionRow = locators.sidebar.collection(parentName);
       const collectionAction = locators.actions.collectionActions(parentName);
-      await expect(collectionAction).toBeVisible({ timeout: 2000 });
+      // Re-hover on each poll: CSS `:hover` reveals `.collection-actions`, but sidebar
+      // re-renders (e.g. workspace snapshot hydration) can shift the row out from under a one-shot hover().
+      await expect(async () => {
+        await collectionRow.hover();
+        await expect(collectionAction).toBeVisible({ timeout: 1000 });
+      }).toPass({ timeout: 10000 });
       await collectionAction.click();
     }
 
@@ -525,6 +530,26 @@ const importCollection = async (
 };
 
 /**
+ * Open the Bulk Import modal by importing multiple files at once.
+ * Selecting more than one file routes the import flow to the Bulk Import modal
+ * (instead of the single-collection location modal).
+ * @param page - The page object
+ * @param filePaths - Absolute paths of the files to import (must be 2 or more)
+ */
+const openBulkImportModal = async (page: Page, filePaths: string[]) => {
+  await test.step('Open the Bulk Import modal', async () => {
+    const locators = buildCommonLocators(page);
+
+    await locators.plusMenu.button().click();
+    await locators.plusMenu.importCollection().click();
+    await expect(locators.import.modal()).toBeVisible();
+
+    await locators.import.fileInput().setInputFiles(filePaths);
+    await expect(locators.import.bulkModal()).toBeVisible();
+  });
+};
+
+/**
  * Remove a specific collection from the sidebar
  * @param page - The page object
  * @param collectionName - The name of the collection to remove
@@ -673,22 +698,42 @@ const createEnvironment = async (
   type: EnvironmentType = 'collection'
 ) => {
   await test.step(`Create ${type} environment "${environmentName}"`, async () => {
+    const locators = buildCommonLocators(page);
     await openEnvironmentSelector(page, type);
 
-    await page.locator('button[id="create-env"]').click();
+    // Environment selector shows the create button only in empty state.
+    // If environments already exist, open settings and use the sidebar create action.
+    const canCreateFromSelectorEmptyState = await locators.environment.createEnvButton().isVisible().catch(() => false);
 
-    const nameInput = type === 'collection'
-      ? page.locator('input[name="name"]')
-      : page.locator('#environment-name');
-    await expect(nameInput).toBeVisible();
-    await nameInput.fill(environmentName);
-    await page.getByRole('button', { name: 'Create' }).click();
+    if (canCreateFromSelectorEmptyState) {
+      await locators.environment.createEnvButton().click();
+
+      await expect(locators.environment.createModal()).toBeVisible();
+      const nameInput = locators.environment.createModalNameInput();
+      await expect(nameInput).toBeVisible();
+      await nameInput.fill(environmentName);
+      await locators.environment.createModalCreateButton().click();
+    } else {
+      await locators.environment.configureButton().waitFor({ state: 'visible' });
+      await locators.environment.configureButton().dispatchEvent('click');
+
+      const envTab = type === 'global'
+        ? locators.environment.globalEnvTab()
+        : locators.environment.collectionEnvTab();
+      await expect(envTab).toBeVisible();
+
+      await locators.environment.settingsCreateButton().click();
+
+      const inlineNameInput = locators.environment.settingsCreateNameInput();
+      await expect(inlineNameInput).toBeVisible();
+      await inlineNameInput.fill(environmentName);
+      await inlineNameInput.press('Enter');
+    }
 
     const tabLabel = type === 'collection' ? 'Environments' : 'Global Environments';
     await expect(page.locator('.request-tab').filter({ hasText: tabLabel })).toBeVisible();
 
-    const locators = buildCommonLocators(page);
-    await page.waitForTimeout(200); // @TODO replace with dynamic waiting logic
+    await expect(locators.environment.selector()).toBeVisible();
     await locators.environment.selector().click();
     if (type === 'global') {
       await locators.environment.globalTab().click();
@@ -782,7 +827,7 @@ const deleteAllGlobalEnvironments = async (page: Page) => {
     const deleteBtn = page.locator('button[title="Delete"]');
     const modal = page.locator('.bruno-modal').filter({ hasText: 'Delete Environment' });
 
-    await page.locator('.environments-container').first().waitFor({ state: 'visible' }).catch(() => {});
+    await page.locator('.environments-container').first().waitFor({ state: 'visible' }).catch(() => { });
 
     while (true) {
       if ((await deleteBtn.count()) === 0) {
@@ -2175,7 +2220,7 @@ const renameWsMessage = async (page: Page, index: number, name: string) => {
  */
 const scrollVirtuosoRowIntoView = async (page: Page, target: Locator) => {
   if (await target.count()) {
-    await target.scrollIntoViewIfNeeded().catch(() => {});
+    await target.scrollIntoViewIfNeeded().catch(() => { });
     return;
   }
 
@@ -2193,7 +2238,7 @@ const scrollVirtuosoRowIntoView = async (page: Page, target: Locator) => {
     await scroll(true);
     await page.waitForTimeout(120);
     if (await target.count()) {
-      await target.scrollIntoViewIfNeeded().catch(() => {});
+      await target.scrollIntoViewIfNeeded().catch(() => { });
       return;
     }
   }
@@ -2203,7 +2248,7 @@ const scrollVirtuosoRowIntoView = async (page: Page, target: Locator) => {
     if (!(await scroll(false))) break;
     await page.waitForTimeout(120);
   }
-  await target.scrollIntoViewIfNeeded().catch(() => {});
+  await target.scrollIntoViewIfNeeded().catch(() => { });
 };
 
 export {
@@ -2220,6 +2265,7 @@ export {
   deleteRequest,
   deleteCollectionFromOverview,
   importCollection,
+  openBulkImportModal,
   removeCollection,
   createFolder,
   openEnvironmentSelector,

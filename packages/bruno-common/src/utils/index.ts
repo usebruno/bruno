@@ -40,6 +40,10 @@ export {
 } from './datatype';
 
 export {
+  toDisplayString
+} from './string';
+
+export {
   sanitizeName,
   validateName,
   validateNameError,

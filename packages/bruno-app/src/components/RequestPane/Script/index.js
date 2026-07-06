@@ -4,7 +4,7 @@ import find from 'lodash/find';
 import { useDispatch, useSelector } from 'react-redux';
 import CodeEditor from 'components/CodeEditor';
 import AIAssist from 'components/AIAssist';
-import { buildRequestContextFromItem } from 'utils/ai';
+import { buildAiContextPayload } from 'utils/ai';
 import { updateRequestScript, updateResponseScript } from 'providers/ReduxStore/slices/collections';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { updateScriptPaneTab } from 'providers/ReduxStore/slices/tabs';
@@ -95,7 +95,10 @@ const Script = ({ item, collection }) => {
   const onRun = () => dispatch(sendRequest(item, collection.uid));
   const onSave = () => dispatch(saveRequest(item.uid, collection.uid));
 
-  const requestContext = useMemo(() => buildRequestContextFromItem(item), [item]);
+  const { requestContext, variables: aiVariables } = useMemo(
+    () => buildAiContextPayload(item, collection),
+    [item, collection]
+  );
 
   const hasPreRequestScript = requestScript && requestScript.trim().length > 0;
   const hasPostResponseScript = responseScript && responseScript.trim().length > 0;
@@ -146,6 +149,7 @@ const Script = ({ item, collection }) => {
               scriptType="pre-request"
               currentScript={requestScript || ''}
               requestContext={requestContext}
+              variables={aiVariables}
               onApply={onRequestScriptEdit}
             />
           </div>
@@ -175,6 +179,7 @@ const Script = ({ item, collection }) => {
               scriptType="post-response"
               currentScript={responseScript || ''}
               requestContext={requestContext}
+              variables={aiVariables}
               onApply={onResponseScriptEdit}
             />
           </div>
