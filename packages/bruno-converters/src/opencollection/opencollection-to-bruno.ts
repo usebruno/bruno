@@ -17,11 +17,14 @@ const fromOpenCollectionConfig = (oc: OpenCollection): BrunoConfig => {
     : ['node_modules', '.git'];
 
   const brunoConfig: BrunoConfig = {
-    version: '1',
     name: oc.info?.name || 'Untitled Collection',
     type: 'collection',
     ignore: ignoreList
   };
+
+  if (oc.info?.version != null && oc.info.version !== '') {
+    brunoConfig.version = String(oc.info.version);
+  }
 
   if (brunoExtension?.presets?.requestType || brunoExtension?.presets?.requestUrl) {
     brunoConfig.presets = {};

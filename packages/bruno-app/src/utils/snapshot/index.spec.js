@@ -16,7 +16,8 @@ const {
   hydrateSnapshotLookups,
   hydrateCollectionTabs,
   isActiveTab,
-  getActiveTabFromSnapshot
+  getActiveTabFromSnapshot,
+  getCollectionSnapshotFromLookups
 } = require('./index');
 
 describe('hydrateSnapshotLookups', () => {
@@ -177,10 +178,10 @@ describe('hydrateSnapshotLookups', () => {
           pathname: sharedCollectionPath,
           workspacePathname: workspaceAPath,
           environment: {
-            collection: '',
+            collection: 'env-a',
             global: ''
           },
-          selectedEnvironment: '',
+          selectedEnvironment: 'env-a',
           isOpen: true,
           isMounted: false,
           activeTab: { accessor: 'pathname', value: '/collections/shared/ReqA' },
@@ -190,10 +191,10 @@ describe('hydrateSnapshotLookups', () => {
           pathname: sharedCollectionPath,
           workspacePathname: workspaceBPath,
           environment: {
-            collection: '',
+            collection: 'env-b',
             global: ''
           },
-          selectedEnvironment: '',
+          selectedEnvironment: 'env-b',
           isOpen: true,
           isMounted: false,
           activeTab: { accessor: 'pathname', value: '/collections/shared/ReqB' },
@@ -217,6 +218,14 @@ describe('hydrateSnapshotLookups', () => {
     });
 
     expect(lookups.hasWorkspaceScopedTabs).toBe(true);
+
+    // Each workspace should resolve to its own selected environment for the shared collection.
+    expect(getCollectionSnapshotFromLookups(sharedCollectionPath, lookups, workspaceAPath)).toMatchObject({
+      selectedEnvironment: 'env-a'
+    });
+    expect(getCollectionSnapshotFromLookups(sharedCollectionPath, lookups, workspaceBPath)).toMatchObject({
+      selectedEnvironment: 'env-b'
+    });
   });
 
   it('drops legacy v4 migration tabs from snapshot lookups', () => {
