@@ -41,7 +41,7 @@ test.describe('Manage workspace', () => {
       const locators = buildManageWorkspaceLocators(page);
       await openWorkspaceActionsMenu(page, workspaceName);
       await selectWorkspaceAction(page, 'Rename');
-      await enterNewWorkspaceNameAndSubmit(page, 'New Workspace Name', 'Rename');
+      await enterNewWorkspaceNameAndSubmit(page, 'New Workspace Name');
       await expect(locators.activeWorkspaceName()).toHaveText('New Workspace Name');
       await expect(locators.workspaceItems('New Workspace Name')).toBeVisible();
     });

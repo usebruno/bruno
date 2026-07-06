@@ -1606,9 +1606,9 @@ const removeWorkspace = async (page: Page, workspaceName: string) => {
     }
     await workspaceItem.locator(locators.moreActionsBtn()).click();
     await locators.workspaceDropdownItem('Remove').click();
-    const modalCardLocators = buildCommonLocators(page);
-    await modalCardLocators.modal.card().waitFor({ state: 'visible' });
-    await locators.submitRemoveBtn().click();
+    const modal = buildCommonLocators(page);
+    await modal.modal.card().waitFor({ state: 'visible' });
+    await modal.modal.submitButton().click();
     await locators.workspaceItems(workspaceName).waitFor({ state: 'hidden' });
   });
 };

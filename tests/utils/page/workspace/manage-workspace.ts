@@ -18,12 +18,7 @@ export const buildManageWorkspaceLocators = (page: Page) => ({
   },
   // The workspace file name input in the manage workspace pop up model.
   workspaceFileRenameInput: () => page.getByTestId('workspace-rename-input'),
-  // The submit rename button in the manage workspace pop up model
-  submitRenameBtn: () => page.getByTestId('modal-submit-btn'),
-  // The renamed workspace item in the manage workspace item list.
-  activeWorkspaceName: () => page.getByTestId('workspace-name'),
-  // The submit remove button in the manage workspace pop up model
-  submitRemoveBtn: () => page.getByTestId('modal-submit-btn')
+  activeWorkspaceName: () => page.getByTestId('workspace-name')
 });
 
 export const openManageWorkspace = async (page: Page) => {
@@ -51,24 +46,25 @@ export const openWorkspaceActionsMenu = async (page: Page, workspaceName: string
 
 export const selectWorkspaceAction = async (page: Page, optionName: string) => {
   const locators = buildManageWorkspaceLocators(page);
-  const modalCardLocators = buildCommonLocators(page);
+  const modal = buildCommonLocators(page);
   await test.step('Select workspace action on popup', async () => {
     await locators.workspaceDropdownItem(optionName).click();
-    await modalCardLocators.modal.card().waitFor({ state: 'visible' });
+    await modal.modal.card().waitFor({ state: 'visible' });
   });
 };
 
-export const enterNewWorkspaceNameAndSubmit = async (page: Page, workspaceName: string, btnName: string) => {
+export const enterNewWorkspaceNameAndSubmit = async (page: Page, workspaceName: string) => {
   const locators = buildManageWorkspaceLocators(page);
+  const modal = buildCommonLocators(page);
   await test.step('Enter a new name for the workspace in the editing field.', async () => {
     await locators.workspaceFileRenameInput().fill(workspaceName);
-    await locators.submitRenameBtn().filter({ hasText: btnName }).click();
+    await modal.modal.submitButton().click();
   });
 };
 
 export const confirmRemoveWorkspace = async (page: Page) => {
-  const locators = buildManageWorkspaceLocators(page);
+  const modal = buildCommonLocators(page);
   await test.step('Confirm remove workspace on popup', async () => {
-    await locators.submitRemoveBtn().click();
+    await modal.modal.submitButton().click();
   });
 };
