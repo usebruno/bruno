@@ -158,19 +158,52 @@ const responsePropertyMap = {
 };
 
 /**
+ * When a nested function between `memberPath` and `handlerFn` re-binds
+ * `responseVarName` as a parameter. Such member expressions reference a
+ * different (shadowing) response object — e.g. a reused `res` param in an inner
+ * `.then` or an unrelated fetch callback — and must not be rewritten here; they
+ * are handled when their own handler is transformed. Member expressions that
+ * merely close over the handler's response (no re-binding) are not shadowed.
+ * @param {Object} memberPath - NodePath of the candidate MemberExpression
+ * @param {string} responseVarName - Identifier name bound to the response object
+ * @param {Object} handlerFn - The active handler function node (the scope boundary)
+ * @returns {boolean}
+ */
+const isShadowedByNestedHandler = (memberPath, responseVarName, handlerFn) => {
+  let current = memberPath.parent;
+  while (current) {
+    const node = current.value;
+    if (node && FUNCTION_NODE_TYPES.has(node.type)) {
+      if (node === handlerFn) return false; // reached the active handler; same binding
+      const params = node.params || [];
+      if (params.some((p) => p.type === 'Identifier' && p.name === responseVarName)) {
+        return true; // inner function re-binds the name -> different response object
+      }
+    }
+    current = current.parent;
+  }
+  return false;
+};
+
+/**
  * Rewrite Postman response property references (response.json(), response.code, ...)
  * to their Bruno equivalents (response.data, response.status, ...) within a body.
  * @param {Object} j - jscodeshift API
  * @param {Object} body - AST node to search within (block statement or expression)
  * @param {string} responseVarName - Identifier name bound to the response object
+ * @param {Object} handlerFn - The active handler function node; replacements are
+ *   scoped to it so nested callbacks that re-bind `responseVarName` are skipped
+ *   (prevents double-transforming, e.g. code->status then status->statusText)
  */
-const transformResponseProperties = (j, body, responseVarName) => {
+const transformResponseProperties = (j, body, responseVarName, handlerFn) => {
   j(body).find(j.MemberExpression, {
     object: {
       type: 'Identifier',
       name: responseVarName
     }
   }).forEach((memberPath) => {
+    if (isShadowedByNestedHandler(memberPath, responseVarName, handlerFn)) return;
+
     const property = memberPath.node.property;
 
     // Handle property access
@@ -225,7 +258,7 @@ const transformCallback = (j, callback) => {
   }
 
   // Process the callback body to transform response property references
-  transformResponseProperties(j, callbackBody, responseVarName);
+  transformResponseProperties(j, callbackBody, responseVarName, callback);
 
   // Create the callback block
   return j.functionExpression(
@@ -306,7 +339,7 @@ const transformPromiseHandler = (j, handler) => {
   // Root the search at the handler (not handler.body): for concise arrow bodies
   // like `res => res.json()` the body itself is the node being replaced, and it
   // needs a parent path within the searched collection.
-  transformResponseProperties(j, handler, params[0].name);
+  transformResponseProperties(j, handler, params[0].name, handler);
 };
 
 /**
