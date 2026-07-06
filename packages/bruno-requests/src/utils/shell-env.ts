@@ -58,6 +58,14 @@ export const initializeShellEnv = async (): Promise<Record<string, string>> => {
  * @returns The fetched shell environment variables
  */
 export const refreshShellEnvProxyVars = async (): Promise<Record<string, string>> => {
+  // fetchShellEnv is a no-op on Windows, so running the delete-first flow here
+  // would strip process.env proxy vars (registry-propagated, launcher-set, or inherited
+  // from the parent shell) without any means to restore them. Preserve the additive-only
+  // invariant that initializeShellEnv maintains on Windows.
+  if (process.platform === 'win32') {
+    return {};
+  }
+
   // Clear stale proxy vars first so shell-env does not inherit them into the
   // login shell subprocess (removed .zshrc exports would otherwise persist).
   for (const key of PROXY_ENV_KEYS) {
