@@ -5,6 +5,7 @@ const yup = require('yup');
 
 const SNAPSHOT_VERSION = '0.0.1';
 const ENV_FILE_EXTENSIONS = ['bru', 'yml', 'yaml'];
+const WORKSPACE_TAB_TYPES = ['workspaceOverview', 'workspaceEnvironments'];
 
 const isObject = (value) => value && typeof value === 'object' && !Array.isArray(value);
 
@@ -71,6 +72,7 @@ const workspaceSchema = yup.object({
   pathname: yup.string().required(),
   environment: yup.string().defined(),
   lastActiveCollectionPathname: yup.string().nullable(),
+  activeWorkspaceTabType: yup.string().oneOf([...WORKSPACE_TAB_TYPES, null]).nullable(),
   sorting: yup.mixed().oneOf(['alphabetical', 'reverseAlphabetical', 'default']),
   collections: yup.array().of(yup.string()).optional()
 });
@@ -193,6 +195,7 @@ class SnapshotManager {
     this.store.delete('activeWorkspacePath');
     this.store.set('workspaces', (this.store.store?.workspaces ?? []).map((d) => {
       d.lastActiveCollectionPathname = undefined;
+      d.activeWorkspaceTabType = undefined;
       return d;
     }));
     this.store.set('collections', (this.store.store?.collections ?? []).map((d) => {
@@ -460,6 +463,9 @@ class SnapshotManager {
       environment: typeof workspace.environment === 'string' ? workspace.environment : '',
       lastActiveCollectionPathname: typeof workspace.lastActiveCollectionPathname === 'string'
         ? workspace.lastActiveCollectionPathname
+        : null,
+      activeWorkspaceTabType: WORKSPACE_TAB_TYPES.includes(workspace.activeWorkspaceTabType)
+        ? workspace.activeWorkspaceTabType
         : null,
       sorting: typeof workspace.sorting === 'string' ? workspace.sorting : 'default',
       collections
