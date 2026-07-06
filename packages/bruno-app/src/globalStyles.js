@@ -349,18 +349,9 @@ const GlobalStyle = createGlobalStyle`
     box-shadow: ${(props) => props.theme.infoTip.boxShadow} !important;
     border-radius: ${(props) => props.theme.border.radius.sm} !important;
     color: ${(props) => props.theme.text} !important;
-    font-size: ${(props) => props.theme.font.size.xs} !important;
     max-width: 320px !important;
     max-height: 240px !important;
     overflow-y: auto !important;
-  }
-
-  .CodeMirror-info .CodeMirror-info-header > .type-name,
-  .CodeMirror-info .CodeMirror-info-header > .field-name,
-  .CodeMirror-info .CodeMirror-info-header > .arg-name,
-  .CodeMirror-info .CodeMirror-info-header > .directive-name,
-  .CodeMirror-info .CodeMirror-info-header > .enum-value {
-    font-size: ${(props) => props.theme.font.size.sm} !important;
   }
 
   .CodeMirror-info a {
