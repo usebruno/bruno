@@ -13,8 +13,8 @@ const updateCodeMirrorInfoFontSize = () => {
   if (fontSize === lastFontSize) return;
   lastFontSize = fontSize;
 
-  const headerFontSize = fontSize + 1;
-  const descriptionFontSize = Math.max(fontSize - 3, 1);
+  const headerFontSize = fontSize;
+  const descriptionFontSize = Math.max(fontSize - 1, 1);
   styleTag.innerHTML = `
     .CodeMirror-info { font-size: ${fontSize}px !important; }
     .CodeMirror-info .CodeMirror-info-header > .type-name,
