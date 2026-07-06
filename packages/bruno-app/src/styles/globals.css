@@ -131,15 +131,10 @@
 }
 
 
-.CodeMirror-info,
 .CodeMirror-lint-tooltip {
   --px-12: 8px !important;
 }
 
-.CodeMirror-info {
-  max-width: 320px;
-  max-height: 240px;
-}
 
 .CodeMirror-lint-tooltip {
   max-width: 320px;

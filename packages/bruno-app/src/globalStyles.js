@@ -342,6 +342,45 @@ const GlobalStyle = createGlobalStyle`
     font-size: ${(props) => props.theme.font.size.xs};
     color: ${(props) => props.theme.text};
   }
+  
+  .CodeMirror-info {
+    padding: 4px 8px !important;
+    background-color: ${(props) => props.theme.infoTip.bg} !important;
+    border: 1px solid ${(props) => props.theme.infoTip.border} !important;
+    box-shadow: ${(props) => props.theme.infoTip.boxShadow} !important;
+    border-radius: ${(props) => props.theme.border.radius.sm} !important;
+    color: ${(props) => props.theme.text} !important;
+    font-size: ${(props) => props.theme.font.size.xs} !important;
+    max-width: 320px !important;
+    max-height: 240px !important;
+  }
+
+  .CodeMirror-info .CodeMirror-info-header > .type-name,
+  .CodeMirror-info .CodeMirror-info-header > .field-name,
+  .CodeMirror-info .CodeMirror-info-header > .arg-name,
+  .CodeMirror-info .CodeMirror-info-header > .directive-name,
+  .CodeMirror-info .CodeMirror-info-header > .enum-value {
+    font-size: ${(props) => props.theme.font.size.sm} !important;
+  }
+
+  /*
+   * Header/type-name/field-name/etc render as <a> tags (codemirror-graphql wires an onClick
+   * handler onto every one of them), so they don't just inherit .CodeMirror-info's color —
+   * graphiql.min.css's generic "a { color: hsl(var(--color-primary)) }" link rule can win
+   * depending on stylesheet load order. Set colors explicitly instead of relying on inheritance.
+   */
+  .CodeMirror-info a {
+    color: ${(props) => props.theme.text} !important;
+  }
+
+  .CodeMirror-info .type-name-pill,
+  .CodeMirror-info .info-description {
+    color: ${(props) => props.theme.colors.text.muted} !important;
+  }
+
+  .CodeMirror-info .info-description a {
+    color: ${(props) => props.theme.textLink} !important;
+  }
 
   .CodeMirror-lint-message-warning {
     color: ${(props) => props.theme.status.warning.text};
