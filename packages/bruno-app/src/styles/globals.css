@@ -47,8 +47,8 @@
   --font-family-mono: 'Fira Code', monospace;
   --font-size-hint: .75rem;
   --font-size-inline-code: .8125rem;
-  --font-size-body: 1rem; 
-  --font-size-h4: 1.125rem;
+  --font-size-body: .8125rem; 
+  --font-size-h4: 0.875rem;
   --font-size-h3: 1.375rem;
   --font-size-h2: 1.8125rem;
   --font-weight-regular: 400;
@@ -98,8 +98,8 @@
   --font-family-mono: 'Fira Code', monospace;
   --font-size-hint: .75rem;
   --font-size-inline-code: .8125rem;
-  --font-size-body: 1rem; 
-  --font-size-h4: 1.125rem;
+  --font-size-body: 0.8125rem; 
+  --font-size-h4: 0.875rem;
   --font-size-h3: 1.375rem;
   --font-size-h2: 1.8125rem;
   --font-weight-regular: 400;
@@ -128,6 +128,21 @@
 .CodeMirror-dialog {
   --px-4: 0px !important;
   --px-12: 2px !important;
+}
+
+
+.CodeMirror-info,
+.CodeMirror-lint-tooltip {
+  --px-12: 8px !important;
+}
+
+.CodeMirror-info {
+  max-width: 320px;
+  max-height: 240px;
+}
+
+.CodeMirror-lint-tooltip {
+  max-width: 320px;
 }
 
 .CodeMirror-hints {
