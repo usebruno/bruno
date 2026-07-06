@@ -11,4 +11,5 @@ export type StatementDef = {
   name: string
   type: StatementType
   sql: string
+  tables: string[]
 }
