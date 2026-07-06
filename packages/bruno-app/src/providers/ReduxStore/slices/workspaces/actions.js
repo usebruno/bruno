@@ -37,6 +37,11 @@ const COLLECTION_SORT_ORDER_BY_WORKSPACE_SORTING = {
   reverseAlphabetical: 'reverseAlphabetical'
 };
 
+const WORKSPACE_TAB_UID_SUFFIX_BY_TYPE = {
+  workspaceOverview: 'overview',
+  workspaceEnvironments: 'environments'
+};
+
 const normalizeCollectionSortOrder = (sorting) => {
   return COLLECTION_SORT_ORDER_BY_WORKSPACE_SORTING[sorting] || 'default';
 };
@@ -640,10 +645,23 @@ export const switchWorkspace = (workspaceUid) => {
         ));
       }));
 
+      let requestedWorkspaceTabType = null;
+
       // Add workspace tabs
       if (scratchCollection?.uid) {
         dispatch(addTab({ uid: `${scratchCollection.uid}-overview`, collectionUid: scratchCollection.uid, type: 'workspaceOverview' }));
         dispatch(addTab({ uid: `${scratchCollection.uid}-environments`, collectionUid: scratchCollection.uid, type: 'workspaceEnvironments' }));
+
+        requestedWorkspaceTabType = workspaceSnapshot?.activeWorkspaceTabType;
+        const requestedWorkspaceTabSuffix = WORKSPACE_TAB_UID_SUFFIX_BY_TYPE[requestedWorkspaceTabType];
+        if (requestedWorkspaceTabSuffix) {
+          const requestedWorkspaceTabUid = `${scratchCollection.uid}-${requestedWorkspaceTabSuffix}`;
+          dispatch(addTab({
+            uid: requestedWorkspaceTabUid,
+            collectionUid: scratchCollection.uid,
+            type: requestedWorkspaceTabType
+          }));
+        }
       }
 
       // Restore active collection from snapshot using lastActiveCollectionPathname
@@ -676,10 +694,10 @@ export const switchWorkspace = (workspaceUid) => {
 
         if (activeTab) {
           dispatch(addTab(activeTab));
-        } else if (scratchCollection?.uid) {
+        } else if (scratchCollection?.uid && !requestedWorkspaceTabType) {
           dispatch(addTab({ uid: `${scratchCollection.uid}-overview`, collectionUid: scratchCollection.uid, type: 'workspaceOverview' }));
         }
-      } else if (scratchCollection?.uid) {
+      } else if (scratchCollection?.uid && !requestedWorkspaceTabType) {
         // No active collection, focus the workspace overview tab
         dispatch(addTab({ uid: `${scratchCollection.uid}-overview`, collectionUid: scratchCollection.uid, type: 'workspaceOverview' }));
       }

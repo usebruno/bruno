@@ -143,6 +143,9 @@ const normalizeWorkspaceSnapshotEntry = (pathname, entry = {}) => {
       ? entry.lastActiveCollectionPathname
       : null,
     sorting: typeof entry.sorting === 'string' ? entry.sorting : 'default',
+    activeWorkspaceTabType: typeof entry.activeWorkspaceTabType === 'string'
+      ? entry.activeWorkspaceTabType
+      : null,
     collections
   };
 };
@@ -226,6 +229,7 @@ export const hydrateSnapshotLookups = (snapshot = {}) => {
         pathname: workspace.pathname,
         lastActiveCollectionPathname: workspace.lastActiveCollectionPathname,
         sorting: workspace.sorting,
+        activeWorkspaceTabType: workspace.activeWorkspaceTabType,
         collections: workspace.collections
       };
 

@@ -71,6 +71,7 @@ const workspaceSchema = yup.object({
   pathname: yup.string().required(),
   environment: yup.string().defined(),
   lastActiveCollectionPathname: yup.string().nullable(),
+  activeWorkspaceTabType: yup.string().nullable(),
   sorting: yup.mixed().oneOf(['alphabetical', 'reverseAlphabetical', 'default']),
   collections: yup.array().of(yup.string()).optional()
 });
@@ -382,6 +383,9 @@ class SnapshotManager {
       environment: typeof workspace.environment === 'string' ? workspace.environment : '',
       lastActiveCollectionPathname: typeof workspace.lastActiveCollectionPathname === 'string'
         ? workspace.lastActiveCollectionPathname
+        : null,
+      activeWorkspaceTabType: typeof workspace.activeWorkspaceTabType === 'string'
+        ? workspace.activeWorkspaceTabType
         : null,
       sorting: typeof workspace.sorting === 'string' ? workspace.sorting : 'default',
       collections
