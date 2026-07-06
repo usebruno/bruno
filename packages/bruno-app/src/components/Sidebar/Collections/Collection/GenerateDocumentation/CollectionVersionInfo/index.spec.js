@@ -14,9 +14,9 @@ describe('CollectionVersionInfo', () => {
     expect(screen.getByTestId('version-value')).toHaveTextContent('Version: 2.3-beta');
   });
 
-  it('omits the version when the collection has none', () => {
+  it('shows "Not Set" when the collection has no version', () => {
     render(<CollectionVersionInfo name="API" />);
-    expect(screen.queryByTestId('version-value')).not.toBeInTheDocument();
+    expect(screen.getByTestId('version-value')).toHaveTextContent('Not Set');
   });
 
   it('renders folder and request counts and pluralizes them', () => {

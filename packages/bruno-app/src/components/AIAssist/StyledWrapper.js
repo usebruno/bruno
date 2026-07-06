@@ -34,16 +34,15 @@ const StyledWrapper = styled.div`
     }
   }
 
-  .ai-assist-popup {
-    position: absolute;
-    top: calc(100% + 4px);
-    right: 0;
-    width: 360px;
-    background: ${(props) => props.theme.bg};
-    border: 1px solid ${(props) => props.theme.input.border};
-    border-radius: ${(props) => props.theme.border.radius.md};
-    overflow: hidden;
-  }
+`;
+
+// Tippy renders the popup into document.body, outside StyledWrapper's subtree.
+export const PopupWrapper = styled.div`
+  width: 360px;
+  background: ${(props) => props.theme.bg};
+  border: 1px solid ${(props) => props.theme.input.border};
+  border-radius: ${(props) => props.theme.border.radius.md};
+  overflow: hidden;
 
   .popup-header {
     display: flex;
