@@ -36,6 +36,7 @@ const REQUEST_CTX_BOOTSTRAP = `<script>
   var SENTINEL = ${JSON.stringify(SENTINEL)};
   var pending = new Map();
   var nextRequestId = 0;
+  var initialized = false;
 
   function sendToHost(payload) {
     try { console.log(SENTINEL + JSON.stringify(payload)); } catch (e) {}
@@ -48,6 +49,10 @@ const REQUEST_CTX_BOOTSTRAP = `<script>
     testResults: [],
     variables: {},
 
+    // Called once when the host delivers the initial state. ctx data arrives
+    // asynchronously AFTER page load, so apps must do their first render here
+    // (or in the granular on* callbacks), not at DOMContentLoaded.
+    onInit: null,
     onThemeChange: null,
     onResponseUpdate: null,
     onResultsUpdate: null,
@@ -87,6 +92,12 @@ const REQUEST_CTX_BOOTSTRAP = `<script>
         ctx.assertionResults = msg.assertionResults || [];
         ctx.testResults = msg.testResults || [];
         ctx.variables = msg.variables || {};
+        if (!initialized) {
+          initialized = true;
+          if (typeof ctx.onInit === 'function') {
+            try { ctx.onInit(ctx); } catch (e) { sendToHost({ type: 'log', args: ['onInit error: ' + (e && e.message)] }); }
+          }
+        }
         break;
       case 'theme':
         applyTheme(msg.theme);

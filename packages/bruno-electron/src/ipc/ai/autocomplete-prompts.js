@@ -51,6 +51,7 @@ ${context}
 - Continue the code from the cursor marker \`<CURSOR>\` exactly where it is.
 - Output ONLY the characters that should be inserted at the cursor — no markdown, no fences, no commentary, no leading newline.
 - Match the surrounding indentation and quote style.
+- If the cursor is at the end of a \`//\` comment line and you are generating CODE (not finishing the comment's text), begin your output with a newline — anything emitted on the comment line itself would be commented out. A comment like \`// test that status is 200\` is an instruction: put the implementing code on the following line(s).
 - Stop at a natural break (end of statement, end of block) — do not rewrite code that already exists after the cursor.
 - Prefer real variable names from the provided lists over placeholders.
 - Return an empty string if you have nothing useful to add.`;
@@ -165,9 +166,35 @@ const cleanSuggestion = (raw) => {
   return out;
 };
 
+// --- Comment-line guard ----------------------------------------------------
+// Models often ignore the "start with a newline after a comment" rule and
+// emit code directly at the cursor, which lands inside the comment. Detect
+// the case deterministically and prepend the newline ourselves.
+
+const CODE_START_RE = /^\s*(?:const\s|let\s|var\s|function[\s(]|async\s|await\s|if\s*\(|for\s*\(|while\s*\(|switch\s*\(|try\s*\{|return[\s;(]|throw\s|new\s|test\s*\(|describe\s*\(|expect\s*\(|bru\.|req\.|res[.(]|console\.|JSON\.|Object\.|Array\.|Promise\.|[{}]|[\w$]+\s*\(|[\w$]+\s*[+\-*/]?=[^=])/;
+
+// Strip string literals so `//` inside a URL ('https://…') isn't mistaken
+// for a comment marker.
+const stripStringLiterals = (line) =>
+  line.replace(/'(?:[^'\\]|\\.)*'|"(?:[^"\\]|\\.)*"|`(?:[^`\\]|\\.)*`/g, '""');
+
+/**
+ * If the cursor sits after a `//` comment and the suggestion starts with code,
+ * prepend a newline so the code lands on its own line instead of inside the
+ * comment. Suggestions that continue the comment's prose are left untouched.
+ */
+const ensureNewlineAfterComment = (prefix, suggestion) => {
+  if (!suggestion || /^[\r\n]/.test(suggestion)) return suggestion;
+  const lastLine = String(prefix || '').split('\n').pop();
+  if (!stripStringLiterals(lastLine).includes('//')) return suggestion;
+  if (!CODE_START_RE.test(suggestion)) return suggestion;
+  return '\n' + suggestion;
+};
+
 module.exports = {
   buildSystemPrompt,
   buildUserPrompt,
   STOP_SEQUENCES,
-  cleanSuggestion
+  cleanSuggestion,
+  ensureNewlineAfterComment
 };
