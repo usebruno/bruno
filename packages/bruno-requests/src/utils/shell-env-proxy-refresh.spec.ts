@@ -128,15 +128,14 @@ describe('refreshShellEnvProxyVars — shell inheritance (POSIX)', () => {
     expect(process.env.ALL_PROXY).toBe('http://new-all:1080');
   });
 
-  test('does not throw when shell-env subprocess fails; still clears stale vars', async () => {
+  test('restores prior proxy vars when the shell-env subprocess fails', async () => {
     process.env.http_proxy = 'http://existing:8080';
     mockShellEnvThrows = new Error('shell subprocess failed');
 
+    // On subprocess failure we return {} but restore the snapshot taken before the
+    // delete, so the user is not left silently unproxied.
     await expect(refreshShellEnvProxyVars()).resolves.toEqual({});
-    // fetchShellEnv swallows the error and returns {}. The delete already ran, so the stale
-    // value is gone. This locks in current behavior — worth revisiting if we ever want to
-    // preserve process.env on shell-env failure.
-    expect(process.env.http_proxy).toBeUndefined();
+    expect(process.env.http_proxy).toBe('http://existing:8080');
   });
 
   test('returns the raw shell env dict, including non-proxy keys', async () => {

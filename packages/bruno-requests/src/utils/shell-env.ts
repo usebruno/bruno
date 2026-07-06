@@ -52,6 +52,25 @@ export const initializeShellEnv = async (): Promise<Record<string, string>> => {
 };
 
 /**
+ * Like fetchShellEnv, but surfaces subprocess failure by returning null instead
+ * of an empty object. Lets refreshShellEnvProxyVars tell "shell-env failed" apart
+ * from "shell-env succeeded but has no proxy vars", so it can restore prior values
+ * on failure rather than leave the user unproxied.
+ */
+const tryFetchShellEnv = async (): Promise<Record<string, string> | null> => {
+  if (process.platform === 'win32') {
+    return {};
+  }
+
+  try {
+    const { shellEnv } = await import('shell-env');
+    return await shellEnv();
+  } catch (error) {
+    return null;
+  }
+};
+
+/**
  * Re-syncs proxy-related process.env values from the user's shell configuration.
  * Used when refreshing system proxy settings without restarting the app.
  *
@@ -66,13 +85,25 @@ export const refreshShellEnvProxyVars = async (): Promise<Record<string, string>
     return {};
   }
 
-  // Clear stale proxy vars first so shell-env does not inherit them into the
-  // login shell subprocess (removed .zshrc exports would otherwise persist).
+  // Snapshot and clear stale proxy vars first so shell-env does not inherit them
+  // into the login shell subprocess (removed .zshrc exports would otherwise persist).
+  const snapshot: Record<string, string | undefined> = {};
   for (const key of PROXY_ENV_KEYS) {
+    snapshot[key] = process.env[key];
     delete process.env[key];
   }
 
-  const shellEnvVars = await fetchShellEnv();
+  const shellEnvVars = await tryFetchShellEnv();
+
+  if (shellEnvVars === null) {
+    // Subprocess failed — restore prior values rather than leave the user unproxied.
+    for (const key of PROXY_ENV_KEYS) {
+      if (snapshot[key] !== undefined) {
+        process.env[key] = snapshot[key] as string;
+      }
+    }
+    return {};
+  }
 
   for (const key of PROXY_ENV_KEYS) {
     const value = shellEnvVars[key];
