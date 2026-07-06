@@ -1,4 +1,4 @@
-import { version } from './index';
+import { version } from './node';
 
 describe('@usebruno/sqlite', () => {
   it('exposes a version', () => {
