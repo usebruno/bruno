@@ -108,6 +108,50 @@ describe('ipc/ai/context', () => {
       expect(out).not.toContain('secret-key');
     });
 
+    it('redacts the full subtree under a sensitive key (not just direct primitives)', () => {
+      const out = formatRequestContext({
+        method: 'POST',
+        url: '/x',
+        headers: [],
+        params: [],
+        body: {
+          mode: 'json',
+          json: JSON.stringify({
+            password: { value: 'hunter2', hint: 'first pet' },
+            data: { safe: 'ok' }
+          })
+        }
+      });
+      expect(out).toContain('"password": "<redacted>"');
+      expect(out).not.toContain('hunter2');
+      expect(out).not.toContain('first pet');
+      expect(out).toContain('"safe": "ok"');
+    });
+
+    it('masks formUrlEncoded values based on redactBody, not redactHeaders', () => {
+      const ctx = {
+        method: 'POST',
+        url: '/login',
+        headers: [],
+        params: [],
+        body: {
+          mode: 'formUrlEncoded',
+          formUrlEncoded: [
+            { name: 'username', value: 'alice', enabled: true },
+            { name: 'password', value: 'hunter2', enabled: true }
+          ]
+        }
+      };
+      // Headers-only off + body on: form field values still masked.
+      const bodyOn = formatRequestContext(ctx, { security: { redactHeaders: false, redactBody: true } });
+      expect(bodyOn).toContain('password: <redacted>');
+      expect(bodyOn).not.toContain('hunter2');
+
+      // Body off: raw values pass through even if headers still redacted.
+      const bodyOff = formatRequestContext(ctx, { security: { redactHeaders: true, redactBody: false } });
+      expect(bodyOff).toContain('password: hunter2');
+    });
+
     it('redacts sensitive keys inside JSON bodies but keeps the shape', () => {
       const out = formatRequestContext({
         method: 'POST',
@@ -171,6 +215,53 @@ describe('ipc/ai/context', () => {
       expect(out).toContain('…');
       expect(out).not.toContain('x'.repeat(60));
     });
+
+    it('leaves sensitive header/body values intact when security toggles are off', () => {
+      const out = formatRequestContext({
+        method: 'POST',
+        url: '/x',
+        headers: [{ name: 'Authorization', value: 'Bearer xyz', enabled: true }],
+        params: [],
+        body: { mode: 'json', json: JSON.stringify({ password: 'hunter2' }) }
+      }, { security: { redactHeaders: false, redactBody: false } });
+      expect(out).toContain('Authorization: Bearer xyz');
+      expect(out).toContain('hunter2');
+      expect(out).not.toContain('<redacted>');
+    });
+
+    it('honors customRedactedHeaders for a user-added header name', () => {
+      const out = formatRequestContext({
+        method: 'GET',
+        url: '/x',
+        headers: [{ name: 'X-Trace-Id', value: 'trace-abc', enabled: true }],
+        params: [],
+        body: null
+      }, { security: { customRedactedHeaders: ['X-Trace-Id'] } });
+      expect(out).toContain('X-Trace-Id: <redacted>');
+      expect(out).not.toContain('trace-abc');
+    });
+
+    it('sends the raw response body when redactResponse is off', () => {
+      const base = {
+        method: 'GET',
+        url: '/x',
+        headers: [],
+        params: [],
+        body: null,
+        responseStatus: 200,
+        responseData: { user: { id: 42, email: 'a@b' } }
+      };
+      const redacted = formatRequestContext(base, { includeResponse: true });
+      expect(redacted).toContain('Response Shape');
+      expect(redacted).not.toContain('a@b');
+
+      const raw = formatRequestContext(base, {
+        includeResponse: true,
+        security: { redactResponse: false }
+      });
+      expect(raw).toContain('Response Body');
+      expect(raw).toContain('"email": "a@b"');
+    });
   });
 
   describe('formatVariablesList', () => {
@@ -189,6 +280,27 @@ describe('ipc/ai/context', () => {
     it('returns an empty string for no variables', () => {
       expect(formatVariablesList([])).toBe('');
       expect(formatVariablesList(null)).toBe('');
+    });
+
+    it('drops the (secret) tag from name-pattern matches when redactVariables is off', () => {
+      const out = formatVariablesList([
+        { name: 'API_TOKEN', value: 'v', scope: 'env', secret: false }
+      ], { security: { redactVariables: false } });
+      expect(out).not.toContain('(secret)');
+    });
+
+    it('always tags variables in customRedactedVariables as secret, even when redactVariables is off', () => {
+      const out = formatVariablesList([
+        { name: 'MY_SESSION', value: 'v', scope: 'env', secret: false }
+      ], { security: { redactVariables: false, customRedactedVariables: ['MY_SESSION'] } });
+      expect(out).toContain('MY_SESSION (secret)');
+    });
+
+    it('keeps secret: true variables tagged even with all toggles off', () => {
+      const out = formatVariablesList([
+        { name: 'plain_name', value: '<redacted>', scope: 'env', secret: true }
+      ], { security: { redactVariables: false } });
+      expect(out).toContain('plain_name (secret)');
     });
   });
 
