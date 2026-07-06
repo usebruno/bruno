@@ -46,7 +46,7 @@ const countSection = (section) =>
 
 // A collapsible section. Renders a headers table, or nested sections when `children` is present.
 // `pillClass` renders the label as a colored source pill; sections start collapsed.
-const CollapsibleSection = ({ section, onNavigate, defaultOpen = false }) => {
+const CollapsibleSection = ({ section, onNavigate, defaultOpen = true }) => {
   const [isOpen, setIsOpen] = useState(defaultOpen);
   const hasChildren = Array.isArray(section.children);
   return (
