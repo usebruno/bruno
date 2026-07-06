@@ -422,6 +422,11 @@ export const brunoToPostman = (collection) => {
               key: 'value',
               value: itemAuth.apikey?.value || '',
               type: 'string'
+            },
+            {
+              key: 'in',
+              value: itemAuth.apikey?.placement === 'queryparams' ? 'query' : 'header',
+              type: 'string'
             }
           ]
         };
