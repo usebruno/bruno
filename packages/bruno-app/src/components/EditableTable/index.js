@@ -440,7 +440,7 @@ const EditableTable = ({
               if (nextWidth !== parentWidth) {
                 parent.style.width = nextWidth + 'px';
               }
-            };
+            }
           }}
           >
             {!isEmpty && (

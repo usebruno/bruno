@@ -5,9 +5,9 @@ const {
   outdentString,
   unescapeAnnotationDoubleQuotedArg,
   parseAnnotationMultilineTextBlock,
-  applyDescriptionFromAnnotations
+  applyDescriptionFromAnnotations,
+  extractTypedAnnotations
 } = require('./utils');
-const { extractTypedAnnotations } = require('./utils');
 const parseExample = require('./example/bruToJson');
 
 // this is done to avoid breaking existing pairlist mapping so

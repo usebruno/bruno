@@ -5,9 +5,9 @@ const {
   outdentString,
   parseAnnotationMultilineTextBlock,
   unescapeAnnotationDoubleQuotedArg,
-  applyDescriptionFromAnnotations
+  applyDescriptionFromAnnotations,
+  extractTypedAnnotations
 } = require('./utils');
-const { extractTypedAnnotations } = require('./utils');
 
 // this is done to avoid breaking existing pairlist mapping so
 // the key is hidden and not added into the json automatically
@@ -273,7 +273,7 @@ const sem = grammar.createSemantics().addAttribute('ast', {
   },
   multilinetextblock(_1, content, _2) {
     return content.sourceString
-      .split('\n')
+      .split(/\r\n|\r|\n/)
       .map((line) => line.slice(4))
       .join('\n')
       .trim();
