@@ -6,7 +6,7 @@ const terser = require('@rollup/plugin-terser').default;
 const dts = require('rollup-plugin-dts').default;
 
 const nodeExternal = ['node:sqlite', 'node:crypto', 'crypto', 'fs', 'path'];
-const webExternal = ['react', 'react-dom', 'react/jsx-runtime'];
+const webExternal = ['react', 'react-dom', 'react/jsx-runtime', '@tanstack/react-query'];
 
 const jsPlugins = [
   nodeResolve({ extensions: ['.js', '.ts', '.tsx', '.json'] }),

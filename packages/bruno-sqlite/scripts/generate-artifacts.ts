@@ -28,13 +28,18 @@ const main = () => {
   )
 
   const typeMap: Record<string, string> = {}
+  const tableMap: Record<string, string[]> = {}
   for (const statement of statements) {
     typeMap[statement.name] = statement.type
+    tableMap[statement.name] = statement.tables
   }
   const statementName = statements.length > 0 ? "keyof typeof statementTypes" : "string"
   writeFile(
     path.join(WEB_DIR, "statements.ts"),
-    `${BANNER}\n\nexport const statementTypes = ${JSON.stringify(typeMap, null, 2)} as const\n\nexport type StatementName = ${statementName}\n`
+    `${BANNER}\n\n` +
+      `export const statementTypes = ${JSON.stringify(typeMap, null, 2)} as const\n\n` +
+      `export type StatementName = ${statementName}\n\n` +
+      `export const statementTables: Record<string, readonly string[]> = ${JSON.stringify(tableMap, null, 2)}\n`
   )
 
   console.log(`Generated ${migrations.length} migration(s) and ${statements.length} statement(s).`)

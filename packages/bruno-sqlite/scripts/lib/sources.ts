@@ -2,6 +2,18 @@ import * as path from "path"
 import * as fs from "fs"
 import type { Migration, StatementDef, StatementType } from "../../src/shared/types"
 
+const { Parser } = require("node-sql-parser")
+const sqlParser = new Parser()
+
+const extractTables = (sql: string): string[] => {
+  try {
+    const list: string[] = sqlParser.tableList(sql, { database: "Sqlite" })
+    return [...new Set(list.map((entry) => entry.split("::")[2]).filter(Boolean))]
+  } catch {
+    return []
+  }
+}
+
 const ROOT_DIR = process.cwd()
 const MIGRATIONS_DIR = path.join(ROOT_DIR, "migrations")
 const STATEMENTS_DIR = path.join(ROOT_DIR, "statements")
@@ -64,10 +76,12 @@ const parseStatement = (fullPath: string): StatementDef => {
   const base = parts.slice(0, -2).join(".")
   const dir = path.dirname(relative)
   const name = dir === "." ? base : `${dir.split(path.sep).join("/")}/${base}`
+  const sql = fs.readFileSync(fullPath, "utf8").trim()
   return {
     name,
     type,
-    sql: fs.readFileSync(fullPath, "utf8").trim()
+    sql,
+    tables: extractTables(sql)
   }
 }
 

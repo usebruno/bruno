@@ -48,6 +48,7 @@ const registerOpenAPISyncIpc = require('./ipc/openapi-sync');
 const registerAiIpc = require('./ipc/ai');
 const registerAiAutocompleteIpc = require('./ipc/ai/autocomplete');
 const { registerMountIpc } = require('./ipc/mount');
+const { registerSqliteIpc } = require('./ipc/sqlite');
 const collectionWatcher = require('./app/collection-watcher');
 const WorkspaceWatcher = require('./app/workspace-watcher');
 const ApiSpecWatcher = require('./app/apiSpecsWatcher');
@@ -522,6 +523,7 @@ app.on('ready', async () => {
   registerAiIpc(mainWindow);
   registerAiAutocompleteIpc(mainWindow);
   registerMountIpc();
+  registerSqliteIpc();
 
   // Internal delegator
   ipcMain.handle('main:cache-clear', async () => {
@@ -551,6 +553,8 @@ app.on('before-quit', (event) => {
     } catch {}
 
     try { await require('./ipc/mount').shutdown(); } catch {}
+
+    try { require('./ipc/sqlite').shutdown(); } catch {}
 
     if (useSingleInstance && gotTheLock) {
       try { app.releaseSingleInstanceLock(); } catch {}
