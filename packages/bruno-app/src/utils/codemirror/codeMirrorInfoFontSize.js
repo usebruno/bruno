@@ -9,7 +9,7 @@ document.head.appendChild(styleTag);
 let lastFontSize;
 
 const updateCodeMirrorInfoFontSize = () => {
-  const fontSize = get(store.getState(), 'app.preferences.font.codeFontSize', DEFAULT_CODE_FONT_SIZE);
+  const fontSize = Number(get(store.getState(), 'app.preferences.font.codeFontSize', DEFAULT_CODE_FONT_SIZE));
   if (fontSize === lastFontSize) return;
   lastFontSize = fontSize;
 
