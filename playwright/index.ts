@@ -22,6 +22,9 @@ const defaultPreferences = {
       hasLaunchedBefore: true,
       hasSeenWelcomeModal: true,
       lastSeenVersion: version
+    },
+    ai: {
+      enabled: false
     }
   }
 };

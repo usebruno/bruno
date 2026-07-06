@@ -174,6 +174,8 @@ const resolveModelDefinition = (modelId, aiPreferences) => {
   return null;
 };
 
+const isBuiltInModelId = (modelId) => Boolean(MODEL_DEFINITIONS[modelId]);
+
 const providerLabel = (providerId, aiPreferences) => {
   if (PROVIDERS[providerId]) return PROVIDERS[providerId].label;
   const endpointId = endpointIdFromProviderId(providerId);
@@ -270,6 +272,7 @@ module.exports = {
   providerIdFromEndpointId,
   getCompatEndpoint,
   isKnownProviderId,
+  isBuiltInModelId,
   validateApiKeyForProvider,
   providerLabel
 };

@@ -52,7 +52,7 @@ const AppCodeEditor = ({ item, collection }) => {
           fontSize={get(preferences, 'font.codeFontSize')}
           onEdit={onEdit}
           onSave={onSave}
-          mode="javascript"
+          mode="htmlmixed"
         />
         <AIAssist
           scriptType="app-request"
