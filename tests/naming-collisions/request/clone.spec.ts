@@ -1,8 +1,8 @@
 import process from 'node:process';
 import * as path from 'path';
-import { test, expect } from '../../playwright';
-import { buildCommonLocators, createCollection, createRequest, createFolder, closeAllCollections } from '../utils/page';
-import { listRequestFiles } from './utils';
+import { test, expect } from '../../../playwright';
+import { buildCommonLocators, createCollection, createRequest, createFolder, closeAllCollections } from '../../utils/page';
+import { listRequestFiles } from '../utils';
 
 // The clone shortcut is Cmd+D (mac) / Ctrl+D (win/linux).
 const modifier = process.platform === 'darwin' ? 'Meta' : 'Control';
