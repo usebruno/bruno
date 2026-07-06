@@ -8,6 +8,7 @@ const variablesTab = (page: Page) => buildCommonLocators(page).environment.varia
 const secretsTab = (page: Page) => buildCommonLocators(page).environment.secretsTab();
 const varRow = (page: Page, name: string) => buildCommonLocators(page).environment.varRow(name);
 const saveTab = (page: Page) => buildCommonLocators(page).environment.saveTab();
+const searchInputLocator = (page: Page) => buildCommonLocators(page).environment.searchInput();
 const tabDraftIcon = (page: Page) => page.locator('.request-tab.active').getByTestId('tab-draft-icon');
 
 const searchEnv = async (page: Page, query: string) => {
@@ -17,6 +18,14 @@ const searchEnv = async (page: Page, query: string) => {
     await input.waitFor({ state: 'visible' });
   }
   await input.fill(query);
+};
+
+const resetSearch = async (page: Page) => {
+  const input = page.locator('.search-input');
+  if ((await input.count()) === 0) return;
+  await input.fill('');
+  await input.blur();
+  await input.waitFor({ state: 'detached' });
 };
 
 const deleteRow = async (page: Page, name: string) => {
@@ -174,10 +183,9 @@ test.describe('Environment Variables / Secrets tab separation', () => {
       await expect(page.getByText('No results found')).toBeVisible();
     });
 
-    // The search query is stored in Redux and persists across environments, so clear
-    // it before the test ends — otherwise it filters the next test's table to "No
-    // results" and the empty "Name" row never renders.
-    await searchEnv(page, '');
+    await resetSearch(page);
+    await variablesTab(page).click();
+    await resetSearch(page);
   });
 
   test('search input value persists per tab and does not leak across tabs', async ({ page, createTmpDir }) => {
@@ -196,7 +204,7 @@ test.describe('Environment Variables / Secrets tab separation', () => {
     await saveTab(page).click();
     await expect(page.getByText('Changes saved successfully').last()).toBeVisible();
 
-    const searchInput = page.getByTestId('env-search-input');
+    const searchInput = searchInputLocator(page);
 
     await test.step('Type a search on the Variables tab', async () => {
       await variablesTab(page).click();
@@ -222,10 +230,11 @@ test.describe('Environment Variables / Secrets tab separation', () => {
       await expect(varRow(page, 'host')).toBeVisible();
     });
 
-    // Clear both tabs' searches so the persisted Redux query doesn't leak into later tests.
-    await searchEnv(page, '');
+    // Reset both tabs' search (clear text + collapse) so neither the query nor the
+    // expanded flag persists in Redux into later tests.
+    await resetSearch(page);
     await secretsTab(page).click();
-    await searchEnv(page, '');
+    await resetSearch(page);
     await variablesTab(page).click();
   });
 
@@ -409,10 +418,9 @@ test.describe('Global Environment Variables / Secrets tab separation', () => {
       await expect(page.getByText('No results found')).toBeVisible();
     });
 
-    // The search query is stored in Redux and persists across environments, so clear
-    // it before the test ends — otherwise it filters the next test's table to "No
-    // results" and the empty "Name" row never renders.
-    await searchEnv(page, '');
+    await resetSearch(page);
+    await variablesTab(page).click();
+    await resetSearch(page);
   });
 
   test('search input value persists per tab and does not leak across tabs', async ({ page, createTmpDir }) => {
@@ -431,7 +439,7 @@ test.describe('Global Environment Variables / Secrets tab separation', () => {
     await saveTab(page).click();
     await expect(page.getByText('Changes saved successfully').last()).toBeVisible();
 
-    const searchInput = page.getByTestId('env-search-input');
+    const searchInput = searchInputLocator(page);
 
     await test.step('Type a search on the Variables tab', async () => {
       await variablesTab(page).click();
@@ -457,10 +465,9 @@ test.describe('Global Environment Variables / Secrets tab separation', () => {
       await expect(varRow(page, 'host')).toBeVisible();
     });
 
-    // Clear both tabs' searches so the persisted Redux query doesn't leak into later tests.
-    await searchEnv(page, '');
+    await resetSearch(page);
     await secretsTab(page).click();
-    await searchEnv(page, '');
+    await resetSearch(page);
     await variablesTab(page).click();
   });
 
