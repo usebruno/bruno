@@ -180,7 +180,7 @@ test.describe('Environment Variables / Secrets tab separation', () => {
     await searchEnv(page, '');
   });
 
-  test.only('search input value persists per tab and does not leak across tabs', async ({ page, createTmpDir }) => {
+  test('search input value persists per tab and does not leak across tabs', async ({ page, createTmpDir }) => {
     await importCollection(page, collectionFile, await createTmpDir('var-secret-search-persist'), {
       expectedCollectionName: 'test_collection'
     });
