@@ -180,6 +180,55 @@ test.describe('Environment Variables / Secrets tab separation', () => {
     await searchEnv(page, '');
   });
 
+  test('search input value persists per tab and does not leak across tabs', async ({ page, createTmpDir }) => {
+    await importCollection(page, collectionFile, await createTmpDir('var-secret-search-persist'), {
+      expectedCollectionName: 'test_collection'
+    });
+
+    await createEnvironment(page, 'Search Persist Env', 'collection');
+
+    await addRowToActiveTab(page, 'host', 'https://echo.usebruno.com');
+    await saveTab(page).click();
+    await expect(page.getByText('Changes saved successfully').last()).toBeVisible();
+
+    await secretsTab(page).click();
+    await addRowToActiveTab(page, 'apiToken', 'super-secret-token-12345');
+    await saveTab(page).click();
+    await expect(page.getByText('Changes saved successfully').last()).toBeVisible();
+
+    const searchInput = page.getByTestId('env-search-input');
+
+    await test.step('Type a search on the Variables tab', async () => {
+      await variablesTab(page).click();
+      await searchEnv(page, 'host');
+      await expect(searchInput).toHaveValue('host');
+    });
+
+    await test.step('Switching to the Secrets tab does not carry the Variables search over', async () => {
+      await secretsTab(page).click();
+      // Secrets keeps its own (still-empty, collapsed) search state — the Variables
+      // query must not appear on the Secrets tab.
+      await expect(searchInput).toHaveCount(0);
+    });
+
+    await test.step('The Secrets tab keeps its own independent search', async () => {
+      await searchEnv(page, 'apiToken');
+      await expect(searchInput).toHaveValue('apiToken');
+    });
+
+    await test.step('Returning to the Variables tab restores its original search', async () => {
+      await variablesTab(page).click();
+      await expect(searchInput).toHaveValue('host');
+      await expect(varRow(page, 'host')).toBeVisible();
+    });
+
+    // Clear both tabs' searches so the persisted Redux query doesn't leak into later tests.
+    await searchEnv(page, '');
+    await secretsTab(page).click();
+    await searchEnv(page, '');
+    await variablesTab(page).click();
+  });
+
   test('deleting on one tab leaves the other tab untouched', async ({ page, createTmpDir }) => {
     await importCollection(page, collectionFile, await createTmpDir('var-secret-delete'), {
       expectedCollectionName: 'test_collection'
@@ -364,6 +413,55 @@ test.describe('Global Environment Variables / Secrets tab separation', () => {
     // it before the test ends — otherwise it filters the next test's table to "No
     // results" and the empty "Name" row never renders.
     await searchEnv(page, '');
+  });
+
+  test('search input value persists per tab and does not leak across tabs', async ({ page, createTmpDir }) => {
+    await importCollection(page, collectionFile, await createTmpDir('global-var-secret-search-persist'), {
+      expectedCollectionName: 'test_collection'
+    });
+
+    await createEnvironment(page, 'Global Search Persist Env', 'global');
+
+    await addRowToActiveTab(page, 'host', 'https://echo.usebruno.com');
+    await saveTab(page).click();
+    await expect(page.getByText('Changes saved successfully').last()).toBeVisible();
+
+    await secretsTab(page).click();
+    await addRowToActiveTab(page, 'apiToken', 'super-secret-token-12345');
+    await saveTab(page).click();
+    await expect(page.getByText('Changes saved successfully').last()).toBeVisible();
+
+    const searchInput = page.getByTestId('env-search-input');
+
+    await test.step('Type a search on the Variables tab', async () => {
+      await variablesTab(page).click();
+      await searchEnv(page, 'host');
+      await expect(searchInput).toHaveValue('host');
+    });
+
+    await test.step('Switching to the Secrets tab does not carry the Variables search over', async () => {
+      await secretsTab(page).click();
+      // Secrets keeps its own (still-empty, collapsed) search state — the Variables
+      // query must not appear on the Secrets tab.
+      await expect(searchInput).toHaveCount(0);
+    });
+
+    await test.step('The Secrets tab keeps its own independent search', async () => {
+      await searchEnv(page, 'apiToken');
+      await expect(searchInput).toHaveValue('apiToken');
+    });
+
+    await test.step('Returning to the Variables tab restores its original search', async () => {
+      await variablesTab(page).click();
+      await expect(searchInput).toHaveValue('host');
+      await expect(varRow(page, 'host')).toBeVisible();
+    });
+
+    // Clear both tabs' searches so the persisted Redux query doesn't leak into later tests.
+    await searchEnv(page, '');
+    await secretsTab(page).click();
+    await searchEnv(page, '');
+    await variablesTab(page).click();
   });
 
   test('deleting on one tab leaves the other tab untouched', async ({ page, createTmpDir }) => {
