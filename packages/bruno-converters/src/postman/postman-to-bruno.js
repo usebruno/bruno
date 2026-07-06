@@ -20,6 +20,7 @@ const AUTH_TYPES = Object.freeze({
   OAUTH2: 'oauth2',
   EDGEGRID: 'edgegrid',
   NOAUTH: 'noauth',
+  NTLM: 'ntlm',
   NONE: 'none'
 });
 
@@ -302,6 +303,15 @@ export const processAuth = (auth, requestObject, isCollection = false) => {
         maxBodySize: ensureMaxBodySize(authValues.maxBodySize)
       };
       break;
+    case AUTH_TYPES.NTLM:
+      // Postman's `workstation` field has no Bruno equivalent, so it is dropped here.
+      requestObject.auth.ntlm = {
+        username: ensureString(authValues.username),
+        password: ensureString(authValues.password),
+        domain: ensureString(authValues.domain)
+      };
+      break;
+
     case AUTH_TYPES.OAUTH1:
       requestObject.auth.oauth1 = {
         consumerKey: ensureString(authValues.consumerKey),
@@ -475,7 +485,8 @@ const importPostmanV2CollectionItem = (brunoParent, item, { useWorkers = false }
               apikey: null,
               oauth1: null,
               oauth2: null,
-              digest: null
+              digest: null,
+              ntlm: null
             },
             headers: [],
             script: {},
@@ -542,7 +553,8 @@ const importPostmanV2CollectionItem = (brunoParent, item, { useWorkers = false }
               apikey: null,
               oauth1: null,
               oauth2: null,
-              digest: null
+              digest: null,
+              ntlm: null
             },
             headers: [],
             params: [],
@@ -1019,7 +1031,8 @@ const importPostmanV2Collection = async (collection, { useWorkers = false }) => 
           apikey: null,
           oauth1: null,
           oauth2: null,
-          digest: null
+          digest: null,
+          ntlm: null
         },
         headers: [],
         script: {},
