@@ -320,6 +320,23 @@ const getTabsSnapshotFromLookups = (
   };
 };
 
+export const getCollectionSnapshotFromLookups = (collectionPathname, snapshotLookups = {}, workspacePathname = null) => {
+  const normalizedPathname = normalizePath(collectionPathname);
+  if (!normalizedPathname) {
+    return null;
+  }
+
+  if (workspacePathname) {
+    const workspaceCollectionKey = getWorkspaceCollectionSnapshotKey(workspacePathname, collectionPathname);
+    const workspaceCollectionEntry = snapshotLookups?.collectionsByWorkspaceAndPath?.[workspaceCollectionKey];
+    if (workspaceCollectionEntry) {
+      return workspaceCollectionEntry;
+    }
+  }
+
+  return snapshotLookups?.collectionsByPath?.[normalizedPathname] || null;
+};
+
 export const getCollectionEnvironmentPath = (collection, environment, defaultValue = null) => {
   if (!environment) {
     return defaultValue;

@@ -31,6 +31,8 @@ const activeStreams = new Map();
 
 const getAiPrefs = () => getPreferences().ai || {};
 
+const getSecurityPrefs = () => getAiPrefs().security || null;
+
 const isEnabled = () => Boolean(getAiPrefs().enabled);
 
 const buildStatus = () => {
@@ -191,6 +193,7 @@ const registerAiIpc = (mainWindow) => {
       return { error: err.message };
     }
 
+    const security = getSecurityPrefs();
     const controller = streamId ? new AbortController() : null;
     if (streamId && controller) {
       activeStreams.set(streamId, controller);
@@ -211,7 +214,7 @@ const registerAiIpc = (mainWindow) => {
           if (!status && data == null) {
             return '(No response available — the request has not been executed yet.)';
           }
-          return formatResponseShape(status, data) || '(empty response)';
+          return formatResponseShape(status, data, { security }) || '(empty response)';
         }
       },
       search_variables: {
@@ -227,7 +230,7 @@ const registerAiIpc = (mainWindow) => {
             return '(No variables available — the collection has no environment, runtime, or collection variables defined.)';
           }
           const result = searchVariables(variables, query);
-          return formatSearchVariablesResult(result, query);
+          return formatSearchVariablesResult(result, query, { security });
         }
       }
     };
@@ -242,7 +245,8 @@ const registerAiIpc = (mainWindow) => {
           requestContext,
           docsContext,
           variables,
-          scriptType
+          scriptType,
+          security
         }),
         tools,
         // Cap tool-call iteration — the model gets a few chances to look

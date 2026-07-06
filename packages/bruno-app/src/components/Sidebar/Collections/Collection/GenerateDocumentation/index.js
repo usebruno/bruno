@@ -13,12 +13,12 @@ import StyledWrapper from './StyledWrapper';
 import CollectionVersionInfo from './CollectionVersionInfo';
 import EnvironmentSelectionList from './EnvironmentSelectionList';
 import { useApp } from 'providers/App';
-import { transformCollectionToSaveToExportAsFile, findCollectionByUid, areItemsLoading, sortItemsBySidebarOrder, getCollectionItemCounts } from 'utils/collections/index';
+import { transformCollectionToSaveToExportAsFile, findCollectionByUid, areItemsLoading, sortItemsBySidebarOrder, getCollectionItemCounts, getCollectionVersion } from 'utils/collections/index';
 import { brunoToOpenCollection } from '@usebruno/converters';
 import { sanitizeName } from 'utils/common/regex';
 import { escapeHtml } from 'utils/response';
 
-const CDN_BASE_URL = 'https://cdn.opencollection.com';
+const CDN_BASE_URL = 'https://cdn.usebruno.com';
 
 const FEATURES = [
   'Standalone HTML file - no server required',
@@ -36,8 +36,8 @@ const buildHtmlDocument = (collectionName, escapedYamlContent) => `<!DOCTYPE htm
         body { margin: 0; padding: 0; }
         #opencollection-container { width: 100vw; height: 100vh; }
     </style>
-    <link rel="stylesheet" href="${CDN_BASE_URL}/docs.css">
-    <script src="${CDN_BASE_URL}/docs.js"></script>
+    <link rel="stylesheet" href="${CDN_BASE_URL}/docs/index.css">
+    <script src="${CDN_BASE_URL}/docs/index.js"></script>
 </head>
 <body>
     <div id="opencollection-container"></div>
@@ -76,8 +76,7 @@ const GenerateDocumentation = ({ onClose, collectionUid }) => {
     [collection]
   );
 
-  // The collection's current version (read-only here); formatted for display below.
-  const currentVersion = collection?.version;
+  const currentVersion = getCollectionVersion(collection);
 
   // Folder + request counts, computed from the collection tree (recursively).
   const { folderCount, requestCount } = useMemo(

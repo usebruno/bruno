@@ -44,6 +44,10 @@ const StyledWrapper = styled.div`
           white-space: nowrap;
         }
 
+        .version-value.unset {
+          font-style: italic;
+        }
+
         .version-summary {
           display: flex;
           align-items: center;
