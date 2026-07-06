@@ -128,6 +128,7 @@ const COLLECTION_CTX_BOOTSTRAP = `<script>
         break;
       case 'collection':
         ctx.collection = msg.collection || null;
+        if (typeof ctx.onCollectionUpdate === 'function') ctx.onCollectionUpdate(ctx.collection);
         break;
       case 'reply': {
         var entry = pending.get(msg.replyId);
