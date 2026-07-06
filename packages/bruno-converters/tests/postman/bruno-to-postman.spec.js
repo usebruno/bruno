@@ -403,124 +403,438 @@ describe('brunoToPostman null checks and fallbacks', () => {
     const result = brunoToPostman(simpleCollection);
     expect(result.item[0].item).toEqual([]);
   });
+});
 
-  it('should handle null or undefined auth object', () => {
-    const simpleCollection = {
-      items: [
-        {
-          name: 'Test Request',
-          type: 'http-request',
-          request: {
-            method: 'GET',
-            url: 'https://example.com',
-            auth: null
-          }
+describe('brunoToPostman auth export', () => {
+  const makeRequestWithAuth = (auth) => ({
+    items: [
+      {
+        name: 'Test Request',
+        type: 'http-request',
+        request: {
+          method: 'GET',
+          url: 'https://example.com',
+          auth
         }
-      ]
-    };
+      }
+    ]
+  });
 
-    const result = brunoToPostman(simpleCollection);
+  it('should omit auth (undefined) for inherit mode so Postman falls back to the parent', () => {
+    const result = brunoToPostman(makeRequestWithAuth({ mode: 'inherit' }));
+    expect(result.item[0].request.auth).toBeUndefined();
+  });
+
+  it('should return noauth for a null or undefined auth object', () => {
+    const result = brunoToPostman(makeRequestWithAuth(null));
     expect(result.item[0].request.auth).toEqual({ type: 'noauth' });
   });
 
-  it('should handle missing token in bearer auth', () => {
-    const simpleCollection = {
-      items: [
-        {
-          name: 'Test Request',
-          type: 'http-request',
-          request: {
-            method: 'GET',
-            url: 'https://example.com',
-            auth: {
-              mode: 'bearer',
-              bearer: { token: null }
-            }
-          }
-        }
-      ]
-    };
-
-    const result = brunoToPostman(simpleCollection);
+  it('should export bearer auth as an array (Postman v2.1 schema)', () => {
+    const result = brunoToPostman(makeRequestWithAuth({
+      mode: 'bearer',
+      bearer: { token: 'my-token' }
+    }));
     expect(result.item[0].request.auth).toEqual({
       type: 'bearer',
-      bearer: {
-        key: 'token',
-        value: '',
-        type: 'string'
-      }
+      bearer: [
+        { key: 'token', value: 'my-token', type: 'string' }
+      ]
+    });
+  });
+
+  it('should handle missing token in bearer auth', () => {
+    const result = brunoToPostman(makeRequestWithAuth({
+      mode: 'bearer',
+      bearer: { token: null }
+    }));
+    expect(result.item[0].request.auth).toEqual({
+      type: 'bearer',
+      bearer: [
+        { key: 'token', value: '', type: 'string' }
+      ]
+    });
+  });
+
+  it('should export basic auth (password then username)', () => {
+    const result = brunoToPostman(makeRequestWithAuth({
+      mode: 'basic',
+      basic: { username: 'user', password: 'pass' }
+    }));
+    expect(result.item[0].request.auth).toEqual({
+      type: 'basic',
+      basic: [
+        { key: 'password', value: 'pass', type: 'string' },
+        { key: 'username', value: 'user', type: 'string' }
+      ]
     });
   });
 
   it('should handle missing username/password in basic auth', () => {
-    const simpleCollection = {
-      items: [
-        {
-          name: 'Test Request',
-          type: 'http-request',
-          request: {
-            method: 'GET',
-            url: 'https://example.com',
-            auth: {
-              mode: 'basic',
-              basic: { username: null, password: undefined }
-            }
-          }
-        }
-      ]
-    };
-
-    const result = brunoToPostman(simpleCollection);
+    const result = brunoToPostman(makeRequestWithAuth({
+      mode: 'basic',
+      basic: { username: null, password: undefined }
+    }));
     expect(result.item[0].request.auth).toEqual({
       type: 'basic',
       basic: [
-        {
-          key: 'password',
-          value: '',
-          type: 'string'
-        },
-        {
-          key: 'username',
-          value: '',
-          type: 'string'
-        }
+        { key: 'password', value: '', type: 'string' },
+        { key: 'username', value: '', type: 'string' }
       ]
     });
   });
 
-  it('should handle missing key/value in apikey auth', () => {
-    const simpleCollection = {
-      items: [
-        {
-          name: 'Test Request',
-          type: 'http-request',
-          request: {
-            method: 'GET',
-            url: 'https://example.com',
-            auth: {
-              mode: 'apikey',
-              apikey: { key: null, value: undefined }
-            }
+  it('should export awsv4 auth mapping Bruno field names to Postman', () => {
+    const result = brunoToPostman(makeRequestWithAuth({
+      mode: 'awsv4',
+      awsv4: {
+        accessKeyId: 'AKIA',
+        secretAccessKey: 'secret',
+        sessionToken: 'session',
+        service: 's3',
+        region: 'us-east-1'
+      }
+    }));
+    expect(result.item[0].request.auth).toEqual({
+      type: 'awsv4',
+      awsv4: [
+        { key: 'sessionToken', value: 'session', type: 'string' },
+        { key: 'service', value: 's3', type: 'string' },
+        { key: 'region', value: 'us-east-1', type: 'string' },
+        { key: 'secretKey', value: 'secret', type: 'string' },
+        { key: 'accessKey', value: 'AKIA', type: 'string' }
+      ]
+    });
+  });
+
+  it('should export digest auth (only username/password, Postman-only keys dropped)', () => {
+    const result = brunoToPostman(makeRequestWithAuth({
+      mode: 'digest',
+      digest: { username: 'user', password: 'pass' }
+    }));
+    expect(result.item[0].request.auth).toEqual({
+      type: 'digest',
+      digest: [
+        { key: 'password', value: 'pass', type: 'string' },
+        { key: 'username', value: 'user', type: 'string' }
+      ]
+    });
+  });
+
+  it('should export ntlm auth (username/password/domain)', () => {
+    const result = brunoToPostman(makeRequestWithAuth({
+      mode: 'ntlm',
+      ntlm: { username: 'user', password: 'pass', domain: 'CORP' }
+    }));
+    expect(result.item[0].request.auth).toEqual({
+      type: 'ntlm',
+      ntlm: [
+        { key: 'username', value: 'user', type: 'string' },
+        { key: 'password', value: 'pass', type: 'string' },
+        { key: 'domain', value: 'CORP', type: 'string' }
+      ]
+    });
+  });
+
+  describe('oauth1', () => {
+    it('should export oauth1 with HMAC signature (no privateKey emitted)', () => {
+      const result = brunoToPostman(makeRequestWithAuth({
+        mode: 'oauth1',
+        oauth1: {
+          consumerKey: 'ck',
+          consumerSecret: 'cs',
+          accessToken: 'at',
+          accessTokenSecret: 'ats',
+          signatureMethod: 'HMAC-SHA1',
+          callbackUrl: 'https://cb',
+          verifier: 'v',
+          timestamp: '123',
+          nonce: 'n',
+          version: '1.0',
+          realm: 'r',
+          placement: 'header'
+        }
+      }));
+      expect(result.item[0].request.auth).toEqual({
+        type: 'oauth1',
+        oauth1: [
+          { key: 'consumerKey', value: 'ck', type: 'string' },
+          { key: 'consumerSecret', value: 'cs', type: 'string' },
+          { key: 'token', value: 'at', type: 'string' },
+          { key: 'tokenSecret', value: 'ats', type: 'string' },
+          { key: 'signatureMethod', value: 'HMAC-SHA1', type: 'string' },
+          { key: 'callback', value: 'https://cb', type: 'string' },
+          { key: 'verifier', value: 'v', type: 'string' },
+          { key: 'timestamp', value: '123', type: 'string' },
+          { key: 'nonce', value: 'n', type: 'string' },
+          { key: 'version', value: '1.0', type: 'string' },
+          { key: 'realm', value: 'r', type: 'string' },
+          { key: 'addParamsToHeader', value: true, type: 'boolean' },
+          { key: 'includeBodyHash', value: false, type: 'boolean' }
+        ]
+      });
+    });
+
+    it('should emit privateKey for RSA signature methods', () => {
+      const result = brunoToPostman(makeRequestWithAuth({
+        mode: 'oauth1',
+        oauth1: {
+          signatureMethod: 'RSA-SHA256',
+          privateKeyType: 'text',
+          privateKey: '-----BEGIN PRIVATE KEY-----'
+        }
+      }));
+      const oauth1 = result.item[0].request.auth.oauth1;
+      expect(oauth1).toContainEqual({
+        key: 'privateKey',
+        value: '-----BEGIN PRIVATE KEY-----',
+        type: 'string'
+      });
+    });
+
+    it('should export an empty privateKey when RSA key is file-backed (no FS access on export)', () => {
+      const result = brunoToPostman(makeRequestWithAuth({
+        mode: 'oauth1',
+        oauth1: {
+          signatureMethod: 'RSA-SHA1',
+          privateKeyType: 'file',
+          privateKey: './keys/private.pem'
+        }
+      }));
+      const oauth1 = result.item[0].request.auth.oauth1;
+      expect(oauth1).toContainEqual({ key: 'privateKey', value: '', type: 'string' });
+    });
+
+    it('should set addParamsToHeader=false when placement is query', () => {
+      const result = brunoToPostman(makeRequestWithAuth({
+        mode: 'oauth1',
+        oauth1: { placement: 'query' }
+      }));
+      const oauth1 = result.item[0].request.auth.oauth1;
+      expect(oauth1).toContainEqual({ key: 'addParamsToHeader', value: false, type: 'boolean' });
+    });
+  });
+
+  describe('oauth2', () => {
+    it('should export authorization_code grant with pkce and map all fields', () => {
+      const result = brunoToPostman(makeRequestWithAuth({
+        mode: 'oauth2',
+        oauth2: {
+          grantType: 'authorization_code',
+          pkce: true,
+          accessTokenUrl: 'https://token',
+          refreshTokenUrl: 'https://refresh',
+          authorizationUrl: 'https://auth',
+          callbackUrl: 'https://callback',
+          clientId: 'client-id',
+          clientSecret: 'client-secret',
+          scope: 'read write',
+          state: 'xyz',
+          credentialsId: 'my-token',
+          tokenPlacement: 'header',
+          tokenHeaderPrefix: 'Bearer',
+          credentialsPlacement: 'body',
+          username: 'user',
+          password: 'pass'
+        }
+      }));
+      expect(result.item[0].request.auth).toEqual({
+        type: 'oauth2',
+        oauth2: [
+          { key: 'grant_type', value: 'authorization_code_with_pkce', type: 'string' },
+          { key: 'accessTokenUrl', value: 'https://token', type: 'string' },
+          { key: 'refreshTokenUrl', value: 'https://refresh', type: 'string' },
+          { key: 'clientId', value: 'client-id', type: 'string' },
+          { key: 'clientSecret', value: 'client-secret', type: 'string' },
+          { key: 'scope', value: 'read write', type: 'string' },
+          { key: 'state', value: 'xyz', type: 'string' },
+          { key: 'tokenName', value: 'my-token', type: 'string' },
+          { key: 'addTokenTo', value: 'header', type: 'string' },
+          { key: 'headerPrefix', value: 'Bearer', type: 'string' },
+          { key: 'client_authentication', value: 'body', type: 'string' },
+          { key: 'authUrl', value: 'https://auth', type: 'string' },
+          { key: 'redirect_uri', value: 'https://callback', type: 'string' },
+          { key: 'username', value: 'user', type: 'string' },
+          { key: 'password', value: 'pass', type: 'string' }
+        ]
+      });
+    });
+
+    it('should map grant types (password -> password_credentials, authorization_code without pkce)', () => {
+      const passwordResult = brunoToPostman(makeRequestWithAuth({
+        mode: 'oauth2',
+        oauth2: { grantType: 'password' }
+      }));
+      expect(passwordResult.item[0].request.auth.oauth2).toContainEqual({
+        key: 'grant_type', value: 'password_credentials', type: 'string'
+      });
+
+      const authCodeResult = brunoToPostman(makeRequestWithAuth({
+        mode: 'oauth2',
+        oauth2: { grantType: 'authorization_code', pkce: false }
+      }));
+      expect(authCodeResult.item[0].request.auth.oauth2).toContainEqual({
+        key: 'grant_type', value: 'authorization_code', type: 'string'
+      });
+    });
+
+    it('should default unknown grant type to client_credentials and map url token placement to queryParams', () => {
+      const result = brunoToPostman(makeRequestWithAuth({
+        mode: 'oauth2',
+        oauth2: { tokenPlacement: 'url' }
+      }));
+      const oauth2 = result.item[0].request.auth.oauth2;
+      expect(oauth2).toContainEqual({ key: 'grant_type', value: 'client_credentials', type: 'string' });
+      expect(oauth2).toContainEqual({ key: 'addTokenTo', value: 'queryParams', type: 'string' });
+    });
+
+    it('should filter out empty/null/undefined values from oauth2 params', () => {
+      const result = brunoToPostman(makeRequestWithAuth({
+        mode: 'oauth2',
+        oauth2: {
+          grantType: 'client_credentials',
+          clientId: 'client-id',
+          clientSecret: '',
+          scope: null,
+          state: undefined
+        }
+      }));
+      const keys = result.item[0].request.auth.oauth2.map((p) => p.key);
+      expect(keys).toContain('clientId');
+      expect(keys).not.toContain('clientSecret');
+      expect(keys).not.toContain('scope');
+      expect(keys).not.toContain('state');
+    });
+
+    it('should map additionalParameters to request-params with send_as translation', () => {
+      const result = brunoToPostman(makeRequestWithAuth({
+        mode: 'oauth2',
+        oauth2: {
+          grantType: 'authorization_code',
+          additionalParameters: {
+            authorization: [{ name: 'a', value: 'av', enabled: true, sendIn: 'headers' }],
+            token: [{ name: 't', value: 'tv', enabled: false, sendIn: 'queryparams' }],
+            refresh: [{ name: 'r', value: 'rv', enabled: true, sendIn: 'body' }]
           }
         }
-      ]
-    };
+      }));
+      const oauth2 = result.item[0].request.auth.oauth2;
+      expect(oauth2).toContainEqual({
+        key: 'authRequestParams',
+        value: [{ key: 'a', value: 'av', enabled: true, send_as: 'request_header' }],
+        type: 'any'
+      });
+      expect(oauth2).toContainEqual({
+        key: 'tokenRequestParams',
+        value: [{ key: 't', value: 'tv', enabled: false, send_as: 'request_url' }],
+        type: 'any'
+      });
+      expect(oauth2).toContainEqual({
+        key: 'refreshRequestParams',
+        value: [{ key: 'r', value: 'rv', enabled: true, send_as: 'request_body' }],
+        type: 'any'
+      });
+    });
 
-    const result = brunoToPostman(simpleCollection);
-    expect(result.item[0].request.auth).toEqual({
-      type: 'apikey',
-      apikey: [
-        {
-          key: 'key',
-          value: '',
-          type: 'string'
+    it('should not emit request-params keys when additionalParameters are absent', () => {
+      const result = brunoToPostman(makeRequestWithAuth({
+        mode: 'oauth2',
+        oauth2: { grantType: 'client_credentials' }
+      }));
+      const keys = result.item[0].request.auth.oauth2.map((p) => p.key);
+      expect(keys).not.toContain('authRequestParams');
+      expect(keys).not.toContain('tokenRequestParams');
+      expect(keys).not.toContain('refreshRequestParams');
+    });
+  });
+
+  describe('apikey', () => {
+    it('should map queryparams placement to in: query', () => {
+      const result = brunoToPostman(makeRequestWithAuth({
+        mode: 'apikey',
+        apikey: { key: 'X-API-Key', value: 'secret', placement: 'queryparams' }
+      }));
+      expect(result.item[0].request.auth).toEqual({
+        type: 'apikey',
+        apikey: [
+          { key: 'key', value: 'X-API-Key', type: 'string' },
+          { key: 'value', value: 'secret', type: 'string' },
+          { key: 'in', value: 'query', type: 'string' }
+        ]
+      });
+    });
+
+    it('should map header placement to in: header', () => {
+      const result = brunoToPostman(makeRequestWithAuth({
+        mode: 'apikey',
+        apikey: { key: 'X-API-Key', value: 'secret', placement: 'header' }
+      }));
+      expect(result.item[0].request.auth.apikey).toContainEqual({ key: 'in', value: 'header', type: 'string' });
+    });
+
+    it('should default to in: header when placement is missing', () => {
+      const result = brunoToPostman(makeRequestWithAuth({
+        mode: 'apikey',
+        apikey: { key: 'X-API-Key', value: 'secret' }
+      }));
+      expect(result.item[0].request.auth.apikey).toContainEqual({ key: 'in', value: 'header', type: 'string' });
+    });
+
+    it('should handle missing key/value in apikey auth', () => {
+      const result = brunoToPostman(makeRequestWithAuth({
+        mode: 'apikey',
+        apikey: { key: null, value: undefined }
+      }));
+      expect(result.item[0].request.auth).toEqual({
+        type: 'apikey',
+        apikey: [
+          { key: 'key', value: '', type: 'string' },
+          { key: 'value', value: '', type: 'string' },
+          { key: 'in', value: 'header', type: 'string' }
+        ]
+      });
+    });
+  });
+
+  describe('default / noauth', () => {
+    it('should return noauth for a request with an unknown/none auth mode', () => {
+      const result = brunoToPostman(makeRequestWithAuth({ mode: 'none' }));
+      expect(result.item[0].request.auth).toEqual({ type: 'noauth' });
+    });
+  });
+
+  describe('collection-level auth', () => {
+    it('should export collection-level auth from root.request.auth', () => {
+      const collection = {
+        root: {
+          request: {
+            auth: { mode: 'bearer', bearer: { token: 'collection-token' } }
+          }
         },
-        {
-          key: 'value',
-          value: '',
-          type: 'string'
-        }
-      ]
+        items: []
+      };
+      const result = brunoToPostman(collection);
+      expect(result.auth).toEqual({
+        type: 'bearer',
+        bearer: [
+          { key: 'token', value: 'collection-token', type: 'string' }
+        ]
+      });
+    });
+
+    it('should leave collection auth undefined (not noauth) when the collection has no auth', () => {
+      const collection = { items: [] };
+      const result = brunoToPostman(collection);
+      expect(result.auth).toBeUndefined();
+    });
+
+    it('should leave collection auth undefined for inherit mode', () => {
+      const collection = {
+        root: { request: { auth: { mode: 'inherit' } } },
+        items: []
+      };
+      const result = brunoToPostman(collection);
+      expect(result.auth).toBeUndefined();
     });
   });
 });
