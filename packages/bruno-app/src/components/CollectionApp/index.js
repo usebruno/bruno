@@ -23,7 +23,7 @@ import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { useTheme } from 'providers/Theme';
 import CodeEditor from 'components/CodeEditor';
 import AIAssist from 'components/AIAssist';
-import { buildDocsContextFromCollection } from 'utils/ai';
+import { buildAiVariablesPayload, buildDocsContextFromCollection } from 'utils/ai';
 import StyledWrapper from './StyledWrapper';
 import EmptyAppState from '../AppView/EmptyAppState';
 import {
@@ -56,6 +56,7 @@ const COLLECTION_CTX_BOOTSTRAP = `<script>
   var SENTINEL = ${JSON.stringify(SENTINEL)};
   var pending = new Map();
   var nextReplyId = 0;
+  var initialized = false;
 
   function sendToHost(payload) {
     try { console.log(SENTINEL + JSON.stringify(payload)); } catch (e) {}
@@ -74,8 +75,10 @@ const COLLECTION_CTX_BOOTSTRAP = `<script>
     variables: {},
     collection: null,
 
+    onInit: null,
     onThemeChange: null,
     onVariablesUpdate: null,
+    onCollectionUpdate: null,
 
     listRequests: function () {
       return awaitReply('listRequests');
@@ -108,6 +111,12 @@ const COLLECTION_CTX_BOOTSTRAP = `<script>
         applyTheme(msg.theme);
         ctx.variables = msg.variables || {};
         ctx.collection = msg.collection || null;
+        if (!initialized) {
+          initialized = true;
+          if (typeof ctx.onInit === 'function') {
+            try { ctx.onInit(ctx); } catch (e) { sendToHost({ type: 'log', args: ['onInit error: ' + (e && e.message)] }); }
+          }
+        }
         break;
       case 'theme':
         applyTheme(msg.theme);
@@ -119,6 +128,7 @@ const COLLECTION_CTX_BOOTSTRAP = `<script>
         break;
       case 'collection':
         ctx.collection = msg.collection || null;
+        if (typeof ctx.onCollectionUpdate === 'function') ctx.onCollectionUpdate(ctx.collection);
         break;
       case 'reply': {
         var entry = pending.get(msg.replyId);
@@ -190,6 +200,7 @@ const CollectionApp = ({ item, collection }) => {
     [collection?.name, collection?.pathname]
   );
   const docsContext = useMemo(() => buildDocsContextFromCollection(collection), [collection]);
+  const aiVariables = useMemo(() => buildAiVariablesPayload(collection, null), [collection]);
 
   const onEdit = useCallback(
     (value) => dispatch(updateAppCode({ code: value, itemUid: item.uid, collectionUid: collection.uid })),
@@ -366,6 +377,7 @@ const CollectionApp = ({ item, collection }) => {
             scriptType="app-collection"
             currentScript={code || ''}
             docsContext={docsContext}
+            variables={aiVariables}
             onApply={onEdit}
           />
         </div>

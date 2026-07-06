@@ -1,7 +1,10 @@
+import get from 'lodash/get';
 import { callIpc } from 'utils/common/ipc';
 import {
+  findEnvironmentInCollection,
   flattenItems,
   getAllVariables,
+  getFormattedCollectionOauth2Credentials,
   isItemAFolder,
   isItemARequest,
   sortItemsBySidebarOrder
@@ -34,6 +37,13 @@ export const aiGenerateText = (params) =>
 export const aiGenerateScript = (params) =>
   callIpc('renderer:ai-generate-script', params);
 
+export const stopAiGeneration = (streamId) => {
+  const { ipcRenderer } = window;
+  if (ipcRenderer && streamId) {
+    ipcRenderer.send('renderer:ai-stop-stream', { streamId });
+  }
+};
+
 export const aiAutocomplete = (params) =>
   callIpc('renderer:ai-autocomplete', params);
 
@@ -44,6 +54,14 @@ export const cancelAiAutocomplete = (requestId) => {
   }
 };
 
+/**
+ * Lean request context - method/url/headers/params/body. Kept for callers
+ * that don't need the response (autocomplete + legacy sparkle sites).
+ *
+ * Sensitive header/param values are NOT stripped here — that happens in the
+ * backend formatter via `maskValue`. The renderer ships them verbatim so the
+ * mask logic stays in one place (packages/bruno-electron/src/ipc/ai/context.js).
+ */
 export const buildRequestContextFromItem = (item) => {
   if (!item) return null;
   const req = item.draft ? item.draft.request : item.request;
@@ -57,6 +75,146 @@ export const buildRequestContextFromItem = (item) => {
     body: req.body || null
   };
 };
+
+/**
+ * Extended request context for chat + generation: adds the request's docs
+ * field and the last response. The response is redacted shape-only on the
+ * backend before being formatted into the prompt.
+ */
+export const buildAiRequestContext = (item) => {
+  if (!item) return null;
+  const req = item.draft ? item.draft.request : item.request;
+  if (!req) return null;
+
+  return {
+    url: req.url || '',
+    method: req.method || 'GET',
+    headers: Array.isArray(req.headers) ? req.headers : [],
+    params: Array.isArray(req.params) ? req.params : [],
+    body: req.body || null,
+    docs: req.docs || null,
+    responseStatus: get(item, 'response.status', null),
+    responseData: get(item, 'response.data', null)
+  };
+};
+
+/**
+ * Sensitive name patterns kept in sync with the backend (context.js). The
+ * renderer uses these to redact secret values BEFORE sending over IPC so the
+ * payload itself never carries them — a belt-and-suspenders measure on top
+ * of the backend masking.
+ */
+const SENSITIVE_NAME_PATTERNS = [
+  /api[_-]?key/i,
+  // Catches refresh_token, id_token, csrfToken, plain TOKEN, etc. on top of
+  // the specific access/auth-token forms below.
+  /token/i,
+  /access[_-]?token/i,
+  /auth[_-]?token/i,
+  /secret/i,
+  /password/i,
+  /^authorization$/i,
+  /^cookie$/i
+];
+
+const isSensitiveName = (name) => {
+  if (!name) return false;
+  return SENSITIVE_NAME_PATTERNS.some((re) => re.test(name));
+};
+
+/**
+ * Flat list of variables the model can search. Each entry:
+ *   { name, value, scope, secret }
+ *
+ * Values come from `getAllVariables()` so they match what `bru.*` returns at
+ * runtime - important because the model's `search_variables` tool would
+ * otherwise show a lower-precedence value for any name that's overridden by
+ * a higher-precedence scope (e.g. a folder var hiding behind an env var).
+ *
+ * Scope + secret metadata is attached by walking each named source. A name
+ * marked secret by ANY source stays secret in the output.
+ *
+ * - `secret: true` => value is replaced by `<redacted>` here, not sent in the
+ *   clear over IPC.
+ * - The backend re-applies redaction in `formatVariableLine`, so even if a
+ *   secret slipped through here it wouldn't reach the provider.
+ */
+export const buildAiVariablesPayload = (collection, item) => {
+  if (!collection) return [];
+
+  const REDACTED = '<redacted>';
+
+  // Authoritative values - same merge `bru.getEnvVar` / `bru.getVar` resolve.
+  const resolved = getAllVariables(collection, item) || {};
+
+  // name -> { scope, secret } - last claim wins for scope (matches the spread
+  // order in getAllVariables); secret is sticky-on once any source flags it.
+  const meta = new Map();
+  const claim = (name, scope, secret) => {
+    if (!name) return;
+    const existing = meta.get(name);
+    const finalSecret = Boolean(secret) || Boolean(existing?.secret);
+    meta.set(name, { scope, secret: finalSecret });
+  };
+
+  // Global env - secrets tracked as a separate name list.
+  const globalSecrets = new Set(collection.globalEnvSecrets || []);
+  for (const name of Object.keys(collection.globalEnvironmentVariables || {})) {
+    claim(name, 'global', globalSecrets.has(name));
+  }
+
+  // Active environment - explicit `secret` flag per variable.
+  const env = findEnvironmentInCollection(collection, collection.activeEnvironmentUid);
+  if (env && Array.isArray(env.variables)) {
+    for (const v of env.variables) {
+      if (v?.name && v.enabled) claim(v.name, 'env', Boolean(v.secret));
+    }
+  }
+
+  // Runtime - set via bru.setVar() at runtime. No secret flag.
+  for (const name of Object.keys(collection.runtimeVariables || {})) {
+    claim(name, 'runtime', false);
+  }
+
+  // OAuth2 credentials — always treat as secret. `getAllVariables` already
+  // surfaces these via the same helper, so claiming here just stamps the
+  // right scope/secret on names that would otherwise default to 'collection'.
+  const oauth = getFormattedCollectionOauth2Credentials({ oauth2Credentials: collection?.oauth2Credentials });
+  if (oauth) {
+    for (const name of Object.keys(oauth)) {
+      claim(name, 'oauth2', true);
+    }
+  }
+
+  const out = [];
+  for (const name of Object.keys(resolved)) {
+    if (name === 'pathParams' || name === 'maskedEnvVariables' || name === 'process') continue;
+    const m = meta.get(name);
+    // Default scope for names not claimed by any explicit source — these come
+    // from collection/folder/request-level vars that don't carry a secret
+    // flag of their own, so we rely on `isSensitiveName` to catch token-like
+    // names by pattern.
+    const scope = m?.scope || 'collection';
+    const isSecret = Boolean(m?.secret) || isSensitiveName(name);
+    const value = resolved[name];
+    out.push({
+      name,
+      value: isSecret ? REDACTED : (value == null ? '' : String(value)),
+      scope,
+      secret: isSecret
+    });
+  }
+  return out;
+};
+
+/**
+ * Single entry point for chat + generation. Returns the same payload shape
+ * for both so the backend formatters / tools behave identically.
+ */
+export const buildAiContextPayload = (item, collection) => ({
+  requestContext: buildAiRequestContext(item),
+  variables: collection ? buildAiVariablesPayload(collection, item) : []
+});
 
 const summarizeDocsItems = (items = []) => {
   const folders = [];

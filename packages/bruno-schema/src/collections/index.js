@@ -263,6 +263,19 @@ const authApiKeySchema = Yup.object({
   .noUnknown(true)
   .strict();
 
+const authEdgeGridSchema = Yup.object({
+  accessToken: Yup.string().nullable(),
+  clientToken: Yup.string().nullable(),
+  clientSecret: Yup.string().nullable(),
+  nonce: Yup.string().nullable(),
+  timestamp: Yup.string().nullable(),
+  baseURL: Yup.string().nullable(),
+  headersToSign: Yup.string().nullable(),
+  maxBodySize: Yup.number().nullable()
+})
+  .noUnknown(true)
+  .strict();
+
 const authOAuth1Schema = Yup.object({
   consumerKey: Yup.string().nullable(),
   consumerSecret: Yup.string().nullable(),
@@ -421,7 +434,7 @@ const oauth2Schema = Yup.object({
 
 const authSchema = Yup.object({
   mode: Yup.string()
-    .oneOf(['inherit', 'none', 'awsv4', 'basic', 'bearer', 'digest', 'ntlm', 'oauth1', 'oauth2', 'wsse', 'apikey'])
+    .oneOf(['inherit', 'none', 'awsv4', 'basic', 'bearer', 'digest', 'ntlm', 'oauth1', 'oauth2', 'wsse', 'apikey', 'akamai-edgegrid'])
     .required('mode is required'),
   awsv4: authAwsV4Schema.nullable(),
   basic: authBasicSchema.nullable(),
@@ -431,7 +444,8 @@ const authSchema = Yup.object({
   oauth1: authOAuth1Schema.nullable(),
   oauth2: oauth2Schema.nullable(),
   wsse: authWsseSchema.nullable(),
-  apikey: authApiKeySchema.nullable()
+  apikey: authApiKeySchema.nullable(),
+  akamaiEdgegrid: authEdgeGridSchema.nullable()
 })
   .noUnknown(true)
   .strict()

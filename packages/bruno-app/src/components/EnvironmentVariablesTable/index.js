@@ -543,18 +543,7 @@ const EnvironmentVariablesTable = ({
     const otherCurrent = namedValues.filter((variable) => !belongsToActiveTab(variable));
     const otherSaved = savedValues.filter((variable) => !belongsToActiveTab(variable));
 
-    // Compare against what's on disk: for an ephemeral overlay, that's
-    // `persistedValue`, not the scripted value Redux is holding.
-    const baselineForCompare = (v) => {
-      const stripped = stripEnvVarUid(v);
-      if (v?.ephemeral && v?.persistedValue !== undefined) {
-        stripped.value = v.persistedValue;
-      }
-      return stripped;
-    };
-    // Compare without UIDs; only the active tab's subset decides if there's anything to save.
-    const hasChanges
-      = JSON.stringify(activeCurrent.map(stripEnvVarUid)) !== JSON.stringify(activeSaved.map(baselineForCompare));
+    const hasChanges = JSON.stringify(activeCurrent.map(stripEnvVarUid)) !== JSON.stringify(activeSaved.map(stripEnvVarUid));
     if (!hasChanges) {
       toast.error('No changes to save');
       return;
@@ -876,6 +865,18 @@ const EnvironmentVariablesTable = ({
                     placeholder={!variable.description || (typeof variable.description === 'string' && variable.description.trim() === '') ? 'Description' : ''}
                     onChange={(newValue) => {
                       formik.setFieldValue(`${actualIndex}.description`, newValue, true);
+                      if (isLastRow) {
+                        setTimeout(() => {
+                          formik.setFieldValue(formik.values.length, {
+                            uid: uuid(),
+                            name: '',
+                            value: '',
+                            type: 'text',
+                            secret: isSecretTab,
+                            enabled: true
+                          }, false);
+                        }, 0);
+                      }
                     }}
                     onSave={handleSave}
                   />

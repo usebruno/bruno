@@ -52,6 +52,10 @@ const StyledWrapper = styled.div`
       &.method-patch { color: ${(props) => props.theme.request.methods.patch}; }
       &.method-options { color: ${(props) => props.theme.request.methods.options}; }
       &.method-head { color: ${(props) => props.theme.request.methods.head}; }
+      &.method-grpc { color: ${(props) => props.theme.request.grpc}; }
+      &.method-ws { color: ${(props) => props.theme.request.ws}; }
+      &.method-gql { color: ${(props) => props.theme.request.gql}; }
+      &.method-app { color: ${(props) => props.theme.brand}; }
     }
 
     .header-title {
@@ -477,6 +481,7 @@ const StyledWrapper = styled.div`
   .prose.markdown-body {
     font-size: 13px;
     line-height: 1.5;
+    background: none;
 
     .cursor {
       display: inline-block;

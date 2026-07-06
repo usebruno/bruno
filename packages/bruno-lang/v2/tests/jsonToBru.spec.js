@@ -54,6 +54,48 @@ describe('jsonToBru stringify', () => {
     });
   });
 
+  describe('body:multipart-form file values', () => {
+    it('stringifies an empty file value without a leading pipe', () => {
+      const input = {
+        body: {
+          multipartForm: [
+            {
+              name: 'file',
+              value: [],
+              enabled: true,
+              type: 'file',
+              contentType: ''
+            }
+          ]
+        }
+      };
+
+      const output = stringify(input);
+      expect(output).toContain('file: @file()');
+      expect(output).not.toContain('@file(|');
+    });
+
+    it('drops empty entries when stringifying multiple file paths', () => {
+      const input = {
+        body: {
+          multipartForm: [
+            {
+              name: 'file',
+              value: ['', '/path/to/file.csv'],
+              enabled: true,
+              type: 'file',
+              contentType: ''
+            }
+          ]
+        }
+      };
+
+      const output = stringify(input);
+      expect(output).toContain('file: @file(/path/to/file.csv)');
+      expect(output).not.toContain('@file(|');
+    });
+  });
+
   describe('multi-line values', () => {
     it('handles multi-line values in URL, headers, params, and vars', () => {
       const input = {
