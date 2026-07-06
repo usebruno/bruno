@@ -114,7 +114,7 @@ const StyledWrapper = styled.div`
   }
 
   &:not(.disabled) .accordion-header .message-label {
-    color: ${(props) => props.theme.ws?.activeMessage?.label || props.theme.primary.text};
+    color: ${(props) => props.theme.ws.activeMessage.label};
   }
 `;
 
