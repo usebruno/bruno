@@ -17,9 +17,9 @@ import {
   IconFileOff,
   IconCode,
   IconAppWindow,
-  IconTransform,
-  IconStars
+  IconTransform
 } from '@tabler/icons';
+import IconSparkles from 'components/Icons/IconSparkles';
 import OpenAPISyncIcon from 'components/Icons/OpenAPISync';
 import { switchWorkspace, renameWorkspaceAction, exportWorkspaceAction, confirmWorkspaceCreation, cancelWorkspaceCreation } from 'providers/ReduxStore/slices/workspaces/actions';
 import { updateWorkspace } from 'providers/ReduxStore/slices/workspaces';
@@ -708,7 +708,7 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
                     data-testid="ai-assistant"
                     className={isAiSidebarOpen ? 'active' : ''}
                   >
-                    <IconStars size={16} strokeWidth={1.5} />
+                    <IconSparkles size={16} strokeWidth={1.5} />
                   </ActionIcon>
                 </ToolHint>
               )}
