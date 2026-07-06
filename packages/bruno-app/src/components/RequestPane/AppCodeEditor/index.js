@@ -40,7 +40,7 @@ const AppCodeEditor = ({ item, collection }) => {
             When enabled, replaces the request/response panes with the app view for this request.
           </p>
         </div>
-        <ToggleSwitch isOn={enabled} handleToggle={onToggle} size="m" data-testid="app-enable-toggle" />
+        <ToggleSwitch isOn={enabled} handleToggle={onToggle} size="xs" data-testid="app-enable-toggle" />
       </div>
 
       <div className="flex-1 app-editor relative" data-testid="app-code-editor">

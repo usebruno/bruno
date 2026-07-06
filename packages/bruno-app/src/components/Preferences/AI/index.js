@@ -344,7 +344,7 @@ const AI = () => {
               </div>
             </div>
             <ToggleSwitch
-              size="m"
+              size="xs"
               isOn={formik.values.enabled}
               handleToggle={() => formik.setFieldValue('enabled', !formik.values.enabled)}
             />
@@ -370,7 +370,7 @@ const AI = () => {
 
                     const providerToggle = (
                       <ToggleSwitch
-                        size="s"
+                        size="xs"
                         isOn={providerEnabled}
                         handleToggle={() =>
                           formik.setFieldValue(`providers.${id}.enabled`, !providerEnabled)}
@@ -426,7 +426,7 @@ const AI = () => {
 
                     const providerToggle = (
                       <ToggleSwitch
-                        size="s"
+                        size="xs"
                         isOn={providerEnabled}
                         handleToggle={() =>
                           formik.setFieldValue(`providers.${providerId}.enabled`, !providerEnabled)}
