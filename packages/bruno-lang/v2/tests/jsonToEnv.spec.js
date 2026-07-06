@@ -58,7 +58,7 @@ describe('jsonToEnv', () => {
     expect(output).toEqual(expected);
   });
 
-  it('should stringify description in vars (triple-quoted when single-line)', () => {
+  it('should stringify description in vars', () => {
     const input = {
       variables: [
         {
@@ -72,7 +72,7 @@ describe('jsonToEnv', () => {
 
     const output = parser(input);
     expect(output).toEqual(`vars {
-  @description('''Base API URL.''')
+  @description('Base API URL.')
   url: http://localhost:3000
 }
 `);
@@ -94,7 +94,7 @@ describe('jsonToEnv', () => {
     expect(output).toContain('@description(\'\'\'\n    Line one\n    Line two\n  \'\'\')');
   });
 
-  it('should stringify description with emoji (single-line triple-quoted)', () => {
+  it('should stringify description with emoji', () => {
     const input = {
       variables: [
         {
@@ -107,7 +107,7 @@ describe('jsonToEnv', () => {
     };
 
     const output = parser(input);
-    expect(output).toContain('@description(\'\'\'API key 🔐 required\'\'\')');
+    expect(output).toContain('@description(\'API key 🔐 required\')');
     expect(output).toContain('token: secret');
   });
 
@@ -257,7 +257,7 @@ vars:secret [
 
     const output = parser(input);
     expect(output).toEqual(`vars {
-  @description('''A multiline JSON blob''')
+  @description('A multiline JSON blob')
   json_data: '''
     {
       "name": "test"
@@ -445,7 +445,7 @@ vars:secret [
       // @string from old annotations should be dropped, @number should be set from dataType
       expect(output).toContain('@number');
       expect(output).not.toContain('@string');
-      expect(output).toContain('@description(\'\'\'service port\'\'\')');
+      expect(output).toContain('@description(\'service port\')');
     });
 
     it('should emit dataType but not the value for secret vars', () => {
