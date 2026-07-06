@@ -29,6 +29,7 @@ const typeToMode = (type) => {
 };
 
 export const SingleWSMessage = ({
+  id,
   message,
   item,
   collection,
@@ -172,6 +173,7 @@ export const SingleWSMessage = ({
 
   return (
     <StyledWrapper
+      id={id}
       className={!isSelected ? 'disabled' : ''}
       onMouseUpCapture={() => {
         if (!isSelected) onSelect();
@@ -221,10 +223,7 @@ export const SingleWSMessage = ({
               <span
                 className="message-label"
                 data-testid={`ws-message-label-${index}`}
-                onClick={(e) => {
-                  e.preventDefault();
-                  onToggle();
-                }}
+                onClick={(e) => e.stopPropagation()}
                 onDoubleClick={handleNameClick}
               >
                 {displayName}
