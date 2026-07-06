@@ -37,8 +37,6 @@ import StyledWrapper from './StyledWrapper';
 import { useResizablePanel } from 'hooks/useResizablePanel';
 
 const MIN_DETAILS_PANEL_WIDTH = 280;
-// Used before the console container has been measured.
-const MAX_DETAILS_PANEL_WIDTH_FALLBACK = 800;
 const DETAILS_PANEL_MAX_RATIO = 0.7;
 
 const LogIcon = ({ type }) => {
@@ -405,11 +403,9 @@ const Console = () => {
     return () => observer.disconnect();
   }, []);
 
-  // Cap the details panel at 70% of the console's own width, so it scales
-  // with the window instead of a fixed pixel value.
   const detailsPanelMaxWidth = consoleWidth
     ? Math.max(MIN_DETAILS_PANEL_WIDTH, consoleWidth * DETAILS_PANEL_MAX_RATIO)
-    : MAX_DETAILS_PANEL_WIDTH_FALLBACK;
+    : Number.POSITIVE_INFINITY;
 
   const { width: detailsPanelWidth, handleDragStart: handleDetailsPanelDragStart } = useResizablePanel({
     initialWidth: savedDetailsPanelWidth,
