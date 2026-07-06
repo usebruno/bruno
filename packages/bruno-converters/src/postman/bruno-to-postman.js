@@ -378,16 +378,19 @@ export const brunoToPostman = (collection) => {
     }
   };
 
-  const generateAuth = (itemAuth) => {
+  const generateAuth = (itemAuth, isCollection) => {
     switch (itemAuth?.mode) {
+      case 'inherit': return undefined;
       case 'bearer':
         return {
           type: 'bearer',
-          bearer: {
-            key: 'token',
-            value: itemAuth.bearer?.token || '',
-            type: 'string'
-          }
+          bearer: [
+            {
+              key: 'token',
+              value: itemAuth.bearer?.token || '',
+              type: 'string'
+            }
+          ]
         };
       case 'basic': {
         return {
@@ -438,8 +441,319 @@ export const brunoToPostman = (collection) => {
           ]
         };
       }
-      default: {
+      case 'awsv4': {
         return {
+          type: 'awsv4',
+          awsv4: [
+            {
+              key: 'sessionToken',
+              value: itemAuth.awsv4?.sessionToken || '',
+              type: 'string'
+            },
+            {
+              key: 'service',
+              value: itemAuth.awsv4?.service || '',
+              type: 'string'
+            },
+            {
+              key: 'region',
+              value: itemAuth.awsv4?.region || '',
+              type: 'string'
+            },
+            {
+              key: 'secretKey',
+              value: itemAuth.awsv4?.secretAccessKey || '',
+              type: 'string'
+            },
+            {
+              key: 'accessKey',
+              value: itemAuth.awsv4?.accessKeyId || '',
+              type: 'string'
+            }
+          ]
+        };
+      }
+      case 'digest': {
+        // Note on Bruno <-> Postman differences:
+        // 1. Bruno and Postman share the same `username`/`password` fields, so they map directly.
+        // 2. Postman-only keys (`algorithm`, `nonce`, `nonceCount`, `realm`, `qop`, `cnonce`, `opaque`)
+        //    have no Bruno equivalent, so they are omitted here.
+        return {
+          type: 'digest',
+          digest: [
+            {
+              key: 'password',
+              value: itemAuth.digest?.password || '',
+              type: 'string'
+            },
+            {
+              key: 'username',
+              value: itemAuth.digest?.username || '',
+              type: 'string'
+            }
+          ]
+        };
+      }
+      case 'ntlm': {
+        // Note on Bruno <-> Postman differences:
+        // 1. Bruno and Postman share the same `username`/`password`/`domain` fields, so they map directly.
+        // 2. Postman-only keys (`workstation`) have no Bruno equivalent, so they are omitted here.
+        return {
+          type: 'ntlm',
+          ntlm: [
+            {
+              key: 'username',
+              value: itemAuth.ntlm?.username || '',
+              type: 'string'
+            },
+            {
+              key: 'password',
+              value: itemAuth.ntlm?.password || '',
+              type: 'string'
+            },
+            {
+              key: 'domain',
+              value: itemAuth.ntlm?.domain || '',
+              type: 'string'
+            }
+          ]
+        };
+      }
+      case 'oauth1': {
+        // Note on Bruno <-> Postman differences:
+        // 1. Bruno's `placement` supports 'header'/'query'/'body', but Postman only has the boolean
+        //    `addParamsToHeader`. We map 'query' -> false and everything else (including 'body') -> true.
+        // 2. Postman-only keys (`addEmptyParamsToSign`, `disableHeaderEncoding`) have no Bruno equivalent,
+        //    so they are omitted here.
+        // 3. `privateKey` is only relevant for RSA signature methods, so it is exported only when the
+        //    signature method is an RSA type (`RSA-SHA1`/`RSA-SHA256`/`RSA-SHA512`).
+        //    When Bruno's `privateKeyType` is 'file', `privateKey` holds a relative file path (not the PEM
+        //    content). Postman expects the inline PEM string and has no file concept, and export runs in the
+        //    browser with no filesystem access, so the file cannot be resolved here. We export an empty
+        //    `privateKey` in file mode to avoid leaking a path that Postman couldn't use anyway.
+        //    Text-mode keys export correctly.
+        const oauth1 = itemAuth.oauth1 || {};
+        const signatureMethod = oauth1.signatureMethod || 'HMAC-SHA1';
+        const isRsa = signatureMethod.startsWith('RSA-');
+        const privateKey = oauth1.privateKeyType === 'file' ? '' : (oauth1.privateKey || '');
+        return {
+          type: 'oauth1',
+          oauth1: [
+            {
+              key: 'consumerKey',
+              value: oauth1.consumerKey || '',
+              type: 'string'
+            },
+            {
+              key: 'consumerSecret',
+              value: oauth1.consumerSecret || '',
+              type: 'string'
+            },
+            {
+              key: 'token',
+              value: oauth1.accessToken || '',
+              type: 'string'
+            },
+            {
+              key: 'tokenSecret',
+              value: oauth1.accessTokenSecret || '',
+              type: 'string'
+            },
+            {
+              key: 'signatureMethod',
+              value: signatureMethod,
+              type: 'string'
+            },
+            ...(isRsa ? [{
+              key: 'privateKey',
+              value: privateKey,
+              type: 'string'
+            }] : []),
+            {
+              key: 'callback',
+              value: oauth1.callbackUrl || '',
+              type: 'string'
+            },
+            {
+              key: 'verifier',
+              value: oauth1.verifier || '',
+              type: 'string'
+            },
+            {
+              key: 'timestamp',
+              value: oauth1.timestamp || '',
+              type: 'string'
+            },
+            {
+              key: 'nonce',
+              value: oauth1.nonce || '',
+              type: 'string'
+            },
+            {
+              key: 'version',
+              value: oauth1.version || '1.0',
+              type: 'string'
+            },
+            {
+              key: 'realm',
+              value: oauth1.realm || '',
+              type: 'string'
+            },
+            {
+              key: 'addParamsToHeader',
+              value: oauth1.placement === 'query' ? false : true,
+              type: 'boolean'
+            },
+            {
+              key: 'includeBodyHash',
+              value: oauth1.includeBodyHash || false,
+              type: 'boolean'
+            }
+          ]
+        };
+      }
+      case 'oauth2': {
+        // Note on Bruno <-> Postman differences:
+        // 1. Bruno's `grantType` maps to Postman's `grant_type`. Bruno's `authorization_code` with
+        //    `pkce: true` becomes Postman's `authorization_code_with_pkce`; `password` becomes
+        //    `password_credentials`; the rest keep the same value.
+        // 2. Bruno-only fields (`autoRefreshToken`(not exposed by postman as part of export), `autoFetchToken`, `tokenSource`) have no Postman equivalent, so they are omitted here.
+        // 3. Bruno's `tokenPlacement` ('header'/'url') maps to Postman's `addTokenTo`, where the query case
+        //    is represented as 'queryParams' (not 'url').
+        // 4. Postman-only keys (`useBrowser`, `code_verifier`) have no Bruno equivalent, so
+        //    they are not produced here.
+        // 5. Bruno's `additionalParameters` (authorization/token/refresh) map to Postman's
+        //    `authRequestParams`/`tokenRequestParams`/`refreshRequestParams`, with `sendIn`
+        //    ('headers'/'queryparams'/'body') mapped to `send_as` ('request_header'/'request_url'/'request_body').
+        const oauth2 = itemAuth.oauth2 || {};
+
+        // Maps a Bruno additional-parameters array to Postman's request-params format
+        const sendInToSendAs = { headers: 'request_header', queryparams: 'request_url', body: 'request_body' };
+        const mapAdditionalParams = (params) => (params || []).map((param) => ({
+          key: param.name || '',
+          value: param.value || '',
+          enabled: param.enabled !== false,
+          send_as: sendInToSendAs[param.sendIn] || 'request_header'
+        }));
+
+        const grantTypeMap = {
+          authorization_code: oauth2.pkce ? 'authorization_code_with_pkce' : 'authorization_code',
+          password: 'password_credentials',
+          client_credentials: 'client_credentials',
+          implicit: 'implicit'
+        };
+        const grantType = grantTypeMap[oauth2.grantType] || 'client_credentials';
+        // Empty/null values are filtered out below, so keys can be listed unconditionally.
+        const oauth2Params = [
+          {
+            key: 'grant_type',
+            value: grantType,
+            type: 'string'
+          },
+          {
+            key: 'accessTokenUrl',
+            value: oauth2.accessTokenUrl,
+            type: 'string'
+          },
+          {
+            key: 'refreshTokenUrl',
+            value: oauth2.refreshTokenUrl,
+            type: 'string'
+          },
+          {
+            key: 'clientId',
+            value: oauth2.clientId,
+            type: 'string'
+          },
+          {
+            key: 'clientSecret',
+            value: oauth2.clientSecret,
+            type: 'string'
+          },
+          {
+            key: 'scope',
+            value: oauth2.scope,
+            type: 'string'
+          },
+          {
+            key: 'state',
+            value: oauth2.state,
+            type: 'string'
+          },
+          {
+            key: 'tokenName',
+            value: oauth2.credentialsId,
+            type: 'string'
+          },
+          {
+            key: 'addTokenTo',
+            value: oauth2.tokenPlacement === 'header' ? 'header' : 'queryParams',
+            type: 'string'
+          },
+          {
+            key: 'headerPrefix',
+            // use tokenQueryKey when postman supports queryParams customization
+            value: oauth2.tokenHeaderPrefix,
+            type: 'string'
+          },
+          {
+            key: 'client_authentication',
+            value: oauth2.credentialsPlacement === 'body' ? 'body' : '',
+            type: 'string'
+          },
+          {
+            key: 'authUrl',
+            value: oauth2.authorizationUrl,
+            type: 'string'
+          },
+          {
+            key: 'redirect_uri',
+            value: oauth2.callbackUrl,
+            type: 'string'
+          },
+          {
+            key: 'username',
+            value: oauth2.username,
+            type: 'string'
+          },
+          {
+            key: 'password',
+            value: oauth2.password,
+            type: 'string'
+          }
+        ].filter((param) => param.value !== null && param.value !== undefined && param.value !== '');
+
+        // Additional parameters (authorization/token/refresh) — only emitted when present
+        const additionalParameters = oauth2.additionalParameters || {};
+        if (additionalParameters.authorization?.length) {
+          oauth2Params.push({
+            key: 'authRequestParams',
+            value: mapAdditionalParams(additionalParameters.authorization),
+            type: 'any'
+          });
+        }
+        if (additionalParameters.token?.length) {
+          oauth2Params.push({
+            key: 'tokenRequestParams',
+            value: mapAdditionalParams(additionalParameters.token),
+            type: 'any'
+          });
+        }
+        if (additionalParameters.refresh?.length) {
+          oauth2Params.push({
+            key: 'refreshRequestParams',
+            value: mapAdditionalParams(additionalParameters.refresh),
+            type: 'any'
+          });
+        }
+
+        return {
+          type: 'oauth2',
+          oauth2: oauth2Params
+        };
+      }
+      default: {
+        return isCollection ? undefined : {
           type: 'noauth'
         };
       }
@@ -454,7 +768,7 @@ export const brunoToPostman = (collection) => {
     const requestObject = {
       method: itemRequest.method || 'GET',
       header: generateHeaders(itemRequest.headers),
-      auth: generateAuth(itemRequest.auth),
+      auth: generateAuth(itemRequest.auth, false),
       description: itemRequest.docs || '',
       // We sanitize the URL to make sure it's in the right format before passing it to the transformUrl func. This means changing backslashes to forward slashes and reducing multiple slashes to a single one, except in the protocol part.
       url: transformUrl(sanitizeUrl(itemRequest.url || ''), itemRequest.params || [])
@@ -607,6 +921,7 @@ export const brunoToPostman = (collection) => {
   collectionToExport.info = generateInfoSection();
   collectionToExport.item = generateItemSection(collection.items);
   collectionToExport.variable = generateCollectionVars(collection);
+  collectionToExport.auth = generateAuth(collection.root?.request?.auth, true);
   const collectionEvents = generateEventSection(collection.root);
   if (collectionEvents.length) {
     collectionToExport.event = collectionEvents;
