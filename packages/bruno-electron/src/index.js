@@ -523,7 +523,7 @@ app.on('ready', async () => {
   registerAiIpc(mainWindow);
   registerAiAutocompleteIpc(mainWindow);
   registerMountIpc();
-  registerSqliteIpc();
+  registerSqliteIpc(mainWindow);
 
   // Internal delegator
   ipcMain.handle('main:cache-clear', async () => {

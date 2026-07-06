@@ -1,12 +1,9 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import type { UseQueryOptions, UseMutationOptions } from "@tanstack/react-query"
 import { useSQLiteBridge } from "./provider"
-import { SQLITE_CHANNEL } from "../shared/ipc"
-import { statementTypes, statementTables } from "../generated/web/statements"
-
-export const SQLITE_QUERY_KEY = "sqlite"
-
-const tablesFor = (name: string): readonly string[] => statementTables[name] ?? []
+import { SQLITE_CHANNEL, SQLITE_QUERY_KEY } from "../shared/ipc"
+import { statementTypes } from "../generated/web/statements"
+import { tablesFor, intersectsTablesPredicate } from "./tables"
 
 type StatementTypeMap = typeof statementTypes
 type ReadStatementName = {
@@ -44,14 +41,7 @@ export const useSqliteMutation = <TData = unknown>(
   return useMutation<TData, Error, unknown[]>({
     mutationFn: (params: unknown[] = []) => bridge.invoke(SQLITE_CHANNEL, { name, params }) as Promise<TData>,
     onSuccess: (...args) => {
-      queryClient.invalidateQueries({
-        predicate: (query) => {
-          const key = query.queryKey
-          if (!Array.isArray(key) || key[0] !== SQLITE_QUERY_KEY) return false
-          const readTables = tablesFor(String(key[1]))
-          return writeTables.some((table) => readTables.includes(table))
-        }
-      })
+      queryClient.invalidateQueries({ predicate: intersectsTablesPredicate(writeTables) })
       for (const readName of invalidates ?? []) {
         queryClient.invalidateQueries({ queryKey: [SQLITE_QUERY_KEY, readName] })
       }
