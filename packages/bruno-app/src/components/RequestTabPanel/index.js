@@ -21,7 +21,6 @@ import CollectionSettings from 'components/CollectionSettings';
 import { DocExplorer } from '@usebruno/graphql-docs';
 
 import FileEditor from 'components/FileEditor';
-import AppView from 'components/AppView';
 import StyledWrapper from './StyledWrapper';
 import FolderSettings from 'components/FolderSettings';
 import { getGlobalEnvironmentVariables, getGlobalEnvironmentVariablesMasked } from 'utils/collections/index';
@@ -294,6 +293,58 @@ const RequestTabPanel = () => {
     };
   }, [handleMouseUp, handleMouseMove]);
 
+  // Clamp leftPaneWidth when the main section shrinks (AI sidebar opens, or
+  // the window narrows). Without this the stored pixel width can exceed the
+  // available container, the section scrolls horizontally, and the response
+  // pane is pushed off-screen.
+  //
+  // Important: we ONLY react to genuine shrinks vs the last stable width. The
+  // initial observation and any growth are ignored. During mount Windows can
+  // emit a few transient narrow sizes (often 0) before layout settles — if
+  // we treated those as shrinks we'd lock leftPaneWidth at the transient value
+  // and never recover, which made several CodeMirror-driven tests flaky on
+  // Windows CI while passing on Linux.
+  const leftPaneWidthRef = useRef(leftPaneWidth);
+  useEffect(() => { leftPaneWidthRef.current = leftPaneWidth; }, [leftPaneWidth]);
+
+  useEffect(() => {
+    const el = mainSectionRef.current;
+    if (!el || isVerticalLayout) return;
+
+    let lastWidth = null;
+    let frame = null;
+    const observer = new ResizeObserver((entries) => {
+      if (frame) return;
+      frame = requestAnimationFrame(() => {
+        frame = null;
+        const width = entries[0]?.contentRect?.width || el.getBoundingClientRect().width;
+        if (!width) return;
+
+        // Skip the first observation (initial layout) and any non-shrink — we
+        // only clamp on real reductions in available width.
+        if (lastWidth === null || width >= lastWidth) {
+          lastWidth = width;
+          return;
+        }
+        lastWidth = width;
+
+        const maxLeft = width - MIN_RIGHT_PANE_WIDTH;
+        if (leftPaneWidthRef.current > maxLeft) {
+          // Floor at MIN_LEFT_PANE_WIDTH even if maxLeft is smaller — losing
+          // a few px from the response is preferable to collapsing the
+          // request pane to zero.
+          setLeftPaneWidth(Math.max(MIN_LEFT_PANE_WIDTH, maxLeft));
+        }
+      });
+    });
+
+    observer.observe(el);
+    return () => {
+      observer.disconnect();
+      if (frame) cancelAnimationFrame(frame);
+    };
+  }, [setLeftPaneWidth, isVerticalLayout]);
+
   useEffect(() => {
     if (!isVerticalLayout) return;
     if (responsePaneCollapsed) return;
@@ -495,16 +546,10 @@ const RequestTabPanel = () => {
     );
   }
 
-  const appEnabled = item.draft ? get(item, 'draft.app.enabled', false) : get(item, 'app.enabled', false);
-  if (appEnabled) {
-    const appCode = item.draft ? get(item, 'draft.app.code', '') : get(item, 'app.code', '');
-    return (
-      <ScopedPersistenceProvider scope={focusedTab.uid}>
-        <StyledWrapper className="flex flex-col flex-grow relative overflow-hidden">
-          <AppView item={item} collection={collection} code={appCode} />
-        </StyledWrapper>
-      </ScopedPersistenceProvider>
-    );
+  const appEnabled = item.type !== 'app'
+    && (item.draft ? get(item, 'draft.app.enabled', false) : get(item, 'app.enabled', false));
+  if (item.type === 'app' || appEnabled) {
+    return <StyledWrapper className="flex flex-col flex-grow relative overflow-hidden" data-testid="app-tab-placeholder" />;
   }
 
   const renderQueryUrl = () => {

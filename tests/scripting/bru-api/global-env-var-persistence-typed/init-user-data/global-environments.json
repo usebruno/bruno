@@ -1,0 +1,19 @@
+{
+  "environments": [
+    {
+      "uid": "GlobEnvTypedUid000001",
+      "name": "global",
+      "variables": [
+        {
+          "uid": "GlobEnvTypedVar000001",
+          "name": "baseUrl",
+          "value": "https://testbench-sanity.usebruno.com",
+          "type": "text",
+          "secret": false,
+          "enabled": true
+        }
+      ]
+    }
+  ],
+  "activeGlobalEnvironmentUid": "GlobEnvTypedUid000001"
+}
