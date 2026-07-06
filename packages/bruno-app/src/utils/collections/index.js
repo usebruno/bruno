@@ -1272,6 +1272,10 @@ const getPathParams = (item) => {
   return pathParams;
 };
 
+export const isOpenCollectionFormat = (collection) => Boolean(collection?.brunoConfig?.opencollection);
+
+export const getCollectionVersion = (collection) => collection?.brunoConfig?.version || '';
+
 export const getTotalRequestCountInCollection = (collection) => {
   let count = 0;
   each(collection.items, (item) => {
