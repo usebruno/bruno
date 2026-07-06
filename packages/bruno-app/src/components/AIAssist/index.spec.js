@@ -159,6 +159,13 @@ describe('AIAssist', () => {
       expect(screen.queryByRole('button', { name: 'Status 200' })).not.toBeInTheDocument();
     });
 
+    it('shows the generate shortcut hint', () => {
+      renderAIAssist();
+      openPopup();
+
+      expect(screen.getByText('Enter to generate · Shift+Enter for newline')).toBeInTheDocument();
+    });
+
     it('keeps Generate disabled until the prompt has text', () => {
       renderAIAssist();
       openPopup();
