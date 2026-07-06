@@ -6,13 +6,14 @@ import { useFormik } from 'formik';
 import { useDispatch, useSelector } from 'react-redux';
 import * as Yup from 'yup';
 import toast from 'react-hot-toast';
-import { IconPlus, IconSettings, IconTerminal2 } from '@tabler/icons';
+import { IconPlus, IconSettings, IconShieldLock, IconTerminal2 } from '@tabler/icons';
 import { savePreferences } from 'providers/ReduxStore/slices/app';
 import ToggleSwitch from 'components/ToggleSwitch';
 import { clearAiApiKey, getAiStatus } from 'utils/ai';
 import ProviderCard from './ProviderCard';
 import CompatEndpointCard from './CompatEndpointCard';
 import AutocompletePane from './AutocompletePane';
+import SecurityPane from './SecurityPane';
 import StyledWrapper from './StyledWrapper';
 
 const OPENAI_COMPATIBLE_PREFIX = 'openai-compatible:';
@@ -41,6 +42,14 @@ const aiPreferencesSchema = Yup.object().shape({
     enabled: Yup.boolean(),
     model: Yup.string().max(200).nullable(),
     triggerMode: Yup.string().oneOf(['aggressive', 'debounced', 'manual']).nullable()
+  }),
+  security: Yup.object().shape({
+    redactHeaders: Yup.boolean(),
+    redactBody: Yup.boolean(),
+    redactVariables: Yup.boolean(),
+    redactResponse: Yup.boolean(),
+    customRedactedHeaders: Yup.array().of(Yup.string().max(200)).max(200),
+    customRedactedVariables: Yup.array().of(Yup.string().max(200)).max(200)
   })
 });
 
@@ -69,6 +78,12 @@ const AI = () => {
 
   const formik = useFormik({
     enableReinitialize: true,
+    // Skip per-change validation — every toggle would otherwise re-run the
+    // full nested schema (arrays of endpoints × models × …), which adds tens
+    // of ms of blocking work per click. debouncedSave already validates via
+    // `aiPreferencesSchema.validate` right before persisting.
+    validateOnChange: false,
+    validateOnBlur: false,
     initialValues: {
       enabled: get(preferences, 'ai.enabled', false),
       providers: providerIds.reduce((acc, id) => {
@@ -82,6 +97,14 @@ const AI = () => {
         enabled: get(preferences, 'ai.autocomplete.enabled', true),
         model: get(preferences, 'ai.autocomplete.model', ''),
         triggerMode: get(preferences, 'ai.autocomplete.triggerMode', 'debounced')
+      },
+      security: {
+        redactHeaders: get(preferences, 'ai.security.redactHeaders', true),
+        redactBody: get(preferences, 'ai.security.redactBody', true),
+        redactVariables: get(preferences, 'ai.security.redactVariables', true),
+        redactResponse: get(preferences, 'ai.security.redactResponse', true),
+        customRedactedHeaders: get(preferences, 'ai.security.customRedactedHeaders', []),
+        customRedactedVariables: get(preferences, 'ai.security.customRedactedVariables', [])
       }
     },
     validationSchema: aiPreferencesSchema,
@@ -103,6 +126,18 @@ const AI = () => {
               enabled: values.autocomplete?.enabled !== false,
               model: values.autocomplete?.model || '',
               triggerMode: values.autocomplete?.triggerMode || 'debounced'
+            },
+            security: {
+              redactHeaders: values.security?.redactHeaders !== false,
+              redactBody: values.security?.redactBody !== false,
+              redactVariables: values.security?.redactVariables !== false,
+              redactResponse: values.security?.redactResponse !== false,
+              customRedactedHeaders: Array.isArray(values.security?.customRedactedHeaders)
+                ? values.security.customRedactedHeaders
+                : [],
+              customRedactedVariables: Array.isArray(values.security?.customRedactedVariables)
+                ? values.security.customRedactedVariables
+                : []
             }
           }
         })
@@ -270,6 +305,17 @@ const AI = () => {
           <IconTerminal2 size={14} strokeWidth={1.5} />
           Autocomplete
         </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={activeTab === 'security'}
+          className={`ai-tab ${activeTab === 'security' ? 'active' : ''}`}
+          onClick={() => setActiveTab('security')}
+          data-testid="ai-tab-security"
+        >
+          <IconShieldLock size={14} strokeWidth={1.5} />
+          Security
+        </button>
       </div>
 
       {statusError && (
@@ -427,6 +473,26 @@ const AI = () => {
             onToggleEnabled={(next) => formik.setFieldValue('autocomplete.enabled', next)}
             onChangeModel={(next) => formik.setFieldValue('autocomplete.model', next)}
             onChangeTriggerMode={(next) => formik.setFieldValue('autocomplete.triggerMode', next)}
+          />
+        </div>
+      )}
+
+      {activeTab === 'security' && (
+        <div className="ai-tab-panel" role="tabpanel">
+          <SecurityPane
+            aiEnabled={formik.values.enabled}
+            redactHeaders={formik.values.security?.redactHeaders !== false}
+            redactBody={formik.values.security?.redactBody !== false}
+            redactVariables={formik.values.security?.redactVariables !== false}
+            redactResponse={formik.values.security?.redactResponse !== false}
+            customRedactedHeaders={formik.values.security?.customRedactedHeaders || []}
+            customRedactedVariables={formik.values.security?.customRedactedVariables || []}
+            onToggleRedactHeaders={(next) => formik.setFieldValue('security.redactHeaders', next)}
+            onToggleRedactBody={(next) => formik.setFieldValue('security.redactBody', next)}
+            onToggleRedactVariables={(next) => formik.setFieldValue('security.redactVariables', next)}
+            onToggleRedactResponse={(next) => formik.setFieldValue('security.redactResponse', next)}
+            onChangeCustomRedactedHeaders={(next) => formik.setFieldValue('security.customRedactedHeaders', next)}
+            onChangeCustomRedactedVariables={(next) => formik.setFieldValue('security.customRedactedVariables', next)}
           />
         </div>
       )}

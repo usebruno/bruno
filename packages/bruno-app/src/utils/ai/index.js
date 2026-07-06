@@ -37,6 +37,13 @@ export const aiGenerateText = (params) =>
 export const aiGenerateScript = (params) =>
   callIpc('renderer:ai-generate-script', params);
 
+export const stopAiGeneration = (streamId) => {
+  const { ipcRenderer } = window;
+  if (ipcRenderer && streamId) {
+    ipcRenderer.send('renderer:ai-stop-stream', { streamId });
+  }
+};
+
 export const aiAutocomplete = (params) =>
   callIpc('renderer:ai-autocomplete', params);
 

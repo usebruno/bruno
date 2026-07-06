@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import jsyaml from 'js-yaml';
 import { test, expect } from '../../../playwright';
 import { closeAllCollections, openCollection, selectEnvironment, sendRequestAndWaitForResponse } from '../../utils/page';
 
@@ -81,6 +82,9 @@ test.describe('Migrate collection from bru to yml format', () => {
       const ocContent = fs.readFileSync(path.join(collectionPath, 'opencollection.yml'), 'utf8');
       expect(ocContent).toContain('opencollection');
       expect(ocContent).toContain('migration-test');
+
+      const oc = jsyaml.load(ocContent) as { info?: { version?: string } };
+      expect(oc.info?.version).toBe('v9.9.9');
     });
 
     await test.step('Verify request yml files preserve data', async () => {

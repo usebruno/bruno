@@ -39,7 +39,8 @@ reviews:
     - path: 'tests/**/**.*'
       instructions: |
         Review the following e2e test code written using the Playwright test library. Ensure that:
-        - Follow best practices for Playwright code and e2e automation
+        - Follow the guidance in `docs/playwright-testing-guide.md` - the canonical E2E guide (structure, fixtures, best practices).
+        - For anything the guide above doesn't cover, follow standard Playwright and e2e automation best practices
         - Try to reduce usage of `page.waitForTimeout();` in code unless absolutely necessary and the locator cannot be found using existing `expect()` playwright calls
         - Avoid using `page.pause()` in code
         - Use locator variables for locators
