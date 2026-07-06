@@ -26,6 +26,10 @@ const parseCollection = (ymlString: string): ParsedCollection => {
       ignore: []
     };
 
+    if (oc.info?.version != null && oc.info.version !== '') {
+      brunoConfig.version = ensureString(oc.info.version, '');
+    }
+
     const brunoExtension = (oc.extensions as any)?.bruno;
     if (brunoExtension?.ignore && Array.isArray(brunoExtension.ignore)) {
       brunoConfig.ignore = brunoExtension.ignore;

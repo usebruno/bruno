@@ -13,7 +13,7 @@ import StyledWrapper from './StyledWrapper';
 import CollectionVersionInfo from './CollectionVersionInfo';
 import EnvironmentSelectionList from './EnvironmentSelectionList';
 import { useApp } from 'providers/App';
-import { transformCollectionToSaveToExportAsFile, findCollectionByUid, areItemsLoading, sortItemsBySidebarOrder, getCollectionItemCounts } from 'utils/collections/index';
+import { transformCollectionToSaveToExportAsFile, findCollectionByUid, areItemsLoading, sortItemsBySidebarOrder, getCollectionItemCounts, getCollectionVersion } from 'utils/collections/index';
 import { brunoToOpenCollection } from '@usebruno/converters';
 import { sanitizeName } from 'utils/common/regex';
 import { escapeHtml } from 'utils/response';
@@ -76,8 +76,7 @@ const GenerateDocumentation = ({ onClose, collectionUid }) => {
     [collection]
   );
 
-  // The collection's current version (read-only here); formatted for display below.
-  const currentVersion = collection?.version;
+  const currentVersion = getCollectionVersion(collection);
 
   // Folder + request counts, computed from the collection tree (recursively).
   const { folderCount, requestCount } = useMemo(
