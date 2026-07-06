@@ -3,7 +3,8 @@ import {
   serializeTab,
   serializeActiveTab,
   getCollectionEnvironmentPath,
-  hydrateSnapshotLookups
+  hydrateSnapshotLookups,
+  WORKSPACE_TAB_TYPES
 } from 'utils/snapshot';
 import { normalizePath } from 'utils/common/path';
 
@@ -22,8 +23,6 @@ const normalizeCollectionSortOrder = (sortOrder) => {
 const normalizeWorkspaceSorting = (sorting) => {
   return COLLECTION_SORT_ORDER_BY_WORKSPACE_SORTING[sorting] || 'default';
 };
-
-const WORKSPACE_TAB_TYPES = new Set(['workspaceOverview', 'workspaceEnvironments']);
 
 const getWorkspaceCollectionSnapshotKey = (workspacePathname, collectionPathname) => {
   const normalizedCollectionPathname = normalizePath(collectionPathname);

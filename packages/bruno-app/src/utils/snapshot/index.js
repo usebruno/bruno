@@ -30,6 +30,13 @@ const IGNORED_TAB_TYPES = new Set([
   'v4-migration'
 ]);
 
+export const WORKSPACE_TAB_UID_SUFFIX_BY_TYPE = {
+  workspaceOverview: 'overview',
+  workspaceEnvironments: 'environments'
+};
+
+export const WORKSPACE_TAB_TYPES = new Set(Object.keys(WORKSPACE_TAB_UID_SUFFIX_BY_TYPE));
+
 export const SAVE_TRIGGERS = new Map([
   ['app/setSnapshotReady', null],
   ['tabs/addTab', null],
@@ -143,7 +150,7 @@ const normalizeWorkspaceSnapshotEntry = (pathname, entry = {}) => {
       ? entry.lastActiveCollectionPathname
       : null,
     sorting: typeof entry.sorting === 'string' ? entry.sorting : 'default',
-    activeWorkspaceTabType: typeof entry.activeWorkspaceTabType === 'string'
+    activeWorkspaceTabType: WORKSPACE_TAB_TYPES.has(entry.activeWorkspaceTabType)
       ? entry.activeWorkspaceTabType
       : null,
     collections

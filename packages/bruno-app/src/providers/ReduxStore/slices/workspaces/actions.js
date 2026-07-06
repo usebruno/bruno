@@ -22,7 +22,7 @@ import {
 } from '../app';
 import { openConsole, closeConsole, setActiveTab as setActiveDevToolsTab, TAB_IDENFIERS as DEVTOOL_TABS } from '../logs';
 import { normalizePath } from 'utils/common/path';
-import { hydrateTabs, getActiveTabFromSnapshot, hydrateSnapshotLookups, getCollectionSnapshotFromLookups } from 'utils/snapshot';
+import { hydrateTabs, getActiveTabFromSnapshot, hydrateSnapshotLookups, getCollectionSnapshotFromLookups, WORKSPACE_TAB_UID_SUFFIX_BY_TYPE } from 'utils/snapshot';
 import toast from 'react-hot-toast';
 import { closeAiSidebar } from '../chat';
 
@@ -35,11 +35,6 @@ const COLLECTION_SORT_ORDER_BY_WORKSPACE_SORTING = {
   default: 'default',
   alphabetical: 'alphabetical',
   reverseAlphabetical: 'reverseAlphabetical'
-};
-
-const WORKSPACE_TAB_UID_SUFFIX_BY_TYPE = {
-  workspaceOverview: 'overview',
-  workspaceEnvironments: 'environments'
 };
 
 const normalizeCollectionSortOrder = (sorting) => {
