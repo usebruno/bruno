@@ -59,7 +59,7 @@ const HttpRequestPane = ({ item, collection }) => {
   const focusedTab = find(tabs, (t) => t.uid === activeTabUid);
   const requestPaneTab = focusedTab?.requestPaneTab;
   const getProperty = useCallback(
-    (key) => (item.draft ? get(item, `draft.${key}`, []) : get(item, key, [])),
+    (key, defaultValue = []) => (item.draft ? get(item, `draft.${key}`, defaultValue) : get(item, key, defaultValue)),
     [item.draft, item]
   );
 
@@ -74,9 +74,10 @@ const HttpRequestPane = ({ item, collection }) => {
   const responseVars = getProperty('request.vars.res');
   const auth = getProperty('request.auth');
   const tags = getProperty('tags');
-  const app = item.draft ? get(item, 'draft.app') : get(item, 'app');
-  const appTabEnabled
-    = (item.draft ? get(item, 'draft.settings.enableApp', false) : get(item, 'settings.enableApp', false)) === true;
+  const app = getProperty('app', null);
+  const appTabEnabled = getProperty('settings.enableApp', false) === true;
+  // A previously selected App tab may be restored while apps are disabled in settings.
+  const effectiveTab = requestPaneTab === 'app' && !appTabEnabled ? 'params' : requestPaneTab;
 
   const activeCounts = useMemo(() => ({
     params: params.filter((p) => p.enabled).length,
@@ -125,11 +126,9 @@ const HttpRequestPane = ({ item, collection }) => {
   );
 
   const tabPanel = useMemo(() => {
-    // A previously selected App tab may be restored while apps are disabled in settings.
-    const effectiveTab = requestPaneTab === 'app' && !appTabEnabled ? 'params' : requestPaneTab;
     const Component = TAB_PANELS[effectiveTab];
     return Component ? <Component key={item.uid} item={item} collection={collection} /> : <div className="mt-4">404 | Not found</div>;
-  }, [requestPaneTab, appTabEnabled, item, collection]);
+  }, [effectiveTab, item, collection]);
 
   if (!activeTabUid || !focusedTab?.uid || !requestPaneTab) {
     return <div className="pb-4 px-4">An error occurred!</div>;
@@ -149,7 +148,7 @@ const HttpRequestPane = ({ item, collection }) => {
     <div className="flex flex-col h-full relative">
       <ResponsiveTabs
         tabs={allTabs}
-        activeTab={requestPaneTab}
+        activeTab={effectiveTab}
         onTabSelect={selectTab}
         rightContent={rightContent}
         rightContentRef={rightContent ? rightContentRef : null}

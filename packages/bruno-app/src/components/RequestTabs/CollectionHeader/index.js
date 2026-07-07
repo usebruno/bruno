@@ -82,13 +82,9 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
       || (focusedTab.pathname ? findItemInCollectionByPathname(collection, focusedTab.pathname) : null))
     : null;
   const isHttpRequestActive = activeItem?.type === 'http-request';
-  const appEnabled = activeItem
-    ? (activeItem.draft ? get(activeItem, 'draft.app.enabled', false) : get(activeItem, 'app.enabled', false))
-    : false;
-  const appAvailable = isHttpRequestActive
-    && (activeItem.draft
-      ? get(activeItem, 'draft.settings.enableApp', false)
-      : get(activeItem, 'settings.enableApp', false)) === true;
+  const activeItemSource = activeItem ? activeItem.draft || activeItem : null;
+  const appEnabled = get(activeItemSource, 'app.enabled', false);
+  const appAvailable = isHttpRequestActive && get(activeItemSource, 'settings.enableApp', false) === true;
 
   const handleToggleAppMode = (enabled) => {
     if (isHttpRequestActive) {

@@ -322,6 +322,9 @@ const createGetNumFromRecord = (obj) => (key, { fallback } = {}) => {
   return asNumber;
 };
 
+// Dictionary values arrive as strings; booleans may already be coerced upstream.
+const toBool = (value) => (typeof value === 'boolean' ? value : value === 'true');
+
 // Parse example content using dedicated example parser
 const parseExampleContent = (content) => {
   try {
@@ -529,7 +532,7 @@ const sem = grammar.createSemantics().addAttribute('ast', {
     return {
       app: {
         code: appData.code || null,
-        enabled: typeof appData.enabled === 'boolean' ? appData.enabled : appData.enabled === 'true'
+        enabled: toBool(appData.enabled)
       }
     };
   },
@@ -541,11 +544,11 @@ const sem = grammar.createSemantics().addAttribute('ast', {
 
     const parsedSettings = {};
     if (settings.followRedirects !== undefined) {
-      parsedSettings.followRedirects = typeof settings.followRedirects === 'boolean' ? settings.followRedirects : settings.followRedirects === 'true';
+      parsedSettings.followRedirects = toBool(settings.followRedirects);
     }
 
     if (settings.enableApp !== undefined) {
-      parsedSettings.enableApp = typeof settings.enableApp === 'boolean' ? settings.enableApp : settings.enableApp === 'true';
+      parsedSettings.enableApp = toBool(settings.enableApp);
     }
 
     // Parse maxRedirects as number
@@ -569,7 +572,7 @@ const sem = grammar.createSemantics().addAttribute('ast', {
     }
 
     const _settings = {
-      encodeUrl: typeof settings.encodeUrl === 'boolean' ? settings.encodeUrl : settings.encodeUrl === 'true',
+      encodeUrl: toBool(settings.encodeUrl),
       timeout: parsedSettings.timeout !== undefined ? parsedSettings.timeout : 0
     };
 

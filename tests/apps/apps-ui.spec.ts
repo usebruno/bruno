@@ -6,6 +6,10 @@ import {
   selectRequestPaneTab,
   setAppCode,
   setAppEnabled,
+  readAppEditor,
+  requestPaneAppTab,
+  openRequestPaneTabOverflow,
+  requestPaneOverflowTabItem,
   activeAppView,
   previewApp,
   exitApp,
@@ -19,22 +23,11 @@ const SIMPLE_APP = `<div id="hello">Hello from the app</div>`;
 // Assert the App tab is absent from the request pane — checks both the visible
 // tab row and the ResponsiveTabs overflow dropdown (tabs can overflow at narrow widths).
 const expectNoAppTab = async (page) => {
-  await expect(page.getByTestId('responsive-tab-app')).toHaveCount(0);
-  const overflowButton = page.locator('[data-testid="request-pane"] .tabs .more-tabs');
-  if (await overflowButton.isVisible()) {
-    await overflowButton.click();
-    await expect(page.locator('.tippy-box .dropdown-item').filter({ hasText: /^App$/ })).toHaveCount(0);
-    await page.keyboard.press('Escape');
-  }
+  await expect(requestPaneAppTab(page)).toHaveCount(0);
+  await openRequestPaneTabOverflow(page);
+  await expect(requestPaneOverflowTabItem(page, /^App$/)).toHaveCount(0);
+  await page.keyboard.press('Escape');
 };
-
-// Read the app code currently loaded in the App-tab editor (via the CodeMirror API).
-const readAppEditor = (page) =>
-  page
-    .getByTestId('app-code-editor')
-    .locator('.CodeMirror')
-    .first()
-    .evaluate((el) => (el as any).CodeMirror?.getValue());
 
 test.describe('Apps - request-level UI', () => {
   test('App tab and view-mode toggle are gated behind the Enable App setting', async ({ page, createTmpDir }) => {
@@ -110,10 +103,10 @@ test.describe('Apps - request-level UI', () => {
     await setAppEnabled(page, true);
     await selectRequestPaneTab(page, 'App');
     // No code yet → no indicator
-    await expect(page.getByTestId('responsive-tab-app').getByTestId('status-dot-app')).toHaveCount(0);
+    await expect(requestPaneAppTab(page).getByTestId('status-dot-app')).toHaveCount(0);
 
     await setAppCode(page, SIMPLE_APP);
-    await expect(page.getByTestId('responsive-tab-app').getByTestId('status-dot-app')).toBeVisible();
+    await expect(requestPaneAppTab(page).getByTestId('status-dot-app')).toBeVisible();
   });
 
   test('Collection toolbar view-mode toggle switches Request / App / File', async ({ page, createTmpDir }) => {

@@ -2106,7 +2106,7 @@ const setAppCode = async (page: Page, code: string) => {
   await setAppEnabled(page, true);
   await test.step('Set app code', async () => {
     await selectRequestPaneTab(page, 'App');
-    const editor = page.getByTestId('app-code-editor').locator('.CodeMirror').first();
+    const editor = appCodeEditor(page);
     await editor.waitFor({ state: 'visible' });
     await editor.evaluate((el, val) => {
       const cm = (el as any).CodeMirror;
@@ -2116,13 +2116,59 @@ const setAppCode = async (page: Page, code: string) => {
 };
 
 /**
- * The app view of the ACTIVE tab. The AppPreviewKeepAlive overlay keeps the
- * app views of background tabs mounted (hidden) and the Electron instance is
- * shared across tests in a worker, so a bare `app-view` lookup can match a
- * stale slot from another test. Always scope through the active slot.
+ * The CodeMirror element of the request-level App-tab editor.
  * @param page - The page object
  */
-const activeAppView = (page: Page) => page.locator('.app-preview-slot.active').getByTestId('app-view');
+const appCodeEditor = (page: Page) => page.getByTestId('app-code-editor').locator('.CodeMirror').first();
+
+/**
+ * Read the app code currently loaded in the App-tab editor (via the CodeMirror API).
+ * @param page - The page object
+ * @returns The editor's current value
+ */
+const readAppEditor = (page: Page): Promise<string | undefined> =>
+  appCodeEditor(page).evaluate((el) => (el as any).CodeMirror?.getValue());
+
+/**
+ * The App tab of the request pane tab bar.
+ * @param page - The page object
+ */
+const requestPaneAppTab = (page: Page) => page.getByTestId('responsive-tab-app');
+
+/**
+ * Open the request pane's tab overflow dropdown if it is present. Tabs that
+ * don't fit the pane width land there instead of the visible tab row.
+ * @param page - The page object
+ */
+const openRequestPaneTabOverflow = async (page: Page) => {
+  const overflowButton = page.locator('[data-testid="request-pane"] .tabs .more-tabs');
+  if (await overflowButton.isVisible()) {
+    await overflowButton.click();
+  }
+};
+
+/**
+ * A tab entry inside the request pane's overflow dropdown.
+ * @param page - The page object
+ * @param label - The tab label to match (exact match via regex recommended)
+ */
+const requestPaneOverflowTabItem = (page: Page, label: string | RegExp) =>
+  page.locator('.tippy-box .dropdown-item').filter({ hasText: label });
+
+/**
+ * The keep-alive preview slot of the ACTIVE tab. The AppPreviewKeepAlive
+ * overlay keeps app views of background tabs mounted (hidden) and the Electron
+ * instance is shared across tests in a worker, so bare app-view lookups can
+ * match a stale slot from another test. Always scope through the active slot.
+ * @param page - The page object
+ */
+const activeAppPreviewSlot = (page: Page) => page.locator('.app-preview-slot.active');
+
+/**
+ * The app view of the ACTIVE tab (see activeAppPreviewSlot).
+ * @param page - The page object
+ */
+const activeAppView = (page: Page) => activeAppPreviewSlot(page).getByTestId('app-view');
 
 /**
  * Open the app view via the App tab's "Preview" button. Asserts the app view
@@ -2222,7 +2268,7 @@ const selectAppView = async (page: Page, view: 'code' | 'preview') => {
     // Scope through the active keep-alive slot — hidden slots of background
     // app tabs (possibly from earlier tests in the shared Electron) also
     // render this toggle.
-    await page.locator('.app-preview-slot.active').getByTestId(`collection-app-view-${view}`).click();
+    await activeAppPreviewSlot(page).getByTestId(`collection-app-view-${view}`).click();
   });
 };
 
@@ -2368,6 +2414,11 @@ export {
   generateCollectionDocs,
   setAppCode,
   setAppEnabled,
+  readAppEditor,
+  requestPaneAppTab,
+  openRequestPaneTabOverflow,
+  requestPaneOverflowTabItem,
+  activeAppPreviewSlot,
   activeAppView,
   previewApp,
   exitApp,
