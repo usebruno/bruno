@@ -35,62 +35,79 @@ const getSeparatorPositions = (widths) => {
   return positions;
 };
 
-const scaleWidthsToTotal = (widths, targetTotal, minColWidth) => {
-  const n = widths.length;
+// Container too narrow for everyone to get minColWidth — split evenly instead
+// (columns clip instead of overflow).
+const distributeEqually = (count, total) => {
+  const each = Math.floor(total / count);
+  return [
+    ...Array(count - 1).fill(each),
+    total - each * (count - 1)
+  ];
+};
 
-  // When the container is too narrow to satisfy minColWidth for every column,
-  // fall back to equal distribution so the total stays exact (columns clip instead of overflow).
-  if (targetTotal < minColWidth * n) {
-    const each = Math.floor(targetTotal / n);
-    const last = targetTotal - each * (n - 1);
-    return [...Array(n - 1).fill(each), last];
-  }
-
-  const result = new Array(n).fill(null);
+// Pins any column that would shrink below minColWidth, then re-checks the
+// rest (pinning one column shifts the math for the others). Returns the
+// pinned widths plus what's left for the caller to hand out.
+const pinColumnsAtMinimum = (widths, targetTotal, minColWidth) => {
+  const result = Array(widths.length).fill(null);
   let remainingIdx = widths.map((_, i) => i);
   let remainingTotal = targetTotal;
 
-  while (remainingIdx.length > 0) {
-    const remainingWidthsSum = remainingIdx.reduce((s, i) => s + widths[i], 0);
-    const factor = remainingTotal / remainingWidthsSum;
+  while (true) {
+    const remainingWidth = remainingIdx.reduce((sum, i) => sum + widths[i], 0);
+    const scale = remainingTotal / remainingWidth;
 
-    const stillRemaining = [];
-    let anyPinned = false;
+    const nextRemaining = [];
     for (const i of remainingIdx) {
-      if (widths[i] * factor < minColWidth) {
+      if (widths[i] * scale < minColWidth) {
         result[i] = minColWidth;
         remainingTotal -= minColWidth;
-        anyPinned = true;
       } else {
-        stillRemaining.push(i);
+        nextRemaining.push(i);
       }
     }
 
-    remainingIdx = stillRemaining;
-    if (!anyPinned) break;
-  }
-
-  if (remainingIdx.length > 0) {
-    const unpinnedWidthsSum = remainingIdx.reduce((sum, colIndex) => sum + widths[colIndex], 0);
-    const exactShares = remainingIdx.map((colIndex) => (widths[colIndex] / unpinnedWidthsSum) * remainingTotal);
-    const flooredShares = exactShares.map((share) => Math.floor(share));
-    const leftoverPixels = remainingTotal - flooredShares.reduce((sum, w) => sum + w, 0);
-
-    // Columns ranked by how much they lost to flooring (largest first) — these
-    // are the ones that get a leftover pixel, one each, until none are left.
-    const columnsByLargestRemainder = exactShares
-      .map((share, position) => ({ position, remainder: share - flooredShares[position] }))
-      .sort((a, b) => b.remainder - a.remainder);
-
-    const bonusPixel = new Array(remainingIdx.length).fill(0);
-    for (let pixel = 0; pixel < leftoverPixels; pixel++) {
-      bonusPixel[columnsByLargestRemainder[pixel].position] = 1;
+    if (nextRemaining.length === remainingIdx.length) {
+      return { result, remainingIdx, remainingTotal };
     }
-
-    remainingIdx.forEach((colIndex, position) => {
-      result[colIndex] = flooredShares[position] + bonusPixel[position];
-    });
+    remainingIdx = nextRemaining;
   }
+};
+
+// Largest remainder method: scales proportionally, floors each share, then
+// gives the leftover whole pixels to whoever rounded down the most, so the
+// sum always hits `total` exactly, with no single column eating the error.
+const scaleAndRound = (widths, total) => {
+  const widthSum = widths.reduce((a, b) => a + b, 0);
+  const exact = widths.map((w) => (w / widthSum) * total);
+  const rounded = exact.map(Math.floor);
+  const leftover = total - rounded.reduce((a, b) => a + b, 0);
+
+  exact
+    .map((value, i) => ({ i, remainder: value - rounded[i] }))
+    .sort((a, b) => b.remainder - a.remainder)
+    .slice(0, leftover)
+    .forEach(({ i }) => rounded[i]++);
+
+  return rounded;
+};
+
+const scaleWidthsToTotal = (widths, targetTotal, minColWidth) => {
+  if (targetTotal < minColWidth * widths.length) {
+    return distributeEqually(widths.length, targetTotal);
+  }
+
+  const { result, remainingIdx, remainingTotal }
+    = pinColumnsAtMinimum(widths, targetTotal, minColWidth);
+
+  const scaled = scaleAndRound(
+    remainingIdx.map((i) => widths[i]),
+    remainingTotal
+  );
+
+  remainingIdx.forEach((colIndex, i) => {
+    result[colIndex] = scaled[i];
+  });
 
   return result;
 };
