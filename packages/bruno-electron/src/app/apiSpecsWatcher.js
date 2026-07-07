@@ -1,34 +1,13 @@
 const _ = require('lodash');
-const fs = require('fs');
 const path = require('path');
 const chokidar = require('chokidar');
 const { getApiSpecUid } = require('../cache/apiSpecUids');
-const yaml = require('js-yaml');
 const { isDirectory } = require('../utils/filesystem');
+const { parseApiSpecContent, rawContent } = require('../utils/apiSpecs');
 
 const hasApiSpecExtension = (filename) => {
   if (!filename || typeof filename !== 'string') return false;
   return ['yaml', 'yml', 'json'].some((ext) => filename.toLowerCase().endsWith(`.${ext}`));
-};
-
-const parseApiSpecContent = (pathname) => {
-  const extension = path.extname(pathname).toLowerCase();
-  let content = fs.readFileSync(pathname, 'utf8');
-
-  if (extension === '.yaml' || extension === '.yml') {
-    try {
-      return yaml.load(content);
-    } catch {
-      return null;
-    }
-  } else if (extension === '.json') {
-    try {
-      return JSON.parse(content);
-    } catch {
-      return null;
-    }
-  }
-  return null;
 };
 
 const hydrateApiSpecWithUuid = (apiSpec, pathname) => {
@@ -43,7 +22,7 @@ const add = async (win, pathname) => {
     const file = {};
     const apiSpecContent = parseApiSpecContent(pathname);
 
-    file.raw = fs.readFileSync(pathname, 'utf8');
+    file.raw = rawContent(pathname);
     file.name = apiSpecContent?.info?.title || basename.split('.')[0];
     file.filename = basename;
     file.pathname = pathname;
@@ -62,7 +41,7 @@ const change = async (win, pathname) => {
     const file = {};
     const apiSpecContent = parseApiSpecContent(pathname);
 
-    file.raw = fs.readFileSync(pathname, 'utf8');
+    file.raw = rawContent(pathname);
     file.name = apiSpecContent?.info?.title || basename.split('.')[0];
     file.filename = basename;
     file.pathname = pathname;

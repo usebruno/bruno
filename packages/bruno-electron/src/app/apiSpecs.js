@@ -1,9 +1,9 @@
 const fs = require('fs');
 const path = require('path');
-const yaml = require('js-yaml');
 const { dialog, ipcMain } = require('electron');
 const { normalizeAndResolvePath } = require('../utils/filesystem');
 const { generateUidBasedOnHash } = require('../utils/common');
+const { parseApiSpecContent, rawContent } = require('../utils/apiSpecs');
 const {
   addApiSpecToWorkspace,
   readWorkspaceConfig,
@@ -95,23 +95,10 @@ const openApiSpec = async (win, watcher, apiSpecPath, options = {}) => {
       win.webContents.send('main:apispec-tree-updated', 'addFile', {
         pathname: apiSpecPath,
         uid: uid,
-        raw: require('fs').readFileSync(apiSpecPath, 'utf8'),
-        name: require('path').basename(apiSpecPath, require('path').extname(apiSpecPath)),
-        filename: require('path').basename(apiSpecPath),
-        json: (() => {
-          const ext = require('path').extname(apiSpecPath).toLowerCase();
-          const content = require('fs').readFileSync(apiSpecPath, 'utf8');
-          try {
-            if (ext === '.yaml' || ext === '.yml') {
-              return require('js-yaml').load(content);
-            } else if (ext === '.json') {
-              return JSON.parse(content);
-            }
-          } catch {
-            return null;
-          }
-          return null;
-        })()
+        raw: rawContent(apiSpecPath),
+        name: path.basename(apiSpecPath, path.extname(apiSpecPath)),
+        filename: path.basename(apiSpecPath),
+        json: parseApiSpecContent(apiSpecPath)
       });
     }
   } catch (err) {
