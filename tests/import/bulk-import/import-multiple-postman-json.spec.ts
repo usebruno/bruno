@@ -4,10 +4,11 @@ import { buildCommonLocators, closeAllCollections } from '../../utils/page';
 
 test.describe('Bulk Import - Multiple Postman JSON', () => {
   const testDataDir = path.join(__dirname, '../test-data');
+  const fixturesDir = path.join(__dirname, 'fixtures');
   const importFiles = [
     path.join(testDataDir, 'sample-postman.json'),
-    path.join(testDataDir, 'sample-postman1.json'),
-    path.join(testDataDir, 'sample-postman2.json')
+    path.join(fixturesDir, 'sample-postman1.json'),
+    path.join(fixturesDir, 'sample-postman2.json')
   ];
   const collectionNames = [
     'Sample Postman Collection',
@@ -49,24 +50,25 @@ test.describe('Bulk Import - Multiple Postman JSON', () => {
         await importLocators.fileInput().setInputFiles(importFiles);
         await importLocators.loader().waitFor({ state: 'hidden' });
 
-        await expect(importLocators.bulkImportModal()).toBeVisible();
-        await expect(importLocators.bulkImportModalTitle()).toBeVisible();
-        await expect(importLocators.bulkImportCollectionsCount()).toHaveText(String(collectionNames.length));
+        await expect(importLocators.bulkModal()).toBeVisible();
+        await expect(importLocators.bulkModalTitle()).toBeVisible();
+        await expect(importLocators.bulkCollectionsCount()).toHaveText(String(collectionNames.length));
 
         for (const collectionName of collectionNames) {
-          await expect(importLocators.bulkImportCollectionItem(collectionName)).toBeVisible();
+          await expect(importLocators.bulkCollectionItem(collectionName)).toBeVisible();
         }
       });
 
       await test.step('Click on the import button', async () => {
-        await importLocators.locationInput().fill(importLocation);
-        await importLocators.bulkImportButton().click();
+        await importLocators.bulkLocationInput().fill(importLocation);
+        await importLocators.bulkSubmitButton().click();
         await expect(locators.toast.success(/collections imported successfully/i)).toBeVisible();
         for (const collectionName of collectionNames) {
           await expect(locators.sidebar.collection(collectionName)).toBeVisible();
         }
-        await importLocators.bulkImportCloseButton().click();
-        await importLocators.bulkImportModal().waitFor({ state: 'hidden' });
+        await expect(importLocators.bulkSubmitButton()).toHaveText('Close');
+        await importLocators.bulkSubmitButton().click();
+        await importLocators.bulkModal().waitFor({ state: 'hidden' });
       });
     }
   );
