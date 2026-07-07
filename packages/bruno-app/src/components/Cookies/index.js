@@ -7,7 +7,7 @@ import { deleteCookiesForDomain, deleteCookie } from 'providers/ReduxStore/slice
 import toast from 'react-hot-toast';
 import ModifyCookieModal from 'components/Cookies/ModifyCookieModal/index';
 import StyledWrapper from './StyledWrapper';
-import moment from 'moment';
+import dayjs from 'dayjs';
 import { Tooltip } from 'react-tooltip';
 import Button from 'ui/Button';
 
@@ -254,11 +254,11 @@ const CollectionProperties = ({ onClose }) => {
                                 <td className="py-2 px-4 truncate">{cookie.path || '/'}</td>
                                 <td className="py-2 px-4 truncate">
                                   <span id={`cookie-expires-${cookie.key}`}>
-                                    {cookie.expires && moment(cookie.expires).isValid()
+                                    {cookie.expires && dayjs(cookie.expires).isValid()
                                       ? new Date(cookie.expires).toLocaleString()
                                       : 'Session'}
                                   </span>
-                                  {cookie.expires && moment(cookie.expires).isValid() && (
+                                  {cookie.expires && dayjs(cookie.expires).isValid() && (
                                     <Tooltip
                                       anchorId={`cookie-expires-${cookie.key}`}
                                       className="tooltip-mod"
