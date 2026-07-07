@@ -533,7 +533,8 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
         }
 
         if (di.request.body.mode === 'signalr') {
-          di.request.body.signalr = di.request.body.signalr.map(({ name, content, type }, index) => ({
+          const signalrMessages = Array.isArray(di.request.body.signalr) ? di.request.body.signalr : [];
+          di.request.body.signalr = signalrMessages.map(({ name, content, type }, index) => ({
             name: name ? name : `message ${index + 1}`,
             type: type ?? 'json',
             content: replaceTabsWithSpaces(content)
@@ -828,9 +829,10 @@ export const transformRequestToSaveToFilesystem = (item) => {
   }
 
   if (itemToSave.request.body.mode === 'signalr') {
+    const signalrMessages = Array.isArray(itemToSave.request.body.signalr) ? itemToSave.request.body.signalr : [];
     itemToSave.request.body = {
       ...itemToSave.request.body,
-      signalr: itemToSave.request.body.signalr.map(({ name, content, type, selected }, index) => ({
+      signalr: signalrMessages.map(({ name, content, type, selected }, index) => ({
         name: name ? name : `message ${index + 1}`,
         type,
         content: replaceTabsWithSpaces(content),

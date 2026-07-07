@@ -59,7 +59,7 @@ const WSAuth = ({ item, collection }) => {
           <>
             <div className="flex flex-row w-full gap-2">
               <div>
-                OAuth 2 not <strong>yet</strong> supported by WebSockets. Using no auth instead.
+                OAuth 2 not <strong>yet</strong> supported by SignalR. Using no auth instead.
               </div>
             </div>
           </>
@@ -71,7 +71,7 @@ const WSAuth = ({ item, collection }) => {
           return (
             <>
               <div className="flex flex-row w-full mt-2 gap-2">
-                {inheritedSource.auth.mode === 'oauth1' ? 'OAuth 1.0' : 'OAuth 2'} not <strong>yet</strong> supported by WebSockets. Using no auth instead.
+                {inheritedSource.auth.mode === 'oauth1' ? 'OAuth 1.0' : 'OAuth 2'} not <strong>yet</strong> supported by SignalR. Using no auth instead.
               </div>
             </>
           );
@@ -91,7 +91,7 @@ const WSAuth = ({ item, collection }) => {
           return (
             <>
               <div className="flex flex-row w-full gap-2">
-                <div>Inherited auth not supported by WebSockets. Using no auth instead.</div>
+                <div>Inherited auth not supported by SignalR. Using no auth instead.</div>
               </div>
             </>
           );

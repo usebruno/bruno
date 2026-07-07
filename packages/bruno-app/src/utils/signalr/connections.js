@@ -4,16 +4,15 @@ export const startSignalRConnection = async (item, collection, environment, runt
   const { ipcRenderer } = window;
   const requestId = item.uid;
   const request = item.draft ? item.draft : item;
-  const url = request.request?.url || '';
-  const auth = request.request?.auth || {};
-  const collectionUid = collection.uid;
 
   try {
     const result = await ipcRenderer.invoke('renderer:signalr:start-connection', {
       requestId,
-      collectionUid,
-      url,
-      auth
+      collectionUid: collection.uid,
+      request,
+      collection,
+      environment,
+      runtimeVariables
     });
     return result;
   } catch (err) {
