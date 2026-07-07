@@ -1,9 +1,10 @@
 const _ = require('lodash');
-const path = require('path');
+const fs = require('node:fs');
+const path = require('node:path');
 const chokidar = require('chokidar');
 const { getApiSpecUid } = require('../cache/apiSpecUids');
 const { isDirectory } = require('../utils/filesystem');
-const { parseApiSpecContent, rawContent } = require('../utils/apiSpecs');
+const { parseApiSpecContent } = require('../utils/apiSpecs');
 
 const hasApiSpecExtension = (filename) => {
   if (!filename || typeof filename !== 'string') return false;
@@ -20,9 +21,11 @@ const add = async (win, pathname) => {
   try {
     const basename = path.basename(pathname);
     const file = {};
-    const apiSpecContent = parseApiSpecContent(pathname);
+    const raw = fs.readFileSync(pathname, 'utf8');
+    const extension = path.extname(pathname);
+    const apiSpecContent = parseApiSpecContent(raw, extension);
 
-    file.raw = rawContent(pathname);
+    file.raw = raw;
     file.name = apiSpecContent?.info?.title || basename.split('.')[0];
     file.filename = basename;
     file.pathname = pathname;
@@ -39,9 +42,11 @@ const change = async (win, pathname) => {
   try {
     const basename = path.basename(pathname);
     const file = {};
-    const apiSpecContent = parseApiSpecContent(pathname);
+    const raw = fs.readFileSync(pathname, 'utf8');
+    const extension = path.extname(pathname);
+    const apiSpecContent = parseApiSpecContent(raw, extension);
 
-    file.raw = rawContent(pathname);
+    file.raw = raw;
     file.name = apiSpecContent?.info?.title || basename.split('.')[0];
     file.filename = basename;
     file.pathname = pathname;

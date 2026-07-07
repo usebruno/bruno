@@ -1,19 +1,12 @@
-const fs = require('fs');
-const path = require('path');
 const yaml = require('js-yaml');
 
-const rawContent = (pathname) => {
-  return fs.readFileSync(pathname, 'utf8');
-};
-
-const parseApiSpecContent = (pathname) => {
-  const extension = path.extname(pathname).toLowerCase();
-  const content = rawContent(pathname);
+const parseApiSpecContent = (content, extension) => {
+  const ext = (extension || '').toLowerCase();
 
   try {
-    if (extension === '.yaml' || extension === '.yml') {
+    if (ext === '.yaml' || ext === '.yml') {
       return yaml.load(content);
-    } else if (extension === '.json') {
+    } else if (ext === '.json') {
       return JSON.parse(content);
     }
   } catch {
@@ -23,4 +16,4 @@ const parseApiSpecContent = (pathname) => {
   return null;
 };
 
-module.exports = { parseApiSpecContent, rawContent };
+module.exports = { parseApiSpecContent };
