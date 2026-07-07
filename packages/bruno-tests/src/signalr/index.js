@@ -8,9 +8,16 @@ const connections = new Map();
 const generateConnectionId = () => crypto.randomBytes(16).toString('hex');
 
 const handleSignalRMessage = (ws, data, connectionId) => {
-  // Strip the RS (0x1E) record separator used by the SignalR JSON protocol
-  const trimmed = data.toString().replace(/\x1E/g, '').trim();
-  if (!trimmed) return;
+  // Split the RS (0x1E) record separator used by the SignalR JSON protocol
+  const frames = data.toString().split(RS).map((s) => s.trim()).filter(Boolean);
+  if (!frames.length) return;
+
+  if (frames.length > 1) {
+    frames.forEach((frame) => handleSignalRMessage(ws, Buffer.from(frame + RS), connectionId));
+    return;
+  }
+
+  const trimmed = frames[0];
 
   let msg;
   try {
@@ -65,8 +72,10 @@ signalrWss.on('connection', function connection(ws, request, connectionId) {
 
   ws.on('message', function message(data) {
     if (!handshakeReceived) {
-      // Strip RS (0x1E) separator that SignalR JSON protocol includes
-      const msg = data.toString().replace(/\x1E/g, '').trim();
+      // Split RS (0x1E) separator that SignalR JSON protocol includes
+      const frames = data.toString().split(RS).map((s) => s.trim()).filter(Boolean);
+      if (!frames.length) return;
+      const msg = frames[0];
       try {
         const handshake = JSON.parse(msg);
         if (handshake.protocol === 'json' && handshake.version === 1) {

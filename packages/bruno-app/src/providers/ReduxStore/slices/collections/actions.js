@@ -50,7 +50,6 @@ import {
   initRunRequestEvent,
   updateRunnerConfiguration as _updateRunnerConfiguration,
   updateActiveConnections,
-  wsResponseReceived,
   saveRequest as _saveRequest,
   saveEnvironment as _saveEnvironment,
   updateEnvironmentColor as _updateEnvironmentColor,

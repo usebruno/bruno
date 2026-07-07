@@ -622,6 +622,7 @@ const signalrRequestSchema = Yup.object({
   })
     .strict()
     .required('body is required'),
+  protocol: Yup.string().oneOf(['json', 'messagepack']).nullable(),
   script: Yup.object({
     req: Yup.string().nullable(),
     res: Yup.string().nullable()

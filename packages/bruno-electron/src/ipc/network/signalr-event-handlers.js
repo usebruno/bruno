@@ -34,7 +34,7 @@ const registerSignalrEventHandlers = (mainWindow) => {
             if (auth?.mode === 'bearer' && auth?.bearer?.token) {
               return auth.bearer.token;
             }
-            return null;
+            return '';
           }
         })
         .configureLogging(LogLevel.Information)
