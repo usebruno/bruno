@@ -203,7 +203,7 @@ test.describe('DataType selector — new collection created via UI', () => {
         tabRowCount++;
         await expect(envRows).toHaveCount(tabRowCount + 1);
 
-        const valueEditor = namedRow.locator('.CodeMirror').first();
+        const valueEditor = namedRow.getByTestId('column-value').locator('.CodeMirror').first();
         await valueEditor.hover();
         await valueEditor.click({ force: true });
         await expect(valueEditor).toHaveClass(/CodeMirror-focused/);

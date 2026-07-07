@@ -803,7 +803,7 @@ const addRowToActiveTab = async (page: Page, name: string, value: string) => {
     const row = page.getByTestId(`env-var-row-${name}`);
     await row.waitFor({ state: 'visible' });
 
-    const codeMirror = row.locator('.CodeMirror');
+    const codeMirror = row.getByTestId(/^test-multiline-editor-\d+\.value$/).locator('.CodeMirror').first();
     await codeMirror.scrollIntoViewIfNeeded();
     await codeMirror.click();
     await page.keyboard.type(value);
