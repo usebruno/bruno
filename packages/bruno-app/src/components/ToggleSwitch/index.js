@@ -15,7 +15,7 @@ const ToggleSwitch = ({ isOn, handleToggle, size = 'm', activeColor, ...props })
         type="checkbox"
         size={size}
         activeColor={activeColor}
-        onChange={handleToggle}
+        onInput={handleToggle}
       />
       <Label htmlFor={id}>
         <Inner size={size} />
