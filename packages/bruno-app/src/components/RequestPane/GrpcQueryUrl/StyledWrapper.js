@@ -56,7 +56,7 @@ const Wrapper = styled.div`
     padding: 4px 8px;
     position: absolute;
     z-index: 1;
-    bottom: 34px;
+    top: calc(100% + 8px);
     left: 50%;
     transform: translateX(-50%);
     opacity: 0;
@@ -67,12 +67,12 @@ const Wrapper = styled.div`
   .infotip-text::after {
     content: '';
     position: absolute;
-    top: 100%;
+    bottom: 100%;
     left: 50%;
     margin-left: -4px;
     border-width: 4px;
     border-style: solid;
-    border-color: ${(props) => props.theme.background.surface2} transparent transparent transparent;
+    border-color: transparent transparent ${(props) => props.theme.background.surface2} transparent;
   }
 
   .shortcut {
