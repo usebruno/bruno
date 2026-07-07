@@ -5,6 +5,7 @@ import RequestTabs from 'components/RequestTabs';
 import RequestTabPanel from 'components/RequestTabPanel';
 import AppPreviewKeepAlive from 'components/AppPreviewKeepAlive';
 import AiChatSidebar from 'components/AiChatSidebar';
+import AiChatPopout from 'components/AiChatSidebar/Popout';
 import Sidebar from 'components/Sidebar';
 import StatusBar from 'components/StatusBar';
 import AppTitleBar from 'components/AppTitleBar';
@@ -93,6 +94,7 @@ export default function Main() {
   // re-render on every tabs/collections change — important on Windows where
   // extra re-renders during initial layout were destabilising CodeMirror.
   const isAiSidebarOpen = useSelector((state) => state.chat.isOpen);
+  const isAiPoppedOut = useSelector((state) => state.chat.isPoppedOut);
   const activeCollection = useSelector((state) => {
     if (!state.chat.isOpen) return null;
     const activeTab = state.tabs.tabs.find((t) => t.uid === state.tabs.activeTabUid);
@@ -173,8 +175,12 @@ export default function Main() {
               </>
             )}
           </section>
-          {isAiSidebarOpen && activeCollection && !showApiSpecPage && !showManageWorkspacePage && (
-            <AiChatSidebar collection={activeCollection} />
+          {isAiSidebarOpen && activeCollection && (
+            isAiPoppedOut ? (
+              <AiChatPopout collection={activeCollection} />
+            ) : !showApiSpecPage && !showManageWorkspacePage ? (
+              <AiChatSidebar collection={activeCollection} />
+            ) : null
           )}
         </StyledWrapper>
       </div>

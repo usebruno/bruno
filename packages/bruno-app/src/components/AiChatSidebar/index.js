@@ -10,7 +10,9 @@ import {
   IconChevronDown,
   IconHistory,
   IconPlus,
-  IconTrash
+  IconTrash,
+  IconExternalLink,
+  IconLayoutSidebarRightExpand
 } from '@tabler/icons';
 import IconSparkles from 'components/Icons/IconSparkles';
 import get from 'lodash/get';
@@ -19,6 +21,8 @@ import MenuDropdown from 'ui/MenuDropdown';
 import { focusTab } from 'providers/ReduxStore/slices/tabs';
 import {
   closeAiSidebar,
+  popOutAiChat,
+  dockAiChat,
   sendAiMessage,
   stopAiStream,
   setChatBinding,
@@ -43,6 +47,7 @@ import {
   updateCollectionTests,
   updateCollectionDocs
 } from 'providers/ReduxStore/slices/collections';
+import { updateIsDragging } from 'providers/ReduxStore/slices/app';
 import { findItemInCollection, findItemInCollectionByPathname, isItemAFolder, isItemARequest } from 'utils/collections';
 import { buildAiVariablesPayload, getAiStatus } from 'utils/ai';
 
@@ -54,6 +59,14 @@ import { renderMarkdown, parseMessageSegments } from './utils';
 
 const SELECTED_MODEL_LS_KEY = 'bruno.ai.chat.selectedModel';
 const AUTO_MODEL_ID = '';
+
+const SIDEBAR_WIDTH_LS_KEY = 'bruno.ai.chat.sidebarWidth';
+const DEFAULT_SIDEBAR_WIDTH = 420;
+const MIN_SIDEBAR_WIDTH = 340;
+const MAX_SIDEBAR_WIDTH = 720;
+
+const clampSidebarWidth = (value) =>
+  Math.min(MAX_SIDEBAR_WIDTH, Math.max(MIN_SIDEBAR_WIDTH, value));
 
 const ToolActivityGroup = ({ activities }) => {
   if (!activities?.length) return null;
@@ -126,11 +139,14 @@ const HistoryPopover = ({ items, activeId, onPick, onDelete, onClose }) => {
     const handleKey = (e) => {
       if (e.key === 'Escape') onClose();
     };
-    document.addEventListener('mousedown', handleClick);
-    document.addEventListener('keydown', handleKey);
+    // ownerDocument in the popped-out window the popover
+    // lives in a different document than the one this module closed over.
+    const doc = popoverRef.current?.ownerDocument || document;
+    doc.addEventListener('mousedown', handleClick);
+    doc.addEventListener('keydown', handleKey);
     return () => {
-      document.removeEventListener('mousedown', handleClick);
-      document.removeEventListener('keydown', handleKey);
+      doc.removeEventListener('mousedown', handleClick);
+      doc.removeEventListener('keydown', handleKey);
     };
   }, [onClose]);
 
@@ -166,8 +182,9 @@ const HistoryPopover = ({ items, activeId, onPick, onDelete, onClose }) => {
   );
 };
 
-const AiChatSidebar = ({ collection }) => {
+const AiChatSidebar = ({ collection, variant = 'sidebar' }) => {
   const dispatch = useDispatch();
+  const isPopout = variant === 'popout';
   const [input, setInput] = useState('');
   const [processingStage, setProcessingStage] = useState(null);
   const [availableModels, setAvailableModels] = useState([]);
@@ -175,6 +192,14 @@ const AiChatSidebar = ({ collection }) => {
     try { return localStorage.getItem(SELECTED_MODEL_LS_KEY) ?? AUTO_MODEL_ID; } catch { return AUTO_MODEL_ID; }
   });
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [sidebarWidth, setSidebarWidth] = useState(() => {
+    try {
+      const stored = parseInt(localStorage.getItem(SIDEBAR_WIDTH_LS_KEY), 10);
+      if (!Number.isNaN(stored)) return clampSidebarWidth(stored);
+    } catch {}
+    return DEFAULT_SIDEBAR_WIDTH;
+  });
+  const [resizing, setResizing] = useState(false);
   const messagesEndRef = useRef(null);
   const messagesContainerRef = useRef(null);
   const isNearBottomRef = useRef(true);
@@ -425,6 +450,35 @@ const AiChatSidebar = ({ collection }) => {
   }, [isOpen]);
 
   useEffect(() => {
+    if (!resizing) return;
+    const handleMouseMove = (e) => {
+      e.preventDefault();
+      setSidebarWidth(clampSidebarWidth(window.innerWidth - e.clientX));
+    };
+    const handleMouseUp = (e) => {
+      e.preventDefault();
+      setResizing(false);
+      dispatch(updateIsDragging({ isDragging: false }));
+      setSidebarWidth((width) => {
+        try { localStorage.setItem(SIDEBAR_WIDTH_LS_KEY, String(width)); } catch {}
+        return width;
+      });
+    };
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [resizing, dispatch]);
+
+  const handleResizeStart = (e) => {
+    e.preventDefault();
+    setResizing(true);
+    dispatch(updateIsDragging({ isDragging: true }));
+  };
+
+  useEffect(() => {
     if (!isLoading) {
       setProcessingStage(null);
       return;
@@ -553,6 +607,7 @@ const AiChatSidebar = ({ collection }) => {
   };
 
   const handleClose = () => dispatch(closeAiSidebar());
+  const handleTogglePopout = () => dispatch(isPopout ? dockAiChat() : popOutAiChat());
   const handleSwitchChat = (tabUid) => dispatch(focusTab({ uid: tabUid }));
 
   const handleSuggestionClick = (suggestion) => {
@@ -749,7 +804,21 @@ const AiChatSidebar = ({ collection }) => {
   const historyCount = historyList?.length || 0;
 
   return (
-    <StyledWrapper>
+    <StyledWrapper
+      className={isPopout ? 'popout' : ''}
+      style={isPopout ? undefined : { width: sidebarWidth }}
+    >
+      {!isPopout && (
+        <div
+          className="ai-sidebar-resize-handle"
+          onMouseDown={handleResizeStart}
+          role="separator"
+          aria-orientation="vertical"
+          aria-label="Resize AI sidebar"
+        >
+          <div className="drag-border" />
+        </div>
+      )}
       <div className="ai-sidebar">
         <div className="ai-sidebar-header">
           <div className="header-left">
@@ -800,6 +869,13 @@ const AiChatSidebar = ({ collection }) => {
                 />
               )}
             </div>
+            <button
+              className="icon-btn"
+              onClick={handleTogglePopout}
+              title={isPopout ? 'Dock to sidebar' : 'Open in new window'}
+            >
+              {isPopout ? <IconLayoutSidebarRightExpand size={14} /> : <IconExternalLink size={14} />}
+            </button>
             <button className="icon-btn close-btn" onClick={handleClose} title="Close">
               <IconX size={14} />
             </button>
