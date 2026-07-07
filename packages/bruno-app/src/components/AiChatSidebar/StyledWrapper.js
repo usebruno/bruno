@@ -481,6 +481,7 @@ const StyledWrapper = styled.div`
   .prose.markdown-body {
     font-size: 13px;
     line-height: 1.5;
+    background: none;
 
     .cursor {
       display: inline-block;
