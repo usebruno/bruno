@@ -8,6 +8,7 @@ export type ItemType
     | 'graphql-request'
     | 'folder'
     | 'js'
+    | 'app'
     | 'grpc-request'
     | 'ws-request'
     | 'signalr-request';

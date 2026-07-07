@@ -33,15 +33,15 @@ const ConfirmCloseEnvironment = ({ onCancel, onCloseWithoutSave, onSaveAndClose,
 
         <div className="flex justify-between mt-6">
           <div>
-            <Button color="danger" onClick={onCloseWithoutSave}>
+            <Button color="danger" onClick={onCloseWithoutSave} data-testid="env-unsaved-close-without-save">
               Don't Save
             </Button>
           </div>
           <div className="flex gap-2">
-            <Button size="sm" color="secondary" variant="ghost" onClick={onCancel}>
+            <Button size="sm" color="secondary" variant="ghost" onClick={onCancel} data-testid="env-unsaved-cancel">
               Cancel
             </Button>
-            <Button onClick={onSaveAndClose}>
+            <Button onClick={onSaveAndClose} data-testid="env-unsaved-save-and-close">
               Save
             </Button>
           </div>

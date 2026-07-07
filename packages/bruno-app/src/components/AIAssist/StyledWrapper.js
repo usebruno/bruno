@@ -34,16 +34,15 @@ const StyledWrapper = styled.div`
     }
   }
 
-  .ai-assist-popup {
-    position: absolute;
-    top: calc(100% + 4px);
-    right: 0;
-    width: 360px;
-    background: ${(props) => props.theme.bg};
-    border: 1px solid ${(props) => props.theme.input.border};
-    border-radius: ${(props) => props.theme.border.radius.md};
-    overflow: hidden;
-  }
+`;
+
+// Tippy renders the popup into document.body, outside StyledWrapper's subtree.
+export const PopupWrapper = styled.div`
+  width: 360px;
+  background: ${(props) => props.theme.bg};
+  border: 1px solid ${(props) => props.theme.input.border};
+  border-radius: ${(props) => props.theme.border.radius.md};
+  overflow: hidden;
 
   .popup-header {
     display: flex;
@@ -106,6 +105,7 @@ const StyledWrapper = styled.div`
     background: ${(props) => props.theme.input.bg};
     color: ${(props) => props.theme.text};
     resize: vertical;
+    min-height: calc(3 * 1.4em + 18px);
     outline: none;
     transition: border-color 0.15s ease;
 
@@ -216,6 +216,26 @@ const StyledWrapper = styled.div`
     &:disabled {
       opacity: 0.45;
       cursor: not-allowed;
+    }
+  }
+
+  .btn-stop {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 5px 12px;
+    font-size: 12px;
+    font-weight: 500;
+    border-radius: ${(props) => props.theme.border.radius.sm};
+    border: 1px solid ${(props) => props.theme.input.border};
+    background: ${(props) => props.theme.input.bg};
+    color: ${(props) => props.theme.text};
+    cursor: pointer;
+    transition: background-color 0.15s ease, border-color 0.15s ease;
+
+    &:hover {
+      border-color: ${(props) => props.theme.colors.text.danger};
+      color: ${(props) => props.theme.colors.text.danger};
     }
   }
 

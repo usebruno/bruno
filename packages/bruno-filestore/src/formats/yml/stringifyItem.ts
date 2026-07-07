@@ -5,6 +5,7 @@ import stringifyGrpcRequest from './items/stringifyGrpcRequest';
 import stringifyWebsocketRequest from './items/stringifyWebsocketRequest';
 import stringifySignalRRequest from './items/stringifySignalRRequest';
 import stringifyScript from './items/stringifyScript';
+import stringifyApp from './items/stringifyApp';
 
 const stringifyItem = (item: BrunoItem): string => {
   try {
@@ -26,6 +27,9 @@ const stringifyItem = (item: BrunoItem): string => {
 
       case 'js':
         return stringifyScript(item);
+
+      case 'app':
+        return stringifyApp(item);
 
       case 'folder':
         throw new Error('Folder items should be handled separately using stringifyFolder');

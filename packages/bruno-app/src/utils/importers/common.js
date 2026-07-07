@@ -11,6 +11,7 @@ import { BrunoError } from 'utils/common/error';
 import { isOpenApiSpec } from './openapi-collection';
 import { isPostmanCollection } from './postman-collection';
 import { isInsomniaCollection } from './insomnia-collection';
+import { valueToString } from '@usebruno/common/utils';
 
 export const validateSchema = async (collections = []) => {
   collections = Array.isArray(collections) ? collections : [collections];
@@ -99,6 +100,7 @@ export const transformItemsInCollection = (collection) => {
         const isGrpcRequest = item.type === 'grpc-request';
         const isWSRequest = item.type === 'ws-request';
         const isSignalRRequest = item.type === 'signalr-request';
+        item.request.url = valueToString(item.request.url);
 
         if (item.request.query) {
           item.request.params = item.request.query.map((queryItem) => ({
@@ -138,6 +140,10 @@ export const transformItemsInCollection = (collection) => {
             const isGrpcExample = example.type === 'grpc-request';
             const isWSExample = example.type === 'ws-request';
             const isSignalRExample = example.type === 'signalr-request';
+
+            if (example.request) {
+              example.request.url = valueToString(example.request.url);
+            }
 
             if (example.request && example.request.query) {
               example.request.params = example.request.query.map((queryItem) => ({

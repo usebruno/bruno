@@ -87,6 +87,10 @@ export const SingleWSMessage = ({
     } else if (e.key === 'Escape') {
       setEditValue(displayName);
       setIsEditing(false);
+    } else if ((e.metaKey || e.ctrlKey) && (e.key === 's' || e.key === 'S')) {
+      e.preventDefault();
+      saveName(editValue);
+      dispatch(saveRequest(item.uid, collection.uid));
     }
   };
 

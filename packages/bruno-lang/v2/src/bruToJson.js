@@ -34,8 +34,8 @@ const ANNOTATIONS_KEY = Symbol('annotations');
  *
  */
 const grammar = ohm.grammar(`Bru {
-  BruFile = (meta | http | grpc | ws | signalr | query | params | headers | metadata | auths | bodies | varsandassert | script | tests | app | settings | docs | example)*
-  auths = authawsv4 | authbasic | authbearer | authdigest | authNTLM | authOAuth1 | authOAuth2 | authwsse | authapikey | authOauth2Configs
+  BruFile = (meta | http | grpc | signalr | ws | query | params | headers | metadata | auths | bodies | varsandassert | script | tests | app | settings | docs | example)*
+  auths = authawsv4 | authbasic | authbearer | authdigest | authNTLM | authOAuth1 | authOAuth2 | authwsse | authapikey | authedgegrid | authOauth2Configs
   bodies = bodyjson | bodytext | bodyxml | bodysparql | bodygraphql | bodygraphqlvars | bodyforms | body | bodygrpc | bodyws | bodysignalr
   bodyforms = bodyformurlencoded | bodymultipart | bodyfile
   params = paramspath | paramsquery
@@ -148,6 +148,7 @@ const grammar = ohm.grammar(`Bru {
   authOAuth2 = "auth:oauth2" dictionary
   authwsse = "auth:wsse" dictionary
   authapikey = "auth:apikey" dictionary
+  authedgegrid = "auth:akamai-edgegrid" dictionary
 
   oauth2AuthReqHeaders = "auth:oauth2:additional_params:auth_req:headers" dictionary
   oauth2AuthReqQueryParams = "auth:oauth2:additional_params:auth_req:queryparams" dictionary
@@ -268,7 +269,7 @@ const mapPairListToKeyValPairsMultipart = (pairList = [], parseEnabled = true) =
     if (pair.value.startsWith('@file(') && pair.value.endsWith(')')) {
       let filestr = pair.value.replace(/^@file\(/, '').replace(/\)$/, '');
       pair.type = 'file';
-      pair.value = filestr.split('|');
+      pair.value = filestr.split('|').filter(Boolean);
     }
 
     return pair;
@@ -1008,6 +1009,39 @@ const sem = grammar.createSemantics().addAttribute('ast', {
           key,
           value,
           placement
+        }
+      }
+    };
+  },
+  authedgegrid(_1, dictionary) {
+    const auth = mapPairListToKeyValPairs(dictionary.ast, false);
+
+    const findValueByName = (name) => {
+      const item = _.find(auth, { name });
+      return item ? item.value : '';
+    };
+
+    const accessToken = findValueByName('accessToken');
+    const clientToken = findValueByName('clientToken');
+    const clientSecret = findValueByName('clientSecret');
+    const nonce = findValueByName('nonce');
+    const timestamp = findValueByName('timestamp');
+    const baseURL = findValueByName('baseURL');
+    const headersToSign = findValueByName('headersToSign');
+    const maxBodySizeRaw = findValueByName('maxBodySize');
+    const maxBodySize = maxBodySizeRaw === '' || isNaN(Number(maxBodySizeRaw)) ? null : Number(maxBodySizeRaw);
+
+    return {
+      auth: {
+        akamaiEdgegrid: {
+          accessToken,
+          clientToken,
+          clientSecret,
+          nonce,
+          timestamp,
+          baseURL,
+          headersToSign,
+          maxBodySize
         }
       }
     };

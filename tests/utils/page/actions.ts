@@ -91,7 +91,7 @@ const closeAllCollections = async (page) => {
  * @param collectionName - The name of the collection to open
  * @returns void
  */
-const openCollection = async (page, collectionName: string) => {
+const openCollection = async (page: Page, collectionName: string) => {
   await test.step(`Open collection "${collectionName}"`, async () => {
     await page.locator('#sidebar-collection-name').filter({ hasText: collectionName }).click();
   });
@@ -352,9 +352,14 @@ const createRequest = async (
       await locators.sidebar.folder(parentName).hover();
       await locators.actions.collectionItemActions(parentName).click();
     } else {
-      await locators.sidebar.collection(parentName).hover();
+      const collectionRow = locators.sidebar.collection(parentName);
       const collectionAction = locators.actions.collectionActions(parentName);
-      await expect(collectionAction).toBeVisible({ timeout: 2000 });
+      // Re-hover on each poll: CSS `:hover` reveals `.collection-actions`, but sidebar
+      // re-renders (e.g. workspace snapshot hydration) can shift the row out from under a one-shot hover().
+      await expect(async () => {
+        await collectionRow.hover();
+        await expect(collectionAction).toBeVisible({ timeout: 1000 });
+      }).toPass({ timeout: 10000 });
       await collectionAction.click();
     }
 
@@ -525,6 +530,26 @@ const importCollection = async (
 };
 
 /**
+ * Open the Bulk Import modal by importing multiple files at once.
+ * Selecting more than one file routes the import flow to the Bulk Import modal
+ * (instead of the single-collection location modal).
+ * @param page - The page object
+ * @param filePaths - Absolute paths of the files to import (must be 2 or more)
+ */
+const openBulkImportModal = async (page: Page, filePaths: string[]) => {
+  await test.step('Open the Bulk Import modal', async () => {
+    const locators = buildCommonLocators(page);
+
+    await locators.plusMenu.button().click();
+    await locators.plusMenu.importCollection().click();
+    await expect(locators.import.modal()).toBeVisible();
+
+    await locators.import.fileInput().setInputFiles(filePaths);
+    await expect(locators.import.bulkModal()).toBeVisible();
+  });
+};
+
+/**
  * Remove a specific collection from the sidebar
  * @param page - The page object
  * @param collectionName - The name of the collection to remove
@@ -636,6 +661,31 @@ const openEnvironmentSelector = async (page: Page, type: EnvironmentType = 'coll
 };
 
 /**
+ * Open the configuration tab for the currently active environment (collection or global).
+ * Combines opening the env selector dropdown + clicking the "configure" button + waiting
+ * for the resulting env config tab to appear. Use this when the test needs to interact
+ * with the env variable rows (read a value, toggle the secret eye, etc.).
+ * @param page - The page object
+ * @param type - The type of environment configuration tab to open
+ */
+const openEnvironmentConfigTab = async (page: Page, type: EnvironmentType = 'collection') => {
+  await test.step(`Open ${type} environment configuration tab`, async () => {
+    await openEnvironmentSelector(page, type);
+
+    const locators = buildCommonLocators(page);
+    // `waitFor` + `dispatchEvent` keeps the click stable when the dropdown is mid-transition;
+    // the menu item briefly intercepts pointer events during the open animation.
+    await locators.environment.configureButton().waitFor({ state: 'visible' });
+    await locators.environment.configureButton().dispatchEvent('click');
+
+    const envTab = type === 'global'
+      ? locators.environment.globalEnvTab()
+      : locators.environment.collectionEnvTab();
+    await expect(envTab).toBeVisible();
+  });
+};
+
+/**
  * Create a new environment
  * @param page - The page object
  * @param environmentName - The name of the environment
@@ -648,22 +698,42 @@ const createEnvironment = async (
   type: EnvironmentType = 'collection'
 ) => {
   await test.step(`Create ${type} environment "${environmentName}"`, async () => {
+    const locators = buildCommonLocators(page);
     await openEnvironmentSelector(page, type);
 
-    await page.locator('button[id="create-env"]').click();
+    // Environment selector shows the create button only in empty state.
+    // If environments already exist, open settings and use the sidebar create action.
+    const canCreateFromSelectorEmptyState = await locators.environment.createEnvButton().isVisible().catch(() => false);
 
-    const nameInput = type === 'collection'
-      ? page.locator('input[name="name"]')
-      : page.locator('#environment-name');
-    await expect(nameInput).toBeVisible();
-    await nameInput.fill(environmentName);
-    await page.getByRole('button', { name: 'Create' }).click();
+    if (canCreateFromSelectorEmptyState) {
+      await locators.environment.createEnvButton().click();
+
+      await expect(locators.environment.createModal()).toBeVisible();
+      const nameInput = locators.environment.createModalNameInput();
+      await expect(nameInput).toBeVisible();
+      await nameInput.fill(environmentName);
+      await locators.environment.createModalCreateButton().click();
+    } else {
+      await locators.environment.configureButton().waitFor({ state: 'visible' });
+      await locators.environment.configureButton().dispatchEvent('click');
+
+      const envTab = type === 'global'
+        ? locators.environment.globalEnvTab()
+        : locators.environment.collectionEnvTab();
+      await expect(envTab).toBeVisible();
+
+      await locators.environment.settingsCreateButton().click();
+
+      const inlineNameInput = locators.environment.settingsCreateNameInput();
+      await expect(inlineNameInput).toBeVisible();
+      await inlineNameInput.fill(environmentName);
+      await inlineNameInput.press('Enter');
+    }
 
     const tabLabel = type === 'collection' ? 'Environments' : 'Global Environments';
     await expect(page.locator('.request-tab').filter({ hasText: tabLabel })).toBeVisible();
 
-    const locators = buildCommonLocators(page);
-    await page.waitForTimeout(200); // @TODO replace with dynamic waiting logic
+    await expect(locators.environment.selector()).toBeVisible();
     await locators.environment.selector().click();
     if (type === 'global') {
       await locators.environment.globalTab().click();
@@ -680,39 +750,28 @@ type EnvironmentVariable = {
 };
 
 /**
- * Add an environment variable to the currently open environment
+ * Add an environment variable to the currently open environment. Variables and
+ * secrets live on separate tabs, so a secret is routed to the Secrets tab and a
+ * plain variable to the Variables tab before the row is added.
  * @param page - The page object
  * @param variable - The variable to add (name, value, and optional secret flag)
- * @param index - The index of the variable (0-based)
  * @returns void
  */
-const addEnvironmentVariable = async (
-  page: Page,
-  variable: EnvironmentVariable,
-  index: number
-) => {
-  await test.step(`Add environment variable "${variable.name}"`, async () => {
-    const nameInput = page.locator(`input[name="${index}.name"]`);
-    await nameInput.waitFor({ state: 'visible' });
-    await nameInput.fill(variable.name);
+const addEnvironmentVariable = async (page: Page, variable: EnvironmentVariable) => {
+  await test.step(`Add environment ${variable.isSecret ? 'secret' : 'variable'} "${variable.name}"`, async () => {
+    const tab = variable.isSecret
+      ? page.getByTestId('responsive-tab-secrets')
+      : page.getByTestId('responsive-tab-variables');
+    await tab.click();
+    await expect(tab).toHaveClass(/active/);
 
-    // Wait for the CodeMirror editor in the row to be ready
-    const variableRow = page.locator('tr').filter({ has: page.locator(`input[name="${index}.name"]`) });
-    const codeMirror = variableRow.locator('.CodeMirror');
-    await codeMirror.waitFor({ state: 'visible' });
-    await codeMirror.click();
-    await page.keyboard.type(variable.value);
-
-    if (variable.isSecret) {
-      const secretCheckbox = page.locator(`input[name="${index}.secret"]`);
-      await secretCheckbox.waitFor({ state: 'visible' });
-      await secretCheckbox.check();
-    }
+    await addRowToActiveTab(page, variable.name, variable.value);
   });
 };
 
 /**
- * Add multiple environment variables to the currently open environment
+ * Add multiple environment variables to the currently open environment. Each entry
+ * is routed to the Variables or Secrets tab based on its `isSecret` flag.
  * @param page - The page object
  * @param variables - Array of variables to add
  * @returns void
@@ -720,7 +779,65 @@ const addEnvironmentVariable = async (
 const addEnvironmentVariables = async (page: Page, variables: EnvironmentVariable[]) => {
   await test.step(`Add ${variables.length} environment variables`, async () => {
     for (let i = 0; i < variables.length; i++) {
-      await addEnvironmentVariable(page, variables[i], i);
+      await addEnvironmentVariable(page, variables[i]);
+    }
+  });
+};
+
+/**
+ * Add a variable or secret to whichever environment tab (Variables / Secrets) is
+ * currently active. The active tab determines the row's type, so select the tab
+ * before calling.
+ * @param page - The page object
+ * @param name - The variable/secret name
+ * @param value - The variable/secret value
+ * @returns void
+ */
+const addRowToActiveTab = async (page: Page, name: string, value: string) => {
+  await test.step(`Add row "${name}" to the active environment tab`, async () => {
+    const nameInput = page.locator('input[placeholder="Name"]').last();
+    await nameInput.waitFor({ state: 'visible' });
+    await nameInput.fill(name);
+
+    const row = page.getByTestId(`env-var-row-${name}`);
+    await row.waitFor({ state: 'visible' });
+
+    const codeMirror = row.locator('.CodeMirror');
+    await codeMirror.scrollIntoViewIfNeeded();
+    await codeMirror.click();
+    await page.keyboard.type(value);
+  });
+};
+
+/**
+ * Delete every global environment in the workspace. Global environments persist at
+ * the workspace level (closeAllCollections does not remove them), so call this to keep
+ * tests isolated. Deletes the currently-selected environment first, since a tab with
+ * unsaved changes blocks switching to another env via the list.
+ * @param page - The page object
+ * @returns void
+ */
+const deleteAllGlobalEnvironments = async (page: Page) => {
+  await test.step('Delete all global environments', async () => {
+    await page.getByTestId('environment-selector-trigger').click();
+    await page.getByTestId('env-tab-global').click();
+    await page.getByTestId('configure-env').click();
+
+    const envItems = page.locator('.environment-item');
+    const deleteBtn = page.locator('button[title="Delete"]');
+    const modal = page.locator('.bruno-modal').filter({ hasText: 'Delete Environment' });
+
+    await page.locator('.environments-container').first().waitFor({ state: 'visible' }).catch(() => { });
+
+    while (true) {
+      if ((await deleteBtn.count()) === 0) {
+        if ((await envItems.count()) === 0) break;
+        await envItems.first().click();
+        await deleteBtn.waitFor({ state: 'visible' });
+      }
+      await deleteBtn.first().click();
+      await modal.getByRole('button', { name: 'Delete', exact: true }).click();
+      await modal.waitFor({ state: 'hidden' });
     }
   });
 };
@@ -732,7 +849,7 @@ const addEnvironmentVariables = async (page: Page, variables: EnvironmentVariabl
  */
 const saveEnvironment = async (page: Page) => {
   await test.step('Save environment', async () => {
-    await page.getByRole('button', { name: 'Save' }).click();
+    await page.getByTestId('save-all-env').click();
   });
 };
 
@@ -2028,6 +2145,55 @@ const getAppWebviewHtml = async (page: Page): Promise<string> => {
 };
 
 /**
+ * Create a standalone (collection-level or folder-level) app via the sidebar
+ * context menu. Opens the new tab once created.
+ * @param page - The page object
+ * @param appName - Name to give the new app
+ * @param parent - Either `{ collectionName }` for a collection-level app,
+ *                 or `{ collectionName, folderName }` for a folder-level app.
+ */
+const createApp = async (
+  page: Page,
+  appName: string,
+  parent: { collectionName: string; folderName?: string }
+) => {
+  await test.step(`Create app "${appName}" in ${parent.folderName ? `folder "${parent.folderName}"` : `collection "${parent.collectionName}"`}`, async () => {
+    const locators = buildCommonLocators(page);
+
+    if (parent.folderName) {
+      const collectionScope = locators.sidebar.collectionScope(parent.collectionName);
+      const folderRow = collectionScope.locator('.collection-item-name').filter({ hasText: parent.folderName });
+      await folderRow.hover();
+      await folderRow.locator('.menu-icon').click();
+    } else {
+      await locators.sidebar.collection(parent.collectionName).hover();
+      const collectionAction = locators.actions.collectionActions(parent.collectionName);
+      await expect(collectionAction).toBeVisible({ timeout: 2000 });
+      await collectionAction.click();
+    }
+
+    await page.locator('.tippy-box:visible .dropdown-item').filter({ hasText: 'New App' }).click();
+
+    const modal = page.locator('.bruno-modal').filter({ hasText: 'New App' });
+    await expect(modal).toBeVisible({ timeout: 5000 });
+    await modal.locator('input[name="appName"]').fill(appName);
+    await modal.getByRole('button', { name: 'Create', exact: true }).click();
+    await expect(modal).toBeHidden({ timeout: 5000 });
+  });
+};
+
+/**
+ * Switch the CollectionApp tab between Code and Preview views.
+ * @param page - The page object
+ * @param view - 'code' | 'preview'
+ */
+const selectAppView = async (page: Page, view: 'code' | 'preview') => {
+  await test.step(`Switch collection app to "${view}"`, async () => {
+    await page.getByTestId(`collection-app-view-${view}`).click();
+  });
+};
+
+/**
  * Rename a websocket message by double-clicking its label and typing a new name.
  * @param page - The page object
  * @param index - The zero-based index of the message in the list
@@ -2054,7 +2220,7 @@ const renameWsMessage = async (page: Page, index: number, name: string) => {
  */
 const scrollVirtuosoRowIntoView = async (page: Page, target: Locator) => {
   if (await target.count()) {
-    await target.scrollIntoViewIfNeeded().catch(() => {});
+    await target.scrollIntoViewIfNeeded().catch(() => { });
     return;
   }
 
@@ -2072,7 +2238,7 @@ const scrollVirtuosoRowIntoView = async (page: Page, target: Locator) => {
     await scroll(true);
     await page.waitForTimeout(120);
     if (await target.count()) {
-      await target.scrollIntoViewIfNeeded().catch(() => {});
+      await target.scrollIntoViewIfNeeded().catch(() => { });
       return;
     }
   }
@@ -2082,7 +2248,7 @@ const scrollVirtuosoRowIntoView = async (page: Page, target: Locator) => {
     if (!(await scroll(false))) break;
     await page.waitForTimeout(120);
   }
-  await target.scrollIntoViewIfNeeded().catch(() => {});
+  await target.scrollIntoViewIfNeeded().catch(() => { });
 };
 
 export {
@@ -2099,12 +2265,16 @@ export {
   deleteRequest,
   deleteCollectionFromOverview,
   importCollection,
+  openBulkImportModal,
   removeCollection,
   createFolder,
   openEnvironmentSelector,
+  openEnvironmentConfigTab,
   createEnvironment,
   addEnvironmentVariable,
   addEnvironmentVariables,
+  addRowToActiveTab,
+  deleteAllGlobalEnvironments,
   saveEnvironment,
   closeEnvironmentPanel,
   selectEnvironment,
@@ -2168,6 +2338,8 @@ export {
   exitApp,
   selectViewMode,
   getAppWebviewHtml,
+  createApp,
+  selectAppView,
   renameWsMessage
 };
 

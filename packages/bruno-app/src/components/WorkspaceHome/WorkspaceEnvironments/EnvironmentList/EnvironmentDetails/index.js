@@ -1,14 +1,22 @@
-import { IconCopy, IconEdit, IconTrash, IconCheck, IconX, IconSearch } from '@tabler/icons';
-import { useState, useRef } from 'react';
+import { IconCopy, IconEdit, IconTrash, IconCheck, IconX, IconSearch, IconDeviceFloppy } from '@tabler/icons';
+import { useState, useRef, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { renameGlobalEnvironment, updateGlobalEnvironmentColor } from 'providers/ReduxStore/slices/global-environments';
+import { updateTabState } from 'providers/ReduxStore/slices/tabs';
 import { validateName, validateNameError } from 'utils/common/regex';
 import toast from 'react-hot-toast';
 import CopyEnvironment from '../../CopyEnvironment';
 import DeleteEnvironment from '../../DeleteEnvironment';
 import EnvironmentVariables from './EnvironmentVariables';
 import ColorPicker from 'components/ColorPicker';
+import ActionIcon from 'ui/ActionIcon';
+import ResponsiveTabs from 'ui/ResponsiveTabs';
 import StyledWrapper from './StyledWrapper';
+
+const TABS = [
+  { key: 'variables', label: 'Variables' },
+  { key: 'secrets', label: 'Secrets' }
+];
 
 const EnvironmentDetails = ({ environment, setIsModified, collection, searchQuery, setSearchQuery, isSearchExpanded, setIsSearchExpanded, debouncedSearchQuery, searchInputRef }) => {
   const dispatch = useDispatch();
@@ -19,7 +27,21 @@ const EnvironmentDetails = ({ environment, setIsModified, collection, searchQuer
   const [isRenaming, setIsRenaming] = useState(false);
   const [newName, setNewName] = useState('');
   const [nameError, setNameError] = useState('');
+  const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
+  const activeTab = useSelector((state) => state.tabs.tabs.find((t) => t.uid === activeTabUid)?.tabState?.envTab) || 'variables';
+  const setActiveTab = (tab) => dispatch(updateTabState({ uid: activeTabUid, tabState: { envTab: tab } }));
+
+  // Use the immediate query on a tab switch (debounced value lags and briefly
+  // flashes the unfiltered table).
+  const prevTabRef = useRef(activeTab);
+  const tabJustChanged = prevTabRef.current !== activeTab;
+  useEffect(() => {
+    prevTabRef.current = activeTab;
+  }, [activeTab]);
+  const tableSearchQuery = tabJustChanged ? searchQuery : debouncedSearchQuery;
+
   const inputRef = useRef(null);
+  const rightContentRef = useRef(null);
 
   const validateEnvironmentName = (name) => {
     if (!name || name.trim() === '') {
@@ -132,6 +154,10 @@ const EnvironmentDetails = ({ environment, setIsModified, collection, searchQuer
     dispatch(updateGlobalEnvironmentColor(environment.uid, color));
   };
 
+  const handleSaveAll = () => {
+    window.dispatchEvent(new Event('environment-save-all'));
+  };
+
   return (
     <StyledWrapper>
       {openDeleteModal && (
@@ -189,48 +215,66 @@ const EnvironmentDetails = ({ environment, setIsModified, collection, searchQuer
         </div>
         {nameError && isRenaming && <div className="title-error">{nameError}</div>}
         <div className="actions">
-          {isSearchExpanded ? (
-            <div className="search-input-wrapper">
-              <IconSearch size={14} strokeWidth={1.5} className="search-icon" />
-              <input
-                ref={searchInputRef}
-                type="text"
-                placeholder="Search variables..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onBlur={handleSearchBlur}
-                className="search-input"
-                autoComplete="off"
-                autoCorrect="off"
-                autoCapitalize="off"
-                spellCheck="false"
-              />
-              {searchQuery && (
-                <button
-                  className="clear-search"
-                  onClick={handleClearSearch}
-                  onMouseDown={(e) => e.preventDefault()}
-                  title="Clear search"
-                >
-                  <IconX size={14} strokeWidth={1.5} />
-                </button>
+          <ActionIcon label="Save All" onClick={handleSaveAll} data-testid="save-all-env">
+            <IconDeviceFloppy size={15} strokeWidth={1.5} />
+          </ActionIcon>
+          <ActionIcon label="Rename" onClick={handleRenameClick} data-testid="env-rename-action">
+            <IconEdit size={15} strokeWidth={1.5} />
+          </ActionIcon>
+          <ActionIcon label="Copy" onClick={() => setOpenCopyModal(true)} data-testid="env-copy-action">
+            <IconCopy size={15} strokeWidth={1.5} />
+          </ActionIcon>
+          <ActionIcon label="Delete" onClick={() => setOpenDeleteModal(true)} colorOnHover="danger" data-testid="env-delete-action">
+            <IconTrash size={15} strokeWidth={1.5} />
+          </ActionIcon>
+        </div>
+      </div>
+
+      <div className="tabs-container">
+        <ResponsiveTabs
+          tabs={TABS}
+          activeTab={activeTab}
+          onTabSelect={setActiveTab}
+          rightContent={(
+            <div ref={rightContentRef} className="env-search-container">
+              {isSearchExpanded ? (
+                <div className="search-input-wrapper">
+                  <IconSearch size={14} strokeWidth={1.5} className="search-icon" />
+                  <input
+                    ref={searchInputRef}
+                    type="text"
+                    placeholder={activeTab === 'secrets' ? 'Search secrets...' : 'Search variables...'}
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onBlur={handleSearchBlur}
+                    className="search-input"
+                    data-testid="env-search-input"
+                    autoComplete="off"
+                    autoCorrect="off"
+                    autoCapitalize="off"
+                    spellCheck="false"
+                  />
+                  {searchQuery && (
+                    <button
+                      className="clear-search"
+                      onClick={handleClearSearch}
+                      onMouseDown={(e) => e.preventDefault()}
+                      title="Clear search"
+                      data-testid="env-clear-search"
+                    >
+                      <IconX size={14} strokeWidth={1.5} />
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <ActionIcon label="Search" onClick={handleSearchIconClick} data-testid="env-search-action">
+                  <IconSearch size={15} strokeWidth={1.5} />
+                </ActionIcon>
               )}
             </div>
-          ) : (
-            <button onClick={handleSearchIconClick} title="Search variables">
-              <IconSearch size={15} strokeWidth={1.5} />
-            </button>
           )}
-          <button onClick={handleRenameClick} title="Rename">
-            <IconEdit size={15} strokeWidth={1.5} />
-          </button>
-          <button onClick={() => setOpenCopyModal(true)} title="Copy">
-            <IconCopy size={15} strokeWidth={1.5} />
-          </button>
-          <button onClick={() => setOpenDeleteModal(true)} title="Delete">
-            <IconTrash size={15} strokeWidth={1.5} />
-          </button>
-        </div>
+          rightContentRef={rightContentRef}
+        />
       </div>
 
       <div className="content">
@@ -238,7 +282,8 @@ const EnvironmentDetails = ({ environment, setIsModified, collection, searchQuer
           environment={environment}
           setIsModified={setIsModified}
           collection={collection}
-          searchQuery={debouncedSearchQuery}
+          searchQuery={tableSearchQuery}
+          variableType={activeTab}
         />
       </div>
     </StyledWrapper>

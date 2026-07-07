@@ -335,6 +335,22 @@ export const ossSchema = {
       additionalProperties: false
     },
 
+    ws: {
+      type: 'object',
+      properties: {
+        activeMessage: {
+          type: 'object',
+          properties: {
+            label: { type: 'string' }
+          },
+          required: ['label'],
+          additionalProperties: false
+        }
+      },
+      required: ['activeMessage'],
+      additionalProperties: false
+    },
+
     requestTabPanel: {
       type: 'object',
       properties: {

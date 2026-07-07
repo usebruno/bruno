@@ -46,6 +46,7 @@ const registerApiSpecIpc = require('./ipc/apiSpec');
 const registerGitIpc = require('./ipc/git');
 const registerOpenAPISyncIpc = require('./ipc/openapi-sync');
 const registerAiIpc = require('./ipc/ai');
+const registerAiAutocompleteIpc = require('./ipc/ai/autocomplete');
 const { registerMountIpc } = require('./ipc/mount');
 const collectionWatcher = require('./app/collection-watcher');
 const WorkspaceWatcher = require('./app/workspace-watcher');
@@ -478,6 +479,7 @@ app.on('ready', async () => {
   registerGitIpc(mainWindow);
   registerOpenAPISyncIpc(mainWindow);
   registerAiIpc(mainWindow);
+  registerAiAutocompleteIpc(mainWindow);
   registerMountIpc();
 
   // Internal delegator

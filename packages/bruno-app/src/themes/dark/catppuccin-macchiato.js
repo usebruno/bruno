@@ -75,6 +75,12 @@ const catppuccinMacchiatoTheme = {
     subtle: colors.MAUVE
   },
 
+  ws: {
+    activeMessage: {
+      label: colors.MAUVE
+    }
+  },
+
   accents: {
     primary: colors.MAUVE
   },

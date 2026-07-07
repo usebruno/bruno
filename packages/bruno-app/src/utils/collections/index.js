@@ -1,6 +1,5 @@
 import { cloneDeep, isEqual, sortBy, filter, map, isString, findIndex, find, each, get } from 'lodash';
 import { uuid } from 'utils/common';
-import { buildPersistedEnvVariables } from 'utils/environments';
 import { sortByNameThenSequence } from 'utils/common/index';
 import path from 'utils/common/path';
 import { isRequestTagsIncluded } from '@usebruno/common';
@@ -498,6 +497,18 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
               password: get(si.request, 'auth.wsse.password', '')
             };
             break;
+          case 'akamai-edgegrid':
+            di.request.auth.akamaiEdgegrid = {
+              accessToken: get(si.request, 'auth.akamaiEdgegrid.accessToken', ''),
+              clientToken: get(si.request, 'auth.akamaiEdgegrid.clientToken', ''),
+              clientSecret: get(si.request, 'auth.akamaiEdgegrid.clientSecret', ''),
+              nonce: get(si.request, 'auth.akamaiEdgegrid.nonce', ''),
+              timestamp: get(si.request, 'auth.akamaiEdgegrid.timestamp', ''),
+              baseURL: get(si.request, 'auth.akamaiEdgegrid.baseURL', ''),
+              headersToSign: get(si.request, 'auth.akamaiEdgegrid.headersToSign', ''),
+              maxBodySize: get(si.request, 'auth.akamaiEdgegrid.maxBodySize', null)
+            };
+            break;
           default:
             break;
         }
@@ -611,11 +622,7 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
   collectionToSave.version = '1';
   collectionToSave.items = [];
   collectionToSave.activeEnvironmentUid = collection.activeEnvironmentUid;
-  // Save environments without runtime metadata (ephemeral/persistedValue)
-  collectionToSave.environments = (collection.environments || []).map((env) => ({
-    ...env,
-    variables: buildPersistedEnvVariables(env?.variables, { mode: 'save' })
-  }));
+  collectionToSave.environments = collection.environments || [];
 
   collectionToSave.root = {
     request: {}
@@ -698,6 +705,19 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
 
 export const transformRequestToSaveToFilesystem = (item) => {
   const _item = item.draft ? item.draft : item;
+
+  // Standalone app items have no request, emit only what the filestore needs.
+  if (_item.type === 'app') {
+    return {
+      uid: _item.uid,
+      type: 'app',
+      name: _item.name,
+      seq: _item.seq,
+      tags: _item.tags,
+      settings: _item.settings,
+      app: { code: _item.app?.code || '' }
+    };
+  }
 
   // Transform examples to ensure status is a number
   const transformExamples = (examples = []) => {
@@ -1026,6 +1046,10 @@ export const humanizeRequestAuthMode = (mode) => {
       label = 'API Key';
       break;
     }
+    case 'akamai-edgegrid': {
+      label = 'Akamai EdgeGrid';
+      break;
+    }
   }
 
   return label;
@@ -1267,6 +1291,10 @@ const getPathParams = (item) => {
   }
   return pathParams;
 };
+
+export const isOpenCollectionFormat = (collection) => Boolean(collection?.brunoConfig?.opencollection);
+
+export const getCollectionVersion = (collection) => collection?.brunoConfig?.version || '';
 
 export const getTotalRequestCountInCollection = (collection) => {
   let count = 0;
