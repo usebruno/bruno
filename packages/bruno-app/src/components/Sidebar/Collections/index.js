@@ -8,6 +8,8 @@ import CollectionSearch from './CollectionSearch/index';
 import InlineCollectionCreator from './InlineCollectionCreator';
 import path, { normalizePath } from 'utils/common/path';
 import { isScratchCollection } from 'utils/collections';
+import { selectCollections } from '../../../selectors/collections';
+import { selectWorkspaces, selectActiveOrDefaultWorkspace } from '../../../selectors/workspaces';
 
 const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' });
 
@@ -21,10 +23,11 @@ const getSidebarEntryName = (entry) => {
 
 const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismissCreate, onOpenAdvancedCreate }) => {
   const [searchText, setSearchText] = useState('');
-  const { collections, collectionSortOrder } = useSelector((state) => state.collections);
-  const { workspaces, activeWorkspaceUid } = useSelector((state) => state.workspaces);
 
-  const activeWorkspace = workspaces.find((w) => w.uid === activeWorkspaceUid) || workspaces.find((w) => w.type === 'default');
+  const collections = useSelector(selectCollections);
+  const workspaces = useSelector(selectWorkspaces);
+  const activeWorkspace = useSelector(selectActiveOrDefaultWorkspace);
+  const collectionSortOrder = useSelector((state) => state.collections.collectionSortOrder);
   const isDefaultWorkspace = activeWorkspace?.type === 'default';
 
   // Build the sidebar list in workspace.yml order. Each entry is either a fully

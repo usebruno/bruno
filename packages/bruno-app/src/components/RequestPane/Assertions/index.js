@@ -11,6 +11,7 @@ import EditableTable from 'components/EditableTable';
 import StyledWrapper from './StyledWrapper';
 import { usePersistedState } from 'hooks/usePersistedState';
 import { useTrackScroll } from 'hooks/useTrackScroll';
+import { selectActiveTabUid, selectActiveTabTableColumnWidths } from '../../../selectors/tabs';
 
 const unaryOperators = [
   'isEmpty',
@@ -60,13 +61,12 @@ const Assertions = ({ item, collection }) => {
   const wrapperRef = useRef(null);
   const [scroll, setScroll] = usePersistedState({ key: `request-assert-scroll-${item.uid}`, default: 0 });
   useTrackScroll({ ref: wrapperRef, selector: '.flex-boundary', onChange: setScroll, initialValue: scroll });
-  const tabs = useSelector((state) => state.tabs.tabs);
-  const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
+  const activeTabUid = useSelector(selectActiveTabUid);
+  const tableColumnWidths = useSelector(selectActiveTabTableColumnWidths);
   const assertions = item.draft ? get(item, 'draft.request.assertions') : get(item, 'request.assertions');
 
   // Get column widths from Redux
-  const focusedTab = tabs?.find((t) => t.uid === activeTabUid);
-  const assertionsWidths = focusedTab?.tableColumnWidths?.['assertions'] || {};
+  const assertionsWidths = tableColumnWidths['assertions'] || {};
 
   const handleColumnWidthsChange = (tableId, widths) => {
     dispatch(updateTableColumnWidths({ uid: activeTabUid, tableId, widths }));

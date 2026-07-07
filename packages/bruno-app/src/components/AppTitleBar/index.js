@@ -24,6 +24,7 @@ import StyledWrapper from './StyledWrapper';
 import ResponseLayoutToggle from 'components/ResponsePane/ResponseLayoutToggle';
 import { isMacOS, isWindowsOS, isLinuxOS } from 'utils/common/platform';
 import classNames from 'classnames';
+import { selectWorkspaces, selectActiveWorkspaceUid, selectActiveWorkspace } from '../../selectors/workspaces';
 
 const getOsClass = () => {
   if (isMacOS()) return 'os-mac';
@@ -115,11 +116,18 @@ const AppTitleBar = () => {
   }, []);
 
   // Get workspace info
-  const { workspaces, activeWorkspaceUid } = useSelector((state) => state.workspaces);
+  const workspaces = useSelector(selectWorkspaces);
+  const activeWorkspaceUid = useSelector(selectActiveWorkspaceUid);
   const preferences = useSelector((state) => state.app.preferences);
   const sidebarCollapsed = useSelector((state) => state.app.sidebarCollapsed);
   const isConsoleOpen = useSelector((state) => state.logs.isConsoleOpen);
-  const activeWorkspace = workspaces.find((w) => w.uid === activeWorkspaceUid);
+  const activeWorkspace = useSelector(selectActiveWorkspace);
+  const workspaceNameByUid = useMemo(() => {
+    return workspaces.reduce((acc, workspace) => {
+      acc[workspace.uid] = workspace.name;
+      return acc;
+    }, {});
+  }, [workspaces]);
 
   // Sort workspaces according to preferences
   const sortedWorkspaces = useMemo(() => {
@@ -149,7 +157,7 @@ const AppTitleBar = () => {
     if (workspaceUid === activeWorkspaceUid) return;
 
     dispatch(switchWorkspace(workspaceUid));
-    toast.success(`Switched to ${getWorkspaceDisplayName(workspaces.find((w) => w.uid === workspaceUid)?.name)}`);
+    toast.success(`Switched to ${getWorkspaceDisplayName(workspaceNameByUid[workspaceUid])}`);
   };
 
   const handleOpenWorkspace = async () => {

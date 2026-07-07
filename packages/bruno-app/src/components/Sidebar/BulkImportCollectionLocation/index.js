@@ -23,6 +23,7 @@ import toast from 'react-hot-toast';
 import { showImportIssuesToast } from 'components/Toast/ImportIssuesToast';
 import get from 'lodash/get';
 import { DEFAULT_COLLECTION_FORMAT } from 'utils/common/constants';
+import { selectActiveWorkspace } from '../../../selectors/workspaces';
 
 const STATUS = {
   LOADING: 'loading',
@@ -138,9 +139,8 @@ export const BulkImportCollectionLocation = ({
   const dispatch = useDispatch();
   const dropdownTippyRef = useRef();
 
-  const { workspaces, activeWorkspaceUid } = useSelector((state) => state.workspaces);
+  const activeWorkspace = useSelector(selectActiveWorkspace);
   const preferences = useSelector((state) => state.app.preferences);
-  const activeWorkspace = workspaces.find((w) => w.uid === activeWorkspaceUid);
   const isDefaultWorkspace = !activeWorkspace || activeWorkspace.type === 'default';
   const defaultLocation = isDefaultWorkspace
     ? get(preferences, 'general.defaultLocation', '')

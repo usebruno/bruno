@@ -13,6 +13,7 @@ import EditableTable from 'components/EditableTable';
 import StyledWrapper from './StyledWrapper';
 import { usePersistedState } from 'hooks/usePersistedState';
 import { useTrackScroll } from 'hooks/useTrackScroll';
+import { selectActiveTabUid, selectActiveTabTableColumnWidths } from '../../../selectors/tabs';
 
 const FormUrlEncodedParams = ({ item, collection }) => {
   const dispatch = useDispatch();
@@ -20,13 +21,12 @@ const FormUrlEncodedParams = ({ item, collection }) => {
   const wrapperRef = useRef(null);
   const [scroll, setScroll] = usePersistedState({ key: `request-body-formUrlEncoded-scroll-${item.uid}`, default: 0 });
   useTrackScroll({ ref: wrapperRef, selector: '.flex-boundary', onChange: setScroll, initialValue: scroll });
-  const tabs = useSelector((state) => state.tabs.tabs);
-  const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
+  const activeTabUid = useSelector(selectActiveTabUid);
+  const tableColumnWidths = useSelector(selectActiveTabTableColumnWidths);
   const params = item.draft ? get(item, 'draft.request.body.formUrlEncoded') : get(item, 'request.body.formUrlEncoded');
 
   // Get column widths from Redux
-  const focusedTab = tabs?.find((t) => t.uid === activeTabUid);
-  const formUrlEncodedWidths = focusedTab?.tableColumnWidths?.['form-url-encoded'] || {};
+  const formUrlEncodedWidths = tableColumnWidths['form-url-encoded'] || {};
 
   const handleColumnWidthsChange = (tableId, widths) => {
     dispatch(updateTableColumnWidths({ uid: activeTabUid, tableId, widths }));
