@@ -19,13 +19,16 @@ import { useTheme } from 'providers/Theme';
 import { IconDeviceFloppy, IconCode } from '@tabler/icons';
 import SingleLineEditor from 'components/SingleLineEditor';
 import SendButton from 'components/RequestPane/SendButton';
+import { getEnvColorForUrlBar } from 'utils/environments';
+import { hexToRgba } from 'utils/color';
+import { IconDatabase, IconWorld } from '@tabler/icons';
 import { isMacOS } from 'utils/common/platform';
 import { hasRequestChanges } from 'utils/collections';
 import StyledWrapper from './StyledWrapper';
 import GenerateCodeItem from 'components/Sidebar/Collections/Collection/CollectionItem/GenerateCodeItem/index';
 import toast from 'react-hot-toast';
 
-const QueryUrl = ({ item, collection, handleRun }) => {
+const QueryUrl = ({ item, collection, handleRun, activeCollectionEnvironment, activeGlobalEnvironment }) => {
   const { theme, storedTheme } = useTheme();
   const dispatch = useDispatch();
   const method = item.draft ? get(item, 'draft.request.method') : get(item, 'request.method');
@@ -34,6 +37,8 @@ const QueryUrl = ({ item, collection, handleRun }) => {
   const saveShortcut = isMac ? 'Cmd + S' : 'Ctrl + S';
   const editorRef = useRef(null);
   const isLoading = ['queued', 'sending'].includes(item.requestState);
+
+  const envColor = getEnvColorForUrlBar(activeCollectionEnvironment, activeGlobalEnvironment);
 
   const [generateCodeItemModalOpen, setGenerateCodeItemModalOpen] = useState(false);
   const hasChanges = useMemo(() => hasRequestChanges(item), [item]);
@@ -390,7 +395,7 @@ const QueryUrl = ({ item, collection, handleRun }) => {
     dispatch(cancelRequest(item.cancelTokenUid, item, collection));
   };
   return (
-    <StyledWrapper className="flex items-center w-full">
+    <StyledWrapper className="flex items-center w-full" $envColor={envColor}>
       <div className="flex items-center h-full url-input-group">
         <div className="flex items-center h-full min-w-fit">
           <HttpMethodSelector method={method} onMethodSelect={onMethodSelect} />
@@ -444,6 +449,43 @@ const QueryUrl = ({ item, collection, handleRun }) => {
               </span>
             </div>
           </div>
+          {/* Environment name tags */}
+          <div className="env-tags">
+            {activeCollectionEnvironment && (
+              <span
+                className="env-tag"
+                style={{
+                  color: activeCollectionEnvironment.color,
+                  background: activeCollectionEnvironment.color
+                    ? hexToRgba(activeCollectionEnvironment.color, 0.14)
+                    : undefined
+                }}
+              >
+                <IconDatabase size={11} strokeWidth={1.5} />
+                {activeCollectionEnvironment.name}
+              </span>
+            )}
+            {activeCollectionEnvironment && activeGlobalEnvironment && (
+              <span style={{ color: 'rgba(255,255,255,0.25)', fontSize: '10px', flexShrink: 0 }}>·</span>
+            )}
+            {activeGlobalEnvironment && (
+              <span
+                className="env-tag"
+                style={{
+                  color: activeGlobalEnvironment.color,
+                  background: activeGlobalEnvironment.color
+                    ? hexToRgba(activeGlobalEnvironment.color, 0.14)
+                    : undefined
+                }}
+              >
+                <IconWorld size={11} strokeWidth={1.5} />
+                {activeGlobalEnvironment.name}
+              </span>
+            )}
+            {!activeCollectionEnvironment && !activeGlobalEnvironment && (
+              <span className="env-tag--no-env">No Env</span>
+            )}
+          </div>
         </div>
       </div>
       <SendButton
@@ -451,6 +493,7 @@ const QueryUrl = ({ item, collection, handleRun }) => {
         onSend={handleRun}
         onCancel={handleCancelRequest}
         testId="send-arrow-icon"
+        envColor={envColor}
       />
       {generateCodeItemModalOpen && (
         <GenerateCodeItem
