@@ -1174,7 +1174,7 @@ const setResponsePreviewMode = async (page: Page, mode: 'editor' | 'preview') =>
   await responseFormatTab.click();
   const dropdown = page.getByTestId('format-response-tab-dropdown');
   await dropdown.waitFor({ state: 'visible', timeout: 5000 });
-  const toggle = page.getByTestId('preview-response-tab');
+  const toggle = dropdown.getByTestId('preview-response-tab');
   // The toggle's `title` reflects current state (`Turn off|on Preview Mode`).
   // Wait until it's actually one of those values — `getAttribute` returns
   // `null` if read before React flushes props to DOM, which would mislead
@@ -1190,6 +1190,14 @@ const setResponsePreviewMode = async (page: Page, mode: 'editor' | 'preview') =>
     // interactions (format selection, asserts) aren't shadowed by it.
     await responseFormatTab.click();
   }
+
+  const responsePane = page.getByTestId('response-pane');
+  await responsePane.click({
+    position: {
+      x: 0,
+      y: 0
+    }
+  });
   // Confirm the dropdown actually closed before returning. Otherwise a
   // subsequent format-selector click can land in a half-open state and
   // miss the next interaction.
