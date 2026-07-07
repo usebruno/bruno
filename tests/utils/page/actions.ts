@@ -1179,6 +1179,10 @@ const setResponsePreviewMode = async (page: Page, mode: 'editor' | 'preview') =>
     // interactions (format selection, asserts) aren't shadowed by it.
     await responseFormatTab.click();
   }
+
+  const responsePane = page.getByTestId('response-pane');
+  await responsePane.hover();
+  await responsePane.click();
   // Confirm the dropdown actually closed before returning. Otherwise a
   // subsequent format-selector click can land in a half-open state and
   // miss the next interaction.
