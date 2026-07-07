@@ -8,20 +8,6 @@ const StyledWrapper = styled.div`
     border-bottom: none;
   }
 
-  /* When this is the only message, let the expanded editor fill the available
-     height instead of leaving empty space below a fixed-height editor. */
-  &.fill-height {
-    flex: 1;
-    min-height: 0;
-    display: flex;
-    flex-direction: column;
-
-    .accordion-body {
-      flex: 1;
-      min-height: 0;
-    }
-  }
-
   /* Dim the row content when disabled, but not the tooltip */
   .accordion-left > :not(.toolhint),
   .accordion-actions,

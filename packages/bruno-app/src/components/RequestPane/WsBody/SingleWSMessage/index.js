@@ -1,5 +1,4 @@
 import { IconTrash, IconSend, IconChevronRight, IconChevronDown } from '@tabler/icons';
-import classnames from 'classnames';
 import CodeEditor from 'components/CodeEditor/index';
 import ToolHint from 'components/ToolHint/index';
 import { get } from 'lodash';
@@ -42,7 +41,7 @@ export const SingleWSMessage = ({
   onNewRendered,
   isSelected,
   onSelect,
-  fillHeight
+  paneHeight
 }) => {
   const dispatch = useDispatch();
   const { displayedTheme } = useTheme();
@@ -112,18 +111,16 @@ export const SingleWSMessage = ({
   const fontSize = get(preferences, 'font.codeFontSize', 14);
   const lineHeight = fontSize * 1.5;
 
-  const MAX_EDITOR_HEIGHT = 400;
-  const { editorHeight, isCapped } = useMemo(() => {
+  const HEADER_ALLOWANCE = 44;
+  const maxEditorHeight = paneHeight
+    ? Math.max(160, paneHeight - HEADER_ALLOWANCE)
+    : Math.round((typeof window !== 'undefined' ? window.innerHeight : 900) * 0.6);
+  const editorHeight = useMemo(() => {
     const lineCount = (content || '').split('\n').length;
     const lines = lineCount + 1;
     const contentHeight = lines * lineHeight + 10;
-    return {
-      editorHeight: `${Math.min(contentHeight, MAX_EDITOR_HEIGHT)}px`,
-      isCapped: contentHeight > MAX_EDITOR_HEIGHT
-    };
-  }, [content, lineHeight]);
-
-  const shouldFill = fillHeight && isExpanded && isCapped;
+    return `${Math.min(contentHeight, maxEditorHeight)}px`;
+  }, [content, lineHeight, maxEditorHeight]);
 
   const onUpdateMessageType = (newMode) => {
     const currentMessages = [...(body.ws || [])];
@@ -186,7 +183,7 @@ export const SingleWSMessage = ({
 
   return (
     <StyledWrapper
-      className={classnames({ 'disabled': !isSelected, 'fill-height': shouldFill })}
+      className={!isSelected ? 'disabled' : ''}
       onMouseUpCapture={() => {
         if (!isSelected) onSelect();
       }}
@@ -265,7 +262,7 @@ export const SingleWSMessage = ({
         <div
           className="accordion-body"
           data-testid={`ws-message-body-${index}`}
-          style={shouldFill ? undefined : { height: editorHeight }}
+          style={{ height: editorHeight }}
         >
           <CodeEditor
             collection={collection}
@@ -280,6 +277,8 @@ export const SingleWSMessage = ({
             enableVariableHighlighting={true}
             initialScroll={scroll}
             onScroll={setScroll}
+            docKey={`ws-msg-${item.uid}-${message.uid}`}
+            readOnly={isSelected ? false : 'nocursor'}
           />
         </div>
       )}
