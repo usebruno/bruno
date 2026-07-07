@@ -1,10 +1,18 @@
 import styled from 'styled-components';
+import { hexToRgba } from 'utils/color';
 
 const Wrapper = styled.div`
   height: 2.1rem;
 
   .url-input-group {
-    border: ${(props) => props.theme.requestTabPanel.url.border};
+    border: ${(props) =>
+      props.$envColor
+        ? `1px solid ${hexToRgba(props.$envColor, 0.28)}`
+        : props.theme.requestTabPanel.url.border};
+    background: ${(props) =>
+      props.$envColor
+        ? hexToRgba(props.$envColor, 0.20)
+        : 'transparent'};
     border-radius: ${(props) => props.theme.border.radius.base};
     flex: 1;
     min-width: 0;
@@ -54,6 +62,38 @@ const Wrapper = styled.div`
     font-size: 0.625rem;
   }
 
+  /* 环境名 Tag 样式 */
+  .env-tags {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 0 8px;
+    flex-shrink: 0;
+    border-left: 1px solid ${(props) => props.theme.app.collection.toolbar.environmentSelector.separator || 'rgba(255,255,255,0.10)'};
+    margin-left: 4px;
+  }
+
+  .env-tag {
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 6px;
+    border-radius: 3px;
+    white-space: nowrap;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: 2px;
+  }
+
+  .env-tag--no-env {
+    color: ${(props) => props.theme.colors.text.muted};
+    font-size: 10px;
+    background: rgba(166, 173, 200, 0.10);
+    padding: 2px 6px;
+    border-radius: 3px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
 `;
 
 export default Wrapper;
