@@ -5,15 +5,13 @@ import { getSendButtonTextColor } from 'utils/color';
 
 const SendButton = ({ isLoading = false, onSend, onCancel, testId = 'send-request-btn', envColor = null }) => {
   const customStyle = envColor
-    ? {
-        background: envColor,
-        color: getSendButtonTextColor(envColor),
-        borderColor: envColor
-      }
+    ? isLoading
+      ? { color: envColor, borderColor: envColor }
+      : { backgroundColor: envColor, color: getSendButtonTextColor(envColor), borderColor: envColor }
     : {};
 
   return (
-    <StyledWrapper className="ml-2">
+    <StyledWrapper className="ml-2" $envColor={envColor} $isLoading={isLoading}>
       <Button
         size="sm"
         variant={isLoading ? 'outline' : 'filled'}
