@@ -1,6 +1,7 @@
 const Yup = require('yup');
-const { BRUNO_VARIABLE_DATATYPES } = require('@usebruno/common/utils');
 const { uidSchema } = require('../common');
+
+const BRUNO_VARIABLE_DATATYPES = ['string', 'number', 'boolean', 'object'];
 
 const annotationSchema = Yup.object({
   name: Yup.string().min(1).required('annotation name is required'),
@@ -21,6 +22,7 @@ const environmentVariablesSchema = Yup.object({
   type: Yup.string().oneOf(['text']).required('type is required'),
   enabled: Yup.boolean().defined(),
   secret: Yup.boolean(),
+  description: Yup.string().nullable(),
   dataType: Yup.string().oneOf(BRUNO_VARIABLE_DATATYPES).nullable()
 })
   .noUnknown(true)
@@ -654,6 +656,7 @@ const itemSchema = Yup.object({
   seq: Yup.number().min(1),
   name: Yup.string().min(1, 'name must be at least 1 character').required('name is required'),
   tags: Yup.array().of(Yup.string().min(1, 'tag must not be empty')),
+  description: Yup.string().nullable(),
   request: Yup.mixed().when('type', {
     is: (type) => type === 'grpc-request',
     then: grpcRequestSchema.required('request is required when item-type is grpc-request'),

@@ -29,6 +29,10 @@ export const toBrunoEnvironmentVariables = (variables: (Variable | SecretVariabl
         variable.dataType = v.type;
       }
 
+      if (v.description) {
+        variable.description = typeof v.description === 'string' ? v.description : (v.description as any)?.content || '';
+      }
+
       return variable;
     }
 
@@ -45,6 +49,10 @@ export const toBrunoEnvironmentVariables = (variables: (Variable | SecretVariabl
       Object.assign(variable, fromOpenCollectionTypedValue(v.value));
     } else {
       variable.value = ensureString(v.value);
+    }
+
+    if (v.description) {
+      variable.description = typeof v.description === 'string' ? v.description : (v.description as any)?.content || '';
     }
 
     return variable;
