@@ -14,7 +14,7 @@ const stripLastLine = (text) => {
 };
 
 const jsonToBru = (json) => {
-  const { meta, http, grpc, ws, params, headers, metadata, auth, body, script, tests, vars, assertions, settings, app, docs, examples } = json;
+  const { meta, http, grpc, ws, signalr, params, headers, metadata, auth, body, script, tests, vars, assertions, settings, app, docs, examples } = json;
 
   let bru = '';
 
@@ -111,6 +111,26 @@ const jsonToBru = (json) => {
     if (ws.methodType && ws.methodType.length) {
       bru += `
   methodType: ${ws.methodType}`;
+    }
+
+    bru += `
+}
+
+`;
+  }
+
+  if (signalr && signalr.url) {
+    bru += `signalr {
+  url: ${signalr.url}`;
+
+    if (signalr.body && signalr.body.length) {
+      bru += `
+  body: ${signalr.body}`;
+    }
+
+    if (signalr.auth && signalr.auth.length) {
+      bru += `
+  auth: ${signalr.auth}`;
     }
 
     bru += `
@@ -648,6 +668,32 @@ ${indentString(body.sparql)}
 
         // Convert content to JSON string if it's an object
         let contentValue = typeof content === 'object' ? JSON.stringify(content, null, 2) : content || '{}';
+
+        // Wrap content with triple quotes for multiline support, without extra indentation
+        bru += `${indentString(`content: '''\n${indentString(contentValue)}\n'''`)}\n`;
+        bru += '}\n\n';
+      });
+    }
+  }
+
+  if (body && body.signalr) {
+    // Convert each signalr message to a separate body:signalr block
+    if (Array.isArray(body.signalr)) {
+      body.signalr.forEach((message) => {
+        const { name, content, type = '', selected } = message;
+
+        bru += `body:signalr {\n`;
+
+        bru += `${indentString(`name: ${getValueString(name)}`)}\n`;
+        if (type.length) {
+          bru += `${indentString(`type: ${getValueString(type)}`)}\n`;
+        }
+        if (selected) {
+          bru += `${indentString(`selected: true`)}\n`;
+        }
+
+        // Convert content to JSON string if it's an object
+        let contentValue = typeof content === 'object' ? JSON.stringify(content, null, 2) : content || '[]';
 
         // Wrap content with triple quotes for multiline support, without extra indentation
         bru += `${indentString(`content: '''\n${indentString(contentValue)}\n'''`)}\n`;

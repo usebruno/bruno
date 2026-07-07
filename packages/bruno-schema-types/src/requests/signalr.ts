@@ -1,9 +1,11 @@
 import type { KeyValue, Script, Variable, Auth, Variables } from '../common';
 
 export interface SignalRInvocation {
+  uid?: string | null;
   name?: string | null;
-  method: string;
-  arguments?: unknown[] | null;
+  type?: string | null;
+  content?: string | null;
+  selected?: boolean | null;
 }
 
 export interface SignalRRequestBody {

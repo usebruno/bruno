@@ -31,6 +31,31 @@ const parseSignalRRequest = (ocRequest: any): BrunoItem => {
     tests: null,
     docs: null
   };
+  // messages
+  if (signalr?.message) {
+    if (Array.isArray(signalr.message)) {
+      brunoRequest.body.signalr = (signalr.message as any[]).map((variant: any, index: number) => ({
+        uid: uuid(),
+        name: variant.title || variant.name || `message ${index + 1}`,
+        type: variant.message?.type || variant.type || 'json',
+        content: ensureString(variant.message?.data || variant.content || '[]'),
+        selected: variant.selected || false
+      }));
+    } else {
+      const msg = signalr.message;
+      const messageData = ensureString(msg.data || msg.content || '');
+      if (messageData.trim().length) {
+        brunoRequest.body.signalr = [{
+          uid: uuid(),
+          name: msg.title || msg.name || 'message 1',
+          type: msg.type || 'json',
+          content: messageData,
+          selected: true
+        }];
+      }
+    }
+  }
+
   // scripts
   const scripts = toBrunoScripts(runtime?.scripts);
   if (scripts?.script && brunoRequest.script) {

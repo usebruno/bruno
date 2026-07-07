@@ -167,6 +167,10 @@ export type {
   WebSocketRequestBody as BrunoWebSocketRequestBody,
   WebSocketMessage as BrunoWsMessage
 } from '@usebruno/schema-types/requests/websocket';
+export type {
+  SignalRRequest as BrunoSignalRRequest,
+  SignalRInvocation as BrunoSignalRInvocation
+} from '@usebruno/schema-types/requests/signalr';
 
 export interface BrunoPresets {
   requestType?: string;

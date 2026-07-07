@@ -1163,7 +1163,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
         }
 
         fs.rmSync(pathname, { recursive: true, force: true });
-      } else if (['http-request', 'graphql-request', 'grpc-request', 'ws-request'].includes(type)) {
+      } else if (['http-request', 'graphql-request', 'grpc-request', 'ws-request', 'signalr-request'].includes(type)) {
         if (!fs.existsSync(pathname)) {
           return Promise.reject(new Error('The file does not exist'));
         }
@@ -1172,7 +1172,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
 
         fs.unlinkSync(pathname);
       } else {
-        return Promise.reject();
+        return Promise.reject(new Error('Invalid item type: ' + type));
       }
     } catch (error) {
       return Promise.reject(error);
@@ -1323,7 +1323,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
         // Recursive function to parse the collection items and create files/folders
         const parseCollectionItems = async (items = [], currentPath) => {
           await Promise.all(items.map(async (item) => {
-            if (['http-request', 'graphql-request', 'grpc-request', 'ws-request'].includes(item.type)) {
+            if (['http-request', 'graphql-request', 'grpc-request', 'ws-request', 'signalr-request'].includes(item.type)) {
               let sanitizedFilename = sanitizeName(getFilenameWithFormat(item, format));
               const content = await stringifyRequestViaWorker(item, { format });
               const filePath = path.join(currentPath, sanitizedFilename);
@@ -1485,7 +1485,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
       // Recursive function to parse the folder and create files/folders
       const parseCollectionItems = (items = [], currentPath) => {
         items.forEach(async (item) => {
-          if (['http-request', 'graphql-request', 'grpc-request'].includes(item.type)) {
+          if (['http-request', 'graphql-request', 'grpc-request', 'ws-request', 'signalr-request'].includes(item.type)) {
             const content = await stringifyRequestViaWorker(item, { format });
 
             // Use the correct file extension based on target format

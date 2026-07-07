@@ -73,6 +73,7 @@
     "js-yaml": "^4.1.1",
     "lodash": "^4.17.21",
     "mime-types": "^2.1.35",
+    "@microsoft/signalr": "10.0.0",
     "nanoid": "3.3.8",
     "qs": "^6.14.1",
     "simple-git": "3.32.3",

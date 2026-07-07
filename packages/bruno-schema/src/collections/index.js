@@ -588,6 +588,46 @@ const wsRequestSchema = Yup.object({
   .noUnknown(true)
   .strict();
 
+const signalrRequestSchema = Yup.object({
+  url: requestUrlSchema,
+  headers: Yup.array().of(keyValueSchema).required('headers are required'),
+  auth: authSchema,
+  body: Yup.object({
+    mode: Yup.string().oneOf(['signalr']).required('mode is required'),
+    signalr: Yup.array()
+      .of(
+        Yup.object({
+          uid: Yup.string().nullable(),
+          name: Yup.string().nullable(),
+          type: Yup.string().nullable(),
+          content: Yup.string().nullable(),
+          selected: Yup.boolean().nullable()
+        })
+      )
+      .nullable()
+  })
+    .strict()
+    .required('body is required'),
+  script: Yup.object({
+    req: Yup.string().nullable(),
+    res: Yup.string().nullable()
+  })
+    .noUnknown(true)
+    .strict(),
+  vars: Yup.object({
+    req: Yup.array().of(varsSchema).nullable(),
+    res: Yup.array().of(varsSchema).nullable()
+  })
+    .noUnknown(true)
+    .strict()
+    .nullable(),
+  assertions: Yup.array().of(assertionSchema).nullable(),
+  tests: Yup.string().nullable(),
+  docs: Yup.string().nullable()
+})
+  .noUnknown(true)
+  .strict();
+
 const wsSettingsSchema = Yup.object({
   settings: Yup.object({
     timeout: Yup.number()
@@ -636,7 +676,7 @@ const folderRootSchema = Yup.object({
 
 const itemSchema = Yup.object({
   uid: uidSchema,
-  type: Yup.string().oneOf(['http-request', 'graphql-request', 'folder', 'js', 'grpc-request', 'ws-request']).required('type is required'),
+  type: Yup.string().oneOf(['http-request', 'graphql-request', 'folder', 'js', 'grpc-request', 'ws-request', 'signalr-request']).required('type is required'),
   seq: Yup.number().min(1),
   name: Yup.string().min(1, 'name must be at least 1 character').required('name is required'),
   tags: Yup.array().of(Yup.string().min(1, 'tag must not be empty')),
@@ -644,17 +684,21 @@ const itemSchema = Yup.object({
     is: (type) => type === 'grpc-request',
     then: grpcRequestSchema.required('request is required when item-type is grpc-request'),
     otherwise: Yup.mixed().when('type', {
-      is: (type) => type === 'ws-request',
-      then: wsRequestSchema.required('request is required when item-type is ws-request'),
-      otherwise: requestSchema.when('type', {
-        is: (type) => ['http-request', 'graphql-request'].includes(type),
-        then: (schema) => schema.required('request is required when item-type is request')
+      is: (type) => type === 'signalr-request',
+      then: signalrRequestSchema.required('request is required when item-type is signalr-request'),
+      otherwise: Yup.mixed().when('type', {
+        is: (type) => type === 'ws-request',
+        then: wsRequestSchema.required('request is required when item-type is ws-request'),
+        otherwise: requestSchema.when('type', {
+          is: (type) => ['http-request', 'graphql-request'].includes(type),
+          then: (schema) => schema.required('request is required when item-type is request')
+        })
       })
     })
   }),
     settings: Yup.mixed()
     .when('type', {
-      is: (type) => type === 'ws-request',
+      is: (type) => type === 'ws-request' || type === 'signalr-request',
       then: wsSettingsSchema,
       otherwise: Yup.object({
         encodeUrl: Yup.boolean().nullable(),
