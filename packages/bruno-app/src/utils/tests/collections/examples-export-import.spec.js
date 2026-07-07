@@ -1,6 +1,6 @@
 import { transformCollectionToSaveToExportAsFile, transformRequestToSaveToFilesystem } from '../../collections/index';
 import { transformItemsInCollection } from '../../importers/common';
-import { deleteUidsInItems, transformItem } from '../../collections/export';
+import { deleteUidsInItems, transformItem, prepareCollectionForExport } from '../../collections/export';
 
 describe('Examples Export/Import', () => {
   describe('transformCollectionToSaveToExportAsFile', () => {
@@ -580,5 +580,186 @@ describe('Examples Export/Import', () => {
       expect(importedRequest.examples[0].response.statusText).toBe(originalRequest.examples[0].response.statusText);
       expect(importedRequest.examples[0].response.body).toBe(originalRequest.examples[0].response.body);
     });
+  });
+});
+
+describe('Description export/import preservation', () => {
+  const UID = 'aaaaaaaaaaaaaaaaaaaa1';
+
+  const buildDescriptionCollection = () => ({
+    uid: UID,
+    name: 'Description Collection',
+    version: '1',
+    items: [
+      {
+        uid: UID,
+        type: 'folder',
+        name: 'folder',
+        seq: 1,
+        root: {
+          request: {
+            headers: [
+              {
+                uid: UID,
+                name: 'X-Folder-Header',
+                value: 'folder',
+                enabled: true,
+                description: 'Folder header desc'
+              }
+            ],
+            script: { req: null, res: null },
+            vars: {
+              req: [
+                {
+                  uid: UID,
+                  name: 'folderVar',
+                  value: 'folder-value',
+                  enabled: true,
+                  description: 'Folder var desc'
+                }
+              ],
+              res: []
+            },
+            tests: null
+          }
+        },
+        items: [
+          {
+            uid: UID,
+            type: 'http-request',
+            name: 'request',
+            seq: 1,
+            request: {
+              url: 'https://example.com/api',
+              method: 'POST',
+              headers: [
+                {
+                  uid: UID,
+                  name: 'X-Version',
+                  value: '2.0',
+                  enabled: true,
+                  description: 'Single-line header desc'
+                }
+              ],
+              params: [
+                {
+                  uid: UID,
+                  name: 'q',
+                  value: 'search',
+                  type: 'query',
+                  enabled: true,
+                  description: 'Single-line query desc'
+                }
+              ],
+              body: {
+                mode: 'multipartForm',
+                formUrlEncoded: [
+                  {
+                    uid: UID,
+                    name: 'username',
+                    value: 'alice',
+                    enabled: true,
+                    description: 'Single-line form desc'
+                  }
+                ],
+                multipartForm: [
+                  {
+                    uid: UID,
+                    type: 'text',
+                    name: 'username',
+                    value: 'alice',
+                    enabled: true,
+                    description: 'Single-line field desc'
+                  }
+                ],
+                file: []
+              },
+              auth: { mode: 'none' },
+              script: { req: null, res: null },
+              vars: {
+                req: [
+                  {
+                    uid: UID,
+                    name: 'reqVar',
+                    value: 'req-value',
+                    enabled: true,
+                    description: 'Req var desc'
+                  }
+                ],
+                res: []
+              },
+              assertions: [],
+              tests: null
+            }
+          }
+        ]
+      }
+    ],
+    root: {
+      request: {
+        headers: [
+          {
+            uid: UID,
+            name: 'X-Collection-Header',
+            value: 'collection',
+            enabled: true,
+            description: 'Collection header desc'
+          }
+        ],
+        script: { req: null, res: null },
+        vars: {
+          req: [
+            {
+              uid: UID,
+              name: 'baseUrl',
+              value: 'https://example.com',
+              enabled: true,
+              description: 'Collection var desc'
+            }
+          ],
+          res: []
+        },
+        tests: null
+      }
+    },
+    environments: [
+      {
+        uid: UID,
+        name: 'test_env',
+        variables: [
+          {
+            uid: UID,
+            name: 'envHost',
+            value: 'http://localhost:3000',
+            type: 'text',
+            enabled: true,
+            secret: false,
+            description: 'Single-line env desc'
+          }
+        ]
+      }
+    ],
+    brunoConfig: { version: '1', name: 'Description Collection' }
+  });
+
+  it('preserves descriptions on all surfaces through export preparation', () => {
+    const collection = buildDescriptionCollection();
+    const exported = prepareCollectionForExport(transformCollectionToSaveToExportAsFile(collection));
+
+    expect(exported.root.request.headers[0].description).toBe('Collection header desc');
+    expect(exported.root.request.vars.req[0].description).toBe('Collection var desc');
+
+    const folder = exported.items.find((item) => item.type === 'folder');
+    expect(folder.root.request.headers[0].description).toBe('Folder header desc');
+    expect(folder.root.request.vars.req[0].description).toBe('Folder var desc');
+
+    const request = folder.items.find((item) => item.type === 'http' || item.type === 'http-request');
+    expect(request.request.headers[0].description).toBe('Single-line header desc');
+    expect(request.request.params[0].description).toBe('Single-line query desc');
+    expect(request.request.body.multipartForm[0].description).toBe('Single-line field desc');
+    expect(request.request.body.formUrlEncoded[0].description).toBe('Single-line form desc');
+    expect(request.request.vars.req[0].description).toBe('Req var desc');
+
+    expect(exported.environments[0].variables[0].description).toBe('Single-line env desc');
   });
 });

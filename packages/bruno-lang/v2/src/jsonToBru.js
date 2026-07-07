@@ -1,6 +1,5 @@
 const _ = require('lodash');
-
-const { indentString, getValueString, getKeyString, getValueUrl, serializeAnnotations, serializeVar } = require('./utils');
+const { indentString, getValueString, getKeyString, getValueUrl, serializeVar, serializeAnnotations, buildAnnotationsFromKVItem } = require('./utils');
 const jsonToExampleBru = require('./example/jsonToBru');
 
 const enabled = (items = [], key = 'enabled') => items.filter((item) => item[key]);
@@ -148,7 +147,7 @@ const jsonToBru = (json) => {
       if (enabled(queryParams).length) {
         bru += `\n${indentString(
           enabled(queryParams)
-            .map((item) => `${serializeAnnotations(item.annotations)}${getKeyString(item.name)}: ${getValueString(item.value)}`)
+            .map((item) => `${serializeAnnotations(buildAnnotationsFromKVItem(item))}${getKeyString(item.name)}: ${getValueString(item.value)}`)
             .join('\n')
         )}`;
       }
@@ -156,7 +155,7 @@ const jsonToBru = (json) => {
       if (disabled(queryParams).length) {
         bru += `\n${indentString(
           disabled(queryParams)
-            .map((item) => `${serializeAnnotations(item.annotations)}~${getKeyString(item.name)}: ${getValueString(item.value)}`)
+            .map((item) => `${serializeAnnotations(buildAnnotationsFromKVItem(item))}~${getKeyString(item.name)}: ${getValueString(item.value)}`)
             .join('\n')
         )}`;
       }
@@ -167,7 +166,7 @@ const jsonToBru = (json) => {
     if (pathParams.length) {
       bru += 'params:path {';
 
-      bru += `\n${indentString(pathParams.map((item) => `${serializeAnnotations(item.annotations)}${item.name}: ${getValueString(item.value)}`).join('\n'))}`;
+      bru += `\n${indentString(pathParams.map((item) => `${serializeAnnotations(buildAnnotationsFromKVItem(item))}${item.name}: ${getValueString(item.value)}`).join('\n'))}`;
 
       bru += '\n}\n\n';
     }
@@ -178,7 +177,7 @@ const jsonToBru = (json) => {
     if (enabled(headers).length) {
       bru += `\n${indentString(
         enabled(headers)
-          .map((item) => `${serializeAnnotations(item.annotations)}${getKeyString(item.name)}: ${getValueString(item.value)}`)
+          .map((item) => `${serializeAnnotations(buildAnnotationsFromKVItem(item))}${getKeyString(item.name)}: ${getValueString(item.value)}`)
           .join('\n')
       )}`;
     }
@@ -186,7 +185,7 @@ const jsonToBru = (json) => {
     if (disabled(headers).length) {
       bru += `\n${indentString(
         disabled(headers)
-          .map((item) => `${serializeAnnotations(item.annotations)}~${getKeyString(item.name)}: ${getValueString(item.value)}`)
+          .map((item) => `${serializeAnnotations(buildAnnotationsFromKVItem(item))}~${getKeyString(item.name)}: ${getValueString(item.value)}`)
           .join('\n')
       )}`;
     }
@@ -199,7 +198,7 @@ const jsonToBru = (json) => {
     if (enabled(metadata).length) {
       bru += `\n${indentString(
         enabled(metadata)
-          .map((item) => `${serializeAnnotations(item.annotations)}${item.name}: ${getValueString(item.value)}`)
+          .map((item) => `${serializeAnnotations(buildAnnotationsFromKVItem(item))}${item.name}: ${getValueString(item.value)}`)
           .join('\n')
       )}`;
     }
@@ -207,7 +206,7 @@ const jsonToBru = (json) => {
     if (disabled(metadata).length) {
       bru += `\n${indentString(
         disabled(metadata)
-          .map((item) => `${serializeAnnotations(item.annotations)}~${item.name}: ${getValueString(item.value)}`)
+          .map((item) => `${serializeAnnotations(buildAnnotationsFromKVItem(item))}~${item.name}: ${getValueString(item.value)}`)
           .join('\n')
       )}`;
     }
@@ -399,7 +398,7 @@ ${indentString(`auto_fetch_token: ${(auth?.oauth2?.autoFetchToken ?? true).toStr
 ${indentString(
   authorizationHeaders
     .filter((item) => item?.name?.length)
-    .map((item) => `${item.enabled ? '' : '~'}${getKeyString(item.name)}: ${getValueString(item.value)}`)
+    .map((item) => `${serializeAnnotations(buildAnnotationsFromKVItem(item))}${item.enabled ? '' : '~'}${getKeyString(item.name)}: ${getValueString(item.value)}`)
     .join('\n')
 )}
 }
@@ -412,7 +411,7 @@ ${indentString(
 ${indentString(
   authorizationQueryParams
     .filter((item) => item?.name?.length)
-    .map((item) => `${item.enabled ? '' : '~'}${getKeyString(item.name)}: ${getValueString(item.value)}`)
+    .map((item) => `${serializeAnnotations(buildAnnotationsFromKVItem(item))}${item.enabled ? '' : '~'}${getKeyString(item.name)}: ${getValueString(item.value)}`)
     .join('\n')
 )}
 }
@@ -425,7 +424,7 @@ ${indentString(
 ${indentString(
   tokenHeaders
     .filter((item) => item?.name?.length)
-    .map((item) => `${item.enabled ? '' : '~'}${getKeyString(item.name)}: ${getValueString(item.value)}`)
+    .map((item) => `${serializeAnnotations(buildAnnotationsFromKVItem(item))}${item.enabled ? '' : '~'}${getKeyString(item.name)}: ${getValueString(item.value)}`)
     .join('\n')
 )}
 }
@@ -438,7 +437,7 @@ ${indentString(
 ${indentString(
   tokenQueryParams
     .filter((item) => item?.name?.length)
-    .map((item) => `${item.enabled ? '' : '~'}${getKeyString(item.name)}: ${getValueString(item.value)}`)
+    .map((item) => `${serializeAnnotations(buildAnnotationsFromKVItem(item))}${item.enabled ? '' : '~'}${getKeyString(item.name)}: ${getValueString(item.value)}`)
     .join('\n')
 )}
 }
@@ -451,7 +450,7 @@ ${indentString(
 ${indentString(
   tokenBodyValues
     .filter((item) => item?.name?.length)
-    .map((item) => `${item.enabled ? '' : '~'}${getKeyString(item.name)}: ${getValueString(item.value)}`)
+    .map((item) => `${serializeAnnotations(buildAnnotationsFromKVItem(item))}${item.enabled ? '' : '~'}${getKeyString(item.name)}: ${getValueString(item.value)}`)
     .join('\n')
 )}
 }
@@ -464,7 +463,7 @@ ${indentString(
 ${indentString(
   refreshHeaders
     .filter((item) => item?.name?.length)
-    .map((item) => `${item.enabled ? '' : '~'}${getKeyString(item.name)}: ${getValueString(item.value)}`)
+    .map((item) => `${serializeAnnotations(buildAnnotationsFromKVItem(item))}${item.enabled ? '' : '~'}${getKeyString(item.name)}: ${getValueString(item.value)}`)
     .join('\n')
 )}
 }
@@ -477,7 +476,7 @@ ${indentString(
 ${indentString(
   refreshQueryParams
     .filter((item) => item?.name?.length)
-    .map((item) => `${item.enabled ? '' : '~'}${getKeyString(item.name)}: ${getValueString(item.value)}`)
+    .map((item) => `${serializeAnnotations(buildAnnotationsFromKVItem(item))}${item.enabled ? '' : '~'}${getKeyString(item.name)}: ${getValueString(item.value)}`)
     .join('\n')
 )}
 }
@@ -490,7 +489,7 @@ ${indentString(
 ${indentString(
   refreshBodyValues
     .filter((item) => item?.name?.length)
-    .map((item) => `${item.enabled ? '' : '~'}${getKeyString(item.name)}: ${getValueString(item.value)}`)
+    .map((item) => `${serializeAnnotations(buildAnnotationsFromKVItem(item))}${item.enabled ? '' : '~'}${getKeyString(item.name)}: ${getValueString(item.value)}`)
     .join('\n')
 )}
 }
@@ -562,14 +561,14 @@ ${indentString(body.sparql)}
 
     if (enabled(body.formUrlEncoded).length) {
       const enabledValues = enabled(body.formUrlEncoded)
-        .map((item) => `${serializeAnnotations(item.annotations)}${getKeyString(item.name)}: ${getValueString(item.value)}`)
+        .map((item) => `${serializeAnnotations(buildAnnotationsFromKVItem(item))}${getKeyString(item.name)}: ${getValueString(item.value)}`)
         .join('\n');
       bru += `${indentString(enabledValues)}\n`;
     }
 
     if (disabled(body.formUrlEncoded).length) {
       const disabledValues = disabled(body.formUrlEncoded)
-        .map((item) => `${serializeAnnotations(item.annotations)}~${getKeyString(item.name)}: ${getValueString(item.value)}`)
+        .map((item) => `${serializeAnnotations(buildAnnotationsFromKVItem(item))}~${getKeyString(item.name)}: ${getValueString(item.value)}`)
         .join('\n');
       bru += `${indentString(disabledValues)}\n`;
     }
@@ -585,13 +584,12 @@ ${indentString(body.sparql)}
       bru += `\n${indentString(
         multipartForms
           .map((item) => {
-            const enabled = item.enabled ? '' : '~';
+            const enabledPrefix = item.enabled ? '' : '~';
             const contentType
               = item.contentType && item.contentType !== '' ? ' @contentType(' + item.contentType + ')' : '';
-
-            const annotPrefix = serializeAnnotations(item.annotations);
+            const annotPrefix = serializeAnnotations(buildAnnotationsFromKVItem(item));
             if (item.type === 'text') {
-              return `${annotPrefix}${enabled}${getKeyString(item.name)}: ${getValueString(item.value)}${contentType}`;
+              return `${annotPrefix}${enabledPrefix}${getKeyString(item.name)}: ${getValueString(item.value)}${contentType}`;
             }
 
             if (item.type === 'file') {
@@ -599,7 +597,7 @@ ${indentString(body.sparql)}
               const filestr = filepaths.join('|');
 
               const value = `@file(${filestr})`;
-              return `${annotPrefix}${enabled}${getKeyString(item.name)}: ${value}${contentType}`;
+              return `${annotPrefix}${enabledPrefix}${getKeyString(item.name)}: ${value}${contentType}`;
             }
           })
           .join('\n')
@@ -620,7 +618,7 @@ ${indentString(body.sparql)}
             const selected = item.selected ? '' : '~';
             const contentType
               = item.contentType && item.contentType !== '' ? ' @contentType(' + item.contentType + ')' : '';
-            const annotPrefix = serializeAnnotations(item.annotations);
+            const annotPrefix = serializeAnnotations(buildAnnotationsFromKVItem(item));
             const filePath = item.filePath || '';
             const value = `@file(${filePath})`;
             const itemName = 'file';
@@ -778,7 +776,7 @@ ${indentString(body.sparql)}
     if (enabled(assertions).length) {
       bru += `\n${indentString(
         enabled(assertions)
-          .map((item) => `${serializeAnnotations(item.annotations)}${item.name}: ${getValueString(item.value)}`)
+          .map((item) => `${serializeAnnotations(buildAnnotationsFromKVItem(item))}${item.name}: ${getValueString(item.value)}`)
           .join('\n')
       )}`;
     }
@@ -786,7 +784,7 @@ ${indentString(body.sparql)}
     if (disabled(assertions).length) {
       bru += `\n${indentString(
         disabled(assertions)
-          .map((item) => `${serializeAnnotations(item.annotations)}~${getKeyString(item.name)}: ${getValueString(item.value)}`)
+          .map((item) => `${serializeAnnotations(buildAnnotationsFromKVItem(item))}~${getKeyString(item.name)}: ${getValueString(item.value)}`)
           .join('\n')
       )}`;
     }

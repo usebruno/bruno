@@ -3,6 +3,7 @@ import { updateRequestBody } from 'providers/ReduxStore/slices/collections';
 import { IconPlus } from '@tabler/icons';
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useDispatch } from 'react-redux';
+import { usePersistedState } from 'hooks/usePersistedState';
 import StyledWrapper from './StyledWrapper';
 import { SingleWSMessage } from './SingleWSMessage/index';
 
@@ -14,6 +15,10 @@ const getSelectedIndex = (messages) => {
 const WSBody = ({ item, collection, handleRun, onAddMessage, messagesKey = 'ws' }) => {
   const dispatch = useDispatch();
   const messagesContainerRef = useRef(null);
+  const [listScrollTop, setListScrollTop] = usePersistedState({
+    key: `ws-list-scroll-${item.uid}`,
+    default: 0
+  });
   const body = item.draft ? get(item, 'draft.request.body') : get(item, 'request.body');
   const messages = body?.[messagesKey] || [];
 
@@ -26,6 +31,19 @@ const WSBody = ({ item, collection, handleRun, onAddMessage, messagesKey = 'ws' 
   });
   const [newMessageUid, setNewMessageUid] = useState(null);
   const prevMessagesLengthRef = useRef(messages.length);
+
+  // Track the message pane's height so an expanded editor can be capped to fit
+  // inside it. A taller editor would overflow the pane and produce a second
+  // scrollbar (the list) on top of the editor's own scroll.
+  const [paneHeight, setPaneHeight] = useState(0);
+  useEffect(() => {
+    const el = messagesContainerRef.current;
+    if (!el || typeof ResizeObserver === 'undefined') return;
+    const ro = new ResizeObserver(() => setPaneHeight(el.clientHeight));
+    ro.observe(el);
+    setPaneHeight(el.clientHeight);
+    return () => ro.disconnect();
+  }, []);
 
   const setSelectedIndex = useCallback((index) => {
     const currentMessages = [...(body?.[messagesKey] || [])];
@@ -68,6 +86,11 @@ const WSBody = ({ item, collection, handleRun, onAddMessage, messagesKey = 'ws' 
         setNewMessageUid(newMsg.uid);
         setSelectedIndex(messages.length - 1);
       }
+
+      if (messagesContainerRef.current) {
+        const container = messagesContainerRef.current;
+        container.scrollTop = container.scrollHeight;
+      }
     }
     prevMessagesLengthRef.current = messages.length;
   }, [messages.length]);
@@ -76,13 +99,54 @@ const WSBody = ({ item, collection, handleRun, onAddMessage, messagesKey = 'ws' 
     setNewMessageUid(null);
   }, []);
 
-  // Auto-scroll to bottom when new message is added
+  // Restore the last scroll position on mount (component remounts on tab switch,
+  // so listScrollTop is read synchronously for this request).
   useEffect(() => {
-    if (messagesContainerRef.current && messages.length > 0) {
-      const container = messagesContainerRef.current;
-      container.scrollTop = container.scrollHeight;
+    const container = messagesContainerRef.current;
+    if (container) {
+      container.scrollTop = listScrollTop;
     }
-  }, [messages.length]);
+  }, [item.uid]);
+
+  const handleScroll = useCallback(() => {
+    const container = messagesContainerRef.current;
+    if (container) {
+      setListScrollTop(container.scrollTop);
+    }
+  }, [setListScrollTop]);
+
+  // Clicking or typing in an editor makes the browser scroll the list to reveal
+  // CodeMirror's cursor, flinging the whole panel. Pin the list's scrollTop for a
+  // few frames so focus/keystrokes can't move it (the editor still scrolls
+  // internally); a real user scroll (wheel/touch) releases the pin.
+  const pinScrollRef = useRef(null);
+  const pinListScroll = useCallback(() => {
+    const container = messagesContainerRef.current;
+    if (!container) return;
+    const top = container.scrollTop;
+    let frames = 0;
+    const pin = () => {
+      const el = messagesContainerRef.current;
+      if (!el || pinScrollRef.current === null) return;
+      if (el.scrollTop !== top) el.scrollTop = top;
+      if (++frames < 8) {
+        pinScrollRef.current = requestAnimationFrame(pin);
+      } else {
+        pinScrollRef.current = null;
+      }
+    };
+    // Cancel any in-flight pin so a fresh gesture re-snapshots the current top.
+    if (pinScrollRef.current !== null) cancelAnimationFrame(pinScrollRef.current);
+    pinScrollRef.current = requestAnimationFrame(pin);
+  }, []);
+
+  // A real user scroll (wheel/touch) releases the pin immediately.
+  const releasePin = useCallback(() => {
+    if (pinScrollRef.current !== null) {
+      cancelAnimationFrame(pinScrollRef.current);
+      pinScrollRef.current = null;
+    }
+  }, []);
 
   if (!messages.length) {
     return (
@@ -100,11 +164,19 @@ const WSBody = ({ item, collection, handleRun, onAddMessage, messagesKey = 'ws' 
 
   return (
     <StyledWrapper>
-      <div ref={messagesContainerRef} className="messages-container">
+      <div
+        ref={messagesContainerRef}
+        className="messages-container"
+        data-testid="ws-messages-container"
+        onScroll={handleScroll}
+        onMouseDownCapture={pinListScroll}
+        onKeyDownCapture={pinListScroll}
+        onWheel={releasePin}
+        onTouchMove={releasePin}
+      >
         {messages.map((message, index) => (
           <SingleWSMessage
             key={message.uid}
-            id={`ws-message-${message.uid}`}
             message={message}
             item={item}
             collection={collection}
@@ -118,6 +190,7 @@ const WSBody = ({ item, collection, handleRun, onAddMessage, messagesKey = 'ws' 
             onNewRendered={handleNewMessageRendered}
             isSelected={selectedIndex === index}
             onSelect={() => handleSelect(index)}
+            paneHeight={paneHeight}
           />
         ))}
       </div>
