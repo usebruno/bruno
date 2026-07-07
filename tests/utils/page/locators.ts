@@ -352,6 +352,10 @@ export const buildWebsocketCommonLocators = (page: Page) => ({
 
 export const buildSignalRCommonLocators = (page: Page) => ({
   ...buildCommonLocators(page),
+  /** Click the sidebar collection name to expand/collapse the collection tree. */
+  sidebarCollectionName: () => page.locator('#sidebar-collection-name'),
+  /** Select a request by its title attribute within the collections sidebar. */
+  requestByTitle: (name: string | RegExp) => page.getByTestId('collections').getByTitle(name),
   connectionControls: {
     connect: () =>
       page

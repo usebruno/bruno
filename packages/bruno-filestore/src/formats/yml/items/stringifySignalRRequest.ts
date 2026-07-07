@@ -86,11 +86,25 @@ const stringifySignalRRequest = (item: BrunoItem): string => {
 
     const signalrSettings = item.settings as Record<string, number | string | undefined> | undefined;
     if (signalrSettings) {
-      ocRequest.settings = {};
-      const timeout = Number(signalrSettings.timeout);
-      ocRequest.settings.timeout = !isNaN(timeout) ? timeout : 0;
-      const keepAliveInterval = Number(signalrSettings.keepAliveInterval);
-      ocRequest.settings.keepAliveInterval = !isNaN(keepAliveInterval) ? keepAliveInterval : 0;
+      const settings: Record<string, number> = {};
+
+      if (signalrSettings.timeout != null) {
+        const timeout = Number(signalrSettings.timeout);
+        if (!Number.isNaN(timeout)) {
+          settings.timeout = timeout;
+        }
+      }
+
+      if (signalrSettings.keepAliveInterval != null) {
+        const keepAliveInterval = Number(signalrSettings.keepAliveInterval);
+        if (!Number.isNaN(keepAliveInterval)) {
+          settings.keepAliveInterval = keepAliveInterval;
+        }
+      }
+
+      if (Object.keys(settings).length) {
+        ocRequest.settings = settings;
+      }
     }
 
     if (isNonEmptyString(brunoRequest.docs)) {

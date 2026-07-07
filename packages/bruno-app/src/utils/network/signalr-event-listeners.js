@@ -50,12 +50,20 @@ const useSignalrEventListeners = () => {
     });
 
     const removeHubEvent = ipcRenderer.on('main:signalr:event', (requestId, collectionUid, eventName, args) => {
+      let message = eventName;
+      if (typeof args !== 'undefined' && args !== null) {
+        try {
+          message = JSON.stringify({ eventName, args });
+        } catch (e) {
+          message = `${eventName} (unserializable payload)`;
+        }
+      }
       dispatch(wsResponseReceived({
         itemUid: requestId,
         collectionUid,
         eventType: 'message',
         eventData: {
-          message: typeof args !== 'undefined' && args !== null ? JSON.stringify({ eventName, args }) : eventName,
+          message,
           type: 'incoming',
           timestamp: Date.now()
         }

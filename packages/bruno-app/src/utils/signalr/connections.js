@@ -48,7 +48,8 @@ export const registerSignalRHandler = (requestId, eventName, handler) => {
     eventHandlers.set(requestId, new Map());
   }
   eventHandlers.get(requestId).set(eventName, handler);
-  ipcRenderer.invoke('renderer:signalr:register-handler', requestId, eventName);
+  return ipcRenderer.invoke('renderer:signalr:register-handler', requestId, eventName)
+    .catch((err) => console.error('Failed to register SignalR handler', err));
 };
 
 export const removeSignalRHandler = (requestId, eventName) => {
@@ -61,5 +62,6 @@ export const removeSignalRHandler = (requestId, eventName) => {
       eventHandlers.delete(requestId);
     }
   }
-  ipcRenderer.invoke('renderer:signalr:remove-handler', requestId, eventName);
+  return ipcRenderer.invoke('renderer:signalr:remove-handler', requestId, eventName)
+    .catch((err) => console.error('Failed to remove SignalR handler', err));
 };

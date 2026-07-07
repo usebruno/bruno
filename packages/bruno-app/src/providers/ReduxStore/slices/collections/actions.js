@@ -554,29 +554,32 @@ export const signalrConnectOnly = (item, collectionUid) => (dispatch, getState) 
   const { globalEnvironments, activeGlobalEnvironmentUid } = state.globalEnvironments;
   const collection = findCollectionByUid(state.collections.collections, collectionUid);
 
-  return new Promise(async (resolve, reject) => {
+  return new Promise((resolve, reject) => {
     if (!collection) {
       return reject(new Error('Collection not found'));
     }
 
-    let collectionCopy = cloneDeep(collection);
-    const itemCopy = cloneDeep(item);
-    const requestUid = uuid();
-    itemCopy.requestUid = requestUid;
+    try {
+      let collectionCopy = cloneDeep(collection);
+      const itemCopy = cloneDeep(item);
+      itemCopy.requestUid = uuid();
 
-    const globalEnvironmentVariables = getGlobalEnvironmentVariables({
-      globalEnvironments,
-      activeGlobalEnvironmentUid
-    });
-    collectionCopy.globalEnvironmentVariables = globalEnvironmentVariables;
-
-    const environment = findEnvironmentInCollection(collectionCopy, collectionCopy.activeEnvironmentUid);
-
-    connectSignalR(itemCopy, collectionCopy, environment, collectionCopy.runtimeVariables)
-      .then(resolve)
-      .catch((err) => {
-        toast.error(err.message);
+      collectionCopy.globalEnvironmentVariables = getGlobalEnvironmentVariables({
+        globalEnvironments,
+        activeGlobalEnvironmentUid
       });
+
+      const environment = findEnvironmentInCollection(collectionCopy, collectionCopy.activeEnvironmentUid);
+
+      connectSignalR(itemCopy, collectionCopy, environment, collectionCopy.runtimeVariables)
+        .then(resolve)
+        .catch((err) => {
+          toast.error(err.message);
+          reject(err);
+        });
+    } catch (err) {
+      reject(err);
+    }
   });
 };
 

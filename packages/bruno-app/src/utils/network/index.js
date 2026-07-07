@@ -386,7 +386,7 @@ export const sendSignalRRequest = async (item, collection, environment, runtimeV
       args = [args];
     }
   } catch (e) {
-    args = [];
+    throw new Error(`Invalid JSON in message arguments: ${e.message}`);
   }
 
   const result = await _sendSignalRMessage(item.uid, selectedMsg.name, args);

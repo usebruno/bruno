@@ -21,7 +21,7 @@ const WSAuth = ({ item, collection }) => {
     : get(item, 'request', {});
 
   const save = () => {
-    return saveRequest(item.uid, collection.uid);
+    return dispatch(saveRequest(item.uid, collection.uid));
   };
 
   const inheritedSource = useMemo(

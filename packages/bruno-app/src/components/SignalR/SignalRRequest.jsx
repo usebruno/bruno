@@ -7,15 +7,20 @@ export default function SignalRRequest() {
   const [connection, setConnection] = useState(null);
   const [logs, setLogs] = useState([]);
   async function connect() {
+    if (connection) return;
     const conn = createSignalRConnection({
       url
     });
     conn.on('ReceiveMessage', (...arg) => {
       setLogs((prevLogs) => [...prevLogs, { type: 'ReceiveMessage', data: arg }]);
     });
-    await conn.start();
-    setConnection(conn);
-    setLogs((prev) => [...prev, { event: 'SYSTEM', data: 'Connected' }]);
+    try {
+      await conn.start();
+      setConnection(conn);
+      setLogs((prev) => [...prev, { event: 'SYSTEM', data: 'Connected' }]);
+    } catch (err) {
+      setLogs((prev) => [...prev, { event: 'SYSTEM', data: `Connection failed: ${err?.message || err}` }]);
+    }
   }
   async function disconnect() {
     if (connection) {
