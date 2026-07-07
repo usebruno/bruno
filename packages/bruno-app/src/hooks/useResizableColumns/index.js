@@ -57,8 +57,7 @@ const scaleWidthsToTotal = (widths, targetTotal, minColWidth) => {
     const stillRemaining = [];
     let anyPinned = false;
     for (const i of remainingIdx) {
-      const scaled = widths[i] * factor;
-      if (scaled < minColWidth) {
+      if (widths[i] * factor < minColWidth) {
         result[i] = minColWidth;
         remainingTotal -= minColWidth;
         anyPinned = true;
@@ -71,19 +70,25 @@ const scaleWidthsToTotal = (widths, targetTotal, minColWidth) => {
     if (!anyPinned) break;
   }
 
-  // Distribute whatever's left proportionally among the unpinned columns;
-  // the last one absorbs the rounding remainder so the total is always exact.
   if (remainingIdx.length > 0) {
-    const remainingWidthsSum = remainingIdx.reduce((s, i) => s + widths[i], 0);
-    let allocated = 0;
-    remainingIdx.forEach((i, idx) => {
-      if (idx === remainingIdx.length - 1) {
-        result[i] = remainingTotal - allocated;
-        return;
-      }
-      const w = Math.round((widths[i] / remainingWidthsSum) * remainingTotal);
-      result[i] = w;
-      allocated += w;
+    const unpinnedWidthsSum = remainingIdx.reduce((sum, colIndex) => sum + widths[colIndex], 0);
+    const exactShares = remainingIdx.map((colIndex) => (widths[colIndex] / unpinnedWidthsSum) * remainingTotal);
+    const flooredShares = exactShares.map((share) => Math.floor(share));
+    const leftoverPixels = remainingTotal - flooredShares.reduce((sum, w) => sum + w, 0);
+
+    // Columns ranked by how much they lost to flooring (largest first) — these
+    // are the ones that get a leftover pixel, one each, until none are left.
+    const columnsByLargestRemainder = exactShares
+      .map((share, position) => ({ position, remainder: share - flooredShares[position] }))
+      .sort((a, b) => b.remainder - a.remainder);
+
+    const bonusPixel = new Array(remainingIdx.length).fill(0);
+    for (let pixel = 0; pixel < leftoverPixels; pixel++) {
+      bonusPixel[columnsByLargestRemainder[pixel].position] = 1;
+    }
+
+    remainingIdx.forEach((colIndex, position) => {
+      result[colIndex] = flooredShares[position] + bonusPixel[position];
     });
   }
 
