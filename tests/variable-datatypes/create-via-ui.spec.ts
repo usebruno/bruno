@@ -193,7 +193,7 @@ test.describe('DataType selector — new collection created via UI', () => {
     // DataTypeSelector too.
     const addEnvVar = async (name: string, dataType: NonDefaultDataType, { secret = false } = {}) => {
       await test.step(`add ${secret ? 'secret ' : ''}${dataType} env var "${name}"`, async () => {
-        const emptyRow = page.locator('tbody tr').last();
+        const emptyRow = envRows.last();
         await emptyRow.locator('input[placeholder="Name"]').fill(name);
         const namedRow = locators.environment.varRow(name);
         await expect(namedRow).toBeVisible();
@@ -203,17 +203,11 @@ test.describe('DataType selector — new collection created via UI', () => {
         tabRowCount++;
         await expect(envRows).toHaveCount(tabRowCount + 1);
 
-        const valueEditor = namedRow.getByTestId('column-value').locator('.CodeMirror').first();
+        const valueEditor = locators.environment.varRowValueEditor(name);
         await valueEditor.hover();
         await valueEditor.click({ force: true });
         await expect(valueEditor).toHaveClass(/CodeMirror-focused/);
         await page.keyboard.insertText(VALUE_FOR_DATATYPE[dataType]);
-
-        if (secret) {
-          const secretCheckbox = locators.environment.varRowSecretCheckbox(name);
-          await secretCheckbox.check();
-          await expect(secretCheckbox).toBeChecked();
-        }
 
         await valueEditor.hover();
         await locators.dataTypeSelector.typeLabel(namedRow).click();
@@ -249,9 +243,9 @@ test.describe('DataType selector — new collection created via UI', () => {
       await expect(locators.dataTypeSelector.typeLabel(locators.environment.varRow(`env_${dt}`))).toHaveAttribute('data-selected-type', dt);
     }
 
-    // Each secret var keeps both its secret flag and its dataType after save.
+    // Each secret var keeps its dataType after save.
+    await locators.environment.secretsTab().click();
     for (const dt of TYPED_DATATYPES) {
-      await expect(locators.environment.varRowSecretCheckbox(`env_secret_${dt}`)).toBeChecked();
       await expect(locators.dataTypeSelector.typeLabel(locators.environment.varRow(`env_secret_${dt}`))).toHaveAttribute('data-selected-type', dt);
     }
   });
