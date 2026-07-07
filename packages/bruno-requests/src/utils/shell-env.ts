@@ -61,10 +61,12 @@ const tryFetchShellEnv = async (): Promise<Record<string, string> | null> => {
   if (process.platform === 'win32') {
     return {};
   }
-
   try {
     const { shellEnv } = await import('shell-env');
-    return await shellEnv();
+    // shellEnv spawns a login shell, which can hang (e.g. on a misconfigured
+    // shell rc). Cap it at 5s and treat a timeout as a failure (null).
+    const timeout = new Promise<null>((resolve) => setTimeout(() => resolve(null), 5000));
+    return await Promise.race([shellEnv(), timeout]);
   } catch (error) {
     return null;
   }
