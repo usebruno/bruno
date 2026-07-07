@@ -5,7 +5,6 @@ const chokidar = require('chokidar');
 const { getApiSpecUid } = require('../cache/apiSpecUids');
 const yaml = require('js-yaml');
 const { isDirectory } = require('../utils/filesystem');
-const { safeParseJSON } = require('../utils/common');
 
 const hasApiSpecExtension = (filename) => {
   if (!filename || typeof filename !== 'string') return false;
@@ -23,7 +22,11 @@ const parseApiSpecContent = (pathname) => {
       return null;
     }
   } else if (extension === '.json') {
-    return safeParseJSON(content);
+    try {
+      return JSON.parse(content);
+    } catch {
+      return null;
+    }
   }
   return null;
 };
