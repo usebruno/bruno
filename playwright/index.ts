@@ -336,17 +336,6 @@ export const test = baseTest.extend<
 
   page: async ({ electronApp, context }, use, testInfo) => {
     const page = await waitForReadyPage(electronApp);
-    await page.addInitScript(() => {
-      let clipboardData = '';
-      Object.defineProperty(navigator, 'clipboard', {
-        value: {
-          writeText: async (text: string) => { clipboardData = text; },
-          readText: async () => clipboardData
-        },
-        writable: true,
-        configurable: true
-      });
-    });
     await usePageWithTracing(context, page, testInfo, use);
   },
 
@@ -450,18 +439,6 @@ export const test = baseTest.extend<
 
     const context = await app.context();
     const page = await waitForReadyPage(app);
-    await page.addInitScript(() => {
-      let clipboardData = '';
-      Object.defineProperty(navigator, 'clipboard', {
-        value: {
-          writeText: async (text: string) => { clipboardData = text; },
-          readText: async () => clipboardData
-        },
-        writable: true,
-        configurable: true
-      });
-    });
-
     await usePageWithTracing(context, page, testInfo, use, { initTracing: true });
   }
 });
