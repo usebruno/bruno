@@ -1,4 +1,5 @@
 import { IconTrash, IconSend, IconChevronRight, IconChevronDown } from '@tabler/icons';
+import classnames from 'classnames';
 import CodeEditor from 'components/CodeEditor/index';
 import ToolHint from 'components/ToolHint/index';
 import { get } from 'lodash';
@@ -10,6 +11,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { queueWsMessage, isWsConnectionActive, connectWS } from 'utils/network/index';
 import { findCollectionByUid, findEnvironmentInCollection } from 'utils/collections/index';
 import toast from 'react-hot-toast';
+import { usePersistedState } from 'hooks/usePersistedState';
 import WSRequestBodyMode from '../BodyMode/index';
 import StyledWrapper from './StyledWrapper';
 
@@ -29,7 +31,6 @@ const typeToMode = (type) => {
 };
 
 export const SingleWSMessage = ({
-  id,
   message,
   item,
   collection,
@@ -40,7 +41,8 @@ export const SingleWSMessage = ({
   isNew,
   onNewRendered,
   isSelected,
-  onSelect
+  onSelect,
+  fillHeight
 }) => {
   const dispatch = useDispatch();
   const { displayedTheme } = useTheme();
@@ -55,6 +57,10 @@ export const SingleWSMessage = ({
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(displayName);
   const labelTooltipId = `ws-msg-label-${message.uid ?? index}`;
+  const [scroll, setScroll] = usePersistedState({
+    key: `ws-msg-scroll-${item.uid}-${message.uid}`,
+    default: 0
+  });
 
   // Auto-focus the name input when this is a newly created message
   useEffect(() => {
@@ -106,11 +112,18 @@ export const SingleWSMessage = ({
   const fontSize = get(preferences, 'font.codeFontSize', 14);
   const lineHeight = fontSize * 1.5;
 
-  const editorHeight = useMemo(() => {
+  const MAX_EDITOR_HEIGHT = 400;
+  const { editorHeight, isCapped } = useMemo(() => {
     const lineCount = (content || '').split('\n').length;
     const lines = lineCount + 1;
-    return `${lines * lineHeight + 10}px`;
+    const contentHeight = lines * lineHeight + 10;
+    return {
+      editorHeight: `${Math.min(contentHeight, MAX_EDITOR_HEIGHT)}px`,
+      isCapped: contentHeight > MAX_EDITOR_HEIGHT
+    };
   }, [content, lineHeight]);
+
+  const shouldFill = fillHeight && isExpanded && isCapped;
 
   const onUpdateMessageType = (newMode) => {
     const currentMessages = [...(body.ws || [])];
@@ -173,8 +186,7 @@ export const SingleWSMessage = ({
 
   return (
     <StyledWrapper
-      id={id}
-      className={!isSelected ? 'disabled' : ''}
+      className={classnames({ 'disabled': !isSelected, 'fill-height': shouldFill })}
       onMouseUpCapture={() => {
         if (!isSelected) onSelect();
       }}
@@ -250,7 +262,11 @@ export const SingleWSMessage = ({
         </div>
       </div>
       {isExpanded && (
-        <div className="accordion-body" data-testid={`ws-message-body-${index}`} style={{ height: editorHeight }}>
+        <div
+          className="accordion-body"
+          data-testid={`ws-message-body-${index}`}
+          style={shouldFill ? undefined : { height: editorHeight }}
+        >
           <CodeEditor
             collection={collection}
             theme={displayedTheme}
@@ -262,6 +278,8 @@ export const SingleWSMessage = ({
             onSave={onSave}
             mode={codemirrorMode[displayMode] ?? 'text/plain'}
             enableVariableHighlighting={true}
+            initialScroll={scroll}
+            onScroll={setScroll}
           />
         </div>
       )}

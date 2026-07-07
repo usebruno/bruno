@@ -8,6 +8,8 @@ const Wrapper = styled.div`
 
   .messages-container {
     flex: 1;
+    display: flex;
+    flex-direction: column;
     overflow-y: auto;
     isolation: isolate;
   }

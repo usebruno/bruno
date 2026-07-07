@@ -1,7 +1,7 @@
 import { get } from 'lodash';
 import { updateRequestBody } from 'providers/ReduxStore/slices/collections';
 import { IconPlus } from '@tabler/icons';
-import React, { useState, useRef, useEffect, useLayoutEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useDispatch } from 'react-redux';
 import StyledWrapper from './StyledWrapper';
 import { SingleWSMessage } from './SingleWSMessage/index';
@@ -28,10 +28,6 @@ const WSBody = ({ item, collection, handleRun, onAddMessage }) => {
   });
   const [newMessageUid, setNewMessageUid] = useState(null);
   const prevMessagesLengthRef = useRef(messages.length);
-  // uid of a message that was just expanded and should be scrolled to the top of the list
-  const scrollToTopUidRef = useRef(null);
-
-  const scrollRestoreRafRef = useRef(null);
 
   const setSelectedIndex = useCallback((index) => {
     const currentMessages = [...(body?.ws || [])];
@@ -53,33 +49,11 @@ const WSBody = ({ item, collection, handleRun, onAddMessage }) => {
       if (next.has(uid)) {
         next.delete(uid);
       } else {
-        // Expanding: bring this message to the top of the list once it re-renders.
-        scrollToTopUidRef.current = uid;
         next.add(uid);
       }
       return next;
     });
   }, []);
-
-  // After an expand re-renders the list, scroll the expanded message to the top.
-  useLayoutEffect(() => {
-    const uid = scrollToTopUidRef.current;
-    if (!uid) return;
-    scrollToTopUidRef.current = null;
-    const container = messagesContainerRef.current;
-    const el = document.getElementById(`ws-message-${uid}`);
-    if (container && el) {
-      // Clicking a message to expand it also fires the container's mousedown handler,
-      // which queues a "restore scroll to where it was" for the next frame. Cancel that
-      // pending restore, otherwise it would run and undo the scroll-to-top below.
-      if (scrollRestoreRafRef.current) {
-        cancelAnimationFrame(scrollRestoreRafRef.current);
-        scrollRestoreRafRef.current = null;
-      }
-      container.scrollTop += el.getBoundingClientRect().top - container.getBoundingClientRect().top;
-      scrollPositions.set(item.uid, container.scrollTop);
-    }
-  }, [expandedUids, item.uid]);
 
   const handleSelect = useCallback((index) => {
     if (index !== selectedIndex) {
@@ -124,22 +98,6 @@ const WSBody = ({ item, collection, handleRun, onAddMessage }) => {
     }
   }, [item.uid]);
 
-  // Clicking into a message editor focuses CodeMirror, which makes the browser
-  // scroll the container to bring the focused input into view. Snapshot the
-  // scroll position before the click and restore it on the next frame so the
-  // list doesn't jump when a message gains focus.
-  const handleContainerMouseDownCapture = useCallback(() => {
-    const container = messagesContainerRef.current;
-    if (!container) return;
-    const top = container.scrollTop;
-    scrollRestoreRafRef.current = requestAnimationFrame(() => {
-      scrollRestoreRafRef.current = null;
-      if (container.scrollTop !== top) {
-        container.scrollTop = top;
-      }
-    });
-  }, []);
-
   if (!messages.length) {
     return (
       <StyledWrapper>
@@ -161,12 +119,10 @@ const WSBody = ({ item, collection, handleRun, onAddMessage }) => {
         className="messages-container"
         data-testid="ws-messages-container"
         onScroll={handleScroll}
-        onMouseDownCapture={handleContainerMouseDownCapture}
       >
         {messages.map((message, index) => (
           <SingleWSMessage
             key={message.uid}
-            id={`ws-message-${message.uid}`}
             message={message}
             item={item}
             collection={collection}
@@ -178,6 +134,7 @@ const WSBody = ({ item, collection, handleRun, onAddMessage }) => {
             onNewRendered={handleNewMessageRendered}
             isSelected={selectedIndex === index}
             onSelect={() => handleSelect(index)}
+            fillHeight={messages.length === 1}
           />
         ))}
       </div>
