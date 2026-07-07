@@ -1088,16 +1088,26 @@ const focusCollectionSettingsTab = async (page: Page, { timeout = 10000 } = {}) 
 
 /**
  * Open a request within a folder
+ * Expand a folder in the sidebar and open a nested request.
+ * Clicks collection → folder → request explicitly to ensure the tree is expanded.
  * @param page - The page object
+ * @param collectionName - The name of the collection
  * @param folderName - The name of the folder
  * @param requestName - The name of the request
- * @returns void
  */
-const openFolderRequest = async (page: Page, folderName: string, requestName: string) => {
-  await test.step(`Open request "${requestName}" in folder "${folderName}"`, async () => {
-    const locators = buildCommonLocators(page);
-    await locators.sidebar.folderRequest(folderName, requestName).click();
-    await expect(locators.tabs.activeRequestTab()).toContainText(requestName);
+const openFolderRequest = async (page: Page, collectionName: string, folderName: string, requestName: string) => {
+  await test.step(`Open folder request "${requestName}" in "${folderName}"`, async () => {
+    const { sidebar, tabs } = buildCommonLocators(page);
+    const collectionRow = sidebar.collectionRow(collectionName);
+    await collectionRow.click();
+    const collectionWrapper = collectionRow.locator('..');
+    const folder = collectionWrapper.locator('.collection-item-name').filter({ has: page.getByText(folderName, { exact: true }) });
+    await folder.waitFor({ state: 'visible' });
+    await folder.click();
+    const request = collectionWrapper.locator('.collection-item-name').filter({ has: page.getByText(requestName, { exact: true }) });
+    await request.waitFor({ state: 'visible' });
+    await request.click();
+    await expect(tabs.activeRequestTab()).toContainText(requestName);
   });
 };
 
