@@ -74,9 +74,7 @@ const StyledWrapper = styled.div`
     transform: translateX(-50%);
     opacity: 0;
     transition: opacity 0.3s;
-    white-space: normal;
-    max-width: 300px;
-    overflow-wrap: break-word;
+    white-space: nowrap;
   }
 
   .infotip-text::after {
