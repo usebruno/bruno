@@ -75,7 +75,7 @@ const AutocompletePane = ({
             </span>
           </div>
           <ToggleSwitch
-            size="m"
+            size="xs"
             isOn={enabled}
             handleToggle={() => onToggleEnabled(!enabled)}
             data-testid="ai-autocomplete-enabled-toggle"

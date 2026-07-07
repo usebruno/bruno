@@ -125,6 +125,40 @@ describe('shouldPreserveCollectionEnvironmentInSnapshot', () => {
   });
 });
 
+describe('serializeSnapshot workspace tab restoration', () => {
+  it('records the active workspace tab type when the scratch collection tab is focused', async () => {
+    const scratchCollectionUid = 'scratch-1';
+    const state = makeState();
+    state.workspaces.workspaces[0].scratchCollectionUid = scratchCollectionUid;
+    state.tabs.tabs = [{ uid: `${scratchCollectionUid}-environments`, collectionUid: scratchCollectionUid, type: 'workspaceEnvironments' }];
+    state.tabs.activeTabUid = `${scratchCollectionUid}-environments`;
+
+    const snapshot = await serializeSnapshot(state, {
+      getExistingSnapshot: async () => null
+    });
+
+    expect(snapshot.workspaces[0]).toMatchObject({
+      activeWorkspaceTabType: 'workspaceEnvironments'
+    });
+  });
+
+  it('does not record an active workspace tab type when a non-workspace tab is focused', async () => {
+    const scratchCollectionUid = 'scratch-1';
+    const state = makeState();
+    state.workspaces.workspaces[0].scratchCollectionUid = scratchCollectionUid;
+    state.tabs.tabs = [{ uid: 'req-1', collectionUid: COLLECTION_PATH, type: 'http-request' }];
+    state.tabs.activeTabUid = 'req-1';
+
+    const snapshot = await serializeSnapshot(state, {
+      getExistingSnapshot: async () => null
+    });
+
+    expect(snapshot.workspaces[0]).toMatchObject({
+      activeWorkspaceTabType: null
+    });
+  });
+});
+
 describe('serializeSnapshot collection environment preservation', () => {
   it('creates a safe first-run snapshot when no existing snapshot is available', async () => {
     const snapshot = await serializeSnapshot(makeState(), {
