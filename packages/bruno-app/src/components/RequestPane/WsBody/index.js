@@ -3,6 +3,7 @@ import { updateRequestBody } from 'providers/ReduxStore/slices/collections';
 import { IconPlus } from '@tabler/icons';
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useDispatch } from 'react-redux';
+import { usePersistedState } from 'hooks/usePersistedState';
 import StyledWrapper from './StyledWrapper';
 import { SingleWSMessage } from './SingleWSMessage/index';
 
@@ -11,11 +12,13 @@ const getSelectedIndex = (messages) => {
   return idx >= 0 ? idx : 0;
 };
 
-const scrollPositions = new Map();
-
 const WSBody = ({ item, collection, handleRun, onAddMessage }) => {
   const dispatch = useDispatch();
   const messagesContainerRef = useRef(null);
+  const [listScrollTop, setListScrollTop] = usePersistedState({
+    key: `ws-list-scroll-${item.uid}`,
+    default: 0
+  });
   const body = item.draft ? get(item, 'draft.request.body') : get(item, 'request.body');
   const messages = body?.ws || [];
 
@@ -96,20 +99,21 @@ const WSBody = ({ item, collection, handleRun, onAddMessage }) => {
     setNewMessageUid(null);
   }, []);
 
-  // Restore the last scroll position on mount (component remounts on tab switch)
+  // Restore the last scroll position on mount (component remounts on tab switch,
+  // so listScrollTop is read synchronously for this request).
   useEffect(() => {
     const container = messagesContainerRef.current;
-    if (container && scrollPositions.has(item.uid)) {
-      container.scrollTop = scrollPositions.get(item.uid);
+    if (container) {
+      container.scrollTop = listScrollTop;
     }
   }, [item.uid]);
 
   const handleScroll = useCallback(() => {
     const container = messagesContainerRef.current;
     if (container) {
-      scrollPositions.set(item.uid, container.scrollTop);
+      setListScrollTop(container.scrollTop);
     }
-  }, [item.uid]);
+  }, [setListScrollTop]);
 
   // Clicking or typing in an editor makes the browser scroll the list to reveal
   // CodeMirror's cursor, flinging the whole panel. Pin the list's scrollTop for a

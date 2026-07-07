@@ -10,7 +10,6 @@ import { useDispatch, useSelector } from 'react-redux';
 import { queueWsMessage, isWsConnectionActive, connectWS } from 'utils/network/index';
 import { findCollectionByUid, findEnvironmentInCollection } from 'utils/collections/index';
 import toast from 'react-hot-toast';
-import { usePersistedState } from 'hooks/usePersistedState';
 import WSRequestBodyMode from '../BodyMode/index';
 import StyledWrapper from './StyledWrapper';
 
@@ -56,10 +55,6 @@ export const SingleWSMessage = ({
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(displayName);
   const labelTooltipId = `ws-msg-label-${message.uid ?? index}`;
-  const [scroll, setScroll] = usePersistedState({
-    key: `ws-msg-scroll-${item.uid}-${message.uid}`,
-    default: 0
-  });
 
   // Auto-focus the name input when this is a newly created message
   useEffect(() => {
@@ -275,9 +270,6 @@ export const SingleWSMessage = ({
             onSave={onSave}
             mode={codemirrorMode[displayMode] ?? 'text/plain'}
             enableVariableHighlighting={true}
-            initialScroll={scroll}
-            onScroll={setScroll}
-            docKey={`ws-msg-${item.uid}-${message.uid}`}
             readOnly={isSelected ? false : 'nocursor'}
           />
         </div>

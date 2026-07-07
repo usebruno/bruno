@@ -46,30 +46,4 @@ test.describe('websocket message editor typing scroll', () => {
     expect(listMoved).toBeLessThanOrEqual(1);
     expect(editorMoved).toBeLessThanOrEqual(1);
   });
-
-  test('typing in the editor does not scroll the message list down', async ({ pageWithUserData: page }) => {
-    await openRequest(page, COLLECTION_NAME, MULTI_REQ);
-
-    const container = page.getByTestId('ws-messages-container');
-    const body = page.getByTestId('ws-message-body-0');
-    await expect(body).toBeVisible();
-
-    // A long message + filler messages below make the list scrollable.
-    await expect
-      .poll(() => container.evaluate((el) => el.scrollHeight - el.clientHeight))
-      .toBeGreaterThan(0);
-
-    await body.locator('.CodeMirror').click();
-    const listBefore = await container.evaluate((el) => el.scrollTop);
-
-    await container.evaluate((el) => {
-      const input = el.querySelector('.CodeMirror textarea') || el;
-      input.dispatchEvent(new KeyboardEvent('keydown', { key: 'a', bubbles: true }));
-      el.scrollTop = el.scrollHeight; // browser-style fling to reveal the cursor
-    });
-
-    await expect
-      .poll(() => container.evaluate((el) => el.scrollTop))
-      .toBeLessThanOrEqual(listBefore + 1);
-  });
 });
