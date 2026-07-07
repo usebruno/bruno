@@ -78,7 +78,17 @@ module.exports = runESMImports().then(() => defineConfig([
       '@stylistic/max-len': ['off'],
       '@stylistic/jsx-one-expression-per-line': ['off'],
       '@stylistic/max-statements-per-line': ['off'],
-      '@stylistic/no-mixed-operators': ['off']
+      '@stylistic/no-mixed-operators': ['off'],
+      'no-unused-vars': ['warn', { args: 'none', caughtErrors: 'none' }],
+      'no-debugger': 'warn',
+      'eqeqeq': ['warn', 'always'],
+      'prefer-const': 'warn',
+      'no-var': 'warn',
+      'no-unreachable': 'warn',
+      'no-duplicate-imports': 'warn',
+      'no-self-compare': 'warn',
+      'no-empty': ['warn', { allowEmptyCatch: true }],
+      'no-use-before-define': ['warn', { functions: false }]
     }
   },
   {
