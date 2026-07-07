@@ -55,9 +55,9 @@ jobs:
     name: Playwright E2E Tests (macOS)
     timeout-minutes: 240
     runs-on: 
-      - e2e
       - macOS
       - self-hosted
+      - e2e
     steps:
       - uses: actions/checkout@v6
 
