@@ -3,7 +3,8 @@ import {
   serializeTab,
   serializeActiveTab,
   getCollectionEnvironmentPath,
-  hydrateSnapshotLookups
+  hydrateSnapshotLookups,
+  WORKSPACE_TAB_TYPES
 } from 'utils/snapshot';
 import { normalizePath } from 'utils/common/path';
 
@@ -133,6 +134,7 @@ export const serializeSnapshot = async (state, options = {}) => {
     const existingWorkspace = existingSnapshotLookups.workspacesByPath[normalizePath(workspace.pathname)];
 
     let lastActiveCollectionPathname = null;
+    let activeWorkspaceTabType = null;
 
     if (isActiveWorkspace) {
       const activeTab = tabs.tabs.find((t) => t.uid === tabs.activeTabUid);
@@ -144,8 +146,18 @@ export const serializeSnapshot = async (state, options = {}) => {
       lastActiveCollectionPathname = normalizedPathname && normalizedWorkspacePaths.includes(normalizedPathname)
         ? normalizedPathname
         : null;
+
+      if (
+        activeTab
+        && workspace.scratchCollectionUid
+        && activeTab.collectionUid === workspace.scratchCollectionUid
+        && WORKSPACE_TAB_TYPES.has(activeTab.type)
+      ) {
+        activeWorkspaceTabType = activeTab.type;
+      }
     } else {
       lastActiveCollectionPathname = existingWorkspace?.lastActiveCollectionPathname || null;
+      activeWorkspaceTabType = existingWorkspace?.activeWorkspaceTabType || null;
     }
 
     const workspaceSorting = isActiveWorkspace
@@ -157,6 +169,7 @@ export const serializeSnapshot = async (state, options = {}) => {
       environment: '',
       lastActiveCollectionPathname,
       sorting: workspaceSorting,
+      activeWorkspaceTabType,
       collections: [...workspaceCollectionPaths]
     });
   });
