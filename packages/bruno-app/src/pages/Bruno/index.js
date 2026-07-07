@@ -175,12 +175,11 @@ export default function Main() {
               </>
             )}
           </section>
-          {isAiSidebarOpen && activeCollection && (
-            isAiPoppedOut ? (
-              <AiChatPopout collection={activeCollection} />
-            ) : !showApiSpecPage && !showManageWorkspacePage ? (
-              <AiChatSidebar collection={activeCollection} />
-            ) : null
+          {isAiSidebarOpen && activeCollection && isAiPoppedOut && (
+            <AiChatPopout collection={activeCollection} />
+          )}
+          {isAiSidebarOpen && activeCollection && !isAiPoppedOut && !showApiSpecPage && !showManageWorkspacePage && (
+            <AiChatSidebar collection={activeCollection} />
           )}
         </StyledWrapper>
       </div>

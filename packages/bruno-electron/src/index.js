@@ -15,7 +15,7 @@ if (isDev) {
 }
 
 const { format } = require('url');
-const { BrowserWindow, app, session, Menu, globalShortcut, ipcMain, nativeTheme } = require('electron');
+const { BrowserWindow, app, session, Menu, globalShortcut, ipcMain, nativeTheme, shell } = require('electron');
 const { setContentSecurityPolicy } = require('electron-util');
 
 if (isDev && process.env.ELECTRON_USER_DATA_PATH) {
@@ -439,7 +439,7 @@ app.on('ready', async () => {
           minWidth: 400,
           minHeight: 480,
           backgroundColor: themeBg,
-          icon: path.join(__dirname, 'about/256x256.png'),
+          icon: path.join(__dirname, 'about', '256x256.png'),
           autoHideMenuBar: true,
           // No OS title bar, the chat header is the drag region and carries
           // its own close/dock controls.
@@ -464,7 +464,9 @@ app.on('ready', async () => {
     // navigate the popout document itself (that would tear down the portal).
     const openExternally = (url) => {
       if (/^https?:\/\//.test(url)) {
-        require('electron').shell.openExternal(url);
+        shell.openExternal(url).catch((err) => {
+          console.error('Failed to open external URL from AI popout:', err);
+        });
       }
     };
     childWindow.webContents.setWindowOpenHandler(({ url }) => {

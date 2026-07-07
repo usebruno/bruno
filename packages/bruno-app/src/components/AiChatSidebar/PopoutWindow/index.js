@@ -55,9 +55,16 @@ const PopoutWindow = ({ title, width = 480, height = 640, onClose, children }) =
     doc.title = title;
     copyStyles(document, doc);
     // Mirror the theme classes ('light'/'dark' live on <html>) so any
-    // selectors keyed on them keep working in the popout.
-    doc.documentElement.className = document.documentElement.className;
-    doc.body.className = document.body.className;
+    // selectors keyed on them keep working in the popout and keep them in
+    // sync when the user switches theme while the popout is open.
+    const syncThemeClasses = () => {
+      doc.documentElement.className = document.documentElement.className;
+      doc.body.className = document.body.className;
+    };
+    syncThemeClasses();
+    const themeObserver = new MutationObserver(syncThemeClasses);
+    themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+    themeObserver.observe(document.body, { attributes: true, attributeFilter: ['class'] });
     doc.documentElement.style.height = '100%';
     doc.body.style.height = '100%';
     doc.body.style.margin = '0';
@@ -103,6 +110,7 @@ const PopoutWindow = ({ title, width = 480, height = 640, onClose, children }) =
     setContainer(mount);
 
     return () => {
+      themeObserver.disconnect();
       clearInterval(pollTimer);
       window.removeEventListener('beforeunload', safeCloseChild);
       safeCloseChild();

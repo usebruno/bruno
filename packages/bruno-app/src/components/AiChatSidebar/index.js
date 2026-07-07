@@ -68,6 +68,11 @@ const MAX_SIDEBAR_WIDTH = 720;
 const clampSidebarWidth = (value) =>
   Math.min(MAX_SIDEBAR_WIDTH, Math.max(MIN_SIDEBAR_WIDTH, value));
 
+// The docked sidebar and the popout are different subtrees, so switching
+// between them remounts this component. Keep the unsent draft here so it
+// survives the pop-out/dock transition.
+let draftInputCache = '';
+
 const ToolActivityGroup = ({ activities }) => {
   if (!activities?.length) return null;
   const allDone = activities.every((a) => a.done);
@@ -185,7 +190,11 @@ const HistoryPopover = ({ items, activeId, onPick, onDelete, onClose }) => {
 const AiChatSidebar = ({ collection, variant = 'sidebar' }) => {
   const dispatch = useDispatch();
   const isPopout = variant === 'popout';
-  const [input, setInput] = useState('');
+  const [input, _setInput] = useState(() => draftInputCache);
+  const setInput = useCallback((value) => {
+    draftInputCache = value;
+    _setInput(value);
+  }, []);
   const [processingStage, setProcessingStage] = useState(null);
   const [availableModels, setAvailableModels] = useState([]);
   const [selectedModel, setSelectedModel] = useState(() => {
@@ -448,6 +457,16 @@ const AiChatSidebar = ({ collection, variant = 'sidebar' }) => {
   useEffect(() => {
     if (isOpen) textareaRef.current?.focus();
   }, [isOpen]);
+
+  // Re-measure the textarea on mount when a draft was restored from the
+  // module cache (pop-out/dock remount) so it isn't stuck at one row.
+  useEffect(() => {
+    const el = textareaRef.current;
+    if (el && el.value) {
+      el.style.height = 'auto';
+      el.style.height = Math.min(el.scrollHeight, 150) + 'px';
+    }
+  }, []);
 
   useEffect(() => {
     if (!resizing) return;
@@ -811,6 +830,7 @@ const AiChatSidebar = ({ collection, variant = 'sidebar' }) => {
       {!isPopout && (
         <div
           className="ai-sidebar-resize-handle"
+          data-testid="ai-sidebar-resize-handle"
           onMouseDown={handleResizeStart}
           role="separator"
           aria-orientation="vertical"
@@ -873,6 +893,7 @@ const AiChatSidebar = ({ collection, variant = 'sidebar' }) => {
               className="icon-btn"
               onClick={handleTogglePopout}
               title={isPopout ? 'Dock to sidebar' : 'Open in new window'}
+              data-testid="ai-popout-toggle"
             >
               {isPopout ? <IconLayoutSidebarRightExpand size={14} /> : <IconExternalLink size={14} />}
             </button>
