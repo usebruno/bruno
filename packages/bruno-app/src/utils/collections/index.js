@@ -725,7 +725,7 @@ export const transformRequestToSaveToFilesystem = (item) => {
   };
 
   const appToSave = _item.app && _item.app.code && _item.app.code.length
-    ? { code: _item.app.code }
+    ? { code: _item.app.code, enabled: _item.app.enabled === true }
     : null;
 
   const itemToSave = {

@@ -528,7 +528,8 @@ const sem = grammar.createSemantics().addAttribute('ast', {
     const appData = mapPairListToKeyValPair(dictionary.ast);
     return {
       app: {
-        code: appData.code || null
+        code: appData.code || null,
+        enabled: typeof appData.enabled === 'boolean' ? appData.enabled : appData.enabled === 'true'
       }
     };
   },
@@ -541,6 +542,10 @@ const sem = grammar.createSemantics().addAttribute('ast', {
     const parsedSettings = {};
     if (settings.followRedirects !== undefined) {
       parsedSettings.followRedirects = typeof settings.followRedirects === 'boolean' ? settings.followRedirects : settings.followRedirects === 'true';
+    }
+
+    if (settings.enableApp !== undefined) {
+      parsedSettings.enableApp = typeof settings.enableApp === 'boolean' ? settings.enableApp : settings.enableApp === 'true';
     }
 
     // Parse maxRedirects as number
@@ -574,6 +579,10 @@ const sem = grammar.createSemantics().addAttribute('ast', {
 
     if (parsedSettings.maxRedirects !== undefined) {
       _settings.maxRedirects = parsedSettings.maxRedirects;
+    }
+
+    if (parsedSettings.enableApp !== undefined) {
+      _settings.enableApp = parsedSettings.enableApp;
     }
 
     if (keepAliveInterval) {

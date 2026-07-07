@@ -64,7 +64,7 @@ const waitForGuestReady = async (electronApp: ElectronApplication, collectionNam
 // directly to avoid auto-close-bracket corruption when typing HTML/JS.
 const setCollectionAppCode = async (page, code: string) => {
   await selectAppView(page, 'code');
-  const editor = page.getByTestId('collection-app-code').locator('.CodeMirror').first();
+  const editor = page.locator('.app-preview-slot.active').getByTestId('collection-app-code').locator('.CodeMirror').first();
   await editor.waitFor({ state: 'visible' });
   await editor.evaluate((el, val) => {
     const cm = (el as any).CodeMirror;
@@ -112,13 +112,13 @@ test.describe('Collection apps', () => {
     });
 
     await test.step('Tab opens, Code/Preview toggle works', async () => {
-      await expect(page.getByTestId('collection-app')).toBeVisible({ timeout: 5000 });
-      await expect(page.getByTestId('collection-app-view-preview')).toHaveClass(/active/);
+      await expect(page.locator('.app-preview-slot.active').getByTestId('collection-app')).toBeVisible({ timeout: 5000 });
+      await expect(page.locator('.app-preview-slot.active').getByTestId('collection-app-view-preview')).toHaveClass(/active/);
       await selectAppView(page, 'code');
-      await expect(page.getByTestId('collection-app-code')).toBeVisible();
-      await expect(page.getByTestId('collection-app-view-code')).toHaveClass(/active/);
+      await expect(page.locator('.app-preview-slot.active').getByTestId('collection-app-code')).toBeVisible();
+      await expect(page.locator('.app-preview-slot.active').getByTestId('collection-app-view-code')).toHaveClass(/active/);
       await selectAppView(page, 'preview');
-      await expect(page.getByTestId('collection-app-preview').locator('webview')).toBeVisible();
+      await expect(page.locator('.app-preview-slot.active').getByTestId('collection-app-preview').locator('webview')).toBeVisible();
     });
   });
 

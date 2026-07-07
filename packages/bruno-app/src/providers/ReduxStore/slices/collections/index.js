@@ -3415,12 +3415,11 @@ export const collectionsSlice = createSlice({
 
       const item = findItemInCollection(collection, action.payload.itemUid);
       if (item && isItemARequest(item)) {
-        item.app = item.app || {};
-        item.app.enabled = action.payload.enabled;
-        if (item.draft) {
-          item.draft.app = item.draft.app || {};
-          item.draft.app.enabled = action.payload.enabled;
+        if (!item.draft) {
+          item.draft = cloneDeep(item);
         }
+        item.draft.app = item.draft.app || {};
+        item.draft.app.enabled = action.payload.enabled;
       }
     },
     appSetRuntimeVariable: (state, action) => {

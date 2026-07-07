@@ -10,9 +10,9 @@ import {
 import {
   responseReceived,
   appSetRuntimeVariable,
-  toggleAppMode,
   initRunRequestEvent
 } from 'providers/ReduxStore/slices/collections';
+import { toggleAppModeAndSave } from 'providers/ReduxStore/slices/collections/actions';
 import { uuid } from 'utils/common';
 import { useTheme } from 'providers/Theme';
 import StyledWrapper from './StyledWrapper';
@@ -284,7 +284,7 @@ const AppView = ({ item, collection, code }) => {
   }, [variables, pushToGuest]);
 
   const disableApp = useCallback(() => {
-    dispatch(toggleAppMode({ enabled: false, itemUid: item.uid, collectionUid: collection.uid }));
+    dispatch(toggleAppModeAndSave({ enabled: false, itemUid: item.uid, collectionUid: collection.uid }));
   }, [dispatch, item.uid, collection.uid]);
 
   return (

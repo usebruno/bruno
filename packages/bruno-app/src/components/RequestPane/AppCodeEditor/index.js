@@ -1,12 +1,12 @@
 import React, { useMemo } from 'react';
 import get from 'lodash/get';
 import { useDispatch, useSelector } from 'react-redux';
+import { IconAppWindow } from '@tabler/icons';
 import CodeEditor from 'components/CodeEditor';
-import ToggleSwitch from 'components/ToggleSwitch';
 import AIAssist from 'components/AIAssist';
 import { buildAiContextPayload } from 'utils/ai';
-import { updateAppCode, toggleAppMode } from 'providers/ReduxStore/slices/collections';
-import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
+import { updateAppCode } from 'providers/ReduxStore/slices/collections';
+import { saveRequest, toggleAppModeAndSave } from 'providers/ReduxStore/slices/collections/actions';
 import { useTheme } from 'providers/Theme';
 import StyledWrapper from './StyledWrapper';
 
@@ -16,13 +16,12 @@ const AppCodeEditor = ({ item, collection }) => {
   const preferences = useSelector((state) => state.app.preferences);
 
   const code = item.draft ? get(item, 'draft.app.code', '') : get(item, 'app.code', '');
-  const enabled = item.draft ? get(item, 'draft.app.enabled', false) : get(item, 'app.enabled', false);
 
   const onEdit = (value) =>
     dispatch(updateAppCode({ code: value, itemUid: item.uid, collectionUid: collection.uid }));
 
-  const onToggle = () =>
-    dispatch(toggleAppMode({ enabled: !enabled, itemUid: item.uid, collectionUid: collection.uid }));
+  const onPreview = () =>
+    dispatch(toggleAppModeAndSave({ enabled: true, itemUid: item.uid, collectionUid: collection.uid }));
 
   const onSave = () => dispatch(saveRequest(item.uid, collection.uid));
 
@@ -34,13 +33,18 @@ const AppCodeEditor = ({ item, collection }) => {
   return (
     <StyledWrapper className="w-full h-full flex flex-col">
       <div className="app-toggle-row mb-3 px-1 pb-3 flex items-center justify-between">
-        <div className="flex flex-col">
-          <label className="text-xs font-medium">Enable App</label>
-          <p className="text-xs opacity-70">
-            When enabled, replaces the request/response panes with the app view for this request.
-          </p>
-        </div>
-        <ToggleSwitch isOn={enabled} handleToggle={onToggle} size="xs" data-testid="app-enable-toggle" />
+        <p className="text-xs opacity-70">
+          The app view replaces the request/response panes for this request.
+        </p>
+        <button
+          type="button"
+          className="btn btn-sm btn-secondary flex items-center gap-1"
+          onClick={onPreview}
+          data-testid="app-preview-btn"
+        >
+          <IconAppWindow size={14} strokeWidth={1.5} />
+          Preview
+        </button>
       </div>
 
       <div className="flex-1 app-editor relative" data-testid="app-code-editor">

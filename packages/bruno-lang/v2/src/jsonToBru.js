@@ -774,6 +774,9 @@ ${indentString(tests)}
 
   if (app && app.code && app.code.length) {
     bru += `app {\n`;
+    if (app.enabled === true) {
+      bru += `  enabled: true\n`;
+    }
     bru += `  code: '''\n${indentString(app.code, 2)}\n  '''`;
     bru += '\n}\n\n';
   }

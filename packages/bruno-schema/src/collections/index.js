@@ -675,6 +675,7 @@ const itemSchema = Yup.object({
         followRedirects: Yup.boolean().nullable(),
         maxRedirects: Yup.number().min(0).max(50).nullable(),
         timeout: Yup.mixed().nullable(),
+        enableApp: Yup.boolean().nullable(),
       }).noUnknown(true)
     .strict()
     .nullable()
@@ -699,7 +700,8 @@ const itemSchema = Yup.object({
     otherwise: Yup.array().strip()
   }),
   app: Yup.object({
-    code: Yup.string().nullable()
+    code: Yup.string().nullable(),
+    enabled: Yup.boolean().nullable()
   })
     .noUnknown(true)
     .nullable(),

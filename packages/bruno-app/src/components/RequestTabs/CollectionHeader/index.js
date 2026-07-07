@@ -23,8 +23,8 @@ import IconSparkles from 'components/Icons/IconSparkles';
 import OpenAPISyncIcon from 'components/Icons/OpenAPISync';
 import { switchWorkspace, renameWorkspaceAction, exportWorkspaceAction, confirmWorkspaceCreation, cancelWorkspaceCreation } from 'providers/ReduxStore/slices/workspaces/actions';
 import { updateWorkspace } from 'providers/ReduxStore/slices/workspaces';
-import { showInFolder } from 'providers/ReduxStore/slices/collections/actions';
-import { toggleCollectionFileMode, toggleAppMode } from 'providers/ReduxStore/slices/collections';
+import { showInFolder, toggleAppModeAndSave } from 'providers/ReduxStore/slices/collections/actions';
+import { toggleCollectionFileMode } from 'providers/ReduxStore/slices/collections';
 import { toggleAiSidebar } from 'providers/ReduxStore/slices/chat';
 import MigrateToYmlModal from 'components/CollectionSettings/Overview/Migration/MigrateToYmlModal';
 import { findItemInCollection, findItemInCollectionByPathname } from 'utils/collections';
@@ -85,10 +85,14 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
   const appEnabled = activeItem
     ? (activeItem.draft ? get(activeItem, 'draft.app.enabled', false) : get(activeItem, 'app.enabled', false))
     : false;
+  const appAvailable = isHttpRequestActive
+    && (activeItem.draft
+      ? get(activeItem, 'draft.settings.enableApp', false)
+      : get(activeItem, 'settings.enableApp', false)) === true;
 
   const handleToggleAppMode = (enabled) => {
     if (isHttpRequestActive) {
-      dispatch(toggleAppMode({ enabled, itemUid: activeItem.uid, collectionUid: collection.uid }));
+      dispatch(toggleAppModeAndSave({ enabled, itemUid: activeItem.uid, collectionUid: collection.uid }));
     }
   };
 
@@ -296,9 +300,9 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
   // Build overflow menu items for the "..." dropdown
   const overflowMenuItems = [
     { id: 'variables', label: 'Variables', leftSection: IconEye, onClick: viewVariables },
-    // File mode is exposed via the Request/App/File view-mode toggle when a request is active;
-    // keep it in the overflow as a fallback for non-request contexts.
-    ...(!isHttpRequestActive
+    // File mode is exposed via the Request/App/File view-mode toggle when the active
+    // request has apps enabled; keep it in the overflow as a fallback everywhere else.
+    ...(!appAvailable
       ? [{ id: 'file-mode', label: collection.fileMode ? 'Switch to Code Mode' : 'Switch to File Mode', leftSection: collection.fileMode ? IconFileOff : IconFileCode, onClick: handleFileModeClick }]
       : []),
     ...(!hasOpenApiSyncConfigured
@@ -653,7 +657,7 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
         <div className="flex flex-grow gap-1.5 items-center justify-end">
           {!isScratchCollection && (
             <>
-              {isHttpRequestActive && (
+              {appAvailable && (
                 <div className="mode-toggle" data-testid="view-mode-toggle">
                   <ToolHint text="Request" toolhintId="ViewModeRequestToolhintId" place="bottom">
                     <button

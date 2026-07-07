@@ -139,6 +139,10 @@ const stringifyHttpRequest = (item: BrunoItem): string => {
       settings.maxRedirects = 5;
     }
 
+    if (httpSettings?.enableApp === true) {
+      (settings as any).enableApp = true;
+    }
+
     ocRequest.settings = settings;
 
     // examples

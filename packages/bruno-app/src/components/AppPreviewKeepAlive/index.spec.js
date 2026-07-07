@@ -46,6 +46,7 @@ const requestAppItem = {
   uid: 'item-1',
   name: 'My Request App',
   type: 'http-request',
+  settings: { enableApp: true },
   app: { enabled: true, code: '<div>hi</div>' },
   request: {}
 };
@@ -98,6 +99,22 @@ describe('AppPreviewKeepAlive', () => {
     const hiddenSlot = screen.getByTestId('mock-app-view').closest('.app-preview-slot');
     expect(hiddenSlot).not.toHaveClass('active');
     expect(hiddenSlot).toHaveAttribute('aria-hidden', 'true');
+  });
+
+  it('does not mount request apps when the Enable App setting is off', () => {
+    const gatedItem = {
+      ...requestAppItem,
+      uid: 'item-gated',
+      settings: { enableApp: false }
+    };
+    const gatedCollection = { uid: 'coll-1', items: [gatedItem] };
+    const { store } = makeStore({
+      tabs: [tabFor(gatedItem)],
+      activeTabUid: gatedItem.uid,
+      collections: [gatedCollection]
+    });
+    render(<Provider store={store}><AppPreviewKeepAlive /></Provider>);
+    expect(screen.queryByTestId('mock-app-view')).not.toBeInTheDocument();
   });
 
   it('does not mount app tabs that were never activated', () => {

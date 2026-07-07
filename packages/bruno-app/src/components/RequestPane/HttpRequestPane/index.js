@@ -75,6 +75,8 @@ const HttpRequestPane = ({ item, collection }) => {
   const auth = getProperty('request.auth');
   const tags = getProperty('tags');
   const app = item.draft ? get(item, 'draft.app') : get(item, 'app');
+  const appTabEnabled
+    = (item.draft ? get(item, 'draft.settings.enableApp', false) : get(item, 'settings.enableApp', false)) === true;
 
   const activeCounts = useMemo(() => ({
     params: params.filter((p) => p.enabled).length,
@@ -116,14 +118,18 @@ const HttpRequestPane = ({ item, collection }) => {
   }, [activeCounts, body.mode, hasAuth, script, item.preRequestScriptErrorMessage, item.postResponseScriptErrorMessage, item.testScriptErrorMessage, tests, docs, app, tags]);
 
   const allTabs = useMemo(
-    () => TAB_CONFIG.map(({ key, label }) => ({ key, label, indicator: indicators[key] })),
-    [indicators]
+    () => TAB_CONFIG
+      .filter(({ key }) => key !== 'app' || appTabEnabled)
+      .map(({ key, label }) => ({ key, label, indicator: indicators[key] })),
+    [indicators, appTabEnabled]
   );
 
   const tabPanel = useMemo(() => {
-    const Component = TAB_PANELS[requestPaneTab];
+    // A previously selected App tab may be restored while apps are disabled in settings.
+    const effectiveTab = requestPaneTab === 'app' && !appTabEnabled ? 'params' : requestPaneTab;
+    const Component = TAB_PANELS[effectiveTab];
     return Component ? <Component key={item.uid} item={item} collection={collection} /> : <div className="mt-4">404 | Not found</div>;
-  }, [requestPaneTab, item, collection]);
+  }, [requestPaneTab, appTabEnabled, item, collection]);
 
   if (!activeTabUid || !focusedTab?.uid || !requestPaneTab) {
     return <div className="pb-4 px-4">An error occurred!</div>;

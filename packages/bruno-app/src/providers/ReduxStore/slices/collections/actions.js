@@ -67,7 +67,8 @@ import {
   addTransientDirectory,
   addSaveTransientRequestModal,
   updatePathParam,
-  toggleCollection
+  toggleCollection,
+  toggleAppMode
 } from './index';
 
 import { each } from 'lodash';
@@ -197,6 +198,13 @@ export const saveRequest = (itemUid, collectionUid, silent = false) => (dispatch
         reject(err);
       });
   });
+};
+
+// Preview (app mode) on/off is persisted in the file, so toggling saves right
+// away instead of leaving the request in a draft state.
+export const toggleAppModeAndSave = ({ enabled, itemUid, collectionUid }) => (dispatch) => {
+  dispatch(toggleAppMode({ enabled, itemUid, collectionUid }));
+  return dispatch(saveRequest(itemUid, collectionUid, true)).catch(() => {});
 };
 
 export const saveFile = (content, itemUid, collectionUid, silent = false) => async (dispatch, getState) => {
