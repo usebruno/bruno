@@ -217,8 +217,11 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
       if (hasChanges) {
         setShowConfirmClose(true);
       } else {
-        if (item?.type === 'ws-request' || item?.type === 'signalr-request') {
+        if (item?.type === 'ws-request') {
           closeWsConnection(item.uid);
+        }
+        if (item?.type === 'signalr-request') {
+          stopSignalRConnection(item.uid);
         }
         dispatch(closeTabs({ tabUids: [tab.uid] }));
       }
