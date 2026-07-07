@@ -289,7 +289,7 @@ const AI = () => {
     <StyledWrapper className="w-full flex flex-col text-xs min-h-0 max-h-[calc(100%-30px)]">
       <div className="section-header">AI</div>
 
-      <div className="ai-tabs flex items-center gap-1" role="tablist" aria-label="AI preferences">
+      <div className="ai-tabs flex items-center" role="tablist" aria-label="AI preferences">
         <button
           type="button"
           role="tab"
