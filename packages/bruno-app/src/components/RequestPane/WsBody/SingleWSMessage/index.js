@@ -7,7 +7,7 @@ import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { useTheme } from 'providers/Theme';
 import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { queueWsMessage, isWsConnectionActive, connectWS } from 'utils/network/index';
+import { queueWsMessage, isWsConnectionActive, connectWS, isSignalRConnectionActive, connectSignalR, sendSignalRMessage } from 'utils/network/index';
 import { findCollectionByUid, findEnvironmentInCollection } from 'utils/collections/index';
 import toast from 'react-hot-toast';
 import WSRequestBodyMode from '../BodyMode/index';
@@ -34,6 +34,8 @@ export const SingleWSMessage = ({
   collection,
   index,
   handleRun,
+  messagesKey = 'ws',
+  hideSendButton = false,
   isExpanded,
   onToggle,
   isNew,
@@ -66,7 +68,7 @@ export const SingleWSMessage = ({
 
   const saveName = (value) => {
     const trimmed = value.trim() || `message ${index + 1}`;
-    const currentMessages = [...(body.ws || [])];
+    const currentMessages = [...(body[messagesKey] || [])];
     currentMessages[index] = {
       ...currentMessages[index],
       name: trimmed
@@ -108,7 +110,7 @@ export const SingleWSMessage = ({
   }, [content, lineHeight]);
 
   const onUpdateMessageType = (newMode) => {
-    const currentMessages = [...(body.ws || [])];
+    const currentMessages = [...(body[messagesKey] || [])];
     currentMessages[index] = {
       ...currentMessages[index],
       type: typeToMode(newMode)
@@ -121,7 +123,7 @@ export const SingleWSMessage = ({
   };
 
   const onEdit = (value) => {
-    const currentMessages = [...(body.ws || [])];
+    const currentMessages = [...(body[messagesKey] || [])];
     currentMessages[index] = {
       ...currentMessages[index],
       name: name || `message ${index + 1}`,
@@ -137,7 +139,7 @@ export const SingleWSMessage = ({
   const onSave = () => dispatch(saveRequest(item.uid, collection.uid));
 
   const onDeleteMessage = () => {
-    const currentMessages = [...(body.ws || [])];
+    const currentMessages = [...(body[messagesKey] || [])];
     currentMessages.splice(index, 1);
     dispatch(updateRequestBody({
       content: currentMessages,
@@ -151,20 +153,41 @@ export const SingleWSMessage = ({
       const col = findCollectionByUid(collections, collection.uid);
       const environment = findEnvironmentInCollection(col, col?.activeEnvironmentUid);
 
-      // Auto-connect if not already connected
-      const connectionStatus = await isWsConnectionActive(item.uid);
-      if (!connectionStatus.isActive) {
-        await connectWS(item, col, environment, col?.runtimeVariables, { connectOnly: true });
-      }
-
-      const result = await queueWsMessage(item, col, environment, col?.runtimeVariables, index);
-      if (!result.success) {
-        toast.error(result.error || 'Failed to send message');
+      if (messagesKey === 'signalr') {
+        const connectionStatus = await isSignalRConnectionActive(item.uid);
+        if (!connectionStatus.isActive) {
+          await connectSignalR(item, col, environment, col?.runtimeVariables);
+        }
+        const msg = body?.[messagesKey]?.[index];
+        if (msg) {
+          let args = [];
+          try {
+            args = JSON.parse(msg.content || '[]');
+            if (!Array.isArray(args)) {
+              args = [args];
+            }
+          } catch (e) {
+            args = [];
+          }
+          const result = await sendSignalRMessage(item.uid, msg.name, args);
+          if (!result.success) {
+            toast.error(result.error || 'Failed to send message');
+          }
+        }
+      } else {
+        const connectionStatus = await isWsConnectionActive(item.uid);
+        if (!connectionStatus.isActive) {
+          await connectWS(item, col, environment, col?.runtimeVariables, { connectOnly: true });
+        }
+        const result = await queueWsMessage(item, col, environment, col?.runtimeVariables, index);
+        if (!result.success) {
+          toast.error(result.error || 'Failed to send message');
+        }
       }
     } catch (err) {
       toast.error(err.message || 'Failed to send message');
     }
-  }, [collections]);
+  }, [collections, messagesKey, item, body, index]);
 
   return (
     <StyledWrapper
@@ -230,12 +253,14 @@ export const SingleWSMessage = ({
         </div>
         <div className="accordion-actions" onClick={(e) => e.stopPropagation()}>
           <div className="hover-actions">
-            <ToolHint text="Send" toolhintId={`send-msg-${index}`}>
-              <button onClick={onSendMessage} className="hover-action-btn" data-testid={`ws-send-msg-${index}`}>
-                <IconSend size={14} strokeWidth={1.5} />
-              </button>
-            </ToolHint>
-            {(body.ws || []).length > 1 && (
+            {!hideSendButton && (
+              <ToolHint text="Send" toolhintId={`send-msg-${index}`}>
+                <button onClick={onSendMessage} className="hover-action-btn" data-testid={`ws-send-msg-${index}`}>
+                  <IconSend size={14} strokeWidth={1.5} />
+                </button>
+              </ToolHint>
+            )}
+            {(messagesKey === 'signalr' || (body[messagesKey] || []).length > 1) && (
               <ToolHint text="Delete" toolhintId={`delete-msg-${index}`}>
                 <button onClick={onDeleteMessage} className="hover-action-btn delete" data-testid={`ws-delete-msg-${index}`}>
                   <IconTrash size={14} strokeWidth={1.5} />

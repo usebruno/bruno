@@ -1,3 +1,11 @@
+import {
+  startSignalRConnection as _startSignalRConnection,
+  stopSignalRConnection as _stopSignalRConnection,
+  isSignalRConnectionActive as _isSignalRConnectionActive,
+  getSignalRConnectionStatus as _getSignalRConnectionStatus,
+  sendSignalRMessage as _sendSignalRMessage
+} from 'utils/signalr/connections';
+
 export const sendNetworkRequest = async (item, collection, environment, runtimeVariables) => {
   return new Promise((resolve, reject) => {
     if (['http-request', 'graphql-request'].includes(item.type)) {
@@ -337,4 +345,71 @@ export const getWsConnectionStatus = async (requestId) => {
     const { ipcRenderer } = window;
     ipcRenderer.invoke('renderer:ws:connection-status', requestId).then(resolve).catch(reject);
   });
+};
+
+// Server events are now intercepted automatically by the main process
+// via the _invokeClientMethod override (signalr-event-handlers.js).
+export const connectSignalR = async (item, collection, environment, runtimeVariables) => {
+  return new Promise((resolve, reject) => {
+    _startSignalRConnection(item, collection, environment, runtimeVariables)
+      .then((result) => {
+        resolve({
+          ...result,
+          timeline: []
+        });
+      })
+      .catch((err) => reject(err));
+  });
+};
+
+export const sendSignalRRequest = async (item, collection, environment, runtimeVariables, selectedMessageIndex = 0) => {
+  const ensureConnection = async () => {
+    const connectionStatus = await _isSignalRConnectionActive(item.uid);
+    if (!connectionStatus.isActive) {
+      await _startSignalRConnection(item, collection, environment, runtimeVariables);
+    }
+  };
+
+  await ensureConnection();
+
+  const request = item.draft ? item.draft.request : item.request;
+  const messages = request?.body?.signalr || [];
+  const selectedMsg = messages[selectedMessageIndex];
+  if (!selectedMsg) {
+    throw new Error('No message selected');
+  }
+
+  let args = [];
+  try {
+    args = JSON.parse(selectedMsg.content || '[]');
+    if (!Array.isArray(args)) {
+      args = [args];
+    }
+  } catch (e) {
+    args = [];
+  }
+
+  const result = await _sendSignalRMessage(item.uid, selectedMsg.name, args);
+
+  if (result.success) {
+    return {};
+  } else {
+    throw new Error(result.error || 'Failed to send SignalR message');
+  }
+};
+
+export const sendSignalRMessage = async (requestId, method, args) => {
+  return _sendSignalRMessage(requestId, method, args);
+};
+
+export const stopSignalRConnection = async (requestId) => {
+  return _stopSignalRConnection(requestId);
+};
+
+export const isSignalRConnectionActive = async (requestId) => {
+  return _isSignalRConnectionActive(requestId);
+};
+
+export const getSignalRConnectionStatusFn = async (requestId) => {
+  return _getSignalRConnectionStatus(requestId);
 };

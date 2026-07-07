@@ -7,7 +7,7 @@ export const PRESET_REQUEST_TYPES = {
   GRAPHQL: 'graphql',
   GRPC: 'grpc',
   WS: 'ws',
-  SIGNALR: 'signalr-request'
+  SIGNALR: 'signalr'
 };
 
 export const DEFAULT_PRESET_REQUEST_TYPE = PRESET_REQUEST_TYPES.HTTP;

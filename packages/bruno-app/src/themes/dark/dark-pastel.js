@@ -243,6 +243,7 @@ const darkPastelTheme = {
     },
     grpc: '#9e8fd9', // Soft indigo
     ws: colors.MAGENTA, // Orchid
+    signalr: 'hsl(210, 55%, 45%)',
     gql: colors.PINK // Rose
   },
 

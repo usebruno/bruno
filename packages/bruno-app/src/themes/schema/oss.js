@@ -328,9 +328,10 @@ export const ossSchema = {
         },
         grpc: { type: 'string' },
         ws: { type: 'string' },
+        signalr: { type: 'string' },
         gql: { type: 'string' }
       },
-      required: ['methods', 'grpc', 'ws', 'gql'],
+      required: ['methods', 'grpc', 'ws', 'signalr', 'gql'],
       additionalProperties: false
     },
 

@@ -1,0 +1,24 @@
+meta {
+  name: signalr-headers-auth
+  type: signalr
+  seq: 4
+}
+
+signalr {
+  url: http://localhost:8081/hub
+  body: signalr
+  auth: bearer
+}
+
+headers {
+  Authorization: Bearer test-token-123
+  X-Custom-Header: custom-value
+}
+
+body:signalr {
+  name: AuthenticatedMethod
+  type: json
+  content: '''
+    ["data"]
+  '''
+}

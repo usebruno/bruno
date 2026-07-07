@@ -1,7 +1,7 @@
 import React, { useMemo, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import MenuDropdown from 'ui/MenuDropdown';
-import { newHttpRequest, newGrpcRequest, newWsRequest } from 'providers/ReduxStore/slices/collections/actions';
+import { newHttpRequest, newGrpcRequest, newWsRequest, newSignalRRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { generateUniqueRequestName } from 'utils/collections';
 import { sanitizeName } from 'utils/common/regex';
 import toast from 'react-hot-toast';
@@ -85,6 +85,27 @@ const CreateUntitledRequest = ({ collectionUid, itemUid = null, onRequestCreated
       .catch((err) => toast.error(err ? err.message : 'An error occurred while adding the request'));
   }, [dispatch, collection, itemUid, onRequestCreated]);
 
+  const handleCreateSignalRRequest = useCallback(async () => {
+    const uniqueName = await generateUniqueRequestName(collection, 'Untitled', itemUid);
+    const filename = sanitizeName(uniqueName);
+
+    dispatch(
+      newSignalRRequest({
+        requestName: uniqueName,
+        filename: filename,
+        requestUrl: '',
+        requestMethod: 'signalr',
+        collectionUid: collection.uid,
+        itemUid: itemUid
+      })
+    )
+      .then(() => {
+        toast.success('New request created!');
+        onRequestCreated?.();
+      })
+      .catch((err) => toast.error(err ? err.message : 'An error occurred while adding the request'));
+  }, [dispatch, collection, itemUid, onRequestCreated]);
+
   const handleCreateGrpcRequest = useCallback(async () => {
     const uniqueName = await generateUniqueRequestName(collection, 'Untitled', itemUid);
     const filename = sanitizeName(uniqueName);
@@ -125,12 +146,18 @@ const CreateUntitledRequest = ({ collectionUid, itemUid = null, onRequestCreated
       onClick: handleCreateWebSocketRequest
     },
     {
+      id: 'signalr',
+      label: 'SignalR',
+      leftSection: <IconPlugConnected size={16} strokeWidth={2} />,
+      onClick: handleCreateSignalRRequest
+    },
+    {
       id: 'grpc',
       label: 'gRPC',
       leftSection: <IconCode size={16} strokeWidth={2} />,
       onClick: handleCreateGrpcRequest
     }
-  ], [handleCreateHttpRequest, handleCreateGraphQLRequest, handleCreateWebSocketRequest, handleCreateGrpcRequest]);
+  ], [handleCreateHttpRequest, handleCreateGraphQLRequest, handleCreateWebSocketRequest, handleCreateSignalRRequest, handleCreateGrpcRequest]);
 
   if (!collection) {
     return null;

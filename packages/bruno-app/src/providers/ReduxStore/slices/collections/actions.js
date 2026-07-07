@@ -26,7 +26,7 @@ import {
   flattenItems
 } from 'utils/collections';
 import { uuid, waitForNextTick } from 'utils/common';
-import { cancelNetworkRequest, connectWS, sendGrpcRequest, sendNetworkRequest, sendWsRequest } from 'utils/network/index';
+import { cancelNetworkRequest, connectWS, connectSignalR, sendGrpcRequest, sendNetworkRequest, sendWsRequest, sendSignalRRequest } from 'utils/network/index';
 import { callIpc } from 'utils/common/ipc';
 import brunoClipboard from 'utils/bruno-clipboard';
 
@@ -49,6 +49,7 @@ import {
   initRunRequestEvent,
   updateRunnerConfiguration as _updateRunnerConfiguration,
   updateActiveConnections,
+  wsResponseReceived,
   saveRequest as _saveRequest,
   saveEnvironment as _saveEnvironment,
   updateEnvironmentColor as _updateEnvironmentColor,
@@ -509,6 +510,37 @@ export const wsConnectOnly = (item, collectionUid) => (dispatch, getState) => {
   });
 };
 
+export const signalrConnectOnly = (item, collectionUid) => (dispatch, getState) => {
+  const state = getState();
+  const { globalEnvironments, activeGlobalEnvironmentUid } = state.globalEnvironments;
+  const collection = findCollectionByUid(state.collections.collections, collectionUid);
+
+  return new Promise(async (resolve, reject) => {
+    if (!collection) {
+      return reject(new Error('Collection not found'));
+    }
+
+    let collectionCopy = cloneDeep(collection);
+    const itemCopy = cloneDeep(item);
+    const requestUid = uuid();
+    itemCopy.requestUid = requestUid;
+
+    const globalEnvironmentVariables = getGlobalEnvironmentVariables({
+      globalEnvironments,
+      activeGlobalEnvironmentUid
+    });
+    collectionCopy.globalEnvironmentVariables = globalEnvironmentVariables;
+
+    const environment = findEnvironmentInCollection(collectionCopy, collectionCopy.activeEnvironmentUid);
+
+    connectSignalR(itemCopy, collectionCopy, environment, collectionCopy.runtimeVariables)
+      .then(resolve)
+      .catch((err) => {
+        toast.error(err.message);
+      });
+  });
+};
+
 /**
  * Extract prompt variables from a request, collection, and environment variables.
  * Tries to respect the hierarchy of the variables and avoid unnecessary prompts as much as possible
@@ -630,6 +662,7 @@ export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
     const environment = findEnvironmentInCollection(collectionCopy, collectionCopy.activeEnvironmentUid);
     const isGrpcRequest = itemCopy.type === 'grpc-request';
     const isWsRequest = itemCopy.type === 'ws-request';
+    const isSignalRRequest = itemCopy.type === 'signalr-request';
     if (isGrpcRequest) {
       sendGrpcRequest(itemCopy, collectionCopy, environment, collectionCopy.runtimeVariables)
         .then(resolve)
@@ -641,6 +674,16 @@ export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
       const wsSelectedMessageIndex = Math.max(0, wsMessages.findIndex((msg) => msg.selected));
       sendWsRequest(itemCopy, collectionCopy, environment, collectionCopy.runtimeVariables, wsSelectedMessageIndex)
         .then(resolve)
+        .catch((err) => {
+          toast.error(err.message);
+        });
+    } else if (isSignalRRequest) {
+      const signalrMessages = itemCopy.draft?.request?.body?.signalr || itemCopy.request?.body?.signalr || [];
+      const signalrSelectedMessageIndex = Math.max(0, signalrMessages.findIndex((msg) => msg.selected));
+      sendSignalRRequest(itemCopy, collectionCopy, environment, collectionCopy.runtimeVariables, signalrSelectedMessageIndex)
+        .then((result) => {
+          resolve(result);
+        })
         .catch((err) => {
           toast.error(err.message);
         });
@@ -1541,6 +1584,135 @@ export const newGrpcRequest = (params) => (dispatch, getState) => {
             {
               name: 'message 1',
               content: '{}'
+            }
+          ]
+        },
+        auth: auth ?? {
+          mode: 'inherit'
+        },
+        vars: {
+          req: [],
+          res: []
+        },
+        script: {
+          req: null,
+          res: null
+        },
+        assertions: [],
+        tests: null
+      }
+    };
+
+    // itemUid is null when we are creating a new request at the root level
+    // For transient requests, itemUid is always null
+    const resolvedFilename = resolveRequestFilename(filename, collection.format);
+
+    if (isTransient) {
+      // Transient requests are always created in temp directory
+      // Check for duplicates only among other transient requests
+      const allItems = flattenItems(collection.items);
+      const transientRequests = filter(
+        allItems,
+        (i) => isItemARequest(i) && i.pathname && i.pathname.startsWith(tempDirectory)
+      );
+      const reqWithSameNameExists = find(transientRequests, (i) => trim(i.filename) === trim(resolvedFilename));
+
+      if (reqWithSameNameExists) {
+        return reject(new Error('Duplicate request names are not allowed under the same folder'));
+      }
+
+      const items = filter(collection.items, (i) => isItemAFolder(i) || isItemARequest(i));
+      item.seq = items.length + 1;
+      const fullName = path.join(tempDirectory, resolvedFilename);
+      const { ipcRenderer } = window;
+      ipcRenderer
+        .invoke('renderer:new-request', fullName, item)
+        .then(() => {
+          // task middleware will track this and open the new request in a new tab once request is created
+          dispatch(
+            insertTaskIntoQueue({
+              uid: uuid(),
+              type: 'OPEN_REQUEST',
+              collectionUid,
+              itemPathname: fullName,
+              preview: false
+            })
+          );
+          resolve();
+        })
+        .catch(reject);
+    } else {
+      // Regular request (can be at root or in a folder)
+      const parentItem = itemUid ? findItemInCollection(collection, itemUid) : collection;
+
+      if (!parentItem) {
+        return reject(new Error('Parent item not found'));
+      }
+
+      const reqWithSameNameExists = find(
+        parentItem.items,
+        (i) => i.type !== 'folder' && trim(i.filename) === trim(resolvedFilename)
+      );
+
+      if (reqWithSameNameExists) {
+        return reject(new Error('Duplicate request names are not allowed under the same folder'));
+      }
+
+      const items = filter(parentItem.items, (i) => isItemAFolder(i) || isItemARequest(i));
+      item.seq = items.length + 1;
+      const fullName = path.join(parentItem.pathname, resolvedFilename);
+      const { ipcRenderer } = window;
+      ipcRenderer
+        .invoke('renderer:new-request', fullName, item)
+        .then(() => {
+          // task middleware will track this and open the new request in a new tab once request is created
+          dispatch(
+            insertTaskIntoQueue({
+              uid: uuid(),
+              type: 'OPEN_REQUEST',
+              collectionUid,
+              itemPathname: fullName
+            })
+          );
+          resolve();
+        })
+        .catch(reject);
+    }
+  });
+};
+
+export const newSignalRRequest = (params) => (dispatch, getState) => {
+  const { requestName, requestMethod, filename, requestUrl, collectionUid, body, auth, headers, itemUid, isTransient = false } = params;
+
+  return new Promise((resolve, reject) => {
+    const state = getState();
+    const collection = findCollectionByUid(state.collections.collections, collectionUid);
+    if (!collection) {
+      return reject(new Error('Collection not found'));
+    }
+
+    // Get temp directory if isTransient is true
+    const tempDirectory = isTransient ? state.collections.tempDirectories?.[collectionUid] : null;
+
+    const item = {
+      uid: uuid(),
+      name: requestName,
+      filename,
+      type: 'signalr-request',
+      isTransient: isTransient,
+      headers: headers ?? [],
+      request: {
+        url: requestUrl,
+        method: requestMethod,
+        params: [],
+        body: body ?? {
+          mode: 'signalr',
+          signalr: [
+            {
+              uid: uuid(),
+              name: 'methodName',
+              type: 'json',
+              content: '[]'
             }
           ]
         },

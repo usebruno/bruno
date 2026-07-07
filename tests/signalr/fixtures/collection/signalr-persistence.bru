@@ -1,0 +1,19 @@
+meta {
+  name: signalr-persistence
+  type: signalr
+  seq: 5
+}
+
+signalr {
+  url: http://localhost:8081/hub
+  body: signalr
+  auth: inherit
+}
+
+body:signalr {
+  name: Ping
+  type: json
+  content: '''
+    []
+  '''
+}

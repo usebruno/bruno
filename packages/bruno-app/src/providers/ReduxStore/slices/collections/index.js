@@ -1835,6 +1835,10 @@ export const collectionsSlice = createSlice({
               item.draft.request.body.ws = action.payload.content;
               break;
             }
+            case 'signalr': {
+              item.draft.request.body.signalr = action.payload.content;
+              break;
+            }
           }
         }
       }
@@ -3670,11 +3674,12 @@ export const collectionsSlice = createSlice({
       if (eventType === 'request') {
         item.requestSent = eventData;
         item.requestSent.timestamp = Date.now();
-        item.response = {
-          ...initiatedWsResponse,
-          initiatedWsResponse,
-          statusText: 'CONNECTING'
-        };
+        if (!item.response) {
+          item.response = {
+            ...initiatedWsResponse,
+            statusText: 'CONNECTING'
+          };
+        }
       }
 
       if (!collection.timeline) {
@@ -3751,7 +3756,7 @@ export const collectionsSlice = createSlice({
           break;
 
         case 'close':
-          const { code, reason } = eventData;
+          const { code, reason } = eventData || {};
           updatedResponse.isError = false;
           updatedResponse.error = '';
           updatedResponse.status = 'CLOSED';
@@ -3761,9 +3766,9 @@ export const collectionsSlice = createSlice({
 
           updatedResponse.responses.push({
             type: code !== 1000 ? 'info' : 'error',
-            message: reason.trim().length ? ['Closed:', reason.trim()].join(' ') : 'Closed',
-            timestamp: eventData.timestamp,
-            seq: eventData.seq
+            message: reason && reason.trim().length ? ['Closed:', reason.trim()].join(' ') : 'Closed',
+            timestamp: eventData?.timestamp,
+            seq: eventData?.seq
           });
           break;
 

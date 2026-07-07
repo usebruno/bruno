@@ -33,6 +33,7 @@ import RequestTabPanelLoading from './RequestTabPanelLoading';
 import FolderNotFound from './FolderNotFound';
 import ExampleNotFound from './ExampleNotFound';
 import WsQueryUrl from 'components/RequestPane/WsQueryUrl';
+import SignalRQueryUrl from 'components/RequestPane/SignalRQueryUrl';
 import SignalRRequestPane from 'components/RequestPane/SignalRRequestPane';
 import WSRequestPane from 'components/RequestPane/WSRequestPane';
 import WSResponsePane from 'components/ResponsePane/WsResponsePane';
@@ -73,7 +74,7 @@ const RequestTabPanel = () => {
   const isVerticalLayout = preferences?.layout?.responsePaneOrientation === 'vertical';
   const isConsoleOpen = useSelector((state) => state.logs.isConsoleOpen);
 
-  const isRequestTab = focusedTab && ['request', 'http-request', 'grpc-request', 'ws-request', 'graphql-request'].includes(focusedTab.type);
+  const isRequestTab = focusedTab && ['request', 'http-request', 'grpc-request', 'ws-request', 'graphql-request', 'signalr-request'].includes(focusedTab.type);
   useKeybinding('sendRequest', (e) => {
     e?.preventDefault?.();
     e?.stopPropagation?.();
@@ -393,6 +394,7 @@ const RequestTabPanel = () => {
   }
   const isGrpcRequest = item?.type === 'grpc-request';
   const isWsRequest = item?.type === 'ws-request';
+  const isSignalRRequest = item?.type === 'signalr-request';
 
   if (focusedTab.type === 'collection-runner') {
     return <RunnerResults collection={collection} />;
@@ -478,6 +480,10 @@ const RequestTabPanel = () => {
       toast.error('Please enter a valid WebSocket URL');
       return;
     }
+    if (isSignalRRequest && !request.url) {
+      toast.error('Please enter a valid SignalR URL');
+      return;
+    }
     if (item.requestState !== 'sending' && item.requestState !== 'queued') {
       dispatch(sendRequest(item, collection.uid)).catch((err) =>
         toast.custom((t) => <NetworkError onClose={() => toast.dismiss(t.id)} />, {
@@ -515,6 +521,9 @@ const RequestTabPanel = () => {
     if (isWsRequest) {
       return <WsQueryUrl item={item} collection={collection} handleRun={handleRun} />;
     }
+    if (isSignalRRequest) {
+      return <SignalRQueryUrl item={item} collection={collection} handleRun={handleRun} />;
+    }
     return <QueryUrl item={item} collection={collection} handleRun={handleRun} />;
   };
 
@@ -548,6 +557,8 @@ const RequestTabPanel = () => {
       case 'grpc-request':
         return <GrpcResponsePane item={item} collection={collection} response={item.response} />;
       case 'ws-request':
+        return <WSResponsePane item={item} collection={collection} response={item.response} />;
+      case 'signalr-request':
         return <WSResponsePane item={item} collection={collection} response={item.response} />;
       default:
         return <ResponsePane item={item} collection={collection} response={item.response} />;

@@ -1,0 +1,12 @@
+{
+  "maximized": false,
+  "lastOpenedCollections": [
+    "{{projectRoot}}/tests/signalr/fixtures/collection"
+  ],
+  "preferences": {
+    "onboarding": {
+      "hasLaunchedBefore": true,
+      "hasSeenWelcomeModal": true
+    }
+  }
+}

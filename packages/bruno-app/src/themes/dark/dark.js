@@ -270,6 +270,7 @@ const darkTheme = {
 
     grpc: palette.hues.TEAL,
     ws: palette.hues.ORANGE,
+    signalr: 'hsl(210, 55%, 45%)',
     gql: palette.hues.PINK
   },
 

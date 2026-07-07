@@ -46,13 +46,13 @@ const SignalRRequestPane = ({ item, collection, handleRun }) => {
   );
 
   const addNewMessage = useCallback(() => {
-    const currentMessages = Array.isArray(body?.ws)
-      ? body.ws.map((msg) => ({ ...msg, selected: false }))
+    const currentMessages = Array.isArray(body?.signalr)
+      ? body.signalr.map((msg) => ({ ...msg, selected: false }))
       : [];
     currentMessages.push({
       uid: uuid(),
-      name: `message ${currentMessages.length + 1}`,
-      content: '{}',
+      name: `methodName`,
+      content: '[]',
       type: 'json',
       selected: true
     });
@@ -64,7 +64,7 @@ const SignalRRequestPane = ({ item, collection, handleRun }) => {
   }, [body, dispatch, item.uid, collection.uid]);
 
   const onPrettifyAll = useCallback(() => {
-    const currentMessages = [...(body?.ws || [])];
+    const currentMessages = [...(body?.signalr || [])];
     let changed = false;
 
     currentMessages.forEach((msg, i) => {
@@ -150,6 +150,7 @@ const SignalRRequestPane = ({ item, collection, handleRun }) => {
             collection={collection}
             handleRun={handleRun}
             onAddMessage={addNewMessage}
+            messagesKey="signalr"
           />
         );
       }

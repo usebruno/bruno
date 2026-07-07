@@ -4,7 +4,7 @@ import { uuid } from 'utils/common';
 
 const isObject = (value) => value && typeof value === 'object' && !Array.isArray(value);
 
-const REQUEST_TAB_TYPES = new Set(['http-request', 'graphql-request', 'grpc-request', 'ws-request']);
+const REQUEST_TAB_TYPES = new Set(['http-request', 'graphql-request', 'grpc-request', 'ws-request', 'signalr-request']);
 const SINGLETON_TAB_TYPES = new Set([
   'variables',
   'collection-runner',
@@ -354,7 +354,7 @@ const getDefaultRequestPaneTabForType = (type) => {
     return 'headers';
   }
 
-  if (type === 'grpc-request' || type === 'ws-request') {
+  if (type === 'grpc-request' || type === 'ws-request' || type === 'signalr-request') {
     return 'body';
   }
 

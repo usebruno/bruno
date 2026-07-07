@@ -242,6 +242,7 @@ const nordTheme = {
     },
     grpc: colors.NORD8,
     ws: colors.NORD13,
+    signalr: '#81a1c1',
     gql: colors.NORD15
   },
 

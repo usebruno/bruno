@@ -245,6 +245,7 @@ const vscodeDarkTheme = {
     },
     grpc: colors.CYAN,
     ws: colors.YELLOW,
+    signalr: '#3794ff',
     gql: colors.PURPLE
   },
 

@@ -240,6 +240,7 @@ const lightPastelTheme = {
     },
     grpc: '#7a70b5', // Dusty periwinkle
     ws: '#c57a92', // Dusty rose
+    signalr: 'hsl(210, 55%, 45%)',
     gql: '#7a70b5' // Dusty periwinkle
   },
 

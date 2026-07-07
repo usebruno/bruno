@@ -520,6 +520,14 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
             content: replaceTabsWithSpaces(content)
           }));
         }
+
+        if (di.request.body.mode === 'signalr') {
+          di.request.body.signalr = di.request.body.signalr.map(({ name, content, type }, index) => ({
+            name: name ? name : `message ${index + 1}`,
+            type: type ?? 'json',
+            content: replaceTabsWithSpaces(content)
+          }));
+        }
       }
 
       if (si.type == 'folder' && si?.root) {
@@ -738,14 +746,14 @@ export const transformRequestToSaveToFilesystem = (item) => {
     delete itemToSave.request.params;
   }
 
-  if (_item.type === 'ws-request') {
+  if (_item.type === 'ws-request' || _item.type === 'signalr-request') {
     delete itemToSave.request.method;
     delete itemToSave.request.methodType;
     delete itemToSave.request.params;
   }
 
   // Only process params for non-gRPC requests
-  if (!['grpc-request', 'ws-request'].includes(_item.type)) {
+  if (!['grpc-request', 'ws-request', 'signalr-request'].includes(_item.type)) {
     each(_item.request.params, (param) => {
       itemToSave.request.params.push({
         uid: param.uid,
@@ -791,6 +799,18 @@ export const transformRequestToSaveToFilesystem = (item) => {
     itemToSave.request.body = {
       ...itemToSave.request.body,
       ws: itemToSave.request.body.ws.map(({ name, content, type, selected }, index) => ({
+        name: name ? name : `message ${index + 1}`,
+        type,
+        content: replaceTabsWithSpaces(content),
+        selected: selected || false
+      }))
+    };
+  }
+
+  if (itemToSave.request.body.mode === 'signalr') {
+    itemToSave.request.body = {
+      ...itemToSave.request.body,
+      signalr: itemToSave.request.body.signalr.map(({ name, content, type, selected }, index) => ({
         name: name ? name : `message ${index + 1}`,
         type,
         content: replaceTabsWithSpaces(content),
@@ -886,7 +906,7 @@ export const deleteItemInCollectionByPathname = (pathname, collection) => {
 };
 
 export const isItemARequest = (item) => {
-  return item.hasOwnProperty('request') && ['http-request', 'graphql-request', 'grpc-request', 'ws-request'].includes(item.type) && !item.items;
+  return item.hasOwnProperty('request') && ['http-request', 'graphql-request', 'grpc-request', 'ws-request', 'signalr-request'].includes(item.type) && !item.items;
 };
 
 export const isItemAFolder = (item) => {
@@ -1172,7 +1192,7 @@ export const getDefaultRequestPaneTab = (item) => {
     return 'query';
   }
 
-  if (['ws-request', 'grpc-request'].includes(item.type)) {
+  if (['ws-request', 'grpc-request', 'signalr-request'].includes(item.type)) {
     return 'body';
   }
 };

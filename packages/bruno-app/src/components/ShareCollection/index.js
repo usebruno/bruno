@@ -30,8 +30,8 @@ const ShareCollection = ({ onClose, collectionUid }) => {
         types.add('gRPC');
         return true;
       }
-      if (item.type === 'ws-request') {
-        types.add('WebSocket');
+      if (item.type === 'ws-request' || item.type === 'signalr-request') {
+        types.add('WebSocket / SignalR');
         return true;
       }
       if (item.items) {

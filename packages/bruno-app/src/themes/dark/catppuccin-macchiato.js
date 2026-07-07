@@ -238,6 +238,7 @@ const catppuccinMacchiatoTheme = {
 
     grpc: colors.SKY,
     ws: colors.MAUVE,
+    signalr: '#8aadf4',
     gql: colors.PINK
   },
 

@@ -10,7 +10,7 @@ export default function SignalRRequest() {
     const conn = createSignalRConnection({
       url
     });
-    conn.on('RecieveMessage', (...arg) => {
+    conn.on('ReceiveMessage', (...arg) => {
       setLogs((prevLogs) => [...prevLogs, { type: 'ReceiveMessage', data: arg }]);
     });
     await conn.start();

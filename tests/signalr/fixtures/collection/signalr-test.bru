@@ -1,0 +1,19 @@
+meta {
+  name: signalr-test-request
+  type: signalr
+  seq: 2
+}
+
+signalr {
+  url: http://localhost:8081/hub
+  body: signalr
+  auth: inherit
+}
+
+body:signalr {
+  name: SendMessage
+  type: json
+  content: '''
+    ["user1", "Hello world"]
+  '''
+}

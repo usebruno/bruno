@@ -11,11 +11,11 @@ const getSelectedIndex = (messages) => {
   return idx >= 0 ? idx : 0;
 };
 
-const WSBody = ({ item, collection, handleRun, onAddMessage }) => {
+const WSBody = ({ item, collection, handleRun, onAddMessage, messagesKey = 'ws' }) => {
   const dispatch = useDispatch();
   const messagesContainerRef = useRef(null);
   const body = item.draft ? get(item, 'draft.request.body') : get(item, 'request.body');
-  const messages = body?.ws || [];
+  const messages = body?.[messagesKey] || [];
 
   const selectedIndex = getSelectedIndex(messages);
 
@@ -28,7 +28,7 @@ const WSBody = ({ item, collection, handleRun, onAddMessage }) => {
   const prevMessagesLengthRef = useRef(messages.length);
 
   const setSelectedIndex = useCallback((index) => {
-    const currentMessages = [...(body?.ws || [])];
+    const currentMessages = [...(body?.[messagesKey] || [])];
     const updated = currentMessages.map((msg, i) => ({
       ...msg,
       selected: i === index
@@ -88,7 +88,7 @@ const WSBody = ({ item, collection, handleRun, onAddMessage }) => {
     return (
       <StyledWrapper>
         <div className="empty-state">
-          <p>No WebSocket messages available</p>
+          <p>{messagesKey === 'signalr' ? 'No SignalR messages available' : 'No WebSocket messages available'}</p>
           <button className="add-message-link" data-testid="ws-add-message" onClick={onAddMessage}>
             <IconPlus size={14} strokeWidth={1.5} />
             <span>Add message</span>
@@ -110,6 +110,8 @@ const WSBody = ({ item, collection, handleRun, onAddMessage }) => {
             collection={collection}
             index={index}
             handleRun={handleRun}
+            messagesKey={messagesKey}
+            hideSendButton={false}
             isExpanded={expandedUids.has(message.uid)}
             onToggle={() => toggleMessage(message.uid)}
             isNew={newMessageUid === message.uid}
