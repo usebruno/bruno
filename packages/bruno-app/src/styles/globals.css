@@ -125,6 +125,20 @@
   --session-header-height: 51px
 }
 
+/*
+ * GraphQL annotation tooltips (.CodeMirror-info) share the GraphiQL font-size
+ * design tokens above, which are sized for editor chrome (body 16px, headings
+ * up to 29px). That makes the hover tooltips render ~50% larger than the code
+ * font. Scope smaller sizes to the tooltip only so the rest of the GraphiQL
+ * container is unaffected. See usebruno/bruno#8431.
+ */
+.CodeMirror-info {
+  --font-size-body: 0.8125rem !important;
+  --font-size-h4: 0.875rem !important;
+  --font-size-h3: 0.9375rem !important;
+  --font-size-h2: 1rem !important;
+}
+
 .CodeMirror-dialog {
   --px-4: 0px !important;
   --px-12: 2px !important;
