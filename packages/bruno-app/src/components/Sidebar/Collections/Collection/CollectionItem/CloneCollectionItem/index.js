@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, forwardRef } from 'react';
+import React, { useState, useRef, useEffect, forwardRef, useMemo } from 'react';
 import toast from 'react-hot-toast';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
@@ -15,10 +15,12 @@ import Portal from 'components/Portal';
 import Dropdown from 'components/Dropdown';
 import StyledWrapper from './StyledWrapper';
 import Button from 'ui/Button';
+import { makeSelectCollectionByUid } from '../../../../../../selectors/collections';
 
 const CloneCollectionItem = ({ collectionUid, item, onClose }) => {
   const dispatch = useDispatch();
-  const collection = useSelector((state) => state.collections.collections?.find((c) => c.uid === collectionUid));
+  const selectCollectionByUid = useMemo(makeSelectCollectionByUid, []);
+  const collection = useSelector((state) => selectCollectionByUid(state, collectionUid));
   const isFolder = isItemAFolder(item);
   const inputRef = useRef();
   const [isEditing, toggleEditing] = useState(false);

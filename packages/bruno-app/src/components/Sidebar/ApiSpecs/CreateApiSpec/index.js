@@ -12,6 +12,7 @@ import { exportApiSpec } from 'utils/exporters/openapi-spec';
 import { each } from 'lodash';
 import { showApiSpecPage } from 'providers/ReduxStore/slices/app';
 import { validateName, validateNameError } from 'utils/common/regex';
+import { selectActiveWorkspace } from '../../../../selectors/workspaces';
 
 export const getEnvironmentVariablesKeyValuePairs = (envVariables) => {
   let variables = {};
@@ -26,9 +27,7 @@ export const getEnvironmentVariablesKeyValuePairs = (envVariables) => {
 const CreateApiSpec = ({ onClose }) => {
   const inputRef = useRef();
   const dispatch = useDispatch();
-  const workspaces = useSelector((state) => state.workspaces.workspaces);
-  const activeWorkspaceUid = useSelector((state) => state.workspaces.activeWorkspaceUid);
-  const activeWorkspace = workspaces.find((w) => w.uid === activeWorkspaceUid);
+  const activeWorkspace = useSelector(selectActiveWorkspace);
   const [defaultApiSpecLocation, setDefaultApiSpecLocation] = React.useState('');
 
   const isDefaultWorkspace = !activeWorkspace || activeWorkspace.type === 'default';

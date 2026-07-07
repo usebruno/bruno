@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { getEmptyImage } from 'react-dnd-html5-backend';
 import range from 'lodash/range';
 import filter from 'lodash/filter';
@@ -51,8 +51,9 @@ import {
   getTabUidForItem as getTabUidForItemSelector,
   isTabForItemActive as isTabForItemActiveSelector,
   isTabForItemPresent as isTabForItemPresentSelector
-} from 'src/selectors/tab';
+} from '../../../../../selectors/tab';
 import { isEqual } from 'lodash';
+import { makeSelectCollectionByUid } from '../../../../../selectors/collections';
 import { createEmptyStateMenuItems } from 'utils/collections/emptyStateRequest';
 import { calculateDraggedItemNewPathname, getInitialExampleName, findParentItemInCollection } from 'utils/collections/index';
 import { sortByNameThenSequence } from 'utils/common/index';
@@ -81,8 +82,10 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
   const _tabUidForItemSelector = getTabUidForItemSelector(selectorInput);
   const tabUidForItem = useSelector(_tabUidForItemSelector, isEqual);
 
+  const selectCollectionByUid = useMemo(makeSelectCollectionByUid, []);
+
   const isSidebarDragging = useSelector((state) => state.app.isDragging);
-  const collection = useSelector((state) => state.collections.collections?.find((c) => c.uid === collectionUid));
+  const collection = useSelector((state) => selectCollectionByUid(state, collectionUid));
   const { hasCopiedItems } = useSelector((state) => state.app.clipboard);
   const dispatch = useDispatch();
 

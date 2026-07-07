@@ -2,6 +2,8 @@ import { useEffect, useMemo, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { checkActiveWorkspaceCollectionsForUpdates } from 'providers/ReduxStore/slices/openapi-sync';
 import { normalizePath } from 'utils/common/path';
+import { selectCollections } from '../../selectors/collections';
+import { selectActiveWorkspace } from '../../selectors/workspaces';
 
 const POLL_INTERVAL = 5 * 60 * 1000; // 5 minutes
 
@@ -9,9 +11,8 @@ const useOpenAPISyncPolling = () => {
   const dispatch = useDispatch();
 
   const pollingEnabled = useSelector((state) => state.openapiSync?.pollingEnabled ?? true);
-  const collections = useSelector((state) => state.collections?.collections || []);
-  const { workspaces, activeWorkspaceUid } = useSelector((state) => state.workspaces);
-  const activeWorkspace = workspaces.find((w) => w.uid === activeWorkspaceUid);
+  const collections = useSelector(selectCollections);
+  const activeWorkspace = useSelector(selectActiveWorkspace);
   const intervalRef = useRef(null);
 
   // Filter to only active workspace collections

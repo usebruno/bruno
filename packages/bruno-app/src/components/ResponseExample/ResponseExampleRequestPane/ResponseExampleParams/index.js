@@ -9,18 +9,18 @@ import SingleLineEditor from 'components/SingleLineEditor';
 import BulkEditor from 'components/BulkEditor';
 import InfoTip from 'components/InfoTip';
 import StyledWrapper from './StyledWrapper';
+import { selectActiveTabUid, selectActiveTabTableColumnWidths } from '../../../../selectors/tabs';
 
 const ResponseExampleParams = ({ editMode, item, collection, exampleUid }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
-  const tabs = useSelector((state) => state.tabs.tabs);
-  const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
+  const activeTabUid = useSelector(selectActiveTabUid);
+  const tableColumnWidths = useSelector(selectActiveTabTableColumnWidths);
   const [isBulkEditMode, setIsBulkEditMode] = useState(false);
 
   // Get column widths from Redux
-  const focusedTab = tabs?.find((t) => t.uid === activeTabUid);
-  const exampleQueryParamsWidths = focusedTab?.tableColumnWidths?.['example-query-params'] || {};
-  const examplePathParamsWidths = focusedTab?.tableColumnWidths?.['example-path-params'] || {};
+  const exampleQueryParamsWidths = tableColumnWidths['example-query-params'] || {};
+  const examplePathParamsWidths = tableColumnWidths['example-path-params'] || {};
 
   const handleColumnWidthsChange = (tableId, widths) => {
     dispatch(updateTableColumnWidths({ uid: activeTabUid, tableId, widths }));

@@ -1,5 +1,4 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
-import find from 'lodash/find';
 import filter from 'lodash/filter';
 import classnames from 'classnames';
 import { IconChevronRight, IconChevronLeft } from '@tabler/icons';
@@ -12,6 +11,9 @@ import StyledWrapper from './StyledWrapper';
 import DraggableTab from './DraggableTab';
 import CreateTransientRequest from 'components/CreateTransientRequest';
 import ActionIcon from 'ui/ActionIcon/index';
+import { selectActiveTabUid, selectActiveTab, makeSelectTabsByCollectionUid } from '../../selectors/tabs';
+import { makeSelectCollectionByUid } from '../../selectors/collections';
+import { selectWorkspaces } from '../../selectors/workspaces';
 
 const RequestTabs = () => {
   const dispatch = useDispatch();
@@ -22,12 +24,16 @@ const RequestTabs = () => {
   const [tabOverflowStates, setTabOverflowStates] = useState({});
   const [showChevrons, setShowChevrons] = useState(false);
   const tabs = useSelector((state) => state.tabs.tabs);
-  const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
-  const collections = useSelector((state) => state.collections.collections);
+  const activeTabUid = useSelector(selectActiveTabUid);
+  const activeTab = useSelector(selectActiveTab);
+  const selectTabsByCollectionUid = useMemo(makeSelectTabsByCollectionUid, []);
+  const selectCollectionByUid = useMemo(makeSelectCollectionByUid, []);
+  const collectionRequestTabs = useSelector((state) => selectTabsByCollectionUid(state, activeTab?.collectionUid));
+  const activeCollection = useSelector((state) => selectCollectionByUid(state, activeTab?.collectionUid));
   const leftSidebarWidth = useSelector((state) => state.app.leftSidebarWidth);
   const sidebarCollapsed = useSelector((state) => state.app.sidebarCollapsed);
   const screenWidth = useSelector((state) => state.app.screenWidth);
-  const workspaces = useSelector((state) => state.workspaces.workspaces);
+  const workspaces = useSelector(selectWorkspaces);
 
   const createSetHasOverflow = useCallback((tabUid) => {
     return (hasOverflow) => {
@@ -42,10 +48,6 @@ const RequestTabs = () => {
       });
     };
   }, []);
-
-  const activeTab = find(tabs, (t) => t.uid === activeTabUid);
-  const activeCollection = find(collections, (c) => c?.uid === activeTab?.collectionUid);
-  const collectionRequestTabs = filter(tabs, (t) => t.collectionUid === activeTab?.collectionUid);
 
   const isScratchCollection = useMemo(() => {
     return activeCollection ? workspaces.some((w) => w.scratchCollectionUid === activeCollection.uid) : false;

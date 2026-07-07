@@ -21,6 +21,7 @@ import Dropdown from 'components/Dropdown';
 import StyledWrapper from './StyledWrapper';
 import { showImportIssuesToast } from 'components/Toast/ImportIssuesToast';
 import { DEFAULT_COLLECTION_FORMAT } from 'utils/common/constants';
+import { selectActiveWorkspace } from '../../../selectors/workspaces';
 
 // Extract collection name from raw data
 const getCollectionName = (format, rawData) => {
@@ -120,9 +121,8 @@ const ImportCollectionLocation = ({ onClose, handleSubmit, rawData, format, sour
   const isSwagger2 = isOpenApi && rawData?.swagger && String(rawData.swagger).startsWith('2');
   const showCheckForSpecUpdatesOption = isOpenApiFromUrl || isOpenApiFromFile;
 
-  const { workspaces, activeWorkspaceUid } = useSelector((state) => state.workspaces);
+  const activeWorkspace = useSelector(selectActiveWorkspace);
   const preferences = useSelector((state) => state.app.preferences);
-  const activeWorkspace = workspaces.find((w) => w.uid === activeWorkspaceUid);
   const isDefaultWorkspace = !activeWorkspace || activeWorkspace.type === 'default';
 
   const defaultLocation = isDefaultWorkspace

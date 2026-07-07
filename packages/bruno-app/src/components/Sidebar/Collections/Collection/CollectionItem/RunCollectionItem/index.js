@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import get from 'lodash/get';
 import { uuid } from 'utils/common';
 import Modal from 'components/Modal';
@@ -11,12 +11,14 @@ import { areItemsLoading } from 'utils/collections';
 import RunnerTags from 'components/RunnerResults/RunnerTags/index';
 import { getRequestItemsForCollectionRun } from 'utils/collections/index';
 import Button from 'ui/Button';
+import { makeSelectCollectionByUid } from '../../../../../../selectors/collections';
 
 const RunCollectionItem = ({ collectionUid, item, onClose }) => {
   const dispatch = useDispatch();
   const [delay, setDelay] = useState('');
+  const selectCollectionByUid = useMemo(makeSelectCollectionByUid, []);
 
-  const collection = useSelector((state) => state.collections.collections?.find((c) => c.uid === collectionUid));
+  const collection = useSelector((state) => selectCollectionByUid(state, collectionUid));
   const isCollectionRunInProgress = collection?.runnerResult?.info?.status && (collection?.runnerResult?.info?.status !== 'ended');
 
   // tags for the collection run

@@ -46,6 +46,9 @@ import { normalizePath } from 'utils/common/path';
 import classNames from 'classnames';
 import StyledWrapper from './StyledWrapper';
 import { useTheme } from 'providers/Theme';
+import { selectWorkspaces, selectActiveWorkspaceUid, selectActiveWorkspace } from '../../../selectors/workspaces';
+import { selectCollections } from '../../../selectors/collections';
+import { selectTabs, selectActiveTabUid } from '../../../selectors/tabs';
 
 const MIGRATE_PILL_DISMISSED_KEY = 'bruno.migrateToYmlPill.dismissed';
 
@@ -62,17 +65,17 @@ const readDismissedCollections = () => {
 
 const CollectionHeader = ({ collection, isScratchCollection }) => {
   const dispatch = useDispatch();
-  const workspaces = useSelector((state) => state.workspaces.workspaces);
-  const activeWorkspaceUid = useSelector((state) => state.workspaces.activeWorkspaceUid);
-  const collections = useSelector((state) => state.collections.collections);
-  const tabs = useSelector((state) => state.tabs.tabs);
-  const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
+  const workspaces = useSelector(selectWorkspaces);
+  const activeWorkspaceUid = useSelector(selectActiveWorkspaceUid);
+  const collections = useSelector(selectCollections);
+  const tabs = useSelector(selectTabs);
+  const activeTabUid = useSelector(selectActiveTabUid);
   const preferences = useSelector((state) => state.app.preferences);
   const isAiEnabled = get(preferences, 'ai.enabled', false);
   const isAiSidebarOpen = useSelector((state) => state.chat.isOpen);
 
   // Get the current active workspace
-  const currentWorkspace = workspaces.find((w) => w.uid === activeWorkspaceUid);
+  const currentWorkspace = useSelector(selectActiveWorkspace);
   const gitRootPath = collection?.git?.gitRootPath;
 
   // Active request (used by the Request / App / File view-mode toggle)
