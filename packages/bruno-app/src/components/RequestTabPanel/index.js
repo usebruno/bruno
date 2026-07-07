@@ -553,13 +553,30 @@ const RequestTabPanel = () => {
   }
 
   const renderQueryUrl = () => {
+    const activeCollectionEnvironment = find(
+      collection?.environments,
+      (e) => e.uid === collection?.activeEnvironmentUid
+    );
+    const activeGlobalEnvironment = find(
+      globalEnvironments,
+      (e) => e.uid === activeGlobalEnvironmentUid
+    );
+
     if (isGrpcRequest) {
       return <GrpcQueryUrl item={item} collection={collection} handleRun={handleRun} />;
     }
     if (isWsRequest) {
       return <WsQueryUrl item={item} collection={collection} handleRun={handleRun} />;
     }
-    return <QueryUrl item={item} collection={collection} handleRun={handleRun} />;
+    return (
+      <QueryUrl
+        item={item}
+        collection={collection}
+        handleRun={handleRun}
+        activeCollectionEnvironment={activeCollectionEnvironment}
+        activeGlobalEnvironment={activeGlobalEnvironment}
+      />
+    );
   };
 
   const renderRequestPane = () => {
