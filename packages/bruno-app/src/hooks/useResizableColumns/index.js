@@ -36,19 +36,58 @@ const getSeparatorPositions = (widths) => {
 };
 
 const scaleWidthsToTotal = (widths, targetTotal, minColWidth) => {
+  const n = widths.length;
+
   // When the container is too narrow to satisfy minColWidth for every column,
   // fall back to equal distribution so the total stays exact (columns clip instead of overflow).
-  if (targetTotal < minColWidth * widths.length) {
-    const each = Math.floor(targetTotal / widths.length);
-    const last = targetTotal - each * (widths.length - 1);
-    return [...Array(widths.length - 1).fill(each), last];
+  if (targetTotal < minColWidth * n) {
+    const each = Math.floor(targetTotal / n);
+    const last = targetTotal - each * (n - 1);
+    return [...Array(n - 1).fill(each), last];
   }
 
-  const currentTotal = widths.reduce((s, w) => s + w, 0);
-  const factor = targetTotal / currentTotal;
-  const next = widths.slice(0, -1).map((w) => Math.max(minColWidth, Math.round(w * factor)));
-  const last = Math.max(minColWidth, targetTotal - next.reduce((s, w) => s + w, 0));
-  return [...next, last];
+  const result = new Array(n).fill(null);
+  let remainingIdx = widths.map((_, i) => i);
+  let remainingTotal = targetTotal;
+
+  while (remainingIdx.length > 0) {
+    const remainingWidthsSum = remainingIdx.reduce((s, i) => s + widths[i], 0);
+    const factor = remainingTotal / remainingWidthsSum;
+
+    const stillRemaining = [];
+    let anyPinned = false;
+    for (const i of remainingIdx) {
+      const scaled = widths[i] * factor;
+      if (scaled < minColWidth) {
+        result[i] = minColWidth;
+        remainingTotal -= minColWidth;
+        anyPinned = true;
+      } else {
+        stillRemaining.push(i);
+      }
+    }
+
+    remainingIdx = stillRemaining;
+    if (!anyPinned) break;
+  }
+
+  // Distribute whatever's left proportionally among the unpinned columns;
+  // the last one absorbs the rounding remainder so the total is always exact.
+  if (remainingIdx.length > 0) {
+    const remainingWidthsSum = remainingIdx.reduce((s, i) => s + widths[i], 0);
+    let allocated = 0;
+    remainingIdx.forEach((i, idx) => {
+      if (idx === remainingIdx.length - 1) {
+        result[i] = remainingTotal - allocated;
+        return;
+      }
+      const w = Math.round((widths[i] / remainingWidthsSum) * remainingTotal);
+      result[i] = w;
+      allocated += w;
+    });
+  }
+
+  return result;
 };
 
 export function useResizableColumns({ defaultWidths, initialWidths = null, minColWidth = 60, onResizeEnd = null }) {
