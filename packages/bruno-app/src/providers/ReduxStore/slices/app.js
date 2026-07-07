@@ -98,8 +98,14 @@ const initialState = {
   },
   systemProxyVariables: {},
   envVarSearch: {
-    collection: { query: '', expanded: false },
-    global: { query: '', expanded: false }
+    collection: {
+      variables: { query: '', expanded: false },
+      secrets: { query: '', expanded: false }
+    },
+    global: {
+      variables: { query: '', expanded: false },
+      secrets: { query: '', expanded: false }
+    }
   },
   isCreatingCollection: false
 };
@@ -236,13 +242,13 @@ export const appSlice = createSlice({
       // Update clipboard UI state
       state.clipboard.hasCopiedItems = action.payload.hasCopiedItems;
     },
-    setEnvVarSearchQuery: (state, { payload: { context, query } }) => {
-      if (!state.envVarSearch[context]) return;
-      state.envVarSearch[context].query = query;
+    setEnvVarSearchQuery: (state, { payload: { context, tab = 'variables', query } }) => {
+      if (!state.envVarSearch[context]?.[tab]) return;
+      state.envVarSearch[context][tab].query = query;
     },
-    setEnvVarSearchExpanded: (state, { payload: { context, expanded } }) => {
-      if (!state.envVarSearch[context]) return;
-      state.envVarSearch[context].expanded = expanded;
+    setEnvVarSearchExpanded: (state, { payload: { context, tab = 'variables', expanded } }) => {
+      if (!state.envVarSearch[context]?.[tab]) return;
+      state.envVarSearch[context][tab].expanded = expanded;
     },
     setIsCreatingCollection: (state, action) => {
       state.isCreatingCollection = action.payload;
