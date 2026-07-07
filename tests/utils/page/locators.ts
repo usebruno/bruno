@@ -129,6 +129,7 @@ export const buildCommonLocators = (page: Page) => ({
     secretsTab: () => page.getByTestId('responsive-tab-secrets'),
     saveTab: () => page.getByTestId('save-env'),
     saveAll: () => page.getByTestId('save-all-env'),
+    searchInput: () => page.getByTestId('env-search-input'),
     collectionEnvTab: () => page.locator('.request-tab').filter({ hasText: /^Environments$/ }),
     globalEnvTab: () => page.locator('.request-tab').filter({ hasText: /^Global Environments$/ }),
     unsavedModal: {

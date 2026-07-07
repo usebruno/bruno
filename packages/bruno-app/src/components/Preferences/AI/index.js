@@ -7,6 +7,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import * as Yup from 'yup';
 import toast from 'react-hot-toast';
 import { IconPlus, IconSettings, IconShieldLock, IconTerminal2 } from '@tabler/icons';
+import IconSparkles from 'components/Icons/IconSparkles';
 import { savePreferences } from 'providers/ReduxStore/slices/app';
 import ToggleSwitch from 'components/ToggleSwitch';
 import { clearAiApiKey, getAiStatus } from 'utils/ai';
@@ -334,13 +335,16 @@ const AI = () => {
         <div className="ai-tab-panel" role="tabpanel">
           <div className="ai-master flex items-center justify-between gap-4 px-3.5 py-3 mb-4">
             <div className="flex flex-col gap-0.5 min-w-0">
-              <span className="text-[13px] font-semibold">AI Features</span>
-              <span className="ai-master-summary text-[11px]">
-                Turn on to configure providers and models. Your keys stay local.
-              </span>
+              <div className="flex items-center gap-2 text-[13px] font-semibold">
+                <IconSparkles size={15} strokeWidth={1.75} className="ai-master-icon" />
+                <span className="text-[13px] font-semibold">AI Features</span>
+                <span className="ai-master-summary text-[11px]">
+                  Turn on to configure providers and models. Your keys stay local.
+                </span>
+              </div>
             </div>
             <ToggleSwitch
-              size="m"
+              size="xs"
               isOn={formik.values.enabled}
               handleToggle={() => formik.setFieldValue('enabled', !formik.values.enabled)}
             />
@@ -366,7 +370,7 @@ const AI = () => {
 
                     const providerToggle = (
                       <ToggleSwitch
-                        size="s"
+                        size="xs"
                         isOn={providerEnabled}
                         handleToggle={() =>
                           formik.setFieldValue(`providers.${id}.enabled`, !providerEnabled)}
@@ -422,7 +426,7 @@ const AI = () => {
 
                     const providerToggle = (
                       <ToggleSwitch
-                        size="s"
+                        size="xs"
                         isOn={providerEnabled}
                         handleToggle={() =>
                           formik.setFieldValue(`providers.${providerId}.enabled`, !providerEnabled)}
