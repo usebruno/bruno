@@ -39,7 +39,8 @@ export const SingleWSMessage = ({
   isNew,
   onNewRendered,
   isSelected,
-  onSelect
+  onSelect,
+  paneHeight
 }) => {
   const dispatch = useDispatch();
   const { displayedTheme } = useTheme();
@@ -105,11 +106,16 @@ export const SingleWSMessage = ({
   const fontSize = get(preferences, 'font.codeFontSize', 14);
   const lineHeight = fontSize * 1.5;
 
+  const HEADER_ALLOWANCE = 44;
+  const maxEditorHeight = paneHeight
+    ? Math.max(160, paneHeight - HEADER_ALLOWANCE)
+    : Math.round((typeof window !== 'undefined' ? window.innerHeight : 900) * 0.6);
   const editorHeight = useMemo(() => {
     const lineCount = (content || '').split('\n').length;
     const lines = lineCount + 1;
-    return `${lines * lineHeight + 10}px`;
-  }, [content, lineHeight]);
+    const contentHeight = lines * lineHeight + 10;
+    return `${Math.min(contentHeight, maxEditorHeight)}px`;
+  }, [content, lineHeight, maxEditorHeight]);
 
   const onUpdateMessageType = (newMode) => {
     const currentMessages = [...(body.ws || [])];
@@ -173,8 +179,8 @@ export const SingleWSMessage = ({
   return (
     <StyledWrapper
       className={!isSelected ? 'disabled' : ''}
-      onMouseDownCapture={() => {
-        if (!isSelected) setTimeout(onSelect, 0);
+      onMouseUpCapture={() => {
+        if (!isSelected) onSelect();
       }}
     >
       <div
@@ -221,10 +227,7 @@ export const SingleWSMessage = ({
               <span
                 className="message-label"
                 data-testid={`ws-message-label-${index}`}
-                onClick={(e) => {
-                  e.preventDefault();
-                  onToggle();
-                }}
+                onClick={(e) => e.stopPropagation()}
                 onDoubleClick={handleNameClick}
               >
                 {displayName}
@@ -251,7 +254,11 @@ export const SingleWSMessage = ({
         </div>
       </div>
       {isExpanded && (
-        <div className="accordion-body" data-testid={`ws-message-body-${index}`} style={{ height: editorHeight }}>
+        <div
+          className="accordion-body"
+          data-testid={`ws-message-body-${index}`}
+          style={{ height: editorHeight }}
+        >
           <CodeEditor
             collection={collection}
             theme={displayedTheme}
@@ -263,6 +270,7 @@ export const SingleWSMessage = ({
             onSave={onSave}
             mode={codemirrorMode[displayMode] ?? 'text/plain'}
             enableVariableHighlighting={true}
+            readOnly={isSelected ? false : 'nocursor'}
           />
         </div>
       )}
