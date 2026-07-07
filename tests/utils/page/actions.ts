@@ -1,7 +1,8 @@
-import { test, expect, Page, Locator, ElectronApplication, waitForReadyPage as waitForReadyPageImpl } from '../../../playwright';
 import process from 'node:process';
 import * as path from 'path';
+import { test, expect, Page, Locator, ElectronApplication, waitForReadyPage as waitForReadyPageImpl } from '../../../playwright';
 import { buildCommonLocators, buildScriptErrorLocators, buildGrpcCommonLocators, buildWebsocketCommonLocators } from './locators';
+import { buildManageWorkspaceLocators, openManageWorkspace } from './workspace/manage-workspace';
 import { waitForCollectionMount } from './mounting';
 
 type SandboxMode = 'safe' | 'developer';
@@ -1659,6 +1660,30 @@ const createWorkspace = async (page: Page, workspaceName: string) => {
 };
 
 /**
+ * Remove a workspace via the manage workspaces panel
+ * @param page - The page object
+ * @param workspaceName - The name of the workspace to remove
+ * @returns void
+ */
+const removeWorkspace = async (page: Page, workspaceName: string) => {
+  await test.step(`Remove workspace "${workspaceName}"`, async () => {
+    await openManageWorkspace(page);
+    const locators = buildManageWorkspaceLocators(page);
+    await locators.manageWorkspaceTitle().waitFor({ state: 'visible' });
+    const workspaceItem = locators.workspaceItems(workspaceName).last();
+    if ((await workspaceItem.count()) === 0 || !(await workspaceItem.isVisible())) {
+      return;
+    }
+    await workspaceItem.locator(locators.moreActionsBtn()).click();
+    await locators.workspaceDropdownItem('Remove').click();
+    const modal = buildCommonLocators(page);
+    await modal.modal.card().waitFor({ state: 'visible' });
+    await modal.modal.submitButton().click();
+    await locators.workspaceItems(workspaceName).waitFor({ state: 'hidden' });
+  });
+};
+
+/**
  * Switch to an existing workspace via the title bar dropdown
  * @param page - The page object
  * @param workspaceName - The name of the workspace to switch to
@@ -2311,6 +2336,7 @@ export {
   selectGrpcMethod,
   closeAllTabs,
   createWorkspace,
+  removeWorkspace,
   switchWorkspace,
   selectScriptSubTab,
   editCodeMirrorEditor,
