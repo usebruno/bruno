@@ -271,20 +271,13 @@ export const buildCommonLocators = (page: Page) => ({
     importCollection: () => page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Import collection' })
   },
   import: {
-    modal: () => page.locator('[data-testid="import-collection-modal"]'),
-    modalTitle: () => page.locator('[data-testid="import-collection-modal"] .bruno-modal-header-title'),
-    fileTab: () => page.getByTestId('file-tab'),
-    gitRepositoryTab: () => page.getByTestId('github-tab'),
-    urlTab: () => page.getByTestId('url-tab'),
-    gitUrlInput: () => page.getByTestId('git-url-input'),
-    urlInput: () => page.getByTestId('url-input'),
-    cloneGitButton: () => page.locator('#clone-git-button'),
-    importUrlButton: () => page.locator('#import-url-button'),
-    loader: () => page.locator('#import-collection-loader'),
-    locationModal: () => page.locator('[data-testid="import-collection-location-modal"]'),
-    locationInput: () => page.locator('#collection-location'),
-    fileInput: () => page.locator('input[type="file"]'),
-    chooseFilesButton: () => page.getByRole('button', { name: 'choose file(s)' }),
+    locationModal: () => page.getByTestId('import-collection-location-modal'),
+    locationInput: () =>
+      page.getByTestId('import-collection-location-modal').getByTestId('import-collection-location-input'),
+    locationCollectionName: (name: string) =>
+      page.getByTestId('import-collection-location-modal').getByText(name, { exact: true }),
+    locationFormatSelect: () =>
+      page.getByTestId('import-collection-location-modal').getByTestId('import-collection-format-select'),
     bulkModal: () => page.getByTestId('bulk-import-collection-location-modal'),
     bulkFormatSelect: () =>
       page.getByTestId('bulk-import-collection-location-modal').getByTestId('bulk-import-collection-format-selector'),
@@ -294,44 +287,10 @@ export const buildCommonLocators = (page: Page) => ({
     envOption: (name: string) => page.locator('.dropdown-item').getByText(name, { exact: true }),
     parsingError: () => page.getByTestId('import-error-message'),
     browseLink: (root?: Locator) => (root ?? page).getByTestId('import-collection-browse-link'),
-    importButton: (root?: Locator) => (root ?? page).getByTestId('import-collection-location-modal-submit-btn'),
-    cloneGit: (() => {
-      const modal = () => page.locator('.bruno-modal-card').filter({ hasText: 'Clone Git Repository' });
-
-      return {
-        modal,
-        locationInput: () => modal().locator('#collection-location'),
-        cloneButton: () => modal().getByRole('button', { name: 'Clone', exact: true }),
-        openButton: () => modal().getByRole('button', { name: 'Open', exact: true }),
-        collectionItemTitle: (name: string) =>
-          modal().getByTestId('selection-list').getByText(name, { exact: true }),
-        collectionCheckbox: (name: string) =>
-          modal()
-            .getByRole('listitem')
-            .filter({ has: page.getByText(name, { exact: true }) })
-            .getByRole('checkbox')
-      };
-    })(),
-    bulkImportModal: () =>
-      page.getByRole('dialog').filter({
-        has: page.locator('.bruno-modal-header-title').filter({ hasText: 'Bulk Import' })
-      }),
-    bulkImportModalTitle: () => page.locator('.bruno-modal-header-title').filter({ hasText: 'Bulk Import' }),
-    bulkImportCollectionsSection: () => page.getByTestId('selection-section-collections'),
-    bulkImportCollectionsCount: () => page.getByTestId('selection-section-collections').getByTestId('selection-count'),
-    bulkImportCollectionItem: (name: string) => page.locator('.selection-item-title').filter({ hasText: name }),
-    bulkImportButton: () =>
-      page.getByRole('dialog')
-        .filter({ has: page.locator('.bruno-modal-header-title').filter({ hasText: 'Bulk Import' }) })
-        .getByRole('button', { name: 'Import' }),
-    bulkImportCloseButton: () =>
-      page.getByRole('dialog')
-        .filter({ has: page.locator('.bruno-modal-header-title').filter({ hasText: 'Bulk Import' }) })
-        .getByRole('button', { name: 'Close' }),
-    bulkImportFormatSelect: () =>
-      page.getByRole('dialog')
-        .filter({ has: page.locator('.bruno-modal-header-title').filter({ hasText: 'Bulk Import' }) })
-        .locator('#format'),
+    importButton: (root?: Locator) =>
+      (root ?? page.getByTestId('import-collection-location-modal')).getByTestId(
+        'import-collection-location-modal-submit-btn'
+      ),
     ...(() => {
       const issuesToast = () => page.getByTestId('import-issues-toast').last();
       return {
@@ -343,7 +302,8 @@ export const buildCommonLocators = (page: Page) => ({
         issuesToastCloseBtn: () => issuesToast().getByTestId('import-issues-toast-close'),
         issuesToastUrlTooLongWarning: () => issuesToast().getByTestId('import-issues-url-too-long-warning')
       };
-    })()
+    })(),
+    ...buildImportAddedLocators(page)
   },
   /**
    * Build generic table locators for any table with a testId

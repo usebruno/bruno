@@ -1,5 +1,6 @@
 import { test, expect } from '../../../playwright';
-import {buildCommonLocators,closeAllCollections,createCollection,openCollectionSettings,selectCollectionPaneTab} from '../../utils/page';
+import * as path from 'path';
+import { closeAllCollections, createCollection, openCollectionSettings, selectCollectionPaneTab } from '../../utils/page';
 
 test.describe('Create collection', () => {
   test.afterEach(async ({ page }) => {
@@ -54,11 +55,12 @@ test.describe('Create collection', () => {
   });
 
   test('TC99: Verify user able to Create a new collection', { tag: '@sanity' }, async ({ page, createTmpDir }) => {
-    const collectionName = 'test-collection';
-    const locators = buildCommonLocators(page);
-    await createCollection(page, collectionName, await createTmpDir(collectionName));
-    await expect(locators.toast.success('Collection created!')).toBeVisible();
-    await expect(locators.sidebar.collection(collectionName)).toBeVisible();
+    const collectionLocation = await createTmpDir('test-collection');
+    const collectionName = path.basename(collectionLocation);
+
+    await createCollection(page, collectionName, collectionLocation, {
+      successToast: 'Collection created!'
+    });
   });
 
   test('a newly created collection has no version set (shows "Not Set")', async ({ page, createTmpDir }) => {

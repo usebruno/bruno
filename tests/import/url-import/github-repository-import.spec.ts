@@ -16,7 +16,6 @@ test.describe('Git repository import', () => {
     const cloneLocation = await createTmpDir('git-clone');
     const locators = buildCommonLocators(page);
     const importLocators = locators.import;
-    const { cloneGit } = importLocators;
 
     await test.step('Go to menu click on the + icon', async () => {
       await locators.plusMenu.button().click();
@@ -39,23 +38,23 @@ test.describe('Git repository import', () => {
       await importLocators.cloneGitButton().click();
       await importLocators.loader().waitFor({ state: 'hidden' });
 
-      await expect(cloneGit.modal()).toBeVisible();
-      await expect(cloneGit.modal()).toContainText(gitUrl);
+      await expect(importLocators.cloneGitModal()).toBeVisible();
+      await expect(importLocators.cloneGitModal()).toContainText(gitUrl);
 
       await mockBrowseFiles(electronApp, [cloneLocation]);
 
-      await cloneGit.locationInput().click();
-      await expect(cloneGit.locationInput()).toHaveValue(cloneLocation);
+      await importLocators.cloneGitLocationInput().click();
+      await expect(importLocators.cloneGitLocationInput()).toHaveValue(cloneLocation);
 
-      await cloneGit.cloneButton().click();
-      await expect(cloneGit.collectionItemTitle(collectionName)).toBeVisible();
+      await importLocators.cloneGitSubmitButton().click();
+      await expect(importLocators.cloneGitCollectionItemTitle(collectionName)).toBeVisible();
     });
 
     await test.step('Select the desired collections and click on open', async () => {
-      await cloneGit.collectionCheckbox(collectionName).check();
+      await importLocators.cloneGitCollectionCheckbox(collectionName).check();
 
-      await cloneGit.openButton().click();
-      await cloneGit.modal().waitFor({ state: 'hidden' });
+      await importLocators.cloneGitSubmitButton().click();
+      await importLocators.cloneGitModal().waitFor({ state: 'hidden' });
 
       await expect(locators.sidebar.collection(collectionName)).toBeVisible();
       await expect(locators.toast.success('Repository cloned successfully')).toBeVisible();
