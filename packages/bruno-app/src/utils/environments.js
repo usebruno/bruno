@@ -111,3 +111,16 @@ export const stripEnvVarUid = (variable) => {
   }
   return result;
 };
+
+/**
+ * 获取 URL 栏应该使用的环境颜色
+ * Priority: collection env color > global env color > null
+ * @param {object|null} collectionEnv - active collection environment 对象 (含 color, name)
+ * @param {object|null} globalEnv - active global environment 对象 (含 color, name)
+ * @returns {string|null} hex 颜色字符串，无环境时返回 null
+ */
+export const getEnvColorForUrlBar = (collectionEnv, globalEnv) => {
+  if (collectionEnv?.color) return collectionEnv.color;
+  if (globalEnv?.color) return globalEnv.color;
+  return null;
+};
