@@ -1,6 +1,6 @@
 import { Cookie, CookieJar } from 'tough-cookie';
 import each from 'lodash/each';
-import moment from 'moment';
+import dayjs from 'dayjs';
 import { isPotentiallyTrustworthyOrigin } from '../utils/url-validation';
 
 const cookieJar = new CookieJar();
@@ -95,10 +95,10 @@ const updateCookieObj = (cookieObj: any, oldCookie: Cookie) => {
     path: oldCookie.path,
     key: oldCookie.key,
     domain: oldCookie.domain,
-    expires: cookieObj?.expires && moment(cookieObj.expires).isValid() ? new Date(cookieObj.expires) : Infinity,
-    creation: oldCookie?.creation && moment(oldCookie.creation).isValid() ? new Date(oldCookie.creation) : new Date(),
+    expires: cookieObj?.expires && dayjs(cookieObj.expires).isValid() ? new Date(cookieObj.expires) : Infinity,
+    creation: oldCookie?.creation && dayjs(oldCookie.creation).isValid() ? new Date(oldCookie.creation) : new Date(),
     lastAccessed:
-      oldCookie?.lastAccessed && moment(oldCookie.lastAccessed).isValid()
+      oldCookie?.lastAccessed && dayjs(oldCookie.lastAccessed).isValid()
         ? new Date(oldCookie.lastAccessed)
         : new Date()
   } as any;
@@ -108,10 +108,10 @@ const createCookieObj = (cookieObj: any) => {
   return {
     ...cookieObj,
     path: cookieObj.path,
-    expires: cookieObj?.expires && moment(cookieObj.expires).isValid() ? new Date(cookieObj.expires) : Infinity,
-    creation: cookieObj?.creation && moment(cookieObj.creation).isValid() ? new Date(cookieObj.creation) : new Date(),
+    expires: cookieObj?.expires && dayjs(cookieObj.expires).isValid() ? new Date(cookieObj.expires) : Infinity,
+    creation: cookieObj?.creation && dayjs(cookieObj.creation).isValid() ? new Date(cookieObj.creation) : new Date(),
     lastAccessed:
-      cookieObj?.lastAccessed && moment(cookieObj.lastAccessed).isValid()
+      cookieObj?.lastAccessed && dayjs(cookieObj.lastAccessed).isValid()
         ? new Date(cookieObj.lastAccessed)
         : new Date()
   } as any;
