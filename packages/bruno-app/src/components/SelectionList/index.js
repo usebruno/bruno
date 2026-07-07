@@ -62,7 +62,7 @@ const SelectionList = ({
 
     return (
       <>
-        <span className="selection-item-title">{itemTitle}</span>
+        <span className="selection-item-title" data-testid="selection-list-item-title">{itemTitle}</span>
         {description && (
           <span
             className="selection-item-description"
@@ -127,11 +127,12 @@ const SelectionList = ({
             const isSelected = selectedItems.includes(itemId);
 
             return (
-              <li key={itemId}>
+              <li key={itemId} data-testid="selection-list-item">
                 <label className="selection-item">
                   <input
                     className="checkbox"
                     type="checkbox"
+                    data-testid="selection-list-item-checkbox"
                     checked={isSelected}
                     onChange={() => onItemToggle(itemId)}
                   />

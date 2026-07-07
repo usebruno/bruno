@@ -31,7 +31,6 @@ test.describe('Single Import - Default OpenCollection format', () => {
     const locators = buildCommonLocators(page);
     const importLocators = locators.import;
     const importLocation = await createTmpDir('single-import-default-yml');
-    const locationModal = importLocators.locationModal();
 
     await test.step('Click on Import Collection', async () => {
       await locators.plusMenu.button().click();
@@ -46,16 +45,16 @@ test.describe('Single Import - Default OpenCollection format', () => {
       await expect(importLocators.fileInput()).toBeAttached();
       await importLocators.fileInput().setInputFiles(postmanFile);
 
-      await locationModal.waitFor({ state: 'visible', timeout: 10_000 });
-      await expect(locationModal.getByText(collectionName)).toBeVisible();
+      await importLocators.locationModal().waitFor({ state: 'visible' });
+      await expect(importLocators.locationCollectionName(collectionName)).toBeVisible();
     });
 
     await test.step('Leave the format selection as default and click Import', async () => {
-      await expect(locationModal.locator('#format')).toHaveCount(0);
+      await expect(importLocators.locationFormatSelect()).toHaveCount(0);
 
       await importLocators.locationInput().fill(importLocation);
-      await importLocators.importButton(locationModal).click();
-      await locationModal.waitFor({ state: 'hidden' });
+      await importLocators.importButton().click();
+      await importLocators.locationModal().waitFor({ state: 'hidden' });
 
       await expect(locators.sidebar.collection(collectionName)).toBeVisible();
 

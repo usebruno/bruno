@@ -53,8 +53,8 @@ test.describe('Insomnia URL Import', () => {
         await importLocators.locationModal().waitFor({ state: 'hidden' });
         await expect(locators.sidebar.collection(collectionName)).toBeVisible();
         await openCollection(page, collectionName);
-        await expect(page.locator('.collection-item-name').getByText('API Tests')).toBeVisible();
-        await expect(page.locator('.collection-item-name').getByText('Data Management')).toBeVisible();
+        await expect(locators.sidebar.folder('API Tests')).toBeVisible();
+        await expect(locators.sidebar.folder('Data Management')).toBeVisible();
       });
     });
 });
