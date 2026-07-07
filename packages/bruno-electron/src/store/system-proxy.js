@@ -1,4 +1,5 @@
-const { getSystemProxy, refreshShellEnvProxyVars } = require('@usebruno/requests');
+const { getSystemProxy } = require('@usebruno/requests');
+const { refreshShellEnvProxyVars } = require('./shell-env-state');
 
 let cachedSystemProxy;
 let systemProxyPromise;

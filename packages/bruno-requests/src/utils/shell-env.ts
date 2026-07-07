@@ -17,8 +17,9 @@ export const PROXY_ENV_KEYS = [
   'ALL_PROXY'
 ] as const;
 
-const fetchShellEnv = async (): Promise<Record<string, string>> => {
+const fetchShellEnv = async (): Promise<Record<string, string> | null> => {
   // Windows handles environment variables differently - skip
+  // everything related to windows proxy settings is handled by the system proxy resolver i.e getSystemProxy()
   if (process.platform === 'win32') {
     return {};
   }
@@ -29,7 +30,7 @@ const fetchShellEnv = async (): Promise<Record<string, string>> => {
     const env = await shellEnv();
     return env;
   } catch (error) {
-    return {};
+    return null;
   }
 };
 
@@ -41,6 +42,11 @@ const fetchShellEnv = async (): Promise<Record<string, string>> => {
  */
 export const initializeShellEnv = async (): Promise<Record<string, string>> => {
   const shellEnvVars = await fetchShellEnv();
+
+  if (shellEnvVars === null) {
+    return {};
+  }
+
   for (const [key, value] of Object.entries(shellEnvVars)) {
     if (key === 'PATH' && process.env.PATH) {
       process.env.PATH = `${value}${path.delimiter}${process.env.PATH}`;
@@ -52,37 +58,15 @@ export const initializeShellEnv = async (): Promise<Record<string, string>> => {
 };
 
 /**
- * Like fetchShellEnv, but surfaces subprocess failure by returning null instead
- * of an empty object. Lets refreshShellEnvProxyVars tell "shell-env failed" apart
- * from "shell-env succeeded but has no proxy vars", so it can restore prior values
- * on failure rather than leave the user unproxied.
- */
-const tryFetchShellEnv = async (): Promise<Record<string, string> | null> => {
-  if (process.platform === 'win32') {
-    return {};
-  }
-  try {
-    const { shellEnv } = await import('shell-env');
-    // shellEnv spawns a login shell, which can hang (e.g. on a misconfigured
-    // shell rc). Cap it at 5s and treat a timeout as a failure (null).
-    const timeout = new Promise<null>((resolve) => setTimeout(() => resolve(null), 5000));
-    return await Promise.race([shellEnv(), timeout]);
-  } catch (error) {
-    return null;
-  }
-};
-
-/**
  * Re-syncs proxy-related process.env values from the user's shell configuration.
  * Used when refreshing system proxy settings without restarting the app.
  *
  * @returns The fetched shell environment variables
  */
 export const refreshShellEnvProxyVars = async (): Promise<Record<string, string>> => {
-  // fetchShellEnv is a no-op on Windows, so running the delete-first flow here
-  // would strip process.env proxy vars (registry-propagated, launcher-set, or inherited
-  // from the parent shell) without any means to restore them. Preserve the additive-only
-  // invariant that initializeShellEnv maintains on Windows.
+  // Windows handles environment variables differently - skip
+  // everything related to windows proxy settings is handled by the
+  // system proxy resolver i.e getSystemProxy()
   if (process.platform === 'win32') {
     return {};
   }
@@ -95,7 +79,7 @@ export const refreshShellEnvProxyVars = async (): Promise<Record<string, string>
     delete process.env[key];
   }
 
-  const shellEnvVars = await tryFetchShellEnv();
+  const shellEnvVars = await fetchShellEnv();
 
   if (shellEnvVars === null) {
     // Subprocess failed — restore prior values rather than leave the user unproxied.
