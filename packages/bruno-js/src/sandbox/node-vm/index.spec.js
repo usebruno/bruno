@@ -385,6 +385,55 @@ describe('node-vm sandbox', () => {
 
       expect(context.bru.setVar).toHaveBeenCalledWith('result', true);
     });
+
+    it('should resolve npm modules when additionalContextRoots points at a symlink', async () => {
+      // Physical location of the shared root
+      const realShared = path.join(testDir, 'real-shared');
+      const realNodeModules = path.join(realShared, 'node_modules', 'symlinked-lib');
+      fs.mkdirSync(realNodeModules, { recursive: true });
+      fs.writeFileSync(
+        path.join(realNodeModules, 'index.js'),
+        'module.exports = { via: "symlink" };'
+      );
+
+      // Shared script inside the real location that requires the npm package.
+      // Loaded through the symlink below.
+      fs.writeFileSync(
+        path.join(realShared, 'helper.js'),
+        'const pkg = require("symlinked-lib"); module.exports = { via: pkg.via };'
+      );
+
+      // User-facing symlink that Bruno is told to treat as the shared root.
+      // Windows requires developer mode / admin to create symlinks — skip gracefully.
+      const linkedShared = path.join(testDir, 'linked-shared');
+      try {
+        fs.symlinkSync(realShared, linkedShared, 'dir');
+      } catch (e) {
+        if (e.code === 'EPERM' || e.code === 'ENOTSUP') return;
+        throw e;
+      }
+
+      const script = `
+        const helper = require('../linked-shared/helper');
+        bru.setVar('via', helper.via);
+      `;
+
+      const context = {
+        bru: { setVar: jest.fn() },
+        console: console
+      };
+
+      const scriptingConfig = {
+        additionalContextRoots: [linkedShared]
+      };
+
+      await runScriptInNodeVm({ script, context, collectionPath, scriptingConfig });
+
+      // If isResolvedNpmPathAllowed didn't canonicalize both sides via realpathSync,
+      // the resolved path (under real-shared/) would be rejected as escaping the
+      // configured root (linked-shared/) and this assertion would fail.
+      expect(context.bru.setVar).toHaveBeenCalledWith('via', 'symlink');
+    });
   });
 
   describe('createCustomRequire - npm modules', () => {
