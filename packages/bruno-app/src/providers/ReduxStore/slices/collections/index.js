@@ -3831,11 +3831,11 @@ export const collectionsSlice = createSlice({
       state.tempDirectories[action.payload.collectionUid] = action.payload.pathname;
     },
     addSaveTransientRequestModal: (state, action) => {
-      const { item, collection } = action.payload;
+      const { item, collection, closeAfterSave = false } = action.payload;
       // Avoid duplicates - check if this item is already in the array
       const exists = state.saveTransientRequestModals.some((modal) => modal.item.uid === item.uid);
       if (!exists) {
-        state.saveTransientRequestModals.push({ item, collection });
+        state.saveTransientRequestModals.push({ item, collection, closeAfterSave });
       }
     },
     removeSaveTransientRequestModal: (state, action) => {

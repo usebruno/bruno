@@ -71,6 +71,7 @@ const TransientRequestModalsRenderer = ({ modals }) => {
         item={modals[0].item}
         collection={modals[0].collection}
         isOpen={true}
+        closeAfterSave={modals[0].closeAfterSave}
       />
     );
   }
