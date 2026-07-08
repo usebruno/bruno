@@ -27,6 +27,13 @@ const MIGRATIONS = [
       ) WITHOUT ROWID;
       CREATE INDEX IF NOT EXISTS idx_collection_path ON file_index_entries(collection_path);
     `
+  },
+  {
+    version: 2,
+    up: `
+      ALTER TABLE file_index_entries ADD COLUMN raw TEXT;
+      UPDATE file_index_entries SET mtime = 0, hash = '';
+    `
   }
 ];
 
@@ -102,12 +109,12 @@ class FileIndex {
   entries(collectionPath) {
     const root = normalize(collectionPath);
     const rows = this.#db.all(
-      'SELECT relative_path AS relativePath, data FROM file_index_entries WHERE collection_path = ?',
+      'SELECT relative_path AS relativePath, data, raw FROM file_index_entries WHERE collection_path = ?',
       root
     );
     const map = new Map();
     for (const row of rows) {
-      map.set(row.relativePath, { data: JSON.parse(row.data) });
+      map.set(row.relativePath, { data: JSON.parse(row.data), raw: row.raw });
     }
     return map;
   }
@@ -125,23 +132,25 @@ class FileIndex {
       return;
     }
 
-    const { mtime, hash, data } = entry;
+    const { mtime, hash, data, raw } = entry;
     const id = idForAbsolutePath(path.join(root, relativePath));
     this.#db.run(
       `
-      INSERT INTO file_index_entries (collection_path, relative_path, id, mtime, hash, data)
-      VALUES (?, ?, ?, ?, ?, ?)
+      INSERT INTO file_index_entries (collection_path, relative_path, id, mtime, hash, data, raw)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
       ON CONFLICT(collection_path, relative_path) DO UPDATE SET
         mtime = excluded.mtime,
         hash = excluded.hash,
-        data = excluded.data
+        data = excluded.data,
+        raw = excluded.raw
     `,
       root,
       relativePath,
       id,
       mtime,
       hash,
-      JSON.stringify(data)
+      JSON.stringify(data),
+      raw ?? null
     );
   }
 
@@ -155,6 +164,7 @@ class FileIndex {
       relativePath,
       mtime: stat.mtimeNs,
       hash: hashFile(absolutePath),
+      raw: fs.readFileSync(absolutePath, 'utf8'),
       data
     });
   }

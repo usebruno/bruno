@@ -128,6 +128,7 @@ const buildRequestNode = (absolutePath, basename, entry, uidOverrides, uidFor) =
     request: data.request,
     settings: data.settings,
     examples: data.examples,
+    raw: entry.raw ?? null,
     filename: basename,
     pathname: absolutePath,
     draft: null,
