@@ -1,8 +1,10 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
 import get from 'lodash/get';
 import find from 'lodash/find';
 import { useDispatch, useSelector } from 'react-redux';
 import CodeEditor from 'components/CodeEditor';
+import AIAssist from 'components/AIAssist';
+import { buildAiVariablesPayload } from 'utils/ai';
 import { updateCollectionRequestScript, updateCollectionResponseScript } from 'providers/ReduxStore/slices/collections';
 import { saveCollectionSettings } from 'providers/ReduxStore/slices/collections/actions';
 import { updateScriptPaneTab } from 'providers/ReduxStore/slices/tabs';
@@ -13,6 +15,7 @@ import { flattenItems, isItemARequest } from 'utils/collections';
 import StyledWrapper from './StyledWrapper';
 import Button from 'ui/Button';
 import { usePersistedState } from 'hooks/usePersistedState';
+import { useFocusErrorLine } from 'hooks/useFocusErrorLine';
 
 const Script = ({ collection }) => {
   const dispatch = useDispatch();
@@ -59,6 +62,20 @@ const Script = ({ collection }) => {
     return () => clearTimeout(timer);
   }, [activeTab]);
 
+  useFocusErrorLine({
+    uid: collection.uid,
+    editorRef: preRequestEditorRef,
+    scriptPhase: 'pre-request',
+    isVisible: activeTab === 'pre-request'
+  });
+
+  useFocusErrorLine({
+    uid: collection.uid,
+    editorRef: postResponseEditorRef,
+    scriptPhase: 'post-response',
+    isVisible: activeTab === 'post-response'
+  });
+
   const onRequestScriptEdit = (value) => {
     dispatch(
       updateCollectionRequestScript({
@@ -85,6 +102,8 @@ const Script = ({ collection }) => {
   const hasPreRequestScriptError = items.some((i) => isItemARequest(i) && i.preRequestScriptErrorMessage);
   const hasPostResponseScriptError = items.some((i) => isItemARequest(i) && i.postResponseScriptErrorMessage);
 
+  const aiVariables = useMemo(() => buildAiVariablesPayload(collection, null), [collection]);
+
   return (
     <StyledWrapper className="w-full flex flex-col h-full">
       <div className="text-xs mb-4 text-muted">
@@ -108,39 +127,57 @@ const Script = ({ collection }) => {
         </TabsList>
 
         <TabsContent value="pre-request" className="mt-2" dataTestId="collection-pre-request-script-editor">
-          <CodeEditor
-            ref={preRequestEditorRef}
-            collection={collection}
-            docKey="collection-script:pre-request"
-            value={requestScript || ''}
-            theme={displayedTheme}
-            onEdit={onRequestScriptEdit}
-            mode="javascript"
-            onSave={handleSave}
-            font={get(preferences, 'font.codeFont', 'default')}
-            fontSize={get(preferences, 'font.codeFontSize')}
-            showHintsFor={['req', 'bru']}
-            initialScroll={preReqScroll}
-            onScroll={setPreReqScroll}
-          />
+          <div className="relative h-full">
+            <CodeEditor
+              ref={preRequestEditorRef}
+              collection={collection}
+              docKey="collection-script:pre-request"
+              value={requestScript || ''}
+              theme={displayedTheme}
+              onEdit={onRequestScriptEdit}
+              mode="javascript"
+              onSave={handleSave}
+              font={get(preferences, 'font.codeFont', 'default')}
+              fontSize={get(preferences, 'font.codeFontSize')}
+              showHintsFor={['req', 'bru']}
+              scriptType="pre-request"
+              initialScroll={preReqScroll}
+              onScroll={setPreReqScroll}
+            />
+            <AIAssist
+              scriptType="pre-request"
+              currentScript={requestScript || ''}
+              variables={aiVariables}
+              onApply={onRequestScriptEdit}
+            />
+          </div>
         </TabsContent>
 
         <TabsContent value="post-response" className="mt-2" dataTestId="collection-post-response-script-editor">
-          <CodeEditor
-            ref={postResponseEditorRef}
-            collection={collection}
-            docKey="collection-script:post-response"
-            value={responseScript || ''}
-            theme={displayedTheme}
-            onEdit={onResponseScriptEdit}
-            mode="javascript"
-            onSave={handleSave}
-            font={get(preferences, 'font.codeFont', 'default')}
-            fontSize={get(preferences, 'font.codeFontSize')}
-            showHintsFor={['req', 'res', 'bru']}
-            initialScroll={postResScroll}
-            onScroll={setPostResScroll}
-          />
+          <div className="relative h-full">
+            <CodeEditor
+              ref={postResponseEditorRef}
+              collection={collection}
+              docKey="collection-script:post-response"
+              value={responseScript || ''}
+              theme={displayedTheme}
+              onEdit={onResponseScriptEdit}
+              mode="javascript"
+              onSave={handleSave}
+              font={get(preferences, 'font.codeFont', 'default')}
+              fontSize={get(preferences, 'font.codeFontSize')}
+              showHintsFor={['req', 'res', 'bru']}
+              scriptType="post-response"
+              initialScroll={postResScroll}
+              onScroll={setPostResScroll}
+            />
+            <AIAssist
+              scriptType="post-response"
+              currentScript={responseScript || ''}
+              variables={aiVariables}
+              onApply={onResponseScriptEdit}
+            />
+          </div>
         </TabsContent>
       </Tabs>
 

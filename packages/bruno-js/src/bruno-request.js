@@ -68,7 +68,13 @@ class BrunoRequest {
             if (segment.startsWith(':')) {
               const paramName = segment.slice(1);
               const pathParam = this.req.pathParams.find((param) => param.name === paramName);
-              if (pathParam && pathParam.value) {
+              if (
+                pathParam
+                && pathParam.enabled !== false
+                && pathParam.value !== null
+                && pathParam.value !== undefined
+                && (typeof pathParam.value !== 'string' || pathParam.value.trim() !== '')
+              ) {
                 return pathParam.value;
               }
             }

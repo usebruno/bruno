@@ -11,6 +11,7 @@ const LastOpenedWorkspaces = require('../store/last-opened-workspaces');
 const { defaultWorkspaceManager } = require('../store/default-workspace');
 const { globalEnvironmentsManager } = require('../store/workspace-environments');
 const { globalEnvironmentsStore } = require('../store/global-environments');
+const { resolveLastOpenedWorkspacePaths } = require('../utils/workspace-startup');
 
 const {
   createWorkspaceConfig,
@@ -214,7 +215,7 @@ const registerWorkspaceIpc = (mainWindow, workspaceWatcher) => {
         return [];
       }
 
-      const specs = workspaceConfig.specs || [];
+      const specs = Array.isArray(workspaceConfig.specs) ? workspaceConfig.specs : [];
 
       const resolvedSpecs = specs
         .map((spec) => {
@@ -236,23 +237,9 @@ const registerWorkspaceIpc = (mainWindow, workspaceWatcher) => {
 
   ipcMain.handle('renderer:get-last-opened-workspaces', async () => {
     try {
-      const workspacePaths = lastOpenedWorkspaces.getAll();
-      const validWorkspaces = [];
-      const invalidPaths = [];
-
-      for (const workspacePath of workspacePaths) {
-        const workspaceYmlPath = path.join(workspacePath, 'workspace.yml');
-
-        if (fs.existsSync(workspaceYmlPath)) {
-          validWorkspaces.push(workspacePath);
-        } else {
-          invalidPaths.push(workspacePath);
-        }
-      }
-
-      for (const invalidPath of invalidPaths) {
-        lastOpenedWorkspaces.remove(invalidPath);
-      }
+      const { validWorkspaces } = resolveLastOpenedWorkspacePaths(lastOpenedWorkspaces, {
+        validateConfig: true
+      });
 
       return validWorkspaces;
     } catch (error) {
@@ -691,45 +678,32 @@ const registerWorkspaceIpc = (mainWindow, workspaceWatcher) => {
         }
       }
 
-      const workspacePaths = lastOpenedWorkspaces.getAll();
-      const invalidPaths = [];
+      const { validWorkspaces } = resolveLastOpenedWorkspacePaths(lastOpenedWorkspaces, {
+        defaultWorkspacePath
+      });
 
-      for (const workspacePath of workspacePaths) {
-        if (defaultWorkspacePath && workspacePath === defaultWorkspacePath) {
-          continue;
-        }
+      for (const workspacePath of validWorkspaces) {
+        try {
+          const workspaceConfig = readWorkspaceConfig(workspacePath);
+          const workspaceUid = getWorkspaceUid(workspacePath);
+          const isDefault = workspaceUid === 'default';
+          const configForClient = prepareWorkspaceConfigForClient(workspaceConfig, workspacePath, isDefault);
 
-        const workspaceYmlPath = path.join(workspacePath, 'workspace.yml');
+          win.webContents.send('main:workspace-opened', workspacePath, workspaceUid, configForClient);
 
-        if (fs.existsSync(workspaceYmlPath)) {
-          try {
-            const workspaceConfig = readWorkspaceConfig(workspacePath);
-            validateWorkspaceConfig(workspaceConfig);
-            const workspaceUid = getWorkspaceUid(workspacePath);
-            const isDefault = workspaceUid === 'default';
-            const configForClient = prepareWorkspaceConfigForClient(workspaceConfig, workspacePath, isDefault);
-
-            win.webContents.send('main:workspace-opened', workspacePath, workspaceUid, configForClient);
-
-            if (workspaceWatcher) {
-              workspaceWatcher.addWatcher(win, workspacePath);
-            }
-          } catch (error) {
-            console.error(`Error loading workspace ${workspacePath}:`, error);
-            invalidPaths.push(workspacePath);
+          if (workspaceWatcher) {
+            workspaceWatcher.addWatcher(win, workspacePath);
           }
-        } else {
-          invalidPaths.push(workspacePath);
+        } catch (error) {
+          console.error(`Error loading workspace ${workspacePath}:`, error);
+          lastOpenedWorkspaces.remove(workspacePath);
         }
-      }
-
-      for (const invalidPath of invalidPaths) {
-        lastOpenedWorkspaces.remove(invalidPath);
       }
     } catch (error) {
       console.error('Error initializing workspaces:', error);
     }
 
+    win.webContents.send('main:workspaces-ready');
     ipcMain.emit('main:workspaces-ready', win);
   });
 };

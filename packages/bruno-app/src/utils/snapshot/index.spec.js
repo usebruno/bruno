@@ -16,7 +16,8 @@ const {
   hydrateSnapshotLookups,
   hydrateCollectionTabs,
   isActiveTab,
-  getActiveTabFromSnapshot
+  getActiveTabFromSnapshot,
+  getCollectionSnapshotFromLookups
 } = require('./index');
 
 describe('hydrateSnapshotLookups', () => {
@@ -177,10 +178,10 @@ describe('hydrateSnapshotLookups', () => {
           pathname: sharedCollectionPath,
           workspacePathname: workspaceAPath,
           environment: {
-            collection: '',
+            collection: 'env-a',
             global: ''
           },
-          selectedEnvironment: '',
+          selectedEnvironment: 'env-a',
           isOpen: true,
           isMounted: false,
           activeTab: { accessor: 'pathname', value: '/collections/shared/ReqA' },
@@ -190,10 +191,10 @@ describe('hydrateSnapshotLookups', () => {
           pathname: sharedCollectionPath,
           workspacePathname: workspaceBPath,
           environment: {
-            collection: '',
+            collection: 'env-b',
             global: ''
           },
-          selectedEnvironment: '',
+          selectedEnvironment: 'env-b',
           isOpen: true,
           isMounted: false,
           activeTab: { accessor: 'pathname', value: '/collections/shared/ReqB' },
@@ -217,6 +218,35 @@ describe('hydrateSnapshotLookups', () => {
     });
 
     expect(lookups.hasWorkspaceScopedTabs).toBe(true);
+
+    // Each workspace should resolve to its own selected environment for the shared collection.
+    expect(getCollectionSnapshotFromLookups(sharedCollectionPath, lookups, workspaceAPath)).toMatchObject({
+      selectedEnvironment: 'env-a'
+    });
+    expect(getCollectionSnapshotFromLookups(sharedCollectionPath, lookups, workspaceBPath)).toMatchObject({
+      selectedEnvironment: 'env-b'
+    });
+  });
+
+  it('drops legacy v4 migration tabs from snapshot lookups', () => {
+    const snapshot = {
+      collections: [
+        {
+          pathname: '/collections/legacy',
+          activeTab: { accessor: 'type', value: 'v4-migration' },
+          tabs: [
+            { type: 'v4-migration', accessor: 'type', permanent: true },
+            { type: 'variables', accessor: 'type', permanent: true }
+          ]
+        }
+      ]
+    };
+
+    const lookups = hydrateSnapshotLookups(snapshot);
+
+    expect(lookups.tabsByCollectionPath['/collections/legacy'].tabs).toEqual([
+      { type: 'variables', accessor: 'type', permanent: true }
+    ]);
   });
 });
 
@@ -284,6 +314,56 @@ describe('deserializeTab', () => {
 
     const tab = deserializeTab(snapshotTab, collection);
     expect(tab.uid).toBe('collection-uid-preferences');
+  });
+
+  it('defaults folder settings request pane tab to headers', () => {
+    const snapshotTab = {
+      type: 'folder-settings',
+      accessor: 'pathname',
+      pathname: '/collections/a/folder',
+      permanent: true
+    };
+
+    const tab = deserializeTab(snapshotTab, collection);
+    expect(tab.requestPaneTab).toBe('headers');
+  });
+
+  it('restores folder settings request pane tab from snapshot', () => {
+    const snapshotTab = {
+      type: 'folder-settings',
+      accessor: 'pathname',
+      pathname: '/collections/a/folder',
+      request: { tab: 'auth' },
+      permanent: true
+    };
+
+    const tab = deserializeTab(snapshotTab, collection);
+    expect(tab.requestPaneTab).toBe('auth');
+  });
+
+  it('keeps folder-settings type when pathname resolves to a non-request item', () => {
+    const collectionWithFolderItem = {
+      ...collection,
+      items: [
+        {
+          uid: 'folder-1',
+          pathname: '/collections/a/folder',
+          type: 'folder'
+        }
+      ]
+    };
+
+    const snapshotTab = {
+      type: 'folder-settings',
+      accessor: 'pathname',
+      pathname: '/collections/a/folder',
+      permanent: true
+    };
+
+    const tab = deserializeTab(snapshotTab, collectionWithFolderItem);
+    expect(tab.type).toBe('folder-settings');
+    expect(tab.folderUid).toBe('folder-1');
+    expect(tab.requestPaneTab).toBe('headers');
   });
 
   it('restores response example by index when duplicate names exist', () => {
@@ -715,5 +795,80 @@ describe('hydrateCollectionTabs', () => {
 
     expect(dispatch).toHaveBeenCalledTimes(1);
     expect(restoreTabs).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not restore legacy v4 migration tabs from direct tab snapshots', async () => {
+    global.window.ipcRenderer.invoke.mockResolvedValue({
+      tabs: [
+        { type: 'v4-migration', accessor: 'type', permanent: true },
+        { type: 'variables', accessor: 'type', permanent: true }
+      ],
+      activeTab: {
+        accessor: 'type',
+        value: 'v4-migration'
+      }
+    });
+
+    const dispatch = jest.fn();
+    const restoreTabs = jest.fn((payload) => ({
+      type: 'tabs/restoreTabs',
+      payload
+    }));
+
+    await hydrateCollectionTabs(
+      { uid: 'collection-uid', pathname: '/collections/legacy' },
+      dispatch,
+      restoreTabs,
+      null,
+      null,
+      true
+    );
+
+    expect(restoreTabs).toHaveBeenCalledWith(
+      expect.objectContaining({
+        tabs: [{ type: 'variables', accessor: 'type', permanent: true }],
+        activeTab: null
+      })
+    );
+  });
+});
+
+describe('getActiveTabFromSnapshot', () => {
+  beforeEach(() => {
+    global.window = {
+      ipcRenderer: {
+        invoke: jest.fn().mockResolvedValue(null)
+      }
+    };
+  });
+
+  afterEach(() => {
+    delete global.window;
+  });
+
+  it('ignores a legacy v4 migration active tab snapshot', async () => {
+    const snapshot = {
+      collections: [
+        {
+          pathname: '/collections/legacy',
+          tabs: [
+            { type: 'v4-migration', accessor: 'type', permanent: true }
+          ],
+          activeTab: {
+            accessor: 'type',
+            value: 'v4-migration'
+          }
+        }
+      ]
+    };
+    const lookups = hydrateSnapshotLookups(snapshot);
+
+    const activeTab = await getActiveTabFromSnapshot(
+      '/collections/legacy',
+      { uid: 'collection-uid', pathname: '/collections/legacy' },
+      lookups
+    );
+
+    expect(activeTab).toBeNull();
   });
 });

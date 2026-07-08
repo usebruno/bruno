@@ -4,6 +4,7 @@ const { ipcMain } = require('electron');
 const { sanitizeName, createDirectory, writeFile, safeWriteFileSync, getCollectionStats } = require('./filesystem');
 const { generateUidBasedOnHash, stringifyJson } = require('./common');
 const { stringifyRequestViaWorker, stringifyCollection, stringifyEnvironment, stringifyFolder, DEFAULT_COLLECTION_FORMAT } = require('@usebruno/filestore');
+const { transformProxyConfig } = require('@usebruno/requests/dist/cjs');
 
 /**
  * Recursively find a unique folder name by appending incremental numbers
@@ -86,11 +87,14 @@ async function importCollection(collection, collectionLocation, mainWindow, uniq
 
     if (!brunoConfig) {
       brunoConfig = {
-        version: '1',
         name: collection.name,
         type: 'collection',
         ignore: ['node_modules', '.git']
       };
+    }
+
+    if (brunoConfig.proxy) {
+      brunoConfig.proxy = transformProxyConfig(brunoConfig.proxy);
     }
 
     return brunoConfig;
@@ -102,10 +106,17 @@ async function importCollection(collection, collectionLocation, mainWindow, uniq
   let brunoConfig = getBrunoJsonConfig(collection);
 
   if (format === 'yml') {
+    brunoConfig.opencollection = '1.0.0';
     const collectionContent = await stringifyCollection(collection.root, brunoConfig, { format });
     await writeFile(path.join(collectionPath, 'opencollection.yml'), collectionContent);
   } else if (format === 'bru') {
-    const stringifiedBrunoConfig = await stringifyJson(brunoConfig);
+    const bruJsonConfig = { ...brunoConfig, version: '1' };
+    if (brunoConfig.version) {
+      bruJsonConfig.collectionVersion = brunoConfig.version;
+    } else {
+      delete bruJsonConfig.collectionVersion;
+    }
+    const stringifiedBrunoConfig = await stringifyJson(bruJsonConfig);
     await writeFile(path.join(collectionPath, 'bruno.json'), stringifiedBrunoConfig);
 
     const collectionContent = await stringifyCollection(collection.root, brunoConfig, { format });

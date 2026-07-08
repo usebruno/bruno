@@ -2,6 +2,7 @@ import React, { useMemo, useCallback } from 'react';
 import get from 'lodash/get';
 import { IconCaretDown } from '@tabler/icons';
 import MenuDropdown from 'ui/MenuDropdown';
+import StatusBadge from 'ui/StatusBadge/index';
 import { useDispatch } from 'react-redux';
 import { updateCollectionAuthMode } from 'providers/ReduxStore/slices/collections';
 import { humanizeRequestAuthMode } from 'utils/collections';
@@ -67,6 +68,17 @@ const AuthMode = ({ collection }) => {
       onClick: () => onModeChange('apikey')
     },
     {
+      id: 'akamai-edgegrid',
+      label: (
+        <span className="flex items-center gap-2">
+          Akamai EdgeGrid
+          <StatusBadge status="info" size="xs">Beta</StatusBadge>
+        </span>
+      ),
+      ariaLabel: 'Akamai EdgeGrid (Beta)',
+      onClick: () => onModeChange('akamai-edgegrid')
+    },
+    {
       id: 'none',
       label: 'No Auth',
       onClick: () => onModeChange('none')
@@ -75,13 +87,13 @@ const AuthMode = ({ collection }) => {
 
   return (
     <StyledWrapper>
-      <div className="inline-flex items-center cursor-pointer auth-mode-selector">
+      <div className="inline-flex items-center cursor-pointer auth-mode-selector" data-testid="auth-mode-selector">
         <MenuDropdown
           items={menuItems}
           placement="bottom-end"
           selectedItemId={authMode}
         >
-          <div className="flex items-center justify-center auth-mode-label select-none">
+          <div className="flex items-center justify-center auth-mode-label select-none" data-testid="auth-mode-label">
             {humanizeRequestAuthMode(authMode)} <IconCaretDown className="caret ml-1" size={14} strokeWidth={2} />
           </div>
         </MenuDropdown>

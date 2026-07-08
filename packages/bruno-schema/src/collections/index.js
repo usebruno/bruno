@@ -1,6 +1,8 @@
 const Yup = require('yup');
 const { uidSchema } = require('../common');
 
+const BRUNO_VARIABLE_DATATYPES = ['string', 'number', 'boolean', 'object'];
+
 const annotationSchema = Yup.object({
   name: Yup.string().min(1).required('annotation name is required'),
   value: Yup.string().nullable()
@@ -19,7 +21,22 @@ const environmentVariablesSchema = Yup.object({
     .nullable(),
   type: Yup.string().oneOf(['text']).required('type is required'),
   enabled: Yup.boolean().defined(),
-  secret: Yup.boolean()
+  secret: Yup.boolean(),
+  description: Yup.string().nullable(),
+  dataType: Yup.string().oneOf(BRUNO_VARIABLE_DATATYPES).nullable()
+})
+  .noUnknown(true)
+  .strict();
+
+// External secret variables carry `name` plus a provider-specific reference key
+// (path / vaultName / secretName / ...), so unknown keys are allowed through.
+const externalSecretVariableSchema = Yup.object({
+  name: Yup.string().nullable()
+}).strict();
+
+const externalSecretsSchema = Yup.object({
+  type: Yup.string().nullable(),
+  variables: Yup.array().of(externalSecretVariableSchema)
 })
   .noUnknown(true)
   .strict();
@@ -28,6 +45,7 @@ const environmentSchema = Yup.object({
   uid: uidSchema,
   name: Yup.string().min(1).required('name is required'),
   variables: Yup.array().of(environmentVariablesSchema).required('variables are required'),
+  externalSecrets: externalSecretsSchema.nullable().optional(),
   color: Yup.string().nullable().optional(),
   pathname: Yup.string().nullable()
 })
@@ -94,7 +112,8 @@ const assertionSchema = keyValueSchema.shape({
 const varsSchema = Yup.object({
   uid: uidSchema,
   name: Yup.string().nullable(),
-  value: Yup.string().nullable(),
+  // Allow mixed types (string, number, boolean, object) to support coerced dataType values.
+  value: Yup.mixed().nullable(),
   description: Yup.string().nullable(),
   // Optional annotations on variables
   annotations: Yup.array()
@@ -103,6 +122,7 @@ const varsSchema = Yup.object({
     )
     .nullable(),
   enabled: Yup.boolean(),
+  dataType: Yup.string().oneOf(BRUNO_VARIABLE_DATATYPES).nullable(),
 
   // todo
   // anoop(4 feb 2023) - nobody uses this, and it needs to be removed
@@ -239,6 +259,19 @@ const authApiKeySchema = Yup.object({
   key: Yup.string().nullable(),
   value: Yup.string().nullable(),
   placement: Yup.string().oneOf(['header', 'queryparams']).nullable()
+})
+  .noUnknown(true)
+  .strict();
+
+const authEdgeGridSchema = Yup.object({
+  accessToken: Yup.string().nullable(),
+  clientToken: Yup.string().nullable(),
+  clientSecret: Yup.string().nullable(),
+  nonce: Yup.string().nullable(),
+  timestamp: Yup.string().nullable(),
+  baseURL: Yup.string().nullable(),
+  headersToSign: Yup.string().nullable(),
+  maxBodySize: Yup.number().nullable()
 })
   .noUnknown(true)
   .strict();
@@ -401,7 +434,7 @@ const oauth2Schema = Yup.object({
 
 const authSchema = Yup.object({
   mode: Yup.string()
-    .oneOf(['inherit', 'none', 'awsv4', 'basic', 'bearer', 'digest', 'ntlm', 'oauth1', 'oauth2', 'wsse', 'apikey'])
+    .oneOf(['inherit', 'none', 'awsv4', 'basic', 'bearer', 'digest', 'ntlm', 'oauth1', 'oauth2', 'wsse', 'apikey', 'akamai-edgegrid'])
     .required('mode is required'),
   awsv4: authAwsV4Schema.nullable(),
   basic: authBasicSchema.nullable(),
@@ -411,7 +444,8 @@ const authSchema = Yup.object({
   oauth1: authOAuth1Schema.nullable(),
   oauth2: oauth2Schema.nullable(),
   wsse: authWsseSchema.nullable(),
-  apikey: authApiKeySchema.nullable()
+  apikey: authApiKeySchema.nullable(),
+  akamaiEdgegrid: authEdgeGridSchema.nullable()
 })
   .noUnknown(true)
   .strict()
@@ -618,10 +652,11 @@ const folderRootSchema = Yup.object({
 
 const itemSchema = Yup.object({
   uid: uidSchema,
-  type: Yup.string().oneOf(['http-request', 'graphql-request', 'folder', 'js', 'grpc-request', 'ws-request']).required('type is required'),
+  type: Yup.string().oneOf(['http-request', 'graphql-request', 'folder', 'js', 'app', 'grpc-request', 'ws-request']).required('type is required'),
   seq: Yup.number().min(1),
   name: Yup.string().min(1, 'name must be at least 1 character').required('name is required'),
-  tags: Yup.array().of(Yup.string().matches(/^[\p{L}\p{N}_-](?:[\p{L}\p{N}_\s-]*[\p{L}\p{N}_-])?$/u, 'tag must contain only letters, numbers, spaces, hyphens, or underscores')),
+  tags: Yup.array().of(Yup.string().min(1, 'tag must not be empty')),
+  description: Yup.string().nullable(),
   request: Yup.mixed().when('type', {
     is: (type) => type === 'grpc-request',
     then: grpcRequestSchema.required('request is required when item-type is grpc-request'),
@@ -666,6 +701,11 @@ const itemSchema = Yup.object({
     then: (schema) => schema.nullable(),
     otherwise: Yup.array().strip()
   }),
+  app: Yup.object({
+    code: Yup.string().nullable()
+  })
+    .noUnknown(true)
+    .nullable(),
   filename: Yup.string().nullable(),
   pathname: Yup.string().nullable()
 })

@@ -11,6 +11,7 @@ import SingleLineEditor from 'components/SingleLineEditor';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { updateTableColumnWidths } from 'providers/ReduxStore/slices/tabs';
 import EditableTable from 'components/EditableTable';
+import { createDescriptionColumn } from 'components/EditableTable/descriptionColumn';
 import StyledWrapper from './StyledWrapper';
 import { usePersistedState } from 'hooks/usePersistedState';
 import { useTrackScroll } from 'hooks/useTrackScroll';
@@ -52,13 +53,21 @@ const FormUrlEncodedParams = ({ item, collection }) => {
     }));
   }, [dispatch, collection.uid, item.uid]);
 
+  const descriptionColumn = createDescriptionColumn({
+    theme: storedTheme,
+    onSave,
+    onRun: handleRun,
+    collection,
+    item
+  });
+
   const columns = [
     {
       key: 'name',
       name: 'Key',
       isKeyField: true,
       placeholder: 'Key',
-      width: '30%',
+      width: '20%',
       render: ({ value, onChange }) => (
         <SingleLineEditor
           value={value || ''}
@@ -89,7 +98,8 @@ const FormUrlEncodedParams = ({ item, collection }) => {
           placeholder={!value ? 'Value' : ''}
         />
       )
-    }
+    },
+    descriptionColumn
   ];
 
   const defaultRow = {
@@ -102,6 +112,7 @@ const FormUrlEncodedParams = ({ item, collection }) => {
     <StyledWrapper className="w-full" ref={wrapperRef}>
       <EditableTable
         tableId="form-url-encoded"
+        testId="form-urlencoded-table"
         columns={columns}
         rows={params || []}
         onChange={handleParamsChange}

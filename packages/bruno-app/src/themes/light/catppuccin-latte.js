@@ -75,6 +75,12 @@ const catppuccinLatteTheme = {
     subtle: colors.MAUVE
   },
 
+  ws: {
+    activeMessage: {
+      label: colors.MAUVE
+    }
+  },
+
   accents: {
     primary: colors.MAUVE
   },
@@ -271,14 +277,12 @@ const catppuccinLatteTheme = {
   notifications: {
     bg: colors.BASE,
     list: {
-      bg: colors.MANTLE,
-      borderRight: colors.SURFACE1,
+      bg: colors.BASE,
       borderBottom: colors.SURFACE1,
-      hoverBg: colors.SURFACE0,
+      hoverBg: colors.SURFACE1,
       active: {
-        border: colors.BLUE,
-        bg: colors.SURFACE1,
-        hoverBg: colors.SURFACE1
+        bg: colors.SURFACE0,
+        hoverBg: colors.SURFACE2
       }
     }
   },

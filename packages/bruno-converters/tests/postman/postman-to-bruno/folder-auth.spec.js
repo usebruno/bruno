@@ -49,7 +49,7 @@ describe('Folder Authentication', () => {
       ]
     };
 
-    const result = await postmanToBruno(postmanCollection);
+    const { collection: result } = await postmanToBruno(postmanCollection);
 
     expect(result.items[0].root.request.auth).toEqual({
       mode: 'inherit',
@@ -113,7 +113,7 @@ describe('Folder Authentication', () => {
       ]
     };
 
-    const result = await postmanToBruno(postmanCollection);
+    const { collection: result } = await postmanToBruno(postmanCollection);
 
     expect(result.items[0].root.request.auth).toEqual({
       mode: 'none',
@@ -174,7 +174,7 @@ describe('Folder Authentication', () => {
       ]
     };
 
-    const result = await postmanToBruno(postmanCollection);
+    const { collection: result } = await postmanToBruno(postmanCollection);
 
     expect(result.items[0].root.request.auth).toEqual({
       mode: 'basic',
@@ -233,7 +233,7 @@ describe('Folder Authentication', () => {
       ]
     };
 
-    const result = await postmanToBruno(postmanCollection);
+    const { collection: result } = await postmanToBruno(postmanCollection);
 
     expect(result.items[0].root.request.auth).toEqual({
       mode: 'bearer',
@@ -294,7 +294,7 @@ describe('Folder Authentication', () => {
       ]
     };
 
-    const result = await postmanToBruno(postmanCollection);
+    const { collection: result } = await postmanToBruno(postmanCollection);
 
     expect(result.items[0].root.request.auth).toEqual({
       mode: 'apikey',
@@ -360,7 +360,7 @@ describe('Folder Authentication', () => {
       ]
     };
 
-    const result = await postmanToBruno(postmanCollection);
+    const { collection: result } = await postmanToBruno(postmanCollection);
 
     expect(result.items[0].root.request.auth).toEqual({
       mode: 'digest',
@@ -410,7 +410,7 @@ describe('Folder Authentication', () => {
       ]
     };
 
-    const result = await postmanToBruno(postmanCollection);
+    const { collection: result } = await postmanToBruno(postmanCollection);
 
     expect(result.items[0].root.request.auth).toEqual({
       mode: 'basic',

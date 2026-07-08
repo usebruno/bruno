@@ -1,7 +1,7 @@
 import { test, expect } from '../../../playwright';
 import { closeAllCollections, createCollection } from '../../utils/page';
 
-test.describe('Draft indicator in collection and folder settings', () => {
+test.describe.serial('Draft indicator in collection and folder settings', () => {
   test.afterAll(async ({ page }) => {
     // cleanup: close all collections
     await closeAllCollections(page);
@@ -193,8 +193,7 @@ test.describe('Draft indicator in collection and folder settings', () => {
     const varNameInput = varRow.locator('input[type="text"]');
     await varNameInput.click();
     await varNameInput.fill('testVar');
-
-    const varValueEditor = varRow.locator('.CodeMirror');
+    const varValueEditor = varRow.getByTestId(/^test-multiline-editor-\d+\.value$/);
     await varValueEditor.click();
     await page.keyboard.type('testValue');
 
@@ -308,7 +307,7 @@ test.describe('Draft indicator in collection and folder settings', () => {
     await varNameInput.click();
     await varNameInput.fill('folderVar');
 
-    const folderVarValueEditor = varRow.locator('.CodeMirror');
+    const folderVarValueEditor = varRow.getByTestId(/^test-multiline-editor-\d+\.value$/);
     await folderVarValueEditor.click();
     await page.keyboard.type('folderValue');
 

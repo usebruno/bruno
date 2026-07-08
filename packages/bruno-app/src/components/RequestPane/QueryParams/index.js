@@ -13,6 +13,7 @@ import { updateTableColumnWidths } from 'providers/ReduxStore/slices/tabs';
 import MultiLineEditor from 'components/MultiLineEditor';
 import SingleLineEditor from 'components/SingleLineEditor';
 import EditableTable from 'components/EditableTable';
+import { createDescriptionColumn } from 'components/EditableTable/descriptionColumn';
 import StyledWrapper from './StyledWrapper';
 import BulkEditor from '../../BulkEditor';
 import { usePersistedState } from 'hooks/usePersistedState';
@@ -53,16 +54,21 @@ const QueryParams = ({ item, collection }) => {
     }));
   }, [dispatch, collection.uid, item.uid]);
 
-  const handlePathParamChange = useCallback((rowUid, key, value) => {
-    const pathParam = pathParams.find((p) => p.uid === rowUid);
-    if (pathParam) {
-      dispatch(updatePathParam({
-        pathParam: { ...pathParam, [key]: value },
-        itemUid: item.uid,
-        collectionUid: collection.uid
-      }));
-    }
-  }, [dispatch, pathParams, item.uid, collection.uid]);
+  const handlePathParamChange = useCallback(
+    (rowUid, key, value) => {
+      const pathParam = pathParams.find((p) => p.uid === rowUid);
+      if (pathParam) {
+        dispatch(
+          updatePathParam({
+            pathParam: { ...pathParam, [key]: value },
+            itemUid: item.uid,
+            collectionUid: collection.uid
+          })
+        );
+      }
+    },
+    [dispatch, pathParams, item.uid, collection.uid]
+  );
 
   const handleQueryParamDrag = useCallback(({ updateReorderedItem }) => {
     dispatch(moveQueryParam({
@@ -76,13 +82,30 @@ const QueryParams = ({ item, collection }) => {
     setIsBulkEditMode(!isBulkEditMode);
   };
 
+  const descriptionColumnQuery = createDescriptionColumn({
+    theme: storedTheme,
+    onSave,
+    onRun: handleRun,
+    collection,
+    item
+  });
+
+  const descriptionColumnPath = createDescriptionColumn({
+    theme: storedTheme,
+    onSave,
+    onRun: handleRun,
+    collection,
+    item,
+    onDescriptionChange: (newValue, { row }) => handlePathParamChange(row.uid, 'description', newValue)
+  });
+
   const queryColumns = [
     {
       key: 'name',
       name: 'Name',
       isKeyField: true,
       placeholder: 'Name',
-      width: '30%',
+      width: '20%',
       render: ({ value, onChange }) => (
         <SingleLineEditor
           value={value || ''}
@@ -95,6 +118,7 @@ const QueryParams = ({ item, collection }) => {
           placeholder={!value ? 'Name' : ''}
         />
       )
+      width: '20%'
     },
     {
       key: 'value',
@@ -113,7 +137,8 @@ const QueryParams = ({ item, collection }) => {
           placeholder={!value ? 'Value' : ''}
         />
       )
-    }
+    },
+    descriptionColumnQuery
   ];
 
   const pathColumns = [
@@ -121,7 +146,7 @@ const QueryParams = ({ item, collection }) => {
       key: 'name',
       name: 'Name',
       isKeyField: true,
-      width: '30%',
+      width: '20%',
       readOnly: true
     },
     {
@@ -139,7 +164,8 @@ const QueryParams = ({ item, collection }) => {
           item={item}
         />
       )
-    }
+    },
+    descriptionColumnPath
   ];
 
   const defaultQueryRow = {
@@ -166,9 +192,12 @@ const QueryParams = ({ item, collection }) => {
   return (
     <StyledWrapper className="w-full flex flex-col" ref={wrapperRef}>
       <div className="flex-1">
-        <div className="mb-3 title text-xs">Query</div>
+        <div className="mb-3 title text-xs">
+          <span>Query</span>
+        </div>
         <EditableTable
           tableId="query-params"
+          testId="query-params-table"
           columns={queryColumns}
           rows={queryParams || []}
           onChange={handleQueryParamsChange}
@@ -201,6 +230,7 @@ const QueryParams = ({ item, collection }) => {
         {pathParams && pathParams.length > 0 ? (
           <EditableTable
             tableId="path-params"
+            testId="path-params-table"
             columns={pathColumns}
             rows={pathParams}
             onChange={() => {}}

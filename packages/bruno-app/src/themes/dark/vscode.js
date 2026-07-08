@@ -85,6 +85,12 @@ const vscodeDarkTheme = {
     subtle: '#005a9e'
   },
 
+  ws: {
+    activeMessage: {
+      label: colors.BRAND_TEXT
+    }
+  },
+
   accents: {
     primary: colors.BRAND
   },
@@ -276,16 +282,14 @@ const vscodeDarkTheme = {
   },
 
   notifications: {
-    bg: colors.GRAY_3,
+    bg: colors.EDITOR_BG,
     list: {
-      bg: colors.GRAY_2,
-      borderRight: colors.BORDER,
+      bg: colors.EDITOR_BG,
       borderBottom: colors.BORDER,
-      hoverBg: colors.GRAY_3,
+      hoverBg: colors.GRAY_4,
       active: {
-        border: colors.BRAND,
         bg: colors.GRAY_3,
-        hoverBg: colors.GRAY_3
+        hoverBg: colors.GRAY_5
       }
     }
   },

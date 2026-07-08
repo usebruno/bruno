@@ -156,6 +156,7 @@ const MenuDropdown = forwardRef(({
             rightSection: option.rightSection,
             ariaLabel: option.ariaLabel,
             title: option.title,
+            submenu: option.submenu,
             groupStyle: groupStyle
           });
         });
@@ -393,6 +394,8 @@ const MenuDropdown = forwardRef(({
         <SubMenuItem
           key={item.id}
           item={item}
+          selectedItemId={selectedItemId}
+          showTickMark={showTickMark}
           onRootClose={() => updateOpenState(false)}
           submenuPlacement={submenuPlacement}
           getMenuItemProps={getMenuItemProps}
@@ -487,7 +490,7 @@ const MenuDropdown = forwardRef(({
     >
       <div {...(testId && { 'data-testid': testId + '-dropdown' })}>
         {header && (
-          <div className="dropdown-header-container" onClick={handleClickOutside}>
+          <div className="dropdown-header-container">
             {header}
             <div className="dropdown-divider"></div>
           </div>

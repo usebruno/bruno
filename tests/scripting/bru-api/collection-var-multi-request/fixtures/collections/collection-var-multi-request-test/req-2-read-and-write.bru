@@ -1,0 +1,31 @@
+meta {
+  name: req-2-read-and-write
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+script:post-response {
+  // Request 2 must observe request 1's setCollectionVar write. The electron-side
+  // applyCollectionVarsToCollectionRoot in sendVariableUpdates is what makes this
+  // visible — without it, mergeVars rebuilds request 2's collectionVariables from
+  // the original collection.root and req-2's read returns "0".
+  const prev = bru.getCollectionVar("counter");
+  bru.setCollectionVar("seenInReq2", prev);
+  bru.setCollectionVar("counter", "2");
+}
+
+tests {
+  test("request 2 observed request 1's collection-var write", function() {
+    expect(bru.getCollectionVar("seenInReq2")).to.equal("1");
+  });
+
+  test("request 2 wrote counter=2", function() {
+    expect(bru.getCollectionVar("counter")).to.equal("2");
+  });
+}
